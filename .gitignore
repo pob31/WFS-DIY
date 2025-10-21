@@ -14,6 +14,9 @@ Builds/**/DerivedData/
 *.userosscache
 *.sln.docstates
 *.userprefs
+*.db
+*.ipch
+.vs/
 
 # Xcode
 *.pbxuser
