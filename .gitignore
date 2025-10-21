@@ -28,7 +28,7 @@ Builds/**/DerivedData/
 DerivedData/
 build/
 
-# Android
+# Android (not used in this project)
 *.apk
 *.dex
 *.class

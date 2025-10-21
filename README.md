@@ -1,17 +1,17 @@
 # WFS-DIY
 
-A Wave Field Synthesis (WFS) DIY project built with JUCE framework.
+A Wave Field Synthesis WFS DIY project built with JUCE framework.
 
 ## Project Overview
 
-This project is based on the JUCE AudioSettingsDemo example and has been renamed and restructured for Wave Field Synthesis development.
+This project is based on the Cycling74's Max8 Prototype found at https://wfs-diy.net
 
 ## Features
 
 - Cross-platform audio device management
 - Real-time audio processing capabilities
 - JUCE framework integration
-- Multi-platform build support (Windows, macOS, iOS, Android, Linux)
+- Multi-platform build support (Windows, macOS, Linux)
 
 ## Building the Project
 
@@ -22,8 +22,6 @@ This project is based on the JUCE AudioSettingsDemo example and has been renamed
   - **Windows**: Visual Studio 2022 or later
   - **macOS**: Xcode with latest macOS SDK
   - **Linux**: GCC or Clang with development tools
-  - **Android**: Android Studio with NDK
-  - **iOS**: Xcode with iOS SDK
 
 ### Building
 
@@ -40,8 +38,6 @@ This project is based on the JUCE AudioSettingsDemo example and has been renamed
 
 - **Windows**: Open `Builds/VisualStudio2022/WFS-DIY.sln` in Visual Studio
 - **macOS**: Open `Builds/MacOSX/WFS-DIY.xcodeproj` in Xcode
-- **iOS**: Open `Builds/iOS/WFS-DIY.xcodeproj` in Xcode
-- **Android**: Import `Builds/Android/` folder in Android Studio
 - **Linux**: Use the generated Makefile in `Builds/LinuxMakefile/`
 
 ## Development
