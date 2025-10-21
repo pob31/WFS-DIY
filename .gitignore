@@ -1,0 +1,83 @@
+# Build outputs
+Builds/**/x64/
+Builds/**/Debug/
+Builds/**/Release/
+Builds/**/Intermediate/
+Builds/**/Binaries/
+Builds/**/DerivedData/
+
+# Visual Studio
+*.vcxproj.user
+*.vcxproj.filters
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.userprefs
+
+# Xcode
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+DerivedData/
+build/
+
+# Android
+*.apk
+*.dex
+*.class
+bin/
+gen/
+out/
+local.properties
+.gradle/
+build/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# JUCE specific
+JuceLibraryCode/
+*.jucer.bak
+
+# Keep important build files but ignore generated ones
+!Builds/**/CMakeLists.txt
+!Builds/**/*.pbxproj
+!Builds/**/*.sln
+!Builds/**/*.vcxproj
+!Builds/**/resources.rc
+!Builds/**/Info-App.plist
+!Builds/**/LaunchScreen.storyboard
+!Builds/**/settings.gradle
+!Builds/**/build.gradle
+!Builds/**/gradle.properties
+!Builds/**/AndroidManifest.xml
