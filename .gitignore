@@ -1,88 +1,73 @@
-# Build outputs
-Builds/**/x64/
-Builds/**/Debug/
-Builds/**/Release/
-Builds/**/Intermediate/
-Builds/**/Binaries/
-Builds/**/DerivedData/
+# Build outputs and artifacts
+Builds/*/x64/
+Builds/*/x86/
+Builds/*/Debug/
+Builds/*/Release/
+Builds/*/RelWithDebInfo/
+Builds/*/MinSizeRel/
 
-# Visual Studio
+# Compiled binaries
+*.exe
+*.dll
+*.so
+*.dylib
+*.app
+
+# Object files
+*.obj
+*.o
+*.lo
+*.slo
+
+# Debug symbols
+*.pdb
+*.ilk
+*.map
+
+# Build logs and temporary files
+*.log
+*.tlog
+*.recipe
+*.lastbuildstate
+*.FileListAbsolute.txt
+*.Build.CppClean.log
+
+# Visual Studio temporary files
 *.vcxproj.user
-*.vcxproj.filters
-*.user
 *.suo
+*.user
 *.userosscache
 *.sln.docstates
-*.userprefs
-*.db
-*.ipch
-.vs/
 
-# Xcode
+# Xcode temporary files
 *.pbxuser
 *.mode1v3
 *.mode2v3
 *.perspectivev3
 *.xcuserstate
-*.xcworkspace/xcuserdata/
-DerivedData/
-build/
+project.xcworkspace/
 
-# Android (not used in this project)
-*.apk
-*.dex
-*.class
-bin/
-gen/
-out/
-local.properties
-.gradle/
-build/
-google-services.json
-google-services.json.bak
+# CMake build files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
 
-# macOS
-.DS_Store
-.AppleDouble
-.LSOverride
-
-# Windows
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-$RECYCLE.BIN/
-
-# Linux
-*~
-.fuse_hidden*
-.directory
-.Trash-*
-.nfs*
-
-# IDE
+# IDE files
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
-# Temporary files
-*.tmp
-*.temp
-*.log
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
 # JUCE specific
-JuceLibraryCode/
-*.jucer.bak
-
-# Keep important build files but ignore generated ones
-!Builds/**/CMakeLists.txt
-!Builds/**/*.pbxproj
-!Builds/**/*.sln
-!Builds/**/*.vcxproj
-!Builds/**/resources.rc
-!Builds/**/Info-App.plist
-!Builds/**/LaunchScreen.storyboard
-!Builds/**/settings.gradle
-!Builds/**/build.gradle
-!Builds/**/gradle.properties
-!Builds/**/AndroidManifest.xml
+JuceLibraryCode/Builds/
