@@ -1,0 +1,84 @@
+# Build outputs and artifacts
+Builds/*/x64/
+Builds/*/x86/
+Builds/*/Debug/
+Builds/*/Release/
+Builds/*/RelWithDebInfo/
+Builds/*/MinSizeRel/
+
+# Compiled binaries
+*.exe
+*.dll
+*.so
+*.dylib
+*.app
+
+# Object files
+*.obj
+*.o
+*.lo
+*.slo
+
+# Debug symbols
+*.pdb
+*.ilk
+*.map
+
+# Build logs and temporary files
+*.log
+*.tlog
+*.recipe
+*.lastbuildstate
+*.FileListAbsolute.txt
+*.Build.CppClean.log
+
+# Visual Studio temporary files
+*.vcxproj.user
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Visual Studio cache and temporary directories
+.vs/
+.vscode/
+
+# Visual Studio build outputs (already covered by general patterns above)
+Builds/*/x64/
+Builds/*/x86/
+Builds/*/Debug/
+Builds/*/Release/
+
+# Xcode temporary files
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.xcuserstate
+project.xcworkspace/
+
+# CMake build files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# JUCE specific
+JuceLibraryCode/
+JuceLibraryCode/Builds/
