@@ -100,25 +100,54 @@ The WFS-DIY project is a JUCE-based implementation of Wave Field Synthesis (WFS)
 
 ## 5. Implementation Phases
 
-### Phase 1: Foundation
-- Basic JUCE application structure
-- Audio device management
-- Basic UI framework
+### Phase 1: Basic WFS Implementation
+**Goal**: Establish core audio processing with basic distance calculations
 
-### Phase 2: Core WFS
-- WFS algorithm implementation
+**Core Features**:
+- Basic JUCE application structure with audio device management
+- Few inputs and outputs (4-8 channels to start)
+- Basic distance calculations (source → speaker)
+- CPU audio engine (scalar implementation)
+- Basic OSC control for position updates
+- Real-time parameter updates (smooth changes)
+
+**Additional Features**:
+- Parameter persistence (save/load configurations)
+- Basic monitoring (CPU usage, latency, audio levels)
+- Simple UI (speaker/source position editors, mute controls)
+- Error handling (device management, parameter validation)
+
+**Success Criteria**:
+- Audio processing works without artifacts
+- Real-time parameter updates are smooth
+- OSC control responds correctly
+- Performance meets sub-3ms target
+- Configuration can be saved/loaded
+
+### Phase 2: Enhanced WFS Features
+- Dead angle filtering system
+- Level attenuation models (linear + inverse square)
+- High frequency damping
 - Speaker array management
-- Basic parameter controls
-
-### Phase 3: Advanced Features
-- Source positioning and movement
 - Advanced parameter controls
-- Preset management
 
-### Phase 4: Polish & Optimization
+### Phase 3: Psychoacoustic Enhancements
+- Reflections processing (floor reflections)
+- Live source damping system
+- Motion control and Doppler management
+- Advanced UI and visualization
+
+### Phase 4: Multi-Backend Architecture
+- CPU optimization (AVX2/AVX512 backends)
+- GPU-Audio SDK integration
+- Intelligent processing routing
 - Performance optimization
-- UI/UX improvements
-- Cross-platform testing
+
+### Phase 5: Advanced Features
+- Effects channels with virtual positioning
+- Pseudoacoustic reverb system
+- Clustering inputs
+- Plugin support and advanced integrations
 
 ---
 
