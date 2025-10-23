@@ -33,17 +33,24 @@ The WFS-DIY project is a JUCE-based implementation of Wave Field Synthesis (WFS)
 
 ### 2.1 Core Functionality
 - **Real-time Audio Processing**: Low-latency audio I/O and processing
-- **WFS Algorithm Implementation**: Accurate wave field synthesis calculations
-- **Speaker Array Management**: Support for various speaker configurations
-- **Audio Source Positioning**: Virtual source placement and movement
-- **Parameter Control**: Real-time adjustment of WFS parameters
+- **Psychoacoustic WFS Algorithm**: Triangle-based calculations optimized for human hearing
+- **Speaker Array Management**: Support for various speaker configurations (frontal, suspended, surround)
+- **Audio Source Positioning**: Virtual source placement and movement with dead angle filtering
+- **Parameter Control**: Real-time adjustment of WFS parameters with visual on-site tuning
+- **Latency Compensation**: Global and per-channel delay compensation for signal path
+- **Array Management**: Speaker grouping, macro controls, and shared parameters
+- **Scalable I/O**: Up to 64 inputs and 128 outputs (adjustable based on resources)
+- **Effects Processing**: Up to 16 reverb channels and 16 effects channels (adjustable)
+- **Reflections Processing**: Floor reflections with mirror source calculations (expandable to multiple surfaces)
+- **Pseudoacoustic Enhancement**: Decorrelated jitter for natural sound character
 
 ### 2.2 Performance Requirements
-- **Latency**: < 3ms processing time for acoustic sound reinforcement
-- **Sample Rate**: Primary target 96kHz (with support for 44.1kHz, 48kHz, 192kHz)
+- **Latency**: < 3ms processing time for acoustic sound reinforcement (adjustable)
+- **Sample Rate**: Primary target 96kHz (adjustable: 44.1kHz, 48kHz, 96kHz, 192kHz)
 - **CPU Usage**: Optimized for available computing power
 - **Memory**: Efficient memory management for real-time processing
 - **Real-time**: Must maintain consistent low latency for live applications
+- **Scalability**: Adjustable based on setup and available processing power
 
 ### 2.3 Platform Requirements
 - **Windows**: Windows 10/11, Visual Studio 2022+
@@ -71,18 +78,23 @@ The WFS-DIY project is a JUCE-based implementation of Wave Field Synthesis (WFS)
 ## 4. Technical Architecture
 
 ### 4.1 Core Components
-- **Audio Engine**: Real-time audio processing pipeline
-- **WFS Processor**: Core wave field synthesis algorithms
-- **UI Controller**: User interface and parameter management
-- **Audio Device Manager**: Audio I/O handling
+- **Audio Engine**: Real-time audio processing pipeline with multi-backend support
+- **Psychoacoustic WFS Processor**: Triangle-based calculations with dead angle filtering
+- **Speaker Array Manager**: Flexible speaker positioning and array management
+- **Latency Compensation System**: Global and per-channel delay management
+- **UI Controller**: User interface with visual on-site tuning capabilities
+- **Audio Device Manager**: Audio I/O handling for multichannel setups
 - **Configuration Manager**: Preset and settings management
 
 ### 4.2 Data Flow
 1. Audio input → Audio Engine
-2. Audio Engine → WFS Processor
-3. WFS Processor → Speaker Array Output
-4. UI Controls → Parameter Updates
-5. Parameter Updates → WFS Processor
+2. Audio Engine → Psychoacoustic WFS Processor
+3. Dead angle filtering → Active speaker selection
+4. Triangle calculations → Delay compensation
+5. WFS Processor → Speaker Array Output
+6. UI Controls → Parameter Updates (visual on-site tuning)
+7. Parameter Updates → WFS Processor
+8. Array Management → Speaker grouping and macro controls
 
 ---
 
