@@ -3,7 +3,7 @@
 //==============================================================================
 MainComponent::MainComponent()
 {
-    // Load saved channel counts only (don't apply audio settings yet)
+    // Load saved channel counts and device state
     juce::PropertiesFile::Options options;
     options.applicationName = "WFS-DIY";
     options.filenameSuffix = ".settings";
@@ -13,26 +13,15 @@ MainComponent::MainComponent()
 
     juce::PropertiesFile props(options);
 
-    // Clear any old audio device settings that might cause issues (only once)
-    if (!props.getBoolValue("settingsCleaned", false))
-    {
-        props.removeValue("audioDeviceType");
-        props.removeValue("outputDeviceName");
-        props.removeValue("inputDeviceName");
-        props.removeValue("sampleRate");
-        props.removeValue("bufferSize");
-        props.removeValue("inputChannels");
-        props.removeValue("outputChannels");
-        props.setValue("settingsCleaned", true);
-        props.saveIfNeeded();
-        DBG("Cleared old audio settings");
-    }
-
-    // Load only channel counts
+    // Load channel counts
     numInputChannels = props.getIntValue("numInputChannels", 4);
     numOutputChannels = props.getIntValue("numOutputChannels", 4);
     numInputChannels = juce::jlimit(2, 64, numInputChannels);
     numOutputChannels = juce::jlimit(2, 64, numOutputChannels);
+
+    // Load saved device type and name
+    juce::String savedDeviceType = props.getValue("audioDeviceType");
+    juce::String savedDeviceName = props.getValue("audioDeviceName");
 
     // Create audio device selector
     audioSetupComp.reset(new juce::AudioDeviceSelectorComponent(
@@ -51,26 +40,21 @@ MainComponent::MainComponent()
     processingToggle.setToggleState(false, juce::dontSendNotification);
     processingToggle.onClick = [this]() {
         processingEnabled = processingToggle.getToggleState();
-        DBG("Processing toggle clicked - enabled: " + juce::String(processingEnabled ? "true" : "false"));
 
         if (processingEnabled && !audioEngineStarted)
         {
             // Start audio engine on first activation
-            DBG("Starting audio engine...");
             startAudioEngine();
-            DBG("Audio engine started. Processors: " + juce::String(inputProcessors.size()));
         }
         else if (processingEnabled && audioEngineStarted)
         {
             // Just enable existing processors
-            DBG("Enabling existing processors");
             for (auto& processor : inputProcessors)
                 processor->setProcessingEnabled(processingEnabled);
         }
         else
         {
             // Disable processing
-            DBG("Disabling processors");
             for (auto& processor : inputProcessors)
                 processor->setProcessingEnabled(processingEnabled);
         }
@@ -115,31 +99,79 @@ MainComponent::MainComponent()
     // you add any child components.
     setSize (800, 600);
 
-    // Initialize audio - this connects AudioAppComponent to receive callbacks
-    // We need this to get getNextAudioBlock called
-    setAudioChannels (numInputChannels, numOutputChannels);
+    // Always initialize audio with default device first
+    setAudioChannels(numInputChannels, numOutputChannels);
+
+    // Then restore saved device asynchronously
+    if (savedDeviceType.isNotEmpty())
+    {
+        juce::MessageManager::callAsync([this, savedDeviceType, savedDeviceName]()
+        {
+            deviceManager.setCurrentAudioDeviceType(savedDeviceType, true);
+
+            if (savedDeviceName.isNotEmpty())
+            {
+                juce::AudioDeviceManager::AudioDeviceSetup setup;
+                deviceManager.getAudioDeviceSetup(setup);
+                setup.outputDeviceName = savedDeviceName;
+                setup.inputDeviceName = savedDeviceName;
+
+                juce::String error = deviceManager.setAudioDeviceSetup(setup, true);
+                if (error.isEmpty())
+                {
+                    // Update the last saved values to match the restored device
+                    lastSavedDeviceType = savedDeviceType;
+                    lastSavedDeviceName = savedDeviceName;
+                }
+                else
+                {
+                    DBG("Failed to restore ASIO device: " + error);
+                    DBG("The device may be locked from a previous session or in use by another application");
+                    DBG("Falling back to Windows Audio");
+
+                    // Fall back to Windows Audio if ASIO fails
+                    deviceManager.setCurrentAudioDeviceType("Windows Audio", true);
+
+                    // Reinitialize with the fallback device
+                    shutdownAudio();
+                    setAudioChannels(numInputChannels, numOutputChannels);
+
+                    // Update tracking variables to prevent saving the failed state
+                    lastSavedDeviceType = deviceManager.getCurrentAudioDeviceType();
+                    if (auto* device = deviceManager.getCurrentAudioDevice())
+                        lastSavedDeviceName = device->getName();
+                }
+            }
+        });
+    }
+
+    // Start timer to monitor device changes
+    lastSavedDeviceType = deviceManager.getCurrentAudioDeviceType();
+    if (auto* device = deviceManager.getCurrentAudioDevice())
+        lastSavedDeviceName = device->getName();
+    startTimer(1000); // Check every second for device changes
 }
 
 MainComponent::~MainComponent()
 {
-    // Save settings before shutdown
+    // Stop timer
+    stopTimer();
+
+    // Save settings before shutdown (while device is still available)
     saveSettings();
 
-    // Stop all processing threads before shutting down audio
-    inputProcessors.clear();
-
-    // This shuts down the audio device and clears the audio source.
+    // Shutdown audio device first (this stops the audio callbacks)
     shutdownAudio();
+
+    // Now safe to clear processing threads (audio callbacks no longer running)
+    inputProcessors.clear();
 }
 
 //==============================================================================
 void MainComponent::startAudioEngine()
 {
     if (audioEngineStarted)
-    {
-        DBG("Audio engine already started");
         return;
-    }
 
     // Get current audio settings
     auto* device = deviceManager.getCurrentAudioDevice();
@@ -149,15 +181,8 @@ void MainComponent::startAudioEngine()
         return;
     }
 
-    DBG("Audio device: " + device->getName());
-    DBG("Audio device is active: " + juce::String(device->isOpen() ? "true" : "false"));
-    DBG("Audio device is playing: " + juce::String(device->isPlaying() ? "true" : "false"));
-
     double sampleRate = device->getCurrentSampleRate();
     int blockSize = device->getCurrentBufferSizeSamples();
-
-    DBG("Starting audio engine with SR: " + juce::String(sampleRate) + " BS: " + juce::String(blockSize));
-    DBG("Creating " + juce::String(numInputChannels) + " input processors with " + juce::String(numOutputChannels) + " outputs each");
 
     // Create and prepare input processors (one thread per input channel)
     for (int i = 0; i < numInputChannels; ++i)
@@ -165,7 +190,6 @@ void MainComponent::startAudioEngine()
         auto processor = std::make_unique<InputProcessor>(i, numOutputChannels);
         processor->prepare(sampleRate, blockSize);
         inputProcessors.push_back(std::move(processor));
-        DBG("Created processor " + juce::String(i));
     }
 
     audioEngineStarted = true;
@@ -175,10 +199,7 @@ void MainComponent::startAudioEngine()
     {
         inputProcessors[i]->setProcessingEnabled(processingEnabled);
         inputProcessors[i]->startThread(juce::Thread::Priority::high);
-        DBG("Started thread for processor " + juce::String(i));
     }
-
-    DBG("Audio engine fully initialized");
 }
 
 void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRate)
@@ -186,12 +207,9 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
     // This function will be called when the audio device is started, or when
     // its settings (i.e. sample rate, block size, etc) are changed.
 
-    DBG("prepareToPlay called - SR: " + juce::String(sampleRate) + " BS: " + juce::String(samplesPerBlockExpected));
-
     // If audio engine was already started, update processor settings
     if (audioEngineStarted)
     {
-        DBG("Audio engine already started, updating settings");
         // Stop threads first
         for (auto& processor : inputProcessors)
         {
@@ -206,10 +224,6 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
             processor->startThread(juce::Thread::Priority::high);
         }
     }
-    else
-    {
-        DBG("Audio engine not started yet");
-    }
 }
 
 void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill)
@@ -217,14 +231,6 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
     // Get buffer info
     auto totalChannels = bufferToFill.buffer->getNumChannels();
     auto numSamples = bufferToFill.numSamples;
-
-    static int callCount = 0;
-    if (callCount++ < 5)
-    {
-        DBG("getNextAudioBlock called - channels: " + juce::String(totalChannels) +
-            " samples: " + juce::String(numSamples) +
-            " engineStarted: " + (audioEngineStarted ? "true" : "false"));
-    }
 
     // Safety check: ensure processors are initialized
     if (inputProcessors.empty() || !audioEngineStarted)
@@ -341,10 +347,43 @@ void MainComponent::saveSettings()
 
     juce::PropertiesFile props(options);
 
-    // Save only channel counts (not audio device settings)
+    // Save channel counts
     props.setValue("numInputChannels", numInputChannels);
     props.setValue("numOutputChannels", numOutputChannels);
 
+    // Save audio device type and name
+    juce::String currentDeviceType = deviceManager.getCurrentAudioDeviceType();
+    if (currentDeviceType.isNotEmpty())
+    {
+        props.setValue("audioDeviceType", currentDeviceType);
+    }
+
+    if (auto* device = deviceManager.getCurrentAudioDevice())
+    {
+        juce::String deviceName = device->getName();
+        if (deviceName.isNotEmpty())
+            props.setValue("audioDeviceName", deviceName);
+    }
+
     props.saveIfNeeded();
+}
+
+void MainComponent::timerCallback()
+{
+    // Check if device type or device name has changed
+    juce::String currentDeviceType = deviceManager.getCurrentAudioDeviceType();
+    juce::String currentDeviceName;
+    if (auto* device = deviceManager.getCurrentAudioDevice())
+        currentDeviceName = device->getName();
+
+    bool typeChanged = (currentDeviceType != lastSavedDeviceType && currentDeviceType.isNotEmpty());
+    bool nameChanged = (currentDeviceName != lastSavedDeviceName && currentDeviceName.isNotEmpty());
+
+    if (typeChanged || nameChanged)
+    {
+        lastSavedDeviceType = currentDeviceType;
+        lastSavedDeviceName = currentDeviceName;
+        saveSettings();
+    }
 }
 

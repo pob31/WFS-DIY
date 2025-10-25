@@ -8,7 +8,8 @@
     This component lives inside our window, and this is where you should put all
     your controls and content.
 */
-class MainComponent  : public juce::AudioAppComponent
+class MainComponent  : public juce::AudioAppComponent,
+                         private juce::Timer
 {
 public:
     //==============================================================================
@@ -26,6 +27,7 @@ public:
 
     void startAudioEngine();
     void saveSettings();
+    void timerCallback() override;
 
 private:
     //==============================================================================
@@ -44,6 +46,10 @@ private:
     std::vector<std::unique_ptr<InputProcessor>> inputProcessors;
     bool processingEnabled = false;
     bool audioEngineStarted = false;
+
+    // Track device type and device name changes
+    juce::String lastSavedDeviceType;
+    juce::String lastSavedDeviceName;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };
