@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "InputProcessor.h"
 
 //==============================================================================
 /*
@@ -23,18 +24,26 @@ public:
     void paint (juce::Graphics& g) override;
     void resized() override;
 
+    void startAudioEngine();
+    void saveSettings();
+
 private:
     //==============================================================================
     // Your private member variables go here...
     std::unique_ptr<juce::AudioDeviceSelectorComponent> audioSetupComp;
     juce::ToggleButton processingToggle;
 
-    // Delay buffers - 1 second circular buffers for each channel
-    juce::AudioBuffer<float> delayBuffer;
-    int delayBufferLength = 0;
-    int writePosition = 0;
-    double currentSampleRate = 0.0;
+    juce::Label numInputsLabel;
+    juce::Label numOutputsLabel;
+    juce::Slider numInputsSlider;
+    juce::Slider numOutputsSlider;
+
+    // Threaded processing architecture
+    int numInputChannels = 4;
+    int numOutputChannels = 4;
+    std::vector<std::unique_ptr<InputProcessor>> inputProcessors;
     bool processingEnabled = false;
+    bool audioEngineStarted = false;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };
