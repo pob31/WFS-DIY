@@ -9,11 +9,11 @@
     Processes a single input channel with delay lines outputting to multiple channels.
     Runs on its own thread for parallel processing.
 */
-class InputProcessor : public juce::Thread
+class InputBufferProcessor : public juce::Thread
 {
 public:
-    InputProcessor(int inputIndex, int numOutputs, const float* delayTimesPtr, const float* levelsPtr)
-        : juce::Thread("InputProcessor_" + juce::String(inputIndex)),
+    InputBufferProcessor(int inputIndex, int numOutputs, const float* delayTimesPtr, const float* levelsPtr)
+        : juce::Thread("InputBufferProcessor_" + juce::String(inputIndex)),
           inputChannelIndex(inputIndex),
           numOutputChannels(numOutputs),
           sharedDelayTimes(delayTimesPtr),
@@ -24,7 +24,7 @@ public:
             outputBuffers.emplace_back(std::make_unique<LockFreeRingBuffer>());
     }
 
-    ~InputProcessor() override
+    ~InputBufferProcessor() override
     {
         stopThread(1000);
     }
@@ -272,5 +272,5 @@ private:
     const float* sharedDelayTimes;  // delays[inputChannel * numOutputs + outputChannel]
     const float* sharedLevels;      // levels[inputChannel * numOutputs + outputChannel]
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(InputProcessor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(InputBufferProcessor)
 };

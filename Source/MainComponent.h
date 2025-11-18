@@ -1,7 +1,8 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "InputProcessor.h"
+#include "InputBufferProcessor.h"
+#include "OutputBufferProcessor.h"
 
 //==============================================================================
 /*
@@ -46,10 +47,21 @@ private:
     juce::Slider numInputsSlider;
     juce::Slider numOutputsSlider;
 
+    juce::Label algorithmLabel;
+    juce::ComboBox algorithmSelector;
+
     // Threaded processing architecture
+    enum class ProcessingAlgorithm
+    {
+        InputBuffer,   // Read-time delays (current/original approach)
+        OutputBuffer   // Write-time delays (alternative approach)
+    };
+
+    ProcessingAlgorithm currentAlgorithm = ProcessingAlgorithm::InputBuffer;
     int numInputChannels = 4;
     int numOutputChannels = 4;
-    std::vector<std::unique_ptr<InputProcessor>> inputProcessors;
+    std::vector<std::unique_ptr<InputBufferProcessor>> inputProcessors;
+    std::vector<std::unique_ptr<OutputBufferProcessor>> outputProcessors;
     bool processingEnabled = false;
     bool audioEngineStarted = false;
 
@@ -58,11 +70,16 @@ private:
     // Gain matrix: levels[inputChannel * numOutputChannels + outputChannel]
     std::vector<float> levels;
 
-    // Random generator with exponential smoothing (temporary for testing)
-    std::vector<float> targetDelayTimesMs;
-    std::vector<float> targetLevels;
-    float smoothingFactor = 0.22f;  // ~20ms settling time with 5ms updates
+    // Random generator with ramping and exponential smoothing (temporary for testing)
+    std::vector<float> targetDelayTimesMs;      // Current ramp targets (updated every tick)
+    std::vector<float> targetLevels;            // Current ramp targets (updated every tick)
+    std::vector<float> finalTargetDelayTimesMs; // Final destination for 1-second ramp
+    std::vector<float> finalTargetLevels;       // Final destination for 1-second ramp
+    std::vector<float> startDelayTimesMs;       // Starting values for 1-second ramp
+    std::vector<float> startLevels;             // Starting values for 1-second ramp
+    float smoothingFactor = 0.22f;              // ~20ms settling time with 5ms updates
     int timerTicksSinceLastRandom = 0;
+    const int rampDurationTicks = 200;          // 1 second at 5ms per tick
     juce::Random random;
 
     // Track device type and device name changes

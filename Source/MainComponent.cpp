@@ -25,6 +25,10 @@ MainComponent::MainComponent()
     levels.resize(matrixSize);
     targetDelayTimesMs.resize(matrixSize);
     targetLevels.resize(matrixSize);
+    finalTargetDelayTimesMs.resize(matrixSize);
+    finalTargetLevels.resize(matrixSize);
+    startDelayTimesMs.resize(matrixSize);
+    startLevels.resize(matrixSize);
 
     for (int inCh = 0; inCh < numInputChannels; ++inCh)
     {
@@ -34,9 +38,14 @@ MainComponent::MainComponent()
             // Initialize with random values
             delayTimesMs[idx] = random.nextFloat() * 1000.0f;  // 0-1000ms
             levels[idx] = random.nextFloat();  // 0-1
-            // Targets start at same values (no initial smoothing)
+            // Initialize all target/ramp values
             targetDelayTimesMs[idx] = delayTimesMs[idx];
             targetLevels[idx] = levels[idx];
+            startDelayTimesMs[idx] = delayTimesMs[idx];
+            startLevels[idx] = levels[idx];
+            // Generate initial final targets for first ramp
+            finalTargetDelayTimesMs[idx] = random.nextFloat() * 1000.0f;
+            finalTargetLevels[idx] = random.nextFloat();
         }
     }
 
@@ -70,19 +79,36 @@ MainComponent::MainComponent()
         else if (processingEnabled && audioEngineStarted)
         {
             // Just enable existing processors
-            for (auto& processor : inputProcessors)
-                processor->setProcessingEnabled(processingEnabled);
+            if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
+            {
+                for (auto& processor : inputProcessors)
+                    processor->setProcessingEnabled(processingEnabled);
+            }
+            else
+            {
+                for (auto& processor : outputProcessors)
+                    processor->setProcessingEnabled(processingEnabled);
+            }
         }
         else
         {
             // Disable processing
-            for (auto& processor : inputProcessors)
-                processor->setProcessingEnabled(processingEnabled);
+            if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
+            {
+                for (auto& processor : inputProcessors)
+                    processor->setProcessingEnabled(processingEnabled);
+            }
+            else
+            {
+                for (auto& processor : outputProcessors)
+                    processor->setProcessingEnabled(processingEnabled);
+            }
         }
 
-        // Enable/disable channel count controls
+        // Enable/disable channel count controls and algorithm selector
         numInputsSlider.setEnabled(!processingEnabled);
         numOutputsSlider.setEnabled(!processingEnabled);
+        algorithmSelector.setEnabled(!processingEnabled);
     };
     addAndMakeVisible(processingToggle);
 
@@ -115,6 +141,66 @@ MainComponent::MainComponent()
         saveSettings();
     };
     addAndMakeVisible(numOutputsSlider);
+
+    // Create algorithm selector
+    algorithmLabel.setText("Algorithm:", juce::dontSendNotification);
+    algorithmLabel.setJustificationType(juce::Justification::centredRight);
+    addAndMakeVisible(algorithmLabel);
+
+    algorithmSelector.addItem("InputBuffer (read-time delays)", 1);
+    algorithmSelector.addItem("OutputBuffer (write-time delays)", 2);
+    algorithmSelector.setSelectedId(1, juce::dontSendNotification);
+    algorithmSelector.onChange = [this]() {
+        int selectedId = algorithmSelector.getSelectedId();
+        ProcessingAlgorithm newAlgorithm = (selectedId == 1) ? ProcessingAlgorithm::InputBuffer
+                                                              : ProcessingAlgorithm::OutputBuffer;
+
+        // Only act if algorithm actually changed
+        if (newAlgorithm != currentAlgorithm)
+        {
+            // If audio engine is running, clean up old processors
+            if (audioEngineStarted)
+            {
+                // Remember if processing was enabled
+                bool wasEnabled = processingEnabled;
+                processingEnabled = false;
+
+                // Clear old processors based on CURRENT algorithm
+                if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
+                {
+                    for (auto& processor : inputProcessors)
+                        processor->stopThread(1000);
+                    inputProcessors.clear();
+                }
+                else
+                {
+                    for (auto& processor : outputProcessors)
+                        processor->stopThread(1000);
+                    outputProcessors.clear();
+                }
+
+                // Mark engine as not started (processors cleared)
+                audioEngineStarted = false;
+
+                // Update to new algorithm
+                currentAlgorithm = newAlgorithm;
+
+                // Restart with new algorithm if processing was enabled
+                if (wasEnabled)
+                {
+                    startAudioEngine();
+                    processingEnabled = true;
+                    processingToggle.setToggleState(true, juce::dontSendNotification);
+                }
+            }
+            else
+            {
+                // Engine not running, just update the algorithm
+                currentAlgorithm = newAlgorithm;
+            }
+        }
+    };
+    addAndMakeVisible(algorithmSelector);
 
     // Make sure you set the size of the component after
     // you add any child components.
@@ -186,6 +272,7 @@ MainComponent::~MainComponent()
 
     // Now safe to clear processing threads (audio callbacks no longer running)
     inputProcessors.clear();
+    outputProcessors.clear();
 }
 
 //==============================================================================
@@ -205,25 +292,48 @@ void MainComponent::startAudioEngine()
     double sampleRate = device->getCurrentSampleRate();
     int blockSize = device->getCurrentBufferSizeSamples();
 
-    // Create and prepare input processors (one thread per input channel)
-    // Pass pointers to the shared routing matrices
-    for (int i = 0; i < numInputChannels; ++i)
+    if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
     {
-        auto processor = std::make_unique<InputProcessor>(i, numOutputChannels,
-                                                          delayTimesMs.data(),
-                                                          levels.data());
-        processor->prepare(sampleRate, blockSize);
-        inputProcessors.push_back(std::move(processor));
+        // Create input-based processors (one thread per input channel)
+        // Read-time delays: delay calculation happens when generating outputs
+        for (int i = 0; i < numInputChannels; ++i)
+        {
+            auto processor = std::make_unique<InputBufferProcessor>(i, numOutputChannels,
+                                                                     delayTimesMs.data(),
+                                                                     levels.data());
+            processor->prepare(sampleRate, blockSize);
+            inputProcessors.push_back(std::move(processor));
+        }
+
+        // Start threads AFTER all processors are created and prepared
+        for (auto& processor : inputProcessors)
+        {
+            processor->setProcessingEnabled(processingEnabled);
+            processor->startThread(juce::Thread::Priority::high);
+        }
+    }
+    else // ProcessingAlgorithm::OutputBuffer
+    {
+        // Create output-based processors (one thread per output channel)
+        // Write-time delays: delay calculation happens when input arrives
+        for (int i = 0; i < numOutputChannels; ++i)
+        {
+            auto processor = std::make_unique<OutputBufferProcessor>(i, numInputChannels, numOutputChannels,
+                                                                      delayTimesMs.data(),
+                                                                      levels.data());
+            processor->prepare(sampleRate, blockSize);
+            outputProcessors.push_back(std::move(processor));
+        }
+
+        // Start threads AFTER all processors are created and prepared
+        for (auto& processor : outputProcessors)
+        {
+            processor->setProcessingEnabled(processingEnabled);
+            processor->startThread(juce::Thread::Priority::high);
+        }
     }
 
     audioEngineStarted = true;
-
-    // Start threads AFTER all processors are created and prepared
-    for (int i = 0; i < inputProcessors.size(); ++i)
-    {
-        inputProcessors[i]->setProcessingEnabled(processingEnabled);
-        inputProcessors[i]->startThread(juce::Thread::Priority::high);
-    }
 }
 
 void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRate)
@@ -234,18 +344,33 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
     // If audio engine was already started, update processor settings
     if (audioEngineStarted)
     {
-        // Stop threads first
-        for (auto& processor : inputProcessors)
+        if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
         {
-            processor->stopThread(1000);
-        }
+            // Stop threads first
+            for (auto& processor : inputProcessors)
+                processor->stopThread(1000);
 
-        // Re-prepare and restart
-        for (auto& processor : inputProcessors)
+            // Re-prepare and restart
+            for (auto& processor : inputProcessors)
+            {
+                processor->prepare(sampleRate, samplesPerBlockExpected);
+                processor->setProcessingEnabled(processingEnabled);
+                processor->startThread(juce::Thread::Priority::high);
+            }
+        }
+        else // OutputBuffer
         {
-            processor->prepare(sampleRate, samplesPerBlockExpected);
-            processor->setProcessingEnabled(processingEnabled);
-            processor->startThread(juce::Thread::Priority::high);
+            // Stop threads first
+            for (auto& processor : outputProcessors)
+                processor->stopThread(1000);
+
+            // Re-prepare and restart
+            for (auto& processor : outputProcessors)
+            {
+                processor->prepare(sampleRate, samplesPerBlockExpected);
+                processor->setProcessingEnabled(processingEnabled);
+                processor->startThread(juce::Thread::Priority::high);
+            }
         }
     }
 }
@@ -257,52 +382,101 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
     auto numSamples = bufferToFill.numSamples;
 
     // Safety check: ensure processors are initialized
-    if (inputProcessors.empty() || !audioEngineStarted)
+    if (!audioEngineStarted)
     {
         bufferToFill.clearActiveBufferRegion();
         return;
     }
 
-    // Determine actual available channels (min of what we expect and what we have)
-    auto numChannels = juce::jmin(numInputChannels, totalChannels, (int)inputProcessors.size());
-
-    // Step 1: Distribute input data to each input processor thread
-    for (int inChannel = 0; inChannel < numChannels; ++inChannel)
+    if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
     {
-        if (inputProcessors[inChannel] != nullptr && inChannel < totalChannels)
+        // InputBuffer algorithm: one processor per input
+        if (inputProcessors.empty())
         {
-            auto* inputData = bufferToFill.buffer->getReadPointer(inChannel, bufferToFill.startSample);
-            inputProcessors[inChannel]->pushInput(inputData, numSamples);
+            bufferToFill.clearActiveBufferRegion();
+            return;
+        }
+
+        // Determine actual available channels
+        auto numChannels = juce::jmin(numInputChannels, totalChannels, (int)inputProcessors.size());
+
+        // Step 1: Distribute input data to each input processor thread
+        for (int inChannel = 0; inChannel < numChannels; ++inChannel)
+        {
+            if (inputProcessors[inChannel] != nullptr && inChannel < totalChannels)
+            {
+                auto* inputData = bufferToFill.buffer->getReadPointer(inChannel, bufferToFill.startSample);
+                inputProcessors[inChannel]->pushInput(inputData, numSamples);
+            }
+        }
+
+        // Step 2: Clear output buffer
+        bufferToFill.clearActiveBufferRegion();
+
+        // Step 3: Sum outputs from all input processors to output channels
+        juce::AudioBuffer<float> tempBuffer(1, numSamples);
+
+        for (int inChannel = 0; inChannel < numChannels; ++inChannel)
+        {
+            if (inputProcessors[inChannel] == nullptr)
+                continue;
+
+            // Loop over all output channels (not limited by input count)
+            int numOutputs = juce::jmin(numOutputChannels, totalChannels);
+            for (int outChannel = 0; outChannel < numOutputs; ++outChannel)
+            {
+                auto* outputData = bufferToFill.buffer->getWritePointer(outChannel, bufferToFill.startSample);
+                auto* tempData = tempBuffer.getWritePointer(0);
+
+                // Pull processed data from this input processor for this output channel
+                int samplesRead = inputProcessors[inChannel]->pullOutput(outChannel, tempData, numSamples);
+
+                // Sum into output channel
+                for (int i = 0; i < samplesRead; ++i)
+                {
+                    outputData[i] += tempData[i];
+                }
+            }
         }
     }
-
-    // Step 2: Clear output buffer
-    bufferToFill.clearActiveBufferRegion();
-
-    // Step 3: Sum outputs from all input processors to output channels
-    juce::AudioBuffer<float> tempBuffer(1, numSamples);
-
-    for (int inChannel = 0; inChannel < numChannels; ++inChannel)
+    else // ProcessingAlgorithm::OutputBuffer
     {
-        if (inputProcessors[inChannel] == nullptr)
-            continue;
+        // OutputBuffer algorithm: one processor per output
+        if (outputProcessors.empty())
+        {
+            bufferToFill.clearActiveBufferRegion();
+            return;
+        }
 
-        // Loop over all output channels (not limited by input count)
-        int numOutputs = juce::jmin(numOutputChannels, totalChannels);
+        // Determine actual available channels
+        auto numChannels = juce::jmin(numInputChannels, totalChannels);
+
+        // Step 1: Distribute input data to all output processors
+        for (int inChannel = 0; inChannel < numChannels; ++inChannel)
+        {
+            auto* inputData = bufferToFill.buffer->getReadPointer(inChannel, bufferToFill.startSample);
+
+            // Send this input to all output processors
+            for (auto& processor : outputProcessors)
+            {
+                processor->pushInput(inChannel, inputData, numSamples);
+            }
+        }
+
+        // Step 2: Clear output buffer
+        bufferToFill.clearActiveBufferRegion();
+
+        // Step 3: Pull processed outputs from each output processor
+        int numOutputs = juce::jmin(numOutputChannels, totalChannels, (int)outputProcessors.size());
         for (int outChannel = 0; outChannel < numOutputs; ++outChannel)
         {
+            if (outputProcessors[outChannel] == nullptr)
+                continue;
 
             auto* outputData = bufferToFill.buffer->getWritePointer(outChannel, bufferToFill.startSample);
-            auto* tempData = tempBuffer.getWritePointer(0);
 
-            // Pull processed data from this input processor for this output channel
-            int samplesRead = inputProcessors[inChannel]->pullOutput(outChannel, tempData, numSamples);
-
-            // Sum into output channel
-            for (int i = 0; i < samplesRead; ++i)
-            {
-                outputData[i] += tempData[i];
-            }
+            // Pull processed data from this output processor
+            outputProcessors[outChannel]->pullOutput(outputData, numSamples);
         }
     }
 }
@@ -313,10 +487,21 @@ void MainComponent::releaseResources()
     // restarted due to a setting change.
 
     // Stop all processing threads
-    for (auto& processor : inputProcessors)
+    if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
     {
-        processor->stopThread(1000);
-        processor->reset();
+        for (auto& processor : inputProcessors)
+        {
+            processor->stopThread(1000);
+            processor->reset();
+        }
+    }
+    else // OutputBuffer
+    {
+        for (auto& processor : outputProcessors)
+        {
+            processor->stopThread(1000);
+            processor->reset();
+        }
     }
 }
 
@@ -326,24 +511,43 @@ void MainComponent::paint (juce::Graphics& g)
     // (Our component is opaque, so we must completely fill the background with a solid colour)
     g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
 
-    // Display CPU usage and processing time for each input processor thread
-    if (audioEngineStarted && !inputProcessors.empty())
+    // Display CPU usage and processing time for processor threads
+    if (audioEngineStarted)
     {
         g.setColour(juce::Colours::white);
         g.setFont(12.0f);
 
         int yPos = getHeight() - 120;
-        g.drawText("Thread Performance:", 10, yPos, 300, 20, juce::Justification::left);
 
-        yPos += 20;
-        for (int i = 0; i < inputProcessors.size(); ++i)
+        if (currentAlgorithm == ProcessingAlgorithm::InputBuffer && !inputProcessors.empty())
         {
-            float cpuUsage = inputProcessors[i]->getCpuUsagePercent();
-            float procTime = inputProcessors[i]->getProcessingTimeMicroseconds();
+            g.drawText("Thread Performance (InputBuffer):", 10, yPos, 300, 20, juce::Justification::left);
 
-            juce::String text = juce::String::formatted("Input %d: %.1f%% | %.1f us/block",
-                                                        i, cpuUsage, procTime);
-            g.drawText(text, 10, yPos + (i * 15), 300, 15, juce::Justification::left);
+            yPos += 20;
+            for (int i = 0; i < inputProcessors.size(); ++i)
+            {
+                float cpuUsage = inputProcessors[i]->getCpuUsagePercent();
+                float procTime = inputProcessors[i]->getProcessingTimeMicroseconds();
+
+                juce::String text = juce::String::formatted("Input %d: %.1f%% | %.1f us/block",
+                                                            i, cpuUsage, procTime);
+                g.drawText(text, 10, yPos + (i * 15), 300, 15, juce::Justification::left);
+            }
+        }
+        else if (currentAlgorithm == ProcessingAlgorithm::OutputBuffer && !outputProcessors.empty())
+        {
+            g.drawText("Thread Performance (OutputBuffer):", 10, yPos, 300, 20, juce::Justification::left);
+
+            yPos += 20;
+            for (int i = 0; i < outputProcessors.size(); ++i)
+            {
+                float cpuUsage = outputProcessors[i]->getCpuUsagePercent();
+                float procTime = outputProcessors[i]->getProcessingTimeMicroseconds();
+
+                juce::String text = juce::String::formatted("Output %d: %.1f%% | %.1f us/block",
+                                                            i, cpuUsage, procTime);
+                g.drawText(text, 10, yPos + (i * 15), 300, 15, juce::Justification::left);
+            }
         }
     }
 }
@@ -355,22 +559,31 @@ void MainComponent::resized()
     // update their positions.
     auto bounds = getLocalBounds();
 
-    // Top controls area
-    auto controlsArea = bounds.removeFromTop(80).reduced(10);
+    // Top controls area - made taller to accommodate 3 rows
+    auto controlsArea = bounds.removeFromTop(110).reduced(10);
 
-    // Toggle button at the top
+    // Row 1: Toggle button at the top
     processingToggle.setBounds(controlsArea.removeFromTop(30));
 
     controlsArea.removeFromTop(5); // spacing
 
-    // Channel count controls
-    auto inputsArea = controlsArea.removeFromLeft(getWidth() / 2);
+    // Row 2: Channel count controls
+    auto channelRow = controlsArea.removeFromTop(25);
+
+    auto inputsArea = channelRow.removeFromLeft(getWidth() / 2);
     numInputsLabel.setBounds(inputsArea.removeFromLeft(120));
     numInputsSlider.setBounds(inputsArea.removeFromLeft(150));
 
-    auto outputsArea = controlsArea;
+    auto outputsArea = channelRow.removeFromLeft(getWidth() / 2);
     numOutputsLabel.setBounds(outputsArea.removeFromLeft(120));
     numOutputsSlider.setBounds(outputsArea.removeFromLeft(150));
+
+    controlsArea.removeFromTop(5); // spacing
+
+    // Row 3: Algorithm selector
+    auto algorithmRow = controlsArea.removeFromTop(25);
+    algorithmLabel.setBounds(algorithmRow.removeFromLeft(120));
+    algorithmSelector.setBounds(algorithmRow.removeFromLeft(300));
 
     // Audio setup component takes the rest
     if (audioSetupComp != nullptr)
@@ -413,13 +626,25 @@ void MainComponent::saveSettings()
 
 void MainComponent::timerCallback()
 {
-    // Apply exponential smoothing to routing parameters (when processing is enabled)
+    // Apply ramping and exponential smoothing to routing parameters (when processing is enabled)
     if (processingEnabled && audioEngineStarted)
     {
         int matrixSize = numInputChannels * numOutputChannels;
+
+        // Calculate ramp progress (0.0 to 1.0 over 1 second)
+        float rampProgress = (float)timerTicksSinceLastRandom / (float)rampDurationTicks;
+        rampProgress = juce::jlimit(0.0f, 1.0f, rampProgress);
+
+        // Update ramping targets: linearly interpolate from start to final over 1 second
         for (int i = 0; i < matrixSize; ++i)
         {
-            // Exponential smoothing: current += (target - current) * factor
+            targetDelayTimesMs[i] = startDelayTimesMs[i] + (finalTargetDelayTimesMs[i] - startDelayTimesMs[i]) * rampProgress;
+            targetLevels[i] = startLevels[i] + (finalTargetLevels[i] - startLevels[i]) * rampProgress;
+        }
+
+        // Apply exponential smoothing to actual values: smooth towards ramping targets
+        for (int i = 0; i < matrixSize; ++i)
+        {
             delayTimesMs[i] += (targetDelayTimesMs[i] - delayTimesMs[i]) * smoothingFactor;
             levels[i] += (targetLevels[i] - levels[i]) * smoothingFactor;
         }
@@ -429,18 +654,26 @@ void MainComponent::timerCallback()
             repaint();
     }
 
-    // Generate new random targets every 1 second (200 ticks at 5ms)
+    // Start new ramp every 1 second (200 ticks at 5ms)
     timerTicksSinceLastRandom++;
-    if (timerTicksSinceLastRandom >= 200 && processingEnabled && audioEngineStarted)
+    if (timerTicksSinceLastRandom >= rampDurationTicks && processingEnabled && audioEngineStarted)
     {
         timerTicksSinceLastRandom = 0;
 
-        // Generate new random targets
         int matrixSize = numInputChannels * numOutputChannels;
+
+        // Save current final targets as new start values
         for (int i = 0; i < matrixSize; ++i)
         {
-            targetDelayTimesMs[i] = random.nextFloat() * 1000.0f;  // 0-1000ms
-            targetLevels[i] = random.nextFloat();  // 0-1
+            startDelayTimesMs[i] = finalTargetDelayTimesMs[i];
+            startLevels[i] = finalTargetLevels[i];
+        }
+
+        // Generate new final targets for next ramp
+        for (int i = 0; i < matrixSize; ++i)
+        {
+            finalTargetDelayTimesMs[i] = random.nextFloat() * 1000.0f;  // 0-1000ms
+            finalTargetLevels[i] = random.nextFloat();  // 0-1
         }
     }
 
