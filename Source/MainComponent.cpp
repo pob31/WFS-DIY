@@ -19,6 +19,27 @@ MainComponent::MainComponent()
     numInputChannels = juce::jlimit(2, 64, numInputChannels);
     numOutputChannels = juce::jlimit(2, 64, numOutputChannels);
 
+    // Initialize routing matrices with default values
+    int matrixSize = numInputChannels * numOutputChannels;
+    delayTimesMs.resize(matrixSize);
+    levels.resize(matrixSize);
+    targetDelayTimesMs.resize(matrixSize);
+    targetLevels.resize(matrixSize);
+
+    for (int inCh = 0; inCh < numInputChannels; ++inCh)
+    {
+        for (int outCh = 0; outCh < numOutputChannels; ++outCh)
+        {
+            int idx = inCh * numOutputChannels + outCh;
+            // Initialize with random values
+            delayTimesMs[idx] = random.nextFloat() * 1000.0f;  // 0-1000ms
+            levels[idx] = random.nextFloat();  // 0-1
+            // Targets start at same values (no initial smoothing)
+            targetDelayTimesMs[idx] = delayTimesMs[idx];
+            targetLevels[idx] = levels[idx];
+        }
+    }
+
     // Load saved device type and name
     juce::String savedDeviceType = props.getValue("audioDeviceType");
     juce::String savedDeviceName = props.getValue("audioDeviceName");
@@ -145,11 +166,11 @@ MainComponent::MainComponent()
         });
     }
 
-    // Start timer to monitor device changes
+    // Start timer for device monitoring and parameter smoothing
     lastSavedDeviceType = deviceManager.getCurrentAudioDeviceType();
     if (auto* device = deviceManager.getCurrentAudioDevice())
         lastSavedDeviceName = device->getName();
-    startTimer(1000); // Check every second for device changes
+    startTimer(5); // 5ms timer for smooth parameter updates
 }
 
 MainComponent::~MainComponent()
@@ -185,9 +206,12 @@ void MainComponent::startAudioEngine()
     int blockSize = device->getCurrentBufferSizeSamples();
 
     // Create and prepare input processors (one thread per input channel)
+    // Pass pointers to the shared routing matrices
     for (int i = 0; i < numInputChannels; ++i)
     {
-        auto processor = std::make_unique<InputProcessor>(i, numOutputChannels);
+        auto processor = std::make_unique<InputProcessor>(i, numOutputChannels,
+                                                          delayTimesMs.data(),
+                                                          levels.data());
         processor->prepare(sampleRate, blockSize);
         inputProcessors.push_back(std::move(processor));
     }
@@ -263,10 +287,10 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
         if (inputProcessors[inChannel] == nullptr)
             continue;
 
-        for (int outChannel = 0; outChannel < numChannels; ++outChannel)
+        // Loop over all output channels (not limited by input count)
+        int numOutputs = juce::jmin(numOutputChannels, totalChannels);
+        for (int outChannel = 0; outChannel < numOutputs; ++outChannel)
         {
-            if (outChannel >= totalChannels)
-                break;
 
             auto* outputData = bufferToFill.buffer->getWritePointer(outChannel, bufferToFill.startSample);
             auto* tempData = tempBuffer.getWritePointer(0);
@@ -302,7 +326,26 @@ void MainComponent::paint (juce::Graphics& g)
     // (Our component is opaque, so we must completely fill the background with a solid colour)
     g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
 
-    // You can add your drawing code here!
+    // Display CPU usage and processing time for each input processor thread
+    if (audioEngineStarted && !inputProcessors.empty())
+    {
+        g.setColour(juce::Colours::white);
+        g.setFont(12.0f);
+
+        int yPos = getHeight() - 120;
+        g.drawText("Thread Performance:", 10, yPos, 300, 20, juce::Justification::left);
+
+        yPos += 20;
+        for (int i = 0; i < inputProcessors.size(); ++i)
+        {
+            float cpuUsage = inputProcessors[i]->getCpuUsagePercent();
+            float procTime = inputProcessors[i]->getProcessingTimeMicroseconds();
+
+            juce::String text = juce::String::formatted("Input %d: %.1f%% | %.1f us/block",
+                                                        i, cpuUsage, procTime);
+            g.drawText(text, 10, yPos + (i * 15), 300, 15, juce::Justification::left);
+        }
+    }
 }
 
 void MainComponent::resized()
@@ -370,20 +413,98 @@ void MainComponent::saveSettings()
 
 void MainComponent::timerCallback()
 {
-    // Check if device type or device name has changed
-    juce::String currentDeviceType = deviceManager.getCurrentAudioDeviceType();
-    juce::String currentDeviceName;
-    if (auto* device = deviceManager.getCurrentAudioDevice())
-        currentDeviceName = device->getName();
-
-    bool typeChanged = (currentDeviceType != lastSavedDeviceType && currentDeviceType.isNotEmpty());
-    bool nameChanged = (currentDeviceName != lastSavedDeviceName && currentDeviceName.isNotEmpty());
-
-    if (typeChanged || nameChanged)
+    // Apply exponential smoothing to routing parameters (when processing is enabled)
+    if (processingEnabled && audioEngineStarted)
     {
-        lastSavedDeviceType = currentDeviceType;
-        lastSavedDeviceName = currentDeviceName;
-        saveSettings();
+        int matrixSize = numInputChannels * numOutputChannels;
+        for (int i = 0; i < matrixSize; ++i)
+        {
+            // Exponential smoothing: current += (target - current) * factor
+            delayTimesMs[i] += (targetDelayTimesMs[i] - delayTimesMs[i]) * smoothingFactor;
+            levels[i] += (targetLevels[i] - levels[i]) * smoothingFactor;
+        }
+
+        // Repaint to update CPU usage display (every 10 ticks = 50ms)
+        if (timerTicksSinceLastRandom % 10 == 0)
+            repaint();
     }
+
+    // Generate new random targets every 1 second (200 ticks at 5ms)
+    timerTicksSinceLastRandom++;
+    if (timerTicksSinceLastRandom >= 200 && processingEnabled && audioEngineStarted)
+    {
+        timerTicksSinceLastRandom = 0;
+
+        // Generate new random targets
+        int matrixSize = numInputChannels * numOutputChannels;
+        for (int i = 0; i < matrixSize; ++i)
+        {
+            targetDelayTimesMs[i] = random.nextFloat() * 1000.0f;  // 0-1000ms
+            targetLevels[i] = random.nextFloat();  // 0-1
+        }
+    }
+
+    // Check for device changes every 200 ticks (once per second) to avoid overhead
+    if (timerTicksSinceLastRandom % 200 == 0)
+    {
+        juce::String currentDeviceType = deviceManager.getCurrentAudioDeviceType();
+        juce::String currentDeviceName;
+        if (auto* device = deviceManager.getCurrentAudioDevice())
+            currentDeviceName = device->getName();
+
+        bool typeChanged = (currentDeviceType != lastSavedDeviceType && currentDeviceType.isNotEmpty());
+        bool nameChanged = (currentDeviceName != lastSavedDeviceName && currentDeviceName.isNotEmpty());
+
+        if (typeChanged || nameChanged)
+        {
+            lastSavedDeviceType = currentDeviceType;
+            lastSavedDeviceName = currentDeviceName;
+            saveSettings();
+        }
+    }
+}
+
+//==============================================================================
+// Routing matrix access methods
+void MainComponent::setDelay(int inputChannel, int outputChannel, float delayMs)
+{
+    if (inputChannel >= 0 && inputChannel < numInputChannels &&
+        outputChannel >= 0 && outputChannel < numOutputChannels)
+    {
+        int idx = inputChannel * numOutputChannels + outputChannel;
+        delayTimesMs[idx] = delayMs;
+    }
+}
+
+void MainComponent::setLevel(int inputChannel, int outputChannel, float level)
+{
+    if (inputChannel >= 0 && inputChannel < numInputChannels &&
+        outputChannel >= 0 && outputChannel < numOutputChannels)
+    {
+        int idx = inputChannel * numOutputChannels + outputChannel;
+        levels[idx] = juce::jlimit(0.0f, 1.0f, level);
+    }
+}
+
+float MainComponent::getDelay(int inputChannel, int outputChannel) const
+{
+    if (inputChannel >= 0 && inputChannel < numInputChannels &&
+        outputChannel >= 0 && outputChannel < numOutputChannels)
+    {
+        int idx = inputChannel * numOutputChannels + outputChannel;
+        return delayTimesMs[idx];
+    }
+    return 0.0f;
+}
+
+float MainComponent::getLevel(int inputChannel, int outputChannel) const
+{
+    if (inputChannel >= 0 && inputChannel < numInputChannels &&
+        outputChannel >= 0 && outputChannel < numOutputChannels)
+    {
+        int idx = inputChannel * numOutputChannels + outputChannel;
+        return levels[idx];
+    }
+    return 0.0f;
 }
 

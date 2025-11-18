@@ -12,10 +12,12 @@
 class InputProcessor : public juce::Thread
 {
 public:
-    InputProcessor(int inputIndex, int numOutputs)
+    InputProcessor(int inputIndex, int numOutputs, const float* delayTimesPtr, const float* levelsPtr)
         : juce::Thread("InputProcessor_" + juce::String(inputIndex)),
           inputChannelIndex(inputIndex),
-          numOutputChannels(numOutputs)
+          numOutputChannels(numOutputs),
+          sharedDelayTimes(delayTimesPtr),
+          sharedLevels(levelsPtr)
     {
         // Pre-allocate output buffers without copying
         for (int i = 0; i < numOutputs; ++i)
@@ -74,12 +76,31 @@ public:
         processingEnabled.store(enabled, std::memory_order_release);
     }
 
+    int getInputChannelIndex() const { return inputChannelIndex; }
+
+    // Get CPU usage percentage for this thread (0-100)
+    float getCpuUsagePercent() const
+    {
+        return cpuUsagePercent.load(std::memory_order_acquire);
+    }
+
+    // Get average processing time per block in microseconds (for algorithm comparison)
+    float getProcessingTimeMicroseconds() const
+    {
+        return processingTimeMicroseconds.load(std::memory_order_acquire);
+    }
+
 private:
     void run() override
     {
         const int processingBlockSize = 64; // Internal processing block size
         juce::AudioBuffer<float> inputBlock(1, processingBlockSize);
         juce::AudioBuffer<float> outputBlock(numOutputChannels, processingBlockSize);
+
+        double processingTimeMs = 0.0;
+        double processingTimeMsForAvg = 0.0;
+        int processedBlockCount = 0;
+        auto measurementStartTime = juce::Time::getMillisecondCounterHiRes();
 
         while (!threadShouldExit())
         {
@@ -100,7 +121,16 @@ private:
             // Process if enabled
             if (processingEnabled.load(std::memory_order_acquire))
             {
+                auto processStartTime = juce::Time::getMillisecondCounterHiRes();
+
                 processBlock(inputBlock.getReadPointer(0), outputBlock, samplesRead);
+
+                auto processEndTime = juce::Time::getMillisecondCounterHiRes();
+                double blockProcessTime = processEndTime - processStartTime;
+
+                processingTimeMs += blockProcessTime;
+                processingTimeMsForAvg += blockProcessTime;
+                processedBlockCount++;
 
                 // Write processed outputs to each output ring buffer
                 for (int outChannel = 0; outChannel < numOutputChannels; ++outChannel)
@@ -117,14 +147,35 @@ private:
                     outputBuffers[outChannel]->write(silence, samplesRead);
                 }
             }
+
+            // Update CPU usage every ~200ms of wall-clock time
+            auto now = juce::Time::getMillisecondCounterHiRes();
+            double elapsedWallClockTime = now - measurementStartTime;
+
+            if (elapsedWallClockTime >= 200.0)
+            {
+                // Wall-clock CPU usage percentage
+                float usage = (float)((processingTimeMs / elapsedWallClockTime) * 100.0);
+                cpuUsagePercent.store(usage, std::memory_order_release);
+
+                // Average processing time per block in microseconds
+                if (processedBlockCount > 0)
+                {
+                    float avgTimeMicroseconds = (float)((processingTimeMsForAvg / processedBlockCount) * 1000.0);
+                    processingTimeMicroseconds.store(avgTimeMicroseconds, std::memory_order_release);
+                }
+
+                // Reset counters
+                processingTimeMs = 0.0;
+                processingTimeMsForAvg = 0.0;
+                processedBlockCount = 0;
+                measurementStartTime = now;
+            }
         }
     }
 
     void processBlock(const float* input, juce::AudioBuffer<float>& outputs, int numSamples)
     {
-        // Base delay increment (200ms)
-        int delayIncrement = (int)(currentSampleRate * 0.2);
-
         auto* delayData = delayBuffer.getWritePointer(0);
 
         // Safety check
@@ -146,23 +197,51 @@ private:
         {
             auto* outputData = outputs.getWritePointer(outChannel);
 
-            // Calculate delay: shortest for matching channel, increasing by 200ms for each step
-            int delaySteps = (outChannel - inputChannelIndex + numOutputChannels) % numOutputChannels;
-            int delaySamples = delayIncrement * (delaySteps + 1);
+            // Calculate index into shared arrays: [inputChannel * numOutputs + outputChannel]
+            int routingIndex = inputChannelIndex * numOutputChannels + outChannel;
+
+            // Get level for this output from shared array
+            float level = sharedLevels[routingIndex];
+
+            // Optimization: skip processing if level is zero
+            if (level == 0.0f)
+            {
+                // Write silence
+                for (int sample = 0; sample < numSamples; ++sample)
+                    outputData[sample] = 0.0f;
+                continue;
+            }
+
+            // Get delay time in milliseconds from shared array and convert to samples (fractional)
+            float delayMs = sharedDelayTimes[routingIndex];
+            float delaySamples = (delayMs / 1000.0f) * (float)currentSampleRate;
 
             // Ensure delay doesn't exceed buffer length
-            if (delaySamples >= delayBufferLength)
-                delaySamples = delayBufferLength - 1;
+            if (delaySamples >= (float)delayBufferLength)
+                delaySamples = (float)(delayBufferLength - 1);
 
+            // Process each sample with linear interpolation
             for (int sample = 0; sample < numSamples; ++sample)
             {
-                // Calculate read position with proper wraparound
-                int readPos = writePosition + sample - delaySamples;
-                while (readPos < 0)
-                    readPos += delayBufferLength;
-                readPos = readPos % delayBufferLength;
+                // Calculate fractional read position
+                float exactReadPos = (float)writePosition + (float)sample - delaySamples;
 
-                outputData[sample] = delayData[readPos];
+                // Handle wraparound for negative positions
+                while (exactReadPos < 0.0f)
+                    exactReadPos += (float)delayBufferLength;
+
+                // Split into integer and fractional parts
+                int readPos1 = (int)exactReadPos % delayBufferLength;
+                int readPos2 = (readPos1 + 1) % delayBufferLength;
+                float fraction = exactReadPos - (int)exactReadPos;
+
+                // Linear interpolation between two samples
+                float sample1 = delayData[readPos1];
+                float sample2 = delayData[readPos2];
+                float interpolatedSample = sample1 + fraction * (sample2 - sample1);
+
+                // Apply level and write output
+                outputData[sample] = interpolatedSample * level;
             }
         }
 
@@ -184,6 +263,14 @@ private:
     std::vector<std::unique_ptr<LockFreeRingBuffer>> outputBuffers;
     std::atomic<int> samplesAvailable {0};
     std::atomic<bool> processingEnabled {false};
+
+    // CPU monitoring
+    std::atomic<float> cpuUsagePercent {0.0f};
+    std::atomic<float> processingTimeMicroseconds {0.0f};
+
+    // Pointers to shared routing matrices (owned by MainComponent)
+    const float* sharedDelayTimes;  // delays[inputChannel * numOutputs + outputChannel]
+    const float* sharedLevels;      // levels[inputChannel * numOutputs + outputChannel]
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(InputProcessor)
 };

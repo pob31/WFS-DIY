@@ -29,6 +29,12 @@ public:
     void saveSettings();
     void timerCallback() override;
 
+    // Routing matrix access
+    void setDelay(int inputChannel, int outputChannel, float delayMs);
+    void setLevel(int inputChannel, int outputChannel, float level);
+    float getDelay(int inputChannel, int outputChannel) const;
+    float getLevel(int inputChannel, int outputChannel) const;
+
 private:
     //==============================================================================
     // Your private member variables go here...
@@ -46,6 +52,18 @@ private:
     std::vector<std::unique_ptr<InputProcessor>> inputProcessors;
     bool processingEnabled = false;
     bool audioEngineStarted = false;
+
+    // Routing matrix: delays[inputChannel * numOutputChannels + outputChannel]
+    std::vector<float> delayTimesMs;
+    // Gain matrix: levels[inputChannel * numOutputChannels + outputChannel]
+    std::vector<float> levels;
+
+    // Random generator with exponential smoothing (temporary for testing)
+    std::vector<float> targetDelayTimesMs;
+    std::vector<float> targetLevels;
+    float smoothingFactor = 0.22f;  // ~20ms settling time with 5ms updates
+    int timerTicksSinceLastRandom = 0;
+    juce::Random random;
 
     // Track device type and device name changes
     juce::String lastSavedDeviceType;
