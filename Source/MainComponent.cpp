@@ -13,10 +13,10 @@ MainComponent::MainComponent()
 
     juce::PropertiesFile props(options);
 
-    // Load channel counts
-    numInputChannels = props.getIntValue("numInputChannels", 4);
-    numOutputChannels = props.getIntValue("numOutputChannels", 4);
-    numInputChannels = juce::jlimit(2, 64, numInputChannels);
+    // Load channel counts - default to 0 inputs and 2 outputs for compatibility
+    numInputChannels = props.getIntValue("numInputChannels", 0);
+    numOutputChannels = props.getIntValue("numOutputChannels", 2);
+    numInputChannels = juce::jlimit(0, 64, numInputChannels);
     numOutputChannels = juce::jlimit(2, 64, numOutputChannels);
 
     // Initialize routing matrices with default values
@@ -53,10 +53,14 @@ MainComponent::MainComponent()
     juce::String savedDeviceType = props.getValue("audioDeviceType");
     juce::String savedDeviceName = props.getValue("audioDeviceName");
 
+    // Load saved audio device channel selections (as binary strings)
+    juce::String savedInputChannelsBits = props.getValue("audioInputChannelsBits");
+    juce::String savedOutputChannelsBits = props.getValue("audioOutputChannelsBits");
+
     // Create audio device selector
     audioSetupComp.reset(new juce::AudioDeviceSelectorComponent(
         deviceManager,
-        2, 64,  // min/max input channels
+        0, 64,  // min/max input channels (0 = allow no inputs)
         2, 64,  // min/max output channels
         false, // show MIDI input
         false, // show MIDI output
@@ -118,8 +122,8 @@ MainComponent::MainComponent()
     addAndMakeVisible(numInputsLabel);
 
     numInputsSlider.setSliderStyle(juce::Slider::IncDecButtons);
-    numInputsSlider.setRange(2, 64, 1);
-    numInputsSlider.setValue(numInputChannels, juce::dontSendNotification);
+    numInputsSlider.setRange(0, 64, 1);  // Allow 0 inputs
+    numInputsSlider.setValue(numInputChannels == 0 ? 2 : numInputChannels, juce::dontSendNotification);
     numInputsSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 60, 20);
     numInputsSlider.onValueChange = [this]() {
         numInputChannels = (int)numInputsSlider.getValue();
@@ -206,16 +210,25 @@ MainComponent::MainComponent()
     // you add any child components.
     setSize (800, 600);
 
-    // Always initialize audio with default device first
-    setAudioChannels(numInputChannels, numOutputChannels);
+    // STEP 1: Initialize audio with minimal safe configuration (0 inputs, 2 outputs)
+    // This ensures the audio system starts successfully on any device
+    DBG("Initializing audio system with safe defaults (0 inputs, 2 outputs)");
+    setAudioChannels(0, 2);
 
-    // Then restore saved device asynchronously
-    if (savedDeviceType.isNotEmpty())
+    // STEP 2: Restore saved device and settings asynchronously (like DAWs do)
+    // This happens after the window is shown and audio system is initialized
+    juce::MessageManager::callAsync([this, savedDeviceType, savedDeviceName,
+                                      savedInputChannelsBits, savedOutputChannelsBits]()
     {
-        juce::MessageManager::callAsync([this, savedDeviceType, savedDeviceName]()
+        bool deviceRestored = false;
+
+        // Try to restore saved device type (e.g., ASIO)
+        if (savedDeviceType.isNotEmpty())
         {
+            DBG("Attempting to restore device type: " + savedDeviceType);
             deviceManager.setCurrentAudioDeviceType(savedDeviceType, true);
 
+            // Try to restore specific device name
             if (savedDeviceName.isNotEmpty())
             {
                 juce::AudioDeviceManager::AudioDeviceSetup setup;
@@ -223,34 +236,50 @@ MainComponent::MainComponent()
                 setup.outputDeviceName = savedDeviceName;
                 setup.inputDeviceName = savedDeviceName;
 
-                juce::String error = deviceManager.setAudioDeviceSetup(setup, true);
-                if (error.isEmpty())
+                // Restore saved channel selections if available
+                if (savedInputChannelsBits.isNotEmpty() || savedOutputChannelsBits.isNotEmpty())
                 {
-                    // Update the last saved values to match the restored device
+                    setup.useDefaultInputChannels = false;
+                    setup.useDefaultOutputChannels = false;
+
+                    // Restore exact channel bit patterns from saved settings
+                    if (savedInputChannelsBits.isNotEmpty())
+                        setup.inputChannels.parseString(savedInputChannelsBits, 2); // Parse binary string
+
+                    if (savedOutputChannelsBits.isNotEmpty())
+                        setup.outputChannels.parseString(savedOutputChannelsBits, 2); // Parse binary string
+                }
+
+                auto error = deviceManager.setAudioDeviceSetup(setup, true);
+                deviceRestored = error.isEmpty();
+
+                if (deviceRestored)
+                {
+                    int restoredInputs = setup.inputChannels.countNumberOfSetBits();
+                    int restoredOutputs = setup.outputChannels.countNumberOfSetBits();
+
+                    DBG("Successfully restored: " + savedDeviceName +
+                        " | Hardware I/O: " + juce::String(restoredInputs) + " inputs, " +
+                        juce::String(restoredOutputs) + " outputs");
+
+                    // Settings restored successfully - update tracking
                     lastSavedDeviceType = savedDeviceType;
                     lastSavedDeviceName = savedDeviceName;
                 }
                 else
                 {
-                    DBG("Failed to restore ASIO device: " + error);
-                    DBG("The device may be locked from a previous session or in use by another application");
-                    DBG("Falling back to Windows Audio");
-
-                    // Fall back to Windows Audio if ASIO fails
-                    deviceManager.setCurrentAudioDeviceType("Windows Audio", true);
-
-                    // Reinitialize with the fallback device
-                    shutdownAudio();
-                    setAudioChannels(numInputChannels, numOutputChannels);
-
-                    // Update tracking variables to prevent saving the failed state
-                    lastSavedDeviceType = deviceManager.getCurrentAudioDeviceType();
-                    if (auto* device = deviceManager.getCurrentAudioDevice())
-                        lastSavedDeviceName = device->getName();
+                    DBG("Could not restore saved device: " + savedDeviceName);
+                    DBG("Error: " + error);
+                    DBG("Please select your audio device from the Audio Settings panel");
                 }
             }
-        });
-    }
+        }
+
+        if (!deviceRestored)
+        {
+            DBG("Using default audio device - please configure in Audio Settings");
+        }
+    });
 
     // Start timer for device monitoring and parameter smoothing
     lastSavedDeviceType = deviceManager.getCurrentAudioDeviceType();
@@ -603,9 +632,13 @@ void MainComponent::saveSettings()
 
     juce::PropertiesFile props(options);
 
-    // Save channel counts
+    // Save WFS processing channel counts (independent of sound card I/O)
     props.setValue("numInputChannels", numInputChannels);
     props.setValue("numOutputChannels", numOutputChannels);
+
+    // Get actual audio device channel configuration
+    juce::AudioDeviceManager::AudioDeviceSetup setup;
+    deviceManager.getAudioDeviceSetup(setup);
 
     // Save audio device type and name
     juce::String currentDeviceType = deviceManager.getCurrentAudioDeviceType();
@@ -621,7 +654,18 @@ void MainComponent::saveSettings()
             props.setValue("audioDeviceName", deviceName);
     }
 
+    // Save the selected physical I/O channels from the sound card as bit patterns
+    // This preserves which specific channels are enabled (e.g., channels 3,4,5,6 out of 64)
+    props.setValue("audioInputChannelsBits", setup.inputChannels.toString(2));  // Binary string
+    props.setValue("audioOutputChannelsBits", setup.outputChannels.toString(2)); // Binary string
+
     props.saveIfNeeded();
+
+    DBG("Settings saved - Device: " + currentDeviceType + " / " +
+        (deviceManager.getCurrentAudioDevice() ? deviceManager.getCurrentAudioDevice()->getName() : "none") +
+        " | WFS: " + juce::String(numInputChannels) + "x" + juce::String(numOutputChannels) +
+        " | Hardware I/O: " + juce::String(setup.inputChannels.countNumberOfSetBits()) + " in, " +
+        juce::String(setup.outputChannels.countNumberOfSetBits()) + " out");
 }
 
 void MainComponent::timerCallback()
