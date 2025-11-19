@@ -1,8 +1,8 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "InputBufferProcessor.h"
-#include "OutputBufferProcessor.h"
+#include "InputBufferAlgorithm.h"
+#include "OutputBufferAlgorithm.h"
 
 //==============================================================================
 /*
@@ -60,8 +60,8 @@ private:
     ProcessingAlgorithm currentAlgorithm = ProcessingAlgorithm::InputBuffer;
     int numInputChannels = 4;
     int numOutputChannels = 4;
-    std::vector<std::unique_ptr<InputBufferProcessor>> inputProcessors;
-    std::vector<std::unique_ptr<OutputBufferProcessor>> outputProcessors;
+    InputBufferAlgorithm inputAlgorithm;
+    OutputBufferAlgorithm outputAlgorithm;
     bool processingEnabled = false;
     bool audioEngineStarted = false;
 
