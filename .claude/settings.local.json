@@ -4,7 +4,8 @@
       "Bash(git add:*)",
       "Bash(git commit -m \"$(cat <<''EOF''\nImplement configurable delay/level routing with CPU monitoring\n\n- Add centralized routing matrices in MainComponent\n  - Delays: per input→output delay times with linear interpolation\n  - Levels: per input→output gain (0.0-1.0) with zero optimization\n- Implement exponential smoothing (5ms timer, ~20ms settling)\n  - Prevents clicks when parameters change\n  - Ready for WFS geometry calculations (random generator temporary)\n- Add comprehensive CPU monitoring\n  - Wall-clock usage percentage (matches Task Manager)\n  - Processing time per block in microseconds (for algorithm comparison)\n  - Display in UI bottom-left corner\n- Fix output channel routing bug (was limited to min of input count)\n- Add Documentation/CLAUDE.md for project continuity\n\nTechnical details:\n- Lock-free parameter reads (atomic float on x64)\n- Current performance: ~40-50 us/block per thread (8×8 config)\n- Smoothing factor: 0.22 ≈ 20ms settling time at 5ms updates\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
       "Bash(git push)",
-      "Bash(copy:*)"
+      "Bash(copy:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
