@@ -3,7 +3,7 @@
 ## Project Overview
 Wave Field Synthesis (WFS) audio application built with JUCE framework for real-time multi-channel audio processing.
 
-## Current Implementation Status (As of 2025-01-19)
+## Current Implementation Status (As of 2025-11-19)
 
 ### Architecture
 - **Dual-algorithm multithreaded N-to-M audio engine**: Two different processing approaches available for comparison
@@ -11,6 +11,14 @@ Wave Field Synthesis (WFS) audio application built with JUCE framework for real-
   - **OutputBufferProcessor**: One thread per output channel (write-time delays)
 - **Lock-free design**: Lock-free ring buffers for communication between audio thread and processing threads
 - **Real-time safe**: No allocations or locks in audio callback
+
+### Code Organization
+
+The audio processing algorithms have been refactored into separate wrapper classes:
+- **InputBufferAlgorithm** ([InputBufferAlgorithm.h](../Source/InputBufferAlgorithm.h)): Manages collection of InputBufferProcessor instances
+- **OutputBufferAlgorithm** ([OutputBufferAlgorithm.h](../Source/OutputBufferAlgorithm.h)): Manages collection of OutputBufferProcessor instances
+
+This separation improves code organization and makes it easier to add new algorithm variants in the future.
 
 ### Key Components
 
@@ -61,6 +69,42 @@ Wave Field Synthesis (WFS) audio application built with JUCE framework for real-
 - Single producer/single consumer lock-free ring buffer
 - Uses `std::atomic` for thread-safe communication
 - Used for: input buffering and output buffering in both algorithms
+
+### GUI Components
+
+The application includes a comprehensive set of custom GUI components for the future WFS control interface:
+
+#### Custom Sliders ([Source/gui/sliders/](../Source/gui/sliders/))
+- **WfsSliderBase**: Base class for all custom sliders with common behavior and styling
+- **WfsStandardSlider**: Standard unipolar slider (0.0 to 1.0)
+- **WfsBidirectionalSlider**: Bipolar slider centered at 0.5 (-1.0 to +1.0)
+- **WfsAutoCenterSlider**: Auto-returns to center position when released
+- **WfsWidthExpansionSlider**: Specialized slider for stereo width/expansion control
+
+All sliders feature:
+- Horizontal and vertical orientations
+- Customizable track colors (inactive and active)
+- Visual feedback with active track indication
+- Smooth mouse-drag interaction
+
+#### Custom Dials ([Source/gui/dials/](../Source/gui/dials/))
+- **WfsBasicDial**: Standard rotary dial with value display
+  - 315° rotation range with 45° dead angle centered at bottom (6 o'clock)
+  - Needle positions: 7:30 (min) to 4:30 (max)
+  - Grey inactive track showing full range
+  - Colored active track showing current value position
+  - Customizable track and indicator colors
+  - Visual value display in center
+- **WfsRotationDial**: Dial for rotation/angle control
+- **WfsEndlessDial**: Continuous rotation dial (no end stops)
+
+#### Joystick Control
+- **WfsJoystickComponent** ([WfsJoystickComponent.h](../Source/gui/WfsJoystickComponent.h)): 2D XY pad for spatial positioning
+
+#### Preview Window
+- **GuiPreviewWindow** ([GuiPreviewWindow.h](../Source/gui/GuiPreviewWindow.h)): Dedicated window for testing and previewing all GUI components
+- **GuiPreviewComponent** ([GuiPreviewComponent.h](../Source/gui/GuiPreviewComponent.h)): Layout showing all UI variants
+- Accessible via "UI Preview" button in main window
 
 ### Current Processing Flow
 
@@ -195,6 +239,6 @@ To add new per-routing parameters:
 This project is being developed incrementally with human guidance. Major architectural decisions should be discussed before implementation.
 
 ---
-*Last updated: 2025-01-19*
+*Last updated: 2025-11-19*
 *JUCE Version: 8.0.10*
 *Build: Visual Studio 2022, x64 Debug*
