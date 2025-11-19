@@ -200,6 +200,21 @@ MainComponent::MainComponent()
     };
     addAndMakeVisible(algorithmSelector);
 
+    uiPreviewButton.setButtonText("Open UI Preview");
+    uiPreviewButton.onClick = [this]()
+    {
+        if (previewWindow == nullptr)
+        {
+            previewWindow = std::make_unique<GuiPreviewWindow>();
+        }
+        else
+        {
+            previewWindow->setVisible(true);
+            previewWindow->toFront(true);
+        }
+    };
+    addAndMakeVisible(uiPreviewButton);
+
     // Make sure you set the size of the component after
     // you add any child components.
     setSize (800, 600);
@@ -286,6 +301,8 @@ MainComponent::~MainComponent()
 {
     // Stop timer
     stopTimer();
+
+    previewWindow.reset();
 
     // Save settings before shutdown (while device is still available)
     saveSettings();
@@ -406,22 +423,24 @@ void MainComponent::paint (juce::Graphics& g)
             g.drawText("Thread Performance (InputBuffer):", 10, yPos, 300, 20, juce::Justification::left);
 
             yPos += 20;
-            for (size_t i = 0; i < inputAlgorithm.getNumProcessors(); ++i)
-            {
-                float cpuUsage = inputAlgorithm.getCpuUsagePercent(i);
-                float procTime = inputAlgorithm.getProcessingTimeMicroseconds(i);
+        const auto inputProcessorCount = static_cast<int>(inputAlgorithm.getNumProcessors());
+        for (int i = 0; i < inputProcessorCount; ++i)
+        {
+            float cpuUsage = inputAlgorithm.getCpuUsagePercent(i);
+            float procTime = inputAlgorithm.getProcessingTimeMicroseconds(i);
 
-                juce::String text = juce::String::formatted("Input %d: %.1f%% | %.1f us/block",
-                                                            (int)i, cpuUsage, procTime);
-                g.drawText(text, 10, yPos + (i * 15), 300, 15, juce::Justification::left);
-            }
+            juce::String text = juce::String::formatted("Input %d: %.1f%% | %.1f us/block",
+                                                        (int)i, cpuUsage, procTime);
+            g.drawText(text, 10, yPos + (i * 15), 300, 15, juce::Justification::left);
+        }
         }
         else if (currentAlgorithm == ProcessingAlgorithm::OutputBuffer && !outputAlgorithm.isEmpty())
         {
             g.drawText("Thread Performance (OutputBuffer):", 10, yPos, 300, 20, juce::Justification::left);
 
             yPos += 20;
-            for (size_t i = 0; i < outputAlgorithm.getNumProcessors(); ++i)
+            const auto outputProcessorCount = static_cast<int>(outputAlgorithm.getNumProcessors());
+            for (int i = 0; i < outputProcessorCount; ++i)
             {
                 float cpuUsage = outputAlgorithm.getCpuUsagePercent(i);
                 float procTime = outputAlgorithm.getProcessingTimeMicroseconds(i);
@@ -442,7 +461,7 @@ void MainComponent::resized()
     auto bounds = getLocalBounds();
 
     // Top controls area - made taller to accommodate 3 rows
-    auto controlsArea = bounds.removeFromTop(110).reduced(10);
+    auto controlsArea = bounds.removeFromTop(150).reduced(10);
 
     // Row 1: Toggle button at the top
     processingToggle.setBounds(controlsArea.removeFromTop(30));
@@ -466,6 +485,11 @@ void MainComponent::resized()
     auto algorithmRow = controlsArea.removeFromTop(25);
     algorithmLabel.setBounds(algorithmRow.removeFromLeft(120));
     algorithmSelector.setBounds(algorithmRow.removeFromLeft(300));
+
+    controlsArea.removeFromTop(5); // spacing
+
+    auto previewRow = controlsArea.removeFromTop(30);
+    uiPreviewButton.setBounds(previewRow.removeFromLeft(200));
 
     // Audio setup component takes the rest
     if (audioSetupComp != nullptr)

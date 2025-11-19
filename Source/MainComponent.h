@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "InputBufferAlgorithm.h"
 #include "OutputBufferAlgorithm.h"
+#include "gui/GuiPreviewWindow.h"
 
 //==============================================================================
 /*
@@ -49,6 +50,9 @@ private:
 
     juce::Label algorithmLabel;
     juce::ComboBox algorithmSelector;
+    juce::TextButton uiPreviewButton;
+
+    std::unique_ptr<GuiPreviewWindow> previewWindow;
 
     // Threaded processing architecture
     enum class ProcessingAlgorithm

@@ -8,6 +8,11 @@
       <FILE id="jPX7jF" name="MainComponent.h" compile="0" resource="0" file="Source/MainComponent.h"/>
       <FILE id="MkNc76" name="MainComponent.cpp" compile="1" resource="0"
             file="Source/MainComponent.cpp"/>
+      <FILE id="wfsAlg" name="WFSAlgorithm.h" compile="0" resource="0" file="Source/WFSAlgorithm.h"/>
+      <FILE id="inpAlg" name="InputBufferAlgorithm.h" compile="0" resource="0"
+            file="Source/InputBufferAlgorithm.h"/>
+      <FILE id="outAlg" name="OutputBufferAlgorithm.h" compile="0" resource="0"
+            file="Source/OutputBufferAlgorithm.h"/>
     </GROUP>
   </MAINGROUP>
   <MODULES>
@@ -26,7 +31,8 @@
     <MODULE id="juce_opengl" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_osc" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
   </MODULES>
-  <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1" JUCE_USE_ANDROID_OBOE="0" JUCE_JACK="0"/>
+  <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1" JUCE_USE_ANDROID_OBOE="0" JUCE_JACK="0"
+               JUCE_ASIO="1"/>
   <EXPORTFORMATS>
     <LINUX_MAKE targetFolder="Builds/LinuxMakefile">
       <CONFIGURATIONS>
