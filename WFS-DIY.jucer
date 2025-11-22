@@ -13,6 +13,14 @@
             file="Source/InputBufferAlgorithm.h"/>
       <FILE id="outAlg" name="OutputBufferAlgorithm.h" compile="0" resource="0"
             file="Source/OutputBufferAlgorithm.h"/>
+      <FILE id="gpuAlgH" name="GpuInputBufferAlgorithm.h" compile="0" resource="0"
+            file="Source/GpuInputBufferAlgorithm.h"/>
+      <FILE id="gpuAlg" name="GpuInputBufferAlgorithm.cpp" compile="1" resource="0"
+            file="Source/GpuInputBufferAlgorithm.cpp"/>
+      <FILE id="gpuShimH" name="InputBufferAlgorithmGPU.h" compile="0" resource="0"
+            file="Source/InputBufferAlgorithmGPU.h"/>
+      <FILE id="gpuShim" name="InputBufferAlgorithmGPU.cpp" compile="1" resource="0"
+            file="Source/InputBufferAlgorithmGPU.cpp"/>
     </GROUP>
   </MAINGROUP>
   <MODULES>
@@ -58,8 +66,8 @@
     </LINUX_MAKE>
     <VS2022 targetFolder="Builds/VisualStudio2022">
       <CONFIGURATIONS>
-        <CONFIGURATION isDebug="1" name="Debug" targetName="WFS-DIY" headerPath="D:\Dev\JUCE_Modules\ASIOSDK\common"/>
-        <CONFIGURATION isDebug="0" name="Release" targetName="WFS-DIY" headerPath="D:\Dev\JUCE_Modules\ASIOSDK\common"/>
+        <CONFIGURATION isDebug="1" name="Debug" targetName="WFS-DIY" headerPath="D:\Dev\JUCE_Modules\ASIOSDK\common;D:\Documents\GPUAudioSDK\gpuaudio\include;D:\Documents\GPUAudioSDK\gain_processor\gain_processor\include;D:\Documents\GPUAudioSDK\build\_deps\json-src\single_include"/>
+        <CONFIGURATION isDebug="0" name="Release" targetName="WFS-DIY" headerPath="D:\Dev\JUCE_Modules\ASIOSDK\common;D:\Documents\GPUAudioSDK\gpuaudio\include;D:\Documents\GPUAudioSDK\gain_processor\gain_processor\include;D:\Documents\GPUAudioSDK\build\_deps\json-src\single_include"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_audio_basics" path="C:/JUCE/modules"/>

@@ -13,41 +13,16 @@ MainComponent::MainComponent()
 
     juce::PropertiesFile props(options);
 
-    // Load channel counts - default to 0 inputs and 2 outputs for compatibility
+    // Load channel counts (persisted), clamp, and fall back to a usable default
     numInputChannels = props.getIntValue("numInputChannels", 0);
     numOutputChannels = props.getIntValue("numOutputChannels", 2);
     numInputChannels = juce::jlimit(0, 64, numInputChannels);
     numOutputChannels = juce::jlimit(2, 64, numOutputChannels);
+    if (numInputChannels == 0)
+        numInputChannels = 2; // Default to a sensible input count to avoid silent processing
 
     // Initialize routing matrices with default values
-    int matrixSize = numInputChannels * numOutputChannels;
-    delayTimesMs.resize(matrixSize);
-    levels.resize(matrixSize);
-    targetDelayTimesMs.resize(matrixSize);
-    targetLevels.resize(matrixSize);
-    finalTargetDelayTimesMs.resize(matrixSize);
-    finalTargetLevels.resize(matrixSize);
-    startDelayTimesMs.resize(matrixSize);
-    startLevels.resize(matrixSize);
-
-    for (int inCh = 0; inCh < numInputChannels; ++inCh)
-    {
-        for (int outCh = 0; outCh < numOutputChannels; ++outCh)
-        {
-            int idx = inCh * numOutputChannels + outCh;
-            // Initialize with random values
-            delayTimesMs[idx] = random.nextFloat() * 1000.0f;  // 0-1000ms
-            levels[idx] = random.nextFloat();  // 0-1
-            // Initialize all target/ramp values
-            targetDelayTimesMs[idx] = delayTimesMs[idx];
-            targetLevels[idx] = levels[idx];
-            startDelayTimesMs[idx] = delayTimesMs[idx];
-            startLevels[idx] = levels[idx];
-            // Generate initial final targets for first ramp
-            finalTargetDelayTimesMs[idx] = random.nextFloat() * 1000.0f;
-            finalTargetLevels[idx] = random.nextFloat();
-        }
-    }
+    resizeRoutingMatrices();
 
     // Load saved device type and name
     juce::String savedDeviceType = props.getValue("audioDeviceType");
@@ -87,9 +62,13 @@ MainComponent::MainComponent()
             {
                 inputAlgorithm.setProcessingEnabled(processingEnabled);
             }
-            else
+            else if (currentAlgorithm == ProcessingAlgorithm::OutputBuffer)
             {
                 outputAlgorithm.setProcessingEnabled(processingEnabled);
+            }
+            else
+            {
+                gpuInputAlgorithm.setProcessingEnabled(processingEnabled);
             }
         }
         else
@@ -99,9 +78,13 @@ MainComponent::MainComponent()
             {
                 inputAlgorithm.setProcessingEnabled(processingEnabled);
             }
-            else
+            else if (currentAlgorithm == ProcessingAlgorithm::OutputBuffer)
             {
                 outputAlgorithm.setProcessingEnabled(processingEnabled);
+            }
+            else
+            {
+                gpuInputAlgorithm.setProcessingEnabled(processingEnabled);
             }
         }
 
@@ -119,10 +102,12 @@ MainComponent::MainComponent()
 
     numInputsSlider.setSliderStyle(juce::Slider::IncDecButtons);
     numInputsSlider.setRange(0, 64, 1);  // Allow 0 inputs
-    numInputsSlider.setValue(numInputChannels == 0 ? 2 : numInputChannels, juce::dontSendNotification);
+    numInputsSlider.setValue(numInputChannels, juce::dontSendNotification);
     numInputsSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 60, 20);
     numInputsSlider.onValueChange = [this]() {
         numInputChannels = (int)numInputsSlider.getValue();
+        stopProcessingForConfigurationChange();
+        resizeRoutingMatrices();
         saveSettings();
     };
     addAndMakeVisible(numInputsSlider);
@@ -138,6 +123,8 @@ MainComponent::MainComponent()
     numOutputsSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 60, 20);
     numOutputsSlider.onValueChange = [this]() {
         numOutputChannels = (int)numOutputsSlider.getValue();
+        stopProcessingForConfigurationChange();
+        resizeRoutingMatrices();
         saveSettings();
     };
     addAndMakeVisible(numOutputsSlider);
@@ -149,11 +136,17 @@ MainComponent::MainComponent()
 
     algorithmSelector.addItem("InputBuffer (read-time delays)", 1);
     algorithmSelector.addItem("OutputBuffer (write-time delays)", 2);
+    algorithmSelector.addItem("GPU InputBuffer (GPU Audio)", 3);
     algorithmSelector.setSelectedId(1, juce::dontSendNotification);
     algorithmSelector.onChange = [this]() {
         int selectedId = algorithmSelector.getSelectedId();
-        ProcessingAlgorithm newAlgorithm = (selectedId == 1) ? ProcessingAlgorithm::InputBuffer
-                                                              : ProcessingAlgorithm::OutputBuffer;
+        ProcessingAlgorithm newAlgorithm = currentAlgorithm;
+        if (selectedId == 1)
+            newAlgorithm = ProcessingAlgorithm::InputBuffer;
+        else if (selectedId == 2)
+            newAlgorithm = ProcessingAlgorithm::OutputBuffer;
+        else if (selectedId == 3)
+            newAlgorithm = ProcessingAlgorithm::GpuInputBuffer;
 
         // Only act if algorithm actually changed
         if (newAlgorithm != currentAlgorithm)
@@ -171,10 +164,15 @@ MainComponent::MainComponent()
                     inputAlgorithm.releaseResources();
                     inputAlgorithm.clear();
                 }
-                else
+                else if (currentAlgorithm == ProcessingAlgorithm::OutputBuffer)
                 {
                     outputAlgorithm.releaseResources();
                     outputAlgorithm.clear();
+                }
+                else
+                {
+                    gpuInputAlgorithm.releaseResources();
+                    gpuInputAlgorithm.clear();
                 }
 
                 // Mark engine as not started (processors cleared)
@@ -288,6 +286,8 @@ MainComponent::MainComponent()
         {
             DBG("Using default audio device - please configure in Audio Settings");
         }
+
+        attachAudioCallbacksIfNeeded();
     });
 
     // Start timer for device monitoring and parameter smoothing
@@ -313,6 +313,86 @@ MainComponent::~MainComponent()
     // Now safe to clear processing threads (audio callbacks no longer running)
     inputAlgorithm.clear();
     outputAlgorithm.clear();
+    gpuInputAlgorithm.clear();
+}
+
+//==============================================================================
+void MainComponent::attachAudioCallbacksIfNeeded()
+{
+    if (audioCallbacksAttached)
+        return;
+
+    if (deviceManager.getCurrentAudioDevice() == nullptr)
+        return;
+
+    auto setup = deviceManager.getAudioDeviceSetup();
+    const int numInputs = setup.inputChannels.countNumberOfSetBits();
+    const int numOutputs = setup.outputChannels.countNumberOfSetBits();
+
+    // Preserve the user's current device and channel selection when wiring callbacks
+    std::unique_ptr<juce::XmlElement> state(deviceManager.createStateXml());
+    setAudioChannels(numInputs, numOutputs, state.get());
+    audioCallbacksAttached = true;
+}
+
+void MainComponent::resizeRoutingMatrices()
+{
+    const int matrixSize = numInputChannels * numOutputChannels;
+
+    delayTimesMs.assign(matrixSize, 0.0f);
+    levels.assign(matrixSize, 0.0f);
+    targetDelayTimesMs.assign(matrixSize, 0.0f);
+    targetLevels.assign(matrixSize, 0.0f);
+    finalTargetDelayTimesMs.assign(matrixSize, 0.0f);
+    finalTargetLevels.assign(matrixSize, 0.0f);
+    startDelayTimesMs.assign(matrixSize, 0.0f);
+    startLevels.assign(matrixSize, 0.0f);
+
+    for (int inCh = 0; inCh < numInputChannels; ++inCh)
+    {
+        for (int outCh = 0; outCh < numOutputChannels; ++outCh)
+        {
+            const int idx = inCh * numOutputChannels + outCh;
+            const float delay = random.nextFloat() * 1000.0f;  // 0-1000ms
+            const float level = random.nextFloat();            // 0-1
+
+            delayTimesMs[idx] = delay;
+            levels[idx] = level;
+            targetDelayTimesMs[idx] = delay;
+            targetLevels[idx] = level;
+            startDelayTimesMs[idx] = delay;
+            startLevels[idx] = level;
+            finalTargetDelayTimesMs[idx] = random.nextFloat() * 1000.0f;
+            finalTargetLevels[idx] = random.nextFloat();
+        }
+    }
+}
+
+void MainComponent::stopProcessingForConfigurationChange()
+{
+    if (!audioEngineStarted)
+        return;
+
+    processingEnabled = false;
+    processingToggle.setToggleState(false, juce::dontSendNotification);
+
+    if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
+    {
+        inputAlgorithm.releaseResources();
+        inputAlgorithm.clear();
+    }
+    else if (currentAlgorithm == ProcessingAlgorithm::OutputBuffer)
+    {
+        outputAlgorithm.releaseResources();
+        outputAlgorithm.clear();
+    }
+    else
+    {
+        gpuInputAlgorithm.releaseResources();
+        gpuInputAlgorithm.clear();
+    }
+
+    audioEngineStarted = false;
 }
 
 //==============================================================================
@@ -320,6 +400,8 @@ void MainComponent::startAudioEngine()
 {
     if (audioEngineStarted)
         return;
+
+    attachAudioCallbacksIfNeeded();
 
     // Get current audio settings
     auto* device = deviceManager.getCurrentAudioDevice();
@@ -332,22 +414,36 @@ void MainComponent::startAudioEngine()
     double sampleRate = device->getCurrentSampleRate();
     int blockSize = device->getCurrentBufferSizeSamples();
 
+    bool prepared = false;
     if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
     {
         inputAlgorithm.prepare(numInputChannels, numOutputChannels,
                               sampleRate, blockSize,
                               delayTimesMs.data(), levels.data(),
                               processingEnabled);
+        prepared = true;
     }
-    else // ProcessingAlgorithm::OutputBuffer
+    else if (currentAlgorithm == ProcessingAlgorithm::OutputBuffer)
     {
         outputAlgorithm.prepare(numInputChannels, numOutputChannels,
                                sampleRate, blockSize,
                                delayTimesMs.data(), levels.data(),
                                processingEnabled);
+        prepared = true;
+    }
+    else // ProcessingAlgorithm::GpuInputBuffer
+    {
+        prepared = gpuInputAlgorithm.prepare(numInputChannels, numOutputChannels,
+                                             sampleRate, blockSize,
+                                             processingEnabled);
     }
 
-    audioEngineStarted = true;
+    audioEngineStarted = prepared;
+    if (!audioEngineStarted && processingEnabled)
+    {
+        processingEnabled = false;
+        processingToggle.setToggleState(false, juce::dontSendNotification);
+    }
 }
 
 void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRate)
@@ -362,9 +458,20 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
         {
             inputAlgorithm.reprepare(sampleRate, samplesPerBlockExpected, processingEnabled);
         }
-        else // OutputBuffer
+        else if (currentAlgorithm == ProcessingAlgorithm::OutputBuffer)
         {
             outputAlgorithm.reprepare(sampleRate, samplesPerBlockExpected, processingEnabled);
+        }
+        else // GPU InputBuffer
+        {
+            // Safely tear down GPU processing on device/sample-rate changes.
+            // User can re-enable processing after the device change completes.
+            gpuInputAlgorithm.releaseResources();
+            gpuInputAlgorithm.clear();
+            audioEngineStarted = false;
+            processingEnabled = false;
+            processingToggle.setToggleState(false, juce::dontSendNotification);
+            DBG("GPU Audio: Disabled GPU path due to device/sample-rate change. Re-enable processing to reinit.");
         }
     }
 }
@@ -382,9 +489,13 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
     {
         inputAlgorithm.processBlock(bufferToFill, numInputChannels, numOutputChannels);
     }
-    else // ProcessingAlgorithm::OutputBuffer
+    else if (currentAlgorithm == ProcessingAlgorithm::OutputBuffer)
     {
         outputAlgorithm.processBlock(bufferToFill, numInputChannels, numOutputChannels);
+    }
+    else // ProcessingAlgorithm::GpuInputBuffer
+    {
+        gpuInputAlgorithm.processBlock(bufferToFill, numInputChannels, numOutputChannels);
     }
 }
 
@@ -398,9 +509,13 @@ void MainComponent::releaseResources()
     {
         inputAlgorithm.releaseResources();
     }
-    else // OutputBuffer
+    else if (currentAlgorithm == ProcessingAlgorithm::OutputBuffer)
     {
         outputAlgorithm.releaseResources();
+    }
+    else
+    {
+        gpuInputAlgorithm.releaseResources();
     }
 }
 
@@ -449,6 +564,44 @@ void MainComponent::paint (juce::Graphics& g)
                                                             (int)i, cpuUsage, procTime);
                 g.drawText(text, 10, yPos + (i * 15), 300, 15, juce::Justification::left);
             }
+        }
+        else if (currentAlgorithm == ProcessingAlgorithm::GpuInputBuffer && gpuInputAlgorithm.isReady())
+        {
+            g.drawText("GPU InputBuffer (pass-through on GPU)", 10, yPos, 320, 20, juce::Justification::left);
+
+            // Draw a readable telemetry badge in the lower-right corner
+            const int boxWidth = juce::jmin(420, getWidth() - 20);
+            const int boxHeight = 70;
+            const int boxX = getWidth() - boxWidth - 10;
+            const int boxY = getHeight() - boxHeight - 10;
+
+            g.setColour(juce::Colours::black.withAlpha(0.45f));
+            g.fillRoundedRectangle((float)boxX, (float)boxY, (float)boxWidth, (float)boxHeight, 6.0f);
+            g.setColour(juce::Colours::white.withAlpha(0.85f));
+            g.drawRoundedRectangle((float)boxX, (float)boxY, (float)boxWidth, (float)boxHeight, 6.0f, 1.5f);
+
+            juce::String device = gpuInputAlgorithm.getDeviceName();
+            if (device.isEmpty())
+                device = "<unknown device>";
+
+            const auto execMs = gpuInputAlgorithm.getLastGpuExecMs();
+            const auto execSamples = gpuInputAlgorithm.getLastGpuLaunchSamples();
+            const bool execFailed = gpuInputAlgorithm.getLastExecuteFailed();
+
+            g.setFont(14.0f);
+            g.setColour(juce::Colours::white);
+            g.drawText("GPU InputBuffer (GPU Audio)", boxX + 10, boxY + 6, boxWidth - 20, 20, juce::Justification::left);
+
+            g.setFont(13.0f);
+            g.drawText("Device: " + device, boxX + 10, boxY + 26, boxWidth - 20, 18, juce::Justification::left);
+
+            auto statusColour = execFailed ? juce::Colours::red : juce::Colours::greenyellow;
+            g.setColour(statusColour);
+            juce::String status = "Last launch: " + juce::String(execSamples) + " samples, " +
+                                  juce::String(execMs, 2) + " ms";
+            if (execFailed)
+                status += " (failed)";
+            g.drawText(status, boxX + 10, boxY + 44, boxWidth - 20, 18, juce::Justification::left);
         }
     }
 }

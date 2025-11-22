@@ -40,6 +40,13 @@ This project is based on the Cycling74's Max8 Prototype found at https://wfs-diy
 - **macOS**: Open `Builds/MacOSX/WFS-DIY.xcodeproj` in Xcode
 - **Linux**: Use the generated Makefile in `Builds/LinuxMakefile/`
 
+### GPU Audio (experimental)
+
+- Requires [GPU Audio Platform](https://www.gpu.audio/sdk-binaries) plus the SDK tree at `D:\Documents\GPUAudioSDK`
+- Set environment variables so the runtime can find the GPU binaries: `GPUAUDIO_PATH` to the platform install folder, and `GPUAUDIO_PROCESSOR_PATH` to `D:\Documents\GPUAudioSDK\build\bin\RelWithDebInfo`
+- Visual Studio exporter includes headers from `gpuaudio/include`, `gain_processor/gain_processor/include`, and `build/_deps/json-src/single_include` for compilation
+- In the app, choose `GPU InputBuffer (GPU Audio)` and enable processing to run a unity-gain pass-through on the GPU (used to validate CPU <-> GPU buffer flow)
+
 ## Development
 
 This project uses Git for version control and is designed for cross-platform development. Make sure to:

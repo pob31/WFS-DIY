@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "InputBufferAlgorithm.h"
 #include "OutputBufferAlgorithm.h"
+#include "GpuInputBufferAlgorithm.h"
 #include "gui/GuiPreviewWindow.h"
 
 //==============================================================================
@@ -58,7 +59,8 @@ private:
     enum class ProcessingAlgorithm
     {
         InputBuffer,   // Read-time delays (current/original approach)
-        OutputBuffer   // Write-time delays (alternative approach)
+        OutputBuffer,  // Write-time delays (alternative approach)
+        GpuInputBuffer // GPU Audio-backed input-buffer variant
     };
 
     ProcessingAlgorithm currentAlgorithm = ProcessingAlgorithm::InputBuffer;
@@ -66,6 +68,8 @@ private:
     int numOutputChannels = 4;
     InputBufferAlgorithm inputAlgorithm;
     OutputBufferAlgorithm outputAlgorithm;
+    GpuInputBufferAlgorithm gpuInputAlgorithm;
+    bool audioCallbacksAttached = false;
     bool processingEnabled = false;
     bool audioEngineStarted = false;
 
@@ -89,6 +93,10 @@ private:
     // Track device type and device name changes
     juce::String lastSavedDeviceType;
     juce::String lastSavedDeviceName;
+
+    void attachAudioCallbacksIfNeeded();
+    void resizeRoutingMatrices();
+    void stopProcessingForConfigurationChange();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };
