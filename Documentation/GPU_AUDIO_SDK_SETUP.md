@@ -144,6 +144,21 @@ export GPUAUDIO_PATH="/path/to/gpuaudio/platform/install"
 export GPUAUDIO_PROCESSOR_PATH="$(pwd)/ThirdParty/GPUAudioSDK/build/bin/Release"
 ```
 
+## Custom WFS Input Buffer Processor
+
+This project includes a custom GPU Audio processor for WFS input buffer processing. The processor is located at `Processors/wfs_input_buffer_processor/` and is built as an external processor (outside the SDK submodule).
+
+### Building the Processor
+
+See `Processors/wfs_input_buffer_processor/BUILD.md` for detailed build instructions. The processor can be built:
+
+1. **Standalone** - Using its own CMakeLists.txt
+2. **Integrated with SDK** - By adding it to the SDK's PROCESSOR_LIST
+
+After building, the processor DLL must be in a directory accessible via the `GPUAUDIO_PROCESSOR_PATH` environment variable.
+
+**Note**: The processor currently has a skeleton structure. Full implementation of the source files is still required.
+
 ## Project Configuration
 
 The WFS-DIY project is configured to use the SDK via relative paths in the `.jucer` file:
@@ -181,6 +196,15 @@ git submodule update --init --recursive
 1. Verify `GPUAUDIO_PATH` points to the GPU Audio Platform installation
 2. Verify `GPUAUDIO_PROCESSOR_PATH` points to the built processor binaries directory
 3. Ensure the GPU Audio Platform is properly installed and your GPU drivers are up to date
+
+### Custom Processor Not Found
+
+If the WFS input buffer processor is not being loaded:
+
+1. Verify the processor DLL is built: Check `Processors/wfs_input_buffer_processor/build/bin/`
+2. Ensure `GPUAUDIO_PROCESSOR_PATH` includes the directory containing the DLL
+3. Check that the processor ID matches: Should be `wfs_input_buffer` (as defined in `PROCESSOR` file)
+4. Review the processor build documentation: `Processors/wfs_input_buffer_processor/BUILD.md`
 
 ### CMake Configuration Errors
 

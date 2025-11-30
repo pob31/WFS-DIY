@@ -92,3 +92,7 @@ Builds/*/*.sln
 Builds/*/*.vcxproj
 Builds/*/*.vcxproj.filters
 Builds/*/resources.rc
+
+# Processor build artifacts
+Processors/*/build/
+Processors/*/out/
