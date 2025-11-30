@@ -11,6 +11,11 @@ public:
     GuiPreviewComponent()
     {
         setOpaque(true);
+        setWantsKeyboardFocus(false);
+        setInterceptsMouseClicks(true, true);
+        
+        // Prevent components from taking keyboard focus to avoid grey backgrounds
+        setFocusContainerType(FocusContainerType::none);
 
         configureLabel(joystickLabel, "Joystick");
         configureLabel(standardLabel, "Standard Slider");
@@ -47,6 +52,28 @@ public:
         addAndMakeVisible(dialLabel);
 
         addAndMakeVisible(joystick);
+        
+        // Prevent all slider components from taking focus and showing hover indicators
+        auto disableFocusForComponent = [](juce::Component& comp)
+        {
+            comp.setWantsKeyboardFocus(false);
+            comp.setFocusContainerType(FocusContainerType::none);
+            comp.setMouseClickGrabsKeyboardFocus(false);
+            comp.setMouseCursor(juce::MouseCursor::NormalCursor);
+        };
+        
+        disableFocusForComponent(joystick);
+        disableFocusForComponent(standardHorizontal);
+        disableFocusForComponent(standardVertical);
+        disableFocusForComponent(bidirectionalHorizontal);
+        disableFocusForComponent(bidirectionalVertical);
+        disableFocusForComponent(autoCenterHorizontal);
+        disableFocusForComponent(autoCenterVertical);
+        disableFocusForComponent(widthHorizontal);
+        disableFocusForComponent(widthVertical);
+        disableFocusForComponent(basicDial);
+        disableFocusForComponent(rotationDial);
+        disableFocusForComponent(endlessDial);
 
         addAndMakeVisible(standardHorizontal);
         addAndMakeVisible(standardVertical);
@@ -59,11 +86,32 @@ public:
 
         addAndMakeVisible(widthHorizontal);
         addAndMakeVisible(widthVertical);
+        
+        // Set initial values so sliders are visible in preview
+        // Defer setting values to avoid paint issues during construction
+        juce::MessageManager::callAsync([this]()
+        {
+            bidirectionalHorizontal.setValue(0.3f);
+            bidirectionalVertical.setValue(-0.4f);
+            // Auto-center sliders initialize at 0 (center) in their constructor
+            widthHorizontal.setValue(0.7f);
+            widthVertical.setValue(0.5f);
+            standardHorizontal.setValue(0.4f);
+            standardVertical.setValue(0.6f);
+        });
 
         basicDial.setColours(juce::Colours::black, juce::Colours::white, juce::Colours::white);
         basicDial.setTrackColours(juce::Colour::fromRGB(50, 50, 50), juce::Colour::fromRGB(244, 67, 54));
         rotationDial.setColours(juce::Colours::black, juce::Colours::white, juce::Colours::grey);
         endlessDial.setColours(juce::Colours::black, juce::Colours::white, juce::Colours::grey);
+        
+        // Set initial values for dials so they're visible
+        juce::MessageManager::callAsync([this]()
+        {
+            basicDial.setValue(0.5f);
+            rotationDial.setAngle(45.0f); // Set angle in degrees
+            endlessDial.setAngle(90.0f);  // Set angle in degrees
+        });
 
         addAndMakeVisible(basicDial);
         addAndMakeVisible(rotationDial);
@@ -72,10 +120,18 @@ public:
 
     void paint(juce::Graphics& g) override
     {
+        // Clear the entire area first to prevent artifacts
         g.fillAll(juce::Colours::black.withAlpha(0.85f));
         auto bounds = getLocalBounds().toFloat();
         g.setColour(juce::Colours::white.withAlpha(0.05f));
         g.drawRoundedRectangle(bounds.reduced(4.0f), 12.0f, 2.0f);
+    }
+    
+    
+    bool hitTest(int x, int y) override
+    {
+        // Allow hit testing but don't grant focus
+        return Component::hitTest(x, y);
     }
 
     void resized() override

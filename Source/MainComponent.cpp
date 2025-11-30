@@ -213,6 +213,21 @@ MainComponent::MainComponent()
     };
     addAndMakeVisible(uiPreviewButton);
 
+    dialsPreviewButton.setButtonText("Open Dials Preview");
+    dialsPreviewButton.onClick = [this]()
+    {
+        if (dialsPreviewWindow == nullptr)
+        {
+            dialsPreviewWindow = std::make_unique<DialsPreviewWindow>();
+        }
+        else
+        {
+            dialsPreviewWindow->setVisible(true);
+            dialsPreviewWindow->toFront(true);
+        }
+    };
+    addAndMakeVisible(dialsPreviewButton);
+
     // Make sure you set the size of the component after
     // you add any child components.
     setSize (800, 600);
@@ -303,6 +318,7 @@ MainComponent::~MainComponent()
     stopTimer();
 
     previewWindow.reset();
+    dialsPreviewWindow.reset();
 
     // Save settings before shutdown (while device is still available)
     saveSettings();
@@ -435,6 +451,7 @@ void MainComponent::startAudioEngine()
     {
         prepared = gpuInputAlgorithm.prepare(numInputChannels, numOutputChannels,
                                              sampleRate, blockSize,
+                                             delayTimesMs.data(), levels.data(),
                                              processingEnabled);
     }
 
@@ -567,7 +584,7 @@ void MainComponent::paint (juce::Graphics& g)
         }
         else if (currentAlgorithm == ProcessingAlgorithm::GpuInputBuffer && gpuInputAlgorithm.isReady())
         {
-            g.drawText("GPU InputBuffer (pass-through on GPU)", 10, yPos, 320, 20, juce::Justification::left);
+            g.drawText("GPU InputBuffer (GPU Audio)", 10, yPos, 320, 20, juce::Justification::left);
 
             // Draw a readable telemetry badge in the lower-right corner
             const int boxWidth = juce::jmin(420, getWidth() - 20);
@@ -643,6 +660,8 @@ void MainComponent::resized()
 
     auto previewRow = controlsArea.removeFromTop(30);
     uiPreviewButton.setBounds(previewRow.removeFromLeft(200));
+    previewRow.removeFromLeft(10); // Spacing
+    dialsPreviewButton.setBounds(previewRow.removeFromLeft(200));
 
     // Audio setup component takes the rest
     if (audioSetupComp != nullptr)

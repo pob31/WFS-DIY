@@ -12,7 +12,7 @@ public:
         setTrackColours(juce::Colour::fromRGB(28, 28, 28),
                         juce::Colour::fromRGB(0, 188, 212));
         setThumbColour(juce::Colours::white);
-        setTrackThickness(40.0f);
+        // Track thickness is now set in base class to match Android design
     }
 
 protected:
@@ -39,7 +39,8 @@ protected:
 
         const auto alpha = isEnabled() ? 1.0f : disabledAlpha;
 
-        g.setColour(trackBackgroundColour.withAlpha(alpha));
+        // Track background uses slider color with 0.24 alpha (matching Android app)
+        g.setColour(trackForegroundColour.withAlpha(alpha * 0.24f));
         g.fillRect(track);
 
         const auto widthFraction = getValue();
@@ -59,9 +60,25 @@ protected:
             active.setHeight(activeHeight);
         }
 
-        g.setColour(trackForegroundColour.withAlpha(alpha));
+        // Brighten active track when hovering
+        auto activeColour = isHovered ? trackForegroundColour.brighter(0.3f).withAlpha(alpha) : trackForegroundColour.withAlpha(alpha);
+        g.setColour(activeColour);
         g.fillRect(active);
 
-        drawThumbIndicator(g, track, thumbPos, alpha);
+        // Draw thumbs on both ends of active track
+        juce::Point<float> leftThumbPos, rightThumbPos;
+        if (getOrientation() == Orientation::horizontal)
+        {
+            leftThumbPos = { active.getX(), track.getCentreY() };
+            rightThumbPos = { active.getRight(), track.getCentreY() };
+        }
+        else
+        {
+            leftThumbPos = { track.getCentreX(), active.getY() };
+            rightThumbPos = { track.getCentreX(), active.getBottom() };
+        }
+        
+        drawThumbIndicator(g, track, leftThumbPos, alpha);
+        drawThumbIndicator(g, track, rightThumbPos, alpha);
     }
 };

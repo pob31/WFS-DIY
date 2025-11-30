@@ -5,7 +5,23 @@
 class WfsBasicDial : public juce::Component
 {
 public:
-    WfsBasicDial() = default;
+    WfsBasicDial()
+    {
+        setWantsKeyboardFocus(false);
+        setFocusContainerType(FocusContainerType::none);
+        setOpaque(true); // Opaque to prevent JUCE from drawing default backgrounds
+        setMouseClickGrabsKeyboardFocus(false);
+    }
+    
+    void mouseEnter(const juce::MouseEvent&) override
+    {
+        // Override to prevent hover effects - do nothing
+    }
+    
+    void mouseExit(const juce::MouseEvent&) override
+    {
+        // Override to prevent hover effects - do nothing
+    }
 
     void setValue(float newValue)
     {
@@ -50,6 +66,9 @@ public:
 private:
     void paint(juce::Graphics& g) override
     {
+        // Always fill with black background to prevent any hover background from showing
+        g.fillAll(juce::Colours::black);
+        
         auto bounds = getLocalBounds().toFloat();
         auto size = juce::jmin(bounds.getWidth(), bounds.getHeight());
         auto centre = bounds.getCentre();
@@ -127,19 +146,54 @@ private:
     void mouseDown(const juce::MouseEvent& event) override
     {
         dragStartValue = value;
-        dragStartPosition = event.position;
+        auto bounds = getLocalBounds().toFloat();
+        auto centre = bounds.getCentre();
+        auto deltaFromCentre = event.position - centre;
+        dragStartAngle = std::atan2(deltaFromCentre.y, deltaFromCentre.x);
+        accumulatedAngleChange = 0.0f;
     }
 
     void mouseDrag(const juce::MouseEvent& event) override
     {
-        auto delta = event.position - dragStartPosition;
-        auto deltaValue = (delta.x - delta.y) * 0.0025f * (maxValue - minValue);
+        auto bounds = getLocalBounds().toFloat();
+        auto centre = bounds.getCentre();
+        auto deltaFromCentre = event.position - centre;
+        auto currentAngle = std::atan2(deltaFromCentre.y, deltaFromCentre.x);
+        
+        // Calculate angular change (handle wrap-around)
+        auto angleDelta = currentAngle - dragStartAngle;
+        if (angleDelta > juce::MathConstants<float>::pi)
+            angleDelta -= 2.0f * juce::MathConstants<float>::pi;
+        else if (angleDelta < -juce::MathConstants<float>::pi)
+            angleDelta += 2.0f * juce::MathConstants<float>::pi;
+        
+        // Accumulate angle change
+        accumulatedAngleChange += angleDelta;
+        dragStartAngle = currentAngle; // Update for next drag
+        
+        // Convert accumulated angular change to value change
+        // Needle angle range is 315 degrees (7/8 of full circle)
+        const float needleAngleRange = juce::degreesToRadians(315.0f);
+        auto normalizedDelta = accumulatedAngleChange / needleAngleRange;
+        auto deltaValue = normalizedDelta * (maxValue - minValue);
+        
         setValue(dragStartValue + deltaValue);
+    }
+
+    void mouseWheelMove(const juce::MouseEvent&, const juce::MouseWheelDetails& wheel) override
+    {
+        auto increment = (maxValue - minValue) * 0.01f; // 1% of range per step
+        setValue(value + wheel.deltaY * increment);
     }
 
     void mouseUp(const juce::MouseEvent&) override
     {
         dragStartValue = value;
+    }
+    
+    void paintOverChildren(juce::Graphics&) override
+    {
+        // Prevent JUCE from drawing default focus indicators
     }
 
     float value = 0.0f;
@@ -153,5 +207,6 @@ private:
     juce::Colour activeTrackColour { juce::Colour::fromRGB(0, 150, 255) };
 
     float dragStartValue = 0.0f;
-    juce::Point<float> dragStartPosition;
+    float dragStartAngle = 0.0f;
+    float accumulatedAngleChange = 0.0f;
 };

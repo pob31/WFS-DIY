@@ -12,7 +12,9 @@ public:
         setTrackColours(juce::Colour::fromRGB(32, 32, 32),
                         juce::Colour::fromRGB(255, 152, 0));
         setThumbColour(juce::Colours::white);
-        setTrackThickness(40.0f);
+        // Track thickness is now set in base class to match Android design
+        // Initialize at center (0)
+        setValue(0.0f);
     }
 
     void setCenterValue(float newCenter)
@@ -32,7 +34,8 @@ protected:
 
         const auto alpha = isEnabled() ? 1.0f : disabledAlpha;
 
-        g.setColour(trackBackgroundColour.withAlpha(alpha));
+        // Track background uses slider color with 0.24 alpha (matching Android app)
+        g.setColour(trackForegroundColour.withAlpha(alpha * 0.24f));
         g.fillRect(track);
 
         const auto centerNormalized = normalizedFromValue(centerValue);
@@ -62,7 +65,9 @@ protected:
             active.setHeight(height);
         }
 
-        g.setColour(trackForegroundColour.withAlpha(alpha));
+        // Brighten active track when hovering
+        auto activeColour = isHovered ? trackForegroundColour.brighter(0.3f).withAlpha(alpha) : trackForegroundColour.withAlpha(alpha);
+        g.setColour(activeColour);
         g.fillRect(active);
 
         // Centre marker
@@ -79,6 +84,11 @@ private:
     void handleMouseUp() override
     {
         setValue(centerValue);
+    }
+
+    void mouseWheelMove(const juce::MouseEvent&, const juce::MouseWheelDetails&) override
+    {
+        // Auto-center sliders don't respond to scroll wheel
     }
 
     float centerValue = 0.0f;

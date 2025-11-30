@@ -8,8 +8,22 @@ class WfsJoystickComponent : public juce::Component,
 public:
     WfsJoystickComponent()
     {
-        setRepaintsOnMouseActivity(true);
+        setRepaintsOnMouseActivity(false); // Disable to prevent hover background drawing
         setReportingIntervalHz(reportingIntervalHz);
+        setWantsKeyboardFocus(false);
+        setFocusContainerType(FocusContainerType::none);
+        setOpaque(true); // Opaque to prevent JUCE from drawing default backgrounds
+        setMouseClickGrabsKeyboardFocus(false);
+    }
+    
+    void mouseEnter(const juce::MouseEvent&) override
+    {
+        // Override to prevent hover effects - do nothing
+    }
+    
+    void mouseExit(const juce::MouseEvent&) override
+    {
+        // Override to prevent hover effects - do nothing
     }
 
     ~WfsJoystickComponent() override
@@ -37,6 +51,9 @@ public:
 private:
     void paint(juce::Graphics& g) override
     {
+        // Always fill with black background to prevent any hover background from showing
+        g.fillAll(juce::Colours::black);
+        
         static constexpr float thumbRatio = 0.33f;
 
         auto bounds = getLocalBounds().toFloat();
@@ -126,6 +143,11 @@ private:
         thumbOffset = { 0.0f, 0.0f };
         normalizedPosition = { 0.0f, 0.0f };
         repaint();
+    }
+    
+    void paintOverChildren(juce::Graphics&) override
+    {
+        // Prevent JUCE from drawing default focus indicators
     }
 
     juce::Colour outerColour { juce::Colours::lightgrey };

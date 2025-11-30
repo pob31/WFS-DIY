@@ -12,7 +12,7 @@ public:
         setTrackColours(juce::Colour::fromRGB(30, 30, 30),
                         juce::Colour::fromRGB(76, 175, 80));
         setThumbColour(juce::Colours::white);
-        setTrackThickness(40.0f);
+        // Track thickness is now set in base class to match Android design
     }
 
 protected:
@@ -24,7 +24,8 @@ protected:
 
         const auto alpha = isEnabled() ? 1.0f : disabledAlpha;
 
-        g.setColour(trackBackgroundColour.withAlpha(alpha));
+        // Track background uses slider color with 0.24 alpha (matching Android app)
+        g.setColour(trackForegroundColour.withAlpha(alpha * 0.24f));
         g.fillRect(track);
 
         const auto centrePoint = (getOrientation() == Orientation::horizontal)
@@ -48,7 +49,9 @@ protected:
             active.setHeight(height);
         }
 
-        g.setColour(trackForegroundColour.withAlpha(alpha));
+        // Brighten active track when hovering
+        auto activeColour = isHovered ? trackForegroundColour.brighter(0.3f).withAlpha(alpha) : trackForegroundColour.withAlpha(alpha);
+        g.setColour(activeColour);
         g.fillRect(active);
 
         // zero marker

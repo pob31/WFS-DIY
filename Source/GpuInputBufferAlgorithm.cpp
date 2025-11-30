@@ -1,22 +1,26 @@
 #include "GpuInputBufferAlgorithm.h"
 
 #include <cwchar>
+#include <cstring>
 
 namespace
 {
-    // GPU Audio module identifier for the built-in gain processor
-    constexpr const wchar_t* kGainProcessorId = L"gain";
+    // GPU Audio module identifier for the custom WFS input-buffer processor
+    constexpr const wchar_t* kWfsProcessorId = L"wfs_input_buffer";
 
 #if JUCE_WINDOWS
     // Execute GPU call under SEH guard to avoid process termination on driver faults.
     static bool executeGpuSafely(ProcessExecutor<ExecutionMode::eSync>* exec,
                                  uint32_t launchSamples,
                                  const float* const* inputs,
-                                 float* const* outputs)
+                                 float* const* outputs,
+                                 void* appData,
+                                 uint32_t appDataSize)
     {
         __try
         {
-            exec->Execute<AudioDataLayout::eChannelsIndividual>(launchSamples, inputs, outputs);
+            exec->Execute<AudioDataLayout::eChannelsIndividual>(launchSamples, inputs, outputs,
+                                                                appData, appDataSize);
             return true;
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
@@ -28,11 +32,14 @@ namespace
     static bool executeGpuSafely(ProcessExecutor<ExecutionMode::eSync>* exec,
                                  uint32_t launchSamples,
                                  const float* const* inputs,
-                                 float* const* outputs)
+                                 float* const* outputs,
+                                 void* appData,
+                                 uint32_t appDataSize)
     {
         try
         {
-            exec->Execute<AudioDataLayout::eChannelsIndividual>(launchSamples, inputs, outputs);
+            exec->Execute<AudioDataLayout::eChannelsIndividual>(launchSamples, inputs, outputs,
+                                                                appData, appDataSize);
             return true;
         }
         catch (...)
@@ -52,26 +59,32 @@ bool GpuInputBufferAlgorithm::prepare(int numInputs,
                                       int numOutputs,
                                       double sampleRate,
                                       int blockSize,
+                                      const float* delayTimesPtr,
+                                      const float* levelsPtr,
                                       bool processingEnabled)
 {
-    juce::ignoreUnused(sampleRate);
-
     const juce::SpinLock::ScopedLockType lock(execLock);
     ready.store(false, std::memory_order_release);
     processingEnabledFlag = processingEnabled;
+    currentSampleRate = sampleRate;
 
     // Tear down any previous GPU state
     releaseResourcesUnlocked();
 
-    channelCount = juce::jmax(1, juce::jmin(numInputs, numOutputs));
+    inputChannelCount = juce::jmax(1, numInputs);
+    outputChannelCount = juce::jmax(1, numOutputs);
+    routingMatrixSize = static_cast<size_t>(inputChannelCount * outputChannelCount);
     maxBlockSize = blockSize;
+    delayTimes = delayTimesPtr;
+    levels = levelsPtr;
 
     executorConfig = {};
-    executorConfig.nchannels_in = static_cast<uint32_t>(channelCount);
-    executorConfig.nchannels_out = static_cast<uint32_t>(channelCount);
+    executorConfig.nchannels_in = static_cast<uint32_t>(inputChannelCount);
+    executorConfig.nchannels_out = static_cast<uint32_t>(outputChannelCount);
     executorConfig.max_samples_per_channel = static_cast<uint32_t>(blockSize);
 
-    scratchBuffer.setSize(channelCount, blockSize);
+    const int scratchChannels = juce::jmax(inputChannelCount, outputChannelCount);
+    scratchBuffer.setSize(scratchChannels, blockSize);
     scratchBuffer.clear();
 
     if (!initialiseLauncher())
@@ -86,10 +99,15 @@ bool GpuInputBufferAlgorithm::prepare(int numInputs,
         return false;
     }
 
-    gainSpec = {};
-    gainSpec.params.gain_value = 1.0f; // unity pass-through
+    // Configure processor construction parameters
+    wfsSpec = {};
+    wfsSpec.numInputs = static_cast<uint32_t>(inputChannelCount);
+    wfsSpec.numOutputs = static_cast<uint32_t>(outputChannelCount);
+    wfsSpec.maxSamplesPerChannel = static_cast<uint32_t>(blockSize);
+    // Mirror CPU path: 1 second of delay line capacity
+    wfsSpec.maxDelaySamples = static_cast<uint32_t>(juce::roundToInt(sampleRate));
 
-    if (!loadGainModule())
+    if (!loadWfsModule())
     {
         releaseResourcesUnlocked();
         return false;
@@ -101,7 +119,7 @@ bool GpuInputBufferAlgorithm::prepare(int numInputs,
         return false;
     }
 
-    resetCachePointers(channelCount);
+    resetCachePointers(scratchChannels);
     ready.store(true, std::memory_order_release);
     return true;
 }
@@ -110,10 +128,11 @@ void GpuInputBufferAlgorithm::reprepare(int numInputs,
                                         int numOutputs,
                                         double sampleRate,
                                         int blockSize,
+                                        const float* delayTimesPtr,
+                                        const float* levelsPtr,
                                         bool processingEnabled)
 {
-    juce::ignoreUnused(sampleRate);
-    prepare(numInputs, numOutputs, sampleRate, blockSize, processingEnabled);
+    prepare(numInputs, numOutputs, sampleRate, blockSize, delayTimesPtr, levelsPtr, processingEnabled);
 }
 
 void GpuInputBufferAlgorithm::processBlock(const juce::AudioSourceChannelInfo& bufferToFill,
@@ -134,7 +153,9 @@ void GpuInputBufferAlgorithm::processBlock(const juce::AudioSourceChannelInfo& b
     }
 
     auto* buffer = bufferToFill.buffer;
-    if (buffer == nullptr || !executorGuard.executor || channelCount <= 0 || bufferToFill.numSamples <= 0)
+    if (buffer == nullptr || !executorGuard.executor ||
+        inputChannelCount <= 0 || outputChannelCount <= 0 ||
+        bufferToFill.numSamples <= 0)
     {
         bufferToFill.clearActiveBufferRegion();
         return;
@@ -146,32 +167,54 @@ void GpuInputBufferAlgorithm::processBlock(const juce::AudioSourceChannelInfo& b
         return;
     }
 
-    const int availableChannels = juce::jmin(buffer->getNumChannels(),
-                                             numInputChannels,
-                                             numOutputChannels,
-                                             channelCount);
+    if (!buildRoutingMessage())
+    {
+        bufferToFill.clearActiveBufferRegion();
+        return;
+    }
+
+    const auto* appDataPtr = routingMessage.empty() ? nullptr : routingMessage.data();
+    const auto appDataSize = routingMessage.empty() ? 0u : static_cast<uint32_t>(routingMessage.size());
+
+    const int availableInputs = juce::jmin(buffer->getNumChannels(),
+                                           numInputChannels,
+                                           inputChannelCount);
+    const int availableOutputs = juce::jmin(buffer->getNumChannels(),
+                                            numOutputChannels,
+                                            outputChannelCount);
 
     scratchBuffer.clear();
 
     uint32_t remainingSamples = static_cast<uint32_t>(bufferToFill.numSamples);
     int startSample = bufferToFill.startSample;
     const uint32_t chunkSize = executorConfig.max_samples_per_channel;
+    const int scratchChannels = juce::jmax(inputChannelCount, outputChannelCount);
 
     while (remainingSamples > 0)
     {
         const uint32_t launchSamples = juce::jmin(chunkSize, remainingSamples);
-        resetCachePointers(channelCount);
+        resetCachePointers(scratchChannels);
 
-        for (int ch = 0; ch < channelCount; ++ch)
+        for (int ch = 0; ch < inputChannelCount; ++ch)
         {
-            if (ch < availableChannels)
+            if (ch < availableInputs)
             {
                 inputPtrs[static_cast<size_t>(ch)] = buffer->getReadPointer(ch, startSample);
-                outputPtrs[static_cast<size_t>(ch)] = buffer->getWritePointer(ch, startSample);
             }
             else
             {
                 inputPtrs[static_cast<size_t>(ch)] = scratchBuffer.getReadPointer(ch);
+            }
+        }
+
+        for (int ch = 0; ch < outputChannelCount; ++ch)
+        {
+            if (ch < availableOutputs)
+            {
+                outputPtrs[static_cast<size_t>(ch)] = buffer->getWritePointer(ch, startSample);
+            }
+            else
+            {
                 outputPtrs[static_cast<size_t>(ch)] = scratchBuffer.getWritePointer(ch);
             }
         }
@@ -179,7 +222,9 @@ void GpuInputBufferAlgorithm::processBlock(const juce::AudioSourceChannelInfo& b
         const auto gpuStartMs = juce::Time::getMillisecondCounterHiRes();
         const bool ok = (executorGuard.executor != nullptr) &&
                         executeGpuSafely(executorGuard.executor.get(), launchSamples,
-                                         inputPtrs.data(), outputPtrs.data());
+                                         inputPtrs.data(), outputPtrs.data(),
+                                         const_cast<void*>(static_cast<const void*>(appDataPtr)),
+                                         appDataSize);
         const auto gpuEndMs = juce::Time::getMillisecondCounterHiRes();
 
         lastExecuteFailed.store(!ok, std::memory_order_release);
@@ -197,9 +242,10 @@ void GpuInputBufferAlgorithm::processBlock(const juce::AudioSourceChannelInfo& b
     }
 
     // Clear any channels we did not process (device outputs beyond our GPU routed channels)
-    if (availableChannels < buffer->getNumChannels())
+    const int channelsToClear = buffer->getNumChannels();
+    if (outputChannelCount < channelsToClear)
     {
-        for (int ch = availableChannels; ch < buffer->getNumChannels(); ++ch)
+        for (int ch = outputChannelCount; ch < channelsToClear; ++ch)
         {
             buffer->clear(ch, bufferToFill.startSample, bufferToFill.numSamples);
         }
@@ -245,15 +291,21 @@ void GpuInputBufferAlgorithm::clear()
 
     releaseResourcesUnlocked();
 
-    gainModule = nullptr;
+    processorModule = nullptr;
     executorGuard.clearModule();
     executorGuard.processor = nullptr;
-    channelCount = 0;
+    inputChannelCount = 0;
+    outputChannelCount = 0;
+    routingMatrixSize = 0;
+    delayTimes = nullptr;
+    levels = nullptr;
     maxBlockSize = 0;
+    currentSampleRate = 0.0;
     processingEnabledFlag = false;
     deviceName.clear();
     inputPtrs.clear();
     outputPtrs.clear();
+    routingMessage.clear();
     scratchBuffer.setSize(0, 0);
     lastGpuExecMs.store(0.0f, std::memory_order_release);
     lastGpuLaunchSamples.store(0, std::memory_order_release);
@@ -336,7 +388,7 @@ bool GpuInputBufferAlgorithm::createGraph()
     return true;
 }
 
-bool GpuInputBufferAlgorithm::loadGainModule()
+bool GpuInputBufferAlgorithm::loadWfsModule()
 {
     if (launcher == nullptr)
         return false;
@@ -351,7 +403,7 @@ bool GpuInputBufferAlgorithm::loadGainModule()
     {
         if (moduleProvider.GetModuleInfo(i, info) == GPUA::engine::v2::ErrorCode::eSuccess &&
             info.id != nullptr &&
-            std::wcscmp(info.id, kGainProcessorId) == 0)
+            std::wcscmp(info.id, kWfsProcessorId) == 0)
         {
             found = true;
             break;
@@ -368,18 +420,18 @@ bool GpuInputBufferAlgorithm::loadGainModule()
 
     if (!found)
     {
-        DBG("GPU Audio: Gain processor module not found. Ensure GPUAUDIO_PROCESSOR_PATH points to the built processors.");
+        DBG("GPU Audio: WFS input processor module not found. Ensure GPUAUDIO_PROCESSOR_PATH points to the built processors.");
         return false;
     }
 
-    if (moduleProvider.GetModule(info, gainModule) != GPUA::engine::v2::ErrorCode::eSuccess || gainModule == nullptr)
+    if (moduleProvider.GetModule(info, processorModule) != GPUA::engine::v2::ErrorCode::eSuccess || processorModule == nullptr)
     {
-        DBG("GPU Audio: Failed to load gain module.");
-        gainModule = nullptr;
+        DBG("GPU Audio: Failed to load WFS input module.");
+        processorModule = nullptr;
         return false;
     }
 
-    executorGuard.module = gainModule;
+    executorGuard.module = processorModule;
     return true;
 }
 
@@ -387,13 +439,13 @@ bool GpuInputBufferAlgorithm::armProcessor()
 {
     disarmProcessor();
 
-    if (gainModule == nullptr || graph == nullptr || launcher == nullptr)
+    if (processorModule == nullptr || graph == nullptr || launcher == nullptr)
         return false;
 
-    if (gainModule->CreateProcessor(graph, &gainSpec, sizeof(gainSpec), executorGuard.processor) != GPUA::engine::v2::ErrorCode::eSuccess ||
+    if (processorModule->CreateProcessor(graph, &wfsSpec, sizeof(wfsSpec), executorGuard.processor) != GPUA::engine::v2::ErrorCode::eSuccess ||
         executorGuard.processor == nullptr)
     {
-        DBG("GPU Audio: Failed to create gain processor instance.");
+        DBG("GPU Audio: Failed to create WFS input processor instance.");
         executorGuard.processor = nullptr;
         return false;
     }
@@ -412,7 +464,7 @@ bool GpuInputBufferAlgorithm::armProcessor()
     catch (const std::exception& e)
     {
         DBG("GPU Audio: Executor creation failed: " + juce::String(e.what()));
-        gainModule->DeleteProcessor(executorGuard.processor);
+        processorModule->DeleteProcessor(executorGuard.processor);
         executorGuard.processor = nullptr;
         executorGuard.processorList.clear();
         executorGuard.executor.reset();
@@ -428,13 +480,40 @@ void GpuInputBufferAlgorithm::disarmProcessor()
     // then delete the processor instance.
     executorGuard.executor.reset();
 
-    if (gainModule != nullptr && executorGuard.processor != nullptr)
+    if (processorModule != nullptr && executorGuard.processor != nullptr)
     {
-        gainModule->DeleteProcessor(executorGuard.processor);
+        processorModule->DeleteProcessor(executorGuard.processor);
         executorGuard.processor = nullptr;
     }
 
     executorGuard.processorList.clear();
+}
+
+bool GpuInputBufferAlgorithm::buildRoutingMessage()
+{
+    if (routingMatrixSize == 0 || delayTimes == nullptr || levels == nullptr)
+        return false;
+
+    const size_t matrixBytes = routingMatrixSize * sizeof(float);
+    const size_t headerBytes = sizeof(WfsInputConfig::RoutingMessage);
+    const size_t totalBytes = headerBytes + (matrixBytes * 2);
+
+    routingMessage.resize(totalBytes);
+
+    auto* header = reinterpret_cast<WfsInputConfig::RoutingMessage*>(routingMessage.data());
+    header->ThisMessage = WfsInputConfig::RoutingMessage::RoutingType;
+    header->numInputs = static_cast<uint32_t>(inputChannelCount);
+    header->numOutputs = static_cast<uint32_t>(outputChannelCount);
+
+    // Payload layout: [delays (samples) | gains], both flattened input-major.
+    auto* payload = reinterpret_cast<float*>(header + 1);
+    const float sampleScale = static_cast<float>(currentSampleRate / 1000.0);
+
+    for (size_t i = 0; i < routingMatrixSize; ++i)
+        payload[i] = delayTimes[i] * sampleScale; // convert ms to samples
+
+    std::memcpy(payload + routingMatrixSize, levels, matrixBytes);
+    return true;
 }
 
 void GpuInputBufferAlgorithm::resetCachePointers(int channels)

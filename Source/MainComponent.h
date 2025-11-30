@@ -5,6 +5,7 @@
 #include "OutputBufferAlgorithm.h"
 #include "GpuInputBufferAlgorithm.h"
 #include "gui/GuiPreviewWindow.h"
+#include "gui/DialsPreviewWindow.h"
 
 //==============================================================================
 /*
@@ -52,8 +53,10 @@ private:
     juce::Label algorithmLabel;
     juce::ComboBox algorithmSelector;
     juce::TextButton uiPreviewButton;
+    juce::TextButton dialsPreviewButton;
 
     std::unique_ptr<GuiPreviewWindow> previewWindow;
+    std::unique_ptr<DialsPreviewWindow> dialsPreviewWindow;
 
     // Threaded processing architecture
     enum class ProcessingAlgorithm

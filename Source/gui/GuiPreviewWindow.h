@@ -8,22 +8,25 @@ class GuiPreviewRootComponent : public juce::Component
 public:
     GuiPreviewRootComponent()
     {
+        setOpaque(true);
+        setWantsKeyboardFocus(false);
+        
+        // Add preview component directly (viewport causes assertion issues - scrolling will be added later)
         previewComponent = std::make_unique<GuiPreviewComponent>();
         previewComponent->setSize(defaultContentWidth, defaultContentHeight);
-
-        viewport.setViewedComponent(previewComponent.get(), false);
-        viewport.setScrollBarsShown(true, true, false, true);
-        addAndMakeVisible(viewport);
+        addAndMakeVisible(previewComponent.get());
+    }
+    
+    void paint(juce::Graphics& g) override
+    {
+        g.fillAll(juce::Colours::black);
     }
 
     void resized() override
     {
-        viewport.setBounds(getLocalBounds());
         if (previewComponent != nullptr)
         {
-            const auto width = juce::jmax(defaultContentWidth, viewport.getWidth());
-            const auto height = juce::jmax(defaultContentHeight, viewport.getHeight());
-            previewComponent->setSize(width, height);
+            previewComponent->setBounds(getLocalBounds());
         }
     }
 
@@ -31,7 +34,6 @@ public:
     static constexpr int defaultContentHeight = 1400;
 
 private:
-    juce::Viewport viewport;
     std::unique_ptr<GuiPreviewComponent> previewComponent;
 };
 
@@ -45,7 +47,7 @@ public:
     {
         setUsingNativeTitleBar(true);
         setResizable(true, true);
-
+        
         setContentOwned(new GuiPreviewRootComponent(), true);
 
         const int preferredWidth = 900;
@@ -92,4 +94,10 @@ public:
     {
         setVisible(false);
     }
+    
+    ~GuiPreviewWindow() override
+    {
+        // Cleanup handled by unique_ptr
+    }
+
 };

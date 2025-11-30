@@ -21,7 +21,23 @@ public:
     WfsSliderBase(float minValueIn, float maxValueIn, Orientation orientationIn)
         : minValue(minValueIn), maxValue(maxValueIn), orientation(orientationIn), value(minValueIn)
     {
-        setRepaintsOnMouseActivity(true);
+        setRepaintsOnMouseActivity(false); // Disable to prevent hover effects - mouseDrag will repaint manually
+        setWantsKeyboardFocus(false);
+        setFocusContainerType(FocusContainerType::none);
+        setOpaque(true); // Opaque to prevent JUCE from drawing default backgrounds
+        setMouseClickGrabsKeyboardFocus(false);
+    }
+    
+    void mouseEnter(const juce::MouseEvent&) override
+    {
+        isHovered = true;
+        repaint(); // Repaint to show brighter track
+    }
+    
+    void mouseExit(const juce::MouseEvent&) override
+    {
+        isHovered = false;
+        repaint(); // Repaint to restore normal track
     }
 
     ~WfsSliderBase() override = default;
@@ -123,56 +139,73 @@ protected:
     }
 
     void drawThumbIndicator(juce::Graphics& g,
-                            const juce::Rectangle<float>& track,
+                            const juce::Rectangle<float>& /* track */,
                             const juce::Point<float>& thumbPos,
                             float alpha) const
     {
-        const float lineLength = trackThickness * 0.8f;
-        const float lineBreadth = juce::jmax(2.0f, trackThickness * 0.15f);
-
-        juce::Rectangle<float> thumbLine;
+        // Draw thin white line thumb matching Android app design
+        auto colour = thumbColour.withAlpha(alpha);
+        g.setColour(colour);
+        
+        // Thumb line thickness (stroke width along track) - kept thin for clean look
+        const float lineThickness = 2.0f;
+        
         if (orientation == Orientation::horizontal)
         {
-            thumbLine = {
-                thumbPos.x - (lineBreadth * 0.5f),
-                track.getCentreY() - (lineLength * 0.5f),
-                lineBreadth,
-                lineLength
-            };
+            // For horizontal sliders: vertical line (perpendicular to track)
+            // Thumb width across track is 80% of track thickness (matching Android)
+            const float lineLength = trackThickness * 0.8f;
+            g.drawLine(thumbPos.x,
+                      thumbPos.y - lineLength * 0.5f,
+                      thumbPos.x,
+                      thumbPos.y + lineLength * 0.5f,
+                      lineThickness);
         }
         else
         {
-            thumbLine = {
-                track.getCentreX() - (lineLength * 0.5f),
-                thumbPos.y - (lineBreadth * 0.5f),
-                lineLength,
-                lineBreadth
-            };
+            // For vertical sliders: horizontal line (perpendicular to track)
+            // Thumb width across track is 80% of track thickness (matching Android)
+            const float lineLength = trackThickness * 0.8f;
+            g.drawLine(thumbPos.x - lineLength * 0.5f,
+                      thumbPos.y,
+                      thumbPos.x + lineLength * 0.5f,
+                      thumbPos.y,
+                      lineThickness);
         }
-
-        auto colour = thumbColour.withAlpha(alpha);
-        g.setColour(juce::Colours::black.withAlpha(alpha * 0.2f));
-        g.fillRoundedRectangle(thumbLine.expanded(1.0f), lineBreadth * 0.5f);
-        g.setColour(colour);
-        g.fillRoundedRectangle(thumbLine, lineBreadth * 0.5f);
     }
 
     juce::Colour trackBackgroundColour { juce::Colours::darkgrey };
     juce::Colour trackForegroundColour { juce::Colours::white };
     juce::Colour thumbColour { juce::Colours::white };
-    float disabledAlpha = 0.35f;
+    float disabledAlpha = 0.38f;  // Match Material Design disabled alpha
 
     float minValue = 0.0f;
     float maxValue = 1.0f;
 
-    float trackThickness = 40.0f;
-    float thumbRadius = 12.0f;
+    // Track thickness: dimension perpendicular to slider displacement
+    // Thumb width will be 80% of track thickness automatically
+    float trackThickness = 20.0f;  // Track width perpendicular to displacement
+    float thumbRadius = 8.0f;     // Thumb hit test radius (line is drawn separately)
+    bool isHovered = false; // Track hover state for brightening active track
 
 private:
     void paint(juce::Graphics& g) override
     {
+        // Always fill with black background to prevent any hover background from showing
+        g.fillAll(juce::Colours::black);
         auto bounds = getLocalBounds().toFloat();
         paintSlider(g, bounds);
+    }
+    
+    void paintOverChildren(juce::Graphics& /* g */) override
+    {
+        // Override to prevent JUCE from drawing default focus indicators
+    }
+    
+    void lookAndFeelChanged() override
+    {
+        // Prevent default focus indicator drawing
+        repaint();
     }
 
     void mouseDown(const juce::MouseEvent& e) override
@@ -188,6 +221,12 @@ private:
     void mouseUp(const juce::MouseEvent&) override
     {
         handleMouseUp();
+    }
+
+    void mouseWheelMove(const juce::MouseEvent&, const juce::MouseWheelDetails& wheel) override
+    {
+        auto increment = (maxValue - minValue) * 0.01f; // 1% of range per step
+        setValue(value + wheel.deltaY * increment);
     }
 
     virtual void handleMouseUp() {}
@@ -213,6 +252,7 @@ private:
         setValue(valueFromNormalized(normalized));
     }
 
+protected:
     Orientation orientation = Orientation::horizontal;
     float value = 0.0f;
 };
