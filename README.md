@@ -42,10 +42,17 @@ This project is based on the Cycling74's Max8 Prototype found at https://wfs-diy
 
 ### GPU Audio (experimental)
 
-- Requires [GPU Audio Platform](https://www.gpu.audio/sdk-binaries) plus the SDK tree at `D:\Documents\GPUAudioSDK`
-- Set environment variables so the runtime can find the GPU binaries: `GPUAUDIO_PATH` to the platform install folder, and `GPUAUDIO_PROCESSOR_PATH` to `D:\Documents\GPUAudioSDK\build\bin\RelWithDebInfo`
-- Visual Studio exporter includes headers from `gpuaudio/include`, `gain_processor/gain_processor/include`, and `build/_deps/json-src/single_include` for compilation
-- In the app, choose `GPU InputBuffer (GPU Audio)` and enable processing to run a unity-gain pass-through on the GPU (used to validate CPU <-> GPU buffer flow)
+WFS-DIY includes experimental support for GPU-accelerated audio processing using the GPU-Audio SDK. The SDK is integrated as a Git submodule at `ThirdParty/GPUAudioSDK`.
+
+**For detailed setup instructions, see [GPU-Audio SDK Setup Guide](Documentation/GPU_AUDIO_SDK_SETUP.md)**
+
+Quick start:
+1. Initialize the submodule: `git submodule update --init --recursive`
+2. Build the SDK following the setup guide
+3. Set environment variables: `GPUAUDIO_PATH` and `GPUAUDIO_PROCESSOR_PATH`
+4. In the app, choose `GPU InputBuffer (GPU Audio)` and enable processing
+
+**Note**: The GPU Audio feature requires the [GPU Audio Platform](https://www.gpu.audio/sdk-binaries) to be installed separately.
 
 ## Development
 
