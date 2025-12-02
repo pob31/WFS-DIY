@@ -57,45 +57,61 @@ public:
 
         // Stage Section
         addAndMakeVisible(stageWidthLabel);
-        stageWidthLabel.setText("Stage Width (m):", juce::dontSendNotification);
+        stageWidthLabel.setText("Stage Width:", juce::dontSendNotification);
         addAndMakeVisible(stageWidthEditor);
         stageWidthEditor.setText("20.0");
+        addAndMakeVisible(stageWidthUnitLabel);
+        stageWidthUnitLabel.setText("m", juce::dontSendNotification);
 
         addAndMakeVisible(stageDepthLabel);
-        stageDepthLabel.setText("Stage Depth (m):", juce::dontSendNotification);
+        stageDepthLabel.setText("Stage Depth:", juce::dontSendNotification);
         addAndMakeVisible(stageDepthEditor);
         stageDepthEditor.setText("10.0");
+        addAndMakeVisible(stageDepthUnitLabel);
+        stageDepthUnitLabel.setText("m", juce::dontSendNotification);
 
         addAndMakeVisible(stageHeightLabel);
-        stageHeightLabel.setText("Stage Height (m):", juce::dontSendNotification);
+        stageHeightLabel.setText("Stage Height:", juce::dontSendNotification);
         addAndMakeVisible(stageHeightEditor);
         stageHeightEditor.setText("8.0");
+        addAndMakeVisible(stageHeightUnitLabel);
+        stageHeightUnitLabel.setText("m", juce::dontSendNotification);
 
         addAndMakeVisible(speedOfSoundLabel);
-        speedOfSoundLabel.setText("Speed of Sound (m/s):", juce::dontSendNotification);
+        speedOfSoundLabel.setText("Speed of Sound:", juce::dontSendNotification);
         addAndMakeVisible(speedOfSoundEditor);
         speedOfSoundEditor.setText("343.0");
+        addAndMakeVisible(speedOfSoundUnitLabel);
+        speedOfSoundUnitLabel.setText("m/s", juce::dontSendNotification);
 
         addAndMakeVisible(temperatureLabel);
-        temperatureLabel.setText("Temperature (C):", juce::dontSendNotification);
+        temperatureLabel.setText("Temperature:", juce::dontSendNotification);
         addAndMakeVisible(temperatureEditor);
         temperatureEditor.setText("20.0");
+        addAndMakeVisible(temperatureUnitLabel);
+        temperatureUnitLabel.setText("C", juce::dontSendNotification);
 
         // Master Section
         addAndMakeVisible(masterLevelLabel);
-        masterLevelLabel.setText("Master Level (dB):", juce::dontSendNotification);
+        masterLevelLabel.setText("Master Level:", juce::dontSendNotification);
         addAndMakeVisible(masterLevelEditor);
         masterLevelEditor.setText("0.0");
+        addAndMakeVisible(masterLevelUnitLabel);
+        masterLevelUnitLabel.setText("dB", juce::dontSendNotification);
 
         addAndMakeVisible(systemLatencyLabel);
-        systemLatencyLabel.setText("System Latency (ms):", juce::dontSendNotification);
+        systemLatencyLabel.setText("System Latency:", juce::dontSendNotification);
         addAndMakeVisible(systemLatencyEditor);
         systemLatencyEditor.setText("0.0");
+        addAndMakeVisible(systemLatencyUnitLabel);
+        systemLatencyUnitLabel.setText("ms", juce::dontSendNotification);
 
         addAndMakeVisible(haasEffectLabel);
-        haasEffectLabel.setText("Haas Effect (ms):", juce::dontSendNotification);
+        haasEffectLabel.setText("Haas Effect:", juce::dontSendNotification);
         addAndMakeVisible(haasEffectEditor);
         haasEffectEditor.setText("0.1");
+        addAndMakeVisible(haasEffectUnitLabel);
+        haasEffectUnitLabel.setText("ms", juce::dontSendNotification);
 
         // Network Section
         addAndMakeVisible(currentIPLabel);
@@ -222,44 +238,60 @@ public:
         // Stage Section
         middleColumn.removeFromTop(40);
         row = middleColumn.removeFromTop(30);
-        stageWidthLabel.setBounds(row.removeFromLeft(160));
-        stageWidthEditor.setBounds(row.removeFromLeft(100));
+        stageWidthLabel.setBounds(row.removeFromLeft(110));
+        stageWidthEditor.setBounds(row.removeFromLeft(80));
+        row.removeFromLeft(5);
+        stageWidthUnitLabel.setBounds(row.removeFromLeft(40));
 
         middleColumn.removeFromTop(5);
         row = middleColumn.removeFromTop(30);
-        stageDepthLabel.setBounds(row.removeFromLeft(160));
-        stageDepthEditor.setBounds(row.removeFromLeft(100));
+        stageDepthLabel.setBounds(row.removeFromLeft(110));
+        stageDepthEditor.setBounds(row.removeFromLeft(80));
+        row.removeFromLeft(5);
+        stageDepthUnitLabel.setBounds(row.removeFromLeft(40));
 
         middleColumn.removeFromTop(5);
         row = middleColumn.removeFromTop(30);
-        stageHeightLabel.setBounds(row.removeFromLeft(160));
-        stageHeightEditor.setBounds(row.removeFromLeft(100));
+        stageHeightLabel.setBounds(row.removeFromLeft(110));
+        stageHeightEditor.setBounds(row.removeFromLeft(80));
+        row.removeFromLeft(5);
+        stageHeightUnitLabel.setBounds(row.removeFromLeft(40));
 
         middleColumn.removeFromTop(5);
         row = middleColumn.removeFromTop(30);
-        speedOfSoundLabel.setBounds(row.removeFromLeft(160));
-        speedOfSoundEditor.setBounds(row.removeFromLeft(100));
+        speedOfSoundLabel.setBounds(row.removeFromLeft(130));
+        speedOfSoundEditor.setBounds(row.removeFromLeft(80));
+        row.removeFromLeft(5);
+        speedOfSoundUnitLabel.setBounds(row.removeFromLeft(40));
 
         middleColumn.removeFromTop(5);
         row = middleColumn.removeFromTop(30);
-        temperatureLabel.setBounds(row.removeFromLeft(160));
-        temperatureEditor.setBounds(row.removeFromLeft(100));
+        temperatureLabel.setBounds(row.removeFromLeft(110));
+        temperatureEditor.setBounds(row.removeFromLeft(80));
+        row.removeFromLeft(5);
+        temperatureUnitLabel.setBounds(row.removeFromLeft(40));
 
         // Master Section
         middleColumn.removeFromTop(35);
         row = middleColumn.removeFromTop(30);
-        masterLevelLabel.setBounds(row.removeFromLeft(160));
-        masterLevelEditor.setBounds(row.removeFromLeft(100));
+        masterLevelLabel.setBounds(row.removeFromLeft(110));
+        masterLevelEditor.setBounds(row.removeFromLeft(80));
+        row.removeFromLeft(5);
+        masterLevelUnitLabel.setBounds(row.removeFromLeft(40));
 
         middleColumn.removeFromTop(5);
         row = middleColumn.removeFromTop(30);
-        systemLatencyLabel.setBounds(row.removeFromLeft(160));
-        systemLatencyEditor.setBounds(row.removeFromLeft(100));
+        systemLatencyLabel.setBounds(row.removeFromLeft(130));
+        systemLatencyEditor.setBounds(row.removeFromLeft(80));
+        row.removeFromLeft(5);
+        systemLatencyUnitLabel.setBounds(row.removeFromLeft(40));
 
         middleColumn.removeFromTop(5);
         row = middleColumn.removeFromTop(30);
-        haasEffectLabel.setBounds(row.removeFromLeft(160));
-        haasEffectEditor.setBounds(row.removeFromLeft(100));
+        haasEffectLabel.setBounds(row.removeFromLeft(110));
+        haasEffectEditor.setBounds(row.removeFromLeft(80));
+        row.removeFromLeft(5);
+        haasEffectUnitLabel.setBounds(row.removeFromLeft(40));
 
         // RIGHT COLUMN
         // Network Section
@@ -298,10 +330,13 @@ private:
     juce::Label speedOfSoundLabel, temperatureLabel;
     juce::TextEditor stageWidthEditor, stageDepthEditor, stageHeightEditor;
     juce::TextEditor speedOfSoundEditor, temperatureEditor;
+    juce::Label stageWidthUnitLabel, stageDepthUnitLabel, stageHeightUnitLabel;
+    juce::Label speedOfSoundUnitLabel, temperatureUnitLabel;
 
     // Master Section
     juce::Label masterLevelLabel, systemLatencyLabel, haasEffectLabel;
     juce::TextEditor masterLevelEditor, systemLatencyEditor, haasEffectEditor;
+    juce::Label masterLevelUnitLabel, systemLatencyUnitLabel, haasEffectUnitLabel;
 
     // Network Section
     juce::Label currentIPLabel, udpPortLabel, tcpPortLabel;
