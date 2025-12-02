@@ -77,7 +77,7 @@ public:
         speedOfSoundEditor.setText("343.0");
 
         addAndMakeVisible(temperatureLabel);
-        temperatureLabel.setText("Temperature (°C):", juce::dontSendNotification);
+        temperatureLabel.setText("Temperature (C):", juce::dontSendNotification);
         addAndMakeVisible(temperatureEditor);
         temperatureEditor.setText("20.0");
 
