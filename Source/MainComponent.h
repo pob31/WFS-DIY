@@ -6,6 +6,7 @@
 // #include "GpuInputBufferAlgorithm.h"  // Commented out - GPU Audio SDK not configured
 #include "gui/GuiPreviewWindow.h"
 #include "gui/DialsPreviewWindow.h"
+#include "gui/ConfigTabPreviewWindow.h"
 
 //==============================================================================
 /*
@@ -54,9 +55,11 @@ private:
     juce::ComboBox algorithmSelector;
     juce::TextButton uiPreviewButton;
     juce::TextButton dialsPreviewButton;
+    juce::TextButton configTabPreviewButton;
 
     std::unique_ptr<GuiPreviewWindow> previewWindow;
     std::unique_ptr<DialsPreviewWindow> dialsPreviewWindow;
+    std::unique_ptr<ConfigTabPreviewWindow> configTabPreviewWindow;
 
     // Threaded processing architecture
     enum class ProcessingAlgorithm

@@ -228,6 +228,21 @@ MainComponent::MainComponent()
     };
     addAndMakeVisible(dialsPreviewButton);
 
+    configTabPreviewButton.setButtonText("Open Config Tab Preview");
+    configTabPreviewButton.onClick = [this]()
+    {
+        if (configTabPreviewWindow == nullptr)
+        {
+            configTabPreviewWindow = std::make_unique<ConfigTabPreviewWindow>();
+        }
+        else
+        {
+            configTabPreviewWindow->setVisible(true);
+            configTabPreviewWindow->toFront(true);
+        }
+    };
+    addAndMakeVisible(configTabPreviewButton);
+
     // Make sure you set the size of the component after
     // you add any child components.
     setSize (800, 600);
@@ -662,6 +677,8 @@ void MainComponent::resized()
     uiPreviewButton.setBounds(previewRow.removeFromLeft(200));
     previewRow.removeFromLeft(10); // Spacing
     dialsPreviewButton.setBounds(previewRow.removeFromLeft(200));
+    previewRow.removeFromLeft(10); // Spacing
+    configTabPreviewButton.setBounds(previewRow.removeFromLeft(220));
 
     // Audio setup component takes the rest
     if (audioSetupComp != nullptr)
