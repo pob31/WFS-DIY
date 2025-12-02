@@ -373,7 +373,7 @@ private:
 
     //==============================================================================
     // ValueTree::Listener implementation
-    void valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property) override
+    void valueTreePropertyChanged(juce::ValueTree&, const juce::Identifier&) override
     {
         // Update UI when parameters change from elsewhere
         juce::MessageManager::callAsync([this]() { loadParametersToUI(); });
@@ -457,74 +457,90 @@ private:
     // Save/Load methods
     void saveCompleteConfig()
     {
-        juce::FileChooser chooser("Save Complete Configuration",
-                                   projectFolder.getChildFile("complete_config.xml"),
-                                   "*.xml");
+        auto chooser = std::make_shared<juce::FileChooser>("Save Complete Configuration",
+                                                             projectFolder.getChildFile("complete_config.xml"),
+                                                             "*.xml");
 
-        if (chooser.browseForFileToSave(true))
-        {
-            auto file = chooser.getResult();
-            if (parameters.saveCompleteConfig(file))
-                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
-                    "Success", "Configuration saved successfully");
-            else
-                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                    "Error", "Failed to save configuration");
-        }
+        chooser->launchAsync(juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles,
+            [this, chooser](const juce::FileChooser& fc)
+            {
+                auto file = fc.getResult();
+                if (file != juce::File{})
+                {
+                    if (parameters.saveCompleteConfig(file))
+                        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
+                            "Success", "Configuration saved successfully");
+                    else
+                        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                            "Error", "Failed to save configuration");
+                }
+            });
     }
 
     void loadCompleteConfig()
     {
-        juce::FileChooser chooser("Load Complete Configuration",
-                                   projectFolder,
-                                   "*.xml");
+        auto chooser = std::make_shared<juce::FileChooser>("Load Complete Configuration",
+                                                             projectFolder,
+                                                             "*.xml");
 
-        if (chooser.browseForFileToOpen())
-        {
-            auto file = chooser.getResult();
-            if (parameters.loadCompleteConfig(file))
-                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
-                    "Success", "Configuration loaded successfully");
-            else
-                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                    "Error", "Failed to load configuration");
-        }
+        chooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
+            [this, chooser](const juce::FileChooser& fc)
+            {
+                auto file = fc.getResult();
+                if (file != juce::File{})
+                {
+                    if (parameters.loadCompleteConfig(file))
+                        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
+                            "Success", "Configuration loaded successfully");
+                    else
+                        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                            "Error", "Failed to load configuration");
+                }
+            });
     }
 
     void saveSystemConfig()
     {
-        juce::FileChooser chooser("Save System Configuration",
-                                   projectFolder.getChildFile("system_config.xml"),
-                                   "*.xml");
+        auto chooser = std::make_shared<juce::FileChooser>("Save System Configuration",
+                                                             projectFolder.getChildFile("system_config.xml"),
+                                                             "*.xml");
 
-        if (chooser.browseForFileToSave(true))
-        {
-            auto file = chooser.getResult();
-            if (parameters.saveSystemConfig(file))
-                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
-                    "Success", "System configuration saved successfully");
-            else
-                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                    "Error", "Failed to save system configuration");
-        }
+        chooser->launchAsync(juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles,
+            [this, chooser](const juce::FileChooser& fc)
+            {
+                auto file = fc.getResult();
+                if (file != juce::File{})
+                {
+                    if (parameters.saveSystemConfig(file))
+                        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
+                            "Success", "System configuration saved successfully");
+                    else
+                        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                            "Error", "Failed to save system configuration");
+                }
+            });
     }
 
     void loadSystemConfig()
     {
-        juce::FileChooser chooser("Load System Configuration",
-                                   projectFolder,
-                                   "*.xml");
+        auto chooser = std::make_shared<juce::FileChooser>("Load System Configuration",
+                                                             projectFolder,
+                                                             "*.xml");
 
-        if (chooser.browseForFileToOpen())
-        {
-            auto file = chooser.getResult();
-            if (parameters.loadSystemConfig(file))
-                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
-                    "Success", "System configuration loaded successfully");
-            else
-                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                    "Error", "Failed to load system configuration");
-        }
+        chooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
+            [this, chooser](const juce::FileChooser& fc)
+            {
+                auto file = fc.getResult();
+                if (file != juce::File{})
+                {
+                    if (parameters.loadSystemConfig(file))
+                        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
+                            "Success", "System configuration loaded successfully");
+                    else
+                        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                            "Error", "Failed to load system configuration");
+                }
+            });
     }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ConfigTabComponent)
