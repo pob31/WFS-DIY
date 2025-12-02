@@ -203,6 +203,60 @@ Both algorithms include identical monitoring:
    - Moving sources with smooth transitions
    - Frequency-dependent processing
 
+## Recent Work (2025-12-02)
+
+### Branch Merge Recovery
+- Successfully merged `feature/gpu-audio-input-buffer` into `main` branch
+- Restored all project work including GPU Audio integration, comprehensive documentation, algorithm refactoring, and GUI components
+- Resolved merge conflicts by accepting feature branch versions containing complete codebase
+
+### GUI Component Refinements
+- **WfsBasicDial orientation corrected**: Fixed 315° rotation range with 45° dead angle properly centered at bottom (6 o'clock position)
+  - Needle angles: 112.5° (7:30) to 427.5° (4:30) - correctly positioned
+  - Track angles: 202.5° (4:30) to 517.5° (7:30) - 90° offset from needle to center dead zone at bottom
+  - Added grey inactive track (RGB 50,50,50) showing full range
+  - Added colored active track showing current value position
+  - Implemented `setTrackColours()` method for customizable track appearance
+
+### GPU Audio Integration Status
+- **Temporarily commented out** due to missing SDK headers (`engine_api/GraphLauncher.h`)
+- All GPU-related code preserved with comments for future re-enablement:
+  - `GpuInputBufferAlgorithm` class and includes
+  - GPU algorithm enum value in `ProcessingAlgorithm`
+  - GPU algorithm UI selector and processing code
+  - GPU telemetry display in paint method
+- Project now builds successfully without GPU Audio SDK
+- Can be re-enabled once SDK is properly configured
+
+### UI Specification Files
+Comprehensive CSV specifications available in [Documentation/](../Documentation/) for future UI implementation:
+- **[WFS-UI_input.csv](WFS-UI_input.csv)**: 95 parameters for Input channel controls
+  - Position controls (X/Y/Z, offsets, constraints, flips)
+  - Attenuation, delay, tracking, clustering
+  - Directivity (rotation, tilt, HF shelf)
+  - Live Source Tamer with compression
+  - Hackoustics (floor reflections with filters)
+  - LFO, Jitter, AutomOtion
+  - Per-output mutes and snapshots
+- **[WFS-UI_output.csv](WFS-UI_output.csv)**: 33 parameters for Output channel controls
+  - Array assignment and apply-to-array modes
+  - Position, orientation, angle on/off, pitch
+  - HF damping, parallax settings
+  - 6-band parametric EQ per output
+- **[WFS-UI_config.csv](WFS-UI_config.csv)**: 65 parameters for Config tab
+  - Show/I/O settings, stage dimensions
+  - Master section (level, latency, Haas effect)
+  - Network configuration (up to 6 targets with OSC/REMOTE/ADM-OSC protocols)
+  - ADM-OSC and Tracking settings (offset, scale, flip for X/Y/Z)
+- **[WFS-UI_audioPatch.csv](WFS-UI_audioPatch.csv)**: Audio patching window specification
+  - Driver mode and interface selection
+  - Input/Output patch matrices with scroll/patch/test modes
+  - Test tone generation (sine/pink noise)
+- **[Prompt_UI1.txt](Prompt_UI1.txt)**: Detailed implementation requirements
+  - ValueTree-based parameter system
+  - OSC integration requirements
+  - File I/O specifications
+
 ## Code Organization Notes
 
 ### Adding New Routing Parameters
@@ -239,6 +293,6 @@ To add new per-routing parameters:
 This project is being developed incrementally with human guidance. Major architectural decisions should be discussed before implementation.
 
 ---
-*Last updated: 2025-11-19*
+*Last updated: 2025-12-02*
 *JUCE Version: 8.0.10*
 *Build: Visual Studio 2022, x64 Debug*
