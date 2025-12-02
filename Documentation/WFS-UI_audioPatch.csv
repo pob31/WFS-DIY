@@ -1,0 +1,13 @@
+Section	Label	UI	Type	Min	Max	Default	Enum	Notes	Hover help text in the status bar	Notes
+Top Section	Driver Mode	Drop Down Menu							Select Audio Interface Driver Mode.	Select Audio Interface Driver Mode
+Top Section	Audio Interface	Drop Down Menu							Select Audio Interface.	Select Audio Interface
+Top Section	Patch Tabs	Tab Selector	INT	0	1	0	Input Patch Tab ; Output Patch Tab		Select Input or Output Patch Tab.	Select Input or Output Patch Tab
+Input Patch Tab	Input Matrix Mode	Text Button	INT	0	1	0	Scroll Mode ; Patch Mode		Select Input Matrix Interaction Mode (Scroll or Patch).	Visible is Input Tab is selected
+Input Patch Tab	Input Matrix	2D Grid	<INT ARRAY>					Dragging a finger diagonally across the grid in patch mode creates patch points.	Move the Grid in Scroll Mode; Patch or Unpatch in Patch Mode.	Visible is Input Tab is selected. 2D Grid with to the left the processor inputs with number and names; to the top the input numbers of the Audio interface. Only one Audio Interface input per processor input.
+Output Patch Tab	Output Matrix Mode	Text Button	INT	0	2	0	Scroll Mode ; Patch Mode ; Test Mode		Select Input Matrix Interaction Mode (Scroll, Patch or Test).	Visible is Output Tab is selected
+Output Patch Tab	Test Tone	Text Button	INT	0	2	0	OFF ; Sine ; Pink Noise		Select the Type of Test Tone.	Visible is Output Tab is selected. Greyed out if Scroll or Patch Modes are selected
+Output Patch Tab	Sine Frequency	Number Box	INT	20	20000	1000			Select the Frequency of the Sine Tone.	Visible is Output Tab is selected. Greyed out if Scroll or Patch Modes or Pink Noise are selected
+Output Patch Tab	Test Tone Level	Number Box	FLOAT	-92.0	0.0	-92.0			Select the Audio Level of the Test Tone (Sine or Pink Noise).	Visible is Output Tab is selected. Greyed out if Scroll or Patch Modes are selected
+Output Patch Tab	Output Matrix	2D Grid	<INT ARRAY>					Dragging a finger diagonally across the grid in patch mode creates patch points.	Move the Grid in Scroll Mode; Patch or Unpatch in Patch Mode; Play Test Tone Through The Output.	Visible is Output Tab is selected. 2D Grid with to the left the processor outputs with number and names; to the top the output numbers of the Audio interface. Only one processor output per Audio Interface output. Touch patch crosspoints in Test mode to play test tone through selected output.
+Bottom Section	Cancel	Text Button							Discard Changes and Close Window.	Discard changes and revert to previous settings. Dismiss Window
+Bottom Section	Save and Close	Text Button							Save Settings and Close Window.	Save Driver Mode, Audio interface, Input and Output patches. Dismiss Window

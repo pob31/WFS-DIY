@@ -66,10 +66,10 @@ MainComponent::MainComponent()
             {
                 outputAlgorithm.setProcessingEnabled(processingEnabled);
             }
-            else
-            {
-                gpuInputAlgorithm.setProcessingEnabled(processingEnabled);
-            }
+            // else
+            // {
+            //     gpuInputAlgorithm.setProcessingEnabled(processingEnabled);
+            // }
         }
         else
         {
@@ -82,10 +82,10 @@ MainComponent::MainComponent()
             {
                 outputAlgorithm.setProcessingEnabled(processingEnabled);
             }
-            else
-            {
-                gpuInputAlgorithm.setProcessingEnabled(processingEnabled);
-            }
+            // else
+            // {
+            //     gpuInputAlgorithm.setProcessingEnabled(processingEnabled);
+            // }
         }
 
         // Enable/disable channel count controls and algorithm selector
@@ -169,11 +169,11 @@ MainComponent::MainComponent()
                     outputAlgorithm.releaseResources();
                     outputAlgorithm.clear();
                 }
-                else
-                {
-                    gpuInputAlgorithm.releaseResources();
-                    gpuInputAlgorithm.clear();
-                }
+                // else  // Commented out - GPU Audio SDK not configured
+                // {
+                //     gpuInputAlgorithm.releaseResources();
+                //     gpuInputAlgorithm.clear();
+                // }
 
                 // Mark engine as not started (processors cleared)
                 audioEngineStarted = false;
@@ -329,7 +329,7 @@ MainComponent::~MainComponent()
     // Now safe to clear processing threads (audio callbacks no longer running)
     inputAlgorithm.clear();
     outputAlgorithm.clear();
-    gpuInputAlgorithm.clear();
+    // gpuInputAlgorithm.clear();  // Commented out - GPU Audio SDK not configured
 }
 
 //==============================================================================
@@ -402,11 +402,11 @@ void MainComponent::stopProcessingForConfigurationChange()
         outputAlgorithm.releaseResources();
         outputAlgorithm.clear();
     }
-    else
-    {
-        gpuInputAlgorithm.releaseResources();
-        gpuInputAlgorithm.clear();
-    }
+    // else  // Commented out - GPU Audio SDK not configured
+    // {
+    //     gpuInputAlgorithm.releaseResources();
+    //     gpuInputAlgorithm.clear();
+    // }
 
     audioEngineStarted = false;
 }
@@ -530,10 +530,10 @@ void MainComponent::releaseResources()
     {
         outputAlgorithm.releaseResources();
     }
-    else
-    {
-        gpuInputAlgorithm.releaseResources();
-    }
+    // else  // Commented out - GPU Audio SDK not configured
+    // {
+    //     gpuInputAlgorithm.releaseResources();
+    // }
 }
 
 //==============================================================================

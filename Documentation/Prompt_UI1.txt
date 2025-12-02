@@ -1,0 +1,102 @@
+I'm building a Wave Field Synthesis audio processor in C++/JUCE. I need you to implement the Config tab UI component based on the attached specification file WFS-UI_config.csv.
+Project Context:
+
+JUCE-based application targeting Windows (VS2022), macOS, and Linux
+Professional audio application with up to 64 inputs/64 outputs at 96kHz
+Uses GPU Audio framework for DSP acceleration
+Requires OSC communication for remote control
+
+Config Tab Requirements:
+
+Parse the CSV specification (WFS-UI_config.csv) which is tab-separated and defines:
+
+Section groupings (Show, I/O, Stage, Master Section, Network, ADM-OSC, Tracking, Store/Reload)
+UI element types (text boxes, number boxes, sliders, buttons, dropdown menus, IP address boxes)
+Parameter types (STRING, INT, FLOAT, IP)
+Min/Max ranges and default values
+OSC paths for remote control
+Hover help text for status bar
+
+
+Create a JUCE ValueTree-based parameter system that:
+
+Stores all parameters defined in the CSV
+Supports undo/redo
+Handles save/load to XML files
+Triggers callbacks when parameters change
+
+
+Implement the Config tab UI component (ConfigComponent.h/cpp) with:
+
+Section headers organizing controls into logical groups
+Appropriate JUCE components for each UI type (TextEditor, Slider, ComboBox, TextButton, custom IP address input)
+Layout using FlexBox or similar for responsive design
+Status bar that displays hover help text when mousing over controls
+"DSP Running" state that locks I/O section parameters (except the runDSP button itself)
+
+
+Special UI elements to implement:
+
+IP address input (4 integer boxes with dots, format: xxx.xxx.xxx.xxx)
+Network Target/Server rows (up to 6 rows, dynamically add/remove with ADD/REMOVE buttons)
+Text buttons with dual states (e.g., "Click to start DSP / DSP running")
+Enum-based dropdowns (parse semicolon-separated values from CSV "enum" column)
+
+
+Parameter constraints and interactions:
+
+Lock all I/O section parameters when runDSP == 1
+runDSP button requires 2-second long press to turn off
+Temperature and Speed of Sound are linked: when one updates, calculate and update the other
+Network section: up to 6 target/server configurations
+ADM-OSC and Tracking parameters should grey out (but remain editable) based on enable states
+
+
+OSC Integration:
+
+Implement OSCReceiver for incoming messages
+Implement OSCSender for outgoing parameter changes
+Parse OSC paths from the CSV "OSC path" column
+Handle "inc"/"dec" incremental changes where specified in CSV
+
+
+File I/O:
+
+"Select Project Folder" button opens folder picker
+Store/Reload buttons for Complete Configuration and System Configuration
+Create backup files before overwriting
+Show confirmation dialogs for destructive operations
+Use ValueTree XML serialization
+
+
+
+Code Organization:
+ConfigComponent.h/cpp          // Main Config tab component
+ConfigParameters.h/cpp         // Parameter definitions and ValueTree
+ConfigOSCHandler.h/cpp        // OSC send/receive for Config parameters
+UIComponents/                  // Reusable custom components
+  ├── IPAddressInput.h/cpp    // Custom IP address control
+  ├── NetworkTargetRow.h/cpp  // Network target/server row component
+  └── LockedNumberBox.h/cpp   // Number box that can be locked
+Output Requirements:
+
+Parse WFS-UI_config.csv and generate all necessary classes
+Create the ConfigComponent with proper layout
+Implement parameter ValueTree with all 62 parameters from the CSV
+Add OSC send/receive functionality
+Implement file save/load with XML format
+Include proper parameter locking logic based on DSP state
+
+Style Guidelines:
+
+Use modern C++17 features
+Follow JUCE best practices and coding conventions
+Add comprehensive comments explaining complex logic
+Use meaningful variable names that match the CSV "Variable" column
+Keep UI update logic separate from parameter logic (MVC pattern)
+
+Questions to clarify before starting:
+
+Should I create a single monolithic ConfigComponent or break it into sub-components per section?
+What's your preferred approach for the ValueTree structure - flat or hierarchical by section?
+Do you want the OSC handler integrated into ConfigComponent or as a separate manager class?
