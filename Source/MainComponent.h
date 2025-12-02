@@ -3,7 +3,7 @@
 #include <JuceHeader.h>
 #include "InputBufferAlgorithm.h"
 #include "OutputBufferAlgorithm.h"
-#include "GpuInputBufferAlgorithm.h"
+// #include "GpuInputBufferAlgorithm.h"  // Commented out - GPU Audio SDK not configured
 #include "gui/GuiPreviewWindow.h"
 #include "gui/DialsPreviewWindow.h"
 
@@ -62,8 +62,8 @@ private:
     enum class ProcessingAlgorithm
     {
         InputBuffer,   // Read-time delays (current/original approach)
-        OutputBuffer,  // Write-time delays (alternative approach)
-        GpuInputBuffer // GPU Audio-backed input-buffer variant
+        OutputBuffer   // Write-time delays (alternative approach)
+        // GpuInputBuffer // GPU Audio-backed input-buffer variant (commented out - GPU Audio SDK not configured)
     };
 
     ProcessingAlgorithm currentAlgorithm = ProcessingAlgorithm::InputBuffer;
@@ -71,7 +71,7 @@ private:
     int numOutputChannels = 4;
     InputBufferAlgorithm inputAlgorithm;
     OutputBufferAlgorithm outputAlgorithm;
-    GpuInputBufferAlgorithm gpuInputAlgorithm;
+    // GpuInputBufferAlgorithm gpuInputAlgorithm;  // Commented out - GPU Audio SDK not configured
     bool audioCallbacksAttached = false;
     bool processingEnabled = false;
     bool audioEngineStarted = false;

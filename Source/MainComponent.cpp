@@ -136,7 +136,7 @@ MainComponent::MainComponent()
 
     algorithmSelector.addItem("InputBuffer (read-time delays)", 1);
     algorithmSelector.addItem("OutputBuffer (write-time delays)", 2);
-    algorithmSelector.addItem("GPU InputBuffer (GPU Audio)", 3);
+    // algorithmSelector.addItem("GPU InputBuffer (GPU Audio)", 3);  // Commented out - GPU Audio SDK not configured
     algorithmSelector.setSelectedId(1, juce::dontSendNotification);
     algorithmSelector.onChange = [this]() {
         int selectedId = algorithmSelector.getSelectedId();
@@ -145,8 +145,8 @@ MainComponent::MainComponent()
             newAlgorithm = ProcessingAlgorithm::InputBuffer;
         else if (selectedId == 2)
             newAlgorithm = ProcessingAlgorithm::OutputBuffer;
-        else if (selectedId == 3)
-            newAlgorithm = ProcessingAlgorithm::GpuInputBuffer;
+        // else if (selectedId == 3)
+        //     newAlgorithm = ProcessingAlgorithm::GpuInputBuffer;
 
         // Only act if algorithm actually changed
         if (newAlgorithm != currentAlgorithm)
@@ -447,13 +447,13 @@ void MainComponent::startAudioEngine()
                                processingEnabled);
         prepared = true;
     }
-    else // ProcessingAlgorithm::GpuInputBuffer
-    {
-        prepared = gpuInputAlgorithm.prepare(numInputChannels, numOutputChannels,
-                                             sampleRate, blockSize,
-                                             delayTimesMs.data(), levels.data(),
-                                             processingEnabled);
-    }
+    // else // ProcessingAlgorithm::GpuInputBuffer
+    // {
+    //     prepared = gpuInputAlgorithm.prepare(numInputChannels, numOutputChannels,
+    //                                          sampleRate, blockSize,
+    //                                          delayTimesMs.data(), levels.data(),
+    //                                          processingEnabled);
+    // }
 
     audioEngineStarted = prepared;
     if (!audioEngineStarted && processingEnabled)
@@ -479,17 +479,17 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
         {
             outputAlgorithm.reprepare(sampleRate, samplesPerBlockExpected, processingEnabled);
         }
-        else // GPU InputBuffer
-        {
-            // Safely tear down GPU processing on device/sample-rate changes.
-            // User can re-enable processing after the device change completes.
-            gpuInputAlgorithm.releaseResources();
-            gpuInputAlgorithm.clear();
-            audioEngineStarted = false;
-            processingEnabled = false;
-            processingToggle.setToggleState(false, juce::dontSendNotification);
-            DBG("GPU Audio: Disabled GPU path due to device/sample-rate change. Re-enable processing to reinit.");
-        }
+        // else // GPU InputBuffer
+        // {
+        //     // Safely tear down GPU processing on device/sample-rate changes.
+        //     // User can re-enable processing after the device change completes.
+        //     gpuInputAlgorithm.releaseResources();
+        //     gpuInputAlgorithm.clear();
+        //     audioEngineStarted = false;
+        //     processingEnabled = false;
+        //     processingToggle.setToggleState(false, juce::dontSendNotification);
+        //     DBG("GPU Audio: Disabled GPU path due to device/sample-rate change. Re-enable processing to reinit.");
+        // }
     }
 }
 
@@ -510,10 +510,10 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
     {
         outputAlgorithm.processBlock(bufferToFill, numInputChannels, numOutputChannels);
     }
-    else // ProcessingAlgorithm::GpuInputBuffer
-    {
-        gpuInputAlgorithm.processBlock(bufferToFill, numInputChannels, numOutputChannels);
-    }
+    // else // ProcessingAlgorithm::GpuInputBuffer
+    // {
+    //     gpuInputAlgorithm.processBlock(bufferToFill, numInputChannels, numOutputChannels);
+    // }
 }
 
 void MainComponent::releaseResources()
@@ -582,44 +582,44 @@ void MainComponent::paint (juce::Graphics& g)
                 g.drawText(text, 10, yPos + (i * 15), 300, 15, juce::Justification::left);
             }
         }
-        else if (currentAlgorithm == ProcessingAlgorithm::GpuInputBuffer && gpuInputAlgorithm.isReady())
-        {
-            g.drawText("GPU InputBuffer (GPU Audio)", 10, yPos, 320, 20, juce::Justification::left);
-
-            // Draw a readable telemetry badge in the lower-right corner
-            const int boxWidth = juce::jmin(420, getWidth() - 20);
-            const int boxHeight = 70;
-            const int boxX = getWidth() - boxWidth - 10;
-            const int boxY = getHeight() - boxHeight - 10;
-
-            g.setColour(juce::Colours::black.withAlpha(0.45f));
-            g.fillRoundedRectangle((float)boxX, (float)boxY, (float)boxWidth, (float)boxHeight, 6.0f);
-            g.setColour(juce::Colours::white.withAlpha(0.85f));
-            g.drawRoundedRectangle((float)boxX, (float)boxY, (float)boxWidth, (float)boxHeight, 6.0f, 1.5f);
-
-            juce::String device = gpuInputAlgorithm.getDeviceName();
-            if (device.isEmpty())
-                device = "<unknown device>";
-
-            const auto execMs = gpuInputAlgorithm.getLastGpuExecMs();
-            const auto execSamples = gpuInputAlgorithm.getLastGpuLaunchSamples();
-            const bool execFailed = gpuInputAlgorithm.getLastExecuteFailed();
-
-            g.setFont(14.0f);
-            g.setColour(juce::Colours::white);
-            g.drawText("GPU InputBuffer (GPU Audio)", boxX + 10, boxY + 6, boxWidth - 20, 20, juce::Justification::left);
-
-            g.setFont(13.0f);
-            g.drawText("Device: " + device, boxX + 10, boxY + 26, boxWidth - 20, 18, juce::Justification::left);
-
-            auto statusColour = execFailed ? juce::Colours::red : juce::Colours::greenyellow;
-            g.setColour(statusColour);
-            juce::String status = "Last launch: " + juce::String(execSamples) + " samples, " +
-                                  juce::String(execMs, 2) + " ms";
-            if (execFailed)
-                status += " (failed)";
-            g.drawText(status, boxX + 10, boxY + 44, boxWidth - 20, 18, juce::Justification::left);
-        }
+        // else if (currentAlgorithm == ProcessingAlgorithm::GpuInputBuffer && gpuInputAlgorithm.isReady())
+        // {
+        //     g.drawText("GPU InputBuffer (GPU Audio)", 10, yPos, 320, 20, juce::Justification::left);
+        //
+        //     // Draw a readable telemetry badge in the lower-right corner
+        //     const int boxWidth = juce::jmin(420, getWidth() - 20);
+        //     const int boxHeight = 70;
+        //     const int boxX = getWidth() - boxWidth - 10;
+        //     const int boxY = getHeight() - boxHeight - 10;
+        //
+        //     g.setColour(juce::Colours::black.withAlpha(0.45f));
+        //     g.fillRoundedRectangle((float)boxX, (float)boxY, (float)boxWidth, (float)boxHeight, 6.0f);
+        //     g.setColour(juce::Colours::white.withAlpha(0.85f));
+        //     g.drawRoundedRectangle((float)boxX, (float)boxY, (float)boxWidth, (float)boxHeight, 6.0f, 1.5f);
+        //
+        //     juce::String device = gpuInputAlgorithm.getDeviceName();
+        //     if (device.isEmpty())
+        //         device = "<unknown device>";
+        //
+        //     const auto execMs = gpuInputAlgorithm.getLastGpuExecMs();
+        //     const auto execSamples = gpuInputAlgorithm.getLastGpuLaunchSamples();
+        //     const bool execFailed = gpuInputAlgorithm.getLastExecuteFailed();
+        //
+        //     g.setFont(14.0f);
+        //     g.setColour(juce::Colours::white);
+        //     g.drawText("GPU InputBuffer (GPU Audio)", boxX + 10, boxY + 6, boxWidth - 20, 20, juce::Justification::left);
+        //
+        //     g.setFont(13.0f);
+        //     g.drawText("Device: " + device, boxX + 10, boxY + 26, boxWidth - 20, 18, juce::Justification::left);
+        //
+        //     auto statusColour = execFailed ? juce::Colours::red : juce::Colours::greenyellow;
+        //     g.setColour(statusColour);
+        //     juce::String status = "Last launch: " + juce::String(execSamples) + " samples, " +
+        //                           juce::String(execMs, 2) + " ms";
+        //     if (execFailed)
+        //         status += " (failed)";
+        //     g.drawText(status, boxX + 10, boxY + 44, boxWidth - 20, 18, juce::Justification::left);
+        // }
     }
 }
 
