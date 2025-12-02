@@ -133,137 +133,153 @@ public:
         addAndMakeVisible(reloadSystemConfigButton);
         reloadSystemConfigButton.setButtonText("Reload System Configuration");
 
-        setSize(800, 1200);
+        setSize(1400, 700);
     }
 
     void paint(juce::Graphics& g) override
     {
-        g.fillAll(juce::Colours::darkgrey);
+        g.fillAll(juce::Colours::black);
 
         // Draw section headers
         g.setColour(juce::Colours::white);
         g.setFont(16.0f);
+
+        // Left column headers
         g.drawText("Show", 20, 10, 200, 30, juce::Justification::left);
-        g.drawText("I/O", 20, 120, 200, 30, juce::Justification::left);
-        g.drawText("Stage", 20, 300, 200, 30, juce::Justification::left);
-        g.drawText("Master Section", 20, 520, 200, 30, juce::Justification::left);
-        g.drawText("Network", 20, 660, 200, 30, juce::Justification::left);
-        g.drawText("Store/Reload", 20, 880, 200, 30, juce::Justification::left);
+        g.drawText("I/O", 20, 110, 200, 30, juce::Justification::left);
+        g.drawText("Store/Reload", 20, 400, 200, 30, juce::Justification::left);
+
+        // Middle column headers
+        g.drawText("Stage", 480, 10, 200, 30, juce::Justification::left);
+        g.drawText("Master Section", 480, 280, 200, 30, juce::Justification::left);
+
+        // Right column headers
+        g.drawText("Network", 940, 10, 200, 30, juce::Justification::left);
     }
 
     void resized() override
     {
         auto area = getLocalBounds().reduced(20);
 
+        // Create three columns
+        auto leftColumn = area.removeFromLeft(440);
+        area.removeFromLeft(20); // spacing
+        auto middleColumn = area.removeFromLeft(440);
+        area.removeFromLeft(20); // spacing
+        auto rightColumn = area;
+
+        // LEFT COLUMN
         // Show Section
-        area.removeFromTop(40); // Skip header
-        auto row = area.removeFromTop(30);
-        showNameLabel.setBounds(row.removeFromLeft(150));
+        leftColumn.removeFromTop(40); // Skip header
+        auto row = leftColumn.removeFromTop(30);
+        showNameLabel.setBounds(row.removeFromLeft(120));
         showNameEditor.setBounds(row.removeFromLeft(300));
 
-        area.removeFromTop(5);
-        row = area.removeFromTop(30);
-        showLocationLabel.setBounds(row.removeFromLeft(150));
+        leftColumn.removeFromTop(5);
+        row = leftColumn.removeFromTop(30);
+        showLocationLabel.setBounds(row.removeFromLeft(120));
         showLocationEditor.setBounds(row.removeFromLeft(300));
 
         // I/O Section
-        area.removeFromTop(45); // Skip to next section
-        row = area.removeFromTop(30);
-        inputChannelsLabel.setBounds(row.removeFromLeft(150));
+        leftColumn.removeFromTop(25);
+        row = leftColumn.removeFromTop(30);
+        inputChannelsLabel.setBounds(row.removeFromLeft(140));
         inputChannelsEditor.setBounds(row.removeFromLeft(100));
 
-        area.removeFromTop(5);
-        row = area.removeFromTop(30);
-        outputChannelsLabel.setBounds(row.removeFromLeft(150));
+        leftColumn.removeFromTop(5);
+        row = leftColumn.removeFromTop(30);
+        outputChannelsLabel.setBounds(row.removeFromLeft(140));
         outputChannelsEditor.setBounds(row.removeFromLeft(100));
 
-        area.removeFromTop(5);
-        row = area.removeFromTop(30);
-        reverbChannelsLabel.setBounds(row.removeFromLeft(150));
+        leftColumn.removeFromTop(5);
+        row = leftColumn.removeFromTop(30);
+        reverbChannelsLabel.setBounds(row.removeFromLeft(140));
         reverbChannelsEditor.setBounds(row.removeFromLeft(100));
 
-        area.removeFromTop(10);
-        audioPatchingButton.setBounds(area.removeFromTop(30).removeFromLeft(350));
+        leftColumn.removeFromTop(10);
+        audioPatchingButton.setBounds(leftColumn.removeFromTop(30).removeFromLeft(350));
 
-        area.removeFromTop(10);
-        processingToggle.setBounds(area.removeFromTop(30).removeFromLeft(200));
+        leftColumn.removeFromTop(10);
+        processingToggle.setBounds(leftColumn.removeFromTop(30).removeFromLeft(200));
 
+        // Store/Reload Section
+        leftColumn.removeFromTop(45);
+        selectProjectFolderButton.setBounds(leftColumn.removeFromTop(30).removeFromLeft(250));
+
+        leftColumn.removeFromTop(10);
+        storeCompleteConfigButton.setBounds(leftColumn.removeFromTop(30).removeFromLeft(300));
+
+        leftColumn.removeFromTop(5);
+        reloadCompleteConfigButton.setBounds(leftColumn.removeFromTop(30).removeFromLeft(300));
+
+        leftColumn.removeFromTop(10);
+        storeSystemConfigButton.setBounds(leftColumn.removeFromTop(30).removeFromLeft(300));
+
+        leftColumn.removeFromTop(5);
+        reloadSystemConfigButton.setBounds(leftColumn.removeFromTop(30).removeFromLeft(300));
+
+        // MIDDLE COLUMN
         // Stage Section
-        area.removeFromTop(45);
-        row = area.removeFromTop(30);
-        stageWidthLabel.setBounds(row.removeFromLeft(180));
+        middleColumn.removeFromTop(40);
+        row = middleColumn.removeFromTop(30);
+        stageWidthLabel.setBounds(row.removeFromLeft(160));
         stageWidthEditor.setBounds(row.removeFromLeft(100));
 
-        area.removeFromTop(5);
-        row = area.removeFromTop(30);
-        stageDepthLabel.setBounds(row.removeFromLeft(180));
+        middleColumn.removeFromTop(5);
+        row = middleColumn.removeFromTop(30);
+        stageDepthLabel.setBounds(row.removeFromLeft(160));
         stageDepthEditor.setBounds(row.removeFromLeft(100));
 
-        area.removeFromTop(5);
-        row = area.removeFromTop(30);
-        stageHeightLabel.setBounds(row.removeFromLeft(180));
+        middleColumn.removeFromTop(5);
+        row = middleColumn.removeFromTop(30);
+        stageHeightLabel.setBounds(row.removeFromLeft(160));
         stageHeightEditor.setBounds(row.removeFromLeft(100));
 
-        area.removeFromTop(5);
-        row = area.removeFromTop(30);
-        speedOfSoundLabel.setBounds(row.removeFromLeft(180));
+        middleColumn.removeFromTop(5);
+        row = middleColumn.removeFromTop(30);
+        speedOfSoundLabel.setBounds(row.removeFromLeft(160));
         speedOfSoundEditor.setBounds(row.removeFromLeft(100));
 
-        area.removeFromTop(5);
-        row = area.removeFromTop(30);
-        temperatureLabel.setBounds(row.removeFromLeft(180));
+        middleColumn.removeFromTop(5);
+        row = middleColumn.removeFromTop(30);
+        temperatureLabel.setBounds(row.removeFromLeft(160));
         temperatureEditor.setBounds(row.removeFromLeft(100));
 
         // Master Section
-        area.removeFromTop(45);
-        row = area.removeFromTop(30);
-        masterLevelLabel.setBounds(row.removeFromLeft(180));
+        middleColumn.removeFromTop(35);
+        row = middleColumn.removeFromTop(30);
+        masterLevelLabel.setBounds(row.removeFromLeft(160));
         masterLevelEditor.setBounds(row.removeFromLeft(100));
 
-        area.removeFromTop(5);
-        row = area.removeFromTop(30);
-        systemLatencyLabel.setBounds(row.removeFromLeft(180));
+        middleColumn.removeFromTop(5);
+        row = middleColumn.removeFromTop(30);
+        systemLatencyLabel.setBounds(row.removeFromLeft(160));
         systemLatencyEditor.setBounds(row.removeFromLeft(100));
 
-        area.removeFromTop(5);
-        row = area.removeFromTop(30);
-        haasEffectLabel.setBounds(row.removeFromLeft(180));
+        middleColumn.removeFromTop(5);
+        row = middleColumn.removeFromTop(30);
+        haasEffectLabel.setBounds(row.removeFromLeft(160));
         haasEffectEditor.setBounds(row.removeFromLeft(100));
 
+        // RIGHT COLUMN
         // Network Section
-        area.removeFromTop(45);
-        row = area.removeFromTop(30);
-        currentIPLabel.setBounds(row.removeFromLeft(150));
+        rightColumn.removeFromTop(40);
+        row = rightColumn.removeFromTop(30);
+        currentIPLabel.setBounds(row.removeFromLeft(120));
         currentIPEditor.setBounds(row.removeFromLeft(150));
 
-        area.removeFromTop(5);
-        row = area.removeFromTop(30);
-        udpPortLabel.setBounds(row.removeFromLeft(150));
+        rightColumn.removeFromTop(5);
+        row = rightColumn.removeFromTop(30);
+        udpPortLabel.setBounds(row.removeFromLeft(120));
         udpPortEditor.setBounds(row.removeFromLeft(100));
 
-        area.removeFromTop(5);
-        row = area.removeFromTop(30);
-        tcpPortLabel.setBounds(row.removeFromLeft(150));
+        rightColumn.removeFromTop(5);
+        row = rightColumn.removeFromTop(30);
+        tcpPortLabel.setBounds(row.removeFromLeft(120));
         tcpPortEditor.setBounds(row.removeFromLeft(100));
 
-        area.removeFromTop(10);
-        networkLogButton.setBounds(area.removeFromTop(30).removeFromLeft(200));
-
-        // Store/Reload Section
-        area.removeFromTop(45);
-        selectProjectFolderButton.setBounds(area.removeFromTop(30).removeFromLeft(250));
-
-        area.removeFromTop(10);
-        storeCompleteConfigButton.setBounds(area.removeFromTop(30).removeFromLeft(300));
-
-        area.removeFromTop(5);
-        reloadCompleteConfigButton.setBounds(area.removeFromTop(30).removeFromLeft(300));
-
-        area.removeFromTop(10);
-        storeSystemConfigButton.setBounds(area.removeFromTop(30).removeFromLeft(300));
-
-        area.removeFromTop(5);
-        reloadSystemConfigButton.setBounds(area.removeFromTop(30).removeFromLeft(300));
+        rightColumn.removeFromTop(10);
+        networkLogButton.setBounds(rightColumn.removeFromTop(30).removeFromLeft(200));
     }
 
 private:

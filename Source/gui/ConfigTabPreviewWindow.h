@@ -17,8 +17,8 @@ public:
         configTab = std::make_unique<ConfigTabComponent>();
         setContentOwned(configTab.release(), true);
 
-        const int preferredWidth = 840;
-        const int preferredHeight = 1200;
+        const int preferredWidth = 1440;
+        const int preferredHeight = 740;
 
         auto& displays = juce::Desktop::getInstance().getDisplays();
         const auto* displayPtr = displays.getPrimaryDisplay();
