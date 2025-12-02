@@ -160,17 +160,17 @@ public:
         g.setColour(juce::Colours::white);
         g.setFont(16.0f);
 
-        // Left column headers
-        g.drawText("Show", 20, 10, 200, 30, juce::Justification::left);
-        g.drawText("I/O", 20, 110, 200, 30, juce::Justification::left);
-        g.drawText("Store/Reload", 20, 400, 200, 30, juce::Justification::left);
+        // Left column headers (x=20, y positions calculated from layout)
+        g.drawText("Show", 20, 20, 200, 30, juce::Justification::left);
+        g.drawText("I/O", 20, 130, 200, 30, juce::Justification::left);
+        g.drawText("Store/Reload", 20, 365, 200, 30, juce::Justification::left);
 
-        // Middle column headers
-        g.drawText("Stage", 480, 10, 200, 30, juce::Justification::left);
-        g.drawText("Master Section", 480, 280, 200, 30, juce::Justification::left);
+        // Middle column headers (x=480)
+        g.drawText("Stage", 480, 20, 200, 30, juce::Justification::left);
+        g.drawText("Master Section", 480, 255, 200, 30, juce::Justification::left);
 
-        // Right column headers
-        g.drawText("Network", 940, 10, 200, 30, juce::Justification::left);
+        // Right column headers (x=940)
+        g.drawText("Network", 940, 20, 200, 30, juce::Justification::left);
     }
 
     void resized() override
@@ -237,61 +237,58 @@ public:
         // MIDDLE COLUMN
         // Stage Section
         middleColumn.removeFromTop(40);
+        const int editorStartX = 140; // Aligned position for all editors
+        const int editorWidth = 80;
+        const int unitOffset = 5;
+        const int unitWidth = 40;
+
         row = middleColumn.removeFromTop(30);
-        stageWidthLabel.setBounds(row.removeFromLeft(110));
-        stageWidthEditor.setBounds(row.removeFromLeft(80));
-        row.removeFromLeft(5);
-        stageWidthUnitLabel.setBounds(row.removeFromLeft(40));
+        stageWidthLabel.setBounds(row.getX(), row.getY(), editorStartX - row.getX(), 30);
+        stageWidthEditor.setBounds(row.getX() + editorStartX, row.getY(), editorWidth, 30);
+        stageWidthUnitLabel.setBounds(row.getX() + editorStartX + editorWidth + unitOffset, row.getY(), unitWidth, 30);
 
         middleColumn.removeFromTop(5);
         row = middleColumn.removeFromTop(30);
-        stageDepthLabel.setBounds(row.removeFromLeft(110));
-        stageDepthEditor.setBounds(row.removeFromLeft(80));
-        row.removeFromLeft(5);
-        stageDepthUnitLabel.setBounds(row.removeFromLeft(40));
+        stageDepthLabel.setBounds(row.getX(), row.getY(), editorStartX - row.getX(), 30);
+        stageDepthEditor.setBounds(row.getX() + editorStartX, row.getY(), editorWidth, 30);
+        stageDepthUnitLabel.setBounds(row.getX() + editorStartX + editorWidth + unitOffset, row.getY(), unitWidth, 30);
 
         middleColumn.removeFromTop(5);
         row = middleColumn.removeFromTop(30);
-        stageHeightLabel.setBounds(row.removeFromLeft(110));
-        stageHeightEditor.setBounds(row.removeFromLeft(80));
-        row.removeFromLeft(5);
-        stageHeightUnitLabel.setBounds(row.removeFromLeft(40));
+        stageHeightLabel.setBounds(row.getX(), row.getY(), editorStartX - row.getX(), 30);
+        stageHeightEditor.setBounds(row.getX() + editorStartX, row.getY(), editorWidth, 30);
+        stageHeightUnitLabel.setBounds(row.getX() + editorStartX + editorWidth + unitOffset, row.getY(), unitWidth, 30);
 
         middleColumn.removeFromTop(5);
         row = middleColumn.removeFromTop(30);
-        speedOfSoundLabel.setBounds(row.removeFromLeft(130));
-        speedOfSoundEditor.setBounds(row.removeFromLeft(80));
-        row.removeFromLeft(5);
-        speedOfSoundUnitLabel.setBounds(row.removeFromLeft(40));
+        speedOfSoundLabel.setBounds(row.getX(), row.getY(), editorStartX - row.getX(), 30);
+        speedOfSoundEditor.setBounds(row.getX() + editorStartX, row.getY(), editorWidth, 30);
+        speedOfSoundUnitLabel.setBounds(row.getX() + editorStartX + editorWidth + unitOffset, row.getY(), unitWidth, 30);
 
         middleColumn.removeFromTop(5);
         row = middleColumn.removeFromTop(30);
-        temperatureLabel.setBounds(row.removeFromLeft(110));
-        temperatureEditor.setBounds(row.removeFromLeft(80));
-        row.removeFromLeft(5);
-        temperatureUnitLabel.setBounds(row.removeFromLeft(40));
+        temperatureLabel.setBounds(row.getX(), row.getY(), editorStartX - row.getX(), 30);
+        temperatureEditor.setBounds(row.getX() + editorStartX, row.getY(), editorWidth, 30);
+        temperatureUnitLabel.setBounds(row.getX() + editorStartX + editorWidth + unitOffset, row.getY(), unitWidth, 30);
 
         // Master Section
         middleColumn.removeFromTop(35);
         row = middleColumn.removeFromTop(30);
-        masterLevelLabel.setBounds(row.removeFromLeft(110));
-        masterLevelEditor.setBounds(row.removeFromLeft(80));
-        row.removeFromLeft(5);
-        masterLevelUnitLabel.setBounds(row.removeFromLeft(40));
+        masterLevelLabel.setBounds(row.getX(), row.getY(), editorStartX - row.getX(), 30);
+        masterLevelEditor.setBounds(row.getX() + editorStartX, row.getY(), editorWidth, 30);
+        masterLevelUnitLabel.setBounds(row.getX() + editorStartX + editorWidth + unitOffset, row.getY(), unitWidth, 30);
 
         middleColumn.removeFromTop(5);
         row = middleColumn.removeFromTop(30);
-        systemLatencyLabel.setBounds(row.removeFromLeft(130));
-        systemLatencyEditor.setBounds(row.removeFromLeft(80));
-        row.removeFromLeft(5);
-        systemLatencyUnitLabel.setBounds(row.removeFromLeft(40));
+        systemLatencyLabel.setBounds(row.getX(), row.getY(), editorStartX - row.getX(), 30);
+        systemLatencyEditor.setBounds(row.getX() + editorStartX, row.getY(), editorWidth, 30);
+        systemLatencyUnitLabel.setBounds(row.getX() + editorStartX + editorWidth + unitOffset, row.getY(), unitWidth, 30);
 
         middleColumn.removeFromTop(5);
         row = middleColumn.removeFromTop(30);
-        haasEffectLabel.setBounds(row.removeFromLeft(110));
-        haasEffectEditor.setBounds(row.removeFromLeft(80));
-        row.removeFromLeft(5);
-        haasEffectUnitLabel.setBounds(row.removeFromLeft(40));
+        haasEffectLabel.setBounds(row.getX(), row.getY(), editorStartX - row.getX(), 30);
+        haasEffectEditor.setBounds(row.getX() + editorStartX, row.getY(), editorWidth, 30);
+        haasEffectUnitLabel.setBounds(row.getX() + editorStartX + editorWidth + unitOffset, row.getY(), unitWidth, 30);
 
         // RIGHT COLUMN
         // Network Section
