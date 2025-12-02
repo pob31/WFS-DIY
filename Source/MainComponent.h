@@ -4,6 +4,7 @@
 #include "InputBufferAlgorithm.h"
 #include "OutputBufferAlgorithm.h"
 // #include "GpuInputBufferAlgorithm.h"  // Commented out - GPU Audio SDK not configured
+#include "WfsParameters.h"
 #include "gui/GuiPreviewWindow.h"
 #include "gui/DialsPreviewWindow.h"
 #include "gui/ConfigTabPreviewWindow.h"
@@ -78,6 +79,9 @@ private:
     bool audioCallbacksAttached = false;
     bool processingEnabled = false;
     bool audioEngineStarted = false;
+
+    // Parameter management system
+    WfsParameters parameters;
 
     // Routing matrix: delays[inputChannel * numOutputChannels + outputChannel]
     std::vector<float> delayTimesMs;
