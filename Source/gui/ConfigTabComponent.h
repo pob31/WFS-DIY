@@ -30,7 +30,7 @@ public:
         addAndMakeVisible(showLocationLabel);
         showLocationLabel.setText("Location:", juce::dontSendNotification);
         addAndMakeVisible(showLocationEditor);
-        showLocationEditor.setText("");
+        // TextEditor defaults to empty, no need to set explicitly
 
         // I/O Section
         addAndMakeVisible(inputChannelsLabel);
