@@ -6,7 +6,7 @@
 class ConfigTabPreviewWindow : public juce::DocumentWindow
 {
 public:
-    ConfigTabPreviewWindow()
+    ConfigTabPreviewWindow(WfsParameters& params)
         : DocumentWindow("Config Tab Preview",
                          juce::Colours::black,
                          DocumentWindow::closeButton)
@@ -14,7 +14,7 @@ public:
         setUsingNativeTitleBar(true);
         setResizable(true, true);
 
-        configTab = std::make_unique<ConfigTabComponent>();
+        configTab = std::make_unique<ConfigTabComponent>(params);
         setContentOwned(configTab.release(), true);
 
         const int preferredWidth = 1440;

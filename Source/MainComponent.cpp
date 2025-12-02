@@ -233,7 +233,7 @@ MainComponent::MainComponent()
     {
         if (configTabPreviewWindow == nullptr)
         {
-            configTabPreviewWindow = std::make_unique<ConfigTabPreviewWindow>();
+            configTabPreviewWindow = std::make_unique<ConfigTabPreviewWindow>(parameters);
         }
         else
         {

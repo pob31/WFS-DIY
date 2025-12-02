@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "../WfsParameters.h"
 
 /**
  * Config Tab UI Component
@@ -16,37 +17,35 @@
  * - Tracking (protocol, port, offset, scale, flip)
  * - Store/Reload (save/load buttons)
  */
-class ConfigTabComponent : public juce::Component
+class ConfigTabComponent : public juce::Component,
+                           private juce::ValueTree::Listener,
+                           private juce::TextEditor::Listener
 {
 public:
-    ConfigTabComponent()
+    ConfigTabComponent(WfsParameters& params)
+        : parameters(params)
     {
         // Show Section
         addAndMakeVisible(showNameLabel);
         showNameLabel.setText("Name:", juce::dontSendNotification);
         addAndMakeVisible(showNameEditor);
-        showNameEditor.setText("My Show");
 
         addAndMakeVisible(showLocationLabel);
         showLocationLabel.setText("Location:", juce::dontSendNotification);
         addAndMakeVisible(showLocationEditor);
-        // TextEditor defaults to empty, no need to set explicitly
 
         // I/O Section
         addAndMakeVisible(inputChannelsLabel);
         inputChannelsLabel.setText("Input Channels:", juce::dontSendNotification);
         addAndMakeVisible(inputChannelsEditor);
-        inputChannelsEditor.setText("8");
 
         addAndMakeVisible(outputChannelsLabel);
         outputChannelsLabel.setText("Output Channels:", juce::dontSendNotification);
         addAndMakeVisible(outputChannelsEditor);
-        outputChannelsEditor.setText("16");
 
         addAndMakeVisible(reverbChannelsLabel);
         reverbChannelsLabel.setText("Reverb Channels:", juce::dontSendNotification);
         addAndMakeVisible(reverbChannelsEditor);
-        reverbChannelsEditor.setText("0");
 
         addAndMakeVisible(audioPatchingButton);
         audioPatchingButton.setButtonText("Audio Interface and Patching Window");
@@ -59,35 +58,30 @@ public:
         addAndMakeVisible(stageWidthLabel);
         stageWidthLabel.setText("Stage Width:", juce::dontSendNotification);
         addAndMakeVisible(stageWidthEditor);
-        stageWidthEditor.setText("20.0");
         addAndMakeVisible(stageWidthUnitLabel);
         stageWidthUnitLabel.setText("m", juce::dontSendNotification);
 
         addAndMakeVisible(stageDepthLabel);
         stageDepthLabel.setText("Stage Depth:", juce::dontSendNotification);
         addAndMakeVisible(stageDepthEditor);
-        stageDepthEditor.setText("10.0");
         addAndMakeVisible(stageDepthUnitLabel);
         stageDepthUnitLabel.setText("m", juce::dontSendNotification);
 
         addAndMakeVisible(stageHeightLabel);
         stageHeightLabel.setText("Stage Height:", juce::dontSendNotification);
         addAndMakeVisible(stageHeightEditor);
-        stageHeightEditor.setText("8.0");
         addAndMakeVisible(stageHeightUnitLabel);
         stageHeightUnitLabel.setText("m", juce::dontSendNotification);
 
         addAndMakeVisible(speedOfSoundLabel);
         speedOfSoundLabel.setText("Speed of Sound:", juce::dontSendNotification);
         addAndMakeVisible(speedOfSoundEditor);
-        speedOfSoundEditor.setText("343.0");
         addAndMakeVisible(speedOfSoundUnitLabel);
         speedOfSoundUnitLabel.setText("m/s", juce::dontSendNotification);
 
         addAndMakeVisible(temperatureLabel);
         temperatureLabel.setText("Temperature:", juce::dontSendNotification);
         addAndMakeVisible(temperatureEditor);
-        temperatureEditor.setText("20.0");
         addAndMakeVisible(temperatureUnitLabel);
         temperatureUnitLabel.setText("C", juce::dontSendNotification);
 
@@ -95,21 +89,18 @@ public:
         addAndMakeVisible(masterLevelLabel);
         masterLevelLabel.setText("Master Level:", juce::dontSendNotification);
         addAndMakeVisible(masterLevelEditor);
-        masterLevelEditor.setText("0.0");
         addAndMakeVisible(masterLevelUnitLabel);
         masterLevelUnitLabel.setText("dB", juce::dontSendNotification);
 
         addAndMakeVisible(systemLatencyLabel);
         systemLatencyLabel.setText("System Latency:", juce::dontSendNotification);
         addAndMakeVisible(systemLatencyEditor);
-        systemLatencyEditor.setText("0.0");
         addAndMakeVisible(systemLatencyUnitLabel);
         systemLatencyUnitLabel.setText("ms", juce::dontSendNotification);
 
         addAndMakeVisible(haasEffectLabel);
         haasEffectLabel.setText("Haas Effect:", juce::dontSendNotification);
         addAndMakeVisible(haasEffectEditor);
-        haasEffectEditor.setText("0.1");
         addAndMakeVisible(haasEffectUnitLabel);
         haasEffectUnitLabel.setText("ms", juce::dontSendNotification);
 
@@ -117,18 +108,15 @@ public:
         addAndMakeVisible(currentIPLabel);
         currentIPLabel.setText("Current IPv4:", juce::dontSendNotification);
         addAndMakeVisible(currentIPEditor);
-        currentIPEditor.setText("127.0.0.1");
         currentIPEditor.setReadOnly(true);
 
         addAndMakeVisible(udpPortLabel);
         udpPortLabel.setText("UDP Port:", juce::dontSendNotification);
         addAndMakeVisible(udpPortEditor);
-        udpPortEditor.setText("9000");
 
         addAndMakeVisible(tcpPortLabel);
         tcpPortLabel.setText("TCP Port:", juce::dontSendNotification);
         addAndMakeVisible(tcpPortEditor);
-        tcpPortEditor.setText("9001");
 
         addAndMakeVisible(networkLogButton);
         networkLogButton.setButtonText("Open Log Window");
@@ -149,7 +137,41 @@ public:
         addAndMakeVisible(reloadSystemConfigButton);
         reloadSystemConfigButton.setButtonText("Reload System Configuration");
 
+        // Set up text editor listeners
+        showNameEditor.addListener(this);
+        showLocationEditor.addListener(this);
+        inputChannelsEditor.addListener(this);
+        outputChannelsEditor.addListener(this);
+        reverbChannelsEditor.addListener(this);
+        stageWidthEditor.addListener(this);
+        stageDepthEditor.addListener(this);
+        stageHeightEditor.addListener(this);
+        speedOfSoundEditor.addListener(this);
+        temperatureEditor.addListener(this);
+        masterLevelEditor.addListener(this);
+        systemLatencyEditor.addListener(this);
+        haasEffectEditor.addListener(this);
+        udpPortEditor.addListener(this);
+        tcpPortEditor.addListener(this);
+
+        // Set up button callbacks
+        storeCompleteConfigButton.onClick = [this]() { saveCompleteConfig(); };
+        reloadCompleteConfigButton.onClick = [this]() { loadCompleteConfig(); };
+        storeSystemConfigButton.onClick = [this]() { saveSystemConfig(); };
+        reloadSystemConfigButton.onClick = [this]() { loadSystemConfig(); };
+
+        // Listen to parameter changes
+        parameters.getConfigTree().addListener(this);
+
+        // Load initial values from parameters
+        loadParametersToUI();
+
         setSize(1400, 700);
+    }
+
+    ~ConfigTabComponent() override
+    {
+        parameters.getConfigTree().removeListener(this);
     }
 
     void paint(juce::Graphics& g) override
@@ -344,6 +366,166 @@ private:
     juce::TextButton selectProjectFolderButton;
     juce::TextButton storeCompleteConfigButton, reloadCompleteConfigButton;
     juce::TextButton storeSystemConfigButton, reloadSystemConfigButton;
+
+    // Parameter system
+    WfsParameters& parameters;
+    juce::File projectFolder;
+
+    //==============================================================================
+    // ValueTree::Listener implementation
+    void valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property) override
+    {
+        // Update UI when parameters change from elsewhere
+        juce::MessageManager::callAsync([this]() { loadParametersToUI(); });
+    }
+
+    void valueTreeChildAdded(juce::ValueTree&, juce::ValueTree&) override {}
+    void valueTreeChildRemoved(juce::ValueTree&, juce::ValueTree&, int) override {}
+    void valueTreeChildOrderChanged(juce::ValueTree&, int, int) override {}
+    void valueTreeParentChanged(juce::ValueTree&) override {}
+
+    //==============================================================================
+    // TextEditor::Listener implementation
+    void textEditorTextChanged(juce::TextEditor& editor) override
+    {
+        updateParameterFromEditor(editor);
+    }
+
+    void textEditorReturnKeyPressed(juce::TextEditor&) override {}
+    void textEditorEscapeKeyPressed(juce::TextEditor&) override {}
+    void textEditorFocusLost(juce::TextEditor&) override {}
+
+    //==============================================================================
+    // Helper methods
+    void loadParametersToUI()
+    {
+        showNameEditor.setText(parameters.getConfigParam("ShowName").toString(), false);
+        showLocationEditor.setText(parameters.getConfigParam("ShowLocation").toString(), false);
+        inputChannelsEditor.setText(parameters.getConfigParam("InputChannels").toString(), false);
+        outputChannelsEditor.setText(parameters.getConfigParam("OutputChannels").toString(), false);
+        reverbChannelsEditor.setText(parameters.getConfigParam("ReverbChannels").toString(), false);
+        stageWidthEditor.setText(parameters.getConfigParam("StageWidth").toString(), false);
+        stageDepthEditor.setText(parameters.getConfigParam("StageDepth").toString(), false);
+        stageHeightEditor.setText(parameters.getConfigParam("StageHeight").toString(), false);
+        speedOfSoundEditor.setText(parameters.getConfigParam("SpeedOfSound").toString(), false);
+        temperatureEditor.setText(parameters.getConfigParam("Temperature").toString(), false);
+        masterLevelEditor.setText(parameters.getConfigParam("MasterLevel").toString(), false);
+        systemLatencyEditor.setText(parameters.getConfigParam("SystemLatency").toString(), false);
+        haasEffectEditor.setText(parameters.getConfigParam("HaasEffect").toString(), false);
+        currentIPEditor.setText(parameters.getConfigParam("CurrentIPv4").toString(), false);
+        udpPortEditor.setText(parameters.getConfigParam("UdpPort").toString(), false);
+        tcpPortEditor.setText(parameters.getConfigParam("TcpPort").toString(), false);
+    }
+
+    void updateParameterFromEditor(juce::TextEditor& editor)
+    {
+        auto text = editor.getText();
+
+        if (&editor == &showNameEditor)
+            parameters.setConfigParam("ShowName", text);
+        else if (&editor == &showLocationEditor)
+            parameters.setConfigParam("ShowLocation", text);
+        else if (&editor == &inputChannelsEditor)
+            parameters.setConfigParam("InputChannels", text.getIntValue());
+        else if (&editor == &outputChannelsEditor)
+            parameters.setConfigParam("OutputChannels", text.getIntValue());
+        else if (&editor == &reverbChannelsEditor)
+            parameters.setConfigParam("ReverbChannels", text.getIntValue());
+        else if (&editor == &stageWidthEditor)
+            parameters.setConfigParam("StageWidth", text.getFloatValue());
+        else if (&editor == &stageDepthEditor)
+            parameters.setConfigParam("StageDepth", text.getFloatValue());
+        else if (&editor == &stageHeightEditor)
+            parameters.setConfigParam("StageHeight", text.getFloatValue());
+        else if (&editor == &speedOfSoundEditor)
+            parameters.setConfigParam("SpeedOfSound", text.getFloatValue());
+        else if (&editor == &temperatureEditor)
+            parameters.setConfigParam("Temperature", text.getFloatValue());
+        else if (&editor == &masterLevelEditor)
+            parameters.setConfigParam("MasterLevel", text.getFloatValue());
+        else if (&editor == &systemLatencyEditor)
+            parameters.setConfigParam("SystemLatency", text.getFloatValue());
+        else if (&editor == &haasEffectEditor)
+            parameters.setConfigParam("HaasEffect", text.getFloatValue());
+        else if (&editor == &udpPortEditor)
+            parameters.setConfigParam("UdpPort", text.getIntValue());
+        else if (&editor == &tcpPortEditor)
+            parameters.setConfigParam("TcpPort", text.getIntValue());
+    }
+
+    //==============================================================================
+    // Save/Load methods
+    void saveCompleteConfig()
+    {
+        juce::FileChooser chooser("Save Complete Configuration",
+                                   projectFolder.getChildFile("complete_config.xml"),
+                                   "*.xml");
+
+        if (chooser.browseForFileToSave(true))
+        {
+            auto file = chooser.getResult();
+            if (parameters.saveCompleteConfig(file))
+                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
+                    "Success", "Configuration saved successfully");
+            else
+                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                    "Error", "Failed to save configuration");
+        }
+    }
+
+    void loadCompleteConfig()
+    {
+        juce::FileChooser chooser("Load Complete Configuration",
+                                   projectFolder,
+                                   "*.xml");
+
+        if (chooser.browseForFileToOpen())
+        {
+            auto file = chooser.getResult();
+            if (parameters.loadCompleteConfig(file))
+                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
+                    "Success", "Configuration loaded successfully");
+            else
+                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                    "Error", "Failed to load configuration");
+        }
+    }
+
+    void saveSystemConfig()
+    {
+        juce::FileChooser chooser("Save System Configuration",
+                                   projectFolder.getChildFile("system_config.xml"),
+                                   "*.xml");
+
+        if (chooser.browseForFileToSave(true))
+        {
+            auto file = chooser.getResult();
+            if (parameters.saveSystemConfig(file))
+                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
+                    "Success", "System configuration saved successfully");
+            else
+                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                    "Error", "Failed to save system configuration");
+        }
+    }
+
+    void loadSystemConfig()
+    {
+        juce::FileChooser chooser("Load System Configuration",
+                                   projectFolder,
+                                   "*.xml");
+
+        if (chooser.browseForFileToOpen())
+        {
+            auto file = chooser.getResult();
+            if (parameters.loadSystemConfig(file))
+                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
+                    "Success", "System configuration loaded successfully");
+            else
+                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                    "Error", "Failed to load system configuration");
+        }
+    }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ConfigTabComponent)
 };
