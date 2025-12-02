@@ -1,0 +1,3 @@
+[submodule "ThirdParty/GPUAudioSDK"]
+	path = ThirdParty/GPUAudioSDK
+	url = https://github.com/gpuaudio/gpuaudio-sdk.git

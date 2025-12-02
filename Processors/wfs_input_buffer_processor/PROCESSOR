@@ -1,0 +1,4 @@
+
+PROCESSOR_IDENTIFIER="wfs_input_buffer"
+PROCESSOR_DESCRIPTION="WFS Input Buffer Processor for GPU Audio"
+

@@ -40,6 +40,20 @@ This project is based on the Cycling74's Max8 Prototype found at https://wfs-diy
 - **macOS**: Open `Builds/MacOSX/WFS-DIY.xcodeproj` in Xcode
 - **Linux**: Use the generated Makefile in `Builds/LinuxMakefile/`
 
+### GPU Audio (experimental)
+
+WFS-DIY includes experimental support for GPU-accelerated audio processing using the GPU-Audio SDK. The SDK is integrated as a Git submodule at `ThirdParty/GPUAudioSDK`.
+
+**For detailed setup instructions, see [GPU-Audio SDK Setup Guide](Documentation/GPU_AUDIO_SDK_SETUP.md)**
+
+Quick start:
+1. Initialize the submodule: `git submodule update --init --recursive`
+2. Build the SDK following the setup guide
+3. Set environment variables: `GPUAUDIO_PATH` and `GPUAUDIO_PROCESSOR_PATH`
+4. In the app, choose `GPU InputBuffer (GPU Audio)` and enable processing
+
+**Note**: The GPU Audio feature requires the [GPU Audio Platform](https://www.gpu.audio/sdk-binaries) to be installed separately.
+
 ## Development
 
 This project uses Git for version control and is designed for cross-platform development. Make sure to:
