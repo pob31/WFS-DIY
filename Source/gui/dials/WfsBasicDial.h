@@ -119,20 +119,15 @@ private:
         g.setColour(backgroundColour.brighter(0.2f));
         g.drawEllipse(circleBounds, 2.0f);
 
-        // Draw indicator line from center to current position
-        auto indicatorLength = radius * 0.7f;
-        auto indicatorWidth = juce::jmax(2.0f, radius * 0.08f);
-
-        juce::Point<float> indicatorEnd(
-            centre.x + indicatorLength * std::cos(currentNeedleAngle),
-            centre.y + indicatorLength * std::sin(currentNeedleAngle));
-
-        juce::Path indicatorPath;
-        indicatorPath.startNewSubPath(centre);
-        indicatorPath.lineTo(indicatorEnd);
+        // Draw indicator dot on the track (Android app style)
+        auto dotRadius = trackWidth * 0.8f; // Dot slightly smaller than track width
+        juce::Point<float> dotPosition(
+            centre.x + trackRadius * std::cos(currentNeedleAngle),
+            centre.y + trackRadius * std::sin(currentNeedleAngle));
 
         g.setColour(indicatorColour);
-        g.strokePath(indicatorPath, juce::PathStrokeType(indicatorWidth, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+        g.fillEllipse(dotPosition.x - dotRadius, dotPosition.y - dotRadius,
+                      dotRadius * 2.0f, dotRadius * 2.0f);
 
         // Draw value text
         g.setColour(textColour);
