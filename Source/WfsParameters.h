@@ -252,13 +252,16 @@ private:
         configParams.setProperty("StageWidth", 20.0f, nullptr);
         configParams.setProperty("StageDepth", 10.0f, nullptr);
         configParams.setProperty("StageHeight", 8.0f, nullptr);
+        configParams.setProperty("StageOriginWidth", 0.0f, nullptr);
+        configParams.setProperty("StageOriginDepth", 0.0f, nullptr);
+        configParams.setProperty("StageOriginHeight", 0.0f, nullptr);
         configParams.setProperty("SpeedOfSound", 343.0f, nullptr);
         configParams.setProperty("Temperature", 20.0f, nullptr);
 
         // Master Section
         configParams.setProperty("MasterLevel", 0.0f, nullptr);
         configParams.setProperty("SystemLatency", 0.0f, nullptr);
-        configParams.setProperty("HaasEffect", 0.1f, nullptr);
+        configParams.setProperty("HaasEffect", 0.0f, nullptr);
 
         // Network Section
         configParams.setProperty("CurrentIPv4", "127.0.0.1", nullptr);
