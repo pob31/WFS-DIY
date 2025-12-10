@@ -153,19 +153,6 @@ MainComponent::MainComponent()
     // algorithmSelector UI removed - now in SystemConfigTab
     // addAndMakeVisible(algorithmSelector);
 
-    // Set up tabbed interface
-    addAndMakeVisible(tabbedComponent);
-    tabbedComponent.setTabBarDepth(35);
-    tabbedComponent.setOutline(0);
-
-    // Add main UI tab
-    mainUITab = new GuiPreviewComponent();
-    tabbedComponent.addTab("WFS Control UI", juce::Colours::darkgrey, mainUITab, true);
-
-    // Add dials preview tab
-    dialsTab = new DialsPreviewComponent();
-    tabbedComponent.addTab("Dials", juce::Colours::darkgrey, dialsTab, true);
-
     configTabPreviewButton.setButtonText("Open Config Tab Preview");
     configTabPreviewButton.onClick = [this]()
     {
@@ -650,12 +637,12 @@ void MainComponent::resized()
     // update their positions.
     auto bounds = getLocalBounds();
 
-    // Top controls area - Config Tab Preview button
-    auto controlsArea = bounds.removeFromTop(50).reduced(10);
-    configTabPreviewButton.setBounds(controlsArea.removeFromTop(30).removeFromLeft(220));
-
-    // Tabbed component takes remaining space
-    tabbedComponent.setBounds(bounds);
+    // Center the Config Tab Preview button
+    auto buttonWidth = 220;
+    auto buttonHeight = 30;
+    auto buttonX = (bounds.getWidth() - buttonWidth) / 2;
+    auto buttonY = (bounds.getHeight() - buttonHeight) / 2;
+    configTabPreviewButton.setBounds(buttonX, buttonY, buttonWidth, buttonHeight);
 }
 
 //==============================================================================

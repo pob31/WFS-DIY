@@ -9,6 +9,8 @@
 #include "ClustersTab.h"
 #include "ReverbTab.h"
 #include "MapTab.h"
+#include "GuiPreviewComponent.h"
+#include "DialsPreviewWindow.h"
 
 /**
  * Main Config Tab Component with multiple sub-tabs
@@ -18,6 +20,8 @@
  * - Clusters
  * - Reverb
  * - Map
+ * - WFS Control UI
+ * - Dials
  */
 class ConfigTabComponent : public juce::Component
 {
@@ -37,6 +41,8 @@ public:
         clustersTab = new ClustersTab(parameters);
         reverbTab = new ReverbTab(parameters);
         mapTab = new MapTab(parameters);
+        wfsControlUITab = new GuiPreviewComponent();
+        dialsTab = new DialsPreviewComponent();
 
         // Add tabs to tabbed component
         tabbedComponent.addTab("System Configuration", juce::Colours::darkgrey, systemConfigTab, true);
@@ -45,6 +51,8 @@ public:
         tabbedComponent.addTab("Clusters", juce::Colours::darkgrey, clustersTab, true);
         tabbedComponent.addTab("Reverb", juce::Colours::darkgrey, reverbTab, true);
         tabbedComponent.addTab("Map", juce::Colours::darkgrey, mapTab, true);
+        tabbedComponent.addTab("WFS Control UI", juce::Colours::darkgrey, wfsControlUITab, true);
+        tabbedComponent.addTab("Dials", juce::Colours::darkgrey, dialsTab, true);
     }
 
     void paint(juce::Graphics& g) override
@@ -92,6 +100,8 @@ private:
     ClustersTab* clustersTab;
     ReverbTab* reverbTab;
     MapTab* mapTab;
+    GuiPreviewComponent* wfsControlUITab;
+    DialsPreviewComponent* dialsTab;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ConfigTabComponent)
 };

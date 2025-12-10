@@ -5,8 +5,6 @@
 #include "OutputBufferAlgorithm.h"
 // #include "GpuInputBufferAlgorithm.h"  // Commented out - GPU Audio SDK not configured
 #include "WfsParameters.h"
-#include "gui/GuiPreviewComponent.h"
-#include "gui/DialsPreviewWindow.h"
 #include "gui/ConfigTabPreviewWindow.h"
 #include "gui/AudioInterfaceWindow.h"
 
@@ -59,11 +57,6 @@ private:
     juce::Label algorithmLabel;
     juce::ComboBox algorithmSelector;
     juce::TextButton configTabPreviewButton;
-
-    // Tabbed interface for main UI and dials
-    juce::TabbedComponent tabbedComponent { juce::TabbedButtonBar::TabsAtTop };
-    GuiPreviewComponent* mainUITab = nullptr;  // Owned by TabbedComponent
-    DialsPreviewComponent* dialsTab = nullptr;  // Owned by TabbedComponent
 
     std::unique_ptr<ConfigTabPreviewWindow> configTabPreviewWindow;
     std::unique_ptr<AudioInterfaceWindow> audioInterfaceWindow;
