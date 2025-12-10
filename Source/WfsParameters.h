@@ -252,7 +252,7 @@ private:
         configParams.setProperty("StageWidth", 20.0f, nullptr);
         configParams.setProperty("StageDepth", 10.0f, nullptr);
         configParams.setProperty("StageHeight", 8.0f, nullptr);
-        configParams.setProperty("StageOriginWidth", 0.0f, nullptr);
+        configParams.setProperty("StageOriginWidth", 10.0f, nullptr);  // Default to half of stage width
         configParams.setProperty("StageOriginDepth", 0.0f, nullptr);
         configParams.setProperty("StageOriginHeight", 0.0f, nullptr);
         configParams.setProperty("SpeedOfSound", 343.0f, nullptr);

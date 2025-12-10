@@ -217,6 +217,9 @@ public:
         storeSystemConfigButton.onClick = [this]() { saveSystemConfig(); };
         reloadSystemConfigButton.onClick = [this]() { loadSystemConfig(); };
 
+        // Configure numeric input constraints based on CSV specifications
+        setupNumericEditors();
+
         // Listen to parameter changes
         parameters.getConfigTree().addListener(this);
 
@@ -228,6 +231,43 @@ public:
         updateCurrentIPAddress();
 
         setSize(1400, 700);
+    }
+
+    void setupNumericEditors()
+    {
+        // Helper lambda to configure a numeric text editor
+        auto setupNumericEditor = [](juce::TextEditor& editor, bool allowNegative, bool allowDecimal) {
+            juce::String allowedChars = "0123456789";
+            if (allowNegative) allowedChars += "-";
+            if (allowDecimal) allowedChars += ".";
+            editor.setInputFilter(new juce::TextEditor::LengthAndCharacterRestriction(10, allowedChars), true);
+            editor.setPopupMenuEnabled(false);
+            editor.setSelectAllWhenFocused(true);
+        };
+
+        // I/O Section - integers only
+        setupNumericEditor(inputChannelsEditor, false, false);
+        setupNumericEditor(outputChannelsEditor, false, false);
+        setupNumericEditor(reverbChannelsEditor, false, false);
+
+        // Stage Section - floats, some allow negative
+        setupNumericEditor(stageWidthEditor, false, true);  // 0.0 to 100.0
+        setupNumericEditor(stageDepthEditor, false, true);  // 0.0 to 100.0
+        setupNumericEditor(stageHeightEditor, false, true);  // 0.0 to 100.0
+        setupNumericEditor(stageOriginWidthEditor, true, true);  // -100.0 to 200.0
+        setupNumericEditor(stageOriginDepthEditor, true, true);  // -100.0 to 200.0
+        setupNumericEditor(stageOriginHeightEditor, true, true);  // -100.0 to 200.0
+        setupNumericEditor(speedOfSoundEditor, false, true);  // 319.2 to 367.7
+        setupNumericEditor(temperatureEditor, true, true);  // -20.0 to 60.0
+
+        // Master Section - floats, some allow negative
+        setupNumericEditor(masterLevelEditor, true, true);  // -92.0 to 0.0
+        setupNumericEditor(systemLatencyEditor, false, true);  // 0.0 to 10.0
+        setupNumericEditor(haasEffectEditor, false, true);  // 0.0 to 10.0
+
+        // Network Section - integers only
+        setupNumericEditor(udpPortEditor, false, false);
+        setupNumericEditor(tcpPortEditor, false, false);
     }
 
     ~ConfigTabComponent() override
@@ -487,12 +527,68 @@ private:
     // TextEditor::Listener implementation
     void textEditorTextChanged(juce::TextEditor& editor) override
     {
-        updateParameterFromEditor(editor);
+        // Don't update parameters during typing - only on Enter or focus lost
     }
 
-    void textEditorReturnKeyPressed(juce::TextEditor&) override {}
-    void textEditorEscapeKeyPressed(juce::TextEditor&) override {}
-    void textEditorFocusLost(juce::TextEditor&) override {}
+    void textEditorReturnKeyPressed(juce::TextEditor& editor) override
+    {
+        // Validate, clamp, and update parameter
+        validateAndClampValue(editor);
+        // Remove focus to hide cursor
+        editor.giveAwayKeyboardFocus();
+    }
+
+    void textEditorEscapeKeyPressed(juce::TextEditor& editor) override
+    {
+        // Restore original value from parameters without updating
+        // Format floats with 2 decimal places to match loadParametersToUI
+        if (&editor == &showNameEditor)
+            editor.setText(parameters.getConfigParam("ShowName").toString(), false);
+        else if (&editor == &showLocationEditor)
+            editor.setText(parameters.getConfigParam("ShowLocation").toString(), false);
+        else if (&editor == &inputChannelsEditor)
+            editor.setText(parameters.getConfigParam("InputChannels").toString(), false);
+        else if (&editor == &outputChannelsEditor)
+            editor.setText(parameters.getConfigParam("OutputChannels").toString(), false);
+        else if (&editor == &reverbChannelsEditor)
+            editor.setText(parameters.getConfigParam("ReverbChannels").toString(), false);
+        else if (&editor == &stageWidthEditor)
+            editor.setText(juce::String((float)parameters.getConfigParam("StageWidth"), 2), false);
+        else if (&editor == &stageDepthEditor)
+            editor.setText(juce::String((float)parameters.getConfigParam("StageDepth"), 2), false);
+        else if (&editor == &stageHeightEditor)
+            editor.setText(juce::String((float)parameters.getConfigParam("StageHeight"), 2), false);
+        else if (&editor == &stageOriginWidthEditor)
+            editor.setText(juce::String((float)parameters.getConfigParam("StageOriginWidth"), 2), false);
+        else if (&editor == &stageOriginDepthEditor)
+            editor.setText(juce::String((float)parameters.getConfigParam("StageOriginDepth"), 2), false);
+        else if (&editor == &stageOriginHeightEditor)
+            editor.setText(juce::String((float)parameters.getConfigParam("StageOriginHeight"), 2), false);
+        else if (&editor == &speedOfSoundEditor)
+            editor.setText(juce::String((float)parameters.getConfigParam("SpeedOfSound"), 2), false);
+        else if (&editor == &temperatureEditor)
+            editor.setText(juce::String((float)parameters.getConfigParam("Temperature"), 2), false);
+        else if (&editor == &masterLevelEditor)
+            editor.setText(juce::String((float)parameters.getConfigParam("MasterLevel"), 2), false);
+        else if (&editor == &systemLatencyEditor)
+            editor.setText(juce::String((float)parameters.getConfigParam("SystemLatency"), 2), false);
+        else if (&editor == &haasEffectEditor)
+            editor.setText(juce::String((float)parameters.getConfigParam("HaasEffect"), 2), false);
+        else if (&editor == &udpPortEditor)
+            editor.setText(parameters.getConfigParam("UdpPort").toString(), false);
+        else if (&editor == &tcpPortEditor)
+            editor.setText(parameters.getConfigParam("TcpPort").toString(), false);
+
+        // Remove focus to hide cursor
+        editor.giveAwayKeyboardFocus();
+    }
+
+    void textEditorFocusLost(juce::TextEditor& editor) override
+    {
+        // Validate, clamp, and update parameter when focus is lost
+        validateAndClampValue(editor);
+        // Cursor automatically hides when focus is lost
+    }
 
     //==============================================================================
     // Helper methods
@@ -661,22 +757,29 @@ private:
 
     void loadParametersToUI()
     {
+        // String values
         showNameEditor.setText(parameters.getConfigParam("ShowName").toString(), false);
         showLocationEditor.setText(parameters.getConfigParam("ShowLocation").toString(), false);
+
+        // Integer values
         inputChannelsEditor.setText(parameters.getConfigParam("InputChannels").toString(), false);
         outputChannelsEditor.setText(parameters.getConfigParam("OutputChannels").toString(), false);
         reverbChannelsEditor.setText(parameters.getConfigParam("ReverbChannels").toString(), false);
-        stageWidthEditor.setText(parameters.getConfigParam("StageWidth").toString(), false);
-        stageDepthEditor.setText(parameters.getConfigParam("StageDepth").toString(), false);
-        stageHeightEditor.setText(parameters.getConfigParam("StageHeight").toString(), false);
-        stageOriginWidthEditor.setText(parameters.getConfigParam("StageOriginWidth").toString(), false);
-        stageOriginDepthEditor.setText(parameters.getConfigParam("StageOriginDepth").toString(), false);
-        stageOriginHeightEditor.setText(parameters.getConfigParam("StageOriginHeight").toString(), false);
-        speedOfSoundEditor.setText(parameters.getConfigParam("SpeedOfSound").toString(), false);
-        temperatureEditor.setText(parameters.getConfigParam("Temperature").toString(), false);
-        masterLevelEditor.setText(parameters.getConfigParam("MasterLevel").toString(), false);
-        systemLatencyEditor.setText(parameters.getConfigParam("SystemLatency").toString(), false);
-        haasEffectEditor.setText(parameters.getConfigParam("HaasEffect").toString(), false);
+
+        // Float values - format with 2 decimal places to avoid precision issues
+        stageWidthEditor.setText(juce::String((float)parameters.getConfigParam("StageWidth"), 2), false);
+        stageDepthEditor.setText(juce::String((float)parameters.getConfigParam("StageDepth"), 2), false);
+        stageHeightEditor.setText(juce::String((float)parameters.getConfigParam("StageHeight"), 2), false);
+        stageOriginWidthEditor.setText(juce::String((float)parameters.getConfigParam("StageOriginWidth"), 2), false);
+        stageOriginDepthEditor.setText(juce::String((float)parameters.getConfigParam("StageOriginDepth"), 2), false);
+        stageOriginHeightEditor.setText(juce::String((float)parameters.getConfigParam("StageOriginHeight"), 2), false);
+        speedOfSoundEditor.setText(juce::String((float)parameters.getConfigParam("SpeedOfSound"), 2), false);
+        temperatureEditor.setText(juce::String((float)parameters.getConfigParam("Temperature"), 2), false);
+        masterLevelEditor.setText(juce::String((float)parameters.getConfigParam("MasterLevel"), 2), false);
+        systemLatencyEditor.setText(juce::String((float)parameters.getConfigParam("SystemLatency"), 2), false);
+        haasEffectEditor.setText(juce::String((float)parameters.getConfigParam("HaasEffect"), 2), false);
+
+        // IP and ports
         currentIPEditor.setText(parameters.getConfigParam("CurrentIPv4").toString(), false);
         udpPortEditor.setText(parameters.getConfigParam("UdpPort").toString(), false);
         tcpPortEditor.setText(parameters.getConfigParam("TcpPort").toString(), false);
@@ -722,6 +825,69 @@ private:
             parameters.setConfigParam("UdpPort", text.getIntValue());
         else if (&editor == &tcpPortEditor)
             parameters.setConfigParam("TcpPort", text.getIntValue());
+    }
+
+    void validateAndClampValue(juce::TextEditor& editor)
+    {
+        auto text = editor.getText();
+
+        // Handle empty strings
+        if (text.isEmpty())
+        {
+            loadParametersToUI();
+            return;
+        }
+
+        float value = text.getFloatValue();
+
+        // Clamp values based on CSV specifications
+        // Take absolute value for fields that don't allow negatives
+        if (&editor == &stageWidthEditor)
+            value = juce::jlimit(0.0f, 100.0f, std::abs(value));
+        else if (&editor == &stageDepthEditor)
+            value = juce::jlimit(0.0f, 100.0f, std::abs(value));
+        else if (&editor == &stageHeightEditor)
+            value = juce::jlimit(0.0f, 100.0f, std::abs(value));
+        else if (&editor == &stageOriginWidthEditor)
+            value = juce::jlimit(-100.0f, 200.0f, value);  // Allows negative
+        else if (&editor == &stageOriginDepthEditor)
+            value = juce::jlimit(-100.0f, 200.0f, value);  // Allows negative
+        else if (&editor == &stageOriginHeightEditor)
+            value = juce::jlimit(-100.0f, 200.0f, value);  // Allows negative
+        else if (&editor == &speedOfSoundEditor)
+            value = juce::jlimit(319.2f, 367.7f, std::abs(value));
+        else if (&editor == &temperatureEditor)
+            value = juce::jlimit(-20.0f, 60.0f, value);  // Allows negative
+        else if (&editor == &masterLevelEditor)
+            value = juce::jlimit(-92.0f, 0.0f, value);  // Allows negative
+        else if (&editor == &systemLatencyEditor)
+            value = juce::jlimit(0.0f, 10.0f, std::abs(value));
+        else if (&editor == &haasEffectEditor)
+            value = juce::jlimit(0.0f, 10.0f, std::abs(value));
+        else if (&editor == &inputChannelsEditor || &editor == &outputChannelsEditor ||
+                 &editor == &reverbChannelsEditor || &editor == &udpPortEditor ||
+                 &editor == &tcpPortEditor)
+        {
+            // Integer fields - take absolute value
+            int intValue = std::abs(text.getIntValue());
+            editor.setText(juce::String(intValue), false);
+            updateParameterFromEditor(editor);
+            return;
+        }
+        else if (&editor == &showNameEditor || &editor == &showLocationEditor)
+        {
+            // String fields - just update without validation
+            updateParameterFromEditor(editor);
+            return;
+        }
+        else
+            return; // Unknown editor
+
+        // Update editor with clamped value (2 decimal places for floats)
+        editor.setText(juce::String(value, 2), false);
+
+        // Update parameter with clamped value
+        updateParameterFromEditor(editor);
     }
 
     //==============================================================================
