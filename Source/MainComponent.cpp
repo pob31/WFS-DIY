@@ -153,35 +153,18 @@ MainComponent::MainComponent()
     // algorithmSelector UI removed - now in SystemConfigTab
     // addAndMakeVisible(algorithmSelector);
 
-    uiPreviewButton.setButtonText("Open UI Preview");
-    uiPreviewButton.onClick = [this]()
-    {
-        if (previewWindow == nullptr)
-        {
-            previewWindow = std::make_unique<GuiPreviewWindow>();
-        }
-        else
-        {
-            previewWindow->setVisible(true);
-            previewWindow->toFront(true);
-        }
-    };
-    addAndMakeVisible(uiPreviewButton);
+    // Set up tabbed interface
+    addAndMakeVisible(tabbedComponent);
+    tabbedComponent.setTabBarDepth(35);
+    tabbedComponent.setOutline(0);
 
-    dialsPreviewButton.setButtonText("Open Dials Preview");
-    dialsPreviewButton.onClick = [this]()
-    {
-        if (dialsPreviewWindow == nullptr)
-        {
-            dialsPreviewWindow = std::make_unique<DialsPreviewWindow>();
-        }
-        else
-        {
-            dialsPreviewWindow->setVisible(true);
-            dialsPreviewWindow->toFront(true);
-        }
-    };
-    addAndMakeVisible(dialsPreviewButton);
+    // Add main UI tab
+    mainUITab = new GuiPreviewComponent();
+    tabbedComponent.addTab("WFS Control UI", juce::Colours::darkgrey, mainUITab, true);
+
+    // Add dials preview tab
+    dialsTab = new DialsPreviewComponent();
+    tabbedComponent.addTab("Dials", juce::Colours::darkgrey, dialsTab, true);
 
     configTabPreviewButton.setButtonText("Open Config Tab Preview");
     configTabPreviewButton.onClick = [this]()
@@ -299,9 +282,6 @@ MainComponent::~MainComponent()
 {
     // Stop timer
     stopTimer();
-
-    previewWindow.reset();
-    dialsPreviewWindow.reset();
 
     // Save settings before shutdown (while device is still available)
     saveSettings();
@@ -670,30 +650,12 @@ void MainComponent::resized()
     // update their positions.
     auto bounds = getLocalBounds();
 
-    // Top controls area - simplified now that most controls are in System Config tab
-    auto controlsArea = bounds.removeFromTop(60).reduced(10);
+    // Top controls area - Config Tab Preview button
+    auto controlsArea = bounds.removeFromTop(50).reduced(10);
+    configTabPreviewButton.setBounds(controlsArea.removeFromTop(30).removeFromLeft(220));
 
-    // Preview buttons
-    /* UI controls moved to System Config tab:
-    - processingToggle (now processingButton in SystemConfigTab)
-    - numInputsLabel / numInputsSlider (now inputChannelsEditor in SystemConfigTab)
-    - numOutputsLabel / numOutputsSlider (now outputChannelsEditor in SystemConfigTab)
-    - algorithmLabel / algorithmSelector (now in SystemConfigTab)
-    */
-
-    auto previewRow = controlsArea.removeFromTop(30);
-    uiPreviewButton.setBounds(previewRow.removeFromLeft(200));
-    previewRow.removeFromLeft(10); // Spacing
-    dialsPreviewButton.setBounds(previewRow.removeFromLeft(200));
-    previewRow.removeFromLeft(10); // Spacing
-    configTabPreviewButton.setBounds(previewRow.removeFromLeft(220));
-
-    // Audio setup component moved to AudioInterfaceWindow
-    // Window opens via "Audio Interface and Patching Window" button
-    /* Original code:
-    if (audioSetupComp != nullptr)
-        audioSetupComp->setBounds(bounds);
-    */
+    // Tabbed component takes remaining space
+    tabbedComponent.setBounds(bounds);
 }
 
 //==============================================================================
