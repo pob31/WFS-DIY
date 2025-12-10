@@ -5,7 +5,15 @@
 #include "OutputBufferAlgorithm.h"
 // #include "GpuInputBufferAlgorithm.h"  // Commented out - GPU Audio SDK not configured
 #include "WfsParameters.h"
-#include "gui/ConfigTabPreviewWindow.h"
+#include "gui/StatusBar.h"
+#include "gui/SystemConfigTab.h"
+#include "gui/OutputsTab.h"
+#include "gui/InputsTab.h"
+#include "gui/ClustersTab.h"
+#include "gui/ReverbTab.h"
+#include "gui/MapTab.h"
+#include "gui/GuiPreviewComponent.h"
+#include "gui/DialsPreviewWindow.h"
 #include "gui/AudioInterfaceWindow.h"
 
 //==============================================================================
@@ -56,9 +64,19 @@ private:
 
     juce::Label algorithmLabel;
     juce::ComboBox algorithmSelector;
-    juce::TextButton configTabPreviewButton;
 
-    std::unique_ptr<ConfigTabPreviewWindow> configTabPreviewWindow;
+    // Main tabbed interface with status bar
+    juce::TabbedComponent tabbedComponent { juce::TabbedButtonBar::TabsAtTop };
+    StatusBar* statusBar = nullptr;  // Owned by container component
+    SystemConfigTab* systemConfigTab = nullptr;  // Owned by TabbedComponent
+    OutputsTab* outputsTab = nullptr;
+    InputsTab* inputsTab = nullptr;
+    ClustersTab* clustersTab = nullptr;
+    ReverbTab* reverbTab = nullptr;
+    MapTab* mapTab = nullptr;
+    GuiPreviewComponent* wfsControlUITab = nullptr;
+    DialsPreviewComponent* dialsTab = nullptr;
+
     std::unique_ptr<AudioInterfaceWindow> audioInterfaceWindow;
 
     // Threaded processing architecture

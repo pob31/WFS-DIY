@@ -150,36 +150,50 @@ MainComponent::MainComponent()
         }
     }; // End of commented algorithm change handler
     */
-    // algorithmSelector UI removed - now in SystemConfigTab
-    // addAndMakeVisible(algorithmSelector);
+    // Set up tabbed interface
+    addAndMakeVisible(tabbedComponent);
+    tabbedComponent.setTabBarDepth(35);
+    tabbedComponent.setOutline(0);
 
-    configTabPreviewButton.setButtonText("Open Config Tab Preview");
-    configTabPreviewButton.onClick = [this]()
-    {
-        if (configTabPreviewWindow == nullptr)
-        {
-            configTabPreviewWindow = std::make_unique<ConfigTabPreviewWindow>(parameters);
+    // Create status bar
+    statusBar = new StatusBar();
+    addAndMakeVisible(statusBar);
 
-            // Set up callbacks to MainComponent
-            configTabPreviewWindow->setProcessingCallback([this](bool enabled) {
-                handleProcessingChange(enabled);
-            });
+    // Create tabs
+    systemConfigTab = new SystemConfigTab(parameters);
+    outputsTab = new OutputsTab(parameters);
+    inputsTab = new InputsTab(parameters);
+    clustersTab = new ClustersTab(parameters);
+    reverbTab = new ReverbTab(parameters);
+    mapTab = new MapTab(parameters);
+    wfsControlUITab = new GuiPreviewComponent();
+    dialsTab = new DialsPreviewComponent();
 
-            configTabPreviewWindow->setChannelCountCallback([this](int inputs, int outputs) {
-                handleChannelCountChange(inputs, outputs);
-            });
+    // Pass status bar to system config tab
+    systemConfigTab->setStatusBar(statusBar);
 
-            configTabPreviewWindow->setAudioInterfaceCallback([this]() {
-                openAudioInterfaceWindow();
-            });
-        }
-        else
-        {
-            configTabPreviewWindow->setVisible(true);
-            configTabPreviewWindow->toFront(true);
-        }
-    };
-    addAndMakeVisible(configTabPreviewButton);
+    // Set up callbacks from System Config tab
+    systemConfigTab->setProcessingCallback([this](bool enabled) {
+        handleProcessingChange(enabled);
+    });
+
+    systemConfigTab->setChannelCountCallback([this](int inputs, int outputs) {
+        handleChannelCountChange(inputs, outputs);
+    });
+
+    systemConfigTab->setAudioInterfaceCallback([this]() {
+        openAudioInterfaceWindow();
+    });
+
+    // Add tabs to tabbed component
+    tabbedComponent.addTab("System Configuration", juce::Colours::darkgrey, systemConfigTab, true);
+    tabbedComponent.addTab("Outputs", juce::Colours::darkgrey, outputsTab, true);
+    tabbedComponent.addTab("Inputs", juce::Colours::darkgrey, inputsTab, true);
+    tabbedComponent.addTab("Clusters", juce::Colours::darkgrey, clustersTab, true);
+    tabbedComponent.addTab("Reverb", juce::Colours::darkgrey, reverbTab, true);
+    tabbedComponent.addTab("Map", juce::Colours::darkgrey, mapTab, true);
+    tabbedComponent.addTab("WFS Control UI", juce::Colours::darkgrey, wfsControlUITab, true);
+    tabbedComponent.addTab("Dials", juce::Colours::darkgrey, dialsTab, true);
 
     // Make sure you set the size of the component after
     // you add any child components.
@@ -272,6 +286,9 @@ MainComponent::~MainComponent()
 
     // Save settings before shutdown (while device is still available)
     saveSettings();
+
+    // Clean up status bar (owned by this component, not TabbedComponent)
+    delete statusBar;
 
     // Shutdown audio device first (this stops the audio callbacks)
     shutdownAudio();
@@ -636,13 +653,13 @@ void MainComponent::resized()
     // If you add any child components, this is where you should
     // update their positions.
     auto bounds = getLocalBounds();
+    const int statusBarHeight = 30;
 
-    // Center the Config Tab Preview button
-    auto buttonWidth = 220;
-    auto buttonHeight = 30;
-    auto buttonX = (bounds.getWidth() - buttonWidth) / 2;
-    auto buttonY = (bounds.getHeight() - buttonHeight) / 2;
-    configTabPreviewButton.setBounds(buttonX, buttonY, buttonWidth, buttonHeight);
+    // Status bar at bottom, full width
+    statusBar->setBounds(bounds.removeFromBottom(statusBarHeight));
+
+    // Tabbed component takes remaining space
+    tabbedComponent.setBounds(bounds);
 }
 
 //==============================================================================
