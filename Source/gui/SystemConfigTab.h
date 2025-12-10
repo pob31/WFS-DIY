@@ -29,6 +29,11 @@ class SystemConfigTab : public juce::Component,
                         private juce::TextEditor::Listener
 {
 public:
+    // Callback types for notifying MainComponent of changes
+    using ProcessingCallback = std::function<void(bool enabled)>;
+    using ChannelCountCallback = std::function<void(int inputs, int outputs)>;
+    using AudioInterfaceCallback = std::function<void()>;
+
     SystemConfigTab(WfsParameters& params)
         : parameters(params)
     {
@@ -56,6 +61,25 @@ public:
 
         addAndMakeVisible(audioPatchingButton);
         audioPatchingButton.setButtonText("Audio Interface and Patching Window");
+        audioPatchingButton.onClick = [this]() {
+            if (onAudioInterfaceWindowRequested)
+                onAudioInterfaceWindowRequested();
+        };
+
+        // Algorithm selector
+        addAndMakeVisible(algorithmLabel);
+        algorithmLabel.setText("Algorithm:", juce::dontSendNotification);
+        algorithmLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+
+        addAndMakeVisible(algorithmSelector);
+        algorithmSelector.addItem("InputBuffer (read-time delays)", 1);
+        algorithmSelector.addItem("OutputBuffer (write-time delays)", 2);
+        // algorithmSelector.addItem("GPU InputBuffer (GPU Audio)", 3);  // Commented out - GPU Audio SDK not configured
+        algorithmSelector.setSelectedId(1, juce::dontSendNotification);
+        algorithmSelector.onChange = [this]() {
+            int selectedId = algorithmSelector.getSelectedId();
+            parameters.setConfigParam("ProcessingAlgorithm", selectedId);
+        };
 
         addAndMakeVisible(processingButton);
         processingButton.setButtonText("Processing: OFF");
@@ -292,6 +316,10 @@ public:
         audioPatchingButton.setBounds(x, y, editorWidth + labelWidth, rowHeight);
         y += rowHeight + spacing;
 
+        algorithmLabel.setBounds(x, y, labelWidth, rowHeight);
+        algorithmSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
+        y += rowHeight + spacing;
+
         processingButton.setBounds(x, y, editorWidth + labelWidth, rowHeight);
 
         // Network Section
@@ -409,6 +437,21 @@ public:
         statusBar = bar;
         setupHelpText();
         setupMouseListeners();
+    }
+
+    void setProcessingCallback(ProcessingCallback callback)
+    {
+        onProcessingChanged = callback;
+    }
+
+    void setChannelCountCallback(ChannelCountCallback callback)
+    {
+        onChannelCountChanged = callback;
+    }
+
+    void setAudioInterfaceCallback(AudioInterfaceCallback callback)
+    {
+        onAudioInterfaceWindowRequested = callback;
     }
 
 private:
@@ -559,6 +602,11 @@ private:
         udpPortEditor.setText(parameters.getConfigParam("UdpPort").toString(), false);
         tcpPortEditor.setText(parameters.getConfigParam("TcpPort").toString(), false);
 
+        // Algorithm selector
+        int algorithmId = (int)parameters.getConfigParam("ProcessingAlgorithm");
+        if (algorithmId >= 1 && algorithmId <= 2)  // Valid range for current algorithms
+            algorithmSelector.setSelectedId(algorithmId, juce::dontSendNotification);
+
         // Processing button state
         processingEnabled = (bool)parameters.getConfigParam("ProcessingEnabled");
         processingButton.setButtonText(processingEnabled ? "Processing: ON" : "Processing: OFF");
@@ -573,9 +621,27 @@ private:
         else if (&editor == &showLocationEditor)
             parameters.setConfigParam("ShowLocation", text);
         else if (&editor == &inputChannelsEditor)
+        {
             parameters.setConfigParam("InputChannels", text.getIntValue());
+            // Notify MainComponent of channel count change
+            if (onChannelCountChanged)
+            {
+                int inputs = text.getIntValue();
+                int outputs = (int)parameters.getConfigParam("OutputChannels");
+                onChannelCountChanged(inputs, outputs);
+            }
+        }
         else if (&editor == &outputChannelsEditor)
+        {
             parameters.setConfigParam("OutputChannels", text.getIntValue());
+            // Notify MainComponent of channel count change
+            if (onChannelCountChanged)
+            {
+                int inputs = (int)parameters.getConfigParam("InputChannels");
+                int outputs = text.getIntValue();
+                onChannelCountChanged(inputs, outputs);
+            }
+        }
         else if (&editor == &reverbChannelsEditor)
             parameters.setConfigParam("ReverbChannels", text.getIntValue());
         else if (&editor == &stageWidthEditor)
@@ -668,6 +734,10 @@ private:
         processingEnabled = !processingEnabled;
         processingButton.setButtonText(processingEnabled ? "Processing: ON" : "Processing: OFF");
         parameters.setConfigParam("ProcessingEnabled", processingEnabled);
+
+        // Notify MainComponent of processing state change
+        if (onProcessingChanged)
+            onProcessingChanged(processingEnabled);
     }
 
     //==============================================================================
@@ -910,6 +980,7 @@ private:
         helpTextMap[&outputChannelsEditor] = "Number of Output Channels.";
         helpTextMap[&reverbChannelsEditor] = "Number of Reverb Channels.";
         helpTextMap[&audioPatchingButton] = "Open patching window to route Input and Output channels to the Audio Interface.";
+        helpTextMap[&algorithmSelector] = "Select the rendering algorithm from the menu.";
         helpTextMap[&processingButton] = "Lock all I/O parameters and start the DSP. Long press to stop the DSP.";
         helpTextMap[&stageWidthEditor] = "Width of the stage (used for remote application and ADM-OSC).";
         helpTextMap[&stageDepthEditor] = "Depth of the stage (used for remote application and ADM-OSC).";
@@ -985,6 +1056,8 @@ private:
     juce::Label reverbChannelsLabel;
     juce::TextEditor reverbChannelsEditor;
     juce::TextButton audioPatchingButton;
+    juce::Label algorithmLabel;
+    juce::ComboBox algorithmSelector;
     juce::TextButton processingButton;
 
     // Stage Section
@@ -1043,6 +1116,11 @@ private:
     juce::TextButton importSystemConfigButton;
     juce::TextButton exportSystemConfigButton;
     juce::File projectFolder;
+
+    // Callbacks for notifying MainComponent
+    ProcessingCallback onProcessingChanged;
+    ChannelCountCallback onChannelCountChanged;
+    AudioInterfaceCallback onAudioInterfaceWindowRequested;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SystemConfigTab)
 };

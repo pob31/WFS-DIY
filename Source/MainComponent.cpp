@@ -32,114 +32,67 @@ MainComponent::MainComponent()
     juce::String savedInputChannelsBits = props.getValue("audioInputChannelsBits");
     juce::String savedOutputChannelsBits = props.getValue("audioOutputChannelsBits");
 
-    // Create audio device selector
+    // Audio device selector moved to AudioInterfaceWindow
+    // Accessible via "Audio Interface and Patching Window" button in System Config tab
+    /* Original code - now in AudioInterfaceWindow:
     audioSetupComp.reset(new juce::AudioDeviceSelectorComponent(
-        deviceManager,
-        0, 64,  // min/max input channels (0 = allow no inputs)
-        2, 64,  // min/max output channels
-        false, // show MIDI input
-        false, // show MIDI output
-        false, // show channels as stereo pairs
-        false  // hide advanced options
-    ));
+        deviceManager, 0, 64, 2, 64, false, false, false, false));
     addAndMakeVisible(audioSetupComp.get());
+    */
 
-    // Create processing toggle button
+    // Processing toggle moved to System Config tab
+    // Processing state is now managed via parameters.getConfigParam("ProcessingEnabled")
+    /* Original processing toggle code - now in SystemConfigTab:
     processingToggle.setButtonText("Processing ON/OFF");
     processingToggle.setToggleState(false, juce::dontSendNotification);
-    processingToggle.onClick = [this]() {
-        processingEnabled = processingToggle.getToggleState();
-
-        if (processingEnabled && !audioEngineStarted)
-        {
-            // Start audio engine on first activation
-            startAudioEngine();
-        }
-        else if (processingEnabled && audioEngineStarted)
-        {
-            // Just enable existing processors
-            if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
-            {
-                inputAlgorithm.setProcessingEnabled(processingEnabled);
-            }
-            else if (currentAlgorithm == ProcessingAlgorithm::OutputBuffer)
-            {
-                outputAlgorithm.setProcessingEnabled(processingEnabled);
-            }
-            // else
-            // {
-            //     gpuInputAlgorithm.setProcessingEnabled(processingEnabled);
-            // }
-        }
-        else
-        {
-            // Disable processing
-            if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
-            {
-                inputAlgorithm.setProcessingEnabled(processingEnabled);
-            }
-            else if (currentAlgorithm == ProcessingAlgorithm::OutputBuffer)
-            {
-                outputAlgorithm.setProcessingEnabled(processingEnabled);
-            }
-            // else
-            // {
-            //     gpuInputAlgorithm.setProcessingEnabled(processingEnabled);
-            // }
-        }
-
-        // Enable/disable channel count controls and algorithm selector
-        numInputsSlider.setEnabled(!processingEnabled);
-        numOutputsSlider.setEnabled(!processingEnabled);
-        algorithmSelector.setEnabled(!processingEnabled);
-    };
+    processingToggle.onClick = [this]() { ... };
     addAndMakeVisible(processingToggle);
+    */
 
-    // Create input channel count controls
-    numInputsLabel.setText("Input Channels:", juce::dontSendNotification);
-    numInputsLabel.setJustificationType(juce::Justification::centredRight);
-    addAndMakeVisible(numInputsLabel);
+    // Load initial processing state from parameters
+    processingEnabled = (bool)parameters.getConfigParam("ProcessingEnabled");
+    if (processingEnabled && !audioEngineStarted)
+    {
+        startAudioEngine();
+    }
 
-    numInputsSlider.setSliderStyle(juce::Slider::IncDecButtons);
-    numInputsSlider.setRange(0, 64, 1);  // Allow 0 inputs
-    numInputsSlider.setValue(numInputChannels, juce::dontSendNotification);
-    numInputsSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 60, 20);
-    numInputsSlider.onValueChange = [this]() {
-        numInputChannels = (int)numInputsSlider.getValue();
-        stopProcessingForConfigurationChange();
-        resizeRoutingMatrices();
-        saveSettings();
-    };
-    addAndMakeVisible(numInputsSlider);
+    // Input/Output channel count controls moved to System Config tab
+    // Channel counts are now managed via parameters
+    /* Original channel count controls - now in SystemConfigTab:
+    numInputsLabel / numInputsSlider - "Input Channels"
+    numOutputsLabel / numOutputsSlider - "Output Channels"
+    */
 
-    // Create output channel count controls
-    numOutputsLabel.setText("Output Channels:", juce::dontSendNotification);
-    numOutputsLabel.setJustificationType(juce::Justification::centredRight);
-    addAndMakeVisible(numOutputsLabel);
+    // Load initial channel counts from parameters
+    numInputChannels = (int)parameters.getConfigParam("InputChannels");
+    numOutputChannels = (int)parameters.getConfigParam("OutputChannels");
+    resizeRoutingMatrices();
 
-    numOutputsSlider.setSliderStyle(juce::Slider::IncDecButtons);
-    numOutputsSlider.setRange(2, 64, 1);
-    numOutputsSlider.setValue(numOutputChannels, juce::dontSendNotification);
-    numOutputsSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 60, 20);
-    numOutputsSlider.onValueChange = [this]() {
-        numOutputChannels = (int)numOutputsSlider.getValue();
-        stopProcessingForConfigurationChange();
-        resizeRoutingMatrices();
-        saveSettings();
-    };
-    addAndMakeVisible(numOutputsSlider);
-
-    // Create algorithm selector
+    // Algorithm selector moved to System Config tab
+    // Listen for algorithm changes from parameters and apply them
+    // Note: The algorithmSelector UI is now in SystemConfigTab.h
+    /* Original algorithm selector code - now in SystemConfigTab:
     algorithmLabel.setText("Algorithm:", juce::dontSendNotification);
     algorithmLabel.setJustificationType(juce::Justification::centredRight);
     addAndMakeVisible(algorithmLabel);
 
     algorithmSelector.addItem("InputBuffer (read-time delays)", 1);
     algorithmSelector.addItem("OutputBuffer (write-time delays)", 2);
-    // algorithmSelector.addItem("GPU InputBuffer (GPU Audio)", 3);  // Commented out - GPU Audio SDK not configured
     algorithmSelector.setSelectedId(1, juce::dontSendNotification);
-    algorithmSelector.onChange = [this]() {
-        int selectedId = algorithmSelector.getSelectedId();
+    */
+
+    // Load initial algorithm from parameters
+    int algorithmId = (int)parameters.getConfigParam("ProcessingAlgorithm");
+    if (algorithmId == 1)
+        currentAlgorithm = ProcessingAlgorithm::InputBuffer;
+    else if (algorithmId == 2)
+        currentAlgorithm = ProcessingAlgorithm::OutputBuffer;
+    // else if (algorithmId == 3)
+    //     currentAlgorithm = ProcessingAlgorithm::GpuInputBuffer;
+
+    /* Algorithm change handler - no longer needed as UI is in SystemConfigTab
+    auto algorithmChangeHandler = [this]() {
+        int selectedId = (int)parameters.getConfigParam("ProcessingAlgorithm");
         ProcessingAlgorithm newAlgorithm = currentAlgorithm;
         if (selectedId == 1)
             newAlgorithm = ProcessingAlgorithm::InputBuffer;
@@ -195,8 +148,10 @@ MainComponent::MainComponent()
                 currentAlgorithm = newAlgorithm;
             }
         }
-    };
-    addAndMakeVisible(algorithmSelector);
+    }; // End of commented algorithm change handler
+    */
+    // algorithmSelector UI removed - now in SystemConfigTab
+    // addAndMakeVisible(algorithmSelector);
 
     uiPreviewButton.setButtonText("Open UI Preview");
     uiPreviewButton.onClick = [this]()
@@ -234,6 +189,19 @@ MainComponent::MainComponent()
         if (configTabPreviewWindow == nullptr)
         {
             configTabPreviewWindow = std::make_unique<ConfigTabPreviewWindow>(parameters);
+
+            // Set up callbacks to MainComponent
+            configTabPreviewWindow->setProcessingCallback([this](bool enabled) {
+                handleProcessingChange(enabled);
+            });
+
+            configTabPreviewWindow->setChannelCountCallback([this](int inputs, int outputs) {
+                handleChannelCountChange(inputs, outputs);
+            });
+
+            configTabPreviewWindow->setAudioInterfaceCallback([this]() {
+                openAudioInterfaceWindow();
+            });
         }
         else
         {
@@ -405,7 +373,8 @@ void MainComponent::stopProcessingForConfigurationChange()
         return;
 
     processingEnabled = false;
-    processingToggle.setToggleState(false, juce::dontSendNotification);
+    // processingToggle removed - now managed in System Config tab
+    parameters.setConfigParam("ProcessingEnabled", false);
 
     if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
     {
@@ -424,6 +393,62 @@ void MainComponent::stopProcessingForConfigurationChange()
     // }
 
     audioEngineStarted = false;
+}
+
+void MainComponent::handleProcessingChange(bool enabled)
+{
+    processingEnabled = enabled;
+
+    if (processingEnabled && !audioEngineStarted)
+    {
+        // Start audio engine on first activation
+        startAudioEngine();
+    }
+    else if (processingEnabled && audioEngineStarted)
+    {
+        // Just enable existing processors
+        if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
+        {
+            inputAlgorithm.setProcessingEnabled(processingEnabled);
+        }
+        else if (currentAlgorithm == ProcessingAlgorithm::OutputBuffer)
+        {
+            outputAlgorithm.setProcessingEnabled(processingEnabled);
+        }
+    }
+    else
+    {
+        // Disable processing
+        if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
+        {
+            inputAlgorithm.setProcessingEnabled(processingEnabled);
+        }
+        else if (currentAlgorithm == ProcessingAlgorithm::OutputBuffer)
+        {
+            outputAlgorithm.setProcessingEnabled(processingEnabled);
+        }
+    }
+}
+
+void MainComponent::handleChannelCountChange(int inputs, int outputs)
+{
+    numInputChannels = inputs;
+    numOutputChannels = outputs;
+    stopProcessingForConfigurationChange();
+    resizeRoutingMatrices();
+}
+
+void MainComponent::openAudioInterfaceWindow()
+{
+    if (audioInterfaceWindow == nullptr)
+    {
+        audioInterfaceWindow = std::make_unique<AudioInterfaceWindow>(deviceManager);
+    }
+    else
+    {
+        audioInterfaceWindow->setVisible(true);
+        audioInterfaceWindow->toFront(true);
+    }
 }
 
 //==============================================================================
@@ -645,33 +670,16 @@ void MainComponent::resized()
     // update their positions.
     auto bounds = getLocalBounds();
 
-    // Top controls area - made taller to accommodate 3 rows
-    auto controlsArea = bounds.removeFromTop(150).reduced(10);
+    // Top controls area - simplified now that most controls are in System Config tab
+    auto controlsArea = bounds.removeFromTop(60).reduced(10);
 
-    // Row 1: Toggle button at the top
-    processingToggle.setBounds(controlsArea.removeFromTop(30));
-
-    controlsArea.removeFromTop(5); // spacing
-
-    // Row 2: Channel count controls
-    auto channelRow = controlsArea.removeFromTop(25);
-
-    auto inputsArea = channelRow.removeFromLeft(getWidth() / 2);
-    numInputsLabel.setBounds(inputsArea.removeFromLeft(120));
-    numInputsSlider.setBounds(inputsArea.removeFromLeft(150));
-
-    auto outputsArea = channelRow.removeFromLeft(getWidth() / 2);
-    numOutputsLabel.setBounds(outputsArea.removeFromLeft(120));
-    numOutputsSlider.setBounds(outputsArea.removeFromLeft(150));
-
-    controlsArea.removeFromTop(5); // spacing
-
-    // Row 3: Algorithm selector
-    auto algorithmRow = controlsArea.removeFromTop(25);
-    algorithmLabel.setBounds(algorithmRow.removeFromLeft(120));
-    algorithmSelector.setBounds(algorithmRow.removeFromLeft(300));
-
-    controlsArea.removeFromTop(5); // spacing
+    // Preview buttons
+    /* UI controls moved to System Config tab:
+    - processingToggle (now processingButton in SystemConfigTab)
+    - numInputsLabel / numInputsSlider (now inputChannelsEditor in SystemConfigTab)
+    - numOutputsLabel / numOutputsSlider (now outputChannelsEditor in SystemConfigTab)
+    - algorithmLabel / algorithmSelector (now in SystemConfigTab)
+    */
 
     auto previewRow = controlsArea.removeFromTop(30);
     uiPreviewButton.setBounds(previewRow.removeFromLeft(200));
@@ -680,9 +688,12 @@ void MainComponent::resized()
     previewRow.removeFromLeft(10); // Spacing
     configTabPreviewButton.setBounds(previewRow.removeFromLeft(220));
 
-    // Audio setup component takes the rest
+    // Audio setup component moved to AudioInterfaceWindow
+    // Window opens via "Audio Interface and Patching Window" button
+    /* Original code:
     if (audioSetupComp != nullptr)
         audioSetupComp->setBounds(bounds);
+    */
 }
 
 //==============================================================================

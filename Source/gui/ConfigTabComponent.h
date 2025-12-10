@@ -64,6 +64,21 @@ public:
         systemConfigTab->setStatusBar(bar);
     }
 
+    void setProcessingCallback(SystemConfigTab::ProcessingCallback callback)
+    {
+        systemConfigTab->setProcessingCallback(callback);
+    }
+
+    void setChannelCountCallback(SystemConfigTab::ChannelCountCallback callback)
+    {
+        systemConfigTab->setChannelCountCallback(callback);
+    }
+
+    void setAudioInterfaceCallback(SystemConfigTab::AudioInterfaceCallback callback)
+    {
+        systemConfigTab->setAudioInterfaceCallback(callback);
+    }
+
 private:
     WfsParameters& parameters;
     StatusBar* statusBar = nullptr;

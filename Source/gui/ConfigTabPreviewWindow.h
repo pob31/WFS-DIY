@@ -78,6 +78,21 @@ public:
         setVisible(false);
     }
 
+    void setProcessingCallback(SystemConfigTab::ProcessingCallback callback)
+    {
+        configTab->setProcessingCallback(callback);
+    }
+
+    void setChannelCountCallback(SystemConfigTab::ChannelCountCallback callback)
+    {
+        configTab->setChannelCountCallback(callback);
+    }
+
+    void setAudioInterfaceCallback(SystemConfigTab::AudioInterfaceCallback callback)
+    {
+        configTab->setAudioInterfaceCallback(callback);
+    }
+
 private:
     std::unique_ptr<ConfigTabComponent> configTab;
     std::unique_ptr<StatusBar> statusBar;

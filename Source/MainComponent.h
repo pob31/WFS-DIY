@@ -8,6 +8,7 @@
 #include "gui/GuiPreviewWindow.h"
 #include "gui/DialsPreviewWindow.h"
 #include "gui/ConfigTabPreviewWindow.h"
+#include "gui/AudioInterfaceWindow.h"
 
 //==============================================================================
 /*
@@ -41,10 +42,13 @@ public:
     float getDelay(int inputChannel, int outputChannel) const;
     float getLevel(int inputChannel, int outputChannel) const;
 
+    // Audio Interface Window
+    void openAudioInterfaceWindow();
+
 private:
     //==============================================================================
     // Your private member variables go here...
-    std::unique_ptr<juce::AudioDeviceSelectorComponent> audioSetupComp;
+    // audioSetupComp moved to AudioInterfaceWindow
     juce::ToggleButton processingToggle;
 
     juce::Label numInputsLabel;
@@ -61,6 +65,7 @@ private:
     std::unique_ptr<GuiPreviewWindow> previewWindow;
     std::unique_ptr<DialsPreviewWindow> dialsPreviewWindow;
     std::unique_ptr<ConfigTabPreviewWindow> configTabPreviewWindow;
+    std::unique_ptr<AudioInterfaceWindow> audioInterfaceWindow;
 
     // Threaded processing architecture
     enum class ProcessingAlgorithm
@@ -107,6 +112,10 @@ private:
     void attachAudioCallbacksIfNeeded();
     void resizeRoutingMatrices();
     void stopProcessingForConfigurationChange();
+
+    // Handlers for callbacks from System Config tab
+    void handleProcessingChange(bool enabled);
+    void handleChannelCountChange(int inputs, int outputs);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };
