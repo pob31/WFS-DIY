@@ -161,6 +161,7 @@ MainComponent::MainComponent()
 
     // Create tabs
     systemConfigTab = new SystemConfigTab(parameters);
+    networkTab = new NetworkTab(parameters);
     outputsTab = new OutputsTab(parameters);
     inputsTab = new InputsTab(parameters);
     clustersTab = new ClustersTab(parameters);
@@ -187,6 +188,7 @@ MainComponent::MainComponent()
 
     // Add tabs to tabbed component
     tabbedComponent.addTab("System Configuration", juce::Colours::darkgrey, systemConfigTab, true);
+    tabbedComponent.addTab("Network", juce::Colours::darkgrey, networkTab, true);
     tabbedComponent.addTab("Outputs", juce::Colours::darkgrey, outputsTab, true);
     tabbedComponent.addTab("Inputs", juce::Colours::darkgrey, inputsTab, true);
     tabbedComponent.addTab("Clusters", juce::Colours::darkgrey, clustersTab, true);

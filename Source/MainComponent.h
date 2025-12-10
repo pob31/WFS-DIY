@@ -7,6 +7,7 @@
 #include "WfsParameters.h"
 #include "gui/StatusBar.h"
 #include "gui/SystemConfigTab.h"
+#include "gui/NetworkTab.h"
 #include "gui/OutputsTab.h"
 #include "gui/InputsTab.h"
 #include "gui/ClustersTab.h"
@@ -69,6 +70,7 @@ private:
     juce::TabbedComponent tabbedComponent { juce::TabbedButtonBar::TabsAtTop };
     StatusBar* statusBar = nullptr;  // Owned by container component
     SystemConfigTab* systemConfigTab = nullptr;  // Owned by TabbedComponent
+    NetworkTab* networkTab = nullptr;
     OutputsTab* outputsTab = nullptr;
     InputsTab* inputsTab = nullptr;
     ClustersTab* clustersTab = nullptr;
