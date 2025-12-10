@@ -3385,8 +3385,19 @@
     <ClCompile Include="..\..\JuceLibraryCode\include_juce_osc.cpp"/>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\Source\gui\ConfigTabComponent.h"/>
+    <ClInclude Include="..\..\Source\gui\ConfigTabPreviewWindow.h"/>
+    <ClInclude Include="..\..\Source\gui\StatusBar.h"/>
+    <ClInclude Include="..\..\Source\gui\SystemConfigTab.h"/>
+    <ClInclude Include="..\..\Source\gui\OutputsTab.h"/>
+    <ClInclude Include="..\..\Source\gui\InputsTab.h"/>
+    <ClInclude Include="..\..\Source\gui\ClustersTab.h"/>
+    <ClInclude Include="..\..\Source\gui\ReverbTab.h"/>
+    <ClInclude Include="..\..\Source\gui\MapTab.h"/>
     <ClInclude Include="..\..\Source\MainComponent.h"/>
+    <ClInclude Include="..\..\Source\WfsParameters.h"/>
     <ClInclude Include="..\..\Source\WFSAlgorithm.h"/>
+    <ClInclude Include="..\..\Source\InputBufferProcessor.h"/>
     <ClInclude Include="..\..\Source\InputBufferAlgorithm.h"/>
     <ClInclude Include="..\..\Source\OutputBufferAlgorithm.h"/>
     <ClInclude Include="..\..\Source\GpuInputBufferAlgorithm.h"/>

@@ -8,11 +8,11 @@
     <key>CFBundleIconFile</key>
     <string></string>
     <key>CFBundleIdentifier</key>
-    <string>com.JUCE.AudioSettingsDemo</string>
+    <string>com.yourcompany.WFSDIY</string>
     <key>CFBundleName</key>
-    <string>AudioSettingsDemo</string>
+    <string>WFS-DIY</string>
     <key>CFBundleDisplayName</key>
-    <string>AudioSettingsDemo</string>
+    <string>WFS-DIY</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleSignature</key>
