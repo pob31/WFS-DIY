@@ -58,6 +58,27 @@ public:
         udpPortEditor.addListener(this);
         tcpPortEditor.addListener(this);
 
+        // Footer buttons - Store/Reload
+        addAndMakeVisible(storeButton);
+        storeButton.setButtonText("Store Network Config");
+        storeButton.onClick = [this]() { storeNetworkConfiguration(); };
+
+        addAndMakeVisible(reloadButton);
+        reloadButton.setButtonText("Reload Network Config");
+        reloadButton.onClick = [this]() { reloadNetworkConfiguration(); };
+
+        addAndMakeVisible(reloadBackupButton);
+        reloadBackupButton.setButtonText("Reload Backup");
+        reloadBackupButton.onClick = [this]() { reloadNetworkConfigBackup(); };
+
+        addAndMakeVisible(importButton);
+        importButton.setButtonText("Import");
+        importButton.onClick = [this]() { importNetworkConfiguration(); };
+
+        addAndMakeVisible(exportButton);
+        exportButton.setButtonText("Export");
+        exportButton.onClick = [this]() { exportNetworkConfiguration(); };
+
         // Populate network interfaces
         populateNetworkInterfaces();
 
@@ -110,6 +131,22 @@ public:
 
         tcpPortLabel.setBounds(x, y, labelWidth, rowHeight);
         tcpPortEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
+
+        // Footer buttons - full width at bottom - 5 equal-width buttons (matching Output tab)
+        const int footerHeight = 50;
+        const int footerPadding = 10;
+        auto footerArea = getLocalBounds().removeFromBottom(footerHeight).reduced(footerPadding, footerPadding);
+        const int buttonWidth = (footerArea.getWidth() - spacing * 4) / 5;
+
+        storeButton.setBounds(footerArea.removeFromLeft(buttonWidth));
+        footerArea.removeFromLeft(spacing);
+        reloadButton.setBounds(footerArea.removeFromLeft(buttonWidth));
+        footerArea.removeFromLeft(spacing);
+        reloadBackupButton.setBounds(footerArea.removeFromLeft(buttonWidth));
+        footerArea.removeFromLeft(spacing);
+        importButton.setBounds(footerArea.removeFromLeft(buttonWidth));
+        footerArea.removeFromLeft(spacing);
+        exportButton.setBounds(footerArea);
     }
 
 private:
@@ -128,6 +165,13 @@ private:
     juce::TextEditor udpPortEditor;
     juce::Label tcpPortLabel;
     juce::TextEditor tcpPortEditor;
+
+    // Footer buttons
+    juce::TextButton storeButton;
+    juce::TextButton reloadButton;
+    juce::TextButton reloadBackupButton;
+    juce::TextButton importButton;
+    juce::TextButton exportButton;
 
     void setupNumericEditors()
     {
@@ -386,6 +430,13 @@ private:
 #endif
         currentIPEditor.setText("Not available", false);
     }
+
+    // Store/Reload stub methods (to be implemented)
+    void storeNetworkConfiguration() {}
+    void reloadNetworkConfiguration() {}
+    void reloadNetworkConfigBackup() {}
+    void importNetworkConfiguration() {}
+    void exportNetworkConfiguration() {}
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(NetworkTab)
 };

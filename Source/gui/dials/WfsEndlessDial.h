@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include <cmath>
 
 class WfsEndlessDial : public juce::Component
 {
@@ -25,6 +26,11 @@ public:
 
     void setAngle(float degrees)
     {
+        // Normalize to -180 to 180 range: ((x+180) % 360) - 180
+        degrees = std::fmod(degrees + 180.0f, 360.0f);
+        if (degrees < 0.0f) degrees += 360.0f;
+        degrees -= 180.0f;
+
         if (!juce::approximatelyEqual(degrees, angleDegrees))
         {
             angleDegrees = degrees;
@@ -79,7 +85,8 @@ private:
         g.drawEllipse(circleBounds, 2.0f);
 
         // Draw indicator dot on the track (Android app style)
-        auto angleRad = juce::degreesToRadians(angleDegrees - 90.0f);
+        // +90 offset so 0° is at the bottom
+        auto angleRad = juce::degreesToRadians(angleDegrees + 90.0f);
         auto dotRadius = trackWidth * 0.8f;
         juce::Point<float> dotPosition(
             centre.x + trackRadius * std::cos(angleRad),

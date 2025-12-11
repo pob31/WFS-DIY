@@ -425,7 +425,6 @@ public:
         g.drawText("I/O", 20, 110, 200, 20, juce::Justification::left);
         g.drawText("Stage", 500, 10, 200, 20, juce::Justification::left);
         g.drawText("Master Section", 500, 390, 200, 20, juce::Justification::left);
-        g.drawText("Store/Reload", 20, 340, 200, 20, juce::Justification::left);
     }
 
     void resized() override
@@ -539,41 +538,39 @@ public:
         haasEffectEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
         haasEffectUnitLabel.setBounds(x + labelWidth + editorWidth + spacing, y, unitWidth, rowHeight);
 
-        // Store/Reload Section - Project folder and Complete config buttons
-        x = 20;
-        y = 370;
-        const int buttonWidth = 250;
+        // Footer buttons - full width at bottom (matching Output tab style)
+        const int footerHeight = 90;  // Two 30px button rows + 10px spacing + 20px padding
+        const int footerPadding = 10;
+        const int buttonRowHeight = 30;  // Same as Output tab buttons
+        auto footerArea = getLocalBounds().removeFromBottom(footerHeight).reduced(footerPadding, footerPadding);
 
-        selectProjectFolderButton.setBounds(x, y, buttonWidth, rowHeight);
-        y += rowHeight + spacing;
+        // Row 1: Project folder + Complete config buttons - 4 items
+        auto row1 = footerArea.removeFromTop(buttonRowHeight);
+        const int row1ButtonWidth = (row1.getWidth() - spacing * 3) / 4;
 
-        storeCompleteConfigButton.setBounds(x, y, buttonWidth, rowHeight);
-        y += rowHeight + spacing;
+        selectProjectFolderButton.setBounds(row1.removeFromLeft(row1ButtonWidth));
+        row1.removeFromLeft(spacing);
+        storeCompleteConfigButton.setBounds(row1.removeFromLeft(row1ButtonWidth));
+        row1.removeFromLeft(spacing);
+        reloadCompleteConfigButton.setBounds(row1.removeFromLeft(row1ButtonWidth));
+        row1.removeFromLeft(spacing);
+        reloadCompleteConfigBackupButton.setBounds(row1);
 
-        reloadCompleteConfigButton.setBounds(x, y, buttonWidth, rowHeight);
-        y += rowHeight + spacing;
+        footerArea.removeFromTop(footerPadding);  // Same spacing as padding for consistency
 
-        reloadCompleteConfigBackupButton.setBounds(x, y, buttonWidth, rowHeight);
+        // Row 2: System config buttons - 5 equal-width buttons
+        auto row2 = footerArea.removeFromTop(buttonRowHeight);
+        const int sysButtonWidth = (row2.getWidth() - spacing * 4) / 5;
 
-        // System config buttons in a row at the bottom (above status bar)
-        const int sysButtonWidth = 180;
-        const int bottomMargin = 10;
-        y = getHeight() - rowHeight - bottomMargin;
-        x = 20;
-
-        storeSystemConfigButton.setBounds(x, y, sysButtonWidth, rowHeight);
-        x += sysButtonWidth + spacing;
-
-        reloadSystemConfigButton.setBounds(x, y, sysButtonWidth, rowHeight);
-        x += sysButtonWidth + spacing;
-
-        reloadSystemConfigBackupButton.setBounds(x, y, sysButtonWidth, rowHeight);
-        x += sysButtonWidth + spacing;
-
-        importSystemConfigButton.setBounds(x, y, sysButtonWidth, rowHeight);
-        x += sysButtonWidth + spacing;
-
-        exportSystemConfigButton.setBounds(x, y, sysButtonWidth, rowHeight);
+        storeSystemConfigButton.setBounds(row2.removeFromLeft(sysButtonWidth));
+        row2.removeFromLeft(spacing);
+        reloadSystemConfigButton.setBounds(row2.removeFromLeft(sysButtonWidth));
+        row2.removeFromLeft(spacing);
+        reloadSystemConfigBackupButton.setBounds(row2.removeFromLeft(sysButtonWidth));
+        row2.removeFromLeft(spacing);
+        importSystemConfigButton.setBounds(row2.removeFromLeft(sysButtonWidth));
+        row2.removeFromLeft(spacing);
+        exportSystemConfigButton.setBounds(row2);
     }
 
     void setStatusBar(StatusBar* bar)

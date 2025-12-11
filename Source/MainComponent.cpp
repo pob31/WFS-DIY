@@ -167,11 +167,11 @@ MainComponent::MainComponent()
     clustersTab = new ClustersTab(parameters);
     reverbTab = new ReverbTab(parameters);
     mapTab = new MapTab(parameters);
-    wfsControlUITab = new GuiPreviewComponent();
-    dialsTab = new DialsPreviewComponent();
 
-    // Pass status bar to system config tab
+    // Pass status bar to tabs that support it
     systemConfigTab->setStatusBar(statusBar);
+    outputsTab->setStatusBar(statusBar);
+    inputsTab->setStatusBar(statusBar);
 
     // Set up callbacks from System Config tab
     systemConfigTab->setProcessingCallback([this](bool enabled) {
@@ -190,12 +190,10 @@ MainComponent::MainComponent()
     tabbedComponent.addTab("System Configuration", juce::Colours::darkgrey, systemConfigTab, true);
     tabbedComponent.addTab("Network", juce::Colours::darkgrey, networkTab, true);
     tabbedComponent.addTab("Outputs", juce::Colours::darkgrey, outputsTab, true);
+    tabbedComponent.addTab("Reverb", juce::Colours::darkgrey, reverbTab, true);
     tabbedComponent.addTab("Inputs", juce::Colours::darkgrey, inputsTab, true);
     tabbedComponent.addTab("Clusters", juce::Colours::darkgrey, clustersTab, true);
-    tabbedComponent.addTab("Reverb", juce::Colours::darkgrey, reverbTab, true);
     tabbedComponent.addTab("Map", juce::Colours::darkgrey, mapTab, true);
-    tabbedComponent.addTab("WFS Control UI", juce::Colours::darkgrey, wfsControlUITab, true);
-    tabbedComponent.addTab("Dials", juce::Colours::darkgrey, dialsTab, true);
 
     // Make sure you set the size of the component after
     // you add any child components.

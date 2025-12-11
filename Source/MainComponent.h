@@ -13,8 +13,6 @@
 #include "gui/ClustersTab.h"
 #include "gui/ReverbTab.h"
 #include "gui/MapTab.h"
-#include "gui/GuiPreviewComponent.h"
-#include "gui/DialsPreviewWindow.h"
 #include "gui/AudioInterfaceWindow.h"
 
 //==============================================================================
@@ -76,8 +74,6 @@ private:
     ClustersTab* clustersTab = nullptr;
     ReverbTab* reverbTab = nullptr;
     MapTab* mapTab = nullptr;
-    GuiPreviewComponent* wfsControlUITab = nullptr;
-    DialsPreviewComponent* dialsTab = nullptr;
 
     std::unique_ptr<AudioInterfaceWindow> audioInterfaceWindow;
 

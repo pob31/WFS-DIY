@@ -128,14 +128,6 @@ private:
         g.setColour(indicatorColour);
         g.fillEllipse(dotPosition.x - dotRadius, dotPosition.y - dotRadius,
                       dotRadius * 2.0f, dotRadius * 2.0f);
-
-        // Draw value text
-        g.setColour(textColour);
-        juce::FontOptions fontOptions(juce::Font::getDefaultSansSerifFontName(), radius * 0.35f, juce::Font::bold);
-        g.setFont(juce::Font(fontOptions));
-        g.drawText(juce::String(value, 2),
-                   circleBounds,
-                   juce::Justification::centred);
     }
 
     void mouseDown(const juce::MouseEvent& event) override
