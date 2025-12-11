@@ -199,7 +199,11 @@ MainComponent::MainComponent()
 
     // Make sure you set the size of the component after
     // you add any child components.
-    setSize (800, 600);
+    // Set initial size to 90% of the screen, with minimum bounds
+    auto displayArea = juce::Desktop::getInstance().getDisplays().getPrimaryDisplay()->userArea;
+    int windowWidth = juce::jmax(1280, (int)(displayArea.getWidth() * 0.9f));
+    int windowHeight = juce::jmax(720, (int)(displayArea.getHeight() * 0.9f));
+    setSize (windowWidth, windowHeight);
 
     // IMPORTANT: Don't call setAudioChannels() here - it causes 887D0003 errors
     // on systems where the default Windows Audio device doesn't exist/work.

@@ -12,6 +12,165 @@
     #pragma comment(lib, "ws2_32.lib")
 #endif
 
+//==============================================================================
+// Custom Origin Preset Button - Front (broken rectangle with dot at bottom)
+class OriginFrontButton : public juce::Button
+{
+public:
+    OriginFrontButton() : juce::Button("Front") {}
+
+    void paintButton(juce::Graphics& g, bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown) override
+    {
+        auto bounds = getLocalBounds().toFloat().reduced(2.0f);
+
+        // Background
+        if (shouldDrawButtonAsDown)
+            g.setColour(juce::Colour(0xFF404040));
+        else if (shouldDrawButtonAsHighlighted)
+            g.setColour(juce::Colour(0xFF353535));
+        else
+            g.setColour(juce::Colour(0xFF2A2A2A));
+
+        g.fillRoundedRectangle(bounds, 4.0f);
+        g.setColour(juce::Colour(0xFF606060));
+        g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
+
+        // Draw icon - broken rectangle (open at bottom) with dot at front center
+        auto iconBounds = bounds.reduced(6.0f);
+        float lineThickness = 2.0f;
+        float gapSize = iconBounds.getWidth() * 0.55f;  // Wider gap in the middle of bottom edge
+
+        g.setColour(juce::Colours::white);
+
+        // Left side (full height)
+        g.drawLine(iconBounds.getX(), iconBounds.getY(),
+                   iconBounds.getX(), iconBounds.getBottom(), lineThickness);
+
+        // Top (full width)
+        g.drawLine(iconBounds.getX(), iconBounds.getY(),
+                   iconBounds.getRight(), iconBounds.getY(), lineThickness);
+
+        // Right side (full height)
+        g.drawLine(iconBounds.getRight(), iconBounds.getY(),
+                   iconBounds.getRight(), iconBounds.getBottom(), lineThickness);
+
+        // Bottom left piece (partial - leaving gap in center)
+        g.drawLine(iconBounds.getX(), iconBounds.getBottom(),
+                   iconBounds.getCentreX() - gapSize * 0.5f, iconBounds.getBottom(), lineThickness);
+
+        // Bottom right piece (partial - leaving gap in center)
+        g.drawLine(iconBounds.getCentreX() + gapSize * 0.5f, iconBounds.getBottom(),
+                   iconBounds.getRight(), iconBounds.getBottom(), lineThickness);
+
+        // Dot at front center (positioned at the bottom edge, in the gap)
+        float dotRadius = 2.5f;
+        g.fillEllipse(iconBounds.getCentreX() - dotRadius,
+                      iconBounds.getBottom() - dotRadius,
+                      dotRadius * 2, dotRadius * 2);
+    }
+};
+
+//==============================================================================
+// Custom Origin Preset Button - Center Ground (complete rectangle with dot in center)
+class OriginCenterGroundButton : public juce::Button
+{
+public:
+    OriginCenterGroundButton() : juce::Button("Center Ground") {}
+
+    void paintButton(juce::Graphics& g, bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown) override
+    {
+        auto bounds = getLocalBounds().toFloat().reduced(2.0f);
+
+        // Background
+        if (shouldDrawButtonAsDown)
+            g.setColour(juce::Colour(0xFF404040));
+        else if (shouldDrawButtonAsHighlighted)
+            g.setColour(juce::Colour(0xFF353535));
+        else
+            g.setColour(juce::Colour(0xFF2A2A2A));
+
+        g.fillRoundedRectangle(bounds, 4.0f);
+        g.setColour(juce::Colour(0xFF606060));
+        g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
+
+        // Draw icon - complete rectangle with dot in center
+        auto iconBounds = bounds.reduced(6.0f);
+        float lineThickness = 2.0f;
+
+        g.setColour(juce::Colours::white);
+
+        // Complete rectangle
+        g.drawRect(iconBounds, lineThickness);
+
+        // Dot in center
+        float dotRadius = 2.5f;
+        g.fillEllipse(iconBounds.getCentreX() - dotRadius,
+                      iconBounds.getCentreY() - dotRadius,
+                      dotRadius * 2, dotRadius * 2);
+    }
+};
+
+//==============================================================================
+// Custom Origin Preset Button - Center (3D cube with dot in center)
+class OriginCenterButton : public juce::Button
+{
+public:
+    OriginCenterButton() : juce::Button("Center") {}
+
+    void paintButton(juce::Graphics& g, bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown) override
+    {
+        auto bounds = getLocalBounds().toFloat().reduced(2.0f);
+
+        // Background
+        if (shouldDrawButtonAsDown)
+            g.setColour(juce::Colour(0xFF404040));
+        else if (shouldDrawButtonAsHighlighted)
+            g.setColour(juce::Colour(0xFF353535));
+        else
+            g.setColour(juce::Colour(0xFF2A2A2A));
+
+        g.fillRoundedRectangle(bounds, 4.0f);
+        g.setColour(juce::Colour(0xFF606060));
+        g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
+
+        // Draw icon - 3D cube with dot in center
+        auto iconBounds = bounds.reduced(6.0f);
+        float lineThickness = 2.0f;
+        float depth = iconBounds.getWidth() * 0.3f;  // Depth offset for 3D effect
+
+        g.setColour(juce::Colours::white);
+
+        // Front face (rectangle) - positioned at bottom-left
+        auto frontFace = juce::Rectangle<float>(
+            iconBounds.getX(),
+            iconBounds.getY() + depth,
+            iconBounds.getWidth() - depth,
+            iconBounds.getHeight() - depth
+        );
+        g.drawRect(frontFace, lineThickness);
+
+        // Back top-right corner position
+        float backRight = iconBounds.getRight();
+        float backTop = iconBounds.getY();
+
+        // Top edge of back face
+        g.drawLine(frontFace.getX() + depth, backTop, backRight, backTop, lineThickness);
+        // Right edge of back face
+        g.drawLine(backRight, backTop, backRight, frontFace.getBottom() - depth, lineThickness);
+
+        // Connecting lines (front to back)
+        g.drawLine(frontFace.getX(), frontFace.getY(), frontFace.getX() + depth, backTop, lineThickness);
+        g.drawLine(frontFace.getRight(), frontFace.getY(), backRight, backTop, lineThickness);
+        g.drawLine(frontFace.getRight(), frontFace.getBottom(), backRight, frontFace.getBottom() - depth, lineThickness);
+
+        // Dot in center of cube (visual center)
+        float dotRadius = 2.5f;
+        float dotX = frontFace.getCentreX() + depth * 0.5f;
+        float dotY = frontFace.getCentreY() - depth * 0.5f;
+        g.fillEllipse(dotX - dotRadius, dotY - dotRadius, dotRadius * 2, dotRadius * 2);
+    }
+};
+
 /**
  * System Configuration Tab Component
  * Contains all system-level configuration:
@@ -134,17 +293,14 @@ public:
         stageOriginHeightUnitLabel.setText("m", juce::dontSendNotification);
         stageOriginHeightUnitLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
-        // Origin preset buttons
+        // Origin preset buttons (custom drawn icons)
         addAndMakeVisible(originFrontButton);
-        originFrontButton.setButtonText("Front");
         originFrontButton.onClick = [this]() { setOriginToFront(); };
 
         addAndMakeVisible(originCenterGroundButton);
-        originCenterGroundButton.setButtonText("Center Ground");
         originCenterGroundButton.onClick = [this]() { setOriginToCenterGround(); };
 
         addAndMakeVisible(originCenterButton);
-        originCenterButton.setButtonText("Center");
         originCenterButton.onClick = [this]() { setOriginToCenter(); };
 
         addAndMakeVisible(speedOfSoundLabel);
@@ -187,23 +343,6 @@ public:
         addAndMakeVisible(haasEffectUnitLabel);
         haasEffectUnitLabel.setText("ms", juce::dontSendNotification);
         haasEffectUnitLabel.setColour(juce::Label::textColourId, juce::Colours::white);
-
-        // Network Section
-        addAndMakeVisible(currentIPLabel);
-        currentIPLabel.setText("Current IPv4:", juce::dontSendNotification);
-        currentIPLabel.setColour(juce::Label::textColourId, juce::Colours::white);
-        addAndMakeVisible(currentIPEditor);
-        currentIPEditor.setReadOnly(true);
-
-        addAndMakeVisible(udpPortLabel);
-        udpPortLabel.setText("UDP Port:", juce::dontSendNotification);
-        udpPortLabel.setColour(juce::Label::textColourId, juce::Colours::white);
-        addAndMakeVisible(udpPortEditor);
-
-        addAndMakeVisible(tcpPortLabel);
-        tcpPortLabel.setText("TCP Port:", juce::dontSendNotification);
-        tcpPortLabel.setColour(juce::Label::textColourId, juce::Colours::white);
-        addAndMakeVisible(tcpPortEditor);
 
         // Store/Reload Section
         addAndMakeVisible(selectProjectFolderButton);
@@ -262,8 +401,6 @@ public:
         masterLevelEditor.addListener(this);
         systemLatencyEditor.addListener(this);
         haasEffectEditor.addListener(this);
-        udpPortEditor.addListener(this);
-        tcpPortEditor.addListener(this);
 
         // Listen to parameter changes
         parameters.getConfigTree().addListener(this);
@@ -287,9 +424,8 @@ public:
         g.drawText("Show", 20, 10, 200, 20, juce::Justification::left);
         g.drawText("I/O", 20, 110, 200, 20, juce::Justification::left);
         g.drawText("Stage", 500, 10, 200, 20, juce::Justification::left);
-        g.drawText("Master Section", 500, 310, 200, 20, juce::Justification::left);
-        g.drawText("Network", 20, 310, 200, 20, juce::Justification::left);
-        g.drawText("Store/Reload", 20, 480, 200, 20, juce::Justification::left);
+        g.drawText("Master Section", 500, 390, 200, 20, juce::Justification::left);
+        g.drawText("Store/Reload", 20, 340, 200, 20, juce::Justification::left);
     }
 
     void resized() override
@@ -335,20 +471,6 @@ public:
 
         processingButton.setBounds(x, y, editorWidth + labelWidth, rowHeight);
 
-        // Network Section
-        x = 20;
-        y = 340;
-        currentIPLabel.setBounds(x, y, labelWidth, rowHeight);
-        currentIPEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
-        y += rowHeight + spacing;
-
-        udpPortLabel.setBounds(x, y, labelWidth, rowHeight);
-        udpPortEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
-        y += rowHeight + spacing;
-
-        tcpPortLabel.setBounds(x, y, labelWidth, rowHeight);
-        tcpPortEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
-
         // Stage Section
         x = 500;
         y = 40;
@@ -368,26 +490,26 @@ public:
         stageHeightUnitLabel.setBounds(x + labelWidth + editorWidth + spacing, y, unitWidth, rowHeight);
         y += rowHeight + spacing;
 
+        // Origin coordinates with preset buttons to the right of each row
+        const int originButtonSize = 30;  // Square buttons sized to match row height
+        int buttonX = x + labelWidth + editorWidth + spacing + unitWidth + spacing;
+
         stageOriginWidthLabel.setBounds(x, y, labelWidth, rowHeight);
         stageOriginWidthEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
         stageOriginWidthUnitLabel.setBounds(x + labelWidth + editorWidth + spacing, y, unitWidth, rowHeight);
+        originFrontButton.setBounds(buttonX, y, originButtonSize, rowHeight);
         y += rowHeight + spacing;
 
         stageOriginDepthLabel.setBounds(x, y, labelWidth, rowHeight);
         stageOriginDepthEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
         stageOriginDepthUnitLabel.setBounds(x + labelWidth + editorWidth + spacing, y, unitWidth, rowHeight);
+        originCenterGroundButton.setBounds(buttonX, y, originButtonSize, rowHeight);
         y += rowHeight + spacing;
 
         stageOriginHeightLabel.setBounds(x, y, labelWidth, rowHeight);
         stageOriginHeightEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
         stageOriginHeightUnitLabel.setBounds(x + labelWidth + editorWidth + spacing, y, unitWidth, rowHeight);
-        y += rowHeight + spacing;
-
-        // Origin preset buttons in a row
-        const int originButtonWidth = 100;
-        originFrontButton.setBounds(x, y, originButtonWidth, rowHeight);
-        originCenterGroundButton.setBounds(x + originButtonWidth + spacing, y, originButtonWidth, rowHeight);
-        originCenterButton.setBounds(x + 2 * (originButtonWidth + spacing), y, originButtonWidth, rowHeight);
+        originCenterButton.setBounds(buttonX, y, originButtonSize, rowHeight);
         y += rowHeight + spacing;
 
         speedOfSoundLabel.setBounds(x, y, labelWidth, rowHeight);
@@ -401,7 +523,7 @@ public:
 
         // Master Section
         x = 500;
-        y = 340;
+        y = 420;
 
         masterLevelLabel.setBounds(x, y, labelWidth, rowHeight);
         masterLevelEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
@@ -417,9 +539,9 @@ public:
         haasEffectEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
         haasEffectUnitLabel.setBounds(x + labelWidth + editorWidth + spacing, y, unitWidth, rowHeight);
 
-        // Store/Reload Section
+        // Store/Reload Section - Project folder and Complete config buttons
         x = 20;
-        y = 510;
+        y = 370;
         const int buttonWidth = 250;
 
         selectProjectFolderButton.setBounds(x, y, buttonWidth, rowHeight);
@@ -433,23 +555,25 @@ public:
 
         reloadCompleteConfigBackupButton.setBounds(x, y, buttonWidth, rowHeight);
 
-        // Second column of Store/Reload buttons
-        x = 290;
-        y = 510;
+        // System config buttons in a row at the bottom (above status bar)
+        const int sysButtonWidth = 180;
+        const int bottomMargin = 10;
+        y = getHeight() - rowHeight - bottomMargin;
+        x = 20;
 
-        storeSystemConfigButton.setBounds(x, y, buttonWidth, rowHeight);
-        y += rowHeight + spacing;
+        storeSystemConfigButton.setBounds(x, y, sysButtonWidth, rowHeight);
+        x += sysButtonWidth + spacing;
 
-        reloadSystemConfigButton.setBounds(x, y, buttonWidth, rowHeight);
-        y += rowHeight + spacing;
+        reloadSystemConfigButton.setBounds(x, y, sysButtonWidth, rowHeight);
+        x += sysButtonWidth + spacing;
 
-        reloadSystemConfigBackupButton.setBounds(x, y, buttonWidth, rowHeight);
-        y += rowHeight + spacing;
+        reloadSystemConfigBackupButton.setBounds(x, y, sysButtonWidth, rowHeight);
+        x += sysButtonWidth + spacing;
 
-        importSystemConfigButton.setBounds(x, y, buttonWidth, rowHeight);
-        y += rowHeight + spacing;
+        importSystemConfigButton.setBounds(x, y, sysButtonWidth, rowHeight);
+        x += sysButtonWidth + spacing;
 
-        exportSystemConfigButton.setBounds(x, y, buttonWidth, rowHeight);
+        exportSystemConfigButton.setBounds(x, y, sysButtonWidth, rowHeight);
     }
 
     void setStatusBar(StatusBar* bar)
@@ -514,10 +638,6 @@ private:
         setupNumericEditor(inputChannelsEditor, false, false);
         setupNumericEditor(outputChannelsEditor, false, false);
         setupNumericEditor(reverbChannelsEditor, false, false);
-
-        // Network Section - integers only
-        setupNumericEditor(udpPortEditor, false, false);
-        setupNumericEditor(tcpPortEditor, false, false);
     }
 
     //==============================================================================
@@ -569,10 +689,6 @@ private:
             editor.setText(juce::String((float)parameters.getConfigParam("SystemLatency"), 2), false);
         else if (&editor == &haasEffectEditor)
             editor.setText(juce::String((float)parameters.getConfigParam("HaasEffect"), 2), false);
-        else if (&editor == &udpPortEditor)
-            editor.setText(parameters.getConfigParam("UdpPort").toString(), false);
-        else if (&editor == &tcpPortEditor)
-            editor.setText(parameters.getConfigParam("TcpPort").toString(), false);
 
         editor.giveAwayKeyboardFocus();
     }
@@ -617,11 +733,6 @@ private:
         systemLatencyEditor.setText(juce::String((float)parameters.getConfigParam("SystemLatency"), 2), false);
         haasEffectEditor.setText(juce::String((float)parameters.getConfigParam("HaasEffect"), 2), false);
 
-        // IP and ports
-        currentIPEditor.setText(parameters.getConfigParam("CurrentIPv4").toString(), false);
-        udpPortEditor.setText(parameters.getConfigParam("UdpPort").toString(), false);
-        tcpPortEditor.setText(parameters.getConfigParam("TcpPort").toString(), false);
-
         // Algorithm selector
         int algorithmId = (int)parameters.getConfigParam("ProcessingAlgorithm");
         if (algorithmId >= 1 && algorithmId <= 2)  // Valid range for current algorithms
@@ -630,6 +741,9 @@ private:
         // Processing button state
         processingEnabled = (bool)parameters.getConfigParam("ProcessingEnabled");
         processingButton.setButtonText(processingEnabled ? "Processing: ON" : "Processing: OFF");
+
+        // Update I/O controls enabled state based on processing state
+        updateIOControlsEnabledState();
     }
 
     void updateParameterFromEditor(juce::TextEditor& editor)
@@ -677,24 +791,41 @@ private:
         else if (&editor == &stageOriginHeightEditor)
             parameters.setConfigParam("StageOriginHeight", text.getFloatValue());
         else if (&editor == &speedOfSoundEditor)
-            parameters.setConfigParam("SpeedOfSound", text.getFloatValue());
+        {
+            float speedOfSound = text.getFloatValue();
+            parameters.setConfigParam("SpeedOfSound", speedOfSound);
+            // Calculate and update temperature: T = (c - 331.3) / 0.606
+            float temperature = (speedOfSound - 331.3f) / 0.606f;
+            temperature = juce::jlimit(-20.0f, 60.0f, temperature);
+            parameters.setConfigParam("Temperature", temperature);
+        }
         else if (&editor == &temperatureEditor)
-            parameters.setConfigParam("Temperature", text.getFloatValue());
+        {
+            float temperature = text.getFloatValue();
+            parameters.setConfigParam("Temperature", temperature);
+            // Calculate and update speed of sound: c = 331.3 + 0.606 * T
+            float speedOfSound = 331.3f + 0.606f * temperature;
+            speedOfSound = juce::jlimit(319.2f, 367.7f, speedOfSound);
+            parameters.setConfigParam("SpeedOfSound", speedOfSound);
+        }
         else if (&editor == &masterLevelEditor)
             parameters.setConfigParam("MasterLevel", text.getFloatValue());
         else if (&editor == &systemLatencyEditor)
             parameters.setConfigParam("SystemLatency", text.getFloatValue());
         else if (&editor == &haasEffectEditor)
             parameters.setConfigParam("HaasEffect", text.getFloatValue());
-        else if (&editor == &udpPortEditor)
-            parameters.setConfigParam("UdpPort", text.getIntValue());
-        else if (&editor == &tcpPortEditor)
-            parameters.setConfigParam("TcpPort", text.getIntValue());
     }
 
     void validateAndClampValue(juce::TextEditor& editor)
     {
         auto text = editor.getText();
+
+        // String fields - just update parameter, no validation needed
+        if (&editor == &showNameEditor || &editor == &showLocationEditor)
+        {
+            updateParameterFromEditor(editor);
+            return;
+        }
 
         // If empty, restore default
         if (text.isEmpty())
@@ -732,8 +863,7 @@ private:
 
         // Update display with clamped value (2 decimal places for floats)
         if (&editor == &inputChannelsEditor || &editor == &outputChannelsEditor ||
-            &editor == &reverbChannelsEditor || &editor == &udpPortEditor ||
-            &editor == &tcpPortEditor)
+            &editor == &reverbChannelsEditor)
         {
             editor.setText(juce::String((int)value), false);
         }
@@ -755,9 +885,32 @@ private:
         processingButton.setButtonText(processingEnabled ? "Processing: ON" : "Processing: OFF");
         parameters.setConfigParam("ProcessingEnabled", processingEnabled);
 
+        // Lock/unlock I/O controls based on processing state
+        updateIOControlsEnabledState();
+
         // Notify MainComponent of processing state change
         if (onProcessingChanged)
             onProcessingChanged(processingEnabled);
+    }
+
+    void updateIOControlsEnabledState()
+    {
+        // When processing is ON, disable I/O controls to prevent changes
+        bool enabled = !processingEnabled;
+
+        inputChannelsEditor.setEnabled(enabled);
+        outputChannelsEditor.setEnabled(enabled);
+        reverbChannelsEditor.setEnabled(enabled);
+        audioPatchingButton.setEnabled(enabled);
+        algorithmSelector.setEnabled(enabled);
+
+        // Visual feedback - dim disabled controls
+        auto disabledColour = juce::Colour(0xFF808080);
+        auto enabledColour = juce::Colours::white;
+
+        inputChannelsEditor.setColour(juce::TextEditor::textColourId, enabled ? enabledColour : disabledColour);
+        outputChannelsEditor.setColour(juce::TextEditor::textColourId, enabled ? enabledColour : disabledColour);
+        reverbChannelsEditor.setColour(juce::TextEditor::textColourId, enabled ? enabledColour : disabledColour);
     }
 
     //==============================================================================
@@ -1042,16 +1195,13 @@ private:
         helpTextMap[&stageOriginDepthEditor] = "Origin of the stage in Depth (set by default to 0).";
         helpTextMap[&stageOriginHeightEditor] = "Origin of the stage in Height (set by default to 0).";
         helpTextMap[&originFrontButton] = "Set origin to front center of stage (X=width/2, Y=0, Z=0). Typical for frontal stages.";
-        helpTextMap[&originCenterGroundButton] = "Set origin to center of stage at ground level (X=width/2, Y=depth/2, Z=0).";
-        helpTextMap[&originCenterButton] = "Set origin to center of stage (X=width/2, Y=depth/2, Z=height/2).";
+        helpTextMap[&originCenterGroundButton] = "Set origin to center of stage at ground level (X=width/2, Y=depth/2, Z=0). Typical for a Surround or Central Cylindrical Setup.";
+        helpTextMap[&originCenterButton] = "Set origin to center of stage (X=width/2, Y=depth/2, Z=height/2). Typical for a Spherical Dome Setup.";
         helpTextMap[&speedOfSoundEditor] = "Speed of Sound (related to the temperature).";
         helpTextMap[&temperatureEditor] = "Temperature (gives the Speed of Sound).";
         helpTextMap[&masterLevelEditor] = "Master Level (affects all outputs).";
         helpTextMap[&systemLatencyEditor] = "Total latency of the system (Mixing board & Computer) / Specific Input and Output Latency/Delay can be set in the respective Input and Output settings.";
         helpTextMap[&haasEffectEditor] = "Hass Effect to apply to the system. Will take into account the Latency Compensations (System, Input and Output).";
-        helpTextMap[&currentIPEditor] = "IP address of the Processor.";
-        helpTextMap[&udpPortEditor] = "UDP Recieve Port of the Processor.";
-        helpTextMap[&tcpPortEditor] = "TCP Recieve Port of the Processor.";
         helpTextMap[&selectProjectFolderButton] = "Select the Location of the Current Project Folder where to store files.";
         helpTextMap[&storeCompleteConfigButton] = "Store Complete Configuration to files (overwrite with confirmation)";
         helpTextMap[&reloadCompleteConfigButton] = "Reload Complete Configuration from files (with confirmation)";
@@ -1135,9 +1285,9 @@ private:
     juce::Label stageOriginHeightLabel;
     juce::TextEditor stageOriginHeightEditor;
     juce::Label stageOriginHeightUnitLabel;
-    juce::TextButton originFrontButton;
-    juce::TextButton originCenterGroundButton;
-    juce::TextButton originCenterButton;
+    OriginFrontButton originFrontButton;
+    OriginCenterGroundButton originCenterGroundButton;
+    OriginCenterButton originCenterButton;
     juce::Label speedOfSoundLabel;
     juce::TextEditor speedOfSoundEditor;
     juce::Label speedOfSoundUnitLabel;
@@ -1155,14 +1305,6 @@ private:
     juce::Label haasEffectLabel;
     juce::TextEditor haasEffectEditor;
     juce::Label haasEffectUnitLabel;
-
-    // Network Section
-    juce::Label currentIPLabel;
-    juce::TextEditor currentIPEditor;
-    juce::Label udpPortLabel;
-    juce::TextEditor udpPortEditor;
-    juce::Label tcpPortLabel;
-    juce::TextEditor tcpPortEditor;
 
     // Store/Reload Section
     juce::TextButton selectProjectFolderButton;
