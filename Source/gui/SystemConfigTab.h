@@ -134,6 +134,19 @@ public:
         stageOriginHeightUnitLabel.setText("m", juce::dontSendNotification);
         stageOriginHeightUnitLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
+        // Origin preset buttons
+        addAndMakeVisible(originFrontButton);
+        originFrontButton.setButtonText("Front");
+        originFrontButton.onClick = [this]() { setOriginToFront(); };
+
+        addAndMakeVisible(originCenterGroundButton);
+        originCenterGroundButton.setButtonText("Center Ground");
+        originCenterGroundButton.onClick = [this]() { setOriginToCenterGround(); };
+
+        addAndMakeVisible(originCenterButton);
+        originCenterButton.setButtonText("Center");
+        originCenterButton.onClick = [this]() { setOriginToCenter(); };
+
         addAndMakeVisible(speedOfSoundLabel);
         speedOfSoundLabel.setText("Speed of Sound:", juce::dontSendNotification);
         speedOfSoundLabel.setColour(juce::Label::textColourId, juce::Colours::white);
@@ -368,6 +381,13 @@ public:
         stageOriginHeightLabel.setBounds(x, y, labelWidth, rowHeight);
         stageOriginHeightEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
         stageOriginHeightUnitLabel.setBounds(x + labelWidth + editorWidth + spacing, y, unitWidth, rowHeight);
+        y += rowHeight + spacing;
+
+        // Origin preset buttons in a row
+        const int originButtonWidth = 100;
+        originFrontButton.setBounds(x, y, originButtonWidth, rowHeight);
+        originCenterGroundButton.setBounds(x + originButtonWidth + spacing, y, originButtonWidth, rowHeight);
+        originCenterButton.setBounds(x + 2 * (originButtonWidth + spacing), y, originButtonWidth, rowHeight);
         y += rowHeight + spacing;
 
         speedOfSoundLabel.setBounds(x, y, labelWidth, rowHeight);
@@ -741,6 +761,39 @@ private:
     }
 
     //==============================================================================
+    // Origin preset methods
+
+    void setOriginToFront()
+    {
+        // Front of stage: X = half width, Y = 0, Z = 0
+        float stageWidth = (float)parameters.getConfigParam("StageWidth");
+        parameters.setConfigParam("StageOriginWidth", stageWidth * 0.5f);
+        parameters.setConfigParam("StageOriginDepth", 0.0f);
+        parameters.setConfigParam("StageOriginHeight", 0.0f);
+    }
+
+    void setOriginToCenterGround()
+    {
+        // Center at ground level: X = half width, Y = half depth, Z = 0
+        float stageWidth = (float)parameters.getConfigParam("StageWidth");
+        float stageDepth = (float)parameters.getConfigParam("StageDepth");
+        parameters.setConfigParam("StageOriginWidth", stageWidth * 0.5f);
+        parameters.setConfigParam("StageOriginDepth", stageDepth * 0.5f);
+        parameters.setConfigParam("StageOriginHeight", 0.0f);
+    }
+
+    void setOriginToCenter()
+    {
+        // Center of stage: X = half width, Y = half depth, Z = half height
+        float stageWidth = (float)parameters.getConfigParam("StageWidth");
+        float stageDepth = (float)parameters.getConfigParam("StageDepth");
+        float stageHeight = (float)parameters.getConfigParam("StageHeight");
+        parameters.setConfigParam("StageOriginWidth", stageWidth * 0.5f);
+        parameters.setConfigParam("StageOriginDepth", stageDepth * 0.5f);
+        parameters.setConfigParam("StageOriginHeight", stageHeight * 0.5f);
+    }
+
+    //==============================================================================
     // Store/Reload methods
 
     void selectProjectFolder()
@@ -988,6 +1041,9 @@ private:
         helpTextMap[&stageOriginWidthEditor] = "Origin of the stage in Width (set by default to half of the stage width).";
         helpTextMap[&stageOriginDepthEditor] = "Origin of the stage in Depth (set by default to 0).";
         helpTextMap[&stageOriginHeightEditor] = "Origin of the stage in Height (set by default to 0).";
+        helpTextMap[&originFrontButton] = "Set origin to front center of stage (X=width/2, Y=0, Z=0). Typical for frontal stages.";
+        helpTextMap[&originCenterGroundButton] = "Set origin to center of stage at ground level (X=width/2, Y=depth/2, Z=0).";
+        helpTextMap[&originCenterButton] = "Set origin to center of stage (X=width/2, Y=depth/2, Z=height/2).";
         helpTextMap[&speedOfSoundEditor] = "Speed of Sound (related to the temperature).";
         helpTextMap[&temperatureEditor] = "Temperature (gives the Speed of Sound).";
         helpTextMap[&masterLevelEditor] = "Master Level (affects all outputs).";
@@ -1079,6 +1135,9 @@ private:
     juce::Label stageOriginHeightLabel;
     juce::TextEditor stageOriginHeightEditor;
     juce::Label stageOriginHeightUnitLabel;
+    juce::TextButton originFrontButton;
+    juce::TextButton originCenterGroundButton;
+    juce::TextButton originCenterButton;
     juce::Label speedOfSoundLabel;
     juce::TextEditor speedOfSoundEditor;
     juce::Label speedOfSoundUnitLabel;
