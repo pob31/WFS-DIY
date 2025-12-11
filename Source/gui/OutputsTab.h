@@ -18,7 +18,8 @@
  */
 class OutputsTab : public juce::Component,
                    private juce::TextEditor::Listener,
-                   private juce::ChangeListener
+                   private juce::ChangeListener,
+                   private juce::Label::Listener
 {
 public:
     OutputsTab(WfsParameters& params)
@@ -65,7 +66,7 @@ public:
         addAndMakeVisible(subTabBar);
         subTabBar.addTab("Output Properties", juce::Colour(0xFF2A2A2A), -1);
         subTabBar.addTab("Position", juce::Colour(0xFF2A2A2A), -1);
-        // EQ tab will be added later
+        subTabBar.addTab("EQ", juce::Colour(0xFF2A2A2A), -1);
         subTabBar.setCurrentTabIndex(0);
         subTabBar.addChangeListener(static_cast<juce::ChangeListener*>(this));
 
@@ -74,6 +75,9 @@ public:
 
         // ==================== POSITION SUB-TAB ====================
         setupPositionTab();
+
+        // ==================== EQ SUB-TAB ====================
+        setupEqTab();
 
         // ==================== FOOTER - STORE/RELOAD BUTTONS ====================
         addAndMakeVisible(storeButton);
@@ -207,6 +211,7 @@ private:
         addAndMakeVisible(attenuationValueLabel);
         attenuationValueLabel.setText("0.0 dB", juce::dontSendNotification);
         attenuationValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        setupEditableValueLabel(attenuationValueLabel);
 
         // Delay/Latency slider (-100 to 100 ms)
         addAndMakeVisible(delayLatencyLabel);
@@ -225,6 +230,7 @@ private:
         addAndMakeVisible(delayLatencyValueLabel);
         delayLatencyValueLabel.setText("Delay: 0.0 ms", juce::dontSendNotification);
         delayLatencyValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        setupEditableValueLabel(delayLatencyValueLabel);
 
         // Min Latency Enable button
         addAndMakeVisible(minLatencyEnableButton);
@@ -263,6 +269,7 @@ private:
         addAndMakeVisible(distanceAttenValueLabel);
         distanceAttenValueLabel.setText("100 %", juce::dontSendNotification);
         distanceAttenValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        setupEditableValueLabel(distanceAttenValueLabel);
 
         // Horizontal Parallax
         addAndMakeVisible(hParallaxLabel);
@@ -335,6 +342,7 @@ private:
         orientationValueLabel.setText(juce::String::fromUTF8("0°"), juce::dontSendNotification);
         orientationValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         orientationValueLabel.setJustificationType(juce::Justification::centred);
+        setupEditableValueLabel(orientationValueLabel);
 
         // Angle On slider (1-180°)
         addAndMakeVisible(angleOnLabel);
@@ -351,6 +359,7 @@ private:
         addAndMakeVisible(angleOnValueLabel);
         angleOnValueLabel.setText(juce::String::fromUTF8("86°"), juce::dontSendNotification);
         angleOnValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        setupEditableValueLabel(angleOnValueLabel);
 
         // Angle Off slider (0-179°)
         addAndMakeVisible(angleOffLabel);
@@ -367,6 +376,7 @@ private:
         addAndMakeVisible(angleOffValueLabel);
         angleOffValueLabel.setText(juce::String::fromUTF8("90°"), juce::dontSendNotification);
         angleOffValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        setupEditableValueLabel(angleOffValueLabel);
 
         // Pitch slider (-90 to 90°)
         addAndMakeVisible(pitchLabel);
@@ -383,6 +393,7 @@ private:
         addAndMakeVisible(pitchValueLabel);
         pitchValueLabel.setText(juce::String::fromUTF8("0°"), juce::dontSendNotification);
         pitchValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        setupEditableValueLabel(pitchValueLabel);
 
         // HF Damping slider (-6 to 0 dB/m)
         addAndMakeVisible(hfDampingLabel);
@@ -399,11 +410,122 @@ private:
         addAndMakeVisible(hfDampingValueLabel);
         hfDampingValueLabel.setText("0.0 dB/m", juce::dontSendNotification);
         hfDampingValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        setupEditableValueLabel(hfDampingValueLabel);
 
         // Array Position Helper button
         addAndMakeVisible(arrayPositionHelperButton);
         arrayPositionHelperButton.setButtonText("Array Position Helper...");
         arrayPositionHelperButton.onClick = [this]() { openArrayPositionHelper(); };
+    }
+
+    void setupEqTab()
+    {
+        // Global EQ Enable button
+        addAndMakeVisible(eqEnableButton);
+        eqEnableButton.setButtonText("EQ ON");
+        eqEnableButton.setClickingTogglesState(true);
+        eqEnableButton.setToggleState(true, juce::dontSendNotification);
+        eqEnableButton.onClick = [this]() {
+            bool enabled = eqEnableButton.getToggleState();
+            eqEnableButton.setButtonText(enabled ? "EQ ON" : "EQ OFF");
+            // Update all band appearances when global EQ state changes
+            for (int i = 0; i < numEqBands; ++i)
+                updateEqBandAppearance(i);
+        };
+
+        // Default frequencies for 6 bands: 80, 200, 500, 1500, 4000, 10000 Hz
+        int defaultFreq[] = { 80, 200, 500, 1500, 4000, 10000 };
+
+        // 6 EQ Bands
+        for (int i = 0; i < numEqBands; ++i)
+        {
+            // Band label
+            addAndMakeVisible(eqBandLabel[i]);
+            eqBandLabel[i].setText("Band " + juce::String(i + 1), juce::dontSendNotification);
+            eqBandLabel[i].setColour(juce::Label::textColourId, juce::Colours::white);
+            eqBandLabel[i].setJustificationType(juce::Justification::centred);
+
+            // Shape dropdown
+            addAndMakeVisible(eqBandShapeSelector[i]);
+            eqBandShapeSelector[i].addItem("OFF", 1);
+            eqBandShapeSelector[i].addItem("Low Cut", 2);
+            eqBandShapeSelector[i].addItem("Low Shelf", 3);
+            eqBandShapeSelector[i].addItem("Peak/Notch", 4);
+            eqBandShapeSelector[i].addItem("Band Pass", 5);
+            eqBandShapeSelector[i].addItem("High Shelf", 6);
+            eqBandShapeSelector[i].addItem("High Cut", 7);
+            eqBandShapeSelector[i].setSelectedId(1, juce::dontSendNotification);  // OFF by default
+
+            // Shape change handler - update Q/Slope label and grey out when OFF
+            eqBandShapeSelector[i].onChange = [this, i]() {
+                updateEqBandAppearance(i);
+            };
+
+            // Frequency
+            addAndMakeVisible(eqBandFreqLabel[i]);
+            eqBandFreqLabel[i].setText("Freq:", juce::dontSendNotification);
+            eqBandFreqLabel[i].setColour(juce::Label::textColourId, juce::Colours::white);
+            addAndMakeVisible(eqBandFreqEditor[i]);
+            eqBandFreqEditor[i].setText(juce::String(defaultFreq[i]), juce::dontSendNotification);
+            setupNumericEditor(eqBandFreqEditor[i], false, false);
+            addAndMakeVisible(eqBandFreqUnitLabel[i]);
+            eqBandFreqUnitLabel[i].setText("Hz", juce::dontSendNotification);
+            eqBandFreqUnitLabel[i].setColour(juce::Label::textColourId, juce::Colours::white);
+
+            // Gain
+            addAndMakeVisible(eqBandGainLabel[i]);
+            eqBandGainLabel[i].setText("Gain:", juce::dontSendNotification);
+            eqBandGainLabel[i].setColour(juce::Label::textColourId, juce::Colours::white);
+            addAndMakeVisible(eqBandGainEditor[i]);
+            eqBandGainEditor[i].setText("0.0", juce::dontSendNotification);
+            setupNumericEditor(eqBandGainEditor[i], true, true);
+            addAndMakeVisible(eqBandGainUnitLabel[i]);
+            eqBandGainUnitLabel[i].setText("dB", juce::dontSendNotification);
+            eqBandGainUnitLabel[i].setColour(juce::Label::textColourId, juce::Colours::white);
+
+            // Q/Slope (combined field - label changes based on shape)
+            addAndMakeVisible(eqBandQSlopeLabel[i]);
+            eqBandQSlopeLabel[i].setText("Slope:", juce::dontSendNotification);  // Default for OFF
+            eqBandQSlopeLabel[i].setColour(juce::Label::textColourId, juce::Colours::white);
+            addAndMakeVisible(eqBandQSlopeEditor[i]);
+            eqBandQSlopeEditor[i].setText("0.7", juce::dontSendNotification);
+            setupNumericEditor(eqBandQSlopeEditor[i], false, true);
+
+            // Initialize appearance (greyed out since default is OFF)
+            updateEqBandAppearance(i);
+        }
+    }
+
+    void updateEqBandAppearance(int bandIndex)
+    {
+        bool eqEnabled = eqEnableButton.getToggleState();
+        int shapeId = eqBandShapeSelector[bandIndex].getSelectedId();
+        bool bandIsOff = (shapeId == 1);  // OFF
+
+        // Update Q/Slope label based on shape type
+        // Peak/Notch (4) and Band Pass (5) use Q, others use Slope
+        bool usesQ = (shapeId == 4 || shapeId == 5);
+        eqBandQSlopeLabel[bandIndex].setText(usesQ ? "Q:" : "Slope:", juce::dontSendNotification);
+
+        // Grey out entire band if global EQ is off
+        // Grey out band parameters (except shape) if band is off but EQ is on
+        float bandLabelAlpha = eqEnabled ? 1.0f : 0.4f;
+        float shapeAlpha = eqEnabled ? 1.0f : 0.4f;
+        float paramAlpha = (eqEnabled && !bandIsOff) ? 1.0f : 0.4f;
+
+        // Band label and shape dropdown follow global EQ state
+        eqBandLabel[bandIndex].setAlpha(bandLabelAlpha);
+        eqBandShapeSelector[bandIndex].setAlpha(shapeAlpha);
+
+        // Parameters follow both global EQ and band off state
+        eqBandFreqLabel[bandIndex].setAlpha(paramAlpha);
+        eqBandFreqEditor[bandIndex].setAlpha(paramAlpha);
+        eqBandFreqUnitLabel[bandIndex].setAlpha(paramAlpha);
+        eqBandGainLabel[bandIndex].setAlpha(paramAlpha);
+        eqBandGainEditor[bandIndex].setAlpha(paramAlpha);
+        eqBandGainUnitLabel[bandIndex].setAlpha(paramAlpha);
+        eqBandQSlopeLabel[bandIndex].setAlpha(paramAlpha);
+        eqBandQSlopeEditor[bandIndex].setAlpha(paramAlpha);
     }
 
     void setupNumericEditor(juce::TextEditor& editor, bool allowNegative, bool allowDecimal)
@@ -416,6 +538,12 @@ private:
         editor.addListener(this);
     }
 
+    void setupEditableValueLabel(juce::Label& label)
+    {
+        label.setEditable(true, false);  // Single click to edit
+        label.addListener(this);
+    }
+
     // ==================== LAYOUT METHODS ====================
 
     void layoutCurrentSubTab()
@@ -425,6 +553,7 @@ private:
         // Hide all components first
         setOutputPropertiesVisible(false);
         setPositionVisible(false);
+        setEqVisible(false);
 
         // Show and layout current tab
         if (tabIndex == 0)
@@ -436,6 +565,11 @@ private:
         {
             setPositionVisible(true);
             layoutPositionTab();
+        }
+        else if (tabIndex == 2)
+        {
+            setEqVisible(true);
+            layoutEqTab();
         }
     }
 
@@ -487,6 +621,27 @@ private:
         hfDampingSlider.setVisible(visible);
         hfDampingValueLabel.setVisible(visible);
         arrayPositionHelperButton.setVisible(visible);
+    }
+
+    void setEqVisible(bool visible)
+    {
+        // Global EQ Enable button
+        eqEnableButton.setVisible(visible);
+
+        // 6 EQ Bands
+        for (int i = 0; i < numEqBands; ++i)
+        {
+            eqBandLabel[i].setVisible(visible);
+            eqBandShapeSelector[i].setVisible(visible);
+            eqBandFreqLabel[i].setVisible(visible);
+            eqBandFreqEditor[i].setVisible(visible);
+            eqBandFreqUnitLabel[i].setVisible(visible);
+            eqBandGainLabel[i].setVisible(visible);
+            eqBandGainEditor[i].setVisible(visible);
+            eqBandGainUnitLabel[i].setVisible(visible);
+            eqBandQSlopeLabel[i].setVisible(visible);
+            eqBandQSlopeEditor[i].setVisible(visible);
+        }
     }
 
     void layoutOutputPropertiesTab()
@@ -626,6 +781,73 @@ private:
         orientationValueLabel.setBounds(rightCol.removeFromTop(rowHeight));
     }
 
+    void layoutEqTab()
+    {
+        auto area = subTabContentArea;
+        const int rowHeight = 25;
+        const int spacing = 6;
+        const int labelWidth = 45;
+        const int editorWidth = 55;
+        const int unitWidth = 25;
+        const int columnPadding = 8;
+
+        // EQ Enable button at the top
+        auto headerRow = area.removeFromTop(rowHeight);
+        eqEnableButton.setBounds(headerRow.removeFromLeft(100));
+        area.removeFromTop(spacing);
+
+        // Calculate column width for 6 bands
+        const int columnWidth = (area.getWidth() - columnPadding * (numEqBands + 1)) / numEqBands;
+
+        // Create array of column rectangles
+        juce::Rectangle<int> cols[numEqBands];
+        for (int i = 0; i < numEqBands; ++i)
+        {
+            cols[i] = area.removeFromLeft(columnWidth + columnPadding);
+            cols[i].removeFromLeft(columnPadding);
+        }
+
+        // Helper lambda to layout a parameter row with unit
+        auto layoutRowWithUnit = [&](juce::Rectangle<int>& col, juce::Label& label, juce::TextEditor& editor, juce::Label& unit) {
+            auto row = col.removeFromTop(rowHeight);
+            label.setBounds(row.removeFromLeft(labelWidth));
+            editor.setBounds(row.removeFromLeft(editorWidth));
+            unit.setBounds(row.removeFromLeft(unitWidth));
+            col.removeFromTop(spacing);
+        };
+
+        // Helper lambda to layout a parameter row without unit
+        auto layoutRowNoUnit = [&](juce::Rectangle<int>& col, juce::Label& label, juce::TextEditor& editor) {
+            auto row = col.removeFromTop(rowHeight);
+            label.setBounds(row.removeFromLeft(labelWidth));
+            editor.setBounds(row.removeFromLeft(editorWidth));
+            col.removeFromTop(spacing);
+        };
+
+        // Layout each band column
+        for (int i = 0; i < numEqBands; ++i)
+        {
+            auto& col = cols[i];
+
+            // Band label
+            eqBandLabel[i].setBounds(col.removeFromTop(rowHeight));
+            col.removeFromTop(spacing);
+
+            // Shape dropdown
+            eqBandShapeSelector[i].setBounds(col.removeFromTop(rowHeight));
+            col.removeFromTop(spacing);
+
+            // Frequency
+            layoutRowWithUnit(col, eqBandFreqLabel[i], eqBandFreqEditor[i], eqBandFreqUnitLabel[i]);
+
+            // Gain
+            layoutRowWithUnit(col, eqBandGainLabel[i], eqBandGainEditor[i], eqBandGainUnitLabel[i]);
+
+            // Q/Slope (combined field)
+            layoutRowNoUnit(col, eqBandQSlopeLabel[i], eqBandQSlopeEditor[i]);
+        }
+    }
+
     // ==================== PARAMETER MANAGEMENT ====================
 
     void loadChannelParameters(int channel)
@@ -669,6 +891,68 @@ private:
     void textEditorFocusLost(juce::TextEditor&) override
     {
         // TODO: Validate and save values
+    }
+
+    // ==================== LABEL LISTENER ====================
+
+    void labelTextChanged(juce::Label* label) override
+    {
+        juce::String text = label->getText();
+
+        // Parse numeric value from text (strips units like "dB", "°", "%", "ms", "dB/m")
+        float value = text.retainCharacters("-0123456789.").getFloatValue();
+
+        if (label == &attenuationValueLabel)
+        {
+            // Attenuation: -92 to 0 dB, need to convert to 0-1 slider value
+            // Using inverse of: dB = 20 * log10(10^(-92/20) + ((1 - 10^(-92/20)) * v^2))
+            float dB = juce::jlimit(-92.0f, 0.0f, value);
+            float minLinear = std::pow(10.0f, -92.0f / 20.0f);
+            float targetLinear = std::pow(10.0f, dB / 20.0f);
+            float v = std::sqrt((targetLinear - minLinear) / (1.0f - minLinear));
+            attenuationSlider.setValue(juce::jlimit(0.0f, 1.0f, v));
+        }
+        else if (label == &delayLatencyValueLabel)
+        {
+            // Delay/Latency: -100 to 100 ms, maps to slider -1 to 1
+            float ms = juce::jlimit(-100.0f, 100.0f, value);
+            delayLatencySlider.setValue(ms / 100.0f);
+        }
+        else if (label == &distanceAttenValueLabel)
+        {
+            // Distance Attenuation: 0% to 200%, slider -1 to 1
+            int percent = juce::jlimit(0, 200, static_cast<int>(value));
+            distanceAttenSlider.setValue((percent / 100.0f) - 1.0f);
+        }
+        else if (label == &orientationValueLabel)
+        {
+            // Orientation: -180 to 180 degrees (endless dial normalizes automatically)
+            orientationDial.setAngle(value);
+        }
+        else if (label == &angleOnValueLabel)
+        {
+            // Angle On: 1-180°, slider 0-1 maps to 1-180
+            int degrees = juce::jlimit(1, 180, static_cast<int>(value));
+            angleOnSlider.setValue((degrees - 1.0f) / 179.0f);
+        }
+        else if (label == &angleOffValueLabel)
+        {
+            // Angle Off: 0-179°, slider 0-1 maps to 0-179
+            int degrees = juce::jlimit(0, 179, static_cast<int>(value));
+            angleOffSlider.setValue(degrees / 179.0f);
+        }
+        else if (label == &pitchValueLabel)
+        {
+            // Pitch: -90 to 90°, slider -1 to 1
+            int degrees = juce::jlimit(-90, 90, static_cast<int>(value));
+            pitchSlider.setValue(degrees / 90.0f);
+        }
+        else if (label == &hfDampingValueLabel)
+        {
+            // HF Damping: -6 to 0 dB/m, slider 0-1 maps to -6 to 0
+            float dBm = juce::jlimit(-6.0f, 0.0f, value);
+            hfDampingSlider.setValue((dBm + 6.0f) / 6.0f);
+        }
     }
 
     // ==================== STORE/RELOAD METHODS ====================
@@ -869,6 +1153,24 @@ private:
     WfsStandardSlider hfDampingSlider;
     juce::Label hfDampingValueLabel;
     juce::TextButton arrayPositionHelperButton;
+
+    // EQ tab components
+    static constexpr int numEqBands = 6;
+
+    // Global EQ Enable
+    juce::TextButton eqEnableButton;
+
+    // 6 EQ Bands - each with Shape, Frequency, Gain, Q/Slope (combined)
+    juce::Label eqBandLabel[numEqBands];
+    juce::ComboBox eqBandShapeSelector[numEqBands];
+    juce::Label eqBandFreqLabel[numEqBands];
+    juce::TextEditor eqBandFreqEditor[numEqBands];
+    juce::Label eqBandFreqUnitLabel[numEqBands];
+    juce::Label eqBandGainLabel[numEqBands];
+    juce::TextEditor eqBandGainEditor[numEqBands];
+    juce::Label eqBandGainUnitLabel[numEqBands];
+    juce::Label eqBandQSlopeLabel[numEqBands];  // Shows "Q:" or "Slope:" based on shape
+    juce::TextEditor eqBandQSlopeEditor[numEqBands];
 
     // Footer buttons
     juce::TextButton storeButton;

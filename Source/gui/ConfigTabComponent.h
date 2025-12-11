@@ -68,8 +68,9 @@ public:
     void setStatusBar(StatusBar* bar)
     {
         statusBar = bar;
-        // Pass status bar to system config tab
+        // Pass status bar to tabs that support it
         systemConfigTab->setStatusBar(bar);
+        outputsTab->setStatusBar(bar);
     }
 
     void setProcessingCallback(SystemConfigTab::ProcessingCallback callback)

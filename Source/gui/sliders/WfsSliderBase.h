@@ -65,6 +65,9 @@ public:
         repaint();
     }
 
+    // Public callback for value changes
+    std::function<void(float)> onValueChanged;
+
     void setThumbColour(juce::Colour newThumbColour) noexcept
     {
         thumbColour = newThumbColour;
@@ -121,7 +124,11 @@ protected:
     }
 
     virtual void paintSlider(juce::Graphics& g, juce::Rectangle<float> bounds) = 0;
-    virtual void valueChanged() {}
+    virtual void valueChanged()
+    {
+        if (onValueChanged)
+            onValueChanged(value);
+    }
 
     virtual float valueFromNormalized(float normalizedPos) const
     {

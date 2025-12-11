@@ -18,7 +18,8 @@
  */
 class InputsTab : public juce::Component,
                   private juce::TextEditor::Listener,
-                  private juce::ChangeListener
+                  private juce::ChangeListener,
+                  private juce::Label::Listener
 {
 public:
     InputsTab(WfsParameters& params)
@@ -242,6 +243,7 @@ private:
         addAndMakeVisible(attenuationValueLabel);
         attenuationValueLabel.setText("0.0 dB", juce::dontSendNotification);
         attenuationValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        setupEditableValueLabel(attenuationValueLabel);
 
         // Delay/Latency slider (-100 to 100 ms)
         addAndMakeVisible(delayLatencyLabel);
@@ -260,6 +262,7 @@ private:
         addAndMakeVisible(delayLatencyValueLabel);
         delayLatencyValueLabel.setText("Delay: 0.0 ms", juce::dontSendNotification);
         delayLatencyValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        setupEditableValueLabel(delayLatencyValueLabel);
 
         // Minimal Latency button
         addAndMakeVisible(minimalLatencyButton);
@@ -417,6 +420,7 @@ private:
         trackingSmoothValueLabel.setText("100 %", juce::dontSendNotification);
         trackingSmoothValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         trackingSmoothValueLabel.setJustificationType(juce::Justification::centred);
+        setupEditableValueLabel(trackingSmoothValueLabel);
 
         // Max Speed
         addAndMakeVisible(maxSpeedActiveButton);
@@ -440,6 +444,7 @@ private:
         maxSpeedValueLabel.setText("1.00 m/s", juce::dontSendNotification);
         maxSpeedValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         maxSpeedValueLabel.setJustificationType(juce::Justification::centred);
+        setupEditableValueLabel(maxSpeedValueLabel);
 
         // Height Factor dial
         addAndMakeVisible(heightFactorLabel);
@@ -454,6 +459,7 @@ private:
         heightFactorValueLabel.setText("0 %", juce::dontSendNotification);
         heightFactorValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         heightFactorValueLabel.setJustificationType(juce::Justification::centred);
+        setupEditableValueLabel(heightFactorValueLabel);
     }
 
     void setupSoundTab()
@@ -488,6 +494,7 @@ private:
         distanceAttenValueLabel.setText("-0.7 dB/m", juce::dontSendNotification);
         distanceAttenValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         distanceAttenValueLabel.setJustificationType(juce::Justification::centred);
+        setupEditableValueLabel(distanceAttenValueLabel);
 
         // Distance Ratio dial (visible when attenuationLaw == 1/d)
         addAndMakeVisible(distanceRatioLabel);
@@ -505,6 +512,7 @@ private:
         distanceRatioValueLabel.setText("1.00x", juce::dontSendNotification);
         distanceRatioValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         distanceRatioValueLabel.setJustificationType(juce::Justification::centred);
+        setupEditableValueLabel(distanceRatioValueLabel);
         // Initially hidden (Log is default)
         distanceRatioLabel.setVisible(false);
         distanceRatioDial.setVisible(false);
@@ -524,6 +532,7 @@ private:
         commonAttenValueLabel.setText("100 %", juce::dontSendNotification);
         commonAttenValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         commonAttenValueLabel.setJustificationType(juce::Justification::centred);
+        setupEditableValueLabel(commonAttenValueLabel);
 
         // Directivity slider
         addAndMakeVisible(directivityLabel);
@@ -539,6 +548,7 @@ private:
         addAndMakeVisible(directivityValueLabel);
         directivityValueLabel.setText(juce::String::fromUTF8("360°"), juce::dontSendNotification);
         directivityValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        setupEditableValueLabel(directivityValueLabel);
 
         // Rotation dial
         addAndMakeVisible(rotationLabel);
@@ -553,6 +563,7 @@ private:
         rotationValueLabel.setText(juce::String::fromUTF8("0°"), juce::dontSendNotification);
         rotationValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         rotationValueLabel.setJustificationType(juce::Justification::centred);
+        setupEditableValueLabel(rotationValueLabel);
 
         // Tilt slider
         addAndMakeVisible(tiltLabel);
@@ -568,6 +579,7 @@ private:
         addAndMakeVisible(tiltValueLabel);
         tiltValueLabel.setText(juce::String::fromUTF8("0°"), juce::dontSendNotification);
         tiltValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        setupEditableValueLabel(tiltValueLabel);
 
         // HF Shelf slider
         addAndMakeVisible(hfShelfLabel);
@@ -583,6 +595,7 @@ private:
         addAndMakeVisible(hfShelfValueLabel);
         hfShelfValueLabel.setText("-6.0 dB", juce::dontSendNotification);
         hfShelfValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        setupEditableValueLabel(hfShelfValueLabel);
     }
 
     void setupLiveSourceTab()
@@ -609,6 +622,7 @@ private:
         addAndMakeVisible(lsRadiusValueLabel);
         lsRadiusValueLabel.setText("3.0 m", juce::dontSendNotification);
         lsRadiusValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        setupEditableValueLabel(lsRadiusValueLabel);
 
         // Shape selector
         addAndMakeVisible(lsShapeLabel);
@@ -635,6 +649,7 @@ private:
         addAndMakeVisible(lsAttenuationValueLabel);
         lsAttenuationValueLabel.setText("0.0 dB", juce::dontSendNotification);
         lsAttenuationValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        setupEditableValueLabel(lsAttenuationValueLabel);
 
         // Peak Threshold slider
         addAndMakeVisible(lsPeakThresholdLabel);
@@ -650,6 +665,7 @@ private:
         addAndMakeVisible(lsPeakThresholdValueLabel);
         lsPeakThresholdValueLabel.setText("-20.0 dB", juce::dontSendNotification);
         lsPeakThresholdValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        setupEditableValueLabel(lsPeakThresholdValueLabel);
 
         // Peak Ratio dial
         addAndMakeVisible(lsPeakRatioLabel);
@@ -665,6 +681,7 @@ private:
         lsPeakRatioValueLabel.setText("2.0:1", juce::dontSendNotification);
         lsPeakRatioValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         lsPeakRatioValueLabel.setJustificationType(juce::Justification::centred);
+        setupEditableValueLabel(lsPeakRatioValueLabel);
 
         // Slow Threshold slider
         addAndMakeVisible(lsSlowThresholdLabel);
@@ -680,6 +697,7 @@ private:
         addAndMakeVisible(lsSlowThresholdValueLabel);
         lsSlowThresholdValueLabel.setText("-20.0 dB", juce::dontSendNotification);
         lsSlowThresholdValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        setupEditableValueLabel(lsSlowThresholdValueLabel);
 
         // Slow Ratio dial
         addAndMakeVisible(lsSlowRatioLabel);
@@ -695,6 +713,7 @@ private:
         lsSlowRatioValueLabel.setText("2.0:1", juce::dontSendNotification);
         lsSlowRatioValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         lsSlowRatioValueLabel.setJustificationType(juce::Justification::centred);
+        setupEditableValueLabel(lsSlowRatioValueLabel);
     }
 
     void setupEffectsTab()
@@ -721,6 +740,7 @@ private:
         addAndMakeVisible(frAttenuationValueLabel);
         frAttenuationValueLabel.setText("-3.0 dB", juce::dontSendNotification);
         frAttenuationValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        setupEditableValueLabel(frAttenuationValueLabel);
 
         // FR Diffusion dial
         addAndMakeVisible(frDiffusionLabel);
@@ -736,6 +756,7 @@ private:
         frDiffusionValueLabel.setText("20 %", juce::dontSendNotification);
         frDiffusionValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         frDiffusionValueLabel.setJustificationType(juce::Justification::centred);
+        setupEditableValueLabel(frDiffusionValueLabel);
 
         // FR Low Cut Active
         addAndMakeVisible(frLowCutActiveButton);
@@ -760,6 +781,7 @@ private:
         addAndMakeVisible(frLowCutFreqValueLabel);
         frLowCutFreqValueLabel.setText("100 Hz", juce::dontSendNotification);
         frLowCutFreqValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        setupEditableValueLabel(frLowCutFreqValueLabel);
 
         // FR High Shelf Active
         addAndMakeVisible(frHighShelfActiveButton);
@@ -783,6 +805,7 @@ private:
         addAndMakeVisible(frHighShelfFreqValueLabel);
         frHighShelfFreqValueLabel.setText("3000 Hz", juce::dontSendNotification);
         frHighShelfFreqValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        setupEditableValueLabel(frHighShelfFreqValueLabel);
 
         // FR High Shelf Gain slider (-24 to 0 dB)
         addAndMakeVisible(frHighShelfGainLabel);
@@ -798,6 +821,7 @@ private:
         addAndMakeVisible(frHighShelfGainValueLabel);
         frHighShelfGainValueLabel.setText("-2.0 dB", juce::dontSendNotification);
         frHighShelfGainValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        setupEditableValueLabel(frHighShelfGainValueLabel);
 
         // FR High Shelf Slope slider (0.1-0.9)
         addAndMakeVisible(frHighShelfSlopeLabel);
@@ -813,6 +837,7 @@ private:
         addAndMakeVisible(frHighShelfSlopeValueLabel);
         frHighShelfSlopeValueLabel.setText("0.40", juce::dontSendNotification);
         frHighShelfSlopeValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        setupEditableValueLabel(frHighShelfSlopeValueLabel);
 
         // Jitter slider
         addAndMakeVisible(jitterLabel);
@@ -827,6 +852,7 @@ private:
         addAndMakeVisible(jitterValueLabel);
         jitterValueLabel.setText("0.00 m", juce::dontSendNotification);
         jitterValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        setupEditableValueLabel(jitterValueLabel);
     }
 
     void setupLfoTab()
@@ -853,6 +879,7 @@ private:
         lfoPeriodValueLabel.setText("5.00 s", juce::dontSendNotification);
         lfoPeriodValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         lfoPeriodValueLabel.setJustificationType(juce::Justification::centred);
+        setupEditableValueLabel(lfoPeriodValueLabel);
 
         // Main Phase dial (0-360°) - uses WfsRotationDial
         addAndMakeVisible(lfoPhaseLabel);
@@ -869,6 +896,7 @@ private:
         lfoPhaseValueLabel.setText(juce::String::fromUTF8("0°"), juce::dontSendNotification);
         lfoPhaseValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         lfoPhaseValueLabel.setJustificationType(juce::Justification::centred);
+        setupEditableValueLabel(lfoPhaseValueLabel);
 
         // Shape X/Y/Z dropdowns
         juce::StringArray lfoShapes = {"OFF", "sine", "square", "sawtooth", "triangle", "keystone", "log", "exp", "random"};
@@ -910,6 +938,7 @@ private:
         addAndMakeVisible(lfoRateXValueLabel);
         lfoRateXValueLabel.setText("1.00x", juce::dontSendNotification);
         lfoRateXValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        setupEditableValueLabel(lfoRateXValueLabel);
 
         addAndMakeVisible(lfoRateYLabel);
         lfoRateYLabel.setText("Rate Y:", juce::dontSendNotification);
@@ -923,6 +952,7 @@ private:
         addAndMakeVisible(lfoRateYValueLabel);
         lfoRateYValueLabel.setText("1.00x", juce::dontSendNotification);
         lfoRateYValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        setupEditableValueLabel(lfoRateYValueLabel);
 
         addAndMakeVisible(lfoRateZLabel);
         lfoRateZLabel.setText("Rate Z:", juce::dontSendNotification);
@@ -936,6 +966,7 @@ private:
         addAndMakeVisible(lfoRateZValueLabel);
         lfoRateZValueLabel.setText("1.00x", juce::dontSendNotification);
         lfoRateZValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        setupEditableValueLabel(lfoRateZValueLabel);
 
         // Amplitude X/Y/Z sliders (0-50 m)
         addAndMakeVisible(lfoAmplitudeXLabel);
@@ -950,6 +981,7 @@ private:
         addAndMakeVisible(lfoAmplitudeXValueLabel);
         lfoAmplitudeXValueLabel.setText("1.0 m", juce::dontSendNotification);
         lfoAmplitudeXValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        setupEditableValueLabel(lfoAmplitudeXValueLabel);
 
         addAndMakeVisible(lfoAmplitudeYLabel);
         lfoAmplitudeYLabel.setText("Ampl. Y:", juce::dontSendNotification);
@@ -963,6 +995,7 @@ private:
         addAndMakeVisible(lfoAmplitudeYValueLabel);
         lfoAmplitudeYValueLabel.setText("1.0 m", juce::dontSendNotification);
         lfoAmplitudeYValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        setupEditableValueLabel(lfoAmplitudeYValueLabel);
 
         addAndMakeVisible(lfoAmplitudeZLabel);
         lfoAmplitudeZLabel.setText("Ampl. Z:", juce::dontSendNotification);
@@ -976,6 +1009,7 @@ private:
         addAndMakeVisible(lfoAmplitudeZValueLabel);
         lfoAmplitudeZValueLabel.setText("1.0 m", juce::dontSendNotification);
         lfoAmplitudeZValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        setupEditableValueLabel(lfoAmplitudeZValueLabel);
 
         // Phase X/Y/Z dials (0-360°)
         addAndMakeVisible(lfoPhaseXLabel);
@@ -992,6 +1026,7 @@ private:
         lfoPhaseXValueLabel.setText(juce::String::fromUTF8("0°"), juce::dontSendNotification);
         lfoPhaseXValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         lfoPhaseXValueLabel.setJustificationType(juce::Justification::centred);
+        setupEditableValueLabel(lfoPhaseXValueLabel);
 
         addAndMakeVisible(lfoPhaseYLabel);
         lfoPhaseYLabel.setText("Phase Y:", juce::dontSendNotification);
@@ -1007,6 +1042,7 @@ private:
         lfoPhaseYValueLabel.setText(juce::String::fromUTF8("0°"), juce::dontSendNotification);
         lfoPhaseYValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         lfoPhaseYValueLabel.setJustificationType(juce::Justification::centred);
+        setupEditableValueLabel(lfoPhaseYValueLabel);
 
         addAndMakeVisible(lfoPhaseZLabel);
         lfoPhaseZLabel.setText("Phase Z:", juce::dontSendNotification);
@@ -1022,6 +1058,7 @@ private:
         lfoPhaseZValueLabel.setText(juce::String::fromUTF8("0°"), juce::dontSendNotification);
         lfoPhaseZValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         lfoPhaseZValueLabel.setJustificationType(juce::Justification::centred);
+        setupEditableValueLabel(lfoPhaseZValueLabel);
 
         // Gyrophone dropdown
         addAndMakeVisible(lfoGyrophoneLabel);
@@ -1096,6 +1133,7 @@ private:
         otomoSpeedProfileValueLabel.setText("0 %", juce::dontSendNotification);
         otomoSpeedProfileValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         otomoSpeedProfileValueLabel.setJustificationType(juce::Justification::centred);
+        setupEditableValueLabel(otomoSpeedProfileValueLabel);
 
         // Trigger button (Manual/Trigger)
         addAndMakeVisible(otomoTriggerButton);
@@ -1120,6 +1158,7 @@ private:
         otomoThresholdValueLabel.setText("-20.0 dB", juce::dontSendNotification);
         otomoThresholdValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         otomoThresholdValueLabel.setJustificationType(juce::Justification::centred);
+        setupEditableValueLabel(otomoThresholdValueLabel);
 
         // Trigger Reset dial (-92 to 0 dB)
         addAndMakeVisible(otomoResetLabel);
@@ -1136,6 +1175,7 @@ private:
         otomoResetValueLabel.setText("-60.0 dB", juce::dontSendNotification);
         otomoResetValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         otomoResetValueLabel.setJustificationType(juce::Justification::centred);
+        setupEditableValueLabel(otomoResetValueLabel);
 
         // Transport buttons
         addAndMakeVisible(otomoStartButton);
@@ -1232,6 +1272,12 @@ private:
         editor.setInputFilter(new juce::TextEditor::LengthAndCharacterRestriction(10, allowedChars), true);
         editor.setSelectAllWhenFocused(true);
         editor.addListener(this);
+    }
+
+    void setupEditableValueLabel(juce::Label& label)
+    {
+        label.setEditable(true, false);  // Single click to edit
+        label.addListener(this);
     }
 
     // ==================== LAYOUT METHODS ====================
@@ -1947,6 +1993,246 @@ private:
     }
 
     void textEditorFocusLost(juce::TextEditor&) override {}
+
+    // ==================== LABEL LISTENER ====================
+
+    void labelTextChanged(juce::Label* label) override
+    {
+        juce::String text = label->getText();
+        float value = text.retainCharacters("-0123456789.").getFloatValue();
+
+        // Input Properties tab
+        if (label == &attenuationValueLabel)
+        {
+            float dB = juce::jlimit(-92.0f, 0.0f, value);
+            float minLinear = std::pow(10.0f, -92.0f / 20.0f);
+            float targetLinear = std::pow(10.0f, dB / 20.0f);
+            float v = std::sqrt((targetLinear - minLinear) / (1.0f - minLinear));
+            attenuationSlider.setValue(juce::jlimit(0.0f, 1.0f, v));
+        }
+        else if (label == &delayLatencyValueLabel)
+        {
+            float ms = juce::jlimit(-100.0f, 100.0f, value);
+            delayLatencySlider.setValue(ms / 100.0f);
+        }
+        // Position tab
+        else if (label == &trackingSmoothValueLabel)
+        {
+            int percent = juce::jlimit(0, 100, static_cast<int>(value));
+            trackingSmoothDial.setValue(percent / 100.0f);
+        }
+        else if (label == &maxSpeedValueLabel)
+        {
+            float speed = juce::jlimit(0.01f, 10.0f, value);
+            // Inverse of: speed = 0.01 + v * 9.99
+            maxSpeedDial.setValue((speed - 0.01f) / 9.99f);
+        }
+        else if (label == &heightFactorValueLabel)
+        {
+            int percent = juce::jlimit(0, 100, static_cast<int>(value));
+            heightFactorDial.setValue(percent / 100.0f);
+        }
+        // Sound tab
+        else if (label == &distanceAttenValueLabel)
+        {
+            float dBm = juce::jlimit(-12.0f, 0.0f, value);
+            // Inverse of: dBm = v * 12.0 - 12.0
+            distanceAttenDial.setValue((dBm + 12.0f) / 12.0f);
+        }
+        else if (label == &distanceRatioValueLabel)
+        {
+            float ratio = juce::jlimit(0.0f, 2.0f, value);
+            // Inverse of: ratio = v * 2.0
+            distanceRatioDial.setValue(ratio / 2.0f);
+        }
+        else if (label == &commonAttenValueLabel)
+        {
+            int percent = juce::jlimit(0, 100, static_cast<int>(value));
+            commonAttenDial.setValue(percent / 100.0f);
+        }
+        else if (label == &directivityValueLabel)
+        {
+            int degrees = juce::jlimit(1, 360, static_cast<int>(value));
+            // Inverse of: degrees = v * 359 + 1
+            directivitySlider.setValue((degrees - 1.0f) / 359.0f);
+        }
+        else if (label == &rotationValueLabel)
+        {
+            rotationDial.setAngle(value);
+        }
+        else if (label == &tiltValueLabel)
+        {
+            int degrees = juce::jlimit(-90, 90, static_cast<int>(value));
+            // Inverse of: degrees = v * 180 - 90
+            tiltSlider.setValue((degrees + 90.0f) / 180.0f);
+        }
+        else if (label == &hfShelfValueLabel)
+        {
+            float dB = juce::jlimit(-12.0f, 0.0f, value);
+            // Inverse of: dB = v * 12.0 - 12.0
+            hfShelfSlider.setValue((dB + 12.0f) / 12.0f);
+        }
+        // Live Source tab
+        else if (label == &lsRadiusValueLabel)
+        {
+            float meters = juce::jlimit(0.0f, 20.0f, value);
+            // Inverse of: meters = v * 20.0
+            lsRadiusSlider.setValue(meters / 20.0f);
+        }
+        else if (label == &lsAttenuationValueLabel)
+        {
+            float dB = juce::jlimit(-92.0f, 0.0f, value);
+            float minLinear = std::pow(10.0f, -92.0f / 20.0f);
+            float targetLinear = std::pow(10.0f, dB / 20.0f);
+            float v = std::sqrt((targetLinear - minLinear) / (1.0f - minLinear));
+            lsAttenuationSlider.setValue(juce::jlimit(0.0f, 1.0f, v));
+        }
+        else if (label == &lsPeakThresholdValueLabel)
+        {
+            float dB = juce::jlimit(-60.0f, 0.0f, value);
+            // Inverse of: dB = v * 60.0 - 60.0
+            lsPeakThresholdSlider.setValue((dB + 60.0f) / 60.0f);
+        }
+        else if (label == &lsPeakRatioValueLabel)
+        {
+            float ratio = juce::jlimit(1.0f, 10.0f, value);
+            // Inverse of: ratio = v * 9.0 + 1.0
+            lsPeakRatioDial.setValue((ratio - 1.0f) / 9.0f);
+        }
+        else if (label == &lsSlowThresholdValueLabel)
+        {
+            float dB = juce::jlimit(-60.0f, 0.0f, value);
+            lsSlowThresholdSlider.setValue((dB + 60.0f) / 60.0f);
+        }
+        else if (label == &lsSlowRatioValueLabel)
+        {
+            float ratio = juce::jlimit(1.0f, 10.0f, value);
+            lsSlowRatioDial.setValue((ratio - 1.0f) / 9.0f);
+        }
+        // Effects/Hackoustics tab
+        else if (label == &frAttenuationValueLabel)
+        {
+            float dB = juce::jlimit(-60.0f, 0.0f, value);
+            // Inverse of: dB = v * 60.0 - 60.0
+            frAttenuationSlider.setValue((dB + 60.0f) / 60.0f);
+        }
+        else if (label == &frDiffusionValueLabel)
+        {
+            int percent = juce::jlimit(0, 100, static_cast<int>(value));
+            frDiffusionDial.setValue(percent / 100.0f);
+        }
+        else if (label == &frLowCutFreqValueLabel)
+        {
+            int freq = juce::jlimit(20, 1000, static_cast<int>(value));
+            // Inverse of: freq = 20 + (v^2) * 980
+            float v = std::sqrt((freq - 20.0f) / 980.0f);
+            frLowCutFreqSlider.setValue(v);
+        }
+        else if (label == &frHighShelfFreqValueLabel)
+        {
+            int freq = juce::jlimit(1000, 10000, static_cast<int>(value));
+            // Inverse of: freq = 1000 + v^2 * 9000
+            float v = std::sqrt((freq - 1000.0f) / 9000.0f);
+            frHighShelfFreqSlider.setValue(v);
+        }
+        else if (label == &frHighShelfGainValueLabel)
+        {
+            float dB = juce::jlimit(-12.0f, 0.0f, value);
+            // Inverse of: dB = v * 12.0 - 12.0
+            frHighShelfGainSlider.setValue((dB + 12.0f) / 12.0f);
+        }
+        else if (label == &frHighShelfSlopeValueLabel)
+        {
+            float slope = juce::jlimit(0.1f, 1.0f, value);
+            // Inverse of: slope = v * 0.9 + 0.1
+            frHighShelfSlopeSlider.setValue((slope - 0.1f) / 0.9f);
+        }
+        else if (label == &jitterValueLabel)
+        {
+            float meters = juce::jlimit(0.0f, 1.0f, value);
+            jitterSlider.setValue(meters);
+        }
+        // LFO tab
+        else if (label == &lfoPeriodValueLabel)
+        {
+            float period = juce::jlimit(0.1f, 60.0f, value);
+            // Inverse of: period = 0.1 + v^2 * 59.9
+            float v = std::sqrt((period - 0.1f) / 59.9f);
+            lfoPeriodDial.setValue(v);
+        }
+        else if (label == &lfoPhaseValueLabel)
+        {
+            int degrees = juce::jlimit(0, 359, static_cast<int>(value));
+            // WfsRotationDial uses -180 to 180 range, convert from 0-360
+            float angle = (degrees <= 180) ? static_cast<float>(degrees) : static_cast<float>(degrees - 360);
+            lfoPhaseDial.setAngle(angle);
+        }
+        else if (label == &lfoRateXValueLabel)
+        {
+            float rate = juce::jlimit(0.0f, 10.0f, value);
+            lfoRateXSlider.setValue(rate / 10.0f);
+        }
+        else if (label == &lfoRateYValueLabel)
+        {
+            float rate = juce::jlimit(0.0f, 10.0f, value);
+            lfoRateYSlider.setValue(rate / 10.0f);
+        }
+        else if (label == &lfoRateZValueLabel)
+        {
+            float rate = juce::jlimit(0.0f, 10.0f, value);
+            lfoRateZSlider.setValue(rate / 10.0f);
+        }
+        else if (label == &lfoAmplitudeXValueLabel)
+        {
+            float amp = juce::jlimit(0.0f, 10.0f, value);
+            lfoAmplitudeXSlider.setValue(amp / 10.0f);
+        }
+        else if (label == &lfoAmplitudeYValueLabel)
+        {
+            float amp = juce::jlimit(0.0f, 10.0f, value);
+            lfoAmplitudeYSlider.setValue(amp / 10.0f);
+        }
+        else if (label == &lfoAmplitudeZValueLabel)
+        {
+            float amp = juce::jlimit(0.0f, 10.0f, value);
+            lfoAmplitudeZSlider.setValue(amp / 10.0f);
+        }
+        else if (label == &lfoPhaseXValueLabel)
+        {
+            int degrees = juce::jlimit(0, 359, static_cast<int>(value));
+            float angle = (degrees <= 180) ? static_cast<float>(degrees) : static_cast<float>(degrees - 360);
+            lfoPhaseXDial.setAngle(angle);
+        }
+        else if (label == &lfoPhaseYValueLabel)
+        {
+            int degrees = juce::jlimit(0, 359, static_cast<int>(value));
+            float angle = (degrees <= 180) ? static_cast<float>(degrees) : static_cast<float>(degrees - 360);
+            lfoPhaseYDial.setAngle(angle);
+        }
+        else if (label == &lfoPhaseZValueLabel)
+        {
+            int degrees = juce::jlimit(0, 359, static_cast<int>(value));
+            float angle = (degrees <= 180) ? static_cast<float>(degrees) : static_cast<float>(degrees - 360);
+            lfoPhaseZDial.setAngle(angle);
+        }
+        // AutomOtion tab
+        else if (label == &otomoSpeedProfileValueLabel)
+        {
+            int percent = juce::jlimit(0, 100, static_cast<int>(value));
+            otomoSpeedProfileDial.setValue(percent / 100.0f);
+        }
+        else if (label == &otomoThresholdValueLabel)
+        {
+            float dB = juce::jlimit(-60.0f, 0.0f, value);
+            otomoThresholdDial.setValue((dB + 60.0f) / 60.0f);
+        }
+        else if (label == &otomoResetValueLabel)
+        {
+            float dB = juce::jlimit(-80.0f, -20.0f, value);
+            // Inverse of: dB = v * 60.0 - 80.0
+            otomoResetDial.setValue((dB + 80.0f) / 60.0f);
+        }
+    }
 
     // ==================== STORE/RELOAD METHODS ====================
 
