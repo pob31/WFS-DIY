@@ -5,6 +5,9 @@
     <Filter Include="WFS-DIY\Source\gui">
       <UniqueIdentifier>{779C7693-77C1-9EF7-9439-EE6915457295}</UniqueIdentifier>
     </Filter>
+    <Filter Include="WFS-DIY\Source\Parameters">
+      <UniqueIdentifier>{PARAMFILT-1234-5678-9ABC-DEF012345678}</UniqueIdentifier>
+    </Filter>
     <Filter Include="WFS-DIY\Source">
       <UniqueIdentifier>{302C0974-C160-8B5C-13C8-37F2C9D030F7}</UniqueIdentifier>
     </Filter>
@@ -906,6 +909,12 @@
     </ClCompile>
     <ClCompile Include="..\..\Source\MainComponent.cpp">
       <Filter>WFS-DIY\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Parameters\WFSValueTreeState.cpp">
+      <Filter>WFS-DIY\Source\Parameters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Parameters\WFSFileManager.cpp">
+      <Filter>WFS-DIY\Source\Parameters</Filter>
     </ClCompile>
     <ClCompile Include="..\..\Source\GpuInputBufferAlgorithm.cpp">
       <Filter>WFS-DIY\Source</Filter>
@@ -4361,6 +4370,18 @@
     </ClInclude>
     <ClInclude Include="..\..\Source\WfsParameters.h">
       <Filter>WFS-DIY\Source</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Parameters\WFSParameterIDs.h">
+      <Filter>WFS-DIY\Source\Parameters</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Parameters\WFSParameterDefaults.h">
+      <Filter>WFS-DIY\Source\Parameters</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Parameters\WFSValueTreeState.h">
+      <Filter>WFS-DIY\Source\Parameters</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Parameters\WFSFileManager.h">
+      <Filter>WFS-DIY\Source\Parameters</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\WFSAlgorithm.h">
       <Filter>WFS-DIY\Source</Filter>

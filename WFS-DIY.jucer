@@ -4,6 +4,20 @@
               addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1">
   <MAINGROUP id="U6kz3k" name="WFS-DIY">
     <GROUP id="{559A80C2-DA9A-4473-80A2-AE173C8D9D42}" name="Source">
+      <GROUP id="{PARAMGROUP}" name="Parameters">
+        <FILE id="wfsParamIDs" name="WFSParameterIDs.h" compile="0" resource="0"
+              file="Source/Parameters/WFSParameterIDs.h"/>
+        <FILE id="wfsParamDef" name="WFSParameterDefaults.h" compile="0" resource="0"
+              file="Source/Parameters/WFSParameterDefaults.h"/>
+        <FILE id="wfsVTSH" name="WFSValueTreeState.h" compile="0" resource="0"
+              file="Source/Parameters/WFSValueTreeState.h"/>
+        <FILE id="wfsVTSCpp" name="WFSValueTreeState.cpp" compile="1" resource="0"
+              file="Source/Parameters/WFSValueTreeState.cpp"/>
+        <FILE id="wfsFMH" name="WFSFileManager.h" compile="0" resource="0"
+              file="Source/Parameters/WFSFileManager.h"/>
+        <FILE id="wfsFMCpp" name="WFSFileManager.cpp" compile="1" resource="0"
+              file="Source/Parameters/WFSFileManager.cpp"/>
+      </GROUP>
       <GROUP id="{GUIGROUP1}" name="gui">
         <FILE id="guiCfgTab" name="ConfigTabComponent.h" compile="0" resource="0"
               file="Source/gui/ConfigTabComponent.h"/>

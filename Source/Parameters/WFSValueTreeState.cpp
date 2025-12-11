@@ -1,0 +1,1212 @@
+#include "WFSValueTreeState.h"
+
+using namespace WFSParameterIDs;
+using namespace WFSParameterDefaults;
+
+//==============================================================================
+// Construction / Destruction
+//==============================================================================
+
+WFSValueTreeState::WFSValueTreeState()
+{
+    initializeDefaultState();
+    state.addListener (this);
+}
+
+WFSValueTreeState::~WFSValueTreeState()
+{
+    state.removeListener (this);
+}
+
+//==============================================================================
+// State Access
+//==============================================================================
+
+juce::ValueTree WFSValueTreeState::getConfigState()
+{
+    return state.getChildWithName (Config);
+}
+
+juce::ValueTree WFSValueTreeState::getConfigState() const
+{
+    return state.getChildWithName (Config);
+}
+
+juce::ValueTree WFSValueTreeState::getShowState()
+{
+    return getConfigState().getChildWithName (Show);
+}
+
+juce::ValueTree WFSValueTreeState::getIOState()
+{
+    return getConfigState().getChildWithName (IO);
+}
+
+juce::ValueTree WFSValueTreeState::getStageState()
+{
+    return getConfigState().getChildWithName (Stage);
+}
+
+juce::ValueTree WFSValueTreeState::getMasterState()
+{
+    return getConfigState().getChildWithName (Master);
+}
+
+juce::ValueTree WFSValueTreeState::getNetworkState()
+{
+    return getConfigState().getChildWithName (Network);
+}
+
+juce::ValueTree WFSValueTreeState::getADMOSCState()
+{
+    return getConfigState().getChildWithName (ADMOSC);
+}
+
+juce::ValueTree WFSValueTreeState::getTrackingState()
+{
+    return getConfigState().getChildWithName (Tracking);
+}
+
+juce::ValueTree WFSValueTreeState::getInputsState()
+{
+    return state.getChildWithName (Inputs);
+}
+
+juce::ValueTree WFSValueTreeState::getInputsState() const
+{
+    return state.getChildWithName (Inputs);
+}
+
+juce::ValueTree WFSValueTreeState::getInputState (int channelIndex)
+{
+    auto inputs = getInputsState();
+    if (channelIndex >= 0 && channelIndex < inputs.getNumChildren())
+        return inputs.getChild (channelIndex);
+    return {};
+}
+
+juce::ValueTree WFSValueTreeState::getOutputsState()
+{
+    return state.getChildWithName (Outputs);
+}
+
+juce::ValueTree WFSValueTreeState::getOutputsState() const
+{
+    return state.getChildWithName (Outputs);
+}
+
+juce::ValueTree WFSValueTreeState::getOutputState (int channelIndex)
+{
+    auto outputs = getOutputsState();
+    if (channelIndex >= 0 && channelIndex < outputs.getNumChildren())
+        return outputs.getChild (channelIndex);
+    return {};
+}
+
+juce::ValueTree WFSValueTreeState::getAudioPatchState()
+{
+    return state.getChildWithName (AudioPatch);
+}
+
+//==============================================================================
+// Parameter Access - Type Safe
+//==============================================================================
+
+float WFSValueTreeState::getFloatParameter (const juce::Identifier& paramId, int channelIndex) const
+{
+    auto tree = getTreeForParameter (paramId, channelIndex);
+    if (tree.isValid() && tree.hasProperty (paramId))
+        return static_cast<float> (tree.getProperty (paramId));
+    return 0.0f;
+}
+
+int WFSValueTreeState::getIntParameter (const juce::Identifier& paramId, int channelIndex) const
+{
+    auto tree = getTreeForParameter (paramId, channelIndex);
+    if (tree.isValid() && tree.hasProperty (paramId))
+        return static_cast<int> (tree.getProperty (paramId));
+    return 0;
+}
+
+juce::String WFSValueTreeState::getStringParameter (const juce::Identifier& paramId, int channelIndex) const
+{
+    auto tree = getTreeForParameter (paramId, channelIndex);
+    if (tree.isValid() && tree.hasProperty (paramId))
+        return tree.getProperty (paramId).toString();
+    return {};
+}
+
+juce::var WFSValueTreeState::getParameter (const juce::Identifier& paramId, int channelIndex) const
+{
+    auto tree = getTreeForParameter (paramId, channelIndex);
+    if (tree.isValid())
+        return tree.getProperty (paramId);
+    return {};
+}
+
+void WFSValueTreeState::setParameter (const juce::Identifier& paramId, const juce::var& value, int channelIndex)
+{
+    auto tree = getTreeForParameter (paramId, channelIndex);
+    if (tree.isValid())
+        tree.setProperty (paramId, value, &undoManager);
+}
+
+void WFSValueTreeState::setParameterWithoutUndo (const juce::Identifier& paramId, const juce::var& value, int channelIndex)
+{
+    auto tree = getTreeForParameter (paramId, channelIndex);
+    if (tree.isValid())
+        tree.setProperty (paramId, value, nullptr);
+}
+
+//==============================================================================
+// Input Channel Access
+//==============================================================================
+
+juce::var WFSValueTreeState::getInputParameter (int channelIndex, const juce::Identifier& paramId) const
+{
+    auto input = const_cast<WFSValueTreeState*>(this)->getInputState (channelIndex);
+    if (!input.isValid())
+        return {};
+
+    // Search through all subsections
+    for (int i = 0; i < input.getNumChildren(); ++i)
+    {
+        auto child = input.getChild (i);
+        if (child.hasProperty (paramId))
+            return child.getProperty (paramId);
+    }
+    return {};
+}
+
+void WFSValueTreeState::setInputParameter (int channelIndex, const juce::Identifier& paramId, const juce::var& value)
+{
+    auto input = getInputState (channelIndex);
+    if (!input.isValid())
+        return;
+
+    // Search through all subsections
+    for (int i = 0; i < input.getNumChildren(); ++i)
+    {
+        auto child = input.getChild (i);
+        if (child.hasProperty (paramId))
+        {
+            child.setProperty (paramId, value, &undoManager);
+            return;
+        }
+    }
+}
+
+juce::ValueTree WFSValueTreeState::getInputChannelSection (int channelIndex)
+{
+    return getInputState (channelIndex).getChildWithName (Channel);
+}
+
+juce::ValueTree WFSValueTreeState::getInputPositionSection (int channelIndex)
+{
+    return getInputState (channelIndex).getChildWithName (Position);
+}
+
+juce::ValueTree WFSValueTreeState::getInputAttenuationSection (int channelIndex)
+{
+    return getInputState (channelIndex).getChildWithName (Attenuation);
+}
+
+juce::ValueTree WFSValueTreeState::getInputDirectivitySection (int channelIndex)
+{
+    return getInputState (channelIndex).getChildWithName (Directivity);
+}
+
+juce::ValueTree WFSValueTreeState::getInputLiveSourceSection (int channelIndex)
+{
+    return getInputState (channelIndex).getChildWithName (LiveSourceTamer);
+}
+
+juce::ValueTree WFSValueTreeState::getInputHackousticsSection (int channelIndex)
+{
+    return getInputState (channelIndex).getChildWithName (Hackoustics);
+}
+
+juce::ValueTree WFSValueTreeState::getInputLFOSection (int channelIndex)
+{
+    return getInputState (channelIndex).getChildWithName (LFO);
+}
+
+juce::ValueTree WFSValueTreeState::getInputAutoMotionSection (int channelIndex)
+{
+    return getInputState (channelIndex).getChildWithName (AutomOtion);
+}
+
+juce::ValueTree WFSValueTreeState::getInputMutesSection (int channelIndex)
+{
+    return getInputState (channelIndex).getChildWithName (Mutes);
+}
+
+//==============================================================================
+// Output Channel Access
+//==============================================================================
+
+juce::var WFSValueTreeState::getOutputParameter (int channelIndex, const juce::Identifier& paramId) const
+{
+    auto output = const_cast<WFSValueTreeState*>(this)->getOutputState (channelIndex);
+    if (!output.isValid())
+        return {};
+
+    // Search through all subsections
+    for (int i = 0; i < output.getNumChildren(); ++i)
+    {
+        auto child = output.getChild (i);
+        if (child.hasProperty (paramId))
+            return child.getProperty (paramId);
+    }
+    return {};
+}
+
+void WFSValueTreeState::setOutputParameter (int channelIndex, const juce::Identifier& paramId, const juce::var& value)
+{
+    auto output = getOutputState (channelIndex);
+    if (!output.isValid())
+        return;
+
+    // Search through all subsections
+    for (int i = 0; i < output.getNumChildren(); ++i)
+    {
+        auto child = output.getChild (i);
+        if (child.hasProperty (paramId))
+        {
+            child.setProperty (paramId, value, &undoManager);
+            return;
+        }
+    }
+}
+
+juce::ValueTree WFSValueTreeState::getOutputChannelSection (int channelIndex)
+{
+    return getOutputState (channelIndex).getChildWithName (Channel);
+}
+
+juce::ValueTree WFSValueTreeState::getOutputPositionSection (int channelIndex)
+{
+    return getOutputState (channelIndex).getChildWithName (Position);
+}
+
+juce::ValueTree WFSValueTreeState::getOutputOptionsSection (int channelIndex)
+{
+    return getOutputState (channelIndex).getChildWithName (Options);
+}
+
+juce::ValueTree WFSValueTreeState::getOutputEQSection (int channelIndex)
+{
+    return getOutputState (channelIndex).getChildWithName (EQ);
+}
+
+juce::ValueTree WFSValueTreeState::getOutputEQBand (int channelIndex, int bandIndex)
+{
+    auto eq = getOutputEQSection (channelIndex);
+    if (eq.isValid() && bandIndex >= 0 && bandIndex < eq.getNumChildren())
+        return eq.getChild (bandIndex);
+    return {};
+}
+
+//==============================================================================
+// Network Target Access
+//==============================================================================
+
+int WFSValueTreeState::getNumNetworkTargets() const
+{
+    auto network = const_cast<WFSValueTreeState*>(this)->getNetworkState();
+    return network.getNumChildren();
+}
+
+void WFSValueTreeState::addNetworkTarget()
+{
+    auto network = getNetworkState();
+    if (network.getNumChildren() < maxNetworkTargets)
+    {
+        auto target = createDefaultNetworkTarget (network.getNumChildren());
+        network.appendChild (target, &undoManager);
+    }
+}
+
+void WFSValueTreeState::removeNetworkTarget (int targetIndex)
+{
+    auto network = getNetworkState();
+    if (targetIndex >= 0 && targetIndex < network.getNumChildren())
+        network.removeChild (targetIndex, &undoManager);
+}
+
+juce::ValueTree WFSValueTreeState::getNetworkTargetState (int targetIndex)
+{
+    auto network = getNetworkState();
+    if (targetIndex >= 0 && targetIndex < network.getNumChildren())
+        return network.getChild (targetIndex);
+    return {};
+}
+
+//==============================================================================
+// Channel Management
+//==============================================================================
+
+int WFSValueTreeState::getNumInputChannels() const
+{
+    return const_cast<WFSValueTreeState*>(this)->getInputsState().getNumChildren();
+}
+
+int WFSValueTreeState::getNumOutputChannels() const
+{
+    return const_cast<WFSValueTreeState*>(this)->getOutputsState().getNumChildren();
+}
+
+int WFSValueTreeState::getNumReverbChannels() const
+{
+    return getIntParameter (reverbChannels);
+}
+
+void WFSValueTreeState::setNumInputChannels (int numChannels)
+{
+    numChannels = juce::jlimit (1, maxInputChannels, numChannels);
+    auto inputs = getInputsState();
+    int currentCount = inputs.getNumChildren();
+
+    beginUndoTransaction ("Set Input Channel Count");
+
+    if (numChannels > currentCount)
+    {
+        // Add new channels
+        for (int i = currentCount; i < numChannels; ++i)
+            inputs.appendChild (createDefaultInputChannel (i), &undoManager);
+    }
+    else if (numChannels < currentCount)
+    {
+        // Remove excess channels
+        while (inputs.getNumChildren() > numChannels)
+            inputs.removeChild (inputs.getNumChildren() - 1, &undoManager);
+    }
+
+    // Update the count in config
+    setParameter (inputChannels, numChannels);
+    inputs.setProperty (count, numChannels, &undoManager);
+}
+
+void WFSValueTreeState::setNumOutputChannels (int numChannels)
+{
+    numChannels = juce::jlimit (1, maxOutputChannels, numChannels);
+    auto outputs = getOutputsState();
+    int currentCount = outputs.getNumChildren();
+
+    beginUndoTransaction ("Set Output Channel Count");
+
+    if (numChannels > currentCount)
+    {
+        // Add new channels
+        for (int i = currentCount; i < numChannels; ++i)
+            outputs.appendChild (createDefaultOutputChannel (i), &undoManager);
+    }
+    else if (numChannels < currentCount)
+    {
+        // Remove excess channels
+        while (outputs.getNumChildren() > numChannels)
+            outputs.removeChild (outputs.getNumChildren() - 1, &undoManager);
+    }
+
+    // Update the count in config
+    setParameter (outputChannels, numChannels);
+    outputs.setProperty (count, numChannels, &undoManager);
+
+    // Update input mute arrays
+    auto inputs = getInputsState();
+    for (int i = 0; i < inputs.getNumChildren(); ++i)
+    {
+        auto mutesTree = getInputMutesSection (i);
+        if (mutesTree.isValid())
+        {
+            juce::String mutesStr = mutesTree.getProperty (inputMutes).toString();
+            juce::StringArray mutesArray;
+            mutesArray.addTokens (mutesStr, ",", "");
+
+            while (mutesArray.size() < numChannels)
+                mutesArray.add ("0");
+            while (mutesArray.size() > numChannels)
+                mutesArray.remove (mutesArray.size() - 1);
+
+            mutesTree.setProperty (inputMutes, mutesArray.joinIntoString (","), &undoManager);
+        }
+    }
+}
+
+void WFSValueTreeState::setNumReverbChannels (int numChannels)
+{
+    numChannels = juce::jlimit (0, maxReverbChannels, numChannels);
+    setParameter (reverbChannels, numChannels);
+}
+
+//==============================================================================
+// Undo / Redo
+//==============================================================================
+
+bool WFSValueTreeState::undo()
+{
+    return undoManager.undo();
+}
+
+bool WFSValueTreeState::redo()
+{
+    return undoManager.redo();
+}
+
+bool WFSValueTreeState::canUndo() const
+{
+    return undoManager.canUndo();
+}
+
+bool WFSValueTreeState::canRedo() const
+{
+    return undoManager.canRedo();
+}
+
+void WFSValueTreeState::beginUndoTransaction (const juce::String& transactionName)
+{
+    undoManager.beginNewTransaction (transactionName);
+}
+
+void WFSValueTreeState::clearUndoHistory()
+{
+    undoManager.clearUndoHistory();
+}
+
+//==============================================================================
+// Listener Management
+//==============================================================================
+
+void WFSValueTreeState::addParameterListener (const juce::Identifier& paramId,
+                                               ParameterCallback callback,
+                                               int channelIndex)
+{
+    juce::ScopedLock lock (listenerLock);
+    parameterListeners.push_back ({ paramId, channelIndex, std::move (callback) });
+}
+
+void WFSValueTreeState::removeParameterListeners (const juce::Identifier& paramId, int channelIndex)
+{
+    juce::ScopedLock lock (listenerLock);
+    parameterListeners.erase (
+        std::remove_if (parameterListeners.begin(), parameterListeners.end(),
+            [&] (const ListenerEntry& entry)
+            {
+                return entry.parameterId == paramId && entry.channelIndex == channelIndex;
+            }),
+        parameterListeners.end());
+}
+
+void WFSValueTreeState::addListener (juce::ValueTree::Listener* listener)
+{
+    state.addListener (listener);
+}
+
+void WFSValueTreeState::removeListener (juce::ValueTree::Listener* listener)
+{
+    state.removeListener (listener);
+}
+
+//==============================================================================
+// State Management
+//==============================================================================
+
+void WFSValueTreeState::resetToDefaults()
+{
+    beginUndoTransaction ("Reset to Defaults");
+    state.removeListener (this);
+    initializeDefaultState();
+    state.addListener (this);
+}
+
+void WFSValueTreeState::resetInputToDefaults (int channelIndex)
+{
+    auto input = getInputState (channelIndex);
+    if (input.isValid())
+    {
+        beginUndoTransaction ("Reset Input " + juce::String (channelIndex + 1));
+        auto newInput = createDefaultInputChannel (channelIndex);
+        input.copyPropertiesAndChildrenFrom (newInput, &undoManager);
+    }
+}
+
+void WFSValueTreeState::resetOutputToDefaults (int channelIndex)
+{
+    auto output = getOutputState (channelIndex);
+    if (output.isValid())
+    {
+        beginUndoTransaction ("Reset Output " + juce::String (channelIndex + 1));
+        auto newOutput = createDefaultOutputChannel (channelIndex);
+        output.copyPropertiesAndChildrenFrom (newOutput, &undoManager);
+    }
+}
+
+void WFSValueTreeState::replaceState (const juce::ValueTree& newState)
+{
+    if (validateState (newState))
+    {
+        beginUndoTransaction ("Load State");
+        state.copyPropertiesAndChildrenFrom (newState, &undoManager);
+    }
+}
+
+bool WFSValueTreeState::validateState (const juce::ValueTree& stateToValidate) const
+{
+    // Check root type
+    if (stateToValidate.getType() != WFSProcessor)
+        return false;
+
+    // Check for required sections
+    if (!stateToValidate.getChildWithName (Config).isValid())
+        return false;
+    if (!stateToValidate.getChildWithName (Inputs).isValid())
+        return false;
+    if (!stateToValidate.getChildWithName (Outputs).isValid())
+        return false;
+
+    return true;
+}
+
+void WFSValueTreeState::copyStateFrom (const WFSValueTreeState& other)
+{
+    replaceState (other.state);
+}
+
+//==============================================================================
+// ValueTree::Listener Implementation
+//==============================================================================
+
+void WFSValueTreeState::valueTreePropertyChanged (juce::ValueTree& treeWhosePropertyHasChanged,
+                                                   const juce::Identifier& property)
+{
+    // Determine channel index if this is an input/output parameter
+    int channelIndex = -1;
+    auto parent = treeWhosePropertyHasChanged.getParent();
+
+    if (parent.isValid())
+    {
+        if (parent.getType() == Input || parent.getType() == Output)
+            channelIndex = static_cast<int> (parent.getProperty (id)) - 1;
+        else if (parent.getParent().isValid() &&
+                 (parent.getParent().getType() == Input || parent.getParent().getType() == Output))
+            channelIndex = static_cast<int> (parent.getParent().getProperty (id)) - 1;
+    }
+
+    auto value = treeWhosePropertyHasChanged.getProperty (property);
+    notifyParameterListeners (property, value, channelIndex);
+}
+
+void WFSValueTreeState::valueTreeChildAdded (juce::ValueTree&, juce::ValueTree&)
+{
+    // Could notify listeners of structural changes if needed
+}
+
+void WFSValueTreeState::valueTreeChildRemoved (juce::ValueTree&, juce::ValueTree&, int)
+{
+    // Could notify listeners of structural changes if needed
+}
+
+void WFSValueTreeState::valueTreeChildOrderChanged (juce::ValueTree&, int, int)
+{
+    // Not typically needed for parameters
+}
+
+void WFSValueTreeState::valueTreeParentChanged (juce::ValueTree&)
+{
+    // Not typically needed for parameters
+}
+
+//==============================================================================
+// Initialization
+//==============================================================================
+
+void WFSValueTreeState::initializeDefaultState()
+{
+    state = juce::ValueTree (WFSProcessor);
+    state.setProperty (version, "1.0", nullptr);
+
+    createConfigSection();
+    createInputsSection();
+    createOutputsSection();
+    createAudioPatchSection();
+}
+
+void WFSValueTreeState::createConfigSection()
+{
+    juce::ValueTree config (Config);
+
+    createShowSection (config);
+    createIOSection (config);
+    createStageSection (config);
+    createMasterSection (config);
+    createNetworkSection (config);
+    createADMOSCSection (config);
+    createTrackingSection (config);
+
+    state.appendChild (config, nullptr);
+}
+
+void WFSValueTreeState::createShowSection (juce::ValueTree& config)
+{
+    juce::ValueTree show (Show);
+    show.setProperty (showName, showNameDefault, nullptr);
+    show.setProperty (showLocation, showLocationDefault, nullptr);
+    config.appendChild (show, nullptr);
+}
+
+void WFSValueTreeState::createIOSection (juce::ValueTree& config)
+{
+    juce::ValueTree io (IO);
+    io.setProperty (inputChannels, inputChannelsDefault, nullptr);
+    io.setProperty (outputChannels, outputChannelsDefault, nullptr);
+    io.setProperty (reverbChannels, reverbChannelsDefault, nullptr);
+    io.setProperty (algorithmDSP, algorithmDSPDefault, nullptr);
+    io.setProperty (runDSP, runDSPDefault, nullptr);
+    config.appendChild (io, nullptr);
+}
+
+void WFSValueTreeState::createStageSection (juce::ValueTree& config)
+{
+    juce::ValueTree stage (Stage);
+    stage.setProperty (stageWidth, stageWidthDefault, nullptr);
+    stage.setProperty (stageDepth, stageDepthDefault, nullptr);
+    stage.setProperty (stageHeight, stageHeightDefault, nullptr);
+    stage.setProperty (originWidth, originWidthDefault, nullptr);
+    stage.setProperty (originDepth, originDepthDefault, nullptr);
+    stage.setProperty (originHeight, originHeightDefault, nullptr);
+    stage.setProperty (speedOfSound, speedOfSoundDefault, nullptr);
+    stage.setProperty (temperature, temperatureDefault, nullptr);
+    config.appendChild (stage, nullptr);
+}
+
+void WFSValueTreeState::createMasterSection (juce::ValueTree& config)
+{
+    juce::ValueTree master (Master);
+    master.setProperty (masterLevel, masterLevelDefault, nullptr);
+    master.setProperty (systemLatency, systemLatencyDefault, nullptr);
+    master.setProperty (haasEffect, haasEffectDefault, nullptr);
+    config.appendChild (master, nullptr);
+}
+
+void WFSValueTreeState::createNetworkSection (juce::ValueTree& config)
+{
+    juce::ValueTree network (Network);
+    network.setProperty (networkInterface, "", nullptr);
+    network.setProperty (networkCurrentIP, networkCurrentIPDefault, nullptr);
+    network.setProperty (networkRxUDPport, networkRxUDPportDefault, nullptr);
+    network.setProperty (networkRxTCPport, networkRxTCPportDefault, nullptr);
+    network.setProperty (findDevicePassword, findDevicePasswordDefault, nullptr);
+    config.appendChild (network, nullptr);
+}
+
+void WFSValueTreeState::createADMOSCSection (juce::ValueTree& config)
+{
+    juce::ValueTree admosc (ADMOSC);
+    admosc.setProperty (admOscOffsetX, admOscOffsetDefault, nullptr);
+    admosc.setProperty (admOscOffsetY, admOscOffsetDefault, nullptr);
+    admosc.setProperty (admOscOffsetZ, admOscOffsetDefault, nullptr);
+    admosc.setProperty (admOscScaleX, admOscScaleDefault, nullptr);
+    admosc.setProperty (admOscScaleY, admOscScaleDefault, nullptr);
+    admosc.setProperty (admOscScaleZ, admOscScaleDefault, nullptr);
+    admosc.setProperty (admOscFlipX, admOscFlipDefault, nullptr);
+    admosc.setProperty (admOscFlipY, admOscFlipDefault, nullptr);
+    admosc.setProperty (admOscFlipZ, admOscFlipDefault, nullptr);
+    config.appendChild (admosc, nullptr);
+}
+
+void WFSValueTreeState::createTrackingSection (juce::ValueTree& config)
+{
+    juce::ValueTree tracking (Tracking);
+    tracking.setProperty (trackingEnabled, trackingEnabledDefault, nullptr);
+    tracking.setProperty (trackingProtocol, trackingProtocolDefault, nullptr);
+    tracking.setProperty (trackingPort, trackingPortDefault, nullptr);
+    tracking.setProperty (trackingOffsetX, trackingOffsetDefault, nullptr);
+    tracking.setProperty (trackingOffsetY, trackingOffsetDefault, nullptr);
+    tracking.setProperty (trackingOffsetZ, trackingOffsetDefault, nullptr);
+    tracking.setProperty (trackingScaleX, trackingScaleDefault, nullptr);
+    tracking.setProperty (trackingScaleY, trackingScaleDefault, nullptr);
+    tracking.setProperty (trackingScaleZ, trackingScaleDefault, nullptr);
+    tracking.setProperty (trackingFlipX, trackingFlipDefault, nullptr);
+    tracking.setProperty (trackingFlipY, trackingFlipDefault, nullptr);
+    tracking.setProperty (trackingFlipZ, trackingFlipDefault, nullptr);
+    config.appendChild (tracking, nullptr);
+}
+
+void WFSValueTreeState::createInputsSection()
+{
+    juce::ValueTree inputs (Inputs);
+    inputs.setProperty (count, inputChannelsDefault, nullptr);
+
+    for (int i = 0; i < inputChannelsDefault; ++i)
+        inputs.appendChild (createDefaultInputChannel (i), nullptr);
+
+    state.appendChild (inputs, nullptr);
+}
+
+void WFSValueTreeState::createOutputsSection()
+{
+    juce::ValueTree outputs (Outputs);
+    outputs.setProperty (count, outputChannelsDefault, nullptr);
+
+    for (int i = 0; i < outputChannelsDefault; ++i)
+        outputs.appendChild (createDefaultOutputChannel (i), nullptr);
+
+    state.appendChild (outputs, nullptr);
+}
+
+void WFSValueTreeState::createAudioPatchSection()
+{
+    juce::ValueTree audioPatch (AudioPatch);
+    audioPatch.setProperty (driverMode, driverModeDefault, nullptr);
+    audioPatch.setProperty (audioInterface, audioInterfaceDefault, nullptr);
+
+    // Create input patch matrix (diagonal by default)
+    juce::ValueTree inputPatchTree (InputPatch);
+    inputPatchTree.setProperty (rows, inputChannelsDefault, nullptr);
+    inputPatchTree.setProperty (cols, maxInputChannels, nullptr);
+
+    juce::StringArray inputPatchData;
+    for (int r = 0; r < inputChannelsDefault; ++r)
+    {
+        juce::StringArray row;
+        for (int c = 0; c < maxInputChannels; ++c)
+            row.add (r == c ? "1" : "0");
+        inputPatchData.add (row.joinIntoString (","));
+    }
+    inputPatchTree.setProperty (patchData, inputPatchData.joinIntoString (";"), nullptr);
+    audioPatch.appendChild (inputPatchTree, nullptr);
+
+    // Create output patch matrix (diagonal by default)
+    juce::ValueTree outputPatchTree (OutputPatch);
+    outputPatchTree.setProperty (rows, outputChannelsDefault, nullptr);
+    outputPatchTree.setProperty (cols, maxOutputChannels, nullptr);
+
+    juce::StringArray outputPatchData;
+    for (int r = 0; r < outputChannelsDefault; ++r)
+    {
+        juce::StringArray row;
+        for (int c = 0; c < maxOutputChannels; ++c)
+            row.add (r == c ? "1" : "0");
+        outputPatchData.add (row.joinIntoString (","));
+    }
+    outputPatchTree.setProperty (patchData, outputPatchData.joinIntoString (";"), nullptr);
+    audioPatch.appendChild (outputPatchTree, nullptr);
+
+    state.appendChild (audioPatch, nullptr);
+}
+
+juce::ValueTree WFSValueTreeState::createDefaultInputChannel (int index)
+{
+    int totalInputs = inputChannelsDefault;
+    auto io = getIOState();
+    if (io.isValid())
+        totalInputs = static_cast<int> (io.getProperty (inputChannels));
+
+    juce::ValueTree input (Input);
+    input.setProperty (id, index + 1, nullptr);
+
+    input.appendChild (createInputChannelSection (index), nullptr);
+    input.appendChild (createInputPositionSection (index, totalInputs), nullptr);
+    input.appendChild (createInputAttenuationSection(), nullptr);
+    input.appendChild (createInputDirectivitySection(), nullptr);
+    input.appendChild (createInputLiveSourceSection(), nullptr);
+    input.appendChild (createInputHackousticsSection(), nullptr);
+    input.appendChild (createInputLFOSection(), nullptr);
+    input.appendChild (createInputAutoMotionSection(), nullptr);
+    input.appendChild (createInputMutesSection (getNumOutputChannels()), nullptr);
+
+    return input;
+}
+
+juce::ValueTree WFSValueTreeState::createInputChannelSection (int index)
+{
+    juce::ValueTree channel (Channel);
+    channel.setProperty (inputName, getDefaultInputName (index), nullptr);
+    channel.setProperty (inputAttenuation, inputAttenuationDefault, nullptr);
+    channel.setProperty (inputDelayLatency, inputDelayLatencyDefault, nullptr);
+    channel.setProperty (inputMinimalLatency, inputMinimalLatencyDefault, nullptr);
+    return channel;
+}
+
+juce::ValueTree WFSValueTreeState::createInputPositionSection (int index, int totalInputs)
+{
+    juce::ValueTree position (Position);
+
+    // Calculate default position
+    float x, y, z;
+    auto stageTree = getStageState();
+    float sw = stageTree.isValid() ? static_cast<float> (stageTree.getProperty (stageWidth)) : stageWidthDefault;
+    float sd = stageTree.isValid() ? static_cast<float> (stageTree.getProperty (stageDepth)) : stageDepthDefault;
+    float sh = stageTree.isValid() ? static_cast<float> (stageTree.getProperty (stageHeight)) : stageHeightDefault;
+    float ow = stageTree.isValid() ? static_cast<float> (stageTree.getProperty (originWidth)) : originWidthDefault;
+    float od = stageTree.isValid() ? static_cast<float> (stageTree.getProperty (originDepth)) : originDepthDefault;
+    float oh = stageTree.isValid() ? static_cast<float> (stageTree.getProperty (originHeight)) : originHeightDefault;
+
+    getDefaultInputPosition (index, totalInputs, sw, sd, sh, ow, od, oh, x, y, z);
+
+    position.setProperty (inputPositionX, x, nullptr);
+    position.setProperty (inputPositionY, y, nullptr);
+    position.setProperty (inputPositionZ, z, nullptr);
+    position.setProperty (inputOffsetX, inputOffsetDefault, nullptr);
+    position.setProperty (inputOffsetY, inputOffsetDefault, nullptr);
+    position.setProperty (inputOffsetZ, inputOffsetDefault, nullptr);
+    position.setProperty (inputConstraintX, inputConstraintDefault, nullptr);
+    position.setProperty (inputConstraintY, inputConstraintDefault, nullptr);
+    position.setProperty (inputConstraintZ, inputConstraintDefault, nullptr);
+    position.setProperty (inputFlipX, inputFlipDefault, nullptr);
+    position.setProperty (inputFlipY, inputFlipDefault, nullptr);
+    position.setProperty (inputFlipZ, inputFlipDefault, nullptr);
+    position.setProperty (inputCluster, inputClusterDefault, nullptr);
+    position.setProperty (inputTrackingActive, inputTrackingActiveDefault, nullptr);
+    position.setProperty (inputTrackingID, index + 1, nullptr);  // Default to channel index
+    position.setProperty (inputTrackingSmooth, inputTrackingSmoothDefault, nullptr);
+    position.setProperty (inputMaxSpeedActive, inputMaxSpeedActiveDefault, nullptr);
+    position.setProperty (inputMaxSpeed, inputMaxSpeedDefault, nullptr);
+    position.setProperty (inputHeightFactor, inputHeightFactorDefault, nullptr);
+    position.setProperty (inputJitter, inputJitterDefault, nullptr);
+
+    return position;
+}
+
+juce::ValueTree WFSValueTreeState::createInputAttenuationSection()
+{
+    juce::ValueTree attenuation (Attenuation);
+    attenuation.setProperty (inputAttenuationLaw, inputAttenuationLawDefault, nullptr);
+    attenuation.setProperty (inputDistanceAttenuation, inputDistanceAttenuationDefault, nullptr);
+    attenuation.setProperty (inputDistanceRatio, inputDistanceRatioDefault, nullptr);
+    attenuation.setProperty (inputCommonAtten, inputCommonAttenDefault, nullptr);
+    return attenuation;
+}
+
+juce::ValueTree WFSValueTreeState::createInputDirectivitySection()
+{
+    juce::ValueTree directivity (Directivity);
+    directivity.setProperty (inputDirectivity, inputDirectivityDefault, nullptr);
+    directivity.setProperty (inputRotation, inputRotationDefault, nullptr);
+    directivity.setProperty (inputTilt, inputTiltDefault, nullptr);
+    directivity.setProperty (inputHFshelf, inputHFshelfDefault, nullptr);
+    return directivity;
+}
+
+juce::ValueTree WFSValueTreeState::createInputLiveSourceSection()
+{
+    juce::ValueTree liveSource (LiveSourceTamer);
+    liveSource.setProperty (inputLSactive, inputLSactiveDefault, nullptr);
+    liveSource.setProperty (inputLSradius, inputLSradiusDefault, nullptr);
+    liveSource.setProperty (inputLSshape, inputLSshapeDefault, nullptr);
+    liveSource.setProperty (inputLSattenuation, inputLSattenuationDefault, nullptr);
+    liveSource.setProperty (inputLSpeakThreshold, inputLSpeakThresholdDefault, nullptr);
+    liveSource.setProperty (inputLSpeakRatio, inputLSpeakRatioDefault, nullptr);
+    liveSource.setProperty (inputLSslowThreshold, inputLSslowThresholdDefault, nullptr);
+    liveSource.setProperty (inputLSslowRatio, inputLSslowRatioDefault, nullptr);
+    return liveSource;
+}
+
+juce::ValueTree WFSValueTreeState::createInputHackousticsSection()
+{
+    juce::ValueTree hackoustics (Hackoustics);
+    hackoustics.setProperty (inputFRactive, inputFRactiveDefault, nullptr);
+    hackoustics.setProperty (inputFRattenuation, inputFRattenuationDefault, nullptr);
+    hackoustics.setProperty (inputFRlowCutActive, inputFRlowCutActiveDefault, nullptr);
+    hackoustics.setProperty (inputFRlowCutFreq, inputFRlowCutFreqDefault, nullptr);
+    hackoustics.setProperty (inputFRhighShelfActive, inputFRhighShelfActiveDefault, nullptr);
+    hackoustics.setProperty (inputFRhighShelfFreq, inputFRhighShelfFreqDefault, nullptr);
+    hackoustics.setProperty (inputFRhighShelfGain, inputFRhighShelfGainDefault, nullptr);
+    hackoustics.setProperty (inputFRhighShelfSlope, inputFRhighShelfSlopeDefault, nullptr);
+    hackoustics.setProperty (inputFRdiffusion, inputFRdiffusionDefault, nullptr);
+    return hackoustics;
+}
+
+juce::ValueTree WFSValueTreeState::createInputLFOSection()
+{
+    juce::ValueTree lfo (LFO);
+    lfo.setProperty (inputLFOactive, inputLFOactiveDefault, nullptr);
+    lfo.setProperty (inputLFOperiod, inputLFOperiodDefault, nullptr);
+    lfo.setProperty (inputLFOphase, inputLFOphaseDefault, nullptr);
+    lfo.setProperty (inputLFOshapeX, inputLFOshapeDefault, nullptr);
+    lfo.setProperty (inputLFOshapeY, inputLFOshapeDefault, nullptr);
+    lfo.setProperty (inputLFOshapeZ, inputLFOshapeDefault, nullptr);
+    lfo.setProperty (inputLFOrateX, inputLFOrateDefault, nullptr);
+    lfo.setProperty (inputLFOrateY, inputLFOrateDefault, nullptr);
+    lfo.setProperty (inputLFOrateZ, inputLFOrateDefault, nullptr);
+    lfo.setProperty (inputLFOamplitudeX, inputLFOamplitudeDefault, nullptr);
+    lfo.setProperty (inputLFOamplitudeY, inputLFOamplitudeDefault, nullptr);
+    lfo.setProperty (inputLFOamplitudeZ, inputLFOamplitudeDefault, nullptr);
+    lfo.setProperty (inputLFOphaseX, inputLFOphaseDefault, nullptr);
+    lfo.setProperty (inputLFOphaseY, inputLFOphaseDefault, nullptr);
+    lfo.setProperty (inputLFOphaseZ, inputLFOphaseDefault, nullptr);
+    lfo.setProperty (inputLFOgyrophone, inputLFOgyrophoneDefault, nullptr);
+    return lfo;
+}
+
+juce::ValueTree WFSValueTreeState::createInputAutoMotionSection()
+{
+    juce::ValueTree automOtion (AutomOtion);
+    automOtion.setProperty (inputOtomoX, inputOtomoDefault, nullptr);
+    automOtion.setProperty (inputOtomoY, inputOtomoDefault, nullptr);
+    automOtion.setProperty (inputOtomoZ, inputOtomoDefault, nullptr);
+    automOtion.setProperty (inputOtomoAbsoluteRelative, inputOtomoAbsoluteRelativeDefault, nullptr);
+    automOtion.setProperty (inputOtomoStayReturn, inputOtomoStayReturnDefault, nullptr);
+    automOtion.setProperty (inputOtomoSpeedProfile, inputOtomoSpeedProfileDefault, nullptr);
+    automOtion.setProperty (inputOtomoTrigger, inputOtomoTriggerDefault, nullptr);
+    automOtion.setProperty (inputOtomoThreshold, inputOtomoThresholdDefault, nullptr);
+    automOtion.setProperty (inputOtomoReset, inputOtomoResetDefault, nullptr);
+    automOtion.setProperty (inputOtomoPauseResume, inputOtomoPauseResumeDefault, nullptr);
+    return automOtion;
+}
+
+juce::ValueTree WFSValueTreeState::createInputMutesSection (int numOutputs)
+{
+    juce::ValueTree mutes (Mutes);
+
+    // Create comma-separated string of zeros
+    juce::StringArray muteArray;
+    for (int i = 0; i < numOutputs; ++i)
+        muteArray.add ("0");
+    mutes.setProperty (inputMutes, muteArray.joinIntoString (","), nullptr);
+
+    return mutes;
+}
+
+juce::ValueTree WFSValueTreeState::createDefaultOutputChannel (int index)
+{
+    juce::ValueTree output (Output);
+    output.setProperty (id, index + 1, nullptr);
+
+    output.appendChild (createOutputChannelSection (index), nullptr);
+    output.appendChild (createOutputPositionSection(), nullptr);
+    output.appendChild (createOutputOptionsSection(), nullptr);
+    output.appendChild (createOutputEQSection(), nullptr);
+
+    return output;
+}
+
+juce::ValueTree WFSValueTreeState::createOutputChannelSection (int index)
+{
+    juce::ValueTree channel (Channel);
+    channel.setProperty (outputName, getDefaultOutputName (index), nullptr);
+    channel.setProperty (outputArray, outputArrayDefault, nullptr);
+    channel.setProperty (outputApplyToArray, outputApplyToArrayDefault, nullptr);
+    channel.setProperty (outputAttenuation, outputAttenuationDefault, nullptr);
+    channel.setProperty (outputDelayLatency, outputDelayLatencyDefault, nullptr);
+    return channel;
+}
+
+juce::ValueTree WFSValueTreeState::createOutputPositionSection()
+{
+    juce::ValueTree position (Position);
+    position.setProperty (outputPositionX, outputPositionDefault, nullptr);
+    position.setProperty (outputPositionY, outputPositionDefault, nullptr);
+    position.setProperty (outputPositionZ, outputPositionDefault, nullptr);
+    position.setProperty (outputOrientation, outputOrientationDefault, nullptr);
+    position.setProperty (outputAngleOn, outputAngleOnDefault, nullptr);
+    position.setProperty (outputAngleOff, outputAngleOffDefault, nullptr);
+    position.setProperty (outputPitch, outputPitchDefault, nullptr);
+    position.setProperty (outputHFdamping, outputHFdampingDefault, nullptr);
+    return position;
+}
+
+juce::ValueTree WFSValueTreeState::createOutputOptionsSection()
+{
+    juce::ValueTree options (Options);
+    options.setProperty (outputMiniLatencyEnable, outputMiniLatencyEnableDefault, nullptr);
+    options.setProperty (outputLSattenEnable, outputLSattenEnableDefault, nullptr);
+    options.setProperty (outputDistanceAttenPercent, outputDistanceAttenPercentDefault, nullptr);
+    options.setProperty (outputHparallax, outputParallaxDefault, nullptr);
+    options.setProperty (outputVparallax, outputParallaxDefault, nullptr);
+    return options;
+}
+
+juce::ValueTree WFSValueTreeState::createOutputEQSection()
+{
+    juce::ValueTree eq (EQ);
+    eq.setProperty (outputEQenabled, outputEQenabledDefault, nullptr);
+
+    for (int i = 0; i < numEQBands; ++i)
+    {
+        juce::ValueTree band (Band);
+        band.setProperty (id, i + 1, nullptr);
+        band.setProperty (eqShape, eqBandShapes[i], nullptr);
+        band.setProperty (eqFrequency, eqBandFrequencies[i], nullptr);
+        band.setProperty (eqGain, eqGainDefault, nullptr);
+        band.setProperty (eqQ, eqQDefault, nullptr);
+        band.setProperty (eqSlope, eqSlopeDefault, nullptr);
+        eq.appendChild (band, nullptr);
+    }
+
+    return eq;
+}
+
+juce::ValueTree WFSValueTreeState::createDefaultNetworkTarget (int index)
+{
+    juce::ValueTree target (NetworkTarget);
+    target.setProperty (id, index + 1, nullptr);
+    target.setProperty (networkTSname, networkTSnameDefault + " " + juce::String (index + 1), nullptr);
+    target.setProperty (networkTSdataMode, networkTSdataModeDefault, nullptr);
+    target.setProperty (networkTSip, networkTSipDefault, nullptr);
+    target.setProperty (networkTSport, networkTSportDefault + index, nullptr);
+    target.setProperty (networkTSrxEnable, networkTSrxEnableDefault, nullptr);
+    target.setProperty (networkTStxEnable, networkTStxEnableDefault, nullptr);
+    target.setProperty (networkTSProtocol, networkTSProtocolDefault, nullptr);
+    return target;
+}
+
+//==============================================================================
+// Helper Methods
+//==============================================================================
+
+juce::ValueTree WFSValueTreeState::getTreeForParameter (const juce::Identifier& paramId, int channelIndex) const
+{
+    auto scope = getParameterScope (paramId);
+    auto& mutableState = const_cast<juce::ValueTree&> (state);
+
+    switch (scope)
+    {
+        case ParameterScope::Config:
+        {
+            // Check each config subsection
+            auto config = mutableState.getChildWithName (Config);
+            if (!config.isValid())
+                return {};
+
+            // Show section
+            auto show = config.getChildWithName (Show);
+            if (show.hasProperty (paramId))
+                return show;
+
+            // IO section
+            auto io = config.getChildWithName (IO);
+            if (io.hasProperty (paramId))
+                return io;
+
+            // Stage section
+            auto stage = config.getChildWithName (Stage);
+            if (stage.hasProperty (paramId))
+                return stage;
+
+            // Master section
+            auto master = config.getChildWithName (Master);
+            if (master.hasProperty (paramId))
+                return master;
+
+            // Network section
+            auto network = config.getChildWithName (Network);
+            if (network.hasProperty (paramId))
+                return network;
+
+            // ADM-OSC section
+            auto admosc = config.getChildWithName (ADMOSC);
+            if (admosc.hasProperty (paramId))
+                return admosc;
+
+            // Tracking section
+            auto tracking = config.getChildWithName (Tracking);
+            if (tracking.hasProperty (paramId))
+                return tracking;
+
+            return {};
+        }
+
+        case ParameterScope::Input:
+        {
+            if (channelIndex < 0)
+                return {};
+
+            auto inputs = mutableState.getChildWithName (Inputs);
+            if (!inputs.isValid() || channelIndex >= inputs.getNumChildren())
+                return {};
+
+            auto input = inputs.getChild (channelIndex);
+
+            // Search subsections
+            for (int i = 0; i < input.getNumChildren(); ++i)
+            {
+                auto child = input.getChild (i);
+                if (child.hasProperty (paramId))
+                    return child;
+            }
+            return {};
+        }
+
+        case ParameterScope::Output:
+        {
+            if (channelIndex < 0)
+                return {};
+
+            auto outputs = mutableState.getChildWithName (Outputs);
+            if (!outputs.isValid() || channelIndex >= outputs.getNumChildren())
+                return {};
+
+            auto output = outputs.getChild (channelIndex);
+
+            // Search subsections
+            for (int i = 0; i < output.getNumChildren(); ++i)
+            {
+                auto child = output.getChild (i);
+                if (child.hasProperty (paramId))
+                    return child;
+
+                // Check EQ bands
+                if (child.getType() == EQ)
+                {
+                    for (int j = 0; j < child.getNumChildren(); ++j)
+                    {
+                        auto band = child.getChild (j);
+                        if (band.hasProperty (paramId))
+                            return band;
+                    }
+                }
+            }
+            return {};
+        }
+
+        case ParameterScope::AudioPatch:
+        {
+            auto audioPatch = mutableState.getChildWithName (AudioPatch);
+            if (audioPatch.hasProperty (paramId))
+                return audioPatch;
+            return {};
+        }
+
+        default:
+            return {};
+    }
+}
+
+void WFSValueTreeState::notifyParameterListeners (const juce::Identifier& paramId,
+                                                   const juce::var& value,
+                                                   int channelIndex)
+{
+    juce::ScopedLock lock (listenerLock);
+
+    for (const auto& entry : parameterListeners)
+    {
+        if (entry.parameterId == paramId &&
+            (entry.channelIndex == -1 || entry.channelIndex == channelIndex))
+        {
+            entry.callback (value);
+        }
+    }
+}
+
+WFSValueTreeState::ParameterScope WFSValueTreeState::getParameterScope (const juce::Identifier& paramId) const
+{
+    // Check if it's an input parameter
+    juce::String paramName = paramId.toString();
+    if (paramName.startsWith ("input"))
+        return ParameterScope::Input;
+
+    // Check if it's an output parameter
+    if (paramName.startsWith ("output") || paramName.startsWith ("eq"))
+        return ParameterScope::Output;
+
+    // Check if it's an audio patch parameter
+    if (paramId == driverMode || paramId == audioInterface ||
+        paramId == inputMatrixMode || paramId == outputMatrixMode ||
+        paramId == testTone || paramId == sineFrequency || paramId == testToneLevel ||
+        paramId == patchData)
+        return ParameterScope::AudioPatch;
+
+    // Default to config
+    return ParameterScope::Config;
+}

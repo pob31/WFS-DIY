@@ -156,6 +156,8 @@
   <ItemGroup>
     <ClCompile Include="..\..\Source\Main.cpp"/>
     <ClCompile Include="..\..\Source\MainComponent.cpp"/>
+    <ClCompile Include="..\..\Source\Parameters\WFSValueTreeState.cpp"/>
+    <ClCompile Include="..\..\Source\Parameters\WFSFileManager.cpp"/>
     <ClCompile Include="..\..\Source\GpuInputBufferAlgorithm.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
@@ -3396,6 +3398,10 @@
     <ClInclude Include="..\..\Source\gui\MapTab.h"/>
     <ClInclude Include="..\..\Source\MainComponent.h"/>
     <ClInclude Include="..\..\Source\WfsParameters.h"/>
+    <ClInclude Include="..\..\Source\Parameters\WFSParameterIDs.h"/>
+    <ClInclude Include="..\..\Source\Parameters\WFSParameterDefaults.h"/>
+    <ClInclude Include="..\..\Source\Parameters\WFSValueTreeState.h"/>
+    <ClInclude Include="..\..\Source\Parameters\WFSFileManager.h"/>
     <ClInclude Include="..\..\Source\WFSAlgorithm.h"/>
     <ClInclude Include="..\..\Source\InputBufferProcessor.h"/>
     <ClInclude Include="..\..\Source\InputBufferAlgorithm.h"/>

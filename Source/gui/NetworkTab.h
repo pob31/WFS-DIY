@@ -97,7 +97,8 @@ public:
         loadParametersFromValueTree();
 
         // Listen to parameter changes
-        parameters.getConfigTree().addListener(this);
+        configTree = parameters.getConfigTree();
+        configTree.addListener(this);
 
         // Update current IP address
         updateCurrentIP();
@@ -112,7 +113,7 @@ public:
 
     ~NetworkTab() override
     {
-        parameters.getConfigTree().removeListener(this);
+        configTree.removeListener(this);
     }
 
     void setStatusBar(StatusBar* bar)
@@ -363,6 +364,7 @@ public:
 
 private:
     WfsParameters& parameters;
+    juce::ValueTree configTree;  // Store for safe listener removal in destructor
     StatusBar* statusBar = nullptr;
 
     // ==================== NETWORK CONNECTIONS TABLE ====================

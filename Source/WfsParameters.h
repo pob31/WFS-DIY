@@ -1,300 +1,319 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "Parameters/WFSParameterIDs.h"
+#include "Parameters/WFSParameterDefaults.h"
+#include "Parameters/WFSValueTreeState.h"
+#include "Parameters/WFSFileManager.h"
 
 /**
- * WFS Parameter Management System
+ * WFS Parameters - Backward Compatible Wrapper
  *
- * Manages all application parameters using JUCE ValueTree for:
- * - Hierarchical parameter organization
- * - Automatic undo/redo support
- * - Efficient save/load with scope filtering
- * - Thread-safe parameter access
+ * This class provides backward compatibility for existing GUI code
+ * while using the new WFSValueTreeState system internally.
  *
- * Parameter Scopes:
- * - Config: System configuration (I/O, stage, network, etc.)
- * - Input: Input channel settings (per-channel parameters)
- * - Output: Output channel settings (per-channel parameters)
- * - Snapshot: Scene snapshots with scope-based recall filtering
+ * For new code, prefer using WFSValueTreeState directly.
  */
 class WfsParameters
 {
 public:
     WfsParameters()
+        : fileManager (valueTreeState)
     {
-        initializeParameterTree();
     }
 
-    // Parameter Scopes for save/load filtering
-    enum class Scope
-    {
-        Config,      // System configuration
-        Input,       // Input channel parameters
-        Output,      // Output channel parameters
-        Snapshot     // Scene snapshots
-    };
-
     //==============================================================================
-    // Parameter Access
+    // Config Parameter Access (backward compatible API)
+    //==============================================================================
 
     /** Get config parameter value */
-    juce::var getConfigParam(const juce::String& paramName) const
+    juce::var getConfigParam (const juce::String& paramName) const
     {
-        return configParams.getProperty(paramName);
+        // Map old parameter names to new identifiers
+        auto id = mapParamNameToIdentifier (paramName);
+
+        // Try to find in config sections
+        auto config = valueTreeState.getConfigState();
+        if (!config.isValid())
+            return {};
+
+        // Search through all config subsections
+        for (int i = 0; i < config.getNumChildren(); ++i)
+        {
+            auto child = config.getChild (i);
+            if (child.hasProperty (id))
+                return child.getProperty (id);
+        }
+
+        return {};
     }
 
     /** Set config parameter value */
-    void setConfigParam(const juce::String& paramName, const juce::var& value)
+    void setConfigParam (const juce::String& paramName, const juce::var& value)
     {
-        configParams.setProperty(paramName, value, nullptr);
+        auto id = mapParamNameToIdentifier (paramName);
+
+        auto config = valueTreeState.getConfigState();
+        if (!config.isValid())
+            return;
+
+        // Search through all config subsections and set
+        for (int i = 0; i < config.getNumChildren(); ++i)
+        {
+            auto child = config.getChild (i);
+            if (child.hasProperty (id))
+            {
+                child.setProperty (id, value, valueTreeState.getUndoManager());
+                return;
+            }
+        }
+
+        // If not found, try setting directly on subsections based on param prefix
+        setConfigParamBySection (paramName, id, value);
     }
 
+    //==============================================================================
+    // Input Parameter Access (backward compatible API)
+    //==============================================================================
+
     /** Get input channel parameter */
-    juce::var getInputParam(int channelIndex, const juce::String& paramName) const
+    juce::var getInputParam (int channelIndex, const juce::String& paramName) const
     {
-        auto channel = inputParams.getChild(channelIndex);
-        return channel.isValid() ? channel.getProperty(paramName) : juce::var();
+        auto id = mapParamNameToIdentifier (paramName);
+        return valueTreeState.getInputParameter (channelIndex, id);
     }
 
     /** Set input channel parameter */
-    void setInputParam(int channelIndex, const juce::String& paramName, const juce::var& value)
+    void setInputParam (int channelIndex, const juce::String& paramName, const juce::var& value)
     {
-        auto channel = inputParams.getChild(channelIndex);
-        if (channel.isValid())
-            channel.setProperty(paramName, value, nullptr);
+        auto id = mapParamNameToIdentifier (paramName);
+        valueTreeState.setInputParameter (channelIndex, id, value);
     }
 
+    //==============================================================================
+    // Output Parameter Access (backward compatible API)
+    //==============================================================================
+
     /** Get output channel parameter */
-    juce::var getOutputParam(int channelIndex, const juce::String& paramName) const
+    juce::var getOutputParam (int channelIndex, const juce::String& paramName) const
     {
-        auto channel = outputParams.getChild(channelIndex);
-        return channel.isValid() ? channel.getProperty(paramName) : juce::var();
+        auto id = mapParamNameToIdentifier (paramName);
+        return valueTreeState.getOutputParameter (channelIndex, id);
     }
 
     /** Set output channel parameter */
-    void setOutputParam(int channelIndex, const juce::String& paramName, const juce::var& value)
+    void setOutputParam (int channelIndex, const juce::String& paramName, const juce::var& value)
     {
-        auto channel = outputParams.getChild(channelIndex);
-        if (channel.isValid())
-            channel.setProperty(paramName, value, nullptr);
+        auto id = mapParamNameToIdentifier (paramName);
+        valueTreeState.setOutputParameter (channelIndex, id, value);
     }
 
     //==============================================================================
-    // Channel Management
+    // Channel Management (backward compatible API)
+    //==============================================================================
 
-    /** Set number of input channels and initialize their parameters */
-    void setNumInputChannels(int numChannels)
+    void setNumInputChannels (int numChannels)
     {
-        inputParams.removeAllChildren(nullptr);
-        for (int i = 0; i < numChannels; ++i)
-        {
-            juce::ValueTree channel("InputChannel");
-            initializeInputChannelParams(channel, i);
-            inputParams.appendChild(channel, nullptr);
-        }
+        valueTreeState.setNumInputChannels (numChannels);
     }
 
-    /** Set number of output channels and initialize their parameters */
-    void setNumOutputChannels(int numChannels)
+    void setNumOutputChannels (int numChannels)
     {
-        outputParams.removeAllChildren(nullptr);
-        for (int i = 0; i < numChannels; ++i)
-        {
-            juce::ValueTree channel("OutputChannel");
-            initializeOutputChannelParams(channel, i);
-            outputParams.appendChild(channel, nullptr);
-        }
+        valueTreeState.setNumOutputChannels (numChannels);
     }
 
-    int getNumInputChannels() const { return inputParams.getNumChildren(); }
-    int getNumOutputChannels() const { return outputParams.getNumChildren(); }
+    int getNumInputChannels() const { return valueTreeState.getNumInputChannels(); }
+    int getNumOutputChannels() const { return valueTreeState.getNumOutputChannels(); }
 
     //==============================================================================
-    // Save/Load
+    // ValueTree Access (backward compatible API)
+    //==============================================================================
 
-    /** Save complete configuration to XML file */
-    bool saveCompleteConfig(const juce::File& file)
+    juce::ValueTree getRootTree() { return valueTreeState.getState(); }
+    juce::ValueTree getConfigTree() { return valueTreeState.getConfigState(); }
+    juce::ValueTree getInputTree() { return valueTreeState.getInputsState(); }
+    juce::ValueTree getOutputTree() { return valueTreeState.getOutputsState(); }
+
+    //==============================================================================
+    // Save/Load (backward compatible API)
+    //==============================================================================
+
+    bool saveCompleteConfig (const juce::File& file)
     {
-        auto xml = rootParams.createXml();
-        if (xml != nullptr)
-            return xml->writeTo(file);
-        return false;
+        return fileManager.exportCompleteConfig (file);
     }
 
-    /** Load complete configuration from XML file */
-    bool loadCompleteConfig(const juce::File& file)
+    bool loadCompleteConfig (const juce::File& file)
     {
-        auto xml = juce::parseXML(file);
-        if (xml != nullptr)
+        return fileManager.importCompleteConfig (file);
+    }
+
+    bool saveSystemConfig (const juce::File& file)
+    {
+        return fileManager.exportSystemConfig (file);
+    }
+
+    bool loadSystemConfig (const juce::File& file)
+    {
+        return fileManager.importSystemConfig (file);
+    }
+
+    bool saveSnapshot (const juce::File& file, bool includeInput, bool includeOutput, bool includeConfig)
+    {
+        WFSFileManager::SnapshotScope scope;
+        // If includeConfig is false, we just save input/output
+        if (!includeInput && !includeOutput && includeConfig)
         {
-            auto loadedTree = juce::ValueTree::fromXml(*xml);
-            if (loadedTree.isValid())
-            {
-                rootParams.copyPropertiesAndChildrenFrom(loadedTree, nullptr);
-                return true;
-            }
+            return fileManager.exportSystemConfig (file);
         }
-        return false;
-    }
-
-    /** Save only system configuration (not channel data) */
-    bool saveSystemConfig(const juce::File& file)
-    {
-        auto xml = configParams.createXml();
-        if (xml != nullptr)
-            return xml->writeTo(file);
-        return false;
-    }
-
-    /** Load only system configuration */
-    bool loadSystemConfig(const juce::File& file)
-    {
-        auto xml = juce::parseXML(file);
-        if (xml != nullptr)
-        {
-            auto loadedTree = juce::ValueTree::fromXml(*xml);
-            if (loadedTree.isValid())
-            {
-                configParams.copyPropertiesAndChildrenFrom(loadedTree, nullptr);
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /** Save snapshot with scope filtering */
-    bool saveSnapshot(const juce::File& file, bool includeInput, bool includeOutput, bool includeConfig)
-    {
-        juce::ValueTree snapshot("Snapshot");
-
-        if (includeConfig)
-            snapshot.appendChild(configParams.createCopy(), nullptr);
         if (includeInput)
-            snapshot.appendChild(inputParams.createCopy(), nullptr);
+        {
+            return fileManager.exportInputConfig (file);
+        }
         if (includeOutput)
-            snapshot.appendChild(outputParams.createCopy(), nullptr);
-
-        auto xml = snapshot.createXml();
-        if (xml != nullptr)
-            return xml->writeTo(file);
-        return false;
+        {
+            return fileManager.exportOutputConfig (file);
+        }
+        return fileManager.exportCompleteConfig (file);
     }
 
-    /** Load snapshot with scope filtering */
-    bool loadSnapshot(const juce::File& file, bool includeInput, bool includeOutput, bool includeConfig)
+    bool loadSnapshot (const juce::File& file, bool includeInput, bool includeOutput, bool includeConfig)
     {
-        auto xml = juce::parseXML(file);
-        if (xml != nullptr)
+        if (!includeInput && !includeOutput && includeConfig)
         {
-            auto snapshot = juce::ValueTree::fromXml(*xml);
-            if (snapshot.isValid())
-            {
-                if (includeConfig)
-                {
-                    auto config = snapshot.getChildWithName("ConfigParams");
-                    if (config.isValid())
-                        configParams.copyPropertiesAndChildrenFrom(config, nullptr);
-                }
-                if (includeInput)
-                {
-                    auto input = snapshot.getChildWithName("InputParams");
-                    if (input.isValid())
-                        inputParams.copyPropertiesAndChildrenFrom(input, nullptr);
-                }
-                if (includeOutput)
-                {
-                    auto output = snapshot.getChildWithName("OutputParams");
-                    if (output.isValid())
-                        outputParams.copyPropertiesAndChildrenFrom(output, nullptr);
-                }
-                return true;
-            }
+            return fileManager.importSystemConfig (file);
         }
-        return false;
+        if (includeInput && !includeOutput && !includeConfig)
+        {
+            return fileManager.importInputConfig (file);
+        }
+        if (includeOutput && !includeInput && !includeConfig)
+        {
+            return fileManager.importOutputConfig (file);
+        }
+        return fileManager.importCompleteConfig (file);
     }
 
     //==============================================================================
-    // ValueTree Access (for listeners)
+    // Direct Access to New System
+    //==============================================================================
 
-    juce::ValueTree& getRootTree() { return rootParams; }
-    juce::ValueTree& getConfigTree() { return configParams; }
-    juce::ValueTree& getInputTree() { return inputParams; }
-    juce::ValueTree& getOutputTree() { return outputParams; }
+    /** Get direct access to the new WFSValueTreeState */
+    WFSValueTreeState& getValueTreeState() { return valueTreeState; }
+    const WFSValueTreeState& getValueTreeState() const { return valueTreeState; }
+
+    /** Get direct access to the file manager */
+    WFSFileManager& getFileManager() { return fileManager; }
+    const WFSFileManager& getFileManager() const { return fileManager; }
+
+    /** Get undo manager */
+    juce::UndoManager* getUndoManager() { return valueTreeState.getUndoManager(); }
 
 private:
-    void initializeParameterTree()
+    WFSValueTreeState valueTreeState;
+    WFSFileManager fileManager;
+
+    //==============================================================================
+    // Parameter Name Mapping
+    //==============================================================================
+
+    /** Map old-style parameter names to new Identifiers */
+    static juce::Identifier mapParamNameToIdentifier (const juce::String& paramName)
     {
-        rootParams = juce::ValueTree("WfsParameters");
-        configParams = juce::ValueTree("ConfigParams");
-        inputParams = juce::ValueTree("InputParams");
-        outputParams = juce::ValueTree("OutputParams");
+        // Direct mapping - most names are the same
+        // Handle special cases for old naming conventions
 
-        rootParams.appendChild(configParams, nullptr);
-        rootParams.appendChild(inputParams, nullptr);
-        rootParams.appendChild(outputParams, nullptr);
+        // Show section
+        if (paramName == "ShowName") return WFSParameterIDs::showName;
+        if (paramName == "ShowLocation") return WFSParameterIDs::showLocation;
 
-        initializeConfigParams();
+        // I/O section
+        if (paramName == "InputChannels") return WFSParameterIDs::inputChannels;
+        if (paramName == "OutputChannels") return WFSParameterIDs::outputChannels;
+        if (paramName == "ReverbChannels") return WFSParameterIDs::reverbChannels;
+        if (paramName == "ProcessingEnabled") return WFSParameterIDs::runDSP;
+        if (paramName == "ProcessingAlgorithm") return WFSParameterIDs::algorithmDSP;
+
+        // Stage section
+        if (paramName == "StageWidth") return WFSParameterIDs::stageWidth;
+        if (paramName == "StageDepth") return WFSParameterIDs::stageDepth;
+        if (paramName == "StageHeight") return WFSParameterIDs::stageHeight;
+        if (paramName == "StageOriginWidth") return WFSParameterIDs::originWidth;
+        if (paramName == "StageOriginDepth") return WFSParameterIDs::originDepth;
+        if (paramName == "StageOriginHeight") return WFSParameterIDs::originHeight;
+        if (paramName == "SpeedOfSound") return WFSParameterIDs::speedOfSound;
+        if (paramName == "Temperature") return WFSParameterIDs::temperature;
+
+        // Master section
+        if (paramName == "MasterLevel") return WFSParameterIDs::masterLevel;
+        if (paramName == "SystemLatency") return WFSParameterIDs::systemLatency;
+        if (paramName == "HaasEffect") return WFSParameterIDs::haasEffect;
+
+        // Network section
+        if (paramName == "CurrentIPv4" || paramName == "NetworkCurrentIP") return WFSParameterIDs::networkCurrentIP;
+        if (paramName == "UdpPort" || paramName == "NetworkRxUDPport") return WFSParameterIDs::networkRxUDPport;
+        if (paramName == "TcpPort" || paramName == "NetworkRxTCPport") return WFSParameterIDs::networkRxTCPport;
+        if (paramName == "NetworkInterface") return WFSParameterIDs::networkInterface;
+
+        // ADM-OSC section
+        if (paramName == "AdmOscOffsetX") return WFSParameterIDs::admOscOffsetX;
+        if (paramName == "AdmOscOffsetY") return WFSParameterIDs::admOscOffsetY;
+        if (paramName == "AdmOscOffsetZ") return WFSParameterIDs::admOscOffsetZ;
+        if (paramName == "AdmOscScaleX") return WFSParameterIDs::admOscScaleX;
+        if (paramName == "AdmOscScaleY") return WFSParameterIDs::admOscScaleY;
+        if (paramName == "AdmOscScaleZ") return WFSParameterIDs::admOscScaleZ;
+        if (paramName == "AdmOscFlipX") return WFSParameterIDs::admOscFlipX;
+        if (paramName == "AdmOscFlipY") return WFSParameterIDs::admOscFlipY;
+        if (paramName == "AdmOscFlipZ") return WFSParameterIDs::admOscFlipZ;
+
+        // Tracking section
+        if (paramName == "TrackingEnabled") return WFSParameterIDs::trackingEnabled;
+        if (paramName == "TrackingProtocol") return WFSParameterIDs::trackingProtocol;
+        if (paramName == "TrackingPort") return WFSParameterIDs::trackingPort;
+        if (paramName == "TrackingOffsetX") return WFSParameterIDs::trackingOffsetX;
+        if (paramName == "TrackingOffsetY") return WFSParameterIDs::trackingOffsetY;
+        if (paramName == "TrackingOffsetZ") return WFSParameterIDs::trackingOffsetZ;
+        if (paramName == "TrackingScaleX") return WFSParameterIDs::trackingScaleX;
+        if (paramName == "TrackingScaleY") return WFSParameterIDs::trackingScaleY;
+        if (paramName == "TrackingScaleZ") return WFSParameterIDs::trackingScaleZ;
+        if (paramName == "TrackingFlipX") return WFSParameterIDs::trackingFlipX;
+        if (paramName == "TrackingFlipY") return WFSParameterIDs::trackingFlipY;
+        if (paramName == "TrackingFlipZ") return WFSParameterIDs::trackingFlipZ;
+
+        // Default: use the parameter name directly as identifier
+        return juce::Identifier (paramName);
     }
 
-    void initializeConfigParams()
+    /** Set config parameter by determining section from param name */
+    void setConfigParamBySection (const juce::String& paramName, const juce::Identifier& id, const juce::var& value)
     {
-        // Show Section
-        configParams.setProperty("ShowName", "My Show", nullptr);
-        configParams.setProperty("ShowLocation", "", nullptr);
+        auto config = valueTreeState.getConfigState();
+        if (!config.isValid())
+            return;
 
-        // I/O Section
-        configParams.setProperty("InputChannels", 8, nullptr);
-        configParams.setProperty("OutputChannels", 16, nullptr);
-        configParams.setProperty("ReverbChannels", 0, nullptr);
-        configParams.setProperty("ProcessingEnabled", false, nullptr);
+        // Determine which section based on param name prefix or known params
+        juce::ValueTree targetSection;
 
-        // Stage Section
-        configParams.setProperty("StageWidth", 20.0f, nullptr);
-        configParams.setProperty("StageDepth", 10.0f, nullptr);
-        configParams.setProperty("StageHeight", 8.0f, nullptr);
-        configParams.setProperty("StageOriginWidth", 10.0f, nullptr);  // Default to half of stage width
-        configParams.setProperty("StageOriginDepth", 0.0f, nullptr);
-        configParams.setProperty("StageOriginHeight", 0.0f, nullptr);
-        configParams.setProperty("SpeedOfSound", 343.0f, nullptr);
-        configParams.setProperty("Temperature", 20.0f, nullptr);
+        if (paramName.startsWith ("Show") || id == WFSParameterIDs::showName || id == WFSParameterIDs::showLocation)
+            targetSection = config.getChildWithName (WFSParameterIDs::Show);
+        else if (paramName.startsWith ("Stage") || paramName.startsWith ("Origin") ||
+                 paramName == "SpeedOfSound" || paramName == "Temperature")
+            targetSection = config.getChildWithName (WFSParameterIDs::Stage);
+        else if (paramName.startsWith ("Master") || paramName == "SystemLatency" || paramName == "HaasEffect")
+            targetSection = config.getChildWithName (WFSParameterIDs::Master);
+        else if (paramName.startsWith ("Network") || paramName.startsWith ("Current") ||
+                 paramName.contains ("Port") || paramName.contains ("Udp") || paramName.contains ("Tcp"))
+            targetSection = config.getChildWithName (WFSParameterIDs::Network);
+        else if (paramName.startsWith ("AdmOsc"))
+            targetSection = config.getChildWithName (WFSParameterIDs::ADMOSC);
+        else if (paramName.startsWith ("Tracking"))
+            targetSection = config.getChildWithName (WFSParameterIDs::Tracking);
+        else
+            targetSection = config.getChildWithName (WFSParameterIDs::IO);
 
-        // Master Section
-        configParams.setProperty("MasterLevel", 0.0f, nullptr);
-        configParams.setProperty("SystemLatency", 0.0f, nullptr);
-        configParams.setProperty("HaasEffect", 0.0f, nullptr);
-
-        // Network Section
-        configParams.setProperty("CurrentIPv4", "127.0.0.1", nullptr);
-        configParams.setProperty("UdpPort", 9000, nullptr);
-        configParams.setProperty("TcpPort", 9001, nullptr);
-
-        // ADM-OSC Section (to be added)
-        // Tracking Section (to be added)
+        if (targetSection.isValid())
+            targetSection.setProperty (id, value, valueTreeState.getUndoManager());
     }
 
-    void initializeInputChannelParams(juce::ValueTree& channel, int index)
-    {
-        channel.setProperty("ChannelIndex", index, nullptr);
-        channel.setProperty("Name", "Input " + juce::String(index + 1), nullptr);
-        channel.setProperty("Enabled", true, nullptr);
-        channel.setProperty("Gain", 0.0f, nullptr);
-        channel.setProperty("Pan", 0.0f, nullptr);
-        // Additional input channel parameters to be added
-    }
-
-    void initializeOutputChannelParams(juce::ValueTree& channel, int index)
-    {
-        channel.setProperty("ChannelIndex", index, nullptr);
-        channel.setProperty("Name", "Output " + juce::String(index + 1), nullptr);
-        channel.setProperty("Enabled", true, nullptr);
-        channel.setProperty("Gain", 0.0f, nullptr);
-        // Additional output channel parameters to be added
-    }
-
-    juce::ValueTree rootParams;
-    juce::ValueTree configParams;
-    juce::ValueTree inputParams;
-    juce::ValueTree outputParams;
-
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(WfsParameters)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (WfsParameters)
 };

@@ -403,7 +403,8 @@ public:
         haasEffectEditor.addListener(this);
 
         // Listen to parameter changes
-        parameters.getConfigTree().addListener(this);
+        configTree = parameters.getConfigTree();
+        configTree.addListener(this);
 
         // Load initial values
         loadParametersToUI();
@@ -411,7 +412,7 @@ public:
 
     ~SystemConfigTab() override
     {
-        parameters.getConfigTree().removeListener(this);
+        configTree.removeListener(this);
     }
 
     void paint(juce::Graphics& g) override
@@ -1250,6 +1251,7 @@ private:
     // Member variables
 
     WfsParameters& parameters;
+    juce::ValueTree configTree;  // Store for safe listener removal in destructor
     StatusBar* statusBar = nullptr;
     std::map<juce::Component*, juce::String> helpTextMap;
     bool processingEnabled = false;
