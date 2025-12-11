@@ -9,7 +9,7 @@ public:
     {
         setWantsKeyboardFocus(false);
         setFocusContainerType(FocusContainerType::none);
-        setOpaque(true); // Opaque to prevent JUCE from drawing default backgrounds
+        setOpaque(false); // Transparent background
         setMouseClickGrabsKeyboardFocus(false);
     }
     
@@ -66,9 +66,6 @@ public:
 private:
     void paint(juce::Graphics& g) override
     {
-        // Always fill with black background to prevent any hover background from showing
-        g.fillAll(juce::Colours::black);
-        
         auto bounds = getLocalBounds().toFloat();
         auto size = juce::jmin(bounds.getWidth(), bounds.getHeight());
         auto centre = bounds.getCentre();

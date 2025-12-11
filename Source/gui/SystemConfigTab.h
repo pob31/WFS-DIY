@@ -316,7 +316,7 @@ public:
         temperatureLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(temperatureEditor);
         addAndMakeVisible(temperatureUnitLabel);
-        temperatureUnitLabel.setText("C", juce::dontSendNotification);
+        temperatureUnitLabel.setText(juce::CharPointer_UTF8("\xc2\xb0""C"), juce::dontSendNotification);
         temperatureUnitLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
         // Master Section

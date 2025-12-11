@@ -24,7 +24,7 @@ public:
         setRepaintsOnMouseActivity(false); // Disable to prevent hover effects - mouseDrag will repaint manually
         setWantsKeyboardFocus(false);
         setFocusContainerType(FocusContainerType::none);
-        setOpaque(true); // Opaque to prevent JUCE from drawing default backgrounds
+        setOpaque(false); // Transparent background
         setMouseClickGrabsKeyboardFocus(false);
     }
     
@@ -198,8 +198,6 @@ protected:
 private:
     void paint(juce::Graphics& g) override
     {
-        // Always fill with black background to prevent any hover background from showing
-        g.fillAll(juce::Colours::black);
         auto bounds = getLocalBounds().toFloat();
         paintSlider(g, bounds);
     }
