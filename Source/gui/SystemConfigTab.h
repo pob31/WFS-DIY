@@ -418,6 +418,15 @@ public:
     {
         g.fillAll(juce::Colour(0xFF1E1E1E));
 
+        // Footer background (matching Input/Output tabs)
+        const int footerHeight = 90;  // Two button rows
+        g.setColour(juce::Colour(0xFF252525));
+        g.fillRect(0, getHeight() - footerHeight, getWidth(), footerHeight);
+
+        // Footer divider line
+        g.setColour(juce::Colour(0xFF404040));
+        g.drawLine(0.0f, (float)(getHeight() - footerHeight), (float)getWidth(), (float)(getHeight() - footerHeight), 1.0f);
+
         // Section headers
         g.setColour(juce::Colours::white);
         g.setFont(14.0f);

@@ -77,10 +77,6 @@ private:
             centre.x - trackRadius, centre.y - trackRadius,
             trackRadius * 2.0f, trackRadius * 2.0f), trackWidth);
 
-        // Draw outer rim
-        g.setColour(backgroundColour.brighter(0.2f));
-        g.drawEllipse(circleBounds, 2.0f);
-
         // Draw indicator dot on the track (Android app style)
         // +90 offset so 0° is at the bottom
         auto angleRad = juce::degreesToRadians(angleDegrees + 90.0f);

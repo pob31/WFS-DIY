@@ -9,7 +9,7 @@ public:
     {
         setWantsKeyboardFocus(false);
         setFocusContainerType(FocusContainerType::none);
-        setOpaque(true); // Opaque to prevent JUCE from drawing default backgrounds
+        setOpaque(false); // Transparent background
         setMouseClickGrabsKeyboardFocus(false);
     }
     
@@ -49,9 +49,6 @@ public:
 private:
     void paint(juce::Graphics& g) override
     {
-        // Always fill with black background to prevent any hover background from showing
-        g.fillAll(juce::Colours::black);
-        
         auto bounds = getLocalBounds().toFloat();
         auto size = juce::jmin(bounds.getWidth(), bounds.getHeight());
         auto centre = bounds.getCentre();
@@ -73,10 +70,6 @@ private:
         g.drawEllipse(juce::Rectangle<float>(
             centre.x - trackRadius, centre.y - trackRadius,
             trackRadius * 2.0f, trackRadius * 2.0f), trackWidth);
-
-        // Draw outer rim
-        g.setColour(backgroundColour.brighter(0.2f));
-        g.drawEllipse(circleBounds, 2.0f);
 
         // Draw indicator dot on the track (Android app style)
         auto angleRad = juce::degreesToRadians(angleDegrees - 90.0f);

@@ -115,9 +115,23 @@ public:
         parameters.getConfigTree().removeListener(this);
     }
 
+    void setStatusBar(StatusBar* bar)
+    {
+        statusBar = bar;
+    }
+
     void paint(juce::Graphics& g) override
     {
         g.fillAll(juce::Colour(0xFF1E1E1E));
+
+        // Footer background (matching Input/Output tabs)
+        const int footerHeight = 50;
+        g.setColour(juce::Colour(0xFF252525));
+        g.fillRect(0, getHeight() - footerHeight, getWidth(), footerHeight);
+
+        // Footer divider line
+        g.setColour(juce::Colour(0xFF404040));
+        g.drawLine(0.0f, (float)(getHeight() - footerHeight), (float)getWidth(), (float)(getHeight() - footerHeight), 1.0f);
 
         // Draw section headers
         g.setColour(juce::Colours::white);

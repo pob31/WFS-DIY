@@ -170,6 +170,7 @@ MainComponent::MainComponent()
 
     // Pass status bar to tabs that support it
     systemConfigTab->setStatusBar(statusBar);
+    networkTab->setStatusBar(statusBar);
     outputsTab->setStatusBar(statusBar);
     inputsTab->setStatusBar(statusBar);
 

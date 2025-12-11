@@ -7,6 +7,106 @@
 #include "DialUIComponents.h"
 #include "StatusBar.h"
 
+//==============================================================================
+// Custom Transport Button - Play (right-pointing triangle)
+class PlayButton : public juce::Button
+{
+public:
+    PlayButton() : juce::Button("Play") {}
+
+    void paintButton(juce::Graphics& g, bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown) override
+    {
+        auto bounds = getLocalBounds().toFloat().reduced(2.0f);
+
+        // Background
+        if (shouldDrawButtonAsDown)
+            g.setColour(juce::Colour(0xFF404040));
+        else if (shouldDrawButtonAsHighlighted)
+            g.setColour(juce::Colour(0xFF353535));
+        else
+            g.setColour(juce::Colour(0xFF2A2A2A));
+
+        g.fillRoundedRectangle(bounds, 4.0f);
+        g.setColour(juce::Colour(0xFF606060));
+        g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
+
+        // Draw play triangle
+        auto iconBounds = bounds.reduced(10.0f);
+        juce::Path triangle;
+        triangle.addTriangle(
+            iconBounds.getX(), iconBounds.getY(),
+            iconBounds.getX(), iconBounds.getBottom(),
+            iconBounds.getRight(), iconBounds.getCentreY());
+
+        g.setColour(juce::Colours::white);
+        g.fillPath(triangle);
+    }
+};
+
+//==============================================================================
+// Custom Transport Button - Stop (square)
+class StopButton : public juce::Button
+{
+public:
+    StopButton() : juce::Button("Stop") {}
+
+    void paintButton(juce::Graphics& g, bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown) override
+    {
+        auto bounds = getLocalBounds().toFloat().reduced(2.0f);
+
+        // Background
+        if (shouldDrawButtonAsDown)
+            g.setColour(juce::Colour(0xFF404040));
+        else if (shouldDrawButtonAsHighlighted)
+            g.setColour(juce::Colour(0xFF353535));
+        else
+            g.setColour(juce::Colour(0xFF2A2A2A));
+
+        g.fillRoundedRectangle(bounds, 4.0f);
+        g.setColour(juce::Colour(0xFF606060));
+        g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
+
+        // Draw stop square
+        auto iconBounds = bounds.reduced(10.0f);
+        g.setColour(juce::Colours::white);
+        g.fillRect(iconBounds);
+    }
+};
+
+//==============================================================================
+// Custom Transport Button - Pause (two vertical bars)
+class PauseButton : public juce::Button
+{
+public:
+    PauseButton() : juce::Button("Pause") {}
+
+    void paintButton(juce::Graphics& g, bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown) override
+    {
+        auto bounds = getLocalBounds().toFloat().reduced(2.0f);
+
+        // Background - toggle state affects color
+        if (shouldDrawButtonAsDown || getToggleState())
+            g.setColour(juce::Colour(0xFF505050));
+        else if (shouldDrawButtonAsHighlighted)
+            g.setColour(juce::Colour(0xFF353535));
+        else
+            g.setColour(juce::Colour(0xFF2A2A2A));
+
+        g.fillRoundedRectangle(bounds, 4.0f);
+        g.setColour(juce::Colour(0xFF606060));
+        g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
+
+        // Draw pause bars (two vertical rectangles)
+        auto iconBounds = bounds.reduced(10.0f);
+        float barWidth = iconBounds.getWidth() * 0.3f;
+        float gap = iconBounds.getWidth() * 0.4f;
+
+        g.setColour(juce::Colours::white);
+        g.fillRect(iconBounds.getX(), iconBounds.getY(), barWidth, iconBounds.getHeight());
+        g.fillRect(iconBounds.getX() + barWidth + gap, iconBounds.getY(), barWidth, iconBounds.getHeight());
+    }
+};
+
 /**
  * Inputs Tab Component
  * Configuration for input channels (audio objects) with sub-tabs for different parameter groups.
@@ -838,21 +938,6 @@ private:
         frHighShelfSlopeValueLabel.setText("0.40", juce::dontSendNotification);
         frHighShelfSlopeValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         setupEditableValueLabel(frHighShelfSlopeValueLabel);
-
-        // Jitter slider
-        addAndMakeVisible(jitterLabel);
-        jitterLabel.setText("Jitter:", juce::dontSendNotification);
-        jitterLabel.setColour(juce::Label::textColourId, juce::Colours::white);
-        jitterSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFFCDDC39));
-        jitterSlider.onValueChanged = [this](float v) {
-            float meters = 10.0f * v * v;
-            jitterValueLabel.setText(juce::String(meters, 2) + " m", juce::dontSendNotification);
-        };
-        addAndMakeVisible(jitterSlider);
-        addAndMakeVisible(jitterValueLabel);
-        jitterValueLabel.setText("0.00 m", juce::dontSendNotification);
-        jitterValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
-        setupEditableValueLabel(jitterValueLabel);
     }
 
     void setupLfoTab()
@@ -1069,6 +1154,21 @@ private:
         lfoGyrophoneSelector.addItem("OFF", 2);
         lfoGyrophoneSelector.addItem("Clockwise", 3);
         lfoGyrophoneSelector.setSelectedId(2, juce::dontSendNotification);
+
+        // Jitter slider
+        addAndMakeVisible(jitterLabel);
+        jitterLabel.setText("Jitter:", juce::dontSendNotification);
+        jitterLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        jitterSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFFCDDC39));
+        jitterSlider.onValueChanged = [this](float v) {
+            float meters = 10.0f * v * v;
+            jitterValueLabel.setText(juce::String(meters, 2) + " m", juce::dontSendNotification);
+        };
+        addAndMakeVisible(jitterSlider);
+        addAndMakeVisible(jitterValueLabel);
+        jitterValueLabel.setText("0.00 m", juce::dontSendNotification);
+        jitterValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        setupEditableValueLabel(jitterValueLabel);
     }
 
     void setupAutomotionTab()
@@ -1177,17 +1277,14 @@ private:
         otomoResetValueLabel.setJustificationType(juce::Justification::centred);
         setupEditableValueLabel(otomoResetValueLabel);
 
-        // Transport buttons
+        // Transport buttons (custom drawn icons)
         addAndMakeVisible(otomoStartButton);
-        otomoStartButton.setButtonText(juce::String::fromUTF8("\u25B6"));  // Play symbol
         otomoStartButton.onClick = [this]() { /* Start movement */ };
 
         addAndMakeVisible(otomoStopButton);
-        otomoStopButton.setButtonText(juce::String::fromUTF8("\u25A0"));  // Stop symbol
         otomoStopButton.onClick = [this]() { /* Stop movement */ };
 
         addAndMakeVisible(otomoPauseButton);
-        otomoPauseButton.setButtonText(juce::String::fromUTF8("\u23F8"));  // Pause symbol
         otomoPauseButton.setClickingTogglesState(true);
         otomoPauseButton.onClick = [this]() {
             // Toggle pause/resume
@@ -1377,7 +1474,6 @@ private:
         frHighShelfFreqLabel.setVisible(v); frHighShelfFreqSlider.setVisible(v); frHighShelfFreqValueLabel.setVisible(v);
         frHighShelfGainLabel.setVisible(v); frHighShelfGainSlider.setVisible(v); frHighShelfGainValueLabel.setVisible(v);
         frHighShelfSlopeLabel.setVisible(v); frHighShelfSlopeSlider.setVisible(v); frHighShelfSlopeValueLabel.setVisible(v);
-        jitterLabel.setVisible(v); jitterSlider.setVisible(v); jitterValueLabel.setVisible(v);
     }
 
     void layoutInputPropertiesTab()
@@ -1699,13 +1795,6 @@ private:
         frHighShelfSlopeLabel.setBounds(row.removeFromLeft(labelWidth));
         frHighShelfSlopeValueLabel.setBounds(row.removeFromRight(valueWidth));
         frHighShelfSlopeSlider.setBounds(leftCol.removeFromTop(sliderHeight));
-        leftCol.removeFromTop(spacing);
-
-        // Jitter
-        row = leftCol.removeFromTop(rowHeight);
-        jitterLabel.setBounds(row.removeFromLeft(labelWidth));
-        jitterValueLabel.setBounds(row.removeFromRight(valueWidth));
-        jitterSlider.setBounds(leftCol.removeFromTop(sliderHeight));
 
         // Right column - FR Diffusion dial
         frDiffusionLabel.setBounds(rightCol.removeFromTop(rowHeight));
@@ -1732,6 +1821,7 @@ private:
         lfoPhaseYLabel.setVisible(v); lfoPhaseYDial.setVisible(v); lfoPhaseYValueLabel.setVisible(v);
         lfoPhaseZLabel.setVisible(v); lfoPhaseZDial.setVisible(v); lfoPhaseZValueLabel.setVisible(v);
         lfoGyrophoneLabel.setVisible(v); lfoGyrophoneSelector.setVisible(v);
+        jitterLabel.setVisible(v); jitterSlider.setVisible(v); jitterValueLabel.setVisible(v);
     }
 
     void layoutLfoTab()
@@ -1773,6 +1863,13 @@ private:
         auto row = leftCol.removeFromTop(rowHeight);
         lfoGyrophoneLabel.setBounds(row.removeFromLeft(labelWidth));
         lfoGyrophoneSelector.setBounds(row.removeFromLeft(selectorWidth));
+        leftCol.removeFromTop(spacing);
+
+        // Jitter
+        row = leftCol.removeFromTop(rowHeight);
+        jitterLabel.setBounds(row.removeFromLeft(labelWidth));
+        jitterValueLabel.setBounds(row.removeFromRight(valueWidth));
+        jitterSlider.setBounds(leftCol.removeFromTop(sliderHeight));
 
         // ========== MIDDLE COLUMN - X/Y/Z Parameters ==========
         // Shape selectors
@@ -2582,9 +2679,6 @@ private:
     juce::Label frHighShelfSlopeLabel;
     WfsStandardSlider frHighShelfSlopeSlider;
     juce::Label frHighShelfSlopeValueLabel;
-    juce::Label jitterLabel;
-    WfsWidthExpansionSlider jitterSlider;
-    juce::Label jitterValueLabel;
 
     // L.F.O tab
     juce::TextButton lfoActiveButton;
@@ -2607,6 +2701,9 @@ private:
     juce::Label lfoPhaseXValueLabel, lfoPhaseYValueLabel, lfoPhaseZValueLabel;
     juce::Label lfoGyrophoneLabel;
     juce::ComboBox lfoGyrophoneSelector;
+    juce::Label jitterLabel;
+    WfsWidthExpansionSlider jitterSlider;
+    juce::Label jitterValueLabel;
 
     // AutomOtion tab
     juce::Label otomoDestXLabel, otomoDestYLabel, otomoDestZLabel;
@@ -2624,9 +2721,9 @@ private:
     juce::Label otomoResetLabel;
     WfsBasicDial otomoResetDial;
     juce::Label otomoResetValueLabel;
-    juce::TextButton otomoStartButton;
-    juce::TextButton otomoStopButton;
-    juce::TextButton otomoPauseButton;
+    PlayButton otomoStartButton;
+    StopButton otomoStopButton;
+    PauseButton otomoPauseButton;
 
     // Mutes tab
     juce::TextButton muteButtons[64];
