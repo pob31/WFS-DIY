@@ -135,13 +135,38 @@ bool WFSFileManager::saveCompleteConfig()
         return false;
     }
 
-    auto file = getCompleteConfigFile();
+    // Save all individual configuration files
+    bool success = true;
+    juce::StringArray errors;
 
-    // Create backup if file exists
-    if (file.existsAsFile())
-        createBackup (file);
+    if (!saveSystemConfig())
+    {
+        success = false;
+        errors.add ("System: " + lastError);
+    }
 
-    return writeToXmlFile (valueTreeState.getState(), file);
+    if (!saveNetworkConfig())
+    {
+        success = false;
+        errors.add ("Network: " + lastError);
+    }
+
+    if (!saveInputConfig())
+    {
+        success = false;
+        errors.add ("Inputs: " + lastError);
+    }
+
+    if (!saveOutputConfig())
+    {
+        success = false;
+        errors.add ("Outputs: " + lastError);
+    }
+
+    if (!success)
+        setError (errors.joinIntoString ("; "));
+
+    return success;
 }
 
 bool WFSFileManager::loadCompleteConfig()
@@ -152,31 +177,78 @@ bool WFSFileManager::loadCompleteConfig()
         return false;
     }
 
-    auto file = getCompleteConfigFile();
-    auto loadedState = readFromXmlFile (file);
-
-    if (!loadedState.isValid())
-        return false;
-
-    if (!valueTreeState.validateState (loadedState))
-    {
-        setError ("Invalid configuration file structure");
-        return false;
-    }
+    // Load all individual configuration files
+    bool success = true;
+    juce::StringArray errors;
 
     valueTreeState.beginUndoTransaction ("Load Complete Configuration");
-    valueTreeState.replaceState (loadedState);
-    return true;
+
+    if (!loadSystemConfig())
+    {
+        success = false;
+        errors.add ("System: " + lastError);
+    }
+
+    if (!loadNetworkConfig())
+    {
+        success = false;
+        errors.add ("Network: " + lastError);
+    }
+
+    if (!loadInputConfig())
+    {
+        success = false;
+        errors.add ("Inputs: " + lastError);
+    }
+
+    if (!loadOutputConfig())
+    {
+        success = false;
+        errors.add ("Outputs: " + lastError);
+    }
+
+    if (!success)
+        setError (errors.joinIntoString ("; "));
+
+    return success;
 }
 
 bool WFSFileManager::loadCompleteConfigBackup (int backupIndex)
 {
-    auto backups = getBackups ("show");
-    if (backupIndex >= 0 && backupIndex < backups.size())
-        return importCompleteConfig (backups[backupIndex]);
+    // Load most recent backups for each file type
+    bool success = true;
+    juce::StringArray errors;
 
-    setError ("Backup not found");
-    return false;
+    valueTreeState.beginUndoTransaction ("Load Complete Configuration from Backup");
+
+    if (!loadSystemConfigBackup (backupIndex))
+    {
+        success = false;
+        errors.add ("System: " + lastError);
+    }
+
+    if (!loadNetworkConfigBackup (backupIndex))
+    {
+        success = false;
+        errors.add ("Network: " + lastError);
+    }
+
+    if (!loadInputConfigBackup (backupIndex))
+    {
+        success = false;
+        errors.add ("Inputs: " + lastError);
+    }
+
+    if (!loadOutputConfigBackup (backupIndex))
+    {
+        success = false;
+        errors.add ("Outputs: " + lastError);
+    }
+
+    if (!success)
+        setError (errors.joinIntoString ("; "));
+
+    return success;
 }
 
 bool WFSFileManager::exportCompleteConfig (const juce::File& file)
@@ -696,7 +768,7 @@ juce::Array<juce::File> WFSFileManager::getBackups (const juce::String& fileType
 void WFSFileManager::cleanupBackups (int keepCount)
 {
     // Clean up each file type
-    for (auto& type : { "show", "system", "inputs", "outputs" })
+    for (auto& type : { "system", "network", "inputs", "outputs" })
     {
         auto backups = getBackups (type);
         for (int i = keepCount; i < backups.size(); ++i)
