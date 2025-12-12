@@ -968,20 +968,23 @@ private:
             {
                 projectFolder = result;
                 parameters.setConfigParam("ProjectFolder", projectFolder.getFullPathName());
+                parameters.getFileManager().setProjectFolder(projectFolder);
             }
         });
     }
 
     void storeCompleteConfiguration()
     {
-        if (!projectFolder.exists())
+        auto& fileManager = parameters.getFileManager();
+
+        if (!fileManager.hasValidProjectFolder())
         {
             juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
                 "No Project Folder", "Please select a project folder first.");
             return;
         }
 
-        auto configFile = projectFolder.getChildFile("complete_config.xml");
+        auto configFile = fileManager.getCompleteConfigFile();
         if (configFile.existsAsFile())
         {
             if (!juce::AlertWindow::showOkCancelBox(juce::AlertWindow::QuestionIcon,
@@ -990,21 +993,30 @@ private:
                 return;
         }
 
-        // TODO: Implement actual save logic
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
-            "Store Complete Configuration", "Configuration will be saved to:\n" + configFile.getFullPathName());
+        if (fileManager.saveCompleteConfig())
+        {
+            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
+                "Success", "Complete configuration saved to:\n" + configFile.getFullPathName());
+        }
+        else
+        {
+            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                "Error", "Failed to save configuration:\n" + fileManager.getLastError());
+        }
     }
 
     void reloadCompleteConfiguration()
     {
-        if (!projectFolder.exists())
+        auto& fileManager = parameters.getFileManager();
+
+        if (!fileManager.hasValidProjectFolder())
         {
             juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
                 "No Project Folder", "Please select a project folder first.");
             return;
         }
 
-        auto configFile = projectFolder.getChildFile("complete_config.xml");
+        auto configFile = fileManager.getCompleteConfigFile();
         if (!configFile.existsAsFile())
         {
             juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
@@ -1017,25 +1029,34 @@ private:
             juce::String(), juce::String(), nullptr, nullptr))
             return;
 
-        // TODO: Implement actual load logic
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
-            "Reload Complete Configuration", "Configuration will be loaded from:\n" + configFile.getFullPathName());
+        if (fileManager.loadCompleteConfig())
+        {
+            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
+                "Success", "Complete configuration loaded from:\n" + configFile.getFullPathName());
+        }
+        else
+        {
+            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                "Error", "Failed to load configuration:\n" + fileManager.getLastError());
+        }
     }
 
     void reloadCompleteConfigBackup()
     {
-        if (!projectFolder.exists())
+        auto& fileManager = parameters.getFileManager();
+
+        if (!fileManager.hasValidProjectFolder())
         {
             juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
                 "No Project Folder", "Please select a project folder first.");
             return;
         }
 
-        auto configFile = projectFolder.getChildFile("complete_config.backup.xml");
-        if (!configFile.existsAsFile())
+        auto backups = fileManager.getBackups("complete");
+        if (backups.isEmpty())
         {
             juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                "File Not Found", "Backup file not found:\n" + configFile.getFullPathName());
+                "No Backups Found", "No backup files found for complete configuration.");
             return;
         }
 
@@ -1044,21 +1065,30 @@ private:
             juce::String(), juce::String(), nullptr, nullptr))
             return;
 
-        // TODO: Implement actual load logic
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
-            "Reload Complete Config Backup", "Configuration will be loaded from:\n" + configFile.getFullPathName());
+        if (fileManager.loadCompleteConfigBackup(0))
+        {
+            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
+                "Success", "Configuration loaded from backup.");
+        }
+        else
+        {
+            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                "Error", "Failed to load backup:\n" + fileManager.getLastError());
+        }
     }
 
     void storeSystemConfiguration()
     {
-        if (!projectFolder.exists())
+        auto& fileManager = parameters.getFileManager();
+
+        if (!fileManager.hasValidProjectFolder())
         {
             juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
                 "No Project Folder", "Please select a project folder first.");
             return;
         }
 
-        auto configFile = projectFolder.getChildFile("system_config.xml");
+        auto configFile = fileManager.getSystemConfigFile();
         if (configFile.existsAsFile())
         {
             if (!juce::AlertWindow::showOkCancelBox(juce::AlertWindow::QuestionIcon,
@@ -1067,21 +1097,30 @@ private:
                 return;
         }
 
-        // TODO: Implement actual save logic
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
-            "Store System Configuration", "System configuration will be saved to:\n" + configFile.getFullPathName());
+        if (fileManager.saveSystemConfig())
+        {
+            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
+                "Success", "System configuration saved to:\n" + configFile.getFullPathName());
+        }
+        else
+        {
+            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                "Error", "Failed to save system configuration:\n" + fileManager.getLastError());
+        }
     }
 
     void reloadSystemConfiguration()
     {
-        if (!projectFolder.exists())
+        auto& fileManager = parameters.getFileManager();
+
+        if (!fileManager.hasValidProjectFolder())
         {
             juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
                 "No Project Folder", "Please select a project folder first.");
             return;
         }
 
-        auto configFile = projectFolder.getChildFile("system_config.xml");
+        auto configFile = fileManager.getSystemConfigFile();
         if (!configFile.existsAsFile())
         {
             juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
@@ -1094,25 +1133,34 @@ private:
             juce::String(), juce::String(), nullptr, nullptr))
             return;
 
-        // TODO: Implement actual load logic
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
-            "Reload System Configuration", "System configuration will be loaded from:\n" + configFile.getFullPathName());
+        if (fileManager.loadSystemConfig())
+        {
+            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
+                "Success", "System configuration loaded from:\n" + configFile.getFullPathName());
+        }
+        else
+        {
+            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                "Error", "Failed to load system configuration:\n" + fileManager.getLastError());
+        }
     }
 
     void reloadSystemConfigBackup()
     {
-        if (!projectFolder.exists())
+        auto& fileManager = parameters.getFileManager();
+
+        if (!fileManager.hasValidProjectFolder())
         {
             juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
                 "No Project Folder", "Please select a project folder first.");
             return;
         }
 
-        auto configFile = projectFolder.getChildFile("system_config.backup.xml");
-        if (!configFile.existsAsFile())
+        auto backups = fileManager.getBackups("system");
+        if (backups.isEmpty())
         {
             juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                "File Not Found", "System backup file not found:\n" + configFile.getFullPathName());
+                "No Backups Found", "No backup files found for system configuration.");
             return;
         }
 
@@ -1121,16 +1169,23 @@ private:
             juce::String(), juce::String(), nullptr, nullptr))
             return;
 
-        // TODO: Implement actual load logic
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
-            "Reload System Config Backup", "System configuration will be loaded from:\n" + configFile.getFullPathName());
+        if (fileManager.loadSystemConfigBackup(0))
+        {
+            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
+                "Success", "System configuration loaded from backup.");
+        }
+        else
+        {
+            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                "Error", "Failed to load backup:\n" + fileManager.getLastError());
+        }
     }
 
     void importSystemConfiguration()
     {
         auto chooser = std::make_shared<juce::FileChooser>("Import System Configuration",
             juce::File::getSpecialLocation(juce::File::userHomeDirectory),
-            "*.xml");
+            "*.wfssys;*.xml");
         auto chooserFlags = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
 
         chooser->launchAsync(chooserFlags, [this, chooser](const juce::FileChooser& fc)
@@ -1143,9 +1198,17 @@ private:
                     juce::String(), juce::String(), nullptr, nullptr))
                     return;
 
-                // TODO: Implement actual load logic
-                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
-                    "Import System Configuration", "System configuration will be loaded from:\n" + result.getFullPathName());
+                auto& fileManager = parameters.getFileManager();
+                if (fileManager.importSystemConfig(result))
+                {
+                    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
+                        "Success", "System configuration imported from:\n" + result.getFullPathName());
+                }
+                else
+                {
+                    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                        "Error", "Failed to import configuration:\n" + fileManager.getLastError());
+                }
             }
         });
     }
@@ -1154,7 +1217,7 @@ private:
     {
         auto chooser = std::make_shared<juce::FileChooser>("Export System Configuration",
             juce::File::getSpecialLocation(juce::File::userHomeDirectory),
-            "*.xml");
+            "*.wfssys");
         auto chooserFlags = juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles;
 
         chooser->launchAsync(chooserFlags, [this, chooser](const juce::FileChooser& fc)
@@ -1162,9 +1225,9 @@ private:
             auto result = fc.getResult();
             if (result != juce::File())
             {
-                // Add .xml extension if not present
-                if (!result.hasFileExtension(".xml"))
-                    result = result.withFileExtension(".xml");
+                // Add .wfssys extension if not present
+                if (!result.hasFileExtension(".wfssys"))
+                    result = result.withFileExtension(".wfssys");
 
                 if (result.existsAsFile())
                 {
@@ -1174,9 +1237,17 @@ private:
                         return;
                 }
 
-                // TODO: Implement actual save logic
-                juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
-                    "Export System Configuration", "System configuration will be saved to:\n" + result.getFullPathName());
+                auto& fileManager = parameters.getFileManager();
+                if (fileManager.exportSystemConfig(result))
+                {
+                    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
+                        "Success", "System configuration exported to:\n" + result.getFullPathName());
+                }
+                else
+                {
+                    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                        "Error", "Failed to export configuration:\n" + fileManager.getLastError());
+                }
             }
         });
     }

@@ -7,9 +7,29 @@
       "Bash(copy:*)",
       "Bash(git commit:*)",
       "Bash(\"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe\" \"Builds/VisualStudio2022/WFS-DIY.sln\" -p:Configuration=Debug -p:Platform=x64 -m -v:minimal)",
-      "Bash(del /Q \"x64\\Debug\\App\\WFS-DIY.pdb\" 2)"
+      "Bash(del /Q \"x64\\Debug\\App\\WFS-DIY.pdb\" 2)",
+      "Bash(git checkout:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nMerge feature/gpu-audio-input-buffer into main\n\nRestore all project work including:\n- GPU Audio SDK integration and documentation\n- CLAUDE.md and comprehensive documentation\n- Algorithm refactoring (InputBufferAlgorithm, OutputBufferAlgorithm)\n- GUI components (sliders, dials, joystick)\n- Config tab UI foundation\n- All recent development work\n\nResolved conflicts by accepting feature branch versions which contain\nthe complete and up-to-date codebase.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git push:*)",
+      "Bash(msbuild:*)",
+      "Bash(\"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe\" \"D:\\Documents\\WFS-DIY_JUCE\\WFS-DIY\\Builds\\VisualStudio2022\\WFS-DIY.sln\" /p:Configuration=Debug /p:Platform=x64 /t:WFS-DIY_App /m)",
+      "Bash(cmd /c:*)",
+      "Bash(powershell:*)"
     ],
     "deny": [],
     "ask": []
+  }
+  {
+    "mcp": {
+      "servers": {
+        "juce-docs": {
+          "transport": "stdio",
+          "command": "node",
+          "args": [
+            "D:\\dev\\mcp-servers-jos\\juce-docs-mcp-server\\dist\\index.js"
+          ]
+        }
+      }
+    }
   }
 }

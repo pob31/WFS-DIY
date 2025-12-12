@@ -1630,12 +1630,183 @@ private:
         DBG("Find My Remote: Sending /findDevice with password");
     }
 
-    // Store/Reload stub methods (to be implemented)
-    void storeNetworkConfiguration() {}
-    void reloadNetworkConfiguration() {}
-    void reloadNetworkConfigBackup() {}
-    void importNetworkConfiguration() {}
-    void exportNetworkConfiguration() {}
+    // Store/Reload methods (saves system config which includes network settings)
+    void storeNetworkConfiguration()
+    {
+        auto& fileManager = parameters.getFileManager();
+
+        if (!fileManager.hasValidProjectFolder())
+        {
+            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                "No Project Folder", "Please select a project folder in System Config first.");
+            return;
+        }
+
+        auto configFile = fileManager.getSystemConfigFile();
+        if (configFile.existsAsFile())
+        {
+            if (!juce::AlertWindow::showOkCancelBox(juce::AlertWindow::QuestionIcon,
+                "Overwrite File?", "The system config file already exists. Overwrite?",
+                juce::String(), juce::String(), nullptr, nullptr))
+                return;
+        }
+
+        if (fileManager.saveSystemConfig())
+        {
+            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
+                "Success", "Network configuration saved (as part of system config).");
+        }
+        else
+        {
+            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                "Error", "Failed to save:\n" + fileManager.getLastError());
+        }
+    }
+
+    void reloadNetworkConfiguration()
+    {
+        auto& fileManager = parameters.getFileManager();
+
+        if (!fileManager.hasValidProjectFolder())
+        {
+            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                "No Project Folder", "Please select a project folder in System Config first.");
+            return;
+        }
+
+        auto configFile = fileManager.getSystemConfigFile();
+        if (!configFile.existsAsFile())
+        {
+            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                "File Not Found", "System config file not found.");
+            return;
+        }
+
+        if (!juce::AlertWindow::showOkCancelBox(juce::AlertWindow::QuestionIcon,
+            "Reload?", "This will replace current network settings. Continue?",
+            juce::String(), juce::String(), nullptr, nullptr))
+            return;
+
+        if (fileManager.loadSystemConfig())
+        {
+            loadParametersFromValueTree();
+            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
+                "Success", "Network configuration reloaded.");
+        }
+        else
+        {
+            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                "Error", "Failed to load:\n" + fileManager.getLastError());
+        }
+    }
+
+    void reloadNetworkConfigBackup()
+    {
+        auto& fileManager = parameters.getFileManager();
+
+        if (!fileManager.hasValidProjectFolder())
+        {
+            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                "No Project Folder", "Please select a project folder in System Config first.");
+            return;
+        }
+
+        auto backups = fileManager.getBackups("system");
+        if (backups.isEmpty())
+        {
+            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                "No Backups", "No backup files found.");
+            return;
+        }
+
+        if (!juce::AlertWindow::showOkCancelBox(juce::AlertWindow::QuestionIcon,
+            "Reload Backup?", "This will replace current settings with backup. Continue?",
+            juce::String(), juce::String(), nullptr, nullptr))
+            return;
+
+        if (fileManager.loadSystemConfigBackup(0))
+        {
+            loadParametersFromValueTree();
+            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
+                "Success", "Configuration loaded from backup.");
+        }
+        else
+        {
+            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                "Error", "Failed to load backup:\n" + fileManager.getLastError());
+        }
+    }
+
+    void importNetworkConfiguration()
+    {
+        auto chooser = std::make_shared<juce::FileChooser>("Import Network Configuration",
+            juce::File::getSpecialLocation(juce::File::userHomeDirectory),
+            "*.wfssys;*.xml");
+        auto chooserFlags = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
+
+        chooser->launchAsync(chooserFlags, [this, chooser](const juce::FileChooser& fc)
+        {
+            auto result = fc.getResult();
+            if (result.existsAsFile())
+            {
+                if (!juce::AlertWindow::showOkCancelBox(juce::AlertWindow::QuestionIcon,
+                    "Import?", "This will replace current network settings. Continue?",
+                    juce::String(), juce::String(), nullptr, nullptr))
+                    return;
+
+                auto& fileManager = parameters.getFileManager();
+                if (fileManager.importSystemConfig(result))
+                {
+                    loadParametersFromValueTree();
+                    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
+                        "Success", "Network configuration imported.");
+                }
+                else
+                {
+                    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                        "Error", "Failed to import:\n" + fileManager.getLastError());
+                }
+            }
+        });
+    }
+
+    void exportNetworkConfiguration()
+    {
+        auto chooser = std::make_shared<juce::FileChooser>("Export Network Configuration",
+            juce::File::getSpecialLocation(juce::File::userHomeDirectory),
+            "*.wfssys");
+        auto chooserFlags = juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles;
+
+        chooser->launchAsync(chooserFlags, [this, chooser](const juce::FileChooser& fc)
+        {
+            auto result = fc.getResult();
+            if (result != juce::File())
+            {
+                if (!result.hasFileExtension(".wfssys"))
+                    result = result.withFileExtension(".wfssys");
+
+                if (result.existsAsFile())
+                {
+                    if (!juce::AlertWindow::showOkCancelBox(juce::AlertWindow::QuestionIcon,
+                        "Overwrite?", "File exists. Overwrite?",
+                        juce::String(), juce::String(), nullptr, nullptr))
+                        return;
+                }
+
+                auto& fileManager = parameters.getFileManager();
+                if (fileManager.exportSystemConfig(result))
+                {
+                    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
+                        "Success", "Network configuration exported to:\n" + result.getFullPathName());
+                }
+                else
+                {
+                    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
+                        "Error", "Failed to export:\n" + fileManager.getLastError());
+                }
+            }
+        });
+    }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(NetworkTab)
 };
