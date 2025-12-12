@@ -62,6 +62,9 @@ public:
     /** Get path for audio patch file */
     juce::File getAudioPatchFile() const;
 
+    /** Get path for network configuration file */
+    juce::File getNetworkConfigFile() const;
+
     /** Get backup folder */
     juce::File getBackupFolder() const;
 
@@ -108,6 +111,25 @@ public:
 
     /** Import system configuration from specified file */
     bool importSystemConfig (const juce::File& file);
+
+    //==========================================================================
+    // Network Configuration (can be loaded while DSP is running)
+    //==========================================================================
+
+    /** Save network configuration to project folder */
+    bool saveNetworkConfig();
+
+    /** Load network configuration from project folder */
+    bool loadNetworkConfig();
+
+    /** Load network configuration from backup */
+    bool loadNetworkConfigBackup (int backupIndex = 0);
+
+    /** Export network configuration to specified file */
+    bool exportNetworkConfig (const juce::File& file);
+
+    /** Import network configuration from specified file */
+    bool importNetworkConfig (const juce::File& file);
 
     //==========================================================================
     // Input Configuration
@@ -219,6 +241,7 @@ public:
 
     static constexpr const char* completeConfigExtension = ".wfs";
     static constexpr const char* systemConfigExtension = ".wfssys";
+    static constexpr const char* networkConfigExtension = ".wfsnet";
     static constexpr const char* inputConfigExtension = ".wfsin";
     static constexpr const char* outputConfigExtension = ".wfsout";
     static constexpr const char* audioPatchExtension = ".wfspatch";
@@ -255,6 +278,9 @@ private:
     /** Extract audio patch section from state */
     juce::ValueTree extractAudioPatchSection() const;
 
+    /** Extract network section from config */
+    juce::ValueTree extractNetworkSection() const;
+
     /** Apply config section to state */
     bool applyConfigSection (const juce::ValueTree& config);
 
@@ -266,6 +292,9 @@ private:
 
     /** Apply audio patch section to state */
     bool applyAudioPatchSection (const juce::ValueTree& audioPatch);
+
+    /** Apply network section to state */
+    bool applyNetworkSection (const juce::ValueTree& network);
 
     /** Extract input data with scope filtering */
     juce::ValueTree extractInputWithScope (int channelIndex, const SnapshotScope& scope) const;

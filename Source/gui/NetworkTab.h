@@ -1637,7 +1637,7 @@ private:
             statusBar->showTemporaryMessage(message, durationMs);
     }
 
-    // Store/Reload methods (saves system config which includes network settings)
+    // Store/Reload methods (saves network config separately from system config)
     void storeNetworkConfiguration()
     {
         auto& fileManager = parameters.getFileManager();
@@ -1648,16 +1648,8 @@ private:
             return;
         }
 
-        auto configFile = fileManager.getSystemConfigFile();
-        if (configFile.existsAsFile())
-        {
-            if (!juce::AlertWindow::showOkCancelBox(juce::AlertWindow::QuestionIcon,
-                "Overwrite File?", "The system config file already exists. Overwrite?",
-                juce::String(), juce::String(), nullptr, nullptr))
-                return;
-        }
-
-        if (fileManager.saveSystemConfig())
+        // Backup is created automatically by file manager before overwrite
+        if (fileManager.saveNetworkConfig())
             showStatusMessage("Network configuration saved.");
         else
             showStatusMessage("Error: " + fileManager.getLastError());
@@ -1673,19 +1665,14 @@ private:
             return;
         }
 
-        auto configFile = fileManager.getSystemConfigFile();
+        auto configFile = fileManager.getNetworkConfigFile();
         if (!configFile.existsAsFile())
         {
-            showStatusMessage("System config file not found.");
+            showStatusMessage("Network config file not found.");
             return;
         }
 
-        if (!juce::AlertWindow::showOkCancelBox(juce::AlertWindow::QuestionIcon,
-            "Reload?", "This will replace current network settings. Continue?",
-            juce::String(), juce::String(), nullptr, nullptr))
-            return;
-
-        if (fileManager.loadSystemConfig())
+        if (fileManager.loadNetworkConfig())
         {
             loadParametersFromValueTree();
             showStatusMessage("Network configuration reloaded.");
@@ -1704,22 +1691,17 @@ private:
             return;
         }
 
-        auto backups = fileManager.getBackups("system");
+        auto backups = fileManager.getBackups("network");
         if (backups.isEmpty())
         {
             showStatusMessage("No backup files found.");
             return;
         }
 
-        if (!juce::AlertWindow::showOkCancelBox(juce::AlertWindow::QuestionIcon,
-            "Reload Backup?", "This will replace current settings with backup. Continue?",
-            juce::String(), juce::String(), nullptr, nullptr))
-            return;
-
-        if (fileManager.loadSystemConfigBackup(0))
+        if (fileManager.loadNetworkConfigBackup(0))
         {
             loadParametersFromValueTree();
-            showStatusMessage("Configuration loaded from backup.");
+            showStatusMessage("Network configuration loaded from backup.");
         }
         else
             showStatusMessage("Error: " + fileManager.getLastError());
@@ -1729,7 +1711,7 @@ private:
     {
         auto chooser = std::make_shared<juce::FileChooser>("Import Network Configuration",
             juce::File::getSpecialLocation(juce::File::userHomeDirectory),
-            "*.wfssys;*.xml");
+            "*.wfsnet;*.xml");
         auto chooserFlags = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
 
         chooser->launchAsync(chooserFlags, [this, chooser](const juce::FileChooser& fc)
@@ -1737,13 +1719,8 @@ private:
             auto result = fc.getResult();
             if (result.existsAsFile())
             {
-                if (!juce::AlertWindow::showOkCancelBox(juce::AlertWindow::QuestionIcon,
-                    "Import?", "This will replace current network settings. Continue?",
-                    juce::String(), juce::String(), nullptr, nullptr))
-                    return;
-
                 auto& fileManager = parameters.getFileManager();
-                if (fileManager.importSystemConfig(result))
+                if (fileManager.importNetworkConfig(result))
                 {
                     loadParametersFromValueTree();
                     showStatusMessage("Network configuration imported.");
@@ -1758,7 +1735,7 @@ private:
     {
         auto chooser = std::make_shared<juce::FileChooser>("Export Network Configuration",
             juce::File::getSpecialLocation(juce::File::userHomeDirectory),
-            "*.wfssys");
+            "*.wfsnet");
         auto chooserFlags = juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles;
 
         chooser->launchAsync(chooserFlags, [this, chooser](const juce::FileChooser& fc)
@@ -1766,19 +1743,11 @@ private:
             auto result = fc.getResult();
             if (result != juce::File())
             {
-                if (!result.hasFileExtension(".wfssys"))
-                    result = result.withFileExtension(".wfssys");
-
-                if (result.existsAsFile())
-                {
-                    if (!juce::AlertWindow::showOkCancelBox(juce::AlertWindow::QuestionIcon,
-                        "Overwrite?", "File exists. Overwrite?",
-                        juce::String(), juce::String(), nullptr, nullptr))
-                        return;
-                }
+                if (!result.hasFileExtension(".wfsnet"))
+                    result = result.withFileExtension(".wfsnet");
 
                 auto& fileManager = parameters.getFileManager();
-                if (fileManager.exportSystemConfig(result))
+                if (fileManager.exportNetworkConfig(result))
                     showStatusMessage("Network configuration exported.");
                 else
                     showStatusMessage("Error: " + fileManager.getLastError());

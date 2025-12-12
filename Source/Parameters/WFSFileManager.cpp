@@ -103,6 +103,11 @@ juce::File WFSFileManager::getAudioPatchFile() const
     return projectFolder.getChildFile ("audio_patch" + juce::String (audioPatchExtension));
 }
 
+juce::File WFSFileManager::getNetworkConfigFile() const
+{
+    return projectFolder.getChildFile ("network" + juce::String (networkConfigExtension));
+}
+
 juce::File WFSFileManager::getBackupFolder() const
 {
     return projectFolder.getChildFile ("backups");
@@ -271,6 +276,76 @@ bool WFSFileManager::importSystemConfig (const juce::File& file)
         applyAudioPatchSection (audioPatchTree);
 
     return true;
+}
+
+//==============================================================================
+// Network Configuration
+//==============================================================================
+
+bool WFSFileManager::saveNetworkConfig()
+{
+    if (!hasValidProjectFolder())
+    {
+        setError ("No valid project folder");
+        return false;
+    }
+
+    auto file = getNetworkConfigFile();
+
+    if (file.existsAsFile())
+        createBackup (file);
+
+    juce::ValueTree networkState ("NetworkConfig");
+    networkState.setProperty (WFSParameterIDs::version, "1.0", nullptr);
+    networkState.appendChild (extractNetworkSection().createCopy(), nullptr);
+
+    return writeToXmlFile (networkState, file);
+}
+
+bool WFSFileManager::loadNetworkConfig()
+{
+    if (!hasValidProjectFolder())
+    {
+        setError ("No valid project folder");
+        return false;
+    }
+
+    return importNetworkConfig (getNetworkConfigFile());
+}
+
+bool WFSFileManager::loadNetworkConfigBackup (int backupIndex)
+{
+    auto backups = getBackups ("network");
+    if (backupIndex >= 0 && backupIndex < backups.size())
+        return importNetworkConfig (backups[backupIndex]);
+
+    setError ("Backup not found");
+    return false;
+}
+
+bool WFSFileManager::exportNetworkConfig (const juce::File& file)
+{
+    juce::ValueTree networkState ("NetworkConfig");
+    networkState.setProperty (WFSParameterIDs::version, "1.0", nullptr);
+    networkState.appendChild (extractNetworkSection().createCopy(), nullptr);
+
+    return writeToXmlFile (networkState, file);
+}
+
+bool WFSFileManager::importNetworkConfig (const juce::File& file)
+{
+    auto loadedState = readFromXmlFile (file);
+    if (!loadedState.isValid())
+        return false;
+
+    valueTreeState.beginUndoTransaction ("Import Network Configuration");
+
+    auto networkTree = loadedState.getChildWithName (Network);
+    if (networkTree.isValid())
+        return applyNetworkSection (networkTree);
+
+    setError ("No network data found in file");
+    return false;
 }
 
 //==============================================================================
@@ -698,6 +773,14 @@ juce::ValueTree WFSFileManager::extractAudioPatchSection() const
     return valueTreeState.getState().getChildWithName (AudioPatch);
 }
 
+juce::ValueTree WFSFileManager::extractNetworkSection() const
+{
+    auto config = valueTreeState.getState().getChildWithName (Config);
+    if (config.isValid())
+        return config.getChildWithName (Network);
+    return {};
+}
+
 bool WFSFileManager::applyConfigSection (const juce::ValueTree& configTree)
 {
     auto existingConfig = valueTreeState.getConfigState();
@@ -737,6 +820,21 @@ bool WFSFileManager::applyAudioPatchSection (const juce::ValueTree& audioPatchTr
     if (existingPatch.isValid())
     {
         existingPatch.copyPropertiesAndChildrenFrom (audioPatchTree, valueTreeState.getUndoManager());
+        return true;
+    }
+    return false;
+}
+
+bool WFSFileManager::applyNetworkSection (const juce::ValueTree& networkTree)
+{
+    auto config = valueTreeState.getConfigState();
+    if (!config.isValid())
+        return false;
+
+    auto existingNetwork = config.getChildWithName (Network);
+    if (existingNetwork.isValid())
+    {
+        existingNetwork.copyPropertiesAndChildrenFrom (networkTree, valueTreeState.getUndoManager());
         return true;
     }
     return false;

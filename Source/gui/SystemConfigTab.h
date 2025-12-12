@@ -983,15 +983,7 @@ private:
             return;
         }
 
-        auto configFile = fileManager.getCompleteConfigFile();
-        if (configFile.existsAsFile())
-        {
-            if (!juce::AlertWindow::showOkCancelBox(juce::AlertWindow::QuestionIcon,
-                "Overwrite File?", "The file already exists. Do you want to overwrite it?",
-                juce::String(), juce::String(), nullptr, nullptr))
-                return;
-        }
-
+        // Backup is created automatically by file manager before overwrite
         if (fileManager.saveCompleteConfig())
             showStatusMessage("Complete configuration saved.");
         else
@@ -1014,11 +1006,6 @@ private:
             showStatusMessage("Configuration file not found.");
             return;
         }
-
-        if (!juce::AlertWindow::showOkCancelBox(juce::AlertWindow::QuestionIcon,
-            "Reload Configuration?", "This will replace the current configuration. Continue?",
-            juce::String(), juce::String(), nullptr, nullptr))
-            return;
 
         if (fileManager.loadCompleteConfig())
             showStatusMessage("Complete configuration loaded.");
@@ -1043,11 +1030,6 @@ private:
             return;
         }
 
-        if (!juce::AlertWindow::showOkCancelBox(juce::AlertWindow::QuestionIcon,
-            "Reload Backup?", "This will replace the current configuration with the backup. Continue?",
-            juce::String(), juce::String(), nullptr, nullptr))
-            return;
-
         if (fileManager.loadCompleteConfigBackup(0))
             showStatusMessage("Configuration loaded from backup.");
         else
@@ -1064,15 +1046,7 @@ private:
             return;
         }
 
-        auto configFile = fileManager.getSystemConfigFile();
-        if (configFile.existsAsFile())
-        {
-            if (!juce::AlertWindow::showOkCancelBox(juce::AlertWindow::QuestionIcon,
-                "Overwrite File?", "The file already exists. Do you want to overwrite it?",
-                juce::String(), juce::String(), nullptr, nullptr))
-                return;
-        }
-
+        // Backup is created automatically by file manager before overwrite
         if (fileManager.saveSystemConfig())
             showStatusMessage("System configuration saved.");
         else
@@ -1095,11 +1069,6 @@ private:
             showStatusMessage("System configuration file not found.");
             return;
         }
-
-        if (!juce::AlertWindow::showOkCancelBox(juce::AlertWindow::QuestionIcon,
-            "Reload System Configuration?", "This will replace the current system configuration. Continue?",
-            juce::String(), juce::String(), nullptr, nullptr))
-            return;
 
         if (fileManager.loadSystemConfig())
             showStatusMessage("System configuration loaded.");
@@ -1124,11 +1093,6 @@ private:
             return;
         }
 
-        if (!juce::AlertWindow::showOkCancelBox(juce::AlertWindow::QuestionIcon,
-            "Reload System Backup?", "This will replace the current system configuration with the backup. Continue?",
-            juce::String(), juce::String(), nullptr, nullptr))
-            return;
-
         if (fileManager.loadSystemConfigBackup(0))
             showStatusMessage("System configuration loaded from backup.");
         else
@@ -1147,11 +1111,6 @@ private:
             auto result = fc.getResult();
             if (result.existsAsFile())
             {
-                if (!juce::AlertWindow::showOkCancelBox(juce::AlertWindow::QuestionIcon,
-                    "Import Configuration?", "This will replace the current system configuration. Continue?",
-                    juce::String(), juce::String(), nullptr, nullptr))
-                    return;
-
                 auto& fileManager = parameters.getFileManager();
                 if (fileManager.importSystemConfig(result))
                     showStatusMessage("System configuration imported.");
@@ -1176,14 +1135,6 @@ private:
                 // Add .wfssys extension if not present
                 if (!result.hasFileExtension(".wfssys"))
                     result = result.withFileExtension(".wfssys");
-
-                if (result.existsAsFile())
-                {
-                    if (!juce::AlertWindow::showOkCancelBox(juce::AlertWindow::QuestionIcon,
-                        "Overwrite File?", "The file already exists. Do you want to overwrite it?",
-                        juce::String(), juce::String(), nullptr, nullptr))
-                        return;
-                }
 
                 auto& fileManager = parameters.getFileManager();
                 if (fileManager.exportSystemConfig(result))
