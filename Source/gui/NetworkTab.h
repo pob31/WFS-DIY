@@ -824,7 +824,7 @@ private:
             row.dataModeSelector.addItem("TCP", 2);
             row.dataModeSelector.setSelectedId(1, juce::dontSendNotification);
             row.dataModeSelector.onChange = [this, i]() {
-                // TODO: Save to parameters
+                saveTargetToValueTree(i);
             };
 
             // IP editor
@@ -845,6 +845,7 @@ private:
             row.rxEnableButton.onClick = [this, i]() {
                 auto& btn = targetRows[i].rxEnableButton;
                 btn.setButtonText(btn.getToggleState() ? "ON" : "OFF");
+                saveTargetToValueTree(i);
             };
 
             // Tx Enable button
@@ -854,6 +855,7 @@ private:
             row.txEnableButton.onClick = [this, i]() {
                 auto& btn = targetRows[i].txEnableButton;
                 btn.setButtonText(btn.getToggleState() ? "ON" : "OFF");
+                saveTargetToValueTree(i);
             };
 
             // Protocol selector
@@ -878,12 +880,18 @@ private:
                 }
                 // Update ADM-OSC appearance when protocol changes
                 updateAdmOscAppearance();
+                saveTargetToValueTree(i);
             };
 
             // Remove button
             addAndMakeVisible(row.removeButton);
             row.removeButton.setButtonText("X");
             row.removeButton.onClick = [this, i]() { confirmRemoveTarget(i); };
+
+            // Add text change listeners
+            row.nameEditor.onTextChange = [this, i]() { saveTargetToValueTree(i); };
+            row.ipEditor.onTextChange = [this, i]() { saveTargetToValueTree(i); };
+            row.txPortEditor.onTextChange = [this, i]() { saveTargetToValueTree(i); };
 
             // Start with rows disabled - user must add them
             row.isActive = false;
@@ -922,6 +930,7 @@ private:
                 activeTargetCount++;
                 updateTargetRowVisibility();
                 updateAddButtonState();
+                saveTargetToValueTree(i);  // Save new target to ValueTree
                 break;
             }
         }
@@ -953,6 +962,9 @@ private:
     {
         if (index < 0 || index >= maxTargets)
             return;
+
+        // Remove from ValueTree first
+        removeTargetFromValueTree(index);
 
         // Reset row to defaults
         auto& row = targetRows[index];
@@ -1135,6 +1147,54 @@ private:
             if (index >= 0)
                 networkInterfaceSelector.setSelectedId(index + 1, juce::dontSendNotification);
         }
+
+        // Load network targets
+        loadTargetsFromValueTree();
+
+        // Load ADM-OSC parameters
+        admOscOffsetXEditor.setText(juce::String((float)parameters.getConfigParam("admOscOffsetX")), false);
+        admOscOffsetYEditor.setText(juce::String((float)parameters.getConfigParam("admOscOffsetY")), false);
+        admOscOffsetZEditor.setText(juce::String((float)parameters.getConfigParam("admOscOffsetZ")), false);
+        admOscScaleXEditor.setText(juce::String((float)parameters.getConfigParam("admOscScaleX")), false);
+        admOscScaleYEditor.setText(juce::String((float)parameters.getConfigParam("admOscScaleY")), false);
+        admOscScaleZEditor.setText(juce::String((float)parameters.getConfigParam("admOscScaleZ")), false);
+
+        bool flipX = (int)parameters.getConfigParam("admOscFlipX") != 0;
+        bool flipY = (int)parameters.getConfigParam("admOscFlipY") != 0;
+        bool flipZ = (int)parameters.getConfigParam("admOscFlipZ") != 0;
+        admOscFlipXButton.setToggleState(flipX, juce::dontSendNotification);
+        admOscFlipXButton.setButtonText(flipX ? "Flip X: ON" : "Flip X: OFF");
+        admOscFlipYButton.setToggleState(flipY, juce::dontSendNotification);
+        admOscFlipYButton.setButtonText(flipY ? "Flip Y: ON" : "Flip Y: OFF");
+        admOscFlipZButton.setToggleState(flipZ, juce::dontSendNotification);
+        admOscFlipZButton.setButtonText(flipZ ? "Flip Z: ON" : "Flip Z: OFF");
+
+        // Load Tracking parameters
+        bool trackingEnabled = (int)parameters.getConfigParam("trackingEnabled") != 0;
+        trackingEnabledButton.setToggleState(trackingEnabled, juce::dontSendNotification);
+        trackingEnabledButton.setButtonText(trackingEnabled ? "Tracking: ON" : "Tracking: OFF");
+
+        trackingProtocolSelector.setSelectedId((int)parameters.getConfigParam("trackingProtocol") + 1, juce::dontSendNotification);
+        trackingPortEditor.setText(juce::String((int)parameters.getConfigParam("trackingPort")), false);
+
+        trackingOffsetXEditor.setText(juce::String((float)parameters.getConfigParam("trackingOffsetX")), false);
+        trackingOffsetYEditor.setText(juce::String((float)parameters.getConfigParam("trackingOffsetY")), false);
+        trackingOffsetZEditor.setText(juce::String((float)parameters.getConfigParam("trackingOffsetZ")), false);
+        trackingScaleXEditor.setText(juce::String((float)parameters.getConfigParam("trackingScaleX")), false);
+        trackingScaleYEditor.setText(juce::String((float)parameters.getConfigParam("trackingScaleY")), false);
+        trackingScaleZEditor.setText(juce::String((float)parameters.getConfigParam("trackingScaleZ")), false);
+
+        bool trackFlipX = (int)parameters.getConfigParam("trackingFlipX") != 0;
+        bool trackFlipY = (int)parameters.getConfigParam("trackingFlipY") != 0;
+        bool trackFlipZ = (int)parameters.getConfigParam("trackingFlipZ") != 0;
+        trackingFlipXButton.setToggleState(trackFlipX, juce::dontSendNotification);
+        trackingFlipXButton.setButtonText(trackFlipX ? "Flip X: ON" : "Flip X: OFF");
+        trackingFlipYButton.setToggleState(trackFlipY, juce::dontSendNotification);
+        trackingFlipYButton.setButtonText(trackFlipY ? "Flip Y: ON" : "Flip Y: OFF");
+        trackingFlipZButton.setToggleState(trackFlipZ, juce::dontSendNotification);
+        trackingFlipZButton.setButtonText(trackFlipZ ? "Flip Z: ON" : "Flip Z: OFF");
+
+        updateTrackingAppearance();
     }
 
     void valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property) override
@@ -1753,6 +1813,161 @@ private:
                     showStatusMessage("Error: " + fileManager.getLastError());
             }
         });
+    }
+
+    // ==================== TARGET VALUETREE METHODS ====================
+
+    void saveTargetToValueTree(int index)
+    {
+        if (index < 0 || index >= maxTargets)
+            return;
+
+        auto& row = targetRows[index];
+        if (!row.isActive)
+            return;  // Don't save inactive targets
+
+        // Get the Network section from Config
+        auto config = parameters.getConfigTree();
+        if (!config.isValid())
+            return;
+
+        auto network = config.getChildWithName(WFSParameterIDs::Network);
+        if (!network.isValid())
+            return;
+
+        // Find or create target child
+        juce::ValueTree target;
+        for (int i = 0; i < network.getNumChildren(); ++i)
+        {
+            auto child = network.getChild(i);
+            if (child.getType() == WFSParameterIDs::NetworkTarget)
+            {
+                int targetId = child.getProperty(WFSParameterIDs::id, -1);
+                if (targetId == index)
+                {
+                    target = child;
+                    break;
+                }
+            }
+        }
+
+        // Create new target if not found
+        if (!target.isValid())
+        {
+            target = juce::ValueTree(WFSParameterIDs::NetworkTarget);
+            target.setProperty(WFSParameterIDs::id, index, nullptr);
+            network.appendChild(target, nullptr);
+        }
+
+        // Save all properties
+        target.setProperty(WFSParameterIDs::networkTSname, row.nameEditor.getText(), nullptr);
+        target.setProperty(WFSParameterIDs::networkTSdataMode, row.dataModeSelector.getSelectedId() - 1, nullptr);
+        target.setProperty(WFSParameterIDs::networkTSip, row.ipEditor.getText(), nullptr);
+        target.setProperty(WFSParameterIDs::networkTSport, row.txPortEditor.getText().getIntValue(), nullptr);
+        target.setProperty(WFSParameterIDs::networkTSrxEnable, row.rxEnableButton.getToggleState() ? 1 : 0, nullptr);
+        target.setProperty(WFSParameterIDs::networkTStxEnable, row.txEnableButton.getToggleState() ? 1 : 0, nullptr);
+        target.setProperty(WFSParameterIDs::networkTSProtocol, row.protocolSelector.getSelectedId() - 1, nullptr);
+    }
+
+    void removeTargetFromValueTree(int index)
+    {
+        if (index < 0 || index >= maxTargets)
+            return;
+
+        auto config = parameters.getConfigTree();
+        if (!config.isValid())
+            return;
+
+        auto network = config.getChildWithName(WFSParameterIDs::Network);
+        if (!network.isValid())
+            return;
+
+        // Find and remove target with matching id
+        for (int i = network.getNumChildren() - 1; i >= 0; --i)
+        {
+            auto child = network.getChild(i);
+            if (child.getType() == WFSParameterIDs::NetworkTarget)
+            {
+                int targetId = child.getProperty(WFSParameterIDs::id, -1);
+                if (targetId == index)
+                {
+                    network.removeChild(i, nullptr);
+                    break;
+                }
+            }
+        }
+    }
+
+    void loadTargetsFromValueTree()
+    {
+        // Reset all rows first
+        for (int i = 0; i < maxTargets; ++i)
+        {
+            auto& row = targetRows[i];
+            row.nameEditor.setText("Target " + juce::String(i + 1), false);
+            row.dataModeSelector.setSelectedId(1, juce::dontSendNotification);
+            row.ipEditor.setText("127.0.0.1", false);
+            row.txPortEditor.setText("9000", false);
+            row.rxEnableButton.setToggleState(false, juce::dontSendNotification);
+            row.rxEnableButton.setButtonText("OFF");
+            row.txEnableButton.setToggleState(false, juce::dontSendNotification);
+            row.txEnableButton.setButtonText("OFF");
+            row.protocolSelector.setSelectedId(1, juce::dontSendNotification);
+            row.isActive = false;
+        }
+        activeTargetCount = 0;
+
+        // Get the Network section from Config
+        auto config = parameters.getConfigTree();
+        if (!config.isValid())
+        {
+            updateTargetRowVisibility();
+            updateAddButtonState();
+            return;
+        }
+
+        auto network = config.getChildWithName(WFSParameterIDs::Network);
+        if (!network.isValid())
+        {
+            updateTargetRowVisibility();
+            updateAddButtonState();
+            return;
+        }
+
+        // Load all targets
+        for (int i = 0; i < network.getNumChildren(); ++i)
+        {
+            auto child = network.getChild(i);
+            if (child.getType() == WFSParameterIDs::NetworkTarget)
+            {
+                int targetId = child.getProperty(WFSParameterIDs::id, 0);
+                if (targetId >= 0 && targetId < maxTargets)
+                {
+                    auto& row = targetRows[targetId];
+                    row.isActive = true;
+                    activeTargetCount++;
+
+                    row.nameEditor.setText(child.getProperty(WFSParameterIDs::networkTSname, "Target " + juce::String(targetId + 1)).toString(), false);
+                    row.dataModeSelector.setSelectedId((int)child.getProperty(WFSParameterIDs::networkTSdataMode, 0) + 1, juce::dontSendNotification);
+                    row.ipEditor.setText(child.getProperty(WFSParameterIDs::networkTSip, "127.0.0.1").toString(), false);
+                    row.txPortEditor.setText(juce::String((int)child.getProperty(WFSParameterIDs::networkTSport, 9000)), false);
+
+                    bool rxEnabled = (int)child.getProperty(WFSParameterIDs::networkTSrxEnable, 0) != 0;
+                    row.rxEnableButton.setToggleState(rxEnabled, juce::dontSendNotification);
+                    row.rxEnableButton.setButtonText(rxEnabled ? "ON" : "OFF");
+
+                    bool txEnabled = (int)child.getProperty(WFSParameterIDs::networkTStxEnable, 0) != 0;
+                    row.txEnableButton.setToggleState(txEnabled, juce::dontSendNotification);
+                    row.txEnableButton.setButtonText(txEnabled ? "ON" : "OFF");
+
+                    row.protocolSelector.setSelectedId((int)child.getProperty(WFSParameterIDs::networkTSProtocol, 0) + 1, juce::dontSendNotification);
+                }
+            }
+        }
+
+        updateTargetRowVisibility();
+        updateAddButtonState();
+        updateAdmOscAppearance();
     }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(NetworkTab)
