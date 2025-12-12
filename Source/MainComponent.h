@@ -14,6 +14,7 @@
 #include "gui/ReverbTab.h"
 #include "gui/MapTab.h"
 #include "gui/AudioInterfaceWindow.h"
+#include "Network/OSCManager.h"
 
 //==============================================================================
 /*
@@ -97,6 +98,9 @@ private:
 
     // Parameter management system
     WfsParameters parameters;
+
+    // Network OSC management
+    std::unique_ptr<WFSNetwork::OSCManager> oscManager;
 
     // Routing matrix: delays[inputChannel * numOutputChannels + outputChannel]
     std::vector<float> delayTimesMs;

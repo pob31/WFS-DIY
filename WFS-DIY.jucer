@@ -33,6 +33,34 @@
         <FILE id="guiRevTab" name="ReverbTab.h" compile="0" resource="0" file="Source/gui/ReverbTab.h"/>
         <FILE id="guiMapTab" name="MapTab.h" compile="0" resource="0" file="Source/gui/MapTab.h"/>
       </GROUP>
+      <GROUP id="{NETWORKGROUP}" name="Network">
+        <FILE id="netTypes" name="OSCProtocolTypes.h" compile="0" resource="0"
+              file="Source/Network/OSCProtocolTypes.h"/>
+        <FILE id="netConnH" name="OSCConnection.h" compile="0" resource="0"
+              file="Source/Network/OSCConnection.h"/>
+        <FILE id="netConnCpp" name="OSCConnection.cpp" compile="1" resource="0"
+              file="Source/Network/OSCConnection.cpp"/>
+        <FILE id="netRateH" name="OSCRateLimiter.h" compile="0" resource="0"
+              file="Source/Network/OSCRateLimiter.h"/>
+        <FILE id="netRateCpp" name="OSCRateLimiter.cpp" compile="1" resource="0"
+              file="Source/Network/OSCRateLimiter.cpp"/>
+        <FILE id="netLogH" name="OSCLogger.h" compile="0" resource="0"
+              file="Source/Network/OSCLogger.h"/>
+        <FILE id="netLogCpp" name="OSCLogger.cpp" compile="1" resource="0"
+              file="Source/Network/OSCLogger.cpp"/>
+        <FILE id="netBuildH" name="OSCMessageBuilder.h" compile="0" resource="0"
+              file="Source/Network/OSCMessageBuilder.h"/>
+        <FILE id="netBuildCpp" name="OSCMessageBuilder.cpp" compile="1" resource="0"
+              file="Source/Network/OSCMessageBuilder.cpp"/>
+        <FILE id="netRouteH" name="OSCMessageRouter.h" compile="0" resource="0"
+              file="Source/Network/OSCMessageRouter.h"/>
+        <FILE id="netRouteCpp" name="OSCMessageRouter.cpp" compile="1" resource="0"
+              file="Source/Network/OSCMessageRouter.cpp"/>
+        <FILE id="netMgrH" name="OSCManager.h" compile="0" resource="0"
+              file="Source/Network/OSCManager.h"/>
+        <FILE id="netMgrCpp" name="OSCManager.cpp" compile="1" resource="0"
+              file="Source/Network/OSCManager.cpp"/>
+      </GROUP>
       <FILE id="UJ07Xn" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>
       <FILE id="jPX7jF" name="MainComponent.h" compile="0" resource="0" file="Source/MainComponent.h"/>
       <FILE id="MkNc76" name="MainComponent.cpp" compile="1" resource="0"

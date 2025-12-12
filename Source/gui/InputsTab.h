@@ -139,6 +139,9 @@ public:
         channelSelector.setNumChannels(numInputs > 0 ? numInputs : 8);  // Default to 8 if not set
         channelSelector.onChannelChanged = [this](int channel) {
             loadChannelParameters(channel);
+            // Notify external listeners (e.g., OSCManager for REMOTE protocol)
+            if (onChannelSelected)
+                onChannelSelected(channel);
         };
         addAndMakeVisible(channelSelector);
 
@@ -240,6 +243,12 @@ public:
         inputsTree.removeListener(this);
         configTree.removeListener(this);
     }
+
+    /**
+     * Callback when channel selection changes.
+     * MainComponent can use this to notify OSCManager for REMOTE protocol.
+     */
+    std::function<void(int channelId)> onChannelSelected;
 
     void paint(juce::Graphics& g) override
     {
@@ -3307,6 +3316,37 @@ private:
             {
                 setMutesVisible(true);
                 layoutMutesTab();
+            }
+        }
+
+        // Check if this is a parameter change for the current channel (e.g., from OSC)
+        // Skip if we're already loading parameters (avoid recursion)
+        if (!isLoadingParameters)
+        {
+            DBG("InputsTab::valueTreePropertyChanged - tree=" << tree.getType().toString()
+                << " property=" << property.toString() << " isLoading=" << (isLoadingParameters ? "yes" : "no"));
+
+            // Find if this tree belongs to the current channel's Input tree
+            juce::ValueTree parent = tree;
+            while (parent.isValid())
+            {
+                DBG("InputsTab - checking parent type: " << parent.getType().toString());
+                if (parent.getType() == WFSParameterIDs::Input)
+                {
+                    int channelId = parent.getProperty(WFSParameterIDs::id, -1);
+                    DBG("InputsTab - found Input parent, channelId=" << channelId << " currentChannel=" << currentChannel);
+                    if (channelId == currentChannel)
+                    {
+                        // This is a parameter change for the current channel - refresh UI
+                        DBG("InputsTab - refreshing UI for channel " << currentChannel);
+                        juce::MessageManager::callAsync([this]()
+                        {
+                            loadChannelParameters(currentChannel);
+                        });
+                    }
+                    break;
+                }
+                parent = parent.getParent();
             }
         }
     }

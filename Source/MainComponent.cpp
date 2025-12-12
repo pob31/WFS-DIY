@@ -196,6 +196,25 @@ MainComponent::MainComponent()
     tabbedComponent.addTab("Clusters", juce::Colours::darkgrey, clustersTab, true);
     tabbedComponent.addTab("Map", juce::Colours::darkgrey, mapTab, true);
 
+    // Initialize OSC Manager for network communication
+    oscManager = std::make_unique<WFSNetwork::OSCManager>(parameters.getValueTreeState());
+
+    // Configure OSC Manager with initial network settings from parameters
+    WFSNetwork::GlobalConfig oscGlobalConfig;
+    oscGlobalConfig.udpReceivePort = (int)parameters.getConfigParam("NetworkRxUDPport");
+    oscGlobalConfig.tcpReceivePort = (int)parameters.getConfigParam("NetworkRxTCPport");
+    oscManager->applyGlobalConfig(oscGlobalConfig);
+
+    // Pass OSCManager to NetworkTab for UI integration
+    networkTab->setOSCManager(oscManager.get());
+
+    // Connect InputsTab channel selection to OSCManager for REMOTE protocol
+    inputsTab->onChannelSelected = [this](int channelId)
+    {
+        if (oscManager)
+            oscManager->setRemoteSelectedChannel(channelId);
+    };
+
     // Make sure you set the size of the component after
     // you add any child components.
     // Set initial size to 90% of the screen, with minimum bounds

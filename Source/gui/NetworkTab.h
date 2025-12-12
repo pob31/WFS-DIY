@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "../WfsParameters.h"
 #include "StatusBar.h"
+#include "../Network/OSCManager.h"
 
 #if JUCE_WINDOWS
     #include <winsock2.h>
@@ -127,6 +128,12 @@ public:
     void setStatusBar(StatusBar* bar)
     {
         statusBar = bar;
+    }
+
+    void setOSCManager(WFSNetwork::OSCManager* manager)
+    {
+        oscManager = manager;
+        updateOSCManagerConfig();
     }
 
     void paint(juce::Graphics& g) override
@@ -374,6 +381,7 @@ private:
     WfsParameters& parameters;
     juce::ValueTree configTree;  // Store for safe listener removal in destructor
     StatusBar* statusBar = nullptr;
+    WFSNetwork::OSCManager* oscManager = nullptr;
 
     // ==================== NETWORK CONNECTIONS TABLE ====================
     static constexpr int maxTargets = 6;
@@ -786,6 +794,72 @@ private:
         reloadBackupButton.addMouseListener(this, false);
         importButton.addMouseListener(this, false);
         exportButton.addMouseListener(this, false);
+    }
+
+    void updateOSCManagerConfig()
+    {
+        if (oscManager == nullptr)
+            return;
+
+        // Apply global config
+        WFSNetwork::GlobalConfig globalConfig;
+        globalConfig.udpReceivePort = udpPortEditor.getText().getIntValue();
+        globalConfig.tcpReceivePort = tcpPortEditor.getText().getIntValue();
+        oscManager->applyGlobalConfig(globalConfig);
+
+        // Apply target configs
+        for (int i = 0; i < maxTargets; ++i)
+        {
+            WFSNetwork::TargetConfig targetConfig;
+            targetConfig.name = targetRows[i].nameEditor.getText();
+            targetConfig.ipAddress = targetRows[i].ipEditor.getText();
+            targetConfig.port = targetRows[i].txPortEditor.getText().getIntValue();
+            targetConfig.rxEnabled = targetRows[i].rxEnableButton.getToggleState();
+            targetConfig.txEnabled = targetRows[i].txEnableButton.getToggleState();
+
+            // Map protocol selector to enum
+            int protocolId = targetRows[i].protocolSelector.getSelectedId();
+            switch (protocolId)
+            {
+                case 1: targetConfig.protocol = WFSNetwork::Protocol::Disabled; break;
+                case 2: targetConfig.protocol = WFSNetwork::Protocol::OSC; break;
+                case 3: targetConfig.protocol = WFSNetwork::Protocol::Remote; break;
+                case 4: targetConfig.protocol = WFSNetwork::Protocol::ADMOSC; break;
+                default: targetConfig.protocol = WFSNetwork::Protocol::Disabled; break;
+            }
+
+            // Map data mode to enum
+            int modeId = targetRows[i].dataModeSelector.getSelectedId();
+            targetConfig.mode = (modeId == 2) ? WFSNetwork::ConnectionMode::TCP
+                                               : WFSNetwork::ConnectionMode::UDP;
+
+            oscManager->applyTargetConfig(i, targetConfig);
+
+            // Connect if protocol is enabled and tx is enabled
+            if (targetConfig.protocol != WFSNetwork::Protocol::Disabled && targetConfig.txEnabled)
+            {
+                DBG("NetworkTab: Connecting target " << i << " to " << targetConfig.ipAddress
+                    << ":" << targetConfig.port << " protocol=" << static_cast<int>(targetConfig.protocol));
+                bool connected = oscManager->connectTarget(i);
+                DBG("NetworkTab: Target " << i << " connected=" << (connected ? "yes" : "no"));
+            }
+        }
+
+        // Start listening if any target has Rx enabled
+        bool anyRxEnabled = false;
+        for (int i = 0; i < maxTargets; ++i)
+        {
+            if (targetRows[i].rxEnableButton.getToggleState())
+            {
+                anyRxEnabled = true;
+                break;
+            }
+        }
+
+        if (anyRxEnabled && !oscManager->isListening())
+        {
+            oscManager->startListening();
+        }
     }
 
     void setupNetworkConnectionsTable()
@@ -2019,6 +2093,9 @@ private:
         target.setProperty(WFSParameterIDs::networkTSrxEnable, row.rxEnableButton.getToggleState() ? 1 : 0, nullptr);
         target.setProperty(WFSParameterIDs::networkTStxEnable, row.txEnableButton.getToggleState() ? 1 : 0, nullptr);
         target.setProperty(WFSParameterIDs::networkTSProtocol, row.protocolSelector.getSelectedId() - 1, nullptr);
+
+        // Update OSCManager with new configuration
+        updateOSCManagerConfig();
     }
 
     void removeTargetFromValueTree(int index)

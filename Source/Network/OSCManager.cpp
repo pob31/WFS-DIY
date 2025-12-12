@@ -1,0 +1,727 @@
+#include "OSCManager.h"
+
+namespace WFSNetwork
+{
+
+//==============================================================================
+// Construction / Destruction
+//==============================================================================
+
+OSCManager::OSCManager(WFSValueTreeState& valueTreeState)
+    : state(valueTreeState)
+    , rateLimiter(MAX_RATE_HZ)
+    , logger(1000)
+{
+    // Initialize target statuses
+    targetStatuses.fill(ConnectionStatus::Disconnected);
+
+    // Register as ValueTree listener
+    state.addListener(this);
+
+    // Set up rate limiter callback
+    rateLimiter.setSendCallback([this](int targetIndex, const juce::OSCMessage& message)
+    {
+        DBG("OSCManager rate limiter callback - target " << targetIndex
+            << " addr=" << message.getAddressPattern().toString());
+
+        if (targetIndex >= 0 && targetIndex < MAX_TARGETS)
+        {
+            if (connections[static_cast<size_t>(targetIndex)])
+            {
+                DBG("OSCManager rate limiter - sending to connection " << targetIndex);
+                if (connections[static_cast<size_t>(targetIndex)]->send(message))
+                {
+                    ++messagesSent;
+                    logger.logSent(targetIndex, message, targetConfigs[static_cast<size_t>(targetIndex)].protocol);
+                    DBG("OSCManager rate limiter - message sent successfully");
+                }
+                else
+                {
+                    DBG("OSCManager rate limiter - send FAILED");
+                }
+            }
+            else
+            {
+                DBG("OSCManager rate limiter - no connection for target " << targetIndex);
+            }
+        }
+    });
+
+    // Create connections
+    for (size_t i = 0; i < MAX_TARGETS; ++i)
+    {
+        connections[i] = std::make_unique<OSCConnection>(static_cast<int>(i));
+    }
+
+    // Start status polling timer
+    startTimer(500);  // Check connection status every 500ms
+}
+
+OSCManager::~OSCManager()
+{
+    stopTimer();
+    stopListening();
+    disconnectAll();
+    state.removeListener(this);
+}
+
+//==============================================================================
+// Configuration
+//==============================================================================
+
+void OSCManager::applyGlobalConfig(const GlobalConfig& config)
+{
+    const juce::ScopedLock sl(configLock);
+
+    bool portChanged = (config.udpReceivePort != globalConfig.udpReceivePort ||
+                        config.tcpReceivePort != globalConfig.tcpReceivePort);
+
+    globalConfig = config;
+
+    if (portChanged && listening)
+    {
+        stopListening();
+        startListening();
+    }
+}
+
+void OSCManager::applyTargetConfig(int targetIndex, const TargetConfig& config)
+{
+    if (targetIndex < 0 || targetIndex >= MAX_TARGETS)
+        return;
+
+    DBG("OSCManager::applyTargetConfig - target " << targetIndex
+        << " ip=" << config.ipAddress << " port=" << config.port
+        << " protocol=" << static_cast<int>(config.protocol)
+        << " txEnabled=" << (config.txEnabled ? "yes" : "no"));
+
+    const juce::ScopedLock sl(configLock);
+
+    auto& oldConfig = targetConfigs[static_cast<size_t>(targetIndex)];
+    bool needsReconnect = (config.ipAddress != oldConfig.ipAddress ||
+                           config.port != oldConfig.port ||
+                           config.mode != oldConfig.mode);
+
+    oldConfig = config;
+
+    if (needsReconnect && connections[static_cast<size_t>(targetIndex)])
+    {
+        DBG("OSCManager::applyTargetConfig - target " << targetIndex << " needs reconnect");
+        disconnectTarget(targetIndex);
+
+        if (config.protocol != Protocol::Disabled && config.txEnabled)
+        {
+            connectTarget(targetIndex);
+        }
+    }
+}
+
+TargetConfig OSCManager::getTargetConfig(int targetIndex) const
+{
+    if (targetIndex < 0 || targetIndex >= MAX_TARGETS)
+        return {};
+
+    const juce::ScopedLock sl(configLock);
+    return targetConfigs[static_cast<size_t>(targetIndex)];
+}
+
+GlobalConfig OSCManager::getGlobalConfig() const
+{
+    const juce::ScopedLock sl(configLock);
+    return globalConfig;
+}
+
+//==============================================================================
+// Connection Control
+//==============================================================================
+
+bool OSCManager::startListening()
+{
+    const juce::ScopedLock sl(configLock);
+
+    if (listening)
+        return true;
+
+    // Create and configure UDP receiver
+    udpReceiver = std::make_unique<juce::OSCReceiver>();
+    if (!udpReceiver->connect(globalConfig.udpReceivePort))
+    {
+        DBG("Failed to bind UDP receiver to port " << globalConfig.udpReceivePort);
+        udpReceiver.reset();
+        return false;
+    }
+    udpReceiver->addListener(this);
+
+    // Create TCP receiver (TODO: JUCE OSCReceiver doesn't directly support TCP server mode)
+    // For now, TCP will be handled differently
+
+    listening = true;
+    logger.logText("Started listening on UDP port " + juce::String(globalConfig.udpReceivePort));
+
+    return true;
+}
+
+void OSCManager::stopListening()
+{
+    const juce::ScopedLock sl(configLock);
+
+    if (!listening)
+        return;
+
+    if (udpReceiver)
+    {
+        udpReceiver->removeListener(this);
+        udpReceiver->disconnect();
+        udpReceiver.reset();
+    }
+
+    if (tcpReceiver)
+    {
+        tcpReceiver->removeListener(this);
+        tcpReceiver->disconnect();
+        tcpReceiver.reset();
+    }
+
+    listening = false;
+    logger.logText("Stopped listening");
+}
+
+bool OSCManager::connectTarget(int targetIndex)
+{
+    if (targetIndex < 0 || targetIndex >= MAX_TARGETS)
+    {
+        DBG("OSCManager::connectTarget - invalid target index: " << targetIndex);
+        return false;
+    }
+
+    DBG("OSCManager::connectTarget - connecting target " << targetIndex);
+
+    const juce::ScopedLock sl(configLock);
+
+    auto& conn = connections[static_cast<size_t>(targetIndex)];
+    auto& config = targetConfigs[static_cast<size_t>(targetIndex)];
+
+    if (!conn)
+    {
+        DBG("OSCManager::connectTarget - no connection object for target " << targetIndex);
+        return false;
+    }
+
+    DBG("OSCManager::connectTarget - configuring connection to " << config.ipAddress << ":" << config.port);
+    conn->configure(config);
+
+    if (conn->connect())
+    {
+        updateTargetStatus(targetIndex, ConnectionStatus::Connected);
+        logger.logText("Connected to target " + juce::String(targetIndex + 1) +
+                       " (" + config.ipAddress + ":" + juce::String(config.port) + ")");
+        DBG("OSCManager::connectTarget - target " << targetIndex << " CONNECTED");
+        return true;
+    }
+    else
+    {
+        updateTargetStatus(targetIndex, ConnectionStatus::Error);
+        DBG("OSCManager::connectTarget - target " << targetIndex << " connection FAILED");
+        return false;
+    }
+}
+
+void OSCManager::disconnectTarget(int targetIndex)
+{
+    if (targetIndex < 0 || targetIndex >= MAX_TARGETS)
+        return;
+
+    const juce::ScopedLock sl(configLock);
+
+    if (connections[static_cast<size_t>(targetIndex)])
+    {
+        connections[static_cast<size_t>(targetIndex)]->disconnect();
+        updateTargetStatus(targetIndex, ConnectionStatus::Disconnected);
+    }
+}
+
+void OSCManager::disconnectAll()
+{
+    for (int i = 0; i < MAX_TARGETS; ++i)
+    {
+        disconnectTarget(i);
+    }
+}
+
+ConnectionStatus OSCManager::getTargetStatus(int targetIndex) const
+{
+    if (targetIndex < 0 || targetIndex >= MAX_TARGETS)
+        return ConnectionStatus::Disconnected;
+
+    return targetStatuses[static_cast<size_t>(targetIndex)];
+}
+
+//==============================================================================
+// Message Sending
+//==============================================================================
+
+void OSCManager::sendMessage(int targetIndex, const juce::OSCMessage& message)
+{
+    if (targetIndex < 0 || targetIndex >= MAX_TARGETS)
+    {
+        DBG("OSCManager::sendMessage - invalid target index: " << targetIndex);
+        return;
+    }
+
+    const auto& config = targetConfigs[static_cast<size_t>(targetIndex)];
+    if (config.protocol == Protocol::Disabled || !config.txEnabled)
+    {
+        DBG("OSCManager::sendMessage - target " << targetIndex << " disabled or txEnabled=false");
+        return;
+    }
+
+    DBG("OSCManager::sendMessage - queuing message to target " << targetIndex
+        << " addr=" << message.getAddressPattern().toString());
+    rateLimiter.queueMessage(targetIndex, message);
+}
+
+void OSCManager::broadcastMessage(const juce::OSCMessage& message)
+{
+    rateLimiter.queueBroadcast(message);
+}
+
+void OSCManager::flushMessages()
+{
+    rateLimiter.flushAll();
+}
+
+//==============================================================================
+// REMOTE Protocol
+//==============================================================================
+
+void OSCManager::setRemoteSelectedChannel(int channelId)
+{
+    remoteSelectedChannel = channelId;
+    remoteModifiedParams.clear();
+}
+
+//==============================================================================
+// IP Filtering
+//==============================================================================
+
+void OSCManager::setIPFilteringEnabled(bool enabled)
+{
+    ipFilteringEnabled = enabled;
+}
+
+//==============================================================================
+// Logging
+//==============================================================================
+
+void OSCManager::setLoggingEnabled(bool enabled)
+{
+    logger.setEnabled(enabled);
+}
+
+//==============================================================================
+// Statistics
+//==============================================================================
+
+OSCManager::Statistics OSCManager::getStatistics() const
+{
+    Statistics stats;
+    stats.messagesSent = messagesSent.load();
+    stats.messagesReceived = messagesReceived.load();
+    stats.messagesCoalesced = static_cast<int>(rateLimiter.getTotalCoalesced());
+    stats.parseErrors = parseErrors.load();
+    return stats;
+}
+
+void OSCManager::resetStatistics()
+{
+    messagesSent = 0;
+    messagesReceived = 0;
+    parseErrors = 0;
+    rateLimiter.resetStats();
+}
+
+//==============================================================================
+// ValueTree::Listener
+//==============================================================================
+
+void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property)
+{
+    // Debug: log all property changes
+    DBG("OSCManager::valueTreePropertyChanged - tree=" << tree.getType().toString()
+        << " property=" << property.toString()
+        << " incomingProtocol=" << static_cast<int>(incomingProtocol));
+
+    // Determine if this is an input or output parameter change
+    juce::String typeName = tree.getType().toString();
+    juce::var value = tree.getProperty(property);
+
+    // Find channel index by traversing up to Input or Output parent
+    int channelId = -1;
+    bool isInput = false;
+    bool isOutput = false;
+
+    juce::ValueTree parent = tree;
+    while (parent.isValid())
+    {
+        if (parent.getType() == WFSParameterIDs::Input)
+        {
+            channelId = parent.getProperty(WFSParameterIDs::id);
+            isInput = true;
+            break;
+        }
+        else if (parent.getType() == WFSParameterIDs::Output)
+        {
+            channelId = parent.getProperty(WFSParameterIDs::id);
+            isOutput = true;
+            break;
+        }
+        parent = parent.getParent();
+    }
+
+    if (channelId < 0)
+        return;
+
+    // Send to appropriate targets based on protocol
+    for (int i = 0; i < MAX_TARGETS; ++i)
+    {
+        const auto& config = targetConfigs[static_cast<size_t>(i)];
+
+        if (config.protocol == Protocol::Disabled || !config.txEnabled)
+            continue;
+
+        // Loop prevention: skip targets with same protocol as incoming message
+        // This prevents echo loops while still allowing cross-protocol forwarding
+        if (incomingProtocol != Protocol::Disabled && config.protocol == incomingProtocol)
+        {
+            DBG("OSCManager: Skipping target " << i << " (same protocol as incoming)");
+            continue;
+        }
+
+        if (config.protocol == Protocol::OSC)
+        {
+            // Standard OSC protocol
+            std::optional<juce::OSCMessage> msg;
+
+            // Check for numeric values (both int and double)
+            bool isNumeric = value.isDouble() || value.isInt() || value.isInt64();
+
+            if (isInput && isNumeric)
+            {
+                msg = OSCMessageBuilder::buildInputMessage(property, channelId,
+                                                           static_cast<float>(static_cast<double>(value)));
+                DBG("OSCManager: Input param " << property.toString() << " ch" << channelId
+                    << " value=" << static_cast<float>(static_cast<double>(value))
+                    << " mapped=" << (msg.has_value() ? "yes" : "no"));
+            }
+            else if (isOutput && isNumeric)
+            {
+                msg = OSCMessageBuilder::buildOutputMessage(property, channelId,
+                                                            static_cast<float>(static_cast<double>(value)));
+                DBG("OSCManager: Output param " << property.toString() << " ch" << channelId
+                    << " value=" << static_cast<float>(static_cast<double>(value))
+                    << " mapped=" << (msg.has_value() ? "yes" : "no"));
+            }
+
+            if (msg.has_value())
+            {
+                DBG("OSCManager: Sending to target " << i << ": " << msg->getAddressPattern().toString());
+                sendMessage(i, *msg);
+            }
+        }
+        else if (config.protocol == Protocol::Remote)
+        {
+            // REMOTE protocol - only send for selected channel at 50Hz max
+            if (isInput && channelId == remoteSelectedChannel)
+            {
+                bool isNumeric = value.isDouble() || value.isInt() || value.isInt64();
+                if (isNumeric)
+                {
+                    auto msg = OSCMessageBuilder::buildRemoteOutputMessage(
+                        property, channelId, static_cast<float>(static_cast<double>(value)));
+
+                    if (msg.has_value())
+                    {
+                        sendMessage(i, *msg);
+                    }
+                }
+            }
+        }
+    }
+}
+
+//==============================================================================
+// OSCReceiver::Listener
+//==============================================================================
+
+void OSCManager::oscMessageReceived(const juce::OSCMessage& message)
+{
+    ++messagesReceived;
+    handleIncomingMessage(message);
+}
+
+void OSCManager::oscBundleReceived(const juce::OSCBundle& bundle)
+{
+    for (const auto& element : bundle)
+    {
+        if (element.isMessage())
+        {
+            ++messagesReceived;
+            handleIncomingMessage(element.getMessage());
+        }
+        else if (element.isBundle())
+        {
+            oscBundleReceived(element.getBundle());
+        }
+    }
+}
+
+//==============================================================================
+// Timer
+//==============================================================================
+
+void OSCManager::timerCallback()
+{
+    // Poll connection statuses
+    for (int i = 0; i < MAX_TARGETS; ++i)
+    {
+        if (connections[static_cast<size_t>(i)])
+        {
+            auto newStatus = connections[static_cast<size_t>(i)]->getStatus();
+            if (newStatus != targetStatuses[static_cast<size_t>(i)])
+            {
+                updateTargetStatus(i, newStatus);
+            }
+        }
+    }
+}
+
+//==============================================================================
+// Internal Methods
+//==============================================================================
+
+void OSCManager::handleIncomingMessage(const juce::OSCMessage& message)
+{
+    juce::String address = message.getAddressPattern().toString();
+
+    // Log incoming message (determine protocol from address)
+    Protocol protocol = Protocol::OSC;
+    if (address.startsWith("/remoteInput/"))
+        protocol = Protocol::Remote;
+
+    logger.logReceived(message, protocol);
+
+    // Route to appropriate handler
+    if (OSCMessageRouter::isInputAddress(address) || OSCMessageRouter::isOutputAddress(address))
+    {
+        handleStandardOSCMessage(message);
+    }
+    else if (OSCMessageRouter::isRemoteInputAddress(address))
+    {
+        handleRemoteInputMessage(message);
+    }
+}
+
+void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
+{
+    juce::String address = message.getAddressPattern().toString();
+
+    if (OSCMessageRouter::isInputAddress(address))
+    {
+        auto parsed = OSCMessageRouter::parseInputMessage(message);
+        if (parsed.valid)
+        {
+            // Update parameter in ValueTree (will be on message thread)
+            // Set flag to prevent loop (don't re-send what we just received)
+            juce::MessageManager::callAsync([this, parsed]()
+            {
+                incomingProtocol = Protocol::OSC;  // Flag: processing incoming OSC
+                // OSC uses 1-based channel IDs, but internal API uses 0-based
+                int channelIndex = parsed.channelId - 1;
+                if (channelIndex >= 0)
+                {
+                    if (parsed.value.isDouble())
+                    {
+                        state.setInputParameter(channelIndex, parsed.paramId, parsed.value);
+                    }
+                    else if (parsed.value.isString())
+                    {
+                        state.setInputParameter(channelIndex, parsed.paramId, parsed.value);
+                    }
+                }
+                incomingProtocol = Protocol::Disabled;  // Clear flag
+            });
+        }
+        else
+        {
+            ++parseErrors;
+        }
+    }
+    else if (OSCMessageRouter::isOutputAddress(address))
+    {
+        auto parsed = OSCMessageRouter::parseOutputMessage(message);
+        if (parsed.valid)
+        {
+            juce::MessageManager::callAsync([this, parsed]()
+            {
+                incomingProtocol = Protocol::OSC;  // Flag: processing incoming OSC
+                // OSC uses 1-based channel IDs, but internal API uses 0-based
+                int channelIndex = parsed.channelId - 1;
+                if (channelIndex >= 0)
+                {
+                    if (parsed.value.isDouble())
+                    {
+                        state.setOutputParameter(channelIndex, parsed.paramId, parsed.value);
+                    }
+                    else if (parsed.value.isString())
+                    {
+                        state.setOutputParameter(channelIndex, parsed.paramId, parsed.value);
+                    }
+                }
+                incomingProtocol = Protocol::Disabled;  // Clear flag
+            });
+        }
+        else
+        {
+            ++parseErrors;
+        }
+    }
+}
+
+void OSCManager::handleRemoteInputMessage(const juce::OSCMessage& message)
+{
+    auto parsed = OSCMessageRouter::parseRemoteInputMessage(message);
+
+    if (!parsed.valid)
+    {
+        ++parseErrors;
+        return;
+    }
+
+    if (parsed.type == OSCMessageRouter::ParsedRemoteInput::Type::ChannelSelect)
+    {
+        // Channel selection from Android app
+        juce::MessageManager::callAsync([this, channelId = parsed.channelId]()
+        {
+            setRemoteSelectedChannel(channelId);
+
+            if (onRemoteChannelSelect)
+                onRemoteChannelSelect(channelId);
+
+            // Send all parameters for this channel to REMOTE targets
+            sendRemoteChannelDump(channelId);
+        });
+    }
+    else if (parsed.type == OSCMessageRouter::ParsedRemoteInput::Type::PositionDelta)
+    {
+        handleRemotePositionDelta(parsed);
+    }
+}
+
+void OSCManager::handleRemotePositionDelta(const OSCMessageRouter::ParsedRemoteInput& parsed)
+{
+    // Apply delta to position or offset based on tracking state
+    juce::MessageManager::callAsync([this, parsed]()
+    {
+        incomingProtocol = Protocol::Remote;  // Flag: processing incoming REMOTE message
+
+        // Check if tracking is active for this channel
+        bool trackingActive = state.getInputParameter(parsed.channelId,
+                                                       WFSParameterIDs::inputTrackingActive);
+
+        // Determine which parameter to modify
+        juce::Identifier paramId;
+        if (trackingActive)
+        {
+            // Tracking active: modify offset
+            switch (parsed.axis)
+            {
+                case Axis::X: paramId = WFSParameterIDs::inputOffsetX; break;
+                case Axis::Y: paramId = WFSParameterIDs::inputOffsetY; break;
+                case Axis::Z: paramId = WFSParameterIDs::inputOffsetZ; break;
+            }
+        }
+        else
+        {
+            // Tracking not active: modify position
+            switch (parsed.axis)
+            {
+                case Axis::X: paramId = WFSParameterIDs::inputPositionX; break;
+                case Axis::Y: paramId = WFSParameterIDs::inputPositionY; break;
+                case Axis::Z: paramId = WFSParameterIDs::inputPositionZ; break;
+            }
+        }
+
+        // Get current value and apply delta
+        float currentValue = static_cast<float>(state.getInputParameter(parsed.channelId, paramId));
+
+        float delta = parsed.deltaValue;
+        if (parsed.direction == DeltaDirection::Decrement)
+            delta = -delta;
+
+        float newValue = currentValue + delta;
+
+        // Set the new value
+        state.setInputParameter(parsed.channelId, paramId, newValue);
+
+        incomingProtocol = Protocol::Disabled;  // Clear flag
+    });
+}
+
+void OSCManager::sendRemoteChannelDump(int channelId)
+{
+    // Collect all input parameters for this channel
+    std::map<juce::Identifier, float> paramValues;
+
+    // Add all relevant parameters
+    // Position
+    paramValues[WFSParameterIDs::inputPositionX] =
+        static_cast<float>(state.getInputParameter(channelId, WFSParameterIDs::inputPositionX));
+    paramValues[WFSParameterIDs::inputPositionY] =
+        static_cast<float>(state.getInputParameter(channelId, WFSParameterIDs::inputPositionY));
+    paramValues[WFSParameterIDs::inputPositionZ] =
+        static_cast<float>(state.getInputParameter(channelId, WFSParameterIDs::inputPositionZ));
+
+    // Offsets
+    paramValues[WFSParameterIDs::inputOffsetX] =
+        static_cast<float>(state.getInputParameter(channelId, WFSParameterIDs::inputOffsetX));
+    paramValues[WFSParameterIDs::inputOffsetY] =
+        static_cast<float>(state.getInputParameter(channelId, WFSParameterIDs::inputOffsetY));
+    paramValues[WFSParameterIDs::inputOffsetZ] =
+        static_cast<float>(state.getInputParameter(channelId, WFSParameterIDs::inputOffsetZ));
+
+    // Attenuation
+    paramValues[WFSParameterIDs::inputAttenuation] =
+        static_cast<float>(state.getInputParameter(channelId, WFSParameterIDs::inputAttenuation));
+
+    // Tracking
+    paramValues[WFSParameterIDs::inputTrackingActive] =
+        state.getInputParameter(channelId, WFSParameterIDs::inputTrackingActive) ? 1.0f : 0.0f;
+
+    // Build and send messages
+    auto messages = OSCMessageBuilder::buildRemoteChannelDump(channelId, paramValues);
+
+    for (int i = 0; i < MAX_TARGETS; ++i)
+    {
+        const auto& config = targetConfigs[static_cast<size_t>(i)];
+        if (config.protocol == Protocol::Remote && config.txEnabled)
+        {
+            for (const auto& msg : messages)
+            {
+                sendMessage(i, msg);
+            }
+        }
+    }
+}
+
+void OSCManager::updateTargetStatus(int targetIndex, ConnectionStatus newStatus)
+{
+    if (targetIndex < 0 || targetIndex >= MAX_TARGETS)
+        return;
+
+    targetStatuses[static_cast<size_t>(targetIndex)] = newStatus;
+
+    if (onConnectionStatusChanged)
+        onConnectionStatusChanged(targetIndex, newStatus);
+}
+
+} // namespace WFSNetwork

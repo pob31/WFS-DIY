@@ -1310,6 +1310,31 @@ private:
                     channelSelector.setSelectedChannel(1);
             }
         }
+
+        // Check if this is a parameter change for the current channel (e.g., from OSC)
+        // Skip if we're already loading parameters (avoid recursion)
+        if (!isLoadingParameters)
+        {
+            // Find if this tree belongs to the current channel's Output tree
+            juce::ValueTree parent = tree;
+            while (parent.isValid())
+            {
+                if (parent.getType() == WFSParameterIDs::Output)
+                {
+                    int channelId = parent.getProperty(WFSParameterIDs::id, -1);
+                    if (channelId == currentChannel)
+                    {
+                        // This is a parameter change for the current channel - refresh UI
+                        juce::MessageManager::callAsync([this]()
+                        {
+                            loadChannelParameters(currentChannel);
+                        });
+                    }
+                    break;
+                }
+                parent = parent.getParent();
+            }
+        }
     }
 
     void valueTreeChildAdded(juce::ValueTree&, juce::ValueTree&) override {}
