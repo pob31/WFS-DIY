@@ -128,8 +128,8 @@
     </VS2022>
     <XCODE_MAC targetFolder="Builds/MacOSX">
       <CONFIGURATIONS>
-        <CONFIGURATION isDebug="1" name="Debug" targetName="WFS-DIY"/>
-        <CONFIGURATION isDebug="0" name="Release" targetName="WFS-DIY"/>
+        <CONFIGURATION isDebug="1" name="Debug" targetName="WFS-DIY" extraLinkerFlags="-framework SystemConfiguration -framework CoreFoundation"/>
+        <CONFIGURATION isDebug="0" name="Release" targetName="WFS-DIY" extraLinkerFlags="-framework SystemConfiguration -framework CoreFoundation"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_audio_basics" path="../../../JUCE/modules"/>

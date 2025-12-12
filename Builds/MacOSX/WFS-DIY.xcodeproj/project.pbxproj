@@ -48,6 +48,8 @@
 		F4AA488127D811825687FFDC /* include_juce_gui_basics.mm */ = {isa = PBXBuildFile; fileRef = 300E93A1943132FBD96DBD77; };
 		F7291D04FD22C7330C3E1864 /* include_juce_graphics_Harfbuzz.cpp */ = {isa = PBXBuildFile; fileRef = 1A10EA3687120F02EC073242; };
 		FEB463E52DD144B58406DA04 /* CoreMIDI.framework */ = {isa = PBXBuildFile; fileRef = A9937509256CBFA14535037B; };
+		SC1234567890ABCDEF123456 /* SystemConfiguration.framework */ = {isa = PBXBuildFile; fileRef = SC9876543210FEDCBA987654; };
+		CF1234567890ABCDEF123456 /* CoreFoundation.framework */ = {isa = PBXBuildFile; fileRef = CF9876543210FEDCBA987654; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -104,6 +106,8 @@
 		A6107472373FC76F35C046C0 /* MainComponent.cpp */ /* MainComponent.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MainComponent.cpp; path = ../../Source/MainComponent.cpp; sourceTree = SOURCE_ROOT; };
 		A96E05E0B144008AE500DBAE /* WFSParameterDefaults.h */ /* WFSParameterDefaults.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = WFSParameterDefaults.h; path = ../../Source/Parameters/WFSParameterDefaults.h; sourceTree = SOURCE_ROOT; };
 		A9937509256CBFA14535037B /* CoreMIDI.framework */ /* CoreMIDI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMIDI.framework; path = System/Library/Frameworks/CoreMIDI.framework; sourceTree = SDKROOT; };
+		SC9876543210FEDCBA987654 /* SystemConfiguration.framework */ /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
+		CF9876543210FEDCBA987654 /* CoreFoundation.framework */ /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
 		AA3D6463B920C9F5617110A3 /* ReverbTab.h */ /* ReverbTab.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ReverbTab.h; path = ../../Source/gui/ReverbTab.h; sourceTree = SOURCE_ROOT; };
 		AC103C23CF134FD2779DDD03 /* CoreAudioKit.framework */ /* CoreAudioKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudioKit.framework; path = System/Library/Frameworks/CoreAudioKit.framework; sourceTree = SDKROOT; };
 		AE1207ECC59B747C80031900 /* MainComponent.h */ /* MainComponent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MainComponent.h; path = ../../Source/MainComponent.h; sourceTree = SOURCE_ROOT; };
@@ -154,6 +158,8 @@
 				94B254A659EFEC3CC830EB46,
 				8ADC8900F737B54FCFBA3AA8,
 				D0C2D1742B813683EC65D553,
+				SC1234567890ABCDEF123456,
+				CF1234567890ABCDEF123456,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

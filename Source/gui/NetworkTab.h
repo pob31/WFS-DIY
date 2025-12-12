@@ -10,6 +10,14 @@
     #include <iphlpapi.h>
     #pragma comment(lib, "iphlpapi.lib")
     #pragma comment(lib, "ws2_32.lib")
+#elif JUCE_MAC
+    #include <ifaddrs.h>
+    #include <netinet/in.h>
+    #include <arpa/inet.h>
+    #include <sys/socket.h>
+    #include <net/if.h>
+    #include <SystemConfiguration/SystemConfiguration.h>
+    #include <CoreFoundation/CoreFoundation.h>
 #endif
 
 /**
@@ -1539,10 +1547,122 @@ private:
             networkInterfaceSelector.addItem("No network adapters found", 1);
         }
 #elif JUCE_MAC
-        // macOS implementation placeholder
-        networkInterfaceSelector.addItem("macOS network interface selection - Not yet implemented", 1);
-        interfaceNames.add("macOS Placeholder");
-        interfaceIPs.add("0.0.0.0");
+        // First, get friendly names from SystemConfiguration framework
+        juce::HashMap<juce::String, juce::String> bsdToFriendlyName;
+        CFArrayRef interfaces = SCNetworkInterfaceCopyAll();
+        if (interfaces != nullptr)
+        {
+            CFIndex count = CFArrayGetCount(interfaces);
+            for (CFIndex i = 0; i < count; ++i)
+            {
+                SCNetworkInterfaceRef interface = (SCNetworkInterfaceRef)CFArrayGetValueAtIndex(interfaces, i);
+                if (interface != nullptr)
+                {
+                    // Get BSD name (e.g., "en0", "en1")
+                    CFStringRef bsdName = SCNetworkInterfaceGetBSDName(interface);
+                    // Get display/friendly name (e.g., "Ethernet", "Wi-Fi")
+                    CFStringRef displayName = SCNetworkInterfaceGetLocalizedDisplayName(interface);
+                    
+                    if (bsdName != nullptr)
+                    {
+                        // Convert CFStringRef to juce::String
+                        char bsdNameBuffer[256];
+                        if (CFStringGetCString(bsdName, bsdNameBuffer, sizeof(bsdNameBuffer), kCFStringEncodingUTF8))
+                        {
+                            juce::String bsdNameStr = juce::String(bsdNameBuffer);
+                            juce::String friendlyNameStr;
+                            
+                            if (displayName != nullptr)
+                            {
+                                char displayNameBuffer[256];
+                                if (CFStringGetCString(displayName, displayNameBuffer, sizeof(displayNameBuffer), kCFStringEncodingUTF8))
+                                {
+                                    friendlyNameStr = juce::String(displayNameBuffer);
+                                }
+                                else
+                                {
+                                    // Fallback to BSD name if conversion fails
+                                    friendlyNameStr = bsdNameStr;
+                                }
+                            }
+                            else
+                            {
+                                // Fallback to BSD name if no display name
+                                friendlyNameStr = bsdNameStr;
+                            }
+                            
+                            bsdToFriendlyName.set(bsdNameStr, friendlyNameStr);
+                        }
+                    }
+                }
+            }
+            CFRelease(interfaces);
+        }
+        
+        // Now get actual interfaces with IP addresses using getifaddrs
+        struct ifaddrs* ifaddrsList = nullptr;
+        if (getifaddrs(&ifaddrsList) == 0)
+        {
+            // Map to track interfaces we've already added (to avoid duplicates)
+            juce::HashMap<juce::String, juce::String> interfaceMap;
+            
+            int interfaceIndex = 1;
+            for (struct ifaddrs* ifa = ifaddrsList; ifa != nullptr; ifa = ifa->ifa_next)
+            {
+                if (ifa->ifa_addr == nullptr)
+                    continue;
+                
+                // Only process IPv4 addresses
+                if (ifa->ifa_addr->sa_family != AF_INET)
+                    continue;
+                
+                // Skip loopback interfaces
+                if ((ifa->ifa_flags & IFF_LOOPBACK) != 0)
+                    continue;
+                
+                // Only process interfaces that are up and running
+                if ((ifa->ifa_flags & IFF_UP) == 0 || (ifa->ifa_flags & IFF_RUNNING) == 0)
+                    continue;
+                
+                // Get interface BSD name
+                juce::String bsdName = juce::String(ifa->ifa_name);
+                
+                // Get friendly name if available, otherwise use BSD name
+                juce::String interfaceName = bsdToFriendlyName.contains(bsdName) 
+                    ? bsdToFriendlyName[bsdName] 
+                    : bsdName;
+                
+                // Get IPv4 address
+                struct sockaddr_in* sa_in = (struct sockaddr_in*)ifa->ifa_addr;
+                char ipBuffer[INET_ADDRSTRLEN];
+                if (inet_ntop(AF_INET, &(sa_in->sin_addr), ipBuffer, INET_ADDRSTRLEN) != nullptr)
+                {
+                    juce::String ipAddress = juce::String(ipBuffer);
+                    
+                    // Check if we've already added this interface (some interfaces can have multiple addresses)
+                    // We'll use the first IPv4 address we find for each interface name
+                    if (!interfaceMap.contains(bsdName))
+                    {
+                        // Add to combo box with format: "Friendly Name (IP)"
+                        juce::String displayName = interfaceName + " (" + ipAddress + ")";
+                        networkInterfaceSelector.addItem(displayName, interfaceIndex++);
+                        
+                        // Store BSD name for later use (for matching when saving/loading)
+                        interfaceNames.add(bsdName);
+                        interfaceIPs.add(ipAddress);
+                        
+                        interfaceMap.set(bsdName, ipAddress);
+                    }
+                }
+            }
+            
+            freeifaddrs(ifaddrsList);
+        }
+        
+        if (networkInterfaceSelector.getNumItems() == 0)
+        {
+            networkInterfaceSelector.addItem("No network adapters found", 1);
+        }
 #else
         networkInterfaceSelector.addItem("Network interface selection not supported on this platform", 1);
         interfaceNames.add("Unsupported");
@@ -1627,6 +1747,38 @@ private:
             if (pAddresses)
                 free(pAddresses);
             WSACleanup();
+        }
+#elif JUCE_MAC
+        struct ifaddrs* ifaddrsList = nullptr;
+        if (getifaddrs(&ifaddrsList) == 0)
+        {
+            for (struct ifaddrs* ifa = ifaddrsList; ifa != nullptr; ifa = ifa->ifa_next)
+            {
+                if (ifa->ifa_addr == nullptr)
+                    continue;
+                
+                // Only process IPv4 addresses
+                if (ifa->ifa_addr->sa_family != AF_INET)
+                    continue;
+                
+                // Skip loopback interfaces
+                if ((ifa->ifa_flags & IFF_LOOPBACK) != 0)
+                    continue;
+                
+                // Only process interfaces that are up and running
+                if ((ifa->ifa_flags & IFF_UP) != 0 && (ifa->ifa_flags & IFF_RUNNING) != 0)
+                {
+                    struct sockaddr_in* sa_in = (struct sockaddr_in*)ifa->ifa_addr;
+                    char ipBuffer[INET_ADDRSTRLEN];
+                    if (inet_ntop(AF_INET, &(sa_in->sin_addr), ipBuffer, INET_ADDRSTRLEN) != nullptr)
+                    {
+                        currentIPEditor.setText(juce::String(ipBuffer), false);
+                        freeifaddrs(ifaddrsList);
+                        return;
+                    }
+                }
+            }
+            freeifaddrs(ifaddrsList);
         }
 #endif
         currentIPEditor.setText("Not available", false);
