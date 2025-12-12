@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "../WfsParameters.h"
+#include "../Parameters/WFSParameterIDs.h"
 #include "ChannelSelector.h"
 #include "SliderUIComponents.h"
 #include "DialUIComponents.h"
@@ -19,12 +20,16 @@
 class OutputsTab : public juce::Component,
                    private juce::TextEditor::Listener,
                    private juce::ChangeListener,
-                   private juce::Label::Listener
+                   private juce::Label::Listener,
+                   private juce::ValueTree::Listener
 {
 public:
     OutputsTab(WfsParameters& params)
-        : parameters(params)
+        : parameters(params),
+          outputsTree(params.getOutputTree())
     {
+        // Add listener to outputs tree
+        outputsTree.addListener(this);
         // ==================== HEADER SECTION ====================
         // Channel Selector
         channelSelector.setNumChannels(64);  // Will be updated from parameters
@@ -102,6 +107,11 @@ public:
 
         // Load initial channel parameters
         loadChannelParameters(1);
+    }
+
+    ~OutputsTab() override
+    {
+        outputsTree.removeListener(this);
     }
 
     void paint(juce::Graphics& g) override
@@ -205,6 +215,7 @@ private:
             float dB = 20.0f * std::log10(std::pow(10.0f, -92.0f / 20.0f) +
                        ((1.0f - std::pow(10.0f, -92.0f / 20.0f)) * v * v));
             attenuationValueLabel.setText(juce::String(dB, 1) + " dB", juce::dontSendNotification);
+            saveOutputParam(WFSParameterIDs::outputAttenuation, v);
         };
         addAndMakeVisible(attenuationSlider);
 
@@ -224,6 +235,7 @@ private:
             float ms = v * 100.0f;
             juce::String label = (ms < 0) ? "Latency: " : "Delay: ";
             delayLatencyValueLabel.setText(label + juce::String(std::abs(ms), 1) + " ms", juce::dontSendNotification);
+            saveOutputParam(WFSParameterIDs::outputDelayLatency, v);
         };
         addAndMakeVisible(delayLatencySlider);
 
@@ -240,6 +252,7 @@ private:
         minLatencyEnableButton.onClick = [this]() {
             bool enabled = minLatencyEnableButton.getToggleState();
             minLatencyEnableButton.setButtonText(enabled ? "Min Latency: ON" : "Min Latency: OFF");
+            saveOutputParam(WFSParameterIDs::outputMiniLatencyEnable, enabled ? 1 : 0);
         };
 
         // Live Source Enable button
@@ -250,6 +263,7 @@ private:
         liveSourceEnableButton.onClick = [this]() {
             bool enabled = liveSourceEnableButton.getToggleState();
             liveSourceEnableButton.setButtonText(enabled ? "Live Source Atten: ON" : "Live Source Atten: OFF");
+            saveOutputParam(WFSParameterIDs::outputLSattenEnable, enabled ? 1 : 0);
         };
 
         // Distance Attenuation % slider (0-200%, default 100% in center)
@@ -263,6 +277,7 @@ private:
             // Slider range is -1 to 1, map to 0% to 200% (center = 100%)
             int percent = static_cast<int>((v + 1.0f) * 100.0f);
             distanceAttenValueLabel.setText(juce::String(percent) + " %", juce::dontSendNotification);
+            saveOutputParam(WFSParameterIDs::outputDistanceAttenPercent, percent);
         };
         addAndMakeVisible(distanceAttenSlider);
 
@@ -336,6 +351,7 @@ private:
         orientationDial.setColours(juce::Colours::black, juce::Colours::white, juce::Colours::grey);
         orientationDial.onAngleChanged = [this](float angle) {
             orientationValueLabel.setText(juce::String(static_cast<int>(angle)) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+            saveOutputParam(WFSParameterIDs::outputOrientation, angle);
         };
         addAndMakeVisible(orientationDial);
         addAndMakeVisible(orientationValueLabel);
@@ -354,6 +370,7 @@ private:
         angleOnSlider.onValueChanged = [this](float v) {
             int degrees = static_cast<int>(v * 179.0f + 1.0f);
             angleOnValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+            saveOutputParam(WFSParameterIDs::outputAngleOn, degrees);
         };
         addAndMakeVisible(angleOnSlider);
         addAndMakeVisible(angleOnValueLabel);
@@ -371,6 +388,7 @@ private:
         angleOffSlider.onValueChanged = [this](float v) {
             int degrees = static_cast<int>(v * 179.0f);
             angleOffValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+            saveOutputParam(WFSParameterIDs::outputAngleOff, degrees);
         };
         addAndMakeVisible(angleOffSlider);
         addAndMakeVisible(angleOffValueLabel);
@@ -388,6 +406,7 @@ private:
             // Slider range is -1 to 1, map to -90° to 90°
             int degrees = static_cast<int>(v * 90.0f);
             pitchValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+            saveOutputParam(WFSParameterIDs::outputPitch, degrees);
         };
         addAndMakeVisible(pitchSlider);
         addAndMakeVisible(pitchValueLabel);
@@ -405,6 +424,7 @@ private:
         hfDampingSlider.onValueChanged = [this](float v) {
             float dBm = v * 6.0f - 6.0f;
             hfDampingValueLabel.setText(juce::String(dBm, 1) + " dB/m", juce::dontSendNotification);
+            saveOutputParam(WFSParameterIDs::outputHFdamping, dBm);
         };
         addAndMakeVisible(hfDampingSlider);
         addAndMakeVisible(hfDampingValueLabel);
@@ -431,6 +451,7 @@ private:
             // Update all band appearances when global EQ state changes
             for (int i = 0; i < numEqBands; ++i)
                 updateEqBandAppearance(i);
+            saveOutputParam(WFSParameterIDs::outputEQenabled, enabled ? 1 : 0);
         };
 
         // Default frequencies for 6 bands: 80, 200, 500, 1500, 4000, 10000 Hz
@@ -853,25 +874,96 @@ private:
     void loadChannelParameters(int channel)
     {
         currentChannel = channel;
-        // TODO: Load actual parameters from WfsParameters
-        // For now, set defaults
-        nameEditor.setText("Output " + juce::String(channel), juce::dontSendNotification);
-        arraySelector.setSelectedId(1, juce::dontSendNotification);
-        applyToArraySelector.setSelectedId(2, juce::dontSendNotification);
+        isLoadingParameters = true;  // Prevent saving while loading
 
-        // Update Apply to Array enabled state based on array selection
+        // Load name
+        juce::String name = parameters.getOutputParam(channel - 1, "outputName").toString();
+        nameEditor.setText(name.isEmpty() ? "Output " + juce::String(channel) : name, juce::dontSendNotification);
+
+        // Load array settings
+        int array = (int)parameters.getOutputParam(channel - 1, "outputArray");
+        arraySelector.setSelectedId(array + 1, juce::dontSendNotification);
+        int applyToArray = (int)parameters.getOutputParam(channel - 1, "outputApplyToArray");
+        applyToArraySelector.setSelectedId(applyToArray + 1, juce::dontSendNotification);
+
+        // Output Properties
+        float atten = (float)parameters.getOutputParam(channel - 1, "outputAttenuation");
+        attenuationSlider.setValue(atten);
+
+        float delay = (float)parameters.getOutputParam(channel - 1, "outputDelayLatency");
+        delayLatencySlider.setValue(delay);
+
+        bool minLatency = (int)parameters.getOutputParam(channel - 1, "outputMiniLatencyEnable") != 0;
+        minLatencyEnableButton.setToggleState(minLatency, juce::dontSendNotification);
+        minLatencyEnableButton.setButtonText(minLatency ? "Min Latency: ON" : "Min Latency: OFF");
+
+        bool lsAtten = (int)parameters.getOutputParam(channel - 1, "outputLSattenEnable") != 0;
+        liveSourceEnableButton.setToggleState(lsAtten, juce::dontSendNotification);
+        liveSourceEnableButton.setButtonText(lsAtten ? "Live Source Atten: ON" : "Live Source Atten: OFF");
+
+        int distAtten = (int)parameters.getOutputParam(channel - 1, "outputDistanceAttenPercent");
+        if (distAtten == 0) distAtten = 100;  // Default
+        distanceAttenSlider.setValue((distAtten / 100.0f) - 1.0f);
+
+        float hParallax = (float)parameters.getOutputParam(channel - 1, "outputHparallax");
+        hParallaxEditor.setText(juce::String(hParallax, 2), false);
+
+        float vParallax = (float)parameters.getOutputParam(channel - 1, "outputVparallax");
+        vParallaxEditor.setText(juce::String(vParallax, 2), false);
+
+        // Position
+        float posX = (float)parameters.getOutputParam(channel - 1, "outputPositionX");
+        posXEditor.setText(juce::String(posX, 2), false);
+
+        float posY = (float)parameters.getOutputParam(channel - 1, "outputPositionY");
+        posYEditor.setText(juce::String(posY, 2), false);
+
+        float posZ = (float)parameters.getOutputParam(channel - 1, "outputPositionZ");
+        posZEditor.setText(juce::String(posZ, 2), false);
+
+        float orientation = (float)parameters.getOutputParam(channel - 1, "outputOrientation");
+        orientationDial.setAngle(orientation);
+
+        int angleOn = (int)parameters.getOutputParam(channel - 1, "outputAngleOn");
+        if (angleOn == 0) angleOn = 86;  // Default
+        angleOnSlider.setValue((angleOn - 1.0f) / 179.0f);
+
+        int angleOff = (int)parameters.getOutputParam(channel - 1, "outputAngleOff");
+        if (angleOff == 0) angleOff = 90;  // Default
+        angleOffSlider.setValue(angleOff / 179.0f);
+
+        int pitch = (int)parameters.getOutputParam(channel - 1, "outputPitch");
+        pitchSlider.setValue(pitch / 90.0f);
+
+        float hfDamping = (float)parameters.getOutputParam(channel - 1, "outputHFdamping");
+        hfDampingSlider.setValue((hfDamping + 6.0f) / 6.0f);
+
+        // EQ
+        bool eqEnabled = (int)parameters.getOutputParam(channel - 1, "outputEQenabled") != 0;
+        eqEnableButton.setToggleState(eqEnabled, juce::dontSendNotification);
+        eqEnableButton.setButtonText(eqEnabled ? "EQ ON" : "EQ OFF");
+        for (int i = 0; i < numEqBands; ++i)
+            updateEqBandAppearance(i);
+
+        isLoadingParameters = false;
         updateApplyToArrayEnabledState();
+    }
+
+    void saveOutputParam(const juce::Identifier& paramId, const juce::var& value)
+    {
+        if (isLoadingParameters) return;
+        parameters.setOutputParam(currentChannel - 1, paramId.toString(), value);
     }
 
     void updateArrayParameter()
     {
         updateApplyToArrayEnabledState();
-        // TODO: Save to parameters
+        saveOutputParam(WFSParameterIDs::outputArray, arraySelector.getSelectedId() - 1);
     }
 
     void updateApplyToArrayParameter()
     {
-        // TODO: Save to parameters
+        saveOutputParam(WFSParameterIDs::outputApplyToArray, applyToArraySelector.getSelectedId() - 1);
     }
 
     void updateApplyToArrayEnabledState()
@@ -888,9 +980,23 @@ private:
         editor.giveAwayKeyboardFocus();
     }
 
-    void textEditorFocusLost(juce::TextEditor&) override
+    void textEditorFocusLost(juce::TextEditor& editor) override
     {
-        // TODO: Validate and save values
+        if (isLoadingParameters) return;
+
+        // Save text editor values to parameters
+        if (&editor == &nameEditor)
+            saveOutputParam(WFSParameterIDs::outputName, nameEditor.getText());
+        else if (&editor == &posXEditor)
+            saveOutputParam(WFSParameterIDs::outputPositionX, posXEditor.getText().getFloatValue());
+        else if (&editor == &posYEditor)
+            saveOutputParam(WFSParameterIDs::outputPositionY, posYEditor.getText().getFloatValue());
+        else if (&editor == &posZEditor)
+            saveOutputParam(WFSParameterIDs::outputPositionZ, posZEditor.getText().getFloatValue());
+        else if (&editor == &hParallaxEditor)
+            saveOutputParam(WFSParameterIDs::outputHparallax, hParallaxEditor.getText().getFloatValue());
+        else if (&editor == &vParallaxEditor)
+            saveOutputParam(WFSParameterIDs::outputVparallax, vParallaxEditor.getText().getFloatValue());
     }
 
     // ==================== LABEL LISTENER ====================
@@ -957,34 +1063,101 @@ private:
 
     // ==================== STORE/RELOAD METHODS ====================
 
+    void showStatusMessage(const juce::String& message)
+    {
+        if (statusBar != nullptr)
+            statusBar->showTemporaryMessage(message, 3000);
+    }
+
     void storeOutputConfiguration()
     {
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
-            "Store Output Configuration", "Output configuration stored.");
+        auto& fileManager = parameters.getFileManager();
+        if (!fileManager.hasValidProjectFolder())
+        {
+            showStatusMessage("Please select a project folder in System Config first.");
+            return;
+        }
+        if (fileManager.saveOutputConfig())
+            showStatusMessage("Output configuration saved.");
+        else
+            showStatusMessage("Error: " + fileManager.getLastError());
     }
 
     void reloadOutputConfiguration()
     {
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
-            "Reload Output Configuration", "Output configuration reloaded.");
+        auto& fileManager = parameters.getFileManager();
+        if (!fileManager.hasValidProjectFolder())
+        {
+            showStatusMessage("Please select a project folder in System Config first.");
+            return;
+        }
+        if (fileManager.loadOutputConfig())
+        {
+            loadChannelParameters(currentChannel);
+            showStatusMessage("Output configuration loaded.");
+        }
+        else
+            showStatusMessage("Error: " + fileManager.getLastError());
     }
 
     void reloadOutputConfigBackup()
     {
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
-            "Reload Backup", "Output configuration backup reloaded.");
+        auto& fileManager = parameters.getFileManager();
+        if (fileManager.loadOutputConfigBackup(0))
+        {
+            loadChannelParameters(currentChannel);
+            showStatusMessage("Output configuration loaded from backup.");
+        }
+        else
+            showStatusMessage("Error: " + fileManager.getLastError());
     }
 
     void importOutputConfiguration()
     {
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
-            "Import", "Import output configuration.");
+        auto chooser = std::make_shared<juce::FileChooser>("Import Output Configuration",
+            juce::File::getSpecialLocation(juce::File::userHomeDirectory),
+            "*.xml");
+        auto chooserFlags = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
+
+        chooser->launchAsync(chooserFlags, [this, chooser](const juce::FileChooser& fc)
+        {
+            auto result = fc.getResult();
+            if (result.existsAsFile())
+            {
+                auto& fileManager = parameters.getFileManager();
+                if (fileManager.importOutputConfig(result))
+                {
+                    loadChannelParameters(currentChannel);
+                    showStatusMessage("Output configuration imported.");
+                }
+                else
+                    showStatusMessage("Error: " + fileManager.getLastError());
+            }
+        });
     }
 
     void exportOutputConfiguration()
     {
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
-            "Export", "Export output configuration.");
+        auto chooser = std::make_shared<juce::FileChooser>("Export Output Configuration",
+            juce::File::getSpecialLocation(juce::File::userHomeDirectory),
+            "*.xml");
+        auto chooserFlags = juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles;
+
+        chooser->launchAsync(chooserFlags, [this, chooser](const juce::FileChooser& fc)
+        {
+            auto result = fc.getResult();
+            if (result != juce::File())
+            {
+                if (!result.hasFileExtension(".xml"))
+                    result = result.withFileExtension(".xml");
+
+                auto& fileManager = parameters.getFileManager();
+                if (fileManager.exportOutputConfig(result))
+                    showStatusMessage("Output configuration exported.");
+                else
+                    showStatusMessage("Error: " + fileManager.getLastError());
+            }
+        });
     }
 
     void openArrayPositionHelper()
@@ -1084,9 +1257,23 @@ private:
             statusBar->clearText();
     }
 
+    // ==================== VALUETREE LISTENER ====================
+
+    void valueTreePropertyChanged(juce::ValueTree&, const juce::Identifier&) override
+    {
+        // Could reload UI here if needed
+    }
+
+    void valueTreeChildAdded(juce::ValueTree&, juce::ValueTree&) override {}
+    void valueTreeChildRemoved(juce::ValueTree&, juce::ValueTree&, int) override {}
+    void valueTreeChildOrderChanged(juce::ValueTree&, int, int) override {}
+    void valueTreeParentChanged(juce::ValueTree&) override {}
+
     // ==================== MEMBER VARIABLES ====================
 
     WfsParameters& parameters;
+    juce::ValueTree outputsTree;
+    bool isLoadingParameters = false;
     StatusBar* statusBar = nullptr;
     std::map<juce::Component*, juce::String> helpTextMap;
     std::map<juce::Component*, juce::String> oscMethodMap;
