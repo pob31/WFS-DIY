@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "../WfsParameters.h"
+#include "../Parameters/WFSParameterIDs.h"
 #include "ChannelSelector.h"
 #include "SliderUIComponents.h"
 #include "DialUIComponents.h"
@@ -119,15 +120,23 @@ public:
 class InputsTab : public juce::Component,
                   private juce::TextEditor::Listener,
                   private juce::ChangeListener,
-                  private juce::Label::Listener
+                  private juce::Label::Listener,
+                  private juce::ValueTree::Listener
 {
 public:
     InputsTab(WfsParameters& params)
-        : parameters(params)
+        : parameters(params),
+          inputsTree(params.getInputTree()),
+          configTree(params.getConfigTree())
     {
+        // Add listener to inputs tree and config tree
+        inputsTree.addListener(this);
+        configTree.addListener(this);
+
         // ==================== HEADER SECTION ====================
-        // Channel Selector
-        channelSelector.setNumChannels(64);
+        // Channel Selector - use configured input count
+        int numInputs = parameters.getNumInputChannels();
+        channelSelector.setNumChannels(numInputs > 0 ? numInputs : 8);  // Default to 8 if not set
         channelSelector.onChannelChanged = [this](int channel) {
             loadChannelParameters(channel);
         };
@@ -149,6 +158,9 @@ public:
         for (int i = 1; i <= 10; ++i)
             clusterSelector.addItem("Cluster " + juce::String(i), i + 1);
         clusterSelector.setSelectedId(1, juce::dontSendNotification);
+        clusterSelector.onChange = [this]() {
+            saveInputParam(WFSParameterIDs::inputCluster, clusterSelector.getSelectedId() - 1);
+        };
 
         // ==================== SUB-TABS ====================
         addAndMakeVisible(subTabBar);
@@ -221,6 +233,12 @@ public:
 
         // Load initial channel parameters
         loadChannelParameters(1);
+    }
+
+    ~InputsTab() override
+    {
+        inputsTree.removeListener(this);
+        configTree.removeListener(this);
     }
 
     void paint(juce::Graphics& g) override
@@ -337,6 +355,7 @@ private:
             float dB = 20.0f * std::log10(std::pow(10.0f, -92.0f / 20.0f) +
                        ((1.0f - std::pow(10.0f, -92.0f / 20.0f)) * v * v));
             attenuationValueLabel.setText(juce::String(dB, 1) + " dB", juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputAttenuation, dB);  // Save real dB value
         };
         addAndMakeVisible(attenuationSlider);
 
@@ -356,6 +375,7 @@ private:
             float ms = v * 100.0f;
             juce::String label = (ms < 0) ? "Latency: " : "Delay: ";
             delayLatencyValueLabel.setText(label + juce::String(std::abs(ms), 1) + " ms", juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputDelayLatency, ms);  // Save real ms value
         };
         addAndMakeVisible(delayLatencySlider);
 
@@ -371,6 +391,7 @@ private:
         minimalLatencyButton.onClick = [this]() {
             bool minLat = minimalLatencyButton.getToggleState();
             minimalLatencyButton.setButtonText(minLat ? "Minimal Latency" : "Acoustic Precedence");
+            saveInputParam(WFSParameterIDs::inputMinimalLatency, minLat ? 1 : 0);
         };
     }
 
@@ -448,7 +469,9 @@ private:
         constraintXButton.setClickingTogglesState(true);
         constraintXButton.setToggleState(true, juce::dontSendNotification);
         constraintXButton.onClick = [this]() {
-            constraintXButton.setButtonText(constraintXButton.getToggleState() ? "Constraint X: ON" : "Constraint X: OFF");
+            bool enabled = constraintXButton.getToggleState();
+            constraintXButton.setButtonText(enabled ? "Constraint X: ON" : "Constraint X: OFF");
+            saveInputParam(WFSParameterIDs::inputConstraintX, enabled ? 1 : 0);
         };
 
         addAndMakeVisible(constraintYButton);
@@ -456,7 +479,9 @@ private:
         constraintYButton.setClickingTogglesState(true);
         constraintYButton.setToggleState(true, juce::dontSendNotification);
         constraintYButton.onClick = [this]() {
-            constraintYButton.setButtonText(constraintYButton.getToggleState() ? "Constraint Y: ON" : "Constraint Y: OFF");
+            bool enabled = constraintYButton.getToggleState();
+            constraintYButton.setButtonText(enabled ? "Constraint Y: ON" : "Constraint Y: OFF");
+            saveInputParam(WFSParameterIDs::inputConstraintY, enabled ? 1 : 0);
         };
 
         addAndMakeVisible(constraintZButton);
@@ -464,7 +489,9 @@ private:
         constraintZButton.setClickingTogglesState(true);
         constraintZButton.setToggleState(true, juce::dontSendNotification);
         constraintZButton.onClick = [this]() {
-            constraintZButton.setButtonText(constraintZButton.getToggleState() ? "Constraint Z: ON" : "Constraint Z: OFF");
+            bool enabled = constraintZButton.getToggleState();
+            constraintZButton.setButtonText(enabled ? "Constraint Z: ON" : "Constraint Z: OFF");
+            saveInputParam(WFSParameterIDs::inputConstraintZ, enabled ? 1 : 0);
         };
 
         // Flip buttons
@@ -472,21 +499,27 @@ private:
         flipXButton.setButtonText("Flip X: OFF");
         flipXButton.setClickingTogglesState(true);
         flipXButton.onClick = [this]() {
-            flipXButton.setButtonText(flipXButton.getToggleState() ? "Flip X: ON" : "Flip X: OFF");
+            bool enabled = flipXButton.getToggleState();
+            flipXButton.setButtonText(enabled ? "Flip X: ON" : "Flip X: OFF");
+            saveInputParam(WFSParameterIDs::inputFlipX, enabled ? 1 : 0);
         };
 
         addAndMakeVisible(flipYButton);
         flipYButton.setButtonText("Flip Y: OFF");
         flipYButton.setClickingTogglesState(true);
         flipYButton.onClick = [this]() {
-            flipYButton.setButtonText(flipYButton.getToggleState() ? "Flip Y: ON" : "Flip Y: OFF");
+            bool enabled = flipYButton.getToggleState();
+            flipYButton.setButtonText(enabled ? "Flip Y: ON" : "Flip Y: OFF");
+            saveInputParam(WFSParameterIDs::inputFlipY, enabled ? 1 : 0);
         };
 
         addAndMakeVisible(flipZButton);
         flipZButton.setButtonText("Flip Z: OFF");
         flipZButton.setClickingTogglesState(true);
         flipZButton.onClick = [this]() {
-            flipZButton.setButtonText(flipZButton.getToggleState() ? "Flip Z: ON" : "Flip Z: OFF");
+            bool enabled = flipZButton.getToggleState();
+            flipZButton.setButtonText(enabled ? "Flip Z: ON" : "Flip Z: OFF");
+            saveInputParam(WFSParameterIDs::inputFlipZ, enabled ? 1 : 0);
         };
 
         // Tracking
@@ -494,7 +527,9 @@ private:
         trackingActiveButton.setButtonText("Tracking: OFF");
         trackingActiveButton.setClickingTogglesState(true);
         trackingActiveButton.onClick = [this]() {
-            trackingActiveButton.setButtonText(trackingActiveButton.getToggleState() ? "Tracking: ON" : "Tracking: OFF");
+            bool enabled = trackingActiveButton.getToggleState();
+            trackingActiveButton.setButtonText(enabled ? "Tracking: ON" : "Tracking: OFF");
+            saveInputParam(WFSParameterIDs::inputTrackingActive, enabled ? 1 : 0);
         };
 
         // Tracking ID selector (1-32)
@@ -505,6 +540,9 @@ private:
         for (int i = 1; i <= 32; ++i)
             trackingIdSelector.addItem(juce::String(i), i);
         trackingIdSelector.setSelectedId(1, juce::dontSendNotification);
+        trackingIdSelector.onChange = [this]() {
+            saveInputParam(WFSParameterIDs::inputTrackingID, trackingIdSelector.getSelectedId());
+        };
 
         // Tracking Smoothing dial (0-100%)
         addAndMakeVisible(trackingSmoothLabel);
@@ -513,7 +551,9 @@ private:
         trackingSmoothDial.setColours(juce::Colours::black, juce::Colour(0xFF00BCD4), juce::Colours::grey);
         trackingSmoothDial.setValue(1.0f);  // Default 100%
         trackingSmoothDial.onValueChanged = [this](float v) {
-            trackingSmoothValueLabel.setText(juce::String(static_cast<int>(v * 100.0f)) + " %", juce::dontSendNotification);
+            int percent = static_cast<int>(v * 100.0f);
+            trackingSmoothValueLabel.setText(juce::String(percent) + " %", juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputTrackingSmooth, percent);
         };
         addAndMakeVisible(trackingSmoothDial);
         addAndMakeVisible(trackingSmoothValueLabel);
@@ -527,7 +567,9 @@ private:
         maxSpeedActiveButton.setButtonText("Max Speed: OFF");
         maxSpeedActiveButton.setClickingTogglesState(true);
         maxSpeedActiveButton.onClick = [this]() {
-            maxSpeedActiveButton.setButtonText(maxSpeedActiveButton.getToggleState() ? "Max Speed: ON" : "Max Speed: OFF");
+            bool enabled = maxSpeedActiveButton.getToggleState();
+            maxSpeedActiveButton.setButtonText(enabled ? "Max Speed: ON" : "Max Speed: OFF");
+            saveInputParam(WFSParameterIDs::inputMaxSpeedActive, enabled ? 1 : 0);
         };
 
         // Max Speed dial (0.01-20.0 m/s)
@@ -538,6 +580,7 @@ private:
         maxSpeedDial.onValueChanged = [this](float v) {
             float speed = v * 19.99f + 0.01f;
             maxSpeedValueLabel.setText(juce::String(speed, 2) + " m/s", juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputMaxSpeed, speed);
         };
         addAndMakeVisible(maxSpeedDial);
         addAndMakeVisible(maxSpeedValueLabel);
@@ -552,7 +595,9 @@ private:
         heightFactorLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         heightFactorDial.setColours(juce::Colours::black, juce::Colour(0xFF4CAF50), juce::Colours::grey);
         heightFactorDial.onValueChanged = [this](float v) {
-            heightFactorValueLabel.setText(juce::String(static_cast<int>(v * 100.0f)) + " %", juce::dontSendNotification);
+            int percent = static_cast<int>(v * 100.0f);
+            heightFactorValueLabel.setText(juce::String(percent) + " %", juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputHeightFactor, percent);
         };
         addAndMakeVisible(heightFactorDial);
         addAndMakeVisible(heightFactorValueLabel);
@@ -578,6 +623,7 @@ private:
             distanceRatioLabel.setVisible(is1OverD && subTabBar.getCurrentTabIndex() == 2);
             distanceRatioDial.setVisible(is1OverD && subTabBar.getCurrentTabIndex() == 2);
             distanceRatioValueLabel.setVisible(is1OverD && subTabBar.getCurrentTabIndex() == 2);
+            saveInputParam(WFSParameterIDs::inputAttenuationLaw, is1OverD ? 1 : 0);
         };
 
         // Distance Attenuation dial (visible when attenuationLaw == Log)
@@ -588,6 +634,7 @@ private:
         distanceAttenDial.onValueChanged = [this](float v) {
             float dBm = (v * 6.0f) - 6.0f;
             distanceAttenValueLabel.setText(juce::String(dBm, 1) + " dB/m", juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputDistanceAttenuation, dBm);
         };
         addAndMakeVisible(distanceAttenDial);
         addAndMakeVisible(distanceAttenValueLabel);
@@ -605,6 +652,7 @@ private:
             // Formula: pow(10.0,(x*2.0)-1.0) maps 0-1 to 0.1-10.0
             float ratio = std::pow(10.0f, (v * 2.0f) - 1.0f);
             distanceRatioValueLabel.setText(juce::String(ratio, 2) + "x", juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputDistanceRatio, ratio);
         };
         distanceRatioDial.setValue(0.5f);  // Default 1.0x
         addAndMakeVisible(distanceRatioDial);
@@ -625,7 +673,9 @@ private:
         commonAttenDial.setColours(juce::Colours::black, juce::Colour(0xFF2196F3), juce::Colours::grey);
         commonAttenDial.setValue(1.0f);
         commonAttenDial.onValueChanged = [this](float v) {
-            commonAttenValueLabel.setText(juce::String(static_cast<int>(v * 100.0f)) + " %", juce::dontSendNotification);
+            int percent = static_cast<int>(v * 100.0f);
+            commonAttenValueLabel.setText(juce::String(percent) + " %", juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputCommonAtten, percent);
         };
         addAndMakeVisible(commonAttenDial);
         addAndMakeVisible(commonAttenValueLabel);
@@ -643,6 +693,7 @@ private:
         directivitySlider.onValueChanged = [this](float v) {
             int degrees = static_cast<int>((v * 358.0f) + 2.0f);
             directivityValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputDirectivity, degrees);
         };
         addAndMakeVisible(directivitySlider);
         addAndMakeVisible(directivityValueLabel);
@@ -657,6 +708,7 @@ private:
         rotationDial.setColours(juce::Colours::black, juce::Colours::white, juce::Colours::grey);
         rotationDial.onAngleChanged = [this](float angle) {
             rotationValueLabel.setText(juce::String(static_cast<int>(angle)) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputRotation, static_cast<int>(angle));
         };
         addAndMakeVisible(rotationDial);
         addAndMakeVisible(rotationValueLabel);
@@ -674,6 +726,7 @@ private:
             // Slider range is -1 to 1, map to -90° to 90°
             int degrees = static_cast<int>(v * 90.0f);
             tiltValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputTilt, degrees);
         };
         addAndMakeVisible(tiltSlider);
         addAndMakeVisible(tiltValueLabel);
@@ -690,6 +743,7 @@ private:
             float dB = 20.0f * std::log10(std::pow(10.0f, -24.0f / 20.0f) +
                        ((1.0f - std::pow(10.0f, -24.0f / 20.0f)) * v * v));
             hfShelfValueLabel.setText(juce::String(dB, 1) + " dB", juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputHFshelf, dB);
         };
         addAndMakeVisible(hfShelfSlider);
         addAndMakeVisible(hfShelfValueLabel);
@@ -705,7 +759,9 @@ private:
         lsActiveButton.setButtonText("Live Source Tamer: OFF");
         lsActiveButton.setClickingTogglesState(true);
         lsActiveButton.onClick = [this]() {
-            lsActiveButton.setButtonText(lsActiveButton.getToggleState() ? "Live Source Tamer: ON" : "Live Source Tamer: OFF");
+            bool enabled = lsActiveButton.getToggleState();
+            lsActiveButton.setButtonText(enabled ? "Live Source Tamer: ON" : "Live Source Tamer: OFF");
+            saveInputParam(WFSParameterIDs::inputLSactive, enabled ? 1 : 0);
         };
 
         // Radius slider
@@ -717,6 +773,7 @@ private:
         lsRadiusSlider.onValueChanged = [this](float v) {
             float meters = v * 50.0f;
             lsRadiusValueLabel.setText(juce::String(meters, 1) + " m", juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputLSradius, meters);
         };
         addAndMakeVisible(lsRadiusSlider);
         addAndMakeVisible(lsRadiusValueLabel);
@@ -734,6 +791,9 @@ private:
         lsShapeSelector.addItem("square d", 3);
         lsShapeSelector.addItem("sine", 4);
         lsShapeSelector.setSelectedId(1, juce::dontSendNotification);
+        lsShapeSelector.onChange = [this]() {
+            saveInputParam(WFSParameterIDs::inputLSshape, lsShapeSelector.getSelectedId() - 1);
+        };
 
         // Attenuation slider
         addAndMakeVisible(lsAttenuationLabel);
@@ -744,6 +804,7 @@ private:
             float dB = 20.0f * std::log10(std::pow(10.0f, -24.0f / 20.0f) +
                        ((1.0f - std::pow(10.0f, -24.0f / 20.0f)) * v * v));
             lsAttenuationValueLabel.setText(juce::String(dB, 1) + " dB", juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputLSattenuation, dB);
         };
         addAndMakeVisible(lsAttenuationSlider);
         addAndMakeVisible(lsAttenuationValueLabel);
@@ -760,6 +821,7 @@ private:
             float dB = 20.0f * std::log10(std::pow(10.0f, -48.0f / 20.0f) +
                        ((1.0f - std::pow(10.0f, -48.0f / 20.0f)) * v * v));
             lsPeakThresholdValueLabel.setText(juce::String(dB, 1) + " dB", juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputLSpeakThreshold, dB);
         };
         addAndMakeVisible(lsPeakThresholdSlider);
         addAndMakeVisible(lsPeakThresholdValueLabel);
@@ -775,6 +837,7 @@ private:
         lsPeakRatioDial.onValueChanged = [this](float v) {
             float ratio = (v * 9.0f) + 1.0f;
             lsPeakRatioValueLabel.setText(juce::String(ratio, 1) + ":1", juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputLSpeakRatio, ratio);
         };
         addAndMakeVisible(lsPeakRatioDial);
         addAndMakeVisible(lsPeakRatioValueLabel);
@@ -792,6 +855,7 @@ private:
             float dB = 20.0f * std::log10(std::pow(10.0f, -48.0f / 20.0f) +
                        ((1.0f - std::pow(10.0f, -48.0f / 20.0f)) * v * v));
             lsSlowThresholdValueLabel.setText(juce::String(dB, 1) + " dB", juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputLSslowThreshold, dB);
         };
         addAndMakeVisible(lsSlowThresholdSlider);
         addAndMakeVisible(lsSlowThresholdValueLabel);
@@ -807,6 +871,7 @@ private:
         lsSlowRatioDial.onValueChanged = [this](float v) {
             float ratio = (v * 9.0f) + 1.0f;
             lsSlowRatioValueLabel.setText(juce::String(ratio, 1) + ":1", juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputLSslowRatio, ratio);
         };
         addAndMakeVisible(lsSlowRatioDial);
         addAndMakeVisible(lsSlowRatioValueLabel);
@@ -823,7 +888,9 @@ private:
         frActiveButton.setButtonText("Floor Reflections: OFF");
         frActiveButton.setClickingTogglesState(true);
         frActiveButton.onClick = [this]() {
-            frActiveButton.setButtonText(frActiveButton.getToggleState() ? "Floor Reflections: ON" : "Floor Reflections: OFF");
+            bool enabled = frActiveButton.getToggleState();
+            frActiveButton.setButtonText(enabled ? "Floor Reflections: ON" : "Floor Reflections: OFF");
+            saveInputParam(WFSParameterIDs::inputFRactive, enabled ? 1 : 0);
         };
 
         // FR Attenuation slider
@@ -835,6 +902,7 @@ private:
             float dB = 20.0f * std::log10(std::pow(10.0f, -60.0f / 20.0f) +
                        ((1.0f - std::pow(10.0f, -60.0f / 20.0f)) * v * v));
             frAttenuationValueLabel.setText(juce::String(dB, 1) + " dB", juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputFRattenuation, dB);
         };
         addAndMakeVisible(frAttenuationSlider);
         addAndMakeVisible(frAttenuationValueLabel);
@@ -849,7 +917,9 @@ private:
         frDiffusionDial.setColours(juce::Colours::black, juce::Colour(0xFF795548), juce::Colours::grey);
         frDiffusionDial.setValue(0.2f);
         frDiffusionDial.onValueChanged = [this](float v) {
-            frDiffusionValueLabel.setText(juce::String(static_cast<int>(v * 100.0f)) + " %", juce::dontSendNotification);
+            int percent = static_cast<int>(v * 100.0f);
+            frDiffusionValueLabel.setText(juce::String(percent) + " %", juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputFRdiffusion, percent);
         };
         addAndMakeVisible(frDiffusionDial);
         addAndMakeVisible(frDiffusionValueLabel);
@@ -864,7 +934,9 @@ private:
         frLowCutActiveButton.setClickingTogglesState(true);
         frLowCutActiveButton.setToggleState(true, juce::dontSendNotification);
         frLowCutActiveButton.onClick = [this]() {
-            frLowCutActiveButton.setButtonText(frLowCutActiveButton.getToggleState() ? "Low Cut: ON" : "Low Cut: OFF");
+            bool enabled = frLowCutActiveButton.getToggleState();
+            frLowCutActiveButton.setButtonText(enabled ? "Low Cut: ON" : "Low Cut: OFF");
+            saveInputParam(WFSParameterIDs::inputFRlowCutActive, enabled ? 1 : 0);
         };
 
         // FR Low Cut Frequency slider (20-20000 Hz)
@@ -876,6 +948,7 @@ private:
             // Formula: 20*pow(10,4*x) maps 0-1 to 20-20000 Hz
             int freq = static_cast<int>(20.0f * std::pow(10.0f, 3.0f * v));
             frLowCutFreqValueLabel.setText(juce::String(freq) + " Hz", juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputFRlowCutFreq, freq);
         };
         addAndMakeVisible(frLowCutFreqSlider);
         addAndMakeVisible(frLowCutFreqValueLabel);
@@ -889,7 +962,9 @@ private:
         frHighShelfActiveButton.setClickingTogglesState(true);
         frHighShelfActiveButton.setToggleState(true, juce::dontSendNotification);
         frHighShelfActiveButton.onClick = [this]() {
-            frHighShelfActiveButton.setButtonText(frHighShelfActiveButton.getToggleState() ? "High Shelf: ON" : "High Shelf: OFF");
+            bool enabled = frHighShelfActiveButton.getToggleState();
+            frHighShelfActiveButton.setButtonText(enabled ? "High Shelf: ON" : "High Shelf: OFF");
+            saveInputParam(WFSParameterIDs::inputFRhighShelfActive, enabled ? 1 : 0);
         };
 
         // FR High Shelf Frequency slider (20-20000 Hz)
@@ -900,6 +975,7 @@ private:
         frHighShelfFreqSlider.onValueChanged = [this](float v) {
             int freq = static_cast<int>(20.0f * std::pow(10.0f, 3.0f * v));
             frHighShelfFreqValueLabel.setText(juce::String(freq) + " Hz", juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputFRhighShelfFreq, freq);
         };
         addAndMakeVisible(frHighShelfFreqSlider);
         addAndMakeVisible(frHighShelfFreqValueLabel);
@@ -916,6 +992,7 @@ private:
             float dB = 20.0f * std::log10(std::pow(10.0f, -24.0f / 20.0f) +
                        ((1.0f - std::pow(10.0f, -24.0f / 20.0f)) * v * v));
             frHighShelfGainValueLabel.setText(juce::String(dB, 1) + " dB", juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputFRhighShelfGain, dB);
         };
         addAndMakeVisible(frHighShelfGainSlider);
         addAndMakeVisible(frHighShelfGainValueLabel);
@@ -932,6 +1009,7 @@ private:
             // Formula: (x*0.8)+0.1 maps 0-1 to 0.1-0.9
             float slope = (v * 0.8f) + 0.1f;
             frHighShelfSlopeValueLabel.setText(juce::String(slope, 2), juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputFRhighShelfSlope, slope);
         };
         addAndMakeVisible(frHighShelfSlopeSlider);
         addAndMakeVisible(frHighShelfSlopeValueLabel);
@@ -947,7 +1025,9 @@ private:
         lfoActiveButton.setButtonText("L.F.O: OFF");
         lfoActiveButton.setClickingTogglesState(true);
         lfoActiveButton.onClick = [this]() {
-            lfoActiveButton.setButtonText(lfoActiveButton.getToggleState() ? "L.F.O: ON" : "L.F.O: OFF");
+            bool enabled = lfoActiveButton.getToggleState();
+            lfoActiveButton.setButtonText(enabled ? "L.F.O: ON" : "L.F.O: OFF");
+            saveInputParam(WFSParameterIDs::inputLFOactive, enabled ? 1 : 0);
         };
 
         // Period dial (0.01-100.0 s) - Formula: pow(10.0,sqrt(x)*4.0-2.0)
@@ -958,6 +1038,7 @@ private:
         lfoPeriodDial.onValueChanged = [this](float v) {
             float period = std::pow(10.0f, std::sqrt(v) * 4.0f - 2.0f);
             lfoPeriodValueLabel.setText(juce::String(period, 2) + " s", juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputLFOperiod, period);  // Save real period in seconds
         };
         addAndMakeVisible(lfoPeriodDial);
         addAndMakeVisible(lfoPeriodValueLabel);
@@ -975,6 +1056,7 @@ private:
             int degrees = static_cast<int>(angle);
             if (degrees < 0) degrees += 360;
             lfoPhaseValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputLFOphase, degrees);  // Save real degrees (0-360)
         };
         addAndMakeVisible(lfoPhaseDial);
         addAndMakeVisible(lfoPhaseValueLabel);
@@ -993,6 +1075,9 @@ private:
         for (int i = 0; i < lfoShapes.size(); ++i)
             lfoShapeXSelector.addItem(lfoShapes[i], i + 1);
         lfoShapeXSelector.setSelectedId(1, juce::dontSendNotification);
+        lfoShapeXSelector.onChange = [this]() {
+            saveInputParam(WFSParameterIDs::inputLFOshapeX, lfoShapeXSelector.getSelectedId() - 1);
+        };
 
         addAndMakeVisible(lfoShapeYLabel);
         lfoShapeYLabel.setText("Shape Y:", juce::dontSendNotification);
@@ -1001,6 +1086,9 @@ private:
         for (int i = 0; i < lfoShapes.size(); ++i)
             lfoShapeYSelector.addItem(lfoShapes[i], i + 1);
         lfoShapeYSelector.setSelectedId(1, juce::dontSendNotification);
+        lfoShapeYSelector.onChange = [this]() {
+            saveInputParam(WFSParameterIDs::inputLFOshapeY, lfoShapeYSelector.getSelectedId() - 1);
+        };
 
         addAndMakeVisible(lfoShapeZLabel);
         lfoShapeZLabel.setText("Shape Z:", juce::dontSendNotification);
@@ -1009,6 +1097,9 @@ private:
         for (int i = 0; i < lfoShapes.size(); ++i)
             lfoShapeZSelector.addItem(lfoShapes[i], i + 1);
         lfoShapeZSelector.setSelectedId(1, juce::dontSendNotification);
+        lfoShapeZSelector.onChange = [this]() {
+            saveInputParam(WFSParameterIDs::inputLFOshapeZ, lfoShapeZSelector.getSelectedId() - 1);
+        };
 
         // Rate X/Y/Z sliders (0.01-100, formula: pow(10.0,(x*4.0)-2.0))
         addAndMakeVisible(lfoRateXLabel);
@@ -1018,6 +1109,7 @@ private:
         lfoRateXSlider.onValueChanged = [this](float v) {
             float rate = std::pow(10.0f, (v * 4.0f) - 2.0f);
             lfoRateXValueLabel.setText(juce::String(rate, 2) + "x", juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputLFOrateX, rate);  // Save real rate multiplier
         };
         addAndMakeVisible(lfoRateXSlider);
         addAndMakeVisible(lfoRateXValueLabel);
@@ -1032,6 +1124,7 @@ private:
         lfoRateYSlider.onValueChanged = [this](float v) {
             float rate = std::pow(10.0f, (v * 4.0f) - 2.0f);
             lfoRateYValueLabel.setText(juce::String(rate, 2) + "x", juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputLFOrateY, rate);  // Save real rate multiplier
         };
         addAndMakeVisible(lfoRateYSlider);
         addAndMakeVisible(lfoRateYValueLabel);
@@ -1046,6 +1139,7 @@ private:
         lfoRateZSlider.onValueChanged = [this](float v) {
             float rate = std::pow(10.0f, (v * 4.0f) - 2.0f);
             lfoRateZValueLabel.setText(juce::String(rate, 2) + "x", juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputLFOrateZ, rate);  // Save real rate multiplier
         };
         addAndMakeVisible(lfoRateZSlider);
         addAndMakeVisible(lfoRateZValueLabel);
@@ -1061,6 +1155,7 @@ private:
         lfoAmplitudeXSlider.onValueChanged = [this](float v) {
             float amp = v * 50.0f;
             lfoAmplitudeXValueLabel.setText(juce::String(amp, 1) + " m", juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputLFOamplitudeX, amp);  // Save real meters
         };
         addAndMakeVisible(lfoAmplitudeXSlider);
         addAndMakeVisible(lfoAmplitudeXValueLabel);
@@ -1075,6 +1170,7 @@ private:
         lfoAmplitudeYSlider.onValueChanged = [this](float v) {
             float amp = v * 50.0f;
             lfoAmplitudeYValueLabel.setText(juce::String(amp, 1) + " m", juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputLFOamplitudeY, amp);  // Save real meters
         };
         addAndMakeVisible(lfoAmplitudeYSlider);
         addAndMakeVisible(lfoAmplitudeYValueLabel);
@@ -1089,6 +1185,7 @@ private:
         lfoAmplitudeZSlider.onValueChanged = [this](float v) {
             float amp = v * 50.0f;
             lfoAmplitudeZValueLabel.setText(juce::String(amp, 1) + " m", juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputLFOamplitudeZ, amp);  // Save real meters
         };
         addAndMakeVisible(lfoAmplitudeZSlider);
         addAndMakeVisible(lfoAmplitudeZValueLabel);
@@ -1105,6 +1202,7 @@ private:
             int degrees = static_cast<int>(angle);
             if (degrees < 0) degrees += 360;
             lfoPhaseXValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputLFOphaseX, degrees);  // Save real degrees (0-360)
         };
         addAndMakeVisible(lfoPhaseXDial);
         addAndMakeVisible(lfoPhaseXValueLabel);
@@ -1121,6 +1219,7 @@ private:
             int degrees = static_cast<int>(angle);
             if (degrees < 0) degrees += 360;
             lfoPhaseYValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputLFOphaseY, degrees);  // Save real degrees (0-360)
         };
         addAndMakeVisible(lfoPhaseYDial);
         addAndMakeVisible(lfoPhaseYValueLabel);
@@ -1137,6 +1236,7 @@ private:
             int degrees = static_cast<int>(angle);
             if (degrees < 0) degrees += 360;
             lfoPhaseZValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputLFOphaseZ, degrees);  // Save real degrees (0-360)
         };
         addAndMakeVisible(lfoPhaseZDial);
         addAndMakeVisible(lfoPhaseZValueLabel);
@@ -1154,6 +1254,9 @@ private:
         lfoGyrophoneSelector.addItem("OFF", 2);
         lfoGyrophoneSelector.addItem("Clockwise", 3);
         lfoGyrophoneSelector.setSelectedId(2, juce::dontSendNotification);
+        lfoGyrophoneSelector.onChange = [this]() {
+            saveInputParam(WFSParameterIDs::inputLFOgyrophone, lfoGyrophoneSelector.getSelectedId() - 1);
+        };
 
         // Jitter slider
         addAndMakeVisible(jitterLabel);
@@ -1163,6 +1266,7 @@ private:
         jitterSlider.onValueChanged = [this](float v) {
             float meters = 10.0f * v * v;
             jitterValueLabel.setText(juce::String(meters, 2) + " m", juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputJitter, meters);  // Save real meters
         };
         addAndMakeVisible(jitterSlider);
         addAndMakeVisible(jitterValueLabel);
@@ -1209,7 +1313,9 @@ private:
         otomoAbsRelButton.setButtonText("Absolute");
         otomoAbsRelButton.setClickingTogglesState(true);
         otomoAbsRelButton.onClick = [this]() {
-            otomoAbsRelButton.setButtonText(otomoAbsRelButton.getToggleState() ? "Relative" : "Absolute");
+            bool isRelative = otomoAbsRelButton.getToggleState();
+            otomoAbsRelButton.setButtonText(isRelative ? "Relative" : "Absolute");
+            saveInputParam(WFSParameterIDs::inputOtomoAbsoluteRelative, isRelative ? 1 : 0);
         };
 
         // Stay/Return button
@@ -1217,7 +1323,9 @@ private:
         otomoStayReturnButton.setButtonText("Stay");
         otomoStayReturnButton.setClickingTogglesState(true);
         otomoStayReturnButton.onClick = [this]() {
-            otomoStayReturnButton.setButtonText(otomoStayReturnButton.getToggleState() ? "Return" : "Stay");
+            bool isReturn = otomoStayReturnButton.getToggleState();
+            otomoStayReturnButton.setButtonText(isReturn ? "Return" : "Stay");
+            saveInputParam(WFSParameterIDs::inputOtomoStayReturn, isReturn ? 1 : 0);
         };
 
         // Speed Profile dial (0-100%)
@@ -1226,7 +1334,9 @@ private:
         otomoSpeedProfileLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         otomoSpeedProfileDial.setColours(juce::Colours::black, juce::Colour(0xFF2196F3), juce::Colours::grey);
         otomoSpeedProfileDial.onValueChanged = [this](float v) {
-            otomoSpeedProfileValueLabel.setText(juce::String(static_cast<int>(v * 100.0f)) + " %", juce::dontSendNotification);
+            int percent = static_cast<int>(v * 100.0f);
+            otomoSpeedProfileValueLabel.setText(juce::String(percent) + " %", juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputOtomoSpeedProfile, percent);  // Save real percent
         };
         addAndMakeVisible(otomoSpeedProfileDial);
         addAndMakeVisible(otomoSpeedProfileValueLabel);
@@ -1240,7 +1350,9 @@ private:
         otomoTriggerButton.setButtonText("Manual");
         otomoTriggerButton.setClickingTogglesState(true);
         otomoTriggerButton.onClick = [this]() {
-            otomoTriggerButton.setButtonText(otomoTriggerButton.getToggleState() ? "Trigger" : "Manual");
+            bool isTrigger = otomoTriggerButton.getToggleState();
+            otomoTriggerButton.setButtonText(isTrigger ? "Trigger" : "Manual");
+            saveInputParam(WFSParameterIDs::inputOtomoTrigger, isTrigger ? 1 : 0);
         };
 
         // Trigger Threshold dial (-92 to 0 dB)
@@ -1252,6 +1364,7 @@ private:
             float dB = 20.0f * std::log10(std::pow(10.0f, -92.0f / 20.0f) +
                        ((1.0f - std::pow(10.0f, -92.0f / 20.0f)) * v * v));
             otomoThresholdValueLabel.setText(juce::String(dB, 1) + " dB", juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputOtomoThreshold, dB);  // Save real dB value
         };
         addAndMakeVisible(otomoThresholdDial);
         addAndMakeVisible(otomoThresholdValueLabel);
@@ -1269,6 +1382,7 @@ private:
             float dB = 20.0f * std::log10(std::pow(10.0f, -92.0f / 20.0f) +
                        ((1.0f - std::pow(10.0f, -92.0f / 20.0f)) * v * v));
             otomoResetValueLabel.setText(juce::String(dB, 1) + " dB", juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputOtomoReset, dB);  // Save real dB value
         };
         addAndMakeVisible(otomoResetDial);
         addAndMakeVisible(otomoResetValueLabel);
@@ -1287,7 +1401,8 @@ private:
         addAndMakeVisible(otomoPauseButton);
         otomoPauseButton.setClickingTogglesState(true);
         otomoPauseButton.onClick = [this]() {
-            // Toggle pause/resume
+            bool isPaused = otomoPauseButton.getToggleState();
+            saveInputParam(WFSParameterIDs::inputOtomoPauseResume, isPaused ? 1 : 0);
         };
     }
 
@@ -1301,7 +1416,7 @@ private:
             muteButtons[i].setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF3A3A3A));
             muteButtons[i].setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFFFF5722));
             muteButtons[i].onClick = [this, i]() {
-                // Toggle mute for output i+1
+                saveMuteStates();
             };
             addAndMakeVisible(muteButtons[i]);
         }
@@ -1326,7 +1441,12 @@ private:
         muteMacrosSelector.setSelectedId(1, juce::dontSendNotification);
         muteMacrosSelector.onChange = [this]() {
             int macroId = muteMacrosSelector.getSelectedId();
-            if (macroId > 1) applyMuteMacro(macroId);
+            if (macroId > 1)
+            {
+                applyMuteMacro(macroId);
+                saveMuteStates();
+                saveInputParam(WFSParameterIDs::inputMuteMacro, macroId);
+            }
             muteMacrosSelector.setSelectedId(1, juce::dontSendNotification);
         };
     }
@@ -2037,8 +2157,11 @@ private:
 
     void setMutesVisible(bool v)
     {
+        int numOutputs = parameters.getNumOutputChannels();
+        if (numOutputs <= 0) numOutputs = 16;  // Default
+
         for (int i = 0; i < 64; ++i)
-            muteButtons[i].setVisible(v);
+            muteButtons[i].setVisible(v && i < numOutputs);
         muteMacrosLabel.setVisible(v);
         muteMacrosSelector.setVisible(v);
     }
@@ -2051,17 +2174,28 @@ private:
         const int rowHeight = 30;
         const int selectorWidth = 200;
 
-        // Mute grid - 8x8
-        auto gridArea = area.removeFromTop(8 * (buttonSize + gridSpacing));
+        // Get configured output count
+        int numOutputs = parameters.getNumOutputChannels();
+        if (numOutputs <= 0) numOutputs = 16;  // Default
 
-        for (int row = 0; row < 8; ++row)
+        // Calculate grid dimensions (prefer 8 columns, adapt rows)
+        int numColumns = juce::jmin(8, numOutputs);
+        int numRows = (numOutputs + numColumns - 1) / numColumns;
+
+        // Mute grid - dynamic size based on output count
+        auto gridArea = area.removeFromTop(numRows * (buttonSize + gridSpacing));
+
+        for (int row = 0; row < numRows; ++row)
         {
             auto rowArea = gridArea.removeFromTop(buttonSize + gridSpacing);
-            for (int col = 0; col < 8; ++col)
+            for (int col = 0; col < numColumns; ++col)
             {
-                int index = row * 8 + col;
-                muteButtons[index].setBounds(rowArea.removeFromLeft(buttonSize));
-                rowArea.removeFromLeft(gridSpacing);
+                int index = row * numColumns + col;
+                if (index < numOutputs)
+                {
+                    muteButtons[index].setBounds(rowArea.removeFromLeft(buttonSize));
+                    rowArea.removeFromLeft(gridSpacing);
+                }
             }
         }
 
@@ -2077,9 +2211,444 @@ private:
 
     void loadChannelParameters(int channel)
     {
+        isLoadingParameters = true;
         currentChannel = channel;
-        nameEditor.setText("Input " + juce::String(channel), juce::dontSendNotification);
-        clusterSelector.setSelectedId(1, juce::dontSendNotification);
+
+        auto getParam = [this](const juce::Identifier& id) -> juce::var {
+            return parameters.getInputParam(currentChannel - 1, id.toString());
+        };
+
+        auto getFloatParam = [&getParam](const juce::Identifier& id, float defaultVal = 0.0f) -> float {
+            auto val = getParam(id);
+            return val.isVoid() ? defaultVal : static_cast<float>(val);
+        };
+
+        auto getIntParam = [&getParam](const juce::Identifier& id, int defaultVal = 0) -> int {
+            auto val = getParam(id);
+            return val.isVoid() ? defaultVal : static_cast<int>(val);
+        };
+
+        auto getStringParam = [&getParam](const juce::Identifier& id, const juce::String& defaultVal = "") -> juce::String {
+            auto val = getParam(id);
+            return val.isVoid() ? defaultVal : val.toString();
+        };
+
+        // ==================== HEADER ====================
+        nameEditor.setText(getStringParam(WFSParameterIDs::inputName, "Input " + juce::String(channel)), juce::dontSendNotification);
+        clusterSelector.setSelectedId(getIntParam(WFSParameterIDs::inputCluster, 0) + 1, juce::dontSendNotification);
+
+        // ==================== INPUT PROPERTIES TAB ====================
+        // Attenuation stored as dB (-92 to 0), default 0dB
+        float attenDB = getFloatParam(WFSParameterIDs::inputAttenuation, 0.0f);
+        attenDB = juce::jlimit(-92.0f, 0.0f, attenDB);
+        // Convert dB to slider value (0-1) using inverse of logarithmic formula
+        float minLinear = std::pow(10.0f, -92.0f / 20.0f);
+        float targetLinear = std::pow(10.0f, attenDB / 20.0f);
+        float attenSliderVal = std::sqrt((targetLinear - minLinear) / (1.0f - minLinear));
+        attenuationSlider.setValue(juce::jlimit(0.0f, 1.0f, attenSliderVal));
+        attenuationValueLabel.setText(juce::String(attenDB, 1) + " dB", juce::dontSendNotification);
+
+        // Delay/Latency stored as ms (-100 to 100), default 0ms
+        float delayMs = getFloatParam(WFSParameterIDs::inputDelayLatency, 0.0f);
+        delayMs = juce::jlimit(-100.0f, 100.0f, delayMs);
+        delayLatencySlider.setValue(delayMs / 100.0f);  // Convert ms to slider value (-1 to 1)
+        juce::String delayLabel = (delayMs < 0) ? "Latency: " : "Delay: ";
+        delayLatencyValueLabel.setText(delayLabel + juce::String(std::abs(delayMs), 1) + " ms", juce::dontSendNotification);
+
+        bool minLatency = getIntParam(WFSParameterIDs::inputMinimalLatency, 0) != 0;
+        minimalLatencyButton.setToggleState(minLatency, juce::dontSendNotification);
+        minimalLatencyButton.setButtonText(minLatency ? "Minimal Latency: ON" : "Minimal Latency: OFF");
+
+        // ==================== POSITION TAB ====================
+        posXEditor.setText(juce::String(getFloatParam(WFSParameterIDs::inputPositionX, 0.0f), 2), juce::dontSendNotification);
+        posYEditor.setText(juce::String(getFloatParam(WFSParameterIDs::inputPositionY, 0.0f), 2), juce::dontSendNotification);
+        posZEditor.setText(juce::String(getFloatParam(WFSParameterIDs::inputPositionZ, 0.0f), 2), juce::dontSendNotification);
+        offsetXEditor.setText(juce::String(getFloatParam(WFSParameterIDs::inputOffsetX, 0.0f), 2), juce::dontSendNotification);
+        offsetYEditor.setText(juce::String(getFloatParam(WFSParameterIDs::inputOffsetY, 0.0f), 2), juce::dontSendNotification);
+        offsetZEditor.setText(juce::String(getFloatParam(WFSParameterIDs::inputOffsetZ, 0.0f), 2), juce::dontSendNotification);
+
+        bool constX = getIntParam(WFSParameterIDs::inputConstraintX, 0) != 0;
+        constraintXButton.setToggleState(constX, juce::dontSendNotification);
+        constraintXButton.setButtonText(constX ? "Constraint X: ON" : "Constraint X: OFF");
+
+        bool constY = getIntParam(WFSParameterIDs::inputConstraintY, 0) != 0;
+        constraintYButton.setToggleState(constY, juce::dontSendNotification);
+        constraintYButton.setButtonText(constY ? "Constraint Y: ON" : "Constraint Y: OFF");
+
+        bool constZ = getIntParam(WFSParameterIDs::inputConstraintZ, 0) != 0;
+        constraintZButton.setToggleState(constZ, juce::dontSendNotification);
+        constraintZButton.setButtonText(constZ ? "Constraint Z: ON" : "Constraint Z: OFF");
+
+        bool flipX = getIntParam(WFSParameterIDs::inputFlipX, 0) != 0;
+        flipXButton.setToggleState(flipX, juce::dontSendNotification);
+        flipXButton.setButtonText(flipX ? "Flip X: ON" : "Flip X: OFF");
+
+        bool flipY = getIntParam(WFSParameterIDs::inputFlipY, 0) != 0;
+        flipYButton.setToggleState(flipY, juce::dontSendNotification);
+        flipYButton.setButtonText(flipY ? "Flip Y: ON" : "Flip Y: OFF");
+
+        bool flipZ = getIntParam(WFSParameterIDs::inputFlipZ, 0) != 0;
+        flipZButton.setToggleState(flipZ, juce::dontSendNotification);
+        flipZButton.setButtonText(flipZ ? "Flip Z: ON" : "Flip Z: OFF");
+
+        bool trackActive = getIntParam(WFSParameterIDs::inputTrackingActive, 0) != 0;
+        trackingActiveButton.setToggleState(trackActive, juce::dontSendNotification);
+        trackingActiveButton.setButtonText(trackActive ? "Tracking: ON" : "Tracking: OFF");
+
+        trackingIdSelector.setSelectedId(getIntParam(WFSParameterIDs::inputTrackingID, 0) + 1, juce::dontSendNotification);
+
+        float trackSmooth = getFloatParam(WFSParameterIDs::inputTrackingSmooth, 0.0f);
+        trackingSmoothDial.setValue(trackSmooth);
+        trackingSmoothValueLabel.setText(juce::String(static_cast<int>(trackSmooth * 100.0f)) + " %", juce::dontSendNotification);
+
+        bool maxSpeedActive = getIntParam(WFSParameterIDs::inputMaxSpeedActive, 0) != 0;
+        maxSpeedActiveButton.setToggleState(maxSpeedActive, juce::dontSendNotification);
+        maxSpeedActiveButton.setButtonText(maxSpeedActive ? "Max Speed: ON" : "Max Speed: OFF");
+
+        float maxSpeedVal = getFloatParam(WFSParameterIDs::inputMaxSpeed, 0.5f);
+        maxSpeedDial.setValue(maxSpeedVal);
+        float maxSpeedDisplay = 0.01f + maxSpeedVal * 9.99f;
+        maxSpeedValueLabel.setText(juce::String(maxSpeedDisplay, 2) + " m/s", juce::dontSendNotification);
+
+        float heightFactor = getFloatParam(WFSParameterIDs::inputHeightFactor, 1.0f);
+        heightFactorDial.setValue(heightFactor);
+        heightFactorValueLabel.setText(juce::String(static_cast<int>(heightFactor * 100.0f)) + " %", juce::dontSendNotification);
+
+        // ==================== SOUND TAB ====================
+        bool attenLaw = getIntParam(WFSParameterIDs::inputAttenuationLaw, 0) != 0;
+        attenuationLawButton.setToggleState(attenLaw, juce::dontSendNotification);
+        attenuationLawButton.setButtonText(attenLaw ? "Spherical" : "Cylindrical");
+
+        // Distance Attenuation stored as dB/m (-6 to 0), default -0.7
+        // Formula: dB = (x * 6.0) - 6.0 => x = (dB + 6) / 6
+        float distAttenDB = getFloatParam(WFSParameterIDs::inputDistanceAttenuation, -0.7f);
+        distAttenDB = juce::jlimit(-6.0f, 0.0f, distAttenDB);
+        float distAttenSliderVal = (distAttenDB + 6.0f) / 6.0f;
+        distanceAttenDial.setValue(juce::jlimit(0.0f, 1.0f, distAttenSliderVal));
+        distanceAttenValueLabel.setText(juce::String(distAttenDB, 1) + " dB/m", juce::dontSendNotification);
+
+        // Distance Ratio stored as multiplier (0.1 to 10), default 1.0
+        // Formula: ratio = pow(10, (x * 2) - 1) => x = (log10(ratio) + 1) / 2
+        float distRatioVal = getFloatParam(WFSParameterIDs::inputDistanceRatio, 1.0f);
+        distRatioVal = juce::jlimit(0.1f, 10.0f, distRatioVal);
+        float distRatioSliderVal = (std::log10(distRatioVal) + 1.0f) / 2.0f;
+        distanceRatioDial.setValue(juce::jlimit(0.0f, 1.0f, distRatioSliderVal));
+        distanceRatioValueLabel.setText(juce::String(distRatioVal, 2) + "x", juce::dontSendNotification);
+
+        // Common Attenuation stored as percent (0-100), default 100
+        // Formula: percent = x * 100 => x = percent / 100
+        float commonAttenPct = getFloatParam(WFSParameterIDs::inputCommonAtten, 100.0f);
+        commonAttenPct = juce::jlimit(0.0f, 100.0f, commonAttenPct);
+        commonAttenDial.setValue(commonAttenPct / 100.0f);
+        commonAttenValueLabel.setText(juce::String(static_cast<int>(commonAttenPct)) + " %", juce::dontSendNotification);
+
+        // Directivity stored as degrees (2-360), default 360
+        // Inverse of: degrees = (x * 358) + 2 => x = (degrees - 2) / 358
+        float directivityDeg = getFloatParam(WFSParameterIDs::inputDirectivity, 360.0f);
+        directivityDeg = juce::jlimit(2.0f, 360.0f, directivityDeg);
+        float directivitySliderVal = (directivityDeg - 2.0f) / 358.0f;
+        directivitySlider.setValue(juce::jlimit(0.0f, 1.0f, directivitySliderVal));
+        directivityValueLabel.setText(juce::String(static_cast<int>(directivityDeg)) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+
+        float rotation = getFloatParam(WFSParameterIDs::inputRotation, 0.0f);
+        rotationDial.setAngle(rotation * 360.0f);
+        int rotDegrees = static_cast<int>(rotation * 360.0f);
+        if (rotDegrees < 0) rotDegrees += 360;
+        rotationValueLabel.setText(juce::String(rotDegrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+
+        // Tilt stored as degrees (-90 to 90), default 0
+        // Inverse of: degrees = (x * 180) - 90 => x = (degrees + 90) / 180
+        float tiltDeg = getFloatParam(WFSParameterIDs::inputTilt, 0.0f);
+        tiltDeg = juce::jlimit(-90.0f, 90.0f, tiltDeg);
+        float tiltSliderVal = (tiltDeg + 90.0f) / 180.0f;
+        tiltSlider.setValue(juce::jlimit(0.0f, 1.0f, tiltSliderVal));
+        tiltValueLabel.setText(juce::String(tiltDeg, 1) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+
+        // HF Shelf stored as dB (-24 to 0), default -6
+        // Formula: dB = 20*log10(minLin + (1-minLin)*x^2), where minLin = pow(10, -24/20)
+        // Inverse: x = sqrt((targetLin - minLin) / (1 - minLin))
+        float hfShelfDB = getFloatParam(WFSParameterIDs::inputHFshelf, -6.0f);
+        hfShelfDB = juce::jlimit(-24.0f, 0.0f, hfShelfDB);
+        float hfMinLinear = std::pow(10.0f, -24.0f / 20.0f);
+        float hfTargetLinear = std::pow(10.0f, hfShelfDB / 20.0f);
+        float hfShelfSliderVal = std::sqrt((hfTargetLinear - hfMinLinear) / (1.0f - hfMinLinear));
+        hfShelfSlider.setValue(juce::jlimit(0.0f, 1.0f, hfShelfSliderVal));
+        hfShelfValueLabel.setText(juce::String(hfShelfDB, 1) + " dB", juce::dontSendNotification);
+
+        // ==================== LIVE SOURCE TAB ====================
+        bool lsActive = getIntParam(WFSParameterIDs::inputLSactive, 0) != 0;
+        lsActiveButton.setToggleState(lsActive, juce::dontSendNotification);
+        lsActiveButton.setButtonText(lsActive ? "Live Source Tamer: ON" : "Live Source Tamer: OFF");
+
+        // LS Radius stored as meters (0-50), default 3
+        // Formula: meters = x * 50 => x = meters / 50
+        float lsRadiusMeters = getFloatParam(WFSParameterIDs::inputLSradius, 3.0f);
+        lsRadiusMeters = juce::jlimit(0.0f, 50.0f, lsRadiusMeters);
+        lsRadiusSlider.setValue(lsRadiusMeters / 50.0f);
+        lsRadiusValueLabel.setText(juce::String(lsRadiusMeters, 2) + " m", juce::dontSendNotification);
+
+        lsShapeSelector.setSelectedId(getIntParam(WFSParameterIDs::inputLSshape, 0) + 1, juce::dontSendNotification);
+
+        // LS Attenuation stored as dB (-24 to 0), default 0
+        // Formula: dB = 20*log10(minLin + (1-minLin)*x^2), where minLin = pow(10, -24/20)
+        // Inverse: x = sqrt((targetLin - minLin) / (1 - minLin))
+        float lsAttenDB = getFloatParam(WFSParameterIDs::inputLSattenuation, 0.0f);
+        lsAttenDB = juce::jlimit(-24.0f, 0.0f, lsAttenDB);
+        float lsMinLinear = std::pow(10.0f, -24.0f / 20.0f);
+        float lsTargetLinear = std::pow(10.0f, lsAttenDB / 20.0f);
+        float lsAttenSliderVal = std::sqrt((lsTargetLinear - lsMinLinear) / (1.0f - lsMinLinear));
+        lsAttenuationSlider.setValue(juce::jlimit(0.0f, 1.0f, lsAttenSliderVal));
+        lsAttenuationValueLabel.setText(juce::String(lsAttenDB, 1) + " dB", juce::dontSendNotification);
+
+        // Peak Threshold stored as dB (-48 to 0), default -20
+        // Formula: dB = 20*log10(minLin + (1-minLin)*x^2), where minLin = pow(10, -48/20)
+        // Inverse: x = sqrt((targetLin - minLin) / (1 - minLin))
+        float peakThreshDB = getFloatParam(WFSParameterIDs::inputLSpeakThreshold, -20.0f);
+        peakThreshDB = juce::jlimit(-48.0f, 0.0f, peakThreshDB);
+        float peakMinLinear = std::pow(10.0f, -48.0f / 20.0f);
+        float peakTargetLinear = std::pow(10.0f, peakThreshDB / 20.0f);
+        float peakThreshSliderVal = std::sqrt((peakTargetLinear - peakMinLinear) / (1.0f - peakMinLinear));
+        lsPeakThresholdSlider.setValue(juce::jlimit(0.0f, 1.0f, peakThreshSliderVal));
+        lsPeakThresholdValueLabel.setText(juce::String(peakThreshDB, 1) + " dB", juce::dontSendNotification);
+
+        // Peak Ratio stored as ratio (1-10), default 2
+        // Formula: ratio = (x * 9) + 1 => x = (ratio - 1) / 9
+        float peakRatioVal = getFloatParam(WFSParameterIDs::inputLSpeakRatio, 2.0f);
+        peakRatioVal = juce::jlimit(1.0f, 10.0f, peakRatioVal);
+        float peakRatioSliderVal = (peakRatioVal - 1.0f) / 9.0f;
+        lsPeakRatioDial.setValue(juce::jlimit(0.0f, 1.0f, peakRatioSliderVal));
+        lsPeakRatioValueLabel.setText(juce::String(peakRatioVal, 1) + ":1", juce::dontSendNotification);
+
+        // Slow Threshold stored as dB (-48 to 0), default -20
+        // Formula: dB = 20*log10(minLin + (1-minLin)*x^2), where minLin = pow(10, -48/20)
+        // Inverse: x = sqrt((targetLin - minLin) / (1 - minLin))
+        float slowThreshDB = getFloatParam(WFSParameterIDs::inputLSslowThreshold, -20.0f);
+        slowThreshDB = juce::jlimit(-48.0f, 0.0f, slowThreshDB);
+        float slowMinLinear = std::pow(10.0f, -48.0f / 20.0f);
+        float slowTargetLinear = std::pow(10.0f, slowThreshDB / 20.0f);
+        float slowThreshSliderVal = std::sqrt((slowTargetLinear - slowMinLinear) / (1.0f - slowMinLinear));
+        lsSlowThresholdSlider.setValue(juce::jlimit(0.0f, 1.0f, slowThreshSliderVal));
+        lsSlowThresholdValueLabel.setText(juce::String(slowThreshDB, 1) + " dB", juce::dontSendNotification);
+
+        // Slow Ratio stored as ratio (1-10), default 2
+        // Formula: ratio = (x * 9) + 1 => x = (ratio - 1) / 9
+        float slowRatioVal = getFloatParam(WFSParameterIDs::inputLSslowRatio, 2.0f);
+        slowRatioVal = juce::jlimit(1.0f, 10.0f, slowRatioVal);
+        float slowRatioSliderVal = (slowRatioVal - 1.0f) / 9.0f;
+        lsSlowRatioDial.setValue(juce::jlimit(0.0f, 1.0f, slowRatioSliderVal));
+        lsSlowRatioValueLabel.setText(juce::String(slowRatioVal, 1) + ":1", juce::dontSendNotification);
+
+        // ==================== EFFECTS (HACKOUSTICS) TAB ====================
+        bool frActive = getIntParam(WFSParameterIDs::inputFRactive, 0) != 0;
+        frActiveButton.setToggleState(frActive, juce::dontSendNotification);
+        frActiveButton.setButtonText(frActive ? "Floor Reflections: ON" : "Floor Reflections: OFF");
+
+        // FR Attenuation stored as dB (-60 to 0), default -3
+        // Formula: dB = 20*log10(minLin + (1-minLin)*x^2), where minLin = pow(10, -60/20)
+        // Inverse: x = sqrt((targetLin - minLin) / (1 - minLin))
+        float frAttenDB = getFloatParam(WFSParameterIDs::inputFRattenuation, -3.0f);
+        frAttenDB = juce::jlimit(-60.0f, 0.0f, frAttenDB);
+        float frMinLinear = std::pow(10.0f, -60.0f / 20.0f);
+        float frTargetLinear = std::pow(10.0f, frAttenDB / 20.0f);
+        float frAttenSliderVal = std::sqrt((frTargetLinear - frMinLinear) / (1.0f - frMinLinear));
+        frAttenuationSlider.setValue(juce::jlimit(0.0f, 1.0f, frAttenSliderVal));
+        frAttenuationValueLabel.setText(juce::String(frAttenDB, 1) + " dB", juce::dontSendNotification);
+
+        // FR Diffusion stored as percent (0-100), default 20
+        // Formula: percent = x * 100 => x = percent / 100
+        float frDiffusionPct = getFloatParam(WFSParameterIDs::inputFRdiffusion, 20.0f);
+        frDiffusionPct = juce::jlimit(0.0f, 100.0f, frDiffusionPct);
+        frDiffusionDial.setValue(frDiffusionPct / 100.0f);
+        frDiffusionValueLabel.setText(juce::String(static_cast<int>(frDiffusionPct)) + " %", juce::dontSendNotification);
+
+        bool frLowCutActive = getIntParam(WFSParameterIDs::inputFRlowCutActive, 0) != 0;
+        frLowCutActiveButton.setToggleState(frLowCutActive, juce::dontSendNotification);
+        frLowCutActiveButton.setButtonText(frLowCutActive ? "Low Cut: ON" : "Low Cut: OFF");
+
+        // FR Low Cut Freq stored as Hz (20-20000), default 100
+        // Formula: freq = 20 * pow(10, 3*x) => x = log10(freq/20) / 3
+        float frLowCutFreqHz = getFloatParam(WFSParameterIDs::inputFRlowCutFreq, 100.0f);
+        frLowCutFreqHz = juce::jlimit(20.0f, 20000.0f, frLowCutFreqHz);
+        float frLowCutSliderVal = std::log10(frLowCutFreqHz / 20.0f) / 3.0f;
+        frLowCutFreqSlider.setValue(juce::jlimit(0.0f, 1.0f, frLowCutSliderVal));
+        frLowCutFreqValueLabel.setText(juce::String(static_cast<int>(frLowCutFreqHz)) + " Hz", juce::dontSendNotification);
+
+        bool frHighShelfActive = getIntParam(WFSParameterIDs::inputFRhighShelfActive, 0) != 0;
+        frHighShelfActiveButton.setToggleState(frHighShelfActive, juce::dontSendNotification);
+        frHighShelfActiveButton.setButtonText(frHighShelfActive ? "High Shelf: ON" : "High Shelf: OFF");
+
+        // FR High Shelf Freq stored as Hz (20-20000), default 3000
+        // Formula: freq = 20 * pow(10, 3*x) => x = log10(freq/20) / 3
+        float frHighShelfFreqHz = getFloatParam(WFSParameterIDs::inputFRhighShelfFreq, 3000.0f);
+        frHighShelfFreqHz = juce::jlimit(20.0f, 20000.0f, frHighShelfFreqHz);
+        float frHighShelfFreqSliderVal = std::log10(frHighShelfFreqHz / 20.0f) / 3.0f;
+        frHighShelfFreqSlider.setValue(juce::jlimit(0.0f, 1.0f, frHighShelfFreqSliderVal));
+        frHighShelfFreqValueLabel.setText(juce::String(static_cast<int>(frHighShelfFreqHz)) + " Hz", juce::dontSendNotification);
+
+        // FR High Shelf Gain stored as dB (-24 to 0), default -2
+        // Formula: dB = 20*log10(minLin + (1-minLin)*x^2), where minLin = pow(10, -24/20)
+        // Inverse: x = sqrt((targetLin - minLin) / (1 - minLin))
+        float frHighShelfGainDB = getFloatParam(WFSParameterIDs::inputFRhighShelfGain, -2.0f);
+        frHighShelfGainDB = juce::jlimit(-24.0f, 0.0f, frHighShelfGainDB);
+        float hsMinLinear = std::pow(10.0f, -24.0f / 20.0f);
+        float hsTargetLinear = std::pow(10.0f, frHighShelfGainDB / 20.0f);
+        float hsGainSliderVal = std::sqrt((hsTargetLinear - hsMinLinear) / (1.0f - hsMinLinear));
+        frHighShelfGainSlider.setValue(juce::jlimit(0.0f, 1.0f, hsGainSliderVal));
+        frHighShelfGainValueLabel.setText(juce::String(frHighShelfGainDB, 1) + " dB", juce::dontSendNotification);
+
+        // FR High Shelf Slope stored as value (0.1 to 0.9), default 0.4
+        // Formula: slope = (x * 0.8) + 0.1 => x = (slope - 0.1) / 0.8
+        float frHighShelfSlopeVal = getFloatParam(WFSParameterIDs::inputFRhighShelfSlope, 0.4f);
+        frHighShelfSlopeVal = juce::jlimit(0.1f, 0.9f, frHighShelfSlopeVal);
+        float frSlopeSliderVal = (frHighShelfSlopeVal - 0.1f) / 0.8f;
+        frHighShelfSlopeSlider.setValue(juce::jlimit(0.0f, 1.0f, frSlopeSliderVal));
+        frHighShelfSlopeValueLabel.setText(juce::String(frHighShelfSlopeVal, 2), juce::dontSendNotification);
+
+        // ==================== LFO TAB ====================
+        bool lfoActive = getIntParam(WFSParameterIDs::inputLFOactive, 0) != 0;
+        lfoActiveButton.setToggleState(lfoActive, juce::dontSendNotification);
+        lfoActiveButton.setButtonText(lfoActive ? "L.F.O: ON" : "L.F.O: OFF");
+
+        // LFO Period stored as seconds (0.01-100), default 5.0s
+        float lfoPeriodSec = getFloatParam(WFSParameterIDs::inputLFOperiod, 5.0f);
+        lfoPeriodSec = juce::jlimit(0.01f, 100.0f, lfoPeriodSec);
+        // Inverse of: period = pow(10, sqrt(v)*4 - 2) => v = pow((log10(period)+2)/4, 2)
+        float lfoPeriodSlider = std::pow((std::log10(lfoPeriodSec) + 2.0f) / 4.0f, 2.0f);
+        lfoPeriodDial.setValue(juce::jlimit(0.0f, 1.0f, lfoPeriodSlider));
+        lfoPeriodValueLabel.setText(juce::String(lfoPeriodSec, 2) + " s", juce::dontSendNotification);
+
+        // LFO Phase stored as degrees (0-360), default 0
+        int lfoPhaseDeg = getIntParam(WFSParameterIDs::inputLFOphase, 0);
+        lfoPhaseDeg = ((lfoPhaseDeg % 360) + 360) % 360;  // Normalize to 0-359
+        lfoPhaseDial.setAngle(static_cast<float>(lfoPhaseDeg));
+        lfoPhaseValueLabel.setText(juce::String(lfoPhaseDeg) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+
+        lfoShapeXSelector.setSelectedId(getIntParam(WFSParameterIDs::inputLFOshapeX, 0) + 1, juce::dontSendNotification);
+        lfoShapeYSelector.setSelectedId(getIntParam(WFSParameterIDs::inputLFOshapeY, 0) + 1, juce::dontSendNotification);
+        lfoShapeZSelector.setSelectedId(getIntParam(WFSParameterIDs::inputLFOshapeZ, 0) + 1, juce::dontSendNotification);
+
+        // LFO Rate stored as multiplier (0.01-100), default 1.0x
+        // Inverse of: rate = pow(10, v*4 - 2) => v = (log10(rate) + 2) / 4
+        float lfoRateXVal = getFloatParam(WFSParameterIDs::inputLFOrateX, 1.0f);
+        lfoRateXVal = juce::jlimit(0.01f, 100.0f, lfoRateXVal);
+        float lfoRateXSliderVal = (std::log10(lfoRateXVal) + 2.0f) / 4.0f;
+        lfoRateXSlider.setValue(juce::jlimit(0.0f, 1.0f, lfoRateXSliderVal));
+        lfoRateXValueLabel.setText(juce::String(lfoRateXVal, 2) + "x", juce::dontSendNotification);
+
+        float lfoRateYVal = getFloatParam(WFSParameterIDs::inputLFOrateY, 1.0f);
+        lfoRateYVal = juce::jlimit(0.01f, 100.0f, lfoRateYVal);
+        float lfoRateYSliderVal = (std::log10(lfoRateYVal) + 2.0f) / 4.0f;
+        lfoRateYSlider.setValue(juce::jlimit(0.0f, 1.0f, lfoRateYSliderVal));
+        lfoRateYValueLabel.setText(juce::String(lfoRateYVal, 2) + "x", juce::dontSendNotification);
+
+        float lfoRateZVal = getFloatParam(WFSParameterIDs::inputLFOrateZ, 1.0f);
+        lfoRateZVal = juce::jlimit(0.01f, 100.0f, lfoRateZVal);
+        float lfoRateZSliderVal = (std::log10(lfoRateZVal) + 2.0f) / 4.0f;
+        lfoRateZSlider.setValue(juce::jlimit(0.0f, 1.0f, lfoRateZSliderVal));
+        lfoRateZValueLabel.setText(juce::String(lfoRateZVal, 2) + "x", juce::dontSendNotification);
+
+        // LFO Amplitude stored as meters (0-50), default 1.0m
+        float lfoAmpXMeters = getFloatParam(WFSParameterIDs::inputLFOamplitudeX, 1.0f);
+        lfoAmpXMeters = juce::jlimit(0.0f, 50.0f, lfoAmpXMeters);
+        lfoAmplitudeXSlider.setValue(lfoAmpXMeters / 50.0f);  // Convert to 0-1 slider
+        lfoAmplitudeXValueLabel.setText(juce::String(lfoAmpXMeters, 1) + " m", juce::dontSendNotification);
+
+        float lfoAmpYMeters = getFloatParam(WFSParameterIDs::inputLFOamplitudeY, 1.0f);
+        lfoAmpYMeters = juce::jlimit(0.0f, 50.0f, lfoAmpYMeters);
+        lfoAmplitudeYSlider.setValue(lfoAmpYMeters / 50.0f);
+        lfoAmplitudeYValueLabel.setText(juce::String(lfoAmpYMeters, 1) + " m", juce::dontSendNotification);
+
+        float lfoAmpZMeters = getFloatParam(WFSParameterIDs::inputLFOamplitudeZ, 1.0f);
+        lfoAmpZMeters = juce::jlimit(0.0f, 50.0f, lfoAmpZMeters);
+        lfoAmplitudeZSlider.setValue(lfoAmpZMeters / 50.0f);
+        lfoAmplitudeZValueLabel.setText(juce::String(lfoAmpZMeters, 1) + " m", juce::dontSendNotification);
+
+        // LFO Phase X/Y/Z stored as degrees (0-360), default 0
+        int phaseXDeg = getIntParam(WFSParameterIDs::inputLFOphaseX, 0);
+        phaseXDeg = ((phaseXDeg % 360) + 360) % 360;
+        lfoPhaseXDial.setAngle(static_cast<float>(phaseXDeg));
+        lfoPhaseXValueLabel.setText(juce::String(phaseXDeg) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+
+        int phaseYDeg = getIntParam(WFSParameterIDs::inputLFOphaseY, 0);
+        phaseYDeg = ((phaseYDeg % 360) + 360) % 360;
+        lfoPhaseYDial.setAngle(static_cast<float>(phaseYDeg));
+        lfoPhaseYValueLabel.setText(juce::String(phaseYDeg) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+
+        int phaseZDeg = getIntParam(WFSParameterIDs::inputLFOphaseZ, 0);
+        phaseZDeg = ((phaseZDeg % 360) + 360) % 360;
+        lfoPhaseZDial.setAngle(static_cast<float>(phaseZDeg));
+        lfoPhaseZValueLabel.setText(juce::String(phaseZDeg) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+
+        lfoGyrophoneSelector.setSelectedId(getIntParam(WFSParameterIDs::inputLFOgyrophone, 1) + 1, juce::dontSendNotification);
+
+        // Jitter stored as meters (0-10), default 0
+        // Inverse of: meters = 10 * v^2 => v = sqrt(meters / 10)
+        float jitterMeters = getFloatParam(WFSParameterIDs::inputJitter, 0.0f);
+        jitterMeters = juce::jlimit(0.0f, 10.0f, jitterMeters);
+        float jitterSliderVal = std::sqrt(jitterMeters / 10.0f);
+        jitterSlider.setValue(juce::jlimit(0.0f, 1.0f, jitterSliderVal));
+        jitterValueLabel.setText(juce::String(jitterMeters, 2) + " m", juce::dontSendNotification);
+
+        // ==================== AUTOMOTION TAB ====================
+        otomoDestXEditor.setText(juce::String(getFloatParam(WFSParameterIDs::inputOtomoX, 0.0f), 2), juce::dontSendNotification);
+        otomoDestYEditor.setText(juce::String(getFloatParam(WFSParameterIDs::inputOtomoY, 0.0f), 2), juce::dontSendNotification);
+        otomoDestZEditor.setText(juce::String(getFloatParam(WFSParameterIDs::inputOtomoZ, 0.0f), 2), juce::dontSendNotification);
+
+        bool absRel = getIntParam(WFSParameterIDs::inputOtomoAbsoluteRelative, 0) != 0;
+        otomoAbsRelButton.setToggleState(absRel, juce::dontSendNotification);
+        otomoAbsRelButton.setButtonText(absRel ? "Relative" : "Absolute");
+
+        bool stayReturn = getIntParam(WFSParameterIDs::inputOtomoStayReturn, 0) != 0;
+        otomoStayReturnButton.setToggleState(stayReturn, juce::dontSendNotification);
+        otomoStayReturnButton.setButtonText(stayReturn ? "Return" : "Stay");
+
+        // Speed Profile stored as percent (0-100), default 0
+        int speedProfilePct = getIntParam(WFSParameterIDs::inputOtomoSpeedProfile, 0);
+        speedProfilePct = juce::jlimit(0, 100, speedProfilePct);
+        otomoSpeedProfileDial.setValue(speedProfilePct / 100.0f);
+        otomoSpeedProfileValueLabel.setText(juce::String(speedProfilePct) + " %", juce::dontSendNotification);
+
+        bool trigger = getIntParam(WFSParameterIDs::inputOtomoTrigger, 0) != 0;
+        otomoTriggerButton.setToggleState(trigger, juce::dontSendNotification);
+        otomoTriggerButton.setButtonText(trigger ? "Trigger" : "Manual");
+
+        // Threshold stored as dB (-92 to 0), default -20 dB
+        // Inverse of: dB = 20*log10(minLin + (1-minLin)*v^2)
+        float threshDB = getFloatParam(WFSParameterIDs::inputOtomoThreshold, -20.0f);
+        threshDB = juce::jlimit(-92.0f, 0.0f, threshDB);
+        float otomoMinLinear = std::pow(10.0f, -92.0f / 20.0f);
+        float threshLinear = std::pow(10.0f, threshDB / 20.0f);
+        float threshSlider = std::sqrt((threshLinear - otomoMinLinear) / (1.0f - otomoMinLinear));
+        otomoThresholdDial.setValue(juce::jlimit(0.0f, 1.0f, threshSlider));
+        otomoThresholdValueLabel.setText(juce::String(threshDB, 1) + " dB", juce::dontSendNotification);
+
+        // Reset stored as dB (-92 to 0), default -60 dB
+        float resetDB = getFloatParam(WFSParameterIDs::inputOtomoReset, -60.0f);
+        resetDB = juce::jlimit(-92.0f, 0.0f, resetDB);
+        float resetLinear = std::pow(10.0f, resetDB / 20.0f);
+        float resetSlider = std::sqrt((resetLinear - otomoMinLinear) / (1.0f - otomoMinLinear));
+        otomoResetDial.setValue(juce::jlimit(0.0f, 1.0f, resetSlider));
+        otomoResetValueLabel.setText(juce::String(resetDB, 1) + " dB", juce::dontSendNotification);
+
+        bool pauseResume = getIntParam(WFSParameterIDs::inputOtomoPauseResume, 0) != 0;
+        otomoPauseButton.setToggleState(pauseResume, juce::dontSendNotification);
+
+        // ==================== MUTES TAB ====================
+        juce::String muteStr = getStringParam(WFSParameterIDs::inputMutes, "");
+        if (muteStr.isNotEmpty())
+        {
+            juce::StringArray muteValues;
+            muteValues.addTokens(muteStr, ",", "");
+            for (int i = 0; i < juce::jmin(64, muteValues.size()); ++i)
+                muteButtons[i].setToggleState(muteValues[i].getIntValue() != 0, juce::dontSendNotification);
+        }
+        else
+        {
+            for (int i = 0; i < 64; ++i)
+                muteButtons[i].setToggleState(false, juce::dontSendNotification);
+        }
+
+        isLoadingParameters = false;
     }
 
     // ==================== TEXT EDITOR LISTENER ====================
@@ -2089,7 +2658,54 @@ private:
         editor.giveAwayKeyboardFocus();
     }
 
-    void textEditorFocusLost(juce::TextEditor&) override {}
+    void textEditorFocusLost(juce::TextEditor& editor) override
+    {
+        if (isLoadingParameters) return;
+
+        // Header - Input Name
+        if (&editor == &nameEditor)
+        {
+            saveInputParam(WFSParameterIDs::inputName, nameEditor.getText());
+        }
+        // Position tab - Position and Offset editors
+        else if (&editor == &posXEditor)
+        {
+            saveInputParam(WFSParameterIDs::inputPositionX, editor.getText().getFloatValue());
+        }
+        else if (&editor == &posYEditor)
+        {
+            saveInputParam(WFSParameterIDs::inputPositionY, editor.getText().getFloatValue());
+        }
+        else if (&editor == &posZEditor)
+        {
+            saveInputParam(WFSParameterIDs::inputPositionZ, editor.getText().getFloatValue());
+        }
+        else if (&editor == &offsetXEditor)
+        {
+            saveInputParam(WFSParameterIDs::inputOffsetX, editor.getText().getFloatValue());
+        }
+        else if (&editor == &offsetYEditor)
+        {
+            saveInputParam(WFSParameterIDs::inputOffsetY, editor.getText().getFloatValue());
+        }
+        else if (&editor == &offsetZEditor)
+        {
+            saveInputParam(WFSParameterIDs::inputOffsetZ, editor.getText().getFloatValue());
+        }
+        // AutomOtion tab - Destination editors
+        else if (&editor == &otomoDestXEditor)
+        {
+            saveInputParam(WFSParameterIDs::inputOtomoX, editor.getText().getFloatValue());
+        }
+        else if (&editor == &otomoDestYEditor)
+        {
+            saveInputParam(WFSParameterIDs::inputOtomoY, editor.getText().getFloatValue());
+        }
+        else if (&editor == &otomoDestZEditor)
+        {
+            saveInputParam(WFSParameterIDs::inputOtomoZ, editor.getText().getFloatValue());
+        }
+    }
 
     // ==================== LABEL LISTENER ====================
 
@@ -2333,16 +2949,126 @@ private:
 
     // ==================== STORE/RELOAD METHODS ====================
 
-    void storeInputConfiguration() {}
-    void reloadInputConfiguration() {}
-    void reloadInputConfigBackup() {}
-    void importInputConfiguration() {}
-    void exportInputConfiguration() {}
-    void storeNewSnapshot() {}
-    void reloadSnapshot() {}
-    void updateSnapshot() {}
-    void editSnapshotScope() {}
-    void deleteSnapshot() {}
+    void storeInputConfiguration()
+    {
+        auto& fileManager = parameters.getFileManager();
+        if (!fileManager.hasValidProjectFolder())
+        {
+            showStatusMessage("Please select a project folder in System Config first.");
+            return;
+        }
+        if (fileManager.saveInputConfig())
+            showStatusMessage("Input configuration saved.");
+        else
+            showStatusMessage("Error: " + fileManager.getLastError());
+    }
+
+    void reloadInputConfiguration()
+    {
+        auto& fileManager = parameters.getFileManager();
+        if (!fileManager.hasValidProjectFolder())
+        {
+            showStatusMessage("Please select a project folder in System Config first.");
+            return;
+        }
+        if (fileManager.loadInputConfig())
+        {
+            loadChannelParameters(currentChannel);
+            showStatusMessage("Input configuration loaded.");
+        }
+        else
+            showStatusMessage("Error: " + fileManager.getLastError());
+    }
+
+    void reloadInputConfigBackup()
+    {
+        auto& fileManager = parameters.getFileManager();
+        if (fileManager.loadInputConfigBackup(0))
+        {
+            loadChannelParameters(currentChannel);
+            showStatusMessage("Input configuration loaded from backup.");
+        }
+        else
+            showStatusMessage("Error: " + fileManager.getLastError());
+    }
+
+    void importInputConfiguration()
+    {
+        auto chooser = std::make_shared<juce::FileChooser>("Import Input Configuration",
+            juce::File::getSpecialLocation(juce::File::userHomeDirectory),
+            "*.xml");
+        auto chooserFlags = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
+
+        chooser->launchAsync(chooserFlags, [this, chooser](const juce::FileChooser& fc)
+        {
+            auto result = fc.getResult();
+            if (result.existsAsFile())
+            {
+                auto& fileManager = parameters.getFileManager();
+                if (fileManager.importInputConfig(result))
+                {
+                    loadChannelParameters(currentChannel);
+                    showStatusMessage("Input configuration imported.");
+                }
+                else
+                    showStatusMessage("Error: " + fileManager.getLastError());
+            }
+        });
+    }
+
+    void exportInputConfiguration()
+    {
+        auto chooser = std::make_shared<juce::FileChooser>("Export Input Configuration",
+            juce::File::getSpecialLocation(juce::File::userHomeDirectory),
+            "*.xml");
+        auto chooserFlags = juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles;
+
+        chooser->launchAsync(chooserFlags, [this, chooser](const juce::FileChooser& fc)
+        {
+            auto result = fc.getResult();
+            if (result != juce::File())
+            {
+                if (!result.hasFileExtension(".xml"))
+                    result = result.withFileExtension(".xml");
+
+                auto& fileManager = parameters.getFileManager();
+                if (fileManager.exportInputConfig(result))
+                    showStatusMessage("Input configuration exported.");
+                else
+                    showStatusMessage("Error: " + fileManager.getLastError());
+            }
+        });
+    }
+
+    void storeNewSnapshot()
+    {
+        // TODO: Implement snapshot creation dialog
+        showStatusMessage("Snapshot feature not yet implemented.");
+    }
+
+    void reloadSnapshot()
+    {
+        // TODO: Implement snapshot loading
+        showStatusMessage("Snapshot feature not yet implemented.");
+    }
+
+    void updateSnapshot()
+    {
+        // TODO: Implement snapshot update
+        showStatusMessage("Snapshot feature not yet implemented.");
+    }
+
+    void editSnapshotScope()
+    {
+        // TODO: Implement snapshot scope editing
+        showStatusMessage("Snapshot feature not yet implemented.");
+    }
+
+    void deleteSnapshot()
+    {
+        // TODO: Implement snapshot deletion
+        showStatusMessage("Snapshot feature not yet implemented.");
+    }
 
     //==============================================================================
     // Status bar helper methods
@@ -2556,9 +3282,69 @@ private:
             statusBar->clearText();
     }
 
+    // ==================== VALUETREE LISTENER ====================
+
+    void valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property) override
+    {
+        // Check if input channel count changed
+        if (tree == configTree && property == WFSParameterIDs::inputChannels)
+        {
+            int numInputs = parameters.getNumInputChannels();
+            if (numInputs > 0)
+            {
+                channelSelector.setNumChannels(numInputs);
+                // If current selection is beyond new limit, reset to 1
+                if (channelSelector.getSelectedChannel() > numInputs)
+                    channelSelector.setSelectedChannel(1);
+            }
+        }
+
+        // Check if output channel count changed (affects mute buttons)
+        if (tree == configTree && property == WFSParameterIDs::outputChannels)
+        {
+            // Update mute button visibility and layout if Mutes tab is visible
+            if (subTabBar.getCurrentTabIndex() == 7)  // Mutes tab
+            {
+                setMutesVisible(true);
+                layoutMutesTab();
+            }
+        }
+    }
+
+    void valueTreeChildAdded(juce::ValueTree&, juce::ValueTree&) override {}
+    void valueTreeChildRemoved(juce::ValueTree&, juce::ValueTree&, int) override {}
+    void valueTreeChildOrderChanged(juce::ValueTree&, int, int) override {}
+    void valueTreeParentChanged(juce::ValueTree&) override {}
+
+    // ==================== HELPER METHODS ====================
+
+    void showStatusMessage(const juce::String& message)
+    {
+        if (statusBar != nullptr)
+            statusBar->showTemporaryMessage(message, 3000);
+    }
+
+    void saveInputParam(const juce::Identifier& paramId, const juce::var& value)
+    {
+        if (isLoadingParameters) return;
+        parameters.setInputParam(currentChannel - 1, paramId.toString(), value);
+    }
+
+    void saveMuteStates()
+    {
+        if (isLoadingParameters) return;
+        juce::StringArray muteValues;
+        for (int i = 0; i < 64; ++i)
+            muteValues.add(muteButtons[i].getToggleState() ? "1" : "0");
+        parameters.setInputParam(currentChannel - 1, WFSParameterIDs::inputMutes.toString(), muteValues.joinIntoString(","));
+    }
+
     // ==================== MEMBER VARIABLES ====================
 
     WfsParameters& parameters;
+    juce::ValueTree inputsTree;
+    juce::ValueTree configTree;
+    bool isLoadingParameters = false;
     StatusBar* statusBar = nullptr;
     std::map<juce::Component*, juce::String> helpTextMap;
     std::map<juce::Component*, juce::String> oscMethodMap;

@@ -805,9 +805,10 @@ bool WFSFileManager::writeToXmlFile (const juce::ValueTree& tree, const juce::Fi
         return false;
     }
 
-    // Create human-readable XML with header
+    // Create human-readable XML with our custom header (without JUCE's default declaration)
     juce::String header = createXmlHeader (file.getFileNameWithoutExtension());
-    juce::String xmlString = header + xml->toString();
+    auto format = juce::XmlElement::TextFormat().withoutHeader();
+    juce::String xmlString = header + xml->toString (format);
 
     if (!file.replaceWithText (xmlString))
     {
