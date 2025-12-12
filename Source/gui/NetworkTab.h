@@ -1711,7 +1711,7 @@ private:
     {
         auto chooser = std::make_shared<juce::FileChooser>("Import Network Configuration",
             juce::File::getSpecialLocation(juce::File::userHomeDirectory),
-            "*.wfsnet;*.xml");
+            "*.xml");
         auto chooserFlags = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
 
         chooser->launchAsync(chooserFlags, [this, chooser](const juce::FileChooser& fc)
@@ -1735,7 +1735,7 @@ private:
     {
         auto chooser = std::make_shared<juce::FileChooser>("Export Network Configuration",
             juce::File::getSpecialLocation(juce::File::userHomeDirectory),
-            "*.wfsnet");
+            "*.xml");
         auto chooserFlags = juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles;
 
         chooser->launchAsync(chooserFlags, [this, chooser](const juce::FileChooser& fc)
@@ -1743,8 +1743,8 @@ private:
             auto result = fc.getResult();
             if (result != juce::File())
             {
-                if (!result.hasFileExtension(".wfsnet"))
-                    result = result.withFileExtension(".wfsnet");
+                if (!result.hasFileExtension(".xml"))
+                    result = result.withFileExtension(".xml");
 
                 auto& fileManager = parameters.getFileManager();
                 if (fileManager.exportNetworkConfig(result))

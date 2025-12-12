@@ -239,13 +239,13 @@ public:
     // File Extensions
     //==========================================================================
 
-    static constexpr const char* completeConfigExtension = ".wfs";
-    static constexpr const char* systemConfigExtension = ".wfssys";
-    static constexpr const char* networkConfigExtension = ".wfsnet";
-    static constexpr const char* inputConfigExtension = ".wfsin";
-    static constexpr const char* outputConfigExtension = ".wfsout";
-    static constexpr const char* audioPatchExtension = ".wfspatch";
-    static constexpr const char* snapshotExtension = ".wfssnap";
+    static constexpr const char* completeConfigExtension = ".xml";
+    static constexpr const char* systemConfigExtension = ".xml";
+    static constexpr const char* networkConfigExtension = ".xml";
+    static constexpr const char* inputConfigExtension = ".xml";
+    static constexpr const char* outputConfigExtension = ".xml";
+    static constexpr const char* audioPatchExtension = ".xml";
+    static constexpr const char* snapshotExtension = ".xml";
 
 private:
     //==========================================================================
