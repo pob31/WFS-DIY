@@ -8,7 +8,8 @@
  * - Help mode: Shows help text for UI elements
  * - OSC mode: Shows OSC methods for UI elements
  */
-class StatusBar : public juce::Component
+class StatusBar : public juce::Component,
+                  private juce::Timer
 {
 public:
     enum class DisplayMode
@@ -85,11 +86,32 @@ public:
         updateDisplay();
     }
 
+    /** Show a temporary message that auto-clears after specified milliseconds */
+    void showTemporaryMessage(const juce::String& message, int durationMs = 3000)
+    {
+        temporaryMessage = message;
+        statusLabel.setText(message, juce::dontSendNotification);
+        startTimer(durationMs);
+    }
+
     DisplayMode getCurrentMode() const { return currentMode; }
 
 private:
+    void timerCallback() override
+    {
+        stopTimer();
+        temporaryMessage.clear();
+        updateDisplay();
+    }
     void updateDisplay()
     {
+        // Temporary messages take priority
+        if (!temporaryMessage.isEmpty())
+        {
+            statusLabel.setText(temporaryMessage, juce::dontSendNotification);
+            return;
+        }
+
         if (currentMode == DisplayMode::Help && !currentHelpText.isEmpty())
             statusLabel.setText(currentHelpText, juce::dontSendNotification);
         else if (currentMode == DisplayMode::OSC && !currentOscMethod.isEmpty())
@@ -105,6 +127,7 @@ private:
     DisplayMode currentMode = DisplayMode::Help;
     juce::String currentHelpText;
     juce::String currentOscMethod;
+    juce::String temporaryMessage;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(StatusBar)
 };

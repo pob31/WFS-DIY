@@ -1630,6 +1630,13 @@ private:
         DBG("Find My Remote: Sending /findDevice with password");
     }
 
+    // Helper to show status bar messages
+    void showStatusMessage(const juce::String& message, int durationMs = 3000)
+    {
+        if (statusBar != nullptr)
+            statusBar->showTemporaryMessage(message, durationMs);
+    }
+
     // Store/Reload methods (saves system config which includes network settings)
     void storeNetworkConfiguration()
     {
@@ -1637,8 +1644,7 @@ private:
 
         if (!fileManager.hasValidProjectFolder())
         {
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                "No Project Folder", "Please select a project folder in System Config first.");
+            showStatusMessage("Please select a project folder in System Config first.");
             return;
         }
 
@@ -1652,15 +1658,9 @@ private:
         }
 
         if (fileManager.saveSystemConfig())
-        {
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
-                "Success", "Network configuration saved (as part of system config).");
-        }
+            showStatusMessage("Network configuration saved.");
         else
-        {
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                "Error", "Failed to save:\n" + fileManager.getLastError());
-        }
+            showStatusMessage("Error: " + fileManager.getLastError());
     }
 
     void reloadNetworkConfiguration()
@@ -1669,16 +1669,14 @@ private:
 
         if (!fileManager.hasValidProjectFolder())
         {
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                "No Project Folder", "Please select a project folder in System Config first.");
+            showStatusMessage("Please select a project folder in System Config first.");
             return;
         }
 
         auto configFile = fileManager.getSystemConfigFile();
         if (!configFile.existsAsFile())
         {
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                "File Not Found", "System config file not found.");
+            showStatusMessage("System config file not found.");
             return;
         }
 
@@ -1690,14 +1688,10 @@ private:
         if (fileManager.loadSystemConfig())
         {
             loadParametersFromValueTree();
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
-                "Success", "Network configuration reloaded.");
+            showStatusMessage("Network configuration reloaded.");
         }
         else
-        {
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                "Error", "Failed to load:\n" + fileManager.getLastError());
-        }
+            showStatusMessage("Error: " + fileManager.getLastError());
     }
 
     void reloadNetworkConfigBackup()
@@ -1706,16 +1700,14 @@ private:
 
         if (!fileManager.hasValidProjectFolder())
         {
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                "No Project Folder", "Please select a project folder in System Config first.");
+            showStatusMessage("Please select a project folder in System Config first.");
             return;
         }
 
         auto backups = fileManager.getBackups("system");
         if (backups.isEmpty())
         {
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                "No Backups", "No backup files found.");
+            showStatusMessage("No backup files found.");
             return;
         }
 
@@ -1727,14 +1719,10 @@ private:
         if (fileManager.loadSystemConfigBackup(0))
         {
             loadParametersFromValueTree();
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
-                "Success", "Configuration loaded from backup.");
+            showStatusMessage("Configuration loaded from backup.");
         }
         else
-        {
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                "Error", "Failed to load backup:\n" + fileManager.getLastError());
-        }
+            showStatusMessage("Error: " + fileManager.getLastError());
     }
 
     void importNetworkConfiguration()
@@ -1758,14 +1746,10 @@ private:
                 if (fileManager.importSystemConfig(result))
                 {
                     loadParametersFromValueTree();
-                    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
-                        "Success", "Network configuration imported.");
+                    showStatusMessage("Network configuration imported.");
                 }
                 else
-                {
-                    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                        "Error", "Failed to import:\n" + fileManager.getLastError());
-                }
+                    showStatusMessage("Error: " + fileManager.getLastError());
             }
         });
     }
@@ -1795,15 +1779,9 @@ private:
 
                 auto& fileManager = parameters.getFileManager();
                 if (fileManager.exportSystemConfig(result))
-                {
-                    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
-                        "Success", "Network configuration exported to:\n" + result.getFullPathName());
-                }
+                    showStatusMessage("Network configuration exported.");
                 else
-                {
-                    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                        "Error", "Failed to export:\n" + fileManager.getLastError());
-                }
+                    showStatusMessage("Error: " + fileManager.getLastError());
             }
         });
     }

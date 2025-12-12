@@ -979,8 +979,7 @@ private:
 
         if (!fileManager.hasValidProjectFolder())
         {
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                "No Project Folder", "Please select a project folder first.");
+            showStatusMessage("Please select a project folder first.");
             return;
         }
 
@@ -994,15 +993,9 @@ private:
         }
 
         if (fileManager.saveCompleteConfig())
-        {
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
-                "Success", "Complete configuration saved to:\n" + configFile.getFullPathName());
-        }
+            showStatusMessage("Complete configuration saved.");
         else
-        {
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                "Error", "Failed to save configuration:\n" + fileManager.getLastError());
-        }
+            showStatusMessage("Error: " + fileManager.getLastError());
     }
 
     void reloadCompleteConfiguration()
@@ -1011,16 +1004,14 @@ private:
 
         if (!fileManager.hasValidProjectFolder())
         {
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                "No Project Folder", "Please select a project folder first.");
+            showStatusMessage("Please select a project folder first.");
             return;
         }
 
         auto configFile = fileManager.getCompleteConfigFile();
         if (!configFile.existsAsFile())
         {
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                "File Not Found", "Configuration file not found:\n" + configFile.getFullPathName());
+            showStatusMessage("Configuration file not found.");
             return;
         }
 
@@ -1030,15 +1021,9 @@ private:
             return;
 
         if (fileManager.loadCompleteConfig())
-        {
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
-                "Success", "Complete configuration loaded from:\n" + configFile.getFullPathName());
-        }
+            showStatusMessage("Complete configuration loaded.");
         else
-        {
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                "Error", "Failed to load configuration:\n" + fileManager.getLastError());
-        }
+            showStatusMessage("Error: " + fileManager.getLastError());
     }
 
     void reloadCompleteConfigBackup()
@@ -1047,16 +1032,14 @@ private:
 
         if (!fileManager.hasValidProjectFolder())
         {
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                "No Project Folder", "Please select a project folder first.");
+            showStatusMessage("Please select a project folder first.");
             return;
         }
 
         auto backups = fileManager.getBackups("complete");
         if (backups.isEmpty())
         {
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                "No Backups Found", "No backup files found for complete configuration.");
+            showStatusMessage("No backup files found.");
             return;
         }
 
@@ -1066,15 +1049,9 @@ private:
             return;
 
         if (fileManager.loadCompleteConfigBackup(0))
-        {
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
-                "Success", "Configuration loaded from backup.");
-        }
+            showStatusMessage("Configuration loaded from backup.");
         else
-        {
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                "Error", "Failed to load backup:\n" + fileManager.getLastError());
-        }
+            showStatusMessage("Error: " + fileManager.getLastError());
     }
 
     void storeSystemConfiguration()
@@ -1083,8 +1060,7 @@ private:
 
         if (!fileManager.hasValidProjectFolder())
         {
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                "No Project Folder", "Please select a project folder first.");
+            showStatusMessage("Please select a project folder first.");
             return;
         }
 
@@ -1098,15 +1074,9 @@ private:
         }
 
         if (fileManager.saveSystemConfig())
-        {
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
-                "Success", "System configuration saved to:\n" + configFile.getFullPathName());
-        }
+            showStatusMessage("System configuration saved.");
         else
-        {
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                "Error", "Failed to save system configuration:\n" + fileManager.getLastError());
-        }
+            showStatusMessage("Error: " + fileManager.getLastError());
     }
 
     void reloadSystemConfiguration()
@@ -1115,16 +1085,14 @@ private:
 
         if (!fileManager.hasValidProjectFolder())
         {
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                "No Project Folder", "Please select a project folder first.");
+            showStatusMessage("Please select a project folder first.");
             return;
         }
 
         auto configFile = fileManager.getSystemConfigFile();
         if (!configFile.existsAsFile())
         {
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                "File Not Found", "System configuration file not found:\n" + configFile.getFullPathName());
+            showStatusMessage("System configuration file not found.");
             return;
         }
 
@@ -1134,15 +1102,9 @@ private:
             return;
 
         if (fileManager.loadSystemConfig())
-        {
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
-                "Success", "System configuration loaded from:\n" + configFile.getFullPathName());
-        }
+            showStatusMessage("System configuration loaded.");
         else
-        {
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                "Error", "Failed to load system configuration:\n" + fileManager.getLastError());
-        }
+            showStatusMessage("Error: " + fileManager.getLastError());
     }
 
     void reloadSystemConfigBackup()
@@ -1151,16 +1113,14 @@ private:
 
         if (!fileManager.hasValidProjectFolder())
         {
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                "No Project Folder", "Please select a project folder first.");
+            showStatusMessage("Please select a project folder first.");
             return;
         }
 
         auto backups = fileManager.getBackups("system");
         if (backups.isEmpty())
         {
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                "No Backups Found", "No backup files found for system configuration.");
+            showStatusMessage("No backup files found.");
             return;
         }
 
@@ -1170,15 +1130,9 @@ private:
             return;
 
         if (fileManager.loadSystemConfigBackup(0))
-        {
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
-                "Success", "System configuration loaded from backup.");
-        }
+            showStatusMessage("System configuration loaded from backup.");
         else
-        {
-            juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                "Error", "Failed to load backup:\n" + fileManager.getLastError());
-        }
+            showStatusMessage("Error: " + fileManager.getLastError());
     }
 
     void importSystemConfiguration()
@@ -1200,15 +1154,9 @@ private:
 
                 auto& fileManager = parameters.getFileManager();
                 if (fileManager.importSystemConfig(result))
-                {
-                    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
-                        "Success", "System configuration imported from:\n" + result.getFullPathName());
-                }
+                    showStatusMessage("System configuration imported.");
                 else
-                {
-                    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                        "Error", "Failed to import configuration:\n" + fileManager.getLastError());
-                }
+                    showStatusMessage("Error: " + fileManager.getLastError());
             }
         });
     }
@@ -1239,21 +1187,21 @@ private:
 
                 auto& fileManager = parameters.getFileManager();
                 if (fileManager.exportSystemConfig(result))
-                {
-                    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
-                        "Success", "System configuration exported to:\n" + result.getFullPathName());
-                }
+                    showStatusMessage("System configuration exported.");
                 else
-                {
-                    juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-                        "Error", "Failed to export configuration:\n" + fileManager.getLastError());
-                }
+                    showStatusMessage("Error: " + fileManager.getLastError());
             }
         });
     }
 
     //==============================================================================
     // Status bar helper methods
+
+    void showStatusMessage(const juce::String& message, int durationMs = 3000)
+    {
+        if (statusBar != nullptr)
+            statusBar->showTemporaryMessage(message, durationMs);
+    }
 
     void setupHelpText()
     {
