@@ -412,9 +412,20 @@ bool WFSFileManager::importNetworkConfig (const juce::File& file)
 
     valueTreeState.beginUndoTransaction ("Import Network Configuration");
 
+    // Look for NetworkSettings container (new format)
+    auto networkSettings = loadedState.getChildWithName ("NetworkSettings");
+    if (networkSettings.isValid())
+        return applyNetworkSection (networkSettings);
+
+    // Fallback: try loading old format with just Network child
     auto networkTree = loadedState.getChildWithName (Network);
     if (networkTree.isValid())
-        return applyNetworkSection (networkTree);
+    {
+        // Wrap in container for applyNetworkSection
+        juce::ValueTree container ("NetworkSettings");
+        container.appendChild (networkTree.createCopy(), nullptr);
+        return applyNetworkSection (container);
+    }
 
     setError ("No network data found in file");
     return false;
@@ -827,7 +838,32 @@ juce::ValueTree WFSFileManager::readFromXmlFile (const juce::File& file)
 
 juce::ValueTree WFSFileManager::extractConfigSection() const
 {
-    return valueTreeState.getState().getChildWithName (Config);
+    // Extract Config section but exclude Network, ADMOSC, and Tracking
+    // (those are saved separately in network.xml)
+    auto config = valueTreeState.getState().getChildWithName (Config);
+    if (!config.isValid())
+        return {};
+
+    juce::ValueTree filtered (Config);
+
+    // Copy properties
+    for (int i = 0; i < config.getNumProperties(); ++i)
+    {
+        auto propName = config.getPropertyName (i);
+        filtered.setProperty (propName, config.getProperty (propName), nullptr);
+    }
+
+    // Copy children except Network, ADMOSC, and Tracking
+    for (int i = 0; i < config.getNumChildren(); ++i)
+    {
+        auto child = config.getChild (i);
+        auto childType = child.getType();
+
+        if (childType != Network && childType != ADMOSC && childType != Tracking)
+            filtered.appendChild (child.createCopy(), nullptr);
+    }
+
+    return filtered;
 }
 
 juce::ValueTree WFSFileManager::extractInputsSection() const
@@ -847,10 +883,27 @@ juce::ValueTree WFSFileManager::extractAudioPatchSection() const
 
 juce::ValueTree WFSFileManager::extractNetworkSection() const
 {
+    // Extract Network, ADMOSC, and Tracking sections from Config
     auto config = valueTreeState.getState().getChildWithName (Config);
-    if (config.isValid())
-        return config.getChildWithName (Network);
-    return {};
+    if (!config.isValid())
+        return {};
+
+    // Create a container for all network-related sections
+    juce::ValueTree networkContainer ("NetworkSettings");
+
+    auto network = config.getChildWithName (Network);
+    if (network.isValid())
+        networkContainer.appendChild (network.createCopy(), nullptr);
+
+    auto admOsc = config.getChildWithName (ADMOSC);
+    if (admOsc.isValid())
+        networkContainer.appendChild (admOsc.createCopy(), nullptr);
+
+    auto tracking = config.getChildWithName (Tracking);
+    if (tracking.isValid())
+        networkContainer.appendChild (tracking.createCopy(), nullptr);
+
+    return networkContainer;
 }
 
 bool WFSFileManager::applyConfigSection (const juce::ValueTree& configTree)
@@ -897,19 +950,52 @@ bool WFSFileManager::applyAudioPatchSection (const juce::ValueTree& audioPatchTr
     return false;
 }
 
-bool WFSFileManager::applyNetworkSection (const juce::ValueTree& networkTree)
+bool WFSFileManager::applyNetworkSection (const juce::ValueTree& networkContainer)
 {
     auto config = valueTreeState.getConfigState();
     if (!config.isValid())
         return false;
 
-    auto existingNetwork = config.getChildWithName (Network);
-    if (existingNetwork.isValid())
+    auto* undoManager = valueTreeState.getUndoManager();
+    bool success = false;
+
+    // Apply Network section
+    auto loadedNetwork = networkContainer.getChildWithName (Network);
+    if (loadedNetwork.isValid())
     {
-        existingNetwork.copyPropertiesAndChildrenFrom (networkTree, valueTreeState.getUndoManager());
-        return true;
+        auto existingNetwork = config.getChildWithName (Network);
+        if (existingNetwork.isValid())
+        {
+            existingNetwork.copyPropertiesAndChildrenFrom (loadedNetwork, undoManager);
+            success = true;
+        }
     }
-    return false;
+
+    // Apply ADMOSC section
+    auto loadedAdmOsc = networkContainer.getChildWithName (ADMOSC);
+    if (loadedAdmOsc.isValid())
+    {
+        auto existingAdmOsc = config.getChildWithName (ADMOSC);
+        if (existingAdmOsc.isValid())
+        {
+            existingAdmOsc.copyPropertiesAndChildrenFrom (loadedAdmOsc, undoManager);
+            success = true;
+        }
+    }
+
+    // Apply Tracking section
+    auto loadedTracking = networkContainer.getChildWithName (Tracking);
+    if (loadedTracking.isValid())
+    {
+        auto existingTracking = config.getChildWithName (Tracking);
+        if (existingTracking.isValid())
+        {
+            existingTracking.copyPropertiesAndChildrenFrom (loadedTracking, undoManager);
+            success = true;
+        }
+    }
+
+    return success;
 }
 
 juce::ValueTree WFSFileManager::extractInputWithScope (int channelIndex, const SnapshotScope& scope) const
