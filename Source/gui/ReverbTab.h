@@ -206,7 +206,7 @@ private:
         delayLatencySlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF4CAF50));
         delayLatencySlider.onValueChanged = [this] (float v)
         {
-            float ms = v * 200.0f - 100.0f;  // -100 to +100 ms
+            float ms = v * 100.0f;  // -100 to +100 ms (v is -1 to 1)
             delayLatencyValueLabel.setText (juce::String (ms, 1) + " ms", juce::dontSendNotification);
             saveReverbParam (WFSParameterIDs::reverbDelayLatency, ms);
         };
@@ -331,7 +331,7 @@ private:
         pitchSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF00BCD4));
         pitchSlider.onValueChanged = [this] (float v)
         {
-            int degrees = static_cast<int> (v * 180.0f - 90.0f);  // -90 to +90
+            int degrees = static_cast<int> (v * 90.0f);  // -90 to +90 (v is -1 to 1)
             pitchValueLabel.setText (juce::String (degrees) + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
             saveReverbParam (WFSParameterIDs::reverbPitch, degrees);
         };
@@ -390,7 +390,7 @@ private:
         distanceAttenEnableSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF4CAF50));
         distanceAttenEnableSlider.onValueChanged = [this] (float v)
         {
-            int percent = static_cast<int> (v * 200.0f);  // 0-200%
+            int percent = static_cast<int> ((v + 1.0f) * 100.0f);  // 0-200% (v is -1 to 1, center is 100%)
             distanceAttenEnableValueLabel.setText (juce::String (percent) + "%", juce::dontSendNotification);
             saveReverbParam (WFSParameterIDs::reverbDistanceAttenEnable, percent);
         };
@@ -1108,7 +1108,7 @@ private:
 
         // Delay/Latency
         float delayMs = getFloatParam (WFSParameterIDs::reverbDelayLatency, 0.0f);
-        delayLatencySlider.setValue ((delayMs + 100.0f) / 200.0f);
+        delayLatencySlider.setValue (delayMs / 100.0f);  // v = ms / 100 (bidirectional -1 to 1)
         delayLatencyValueLabel.setText (juce::String (delayMs, 1) + " ms", juce::dontSendNotification);
 
         // Position
@@ -1135,7 +1135,7 @@ private:
         angleOffValueLabel.setText (juce::String (angleOff) + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
 
         int pitch = getIntParam (WFSParameterIDs::reverbPitch, 0);
-        pitchSlider.setValue ((pitch + 90.0f) / 180.0f);
+        pitchSlider.setValue (pitch / 90.0f);  // v = pitch / 90 (bidirectional -1 to 1)
         pitchValueLabel.setText (juce::String (pitch) + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
 
         float hfDamping = getFloatParam (WFSParameterIDs::reverbHFdamping, 0.0f);
@@ -1151,7 +1151,7 @@ private:
         lsEnableButton.setButtonText (lsEnable != 0 ? "LS ENABLE" : "LS DISABLE");
 
         int distanceAttenEnable = getIntParam (WFSParameterIDs::reverbDistanceAttenEnable, 100);
-        distanceAttenEnableSlider.setValue (distanceAttenEnable / 200.0f);
+        distanceAttenEnableSlider.setValue ((distanceAttenEnable - 100.0f) / 100.0f);  // v = (percent - 100) / 100 (bidirectional -1 to 1)
         distanceAttenEnableValueLabel.setText (juce::String (distanceAttenEnable) + "%", juce::dontSendNotification);
 
         // EQ
@@ -1452,7 +1452,7 @@ private:
         else if (label == &delayLatencyValueLabel)
         {
             float ms = juce::jlimit (-100.0f, 100.0f, value);
-            delayLatencySlider.setValue ((ms + 100.0f) / 200.0f);
+            delayLatencySlider.setValue (ms / 100.0f);  // v = ms / 100 (bidirectional -1 to 1)
         }
     }
 
@@ -1710,7 +1710,7 @@ private:
     juce::TextButton miniLatencyEnableButton;
     juce::TextButton lsEnableButton;
     juce::Label distanceAttenEnableLabel;
-    WfsStandardSlider distanceAttenEnableSlider;
+    WfsBidirectionalSlider distanceAttenEnableSlider;
     juce::Label distanceAttenEnableValueLabel;
 
     // EQ sub-tab
