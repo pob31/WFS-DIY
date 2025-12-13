@@ -143,6 +143,7 @@ public:
     ChannelSelectorButton(const juce::String& prefix = "Channel")
         : labelPrefix(prefix)
     {
+        setWantsKeyboardFocus(true);  // Allow this component to receive keyboard focus
         selectorButton.onClick = [this]() { showOverlay(); };
         updateButtonText();
         addAndMakeVisible(selectorButton);
@@ -200,21 +201,47 @@ private:
     {
         if (auto* parent = getTopLevelComponent())
         {
+            // Use SafePointers to handle potential component invalidation
+            // Both this and parent can become invalid during callbacks
+            juce::Component::SafePointer<juce::Component> safeParent = parent;
+            juce::Component::SafePointer<ChannelSelectorButton> safeThis = this;
+
             auto overlay = std::make_unique<ChannelSelectorOverlay>(
                 numChannels,
                 currentChannel,
-                [this, parent](int selected) {
-                    setSelectedChannel(selected);
-                    // Remove overlay
-                    for (int i = parent->getNumChildComponents() - 1; i >= 0; --i)
-                    {
-                        if (auto* comp = dynamic_cast<ChannelSelectorOverlay*>(parent->getChildComponent(i)))
+                [safeThis, safeParent](int selected) {
+                    // Defer all work to after the current callback finishes.
+                    // This prevents accessing invalidated memory if components
+                    // are recreated during setSelectedChannel() callbacks.
+                    juce::MessageManager::callAsync([safeThis, safeParent, selected]() {
+                        // Check if parent is still valid for cleanup
+                        if (safeParent == nullptr)
+                            return;
+
+                        auto* parent = safeParent.getComponent();
+
+                        // Remove overlay FIRST (before any callbacks that might change state)
+                        for (int i = parent->getNumChildComponents() - 1; i >= 0; --i)
                         {
-                            parent->removeChildComponent(comp);
-                            delete comp;
-                            break;
+                            if (auto* comp = dynamic_cast<ChannelSelectorOverlay*>(parent->getChildComponent(i)))
+                            {
+                                parent->removeChildComponent(comp);
+                                delete comp;
+                                break;
+                            }
                         }
-                    }
+
+                        // Update channel selection (may trigger callbacks)
+                        if (safeThis != nullptr)
+                            safeThis->setSelectedChannel(selected);
+
+                        // Grab focus on the selector button itself - key events will
+                        // propagate up to MainComponent through the component hierarchy
+                        juce::MessageManager::callAsync([safeThis]() {
+                            if (safeThis != nullptr)
+                                safeThis->grabKeyboardFocus();
+                        });
+                    });
                 }
             );
 
