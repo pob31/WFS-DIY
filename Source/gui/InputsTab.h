@@ -665,8 +665,8 @@ private:
         positionJoystick.setThumbColour(juce::Colour(0xFFFF9800));
         positionJoystick.setReportingIntervalHz(50.0);  // 50Hz = 20ms updates
         positionJoystick.setOnPositionChanged([this](float x, float y) {
-            // Scale: 5m/s max at 50Hz = 0.1m per update at max joystick position
-            const float scale = 0.1f;
+            // Scale: 2.5m/s max at 50Hz = 0.05m per update at max joystick position
+            const float scale = 0.05f;
             float deltaX = x * scale;
             float deltaY = y * scale;
 
@@ -710,8 +710,8 @@ private:
         positionZSlider.setTrackColours(juce::Colour(0xFF3A3A3A), juce::Colour(0xFF4CAF50));
         positionZSlider.setThumbColour(juce::Colours::white);
         positionZSlider.onValueChanged = [this](float v) {
-            // Scale: 5m/s max at 50Hz = 0.1m per update at max slider position
-            const float scale = 0.1f;
+            // Scale: 2.5m/s max at 50Hz = 0.05m per update at max slider position
+            const float scale = 0.05f;
             float deltaZ = v * scale;
 
             // Check if tracking is active (both globally and locally)
@@ -1841,7 +1841,7 @@ private:
         leftCol.removeFromTop(spacing * 2);
 
         // Position Joystick and Z Slider
-        const int joystickSize = 120;
+        const int joystickSize = 180;
         const int zSliderWidth = 40;
         auto joystickArea = leftCol.removeFromTop(joystickSize + rowHeight);  // Include label height
         positionJoystickLabel.setBounds(joystickArea.removeFromTop(rowHeight));
