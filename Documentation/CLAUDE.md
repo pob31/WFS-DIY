@@ -185,7 +185,7 @@ TabbedComponent
 - **Structures**: TargetConfig, GlobalConfig, LogEntry
 - **Constants**: MAX_TARGETS=6, MAX_RATE_HZ=50, DEFAULT_UDP_PORT=8000, DEFAULT_TCP_PORT=8001
 
-### OSCManager.h/cpp (~800 lines)
+### OSCManager.h/cpp (~1100 lines)
 Central coordinator for all OSC communication:
 - Manages up to 6 network targets
 - UDP and TCP receivers with sender IP tracking
@@ -196,6 +196,12 @@ Central coordinator for all OSC communication:
 - Loop prevention (tracks incoming protocol to avoid echo)
 - OSC Query server integration
 - Connection status callbacks for UI updates
+- **REMOTE protocol handlers**:
+  - handleRemoteParameterSet() - absolute value setting
+  - handleRemoteParameterDelta() - incremental changes with inc/dec
+  - sendRemoteChannelDump() - sends 48+ parameters on channel select
+- **Array Adjust handler**:
+  - handleArrayAdjustMessage() - applies delta to all outputs in array
 
 ### OSCConnection.h/cpp
 Per-target connection manager:
@@ -204,12 +210,18 @@ Per-target connection manager:
 - Connection status tracking
 - Message statistics
 
-### OSCMessageRouter.h/cpp (~400 lines)
+### OSCMessageRouter.h/cpp (~600 lines)
 - Parse incoming OSC messages
-- Address pattern matching
-- Parameter ID extraction
+- Address pattern matching (/wfs/input/, /wfs/output/, /wfs/reverb/)
+- Parameter ID extraction from address maps
 - Value extraction (float, int, string)
-- REMOTE protocol parsing
+- **REMOTE protocol parsing** (/remoteInput/*):
+  - ParsedRemoteInput struct with types: ChannelSelect, PositionDelta, ParameterSet, ParameterDelta
+  - getRemoteAddressMap() with 48+ parameter mappings
+  - Supports absolute values and inc/dec mode
+- **Array Adjust parsing** (/arrayAdjust/*):
+  - ParsedArrayAdjustMessage struct
+  - Bulk adjustment for delayLatency, attenuation, Hparallax, Vparallax
 
 ### OSCMessageBuilder.h/cpp (~500 lines)
 - Build outgoing OSC messages
@@ -406,18 +418,38 @@ Two processing approaches available:
 - Default ports: UDP 8000, TCP 8001
 - Improved OSC Query control layout
 
+### Complete Remote OSC Protocol (2025-12-13)
+Implemented full bidirectional communication with Android remote app:
+
+**Receiving (/remoteInput/*):**
+- `/remoteInput/inputNumber <id>` - Select channel and receive parameter dump
+- `/remoteInput/<param> <id> <value>` - Absolute parameter setting
+- `/remoteInput/<param> <id> <inc/dec> <delta>` - Incremental changes
+- 48+ parameter mappings including position, attenuation, directivity, LFO, etc.
+
+**Sending (/remoteInput/*):**
+- Fixed address prefix from /remoteOutput/ to /remoteInput/
+- sendRemoteChannelDump() sends all parameters on channel select
+
+### Array Adjust Commands (2025-12-13)
+One-way commands from remote to adjust output arrays (Rx only):
+- `/arrayAdjust/delayLatency <array#> <delta>` - Adjust delay for all outputs in array
+- `/arrayAdjust/attenuation <array#> <delta>` - Adjust attenuation
+- `/arrayAdjust/Hparallax <array#> <delta>` - Adjust horizontal parallax
+- `/arrayAdjust/Vparallax <array#> <delta>` - Adjust vertical parallax
+
 ---
 
 ## Code Statistics
 
 | Component | Lines |
 |-----------|-------|
-| Parameters System | ~2,000 |
-| Network/OSC System | ~4,600 |
+| Parameters System | ~2,200 |
+| Network/OSC System | ~5,300 |
 | GUI Components | ~8,700 |
 | MainComponent | ~850 |
 | Audio Processing | ~1,500 |
-| **Total** | **~17,650** |
+| **Total** | **~18,550** |
 
 ---
 
