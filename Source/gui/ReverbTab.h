@@ -1465,8 +1465,12 @@ private:
                 channelSelector.setNumChannels (numReverbs);
                 if (channelSelector.getSelectedChannel() > numReverbs)
                     channelSelector.setSelectedChannel (1);
+
+                // Load parameters for the current channel if we just got channels
+                loadChannelParameters (channelSelector.getSelectedChannel());
             }
             updateVisibility();
+            resized();  // Re-layout components after visibility change
         }
 
         // Check if this is a parameter change for the current reverb channel
