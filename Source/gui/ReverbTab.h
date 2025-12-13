@@ -120,17 +120,22 @@ public:
         // Position the "no channels" message in the center of remaining space
         noChannelsLabel.setBounds (bounds.reduced (40));
 
-        // Header
-        auto headerArea = bounds.removeFromTop (headerHeight).reduced (padding, padding);
-        layoutHeader (headerArea);
+        // Only layout header and sub-tabs if we have channels
+        int numReverbs = parameters.getNumReverbChannels();
+        if (numReverbs > 0)
+        {
+            // Header
+            auto headerArea = bounds.removeFromTop (headerHeight).reduced (padding, padding);
+            layoutHeader (headerArea);
 
-        // Sub-tabs area
-        auto contentArea = bounds.reduced (padding, 0);
-        auto tabBarArea = contentArea.removeFromTop (32);
-        subTabBar.setBounds (tabBarArea);
+            // Sub-tabs area
+            auto contentArea = bounds.reduced (padding, 0);
+            auto tabBarArea = contentArea.removeFromTop (32);
+            subTabBar.setBounds (tabBarArea);
 
-        subTabContentArea = contentArea.reduced (0, padding);
-        layoutCurrentSubTab();
+            subTabContentArea = contentArea.reduced (0, padding);
+            layoutCurrentSubTab();
+        }
     }
 
 private:
