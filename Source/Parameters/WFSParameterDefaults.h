@@ -150,6 +150,14 @@ namespace WFSParameterDefaults
     constexpr int trackingFlipDefault       = 0;  // 0=OFF, 1=ON
 
     //==========================================================================
+    // Config > Clusters Section
+    //==========================================================================
+
+    constexpr int clusterReferenceModeDefault = 0;  // 0=First Input, 1=Barycenter
+    constexpr int clusterReferenceModeMin     = 0;
+    constexpr int clusterReferenceModeMax     = 1;
+
+    //==========================================================================
     // Input Channel Defaults
     //==========================================================================
 
@@ -541,7 +549,7 @@ namespace WFSParameterDefaults
     constexpr float reverbEQslopeMax             = 20.0f;
 
     // Default EQ band frequencies for reverb (4 bands)
-    inline const int reverbEQBandFrequencies[4] = { 100, 500, 2000, 8000 };
+    inline const int reverbEQBandFrequencies[4] = { 200, 800, 2000, 5000 };
     inline const int reverbEQBandShapes[4] = { 0, 0, 0, 0 };  // All OFF by default
 
     // Reverb > Return
