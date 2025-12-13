@@ -103,6 +103,24 @@ juce::ValueTree WFSValueTreeState::getOutputState (int channelIndex)
     return {};
 }
 
+juce::ValueTree WFSValueTreeState::getReverbsState()
+{
+    return state.getChildWithName (Reverbs);
+}
+
+juce::ValueTree WFSValueTreeState::getReverbsState() const
+{
+    return state.getChildWithName (Reverbs);
+}
+
+juce::ValueTree WFSValueTreeState::getReverbState (int channelIndex)
+{
+    auto reverbs = getReverbsState();
+    if (channelIndex >= 0 && channelIndex < reverbs.getNumChildren())
+        return reverbs.getChild (channelIndex);
+    return {};
+}
+
 juce::ValueTree WFSValueTreeState::getAudioPatchState()
 {
     return state.getChildWithName (AudioPatch);
@@ -308,6 +326,102 @@ juce::ValueTree WFSValueTreeState::getOutputEQBand (int channelIndex, int bandIn
 }
 
 //==============================================================================
+// Reverb Channel Access
+//==============================================================================
+
+juce::var WFSValueTreeState::getReverbParameter (int channelIndex, const juce::Identifier& paramId) const
+{
+    auto reverb = const_cast<WFSValueTreeState*>(this)->getReverbState (channelIndex);
+    if (!reverb.isValid())
+        return {};
+
+    // Search through all subsections
+    for (int i = 0; i < reverb.getNumChildren(); ++i)
+    {
+        auto child = reverb.getChild (i);
+        if (child.hasProperty (paramId))
+            return child.getProperty (paramId);
+
+        // Check EQ bands
+        if (child.getType() == EQ)
+        {
+            for (int j = 0; j < child.getNumChildren(); ++j)
+            {
+                auto band = child.getChild (j);
+                if (band.hasProperty (paramId))
+                    return band.getProperty (paramId);
+            }
+        }
+    }
+    return {};
+}
+
+void WFSValueTreeState::setReverbParameter (int channelIndex, const juce::Identifier& paramId, const juce::var& value)
+{
+    auto reverb = getReverbState (channelIndex);
+    if (!reverb.isValid())
+        return;
+
+    // Search through all subsections
+    for (int i = 0; i < reverb.getNumChildren(); ++i)
+    {
+        auto child = reverb.getChild (i);
+        if (child.hasProperty (paramId))
+        {
+            child.setProperty (paramId, value, &undoManager);
+            return;
+        }
+
+        // Check EQ bands
+        if (child.getType() == EQ)
+        {
+            for (int j = 0; j < child.getNumChildren(); ++j)
+            {
+                auto band = child.getChild (j);
+                if (band.hasProperty (paramId))
+                {
+                    band.setProperty (paramId, value, &undoManager);
+                    return;
+                }
+            }
+        }
+    }
+}
+
+juce::ValueTree WFSValueTreeState::getReverbChannelSection (int channelIndex)
+{
+    return getReverbState (channelIndex).getChildWithName (Channel);
+}
+
+juce::ValueTree WFSValueTreeState::getReverbPositionSection (int channelIndex)
+{
+    return getReverbState (channelIndex).getChildWithName (Position);
+}
+
+juce::ValueTree WFSValueTreeState::getReverbFeedSection (int channelIndex)
+{
+    return getReverbState (channelIndex).getChildWithName (Feed);
+}
+
+juce::ValueTree WFSValueTreeState::getReverbEQSection (int channelIndex)
+{
+    return getReverbState (channelIndex).getChildWithName (EQ);
+}
+
+juce::ValueTree WFSValueTreeState::getReverbEQBand (int channelIndex, int bandIndex)
+{
+    auto eq = getReverbEQSection (channelIndex);
+    if (eq.isValid() && bandIndex >= 0 && bandIndex < eq.getNumChildren())
+        return eq.getChild (bandIndex);
+    return {};
+}
+
+juce::ValueTree WFSValueTreeState::getReverbReturnSection (int channelIndex)
+{
+    return getReverbState (channelIndex).getChildWithName (ReverbReturn);
+}
+
+//==============================================================================
 // Network Target Access
 //==============================================================================
 
@@ -436,7 +550,35 @@ void WFSValueTreeState::setNumOutputChannels (int numChannels)
 void WFSValueTreeState::setNumReverbChannels (int numChannels)
 {
     numChannels = juce::jlimit (0, maxReverbChannels, numChannels);
+    auto reverbs = getReverbsState();
+
+    // Create Reverbs section if it doesn't exist
+    if (!reverbs.isValid())
+    {
+        createReverbsSection();
+        reverbs = getReverbsState();
+    }
+
+    int currentCount = reverbs.getNumChildren();
+
+    beginUndoTransaction ("Set Reverb Channel Count");
+
+    if (numChannels > currentCount)
+    {
+        // Add new channels
+        for (int i = currentCount; i < numChannels; ++i)
+            reverbs.appendChild (createDefaultReverbChannel (i), &undoManager);
+    }
+    else if (numChannels < currentCount)
+    {
+        // Remove excess channels
+        while (reverbs.getNumChildren() > numChannels)
+            reverbs.removeChild (reverbs.getNumChildren() - 1, &undoManager);
+    }
+
+    // Update the count in config
     setParameter (reverbChannels, numChannels);
+    reverbs.setProperty (count, numChannels, &undoManager);
 }
 
 //==============================================================================
@@ -541,6 +683,17 @@ void WFSValueTreeState::resetOutputToDefaults (int channelIndex)
     }
 }
 
+void WFSValueTreeState::resetReverbToDefaults (int channelIndex)
+{
+    auto reverb = getReverbState (channelIndex);
+    if (reverb.isValid())
+    {
+        beginUndoTransaction ("Reset Reverb " + juce::String (channelIndex + 1));
+        auto newReverb = createDefaultReverbChannel (channelIndex);
+        reverb.copyPropertiesAndChildrenFrom (newReverb, &undoManager);
+    }
+}
+
 void WFSValueTreeState::replaceState (const juce::ValueTree& newState)
 {
     if (validateState (newState))
@@ -579,16 +732,17 @@ void WFSValueTreeState::copyStateFrom (const WFSValueTreeState& other)
 void WFSValueTreeState::valueTreePropertyChanged (juce::ValueTree& treeWhosePropertyHasChanged,
                                                    const juce::Identifier& property)
 {
-    // Determine channel index if this is an input/output parameter
+    // Determine channel index if this is an input/output/reverb parameter
     int channelIndex = -1;
     auto parent = treeWhosePropertyHasChanged.getParent();
 
     if (parent.isValid())
     {
-        if (parent.getType() == Input || parent.getType() == Output)
+        if (parent.getType() == Input || parent.getType() == Output || parent.getType() == Reverb)
             channelIndex = static_cast<int> (parent.getProperty (id)) - 1;
         else if (parent.getParent().isValid() &&
-                 (parent.getParent().getType() == Input || parent.getParent().getType() == Output))
+                 (parent.getParent().getType() == Input || parent.getParent().getType() == Output ||
+                  parent.getParent().getType() == Reverb))
             channelIndex = static_cast<int> (parent.getParent().getProperty (id)) - 1;
     }
 
@@ -628,6 +782,7 @@ void WFSValueTreeState::initializeDefaultState()
     createConfigSection();
     createInputsSection();
     createOutputsSection();
+    createReverbsSection();
     createAudioPatchSection();
 }
 
@@ -752,6 +907,18 @@ void WFSValueTreeState::createOutputsSection()
         outputs.appendChild (createDefaultOutputChannel (i), nullptr);
 
     state.appendChild (outputs, nullptr);
+}
+
+void WFSValueTreeState::createReverbsSection()
+{
+    juce::ValueTree reverbs (Reverbs);
+    reverbs.setProperty (count, reverbChannelsDefault, nullptr);
+
+    // Create reverb channels based on default count (typically 0)
+    for (int i = 0; i < reverbChannelsDefault; ++i)
+        reverbs.appendChild (createDefaultReverbChannel (i), nullptr);
+
+    state.appendChild (reverbs, nullptr);
 }
 
 void WFSValueTreeState::createAudioPatchSection()
@@ -1037,6 +1204,92 @@ juce::ValueTree WFSValueTreeState::createOutputEQSection()
     return eq;
 }
 
+juce::ValueTree WFSValueTreeState::createDefaultReverbChannel (int index)
+{
+    juce::ValueTree reverb (Reverb);
+    reverb.setProperty (id, index + 1, nullptr);
+
+    reverb.appendChild (createReverbChannelSection (index), nullptr);
+    reverb.appendChild (createReverbPositionSection(), nullptr);
+    reverb.appendChild (createReverbFeedSection(), nullptr);
+    reverb.appendChild (createReverbEQSection(), nullptr);
+    reverb.appendChild (createReverbReturnSection (getNumOutputChannels()), nullptr);
+
+    return reverb;
+}
+
+juce::ValueTree WFSValueTreeState::createReverbChannelSection (int index)
+{
+    juce::ValueTree channel (Channel);
+    channel.setProperty (reverbName, getDefaultReverbName (index), nullptr);
+    channel.setProperty (reverbAttenuation, reverbAttenuationDefault, nullptr);
+    channel.setProperty (reverbDelayLatency, reverbDelayLatencyDefault, nullptr);
+    return channel;
+}
+
+juce::ValueTree WFSValueTreeState::createReverbPositionSection()
+{
+    juce::ValueTree position (Position);
+    position.setProperty (reverbPositionX, reverbPositionDefault, nullptr);
+    position.setProperty (reverbPositionY, reverbPositionDefault, nullptr);
+    position.setProperty (reverbPositionZ, reverbPositionDefault, nullptr);
+    position.setProperty (reverbReturnOffsetX, reverbReturnOffsetDefault, nullptr);
+    position.setProperty (reverbReturnOffsetY, reverbReturnOffsetDefault, nullptr);
+    position.setProperty (reverbReturnOffsetZ, reverbReturnOffsetDefault, nullptr);
+    return position;
+}
+
+juce::ValueTree WFSValueTreeState::createReverbFeedSection()
+{
+    juce::ValueTree feed (Feed);
+    feed.setProperty (reverbOrientation, reverbOrientationDefault, nullptr);
+    feed.setProperty (reverbAngleOn, reverbAngleOnDefault, nullptr);
+    feed.setProperty (reverbAngleOff, reverbAngleOffDefault, nullptr);
+    feed.setProperty (reverbPitch, reverbPitchDefault, nullptr);
+    feed.setProperty (reverbHFdamping, reverbHFdampingDefault, nullptr);
+    feed.setProperty (reverbMiniLatencyEnable, reverbMiniLatencyEnableDefault, nullptr);
+    feed.setProperty (reverbLSenable, reverbLSenableDefault, nullptr);
+    feed.setProperty (reverbDistanceAttenEnable, reverbDistanceAttenEnableDefault, nullptr);
+    return feed;
+}
+
+juce::ValueTree WFSValueTreeState::createReverbEQSection()
+{
+    juce::ValueTree eq (EQ);
+    eq.setProperty (reverbEQenable, reverbEQenableDefault, nullptr);
+
+    for (int i = 0; i < numReverbEQBands; ++i)
+    {
+        juce::ValueTree band (Band);
+        band.setProperty (id, i + 1, nullptr);
+        band.setProperty (reverbEQshape, reverbEQBandShapes[i], nullptr);
+        band.setProperty (reverbEQfreq, reverbEQBandFrequencies[i], nullptr);
+        band.setProperty (reverbEQgain, reverbEQgainDefault, nullptr);
+        band.setProperty (reverbEQq, reverbEQqDefault, nullptr);
+        band.setProperty (reverbEQslope, reverbEQslopeDefault, nullptr);
+        eq.appendChild (band, nullptr);
+    }
+
+    return eq;
+}
+
+juce::ValueTree WFSValueTreeState::createReverbReturnSection (int numOutputs)
+{
+    juce::ValueTree returnSection (ReverbReturn);
+    returnSection.setProperty (reverbDistanceAttenuation, reverbDistanceAttenuationDefault, nullptr);
+    returnSection.setProperty (reverbCommonAtten, reverbCommonAttenDefault, nullptr);
+
+    // Create comma-separated string of zeros for mutes
+    juce::StringArray muteArray;
+    int outputCount = numOutputs > 0 ? numOutputs : outputChannelsDefault;
+    for (int i = 0; i < outputCount; ++i)
+        muteArray.add ("0");
+    returnSection.setProperty (reverbMutes, muteArray.joinIntoString (","), nullptr);
+
+    returnSection.setProperty (reverbMuteMacro, reverbMuteMacroDefault, nullptr);
+    return returnSection;
+}
+
 juce::ValueTree WFSValueTreeState::createDefaultNetworkTarget (int index)
 {
     juce::ValueTree target (NetworkTarget);
@@ -1160,6 +1413,38 @@ juce::ValueTree WFSValueTreeState::getTreeForParameter (const juce::Identifier& 
             return {};
         }
 
+        case ParameterScope::Reverb:
+        {
+            if (channelIndex < 0)
+                return {};
+
+            auto reverbs = mutableState.getChildWithName (Reverbs);
+            if (!reverbs.isValid() || channelIndex >= reverbs.getNumChildren())
+                return {};
+
+            auto reverb = reverbs.getChild (channelIndex);
+
+            // Search subsections
+            for (int i = 0; i < reverb.getNumChildren(); ++i)
+            {
+                auto child = reverb.getChild (i);
+                if (child.hasProperty (paramId))
+                    return child;
+
+                // Check EQ bands
+                if (child.getType() == EQ)
+                {
+                    for (int j = 0; j < child.getNumChildren(); ++j)
+                    {
+                        auto band = child.getChild (j);
+                        if (band.hasProperty (paramId))
+                            return band;
+                    }
+                }
+            }
+            return {};
+        }
+
         case ParameterScope::AudioPatch:
         {
             auto audioPatch = mutableState.getChildWithName (AudioPatch);
@@ -1191,10 +1476,19 @@ void WFSValueTreeState::notifyParameterListeners (const juce::Identifier& paramI
 
 WFSValueTreeState::ParameterScope WFSValueTreeState::getParameterScope (const juce::Identifier& paramId) const
 {
+    // Check for config-level parameters that might have misleading prefixes
+    // reverbChannels is stored in Config/IO, not in Reverbs section
+    if (paramId == reverbChannels)
+        return ParameterScope::Config;
+
     // Check if it's an input parameter
     juce::String paramName = paramId.toString();
     if (paramName.startsWith ("input"))
         return ParameterScope::Input;
+
+    // Check if it's a reverb parameter
+    if (paramName.startsWith ("reverb"))
+        return ParameterScope::Reverb;
 
     // Check if it's an output parameter
     if (paramName.startsWith ("output") || paramName.startsWith ("eq"))

@@ -109,6 +109,24 @@ public:
     }
 
     //==============================================================================
+    // Reverb Parameter Access (backward compatible API)
+    //==============================================================================
+
+    /** Get reverb channel parameter */
+    juce::var getReverbParam (int channelIndex, const juce::String& paramName) const
+    {
+        auto id = mapParamNameToIdentifier (paramName);
+        return valueTreeState.getReverbParameter (channelIndex, id);
+    }
+
+    /** Set reverb channel parameter */
+    void setReverbParam (int channelIndex, const juce::String& paramName, const juce::var& value)
+    {
+        auto id = mapParamNameToIdentifier (paramName);
+        valueTreeState.setReverbParameter (channelIndex, id, value);
+    }
+
+    //==============================================================================
     // Channel Management (backward compatible API)
     //==============================================================================
 
@@ -122,8 +140,14 @@ public:
         valueTreeState.setNumOutputChannels (numChannels);
     }
 
+    void setNumReverbChannels (int numChannels)
+    {
+        valueTreeState.setNumReverbChannels (numChannels);
+    }
+
     int getNumInputChannels() const { return valueTreeState.getNumInputChannels(); }
     int getNumOutputChannels() const { return valueTreeState.getNumOutputChannels(); }
+    int getNumReverbChannels() const { return valueTreeState.getNumReverbChannels(); }
 
     //==============================================================================
     // ValueTree Access (backward compatible API)
@@ -133,6 +157,7 @@ public:
     juce::ValueTree getConfigTree() { return valueTreeState.getConfigState(); }
     juce::ValueTree getInputTree() { return valueTreeState.getInputsState(); }
     juce::ValueTree getOutputTree() { return valueTreeState.getOutputsState(); }
+    juce::ValueTree getReverbTree() { return valueTreeState.getReverbsState(); }
 
     //==============================================================================
     // Save/Load (backward compatible API)

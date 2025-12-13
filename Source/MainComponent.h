@@ -153,6 +153,7 @@ private:
     void cycleChannel(int delta);
     void nudgeInputPosition(int axis, float delta);   // axis: 0=X, 1=Y, 2=Z
     void nudgeOutputPosition(int axis, float delta);  // axis: 0=X, 1=Y, 2=Z
+    void nudgeReverbPosition(int axis, float delta);  // axis: 0=X, 1=Y, 2=Z
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };

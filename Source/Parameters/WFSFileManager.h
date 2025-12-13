@@ -59,6 +59,9 @@ public:
     /** Get path for output configuration file */
     juce::File getOutputConfigFile() const;
 
+    /** Get path for reverb configuration file */
+    juce::File getReverbConfigFile() const;
+
     /** Get path for audio patch file */
     juce::File getAudioPatchFile() const;
 
@@ -170,6 +173,25 @@ public:
     bool importOutputConfig (const juce::File& file);
 
     //==========================================================================
+    // Reverb Configuration
+    //==========================================================================
+
+    /** Save reverb configuration to project folder */
+    bool saveReverbConfig();
+
+    /** Load reverb configuration from project folder */
+    bool loadReverbConfig();
+
+    /** Load reverb configuration from backup */
+    bool loadReverbConfigBackup (int backupIndex = 0);
+
+    /** Export reverb configuration to specified file */
+    bool exportReverbConfig (const juce::File& file);
+
+    /** Import reverb configuration from specified file */
+    bool importReverbConfig (const juce::File& file);
+
+    //==========================================================================
     // Snapshots
     //==========================================================================
 
@@ -244,6 +266,7 @@ public:
     static constexpr const char* networkConfigExtension = ".xml";
     static constexpr const char* inputConfigExtension = ".xml";
     static constexpr const char* outputConfigExtension = ".xml";
+    static constexpr const char* reverbConfigExtension = ".xml";
     static constexpr const char* audioPatchExtension = ".xml";
     static constexpr const char* snapshotExtension = ".xml";
 
@@ -275,6 +298,9 @@ private:
     /** Extract outputs section from state */
     juce::ValueTree extractOutputsSection() const;
 
+    /** Extract reverbs section from state */
+    juce::ValueTree extractReverbsSection() const;
+
     /** Extract audio patch section from state */
     juce::ValueTree extractAudioPatchSection() const;
 
@@ -289,6 +315,9 @@ private:
 
     /** Apply outputs section to state */
     bool applyOutputsSection (const juce::ValueTree& outputs);
+
+    /** Apply reverbs section to state */
+    bool applyReverbsSection (const juce::ValueTree& reverbs);
 
     /** Apply audio patch section to state */
     bool applyAudioPatchSection (const juce::ValueTree& audioPatch);

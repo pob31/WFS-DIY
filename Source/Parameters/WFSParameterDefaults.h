@@ -16,10 +16,11 @@ namespace WFSParameterDefaults
 
     constexpr int maxInputChannels     = 64;
     constexpr int maxOutputChannels    = 64;
-    constexpr int maxReverbChannels    = 6;
+    constexpr int maxReverbChannels    = 16;
     constexpr int maxNetworkTargets    = 6;
     constexpr int maxClusters          = 10;
     constexpr int numEQBands           = 6;
+    constexpr int numReverbEQBands     = 4;
 
     //==========================================================================
     // Config > Show Section
@@ -463,5 +464,95 @@ namespace WFSParameterDefaults
         y = rowSpacing * (row + 1);
         z = 0.0f;
     }
+
+    //==========================================================================
+    // Reverb Channel Defaults
+    //==========================================================================
+
+    // Reverb > Channel
+    inline juce::String getDefaultReverbName (int index) { return "Reverb " + juce::String (index + 1); }
+
+    constexpr float reverbAttenuationDefault     = 0.0f;
+    constexpr float reverbAttenuationMin         = -92.0f;
+    constexpr float reverbAttenuationMax         = 0.0f;
+
+    constexpr float reverbDelayLatencyDefault    = 0.0f;
+    constexpr float reverbDelayLatencyMin        = -100.0f;
+    constexpr float reverbDelayLatencyMax        = 100.0f;
+
+    // Reverb > Position
+    constexpr float reverbPositionDefault        = 0.0f;
+    constexpr float reverbPositionMin            = -50.0f;
+    constexpr float reverbPositionMax            = 50.0f;
+
+    constexpr float reverbReturnOffsetDefault    = 0.0f;
+    constexpr float reverbReturnOffsetMin        = -50.0f;
+    constexpr float reverbReturnOffsetMax        = 50.0f;
+
+    // Reverb > Feed
+    constexpr int reverbOrientationDefault       = 0;
+    constexpr int reverbOrientationMin           = -179;
+    constexpr int reverbOrientationMax           = 180;
+
+    constexpr int reverbAngleOnDefault           = 86;
+    constexpr int reverbAngleOnMin               = 1;
+    constexpr int reverbAngleOnMax               = 180;
+
+    constexpr int reverbAngleOffDefault          = 90;
+    constexpr int reverbAngleOffMin              = 0;
+    constexpr int reverbAngleOffMax              = 179;
+
+    constexpr int reverbPitchDefault             = 0;
+    constexpr int reverbPitchMin                 = -90;
+    constexpr int reverbPitchMax                 = 90;
+
+    constexpr float reverbHFdampingDefault       = 0.0f;
+    constexpr float reverbHFdampingMin           = -6.0f;
+    constexpr float reverbHFdampingMax           = 0.0f;
+
+    constexpr int reverbMiniLatencyEnableDefault = 1;   // 0=DISABLE, 1=ENABLE
+    constexpr int reverbLSenableDefault          = 1;   // 0=DISABLE, 1=ENABLE
+
+    constexpr int reverbDistanceAttenEnableDefault = 100;
+    constexpr int reverbDistanceAttenEnableMin   = 0;
+    constexpr int reverbDistanceAttenEnableMax   = 200;
+
+    // Reverb > EQ (4 bands)
+    constexpr int reverbEQenableDefault          = 1;   // 0=EQ OFF, 1=EQ ON
+
+    constexpr int reverbEQshapeDefault           = 0;   // 0=OFF, 1=LowCut, 2=LowShelf, 3=Peak/Notch, 4=HighShelf, 5=HighCut
+    constexpr int reverbEQshapeMin               = 0;
+    constexpr int reverbEQshapeMax               = 5;
+
+    constexpr int reverbEQfreqDefault            = 1000;
+    constexpr int reverbEQfreqMin                = 20;
+    constexpr int reverbEQfreqMax                = 20000;
+
+    constexpr float reverbEQgainDefault          = 0.0f;
+    constexpr float reverbEQgainMin              = -24.0f;
+    constexpr float reverbEQgainMax              = 24.0f;
+
+    constexpr float reverbEQqDefault             = 0.7f;
+    constexpr float reverbEQqMin                 = 0.1f;
+    constexpr float reverbEQqMax                 = 20.0f;
+
+    constexpr float reverbEQslopeDefault         = 0.7f;
+    constexpr float reverbEQslopeMin             = 0.1f;
+    constexpr float reverbEQslopeMax             = 20.0f;
+
+    // Default EQ band frequencies for reverb (4 bands)
+    inline const int reverbEQBandFrequencies[4] = { 100, 500, 2000, 8000 };
+    inline const int reverbEQBandShapes[4] = { 0, 0, 0, 0 };  // All OFF by default
+
+    // Reverb > Return
+    constexpr float reverbDistanceAttenuationDefault = -0.7f;
+    constexpr float reverbDistanceAttenuationMin = -6.0f;
+    constexpr float reverbDistanceAttenuationMax = 0.0f;
+
+    constexpr int reverbCommonAttenDefault       = 100;
+    constexpr int reverbCommonAttenMin           = 0;
+    constexpr int reverbCommonAttenMax           = 100;
+
+    constexpr int reverbMuteMacroDefault         = 0;   // 0=Mute Macro Select (no action)
 
 } // namespace WFSParameterDefaults

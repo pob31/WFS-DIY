@@ -148,6 +148,50 @@ const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getOutputAddre
     return addressMap;
 }
 
+const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getReverbAddressMap()
+{
+    static const std::map<juce::String, juce::Identifier> addressMap = {
+        // Channel
+        { "name",               WFSParameterIDs::reverbName },
+        { "attenuation",        WFSParameterIDs::reverbAttenuation },
+        { "delayLatency",       WFSParameterIDs::reverbDelayLatency },
+
+        // Position
+        { "positionX",          WFSParameterIDs::reverbPositionX },
+        { "positionY",          WFSParameterIDs::reverbPositionY },
+        { "positionZ",          WFSParameterIDs::reverbPositionZ },
+        { "returnOffsetX",      WFSParameterIDs::reverbReturnOffsetX },
+        { "returnOffsetY",      WFSParameterIDs::reverbReturnOffsetY },
+        { "returnOffsetZ",      WFSParameterIDs::reverbReturnOffsetZ },
+
+        // Feed
+        { "orientation",        WFSParameterIDs::reverbOrientation },
+        { "angleOn",            WFSParameterIDs::reverbAngleOn },
+        { "angleOff",           WFSParameterIDs::reverbAngleOff },
+        { "pitch",              WFSParameterIDs::reverbPitch },
+        { "HFdamping",          WFSParameterIDs::reverbHFdamping },
+        { "miniLatencyEnable",  WFSParameterIDs::reverbMiniLatencyEnable },
+        { "LSenable",           WFSParameterIDs::reverbLSenable },
+        { "distanceAttenEnable", WFSParameterIDs::reverbDistanceAttenEnable },
+
+        // EQ
+        { "EQenable",           WFSParameterIDs::reverbEQenable },
+        { "EQshape",            WFSParameterIDs::reverbEQshape },
+        { "EQfreq",             WFSParameterIDs::reverbEQfreq },
+        { "EQgain",             WFSParameterIDs::reverbEQgain },
+        { "EQq",                WFSParameterIDs::reverbEQq },
+        { "EQslope",            WFSParameterIDs::reverbEQslope },
+
+        // Return
+        { "distanceAttenuation", WFSParameterIDs::reverbDistanceAttenuation },
+        { "commonAtten",        WFSParameterIDs::reverbCommonAtten },
+        { "mutes",              WFSParameterIDs::reverbMutes },
+        { "muteMacro",          WFSParameterIDs::reverbMuteMacro },
+    };
+
+    return addressMap;
+}
+
 //==============================================================================
 // Address Pattern Matching
 //==============================================================================
@@ -160,6 +204,11 @@ bool OSCMessageRouter::isInputAddress(const juce::String& address)
 bool OSCMessageRouter::isOutputAddress(const juce::String& address)
 {
     return address.startsWith("/wfs/output/");
+}
+
+bool OSCMessageRouter::isReverbAddress(const juce::String& address)
+{
+    return address.startsWith("/wfs/reverb/");
 }
 
 bool OSCMessageRouter::isRemoteInputAddress(const juce::String& address)
@@ -193,6 +242,18 @@ juce::Identifier OSCMessageRouter::getOutputParamId(const juce::String& address)
 {
     juce::String paramName = extractParamName(address);
     const auto& addressMap = getOutputAddressMap();
+
+    auto it = addressMap.find(paramName);
+    if (it != addressMap.end())
+        return it->second;
+
+    return {};
+}
+
+juce::Identifier OSCMessageRouter::getReverbParamId(const juce::String& address)
+{
+    juce::String paramName = extractParamName(address);
+    const auto& addressMap = getReverbAddressMap();
 
     auto it = addressMap.find(paramName);
     if (it != addressMap.end())
@@ -287,6 +348,60 @@ OSCMessageRouter::ParsedOutputMessage OSCMessageRouter::parseOutputMessage(const
         result.value = extractString(message[1]);
     else
         result.value = extractFloat(message[1]);
+
+    result.valid = true;
+    return result;
+}
+
+OSCMessageRouter::ParsedReverbMessage OSCMessageRouter::parseReverbMessage(const juce::OSCMessage& message)
+{
+    ParsedReverbMessage result;
+
+    juce::String address = message.getAddressPattern().toString();
+
+    if (!isReverbAddress(address))
+        return result;
+
+    result.paramId = getReverbParamId(address);
+    if (!result.paramId.isValid())
+        return result;
+
+    juce::String paramName = extractParamName(address);
+
+    // Check if this is an EQ parameter that needs band index
+    // EQ parameters have format: /wfs/reverb/{EQparam} <channelID> <bandIndex> <value>
+    bool isEQParam = paramName.startsWith("EQ") && paramName != "EQenable";
+
+    if (isEQParam)
+    {
+        // Expected format: /wfs/reverb/EQ{param} <channelID> <bandIndex> <value>
+        if (message.size() < 3)
+            return result;
+
+        result.isEQparam = true;
+        result.channelId = extractInt(message[0]);
+        result.bandIndex = extractInt(message[1]);
+
+        // Determine value type based on argument
+        if (message[2].isString())
+            result.value = extractString(message[2]);
+        else
+            result.value = extractFloat(message[2]);
+    }
+    else
+    {
+        // Standard format: /wfs/reverb/{param} <channelID> <value>
+        if (message.size() < 2)
+            return result;
+
+        result.channelId = extractInt(message[0]);
+
+        // Determine value type based on argument
+        if (message[1].isString())
+            result.value = extractString(message[1]);
+        else
+            result.value = extractFloat(message[1]);
+    }
 
     result.valid = true;
     return result;

@@ -98,6 +98,11 @@ juce::File WFSFileManager::getOutputConfigFile() const
     return projectFolder.getChildFile ("outputs" + juce::String (outputConfigExtension));
 }
 
+juce::File WFSFileManager::getReverbConfigFile() const
+{
+    return projectFolder.getChildFile ("reverbs" + juce::String (reverbConfigExtension));
+}
+
 juce::File WFSFileManager::getAudioPatchFile() const
 {
     return projectFolder.getChildFile ("audio_patch" + juce::String (audioPatchExtension));
@@ -574,6 +579,77 @@ bool WFSFileManager::importOutputConfig (const juce::File& file)
 }
 
 //==============================================================================
+// Reverb Configuration
+//==============================================================================
+
+bool WFSFileManager::saveReverbConfig()
+{
+    if (!hasValidProjectFolder())
+    {
+        setError ("No valid project folder");
+        return false;
+    }
+
+    auto file = getReverbConfigFile();
+
+    if (file.existsAsFile())
+        createBackup (file);
+
+    juce::ValueTree reverbState ("ReverbConfig");
+    reverbState.setProperty (WFSParameterIDs::version, "1.0", nullptr);
+    reverbState.appendChild (extractReverbsSection().createCopy(), nullptr);
+
+    return writeToXmlFile (reverbState, file);
+}
+
+bool WFSFileManager::loadReverbConfig()
+{
+    if (!hasValidProjectFolder())
+    {
+        setError ("No valid project folder");
+        return false;
+    }
+
+    return importReverbConfig (getReverbConfigFile());
+}
+
+bool WFSFileManager::loadReverbConfigBackup (int backupIndex)
+{
+    auto backups = getBackups ("reverbs");
+    if (backupIndex >= 0 && backupIndex < backups.size())
+        return importReverbConfig (backups[backupIndex]);
+
+    setError ("Backup not found");
+    return false;
+}
+
+bool WFSFileManager::exportReverbConfig (const juce::File& file)
+{
+    juce::ValueTree reverbState ("ReverbConfig");
+    reverbState.setProperty (WFSParameterIDs::version, "1.0", nullptr);
+    reverbState.appendChild (extractReverbsSection().createCopy(), nullptr);
+
+    return writeToXmlFile (reverbState, file);
+}
+
+bool WFSFileManager::importReverbConfig (const juce::File& file)
+{
+    auto loadedState = readFromXmlFile (file);
+    if (!loadedState.isValid())
+        return false;
+
+    auto reverbsTree = loadedState.getChildWithName (Reverbs);
+    if (!reverbsTree.isValid())
+    {
+        setError ("No reverb data found in file");
+        return false;
+    }
+
+    valueTreeState.beginUndoTransaction ("Import Reverb Configuration");
+    return applyReverbsSection (reverbsTree);
+}
+
+//==============================================================================
 // Snapshots
 //==============================================================================
 
@@ -779,7 +855,7 @@ juce::Array<juce::File> WFSFileManager::getBackups (const juce::String& fileType
 void WFSFileManager::cleanupBackups (int keepCount)
 {
     // Clean up each file type
-    for (auto& type : { "system", "network", "inputs", "outputs" })
+    for (auto& type : { "system", "network", "inputs", "outputs", "reverbs" })
     {
         auto backups = getBackups (type);
         for (int i = keepCount; i < backups.size(); ++i)
@@ -877,6 +953,11 @@ juce::ValueTree WFSFileManager::extractOutputsSection() const
     return valueTreeState.getState().getChildWithName (Outputs);
 }
 
+juce::ValueTree WFSFileManager::extractReverbsSection() const
+{
+    return valueTreeState.getState().getChildWithName (Reverbs);
+}
+
 juce::ValueTree WFSFileManager::extractAudioPatchSection() const
 {
     return valueTreeState.getState().getChildWithName (AudioPatch);
@@ -935,6 +1016,17 @@ bool WFSFileManager::applyOutputsSection (const juce::ValueTree& outputsTree)
     if (existingOutputs.isValid())
     {
         existingOutputs.copyPropertiesAndChildrenFrom (outputsTree, valueTreeState.getUndoManager());
+        return true;
+    }
+    return false;
+}
+
+bool WFSFileManager::applyReverbsSection (const juce::ValueTree& reverbsTree)
+{
+    auto existingReverbs = valueTreeState.getReverbsState();
+    if (existingReverbs.isValid())
+    {
+        existingReverbs.copyPropertiesAndChildrenFrom (reverbsTree, valueTreeState.getUndoManager());
         return true;
     }
     return false;

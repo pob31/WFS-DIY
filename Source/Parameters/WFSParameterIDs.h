@@ -302,9 +302,53 @@ namespace WFSParameterIDs
     const juce::Identifier patchData             ("patchData");
 
     //==========================================================================
-    // Reverb Parameters (for future use)
+    // Reverb Parameters
     //==========================================================================
 
-    const juce::Identifier inputReverbSend       ("inputReverbSend");  // Array of sends
+    // Input reverb send (array of sends per input)
+    const juce::Identifier inputReverbSend       ("inputReverbSend");
+
+    // Reverb Section Identifiers
+    const juce::Identifier Reverbs               ("Reverbs");
+    const juce::Identifier Reverb                ("Reverb");
+    const juce::Identifier Feed                  ("Feed");
+    const juce::Identifier ReverbReturn          ("Return");
+
+    // Reverb > Channel
+    const juce::Identifier reverbName            ("reverbName");
+    const juce::Identifier reverbAttenuation     ("reverbAttenuation");
+    const juce::Identifier reverbDelayLatency    ("reverbDelayLatency");
+
+    // Reverb > Position
+    const juce::Identifier reverbPositionX       ("reverbPositionX");
+    const juce::Identifier reverbPositionY       ("reverbPositionY");
+    const juce::Identifier reverbPositionZ       ("reverbPositionZ");
+    const juce::Identifier reverbReturnOffsetX   ("reverbReturnOffsetX");
+    const juce::Identifier reverbReturnOffsetY   ("reverbReturnOffsetY");
+    const juce::Identifier reverbReturnOffsetZ   ("reverbReturnOffsetZ");
+
+    // Reverb > Feed
+    const juce::Identifier reverbOrientation     ("reverbOrientation");
+    const juce::Identifier reverbAngleOn         ("reverbAngleOn");
+    const juce::Identifier reverbAngleOff        ("reverbAngleOff");
+    const juce::Identifier reverbPitch           ("reverbPitch");
+    const juce::Identifier reverbHFdamping       ("reverbHFdamping");
+    const juce::Identifier reverbMiniLatencyEnable ("reverbMiniLatencyEnable");
+    const juce::Identifier reverbLSenable        ("reverbLSenable");
+    const juce::Identifier reverbDistanceAttenEnable ("reverbDistanceAttenEnable");
+
+    // Reverb > EQ (4 bands)
+    const juce::Identifier reverbEQenable        ("reverbEQenable");
+    const juce::Identifier reverbEQshape         ("reverbEQshape");
+    const juce::Identifier reverbEQfreq          ("reverbEQfreq");
+    const juce::Identifier reverbEQgain          ("reverbEQgain");
+    const juce::Identifier reverbEQq             ("reverbEQq");
+    const juce::Identifier reverbEQslope         ("reverbEQslope");
+
+    // Reverb > Return
+    const juce::Identifier reverbDistanceAttenuation ("reverbDistanceAttenuation");
+    const juce::Identifier reverbCommonAtten     ("reverbCommonAtten");
+    const juce::Identifier reverbMutes           ("reverbMutes");
+    const juce::Identifier reverbMuteMacro       ("reverbMuteMacro");
 
 } // namespace WFSParameterIDs

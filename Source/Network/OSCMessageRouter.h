@@ -37,6 +37,16 @@ public:
         bool valid = false;
     };
 
+    struct ParsedReverbMessage
+    {
+        juce::Identifier paramId;
+        int channelId = 0;
+        int bandIndex = 0;  // For EQ parameters (1-4)
+        juce::var value;
+        bool valid = false;
+        bool isEQparam = false;  // True for EQ parameters that need band index
+    };
+
     struct ParsedRemoteInput
     {
         enum class Type { ChannelSelect, PositionDelta };
@@ -55,10 +65,11 @@ public:
 
     /**
      * Parse a standard OSC message.
-     * Determines if it's an input or output message and extracts data.
+     * Determines if it's an input, output, or reverb message and extracts data.
      */
     static ParsedInputMessage parseInputMessage(const juce::OSCMessage& message);
     static ParsedOutputMessage parseOutputMessage(const juce::OSCMessage& message);
+    static ParsedReverbMessage parseReverbMessage(const juce::OSCMessage& message);
 
     /**
      * Parse a REMOTE protocol input message from Android app.
@@ -67,10 +78,11 @@ public:
     static ParsedRemoteInput parseRemoteInputMessage(const juce::OSCMessage& message);
 
     /**
-     * Check if an address matches input or output patterns.
+     * Check if an address matches input, output, or reverb patterns.
      */
     static bool isInputAddress(const juce::String& address);
     static bool isOutputAddress(const juce::String& address);
+    static bool isReverbAddress(const juce::String& address);
     static bool isRemoteInputAddress(const juce::String& address);
 
     //==========================================================================
@@ -84,6 +96,7 @@ public:
      */
     static juce::Identifier getInputParamId(const juce::String& address);
     static juce::Identifier getOutputParamId(const juce::String& address);
+    static juce::Identifier getReverbParamId(const juce::String& address);
 
     //==========================================================================
     // Value Extraction
@@ -112,6 +125,7 @@ private:
 
     static const std::map<juce::String, juce::Identifier>& getInputAddressMap();
     static const std::map<juce::String, juce::Identifier>& getOutputAddressMap();
+    static const std::map<juce::String, juce::Identifier>& getReverbAddressMap();
 
     /**
      * Extract the parameter portion from an OSC address.

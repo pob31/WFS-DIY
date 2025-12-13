@@ -181,6 +181,8 @@ public:
 
     int getSelectedChannel() const { return currentChannel; }
 
+    int getNumChannels() const { return numChannels; }
+
     void resized() override
     {
         selectorButton.setBounds(getLocalBounds());

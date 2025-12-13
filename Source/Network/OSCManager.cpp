@@ -730,6 +730,51 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
             ++parseErrors;
         }
     }
+    else if (OSCMessageRouter::isReverbAddress(address))
+    {
+        auto parsed = OSCMessageRouter::parseReverbMessage(message);
+        if (parsed.valid)
+        {
+            juce::MessageManager::callAsync([this, parsed]()
+            {
+                incomingProtocol = Protocol::OSC;  // Flag: processing incoming OSC
+                // OSC uses 1-based channel IDs, but internal API uses 0-based
+                int channelIndex = parsed.channelId - 1;
+                if (channelIndex >= 0)
+                {
+                    if (parsed.isEQparam)
+                    {
+                        // EQ parameters need band index handling
+                        // Get EQ band section and set the property there
+                        auto reverbState = state.getReverbState(channelIndex);
+                        if (reverbState.isValid())
+                        {
+                            auto eqSection = reverbState.getChildWithName(WFSParameterIDs::EQ);
+                            if (eqSection.isValid() && parsed.bandIndex >= 1 && parsed.bandIndex <= 4)
+                            {
+                                auto bandSection = eqSection.getChildWithName(
+                                    juce::Identifier("Band" + juce::String(parsed.bandIndex)));
+                                if (bandSection.isValid())
+                                {
+                                    bandSection.setProperty(parsed.paramId, parsed.value, state.getUndoManager());
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Standard reverb parameters
+                        state.setReverbParameter(channelIndex, parsed.paramId, parsed.value);
+                    }
+                }
+                incomingProtocol = Protocol::Disabled;  // Clear flag
+            });
+        }
+        else
+        {
+            ++parseErrors;
+        }
+    }
 }
 
 void OSCManager::handleRemoteInputMessage(const juce::OSCMessage& message)

@@ -52,6 +52,11 @@ public:
     juce::ValueTree getOutputsState() const;
     juce::ValueTree getOutputState (int channelIndex);
 
+    /** Get reverb states */
+    juce::ValueTree getReverbsState();
+    juce::ValueTree getReverbsState() const;
+    juce::ValueTree getReverbState (int channelIndex);
+
     /** Get audio patch state */
     juce::ValueTree getAudioPatchState();
 
@@ -114,6 +119,24 @@ public:
     juce::ValueTree getOutputOptionsSection (int channelIndex);
     juce::ValueTree getOutputEQSection (int channelIndex);
     juce::ValueTree getOutputEQBand (int channelIndex, int bandIndex);
+
+    //==========================================================================
+    // Reverb Channel Access
+    //==========================================================================
+
+    /** Get reverb channel parameter */
+    juce::var getReverbParameter (int channelIndex, const juce::Identifier& id) const;
+
+    /** Set reverb channel parameter */
+    void setReverbParameter (int channelIndex, const juce::Identifier& id, const juce::var& value);
+
+    /** Get the ValueTree for a specific reverb channel subsection */
+    juce::ValueTree getReverbChannelSection (int channelIndex);
+    juce::ValueTree getReverbPositionSection (int channelIndex);
+    juce::ValueTree getReverbFeedSection (int channelIndex);
+    juce::ValueTree getReverbEQSection (int channelIndex);
+    juce::ValueTree getReverbEQBand (int channelIndex, int bandIndex);
+    juce::ValueTree getReverbReturnSection (int channelIndex);
 
     //==========================================================================
     // Network Target Access
@@ -202,6 +225,9 @@ public:
     /** Reset output channel to defaults */
     void resetOutputToDefaults (int channelIndex);
 
+    /** Reset reverb channel to defaults */
+    void resetReverbToDefaults (int channelIndex);
+
     /** Replace entire state (e.g., when loading) */
     void replaceState (const juce::ValueTree& newState);
 
@@ -257,6 +283,7 @@ private:
     void createTrackingSection (juce::ValueTree& config);
     void createInputsSection();
     void createOutputsSection();
+    void createReverbsSection();
     void createAudioPatchSection();
 
     /** Create a single default input channel */
@@ -282,6 +309,16 @@ private:
     juce::ValueTree createOutputOptionsSection();
     juce::ValueTree createOutputEQSection();
 
+    /** Create a single default reverb channel */
+    juce::ValueTree createDefaultReverbChannel (int index);
+
+    /** Create reverb channel subsections */
+    juce::ValueTree createReverbChannelSection (int index);
+    juce::ValueTree createReverbPositionSection();
+    juce::ValueTree createReverbFeedSection();
+    juce::ValueTree createReverbEQSection();
+    juce::ValueTree createReverbReturnSection (int numOutputs);
+
     /** Create a default network target */
     juce::ValueTree createDefaultNetworkTarget (int index);
 
@@ -295,8 +332,8 @@ private:
     /** Notify registered listeners of a parameter change */
     void notifyParameterListeners (const juce::Identifier& id, const juce::var& value, int channelIndex);
 
-    /** Determine if a parameter belongs to input, output, or config */
-    enum class ParameterScope { Config, Input, Output, AudioPatch, Unknown };
+    /** Determine if a parameter belongs to input, output, reverb, or config */
+    enum class ParameterScope { Config, Input, Output, Reverb, AudioPatch, Unknown };
     ParameterScope getParameterScope (const juce::Identifier& id) const;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (WFSValueTreeState)

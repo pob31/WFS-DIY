@@ -174,6 +174,7 @@ MainComponent::MainComponent()
     networkTab->setStatusBar(statusBar);
     outputsTab->setStatusBar(statusBar);
     inputsTab->setStatusBar(statusBar);
+    reverbTab->setStatusBar(statusBar);
 
     // Set up callbacks from System Config tab
     systemConfigTab->setProcessingCallback([this](bool enabled) {
@@ -954,7 +955,8 @@ void MainComponent::confirmChannelSelection()
                     outputsTab->selectChannel(channelNum);
                 break;
             case ChannelSelectionMode::Reverb:
-                // ReverbTab not implemented yet - placeholder
+                if (reverbTab != nullptr && channelNum <= reverbTab->getNumChannels())
+                    reverbTab->selectChannel(channelNum);
                 break;
             default:
                 break;
@@ -975,7 +977,10 @@ void MainComponent::cycleChannel(int delta)
     {
         outputsTab->cycleChannel(delta);
     }
-    // ReverbTab cycling not implemented yet
+    else if (currentTabIndex == 3 && reverbTab != nullptr)  // Reverb tab
+    {
+        reverbTab->cycleChannel(delta);
+    }
 }
 
 void MainComponent::nudgeInputPosition(int axis, float delta)
@@ -1043,6 +1048,37 @@ void MainComponent::nudgeOutputPosition(int axis, float delta)
 
     float current = state.getFloatParameter(paramId, channel);
     state.setOutputParameter(channel, paramId, current + delta);
+}
+
+void MainComponent::nudgeReverbPosition(int axis, float delta)
+{
+    if (reverbTab == nullptr)
+        return;
+
+    int channel = reverbTab->getCurrentChannel() - 1;  // Convert to 0-based
+    if (channel < 0)
+        return;
+
+    auto& state = parameters.getValueTreeState();
+
+    juce::Identifier paramId;
+    switch (axis)
+    {
+        case 0:  // X
+            paramId = WFSParameterIDs::reverbPositionX;
+            break;
+        case 1:  // Y
+            paramId = WFSParameterIDs::reverbPositionY;
+            break;
+        case 2:  // Z
+            paramId = WFSParameterIDs::reverbPositionZ;
+            break;
+        default:
+            return;
+    }
+
+    float current = state.getFloatParameter(paramId, channel);
+    state.setReverbParameter(channel, paramId, current + delta);
 }
 
 bool MainComponent::keyPressed(const juce::KeyPress& key)
@@ -1247,7 +1283,40 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
         }
     }
 
-    // Reverb tab (index 3) - no position parameters yet
+    // Reverb tab (index 3)
+    if (currentTabIndex == 3)
+    {
+        if (key.isKeyCode(juce::KeyPress::leftKey))
+        {
+            nudgeReverbPosition(0, -nudgeAmount);  // X-
+            return true;
+        }
+        if (key.isKeyCode(juce::KeyPress::rightKey))
+        {
+            nudgeReverbPosition(0, nudgeAmount);   // X+
+            return true;
+        }
+        if (key.isKeyCode(juce::KeyPress::upKey))
+        {
+            nudgeReverbPosition(1, nudgeAmount);   // Y+ (depth)
+            return true;
+        }
+        if (key.isKeyCode(juce::KeyPress::downKey))
+        {
+            nudgeReverbPosition(1, -nudgeAmount);  // Y- (depth)
+            return true;
+        }
+        if (key.isKeyCode(juce::KeyPress::pageUpKey))
+        {
+            nudgeReverbPosition(2, nudgeAmount);   // Z+ (height)
+            return true;
+        }
+        if (key.isKeyCode(juce::KeyPress::pageDownKey))
+        {
+            nudgeReverbPosition(2, -nudgeAmount);  // Z- (height)
+            return true;
+        }
+    }
 
     return false;
 }
