@@ -670,14 +670,15 @@ private:
             float deltaX = x * scale;
             float deltaY = y * scale;
 
-            // Check if tracking is active (both globally and locally)
-            bool globalTracking = (int)parameters.getConfigParam("trackingEnabled") != 0;
+            // Check if tracking is active (global toggle, protocol not disabled, and local toggle)
+            bool globalTrackingOn = (int)parameters.getConfigParam("trackingEnabled") != 0;
+            bool protocolEnabled = (int)parameters.getConfigParam("trackingProtocol") != 0;
             bool localTracking = trackingActiveButton.getToggleState();
-            bool useOffset = globalTracking && localTracking;
+            bool useOffset = globalTrackingOn && protocolEnabled && localTracking;
 
             if (useOffset)
             {
-                // Update Offset X/Y when tracking is active
+                // Update Offset X/Y when tracking is fully active
                 float currentX = offsetXEditor.getText().getFloatValue();
                 float currentY = offsetYEditor.getText().getFloatValue();
                 float newX = currentX + deltaX;
@@ -714,14 +715,15 @@ private:
             const float scale = 0.05f;
             float deltaZ = v * scale;
 
-            // Check if tracking is active (both globally and locally)
-            bool globalTracking = (int)parameters.getConfigParam("trackingEnabled") != 0;
+            // Check if tracking is active (global toggle, protocol not disabled, and local toggle)
+            bool globalTrackingOn = (int)parameters.getConfigParam("trackingEnabled") != 0;
+            bool protocolEnabled = (int)parameters.getConfigParam("trackingProtocol") != 0;
             bool localTracking = trackingActiveButton.getToggleState();
-            bool useOffset = globalTracking && localTracking;
+            bool useOffset = globalTrackingOn && protocolEnabled && localTracking;
 
             if (useOffset)
             {
-                // Update Offset Z when tracking is active
+                // Update Offset Z when tracking is fully active
                 float currentZ = offsetZEditor.getText().getFloatValue();
                 float newZ = currentZ + deltaZ;
                 offsetZEditor.setText(juce::String(newZ, 2), juce::dontSendNotification);
