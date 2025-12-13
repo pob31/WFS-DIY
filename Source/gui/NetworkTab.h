@@ -36,6 +36,7 @@ class NetworkTab : public juce::Component,
                    private juce::TextEditor::Listener
 {
 public:
+    using NetworkLogWindowCallback = std::function<void()>;
     NetworkTab(WfsParameters& params, StatusBar* statusBarPtr = nullptr)
         : parameters(params), statusBar(statusBarPtr)
     {
@@ -147,6 +148,11 @@ public:
     void setStatusBar(StatusBar* bar)
     {
         statusBar = bar;
+    }
+
+    void setNetworkLogWindowCallback(NetworkLogWindowCallback callback)
+    {
+        onNetworkLogWindowRequested = std::move(callback);
     }
 
     void setOSCManager(WFSNetwork::OSCManager* manager)
@@ -424,6 +430,7 @@ private:
     juce::ValueTree configTree;  // Store for safe listener removal in destructor
     StatusBar* statusBar = nullptr;
     WFSNetwork::OSCManager* oscManager = nullptr;
+    NetworkLogWindowCallback onNetworkLogWindowRequested;
 
     // ==================== NETWORK CONNECTIONS TABLE ====================
     static constexpr int maxTargets = 6;
@@ -2020,14 +2027,8 @@ private:
     // ==================== NETWORK LOG WINDOW ====================
     void openNetworkLogWindow()
     {
-        // TODO: Open a separate window for network logging
-        // This will be designed later
-        juce::AlertWindow::showMessageBoxAsync(
-            juce::AlertWindow::InfoIcon,
-            "Network Log Window",
-            "Network logging window will be implemented in a future update.",
-            "OK"
-        );
+        if (onNetworkLogWindowRequested)
+            onNetworkLogWindowRequested();
     }
 
     // ==================== FIND MY REMOTE ====================

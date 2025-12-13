@@ -33,6 +33,10 @@
         <FILE id="guiRevTab" name="ReverbTab.h" compile="0" resource="0" file="Source/gui/ReverbTab.h"/>
         <FILE id="guiMapTab" name="MapTab.h" compile="0" resource="0" file="Source/gui/MapTab.h"/>
         <FILE id="guiNetTab" name="NetworkTab.h" compile="0" resource="0" file="Source/gui/NetworkTab.h"/>
+        <FILE id="guiNetLogH" name="NetworkLogWindow.h" compile="0" resource="0"
+              file="Source/gui/NetworkLogWindow.h"/>
+        <FILE id="guiNetLogCpp" name="NetworkLogWindow.cpp" compile="1" resource="0"
+              file="Source/gui/NetworkLogWindow.cpp"/>
       </GROUP>
       <GROUP id="{NETWORKGROUP}" name="Network">
         <FILE id="netTypes" name="OSCProtocolTypes.h" compile="0" resource="0"

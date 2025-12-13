@@ -32,7 +32,9 @@ OSCManager::OSCManager(WFSValueTreeState& valueTreeState)
                 if (connections[static_cast<size_t>(targetIndex)]->send(message))
                 {
                     ++messagesSent;
-                    logger.logSent(targetIndex, message, targetConfigs[static_cast<size_t>(targetIndex)].protocol);
+                    const auto& config = targetConfigs[static_cast<size_t>(targetIndex)];
+                    logger.logSentWithDetails(targetIndex, message, config.protocol,
+                                              config.ipAddress, config.port, config.mode);
                     DBG("OSCManager rate limiter - message sent successfully");
                 }
                 else
@@ -174,7 +176,7 @@ bool OSCManager::startListening()
         udpReceiver.reset();
         return false;
     }
-    udpReceiver->addListener(this);
+    udpReceiver->addListener(&udpListener);
 
     // Create and configure TCP receiver
     tcpReceiver = std::make_unique<OSCTCPReceiver>();
@@ -185,7 +187,7 @@ bool OSCManager::startListening()
     }
     else
     {
-        tcpReceiver->addListener(this);
+        tcpReceiver->addListener(&tcpListener);
     }
 
     listening = true;
@@ -204,14 +206,14 @@ void OSCManager::stopListening()
 
     if (udpReceiver)
     {
-        udpReceiver->removeListener(this);
+        udpReceiver->removeListener(&udpListener);
         udpReceiver->disconnect();
         udpReceiver.reset();
     }
 
     if (tcpReceiver)
     {
-        tcpReceiver->removeListener(this);
+        tcpReceiver->removeListener(&tcpListener);
         tcpReceiver->disconnect();
         tcpReceiver.reset();
     }
@@ -516,46 +518,39 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
 }
 
 //==============================================================================
-// OSCReceiverWithSenderIP::Listener
+// Nested Listener Implementations
 //==============================================================================
 
-void OSCManager::oscMessageReceived(const juce::OSCMessage& message,
-                                    const juce::String& senderIP)
+void OSCManager::UDPListener::oscMessageReceived(const juce::OSCMessage& message,
+                                                  const juce::String& senderIP)
 {
-    // Check IP filtering before processing
-    if (ipFilteringEnabled && !isAllowedIP(senderIP))
-    {
-        DBG("OSCManager: Blocked message from " << senderIP << " (not in allowed list)");
-        return;
-    }
-
-    ++messagesReceived;
-    handleIncomingMessage(message);
+    owner.handleIncomingMessage(message, senderIP,
+                                 owner.globalConfig.udpReceivePort,
+                                 ConnectionMode::UDP);
 }
 
-void OSCManager::oscBundleReceived(const juce::OSCBundle& bundle,
-                                   const juce::String& senderIP)
+void OSCManager::UDPListener::oscBundleReceived(const juce::OSCBundle& bundle,
+                                                 const juce::String& senderIP)
 {
-    // Check IP filtering before processing
-    if (ipFilteringEnabled && !isAllowedIP(senderIP))
-    {
-        DBG("OSCManager: Blocked bundle from " << senderIP << " (not in allowed list)");
-        return;
-    }
+    owner.handleIncomingBundle(bundle, senderIP,
+                                owner.globalConfig.udpReceivePort,
+                                ConnectionMode::UDP);
+}
 
-    for (const auto& element : bundle)
-    {
-        if (element.isMessage())
-        {
-            ++messagesReceived;
-            handleIncomingMessage(element.getMessage());
-        }
-        else if (element.isBundle())
-        {
-            // Recursive call - IP already validated
-            oscBundleReceived(element.getBundle(), senderIP);
-        }
-    }
+void OSCManager::TCPListener::oscMessageReceived(const juce::OSCMessage& message,
+                                                  const juce::String& senderIP)
+{
+    owner.handleIncomingMessage(message, senderIP,
+                                 owner.globalConfig.tcpReceivePort,
+                                 ConnectionMode::TCP);
+}
+
+void OSCManager::TCPListener::oscBundleReceived(const juce::OSCBundle& bundle,
+                                                 const juce::String& senderIP)
+{
+    owner.handleIncomingBundle(bundle, senderIP,
+                                owner.globalConfig.tcpReceivePort,
+                                ConnectionMode::TCP);
 }
 
 bool OSCManager::isAllowedIP(const juce::String& senderIP) const
@@ -588,16 +583,31 @@ void OSCManager::timerCallback()
 // Internal Methods
 //==============================================================================
 
-void OSCManager::handleIncomingMessage(const juce::OSCMessage& message)
+void OSCManager::handleIncomingMessage(const juce::OSCMessage& message,
+                                       const juce::String& senderIP,
+                                       int port,
+                                       ConnectionMode transport)
 {
+    // Check IP filtering before processing
+    if (ipFilteringEnabled && !isAllowedIP(senderIP))
+    {
+        DBG("OSCManager: Blocked message from " << senderIP << " (not in allowed list)");
+        logger.logRejected(message.getAddressPattern().toString(),
+                          senderIP, port, transport, "IP not in allowed list");
+        return;
+    }
+
+    ++messagesReceived;
+
     juce::String address = message.getAddressPattern().toString();
 
-    // Log incoming message (determine protocol from address)
+    // Determine protocol from address
     Protocol protocol = Protocol::OSC;
     if (address.startsWith("/remoteInput/"))
         protocol = Protocol::Remote;
 
-    logger.logReceived(message, protocol);
+    // Log incoming message with full details
+    logger.logReceivedWithDetails(message, protocol, senderIP, port, transport);
 
     // Route to appropriate handler
     if (OSCMessageRouter::isInputAddress(address) || OSCMessageRouter::isOutputAddress(address))
@@ -607,6 +617,52 @@ void OSCManager::handleIncomingMessage(const juce::OSCMessage& message)
     else if (OSCMessageRouter::isRemoteInputAddress(address))
     {
         handleRemoteInputMessage(message);
+    }
+}
+
+void OSCManager::handleIncomingBundle(const juce::OSCBundle& bundle,
+                                      const juce::String& senderIP,
+                                      int port,
+                                      ConnectionMode transport)
+{
+    // Check IP filtering before processing
+    if (ipFilteringEnabled && !isAllowedIP(senderIP))
+    {
+        DBG("OSCManager: Blocked bundle from " << senderIP << " (not in allowed list)");
+        logger.logRejected("[bundle]", senderIP, port, transport, "IP not in allowed list");
+        return;
+    }
+
+    for (const auto& element : bundle)
+    {
+        if (element.isMessage())
+        {
+            // For messages within a bundle, IP already validated
+            ++messagesReceived;
+
+            const auto& message = element.getMessage();
+            juce::String address = message.getAddressPattern().toString();
+
+            Protocol protocol = Protocol::OSC;
+            if (address.startsWith("/remoteInput/"))
+                protocol = Protocol::Remote;
+
+            logger.logReceivedWithDetails(message, protocol, senderIP, port, transport);
+
+            if (OSCMessageRouter::isInputAddress(address) || OSCMessageRouter::isOutputAddress(address))
+            {
+                handleStandardOSCMessage(message);
+            }
+            else if (OSCMessageRouter::isRemoteInputAddress(address))
+            {
+                handleRemoteInputMessage(message);
+            }
+        }
+        else if (element.isBundle())
+        {
+            // Recursive call for nested bundles - IP already validated
+            handleIncomingBundle(element.getBundle(), senderIP, port, transport);
+        }
     }
 }
 

@@ -15,7 +15,10 @@ enum class Protocol
     Disabled = 0,
     OSC = 1,
     Remote = 2,
-    ADMOSC = 3
+    ADMOSC = 3,
+    OSCQuery = 4,   // OSC Query protocol
+    PSN = 5,        // PosiStageNet (placeholder for future)
+    RTTrP = 6       // RTTrP tracking (placeholder for future)
 };
 
 /** Connection mode (transport layer) */
@@ -139,17 +142,44 @@ namespace OSCPaths
 struct LogEntry
 {
     juce::Time timestamp;
-    juce::String direction;  // "Rx" or "Tx"
-    int targetIndex = -1;    // -1 for incoming on global port
-    juce::String address;
-    juce::String arguments;
+    juce::String direction;      // "Rx" or "Tx"
+    juce::String ipAddress;      // Sender IP (for Rx) or Target IP (for Tx)
+    int port = 0;                // Port number
+    int targetIndex = -1;        // -1 for incoming on global port
+    juce::String address;        // OSC address pattern
+    juce::String arguments;      // Formatted arguments
     Protocol protocol = Protocol::OSC;
+    ConnectionMode transport = ConnectionMode::UDP;  // UDP or TCP
+    bool isRejected = false;     // True if message was filtered/rejected
+    juce::String rejectReason;   // Why message was rejected (if applicable)
 
     juce::String toString() const
     {
         return timestamp.formatted("%H:%M:%S.") + juce::String(timestamp.getMilliseconds()).paddedLeft('0', 3)
              + " [" + direction + "] "
              + address + " " + arguments;
+    }
+
+    /** Get protocol as display string */
+    juce::String getProtocolString() const
+    {
+        switch (protocol)
+        {
+            case Protocol::Disabled: return "Disabled";
+            case Protocol::OSC:      return "OSC";
+            case Protocol::Remote:   return "Remote";
+            case Protocol::ADMOSC:   return "ADM-OSC";
+            case Protocol::OSCQuery: return "OSCQuery";
+            case Protocol::PSN:      return "PSN";
+            case Protocol::RTTrP:    return "RTTrP";
+            default:                 return "Unknown";
+        }
+    }
+
+    /** Get transport as display string */
+    juce::String getTransportString() const
+    {
+        return transport == ConnectionMode::TCP ? "TCP" : "UDP";
     }
 };
 

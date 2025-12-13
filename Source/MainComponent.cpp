@@ -208,6 +208,11 @@ MainComponent::MainComponent()
     // Pass OSCManager to NetworkTab for UI integration
     networkTab->setOSCManager(oscManager.get());
 
+    // Set up NetworkLogWindow callback
+    networkTab->setNetworkLogWindowCallback([this]() {
+        openNetworkLogWindow();
+    });
+
     // Connect InputsTab channel selection to OSCManager for REMOTE protocol
     inputsTab->onChannelSelected = [this](int channelId)
     {
@@ -456,6 +461,26 @@ void MainComponent::openAudioInterfaceWindow()
     {
         audioInterfaceWindow->setVisible(true);
         audioInterfaceWindow->toFront(true);
+    }
+}
+
+void MainComponent::openNetworkLogWindow()
+{
+    if (networkLogWindow == nullptr)
+    {
+        // Get project folder from file manager
+        juce::File projectFolder = parameters.getFileManager().getProjectFolder();
+
+        networkLogWindow = std::make_unique<NetworkLogWindow>(
+            oscManager->getLogger(),
+            *oscManager,
+            projectFolder
+        );
+    }
+    else
+    {
+        networkLogWindow->setVisible(true);
+        networkLogWindow->toFront(true);
     }
 }
 

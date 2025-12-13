@@ -14,6 +14,7 @@
 #include "gui/ReverbTab.h"
 #include "gui/MapTab.h"
 #include "gui/AudioInterfaceWindow.h"
+#include "gui/NetworkLogWindow.h"
 #include "Network/OSCManager.h"
 
 //==============================================================================
@@ -51,6 +52,9 @@ public:
     // Audio Interface Window
     void openAudioInterfaceWindow();
 
+    // Network Log Window
+    void openNetworkLogWindow();
+
 private:
     //==============================================================================
     // Your private member variables go here...
@@ -77,6 +81,7 @@ private:
     MapTab* mapTab = nullptr;
 
     std::unique_ptr<AudioInterfaceWindow> audioInterfaceWindow;
+    std::unique_ptr<NetworkLogWindow> networkLogWindow;
 
     // Threaded processing architecture
     enum class ProcessingAlgorithm

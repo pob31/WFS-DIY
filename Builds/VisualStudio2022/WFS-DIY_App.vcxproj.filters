@@ -913,6 +913,9 @@
     <ClCompile Include="..\..\Source\Parameters\WFSFileManager.cpp">
       <Filter>WFS-DIY\Source\Parameters</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Source\gui\NetworkLogWindow.cpp">
+      <Filter>WFS-DIY\Source\gui</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\Source\Network\OSCConnection.cpp">
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClCompile>
@@ -4408,6 +4411,9 @@
       <Filter>WFS-DIY\Source\gui</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\gui\NetworkTab.h">
+      <Filter>WFS-DIY\Source\gui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\gui\NetworkLogWindow.h">
       <Filter>WFS-DIY\Source\gui</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Network\OSCProtocolTypes.h">

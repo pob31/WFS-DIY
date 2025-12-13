@@ -23,7 +23,6 @@ namespace WFSNetwork
  * Supports IP filtering for incoming messages (UDP and TCP).
  */
 class OSCManager : public juce::ValueTree::Listener,
-                   public OSCReceiverWithSenderIP::Listener,
                    public juce::Timer
 {
 public:
@@ -222,13 +221,33 @@ private:
     void valueTreeParentChanged(juce::ValueTree&) override {}
 
     //==========================================================================
-    // OSCReceiverWithSenderIP::Listener
+    // OSC Receiver Listeners (nested classes to track transport type)
     //==========================================================================
 
-    void oscMessageReceived(const juce::OSCMessage& message,
-                            const juce::String& senderIP) override;
-    void oscBundleReceived(const juce::OSCBundle& bundle,
-                           const juce::String& senderIP) override;
+    /** Internal listener for UDP receiver */
+    class UDPListener : public OSCReceiverWithSenderIP::Listener
+    {
+    public:
+        explicit UDPListener(OSCManager& owner) : owner(owner) {}
+        void oscMessageReceived(const juce::OSCMessage& message, const juce::String& senderIP) override;
+        void oscBundleReceived(const juce::OSCBundle& bundle, const juce::String& senderIP) override;
+    private:
+        OSCManager& owner;
+    };
+
+    /** Internal listener for TCP receiver */
+    class TCPListener : public OSCReceiverWithSenderIP::Listener
+    {
+    public:
+        explicit TCPListener(OSCManager& owner) : owner(owner) {}
+        void oscMessageReceived(const juce::OSCMessage& message, const juce::String& senderIP) override;
+        void oscBundleReceived(const juce::OSCBundle& bundle, const juce::String& senderIP) override;
+    private:
+        OSCManager& owner;
+    };
+
+    friend class UDPListener;
+    friend class TCPListener;
 
     //==========================================================================
     // Timer
@@ -240,7 +259,14 @@ private:
     // Internal Methods
     //==========================================================================
 
-    void handleIncomingMessage(const juce::OSCMessage& message);
+    void handleIncomingMessage(const juce::OSCMessage& message,
+                               const juce::String& senderIP,
+                               int port,
+                               ConnectionMode transport);
+    void handleIncomingBundle(const juce::OSCBundle& bundle,
+                              const juce::String& senderIP,
+                              int port,
+                              ConnectionMode transport);
     void handleStandardOSCMessage(const juce::OSCMessage& message);
     void handleRemoteInputMessage(const juce::OSCMessage& message);
     void handleRemotePositionDelta(const OSCMessageRouter::ParsedRemoteInput& parsed);
@@ -263,6 +289,8 @@ private:
     // Receivers (custom implementations that expose sender IP)
     std::unique_ptr<OSCReceiverWithSenderIP> udpReceiver;
     std::unique_ptr<OSCTCPReceiver> tcpReceiver;
+    UDPListener udpListener { *this };
+    TCPListener tcpListener { *this };
     bool listening = false;
 
     // Connections (one per target)

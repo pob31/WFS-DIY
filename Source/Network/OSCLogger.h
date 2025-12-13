@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include <set>
 #include "OSCProtocolTypes.h"
 
 namespace WFSNetwork
@@ -49,11 +50,33 @@ public:
     // Logging
     //==========================================================================
 
-    /** Log an incoming message */
+    /** Log an incoming message (basic - for backward compatibility) */
     void logReceived(const juce::OSCMessage& message, Protocol protocol = Protocol::OSC);
 
-    /** Log an outgoing message */
+    /** Log an incoming message with full network details */
+    void logReceivedWithDetails(const juce::OSCMessage& message,
+                                Protocol protocol,
+                                const juce::String& senderIP,
+                                int port,
+                                ConnectionMode transport);
+
+    /** Log an outgoing message (basic - for backward compatibility) */
     void logSent(int targetIndex, const juce::OSCMessage& message, Protocol protocol = Protocol::OSC);
+
+    /** Log an outgoing message with full network details */
+    void logSentWithDetails(int targetIndex,
+                            const juce::OSCMessage& message,
+                            Protocol protocol,
+                            const juce::String& targetIP,
+                            int port,
+                            ConnectionMode transport);
+
+    /** Log a rejected/filtered message */
+    void logRejected(const juce::String& address,
+                     const juce::String& senderIP,
+                     int port,
+                     ConnectionMode transport,
+                     const juce::String& reason);
 
     /** Log a custom entry */
     void logEntry(const LogEntry& entry);
@@ -96,13 +119,25 @@ public:
     {
         bool showRx = true;
         bool showTx = true;
-        int targetIndex = -1;  // -1 for all targets
+        bool showUDP = true;
+        bool showTCP = true;
+        bool showRejected = false;     // When true, only show rejected messages
+        int targetIndex = -1;          // -1 for all targets
         Protocol protocol = Protocol::Disabled;  // Disabled = show all protocols
-        juce::String addressFilter;  // Empty = no filter
+        juce::String ipFilter;         // Empty = no filter, otherwise filter by IP
+        juce::String addressFilter;    // Empty = no filter
+        std::set<Protocol> enabledProtocols;  // Empty = show all, otherwise filter
+        std::set<juce::String> enabledIPs;    // Empty = show all, otherwise filter
     };
 
     /** Get filtered entries */
     std::vector<LogEntry> getFilteredEntries(const Filter& filter) const;
+
+    /** Get unique IP addresses seen in the log */
+    std::set<juce::String> getUniqueIPs() const;
+
+    /** Get unique protocols seen in the log */
+    std::set<Protocol> getUniqueProtocols() const;
 
 private:
     //==========================================================================
@@ -111,7 +146,7 @@ private:
 
     std::vector<LogEntry> entries;
     int maxEntries;
-    std::atomic<bool> isEnabled { true };
+    std::atomic<bool> isEnabled { false };
     std::atomic<int64_t> totalEntryCount { 0 };
     mutable juce::CriticalSection entriesLock;
 

@@ -156,6 +156,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\Source\Parameters\WFSValueTreeState.cpp"/>
     <ClCompile Include="..\..\Source\Parameters\WFSFileManager.cpp"/>
+    <ClCompile Include="..\..\Source\gui\NetworkLogWindow.cpp"/>
     <ClCompile Include="..\..\Source\Network\OSCConnection.cpp"/>
     <ClCompile Include="..\..\Source\Network\OSCRateLimiter.cpp"/>
     <ClCompile Include="..\..\Source\Network\OSCLogger.cpp"/>
@@ -3410,6 +3411,7 @@
     <ClInclude Include="..\..\Source\gui\ReverbTab.h"/>
     <ClInclude Include="..\..\Source\gui\MapTab.h"/>
     <ClInclude Include="..\..\Source\gui\NetworkTab.h"/>
+    <ClInclude Include="..\..\Source\gui\NetworkLogWindow.h"/>
     <ClInclude Include="..\..\Source\Network\OSCProtocolTypes.h"/>
     <ClInclude Include="..\..\Source\Network\OSCConnection.h"/>
     <ClInclude Include="..\..\Source\Network\OSCRateLimiter.h"/>

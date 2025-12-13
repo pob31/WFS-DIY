@@ -50,6 +50,29 @@ void OSCLogger::logReceived(const juce::OSCMessage& message, Protocol protocol)
     addEntry(std::move(entry));
 }
 
+void OSCLogger::logReceivedWithDetails(const juce::OSCMessage& message,
+                                       Protocol protocol,
+                                       const juce::String& senderIP,
+                                       int port,
+                                       ConnectionMode transport)
+{
+    if (!isEnabled)
+        return;
+
+    LogEntry entry;
+    entry.timestamp = juce::Time::getCurrentTime();
+    entry.direction = "Rx";
+    entry.ipAddress = senderIP;
+    entry.port = port;
+    entry.targetIndex = -1;
+    entry.address = message.getAddressPattern().toString();
+    entry.arguments = formatOSCArguments(message);
+    entry.protocol = protocol;
+    entry.transport = transport;
+
+    addEntry(std::move(entry));
+}
+
 void OSCLogger::logSent(int targetIndex, const juce::OSCMessage& message, Protocol protocol)
 {
     if (!isEnabled)
@@ -62,6 +85,55 @@ void OSCLogger::logSent(int targetIndex, const juce::OSCMessage& message, Protoc
     entry.address = message.getAddressPattern().toString();
     entry.arguments = formatOSCArguments(message);
     entry.protocol = protocol;
+
+    addEntry(std::move(entry));
+}
+
+void OSCLogger::logSentWithDetails(int targetIndex,
+                                   const juce::OSCMessage& message,
+                                   Protocol protocol,
+                                   const juce::String& targetIP,
+                                   int port,
+                                   ConnectionMode transport)
+{
+    if (!isEnabled)
+        return;
+
+    LogEntry entry;
+    entry.timestamp = juce::Time::getCurrentTime();
+    entry.direction = "Tx";
+    entry.ipAddress = targetIP;
+    entry.port = port;
+    entry.targetIndex = targetIndex;
+    entry.address = message.getAddressPattern().toString();
+    entry.arguments = formatOSCArguments(message);
+    entry.protocol = protocol;
+    entry.transport = transport;
+
+    addEntry(std::move(entry));
+}
+
+void OSCLogger::logRejected(const juce::String& address,
+                            const juce::String& senderIP,
+                            int port,
+                            ConnectionMode transport,
+                            const juce::String& reason)
+{
+    if (!isEnabled)
+        return;
+
+    LogEntry entry;
+    entry.timestamp = juce::Time::getCurrentTime();
+    entry.direction = "Rx";
+    entry.ipAddress = senderIP;
+    entry.port = port;
+    entry.targetIndex = -1;
+    entry.address = address;
+    entry.arguments = "";
+    entry.protocol = Protocol::Disabled;
+    entry.transport = transport;
+    entry.isRejected = true;
+    entry.rejectReason = reason;
 
     addEntry(std::move(entry));
 }
@@ -136,18 +208,51 @@ std::vector<LogEntry> OSCLogger::getFilteredEntries(const Filter& filter) const
 
     for (const auto& entry : entries)
     {
+        // Rejected mode filter - only show rejected when in rejected mode
+        if (filter.showRejected)
+        {
+            if (!entry.isRejected)
+                continue;
+        }
+        else
+        {
+            // In normal mode, don't show rejected messages
+            if (entry.isRejected)
+                continue;
+        }
+
         // Direction filter
         if (entry.direction == "Rx" && !filter.showRx)
             continue;
         if (entry.direction == "Tx" && !filter.showTx)
             continue;
 
+        // Transport filter (UDP/TCP)
+        if (entry.transport == ConnectionMode::UDP && !filter.showUDP)
+            continue;
+        if (entry.transport == ConnectionMode::TCP && !filter.showTCP)
+            continue;
+
         // Target filter
         if (filter.targetIndex >= 0 && entry.targetIndex != filter.targetIndex)
             continue;
 
-        // Protocol filter
+        // Protocol filter (single protocol)
         if (filter.protocol != Protocol::Disabled && entry.protocol != filter.protocol)
+            continue;
+
+        // Protocol set filter (multiple protocols)
+        if (!filter.enabledProtocols.empty()
+            && filter.enabledProtocols.find(entry.protocol) == filter.enabledProtocols.end())
+            continue;
+
+        // IP filter (single IP)
+        if (filter.ipFilter.isNotEmpty() && entry.ipAddress != filter.ipFilter)
+            continue;
+
+        // IP set filter (multiple IPs)
+        if (!filter.enabledIPs.empty()
+            && filter.enabledIPs.find(entry.ipAddress) == filter.enabledIPs.end())
             continue;
 
         // Address filter
@@ -159,6 +264,32 @@ std::vector<LogEntry> OSCLogger::getFilteredEntries(const Filter& filter) const
     }
 
     return result;
+}
+
+std::set<juce::String> OSCLogger::getUniqueIPs() const
+{
+    const juce::ScopedLock sl(entriesLock);
+
+    std::set<juce::String> ips;
+    for (const auto& entry : entries)
+    {
+        if (entry.ipAddress.isNotEmpty())
+            ips.insert(entry.ipAddress);
+    }
+    return ips;
+}
+
+std::set<Protocol> OSCLogger::getUniqueProtocols() const
+{
+    const juce::ScopedLock sl(entriesLock);
+
+    std::set<Protocol> protocols;
+    for (const auto& entry : entries)
+    {
+        if (entry.protocol != Protocol::Disabled)
+            protocols.insert(entry.protocol);
+    }
+    return protocols;
 }
 
 //==============================================================================

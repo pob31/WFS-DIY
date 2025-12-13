@@ -74,6 +74,7 @@ endif
 OBJECTS_APP := \
   $(JUCE_OBJDIR)/WFSValueTreeState_73cc0cca.o \
   $(JUCE_OBJDIR)/WFSFileManager_910393b3.o \
+  $(JUCE_OBJDIR)/NetworkLogWindow_80b93fa3.o \
   $(JUCE_OBJDIR)/OSCConnection_e11ce5d.o \
   $(JUCE_OBJDIR)/OSCRateLimiter_e0330d3.o \
   $(JUCE_OBJDIR)/OSCLogger_524110f.o \
@@ -129,6 +130,11 @@ $(JUCE_OBJDIR)/WFSValueTreeState_73cc0cca.o: ../../Source/Parameters/WFSValueTre
 $(JUCE_OBJDIR)/WFSFileManager_910393b3.o: ../../Source/Parameters/WFSFileManager.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling WFSFileManager.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/NetworkLogWindow_80b93fa3.o: ../../Source/gui/NetworkLogWindow.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling NetworkLogWindow.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/OSCConnection_e11ce5d.o: ../../Source/Network/OSCConnection.cpp
