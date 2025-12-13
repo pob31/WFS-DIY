@@ -1056,11 +1056,11 @@ private:
 
         // Mute Sends to Reverbs
         addAndMakeVisible(muteReverbSendsButton);
-        muteReverbSendsButton.setButtonText("Mute Sends to Reverbs: OFF");
+        muteReverbSendsButton.setButtonText("Sends to Reverbs: Unmuted");
         muteReverbSendsButton.setClickingTogglesState(true);
         muteReverbSendsButton.onClick = [this]() {
             bool muted = muteReverbSendsButton.getToggleState();
-            muteReverbSendsButton.setButtonText(muted ? "Mute Sends to Reverbs: ON" : "Mute Sends to Reverbs: OFF");
+            muteReverbSendsButton.setButtonText(muted ? "Sends to Reverbs: MUTED" : "Sends to Reverbs: Unmuted");
             saveInputParam(WFSParameterIDs::inputMuteReverbSends, muted ? 1 : 0);
         };
     }
@@ -2559,7 +2559,7 @@ private:
         // Mute Sends to Reverbs (default OFF = 0)
         bool muteReverbSends = getIntParam(WFSParameterIDs::inputMuteReverbSends, 0) != 0;
         muteReverbSendsButton.setToggleState(muteReverbSends, juce::dontSendNotification);
-        muteReverbSendsButton.setButtonText(muteReverbSends ? "Mute Sends to Reverbs: ON" : "Mute Sends to Reverbs: OFF");
+        muteReverbSendsButton.setButtonText(muteReverbSends ? "Sends to Reverbs: MUTED" : "Sends to Reverbs: Unmuted");
 
         // ==================== LFO TAB ====================
         bool lfoActive = getIntParam(WFSParameterIDs::inputLFOactive, 0) != 0;
