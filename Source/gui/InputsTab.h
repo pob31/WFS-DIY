@@ -7,6 +7,8 @@
 #include "SliderUIComponents.h"
 #include "DialUIComponents.h"
 #include "StatusBar.h"
+#include "WfsJoystickComponent.h"
+#include "sliders/WfsAutoCenterSlider.h"
 
 //==============================================================================
 // Custom Transport Button - Play (right-pointing triangle)
@@ -656,6 +658,48 @@ private:
         heightFactorValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         heightFactorValueLabel.setJustificationType(juce::Justification::centred);
         setupEditableValueLabel(heightFactorValueLabel);
+
+        // Position Joystick (for X/Y real-time control)
+        addAndMakeVisible(positionJoystick);
+        positionJoystick.setOuterColour(juce::Colour(0xFF3A3A3A));
+        positionJoystick.setThumbColour(juce::Colour(0xFFFF9800));
+        positionJoystick.setOnPositionChanged([this](float x, float y) {
+            // Get current position values
+            float currentX = posXEditor.getText().getFloatValue();
+            float currentY = posYEditor.getText().getFloatValue();
+            // Apply delta from joystick (scaled for reasonable movement)
+            const float scale = 0.05f;  // Adjust this for sensitivity
+            float newX = currentX + x * scale;
+            float newY = currentY + y * scale;
+            // Update editors and save
+            posXEditor.setText(juce::String(newX, 2), juce::dontSendNotification);
+            posYEditor.setText(juce::String(newY, 2), juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputPositionX, newX);
+            saveInputParam(WFSParameterIDs::inputPositionY, newY);
+        });
+        addAndMakeVisible(positionJoystickLabel);
+        positionJoystickLabel.setText("X/Y Position", juce::dontSendNotification);
+        positionJoystickLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        positionJoystickLabel.setJustificationType(juce::Justification::centred);
+
+        // Position Z Slider (vertical, auto-center)
+        addAndMakeVisible(positionZSlider);
+        positionZSlider.setTrackColours(juce::Colour(0xFF3A3A3A), juce::Colour(0xFF4CAF50));
+        positionZSlider.setThumbColour(juce::Colours::white);
+        positionZSlider.onValueChanged = [this](float v) {
+            // Get current Z position
+            float currentZ = posZEditor.getText().getFloatValue();
+            // Apply delta from slider (scaled for reasonable movement)
+            const float scale = 0.05f;  // Adjust this for sensitivity
+            float newZ = currentZ + v * scale;
+            // Update editor and save
+            posZEditor.setText(juce::String(newZ, 2), juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputPositionZ, newZ);
+        };
+        addAndMakeVisible(positionZSliderLabel);
+        positionZSliderLabel.setText("Z", juce::dontSendNotification);
+        positionZSliderLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        positionZSliderLabel.setJustificationType(juce::Justification::centred);
     }
 
     void setupSoundTab()
@@ -1612,6 +1656,8 @@ private:
         maxSpeedActiveButton.setVisible(v);
         maxSpeedLabel.setVisible(v); maxSpeedDial.setVisible(v); maxSpeedValueLabel.setVisible(v);
         heightFactorLabel.setVisible(v); heightFactorDial.setVisible(v); heightFactorValueLabel.setVisible(v);
+        positionJoystick.setVisible(v); positionJoystickLabel.setVisible(v);
+        positionZSlider.setVisible(v); positionZSliderLabel.setVisible(v);
     }
 
     void setSoundVisible(bool v)
@@ -1752,6 +1798,20 @@ private:
         flipYButton.setBounds(row.removeFromLeft(buttonWidth));
         row.removeFromLeft(spacing);
         flipZButton.setBounds(row.removeFromLeft(buttonWidth));
+        leftCol.removeFromTop(spacing * 2);
+
+        // Position Joystick and Z Slider
+        const int joystickSize = 120;
+        const int zSliderWidth = 40;
+        auto joystickArea = leftCol.removeFromTop(joystickSize + rowHeight);  // Include label height
+        positionJoystickLabel.setBounds(joystickArea.removeFromTop(rowHeight));
+        auto joystickRow = joystickArea;
+        positionJoystick.setBounds(joystickRow.removeFromLeft(joystickSize));
+        joystickRow.removeFromLeft(spacing);
+        // Z slider next to joystick
+        auto zSliderArea = joystickRow.removeFromLeft(zSliderWidth + spacing);
+        positionZSliderLabel.setBounds(zSliderArea.removeFromTop(20));
+        positionZSlider.setBounds(zSliderArea);
 
         // Right column - Tracking section
         row = rightCol.removeFromTop(rowHeight);
@@ -3170,6 +3230,8 @@ private:
         helpTextMap[&maxSpeedActiveButton] = "Enable or Disable Speed Limiting for Object.";
         helpTextMap[&maxSpeedDial] = "Maximum Speed Limit for Object.";
         helpTextMap[&heightFactorDial] = "Take Elevation of Object into Account Fully, Partially or Not.";
+        helpTextMap[&positionJoystick] = "Drag to adjust X/Y position in real-time. Returns to center on release.";
+        helpTextMap[&positionZSlider] = "Drag to adjust Z (height) position in real-time. Returns to center on release.";
         helpTextMap[&attenuationLawButton] = "Attenuation Law Model (Linear Decrease of Volume with Distance Between Object and Speaker or Squared).";
         helpTextMap[&distanceAttenDial] = "Attenuation per Meter Between Object and Speaker.";
         helpTextMap[&distanceRatioDial] = "Attenuation Ratio for Squared Model.";
@@ -3499,6 +3561,11 @@ private:
     juce::Label heightFactorLabel;
     WfsBasicDial heightFactorDial;
     juce::Label heightFactorValueLabel;
+    // Position joystick and Z slider for real-time control
+    WfsJoystickComponent positionJoystick;
+    juce::Label positionJoystickLabel;
+    WfsAutoCenterSlider positionZSlider { WfsAutoCenterSlider::Orientation::vertical };
+    juce::Label positionZSliderLabel;
 
     // Sound tab
     juce::TextButton attenuationLawButton;
