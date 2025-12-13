@@ -164,7 +164,18 @@ public:
             clusterSelector.addItem("Cluster " + juce::String(i), i + 1);
         clusterSelector.setSelectedId(1, juce::dontSendNotification);
         clusterSelector.onChange = [this]() {
-            saveInputParam(WFSParameterIDs::inputCluster, clusterSelector.getSelectedId() - 1);
+            int newCluster = clusterSelector.getSelectedId() - 1;
+            int previousCluster = static_cast<int>(parameters.getInputParam(currentChannel - 1, "inputCluster"));
+
+            if (newCluster > 0)
+            {
+                // Check tracking constraint asynchronously
+                checkTrackingConstraintAsync(newCluster, previousCluster);
+            }
+            else
+            {
+                saveInputParam(WFSParameterIDs::inputCluster, newCluster);
+            }
         };
 
         // ==================== SUB-TABS ====================
@@ -581,8 +592,16 @@ private:
         trackingActiveButton.setClickingTogglesState(true);
         trackingActiveButton.onClick = [this]() {
             bool enabled = trackingActiveButton.getToggleState();
-            trackingActiveButton.setButtonText(enabled ? "Tracking: ON" : "Tracking: OFF");
-            saveInputParam(WFSParameterIDs::inputTrackingActive, enabled ? 1 : 0);
+            if (enabled)
+            {
+                // Check if enabling tracking would conflict with another input in the same cluster
+                checkLocalTrackingConstraintAsync();
+            }
+            else
+            {
+                trackingActiveButton.setButtonText("Tracking: OFF");
+                saveInputParam(WFSParameterIDs::inputTrackingActive, 0);
+            }
         };
 
         // Tracking ID selector (1-32)
@@ -3536,6 +3555,174 @@ private:
     {
         if (isLoadingParameters) return;
         parameters.setInputParam(currentChannel - 1, paramId.toString(), value);
+    }
+
+    /**
+     * Check tracking constraint when assigning input to a cluster (async version).
+     * Only one input with tracking enabled is allowed per cluster.
+     * Shows dialog if conflict detected, handles result asynchronously.
+     */
+    void checkTrackingConstraintAsync(int targetCluster, int previousCluster)
+    {
+        // Check if current input has tracking enabled
+        int globalTracking = static_cast<int>(parameters.getConfigParam("trackingEnabled"));
+        int protocolEnabled = static_cast<int>(parameters.getConfigParam("trackingProtocol"));
+        int localTracking = static_cast<int>(parameters.getInputParam(currentChannel - 1, "inputTrackingActive"));
+
+        bool inputHasTracking = (globalTracking != 0) && (protocolEnabled != 0) && (localTracking != 0);
+
+        if (!inputHasTracking)
+        {
+            // No conflict, proceed with assignment
+            saveInputParam(WFSParameterIDs::inputCluster, targetCluster);
+            return;
+        }
+
+        // Check if cluster already has a tracked input
+        int numInputs = parameters.getNumInputChannels();
+        int existingTrackedInput = -1;
+
+        for (int i = 0; i < numInputs; ++i)
+        {
+            if (i == currentChannel - 1)
+                continue;  // Skip current input
+
+            int cluster = static_cast<int>(parameters.getInputParam(i, "inputCluster"));
+            if (cluster == targetCluster)
+            {
+                int inputLocalTracking = static_cast<int>(parameters.getInputParam(i, "inputTrackingActive"));
+                if ((globalTracking != 0) && (protocolEnabled != 0) && (inputLocalTracking != 0))
+                {
+                    existingTrackedInput = i;
+                    break;
+                }
+            }
+        }
+
+        if (existingTrackedInput < 0)
+        {
+            // No conflict, proceed with assignment
+            saveInputParam(WFSParameterIDs::inputCluster, targetCluster);
+            return;
+        }
+
+        // Show conflict dialog asynchronously
+        juce::AlertWindow::showOkCancelBox(
+            juce::AlertWindow::WarningIcon,
+            "Tracking Conflict",
+            "Input " + juce::String(currentChannel) + " has tracking enabled, but Input " +
+            juce::String(existingTrackedInput + 1) + " in Cluster " + juce::String(targetCluster) +
+            " is already tracked.\n\nOnly one tracked input per cluster is allowed.",
+            "Continue (disable tracking)",
+            "Cancel",
+            nullptr,
+            juce::ModalCallbackFunction::create([this, targetCluster, previousCluster](int result) {
+                if (result == 1)  // Continue
+                {
+                    // Disable tracking on current input
+                    saveInputParam(WFSParameterIDs::inputTrackingActive, 0);
+                    trackingActiveButton.setToggleState(false, juce::dontSendNotification);
+                    showStatusMessage("Tracking disabled for Input " + juce::String(currentChannel));
+                    // Now proceed with cluster assignment
+                    saveInputParam(WFSParameterIDs::inputCluster, targetCluster);
+                }
+                else  // Cancel
+                {
+                    // Revert cluster selector to previous value
+                    clusterSelector.setSelectedId(previousCluster + 1, juce::dontSendNotification);
+                }
+            })
+        );
+    }
+
+    /**
+     * Check if enabling local tracking on current input would conflict with
+     * another input in the same cluster that already has tracking enabled.
+     */
+    void checkLocalTrackingConstraintAsync()
+    {
+        // Check what cluster this input belongs to
+        int inputCluster = static_cast<int>(parameters.getInputParam(currentChannel - 1, "inputCluster"));
+
+        if (inputCluster == 0)
+        {
+            // Input is "Single" (not in any cluster), no conflict possible
+            trackingActiveButton.setButtonText("Tracking: ON");
+            saveInputParam(WFSParameterIDs::inputTrackingActive, 1);
+            return;
+        }
+
+        // Check if global tracking and protocol are enabled (which would make tracking "fully active")
+        int globalTracking = static_cast<int>(parameters.getConfigParam("trackingEnabled"));
+        int protocolEnabled = static_cast<int>(parameters.getConfigParam("trackingProtocol"));
+
+        if (globalTracking == 0 || protocolEnabled == 0)
+        {
+            // Global tracking or protocol not enabled, so enabling local tracking won't create a conflict yet
+            trackingActiveButton.setButtonText("Tracking: ON");
+            saveInputParam(WFSParameterIDs::inputTrackingActive, 1);
+            return;
+        }
+
+        // Check if another input in the same cluster already has tracking enabled
+        int numInputs = parameters.getNumInputChannels();
+        int existingTrackedInput = -1;
+
+        for (int i = 0; i < numInputs; ++i)
+        {
+            if (i == currentChannel - 1)
+                continue;  // Skip current input
+
+            int cluster = static_cast<int>(parameters.getInputParam(i, "inputCluster"));
+            if (cluster == inputCluster)
+            {
+                int inputLocalTracking = static_cast<int>(parameters.getInputParam(i, "inputTrackingActive"));
+                if (inputLocalTracking != 0)
+                {
+                    existingTrackedInput = i;
+                    break;
+                }
+            }
+        }
+
+        if (existingTrackedInput < 0)
+        {
+            // No conflict, proceed with enabling tracking
+            trackingActiveButton.setButtonText("Tracking: ON");
+            saveInputParam(WFSParameterIDs::inputTrackingActive, 1);
+            return;
+        }
+
+        // Conflict detected - show warning dialog
+        juce::AlertWindow::showOkCancelBox(
+            juce::AlertWindow::WarningIcon,
+            "Tracking Conflict",
+            "Input " + juce::String(existingTrackedInput + 1) + " in Cluster " + juce::String(inputCluster) +
+            " already has tracking enabled.\n\nOnly one tracked input per cluster is allowed.\n\n"
+            "Do you want to disable tracking on Input " + juce::String(existingTrackedInput + 1) +
+            " and enable it on Input " + juce::String(currentChannel) + "?",
+            "Yes, switch tracking",
+            "Cancel",
+            nullptr,
+            juce::ModalCallbackFunction::create([this, existingTrackedInput](int result) {
+                if (result == 1)  // Yes
+                {
+                    // Disable tracking on existing input
+                    parameters.setInputParam(existingTrackedInput, "inputTrackingActive", 0);
+                    // Enable tracking on current input
+                    trackingActiveButton.setButtonText("Tracking: ON");
+                    saveInputParam(WFSParameterIDs::inputTrackingActive, 1);
+                    showStatusMessage("Tracking switched from Input " + juce::String(existingTrackedInput + 1) +
+                                      " to Input " + juce::String(currentChannel));
+                }
+                else  // Cancel
+                {
+                    // Revert button state
+                    trackingActiveButton.setToggleState(false, juce::dontSendNotification);
+                    trackingActiveButton.setButtonText("Tracking: OFF");
+                }
+            })
+        );
     }
 
     void saveMuteStates()

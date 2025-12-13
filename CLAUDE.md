@@ -14,7 +14,7 @@ WFS-DIY is a Wave Field Synthesis audio processing application built with JUCE. 
 - **SystemConfigTab** - Processing toggle, channel count configuration
 - **NetworkTab** - OSC target configuration, IP filtering, connection status
 - **InputsTab / OutputsTab** - Channel parameter controls
-- **ClustersTab** - Speaker cluster management
+- **ClustersTab** - Input cluster management with position/rotation/scale/attenuation controls
 - **ReverbTab** - Reverb processing settings
 - **MapTab** - Spatial visualization
 
@@ -80,6 +80,26 @@ Tracking is active only when ALL THREE conditions are true:
 3. **Local input toggle ON** - Per-input `trackingActive` parameter
 
 When tracking is active, joystick/remote control Offset X/Y/Z; otherwise Position X/Y/Z.
+
+### Cluster Tracking Constraint
+Only one input per cluster can have tracking enabled when global tracking is active.
+- Enforced at ValueTree level in `WFSValueTreeState::enforceClusterTrackingConstraint()`
+- Catches changes from all sources: UI, OSC, Remote protocol, file loading
+- When a second input enables tracking in a cluster, the first is automatically disabled
+- UI dialogs (InputsTab, NetworkTab) provide user-friendly warnings for interactive operations
+
+## Clusters Tab (Source/gui/ClustersTab.h)
+Manages groups of inputs with collective transformations:
+- **10 cluster selector buttons** - Switch between clusters (greyed if empty)
+- **Assigned inputs list** - Shows inputs in selected cluster (tracked input highlighted at top)
+- **Reference mode** - First Input or Barycenter for transformation center
+- **Position joystick + Z slider** - Move all inputs (or tracked input's offset)
+- **Attenuation slider** - Relative dB change to all inputs in cluster
+- **Rotation dial** - Rotate inputs around reference point in selected plane
+- **Scale joystick** - Scale inputs relative to reference point
+- **Plane selector** - XY, XZ, or YZ plane for rotation/scale operations
+
+All controls use 50Hz timer-based updates with auto-centering behavior.
 
 ## Keyboard Shortcuts
 - **F1-F10** - Assign input/output to cluster/array 1-10

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include <map>
 #include "../WfsParameters.h"
 #include "StatusBar.h"
 #include "../Network/OSCManager.h"
@@ -658,9 +659,18 @@ private:
         trackingEnabledButton.setButtonText("Tracking: OFF");
         trackingEnabledButton.setClickingTogglesState(true);
         trackingEnabledButton.onClick = [this]() {
-            trackingEnabledButton.setButtonText(trackingEnabledButton.getToggleState() ? "Tracking: ON" : "Tracking: OFF");
-            parameters.setConfigParam("trackingEnabled", trackingEnabledButton.getToggleState() ? 1 : 0);
-            updateTrackingAppearance();
+            bool enabling = trackingEnabledButton.getToggleState();
+            if (enabling)
+            {
+                // Check for cluster conflicts before enabling
+                checkGlobalTrackingConstraintAsync();
+            }
+            else
+            {
+                trackingEnabledButton.setButtonText("Tracking: OFF");
+                parameters.setConfigParam("trackingEnabled", 0);
+                updateTrackingAppearance();
+            }
         };
 
         // Protocol selector
@@ -674,7 +684,18 @@ private:
         trackingProtocolSelector.addItem("RTTrP", 4);
         trackingProtocolSelector.setSelectedId(1, juce::dontSendNotification);
         trackingProtocolSelector.onChange = [this]() {
-            parameters.setConfigParam("trackingProtocol", trackingProtocolSelector.getSelectedId() - 1);
+            int newProtocol = trackingProtocolSelector.getSelectedId() - 1;
+            int globalEnabled = static_cast<int>(parameters.getConfigParam("trackingEnabled"));
+
+            // If enabling protocol while global tracking is on, check for conflicts
+            if (newProtocol != 0 && globalEnabled != 0)
+            {
+                checkGlobalTrackingConstraintAsync(true);  // true = called from protocol change
+            }
+            else
+            {
+                parameters.setConfigParam("trackingProtocol", newProtocol);
+            }
         };
 
         // Port
@@ -2408,6 +2429,134 @@ private:
         updateTargetRowVisibility();
         updateAddButtonState();
         updateAdmOscAppearance();
+    }
+
+    /**
+     * Check for cluster conflicts when enabling global tracking.
+     * If any cluster has more than one input with local tracking enabled,
+     * show a warning and keep only the first one, disabling the others.
+     * @param fromProtocolChange true if called from protocol selector change
+     */
+    void checkGlobalTrackingConstraintAsync(bool fromProtocolChange = false)
+    {
+        int protocolEnabled = fromProtocolChange ?
+            (trackingProtocolSelector.getSelectedId() - 1) :
+            static_cast<int>(parameters.getConfigParam("trackingProtocol"));
+
+        // If protocol is disabled, no conflict possible
+        if (protocolEnabled == 0 && !fromProtocolChange)
+        {
+            trackingEnabledButton.setButtonText("Tracking: ON");
+            parameters.setConfigParam("trackingEnabled", 1);
+            updateTrackingAppearance();
+            return;
+        }
+
+        // Find clusters with multiple locally-tracked inputs
+        int numInputs = parameters.getNumInputChannels();
+        std::map<int, std::vector<int>> clusterTrackedInputs;  // cluster -> list of inputs with local tracking
+
+        for (int i = 0; i < numInputs; ++i)
+        {
+            int cluster = static_cast<int>(parameters.getInputParam(i, "inputCluster"));
+            if (cluster > 0)  // Not "Single"
+            {
+                int localTracking = static_cast<int>(parameters.getInputParam(i, "inputTrackingActive"));
+                if (localTracking != 0)
+                {
+                    clusterTrackedInputs[cluster].push_back(i);
+                }
+            }
+        }
+
+        // Find conflicts (clusters with more than one tracked input)
+        std::vector<std::pair<int, std::vector<int>>> conflicts;
+        for (const auto& [cluster, inputs] : clusterTrackedInputs)
+        {
+            if (inputs.size() > 1)
+            {
+                conflicts.push_back({cluster, inputs});
+            }
+        }
+
+        if (conflicts.empty())
+        {
+            // No conflicts, proceed with enabling
+            if (fromProtocolChange)
+            {
+                parameters.setConfigParam("trackingProtocol", trackingProtocolSelector.getSelectedId() - 1);
+            }
+            else
+            {
+                trackingEnabledButton.setButtonText("Tracking: ON");
+                parameters.setConfigParam("trackingEnabled", 1);
+                updateTrackingAppearance();
+            }
+            return;
+        }
+
+        // Build conflict message
+        juce::String conflictMsg = "The following clusters have multiple inputs with tracking enabled:\n\n";
+        for (const auto& [cluster, inputs] : conflicts)
+        {
+            conflictMsg += "Cluster " + juce::String(cluster) + ": Inputs ";
+            for (size_t j = 0; j < inputs.size(); ++j)
+            {
+                if (j > 0) conflictMsg += ", ";
+                conflictMsg += juce::String(inputs[j] + 1);
+            }
+            conflictMsg += "\n";
+        }
+        conflictMsg += "\nOnly one tracked input per cluster is allowed. "
+                       "If you continue, tracking will be kept only for the first input in each cluster.";
+
+        juce::AlertWindow::showOkCancelBox(
+            juce::AlertWindow::WarningIcon,
+            "Tracking Conflicts Detected",
+            conflictMsg,
+            "Continue",
+            "Cancel",
+            nullptr,
+            juce::ModalCallbackFunction::create([this, conflicts, fromProtocolChange](int result) {
+                if (result == 1)  // Continue
+                {
+                    // Disable tracking on all but the first input in each conflicting cluster
+                    for (const auto& [cluster, inputs] : conflicts)
+                    {
+                        for (size_t j = 1; j < inputs.size(); ++j)
+                        {
+                            parameters.setInputParam(inputs[j], "inputTrackingActive", 0);
+                        }
+                    }
+
+                    // Now enable global tracking or protocol
+                    if (fromProtocolChange)
+                    {
+                        parameters.setConfigParam("trackingProtocol", trackingProtocolSelector.getSelectedId() - 1);
+                    }
+                    else
+                    {
+                        trackingEnabledButton.setButtonText("Tracking: ON");
+                        parameters.setConfigParam("trackingEnabled", 1);
+                        updateTrackingAppearance();
+                    }
+                }
+                else  // Cancel
+                {
+                    // Revert the toggle/selector
+                    if (fromProtocolChange)
+                    {
+                        // Revert to DISABLED
+                        trackingProtocolSelector.setSelectedId(1, juce::dontSendNotification);
+                    }
+                    else
+                    {
+                        trackingEnabledButton.setToggleState(false, juce::dontSendNotification);
+                        trackingEnabledButton.setButtonText("Tracking: OFF");
+                    }
+                }
+            })
+        );
     }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(NetworkTab)
