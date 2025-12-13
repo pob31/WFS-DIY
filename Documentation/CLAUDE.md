@@ -1,298 +1,441 @@
 # WFS DIY - Development Notes for Claude
 
 ## Project Overview
-Wave Field Synthesis (WFS) audio application built with JUCE framework for real-time multi-channel audio processing.
+Wave Field Synthesis (WFS) audio application built with JUCE framework for real-time multi-channel audio processing with comprehensive OSC network control.
 
-## Current Implementation Status (As of 2025-11-19)
+## Current Implementation Status (As of 2025-12-13)
 
-### Architecture
-- **Dual-algorithm multithreaded N-to-M audio engine**: Two different processing approaches available for comparison
-  - **InputBufferProcessor**: One thread per input channel (read-time delays)
-  - **OutputBufferProcessor**: One thread per output channel (write-time delays)
-- **Lock-free design**: Lock-free ring buffers for communication between audio thread and processing threads
-- **Real-time safe**: No allocations or locks in audio callback
+### Overall Progress: ~25% Complete
 
-### Code Organization
+The application has established a solid foundation with infrastructure and core UI:
+- Complete parameter management system
+- Professional GUI framework with tabbed interface
+- Bidirectional OSC communication
+- Project-based save/load system
 
-The audio processing algorithms have been refactored into separate wrapper classes:
-- **InputBufferAlgorithm** ([InputBufferAlgorithm.h](../Source/InputBufferAlgorithm.h)): Manages collection of InputBufferProcessor instances
-- **OutputBufferAlgorithm** ([OutputBufferAlgorithm.h](../Source/OutputBufferAlgorithm.h)): Manages collection of OutputBufferProcessor instances
+**Major features still to implement:**
+- Interactive multitouch Map view
+- Audio Patch routing window
+- Network Log window
+- Reverb configuration
+- Cluster management
+- Snapshot system UI
+- WFS geometry ↔ audio engine connection
 
-This separation improves code organization and makes it easier to add new algorithm variants in the future.
+---
 
-### Key Components
+## Architecture Overview
 
-#### 1. MainComponent ([MainComponent.h](../Source/MainComponent.h), [MainComponent.cpp](../Source/MainComponent.cpp))
-- Main UI component with AudioAppComponent and Timer
-- **Algorithm selection**: Dropdown to switch between InputBuffer and OutputBuffer algorithms
-- **Routing matrices** (centralized, shared by both algorithms):
-  - `delayTimesMs`: Delay times in milliseconds for each input→output routing
-  - `levels`: Gain levels (0.0-1.0) for each input→output routing
-  - Indexed as: `[inputChannel * numOutputChannels + outputChannel]`
-- **Continuous ramping + exponential smoothing**:
-  - 5ms timer with linear ramp over 1 second between random values
-  - 20ms exponential smoothing applied on top (smoothingFactor = 0.22f)
-  - Simulates moving WFS sources with smooth, click-free transitions
-- **Audio device persistence**: Saves/restores ASIO device type and name between sessions
-- **Graceful ASIO fallback**: Falls back to Windows Audio if ASIO device is locked or unavailable
-- **CPU monitoring display**: Shows per-thread performance metrics in bottom-left corner
+### Core Systems
 
-#### 2. InputBufferProcessor ([InputBufferProcessor.h](../Source/InputBufferProcessor.h))
-- **Read-time delay algorithm** (original approach)
-- Each instance processes ONE input channel on its own thread
-- Outputs to ALL output channels with individual delays and levels
-- **Processing flow**:
-  1. Input arrives → write to circular delay buffer
-  2. For each output channel:
-     - Read delay time and level from shared arrays
-     - Calculate read position: `currentPos - delay`
-     - Linear interpolation for fractional sample delays
-     - Apply level and output
-- **Advantages**: Straightforward, one delay buffer per input
-- **Performance**: Slightly more CPU spikes observed
+| System | Status | Description |
+|--------|--------|-------------|
+| Parameters | Complete | ValueTree-based hierarchical state management |
+| GUI Tabs | 40% | 4 of 7 tabs have UI, 3 are placeholders |
+| OSC Network | Complete | Bidirectional OSC with multiple protocols |
+| Save/Load | 80% | Project folder management (snapshots UI TODO) |
+| Audio Engine | Basic | Dual algorithm support, needs geometry integration |
+| Separate Windows | 0% | Patch window, Log window not started |
+| Map View | 0% | Interactive multitouch map not started |
 
-#### 3. OutputBufferProcessor ([OutputBufferProcessor.h](../Source/OutputBufferProcessor.h))
-- **Write-time delay algorithm** (alternative approach)
-- Each instance processes ONE output channel on its own thread
-- Receives from ALL input channels
-- **Processing flow**:
-  1. Input arrives → for each contributing input:
-     - Read delay time and level from shared arrays
-     - Calculate write position: `currentPos + delay`
-     - Linear interpolation distributes contribution across two adjacent samples
-     - **Read-modify-write**: Read current value, add contribution, write sum
-  2. At output time → simply read from current position (no delay calculation)
-- **Advantages**: Better cache locality, delays calculated once per input arrival
-- **Performance**: Lower and steadier CPU usage observed (surprising result!)
+---
 
-#### 4. LockFreeRingBuffer ([LockFreeRingBuffer.h](../Source/LockFreeRingBuffer.h))
-- Single producer/single consumer lock-free ring buffer
-- Uses `std::atomic` for thread-safe communication
-- Used for: input buffering and output buffering in both algorithms
+## Parameter System
 
-### GUI Components
+### WFSParameterIDs.h
+Complete parameter identifier definitions organized by section:
+- **ValueTree Types**: WFSProcessor, Config, Inputs, Outputs, etc.
+- **Show Section**: showName, showLocation
+- **I/O Section**: inputChannels, outputChannels, reverbChannels, algorithmDSP, runDSP
+- **Stage Section**: stageWidth/Depth/Height, origin coordinates, speedOfSound, temperature
+- **Master Section**: masterLevel, systemLatency, haasEffect
+- **Network Section**: networkInterface, ports (UDP 8000, TCP 8001), up to 6 targets, OSC Query (port 5005)
+- **ADM-OSC Section**: offset, scale, flip for X/Y/Z axes
+- **Tracking Section**: enabled, protocol, port, transforms
+- **Input Parameters** (87 per channel): position, attenuation, directivity, live source tamer, hackoustics, LFO, AutomOtion, mutes
+- **Output Parameters** (16 per channel): position, orientation, options, 6-band EQ
+- **Audio Patch**: driverMode, audioInterface, test tone settings
 
-The application includes a comprehensive set of custom GUI components for the future WFS control interface:
+### WFSParameterDefaults.h
+Default values and ranges:
+- maxInputChannels = 64
+- maxOutputChannels = 64
+- maxReverbChannels = 6
+- maxNetworkTargets = 6
+- Temperature to speed-of-sound formula included
 
-#### Custom Sliders ([Source/gui/sliders/](../Source/gui/sliders/))
-- **WfsSliderBase**: Base class for all custom sliders with common behavior and styling
-- **WfsStandardSlider**: Standard unipolar slider (0.0 to 1.0)
-- **WfsBidirectionalSlider**: Bipolar slider centered at 0.5 (-1.0 to +1.0)
-- **WfsAutoCenterSlider**: Auto-returns to center position when released
-- **WfsWidthExpansionSlider**: Specialized slider for stereo width/expansion control
+### WFSValueTreeState.h/cpp (~800 lines)
+- Hierarchical ValueTree state management
+- Type-safe parameter access (getFloatParameter, getIntParameter, getStringParameter)
+- Dynamic channel management (input/output/reverb)
+- Network target management
+- Undo/Redo via UndoManager
+- Listener registration for UI binding
+- State validation and reset
 
-All sliders feature:
-- Horizontal and vertical orientations
-- Customizable track colors (inactive and active)
-- Visual feedback with active track indication
-- Smooth mouse-drag interaction
+### WFSFileManager.h/cpp (~1000 lines)
+- Project folder structure (backups/, input_snapshots/, output_snapshots/)
+- Complete config save/load
+- Section-specific save/load (system, network, inputs, outputs)
+- Snapshot management with scope filtering
+- Automatic backup rotation
+- XML serialization with human-readable formatting
 
-#### Custom Dials ([Source/gui/dials/](../Source/gui/dials/))
-- **WfsBasicDial**: Standard rotary dial with value display
-  - 315° rotation range with 45° dead angle centered at bottom (6 o'clock)
-  - Needle positions: 7:30 (min) to 4:30 (max)
-  - Grey inactive track showing full range
-  - Colored active track showing current value position
-  - Customizable track and indicator colors
-  - Visual value display in center
-- **WfsRotationDial**: Dial for rotation/angle control
-- **WfsEndlessDial**: Continuous rotation dial (no end stops)
+### WfsParameters.h
+Backward-compatibility wrapper providing old-style API access to new parameter system.
 
-#### Joystick Control
-- **WfsJoystickComponent** ([WfsJoystickComponent.h](../Source/gui/WfsJoystickComponent.h)): 2D XY pad for spatial positioning
+---
 
-#### Preview Window
-- **GuiPreviewWindow** ([GuiPreviewWindow.h](../Source/gui/GuiPreviewWindow.h)): Dedicated window for testing and previewing all GUI components
-- **GuiPreviewComponent** ([GuiPreviewComponent.h](../Source/gui/GuiPreviewComponent.h)): Layout showing all UI variants
-- Accessible via "UI Preview" button in main window
+## GUI Implementation
 
-### Current Processing Flow
+### Tab Structure (MainComponent)
 
-**InputBuffer Algorithm:**
-1. Audio callback distributes input samples to each InputBufferProcessor
-2. Each processor writes to its delay buffer
-3. Each processor generates outputs with delays calculated at read time
-4. Audio callback sums outputs from all processors
+```
+TabbedComponent
+├── System Configuration (SystemConfigTab) ✓ Complete
+├── Network (NetworkTab) ✓ Complete
+├── Outputs (OutputsTab) ✓ Complete
+├── Inputs (InputsTab) ✓ 90% Complete
+├── Reverb (ReverbTab) □ Placeholder
+├── Clusters (ClustersTab) □ Placeholder
+└── Map (MapTab) □ Placeholder
+```
 
-**OutputBuffer Algorithm:**
-1. Audio callback distributes each input to ALL OutputBufferProcessors
-2. Each processor accumulates contributions from all inputs with delays calculated at write time
-3. Audio callback pulls processed output from each processor (simple read, no delay calculation)
+### SystemConfigTab.h (~1300 lines) - COMPLETE
+- **Show Section**: Name and location text editors
+- **I/O Section**:
+  - Input/Output/Reverb channel count selectors
+  - Audio Interface button (opens AudioInterfaceWindow)
+  - Algorithm selector (InputBuffer/OutputBuffer)
+  - Processing toggle
+- **Stage Section**:
+  - Dimensions (width, depth, height)
+  - Origin position with 3 preset buttons (custom-drawn icons)
+  - Speed of sound, temperature
+- **Master Section**: Level, latency, Haas effect
+- **Footer**: Select Folder, Store, Reload, Reload Backup, Import, Export
 
-### Parameter Updates (5ms timer)
-1. Calculate linear ramp progress (0→100% over 200 ticks = 1 second)
-2. Update ramping targets by interpolating: `start + (final - start) * progress`
-3. Apply exponential smoothing: `current += (target - current) * 0.22`
-4. Every 1 second: generate new random final targets and restart ramp
+### NetworkTab.h (~2400 lines) - COMPLETE
+- **Network Section**:
+  - Interface selector with platform-specific friendly names
+  - Current IP display
+  - UDP Port (default 8000), TCP Port (default 8001)
+  - OSC Query port (default 5005) with enable toggle
+- **Network Connections Table** (6 targets max):
+  - Name (with connection status color indicator)
+  - Mode (UDP/TCP)
+  - IP Address
+  - Tx Port
+  - Rx Enable, Tx Enable
+  - Protocol (DISABLED/OSC/REMOTE/ADM-OSC)
+  - Remove button
+- **OSC Source Filter**: Toggle for IP-based message filtering
+- **ADM-OSC Section**: Offset/Scale/Flip for X/Y/Z (grayed when no ADM-OSC target)
+- **Tracking Section**: Enable, protocol, port, offset/scale/flip
+- **Footer**: Open Log Window, Find My Remote, Store, Reload, Import, Export
 
-### CPU Monitoring
-Both algorithms include identical monitoring:
-- **Wall-clock CPU usage percentage**: Matches Task Manager (processing time / elapsed time)
-- **Processing time per block**: Average microseconds per 64-sample block (for algorithm comparison)
-- Display shows appropriate label: "Thread Performance (InputBuffer)" or "Thread Performance (OutputBuffer)"
+**Connection Status Indicators** (name field background):
+- Gray: Disconnected
+- Yellow: Connecting
+- Green: Connected
+- Red: Error
 
-### Settings Persistence
-- **Saved settings** (PropertiesFile in `%APPDATA%/WFS-DIY/WFS-DIY.settings`):
-  - Number of input channels (2-64)
-  - Number of output channels (2-64)
-  - Audio device type (e.g., "ASIO")
-  - Audio device name (e.g., "ASIO Fireface USB")
+### InputsTab.h (~3575 lines) - 90% COMPLETE
+- **Channel Selector**: Dynamic count based on configuration
+- **Transport Controls**: Play, Stop, Pause (custom-drawn icons)
+- **Sub-Tabs**:
+  - Channel (name, attenuation, delay, height factor)
+  - Position (X/Y/Z, offset, constraints, flip, cluster, tracking)
+  - Attenuation (law, distance attenuation, ratio)
+  - Directivity (directivity, rotation, tilt, HF shelf)
+  - Live Source Taming (radius, shape, attenuation, thresholds)
+  - Hackoustics (floor reflections with filters)
+  - Jitter
+  - LFO (period, phase, shape/rate/amplitude/phase per axis, gyrophone)
+  - AutomOtion (targets, mode, trigger, reset)
+  - Mutes (per-output mutes, macro buttons)
+- **Snapshots Section**: TODO - buttons exist but not implemented
+- **Footer**: Store, Reload
 
-### Known Issues & Solutions
-- **ASIO device locking**: If app crashes, ASIO device may remain locked. Solution: Unplug/replug USB device, or app will fall back to Windows Audio on next start
-- **UTF-8 encoding**: Avoid non-ASCII characters in debug strings (caused assertion with μ symbol)
-- **Algorithm switching**: Must disable processing before switching (enforced by UI)
+### OutputsTab.h (~1400 lines) - COMPLETE
+- **Channel Selector**: Dynamic count
+- **Channel Header**: Name, array selector, apply-to-array
+- **Sub-Tabs**:
+  - Output Properties (attenuation, delay, options, parallax)
+  - Position (X/Y/Z, orientation, angles, pitch, HF damping)
+  - EQ (enabled toggle, 6 bands with freq/gain/Q/shape/slope)
+- **Footer**: Store, Reload
+
+### Placeholder Tabs
+- **ReverbTab.h**: "Reverb Configuration" label only
+- **ClustersTab.h**: "Clusters Configuration" label only
+- **MapTab.h**: "Map View" label only
+
+### Supporting Components
+- **StatusBar.h**: Help text display at bottom of window
+- **AudioInterfaceWindow.h**: Separate window for audio device selection
+- **ConfigTabPreviewWindow.h**: Preview window for testing UI components
+
+---
+
+## Network/OSC System (~4600 lines total)
+
+### OSCProtocolTypes.h
+- **Enums**: Protocol, ConnectionMode, ConnectionStatus, Axis, DeltaDirection
+- **Structures**: TargetConfig, GlobalConfig, LogEntry
+- **Constants**: MAX_TARGETS=6, MAX_RATE_HZ=50, DEFAULT_UDP_PORT=8000, DEFAULT_TCP_PORT=8001
+
+### OSCManager.h/cpp (~800 lines)
+Central coordinator for all OSC communication:
+- Manages up to 6 network targets
+- UDP and TCP receivers with sender IP tracking
+- Rate limiting (50Hz max via OSCRateLimiter)
+- Message routing to/from ValueTree
+- Protocol support: OSC, REMOTE (Android app), ADM-OSC
+- IP filtering (only accept from configured targets)
+- Loop prevention (tracks incoming protocol to avoid echo)
+- OSC Query server integration
+- Connection status callbacks for UI updates
+
+### OSCConnection.h/cpp
+Per-target connection manager:
+- UDP sender (fully implemented)
+- TCP sender (basic implementation)
+- Connection status tracking
+- Message statistics
+
+### OSCMessageRouter.h/cpp (~400 lines)
+- Parse incoming OSC messages
+- Address pattern matching
+- Parameter ID extraction
+- Value extraction (float, int, string)
+- REMOTE protocol parsing
+
+### OSCMessageBuilder.h/cpp (~500 lines)
+- Build outgoing OSC messages
+- Input/output parameter messages
+- REMOTE protocol messages
+- Channel dump for initial sync
+
+### OSCReceiverWithSenderIP.h/cpp
+Custom UDP receiver exposing sender IP for filtering.
+
+### OSCTCPReceiver.h/cpp
+TCP server with multi-client support and sender IP tracking.
+
+### OSCParser.h
+Custom OSC message/bundle parser (JUCE's OSCInputStream is private).
+
+### OSCLogger.h/cpp (~250 lines)
+- Ring buffer message logging
+- Thread-safe access
+- Filtering by direction/target/protocol/address
+- Entry count for UI updates
+
+### OSCRateLimiter.h/cpp (~200 lines)
+- 50Hz rate limiting per target
+- Message coalescing (latest value wins)
+- Broadcast support
+- Statistics tracking
+
+### OSCQueryServer.h/cpp (~300 lines)
+HTTP server for OSC Query protocol:
+- Responds to GET requests with JSON parameter tree
+- Exposes /wfs/input/{n}/ and /wfs/output/{n}/ namespaces
+- Parameters: positionX/Y/Z, attenuation, muteMacro (inputs), attenuation (outputs)
+- Runs in separate thread
+- Configurable port (default 5005)
+
+---
+
+## Audio Processing
+
+### Algorithms
+Two processing approaches available:
+
+**InputBufferAlgorithm (read-time delays)**
+- One thread per input channel
+- Outputs to all outputs with individual delays/levels
+- Straightforward implementation
+
+**OutputBufferAlgorithm (write-time delays)**
+- One thread per output channel
+- Receives from all inputs
+- Better cache locality, lower CPU observed
+
+### Supporting Components
+- **LockFreeRingBuffer.h**: Single producer/consumer lock-free buffer
+- **InputBufferProcessor.h**: Per-input thread processor
+- **OutputBufferProcessor.h**: Per-output thread processor
+- **GpuInputBufferAlgorithm.h**: GPU version (commented out - SDK not configured)
+
+---
+
+## Save/Load System
+
+### Project Folder Structure
+```
+[ProjectFolder]/
+├── config.xml           # Complete configuration
+├── system_config.xml    # System section only
+├── network_config.xml   # Network section only
+├── input_config.xml     # Input channels
+├── output_config.xml    # Output channels
+├── backups/
+│   └── config_YYYYMMDD_HHMMSS.xml
+├── input_snapshots/
+│   └── [snapshot_name].xml
+└── output_snapshots/
+    └── [snapshot_name].xml
+```
+
+### Save/Load Operations
+- **Store**: Save complete config to project folder
+- **Reload**: Load config from project folder
+- **Reload Backup**: Load from backup subfolder
+- **Import/Export**: File dialog for arbitrary locations
+- **Snapshots**: Per-channel/subsection scope filtering (TODO in UI)
+
+---
+
+## TODO / Remaining Work
+
+### Major Features (High Priority)
+1. **Audio Patch Window**: Separate window for input/output routing matrix
+   - Driver mode selection
+   - Input/Output patch matrices with scroll/patch/test modes
+   - Test tone generation (sine/pink noise)
+   - See [WFS-UI_audioPatch.csv](WFS-UI_audioPatch.csv) for specification
+
+2. **Network Log Window**: Separate window for OSC message monitoring
+   - Display OSCLogger entries
+   - Filtering by direction/target/protocol
+   - Clear/pause functionality
+
+3. **MapTab - Interactive Map**: 2D/3D visualization and control
+   - Display speaker array positions
+   - Display/control virtual source positions
+   - Multitouch support for source positioning
+   - Zoom/pan controls
+   - This is a significant feature
+
+4. **ReverbTab**: Implement reverb channel configuration
+   - Up to 6 reverb channels
+   - Send levels from inputs
+   - Reverb parameters
+
+5. **ClustersTab**: Implement cluster management
+   - Group inputs into clusters
+   - Cluster-level controls
+
+### Integration Work (Medium Priority)
+6. **InputsTab Snapshots**: Implement snapshot creation/loading/editing UI
+   - Snapshot creation dialog with scope selection
+   - Snapshot list management
+   - Load/update/delete operations
+
+7. **WFS Geometry Integration**: Connect UI parameters to audio engine
+   - Calculate delays from source/speaker positions
+   - Calculate levels from amplitude panning
+   - Real-time updates as sources move
+
+8. **UI Polish**: Layout refinements across all tabs
+   - Consistent spacing and alignment
+   - Responsive layouts
+
+### Lower Priority
+9. **TCP proper implementation**: Full TCP support with StreamingSocket
+10. **GPU Audio**: Re-enable when SDK is configured
+11. **Find My Remote**: Device discovery feature
+12. **Undo/Redo UI**: Expose undo/redo functionality in UI
+
+---
 
 ## Building & Running
 
 ### Requirements
 - JUCE 8.0.10
-- Visual Studio 2022
-- ASIO-capable audio interface (optional, falls back to Windows Audio)
+- Visual Studio 2022 (Windows) / Xcode (macOS)
+- ASIO-capable audio interface (optional)
 
 ### Build Configuration
-- JUCE_JACK disabled (set to 0 in WFS-DIY.jucer)
-- Debug configuration includes CPU monitoring
+- JUCE_ASIO=1 (Windows only)
+- JUCE_JACK=0
+- macOS: Extra linker flags for SystemConfiguration framework
 
-### Testing Current Implementation
-1. Set desired input/output channel counts in UI (2-64)
-2. Select audio device (ASIO recommended for low latency)
-3. Select algorithm from dropdown:
-   - "InputBuffer (read-time delays)" - original algorithm
-   - "OutputBuffer (write-time delays)" - alternative algorithm
-4. Enable "Processing ON/OFF" toggle
-5. Observe CPU metrics in bottom-left:
-   - Format: `Input N: X.X% | XX.X us/block` or `Output N: X.X% | XX.X us/block`
-   - First number: wall-clock CPU usage
-   - Second number: processing time per block (for algorithm comparison)
-6. Audio will have continuously ramping random delays (0-1000ms) and levels (0-1)
-
-### Performance Observations (Preliminary)
-- **Small configurations (4×4)**: Both algorithms show comparable performance
-- **OutputBuffer**: Lower and steadier CPU usage, fewer spikes
-- **InputBuffer**: Slightly more CPU spikes
-- Further testing needed with larger asymmetric configurations (e.g., 8×64 for realistic WFS)
-
-## Next Steps / TODO
-
-### Immediate (Ready to Implement)
-1. **Test with larger configurations**: 16×16, 32×32, 8×64 (realistic WFS scenarios)
-2. **Remove random generator**: Keep exponential smoothing infrastructure, remove random ramping
-3. **Implement WFS geometry**:
-   - Define speaker array positions (x, y coordinates)
-   - Define virtual source position(s)
-   - Calculate delays based on geometry (speed of sound)
-   - Calculate levels based on amplitude panning
-
-### Algorithm Selection Strategy
-- Keep both algorithms available for now
-- Performance winner may depend on:
-  - Input/output ratio (symmetric vs asymmetric)
-  - Number of moving sources
-  - Update frequency of delay changes
-  - Cache effects at scale
-
-### Future Enhancements
-1. **UI improvements**:
-   - Geometry visualization
-   - Real-time delay/level matrix display
-   - Virtual source position control
-2. **Save/load presets**: Store complete routing matrices
-3. **Advanced WFS**:
-   - Multiple simultaneous sources
-   - Moving sources with smooth transitions
-   - Frequency-dependent processing
-
-## Recent Work (2025-12-02)
-
-### Branch Merge Recovery
-- Successfully merged `feature/gpu-audio-input-buffer` into `main` branch
-- Restored all project work including GPU Audio integration, comprehensive documentation, algorithm refactoring, and GUI components
-- Resolved merge conflicts by accepting feature branch versions containing complete codebase
-
-### GUI Component Refinements
-- **WfsBasicDial orientation corrected**: Fixed 315° rotation range with 45° dead angle properly centered at bottom (6 o'clock position)
-  - Needle angles: 112.5° (7:30) to 427.5° (4:30) - correctly positioned
-  - Track angles: 202.5° (4:30) to 517.5° (7:30) - 90° offset from needle to center dead zone at bottom
-  - Added grey inactive track (RGB 50,50,50) showing full range
-  - Added colored active track showing current value position
-  - Implemented `setTrackColours()` method for customizable track appearance
-
-### GPU Audio Integration Status
-- **Temporarily commented out** due to missing SDK headers (`engine_api/GraphLauncher.h`)
-- All GPU-related code preserved with comments for future re-enablement:
-  - `GpuInputBufferAlgorithm` class and includes
-  - GPU algorithm enum value in `ProcessingAlgorithm`
-  - GPU algorithm UI selector and processing code
-  - GPU telemetry display in paint method
-- Project now builds successfully without GPU Audio SDK
-- Can be re-enabled once SDK is properly configured
-
-### UI Specification Files
-Comprehensive CSV specifications available in [Documentation/](../Documentation/) for future UI implementation:
-- **[WFS-UI_input.csv](WFS-UI_input.csv)**: 95 parameters for Input channel controls
-  - Position controls (X/Y/Z, offsets, constraints, flips)
-  - Attenuation, delay, tracking, clustering
-  - Directivity (rotation, tilt, HF shelf)
-  - Live Source Tamer with compression
-  - Hackoustics (floor reflections with filters)
-  - LFO, Jitter, AutomOtion
-  - Per-output mutes and snapshots
-- **[WFS-UI_output.csv](WFS-UI_output.csv)**: 33 parameters for Output channel controls
-  - Array assignment and apply-to-array modes
-  - Position, orientation, angle on/off, pitch
-  - HF damping, parallax settings
-  - 6-band parametric EQ per output
-- **[WFS-UI_config.csv](WFS-UI_config.csv)**: 65 parameters for Config tab
-  - Show/I/O settings, stage dimensions
-  - Master section (level, latency, Haas effect)
-  - Network configuration (up to 6 targets with OSC/REMOTE/ADM-OSC protocols)
-  - ADM-OSC and Tracking settings (offset, scale, flip for X/Y/Z)
-- **[WFS-UI_audioPatch.csv](WFS-UI_audioPatch.csv)**: Audio patching window specification
-  - Driver mode and interface selection
-  - Input/Output patch matrices with scroll/patch/test modes
-  - Test tone generation (sine/pink noise)
-- **[Prompt_UI1.txt](Prompt_UI1.txt)**: Detailed implementation requirements
-  - ValueTree-based parameter system
-  - OSC integration requirements
-  - File I/O specifications
-
-## Code Organization Notes
-
-### Adding New Routing Parameters
-To add new per-routing parameters:
-1. Add new `std::vector<float>` in MainComponent.h (similar to `delayTimesMs`)
-2. Add target/ramp vectors if continuous ramping needed
-3. Resize in constructor alongside existing matrices
-4. Pass pointer to both InputBufferProcessors and OutputBufferProcessors in `startAudioEngine()`
-5. Add corresponding pointer members in both processor classes
-6. Read in `processBlock()` using `routingIndex = inputChannelIndex * numOutputChannels + outChannel`
-
-### Performance Optimization Tips
-- The `us/block` metric is key for algorithm comparison
-- Current implementation: ~40-50 us/block per thread (8×8 config)
-- OutputBuffer showing lower CPU suggests better cache behavior
-- Watch for: modulo operations, floating-point conversions, unnecessary memory access
-
-### Thread Safety Notes
-- **Lock-free reads**: Processors read from `delayTimesMs` and `levels` arrays without locks
-- **Safe because**: Float reads/writes are atomic on x64, and ramping/smoothing happens on message thread (separate from audio/processing threads)
-- **If adding complex structures**: Consider using `std::atomic` or message passing
-
-### Algorithm Switching
-- Disabled while processing is active (enforced by UI)
-- Cleanly stops old processors and creates new ones
-- Preserves processing state if it was enabled
-
-## Git Workflow
-- Main branch: `master`
-- Commits should be atomic and well-described
-- Documentation updates should reflect significant changes
-
-## Contact / Collaboration
-This project is being developed incrementally with human guidance. Major architectural decisions should be discussed before implementation.
+### Platforms
+- Windows (VS2022) - Primary development
+- macOS (Xcode) - Tested
+- Linux (Makefile) - Available but not actively tested
 
 ---
-*Last updated: 2025-12-02*
+
+## Recent Work (2025-12-03 to 2025-12-13)
+
+### OSC Network System (2025-12-03 to 2025-12-05)
+- Implemented complete OSC communication stack
+- Added OSCManager as central coordinator
+- Created OSCConnection for per-target management
+- Built OSCMessageRouter for incoming message parsing
+- Built OSCMessageBuilder for outgoing message creation
+- Added OSCRateLimiter (50Hz, message coalescing)
+- Added OSCLogger with ring buffer
+- Implemented custom UDP/TCP receivers with sender IP tracking
+- Added IP filtering for security
+
+### OSC Source Filtering (2025-12-11)
+- Implemented IP-based filtering of incoming OSC messages
+- Created OSCReceiverWithSenderIP (custom UDP receiver)
+- Created OSCTCPReceiver (TCP server with multi-client support)
+- Created OSCParser (custom parser since JUCE's is private)
+- UI toggle in NetworkTab ("OSC Filter: Accept All" / "Registered Only")
+
+### OSC Query Server (2025-12-13)
+- Implemented simple HTTP server for OSC Query protocol
+- Exposes WFS parameters as JSON namespace
+- UI controls in NetworkTab (port editor, enable toggle)
+- Default port 5005
+
+### Connection Status Indicators (2025-12-13)
+- Added visual status to network connections table
+- Name field background changes color based on status
+- Proper disconnect on Tx off or Protocol disabled
+
+### Network Tab Polish (2025-12-13)
+- Fixed UDP/TCP port parameter names (networkRxUDPport/networkRxTCPport)
+- Default ports: UDP 8000, TCP 8001
+- Improved OSC Query control layout
+
+---
+
+## Code Statistics
+
+| Component | Lines |
+|-----------|-------|
+| Parameters System | ~2,000 |
+| Network/OSC System | ~4,600 |
+| GUI Components | ~8,700 |
+| MainComponent | ~850 |
+| Audio Processing | ~1,500 |
+| **Total** | **~17,650** |
+
+---
+
+## Architecture Highlights
+
+1. **Hierarchical ValueTree**: All parameters in tree structure matching CSV spec
+2. **Type-Safe Access**: Float, int, string parameter methods with channel indexing
+3. **Bidirectional OSC**: Send/receive with OSC, REMOTE, ADM-OSC protocols
+4. **Rate Limiting**: 50Hz message coalescing prevents network flooding
+5. **IP Filtering**: Security feature for trusted sources only
+6. **OSC Query**: HTTP-based parameter discovery for external tools
+7. **Project Organization**: Complete configs saved to project folders
+8. **Thread Safety**: CriticalSection locks, lock-free buffers
+9. **Undo/Redo**: Full UndoManager integration
+10. **Platform-Specific**: Network interface enumeration for Windows/macOS
+
+---
+
+*Last updated: 2025-12-13*
 *JUCE Version: 8.0.10*
-*Build: Visual Studio 2022, x64 Debug*
+*Build: Visual Studio 2022 / Xcode, x64 Debug/Release*

@@ -102,19 +102,39 @@ void OSCManager::applyTargetConfig(int targetIndex, const TargetConfig& config)
     const juce::ScopedLock sl(configLock);
 
     auto& oldConfig = targetConfigs[static_cast<size_t>(targetIndex)];
-    bool needsReconnect = (config.ipAddress != oldConfig.ipAddress ||
-                           config.port != oldConfig.port ||
-                           config.mode != oldConfig.mode);
+
+    // Determine if we should be connected
+    bool shouldBeConnected = (config.protocol != Protocol::Disabled && config.txEnabled);
+    bool wasConnected = (oldConfig.protocol != Protocol::Disabled && oldConfig.txEnabled);
+
+    // Check if connection parameters changed
+    bool connectionParamsChanged = (config.ipAddress != oldConfig.ipAddress ||
+                                    config.port != oldConfig.port ||
+                                    config.mode != oldConfig.mode);
 
     oldConfig = config;
 
-    if (needsReconnect && connections[static_cast<size_t>(targetIndex)])
+    // Handle disconnection cases
+    if (!shouldBeConnected && wasConnected)
     {
-        DBG("OSCManager::applyTargetConfig - target " << targetIndex << " needs reconnect");
+        // Tx turned off or protocol disabled - disconnect
+        DBG("OSCManager::applyTargetConfig - target " << targetIndex << " disconnecting (tx off or protocol disabled)");
         disconnectTarget(targetIndex);
-
-        if (config.protocol != Protocol::Disabled && config.txEnabled)
+    }
+    else if (shouldBeConnected)
+    {
+        if (connectionParamsChanged || !wasConnected)
         {
+            // Need to (re)connect
+            if (wasConnected)
+            {
+                DBG("OSCManager::applyTargetConfig - target " << targetIndex << " reconnecting (params changed)");
+                disconnectTarget(targetIndex);
+            }
+            else
+            {
+                DBG("OSCManager::applyTargetConfig - target " << targetIndex << " connecting");
+            }
             connectTarget(targetIndex);
         }
     }

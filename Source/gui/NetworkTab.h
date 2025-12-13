@@ -152,6 +152,20 @@ public:
     void setOSCManager(WFSNetwork::OSCManager* manager)
     {
         oscManager = manager;
+
+        // Register callback for connection status changes
+        if (oscManager != nullptr)
+        {
+            oscManager->onConnectionStatusChanged = [this](int targetIndex, WFSNetwork::ConnectionStatus status)
+            {
+                // Must update UI on message thread
+                juce::MessageManager::callAsync([this, targetIndex, status]()
+                {
+                    updateTargetConnectionStatus(targetIndex, status);
+                });
+            };
+        }
+
         updateOSCManagerConfig();
     }
 
@@ -1156,7 +1170,50 @@ private:
             row.protocolSelector.setEnabled(row.isActive);
             row.removeButton.setAlpha(alpha);
             row.removeButton.setEnabled(row.isActive);
+
+            // Reset connection status color when visibility changes
+            if (row.isActive && oscManager != nullptr)
+            {
+                updateTargetConnectionStatus(i, oscManager->getTargetStatus(i));
+            }
+            else
+            {
+                // Inactive rows get default background
+                row.nameEditor.setColour(juce::TextEditor::backgroundColourId, juce::Colour(0xFF303030));
+            }
         }
+    }
+
+    void updateTargetConnectionStatus(int targetIndex, WFSNetwork::ConnectionStatus status)
+    {
+        if (targetIndex < 0 || targetIndex >= maxTargets)
+            return;
+
+        auto& row = targetRows[targetIndex];
+        if (!row.isActive)
+            return;
+
+        // Set background color based on connection status
+        juce::Colour bgColor;
+        switch (status)
+        {
+            case WFSNetwork::ConnectionStatus::Connected:
+                bgColor = juce::Colour(0xFF1A4D1A);  // Dark green tint
+                break;
+            case WFSNetwork::ConnectionStatus::Connecting:
+                bgColor = juce::Colour(0xFF4D4D1A);  // Dark yellow tint
+                break;
+            case WFSNetwork::ConnectionStatus::Error:
+                bgColor = juce::Colour(0xFF4D1A1A);  // Dark red tint
+                break;
+            case WFSNetwork::ConnectionStatus::Disconnected:
+            default:
+                bgColor = juce::Colour(0xFF303030);  // Default dark gray
+                break;
+        }
+
+        row.nameEditor.setColour(juce::TextEditor::backgroundColourId, bgColor);
+        row.nameEditor.repaint();
     }
 
     void updateAddButtonState()
