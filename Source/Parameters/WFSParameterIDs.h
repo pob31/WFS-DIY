@@ -214,6 +214,7 @@ namespace WFSParameterIDs
     const juce::Identifier inputFRhighShelfGain      ("inputFRhighShelfGain");
     const juce::Identifier inputFRhighShelfSlope     ("inputFRhighShelfSlope");
     const juce::Identifier inputFRdiffusion          ("inputFRdiffusion");
+    const juce::Identifier inputMuteReverbSends      ("inputMuteReverbSends");
 
     // Input > Jitter
     const juce::Identifier inputJitter           ("inputJitter");

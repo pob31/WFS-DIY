@@ -1053,6 +1053,16 @@ private:
         frHighShelfSlopeValueLabel.setText("0.40", juce::dontSendNotification);
         frHighShelfSlopeValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         setupEditableValueLabel(frHighShelfSlopeValueLabel);
+
+        // Mute Sends to Reverbs
+        addAndMakeVisible(muteReverbSendsButton);
+        muteReverbSendsButton.setButtonText("Mute Sends to Reverbs: OFF");
+        muteReverbSendsButton.setClickingTogglesState(true);
+        muteReverbSendsButton.onClick = [this]() {
+            bool muted = muteReverbSendsButton.getToggleState();
+            muteReverbSendsButton.setButtonText(muted ? "Mute Sends to Reverbs: ON" : "Mute Sends to Reverbs: OFF");
+            saveInputParam(WFSParameterIDs::inputMuteReverbSends, muted ? 1 : 0);
+        };
     }
 
     void setupLfoTab()
@@ -1631,6 +1641,7 @@ private:
         frHighShelfFreqLabel.setVisible(v); frHighShelfFreqSlider.setVisible(v); frHighShelfFreqValueLabel.setVisible(v);
         frHighShelfGainLabel.setVisible(v); frHighShelfGainSlider.setVisible(v); frHighShelfGainValueLabel.setVisible(v);
         frHighShelfSlopeLabel.setVisible(v); frHighShelfSlopeSlider.setVisible(v); frHighShelfSlopeValueLabel.setVisible(v);
+        muteReverbSendsButton.setVisible(v);
     }
 
     void layoutInputPropertiesTab()
@@ -1958,6 +1969,10 @@ private:
         auto dialArea = rightCol.removeFromTop(dialSize);
         frDiffusionDial.setBounds(dialArea.withSizeKeepingCentre(dialSize, dialSize));
         frDiffusionValueLabel.setBounds(rightCol.removeFromTop(rowHeight));
+
+        // Mute Sends to Reverbs button
+        rightCol.removeFromTop(spacing * 3);
+        muteReverbSendsButton.setBounds(rightCol.removeFromTop(rowHeight).withWidth(220));
     }
 
     void setLfoVisible(bool v)
@@ -2540,6 +2555,11 @@ private:
         float frSlopeSliderVal = (frHighShelfSlopeVal - 0.1f) / 0.8f;
         frHighShelfSlopeSlider.setValue(juce::jlimit(0.0f, 1.0f, frSlopeSliderVal));
         frHighShelfSlopeValueLabel.setText(juce::String(frHighShelfSlopeVal, 2), juce::dontSendNotification);
+
+        // Mute Sends to Reverbs (default OFF = 0)
+        bool muteReverbSends = getIntParam(WFSParameterIDs::inputMuteReverbSends, 0) != 0;
+        muteReverbSendsButton.setToggleState(muteReverbSends, juce::dontSendNotification);
+        muteReverbSendsButton.setButtonText(muteReverbSends ? "Mute Sends to Reverbs: ON" : "Mute Sends to Reverbs: OFF");
 
         // ==================== LFO TAB ====================
         bool lfoActive = getIntParam(WFSParameterIDs::inputLFOactive, 0) != 0;
@@ -3161,6 +3181,7 @@ private:
         helpTextMap[&frHighShelfFreqSlider] = "High Shelf Frequency for Floor Reflections.";
         helpTextMap[&frHighShelfGainSlider] = "High Shelf Gain for Floor Reflections.";
         helpTextMap[&frHighShelfSlopeSlider] = "High Shelf Slope for Floor Reflections.";
+        helpTextMap[&muteReverbSendsButton] = "Mute sends from this input to all reverb channels.";
         helpTextMap[&jitterSlider] = "Sphere of Rapid Movements of the Object.";
         // LFO tab
         helpTextMap[&lfoActiveButton] = "Enable or Disable the Periodic Movement of the Object (LFO).";
@@ -3260,6 +3281,7 @@ private:
         oscMethodMap[&frHighShelfFreqSlider] = "/wfs/input/FRhighShelfFreq <ID> <value>";
         oscMethodMap[&frHighShelfGainSlider] = "/wfs/input/FRhighShelfGain <ID> <value>";
         oscMethodMap[&frHighShelfSlopeSlider] = "/wfs/input/FRhighShelfSlope <ID> <value>";
+        oscMethodMap[&muteReverbSendsButton] = "/wfs/input/muteReverbSends <ID> <value>";
         oscMethodMap[&jitterSlider] = "/wfs/input/jitter <ID> <value>";
         // LFO tab
         oscMethodMap[&lfoActiveButton] = "/wfs/input/LFOactive <ID> <value>";
@@ -3533,6 +3555,7 @@ private:
     juce::Label frHighShelfSlopeLabel;
     WfsStandardSlider frHighShelfSlopeSlider;
     juce::Label frHighShelfSlopeValueLabel;
+    juce::TextButton muteReverbSendsButton;
 
     // L.F.O tab
     juce::TextButton lfoActiveButton;

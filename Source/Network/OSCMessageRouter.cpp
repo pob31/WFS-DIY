@@ -69,6 +69,7 @@ const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getInputAddres
         { "FRhighShelfGain",      WFSParameterIDs::inputFRhighShelfGain },
         { "FRhighShelfSlope",     WFSParameterIDs::inputFRhighShelfSlope },
         { "FRdiffusion",          WFSParameterIDs::inputFRdiffusion },
+        { "muteReverbSends",      WFSParameterIDs::inputMuteReverbSends },
 
         // Jitter
         { "jitter",          WFSParameterIDs::inputJitter },
