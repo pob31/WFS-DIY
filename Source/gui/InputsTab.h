@@ -663,22 +663,45 @@ private:
         addAndMakeVisible(positionJoystick);
         positionJoystick.setOuterColour(juce::Colour(0xFF3A3A3A));
         positionJoystick.setThumbColour(juce::Colour(0xFFFF9800));
+        positionJoystick.setReportingIntervalHz(50.0);  // 50Hz = 20ms updates
         positionJoystick.setOnPositionChanged([this](float x, float y) {
-            // Get current position values
-            float currentX = posXEditor.getText().getFloatValue();
-            float currentY = posYEditor.getText().getFloatValue();
-            // Apply delta from joystick (scaled for reasonable movement)
-            const float scale = 0.05f;  // Adjust this for sensitivity
-            float newX = currentX + x * scale;
-            float newY = currentY + y * scale;
-            // Update editors and save
-            posXEditor.setText(juce::String(newX, 2), juce::dontSendNotification);
-            posYEditor.setText(juce::String(newY, 2), juce::dontSendNotification);
-            saveInputParam(WFSParameterIDs::inputPositionX, newX);
-            saveInputParam(WFSParameterIDs::inputPositionY, newY);
+            // Scale: 5m/s max at 50Hz = 0.1m per update at max joystick position
+            const float scale = 0.1f;
+            float deltaX = x * scale;
+            float deltaY = y * scale;
+
+            // Check if tracking is active (both globally and locally)
+            bool globalTracking = (int)parameters.getConfigParam("trackingEnabled") != 0;
+            bool localTracking = trackingActiveButton.getToggleState();
+            bool useOffset = globalTracking && localTracking;
+
+            if (useOffset)
+            {
+                // Update Offset X/Y when tracking is active
+                float currentX = offsetXEditor.getText().getFloatValue();
+                float currentY = offsetYEditor.getText().getFloatValue();
+                float newX = currentX + deltaX;
+                float newY = currentY + deltaY;
+                offsetXEditor.setText(juce::String(newX, 2), juce::dontSendNotification);
+                offsetYEditor.setText(juce::String(newY, 2), juce::dontSendNotification);
+                saveInputParam(WFSParameterIDs::inputOffsetX, newX);
+                saveInputParam(WFSParameterIDs::inputOffsetY, newY);
+            }
+            else
+            {
+                // Update Position X/Y when tracking is disabled
+                float currentX = posXEditor.getText().getFloatValue();
+                float currentY = posYEditor.getText().getFloatValue();
+                float newX = currentX + deltaX;
+                float newY = currentY + deltaY;
+                posXEditor.setText(juce::String(newX, 2), juce::dontSendNotification);
+                posYEditor.setText(juce::String(newY, 2), juce::dontSendNotification);
+                saveInputParam(WFSParameterIDs::inputPositionX, newX);
+                saveInputParam(WFSParameterIDs::inputPositionY, newY);
+            }
         });
         addAndMakeVisible(positionJoystickLabel);
-        positionJoystickLabel.setText("X/Y Position", juce::dontSendNotification);
+        positionJoystickLabel.setText("X/Y", juce::dontSendNotification);
         positionJoystickLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         positionJoystickLabel.setJustificationType(juce::Justification::centred);
 
@@ -687,14 +710,31 @@ private:
         positionZSlider.setTrackColours(juce::Colour(0xFF3A3A3A), juce::Colour(0xFF4CAF50));
         positionZSlider.setThumbColour(juce::Colours::white);
         positionZSlider.onValueChanged = [this](float v) {
-            // Get current Z position
-            float currentZ = posZEditor.getText().getFloatValue();
-            // Apply delta from slider (scaled for reasonable movement)
-            const float scale = 0.05f;  // Adjust this for sensitivity
-            float newZ = currentZ + v * scale;
-            // Update editor and save
-            posZEditor.setText(juce::String(newZ, 2), juce::dontSendNotification);
-            saveInputParam(WFSParameterIDs::inputPositionZ, newZ);
+            // Scale: 5m/s max at 50Hz = 0.1m per update at max slider position
+            const float scale = 0.1f;
+            float deltaZ = v * scale;
+
+            // Check if tracking is active (both globally and locally)
+            bool globalTracking = (int)parameters.getConfigParam("trackingEnabled") != 0;
+            bool localTracking = trackingActiveButton.getToggleState();
+            bool useOffset = globalTracking && localTracking;
+
+            if (useOffset)
+            {
+                // Update Offset Z when tracking is active
+                float currentZ = offsetZEditor.getText().getFloatValue();
+                float newZ = currentZ + deltaZ;
+                offsetZEditor.setText(juce::String(newZ, 2), juce::dontSendNotification);
+                saveInputParam(WFSParameterIDs::inputOffsetZ, newZ);
+            }
+            else
+            {
+                // Update Position Z when tracking is disabled
+                float currentZ = posZEditor.getText().getFloatValue();
+                float newZ = currentZ + deltaZ;
+                posZEditor.setText(juce::String(newZ, 2), juce::dontSendNotification);
+                saveInputParam(WFSParameterIDs::inputPositionZ, newZ);
+            }
         };
         addAndMakeVisible(positionZSliderLabel);
         positionZSliderLabel.setText("Z", juce::dontSendNotification);
