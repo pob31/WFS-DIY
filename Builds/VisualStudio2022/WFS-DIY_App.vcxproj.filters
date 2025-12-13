@@ -931,6 +931,12 @@
     <ClCompile Include="..\..\Source\Network\OSCManager.cpp">
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Source\Network\OSCReceiverWithSenderIP.cpp">
+      <Filter>WFS-DIY\Source\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Network\OSCTCPReceiver.cpp">
+      <Filter>WFS-DIY\Source\Network</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\Source\Main.cpp">
       <Filter>WFS-DIY\Source</Filter>
     </ClCompile>
@@ -4417,6 +4423,15 @@
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Network\OSCManager.h">
+      <Filter>WFS-DIY\Source\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\OSCReceiverWithSenderIP.h">
+      <Filter>WFS-DIY\Source\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\OSCTCPReceiver.h">
+      <Filter>WFS-DIY\Source\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\OSCParser.h">
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\MainComponent.h">

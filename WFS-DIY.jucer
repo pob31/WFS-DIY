@@ -60,6 +60,16 @@
               file="Source/Network/OSCManager.h"/>
         <FILE id="netMgrCpp" name="OSCManager.cpp" compile="1" resource="0"
               file="Source/Network/OSCManager.cpp"/>
+        <FILE id="netUdpRxH" name="OSCReceiverWithSenderIP.h" compile="0" resource="0"
+              file="Source/Network/OSCReceiverWithSenderIP.h"/>
+        <FILE id="netUdpRxCpp" name="OSCReceiverWithSenderIP.cpp" compile="1" resource="0"
+              file="Source/Network/OSCReceiverWithSenderIP.cpp"/>
+        <FILE id="netTcpRxH" name="OSCTCPReceiver.h" compile="0" resource="0"
+              file="Source/Network/OSCTCPReceiver.h"/>
+        <FILE id="netTcpRxCpp" name="OSCTCPReceiver.cpp" compile="1" resource="0"
+              file="Source/Network/OSCTCPReceiver.cpp"/>
+        <FILE id="netParseH" name="OSCParser.h" compile="0" resource="0"
+              file="Source/Network/OSCParser.h"/>
       </GROUP>
       <FILE id="UJ07Xn" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>
       <FILE id="jPX7jF" name="MainComponent.h" compile="0" resource="0" file="Source/MainComponent.h"/>

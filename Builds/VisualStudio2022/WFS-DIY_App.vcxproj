@@ -162,6 +162,8 @@
     <ClCompile Include="..\..\Source\Network\OSCMessageBuilder.cpp"/>
     <ClCompile Include="..\..\Source\Network\OSCMessageRouter.cpp"/>
     <ClCompile Include="..\..\Source\Network\OSCManager.cpp"/>
+    <ClCompile Include="..\..\Source\Network\OSCReceiverWithSenderIP.cpp"/>
+    <ClCompile Include="..\..\Source\Network\OSCTCPReceiver.cpp"/>
     <ClCompile Include="..\..\Source\Main.cpp"/>
     <ClCompile Include="..\..\Source\MainComponent.cpp"/>
     <ClCompile Include="..\..\Source\GpuInputBufferAlgorithm.cpp">
@@ -3413,6 +3415,9 @@
     <ClInclude Include="..\..\Source\Network\OSCMessageBuilder.h"/>
     <ClInclude Include="..\..\Source\Network\OSCMessageRouter.h"/>
     <ClInclude Include="..\..\Source\Network\OSCManager.h"/>
+    <ClInclude Include="..\..\Source\Network\OSCReceiverWithSenderIP.h"/>
+    <ClInclude Include="..\..\Source\Network\OSCTCPReceiver.h"/>
+    <ClInclude Include="..\..\Source\Network\OSCParser.h"/>
     <ClInclude Include="..\..\Source\MainComponent.h"/>
     <ClInclude Include="..\..\Source\WfsParameters.h"/>
     <ClInclude Include="..\..\Source\WFSAlgorithm.h"/>

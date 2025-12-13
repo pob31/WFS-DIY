@@ -113,6 +113,9 @@ namespace WFSParameterIDs
     const juce::Identifier networkTStxEnable ("networkTStxEnable");
     const juce::Identifier networkTSProtocol ("networkTSProtocol");
 
+    // OSC Source Filtering
+    const juce::Identifier networkOscSourceFilter ("networkOscSourceFilter");
+
     //==========================================================================
     // Config > ADM-OSC Section
     //==========================================================================

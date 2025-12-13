@@ -80,6 +80,8 @@ OBJECTS_APP := \
   $(JUCE_OBJDIR)/OSCMessageBuilder_d95fd113.o \
   $(JUCE_OBJDIR)/OSCMessageRouter_d5ec64db.o \
   $(JUCE_OBJDIR)/OSCManager_ce19fc58.o \
+  $(JUCE_OBJDIR)/OSCReceiverWithSenderIP_915fb210.o \
+  $(JUCE_OBJDIR)/OSCTCPReceiver_c566011b.o \
   $(JUCE_OBJDIR)/Main_90ebc5c2.o \
   $(JUCE_OBJDIR)/MainComponent_a6ffb4a5.o \
   $(JUCE_OBJDIR)/include_juce_audio_basics_8a4e984a.o \
@@ -156,6 +158,16 @@ $(JUCE_OBJDIR)/OSCMessageRouter_d5ec64db.o: ../../Source/Network/OSCMessageRoute
 $(JUCE_OBJDIR)/OSCManager_ce19fc58.o: ../../Source/Network/OSCManager.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling OSCManager.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/OSCReceiverWithSenderIP_915fb210.o: ../../Source/Network/OSCReceiverWithSenderIP.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling OSCReceiverWithSenderIP.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/OSCTCPReceiver_c566011b.o: ../../Source/Network/OSCTCPReceiver.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling OSCTCPReceiver.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/Main_90ebc5c2.o: ../../Source/Main.cpp

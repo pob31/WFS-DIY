@@ -77,6 +77,10 @@ void OSCManager::applyGlobalConfig(const GlobalConfig& config)
                         config.tcpReceivePort != globalConfig.tcpReceivePort);
 
     globalConfig = config;
+    ipFilteringEnabled = config.ipFilteringEnabled;
+
+    DBG("OSCManager::applyGlobalConfig - IP filtering: " << (ipFilteringEnabled ? "ON" : "OFF")
+        << ", allowed IPs: " << config.allowedIPs.joinIntoString(", "));
 
     if (portChanged && listening)
     {
@@ -142,8 +146,8 @@ bool OSCManager::startListening()
     if (listening)
         return true;
 
-    // Create and configure UDP receiver
-    udpReceiver = std::make_unique<juce::OSCReceiver>();
+    // Create and configure UDP receiver (custom implementation with sender IP)
+    udpReceiver = std::make_unique<OSCReceiverWithSenderIP>();
     if (!udpReceiver->connect(globalConfig.udpReceivePort))
     {
         DBG("Failed to bind UDP receiver to port " << globalConfig.udpReceivePort);
@@ -152,11 +156,21 @@ bool OSCManager::startListening()
     }
     udpReceiver->addListener(this);
 
-    // Create TCP receiver (TODO: JUCE OSCReceiver doesn't directly support TCP server mode)
-    // For now, TCP will be handled differently
+    // Create and configure TCP receiver
+    tcpReceiver = std::make_unique<OSCTCPReceiver>();
+    if (!tcpReceiver->connect(globalConfig.tcpReceivePort))
+    {
+        DBG("Failed to bind TCP receiver to port " << globalConfig.tcpReceivePort);
+        // TCP failure is not fatal - UDP is the primary protocol
+    }
+    else
+    {
+        tcpReceiver->addListener(this);
+    }
 
     listening = true;
-    logger.logText("Started listening on UDP port " + juce::String(globalConfig.udpReceivePort));
+    logger.logText("Started listening on UDP port " + juce::String(globalConfig.udpReceivePort) +
+                   " and TCP port " + juce::String(globalConfig.tcpReceivePort));
 
     return true;
 }
@@ -183,7 +197,7 @@ void OSCManager::stopListening()
     }
 
     listening = false;
-    logger.logText("Stopped listening");
+    logger.logText("Stopped listening on UDP and TCP");
 }
 
 bool OSCManager::connectTarget(int targetIndex)
@@ -450,17 +464,33 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
 }
 
 //==============================================================================
-// OSCReceiver::Listener
+// OSCReceiverWithSenderIP::Listener
 //==============================================================================
 
-void OSCManager::oscMessageReceived(const juce::OSCMessage& message)
+void OSCManager::oscMessageReceived(const juce::OSCMessage& message,
+                                    const juce::String& senderIP)
 {
+    // Check IP filtering before processing
+    if (ipFilteringEnabled && !isAllowedIP(senderIP))
+    {
+        DBG("OSCManager: Blocked message from " << senderIP << " (not in allowed list)");
+        return;
+    }
+
     ++messagesReceived;
     handleIncomingMessage(message);
 }
 
-void OSCManager::oscBundleReceived(const juce::OSCBundle& bundle)
+void OSCManager::oscBundleReceived(const juce::OSCBundle& bundle,
+                                   const juce::String& senderIP)
 {
+    // Check IP filtering before processing
+    if (ipFilteringEnabled && !isAllowedIP(senderIP))
+    {
+        DBG("OSCManager: Blocked bundle from " << senderIP << " (not in allowed list)");
+        return;
+    }
+
     for (const auto& element : bundle)
     {
         if (element.isMessage())
@@ -470,9 +500,16 @@ void OSCManager::oscBundleReceived(const juce::OSCBundle& bundle)
         }
         else if (element.isBundle())
         {
-            oscBundleReceived(element.getBundle());
+            // Recursive call - IP already validated
+            oscBundleReceived(element.getBundle(), senderIP);
         }
     }
+}
+
+bool OSCManager::isAllowedIP(const juce::String& senderIP) const
+{
+    const juce::ScopedLock sl(configLock);
+    return globalConfig.allowedIPs.contains(senderIP);
 }
 
 //==============================================================================

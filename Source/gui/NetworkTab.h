@@ -264,12 +264,14 @@ public:
         // ==================== BUTTONS BENEATH TABLE ====================
         y += spacing;  // Small gap after table
         const int tableButtonWidth = 140;
-        const int tableButtonSpacing = 20;
-        const int buttonsWidth = tableButtonWidth * 2 + tableButtonSpacing;
+        const int filterButtonWidth = 180;
+        const int tableButtonSpacing = 15;
+        const int buttonsWidth = filterButtonWidth + tableButtonWidth * 2 + tableButtonSpacing * 2;
         const int buttonsX = tableX + (totalTableWidth - buttonsWidth) / 2;  // Center the buttons
 
-        openLogWindowButton.setBounds(buttonsX, y, tableButtonWidth, rowHeight);
-        findMyRemoteButton.setBounds(buttonsX + tableButtonWidth + tableButtonSpacing, y, tableButtonWidth, rowHeight);
+        oscSourceFilterButton.setBounds(buttonsX, y, filterButtonWidth, rowHeight);
+        openLogWindowButton.setBounds(buttonsX + filterButtonWidth + tableButtonSpacing, y, tableButtonWidth, rowHeight);
+        findMyRemoteButton.setBounds(buttonsX + filterButtonWidth + tableButtonWidth + tableButtonSpacing * 2, y, tableButtonWidth, rowHeight);
         y += rowHeight + sectionSpacing;  // Add section spacing before ADM-OSC
 
         // ==================== ADM-OSC SECTION ====================
@@ -418,6 +420,7 @@ private:
     // Buttons beneath the table
     juce::TextButton openLogWindowButton;
     juce::TextButton findMyRemoteButton;
+    juce::TextButton oscSourceFilterButton;
 
     // Find My Remote password (session-only, not saved)
     juce::String findDevicePassword;
@@ -734,6 +737,7 @@ private:
         addTargetButton.addMouseListener(this, false);
         openLogWindowButton.addMouseListener(this, false);
         findMyRemoteButton.addMouseListener(this, false);
+        oscSourceFilterButton.addMouseListener(this, false);
 
         // Target row components
         for (int i = 0; i < maxTargets; ++i)
@@ -801,10 +805,24 @@ private:
         if (oscManager == nullptr)
             return;
 
-        // Apply global config
+        // Build allowed IPs list from targets with rxEnabled=true
+        juce::StringArray allowedIPs;
+        for (int i = 0; i < maxTargets; ++i)
+        {
+            if (targetRows[i].isActive && targetRows[i].rxEnableButton.getToggleState())
+            {
+                juce::String ip = targetRows[i].ipEditor.getText().trim();
+                if (ip.isNotEmpty() && !allowedIPs.contains(ip))
+                    allowedIPs.add(ip);
+            }
+        }
+
+        // Apply global config including IP filtering
         WFSNetwork::GlobalConfig globalConfig;
         globalConfig.udpReceivePort = udpPortEditor.getText().getIntValue();
         globalConfig.tcpReceivePort = tcpPortEditor.getText().getIntValue();
+        globalConfig.ipFilteringEnabled = oscSourceFilterButton.getToggleState();
+        globalConfig.allowedIPs = allowedIPs;
         oscManager->applyGlobalConfig(globalConfig);
 
         // Apply target configs
@@ -992,6 +1010,20 @@ private:
         addAndMakeVisible(findMyRemoteButton);
         findMyRemoteButton.setButtonText("Find My Remote");
         findMyRemoteButton.onClick = [this]() { showFindMyRemoteDialog(); };
+
+        // OSC Source Filter toggle
+        addAndMakeVisible(oscSourceFilterButton);
+        oscSourceFilterButton.setButtonText("OSC Filter: Accept All");
+        oscSourceFilterButton.setClickingTogglesState(true);
+        oscSourceFilterButton.onClick = [this]() {
+            oscSourceFilterButton.setButtonText(
+                oscSourceFilterButton.getToggleState()
+                    ? "OSC Filter: Registered Only"
+                    : "OSC Filter: Accept All"
+            );
+            saveOscSourceFilterToValueTree();
+            updateOSCManagerConfig();
+        };
     }
 
     void addNewTarget()
@@ -1233,6 +1265,11 @@ private:
         // Load network targets
         loadTargetsFromValueTree();
 
+        // Load OSC Source Filter setting
+        bool filterEnabled = (int)parameters.getConfigParam("networkOscSourceFilter") != 0;
+        oscSourceFilterButton.setToggleState(filterEnabled, juce::dontSendNotification);
+        oscSourceFilterButton.setButtonText(filterEnabled ? "OSC Filter: Registered Only" : "OSC Filter: Accept All");
+
         // Load ADM-OSC parameters
         admOscOffsetXEditor.setText(juce::String((float)parameters.getConfigParam("admOscOffsetX")), false);
         admOscOffsetYEditor.setText(juce::String((float)parameters.getConfigParam("admOscOffsetY")), false);
@@ -1341,6 +1378,8 @@ private:
             statusBar->setHelpText("Open Network Logging window.");
         else if (source == &findMyRemoteButton)
             statusBar->setHelpText("Make your Remote Flash and Buzz to Find it.");
+        else if (source == &oscSourceFilterButton)
+            statusBar->setHelpText("Filter incoming OSC: Accept All sources or only Registered connections with Rx enabled.");
 
         // ==================== ADM-OSC SECTION ====================
         else if (source == &admOscOffsetXLabel || source == &admOscOffsetXEditor)
@@ -2039,6 +2078,13 @@ private:
                     showStatusMessage("Error: " + fileManager.getLastError());
             }
         });
+    }
+
+    // ==================== OSC SOURCE FILTER VALUETREE METHODS ====================
+
+    void saveOscSourceFilterToValueTree()
+    {
+        parameters.setConfigParam("networkOscSourceFilter", oscSourceFilterButton.getToggleState() ? 1 : 0);
     }
 
     // ==================== TARGET VALUETREE METHODS ====================

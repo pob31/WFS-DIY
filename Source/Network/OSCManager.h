@@ -7,6 +7,8 @@
 #include "OSCLogger.h"
 #include "OSCMessageBuilder.h"
 #include "OSCMessageRouter.h"
+#include "OSCReceiverWithSenderIP.h"
+#include "OSCTCPReceiver.h"
 #include "../Parameters/WFSValueTreeState.h"
 
 namespace WFSNetwork
@@ -17,9 +19,10 @@ namespace WFSNetwork
  *
  * Central coordinator for all OSC communication.
  * Manages bidirectional OSC for up to 6 targets with rate limiting.
+ * Supports IP filtering for incoming messages (UDP and TCP).
  */
 class OSCManager : public juce::ValueTree::Listener,
-                   public juce::OSCReceiver::Listener<juce::OSCReceiver::MessageLoopCallback>,
+                   public OSCReceiverWithSenderIP::Listener,
                    public juce::Timer
 {
 public:
@@ -196,11 +199,13 @@ private:
     void valueTreeParentChanged(juce::ValueTree&) override {}
 
     //==========================================================================
-    // OSCReceiver::Listener
+    // OSCReceiverWithSenderIP::Listener
     //==========================================================================
 
-    void oscMessageReceived(const juce::OSCMessage& message) override;
-    void oscBundleReceived(const juce::OSCBundle& bundle) override;
+    void oscMessageReceived(const juce::OSCMessage& message,
+                            const juce::String& senderIP) override;
+    void oscBundleReceived(const juce::OSCBundle& bundle,
+                           const juce::String& senderIP) override;
 
     //==========================================================================
     // Timer
@@ -222,7 +227,7 @@ private:
     void sendParameterUpdate(int targetIndex, const juce::Identifier& paramId,
                              int channelId, float value, bool isOutput);
 
-    bool isFromAllowedIP(const juce::OSCMessage& message) const;
+    bool isAllowedIP(const juce::String& senderIP) const;
 
     void updateTargetStatus(int targetIndex, ConnectionStatus newStatus);
 
@@ -232,9 +237,9 @@ private:
 
     WFSValueTreeState& state;
 
-    // Receivers
-    std::unique_ptr<juce::OSCReceiver> udpReceiver;
-    std::unique_ptr<juce::OSCReceiver> tcpReceiver;
+    // Receivers (custom implementations that expose sender IP)
+    std::unique_ptr<OSCReceiverWithSenderIP> udpReceiver;
+    std::unique_ptr<OSCTCPReceiver> tcpReceiver;
     bool listening = false;
 
     // Connections (one per target)
