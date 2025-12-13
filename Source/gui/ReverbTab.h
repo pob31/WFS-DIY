@@ -565,7 +565,7 @@ private:
         commonAttenValueLabel.setColour (juce::Label::textColourId, juce::Colours::white);
         commonAttenValueLabel.setJustificationType (juce::Justification::centred);
 
-        // Mute buttons
+        // Mute buttons (styled like InputsTab)
         addAndMakeVisible (mutesLabel);
         mutesLabel.setText ("Output Mutes:", juce::dontSendNotification);
         mutesLabel.setColour (juce::Label::textColourId, juce::Colours::white);
@@ -573,7 +573,9 @@ private:
         for (int i = 0; i < maxMuteButtons; ++i)
         {
             muteButtons[i].setButtonText (juce::String (i + 1));
-            muteButtons[i].setColour (juce::ToggleButton::textColourId, juce::Colours::white);
+            muteButtons[i].setClickingTogglesState (true);
+            muteButtons[i].setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF3A3A3A));
+            muteButtons[i].setColour (juce::TextButton::buttonOnColourId, juce::Colour (0xFFFF5722));
             muteButtons[i].onClick = [this, i]
             {
                 saveMuteStates();
@@ -1739,7 +1741,7 @@ private:
     WfsBasicDial commonAttenDial;
     juce::Label commonAttenValueLabel;
     juce::Label mutesLabel;
-    juce::ToggleButton muteButtons[maxMuteButtons];
+    juce::TextButton muteButtons[maxMuteButtons];
     juce::Label muteMacrosLabel;
     juce::ComboBox muteMacrosSelector;
 
