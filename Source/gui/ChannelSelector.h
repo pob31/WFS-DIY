@@ -163,6 +163,22 @@ public:
             onChannelChanged(currentChannel);
     }
 
+    /** Select channel programmatically without risk of overlay opening.
+     *  Use this when selecting via keyboard shortcuts to prevent the
+     *  Enter key from also triggering the button's onClick.
+     */
+    void setSelectedChannelProgrammatically(int channel)
+    {
+        currentChannel = juce::jlimit(1, numChannels, channel);
+        updateButtonText();
+        // Remove focus from the internal button to prevent Enter key from triggering overlay
+        selectorButton.setWantsKeyboardFocus(false);
+        if (onChannelChanged)
+            onChannelChanged(currentChannel);
+        // Re-enable keyboard focus after a short delay
+        selectorButton.setWantsKeyboardFocus(true);
+    }
+
     int getSelectedChannel() const { return currentChannel; }
 
     void resized() override

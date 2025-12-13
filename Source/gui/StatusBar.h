@@ -83,6 +83,8 @@ public:
     {
         currentHelpText = "";
         currentOscMethod = "";
+        temporaryMessage.clear();
+        stopTimer();
         updateDisplay();
     }
 

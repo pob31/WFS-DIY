@@ -39,6 +39,9 @@ public:
     void paint (juce::Graphics& g) override;
     void resized() override;
 
+    // Keyboard handling
+    bool keyPressed(const juce::KeyPress& key) override;
+
     void startAudioEngine();
     void saveSettings();
     void timerCallback() override;
@@ -135,6 +138,21 @@ private:
     // Handlers for callbacks from System Config tab
     void handleProcessingChange(bool enabled);
     void handleChannelCountChange(int inputs, int outputs);
+
+    // Keyboard handling helpers
+    enum class ChannelSelectionMode { None, Input, Output, Reverb };
+    ChannelSelectionMode channelSelectionMode = ChannelSelectionMode::None;
+    juce::String channelNumberBuffer;
+    juce::int64 channelSelectionStartTime = 0;
+    static constexpr int channelSelectionTimeoutMs = 5000;
+
+    bool isTextEditorFocused() const;
+    void startChannelSelection(ChannelSelectionMode mode);
+    void cancelChannelSelection();
+    void confirmChannelSelection();
+    void cycleChannel(int delta);
+    void nudgeInputPosition(int axis, float delta);   // axis: 0=X, 1=Y, 2=Z
+    void nudgeOutputPosition(int axis, float delta);  // axis: 0=X, 1=Y, 2=Z
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };

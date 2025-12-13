@@ -1,4 +1,5 @@
 #include "MainComponent.h"
+#include "Parameters/WFSParameterIDs.h"
 
 //==============================================================================
 MainComponent::MainComponent()
@@ -227,6 +228,9 @@ MainComponent::MainComponent()
     int windowWidth = juce::jmax(1280, (int)(displayArea.getWidth() * 0.9f));
     int windowHeight = juce::jmax(720, (int)(displayArea.getHeight() * 0.9f));
     setSize (windowWidth, windowHeight);
+
+    // Enable keyboard focus for keyboard shortcuts
+    setWantsKeyboardFocus(true);
 
     // IMPORTANT: Don't call setAudioChannels() here - it causes 887D0003 errors
     // on systems where the default Windows Audio device doesn't exist/work.
@@ -875,5 +879,376 @@ float MainComponent::getLevel(int inputChannel, int outputChannel) const
         return levels[idx];
     }
     return 0.0f;
+}
+
+//==============================================================================
+// Keyboard handling implementation
+
+bool MainComponent::isTextEditorFocused() const
+{
+    // Check if any TextEditor component has keyboard focus
+    auto* focused = juce::Component::getCurrentlyFocusedComponent();
+    return dynamic_cast<juce::TextEditor*>(focused) != nullptr;
+}
+
+void MainComponent::startChannelSelection(ChannelSelectionMode mode)
+{
+    channelSelectionMode = mode;
+    channelNumberBuffer.clear();
+    channelSelectionStartTime = juce::Time::currentTimeMillis();
+
+    // Switch to appropriate tab
+    juce::String prompt;
+    switch (mode)
+    {
+        case ChannelSelectionMode::Input:
+            tabbedComponent.setCurrentTabIndex(4);  // Inputs tab index
+            prompt = "Select Input Channel: ";
+            break;
+        case ChannelSelectionMode::Output:
+            tabbedComponent.setCurrentTabIndex(2);  // Outputs tab index
+            prompt = "Select Output Channel: ";
+            break;
+        case ChannelSelectionMode::Reverb:
+            tabbedComponent.setCurrentTabIndex(3);  // Reverb tab index
+            prompt = "Select Reverb Channel: ";
+            break;
+        default:
+            break;
+    }
+
+    // Grab keyboard focus back so we receive subsequent key presses
+    grabKeyboardFocus();
+
+    // Show message after any tab-switching UI updates have completed
+    if (statusBar != nullptr)
+    {
+        juce::MessageManager::callAsync([this, prompt]() {
+            if (statusBar != nullptr && channelSelectionMode != ChannelSelectionMode::None)
+                statusBar->showTemporaryMessage(prompt, channelSelectionTimeoutMs);
+        });
+    }
+}
+
+void MainComponent::cancelChannelSelection()
+{
+    channelSelectionMode = ChannelSelectionMode::None;
+    channelNumberBuffer.clear();
+    if (statusBar != nullptr)
+        statusBar->clearText();
+}
+
+void MainComponent::confirmChannelSelection()
+{
+    int channelNum = channelNumberBuffer.getIntValue();
+    if (channelNum > 0)
+    {
+        switch (channelSelectionMode)
+        {
+            case ChannelSelectionMode::Input:
+                if (inputsTab != nullptr && channelNum <= inputsTab->getNumChannels())
+                    inputsTab->selectChannel(channelNum);
+                break;
+            case ChannelSelectionMode::Output:
+                if (outputsTab != nullptr && channelNum <= outputsTab->getNumChannels())
+                    outputsTab->selectChannel(channelNum);
+                break;
+            case ChannelSelectionMode::Reverb:
+                // ReverbTab not implemented yet - placeholder
+                break;
+            default:
+                break;
+        }
+    }
+    cancelChannelSelection();
+}
+
+void MainComponent::cycleChannel(int delta)
+{
+    int currentTabIndex = tabbedComponent.getCurrentTabIndex();
+
+    if (currentTabIndex == 4 && inputsTab != nullptr)  // Inputs tab
+    {
+        inputsTab->cycleChannel(delta);
+    }
+    else if (currentTabIndex == 2 && outputsTab != nullptr)  // Outputs tab
+    {
+        outputsTab->cycleChannel(delta);
+    }
+    // ReverbTab cycling not implemented yet
+}
+
+void MainComponent::nudgeInputPosition(int axis, float delta)
+{
+    if (inputsTab == nullptr)
+        return;
+
+    int channel = inputsTab->getCurrentChannel() - 1;  // Convert to 0-based
+    if (channel < 0)
+        return;
+
+    auto& state = parameters.getValueTreeState();
+
+    // Check if tracking is enabled (globally AND on channel)
+    bool globalTracking = state.getIntParameter(WFSParameterIDs::trackingEnabled) != 0;
+    bool channelTracking = state.getIntParameter(WFSParameterIDs::inputTrackingActive, channel) != 0;
+    bool useOffset = globalTracking && channelTracking;
+
+    juce::Identifier paramId;
+    switch (axis)
+    {
+        case 0:  // X
+            paramId = useOffset ? WFSParameterIDs::inputOffsetX : WFSParameterIDs::inputPositionX;
+            break;
+        case 1:  // Y
+            paramId = useOffset ? WFSParameterIDs::inputOffsetY : WFSParameterIDs::inputPositionY;
+            break;
+        case 2:  // Z
+            paramId = useOffset ? WFSParameterIDs::inputOffsetZ : WFSParameterIDs::inputPositionZ;
+            break;
+        default:
+            return;
+    }
+
+    float current = state.getFloatParameter(paramId, channel);
+    state.setInputParameter(channel, paramId, current + delta);
+}
+
+void MainComponent::nudgeOutputPosition(int axis, float delta)
+{
+    if (outputsTab == nullptr)
+        return;
+
+    int channel = outputsTab->getCurrentChannel() - 1;  // Convert to 0-based
+    if (channel < 0)
+        return;
+
+    auto& state = parameters.getValueTreeState();
+
+    juce::Identifier paramId;
+    switch (axis)
+    {
+        case 0:  // X
+            paramId = WFSParameterIDs::outputPositionX;
+            break;
+        case 1:  // Y
+            paramId = WFSParameterIDs::outputPositionY;
+            break;
+        case 2:  // Z
+            paramId = WFSParameterIDs::outputPositionZ;
+            break;
+        default:
+            return;
+    }
+
+    float current = state.getFloatParameter(paramId, channel);
+    state.setOutputParameter(channel, paramId, current + delta);
+}
+
+bool MainComponent::keyPressed(const juce::KeyPress& key)
+{
+    // Check for channel selection timeout
+    if (channelSelectionMode != ChannelSelectionMode::None)
+    {
+        if (juce::Time::currentTimeMillis() - channelSelectionStartTime > channelSelectionTimeoutMs)
+            cancelChannelSelection();
+    }
+
+    // If in channel selection mode, handle digit input
+    if (channelSelectionMode != ChannelSelectionMode::None)
+    {
+        if (key.isKeyCode(juce::KeyPress::returnKey))
+        {
+            confirmChannelSelection();
+            return true;
+        }
+        if (key.isKeyCode(juce::KeyPress::escapeKey))
+        {
+            cancelChannelSelection();
+            return true;
+        }
+        juce::juce_wchar c = key.getTextCharacter();
+        if (c >= '0' && c <= '9')
+        {
+            channelNumberBuffer += c;
+            if (statusBar != nullptr)
+            {
+                juce::String prompt;
+                switch (channelSelectionMode)
+                {
+                    case ChannelSelectionMode::Input: prompt = "Select Input Channel: "; break;
+                    case ChannelSelectionMode::Output: prompt = "Select Output Channel: "; break;
+                    case ChannelSelectionMode::Reverb: prompt = "Select Reverb Channel: "; break;
+                    default: break;
+                }
+                statusBar->showTemporaryMessage(prompt + channelNumberBuffer,
+                    channelSelectionTimeoutMs - (int)(juce::Time::currentTimeMillis() - channelSelectionStartTime));
+            }
+            return true;
+        }
+        // Backspace to delete last digit
+        if (key.isKeyCode(juce::KeyPress::backspaceKey) && channelNumberBuffer.isNotEmpty())
+        {
+            channelNumberBuffer = channelNumberBuffer.dropLastCharacters(1);
+            // Update display
+            if (statusBar != nullptr)
+            {
+                juce::String prompt;
+                switch (channelSelectionMode)
+                {
+                    case ChannelSelectionMode::Input: prompt = "Select Input Channel: "; break;
+                    case ChannelSelectionMode::Output: prompt = "Select Output Channel: "; break;
+                    case ChannelSelectionMode::Reverb: prompt = "Select Reverb Channel: "; break;
+                    default: break;
+                }
+                statusBar->showTemporaryMessage(prompt + channelNumberBuffer,
+                    channelSelectionTimeoutMs - (int)(juce::Time::currentTimeMillis() - channelSelectionStartTime));
+            }
+            return true;
+        }
+        return false;
+    }
+
+    // Skip shortcuts if text editor has focus (user is typing in a field)
+    if (isTextEditorFocused())
+        return false;
+
+    // Undo/Redo: Ctrl+Z, Ctrl+Y, Ctrl+Shift+Z
+    if (key.getModifiers().isCommandDown())
+    {
+        auto& state = parameters.getValueTreeState();
+        if (key.isKeyCode('Z'))
+        {
+            if (key.getModifiers().isShiftDown())
+            {
+                // Ctrl+Shift+Z = Redo
+                if (state.canRedo())
+                {
+                    state.redo();
+                    return true;
+                }
+            }
+            else
+            {
+                // Ctrl+Z = Undo
+                if (state.canUndo())
+                {
+                    state.undo();
+                    return true;
+                }
+            }
+        }
+        if (key.isKeyCode('Y'))
+        {
+            // Ctrl+Y = Redo
+            if (state.canRedo())
+            {
+                state.redo();
+                return true;
+            }
+        }
+    }
+
+    // Tab switching with channel selection: I, O, R
+    if (key.isKeyCode('I') && !key.getModifiers().isCommandDown())
+    {
+        startChannelSelection(ChannelSelectionMode::Input);
+        return true;
+    }
+    if (key.isKeyCode('O') && !key.getModifiers().isCommandDown())
+    {
+        startChannelSelection(ChannelSelectionMode::Output);
+        return true;
+    }
+    if (key.isKeyCode('R') && !key.getModifiers().isCommandDown())
+    {
+        startChannelSelection(ChannelSelectionMode::Reverb);
+        return true;
+    }
+
+    // Channel cycling: Space / Shift+Space
+    if (key.isKeyCode(juce::KeyPress::spaceKey))
+    {
+        cycleChannel(key.getModifiers().isShiftDown() ? -1 : 1);
+        return true;
+    }
+
+    // Position nudging: Arrow keys, Page Up/Down (Inputs and Outputs tabs)
+    int currentTabIndex = tabbedComponent.getCurrentTabIndex();
+    const float nudgeAmount = 0.1f;
+
+    // Inputs tab (index 4)
+    if (currentTabIndex == 4)
+    {
+        if (key.isKeyCode(juce::KeyPress::leftKey))
+        {
+            nudgeInputPosition(0, -nudgeAmount);  // X-
+            return true;
+        }
+        if (key.isKeyCode(juce::KeyPress::rightKey))
+        {
+            nudgeInputPosition(0, nudgeAmount);   // X+
+            return true;
+        }
+        if (key.isKeyCode(juce::KeyPress::upKey))
+        {
+            nudgeInputPosition(1, nudgeAmount);   // Y+ (depth)
+            return true;
+        }
+        if (key.isKeyCode(juce::KeyPress::downKey))
+        {
+            nudgeInputPosition(1, -nudgeAmount);  // Y- (depth)
+            return true;
+        }
+        if (key.isKeyCode(juce::KeyPress::pageUpKey))
+        {
+            nudgeInputPosition(2, nudgeAmount);   // Z+ (height)
+            return true;
+        }
+        if (key.isKeyCode(juce::KeyPress::pageDownKey))
+        {
+            nudgeInputPosition(2, -nudgeAmount);  // Z- (height)
+            return true;
+        }
+    }
+
+    // Outputs tab (index 2)
+    if (currentTabIndex == 2)
+    {
+        if (key.isKeyCode(juce::KeyPress::leftKey))
+        {
+            nudgeOutputPosition(0, -nudgeAmount);  // X-
+            return true;
+        }
+        if (key.isKeyCode(juce::KeyPress::rightKey))
+        {
+            nudgeOutputPosition(0, nudgeAmount);   // X+
+            return true;
+        }
+        if (key.isKeyCode(juce::KeyPress::upKey))
+        {
+            nudgeOutputPosition(1, nudgeAmount);   // Y+ (depth)
+            return true;
+        }
+        if (key.isKeyCode(juce::KeyPress::downKey))
+        {
+            nudgeOutputPosition(1, -nudgeAmount);  // Y- (depth)
+            return true;
+        }
+        if (key.isKeyCode(juce::KeyPress::pageUpKey))
+        {
+            nudgeOutputPosition(2, nudgeAmount);   // Z+ (height)
+            return true;
+        }
+        if (key.isKeyCode(juce::KeyPress::pageDownKey))
+        {
+            nudgeOutputPosition(2, -nudgeAmount);  // Z- (height)
+            return true;
+        }
+    }
+
+    // Reverb tab (index 3) - no position parameters yet
+
+    return false;
 }
 

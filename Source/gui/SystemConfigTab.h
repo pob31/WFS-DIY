@@ -196,6 +196,9 @@ public:
     SystemConfigTab(WfsParameters& params)
         : parameters(params)
     {
+        // This tab wants keyboard focus to prevent auto-focus on first TextEditor
+        setWantsKeyboardFocus(true);
+
         // Show Section
         addAndMakeVisible(showNameLabel);
         showNameLabel.setText("Name:", juce::dontSendNotification);
@@ -406,6 +409,26 @@ public:
         configTree = parameters.getConfigTree();
         configTree.addListener(this);
 
+        // Set explicit tab order: left column first (top-down), then right column (top-down)
+        // Left column
+        showNameEditor.setExplicitFocusOrder(1);
+        showLocationEditor.setExplicitFocusOrder(2);
+        inputChannelsEditor.setExplicitFocusOrder(3);
+        outputChannelsEditor.setExplicitFocusOrder(4);
+        reverbChannelsEditor.setExplicitFocusOrder(5);
+        // Right column
+        stageWidthEditor.setExplicitFocusOrder(6);
+        stageDepthEditor.setExplicitFocusOrder(7);
+        stageHeightEditor.setExplicitFocusOrder(8);
+        stageOriginWidthEditor.setExplicitFocusOrder(9);
+        stageOriginDepthEditor.setExplicitFocusOrder(10);
+        stageOriginHeightEditor.setExplicitFocusOrder(11);
+        speedOfSoundEditor.setExplicitFocusOrder(12);
+        temperatureEditor.setExplicitFocusOrder(13);
+        masterLevelEditor.setExplicitFocusOrder(14);
+        systemLatencyEditor.setExplicitFocusOrder(15);
+        haasEffectEditor.setExplicitFocusOrder(16);
+
         // Load initial values
         loadParametersToUI();
     }
@@ -603,6 +626,22 @@ public:
     void setAudioInterfaceCallback(AudioInterfaceCallback callback)
     {
         onAudioInterfaceWindowRequested = callback;
+    }
+
+    /** Grab focus when this tab becomes visible to prevent auto-focus on first TextEditor */
+    void visibilityChanged() override
+    {
+        // Only grab focus if we're actually on screen (isShowing checks for peer)
+        if (isShowing())
+            grabKeyboardFocus();
+    }
+
+    /** Grab focus when clicking on background (not on a child component) */
+    void mouseDown(const juce::MouseEvent& e) override
+    {
+        // Only grab focus if clicking directly on this component (not a child)
+        if (e.eventComponent == this)
+            grabKeyboardFocus();
     }
 
 private:

@@ -1,0 +1,39 @@
+Section	Label	Variable	UI	Type	Min	Max	Default	Unit	enum	Notes	Hover help text in the status bar
+Network	Select Network Interface	networkInterface	drop down menu							select the network interface available	Select the Network Interface.
+Network	Current IPv4	networkCurrentIP	IP number box	IP (4x INT)						not editable	IP address of the Processor.
+Network	UDP Port	networkRxUDPport	number box	INT							UDP Recieve Port of the Processor.
+Network	TCP Port	networkRxTCPport	number box	INT							TCP Recieve Port of the Processor.
+Network	Open Log Window		text button						NETWORK LOG	open Network Logging window	Open Network Logging window.
+Network	Add Target/Server		text button						ADD	At the end of the empty row after all targets (max 6 targets) Add a row for a new target.	Add new network target.
+Network	Target/Server Name	networkTSname	number box	STRING						For each target/server (up to 6 targets/servers)	Network Target Name.
+Network	Target/Server Data Mode	networkTSdataMode	drop down menu	INT	0	1	0		UDP ; TCP	For each target/server (up to 6 targets/servers)	Select UDP or TCP data transmission (OSC is UDP by default).
+Network	Target/Server IPv4	networkTSip	IP number box	IP (4x INT)						For each target/server (up to 6 targets/servers)	IP Address of the Target (use 127.0.0.1 for local host).
+Network	Target/Server Port	networkTSport	number box	INT						For each target/server (up to 6 targets/servers)	Transmit Port for this Target.
+Network	Target/Server Rx Enable	networkTSrxEnable	text button	INT	0	1	0		OFF / ON	For each target/server (up to 6 targets/servers)	Enable or Disable Data Reception.
+Network	Target/Server Tx Enable	networkTStxEnable	text button	INT	0	1	0		OFF / ON	For each target/server (up to 6 targets/servers)	Enable or Disable Data Transmission.
+Network	Target/Server Protocol	networkTSProtocol	drop down menu	INT					DISABLED ; OSC ; REMOTE ; ADM-OSC	For each target/server (up to 6 targets/servers)	Select the Protocol for this Target (OSC; REMOTE for the Remote Control application; ADM-OSC)
+Network	Remove Target/Server		text button						REMOVE	For each target/server (up to 6 targets/servers). At the end of the row in the same column as the “Add target/server” of the last row. With confirmation	Delete this Network Target.
+Network	Filter 	?	text button	INT	0	1	0				
+Network	Find My Remote		text button						FIND MY REMOTE	Send OSC /findDevice with findDevicePassword	Make your Remote Flash and Buzz to Find it.
+Network	Password	findDevicePassword	editable text box	STRING							Password for Find My Remote
+ADM-OSC	ADM-OSC Offset X	admOscOffsetX	number box	FLOAT	-50.0	50.0	0.0	m		Greyed out but editable if no ADM-OSC target/server present	Offset Tracking X Coordinate
+ADM-OSC	ADM-OSC Offset Y	admOscOffsetY	number box	FLOAT	-50.0	50.0	0.0	m		Greyed out but editable if no ADM-OSC target/server present	Offset Tracking Y Coordinate
+ADM-OSC	ADM-OSC Offset Z	admOscOffsetZ	number box	FLOAT	-50.0	50.0	0.0	m		Greyed out but editable if no ADM-OSC target/server present	Offset Tracking Z Coordinate
+ADM-OSC	ADM-OSC Scale X	admOscScaleX	number box	FLOAT	0.01	100.0	1.0	x		Greyed out but editable if no ADM-OSC target/server present	Scale Tracking X Coordinate
+ADM-OSC	ADM-OSC Scale Y	admOscScaleY	number box	FLOAT	0.01	100.0	1.0	x		Greyed out but editable if no ADM-OSC target/server present	Scale Tracking Y Coordinate
+ADM-OSC	ADM-OSC Scale Z	admOscScaleZ	number box	FLOAT	0.01	100.0	1.0	x		Greyed out but editable if no ADM-OSC target/server present	Scale Tracking Z Coordinate
+ADM-OSC	ADM-OSC Flip X	admOscFlipX	text button	INT	0	1	0		OFF / ON	Greyed out but editable if no ADM-OSC target/server present	Invert Axis of Tracking X Coordinate
+ADM-OSC	ADM-OSC Flip Y	admOscFlipY	text button	INT	0	1	0		OFF / ON	Greyed out but editable if no ADM-OSC target/server present	Invert Axis of Tracking Y Coordinate
+ADM-OSC	ADM-OSC Flip Z	admOscFlipZ	text button	INT	0	1	0		OFF / ON	Greyed out but editable if no ADM-OSC target/server present	Invert Axis of Tracking Z Coordinate
+Tracking	Tracking Enabled	trackingEnabled	text button	INT	0	1	0		OFF / ON		Enable or Disable Incoming Tracking data processing.
+Tracking	Tracking Protocol	trackingProtocol	drop down menu	INT	0	3	0		DISABLED ; OSC ; PosiStageNet (PSN) ; RTTrP	Greyed out but editable if trackingEnabled == 0	Select the type of Tracking Protocol.
+Tracking	Tracking Rx Port	trackingPort	number box	INT						Greyed out but editable if trackingEnabled == 0	Specify the Port to receive Tracking data.
+Tracking	Tracking Offset X	trackingOffsetX	number box	FLOAT	-50.0	50.0	0.0	m		Greyed out but editable if trackingEnabled == 0	Offset Tracking X Coordinate
+Tracking	Tracking Offset Y	trackingOffsetY	number box	FLOAT	-50.0	50.0	0.0	m		Greyed out but editable if trackingEnabled == 0	Offset Tracking Y Coordinate
+Tracking	Tracking Offset Z	trackingOffsetZ	number box	FLOAT	-50.0	50.0	0.0	m		Greyed out but editable if trackingEnabled == 0	Offset Tracking Z Coordinate
+Tracking	Tracking Scale X	trackingScaleX	number box	FLOAT	0.01	100.0	1.0	x		Greyed out but editable if trackingEnabled == 0	Scale Tracking X Coordinate
+Tracking	Tracking Scale Y	trackingScaleY	number box	FLOAT	0.01	100.0	1.0	x		Greyed out but editable if trackingEnabled == 0	Scale Tracking Y Coordinate
+Tracking	Tracking Scale Z	trackingScaleZ	number box	FLOAT	0.01	100.0	1.0	x		Greyed out but editable if trackingEnabled == 0	Scale Tracking Z Coordinate
+Tracking	Tracking Flip X	trackingFlipX	text button	INT	0	1	0		OFF / ON	Greyed out but editable if trackingEnabled == 0	Invert Axis of Tracking X Coordinate
+Tracking	Tracking Flip Y	trackingFlipY	text button	INT	0	1	0		OFF / ON	Greyed out but editable if trackingEnabled == 0	Invert Axis of Tracking Y Coordinate
+Tracking	Tracking Flip Z	trackingFlipZ	text button	INT	0	1	0		OFF / ON	Greyed out but editable if trackingEnabled == 0	Invert Axis of Tracking Z Coordinate

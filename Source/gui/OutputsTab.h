@@ -119,6 +119,33 @@ public:
         configTree.removeListener(this);
     }
 
+    /** Get the currently selected channel (1-based) */
+    int getCurrentChannel() const { return currentChannel; }
+
+    /** Select a specific channel (1-based). Triggers UI update.
+     *  Uses programmatic selection to prevent keyboard Enter from triggering overlay.
+     */
+    void selectChannel(int channel)
+    {
+        channelSelector.setSelectedChannelProgrammatically(channel);
+    }
+
+    /** Get the total number of output channels */
+    int getNumChannels() const { return parameters.getNumOutputChannels(); }
+
+    /** Cycle to next/previous channel. delta=1 for next, delta=-1 for previous. Wraps around. */
+    void cycleChannel(int delta)
+    {
+        int numChannels = parameters.getNumOutputChannels();
+        if (numChannels <= 0) return;
+
+        int newChannel = currentChannel + delta;
+        if (newChannel > numChannels) newChannel = 1;
+        else if (newChannel < 1) newChannel = numChannels;
+
+        selectChannel(newChannel);
+    }
+
     void paint(juce::Graphics& g) override
     {
         g.fillAll(juce::Colour(0xFF1E1E1E));
