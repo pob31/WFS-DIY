@@ -270,6 +270,9 @@ private:
     void handleStandardOSCMessage(const juce::OSCMessage& message);
     void handleRemoteInputMessage(const juce::OSCMessage& message);
     void handleRemotePositionDelta(const OSCMessageRouter::ParsedRemoteInput& parsed);
+    void handleRemoteParameterSet(const OSCMessageRouter::ParsedRemoteInput& parsed);
+    void handleRemoteParameterDelta(const OSCMessageRouter::ParsedRemoteInput& parsed);
+    void handleArrayAdjustMessage(const juce::OSCMessage& message);
 
     void sendRemoteChannelDump(int channelId);
 

@@ -618,6 +618,10 @@ void OSCManager::handleIncomingMessage(const juce::OSCMessage& message,
     {
         handleRemoteInputMessage(message);
     }
+    else if (OSCMessageRouter::isArrayAdjustAddress(address))
+    {
+        handleArrayAdjustMessage(message);
+    }
 }
 
 void OSCManager::handleIncomingBundle(const juce::OSCBundle& bundle,
@@ -656,6 +660,10 @@ void OSCManager::handleIncomingBundle(const juce::OSCBundle& bundle,
             else if (OSCMessageRouter::isRemoteInputAddress(address))
             {
                 handleRemoteInputMessage(message);
+            }
+            else if (OSCMessageRouter::isArrayAdjustAddress(address))
+            {
+                handleArrayAdjustMessage(message);
             }
         }
         else if (element.isBundle())
@@ -787,23 +795,40 @@ void OSCManager::handleRemoteInputMessage(const juce::OSCMessage& message)
         return;
     }
 
-    if (parsed.type == OSCMessageRouter::ParsedRemoteInput::Type::ChannelSelect)
+    using Type = OSCMessageRouter::ParsedRemoteInput::Type;
+
+    switch (parsed.type)
     {
-        // Channel selection from Android app
-        juce::MessageManager::callAsync([this, channelId = parsed.channelId]()
+        case Type::ChannelSelect:
         {
-            setRemoteSelectedChannel(channelId);
+            // Channel selection from Android app - send all params back
+            juce::MessageManager::callAsync([this, channelId = parsed.channelId]()
+            {
+                setRemoteSelectedChannel(channelId);
 
-            if (onRemoteChannelSelect)
-                onRemoteChannelSelect(channelId);
+                if (onRemoteChannelSelect)
+                    onRemoteChannelSelect(channelId);
 
-            // Send all parameters for this channel to REMOTE targets
-            sendRemoteChannelDump(channelId);
-        });
-    }
-    else if (parsed.type == OSCMessageRouter::ParsedRemoteInput::Type::PositionDelta)
-    {
-        handleRemotePositionDelta(parsed);
+                // Send all parameters for this channel to REMOTE targets
+                sendRemoteChannelDump(channelId);
+            });
+            break;
+        }
+
+        case Type::PositionDelta:
+            // Legacy handler for position inc/dec (kept for backward compatibility)
+            handleRemotePositionDelta(parsed);
+            break;
+
+        case Type::ParameterSet:
+            // Absolute value setting
+            handleRemoteParameterSet(parsed);
+            break;
+
+        case Type::ParameterDelta:
+            // Incremental value change
+            handleRemoteParameterDelta(parsed);
+            break;
     }
 }
 
@@ -857,35 +882,200 @@ void OSCManager::handleRemotePositionDelta(const OSCMessageRouter::ParsedRemoteI
     });
 }
 
+void OSCManager::handleRemoteParameterSet(const OSCMessageRouter::ParsedRemoteInput& parsed)
+{
+    // Set parameter to absolute value
+    juce::MessageManager::callAsync([this, parsed]()
+    {
+        incomingProtocol = Protocol::Remote;  // Flag: processing incoming REMOTE message
+
+        // Remote uses 1-based channel IDs, but internal API uses 0-based
+        int channelIndex = parsed.channelId - 1;
+        if (channelIndex >= 0)
+        {
+            state.setInputParameter(channelIndex, parsed.paramId, parsed.value);
+        }
+
+        incomingProtocol = Protocol::Disabled;  // Clear flag
+    });
+}
+
+void OSCManager::handleRemoteParameterDelta(const OSCMessageRouter::ParsedRemoteInput& parsed)
+{
+    // Apply delta to current parameter value
+    juce::MessageManager::callAsync([this, parsed]()
+    {
+        incomingProtocol = Protocol::Remote;  // Flag: processing incoming REMOTE message
+
+        // Remote uses 1-based channel IDs, but internal API uses 0-based
+        int channelIndex = parsed.channelId - 1;
+        if (channelIndex >= 0)
+        {
+            // Get current value
+            juce::var currentVar = state.getInputParameter(channelIndex, parsed.paramId);
+            float currentValue = 0.0f;
+
+            if (currentVar.isDouble())
+                currentValue = static_cast<float>(static_cast<double>(currentVar));
+            else if (currentVar.isInt())
+                currentValue = static_cast<float>(static_cast<int>(currentVar));
+
+            // Calculate delta
+            float delta = 0.0f;
+            if (parsed.value.isDouble())
+                delta = static_cast<float>(static_cast<double>(parsed.value));
+            else if (parsed.value.isInt())
+                delta = static_cast<float>(static_cast<int>(parsed.value));
+
+            if (parsed.direction == DeltaDirection::Decrement)
+                delta = -delta;
+
+            // Apply and set new value
+            float newValue = currentValue + delta;
+            state.setInputParameter(channelIndex, parsed.paramId, newValue);
+        }
+
+        incomingProtocol = Protocol::Disabled;  // Clear flag
+    });
+}
+
+void OSCManager::handleArrayAdjustMessage(const juce::OSCMessage& message)
+{
+    auto parsed = OSCMessageRouter::parseArrayAdjustMessage(message);
+
+    if (!parsed.valid)
+    {
+        ++parseErrors;
+        return;
+    }
+
+    // Apply value change to all outputs in the specified array
+    juce::MessageManager::callAsync([this, parsed]()
+    {
+        incomingProtocol = Protocol::Remote;  // Flag: processing incoming remote message
+
+        // Get number of configured output channels
+        int numOutputs = state.getIntParameter(WFSParameterIDs::outputChannels);
+
+        // Iterate through all outputs and adjust those matching the array ID
+        for (int outputIndex = 0; outputIndex < numOutputs; ++outputIndex)
+        {
+            // Get the array assignment for this output (0-based index)
+            juce::var arrayVar = state.getOutputParameter(outputIndex, WFSParameterIDs::outputArray);
+            int outputArrayId = arrayVar.isInt() ? static_cast<int>(arrayVar) : 0;
+
+            // Check if this output belongs to the target array (1-based from remote)
+            if (outputArrayId == parsed.arrayId)
+            {
+                // Get current parameter value
+                juce::var currentVar = state.getOutputParameter(outputIndex, parsed.paramId);
+                float currentValue = 0.0f;
+
+                if (currentVar.isDouble())
+                    currentValue = static_cast<float>(static_cast<double>(currentVar));
+                else if (currentVar.isInt())
+                    currentValue = static_cast<float>(static_cast<int>(currentVar));
+
+                // Apply delta and set new value
+                float newValue = currentValue + parsed.valueChange;
+                state.setOutputParameter(outputIndex, parsed.paramId, newValue);
+            }
+        }
+
+        incomingProtocol = Protocol::Disabled;  // Clear flag
+    });
+}
+
 void OSCManager::sendRemoteChannelDump(int channelId)
 {
+    // Helper lambda to get a parameter value as float
+    auto getParam = [this, channelId](const juce::Identifier& paramId) -> float {
+        juce::var val = state.getInputParameter(channelId, paramId);
+        if (val.isDouble())
+            return static_cast<float>(static_cast<double>(val));
+        if (val.isInt())
+            return static_cast<float>(static_cast<int>(val));
+        if (val.isBool())
+            return static_cast<bool>(val) ? 1.0f : 0.0f;
+        return 0.0f;
+    };
+
     // Collect all input parameters for this channel
     std::map<juce::Identifier, float> paramValues;
 
-    // Add all relevant parameters
-    // Position
-    paramValues[WFSParameterIDs::inputPositionX] =
-        static_cast<float>(state.getInputParameter(channelId, WFSParameterIDs::inputPositionX));
-    paramValues[WFSParameterIDs::inputPositionY] =
-        static_cast<float>(state.getInputParameter(channelId, WFSParameterIDs::inputPositionY));
-    paramValues[WFSParameterIDs::inputPositionZ] =
-        static_cast<float>(state.getInputParameter(channelId, WFSParameterIDs::inputPositionZ));
+    // Channel parameters
+    paramValues[WFSParameterIDs::inputAttenuation] = getParam(WFSParameterIDs::inputAttenuation);
+    paramValues[WFSParameterIDs::inputDelayLatency] = getParam(WFSParameterIDs::inputDelayLatency);
+    paramValues[WFSParameterIDs::inputMinimalLatency] = getParam(WFSParameterIDs::inputMinimalLatency);
 
-    // Offsets
-    paramValues[WFSParameterIDs::inputOffsetX] =
-        static_cast<float>(state.getInputParameter(channelId, WFSParameterIDs::inputOffsetX));
-    paramValues[WFSParameterIDs::inputOffsetY] =
-        static_cast<float>(state.getInputParameter(channelId, WFSParameterIDs::inputOffsetY));
-    paramValues[WFSParameterIDs::inputOffsetZ] =
-        static_cast<float>(state.getInputParameter(channelId, WFSParameterIDs::inputOffsetZ));
+    // Position parameters
+    paramValues[WFSParameterIDs::inputPositionX] = getParam(WFSParameterIDs::inputPositionX);
+    paramValues[WFSParameterIDs::inputPositionY] = getParam(WFSParameterIDs::inputPositionY);
+    paramValues[WFSParameterIDs::inputPositionZ] = getParam(WFSParameterIDs::inputPositionZ);
+    paramValues[WFSParameterIDs::inputOffsetX] = getParam(WFSParameterIDs::inputOffsetX);
+    paramValues[WFSParameterIDs::inputOffsetY] = getParam(WFSParameterIDs::inputOffsetY);
+    paramValues[WFSParameterIDs::inputOffsetZ] = getParam(WFSParameterIDs::inputOffsetZ);
+    paramValues[WFSParameterIDs::inputCluster] = getParam(WFSParameterIDs::inputCluster);
+    paramValues[WFSParameterIDs::inputMaxSpeedActive] = getParam(WFSParameterIDs::inputMaxSpeedActive);
+    paramValues[WFSParameterIDs::inputMaxSpeed] = getParam(WFSParameterIDs::inputMaxSpeed);
+    paramValues[WFSParameterIDs::inputHeightFactor] = getParam(WFSParameterIDs::inputHeightFactor);
 
-    // Attenuation
-    paramValues[WFSParameterIDs::inputAttenuation] =
-        static_cast<float>(state.getInputParameter(channelId, WFSParameterIDs::inputAttenuation));
+    // Attenuation parameters
+    paramValues[WFSParameterIDs::inputAttenuationLaw] = getParam(WFSParameterIDs::inputAttenuationLaw);
+    paramValues[WFSParameterIDs::inputDistanceAttenuation] = getParam(WFSParameterIDs::inputDistanceAttenuation);
+    paramValues[WFSParameterIDs::inputDistanceRatio] = getParam(WFSParameterIDs::inputDistanceRatio);
+    paramValues[WFSParameterIDs::inputCommonAtten] = getParam(WFSParameterIDs::inputCommonAtten);
 
-    // Tracking
-    paramValues[WFSParameterIDs::inputTrackingActive] =
-        state.getInputParameter(channelId, WFSParameterIDs::inputTrackingActive) ? 1.0f : 0.0f;
+    // Directivity parameters
+    paramValues[WFSParameterIDs::inputDirectivity] = getParam(WFSParameterIDs::inputDirectivity);
+    paramValues[WFSParameterIDs::inputRotation] = getParam(WFSParameterIDs::inputRotation);
+    paramValues[WFSParameterIDs::inputTilt] = getParam(WFSParameterIDs::inputTilt);
+    paramValues[WFSParameterIDs::inputHFshelf] = getParam(WFSParameterIDs::inputHFshelf);
+
+    // Live Source Tamer parameters
+    paramValues[WFSParameterIDs::inputLSactive] = getParam(WFSParameterIDs::inputLSactive);
+    paramValues[WFSParameterIDs::inputLSradius] = getParam(WFSParameterIDs::inputLSradius);
+    paramValues[WFSParameterIDs::inputLSshape] = getParam(WFSParameterIDs::inputLSshape);
+    paramValues[WFSParameterIDs::inputLSattenuation] = getParam(WFSParameterIDs::inputLSattenuation);
+    paramValues[WFSParameterIDs::inputLSpeakThreshold] = getParam(WFSParameterIDs::inputLSpeakThreshold);
+    paramValues[WFSParameterIDs::inputLSpeakRatio] = getParam(WFSParameterIDs::inputLSpeakRatio);
+    paramValues[WFSParameterIDs::inputLSslowThreshold] = getParam(WFSParameterIDs::inputLSslowThreshold);
+    paramValues[WFSParameterIDs::inputLSslowRatio] = getParam(WFSParameterIDs::inputLSslowRatio);
+
+    // Hackoustics (Floor Reflections) parameters
+    paramValues[WFSParameterIDs::inputFRactive] = getParam(WFSParameterIDs::inputFRactive);
+    paramValues[WFSParameterIDs::inputFRattenuation] = getParam(WFSParameterIDs::inputFRattenuation);
+    paramValues[WFSParameterIDs::inputFRlowCutActive] = getParam(WFSParameterIDs::inputFRlowCutActive);
+    paramValues[WFSParameterIDs::inputFRlowCutFreq] = getParam(WFSParameterIDs::inputFRlowCutFreq);
+    paramValues[WFSParameterIDs::inputFRhighShelfActive] = getParam(WFSParameterIDs::inputFRhighShelfActive);
+    paramValues[WFSParameterIDs::inputFRhighShelfFreq] = getParam(WFSParameterIDs::inputFRhighShelfFreq);
+    paramValues[WFSParameterIDs::inputFRhighShelfGain] = getParam(WFSParameterIDs::inputFRhighShelfGain);
+    paramValues[WFSParameterIDs::inputFRhighShelfSlope] = getParam(WFSParameterIDs::inputFRhighShelfSlope);
+    paramValues[WFSParameterIDs::inputFRdiffusion] = getParam(WFSParameterIDs::inputFRdiffusion);
+
+    // Jitter
+    paramValues[WFSParameterIDs::inputJitter] = getParam(WFSParameterIDs::inputJitter);
+
+    // LFO parameters
+    paramValues[WFSParameterIDs::inputLFOactive] = getParam(WFSParameterIDs::inputLFOactive);
+    paramValues[WFSParameterIDs::inputLFOperiod] = getParam(WFSParameterIDs::inputLFOperiod);
+    paramValues[WFSParameterIDs::inputLFOphase] = getParam(WFSParameterIDs::inputLFOphase);
+    paramValues[WFSParameterIDs::inputLFOshapeX] = getParam(WFSParameterIDs::inputLFOshapeX);
+    paramValues[WFSParameterIDs::inputLFOshapeY] = getParam(WFSParameterIDs::inputLFOshapeY);
+    paramValues[WFSParameterIDs::inputLFOshapeZ] = getParam(WFSParameterIDs::inputLFOshapeZ);
+    paramValues[WFSParameterIDs::inputLFOrateX] = getParam(WFSParameterIDs::inputLFOrateX);
+    paramValues[WFSParameterIDs::inputLFOrateY] = getParam(WFSParameterIDs::inputLFOrateY);
+    paramValues[WFSParameterIDs::inputLFOrateZ] = getParam(WFSParameterIDs::inputLFOrateZ);
+    paramValues[WFSParameterIDs::inputLFOamplitudeX] = getParam(WFSParameterIDs::inputLFOamplitudeX);
+    paramValues[WFSParameterIDs::inputLFOamplitudeY] = getParam(WFSParameterIDs::inputLFOamplitudeY);
+    paramValues[WFSParameterIDs::inputLFOamplitudeZ] = getParam(WFSParameterIDs::inputLFOamplitudeZ);
+    paramValues[WFSParameterIDs::inputLFOphaseX] = getParam(WFSParameterIDs::inputLFOphaseX);
+    paramValues[WFSParameterIDs::inputLFOphaseY] = getParam(WFSParameterIDs::inputLFOphaseY);
+    paramValues[WFSParameterIDs::inputLFOphaseZ] = getParam(WFSParameterIDs::inputLFOphaseZ);
+    paramValues[WFSParameterIDs::inputLFOgyrophone] = getParam(WFSParameterIDs::inputLFOgyrophone);
+
+    // Tracking (read-only on Remote side)
+    paramValues[WFSParameterIDs::inputTrackingActive] = getParam(WFSParameterIDs::inputTrackingActive);
 
     // Build and send messages
     auto messages = OSCMessageBuilder::buildRemoteChannelDump(channelId, paramValues);

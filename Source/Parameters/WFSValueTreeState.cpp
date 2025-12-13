@@ -67,6 +67,26 @@ juce::ValueTree WFSValueTreeState::getTrackingState()
     return getConfigState().getChildWithName (Tracking);
 }
 
+juce::ValueTree WFSValueTreeState::getClustersState()
+{
+    return getConfigState().getChildWithName (Clusters);
+}
+
+juce::ValueTree WFSValueTreeState::getClustersState() const
+{
+    return getConfigState().getChildWithName (Clusters);
+}
+
+juce::ValueTree WFSValueTreeState::getClusterState (int clusterIndex)
+{
+    auto clusters = getClustersState();
+    // clusterIndex is 1-based (1-10), convert to 0-based for array access
+    int idx = clusterIndex - 1;
+    if (idx >= 0 && idx < clusters.getNumChildren())
+        return clusters.getChild (idx);
+    return {};
+}
+
 juce::ValueTree WFSValueTreeState::getInputsState()
 {
     return state.getChildWithName (Inputs);
@@ -422,6 +442,25 @@ juce::ValueTree WFSValueTreeState::getReverbReturnSection (int channelIndex)
 }
 
 //==============================================================================
+// Cluster Access
+//==============================================================================
+
+juce::var WFSValueTreeState::getClusterParameter (int clusterIndex, const juce::Identifier& paramId) const
+{
+    auto cluster = const_cast<WFSValueTreeState*>(this)->getClusterState (clusterIndex);
+    if (cluster.isValid() && cluster.hasProperty (paramId))
+        return cluster.getProperty (paramId);
+    return {};
+}
+
+void WFSValueTreeState::setClusterParameter (int clusterIndex, const juce::Identifier& paramId, const juce::var& value)
+{
+    auto cluster = getClusterState (clusterIndex);
+    if (cluster.isValid())
+        cluster.setProperty (paramId, value, &undoManager);
+}
+
+//==============================================================================
 // Network Target Access
 //==============================================================================
 
@@ -747,6 +786,19 @@ void WFSValueTreeState::valueTreePropertyChanged (juce::ValueTree& treeWhoseProp
     }
 
     auto value = treeWhosePropertyHasChanged.getProperty (property);
+
+    // Enforce tracking constraint: only one tracked input per cluster
+    // This catches changes from OSC, file loading, and any other source
+    if (property == inputTrackingActive && channelIndex >= 0)
+    {
+        enforceClusterTrackingConstraint (channelIndex);
+    }
+    else if (property == inputCluster && channelIndex >= 0)
+    {
+        // When cluster assignment changes, also check constraint
+        enforceClusterTrackingConstraint (channelIndex);
+    }
+
     notifyParameterListeners (property, value, channelIndex);
 }
 
@@ -797,6 +849,7 @@ void WFSValueTreeState::createConfigSection()
     createNetworkSection (config);
     createADMOSCSection (config);
     createTrackingSection (config);
+    createClustersSection (config);
 
     state.appendChild (config, nullptr);
 }
@@ -885,6 +938,23 @@ void WFSValueTreeState::createTrackingSection (juce::ValueTree& config)
     tracking.setProperty (trackingFlipY, trackingFlipDefault, nullptr);
     tracking.setProperty (trackingFlipZ, trackingFlipDefault, nullptr);
     config.appendChild (tracking, nullptr);
+}
+
+void WFSValueTreeState::createClustersSection (juce::ValueTree& config)
+{
+    juce::ValueTree clusters (Clusters);
+    clusters.setProperty (count, maxClusters, nullptr);
+
+    // Create 10 cluster entries
+    for (int i = 0; i < maxClusters; ++i)
+    {
+        juce::ValueTree cluster (Cluster);
+        cluster.setProperty (id, i + 1, nullptr);
+        cluster.setProperty (clusterReferenceMode, clusterReferenceModeDefault, nullptr);
+        clusters.appendChild (cluster, nullptr);
+    }
+
+    config.appendChild (clusters, nullptr);
 }
 
 void WFSValueTreeState::createInputsSection()
@@ -1470,6 +1540,64 @@ void WFSValueTreeState::notifyParameterListeners (const juce::Identifier& paramI
             (entry.channelIndex == -1 || entry.channelIndex == channelIndex))
         {
             entry.callback (value);
+        }
+    }
+}
+
+void WFSValueTreeState::enforceClusterTrackingConstraint (int changedInputIndex)
+{
+    // Get tracking state for the changed input
+    auto changedInput = getInputState (changedInputIndex);
+    if (!changedInput.isValid())
+        return;
+
+    auto posSection = changedInput.getChildWithName (Position);
+    if (!posSection.isValid())
+        return;
+
+    int clusterIdx = static_cast<int> (posSection.getProperty (inputCluster));
+    bool trackingActive = static_cast<int> (posSection.getProperty (inputTrackingActive)) != 0;
+
+    // Only check if this input is in a cluster (not "Single" which is 0)
+    // and has tracking enabled
+    if (clusterIdx < 1 || !trackingActive)
+        return;
+
+    // Check global tracking state - constraints only matter when global tracking is active
+    auto trackingSection = getTrackingState();
+    bool globalEnabled = trackingSection.isValid() &&
+                         static_cast<int> (trackingSection.getProperty (trackingEnabled)) != 0;
+    int protocol = trackingSection.isValid() ?
+                   static_cast<int> (trackingSection.getProperty (trackingProtocol)) : 0;
+
+    if (!globalEnabled || protocol == 0)
+        return;  // Global tracking not active, constraint doesn't apply
+
+    // Find all other inputs in the same cluster with tracking enabled
+    auto inputs = getInputsState();
+    int numInputs = inputs.getNumChildren();
+
+    for (int i = 0; i < numInputs; ++i)
+    {
+        if (i == changedInputIndex)
+            continue;  // Skip the changed input
+
+        auto input = inputs.getChild (i);
+        auto pos = input.getChildWithName (Position);
+        if (!pos.isValid())
+            continue;
+
+        int otherCluster = static_cast<int> (pos.getProperty (inputCluster));
+        bool otherTracking = static_cast<int> (pos.getProperty (inputTrackingActive)) != 0;
+
+        if (otherCluster == clusterIdx && otherTracking)
+        {
+            // Found another input in same cluster with tracking enabled
+            // Disable tracking on the OTHER input (keep the one that was just changed)
+            pos.setProperty (inputTrackingActive, 0, nullptr);
+            DBG ("WFSValueTreeState: Disabled tracking on Input " << (i + 1)
+                 << " due to cluster constraint (Input " << (changedInputIndex + 1)
+                 << " now tracked in cluster " << clusterIdx << ")");
         }
     }
 }

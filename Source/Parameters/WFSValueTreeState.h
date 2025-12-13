@@ -43,6 +43,9 @@ public:
     juce::ValueTree getNetworkState();
     juce::ValueTree getADMOSCState();
     juce::ValueTree getTrackingState();
+    juce::ValueTree getClustersState();
+    juce::ValueTree getClustersState() const;
+    juce::ValueTree getClusterState (int clusterIndex);
 
     /** Get input/output states */
     juce::ValueTree getInputsState();
@@ -137,6 +140,16 @@ public:
     juce::ValueTree getReverbEQSection (int channelIndex);
     juce::ValueTree getReverbEQBand (int channelIndex, int bandIndex);
     juce::ValueTree getReverbReturnSection (int channelIndex);
+
+    //==========================================================================
+    // Cluster Access
+    //==========================================================================
+
+    /** Get cluster parameter (1-based cluster index) */
+    juce::var getClusterParameter (int clusterIndex, const juce::Identifier& id) const;
+
+    /** Set cluster parameter (1-based cluster index) */
+    void setClusterParameter (int clusterIndex, const juce::Identifier& id, const juce::var& value);
 
     //==========================================================================
     // Network Target Access
@@ -281,6 +294,7 @@ private:
     void createNetworkSection (juce::ValueTree& config);
     void createADMOSCSection (juce::ValueTree& config);
     void createTrackingSection (juce::ValueTree& config);
+    void createClustersSection (juce::ValueTree& config);
     void createInputsSection();
     void createOutputsSection();
     void createReverbsSection();
@@ -335,6 +349,10 @@ private:
     /** Determine if a parameter belongs to input, output, reverb, or config */
     enum class ParameterScope { Config, Input, Output, Reverb, AudioPatch, Unknown };
     ParameterScope getParameterScope (const juce::Identifier& id) const;
+
+    /** Enforce cluster tracking constraint: only one tracked input per cluster
+     *  Called when inputTrackingActive or inputCluster changes */
+    void enforceClusterTrackingConstraint (int changedInputIndex);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (WFSValueTreeState)
 };

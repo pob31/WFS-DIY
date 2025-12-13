@@ -152,6 +152,14 @@ namespace WFSParameterIDs
     const juce::Identifier trackingFlipZ     ("trackingFlipZ");
 
     //==========================================================================
+    // Config > Clusters Section
+    //==========================================================================
+
+    const juce::Identifier Clusters          ("Clusters");
+    const juce::Identifier Cluster           ("Cluster");
+    const juce::Identifier clusterReferenceMode ("clusterReferenceMode");
+
+    //==========================================================================
     // Input Channel Parameters
     //==========================================================================
 

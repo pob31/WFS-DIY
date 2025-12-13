@@ -49,13 +49,28 @@ public:
 
     struct ParsedRemoteInput
     {
-        enum class Type { ChannelSelect, PositionDelta };
+        enum class Type {
+            ChannelSelect,    // /remoteInput/inputNumber <ID> - request all params
+            PositionDelta,    // Legacy: /remoteInput/positionX <ID> <inc/dec> <delta>
+            ParameterSet,     // /remoteInput/<param> <ID> <value> - absolute set
+            ParameterDelta    // /remoteInput/<param> <ID> <inc/dec> <delta> - relative change
+        };
 
         Type type = Type::ChannelSelect;
         int channelId = 0;
-        Axis axis = Axis::X;
-        DeltaDirection direction = DeltaDirection::Increment;
-        float deltaValue = 0.0f;
+        juce::Identifier paramId;                              // Which parameter (for ParameterSet/Delta)
+        Axis axis = Axis::X;                                   // For legacy PositionDelta
+        DeltaDirection direction = DeltaDirection::Increment;  // For delta types
+        juce::var value;                                       // Value or delta amount
+        float deltaValue = 0.0f;                               // Legacy: delta for PositionDelta
+        bool valid = false;
+    };
+
+    struct ParsedArrayAdjustMessage
+    {
+        juce::Identifier paramId;  // Output parameter to adjust
+        int arrayId = 0;           // Array/cluster ID (1-based from remote)
+        float valueChange = 0.0f;  // Delta to apply to parameter
         bool valid = false;
     };
 
@@ -78,12 +93,19 @@ public:
     static ParsedRemoteInput parseRemoteInputMessage(const juce::OSCMessage& message);
 
     /**
+     * Parse an array adjustment message from remote.
+     * Handles /arrayAdjust/* addresses for bulk output parameter changes.
+     */
+    static ParsedArrayAdjustMessage parseArrayAdjustMessage(const juce::OSCMessage& message);
+
+    /**
      * Check if an address matches input, output, or reverb patterns.
      */
     static bool isInputAddress(const juce::String& address);
     static bool isOutputAddress(const juce::String& address);
     static bool isReverbAddress(const juce::String& address);
     static bool isRemoteInputAddress(const juce::String& address);
+    static bool isArrayAdjustAddress(const juce::String& address);
 
     //==========================================================================
     // Address Pattern Matching
@@ -126,6 +148,7 @@ private:
     static const std::map<juce::String, juce::Identifier>& getInputAddressMap();
     static const std::map<juce::String, juce::Identifier>& getOutputAddressMap();
     static const std::map<juce::String, juce::Identifier>& getReverbAddressMap();
+    static const std::map<juce::String, juce::Identifier>& getRemoteAddressMap();
 
     /**
      * Extract the parameter portion from an OSC address.

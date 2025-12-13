@@ -193,6 +193,90 @@ const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getReverbAddre
     return addressMap;
 }
 
+const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getRemoteAddressMap()
+{
+    // Remote protocol address names -> parameter IDs
+    // Used for /remoteInput/* addresses from Android app
+    static const std::map<juce::String, juce::Identifier> addressMap = {
+        // Channel
+        { "inputName",        WFSParameterIDs::inputName },
+        { "attenuation",      WFSParameterIDs::inputAttenuation },
+        { "delayLatency",     WFSParameterIDs::inputDelayLatency },
+        { "minimalLatency",   WFSParameterIDs::inputMinimalLatency },
+
+        // Position
+        { "positionX",        WFSParameterIDs::inputPositionX },
+        { "positionY",        WFSParameterIDs::inputPositionY },
+        { "positionZ",        WFSParameterIDs::inputPositionZ },
+        { "offsetX",          WFSParameterIDs::inputOffsetX },
+        { "offsetY",          WFSParameterIDs::inputOffsetY },
+        { "offsetZ",          WFSParameterIDs::inputOffsetZ },
+        { "cluster",          WFSParameterIDs::inputCluster },
+        { "maxSpeedActive",   WFSParameterIDs::inputMaxSpeedActive },
+        { "maxSpeed",         WFSParameterIDs::inputMaxSpeed },
+        { "heightFactor",     WFSParameterIDs::inputHeightFactor },
+
+        // Attenuation
+        { "attenuationLaw",       WFSParameterIDs::inputAttenuationLaw },
+        { "distanceAttenuation",  WFSParameterIDs::inputDistanceAttenuation },
+        { "distanceRatio",        WFSParameterIDs::inputDistanceRatio },
+        { "commonAtten",          WFSParameterIDs::inputCommonAtten },
+
+        // Directivity
+        { "directivity",      WFSParameterIDs::inputDirectivity },
+        { "rotation",         WFSParameterIDs::inputRotation },
+        { "tilt",             WFSParameterIDs::inputTilt },
+        { "HFshelf",          WFSParameterIDs::inputHFshelf },
+
+        // Live Source Tamer
+        { "liveSourceActive",         WFSParameterIDs::inputLSactive },
+        { "liveSourceRadius",         WFSParameterIDs::inputLSradius },
+        { "liveSourceShape",          WFSParameterIDs::inputLSshape },
+        { "liveSourceAttenuation",    WFSParameterIDs::inputLSattenuation },
+        { "liveSourcePeakThreshold",  WFSParameterIDs::inputLSpeakThreshold },
+        { "liveSourcePeakRatio",      WFSParameterIDs::inputLSpeakRatio },
+        { "liveSourceSlowThreshold",  WFSParameterIDs::inputLSslowThreshold },
+        { "liveSourceSlowRatio",      WFSParameterIDs::inputLSslowRatio },
+
+        // Hackoustics (Floor Reflections)
+        { "FRactive",             WFSParameterIDs::inputFRactive },
+        { "Frattenuation",        WFSParameterIDs::inputFRattenuation },
+        { "FRlowCutActive",       WFSParameterIDs::inputFRlowCutActive },
+        { "FRlowCutFreq",         WFSParameterIDs::inputFRlowCutFreq },
+        { "FRhighShelfActive",    WFSParameterIDs::inputFRhighShelfActive },
+        { "FRhighShelfFreq",      WFSParameterIDs::inputFRhighShelfFreq },
+        { "FRhighShelfGain",      WFSParameterIDs::inputFRhighShelfGain },
+        { "FRhighShelfSlope",     WFSParameterIDs::inputFRhighShelfSlope },
+        { "FRdiffusion",          WFSParameterIDs::inputFRdiffusion },
+
+        // Jitter
+        { "jitter",               WFSParameterIDs::inputJitter },
+
+        // LFO
+        { "LFOactive",        WFSParameterIDs::inputLFOactive },
+        { "LFOperiod",        WFSParameterIDs::inputLFOperiod },
+        { "LFOphase",         WFSParameterIDs::inputLFOphase },
+        { "LFOshapeX",        WFSParameterIDs::inputLFOshapeX },
+        { "LFOshapeY",        WFSParameterIDs::inputLFOshapeY },
+        { "LFOshapeZ",        WFSParameterIDs::inputLFOshapeZ },
+        { "LFOrateX",         WFSParameterIDs::inputLFOrateX },
+        { "LFOrateY",         WFSParameterIDs::inputLFOrateY },
+        { "LFOrateZ",         WFSParameterIDs::inputLFOrateZ },
+        { "LFOamplitudeX",    WFSParameterIDs::inputLFOamplitudeX },
+        { "LFOamplitudeY",    WFSParameterIDs::inputLFOamplitudeY },
+        { "LFOamplitudeZ",    WFSParameterIDs::inputLFOamplitudeZ },
+        { "LFOphaseX",        WFSParameterIDs::inputLFOphaseX },
+        { "LFOphaseY",        WFSParameterIDs::inputLFOphaseY },
+        { "LFOphaseZ",        WFSParameterIDs::inputLFOphaseZ },
+        { "LFOgyrophone",     WFSParameterIDs::inputLFOgyrophone },
+
+        // Tracking (read-only in Remote, but included for channel dump)
+        { "trackingActive",   WFSParameterIDs::inputTrackingActive },
+    };
+
+    return addressMap;
+}
+
 //==============================================================================
 // Address Pattern Matching
 //==============================================================================
@@ -215,6 +299,11 @@ bool OSCMessageRouter::isReverbAddress(const juce::String& address)
 bool OSCMessageRouter::isRemoteInputAddress(const juce::String& address)
 {
     return address.startsWith("/remoteInput/");
+}
+
+bool OSCMessageRouter::isArrayAdjustAddress(const juce::String& address)
+{
+    return address.startsWith("/arrayAdjust/");
 }
 
 juce::String OSCMessageRouter::extractParamName(const juce::String& address)
@@ -431,35 +520,95 @@ OSCMessageRouter::ParsedRemoteInput OSCMessageRouter::parseRemoteInputMessage(co
         return result;
     }
 
-    // Handle position deltas: /remoteInput/position{X,Y,Z} <ID> <"inc"/"dec"> <delta>
-    if (paramName == "positionX" || paramName == "positionY" || paramName == "positionZ")
+    // Check if this is a known Remote parameter
+    const auto& remoteMap = getRemoteAddressMap();
+    auto it = remoteMap.find(paramName);
+    if (it == remoteMap.end())
+        return result;  // Unknown parameter
+
+    // Need at least 2 args: <channelID> <value> or <channelID> <inc/dec>
+    if (message.size() < 2)
+        return result;
+
+    result.paramId = it->second;
+    result.channelId = extractInt(message[0]);
+
+    // Check if second argument is "inc" or "dec" for delta mode
+    if (message[1].isString())
     {
-        if (message.size() < 3)
+        juce::String directive = extractString(message[1]);
+        if (directive.equalsIgnoreCase("inc") || directive.equalsIgnoreCase("dec"))
+        {
+            // Delta mode: /remoteInput/<param> <ID> <inc/dec> <value>
+            result.type = ParsedRemoteInput::Type::ParameterDelta;
+            result.direction = directive.equalsIgnoreCase("inc")
+                ? DeltaDirection::Increment : DeltaDirection::Decrement;
+
+            if (message.size() >= 3)
+                result.value = extractFloat(message[2]);
+            else
+                result.value = 1.0f;  // Default delta of 1
+
+            // Legacy compatibility: also set axis and deltaValue for position params
+            if (paramName == "positionX" || paramName == "offsetX")
+                result.axis = Axis::X;
+            else if (paramName == "positionY" || paramName == "offsetY")
+                result.axis = Axis::Y;
+            else if (paramName == "positionZ" || paramName == "offsetZ")
+                result.axis = Axis::Z;
+            result.deltaValue = static_cast<float>(result.value);
+
+            result.valid = true;
             return result;
+        }
 
-        result.type = ParsedRemoteInput::Type::PositionDelta;
-        result.channelId = extractInt(message[0]);
-
-        // Determine axis
-        if (paramName == "positionX")
-            result.axis = Axis::X;
-        else if (paramName == "positionY")
-            result.axis = Axis::Y;
-        else
-            result.axis = Axis::Z;
-
-        // Parse direction
-        juce::String dirStr = extractString(message[1]);
-        result.direction = (dirStr.equalsIgnoreCase("inc"))
-                               ? DeltaDirection::Increment
-                               : DeltaDirection::Decrement;
-
-        // Parse delta value
-        result.deltaValue = extractFloat(message[2]);
-
+        // String value (e.g., inputName): /remoteInput/inputName <ID> <name>
+        result.type = ParsedRemoteInput::Type::ParameterSet;
+        result.value = directive;
         result.valid = true;
         return result;
     }
+
+    // Absolute numeric value: /remoteInput/<param> <ID> <value>
+    result.type = ParsedRemoteInput::Type::ParameterSet;
+    if (message[1].isInt32())
+        result.value = extractInt(message[1]);
+    else
+        result.value = extractFloat(message[1]);
+    result.valid = true;
+    return result;
+}
+
+OSCMessageRouter::ParsedArrayAdjustMessage OSCMessageRouter::parseArrayAdjustMessage(const juce::OSCMessage& message)
+{
+    ParsedArrayAdjustMessage result;
+
+    juce::String address = message.getAddressPattern().toString();
+
+    if (!isArrayAdjustAddress(address))
+        return result;
+
+    // Need exactly 2 args: <array #> <value change>
+    if (message.size() < 2)
+        return result;
+
+    juce::String paramName = extractParamName(address);
+
+    // Map array adjust addresses to output parameter IDs
+    if (paramName == "delayLatency")
+        result.paramId = WFSParameterIDs::outputDelayLatency;
+    else if (paramName == "attenuation")
+        result.paramId = WFSParameterIDs::outputAttenuation;
+    else if (paramName == "Hparallax")
+        result.paramId = WFSParameterIDs::outputHparallax;
+    else if (paramName == "Vparallax")
+        result.paramId = WFSParameterIDs::outputVparallax;
+    else
+        return result;  // Unknown parameter
+
+    result.arrayId = extractInt(message[0]);
+    result.valueChange = extractFloat(message[1]);
+    result.valid = true;
 
     return result;
 }
