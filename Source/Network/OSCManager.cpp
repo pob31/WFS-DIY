@@ -324,6 +324,38 @@ void OSCManager::setIPFilteringEnabled(bool enabled)
 }
 
 //==============================================================================
+// OSC Query
+//==============================================================================
+
+bool OSCManager::startOSCQuery(int oscPort, int httpPort)
+{
+    if (!oscQueryServer)
+        oscQueryServer = std::make_unique<OSCQueryServer>(state);
+
+    if (oscQueryServer->start(oscPort, httpPort))
+    {
+        logger.logText("OSC Query server started on HTTP port " + juce::String(httpPort));
+        return true;
+    }
+
+    return false;
+}
+
+void OSCManager::stopOSCQuery()
+{
+    if (oscQueryServer)
+    {
+        oscQueryServer->stop();
+        logger.logText("OSC Query server stopped");
+    }
+}
+
+bool OSCManager::isOSCQueryRunning() const
+{
+    return oscQueryServer && oscQueryServer->isRunning();
+}
+
+//==============================================================================
 // Logging
 //==============================================================================
 

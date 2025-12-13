@@ -32,6 +32,7 @@
               file="Source/gui/ClustersTab.h"/>
         <FILE id="guiRevTab" name="ReverbTab.h" compile="0" resource="0" file="Source/gui/ReverbTab.h"/>
         <FILE id="guiMapTab" name="MapTab.h" compile="0" resource="0" file="Source/gui/MapTab.h"/>
+        <FILE id="guiNetTab" name="NetworkTab.h" compile="0" resource="0" file="Source/gui/NetworkTab.h"/>
       </GROUP>
       <GROUP id="{NETWORKGROUP}" name="Network">
         <FILE id="netTypes" name="OSCProtocolTypes.h" compile="0" resource="0"
@@ -70,6 +71,10 @@
               file="Source/Network/OSCTCPReceiver.cpp"/>
         <FILE id="netParseH" name="OSCParser.h" compile="0" resource="0"
               file="Source/Network/OSCParser.h"/>
+        <FILE id="netQueryH" name="OSCQueryServer.h" compile="0" resource="0"
+              file="Source/Network/OSCQueryServer.h"/>
+        <FILE id="netQueryCpp" name="OSCQueryServer.cpp" compile="1" resource="0"
+              file="Source/Network/OSCQueryServer.cpp"/>
       </GROUP>
       <FILE id="UJ07Xn" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>
       <FILE id="jPX7jF" name="MainComponent.h" compile="0" resource="0" file="Source/MainComponent.h"/>

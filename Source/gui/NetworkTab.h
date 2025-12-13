@@ -62,6 +62,25 @@ public:
         tcpPortLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(tcpPortEditor);
 
+        // ==================== OSC QUERY ====================
+        addAndMakeVisible(oscQueryLabel);
+        oscQueryLabel.setText("OSC Query:", juce::dontSendNotification);
+        oscQueryLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        addAndMakeVisible(oscQueryPortEditor);
+        oscQueryPortEditor.setText("5005");
+        oscQueryPortEditor.setInputRestrictions(5, "0123456789");
+        oscQueryPortEditor.addListener(this);
+
+        addAndMakeVisible(oscQueryEnableButton);
+        oscQueryEnableButton.setButtonText("Disabled");
+        oscQueryEnableButton.setClickingTogglesState(true);
+        oscQueryEnableButton.onClick = [this]() {
+            bool enabled = oscQueryEnableButton.getToggleState();
+            oscQueryEnableButton.setButtonText(enabled ? "Enabled" : "Disabled");
+            saveOscQueryToValueTree();
+            updateOSCQueryServer();
+        };
+
         // ==================== NETWORK CONNECTIONS TABLE ====================
         setupNetworkConnectionsTable();
 
@@ -190,6 +209,13 @@ public:
 
         tcpPortLabel.setBounds(x + labelWidth + editorWidth + 20, y, labelWidth, rowHeight);
         tcpPortEditor.setBounds(x + labelWidth * 2 + editorWidth + 20, y, editorWidth, rowHeight);
+
+        // OSC Query on same row as UDP/TCP (aligned to fit within table width)
+        // Table width is 3 * (labelWidth + editorWidth + unitWidth) + 2 * 20 = ~730
+        const int oscQueryLabelX = x + labelWidth * 2 + editorWidth * 2 + 60;  // After TCP port
+        oscQueryLabel.setBounds(oscQueryLabelX, y, 80, rowHeight);  // Shorter label
+        oscQueryPortEditor.setBounds(oscQueryLabelX + 85, y, 55, rowHeight);
+        oscQueryEnableButton.setBounds(oscQueryLabelX + 150, y, 80, rowHeight);
         y += rowHeight + sectionSpacing;
 
         // ==================== NETWORK CONNECTIONS TABLE ====================
@@ -441,6 +467,11 @@ private:
     juce::TextEditor udpPortEditor;
     juce::Label tcpPortLabel;
     juce::TextEditor tcpPortEditor;
+
+    // OSC Query
+    juce::Label oscQueryLabel;
+    juce::TextEditor oscQueryPortEditor;
+    juce::TextButton oscQueryEnableButton;
 
     // Footer buttons
     juce::TextButton storeButton;
@@ -731,6 +762,9 @@ private:
         udpPortEditor.addMouseListener(this, false);
         tcpPortLabel.addMouseListener(this, false);
         tcpPortEditor.addMouseListener(this, false);
+        oscQueryLabel.addMouseListener(this, false);
+        oscQueryPortEditor.addMouseListener(this, false);
+        oscQueryEnableButton.addMouseListener(this, false);
 
         // ==================== NETWORK CONNECTIONS TABLE ====================
         // Header labels already have mouse listeners from setupNetworkConnectionsTable
@@ -1250,8 +1284,12 @@ private:
 
     void loadParametersFromValueTree()
     {
-        udpPortEditor.setText(juce::String((int)parameters.getConfigParam("UDPPort")), false);
-        tcpPortEditor.setText(juce::String((int)parameters.getConfigParam("TCPPort")), false);
+        int udpPort = (int)parameters.getConfigParam(WFSParameterIDs::networkRxUDPport.toString());
+        int tcpPort = (int)parameters.getConfigParam(WFSParameterIDs::networkRxTCPport.toString());
+        if (udpPort <= 0) udpPort = 8000;  // Default
+        if (tcpPort <= 0) tcpPort = 8001;  // Default
+        udpPortEditor.setText(juce::String(udpPort), false);
+        tcpPortEditor.setText(juce::String(tcpPort), false);
 
         // Load saved network interface
         juce::String savedInterface = parameters.getConfigParam("NetworkInterface").toString();
@@ -1314,16 +1352,28 @@ private:
         trackingFlipZButton.setButtonText(trackFlipZ ? "Flip Z: ON" : "Flip Z: OFF");
 
         updateTrackingAppearance();
+
+        // Load OSC Query parameters
+        int oscQueryPort = (int)parameters.getConfigParam(WFSParameterIDs::networkOscQueryPort.toString());
+        if (oscQueryPort <= 0) oscQueryPort = 5005;  // Default port
+        oscQueryPortEditor.setText(juce::String(oscQueryPort), false);
+
+        bool oscQueryEnabled = (int)parameters.getConfigParam(WFSParameterIDs::networkOscQueryEnabled.toString()) != 0;
+        oscQueryEnableButton.setToggleState(oscQueryEnabled, juce::dontSendNotification);
+        oscQueryEnableButton.setButtonText(oscQueryEnabled ? "Enabled" : "Disabled");
+
+        // Start OSC Query server if enabled
+        updateOSCQueryServer();
     }
 
     void valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property) override
     {
         if (tree == parameters.getConfigTree())
         {
-            if (property == juce::Identifier("UDPPort"))
-                udpPortEditor.setText(juce::String((int)parameters.getConfigParam("UDPPort")), false);
-            else if (property == juce::Identifier("TCPPort"))
-                tcpPortEditor.setText(juce::String((int)parameters.getConfigParam("TCPPort")), false);
+            if (property == WFSParameterIDs::networkRxUDPport)
+                udpPortEditor.setText(juce::String((int)parameters.getConfigParam(WFSParameterIDs::networkRxUDPport.toString())), false);
+            else if (property == WFSParameterIDs::networkRxTCPport)
+                tcpPortEditor.setText(juce::String((int)parameters.getConfigParam(WFSParameterIDs::networkRxTCPport.toString())), false);
         }
     }
 
@@ -1356,6 +1406,10 @@ private:
             statusBar->setHelpText("UDP Receive Port of the Processor.");
         else if (source == &tcpPortLabel || source == &tcpPortEditor)
             statusBar->setHelpText("TCP Receive Port of the Processor.");
+        else if (source == &oscQueryLabel || source == &oscQueryPortEditor)
+            statusBar->setHelpText("HTTP port for OSC Query discovery. Other apps can browse parameters at http://localhost:<port>/");
+        else if (source == &oscQueryEnableButton)
+            statusBar->setHelpText("Enable/disable OSC Query server for automatic parameter discovery via HTTP/WebSocket.");
 
         // ==================== NETWORK CONNECTIONS TABLE ====================
         else if (source == &headerNameLabel)
@@ -1479,13 +1533,13 @@ private:
         {
             int value = text.getIntValue();
             if (value >= 0 && value <= 65535)
-                parameters.setConfigParam("UDPPort", value);
+                parameters.setConfigParam(WFSParameterIDs::networkRxUDPport.toString(), value);
         }
         else if (editor == &tcpPortEditor)
         {
             int value = text.getIntValue();
             if (value >= 0 && value <= 65535)
-                parameters.setConfigParam("TCPPort", value);
+                parameters.setConfigParam(WFSParameterIDs::networkRxTCPport.toString(), value);
         }
         // ADM-OSC Offset parameters
         else if (editor == &admOscOffsetXEditor)
@@ -1557,6 +1611,15 @@ private:
         {
             float value = juce::jlimit(0.01f, 100.0f, text.getFloatValue());
             parameters.setConfigParam("trackingScaleZ", value);
+        }
+        // OSC Query Port
+        else if (editor == &oscQueryPortEditor)
+        {
+            int value = text.getIntValue();
+            if (value >= 0 && value <= 65535)
+            {
+                saveOscQueryToValueTree();
+            }
         }
     }
 
@@ -2169,6 +2232,50 @@ private:
                     network.removeChild(i, nullptr);
                     break;
                 }
+            }
+        }
+    }
+
+    // ==================== OSC QUERY ====================
+
+    void saveOscQueryToValueTree()
+    {
+        int port = oscQueryPortEditor.getText().getIntValue();
+        if (port < 0 || port > 65535)
+            port = 5005;
+
+        parameters.setConfigParam(WFSParameterIDs::networkOscQueryPort.toString(), port);
+        parameters.setConfigParam(WFSParameterIDs::networkOscQueryEnabled.toString(),
+                                  oscQueryEnableButton.getToggleState() ? 1 : 0);
+    }
+
+    void updateOSCQueryServer()
+    {
+        if (oscManager == nullptr)
+            return;
+
+        bool enabled = oscQueryEnableButton.getToggleState();
+        int httpPort = oscQueryPortEditor.getText().getIntValue();
+        if (httpPort <= 0 || httpPort > 65535)
+            httpPort = 5005;
+
+        if (enabled)
+        {
+            // Get UDP port for OSC from current config
+            int oscPort = udpPortEditor.getText().getIntValue();
+            if (oscPort <= 0)
+                oscPort = 9001;
+
+            if (!oscManager->isOSCQueryRunning())
+            {
+                oscManager->startOSCQuery(oscPort, httpPort);
+            }
+        }
+        else
+        {
+            if (oscManager->isOSCQueryRunning())
+            {
+                oscManager->stopOSCQuery();
             }
         }
     }

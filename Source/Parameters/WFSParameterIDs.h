@@ -116,6 +116,10 @@ namespace WFSParameterIDs
     // OSC Source Filtering
     const juce::Identifier networkOscSourceFilter ("networkOscSourceFilter");
 
+    // OSC Query
+    const juce::Identifier networkOscQueryEnabled ("networkOscQueryEnabled");
+    const juce::Identifier networkOscQueryPort    ("networkOscQueryPort");
+
     //==========================================================================
     // Config > ADM-OSC Section
     //==========================================================================

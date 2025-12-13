@@ -9,6 +9,7 @@
 #include "OSCMessageRouter.h"
 #include "OSCReceiverWithSenderIP.h"
 #include "OSCTCPReceiver.h"
+#include "OSCQueryServer.h"
 #include "../Parameters/WFSValueTreeState.h"
 
 namespace WFSNetwork
@@ -144,6 +145,28 @@ public:
     bool isIPFilteringEnabled() const { return ipFilteringEnabled; }
 
     //==========================================================================
+    // OSC Query
+    //==========================================================================
+
+    /**
+     * Start the OSC Query server for parameter discovery.
+     * @param oscPort UDP port for OSC messages (typically same as UDP receive port)
+     * @param httpPort HTTP port for OSC Query discovery (e.g., 5005)
+     * @return true if server started successfully
+     */
+    bool startOSCQuery(int oscPort, int httpPort);
+
+    /**
+     * Stop the OSC Query server.
+     */
+    void stopOSCQuery();
+
+    /**
+     * Check if OSC Query server is running.
+     */
+    bool isOSCQueryRunning() const;
+
+    //==========================================================================
     // Logging
     //==========================================================================
 
@@ -258,6 +281,9 @@ private:
 
     // IP filtering
     bool ipFilteringEnabled = false;
+
+    // OSC Query server
+    std::unique_ptr<OSCQueryServer> oscQueryServer;
 
     // REMOTE protocol state
     int remoteSelectedChannel = 1;

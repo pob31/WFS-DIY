@@ -164,6 +164,7 @@
     <ClCompile Include="..\..\Source\Network\OSCManager.cpp"/>
     <ClCompile Include="..\..\Source\Network\OSCReceiverWithSenderIP.cpp"/>
     <ClCompile Include="..\..\Source\Network\OSCTCPReceiver.cpp"/>
+    <ClCompile Include="..\..\Source\Network\OSCQueryServer.cpp"/>
     <ClCompile Include="..\..\Source\Main.cpp"/>
     <ClCompile Include="..\..\Source\MainComponent.cpp"/>
     <ClCompile Include="..\..\Source\GpuInputBufferAlgorithm.cpp">
@@ -3408,6 +3409,7 @@
     <ClInclude Include="..\..\Source\gui\ClustersTab.h"/>
     <ClInclude Include="..\..\Source\gui\ReverbTab.h"/>
     <ClInclude Include="..\..\Source\gui\MapTab.h"/>
+    <ClInclude Include="..\..\Source\gui\NetworkTab.h"/>
     <ClInclude Include="..\..\Source\Network\OSCProtocolTypes.h"/>
     <ClInclude Include="..\..\Source\Network\OSCConnection.h"/>
     <ClInclude Include="..\..\Source\Network\OSCRateLimiter.h"/>
@@ -3418,6 +3420,7 @@
     <ClInclude Include="..\..\Source\Network\OSCReceiverWithSenderIP.h"/>
     <ClInclude Include="..\..\Source\Network\OSCTCPReceiver.h"/>
     <ClInclude Include="..\..\Source\Network\OSCParser.h"/>
+    <ClInclude Include="..\..\Source\Network\OSCQueryServer.h"/>
     <ClInclude Include="..\..\Source\MainComponent.h"/>
     <ClInclude Include="..\..\Source\WfsParameters.h"/>
     <ClInclude Include="..\..\Source\WFSAlgorithm.h"/>
