@@ -44,11 +44,20 @@ public:
         setupOscMethods();
         setupMouseListeners();
 
+        // Setup "no channels" message
+        noChannelsLabel.setText ("No reverb channels configured.\n\nSet the number of Reverb Channels in System Config.",
+                                 juce::dontSendNotification);
+        noChannelsLabel.setJustificationType (juce::Justification::centred);
+        noChannelsLabel.setColour (juce::Label::textColourId, juce::Colours::grey);
+        addChildComponent (noChannelsLabel);  // Hidden by default
+
         int numReverbs = parameters.getNumReverbChannels();
-        channelSelector.setNumChannels (numReverbs > 0 ? numReverbs : 16);
+        channelSelector.setNumChannels (numReverbs > 0 ? numReverbs : 1);
 
         if (numReverbs > 0)
             loadChannelParameters (1);
+
+        updateVisibility();
     }
 
     ~ReverbTab() override
@@ -104,13 +113,16 @@ public:
         auto bounds = getLocalBounds();
         const int padding = 10;
 
+        // Footer (always visible for Import functionality)
+        auto footerArea = bounds.removeFromBottom (footerHeight).reduced (padding, padding);
+        layoutFooter (footerArea);
+
+        // Position the "no channels" message in the center of remaining space
+        noChannelsLabel.setBounds (bounds.reduced (40));
+
         // Header
         auto headerArea = bounds.removeFromTop (headerHeight).reduced (padding, padding);
         layoutHeader (headerArea);
-
-        // Footer
-        auto footerArea = bounds.removeFromBottom (footerHeight).reduced (padding, padding);
-        layoutFooter (footerArea);
 
         // Sub-tabs area
         auto contentArea = bounds.reduced (padding, 0);
@@ -1449,6 +1461,7 @@ private:
                 if (channelSelector.getSelectedChannel() > numReverbs)
                     channelSelector.setSelectedChannel (1);
             }
+            updateVisibility();
         }
 
         // Check if this is a parameter change for the current reverb channel
@@ -1518,6 +1531,111 @@ private:
         if (freq >= 1000)
             return juce::String (freq / 1000.0f, 1) + " kHz";
         return juce::String (freq) + " Hz";
+    }
+
+    void updateVisibility()
+    {
+        int numReverbs = parameters.getNumReverbChannels();
+        bool hasChannels = (numReverbs > 0);
+
+        // Show/hide the "no channels" message
+        noChannelsLabel.setVisible (!hasChannels);
+
+        // Show/hide header controls
+        channelSelector.setVisible (hasChannels);
+        nameLabel.setVisible (hasChannels);
+        nameEditor.setVisible (hasChannels);
+
+        // Show/hide sub-tab bar and all sub-tab content
+        subTabBar.setVisible (hasChannels);
+
+        // Reverb sub-tab
+        attenuationLabel.setVisible (hasChannels);
+        attenuationSlider.setVisible (hasChannels);
+        attenuationValueLabel.setVisible (hasChannels);
+        delayLatencyLabel.setVisible (hasChannels);
+        delayLatencySlider.setVisible (hasChannels);
+        delayLatencyValueLabel.setVisible (hasChannels);
+
+        // Position sub-tab
+        posXLabel.setVisible (hasChannels);
+        posYLabel.setVisible (hasChannels);
+        posZLabel.setVisible (hasChannels);
+        posXEditor.setVisible (hasChannels);
+        posYEditor.setVisible (hasChannels);
+        posZEditor.setVisible (hasChannels);
+        posXUnitLabel.setVisible (hasChannels);
+        posYUnitLabel.setVisible (hasChannels);
+        posZUnitLabel.setVisible (hasChannels);
+        returnOffsetXLabel.setVisible (hasChannels);
+        returnOffsetYLabel.setVisible (hasChannels);
+        returnOffsetZLabel.setVisible (hasChannels);
+        returnOffsetXEditor.setVisible (hasChannels);
+        returnOffsetYEditor.setVisible (hasChannels);
+        returnOffsetZEditor.setVisible (hasChannels);
+        returnOffsetXUnitLabel.setVisible (hasChannels);
+        returnOffsetYUnitLabel.setVisible (hasChannels);
+        returnOffsetZUnitLabel.setVisible (hasChannels);
+
+        // Reverb Feed sub-tab
+        orientationLabel.setVisible (hasChannels);
+        orientationDial.setVisible (hasChannels);
+        orientationValueLabel.setVisible (hasChannels);
+        angleOnLabel.setVisible (hasChannels);
+        angleOffLabel.setVisible (hasChannels);
+        angleOnSlider.setVisible (hasChannels);
+        angleOffSlider.setVisible (hasChannels);
+        angleOnValueLabel.setVisible (hasChannels);
+        angleOffValueLabel.setVisible (hasChannels);
+        pitchLabel.setVisible (hasChannels);
+        pitchSlider.setVisible (hasChannels);
+        pitchValueLabel.setVisible (hasChannels);
+        hfDampingLabel.setVisible (hasChannels);
+        hfDampingSlider.setVisible (hasChannels);
+        hfDampingValueLabel.setVisible (hasChannels);
+        miniLatencyEnableButton.setVisible (hasChannels);
+        lsEnableButton.setVisible (hasChannels);
+        distanceAttenEnableLabel.setVisible (hasChannels);
+        distanceAttenEnableSlider.setVisible (hasChannels);
+        distanceAttenEnableValueLabel.setVisible (hasChannels);
+
+        // EQ sub-tab
+        eqEnableButton.setVisible (hasChannels);
+        for (int i = 0; i < numEqBands; ++i)
+        {
+            eqBandLabel[i].setVisible (hasChannels);
+            eqBandShapeSelector[i].setVisible (hasChannels);
+            eqBandFreqLabel[i].setVisible (hasChannels);
+            eqBandFreqSlider[i].setVisible (hasChannels);
+            eqBandFreqValueLabel[i].setVisible (hasChannels);
+            eqBandGainLabel[i].setVisible (hasChannels);
+            eqBandGainDial[i].setVisible (hasChannels);
+            eqBandGainValueLabel[i].setVisible (hasChannels);
+            eqBandQLabel[i].setVisible (hasChannels);
+            eqBandQDial[i].setVisible (hasChannels);
+            eqBandQValueLabel[i].setVisible (hasChannels);
+            eqBandSlopeLabel[i].setVisible (hasChannels);
+            eqBandSlopeDial[i].setVisible (hasChannels);
+            eqBandSlopeValueLabel[i].setVisible (hasChannels);
+        }
+
+        // Algorithm sub-tab
+        algorithmPlaceholderLabel.setVisible (hasChannels);
+
+        // Reverb Return sub-tab
+        distanceAttenLabel.setVisible (hasChannels);
+        distanceAttenDial.setVisible (hasChannels);
+        distanceAttenValueLabel.setVisible (hasChannels);
+        commonAttenLabel.setVisible (hasChannels);
+        commonAttenDial.setVisible (hasChannels);
+        commonAttenValueLabel.setVisible (hasChannels);
+        mutesLabel.setVisible (hasChannels);
+        for (int i = 0; i < maxMuteButtons; ++i)
+            muteButtons[i].setVisible (hasChannels && i < parameters.getNumOutputChannels());
+        muteMacrosLabel.setVisible (hasChannels);
+        muteMacrosSelector.setVisible (hasChannels);
+
+        // Footer buttons remain visible (for Import functionality)
     }
 
     //==========================================================================
@@ -1622,6 +1740,9 @@ private:
     juce::TextButton reloadBackupButton;
     juce::TextButton importButton;
     juce::TextButton exportButton;
+
+    // No channels message
+    juce::Label noChannelsLabel;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ReverbTab)
 };
