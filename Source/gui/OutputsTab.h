@@ -146,6 +146,20 @@ public:
         selectChannel(newChannel);
     }
 
+    /** Set array assignment for current output. 0=Single, 1-10=Array 1-10. */
+    void setArray(int array)
+    {
+        array = juce::jlimit(0, 10, array);
+        arraySelector.setSelectedId(array + 1, juce::sendNotification);
+        if (statusBar != nullptr)
+        {
+            if (array == 0)
+                statusBar->showTemporaryMessage("Output " + juce::String(currentChannel) + " set to Single", 2000);
+            else
+                statusBar->showTemporaryMessage("Output " + juce::String(currentChannel) + " assigned to Array " + juce::String(array), 2000);
+        }
+    }
+
     void paint(juce::Graphics& g) override
     {
         g.fillAll(juce::Colour(0xFF1E1E1E));

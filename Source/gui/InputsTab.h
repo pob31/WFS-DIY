@@ -278,6 +278,20 @@ public:
         selectChannel(newChannel);
     }
 
+    /** Set cluster assignment for current input. 0=Single, 1-10=Cluster 1-10. */
+    void setCluster(int cluster)
+    {
+        cluster = juce::jlimit(0, 10, cluster);
+        clusterSelector.setSelectedId(cluster + 1, juce::sendNotification);
+        if (statusBar != nullptr)
+        {
+            if (cluster == 0)
+                statusBar->showTemporaryMessage("Input " + juce::String(currentChannel) + " set to Single", 2000);
+            else
+                statusBar->showTemporaryMessage("Input " + juce::String(currentChannel) + " assigned to Cluster " + juce::String(cluster), 2000);
+        }
+    }
+
     void paint(juce::Graphics& g) override
     {
         g.fillAll(juce::Colour(0xFF1E1E1E));

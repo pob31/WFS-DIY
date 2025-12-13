@@ -1209,8 +1209,47 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
         return true;
     }
 
-    // Position nudging: Arrow keys, Page Up/Down (Inputs and Outputs tabs)
+    // Get current tab index for tab-specific shortcuts
     int currentTabIndex = tabbedComponent.getCurrentTabIndex();
+
+    // Cluster/Array assignment: F1-F10 assign to Cluster/Array 1-10, F11 removes (Single)
+    // Inputs tab (index 4): F1-F10 = Cluster 1-10, F11 = Single
+    if (currentTabIndex == 4 && inputsTab != nullptr)
+    {
+        for (int i = 0; i < 10; ++i)
+        {
+            if (key.isKeyCode(juce::KeyPress::F1Key + i))
+            {
+                inputsTab->setCluster(i + 1);  // F1 = Cluster 1, F10 = Cluster 10
+                return true;
+            }
+        }
+        if (key.isKeyCode(juce::KeyPress::F11Key))
+        {
+            inputsTab->setCluster(0);  // Single
+            return true;
+        }
+    }
+
+    // Outputs tab (index 2): F1-F10 = Array 1-10, F11 = Single
+    if (currentTabIndex == 2 && outputsTab != nullptr)
+    {
+        for (int i = 0; i < 10; ++i)
+        {
+            if (key.isKeyCode(juce::KeyPress::F1Key + i))
+            {
+                outputsTab->setArray(i + 1);  // F1 = Array 1, F10 = Array 10
+                return true;
+            }
+        }
+        if (key.isKeyCode(juce::KeyPress::F11Key))
+        {
+            outputsTab->setArray(0);  // Single
+            return true;
+        }
+    }
+
+    // Position nudging: Arrow keys, Page Up/Down (Inputs, Outputs, Reverb tabs)
     const float nudgeAmount = 0.1f;
 
     // Inputs tab (index 4)
