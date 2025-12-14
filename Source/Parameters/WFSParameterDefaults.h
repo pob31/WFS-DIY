@@ -350,8 +350,8 @@ namespace WFSParameterDefaults
     // Output > Channel
     inline juce::String getDefaultOutputName (int index) { return "Output " + juce::String (index + 1); }
 
-    constexpr int outputArrayDefault            = 1;  // Array number 1-10
-    constexpr int outputArrayMin                = 1;
+    constexpr int outputArrayDefault            = 0;  // 0=Single, 1-10=Array 1-10
+    constexpr int outputArrayMin                = 0;
     constexpr int outputArrayMax                = 10;
 
     constexpr int outputApplyToArrayDefault     = 0;  // 0=This speaker, 1=Apply to array
