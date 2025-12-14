@@ -429,6 +429,9 @@ private:
             eqEnableButton.setButtonText (enabled ? "EQ ON" : "EQ OFF");
             eqEnableButton.setColour (juce::TextButton::buttonColourId,
                                       enabled ? juce::Colour (0xFF4CAF50) : juce::Colour (0xFF2D2D2D));
+            // Update EQ display grey-out state
+            if (eqDisplay != nullptr)
+                eqDisplay->setEQEnabled (enabled);
             saveReverbParam (WFSParameterIDs::reverbEQenable, enabled ? 1 : 0);
         };
 
@@ -454,6 +457,8 @@ private:
             {
                 int shape = eqBandShapeSelector[i].getSelectedId() - 1;
                 saveEQBandParam (i, WFSParameterIDs::reverbEQshape, shape);
+                // Update gain visibility when shape changes
+                updateEQBandGainVisibility (i);
             };
 
             // Frequency slider
@@ -511,25 +516,6 @@ private:
             eqBandQValueLabel[i].setText ("0.70", juce::dontSendNotification);
             eqBandQValueLabel[i].setColour (juce::Label::textColourId, juce::Colours::white);
             eqBandQValueLabel[i].setJustificationType (juce::Justification::centred);
-
-            // Slope dial
-            addAndMakeVisible (eqBandSlopeLabel[i]);
-            eqBandSlopeLabel[i].setText ("Slope", juce::dontSendNotification);
-            eqBandSlopeLabel[i].setColour (juce::Label::textColourId, juce::Colours::grey);
-            eqBandSlopeLabel[i].setJustificationType (juce::Justification::centred);
-
-            eqBandSlopeDial[i].onValueChanged = [this, i] (float v)
-            {
-                float slope = 0.1f + 0.21f * (std::pow (100.0f, v) - 1.0f);  // 0.1-20.0
-                eqBandSlopeValueLabel[i].setText (juce::String (slope, 2), juce::dontSendNotification);
-                saveEQBandParam (i, WFSParameterIDs::reverbEQslope, slope);
-            };
-            addAndMakeVisible (eqBandSlopeDial[i]);
-
-            addAndMakeVisible (eqBandSlopeValueLabel[i]);
-            eqBandSlopeValueLabel[i].setText ("0.70", juce::dontSendNotification);
-            eqBandSlopeValueLabel[i].setColour (juce::Label::textColourId, juce::Colours::white);
-            eqBandSlopeValueLabel[i].setJustificationType (juce::Justification::centred);
         }
     }
 
@@ -932,9 +918,9 @@ private:
             eqBandFreqValueLabel[i].setBounds (bandArea.removeFromTop (labelHeight));
             bandArea.removeFromTop (spacing);
 
-            // Gain, Q, Slope dials in a row
+            // Gain and Q dials in a row
             auto dialRow = bandArea.removeFromTop (dialSize + labelHeight * 2);
-            int dialSpacing = (dialRow.getWidth() - dialSize * 3) / 4;
+            int dialSpacing = (dialRow.getWidth() - dialSize * 2) / 3;
 
             auto gainArea = dialRow.removeFromLeft (dialSize + dialSpacing).reduced (dialSpacing / 2, 0);
             eqBandGainLabel[i].setBounds (gainArea.removeFromTop (labelHeight));
@@ -945,11 +931,6 @@ private:
             eqBandQLabel[i].setBounds (qArea.removeFromTop (labelHeight));
             eqBandQDial[i].setBounds (qArea.removeFromTop (dialSize).withSizeKeepingCentre (dialSize, dialSize));
             eqBandQValueLabel[i].setBounds (qArea.removeFromTop (labelHeight));
-
-            auto slopeArea = dialRow.removeFromLeft (dialSize + dialSpacing).reduced (dialSpacing / 2, 0);
-            eqBandSlopeLabel[i].setBounds (slopeArea.removeFromTop (labelHeight));
-            eqBandSlopeDial[i].setBounds (slopeArea.removeFromTop (dialSize).withSizeKeepingCentre (dialSize, dialSize));
-            eqBandSlopeValueLabel[i].setBounds (slopeArea.removeFromTop (labelHeight));
         }
     }
 
@@ -1070,16 +1051,40 @@ private:
             eqBandFreqLabel[i].setVisible (visible);
             eqBandFreqSlider[i].setVisible (visible);
             eqBandFreqValueLabel[i].setVisible (visible);
-            eqBandGainLabel[i].setVisible (visible);
-            eqBandGainDial[i].setVisible (visible);
-            eqBandGainValueLabel[i].setVisible (visible);
             eqBandQLabel[i].setVisible (visible);
             eqBandQDial[i].setVisible (visible);
             eqBandQValueLabel[i].setVisible (visible);
-            eqBandSlopeLabel[i].setVisible (visible);
-            eqBandSlopeDial[i].setVisible (visible);
-            eqBandSlopeValueLabel[i].setVisible (visible);
+
+            // Show/hide gain based on filter shape (hide for cut filters)
+            if (visible)
+                updateEQBandGainVisibility (i);
+            else
+            {
+                eqBandGainLabel[i].setVisible (false);
+                eqBandGainDial[i].setVisible (false);
+                eqBandGainValueLabel[i].setVisible (false);
+            }
         }
+    }
+
+    void updateEQBandGainVisibility (int bandIndex)
+    {
+        auto eqSection = parameters.getValueTreeState().getReverbEQSection (currentChannel - 1);
+        if (! eqSection.isValid())
+            return;
+
+        auto bandTree = eqSection.getChild (bandIndex);
+        if (! bandTree.isValid())
+            return;
+
+        int shape = bandTree.getProperty (WFSParameterIDs::reverbEQshape);
+        // Reverb EQ: 0=Off, 1=LowCut, 5=HighCut - hide gain for cuts
+        bool isCutFilter = (shape == 1 || shape == 5);
+        bool showGain = ! isCutFilter;
+
+        eqBandGainLabel[bandIndex].setVisible (showGain);
+        eqBandGainDial[bandIndex].setVisible (showGain);
+        eqBandGainValueLabel[bandIndex].setVisible (showGain);
     }
 
     void setAlgorithmVisible (bool visible)
@@ -1200,12 +1205,19 @@ private:
 
         loadEQBandParameters();
 
-        // Create/update EQ display component with current channel's EQ tree
+        // Create EQ display component only if channel changed or doesn't exist
+        // This prevents destroying the component mid-drag when ValueTree changes trigger reload
         auto eqTree = parameters.getValueTreeState().getReverbEQSection (channel - 1);
         if (eqTree.isValid())
         {
-            eqDisplay = std::make_unique<EQDisplayComponent> (eqTree, numEqBands, EQDisplayConfig::forReverbEQ());
-            addAndMakeVisible (*eqDisplay);
+            if (eqDisplay == nullptr || lastEqDisplayChannel != channel)
+            {
+                eqDisplay = std::make_unique<EQDisplayComponent> (eqTree, numEqBands, EQDisplayConfig::forReverbEQ());
+                addAndMakeVisible (*eqDisplay);
+                lastEqDisplayChannel = channel;
+            }
+            // Update EQ display enabled state
+            eqDisplay->setEQEnabled (eqEnabled != 0);
             // Update visibility based on current tab
             bool eqTabVisible = (subTabBar.getCurrentTabIndex() == 3);  // EQ is sub-tab index 3
             eqDisplay->setVisible (eqTabVisible);
@@ -1255,10 +1267,8 @@ private:
             eqBandQDial[i].setValue (juce::jlimit (0.0f, 1.0f, qSlider));
             eqBandQValueLabel[i].setText (juce::String (q, 2), juce::dontSendNotification);
 
-            float slope = band.getProperty (WFSParameterIDs::reverbEQslope, 0.7f);
-            float slopeSlider = std::log ((slope - 0.1f) / 0.21f + 1.0f) / std::log (100.0f);
-            eqBandSlopeDial[i].setValue (juce::jlimit (0.0f, 1.0f, slopeSlider));
-            eqBandSlopeValueLabel[i].setText (juce::String (slope, 2), juce::dontSendNotification);
+            // Update gain visibility based on filter shape
+            updateEQBandGainVisibility (i);
         }
     }
 
@@ -1744,9 +1754,6 @@ private:
             eqBandQLabel[i].setVisible (hasChannels);
             eqBandQDial[i].setVisible (hasChannels);
             eqBandQValueLabel[i].setVisible (hasChannels);
-            eqBandSlopeLabel[i].setVisible (hasChannels);
-            eqBandSlopeDial[i].setVisible (hasChannels);
-            eqBandSlopeValueLabel[i].setVisible (hasChannels);
         }
 
         // Algorithm sub-tab
@@ -1846,12 +1853,10 @@ private:
     juce::Label eqBandQLabel[numEqBands];
     WfsBasicDial eqBandQDial[numEqBands];
     juce::Label eqBandQValueLabel[numEqBands];
-    juce::Label eqBandSlopeLabel[numEqBands];
-    WfsBasicDial eqBandSlopeDial[numEqBands];
-    juce::Label eqBandSlopeValueLabel[numEqBands];
 
     // EQ Display Component
     std::unique_ptr<EQDisplayComponent> eqDisplay;
+    int lastEqDisplayChannel = -1;  // Track which channel's EQ display is shown
 
     // Algorithm sub-tab (placeholder)
     juce::Label algorithmPlaceholderLabel;

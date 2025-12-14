@@ -1,6 +1,8 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include <map>
+#include <limits>
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/WFSParameterDefaults.h"
 
@@ -76,17 +78,20 @@ class EQDisplayComponent : public juce::Component,
 public:
     //==========================================================================
     EQDisplayComponent (juce::ValueTree eqParentTree,
-                        int numBands,
-                        const EQDisplayConfig& config)
+                        int numBandsIn,
+                        const EQDisplayConfig& configIn)
         : eqTree (eqParentTree),
-          numBands (numBands),
-          config (config)
+          numBands (numBandsIn),
+          config (configIn)
     {
         eqTree.addListener (this);
 
         // Initialize coefficient cache
         bandCoefficients.resize (static_cast<size_t> (numBands));
         updateAllCoefficients();
+
+        // Ensure we receive all mouse events
+        setInterceptsMouseClicks (true, false);
     }
 
     ~EQDisplayComponent() override
@@ -112,12 +117,35 @@ public:
         }
     }
 
+    void setEQEnabled (bool enabled)
+    {
+        if (eqEnabled != enabled)
+        {
+            eqEnabled = enabled;
+            repaint();
+        }
+    }
+
+    bool isEQEnabled() const { return eqEnabled; }
+
     //==========================================================================
     void paint (juce::Graphics& g) override
     {
         drawGrid (g);
         drawResponseCurve (g);
         drawBandMarkers (g);
+
+        // Draw grey overlay when EQ is disabled
+        if (! eqEnabled)
+        {
+            g.setColour (juce::Colours::black.withAlpha (0.6f));
+            g.fillRect (getLocalBounds());
+
+            // Draw "EQ OFF" text
+            g.setColour (juce::Colours::grey);
+            g.setFont (juce::FontOptions (24.0f));
+            g.drawText ("EQ OFF", getLocalBounds(), juce::Justification::centred);
+        }
     }
 
     void resized() override
@@ -127,17 +155,105 @@ public:
     }
 
     //==========================================================================
-    // Mouse interaction
+    // Mouse interaction (with multitouch pinch support)
     //==========================================================================
     void mouseDown (const juce::MouseEvent& e) override
     {
-        selectedBand = findBandAtPosition (e.position);
-        isDragging = (selectedBand >= 0);
+        int touchIndex = e.source.getIndex();
+
+        // Track this touch point
+        TouchInfo touch;
+        touch.position = e.position;
+        touch.startPosition = e.position;
+        activeTouches[touchIndex] = touch;
+
+        // Check if this is the second touch (pinch gesture start)
+        if (activeTouches.size() == 2)
+        {
+            isPinching = true;
+            pinchStartDistance = getTouchDistance();
+            pinchStartQ = 0.0f;
+
+            // Find the band closest to the midpoint between the two fingers
+            auto midpoint = getTouchMidpoint();
+            int centeredBand = findBandNearestToPoint (midpoint);
+
+            // If a band is near the center of the pinch, select it
+            if (centeredBand >= 0)
+            {
+                selectedBand = centeredBand;
+                isDragging = false;  // Cancel any single-finger drag
+            }
+
+            // Get Q of selected band for pinch
+            if (selectedBand >= 0)
+            {
+                auto bandTree = eqTree.getChild (selectedBand);
+                if (bandTree.isValid())
+                    pinchStartQ = bandTree.getProperty (config.qId);
+            }
+
+            repaint();  // Update selection highlight
+            return;
+        }
+
+        // Single touch - normal band selection/drag
+        int clickedBand = findBandAtPosition (e.position);
+
+        if (clickedBand >= 0)
+        {
+            selectedBand = clickedBand;
+            isDragging = true;
+            dragStartPos = e.position;
+            setMouseCursor (juce::MouseCursor::DraggingHandCursor);
+
+            // Begin drag auto-repeat to ensure we receive continuous drag events
+            beginDragAutoRepeat (50);
+        }
+        else
+        {
+            // Clicked on empty space - deselect
+            selectedBand = -1;
+            isDragging = false;
+        }
+
         repaint();
     }
 
     void mouseDrag (const juce::MouseEvent& e) override
     {
+        int touchIndex = e.source.getIndex();
+
+        // Update touch position
+        auto it = activeTouches.find (touchIndex);
+        if (it != activeTouches.end())
+            it->second.position = e.position;
+
+        // Handle pinch gesture (two fingers)
+        if (isPinching && activeTouches.size() >= 2 && selectedBand >= 0)
+        {
+            float currentDistance = getTouchDistance();
+            if (pinchStartDistance > 0.0f && pinchStartQ > 0.0f)
+            {
+                // Calculate scale factor from distance change
+                float scaleFactor = currentDistance / pinchStartDistance;
+
+                // Apply to Q - pinch in = increase Q (narrower), pinch out = decrease Q (wider)
+                float newQ = pinchStartQ / scaleFactor;
+                newQ = juce::jlimit (config.qMin, config.qMax, newQ);
+
+                auto bandTree = eqTree.getChild (selectedBand);
+                if (bandTree.isValid())
+                {
+                    bandTree.setProperty (config.qId, newQ, nullptr);
+                    updateBandCoefficients (selectedBand);
+                    repaint();
+                }
+            }
+            return;
+        }
+
+        // Normal single-finger drag
         if (! isDragging || selectedBand < 0)
             return;
 
@@ -167,10 +283,44 @@ public:
         repaint();
     }
 
-    void mouseUp (const juce::MouseEvent&) override
+    void mouseUp (const juce::MouseEvent& e) override
     {
-        isDragging = false;
+        int touchIndex = e.source.getIndex();
+
+        // Remove this touch
+        activeTouches.erase (touchIndex);
+
+        // End pinch if we're below 2 touches
+        if (activeTouches.size() < 2)
+            isPinching = false;
+
+        // End drag if no touches remain
+        if (activeTouches.empty())
+        {
+            isDragging = false;
+            setMouseCursor (juce::MouseCursor::NormalCursor);
+        }
         // Keep selection for wheel adjustment
+    }
+
+    void mouseMove (const juce::MouseEvent& e) override
+    {
+        // Only update cursor when not dragging
+        if (isDragging)
+            return;
+
+        // Show pointing hand when hovering over a band marker
+        int hoveredBand = findBandAtPosition (e.position);
+        if (hoveredBand >= 0)
+            setMouseCursor (juce::MouseCursor::PointingHandCursor);
+        else
+            setMouseCursor (juce::MouseCursor::NormalCursor);
+    }
+
+    void mouseExit (const juce::MouseEvent&) override
+    {
+        if (! isDragging)
+            setMouseCursor (juce::MouseCursor::NormalCursor);
     }
 
     void mouseWheelMove (const juce::MouseEvent&,
@@ -193,6 +343,33 @@ public:
         bandTree.setProperty (config.qId, newQ, nullptr);
 
         updateBandCoefficients (selectedBand);
+        repaint();
+    }
+
+    void mouseMagnify (const juce::MouseEvent& e, float scaleFactor) override
+    {
+        // Fallback for platforms that support native magnify gesture
+        int targetBand = selectedBand;
+
+        if (targetBand < 0)
+            targetBand = findBandAtPosition (e.position);
+
+        if (targetBand < 0)
+            return;
+
+        auto bandTree = eqTree.getChild (targetBand);
+        if (! bandTree.isValid())
+            return;
+
+        float currentQ = bandTree.getProperty (config.qId);
+        float newQ = currentQ * scaleFactor;
+        newQ = juce::jlimit (config.qMin, config.qMax, newQ);
+        bandTree.setProperty (config.qId, newQ, nullptr);
+
+        if (selectedBand != targetBand)
+            selectedBand = targetBand;
+
+        updateBandCoefficients (targetBand);
         repaint();
     }
 
@@ -624,7 +801,7 @@ private:
     //==========================================================================
     // Band marker positioning and hit testing
     //==========================================================================
-    juce::Point<float> getBandMarkerPosition (int bandIndex)
+    juce::Point<float> getBandMarkerPosition (int bandIndex) const
     {
         auto bandTree = eqTree.getChild (bandIndex);
         if (! bandTree.isValid())
@@ -696,6 +873,69 @@ private:
     }
 
     //==========================================================================
+    // Multitouch helpers
+    //==========================================================================
+    float getTouchDistance() const
+    {
+        if (activeTouches.size() < 2)
+            return 0.0f;
+
+        auto it = activeTouches.begin();
+        auto pos1 = it->second.position;
+        ++it;
+        auto pos2 = it->second.position;
+
+        return pos1.getDistanceFrom (pos2);
+    }
+
+    juce::Point<float> getTouchMidpoint() const
+    {
+        if (activeTouches.size() < 2)
+            return { 0.0f, 0.0f };
+
+        auto it = activeTouches.begin();
+        auto pos1 = it->second.position;
+        ++it;
+        auto pos2 = it->second.position;
+
+        return { (pos1.x + pos2.x) * 0.5f, (pos1.y + pos2.y) * 0.5f };
+    }
+
+    // Find the active band nearest to a point (for pinch gesture targeting)
+    // Returns -1 if no active band is reasonably close
+    int findBandNearestToPoint (juce::Point<float> pos) const
+    {
+        int nearestBand = -1;
+        float nearestDistSq = (std::numeric_limits<float>::max)();
+        const float maxSearchRadius = 150.0f;  // Max distance to consider
+        const float maxSearchRadiusSq = maxSearchRadius * maxSearchRadius;
+
+        for (int band = 0; band < numBands; ++band)
+        {
+            auto bandTree = eqTree.getChild (band);
+            if (! bandTree.isValid())
+                continue;
+
+            int shape = bandTree.getProperty (config.shapeId);
+            if (shape == 0)  // Skip if Off
+                continue;
+
+            auto markerPos = getBandMarkerPosition (band);
+            float dx = pos.x - markerPos.x;
+            float dy = pos.y - markerPos.y;
+            float distSq = dx * dx + dy * dy;
+
+            if (distSq < nearestDistSq && distSq < maxSearchRadiusSq)
+            {
+                nearestDistSq = distSq;
+                nearestBand = band;
+            }
+        }
+
+        return nearestBand;
+    }
+
+    //==========================================================================
     // Member variables
     //==========================================================================
     juce::ValueTree eqTree;
@@ -705,11 +945,24 @@ private:
     float mindB = -24.0f;
     float maxdB = 24.0f;
     double sampleRate = 48000.0;
+    bool eqEnabled = true;
 
     int selectedBand = -1;
     bool isDragging = false;
+    juce::Point<float> dragStartPos;
 
     std::vector<juce::dsp::IIR::Coefficients<float>::Ptr> bandCoefficients;
+
+    // Multitouch tracking
+    struct TouchInfo
+    {
+        juce::Point<float> position;
+        juce::Point<float> startPosition;
+    };
+    std::map<int, TouchInfo> activeTouches;
+    bool isPinching = false;
+    float pinchStartDistance = 0.0f;
+    float pinchStartQ = 0.0f;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EQDisplayComponent)
 };
