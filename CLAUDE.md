@@ -68,6 +68,7 @@ WFS-DIY is a Wave Field Synthesis audio processing application built with JUCE. 
 - **WfsBasicDial** - Rotary dial control
 - **WfsRotationDial** - 360° rotation control
 - **ChannelSelectorButton/Overlay** - Grid-based channel selector
+- **EQDisplayComponent** - Interactive parametric EQ visualization
 
 ### Bidirectional Slider Usage
 When using WfsBidirectionalSlider, formulas must account for -1 to 1 range:
@@ -270,3 +271,57 @@ A wizard-style dialog for quickly configuring speaker array positions with prese
 - `calculateCurvedArray()` - Quadratic Bezier curve with sag, auto-fanning toward audience
 - `calculateCircleArray()` - Circular arrangement with inward/outward facing
 - `calculateSurroundPairs()` - Left/right mirrored pairs
+
+## EQ Display Component (Source/gui/EQDisplayComponent.h)
+Reusable interactive parametric EQ visualization for OutputsTab (6 bands) and ReverbTab (4 bands).
+
+### Visual Elements
+- **Grid** - Logarithmic frequency scale (20Hz-20kHz), linear dB scale (±24dB)
+- **Frequency lines** - At 20, 50, 100, 200, 500, 1k, 2k, 5k, 10k, 20k Hz
+- **dB lines** - Every 6dB, 0dB emphasized
+- **Response curve** - White outline with semi-transparent blue fill
+- **Band markers** - Color-coded circles with band numbers
+
+### Mouse Interaction
+- **Click** - Select band marker
+- **Drag horizontal** - Adjust frequency
+- **Drag vertical** - Adjust gain (except Cut/BandPass filters)
+- **Mouse wheel** - Adjust Q parameter
+
+### Filter Types Supported
+| Type | Shape ID (Output) | Shape ID (Reverb) | Notes |
+|------|-------------------|-------------------|-------|
+| Off | 0 | 0 | Band inactive |
+| Low Cut | 1 | 1 | High-pass with Q resonance |
+| Low Shelf | 2 | 2 | Q controls transition steepness |
+| Peak/Notch | 3 | 3 | Q controls bandwidth |
+| Band Pass | 4 | - | Output EQ only |
+| High Shelf | 5 | 4 | Q controls transition steepness |
+| High Cut | 6 | 5 | Low-pass with Q resonance |
+
+### Configuration
+```cpp
+// For Output EQ (6 bands)
+EQDisplayConfig::forOutputEQ()
+
+// For Reverb EQ (4 bands)
+EQDisplayConfig::forReverbEQ()
+```
+
+### Parameter Mapping
+| Aspect | Output EQ | Reverb EQ |
+|--------|-----------|-----------|
+| Shape ID | `eqShape` | `reverbEQshape` |
+| Frequency ID | `eqFrequency` | `reverbEQfreq` |
+| Gain ID | `eqGain` | `reverbEQgain` |
+| Q ID | `eqQ` | `reverbEQq` |
+| Q Range | 0.1-10.0 | 0.1-20.0 |
+
+### Band Colors (8-color palette)
+1. Red, 2. Orange, 3. Yellow, 4. Green, 5. Teal, 6. Blue, 7. Purple, 8. Pink
+
+### Biquad Calculations
+Uses Audio EQ Cookbook formulas matching filterCalc.js:
+- **Cut filters**: `alpha = sin(w0) / (2 * Q)`
+- **Shelf filters**: `alpha = (sin(w0)/2) * sqrt((A + 1/A) * (1/Q - 1) + 2)`
+- **Peak/Notch**: `alpha = sin(w0) / (2 * Q)`

@@ -8,6 +8,7 @@
 #include "SliderUIComponents.h"
 #include "DialUIComponents.h"
 #include "StatusBar.h"
+#include "EQDisplayComponent.h"
 
 /**
  * Reverb Tab Component
@@ -908,6 +909,14 @@ private:
         eqEnableButton.setBounds (area.removeFromTop (buttonHeight).withWidth (100));
         area.removeFromTop (spacing * 2);
 
+        // EQ Display component (takes upper portion, min 180px, target ~35% of remaining height)
+        if (eqDisplay)
+        {
+            int displayHeight = juce::jmax (180, area.getHeight() * 35 / 100);
+            eqDisplay->setBounds (area.removeFromTop (displayHeight));
+            area.removeFromTop (spacing);
+        }
+
         // Layout bands horizontally
         for (int i = 0; i < numEqBands; ++i)
         {
@@ -1049,6 +1058,11 @@ private:
     void setEQVisible (bool visible)
     {
         eqEnableButton.setVisible (visible);
+
+        // EQ Display
+        if (eqDisplay)
+            eqDisplay->setVisible (visible);
+
         for (int i = 0; i < numEqBands; ++i)
         {
             eqBandLabel[i].setVisible (visible);
@@ -1185,6 +1199,19 @@ private:
                                   eqEnabled != 0 ? juce::Colour (0xFF4CAF50) : juce::Colour (0xFF2D2D2D));
 
         loadEQBandParameters();
+
+        // Create/update EQ display component with current channel's EQ tree
+        auto eqTree = parameters.getValueTreeState().getReverbEQSection (channel - 1);
+        if (eqTree.isValid())
+        {
+            eqDisplay = std::make_unique<EQDisplayComponent> (eqTree, numEqBands, EQDisplayConfig::forReverbEQ());
+            addAndMakeVisible (*eqDisplay);
+            // Update visibility based on current tab
+            bool eqTabVisible = (subTabBar.getCurrentTabIndex() == 3);  // EQ is sub-tab index 3
+            eqDisplay->setVisible (eqTabVisible);
+            if (eqTabVisible)
+                layoutEQSubTab();
+        }
 
         // Reverb Return
         float distanceAtten = getFloatParam (WFSParameterIDs::reverbDistanceAttenuation, -0.7f);
@@ -1822,6 +1849,9 @@ private:
     juce::Label eqBandSlopeLabel[numEqBands];
     WfsBasicDial eqBandSlopeDial[numEqBands];
     juce::Label eqBandSlopeValueLabel[numEqBands];
+
+    // EQ Display Component
+    std::unique_ptr<EQDisplayComponent> eqDisplay;
 
     // Algorithm sub-tab (placeholder)
     juce::Label algorithmPlaceholderLabel;

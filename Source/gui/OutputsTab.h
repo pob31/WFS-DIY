@@ -8,6 +8,7 @@
 #include "DialUIComponents.h"
 #include "StatusBar.h"
 #include "OutputArrayHelperWindow.h"
+#include "EQDisplayComponent.h"
 
 /**
  * Outputs Tab Component
@@ -710,6 +711,10 @@ private:
         // Global EQ Enable button
         eqEnableButton.setVisible(visible);
 
+        // EQ Display
+        if (eqDisplay)
+            eqDisplay->setVisible(visible);
+
         // 6 EQ Bands
         for (int i = 0; i < numEqBands; ++i)
         {
@@ -874,6 +879,14 @@ private:
         eqEnableButton.setBounds(headerRow.removeFromLeft(100));
         area.removeFromTop(spacing);
 
+        // EQ Display component (takes upper portion, min 200px, target ~40% of remaining height)
+        if (eqDisplay)
+        {
+            int displayHeight = juce::jmax(200, area.getHeight() * 2 / 5);
+            eqDisplay->setBounds(area.removeFromTop(displayHeight));
+            area.removeFromTop(spacing);
+        }
+
         // Calculate column width for 6 bands
         const int columnWidth = (area.getWidth() - columnPadding * (numEqBands + 1)) / numEqBands;
 
@@ -1033,6 +1046,19 @@ private:
         eqEnableButton.setButtonText(eqEnabled ? "EQ ON" : "EQ OFF");
         for (int i = 0; i < numEqBands; ++i)
             updateEqBandAppearance(i);
+
+        // Create/update EQ display component with current channel's EQ tree
+        auto eqTree = parameters.getValueTreeState().getOutputEQSection(channel - 1);
+        if (eqTree.isValid())
+        {
+            eqDisplay = std::make_unique<EQDisplayComponent>(eqTree, numEqBands, EQDisplayConfig::forOutputEQ());
+            addAndMakeVisible(*eqDisplay);
+            // Update visibility based on current tab
+            bool eqTabVisible = (subTabBar.getCurrentTabIndex() == 2);
+            eqDisplay->setVisible(eqTabVisible);
+            if (eqTabVisible)
+                layoutEqTab();
+        }
 
         isLoadingParameters = false;
         updateApplyToArrayEnabledState();
@@ -1548,6 +1574,9 @@ private:
     juce::Label eqBandGainUnitLabel[numEqBands];
     juce::Label eqBandQSlopeLabel[numEqBands];  // Shows "Q:" or "Slope:" based on shape
     juce::TextEditor eqBandQSlopeEditor[numEqBands];
+
+    // EQ Display Component
+    std::unique_ptr<EQDisplayComponent> eqDisplay;
 
     // Footer buttons
     juce::TextButton storeButton;

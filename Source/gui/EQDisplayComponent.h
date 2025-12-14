@@ -1,0 +1,715 @@
+#pragma once
+
+#include <JuceHeader.h>
+#include "../Parameters/WFSParameterIDs.h"
+#include "../Parameters/WFSParameterDefaults.h"
+
+//==============================================================================
+/**
+ * Unified filter type enum for EQ display.
+ * Maps from different shape encodings used in Output EQ vs Reverb EQ.
+ */
+enum class EQFilterType
+{
+    Off = 0,
+    LowCut,      // High-pass with resonance
+    LowShelf,
+    PeakNotch,
+    BandPass,    // Only for Output EQ
+    HighShelf,
+    HighCut      // Low-pass with resonance
+};
+
+//==============================================================================
+/**
+ * Configuration for EQDisplayComponent to handle different parameter IDs
+ * between Output EQ and Reverb EQ.
+ */
+struct EQDisplayConfig
+{
+    juce::Identifier shapeId;
+    juce::Identifier frequencyId;
+    juce::Identifier gainId;
+    juce::Identifier qId;
+
+    float qMin = 0.1f;
+    float qMax = 10.0f;
+
+    bool hasBandPass = false;
+
+    static EQDisplayConfig forOutputEQ()
+    {
+        EQDisplayConfig config;
+        config.shapeId = WFSParameterIDs::eqShape;
+        config.frequencyId = WFSParameterIDs::eqFrequency;
+        config.gainId = WFSParameterIDs::eqGain;
+        config.qId = WFSParameterIDs::eqQ;
+        config.qMin = WFSParameterDefaults::eqQMin;
+        config.qMax = WFSParameterDefaults::eqQMax;
+        config.hasBandPass = true;
+        return config;
+    }
+
+    static EQDisplayConfig forReverbEQ()
+    {
+        EQDisplayConfig config;
+        config.shapeId = WFSParameterIDs::reverbEQshape;
+        config.frequencyId = WFSParameterIDs::reverbEQfreq;
+        config.gainId = WFSParameterIDs::reverbEQgain;
+        config.qId = WFSParameterIDs::reverbEQq;
+        config.qMin = WFSParameterDefaults::reverbEQqMin;
+        config.qMax = WFSParameterDefaults::reverbEQqMax;
+        config.hasBandPass = false;
+        return config;
+    }
+};
+
+//==============================================================================
+/**
+ * Interactive parametric EQ visualization component.
+ * Displays frequency response curve with draggable band markers.
+ * Supports variable number of bands and different parameter configurations.
+ */
+class EQDisplayComponent : public juce::Component,
+                           private juce::ValueTree::Listener
+{
+public:
+    //==========================================================================
+    EQDisplayComponent (juce::ValueTree eqParentTree,
+                        int numBands,
+                        const EQDisplayConfig& config)
+        : eqTree (eqParentTree),
+          numBands (numBands),
+          config (config)
+    {
+        eqTree.addListener (this);
+
+        // Initialize coefficient cache
+        bandCoefficients.resize (static_cast<size_t> (numBands));
+        updateAllCoefficients();
+    }
+
+    ~EQDisplayComponent() override
+    {
+        eqTree.removeListener (this);
+    }
+
+    //==========================================================================
+    void setdBRange (float newMinDb, float newMaxDb)
+    {
+        mindB = newMinDb;
+        maxdB = newMaxDb;
+        repaint();
+    }
+
+    void setSampleRate (double newSampleRate)
+    {
+        if (sampleRate != newSampleRate)
+        {
+            sampleRate = newSampleRate;
+            updateAllCoefficients();
+            repaint();
+        }
+    }
+
+    //==========================================================================
+    void paint (juce::Graphics& g) override
+    {
+        drawGrid (g);
+        drawResponseCurve (g);
+        drawBandMarkers (g);
+    }
+
+    void resized() override
+    {
+        // Recalculate paths on resize
+        repaint();
+    }
+
+    //==========================================================================
+    // Mouse interaction
+    //==========================================================================
+    void mouseDown (const juce::MouseEvent& e) override
+    {
+        selectedBand = findBandAtPosition (e.position);
+        isDragging = (selectedBand >= 0);
+        repaint();
+    }
+
+    void mouseDrag (const juce::MouseEvent& e) override
+    {
+        if (! isDragging || selectedBand < 0)
+            return;
+
+        auto bandTree = eqTree.getChild (selectedBand);
+        if (! bandTree.isValid())
+            return;
+
+        int shape = bandTree.getProperty (config.shapeId);
+        EQFilterType filterType = shapeToFilterType (shape);
+
+        // Update frequency from X position
+        float newFreq = xToFrequency (e.position.x);
+        newFreq = juce::jlimit (20.0f, 20000.0f, newFreq);
+        bandTree.setProperty (config.frequencyId, newFreq, nullptr);
+
+        // Update gain from Y position (except for cuts and bandpass)
+        if (filterType != EQFilterType::LowCut &&
+            filterType != EQFilterType::HighCut &&
+            filterType != EQFilterType::BandPass)
+        {
+            float newGain = yTodB (e.position.y);
+            newGain = juce::jlimit (mindB, maxdB, newGain);
+            bandTree.setProperty (config.gainId, newGain, nullptr);
+        }
+
+        updateBandCoefficients (selectedBand);
+        repaint();
+    }
+
+    void mouseUp (const juce::MouseEvent&) override
+    {
+        isDragging = false;
+        // Keep selection for wheel adjustment
+    }
+
+    void mouseWheelMove (const juce::MouseEvent&,
+                         const juce::MouseWheelDetails& wheel) override
+    {
+        if (selectedBand < 0)
+            return;
+
+        auto bandTree = eqTree.getChild (selectedBand);
+        if (! bandTree.isValid())
+            return;
+
+        // Adjust Q for all filter types
+        float currentQ = bandTree.getProperty (config.qId);
+        float delta = wheel.deltaY * 0.5f;
+
+        // Multiplicative adjustment for Q
+        float newQ = currentQ * (1.0f + delta);
+        newQ = juce::jlimit (config.qMin, config.qMax, newQ);
+        bandTree.setProperty (config.qId, newQ, nullptr);
+
+        updateBandCoefficients (selectedBand);
+        repaint();
+    }
+
+    //==========================================================================
+    // Get currently selected band (-1 if none)
+    int getSelectedBand() const { return selectedBand; }
+
+    // Programmatically select a band
+    void setSelectedBand (int band)
+    {
+        selectedBand = (band >= 0 && band < numBands) ? band : -1;
+        repaint();
+    }
+
+private:
+    //==========================================================================
+    // ValueTree::Listener
+    //==========================================================================
+    void valueTreePropertyChanged (juce::ValueTree& tree,
+                                   const juce::Identifier& property) override
+    {
+        juce::ignoreUnused (property);
+
+        // Check if this is one of our band trees
+        for (int i = 0; i < numBands; ++i)
+        {
+            if (tree == eqTree.getChild (i))
+            {
+                updateBandCoefficients (i);
+                repaint();
+                return;
+            }
+        }
+
+        // If it's the parent tree, update all
+        if (tree == eqTree)
+        {
+            updateAllCoefficients();
+            repaint();
+        }
+    }
+
+    void valueTreeChildAdded (juce::ValueTree&, juce::ValueTree&) override {}
+    void valueTreeChildRemoved (juce::ValueTree&, juce::ValueTree&, int) override {}
+    void valueTreeChildOrderChanged (juce::ValueTree&, int, int) override {}
+    void valueTreeParentChanged (juce::ValueTree&) override {}
+
+    //==========================================================================
+    // Drawing
+    //==========================================================================
+    void drawGrid (juce::Graphics& g)
+    {
+        auto bounds = getLocalBounds().toFloat();
+
+        // Background
+        g.setColour (juce::Colours::black);
+        g.fillRect (bounds);
+
+        // Frequency grid lines (logarithmic)
+        const float freqLines[] = {
+            20, 30, 40, 50, 60, 70, 80, 90,
+            100, 200, 300, 400, 500, 600, 700, 800, 900,
+            1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000,
+            10000, 20000
+        };
+
+        for (float freq : freqLines)
+        {
+            float x = frequencyToX (freq);
+
+            // Major lines at decade points
+            bool isMajor = (freq == 100 || freq == 1000 || freq == 10000);
+            g.setColour (isMajor ? juce::Colours::grey.withAlpha (0.5f)
+                                 : juce::Colours::grey.withAlpha (0.2f));
+
+            g.drawVerticalLine (static_cast<int> (x), bounds.getY(), bounds.getBottom());
+        }
+
+        // Frequency labels
+        g.setColour (juce::Colours::grey);
+        g.setFont (10.0f);
+
+        const float labelFreqs[] = { 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000 };
+        const char* labelTexts[] = { "20", "50", "100", "200", "500", "1k", "2k", "5k", "10k", "20k" };
+
+        for (int i = 0; i < 10; ++i)
+        {
+            float x = frequencyToX (labelFreqs[i]);
+            g.drawText (labelTexts[i],
+                        static_cast<int> (x) - 15,
+                        static_cast<int> (bounds.getBottom()) - 15,
+                        30, 12,
+                        juce::Justification::centred);
+        }
+
+        // dB grid lines
+        for (float dB = mindB; dB <= maxdB; dB += 6.0f)
+        {
+            float y = dBToY (dB);
+
+            // 0 dB line emphasized
+            if (std::abs (dB) < 0.1f)
+            {
+                g.setColour (juce::Colours::grey.withAlpha (0.7f));
+                g.drawHorizontalLine (static_cast<int> (y), bounds.getX(), bounds.getRight());
+            }
+            else
+            {
+                g.setColour (juce::Colours::grey.withAlpha (0.3f));
+                g.drawHorizontalLine (static_cast<int> (y), bounds.getX(), bounds.getRight());
+            }
+
+            // dB labels
+            g.setColour (juce::Colours::grey);
+            juce::String label = (dB > 0 ? "+" : "") + juce::String (static_cast<int> (dB));
+            g.drawText (label, 2, static_cast<int> (y) - 6, 25, 12,
+                        juce::Justification::left);
+        }
+    }
+
+    void drawResponseCurve (juce::Graphics& g)
+    {
+        juce::Path responseCurve;
+
+        const int numPoints = getWidth();
+        const float zeroY = dBToY (0.0f);
+
+        for (int x = 0; x < numPoints; ++x)
+        {
+            float freq = xToFrequency (static_cast<float> (x));
+            float totalGaindB = calculateTotalResponse (freq);
+            float y = dBToY (totalGaindB);
+
+            if (x == 0)
+                responseCurve.startNewSubPath (static_cast<float> (x), y);
+            else
+                responseCurve.lineTo (static_cast<float> (x), y);
+        }
+
+        // Filled area under/over 0dB line
+        juce::Path filledCurve = responseCurve;
+        filledCurve.lineTo (static_cast<float> (getWidth()), zeroY);
+        filledCurve.lineTo (0.0f, zeroY);
+        filledCurve.closeSubPath();
+
+        g.setColour (juce::Colours::blue.withAlpha (0.15f));
+        g.fillPath (filledCurve);
+
+        // Curve outline
+        g.setColour (juce::Colours::white);
+        g.strokePath (responseCurve, juce::PathStrokeType (2.0f));
+    }
+
+    void drawBandMarkers (juce::Graphics& g)
+    {
+        for (int band = 0; band < numBands; ++band)
+        {
+            auto bandTree = eqTree.getChild (band);
+            if (! bandTree.isValid())
+                continue;
+
+            int shape = bandTree.getProperty (config.shapeId);
+            if (shape == 0) // Skip if Off
+                continue;
+
+            auto markerPos = getBandMarkerPosition (band);
+            float x = markerPos.x;
+            float y = markerPos.y;
+
+            // Band color
+            juce::Colour bandColour = getBandColour (band);
+            bool isSelected = (selectedBand == band);
+            float markerSize = isSelected ? 14.0f : 10.0f;
+
+            // Draw marker circle
+            g.setColour (bandColour);
+            g.fillEllipse (x - markerSize / 2, y - markerSize / 2, markerSize, markerSize);
+
+            // Selection ring
+            if (isSelected)
+            {
+                g.setColour (juce::Colours::white);
+                g.drawEllipse (x - markerSize / 2 - 3, y - markerSize / 2 - 3,
+                               markerSize + 6, markerSize + 6, 2.0f);
+            }
+
+            // Band number
+            g.setColour (juce::Colours::white);
+            g.setFont (10.0f);
+            g.drawText (juce::String (band + 1),
+                        static_cast<int> (x) - 6, static_cast<int> (y) - 6, 12, 12,
+                        juce::Justification::centred);
+        }
+    }
+
+    //==========================================================================
+    // Coordinate conversion
+    //==========================================================================
+    float frequencyToX (float freq) const
+    {
+        const float minFreq = 20.0f;
+        const float maxFreq = 20000.0f;
+
+        float normalized = std::log10 (freq / minFreq) / std::log10 (maxFreq / minFreq);
+        return static_cast<float> (getWidth()) * normalized;
+    }
+
+    float xToFrequency (float x) const
+    {
+        const float minFreq = 20.0f;
+        const float maxFreq = 20000.0f;
+
+        float normalized = x / static_cast<float> (getWidth());
+        return minFreq * std::pow (maxFreq / minFreq, normalized);
+    }
+
+    float dBToY (float dB) const
+    {
+        float normalized = (dB - mindB) / (maxdB - mindB);
+        return static_cast<float> (getHeight()) * (1.0f - normalized);
+    }
+
+    float yTodB (float y) const
+    {
+        float normalized = 1.0f - (y / static_cast<float> (getHeight()));
+        return mindB + normalized * (maxdB - mindB);
+    }
+
+    //==========================================================================
+    // Filter type conversion
+    //==========================================================================
+    EQFilterType shapeToFilterType (int shape) const
+    {
+        if (config.hasBandPass)
+        {
+            // Output EQ: 0=Off, 1=LowCut, 2=LowShelf, 3=Peak, 4=BandPass, 5=HighShelf, 6=HighCut
+            switch (shape)
+            {
+                case 0: return EQFilterType::Off;
+                case 1: return EQFilterType::LowCut;
+                case 2: return EQFilterType::LowShelf;
+                case 3: return EQFilterType::PeakNotch;
+                case 4: return EQFilterType::BandPass;
+                case 5: return EQFilterType::HighShelf;
+                case 6: return EQFilterType::HighCut;
+                default: return EQFilterType::Off;
+            }
+        }
+        else
+        {
+            // Reverb EQ: 0=Off, 1=LowCut, 2=LowShelf, 3=Peak, 4=HighShelf, 5=HighCut
+            switch (shape)
+            {
+                case 0: return EQFilterType::Off;
+                case 1: return EQFilterType::LowCut;
+                case 2: return EQFilterType::LowShelf;
+                case 3: return EQFilterType::PeakNotch;
+                case 4: return EQFilterType::HighShelf;
+                case 5: return EQFilterType::HighCut;
+                default: return EQFilterType::Off;
+            }
+        }
+    }
+
+    //==========================================================================
+    // Filter response calculation
+    //==========================================================================
+    void updateBandCoefficients (int bandIndex)
+    {
+        if (bandIndex < 0 || bandIndex >= numBands)
+            return;
+
+        auto bandTree = eqTree.getChild (bandIndex);
+        if (! bandTree.isValid())
+        {
+            bandCoefficients[static_cast<size_t> (bandIndex)] = nullptr;
+            return;
+        }
+
+        int shape = bandTree.getProperty (config.shapeId);
+        float freq = bandTree.getProperty (config.frequencyId);
+        float gain = bandTree.getProperty (config.gainId);
+        float Q = bandTree.getProperty (config.qId);
+
+        EQFilterType filterType = shapeToFilterType (shape);
+
+        if (filterType == EQFilterType::Off)
+        {
+            bandCoefficients[static_cast<size_t> (bandIndex)] = nullptr;
+            return;
+        }
+
+        // Clamp values
+        freq = juce::jlimit (20.0f, 20000.0f, freq);
+        Q = juce::jlimit (config.qMin, config.qMax, Q);
+
+        juce::dsp::IIR::Coefficients<float>::Ptr coeffs;
+
+        switch (filterType)
+        {
+            case EQFilterType::LowCut:
+                coeffs = juce::dsp::IIR::Coefficients<float>::makeHighPass (sampleRate, freq, Q);
+                break;
+
+            case EQFilterType::HighCut:
+                coeffs = juce::dsp::IIR::Coefficients<float>::makeLowPass (sampleRate, freq, Q);
+                break;
+
+            case EQFilterType::LowShelf:
+                coeffs = makeLowShelfCoefficients (freq, gain, Q);
+                break;
+
+            case EQFilterType::HighShelf:
+                coeffs = makeHighShelfCoefficients (freq, gain, Q);
+                break;
+
+            case EQFilterType::PeakNotch:
+                coeffs = juce::dsp::IIR::Coefficients<float>::makePeakFilter (
+                    sampleRate, freq, Q, juce::Decibels::decibelsToGain (gain));
+                break;
+
+            case EQFilterType::BandPass:
+                coeffs = juce::dsp::IIR::Coefficients<float>::makeBandPass (sampleRate, freq, Q);
+                break;
+
+            default:
+                coeffs = nullptr;
+                break;
+        }
+
+        bandCoefficients[static_cast<size_t> (bandIndex)] = coeffs;
+    }
+
+    void updateAllCoefficients()
+    {
+        for (int i = 0; i < numBands; ++i)
+            updateBandCoefficients (i);
+    }
+
+    // Custom shelf filter calculation matching filterCalc.js formulas
+    // Uses Q as the S (slope) parameter: alpha = (sin(w0)/2) * sqrt((A + 1/A) * (1/S - 1) + 2)
+    juce::dsp::IIR::Coefficients<float>::Ptr makeLowShelfCoefficients (float freq, float gaindB, float S)
+    {
+        double A = std::pow (10.0, gaindB / 40.0);
+        double w0 = 2.0 * juce::MathConstants<double>::pi * freq / sampleRate;
+        double cosw0 = std::cos (w0);
+        double sinw0 = std::sin (w0);
+        double alpha = (sinw0 / 2.0) * std::sqrt ((A + 1.0 / A) * (1.0 / S - 1.0) + 2.0);
+        double sqrtA = std::sqrt (A);
+        double twoSqrtAalpha = 2.0 * sqrtA * alpha;
+
+        double b0 = A * ((A + 1.0) - (A - 1.0) * cosw0 + twoSqrtAalpha);
+        double b1 = 2.0 * A * ((A - 1.0) - (A + 1.0) * cosw0);
+        double b2 = A * ((A + 1.0) - (A - 1.0) * cosw0 - twoSqrtAalpha);
+        double a0 = (A + 1.0) + (A - 1.0) * cosw0 + twoSqrtAalpha;
+        double a1 = -2.0 * ((A - 1.0) + (A + 1.0) * cosw0);
+        double a2 = (A + 1.0) + (A - 1.0) * cosw0 - twoSqrtAalpha;
+
+        // Use array constructor - JUCE expects {b0, b1, b2, a0, a1, a2}
+        std::array<float, 6> coeffArray = {
+            static_cast<float> (b0 / a0),
+            static_cast<float> (b1 / a0),
+            static_cast<float> (b2 / a0),
+            1.0f,  // a0 normalized
+            static_cast<float> (a1 / a0),
+            static_cast<float> (a2 / a0)
+        };
+
+        return juce::dsp::IIR::Coefficients<float>::Ptr (
+            new juce::dsp::IIR::Coefficients<float> (coeffArray));
+    }
+
+    juce::dsp::IIR::Coefficients<float>::Ptr makeHighShelfCoefficients (float freq, float gaindB, float S)
+    {
+        double A = std::pow (10.0, gaindB / 40.0);
+        double w0 = 2.0 * juce::MathConstants<double>::pi * freq / sampleRate;
+        double cosw0 = std::cos (w0);
+        double sinw0 = std::sin (w0);
+        double alpha = (sinw0 / 2.0) * std::sqrt ((A + 1.0 / A) * (1.0 / S - 1.0) + 2.0);
+        double sqrtA = std::sqrt (A);
+        double twoSqrtAalpha = 2.0 * sqrtA * alpha;
+
+        double b0 = A * ((A + 1.0) + (A - 1.0) * cosw0 + twoSqrtAalpha);
+        double b1 = -2.0 * A * ((A - 1.0) + (A + 1.0) * cosw0);
+        double b2 = A * ((A + 1.0) + (A - 1.0) * cosw0 - twoSqrtAalpha);
+        double a0 = (A + 1.0) - (A - 1.0) * cosw0 + twoSqrtAalpha;
+        double a1 = 2.0 * ((A - 1.0) - (A + 1.0) * cosw0);
+        double a2 = (A + 1.0) - (A - 1.0) * cosw0 - twoSqrtAalpha;
+
+        // Use array constructor - JUCE expects {b0, b1, b2, a0, a1, a2}
+        std::array<float, 6> coeffArray = {
+            static_cast<float> (b0 / a0),
+            static_cast<float> (b1 / a0),
+            static_cast<float> (b2 / a0),
+            1.0f,  // a0 normalized
+            static_cast<float> (a1 / a0),
+            static_cast<float> (a2 / a0)
+        };
+
+        return juce::dsp::IIR::Coefficients<float>::Ptr (
+            new juce::dsp::IIR::Coefficients<float> (coeffArray));
+    }
+
+    float calculateBandResponse (int bandIndex, float frequency)
+    {
+        if (bandIndex < 0 || bandIndex >= numBands)
+            return 0.0f;
+
+        auto coeffs = bandCoefficients[static_cast<size_t> (bandIndex)];
+        if (coeffs == nullptr)
+            return 0.0f;
+
+        double mag = coeffs->getMagnitudeForFrequency (frequency, sampleRate);
+        return static_cast<float> (juce::Decibels::gainToDecibels (mag));
+    }
+
+    float calculateTotalResponse (float frequency)
+    {
+        float totalGaindB = 0.0f;
+
+        for (int band = 0; band < numBands; ++band)
+        {
+            totalGaindB += calculateBandResponse (band, frequency);
+        }
+
+        return juce::jlimit (mindB - 6.0f, maxdB + 6.0f, totalGaindB);
+    }
+
+    //==========================================================================
+    // Band marker positioning and hit testing
+    //==========================================================================
+    juce::Point<float> getBandMarkerPosition (int bandIndex)
+    {
+        auto bandTree = eqTree.getChild (bandIndex);
+        if (! bandTree.isValid())
+            return { 0.0f, 0.0f };
+
+        int shape = bandTree.getProperty (config.shapeId);
+        float freq = bandTree.getProperty (config.frequencyId);
+        float gain = bandTree.getProperty (config.gainId);
+
+        float x = frequencyToX (freq);
+        float y;
+
+        EQFilterType filterType = shapeToFilterType (shape);
+
+        // For cuts and bandpass, marker sits at 0dB line
+        if (filterType == EQFilterType::LowCut ||
+            filterType == EQFilterType::HighCut ||
+            filterType == EQFilterType::BandPass)
+        {
+            y = dBToY (0.0f);
+        }
+        else
+        {
+            y = dBToY (gain);
+        }
+
+        return { x, y };
+    }
+
+    int findBandAtPosition (juce::Point<float> pos)
+    {
+        const float hitRadius = 15.0f;
+        const float hitRadiusSq = hitRadius * hitRadius;
+
+        for (int band = 0; band < numBands; ++band)
+        {
+            auto bandTree = eqTree.getChild (band);
+            if (! bandTree.isValid())
+                continue;
+
+            int shape = bandTree.getProperty (config.shapeId);
+            if (shape == 0) // Skip if Off
+                continue;
+
+            auto markerPos = getBandMarkerPosition (band);
+            float dx = pos.x - markerPos.x;
+            float dy = pos.y - markerPos.y;
+
+            if (dx * dx + dy * dy < hitRadiusSq)
+                return band;
+        }
+
+        return -1;
+    }
+
+    juce::Colour getBandColour (int band)
+    {
+        static const juce::Colour colours[] = {
+            juce::Colour (0xFFE74C3C),  // Red
+            juce::Colour (0xFFE67E22),  // Orange
+            juce::Colour (0xFFF39C12),  // Yellow
+            juce::Colour (0xFF2ECC71),  // Green
+            juce::Colour (0xFF1ABC9C),  // Teal
+            juce::Colour (0xFF3498DB),  // Blue
+            juce::Colour (0xFF9B59B6),  // Purple
+            juce::Colour (0xFFE91E63),  // Pink
+        };
+        return colours[band % 8];
+    }
+
+    //==========================================================================
+    // Member variables
+    //==========================================================================
+    juce::ValueTree eqTree;
+    int numBands;
+    EQDisplayConfig config;
+
+    float mindB = -24.0f;
+    float maxdB = 24.0f;
+    double sampleRate = 48000.0;
+
+    int selectedBand = -1;
+    bool isDragging = false;
+
+    std::vector<juce::dsp::IIR::Coefficients<float>::Ptr> bandCoefficients;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EQDisplayComponent)
+};
