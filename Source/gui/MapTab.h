@@ -316,16 +316,14 @@ public:
             auto stagePos = screenToStage(e.position);
 
             // Check constraint parameters - only clamp if constraint is enabled
+            // Note: screenToStage returns origin-relative coordinates (matching InputsTab/ClustersTab)
             int constraintX = static_cast<int>(parameters.getInputParam(selectedInput, "inputConstraintX"));
             int constraintY = static_cast<int>(parameters.getInputParam(selectedInput, "inputConstraintY"));
 
-            float stageW = getStageWidth();
-            float stageD = getStageDepth();
-
             if (constraintX != 0)
-                stagePos.x = juce::jlimit(0.0f, stageW, stagePos.x);
+                stagePos.x = juce::jlimit(getStageMinX(), getStageMaxX(), stagePos.x);
             if (constraintY != 0)
-                stagePos.y = juce::jlimit(0.0f, stageD, stagePos.y);
+                stagePos.y = juce::jlimit(getStageMinY(), getStageMaxY(), stagePos.y);
 
             // Determine drag behavior based on input state
             bool isTracked = isInputFullyTracked(selectedInput);
@@ -676,13 +674,14 @@ public:
         auto stagePos = screenToStage(touch.currentPos);
 
         // Check constraint parameters
+        // Note: screenToStage returns origin-relative coordinates (matching InputsTab/ClustersTab)
         int constraintX = static_cast<int>(parameters.getInputParam(inputIdx, "inputConstraintX"));
         int constraintY = static_cast<int>(parameters.getInputParam(inputIdx, "inputConstraintY"));
 
         if (constraintX != 0)
-            stagePos.x = juce::jlimit(0.0f, getStageWidth(), stagePos.x);
+            stagePos.x = juce::jlimit(getStageMinX(), getStageMaxX(), stagePos.x);
         if (constraintY != 0)
-            stagePos.y = juce::jlimit(0.0f, getStageDepth(), stagePos.y);
+            stagePos.y = juce::jlimit(getStageMinY(), getStageMaxY(), stagePos.y);
 
         // Determine drag behavior
         bool isTracked = isInputFullyTracked(inputIdx);
@@ -1108,12 +1107,6 @@ public:
             refPos = getClusterBarycenter(clusterNum);
         }
 
-        // Get stage bounds for clamping
-        float stageW = getStageWidth();
-        float stageD = getStageDepth();
-        float posMin = WFSParameterDefaults::inputPositionMin;
-        float posMax = WFSParameterDefaults::inputPositionMax;
-
         // Scale all members relative to reference
         int numInputs = parameters.getNumInputChannels();
         for (int i = 0; i < numInputs; ++i)
@@ -1133,9 +1126,9 @@ public:
             float newPosX = refPos.x + relX * scaleX;
             float newPosY = refPos.y + relY * scaleY;
 
-            // Clamp to valid range (use wider of stage bounds or parameter limits)
-            newPosX = juce::jlimit(juce::jmin(posMin, 0.0f), juce::jmax(posMax, stageW), newPosX);
-            newPosY = juce::jlimit(juce::jmin(posMin, 0.0f), juce::jmax(posMax, stageD), newPosY);
+            // Clamp to origin-relative stage bounds (matching InputsTab/ClustersTab)
+            newPosX = juce::jlimit(getStageMinX(), getStageMaxX(), newPosX);
+            newPosY = juce::jlimit(getStageMinY(), getStageMaxY(), newPosY);
 
             parameters.setInputParam(i, "inputPositionX", newPosX);
             parameters.setInputParam(i, "inputPositionY", newPosY);
@@ -1166,12 +1159,6 @@ public:
         float cosA = std::cos(angleRad);
         float sinA = std::sin(angleRad);
 
-        // Get stage bounds for clamping
-        float stageW = getStageWidth();
-        float stageD = getStageDepth();
-        float posMin = WFSParameterDefaults::inputPositionMin;
-        float posMax = WFSParameterDefaults::inputPositionMax;
-
         // Rotate all members around reference
         int numInputs = parameters.getNumInputChannels();
         for (int i = 0; i < numInputs; ++i)
@@ -1195,9 +1182,9 @@ public:
             float newPosX = refPos.x + newRelX;
             float newPosY = refPos.y + newRelY;
 
-            // Clamp to valid range
-            newPosX = juce::jlimit(juce::jmin(posMin, 0.0f), juce::jmax(posMax, stageW), newPosX);
-            newPosY = juce::jlimit(juce::jmin(posMin, 0.0f), juce::jmax(posMax, stageD), newPosY);
+            // Clamp to origin-relative stage bounds (matching InputsTab/ClustersTab)
+            newPosX = juce::jlimit(getStageMinX(), getStageMaxX(), newPosX);
+            newPosY = juce::jlimit(getStageMinY(), getStageMaxY(), newPosY);
 
             parameters.setInputParam(i, "inputPositionX", newPosX);
             parameters.setInputParam(i, "inputPositionY", newPosY);
@@ -1381,25 +1368,21 @@ private:
 
     juce::Point<float> stageToScreen(juce::Point<float> stagePos) const
     {
-        float originW = getOriginWidth();
-        float originD = getOriginDepth();
-
-        // Convert stage coordinates to screen coordinates
+        // Convert origin-relative stage coordinates to screen coordinates
         // Stage Y increases upward, screen Y increases downward
-        float screenX = getWidth() / 2.0f + (stagePos.x - originW) * viewScale + viewOffset.x;
-        float screenY = getHeight() / 2.0f - (stagePos.y - originD) * viewScale + viewOffset.y;
+        // stagePos.x = 0 means at the coordinate origin (screen center)
+        float screenX = getWidth() / 2.0f + stagePos.x * viewScale + viewOffset.x;
+        float screenY = getHeight() / 2.0f - stagePos.y * viewScale + viewOffset.y;
 
         return { screenX, screenY };
     }
 
     juce::Point<float> screenToStage(juce::Point<float> screenPos) const
     {
-        float originW = getOriginWidth();
-        float originD = getOriginDepth();
-
-        // Convert screen coordinates to stage coordinates
-        float stageX = (screenPos.x - getWidth() / 2.0f - viewOffset.x) / viewScale + originW;
-        float stageY = (getHeight() / 2.0f + viewOffset.y - screenPos.y) / viewScale + originD;
+        // Convert screen coordinates to origin-relative stage coordinates
+        // Screen center maps to stagePos = (0, 0) = coordinate origin
+        float stageX = (screenPos.x - getWidth() / 2.0f - viewOffset.x) / viewScale;
+        float stageY = (getHeight() / 2.0f + viewOffset.y - screenPos.y) / viewScale;
 
         return { stageX, stageY };
     }
@@ -1453,6 +1436,14 @@ private:
         return WFSParameterDefaults::stageHeightDefault;
     }
 
+    // Origin-relative stage bounds (matching InputsTab/ClustersTab coordinate system)
+    float getStageMinX() const { return -getOriginWidth(); }
+    float getStageMaxX() const { return getStageWidth() - getOriginWidth(); }
+    float getStageMinY() const { return -getOriginDepth(); }
+    float getStageMaxY() const { return getStageDepth() - getOriginDepth(); }
+    float getStageMinZ() const { return 0.0f; }
+    float getStageMaxZ() const { return getStageHeight(); }
+
     void resetView()
     {
         // Reset view to show entire stage centered in viewport
@@ -1468,9 +1459,9 @@ private:
         viewScale = juce::jlimit(5.0f, 500.0f, viewScale);
 
         // Calculate offset to center the stage (not the origin) in the viewport
-        // Stage center in stage coordinates is (stageW/2, stageD/2)
-        // stageToScreen: screenX = width/2 + (stageX - originW) * scale + offsetX
-        // To center stageW/2 at screenCenter: offsetX = (originW - stageW/2) * scale
+        // Stage center in origin-relative coords: ((stageW-2*originW)/2, (stageD-2*originD)/2)
+        // stageToScreen: screenX = width/2 + stageX * scale + offsetX
+        // To center the stage: offsetX = -stageCenterX * scale = (originW - stageW/2) * scale
         float stageCenterX = stageW / 2.0f;
         float stageCenterY = stageD / 2.0f;
         viewOffset.x = (originW - stageCenterX) * viewScale;
@@ -1534,11 +1525,9 @@ private:
 
     void drawStageBounds(juce::Graphics& g)
     {
-        float stageW = getStageWidth();
-        float stageD = getStageDepth();
-
-        auto topLeft = stageToScreen({ 0.0f, stageD });
-        auto bottomRight = stageToScreen({ stageW, 0.0f });
+        // Stage bounds in origin-relative coordinates
+        auto topLeft = stageToScreen({ getStageMinX(), getStageMaxY() });
+        auto bottomRight = stageToScreen({ getStageMaxX(), getStageMinY() });
 
         juce::Rectangle<float> stageRect(topLeft.x, topLeft.y,
                                          bottomRight.x - topLeft.x,
@@ -1550,11 +1539,8 @@ private:
 
     void drawOriginMarker(juce::Graphics& g)
     {
-        // Draw origin marker at (originWidth, originDepth) which is the (0,0) point
-        float originW = getOriginWidth();
-        float originD = getOriginDepth();
-
-        auto originScreen = stageToScreen({ originW, originD });
+        // Draw origin marker at (0, 0) in origin-relative coordinates
+        auto originScreen = stageToScreen({ 0.0f, 0.0f });
 
         // Draw crosshairs
         float crosshairLength = 20.0f;

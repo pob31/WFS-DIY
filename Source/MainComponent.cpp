@@ -1202,15 +1202,25 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
         return true;
     }
 
-    // Channel cycling: Space / Shift+Space
+    // Get current tab index for tab-specific shortcuts
+    int currentTabIndex = tabbedComponent.getCurrentTabIndex();
+
+    // Clusters tab (index 5): Space cycles clusters, not channels
+    if (currentTabIndex == 5 && clustersTab != nullptr && key.isKeyCode(juce::KeyPress::spaceKey))
+    {
+        if (key.getModifiers().isShiftDown())
+            clustersTab->selectPreviousCluster();  // Shift+Space = previous cluster
+        else
+            clustersTab->selectNextCluster();      // Space = next cluster
+        return true;
+    }
+
+    // Channel cycling: Space / Shift+Space (for non-Clusters tabs)
     if (key.isKeyCode(juce::KeyPress::spaceKey))
     {
         cycleChannel(key.getModifiers().isShiftDown() ? -1 : 1);
         return true;
     }
-
-    // Get current tab index for tab-specific shortcuts
-    int currentTabIndex = tabbedComponent.getCurrentTabIndex();
 
     // Cluster/Array assignment: F1-F10 assign to Cluster/Array 1-10, F11 removes (Single)
     // Inputs tab (index 4): F1-F10 = Cluster 1-10, F11 = Single
@@ -1246,6 +1256,19 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
         {
             outputsTab->setArray(0);  // Single
             return true;
+        }
+    }
+
+    // Clusters tab (index 5): F1-F10 = select Cluster 1-10
+    if (currentTabIndex == 5 && clustersTab != nullptr)
+    {
+        for (int i = 0; i < 10; ++i)
+        {
+            if (key.isKeyCode(juce::KeyPress::F1Key + i))
+            {
+                clustersTab->setSelectedCluster(i + 1);  // F1 = Cluster 1, F10 = Cluster 10
+                return true;
+            }
         }
     }
 

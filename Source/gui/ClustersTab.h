@@ -329,6 +329,31 @@ public:
         juce::ignoreUnused(row);
     }
 
+    // Public methods for keyboard navigation
+    void setSelectedCluster(int clusterIndex)
+    {
+        if (clusterIndex >= 1 && clusterIndex <= 10)
+            selectCluster(clusterIndex);
+    }
+
+    int getSelectedCluster() const noexcept { return selectedCluster; }
+
+    void selectNextCluster()
+    {
+        int next = selectedCluster + 1;
+        if (next > 10)
+            next = 1;  // Wrap to first
+        selectCluster(next);
+    }
+
+    void selectPreviousCluster()
+    {
+        int prev = selectedCluster - 1;
+        if (prev < 1)
+            prev = 10;  // Wrap to last
+        selectCluster(prev);
+    }
+
 private:
     enum class Plane { XY = 0, XZ = 1, YZ = 2 };
 
