@@ -178,6 +178,14 @@ public:
             }
         };
 
+        // Map lock button
+        addAndMakeVisible(mapLockButton);
+        mapLockButton.onClick = [this]() { toggleMapLock(); };
+
+        // Map visibility button
+        addAndMakeVisible(mapVisibilityButton);
+        mapVisibilityButton.onClick = [this]() { toggleMapVisibility(); };
+
         // ==================== SUB-TABS ====================
         addAndMakeVisible(subTabBar);
         subTabBar.addTab("Input", juce::Colour(0xFF2A2A2A), -1);
@@ -341,6 +349,10 @@ public:
         row1.removeFromLeft(spacing * 4);
         clusterLabel.setBounds(row1.removeFromLeft(60));
         clusterSelector.setBounds(row1.removeFromLeft(100));
+        row1.removeFromLeft(spacing * 2);
+        mapLockButton.setBounds(row1.removeFromLeft(120));
+        row1.removeFromLeft(spacing);
+        mapVisibilityButton.setBounds(row1.removeFromLeft(160));
 
         // ==================== FOOTER ==================== (matching Output tab style)
         auto footerArea = bounds.removeFromBottom(footerHeight).reduced(padding, padding);
@@ -2841,6 +2853,7 @@ private:
         }
 
         isLoadingParameters = false;
+        updateMapButtonStates();
     }
 
     // ==================== TEXT EDITOR LISTENER ====================
@@ -3270,6 +3283,8 @@ private:
         helpTextMap[&channelSelector] = "Input Channel Number and Selection.";
         helpTextMap[&nameEditor] = "Displayed Input Channel Name (editable).";
         helpTextMap[&clusterSelector] = "Object is Part of a Cluster.";
+        helpTextMap[&mapLockButton] = "Prevent Interaction on the Map Tab";
+        helpTextMap[&mapVisibilityButton] = "Make Visible or Hide The Selected Input on the Map";
         helpTextMap[&attenuationSlider] = "Input Channel Attenuation.";
         helpTextMap[&delayLatencySlider] = "Input Channel Delay (positive values) or Latency Compensation (negative values).";
         helpTextMap[&minimalLatencyButton] = "Select between Acoustic Precedence and Minimal Latency for Amplification Precedence.";
@@ -3557,6 +3572,41 @@ private:
         parameters.setInputParam(currentChannel - 1, paramId.toString(), value);
     }
 
+    void toggleMapLock()
+    {
+        auto currentVal = parameters.getInputParam(currentChannel - 1, "inputMapLocked");
+        bool currentlyLocked = !currentVal.isVoid() && static_cast<int>(currentVal) != 0;
+        bool newLocked = !currentlyLocked;
+
+        saveInputParam(WFSParameterIDs::inputMapLocked, newLocked ? 1 : 0);
+        updateMapButtonStates();
+    }
+
+    void toggleMapVisibility()
+    {
+        auto currentVal = parameters.getInputParam(currentChannel - 1, "inputMapVisible");
+        bool currentlyVisible = currentVal.isVoid() || static_cast<int>(currentVal) != 0;
+        bool newVisible = !currentlyVisible;
+
+        saveInputParam(WFSParameterIDs::inputMapVisible, newVisible ? 1 : 0);
+        updateMapButtonStates();
+    }
+
+    void updateMapButtonStates()
+    {
+        // Lock button - show lock icon and state
+        auto lockedVal = parameters.getInputParam(currentChannel - 1, "inputMapLocked");
+        bool isLocked = !lockedVal.isVoid() && static_cast<int>(lockedVal) != 0;
+        // Use Unicode lock symbols
+        juce::String lockIcon = isLocked ? juce::String::fromUTF8("\xf0\x9f\x94\x92") : juce::String::fromUTF8("\xf0\x9f\x94\x93");
+        mapLockButton.setButtonText(lockIcon + " Lock on Map");
+
+        // Visibility button
+        auto visibleVal = parameters.getInputParam(currentChannel - 1, "inputMapVisible");
+        bool isVisible = visibleVal.isVoid() || static_cast<int>(visibleVal) != 0;
+        mapVisibilityButton.setButtonText(isVisible ? "Input Visible on Map" : "Input Hidden on Map");
+    }
+
     /**
      * Check tracking constraint when assigning input to a cluster (async version).
      * Only one input with tracking enabled is allowed per cluster.
@@ -3755,6 +3805,8 @@ private:
     juce::TextEditor nameEditor;
     juce::Label clusterLabel;
     juce::ComboBox clusterSelector;
+    juce::TextButton mapLockButton;
+    juce::TextButton mapVisibilityButton;
 
     // Sub-tab bar
     juce::TabbedButtonBar subTabBar { juce::TabbedButtonBar::TabsAtTop };

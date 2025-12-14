@@ -101,6 +101,53 @@ Manages groups of inputs with collective transformations:
 
 All controls use 50Hz timer-based updates with auto-centering behavior.
 
+## Map Tab (Source/gui/MapTab.h)
+Interactive 2D visualization of the WFS spatial layout:
+
+### Display Elements
+- **Grid** - 1m grid lines (dark gray)
+- **Stage bounds** - White rectangle showing stage dimensions
+- **Origin marker** - White circle with crosshairs at coordinate origin
+- **Inputs** - Colored circles with channel numbers (interactive, draggable)
+- **Outputs** - Wedge/speaker icons showing orientation, color-coded by array
+- **Reverbs** - Purple diamond shapes
+- **Clusters** - Boundary shapes around grouped inputs
+
+### Navigation
+- **Mouse wheel** - Zoom in/out (centered on cursor)
+- **Middle-button drag** - Pan view
+- **Left-click** - Select input
+- **Left-drag** - Move selected input position
+
+### Coordinate System
+- Stage coordinates in meters, origin at (originWidth, originDepth)
+- Screen Y-axis inverted (Y increases downward on screen, upward on stage)
+- `stageToScreen()` / `screenToStage()` conversion functions
+
+### Visual Styling
+- HSL-based colors for markers (matching Android WFS Control app)
+- Inputs: hue = (id × 360 / 32) % 360, saturation 0.9, lightness 0.6
+- Arrays/Clusters: hue = (id × 360 / 10) % 360, saturation 0.7, lightness 0.7
+- Selected input: Yellow highlight ring
+- Locked input: Gray outer circle, red channel number
+- LS radius: White circle with 10% opacity when active
+- Height indicator: Small triangle when Z ≠ 0
+
+### Map Visibility & Lock Controls
+Per-channel controls in respective tabs:
+- **InputsTab** - Lock button (🔒/🔓) + visibility toggle per input
+- **OutputsTab** - Visibility toggle (speaker or array visibility based on assignment)
+- **ReverbTab** - Global visibility toggle for all reverbs
+
+### Map Display Parameters
+```
+inputMapLocked      - Lock input position on map (0/1)
+inputMapVisible     - Show input on map (0/1)
+outputMapVisible    - Show individual speaker on map (0/1)
+outputArrayMapVisible - Show array speakers on map (0/1)
+reverbsMapVisible   - Show all reverbs on map (0/1, global)
+```
+
 ## Keyboard Shortcuts
 - **F1-F10** - Assign input/output to cluster/array 1-10
 - **F11** - Assign to Single (no cluster)

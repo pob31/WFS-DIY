@@ -893,6 +893,7 @@ void WFSValueTreeState::createMasterSection (juce::ValueTree& config)
     master.setProperty (masterLevel, masterLevelDefault, nullptr);
     master.setProperty (systemLatency, systemLatencyDefault, nullptr);
     master.setProperty (haasEffect, haasEffectDefault, nullptr);
+    master.setProperty (reverbsMapVisible, 1, nullptr);  // Default: visible
     config.appendChild (master, nullptr);
 }
 
@@ -1062,6 +1063,8 @@ juce::ValueTree WFSValueTreeState::createInputChannelSection (int index)
     channel.setProperty (inputAttenuation, inputAttenuationDefault, nullptr);
     channel.setProperty (inputDelayLatency, inputDelayLatencyDefault, nullptr);
     channel.setProperty (inputMinimalLatency, inputMinimalLatencyDefault, nullptr);
+    channel.setProperty (inputMapLocked, 0, nullptr);    // Default: unlocked
+    channel.setProperty (inputMapVisible, 1, nullptr);   // Default: visible
     return channel;
 }
 
@@ -1226,6 +1229,8 @@ juce::ValueTree WFSValueTreeState::createOutputChannelSection (int index)
     channel.setProperty (outputApplyToArray, outputApplyToArrayDefault, nullptr);
     channel.setProperty (outputAttenuation, outputAttenuationDefault, nullptr);
     channel.setProperty (outputDelayLatency, outputDelayLatencyDefault, nullptr);
+    channel.setProperty (outputMapVisible, 1, nullptr);       // Default: visible
+    channel.setProperty (outputArrayMapVisible, 1, nullptr);  // Default: visible
     return channel;
 }
 

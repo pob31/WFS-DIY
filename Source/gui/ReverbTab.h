@@ -162,6 +162,11 @@ private:
         nameEditor.setColour (juce::TextEditor::textColourId, juce::Colours::white);
         nameEditor.setColour (juce::TextEditor::outlineColourId, juce::Colour (0xFF3D3D3D));
         nameEditor.addListener (this);
+
+        // Map visibility toggle button
+        addAndMakeVisible (mapVisibilityButton);
+        updateMapVisibilityButtonState();
+        mapVisibilityButton.onClick = [this]() { toggleMapVisibility(); };
     }
 
     void setupSubTabs()
@@ -650,6 +655,7 @@ private:
     {
         helpTextMap[&channelSelector] = "Reverb Channel Number and Selection.";
         helpTextMap[&nameEditor] = "Displayed Reverb Channel Name (editable).";
+        helpTextMap[&mapVisibilityButton] = "Make Visible or Hide All Reverb Channels on the Map";
         helpTextMap[&attenuationSlider] = "Reverb channel attenuation (-92 to 0 dB).";
         helpTextMap[&delayLatencySlider] = "Reverb delay/latency compensation (-100 to +100 ms).";
         helpTextMap[&orientationDial] = "Reverb orientation angle (-179 to +180 degrees).";
@@ -699,6 +705,9 @@ private:
         nameLabel.setBounds (area.removeFromLeft (50));
         area.removeFromLeft (5);
         nameEditor.setBounds (area.removeFromLeft (200));
+
+        area.removeFromLeft (20);
+        mapVisibilityButton.setBounds (area.removeFromLeft (200));
     }
 
     void layoutFooter (juce::Rectangle<int> area)
@@ -1544,6 +1553,24 @@ private:
         return juce::String (freq) + " Hz";
     }
 
+    void toggleMapVisibility()
+    {
+        // Toggle global reverb visibility
+        auto currentVal = parameters.getConfigParam ("reverbsMapVisible");
+        bool currentlyVisible = currentVal.isVoid() || static_cast<int> (currentVal) != 0;
+        bool newVisible = !currentlyVisible;
+
+        parameters.setConfigParam ("reverbsMapVisible", newVisible ? 1 : 0);
+        updateMapVisibilityButtonState();
+    }
+
+    void updateMapVisibilityButtonState()
+    {
+        auto val = parameters.getConfigParam ("reverbsMapVisible");
+        bool visible = val.isVoid() || static_cast<int> (val) != 0;
+        mapVisibilityButton.setButtonText (visible ? "Reverbs Visible on Map" : "Reverbs Hidden on Map");
+    }
+
     void updateVisibility()
     {
         int numReverbs = parameters.getNumReverbChannels();
@@ -1556,6 +1583,7 @@ private:
         channelSelector.setVisible (hasChannels);
         nameLabel.setVisible (hasChannels);
         nameEditor.setVisible (hasChannels);
+        mapVisibilityButton.setVisible (hasChannels);
 
         // Show/hide sub-tab bar and all sub-tab content
         subTabBar.setVisible (hasChannels);
@@ -1674,6 +1702,7 @@ private:
     ChannelSelectorButton channelSelector { "Reverb" };
     juce::Label nameLabel;
     juce::TextEditor nameEditor;
+    juce::TextButton mapVisibilityButton;
 
     // Sub-tab bar
     juce::TabbedButtonBar subTabBar { juce::TabbedButtonBar::TabsAtTop };

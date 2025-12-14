@@ -261,6 +261,10 @@ namespace WFSParameterIDs
     const juce::Identifier inputMutes            ("inputMutes");
     const juce::Identifier inputMuteMacro        ("inputMuteMacro");
 
+    // Input > Map Display
+    const juce::Identifier inputMapLocked        ("inputMapLocked");
+    const juce::Identifier inputMapVisible       ("inputMapVisible");
+
     //==========================================================================
     // Output Channel Parameters
     //==========================================================================
@@ -296,6 +300,10 @@ namespace WFSParameterIDs
     const juce::Identifier eqGain                ("eqGain");
     const juce::Identifier eqQ                   ("eqQ");
     const juce::Identifier eqSlope               ("eqSlope");
+
+    // Output > Map Display
+    const juce::Identifier outputMapVisible      ("outputMapVisible");
+    const juce::Identifier outputArrayMapVisible ("outputArrayMapVisible");
 
     //==========================================================================
     // Audio Patch Parameters
@@ -359,5 +367,8 @@ namespace WFSParameterIDs
     const juce::Identifier reverbCommonAtten     ("reverbCommonAtten");
     const juce::Identifier reverbMutes           ("reverbMutes");
     const juce::Identifier reverbMuteMacro       ("reverbMuteMacro");
+
+    // Reverb > Map Display (global toggle in Config section)
+    const juce::Identifier reverbsMapVisible     ("reverbsMapVisible");
 
 } // namespace WFSParameterIDs

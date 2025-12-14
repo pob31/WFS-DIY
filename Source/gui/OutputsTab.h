@@ -71,6 +71,11 @@ public:
         applyToArraySelector.setSelectedId(2, juce::dontSendNotification);
         applyToArraySelector.onChange = [this]() { updateApplyToArrayParameter(); };
 
+        // Map visibility toggle button
+        addAndMakeVisible(mapVisibilityButton);
+        mapVisibilityButton.setButtonText("Speaker Visible on Map");
+        mapVisibilityButton.onClick = [this]() { toggleMapVisibility(); };
+
         // ==================== SUB-TABS ====================
         addAndMakeVisible(subTabBar);
         subTabBar.addTab("Output Properties", juce::Colour(0xFF2A2A2A), -1);
@@ -202,6 +207,8 @@ public:
         row1.removeFromLeft(spacing * 2);
         applyToArrayLabel.setBounds(row1.removeFromLeft(100));
         applyToArraySelector.setBounds(row1.removeFromLeft(100));
+        row1.removeFromLeft(spacing * 2);
+        mapVisibilityButton.setBounds(row1.removeFromLeft(180));
 
         // ==================== FOOTER ====================
         auto footerArea = bounds.removeFromBottom(footerHeight).reduced(padding, padding);
@@ -1025,6 +1032,7 @@ private:
 
         isLoadingParameters = false;
         updateApplyToArrayEnabledState();
+        updateMapVisibilityButtonState();
     }
 
     void saveOutputParam(const juce::Identifier& paramId, const juce::var& value)
@@ -1036,6 +1044,7 @@ private:
     void updateArrayParameter()
     {
         updateApplyToArrayEnabledState();
+        updateMapVisibilityButtonState();
         saveOutputParam(WFSParameterIDs::outputArray, arraySelector.getSelectedId() - 1);
     }
 
@@ -1049,6 +1058,63 @@ private:
         bool isPartOfArray = arraySelector.getSelectedId() > 1;
         applyToArraySelector.setEnabled(isPartOfArray);
         applyToArrayLabel.setAlpha(isPartOfArray ? 1.0f : 0.5f);
+    }
+
+    void toggleMapVisibility()
+    {
+        bool isPartOfArray = arraySelector.getSelectedId() > 1;
+
+        if (isPartOfArray)
+        {
+            // Toggle array visibility for all outputs in the same array
+            int array = arraySelector.getSelectedId() - 1;
+
+            // Get current visibility state
+            auto currentVal = parameters.getOutputParam(currentChannel - 1, "outputArrayMapVisible");
+            bool currentlyVisible = currentVal.isVoid() || static_cast<int>(currentVal) != 0;
+            bool newVisible = !currentlyVisible;
+
+            // Apply to all outputs in this array
+            int numOutputs = parameters.getNumOutputChannels();
+            for (int i = 0; i < numOutputs; ++i)
+            {
+                int outputArray = static_cast<int>(parameters.getOutputParam(i, "outputArray"));
+                if (outputArray == array)
+                {
+                    parameters.setOutputParam(i, "outputArrayMapVisible", newVisible ? 1 : 0);
+                }
+            }
+
+            updateMapVisibilityButtonState();
+        }
+        else
+        {
+            // Toggle individual speaker visibility
+            auto currentVal = parameters.getOutputParam(currentChannel - 1, "outputMapVisible");
+            bool currentlyVisible = currentVal.isVoid() || static_cast<int>(currentVal) != 0;
+            bool newVisible = !currentlyVisible;
+
+            saveOutputParam(WFSParameterIDs::outputMapVisible, newVisible ? 1 : 0);
+            updateMapVisibilityButtonState();
+        }
+    }
+
+    void updateMapVisibilityButtonState()
+    {
+        bool isPartOfArray = arraySelector.getSelectedId() > 1;
+
+        if (isPartOfArray)
+        {
+            auto val = parameters.getOutputParam(currentChannel - 1, "outputArrayMapVisible");
+            bool visible = val.isVoid() || static_cast<int>(val) != 0;
+            mapVisibilityButton.setButtonText(visible ? "Array Visible on Map" : "Array Hidden on Map");
+        }
+        else
+        {
+            auto val = parameters.getOutputParam(currentChannel - 1, "outputMapVisible");
+            bool visible = val.isVoid() || static_cast<int>(val) != 0;
+            mapVisibilityButton.setButtonText(visible ? "Speaker Visible on Map" : "Speaker Hidden on Map");
+        }
     }
 
     // ==================== TEXT EDITOR LISTENER ====================
@@ -1270,6 +1336,7 @@ private:
         helpTextMap[&pitchSlider] = "Output Channel Vertical Orientation used to Determine which Objects get amplified. (changes may affect the rest of the array)";
         helpTextMap[&hfDampingSlider] = "Loss of High Frequency Depending on Distance from Object to Output. (changes may affect the rest of the array)";
         helpTextMap[&arrayPositionHelperButton] = "Open Helper Window to Position Speaker Arrays Conveniently.";
+        helpTextMap[&mapVisibilityButton] = "Make Visible or Hide The Selected Output on the Map";
         helpTextMap[&storeButton] = "Store Output Configuration to file (overwrite with confirmation)";
         helpTextMap[&reloadButton] = "Reload Output Configuration from file (with confirmation)";
         helpTextMap[&reloadBackupButton] = "Reload Output Configuration from backup file (with confirmation)";
@@ -1406,6 +1473,7 @@ private:
     juce::ComboBox arraySelector;
     juce::Label applyToArrayLabel;
     juce::ComboBox applyToArraySelector;
+    juce::TextButton mapVisibilityButton;
 
     // Sub-tab bar
     juce::TabbedButtonBar subTabBar { juce::TabbedButtonBar::TabsAtTop };
