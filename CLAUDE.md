@@ -21,6 +21,7 @@ WFS-DIY is a Wave Field Synthesis audio processing application built with JUCE. 
 ### Floating Windows
 - **AudioInterfaceWindow** - JUCE AudioDeviceSelectorComponent for device setup
 - **NetworkLogWindow** - Network traffic monitoring with filtering and export
+- **OutputArrayHelperWindow** - "Wizard of OutZ" for speaker array positioning
 
 ## Network System (Source/Network/)
 
@@ -228,3 +229,44 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 - `Source/gui/InputsTab.h` - Input channel controls with joystick
 - `Source/gui/ReverbTab.h` - Reverb settings with EQ
 - `Source/gui/NetworkLogWindow.h/cpp` - Log window UI
+- `Source/gui/OutputArrayHelperWindow.h/cpp` - Wizard of OutZ window
+- `Source/Helpers/ArrayGeometryCalculator.h/cpp` - Speaker array geometry calculations
+
+## Wizard of OutZ (Output Array Helper)
+A wizard-style dialog for quickly configuring speaker array positions with preset acoustic defaults.
+
+### Access
+- Button in OutputsTab header (right side): "Wizard of OutZ..."
+
+### 7 Array Presets
+| Preset | LS | HF dB/m | Dist% | Hp | Vp | EQ |
+|--------|-----|---------|-------|-----|-----|-----|
+| Near Field Straight | ON | -0.4 | 100 | 2 | 0.5 | LC 80Hz |
+| Near Field Curved | ON | -0.4 | 100 | 2 | 0.5 | LC 80Hz |
+| Main Room Straight | OFF | -0.2 | 100 | 10 | -4 | - |
+| Sub Bass | OFF | 0 | 50/100* | 0 | 0 | HC 300Hz |
+| Surround | OFF | -0.3 | 100 | 3 | -2 | - |
+| Delay Line | OFF | -0.15 | 100 | 3 | -2 | - |
+| Circle | OFF | -0.3 | 100 | 0 | 0 | - |
+
+*Sub Bass: 50% distance attenuation when N ≤ 2, otherwise 100%
+
+### Geometry Methods
+- **Center + Spacing** - Define center point and speaker spacing
+- **Endpoints** - Define start and end points for the array
+- **Curved arrays** - Use sag parameter (negative = toward audience)
+- **Circle arrays** - Radius, start angle, facing inward/outward
+- **Surround pairs** - Width and Y range for left/right mirrored speakers
+
+### Key Features
+- **Live preview** - Auto-updates as parameters change
+- **Target section** - Select array assignment and starting output
+- **Auto-advance** - After Apply, advances to next array and output position
+- **Orientation convention** - 0° = facing audience (toward -Y)
+
+### Geometry Calculations (Source/Helpers/ArrayGeometryCalculator.cpp)
+- `calculateStraightFromCenter()` - Straight line from center point
+- `calculateStraightFromEndpoints()` - Straight line between two points
+- `calculateCurvedArray()` - Quadratic Bezier curve with sag, auto-fanning toward audience
+- `calculateCircleArray()` - Circular arrangement with inward/outward facing
+- `calculateSurroundPairs()` - Left/right mirrored pairs

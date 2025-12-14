@@ -8,6 +8,9 @@
     <Filter Include="WFS-DIY\Source\gui">
       <UniqueIdentifier>{779C7693-77C1-9EF7-9439-EE6915457295}</UniqueIdentifier>
     </Filter>
+    <Filter Include="WFS-DIY\Source\Helpers">
+      <UniqueIdentifier>{2BB708EF-7B83-16C7-077A-7F02181540C4}</UniqueIdentifier>
+    </Filter>
     <Filter Include="WFS-DIY\Source\Network">
       <UniqueIdentifier>{F0025758-791F-87C4-6ABD-F1E1A184504B}</UniqueIdentifier>
     </Filter>
@@ -915,6 +918,12 @@
     </ClCompile>
     <ClCompile Include="..\..\Source\gui\NetworkLogWindow.cpp">
       <Filter>WFS-DIY\Source\gui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\gui\OutputArrayHelperWindow.cpp">
+      <Filter>WFS-DIY\Source\gui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Helpers\ArrayGeometryCalculator.cpp">
+      <Filter>WFS-DIY\Source\Helpers</Filter>
     </ClCompile>
     <ClCompile Include="..\..\Source\Network\OSCConnection.cpp">
       <Filter>WFS-DIY\Source\Network</Filter>
@@ -4415,6 +4424,12 @@
     </ClInclude>
     <ClInclude Include="..\..\Source\gui\NetworkLogWindow.h">
       <Filter>WFS-DIY\Source\gui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\gui\OutputArrayHelperWindow.h">
+      <Filter>WFS-DIY\Source\gui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Helpers\ArrayGeometryCalculator.h">
+      <Filter>WFS-DIY\Source\Helpers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Network\OSCProtocolTypes.h">
       <Filter>WFS-DIY\Source\Network</Filter>

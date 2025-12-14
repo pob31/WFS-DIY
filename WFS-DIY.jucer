@@ -37,6 +37,16 @@
               file="Source/gui/NetworkLogWindow.h"/>
         <FILE id="guiNetLogCpp" name="NetworkLogWindow.cpp" compile="1" resource="0"
               file="Source/gui/NetworkLogWindow.cpp"/>
+        <FILE id="guiArrHelperH" name="OutputArrayHelperWindow.h" compile="0" resource="0"
+              file="Source/gui/OutputArrayHelperWindow.h"/>
+        <FILE id="guiArrHelperCpp" name="OutputArrayHelperWindow.cpp" compile="1" resource="0"
+              file="Source/gui/OutputArrayHelperWindow.cpp"/>
+      </GROUP>
+      <GROUP id="{HELPERSGROUP}" name="Helpers">
+        <FILE id="arrGeomH" name="ArrayGeometryCalculator.h" compile="0" resource="0"
+              file="Source/Helpers/ArrayGeometryCalculator.h"/>
+        <FILE id="arrGeomCpp" name="ArrayGeometryCalculator.cpp" compile="1" resource="0"
+              file="Source/Helpers/ArrayGeometryCalculator.cpp"/>
       </GROUP>
       <GROUP id="{NETWORKGROUP}" name="Network">
         <FILE id="netTypes" name="OSCProtocolTypes.h" compile="0" resource="0"

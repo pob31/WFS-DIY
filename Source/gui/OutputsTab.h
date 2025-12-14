@@ -7,6 +7,7 @@
 #include "SliderUIComponents.h"
 #include "DialUIComponents.h"
 #include "StatusBar.h"
+#include "OutputArrayHelperWindow.h"
 
 /**
  * Outputs Tab Component
@@ -75,6 +76,11 @@ public:
         addAndMakeVisible(mapVisibilityButton);
         mapVisibilityButton.setButtonText("Speaker Visible on Map");
         mapVisibilityButton.onClick = [this]() { toggleMapVisibility(); };
+
+        // Wizard of OutZ button (array position helper)
+        addAndMakeVisible(arrayPositionHelperButton);
+        arrayPositionHelperButton.setButtonText("Wizard of OutZ...");
+        arrayPositionHelperButton.onClick = [this]() { openArrayPositionHelper(); };
 
         // ==================== SUB-TABS ====================
         addAndMakeVisible(subTabBar);
@@ -214,6 +220,9 @@ public:
         applyToArraySelector.setBounds(row1.removeFromLeft(100));
         row1.removeFromLeft(spacing * 2);
         mapVisibilityButton.setBounds(row1.removeFromLeft(180));
+
+        // Wizard of OutZ button on the right
+        arrayPositionHelperButton.setBounds(row1.removeFromRight(130));
 
         // ==================== FOOTER ====================
         auto footerArea = bounds.removeFromBottom(footerHeight).reduced(padding, padding);
@@ -489,11 +498,6 @@ private:
         hfDampingValueLabel.setText("0.0 dB/m", juce::dontSendNotification);
         hfDampingValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         setupEditableValueLabel(hfDampingValueLabel);
-
-        // Array Position Helper button
-        addAndMakeVisible(arrayPositionHelperButton);
-        arrayPositionHelperButton.setButtonText("Array Position Helper...");
-        arrayPositionHelperButton.onClick = [this]() { openArrayPositionHelper(); };
     }
 
     void setupEqTab()
@@ -699,7 +703,6 @@ private:
         hfDampingLabel.setVisible(visible);
         hfDampingSlider.setVisible(visible);
         hfDampingValueLabel.setVisible(visible);
-        arrayPositionHelperButton.setVisible(visible);
     }
 
     void setEqVisible(bool visible)
@@ -844,10 +847,6 @@ private:
         hfDampingValueLabel.setBounds(row.removeFromRight(valueWidth));
         leftCol.removeFromTop(spacing / 2);
         hfDampingSlider.setBounds(leftCol.removeFromTop(sliderHeight));
-        leftCol.removeFromTop(spacing);
-
-        // Array Position Helper button
-        arrayPositionHelperButton.setBounds(leftCol.removeFromTop(rowHeight).withWidth(200));
 
         // Right column - Orientation dial
         auto rightCol = area.reduced(5, 0);
@@ -1311,8 +1310,11 @@ private:
 
     void openArrayPositionHelper()
     {
-        juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
-            "Array Position Helper", "Array position helper window will open here.");
+        if (arrayHelperWindow == nullptr)
+            arrayHelperWindow = std::make_unique<OutputArrayHelperWindow>(parameters);
+
+        arrayHelperWindow->setVisible(true);
+        arrayHelperWindow->toFront(true);
     }
 
     //==============================================================================
@@ -1340,7 +1342,7 @@ private:
         helpTextMap[&angleOffSlider] = "Output Channel Will Not Amplify Objects in this Angle in Front of it. (changes may affect the rest of the array)";
         helpTextMap[&pitchSlider] = "Output Channel Vertical Orientation used to Determine which Objects get amplified. (changes may affect the rest of the array)";
         helpTextMap[&hfDampingSlider] = "Loss of High Frequency Depending on Distance from Object to Output. (changes may affect the rest of the array)";
-        helpTextMap[&arrayPositionHelperButton] = "Open Helper Window to Position Speaker Arrays Conveniently.";
+        helpTextMap[&arrayPositionHelperButton] = "Open Wizard of OutZ to Position Speaker Arrays Conveniently.";
         helpTextMap[&mapVisibilityButton] = "Make Visible or Hide The Selected Output on the Map";
         helpTextMap[&storeButton] = "Store Output Configuration to file (with backup).";
         helpTextMap[&reloadButton] = "Reload Output Configuration from file.";
@@ -1553,6 +1555,9 @@ private:
     juce::TextButton reloadBackupButton;
     juce::TextButton importButton;
     juce::TextButton exportButton;
+
+    // Array Position Helper window
+    std::unique_ptr<OutputArrayHelperWindow> arrayHelperWindow;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OutputsTab)
 };
