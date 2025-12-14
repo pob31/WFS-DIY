@@ -3,7 +3,8 @@
 #include "WfsSliderBase.h"
 #include <cmath>
 
-class WfsAutoCenterSlider : public WfsSliderBase
+class WfsAutoCenterSlider : public WfsSliderBase,
+                            private juce::Timer
 {
 public:
     explicit WfsAutoCenterSlider(Orientation direction = Orientation::horizontal)
@@ -17,6 +18,11 @@ public:
         setValue(0.0f);
     }
 
+    ~WfsAutoCenterSlider() override
+    {
+        stopTimer();
+    }
+
     void setCenterValue(float newCenter)
     {
         centerValue = juce::jlimit(minValue, maxValue, newCenter);
@@ -24,6 +30,15 @@ public:
     }
 
     float getCenterValue() const noexcept { return centerValue; }
+
+    // Set the reporting interval for continuous polling (like joystick)
+    void setReportingIntervalHz(double intervalHz)
+    {
+        reportingIntervalHz = juce::jlimit(1.0, 60.0, intervalHz);
+    }
+
+    // Callback for continuous position reporting (fires at reportingIntervalHz while dragging)
+    std::function<void(float)> onPositionPolled;
 
 protected:
     void paintSlider(juce::Graphics& g, juce::Rectangle<float> bounds) override
@@ -81,9 +96,27 @@ protected:
     }
 
 private:
+    void mouseDown(const juce::MouseEvent& e) override
+    {
+        handlePointer(e.position);  // Same as base class mouseDown
+        // Start timer for continuous polling while dragging
+        if (onPositionPolled != nullptr)
+        {
+            const auto intervalMs = juce::roundToInt(1000.0 / reportingIntervalHz);
+            startTimer(intervalMs);
+        }
+    }
+
     void handleMouseUp() override
     {
+        stopTimer();
         setValue(centerValue);
+    }
+
+    void timerCallback() override
+    {
+        if (onPositionPolled != nullptr)
+            onPositionPolled(getValue());
     }
 
     void mouseWheelMove(const juce::MouseEvent&, const juce::MouseWheelDetails&) override
@@ -92,4 +125,5 @@ private:
     }
 
     float centerValue = 0.0f;
+    double reportingIntervalHz = 50.0;  // Default 50Hz like joystick
 };

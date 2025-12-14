@@ -569,6 +569,49 @@ private:
     }
 
     //==========================================================================
+    // Stage Bounds Helpers (for constraint enforcement)
+    //==========================================================================
+
+    float getStageMinX() const
+    {
+        float originWidth = static_cast<float>(parameters.getConfigParam("StageOriginWidth"));
+        return -originWidth;
+    }
+
+    float getStageMaxX() const
+    {
+        float stageWidth = static_cast<float>(parameters.getConfigParam("StageWidth"));
+        float originWidth = static_cast<float>(parameters.getConfigParam("StageOriginWidth"));
+        return stageWidth - originWidth;
+    }
+
+    float getStageMinY() const
+    {
+        float originDepth = static_cast<float>(parameters.getConfigParam("StageOriginDepth"));
+        return -originDepth;
+    }
+
+    float getStageMaxY() const
+    {
+        float stageDepth = static_cast<float>(parameters.getConfigParam("StageDepth"));
+        float originDepth = static_cast<float>(parameters.getConfigParam("StageOriginDepth"));
+        return stageDepth - originDepth;
+    }
+
+    float getStageMinZ() const
+    {
+        float originHeight = static_cast<float>(parameters.getConfigParam("StageOriginHeight"));
+        return -originHeight;
+    }
+
+    float getStageMaxZ() const
+    {
+        float stageHeight = static_cast<float>(parameters.getConfigParam("StageHeight"));
+        float originHeight = static_cast<float>(parameters.getConfigParam("StageOriginHeight"));
+        return stageHeight - originHeight;
+    }
+
+    //==========================================================================
     // Transformation Algorithms
     //==========================================================================
 
@@ -592,15 +635,57 @@ private:
         {
             // Move tracked input's OFFSET (not position)
             auto [ox, oy, oz] = getInputOffset(trackedIdx);
-            setInputOffset(trackedIdx, ox + dx, oy + dy, oz + dz);
+            auto [px, py, pz] = getInputPosition(trackedIdx);
+            float newOx = ox + dx;
+            float newOy = oy + dy;
+            float newOz = oz + dz;
+
+            // Apply constraints based on input's constraint settings (total position must be within bounds)
+            bool constrainX = static_cast<int>(parameters.getInputParam(trackedIdx, "inputConstraintX")) != 0;
+            bool constrainY = static_cast<int>(parameters.getInputParam(trackedIdx, "inputConstraintY")) != 0;
+            bool constrainZ = static_cast<int>(parameters.getInputParam(trackedIdx, "inputConstraintZ")) != 0;
+
+            if (constrainX)
+            {
+                float totalX = juce::jlimit(getStageMinX(), getStageMaxX(), px + newOx);
+                newOx = totalX - px;
+            }
+            if (constrainY)
+            {
+                float totalY = juce::jlimit(getStageMinY(), getStageMaxY(), py + newOy);
+                newOy = totalY - py;
+            }
+            if (constrainZ)
+            {
+                float totalZ = juce::jlimit(getStageMinZ(), getStageMaxZ(), pz + newOz);
+                newOz = totalZ - pz;
+            }
+
+            setInputOffset(trackedIdx, newOx, newOy, newOz);
         }
         else
         {
-            // Move all inputs' positions
+            // Move all inputs' positions (apply constraints individually)
             for (int inputIdx : assignedInputs)
             {
                 auto [px, py, pz] = getInputPosition(inputIdx);
-                setInputPosition(inputIdx, px + dx, py + dy, pz + dz);
+                float newX = px + dx;
+                float newY = py + dy;
+                float newZ = pz + dz;
+
+                // Apply constraints based on each input's constraint settings
+                bool constrainX = static_cast<int>(parameters.getInputParam(inputIdx, "inputConstraintX")) != 0;
+                bool constrainY = static_cast<int>(parameters.getInputParam(inputIdx, "inputConstraintY")) != 0;
+                bool constrainZ = static_cast<int>(parameters.getInputParam(inputIdx, "inputConstraintZ")) != 0;
+
+                if (constrainX)
+                    newX = juce::jlimit(getStageMinX(), getStageMaxX(), newX);
+                if (constrainY)
+                    newY = juce::jlimit(getStageMinY(), getStageMaxY(), newY);
+                if (constrainZ)
+                    newZ = juce::jlimit(getStageMinZ(), getStageMaxZ(), newZ);
+
+                setInputPosition(inputIdx, newX, newY, newZ);
             }
         }
     }

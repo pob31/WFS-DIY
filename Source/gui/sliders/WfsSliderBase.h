@@ -195,6 +195,27 @@ protected:
     float thumbRadius = 8.0f;     // Thumb hit test radius (line is drawn separately)
     bool isHovered = false; // Track hover state for brightening active track
 
+    void handlePointer(juce::Point<float> pos)
+    {
+        auto bounds = getUsableBounds(getLocalBounds().toFloat());
+        auto normalized = 0.0f;
+
+        if (orientation == Orientation::horizontal)
+        {
+            if (bounds.getWidth() <= std::numeric_limits<float>::epsilon())
+                return;
+            normalized = juce::jlimit(0.0f, 1.0f, (pos.x - bounds.getX()) / bounds.getWidth());
+        }
+        else
+        {
+            if (bounds.getHeight() <= std::numeric_limits<float>::epsilon())
+                return;
+            normalized = juce::jlimit(0.0f, 1.0f, (bounds.getBottom() - pos.y) / bounds.getHeight());
+        }
+
+        setValue(valueFromNormalized(normalized));
+    }
+
 private:
     void paint(juce::Graphics& g) override
     {
@@ -235,27 +256,6 @@ private:
     }
 
     virtual void handleMouseUp() {}
-
-    void handlePointer(juce::Point<float> pos)
-    {
-        auto bounds = getUsableBounds(getLocalBounds().toFloat());
-        auto normalized = 0.0f;
-
-        if (orientation == Orientation::horizontal)
-        {
-            if (bounds.getWidth() <= std::numeric_limits<float>::epsilon())
-                return;
-            normalized = juce::jlimit(0.0f, 1.0f, (pos.x - bounds.getX()) / bounds.getWidth());
-        }
-        else
-        {
-            if (bounds.getHeight() <= std::numeric_limits<float>::epsilon())
-                return;
-            normalized = juce::jlimit(0.0f, 1.0f, (bounds.getBottom() - pos.y) / bounds.getHeight());
-        }
-
-        setValue(valueFromNormalized(normalized));
-    }
 
 protected:
     Orientation orientation = Orientation::horizontal;

@@ -707,6 +707,10 @@ private:
             bool localTracking = trackingActiveButton.getToggleState();
             bool useOffset = globalTrackingOn && protocolEnabled && localTracking;
 
+            // Check constraint states
+            bool constrainX = constraintXButton.getToggleState();
+            bool constrainY = constraintYButton.getToggleState();
+
             if (useOffset)
             {
                 // Update Offset X/Y when tracking is fully active
@@ -714,6 +718,23 @@ private:
                 float currentY = offsetYEditor.getText().getFloatValue();
                 float newX = currentX + deltaX;
                 float newY = currentY + deltaY;
+
+                // Apply constraints if enabled (position + offset must be within bounds)
+                if (constrainX)
+                {
+                    float posX = posXEditor.getText().getFloatValue();
+                    float totalX = posX + newX;
+                    totalX = juce::jlimit(getStageMinX(), getStageMaxX(), totalX);
+                    newX = totalX - posX;
+                }
+                if (constrainY)
+                {
+                    float posY = posYEditor.getText().getFloatValue();
+                    float totalY = posY + newY;
+                    totalY = juce::jlimit(getStageMinY(), getStageMaxY(), totalY);
+                    newY = totalY - posY;
+                }
+
                 offsetXEditor.setText(juce::String(newX, 2), juce::dontSendNotification);
                 offsetYEditor.setText(juce::String(newY, 2), juce::dontSendNotification);
                 saveInputParam(WFSParameterIDs::inputOffsetX, newX);
@@ -726,6 +747,13 @@ private:
                 float currentY = posYEditor.getText().getFloatValue();
                 float newX = currentX + deltaX;
                 float newY = currentY + deltaY;
+
+                // Apply constraints if enabled
+                if (constrainX)
+                    newX = juce::jlimit(getStageMinX(), getStageMaxX(), newX);
+                if (constrainY)
+                    newY = juce::jlimit(getStageMinY(), getStageMaxY(), newY);
+
                 posXEditor.setText(juce::String(newX, 2), juce::dontSendNotification);
                 posYEditor.setText(juce::String(newY, 2), juce::dontSendNotification);
                 saveInputParam(WFSParameterIDs::inputPositionX, newX);
@@ -737,11 +765,12 @@ private:
         positionJoystickLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         positionJoystickLabel.setJustificationType(juce::Justification::centred);
 
-        // Position Z Slider (vertical, auto-center)
+        // Position Z Slider (vertical, auto-center with continuous polling like joystick)
         addAndMakeVisible(positionZSlider);
         positionZSlider.setTrackColours(juce::Colour(0xFF3A3A3A), juce::Colour(0xFF4CAF50));
         positionZSlider.setThumbColour(juce::Colours::white);
-        positionZSlider.onValueChanged = [this](float v) {
+        positionZSlider.setReportingIntervalHz(50.0);  // 50Hz = 20ms updates (same as joystick)
+        positionZSlider.onPositionPolled = [this](float v) {
             // Scale: 2.5m/s max at 50Hz = 0.05m per update at max slider position
             const float scale = 0.05f;
             float deltaZ = v * scale;
@@ -752,11 +781,24 @@ private:
             bool localTracking = trackingActiveButton.getToggleState();
             bool useOffset = globalTrackingOn && protocolEnabled && localTracking;
 
+            // Check constraint state
+            bool constrainZ = constraintZButton.getToggleState();
+
             if (useOffset)
             {
                 // Update Offset Z when tracking is fully active
                 float currentZ = offsetZEditor.getText().getFloatValue();
                 float newZ = currentZ + deltaZ;
+
+                // Apply constraint if enabled (position + offset must be within bounds)
+                if (constrainZ)
+                {
+                    float posZ = posZEditor.getText().getFloatValue();
+                    float totalZ = posZ + newZ;
+                    totalZ = juce::jlimit(getStageMinZ(), getStageMaxZ(), totalZ);
+                    newZ = totalZ - posZ;
+                }
+
                 offsetZEditor.setText(juce::String(newZ, 2), juce::dontSendNotification);
                 saveInputParam(WFSParameterIDs::inputOffsetZ, newZ);
             }
@@ -765,6 +807,11 @@ private:
                 // Update Position Z when tracking is disabled
                 float currentZ = posZEditor.getText().getFloatValue();
                 float newZ = currentZ + deltaZ;
+
+                // Apply constraint if enabled
+                if (constrainZ)
+                    newZ = juce::jlimit(getStageMinZ(), getStageMaxZ(), newZ);
+
                 posZEditor.setText(juce::String(newZ, 2), juce::dontSendNotification);
                 saveInputParam(WFSParameterIDs::inputPositionZ, newZ);
             }
@@ -1225,16 +1272,15 @@ private:
         lfoPeriodValueLabel.setJustificationType(juce::Justification::centred);
         setupEditableValueLabel(lfoPeriodValueLabel);
 
-        // Main Phase dial (0-360°) - uses WfsRotationDial
+        // Main Phase dial (-180° to 180°) - uses WfsRotationDial
         addAndMakeVisible(lfoPhaseLabel);
         lfoPhaseLabel.setText("Phase:", juce::dontSendNotification);
         lfoPhaseLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         lfoPhaseDial.setColours(juce::Colours::black, juce::Colour(0xFF4CAF50), juce::Colours::grey);
         lfoPhaseDial.onAngleChanged = [this](float angle) {
             int degrees = static_cast<int>(angle);
-            if (degrees < 0) degrees += 360;
             lfoPhaseValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
-            saveInputParam(WFSParameterIDs::inputLFOphase, degrees);  // Save real degrees (0-360)
+            saveInputParam(WFSParameterIDs::inputLFOphase, degrees);  // Save as -180 to 180
         };
         addAndMakeVisible(lfoPhaseDial);
         addAndMakeVisible(lfoPhaseValueLabel);
@@ -1371,16 +1417,15 @@ private:
         lfoAmplitudeZValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         setupEditableValueLabel(lfoAmplitudeZValueLabel);
 
-        // Phase X/Y/Z dials (0-360°)
+        // Phase X/Y/Z dials (-180° to 180°)
         addAndMakeVisible(lfoPhaseXLabel);
         lfoPhaseXLabel.setText("Phase X:", juce::dontSendNotification);
         lfoPhaseXLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         lfoPhaseXDial.setColours(juce::Colours::black, juce::Colour(0xFFFF9800), juce::Colours::grey);
         lfoPhaseXDial.onAngleChanged = [this](float angle) {
             int degrees = static_cast<int>(angle);
-            if (degrees < 0) degrees += 360;
             lfoPhaseXValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
-            saveInputParam(WFSParameterIDs::inputLFOphaseX, degrees);  // Save real degrees (0-360)
+            saveInputParam(WFSParameterIDs::inputLFOphaseX, degrees);  // Save as -180 to 180
         };
         addAndMakeVisible(lfoPhaseXDial);
         addAndMakeVisible(lfoPhaseXValueLabel);
@@ -1395,9 +1440,8 @@ private:
         lfoPhaseYDial.setColours(juce::Colours::black, juce::Colour(0xFFFF9800), juce::Colours::grey);
         lfoPhaseYDial.onAngleChanged = [this](float angle) {
             int degrees = static_cast<int>(angle);
-            if (degrees < 0) degrees += 360;
             lfoPhaseYValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
-            saveInputParam(WFSParameterIDs::inputLFOphaseY, degrees);  // Save real degrees (0-360)
+            saveInputParam(WFSParameterIDs::inputLFOphaseY, degrees);  // Save as -180 to 180
         };
         addAndMakeVisible(lfoPhaseYDial);
         addAndMakeVisible(lfoPhaseYValueLabel);
@@ -1412,9 +1456,8 @@ private:
         lfoPhaseZDial.setColours(juce::Colours::black, juce::Colour(0xFFFF9800), juce::Colours::grey);
         lfoPhaseZDial.onAngleChanged = [this](float angle) {
             int degrees = static_cast<int>(angle);
-            if (degrees < 0) degrees += 360;
             lfoPhaseZValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
-            saveInputParam(WFSParameterIDs::inputLFOphaseZ, degrees);  // Save real degrees (0-360)
+            saveInputParam(WFSParameterIDs::inputLFOphaseZ, degrees);  // Save as -180 to 180
         };
         addAndMakeVisible(lfoPhaseZDial);
         addAndMakeVisible(lfoPhaseZValueLabel);
@@ -2496,22 +2539,29 @@ private:
 
         trackingIdSelector.setSelectedId(getIntParam(WFSParameterIDs::inputTrackingID, 0) + 1, juce::dontSendNotification);
 
-        float trackSmooth = getFloatParam(WFSParameterIDs::inputTrackingSmooth, 0.0f);
-        trackingSmoothDial.setValue(trackSmooth);
-        trackingSmoothValueLabel.setText(juce::String(static_cast<int>(trackSmooth * 100.0f)) + " %", juce::dontSendNotification);
+        // Tracking Smooth stored as percent (0-100), default 0%
+        float trackSmoothPct = getFloatParam(WFSParameterIDs::inputTrackingSmooth, 0.0f);
+        trackSmoothPct = juce::jlimit(0.0f, 100.0f, trackSmoothPct);
+        trackingSmoothDial.setValue(trackSmoothPct / 100.0f);
+        trackingSmoothValueLabel.setText(juce::String(static_cast<int>(trackSmoothPct)) + " %", juce::dontSendNotification);
 
         bool maxSpeedActive = getIntParam(WFSParameterIDs::inputMaxSpeedActive, 0) != 0;
         maxSpeedActiveButton.setToggleState(maxSpeedActive, juce::dontSendNotification);
         maxSpeedActiveButton.setButtonText(maxSpeedActive ? "Max Speed: ON" : "Max Speed: OFF");
 
-        float maxSpeedVal = getFloatParam(WFSParameterIDs::inputMaxSpeed, 0.5f);
-        maxSpeedDial.setValue(maxSpeedVal);
-        float maxSpeedDisplay = 0.01f + maxSpeedVal * 9.99f;
-        maxSpeedValueLabel.setText(juce::String(maxSpeedDisplay, 2) + " m/s", juce::dontSendNotification);
+        // Max Speed stored as m/s (0.01-20.0), default ~10 m/s
+        // Inverse of: speed = v * 19.99 + 0.01 => v = (speed - 0.01) / 19.99
+        float maxSpeedMs = getFloatParam(WFSParameterIDs::inputMaxSpeed, 10.0f);
+        maxSpeedMs = juce::jlimit(0.01f, 20.0f, maxSpeedMs);
+        float maxSpeedSliderVal = (maxSpeedMs - 0.01f) / 19.99f;
+        maxSpeedDial.setValue(juce::jlimit(0.0f, 1.0f, maxSpeedSliderVal));
+        maxSpeedValueLabel.setText(juce::String(maxSpeedMs, 2) + " m/s", juce::dontSendNotification);
 
-        float heightFactor = getFloatParam(WFSParameterIDs::inputHeightFactor, 1.0f);
-        heightFactorDial.setValue(heightFactor);
-        heightFactorValueLabel.setText(juce::String(static_cast<int>(heightFactor * 100.0f)) + " %", juce::dontSendNotification);
+        // Height Factor stored as percent (0-100), default 100%
+        float heightFactorPct = getFloatParam(WFSParameterIDs::inputHeightFactor, 100.0f);
+        heightFactorPct = juce::jlimit(0.0f, 100.0f, heightFactorPct);
+        heightFactorDial.setValue(heightFactorPct / 100.0f);
+        heightFactorValueLabel.setText(juce::String(static_cast<int>(heightFactorPct)) + " %", juce::dontSendNotification);
 
         // ==================== SOUND TAB ====================
         bool attenLaw = getIntParam(WFSParameterIDs::inputAttenuationLaw, 0) != 0;
@@ -2549,9 +2599,10 @@ private:
         directivitySlider.setValue(juce::jlimit(0.0f, 1.0f, directivitySliderVal));
         directivityValueLabel.setText(juce::String(static_cast<int>(directivityDeg)) + juce::String::fromUTF8("°"), juce::dontSendNotification);
 
+        // Rotation stored as degrees (from WfsEndlessDial which returns -180 to 180)
         float rotation = getFloatParam(WFSParameterIDs::inputRotation, 0.0f);
-        rotationDial.setAngle(rotation * 360.0f);
-        int rotDegrees = static_cast<int>(rotation * 360.0f);
+        rotationDial.setAngle(rotation);  // WfsEndlessDial normalizes to -180/180 automatically
+        int rotDegrees = static_cast<int>(rotation);
         if (rotDegrees < 0) rotDegrees += 360;
         rotationValueLabel.setText(juce::String(rotDegrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
 
@@ -2721,9 +2772,9 @@ private:
         lfoPeriodDial.setValue(juce::jlimit(0.0f, 1.0f, lfoPeriodSlider));
         lfoPeriodValueLabel.setText(juce::String(lfoPeriodSec, 2) + " s", juce::dontSendNotification);
 
-        // LFO Phase stored as degrees (0-360), default 0
+        // LFO Phase stored as degrees (-180 to 180), default 0
         int lfoPhaseDeg = getIntParam(WFSParameterIDs::inputLFOphase, 0);
-        lfoPhaseDeg = ((lfoPhaseDeg % 360) + 360) % 360;  // Normalize to 0-359
+        lfoPhaseDeg = juce::jlimit(-180, 180, lfoPhaseDeg);
         lfoPhaseDial.setAngle(static_cast<float>(lfoPhaseDeg));
         lfoPhaseValueLabel.setText(juce::String(lfoPhaseDeg) + juce::String::fromUTF8("°"), juce::dontSendNotification);
 
@@ -2767,19 +2818,19 @@ private:
         lfoAmplitudeZSlider.setValue(lfoAmpZMeters / 50.0f);
         lfoAmplitudeZValueLabel.setText(juce::String(lfoAmpZMeters, 1) + " m", juce::dontSendNotification);
 
-        // LFO Phase X/Y/Z stored as degrees (0-360), default 0
+        // LFO Phase X/Y/Z stored as degrees (-180 to 180), default 0
         int phaseXDeg = getIntParam(WFSParameterIDs::inputLFOphaseX, 0);
-        phaseXDeg = ((phaseXDeg % 360) + 360) % 360;
+        phaseXDeg = juce::jlimit(-180, 180, phaseXDeg);
         lfoPhaseXDial.setAngle(static_cast<float>(phaseXDeg));
         lfoPhaseXValueLabel.setText(juce::String(phaseXDeg) + juce::String::fromUTF8("°"), juce::dontSendNotification);
 
         int phaseYDeg = getIntParam(WFSParameterIDs::inputLFOphaseY, 0);
-        phaseYDeg = ((phaseYDeg % 360) + 360) % 360;
+        phaseYDeg = juce::jlimit(-180, 180, phaseYDeg);
         lfoPhaseYDial.setAngle(static_cast<float>(phaseYDeg));
         lfoPhaseYValueLabel.setText(juce::String(phaseYDeg) + juce::String::fromUTF8("°"), juce::dontSendNotification);
 
         int phaseZDeg = getIntParam(WFSParameterIDs::inputLFOphaseZ, 0);
-        phaseZDeg = ((phaseZDeg % 360) + 360) % 360;
+        phaseZDeg = juce::jlimit(-180, 180, phaseZDeg);
         lfoPhaseZDial.setAngle(static_cast<float>(phaseZDeg));
         lfoPhaseZValueLabel.setText(juce::String(phaseZDeg) + juce::String::fromUTF8("°"), juce::dontSendNotification);
 
@@ -2941,9 +2992,9 @@ private:
         }
         else if (label == &maxSpeedValueLabel)
         {
-            float speed = juce::jlimit(0.01f, 10.0f, value);
-            // Inverse of: speed = 0.01 + v * 9.99
-            maxSpeedDial.setValue((speed - 0.01f) / 9.99f);
+            float speed = juce::jlimit(0.01f, 20.0f, value);
+            // Inverse of: speed = v * 19.99 + 0.01
+            maxSpeedDial.setValue((speed - 0.01f) / 19.99f);
         }
         else if (label == &heightFactorValueLabel)
         {
@@ -2953,15 +3004,15 @@ private:
         // Sound tab
         else if (label == &distanceAttenValueLabel)
         {
-            float dBm = juce::jlimit(-12.0f, 0.0f, value);
-            // Inverse of: dBm = v * 12.0 - 12.0
-            distanceAttenDial.setValue((dBm + 12.0f) / 12.0f);
+            float dBm = juce::jlimit(-6.0f, 0.0f, value);
+            // Inverse of: dBm = (v * 6.0) - 6.0
+            distanceAttenDial.setValue((dBm + 6.0f) / 6.0f);
         }
         else if (label == &distanceRatioValueLabel)
         {
-            float ratio = juce::jlimit(0.0f, 2.0f, value);
-            // Inverse of: ratio = v * 2.0
-            distanceRatioDial.setValue(ratio / 2.0f);
+            float ratio = juce::jlimit(0.1f, 10.0f, value);
+            // Inverse of: ratio = pow(10, (v * 2) - 1)
+            distanceRatioDial.setValue((std::log10(ratio) + 1.0f) / 2.0f);
         }
         else if (label == &commonAttenValueLabel)
         {
@@ -3080,10 +3131,8 @@ private:
         }
         else if (label == &lfoPhaseValueLabel)
         {
-            int degrees = juce::jlimit(0, 359, static_cast<int>(value));
-            // WfsRotationDial uses -180 to 180 range, convert from 0-360
-            float angle = (degrees <= 180) ? static_cast<float>(degrees) : static_cast<float>(degrees - 360);
-            lfoPhaseDial.setAngle(angle);
+            int degrees = juce::jlimit(-180, 180, static_cast<int>(value));
+            lfoPhaseDial.setAngle(static_cast<float>(degrees));
         }
         else if (label == &lfoRateXValueLabel)
         {
@@ -3117,21 +3166,18 @@ private:
         }
         else if (label == &lfoPhaseXValueLabel)
         {
-            int degrees = juce::jlimit(0, 359, static_cast<int>(value));
-            float angle = (degrees <= 180) ? static_cast<float>(degrees) : static_cast<float>(degrees - 360);
-            lfoPhaseXDial.setAngle(angle);
+            int degrees = juce::jlimit(-180, 180, static_cast<int>(value));
+            lfoPhaseXDial.setAngle(static_cast<float>(degrees));
         }
         else if (label == &lfoPhaseYValueLabel)
         {
-            int degrees = juce::jlimit(0, 359, static_cast<int>(value));
-            float angle = (degrees <= 180) ? static_cast<float>(degrees) : static_cast<float>(degrees - 360);
-            lfoPhaseYDial.setAngle(angle);
+            int degrees = juce::jlimit(-180, 180, static_cast<int>(value));
+            lfoPhaseYDial.setAngle(static_cast<float>(degrees));
         }
         else if (label == &lfoPhaseZValueLabel)
         {
-            int degrees = juce::jlimit(0, 359, static_cast<int>(value));
-            float angle = (degrees <= 180) ? static_cast<float>(degrees) : static_cast<float>(degrees - 360);
-            lfoPhaseZDial.setAngle(angle);
+            int degrees = juce::jlimit(-180, 180, static_cast<int>(value));
+            lfoPhaseZDial.setAngle(static_cast<float>(degrees));
         }
         // AutomOtion tab
         else if (label == &otomoSpeedProfileValueLabel)
@@ -3273,6 +3319,48 @@ private:
     {
         // TODO: Implement snapshot deletion
         showStatusMessage("Snapshot feature not yet implemented.");
+    }
+
+    //==============================================================================
+    // Stage bounds helper methods for constraint enforcement
+
+    float getStageMinX() const
+    {
+        float originWidth = static_cast<float>(parameters.getConfigParam("StageOriginWidth"));
+        return -originWidth;
+    }
+
+    float getStageMaxX() const
+    {
+        float stageWidth = static_cast<float>(parameters.getConfigParam("StageWidth"));
+        float originWidth = static_cast<float>(parameters.getConfigParam("StageOriginWidth"));
+        return stageWidth - originWidth;
+    }
+
+    float getStageMinY() const
+    {
+        float originDepth = static_cast<float>(parameters.getConfigParam("StageOriginDepth"));
+        return -originDepth;
+    }
+
+    float getStageMaxY() const
+    {
+        float stageDepth = static_cast<float>(parameters.getConfigParam("StageDepth"));
+        float originDepth = static_cast<float>(parameters.getConfigParam("StageOriginDepth"));
+        return stageDepth - originDepth;
+    }
+
+    float getStageMinZ() const
+    {
+        float originHeight = static_cast<float>(parameters.getConfigParam("StageOriginHeight"));
+        return -originHeight;
+    }
+
+    float getStageMaxZ() const
+    {
+        float stageHeight = static_cast<float>(parameters.getConfigParam("StageHeight"));
+        float originHeight = static_cast<float>(parameters.getConfigParam("StageOriginHeight"));
+        return stageHeight - originHeight;
     }
 
     //==============================================================================

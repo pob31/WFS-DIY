@@ -56,10 +56,10 @@ WFS-DIY is a Wave Field Synthesis audio processing application built with JUCE. 
 ## GUI Components (Source/gui/)
 
 ### Custom Sliders (Source/gui/sliders/)
-- **WfsSliderBase** - Base class for all custom sliders
+- **WfsSliderBase** - Base class for all custom sliders, `handlePointer()` protected for derived classes
 - **WfsStandardSlider** - Standard 0-1 range slider
 - **WfsBidirectionalSlider** - Center-zero slider (-1 to 1 range)
-- **WfsAutoCenterSlider** - Returns to center on mouse release
+- **WfsAutoCenterSlider** - Returns to center on mouse release, supports 50Hz timer-based polling via `onPositionPolled` callback
 - **WfsWidthExpansionSlider** - For angle parameters
 
 ### Other Custom Components
@@ -100,6 +100,13 @@ Manages groups of inputs with collective transformations:
 - **Plane selector** - XY, XZ, or YZ plane for rotation/scale operations
 
 All controls use 50Hz timer-based updates with auto-centering behavior.
+
+### Stage Bounds Constraint Enforcement
+Both InputsTab and ClustersTab joystick/slider controls enforce stage bounds when constraint buttons are enabled:
+- **Stage bounds**: Min = -origin, Max = stageSize - origin (per axis)
+- **InputsTab**: Joystick checks `constraintXButton`/`constraintYButton`, Z slider checks `constraintZButton`
+- **ClustersTab**: `applyPositionDelta()` checks each input's individual constraint parameters
+- Constraints apply to total position (position + offset) when tracking is active
 
 ## Map Tab (Source/gui/MapTab.h)
 Interactive 2D visualization of the WFS spatial layout:
