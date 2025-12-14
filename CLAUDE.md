@@ -109,7 +109,7 @@ Interactive 2D visualization of the WFS spatial layout:
 - **Stage bounds** - White rectangle showing stage dimensions
 - **Origin marker** - White circle with crosshairs at coordinate origin
 - **Inputs** - Colored circles with channel numbers (interactive, draggable)
-- **Outputs** - Wedge/speaker icons showing orientation, color-coded by array
+- **Outputs** - Trapezoid speaker icons with membrane, showing orientation, color-coded by array
 - **Reverbs** - Purple diamond shapes
 - **Clusters** - Boundary shapes around grouped inputs
 
@@ -132,6 +132,16 @@ Interactive 2D visualization of the WFS spatial layout:
 - Locked input: Gray outer circle, red channel number
 - LS radius: White circle with 10% opacity when active
 - Height indicator: Small triangle when Z ≠ 0
+
+### Speaker Icon Design
+Outputs displayed as trapezoid (keystone) shapes representing speakers:
+- **Outer trapezoid** - Dark gray stroke, wide base at back, narrow tip pointing toward audience
+- **Inner membrane triangle** - Color-filled, base aligned with trapezoid back corners
+- **Dimensions** - Height 24px, back width 21px, front width 11px
+- **Membrane** - Extends 55% from back toward front
+- **Channel number** - Bold 12pt black text at triangle centroid
+- **Colors** - Array color (HSL-based) when assigned, light gray when single (array 0)
+- **Orientation** - 0° points toward audience (up on screen)
 
 ### Map Visibility & Lock Controls
 Per-channel controls in respective tabs:

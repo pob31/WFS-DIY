@@ -381,45 +381,80 @@ private:
 
             auto screenPos = stageToScreen({ posX, posY });
 
-            // Get array color
-            juce::Colour outputColor = getArrayColor(array);
+            // Get membrane color - array color if part of array, light grey otherwise
+            juce::Colour membraneColor = (array == 0) ? juce::Colours::lightgrey : getArrayColor(array);
 
-            // Draw speaker wedge shape showing orientation
-            juce::Path wedge;
-            float wedgeSize = 10.0f;
-
-            // Create wedge pointing in orientation direction
-            // Orientation is in degrees, 0 = forward (positive Y in stage coords)
+            // Draw speaker keystone shape showing orientation
+            // Orientation 0° = pointing toward audience (up on screen, which is -Y in screen coords)
             float angleRad = juce::degreesToRadians(static_cast<float>(orientation) - 90.0f);
 
-            // Wedge points
-            float tipX = screenPos.x + std::cos(angleRad) * wedgeSize * 1.5f;
-            float tipY = screenPos.y + std::sin(angleRad) * wedgeSize * 1.5f;
+            // Direction vector (where speaker points)
+            float dirX = std::cos(angleRad);
+            float dirY = std::sin(angleRad);
+            // Perpendicular vector (left side when facing direction)
+            float perpX = -dirY;
+            float perpY = dirX;
 
-            float leftAngle = angleRad + juce::MathConstants<float>::pi * 0.75f;
-            float rightAngle = angleRad - juce::MathConstants<float>::pi * 0.75f;
+            // Keystone dimensions - wide base at back, narrow tip at front (1.5x size)
+            float height = 24.0f;        // Total height from back to front
+            float backWidth = 21.0f;     // Wide end (back/base)
+            float frontWidth = 11.0f;    // Narrow end (front/tip) - slightly larger
 
-            float leftX = screenPos.x + std::cos(leftAngle) * wedgeSize;
-            float leftY = screenPos.y + std::sin(leftAngle) * wedgeSize;
-            float rightX = screenPos.x + std::cos(rightAngle) * wedgeSize;
-            float rightY = screenPos.y + std::sin(rightAngle) * wedgeSize;
+            // Calculate the 4 corners of the trapezoid
+            // Front (narrow end) - in the direction the speaker points
+            float frontCenterX = screenPos.x + dirX * height * 0.5f;
+            float frontCenterY = screenPos.y + dirY * height * 0.5f;
+            // Back (wide end) - opposite direction
+            float backCenterX = screenPos.x - dirX * height * 0.5f;
+            float backCenterY = screenPos.y - dirY * height * 0.5f;
 
-            wedge.startNewSubPath(tipX, tipY);
-            wedge.lineTo(leftX, leftY);
-            wedge.lineTo(rightX, rightY);
-            wedge.closeSubPath();
+            // Four corners
+            float frontLeftX = frontCenterX + perpX * frontWidth * 0.5f;
+            float frontLeftY = frontCenterY + perpY * frontWidth * 0.5f;
+            float frontRightX = frontCenterX - perpX * frontWidth * 0.5f;
+            float frontRightY = frontCenterY - perpY * frontWidth * 0.5f;
+            float backLeftX = backCenterX + perpX * backWidth * 0.5f;
+            float backLeftY = backCenterY + perpY * backWidth * 0.5f;
+            float backRightX = backCenterX - perpX * backWidth * 0.5f;
+            float backRightY = backCenterY - perpY * backWidth * 0.5f;
 
-            g.setColour(outputColor);
-            g.fillPath(wedge);
+            // Draw keystone (trapezoid)
+            juce::Path keystone;
+            keystone.startNewSubPath(backLeftX, backLeftY);
+            keystone.lineTo(frontLeftX, frontLeftY);
+            keystone.lineTo(frontRightX, frontRightY);
+            keystone.lineTo(backRightX, backRightY);
+            keystone.closeSubPath();
+
+            g.setColour(juce::Colour(0xFF1E1E1E));  // Fill with background color
+            g.fillPath(keystone);
             g.setColour(juce::Colours::white);
-            g.strokePath(wedge, juce::PathStrokeType(1.0f));
+            g.strokePath(keystone, juce::PathStrokeType(1.5f));
 
-            // Draw channel number
-            g.setFont(10.0f);
+            // Draw membrane triangle - base corners at trapezoid back corners, tip toward front
+            float membraneHeight = height * 0.55f;  // How far the tip extends toward front
+            float memTipX = backCenterX + dirX * membraneHeight;
+            float memTipY = backCenterY + dirY * membraneHeight;
+
+            juce::Path membrane;
+            membrane.startNewSubPath(backLeftX, backLeftY);   // Use trapezoid's back left corner
+            membrane.lineTo(memTipX, memTipY);
+            membrane.lineTo(backRightX, backRightY);          // Use trapezoid's back right corner
+            membrane.closeSubPath();
+
+            g.setColour(membraneColor);
+            g.fillPath(membrane);
             g.setColour(juce::Colours::white);
+            g.strokePath(membrane, juce::PathStrokeType(1.0f));
+
+            // Draw channel number at center of membrane triangle (centroid)
+            float triangleCenterX = (backLeftX + backRightX + memTipX) / 3.0f;
+            float triangleCenterY = (backLeftY + backRightY + memTipY) / 3.0f;
+            g.setFont(juce::Font(12.0f, juce::Font::bold));
+            g.setColour(juce::Colours::black);
             g.drawText(juce::String(i + 1),
-                       static_cast<int>(screenPos.x) - 8, static_cast<int>(screenPos.y) - 5,
-                       16, 10, juce::Justification::centred);
+                       static_cast<int>(triangleCenterX) - 10, static_cast<int>(triangleCenterY) - 6,
+                       20, 12, juce::Justification::centred);
         }
     }
 
