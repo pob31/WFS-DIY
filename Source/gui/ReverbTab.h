@@ -1239,7 +1239,57 @@ private:
     void saveReverbParam (const juce::Identifier& paramId, const juce::var& value)
     {
         if (isLoadingParameters) return;
-        parameters.setReverbParam (currentChannel - 1, paramId.toString(), value);
+
+        auto& vts = parameters.getValueTreeState();
+        int channelIndex = currentChannel - 1;
+        juce::ValueTree section;
+
+        // Map parameter IDs to their specific sections for reliable access
+        // Channel section parameters
+        if (paramId == WFSParameterIDs::reverbName ||
+            paramId == WFSParameterIDs::reverbAttenuation ||
+            paramId == WFSParameterIDs::reverbDelayLatency)
+        {
+            section = vts.getReverbChannelSection (channelIndex);
+        }
+        // Position section parameters
+        else if (paramId == WFSParameterIDs::reverbPositionX ||
+                 paramId == WFSParameterIDs::reverbPositionY ||
+                 paramId == WFSParameterIDs::reverbPositionZ ||
+                 paramId == WFSParameterIDs::reverbReturnOffsetX ||
+                 paramId == WFSParameterIDs::reverbReturnOffsetY ||
+                 paramId == WFSParameterIDs::reverbReturnOffsetZ)
+        {
+            section = vts.getReverbPositionSection (channelIndex);
+        }
+        // Feed section parameters
+        else if (paramId == WFSParameterIDs::reverbOrientation ||
+                 paramId == WFSParameterIDs::reverbAngleOn ||
+                 paramId == WFSParameterIDs::reverbAngleOff ||
+                 paramId == WFSParameterIDs::reverbPitch ||
+                 paramId == WFSParameterIDs::reverbHFdamping ||
+                 paramId == WFSParameterIDs::reverbMiniLatencyEnable ||
+                 paramId == WFSParameterIDs::reverbLSenable ||
+                 paramId == WFSParameterIDs::reverbDistanceAttenEnable)
+        {
+            section = vts.getReverbFeedSection (channelIndex);
+        }
+        // EQ section parameter (EQ enable toggle)
+        else if (paramId == WFSParameterIDs::reverbEQenable)
+        {
+            section = vts.getReverbEQSection (channelIndex);
+        }
+        // ReverbReturn section parameters
+        else if (paramId == WFSParameterIDs::reverbDistanceAttenuation ||
+                 paramId == WFSParameterIDs::reverbCommonAtten ||
+                 paramId == WFSParameterIDs::reverbMutes ||
+                 paramId == WFSParameterIDs::reverbMuteMacro)
+        {
+            section = vts.getReverbReturnSection (channelIndex);
+        }
+
+        if (section.isValid())
+            section.setProperty (paramId, value, vts.getUndoManager());
     }
 
     void saveEQBandParam (int bandIndex, const juce::Identifier& paramId, const juce::var& value)

@@ -802,28 +802,33 @@ private:
             parameters.setConfigParam("ShowLocation", text);
         else if (&editor == &inputChannelsEditor)
         {
-            parameters.setConfigParam("InputChannels", text.getIntValue());
+            int inputs = text.getIntValue();
+            // This creates the actual input channel nodes in the ValueTree
+            parameters.setNumInputChannels(inputs);
             // Notify MainComponent of channel count change
             if (onChannelCountChanged)
             {
-                int inputs = text.getIntValue();
                 int outputs = (int)parameters.getConfigParam("OutputChannels");
                 onChannelCountChanged(inputs, outputs);
             }
         }
         else if (&editor == &outputChannelsEditor)
         {
-            parameters.setConfigParam("OutputChannels", text.getIntValue());
+            int outputs = text.getIntValue();
+            // This creates the actual output channel nodes in the ValueTree
+            parameters.setNumOutputChannels(outputs);
             // Notify MainComponent of channel count change
             if (onChannelCountChanged)
             {
                 int inputs = (int)parameters.getConfigParam("InputChannels");
-                int outputs = text.getIntValue();
                 onChannelCountChanged(inputs, outputs);
             }
         }
         else if (&editor == &reverbChannelsEditor)
-            parameters.setConfigParam("ReverbChannels", text.getIntValue());
+        {
+            // This creates the actual reverb channel nodes in the ValueTree
+            parameters.setNumReverbChannels(text.getIntValue());
+        }
         else if (&editor == &stageWidthEditor)
             parameters.setConfigParam("StageWidth", text.getFloatValue());
         else if (&editor == &stageDepthEditor)
