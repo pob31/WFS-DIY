@@ -106,6 +106,15 @@ public:
     void paint (juce::Graphics& g) override
     {
         g.fillAll (juce::Colour (0xFF1E1E1E));
+
+        // Footer background
+        g.setColour (juce::Colour (0xFF252525));
+        g.fillRect (0, getHeight() - footerHeight, getWidth(), footerHeight);
+
+        // Footer divider line
+        g.setColour (juce::Colour (0xFF404040));
+        g.drawLine (0.0f, static_cast<float> (getHeight() - footerHeight),
+                    static_cast<float> (getWidth()), static_cast<float> (getHeight() - footerHeight), 1.0f);
     }
 
     void resized() override
