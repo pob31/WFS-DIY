@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include <map>
 #include "../WfsParameters.h"
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/WFSParameterDefaults.h"
@@ -10,7 +11,8 @@
  * Interactive 2D spatial mapping and visualization for WFS sources, speakers, and clusters.
  */
 class MapTab : public juce::Component,
-               private juce::ValueTree::Listener
+               private juce::ValueTree::Listener,
+               private juce::Timer
 {
 public:
     MapTab(WfsParameters& params)
@@ -26,12 +28,21 @@ public:
         reverbsTree.addListener(this);
         configTree.addListener(this);
 
+        // Home button to reset view
+        addAndMakeVisible(homeButton);
+        homeButton.setButtonText("Home");
+        homeButton.onClick = [this]() {
+            resetView();
+            repaint();
+        };
+
         // Initialize view to center on stage
         resetView();
     }
 
     ~MapTab() override
     {
+        stopTimer();
         inputsTree.removeListener(this);
         outputsTree.removeListener(this);
         reverbsTree.removeListener(this);
@@ -49,16 +60,14 @@ public:
         drawReverbs(g);
         drawClusters(g);
         drawInputs(g);
-
-        // Draw zoom level indicator
-        g.setColour(juce::Colours::grey);
-        g.setFont(12.0f);
-        g.drawText("Zoom: " + juce::String(viewScale, 1) + " px/m",
-                   10, getHeight() - 25, 150, 20, juce::Justification::left);
+        drawSecondaryTouchFeedback(g);
     }
 
     void resized() override
     {
+        // Position home button in top-right corner
+        homeButton.setBounds(getWidth() - 70, 10, 60, 25);
+
         // Reset view offset to center when resized
         if (viewOffset.isOrigin())
             resetView();
@@ -70,64 +79,382 @@ public:
 
     void mouseDown(const juce::MouseEvent& e) override
     {
+        int sourceIndex = e.source.getIndex();
+
+        // Handle touch input
+        if (e.source.isTouch())
+        {
+            // Clear mouse selection when using touch
+            selectedInput = -1;
+
+            TouchInfo touch;
+            touch.startPos = e.position;
+            touch.currentPos = e.position;
+
+            // Check for input hit
+            int hitInput = getInputAtPosition(e.position);
+            if (hitInput >= 0)
+            {
+                touch.type = TouchInfo::Type::Input;
+                touch.targetIndex = hitInput;
+                touch.startStagePos = getInputPosition(hitInput);
+                float offsetX = static_cast<float>(parameters.getInputParam(hitInput, "inputOffsetX"));
+                float offsetY = static_cast<float>(parameters.getInputParam(hitInput, "inputOffsetY"));
+                touch.startOffset = { offsetX, offsetY };
+                activeTouches[sourceIndex] = touch;
+                repaint();
+                return;
+            }
+
+            // Check for barycenter hit
+            int hitBarycenter = getBarycenterAtPosition(e.position);
+            if (hitBarycenter > 0)
+            {
+                touch.type = TouchInfo::Type::Barycenter;
+                touch.targetIndex = hitBarycenter;
+                activeTouches[sourceIndex] = touch;
+                repaint();
+                return;
+            }
+
+            // Touch on empty area
+            int itemDraggingCount = countItemDraggingTouches();
+
+            if (itemDraggingCount == 0)
+            {
+                // No items being dragged - this is a view gesture
+                touch.type = TouchInfo::Type::ViewGesture;
+                activeTouches[sourceIndex] = touch;
+
+                int viewTouches = countViewGestureTouches();
+                if (viewTouches == 2 || viewTouches == 3)
+                    initializeViewGesture();
+
+                repaint();
+            }
+            else
+            {
+                // Items being dragged - this could be a secondary touch
+                auto [closestTarget, isClusterTarget] = findClosestSecondaryTouchTarget(e.position);
+
+                if (closestTarget >= 0)
+                {
+                    // Create secondary touch
+                    touch.type = TouchInfo::Type::SecondaryTouch;
+                    touch.targetIndex = closestTarget;
+                    activeTouches[sourceIndex] = touch;
+
+                    // Initialize secondary touch info
+                    if (isClusterTarget)
+                    {
+                        int primarySource = findPrimaryTouchForTarget(closestTarget, true);
+                        activeSecondaryTouches[sourceIndex] = initSecondaryTouchForBarycenter(
+                            closestTarget, primarySource, e.position);
+                    }
+                    else
+                    {
+                        int primarySource = findPrimaryTouchForTarget(closestTarget, false);
+                        activeSecondaryTouches[sourceIndex] = initSecondaryTouchForInput(
+                            closestTarget, primarySource, e.position);
+                    }
+
+                    repaint();
+                }
+            }
+            return;
+        }
+
+        // Mouse input (existing behavior)
+        lastMousePos = e.position;
         dragStartPos = e.position;
         dragStartOffset = viewOffset;
+        dragStartScale = viewScale;
 
-        // Check for input hit
-        int hitInput = getInputAtPosition(e.position);
-        if (hitInput >= 0 && !e.mods.isMiddleButtonDown())
+        // Middle click resets view to fit stage
+        if (e.mods.isMiddleButtonDown())
         {
-            selectedInput = hitInput;
-            isDraggingInput = true;
-            inputDragStartStagePos = getInputPosition(hitInput);
+            resetView();
             repaint();
             return;
         }
 
-        // No input hit - prepare for panning
-        selectedInput = -1;
-        isDraggingInput = false;
-        repaint();
+        // Right-click (with or without left): enter view gesture mode
+        if (e.mods.isRightButtonDown())
+        {
+            isDraggingInput = false;
+            isDraggingBarycenter = false;
+            isInViewGesture = true;
+
+            if (e.mods.isLeftButtonDown())
+                gestureMode = GestureMode::Zoom;
+            else
+                gestureMode = GestureMode::Pan;
+
+            startTimer(50);
+            return;
+        }
+
+        // Left-click only: check for input/barycenter hit
+        if (e.mods.isLeftButtonDown())
+        {
+            int hitInput = getInputAtPosition(e.position);
+            if (hitInput >= 0)
+            {
+                selectedInput = hitInput;
+                isDraggingInput = true;
+                isDraggingBarycenter = false;
+                selectedBarycenter = -1;
+                isInViewGesture = false;
+                inputDragStartStagePos = getInputPosition(hitInput);
+
+                float offsetX = static_cast<float>(parameters.getInputParam(hitInput, "inputOffsetX"));
+                float offsetY = static_cast<float>(parameters.getInputParam(hitInput, "inputOffsetY"));
+                inputDragStartOffset = { offsetX, offsetY };
+
+                repaint();
+                return;
+            }
+
+            int hitBarycenter = getBarycenterAtPosition(e.position);
+            if (hitBarycenter > 0)
+            {
+                selectedBarycenter = hitBarycenter;
+                isDraggingBarycenter = true;
+                isDraggingInput = false;
+                selectedInput = -1;
+                isInViewGesture = false;
+                barycenterDragStartStagePos = getClusterBarycenter(hitBarycenter);
+                repaint();
+                return;
+            }
+
+            // Left-click in empty area
+            selectedInput = -1;
+            isDraggingInput = false;
+            selectedBarycenter = -1;
+            isDraggingBarycenter = false;
+            isInViewGesture = true;
+            gestureMode = GestureMode::None;
+            startTimer(50);
+            repaint();
+        }
     }
 
     void mouseDrag(const juce::MouseEvent& e) override
     {
+        int sourceIndex = e.source.getIndex();
+
+        // Handle touch input
+        if (e.source.isTouch())
+        {
+            auto it = activeTouches.find(sourceIndex);
+            if (it == activeTouches.end())
+                return;
+
+            TouchInfo& touch = it->second;
+            touch.currentPos = e.position;
+
+            switch (touch.type)
+            {
+                case TouchInfo::Type::Input:
+                    applyTouchInputDrag(touch);
+                    repaint();
+                    break;
+
+                case TouchInfo::Type::Barycenter:
+                    applyTouchBarycenterDrag(touch);
+                    repaint();
+                    break;
+
+                case TouchInfo::Type::ViewGesture:
+                {
+                    int viewTouches = countViewGestureTouches();
+                    if (viewTouches == 2)
+                        applyMultitouchPan();
+                    else if (viewTouches >= 3)
+                        applyMultitouchZoom();
+                    break;
+                }
+
+                case TouchInfo::Type::SecondaryTouch:
+                    applySecondaryTouch(sourceIndex, e.position);
+                    repaint();
+                    break;
+
+                default:
+                    break;
+            }
+            return;
+        }
+
+        // Mouse input (existing behavior)
+        lastMousePos = e.position;
+
+        // If in view gesture mode (pan/zoom), apply gesture directly for smooth motion
+        if (isInViewGesture)
+        {
+            if (gestureMode == GestureMode::Zoom)
+            {
+                auto delta = e.position - dragStartPos;
+                float zoomFactor = 1.0f - delta.y * 0.005f;
+                float newScale = dragStartScale * zoomFactor;
+                viewScale = juce::jlimit(5.0f, 500.0f, newScale);
+                repaint();
+            }
+            else if (gestureMode == GestureMode::Pan)
+            {
+                auto delta = e.position - dragStartPos;
+                viewOffset = dragStartOffset + delta;
+                repaint();
+            }
+            return;
+        }
+
+        // Handle input dragging
         if (isDraggingInput && selectedInput >= 0)
         {
-            // Move input source
             auto stagePos = screenToStage(e.position);
 
-            // Clamp to stage bounds
+            // Check constraint parameters - only clamp if constraint is enabled
+            int constraintX = static_cast<int>(parameters.getInputParam(selectedInput, "inputConstraintX"));
+            int constraintY = static_cast<int>(parameters.getInputParam(selectedInput, "inputConstraintY"));
+
             float stageW = getStageWidth();
             float stageD = getStageDepth();
-            stagePos.x = juce::jlimit(0.0f, stageW, stagePos.x);
-            stagePos.y = juce::jlimit(0.0f, stageD, stagePos.y);
 
-            parameters.setInputParam(selectedInput, "inputPositionX", stagePos.x);
-            parameters.setInputParam(selectedInput, "inputPositionY", stagePos.y);
+            if (constraintX != 0)
+                stagePos.x = juce::jlimit(0.0f, stageW, stagePos.x);
+            if (constraintY != 0)
+                stagePos.y = juce::jlimit(0.0f, stageD, stagePos.y);
+
+            // Determine drag behavior based on input state
+            bool isTracked = isInputFullyTracked(selectedInput);
+            int cluster = static_cast<int>(parameters.getInputParam(selectedInput, "inputCluster"));
+            bool isReference = (cluster > 0) && (getClusterReferenceInput(cluster) == selectedInput);
+
+            if (isTracked)
+            {
+                // Tracked input: update offset incrementally (delta from drag start)
+                float deltaX = stagePos.x - inputDragStartStagePos.x;
+                float deltaY = stagePos.y - inputDragStartStagePos.y;
+
+                // Get current offset BEFORE updating (for cluster member delta calculation)
+                float oldOffsetX = static_cast<float>(parameters.getInputParam(selectedInput, "inputOffsetX"));
+                float oldOffsetY = static_cast<float>(parameters.getInputParam(selectedInput, "inputOffsetY"));
+
+                // New offset = initial offset + drag delta
+                float newOffsetX = inputDragStartOffset.x + deltaX;
+                float newOffsetY = inputDragStartOffset.y + deltaY;
+
+                parameters.setInputParam(selectedInput, "inputOffsetX", newOffsetX);
+                parameters.setInputParam(selectedInput, "inputOffsetY", newOffsetY);
+
+                // If tracked AND reference, move cluster members by the same frame delta
+                if (isReference && cluster > 0)
+                {
+                    // Instantaneous delta = what the offset changed by this frame
+                    float instantDeltaX = newOffsetX - oldOffsetX;
+                    float instantDeltaY = newOffsetY - oldOffsetY;
+
+                    // Move all other cluster members' positions by the same instantaneous delta
+                    int numInputs = parameters.getNumInputChannels();
+                    for (int i = 0; i < numInputs; ++i)
+                    {
+                        if (i == selectedInput) continue;
+
+                        int inputCluster = static_cast<int>(parameters.getInputParam(i, "inputCluster"));
+                        if (inputCluster == cluster)
+                        {
+                            float memberX = static_cast<float>(parameters.getInputParam(i, "inputPositionX"));
+                            float memberY = static_cast<float>(parameters.getInputParam(i, "inputPositionY"));
+                            parameters.setInputParam(i, "inputPositionX", memberX + instantDeltaX);
+                            parameters.setInputParam(i, "inputPositionY", memberY + instantDeltaY);
+                        }
+                    }
+                }
+            }
+            else if (isReference && cluster > 0)
+            {
+                // Reference input (not tracked): move entire cluster maintaining geometry
+                moveClusterWithReference(cluster, selectedInput, stagePos);
+            }
+            else
+            {
+                // Normal input: just update position
+                parameters.setInputParam(selectedInput, "inputPositionX", stagePos.x);
+                parameters.setInputParam(selectedInput, "inputPositionY", stagePos.y);
+            }
+
             repaint();
         }
-        else
+        else if (isDraggingBarycenter && selectedBarycenter > 0)
         {
-            // Pan view
-            auto delta = e.position - dragStartPos;
-            viewOffset = dragStartOffset + delta;
+            // Barycenter dragging: move all cluster members by the delta
+            auto newStagePos = screenToStage(e.position);
+            auto currentBarycenter = getClusterBarycenter(selectedBarycenter);
+
+            float deltaX = newStagePos.x - currentBarycenter.x;
+            float deltaY = newStagePos.y - currentBarycenter.y;
+
+            // Move all cluster members
+            int numInputs = parameters.getNumInputChannels();
+            for (int i = 0; i < numInputs; ++i)
+            {
+                int inputCluster = static_cast<int>(parameters.getInputParam(i, "inputCluster"));
+                if (inputCluster == selectedBarycenter)
+                {
+                    float memberX = static_cast<float>(parameters.getInputParam(i, "inputPositionX"));
+                    float memberY = static_cast<float>(parameters.getInputParam(i, "inputPositionY"));
+                    parameters.setInputParam(i, "inputPositionX", memberX + deltaX);
+                    parameters.setInputParam(i, "inputPositionY", memberY + deltaY);
+                }
+            }
+
             repaint();
         }
+        // Note: Pan/zoom handled by timer in timerCallback()
     }
 
     void mouseUp(const juce::MouseEvent& e) override
     {
-        juce::ignoreUnused(e);
+        int sourceIndex = e.source.getIndex();
+
+        // Handle touch input
+        if (e.source.isTouch())
+        {
+            auto it = activeTouches.find(sourceIndex);
+            if (it != activeTouches.end())
+            {
+                bool wasViewGesture = (it->second.type == TouchInfo::Type::ViewGesture);
+                bool wasSecondaryTouch = (it->second.type == TouchInfo::Type::SecondaryTouch);
+
+                activeTouches.erase(it);
+
+                // Clean up secondary touch data if this was a secondary touch
+                if (wasSecondaryTouch)
+                    activeSecondaryTouches.erase(sourceIndex);
+
+                // If a view gesture touch was released, re-initialize gesture
+                // (in case we went from 3 fingers to 2, need to restart pan)
+                if (wasViewGesture && countViewGestureTouches() >= 2)
+                    initializeViewGesture();
+            }
+            repaint();
+            return;
+        }
+
+        // Mouse input (existing behavior)
         isDraggingInput = false;
+        isDraggingBarycenter = false;
+        isInViewGesture = false;
+        gestureMode = GestureMode::None;
+        stopTimer();
     }
 
     void mouseDoubleClick(const juce::MouseEvent& e) override
     {
         juce::ignoreUnused(e);
-        // Double-click to reset view
-        resetView();
-        repaint();
+        // Double-click currently unused (middle-click resets view)
     }
 
     void mouseWheelMove(const juce::MouseEvent& e, const juce::MouseWheelDetails& wheel) override
@@ -146,6 +473,753 @@ public:
         repaint();
     }
 
+    //==========================================================================
+    // Timer Callback for Polling Button State
+    //==========================================================================
+
+    void timerCallback() override
+    {
+        // Poll current mouse button state
+        bool leftDown = juce::ModifierKeys::currentModifiers.isLeftButtonDown();
+        bool rightDown = juce::ModifierKeys::currentModifiers.isRightButtonDown();
+
+        // Determine target gesture mode based on button state
+        GestureMode targetMode = GestureMode::None;
+        if (leftDown && rightDown)
+            targetMode = GestureMode::Zoom;
+        else if (rightDown)
+            targetMode = GestureMode::Pan;
+        else if (leftDown)
+            targetMode = GestureMode::None;  // Left only in view gesture = do nothing (wait for right)
+
+        // Mode transition
+        if (targetMode != gestureMode)
+        {
+            // Reset reference point when entering a new mode
+            if (targetMode == GestureMode::Zoom)
+            {
+                dragStartPos = lastMousePos;
+                dragStartScale = viewScale;
+            }
+            else if (targetMode == GestureMode::Pan)
+            {
+                dragStartPos = lastMousePos;
+                dragStartOffset = viewOffset;
+            }
+            gestureMode = targetMode;
+        }
+
+        // Apply gesture
+        if (gestureMode == GestureMode::Zoom)
+        {
+            auto delta = lastMousePos - dragStartPos;
+            float zoomFactor = 1.0f - delta.y * 0.005f;
+            float newScale = dragStartScale * zoomFactor;
+            viewScale = juce::jlimit(5.0f, 500.0f, newScale);
+            repaint();
+        }
+        else if (gestureMode == GestureMode::Pan)
+        {
+            auto delta = lastMousePos - dragStartPos;
+            viewOffset = dragStartOffset + delta;
+            repaint();
+        }
+
+        // Stop timer if no buttons are held
+        if (!leftDown && !rightDown)
+        {
+            isInViewGesture = false;
+            gestureMode = GestureMode::None;
+            stopTimer();
+        }
+    }
+
+    //==========================================================================
+    // Multitouch Types and State (must be declared before helper functions)
+    //==========================================================================
+
+    // Per-touch tracking info
+    struct TouchInfo
+    {
+        enum class Type { None, Input, Barycenter, ViewGesture, SecondaryTouch };
+        Type type = Type::None;
+        int targetIndex = -1;  // Input index or barycenter cluster number
+        juce::Point<float> startPos;  // Screen position at touch start
+        juce::Point<float> currentPos;  // Current screen position
+        juce::Point<float> startStagePos;  // Stage position at touch start (for inputs)
+        juce::Point<float> startOffset;  // Initial offset (for tracked inputs)
+    };
+
+    // Secondary touch tracking (for two-finger gestures on inputs/clusters)
+    struct SecondaryTouchInfo
+    {
+        enum class TargetType { None, InputZ, InputRotation, ClusterScaleRotation };
+        TargetType targetType = TargetType::None;
+        int targetIndex = -1;           // Input index or cluster number
+        int primaryTouchSourceIndex = -1;  // Source index of the primary touch this is associated with
+        juce::Point<float> initialMarkerScreenPos;  // Marker position when touch started
+        juce::Point<float> initialTouchScreenPos;   // Touch position at start
+        float initialDistance = 0.0f;    // Initial distance from marker to touch
+        float initialAngle = 0.0f;       // Initial angle from marker to touch
+        float startZ = 0.0f;             // Initial Z value (position or offset)
+        float startRotation = 0.0f;      // Initial rotation value (inputRotation or cluster rotation)
+        float startScaleX = 1.0f;        // For cluster scale (not used for inputs)
+        float startScaleY = 1.0f;        // For cluster scale (not used for inputs)
+    };
+
+    //==========================================================================
+    // Multitouch Helpers
+    //==========================================================================
+
+    // Count touches that are dragging items (inputs or barycenters)
+    int countItemDraggingTouches() const
+    {
+        int count = 0;
+        for (const auto& [idx, touch] : activeTouches)
+        {
+            if (touch.type == TouchInfo::Type::Input ||
+                touch.type == TouchInfo::Type::Barycenter)
+                ++count;
+        }
+        return count;
+    }
+
+    // Check if a specific input is being touch-dragged
+    bool isInputBeingTouchDragged(int inputIndex) const
+    {
+        for (const auto& [idx, touch] : activeTouches)
+        {
+            if (touch.type == TouchInfo::Type::Input && touch.targetIndex == inputIndex)
+                return true;
+        }
+        return false;
+    }
+
+    // Count touches in view gesture mode
+    int countViewGestureTouches() const
+    {
+        int count = 0;
+        for (const auto& [idx, touch] : activeTouches)
+        {
+            if (touch.type == TouchInfo::Type::ViewGesture)
+                ++count;
+        }
+        return count;
+    }
+
+    // Get center point of all view gesture touches
+    juce::Point<float> getViewGestureTouchCenter() const
+    {
+        juce::Point<float> sum { 0.0f, 0.0f };
+        int count = 0;
+        for (const auto& [idx, touch] : activeTouches)
+        {
+            if (touch.type == TouchInfo::Type::ViewGesture)
+            {
+                sum += touch.currentPos;
+                ++count;
+            }
+        }
+        return count > 0 ? sum / static_cast<float>(count) : juce::Point<float>();
+    }
+
+    // Get average Y position of view gesture touches (for 3-finger zoom)
+    float getViewGestureAverageY() const
+    {
+        float sum = 0.0f;
+        int count = 0;
+        for (const auto& [idx, touch] : activeTouches)
+        {
+            if (touch.type == TouchInfo::Type::ViewGesture)
+            {
+                sum += touch.currentPos.y;
+                ++count;
+            }
+        }
+        return count > 0 ? sum / static_cast<float>(count) : 0.0f;
+    }
+
+    // Initialize view gesture when touch count reaches 2 or 3
+    void initializeViewGesture()
+    {
+        viewGestureStartCenter = getViewGestureTouchCenter();
+        viewGestureStartOffset = viewOffset;
+        viewGestureStartScale = viewScale;
+    }
+
+    // Apply multitouch pan gesture (2 fingers)
+    void applyMultitouchPan()
+    {
+        auto currentCenter = getViewGestureTouchCenter();
+        auto delta = currentCenter - viewGestureStartCenter;
+        viewOffset = viewGestureStartOffset + delta;
+        repaint();
+    }
+
+    // Apply multitouch zoom gesture (3 fingers, vertical)
+    void applyMultitouchZoom()
+    {
+        float currentY = getViewGestureAverageY();
+        float startY = viewGestureStartCenter.y;
+        float deltaY = currentY - startY;
+
+        float zoomFactor = 1.0f - deltaY * 0.005f;
+        float newScale = viewGestureStartScale * zoomFactor;
+        viewScale = juce::jlimit(5.0f, 500.0f, newScale);
+        repaint();
+    }
+
+    // Handle touch input dragging
+    void applyTouchInputDrag(TouchInfo& touch)
+    {
+        int inputIdx = touch.targetIndex;
+        auto stagePos = screenToStage(touch.currentPos);
+
+        // Check constraint parameters
+        int constraintX = static_cast<int>(parameters.getInputParam(inputIdx, "inputConstraintX"));
+        int constraintY = static_cast<int>(parameters.getInputParam(inputIdx, "inputConstraintY"));
+
+        if (constraintX != 0)
+            stagePos.x = juce::jlimit(0.0f, getStageWidth(), stagePos.x);
+        if (constraintY != 0)
+            stagePos.y = juce::jlimit(0.0f, getStageDepth(), stagePos.y);
+
+        // Determine drag behavior
+        bool isTracked = isInputFullyTracked(inputIdx);
+        int cluster = static_cast<int>(parameters.getInputParam(inputIdx, "inputCluster"));
+        bool isReference = (cluster > 0) && (getClusterReferenceInput(cluster) == inputIdx);
+
+        if (isTracked)
+        {
+            // Tracked input: update offset incrementally
+            float deltaX = stagePos.x - touch.startStagePos.x;
+            float deltaY = stagePos.y - touch.startStagePos.y;
+
+            float oldOffsetX = static_cast<float>(parameters.getInputParam(inputIdx, "inputOffsetX"));
+            float oldOffsetY = static_cast<float>(parameters.getInputParam(inputIdx, "inputOffsetY"));
+
+            float newOffsetX = touch.startOffset.x + deltaX;
+            float newOffsetY = touch.startOffset.y + deltaY;
+
+            parameters.setInputParam(inputIdx, "inputOffsetX", newOffsetX);
+            parameters.setInputParam(inputIdx, "inputOffsetY", newOffsetY);
+
+            if (isReference && cluster > 0)
+            {
+                float instantDeltaX = newOffsetX - oldOffsetX;
+                float instantDeltaY = newOffsetY - oldOffsetY;
+
+                int numInputs = parameters.getNumInputChannels();
+                for (int i = 0; i < numInputs; ++i)
+                {
+                    if (i == inputIdx) continue;
+                    int inputCluster = static_cast<int>(parameters.getInputParam(i, "inputCluster"));
+                    if (inputCluster == cluster)
+                    {
+                        float memberX = static_cast<float>(parameters.getInputParam(i, "inputPositionX"));
+                        float memberY = static_cast<float>(parameters.getInputParam(i, "inputPositionY"));
+                        parameters.setInputParam(i, "inputPositionX", memberX + instantDeltaX);
+                        parameters.setInputParam(i, "inputPositionY", memberY + instantDeltaY);
+                    }
+                }
+            }
+        }
+        else if (isReference && cluster > 0)
+        {
+            moveClusterWithReference(cluster, inputIdx, stagePos);
+        }
+        else
+        {
+            parameters.setInputParam(inputIdx, "inputPositionX", stagePos.x);
+            parameters.setInputParam(inputIdx, "inputPositionY", stagePos.y);
+        }
+    }
+
+    // Handle touch barycenter dragging
+    void applyTouchBarycenterDrag(TouchInfo& touch)
+    {
+        int clusterNum = touch.targetIndex;
+        auto newStagePos = screenToStage(touch.currentPos);
+        auto currentBarycenter = getClusterBarycenter(clusterNum);
+
+        float deltaX = newStagePos.x - currentBarycenter.x;
+        float deltaY = newStagePos.y - currentBarycenter.y;
+
+        int numInputs = parameters.getNumInputChannels();
+        for (int i = 0; i < numInputs; ++i)
+        {
+            int inputCluster = static_cast<int>(parameters.getInputParam(i, "inputCluster"));
+            if (inputCluster == clusterNum)
+            {
+                float memberX = static_cast<float>(parameters.getInputParam(i, "inputPositionX"));
+                float memberY = static_cast<float>(parameters.getInputParam(i, "inputPositionY"));
+                parameters.setInputParam(i, "inputPositionX", memberX + deltaX);
+                parameters.setInputParam(i, "inputPositionY", memberY + deltaY);
+            }
+        }
+    }
+
+    //==========================================================================
+    // Secondary Touch Helpers
+    //==========================================================================
+
+    // Check if an input is already engaged in a secondary touch
+    bool isInputEngagedInSecondaryTouch(int inputIndex) const
+    {
+        for (const auto& [idx, secTouch] : activeSecondaryTouches)
+        {
+            if (secTouch.targetType != SecondaryTouchInfo::TargetType::ClusterScaleRotation &&
+                secTouch.targetIndex == inputIndex)
+                return true;
+        }
+        return false;
+    }
+
+    // Check if a cluster is already engaged in a secondary touch
+    bool isClusterEngagedInSecondaryTouch(int clusterNum) const
+    {
+        for (const auto& [idx, secTouch] : activeSecondaryTouches)
+        {
+            if (secTouch.targetType == SecondaryTouchInfo::TargetType::ClusterScaleRotation &&
+                secTouch.targetIndex == clusterNum)
+                return true;
+        }
+        return false;
+    }
+
+    // Find the closest eligible target for a secondary touch
+    // Returns: pair<target index, is cluster (true) or input (false)>
+    // Returns {-1, false} if no eligible target found
+    std::pair<int, bool> findClosestSecondaryTouchTarget(juce::Point<float> screenPos) const
+    {
+        float minDistance = (std::numeric_limits<float>::max)();
+        int closestTarget = -1;
+        bool isCluster = false;
+
+        // Check dragging inputs
+        for (const auto& [sourceIdx, touch] : activeTouches)
+        {
+            if (touch.type == TouchInfo::Type::Input)
+            {
+                int inputIdx = touch.targetIndex;
+
+                // Skip if already engaged in secondary touch
+                if (isInputEngagedInSecondaryTouch(inputIdx))
+                    continue;
+
+                // Get current input screen position
+                float posX = static_cast<float>(parameters.getInputParam(inputIdx, "inputPositionX"));
+                float posY = static_cast<float>(parameters.getInputParam(inputIdx, "inputPositionY"));
+                auto markerScreen = stageToScreen({ posX, posY });
+
+                float dist = screenPos.getDistanceFrom(markerScreen);
+                if (dist < minDistance)
+                {
+                    minDistance = dist;
+                    closestTarget = inputIdx;
+                    isCluster = false;
+                }
+            }
+            else if (touch.type == TouchInfo::Type::Barycenter)
+            {
+                int clusterNum = touch.targetIndex;
+
+                // Skip if already engaged in secondary touch
+                if (isClusterEngagedInSecondaryTouch(clusterNum))
+                    continue;
+
+                // Get barycenter screen position
+                auto baryStage = getClusterBarycenter(clusterNum);
+                auto baryScreen = stageToScreen(baryStage);
+
+                float dist = screenPos.getDistanceFrom(baryScreen);
+                if (dist < minDistance)
+                {
+                    minDistance = dist;
+                    closestTarget = clusterNum;
+                    isCluster = true;
+                }
+            }
+        }
+
+        return { closestTarget, isCluster };
+    }
+
+    // Find the primary touch source index for a given input or barycenter
+    int findPrimaryTouchForTarget(int targetIndex, bool isBarycenter) const
+    {
+        for (const auto& [sourceIdx, touch] : activeTouches)
+        {
+            if (isBarycenter && touch.type == TouchInfo::Type::Barycenter && touch.targetIndex == targetIndex)
+                return sourceIdx;
+            if (!isBarycenter && touch.type == TouchInfo::Type::Input && touch.targetIndex == targetIndex)
+                return sourceIdx;
+        }
+        return -1;
+    }
+
+    // Initialize a secondary touch for an input
+    SecondaryTouchInfo initSecondaryTouchForInput(int inputIdx, int primarySourceIdx, juce::Point<float> touchScreenPos)
+    {
+        SecondaryTouchInfo secTouch;
+        secTouch.targetIndex = inputIdx;
+        secTouch.primaryTouchSourceIndex = primarySourceIdx;
+        secTouch.initialTouchScreenPos = touchScreenPos;
+
+        // Get input position
+        float posX = static_cast<float>(parameters.getInputParam(inputIdx, "inputPositionX"));
+        float posY = static_cast<float>(parameters.getInputParam(inputIdx, "inputPositionY"));
+        secTouch.initialMarkerScreenPos = stageToScreen({ posX, posY });
+
+        // Calculate initial distance and angle
+        auto delta = touchScreenPos - secTouch.initialMarkerScreenPos;
+        secTouch.initialDistance = delta.getDistanceFromOrigin();
+        secTouch.initialAngle = std::atan2(delta.y, delta.x);
+
+        // Determine target type based on input state
+        bool isTracked = isInputFullyTracked(inputIdx);
+        int cluster = static_cast<int>(parameters.getInputParam(inputIdx, "inputCluster"));
+        bool isReference = (cluster > 0) && (getClusterReferenceInput(cluster) == inputIdx);
+
+        if (isTracked && cluster > 0)
+        {
+            // Tracked input in cluster - controls cluster scale/rotation
+            secTouch.targetType = SecondaryTouchInfo::TargetType::ClusterScaleRotation;
+            secTouch.targetIndex = cluster;  // Change to cluster number
+            secTouch.startRotation = 0.0f;  // Rotation is applied incrementally
+        }
+        else if (isReference && cluster > 0)
+        {
+            // Reference input (not tracked) - controls cluster scale/rotation
+            secTouch.targetType = SecondaryTouchInfo::TargetType::ClusterScaleRotation;
+            secTouch.targetIndex = cluster;
+            secTouch.startRotation = 0.0f;
+        }
+        else if (isTracked)
+        {
+            // Tracked input not in cluster - controls Offset Z and inputRotation
+            secTouch.targetType = SecondaryTouchInfo::TargetType::InputZ;
+            secTouch.startZ = static_cast<float>(parameters.getInputParam(inputIdx, "inputOffsetZ"));
+            secTouch.startRotation = static_cast<float>(parameters.getInputParam(inputIdx, "inputRotation"));
+        }
+        else
+        {
+            // Normal input - controls Position Z and inputRotation
+            secTouch.targetType = SecondaryTouchInfo::TargetType::InputRotation;
+            secTouch.startZ = static_cast<float>(parameters.getInputParam(inputIdx, "inputPositionZ"));
+            secTouch.startRotation = static_cast<float>(parameters.getInputParam(inputIdx, "inputRotation"));
+        }
+
+        return secTouch;
+    }
+
+    // Initialize a secondary touch for a barycenter (cluster)
+    SecondaryTouchInfo initSecondaryTouchForBarycenter(int clusterNum, int primarySourceIdx, juce::Point<float> touchScreenPos)
+    {
+        SecondaryTouchInfo secTouch;
+        secTouch.targetType = SecondaryTouchInfo::TargetType::ClusterScaleRotation;
+        secTouch.targetIndex = clusterNum;
+        secTouch.primaryTouchSourceIndex = primarySourceIdx;
+        secTouch.initialTouchScreenPos = touchScreenPos;
+
+        // Get barycenter position
+        auto baryStage = getClusterBarycenter(clusterNum);
+        secTouch.initialMarkerScreenPos = stageToScreen(baryStage);
+
+        // Calculate initial distance and angle
+        auto delta = touchScreenPos - secTouch.initialMarkerScreenPos;
+        secTouch.initialDistance = delta.getDistanceFromOrigin();
+        secTouch.initialAngle = std::atan2(delta.y, delta.x);
+        secTouch.startRotation = 0.0f;  // Cluster rotation is applied incrementally
+
+        return secTouch;
+    }
+
+    // Apply secondary touch effects (called during drag)
+    void applySecondaryTouch(int sourceIndex, juce::Point<float> currentTouchPos)
+    {
+        auto it = activeSecondaryTouches.find(sourceIndex);
+        if (it == activeSecondaryTouches.end())
+            return;
+
+        SecondaryTouchInfo& secTouch = it->second;
+
+        // Get current marker position (may have moved since touch started)
+        juce::Point<float> currentMarkerScreen;
+        if (secTouch.targetType == SecondaryTouchInfo::TargetType::ClusterScaleRotation)
+        {
+            auto baryStage = getClusterBarycenter(secTouch.targetIndex);
+            currentMarkerScreen = stageToScreen(baryStage);
+        }
+        else
+        {
+            float posX = static_cast<float>(parameters.getInputParam(secTouch.targetIndex, "inputPositionX"));
+            float posY = static_cast<float>(parameters.getInputParam(secTouch.targetIndex, "inputPositionY"));
+            currentMarkerScreen = stageToScreen({ posX, posY });
+        }
+
+        // Calculate current distance and angle
+        auto delta = currentTouchPos - currentMarkerScreen;
+        float currentDistance = delta.getDistanceFromOrigin();
+        float currentAngle = std::atan2(delta.y, delta.x);
+
+        // Calculate ratio and rotation delta
+        float distanceRatio = (secTouch.initialDistance > 10.0f) ? currentDistance / secTouch.initialDistance : 1.0f;
+        float angleDelta = currentAngle - secTouch.initialAngle;
+
+        // Normalize angle delta to -PI to PI
+        while (angleDelta > juce::MathConstants<float>::pi) angleDelta -= juce::MathConstants<float>::twoPi;
+        while (angleDelta < -juce::MathConstants<float>::pi) angleDelta += juce::MathConstants<float>::twoPi;
+
+        switch (secTouch.targetType)
+        {
+            case SecondaryTouchInfo::TargetType::InputZ:
+            {
+                // Tracked input: modify offset Z by ratio, modify inputRotation by angle
+                int inputIdx = secTouch.targetIndex;
+
+                // For Z: if starting value is near 0, use additive offset instead of ratio
+                // Scale factor converts screen distance change to meters (approximate)
+                float newOffsetZ;
+                if (std::abs(secTouch.startZ) < 0.1f)
+                {
+                    // Additive mode: distance change in pixels / 50 = meters offset
+                    float distanceChange = currentDistance - secTouch.initialDistance;
+                    newOffsetZ = secTouch.startZ + distanceChange / 50.0f;
+                }
+                else
+                {
+                    newOffsetZ = secTouch.startZ * distanceRatio;
+                }
+
+                // Check Z constraint - if enabled, limit to stage height
+                int constraintZ = static_cast<int>(parameters.getInputParam(inputIdx, "inputConstraintZ"));
+                if (constraintZ != 0)
+                {
+                    // Constrained: limit offset Z so total Z stays within stage height
+                    float posZ = static_cast<float>(parameters.getInputParam(inputIdx, "inputPositionZ"));
+                    float stageH = getStageHeight();
+                    // Total Z = posZ + offsetZ must be in [0, stageH]
+                    float minOffset = -posZ;
+                    float maxOffset = stageH - posZ;
+                    newOffsetZ = juce::jlimit(minOffset, maxOffset, newOffsetZ);
+                }
+                else
+                {
+                    // Unconstrained: use wide range
+                    newOffsetZ = juce::jlimit(-20.0f, 20.0f, newOffsetZ);
+                }
+                parameters.setInputParam(inputIdx, "inputOffsetZ", newOffsetZ);
+
+                float angleDeg = juce::radiansToDegrees(angleDelta);
+                float newRotation = secTouch.startRotation + angleDeg;
+                // Wrap to -179 to 180
+                while (newRotation > 180.0f) newRotation -= 360.0f;
+                while (newRotation < -179.0f) newRotation += 360.0f;
+                parameters.setInputParam(inputIdx, "inputRotation", static_cast<int>(newRotation));
+                break;
+            }
+
+            case SecondaryTouchInfo::TargetType::InputRotation:
+            {
+                // Normal input: modify position Z by ratio, modify inputRotation by angle
+                int inputIdx = secTouch.targetIndex;
+
+                // For Z: if starting value is near 0, use additive offset instead of ratio
+                float newPosZ;
+                if (std::abs(secTouch.startZ) < 0.1f)
+                {
+                    // Additive mode: distance change in pixels / 50 = meters offset
+                    float distanceChange = currentDistance - secTouch.initialDistance;
+                    newPosZ = secTouch.startZ + distanceChange / 50.0f;
+                }
+                else
+                {
+                    newPosZ = secTouch.startZ * distanceRatio;
+                }
+
+                // Check Z constraint - if enabled, limit to stage height
+                int constraintZ = static_cast<int>(parameters.getInputParam(inputIdx, "inputConstraintZ"));
+                if (constraintZ != 0)
+                {
+                    // Constrained: limit position Z to stage height
+                    float stageH = getStageHeight();
+                    newPosZ = juce::jlimit(0.0f, stageH, newPosZ);
+                }
+                else
+                {
+                    // Unconstrained: use wide range
+                    newPosZ = juce::jlimit(-20.0f, 20.0f, newPosZ);
+                }
+                parameters.setInputParam(inputIdx, "inputPositionZ", newPosZ);
+
+                float angleDeg = juce::radiansToDegrees(angleDelta);
+                float newRotation = secTouch.startRotation + angleDeg;
+                while (newRotation > 180.0f) newRotation -= 360.0f;
+                while (newRotation < -179.0f) newRotation += 360.0f;
+                parameters.setInputParam(inputIdx, "inputRotation", static_cast<int>(newRotation));
+                break;
+            }
+
+            case SecondaryTouchInfo::TargetType::ClusterScaleRotation:
+            {
+                // Cluster: apply scale and rotation
+                int clusterNum = secTouch.targetIndex;
+
+                // Apply incremental scale based on distance ratio change
+                // Use XY plane (matching ClustersTab default behavior)
+                float scaleFactorX = distanceRatio;
+                float scaleFactorY = distanceRatio;
+                applyClusterScale(clusterNum, scaleFactorX, scaleFactorY);
+
+                // Apply incremental rotation
+                float angleDeg = juce::radiansToDegrees(angleDelta);
+                applyClusterRotation(clusterNum, angleDeg);
+
+                // Update start values for next incremental update
+                secTouch.initialDistance = currentDistance;
+                secTouch.initialAngle = currentAngle;
+                break;
+            }
+
+            default:
+                break;
+        }
+    }
+
+    // Apply scale to cluster members around reference point (XY plane)
+    void applyClusterScale(int clusterNum, float scaleX, float scaleY)
+    {
+        // Limit scale factor to reasonable range to prevent extreme values
+        scaleX = juce::jlimit(0.1f, 10.0f, scaleX);
+        scaleY = juce::jlimit(0.1f, 10.0f, scaleY);
+
+        // Find reference point
+        int refInput = getClusterReferenceInput(clusterNum);
+        juce::Point<float> refPos;
+
+        if (refInput >= 0)
+        {
+            refPos.x = static_cast<float>(parameters.getInputParam(refInput, "inputPositionX"));
+            refPos.y = static_cast<float>(parameters.getInputParam(refInput, "inputPositionY"));
+        }
+        else
+        {
+            refPos = getClusterBarycenter(clusterNum);
+        }
+
+        // Get stage bounds for clamping
+        float stageW = getStageWidth();
+        float stageD = getStageDepth();
+        float posMin = WFSParameterDefaults::inputPositionMin;
+        float posMax = WFSParameterDefaults::inputPositionMax;
+
+        // Scale all members relative to reference
+        int numInputs = parameters.getNumInputChannels();
+        for (int i = 0; i < numInputs; ++i)
+        {
+            int inputCluster = static_cast<int>(parameters.getInputParam(i, "inputCluster"));
+            if (inputCluster != clusterNum)
+                continue;
+            if (i == refInput)
+                continue;  // Don't scale the reference input
+
+            float posX = static_cast<float>(parameters.getInputParam(i, "inputPositionX"));
+            float posY = static_cast<float>(parameters.getInputParam(i, "inputPositionY"));
+
+            float relX = posX - refPos.x;
+            float relY = posY - refPos.y;
+
+            float newPosX = refPos.x + relX * scaleX;
+            float newPosY = refPos.y + relY * scaleY;
+
+            // Clamp to valid range (use wider of stage bounds or parameter limits)
+            newPosX = juce::jlimit(juce::jmin(posMin, 0.0f), juce::jmax(posMax, stageW), newPosX);
+            newPosY = juce::jlimit(juce::jmin(posMin, 0.0f), juce::jmax(posMax, stageD), newPosY);
+
+            parameters.setInputParam(i, "inputPositionX", newPosX);
+            parameters.setInputParam(i, "inputPositionY", newPosY);
+        }
+    }
+
+    // Apply rotation to cluster members around reference point (XY plane)
+    void applyClusterRotation(int clusterNum, float angleDeg)
+    {
+        if (std::abs(angleDeg) < 0.01f)
+            return;
+
+        // Find reference point
+        int refInput = getClusterReferenceInput(clusterNum);
+        juce::Point<float> refPos;
+
+        if (refInput >= 0)
+        {
+            refPos.x = static_cast<float>(parameters.getInputParam(refInput, "inputPositionX"));
+            refPos.y = static_cast<float>(parameters.getInputParam(refInput, "inputPositionY"));
+        }
+        else
+        {
+            refPos = getClusterBarycenter(clusterNum);
+        }
+
+        float angleRad = juce::degreesToRadians(angleDeg);
+        float cosA = std::cos(angleRad);
+        float sinA = std::sin(angleRad);
+
+        // Get stage bounds for clamping
+        float stageW = getStageWidth();
+        float stageD = getStageDepth();
+        float posMin = WFSParameterDefaults::inputPositionMin;
+        float posMax = WFSParameterDefaults::inputPositionMax;
+
+        // Rotate all members around reference
+        int numInputs = parameters.getNumInputChannels();
+        for (int i = 0; i < numInputs; ++i)
+        {
+            int inputCluster = static_cast<int>(parameters.getInputParam(i, "inputCluster"));
+            if (inputCluster != clusterNum)
+                continue;
+            if (i == refInput)
+                continue;  // Don't rotate the reference input
+
+            float posX = static_cast<float>(parameters.getInputParam(i, "inputPositionX"));
+            float posY = static_cast<float>(parameters.getInputParam(i, "inputPositionY"));
+
+            float relX = posX - refPos.x;
+            float relY = posY - refPos.y;
+
+            // Rotate
+            float newRelX = relX * cosA - relY * sinA;
+            float newRelY = relX * sinA + relY * cosA;
+
+            float newPosX = refPos.x + newRelX;
+            float newPosY = refPos.y + newRelY;
+
+            // Clamp to valid range
+            newPosX = juce::jlimit(juce::jmin(posMin, 0.0f), juce::jmax(posMax, stageW), newPosX);
+            newPosY = juce::jlimit(juce::jmin(posMin, 0.0f), juce::jmax(posMax, stageD), newPosY);
+
+            parameters.setInputParam(i, "inputPositionX", newPosX);
+            parameters.setInputParam(i, "inputPositionY", newPosY);
+        }
+    }
+
+    // Get current marker screen position for secondary touch visual feedback
+    juce::Point<float> getSecondaryTouchMarkerScreenPos(const SecondaryTouchInfo& secTouch) const
+    {
+        if (secTouch.targetType == SecondaryTouchInfo::TargetType::ClusterScaleRotation)
+        {
+            auto baryStage = getClusterBarycenter(secTouch.targetIndex);
+            return stageToScreen(baryStage);
+        }
+        else
+        {
+            float posX = static_cast<float>(parameters.getInputParam(secTouch.targetIndex, "inputPositionX"));
+            float posY = static_cast<float>(parameters.getInputParam(secTouch.targetIndex, "inputPositionY"));
+            return stageToScreen({ posX, posY });
+        }
+    }
+
 private:
     WfsParameters& parameters;
     juce::ValueTree inputsTree;
@@ -162,11 +1236,144 @@ private:
     bool isDraggingInput = false;
     juce::Point<float> dragStartPos;
     juce::Point<float> dragStartOffset;
+    float dragStartScale = 30.0f;  // For left+right zoom gesture
     juce::Point<float> inputDragStartStagePos;
+    juce::Point<float> inputDragStartOffset;  // Initial offset at drag start (for tracked inputs)
+
+    // View gesture state (pan/zoom when clicking on empty space - mouse only)
+    enum class GestureMode { None, Pan, Zoom };
+    GestureMode gestureMode = GestureMode::None;
+    bool isInViewGesture = false;  // True when we started a gesture on empty space
+    juce::Point<float> lastMousePos;  // For timer-based updates
+
+    //==========================================================================
+    // Multitouch State
+    //==========================================================================
+
+    std::map<int, TouchInfo> activeTouches;  // Keyed by source index
+    std::map<int, SecondaryTouchInfo> activeSecondaryTouches;  // Keyed by touch source index
+
+    // Multitouch view gesture state
+    juce::Point<float> viewGestureStartCenter;
+    juce::Point<float> viewGestureStartOffset;
+    float viewGestureStartScale = 30.0f;
+    float viewGestureStartSpan = 0.0f;  // For pinch-to-zoom (future)
+
+    // Barycenter dragging state
+    int selectedBarycenter = -1;  // Cluster number (1-10), -1 if none
+    bool isDraggingBarycenter = false;
+    juce::Point<float> barycenterDragStartStagePos;
+
+    // UI Components
+    juce::TextButton homeButton;
 
     // Constants
     static constexpr float markerRadius = 14.0f;
     static constexpr float innerRadiusRatio = 0.6f;
+
+    //==========================================================================
+    // Input State Detection Helpers
+    //==========================================================================
+
+    // Check if tracking is fully active for an input (all 3 conditions must be true)
+    bool isInputFullyTracked(int inputIdx) const
+    {
+        int globalTracking = static_cast<int>(parameters.getConfigParam("trackingEnabled"));
+        int protocolEnabled = static_cast<int>(parameters.getConfigParam("trackingProtocol"));
+        int localTracking = static_cast<int>(parameters.getInputParam(inputIdx, "inputTrackingActive"));
+        return (globalTracking != 0) && (protocolEnabled != 0) && (localTracking != 0);
+    }
+
+    // Get cluster reference input index (-1 if barycenter mode)
+    // Priority: tracked input > first input (mode 0) > barycenter (mode 1)
+    int getClusterReferenceInput(int clusterNum) const
+    {
+        std::vector<int> clusterMembers;
+        int numInputs = parameters.getNumInputChannels();
+
+        // Collect cluster members and check for tracked input
+        for (int i = 0; i < numInputs; ++i)
+        {
+            int inputCluster = static_cast<int>(parameters.getInputParam(i, "inputCluster"));
+            if (inputCluster == clusterNum)
+            {
+                clusterMembers.push_back(i);
+                if (isInputFullyTracked(i))
+                    return i;  // Tracked input takes highest priority
+            }
+        }
+
+        // Check reference mode from cluster parameters
+        int refMode = static_cast<int>(parameters.getValueTreeState().getClusterParameter(
+            clusterNum, WFSParameterIDs::clusterReferenceMode));
+
+        if (refMode == 0 && !clusterMembers.empty())
+            return clusterMembers[0];  // First Input mode
+
+        return -1;  // Barycenter mode
+    }
+
+    //==========================================================================
+    // Cluster Movement Helpers
+    //==========================================================================
+
+    // Move cluster members when tracked reference is moved
+    // Reference input changes offset, other members change position
+    void moveClusterRelative(int clusterNum, int referenceInput, juce::Point<float> newRefPos)
+    {
+        float oldPosX = static_cast<float>(parameters.getInputParam(referenceInput, "inputPositionX"));
+        float oldPosY = static_cast<float>(parameters.getInputParam(referenceInput, "inputPositionY"));
+        float oldOffsetX = static_cast<float>(parameters.getInputParam(referenceInput, "inputOffsetX"));
+        float oldOffsetY = static_cast<float>(parameters.getInputParam(referenceInput, "inputOffsetY"));
+
+        // Effective old position was pos + offset
+        float effectiveOldX = oldPosX + oldOffsetX;
+        float effectiveOldY = oldPosY + oldOffsetY;
+
+        // Delta from effective old to new
+        float deltaX = newRefPos.x - effectiveOldX;
+        float deltaY = newRefPos.y - effectiveOldY;
+
+        // Move all other cluster members by updating their positions
+        int numInputs = parameters.getNumInputChannels();
+        for (int i = 0; i < numInputs; ++i)
+        {
+            if (i == referenceInput) continue;
+
+            int inputCluster = static_cast<int>(parameters.getInputParam(i, "inputCluster"));
+            if (inputCluster == clusterNum)
+            {
+                float memberX = static_cast<float>(parameters.getInputParam(i, "inputPositionX"));
+                float memberY = static_cast<float>(parameters.getInputParam(i, "inputPositionY"));
+                parameters.setInputParam(i, "inputPositionX", memberX + deltaX);
+                parameters.setInputParam(i, "inputPositionY", memberY + deltaY);
+            }
+        }
+    }
+
+    // Move entire cluster when non-tracked reference is dragged
+    void moveClusterWithReference(int clusterNum, int referenceInput, juce::Point<float> newRefPos)
+    {
+        float oldPosX = static_cast<float>(parameters.getInputParam(referenceInput, "inputPositionX"));
+        float oldPosY = static_cast<float>(parameters.getInputParam(referenceInput, "inputPositionY"));
+
+        float deltaX = newRefPos.x - oldPosX;
+        float deltaY = newRefPos.y - oldPosY;
+
+        // Move ALL cluster members including reference
+        int numInputs = parameters.getNumInputChannels();
+        for (int i = 0; i < numInputs; ++i)
+        {
+            int inputCluster = static_cast<int>(parameters.getInputParam(i, "inputCluster"));
+            if (inputCluster == clusterNum)
+            {
+                float memberX = static_cast<float>(parameters.getInputParam(i, "inputPositionX"));
+                float memberY = static_cast<float>(parameters.getInputParam(i, "inputPositionY"));
+                parameters.setInputParam(i, "inputPositionX", memberX + deltaX);
+                parameters.setInputParam(i, "inputPositionY", memberY + deltaY);
+            }
+        }
+    }
 
     //==========================================================================
     // Coordinate Conversion
@@ -237,11 +1444,22 @@ private:
         return WFSParameterDefaults::originDepthDefault;
     }
 
+    float getStageHeight() const
+    {
+        auto stageTree = configTree.getChildWithName(WFSParameterIDs::Stage);
+        if (stageTree.isValid())
+            return static_cast<float>(stageTree.getProperty(WFSParameterIDs::stageHeight,
+                                      WFSParameterDefaults::stageHeightDefault));
+        return WFSParameterDefaults::stageHeightDefault;
+    }
+
     void resetView()
     {
-        // Reset view to show entire stage centered
+        // Reset view to show entire stage centered in viewport
         float stageW = getStageWidth();
         float stageD = getStageDepth();
+        float originW = getOriginWidth();
+        float originD = getOriginDepth();
 
         // Calculate scale to fit stage in view with some padding
         float scaleW = (getWidth() > 0) ? (getWidth() * 0.8f) / stageW : 30.0f;
@@ -249,7 +1467,14 @@ private:
         viewScale = juce::jmin(scaleW, scaleD);
         viewScale = juce::jlimit(5.0f, 500.0f, viewScale);
 
-        viewOffset = { 0.0f, 0.0f };
+        // Calculate offset to center the stage (not the origin) in the viewport
+        // Stage center in stage coordinates is (stageW/2, stageD/2)
+        // stageToScreen: screenX = width/2 + (stageX - originW) * scale + offsetX
+        // To center stageW/2 at screenCenter: offsetX = (originW - stageW/2) * scale
+        float stageCenterX = stageW / 2.0f;
+        float stageCenterY = stageD / 2.0f;
+        viewOffset.x = (originW - stageCenterX) * viewScale;
+        viewOffset.y = (stageCenterY - originD) * viewScale;  // Y is inverted in screen coords
     }
 
     //==========================================================================
@@ -450,7 +1675,7 @@ private:
             // Draw channel number at center of membrane triangle (centroid)
             float triangleCenterX = (backLeftX + backRightX + memTipX) / 3.0f;
             float triangleCenterY = (backLeftY + backRightY + memTipY) / 3.0f;
-            g.setFont(juce::Font(12.0f, juce::Font::bold));
+            g.setFont(juce::FontOptions().withHeight(12.0f).withStyle("Bold"));
             g.setColour(juce::Colours::black);
             g.drawText(juce::String(i + 1),
                        static_cast<int>(triangleCenterX) - 10, static_cast<int>(triangleCenterY) - 6,
@@ -507,14 +1732,14 @@ private:
     {
         int numInputs = parameters.getNumInputChannels();
 
-        // For each cluster (1-10), collect positions and draw boundary
+        // For each cluster (1-10), draw lines from reference to members
         for (int cluster = 1; cluster <= 10; ++cluster)
         {
-            std::vector<juce::Point<float>> clusterPositions;
+            std::vector<int> clusterMembers;
 
+            // Collect visible cluster members
             for (int i = 0; i < numInputs; ++i)
             {
-                // Skip hidden inputs
                 auto visibleVar = parameters.getInputParam(i, "inputMapVisible");
                 bool visible = visibleVar.isVoid() || static_cast<int>(visibleVar) != 0;
                 if (!visible)
@@ -522,39 +1747,74 @@ private:
 
                 int inputCluster = static_cast<int>(parameters.getInputParam(i, "inputCluster"));
                 if (inputCluster == cluster)
-                {
-                    float posX = static_cast<float>(parameters.getInputParam(i, "inputPositionX"));
-                    float posY = static_cast<float>(parameters.getInputParam(i, "inputPositionY"));
-                    clusterPositions.push_back(stageToScreen({ posX, posY }));
-                }
+                    clusterMembers.push_back(i);
             }
 
-            if (clusterPositions.size() >= 2)
-            {
-                // Draw bounding box around cluster
-                float minX = clusterPositions[0].x;
-                float maxX = clusterPositions[0].x;
-                float minY = clusterPositions[0].y;
-                float maxY = clusterPositions[0].y;
+            if (clusterMembers.size() < 2)
+                continue;
 
-                for (const auto& pos : clusterPositions)
+            // Find reference point
+            juce::Point<float> refPos;
+            int refInput = getClusterReferenceInput(cluster);
+
+            if (refInput >= 0)
+            {
+                // Reference is a specific input
+                float posX = static_cast<float>(parameters.getInputParam(refInput, "inputPositionX"));
+                float posY = static_cast<float>(parameters.getInputParam(refInput, "inputPositionY"));
+                refPos = stageToScreen({ posX, posY });
+            }
+            else
+            {
+                // Barycenter mode - calculate center of mass
+                float sumX = 0, sumY = 0;
+                for (int idx : clusterMembers)
                 {
-                    minX = juce::jmin(minX, pos.x);
-                    maxX = juce::jmax(maxX, pos.x);
-                    minY = juce::jmin(minY, pos.y);
-                    maxY = juce::jmax(maxY, pos.y);
+                    sumX += static_cast<float>(parameters.getInputParam(idx, "inputPositionX"));
+                    sumY += static_cast<float>(parameters.getInputParam(idx, "inputPositionY"));
+                }
+                float n = static_cast<float>(clusterMembers.size());
+                refPos = stageToScreen({ sumX / n, sumY / n });
+
+                // Draw draggable barycenter marker
+                float barycenterRadius = 10.0f;
+                bool isSelected = (selectedBarycenter == cluster);
+
+                // Fill with cluster color
+                g.setColour(getMarkerColor(cluster, true));
+                g.fillEllipse(refPos.x - barycenterRadius, refPos.y - barycenterRadius,
+                              barycenterRadius * 2, barycenterRadius * 2);
+
+                // Selection highlight when dragging
+                if (isSelected && isDraggingBarycenter)
+                {
+                    g.setColour(juce::Colours::yellow);
+                    g.drawEllipse(refPos.x - barycenterRadius - 2, refPos.y - barycenterRadius - 2,
+                                  (barycenterRadius + 2) * 2, (barycenterRadius + 2) * 2, 2.0f);
                 }
 
-                // Add padding around markers
-                float padding = markerRadius + 5.0f;
-                juce::Rectangle<float> clusterBounds(minX - padding, minY - padding,
-                                                     maxX - minX + padding * 2,
-                                                     maxY - minY + padding * 2);
+                // Draw cluster number in black
+                g.setColour(juce::Colours::black);
+                g.setFont(juce::FontOptions().withHeight(11.0f).withStyle("Bold"));
+                g.drawText(juce::String(cluster),
+                           static_cast<int>(refPos.x) - 8,
+                           static_cast<int>(refPos.y) - 5,
+                           16, 11, juce::Justification::centred);
+            }
 
-                g.setColour(getMarkerColor(cluster, true).withAlpha(0.2f));
-                g.fillRoundedRectangle(clusterBounds, 8.0f);
-                g.setColour(getMarkerColor(cluster, true).withAlpha(0.5f));
-                g.drawRoundedRectangle(clusterBounds, 8.0f, 1.5f);
+            // Draw lines from reference to each member
+            g.setColour(getMarkerColor(cluster, true).withAlpha(0.4f));
+
+            for (int idx : clusterMembers)
+            {
+                if (idx == refInput)
+                    continue;  // Don't draw line to itself
+
+                float posX = static_cast<float>(parameters.getInputParam(idx, "inputPositionX"));
+                float posY = static_cast<float>(parameters.getInputParam(idx, "inputPositionY"));
+                auto memberPos = stageToScreen({ posX, posY });
+
+                g.drawLine(refPos.x, refPos.y, memberPos.x, memberPos.y, 1.5f);
             }
         }
     }
@@ -593,7 +1853,9 @@ private:
         // Check if input is locked on map
         auto lockedVar = parameters.getInputParam(inputIndex, "inputMapLocked");
         bool isLocked = !lockedVar.isVoid() && static_cast<int>(lockedVar) != 0;
-        bool isBeingDragged = isSelected && isDraggingInput;
+        bool isBeingMouseDragged = isSelected && isDraggingInput;
+        bool isBeingTouchDragged = isInputBeingTouchDragged(inputIndex);
+        bool isBeingDragged = isBeingMouseDragged || isBeingTouchDragged;
 
         // Draw LS radius if active
         if (lsActive != 0)
@@ -607,16 +1869,36 @@ private:
                           radiusPixels * 2, radiusPixels * 2, 1.0f);
         }
 
-        // Draw composite position ring (position + offset) if offset is non-zero
+        // Draw composite position indicator (position + offset) if offset is non-zero
         if (std::abs(offsetX) > 0.01f || std::abs(offsetY) > 0.01f)
         {
             auto compositePos = stageToScreen({ posX + offsetX, posY + offsetY });
-            g.setColour(juce::Colours::white.withAlpha(0.5f));
-            g.drawEllipse(compositePos.x - markerRadius - 3, compositePos.y - markerRadius - 3,
-                          (markerRadius + 3) * 2, (markerRadius + 3) * 2, 1.0f);
+
+            // Draw thin grey line from input to composite position
+            g.setColour(juce::Colours::grey);
+            g.drawLine(screenPos.x, screenPos.y, compositePos.x, compositePos.y, 1.0f);
+
+            // Draw small grey circle at composite position (half the marker size)
+            float compositeRadius = markerRadius * 0.5f;
+            g.setColour(juce::Colours::grey);
+            g.fillEllipse(compositePos.x - compositeRadius, compositePos.y - compositeRadius,
+                          compositeRadius * 2, compositeRadius * 2);
+
+            // Draw number in the composite circle (white text for better visibility)
+            g.setColour(juce::Colours::white);
+            g.setFont(juce::FontOptions().withHeight(11.0f).withStyle("Bold"));
+            g.drawText(juce::String(inputIndex + 1),
+                       static_cast<int>(compositePos.x) - 10,
+                       static_cast<int>(compositePos.y) - 5,
+                       20, 11, juce::Justification::centred);
         }
 
-        // Determine colors (matching Android app style)
+        // Determine input state for color coding
+        bool isTracked = isInputFullyTracked(inputIndex);
+        int cluster = static_cast<int>(parameters.getInputParam(inputIndex, "inputCluster"));
+        bool isReference = (cluster > 0) && (getClusterReferenceInput(cluster) == inputIndex);
+
+        // Determine colors based on state
         juce::Colour outerColor;
         juce::Colour labelColor;
 
@@ -628,12 +1910,29 @@ private:
         else if (isBeingDragged)
         {
             outerColor = juce::Colours::white;
-            labelColor = juce::Colours::white;
+            // Keep state-based label color when dragging
+            if (isTracked && isReference)
+                labelColor = juce::Colour(0xFFADFF2F);  // Yellow-green for tracked+reference
+            else if (isTracked)
+                labelColor = juce::Colour(0xFF00FF00);  // Green for tracked
+            else if (isReference)
+                labelColor = juce::Colours::yellow;     // Yellow for reference
+            else
+                labelColor = juce::Colours::white;
         }
         else
         {
             outerColor = getMarkerColor(inputIndex + 1);  // 1-based for color
-            labelColor = juce::Colours::white;
+
+            // Label color based on tracking/reference state
+            if (isTracked && isReference)
+                labelColor = juce::Colour(0xFFADFF2F);  // Yellow-green for tracked+reference
+            else if (isTracked)
+                labelColor = juce::Colour(0xFF00FF00);  // Lime green for tracked only
+            else if (isReference)
+                labelColor = juce::Colours::yellow;     // Yellow for reference only
+            else
+                labelColor = juce::Colours::white;      // White for normal
         }
 
         // Draw outer circle
@@ -703,6 +2002,56 @@ private:
                 g.drawText(coordText, static_cast<int>(screenPos.x - markerRadius - 85),
                            static_cast<int>(screenPos.y) - 5, 80, 12, juce::Justification::right);
         }
+
+        // Draw input name beneath marker
+        juce::String inputName = parameters.getInputParam(inputIndex, "inputName").toString();
+        if (inputName.isEmpty())
+            inputName = "Input " + juce::String(inputIndex + 1);
+
+        g.setColour(juce::Colours::white.withAlpha(0.8f));
+        g.setFont(9.0f);
+        g.drawText(inputName,
+                   static_cast<int>(screenPos.x) - 40,
+                   static_cast<int>(screenPos.y) + static_cast<int>(markerRadius) + 2,
+                   80, 12, juce::Justification::centred);
+    }
+
+    void drawSecondaryTouchFeedback(juce::Graphics& g)
+    {
+        for (const auto& [sourceIdx, secTouch] : activeSecondaryTouches)
+        {
+            // Get current touch position from activeTouches
+            auto touchIt = activeTouches.find(sourceIdx);
+            if (touchIt == activeTouches.end())
+                continue;
+
+            juce::Point<float> currentTouchPos = touchIt->second.currentPos;
+
+            // Get current marker screen position (marker may have moved during drag)
+            juce::Point<float> currentMarkerScreen = getSecondaryTouchMarkerScreenPos(secTouch);
+
+            // Calculate the initial reference vector (from initial marker to initial touch)
+            juce::Point<float> initialVector = secTouch.initialTouchScreenPos - secTouch.initialMarkerScreenPos;
+
+            // Translate reference vector to current marker position
+            juce::Point<float> referenceEndpoint = currentMarkerScreen + initialVector;
+
+            // Draw grey reference line (initial vector translated to current marker position)
+            g.setColour(juce::Colours::grey);
+            g.drawLine(currentMarkerScreen.x, currentMarkerScreen.y,
+                       referenceEndpoint.x, referenceEndpoint.y, 2.0f);
+
+            // Draw small grey circle at reference endpoint
+            g.fillEllipse(referenceEndpoint.x - 4, referenceEndpoint.y - 4, 8, 8);
+
+            // Draw white active line (from current marker to current touch)
+            g.setColour(juce::Colours::white);
+            g.drawLine(currentMarkerScreen.x, currentMarkerScreen.y,
+                       currentTouchPos.x, currentTouchPos.y, 2.0f);
+
+            // Draw small white circle at current touch position
+            g.fillEllipse(currentTouchPos.x - 5, currentTouchPos.y - 5, 10, 10);
+        }
     }
 
     //==========================================================================
@@ -747,6 +2096,78 @@ private:
         float posX = static_cast<float>(parameters.getInputParam(inputIndex, "inputPositionX"));
         float posY = static_cast<float>(parameters.getInputParam(inputIndex, "inputPositionY"));
         return { posX, posY };
+    }
+
+    // Check if a screen position hits a barycenter marker
+    // Returns cluster number (1-10) if hit, -1 if none
+    int getBarycenterAtPosition(juce::Point<float> screenPos) const
+    {
+        int numInputs = parameters.getNumInputChannels();
+        float pickupRadius = 10.0f * 1.25f;  // Barycenter visual size * 1.25 for easier pickup
+
+        for (int cluster = 1; cluster <= 10; ++cluster)
+        {
+            // Check if this cluster is in barycenter mode
+            int refInput = getClusterReferenceInput(cluster);
+            if (refInput >= 0)
+                continue;  // Not barycenter mode
+
+            // Collect visible cluster members
+            std::vector<int> clusterMembers;
+            for (int i = 0; i < numInputs; ++i)
+            {
+                auto visibleVar = parameters.getInputParam(i, "inputMapVisible");
+                bool visible = visibleVar.isVoid() || static_cast<int>(visibleVar) != 0;
+                if (!visible)
+                    continue;
+
+                int inputCluster = static_cast<int>(parameters.getInputParam(i, "inputCluster"));
+                if (inputCluster == cluster)
+                    clusterMembers.push_back(i);
+            }
+
+            if (clusterMembers.size() < 2)
+                continue;
+
+            // Calculate barycenter
+            float sumX = 0, sumY = 0;
+            for (int idx : clusterMembers)
+            {
+                sumX += static_cast<float>(parameters.getInputParam(idx, "inputPositionX"));
+                sumY += static_cast<float>(parameters.getInputParam(idx, "inputPositionY"));
+            }
+            float n = static_cast<float>(clusterMembers.size());
+            auto barycenterScreen = stageToScreen({ sumX / n, sumY / n });
+
+            float distance = screenPos.getDistanceFrom(barycenterScreen);
+            if (distance <= pickupRadius)
+                return cluster;
+        }
+
+        return -1;
+    }
+
+    // Get barycenter position in stage coordinates for a cluster
+    juce::Point<float> getClusterBarycenter(int clusterNum) const
+    {
+        int numInputs = parameters.getNumInputChannels();
+        float sumX = 0, sumY = 0;
+        int count = 0;
+
+        for (int i = 0; i < numInputs; ++i)
+        {
+            int inputCluster = static_cast<int>(parameters.getInputParam(i, "inputCluster"));
+            if (inputCluster == clusterNum)
+            {
+                sumX += static_cast<float>(parameters.getInputParam(i, "inputPositionX"));
+                sumY += static_cast<float>(parameters.getInputParam(i, "inputPositionY"));
+                count++;
+            }
+        }
+
+        if (count > 0)
+            return { sumX / count, sumY / count };
+        return { 0.0f, 0.0f };
     }
 
     //==========================================================================

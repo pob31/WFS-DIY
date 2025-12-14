@@ -113,11 +113,45 @@ Interactive 2D visualization of the WFS spatial layout:
 - **Reverbs** - Purple diamond shapes
 - **Clusters** - Boundary shapes around grouped inputs
 
-### Navigation
+### Mouse Navigation
 - **Mouse wheel** - Zoom in/out (centered on cursor)
-- **Middle-button drag** - Pan view
-- **Left-click** - Select input
+- **Right-click drag** - Pan view
+- **Left+Right drag** - Zoom (vertical movement)
+- **Middle-click** - Reset view to fit stage
+- **Left-click** - Select input (yellow ring)
 - **Left-drag** - Move selected input position
+
+### Touch Navigation
+- **Single touch on input** - Drag input position
+- **Single touch on barycenter** - Drag entire cluster
+- **Two-finger drag** - Pan view
+- **Three-finger drag** - Zoom (vertical movement)
+
+### Secondary Touch (Two-Finger Gestures on Inputs)
+When dragging an input with one finger, a second finger on empty space creates a "secondary touch":
+- **Target selection** - Affects closest dragged input/cluster not already engaged
+- **Pinch/stretch** - Adjusts Z value (ratio-based, or additive if Z near 0)
+- **Rotation** - Adjusts inputRotation parameter
+- **Visual feedback** - Grey reference line (initial vector) + white active line (current)
+
+| Input State | Pinch/Stretch Effect | Rotation Effect |
+|-------------|---------------------|-----------------|
+| Tracked (no cluster) | Offset Z | inputRotation |
+| Normal (no cluster) | Position Z | inputRotation |
+| Tracked + Cluster | Cluster scale (XY) | Cluster rotation |
+| Cluster reference | Cluster scale (XY) | Cluster rotation |
+| Barycenter | Cluster scale (XY) | Cluster rotation |
+
+Z constraint checking: When `inputConstraintZ` is ON, Z is limited to [0, stageHeight].
+
+### Input Drag Behavior
+Based on input state:
+- **Normal input** - Updates Position X/Y
+- **Tracked input** - Updates Offset X/Y (position unchanged)
+- **Cluster reference** - Moves entire cluster (maintains geometry)
+- **Tracked + reference** - Updates offset AND moves cluster members
+
+Stage constraints (inputConstraintX/Y/Z) only enforced when enabled.
 
 ### Coordinate System
 - Stage coordinates in meters, origin at (originWidth, originDepth)
