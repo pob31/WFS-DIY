@@ -350,38 +350,47 @@ public:
         // Store/Reload Section
         addAndMakeVisible(selectProjectFolderButton);
         selectProjectFolderButton.setButtonText("Select Project Folder");
+        selectProjectFolderButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF33668C));  // Blueish
         selectProjectFolderButton.onClick = [this]() { selectProjectFolder(); };
 
         addAndMakeVisible(storeCompleteConfigButton);
         storeCompleteConfigButton.setButtonText("Store Complete Configuration");
+        storeCompleteConfigButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF8C3333));  // Reddish
         storeCompleteConfigButton.onClick = [this]() { storeCompleteConfiguration(); };
 
         addAndMakeVisible(reloadCompleteConfigButton);
         reloadCompleteConfigButton.setButtonText("Reload Complete Configuration");
+        reloadCompleteConfigButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF338C33));  // Greenish
         reloadCompleteConfigButton.onClick = [this]() { reloadCompleteConfiguration(); };
 
         addAndMakeVisible(reloadCompleteConfigBackupButton);
         reloadCompleteConfigBackupButton.setButtonText("Reload Complete Config. Backup");
+        reloadCompleteConfigBackupButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF266626));  // Darker green
         reloadCompleteConfigBackupButton.onClick = [this]() { reloadCompleteConfigBackup(); };
 
         addAndMakeVisible(storeSystemConfigButton);
         storeSystemConfigButton.setButtonText("Store System Configuration");
+        storeSystemConfigButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF8C3333));  // Reddish
         storeSystemConfigButton.onClick = [this]() { storeSystemConfiguration(); };
 
         addAndMakeVisible(reloadSystemConfigButton);
         reloadSystemConfigButton.setButtonText("Reload System Configuration");
+        reloadSystemConfigButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF338C33));  // Greenish
         reloadSystemConfigButton.onClick = [this]() { reloadSystemConfiguration(); };
 
         addAndMakeVisible(reloadSystemConfigBackupButton);
         reloadSystemConfigBackupButton.setButtonText("Reload System Config. Backup");
+        reloadSystemConfigBackupButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF266626));  // Darker green
         reloadSystemConfigBackupButton.onClick = [this]() { reloadSystemConfigBackup(); };
 
         addAndMakeVisible(importSystemConfigButton);
         importSystemConfigButton.setButtonText("Import System Configuration");
+        importSystemConfigButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF338C33));  // Greenish
         importSystemConfigButton.onClick = [this]() { importSystemConfiguration(); };
 
         addAndMakeVisible(exportSystemConfigButton);
         exportSystemConfigButton.setButtonText("Export System Configuration");
+        exportSystemConfigButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF8C3333));  // Reddish
         exportSystemConfigButton.onClick = [this]() { exportSystemConfiguration(); };
 
         // Setup numeric input filtering
@@ -1224,14 +1233,14 @@ private:
         helpTextMap[&systemLatencyEditor] = "Total latency of the system (Mixing board & Computer) / Specific Input and Output Latency/Delay can be set in the respective Input and Output settings.";
         helpTextMap[&haasEffectEditor] = "Hass Effect to apply to the system. Will take into account the Latency Compensations (System, Input and Output).";
         helpTextMap[&selectProjectFolderButton] = "Select the Location of the Current Project Folder where to store files.";
-        helpTextMap[&storeCompleteConfigButton] = "Store Complete Configuration to files (overwrite with confirmation)";
-        helpTextMap[&reloadCompleteConfigButton] = "Reload Complete Configuration from files (with confirmation)";
-        helpTextMap[&reloadCompleteConfigBackupButton] = "Reload Complete Configuration from backup files (with confirmation)";
-        helpTextMap[&storeSystemConfigButton] = "Store System Configuration to file (overwrite with confirmation)";
-        helpTextMap[&reloadSystemConfigButton] = "Reload System Configuration from file (with confirmation)";
-        helpTextMap[&reloadSystemConfigBackupButton] = "Reload System Configuration from backup file (with confirmation)";
-        helpTextMap[&importSystemConfigButton] = "Store System Configuration to file (with file explorer window)";
-        helpTextMap[&exportSystemConfigButton] = "Reload System Configuration from file (with file explorer window)";
+        helpTextMap[&storeCompleteConfigButton] = "Store Complete Configuration to files (with backup).";
+        helpTextMap[&reloadCompleteConfigButton] = "Reload Complete Configuration from files.";
+        helpTextMap[&reloadCompleteConfigBackupButton] = "Reload Complete Configuration from backup files.";
+        helpTextMap[&storeSystemConfigButton] = "Store System Configuration to file (with backup).";
+        helpTextMap[&reloadSystemConfigButton] = "Reload System Configuration from file.";
+        helpTextMap[&reloadSystemConfigBackupButton] = "Reload System Configuration from backup file.";
+        helpTextMap[&importSystemConfigButton] = "Import System Configuration from file (with file explorer window).";
+        helpTextMap[&exportSystemConfigButton] = "Export System Configuration to file (with file explorer window).";
     }
 
     void setupMouseListeners()

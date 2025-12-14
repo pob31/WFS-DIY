@@ -212,27 +212,33 @@ public:
         // ==================== FOOTER - STORE/RELOAD BUTTONS ====================
         addAndMakeVisible(storeButton);
         storeButton.setButtonText("Store Input Config");
+        storeButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF8C3333));  // Reddish
         storeButton.onClick = [this]() { storeInputConfiguration(); };
 
         addAndMakeVisible(reloadButton);
         reloadButton.setButtonText("Reload Input Config");
+        reloadButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF338C33));  // Greenish
         reloadButton.onClick = [this]() { reloadInputConfiguration(); };
 
         addAndMakeVisible(reloadBackupButton);
         reloadBackupButton.setButtonText("Reload Backup");
+        reloadBackupButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF266626));  // Darker green
         reloadBackupButton.onClick = [this]() { reloadInputConfigBackup(); };
 
         addAndMakeVisible(importButton);
         importButton.setButtonText("Import");
+        importButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF338C33));  // Greenish
         importButton.onClick = [this]() { importInputConfiguration(); };
 
         addAndMakeVisible(exportButton);
         exportButton.setButtonText("Export");
+        exportButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF8C3333));  // Reddish
         exportButton.onClick = [this]() { exportInputConfiguration(); };
 
         // Snapshot management
         addAndMakeVisible(storeSnapshotButton);
         storeSnapshotButton.setButtonText("Store Snapshot");
+        storeSnapshotButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF996633));  // Yellow-orange
         storeSnapshotButton.onClick = [this]() { storeNewSnapshot(); };
 
         addAndMakeVisible(snapshotSelector);
@@ -241,18 +247,22 @@ public:
 
         addAndMakeVisible(reloadSnapshotButton);
         reloadSnapshotButton.setButtonText("Reload Snapshot");
+        reloadSnapshotButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF669933));  // Yellow-green
         reloadSnapshotButton.onClick = [this]() { reloadSnapshot(); };
 
         addAndMakeVisible(updateSnapshotButton);
         updateSnapshotButton.setButtonText("Update Snapshot");
+        updateSnapshotButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF996633));  // Yellow-orange
         updateSnapshotButton.onClick = [this]() { updateSnapshot(); };
 
         addAndMakeVisible(editScopeButton);
         editScopeButton.setButtonText("Edit Scope");
+        editScopeButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF33668C));  // Light blue
         editScopeButton.onClick = [this]() { editSnapshotScope(); };
 
         addAndMakeVisible(deleteSnapshotButton);
         deleteSnapshotButton.setButtonText("Delete Snapshot");
+        deleteSnapshotButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF661A33));  // Burgundy
         deleteSnapshotButton.onClick = [this]() { deleteSnapshot(); };
 
         // Load initial channel parameters
@@ -3457,15 +3467,15 @@ private:
         for (int i = 0; i < 64; ++i)
             helpTextMap[&muteButtons[i]] = "Mute Output " + juce::String(i + 1) + " for this Object.";
         helpTextMap[&muteMacrosSelector] = "Mute Macros for Fast Muting and Unmuting of Arrays.";
-        helpTextMap[&storeButton] = "Store Input Configuration to file (overwrite with confirmation).";
-        helpTextMap[&reloadButton] = "Reload Input Configuration from file (with confirmation).";
-        helpTextMap[&reloadBackupButton] = "Reload Input Configuration from backup file (with confirmation).";
+        helpTextMap[&storeButton] = "Store Input Configuration to file (with backup).";
+        helpTextMap[&reloadButton] = "Reload Input Configuration from file.";
+        helpTextMap[&reloadBackupButton] = "Reload Input Configuration from backup file.";
         helpTextMap[&importButton] = "Import Input Configuration from file (with file explorer window).";
         helpTextMap[&exportButton] = "Export Input Configuration to file (with file explorer window).";
         helpTextMap[&storeSnapshotButton] = "Store new Input Snapshot for All Objects.";
         helpTextMap[&snapshotSelector] = "Select Input Snapshot Without Loading.";
         helpTextMap[&reloadSnapshotButton] = "Reload Selected Input Snapshot for All Objects Taking the Scope into Account.";
-        helpTextMap[&updateSnapshotButton] = "Update Selected Input Snapshot (with confirmation).";
+        helpTextMap[&updateSnapshotButton] = "Update Selected Input Snapshot (with backup).";
         helpTextMap[&editScopeButton] = "Open Selected Input Snapshot Scope Window.";
         helpTextMap[&deleteSnapshotButton] = "Delete Selected Input Snapshot With Confirmation.";
     }

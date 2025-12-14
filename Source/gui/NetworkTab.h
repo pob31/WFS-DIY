@@ -95,22 +95,27 @@ public:
         // ==================== FOOTER BUTTONS ====================
         addAndMakeVisible(storeButton);
         storeButton.setButtonText("Store Network Config");
+        storeButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF8C3333));  // Reddish
         storeButton.onClick = [this]() { storeNetworkConfiguration(); };
 
         addAndMakeVisible(reloadButton);
         reloadButton.setButtonText("Reload Network Config");
+        reloadButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF338C33));  // Greenish
         reloadButton.onClick = [this]() { reloadNetworkConfiguration(); };
 
         addAndMakeVisible(reloadBackupButton);
         reloadBackupButton.setButtonText("Reload Backup");
+        reloadBackupButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF266626));  // Darker green
         reloadBackupButton.onClick = [this]() { reloadNetworkConfigBackup(); };
 
         addAndMakeVisible(importButton);
         importButton.setButtonText("Import");
+        importButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF338C33));  // Greenish
         importButton.onClick = [this]() { importNetworkConfiguration(); };
 
         addAndMakeVisible(exportButton);
         exportButton.setButtonText("Export");
+        exportButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF8C3333));  // Reddish
         exportButton.onClick = [this]() { exportNetworkConfiguration(); };
 
         // Setup numeric input filtering
@@ -423,7 +428,7 @@ public:
         footerArea.removeFromLeft(spacing);
         importButton.setBounds(footerArea.removeFromLeft(buttonWidth));
         footerArea.removeFromLeft(spacing);
-        exportButton.setBounds(footerArea);
+        exportButton.setBounds(footerArea.removeFromLeft(buttonWidth));
     }
 
 private:

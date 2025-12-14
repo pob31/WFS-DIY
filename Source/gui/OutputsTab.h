@@ -96,22 +96,27 @@ public:
         // ==================== FOOTER - STORE/RELOAD BUTTONS ====================
         addAndMakeVisible(storeButton);
         storeButton.setButtonText("Store Output Config");
+        storeButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF8C3333));  // Reddish
         storeButton.onClick = [this]() { storeOutputConfiguration(); };
 
         addAndMakeVisible(reloadButton);
         reloadButton.setButtonText("Reload Output Config");
+        reloadButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF338C33));  // Greenish
         reloadButton.onClick = [this]() { reloadOutputConfiguration(); };
 
         addAndMakeVisible(reloadBackupButton);
         reloadBackupButton.setButtonText("Reload Backup");
+        reloadBackupButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF266626));  // Darker green
         reloadBackupButton.onClick = [this]() { reloadOutputConfigBackup(); };
 
         addAndMakeVisible(importButton);
         importButton.setButtonText("Import");
+        importButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF338C33));  // Greenish
         importButton.onClick = [this]() { importOutputConfiguration(); };
 
         addAndMakeVisible(exportButton);
         exportButton.setButtonText("Export");
+        exportButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF8C3333));  // Reddish
         exportButton.onClick = [this]() { exportOutputConfiguration(); };
 
         // Load initial channel parameters
@@ -1337,11 +1342,11 @@ private:
         helpTextMap[&hfDampingSlider] = "Loss of High Frequency Depending on Distance from Object to Output. (changes may affect the rest of the array)";
         helpTextMap[&arrayPositionHelperButton] = "Open Helper Window to Position Speaker Arrays Conveniently.";
         helpTextMap[&mapVisibilityButton] = "Make Visible or Hide The Selected Output on the Map";
-        helpTextMap[&storeButton] = "Store Output Configuration to file (overwrite with confirmation)";
-        helpTextMap[&reloadButton] = "Reload Output Configuration from file (with confirmation)";
-        helpTextMap[&reloadBackupButton] = "Reload Output Configuration from backup file (with confirmation)";
-        helpTextMap[&importButton] = "Import Output Configuration from file (with file explorer window)";
-        helpTextMap[&exportButton] = "Export Output Configuration to file (with file explorer window)";
+        helpTextMap[&storeButton] = "Store Output Configuration to file (with backup).";
+        helpTextMap[&reloadButton] = "Reload Output Configuration from file.";
+        helpTextMap[&reloadBackupButton] = "Reload Output Configuration from backup file.";
+        helpTextMap[&importButton] = "Import Output Configuration from file (with file explorer window).";
+        helpTextMap[&exportButton] = "Export Output Configuration to file (with file explorer window).";
     }
 
     void setupOscMethods()

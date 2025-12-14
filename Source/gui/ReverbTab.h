@@ -620,28 +620,28 @@ private:
     void setupFooter()
     {
         addAndMakeVisible (storeButton);
-        storeButton.setButtonText ("Store");
-        storeButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF2D2D2D));
+        storeButton.setButtonText ("Store Reverb Config");
+        storeButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF8C3333));  // Reddish
         storeButton.onClick = [this] { storeReverbConfiguration(); };
 
         addAndMakeVisible (reloadButton);
-        reloadButton.setButtonText ("Reload");
-        reloadButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF2D2D2D));
+        reloadButton.setButtonText ("Reload Reverb Config");
+        reloadButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF338C33));  // Greenish
         reloadButton.onClick = [this] { reloadReverbConfiguration(); };
 
         addAndMakeVisible (reloadBackupButton);
         reloadBackupButton.setButtonText ("Reload Backup");
-        reloadBackupButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF2D2D2D));
+        reloadBackupButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF266626));  // Darker green
         reloadBackupButton.onClick = [this] { reloadReverbConfigBackup(); };
 
         addAndMakeVisible (importButton);
         importButton.setButtonText ("Import");
-        importButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF2D2D2D));
+        importButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF338C33));  // Greenish
         importButton.onClick = [this] { importReverbConfiguration(); };
 
         addAndMakeVisible (exportButton);
         exportButton.setButtonText ("Export");
-        exportButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF2D2D2D));
+        exportButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF8C3333));  // Reddish
         exportButton.onClick = [this] { exportReverbConfiguration(); };
     }
 
@@ -668,6 +668,11 @@ private:
         helpTextMap[&distanceAttenDial] = "Distance attenuation for reverb return (-6.0 to 0.0 dB/m).";
         helpTextMap[&commonAttenDial] = "Common attenuation percentage (0-100%).";
         helpTextMap[&muteMacrosSelector] = "Quick mute operations for output channels.";
+        helpTextMap[&storeButton] = "Store Reverb Configuration to file (with backup).";
+        helpTextMap[&reloadButton] = "Reload Reverb Configuration from file.";
+        helpTextMap[&reloadBackupButton] = "Reload Reverb Configuration from backup file.";
+        helpTextMap[&importButton] = "Import Reverb Configuration from file (with file explorer window).";
+        helpTextMap[&exportButton] = "Export Reverb Configuration to file (with file explorer window).";
     }
 
     void setupOscMethods()
