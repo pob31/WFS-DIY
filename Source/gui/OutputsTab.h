@@ -32,6 +32,9 @@ public:
           outputsTree(params.getOutputTree()),
           configTree(params.getConfigTree())
     {
+        // Enable keyboard focus so we can receive focus back after text editing
+        setWantsKeyboardFocus(true);
+
         // Add listener to outputs tree and config tree
         outputsTree.addListener(this);
         configTree.addListener(this);
@@ -676,13 +679,9 @@ private:
         }
     }
 
-    void setupNumericEditor(juce::TextEditor& editor, bool allowNegative, bool allowDecimal)
+    void setupNumericEditor(juce::TextEditor& editor, bool /*allowNegative*/, bool /*allowDecimal*/)
     {
-        juce::String allowedChars = "0123456789";
-        if (allowNegative) allowedChars += "-";
-        if (allowDecimal) allowedChars += ".";
-        editor.setInputFilter(new juce::TextEditor::LengthAndCharacterRestriction(10, allowedChars), true);
-        editor.setSelectAllWhenFocused(true);
+        // No input restrictions - allow free typing, validate on commit (Enter/focus lost)
         editor.addListener(this);
     }
 
@@ -1259,6 +1258,27 @@ private:
     void textEditorReturnKeyPressed(juce::TextEditor& editor) override
     {
         editor.giveAwayKeyboardFocus();
+        grabKeyboardFocus();  // Grab focus back so keyboard shortcuts work
+    }
+
+    void textEditorEscapeKeyPressed(juce::TextEditor& editor) override
+    {
+        // Revert to stored value and release focus
+        if (&editor == &nameEditor)
+            editor.setText(parameters.getOutputParam(currentChannel - 1, "outputName").toString(), false);
+        else if (&editor == &posXEditor)
+            editor.setText(juce::String((float)parameters.getOutputParam(currentChannel - 1, "outputPositionX"), 2), false);
+        else if (&editor == &posYEditor)
+            editor.setText(juce::String((float)parameters.getOutputParam(currentChannel - 1, "outputPositionY"), 2), false);
+        else if (&editor == &posZEditor)
+            editor.setText(juce::String((float)parameters.getOutputParam(currentChannel - 1, "outputPositionZ"), 2), false);
+        else if (&editor == &hParallaxEditor)
+            editor.setText(juce::String((float)parameters.getOutputParam(currentChannel - 1, "outputHparallax"), 2), false);
+        else if (&editor == &vParallaxEditor)
+            editor.setText(juce::String((float)parameters.getOutputParam(currentChannel - 1, "outputVparallax"), 2), false);
+
+        editor.giveAwayKeyboardFocus();
+        grabKeyboardFocus();  // Grab focus back so keyboard shortcuts work
     }
 
     void textEditorFocusLost(juce::TextEditor& editor) override

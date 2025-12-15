@@ -133,6 +133,9 @@ public:
           inputsTree(params.getInputTree()),
           configTree(params.getConfigTree())
     {
+        // Enable keyboard focus so we can receive focus back after text editing
+        setWantsKeyboardFocus(true);
+
         // Add listener to inputs tree and config tree
         inputsTree.addListener(this);
         configTree.addListener(this);
@@ -753,6 +756,10 @@ private:
         positionJoystick.setThumbColour(juce::Colour(0xFFFF9800));
         positionJoystick.setReportingIntervalHz(50.0);  // 50Hz = 20ms updates
         positionJoystick.setOnPositionChanged([this](float x, float y) {
+            // Skip if joystick is centered - don't interfere with manual text editing
+            if (x == 0.0f && y == 0.0f)
+                return;
+
             // Scale: 2.5m/s max at 50Hz = 0.05m per update at max joystick position
             const float scale = 0.05f;
             float deltaX = x * scale;
@@ -828,6 +835,10 @@ private:
         positionZSlider.setThumbColour(juce::Colours::white);
         positionZSlider.setReportingIntervalHz(50.0);  // 50Hz = 20ms updates (same as joystick)
         positionZSlider.onPositionPolled = [this](float v) {
+            // Skip if slider is centered - don't interfere with manual text editing
+            if (v == 0.0f)
+                return;
+
             // Scale: 2.5m/s max at 50Hz = 0.05m per update at max slider position
             const float scale = 0.05f;
             float deltaZ = v * scale;
@@ -1765,13 +1776,9 @@ private:
         }
     }
 
-    void setupNumericEditor(juce::TextEditor& editor, bool allowNegative, bool allowDecimal)
+    void setupNumericEditor(juce::TextEditor& editor, bool /*allowNegative*/, bool /*allowDecimal*/)
     {
-        juce::String allowedChars = "0123456789";
-        if (allowNegative) allowedChars += "-";
-        if (allowDecimal) allowedChars += ".";
-        editor.setInputFilter(new juce::TextEditor::LengthAndCharacterRestriction(10, allowedChars), true);
-        editor.setSelectAllWhenFocused(true);
+        // No input restrictions - allow free typing, validate on commit (Enter/focus lost)
         editor.addListener(this);
     }
 
@@ -2990,6 +2997,35 @@ private:
     void textEditorReturnKeyPressed(juce::TextEditor& editor) override
     {
         editor.giveAwayKeyboardFocus();
+        grabKeyboardFocus();  // Grab focus back so keyboard shortcuts work
+    }
+
+    void textEditorEscapeKeyPressed(juce::TextEditor& editor) override
+    {
+        // Revert to stored value and release focus
+        if (&editor == &nameEditor)
+            editor.setText(parameters.getInputParam(currentChannel - 1, "inputName").toString(), false);
+        else if (&editor == &posXEditor)
+            editor.setText(juce::String((float)parameters.getInputParam(currentChannel - 1, "inputPositionX"), 2), false);
+        else if (&editor == &posYEditor)
+            editor.setText(juce::String((float)parameters.getInputParam(currentChannel - 1, "inputPositionY"), 2), false);
+        else if (&editor == &posZEditor)
+            editor.setText(juce::String((float)parameters.getInputParam(currentChannel - 1, "inputPositionZ"), 2), false);
+        else if (&editor == &offsetXEditor)
+            editor.setText(juce::String((float)parameters.getInputParam(currentChannel - 1, "inputOffsetX"), 2), false);
+        else if (&editor == &offsetYEditor)
+            editor.setText(juce::String((float)parameters.getInputParam(currentChannel - 1, "inputOffsetY"), 2), false);
+        else if (&editor == &offsetZEditor)
+            editor.setText(juce::String((float)parameters.getInputParam(currentChannel - 1, "inputOffsetZ"), 2), false);
+        else if (&editor == &otomoDestXEditor)
+            editor.setText(juce::String((float)parameters.getInputParam(currentChannel - 1, "inputOtomoX"), 2), false);
+        else if (&editor == &otomoDestYEditor)
+            editor.setText(juce::String((float)parameters.getInputParam(currentChannel - 1, "inputOtomoY"), 2), false);
+        else if (&editor == &otomoDestZEditor)
+            editor.setText(juce::String((float)parameters.getInputParam(currentChannel - 1, "inputOtomoZ"), 2), false);
+
+        editor.giveAwayKeyboardFocus();
+        grabKeyboardFocus();  // Grab focus back so keyboard shortcuts work
     }
 
     void textEditorFocusLost(juce::TextEditor& editor) override
@@ -3001,30 +3037,67 @@ private:
         {
             saveInputParam(WFSParameterIDs::inputName, nameEditor.getText());
         }
-        // Position tab - Position and Offset editors
+        // Position tab - Position editors with constraint support
         else if (&editor == &posXEditor)
         {
-            saveInputParam(WFSParameterIDs::inputPositionX, editor.getText().getFloatValue());
+            float value = editor.getText().getFloatValue();
+            if (constraintXButton.getToggleState())
+                value = juce::jlimit(getStageMinX(), getStageMaxX(), value);
+            editor.setText(juce::String(value, 2), juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputPositionX, value);
         }
         else if (&editor == &posYEditor)
         {
-            saveInputParam(WFSParameterIDs::inputPositionY, editor.getText().getFloatValue());
+            float value = editor.getText().getFloatValue();
+            if (constraintYButton.getToggleState())
+                value = juce::jlimit(getStageMinY(), getStageMaxY(), value);
+            editor.setText(juce::String(value, 2), juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputPositionY, value);
         }
         else if (&editor == &posZEditor)
         {
-            saveInputParam(WFSParameterIDs::inputPositionZ, editor.getText().getFloatValue());
+            float value = editor.getText().getFloatValue();
+            if (constraintZButton.getToggleState())
+                value = juce::jlimit(getStageMinZ(), getStageMaxZ(), value);
+            editor.setText(juce::String(value, 2), juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputPositionZ, value);
         }
+        // Offset editors - also apply constraints (position + offset must be within bounds)
         else if (&editor == &offsetXEditor)
         {
-            saveInputParam(WFSParameterIDs::inputOffsetX, editor.getText().getFloatValue());
+            float value = editor.getText().getFloatValue();
+            if (constraintXButton.getToggleState())
+            {
+                float posX = posXEditor.getText().getFloatValue();
+                float totalX = juce::jlimit(getStageMinX(), getStageMaxX(), posX + value);
+                value = totalX - posX;
+            }
+            editor.setText(juce::String(value, 2), juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputOffsetX, value);
         }
         else if (&editor == &offsetYEditor)
         {
-            saveInputParam(WFSParameterIDs::inputOffsetY, editor.getText().getFloatValue());
+            float value = editor.getText().getFloatValue();
+            if (constraintYButton.getToggleState())
+            {
+                float posY = posYEditor.getText().getFloatValue();
+                float totalY = juce::jlimit(getStageMinY(), getStageMaxY(), posY + value);
+                value = totalY - posY;
+            }
+            editor.setText(juce::String(value, 2), juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputOffsetY, value);
         }
         else if (&editor == &offsetZEditor)
         {
-            saveInputParam(WFSParameterIDs::inputOffsetZ, editor.getText().getFloatValue());
+            float value = editor.getText().getFloatValue();
+            if (constraintZButton.getToggleState())
+            {
+                float posZ = posZEditor.getText().getFloatValue();
+                float totalZ = juce::jlimit(getStageMinZ(), getStageMaxZ(), posZ + value);
+                value = totalZ - posZ;
+            }
+            editor.setText(juce::String(value, 2), juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputOffsetZ, value);
         }
         // AutomOtion tab - Destination editors
         else if (&editor == &otomoDestXEditor)

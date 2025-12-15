@@ -27,6 +27,9 @@ public:
           configTree (params.getConfigTree()),
           ioTree (params.getConfigTree().getChildWithName (WFSParameterIDs::IO))
     {
+        // Enable keyboard focus so we can receive focus back after text editing
+        setWantsKeyboardFocus(true);
+
         reverbsTree.addListener (this);
         configTree.addListener (this);
         if (ioTree.isValid())
@@ -1525,6 +1528,30 @@ private:
     void textEditorReturnKeyPressed (juce::TextEditor& editor) override
     {
         textEditorFocusLost (editor);
+        editor.giveAwayKeyboardFocus();
+        grabKeyboardFocus();  // Grab focus back so keyboard shortcuts work
+    }
+
+    void textEditorEscapeKeyPressed (juce::TextEditor& editor) override
+    {
+        // Revert to stored value and release focus
+        if (&editor == &nameEditor)
+            editor.setText(parameters.getReverbParam(currentChannel - 1, "reverbName").toString(), false);
+        else if (&editor == &posXEditor)
+            editor.setText(juce::String((float)parameters.getReverbParam(currentChannel - 1, "reverbPositionX"), 2), false);
+        else if (&editor == &posYEditor)
+            editor.setText(juce::String((float)parameters.getReverbParam(currentChannel - 1, "reverbPositionY"), 2), false);
+        else if (&editor == &posZEditor)
+            editor.setText(juce::String((float)parameters.getReverbParam(currentChannel - 1, "reverbPositionZ"), 2), false);
+        else if (&editor == &returnOffsetXEditor)
+            editor.setText(juce::String((float)parameters.getReverbParam(currentChannel - 1, "reverbReturnOffsetX"), 2), false);
+        else if (&editor == &returnOffsetYEditor)
+            editor.setText(juce::String((float)parameters.getReverbParam(currentChannel - 1, "reverbReturnOffsetY"), 2), false);
+        else if (&editor == &returnOffsetZEditor)
+            editor.setText(juce::String((float)parameters.getReverbParam(currentChannel - 1, "reverbReturnOffsetZ"), 2), false);
+
+        editor.giveAwayKeyboardFocus();
+        grabKeyboardFocus();  // Grab focus back so keyboard shortcuts work
     }
 
     void textEditorFocusLost (juce::TextEditor& editor) override
