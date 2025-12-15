@@ -1,9 +1,10 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "InputBufferAlgorithm.h"
-#include "OutputBufferAlgorithm.h"
-// #include "GpuInputBufferAlgorithm.h"  // Commented out - GPU Audio SDK not configured
+#include "DSP/InputBufferAlgorithm.h"
+#include "DSP/OutputBufferAlgorithm.h"
+#include "DSP/WFSCalculationEngine.h"
+// #include "DSP/GpuInputBufferAlgorithm.h"  // Commented out - GPU Audio SDK not configured
 #include "WfsParameters.h"
 #include "gui/StatusBar.h"
 #include "gui/SystemConfigTab.h"
@@ -110,10 +111,15 @@ private:
     // Network OSC management
     std::unique_ptr<WFSNetwork::OSCManager> oscManager;
 
+    // WFS calculation engine (computes delays, levels, HF attenuation)
+    std::unique_ptr<WFSCalculationEngine> calculationEngine;
+
     // Routing matrix: delays[inputChannel * numOutputChannels + outputChannel]
     std::vector<float> delayTimesMs;
     // Gain matrix: levels[inputChannel * numOutputChannels + outputChannel]
     std::vector<float> levels;
+    // HF attenuation matrix (dB): hfAttenuation[inputChannel * numOutputChannels + outputChannel]
+    std::vector<float> hfAttenuation;
 
     // Random generator with ramping and exponential smoothing (temporary for testing)
     std::vector<float> targetDelayTimesMs;      // Current ramp targets (updated every tick)

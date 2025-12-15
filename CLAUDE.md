@@ -8,6 +8,7 @@ WFS-DIY is a Wave Field Synthesis audio processing application built with JUCE. 
 ### Core Components
 - **MainComponent** - Main application window, audio engine, and tab container
 - **WfsParameters** - Centralized parameter management with ValueTree state
+- **WFSCalculationEngine** - DSP calculation engine (delay/level/HF matrices)
 - **InputBufferAlgorithm / OutputBufferAlgorithm** - Audio processing algorithms
 
 ### GUI Structure
@@ -22,6 +23,111 @@ WFS-DIY is a Wave Field Synthesis audio processing application built with JUCE. 
 - **AudioInterfaceWindow** - JUCE AudioDeviceSelectorComponent for device setup
 - **NetworkLogWindow** - Network traffic monitoring with filtering and export
 - **OutputArrayHelperWindow** - "Wizard of OutZ" for speaker array positioning
+
+## DSP Calculation Layer (Source/DSP/)
+
+### Overview
+The DSP calculation layer transforms human control parameters into real-time DSP data for Wave Field Synthesis spatial audio processing.
+
+### Core Files
+- **WFSCalculationEngine.h/cpp** - Central calculation engine for all WFS DSP parameters
+- **WFSHighShelfFilter.h** - High-frequency shelf biquad filter for air absorption
+- **InputBufferProcessor.h** - Per-input threaded audio processor
+- **OutputBufferProcessor.h** - Per-output threaded audio processor
+- **InputBufferAlgorithm.h** - Manages collection of InputBufferProcessors
+- **OutputBufferAlgorithm.h** - Manages collection of OutputBufferProcessors
+
+### Coordinate System
+- **X**: Across stage (left-right)
+- **Y**: Positive upstage (away from audience), 0° orientation faces -Y
+- **Z**: Height
+- **Origin (0,0,0)**: Downstage left corner (from audience perspective)
+
+### WFSCalculationEngine
+Calculates per input→output pair:
+1. **Delay (ms)** - Time alignment based on path length difference
+2. **Level (linear 0-1)** - Distance-based attenuation + angular attenuation
+3. **HF Shelf attenuation (dB)** - Air absorption based on distance
+
+### Listener Position Calculation
+Each speaker has a virtual "listener" position used as reference for delay calculations:
+```cpp
+float orientationRad = orientation * (PI / 180.0f);
+listenerX = speakerX + Hparallax * sin(orientationRad);
+listenerY = speakerY - Hparallax * cos(orientationRad);
+listenerZ = speakerZ + Vparallax;
+```
+
+### Delay Calculation
+```cpp
+inputToListener = distance3D(inputPosition, listenerPosition)
+speakerToListener = distance3D(speakerPosition, listenerPosition)
+delayMs = max(0, (inputToListener - speakerToListener) / 343.0f * 1000.0f)
+```
+
+### Level Calculation
+```cpp
+attenuationDb = inputAttenuation + inputDistanceAttenuation * inputToSpeaker * (outputDistAttenPercent / 100.0f)
+level = pow(10.0f, attenuationDb / 20.0f) * angularAttenuation
+```
+
+### HF Air Absorption
+- **Filter**: High shelf at 800 Hz, Q = 0.3
+- **Attenuation**: `outputHFattenuation * inputToSpeaker` (dB/m × distance)
+- One biquad filter per input→output pair in processor threads
+
+### Angular Attenuation
+Based on speaker orientation, pitch, angleOn, and angleOff:
+- **Rear axis**: Direction opposite to where speaker points (orientation + 180°)
+- **angleOn**: Cone behind speaker where inputs are fully reproduced (attenuation = 1.0)
+- **angleOff**: Cone in front where inputs are muted (attenuation = 0.0)
+- **Transition zone**: Linear interpolation between angleOn and angleOff
+
+```cpp
+// Calculate angle from speaker's rear axis to input
+rearAxisX = sin(orientationRad) * cos(pitchRad)
+rearAxisY = -cos(orientationRad) * cos(pitchRad)
+rearAxisZ = sin(pitchRad)
+angleFromRear = acos(dot(rearAxis, toInput))
+
+// Zone-based attenuation
+if (angle <= angleOn) return 1.0f;           // Full reproduction
+if (angle >= angleOff) return 0.0f;          // Muted
+return (angleOff - angle) / (angleOff - angleOn);  // Transition
+```
+
+### Input Muting
+- Per-input `inputMutes` parameter: comma-separated list of muted outputs
+- Example: `"1,5,12"` mutes this input for outputs 1, 5, and 12
+- Muted routings skip calculation entirely (level = 0, no processing)
+
+### Height Factor
+- `inputHeightFactor` (0-100%) scales Z contribution in distance calculations
+- Affects delay and level calculations, NOT angular calculations
+- Useful for situations where vertical distance should have less effect
+
+### Update Rate
+- MainComponent calls `recalculateMatrix()` at 50Hz via timer
+- Smoothing constant (0.1) for exponential interpolation to avoid Doppler artifacts
+- Listener/speaker positions cached, recalculated only on parameter change
+
+### Parameters Used
+| Parameter | Section | Purpose |
+|-----------|---------|---------|
+| `outputPositionX/Y/Z` | Output Position | Speaker location |
+| `outputOrientation` | Output Position | Speaker facing direction |
+| `outputPitch` | Output Position | Speaker vertical angle |
+| `outputHparallax` | Output Options | Horizontal listener offset |
+| `outputVparallax` | Output Options | Vertical listener offset |
+| `outputDistanceAttenPercent` | Output Options | Distance attenuation scaling |
+| `outputHFattenuation` | Output Options | HF loss per meter (dB/m) |
+| `outputAngleOn` | Output Options | Rear cone angle (full) |
+| `outputAngleOff` | Output Options | Front cone angle (muted) |
+| `inputPositionX/Y/Z` | Input Position | Source location |
+| `inputAttenuation` | Input Attenuation | Base attenuation (dB) |
+| `inputDistanceAttenuation` | Input Attenuation | Distance attenuation factor |
+| `inputHeightFactor` | Input Position | Z scaling (0-100%) |
+| `inputMutes` | Input Options | Comma-separated muted outputs |
 
 ## Network System (Source/Network/)
 
@@ -222,9 +328,13 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 - Build command: `MSBuild WFS-DIY.sln -p:Configuration=Debug -p:Platform=x64`
 
 ## Key Files
-- `Source/MainComponent.h/cpp` - Application entry point, keyboard handling
+- `Source/MainComponent.h/cpp` - Application entry point, keyboard handling, 50Hz DSP timer
 - `Source/WfsParameters.h/cpp` - Parameter definitions
 - `Source/Parameters/WFSValueTreeState.h/cpp` - State management
+- `Source/DSP/WFSCalculationEngine.h/cpp` - WFS delay/level/HF matrix calculations
+- `Source/DSP/WFSHighShelfFilter.h` - HF air absorption biquad filter
+- `Source/DSP/InputBufferProcessor.h` - Per-input threaded audio processor
+- `Source/DSP/OutputBufferProcessor.h` - Per-output threaded audio processor
 - `Source/Network/OSCManager.h/cpp` - Network coordination
 - `Source/Network/OSCLogger.h/cpp` - Message logging
 - `Source/gui/InputsTab.h` - Input channel controls with joystick

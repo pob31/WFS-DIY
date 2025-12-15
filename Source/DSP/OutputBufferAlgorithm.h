@@ -30,14 +30,16 @@ public:
                 int blockSize,
                 const float* delayTimesPtr,
                 const float* levelsPtr,
-                bool processingEnabled)
+                bool processingEnabled,
+                const float* hfAttenuationPtr = nullptr)
     {
         // Create output-based processors (one thread per output channel)
         for (int i = 0; i < numOutputs; ++i)
         {
             auto processor = std::make_unique<OutputBufferProcessor>(i, numInputs, numOutputs,
                                                                       delayTimesPtr,
-                                                                      levelsPtr);
+                                                                      levelsPtr,
+                                                                      hfAttenuationPtr);
             processor->prepare(sampleRate, blockSize);
             outputProcessors.push_back(std::move(processor));
         }

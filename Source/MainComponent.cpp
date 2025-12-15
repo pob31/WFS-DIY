@@ -201,6 +201,9 @@ MainComponent::MainComponent()
     // Initialize OSC Manager for network communication
     oscManager = std::make_unique<WFSNetwork::OSCManager>(parameters.getValueTreeState());
 
+    // Initialize WFS Calculation Engine for DSP parameter generation
+    calculationEngine = std::make_unique<WFSCalculationEngine>(parameters.getValueTreeState());
+
     // Configure OSC Manager with initial network settings from parameters
     WFSNetwork::GlobalConfig oscGlobalConfig;
     oscGlobalConfig.udpReceivePort = (int)parameters.getConfigParam("NetworkRxUDPport");
@@ -358,6 +361,7 @@ void MainComponent::resizeRoutingMatrices()
 
     delayTimesMs.assign(matrixSize, 0.0f);
     levels.assign(matrixSize, 0.0f);
+    hfAttenuation.assign(matrixSize, 0.0f);
     targetDelayTimesMs.assign(matrixSize, 0.0f);
     targetLevels.assign(matrixSize, 0.0f);
     finalTargetDelayTimesMs.assign(matrixSize, 0.0f);
@@ -365,24 +369,8 @@ void MainComponent::resizeRoutingMatrices()
     startDelayTimesMs.assign(matrixSize, 0.0f);
     startLevels.assign(matrixSize, 0.0f);
 
-    for (int inCh = 0; inCh < numInputChannels; ++inCh)
-    {
-        for (int outCh = 0; outCh < numOutputChannels; ++outCh)
-        {
-            const int idx = inCh * numOutputChannels + outCh;
-            const float delay = random.nextFloat() * 1000.0f;  // 0-1000ms
-            const float level = random.nextFloat();            // 0-1
-
-            delayTimesMs[idx] = delay;
-            levels[idx] = level;
-            targetDelayTimesMs[idx] = delay;
-            targetLevels[idx] = level;
-            startDelayTimesMs[idx] = delay;
-            startLevels[idx] = level;
-            finalTargetDelayTimesMs[idx] = random.nextFloat() * 1000.0f;
-            finalTargetLevels[idx] = random.nextFloat();
-        }
-    }
+    // Initialize with zeros - WFSCalculationEngine will provide real values
+    // No more random initialization
 }
 
 void MainComponent::stopProcessingForConfigurationChange()
@@ -514,7 +502,8 @@ void MainComponent::startAudioEngine()
         inputAlgorithm.prepare(numInputChannels, numOutputChannels,
                               sampleRate, blockSize,
                               delayTimesMs.data(), levels.data(),
-                              processingEnabled);
+                              processingEnabled,
+                              hfAttenuation.data());
         prepared = true;
     }
     else if (currentAlgorithm == ProcessingAlgorithm::OutputBuffer)
@@ -522,7 +511,8 @@ void MainComponent::startAudioEngine()
         outputAlgorithm.prepare(numInputChannels, numOutputChannels,
                                sampleRate, blockSize,
                                delayTimesMs.data(), levels.data(),
-                               processingEnabled);
+                               processingEnabled,
+                               hfAttenuation.data());
         prepared = true;
     }
     // else // ProcessingAlgorithm::GpuInputBuffer
@@ -767,23 +757,35 @@ void MainComponent::saveSettings()
 
 void MainComponent::timerCallback()
 {
-    // Apply ramping and exponential smoothing to routing parameters (when processing is enabled)
+    // Increment tick counter
+    timerTicksSinceLastRandom++;
+
+    // WFS Calculation at ~50Hz (every 4 ticks = 20ms = 50Hz)
+    // Recalculate matrix from input/output positions and update target values
+    if (calculationEngine != nullptr && (timerTicksSinceLastRandom % 4) == 0)
+    {
+        calculationEngine->recalculateMatrix();
+
+        // Copy calculated values to target arrays
+        int matrixSize = numInputChannels * numOutputChannels;
+        const float* calcDelays = calculationEngine->getDelayTimesMs();
+        const float* calcLevels = calculationEngine->getLevels();
+        const float* calcHF = calculationEngine->getHFAttenuationDb();
+
+        for (int i = 0; i < matrixSize; ++i)
+        {
+            targetDelayTimesMs[i] = calcDelays[i];
+            targetLevels[i] = calcLevels[i];
+            hfAttenuation[i] = calcHF[i];  // HF doesn't need smoothing - filter handles it
+        }
+    }
+
+    // Apply exponential smoothing to delay/level parameters (every tick for smooth movement)
     if (processingEnabled && audioEngineStarted)
     {
         int matrixSize = numInputChannels * numOutputChannels;
 
-        // Calculate ramp progress (0.0 to 1.0 over 1 second)
-        float rampProgress = (float)timerTicksSinceLastRandom / (float)rampDurationTicks;
-        rampProgress = juce::jlimit(0.0f, 1.0f, rampProgress);
-
-        // Update ramping targets: linearly interpolate from start to final over 1 second
-        for (int i = 0; i < matrixSize; ++i)
-        {
-            targetDelayTimesMs[i] = startDelayTimesMs[i] + (finalTargetDelayTimesMs[i] - startDelayTimesMs[i]) * rampProgress;
-            targetLevels[i] = startLevels[i] + (finalTargetLevels[i] - startLevels[i]) * rampProgress;
-        }
-
-        // Apply exponential smoothing to actual values: smooth towards ramping targets
+        // Apply exponential smoothing to actual values: smooth towards targets
         for (int i = 0; i < matrixSize; ++i)
         {
             delayTimesMs[i] += (targetDelayTimesMs[i] - delayTimesMs[i]) * smoothingFactor;
@@ -793,29 +795,6 @@ void MainComponent::timerCallback()
         // Repaint to update CPU usage display (every 10 ticks = 50ms)
         if (timerTicksSinceLastRandom % 10 == 0)
             repaint();
-    }
-
-    // Start new ramp every 1 second (200 ticks at 5ms)
-    timerTicksSinceLastRandom++;
-    if (timerTicksSinceLastRandom >= rampDurationTicks && processingEnabled && audioEngineStarted)
-    {
-        timerTicksSinceLastRandom = 0;
-
-        int matrixSize = numInputChannels * numOutputChannels;
-
-        // Save current final targets as new start values
-        for (int i = 0; i < matrixSize; ++i)
-        {
-            startDelayTimesMs[i] = finalTargetDelayTimesMs[i];
-            startLevels[i] = finalTargetLevels[i];
-        }
-
-        // Generate new final targets for next ramp
-        for (int i = 0; i < matrixSize; ++i)
-        {
-            finalTargetDelayTimesMs[i] = random.nextFloat() * 1000.0f;  // 0-1000ms
-            finalTargetLevels[i] = random.nextFloat();  // 0-1
-        }
     }
 
     // Check for device changes every 200 ticks (once per second) to avoid overhead

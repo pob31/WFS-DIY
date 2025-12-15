@@ -96,20 +96,30 @@
             file="Source/MainComponent.cpp"/>
       <FILE id="wfsPar" name="WfsParameters.h" compile="0" resource="0" file="Source/WfsParameters.h"/>
       <FILE id="wfsAlg" name="WFSAlgorithm.h" compile="0" resource="0" file="Source/WFSAlgorithm.h"/>
-      <FILE id="inpPro" name="InputBufferProcessor.h" compile="0" resource="0"
-            file="Source/InputBufferProcessor.h"/>
-      <FILE id="inpAlg" name="InputBufferAlgorithm.h" compile="0" resource="0"
-            file="Source/InputBufferAlgorithm.h"/>
-      <FILE id="outAlg" name="OutputBufferAlgorithm.h" compile="0" resource="0"
-            file="Source/OutputBufferAlgorithm.h"/>
-      <FILE id="gpuAlgH" name="GpuInputBufferAlgorithm.h" compile="0" resource="0"
-            file="Source/GpuInputBufferAlgorithm.h"/>
-      <FILE id="gpuAlg" name="GpuInputBufferAlgorithm.cpp" compile="0" resource="0"
-            file="Source/GpuInputBufferAlgorithm.cpp"/>
-      <FILE id="gpuShimH" name="InputBufferAlgorithmGPU.h" compile="0" resource="0"
-            file="Source/InputBufferAlgorithmGPU.h"/>
-      <FILE id="gpuShim" name="InputBufferAlgorithmGPU.cpp" compile="0" resource="0"
-            file="Source/InputBufferAlgorithmGPU.cpp"/>
+      <GROUP id="{DSPGROUP}" name="DSP">
+        <FILE id="wfsCalcH" name="WFSCalculationEngine.h" compile="0" resource="0"
+              file="Source/DSP/WFSCalculationEngine.h"/>
+        <FILE id="wfsCalcCpp" name="WFSCalculationEngine.cpp" compile="1" resource="0"
+              file="Source/DSP/WFSCalculationEngine.cpp"/>
+        <FILE id="wfsHFFilter" name="WFSHighShelfFilter.h" compile="0" resource="0"
+              file="Source/DSP/WFSHighShelfFilter.h"/>
+        <FILE id="inpPro" name="InputBufferProcessor.h" compile="0" resource="0"
+              file="Source/DSP/InputBufferProcessor.h"/>
+        <FILE id="outPro" name="OutputBufferProcessor.h" compile="0" resource="0"
+              file="Source/DSP/OutputBufferProcessor.h"/>
+        <FILE id="inpAlg" name="InputBufferAlgorithm.h" compile="0" resource="0"
+              file="Source/DSP/InputBufferAlgorithm.h"/>
+        <FILE id="outAlg" name="OutputBufferAlgorithm.h" compile="0" resource="0"
+              file="Source/DSP/OutputBufferAlgorithm.h"/>
+        <FILE id="gpuAlgH" name="GpuInputBufferAlgorithm.h" compile="0" resource="0"
+              file="Source/DSP/GpuInputBufferAlgorithm.h"/>
+        <FILE id="gpuAlg" name="GpuInputBufferAlgorithm.cpp" compile="0" resource="0"
+              file="Source/DSP/GpuInputBufferAlgorithm.cpp"/>
+        <FILE id="gpuShimH" name="InputBufferAlgorithmGPU.h" compile="0" resource="0"
+              file="Source/DSP/InputBufferAlgorithmGPU.h"/>
+        <FILE id="gpuShim" name="InputBufferAlgorithmGPU.cpp" compile="0" resource="0"
+              file="Source/DSP/InputBufferAlgorithmGPU.cpp"/>
+      </GROUP>
     </GROUP>
   </MAINGROUP>
   <MODULES>

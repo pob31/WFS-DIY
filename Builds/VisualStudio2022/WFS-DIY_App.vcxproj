@@ -170,10 +170,11 @@
     <ClCompile Include="..\..\Source\Network\OSCQueryServer.cpp"/>
     <ClCompile Include="..\..\Source\Main.cpp"/>
     <ClCompile Include="..\..\Source\MainComponent.cpp"/>
-    <ClCompile Include="..\..\Source\GpuInputBufferAlgorithm.cpp">
+    <ClCompile Include="..\..\Source\DSP\WFSCalculationEngine.cpp"/>
+    <ClCompile Include="..\..\Source\DSP\GpuInputBufferAlgorithm.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\Source\InputBufferAlgorithmGPU.cpp">
+    <ClCompile Include="..\..\Source\DSP\InputBufferAlgorithmGPU.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="C:\JUCE\modules\juce_audio_basics\audio_play_head\juce_AudioPlayHead.cpp">
@@ -3430,11 +3431,13 @@
     <ClInclude Include="..\..\Source\MainComponent.h"/>
     <ClInclude Include="..\..\Source\WfsParameters.h"/>
     <ClInclude Include="..\..\Source\WFSAlgorithm.h"/>
-    <ClInclude Include="..\..\Source\InputBufferProcessor.h"/>
-    <ClInclude Include="..\..\Source\InputBufferAlgorithm.h"/>
-    <ClInclude Include="..\..\Source\OutputBufferAlgorithm.h"/>
-    <ClInclude Include="..\..\Source\GpuInputBufferAlgorithm.h"/>
-    <ClInclude Include="..\..\Source\InputBufferAlgorithmGPU.h"/>
+    <ClInclude Include="..\..\Source\DSP\WFSCalculationEngine.h"/>
+    <ClInclude Include="..\..\Source\DSP\InputBufferProcessor.h"/>
+    <ClInclude Include="..\..\Source\DSP\OutputBufferProcessor.h"/>
+    <ClInclude Include="..\..\Source\DSP\InputBufferAlgorithm.h"/>
+    <ClInclude Include="..\..\Source\DSP\OutputBufferAlgorithm.h"/>
+    <ClInclude Include="..\..\Source\DSP\GpuInputBufferAlgorithm.h"/>
+    <ClInclude Include="..\..\Source\DSP\InputBufferAlgorithmGPU.h"/>
     <ClInclude Include="C:\JUCE\modules\juce_audio_basics\audio_play_head\juce_AudioPlayHead.h"/>
     <ClInclude Include="C:\JUCE\modules\juce_audio_basics\buffers\juce_AudioChannelSet.h"/>
     <ClInclude Include="C:\JUCE\modules\juce_audio_basics\buffers\juce_AudioDataConverters.h"/>

@@ -2,26 +2,36 @@
 
 #include <JuceHeader.h>
 #include "LockFreeRingBuffer.h"
+#include "WFSHighShelfFilter.h"
 #include <atomic>
 
 //==============================================================================
 /**
     Processes a single input channel with delay lines outputting to multiple channels.
     Runs on its own thread for parallel processing.
+
+    Includes HF shelf filters (800Hz, Q=0.3) for air absorption simulation.
+    One filter per output channel.
 */
 class InputBufferProcessor : public juce::Thread
 {
 public:
-    InputBufferProcessor(int inputIndex, int numOutputs, const float* delayTimesPtr, const float* levelsPtr)
+    InputBufferProcessor(int inputIndex, int numOutputs,
+                         const float* delayTimesPtr, const float* levelsPtr,
+                         const float* hfAttenuationPtr = nullptr)
         : juce::Thread("InputBufferProcessor_" + juce::String(inputIndex)),
           inputChannelIndex(inputIndex),
           numOutputChannels(numOutputs),
           sharedDelayTimes(delayTimesPtr),
-          sharedLevels(levelsPtr)
+          sharedLevels(levelsPtr),
+          sharedHFAttenuation(hfAttenuationPtr)
     {
-        // Pre-allocate output buffers without copying
+        // Pre-allocate output buffers and HF filters
         for (int i = 0; i < numOutputs; ++i)
+        {
             outputBuffers.emplace_back(std::make_unique<LockFreeRingBuffer>());
+            hfFilters.emplace_back();  // One filter per output
+        }
     }
 
     ~InputBufferProcessor() override
@@ -45,6 +55,13 @@ public:
         // Setup output ring buffers for each output channel
         for (auto& outputBuffer : outputBuffers)
             outputBuffer->setSize(maxBlockSize * 4);
+
+        // Initialize HF filters
+        for (auto& filter : hfFilters)
+        {
+            filter.prepare(sampleRate);
+            filter.setGainDb(0.0f);  // Start with no attenuation
+        }
     }
 
     // Called by audio thread to push input data
@@ -69,6 +86,10 @@ public:
             outputBuffer->reset();
         delayBuffer.clear();
         writePosition = 0;
+
+        // Reset HF filters
+        for (auto& filter : hfFilters)
+            filter.reset();
     }
 
     void setProcessingEnabled(bool enabled)
@@ -220,6 +241,13 @@ private:
             if (delaySamples >= (float)delayBufferLength)
                 delaySamples = (float)(delayBufferLength - 1);
 
+            // Update HF filter gain if pointer is provided
+            if (sharedHFAttenuation != nullptr)
+            {
+                float hfGainDb = sharedHFAttenuation[routingIndex];
+                hfFilters[outChannel].setGainDb(hfGainDb);
+            }
+
             // Process each sample with linear interpolation
             for (int sample = 0; sample < numSamples; ++sample)
             {
@@ -240,8 +268,11 @@ private:
                 float sample2 = delayData[readPos2];
                 float interpolatedSample = sample1 + fraction * (sample2 - sample1);
 
+                // Apply HF filter (air absorption)
+                float filteredSample = hfFilters[outChannel].processSample(interpolatedSample);
+
                 // Apply level and write output
-                outputData[sample] = interpolatedSample * level;
+                outputData[sample] = filteredSample * level;
             }
         }
 
@@ -269,8 +300,12 @@ private:
     std::atomic<float> processingTimeMicroseconds {0.0f};
 
     // Pointers to shared routing matrices (owned by MainComponent)
-    const float* sharedDelayTimes;  // delays[inputChannel * numOutputs + outputChannel]
-    const float* sharedLevels;      // levels[inputChannel * numOutputs + outputChannel]
+    const float* sharedDelayTimes;      // delays[inputChannel * numOutputs + outputChannel]
+    const float* sharedLevels;          // levels[inputChannel * numOutputs + outputChannel]
+    const float* sharedHFAttenuation;   // HF attenuation dB[inputChannel * numOutputs + outputChannel]
+
+    // HF shelf filters for air absorption (one per output channel)
+    std::vector<WFSHighShelfFilter> hfFilters;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(InputBufferProcessor)
 };

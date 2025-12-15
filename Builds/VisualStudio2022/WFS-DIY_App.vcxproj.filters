@@ -14,6 +14,9 @@
     <Filter Include="WFS-DIY\Source\Network">
       <UniqueIdentifier>{F0025758-791F-87C4-6ABD-F1E1A184504B}</UniqueIdentifier>
     </Filter>
+    <Filter Include="WFS-DIY\Source\DSP">
+      <UniqueIdentifier>{17A0B288-77FA-A44E-2FD6-CD9A8B53854E}</UniqueIdentifier>
+    </Filter>
     <Filter Include="WFS-DIY\Source">
       <UniqueIdentifier>{302C0974-C160-8B5C-13C8-37F2C9D030F7}</UniqueIdentifier>
     </Filter>
@@ -958,11 +961,14 @@
     <ClCompile Include="..\..\Source\MainComponent.cpp">
       <Filter>WFS-DIY\Source</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Source\GpuInputBufferAlgorithm.cpp">
-      <Filter>WFS-DIY\Source</Filter>
+    <ClCompile Include="..\..\Source\DSP\WFSCalculationEngine.cpp">
+      <Filter>WFS-DIY\Source\DSP</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Source\InputBufferAlgorithmGPU.cpp">
-      <Filter>WFS-DIY\Source</Filter>
+    <ClCompile Include="..\..\Source\DSP\GpuInputBufferAlgorithm.cpp">
+      <Filter>WFS-DIY\Source\DSP</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\DSP\InputBufferAlgorithmGPU.cpp">
+      <Filter>WFS-DIY\Source\DSP</Filter>
     </ClCompile>
     <ClCompile Include="C:\JUCE\modules\juce_audio_basics\audio_play_head\juce_AudioPlayHead.cpp">
       <Filter>JUCE Modules\juce_audio_basics\audio_play_head</Filter>
@@ -4473,20 +4479,26 @@
     <ClInclude Include="..\..\Source\WFSAlgorithm.h">
       <Filter>WFS-DIY\Source</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\InputBufferProcessor.h">
-      <Filter>WFS-DIY\Source</Filter>
+    <ClInclude Include="..\..\Source\DSP\WFSCalculationEngine.h">
+      <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\InputBufferAlgorithm.h">
-      <Filter>WFS-DIY\Source</Filter>
+    <ClInclude Include="..\..\Source\DSP\InputBufferProcessor.h">
+      <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\OutputBufferAlgorithm.h">
-      <Filter>WFS-DIY\Source</Filter>
+    <ClInclude Include="..\..\Source\DSP\OutputBufferProcessor.h">
+      <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\GpuInputBufferAlgorithm.h">
-      <Filter>WFS-DIY\Source</Filter>
+    <ClInclude Include="..\..\Source\DSP\InputBufferAlgorithm.h">
+      <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\InputBufferAlgorithmGPU.h">
-      <Filter>WFS-DIY\Source</Filter>
+    <ClInclude Include="..\..\Source\DSP\OutputBufferAlgorithm.h">
+      <Filter>WFS-DIY\Source\DSP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\DSP\GpuInputBufferAlgorithm.h">
+      <Filter>WFS-DIY\Source\DSP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\DSP\InputBufferAlgorithmGPU.h">
+      <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
     <ClInclude Include="C:\JUCE\modules\juce_audio_basics\audio_play_head\juce_AudioPlayHead.h">
       <Filter>JUCE Modules\juce_audio_basics\audio_play_head</Filter>
