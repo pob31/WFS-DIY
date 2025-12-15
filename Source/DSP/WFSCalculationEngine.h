@@ -70,6 +70,7 @@ public:
     /** Get matrix dimensions */
     int getNumInputs() const { return numInputs; }
     int getNumOutputs() const { return numOutputs; }
+    int getNumReverbs() const { return numReverbs; }
 
     //==========================================================================
     // Matrix Results (thread-safe read)
@@ -93,6 +94,47 @@ public:
 
     /** Get HF attenuation for specific routing */
     float getHFAttenuation (int inputIndex, int outputIndex) const;
+
+    //==========================================================================
+    // Reverb Position Access (thread-safe)
+    //==========================================================================
+
+    /** Get cached reverb feed position */
+    Position getReverbFeedPosition (int reverbIndex) const;
+
+    /** Get cached reverb return position (feed + offset) */
+    Position getReverbReturnPosition (int reverbIndex) const;
+
+    /** Force recalculation of all reverb positions */
+    void recalculateAllReverbPositions();
+
+    //==========================================================================
+    // Input → Reverb Feed Matrix Results (thread-safe read)
+    // Index: [inputIndex * numReverbs + reverbIndex]
+    //==========================================================================
+
+    /** Get pointer to input→reverb delay times array (ms). Size = numInputs * numReverbs */
+    const float* getInputReverbDelayTimesMs() const { return inputReverbDelayTimesMs.data(); }
+
+    /** Get pointer to input→reverb levels array (linear 0-1). Size = numInputs * numReverbs */
+    const float* getInputReverbLevels() const { return inputReverbLevels.data(); }
+
+    /** Get pointer to input→reverb HF attenuation array (dB). Size = numInputs * numReverbs */
+    const float* getInputReverbHFAttenuationDb() const { return inputReverbHFAttenuationDb.data(); }
+
+    //==========================================================================
+    // Reverb Return → Output Matrix Results (thread-safe read)
+    // Index: [reverbIndex * numOutputs + outputIndex]
+    //==========================================================================
+
+    /** Get pointer to reverb→output delay times array (ms). Size = numReverbs * numOutputs */
+    const float* getReverbOutputDelayTimesMs() const { return reverbOutputDelayTimesMs.data(); }
+
+    /** Get pointer to reverb→output levels array (linear 0-1). Size = numReverbs * numOutputs */
+    const float* getReverbOutputLevels() const { return reverbOutputLevels.data(); }
+
+    /** Get pointer to reverb→output HF attenuation array (dB). Size = numReverbs * numOutputs */
+    const float* getReverbOutputHFAttenuationDb() const { return reverbOutputHFAttenuationDb.data(); }
 
 private:
     //==========================================================================
@@ -126,22 +168,56 @@ private:
                                        const Position& inputPos,
                                        const Position& speakerPos) const;
 
+    /** Calculate angular attenuation for input→reverb feed pair.
+        Similar to output but uses reverb feed parameters. */
+    float calculateReverbFeedAngularAttenuation (int inputIndex, int reverbIndex,
+                                                  const Position& inputPos,
+                                                  const Position& reverbFeedPos) const;
+
+    /** Update reverb feed position from parameters */
+    void updateReverbFeedPosition (int reverbIndex);
+
+    /** Update reverb return position from parameters (feed + offset) */
+    void updateReverbReturnPosition (int reverbIndex);
+
+    /** Find reverb index from ValueTree */
+    int findReverbIndexFromTree (const juce::ValueTree& tree) const;
+
+    /** Check if input→reverb routing is muted (inputMuteReverbSends) */
+    bool isInputReverbMuted (int inputIndex) const;
+
+    /** Check if reverb→output routing is muted (reverbMutes array) */
+    bool isReverbOutputMuted (int reverbIndex, int outputIndex) const;
+
     //==========================================================================
     // State
     //==========================================================================
     WFSValueTreeState& valueTreeState;
     int numInputs = 0;
     int numOutputs = 0;
+    int numReverbs = 0;
 
     // Cached positions
-    std::vector<Position> listenerPositions;   // [outputIndex]
-    std::vector<Position> speakerPositions;    // [outputIndex]
-    std::vector<Position> inputPositions;      // [inputIndex]
+    std::vector<Position> listenerPositions;     // [outputIndex]
+    std::vector<Position> speakerPositions;      // [outputIndex]
+    std::vector<Position> inputPositions;        // [inputIndex]
+    std::vector<Position> reverbFeedPositions;   // [reverbIndex]
+    std::vector<Position> reverbReturnPositions; // [reverbIndex]
 
-    // Matrix results [inputIndex * numOutputs + outputIndex]
+    // Input → Output matrix results [inputIndex * numOutputs + outputIndex]
     std::vector<float> delayTimesMs;
     std::vector<float> levels;
     std::vector<float> hfAttenuationDb;
+
+    // Input → Reverb Feed matrix results [inputIndex * numReverbs + reverbIndex]
+    std::vector<float> inputReverbDelayTimesMs;
+    std::vector<float> inputReverbLevels;
+    std::vector<float> inputReverbHFAttenuationDb;
+
+    // Reverb Return → Output matrix results [reverbIndex * numOutputs + outputIndex]
+    std::vector<float> reverbOutputDelayTimesMs;
+    std::vector<float> reverbOutputLevels;
+    std::vector<float> reverbOutputHFAttenuationDb;
 
     // Thread safety
     mutable juce::CriticalSection positionLock;

@@ -1,4 +1,5 @@
 #include "WFSCalculationEngine.h"
+#include <limits>
 
 using namespace WFSParameterIDs;
 using namespace WFSParameterDefaults;
@@ -9,21 +10,37 @@ WFSCalculationEngine::WFSCalculationEngine (WFSValueTreeState& state)
 {
     numInputs = maxInputChannels;
     numOutputs = maxOutputChannels;
+    numReverbs = maxReverbChannels;
 
     // Reserve space for positions
     listenerPositions.resize (static_cast<size_t> (numOutputs));
     speakerPositions.resize (static_cast<size_t> (numOutputs));
     inputPositions.resize (static_cast<size_t> (numInputs));
+    reverbFeedPositions.resize (static_cast<size_t> (numReverbs));
+    reverbReturnPositions.resize (static_cast<size_t> (numReverbs));
 
-    // Reserve space for matrix results
+    // Reserve space for Input → Output matrix results
     const size_t matrixSize = static_cast<size_t> (numInputs * numOutputs);
     delayTimesMs.resize (matrixSize, 0.0f);
     levels.resize (matrixSize, 0.0f);
     hfAttenuationDb.resize (matrixSize, 0.0f);
 
+    // Reserve space for Input → Reverb Feed matrix results
+    const size_t inputReverbSize = static_cast<size_t> (numInputs * numReverbs);
+    inputReverbDelayTimesMs.resize (inputReverbSize, 0.0f);
+    inputReverbLevels.resize (inputReverbSize, 0.0f);
+    inputReverbHFAttenuationDb.resize (inputReverbSize, 0.0f);
+
+    // Reserve space for Reverb Return → Output matrix results
+    const size_t reverbOutputSize = static_cast<size_t> (numReverbs * numOutputs);
+    reverbOutputDelayTimesMs.resize (reverbOutputSize, 0.0f);
+    reverbOutputLevels.resize (reverbOutputSize, 0.0f);
+    reverbOutputHFAttenuationDb.resize (reverbOutputSize, 0.0f);
+
     // Calculate initial positions
     recalculateAllListenerPositions();
     recalculateAllInputPositions();
+    recalculateAllReverbPositions();
 
     // Initial matrix calculation
     recalculateMatrix();
@@ -140,6 +157,70 @@ void WFSCalculationEngine::updateInputPosition (int inputIndex)
 }
 
 //==============================================================================
+// Reverb Position Access and Update
+//==============================================================================
+
+WFSCalculationEngine::Position WFSCalculationEngine::getReverbFeedPosition (int reverbIndex) const
+{
+    if (reverbIndex < 0 || reverbIndex >= numReverbs)
+        return {};
+
+    const juce::ScopedLock sl (positionLock);
+    return reverbFeedPositions[static_cast<size_t> (reverbIndex)];
+}
+
+WFSCalculationEngine::Position WFSCalculationEngine::getReverbReturnPosition (int reverbIndex) const
+{
+    if (reverbIndex < 0 || reverbIndex >= numReverbs)
+        return {};
+
+    const juce::ScopedLock sl (positionLock);
+    return reverbReturnPositions[static_cast<size_t> (reverbIndex)];
+}
+
+void WFSCalculationEngine::recalculateAllReverbPositions()
+{
+    const juce::ScopedLock sl (positionLock);
+
+    for (int i = 0; i < numReverbs; ++i)
+    {
+        updateReverbFeedPosition (i);
+        updateReverbReturnPosition (i);
+    }
+}
+
+void WFSCalculationEngine::updateReverbFeedPosition (int reverbIndex)
+{
+    // Note: Assumes positionLock is already held
+
+    auto positionSection = valueTreeState.getReverbPositionSection (reverbIndex);
+
+    Position& feedPos = reverbFeedPositions[static_cast<size_t> (reverbIndex)];
+    feedPos.x = positionSection.getProperty (reverbPositionX, reverbPositionDefault);
+    feedPos.y = positionSection.getProperty (reverbPositionY, reverbPositionDefault);
+    feedPos.z = positionSection.getProperty (reverbPositionZ, reverbPositionDefault);
+}
+
+void WFSCalculationEngine::updateReverbReturnPosition (int reverbIndex)
+{
+    // Note: Assumes positionLock is already held
+    // Return position = Feed position + offset
+
+    auto positionSection = valueTreeState.getReverbPositionSection (reverbIndex);
+
+    const Position& feedPos = reverbFeedPositions[static_cast<size_t> (reverbIndex)];
+
+    float offsetX = positionSection.getProperty (reverbReturnOffsetX, reverbReturnOffsetDefault);
+    float offsetY = positionSection.getProperty (reverbReturnOffsetY, reverbReturnOffsetDefault);
+    float offsetZ = positionSection.getProperty (reverbReturnOffsetZ, reverbReturnOffsetDefault);
+
+    Position& returnPos = reverbReturnPositions[static_cast<size_t> (reverbIndex)];
+    returnPos.x = feedPos.x + offsetX;
+    returnPos.y = feedPos.y + offsetY;
+    returnPos.z = feedPos.z + offsetZ;
+}
+
+//==============================================================================
 // Matrix Calculation
 //==============================================================================
 
@@ -162,6 +243,36 @@ bool WFSCalculationEngine::isRoutingMuted (int inputIndex, int outputIndex) cons
         return false;
 
     juce::String mutesStr = mutesSection.getProperty (inputMutes).toString();
+    juce::StringArray mutesArray;
+    mutesArray.addTokens (mutesStr, ",", "");
+
+    if (outputIndex >= 0 && outputIndex < mutesArray.size())
+    {
+        return mutesArray[outputIndex].getIntValue() != 0;
+    }
+
+    return false;
+}
+
+bool WFSCalculationEngine::isInputReverbMuted (int inputIndex) const
+{
+    // Check if inputMuteReverbSends is enabled for this input
+    auto mutesSection = valueTreeState.getInputMutesSection (inputIndex);
+    if (! mutesSection.isValid())
+        return false;
+
+    int muteReverbSends = mutesSection.getProperty (inputMuteReverbSends, 0);
+    return muteReverbSends != 0;
+}
+
+bool WFSCalculationEngine::isReverbOutputMuted (int reverbIndex, int outputIndex) const
+{
+    // Check reverbMutes array for this reverb->output pair
+    auto returnSection = valueTreeState.getReverbReturnSection (reverbIndex);
+    if (! returnSection.isValid())
+        return false;
+
+    juce::String mutesStr = returnSection.getProperty (reverbMutes).toString();
     juce::StringArray mutesArray;
     mutesArray.addTokens (mutesStr, ",", "");
 
@@ -258,24 +369,120 @@ float WFSCalculationEngine::calculateAngularAttenuation (int /*inputIndex*/, int
     return 1.0f - progress;
 }
 
+float WFSCalculationEngine::calculateReverbFeedAngularAttenuation (int /*inputIndex*/, int reverbIndex,
+                                                                    const Position& inputPos,
+                                                                    const Position& reverbFeedPos) const
+{
+    // Get reverb feed parameters (similar to output but from reverb feed section)
+    auto feedSection = valueTreeState.getReverbFeedSection (reverbIndex);
+
+    int orientationDeg = feedSection.getProperty (reverbOrientation, reverbOrientationDefault);
+    int pitchDeg = feedSection.getProperty (reverbPitch, reverbPitchDefault);
+    int angleOnDeg = feedSection.getProperty (reverbAngleOn, reverbAngleOnDefault);
+    int angleOffDeg = feedSection.getProperty (reverbAngleOff, reverbAngleOffDefault);
+
+    // Optimization: if angleOn >= 90°, all inputs are in the "on" zone
+    if (angleOnDeg >= 90)
+        return 1.0f;
+
+    // Convert to radians
+    constexpr float degToRad = juce::MathConstants<float>::pi / 180.0f;
+    float orientationRad = static_cast<float> (orientationDeg) * degToRad;
+    float pitchRad = static_cast<float> (pitchDeg) * degToRad;
+    float angleOnRad = static_cast<float> (angleOnDeg) * degToRad;
+    float angleOffRad = static_cast<float> (angleOffDeg) * degToRad;
+
+    // Calculate rear axis direction vector (same logic as output angular attenuation)
+    float cosPitch = std::cos (pitchRad);
+    float sinPitch = std::sin (pitchRad);
+
+    float rearDirX = cosPitch * std::sin (orientationRad);
+    float rearDirY = cosPitch * std::cos (orientationRad);
+    float rearDirZ = sinPitch;
+
+    // Vector from reverb feed to input
+    float dx = inputPos.x - reverbFeedPos.x;
+    float dy = inputPos.y - reverbFeedPos.y;
+    float dz = inputPos.z - reverbFeedPos.z;
+    float distance = std::sqrt (dx * dx + dy * dy + dz * dz);
+
+    if (distance < 0.001f)
+        return 1.0f;
+
+    // Dot product between rear axis and input direction
+    float dotProduct = (dx * rearDirX + dy * rearDirY + dz * rearDirZ) / distance;
+    dotProduct = juce::jlimit (-1.0f, 1.0f, dotProduct);
+
+    float angle = std::acos (dotProduct);
+
+    if (angle <= angleOnRad)
+        return 1.0f;
+
+    float muteAngle = juce::MathConstants<float>::pi - angleOffRad;
+
+    if (angle >= muteAngle)
+        return 0.0f;
+
+    float transitionWidth = muteAngle - angleOnRad;
+    if (transitionWidth <= 0.0f)
+        return 1.0f;
+
+    float progress = (angle - angleOnRad) / transitionWidth;
+    return 1.0f - progress;
+}
+
 void WFSCalculationEngine::recalculateMatrix()
 {
     // Copy positions under lock
     std::vector<Position> localInputPositions;
     std::vector<Position> localSpeakerPositions;
     std::vector<Position> localListenerPositions;
+    std::vector<Position> localReverbFeedPositions;
+    std::vector<Position> localReverbReturnPositions;
 
     {
         const juce::ScopedLock sl (positionLock);
         localInputPositions = inputPositions;
         localSpeakerPositions = speakerPositions;
         localListenerPositions = listenerPositions;
+        localReverbFeedPositions = reverbFeedPositions;
+        localReverbReturnPositions = reverbReturnPositions;
     }
 
-    // Temporary arrays for calculations
+    // Get global config parameters
+    auto masterState = valueTreeState.getMasterState();
+    float globalHaasEffect = masterState.getProperty (haasEffect, haasEffectDefault);
+    float globalSystemLatency = masterState.getProperty (systemLatency, systemLatencyDefault);
+
+    // Temporary arrays for Input → Output calculations
     std::vector<float> newDelays (static_cast<size_t> (numInputs * numOutputs));
     std::vector<float> newLevels (static_cast<size_t> (numInputs * numOutputs));
     std::vector<float> newHF (static_cast<size_t> (numInputs * numOutputs));
+
+    // Temporary arrays for Input → Reverb Feed calculations
+    std::vector<float> newInputReverbDelays (static_cast<size_t> (numInputs * numReverbs));
+    std::vector<float> newInputReverbLevels (static_cast<size_t> (numInputs * numReverbs));
+    std::vector<float> newInputReverbHF (static_cast<size_t> (numInputs * numReverbs));
+
+    // Temporary arrays for Reverb Return → Output calculations
+    std::vector<float> newReverbOutputDelays (static_cast<size_t> (numReverbs * numOutputs));
+    std::vector<float> newReverbOutputLevels (static_cast<size_t> (numReverbs * numOutputs));
+    std::vector<float> newReverbOutputHF (static_cast<size_t> (numReverbs * numOutputs));
+
+    // Store common attenuation adjustment per input (for reverb feed calculations)
+    std::vector<float> inputCommonAttenAdjustments (static_cast<size_t> (numInputs), 0.0f);
+
+    // Temporary arrays for level post-processing (per output, reset per input)
+    std::vector<float> tempAttenuationDb (static_cast<size_t> (numOutputs));
+    std::vector<float> tempAngularAtten (static_cast<size_t> (numOutputs));
+
+    // Track which outputs are valid for minimal latency calculation (per input)
+    // An output is valid if: NOT muted, NOT angleOff'd (level > 0), AND outputMiniLatencyEnable = 1
+    std::vector<bool> validForMinLatency (static_cast<size_t> (numOutputs), false);
+
+    // Track which outputs are valid for common attenuation calculation (per input)
+    // An output is valid if: NOT muted, NOT angleOff'd
+    std::vector<bool> validForCommonAtten (static_cast<size_t> (numOutputs), false);
 
     // Calculate for each input->output pair
     for (int inIdx = 0; inIdx < numInputs; ++inIdx)
@@ -286,15 +493,54 @@ void WFSCalculationEngine::recalculateMatrix()
         auto inputAttenSection = valueTreeState.getInputAttenuationSection (inIdx);
         float inputAtten = inputAttenSection.getProperty (inputAttenuation, inputAttenuationDefault);
         float inputDistAtten = inputAttenSection.getProperty (inputDistanceAttenuation, inputDistanceAttenuationDefault);
+        int attenLaw = inputAttenSection.getProperty (inputAttenuationLaw, inputAttenuationLawDefault);
+        float distRatio = inputAttenSection.getProperty (inputDistanceRatio, inputDistanceRatioDefault);
+        int commonAttenPercent = inputAttenSection.getProperty (inputCommonAtten, inputCommonAttenDefault);
+        float commonAttenFactor = static_cast<float> (commonAttenPercent) / 100.0f;
+
+        // Get input channel parameters
+        auto inputChannelSection = valueTreeState.getInputChannelSection (inIdx);
+        int minimalLatencyMode = inputChannelSection.getProperty (inputMinimalLatency, 0);
+        float inputDelayLat = inputChannelSection.getProperty (inputDelayLatency, 0.0f);
 
         // Get input height factor (0-100%) for distance calculations
         auto inputPosSection = valueTreeState.getInputPositionSection (inIdx);
         int heightFactorPercent = inputPosSection.getProperty (inputHeightFactor, inputHeightFactorDefault);
         float heightFactor = static_cast<float> (heightFactorPercent) / 100.0f;
 
+        // Get input directivity parameters
+        auto inputDirectivitySection = valueTreeState.getInputDirectivitySection (inIdx);
+        int directivityDeg = inputDirectivitySection.getProperty (inputDirectivity, inputDirectivityDefault);
+        int rotationDeg = inputDirectivitySection.getProperty (inputRotation, inputRotationDefault);
+        int tiltDeg = inputDirectivitySection.getProperty (inputTilt, inputTiltDefault);
+        float hfShelfDb = inputDirectivitySection.getProperty (inputHFshelf, inputHFshelfDefault);
+
+        // Convert directivity parameters to radians
+        float directivityRad = static_cast<float> (directivityDeg) * (juce::MathConstants<float>::pi / 180.0f);
+        float rotationRad = static_cast<float> (rotationDeg) * (juce::MathConstants<float>::pi / 180.0f);
+        float tiltRad = static_cast<float> (tiltDeg) * (juce::MathConstants<float>::pi / 180.0f);
+
+        // Precompute facing direction for this input
+        // rotation=0 faces toward -Y (audience), tilt=0 is horizontal
+        float facingX = std::sin (rotationRad) * std::cos (tiltRad);
+        float facingY = -std::cos (rotationRad) * std::cos (tiltRad);
+        float facingZ = std::sin (tiltRad);
+
+        // Reset tracking arrays for this input
+        std::fill (validForMinLatency.begin(), validForMinLatency.end(), false);
+        std::fill (validForCommonAtten.begin(), validForCommonAtten.end(), false);
+        std::fill (tempAttenuationDb.begin(), tempAttenuationDb.end(), -92.0f);
+        std::fill (tempAngularAtten.begin(), tempAngularAtten.end(), 0.0f);
+
         for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
         {
             const size_t matrixIdx = static_cast<size_t> (inIdx * numOutputs + outIdx);
+
+            // Get output parameters early (needed for outputMiniLatencyEnable check)
+            auto outputOptionsSection = valueTreeState.getOutputOptionsSection (outIdx);
+            auto outputPositionSection = valueTreeState.getOutputPositionSection (outIdx);
+
+            int outputMiniLatEnable = outputOptionsSection.getProperty (outputMiniLatencyEnable, 1);
 
             // ==========================================
             // MUTING CHECK
@@ -327,9 +573,14 @@ void WFSCalculationEngine::recalculateMatrix()
                 continue;
             }
 
-            // Get output parameters
-            auto outputOptionsSection = valueTreeState.getOutputOptionsSection (outIdx);
-            auto outputPositionSection = valueTreeState.getOutputPositionSection (outIdx);
+            // This output is valid for minimal latency search if outputMiniLatencyEnable = 1
+            // (and we've passed mute and angleOff checks)
+            if (outputMiniLatEnable == 1)
+                validForMinLatency[static_cast<size_t> (outIdx)] = true;
+
+            // This output is valid for common attenuation search
+            // (we've passed mute and angleOff checks)
+            validForCommonAtten[static_cast<size_t> (outIdx)] = true;
 
             float outputDistAttenPercent = outputOptionsSection.getProperty (outputDistanceAttenPercent, 100.0f);
             float outputHFdamp = outputPositionSection.getProperty (outputHFdamping, outputHFdampingDefault);
@@ -352,22 +603,251 @@ void WFSCalculationEngine::recalculateMatrix()
             float speakerToListener = distance3D (speakerPos, listenerPos);  // No height factor for speaker→listener
 
             // ==========================================
-            // DELAY CALCULATION
+            // DELAY CALCULATION (raw distance-based delay)
             // ==========================================
             // Delay = (distance input->listener - distance speaker->listener) / speed of sound
             float delayMeters = inputToListener - speakerToListener;
             float delayMs = (delayMeters / speedOfSound) * 1000.0f;
             delayMs = juce::jmax (0.0f, delayMs);  // Clamp to minimum 0
 
+            // Store raw delay (will be post-processed after inner loop)
             newDelays[matrixIdx] = delayMs;
 
             // ==========================================
-            // LEVEL CALCULATION
+            // LEVEL CALCULATION (store dB for post-processing)
             // ==========================================
-            // Level (dB) = inputAttenuation + inputDistanceAttenuation * distance * (outputDistAttenPercent/100)
-            float attenuationDb = inputAtten + inputDistAtten * inputToSpeaker * (outputDistAttenPercent / 100.0f);
+            float distanceAttenDb = 0.0f;
+
+            if (attenLaw == 0)
+            {
+                // Law 0: Linear (dB/m)
+                // distanceAttenDb = inputDistanceAttenuation * distance
+                distanceAttenDb = inputDistAtten * inputToSpeaker;
+            }
+            else
+            {
+                // Law 1: Inverse square (1/d)
+                // -6dB per doubling of distance, 0dB at reference distance (distRatio)
+                // distanceAttenDb = -20 * log10(distance / distRatio)
+                // Clamp inside reference sphere to 0dB (no amplification)
+                float effectiveDistance = inputToSpeaker / juce::jmax (0.001f, distRatio);
+                if (effectiveDistance < 1.0f)
+                    distanceAttenDb = 0.0f;  // Inside reference sphere - no attenuation
+                else
+                    distanceAttenDb = -20.0f * std::log10 (effectiveDistance);
+            }
+
+            // Apply outputDistAttenPercent scaling to the distance-dependent part
+            float attenuationDb = inputAtten + distanceAttenDb * (outputDistAttenPercent / 100.0f);
 
             // Clamp to reasonable range (-92dB to 0dB)
+            attenuationDb = juce::jlimit (-92.0f, 0.0f, attenuationDb);
+
+            // Store dB and angular values for post-processing
+            // (linear conversion and angular multiplication will be done after common attenuation)
+            tempAttenuationDb[static_cast<size_t> (outIdx)] = attenuationDb;
+            tempAngularAtten[static_cast<size_t> (outIdx)] = angularAtten;
+
+            // Temporarily mark as active (will be replaced in post-processing)
+            newLevels[matrixIdx] = 1.0f;
+
+            // ==========================================
+            // HF ATTENUATION CALCULATION
+            // ==========================================
+            // Two cumulative HF attenuations:
+            // 1. Output-based: outputHFdamping (dB/m) * distance
+            // 2. Input directivity-based: smooth falloff from inputHFshelf
+
+            // 1. Output-based HF damping
+            float hfAttenOutput = outputHFdamp * inputToSpeaker;
+
+            // 2. Input directivity HF attenuation
+            float hfAttenDirectivity = 0.0f;
+
+            // Only calculate if directivity < 360° and inputHFshelf < 0dB
+            if (directivityDeg < 360 && hfShelfDb < 0.0f)
+            {
+                // Calculate raw distance (without height factor) for directivity
+                float dx = speakerPos.x - inputPos.x;
+                float dy = speakerPos.y - inputPos.y;
+                float dz = speakerPos.z - inputPos.z;
+                float rawDistance = std::sqrt (dx * dx + dy * dy + dz * dz);
+
+                if (rawDistance > 0.001f)
+                {
+                    // Normalize direction to speaker
+                    float invDist = 1.0f / rawDistance;
+                    float toSpeakerX = dx * invDist;
+                    float toSpeakerY = dy * invDist;
+                    float toSpeakerZ = dz * invDist;
+
+                    // Dot product: facing · toSpeaker
+                    float dotProduct = facingX * toSpeakerX + facingY * toSpeakerY + facingZ * toSpeakerZ;
+
+                    // Clamp for acos
+                    dotProduct = juce::jlimit (-1.0f, 1.0f, dotProduct);
+
+                    // Angle between facing direction and direction to speaker
+                    float angleToSpeaker = std::acos (dotProduct);
+
+                    // Half of the brightness cone (directivity defines full cone)
+                    float halfDirectivity = directivityRad * 0.5f;
+
+                    // If outside the brightness cone, apply smooth falloff
+                    if (angleToSpeaker > halfDirectivity)
+                    {
+                        // Transition from edge of cone to rear (π)
+                        float transitionRange = juce::MathConstants<float>::pi - halfDirectivity;
+
+                        if (transitionRange > 0.001f)
+                        {
+                            // Progress from 0 (at cone edge) to 1 (at rear)
+                            float progress = (angleToSpeaker - halfDirectivity) / transitionRange;
+                            progress = juce::jmin (1.0f, progress);
+
+                            // Smooth falloff using sqrt(sin) as in Max patch
+                            // At progress=0: sin(0)=0, sqrt=0, attenuation=0
+                            // At progress=1: sin(π/2)=1, sqrt=1, attenuation=hfShelfDb
+                            float sinArg = progress * juce::MathConstants<float>::halfPi;
+                            hfAttenDirectivity = hfShelfDb * std::sqrt (std::sin (sinArg));
+                        }
+                    }
+                    // Inside brightness cone: hfAttenDirectivity stays 0
+                }
+                // If distance is 0, angle is undefined - no directivity attenuation
+            }
+
+            // Combine both HF attenuations (additive in dB)
+            float hfAtten = hfAttenOutput + hfAttenDirectivity;
+
+            // Clamp to reasonable range
+            hfAtten = juce::jlimit (-60.0f, 0.0f, hfAtten);
+
+            newHF[matrixIdx] = hfAtten;
+        }
+
+        // ==========================================
+        // DELAY POST-PROCESSING (per input)
+        // ==========================================
+        if (minimalLatencyMode == 0)
+        {
+            // Mode 1: Acoustic Precedence
+            // finalDelay = calculatedDelay + haasEffect - systemLatency + inputDelayLatency + outputDelayLatency
+            for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
+            {
+                const size_t matrixIdx = static_cast<size_t> (inIdx * numOutputs + outIdx);
+
+                // Skip if muted (level = 0)
+                if (newLevels[matrixIdx] <= 0.0f)
+                    continue;
+
+                // Get output delay latency
+                auto outputChannelSection = valueTreeState.getOutputChannelSection (outIdx);
+                float outputDelayLat = outputChannelSection.getProperty (outputDelayLatency, 0.0f);
+
+                float finalDelay = newDelays[matrixIdx] + globalHaasEffect - globalSystemLatency
+                                   + inputDelayLat + outputDelayLat;
+
+                newDelays[matrixIdx] = juce::jmax (0.0f, finalDelay);
+            }
+        }
+        else
+        {
+            // Mode 2: Minimal Latency
+            // Find minimum delay among valid outputs, subtract from all
+
+            // Find minimum delay among outputs where validForMinLatency is true
+            float minDelay = std::numeric_limits<float>::max();
+            bool foundValidOutput = false;
+
+            for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
+            {
+                if (validForMinLatency[static_cast<size_t> (outIdx)])
+                {
+                    const size_t matrixIdx = static_cast<size_t> (inIdx * numOutputs + outIdx);
+                    if (newDelays[matrixIdx] < minDelay)
+                    {
+                        minDelay = newDelays[matrixIdx];
+                        foundValidOutput = true;
+                    }
+                }
+            }
+
+            // Subtract minimum from all delays (if we found valid outputs)
+            if (foundValidOutput)
+            {
+                for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
+                {
+                    const size_t matrixIdx = static_cast<size_t> (inIdx * numOutputs + outIdx);
+
+                    // Skip if muted (level = 0)
+                    if (newLevels[matrixIdx] <= 0.0f)
+                        continue;
+
+                    float finalDelay = newDelays[matrixIdx] - minDelay;
+                    newDelays[matrixIdx] = juce::jmax (0.0f, finalDelay);
+                }
+            }
+            // If no valid outputs found, leave delays as calculated (no subtraction)
+        }
+
+        // ==========================================
+        // LEVEL POST-PROCESSING - Common Attenuation (per input)
+        // ==========================================
+        // Purpose: Prevent upstage sources from losing too much overall level
+        // by raising all attenuations toward the minimum (closest to 0dB)
+
+        float commonAttenAdjustment = 0.0f;
+
+        // Note: commonAttenFactor interpretation:
+        // 100% = keep full original attenuation (no lift applied)
+        // 0% = apply full lift (all outputs raised to match minimum attenuation)
+        if (commonAttenFactor < 1.0f)
+        {
+            // Find minimum attenuation (closest to 0dB) from valid outputs
+            float minAttenuation = -92.0f;  // Start with maximum attenuation
+            bool foundValidForCommon = false;
+
+            for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
+            {
+                if (validForCommonAtten[static_cast<size_t> (outIdx)])
+                {
+                    float atten = tempAttenuationDb[static_cast<size_t> (outIdx)];
+                    if (atten > minAttenuation)
+                    {
+                        minAttenuation = atten;
+                        foundValidForCommon = true;
+                    }
+                }
+            }
+
+            // Calculate adjustment to lift all attenuations
+            // minAttenuation is negative (e.g., -20dB), so -minAttenuation is positive (e.g., +20dB)
+            // Invert factor: 0% → full lift, 100% → no lift
+            if (foundValidForCommon)
+                commonAttenAdjustment = -minAttenuation * (1.0f - commonAttenFactor);
+        }
+
+        // Store the common attenuation adjustment for later use in reverb feed calculations
+        inputCommonAttenAdjustments[static_cast<size_t> (inIdx)] = commonAttenAdjustment;
+
+        // Apply common attenuation adjustment and convert to linear levels
+        for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
+        {
+            const size_t matrixIdx = static_cast<size_t> (inIdx * numOutputs + outIdx);
+
+            // Skip if muted (newLevels is already 0)
+            if (newLevels[matrixIdx] <= 0.0f)
+                continue;
+
+            // Get stored values
+            float attenuationDb = tempAttenuationDb[static_cast<size_t> (outIdx)];
+            float angularAtten = tempAngularAtten[static_cast<size_t> (outIdx)];
+
+            // Apply common attenuation adjustment
+            attenuationDb += commonAttenAdjustment;
+
+            // Clamp to 0dB max (don't amplify) and -92dB min
             attenuationDb = juce::jlimit (-92.0f, 0.0f, attenuationDb);
 
             // Convert dB to linear
@@ -377,26 +857,458 @@ void WFSCalculationEngine::recalculateMatrix()
             linearLevel *= angularAtten;
 
             newLevels[matrixIdx] = linearLevel;
-
-            // ==========================================
-            // HF ATTENUATION CALCULATION
-            // ==========================================
-            // HF attenuation (dB) = outputHFdamping (dB/m) * distance input->speaker
-            float hfAtten = outputHFdamp * inputToSpeaker;
-
-            // Clamp to reasonable range
-            hfAtten = juce::jlimit (-60.0f, 0.0f, hfAtten);
-
-            newHF[matrixIdx] = hfAtten;
         }
     }
 
-    // Update matrix under lock
+    // ==========================================================================
+    // INPUT → REVERB FEED CALCULATIONS
+    // ==========================================================================
+    // Reverb feeds act like simplified outputs (spatial microphones)
+    // They receive the common attenuation adjustment from outputs but are not
+    // included in the minimum search
+
+    // Temporary arrays for reverb feed level post-processing (per reverb, reset per input)
+    std::vector<float> tempReverbAttenuationDb (static_cast<size_t> (numReverbs));
+    std::vector<float> tempReverbAngularAtten (static_cast<size_t> (numReverbs));
+    std::vector<bool> validReverbForMinLatency (static_cast<size_t> (numReverbs), false);
+
+    for (int inIdx = 0; inIdx < numInputs; ++inIdx)
+    {
+        const Position& inputPos = localInputPositions[static_cast<size_t> (inIdx)];
+
+        // Check if this input has reverb sends muted
+        if (isInputReverbMuted (inIdx))
+        {
+            // Zero out all reverb sends for this input
+            for (int revIdx = 0; revIdx < numReverbs; ++revIdx)
+            {
+                const size_t matrixIdx = static_cast<size_t> (inIdx * numReverbs + revIdx);
+                newInputReverbDelays[matrixIdx] = 0.0f;
+                newInputReverbLevels[matrixIdx] = 0.0f;
+                newInputReverbHF[matrixIdx] = 0.0f;
+            }
+            continue;
+        }
+
+        // Get input parameters (same as for outputs)
+        auto inputAttenSection = valueTreeState.getInputAttenuationSection (inIdx);
+        float inputAtten = inputAttenSection.getProperty (inputAttenuation, inputAttenuationDefault);
+        float inputDistAtten = inputAttenSection.getProperty (inputDistanceAttenuation, inputDistanceAttenuationDefault);
+        int attenLaw = inputAttenSection.getProperty (inputAttenuationLaw, inputAttenuationLawDefault);
+        float distRatio = inputAttenSection.getProperty (inputDistanceRatio, inputDistanceRatioDefault);
+
+        auto inputChannelSection = valueTreeState.getInputChannelSection (inIdx);
+        int minimalLatencyMode = inputChannelSection.getProperty (inputMinimalLatency, 0);
+        float inputDelayLat = inputChannelSection.getProperty (inputDelayLatency, 0.0f);
+
+        auto inputPosSection = valueTreeState.getInputPositionSection (inIdx);
+        int heightFactorPercent = inputPosSection.getProperty (inputHeightFactor, inputHeightFactorDefault);
+        float heightFactor = static_cast<float> (heightFactorPercent) / 100.0f;
+
+        // Get input directivity parameters
+        auto inputDirectivitySection = valueTreeState.getInputDirectivitySection (inIdx);
+        int directivityDeg = inputDirectivitySection.getProperty (inputDirectivity, inputDirectivityDefault);
+        int rotationDeg = inputDirectivitySection.getProperty (inputRotation, inputRotationDefault);
+        int tiltDeg = inputDirectivitySection.getProperty (inputTilt, inputTiltDefault);
+        float hfShelfDb = inputDirectivitySection.getProperty (inputHFshelf, inputHFshelfDefault);
+
+        float directivityRad = static_cast<float> (directivityDeg) * (juce::MathConstants<float>::pi / 180.0f);
+        float rotationRad = static_cast<float> (rotationDeg) * (juce::MathConstants<float>::pi / 180.0f);
+        float tiltRad = static_cast<float> (tiltDeg) * (juce::MathConstants<float>::pi / 180.0f);
+
+        float facingX = std::sin (rotationRad) * std::cos (tiltRad);
+        float facingY = -std::cos (rotationRad) * std::cos (tiltRad);
+        float facingZ = std::sin (tiltRad);
+
+        // Get common attenuation adjustment calculated from outputs
+        float commonAttenAdjustment = inputCommonAttenAdjustments[static_cast<size_t> (inIdx)];
+
+        // Reset tracking arrays
+        std::fill (validReverbForMinLatency.begin(), validReverbForMinLatency.end(), false);
+        std::fill (tempReverbAttenuationDb.begin(), tempReverbAttenuationDb.end(), -92.0f);
+        std::fill (tempReverbAngularAtten.begin(), tempReverbAngularAtten.end(), 0.0f);
+
+        for (int revIdx = 0; revIdx < numReverbs; ++revIdx)
+        {
+            const size_t matrixIdx = static_cast<size_t> (inIdx * numReverbs + revIdx);
+            const Position& reverbFeedPos = localReverbFeedPositions[static_cast<size_t> (revIdx)];
+
+            // Get reverb feed parameters
+            auto feedSection = valueTreeState.getReverbFeedSection (revIdx);
+            int reverbMiniLatEnable = feedSection.getProperty (reverbMiniLatencyEnable, reverbMiniLatencyEnableDefault);
+            // Note: reverbLSenable (Live Source attenuation enable) reserved for future use
+            int reverbDistAttenPercent = feedSection.getProperty (reverbDistanceAttenEnable, reverbDistanceAttenEnableDefault);
+            float reverbHFdamp = feedSection.getProperty (reverbHFdamping, reverbHFdampingDefault);
+
+            // Angular attenuation check
+            float angularAtten = calculateReverbFeedAngularAttenuation (inIdx, revIdx, inputPos, reverbFeedPos);
+
+            if (angularAtten <= 0.0f)
+            {
+                newInputReverbDelays[matrixIdx] = 0.0f;
+                newInputReverbLevels[matrixIdx] = 0.0f;
+                newInputReverbHF[matrixIdx] = 0.0f;
+                continue;
+            }
+
+            // This reverb is valid for minimal latency if reverbMiniLatencyEnable = 1
+            if (reverbMiniLatEnable == 1)
+                validReverbForMinLatency[static_cast<size_t> (revIdx)] = true;
+
+            // Distance calculation with height factor
+            auto distanceWithHeightFactor = [heightFactor] (const Position& a, const Position& b) -> float
+            {
+                float dx = b.x - a.x;
+                float dy = b.y - a.y;
+                float dz = (b.z - a.z) * heightFactor;
+                return std::sqrt (dx * dx + dy * dy + dz * dz);
+            };
+
+            float inputToReverbFeed = distanceWithHeightFactor (inputPos, reverbFeedPos);
+
+            // Delay calculation: simple distance / speed of sound (no parallax for reverb feeds)
+            float delayMs = (inputToReverbFeed / speedOfSound) * 1000.0f;
+            newInputReverbDelays[matrixIdx] = juce::jmax (0.0f, delayMs);
+
+            // Level attenuation calculation (same law as outputs)
+            float distanceAttenDb = 0.0f;
+
+            if (attenLaw == 0)
+            {
+                // Linear law (dB/m)
+                distanceAttenDb = inputDistAtten * inputToReverbFeed;
+            }
+            else
+            {
+                // Inverse square law (1/d)
+                float effectiveDistance = inputToReverbFeed / juce::jmax (0.001f, distRatio);
+                if (effectiveDistance < 1.0f)
+                    distanceAttenDb = 0.0f;
+                else
+                    distanceAttenDb = -20.0f * std::log10 (effectiveDistance);
+            }
+
+            // Apply reverb's distance attenuation percentage
+            float attenuationDb = inputAtten + distanceAttenDb * (static_cast<float> (reverbDistAttenPercent) / 100.0f);
+            attenuationDb = juce::jlimit (-92.0f, 0.0f, attenuationDb);
+
+            // Store for post-processing
+            tempReverbAttenuationDb[static_cast<size_t> (revIdx)] = attenuationDb;
+            tempReverbAngularAtten[static_cast<size_t> (revIdx)] = angularAtten;
+
+            // Mark as active
+            newInputReverbLevels[matrixIdx] = 1.0f;
+
+            // HF attenuation calculation
+            float hfAttenReverb = reverbHFdamp * inputToReverbFeed;
+
+            // Input directivity HF attenuation
+            float hfAttenDirectivity = 0.0f;
+            if (directivityDeg < 360 && hfShelfDb < 0.0f)
+            {
+                float dx = reverbFeedPos.x - inputPos.x;
+                float dy = reverbFeedPos.y - inputPos.y;
+                float dz = reverbFeedPos.z - inputPos.z;
+                float rawDistance = std::sqrt (dx * dx + dy * dy + dz * dz);
+
+                if (rawDistance > 0.001f)
+                {
+                    float invDist = 1.0f / rawDistance;
+                    float toReverbX = dx * invDist;
+                    float toReverbY = dy * invDist;
+                    float toReverbZ = dz * invDist;
+
+                    float dotProduct = facingX * toReverbX + facingY * toReverbY + facingZ * toReverbZ;
+                    dotProduct = juce::jlimit (-1.0f, 1.0f, dotProduct);
+
+                    float angleToReverb = std::acos (dotProduct);
+                    float halfDirectivity = directivityRad * 0.5f;
+
+                    if (angleToReverb > halfDirectivity)
+                    {
+                        float transitionRange = juce::MathConstants<float>::pi - halfDirectivity;
+                        if (transitionRange > 0.001f)
+                        {
+                            float progress = (angleToReverb - halfDirectivity) / transitionRange;
+                            progress = juce::jmin (1.0f, progress);
+                            float sinArg = progress * juce::MathConstants<float>::halfPi;
+                            hfAttenDirectivity = hfShelfDb * std::sqrt (std::sin (sinArg));
+                        }
+                    }
+                }
+            }
+
+            float hfAtten = hfAttenReverb + hfAttenDirectivity;
+            newInputReverbHF[matrixIdx] = juce::jlimit (-60.0f, 0.0f, hfAtten);
+        }
+
+        // Delay post-processing for reverb feeds
+        if (minimalLatencyMode == 1)
+        {
+            // Minimal Latency Mode: find minimum delay among valid reverbs
+            float minDelay = std::numeric_limits<float>::max();
+            bool foundValid = false;
+
+            for (int revIdx = 0; revIdx < numReverbs; ++revIdx)
+            {
+                if (validReverbForMinLatency[static_cast<size_t> (revIdx)])
+                {
+                    const size_t matrixIdx = static_cast<size_t> (inIdx * numReverbs + revIdx);
+                    if (newInputReverbDelays[matrixIdx] < minDelay)
+                    {
+                        minDelay = newInputReverbDelays[matrixIdx];
+                        foundValid = true;
+                    }
+                }
+            }
+
+            if (foundValid)
+            {
+                for (int revIdx = 0; revIdx < numReverbs; ++revIdx)
+                {
+                    const size_t matrixIdx = static_cast<size_t> (inIdx * numReverbs + revIdx);
+                    if (newInputReverbLevels[matrixIdx] > 0.0f)
+                    {
+                        float finalDelay = newInputReverbDelays[matrixIdx] - minDelay;
+                        newInputReverbDelays[matrixIdx] = juce::jmax (0.0f, finalDelay);
+                    }
+                }
+            }
+        }
+        else
+        {
+            // Acoustic Precedence Mode: add haas/latency offsets
+            for (int revIdx = 0; revIdx < numReverbs; ++revIdx)
+            {
+                const size_t matrixIdx = static_cast<size_t> (inIdx * numReverbs + revIdx);
+                if (newInputReverbLevels[matrixIdx] > 0.0f)
+                {
+                    auto channelSection = valueTreeState.getReverbChannelSection (revIdx);
+                    float reverbDelayLat = channelSection.getProperty (reverbDelayLatency, reverbDelayLatencyDefault);
+
+                    float finalDelay = newInputReverbDelays[matrixIdx] + globalHaasEffect - globalSystemLatency
+                                       + inputDelayLat + reverbDelayLat;
+                    newInputReverbDelays[matrixIdx] = juce::jmax (0.0f, finalDelay);
+                }
+            }
+        }
+
+        // Apply common attenuation adjustment (from outputs) and convert to linear levels
+        for (int revIdx = 0; revIdx < numReverbs; ++revIdx)
+        {
+            const size_t matrixIdx = static_cast<size_t> (inIdx * numReverbs + revIdx);
+
+            if (newInputReverbLevels[matrixIdx] <= 0.0f)
+                continue;
+
+            float attenuationDb = tempReverbAttenuationDb[static_cast<size_t> (revIdx)];
+            float angularAtten = tempReverbAngularAtten[static_cast<size_t> (revIdx)];
+
+            // Apply common attenuation adjustment (clamped to 0dB - no amplification)
+            attenuationDb += commonAttenAdjustment;
+            attenuationDb = juce::jlimit (-92.0f, 0.0f, attenuationDb);
+
+            float linearLevel = std::pow (10.0f, attenuationDb / 20.0f);
+            linearLevel *= angularAtten;
+
+            newInputReverbLevels[matrixIdx] = linearLevel;
+        }
+    }
+
+    // ==========================================================================
+    // REVERB RETURN → OUTPUT CALCULATIONS
+    // ==========================================================================
+    // Reverb returns act like simplified inputs (ambient sources)
+
+    // Temporary arrays for reverb return level post-processing
+    std::vector<float> tempReverbReturnAttenDb (static_cast<size_t> (numOutputs));
+    std::vector<float> tempReverbReturnAngularAtten (static_cast<size_t> (numOutputs));
+    std::vector<bool> validOutputForReverbMinLatency (static_cast<size_t> (numOutputs), false);
+    std::vector<bool> validOutputForReverbCommonAtten (static_cast<size_t> (numOutputs), false);
+
+    for (int revIdx = 0; revIdx < numReverbs; ++revIdx)
+    {
+        const Position& returnPos = localReverbReturnPositions[static_cast<size_t> (revIdx)];
+
+        // Get reverb return parameters
+        auto returnSection = valueTreeState.getReverbReturnSection (revIdx);
+        float reverbDistAtten = returnSection.getProperty (reverbDistanceAttenuation, reverbDistanceAttenuationDefault);
+        int reverbCommonAttenPct = returnSection.getProperty (reverbCommonAtten, reverbCommonAttenDefault);
+        float reverbCommonAttenFactor = static_cast<float> (reverbCommonAttenPct) / 100.0f;
+
+        auto feedSection = valueTreeState.getReverbFeedSection (revIdx);
+        int reverbMiniLatEnable = feedSection.getProperty (reverbMiniLatencyEnable, reverbMiniLatencyEnableDefault);
+
+        // Reset tracking arrays
+        std::fill (validOutputForReverbMinLatency.begin(), validOutputForReverbMinLatency.end(), false);
+        std::fill (validOutputForReverbCommonAtten.begin(), validOutputForReverbCommonAtten.end(), false);
+        std::fill (tempReverbReturnAttenDb.begin(), tempReverbReturnAttenDb.end(), -92.0f);
+        std::fill (tempReverbReturnAngularAtten.begin(), tempReverbReturnAngularAtten.end(), 0.0f);
+
+        for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
+        {
+            const size_t matrixIdx = static_cast<size_t> (revIdx * numOutputs + outIdx);
+
+            // Check reverb→output mute
+            if (isReverbOutputMuted (revIdx, outIdx))
+            {
+                newReverbOutputDelays[matrixIdx] = 0.0f;
+                newReverbOutputLevels[matrixIdx] = 0.0f;
+                newReverbOutputHF[matrixIdx] = 0.0f;
+                continue;
+            }
+
+            const Position& speakerPos = localSpeakerPositions[static_cast<size_t> (outIdx)];
+            const Position& listenerPos = localListenerPositions[static_cast<size_t> (outIdx)];
+
+            // Get output parameters
+            auto outputOptionsSection = valueTreeState.getOutputOptionsSection (outIdx);
+            auto outputPositionSection = valueTreeState.getOutputPositionSection (outIdx);
+
+            int outputMiniLatEnable = outputOptionsSection.getProperty (outputMiniLatencyEnable, 1);
+            float outputDistAttenPercent = outputOptionsSection.getProperty (outputDistanceAttenPercent, 100.0f);
+            float outputHFdamp = outputPositionSection.getProperty (outputHFdamping, outputHFdampingDefault);
+
+            // Angular attenuation: use output's angular parameters on reverb return position
+            // (reverb returns are treated like inputs - can be screened by speaker facing)
+            float angularAtten = calculateAngularAttenuation (-1, outIdx, returnPos, speakerPos);
+
+            if (angularAtten <= 0.0f)
+            {
+                newReverbOutputDelays[matrixIdx] = 0.0f;
+                newReverbOutputLevels[matrixIdx] = 0.0f;
+                newReverbOutputHF[matrixIdx] = 0.0f;
+                continue;
+            }
+
+            // Track validity for minimal latency and common attenuation
+            if (outputMiniLatEnable == 1 && reverbMiniLatEnable == 1)
+                validOutputForReverbMinLatency[static_cast<size_t> (outIdx)] = true;
+
+            validOutputForReverbCommonAtten[static_cast<size_t> (outIdx)] = true;
+
+            // Distance calculations
+            float returnToSpeaker = distance3D (returnPos, speakerPos);
+            float returnToListener = distance3D (returnPos, listenerPos);
+            float speakerToListener = distance3D (speakerPos, listenerPos);
+
+            // Delay calculation with parallax
+            float delayMeters = returnToListener - speakerToListener;
+            float delayMs = (delayMeters / speedOfSound) * 1000.0f;
+            newReverbOutputDelays[matrixIdx] = juce::jmax (0.0f, delayMs);
+
+            // Level attenuation: simple dB/m rate (no law switching)
+            float attenuationDb = reverbDistAtten * returnToSpeaker;
+            attenuationDb *= (outputDistAttenPercent / 100.0f);
+            attenuationDb = juce::jlimit (-92.0f, 0.0f, attenuationDb);
+
+            tempReverbReturnAttenDb[static_cast<size_t> (outIdx)] = attenuationDb;
+            tempReverbReturnAngularAtten[static_cast<size_t> (outIdx)] = angularAtten;
+            newReverbOutputLevels[matrixIdx] = 1.0f;  // Mark as active
+
+            // HF attenuation (output HF damping only, no directivity for reverb returns)
+            float hfAtten = outputHFdamp * returnToSpeaker;
+            newReverbOutputHF[matrixIdx] = juce::jlimit (-60.0f, 0.0f, hfAtten);
+        }
+
+        // Delay post-processing for reverb returns
+        // Find minimum delay among valid outputs
+        float minDelay = std::numeric_limits<float>::max();
+        bool foundValid = false;
+
+        for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
+        {
+            if (validOutputForReverbMinLatency[static_cast<size_t> (outIdx)])
+            {
+                const size_t matrixIdx = static_cast<size_t> (revIdx * numOutputs + outIdx);
+                if (newReverbOutputDelays[matrixIdx] < minDelay)
+                {
+                    minDelay = newReverbOutputDelays[matrixIdx];
+                    foundValid = true;
+                }
+            }
+        }
+
+        if (foundValid)
+        {
+            for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
+            {
+                const size_t matrixIdx = static_cast<size_t> (revIdx * numOutputs + outIdx);
+                if (newReverbOutputLevels[matrixIdx] > 0.0f)
+                {
+                    float finalDelay = newReverbOutputDelays[matrixIdx] - minDelay;
+                    newReverbOutputDelays[matrixIdx] = juce::jmax (0.0f, finalDelay);
+                }
+            }
+        }
+
+        // Level post-processing: apply reverbCommonAtten
+        // Note: 100% = keep full original attenuation (no lift), 0% = apply full lift
+        float reverbCommonAttenAdjust = 0.0f;
+
+        if (reverbCommonAttenFactor < 1.0f)
+        {
+            // Find minimum attenuation among valid outputs
+            float minAttenuation = -92.0f;
+            bool foundValidForCommon = false;
+
+            for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
+            {
+                if (validOutputForReverbCommonAtten[static_cast<size_t> (outIdx)])
+                {
+                    float atten = tempReverbReturnAttenDb[static_cast<size_t> (outIdx)];
+                    if (atten > minAttenuation)
+                    {
+                        minAttenuation = atten;
+                        foundValidForCommon = true;
+                    }
+                }
+            }
+
+            // Invert factor: 0% → full lift, 100% → no lift
+            if (foundValidForCommon)
+                reverbCommonAttenAdjust = -minAttenuation * (1.0f - reverbCommonAttenFactor);
+        }
+
+        // Apply common attenuation and convert to linear
+        for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
+        {
+            const size_t matrixIdx = static_cast<size_t> (revIdx * numOutputs + outIdx);
+
+            if (newReverbOutputLevels[matrixIdx] <= 0.0f)
+                continue;
+
+            float attenuationDb = tempReverbReturnAttenDb[static_cast<size_t> (outIdx)];
+            float angularAtten = tempReverbReturnAngularAtten[static_cast<size_t> (outIdx)];
+
+            attenuationDb += reverbCommonAttenAdjust;
+            attenuationDb = juce::jlimit (-92.0f, 0.0f, attenuationDb);
+
+            float linearLevel = std::pow (10.0f, attenuationDb / 20.0f);
+            linearLevel *= angularAtten;
+
+            newReverbOutputLevels[matrixIdx] = linearLevel;
+        }
+    }
+
+    // Update all matrices under lock
     {
         const juce::ScopedLock sl (matrixLock);
+
+        // Input → Output
         delayTimesMs = std::move (newDelays);
         levels = std::move (newLevels);
         hfAttenuationDb = std::move (newHF);
+
+        // Input → Reverb Feed
+        inputReverbDelayTimesMs = std::move (newInputReverbDelays);
+        inputReverbLevels = std::move (newInputReverbLevels);
+        inputReverbHFAttenuationDb = std::move (newInputReverbHF);
+
+        // Reverb Return → Output
+        reverbOutputDelayTimesMs = std::move (newReverbOutputDelays);
+        reverbOutputLevels = std::move (newReverbOutputLevels);
+        reverbOutputHFAttenuationDb = std::move (newReverbOutputHF);
     }
 }
 
@@ -474,6 +1386,24 @@ int WFSCalculationEngine::findInputIndexFromTree (const juce::ValueTree& tree) c
     return -1;
 }
 
+int WFSCalculationEngine::findReverbIndexFromTree (const juce::ValueTree& tree) const
+{
+    juce::ValueTree current = tree;
+
+    while (current.isValid())
+    {
+        if (current.getType() == Reverb)
+        {
+            auto parent = current.getParent();
+            if (parent.isValid())
+                return parent.indexOf (current);
+        }
+        current = current.getParent();
+    }
+
+    return -1;
+}
+
 //==============================================================================
 // ValueTree::Listener
 //==============================================================================
@@ -519,6 +1449,36 @@ void WFSCalculationEngine::valueTreePropertyChanged (juce::ValueTree& tree,
         {
             const juce::ScopedLock sl (positionLock);
             updateInputPosition (inputIndex);
+        }
+        return;
+    }
+
+    // Reverb position properties
+    bool isReverbPositionProperty = (property == reverbPositionX ||
+                                     property == reverbPositionY ||
+                                     property == reverbPositionZ);
+
+    bool isReverbReturnOffsetProperty = (property == reverbReturnOffsetX ||
+                                         property == reverbReturnOffsetY ||
+                                         property == reverbReturnOffsetZ);
+
+    if (isReverbPositionProperty || isReverbReturnOffsetProperty)
+    {
+        int reverbIndex = findReverbIndexFromTree (tree);
+
+        if (reverbIndex >= 0 && reverbIndex < numReverbs)
+        {
+            const juce::ScopedLock sl (positionLock);
+
+            if (isReverbPositionProperty)
+            {
+                updateReverbFeedPosition (reverbIndex);
+                updateReverbReturnPosition (reverbIndex);  // Return depends on feed
+            }
+            else
+            {
+                updateReverbReturnPosition (reverbIndex);
+            }
         }
     }
 

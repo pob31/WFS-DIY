@@ -5,7 +5,7 @@ Wave Field Synthesis (WFS) audio application built with JUCE framework for real-
 
 ## Current Implementation Status (As of 2025-12-15)
 
-### Overall Progress: ~45% Complete
+### Overall Progress: ~50% Complete
 
 The application has established a solid foundation with infrastructure and core UI:
 - Complete parameter management system
@@ -16,6 +16,7 @@ The application has established a solid foundation with infrastructure and core 
 - Complete Clusters management
 - Network Log window
 - **DSP Calculation Layer** (delay/level/HF matrices from geometry)
+- **Input Visualisation** (real-time DSP matrix display)
 
 **Major features still to implement:**
 - Audio Patch routing window with input/output matrices
@@ -59,7 +60,7 @@ The application has established a solid foundation with infrastructure and core 
 | Audio Engine | 70% | Dual algorithm support with DSP calculation layer |
 | Separate Windows | 50% | Log window complete, Patch window TODO |
 | Map View | 90% | Interactive multitouch map complete |
-| Data Processing | 80% | WFS delay/level/HF calculations implemented |
+| Data Processing | 90% | WFS delay/level/HF + reverb matrices implemented |
 | DSP Algorithms | 70% | Delay/gain/HF filters working, reverb TODO |
 
 ---
@@ -76,6 +77,7 @@ The DSP calculation layer transforms human control parameters into real-time DSP
 - **OutputBufferProcessor.h** - Per-output threaded audio processor
 - **InputBufferAlgorithm.h** - Manages collection of InputBufferProcessors
 - **OutputBufferAlgorithm.h** - Manages collection of OutputBufferProcessors
+- **InputVisualisationComponent.h** - Real-time DSP matrix visualization
 
 ### Coordinate System
 - **X**: Across stage (left-right)
@@ -168,6 +170,45 @@ return (angleOff - angle) / (angleOff - angleOn);  // Transition
 | `inputDistanceAttenuation` | Input Attenuation | Distance attenuation factor |
 | `inputHeightFactor` | Input Position | Z scaling (0-100%) |
 | `inputMutes` | Input Options | Comma-separated muted outputs |
+| `inputCommonAtten` | Input Attenuation | Common attenuation % (see below) |
+
+### Common Attenuation
+Prevents upstage sources from losing too much overall level by lifting all attenuations toward the minimum:
+- **100%** = Keep full original attenuation (no lift applied)
+- **0%** = Apply full lift (all outputs raised to match minimum attenuation)
+- Formula: `adjustment = -minAttenuation * (1.0 - commonAttenFactor)`
+
+### Reverb Channel Calculations
+WFSCalculationEngine handles two additional matrix paths for reverb:
+
+**Input → Reverb Feed** (numInputs × numReverbs):
+- Reverb feeds act like simplified outputs (spatial microphones)
+- No parallax: `delayMs = inputToReverbFeed / speedOfSound * 1000.0f`
+- Uses input's attenuation law (linear or inverse square)
+- Receives common attenuation adjustment from outputs (but not included in minimum search)
+- Muted when `inputMuteReverbSends = 1`
+
+**Reverb Return → Output** (numReverbs × numOutputs):
+- Reverb returns act like simplified inputs (ambient sources)
+- Uses parallax: `delayMs = (returnToListener - speakerToListener) / speedOfSound * 1000.0f`
+- Simple dB/m attenuation (no law switching)
+- Has its own `reverbCommonAtten` parameter (same 0-100% interpretation)
+- Per-output mutes via `reverbMutes` array
+
+**Return Position**: `returnPos = feedPos + returnOffset`
+
+### Input Visualisation Component
+Real-time display of DSP matrix values in InputsTab "Visualisation" sub-tab:
+- **Row 1 (Yellow)**: Delay times (0-350ms)
+- **Row 2 (Pink)**: HF attenuation (-24 to 0 dB)
+- **Row 3 (Blue)**: Level attenuation (-60 to 0 dB)
+
+Features:
+- One vertical slider per output channel + reverb feed
+- Updates at 50Hz from WFSCalculationEngine
+- Hover tooltips showing "Output X: value unit"
+- Gap between output and reverb sections
+- Adjusts to user-configured channel counts
 
 ---
 
@@ -478,13 +519,14 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 - `Source/MainComponent.h/cpp` - Application entry point, keyboard handling, 50Hz DSP timer
 - `Source/WfsParameters.h/cpp` - Parameter definitions
 - `Source/Parameters/WFSValueTreeState.h/cpp` - State management
-- `Source/DSP/WFSCalculationEngine.h/cpp` - WFS delay/level/HF matrix calculations
+- `Source/DSP/WFSCalculationEngine.h/cpp` - WFS delay/level/HF + reverb matrix calculations
 - `Source/DSP/WFSHighShelfFilter.h` - HF air absorption biquad filter
 - `Source/DSP/InputBufferProcessor.h` - Per-input threaded audio processor
 - `Source/DSP/OutputBufferProcessor.h` - Per-output threaded audio processor
 - `Source/Network/OSCManager.h/cpp` - Network coordination
 - `Source/Network/OSCLogger.h/cpp` - Message logging
 - `Source/gui/InputsTab.h` - Input channel controls with joystick
+- `Source/gui/InputVisualisationComponent.h` - DSP matrix visualization sliders
 - `Source/gui/ReverbTab.h` - Reverb settings with EQ
 - `Source/gui/NetworkLogWindow.h/cpp` - Log window UI
 - `Source/gui/OutputArrayHelperWindow.h/cpp` - Wizard of OutZ window

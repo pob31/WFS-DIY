@@ -191,6 +191,7 @@ public:
     // Callback types for notifying MainComponent of changes
     using ProcessingCallback = std::function<void(bool enabled)>;
     using ChannelCountCallback = std::function<void(int inputs, int outputs)>;
+    using ReverbCountCallback = std::function<void(int reverbs)>;
     using AudioInterfaceCallback = std::function<void()>;
 
     SystemConfigTab(WfsParameters& params)
@@ -637,6 +638,11 @@ public:
         onAudioInterfaceWindowRequested = callback;
     }
 
+    void setReverbCountCallback(ReverbCountCallback callback)
+    {
+        onReverbCountChanged = callback;
+    }
+
     /** Grab focus when this tab becomes visible to prevent auto-focus on first TextEditor */
     void visibilityChanged() override
     {
@@ -836,7 +842,12 @@ private:
         else if (&editor == &reverbChannelsEditor)
         {
             // This creates the actual reverb channel nodes in the ValueTree
-            parameters.setNumReverbChannels(text.getIntValue());
+            int reverbs = text.getIntValue();
+            parameters.setNumReverbChannels(reverbs);
+
+            // Notify MainComponent of the change
+            if (onReverbCountChanged)
+                onReverbCountChanged(reverbs);
         }
         else if (&editor == &stageWidthEditor)
             parameters.setConfigParam("StageWidth", text.getFloatValue());
@@ -1352,6 +1363,7 @@ private:
     // Callbacks for notifying MainComponent
     ProcessingCallback onProcessingChanged;
     ChannelCountCallback onChannelCountChanged;
+    ReverbCountCallback onReverbCountChanged;
     AudioInterfaceCallback onAudioInterfaceWindowRequested;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SystemConfigTab)

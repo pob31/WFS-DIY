@@ -185,6 +185,10 @@ MainComponent::MainComponent()
         handleChannelCountChange(inputs, outputs);
     });
 
+    systemConfigTab->setReverbCountCallback([this](int reverbs) {
+        handleReverbCountChange(reverbs);
+    });
+
     systemConfigTab->setAudioInterfaceCallback([this]() {
         openAudioInterfaceWindow();
     });
@@ -224,6 +228,10 @@ MainComponent::MainComponent()
         if (oscManager)
             oscManager->setRemoteSelectedChannel(channelId);
     };
+
+    // Configure the visualisation component with user-configured channel counts
+    inputsTab->configureVisualisation(parameters.getNumOutputChannels(),
+                                      parameters.getNumReverbChannels());
 
     // Make sure you set the size of the component after
     // you add any child components.
@@ -442,6 +450,23 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs)
     numOutputChannels = outputs;
     stopProcessingForConfigurationChange();
     resizeRoutingMatrices();
+
+    // Reconfigure visualisation with new channel counts
+    if (inputsTab != nullptr)
+    {
+        inputsTab->configureVisualisation(outputs,
+                                          parameters.getNumReverbChannels());
+    }
+}
+
+void MainComponent::handleReverbCountChange(int reverbs)
+{
+    // Reconfigure visualisation with new reverb count
+    if (inputsTab != nullptr)
+    {
+        inputsTab->configureVisualisation(parameters.getNumOutputChannels(),
+                                          reverbs);
+    }
 }
 
 void MainComponent::openAudioInterfaceWindow()
@@ -777,6 +802,16 @@ void MainComponent::timerCallback()
             targetDelayTimesMs[i] = calcDelays[i];
             targetLevels[i] = calcLevels[i];
             hfAttenuation[i] = calcHF[i];  // HF doesn't need smoothing - filter handles it
+        }
+
+        // Update visualisation with current DSP matrix values
+        if (inputsTab != nullptr)
+        {
+            inputsTab->updateVisualisation(
+                calcDelays, calcLevels, calcHF,
+                calculationEngine->getInputReverbDelayTimesMs(),
+                calculationEngine->getInputReverbLevels(),
+                calculationEngine->getInputReverbHFAttenuationDb());
         }
     }
 

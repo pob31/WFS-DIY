@@ -9,6 +9,7 @@
 #include "StatusBar.h"
 #include "WfsJoystickComponent.h"
 #include "sliders/WfsAutoCenterSlider.h"
+#include "InputVisualisationComponent.h"
 
 //==============================================================================
 // Custom Transport Button - Play (right-pointing triangle)
@@ -195,6 +196,7 @@ public:
         subTabBar.addTab("Hackoustics", juce::Colour(0xFF2A2A2A), -1);
         subTabBar.addTab("L.F.O", juce::Colour(0xFF2A2A2A), -1);
         subTabBar.addTab("AutomOtion", juce::Colour(0xFF2A2A2A), -1);
+        subTabBar.addTab("Visualisation", juce::Colour(0xFF2A2A2A), -1);
         subTabBar.addTab("Mutes", juce::Colour(0xFF2A2A2A), -1);
         subTabBar.setCurrentTabIndex(0);
         subTabBar.addChangeListener(static_cast<juce::ChangeListener*>(this));
@@ -207,6 +209,7 @@ public:
         setupEffectsTab();
         setupLfoTab();
         setupAutomotionTab();
+        setupVisualisationTab();
         setupMutesTab();
 
         // ==================== FOOTER - STORE/RELOAD BUTTONS ====================
@@ -417,6 +420,37 @@ public:
         setupOscMethods();
         setupMouseListeners();
     }
+
+    /**
+     * Configure the visualisation component with output and reverb counts.
+     * Call this after system configuration is loaded.
+     */
+    void configureVisualisation(int numOutputs, int numReverbs)
+    {
+        visualisationComponent.configure(numOutputs, numReverbs);
+        visualisationComponent.setSelectedInput(currentChannel - 1);
+    }
+
+    /**
+     * Update the visualisation with current DSP matrix values.
+     * Call this from a timer at ~50Hz.
+     *
+     * @param delaysMs Delay times array [input * numOutputs + output]
+     * @param levels Level values array (linear 0-1)
+     * @param hfDb HF attenuation array (dB, negative)
+     * @param reverbDelaysMs Input→Reverb delay times [input * numReverbs + reverb]
+     * @param reverbLevels Input→Reverb levels (linear 0-1)
+     * @param reverbHfDb Input→Reverb HF attenuation (dB)
+     */
+    void updateVisualisation(const float* delaysMs, const float* levels, const float* hfDb,
+                             const float* reverbDelaysMs, const float* reverbLevels, const float* reverbHfDb)
+    {
+        visualisationComponent.updateValues(delaysMs, levels, hfDb,
+                                            reverbDelaysMs, reverbLevels, reverbHfDb);
+    }
+
+    /** Get a reference to the visualisation component for direct updates */
+    InputVisualisationComponent& getVisualisationComponent() { return visualisationComponent; }
 
 private:
     // ==================== CHANGE LISTENER ====================
@@ -1637,6 +1671,12 @@ private:
         };
     }
 
+    void setupVisualisationTab()
+    {
+        addAndMakeVisible(visualisationComponent);
+        // Configuration will be done when WFSCalculationEngine is connected
+    }
+
     void setupMutesTab()
     {
         // Create 64 mute toggle buttons (8x8 grid)
@@ -1742,6 +1782,7 @@ private:
         setEffectsVisible(false);
         setLfoVisible(false);
         setAutomotionVisible(false);
+        setVisualisationVisible(false);
         setMutesVisible(false);
 
         // Show current
@@ -1752,7 +1793,8 @@ private:
         else if (tabIndex == 4) { setEffectsVisible(true); layoutEffectsTab(); }
         else if (tabIndex == 5) { setLfoVisible(true); layoutLfoTab(); }
         else if (tabIndex == 6) { setAutomotionVisible(true); layoutAutomotionTab(); }
-        else if (tabIndex == 7) { setMutesVisible(true); layoutMutesTab(); }
+        else if (tabIndex == 7) { setVisualisationVisible(true); layoutVisualisationTab(); }
+        else if (tabIndex == 8) { setMutesVisible(true); layoutMutesTab(); }
     }
 
     void setInputPropertiesVisible(bool v)
@@ -2407,6 +2449,16 @@ private:
         otomoResetValueLabel.setBounds(rightCol.removeFromTop(rowHeight));
     }
 
+    void setVisualisationVisible(bool v)
+    {
+        visualisationComponent.setVisible(v);
+    }
+
+    void layoutVisualisationTab()
+    {
+        visualisationComponent.setBounds(subTabContentArea);
+    }
+
     void setMutesVisible(bool v)
     {
         int numOutputs = parameters.getNumOutputChannels();
@@ -2912,6 +2964,9 @@ private:
             for (int i = 0; i < 64; ++i)
                 muteButtons[i].setToggleState(false, juce::dontSendNotification);
         }
+
+        // Update visualisation component's selected input
+        visualisationComponent.setSelectedInput(currentChannel - 1);
 
         isLoadingParameters = false;
         updateMapButtonStates();
@@ -3612,7 +3667,7 @@ private:
         if (tree == configTree && property == WFSParameterIDs::outputChannels)
         {
             // Update mute button visibility and layout if Mutes tab is visible
-            if (subTabBar.getCurrentTabIndex() == 7)  // Mutes tab
+            if (subTabBar.getCurrentTabIndex() == 8)  // Mutes tab
             {
                 setMutesVisible(true);
                 layoutMutesTab();
@@ -4061,6 +4116,9 @@ private:
     PlayButton otomoStartButton;
     StopButton otomoStopButton;
     PauseButton otomoPauseButton;
+
+    // Visualisation tab
+    InputVisualisationComponent visualisationComponent;
 
     // Mutes tab
     juce::TextButton muteButtons[64];

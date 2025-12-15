@@ -144,6 +144,7 @@ private:
     // Handlers for callbacks from System Config tab
     void handleProcessingChange(bool enabled);
     void handleChannelCountChange(int inputs, int outputs);
+    void handleReverbCountChange(int reverbs);
 
     // Keyboard handling helpers
     enum class ChannelSelectionMode { None, Input, Output, Reverb };
