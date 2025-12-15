@@ -4,6 +4,7 @@
 #include "../WfsParameters.h"
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/WFSParameterDefaults.h"
+#include "ColorUtilities.h"
 #include "WfsJoystickComponent.h"
 #include "sliders/WfsAutoCenterSlider.h"
 #include "dials/WfsEndlessDial.h"
@@ -33,8 +34,12 @@ public:
             auto* btn = new juce::TextButton(juce::String(i + 1));
             btn->setClickingTogglesState(true);
             btn->setRadioGroupId(1001);
-            btn->setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF3A3A3A));
-            btn->setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFF4CAF50));
+            // Use cluster colors matching Map tab
+            juce::Colour clusterColor = WfsColorUtilities::getMarkerColor(i + 1, true);
+            btn->setColour(juce::TextButton::buttonColourId, clusterColor.darker(0.6f));  // Darker when not selected
+            btn->setColour(juce::TextButton::buttonOnColourId, clusterColor);  // Full color when selected
+            btn->setColour(juce::TextButton::textColourOffId, juce::Colours::black);
+            btn->setColour(juce::TextButton::textColourOnId, juce::Colours::black);
             btn->onClick = [this, i]() {
                 selectCluster(i + 1);
             };
@@ -438,12 +443,12 @@ private:
             if (inputCount > 0)
             {
                 btn->setButtonText(juce::String(c) + " (" + juce::String(inputCount) + ")");
-                btn->setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+                btn->setColour(juce::TextButton::textColourOffId, juce::Colours::black);
             }
             else
             {
                 btn->setButtonText(juce::String(c));
-                btn->setColour(juce::TextButton::textColourOffId, juce::Colours::grey);
+                btn->setColour(juce::TextButton::textColourOffId, juce::Colours::black.withAlpha(0.5f));  // Semi-transparent for empty clusters
             }
         }
     }

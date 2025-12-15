@@ -454,10 +454,11 @@ namespace WFSParameterDefaults
     /**
      * Calculate default input position distributed across the stage.
      * Inputs are arranged in rows of up to 8, centered on the stage.
+     * Returns origin-relative coordinates (position relative to coordinate origin).
      */
     inline void getDefaultInputPosition (int index, int totalInputs,
                                          float stageWidth, float stageDepth, float /*stageHeight*/,
-                                         float /*originW*/, float /*originD*/, float /*originH*/,
+                                         float originW, float originD, float /*originH*/,
                                          float& x, float& y, float& z)
     {
         const int numCols = juce::jmin (8, totalInputs);
@@ -468,8 +469,12 @@ namespace WFSParameterDefaults
         const float colSpacing = stageWidth / (float)(numCols + 1);
         const float rowSpacing = stageDepth / (float)(numRows + 1);
 
-        x = colSpacing * (col + 1);
-        y = rowSpacing * (row + 1);
+        // Calculate absolute stage position, then convert to origin-relative
+        float absX = colSpacing * (col + 1);
+        float absY = rowSpacing * (row + 1);
+
+        x = absX - originW;
+        y = absY - originD;
         z = 0.0f;
     }
 

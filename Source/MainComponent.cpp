@@ -193,6 +193,10 @@ MainComponent::MainComponent()
         openAudioInterfaceWindow();
     });
 
+    systemConfigTab->setConfigReloadedCallback([this]() {
+        handleConfigReloaded();
+    });
+
     // Add tabs to tabbed component
     tabbedComponent.addTab("System Configuration", juce::Colours::darkgrey, systemConfigTab, true);
     tabbedComponent.addTab("Network", juce::Colours::darkgrey, networkTab, true);
@@ -467,6 +471,30 @@ void MainComponent::handleReverbCountChange(int reverbs)
         inputsTab->configureVisualisation(parameters.getNumOutputChannels(),
                                           reverbs);
     }
+}
+
+void MainComponent::handleConfigReloaded()
+{
+    DBG("MainComponent::handleConfigReloaded() - refreshing all tabs");
+
+    // Refresh all tabs to show newly loaded config data
+    if (networkTab != nullptr)
+        networkTab->refreshFromValueTree();
+
+    if (inputsTab != nullptr)
+        inputsTab->refreshFromValueTree();
+
+    if (outputsTab != nullptr)
+        outputsTab->refreshFromValueTree();
+
+    if (reverbTab != nullptr)
+        reverbTab->refreshFromValueTree();
+
+    if (mapTab != nullptr)
+        mapTab->repaint();
+
+    if (clustersTab != nullptr)
+        clustersTab->repaint();
 }
 
 void MainComponent::openAudioInterfaceWindow()

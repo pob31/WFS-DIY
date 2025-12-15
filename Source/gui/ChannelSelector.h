@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "ColorUtilities.h"
 
 /**
  * Channel Selector Overlay Component
@@ -10,10 +11,16 @@
 class ChannelSelectorOverlay : public juce::Component
 {
 public:
-    ChannelSelectorOverlay(int numChannels, int currentChannel, std::function<void(int)> onChannelSelected)
+    ChannelSelectorOverlay(int numChannels, int currentChannel, std::function<void(int)> onChannelSelected,
+                          std::function<juce::Colour(int)> channelColorProvider = nullptr,
+                          std::function<juce::String(int)> channelNameProvider = nullptr,
+                          std::function<juce::Colour(int)> textColorProvider = nullptr)
         : totalChannels(numChannels),
           selectedChannel(currentChannel),
-          onSelect(std::move(onChannelSelected))
+          onSelect(std::move(onChannelSelected)),
+          getChannelColor(std::move(channelColorProvider)),
+          getChannelName(std::move(channelNameProvider)),
+          getTextColor(std::move(textColorProvider))
     {
         setOpaque(false);
         setAlwaysOnTop(true);
@@ -25,7 +32,22 @@ public:
         // Create channel buttons
         for (int i = 1; i <= totalChannels; ++i)
         {
-            auto* btn = new juce::TextButton(juce::String(i));
+            // Get button text - show name if available, otherwise just number
+            juce::String buttonText;
+            if (getChannelName)
+            {
+                juce::String name = getChannelName(i);
+                if (name.isNotEmpty())
+                    buttonText = juce::String(i) + "\n" + name;
+                else
+                    buttonText = juce::String(i);
+            }
+            else
+            {
+                buttonText = juce::String(i);
+            }
+
+            auto* btn = new juce::TextButton(buttonText);
             btn->setClickingTogglesState(false);
             btn->onClick = [this, i]() {
                 if (onSelect)
@@ -87,17 +109,33 @@ public:
 
             channelButtons[i]->setBounds(x, y, buttonWidth, buttonHeight);
 
-            // Highlight selected channel
-            if (i + 1 == selectedChannel)
+            // Get color for this channel
+            juce::Colour buttonColor;
+            if (getChannelColor)
             {
-                channelButtons[i]->setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF4080FF));
-                channelButtons[i]->setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+                // Use custom color from provider
+                buttonColor = getChannelColor(i + 1);
+
+                // If this is the selected channel, brighten it slightly
+                if (i + 1 == selectedChannel)
+                    buttonColor = buttonColor.brighter(0.3f);
             }
             else
             {
-                channelButtons[i]->setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF2A2A2A));
-                channelButtons[i]->setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+                // Default color scheme
+                if (i + 1 == selectedChannel)
+                    buttonColor = juce::Colour(0xFF4080FF);
+                else
+                    buttonColor = juce::Colour(0xFF2A2A2A);
             }
+
+            // Get text color for this channel
+            juce::Colour textColor = juce::Colours::black;  // Default to black
+            if (getTextColor)
+                textColor = getTextColor(i + 1);
+
+            channelButtons[i]->setColour(juce::TextButton::buttonColourId, buttonColor);
+            channelButtons[i]->setColour(juce::TextButton::textColourOffId, textColor);
         }
     }
 
@@ -126,6 +164,9 @@ private:
     int numColumns = 8;
     int numRows = 1;
     std::function<void(int)> onSelect;
+    std::function<juce::Colour(int)> getChannelColor;
+    std::function<juce::String(int)> getChannelName;
+    std::function<juce::Colour(int)> getTextColor;
 
     juce::OwnedArray<juce::TextButton> channelButtons;
     juce::TextButton closeButton;
@@ -147,6 +188,30 @@ public:
         selectorButton.onClick = [this]() { showOverlay(); };
         updateButtonText();
         addAndMakeVisible(selectorButton);
+    }
+
+    /** Set a custom color provider function for channel buttons.
+     *  The function receives a channel number (1-based) and returns a color.
+     */
+    void setChannelColorProvider(std::function<juce::Colour(int)> provider)
+    {
+        channelColorProvider = std::move(provider);
+    }
+
+    /** Set a custom name provider function for channel buttons.
+     *  The function receives a channel number (1-based) and returns a name string.
+     */
+    void setChannelNameProvider(std::function<juce::String(int)> provider)
+    {
+        channelNameProvider = std::move(provider);
+    }
+
+    /** Set a custom text color provider function for channel buttons.
+     *  The function receives a channel number (1-based) and returns a text color.
+     */
+    void setTextColorProvider(std::function<juce::Colour(int)> provider)
+    {
+        textColorProvider = std::move(provider);
     }
 
     void setNumChannels(int num)
@@ -242,7 +307,10 @@ private:
                                 safeThis->grabKeyboardFocus();
                         });
                     });
-                }
+                },
+                channelColorProvider,  // Pass the color provider to the overlay
+                channelNameProvider,   // Pass the name provider to the overlay
+                textColorProvider      // Pass the text color provider to the overlay
             );
 
             overlay->setBounds(parent->getLocalBounds());
@@ -254,6 +322,9 @@ private:
     juce::TextButton selectorButton;
     int numChannels = 64;
     int currentChannel = 1;
+    std::function<juce::Colour(int)> channelColorProvider;
+    std::function<juce::String(int)> channelNameProvider;
+    std::function<juce::Colour(int)> textColorProvider;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChannelSelectorButton)
 };

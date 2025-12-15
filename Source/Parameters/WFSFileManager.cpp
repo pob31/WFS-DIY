@@ -168,6 +168,12 @@ bool WFSFileManager::saveCompleteConfig()
         errors.add ("Outputs: " + lastError);
     }
 
+    if (!saveReverbConfig())
+    {
+        success = false;
+        errors.add ("Reverbs: " + lastError);
+    }
+
     if (!success)
         setError (errors.joinIntoString ("; "));
 
@@ -176,55 +182,92 @@ bool WFSFileManager::saveCompleteConfig()
 
 bool WFSFileManager::loadCompleteConfig()
 {
+    DBG ("WFSFileManager::loadCompleteConfig() - starting");
+    DBG ("  Project folder: " << projectFolder.getFullPathName());
+
     if (!hasValidProjectFolder())
     {
         setError ("No valid project folder");
+        DBG ("  ERROR: No valid project folder");
         return false;
     }
+
+    // Clear any previous errors
+    lastError = juce::String();
 
     // Load all individual configuration files
     bool success = true;
     juce::StringArray errors;
 
-    valueTreeState.beginUndoTransaction ("Load Complete Configuration");
+    // Note: No undo transaction needed for config reload - changes are intentional and don't need undo
 
+    DBG ("  Loading system config from: " << getSystemConfigFile().getFullPathName());
     if (!loadSystemConfig())
     {
         success = false;
         errors.add ("System: " + lastError);
+        DBG ("  FAILED: System - " << lastError);
     }
+    else
+        DBG ("  OK: System config loaded");
 
+    DBG ("  Loading network config from: " << getNetworkConfigFile().getFullPathName());
     if (!loadNetworkConfig())
     {
         success = false;
         errors.add ("Network: " + lastError);
+        DBG ("  FAILED: Network - " << lastError);
     }
+    else
+        DBG ("  OK: Network config loaded");
 
+    DBG ("  Loading input config from: " << getInputConfigFile().getFullPathName());
     if (!loadInputConfig())
     {
         success = false;
         errors.add ("Inputs: " + lastError);
+        DBG ("  FAILED: Inputs - " << lastError);
     }
+    else
+        DBG ("  OK: Input config loaded");
 
+    DBG ("  Loading output config from: " << getOutputConfigFile().getFullPathName());
     if (!loadOutputConfig())
     {
         success = false;
         errors.add ("Outputs: " + lastError);
+        DBG ("  FAILED: Outputs - " << lastError);
     }
+    else
+        DBG ("  OK: Output config loaded");
+
+    DBG ("  Loading reverb config from: " << getReverbConfigFile().getFullPathName());
+    if (!loadReverbConfig())
+    {
+        success = false;
+        errors.add ("Reverbs: " + lastError);
+        DBG ("  FAILED: Reverbs - " << lastError);
+    }
+    else
+        DBG ("  OK: Reverb config loaded");
 
     if (!success)
         setError (errors.joinIntoString ("; "));
 
+    DBG ("WFSFileManager::loadCompleteConfig() - " << (success ? "SUCCESS" : "FAILED"));
     return success;
 }
 
 bool WFSFileManager::loadCompleteConfigBackup (int backupIndex)
 {
+    // Clear any previous errors
+    lastError = juce::String();
+
     // Load most recent backups for each file type
     bool success = true;
     juce::StringArray errors;
 
-    valueTreeState.beginUndoTransaction ("Load Complete Configuration from Backup");
+    // Note: No undo transaction needed for config reload - changes are intentional and don't need undo
 
     if (!loadSystemConfigBackup (backupIndex))
     {
@@ -248,6 +291,12 @@ bool WFSFileManager::loadCompleteConfigBackup (int backupIndex)
     {
         success = false;
         errors.add ("Outputs: " + lastError);
+    }
+
+    if (!loadReverbConfigBackup (backupIndex))
+    {
+        success = false;
+        errors.add ("Reverbs: " + lastError);
     }
 
     if (!success)
@@ -274,7 +323,7 @@ bool WFSFileManager::importCompleteConfig (const juce::File& file)
         return false;
     }
 
-    valueTreeState.beginUndoTransaction ("Import Complete Configuration");
+    // Note: No undo transaction needed for config import - changes are intentional and don't need undo
     valueTreeState.replaceState (loadedState);
     return true;
 }
@@ -342,17 +391,29 @@ bool WFSFileManager::importSystemConfig (const juce::File& file)
     if (!loadedState.isValid())
         return false;
 
-    valueTreeState.beginUndoTransaction ("Import System Configuration");
+    // Note: Transaction management should be done by caller (e.g., loadCompleteConfig)
+    // to avoid nested transactions. Individual callers should begin their own transaction.
+
+    bool appliedSomething = false;
 
     auto configTree = loadedState.getChildWithName (Config);
     if (configTree.isValid())
+    {
         applyConfigSection (configTree);
+        appliedSomething = true;
+    }
 
     auto audioPatchTree = loadedState.getChildWithName (AudioPatch);
     if (audioPatchTree.isValid())
+    {
         applyAudioPatchSection (audioPatchTree);
+        appliedSomething = true;
+    }
 
-    return true;
+    if (!appliedSomething)
+        setError ("No valid system data found in file: " + file.getFullPathName());
+
+    return appliedSomething;
 }
 
 //==============================================================================
@@ -415,7 +476,8 @@ bool WFSFileManager::importNetworkConfig (const juce::File& file)
     if (!loadedState.isValid())
         return false;
 
-    valueTreeState.beginUndoTransaction ("Import Network Configuration");
+    // Note: Transaction management should be done by caller (e.g., loadCompleteConfig)
+    // to avoid nested transactions. Individual callers should begin their own transaction.
 
     // Look for NetworkSettings container (new format)
     auto networkSettings = loadedState.getChildWithName ("NetworkSettings");
@@ -503,7 +565,8 @@ bool WFSFileManager::importInputConfig (const juce::File& file)
         return false;
     }
 
-    valueTreeState.beginUndoTransaction ("Import Input Configuration");
+    // Note: Transaction management should be done by caller (e.g., loadCompleteConfig)
+    // to avoid nested transactions. Individual callers should begin their own transaction.
     return applyInputsSection (inputsTree);
 }
 
@@ -574,7 +637,8 @@ bool WFSFileManager::importOutputConfig (const juce::File& file)
         return false;
     }
 
-    valueTreeState.beginUndoTransaction ("Import Output Configuration");
+    // Note: Transaction management should be done by caller (e.g., loadCompleteConfig)
+    // to avoid nested transactions. Individual callers should begin their own transaction.
     return applyOutputsSection (outputsTree);
 }
 
@@ -645,7 +709,8 @@ bool WFSFileManager::importReverbConfig (const juce::File& file)
         return false;
     }
 
-    valueTreeState.beginUndoTransaction ("Import Reverb Configuration");
+    // Note: Transaction management should be done by caller (e.g., loadCompleteConfig)
+    // to avoid nested transactions. Individual callers should begin their own transaction.
     return applyReverbsSection (reverbsTree);
 }
 
@@ -910,7 +975,14 @@ juce::ValueTree WFSFileManager::readFromXmlFile (const juce::File& file)
         return {};
     }
 
-    return juce::ValueTree::fromXml (*xml);
+    auto tree = juce::ValueTree::fromXml (*xml);
+    if (!tree.isValid())
+    {
+        setError ("Failed to create ValueTree from XML: " + file.getFullPathName());
+        return {};
+    }
+
+    return tree;
 }
 
 juce::ValueTree WFSFileManager::extractConfigSection() const
@@ -991,12 +1063,29 @@ juce::ValueTree WFSFileManager::extractNetworkSection() const
 bool WFSFileManager::applyConfigSection (const juce::ValueTree& configTree)
 {
     auto existingConfig = valueTreeState.getConfigState();
-    if (existingConfig.isValid())
-    {
-        existingConfig.copyPropertiesAndChildrenFrom (configTree, valueTreeState.getUndoManager());
-        return true;
-    }
-    return false;
+    if (!existingConfig.isValid())
+        return false;
+
+    auto* undoManager = valueTreeState.getUndoManager();
+
+    // Preserve Network, ADMOSC, and Tracking children (they're managed separately in network.xml)
+    // because copyPropertiesAndChildrenFrom would wipe them out
+    auto preservedNetwork = existingConfig.getChildWithName (Network).createCopy();
+    auto preservedAdmOsc = existingConfig.getChildWithName (ADMOSC).createCopy();
+    auto preservedTracking = existingConfig.getChildWithName (Tracking).createCopy();
+
+    // Copy properties and children from loaded config
+    existingConfig.copyPropertiesAndChildrenFrom (configTree, undoManager);
+
+    // Restore the network-related children if they were removed
+    if (preservedNetwork.isValid() && !existingConfig.getChildWithName (Network).isValid())
+        existingConfig.appendChild (preservedNetwork, undoManager);
+    if (preservedAdmOsc.isValid() && !existingConfig.getChildWithName (ADMOSC).isValid())
+        existingConfig.appendChild (preservedAdmOsc, undoManager);
+    if (preservedTracking.isValid() && !existingConfig.getChildWithName (Tracking).isValid())
+        existingConfig.appendChild (preservedTracking, undoManager);
+
+    return true;
 }
 
 bool WFSFileManager::applyInputsSection (const juce::ValueTree& inputsTree)
@@ -1047,10 +1136,14 @@ bool WFSFileManager::applyNetworkSection (const juce::ValueTree& networkContaine
 {
     auto config = valueTreeState.getConfigState();
     if (!config.isValid())
+    {
+        setError ("Config state is invalid");
         return false;
+    }
 
     auto* undoManager = valueTreeState.getUndoManager();
     bool success = false;
+    juce::StringArray failedSections;
 
     // Apply Network section
     auto loadedNetwork = networkContainer.getChildWithName (Network);
@@ -1061,6 +1154,10 @@ bool WFSFileManager::applyNetworkSection (const juce::ValueTree& networkContaine
         {
             existingNetwork.copyPropertiesAndChildrenFrom (loadedNetwork, undoManager);
             success = true;
+        }
+        else
+        {
+            failedSections.add ("Network (no existing section)");
         }
     }
 
@@ -1074,6 +1171,10 @@ bool WFSFileManager::applyNetworkSection (const juce::ValueTree& networkContaine
             existingAdmOsc.copyPropertiesAndChildrenFrom (loadedAdmOsc, undoManager);
             success = true;
         }
+        else
+        {
+            failedSections.add ("ADMOSC (no existing section)");
+        }
     }
 
     // Apply Tracking section
@@ -1086,7 +1187,16 @@ bool WFSFileManager::applyNetworkSection (const juce::ValueTree& networkContaine
             existingTracking.copyPropertiesAndChildrenFrom (loadedTracking, undoManager);
             success = true;
         }
+        else
+        {
+            failedSections.add ("Tracking (no existing section)");
+        }
     }
+
+    if (!success && failedSections.size() > 0)
+        setError ("Failed to apply: " + failedSections.joinIntoString (", "));
+    else if (!success)
+        setError ("No network sections found in file");
 
     return success;
 }

@@ -193,6 +193,7 @@ public:
     using ChannelCountCallback = std::function<void(int inputs, int outputs)>;
     using ReverbCountCallback = std::function<void(int reverbs)>;
     using AudioInterfaceCallback = std::function<void()>;
+    using ConfigReloadedCallback = std::function<void()>;
 
     SystemConfigTab(WfsParameters& params)
         : parameters(params)
@@ -643,6 +644,11 @@ public:
         onReverbCountChanged = callback;
     }
 
+    void setConfigReloadedCallback(ConfigReloadedCallback callback)
+    {
+        onConfigReloaded = callback;
+    }
+
     /** Grab focus when this tab becomes visible to prevent auto-focus on first TextEditor */
     void visibilityChanged() override
     {
@@ -1064,15 +1070,33 @@ private:
             return;
         }
 
-        auto configFile = fileManager.getCompleteConfigFile();
-        if (!configFile.existsAsFile())
-        {
-            showStatusMessage("Configuration file not found.");
-            return;
-        }
-
+        // Load complete config from individual files (system.xml, network.xml, inputs.xml, outputs.xml, reverbs.xml)
         if (fileManager.loadCompleteConfig())
+        {
             showStatusMessage("Complete configuration loaded.");
+
+            // Notify MainComponent of channel count changes to refresh UI
+            if (onChannelCountChanged)
+            {
+                int inputs = static_cast<int>(parameters.getConfigParam("InputChannels"));
+                int outputs = static_cast<int>(parameters.getConfigParam("OutputChannels"));
+                onChannelCountChanged(inputs, outputs);
+            }
+
+            // Notify MainComponent of reverb count changes
+            if (onReverbCountChanged)
+            {
+                int reverbs = static_cast<int>(parameters.getConfigParam("ReverbChannels"));
+                onReverbCountChanged(reverbs);
+            }
+
+            // Refresh the UI to show loaded values
+            loadParametersToUI();
+
+            // Notify MainComponent to refresh all tabs
+            if (onConfigReloaded)
+                onConfigReloaded();
+        }
         else
             showStatusMessage("Error: " + fileManager.getLastError());
     }
@@ -1095,7 +1119,31 @@ private:
         }
 
         if (fileManager.loadCompleteConfigBackup(0))
+        {
             showStatusMessage("Configuration loaded from backup.");
+
+            // Notify MainComponent of channel count changes to refresh UI
+            if (onChannelCountChanged)
+            {
+                int inputs = static_cast<int>(parameters.getConfigParam("InputChannels"));
+                int outputs = static_cast<int>(parameters.getConfigParam("OutputChannels"));
+                onChannelCountChanged(inputs, outputs);
+            }
+
+            // Notify MainComponent of reverb count changes
+            if (onReverbCountChanged)
+            {
+                int reverbs = static_cast<int>(parameters.getConfigParam("ReverbChannels"));
+                onReverbCountChanged(reverbs);
+            }
+
+            // Refresh the UI to show loaded values
+            loadParametersToUI();
+
+            // Notify MainComponent to refresh all tabs
+            if (onConfigReloaded)
+                onConfigReloaded();
+        }
         else
             showStatusMessage("Error: " + fileManager.getLastError());
     }
@@ -1365,6 +1413,7 @@ private:
     ChannelCountCallback onChannelCountChanged;
     ReverbCountCallback onReverbCountChanged;
     AudioInterfaceCallback onAudioInterfaceWindowRequested;
+    ConfigReloadedCallback onConfigReloaded;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SystemConfigTab)
 };

@@ -3432,6 +3432,7 @@
     <ClInclude Include="..\..\Source\WfsParameters.h"/>
     <ClInclude Include="..\..\Source\WFSAlgorithm.h"/>
     <ClInclude Include="..\..\Source\DSP\WFSCalculationEngine.h"/>
+    <ClInclude Include="..\..\Source\DSP\WFSHighShelfFilter.h"/>
     <ClInclude Include="..\..\Source\DSP\InputBufferProcessor.h"/>
     <ClInclude Include="..\..\Source\DSP\OutputBufferProcessor.h"/>
     <ClInclude Include="..\..\Source\DSP\InputBufferAlgorithm.h"/>

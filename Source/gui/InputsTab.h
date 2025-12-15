@@ -4,6 +4,7 @@
 #include "../WfsParameters.h"
 #include "../Parameters/WFSParameterIDs.h"
 #include "ChannelSelector.h"
+#include "ColorUtilities.h"
 #include "SliderUIComponents.h"
 #include "DialUIComponents.h"
 #include "StatusBar.h"
@@ -146,6 +147,15 @@ public:
             if (onChannelSelected)
                 onChannelSelected(channel);
         };
+        // Set color provider to match input marker colors from Map tab
+        channelSelector.setChannelColorProvider([](int channelId) -> juce::Colour {
+            return WfsColorUtilities::getInputColor(channelId);
+        });
+        // Set name provider to show input names on selector tiles
+        channelSelector.setChannelNameProvider([this](int channelId) -> juce::String {
+            juce::String name = parameters.getInputParam(channelId - 1, "inputName").toString();
+            return name.isEmpty() ? juce::String() : name;
+        });
         addAndMakeVisible(channelSelector);
 
         // Input Name
@@ -286,6 +296,9 @@ public:
 
     /** Get the currently selected channel (1-based) */
     int getCurrentChannel() const { return currentChannel; }
+
+    /** Refresh UI from ValueTree - call after config reload */
+    void refreshFromValueTree() { loadChannelParameters(currentChannel); }
 
     /** Select a specific channel (1-based). Triggers onChannelSelected callback.
      *  Uses programmatic selection to prevent keyboard Enter from triggering overlay.

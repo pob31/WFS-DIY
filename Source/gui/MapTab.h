@@ -5,6 +5,7 @@
 #include "../WfsParameters.h"
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/WFSParameterDefaults.h"
+#include "ColorUtilities.h"
 
 /**
  * Map Tab Component
@@ -1471,23 +1472,8 @@ private:
     //==========================================================================
     // Color Helpers (matching Android WFS Control app)
     //==========================================================================
-
-    static juce::Colour getMarkerColor(int id, bool isClusterMarker = false)
-    {
-        // HSL-based colors matching Android app
-        // For inputs: hue = (id * 360 / 32) % 360, saturation = 0.9, lightness = 0.6
-        // For clusters: hue = (id * 360 / 10) % 360, saturation = 0.7, lightness = 0.7
-        int totalMarkers = isClusterMarker ? 10 : 32;
-        float hue = std::fmod((id * 360.0f / totalMarkers), 360.0f) / 360.0f;
-        float saturation = isClusterMarker ? 0.7f : 0.9f;
-        float lightness = isClusterMarker ? 0.7f : 0.6f;
-        return juce::Colour::fromHSL(hue, saturation, lightness, 1.0f);
-    }
-
-    static juce::Colour getArrayColor(int arrayNumber)
-    {
-        return getMarkerColor(arrayNumber, true);
-    }
+    // NOTE: Color functions moved to ColorUtilities.h for shared use across components.
+    // Use WfsColorUtilities::getMarkerColor(), getInputColor(), or getArrayColor() instead.
 
     //==========================================================================
     // Drawing Methods
@@ -1557,8 +1543,16 @@ private:
     void drawOutputs(juce::Graphics& g)
     {
         int numOutputs = parameters.getNumOutputChannels();
-        float originW = getOriginWidth();
-        float originD = getOriginDepth();
+
+        // Debug: Print first output position
+        if (numOutputs > 0)
+        {
+            auto posXVar = parameters.getOutputParam(0, "outputPositionX");
+            auto posYVar = parameters.getOutputParam(0, "outputPositionY");
+            DBG("MapTab::drawOutputs - numOutputs=" << numOutputs
+                << " output[0] posX=" << (posXVar.isVoid() ? "VOID" : posXVar.toString())
+                << " posY=" << (posYVar.isVoid() ? "VOID" : posYVar.toString()));
+        }
 
         for (int i = 0; i < numOutputs; ++i)
         {
@@ -1583,17 +1577,16 @@ private:
             if (!visible)
                 continue;
 
-            // Output positions are relative to origin, convert to absolute stage coordinates
-            float relX = static_cast<float>(parameters.getOutputParam(i, "outputPositionX"));
-            float relY = static_cast<float>(parameters.getOutputParam(i, "outputPositionY"));
-            float posX = originW + relX;
-            float posY = originD + relY;
+            // Output positions are already origin-relative (like inputs)
+            // stageToScreen expects origin-relative coordinates
+            float posX = static_cast<float>(parameters.getOutputParam(i, "outputPositionX"));
+            float posY = static_cast<float>(parameters.getOutputParam(i, "outputPositionY"));
             int orientation = static_cast<int>(parameters.getOutputParam(i, "outputOrientation"));
 
             auto screenPos = stageToScreen({ posX, posY });
 
             // Get membrane color - array color if part of array, light grey otherwise
-            juce::Colour membraneColor = (array == 0) ? juce::Colours::lightgrey : getArrayColor(array);
+            juce::Colour membraneColor = (array == 0) ? juce::Colours::lightgrey : WfsColorUtilities::getArrayColor(array);
 
             // Draw speaker keystone shape showing orientation
             // Orientation 0° = pointing toward audience (up on screen, which is -Y in screen coords)
@@ -1678,16 +1671,23 @@ private:
             return;
 
         int numReverbs = parameters.getNumReverbChannels();
-        float originW = getOriginWidth();
-        float originD = getOriginDepth();
+
+        // Debug: Print first reverb position
+        if (numReverbs > 0)
+        {
+            auto posXVar = parameters.getReverbParam(0, "reverbPositionX");
+            auto posYVar = parameters.getReverbParam(0, "reverbPositionY");
+            DBG("MapTab::drawReverbs - numReverbs=" << numReverbs
+                << " reverb[0] posX=" << (posXVar.isVoid() ? "VOID" : posXVar.toString())
+                << " posY=" << (posYVar.isVoid() ? "VOID" : posYVar.toString()));
+        }
 
         for (int i = 0; i < numReverbs; ++i)
         {
-            // Reverb positions are relative to origin, convert to absolute stage coordinates
-            float relX = static_cast<float>(parameters.getReverbParam(i, "reverbPositionX"));
-            float relY = static_cast<float>(parameters.getReverbParam(i, "reverbPositionY"));
-            float posX = originW + relX;
-            float posY = originD + relY;
+            // Reverb positions are already origin-relative (like inputs)
+            // stageToScreen expects origin-relative coordinates
+            float posX = static_cast<float>(parameters.getReverbParam(i, "reverbPositionX"));
+            float posY = static_cast<float>(parameters.getReverbParam(i, "reverbPositionY"));
 
             auto screenPos = stageToScreen({ posX, posY });
 
@@ -1767,7 +1767,7 @@ private:
                 bool isSelected = (selectedBarycenter == cluster);
 
                 // Fill with cluster color
-                g.setColour(getMarkerColor(cluster, true));
+                g.setColour(WfsColorUtilities::getMarkerColor(cluster, true));
                 g.fillEllipse(refPos.x - barycenterRadius, refPos.y - barycenterRadius,
                               barycenterRadius * 2, barycenterRadius * 2);
 
@@ -1789,7 +1789,7 @@ private:
             }
 
             // Draw lines from reference to each member
-            g.setColour(getMarkerColor(cluster, true).withAlpha(0.4f));
+            g.setColour(WfsColorUtilities::getMarkerColor(cluster, true).withAlpha(0.4f));
 
             for (int idx : clusterMembers)
             {
@@ -1908,7 +1908,7 @@ private:
         }
         else
         {
-            outerColor = getMarkerColor(inputIndex + 1);  // 1-based for color
+            outerColor = WfsColorUtilities::getInputColor(inputIndex + 1);  // 1-based for color
 
             // Label color based on tracking/reference state
             if (isTracked && isReference)

@@ -161,6 +161,9 @@ public:
         onNetworkLogWindowRequested = std::move(callback);
     }
 
+    /** Refresh UI from ValueTree - call after config reload */
+    void refreshFromValueTree() { loadParametersFromValueTree(); }
+
     void setOSCManager(WFSNetwork::OSCManager* manager)
     {
         oscManager = manager;

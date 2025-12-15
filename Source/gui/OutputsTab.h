@@ -4,6 +4,7 @@
 #include "../WfsParameters.h"
 #include "../Parameters/WFSParameterIDs.h"
 #include "ChannelSelector.h"
+#include "ColorUtilities.h"
 #include "SliderUIComponents.h"
 #include "DialUIComponents.h"
 #include "StatusBar.h"
@@ -42,6 +43,25 @@ public:
         channelSelector.onChannelChanged = [this](int channel) {
             loadChannelParameters(channel);
         };
+        // Set color provider to match array colors from Map tab
+        channelSelector.setChannelColorProvider([this](int channelId) -> juce::Colour {
+            // Get the array assignment for this output (0 = Single, 1-10 = Array 1-10)
+            int array = static_cast<int>(parameters.getOutputParam(channelId - 1, "outputArray"));
+            if (array == 0)
+                return juce::Colour(0xFF2A2A2A);  // Dark gray for "Single" outputs
+            else
+                return WfsColorUtilities::getArrayColor(array);
+        });
+        // Set name provider to show output names on selector tiles
+        channelSelector.setChannelNameProvider([this](int channelId) -> juce::String {
+            juce::String name = parameters.getOutputParam(channelId - 1, "outputName").toString();
+            return name.isEmpty() ? juce::String() : name;
+        });
+        // Set text color provider - white for "Single" outputs, black for array outputs
+        channelSelector.setTextColorProvider([this](int channelId) -> juce::Colour {
+            int array = static_cast<int>(parameters.getOutputParam(channelId - 1, "outputArray"));
+            return (array == 0) ? juce::Colours::white : juce::Colours::black;
+        });
         addAndMakeVisible(channelSelector);
 
         // Output Name
@@ -149,6 +169,9 @@ public:
 
     /** Get the total number of output channels */
     int getNumChannels() const { return parameters.getNumOutputChannels(); }
+
+    /** Refresh UI from ValueTree - call after config reload */
+    void refreshFromValueTree() { loadChannelParameters(currentChannel); }
 
     /** Cycle to next/previous channel. delta=1 for next, delta=-1 for previous. Wraps around. */
     void cycleChannel(int delta)
@@ -627,9 +650,16 @@ private:
         eqBandShapeSelector[bandIndex].setAlpha(shapeAlpha);
 
         // Parameters follow both global EQ and band off state
+        eqBandFreqLabel[bandIndex].setVisible(true);
+        eqBandFreqSlider[bandIndex].setVisible(true);
+        eqBandFreqValueLabel[bandIndex].setVisible(true);
         eqBandFreqLabel[bandIndex].setAlpha(paramAlpha);
         eqBandFreqSlider[bandIndex].setAlpha(paramAlpha);
         eqBandFreqValueLabel[bandIndex].setAlpha(paramAlpha);
+
+        eqBandQLabel[bandIndex].setVisible(true);
+        eqBandQDial[bandIndex].setVisible(true);
+        eqBandQValueLabel[bandIndex].setVisible(true);
         eqBandQLabel[bandIndex].setAlpha(paramAlpha);
         eqBandQDial[bandIndex].setAlpha(paramAlpha);
         eqBandQValueLabel[bandIndex].setAlpha(paramAlpha);

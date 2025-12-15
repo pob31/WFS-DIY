@@ -82,6 +82,9 @@ public:
 
     int getNumChannels() const { return channelSelector.getNumChannels(); }
 
+    /** Refresh UI from ValueTree - call after config reload */
+    void refreshFromValueTree() { loadChannelParameters(currentChannel); }
+
     void cycleChannel (int delta)
     {
         int numChannels = channelSelector.getNumChannels();

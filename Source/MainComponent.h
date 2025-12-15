@@ -145,6 +145,7 @@ private:
     void handleProcessingChange(bool enabled);
     void handleChannelCountChange(int inputs, int outputs);
     void handleReverbCountChange(int reverbs);
+    void handleConfigReloaded();
 
     // Keyboard handling helpers
     enum class ChannelSelectionMode { None, Input, Output, Reverb };

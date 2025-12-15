@@ -125,6 +125,9 @@ class InputVisualisationComponent : public juce::Component,
 public:
     InputVisualisationComponent()
     {
+        // Create tooltip window for hover tooltips on sliders
+        tooltipWindow = std::make_unique<juce::TooltipWindow>(this, 300);
+
         // Row labels
         addAndMakeVisible(delayLabel);
         delayLabel.setText("delay", juce::dontSendNotification);
@@ -423,6 +426,9 @@ private:
     juce::Label delayLabel, delayUnitLabel;
     juce::Label hfLabel, hfUnitLabel;
     juce::Label levelLabel, levelUnitLabel;
+
+    // Tooltip window for hover tooltips on sliders
+    std::unique_ptr<juce::TooltipWindow> tooltipWindow;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(InputVisualisationComponent)
 };

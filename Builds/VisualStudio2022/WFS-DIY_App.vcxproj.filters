@@ -4482,6 +4482,9 @@
     <ClInclude Include="..\..\Source\DSP\WFSCalculationEngine.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\DSP\WFSHighShelfFilter.h">
+      <Filter>WFS-DIY\Source\DSP</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\DSP\InputBufferProcessor.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
