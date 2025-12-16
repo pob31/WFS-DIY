@@ -304,6 +304,9 @@ public:
     /** Refresh UI from ValueTree - call after config reload */
     void refreshFromValueTree() { loadChannelParameters(currentChannel); }
 
+    /** Callback when input config is reloaded - for triggering DSP recalculation */
+    std::function<void()> onConfigReloaded;
+
     /** Select a specific channel (1-based). Triggers onChannelSelected callback.
      *  Uses programmatic selection to prevent keyboard Enter from triggering overlay.
      */
@@ -3445,6 +3448,10 @@ private:
         {
             loadChannelParameters(currentChannel);
             showStatusMessage("Input configuration loaded.");
+
+            // Trigger DSP recalculation via callback to MainComponent
+            if (onConfigReloaded)
+                onConfigReloaded();
         }
         else
             showStatusMessage("Error: " + fileManager.getLastError());
@@ -3457,6 +3464,10 @@ private:
         {
             loadChannelParameters(currentChannel);
             showStatusMessage("Input configuration loaded from backup.");
+
+            // Trigger DSP recalculation via callback to MainComponent
+            if (onConfigReloaded)
+                onConfigReloaded();
         }
         else
             showStatusMessage("Error: " + fileManager.getLastError());
@@ -3479,6 +3490,10 @@ private:
                 {
                     loadChannelParameters(currentChannel);
                     showStatusMessage("Input configuration imported.");
+
+                    // Trigger DSP recalculation via callback to MainComponent
+                    if (onConfigReloaded)
+                        onConfigReloaded();
                 }
                 else
                     showStatusMessage("Error: " + fileManager.getLastError());

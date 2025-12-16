@@ -88,6 +88,9 @@ public:
     /** Refresh UI from ValueTree - call after config reload */
     void refreshFromValueTree() { loadChannelParameters(currentChannel); }
 
+    /** Callback when reverb config is reloaded - for triggering DSP recalculation */
+    std::function<void()> onConfigReloaded;
+
     void cycleChannel (int delta)
     {
         int numChannels = channelSelector.getNumChannels();
@@ -1452,6 +1455,10 @@ private:
         {
             loadChannelParameters (currentChannel);
             showStatusMessage ("Reverb configuration loaded.");
+
+            // Trigger DSP recalculation via callback to MainComponent
+            if (onConfigReloaded)
+                onConfigReloaded();
         }
         else
             showStatusMessage ("Error: " + fileManager.getLastError());
@@ -1469,6 +1476,10 @@ private:
         {
             loadChannelParameters (currentChannel);
             showStatusMessage ("Reverb configuration loaded from backup.");
+
+            // Trigger DSP recalculation via callback to MainComponent
+            if (onConfigReloaded)
+                onConfigReloaded();
         }
         else
             showStatusMessage ("Error: " + fileManager.getLastError());
@@ -1489,6 +1500,10 @@ private:
                     {
                         loadChannelParameters (currentChannel);
                         showStatusMessage ("Reverb configuration imported.");
+
+                        // Trigger DSP recalculation via callback to MainComponent
+                        if (onConfigReloaded)
+                            onConfigReloaded();
                     }
                     else
                         showStatusMessage ("Error: " + fileManager.getLastError());

@@ -176,6 +176,9 @@ public:
     /** Refresh UI from ValueTree - call after config reload */
     void refreshFromValueTree() { loadChannelParameters(currentChannel); }
 
+    /** Callback when output config is reloaded - for triggering DSP recalculation */
+    std::function<void()> onConfigReloaded;
+
     /** Cycle to next/previous channel. delta=1 for next, delta=-1 for previous. Wraps around. */
     void cycleChannel(int delta)
     {
@@ -1396,6 +1399,10 @@ private:
         {
             loadChannelParameters(currentChannel);
             showStatusMessage("Output configuration loaded.");
+
+            // Trigger DSP recalculation via callback to MainComponent
+            if (onConfigReloaded)
+                onConfigReloaded();
         }
         else
             showStatusMessage("Error: " + fileManager.getLastError());
@@ -1408,6 +1415,10 @@ private:
         {
             loadChannelParameters(currentChannel);
             showStatusMessage("Output configuration loaded from backup.");
+
+            // Trigger DSP recalculation via callback to MainComponent
+            if (onConfigReloaded)
+                onConfigReloaded();
         }
         else
             showStatusMessage("Error: " + fileManager.getLastError());
@@ -1430,6 +1441,10 @@ private:
                 {
                     loadChannelParameters(currentChannel);
                     showStatusMessage("Output configuration imported.");
+
+                    // Trigger DSP recalculation via callback to MainComponent
+                    if (onConfigReloaded)
+                        onConfigReloaded();
                 }
                 else
                     showStatusMessage("Error: " + fileManager.getLastError());

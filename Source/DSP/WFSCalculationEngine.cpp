@@ -108,6 +108,10 @@ void WFSCalculationEngine::recalculateAllListenerPositions()
         updateSpeakerPosition (i);
         recalculateListenerPosition (i);
     }
+
+    // Mark outputs as dirty so recalculateMatrix knows to recalculate all input->output pairs
+    outputsDirty.store(true);
+    matrixDirty.store(true);
 }
 
 void WFSCalculationEngine::recalculateAllInputPositions()
@@ -115,9 +119,12 @@ void WFSCalculationEngine::recalculateAllInputPositions()
     const juce::ScopedLock sl (positionLock);
 
     for (int i = 0; i < numInputs; ++i)
-    {
         updateInputPosition (i);
-    }
+
+    // Mark all inputs as dirty so recalculateMatrix knows to recalculate all pairs
+    for (int i = 0; i < numInputs; ++i)
+        inputDirtyFlags[static_cast<size_t>(i)] = true;
+    matrixDirty.store(true);
 }
 
 //==============================================================================
@@ -325,6 +332,10 @@ void WFSCalculationEngine::recalculateAllReverbPositions()
         updateReverbFeedPosition (i);
         updateReverbReturnPosition (i);
     }
+
+    // Mark reverbs as dirty so recalculateMatrix knows to recalculate all reverb-related pairs
+    reverbsDirty.store(true);
+    matrixDirty.store(true);
 }
 
 void WFSCalculationEngine::updateReverbFeedPosition (int reverbIndex)

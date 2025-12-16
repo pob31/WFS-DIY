@@ -197,6 +197,19 @@ MainComponent::MainComponent()
         handleConfigReloaded();
     });
 
+    // Set up callbacks for individual tab config reloads
+    outputsTab->onConfigReloaded = [this]() {
+        handleConfigReloaded();
+    };
+
+    inputsTab->onConfigReloaded = [this]() {
+        handleConfigReloaded();
+    };
+
+    reverbTab->onConfigReloaded = [this]() {
+        handleConfigReloaded();
+    };
+
     // Add tabs to tabbed component
     tabbedComponent.addTab("System Configuration", juce::Colours::darkgrey, systemConfigTab, true);
     tabbedComponent.addTab("Network", juce::Colours::darkgrey, networkTab, true);
@@ -492,7 +505,15 @@ void MainComponent::handleReverbCountChange(int reverbs)
 
 void MainComponent::handleConfigReloaded()
 {
-    DBG("MainComponent::handleConfigReloaded() - refreshing all tabs");
+    // Update local channel counts from newly loaded config
+    int newInputChannels = parameters.getNumInputChannels();
+    int newOutputChannels = parameters.getNumOutputChannels();
+    if (newInputChannels != numInputChannels || newOutputChannels != numOutputChannels)
+    {
+        numInputChannels = newInputChannels;
+        numOutputChannels = newOutputChannels;
+        resizeRoutingMatrices();
+    }
 
     // Refresh all tabs to show newly loaded config data
     if (networkTab != nullptr)
@@ -512,6 +533,81 @@ void MainComponent::handleConfigReloaded()
 
     if (clustersTab != nullptr)
         clustersTab->repaint();
+
+    // Reconfigure visualization with potentially changed channel counts
+    if (inputsTab != nullptr)
+    {
+        // Ensure the selected channel is valid for the new input count
+        int currentChannel = inputsTab->getCurrentChannel();
+        if (currentChannel < 1 || currentChannel > numInputChannels)
+        {
+            inputsTab->selectChannel(1);  // Reset to channel 1 if out of range
+        }
+
+        inputsTab->configureVisualisation(parameters.getNumOutputChannels(),
+                                          parameters.getNumReverbChannels());
+    }
+
+    // Force full recalculation of DSP matrix after config reload
+    // Positions may have changed - recalculate all cached positions
+    if (calculationEngine != nullptr)
+    {
+        calculationEngine->recalculateAllListenerPositions();
+        calculationEngine->recalculateAllInputPositions();
+        calculationEngine->recalculateAllReverbPositions();
+
+        // Force immediate recalculation (don't wait for next timer tick)
+        calculationEngine->recalculateMatrix();
+
+        // Immediately update visualization with recalculated values
+        if (inputsTab != nullptr)
+        {
+            const float* calcDelays = calculationEngine->getDelayTimesMs();
+            const float* calcLevels = calculationEngine->getLevels();
+            const float* calcHF = calculationEngine->getHFAttenuationDb();
+            const int calcStride = calculationEngine->getNumOutputs();
+
+            // Copy to local arrays with correct stride
+            for (int inIdx = 0; inIdx < numInputChannels; ++inIdx)
+            {
+                for (int outIdx = 0; outIdx < numOutputChannels; ++outIdx)
+                {
+                    int srcIdx = inIdx * calcStride + outIdx;
+                    int dstIdx = inIdx * numOutputChannels + outIdx;
+                    targetDelayTimesMs[dstIdx] = calcDelays[srcIdx];
+                    targetLevels[dstIdx] = calcLevels[srcIdx];
+                    hfAttenuation[dstIdx] = calcHF[srcIdx];
+                }
+            }
+
+            // Create reverb arrays with correct stride
+            const float* calcReverbDelays = calculationEngine->getInputReverbDelayTimesMs();
+            const float* calcReverbLevels = calculationEngine->getInputReverbLevels();
+            const float* calcReverbHF = calculationEngine->getInputReverbHFAttenuationDb();
+            const int calcReverbStride = calculationEngine->getNumReverbs();
+            int numReverbs = parameters.getNumReverbChannels();
+
+            std::vector<float> reverbDelays(numInputChannels * numReverbs);
+            std::vector<float> reverbLevels(numInputChannels * numReverbs);
+            std::vector<float> reverbHF(numInputChannels * numReverbs);
+
+            for (int inIdx = 0; inIdx < numInputChannels; ++inIdx)
+            {
+                for (int revIdx = 0; revIdx < numReverbs; ++revIdx)
+                {
+                    int srcIdx = inIdx * calcReverbStride + revIdx;
+                    int dstIdx = inIdx * numReverbs + revIdx;
+                    reverbDelays[dstIdx] = calcReverbDelays[srcIdx];
+                    reverbLevels[dstIdx] = calcReverbLevels[srcIdx];
+                    reverbHF[dstIdx] = calcReverbHF[srcIdx];
+                }
+            }
+
+            inputsTab->updateVisualisation(
+                targetDelayTimesMs.data(), targetLevels.data(), hfAttenuation.data(),
+                reverbDelays.data(), reverbLevels.data(), reverbHF.data());
+        }
+    }
 }
 
 void MainComponent::openAudioInterfaceWindow()
@@ -861,26 +957,57 @@ void MainComponent::timerCallback()
         if (calculationEngine->recalculateMatrixIfDirty())
         {
             // Copy calculated values to target arrays
-            int matrixSize = numInputChannels * numOutputChannels;
+            // Note: Calculation engine uses maxOutputChannels (64) for stride,
+            // but our local arrays use numOutputChannels (user-configured)
             const float* calcDelays = calculationEngine->getDelayTimesMs();
             const float* calcLevels = calculationEngine->getLevels();
             const float* calcHF = calculationEngine->getHFAttenuationDb();
+            const int calcStride = calculationEngine->getNumOutputs();  // maxOutputChannels (64)
 
-            for (int i = 0; i < matrixSize; ++i)
+            for (int inIdx = 0; inIdx < numInputChannels; ++inIdx)
             {
-                targetDelayTimesMs[i] = calcDelays[i];
-                targetLevels[i] = calcLevels[i];
-                hfAttenuation[i] = calcHF[i];  // HF doesn't need smoothing - filter handles it
+                for (int outIdx = 0; outIdx < numOutputChannels; ++outIdx)
+                {
+                    int srcIdx = inIdx * calcStride + outIdx;
+                    int dstIdx = inIdx * numOutputChannels + outIdx;
+                    targetDelayTimesMs[dstIdx] = calcDelays[srcIdx];
+                    targetLevels[dstIdx] = calcLevels[srcIdx];
+                    hfAttenuation[dstIdx] = calcHF[srcIdx];  // HF doesn't need smoothing - filter handles it
+                }
             }
 
             // Update visualisation with current DSP matrix values
+            // Use our correctly-strided local arrays (targetDelayTimesMs has numOutputChannels stride)
             if (inputsTab != nullptr)
             {
+                // Create temporary reverb arrays with correct stride for visualization
+                // Calculation engine uses maxReverbChannels (16) stride, but user may have fewer
+                const float* calcReverbDelays = calculationEngine->getInputReverbDelayTimesMs();
+                const float* calcReverbLevels = calculationEngine->getInputReverbLevels();
+                const float* calcReverbHF = calculationEngine->getInputReverbHFAttenuationDb();
+                const int calcReverbStride = calculationEngine->getNumReverbs();  // maxReverbChannels (16)
+                int numReverbs = parameters.getNumReverbChannels();
+
+                // Reindex reverb data with user-configured stride
+                std::vector<float> reverbDelays(numInputChannels * numReverbs);
+                std::vector<float> reverbLevels(numInputChannels * numReverbs);
+                std::vector<float> reverbHF(numInputChannels * numReverbs);
+
+                for (int inIdx = 0; inIdx < numInputChannels; ++inIdx)
+                {
+                    for (int revIdx = 0; revIdx < numReverbs; ++revIdx)
+                    {
+                        int srcIdx = inIdx * calcReverbStride + revIdx;
+                        int dstIdx = inIdx * numReverbs + revIdx;
+                        reverbDelays[dstIdx] = calcReverbDelays[srcIdx];
+                        reverbLevels[dstIdx] = calcReverbLevels[srcIdx];
+                        reverbHF[dstIdx] = calcReverbHF[srcIdx];
+                    }
+                }
+
                 inputsTab->updateVisualisation(
-                    calcDelays, calcLevels, calcHF,
-                    calculationEngine->getInputReverbDelayTimesMs(),
-                    calculationEngine->getInputReverbLevels(),
-                    calculationEngine->getInputReverbHFAttenuationDb());
+                    targetDelayTimesMs.data(), targetLevels.data(), hfAttenuation.data(),
+                    reverbDelays.data(), reverbLevels.data(), reverbHF.data());
             }
         }
 
