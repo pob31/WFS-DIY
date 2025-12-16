@@ -3,6 +3,34 @@
 #include <JuceHeader.h>
 #include "ColorUtilities.h"
 
+// Forward declaration
+class ChannelSelectorOverlay;
+
+/**
+ * Transparent backdrop for click-outside-to-dismiss behavior
+ */
+class ChannelSelectorBackdrop : public juce::Component
+{
+public:
+    ChannelSelectorBackdrop(std::function<void()> onClickOutside)
+        : onClick(std::move(onClickOutside))
+    {
+        setOpaque(false);
+        setInterceptsMouseClicks(true, false);
+    }
+
+    void paint(juce::Graphics&) override {}
+
+    void mouseDown(const juce::MouseEvent&) override
+    {
+        if (onClick)
+            onClick();
+    }
+
+private:
+    std::function<void()> onClick;
+};
+
 /**
  * Channel Selector Overlay Component
  * A reusable grid-based channel selector that opens as an overlay.
@@ -25,9 +53,9 @@ public:
         setOpaque(false);
         setAlwaysOnTop(true);
 
-        // Calculate grid dimensions (prefer 8 columns)
-        numColumns = juce::jmin(8, totalChannels);
-        numRows = (totalChannels + numColumns - 1) / numColumns;
+        // Calculate adaptive grid dimensions - favor rows over columns
+        // since buttons are wider (60) than tall (40)
+        calculateGridDimensions(totalChannels);
 
         // Create channel buttons
         for (int i = 1; i <= totalChannels; ++i)
@@ -68,37 +96,35 @@ public:
 
     void paint(juce::Graphics& g) override
     {
-        // Semi-transparent background overlay
-        g.fillAll(juce::Colours::black.withAlpha(0.85f));
+        auto bounds = getLocalBounds().toFloat();
+
+        // Draw drop shadow
+        juce::DropShadow shadow(juce::Colours::black.withAlpha(0.5f), 8, {2, 2});
+        shadow.drawForRectangle(g, getLocalBounds());
+
+        // Solid background with rounded corners
+        g.setColour(juce::Colour(0xFF2A2A2A));
+        g.fillRoundedRectangle(bounds, 8.0f);
+
+        // Border
+        g.setColour(juce::Colour(0xFF505050));
+        g.drawRoundedRectangle(bounds.reduced(0.5f), 8.0f, 1.0f);
 
         // Draw title
         g.setColour(juce::Colours::white);
-        g.setFont(juce::FontOptions().withHeight(18.0f).withStyle("Bold"));
-        g.drawText("Select Channel", getLocalBounds().removeFromTop(40), juce::Justification::centred);
+        g.setFont(juce::FontOptions().withHeight(14.0f).withStyle("Bold"));
+        g.drawText("Select Channel", padding, padding, getWidth() - padding * 2 - 30, titleHeight - padding,
+                   juce::Justification::centredLeft);
     }
 
     void resized() override
     {
-        auto bounds = getLocalBounds().reduced(20);
-
-        // Title area
-        bounds.removeFromTop(40);
-
         // Close button in top-right
-        closeButton.setBounds(getWidth() - 50, 10, 40, 30);
+        closeButton.setBounds(getWidth() - padding - 24, padding, 24, 20);
 
-        // Calculate button size based on available space
-        const int spacing = 4;
-        const int availableWidth = bounds.getWidth() - (spacing * (numColumns - 1));
-        const int availableHeight = bounds.getHeight() - (spacing * (numRows - 1));
-        const int buttonWidth = availableWidth / numColumns;
-        const int buttonHeight = juce::jmin(40, availableHeight / numRows);
-
-        // Center the grid
-        const int gridWidth = numColumns * buttonWidth + (numColumns - 1) * spacing;
-        const int gridHeight = numRows * buttonHeight + (numRows - 1) * spacing;
-        const int startX = bounds.getX() + (bounds.getWidth() - gridWidth) / 2;
-        const int startY = bounds.getY() + (bounds.getHeight() - gridHeight) / 2;
+        // Position buttons in grid below title
+        const int startX = padding;
+        const int startY = titleHeight;
 
         for (int i = 0; i < channelButtons.size(); ++i)
         {
@@ -126,11 +152,11 @@ public:
                 if (i + 1 == selectedChannel)
                     buttonColor = juce::Colour(0xFF4080FF);
                 else
-                    buttonColor = juce::Colour(0xFF2A2A2A);
+                    buttonColor = juce::Colour(0xFF3A3A3A);
             }
 
             // Get text color for this channel
-            juce::Colour textColor = juce::Colours::black;  // Default to black
+            juce::Colour textColor = juce::Colours::white;  // Default to white for dark buttons
             if (getTextColor)
                 textColor = getTextColor(i + 1);
 
@@ -139,29 +165,81 @@ public:
         }
     }
 
-    void mouseDown(const juce::MouseEvent& e) override
+    // Get the required size for this overlay based on channel count
+    juce::Point<int> getRequiredSize() const
     {
-        // Close if clicking outside the grid area
-        bool clickedOnButton = false;
-        for (auto* btn : channelButtons)
-        {
-            if (btn->getBounds().contains(e.getPosition()))
-            {
-                clickedOnButton = true;
-                break;
-            }
-        }
-        if (!clickedOnButton && !closeButton.getBounds().contains(e.getPosition()))
-        {
-            if (onSelect)
-                onSelect(selectedChannel);
-        }
+        int width = padding * 2 + numColumns * buttonWidth + (numColumns - 1) * spacing;
+        int height = titleHeight + numRows * buttonHeight + (numRows - 1) * spacing + padding;
+        return {width, height};
     }
 
 private:
+    void calculateGridDimensions(int total)
+    {
+        // Adaptive grid: favor rows over columns since buttons are wider than tall
+        // This creates roughly square panels
+        if (total <= 2)
+        {
+            numColumns = 1;
+        }
+        else if (total <= 4)
+        {
+            numColumns = 2;
+        }
+        else if (total <= 6)
+        {
+            numColumns = 2;
+        }
+        else if (total <= 9)
+        {
+            numColumns = 3;
+        }
+        else if (total <= 12)
+        {
+            numColumns = 3;
+        }
+        else if (total <= 16)
+        {
+            numColumns = 4;
+        }
+        else if (total <= 20)
+        {
+            numColumns = 4;
+        }
+        else if (total <= 25)
+        {
+            numColumns = 5;
+        }
+        else if (total <= 30)
+        {
+            numColumns = 5;
+        }
+        else if (total <= 36)
+        {
+            numColumns = 6;
+        }
+        else if (total <= 48)
+        {
+            numColumns = 6;
+        }
+        else
+        {
+            numColumns = 8;  // Max 8 columns for larger counts
+        }
+
+        numRows = (total + numColumns - 1) / numColumns;
+    }
+
+    // Layout constants
+    static constexpr int buttonWidth = 90;
+    static constexpr int buttonHeight = 54;
+    static constexpr int spacing = 4;
+    static constexpr int padding = 12;
+    static constexpr int titleHeight = 32;
+
     int totalChannels;
     int selectedChannel;
-    int numColumns = 8;
+    int numColumns = 2;
     int numRows = 1;
     std::function<void(int)> onSelect;
     std::function<juce::Colour(int)> getChannelColor;
@@ -271,49 +349,85 @@ private:
             juce::Component::SafePointer<juce::Component> safeParent = parent;
             juce::Component::SafePointer<ChannelSelectorButton> safeThis = this;
 
+            // Callback to remove both backdrop and overlay
+            auto removeOverlayComponents = [safeParent, safeThis](int selected) {
+                juce::MessageManager::callAsync([safeThis, safeParent, selected]() {
+                    if (safeParent == nullptr)
+                        return;
+
+                    auto* parent = safeParent.getComponent();
+
+                    // Remove backdrop and overlay (in reverse order of addition)
+                    for (int i = parent->getNumChildComponents() - 1; i >= 0; --i)
+                    {
+                        auto* child = parent->getChildComponent(i);
+                        if (dynamic_cast<ChannelSelectorOverlay*>(child) ||
+                            dynamic_cast<ChannelSelectorBackdrop*>(child))
+                        {
+                            parent->removeChildComponent(child);
+                            delete child;
+                        }
+                    }
+
+                    // Update channel selection (may trigger callbacks)
+                    if (safeThis != nullptr)
+                        safeThis->setSelectedChannel(selected);
+
+                    // Grab focus on the selector button itself
+                    juce::MessageManager::callAsync([safeThis]() {
+                        if (safeThis != nullptr)
+                            safeThis->grabKeyboardFocus();
+                    });
+                });
+            };
+
+            // Create backdrop for click-outside-to-dismiss
+            auto backdrop = std::make_unique<ChannelSelectorBackdrop>([removeOverlayComponents, currentCh = currentChannel]() {
+                removeOverlayComponents(currentCh);  // Dismiss without changing selection
+            });
+            backdrop->setBounds(parent->getLocalBounds());
+            parent->addAndMakeVisible(backdrop.release());
+
+            // Create overlay popup
             auto overlay = std::make_unique<ChannelSelectorOverlay>(
                 numChannels,
                 currentChannel,
-                [safeThis, safeParent](int selected) {
-                    // Defer all work to after the current callback finishes.
-                    // This prevents accessing invalidated memory if components
-                    // are recreated during setSelectedChannel() callbacks.
-                    juce::MessageManager::callAsync([safeThis, safeParent, selected]() {
-                        // Check if parent is still valid for cleanup
-                        if (safeParent == nullptr)
-                            return;
-
-                        auto* parent = safeParent.getComponent();
-
-                        // Remove overlay FIRST (before any callbacks that might change state)
-                        for (int i = parent->getNumChildComponents() - 1; i >= 0; --i)
-                        {
-                            if (auto* comp = dynamic_cast<ChannelSelectorOverlay*>(parent->getChildComponent(i)))
-                            {
-                                parent->removeChildComponent(comp);
-                                delete comp;
-                                break;
-                            }
-                        }
-
-                        // Update channel selection (may trigger callbacks)
-                        if (safeThis != nullptr)
-                            safeThis->setSelectedChannel(selected);
-
-                        // Grab focus on the selector button itself - key events will
-                        // propagate up to MainComponent through the component hierarchy
-                        juce::MessageManager::callAsync([safeThis]() {
-                            if (safeThis != nullptr)
-                                safeThis->grabKeyboardFocus();
-                        });
-                    });
-                },
-                channelColorProvider,  // Pass the color provider to the overlay
-                channelNameProvider,   // Pass the name provider to the overlay
-                textColorProvider      // Pass the text color provider to the overlay
+                removeOverlayComponents,
+                channelColorProvider,
+                channelNameProvider,
+                textColorProvider
             );
 
-            overlay->setBounds(parent->getLocalBounds());
+            // Get required size for the popup
+            auto requiredSize = overlay->getRequiredSize();
+
+            // Get button position relative to parent (top-level component)
+            auto buttonBoundsInParent = parent->getLocalArea(this, getLocalBounds());
+
+            // Position popup below the button, left-aligned
+            int popupX = buttonBoundsInParent.getX();
+            int popupY = buttonBoundsInParent.getBottom() + 4;
+
+            // Ensure popup stays within parent bounds
+            auto parentBounds = parent->getLocalBounds();
+
+            // Adjust X if popup would overflow right edge
+            if (popupX + requiredSize.x > parentBounds.getRight())
+                popupX = parentBounds.getRight() - requiredSize.x;
+
+            // Adjust X if it went negative
+            if (popupX < 0)
+                popupX = 0;
+
+            // If popup would overflow bottom, show it above the button instead
+            if (popupY + requiredSize.y > parentBounds.getBottom())
+                popupY = buttonBoundsInParent.getY() - requiredSize.y - 4;
+
+            // Adjust Y if it went negative
+            if (popupY < 0)
+                popupY = 0;
+
+            overlay->setBounds(popupX, popupY, requiredSize.x, requiredSize.y);
             parent->addAndMakeVisible(overlay.release());
         }
     }
