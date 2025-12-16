@@ -1823,5 +1823,114 @@ void WFSCalculationEngine::valueTreePropertyChanged (juce::ValueTree& tree,
             reverbsDirty.store(true);
             matrixDirty.store(true);
         }
+        return;
+    }
+
+    // ==========================================================================
+    // INPUT PARAMETERS THAT AFFECT CALCULATIONS
+    // ==========================================================================
+
+    // Input attenuation parameters
+    bool isInputAttenProperty = (property == inputAttenuation ||
+                                 property == inputDistanceAttenuation ||
+                                 property == inputAttenuationLaw ||
+                                 property == inputDistanceRatio ||
+                                 property == inputCommonAtten);
+
+    // Input channel parameters
+    bool isInputChannelProperty = (property == inputMinimalLatency ||
+                                   property == inputDelayLatency);
+
+    // Input height factor
+    bool isInputHeightProperty = (property == inputHeightFactor);
+
+    // Input directivity parameters
+    bool isInputDirectivityProperty = (property == inputDirectivity ||
+                                       property == inputRotation ||
+                                       property == inputTilt ||
+                                       property == inputHFshelf);
+
+    // Input mute parameters
+    bool isInputMuteProperty = (property == inputMutes ||
+                                property == inputMuteReverbSends);
+
+    if (isInputAttenProperty || isInputChannelProperty || isInputHeightProperty ||
+        isInputDirectivityProperty || isInputMuteProperty)
+    {
+        int inputIndex = findInputIndexFromTree (tree);
+
+        if (inputIndex >= 0 && inputIndex < numInputs)
+        {
+            const juce::ScopedLock sl (positionLock);
+            inputDirtyFlags[static_cast<size_t> (inputIndex)] = true;
+            matrixDirty.store(true);
+        }
+        return;
+    }
+
+    // ==========================================================================
+    // OUTPUT PARAMETERS THAT AFFECT CALCULATIONS
+    // ==========================================================================
+
+    // Output options that affect calculations
+    bool isOutputOptionProperty = (property == outputMiniLatencyEnable ||
+                                   property == outputDistanceAttenPercent ||
+                                   property == outputDelayLatency);
+
+    // Output angular parameters
+    bool isOutputAngularProperty = (property == outputPitch ||
+                                    property == outputAngleOn ||
+                                    property == outputAngleOff ||
+                                    property == outputHFdamping);
+
+    if (isOutputOptionProperty || isOutputAngularProperty)
+    {
+        // Output parameter changed - affects ALL inputs
+        outputsDirty.store(true);
+        matrixDirty.store(true);
+        return;
+    }
+
+    // ==========================================================================
+    // REVERB PARAMETERS THAT AFFECT CALCULATIONS
+    // ==========================================================================
+
+    // Reverb feed angular parameters
+    bool isReverbFeedProperty = (property == reverbOrientation ||
+                                 property == reverbPitch ||
+                                 property == reverbAngleOn ||
+                                 property == reverbAngleOff ||
+                                 property == reverbMiniLatencyEnable ||
+                                 property == reverbDistanceAttenEnable ||
+                                 property == reverbHFdamping);
+
+    // Reverb return parameters
+    bool isReverbReturnProperty = (property == reverbDistanceAttenuation ||
+                                   property == reverbCommonAtten ||
+                                   property == reverbDelayLatency ||
+                                   property == reverbMutes);
+
+    if (isReverbFeedProperty || isReverbReturnProperty)
+    {
+        // Reverb parameter changed - affects ALL inputs for reverb matrices
+        reverbsDirty.store(true);
+        matrixDirty.store(true);
+        return;
+    }
+
+    // ==========================================================================
+    // GLOBAL/MASTER PARAMETERS THAT AFFECT ALL CALCULATIONS
+    // ==========================================================================
+
+    bool isMasterProperty = (property == haasEffect ||
+                             property == systemLatency);
+
+    if (isMasterProperty)
+    {
+        // Global parameter changed - affects everything
+        outputsDirty.store(true);
+        reverbsDirty.store(true);
+        matrixDirty.store(true);
+        return;
     }
 }
