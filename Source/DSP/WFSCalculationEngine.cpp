@@ -218,6 +218,8 @@ void WFSCalculationEngine::updateDelayModeRamps (float deltaTimeSeconds)
             if (std::abs (offset) < 0.001f)
                 offset = 0.0f;
 
+            // Keep this input dirty while ramp is active so it gets recalculated
+            inputDirtyFlags[static_cast<size_t> (i)] = true;
             anyChange = true;
         }
     }
@@ -246,6 +248,8 @@ void WFSCalculationEngine::updateDelayModeRamps (float deltaTimeSeconds)
                 timeRemaining = 0.0f;
             }
 
+            // Keep this input dirty while ramp is active so it gets recalculated
+            inputDirtyFlags[static_cast<size_t> (i)] = true;
             anyChange = true;
         }
     }
