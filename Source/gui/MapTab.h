@@ -1208,12 +1208,27 @@ public:
         }
     }
 
+    //==========================================================================
+    // LFO Offset Callback
+    //==========================================================================
+
+    /** Set callback to get LFO offsets for input visualization.
+        The callback takes inputIndex and returns x, y, z offset values.
+        If not set, LFO offsets are treated as zero. */
+    void setLFOOffsetCallback(std::function<void(int, float&, float&, float&)> callback)
+    {
+        lfoOffsetCallback = std::move(callback);
+    }
+
 private:
     WfsParameters& parameters;
     juce::ValueTree inputsTree;
     juce::ValueTree outputsTree;
     juce::ValueTree reverbsTree;
     juce::ValueTree configTree;
+
+    // LFO offset callback for visualization
+    std::function<void(int, float&, float&, float&)> lfoOffsetCallback;
 
     // View state
     float viewScale = 30.0f;  // pixels per meter
@@ -1855,10 +1870,19 @@ private:
                           radiusPixels * 2, radiusPixels * 2, 1.0f);
         }
 
-        // Draw composite position indicator (position + offset) if offset is non-zero
-        if (std::abs(offsetX) > 0.01f || std::abs(offsetY) > 0.01f)
+        // Get LFO offset if callback is available
+        float lfoOffsetX = 0.0f, lfoOffsetY = 0.0f, lfoOffsetZ = 0.0f;
+        if (lfoOffsetCallback)
+            lfoOffsetCallback(inputIndex, lfoOffsetX, lfoOffsetY, lfoOffsetZ);
+
+        // Calculate total offset (tracking offset + LFO offset)
+        float totalOffsetX = offsetX + lfoOffsetX;
+        float totalOffsetY = offsetY + lfoOffsetY;
+
+        // Draw composite position indicator (position + offset + LFO) if any offset is non-zero
+        if (std::abs(totalOffsetX) > 0.01f || std::abs(totalOffsetY) > 0.01f)
         {
-            auto compositePos = stageToScreen({ posX + offsetX, posY + offsetY });
+            auto compositePos = stageToScreen({ posX + totalOffsetX, posY + totalOffsetY });
 
             // Draw thin grey line from input to composite position
             g.setColour(juce::Colours::grey);
@@ -2164,28 +2188,25 @@ private:
                                   const juce::Identifier& property) override
     {
         juce::ignoreUnused(treeWhosePropertyHasChanged, property);
-
-        // Repaint on any property change
-        juce::MessageManager::callAsync([this]() {
-            repaint();
-        });
+        // Don't auto-repaint on property changes - causes high CPU with 64+ channels
+        // Map repaints are triggered explicitly by:
+        // - mouseDrag/touchDrag (during interaction)
+        // - MainComponent timer (when LFO active, at 50Hz)
+        // - Pan/zoom gestures
+        // - Channel add/remove (valueTreeChildAdded/Removed)
     }
 
     void valueTreeChildAdded(juce::ValueTree& parentTree, juce::ValueTree& child) override
     {
         juce::ignoreUnused(parentTree, child);
-        juce::MessageManager::callAsync([this]() {
-            repaint();
-        });
+        repaint();
     }
 
     void valueTreeChildRemoved(juce::ValueTree& parentTree, juce::ValueTree& child, int index) override
     {
         juce::ignoreUnused(parentTree, child, index);
-        juce::MessageManager::callAsync([this]() {
-            selectedInput = -1;  // Clear selection if channel removed
-            repaint();
-        });
+        selectedInput = -1;  // Clear selection if channel removed
+        repaint();
     }
 
     void valueTreeChildOrderChanged(juce::ValueTree& parentTree, int oldIndex, int newIndex) override

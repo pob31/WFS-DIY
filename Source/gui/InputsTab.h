@@ -11,6 +11,7 @@
 #include "WfsJoystickComponent.h"
 #include "sliders/WfsAutoCenterSlider.h"
 #include "InputVisualisationComponent.h"
+#include "dials/WfsLFOIndicators.h"
 
 //==============================================================================
 // Custom Transport Button - Play (right-pointing triangle)
@@ -315,6 +316,9 @@ public:
     int getNumChannels() const { return channelSelector.getSelectedChannel() > 0 ?
                                          parameters.getNumInputChannels() : 1; }
 
+    /** Get the currently selected input channel (0-indexed) */
+    int getSelectedInputIndex() const { return channelSelector.getSelectedChannel() - 1; }
+
     /** Cycle to next/previous channel. delta=1 for next, delta=-1 for previous. Wraps around. */
     void cycleChannel(int delta)
     {
@@ -463,6 +467,24 @@ public:
     {
         visualisationComponent.updateValues(delaysMs, levels, hfDb,
                                             reverbDelaysMs, reverbLevels, reverbHfDb);
+    }
+
+    /**
+     * Update LFO indicator display for the selected input.
+     * Called at 50Hz when LFO is active.
+     * @param progress Ramp progress (0 to 1)
+     * @param isActive Whether LFO is currently active
+     * @param normalizedX Output X (-1 to +1)
+     * @param normalizedY Output Y (-1 to +1)
+     * @param normalizedZ Output Z (-1 to +1)
+     */
+    void updateLFOIndicators(float progress, bool isActive, float normalizedX, float normalizedY, float normalizedZ)
+    {
+        lfoProgressDial.setProgress(progress);
+        lfoProgressDial.setActive(isActive);
+        lfoOutputXSlider.setValue(normalizedX);
+        lfoOutputYSlider.setValue(normalizedY);
+        lfoOutputZSlider.setValue(normalizedZ);
     }
 
     /** Get a reference to the visualisation component for direct updates */
@@ -1562,6 +1584,29 @@ private:
         jitterValueLabel.setText("0.00 m", juce::dontSendNotification);
         jitterValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         setupEditableValueLabel(jitterValueLabel);
+
+        // LFO Progress dial (read-only)
+        addAndMakeVisible(lfoProgressDial);
+        lfoProgressDial.setColours(juce::Colours::black, juce::Colour(0xFF00BCD4));
+
+        // LFO Output sliders (read-only feedback)
+        addAndMakeVisible(lfoOutputXLabel);
+        lfoOutputXLabel.setText("Out X:", juce::dontSendNotification);
+        lfoOutputXLabel.setColour(juce::Label::textColourId, juce::Colours::grey);
+        addAndMakeVisible(lfoOutputXSlider);
+        lfoOutputXSlider.setTrackColour(juce::Colour(0xFFE91E63));  // Pink for X
+
+        addAndMakeVisible(lfoOutputYLabel);
+        lfoOutputYLabel.setText("Out Y:", juce::dontSendNotification);
+        lfoOutputYLabel.setColour(juce::Label::textColourId, juce::Colours::grey);
+        addAndMakeVisible(lfoOutputYSlider);
+        lfoOutputYSlider.setTrackColour(juce::Colour(0xFF4CAF50));  // Green for Y
+
+        addAndMakeVisible(lfoOutputZLabel);
+        lfoOutputZLabel.setText("Out Z:", juce::dontSendNotification);
+        lfoOutputZLabel.setColour(juce::Label::textColourId, juce::Colours::grey);
+        addAndMakeVisible(lfoOutputZSlider);
+        lfoOutputZSlider.setTrackColour(juce::Colour(0xFF2196F3));  // Blue for Z
     }
 
     void setupAutomotionTab()
@@ -2279,16 +2324,18 @@ private:
         lfoActiveButton.setBounds(leftCol.removeFromTop(rowHeight).withWidth(120));
         leftCol.removeFromTop(spacing * 2);
 
-        // Period dial
+        // Period dial with progress indicator
         lfoPeriodLabel.setBounds(leftCol.removeFromTop(rowHeight));
-        auto dialArea = leftCol.removeFromTop(dialSize);
-        lfoPeriodDial.setBounds(dialArea.withSizeKeepingCentre(dialSize, dialSize));
+        auto dialRow = leftCol.removeFromTop(dialSize);
+        lfoPeriodDial.setBounds(dialRow.removeFromLeft(dialSize).withSizeKeepingCentre(dialSize, dialSize));
+        dialRow.removeFromLeft(spacing);
+        lfoProgressDial.setBounds(dialRow.removeFromLeft(dialSize).withSizeKeepingCentre(dialSize, dialSize));
         lfoPeriodValueLabel.setBounds(leftCol.removeFromTop(rowHeight));
         leftCol.removeFromTop(spacing);
 
         // Main Phase dial
         lfoPhaseLabel.setBounds(leftCol.removeFromTop(rowHeight));
-        dialArea = leftCol.removeFromTop(dialSize);
+        auto dialArea = leftCol.removeFromTop(dialSize);
         lfoPhaseDial.setBounds(dialArea.withSizeKeepingCentre(dialSize, dialSize));
         lfoPhaseValueLabel.setBounds(leftCol.removeFromTop(rowHeight));
         leftCol.removeFromTop(spacing);
@@ -2358,6 +2405,22 @@ private:
         lfoAmplitudeZLabel.setBounds(row.removeFromLeft(labelWidth));
         lfoAmplitudeZValueLabel.setBounds(row.removeFromRight(valueWidth));
         lfoAmplitudeZSlider.setBounds(middleCol.removeFromTop(sliderHeight));
+        middleCol.removeFromTop(spacing * 2);
+
+        // LFO Output sliders (read-only feedback)
+        row = middleCol.removeFromTop(rowHeight);
+        lfoOutputXLabel.setBounds(row.removeFromLeft(labelWidth));
+        lfoOutputXSlider.setBounds(middleCol.removeFromTop(sliderHeight));
+        middleCol.removeFromTop(spacing);
+
+        row = middleCol.removeFromTop(rowHeight);
+        lfoOutputYLabel.setBounds(row.removeFromLeft(labelWidth));
+        lfoOutputYSlider.setBounds(middleCol.removeFromTop(sliderHeight));
+        middleCol.removeFromTop(spacing);
+
+        row = middleCol.removeFromTop(rowHeight);
+        lfoOutputZLabel.setBounds(row.removeFromLeft(labelWidth));
+        lfoOutputZSlider.setBounds(middleCol.removeFromTop(sliderHeight));
 
         // ========== RIGHT COLUMN - Phase dials ==========
         // Phase X dial
@@ -3287,33 +3350,38 @@ private:
         }
         else if (label == &lfoRateXValueLabel)
         {
-            float rate = juce::jlimit(0.0f, 10.0f, value);
-            lfoRateXSlider.setValue(rate / 10.0f);
+            // Inverse of: rate = pow(10, v*4 - 2), range 0.01-100
+            float rate = juce::jlimit(0.01f, 100.0f, value);
+            float v = (std::log10(rate) + 2.0f) / 4.0f;
+            lfoRateXSlider.setValue(juce::jlimit(0.0f, 1.0f, v));
         }
         else if (label == &lfoRateYValueLabel)
         {
-            float rate = juce::jlimit(0.0f, 10.0f, value);
-            lfoRateYSlider.setValue(rate / 10.0f);
+            float rate = juce::jlimit(0.01f, 100.0f, value);
+            float v = (std::log10(rate) + 2.0f) / 4.0f;
+            lfoRateYSlider.setValue(juce::jlimit(0.0f, 1.0f, v));
         }
         else if (label == &lfoRateZValueLabel)
         {
-            float rate = juce::jlimit(0.0f, 10.0f, value);
-            lfoRateZSlider.setValue(rate / 10.0f);
+            float rate = juce::jlimit(0.01f, 100.0f, value);
+            float v = (std::log10(rate) + 2.0f) / 4.0f;
+            lfoRateZSlider.setValue(juce::jlimit(0.0f, 1.0f, v));
         }
         else if (label == &lfoAmplitudeXValueLabel)
         {
-            float amp = juce::jlimit(0.0f, 10.0f, value);
-            lfoAmplitudeXSlider.setValue(amp / 10.0f);
+            // Inverse of: amp = v * 50, range 0-50m
+            float amp = juce::jlimit(0.0f, 50.0f, value);
+            lfoAmplitudeXSlider.setValue(amp / 50.0f);
         }
         else if (label == &lfoAmplitudeYValueLabel)
         {
-            float amp = juce::jlimit(0.0f, 10.0f, value);
-            lfoAmplitudeYSlider.setValue(amp / 10.0f);
+            float amp = juce::jlimit(0.0f, 50.0f, value);
+            lfoAmplitudeYSlider.setValue(amp / 50.0f);
         }
         else if (label == &lfoAmplitudeZValueLabel)
         {
-            float amp = juce::jlimit(0.0f, 10.0f, value);
-            lfoAmplitudeZSlider.setValue(amp / 10.0f);
+            float amp = juce::jlimit(0.0f, 50.0f, value);
+            lfoAmplitudeZSlider.setValue(amp / 50.0f);
         }
         else if (label == &lfoPhaseXValueLabel)
         {
@@ -4182,6 +4250,11 @@ private:
     juce::Label jitterLabel;
     WfsWidthExpansionSlider jitterSlider;
     juce::Label jitterValueLabel;
+
+    // LFO indicators (read-only feedback)
+    WfsLFOProgressDial lfoProgressDial;
+    juce::Label lfoOutputXLabel, lfoOutputYLabel, lfoOutputZLabel;
+    WfsLFOOutputSlider lfoOutputXSlider, lfoOutputYSlider, lfoOutputZSlider;
 
     // AutomOtion tab
     juce::Label otomoDestXLabel, otomoDestYLabel, otomoDestZLabel;

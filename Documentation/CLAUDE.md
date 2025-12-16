@@ -72,6 +72,7 @@ The DSP calculation layer transforms human control parameters into real-time DSP
 
 ### Core Files
 - **WFSCalculationEngine.h/cpp** - Central calculation engine for all WFS DSP parameters
+- **LFOProcessor.h** - Low Frequency Oscillator for position/rotation modulation
 - **WFSHighShelfFilter.h** - High-frequency shelf biquad filter for air absorption
 - **InputBufferProcessor.h** - Per-input threaded audio processor
 - **OutputBufferProcessor.h** - Per-output threaded audio processor
@@ -177,6 +178,88 @@ Prevents upstage sources from losing too much overall level by lifting all atten
 - **100%** = Keep full original attenuation (no lift applied)
 - **0%** = Apply full lift (all outputs raised to match minimum attenuation)
 - Formula: `adjustment = -minAttenuation * (1.0 - commonAttenFactor)`
+
+### LFO Processor (Position Modulation)
+The LFOProcessor generates periodic position offsets for each input channel, creating automated movement effects.
+
+**Architecture:**
+- Runs at 50Hz (called from MainComponent timer callback)
+- Per-input LFO state with independent parameters
+- Outputs X/Y/Z position offsets added to base position + offset
+- 500ms fade in/out when activating/deactivating
+
+**Waveform Shapes** (all output -1 to +1, scaled by amplitude):
+| Shape | Formula |
+|-------|---------|
+| Off | 0 |
+| Sine | `-cos(2π × ramp)` |
+| Square | `ramp < 0.5 ? -1 : 1` |
+| Sawtooth | `2 × ramp - 1` |
+| Triangle | `ramp < 0.5 ? 4×ramp - 1 : 3 - 4×ramp` |
+| Keystone | Plateau at ends, ramp in middle (0.25 threshold) |
+| Log | `2 × log10(20×ramp + 1) - 1` (normalized) |
+| Exp | `pow(3, ramp×2) - 1` (normalized) |
+| Random | Smooth ramp to new random target each period |
+
+**Per-Axis Control:**
+- Each axis (X/Y/Z) has independent: Shape, Rate multiplier, Amplitude, Phase offset
+- Rate multiplier applies to main ramp: `axisRamp = mainRamp × rate + phase`
+- Random shape picks new target independently when axis ramp wraps
+
+**Parameters:**
+| Parameter | Range | Description |
+|-----------|-------|-------------|
+| `inputLFOactive` | 0/1 | Enable LFO for this input |
+| `inputLFOperiod` | 0.01-120s | Base period for one cycle |
+| `inputLFOphase` | 0-360° | Global phase offset |
+| `inputLFOshapeX/Y/Z` | 0-8 | Waveform shape per axis |
+| `inputLFOrateX/Y/Z` | 0.01-100 | Rate multiplier per axis |
+| `inputLFOamplitudeX/Y/Z` | 0-50m | Peak amplitude per axis |
+| `inputLFOphaseX/Y/Z` | 0-360° | Phase offset per axis |
+
+**UI Indicators (InputsTab LFO sub-tab):**
+- Progress dial: Shows main ramp position (0→1) as rotating dot
+- Output sliders: Bidirectional (-1 to +1) showing current normalized output per axis
+
+### Gyrophone (HF Directivity Rotation)
+The Gyrophone feature rotates the HF directivity pattern like a Leslie speaker rotating horn, creating a "brightness swirl" effect.
+
+**Mechanism:**
+- Adds rotation offset to input's HF directivity calculation
+- Does NOT affect the UI rotation dial display
+- Full rotation (2π radians) completes over one LFO period
+- Direction: -1 = anti-clockwise, 0 = off, 1 = clockwise
+
+**Implementation:**
+```cpp
+// In LFOProcessor
+if (gyrophone != 0) {
+    gyrophoneOffsetRad = gyrophone * ramp * 2π * fadeLevel;
+}
+
+// In WFSCalculationEngine (during HF directivity calculation)
+rotationRad = inputRotation + gyrophoneOffset;  // Combined rotation for HF calc
+```
+
+**Parameter:**
+| Parameter | Values | Description |
+|-----------|--------|-------------|
+| `inputLFOgyrophone` | -1, 0, 1 | Rotation direction (anti-CW, off, CW) |
+
+### Smooth Transition Ramping
+WFSCalculationEngine implements smooth transitions for parameter changes that would otherwise cause audible artifacts:
+
+**Minimal Latency Mode Toggle** (`inputMinimalLatency`):
+- 1 second linear ramp when switching between Acoustic Precedence and Minimal Latency modes
+- Compensates for the instantaneous delay offset change
+- Prevents audible delay jumps
+
+**Common Attenuation Changes** (`inputCommonAtten`):
+- Ramp time proportional to change magnitude: 1% change = 0.01s, 100% change = 1.0s
+- Compensates for the instantaneous level change
+- Prevents audible level jumps
+
+Both ramps are updated at 50Hz in `updateDelayModeRamps()` and applied during matrix calculation.
 
 ### Reverb Channel Calculations
 WFSCalculationEngine handles two additional matrix paths for reverb:
@@ -559,6 +642,6 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 
 ---
 
-*Last updated: 2025-12-15*
+*Last updated: 2025-12-16*
 *JUCE Version: 8.0.11*
 *Build: Visual Studio 2022 / Xcode, x64 Debug/Release*

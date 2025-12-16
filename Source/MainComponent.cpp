@@ -212,6 +212,23 @@ MainComponent::MainComponent()
     // Initialize WFS Calculation Engine for DSP parameter generation
     calculationEngine = std::make_unique<WFSCalculationEngine>(parameters.getValueTreeState());
 
+    // Initialize LFO Processor for input position modulation
+    lfoProcessor = std::make_unique<LFOProcessor>(parameters.getValueTreeState(), 64);
+
+    // Set up LFO offset callback for MapTab visualization
+    if (mapTab != nullptr)
+    {
+        mapTab->setLFOOffsetCallback([this](int inputIndex, float& x, float& y, float& z) {
+            if (calculationEngine != nullptr)
+            {
+                auto offset = calculationEngine->getLFOOffset(inputIndex);
+                x = offset.x;
+                y = offset.y;
+                z = offset.z;
+            }
+        });
+    }
+
     // Configure OSC Manager with initial network settings from parameters
     WFSNetwork::GlobalConfig oscGlobalConfig;
     oscGlobalConfig.udpReceivePort = (int)parameters.getConfigParam("NetworkRxUDPport");
@@ -817,29 +834,85 @@ void MainComponent::timerCallback()
     // Recalculate matrix from input/output positions and update target values
     if (calculationEngine != nullptr && (timerTicksSinceLastRandom % 4) == 0)
     {
-        calculationEngine->recalculateMatrix();
-
-        // Copy calculated values to target arrays
-        int matrixSize = numInputChannels * numOutputChannels;
-        const float* calcDelays = calculationEngine->getDelayTimesMs();
-        const float* calcLevels = calculationEngine->getLevels();
-        const float* calcHF = calculationEngine->getHFAttenuationDb();
-
-        for (int i = 0; i < matrixSize; ++i)
+        // Process LFO at 50Hz (control rate)
+        if (lfoProcessor != nullptr)
         {
-            targetDelayTimesMs[i] = calcDelays[i];
-            targetLevels[i] = calcLevels[i];
-            hfAttenuation[i] = calcHF[i];  // HF doesn't need smoothing - filter handles it
+            lfoProcessor->process(0.02f);  // 20ms delta time (50Hz)
         }
 
-        // Update visualisation with current DSP matrix values
-        if (inputsTab != nullptr)
+        // Pass LFO offsets and gyrophone offsets to calculation engine for DSP
+        if (lfoProcessor != nullptr)
         {
-            inputsTab->updateVisualisation(
-                calcDelays, calcLevels, calcHF,
-                calculationEngine->getInputReverbDelayTimesMs(),
-                calculationEngine->getInputReverbLevels(),
-                calculationEngine->getInputReverbHFAttenuationDb());
+            for (int i = 0; i < numInputChannels; ++i)
+            {
+                calculationEngine->setLFOOffset(i,
+                    lfoProcessor->getOffsetX(i),
+                    lfoProcessor->getOffsetY(i),
+                    lfoProcessor->getOffsetZ(i));
+                calculationEngine->setGyrophoneOffset(i,
+                    lfoProcessor->getGyrophoneOffsetRad(i));
+            }
+        }
+
+        // Update delay mode ramps (decays compensation offset for smooth mode transitions)
+        calculationEngine->updateDelayModeRamps(0.02f);  // 20ms delta time (50Hz)
+
+        // Only recalculate if positions have changed (dirty flag set)
+        if (calculationEngine->recalculateMatrixIfDirty())
+        {
+            // Copy calculated values to target arrays
+            int matrixSize = numInputChannels * numOutputChannels;
+            const float* calcDelays = calculationEngine->getDelayTimesMs();
+            const float* calcLevels = calculationEngine->getLevels();
+            const float* calcHF = calculationEngine->getHFAttenuationDb();
+
+            for (int i = 0; i < matrixSize; ++i)
+            {
+                targetDelayTimesMs[i] = calcDelays[i];
+                targetLevels[i] = calcLevels[i];
+                hfAttenuation[i] = calcHF[i];  // HF doesn't need smoothing - filter handles it
+            }
+
+            // Update visualisation with current DSP matrix values
+            if (inputsTab != nullptr)
+            {
+                inputsTab->updateVisualisation(
+                    calcDelays, calcLevels, calcHF,
+                    calculationEngine->getInputReverbDelayTimesMs(),
+                    calculationEngine->getInputReverbLevels(),
+                    calculationEngine->getInputReverbHFAttenuationDb());
+            }
+        }
+
+        // Update LFO indicators in InputsTab for the selected input
+        if (inputsTab != nullptr && lfoProcessor != nullptr)
+        {
+            int selectedInput = inputsTab->getSelectedInputIndex();
+            if (selectedInput >= 0 && selectedInput < numInputChannels)
+            {
+                inputsTab->updateLFOIndicators(
+                    lfoProcessor->getRampProgress(selectedInput),
+                    lfoProcessor->isActive(selectedInput),
+                    lfoProcessor->getNormalizedX(selectedInput),
+                    lfoProcessor->getNormalizedY(selectedInput),
+                    lfoProcessor->getNormalizedZ(selectedInput));
+            }
+        }
+
+        // Repaint map if any LFO is producing movement
+        if (mapTab != nullptr && lfoProcessor != nullptr)
+        {
+            bool anyLFOActive = false;
+            for (int i = 0; i < numInputChannels && !anyLFOActive; ++i)
+            {
+                if (std::abs(lfoProcessor->getOffsetX(i)) > 0.001f ||
+                    std::abs(lfoProcessor->getOffsetY(i)) > 0.001f)
+                {
+                    anyLFOActive = true;
+                }
+            }
+            if (anyLFOActive)
+                mapTab->repaint();
         }
     }
 

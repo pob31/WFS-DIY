@@ -18,6 +18,13 @@ WFSCalculationEngine::WFSCalculationEngine (WFSValueTreeState& state)
     inputPositions.resize (static_cast<size_t> (numInputs));
     reverbFeedPositions.resize (static_cast<size_t> (numReverbs));
     reverbReturnPositions.resize (static_cast<size_t> (numReverbs));
+    lfoOffsets.resize (static_cast<size_t> (numInputs));  // LFO position offsets
+    gyrophoneOffsets.resize (static_cast<size_t> (numInputs), 0.0f);  // Gyrophone rotation offsets
+    previousMinimalLatencyMode.resize (static_cast<size_t> (numInputs), -1);  // -1 = uninitialized
+    delayModeRampOffset.resize (static_cast<size_t> (numInputs), 0.0f);  // Start at 0
+    previousCommonAttenPercent.resize (static_cast<size_t> (numInputs), -1.0f);  // -1 = uninitialized
+    commonAttenRampOffsetDb.resize (static_cast<size_t> (numInputs), 0.0f);  // Start at 0
+    commonAttenRampTimeRemaining.resize (static_cast<size_t> (numInputs), 0.0f);  // No active ramps
 
     // Reserve space for Input → Output matrix results
     const size_t matrixSize = static_cast<size_t> (numInputs * numOutputs);
@@ -36,6 +43,9 @@ WFSCalculationEngine::WFSCalculationEngine (WFSValueTreeState& state)
     reverbOutputDelayTimesMs.resize (reverbOutputSize, 0.0f);
     reverbOutputLevels.resize (reverbOutputSize, 0.0f);
     reverbOutputHFAttenuationDb.resize (reverbOutputSize, 0.0f);
+
+    // Initialize per-input dirty flags (all dirty initially)
+    inputDirtyFlags.resize (static_cast<size_t> (numInputs), true);
 
     // Calculate initial positions
     recalculateAllListenerPositions();
@@ -108,6 +118,134 @@ void WFSCalculationEngine::recalculateAllInputPositions()
     {
         updateInputPosition (i);
     }
+}
+
+//==============================================================================
+// LFO Offset Support
+//==============================================================================
+
+void WFSCalculationEngine::setLFOOffset (int inputIndex, float x, float y, float z)
+{
+    if (inputIndex < 0 || inputIndex >= numInputs)
+        return;
+
+    const juce::ScopedLock sl (positionLock);
+    auto& offset = lfoOffsets[static_cast<size_t> (inputIndex)];
+
+    // Only mark dirty if offset actually changed (with small tolerance)
+    constexpr float epsilon = 0.0001f;
+    if (std::abs(offset.x - x) > epsilon ||
+        std::abs(offset.y - y) > epsilon ||
+        std::abs(offset.z - z) > epsilon)
+    {
+        offset.x = x;
+        offset.y = y;
+        offset.z = z;
+        // Mark only this specific input as dirty
+        inputDirtyFlags[static_cast<size_t> (inputIndex)] = true;
+        matrixDirty.store(true);
+    }
+}
+
+WFSCalculationEngine::Position WFSCalculationEngine::getLFOOffset (int inputIndex) const
+{
+    if (inputIndex < 0 || inputIndex >= numInputs)
+        return {};
+
+    const juce::ScopedLock sl (positionLock);
+    return lfoOffsets[static_cast<size_t> (inputIndex)];
+}
+
+void WFSCalculationEngine::setGyrophoneOffset (int inputIndex, float offsetRad)
+{
+    if (inputIndex < 0 || inputIndex >= numInputs)
+        return;
+
+    const juce::ScopedLock sl (positionLock);
+    auto& offset = gyrophoneOffsets[static_cast<size_t> (inputIndex)];
+
+    // Only mark dirty if offset actually changed (with small tolerance)
+    constexpr float epsilon = 0.0001f;
+    if (std::abs(offset - offsetRad) > epsilon)
+    {
+        offset = offsetRad;
+        // Mark only this specific input as dirty
+        inputDirtyFlags[static_cast<size_t> (inputIndex)] = true;
+        matrixDirty.store(true);
+    }
+}
+
+float WFSCalculationEngine::getGyrophoneOffset (int inputIndex) const
+{
+    if (inputIndex < 0 || inputIndex >= numInputs)
+        return 0.0f;
+
+    const juce::ScopedLock sl (positionLock);
+    return gyrophoneOffsets[static_cast<size_t> (inputIndex)];
+}
+
+//==============================================================================
+// Delay Mode Ramp Support
+//==============================================================================
+
+void WFSCalculationEngine::updateDelayModeRamps (float deltaTimeSeconds)
+{
+    const juce::ScopedLock sl (positionLock);
+
+    bool anyChange = false;
+
+    // === Delay mode ramps (fixed 1 second decay) ===
+    const float delayRampTimeSeconds = 1.0f;
+    const float delayDecayFactor = deltaTimeSeconds / delayRampTimeSeconds;
+
+    for (int i = 0; i < numInputs; ++i)
+    {
+        auto& offset = delayModeRampOffset[static_cast<size_t> (i)];
+        if (std::abs (offset) > 0.001f)  // Only process non-zero offsets
+        {
+            // Linear decay toward zero
+            float decay = offset * delayDecayFactor;
+            offset -= decay;
+
+            // Zero out tiny values
+            if (std::abs (offset) < 0.001f)
+                offset = 0.0f;
+
+            anyChange = true;
+        }
+    }
+
+    // === Common attenuation ramps (variable decay time based on change magnitude) ===
+    for (int i = 0; i < numInputs; ++i)
+    {
+        auto& offsetDb = commonAttenRampOffsetDb[static_cast<size_t> (i)];
+        auto& timeRemaining = commonAttenRampTimeRemaining[static_cast<size_t> (i)];
+
+        if (std::abs (offsetDb) > 0.001f && timeRemaining > 0.0f)
+        {
+            // Decay proportionally: offset reduces to 0 as timeRemaining goes to 0
+            // decayFactor = deltaTime / timeRemaining (but capped to avoid overshoot)
+            float decayFactor = juce::jmin (1.0f, deltaTimeSeconds / timeRemaining);
+            float decay = offsetDb * decayFactor;
+            offsetDb -= decay;
+
+            // Update remaining time
+            timeRemaining = juce::jmax (0.0f, timeRemaining - deltaTimeSeconds);
+
+            // Zero out tiny values
+            if (std::abs (offsetDb) < 0.001f || timeRemaining <= 0.0f)
+            {
+                offsetDb = 0.0f;
+                timeRemaining = 0.0f;
+            }
+
+            anyChange = true;
+        }
+    }
+
+    // If any offset changed, mark matrix dirty for recalculation
+    if (anyChange)
+        matrixDirty.store (true);
 }
 
 void WFSCalculationEngine::recalculateListenerPosition (int outputIndex)
@@ -431,14 +569,41 @@ float WFSCalculationEngine::calculateReverbFeedAngularAttenuation (int /*inputIn
     return 1.0f - progress;
 }
 
+bool WFSCalculationEngine::recalculateMatrixIfDirty()
+{
+    if (!matrixDirty.load())
+        return false;
+
+    recalculateMatrix();
+    return true;
+}
+
 void WFSCalculationEngine::recalculateMatrix()
 {
-    // Copy positions under lock
+    // Clear dirty flag at start (any new changes during calc will set it again)
+    matrixDirty.store(false);
+
+    // Copy positions under lock and determine which inputs need recalculation
     std::vector<Position> localInputPositions;
     std::vector<Position> localSpeakerPositions;
     std::vector<Position> localListenerPositions;
     std::vector<Position> localReverbFeedPositions;
     std::vector<Position> localReverbReturnPositions;
+    std::vector<float> localGyrophoneOffsets;  // Gyrophone rotation offsets per input
+    std::vector<bool> inputsToRecalc;
+
+    // Delay mode ramp state (for smooth transitions when toggling inputMinimalLatency)
+    std::vector<int> localPreviousMode;
+    std::vector<float> localRampOffset;
+
+    // Common attenuation ramp state (for smooth transitions when changing inputCommonAtten)
+    std::vector<float> localPrevCommonAttenPercent;
+    std::vector<float> localCommonAttenRampOffsetDb;
+    std::vector<float> localCommonAttenRampTimeRemaining;
+
+    // Capture dirty state and clear flags
+    bool needOutputRecalc = outputsDirty.exchange(false);
+    bool needReverbRecalc = reverbsDirty.exchange(false);
 
     {
         const juce::ScopedLock sl (positionLock);
@@ -447,6 +612,35 @@ void WFSCalculationEngine::recalculateMatrix()
         localListenerPositions = listenerPositions;
         localReverbFeedPositions = reverbFeedPositions;
         localReverbReturnPositions = reverbReturnPositions;
+
+        // Apply LFO offsets to input positions
+        for (size_t i = 0; i < localInputPositions.size() && i < lfoOffsets.size(); ++i)
+        {
+            localInputPositions[i].x += lfoOffsets[i].x;
+            localInputPositions[i].y += lfoOffsets[i].y;
+            localInputPositions[i].z += lfoOffsets[i].z;
+        }
+
+        // Copy gyrophone rotation offsets
+        localGyrophoneOffsets = gyrophoneOffsets;
+
+        // Copy delay mode ramp state
+        localPreviousMode = previousMinimalLatencyMode;
+        localRampOffset = delayModeRampOffset;
+
+        // Copy common attenuation ramp state
+        localPrevCommonAttenPercent = previousCommonAttenPercent;
+        localCommonAttenRampOffsetDb = commonAttenRampOffsetDb;
+        localCommonAttenRampTimeRemaining = commonAttenRampTimeRemaining;
+
+        // Capture and clear per-input dirty flags
+        // If outputs or reverbs changed, ALL inputs need recalculation
+        inputsToRecalc.resize(static_cast<size_t>(numInputs));
+        for (int i = 0; i < numInputs; ++i)
+        {
+            inputsToRecalc[static_cast<size_t>(i)] = needOutputRecalc || needReverbRecalc || inputDirtyFlags[static_cast<size_t>(i)];
+            inputDirtyFlags[static_cast<size_t>(i)] = false;
+        }
     }
 
     // Get global config parameters
@@ -455,19 +649,39 @@ void WFSCalculationEngine::recalculateMatrix()
     float globalSystemLatency = masterState.getProperty (systemLatency, systemLatencyDefault);
 
     // Temporary arrays for Input → Output calculations
-    std::vector<float> newDelays (static_cast<size_t> (numInputs * numOutputs));
-    std::vector<float> newLevels (static_cast<size_t> (numInputs * numOutputs));
-    std::vector<float> newHF (static_cast<size_t> (numInputs * numOutputs));
+    // Initialize with copies of existing arrays (non-dirty inputs keep their values)
+    std::vector<float> newDelays;
+    std::vector<float> newLevels;
+    std::vector<float> newHF;
+    {
+        const juce::ScopedLock sl (matrixLock);
+        newDelays = delayTimesMs;
+        newLevels = levels;
+        newHF = hfAttenuationDb;
+    }
 
     // Temporary arrays for Input → Reverb Feed calculations
-    std::vector<float> newInputReverbDelays (static_cast<size_t> (numInputs * numReverbs));
-    std::vector<float> newInputReverbLevels (static_cast<size_t> (numInputs * numReverbs));
-    std::vector<float> newInputReverbHF (static_cast<size_t> (numInputs * numReverbs));
+    std::vector<float> newInputReverbDelays;
+    std::vector<float> newInputReverbLevels;
+    std::vector<float> newInputReverbHF;
+    {
+        const juce::ScopedLock sl (matrixLock);
+        newInputReverbDelays = inputReverbDelayTimesMs;
+        newInputReverbLevels = inputReverbLevels;
+        newInputReverbHF = inputReverbHFAttenuationDb;
+    }
 
     // Temporary arrays for Reverb Return → Output calculations
-    std::vector<float> newReverbOutputDelays (static_cast<size_t> (numReverbs * numOutputs));
-    std::vector<float> newReverbOutputLevels (static_cast<size_t> (numReverbs * numOutputs));
-    std::vector<float> newReverbOutputHF (static_cast<size_t> (numReverbs * numOutputs));
+    // (only recalculated if outputs or reverbs changed)
+    std::vector<float> newReverbOutputDelays;
+    std::vector<float> newReverbOutputLevels;
+    std::vector<float> newReverbOutputHF;
+    {
+        const juce::ScopedLock sl (matrixLock);
+        newReverbOutputDelays = reverbOutputDelayTimesMs;
+        newReverbOutputLevels = reverbOutputLevels;
+        newReverbOutputHF = reverbOutputHFAttenuationDb;
+    }
 
     // Store common attenuation adjustment per input (for reverb feed calculations)
     std::vector<float> inputCommonAttenAdjustments (static_cast<size_t> (numInputs), 0.0f);
@@ -487,6 +701,10 @@ void WFSCalculationEngine::recalculateMatrix()
     // Calculate for each input->output pair
     for (int inIdx = 0; inIdx < numInputs; ++inIdx)
     {
+        // Skip inputs that don't need recalculation (existing values preserved from copy)
+        if (!inputsToRecalc[static_cast<size_t>(inIdx)])
+            continue;
+
         const Position& inputPos = localInputPositions[static_cast<size_t> (inIdx)];
 
         // Get input attenuation parameters
@@ -519,6 +737,10 @@ void WFSCalculationEngine::recalculateMatrix()
         float directivityRad = static_cast<float> (directivityDeg) * (juce::MathConstants<float>::pi / 180.0f);
         float rotationRad = static_cast<float> (rotationDeg) * (juce::MathConstants<float>::pi / 180.0f);
         float tiltRad = static_cast<float> (tiltDeg) * (juce::MathConstants<float>::pi / 180.0f);
+
+        // Add gyrophone rotation offset (Leslie speaker effect for HF directivity)
+        if (static_cast<size_t>(inIdx) < localGyrophoneOffsets.size())
+            rotationRad += localGyrophoneOffsets[static_cast<size_t>(inIdx)];
 
         // Precompute facing direction for this input
         // rotation=0 faces toward -Y (audience), tilt=0 is horizontal
@@ -729,9 +951,58 @@ void WFSCalculationEngine::recalculateMatrix()
         // ==========================================
         // DELAY POST-PROCESSING (per input)
         // ==========================================
+
+        // Always calculate minDelay (needed for mode change compensation)
+        float minDelay = std::numeric_limits<float>::max();
+        bool foundValidOutput = false;
+
+        for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
+        {
+            if (validForMinLatency[static_cast<size_t> (outIdx)])
+            {
+                const size_t matrixIdx = static_cast<size_t> (inIdx * numOutputs + outIdx);
+                if (newDelays[matrixIdx] < minDelay)
+                {
+                    minDelay = newDelays[matrixIdx];
+                    foundValidOutput = true;
+                }
+            }
+        }
+
+        // Calculate base offset for mode 0 (haas + latency adjustments)
+        // Using average output delay latency = 0 as approximation for mode calculation
+        float mode0BaseOffset = globalHaasEffect - globalSystemLatency + inputDelayLat;
+        float mode1BaseOffset = foundValidOutput ? -minDelay : 0.0f;
+
+        // Detect mode change and calculate compensation offset
+        int prevMode = localPreviousMode[static_cast<size_t> (inIdx)];
+        if (prevMode != -1 && prevMode != minimalLatencyMode)
+        {
+            // Mode changed - calculate compensation offset to maintain delay continuity
+            // The ramp offset compensates for the instantaneous delay change
+            if (prevMode == 0)
+            {
+                // Switching from Acoustic Precedence (mode 0) to Minimal Latency (mode 1)
+                // Old delays had mode0BaseOffset added, new delays have minDelay subtracted
+                // Compensation = mode0BaseOffset - mode1BaseOffset
+                localRampOffset[static_cast<size_t> (inIdx)] += (mode0BaseOffset - mode1BaseOffset);
+            }
+            else
+            {
+                // Switching from Minimal Latency (mode 1) to Acoustic Precedence (mode 0)
+                // Old delays had minDelay subtracted, new delays have mode0BaseOffset added
+                // Compensation = mode1BaseOffset - mode0BaseOffset
+                localRampOffset[static_cast<size_t> (inIdx)] += (mode1BaseOffset - mode0BaseOffset);
+            }
+        }
+
+        // Update previous mode
+        localPreviousMode[static_cast<size_t> (inIdx)] = minimalLatencyMode;
+
+        // Apply mode-specific delay processing
         if (minimalLatencyMode == 0)
         {
-            // Mode 1: Acoustic Precedence
+            // Mode 0: Acoustic Precedence
             // finalDelay = calculatedDelay + haasEffect - systemLatency + inputDelayLatency + outputDelayLatency
             for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
             {
@@ -753,26 +1024,7 @@ void WFSCalculationEngine::recalculateMatrix()
         }
         else
         {
-            // Mode 2: Minimal Latency
-            // Find minimum delay among valid outputs, subtract from all
-
-            // Find minimum delay among outputs where validForMinLatency is true
-            float minDelay = std::numeric_limits<float>::max();
-            bool foundValidOutput = false;
-
-            for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
-            {
-                if (validForMinLatency[static_cast<size_t> (outIdx)])
-                {
-                    const size_t matrixIdx = static_cast<size_t> (inIdx * numOutputs + outIdx);
-                    if (newDelays[matrixIdx] < minDelay)
-                    {
-                        minDelay = newDelays[matrixIdx];
-                        foundValidOutput = true;
-                    }
-                }
-            }
-
+            // Mode 1: Minimal Latency
             // Subtract minimum from all delays (if we found valid outputs)
             if (foundValidOutput)
             {
@@ -791,6 +1043,20 @@ void WFSCalculationEngine::recalculateMatrix()
             // If no valid outputs found, leave delays as calculated (no subtraction)
         }
 
+        // Apply ramp offset for smooth mode transitions
+        float rampOffset = localRampOffset[static_cast<size_t> (inIdx)];
+        if (std::abs (rampOffset) > 0.001f)
+        {
+            for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
+            {
+                const size_t matrixIdx = static_cast<size_t> (inIdx * numOutputs + outIdx);
+                if (newLevels[matrixIdx] > 0.0f)
+                {
+                    newDelays[matrixIdx] = juce::jmax (0.0f, newDelays[matrixIdx] + rampOffset);
+                }
+            }
+        }
+
         // ==========================================
         // LEVEL POST-PROCESSING - Common Attenuation (per input)
         // ==========================================
@@ -798,38 +1064,71 @@ void WFSCalculationEngine::recalculateMatrix()
         // by raising all attenuations toward the minimum (closest to 0dB)
 
         float commonAttenAdjustment = 0.0f;
+        float minAttenuation = -92.0f;  // Track this for ramp calculation
+        bool foundValidForCommon = false;
 
         // Note: commonAttenFactor interpretation:
         // 100% = keep full original attenuation (no lift applied)
         // 0% = apply full lift (all outputs raised to match minimum attenuation)
-        if (commonAttenFactor < 1.0f)
-        {
-            // Find minimum attenuation (closest to 0dB) from valid outputs
-            float minAttenuation = -92.0f;  // Start with maximum attenuation
-            bool foundValidForCommon = false;
 
-            for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
+        // Find minimum attenuation (needed for both current calc and ramp compensation)
+        for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
+        {
+            if (validForCommonAtten[static_cast<size_t> (outIdx)])
             {
-                if (validForCommonAtten[static_cast<size_t> (outIdx)])
+                float atten = tempAttenuationDb[static_cast<size_t> (outIdx)];
+                if (atten > minAttenuation)
                 {
-                    float atten = tempAttenuationDb[static_cast<size_t> (outIdx)];
-                    if (atten > minAttenuation)
-                    {
-                        minAttenuation = atten;
-                        foundValidForCommon = true;
-                    }
+                    minAttenuation = atten;
+                    foundValidForCommon = true;
                 }
             }
+        }
 
-            // Calculate adjustment to lift all attenuations
+        // Calculate current adjustment
+        if (commonAttenFactor < 1.0f && foundValidForCommon)
+        {
             // minAttenuation is negative (e.g., -20dB), so -minAttenuation is positive (e.g., +20dB)
             // Invert factor: 0% → full lift, 100% → no lift
-            if (foundValidForCommon)
-                commonAttenAdjustment = -minAttenuation * (1.0f - commonAttenFactor);
+            commonAttenAdjustment = -minAttenuation * (1.0f - commonAttenFactor);
         }
+
+        // Detect common attenuation percentage change and set up ramp
+        float prevPercent = localPrevCommonAttenPercent[static_cast<size_t> (inIdx)];
+        float currentPercent = static_cast<float> (commonAttenPercent);
+
+        if (prevPercent >= 0.0f && std::abs (prevPercent - currentPercent) > 0.1f)
+        {
+            // Calculate what adjustment WOULD have been with old percentage
+            float oldFactor = prevPercent / 100.0f;
+            float oldAdjustment = 0.0f;
+            if (oldFactor < 1.0f && foundValidForCommon)
+            {
+                oldAdjustment = -minAttenuation * (1.0f - oldFactor);
+            }
+
+            // Compensation offset = old adjustment - new adjustment
+            // This keeps the level continuous at the moment of change
+            float compensation = oldAdjustment - commonAttenAdjustment;
+
+            // Add to existing ramp offset (in case of rapid changes)
+            localCommonAttenRampOffsetDb[static_cast<size_t> (inIdx)] += compensation;
+
+            // Set ramp time proportional to change magnitude
+            // 1% change = 0.01s, 50% change = 0.5s, 100% change = 1.0s
+            float deltaPercent = std::abs (currentPercent - prevPercent);
+            float rampTime = deltaPercent * 0.01f;  // 0.01 seconds per percentage point
+            localCommonAttenRampTimeRemaining[static_cast<size_t> (inIdx)] = rampTime;
+        }
+
+        // Update previous percentage for next calculation
+        localPrevCommonAttenPercent[static_cast<size_t> (inIdx)] = currentPercent;
 
         // Store the common attenuation adjustment for later use in reverb feed calculations
         inputCommonAttenAdjustments[static_cast<size_t> (inIdx)] = commonAttenAdjustment;
+
+        // Get current ramp offset for this input
+        float commonAttenRampOffset = localCommonAttenRampOffsetDb[static_cast<size_t> (inIdx)];
 
         // Apply common attenuation adjustment and convert to linear levels
         for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
@@ -844,8 +1143,8 @@ void WFSCalculationEngine::recalculateMatrix()
             float attenuationDb = tempAttenuationDb[static_cast<size_t> (outIdx)];
             float angularAtten = tempAngularAtten[static_cast<size_t> (outIdx)];
 
-            // Apply common attenuation adjustment
-            attenuationDb += commonAttenAdjustment;
+            // Apply common attenuation adjustment + ramp offset
+            attenuationDb += commonAttenAdjustment + commonAttenRampOffset;
 
             // Clamp to 0dB max (don't amplify) and -92dB min
             attenuationDb = juce::jlimit (-92.0f, 0.0f, attenuationDb);
@@ -874,6 +1173,10 @@ void WFSCalculationEngine::recalculateMatrix()
 
     for (int inIdx = 0; inIdx < numInputs; ++inIdx)
     {
+        // Skip inputs that don't need recalculation (existing values preserved from copy)
+        if (!inputsToRecalc[static_cast<size_t>(inIdx)])
+            continue;
+
         const Position& inputPos = localInputPositions[static_cast<size_t> (inIdx)];
 
         // Check if this input has reverb sends muted
@@ -915,6 +1218,10 @@ void WFSCalculationEngine::recalculateMatrix()
         float directivityRad = static_cast<float> (directivityDeg) * (juce::MathConstants<float>::pi / 180.0f);
         float rotationRad = static_cast<float> (rotationDeg) * (juce::MathConstants<float>::pi / 180.0f);
         float tiltRad = static_cast<float> (tiltDeg) * (juce::MathConstants<float>::pi / 180.0f);
+
+        // Add gyrophone rotation offset (Leslie speaker effect for HF directivity)
+        if (static_cast<size_t>(inIdx) < localGyrophoneOffsets.size())
+            rotationRad += localGyrophoneOffsets[static_cast<size_t>(inIdx)];
 
         float facingX = std::sin (rotationRad) * std::cos (tiltRad);
         float facingY = -std::cos (rotationRad) * std::cos (tiltRad);
@@ -1119,7 +1426,10 @@ void WFSCalculationEngine::recalculateMatrix()
     // REVERB RETURN → OUTPUT CALCULATIONS
     // ==========================================================================
     // Reverb returns act like simplified inputs (ambient sources)
+    // Only recalculate if outputs or reverbs have changed (existing values preserved from copy)
 
+    if (needOutputRecalc || needReverbRecalc)
+    {
     // Temporary arrays for reverb return level post-processing
     std::vector<float> tempReverbReturnAttenDb (static_cast<size_t> (numOutputs));
     std::vector<float> tempReverbReturnAngularAtten (static_cast<size_t> (numOutputs));
@@ -1290,6 +1600,7 @@ void WFSCalculationEngine::recalculateMatrix()
             newReverbOutputLevels[matrixIdx] = linearLevel;
         }
     }
+    } // End of if (needOutputRecalc || needReverbRecalc)
 
     // Update all matrices under lock
     {
@@ -1309,6 +1620,18 @@ void WFSCalculationEngine::recalculateMatrix()
         reverbOutputDelayTimesMs = std::move (newReverbOutputDelays);
         reverbOutputLevels = std::move (newReverbOutputLevels);
         reverbOutputHFAttenuationDb = std::move (newReverbOutputHF);
+    }
+
+    // Update ramp states under position lock
+    {
+        const juce::ScopedLock sl (positionLock);
+        // Delay mode ramp state
+        previousMinimalLatencyMode = std::move (localPreviousMode);
+        delayModeRampOffset = std::move (localRampOffset);
+        // Common attenuation ramp state
+        previousCommonAttenPercent = std::move (localPrevCommonAttenPercent);
+        commonAttenRampOffsetDb = std::move (localCommonAttenRampOffsetDb);
+        commonAttenRampTimeRemaining = std::move (localCommonAttenRampTimeRemaining);
     }
 }
 
@@ -1432,6 +1755,9 @@ void WFSCalculationEngine::valueTreePropertyChanged (juce::ValueTree& tree,
                 updateSpeakerPosition (outputIndex);
 
             recalculateListenerPosition (outputIndex);
+            // Output changed - affects ALL inputs, need full recalc
+            outputsDirty.store(true);
+            matrixDirty.store(true);
         }
         return;
     }
@@ -1449,6 +1775,9 @@ void WFSCalculationEngine::valueTreePropertyChanged (juce::ValueTree& tree,
         {
             const juce::ScopedLock sl (positionLock);
             updateInputPosition (inputIndex);
+            // Mark only this specific input as dirty
+            inputDirtyFlags[static_cast<size_t> (inputIndex)] = true;
+            matrixDirty.store(true);
         }
         return;
     }
@@ -1479,9 +1808,9 @@ void WFSCalculationEngine::valueTreePropertyChanged (juce::ValueTree& tree,
             {
                 updateReverbReturnPosition (reverbIndex);
             }
+            // Reverb changed - affects ALL inputs for input→reverb matrix
+            reverbsDirty.store(true);
+            matrixDirty.store(true);
         }
     }
-
-    // Note: Matrix recalculation is not triggered automatically here.
-    // It should be called at 50Hz from a timer for smooth updates.
 }

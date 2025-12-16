@@ -61,11 +61,44 @@ public:
     void recalculateAllInputPositions();
 
     //==========================================================================
+    // LFO Offset Support
+    //==========================================================================
+
+    /** Set LFO offset for an input (called from LFOProcessor at 50Hz) */
+    void setLFOOffset (int inputIndex, float x, float y, float z);
+
+    /** Get LFO offset for an input (for UI visualization) */
+    Position getLFOOffset (int inputIndex) const;
+
+    /** Set gyrophone rotation offset for an input (radians, added to rotation for HF directivity) */
+    void setGyrophoneOffset (int inputIndex, float offsetRad);
+
+    /** Get gyrophone rotation offset for an input */
+    float getGyrophoneOffset (int inputIndex) const;
+
+    //==========================================================================
+    // Delay Mode Ramp Support
+    //==========================================================================
+
+    /** Update delay mode ramps - call at 50Hz to decay ramp offsets over 1 second */
+    void updateDelayModeRamps (float deltaTimeSeconds);
+
+    //==========================================================================
     // Matrix Calculation (call at 50Hz from timer)
     //==========================================================================
 
-    /** Recalculate entire delay/level/HF matrix. Call this at control rate (~50Hz) */
+    /** Recalculate entire delay/level/HF matrix if dirty. Call this at control rate (~50Hz)
+        Returns true if recalculation was performed, false if skipped (not dirty) */
+    bool recalculateMatrixIfDirty();
+
+    /** Force recalculation regardless of dirty state */
     void recalculateMatrix();
+
+    /** Check if matrix needs recalculation */
+    bool isMatrixDirty() const { return matrixDirty.load(); }
+
+    /** Mark matrix as needing recalculation */
+    void markMatrixDirty() { matrixDirty.store(true); }
 
     /** Get matrix dimensions */
     int getNumInputs() const { return numInputs; }
@@ -203,6 +236,17 @@ private:
     std::vector<Position> inputPositions;        // [inputIndex]
     std::vector<Position> reverbFeedPositions;   // [reverbIndex]
     std::vector<Position> reverbReturnPositions; // [reverbIndex]
+    std::vector<Position> lfoOffsets;            // [inputIndex] - LFO position offsets
+    std::vector<float> gyrophoneOffsets;          // [inputIndex] - Gyrophone rotation offsets (radians)
+
+    // Delay mode ramp state for smooth transitions when toggling inputMinimalLatency
+    std::vector<int> previousMinimalLatencyMode;  // [inputIndex] - Previous mode (0 or 1), -1 = uninitialized
+    std::vector<float> delayModeRampOffset;       // [inputIndex] - Current ramp offset in ms (decays to 0 over 1s)
+
+    // Common attenuation ramp state for smooth transitions when changing inputCommonAtten
+    std::vector<float> previousCommonAttenPercent;  // [inputIndex] - Previous common atten % (-1 = uninitialized)
+    std::vector<float> commonAttenRampOffsetDb;     // [inputIndex] - Current ramp offset in dB (decays to 0)
+    std::vector<float> commonAttenRampTimeRemaining; // [inputIndex] - Remaining ramp time in seconds
 
     // Input → Output matrix results [inputIndex * numOutputs + outputIndex]
     std::vector<float> delayTimesMs;
@@ -222,6 +266,12 @@ private:
     // Thread safety
     mutable juce::CriticalSection positionLock;
     mutable juce::CriticalSection matrixLock;
+
+    // Dirty flags for lazy recalculation
+    std::atomic<bool> matrixDirty { true };           // Any change requiring full recalc
+    std::atomic<bool> outputsDirty { true };          // Output positions changed (affects all inputs)
+    std::atomic<bool> reverbsDirty { true };          // Reverb positions changed
+    std::vector<bool> inputDirtyFlags;                // Per-input dirty flags (protected by positionLock)
 
     // Speed of sound (m/s)
     static constexpr float speedOfSound = 343.0f;
