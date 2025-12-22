@@ -13,7 +13,8 @@
  * Each input has independent LFO state with:
  * - Main ramp (0→1) that cycles at the period rate
  * - Per-axis waveform shape, rate multiplier, amplitude, and phase
- * - 500ms fade in/out when activating/deactivating
+ * - 500ms global fade in/out when activating/deactivating LFO
+ * - 1-second per-axis fade when shape changes from OFF to any other (prevents brisk changes)
  * - Random shape picks new target at period boundary
  */
 class LFOProcessor
@@ -43,6 +44,16 @@ public:
         float ramp = 0.0f;              // Main ramp 0→1
         float fadeLevel = 0.0f;         // 0→1 for 500ms fade in/out
         bool wasActive = false;         // Previous active state for fade detection
+
+        // Per-axis amplitude fade (0→1, 1-second ramp when shape changes from OFF)
+        float fadeX = 0.0f;
+        float fadeY = 0.0f;
+        float fadeZ = 0.0f;
+
+        // Previous shape values for detecting OFF→ON transitions
+        int prevShapeX = 0;
+        int prevShapeY = 0;
+        int prevShapeZ = 0;
 
         // Random shape state - per axis
         float randomTargetX = 0.0f;
@@ -90,12 +101,14 @@ public:
      */
     void process (float deltaTimeSeconds)
     {
-        constexpr float fadeTimeSeconds = 0.5f;  // 500ms fade
+        constexpr float fadeTimeSeconds = 0.5f;      // 500ms global fade
+        constexpr float axisFadeTimeSeconds = 1.0f;  // 1-second per-axis fade
         const float fadeIncrement = deltaTimeSeconds / fadeTimeSeconds;
+        const float axisFadeIncrement = deltaTimeSeconds / axisFadeTimeSeconds;
 
         for (int i = 0; i < numInputChannels; ++i)
         {
-            processInput (i, deltaTimeSeconds, fadeIncrement);
+            processInput (i, deltaTimeSeconds, fadeIncrement, axisFadeIncrement);
         }
     }
 
@@ -176,7 +189,7 @@ private:
     //==========================================================================
     // Per-Input Processing
     //==========================================================================
-    void processInput (int inputIndex, float deltaTime, float fadeIncrement)
+    void processInput (int inputIndex, float deltaTime, float fadeIncrement, float axisFadeIncrement)
     {
         auto& state = states[static_cast<size_t> (inputIndex)];
         auto lfoSection = valueTreeState.getInputLFOSection (inputIndex);
@@ -214,6 +227,38 @@ private:
         {
             state.fadeLevel = juce::jmax (0.0f, state.fadeLevel - fadeIncrement);
         }
+
+        // Per-axis amplitude fade (1-second ramp when shape changes from OFF to any other)
+        // Reset fade when shape transitions from OFF (0) to non-OFF, or when LFO just became active
+        bool justActivated = isActive && !state.wasActive;
+
+        if ((state.prevShapeX == Off && shapeX != Off) || (justActivated && shapeX != Off && state.fadeX >= 1.0f))
+            state.fadeX = 0.0f;
+        if ((state.prevShapeY == Off && shapeY != Off) || (justActivated && shapeY != Off && state.fadeY >= 1.0f))
+            state.fadeY = 0.0f;
+        if ((state.prevShapeZ == Off && shapeZ != Off) || (justActivated && shapeZ != Off && state.fadeZ >= 1.0f))
+            state.fadeZ = 0.0f;
+
+        // Ramp up per-axis fade when shape is active, ramp down when OFF
+        if (shapeX != Off && state.fadeX < 1.0f)
+            state.fadeX = juce::jmin (1.0f, state.fadeX + axisFadeIncrement);
+        else if (shapeX == Off && state.fadeX > 0.0f)
+            state.fadeX = juce::jmax (0.0f, state.fadeX - axisFadeIncrement);
+
+        if (shapeY != Off && state.fadeY < 1.0f)
+            state.fadeY = juce::jmin (1.0f, state.fadeY + axisFadeIncrement);
+        else if (shapeY == Off && state.fadeY > 0.0f)
+            state.fadeY = juce::jmax (0.0f, state.fadeY - axisFadeIncrement);
+
+        if (shapeZ != Off && state.fadeZ < 1.0f)
+            state.fadeZ = juce::jmin (1.0f, state.fadeZ + axisFadeIncrement);
+        else if (shapeZ == Off && state.fadeZ > 0.0f)
+            state.fadeZ = juce::jmax (0.0f, state.fadeZ - axisFadeIncrement);
+
+        // Store current shapes for next frame's transition detection
+        state.prevShapeX = shapeX;
+        state.prevShapeY = shapeY;
+        state.prevShapeZ = shapeZ;
 
         // Update ramp (continues even during fade out for smooth transition)
         if (state.fadeLevel > 0.0f || isActive)
@@ -262,10 +307,10 @@ private:
             state.normalizedY = applyWaveform (shapeY, rampY, state.lastRandomY, state.randomTargetY);
             state.normalizedZ = applyWaveform (shapeZ, rampZ, state.lastRandomZ, state.randomTargetZ);
 
-            // Apply amplitude and fade to get final offsets
-            state.offsetX = state.normalizedX * amplitudeX * state.fadeLevel;
-            state.offsetY = state.normalizedY * amplitudeY * state.fadeLevel;
-            state.offsetZ = state.normalizedZ * amplitudeZ * state.fadeLevel;
+            // Apply amplitude, global fade, and per-axis fade to get final offsets
+            state.offsetX = state.normalizedX * amplitudeX * state.fadeLevel * state.fadeX;
+            state.offsetY = state.normalizedY * amplitudeY * state.fadeLevel * state.fadeY;
+            state.offsetZ = state.normalizedZ * amplitudeZ * state.fadeLevel * state.fadeZ;
 
             // Gyrophone: rotate brightness cone based on main ramp
             // Uses main ramp (not per-axis) so rotation completes one full cycle per period

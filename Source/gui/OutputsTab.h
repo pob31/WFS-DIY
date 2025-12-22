@@ -30,14 +30,17 @@ public:
     OutputsTab(WfsParameters& params)
         : parameters(params),
           outputsTree(params.getOutputTree()),
-          configTree(params.getConfigTree())
+          configTree(params.getConfigTree()),
+          ioTree(params.getConfigTree().getChildWithName(WFSParameterIDs::IO))
     {
         // Enable keyboard focus so we can receive focus back after text editing
         setWantsKeyboardFocus(true);
 
-        // Add listener to outputs tree and config tree
+        // Add listener to outputs tree, config tree, and IO tree (for channel count changes)
         outputsTree.addListener(this);
         configTree.addListener(this);
+        if (ioTree.isValid())
+            ioTree.addListener(this);
 
         // ==================== HEADER SECTION ====================
         // Channel Selector - use configured output count
@@ -157,6 +160,8 @@ public:
     {
         outputsTree.removeListener(this);
         configTree.removeListener(this);
+        if (ioTree.isValid())
+            ioTree.removeListener(this);
     }
 
     /** Get the currently selected channel (1-based) */
@@ -655,25 +660,35 @@ private:
         eqBandLabel[bandIndex].setAlpha(bandLabelAlpha);
         eqBandShapeSelector[bandIndex].setAlpha(shapeAlpha);
 
+        // Only update visibility if EQ tab is currently selected
+        bool eqTabSelected = (subTabBar.getCurrentTabIndex() == 2);
+
         // Parameters follow both global EQ and band off state
-        eqBandFreqLabel[bandIndex].setVisible(true);
-        eqBandFreqSlider[bandIndex].setVisible(true);
-        eqBandFreqValueLabel[bandIndex].setVisible(true);
+        if (eqTabSelected)
+        {
+            eqBandFreqLabel[bandIndex].setVisible(true);
+            eqBandFreqSlider[bandIndex].setVisible(true);
+            eqBandFreqValueLabel[bandIndex].setVisible(true);
+        }
         eqBandFreqLabel[bandIndex].setAlpha(paramAlpha);
         eqBandFreqSlider[bandIndex].setAlpha(paramAlpha);
         eqBandFreqValueLabel[bandIndex].setAlpha(paramAlpha);
 
-        eqBandQLabel[bandIndex].setVisible(true);
-        eqBandQDial[bandIndex].setVisible(true);
-        eqBandQValueLabel[bandIndex].setVisible(true);
+        if (eqTabSelected)
+        {
+            eqBandQLabel[bandIndex].setVisible(true);
+            eqBandQDial[bandIndex].setVisible(true);
+            eqBandQValueLabel[bandIndex].setVisible(true);
+        }
         eqBandQLabel[bandIndex].setAlpha(paramAlpha);
         eqBandQDial[bandIndex].setAlpha(paramAlpha);
         eqBandQValueLabel[bandIndex].setAlpha(paramAlpha);
 
-        // Gain controls - hide for cut/bandpass filters
-        eqBandGainLabel[bandIndex].setVisible(showGain);
-        eqBandGainDial[bandIndex].setVisible(showGain);
-        eqBandGainValueLabel[bandIndex].setVisible(showGain);
+        // Gain controls - hide for cut/bandpass filters, only show if EQ tab selected
+        bool showGainVisible = showGain && eqTabSelected;
+        eqBandGainLabel[bandIndex].setVisible(showGainVisible);
+        eqBandGainDial[bandIndex].setVisible(showGainVisible);
+        eqBandGainValueLabel[bandIndex].setVisible(showGainVisible);
         if (showGain)
         {
             eqBandGainLabel[bandIndex].setAlpha(paramAlpha);
@@ -1581,8 +1596,8 @@ private:
 
     void valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property) override
     {
-        // Check if output channel count changed
-        if (tree == configTree && property == WFSParameterIDs::outputChannels)
+        // Check if output channel count changed (stored in IO tree)
+        if (tree == ioTree && property == WFSParameterIDs::outputChannels)
         {
             int numOutputs = parameters.getNumOutputChannels();
             if (numOutputs > 0)
@@ -1630,6 +1645,7 @@ private:
     WfsParameters& parameters;
     juce::ValueTree outputsTree;
     juce::ValueTree configTree;
+    juce::ValueTree ioTree;
     bool isLoadingParameters = false;
     StatusBar* statusBar = nullptr;
     std::map<juce::Component*, juce::String> helpTextMap;

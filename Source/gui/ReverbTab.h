@@ -1091,9 +1091,13 @@ private:
         bool isCutFilter = (shape == 1 || shape == 5);
         bool showGain = ! isCutFilter;
 
-        eqBandGainLabel[bandIndex].setVisible (showGain);
-        eqBandGainDial[bandIndex].setVisible (showGain);
-        eqBandGainValueLabel[bandIndex].setVisible (showGain);
+        // Only set visible if EQ tab is currently selected
+        bool eqTabSelected = (subTabBar.getCurrentTabIndex() == 3);
+        bool showGainVisible = showGain && eqTabSelected;
+
+        eqBandGainLabel[bandIndex].setVisible (showGainVisible);
+        eqBandGainDial[bandIndex].setVisible (showGainVisible);
+        eqBandGainValueLabel[bandIndex].setVisible (showGainVisible);
     }
 
     void setAlgorithmVisible (bool visible)
@@ -1818,6 +1822,11 @@ private:
         muteMacrosSelector.setVisible (hasChannels);
 
         // Footer buttons remain visible (for Import functionality)
+
+        // After setting base visibility, apply subtab-specific visibility
+        // This ensures only the current subtab's components are visible
+        if (hasChannels)
+            layoutCurrentSubTab();
     }
 
     //==========================================================================

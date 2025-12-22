@@ -132,14 +132,17 @@ public:
     InputsTab(WfsParameters& params)
         : parameters(params),
           inputsTree(params.getInputTree()),
-          configTree(params.getConfigTree())
+          configTree(params.getConfigTree()),
+          ioTree(params.getConfigTree().getChildWithName(WFSParameterIDs::IO))
     {
         // Enable keyboard focus so we can receive focus back after text editing
         setWantsKeyboardFocus(true);
 
-        // Add listener to inputs tree and config tree
+        // Add listener to inputs tree, config tree, and IO tree (for channel count changes)
         inputsTree.addListener(this);
         configTree.addListener(this);
+        if (ioTree.isValid())
+            ioTree.addListener(this);
 
         // ==================== HEADER SECTION ====================
         // Channel Selector - use configured input count
@@ -154,6 +157,11 @@ public:
         // Set color provider to match input marker colors from Map tab
         channelSelector.setChannelColorProvider([](int channelId) -> juce::Colour {
             return WfsColorUtilities::getInputColor(channelId);
+        });
+        // Set text color provider for readable text on light/dark backgrounds
+        channelSelector.setTextColorProvider([](int channelId) -> juce::Colour {
+            auto bgColor = WfsColorUtilities::getInputColor(channelId);
+            return WfsColorUtilities::getContrastingTextColor(bgColor);
         });
         // Set name provider to show input names on selector tiles
         channelSelector.setChannelNameProvider([this](int channelId) -> juce::String {
@@ -290,6 +298,8 @@ public:
     {
         inputsTree.removeListener(this);
         configTree.removeListener(this);
+        if (ioTree.isValid())
+            ioTree.removeListener(this);
     }
 
     /**
@@ -2304,6 +2314,11 @@ private:
         lfoPhaseZLabel.setVisible(v); lfoPhaseZDial.setVisible(v); lfoPhaseZValueLabel.setVisible(v);
         lfoGyrophoneLabel.setVisible(v); lfoGyrophoneSelector.setVisible(v);
         jitterLabel.setVisible(v); jitterSlider.setVisible(v); jitterValueLabel.setVisible(v);
+        // LFO progress dial and output indicators
+        lfoProgressDial.setVisible(v);
+        lfoOutputXLabel.setVisible(v); lfoOutputXSlider.setVisible(v);
+        lfoOutputYLabel.setVisible(v); lfoOutputYSlider.setVisible(v);
+        lfoOutputZLabel.setVisible(v); lfoOutputZSlider.setVisible(v);
     }
 
     void layoutLfoTab()
@@ -3819,8 +3834,8 @@ private:
 
     void valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property) override
     {
-        // Check if input channel count changed
-        if (tree == configTree && property == WFSParameterIDs::inputChannels)
+        // Check if input channel count changed (stored in IO tree)
+        if (tree == ioTree && property == WFSParameterIDs::inputChannels)
         {
             int numInputs = parameters.getNumInputChannels();
             if (numInputs > 0)
@@ -3832,8 +3847,8 @@ private:
             }
         }
 
-        // Check if output channel count changed (affects mute buttons)
-        if (tree == configTree && property == WFSParameterIDs::outputChannels)
+        // Check if output channel count changed (affects mute buttons, stored in IO tree)
+        if (tree == ioTree && property == WFSParameterIDs::outputChannels)
         {
             // Update mute button visibility and layout if Mutes tab is visible
             if (subTabBar.getCurrentTabIndex() == 8)  // Mutes tab
@@ -4111,6 +4126,7 @@ private:
     WfsParameters& parameters;
     juce::ValueTree inputsTree;
     juce::ValueTree configTree;
+    juce::ValueTree ioTree;
     bool isLoadingParameters = false;
     StatusBar* statusBar = nullptr;
     std::map<juce::Component*, juce::String> helpTextMap;
