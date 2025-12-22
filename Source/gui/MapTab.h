@@ -1858,14 +1858,59 @@ private:
         bool isBeingTouchDragged = isInputBeingTouchDragged(inputIndex);
         bool isBeingDragged = isBeingMouseDragged || isBeingTouchDragged;
 
-        // Draw LS radius if active
+        // Draw LS radius if active - radial gradient following the shape profile
         if (lsActive != 0)
         {
             float radiusPixels = lsRadius * viewScale;
-            g.setColour(juce::Colours::white.withAlpha(0.1f));
+            int lsShape = static_cast<int>(parameters.getInputParam(inputIndex, "inputLSshape"));
+
+            // Get input marker color for the gradient
+            juce::Colour inputColor = WfsColorUtilities::getInputColor(inputIndex + 1);
+            const float baseAlpha = 0.25f;
+
+            // Create radial gradient with shape-dependent color stops
+            // Shape: 0=linear, 1=log, 2=square, 3=sine
+            juce::ColourGradient gradient(
+                inputColor.withAlpha(baseAlpha),  // Center color
+                screenPos.x, screenPos.y,          // Center point
+                inputColor.withAlpha(0.0f),       // Edge color (transparent)
+                screenPos.x + radiusPixels, screenPos.y,  // Edge point
+                true);  // isRadial = true
+
+            // Add intermediate color stops based on shape profile
+            // t = normalized distance (0 = center, 1 = edge)
+            // Shape: 0=linear, 1=log, 2=square d^2, 3=sine (matches Max patch gate order)
+            auto calcAlpha = [baseAlpha, lsShape](float t) -> float {
+                float attenuation;
+                switch (lsShape)
+                {
+                    case 1:  // Log: 1 - log10(1 + 9*t)
+                        attenuation = 1.0f - std::log10(1.0f + 9.0f * t);
+                        break;
+                    case 2:  // Square (d^2): 1 - t^2
+                        attenuation = 1.0f - t * t;
+                        break;
+                    case 3:  // Sine: 0.5 + 0.5*cos(t*pi)
+                        attenuation = 0.5f + 0.5f * std::cos(t * juce::MathConstants<float>::pi);
+                        break;
+                    default: // Linear (case 0): 1 - t
+                        attenuation = 1.0f - t;
+                        break;
+                }
+                return baseAlpha * attenuation;
+            };
+
+            // Add color stops at regular intervals to approximate the curve
+            for (float t = 0.1f; t < 1.0f; t += 0.1f)
+                gradient.addColour(t, inputColor.withAlpha(calcAlpha(t)));
+
+            // Draw gradient-filled disc
+            g.setGradientFill(gradient);
             g.fillEllipse(screenPos.x - radiusPixels, screenPos.y - radiusPixels,
                           radiusPixels * 2, radiusPixels * 2);
-            g.setColour(juce::Colours::white.withAlpha(0.3f));
+
+            // Draw outline circle at radius edge
+            g.setColour(inputColor.withAlpha(0.4f));
             g.drawEllipse(screenPos.x - radiusPixels, screenPos.y - radiusPixels,
                           radiusPixels * 2, radiusPixels * 2, 1.0f);
         }

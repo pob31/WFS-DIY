@@ -1356,47 +1356,67 @@ private:
             float targetLinear = std::pow(10.0f, dB / 20.0f);
             float v = std::sqrt((targetLinear - minLinear) / (1.0f - minLinear));
             attenuationSlider.setValue(juce::jlimit(0.0f, 1.0f, v));
+            // Force label update
+            attenuationValueLabel.setText(juce::String(dB, 1) + " dB", juce::dontSendNotification);
         }
         else if (label == &delayLatencyValueLabel)
         {
             // Delay/Latency: -100 to 100 ms, maps to slider -1 to 1
             float ms = juce::jlimit(-100.0f, 100.0f, value);
             delayLatencySlider.setValue(ms / 100.0f);
+            // Force label update
+            juce::String labelText = (ms < 0) ? "Latency: " : "Delay: ";
+            delayLatencyValueLabel.setText(labelText + juce::String(std::abs(ms), 1) + " ms", juce::dontSendNotification);
         }
         else if (label == &distanceAttenValueLabel)
         {
             // Distance Attenuation: 0% to 200%, slider -1 to 1
             int percent = juce::jlimit(0, 200, static_cast<int>(value));
             distanceAttenSlider.setValue((percent / 100.0f) - 1.0f);
+            // Force label update
+            distanceAttenValueLabel.setText(juce::String(percent) + " %", juce::dontSendNotification);
         }
         else if (label == &orientationValueLabel)
         {
             // Orientation: -180 to 180 degrees (endless dial normalizes automatically)
-            orientationDial.setAngle(value);
+            int degrees = static_cast<int>(value);
+            while (degrees > 180) degrees -= 360;
+            while (degrees < -179) degrees += 360;
+            orientationDial.setAngle(static_cast<float>(degrees));
+            // Force label update
+            orientationValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
         }
         else if (label == &angleOnValueLabel)
         {
             // Angle On: 1-180°, slider 0-1 maps to 1-180
             int degrees = juce::jlimit(1, 180, static_cast<int>(value));
             angleOnSlider.setValue((degrees - 1.0f) / 179.0f);
+            // Force label update
+            angleOnValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
         }
         else if (label == &angleOffValueLabel)
         {
             // Angle Off: 0-179°, slider 0-1 maps to 0-179
             int degrees = juce::jlimit(0, 179, static_cast<int>(value));
             angleOffSlider.setValue(degrees / 179.0f);
+            // Force label update
+            angleOffValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
         }
         else if (label == &pitchValueLabel)
         {
             // Pitch: -90 to 90°, slider -1 to 1
             int degrees = juce::jlimit(-90, 90, static_cast<int>(value));
             pitchSlider.setValue(degrees / 90.0f);
+            // Force label update
+            pitchValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
         }
         else if (label == &hfDampingValueLabel)
         {
             // HF Damping: -6 to 0 dB/m, slider 0-1 maps to -6 to 0
             float dBm = juce::jlimit(-6.0f, 0.0f, value);
             hfDampingSlider.setValue((dBm + 6.0f) / 6.0f);
+            // Force label update
+            hfDampingValueLabel.setText(juce::String(dBm, 1) + " dB/m", juce::dontSendNotification);
         }
     }
 

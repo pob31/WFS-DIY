@@ -3328,28 +3328,39 @@ private:
             float targetLinear = std::pow(10.0f, dB / 20.0f);
             float v = std::sqrt((targetLinear - minLinear) / (1.0f - minLinear));
             attenuationSlider.setValue(juce::jlimit(0.0f, 1.0f, v));
+            // Force label update
+            attenuationValueLabel.setText(juce::String(dB, 1) + " dB", juce::dontSendNotification);
         }
         else if (label == &delayLatencyValueLabel)
         {
             float ms = juce::jlimit(-100.0f, 100.0f, value);
             delayLatencySlider.setValue(ms / 100.0f);
+            // Force label update
+            juce::String labelText = (ms < 0) ? "Latency: " : "Delay: ";
+            delayLatencyValueLabel.setText(labelText + juce::String(std::abs(ms), 1) + " ms", juce::dontSendNotification);
         }
         // Position tab
         else if (label == &trackingSmoothValueLabel)
         {
             int percent = juce::jlimit(0, 100, static_cast<int>(value));
             trackingSmoothDial.setValue(percent / 100.0f);
+            // Force label update
+            trackingSmoothValueLabel.setText(juce::String(percent) + " %", juce::dontSendNotification);
         }
         else if (label == &maxSpeedValueLabel)
         {
             float speed = juce::jlimit(0.01f, 20.0f, value);
             // Inverse of: speed = v * 19.99 + 0.01
             maxSpeedDial.setValue((speed - 0.01f) / 19.99f);
+            // Force label update
+            maxSpeedValueLabel.setText(juce::String(speed, 2) + " m/s", juce::dontSendNotification);
         }
         else if (label == &heightFactorValueLabel)
         {
             int percent = juce::jlimit(0, 100, static_cast<int>(value));
             heightFactorDial.setValue(percent / 100.0f);
+            // Force label update
+            heightFactorValueLabel.setText(juce::String(percent) + " %", juce::dontSendNotification);
         }
         // Sound tab
         else if (label == &distanceAttenValueLabel)
@@ -3357,33 +3368,47 @@ private:
             float dBm = juce::jlimit(-6.0f, 0.0f, value);
             // Inverse of: dBm = (v * 6.0) - 6.0
             distanceAttenDial.setValue((dBm + 6.0f) / 6.0f);
+            // Force label update
+            distanceAttenValueLabel.setText(juce::String(dBm, 1) + " dB/m", juce::dontSendNotification);
         }
         else if (label == &distanceRatioValueLabel)
         {
             float ratio = juce::jlimit(0.1f, 10.0f, value);
             // Inverse of: ratio = pow(10, (v * 2) - 1)
             distanceRatioDial.setValue((std::log10(ratio) + 1.0f) / 2.0f);
+            // Force label update
+            distanceRatioValueLabel.setText(juce::String(ratio, 2) + "x", juce::dontSendNotification);
         }
         else if (label == &commonAttenValueLabel)
         {
             int percent = juce::jlimit(0, 100, static_cast<int>(value));
             commonAttenDial.setValue(percent / 100.0f);
+            // Force label update
+            commonAttenValueLabel.setText(juce::String(percent) + " %", juce::dontSendNotification);
         }
         else if (label == &directivityValueLabel)
         {
-            int degrees = juce::jlimit(1, 360, static_cast<int>(value));
-            // Inverse of: degrees = v * 359 + 1
-            directivitySlider.setValue((degrees - 1.0f) / 359.0f);
+            int degrees = juce::jlimit(2, 360, static_cast<int>(value));
+            // Inverse of: degrees = v * 358 + 2 (CSV formula)
+            directivitySlider.setValue((degrees - 2.0f) / 358.0f);
+            // Force label update
+            directivityValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
         }
         else if (label == &rotationValueLabel)
         {
-            rotationDial.setAngle(value);
+            int degrees = juce::jlimit(-179, 180, static_cast<int>(value));
+            rotationDial.setAngle(static_cast<float>(degrees));
+            // Force label update
+            rotationValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
         }
         else if (label == &tiltValueLabel)
         {
             int degrees = juce::jlimit(-90, 90, static_cast<int>(value));
             // Inverse of: degrees = v * 90 (bidirectional slider, v is -1 to 1)
-            tiltSlider.setValue(degrees / 90.0f);
+            float sliderVal = juce::jlimit(-1.0f, 1.0f, degrees / 90.0f);
+            tiltSlider.setValue(sliderVal);
+            // Force label update in case slider value didn't change
+            tiltValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
         }
         else if (label == &hfShelfValueLabel)
         {
@@ -3393,6 +3418,8 @@ private:
             float targetLinear = std::pow(10.0f, dB / 20.0f);
             float v = std::sqrt((targetLinear - minLinear) / (1.0f - minLinear));
             hfShelfSlider.setValue(juce::jlimit(0.0f, 1.0f, v));
+            // Force label update
+            hfShelfValueLabel.setText(juce::String(dB, 1) + " dB", juce::dontSendNotification);
         }
         // Live Source tab
         else if (label == &lsRadiusValueLabel)
@@ -3400,6 +3427,8 @@ private:
             float meters = juce::jlimit(0.0f, 50.0f, value);
             // Inverse of: meters = v * 50.0
             lsRadiusSlider.setValue(meters / 50.0f);
+            // Force label update
+            lsRadiusValueLabel.setText(juce::String(meters, 1) + " m", juce::dontSendNotification);
         }
         else if (label == &lsAttenuationValueLabel)
         {
@@ -3409,6 +3438,8 @@ private:
             float targetLinear = std::pow(10.0f, dB / 20.0f);
             float v = std::sqrt((targetLinear - minLinear) / (1.0f - minLinear));
             lsAttenuationSlider.setValue(juce::jlimit(0.0f, 1.0f, v));
+            // Force label update
+            lsAttenuationValueLabel.setText(juce::String(dB, 1) + " dB", juce::dontSendNotification);
         }
         else if (label == &lsPeakThresholdValueLabel)
         {
@@ -3418,12 +3449,16 @@ private:
             float targetLinear = std::pow(10.0f, dB / 20.0f);
             float v = std::sqrt((targetLinear - minLinear) / (1.0f - minLinear));
             lsPeakThresholdSlider.setValue(juce::jlimit(0.0f, 1.0f, v));
+            // Force label update
+            lsPeakThresholdValueLabel.setText(juce::String(dB, 1) + " dB", juce::dontSendNotification);
         }
         else if (label == &lsPeakRatioValueLabel)
         {
             float ratio = juce::jlimit(1.0f, 10.0f, value);
             // Inverse of: ratio = v * 9.0 + 1.0
             lsPeakRatioDial.setValue((ratio - 1.0f) / 9.0f);
+            // Force label update
+            lsPeakRatioValueLabel.setText(juce::String(ratio, 1) + ":1", juce::dontSendNotification);
         }
         else if (label == &lsSlowThresholdValueLabel)
         {
@@ -3433,11 +3468,15 @@ private:
             float targetLinear = std::pow(10.0f, dB / 20.0f);
             float v = std::sqrt((targetLinear - minLinear) / (1.0f - minLinear));
             lsSlowThresholdSlider.setValue(juce::jlimit(0.0f, 1.0f, v));
+            // Force label update
+            lsSlowThresholdValueLabel.setText(juce::String(dB, 1) + " dB", juce::dontSendNotification);
         }
         else if (label == &lsSlowRatioValueLabel)
         {
             float ratio = juce::jlimit(1.0f, 10.0f, value);
             lsSlowRatioDial.setValue((ratio - 1.0f) / 9.0f);
+            // Force label update
+            lsSlowRatioValueLabel.setText(juce::String(ratio, 1) + ":1", juce::dontSendNotification);
         }
         // Effects/Hackoustics tab
         else if (label == &frAttenuationValueLabel)
@@ -3448,11 +3487,15 @@ private:
             float targetLinear = std::pow(10.0f, dB / 20.0f);
             float v = std::sqrt((targetLinear - minLinear) / (1.0f - minLinear));
             frAttenuationSlider.setValue(juce::jlimit(0.0f, 1.0f, v));
+            // Force label update
+            frAttenuationValueLabel.setText(juce::String(dB, 1) + " dB", juce::dontSendNotification);
         }
         else if (label == &frDiffusionValueLabel)
         {
             int percent = juce::jlimit(0, 100, static_cast<int>(value));
             frDiffusionDial.setValue(percent / 100.0f);
+            // Force label update
+            frDiffusionValueLabel.setText(juce::String(percent) + " %", juce::dontSendNotification);
         }
         else if (label == &frLowCutFreqValueLabel)
         {
@@ -3460,6 +3503,8 @@ private:
             // Inverse of: freq = 20 * pow(10, 3*v)
             float v = std::log10(freq / 20.0f) / 3.0f;
             frLowCutFreqSlider.setValue(juce::jlimit(0.0f, 1.0f, v));
+            // Force label update
+            frLowCutFreqValueLabel.setText(juce::String(freq) + " Hz", juce::dontSendNotification);
         }
         else if (label == &frHighShelfFreqValueLabel)
         {
@@ -3467,6 +3512,8 @@ private:
             // Inverse of: freq = 20 * pow(10, 3*v)
             float v = std::log10(freq / 20.0f) / 3.0f;
             frHighShelfFreqSlider.setValue(juce::jlimit(0.0f, 1.0f, v));
+            // Force label update
+            frHighShelfFreqValueLabel.setText(juce::String(freq) + " Hz", juce::dontSendNotification);
         }
         else if (label == &frHighShelfGainValueLabel)
         {
@@ -3476,30 +3523,43 @@ private:
             float targetLinear = std::pow(10.0f, dB / 20.0f);
             float v = std::sqrt((targetLinear - minLinear) / (1.0f - minLinear));
             frHighShelfGainSlider.setValue(juce::jlimit(0.0f, 1.0f, v));
+            // Force label update
+            frHighShelfGainValueLabel.setText(juce::String(dB, 1) + " dB", juce::dontSendNotification);
         }
         else if (label == &frHighShelfSlopeValueLabel)
         {
             float slope = juce::jlimit(0.1f, 0.9f, value);
             // Inverse of: slope = (v * 0.8) + 0.1
             frHighShelfSlopeSlider.setValue((slope - 0.1f) / 0.8f);
+            // Force label update
+            frHighShelfSlopeValueLabel.setText(juce::String(slope, 2), juce::dontSendNotification);
         }
         else if (label == &jitterValueLabel)
         {
-            float meters = juce::jlimit(0.0f, 1.0f, value);
-            jitterSlider.setValue(meters);
+            float meters = juce::jlimit(0.0f, 10.0f, value);
+            // Inverse of: meters = 10.0 * v^2, so v = sqrt(meters / 10.0)
+            float sliderVal = std::sqrt(meters / 10.0f);
+            jitterSlider.setValue(juce::jlimit(0.0f, 1.0f, sliderVal));
+            // Force label update in case slider value didn't change
+            jitterValueLabel.setText(juce::String(meters, 2) + " m", juce::dontSendNotification);
         }
         // LFO tab
         else if (label == &lfoPeriodValueLabel)
         {
-            float period = juce::jlimit(0.1f, 60.0f, value);
-            // Inverse of: period = 0.1 + v^2 * 59.9
-            float v = std::sqrt((period - 0.1f) / 59.9f);
-            lfoPeriodDial.setValue(v);
+            float period = juce::jlimit(0.01f, 100.0f, value);
+            // Inverse of: period = pow(10, sqrt(v)*4 - 2), so sqrt(v) = (log10(period)+2)/4
+            float sqrtV = (std::log10(period) + 2.0f) / 4.0f;
+            float v = sqrtV * sqrtV;
+            lfoPeriodDial.setValue(juce::jlimit(0.0f, 1.0f, v));
+            // Force label update
+            lfoPeriodValueLabel.setText(juce::String(period, 2) + " s", juce::dontSendNotification);
         }
         else if (label == &lfoPhaseValueLabel)
         {
-            int degrees = juce::jlimit(-180, 180, static_cast<int>(value));
+            int degrees = juce::jlimit(0, 360, static_cast<int>(value));
             lfoPhaseDial.setAngle(static_cast<float>(degrees));
+            // Force label update
+            lfoPhaseValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
         }
         else if (label == &lfoRateXValueLabel)
         {
@@ -3507,55 +3567,75 @@ private:
             float rate = juce::jlimit(0.01f, 100.0f, value);
             float v = (std::log10(rate) + 2.0f) / 4.0f;
             lfoRateXSlider.setValue(juce::jlimit(0.0f, 1.0f, v));
+            // Force label update
+            lfoRateXValueLabel.setText(juce::String(rate, 2) + "x", juce::dontSendNotification);
         }
         else if (label == &lfoRateYValueLabel)
         {
             float rate = juce::jlimit(0.01f, 100.0f, value);
             float v = (std::log10(rate) + 2.0f) / 4.0f;
             lfoRateYSlider.setValue(juce::jlimit(0.0f, 1.0f, v));
+            // Force label update
+            lfoRateYValueLabel.setText(juce::String(rate, 2) + "x", juce::dontSendNotification);
         }
         else if (label == &lfoRateZValueLabel)
         {
             float rate = juce::jlimit(0.01f, 100.0f, value);
             float v = (std::log10(rate) + 2.0f) / 4.0f;
             lfoRateZSlider.setValue(juce::jlimit(0.0f, 1.0f, v));
+            // Force label update
+            lfoRateZValueLabel.setText(juce::String(rate, 2) + "x", juce::dontSendNotification);
         }
         else if (label == &lfoAmplitudeXValueLabel)
         {
             // Inverse of: amp = v * 50, range 0-50m
             float amp = juce::jlimit(0.0f, 50.0f, value);
             lfoAmplitudeXSlider.setValue(amp / 50.0f);
+            // Force label update
+            lfoAmplitudeXValueLabel.setText(juce::String(amp, 1) + " m", juce::dontSendNotification);
         }
         else if (label == &lfoAmplitudeYValueLabel)
         {
             float amp = juce::jlimit(0.0f, 50.0f, value);
             lfoAmplitudeYSlider.setValue(amp / 50.0f);
+            // Force label update
+            lfoAmplitudeYValueLabel.setText(juce::String(amp, 1) + " m", juce::dontSendNotification);
         }
         else if (label == &lfoAmplitudeZValueLabel)
         {
             float amp = juce::jlimit(0.0f, 50.0f, value);
             lfoAmplitudeZSlider.setValue(amp / 50.0f);
+            // Force label update
+            lfoAmplitudeZValueLabel.setText(juce::String(amp, 1) + " m", juce::dontSendNotification);
         }
         else if (label == &lfoPhaseXValueLabel)
         {
-            int degrees = juce::jlimit(-180, 180, static_cast<int>(value));
+            int degrees = juce::jlimit(0, 360, static_cast<int>(value));
             lfoPhaseXDial.setAngle(static_cast<float>(degrees));
+            // Force label update
+            lfoPhaseXValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
         }
         else if (label == &lfoPhaseYValueLabel)
         {
-            int degrees = juce::jlimit(-180, 180, static_cast<int>(value));
+            int degrees = juce::jlimit(0, 360, static_cast<int>(value));
             lfoPhaseYDial.setAngle(static_cast<float>(degrees));
+            // Force label update
+            lfoPhaseYValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
         }
         else if (label == &lfoPhaseZValueLabel)
         {
-            int degrees = juce::jlimit(-180, 180, static_cast<int>(value));
+            int degrees = juce::jlimit(0, 360, static_cast<int>(value));
             lfoPhaseZDial.setAngle(static_cast<float>(degrees));
+            // Force label update
+            lfoPhaseZValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
         }
         // AutomOtion tab
         else if (label == &otomoSpeedProfileValueLabel)
         {
             int percent = juce::jlimit(0, 100, static_cast<int>(value));
             otomoSpeedProfileDial.setValue(percent / 100.0f);
+            // Force label update
+            otomoSpeedProfileValueLabel.setText(juce::String(percent) + " %", juce::dontSendNotification);
         }
         else if (label == &otomoThresholdValueLabel)
         {
@@ -3565,6 +3645,8 @@ private:
             float linear = std::pow(10.0f, dB / 20.0f);
             float dialValue = std::sqrt((linear - otomoMinLinear) / (1.0f - otomoMinLinear));
             otomoThresholdDial.setValue(juce::jlimit(0.0f, 1.0f, dialValue));
+            // Force label update
+            otomoThresholdValueLabel.setText(juce::String(dB, 1) + " dB", juce::dontSendNotification);
         }
         else if (label == &otomoResetValueLabel)
         {
@@ -3574,6 +3656,8 @@ private:
             float linear = std::pow(10.0f, dB / 20.0f);
             float dialValue = std::sqrt((linear - otomoMinLinear) / (1.0f - otomoMinLinear));
             otomoResetDial.setValue(juce::jlimit(0.0f, 1.0f, dialValue));
+            // Force label update
+            otomoResetValueLabel.setText(juce::String(dB, 1) + " dB", juce::dontSendNotification);
         }
         // Array attenuation dials (Mutes tab)
         else
@@ -3588,6 +3672,8 @@ private:
                     float linear = std::pow(10.0f, dB / 20.0f);
                     float dialValue = std::sqrt((linear - minLinear) / (1.0f - minLinear));
                     arrayAttenDials[i].setValue(juce::jlimit(0.0f, 1.0f, dialValue));
+                    // Force label update
+                    arrayAttenValueLabels[i].setText(juce::String(dB, 1) + " dB", juce::dontSendNotification);
                     break;
                 }
             }

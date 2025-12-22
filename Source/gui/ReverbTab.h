@@ -1607,11 +1607,16 @@ private:
             float targetLinear = std::pow (10.0f, dB / 20.0f);
             float v = std::sqrt ((targetLinear - minLinear) / (1.0f - minLinear));
             attenuationSlider.setValue (juce::jlimit (0.0f, 1.0f, v));
+            // Force label update
+            attenuationValueLabel.setText (juce::String (dB, 1) + " dB", juce::dontSendNotification);
         }
         else if (label == &delayLatencyValueLabel)
         {
             float ms = juce::jlimit (-100.0f, 100.0f, value);
             delayLatencySlider.setValue (ms / 100.0f);  // v = ms / 100 (bidirectional -1 to 1)
+            // Force label update
+            juce::String labelText = (ms < 0) ? "Latency: " : "Delay: ";
+            delayLatencyValueLabel.setText (labelText + juce::String (std::abs (ms), 1) + " ms", juce::dontSendNotification);
         }
     }
 
