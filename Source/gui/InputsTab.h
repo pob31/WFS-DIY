@@ -1802,6 +1802,51 @@ private:
             }
             muteMacrosSelector.setSelectedId(1, juce::dontSendNotification);
         };
+
+        // Array Attenuation section
+        addAndMakeVisible(arrayAttenLabel);
+        arrayAttenLabel.setText("Array Attenuation:", juce::dontSendNotification);
+        arrayAttenLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+
+        for (int i = 0; i < 10; ++i)
+        {
+            // Get array color
+            juce::Colour arrayColor = WfsColorUtilities::getArrayColor(i + 1);
+
+            // Dial label (Array 1, Array 2, etc.)
+            arrayAttenDialLabels[i].setText("Array " + juce::String(i + 1), juce::dontSendNotification);
+            arrayAttenDialLabels[i].setColour(juce::Label::textColourId, juce::Colours::white);
+            arrayAttenDialLabels[i].setJustificationType(juce::Justification::centred);
+            addAndMakeVisible(arrayAttenDialLabels[i]);
+
+            // Dial with array color
+            arrayAttenDials[i].setColours(juce::Colours::black, arrayColor, juce::Colours::grey);
+            arrayAttenDials[i].onValueChanged = [this, i](float v) {
+                // Convert dial value (0-1) to dB (-60 to 0) using sqrt scaling
+                // Forward: linear = minLinear + v^2 * (1 - minLinear), then dB = 20*log10(linear)
+                constexpr float arrayAttenMinLinear = 0.001f;  // -60 dB = 10^(-60/20) = 0.001
+                float linear = arrayAttenMinLinear + v * v * (1.0f - arrayAttenMinLinear);
+                float dB = 20.0f * std::log10(linear);
+                arrayAttenValueLabels[i].setText(juce::String(dB, 1) + " dB", juce::dontSendNotification);
+                // Get the parameter ID based on index
+                const juce::Identifier* ids[] = {
+                    &WFSParameterIDs::inputArrayAtten1, &WFSParameterIDs::inputArrayAtten2,
+                    &WFSParameterIDs::inputArrayAtten3, &WFSParameterIDs::inputArrayAtten4,
+                    &WFSParameterIDs::inputArrayAtten5, &WFSParameterIDs::inputArrayAtten6,
+                    &WFSParameterIDs::inputArrayAtten7, &WFSParameterIDs::inputArrayAtten8,
+                    &WFSParameterIDs::inputArrayAtten9, &WFSParameterIDs::inputArrayAtten10
+                };
+                saveInputParam(*ids[i], dB);
+            };
+            addAndMakeVisible(arrayAttenDials[i]);
+
+            // Value label
+            arrayAttenValueLabels[i].setText("0.0 dB", juce::dontSendNotification);
+            arrayAttenValueLabels[i].setColour(juce::Label::textColourId, juce::Colours::white);
+            arrayAttenValueLabels[i].setJustificationType(juce::Justification::centred);
+            setupEditableValueLabel(arrayAttenValueLabels[i]);
+            addAndMakeVisible(arrayAttenValueLabels[i]);
+        }
     }
 
     void applyMuteMacro(int macroId)
@@ -2569,6 +2614,31 @@ private:
             muteButtons[i].setVisible(v && i < numOutputs);
         muteMacrosLabel.setVisible(v);
         muteMacrosSelector.setVisible(v);
+
+        // Array attenuation controls
+        arrayAttenLabel.setVisible(v);
+
+        // Check which arrays have outputs assigned
+        std::array<bool, 10> arrayHasOutputs = {false};
+        for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
+        {
+            int arrayNum = static_cast<int>(parameters.getOutputParam(outIdx, "outputArray"));
+            if (arrayNum >= 1 && arrayNum <= 10)
+                arrayHasOutputs[static_cast<size_t>(arrayNum - 1)] = true;
+        }
+
+        for (int i = 0; i < 10; ++i)
+        {
+            arrayAttenDialLabels[i].setVisible(v);
+            arrayAttenDials[i].setVisible(v);
+            arrayAttenValueLabels[i].setVisible(v);
+
+            // Dim controls for empty arrays (alpha = 0.3 for empty, 1.0 for populated)
+            float alpha = arrayHasOutputs[static_cast<size_t>(i)] ? 1.0f : 0.3f;
+            arrayAttenDialLabels[i].setAlpha(alpha);
+            arrayAttenDials[i].setAlpha(alpha);
+            arrayAttenValueLabels[i].setAlpha(alpha);
+        }
     }
 
     void layoutMutesTab()
@@ -2610,6 +2680,34 @@ private:
         auto row = area.removeFromTop(rowHeight);
         muteMacrosLabel.setBounds(row.removeFromLeft(100));
         muteMacrosSelector.setBounds(row.removeFromLeft(selectorWidth));
+
+        area.removeFromTop(20);
+
+        // Array Attenuation section
+        const int dialSize = 50;
+        const int dialSpacing = 8;
+        const int labelHeight = 18;
+        const int valueHeight = 18;
+        const int dialTotalHeight = labelHeight + dialSize + valueHeight;
+
+        // Section label
+        auto labelRow = area.removeFromTop(rowHeight);
+        arrayAttenLabel.setBounds(labelRow.removeFromLeft(150));
+
+        area.removeFromTop(5);
+
+        // Layout 10 dials in a single row
+        auto dialsRow = area.removeFromTop(dialTotalHeight);
+        for (int i = 0; i < 10; ++i)
+        {
+            auto dialArea = dialsRow.removeFromLeft(dialSize + dialSpacing);
+            dialArea.removeFromRight(dialSpacing);
+
+            arrayAttenDialLabels[i].setBounds(dialArea.removeFromTop(labelHeight));
+            auto dialRect = dialArea.removeFromTop(dialSize);
+            arrayAttenDials[i].setBounds(dialRect.withSizeKeepingCentre(dialSize, dialSize));
+            arrayAttenValueLabels[i].setBounds(dialArea.removeFromTop(valueHeight));
+        }
     }
 
     // ==================== PARAMETER MANAGEMENT ====================
@@ -3066,6 +3164,26 @@ private:
                 muteButtons[i].setToggleState(false, juce::dontSendNotification);
         }
 
+        // Array attenuation dials
+        static const juce::Identifier arrayAttenIds[10] = {
+            WFSParameterIDs::inputArrayAtten1, WFSParameterIDs::inputArrayAtten2,
+            WFSParameterIDs::inputArrayAtten3, WFSParameterIDs::inputArrayAtten4,
+            WFSParameterIDs::inputArrayAtten5, WFSParameterIDs::inputArrayAtten6,
+            WFSParameterIDs::inputArrayAtten7, WFSParameterIDs::inputArrayAtten8,
+            WFSParameterIDs::inputArrayAtten9, WFSParameterIDs::inputArrayAtten10
+        };
+        constexpr float arrayAttenMinLin = 0.001f;  // -60 dB
+        for (int i = 0; i < 10; ++i)
+        {
+            float attenDb = getFloatParam(arrayAttenIds[i], 0.0f);
+            attenDb = juce::jlimit(-60.0f, 0.0f, attenDb);
+            // Convert dB to dial value using sqrt scaling inverse
+            float linear = std::pow(10.0f, attenDb / 20.0f);
+            float dialValue = std::sqrt((linear - arrayAttenMinLin) / (1.0f - arrayAttenMinLin));
+            arrayAttenDials[i].setValue(juce::jlimit(0.0f, 1.0f, dialValue));
+            arrayAttenValueLabels[i].setText(juce::String(attenDb, 1) + " dB", juce::dontSendNotification);
+        }
+
         // Update visualisation component's selected input
         visualisationComponent.setSelectedInput(currentChannel - 1);
 
@@ -3424,14 +3542,38 @@ private:
         }
         else if (label == &otomoThresholdValueLabel)
         {
-            float dB = juce::jlimit(-60.0f, 0.0f, value);
-            otomoThresholdDial.setValue((dB + 60.0f) / 60.0f);
+            // Range is -92 to 0 dB, using sqrt scaling for perceptual control
+            float dB = juce::jlimit(-92.0f, 0.0f, value);
+            float otomoMinLinear = std::pow(10.0f, -92.0f / 20.0f);
+            float linear = std::pow(10.0f, dB / 20.0f);
+            float dialValue = std::sqrt((linear - otomoMinLinear) / (1.0f - otomoMinLinear));
+            otomoThresholdDial.setValue(juce::jlimit(0.0f, 1.0f, dialValue));
         }
         else if (label == &otomoResetValueLabel)
         {
-            float dB = juce::jlimit(-80.0f, -20.0f, value);
-            // Inverse of: dB = v * 60.0 - 80.0
-            otomoResetDial.setValue((dB + 80.0f) / 60.0f);
+            // Range is -92 to 0 dB, using sqrt scaling for perceptual control
+            float dB = juce::jlimit(-92.0f, 0.0f, value);
+            float otomoMinLinear = std::pow(10.0f, -92.0f / 20.0f);
+            float linear = std::pow(10.0f, dB / 20.0f);
+            float dialValue = std::sqrt((linear - otomoMinLinear) / (1.0f - otomoMinLinear));
+            otomoResetDial.setValue(juce::jlimit(0.0f, 1.0f, dialValue));
+        }
+        // Array attenuation dials (Mutes tab)
+        else
+        {
+            for (int i = 0; i < 10; ++i)
+            {
+                if (label == &arrayAttenValueLabels[i])
+                {
+                    // Range is -60 to 0 dB, using sqrt scaling for perceptual control
+                    float dB = juce::jlimit(-60.0f, 0.0f, value);
+                    constexpr float minLinear = 0.001f;  // -60 dB
+                    float linear = std::pow(10.0f, dB / 20.0f);
+                    float dialValue = std::sqrt((linear - minLinear) / (1.0f - minLinear));
+                    arrayAttenDials[i].setValue(juce::jlimit(0.0f, 1.0f, dialValue));
+                    break;
+                }
+            }
         }
     }
 
@@ -3706,6 +3848,9 @@ private:
         for (int i = 0; i < 64; ++i)
             helpTextMap[&muteButtons[i]] = "Mute Output " + juce::String(i + 1) + " for this Object.";
         helpTextMap[&muteMacrosSelector] = "Mute Macros for Fast Muting and Unmuting of Arrays.";
+        // Array attenuation
+        for (int i = 0; i < 10; ++i)
+            helpTextMap[&arrayAttenDials[i]] = "Attenuation for Array " + juce::String(i + 1) + " (-60 to 0 dB).";
         helpTextMap[&storeButton] = "Store Input Configuration to file (with backup).";
         helpTextMap[&reloadButton] = "Reload Input Configuration from file.";
         helpTextMap[&reloadBackupButton] = "Reload Input Configuration from backup file.";
@@ -3806,6 +3951,9 @@ private:
         for (int i = 0; i < 64; ++i)
             oscMethodMap[&muteButtons[i]] = "/wfs/input/mutes <ID> " + juce::String(i + 1) + " <value>";
         oscMethodMap[&muteMacrosSelector] = "/wfs/input/muteMacro <ID> <value>";
+        // Array attenuation
+        for (int i = 0; i < 10; ++i)
+            oscMethodMap[&arrayAttenDials[i]] = "/wfs/input/arrayAtten" + juce::String(i + 1) + " <ID> <value>";
     }
 
     void setupMouseListeners()
@@ -4314,6 +4462,12 @@ private:
     juce::TextButton muteButtons[64];
     juce::Label muteMacrosLabel;
     juce::ComboBox muteMacrosSelector;
+
+    // Array attenuation (per-array level control)
+    juce::Label arrayAttenLabel;
+    juce::Label arrayAttenDialLabels[10];
+    WfsBasicDial arrayAttenDials[10];
+    juce::Label arrayAttenValueLabels[10];
 
     // Footer buttons - Config
     juce::TextButton storeButton;

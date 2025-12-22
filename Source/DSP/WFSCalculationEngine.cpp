@@ -1,4 +1,5 @@
 #include "WFSCalculationEngine.h"
+#include <array>
 #include <limits>
 
 using namespace WFSParameterIDs;
@@ -713,6 +714,15 @@ void WFSCalculationEngine::recalculateMatrix()
     // An output is valid if: NOT muted, NOT angleOff'd
     std::vector<bool> validForCommonAtten (static_cast<size_t> (numOutputs), false);
 
+    // Cache output array assignments (0 = Single, 1-10 = Array 1-10)
+    std::vector<int> outputArrayAssignments (static_cast<size_t> (numOutputs), 0);
+    for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
+    {
+        auto outputChannelSection = valueTreeState.getOutputChannelSection (outIdx);
+        outputArrayAssignments[static_cast<size_t> (outIdx)] =
+            outputChannelSection.getProperty (outputArray, outputArrayDefault);
+    }
+
     // Calculate for each input->output pair
     for (int inIdx = 0; inIdx < numInputs; ++inIdx)
     {
@@ -730,6 +740,20 @@ void WFSCalculationEngine::recalculateMatrix()
         float distRatio = inputAttenSection.getProperty (inputDistanceRatio, inputDistanceRatioDefault);
         int commonAttenPercent = inputAttenSection.getProperty (inputCommonAtten, inputCommonAttenDefault);
         float commonAttenFactor = static_cast<float> (commonAttenPercent) / 100.0f;
+
+        // Get per-array attenuation values from the Mutes section (dB, 0 = no attenuation)
+        auto inputMutesSection = valueTreeState.getInputMutesSection (inIdx);
+        std::array<float, 10> arrayAttenDb = {0.0f};
+        arrayAttenDb[0] = inputMutesSection.getProperty (inputArrayAtten1, inputArrayAttenDefault);
+        arrayAttenDb[1] = inputMutesSection.getProperty (inputArrayAtten2, inputArrayAttenDefault);
+        arrayAttenDb[2] = inputMutesSection.getProperty (inputArrayAtten3, inputArrayAttenDefault);
+        arrayAttenDb[3] = inputMutesSection.getProperty (inputArrayAtten4, inputArrayAttenDefault);
+        arrayAttenDb[4] = inputMutesSection.getProperty (inputArrayAtten5, inputArrayAttenDefault);
+        arrayAttenDb[5] = inputMutesSection.getProperty (inputArrayAtten6, inputArrayAttenDefault);
+        arrayAttenDb[6] = inputMutesSection.getProperty (inputArrayAtten7, inputArrayAttenDefault);
+        arrayAttenDb[7] = inputMutesSection.getProperty (inputArrayAtten8, inputArrayAttenDefault);
+        arrayAttenDb[8] = inputMutesSection.getProperty (inputArrayAtten9, inputArrayAttenDefault);
+        arrayAttenDb[9] = inputMutesSection.getProperty (inputArrayAtten10, inputArrayAttenDefault);
 
         // Get input channel parameters
         auto inputChannelSection = valueTreeState.getInputChannelSection (inIdx);
@@ -1160,6 +1184,11 @@ void WFSCalculationEngine::recalculateMatrix()
 
             // Apply common attenuation adjustment + ramp offset
             attenuationDb += commonAttenAdjustment + commonAttenRampOffset;
+
+            // Apply per-array attenuation (if output is assigned to an array 1-10)
+            int outputArrayNum = outputArrayAssignments[static_cast<size_t> (outIdx)];
+            if (outputArrayNum >= 1 && outputArrayNum <= 10)
+                attenuationDb += arrayAttenDb[static_cast<size_t> (outputArrayNum - 1)];
 
             // Clamp to 0dB max (don't amplify) and -92dB min
             attenuationDb = juce::jlimit (-92.0f, 0.0f, attenuationDb);
@@ -1854,9 +1883,19 @@ void WFSCalculationEngine::valueTreePropertyChanged (juce::ValueTree& tree,
                                        property == inputTilt ||
                                        property == inputHFshelf);
 
-    // Input mute parameters
+    // Input mute and array attenuation parameters
     bool isInputMuteProperty = (property == inputMutes ||
-                                property == inputMuteReverbSends);
+                                property == inputMuteReverbSends ||
+                                property == inputArrayAtten1 ||
+                                property == inputArrayAtten2 ||
+                                property == inputArrayAtten3 ||
+                                property == inputArrayAtten4 ||
+                                property == inputArrayAtten5 ||
+                                property == inputArrayAtten6 ||
+                                property == inputArrayAtten7 ||
+                                property == inputArrayAtten8 ||
+                                property == inputArrayAtten9 ||
+                                property == inputArrayAtten10);
 
     if (isInputAttenProperty || isInputChannelProperty || isInputHeightProperty ||
         isInputDirectivityProperty || isInputMuteProperty)
@@ -1879,7 +1918,8 @@ void WFSCalculationEngine::valueTreePropertyChanged (juce::ValueTree& tree,
     // Output options that affect calculations
     bool isOutputOptionProperty = (property == outputMiniLatencyEnable ||
                                    property == outputDistanceAttenPercent ||
-                                   property == outputDelayLatency);
+                                   property == outputDelayLatency ||
+                                   property == outputArray);  // Array assignment affects per-array attenuation
 
     // Output angular parameters
     bool isOutputAngularProperty = (property == outputPitch ||
