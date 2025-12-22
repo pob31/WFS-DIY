@@ -1106,7 +1106,7 @@ private:
         addAndMakeVisible(lsShapeSelector);
         lsShapeSelector.addItem("linear", 1);
         lsShapeSelector.addItem("log", 2);
-        lsShapeSelector.addItem("square d", 3);
+        lsShapeSelector.addItem(juce::CharPointer_UTF8("square d\xc2\xb2"), 3);
         lsShapeSelector.addItem("sine", 4);
         lsShapeSelector.setSelectedId(1, juce::dontSendNotification);
         lsShapeSelector.onChange = [this]() {
@@ -3382,35 +3382,42 @@ private:
         else if (label == &tiltValueLabel)
         {
             int degrees = juce::jlimit(-90, 90, static_cast<int>(value));
-            // Inverse of: degrees = v * 180 - 90
-            tiltSlider.setValue((degrees + 90.0f) / 180.0f);
+            // Inverse of: degrees = v * 90 (bidirectional slider, v is -1 to 1)
+            tiltSlider.setValue(degrees / 90.0f);
         }
         else if (label == &hfShelfValueLabel)
         {
-            float dB = juce::jlimit(-12.0f, 0.0f, value);
-            // Inverse of: dB = v * 12.0 - 12.0
-            hfShelfSlider.setValue((dB + 12.0f) / 12.0f);
+            float dB = juce::jlimit(-24.0f, 0.0f, value);
+            // Inverse of: dB = 20*log10(minLin + (1-minLin)*v^2) where minLin = 10^(-24/20)
+            float minLinear = std::pow(10.0f, -24.0f / 20.0f);
+            float targetLinear = std::pow(10.0f, dB / 20.0f);
+            float v = std::sqrt((targetLinear - minLinear) / (1.0f - minLinear));
+            hfShelfSlider.setValue(juce::jlimit(0.0f, 1.0f, v));
         }
         // Live Source tab
         else if (label == &lsRadiusValueLabel)
         {
-            float meters = juce::jlimit(0.0f, 20.0f, value);
-            // Inverse of: meters = v * 20.0
-            lsRadiusSlider.setValue(meters / 20.0f);
+            float meters = juce::jlimit(0.0f, 50.0f, value);
+            // Inverse of: meters = v * 50.0
+            lsRadiusSlider.setValue(meters / 50.0f);
         }
         else if (label == &lsAttenuationValueLabel)
         {
-            float dB = juce::jlimit(-92.0f, 0.0f, value);
-            float minLinear = std::pow(10.0f, -92.0f / 20.0f);
+            float dB = juce::jlimit(-24.0f, 0.0f, value);
+            // Inverse of: dB = 20*log10(minLin + (1-minLin)*v^2) where minLin = 10^(-24/20)
+            float minLinear = std::pow(10.0f, -24.0f / 20.0f);
             float targetLinear = std::pow(10.0f, dB / 20.0f);
             float v = std::sqrt((targetLinear - minLinear) / (1.0f - minLinear));
             lsAttenuationSlider.setValue(juce::jlimit(0.0f, 1.0f, v));
         }
         else if (label == &lsPeakThresholdValueLabel)
         {
-            float dB = juce::jlimit(-60.0f, 0.0f, value);
-            // Inverse of: dB = v * 60.0 - 60.0
-            lsPeakThresholdSlider.setValue((dB + 60.0f) / 60.0f);
+            float dB = juce::jlimit(-48.0f, 0.0f, value);
+            // Inverse of: dB = 20*log10(minLin + (1-minLin)*v^2) where minLin = 10^(-48/20)
+            float minLinear = std::pow(10.0f, -48.0f / 20.0f);
+            float targetLinear = std::pow(10.0f, dB / 20.0f);
+            float v = std::sqrt((targetLinear - minLinear) / (1.0f - minLinear));
+            lsPeakThresholdSlider.setValue(juce::jlimit(0.0f, 1.0f, v));
         }
         else if (label == &lsPeakRatioValueLabel)
         {
@@ -3420,8 +3427,12 @@ private:
         }
         else if (label == &lsSlowThresholdValueLabel)
         {
-            float dB = juce::jlimit(-60.0f, 0.0f, value);
-            lsSlowThresholdSlider.setValue((dB + 60.0f) / 60.0f);
+            float dB = juce::jlimit(-48.0f, 0.0f, value);
+            // Inverse of: dB = 20*log10(minLin + (1-minLin)*v^2) where minLin = 10^(-48/20)
+            float minLinear = std::pow(10.0f, -48.0f / 20.0f);
+            float targetLinear = std::pow(10.0f, dB / 20.0f);
+            float v = std::sqrt((targetLinear - minLinear) / (1.0f - minLinear));
+            lsSlowThresholdSlider.setValue(juce::jlimit(0.0f, 1.0f, v));
         }
         else if (label == &lsSlowRatioValueLabel)
         {
@@ -3432,8 +3443,11 @@ private:
         else if (label == &frAttenuationValueLabel)
         {
             float dB = juce::jlimit(-60.0f, 0.0f, value);
-            // Inverse of: dB = v * 60.0 - 60.0
-            frAttenuationSlider.setValue((dB + 60.0f) / 60.0f);
+            // Inverse of: dB = 20*log10(minLin + (1-minLin)*v^2) where minLin = 10^(-60/20)
+            float minLinear = std::pow(10.0f, -60.0f / 20.0f);
+            float targetLinear = std::pow(10.0f, dB / 20.0f);
+            float v = std::sqrt((targetLinear - minLinear) / (1.0f - minLinear));
+            frAttenuationSlider.setValue(juce::jlimit(0.0f, 1.0f, v));
         }
         else if (label == &frDiffusionValueLabel)
         {
@@ -3442,29 +3456,32 @@ private:
         }
         else if (label == &frLowCutFreqValueLabel)
         {
-            int freq = juce::jlimit(20, 1000, static_cast<int>(value));
-            // Inverse of: freq = 20 + (v^2) * 980
-            float v = std::sqrt((freq - 20.0f) / 980.0f);
-            frLowCutFreqSlider.setValue(v);
+            int freq = juce::jlimit(20, 20000, static_cast<int>(value));
+            // Inverse of: freq = 20 * pow(10, 3*v)
+            float v = std::log10(freq / 20.0f) / 3.0f;
+            frLowCutFreqSlider.setValue(juce::jlimit(0.0f, 1.0f, v));
         }
         else if (label == &frHighShelfFreqValueLabel)
         {
-            int freq = juce::jlimit(1000, 10000, static_cast<int>(value));
-            // Inverse of: freq = 1000 + v^2 * 9000
-            float v = std::sqrt((freq - 1000.0f) / 9000.0f);
-            frHighShelfFreqSlider.setValue(v);
+            int freq = juce::jlimit(20, 20000, static_cast<int>(value));
+            // Inverse of: freq = 20 * pow(10, 3*v)
+            float v = std::log10(freq / 20.0f) / 3.0f;
+            frHighShelfFreqSlider.setValue(juce::jlimit(0.0f, 1.0f, v));
         }
         else if (label == &frHighShelfGainValueLabel)
         {
-            float dB = juce::jlimit(-12.0f, 0.0f, value);
-            // Inverse of: dB = v * 12.0 - 12.0
-            frHighShelfGainSlider.setValue((dB + 12.0f) / 12.0f);
+            float dB = juce::jlimit(-24.0f, 0.0f, value);
+            // Inverse of: dB = 20*log10(minLin + (1-minLin)*v^2) where minLin = 10^(-24/20)
+            float minLinear = std::pow(10.0f, -24.0f / 20.0f);
+            float targetLinear = std::pow(10.0f, dB / 20.0f);
+            float v = std::sqrt((targetLinear - minLinear) / (1.0f - minLinear));
+            frHighShelfGainSlider.setValue(juce::jlimit(0.0f, 1.0f, v));
         }
         else if (label == &frHighShelfSlopeValueLabel)
         {
-            float slope = juce::jlimit(0.1f, 1.0f, value);
-            // Inverse of: slope = v * 0.9 + 0.1
-            frHighShelfSlopeSlider.setValue((slope - 0.1f) / 0.9f);
+            float slope = juce::jlimit(0.1f, 0.9f, value);
+            // Inverse of: slope = (v * 0.8) + 0.1
+            frHighShelfSlopeSlider.setValue((slope - 0.1f) / 0.8f);
         }
         else if (label == &jitterValueLabel)
         {
