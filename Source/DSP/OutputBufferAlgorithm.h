@@ -1,6 +1,7 @@
 #pragma once
 
 #include "OutputBufferProcessor.h"
+#include "LiveSourceLevelDetector.h"
 #include <vector>
 #include <memory>
 
@@ -33,6 +34,17 @@ public:
                 bool processingEnabled,
                 const float* hfAttenuationPtr = nullptr)
     {
+        storedNumInputs = numInputs;
+
+        // Create Live Source level detectors (one per input channel)
+        lsDetectors.clear();
+        for (int i = 0; i < numInputs; ++i)
+        {
+            auto detector = std::make_unique<LiveSourceLevelDetector>();
+            detector->prepare(sampleRate);
+            lsDetectors.push_back(std::move(detector));
+        }
+
         // Create output-based processors (one thread per output channel)
         for (int i = 0; i < numOutputs; ++i)
         {
@@ -83,7 +95,22 @@ public:
         // Determine actual available channels
         auto numChannels = juce::jmin(numInputChannels, totalChannels);
 
-        // Step 1: Distribute input data to all output processors
+        // Step 1: Run level detection on input data BEFORE distributing to processors
+        for (int inChannel = 0; inChannel < numChannels && inChannel < (int)lsDetectors.size(); ++inChannel)
+        {
+            auto* inputData = bufferToFill.buffer->getReadPointer(inChannel, bufferToFill.startSample);
+
+            // Run Live Source level detection for this input
+            if (lsDetectors[inChannel])
+            {
+                for (int sample = 0; sample < numSamples; ++sample)
+                {
+                    lsDetectors[inChannel]->processSample(inputData[sample]);
+                }
+            }
+        }
+
+        // Step 2: Distribute input data to all output processors
         for (int inChannel = 0; inChannel < numChannels; ++inChannel)
         {
             auto* inputData = bufferToFill.buffer->getReadPointer(inChannel, bufferToFill.startSample);
@@ -95,10 +122,10 @@ public:
             }
         }
 
-        // Step 2: Clear output buffer
+        // Step 3: Clear output buffer
         bufferToFill.clearActiveBufferRegion();
 
-        // Step 3: Pull processed outputs from each output processor
+        // Step 4: Pull processed outputs from each output processor
         int numOutputs = juce::jmin(numOutputChannels, totalChannels, (int)outputProcessors.size());
         for (int outChannel = 0; outChannel < numOutputs; ++outChannel)
         {
@@ -130,6 +157,7 @@ public:
     void clear()
     {
         outputProcessors.clear();
+        lsDetectors.clear();
     }
 
     bool isEmpty() const
@@ -156,8 +184,36 @@ public:
         return 0.0f;
     }
 
+    // === Live Source Tamer accessors ===
+
+    float getPeakGainReduction(size_t inputIndex) const
+    {
+        if (inputIndex < lsDetectors.size())
+            return lsDetectors[inputIndex]->getPeakGainReduction();
+        return 1.0f;
+    }
+
+    float getSlowGainReduction(size_t inputIndex) const
+    {
+        if (inputIndex < lsDetectors.size())
+            return lsDetectors[inputIndex]->getSlowGainReduction();
+        return 1.0f;
+    }
+
+    void setLSParameters(size_t inputIndex, float peakThreshDb, float peakRatio,
+                         float slowThreshDb, float slowRatio)
+    {
+        if (inputIndex < lsDetectors.size())
+            lsDetectors[inputIndex]->setParameters(peakThreshDb, peakRatio,
+                                                    slowThreshDb, slowRatio);
+    }
+
 private:
     std::vector<std::unique_ptr<OutputBufferProcessor>> outputProcessors;
+
+    // Live Source level detectors (one per input channel)
+    std::vector<std::unique_ptr<LiveSourceLevelDetector>> lsDetectors;
+    int storedNumInputs = 0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OutputBufferAlgorithm)
 };

@@ -100,6 +100,9 @@ public:
     /** Mark matrix as needing recalculation */
     void markMatrixDirty() { matrixDirty.store(true); }
 
+    /** Mark all inputs as needing recalculation (e.g., when LS gains change) */
+    void markAllInputsDirty();
+
     /** Get matrix dimensions */
     int getNumInputs() const { return numInputs; }
     int getNumOutputs() const { return numOutputs; }
@@ -127,6 +130,15 @@ public:
 
     /** Get HF attenuation for specific routing */
     float getHFAttenuation (int inputIndex, int outputIndex) const;
+
+    //==========================================================================
+    // Live Source Tamer Integration
+    //==========================================================================
+
+    /** Set pointer to LS gains array (owned by LiveSourceTamerEngine).
+        Index: [inputIndex * numOutputs + outputIndex]
+        The gains are applied during level calculation in recalculateMatrix(). */
+    void setLSGainsPtr(const float* ptr) { sharedLSGains = ptr; }
 
     //==========================================================================
     // Reverb Position Access (thread-safe)
@@ -262,6 +274,10 @@ private:
     std::vector<float> reverbOutputDelayTimesMs;
     std::vector<float> reverbOutputLevels;
     std::vector<float> reverbOutputHFAttenuationDb;
+
+    // Live Source Tamer gains (owned by LiveSourceTamerEngine)
+    // Index: [inputIndex * numOutputs + outputIndex]
+    const float* sharedLSGains = nullptr;
 
     // Thread safety
     mutable juce::CriticalSection positionLock;

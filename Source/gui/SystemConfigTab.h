@@ -1071,34 +1071,37 @@ private:
         }
 
         // Load complete config from individual files (system.xml, network.xml, inputs.xml, outputs.xml, reverbs.xml)
-        if (fileManager.loadCompleteConfig())
-        {
+        bool success = fileManager.loadCompleteConfig();
+
+        if (success)
             showStatusMessage("Complete configuration loaded.");
-
-            // Notify MainComponent of channel count changes to refresh UI
-            if (onChannelCountChanged)
-            {
-                int inputs = static_cast<int>(parameters.getConfigParam("InputChannels"));
-                int outputs = static_cast<int>(parameters.getConfigParam("OutputChannels"));
-                onChannelCountChanged(inputs, outputs);
-            }
-
-            // Notify MainComponent of reverb count changes
-            if (onReverbCountChanged)
-            {
-                int reverbs = static_cast<int>(parameters.getConfigParam("ReverbChannels"));
-                onReverbCountChanged(reverbs);
-            }
-
-            // Refresh the UI to show loaded values
-            loadParametersToUI();
-
-            // Notify MainComponent to refresh all tabs
-            if (onConfigReloaded)
-                onConfigReloaded();
-        }
         else
-            showStatusMessage("Error: " + fileManager.getLastError());
+            showStatusMessage("Partial load: " + fileManager.getLastError());
+
+        // Always refresh UI and trigger recalculation, even on partial load
+        // Some files may have loaded successfully (e.g., system and outputs but not reverbs)
+
+        // Notify MainComponent of channel count changes to refresh UI
+        if (onChannelCountChanged)
+        {
+            int inputs = static_cast<int>(parameters.getConfigParam("InputChannels"));
+            int outputs = static_cast<int>(parameters.getConfigParam("OutputChannels"));
+            onChannelCountChanged(inputs, outputs);
+        }
+
+        // Notify MainComponent of reverb count changes
+        if (onReverbCountChanged)
+        {
+            int reverbs = static_cast<int>(parameters.getConfigParam("ReverbChannels"));
+            onReverbCountChanged(reverbs);
+        }
+
+        // Refresh the UI to show loaded values
+        loadParametersToUI();
+
+        // Notify MainComponent to refresh all tabs
+        if (onConfigReloaded)
+            onConfigReloaded();
     }
 
     void reloadCompleteConfigBackup()
@@ -1118,34 +1121,36 @@ private:
             return;
         }
 
-        if (fileManager.loadCompleteConfigBackup(0))
-        {
+        bool success = fileManager.loadCompleteConfigBackup(0);
+
+        if (success)
             showStatusMessage("Configuration loaded from backup.");
-
-            // Notify MainComponent of channel count changes to refresh UI
-            if (onChannelCountChanged)
-            {
-                int inputs = static_cast<int>(parameters.getConfigParam("InputChannels"));
-                int outputs = static_cast<int>(parameters.getConfigParam("OutputChannels"));
-                onChannelCountChanged(inputs, outputs);
-            }
-
-            // Notify MainComponent of reverb count changes
-            if (onReverbCountChanged)
-            {
-                int reverbs = static_cast<int>(parameters.getConfigParam("ReverbChannels"));
-                onReverbCountChanged(reverbs);
-            }
-
-            // Refresh the UI to show loaded values
-            loadParametersToUI();
-
-            // Notify MainComponent to refresh all tabs
-            if (onConfigReloaded)
-                onConfigReloaded();
-        }
         else
-            showStatusMessage("Error: " + fileManager.getLastError());
+            showStatusMessage("Partial load from backup: " + fileManager.getLastError());
+
+        // Always refresh UI and trigger recalculation, even on partial load
+
+        // Notify MainComponent of channel count changes to refresh UI
+        if (onChannelCountChanged)
+        {
+            int inputs = static_cast<int>(parameters.getConfigParam("InputChannels"));
+            int outputs = static_cast<int>(parameters.getConfigParam("OutputChannels"));
+            onChannelCountChanged(inputs, outputs);
+        }
+
+        // Notify MainComponent of reverb count changes
+        if (onReverbCountChanged)
+        {
+            int reverbs = static_cast<int>(parameters.getConfigParam("ReverbChannels"));
+            onReverbCountChanged(reverbs);
+        }
+
+        // Refresh the UI to show loaded values
+        loadParametersToUI();
+
+        // Notify MainComponent to refresh all tabs
+        if (onConfigReloaded)
+            onConfigReloaded();
     }
 
     void storeSystemConfiguration()

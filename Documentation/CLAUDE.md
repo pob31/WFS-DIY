@@ -3,9 +3,9 @@
 ## Project Overview
 Wave Field Synthesis (WFS) audio application built with JUCE framework for real-time multi-channel audio processing with comprehensive OSC network control.
 
-## Current Implementation Status (As of 2025-12-15)
+## Current Implementation Status (As of 2025-12-22)
 
-### Overall Progress: ~50% Complete
+### Overall Progress: ~55% Complete
 
 The application has established a solid foundation with infrastructure and core UI:
 - Complete parameter management system
@@ -17,6 +17,7 @@ The application has established a solid foundation with infrastructure and core 
 - Network Log window
 - **DSP Calculation Layer** (delay/level/HF matrices from geometry)
 - **Input Visualisation** (real-time DSP matrix display)
+- **Live Source Tamer** (per-speaker gain reduction for feedback prevention)
 
 **Major features still to implement:**
 - Audio Patch routing window with input/output matrices
@@ -57,7 +58,7 @@ The application has established a solid foundation with infrastructure and core 
 | GUI Tabs | 90% | All 7 tabs have UI, some features pending |
 | OSC Network | 90% | OSC, Remote protocols complete; ADM-OSC, PSN, RTTrP pending |
 | Save/Load | 80% | Project folder management (snapshots UI TODO) |
-| Audio Engine | 70% | Dual algorithm support with DSP calculation layer |
+| Audio Engine | 75% | Dual algorithm support with DSP calculation layer + Live Source Tamer |
 | Separate Windows | 50% | Log window complete, Patch window TODO |
 | Map View | 90% | Interactive multitouch map complete |
 | Data Processing | 90% | WFS delay/level/HF + reverb matrices implemented |
@@ -78,6 +79,8 @@ The DSP calculation layer transforms human control parameters into real-time DSP
 - **OutputBufferProcessor.h** - Per-output threaded audio processor
 - **InputBufferAlgorithm.h** - Manages collection of InputBufferProcessors
 - **OutputBufferAlgorithm.h** - Manages collection of OutputBufferProcessors
+- **LiveSourceLevelDetector.h** - Per-input audio level detection for Live Source Tamer
+- **LiveSourceTamerEngine.h** - Control-rate engine for per-speaker LS gain calculation
 - **InputVisualisationComponent.h** - Real-time DSP matrix visualization
 
 ### Coordinate System
@@ -260,6 +263,71 @@ WFSCalculationEngine implements smooth transitions for parameter changes that wo
 - Prevents audible level jumps
 
 Both ramps are updated at 50Hz in `updateDelayModeRamps()` and applied during matrix calculation.
+
+### Live Source Tamer
+The Live Source Tamer (LS) reduces speaker levels near live sources (microphones) to prevent feedback and improve clarity. It combines fixed attenuation based on distance/shape with dynamic compression based on audio input levels.
+
+**Core Files:**
+- **LiveSourceLevelDetector.h** - Per-input audio level detection (peak envelope + RMS)
+- **LiveSourceTamerEngine.h** - Control-rate engine calculating per-speaker LS gains
+
+**Three Attenuation Components:**
+1. **Fixed Attenuation** - Distance-based, determined by radius and shape curve
+2. **Peak Compressor** - Fast envelope follower (1 sample attack, 100ms release) for transients
+3. **Slow Compressor** - RMS averaging (200ms window) for sustained levels
+
+**Activation Conditions:**
+- `inputLSactive` must be true (master enable per input)
+- Output must be within `inputLSradius` of input position
+- `outputLSattenEnable` must be non-zero (per-output bypass)
+
+**Shape Curves** (attenuation profile from center to edge):
+| Shape | Formula | Behavior |
+|-------|---------|----------|
+| Linear | `1 - t` | Constant rate of change |
+| Log | `1 - log10(1 + 9*t)` | Gradual near center, steep at edge |
+| Square | `1 - t²` | Gradual near center, steep at edge |
+| Sine | `0.5 + 0.5*cos(t*π)` | S-curve, smooth at both ends |
+
+Where `t` = normalized distance (0 at center, 1 at edge).
+
+**Gain Calculation:**
+```cpp
+shapeFactor = calculateShapeFactor(normalizedDistance, shape);  // 1.0 at center, 0.0 at edge
+combinedAtten = fixedAttenLinear * peakGR * slowGR;
+targetGain = 1.0 - shapeFactor * (1.0 - combinedAtten);
+```
+
+**Smooth Enable/Disable Transition:**
+- 500ms ramp when enabling or disabling LS
+- `rampProgress` goes 0→1 when enabling, 1→0 when disabling
+- Final gain: `lsGain = 1.0 + ramp * (targetGain - 1.0)`
+- Prevents audible clicks/jumps when toggling
+
+**Level Detection (LiveSourceLevelDetector):**
+- **Peak path**: `abs → envelope(1 sample attack, 100ms release) → dB → gainCalc → smooth(2ms/2ms)`
+- **Slow path**: `RMS(200ms window) → dB → gainCalc → smooth(2ms/20ms)`
+- Soft knee compression with 20dB knee width
+- Thread-safe via `std::atomic` for cross-thread communication
+
+**Parameters:**
+| Parameter | Range | Description |
+|-----------|-------|-------------|
+| `inputLSactive` | 0/1 | Enable LS for this input |
+| `inputLSradius` | 0.1-50m | Effect radius from input |
+| `inputLSshape` | 0-3 | Shape curve (linear/log/square/sine) |
+| `inputLSattenuation` | -60-0 dB | Fixed attenuation at center |
+| `inputLSpeakThreshold` | -60-0 dB | Peak compressor threshold |
+| `inputLSpeakRatio` | 1-20 | Peak compressor ratio |
+| `inputLSslowThreshold` | -60-0 dB | Slow compressor threshold |
+| `inputLSslowRatio` | 1-20 | Slow compressor ratio |
+| `outputLSattenEnable` | 0/1 | Per-output LS bypass |
+
+**Integration:**
+- Level detection runs on audio thread (per-sample processing)
+- LS engine runs at 50Hz in MainComponent timer callback
+- LS gains applied in WFSCalculationEngine during level calculation
+- Visualization updates show combined attenuation in InputVisualisationComponent
 
 ### Reverb Channel Calculations
 WFSCalculationEngine handles two additional matrix paths for reverb:
@@ -606,6 +674,8 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 - `Source/DSP/WFSHighShelfFilter.h` - HF air absorption biquad filter
 - `Source/DSP/InputBufferProcessor.h` - Per-input threaded audio processor
 - `Source/DSP/OutputBufferProcessor.h` - Per-output threaded audio processor
+- `Source/DSP/LiveSourceLevelDetector.h` - Per-input audio level detection
+- `Source/DSP/LiveSourceTamerEngine.h` - Live Source Tamer gain calculation
 - `Source/Network/OSCManager.h/cpp` - Network coordination
 - `Source/Network/OSCLogger.h/cpp` - Message logging
 - `Source/gui/InputsTab.h` - Input channel controls with joystick
@@ -642,6 +712,6 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 
 ---
 
-*Last updated: 2025-12-16*
+*Last updated: 2025-12-22*
 *JUCE Version: 8.0.11*
 *Build: Visual Studio 2022 / Xcode, x64 Debug/Release*

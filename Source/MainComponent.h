@@ -5,6 +5,7 @@
 #include "DSP/OutputBufferAlgorithm.h"
 #include "DSP/WFSCalculationEngine.h"
 #include "DSP/LFOProcessor.h"
+#include "DSP/LiveSourceTamerEngine.h"
 // #include "DSP/GpuInputBufferAlgorithm.h"  // Commented out - GPU Audio SDK not configured
 #include "WfsParameters.h"
 #include "gui/StatusBar.h"
@@ -117,6 +118,9 @@ private:
 
     // LFO processor for input position modulation
     std::unique_ptr<LFOProcessor> lfoProcessor;
+
+    // Live Source Tamer engine for per-speaker gain reduction
+    std::unique_ptr<LiveSourceTamerEngine> lsTamerEngine;
 
     // Routing matrix: delays[inputChannel * numOutputChannels + outputChannel]
     std::vector<float> delayTimesMs;

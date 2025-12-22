@@ -228,6 +228,15 @@ MainComponent::MainComponent()
     // Initialize LFO Processor for input position modulation
     lfoProcessor = std::make_unique<LFOProcessor>(parameters.getValueTreeState(), 64);
 
+    // Initialize Live Source Tamer engine for per-speaker gain reduction
+    // Uses max channel counts to match calculationEngine matrix dimensions
+    lsTamerEngine = std::make_unique<LiveSourceTamerEngine>(
+        parameters.getValueTreeState(),
+        *calculationEngine,
+        WFSParameterDefaults::maxInputChannels,
+        WFSParameterDefaults::maxOutputChannels);
+    calculationEngine->setLSGainsPtr(lsTamerEngine->getLSGains());
+
     // Set up LFO offset callback for MapTab visualization
     if (mapTab != nullptr)
     {
@@ -556,6 +565,15 @@ void MainComponent::handleConfigReloaded()
         calculationEngine->recalculateAllInputPositions();
         calculationEngine->recalculateAllReverbPositions();
 
+        // Debug: Print speaker positions after reload
+        juce::Logger::writeToLog("=== Speaker Positions After Config Reload ===");
+        for (int i = 0; i < juce::jmin(numOutputChannels, 8); ++i)
+        {
+            auto pos = calculationEngine->getSpeakerPosition(i);
+            juce::Logger::writeToLog("Output " + juce::String(i+1) + ": x=" + juce::String(pos.x, 2)
+                + " y=" + juce::String(pos.y, 2) + " z=" + juce::String(pos.z, 2));
+        }
+
         // Force immediate recalculation (don't wait for next timer tick)
         calculationEngine->recalculateMatrix();
 
@@ -566,6 +584,16 @@ void MainComponent::handleConfigReloaded()
             const float* calcLevels = calculationEngine->getLevels();
             const float* calcHF = calculationEngine->getHFAttenuationDb();
             const int calcStride = calculationEngine->getNumOutputs();
+
+            // Debug: Print calculated levels for input 0
+            juce::Logger::writeToLog("=== Calculated Levels for Input 1 ===");
+            for (int outIdx = 0; outIdx < juce::jmin(numOutputChannels, 8); ++outIdx)
+            {
+                int idx = 0 * calcStride + outIdx;
+                float levelDb = (calcLevels[idx] > 0.0f) ? 20.0f * std::log10(calcLevels[idx]) : -60.0f;
+                juce::Logger::writeToLog("Output " + juce::String(outIdx+1) + ": level=" + juce::String(levelDb, 1)
+                    + " dB, delay=" + juce::String(calcDelays[idx], 2) + " ms");
+            }
 
             // Copy to local arrays with correct stride
             for (int inIdx = 0; inIdx < numInputChannels; ++inIdx)
@@ -952,6 +980,58 @@ void MainComponent::timerCallback()
 
         // Update delay mode ramps (decays compensation offset for smooth mode transitions)
         calculationEngine->updateDelayModeRamps(0.02f);  // 20ms delta time (50Hz)
+
+        // Process Live Source Tamer at 50Hz
+        if (lsTamerEngine != nullptr)
+        {
+            using namespace WFSParameterIDs;
+
+            std::vector<float> peakGRs(static_cast<size_t>(numInputChannels));
+            std::vector<float> slowGRs(static_cast<size_t>(numInputChannels));
+
+            bool anyLSActive = false;
+
+            for (int i = 0; i < numInputChannels; ++i)
+            {
+                // Get LS section for this input
+                auto lsSection = parameters.getValueTreeState().getInputLiveSourceSection(i);
+
+                // Check if LS is enabled
+                bool lsActive = static_cast<int>(lsSection.getProperty(inputLSactive, 0)) != 0;
+                if (lsActive)
+                    anyLSActive = true;
+
+                // Get LS compressor parameters from ValueTree
+                float peakThresh = lsSection.getProperty(inputLSpeakThreshold, -20.0f);
+                float peakRatio = lsSection.getProperty(inputLSpeakRatio, 2.0f);
+                float slowThresh = lsSection.getProperty(inputLSslowThreshold, -20.0f);
+                float slowRatio = lsSection.getProperty(inputLSslowRatio, 2.0f);
+
+                // Pass parameters to detector based on current algorithm
+                if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
+                {
+                    inputAlgorithm.setLSParameters(static_cast<size_t>(i),
+                        peakThresh, peakRatio, slowThresh, slowRatio);
+                    peakGRs[i] = inputAlgorithm.getPeakGainReduction(static_cast<size_t>(i));
+                    slowGRs[i] = inputAlgorithm.getSlowGainReduction(static_cast<size_t>(i));
+                }
+                else  // OutputBuffer algorithm
+                {
+                    outputAlgorithm.setLSParameters(static_cast<size_t>(i),
+                        peakThresh, peakRatio, slowThresh, slowRatio);
+                    peakGRs[i] = outputAlgorithm.getPeakGainReduction(static_cast<size_t>(i));
+                    slowGRs[i] = outputAlgorithm.getSlowGainReduction(static_cast<size_t>(i));
+                }
+            }
+
+            // Process LS gains
+            lsTamerEngine->process(peakGRs, slowGRs);
+
+            // If any LS is active OR ramping out, force all inputs to recalculate
+            // This ensures the ramp-out transition is visible in the visualization
+            if (lsTamerEngine->isAnyInputActive())
+                calculationEngine->markAllInputsDirty();
+        }
 
         // Only recalculate if positions have changed (dirty flag set)
         if (calculationEngine->recalculateMatrixIfDirty())

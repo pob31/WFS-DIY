@@ -3,7 +3,9 @@
 #include <JuceHeader.h>
 #include "LockFreeRingBuffer.h"
 #include "WFSHighShelfFilter.h"
+#include "LiveSourceLevelDetector.h"
 #include <atomic>
+#include <memory>
 
 //==============================================================================
 /**
@@ -62,6 +64,10 @@ public:
             filter.prepare(sampleRate);
             filter.setGainDb(0.0f);  // Start with no attenuation
         }
+
+        // Initialize Live Source level detector
+        lsDetector = std::make_unique<LiveSourceLevelDetector>();
+        lsDetector->prepare(sampleRate);
     }
 
     // Called by audio thread to push input data
@@ -98,6 +104,28 @@ public:
     }
 
     int getInputChannelIndex() const { return inputChannelIndex; }
+
+    // === Live Source Tamer accessors ===
+
+    // Get peak gain reduction (linear, 0-1) from level detector
+    float getLSPeakGainReduction() const
+    {
+        return lsDetector ? lsDetector->getPeakGainReduction() : 1.0f;
+    }
+
+    // Get slow gain reduction (linear, 0-1) from level detector
+    float getLSSlowGainReduction() const
+    {
+        return lsDetector ? lsDetector->getSlowGainReduction() : 1.0f;
+    }
+
+    // Set Live Source compressor parameters (called from timer thread)
+    void setLSParameters(float peakThreshDb, float peakRatio,
+                         float slowThreshDb, float slowRatio)
+    {
+        if (lsDetector)
+            lsDetector->setParameters(peakThreshDb, peakRatio, slowThreshDb, slowRatio);
+    }
 
     // Get CPU usage percentage for this thread (0-100)
     float getCpuUsagePercent() const
@@ -203,11 +231,15 @@ private:
         if (delayBufferLength == 0 || delayData == nullptr)
             return;
 
-        // Write input to delay buffer
+        // Write input to delay buffer and run level detection
         for (int sample = 0; sample < numSamples; ++sample)
         {
             delayData[writePosition] = input[sample];
             writePosition = (writePosition + 1) % delayBufferLength;
+
+            // Live Source level detection (runs on every sample)
+            if (lsDetector)
+                lsDetector->processSample(input[sample]);
         }
 
         // Reset write position to process outputs
@@ -306,6 +338,9 @@ private:
 
     // HF shelf filters for air absorption (one per output channel)
     std::vector<WFSHighShelfFilter> hfFilters;
+
+    // Live Source level detector (for peak/slow compression)
+    std::unique_ptr<LiveSourceLevelDetector> lsDetector;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(InputBufferProcessor)
 };

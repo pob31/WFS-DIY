@@ -167,6 +167,30 @@ public:
         return 0.0f;
     }
 
+    // === Live Source Tamer accessors ===
+
+    float getPeakGainReduction(size_t inputIndex) const
+    {
+        if (inputIndex < inputProcessors.size())
+            return inputProcessors[inputIndex]->getLSPeakGainReduction();
+        return 1.0f;
+    }
+
+    float getSlowGainReduction(size_t inputIndex) const
+    {
+        if (inputIndex < inputProcessors.size())
+            return inputProcessors[inputIndex]->getLSSlowGainReduction();
+        return 1.0f;
+    }
+
+    void setLSParameters(size_t inputIndex, float peakThreshDb, float peakRatio,
+                         float slowThreshDb, float slowRatio)
+    {
+        if (inputIndex < inputProcessors.size())
+            inputProcessors[inputIndex]->setLSParameters(peakThreshDb, peakRatio,
+                                                          slowThreshDb, slowRatio);
+    }
+
 private:
     std::vector<std::unique_ptr<InputBufferProcessor>> inputProcessors;
 

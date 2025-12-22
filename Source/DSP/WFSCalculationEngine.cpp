@@ -128,6 +128,16 @@ void WFSCalculationEngine::recalculateAllInputPositions()
     matrixDirty.store(true);
 }
 
+void WFSCalculationEngine::markAllInputsDirty()
+{
+    const juce::ScopedLock sl (positionLock);
+
+    // Mark all inputs as dirty (used when LS gains change to force level recalculation)
+    for (int i = 0; i < numInputs; ++i)
+        inputDirtyFlags[static_cast<size_t>(i)] = true;
+    matrixDirty.store(true);
+}
+
 //==============================================================================
 // LFO Offset Support
 //==============================================================================
@@ -1199,6 +1209,10 @@ void WFSCalculationEngine::recalculateMatrix()
             // Apply angular attenuation (linear multiplier 0.0-1.0)
             linearLevel *= angularAtten;
 
+            // Apply Live Source Tamer gain (linear multiplier 0.0-1.0)
+            if (sharedLSGains != nullptr)
+                linearLevel *= sharedLSGains[matrixIdx];
+
             newLevels[matrixIdx] = linearLevel;
         }
     }
@@ -1897,8 +1911,14 @@ void WFSCalculationEngine::valueTreePropertyChanged (juce::ValueTree& tree,
                                 property == inputArrayAtten9 ||
                                 property == inputArrayAtten10);
 
+    // Live Source Tamer parameters (affect level calculations via sharedLSGains)
+    bool isInputLSProperty = (property == inputLSactive ||
+                              property == inputLSradius ||
+                              property == inputLSshape ||
+                              property == inputLSattenuation);
+
     if (isInputAttenProperty || isInputChannelProperty || isInputHeightProperty ||
-        isInputDirectivityProperty || isInputMuteProperty)
+        isInputDirectivityProperty || isInputMuteProperty || isInputLSProperty)
     {
         int inputIndex = findInputIndexFromTree (tree);
 
@@ -1919,7 +1939,8 @@ void WFSCalculationEngine::valueTreePropertyChanged (juce::ValueTree& tree,
     bool isOutputOptionProperty = (property == outputMiniLatencyEnable ||
                                    property == outputDistanceAttenPercent ||
                                    property == outputDelayLatency ||
-                                   property == outputArray);  // Array assignment affects per-array attenuation
+                                   property == outputArray ||      // Array assignment affects per-array attenuation
+                                   property == outputLSattenEnable);  // Live Source Tamer per-output enable
 
     // Output angular parameters
     bool isOutputAngularProperty = (property == outputPitch ||
