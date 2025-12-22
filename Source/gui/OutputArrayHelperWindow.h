@@ -52,6 +52,7 @@ struct ArrayPresetConfig
 
     // Default acoustic settings
     bool lsAttenEnable;
+    bool frEnable;                // Floor Reflections enable
     float hfDamping;              // dB/m
     float hParallax;              // meters
     float vParallax;              // meters
@@ -166,6 +167,7 @@ private:
     // Acoustic defaults section
     juce::GroupComponent acousticGroup;
     juce::ToggleButton lsEnableButton;
+    juce::ToggleButton frEnableButton;
     juce::Label hfDampingLabel;
     juce::TextEditor hfDampingEditor;
     juce::Label hParallaxLabel, vParallaxLabel;

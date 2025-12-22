@@ -368,6 +368,17 @@ private:
             saveOutputParam(WFSParameterIDs::outputLSattenEnable, enabled ? 1 : 0);
         };
 
+        // Floor Reflections Enable button
+        addAndMakeVisible(floorReflectionsEnableButton);
+        floorReflectionsEnableButton.setButtonText("Floor Reflections: ON");
+        floorReflectionsEnableButton.setClickingTogglesState(true);
+        floorReflectionsEnableButton.setToggleState(true, juce::dontSendNotification);
+        floorReflectionsEnableButton.onClick = [this]() {
+            bool enabled = floorReflectionsEnableButton.getToggleState();
+            floorReflectionsEnableButton.setButtonText(enabled ? "Floor Reflections: ON" : "Floor Reflections: OFF");
+            saveOutputParam(WFSParameterIDs::outputFRenable, enabled ? 1 : 0);
+        };
+
         // Distance Attenuation % slider (0-200%, default 100% in center)
         addAndMakeVisible(distanceAttenLabel);
         distanceAttenLabel.setText("Distance Atten:", juce::dontSendNotification);
@@ -748,6 +759,7 @@ private:
         delayLatencyValueLabel.setVisible(visible);
         minLatencyEnableButton.setVisible(visible);
         liveSourceEnableButton.setVisible(visible);
+        floorReflectionsEnableButton.setVisible(visible);
         distanceAttenLabel.setVisible(visible);
         distanceAttenSlider.setVisible(visible);
         distanceAttenValueLabel.setVisible(visible);
@@ -865,6 +877,10 @@ private:
 
         row = rightCol.removeFromTop(rowHeight);
         liveSourceEnableButton.setBounds(row.removeFromLeft(180));
+        rightCol.removeFromTop(spacing);
+
+        row = rightCol.removeFromTop(rowHeight);
+        floorReflectionsEnableButton.setBounds(row.removeFromLeft(200));
         rightCol.removeFromTop(spacing * 2);
 
         // Parallax editors
@@ -1066,6 +1082,10 @@ private:
         bool lsAtten = getIntParam("outputLSattenEnable", 1) != 0;  // Default ON
         liveSourceEnableButton.setToggleState(lsAtten, juce::dontSendNotification);
         liveSourceEnableButton.setButtonText(lsAtten ? "Live Source Atten: ON" : "Live Source Atten: OFF");
+
+        bool frEnable = getIntParam("outputFRenable", 1) != 0;  // Default ON
+        floorReflectionsEnableButton.setToggleState(frEnable, juce::dontSendNotification);
+        floorReflectionsEnableButton.setButtonText(frEnable ? "Floor Reflections: ON" : "Floor Reflections: OFF");
 
         int distAtten = getIntParam("outputDistanceAttenPercent", 100);  // Default 100%
         distanceAttenSlider.setValue((distAtten / 100.0f) - 1.0f);
@@ -1514,6 +1534,7 @@ private:
         helpTextMap[&delayLatencySlider] = "Output Channel Delay (positive values) or Latency Compensation (negative values). (changes may affect the rest of the array)";
         helpTextMap[&minLatencyEnableButton] = "Disables Minimal Latency Mode for Selected Output. (changes may affect the rest of the array)";
         helpTextMap[&liveSourceEnableButton] = "Disables Live Source Attenuation for Selected Output. (changes may affect the rest of the array)";
+        helpTextMap[&floorReflectionsEnableButton] = "Enable or Disable the Floor Reflections for this Speaker.";
         helpTextMap[&distanceAttenSlider] = "Ratio of Distance Attenuation for Selected Output. (changes may affect the rest of the array)";
         helpTextMap[&hParallaxEditor] = "Horizontal Distance from Speaker to 'Targeted' Listener. (changes may affect the rest of the array)";
         helpTextMap[&vParallaxEditor] = "Vertical Distance from Speaker to 'Targeted' Listener. Positive when the Speaker is Below the head of the Listener. (changes may affect the rest of the array)";
@@ -1545,6 +1566,7 @@ private:
         oscMethodMap[&delayLatencySlider] = "/wfs/output/delayLatency <ID> <value>";
         oscMethodMap[&minLatencyEnableButton] = "/wfs/output/miniLatencyEnable <ID> <value>";
         oscMethodMap[&liveSourceEnableButton] = "/wfs/output/LSenable <ID> <value>";
+        oscMethodMap[&floorReflectionsEnableButton] = "/wfs/output/FRenable <channel> <0/1>";
         oscMethodMap[&distanceAttenSlider] = "/wfs/output/DistanceAttenPercent <ID> <value>";
         oscMethodMap[&hParallaxEditor] = "/wfs/output/Hparallax <ID> <value>";
         oscMethodMap[&vParallaxEditor] = "/wfs/output/Vparallax <ID> <value>";
@@ -1678,6 +1700,7 @@ private:
     juce::Label delayLatencyValueLabel;
     juce::TextButton minLatencyEnableButton;
     juce::TextButton liveSourceEnableButton;
+    juce::TextButton floorReflectionsEnableButton;
     juce::Label distanceAttenLabel;
     WfsBidirectionalSlider distanceAttenSlider;
     juce::Label distanceAttenValueLabel;

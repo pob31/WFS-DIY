@@ -261,6 +261,18 @@ namespace WFSParameterIDs
     const juce::Identifier inputMutes            ("inputMutes");
     const juce::Identifier inputMuteMacro        ("inputMuteMacro");
 
+    // Input > Array Attenuation (per-array level control, 0 dB default, -60 to 0 dB range)
+    const juce::Identifier inputArrayAtten1      ("inputArrayAtten1");
+    const juce::Identifier inputArrayAtten2      ("inputArrayAtten2");
+    const juce::Identifier inputArrayAtten3      ("inputArrayAtten3");
+    const juce::Identifier inputArrayAtten4      ("inputArrayAtten4");
+    const juce::Identifier inputArrayAtten5      ("inputArrayAtten5");
+    const juce::Identifier inputArrayAtten6      ("inputArrayAtten6");
+    const juce::Identifier inputArrayAtten7      ("inputArrayAtten7");
+    const juce::Identifier inputArrayAtten8      ("inputArrayAtten8");
+    const juce::Identifier inputArrayAtten9      ("inputArrayAtten9");
+    const juce::Identifier inputArrayAtten10     ("inputArrayAtten10");
+
     // Input > Map Display
     const juce::Identifier inputMapLocked        ("inputMapLocked");
     const juce::Identifier inputMapVisible       ("inputMapVisible");
@@ -289,6 +301,7 @@ namespace WFSParameterIDs
     // Output > Options
     const juce::Identifier outputMiniLatencyEnable   ("outputMiniLatencyEnable");
     const juce::Identifier outputLSattenEnable       ("outputLSattenEnable");
+    const juce::Identifier outputFRenable            ("outputFRenable");
     const juce::Identifier outputDistanceAttenPercent ("outputDistanceAttenPercent");
     const juce::Identifier outputHparallax           ("outputHparallax");
     const juce::Identifier outputVparallax           ("outputVparallax");

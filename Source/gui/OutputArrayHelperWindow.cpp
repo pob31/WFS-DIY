@@ -15,6 +15,7 @@ const std::array<ArrayPresetConfig, 7> OutputArrayHelperContent::presetConfigs =
         false,  // supportsCircle
         false,  // supportsSurround
         true,   // lsAttenEnable
+        true,   // frEnable (Floor Reflections)
         -0.4f,  // hfDamping
         2.0f,   // hParallax
         0.5f,   // vParallax
@@ -34,6 +35,7 @@ const std::array<ArrayPresetConfig, 7> OutputArrayHelperContent::presetConfigs =
         false,  // supportsCircle
         false,  // supportsSurround
         true,   // lsAttenEnable
+        true,   // frEnable (Floor Reflections)
         -0.4f,  // hfDamping
         2.0f,   // hParallax
         0.5f,   // vParallax
@@ -53,6 +55,7 @@ const std::array<ArrayPresetConfig, 7> OutputArrayHelperContent::presetConfigs =
         false,  // supportsCircle
         false,  // supportsSurround
         false,  // lsAttenEnable
+        false,  // frEnable (Floor Reflections)
         -0.2f,  // hfDamping
         10.0f,  // hParallax
         -4.0f,  // vParallax
@@ -72,6 +75,7 @@ const std::array<ArrayPresetConfig, 7> OutputArrayHelperContent::presetConfigs =
         false,  // supportsCircle
         false,  // supportsSurround
         false,  // lsAttenEnable
+        false,  // frEnable (Floor Reflections)
         0.0f,   // hfDamping
         0.0f,   // hParallax
         0.0f,   // vParallax
@@ -91,6 +95,7 @@ const std::array<ArrayPresetConfig, 7> OutputArrayHelperContent::presetConfigs =
         false,  // supportsCircle
         true,   // supportsSurround
         false,  // lsAttenEnable
+        false,  // frEnable (Floor Reflections)
         -0.3f,  // hfDamping
         3.0f,   // hParallax
         -2.0f,  // vParallax
@@ -110,6 +115,7 @@ const std::array<ArrayPresetConfig, 7> OutputArrayHelperContent::presetConfigs =
         false,  // supportsCircle
         false,  // supportsSurround
         false,  // lsAttenEnable
+        false,  // frEnable (Floor Reflections)
         -0.15f, // hfDamping
         3.0f,   // hParallax
         -2.0f,  // vParallax
@@ -129,6 +135,7 @@ const std::array<ArrayPresetConfig, 7> OutputArrayHelperContent::presetConfigs =
         true,   // supportsCircle
         false,  // supportsSurround
         false,  // lsAttenEnable
+        false,  // frEnable (Floor Reflections)
         -0.3f,  // hfDamping
         0.0f,   // hParallax
         0.0f,   // vParallax
@@ -473,6 +480,10 @@ void OutputArrayHelperContent::setupAcousticSection()
     lsEnableButton.setButtonText("Live Source");
     lsEnableButton.setToggleState(true, juce::dontSendNotification);
 
+    addAndMakeVisible(frEnableButton);
+    frEnableButton.setButtonText("Floor Reflections");
+    frEnableButton.setToggleState(true, juce::dontSendNotification);
+
     setupLabel(hfDampingLabel, "HF Damping (dB/m):");
     setupEditor(hfDampingEditor, "-0.4");
 
@@ -487,17 +498,17 @@ void OutputArrayHelperContent::setupAcousticSection()
 
     // EQ
     addAndMakeVisible(lowCutEnableButton);
-    lowCutEnableButton.setButtonText("Low Cut");
+    lowCutEnableButton.setButtonText("");
     lowCutEnableButton.setToggleState(true, juce::dontSendNotification);
 
-    setupLabel(lowCutFreqLabel, "Freq (Hz):");
+    setupLabel(lowCutFreqLabel, "Low Cut (Hz):");
     setupEditor(lowCutFreqEditor, "80");
 
     addAndMakeVisible(highCutEnableButton);
-    highCutEnableButton.setButtonText("High Cut");
+    highCutEnableButton.setButtonText("");
     highCutEnableButton.setToggleState(false, juce::dontSendNotification);
 
-    setupLabel(highCutFreqLabel, "Freq (Hz):");
+    setupLabel(highCutFreqLabel, "High Cut (Hz):");
     setupEditor(highCutFreqEditor, "300");
 }
 
@@ -606,17 +617,18 @@ void OutputArrayHelperContent::resized()
 void OutputArrayHelperContent::layoutGeometrySection(juce::Rectangle<int>& area)
 {
     const int rowHeight = 26;
+    const int editorWidth = 60;
+    const int colSpacing = 10;
+    const int checkboxWidth = 25;
     const int labelWidth = 110;
-    const int editorWidth = 70;
-    const int spacing = 5;
 
     auto& config = presetConfigs[static_cast<int>(currentPreset)];
 
     // Calculate height needed
     int height = 30;  // Header
     height += rowHeight;  // Radio buttons
-    height += rowHeight;  // N Speakers
-    height += rowHeight;  // Z Height
+    height += rowHeight;  // N Speakers + Z Height
+    height += rowHeight;  // Orientation
 
     if (config.supportsCenterSpacing || config.supportsEndpoints)
     {
@@ -643,12 +655,18 @@ void OutputArrayHelperContent::layoutGeometrySection(juce::Rectangle<int>& area)
     auto content = section.reduced(10, 20);
     content.removeFromTop(10);
 
-    // Radio buttons
+    // Split into two main columns
+    const int columnWidth = content.getWidth() / 2 - colSpacing / 2;
+
+    // Radio buttons row
     if (config.supportsCenterSpacing && config.supportsEndpoints)
     {
         auto radioRow = content.removeFromTop(rowHeight);
-        centerSpacingRadio.setBounds(radioRow.removeFromLeft(150));
-        endpointsRadio.setBounds(radioRow.removeFromLeft(150));
+        auto leftCol = radioRow.removeFromLeft(columnWidth);
+        radioRow.removeFromLeft(colSpacing);
+        auto rightCol = radioRow;
+        centerSpacingRadio.setBounds(leftCol.removeFromLeft(checkboxWidth + labelWidth + editorWidth));
+        endpointsRadio.setBounds(rightCol.removeFromLeft(checkboxWidth + labelWidth + editorWidth));
         centerSpacingRadio.setVisible(true);
         endpointsRadio.setVisible(true);
     }
@@ -658,20 +676,26 @@ void OutputArrayHelperContent::layoutGeometrySection(juce::Rectangle<int>& area)
         endpointsRadio.setVisible(false);
     }
 
-    // N Speakers row
+    // N Speakers + Z Height row
     auto row = content.removeFromTop(rowHeight);
-    numSpeakersLabel.setBounds(row.removeFromLeft(labelWidth));
-    numSpeakersEditor.setBounds(row.removeFromLeft(editorWidth));
-    row.removeFromLeft(spacing * 2);
-    zPositionLabel.setBounds(row.removeFromLeft(labelWidth));
-    zPositionEditor.setBounds(row.removeFromLeft(editorWidth));
+    auto leftCol = row.removeFromLeft(columnWidth);
+    row.removeFromLeft(colSpacing);
+    auto rightCol = row;
+    leftCol.removeFromLeft(checkboxWidth);  // Skip checkbox space
+    numSpeakersLabel.setBounds(leftCol.removeFromLeft(labelWidth));
+    numSpeakersEditor.setBounds(leftCol.removeFromLeft(editorWidth));
+    rightCol.removeFromLeft(checkboxWidth);  // Skip checkbox space
+    zPositionLabel.setBounds(rightCol.removeFromLeft(labelWidth));
+    zPositionEditor.setBounds(rightCol.removeFromLeft(editorWidth));
 
-    // Orientation (for straight arrays)
+    // Orientation row (for straight arrays)
     if (!config.supportsCircle && !config.supportsSurround)
     {
         row = content.removeFromTop(rowHeight);
-        orientationLabel.setBounds(row.removeFromLeft(labelWidth));
-        orientationEditor.setBounds(row.removeFromLeft(editorWidth));
+        leftCol = row.removeFromLeft(columnWidth);
+        leftCol.removeFromLeft(checkboxWidth);  // Skip checkbox space
+        orientationLabel.setBounds(leftCol.removeFromLeft(labelWidth));
+        orientationEditor.setBounds(leftCol.removeFromLeft(editorWidth));
         orientationLabel.setVisible(true);
         orientationEditor.setVisible(true);
     }
@@ -694,15 +718,21 @@ void OutputArrayHelperContent::layoutGeometrySection(juce::Rectangle<int>& area)
     if (showCenterSpacing)
     {
         row = content.removeFromTop(rowHeight);
-        centerXLabel.setBounds(row.removeFromLeft(labelWidth));
-        centerXEditor.setBounds(row.removeFromLeft(editorWidth));
-        row.removeFromLeft(spacing * 2);
-        centerYLabel.setBounds(row.removeFromLeft(labelWidth));
-        centerYEditor.setBounds(row.removeFromLeft(editorWidth));
+        leftCol = row.removeFromLeft(columnWidth);
+        row.removeFromLeft(colSpacing);
+        rightCol = row;
+        leftCol.removeFromLeft(checkboxWidth);  // Skip checkbox space
+        centerXLabel.setBounds(leftCol.removeFromLeft(labelWidth));
+        centerXEditor.setBounds(leftCol.removeFromLeft(editorWidth));
+        rightCol.removeFromLeft(checkboxWidth);  // Skip checkbox space
+        centerYLabel.setBounds(rightCol.removeFromLeft(labelWidth));
+        centerYEditor.setBounds(rightCol.removeFromLeft(editorWidth));
 
         row = content.removeFromTop(rowHeight);
-        spacingLabel.setBounds(row.removeFromLeft(labelWidth));
-        spacingEditor.setBounds(row.removeFromLeft(editorWidth));
+        leftCol = row.removeFromLeft(columnWidth);
+        leftCol.removeFromLeft(checkboxWidth);  // Skip checkbox space
+        spacingLabel.setBounds(leftCol.removeFromLeft(labelWidth));
+        spacingEditor.setBounds(leftCol.removeFromLeft(editorWidth));
     }
 
     // Endpoints fields
@@ -720,18 +750,26 @@ void OutputArrayHelperContent::layoutGeometrySection(juce::Rectangle<int>& area)
     if (showEndpoints)
     {
         row = content.removeFromTop(rowHeight);
-        startXLabel.setBounds(row.removeFromLeft(labelWidth));
-        startXEditor.setBounds(row.removeFromLeft(editorWidth));
-        row.removeFromLeft(spacing * 2);
-        startYLabel.setBounds(row.removeFromLeft(labelWidth));
-        startYEditor.setBounds(row.removeFromLeft(editorWidth));
+        leftCol = row.removeFromLeft(columnWidth);
+        row.removeFromLeft(colSpacing);
+        rightCol = row;
+        leftCol.removeFromLeft(checkboxWidth);  // Skip checkbox space
+        startXLabel.setBounds(leftCol.removeFromLeft(labelWidth));
+        startXEditor.setBounds(leftCol.removeFromLeft(editorWidth));
+        rightCol.removeFromLeft(checkboxWidth);  // Skip checkbox space
+        startYLabel.setBounds(rightCol.removeFromLeft(labelWidth));
+        startYEditor.setBounds(rightCol.removeFromLeft(editorWidth));
 
         row = content.removeFromTop(rowHeight);
-        endXLabel.setBounds(row.removeFromLeft(labelWidth));
-        endXEditor.setBounds(row.removeFromLeft(editorWidth));
-        row.removeFromLeft(spacing * 2);
-        endYLabel.setBounds(row.removeFromLeft(labelWidth));
-        endYEditor.setBounds(row.removeFromLeft(editorWidth));
+        leftCol = row.removeFromLeft(columnWidth);
+        row.removeFromLeft(colSpacing);
+        rightCol = row;
+        leftCol.removeFromLeft(checkboxWidth);  // Skip checkbox space
+        endXLabel.setBounds(leftCol.removeFromLeft(labelWidth));
+        endXEditor.setBounds(leftCol.removeFromLeft(editorWidth));
+        rightCol.removeFromLeft(checkboxWidth);  // Skip checkbox space
+        endYLabel.setBounds(rightCol.removeFromLeft(labelWidth));
+        endYEditor.setBounds(rightCol.removeFromLeft(editorWidth));
     }
 
     // Curved array (sag)
@@ -740,8 +778,10 @@ void OutputArrayHelperContent::layoutGeometrySection(juce::Rectangle<int>& area)
     if (config.supportsCurve)
     {
         row = content.removeFromTop(rowHeight);
-        sagLabel.setBounds(row.removeFromLeft(labelWidth));
-        sagEditor.setBounds(row.removeFromLeft(editorWidth));
+        leftCol = row.removeFromLeft(columnWidth);
+        leftCol.removeFromLeft(checkboxWidth);  // Skip checkbox space
+        sagLabel.setBounds(leftCol.removeFromLeft(labelWidth));
+        sagEditor.setBounds(leftCol.removeFromLeft(editorWidth));
     }
 
     // Circle array
@@ -755,26 +795,37 @@ void OutputArrayHelperContent::layoutGeometrySection(juce::Rectangle<int>& area)
     if (config.supportsCircle)
     {
         row = content.removeFromTop(rowHeight);
-        centerXLabel.setBounds(row.removeFromLeft(labelWidth));
-        centerXEditor.setBounds(row.removeFromLeft(editorWidth));
-        row.removeFromLeft(spacing * 2);
-        centerYLabel.setBounds(row.removeFromLeft(labelWidth));
-        centerYEditor.setBounds(row.removeFromLeft(editorWidth));
+        leftCol = row.removeFromLeft(columnWidth);
+        row.removeFromLeft(colSpacing);
+        rightCol = row;
+        leftCol.removeFromLeft(checkboxWidth);  // Skip checkbox space
+        centerXLabel.setBounds(leftCol.removeFromLeft(labelWidth));
+        centerXEditor.setBounds(leftCol.removeFromLeft(editorWidth));
+        rightCol.removeFromLeft(checkboxWidth);  // Skip checkbox space
+        centerYLabel.setBounds(rightCol.removeFromLeft(labelWidth));
+        centerYEditor.setBounds(rightCol.removeFromLeft(editorWidth));
         centerXLabel.setVisible(true);
         centerXEditor.setVisible(true);
         centerYLabel.setVisible(true);
         centerYEditor.setVisible(true);
 
         row = content.removeFromTop(rowHeight);
-        radiusLabel.setBounds(row.removeFromLeft(labelWidth));
-        radiusEditor.setBounds(row.removeFromLeft(editorWidth));
-        row.removeFromLeft(spacing * 2);
-        startAngleLabel.setBounds(row.removeFromLeft(labelWidth));
-        startAngleEditor.setBounds(row.removeFromLeft(editorWidth));
+        leftCol = row.removeFromLeft(columnWidth);
+        row.removeFromLeft(colSpacing);
+        rightCol = row;
+        leftCol.removeFromLeft(checkboxWidth);  // Skip checkbox space
+        radiusLabel.setBounds(leftCol.removeFromLeft(labelWidth));
+        radiusEditor.setBounds(leftCol.removeFromLeft(editorWidth));
+        rightCol.removeFromLeft(checkboxWidth);  // Skip checkbox space
+        startAngleLabel.setBounds(rightCol.removeFromLeft(labelWidth));
+        startAngleEditor.setBounds(rightCol.removeFromLeft(editorWidth));
 
         row = content.removeFromTop(rowHeight);
-        facingInwardRadio.setBounds(row.removeFromLeft(150));
-        facingOutwardRadio.setBounds(row.removeFromLeft(150));
+        leftCol = row.removeFromLeft(columnWidth);
+        row.removeFromLeft(colSpacing);
+        rightCol = row;
+        facingInwardRadio.setBounds(leftCol.removeFromLeft(checkboxWidth + labelWidth + editorWidth));
+        facingOutwardRadio.setBounds(rightCol.removeFromLeft(checkboxWidth + labelWidth + editorWidth));
     }
 
     // Surround
@@ -788,20 +839,28 @@ void OutputArrayHelperContent::layoutGeometrySection(juce::Rectangle<int>& area)
     if (config.supportsSurround)
     {
         row = content.removeFromTop(rowHeight);
-        centerXLabel.setBounds(row.removeFromLeft(labelWidth));
-        centerXEditor.setBounds(row.removeFromLeft(editorWidth));
-        row.removeFromLeft(spacing * 2);
-        widthLabel.setBounds(row.removeFromLeft(labelWidth));
-        widthEditor.setBounds(row.removeFromLeft(editorWidth));
+        leftCol = row.removeFromLeft(columnWidth);
+        row.removeFromLeft(colSpacing);
+        rightCol = row;
+        leftCol.removeFromLeft(checkboxWidth);  // Skip checkbox space
+        centerXLabel.setBounds(leftCol.removeFromLeft(labelWidth));
+        centerXEditor.setBounds(leftCol.removeFromLeft(editorWidth));
+        rightCol.removeFromLeft(checkboxWidth);  // Skip checkbox space
+        widthLabel.setBounds(rightCol.removeFromLeft(labelWidth));
+        widthEditor.setBounds(rightCol.removeFromLeft(editorWidth));
         centerXLabel.setVisible(true);
         centerXEditor.setVisible(true);
 
         row = content.removeFromTop(rowHeight);
-        yStartLabel.setBounds(row.removeFromLeft(labelWidth));
-        yStartEditor.setBounds(row.removeFromLeft(editorWidth));
-        row.removeFromLeft(spacing * 2);
-        yEndLabel.setBounds(row.removeFromLeft(labelWidth));
-        yEndEditor.setBounds(row.removeFromLeft(editorWidth));
+        leftCol = row.removeFromLeft(columnWidth);
+        row.removeFromLeft(colSpacing);
+        rightCol = row;
+        leftCol.removeFromLeft(checkboxWidth);  // Skip checkbox space
+        yStartLabel.setBounds(leftCol.removeFromLeft(labelWidth));
+        yStartEditor.setBounds(leftCol.removeFromLeft(editorWidth));
+        rightCol.removeFromLeft(checkboxWidth);  // Skip checkbox space
+        yEndLabel.setBounds(rightCol.removeFromLeft(labelWidth));
+        yEndEditor.setBounds(rightCol.removeFromLeft(editorWidth));
 
         // Note: For surround, numSpeakers is actually number of pairs
         numSpeakersLabel.setText("N Pairs:", juce::dontSendNotification);
@@ -818,17 +877,21 @@ void OutputArrayHelperContent::layoutGeometrySection(juce::Rectangle<int>& area)
     if (currentPreset == ArrayPresetType::DelayLine)
     {
         row = content.removeFromTop(rowHeight);
-        frontFacingRadio.setBounds(row.removeFromLeft(150));
-        backFacingRadio.setBounds(row.removeFromLeft(150));
+        leftCol = row.removeFromLeft(columnWidth);
+        row.removeFromLeft(colSpacing);
+        rightCol = row;
+        frontFacingRadio.setBounds(leftCol.removeFromLeft(checkboxWidth + labelWidth + editorWidth));
+        backFacingRadio.setBounds(rightCol.removeFromLeft(checkboxWidth + labelWidth + editorWidth));
     }
 }
 
 void OutputArrayHelperContent::layoutAcousticSection(juce::Rectangle<int>& area)
 {
     const int rowHeight = 26;
-    const int labelWidth = 130;
     const int editorWidth = 60;
-    const int spacing = 5;
+    const int colSpacing = 10;
+    const int checkboxWidth = 25;
+    const int labelWidth = 110;
 
     int height = 30 + rowHeight * 4 + 15;
     auto section = area.removeFromTop(height);
@@ -837,40 +900,59 @@ void OutputArrayHelperContent::layoutAcousticSection(juce::Rectangle<int>& area)
     auto content = section.reduced(10, 20);
     content.removeFromTop(10);
 
-    // Row 1: LS Enable, HF Damping
+    // Split into two main columns
+    const int columnWidth = content.getWidth() / 2 - colSpacing / 2;
+
+    // Row 1: Live Source | Floor Reflections
     auto row = content.removeFromTop(rowHeight);
-    lsEnableButton.setBounds(row.removeFromLeft(120));
-    row.removeFromLeft(spacing * 2);
-    hfDampingLabel.setBounds(row.removeFromLeft(labelWidth));
-    hfDampingEditor.setBounds(row.removeFromLeft(editorWidth));
+    auto leftCol = row.removeFromLeft(columnWidth);
+    row.removeFromLeft(colSpacing);
+    auto rightCol = row;
+    lsEnableButton.setBounds(leftCol.removeFromLeft(checkboxWidth + labelWidth + editorWidth));
+    frEnableButton.setBounds(rightCol.removeFromLeft(checkboxWidth + labelWidth + editorWidth));
 
-    // Row 2: Parallax
+    // Row 2: HF Damping | Distance Atten (no checkbox, indent to align)
     row = content.removeFromTop(rowHeight);
-    hParallaxLabel.setBounds(row.removeFromLeft(labelWidth));
-    hParallaxEditor.setBounds(row.removeFromLeft(editorWidth));
-    row.removeFromLeft(spacing * 2);
-    vParallaxLabel.setBounds(row.removeFromLeft(labelWidth));
-    vParallaxEditor.setBounds(row.removeFromLeft(editorWidth));
+    leftCol = row.removeFromLeft(columnWidth);
+    row.removeFromLeft(colSpacing);
+    rightCol = row;
+    leftCol.removeFromLeft(checkboxWidth);  // Skip checkbox space
+    hfDampingLabel.setBounds(leftCol.removeFromLeft(labelWidth));
+    hfDampingEditor.setBounds(leftCol.removeFromLeft(editorWidth));
+    rightCol.removeFromLeft(checkboxWidth);  // Skip checkbox space
+    distanceAttenLabel.setBounds(rightCol.removeFromLeft(labelWidth));
+    distanceAttenEditor.setBounds(rightCol.removeFromLeft(editorWidth));
 
-    // Row 3: Distance Atten
+    // Row 3: H Parallax | V Parallax (no checkbox, indent to align)
     row = content.removeFromTop(rowHeight);
-    distanceAttenLabel.setBounds(row.removeFromLeft(labelWidth));
-    distanceAttenEditor.setBounds(row.removeFromLeft(editorWidth));
+    leftCol = row.removeFromLeft(columnWidth);
+    row.removeFromLeft(colSpacing);
+    rightCol = row;
+    leftCol.removeFromLeft(checkboxWidth);  // Skip checkbox space
+    hParallaxLabel.setBounds(leftCol.removeFromLeft(labelWidth));
+    hParallaxEditor.setBounds(leftCol.removeFromLeft(editorWidth));
+    rightCol.removeFromLeft(checkboxWidth);  // Skip checkbox space
+    vParallaxLabel.setBounds(rightCol.removeFromLeft(labelWidth));
+    vParallaxEditor.setBounds(rightCol.removeFromLeft(editorWidth));
 
-    // Row 4: EQ
+    // Row 4: Low Cut | High Cut (checkbox + label + editor)
     row = content.removeFromTop(rowHeight);
-    lowCutEnableButton.setBounds(row.removeFromLeft(80));
-    lowCutFreqLabel.setBounds(row.removeFromLeft(60));
-    lowCutFreqEditor.setBounds(row.removeFromLeft(editorWidth));
-    row.removeFromLeft(spacing * 2);
-    highCutEnableButton.setBounds(row.removeFromLeft(80));
-    highCutFreqLabel.setBounds(row.removeFromLeft(60));
-    highCutFreqEditor.setBounds(row.removeFromLeft(editorWidth));
+    leftCol = row.removeFromLeft(columnWidth);
+    row.removeFromLeft(colSpacing);
+    rightCol = row;
+    lowCutEnableButton.setBounds(leftCol.removeFromLeft(checkboxWidth));
+    lowCutFreqLabel.setBounds(leftCol.removeFromLeft(labelWidth));
+    lowCutFreqEditor.setBounds(leftCol.removeFromLeft(editorWidth));
+    highCutEnableButton.setBounds(rightCol.removeFromLeft(checkboxWidth));
+    highCutFreqLabel.setBounds(rightCol.removeFromLeft(labelWidth));
+    highCutFreqEditor.setBounds(rightCol.removeFromLeft(editorWidth));
 }
 
 void OutputArrayHelperContent::layoutTargetSection(juce::Rectangle<int>& area)
 {
     const int rowHeight = 26;
+    const int colSpacing = 10;
+    const int checkboxWidth = 25;
     const int labelWidth = 110;
     const int selectorWidth = 100;
 
@@ -881,12 +963,19 @@ void OutputArrayHelperContent::layoutTargetSection(juce::Rectangle<int>& area)
     auto content = section.reduced(10, 20);
     content.removeFromTop(10);
 
+    // Split into two main columns
+    const int columnWidth = content.getWidth() / 2 - colSpacing / 2;
+
     auto row = content.removeFromTop(rowHeight);
-    arrayLabel.setBounds(row.removeFromLeft(labelWidth));
-    arraySelector.setBounds(row.removeFromLeft(selectorWidth));
-    row.removeFromLeft(20);
-    startOutputLabel.setBounds(row.removeFromLeft(labelWidth));
-    startOutputSelector.setBounds(row.removeFromLeft(selectorWidth));
+    auto leftCol = row.removeFromLeft(columnWidth);
+    row.removeFromLeft(colSpacing);
+    auto rightCol = row;
+    leftCol.removeFromLeft(checkboxWidth);  // Skip checkbox space
+    arrayLabel.setBounds(leftCol.removeFromLeft(labelWidth));
+    arraySelector.setBounds(leftCol.removeFromLeft(selectorWidth));
+    rightCol.removeFromLeft(checkboxWidth);  // Skip checkbox space
+    startOutputLabel.setBounds(rightCol.removeFromLeft(labelWidth));
+    startOutputSelector.setBounds(rightCol.removeFromLeft(selectorWidth));
 }
 
 void OutputArrayHelperContent::onPresetChanged()
@@ -913,6 +1002,7 @@ void OutputArrayHelperContent::loadPresetDefaults(ArrayPresetType preset)
 
     // Acoustic defaults
     lsEnableButton.setToggleState(config.lsAttenEnable, juce::dontSendNotification);
+    frEnableButton.setToggleState(config.frEnable, juce::dontSendNotification);
     hfDampingEditor.setText(juce::String(config.hfDamping, 2));
     hParallaxEditor.setText(juce::String(config.hParallax, 1));
     vParallaxEditor.setText(juce::String(config.vParallax, 1));
@@ -1244,6 +1334,7 @@ void OutputArrayHelperContent::applyToOutputs()
 
     // Get acoustic settings from UI
     bool lsEnabled = lsEnableButton.getToggleState();
+    bool frEnabled = frEnableButton.getToggleState();
     float hfDamping = hfDampingEditor.getText().getFloatValue();
     float hParallax = hParallaxEditor.getText().getFloatValue();
     float vParallax = vParallaxEditor.getText().getFloatValue();
@@ -1284,6 +1375,7 @@ void OutputArrayHelperContent::applyToOutputs()
 
         // Acoustic defaults (in Options section)
         optSection.setProperty(WFSParameterIDs::outputLSattenEnable, lsEnabled ? 1 : 0, nullptr);
+        optSection.setProperty(WFSParameterIDs::outputFRenable, frEnabled ? 1 : 0, nullptr);
         optSection.setProperty(WFSParameterIDs::outputHparallax, hParallax, nullptr);
         optSection.setProperty(WFSParameterIDs::outputVparallax, vParallax, nullptr);
         optSection.setProperty(WFSParameterIDs::outputDistanceAttenPercent, distAtten, nullptr);

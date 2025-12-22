@@ -1205,6 +1205,18 @@ juce::ValueTree WFSValueTreeState::createInputMutesSection (int numOutputs)
         muteArray.add ("0");
     mutes.setProperty (inputMutes, muteArray.joinIntoString (","), nullptr);
 
+    // Array attenuation (per-array level control, 0 dB default)
+    mutes.setProperty (inputArrayAtten1, inputArrayAttenDefault, nullptr);
+    mutes.setProperty (inputArrayAtten2, inputArrayAttenDefault, nullptr);
+    mutes.setProperty (inputArrayAtten3, inputArrayAttenDefault, nullptr);
+    mutes.setProperty (inputArrayAtten4, inputArrayAttenDefault, nullptr);
+    mutes.setProperty (inputArrayAtten5, inputArrayAttenDefault, nullptr);
+    mutes.setProperty (inputArrayAtten6, inputArrayAttenDefault, nullptr);
+    mutes.setProperty (inputArrayAtten7, inputArrayAttenDefault, nullptr);
+    mutes.setProperty (inputArrayAtten8, inputArrayAttenDefault, nullptr);
+    mutes.setProperty (inputArrayAtten9, inputArrayAttenDefault, nullptr);
+    mutes.setProperty (inputArrayAtten10, inputArrayAttenDefault, nullptr);
+
     return mutes;
 }
 
@@ -1253,6 +1265,7 @@ juce::ValueTree WFSValueTreeState::createOutputOptionsSection()
     juce::ValueTree options (Options);
     options.setProperty (outputMiniLatencyEnable, outputMiniLatencyEnableDefault, nullptr);
     options.setProperty (outputLSattenEnable, outputLSattenEnableDefault, nullptr);
+    options.setProperty (outputFRenable, outputFRenableDefault, nullptr);
     options.setProperty (outputDistanceAttenPercent, outputDistanceAttenPercentDefault, nullptr);
     options.setProperty (outputHparallax, outputParallaxDefault, nullptr);
     options.setProperty (outputVparallax, outputParallaxDefault, nullptr);

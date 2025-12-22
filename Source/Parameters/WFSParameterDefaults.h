@@ -343,6 +343,11 @@ namespace WFSParameterDefaults
 
     constexpr int inputOtomoPauseResumeDefault  = 1;  // 0=Paused, 1=Resume
 
+    // Input > Array Attenuation
+    constexpr float inputArrayAttenDefault      = 0.0f;   // 0 dB (no attenuation)
+    constexpr float inputArrayAttenMin          = -60.0f; // -60 dB
+    constexpr float inputArrayAttenMax          = 0.0f;   // 0 dB
+
     //==========================================================================
     // Output Channel Defaults
     //==========================================================================
@@ -392,6 +397,7 @@ namespace WFSParameterDefaults
     // Output > Options
     constexpr int outputMiniLatencyEnableDefault = 1;    // 0=OFF, 1=ON
     constexpr int outputLSattenEnableDefault    = 1;     // 0=OFF, 1=ON
+    constexpr int outputFRenableDefault         = 1;     // 0=OFF, 1=ON (Floor Reflections)
 
     constexpr int outputDistanceAttenPercentDefault = 100;
     constexpr int outputDistanceAttenPercentMin = 0;
