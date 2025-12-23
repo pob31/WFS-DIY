@@ -1188,6 +1188,8 @@ juce::ValueTree WFSValueTreeState::createInputAutoMotionSection()
     automOtion.setProperty (inputOtomoAbsoluteRelative, inputOtomoAbsoluteRelativeDefault, nullptr);
     automOtion.setProperty (inputOtomoStayReturn, inputOtomoStayReturnDefault, nullptr);
     automOtion.setProperty (inputOtomoSpeedProfile, inputOtomoSpeedProfileDefault, nullptr);
+    automOtion.setProperty (inputOtomoDuration, inputOtomoDurationDefault, nullptr);
+    automOtion.setProperty (inputOtomoCurve, inputOtomoCurveDefault, nullptr);
     automOtion.setProperty (inputOtomoTrigger, inputOtomoTriggerDefault, nullptr);
     automOtion.setProperty (inputOtomoThreshold, inputOtomoThresholdDefault, nullptr);
     automOtion.setProperty (inputOtomoReset, inputOtomoResetDefault, nullptr);

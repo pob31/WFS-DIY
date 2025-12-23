@@ -119,6 +119,18 @@ public:
         return lsDetector ? lsDetector->getSlowGainReduction() : 1.0f;
     }
 
+    // Get short peak level in dB (5ms hold for AutomOtion triggering)
+    float getShortPeakLevelDb() const
+    {
+        return lsDetector ? lsDetector->getShortPeakLevelDb() : -200.0f;
+    }
+
+    // Get RMS level in dB (200ms window)
+    float getRmsLevelDb() const
+    {
+        return lsDetector ? lsDetector->getRmsLevelDb() : -200.0f;
+    }
+
     // Set Live Source compressor parameters (called from timer thread)
     void setLSParameters(float peakThreshDb, float peakRatio,
                          float slowThreshDb, float slowRatio)

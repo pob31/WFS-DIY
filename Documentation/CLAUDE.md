@@ -3,7 +3,7 @@
 ## Project Overview
 Wave Field Synthesis (WFS) audio application built with JUCE framework for real-time multi-channel audio processing with comprehensive OSC network control.
 
-## Current Implementation Status (As of 2025-12-22)
+## Current Implementation Status (As of 2025-12-23)
 
 ### Overall Progress: ~55% Complete
 
@@ -74,12 +74,13 @@ The DSP calculation layer transforms human control parameters into real-time DSP
 ### Core Files
 - **WFSCalculationEngine.h/cpp** - Central calculation engine for all WFS DSP parameters
 - **LFOProcessor.h** - Low Frequency Oscillator for position/rotation modulation
+- **AutomOtionProcessor.h** - Programmed point-to-point position movement with audio triggering
 - **WFSHighShelfFilter.h** - High-frequency shelf biquad filter for air absorption
 - **InputBufferProcessor.h** - Per-input threaded audio processor
 - **OutputBufferProcessor.h** - Per-output threaded audio processor
 - **InputBufferAlgorithm.h** - Manages collection of InputBufferProcessors
 - **OutputBufferAlgorithm.h** - Manages collection of OutputBufferProcessors
-- **LiveSourceLevelDetector.h** - Per-input audio level detection for Live Source Tamer
+- **LiveSourceLevelDetector.h** - Per-input audio level detection (peak envelope, short peak, RMS)
 - **LiveSourceTamerEngine.h** - Control-rate engine for per-speaker LS gain calculation
 - **InputVisualisationComponent.h** - Real-time DSP matrix visualization
 
@@ -223,6 +224,82 @@ The LFOProcessor generates periodic position offsets for each input channel, cre
 **UI Indicators (InputsTab LFO sub-tab):**
 - Progress dial: Shows main ramp position (0→1) as rotating dot
 - Output sliders: Bidirectional (-1 to +1) showing current normalized output per axis
+
+### AutomOtion Processor (Programmed Position Movement)
+The AutomOtionProcessor provides programmed point-to-point movement for input channel positions, enabling automated source movements.
+
+**Core File:** `Source/DSP/AutomOtionProcessor.h`
+
+**Movement Features:**
+- **Coordinates**: Absolute (move to target) or Relative (offset from current)
+- **Duration**: 0.1s to 3600s (1 hour)
+- **Speed Profile**: 0% = constant speed, 100% = bell curve (gradual acceleration/deceleration)
+- **Curve**: -100% to +100% bends path perpendicular to direction in XY plane (Z follows linear)
+- **Stay/Return**: At end, stay at destination or return to origin
+
+**Speed Profile Algorithm:**
+```cpp
+// Bell curve using cosine: (1 - cos(π * t)) / 2
+float bellProgress = (1.0f - std::cos(PI * linearProgress)) / 2.0f;
+float blend = speedProfile / 100.0f;
+return linearProgress * (1.0f - blend) + bellProgress * blend;
+```
+
+**Curved Path Calculation:**
+```cpp
+// Perpendicular vector in XY plane (rotated 90° counter-clockwise)
+perpX = -dy / pathLength2D;
+perpY = dx / pathLength2D;
+
+// Sine arc peaks at midpoint
+arcFactor = sin(π * progress);
+displacement = pathLength2D * 0.5f * |curve/100| * arcFactor * sign(curve);
+```
+
+**Audio Triggering:**
+- **Trigger Mode**: Manual or Audio trigger toggle
+- **Trigger Detection**: Short peak hold (5ms release) compared to threshold
+- **Reset Detection**: RMS averaging (200ms window) compared to reset threshold
+- **One-Shot Behavior**: Movement completes fully before any retriggering
+- **Rearm Logic**: After movement completes + RMS drops below reset → rearm
+- **Return Behavior**: Instant snap back (no animated return) when audio-triggered
+- **Manual Override**: Start button works in audio mode, but waits for current movement
+
+**Trigger State Machine:**
+```
+Stopped + Audio Mode:
+  - If waitingForRearm && RMS < resetThreshold → triggerArmed = true
+  - If triggerArmed && shortPeak > triggerThreshold → startMotion()
+
+Playing → Completed:
+  - If Return mode (audio trigger): instant snap back, waitingForRearm = true
+  - If Return mode (manual): animated return phase
+  - If Stay mode: keep final position, set waitingForRearm if audio mode
+```
+
+**Constraint**: AutomOtion only works when tracking is disabled for the input.
+
+**Global Controls:**
+- Stop All / Pause All / Resume All buttons in InputsTab AutomOtion sub-tab
+
+**Parameters:**
+| Parameter | Range | Description |
+|-----------|-------|-------------|
+| `inputOtomoX/Y/Z` | -50 to 50m | Destination coordinates |
+| `inputOtomoAbsoluteRelative` | 0/1 | 0=Absolute, 1=Relative |
+| `inputOtomoStayReturn` | 0/1 | 0=Stay, 1=Return |
+| `inputOtomoDuration` | 0.1-3600s | Movement duration |
+| `inputOtomoSpeedProfile` | 0-100% | Speed curve (0=linear, 100=bell) |
+| `inputOtomoCurve` | -100 to +100 | Path bend (-=left, +=right) |
+| `inputOtomoTrigger` | 0/1 | 0=Manual, 1=Audio |
+| `inputOtomoThreshold` | -92 to 0 dB | Audio trigger threshold |
+| `inputOtomoReset` | -92 to 0 dB | Rearm threshold (RMS) |
+
+**Integration:**
+- Processor runs at 50Hz in MainComponent timer callback
+- Audio levels collected from LiveSourceLevelDetector (shortPeak 5ms, RMS 200ms)
+- Offsets combined with LFO offsets in WFSCalculationEngine
+- Map visualization updates automatically via offset system
 
 ### Gyrophone (HF Directivity Rotation)
 The Gyrophone feature rotates the HF directivity pattern like a Leslie speaker rotating horn, creating a "brightness swirl" effect.
@@ -671,10 +748,12 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 - `Source/WfsParameters.h/cpp` - Parameter definitions
 - `Source/Parameters/WFSValueTreeState.h/cpp` - State management
 - `Source/DSP/WFSCalculationEngine.h/cpp` - WFS delay/level/HF + reverb matrix calculations
+- `Source/DSP/LFOProcessor.h` - Position/rotation modulation oscillator
+- `Source/DSP/AutomOtionProcessor.h` - Programmed position movement with audio triggering
 - `Source/DSP/WFSHighShelfFilter.h` - HF air absorption biquad filter
 - `Source/DSP/InputBufferProcessor.h` - Per-input threaded audio processor
 - `Source/DSP/OutputBufferProcessor.h` - Per-output threaded audio processor
-- `Source/DSP/LiveSourceLevelDetector.h` - Per-input audio level detection
+- `Source/DSP/LiveSourceLevelDetector.h` - Per-input audio level detection (peak, short peak, RMS)
 - `Source/DSP/LiveSourceTamerEngine.h` - Live Source Tamer gain calculation
 - `Source/Network/OSCManager.h/cpp` - Network coordination
 - `Source/Network/OSCLogger.h/cpp` - Message logging
@@ -712,6 +791,6 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 
 ---
 
-*Last updated: 2025-12-22*
+*Last updated: 2025-12-23*
 *JUCE Version: 8.0.11*
 *Build: Visual Studio 2022 / Xcode, x64 Debug/Release*

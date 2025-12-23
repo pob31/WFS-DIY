@@ -252,6 +252,8 @@ namespace WFSParameterIDs
     const juce::Identifier inputOtomoAbsoluteRelative ("inputOtomoAbsoluteRelative");
     const juce::Identifier inputOtomoStayReturn      ("inputOtomoStayReturn");
     const juce::Identifier inputOtomoSpeedProfile    ("inputOtomoSpeedProfile");
+    const juce::Identifier inputOtomoDuration        ("inputOtomoDuration");
+    const juce::Identifier inputOtomoCurve           ("inputOtomoCurve");
     const juce::Identifier inputOtomoTrigger         ("inputOtomoTrigger");
     const juce::Identifier inputOtomoThreshold       ("inputOtomoThreshold");
     const juce::Identifier inputOtomoReset           ("inputOtomoReset");

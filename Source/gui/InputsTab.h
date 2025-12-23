@@ -12,6 +12,7 @@
 #include "sliders/WfsAutoCenterSlider.h"
 #include "InputVisualisationComponent.h"
 #include "dials/WfsLFOIndicators.h"
+#include "../DSP/AutomOtionProcessor.h"
 
 //==============================================================================
 // Custom Transport Button - Play (right-pointing triangle)
@@ -452,6 +453,12 @@ public:
         setupHelpText();
         setupOscMethods();
         setupMouseListeners();
+    }
+
+    /** Set the AutomOtion processor for controlling programmed movements */
+    void setAutoMotionProcessor(AutomOtionProcessor* processor)
+    {
+        automOtionProcessor = processor;
     }
 
     /**
@@ -1675,6 +1682,54 @@ private:
             saveInputParam(WFSParameterIDs::inputOtomoStayReturn, isReturn ? 1 : 0);
         };
 
+        // Duration dial (0.1 to 3600 seconds, logarithmic)
+        addAndMakeVisible(otomoDurationLabel);
+        otomoDurationLabel.setText("Duration:", juce::dontSendNotification);
+        otomoDurationLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        otomoDurationDial.setColours(juce::Colours::black, juce::Colour(0xFF4CAF50), juce::Colours::grey);
+        otomoDurationDial.onValueChanged = [this](float v) {
+            // Logarithmic scale: 0.1s to 3600s
+            // Formula: pow(10, sqrt(v) * 3.556 - 1) gives range ~0.1 to ~3600
+            float duration = std::pow(10.0f, std::sqrt(v) * 3.556f - 1.0f);
+            duration = juce::jlimit(0.1f, 3600.0f, duration);
+            // Format display based on value
+            juce::String displayText;
+            if (duration < 10.0f)
+                displayText = juce::String(duration, 2) + " s";
+            else if (duration < 60.0f)
+                displayText = juce::String(duration, 1) + " s";
+            else if (duration < 3600.0f)
+                displayText = juce::String(static_cast<int>(duration / 60)) + "m " + juce::String(static_cast<int>(duration) % 60) + "s";
+            else
+                displayText = "1h";
+            otomoDurationValueLabel.setText(displayText, juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputOtomoDuration, duration);
+        };
+        addAndMakeVisible(otomoDurationDial);
+        addAndMakeVisible(otomoDurationValueLabel);
+        otomoDurationValueLabel.setText("5.00 s", juce::dontSendNotification);
+        otomoDurationValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        otomoDurationValueLabel.setJustificationType(juce::Justification::centred);
+        setupEditableValueLabel(otomoDurationValueLabel);
+
+        // Curve dial (-100 to +100, bipolar)
+        addAndMakeVisible(otomoCurveLabel);
+        otomoCurveLabel.setText("Curve:", juce::dontSendNotification);
+        otomoCurveLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        otomoCurveDial.setColours(juce::Colours::black, juce::Colour(0xFFFF9800), juce::Colours::grey);
+        otomoCurveDial.onValueChanged = [this](float v) {
+            // Bipolar: -100 to +100
+            int curve = static_cast<int>((v * 200.0f) - 100.0f);
+            otomoCurveValueLabel.setText(juce::String(curve) + " %", juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputOtomoCurve, curve);
+        };
+        addAndMakeVisible(otomoCurveDial);
+        addAndMakeVisible(otomoCurveValueLabel);
+        otomoCurveValueLabel.setText("0 %", juce::dontSendNotification);
+        otomoCurveValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        otomoCurveValueLabel.setJustificationType(juce::Justification::centred);
+        setupEditableValueLabel(otomoCurveValueLabel);
+
         // Speed Profile dial (0-100%)
         addAndMakeVisible(otomoSpeedProfileLabel);
         otomoSpeedProfileLabel.setText("Speed Profile:", juce::dontSendNotification);
@@ -1740,16 +1795,56 @@ private:
 
         // Transport buttons (custom drawn icons)
         addAndMakeVisible(otomoStartButton);
-        otomoStartButton.onClick = [this]() { /* Start movement */ };
+        otomoStartButton.onClick = [this]() {
+            if (automOtionProcessor != nullptr && currentChannel > 0)
+                automOtionProcessor->startMotion(currentChannel - 1);
+        };
 
         addAndMakeVisible(otomoStopButton);
-        otomoStopButton.onClick = [this]() { /* Stop movement */ };
+        otomoStopButton.onClick = [this]() {
+            if (automOtionProcessor != nullptr && currentChannel > 0)
+                automOtionProcessor->stopMotion(currentChannel - 1);
+        };
 
         addAndMakeVisible(otomoPauseButton);
         otomoPauseButton.setClickingTogglesState(true);
         otomoPauseButton.onClick = [this]() {
-            bool isPaused = otomoPauseButton.getToggleState();
-            saveInputParam(WFSParameterIDs::inputOtomoPauseResume, isPaused ? 1 : 0);
+            if (automOtionProcessor != nullptr && currentChannel > 0)
+            {
+                bool isPaused = otomoPauseButton.getToggleState();
+                if (isPaused)
+                    automOtionProcessor->pauseMotion(currentChannel - 1);
+                else
+                    automOtionProcessor->resumeMotion(currentChannel - 1);
+            }
+            saveInputParam(WFSParameterIDs::inputOtomoPauseResume, otomoPauseButton.getToggleState() ? 0 : 1);
+        };
+
+        // Global controls
+        addAndMakeVisible(otomoStopAllButton);
+        otomoStopAllButton.setButtonText("Stop All");
+        otomoStopAllButton.onClick = [this]() {
+            if (automOtionProcessor != nullptr)
+                automOtionProcessor->stopAllMotion();
+        };
+
+        addAndMakeVisible(otomoPauseResumeAllButton);
+        otomoPauseResumeAllButton.setButtonText("Pause All");
+        otomoPauseResumeAllButton.setClickingTogglesState(true);
+        otomoPauseResumeAllButton.onClick = [this]() {
+            if (automOtionProcessor != nullptr)
+            {
+                if (otomoPauseResumeAllButton.getToggleState())
+                {
+                    automOtionProcessor->pauseAllMotion();
+                    otomoPauseResumeAllButton.setButtonText("Resume All");
+                }
+                else
+                {
+                    automOtionProcessor->resumeAllMotion();
+                    otomoPauseResumeAllButton.setButtonText("Pause All");
+                }
+            }
         };
     }
 
@@ -2514,6 +2609,8 @@ private:
         otomoDestZLabel.setVisible(v); otomoDestZEditor.setVisible(v); otomoDestZUnitLabel.setVisible(v);
         otomoAbsRelButton.setVisible(v);
         otomoStayReturnButton.setVisible(v);
+        otomoDurationLabel.setVisible(v); otomoDurationDial.setVisible(v); otomoDurationValueLabel.setVisible(v);
+        otomoCurveLabel.setVisible(v); otomoCurveDial.setVisible(v); otomoCurveValueLabel.setVisible(v);
         otomoSpeedProfileLabel.setVisible(v); otomoSpeedProfileDial.setVisible(v); otomoSpeedProfileValueLabel.setVisible(v);
         otomoTriggerButton.setVisible(v);
         otomoThresholdLabel.setVisible(v); otomoThresholdDial.setVisible(v); otomoThresholdValueLabel.setVisible(v);
@@ -2521,6 +2618,8 @@ private:
         otomoStartButton.setVisible(v);
         otomoStopButton.setVisible(v);
         otomoPauseButton.setVisible(v);
+        otomoStopAllButton.setVisible(v);
+        otomoPauseResumeAllButton.setVisible(v);
     }
 
     void layoutAutomotionTab()
@@ -2532,12 +2631,15 @@ private:
         const int editorWidth = 80;
         const int unitWidth = 25;
         const int buttonWidth = 100;
-        const int dialSize = 70;
+        const int dialSize = 60;
         const int transportButtonSize = 40;
 
-        auto leftCol = area.removeFromLeft(area.getWidth() / 2).reduced(5, 0);
+        // Split into three columns for more dials
+        auto leftCol = area.removeFromLeft(area.getWidth() / 3).reduced(5, 0);
+        auto midCol = area.removeFromLeft(area.getWidth() / 2).reduced(5, 0);
         auto rightCol = area.reduced(5, 0);
 
+        // Left column: Destination, buttons, transport
         // Destination X/Y/Z
         auto row = leftCol.removeFromTop(rowHeight);
         otomoDestXLabel.setBounds(row.removeFromLeft(labelWidth));
@@ -2568,21 +2670,40 @@ private:
         otomoTriggerButton.setBounds(row.removeFromLeft(buttonWidth));
         leftCol.removeFromTop(spacing * 2);
 
-        // Transport buttons
+        // Transport buttons (per-input)
         row = leftCol.removeFromTop(transportButtonSize);
         otomoStartButton.setBounds(row.removeFromLeft(transportButtonSize));
         row.removeFromLeft(spacing);
         otomoPauseButton.setBounds(row.removeFromLeft(transportButtonSize));
         row.removeFromLeft(spacing);
         otomoStopButton.setBounds(row.removeFromLeft(transportButtonSize));
+        leftCol.removeFromTop(spacing * 2);
 
-        // Right column - Dials
-        otomoSpeedProfileLabel.setBounds(rightCol.removeFromTop(rowHeight));
-        auto dialArea = rightCol.removeFromTop(dialSize);
+        // Global buttons
+        row = leftCol.removeFromTop(rowHeight);
+        otomoStopAllButton.setBounds(row.removeFromLeft(buttonWidth));
+        row.removeFromLeft(spacing);
+        otomoPauseResumeAllButton.setBounds(row.removeFromLeft(buttonWidth));
+
+        // Middle column: Duration, Curve, Speed Profile dials
+        otomoDurationLabel.setBounds(midCol.removeFromTop(rowHeight));
+        auto dialArea = midCol.removeFromTop(dialSize);
+        otomoDurationDial.setBounds(dialArea.withSizeKeepingCentre(dialSize, dialSize));
+        otomoDurationValueLabel.setBounds(midCol.removeFromTop(rowHeight));
+        midCol.removeFromTop(spacing);
+
+        otomoCurveLabel.setBounds(midCol.removeFromTop(rowHeight));
+        dialArea = midCol.removeFromTop(dialSize);
+        otomoCurveDial.setBounds(dialArea.withSizeKeepingCentre(dialSize, dialSize));
+        otomoCurveValueLabel.setBounds(midCol.removeFromTop(rowHeight));
+        midCol.removeFromTop(spacing);
+
+        otomoSpeedProfileLabel.setBounds(midCol.removeFromTop(rowHeight));
+        dialArea = midCol.removeFromTop(dialSize);
         otomoSpeedProfileDial.setBounds(dialArea.withSizeKeepingCentre(dialSize, dialSize));
-        otomoSpeedProfileValueLabel.setBounds(rightCol.removeFromTop(rowHeight));
-        rightCol.removeFromTop(spacing);
+        otomoSpeedProfileValueLabel.setBounds(midCol.removeFromTop(rowHeight));
 
+        // Right column: Threshold and Reset dials (audio trigger)
         otomoThresholdLabel.setBounds(rightCol.removeFromTop(rowHeight));
         dialArea = rightCol.removeFromTop(dialSize);
         otomoThresholdDial.setBounds(dialArea.withSizeKeepingCentre(dialSize, dialSize));
@@ -3117,6 +3238,33 @@ private:
         bool stayReturn = getIntParam(WFSParameterIDs::inputOtomoStayReturn, 0) != 0;
         otomoStayReturnButton.setToggleState(stayReturn, juce::dontSendNotification);
         otomoStayReturnButton.setButtonText(stayReturn ? "Return" : "Stay");
+
+        // Duration stored as seconds (0.1-3600), default 5.0
+        // Inverse of: duration = pow(10, sqrt(v) * 3.556 - 1)
+        float duration = getFloatParam(WFSParameterIDs::inputOtomoDuration, 5.0f);
+        duration = juce::jlimit(0.1f, 3600.0f, duration);
+        // Inverse: v = (log10(duration) + 1)^2 / 3.556^2
+        float durationDial = std::pow((std::log10(duration) + 1.0f) / 3.556f, 2.0f);
+        otomoDurationDial.setValue(juce::jlimit(0.0f, 1.0f, durationDial));
+        // Format display
+        juce::String durationText;
+        if (duration < 10.0f)
+            durationText = juce::String(duration, 2) + " s";
+        else if (duration < 60.0f)
+            durationText = juce::String(duration, 1) + " s";
+        else if (duration < 3600.0f)
+            durationText = juce::String(static_cast<int>(duration / 60)) + "m " + juce::String(static_cast<int>(duration) % 60) + "s";
+        else
+            durationText = "1h";
+        otomoDurationValueLabel.setText(durationText, juce::dontSendNotification);
+
+        // Curve stored as -100 to +100, default 0
+        int curve = getIntParam(WFSParameterIDs::inputOtomoCurve, 0);
+        curve = juce::jlimit(-100, 100, curve);
+        // Inverse of: curve = (v * 200) - 100 => v = (curve + 100) / 200
+        float curveDial = (static_cast<float>(curve) + 100.0f) / 200.0f;
+        otomoCurveDial.setValue(juce::jlimit(0.0f, 1.0f, curveDial));
+        otomoCurveValueLabel.setText(juce::String(curve) + " %", juce::dontSendNotification);
 
         // Speed Profile stored as percent (0-100), default 0
         int speedProfilePct = getIntParam(WFSParameterIDs::inputOtomoSpeedProfile, 0);
@@ -4380,6 +4528,7 @@ private:
     juce::ValueTree ioTree;
     bool isLoadingParameters = false;
     StatusBar* statusBar = nullptr;
+    AutomOtionProcessor* automOtionProcessor = nullptr;
     std::map<juce::Component*, juce::String> helpTextMap;
     std::map<juce::Component*, juce::String> oscMethodMap;
     int currentChannel = 1;
@@ -4544,6 +4693,12 @@ private:
     juce::Label otomoDestXUnitLabel, otomoDestYUnitLabel, otomoDestZUnitLabel;
     juce::TextButton otomoAbsRelButton;
     juce::TextButton otomoStayReturnButton;
+    juce::Label otomoDurationLabel;
+    WfsBasicDial otomoDurationDial;
+    juce::Label otomoDurationValueLabel;
+    juce::Label otomoCurveLabel;
+    WfsBasicDial otomoCurveDial;
+    juce::Label otomoCurveValueLabel;
     juce::Label otomoSpeedProfileLabel;
     WfsBasicDial otomoSpeedProfileDial;
     juce::Label otomoSpeedProfileValueLabel;
@@ -4557,6 +4712,8 @@ private:
     PlayButton otomoStartButton;
     StopButton otomoStopButton;
     PauseButton otomoPauseButton;
+    juce::TextButton otomoStopAllButton;
+    juce::TextButton otomoPauseResumeAllButton;
 
     // Visualisation tab
     InputVisualisationComponent visualisationComponent;

@@ -183,6 +183,22 @@ public:
         return 1.0f;
     }
 
+    // Get short peak level in dB (5ms hold for AutomOtion triggering)
+    float getShortPeakLevelDb(size_t inputIndex) const
+    {
+        if (inputIndex < inputProcessors.size())
+            return inputProcessors[inputIndex]->getShortPeakLevelDb();
+        return -200.0f;
+    }
+
+    // Get RMS level in dB (200ms window)
+    float getRmsLevelDb(size_t inputIndex) const
+    {
+        if (inputIndex < inputProcessors.size())
+            return inputProcessors[inputIndex]->getRmsLevelDb();
+        return -200.0f;
+    }
+
     void setLSParameters(size_t inputIndex, float peakThreshDb, float peakRatio,
                          float slowThreshDb, float slowRatio)
     {

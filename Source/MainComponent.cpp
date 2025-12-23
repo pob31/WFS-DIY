@@ -176,6 +176,8 @@ MainComponent::MainComponent()
     inputsTab->setStatusBar(statusBar);
     reverbTab->setStatusBar(statusBar);
 
+    // Note: AutomOtionProcessor is set after it's created (later in constructor)
+
     // Set up callbacks from System Config tab
     systemConfigTab->setProcessingCallback([this](bool enabled) {
         handleProcessingChange(enabled);
@@ -227,6 +229,13 @@ MainComponent::MainComponent()
 
     // Initialize LFO Processor for input position modulation
     lfoProcessor = std::make_unique<LFOProcessor>(parameters.getValueTreeState(), 64);
+
+    // Initialize AutomOtion Processor for programmed input position movement
+    automOtionProcessor = std::make_unique<AutomOtionProcessor>(parameters.getValueTreeState(), 64);
+
+    // Pass AutomOtionProcessor to InputsTab for UI control
+    if (inputsTab != nullptr)
+        inputsTab->setAutoMotionProcessor(automOtionProcessor.get());
 
     // Initialize Live Source Tamer engine for per-speaker gain reduction
     // Uses max channel counts to match calculationEngine matrix dimensions
@@ -964,15 +973,59 @@ void MainComponent::timerCallback()
             lfoProcessor->process(0.02f);  // 20ms delta time (50Hz)
         }
 
-        // Pass LFO offsets and gyrophone offsets to calculation engine for DSP
-        if (lfoProcessor != nullptr)
+        // Collect audio levels for AutomOtion triggering
+        if (automOtionProcessor != nullptr)
         {
             for (int i = 0; i < numInputChannels; ++i)
             {
-                calculationEngine->setLFOOffset(i,
-                    lfoProcessor->getOffsetX(i),
-                    lfoProcessor->getOffsetY(i),
-                    lfoProcessor->getOffsetZ(i));
+                float shortPeakDb, rmsDb;
+                if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
+                {
+                    shortPeakDb = inputAlgorithm.getShortPeakLevelDb(static_cast<size_t>(i));
+                    rmsDb = inputAlgorithm.getRmsLevelDb(static_cast<size_t>(i));
+                }
+                else
+                {
+                    shortPeakDb = outputAlgorithm.getShortPeakLevelDb(static_cast<size_t>(i));
+                    rmsDb = outputAlgorithm.getRmsLevelDb(static_cast<size_t>(i));
+                }
+                automOtionProcessor->setInputLevels(i, shortPeakDb, rmsDb);
+            }
+        }
+
+        // Process AutomOtion at 50Hz (control rate)
+        if (automOtionProcessor != nullptr)
+        {
+            automOtionProcessor->process(0.02f);  // 20ms delta time (50Hz)
+        }
+
+        // Pass combined LFO + AutomOtion offsets and gyrophone offsets to calculation engine for DSP
+        for (int i = 0; i < numInputChannels; ++i)
+        {
+            // Combine LFO and AutomOtion offsets
+            float totalOffsetX = 0.0f;
+            float totalOffsetY = 0.0f;
+            float totalOffsetZ = 0.0f;
+
+            if (lfoProcessor != nullptr)
+            {
+                totalOffsetX += lfoProcessor->getOffsetX(i);
+                totalOffsetY += lfoProcessor->getOffsetY(i);
+                totalOffsetZ += lfoProcessor->getOffsetZ(i);
+            }
+
+            if (automOtionProcessor != nullptr)
+            {
+                totalOffsetX += automOtionProcessor->getOffsetX(i);
+                totalOffsetY += automOtionProcessor->getOffsetY(i);
+                totalOffsetZ += automOtionProcessor->getOffsetZ(i);
+            }
+
+            calculationEngine->setLFOOffset(i, totalOffsetX, totalOffsetY, totalOffsetZ);
+
+            // Gyrophone offset from LFO only
+            if (lfoProcessor != nullptr)
+            {
                 calculationEngine->setGyrophoneOffset(i,
                     lfoProcessor->getGyrophoneOffsetRad(i));
             }

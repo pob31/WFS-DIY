@@ -36,6 +36,10 @@ public:
         peakEnvelopeReleaseCoeff = static_cast<float>(std::exp(-1.0 / (sampleRate * 0.1)));
         peakEnvelope = 0.0f;
 
+        // Short peak envelope: 1 sample attack (instant), 5ms release for AutomOtion triggering
+        shortPeakReleaseCoeff = static_cast<float>(std::exp(-1.0 / (sampleRate * 0.005)));
+        shortPeakEnvelope = 0.0f;
+
         // RMS buffer: window = sampleRate / 5 (~200ms at 48kHz)
         rmsWindowSize = static_cast<int>(sampleRate / 5.0);
         rmsBuffer.resize(rmsWindowSize, 0.0f);
@@ -80,6 +84,12 @@ public:
             peakEnvelope = absSample;  // Instant attack
         else
             peakEnvelope *= peakEnvelopeReleaseCoeff;  // Exponential release
+
+        // Short peak envelope follower: instant attack, 5ms release for AutomOtion triggering
+        if (absSample > shortPeakEnvelope)
+            shortPeakEnvelope = absSample;  // Instant attack
+        else
+            shortPeakEnvelope *= shortPeakReleaseCoeff;  // 5ms exponential release
 
         // Convert to dB (with floor to avoid -inf)
         float peakDb = (peakEnvelope > 1e-10f)
@@ -182,6 +192,15 @@ public:
         return (rms > 1e-10f) ? 20.0f * std::log10(rms) : -200.0f;
     }
 
+    /**
+     * Get short peak level in dB (5ms hold for AutomOtion triggering).
+     */
+    float getShortPeakLevelDb() const
+    {
+        float env = shortPeakEnvelope;
+        return (env > 1e-10f) ? 20.0f * std::log10(env) : -200.0f;
+    }
+
 private:
     /**
      * Calculate gain reduction using soft knee compression.
@@ -225,6 +244,10 @@ private:
     // Peak envelope follower
     float peakEnvelope = 0.0f;
     float peakEnvelopeReleaseCoeff = 0.0f;
+
+    // Short peak envelope follower (5ms release for AutomOtion triggering)
+    float shortPeakEnvelope = 0.0f;
+    float shortPeakReleaseCoeff = 0.0f;
 
     // RMS calculation (circular buffer)
     std::vector<float> rmsBuffer;

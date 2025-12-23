@@ -332,6 +332,16 @@ namespace WFSParameterDefaults
     constexpr int inputOtomoSpeedProfileMin     = 0;
     constexpr int inputOtomoSpeedProfileMax     = 100;
 
+    // Duration (how long the movement takes)
+    constexpr float inputOtomoDurationDefault   = 5.0f;    // 5 seconds
+    constexpr float inputOtomoDurationMin       = 0.1f;    // 100ms minimum
+    constexpr float inputOtomoDurationMax       = 3600.0f; // 1 hour maximum
+
+    // Curve (path bending perpendicular to direction of travel in XY plane)
+    constexpr int inputOtomoCurveDefault        = 0;       // Straight path
+    constexpr int inputOtomoCurveMin            = -100;    // Full left bend
+    constexpr int inputOtomoCurveMax            = 100;     // Full right bend
+
     constexpr int inputOtomoTriggerDefault      = 0;  // 0=Manual, 1=Trigger
     constexpr float inputOtomoThresholdDefault  = -20.0f;
     constexpr float inputOtomoThresholdMin      = -92.0f;
