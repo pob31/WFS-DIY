@@ -376,7 +376,30 @@ private:
         floorReflectionsEnableButton.onClick = [this]() {
             bool enabled = floorReflectionsEnableButton.getToggleState();
             floorReflectionsEnableButton.setButtonText(enabled ? "Floor Reflections: ON" : "Floor Reflections: OFF");
-            saveOutputParam(WFSParameterIDs::outputFRenable, enabled ? 1 : 0);
+
+            // Check if Apply to Array is enabled
+            int applyToArray = applyToArraySelector.getSelectedId() - 1;  // 0=OFF, 1=ABSOLUTE, 2=RELATIVE
+            bool isPartOfArray = arraySelector.getSelectedId() > 1;
+
+            if (isPartOfArray && applyToArray > 0)
+            {
+                // Apply to all outputs in the same array
+                int array = arraySelector.getSelectedId() - 1;
+                int numOutputs = parameters.getNumOutputChannels();
+                for (int i = 0; i < numOutputs; ++i)
+                {
+                    int outputArray = static_cast<int>(parameters.getOutputParam(i, "outputArray"));
+                    if (outputArray == array)
+                    {
+                        parameters.setOutputParam(i, "outputFRenable", enabled ? 1 : 0);
+                    }
+                }
+            }
+            else
+            {
+                // Only apply to current output
+                saveOutputParam(WFSParameterIDs::outputFRenable, enabled ? 1 : 0);
+            }
         };
 
         // Distance Attenuation % slider (0-200%, default 100% in center)

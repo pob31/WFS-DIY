@@ -359,7 +359,7 @@ namespace WFSParameterDefaults
     constexpr int outputArrayMin                = 0;
     constexpr int outputArrayMax                = 10;
 
-    constexpr int outputApplyToArrayDefault     = 0;  // 0=This speaker, 1=Apply to array
+    constexpr int outputApplyToArrayDefault     = 1;  // 0=OFF, 1=ABSOLUTE, 2=RELATIVE
 
     constexpr float outputAttenuationDefault    = 0.0f;
     constexpr float outputAttenuationMin        = -92.0f;

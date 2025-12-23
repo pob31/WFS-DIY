@@ -1316,6 +1316,17 @@ void MainComponent::nudgeInputPosition(int axis, float delta)
 
     auto& state = parameters.getValueTreeState();
 
+    // Check if constraint is enabled for this axis
+    juce::Identifier constraintId;
+    switch (axis)
+    {
+        case 0: constraintId = WFSParameterIDs::inputConstraintX; break;
+        case 1: constraintId = WFSParameterIDs::inputConstraintY; break;
+        case 2: constraintId = WFSParameterIDs::inputConstraintZ; break;
+        default: return;
+    }
+    bool constrained = state.getIntParameter(constraintId, channel) != 0;
+
     // Check if tracking is enabled (globally AND on channel)
     bool globalTracking = state.getIntParameter(WFSParameterIDs::trackingEnabled) != 0;
     bool channelTracking = state.getIntParameter(WFSParameterIDs::inputTrackingActive, channel) != 0;
@@ -1338,7 +1349,34 @@ void MainComponent::nudgeInputPosition(int axis, float delta)
     }
 
     float current = state.getFloatParameter(paramId, channel);
-    state.setInputParameter(channel, paramId, current + delta);
+    float newValue = current + delta;
+
+    // Apply constraints if enabled
+    if (constrained)
+    {
+        // Get stage bounds
+        float stageSize = 0.0f, origin = 0.0f;
+        switch (axis)
+        {
+            case 0:  // X
+                stageSize = static_cast<float>(parameters.getConfigParam("StageWidth"));
+                origin = static_cast<float>(parameters.getConfigParam("StageOriginWidth"));
+                break;
+            case 1:  // Y
+                stageSize = static_cast<float>(parameters.getConfigParam("StageDepth"));
+                origin = static_cast<float>(parameters.getConfigParam("StageOriginDepth"));
+                break;
+            case 2:  // Z
+                stageSize = static_cast<float>(parameters.getConfigParam("StageHeight"));
+                origin = static_cast<float>(parameters.getConfigParam("StageOriginHeight"));
+                break;
+        }
+        float minVal = -origin;
+        float maxVal = stageSize - origin;
+        newValue = juce::jlimit(minVal, maxVal, newValue);
+    }
+
+    state.setInputParameter(channel, paramId, newValue);
 }
 
 void MainComponent::nudgeOutputPosition(int axis, float delta)
