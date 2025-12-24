@@ -639,6 +639,25 @@ void WFSCalculationEngine::recalculateMatrix()
         localReverbFeedPositions = reverbFeedPositions;
         localReverbReturnPositions = reverbReturnPositions;
 
+        // Apply flip transformation and regular offset (before LFO)
+        for (size_t i = 0; i < localInputPositions.size(); ++i)
+        {
+            auto posSection = valueTreeState.getInputPositionSection (static_cast<int> (i));
+
+            // Apply flip (mirror around origin)
+            if (static_cast<int> (posSection.getProperty (inputFlipX, 0)) != 0)
+                localInputPositions[i].x = -localInputPositions[i].x;
+            if (static_cast<int> (posSection.getProperty (inputFlipY, 0)) != 0)
+                localInputPositions[i].y = -localInputPositions[i].y;
+            if (static_cast<int> (posSection.getProperty (inputFlipZ, 0)) != 0)
+                localInputPositions[i].z = -localInputPositions[i].z;
+
+            // Apply regular offset (inputOffsetX/Y/Z)
+            localInputPositions[i].x += static_cast<float> (posSection.getProperty (inputOffsetX, 0.0f));
+            localInputPositions[i].y += static_cast<float> (posSection.getProperty (inputOffsetY, 0.0f));
+            localInputPositions[i].z += static_cast<float> (posSection.getProperty (inputOffsetZ, 0.0f));
+        }
+
         // Apply LFO offsets to input positions
         for (size_t i = 0; i < localInputPositions.size() && i < lfoOffsets.size(); ++i)
         {
@@ -1917,8 +1936,19 @@ void WFSCalculationEngine::valueTreePropertyChanged (juce::ValueTree& tree,
                               property == inputLSshape ||
                               property == inputLSattenuation);
 
+    // Flip parameters (mirror position around origin)
+    bool isInputFlipProperty = (property == inputFlipX ||
+                                property == inputFlipY ||
+                                property == inputFlipZ);
+
+    // Offset parameters (added to position after flip)
+    bool isInputOffsetProperty = (property == inputOffsetX ||
+                                  property == inputOffsetY ||
+                                  property == inputOffsetZ);
+
     if (isInputAttenProperty || isInputChannelProperty || isInputHeightProperty ||
-        isInputDirectivityProperty || isInputMuteProperty || isInputLSProperty)
+        isInputDirectivityProperty || isInputMuteProperty || isInputLSProperty ||
+        isInputFlipProperty || isInputOffsetProperty)
     {
         int inputIndex = findInputIndexFromTree (tree);
 

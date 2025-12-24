@@ -813,6 +813,13 @@ private:
             bool localTracking = trackingActiveButton.getToggleState();
             bool useOffset = globalTrackingOn && protocolEnabled && localTracking;
 
+            // Apply flip inversion when modifying position directly (not offset)
+            if (!useOffset)
+            {
+                if (flipXButton.getToggleState()) deltaX = -deltaX;
+                if (flipYButton.getToggleState()) deltaY = -deltaY;
+            }
+
             // Check constraint states
             bool constrainX = constraintXButton.getToggleState();
             bool constrainY = constraintYButton.getToggleState();
@@ -890,6 +897,10 @@ private:
             bool protocolEnabled = (int)parameters.getConfigParam("trackingProtocol") != 0;
             bool localTracking = trackingActiveButton.getToggleState();
             bool useOffset = globalTrackingOn && protocolEnabled && localTracking;
+
+            // Apply flip inversion when modifying position directly (not offset)
+            if (!useOffset && flipZButton.getToggleState())
+                deltaZ = -deltaZ;
 
             // Check constraint state
             bool constrainZ = constraintZButton.getToggleState();

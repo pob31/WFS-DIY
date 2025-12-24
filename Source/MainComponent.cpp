@@ -1385,6 +1385,22 @@ void MainComponent::nudgeInputPosition(int axis, float delta)
     bool channelTracking = state.getIntParameter(WFSParameterIDs::inputTrackingActive, channel) != 0;
     bool useOffset = globalTracking && channelTracking;
 
+    // Invert delta when flip is enabled and modifying position (not offset)
+    // Offset is added AFTER flip, so offset nudge direction stays normal
+    if (!useOffset)
+    {
+        juce::Identifier flipId;
+        switch (axis)
+        {
+            case 0: flipId = WFSParameterIDs::inputFlipX; break;
+            case 1: flipId = WFSParameterIDs::inputFlipY; break;
+            case 2: flipId = WFSParameterIDs::inputFlipZ; break;
+            default: break;
+        }
+        if (state.getIntParameter(flipId, channel) != 0)
+            delta = -delta;
+    }
+
     juce::Identifier paramId;
     switch (axis)
     {
