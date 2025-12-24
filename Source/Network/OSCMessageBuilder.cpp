@@ -137,6 +137,7 @@ const std::map<juce::Identifier, OSCMessageBuilder::ParamMapping>& OSCMessageBui
         // Options
         { WFSParameterIDs::outputMiniLatencyEnable,      { "/wfs/output/miniLatencyEnable",   "/remoteInput/output/miniLatencyEnable" } },
         { WFSParameterIDs::outputLSattenEnable,          { "/wfs/output/LSenable",            "/remoteInput/output/LSenable" } },
+        { WFSParameterIDs::outputFRenable,               { "/wfs/output/FRenable",            "/remoteInput/output/FRenable" } },
         { WFSParameterIDs::outputDistanceAttenPercent,   { "/wfs/output/DistanceAttenPercent", "/remoteInput/output/DistanceAttenPercent" } },
         { WFSParameterIDs::outputHparallax,              { "/wfs/output/Hparallax",           "/remoteInput/output/Hparallax" } },
         { WFSParameterIDs::outputVparallax,              { "/wfs/output/Vparallax",           "/remoteInput/output/Vparallax" } },

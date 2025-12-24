@@ -137,6 +137,11 @@ private:
     // HF attenuation matrix (dB): hfAttenuation[inputChannel * numOutputChannels + outputChannel]
     std::vector<float> hfAttenuation;
 
+    // Floor Reflection matrices: [inputChannel * numOutputChannels + outputChannel]
+    std::vector<float> frDelayTimesMs;   // Extra delay for reflected path (ms)
+    std::vector<float> frLevels;         // Linear gain for reflected signal
+    std::vector<float> frHFAttenuation;  // HF attenuation for reflected path (dB)
+
     // Random generator with ramping and exponential smoothing (temporary for testing)
     std::vector<float> targetDelayTimesMs;      // Current ramp targets (updated every tick)
     std::vector<float> targetLevels;            // Current ramp targets (updated every tick)

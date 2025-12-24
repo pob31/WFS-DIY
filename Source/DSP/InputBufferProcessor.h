@@ -3,9 +3,11 @@
 #include <JuceHeader.h>
 #include "LockFreeRingBuffer.h"
 #include "WFSHighShelfFilter.h"
+#include "WFSBiquadFilter.h"
 #include "LiveSourceLevelDetector.h"
 #include <atomic>
 #include <memory>
+#include <random>
 
 //==============================================================================
 /**
@@ -20,20 +22,31 @@ class InputBufferProcessor : public juce::Thread
 public:
     InputBufferProcessor(int inputIndex, int numOutputs,
                          const float* delayTimesPtr, const float* levelsPtr,
-                         const float* hfAttenuationPtr = nullptr)
+                         const float* hfAttenuationPtr = nullptr,
+                         const float* frDelayTimesPtr = nullptr,
+                         const float* frLevelsPtr = nullptr,
+                         const float* frHFAttenuationPtr = nullptr)
         : juce::Thread("InputBufferProcessor_" + juce::String(inputIndex)),
           inputChannelIndex(inputIndex),
           numOutputChannels(numOutputs),
           sharedDelayTimes(delayTimesPtr),
           sharedLevels(levelsPtr),
-          sharedHFAttenuation(hfAttenuationPtr)
+          sharedHFAttenuation(hfAttenuationPtr),
+          sharedFRDelayTimes(frDelayTimesPtr),
+          sharedFRLevels(frLevelsPtr),
+          sharedFRHFAttenuation(frHFAttenuationPtr)
     {
         // Pre-allocate output buffers and HF filters
         for (int i = 0; i < numOutputs; ++i)
         {
             outputBuffers.emplace_back(std::make_unique<LockFreeRingBuffer>());
             hfFilters.emplace_back();  // One filter per output
+            frHFFilters.emplace_back();  // FR HF filter per output
         }
+
+        // Initialize diffusion state for time-varying jitter (one per output)
+        frDiffusionState.resize(static_cast<size_t>(numOutputs), 0.0f);
+        frDiffusionTarget.resize(static_cast<size_t>(numOutputs), 0.0f);
     }
 
     ~InputBufferProcessor() override
@@ -51,6 +64,11 @@ public:
         delayBuffer.clear();
         writePosition = 0;
 
+        // Allocate FR delay buffer (same size as main buffer)
+        frDelayBuffer.setSize(1, delayBufferLength);
+        frDelayBuffer.clear();
+        frWritePosition = 0;
+
         // Setup input ring buffer - make it 4x block size for safety
         inputRingBuffer.setSize(maxBlockSize * 4);
 
@@ -64,6 +82,27 @@ public:
             filter.prepare(sampleRate);
             filter.setGainDb(0.0f);  // Start with no attenuation
         }
+
+        // Initialize FR input filters (per-input, shared across outputs)
+        frLowCutFilter.prepare(sampleRate);
+        frLowCutFilter.setType(WFSBiquadFilter::FilterType::LowCut);
+        frLowCutFilter.setFrequency(100.0f);  // Default 100 Hz
+
+        frHighShelfFilter.prepare(sampleRate);
+        frHighShelfFilter.setType(WFSBiquadFilter::FilterType::HighShelf);
+        frHighShelfFilter.setFrequency(3000.0f);  // Default 3000 Hz
+        frHighShelfFilter.setGainDb(-2.0f);       // Default -2 dB
+        frHighShelfFilter.setSlope(0.4f);         // Default 0.4 slope
+
+        // Initialize FR HF filters (per-output, for air absorption)
+        for (auto& filter : frHFFilters)
+        {
+            filter.prepare(sampleRate);
+            filter.setGainDb(0.0f);
+        }
+
+        // Initialize diffusion random generator with input-specific seed
+        frRandom.seed(static_cast<unsigned int>(inputChannelIndex * 12345 + 67890));
 
         // Initialize Live Source level detector
         lsDetector = std::make_unique<LiveSourceLevelDetector>();
@@ -96,6 +135,16 @@ public:
         // Reset HF filters
         for (auto& filter : hfFilters)
             filter.reset();
+
+        // Reset FR components
+        frDelayBuffer.clear();
+        frWritePosition = 0;
+        frLowCutFilter.reset();
+        frHighShelfFilter.reset();
+        for (auto& filter : frHFFilters)
+            filter.reset();
+        std::fill(frDiffusionState.begin(), frDiffusionState.end(), 0.0f);
+        std::fill(frDiffusionTarget.begin(), frDiffusionTarget.end(), 0.0f);
     }
 
     void setProcessingEnabled(bool enabled)
@@ -137,6 +186,33 @@ public:
     {
         if (lsDetector)
             lsDetector->setParameters(peakThreshDb, peakRatio, slowThreshDb, slowRatio);
+    }
+
+    // === Floor Reflection parameter setters (called from timer thread at 50Hz) ===
+
+    /** Set FR filter parameters for this input */
+    void setFRFilterParams(bool lowCutActive, float lowCutFreq,
+                           bool highShelfActive, float highShelfFreq,
+                           float highShelfGain, float highShelfSlope)
+    {
+        frLowCutActive.store(lowCutActive, std::memory_order_release);
+        if (lowCutActive)
+            frLowCutFilter.setFrequency(lowCutFreq);
+
+        frHighShelfActive.store(highShelfActive, std::memory_order_release);
+        if (highShelfActive)
+        {
+            frHighShelfFilter.setFrequency(highShelfFreq);
+            frHighShelfFilter.setGainDb(highShelfGain);
+            frHighShelfFilter.setSlope(highShelfSlope);
+        }
+    }
+
+    /** Set FR diffusion amount (0-100%) */
+    void setFRDiffusion(float diffusionPercent)
+    {
+        // Max jitter is 5ms at 100% diffusion
+        frMaxJitterMs.store(diffusionPercent * 0.05f, std::memory_order_release);  // 5ms / 100 = 0.05
     }
 
     // Get CPU usage percentage for this thread (0-100)
@@ -238,24 +314,49 @@ private:
     void processBlock(const float* input, juce::AudioBuffer<float>& outputs, int numSamples)
     {
         auto* delayData = delayBuffer.getWritePointer(0);
+        auto* frDelayData = frDelayBuffer.getWritePointer(0);
 
         // Safety check
-        if (delayBufferLength == 0 || delayData == nullptr)
+        if (delayBufferLength == 0 || delayData == nullptr || frDelayData == nullptr)
             return;
 
-        // Write input to delay buffer and run level detection
+        // Get FR filter enable states
+        bool lowCutActive = frLowCutActive.load(std::memory_order_acquire);
+        bool highShelfActive = frHighShelfActive.load(std::memory_order_acquire);
+
+        // Write input to both delay buffers
+        // Direct buffer gets unfiltered input, FR buffer gets filtered input
         for (int sample = 0; sample < numSamples; ++sample)
         {
-            delayData[writePosition] = input[sample];
+            float inputSample = input[sample];
+
+            // Direct path: write unfiltered to delay buffer
+            delayData[writePosition] = inputSample;
+
+            // FR path: apply filters then write to FR delay buffer
+            float frSample = inputSample;
+            if (lowCutActive)
+                frSample = frLowCutFilter.processSample(frSample);
+            if (highShelfActive)
+                frSample = frHighShelfFilter.processSample(frSample);
+            frDelayData[frWritePosition] = frSample;
+
+            // Advance write positions together
             writePosition = (writePosition + 1) % delayBufferLength;
+            frWritePosition = (frWritePosition + 1) % delayBufferLength;
 
             // Live Source level detection (runs on every sample)
             if (lsDetector)
-                lsDetector->processSample(input[sample]);
+                lsDetector->processSample(inputSample);
         }
 
-        // Reset write position to process outputs
+        // Reset write positions to process outputs
         writePosition = (writePosition - numSamples + delayBufferLength) % delayBufferLength;
+        frWritePosition = (frWritePosition - numSamples + delayBufferLength) % delayBufferLength;
+
+        // Update diffusion jitter for time-varying effect (once per block, ~every 64 samples)
+        float maxJitter = frMaxJitterMs.load(std::memory_order_acquire);
+        updateDiffusionJitter(maxJitter);
 
         // Generate delayed outputs for each output channel
         for (int outChannel = 0; outChannel < numOutputChannels; ++outChannel)
@@ -265,11 +366,12 @@ private:
             // Calculate index into shared arrays: [inputChannel * numOutputs + outputChannel]
             int routingIndex = inputChannelIndex * numOutputChannels + outChannel;
 
-            // Get level for this output from shared array
-            float level = sharedLevels[routingIndex];
+            // Get direct and FR levels for this output
+            float directLevel = sharedLevels[routingIndex];
+            float frLevel = (sharedFRLevels != nullptr) ? sharedFRLevels[routingIndex] : 0.0f;
 
-            // Optimization: skip processing if level is zero
-            if (level == 0.0f)
+            // Optimization: skip processing if both levels are zero
+            if (directLevel == 0.0f && frLevel == 0.0f)
             {
                 // Write silence
                 for (int sample = 0; sample < numSamples; ++sample)
@@ -277,51 +379,124 @@ private:
                 continue;
             }
 
-            // Get delay time in milliseconds from shared array and convert to samples (fractional)
-            float delayMs = sharedDelayTimes[routingIndex];
-            float delaySamples = (delayMs / 1000.0f) * (float)currentSampleRate;
+            // Get direct delay parameters
+            float directDelayMs = sharedDelayTimes[routingIndex];
+            float directDelaySamples = (directDelayMs / 1000.0f) * (float)currentSampleRate;
+            if (directDelaySamples >= (float)delayBufferLength)
+                directDelaySamples = (float)(delayBufferLength - 1);
 
-            // Ensure delay doesn't exceed buffer length
-            if (delaySamples >= (float)delayBufferLength)
-                delaySamples = (float)(delayBufferLength - 1);
-
-            // Update HF filter gain if pointer is provided
+            // Update direct HF filter gain
             if (sharedHFAttenuation != nullptr)
             {
                 float hfGainDb = sharedHFAttenuation[routingIndex];
                 hfFilters[outChannel].setGainDb(hfGainDb);
             }
 
-            // Process each sample with linear interpolation
+            // Get FR delay parameters (extra delay + diffusion jitter)
+            float frExtraDelayMs = (sharedFRDelayTimes != nullptr) ? sharedFRDelayTimes[routingIndex] : 0.0f;
+            float frJitterMs = frDiffusionState[static_cast<size_t>(outChannel)];
+            float totalFRDelayMs = directDelayMs + frExtraDelayMs + frJitterMs;
+            float frDelaySamples = (totalFRDelayMs / 1000.0f) * (float)currentSampleRate;
+            if (frDelaySamples < 0.0f)
+                frDelaySamples = 0.0f;
+            if (frDelaySamples >= (float)delayBufferLength)
+                frDelaySamples = (float)(delayBufferLength - 1);
+
+            // Update FR HF filter gain (FR uses additional HF attenuation on top of direct)
+            if (sharedFRHFAttenuation != nullptr)
+            {
+                float frHFGainDb = sharedFRHFAttenuation[routingIndex];
+                frHFFilters[outChannel].setGainDb(frHFGainDb);
+            }
+
+            // Process each sample
             for (int sample = 0; sample < numSamples; ++sample)
             {
-                // Calculate fractional read position
-                float exactReadPos = (float)writePosition + (float)sample - delaySamples;
+                float outputSample = 0.0f;
 
-                // Handle wraparound for negative positions
-                while (exactReadPos < 0.0f)
-                    exactReadPos += (float)delayBufferLength;
+                // ==========================================
+                // Direct signal
+                // ==========================================
+                if (directLevel > 0.0f)
+                {
+                    // Calculate fractional read position for direct signal
+                    float exactReadPos = (float)writePosition + (float)sample - directDelaySamples;
+                    while (exactReadPos < 0.0f)
+                        exactReadPos += (float)delayBufferLength;
 
-                // Split into integer and fractional parts
-                int readPos1 = (int)exactReadPos % delayBufferLength;
-                int readPos2 = (readPos1 + 1) % delayBufferLength;
-                float fraction = exactReadPos - (int)exactReadPos;
+                    int readPos1 = (int)exactReadPos % delayBufferLength;
+                    int readPos2 = (readPos1 + 1) % delayBufferLength;
+                    float fraction = exactReadPos - (int)exactReadPos;
 
-                // Linear interpolation between two samples
-                float sample1 = delayData[readPos1];
-                float sample2 = delayData[readPos2];
-                float interpolatedSample = sample1 + fraction * (sample2 - sample1);
+                    // Linear interpolation
+                    float sample1 = delayData[readPos1];
+                    float sample2 = delayData[readPos2];
+                    float interpolatedSample = sample1 + fraction * (sample2 - sample1);
 
-                // Apply HF filter (air absorption)
-                float filteredSample = hfFilters[outChannel].processSample(interpolatedSample);
+                    // Apply HF filter (air absorption)
+                    float filteredSample = hfFilters[outChannel].processSample(interpolatedSample);
 
-                // Apply level and write output
-                outputData[sample] = filteredSample * level;
+                    outputSample += filteredSample * directLevel;
+                }
+
+                // ==========================================
+                // Floor Reflection signal
+                // ==========================================
+                if (frLevel > 0.0f)
+                {
+                    // Calculate fractional read position for FR signal (from FR-filtered buffer)
+                    float exactReadPos = (float)frWritePosition + (float)sample - frDelaySamples;
+                    while (exactReadPos < 0.0f)
+                        exactReadPos += (float)delayBufferLength;
+
+                    int readPos1 = (int)exactReadPos % delayBufferLength;
+                    int readPos2 = (readPos1 + 1) % delayBufferLength;
+                    float fraction = exactReadPos - (int)exactReadPos;
+
+                    // Linear interpolation from FR-filtered buffer
+                    float sample1 = frDelayData[readPos1];
+                    float sample2 = frDelayData[readPos2];
+                    float interpolatedSample = sample1 + fraction * (sample2 - sample1);
+
+                    // Apply FR HF filter (additional air absorption for longer path)
+                    float filteredSample = frHFFilters[outChannel].processSample(interpolatedSample);
+
+                    outputSample += filteredSample * frLevel;
+                }
+
+                outputData[sample] = outputSample;
             }
         }
 
-        // Advance write position
+        // Advance write positions
         writePosition = (writePosition + numSamples) % delayBufferLength;
+        frWritePosition = (frWritePosition + numSamples) % delayBufferLength;
+    }
+
+    /** Update time-varying diffusion jitter (called once per block) */
+    void updateDiffusionJitter(float maxJitterMs)
+    {
+        // Smoothing factor for jitter transitions (~50Hz update at 64-sample blocks @ 48kHz)
+        const float smoothingFactor = 0.05f;
+
+        // Update each output's jitter
+        for (size_t outIdx = 0; outIdx < frDiffusionState.size(); ++outIdx)
+        {
+            // Occasionally update the target jitter
+            if (frDiffusionUpdateCounter >= 3)  // Update target every ~3 blocks
+            {
+                // Generate random value in range [-maxJitter, +maxJitter]
+                std::uniform_real_distribution<float> dist(-maxJitterMs, maxJitterMs);
+                frDiffusionTarget[outIdx] = dist(frRandom);
+            }
+
+            // Smooth towards target
+            frDiffusionState[outIdx] += (frDiffusionTarget[outIdx] - frDiffusionState[outIdx]) * smoothingFactor;
+        }
+
+        frDiffusionUpdateCounter++;
+        if (frDiffusionUpdateCounter >= 3)
+            frDiffusionUpdateCounter = 0;
     }
 
     int inputChannelIndex;
@@ -348,8 +523,33 @@ private:
     const float* sharedLevels;          // levels[inputChannel * numOutputs + outputChannel]
     const float* sharedHFAttenuation;   // HF attenuation dB[inputChannel * numOutputs + outputChannel]
 
+    // Pointers to shared FR routing matrices (owned by MainComponent)
+    const float* sharedFRDelayTimes;    // FR extra delays[inputChannel * numOutputs + outputChannel]
+    const float* sharedFRLevels;        // FR levels[inputChannel * numOutputs + outputChannel]
+    const float* sharedFRHFAttenuation; // FR HF attenuation dB[inputChannel * numOutputs + outputChannel]
+
     // HF shelf filters for air absorption (one per output channel)
     std::vector<WFSHighShelfFilter> hfFilters;
+
+    // Floor Reflection components
+    juce::AudioBuffer<float> frDelayBuffer;  // Separate delay buffer for FR-filtered audio
+    int frWritePosition = 0;
+
+    // FR input filters (per-input, shared across all outputs)
+    WFSBiquadFilter frLowCutFilter;
+    WFSBiquadFilter frHighShelfFilter;
+    std::atomic<bool> frLowCutActive {false};
+    std::atomic<bool> frHighShelfActive {false};
+
+    // FR HF filters for air absorption (one per output channel)
+    std::vector<WFSHighShelfFilter> frHFFilters;
+
+    // FR diffusion (time-varying jitter per output)
+    std::vector<float> frDiffusionState;   // Current jitter value per output
+    std::vector<float> frDiffusionTarget;  // Target jitter value per output
+    std::atomic<float> frMaxJitterMs {0.0f};  // Max jitter in ms (set from timer thread)
+    std::mt19937 frRandom;                 // Random generator for diffusion
+    int frDiffusionUpdateCounter = 0;      // Counter for updating targets
 
     // Live Source level detector (for peak/slow compression)
     std::unique_ptr<LiveSourceLevelDetector> lsDetector;

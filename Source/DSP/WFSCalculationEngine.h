@@ -143,6 +143,23 @@ public:
     float getHFAttenuation (int inputIndex, int outputIndex) const;
 
     //==========================================================================
+    // Floor Reflection Matrix Results (thread-safe read)
+    // Index: [inputIndex * numOutputs + outputIndex]
+    //==========================================================================
+
+    /** Get pointer to FR delay times array (ms, extra delay for reflected path).
+        Size = numInputs * numOutputs */
+    const float* getFRDelayTimesMs() const { return frDelayTimesMs.data(); }
+
+    /** Get pointer to FR levels array (linear 0-1).
+        Size = numInputs * numOutputs */
+    const float* getFRLevels() const { return frLevels.data(); }
+
+    /** Get pointer to FR HF attenuation array (dB, negative).
+        Size = numInputs * numOutputs */
+    const float* getFRHFAttenuationDb() const { return frHFAttenuationDb.data(); }
+
+    //==========================================================================
     // Live Source Tamer Integration
     //==========================================================================
 
@@ -276,6 +293,12 @@ private:
     std::vector<float> delayTimesMs;
     std::vector<float> levels;
     std::vector<float> hfAttenuationDb;
+
+    // Floor Reflection matrix results [inputIndex * numOutputs + outputIndex]
+    // Extra delay, level, and HF for reflected signal through floor (z=0 plane)
+    std::vector<float> frDelayTimesMs;      // Extra delay in ms for reflected path
+    std::vector<float> frLevels;            // Linear gain (0-1) for reflected signal
+    std::vector<float> frHFAttenuationDb;   // HF attenuation in dB for reflected path
 
     // Input → Reverb Feed matrix results [inputIndex * numReverbs + reverbIndex]
     std::vector<float> inputReverbDelayTimesMs;

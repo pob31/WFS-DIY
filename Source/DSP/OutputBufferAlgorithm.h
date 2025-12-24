@@ -32,7 +32,10 @@ public:
                 const float* delayTimesPtr,
                 const float* levelsPtr,
                 bool processingEnabled,
-                const float* hfAttenuationPtr = nullptr)
+                const float* hfAttenuationPtr = nullptr,
+                const float* frDelayTimesPtr = nullptr,
+                const float* frLevelsPtr = nullptr,
+                const float* frHFAttenuationPtr = nullptr)
     {
         storedNumInputs = numInputs;
 
@@ -51,7 +54,10 @@ public:
             auto processor = std::make_unique<OutputBufferProcessor>(i, numInputs, numOutputs,
                                                                       delayTimesPtr,
                                                                       levelsPtr,
-                                                                      hfAttenuationPtr);
+                                                                      hfAttenuationPtr,
+                                                                      frDelayTimesPtr,
+                                                                      frLevelsPtr,
+                                                                      frHFAttenuationPtr);
             processor->prepare(sampleRate, blockSize);
             outputProcessors.push_back(std::move(processor));
         }
@@ -222,6 +228,34 @@ public:
         if (inputIndex < lsDetectors.size())
             lsDetectors[inputIndex]->setParameters(peakThreshDb, peakRatio,
                                                     slowThreshDb, slowRatio);
+    }
+
+    // === Floor Reflection parameter setters ===
+    // Note: Each output processor handles all inputs, so FR params need to be
+    // forwarded to all processors for the specific input index
+
+    void setFRFilterParams(size_t inputIndex,
+                           bool lowCutActive, float lowCutFreq,
+                           bool highShelfActive, float highShelfFreq,
+                           float highShelfGain, float highShelfSlope)
+    {
+        // Forward to all output processors (each handles all inputs)
+        for (auto& processor : outputProcessors)
+        {
+            processor->setFRFilterParams(static_cast<int>(inputIndex),
+                                          lowCutActive, lowCutFreq,
+                                          highShelfActive, highShelfFreq,
+                                          highShelfGain, highShelfSlope);
+        }
+    }
+
+    void setFRDiffusion(size_t inputIndex, float diffusionPercent)
+    {
+        // Forward to all output processors (each handles all inputs)
+        for (auto& processor : outputProcessors)
+        {
+            processor->setFRDiffusion(static_cast<int>(inputIndex), diffusionPercent);
+        }
     }
 
 private:

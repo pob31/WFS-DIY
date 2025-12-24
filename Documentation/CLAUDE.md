@@ -3,9 +3,9 @@
 ## Project Overview
 Wave Field Synthesis (WFS) audio application built with JUCE framework for real-time multi-channel audio processing with comprehensive OSC network control.
 
-## Current Implementation Status (As of 2025-12-23)
+## Current Implementation Status (As of 2025-12-24)
 
-### Overall Progress: ~55% Complete
+### Overall Progress: ~60% Complete
 
 The application has established a solid foundation with infrastructure and core UI:
 - Complete parameter management system
@@ -18,6 +18,7 @@ The application has established a solid foundation with infrastructure and core 
 - **DSP Calculation Layer** (delay/level/HF matrices from geometry)
 - **Input Visualisation** (real-time DSP matrix display)
 - **Live Source Tamer** (per-speaker gain reduction for feedback prevention)
+- **Floor Reflections** (simulated floor bounce with filtering and diffusion)
 
 **Major features still to implement:**
 - Audio Patch routing window with input/output matrices
@@ -58,11 +59,11 @@ The application has established a solid foundation with infrastructure and core 
 | GUI Tabs | 90% | All 7 tabs have UI, some features pending |
 | OSC Network | 90% | OSC, Remote protocols complete; ADM-OSC, PSN, RTTrP pending |
 | Save/Load | 80% | Project folder management (snapshots UI TODO) |
-| Audio Engine | 75% | Dual algorithm support with DSP calculation layer + Live Source Tamer |
+| Audio Engine | 80% | Dual algorithm support with DSP calculation layer + Live Source Tamer + Floor Reflections |
 | Separate Windows | 50% | Log window complete, Patch window TODO |
 | Map View | 90% | Interactive multitouch map complete |
 | Data Processing | 90% | WFS delay/level/HF + reverb matrices implemented |
-| DSP Algorithms | 70% | Delay/gain/HF filters working, reverb TODO |
+| DSP Algorithms | 75% | Delay/gain/HF/FR filters working, reverb TODO |
 
 ---
 
@@ -76,8 +77,9 @@ The DSP calculation layer transforms human control parameters into real-time DSP
 - **LFOProcessor.h** - Low Frequency Oscillator for position/rotation modulation
 - **AutomOtionProcessor.h** - Programmed point-to-point position movement with audio triggering
 - **WFSHighShelfFilter.h** - High-frequency shelf biquad filter for air absorption
-- **InputBufferProcessor.h** - Per-input threaded audio processor
-- **OutputBufferProcessor.h** - Per-output threaded audio processor
+- **WFSBiquadFilter.h** - Generic biquad filter for Floor Reflection low-cut and high-shelf
+- **InputBufferProcessor.h** - Per-input threaded audio processor (with FR support)
+- **OutputBufferProcessor.h** - Per-output threaded audio processor (with FR support)
 - **InputBufferAlgorithm.h** - Manages collection of InputBufferProcessors
 - **OutputBufferAlgorithm.h** - Manages collection of OutputBufferProcessors
 - **LiveSourceLevelDetector.h** - Per-input audio level detection (peak envelope, short peak, RMS)
@@ -470,6 +472,95 @@ targetGain = 1.0 - shapeFactor * (1.0 - combinedAtten);
 - LS gains applied in WFSCalculationEngine during level calculation
 - Visualization updates show combined attenuation in InputVisualisationComponent
 
+### Floor Reflections
+Floor Reflections (FR) simulate sound bouncing off the floor plane (z=0), creating a secondary reflected signal for each input/output pair.
+
+**Core Files:**
+- **WFSBiquadFilter.h** - Generic biquad filter for low-cut and high-shelf
+- **WFSCalculationEngine.h/cpp** - FR matrix calculation (delay, level, HF)
+- **InputBufferProcessor.h** - Per-input FR signal processing
+- **OutputBufferProcessor.h** - Per-output FR signal processing
+
+**Signal Flow:**
+```
+Input Audio
+    |
+    +---> Direct Path (existing)
+    |         +--> delay --> HF air absorption filter --> level --> Sum to output
+    |
+    +---> FR Path (only if inputFRactive && z>0 && outputFRenable)
+              +--> FR Low-Cut Filter (per-input, removes rumble)
+              +--> FR High-Shelf Filter (per-input, simulates floor absorption)
+              +--> frDelay + diffusionJitter --> FR HF filter --> frLevel --> Sum to output
+```
+
+**Reflected Position Calculation:**
+```cpp
+// Mirror source across floor plane (z=0)
+Position reflected = { inputPos.x, inputPos.y, -inputPos.z };
+```
+When z ≤ 0, no reflection is generated (source is at or below floor).
+
+**FR Delay Calculation:**
+```cpp
+float reflectedToListener = distance3D(reflectedPos, listenerPos);
+float speakerToListener = distance3D(speakerPos, listenerPos);
+float reflectedDelayMs = (reflectedToListener - speakerToListener) / speedOfSound * 1000.0f;
+float frExtraDelayMs = reflectedDelayMs - directDelayMs;  // Extra delay beyond direct
+```
+
+**FR Level Calculation:**
+```cpp
+float reflectedToSpeaker = distance3D(reflectedPos, speakerPos);
+float directDistance = distance3D(inputPos, speakerPos);
+float distanceRatio = reflectedToSpeaker / directDistance;
+float distanceAttenDb = -20.0f * log10(distanceRatio);  // Inverse square law
+float totalFRAttenDb = inputFRattenuation + distanceAttenDb;
+float frLevel = pow(10.0f, totalFRAttenDb / 20.0f) * angularAttenuation;
+```
+
+**FR HF Attenuation:**
+FR signal passes through BOTH:
+1. FR-specific filters (low-cut, high-shelf) - per input, shared across outputs
+2. Existing air absorption filter with extra attenuation for longer path
+
+**Time-Varying Diffusion (Floor Roughness Simulation):**
+```cpp
+// Per-output jitter state with smoothing (~50Hz update rate)
+float maxJitterMs = diffusionPercent * 0.05f;  // 5ms max at 100%
+float noiseTarget = random(-maxJitter, +maxJitter);
+noiseState += (noiseTarget - noiseState) * 0.05f;  // Smooth transition
+totalFRDelay = directDelay + frExtraDelay + noiseState;
+```
+
+**Activation Conditions:**
+- `inputFRactive` = 1 (per-input enable)
+- Source z > 0 (above floor)
+- `outputFRenable` = 1 (per-output enable)
+- Direct signal level > 0 (not muted)
+
+**Parameters:**
+| Parameter | Range | Description |
+|-----------|-------|-------------|
+| `inputFRactive` | 0/1 | Enable FR for this input |
+| `inputFRattenuation` | -60 to 0 dB | Base FR attenuation |
+| `inputFRlowCutActive` | 0/1 | Enable low-cut filter |
+| `inputFRlowCutFreq` | 20-20000 Hz | Low-cut frequency |
+| `inputFRhighShelfActive` | 0/1 | Enable high-shelf filter |
+| `inputFRhighShelfFreq` | 20-20000 Hz | High-shelf frequency |
+| `inputFRhighShelfGain` | -24 to 0 dB | High-shelf attenuation |
+| `inputFRhighShelfSlope` | 0.1-0.9 | High-shelf transition slope |
+| `inputFRdiffusion` | 0-100% | Floor roughness (jitter amount) |
+| `outputFRenable` | 0/1 | Per-output FR bypass |
+
+**Integration:**
+- FR matrices (frDelayTimesMs, frLevels, frHFAttenuationDb) calculated at 50Hz
+- FR filter parameters updated from ValueTree at 50Hz
+- Both InputBufferAlgorithm and OutputBufferAlgorithm support FR
+- FR and direct signals summed per output
+
+---
+
 ### Reverb Channel Calculations
 WFSCalculationEngine handles two additional matrix paths for reverb:
 
@@ -816,8 +907,9 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 - `Source/DSP/AutomOtionProcessor.h` - Programmed position movement with audio triggering
 - `Source/DSP/InputSpeedLimiter.h` - Speed-limited position interpolation with tanh smoothing
 - `Source/DSP/WFSHighShelfFilter.h` - HF air absorption biquad filter
-- `Source/DSP/InputBufferProcessor.h` - Per-input threaded audio processor
-- `Source/DSP/OutputBufferProcessor.h` - Per-output threaded audio processor
+- `Source/DSP/WFSBiquadFilter.h` - Generic biquad filter (low-cut, high-shelf for FR)
+- `Source/DSP/InputBufferProcessor.h` - Per-input threaded audio processor (with FR)
+- `Source/DSP/OutputBufferProcessor.h` - Per-output threaded audio processor (with FR)
 - `Source/DSP/LiveSourceLevelDetector.h` - Per-input audio level detection (peak, short peak, RMS)
 - `Source/DSP/LiveSourceTamerEngine.h` - Live Source Tamer gain calculation
 - `Source/Network/OSCManager.h/cpp` - Network coordination
@@ -857,5 +949,5 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 ---
 
 *Last updated: 2025-12-24*
-*JUCE Version: 8.0.11*
+*JUCE Version: 8.0.12*
 *Build: Visual Studio 2022 / Xcode, x64 Debug/Release*

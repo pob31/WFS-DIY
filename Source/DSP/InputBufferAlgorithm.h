@@ -31,7 +31,10 @@ public:
                 const float* delayTimesPtr,
                 const float* levelsPtr,
                 bool processingEnabled,
-                const float* hfAttenuationPtr = nullptr)
+                const float* hfAttenuationPtr = nullptr,
+                const float* frDelayTimesPtr = nullptr,
+                const float* frLevelsPtr = nullptr,
+                const float* frHFAttenuationPtr = nullptr)
     {
         // Create input-based processors (one thread per input channel)
         for (int i = 0; i < numInputs; ++i)
@@ -39,7 +42,10 @@ public:
             auto processor = std::make_unique<InputBufferProcessor>(i, numOutputs,
                                                                      delayTimesPtr,
                                                                      levelsPtr,
-                                                                     hfAttenuationPtr);
+                                                                     hfAttenuationPtr,
+                                                                     frDelayTimesPtr,
+                                                                     frLevelsPtr,
+                                                                     frHFAttenuationPtr);
             processor->prepare(sampleRate, blockSize);
             inputProcessors.push_back(std::move(processor));
         }
@@ -205,6 +211,25 @@ public:
         if (inputIndex < inputProcessors.size())
             inputProcessors[inputIndex]->setLSParameters(peakThreshDb, peakRatio,
                                                           slowThreshDb, slowRatio);
+    }
+
+    // === Floor Reflection parameter setters ===
+
+    void setFRFilterParams(size_t inputIndex,
+                           bool lowCutActive, float lowCutFreq,
+                           bool highShelfActive, float highShelfFreq,
+                           float highShelfGain, float highShelfSlope)
+    {
+        if (inputIndex < inputProcessors.size())
+            inputProcessors[inputIndex]->setFRFilterParams(lowCutActive, lowCutFreq,
+                                                            highShelfActive, highShelfFreq,
+                                                            highShelfGain, highShelfSlope);
+    }
+
+    void setFRDiffusion(size_t inputIndex, float diffusionPercent)
+    {
+        if (inputIndex < inputProcessors.size())
+            inputProcessors[inputIndex]->setFRDiffusion(diffusionPercent);
     }
 
 private:

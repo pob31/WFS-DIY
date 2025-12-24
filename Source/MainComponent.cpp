@@ -441,6 +441,11 @@ void MainComponent::resizeRoutingMatrices()
     startDelayTimesMs.assign(matrixSize, 0.0f);
     startLevels.assign(matrixSize, 0.0f);
 
+    // Floor Reflection matrices
+    frDelayTimesMs.assign(matrixSize, 0.0f);
+    frLevels.assign(matrixSize, 0.0f);
+    frHFAttenuation.assign(matrixSize, 0.0f);
+
     // Initialize with zeros - WFSCalculationEngine will provide real values
     // No more random initialization
 }
@@ -718,7 +723,10 @@ void MainComponent::startAudioEngine()
                               sampleRate, blockSize,
                               delayTimesMs.data(), levels.data(),
                               processingEnabled,
-                              hfAttenuation.data());
+                              hfAttenuation.data(),
+                              frDelayTimesMs.data(),
+                              frLevels.data(),
+                              frHFAttenuation.data());
         prepared = true;
     }
     else if (currentAlgorithm == ProcessingAlgorithm::OutputBuffer)
@@ -727,7 +735,10 @@ void MainComponent::startAudioEngine()
                                sampleRate, blockSize,
                                delayTimesMs.data(), levels.data(),
                                processingEnabled,
-                               hfAttenuation.data());
+                               hfAttenuation.data(),
+                               frDelayTimesMs.data(),
+                               frLevels.data(),
+                               frHFAttenuation.data());
         prepared = true;
     }
     // else // ProcessingAlgorithm::GpuInputBuffer
@@ -1140,6 +1151,11 @@ void MainComponent::timerCallback()
             const float* calcHF = calculationEngine->getHFAttenuationDb();
             const int calcStride = calculationEngine->getNumOutputs();  // maxOutputChannels (64)
 
+            // Copy FR matrices from calculation engine
+            const float* calcFRDelays = calculationEngine->getFRDelayTimesMs();
+            const float* calcFRLevels = calculationEngine->getFRLevels();
+            const float* calcFRHF = calculationEngine->getFRHFAttenuationDb();
+
             for (int inIdx = 0; inIdx < numInputChannels; ++inIdx)
             {
                 for (int outIdx = 0; outIdx < numOutputChannels; ++outIdx)
@@ -1149,6 +1165,41 @@ void MainComponent::timerCallback()
                     targetDelayTimesMs[dstIdx] = calcDelays[srcIdx];
                     targetLevels[dstIdx] = calcLevels[srcIdx];
                     hfAttenuation[dstIdx] = calcHF[srcIdx];  // HF doesn't need smoothing - filter handles it
+
+                    // Copy FR matrices (direct copy, no smoothing needed)
+                    frDelayTimesMs[dstIdx] = calcFRDelays[srcIdx];
+                    frLevels[dstIdx] = calcFRLevels[srcIdx];
+                    frHFAttenuation[dstIdx] = calcFRHF[srcIdx];
+                }
+            }
+
+            // Update FR filter parameters for each input
+            for (int i = 0; i < numInputChannels; ++i)
+            {
+                using namespace WFSParameterIDs;
+                auto frSection = parameters.getValueTreeState().getInputHackousticsSection(i);
+
+                bool lowCutActive = static_cast<int>(frSection.getProperty(inputFRlowCutActive, 0)) != 0;
+                float lowCutFreq = frSection.getProperty(inputFRlowCutFreq, 100.0f);
+                bool highShelfActive = static_cast<int>(frSection.getProperty(inputFRhighShelfActive, 0)) != 0;
+                float highShelfFreq = frSection.getProperty(inputFRhighShelfFreq, 3000.0f);
+                float highShelfGain = frSection.getProperty(inputFRhighShelfGain, -2.0f);
+                float highShelfSlope = frSection.getProperty(inputFRhighShelfSlope, 0.4f);
+                float diffusion = frSection.getProperty(inputFRdiffusion, 20.0f);
+
+                if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
+                {
+                    inputAlgorithm.setFRFilterParams(static_cast<size_t>(i),
+                        lowCutActive, lowCutFreq,
+                        highShelfActive, highShelfFreq, highShelfGain, highShelfSlope);
+                    inputAlgorithm.setFRDiffusion(static_cast<size_t>(i), diffusion);
+                }
+                else  // OutputBuffer
+                {
+                    outputAlgorithm.setFRFilterParams(static_cast<size_t>(i),
+                        lowCutActive, lowCutFreq,
+                        highShelfActive, highShelfFreq, highShelfGain, highShelfSlope);
+                    outputAlgorithm.setFRDiffusion(static_cast<size_t>(i), diffusion);
                 }
             }
 

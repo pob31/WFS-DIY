@@ -34,6 +34,11 @@ WFSCalculationEngine::WFSCalculationEngine (WFSValueTreeState& state)
     levels.resize (matrixSize, 0.0f);
     hfAttenuationDb.resize (matrixSize, 0.0f);
 
+    // Reserve space for Floor Reflection matrix results
+    frDelayTimesMs.resize (matrixSize, 0.0f);
+    frLevels.resize (matrixSize, 0.0f);
+    frHFAttenuationDb.resize (matrixSize, 0.0f);
+
     // Reserve space for Input → Reverb Feed matrix results
     const size_t inputReverbSize = static_cast<size_t> (numInputs * numReverbs);
     inputReverbDelayTimesMs.resize (inputReverbSize, 0.0f);
@@ -742,6 +747,17 @@ void WFSCalculationEngine::recalculateMatrix()
         newHF = hfAttenuationDb;
     }
 
+    // Temporary arrays for Floor Reflection calculations
+    std::vector<float> newFRDelays;
+    std::vector<float> newFRLevels;
+    std::vector<float> newFRHF;
+    {
+        const juce::ScopedLock sl (matrixLock);
+        newFRDelays = frDelayTimesMs;
+        newFRLevels = frLevels;
+        newFRHF = frHFAttenuationDb;
+    }
+
     // Temporary arrays for Input → Reverb Feed calculations
     std::vector<float> newInputReverbDelays;
     std::vector<float> newInputReverbLevels;
@@ -1274,6 +1290,138 @@ void WFSCalculationEngine::recalculateMatrix()
     }
 
     // ==========================================================================
+    // FLOOR REFLECTION CALCULATIONS
+    // ==========================================================================
+    // Floor reflections simulate sound bouncing off the floor (z=0 plane).
+    // For each input/output pair, calculate extra delay and attenuation for
+    // the reflected path through position (x, y, -z).
+
+    for (int inIdx = 0; inIdx < numInputs; ++inIdx)
+    {
+        // Skip inputs that don't need recalculation
+        if (!inputsToRecalc[static_cast<size_t>(inIdx)])
+            continue;
+
+        const Position& inputPos = localInputPositions[static_cast<size_t>(inIdx)];
+
+        // Get FR parameters from Hackoustics section
+        auto hackousticsSection = valueTreeState.getInputHackousticsSection(inIdx);
+        int frActive = hackousticsSection.getProperty(inputFRactive, 0);
+
+        // If FR not active for this input, zero all FR entries
+        if (frActive == 0)
+        {
+            for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
+            {
+                const size_t matrixIdx = static_cast<size_t>(inIdx * numOutputs + outIdx);
+                newFRDelays[matrixIdx] = 0.0f;
+                newFRLevels[matrixIdx] = 0.0f;
+                newFRHF[matrixIdx] = 0.0f;
+            }
+            continue;
+        }
+
+        // Skip if source is at or below floor (z <= 0) - no reflection possible
+        if (inputPos.z <= 0.0f)
+        {
+            for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
+            {
+                const size_t matrixIdx = static_cast<size_t>(inIdx * numOutputs + outIdx);
+                newFRDelays[matrixIdx] = 0.0f;
+                newFRLevels[matrixIdx] = 0.0f;
+                newFRHF[matrixIdx] = 0.0f;
+            }
+            continue;
+        }
+
+        // Calculate reflected position (mirror across z=0 plane)
+        Position reflectedPos = { inputPos.x, inputPos.y, -inputPos.z };
+
+        // Get FR parameters
+        float frAttenDb = hackousticsSection.getProperty(inputFRattenuation, -3.0f);
+
+        // Get input parameters for HF calculation
+        auto inputPosSection = valueTreeState.getInputPositionSection(inIdx);
+        int heightFactorPercent = inputPosSection.getProperty(inputHeightFactor, inputHeightFactorDefault);
+        float heightFactor = static_cast<float>(heightFactorPercent) / 100.0f;
+
+        for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
+        {
+            const size_t matrixIdx = static_cast<size_t>(inIdx * numOutputs + outIdx);
+
+            // Get output FR enable parameter
+            auto outputOptionsSection = valueTreeState.getOutputOptionsSection(outIdx);
+            int outputFRen = outputOptionsSection.getProperty(outputFRenable, 1);
+
+            // Skip if output FR disabled OR direct signal is muted (level = 0)
+            if (outputFRen == 0 || newLevels[matrixIdx] <= 0.0f)
+            {
+                newFRDelays[matrixIdx] = 0.0f;
+                newFRLevels[matrixIdx] = 0.0f;
+                newFRHF[matrixIdx] = 0.0f;
+                continue;
+            }
+
+            const Position& speakerPos = localSpeakerPositions[static_cast<size_t>(outIdx)];
+            const Position& listenerPos = localListenerPositions[static_cast<size_t>(outIdx)];
+
+            // Calculate direct distance (for ratio calculation)
+            float directDistance = distance3D(inputPos, speakerPos);
+
+            // Calculate reflected distances
+            float reflectedToListener = distance3D(reflectedPos, listenerPos);
+            float reflectedToSpeaker = distance3D(reflectedPos, speakerPos);
+            float speakerToListener = distance3D(speakerPos, listenerPos);
+
+            // FR delay = reflected path delay - direct path delay
+            // Reflected delay uses same formula as direct: (source_to_listener - speaker_to_listener) / speed
+            float reflectedDelayMeters = reflectedToListener - speakerToListener;
+            float reflectedDelayMs = (reflectedDelayMeters / speedOfSound) * 1000.0f;
+            reflectedDelayMs = juce::jmax(0.0f, reflectedDelayMs);
+
+            // Get direct signal delay for this routing
+            float directDelayMs = newDelays[matrixIdx];
+
+            // FR extra delay = reflected delay - direct delay
+            float frExtraDelayMs = reflectedDelayMs - directDelayMs;
+            frExtraDelayMs = juce::jmax(0.0f, frExtraDelayMs);
+
+            newFRDelays[matrixIdx] = frExtraDelayMs;
+
+            // FR level attenuation = input FR attenuation + distance ratio attenuation
+            // Distance ratio attenuation = -20 * log10(reflected_distance / direct_distance)
+            float distanceRatio = reflectedToSpeaker / juce::jmax(0.001f, directDistance);
+            float distanceAttenDb = -20.0f * std::log10(juce::jmax(0.001f, distanceRatio));
+            float totalFRAttenDb = frAttenDb + distanceAttenDb;
+
+            // Clamp to reasonable range
+            totalFRAttenDb = juce::jlimit(-92.0f, 0.0f, totalFRAttenDb);
+
+            // Convert to linear
+            float frLevelLinear = std::pow(10.0f, totalFRAttenDb / 20.0f);
+
+            // Apply angular attenuation (recalculate for FR - same as direct signal)
+            float angularAtten = calculateAngularAttenuation(inIdx, outIdx, inputPos, speakerPos);
+            frLevelLinear *= angularAtten;
+
+            newFRLevels[matrixIdx] = frLevelLinear;
+
+            // FR HF attenuation: start with direct signal HF, add extra for longer path
+            auto outputPositionSection = valueTreeState.getOutputPositionSection(outIdx);
+            float outputHFdamp = outputPositionSection.getProperty(outputHFdamping, outputHFdampingDefault);
+
+            // Extra path length for reflected signal
+            float extraPathMeters = reflectedToSpeaker - directDistance;
+
+            // FR HF = direct HF + (extra path * HF damping)
+            float frHF = newHF[matrixIdx] + (outputHFdamp * extraPathMeters);
+            frHF = juce::jlimit(-60.0f, 0.0f, frHF);
+
+            newFRHF[matrixIdx] = frHF;
+        }
+    }
+
+    // ==========================================================================
     // INPUT → REVERB FEED CALCULATIONS
     // ==========================================================================
     // Reverb feeds act like simplified outputs (spatial microphones)
@@ -1724,6 +1872,11 @@ void WFSCalculationEngine::recalculateMatrix()
         delayTimesMs = std::move (newDelays);
         levels = std::move (newLevels);
         hfAttenuationDb = std::move (newHF);
+
+        // Floor Reflections
+        frDelayTimesMs = std::move (newFRDelays);
+        frLevels = std::move (newFRLevels);
+        frHFAttenuationDb = std::move (newFRHF);
 
         // Input → Reverb Feed
         inputReverbDelayTimesMs = std::move (newInputReverbDelays);
