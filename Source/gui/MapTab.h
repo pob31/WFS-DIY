@@ -1225,6 +1225,18 @@ public:
         lfoOffsetCallback = std::move(callback);
     }
 
+    //==========================================================================
+    // Speed-Limited Position Callback
+    //==========================================================================
+
+    /** Set callback to get speed-limited positions for input visualization.
+        The callback takes inputIndex and returns x, y, z position values.
+        If not set, raw ValueTree positions are used. */
+    void setSpeedLimitedPositionCallback(std::function<void(int, float&, float&, float&)> callback)
+    {
+        speedLimitedPositionCallback = std::move(callback);
+    }
+
 private:
     WfsParameters& parameters;
     juce::ValueTree inputsTree;
@@ -1234,6 +1246,9 @@ private:
 
     // LFO offset callback for visualization
     std::function<void(int, float&, float&, float&)> lfoOffsetCallback;
+
+    // Speed-limited position callback for visualization
+    std::function<void(int, float&, float&, float&)> speedLimitedPositionCallback;
 
     // View state
     float viewScale = 30.0f;  // pixels per meter
@@ -1853,9 +1868,18 @@ private:
 
     void drawInputMarker(juce::Graphics& g, int inputIndex, bool isSelected)
     {
-        float posX = static_cast<float>(parameters.getInputParam(inputIndex, "inputPositionX"));
-        float posY = static_cast<float>(parameters.getInputParam(inputIndex, "inputPositionY"));
-        float posZ = static_cast<float>(parameters.getInputParam(inputIndex, "inputPositionZ"));
+        // Get position - use speed-limited position if available, otherwise raw ValueTree position
+        float posX, posY, posZ;
+        if (speedLimitedPositionCallback)
+        {
+            speedLimitedPositionCallback(inputIndex, posX, posY, posZ);
+        }
+        else
+        {
+            posX = static_cast<float>(parameters.getInputParam(inputIndex, "inputPositionX"));
+            posY = static_cast<float>(parameters.getInputParam(inputIndex, "inputPositionY"));
+            posZ = static_cast<float>(parameters.getInputParam(inputIndex, "inputPositionZ"));
+        }
 
         // Apply flip to base position (same as calculation engine)
         bool flipX = static_cast<int>(parameters.getInputParam(inputIndex, "inputFlipX")) != 0;
@@ -2153,8 +2177,17 @@ private:
             if (isLocked)
                 continue;
 
-            float posX = static_cast<float>(parameters.getInputParam(i, "inputPositionX"));
-            float posY = static_cast<float>(parameters.getInputParam(i, "inputPositionY"));
+            // Get position - use speed-limited position if available
+            float posX, posY, posZ;
+            if (speedLimitedPositionCallback)
+            {
+                speedLimitedPositionCallback(i, posX, posY, posZ);
+            }
+            else
+            {
+                posX = static_cast<float>(parameters.getInputParam(i, "inputPositionX"));
+                posY = static_cast<float>(parameters.getInputParam(i, "inputPositionY"));
+            }
 
             // Apply flip (marker is displayed at flipped position)
             bool flipX = static_cast<int>(parameters.getInputParam(i, "inputFlipX")) != 0;

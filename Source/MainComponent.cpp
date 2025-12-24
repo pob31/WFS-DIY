@@ -233,6 +233,10 @@ MainComponent::MainComponent()
     // Initialize AutomOtion Processor for programmed input position movement
     automOtionProcessor = std::make_unique<AutomOtionProcessor>(parameters.getValueTreeState(), 64);
 
+    // Initialize Input Speed Limiter for smooth position movement
+    speedLimiter = std::make_unique<InputSpeedLimiter>();
+    speedLimiter->resize(WFSParameterDefaults::maxInputChannels);
+
     // Pass AutomOtionProcessor to InputsTab for UI control
     if (inputsTab != nullptr)
         inputsTab->setAutoMotionProcessor(automOtionProcessor.get());
@@ -256,6 +260,14 @@ MainComponent::MainComponent()
                 x = offset.x;
                 y = offset.y;
                 z = offset.z;
+            }
+        });
+
+        // Set up speed-limited position callback for MapTab visualization
+        mapTab->setSpeedLimitedPositionCallback([this](int inputIndex, float& x, float& y, float& z) {
+            if (speedLimiter != nullptr)
+            {
+                speedLimiter->getPosition(inputIndex, x, y, z);
             }
         });
     }
@@ -967,6 +979,37 @@ void MainComponent::timerCallback()
     // Recalculate matrix from input/output positions and update target values
     if (calculationEngine != nullptr && (timerTicksSinceLastRandom % 4) == 0)
     {
+        // Process Input Speed Limiter at 50Hz (BEFORE flip/offset/LFO)
+        if (speedLimiter != nullptr)
+        {
+            auto& vts = parameters.getValueTreeState();
+
+            // Update target positions and speed limits from ValueTree
+            for (int i = 0; i < numInputChannels; ++i)
+            {
+                auto posSection = vts.getInputPositionSection(i);
+                float targetX = posSection.getProperty(WFSParameterIDs::inputPositionX, 0.0f);
+                float targetY = posSection.getProperty(WFSParameterIDs::inputPositionY, 0.0f);
+                float targetZ = posSection.getProperty(WFSParameterIDs::inputPositionZ, 0.0f);
+
+                bool active = static_cast<int>(posSection.getProperty(WFSParameterIDs::inputMaxSpeedActive, 0)) != 0;
+                float maxSpeed = posSection.getProperty(WFSParameterIDs::inputMaxSpeed, 1.0f);
+
+                speedLimiter->setTargetPosition(i, targetX, targetY, targetZ);
+                speedLimiter->setSpeedLimit(i, active, maxSpeed);
+            }
+
+            speedLimiter->process(0.02f);  // 20ms delta time (50Hz)
+
+            // Pass speed-limited positions to calculation engine
+            for (int i = 0; i < numInputChannels; ++i)
+            {
+                float x, y, z;
+                speedLimiter->getPosition(i, x, y, z);
+                calculationEngine->setSpeedLimitedPosition(i, x, y, z);
+            }
+        }
+
         // Process LFO at 50Hz (control rate)
         if (lfoProcessor != nullptr)
         {

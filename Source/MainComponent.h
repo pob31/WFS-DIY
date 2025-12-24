@@ -6,6 +6,7 @@
 #include "DSP/WFSCalculationEngine.h"
 #include "DSP/LFOProcessor.h"
 #include "DSP/AutomOtionProcessor.h"
+#include "DSP/InputSpeedLimiter.h"
 #include "DSP/LiveSourceTamerEngine.h"
 // #include "DSP/GpuInputBufferAlgorithm.h"  // Commented out - GPU Audio SDK not configured
 #include "WfsParameters.h"
@@ -122,6 +123,9 @@ private:
 
     // AutomOtion processor for programmed input position movement
     std::unique_ptr<AutomOtionProcessor> automOtionProcessor;
+
+    // Input speed limiter for smooth position movement
+    std::unique_ptr<InputSpeedLimiter> speedLimiter;
 
     // Live Source Tamer engine for per-speaker gain reduction
     std::unique_ptr<LiveSourceTamerEngine> lsTamerEngine;

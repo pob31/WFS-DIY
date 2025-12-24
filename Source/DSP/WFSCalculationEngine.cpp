@@ -17,6 +17,7 @@ WFSCalculationEngine::WFSCalculationEngine (WFSValueTreeState& state)
     listenerPositions.resize (static_cast<size_t> (numOutputs));
     speakerPositions.resize (static_cast<size_t> (numOutputs));
     inputPositions.resize (static_cast<size_t> (numInputs));
+    speedLimitedPositions.resize (static_cast<size_t> (numInputs));  // Speed-limited interpolated positions
     reverbFeedPositions.resize (static_cast<size_t> (numReverbs));
     reverbReturnPositions.resize (static_cast<size_t> (numReverbs));
     lfoOffsets.resize (static_cast<size_t> (numInputs));  // LFO position offsets
@@ -200,6 +201,42 @@ float WFSCalculationEngine::getGyrophoneOffset (int inputIndex) const
 
     const juce::ScopedLock sl (positionLock);
     return gyrophoneOffsets[static_cast<size_t> (inputIndex)];
+}
+
+//==============================================================================
+// Speed-Limited Position Support
+//==============================================================================
+
+void WFSCalculationEngine::setSpeedLimitedPosition (int inputIndex, float x, float y, float z)
+{
+    if (inputIndex < 0 || inputIndex >= numInputs)
+        return;
+
+    const juce::ScopedLock sl (positionLock);
+    auto& pos = speedLimitedPositions[static_cast<size_t> (inputIndex)];
+
+    // Only mark dirty if position actually changed (with small tolerance)
+    constexpr float epsilon = 0.0001f;
+    if (std::abs(pos.x - x) > epsilon ||
+        std::abs(pos.y - y) > epsilon ||
+        std::abs(pos.z - z) > epsilon)
+    {
+        pos.x = x;
+        pos.y = y;
+        pos.z = z;
+        // Mark only this specific input as dirty
+        inputDirtyFlags[static_cast<size_t> (inputIndex)] = true;
+        matrixDirty.store(true);
+    }
+}
+
+WFSCalculationEngine::Position WFSCalculationEngine::getSpeedLimitedPosition (int inputIndex) const
+{
+    if (inputIndex < 0 || inputIndex >= numInputs)
+        return {};
+
+    const juce::ScopedLock sl (positionLock);
+    return speedLimitedPositions[static_cast<size_t> (inputIndex)];
 }
 
 //==============================================================================
@@ -633,7 +670,7 @@ void WFSCalculationEngine::recalculateMatrix()
 
     {
         const juce::ScopedLock sl (positionLock);
-        localInputPositions = inputPositions;
+        localInputPositions = speedLimitedPositions;  // Use speed-limited positions as base
         localSpeakerPositions = speakerPositions;
         localListenerPositions = listenerPositions;
         localReverbFeedPositions = reverbFeedPositions;

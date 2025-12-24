@@ -77,6 +77,17 @@ public:
     float getGyrophoneOffset (int inputIndex) const;
 
     //==========================================================================
+    // Speed-Limited Position Support
+    //==========================================================================
+
+    /** Set speed-limited position for an input (called from InputSpeedLimiter at 50Hz).
+        This is the interpolated position that moves smoothly towards the target. */
+    void setSpeedLimitedPosition (int inputIndex, float x, float y, float z);
+
+    /** Get speed-limited position for an input (for UI visualization) */
+    Position getSpeedLimitedPosition (int inputIndex) const;
+
+    //==========================================================================
     // Delay Mode Ramp Support
     //==========================================================================
 
@@ -243,13 +254,14 @@ private:
     int numReverbs = 0;
 
     // Cached positions
-    std::vector<Position> listenerPositions;     // [outputIndex]
-    std::vector<Position> speakerPositions;      // [outputIndex]
-    std::vector<Position> inputPositions;        // [inputIndex]
-    std::vector<Position> reverbFeedPositions;   // [reverbIndex]
-    std::vector<Position> reverbReturnPositions; // [reverbIndex]
-    std::vector<Position> lfoOffsets;            // [inputIndex] - LFO position offsets
-    std::vector<float> gyrophoneOffsets;          // [inputIndex] - Gyrophone rotation offsets (radians)
+    std::vector<Position> listenerPositions;       // [outputIndex]
+    std::vector<Position> speakerPositions;        // [outputIndex]
+    std::vector<Position> inputPositions;          // [inputIndex] - Raw target positions from ValueTree
+    std::vector<Position> speedLimitedPositions;   // [inputIndex] - Speed-limited interpolated positions
+    std::vector<Position> reverbFeedPositions;     // [reverbIndex]
+    std::vector<Position> reverbReturnPositions;   // [reverbIndex]
+    std::vector<Position> lfoOffsets;              // [inputIndex] - LFO position offsets
+    std::vector<float> gyrophoneOffsets;           // [inputIndex] - Gyrophone rotation offsets (radians)
 
     // Delay mode ramp state for smooth transitions when toggling inputMinimalLatency
     std::vector<int> previousMinimalLatencyMode;  // [inputIndex] - Previous mode (0 or 1), -1 = uninitialized

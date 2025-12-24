@@ -183,6 +183,70 @@ Prevents upstage sources from losing too much overall level by lifting all atten
 - **0%** = Apply full lift (all outputs raised to match minimum attenuation)
 - Formula: `adjustment = -minAttenuation * (1.0 - commonAttenFactor)`
 
+### Flip X/Y/Z (Position Mirroring)
+The flip feature mirrors input positions around the origin on selected axes, useful for symmetric setups.
+
+**Implementation:**
+- Applied BEFORE offset and LFO/AutomOtion in the position chain
+- Position calculation order: Target → Speed Limit → Flip → Offset → LFO
+
+**Parameters:**
+| Parameter | Range | Description |
+|-----------|-------|-------------|
+| `inputFlipX` | 0/1 | Mirror X around origin |
+| `inputFlipY` | 0/1 | Mirror Y around origin |
+| `inputFlipZ` | 0/1 | Mirror Z around origin |
+
+**Behavior:**
+- Flip negates the position component (e.g., X=-2.5 becomes X=2.5)
+- Keyboard nudge acts in opposite direction when flip is engaged
+- Map grey dot shows flipped position with all transformations
+- Affects WFSCalculationEngine, MapTab, InputsTab joystick/slider controls
+
+### Input Speed Limiter
+The InputSpeedLimiter provides smooth speed-limited movement for input positions with tanh-based acceleration/deceleration.
+
+**Core File:** `Source/DSP/InputSpeedLimiter.h`
+
+**Position Chain:**
+```
+Target Position (from OSC/UI/Tracking)
+    ↓
+InputSpeedLimiter.process(0.02f)  ← Speed limiting (50Hz)
+    ↓
+Flip Transformation
+    ↓
+Regular Offset (inputOffsetX/Y/Z)
+    ↓
+LFO + AutomOtion Offsets
+    ↓
+WFSCalculationEngine (distance calculations)
+```
+
+**Algorithm (Tanh Smoothing):**
+```cpp
+float normalizedDist = distance / (maxStep * 5.0f);  // 5.0 = tuning factor
+float speedScale = std::tanh(normalizedDist) / normalizedDist;
+float step = std::min(distance, maxStep * speedScale);
+```
+
+This provides:
+- Natural acceleration from rest (soft start)
+- Full speed when far from target
+- Gradual deceleration when approaching target (soft stop)
+
+**Parameters:**
+| Parameter | Range | Description |
+|-----------|-------|-------------|
+| `inputMaxSpeedActive` | 0/1 | Enable speed limiting for this input |
+| `inputMaxSpeed` | 0.01-20 m/s | Maximum movement speed |
+
+**Integration:**
+- Speed limiter runs at 50Hz in MainComponent timer callback
+- Speed-limited positions passed to WFSCalculationEngine
+- MapTab displays markers at speed-limited positions
+- Hit-testing uses speed-limited positions for consistent interaction
+
 ### LFO Processor (Position Modulation)
 The LFOProcessor generates periodic position offsets for each input channel, creating automated movement effects.
 
@@ -750,6 +814,7 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 - `Source/DSP/WFSCalculationEngine.h/cpp` - WFS delay/level/HF + reverb matrix calculations
 - `Source/DSP/LFOProcessor.h` - Position/rotation modulation oscillator
 - `Source/DSP/AutomOtionProcessor.h` - Programmed position movement with audio triggering
+- `Source/DSP/InputSpeedLimiter.h` - Speed-limited position interpolation with tanh smoothing
 - `Source/DSP/WFSHighShelfFilter.h` - HF air absorption biquad filter
 - `Source/DSP/InputBufferProcessor.h` - Per-input threaded audio processor
 - `Source/DSP/OutputBufferProcessor.h` - Per-output threaded audio processor
@@ -791,6 +856,6 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 
 ---
 
-*Last updated: 2025-12-23*
+*Last updated: 2025-12-24*
 *JUCE Version: 8.0.11*
 *Build: Visual Studio 2022 / Xcode, x64 Debug/Release*
