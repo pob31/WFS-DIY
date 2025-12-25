@@ -3,9 +3,9 @@
 ## Project Overview
 Wave Field Synthesis (WFS) audio application built with JUCE framework for real-time multi-channel audio processing with comprehensive OSC network control.
 
-## Current Implementation Status (As of 2025-12-24)
+## Current Implementation Status (As of 2025-12-25)
 
-### Overall Progress: ~60% Complete
+### Overall Progress: ~65% Complete
 
 The application has established a solid foundation with infrastructure and core UI:
 - Complete parameter management system
@@ -19,9 +19,9 @@ The application has established a solid foundation with infrastructure and core 
 - **Input Visualisation** (real-time DSP matrix display)
 - **Live Source Tamer** (per-speaker gain reduction for feedback prevention)
 - **Floor Reflections** (simulated floor bounce with filtering and diffusion)
+- **Audio Interface & Patching Window** (input/output patch matrices with test signal generation)
 
 **Major features still to implement:**
-- Audio Patch routing window with input/output matrices
 - Reverb algorithm design (convolution/algorithmic)
 - Snapshot system UI
 - Tracking protocols (PSN, RTTrP, OSC for tracking)
@@ -47,7 +47,7 @@ The application has established a solid foundation with infrastructure and core 
 - **MapTab** - Spatial visualization
 
 ### Floating Windows
-- **AudioInterfaceWindow** - JUCE AudioDeviceSelectorComponent for device setup
+- **AudioInterfaceWindow** - Audio device settings and input/output patching with test signal generation
 - **NetworkLogWindow** - Network traffic monitoring with filtering and export
 - **OutputArrayHelperWindow** - "Wizard of OutZ" for speaker array positioning
 
@@ -60,7 +60,7 @@ The application has established a solid foundation with infrastructure and core 
 | OSC Network | 90% | OSC, Remote protocols complete; ADM-OSC, PSN, RTTrP pending |
 | Save/Load | 80% | Project folder management (snapshots UI TODO) |
 | Audio Engine | 80% | Dual algorithm support with DSP calculation layer + Live Source Tamer + Floor Reflections |
-| Separate Windows | 50% | Log window complete, Patch window TODO |
+| Separate Windows | 90% | Log window, Patch window, Array Helper all complete |
 | Map View | 90% | Interactive multitouch map complete |
 | Data Processing | 90% | WFS delay/level/HF + reverb matrices implemented |
 | DSP Algorithms | 75% | Delay/gain/HF/FR filters working, reverb TODO |
@@ -625,6 +625,84 @@ Features:
 - Color-coded rows by filter mode
 - CSV export (filtered or all data)
 - Auto-scroll with manual override
+
+### Audio Interface and Patching Window (Source/gui/AudioInterfaceWindow.h/cpp)
+Comprehensive audio device configuration and channel patching interface.
+
+**Core Files:**
+- **AudioInterfaceWindow.h/cpp** - Main window container with device settings
+- **AudioPatchTab.h/cpp** - Input/Output patch tab components with test signal controls
+- **PatchMatrixComponent.h/cpp** - Scrollable patch matrix with visual patching
+- **TestSignalGenerator.h/cpp** - Test signal generation (pink noise, tone, sweep, dirac pulse)
+
+**Window Structure:**
+```
+AudioInterfaceWindow
+├── DeviceInfoBar - Shows current device/sample rate/buffer size
+├── DeviceSettingsPanel - Device type, device, sample rate, buffer size controls
+└── TabbedComponent
+    ├── Input Patch Tab
+    │   ├── Mode buttons (Scrolling | Patching)
+    │   ├── Unpatch All button
+    │   └── PatchMatrixComponent (WFS inputs → hardware inputs)
+    └── Output Patch Tab
+        ├── Mode buttons (Scrolling | Patching | Testing)
+        ├── Unpatch All button
+        ├── PatchMatrixComponent (WFS outputs → hardware outputs)
+        └── TestSignalControlPanel (signal type, frequency, level, hold)
+```
+
+**Patch Matrix Modes:**
+| Mode | Behavior |
+|------|----------|
+| Scrolling | Mouse drag scrolls viewport, no patching allowed |
+| Patching | Click cell to patch/unpatch, drag diagonally for sequential 1:1 patches |
+| Testing | Click header/row/cell to play test signal on that hardware channel |
+
+**Visual Feedback:**
+- **Patched cells** - Filled with WFS channel color
+- **Unpatched channels** - Orange text in row headers
+- **Active test channel** - Green highlight on header, row, and patch cell
+- **Hover highlighting** - White overlay on hovered elements
+
+**Test Signal Types:**
+| Type | Description |
+|------|-------------|
+| Off | No signal |
+| Pink Noise | Continuous pink noise with 500ms fade-in |
+| Tone | Sine wave at selected frequency (20-20kHz) with 500ms fade-in |
+| Sweep | Logarithmic 20Hz-20kHz sweep over 1s, 3s gap, repeats |
+| Dirac Pulse | Single sample impulse, repeats every 1s |
+
+**Test Signal Parameters:**
+- **Level**: Default -40 dB, range -92 to 0 dB
+- **Frequency**: 20-20000 Hz (for Tone mode)
+- **Hold**: When enabled, signal continues until another channel clicked
+
+**Safety Features:**
+- Test signals stop when: switching tabs, closing window, changing mode, starting WFS processing
+- Mode resets to Scrolling when exiting tab or window
+- No auto-configuration when clicking in test mode (user must manually set signal type)
+- 500ms fade-in for Pink Noise and Tone prevents loud bursts
+
+**Patch Data Storage (ValueTree):**
+```
+AudioPatch
+├── InputPatch
+│   ├── rows (WFS input count)
+│   ├── cols (max hardware inputs = 64)
+│   └── patchData ("1,0,0,0;0,1,0,0;..." semicolon-separated rows)
+└── OutputPatch
+    ├── rows (WFS output count)
+    ├── cols (max hardware outputs = 64)
+    └── patchData (same format)
+```
+
+**Key Features:**
+- Device settings automatically saved and restored on startup
+- All available hardware channels automatically enabled when device changes
+- Patch matrices persist with project save/load
+- Thread-safe test signal injection (after WFS processing in audio callback)
 
 ---
 

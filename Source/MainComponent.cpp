@@ -12,7 +12,14 @@ MainComponent::MainComponent()
     options.folderName = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
                             .getChildFile("WFS-DIY").getFullPathName();
 
+    // Ensure the settings folder exists
+    juce::File settingsFolder(options.folderName);
+    if (!settingsFolder.exists())
+        settingsFolder.createDirectory();
+
     juce::PropertiesFile props(options);
+
+    DBG("Settings file location: " + props.getFile().getFullPathName());
 
     // Load channel counts (persisted), clamp, and fall back to a usable default
     numInputChannels = props.getIntValue("numInputChannels", 0);
@@ -248,6 +255,9 @@ MainComponent::MainComponent()
         *calculationEngine,
         WFSParameterDefaults::maxInputChannels,
         WFSParameterDefaults::maxOutputChannels);
+
+    // Initialize Test Signal Generator for audio interface testing
+    testSignalGenerator = std::make_unique<TestSignalGenerator>();
     calculationEngine->setLSGainsPtr(lsTamerEngine->getLSGains());
 
     // Set up LFO offset callback for MapTab visualization
@@ -313,10 +323,16 @@ MainComponent::MainComponent()
     // Instead, we'll restore the saved ASIO device asynchronously, which handles
     // initialization properly.
 
+    // Initialize tracking with SAVED values to prevent overwriting during restore
+    // These will be updated after successful restore or user device change
+    lastSavedDeviceType = savedDeviceType;
+    lastSavedDeviceName = savedDeviceName;
+
+    DBG("Startup: Loaded saved device settings - Type: " + savedDeviceType + ", Name: " + savedDeviceName);
+
     // Restore saved device and settings asynchronously (like DAWs do)
     // This happens after the window is shown
-    juce::MessageManager::callAsync([this, savedDeviceType, savedDeviceName,
-                                      savedInputChannelsBits, savedOutputChannelsBits]()
+    juce::MessageManager::callAsync([this, savedDeviceType, savedDeviceName]()
     {
         bool deviceRestored = false;
 
@@ -324,7 +340,18 @@ MainComponent::MainComponent()
         if (savedDeviceType.isNotEmpty())
         {
             DBG("Attempting to restore device type: " + savedDeviceType);
+
+            // Log available device types for debugging
+            const auto& types = deviceManager.getAvailableDeviceTypes();
+            DBG("Available device types:");
+            for (auto* type : types)
+                DBG("  - " + type->getTypeName());
+
             deviceManager.setCurrentAudioDeviceType(savedDeviceType, true);
+
+            // Verify the type was set correctly
+            juce::String actualType = deviceManager.getCurrentAudioDeviceType();
+            DBG("After setCurrentAudioDeviceType: actual type is: " + actualType);
 
             // Try to restore specific device name
             if (savedDeviceName.isNotEmpty())
@@ -334,31 +361,35 @@ MainComponent::MainComponent()
                 setup.outputDeviceName = savedDeviceName;
                 setup.inputDeviceName = savedDeviceName;
 
-                // Restore saved channel selections if available
-                if (savedInputChannelsBits.isNotEmpty() || savedOutputChannelsBits.isNotEmpty())
-                {
-                    setup.useDefaultInputChannels = false;
-                    setup.useDefaultOutputChannels = false;
-
-                    // Restore exact channel bit patterns from saved settings
-                    if (savedInputChannelsBits.isNotEmpty())
-                        setup.inputChannels.parseString(savedInputChannelsBits, 2); // Parse binary string
-
-                    if (savedOutputChannelsBits.isNotEmpty())
-                        setup.outputChannels.parseString(savedOutputChannelsBits, 2); // Parse binary string
-                }
+                // Enable all available channels (not restoring saved selection)
+                setup.useDefaultInputChannels = false;
+                setup.useDefaultOutputChannels = false;
+                setup.inputChannels.setRange(0, 256, true);   // Enable all inputs
+                setup.outputChannels.setRange(0, 256, true);  // Enable all outputs
 
                 auto error = deviceManager.setAudioDeviceSetup(setup, true);
                 deviceRestored = error.isEmpty();
 
                 if (deviceRestored)
                 {
-                    int restoredInputs = setup.inputChannels.countNumberOfSetBits();
-                    int restoredOutputs = setup.outputChannels.countNumberOfSetBits();
+                    // Now enable exactly all available channels from the device
+                    auto* device = deviceManager.getCurrentAudioDevice();
+                    if (device != nullptr)
+                    {
+                        auto inputNames = device->getInputChannelNames();
+                        auto outputNames = device->getOutputChannelNames();
 
-                    DBG("Successfully restored: " + savedDeviceName +
-                        " | Hardware I/O: " + juce::String(restoredInputs) + " inputs, " +
-                        juce::String(restoredOutputs) + " outputs");
+                        deviceManager.getAudioDeviceSetup(setup);
+                        setup.inputChannels.clear();
+                        setup.inputChannels.setRange(0, inputNames.size(), true);
+                        setup.outputChannels.clear();
+                        setup.outputChannels.setRange(0, outputNames.size(), true);
+                        deviceManager.setAudioDeviceSetup(setup, true);
+
+                        DBG("Successfully restored: " + savedDeviceName +
+                            " | All channels enabled: " + juce::String(inputNames.size()) + " inputs, " +
+                            juce::String(outputNames.size()) + " outputs");
+                    }
 
                     // Settings restored successfully - update tracking
                     lastSavedDeviceType = savedDeviceType;
@@ -369,27 +400,42 @@ MainComponent::MainComponent()
                     DBG("Could not restore saved device: " + savedDeviceName);
                     DBG("Error: " + error);
                     DBG("Please select your audio device from the Audio Settings panel");
+                    // Keep lastSavedDeviceType/Name as the saved values to avoid overwriting
                 }
             }
         }
+        else
+        {
+            DBG("No saved device type found in settings file");
+        }
 
-        if (!deviceRestored)
+        if (deviceRestored)
+        {
+            // Restoration succeeded - allow saving future device changes
+            deviceRestoreComplete = true;
+        }
+        else
         {
             DBG("Using default audio device - please configure in Audio Settings");
+            // Keep deviceRestoreComplete = false to prevent saving fallback device
+            // User must manually select a device, which will trigger changeListenerCallback
         }
 
         attachAudioCallbacksIfNeeded();
     });
 
     // Start timer for device monitoring and parameter smoothing
-    lastSavedDeviceType = deviceManager.getCurrentAudioDeviceType();
-    if (auto* device = deviceManager.getCurrentAudioDevice())
-        lastSavedDeviceName = device->getName();
     startTimer(5); // 5ms timer for smooth parameter updates
+
+    // Listen for device manager changes to re-attach audio callbacks when device changes
+    deviceManager.addChangeListener(this);
 }
 
 MainComponent::~MainComponent()
 {
+    // Stop listening to device manager changes
+    deviceManager.removeChangeListener(this);
+
     // Stop timer
     stopTimer();
 
@@ -425,6 +471,38 @@ void MainComponent::attachAudioCallbacksIfNeeded()
     std::unique_ptr<juce::XmlElement> state(deviceManager.createStateXml());
     setAudioChannels(numInputs, numOutputs, state.get());
     audioCallbacksAttached = true;
+
+    DBG("Audio callbacks attached - " + juce::String(numInputs) + " inputs, " + juce::String(numOutputs) + " outputs");
+}
+
+void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
+{
+    // Handle device manager changes
+    if (source == &deviceManager)
+    {
+        auto* device = deviceManager.getCurrentAudioDevice();
+
+        if (device != nullptr)
+        {
+            DBG("Device changed to: " + device->getName());
+
+            // User has successfully selected a device - allow saving from now on
+            // This enables saving when user manually selects ASIO after startup failure
+            deviceRestoreComplete = true;
+
+            // If audio callbacks weren't attached (e.g., startup with no device),
+            // try to attach them now
+            if (!audioCallbacksAttached)
+            {
+                attachAudioCallbacksIfNeeded();
+            }
+        }
+        else
+        {
+            DBG("Device changed: no device available");
+            audioCallbacksAttached = false;
+        }
+    }
 }
 
 void MainComponent::resizeRoutingMatrices()
@@ -476,6 +554,130 @@ void MainComponent::stopProcessingForConfigurationChange()
     // }
 
     audioEngineStarted = false;
+}
+
+void MainComponent::loadAudioPatches()
+{
+    // Load input patch matrix from ValueTree
+    auto audioPatchTree = parameters.getValueTreeState().getState().getChildWithName(WFSParameterIDs::AudioPatch);
+    auto inputPatchTree = audioPatchTree.getChildWithName(WFSParameterIDs::InputPatch);
+    auto outputPatchTree = audioPatchTree.getChildWithName(WFSParameterIDs::OutputPatch);
+
+    // Initialize patch maps to "unmapped" (-1)
+    inputPatchMap.resize(64, -1);  // Max hardware inputs
+    outputPatchMap.resize(64, -1); // Max WFS outputs
+
+    // Load input patches: hardware channel → WFS channel
+    if (inputPatchTree.isValid())
+    {
+        juce::String patchDataStr = inputPatchTree.getProperty(WFSParameterIDs::patchData).toString();
+        juce::StringArray rows = juce::StringArray::fromTokens(patchDataStr, ";", "");
+
+        for (int wfsChannel = 0; wfsChannel < rows.size(); ++wfsChannel)
+        {
+            juce::StringArray cols = juce::StringArray::fromTokens(rows[wfsChannel], ",", "");
+            for (int hwChannel = 0; hwChannel < cols.size(); ++hwChannel)
+            {
+                if (cols[hwChannel].getIntValue() == 1)
+                {
+                    // Patch found: hardware channel hwChannel → WFS channel wfsChannel
+                    if (hwChannel < inputPatchMap.size())
+                        inputPatchMap[hwChannel] = wfsChannel;
+                }
+            }
+        }
+    }
+
+    // Load output patches: WFS channel → hardware channel
+    if (outputPatchTree.isValid())
+    {
+        juce::String patchDataStr = outputPatchTree.getProperty(WFSParameterIDs::patchData).toString();
+        juce::StringArray rows = juce::StringArray::fromTokens(patchDataStr, ";", "");
+
+        for (int wfsChannel = 0; wfsChannel < rows.size(); ++wfsChannel)
+        {
+            juce::StringArray cols = juce::StringArray::fromTokens(rows[wfsChannel], ",", "");
+            for (int hwChannel = 0; hwChannel < cols.size(); ++hwChannel)
+            {
+                if (cols[hwChannel].getIntValue() == 1)
+                {
+                    // Patch found: WFS channel wfsChannel → hardware channel hwChannel
+                    if (wfsChannel < outputPatchMap.size())
+                        outputPatchMap[wfsChannel] = hwChannel;
+                }
+            }
+        }
+    }
+}
+
+void MainComponent::applyInputPatch(const juce::AudioSourceChannelInfo& bufferToFill)
+{
+    // Apply input patching: remap hardware inputs to WFS inputs
+    int numHardwareInputs = bufferToFill.buffer->getNumChannels();
+
+    // Prepare patched buffer if needed
+    if (patchedInputBuffer.getNumChannels() != numInputChannels ||
+        patchedInputBuffer.getNumSamples() < bufferToFill.numSamples)
+    {
+        patchedInputBuffer.setSize(numInputChannels, bufferToFill.numSamples, false, false, true);
+    }
+
+    patchedInputBuffer.clear();
+
+    // Copy audio according to input patch map
+    for (int hwChannel = 0; hwChannel < numHardwareInputs && hwChannel < inputPatchMap.size(); ++hwChannel)
+    {
+        int wfsChannel = inputPatchMap[hwChannel];
+        if (wfsChannel >= 0 && wfsChannel < numInputChannels)
+        {
+            patchedInputBuffer.copyFrom(wfsChannel, bufferToFill.startSample,
+                                        *bufferToFill.buffer, hwChannel,
+                                        bufferToFill.startSample, bufferToFill.numSamples);
+        }
+    }
+
+    // Replace buffer with patched version
+    for (int ch = 0; ch < juce::jmin(numInputChannels, numHardwareInputs); ++ch)
+    {
+        bufferToFill.buffer->copyFrom(ch, bufferToFill.startSample,
+                                      patchedInputBuffer, ch,
+                                      bufferToFill.startSample, bufferToFill.numSamples);
+    }
+}
+
+void MainComponent::applyOutputPatch(const juce::AudioSourceChannelInfo& bufferToFill)
+{
+    // Apply output patching: remap WFS outputs to hardware outputs
+    int numHardwareOutputs = bufferToFill.buffer->getNumChannels();
+
+    // Prepare patched buffer if needed
+    if (patchedOutputBuffer.getNumChannels() != numHardwareOutputs ||
+        patchedOutputBuffer.getNumSamples() < bufferToFill.numSamples)
+    {
+        patchedOutputBuffer.setSize(numHardwareOutputs, bufferToFill.numSamples, false, false, true);
+    }
+
+    patchedOutputBuffer.clear();
+
+    // Copy audio according to output patch map
+    for (int wfsChannel = 0; wfsChannel < numOutputChannels && wfsChannel < outputPatchMap.size(); ++wfsChannel)
+    {
+        int hwChannel = outputPatchMap[wfsChannel];
+        if (hwChannel >= 0 && hwChannel < numHardwareOutputs)
+        {
+            patchedOutputBuffer.addFrom(hwChannel, bufferToFill.startSample,
+                                        *bufferToFill.buffer, wfsChannel,
+                                        bufferToFill.startSample, bufferToFill.numSamples);
+        }
+    }
+
+    // Replace buffer with patched version
+    for (int ch = 0; ch < numHardwareOutputs; ++ch)
+    {
+        bufferToFill.buffer->copyFrom(ch, bufferToFill.startSample,
+                                      patchedOutputBuffer, ch,
+                                      bufferToFill.startSample, bufferToFill.numSamples);
+    }
 }
 
 void MainComponent::handleProcessingChange(bool enabled)
@@ -549,6 +751,9 @@ void MainComponent::handleConfigReloaded()
         numOutputChannels = newOutputChannels;
         resizeRoutingMatrices();
     }
+
+    // Reload audio patches from ValueTree (input/output channel routing)
+    loadAudioPatches();
 
     // Refresh all tabs to show newly loaded config data
     if (networkTab != nullptr)
@@ -668,7 +873,11 @@ void MainComponent::openAudioInterfaceWindow()
 {
     if (audioInterfaceWindow == nullptr)
     {
-        audioInterfaceWindow = std::make_unique<AudioInterfaceWindow>(deviceManager);
+        audioInterfaceWindow = std::make_unique<AudioInterfaceWindow>(
+            deviceManager,
+            parameters.getValueTreeState(),
+            testSignalGenerator.get()
+        );
     }
     else
     {
@@ -785,29 +994,55 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
         //     DBG("GPU Audio: Disabled GPU path due to device/sample-rate change. Re-enable processing to reinit.");
         // }
     }
+
+    // Prepare test signal generator
+    if (testSignalGenerator)
+    {
+        testSignalGenerator->prepare(sampleRate, samplesPerBlockExpected);
+    }
+
+    // Load audio patch matrices
+    loadAudioPatches();
 }
 
 void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill)
 {
-    // Safety check: ensure processors are initialized
-    if (!audioEngineStarted)
+    // Process WFS audio if engine is started
+    if (audioEngineStarted)
     {
+        // Apply input patching: hardware channels → WFS channels
+        applyInputPatch(bufferToFill);
+
+        // Process WFS audio
+        if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
+        {
+            inputAlgorithm.processBlock(bufferToFill, numInputChannels, numOutputChannels);
+        }
+        else if (currentAlgorithm == ProcessingAlgorithm::OutputBuffer)
+        {
+            outputAlgorithm.processBlock(bufferToFill, numInputChannels, numOutputChannels);
+        }
+        // else // ProcessingAlgorithm::GpuInputBuffer
+        // {
+        //     gpuInputAlgorithm.processBlock(bufferToFill, numInputChannels, numOutputChannels);
+        // }
+
+        // Apply output patching: WFS channels → hardware channels
+        applyOutputPatch(bufferToFill);
+    }
+    else
+    {
+        // Clear buffer if no processing
         bufferToFill.clearActiveBufferRegion();
-        return;
     }
 
-    if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
+    // Inject test signals (works independently of DSP processing for interface testing)
+    if (testSignalGenerator && testSignalGenerator->isActive())
     {
-        inputAlgorithm.processBlock(bufferToFill, numInputChannels, numOutputChannels);
+        testSignalGenerator->renderNextBlock(*bufferToFill.buffer,
+                                             bufferToFill.startSample,
+                                             bufferToFill.numSamples);
     }
-    else if (currentAlgorithm == ProcessingAlgorithm::OutputBuffer)
-    {
-        outputAlgorithm.processBlock(bufferToFill, numInputChannels, numOutputChannels);
-    }
-    // else // ProcessingAlgorithm::GpuInputBuffer
-    // {
-    //     gpuInputAlgorithm.processBlock(bufferToFill, numInputChannels, numOutputChannels);
-    // }
 }
 
 void MainComponent::releaseResources()
@@ -1288,7 +1523,8 @@ void MainComponent::timerCallback()
     }
 
     // Check for device changes every 200 ticks (once per second) to avoid overhead
-    if (timerTicksSinceLastRandom % 200 == 0)
+    // Only save after device restoration is complete to avoid saving fallback device
+    if (deviceRestoreComplete && timerTicksSinceLastRandom % 200 == 0)
     {
         juce::String currentDeviceType = deviceManager.getCurrentAudioDeviceType();
         juce::String currentDeviceName;

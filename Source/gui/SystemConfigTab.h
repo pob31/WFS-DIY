@@ -1188,9 +1188,20 @@ private:
         }
 
         if (fileManager.loadSystemConfig())
+        {
             showStatusMessage("System configuration loaded.");
+
+            // Update UI from ValueTree
+            loadParametersToUI();
+
+            // Notify MainComponent to refresh all tabs
+            if (onConfigReloaded)
+                onConfigReloaded();
+        }
         else
+        {
             showStatusMessage("Error: " + fileManager.getLastError());
+        }
     }
 
     void reloadSystemConfigBackup()
@@ -1211,9 +1222,20 @@ private:
         }
 
         if (fileManager.loadSystemConfigBackup(0))
+        {
             showStatusMessage("System configuration loaded from backup.");
+
+            // Update UI from ValueTree
+            loadParametersToUI();
+
+            // Notify MainComponent to refresh all tabs
+            if (onConfigReloaded)
+                onConfigReloaded();
+        }
         else
+        {
             showStatusMessage("Error: " + fileManager.getLastError());
+        }
     }
 
     void importSystemConfiguration()
@@ -1230,9 +1252,20 @@ private:
             {
                 auto& fileManager = parameters.getFileManager();
                 if (fileManager.importSystemConfig(result))
+                {
                     showStatusMessage("System configuration imported.");
+
+                    // Update UI from ValueTree
+                    loadParametersToUI();
+
+                    // Notify MainComponent to refresh all tabs
+                    if (onConfigReloaded)
+                        onConfigReloaded();
+                }
                 else
+                {
                     showStatusMessage("Error: " + fileManager.getLastError());
+                }
             }
         });
     }

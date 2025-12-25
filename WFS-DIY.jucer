@@ -41,6 +41,18 @@
               file="Source/gui/OutputArrayHelperWindow.h"/>
         <FILE id="guiArrHelperCpp" name="OutputArrayHelperWindow.cpp" compile="1" resource="0"
               file="Source/gui/OutputArrayHelperWindow.cpp"/>
+        <FILE id="guiAudIfcH" name="AudioInterfaceWindow.h" compile="0" resource="0"
+              file="Source/gui/AudioInterfaceWindow.h"/>
+        <FILE id="guiAudIfcCpp" name="AudioInterfaceWindow.cpp" compile="1" resource="0"
+              file="Source/gui/AudioInterfaceWindow.cpp"/>
+        <FILE id="guiPatchMatH" name="PatchMatrixComponent.h" compile="0" resource="0"
+              file="Source/gui/PatchMatrixComponent.h"/>
+        <FILE id="guiPatchMatCpp" name="PatchMatrixComponent.cpp" compile="1" resource="0"
+              file="Source/gui/PatchMatrixComponent.cpp"/>
+        <FILE id="guiAudPatchH" name="AudioPatchTab.h" compile="0" resource="0"
+              file="Source/gui/AudioPatchTab.h"/>
+        <FILE id="guiAudPatchCpp" name="AudioPatchTab.cpp" compile="1" resource="0"
+              file="Source/gui/AudioPatchTab.cpp"/>
       </GROUP>
       <GROUP id="{HELPERSGROUP}" name="Helpers">
         <FILE id="arrGeomH" name="ArrayGeometryCalculator.h" compile="0" resource="0"
@@ -119,6 +131,10 @@
               file="Source/DSP/InputBufferAlgorithmGPU.h"/>
         <FILE id="gpuShim" name="InputBufferAlgorithmGPU.cpp" compile="0" resource="0"
               file="Source/DSP/InputBufferAlgorithmGPU.cpp"/>
+        <FILE id="testSigGenH" name="TestSignalGenerator.h" compile="0" resource="0"
+              file="Source/DSP/TestSignalGenerator.h"/>
+        <FILE id="testSigGenCpp" name="TestSignalGenerator.cpp" compile="1" resource="0"
+              file="Source/DSP/TestSignalGenerator.cpp"/>
       </GROUP>
     </GROUP>
   </MAINGROUP>

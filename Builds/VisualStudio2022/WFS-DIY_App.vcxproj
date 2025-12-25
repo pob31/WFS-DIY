@@ -158,6 +158,9 @@
     <ClCompile Include="..\..\Source\Parameters\WFSFileManager.cpp"/>
     <ClCompile Include="..\..\Source\gui\NetworkLogWindow.cpp"/>
     <ClCompile Include="..\..\Source\gui\OutputArrayHelperWindow.cpp"/>
+    <ClCompile Include="..\..\Source\gui\AudioInterfaceWindow.cpp"/>
+    <ClCompile Include="..\..\Source\gui\PatchMatrixComponent.cpp"/>
+    <ClCompile Include="..\..\Source\gui\AudioPatchTab.cpp"/>
     <ClCompile Include="..\..\Source\Helpers\ArrayGeometryCalculator.cpp"/>
     <ClCompile Include="..\..\Source\Network\OSCConnection.cpp"/>
     <ClCompile Include="..\..\Source\Network\OSCRateLimiter.cpp"/>
@@ -177,6 +180,7 @@
     <ClCompile Include="..\..\Source\DSP\InputBufferAlgorithmGPU.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="..\..\Source\DSP\TestSignalGenerator.cpp"/>
     <ClCompile Include="C:\JUCE\modules\juce_audio_basics\audio_play_head\juce_AudioPlayHead.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
@@ -3773,6 +3777,9 @@
     <ClInclude Include="..\..\Source\gui\NetworkTab.h"/>
     <ClInclude Include="..\..\Source\gui\NetworkLogWindow.h"/>
     <ClInclude Include="..\..\Source\gui\OutputArrayHelperWindow.h"/>
+    <ClInclude Include="..\..\Source\gui\AudioInterfaceWindow.h"/>
+    <ClInclude Include="..\..\Source\gui\PatchMatrixComponent.h"/>
+    <ClInclude Include="..\..\Source\gui\AudioPatchTab.h"/>
     <ClInclude Include="..\..\Source\Helpers\ArrayGeometryCalculator.h"/>
     <ClInclude Include="..\..\Source\Network\OSCProtocolTypes.h"/>
     <ClInclude Include="..\..\Source\Network\OSCConnection.h"/>
@@ -3796,6 +3803,7 @@
     <ClInclude Include="..\..\Source\DSP\OutputBufferAlgorithm.h"/>
     <ClInclude Include="..\..\Source\DSP\GpuInputBufferAlgorithm.h"/>
     <ClInclude Include="..\..\Source\DSP\InputBufferAlgorithmGPU.h"/>
+    <ClInclude Include="..\..\Source\DSP\TestSignalGenerator.h"/>
     <ClInclude Include="C:\JUCE\modules\juce_audio_basics\audio_play_head\juce_AudioPlayHead.h"/>
     <ClInclude Include="C:\JUCE\modules\juce_audio_basics\buffers\juce_AudioChannelSet.h"/>
     <ClInclude Include="C:\JUCE\modules\juce_audio_basics\buffers\juce_AudioDataConverters.h"/>

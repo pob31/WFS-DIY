@@ -76,6 +76,9 @@ OBJECTS_APP := \
   $(JUCE_OBJDIR)/WFSFileManager_910393b3.o \
   $(JUCE_OBJDIR)/NetworkLogWindow_80b93fa3.o \
   $(JUCE_OBJDIR)/OutputArrayHelperWindow_6dcb4bc3.o \
+  $(JUCE_OBJDIR)/AudioInterfaceWindow_f176b730.o \
+  $(JUCE_OBJDIR)/PatchMatrixComponent_b17e3fb1.o \
+  $(JUCE_OBJDIR)/AudioPatchTab_4fba5830.o \
   $(JUCE_OBJDIR)/ArrayGeometryCalculator_9da01084.o \
   $(JUCE_OBJDIR)/OSCConnection_e11ce5d.o \
   $(JUCE_OBJDIR)/OSCRateLimiter_e0330d3.o \
@@ -89,6 +92,7 @@ OBJECTS_APP := \
   $(JUCE_OBJDIR)/Main_90ebc5c2.o \
   $(JUCE_OBJDIR)/MainComponent_a6ffb4a5.o \
   $(JUCE_OBJDIR)/WFSCalculationEngine_480062fe.o \
+  $(JUCE_OBJDIR)/TestSignalGenerator_c4132b8c.o \
   $(JUCE_OBJDIR)/include_juce_audio_basics_8a4e984a.o \
   $(JUCE_OBJDIR)/include_juce_audio_devices_63111d02.o \
   $(JUCE_OBJDIR)/include_juce_audio_formats_15f82001.o \
@@ -143,6 +147,21 @@ $(JUCE_OBJDIR)/NetworkLogWindow_80b93fa3.o: ../../Source/gui/NetworkLogWindow.cp
 $(JUCE_OBJDIR)/OutputArrayHelperWindow_6dcb4bc3.o: ../../Source/gui/OutputArrayHelperWindow.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling OutputArrayHelperWindow.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/AudioInterfaceWindow_f176b730.o: ../../Source/gui/AudioInterfaceWindow.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling AudioInterfaceWindow.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/PatchMatrixComponent_b17e3fb1.o: ../../Source/gui/PatchMatrixComponent.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling PatchMatrixComponent.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/AudioPatchTab_4fba5830.o: ../../Source/gui/AudioPatchTab.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling AudioPatchTab.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/ArrayGeometryCalculator_9da01084.o: ../../Source/Helpers/ArrayGeometryCalculator.cpp
@@ -208,6 +227,11 @@ $(JUCE_OBJDIR)/MainComponent_a6ffb4a5.o: ../../Source/MainComponent.cpp
 $(JUCE_OBJDIR)/WFSCalculationEngine_480062fe.o: ../../Source/DSP/WFSCalculationEngine.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling WFSCalculationEngine.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/TestSignalGenerator_c4132b8c.o: ../../Source/DSP/TestSignalGenerator.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling TestSignalGenerator.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/include_juce_audio_basics_8a4e984a.o: ../../JuceLibraryCode/include_juce_audio_basics.cpp

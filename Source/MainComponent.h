@@ -8,6 +8,7 @@
 #include "DSP/AutomOtionProcessor.h"
 #include "DSP/InputSpeedLimiter.h"
 #include "DSP/LiveSourceTamerEngine.h"
+#include "DSP/TestSignalGenerator.h"
 // #include "DSP/GpuInputBufferAlgorithm.h"  // Commented out - GPU Audio SDK not configured
 #include "WfsParameters.h"
 #include "gui/StatusBar.h"
@@ -28,7 +29,8 @@
     your controls and content.
 */
 class MainComponent  : public juce::AudioAppComponent,
-                         private juce::Timer
+                         private juce::Timer,
+                         private juce::ChangeListener
 {
 public:
     //==============================================================================
@@ -50,6 +52,7 @@ public:
     void startAudioEngine();
     void saveSettings();
     void timerCallback() override;
+    void changeListenerCallback(juce::ChangeBroadcaster* source) override;
 
     // Routing matrix access
     void setDelay(int inputChannel, int outputChannel, float delayMs);
@@ -130,6 +133,18 @@ private:
     // Live Source Tamer engine for per-speaker gain reduction
     std::unique_ptr<LiveSourceTamerEngine> lsTamerEngine;
 
+    // Test signal generator for audio interface testing
+    std::unique_ptr<TestSignalGenerator> testSignalGenerator;
+
+    // Audio patch matrices: hardware channel → WFS channel mappings
+    // inputPatchMap[hardwareChannel] = wfsChannel (-1 if unmapped)
+    std::vector<int> inputPatchMap;
+    // outputPatchMap[wfsChannel] = hardwareChannel (-1 if unmapped)
+    std::vector<int> outputPatchMap;
+    // Temporary buffers for patch application
+    juce::AudioBuffer<float> patchedInputBuffer;
+    juce::AudioBuffer<float> patchedOutputBuffer;
+
     // Routing matrix: delays[inputChannel * numOutputChannels + outputChannel]
     std::vector<float> delayTimesMs;
     // Gain matrix: levels[inputChannel * numOutputChannels + outputChannel]
@@ -157,10 +172,14 @@ private:
     // Track device type and device name changes
     juce::String lastSavedDeviceType;
     juce::String lastSavedDeviceName;
+    bool deviceRestoreComplete = false;  // Prevents saving fallback device during startup
 
     void attachAudioCallbacksIfNeeded();
     void resizeRoutingMatrices();
     void stopProcessingForConfigurationChange();
+    void loadAudioPatches();  // Load input/output patch matrices from ValueTree
+    void applyInputPatch(const juce::AudioSourceChannelInfo& bufferToFill);  // Apply input patching
+    void applyOutputPatch(const juce::AudioSourceChannelInfo& bufferToFill); // Apply output patching
 
     // Handlers for callbacks from System Config tab
     void handleProcessingChange(bool enabled);

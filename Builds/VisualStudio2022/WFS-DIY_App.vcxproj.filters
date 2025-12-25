@@ -961,6 +961,15 @@
     <ClCompile Include="..\..\Source\gui\OutputArrayHelperWindow.cpp">
       <Filter>WFS-DIY\Source\gui</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Source\gui\AudioInterfaceWindow.cpp">
+      <Filter>WFS-DIY\Source\gui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\gui\PatchMatrixComponent.cpp">
+      <Filter>WFS-DIY\Source\gui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\gui\AudioPatchTab.cpp">
+      <Filter>WFS-DIY\Source\gui</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\Source\Helpers\ArrayGeometryCalculator.cpp">
       <Filter>WFS-DIY\Source\Helpers</Filter>
     </ClCompile>
@@ -1004,6 +1013,9 @@
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClCompile>
     <ClCompile Include="..\..\Source\DSP\InputBufferAlgorithmGPU.cpp">
+      <Filter>WFS-DIY\Source\DSP</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\DSP\TestSignalGenerator.cpp">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClCompile>
     <ClCompile Include="C:\JUCE\modules\juce_audio_basics\audio_play_head\juce_AudioPlayHead.cpp">
@@ -4914,6 +4926,15 @@
     <ClInclude Include="..\..\Source\gui\OutputArrayHelperWindow.h">
       <Filter>WFS-DIY\Source\gui</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\gui\AudioInterfaceWindow.h">
+      <Filter>WFS-DIY\Source\gui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\gui\PatchMatrixComponent.h">
+      <Filter>WFS-DIY\Source\gui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\gui\AudioPatchTab.h">
+      <Filter>WFS-DIY\Source\gui</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\Helpers\ArrayGeometryCalculator.h">
       <Filter>WFS-DIY\Source\Helpers</Filter>
     </ClInclude>
@@ -4981,6 +5002,9 @@
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\DSP\InputBufferAlgorithmGPU.h">
+      <Filter>WFS-DIY\Source\DSP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\DSP\TestSignalGenerator.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
     <ClInclude Include="C:\JUCE\modules\juce_audio_basics\audio_play_head\juce_AudioPlayHead.h">
