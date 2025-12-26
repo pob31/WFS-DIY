@@ -118,29 +118,14 @@ public:
             // Maximum distance we can travel this frame
             float maxStep = state.maxSpeed * deltaTime;
 
-            // Tanh smoothing for natural acceleration/deceleration
-            // When far from target: normalizedDist is large, tanh(x)/x → 1 (full speed)
-            // When near target: normalizedDist is small, tanh(x)/x → 1 but step is limited by distance
-            // The factor 5.0 controls the smoothing range (larger = softer acceleration)
-            constexpr float smoothingFactor = 5.0f;
-            float normalizedDist = distance / (maxStep * smoothingFactor);
+            // Tanh smoothing for natural deceleration when approaching target
+            // tanh(x) approaches 1.0 when x is large, approaches x when x is small
+            // This gives: full speed when far, gradual slowdown when near
+            float normalizedDist = distance / maxStep;
+            float step = maxStep * std::tanh (normalizedDist);
 
-            float speedScale;
-            if (normalizedDist > 0.001f)
-            {
-                // tanh(x)/x provides smooth S-curve:
-                // - Far from target: approaches 1.0 (full speed)
-                // - Near target: tanh(x) ≈ x, so tanh(x)/x ≈ 1.0
-                // The limiting happens naturally via min(distance, maxStep)
-                speedScale = std::tanh (normalizedDist) / normalizedDist;
-            }
-            else
-            {
-                speedScale = 1.0f;
-            }
-
-            // Calculate actual step (limited by both speed and remaining distance)
-            float step = std::min (distance, maxStep * speedScale);
+            // Ensure we don't overshoot the target
+            step = std::min (step, distance);
 
             // Apply step in direction of target
             float invDist = 1.0f / distance;

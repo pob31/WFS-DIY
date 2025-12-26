@@ -1013,10 +1013,10 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 
 ### High Priority
 1. **Snapshot System UI**: InputsTab snapshot buttons need implementation
-2. **Audio Patch Window**: Input/output routing matrices
 
 ### Medium Priority
-3. **Reverb Algorithm**: Design convolution/algorithmic reverb processing
+2. **Reverb Algorithm**: Design convolution/algorithmic reverb processing
+3. **Remote handshake**: Initialize and transmit state of all inputs
 4. **Protocol Implementation**: ADM-OSC, PSN, RTTrP
 
 ### Lower Priority

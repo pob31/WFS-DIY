@@ -1254,6 +1254,10 @@ void MainComponent::timerCallback()
                 speedLimiter->getPosition(i, x, y, z);
                 calculationEngine->setSpeedLimitedPosition(i, x, y, z);
             }
+
+            // Keep map repainting while speed limiter is catching up
+            if (speedLimiter->isAnyInputMoving() && mapTab != nullptr)
+                mapTab->repaint();
         }
 
         // Process LFO at 50Hz (control rate)

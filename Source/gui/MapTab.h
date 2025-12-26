@@ -1868,24 +1868,25 @@ private:
 
     void drawInputMarker(juce::Graphics& g, int inputIndex, bool isSelected)
     {
-        // Get position - use speed-limited position if available, otherwise raw ValueTree position
-        float posX, posY, posZ;
-        if (speedLimitedPositionCallback)
-        {
-            speedLimitedPositionCallback(inputIndex, posX, posY, posZ);
-        }
-        else
-        {
-            posX = static_cast<float>(parameters.getInputParam(inputIndex, "inputPositionX"));
-            posY = static_cast<float>(parameters.getInputParam(inputIndex, "inputPositionY"));
-            posZ = static_cast<float>(parameters.getInputParam(inputIndex, "inputPositionZ"));
-        }
+        // Get TARGET position from ValueTree (what user is controlling/dragging)
+        float targetX = static_cast<float>(parameters.getInputParam(inputIndex, "inputPositionX"));
+        float targetY = static_cast<float>(parameters.getInputParam(inputIndex, "inputPositionY"));
+        float targetZ = static_cast<float>(parameters.getInputParam(inputIndex, "inputPositionZ"));
 
-        // Apply flip to base position (same as calculation engine)
+        // Apply flip to target position for main marker display
         bool flipX = static_cast<int>(parameters.getInputParam(inputIndex, "inputFlipX")) != 0;
         bool flipY = static_cast<int>(parameters.getInputParam(inputIndex, "inputFlipY")) != 0;
-        if (flipX) posX = -posX;
-        if (flipY) posY = -posY;
+        float posX = flipX ? -targetX : targetX;
+        float posY = flipY ? -targetY : targetY;
+
+        // Get speed-limited position for grey dot (actual DSP position)
+        float speedLimitedX = targetX, speedLimitedY = targetY, speedLimitedZ = targetZ;
+        if (speedLimitedPositionCallback)
+            speedLimitedPositionCallback(inputIndex, speedLimitedX, speedLimitedY, speedLimitedZ);
+
+        // Apply flip to speed-limited position for grey dot
+        float actualPosX = flipX ? -speedLimitedX : speedLimitedX;
+        float actualPosY = flipY ? -speedLimitedY : speedLimitedY;
 
         float offsetX = static_cast<float>(parameters.getInputParam(inputIndex, "inputOffsetX"));
         float offsetY = static_cast<float>(parameters.getInputParam(inputIndex, "inputOffsetY"));
@@ -1968,10 +1969,18 @@ private:
         float totalOffsetX = offsetX + lfoOffsetX;
         float totalOffsetY = offsetY + lfoOffsetY;
 
-        // Draw composite position indicator (position + offset + LFO) if any offset is non-zero
-        if (std::abs(totalOffsetX) > 0.01f || std::abs(totalOffsetY) > 0.01f)
+        // Calculate grey dot position: speed-limited position + flip + offset + LFO
+        // This shows the ACTUAL DSP position (where the sound is)
+        float greyDotX = actualPosX + totalOffsetX;
+        float greyDotY = actualPosY + totalOffsetY;
+
+        // Check if grey dot differs from main marker position
+        float diffFromTarget = std::abs(greyDotX - posX) + std::abs(greyDotY - posY);
+
+        // Draw composite position indicator if grey dot is offset from main marker
+        if (diffFromTarget > 0.01f)
         {
-            auto compositePos = stageToScreen({ posX + totalOffsetX, posY + totalOffsetY });
+            auto compositePos = stageToScreen({ greyDotX, greyDotY });
 
             // Draw thin grey line from input to composite position
             g.setColour(juce::Colours::grey);
@@ -2055,13 +2064,13 @@ private:
                    juce::Justification::centred);
 
         // Draw height indicator triangle if Z != 0
-        if (std::abs(posZ) > 0.01f)
+        if (std::abs(targetZ) > 0.01f)
         {
             juce::Path triangle;
             float triSize = 5.0f;
             float triOffset = markerRadius + 4.0f;
 
-            if (posZ > 0)  // Above ground
+            if (targetZ > 0)  // Above ground
             {
                 triangle.addTriangle(screenPos.x, screenPos.y - triOffset - triSize,
                                      screenPos.x - triSize, screenPos.y - triOffset,
@@ -2177,19 +2186,11 @@ private:
             if (isLocked)
                 continue;
 
-            // Get position - use speed-limited position if available
-            float posX, posY, posZ;
-            if (speedLimitedPositionCallback)
-            {
-                speedLimitedPositionCallback(i, posX, posY, posZ);
-            }
-            else
-            {
-                posX = static_cast<float>(parameters.getInputParam(i, "inputPositionX"));
-                posY = static_cast<float>(parameters.getInputParam(i, "inputPositionY"));
-            }
+            // Get TARGET position from ValueTree (main marker is displayed here)
+            float posX = static_cast<float>(parameters.getInputParam(i, "inputPositionX"));
+            float posY = static_cast<float>(parameters.getInputParam(i, "inputPositionY"));
 
-            // Apply flip (marker is displayed at flipped position)
+            // Apply flip (marker is displayed at flipped target position)
             bool flipX = static_cast<int>(parameters.getInputParam(i, "inputFlipX")) != 0;
             bool flipY = static_cast<int>(parameters.getInputParam(i, "inputFlipY")) != 0;
             if (flipX) posX = -posX;
