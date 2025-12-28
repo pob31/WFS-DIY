@@ -1340,11 +1340,6 @@ void WFSCalculationEngine::recalculateMatrix()
         // Get FR parameters
         float frAttenDb = hackousticsSection.getProperty(inputFRattenuation, -3.0f);
 
-        // Get input parameters for HF calculation
-        auto inputPosSection = valueTreeState.getInputPositionSection(inIdx);
-        int heightFactorPercent = inputPosSection.getProperty(inputHeightFactor, inputHeightFactorDefault);
-        float heightFactor = static_cast<float>(heightFactorPercent) / 100.0f;
-
         for (int outIdx = 0; outIdx < numOutputs; ++outIdx)
         {
             const size_t matrixIdx = static_cast<size_t>(inIdx * numOutputs + outIdx);

@@ -143,7 +143,7 @@ void NetworkLogTableComponent::drawHeader(juce::Graphics& g)
     g.fillRect(0, 0, getWidth(), headerHeight);
 
     g.setColour(juce::Colours::white);
-    g.setFont(juce::Font(13.0f).boldened());
+    g.setFont(juce::FontOptions(13.0f).withStyle("Bold"));
 
     int x = 4;
     int availableWidth = getWidth() - 12;  // Account for scrollbar
@@ -200,7 +200,7 @@ void NetworkLogTableComponent::drawRow(juce::Graphics& g, int rowIndex, int y, c
 
     // Text
     g.setColour(entry.isRejected ? juce::Colour(0xFFCC8888) : juce::Colours::white);
-    g.setFont(juce::Font(12.0f));
+    g.setFont(juce::FontOptions(12.0f));
 
     int x = 4;
     int fixedWidth = 0;

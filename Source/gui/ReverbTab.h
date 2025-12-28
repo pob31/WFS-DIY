@@ -109,6 +109,7 @@ public:
         }
 
         updateVisibility();
+        resized();  // Re-layout components after visibility change
         loadChannelParameters(currentChannel);
     }
 

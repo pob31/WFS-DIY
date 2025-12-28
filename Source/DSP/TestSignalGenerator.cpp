@@ -6,6 +6,7 @@ TestSignalGenerator::TestSignalGenerator()
 
 void TestSignalGenerator::prepare(double newSampleRate, int maxBlockSize)
 {
+    juce::ignoreUnused(maxBlockSize);
     sampleRate = newSampleRate;
 
     // Initialize pink noise state
@@ -229,8 +230,6 @@ float TestSignalGenerator::generateSweep()
 {
     // Logarithmic sweep from 20Hz to 20kHz over 1 second
     // Followed by 1 second of silence
-
-    float cyclePosition = sweepPosition / (sweepDuration + sweepGap);
 
     if (sweepPosition < sweepDuration)
     {

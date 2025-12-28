@@ -391,6 +391,7 @@ void PatchMatrixComponent::scrollBarMoved(juce::ScrollBar* bar, double newRangeS
 void PatchMatrixComponent::valueTreePropertyChanged(juce::ValueTree& tree,
                                                     const juce::Identifier& property)
 {
+    juce::ignoreUnused(tree);
     if (property == WFSParameterIDs::rows || property == WFSParameterIDs::cols)
     {
         updateChannelCounts();
@@ -413,6 +414,7 @@ void PatchMatrixComponent::valueTreePropertyChanged(juce::ValueTree& tree,
 
 void PatchMatrixComponent::valueTreeChildAdded(juce::ValueTree& parent, juce::ValueTree& child)
 {
+    juce::ignoreUnused(child);
     // Check if this is an input/output channel being added
     if (parent == channelsTree)
     {
@@ -423,6 +425,7 @@ void PatchMatrixComponent::valueTreeChildAdded(juce::ValueTree& parent, juce::Va
 
 void PatchMatrixComponent::valueTreeChildRemoved(juce::ValueTree& parent, juce::ValueTree& child, int index)
 {
+    juce::ignoreUnused(child, index);
     // Check if this is an input/output channel being removed
     if (parent == channelsTree)
     {
