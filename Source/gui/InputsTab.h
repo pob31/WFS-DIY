@@ -4129,6 +4129,10 @@ private:
         helpTextMap[&otomoStartButton] = "Start the Movement Manually.";
         helpTextMap[&otomoStopButton] = "Stop the Movement.";
         helpTextMap[&otomoPauseButton] = "Pause and Resume the Movement.";
+        helpTextMap[&otomoDurationDial] = "Duration of the Movement in Seconds (0.1s to 1 hour).";
+        helpTextMap[&otomoCurveDial] = "Bend the Path to the Left (Negative) or Right (Positive) of the Direction of Travel.";
+        helpTextMap[&otomoStopAllButton] = "Stop All Active Movements Globally.";
+        helpTextMap[&otomoPauseResumeAllButton] = "Pause or Resume All Active Movements Globally.";
         // Mutes tab
         for (int i = 0; i < 64; ++i)
             helpTextMap[&muteButtons[i]] = "Mute Output " + juce::String(i + 1) + " for this Object.";
@@ -4232,6 +4236,10 @@ private:
         oscMethodMap[&otomoStartButton] = "/wfs/input/otomoStart <ID>";
         oscMethodMap[&otomoStopButton] = "/wfs/input/otomoResume <ID>";
         oscMethodMap[&otomoPauseButton] = "/wfs/input/otomoPause <ID>";
+        oscMethodMap[&otomoDurationDial] = "/wfs/input/otomoDuration <ID> <value>";
+        oscMethodMap[&otomoCurveDial] = "/wfs/input/otomoCurve <ID> <value>";
+        oscMethodMap[&otomoStopAllButton] = "/wfs/input/otomoStopAll";
+        oscMethodMap[&otomoPauseResumeAllButton] = "/wfs/input/otomoPauseResumeAll";
         // Mutes tab
         for (int i = 0; i < 64; ++i)
             oscMethodMap[&muteButtons[i]] = "/wfs/input/mutes <ID> " + juce::String(i + 1) + " <value>";
