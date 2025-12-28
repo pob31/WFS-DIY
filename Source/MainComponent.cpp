@@ -1988,6 +1988,11 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
         startChannelSelection(ChannelSelectionMode::Reverb);
         return true;
     }
+    if (key.isKeyCode('M') && !key.getModifiers().isCommandDown())
+    {
+        tabbedComponent.setCurrentTabIndex(6);  // Map tab
+        return true;
+    }
 
     // Get current tab index for tab-specific shortcuts
     int currentTabIndex = tabbedComponent.getCurrentTabIndex();

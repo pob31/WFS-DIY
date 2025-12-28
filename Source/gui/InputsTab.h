@@ -3000,12 +3000,12 @@ private:
         rotationValueLabel.setText(juce::String(rotDegrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
 
         // Tilt stored as degrees (-90 to 90), default 0
-        // Inverse of: degrees = (x * 180) - 90 => x = (degrees + 90) / 180
+        // Bidirectional slider: v = degrees / 90 (maps -90..90 to -1..1)
         float tiltDeg = getFloatParam(WFSParameterIDs::inputTilt, 0.0f);
         tiltDeg = juce::jlimit(-90.0f, 90.0f, tiltDeg);
-        float tiltSliderVal = (tiltDeg + 90.0f) / 180.0f;
-        tiltSlider.setValue(juce::jlimit(0.0f, 1.0f, tiltSliderVal));
-        tiltValueLabel.setText(juce::String(tiltDeg, 1) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+        float tiltSliderVal = tiltDeg / 90.0f;
+        tiltSlider.setValue(juce::jlimit(-1.0f, 1.0f, tiltSliderVal));
+        tiltValueLabel.setText(juce::String(static_cast<int>(tiltDeg)) + juce::String::fromUTF8("°"), juce::dontSendNotification);
 
         // HF Shelf stored as dB (-24 to 0), default -6
         // Formula: dB = 20*log10(minLin + (1-minLin)*x^2), where minLin = pow(10, -24/20)
