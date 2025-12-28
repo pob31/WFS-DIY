@@ -50,17 +50,17 @@ const std::map<juce::Identifier, OSCMessageBuilder::ParamMapping>& OSCMessageBui
         { WFSParameterIDs::inputHFshelf,         { "/wfs/input/HFshelf",          "/remoteInput/HFshelf" } },
 
         // Live Source Tamer
-        { WFSParameterIDs::inputLSactive,        { "/wfs/input/LSenable",         "/remoteInput/LSenable" } },
-        { WFSParameterIDs::inputLSradius,        { "/wfs/input/LSradius",         "/remoteInput/LSradius" } },
-        { WFSParameterIDs::inputLSshape,         { "/wfs/input/LSshape",          "/remoteInput/LSshape" } },
-        { WFSParameterIDs::inputLSattenuation,   { "/wfs/input/LSattenuation",    "/remoteInput/LSattenuation" } },
-        { WFSParameterIDs::inputLSpeakThreshold, { "/wfs/input/LSpeakThreshold",  "/remoteInput/LSpeakThreshold" } },
-        { WFSParameterIDs::inputLSpeakRatio,     { "/wfs/input/LSpeakRatio",      "/remoteInput/LSpeakRatio" } },
-        { WFSParameterIDs::inputLSslowThreshold, { "/wfs/input/LSslowThreshold",  "/remoteInput/LSslowThreshold" } },
-        { WFSParameterIDs::inputLSslowRatio,     { "/wfs/input/LSslowRatio",      "/remoteInput/LSslowRatio" } },
+        { WFSParameterIDs::inputLSactive,        { "/wfs/input/LSactive",         "/remoteInput/liveSourceActive" } },
+        { WFSParameterIDs::inputLSradius,        { "/wfs/input/LSradius",         "/remoteInput/liveSourceRadius" } },
+        { WFSParameterIDs::inputLSshape,         { "/wfs/input/LSshape",          "/remoteInput/liveSourceShape" } },
+        { WFSParameterIDs::inputLSattenuation,   { "/wfs/input/LSattenuation",    "/remoteInput/liveSourceAttenuation" } },
+        { WFSParameterIDs::inputLSpeakThreshold, { "/wfs/input/LSpeakThreshold",  "/remoteInput/liveSourcePeakThreshold" } },
+        { WFSParameterIDs::inputLSpeakRatio,     { "/wfs/input/LSpeakRatio",      "/remoteInput/liveSourcePeakRatio" } },
+        { WFSParameterIDs::inputLSslowThreshold, { "/wfs/input/LSslowThreshold",  "/remoteInput/liveSourceSlowThreshold" } },
+        { WFSParameterIDs::inputLSslowRatio,     { "/wfs/input/LSslowRatio",      "/remoteInput/liveSourceSlowRatio" } },
 
         // Hackoustics (Floor Reflections)
-        { WFSParameterIDs::inputFRactive,            { "/wfs/input/FRenable",             "/remoteInput/FRenable" } },
+        { WFSParameterIDs::inputFRactive,            { "/wfs/input/FRactive",             "/remoteInput/FRactive" } },
         { WFSParameterIDs::inputFRattenuation,       { "/wfs/input/FRattenuation",        "/remoteInput/FRattenuation" } },
         { WFSParameterIDs::inputFRlowCutActive,      { "/wfs/input/FRlowCutActive",       "/remoteInput/FRlowCutActive" } },
         { WFSParameterIDs::inputFRlowCutFreq,        { "/wfs/input/FRlowCutFreq",         "/remoteInput/FRlowCutFreq" } },
@@ -74,7 +74,7 @@ const std::map<juce::Identifier, OSCMessageBuilder::ParamMapping>& OSCMessageBui
         { WFSParameterIDs::inputJitter,          { "/wfs/input/jitter",           "/remoteInput/jitter" } },
 
         // LFO
-        { WFSParameterIDs::inputLFOactive,       { "/wfs/input/LFOenable",        "/remoteInput/LFOenable" } },
+        { WFSParameterIDs::inputLFOactive,       { "/wfs/input/LFOactive",        "/remoteInput/LFOactive" } },
         { WFSParameterIDs::inputLFOperiod,       { "/wfs/input/LFOperiod",        "/remoteInput/LFOperiod" } },
         { WFSParameterIDs::inputLFOphase,        { "/wfs/input/LFOphase",         "/remoteInput/LFOphase" } },
         { WFSParameterIDs::inputLFOshapeX,       { "/wfs/input/LFOshapeX",        "/remoteInput/LFOshapeX" } },
@@ -92,16 +92,16 @@ const std::map<juce::Identifier, OSCMessageBuilder::ParamMapping>& OSCMessageBui
         { WFSParameterIDs::inputLFOgyrophone,    { "/wfs/input/LFOgyrophone",     "/remoteInput/LFOgyrophone" } },
 
         // AutomOtion
-        { WFSParameterIDs::inputOtomoX,                  { "/wfs/input/otomoX",              "/remoteInput/otomoX" } },
-        { WFSParameterIDs::inputOtomoY,                  { "/wfs/input/otomoY",              "/remoteInput/otomoY" } },
-        { WFSParameterIDs::inputOtomoZ,                  { "/wfs/input/otomoZ",              "/remoteInput/otomoZ" } },
-        { WFSParameterIDs::inputOtomoAbsoluteRelative,   { "/wfs/input/otomoAbsRel",         "/remoteInput/otomoAbsRel" } },
-        { WFSParameterIDs::inputOtomoStayReturn,         { "/wfs/input/otomoStayReturn",     "/remoteInput/otomoStayReturn" } },
-        { WFSParameterIDs::inputOtomoSpeedProfile,       { "/wfs/input/otomoSpeedProfile",   "/remoteInput/otomoSpeedProfile" } },
-        { WFSParameterIDs::inputOtomoTrigger,            { "/wfs/input/otomoTrigger",        "/remoteInput/otomoTrigger" } },
-        { WFSParameterIDs::inputOtomoThreshold,          { "/wfs/input/otomoThreshold",      "/remoteInput/otomoThreshold" } },
-        { WFSParameterIDs::inputOtomoReset,              { "/wfs/input/otomoReset",          "/remoteInput/otomoReset" } },
-        { WFSParameterIDs::inputOtomoPauseResume,        { "/wfs/input/otomoPauseResume",    "/remoteInput/otomoPauseResume" } },
+        { WFSParameterIDs::inputOtomoX,                  { "/wfs/input/otomoX",                  "/remoteInput/otomoX" } },
+        { WFSParameterIDs::inputOtomoY,                  { "/wfs/input/otomoY",                  "/remoteInput/otomoY" } },
+        { WFSParameterIDs::inputOtomoZ,                  { "/wfs/input/otomoZ",                  "/remoteInput/otomoZ" } },
+        { WFSParameterIDs::inputOtomoAbsoluteRelative,   { "/wfs/input/otomoAbsoluteRelative",   "/remoteInput/otomoAbsoluteRelative" } },
+        { WFSParameterIDs::inputOtomoStayReturn,         { "/wfs/input/otomoStayReturn",         "/remoteInput/otomoStayReturn" } },
+        { WFSParameterIDs::inputOtomoSpeedProfile,       { "/wfs/input/otomoSpeed",              "/remoteInput/otomoSpeed" } },
+        { WFSParameterIDs::inputOtomoTrigger,            { "/wfs/input/otomoTrigger",            "/remoteInput/otomoTrigger" } },
+        { WFSParameterIDs::inputOtomoThreshold,          { "/wfs/input/otomoTriggerThreshold",   "/remoteInput/otomoTriggerThreshold" } },
+        { WFSParameterIDs::inputOtomoReset,              { "/wfs/input/otomoTriggerReset",       "/remoteInput/otomoTriggerReset" } },
+        { WFSParameterIDs::inputOtomoPauseResume,        { "/wfs/input/otomoPauseResume",        "/remoteInput/otomoPauseResume" } },
 
         // Mutes
         { WFSParameterIDs::inputMutes,           { "/wfs/input/mutes",            "/remoteInput/mutes" } },
@@ -319,6 +319,18 @@ juce::OSCMessage OSCMessageBuilder::buildMessage(
     juce::OSCMessage msg(address);
     msg.addInt32(channelId);
     msg.addString(value);
+    return msg;
+}
+
+juce::OSCMessage OSCMessageBuilder::buildRemotePositionXYMessage(
+    int channelId,
+    float normX,
+    float normY)
+{
+    juce::OSCMessage msg("/remoteInput/positionXY");
+    msg.addInt32(channelId);
+    msg.addFloat32(normX);
+    msg.addFloat32(normY);
     return msg;
 }
 

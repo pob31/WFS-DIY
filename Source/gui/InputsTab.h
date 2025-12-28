@@ -4234,7 +4234,7 @@ private:
         oscMethodMap[&otomoThresholdDial] = "/wfs/input/otomoTriggerThreshold <ID> <value>";
         oscMethodMap[&otomoResetDial] = "/wfs/input/otomoTriggerReset <ID> <value>";
         oscMethodMap[&otomoStartButton] = "/wfs/input/otomoStart <ID>";
-        oscMethodMap[&otomoStopButton] = "/wfs/input/otomoResume <ID>";
+        oscMethodMap[&otomoStopButton] = "/wfs/input/otomoStop <ID>";
         oscMethodMap[&otomoPauseButton] = "/wfs/input/otomoPause <ID>";
         oscMethodMap[&otomoDurationDial] = "/wfs/input/otomoDuration <ID> <value>";
         oscMethodMap[&otomoCurveDial] = "/wfs/input/otomoCurve <ID> <value>";

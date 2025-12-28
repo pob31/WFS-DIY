@@ -298,7 +298,8 @@ bool OSCMessageRouter::isReverbAddress(const juce::String& address)
 
 bool OSCMessageRouter::isRemoteInputAddress(const juce::String& address)
 {
-    return address.startsWith("/remoteInput/");
+    // Accept both /remoteInput/ and /marker/ prefixes (Android app uses /marker/)
+    return address.startsWith("/remoteInput/") || address.startsWith("/marker/");
 }
 
 bool OSCMessageRouter::isArrayAdjustAddress(const juce::String& address)

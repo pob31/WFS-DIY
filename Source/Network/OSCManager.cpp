@@ -449,6 +449,20 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
     if (channelId < 0)
         return;
 
+    // Track position changes for batched positionXY (all inputs, not just selected)
+    // This enables 20Hz position updates for Remote protocol
+    if (isInput && !suppressPositionXYEcho &&
+        (property == WFSParameterIDs::inputPositionX ||
+         property == WFSParameterIDs::inputPositionY))
+    {
+        bool isNumericValue = value.isDouble() || value.isInt() || value.isInt64();
+        if (isNumericValue)
+        {
+            trackPositionChange(channelId, property,
+                static_cast<float>(static_cast<double>(value)));
+        }
+    }
+
     // Send to appropriate targets based on protocol
     for (int i = 0; i < MAX_TARGETS; ++i)
     {
@@ -787,6 +801,16 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
 
 void OSCManager::handleRemoteInputMessage(const juce::OSCMessage& message)
 {
+    // Handle combined positionXY message first (before standard parsing)
+    juce::String address = message.getAddressPattern().toString();
+    juce::String paramName = address.substring(address.lastIndexOf("/") + 1);
+
+    if (paramName == "positionXY")
+    {
+        handleRemotePositionXY(message);
+        return;
+    }
+
     auto parsed = OSCMessageRouter::parseRemoteInputMessage(message);
 
     if (!parsed.valid)
@@ -1102,6 +1126,146 @@ void OSCManager::updateTargetStatus(int targetIndex, ConnectionStatus newStatus)
 
     if (onConnectionStatusChanged)
         onConnectionStatusChanged(targetIndex, newStatus);
+}
+
+//==============================================================================
+// Coordinate Conversion
+//==============================================================================
+
+float OSCManager::metersToNormalizedX(float meters) const
+{
+    auto stageTree = state.getStageState();
+    float stageWidth = stageTree.isValid()
+        ? static_cast<float>(stageTree.getProperty(WFSParameterIDs::stageWidth))
+        : 20.0f;
+    return (meters + stageWidth / 2.0f) / stageWidth;
+}
+
+float OSCManager::metersToNormalizedY(float meters) const
+{
+    auto stageTree = state.getStageState();
+    float stageDepth = stageTree.isValid()
+        ? static_cast<float>(stageTree.getProperty(WFSParameterIDs::stageDepth))
+        : 10.0f;
+    return meters / stageDepth;
+}
+
+float OSCManager::normalizedToMetersX(float normalized) const
+{
+    auto stageTree = state.getStageState();
+    float stageWidth = stageTree.isValid()
+        ? static_cast<float>(stageTree.getProperty(WFSParameterIDs::stageWidth))
+        : 20.0f;
+    return (normalized * stageWidth) - (stageWidth / 2.0f);
+}
+
+float OSCManager::normalizedToMetersY(float normalized) const
+{
+    auto stageTree = state.getStageState();
+    float stageDepth = stageTree.isValid()
+        ? static_cast<float>(stageTree.getProperty(WFSParameterIDs::stageDepth))
+        : 10.0f;
+    return normalized * stageDepth;
+}
+
+//==============================================================================
+// Position Batching for Remote Protocol
+//==============================================================================
+
+void OSCManager::trackPositionChange(int channelId, const juce::Identifier& paramId, float value)
+{
+    auto& pending = pendingPositions[channelId];
+    if (paramId == WFSParameterIDs::inputPositionX)
+    {
+        pending.x = value;
+        pending.xChanged = true;
+    }
+    else if (paramId == WFSParameterIDs::inputPositionY)
+    {
+        pending.y = value;
+        pending.yChanged = true;
+    }
+
+    // Check if it's time to flush (end of 20Hz cycle)
+    auto now = juce::Time::currentTimeMillis();
+    if (now - lastPositionBatchTime >= POSITION_BATCH_INTERVAL_MS)
+    {
+        flushPositionBatch();
+        lastPositionBatchTime = now;
+    }
+}
+
+void OSCManager::flushPositionBatch()
+{
+    if (pendingPositions.empty())
+        return;
+
+    for (auto& [channelId, pending] : pendingPositions)
+    {
+        if (!pending.xChanged && !pending.yChanged)
+            continue;
+
+        // Get current values for unchanged coordinates
+        if (!pending.xChanged)
+        {
+            juce::var val = state.getInputParameter(channelId, WFSParameterIDs::inputPositionX);
+            pending.x = val.isDouble() ? static_cast<float>(static_cast<double>(val)) : 0.0f;
+        }
+        if (!pending.yChanged)
+        {
+            juce::var val = state.getInputParameter(channelId, WFSParameterIDs::inputPositionY);
+            pending.y = val.isDouble() ? static_cast<float>(static_cast<double>(val)) : 0.0f;
+        }
+
+        // Convert meters to normalized coordinates
+        float normX = metersToNormalizedX(pending.x);
+        float normY = metersToNormalizedY(pending.y);
+
+        // Build message (1-based channel ID for OSC)
+        auto msg = OSCMessageBuilder::buildRemotePositionXYMessage(channelId + 1, normX, normY);
+
+        // Send to all Remote targets
+        for (int i = 0; i < MAX_TARGETS; ++i)
+        {
+            const auto& config = targetConfigs[static_cast<size_t>(i)];
+            if (config.protocol == Protocol::Remote && config.txEnabled)
+            {
+                sendMessage(i, msg);
+            }
+        }
+    }
+    pendingPositions.clear();
+}
+
+void OSCManager::handleRemotePositionXY(const juce::OSCMessage& message)
+{
+    // Format: /remoteInput/positionXY <ID> <normX> <normY> (normalized 0.0-1.0)
+    // Also accept: /marker/positionXY from Android
+    if (message.size() < 3)
+        return;
+
+    int channelId = OSCMessageRouter::extractInt(message[0]) - 1;  // Convert to 0-based
+    float normX = OSCMessageRouter::extractFloat(message[1]);
+    float normY = OSCMessageRouter::extractFloat(message[2]);
+
+    if (channelId < 0)
+        return;
+
+    juce::MessageManager::callAsync([this, channelId, normX, normY]()
+    {
+        suppressPositionXYEcho = true;  // Prevent echo
+        incomingProtocol = Protocol::Remote;
+
+        // Convert normalized to meters
+        float metersX = normalizedToMetersX(normX);
+        float metersY = normalizedToMetersY(normY);
+
+        state.setInputParameter(channelId, WFSParameterIDs::inputPositionX, metersX);
+        state.setInputParameter(channelId, WFSParameterIDs::inputPositionY, metersY);
+
+        incomingProtocol = Protocol::Disabled;
+        suppressPositionXYEcho = false;
+    });
 }
 
 } // namespace WFSNetwork
