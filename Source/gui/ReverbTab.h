@@ -86,7 +86,31 @@ public:
     int getNumChannels() const { return channelSelector.getNumChannels(); }
 
     /** Refresh UI from ValueTree - call after config reload */
-    void refreshFromValueTree() { loadChannelParameters(currentChannel); }
+    void refreshFromValueTree()
+    {
+        // Re-acquire ioTree reference in case config was replaced (e.g., copyPropertiesAndChildrenFrom)
+        auto newIOTree = parameters.getConfigTree().getChildWithName(WFSParameterIDs::IO);
+        if (newIOTree != ioTree)
+        {
+            if (ioTree.isValid())
+                ioTree.removeListener(this);
+            ioTree = newIOTree;
+            if (ioTree.isValid())
+                ioTree.addListener(this);
+        }
+
+        // Update channel selector count
+        int numReverbs = parameters.getNumReverbChannels();
+        if (numReverbs > 0)
+        {
+            channelSelector.setNumChannels(numReverbs);
+            if (currentChannel > numReverbs)
+                currentChannel = 1;
+        }
+
+        updateVisibility();
+        loadChannelParameters(currentChannel);
+    }
 
     /** Callback when reverb config is reloaded - for triggering DSP recalculation */
     std::function<void()> onConfigReloaded;

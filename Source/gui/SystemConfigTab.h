@@ -190,8 +190,7 @@ class SystemConfigTab : public juce::Component,
 public:
     // Callback types for notifying MainComponent of changes
     using ProcessingCallback = std::function<void(bool enabled)>;
-    using ChannelCountCallback = std::function<void(int inputs, int outputs)>;
-    using ReverbCountCallback = std::function<void(int reverbs)>;
+    using ChannelCountCallback = std::function<void(int inputs, int outputs, int reverbs)>;
     using AudioInterfaceCallback = std::function<void()>;
     using ConfigReloadedCallback = std::function<void()>;
 
@@ -639,11 +638,6 @@ public:
         onAudioInterfaceWindowRequested = callback;
     }
 
-    void setReverbCountCallback(ReverbCountCallback callback)
-    {
-        onReverbCountChanged = callback;
-    }
-
     void setConfigReloadedCallback(ConfigReloadedCallback callback)
     {
         onConfigReloaded = callback;
@@ -729,11 +723,11 @@ private:
         else if (&editor == &showLocationEditor)
             editor.setText(parameters.getConfigParam("ShowLocation").toString(), false);
         else if (&editor == &inputChannelsEditor)
-            editor.setText(parameters.getConfigParam("InputChannels").toString(), false);
+            editor.setText(juce::String(parameters.getNumInputChannels()), false);
         else if (&editor == &outputChannelsEditor)
-            editor.setText(parameters.getConfigParam("OutputChannels").toString(), false);
+            editor.setText(juce::String(parameters.getNumOutputChannels()), false);
         else if (&editor == &reverbChannelsEditor)
-            editor.setText(parameters.getConfigParam("ReverbChannels").toString(), false);
+            editor.setText(juce::String(parameters.getNumReverbChannels()), false);
         else if (&editor == &stageWidthEditor)
             editor.setText(juce::String((float)parameters.getConfigParam("StageWidth"), 2), false);
         else if (&editor == &stageDepthEditor)
@@ -782,10 +776,10 @@ private:
         showNameEditor.setText(parameters.getConfigParam("ShowName").toString(), false);
         showLocationEditor.setText(parameters.getConfigParam("ShowLocation").toString(), false);
 
-        // Integer values
-        inputChannelsEditor.setText(parameters.getConfigParam("InputChannels").toString(), false);
-        outputChannelsEditor.setText(parameters.getConfigParam("OutputChannels").toString(), false);
-        reverbChannelsEditor.setText(parameters.getConfigParam("ReverbChannels").toString(), false);
+        // Channel counts - use dedicated getters for reliable values
+        inputChannelsEditor.setText(juce::String(parameters.getNumInputChannels()), false);
+        outputChannelsEditor.setText(juce::String(parameters.getNumOutputChannels()), false);
+        reverbChannelsEditor.setText(juce::String(parameters.getNumReverbChannels()), false);
 
         // Float values - format with 2 decimal places to avoid precision issues
         stageWidthEditor.setText(juce::String((float)parameters.getConfigParam("StageWidth"), 2), false);
@@ -824,36 +818,20 @@ private:
         else if (&editor == &inputChannelsEditor)
         {
             int inputs = text.getIntValue();
-            // This creates the actual input channel nodes in the ValueTree
             parameters.setNumInputChannels(inputs);
-            // Notify MainComponent of channel count change
-            if (onChannelCountChanged)
-            {
-                int outputs = (int)parameters.getConfigParam("OutputChannels");
-                onChannelCountChanged(inputs, outputs);
-            }
+            notifyChannelCountChanged();
         }
         else if (&editor == &outputChannelsEditor)
         {
             int outputs = text.getIntValue();
-            // This creates the actual output channel nodes in the ValueTree
             parameters.setNumOutputChannels(outputs);
-            // Notify MainComponent of channel count change
-            if (onChannelCountChanged)
-            {
-                int inputs = (int)parameters.getConfigParam("InputChannels");
-                onChannelCountChanged(inputs, outputs);
-            }
+            notifyChannelCountChanged();
         }
         else if (&editor == &reverbChannelsEditor)
         {
-            // This creates the actual reverb channel nodes in the ValueTree
             int reverbs = text.getIntValue();
             parameters.setNumReverbChannels(reverbs);
-
-            // Notify MainComponent of the change
-            if (onReverbCountChanged)
-                onReverbCountChanged(reverbs);
+            notifyChannelCountChanged();
         }
         else if (&editor == &stageWidthEditor)
             parameters.setConfigParam("StageWidth", text.getFloatValue());
@@ -1082,19 +1060,7 @@ private:
         // Some files may have loaded successfully (e.g., system and outputs but not reverbs)
 
         // Notify MainComponent of channel count changes to refresh UI
-        if (onChannelCountChanged)
-        {
-            int inputs = static_cast<int>(parameters.getConfigParam("InputChannels"));
-            int outputs = static_cast<int>(parameters.getConfigParam("OutputChannels"));
-            onChannelCountChanged(inputs, outputs);
-        }
-
-        // Notify MainComponent of reverb count changes
-        if (onReverbCountChanged)
-        {
-            int reverbs = static_cast<int>(parameters.getConfigParam("ReverbChannels"));
-            onReverbCountChanged(reverbs);
-        }
+        notifyChannelCountChanged();
 
         // Refresh the UI to show loaded values
         loadParametersToUI();
@@ -1131,19 +1097,7 @@ private:
         // Always refresh UI and trigger recalculation, even on partial load
 
         // Notify MainComponent of channel count changes to refresh UI
-        if (onChannelCountChanged)
-        {
-            int inputs = static_cast<int>(parameters.getConfigParam("InputChannels"));
-            int outputs = static_cast<int>(parameters.getConfigParam("OutputChannels"));
-            onChannelCountChanged(inputs, outputs);
-        }
-
-        // Notify MainComponent of reverb count changes
-        if (onReverbCountChanged)
-        {
-            int reverbs = static_cast<int>(parameters.getConfigParam("ReverbChannels"));
-            onReverbCountChanged(reverbs);
-        }
+        notifyChannelCountChanged();
 
         // Refresh the UI to show loaded values
         loadParametersToUI();
@@ -1449,9 +1403,20 @@ private:
     // Callbacks for notifying MainComponent
     ProcessingCallback onProcessingChanged;
     ChannelCountCallback onChannelCountChanged;
-    ReverbCountCallback onReverbCountChanged;
     AudioInterfaceCallback onAudioInterfaceWindowRequested;
     ConfigReloadedCallback onConfigReloaded;
+
+    // Helper to notify MainComponent of any channel count change
+    void notifyChannelCountChanged()
+    {
+        if (onChannelCountChanged)
+        {
+            int inputs = parameters.getNumInputChannels();
+            int outputs = parameters.getNumOutputChannels();
+            int reverbs = parameters.getNumReverbChannels();
+            onChannelCountChanged(inputs, outputs, reverbs);
+        }
+    }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SystemConfigTab)
 };

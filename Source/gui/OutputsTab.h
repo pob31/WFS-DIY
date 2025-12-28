@@ -179,7 +179,30 @@ public:
     int getNumChannels() const { return parameters.getNumOutputChannels(); }
 
     /** Refresh UI from ValueTree - call after config reload */
-    void refreshFromValueTree() { loadChannelParameters(currentChannel); }
+    void refreshFromValueTree()
+    {
+        // Re-acquire ioTree reference in case config was replaced (e.g., copyPropertiesAndChildrenFrom)
+        auto newIOTree = parameters.getConfigTree().getChildWithName(WFSParameterIDs::IO);
+        if (newIOTree != ioTree)
+        {
+            if (ioTree.isValid())
+                ioTree.removeListener(this);
+            ioTree = newIOTree;
+            if (ioTree.isValid())
+                ioTree.addListener(this);
+        }
+
+        // Update channel selector count
+        int numOutputs = parameters.getNumOutputChannels();
+        if (numOutputs > 0)
+        {
+            channelSelector.setNumChannels(numOutputs);
+            if (currentChannel > numOutputs)
+                currentChannel = 1;
+        }
+
+        loadChannelParameters(currentChannel);
+    }
 
     /** Callback when output config is reloaded - for triggering DSP recalculation */
     std::function<void()> onConfigReloaded;

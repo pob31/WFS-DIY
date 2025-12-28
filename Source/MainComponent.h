@@ -183,8 +183,7 @@ private:
 
     // Handlers for callbacks from System Config tab
     void handleProcessingChange(bool enabled);
-    void handleChannelCountChange(int inputs, int outputs);
-    void handleReverbCountChange(int reverbs);
+    void handleChannelCountChange(int inputs, int outputs, int reverbs);
     void handleConfigReloaded();
 
     // Keyboard handling helpers

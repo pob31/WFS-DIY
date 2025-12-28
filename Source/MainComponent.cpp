@@ -190,12 +190,8 @@ MainComponent::MainComponent()
         handleProcessingChange(enabled);
     });
 
-    systemConfigTab->setChannelCountCallback([this](int inputs, int outputs) {
-        handleChannelCountChange(inputs, outputs);
-    });
-
-    systemConfigTab->setReverbCountCallback([this](int reverbs) {
-        handleReverbCountChange(reverbs);
+    systemConfigTab->setChannelCountCallback([this](int inputs, int outputs, int reverbs) {
+        handleChannelCountChange(inputs, outputs, reverbs);
     });
 
     systemConfigTab->setAudioInterfaceCallback([this]() {
@@ -739,29 +735,23 @@ void MainComponent::handleProcessingChange(bool enabled)
     }
 }
 
-void MainComponent::handleChannelCountChange(int inputs, int outputs)
+void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverbs)
 {
     numInputChannels = inputs;
     numOutputChannels = outputs;
     stopProcessingForConfigurationChange();
     resizeRoutingMatrices();
 
-    // Reconfigure visualisation with new channel counts
+    // Refresh all tabs to update channel selectors
     if (inputsTab != nullptr)
     {
-        inputsTab->configureVisualisation(outputs,
-                                          parameters.getNumReverbChannels());
+        inputsTab->refreshFromValueTree();
+        inputsTab->configureVisualisation(outputs, reverbs);
     }
-}
-
-void MainComponent::handleReverbCountChange(int reverbs)
-{
-    // Reconfigure visualisation with new reverb count
-    if (inputsTab != nullptr)
-    {
-        inputsTab->configureVisualisation(parameters.getNumOutputChannels(),
-                                          reverbs);
-    }
+    if (outputsTab != nullptr)
+        outputsTab->refreshFromValueTree();
+    if (reverbTab != nullptr)
+        reverbTab->refreshFromValueTree();
 }
 
 void MainComponent::handleConfigReloaded()
