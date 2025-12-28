@@ -1618,6 +1618,16 @@ private:
             statusBar->clearText();
     }
 
+    void mouseDown(const juce::MouseEvent& e) override
+    {
+        // Refresh network interfaces when clicking on the dropdown
+        // This allows detecting newly connected adapters
+        if (e.eventComponent == &networkInterfaceSelector)
+        {
+            refreshNetworkInterfacesBeforePopup();
+        }
+    }
+
     void updateParameterFromEditor(juce::TextEditor* editor)
     {
         juce::String text = editor->getText();
@@ -1731,6 +1741,30 @@ private:
                 if (index < interfaceIPs.size())
                     currentIPEditor.setText(interfaceIPs[index], false);
             }
+        }
+    }
+
+    void refreshNetworkInterfacesBeforePopup()
+    {
+        // Remember current selection
+        juce::String previousSelection;
+        int selectedId = networkInterfaceSelector.getSelectedId();
+        if (selectedId > 0)
+        {
+            int index = selectedId - 1;
+            if (index < interfaceNames.size())
+                previousSelection = interfaceNames[index];
+        }
+
+        // Refresh the interface list
+        populateNetworkInterfaces();
+
+        // Try to re-select the previously selected interface
+        if (previousSelection.isNotEmpty())
+        {
+            int newIndex = interfaceNames.indexOf(previousSelection);
+            if (newIndex >= 0)
+                networkInterfaceSelector.setSelectedId(newIndex + 1, juce::dontSendNotification);
         }
     }
 
