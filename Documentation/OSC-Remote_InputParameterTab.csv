@@ -1,0 +1,55 @@
+Variable group	Label	Variable	OSC path	Incoming	Outgoing	UI	Type	Min	Max	Formula (x from 0.0 to 1.0)	Unit	enum	Note
+Input	Input Number	inputNumber	/remoteInput/inputNumber	no	YES	??	INT	1	64				max is numberOfInputs
+Input	Input Name	inputName	/remoteInput/inputName	YES	YES	Text box	STRING						
+Input	Attenuation	attenuation	/remoteInput/attenuation	YES	YES	V Slider	FLOAT	-92.0	0.0	20*log10(pow(10,-92./20.)+((1-pow(10,-92./20.))*pow(x,2)))	dB		
+Input	Delay/Latency comp.	delayLatency	/remoteInput/delayLatency	YES	YES	H Bidirectional slider	FLOAT	-100.0	100.0	(x*200.0)-100.0	ms		
+Input	Minimal Latency	minimalLatency	/remoteInput/minimalLatency	YES	YES	Text button	INT	0	1			Acoustic Precedence ; Minimal Latency	
+Input	Position X	positionX	/remoteInput/positionX	YES	YES	Number box	FLOAT	0.0	50.0		m		incremented or decremented by horizontal axis of JoystickXY
+Input	Position Y	positionY	/remoteInput/positionY	YES	YES	Number box	FLOAT	0.0	50.0		m		incremented or decremented by vertical axis of JoystickXY
+Input	Position Z	positionZ	/remoteInput/positionZ	YES	YES	Number box	FLOAT	0.0	50.0		m		incremented or decremented by V slider with return to zero
+Input	Cluster	cluster	/remoteInput/cluster	YES	YES	Drop down menu	INT	0.	10			none ; Cluster 1 ; Cluster 2 ; Cluster 3 ; Cluster 4 ; Cluster 5 ; Cluster 6 ; Cluster 7 ; Cluster 8 ; Cluster 9 ; Cluster 10	
+Input	Max Speed Active	maxSpeedActive	/remoteInput/maxSpeedActive	YES	YES	Text button	INT	0	1			ON ; OFF	
+Input	Max Speed	maxSpeed	/remoteInput/maxSpeed	YES	YES	Dial	FLOAT	0.01	20.0	x*19.99+0.01	m/s		
+Input	Height Factor	heightFactor	/remoteInput/heightFactor	YES	YES	Dial	INT	0	100	x*100	%		
+Input	Attenuation Law	attenuationLaw	/remoteInput/attenuationLaw	YES	YES	Text button	INT	0	1			Log ; 1/d²	
+Input	Distance Attenuation	distanceAttenuation	/remoteInput/distanceAttenuation	YES	YES	Dial	FLOAT	-6.0	0.0	(x*6.0)-6.0	dB/m		visible if AttenuationLaw == 0 (shares the same position as Dial distanceRatio)
+Input	Distance Ratio	distanceRatio	/remoteInput/distanceRatio	YES	YES	Dial	FLOAT	0.1	10.0	pow(10.0,(x*2.0)-1.0)	x		visible if AttenuationLaw == 1 (shares the same position as Dial distanceAttenuation)
+Input	Common Attenuation	commonAtten	/remoteInput/commonAtten	YES	YES	Dial	INT	0	100	x*100	%		
+Directivity	Directivity	directivity	/remoteInput/directivity	YES	YES	H range Slider	INT	2	360	(x*358)+2	°		
+Directivity	Rotation	rotation	/remoteInput/rotation	YES	YES	Direction dial	INT	-179	180	(x*360)-180	°		
+Directivity	Tilt	tilt	/remoteInput/tilt	YES	YES	V Bidirectional slider	INT	-90	90	(x*180)-90	°		
+Directivity	HF Shelf	HFshelf	/remoteInput/HFshelf	YES	YES	V Slider	FLOAT	-24.0	0.0	20*log10(pow(10,-24./20.)+((1-pow(10,-24./20.))*pow(x,2)))	dB		
+Live Source Attenuation	Active	liveSourceActive	/remoteInput/liveSourceActive	YES	YES	Text button	INT	0	1			ON ; OFF	
+Live Source Attenuation	Radius	liveSourceRadius	/remoteInput/liveSourceRadius	YES	YES	H range Slider	FLOAT	0.0	50.0	x*50.0	m		Greyed out but editable when liveSourceActive == 0
+Live Source Attenuation	Shape	liveSourceShape	/remoteInput/liveSourceShape	YES	YES	Drop down menu	INT	0	3			linear ; log ; square d² ; sine	Greyed out but editable when liveSourceActive == 0
+Live Source Attenuation	Attenuation	liveSourceAttenuation	/remoteInput/liveSourceAttenuation	YES	YES	V Slider	FLOAT	-24.0	0.0	20*log10(pow(10,-24./20.)+((1-pow(10,-24./20.))*pow(x,2)))	dB		Greyed out but editable when liveSourceActive == 0
+Live Source Attenuation	Peak Threshold	liveSourcePeakThreshold	/remoteInput/liveSourcePeakThreshold	YES	YES	V Slider	FLOAT	-48.0	0.0	20*log10(pow(10,-48./20.)+((1-pow(10,-48./20.))*pow(x,2)))	dB		Greyed out but editable when liveSourceActive == 0
+Live Source Attenuation	Peak Ratio	liveSourcePeakRatio	/remoteInput/liveSourcePeakRatio	YES	YES	Dial	FLOAT	1.0	10.0	(x*9.0)+1			Greyed out but editable when liveSourceActive == 0
+Live Source Attenuation	Slow Threshold	liveSourceSlowThreshold	/remoteInput/liveSourceSlowThreshold	YES	YES	V Slider	FLOAT	-48.0	0.0	20*log10(pow(10,-48./20.)+((1-pow(10,-48./20.))*pow(x,2)))	dB		Greyed out but editable when liveSourceActive == 0
+Live Source Attenuation	Slow Ratio	liveSourceSlowRatio	/remoteInput/liveSourceSlowRatio	YES	YES	Dial	FLOAT	1.0	10.0	(x*9.0)+1			Greyed out but editable when liveSourceActive == 0
+Floor Reflections	Active	FRactive	/remoteInput/FRactive	YES	YES	Text button	INT	0	1			ON ; OFF	
+Floor Reflections	Attenuation	Frattenuation	/remoteInput/Frattenuation	YES	YES	V Slider	FLOAT	-60.0	0.0	20*log10(pow(10,-60./20.)+((1-pow(10,-60./20.))*pow(x,2)))	dB		Greyed out but editable when FRactive == 0
+Floor Reflections	Low Cut Active	FRlowCutActive	/remoteInput/FRlowCutActive	YES	YES	Text button	INT	0	1			ON ; OFF	Greyed out but editable when FRactive == 0
+Floor Reflections	Low Cut Freq	FRlowCutFreq	/remoteInput/FrlowCutFreq	YES	YES	H Slider	INT	20	20000	20*pow(10,4*x)	Hz		Greyed out but editable when FRactive == 0 or FRlowCutActive == 0
+Floor Reflections	High Shelf Active	FRhighShelfActive	/remoteInput/FRhighShelfActive	YES	YES	Text button	INT	0	1			ON ; OFF	Greyed out but editable when FRactive == 0
+Floor Reflections	High Shelf Freq	FRhighShelfFreq	/remoteInput/FRhighShelfFreq	YES	YES	H Slider	INT	20	20000	20*pow(10,4*x)	Hz		Greyed out but editable when FRactive == 0 or FRhighShelfActive == 0
+Floor Reflections	High Shelf Gain	FRhighShelfGain	/remoteInput/FRhighShelfGain	YES	YES	V Slider	FLOAT	-24.0	0.0	20*log10(pow(10,-24./20.)+((1-pow(10,-24./20.))*pow(x,2)))	dB		Greyed out but editable when FRactive == 0 or FRhighShelfActive == 0
+Floor Reflections	High Shelf Slope	FRhighShelfSlope	/remoteInput/FRhighShelfSlope	YES	YES	H Slider	FLOAT	0.1	0.9	(x*0.8)+0.1			Greyed out but editable when FRactive == 0 or FRhighShelfActive == 0
+Floor Reflections	Diffusion	FRdiffusion	/remoteInput/FRdiffusion	YES	YES	Dial	INT	0	100	x*100	%		Greyed out but editable when FRactive == 0
+Jitter	Jitter	jitter	/remoteInput/jitter	YES	YES	H range Slider	FLOAT	0.0	10.0	10*pow(x,2)	m		
+LFO	Active	LFOactive	/remoteInput/LFOactive	YES	YES	Text button	INT	0	1			ON ; OFF	
+LFO	Period	LFOperiod	/remoteInput/LFOperiod	YES	YES	Dial	FLOAT	0.01	100.0	pow(10.0,sqrt(x)*4.0-2.0)	s		Greyed out but editable when LFOactive == 0
+LFO	Phase	LFOphase	/remoteInput/LFOphase	YES	YES	Direction dial	INT	0	360	x*360	°		Greyed out but editable when LFOactive == 0
+LFO	Shape X	LFOshapeX	/remoteInput/LFOshapeX	YES	YES	Drop down menu	INT	0	8			OFF ; sine ; square ; sawtooth ; triangle ; keystone ; log ; exp ; random	Greyed out but editable when LFOactive == 0
+LFO	Shape Y	LFOshapeY	/remoteInput/LFOshapeY	YES	YES	Drop down menu	INT	0	8			OFF ; sine ; square ; sawtooth ; triangle ; keystone ; log ; exp ; random	Greyed out but editable when LFOactive == 0
+LFO	Shape Z	LFOshapeZ	/remoteInput/LFOshapeZ	YES	YES	Drop down menu	INT	0	8			OFF ; sine ; square ; sawtooth ; triangle ; keystone ; log ; exp ; random	Greyed out but editable when LFOactive == 0
+LFO	Rate X	LFOrateX	/remoteInput/LFOrateX	YES	YES	H Slider	FLOAT	0.01	100	pow(10.0,(x*4.0)-2.0)	x		Greyed out but editable when LFOactive == 0 or LFOShapeX == 0
+LFO	Rate Y	LFOrateY	/remoteInput/LFOrateY	YES	YES	H Slider	FLOAT	0.01	100	pow(10.0,(x*4.0)-2.0)	x		Greyed out but editable when LFOactive == 0 or LFOShapeY == 0
+LFO	Rate Z	LFOrateZ	/remoteInput/LFOrateZ	YES	YES	H Slider	FLOAT	0.01	100	pow(10.0,(x*4.0)-2.0)	x		Greyed out but editable when LFOactive == 0 or LFOShapeZ == 0
+LFO	Amplitude X	LFOamplitudeX	/remoteInput/LFOamplitudeX	YES	YES	H Bidirectional slider	FLOAT	0.0	50.0	x*50.0	m		Greyed out but editable when LFOactive == 0 or LFOShapeX == 0
+LFO	Amplitude Y	LFOamplitudeY	/remoteInput/LFOamplitudeY	YES	YES	V Bidirectional slider	FLOAT	0.0	50.0	x*50.0	m		Greyed out but editable when LFOactive == 0 or LFOShapeY == 0
+LFO	Amplitude Z	LFOamplitudeZ	/remoteInput/LFOamplitudeZ	YES	YES	V Bidirectional slider	FLOAT	0.0	50.0	x*50.0	m		Greyed out but editable when LFOactive == 0 or LFOShapeZ == 0
+LFO	Phase X	LFOphaseX	/remoteInput/LFOphaseX	YES	YES	Direction dial	INT	0	360	x*360	°		Greyed out but editable when LFOactive == 0 or LFOShapeX == 0
+LFO	Phase Y	LFOphaseY	/remoteInput/LFOphaseY	YES	YES	Direction dial	INT	0	360	x*360	°		Greyed out but editable when LFOactive == 0 or LFOShapeY == 0
+LFO	Phase Z	LFOphaseZ	/remoteInput/LFOphaseZ	YES	YES	Direction dial	INT	0	360	x*360	°		Greyed out but editable when LFOactive == 0 or LFOShapeZ == 0
+LFO	Gyrophone	LFOgyrophone	/remoteInput/LFOgyrophone	YES	YES	Drop down menu	INT	-1	1			Anti-Clockwise ; OFF ; Clockwise	Greyed out but editable when LFOactive == 0
