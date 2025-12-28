@@ -57,7 +57,16 @@ TestSignalControlPanel::TestSignalControlPanel(TestSignalGenerator* testSignalGe
     // Hold button
     addAndMakeVisible(holdButton);
     holdButton.setClickingTogglesState(true);
-    holdButton.onClick = [this]() { applySettings(); };
+    holdButton.onClick = [this]()
+    {
+        applySettings();
+
+        // When hold is disabled, stop the test signal and clear highlighting
+        if (!holdButton.getToggleState() && onHoldDisabled)
+        {
+            onHoldDisabled();
+        }
+    };
 
     // Initial state
     updateFrequencyVisibility();
@@ -327,6 +336,13 @@ OutputPatchTab::OutputPatchTab(WFSValueTreeState& valueTreeState,
     {
         if (testControlPanel)
             testControlPanel->syncFromGenerator();
+    };
+
+    // Wire up callback to clear active test channel when hold is disabled
+    testControlPanel->onHoldDisabled = [this]()
+    {
+        if (patchMatrix)
+            patchMatrix->clearActiveTestChannel();
     };
 }
 

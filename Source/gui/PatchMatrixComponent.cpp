@@ -38,6 +38,10 @@ PatchMatrixComponent::PatchMatrixComponent(WFSValueTreeState& valueTreeState,
     setMouseClickGrabsKeyboardFocus(false);
     setWantsKeyboardFocus(false);
 
+    // Enable double buffering for smooth scrolling
+    setBufferedToImage(true);
+    setOpaque(true);  // Component is fully opaque, enables rendering optimizations
+
     // Load initial state
     updateChannelCounts();
     loadPatchesFromValueTree();
@@ -167,16 +171,40 @@ void PatchMatrixComponent::setProcessingStateChanged(bool isProcessing)
     }
 }
 
+void PatchMatrixComponent::clearActiveTestChannel()
+{
+    if (testSignalGenerator)
+    {
+        testSignalGenerator->setOutputChannel(-1);
+    }
+    activeTestHardwareChannel = -1;
+    repaint();
+}
+
 void PatchMatrixComponent::paint(juce::Graphics& g)
 {
     g.fillAll(backgroundColour);
 
-    drawHeader(g);
-    drawRowHeaders(g);
-    drawCells(g);
+    // Draw cells, clipped to the content area to prevent overlap with headers
+    {
+        juce::Graphics::ScopedSaveState saveState(g);
+        g.reduceClipRegion(rowHeaderWidth, headerHeight,
+                           getWidth() - rowHeaderWidth - scrollBarThickness,
+                           getHeight() - headerHeight - scrollBarThickness);
+        drawCells(g);
+    }
 
-    // Draw scrollbars on top
-    // (They paint themselves, but we might want visual feedback)
+    // Draw column header, clipped to exclude row header area
+    {
+        juce::Graphics::ScopedSaveState saveState(g);
+        g.reduceClipRegion(rowHeaderWidth, 0,
+                           getWidth() - rowHeaderWidth - scrollBarThickness,
+                           headerHeight);
+        drawHeader(g);
+    }
+
+    // Draw row headers (no clipping needed, they're at fixed position)
+    drawRowHeaders(g);
 }
 
 void PatchMatrixComponent::resized()
@@ -199,15 +227,17 @@ void PatchMatrixComponent::mouseDown(const juce::MouseEvent& e)
         touchFingerCount++;
 
     // Determine if this is a scroll gesture
+    // In Patching/Testing modes: 2+ fingers = scroll, 1 finger = action
     bool isScrollGesture = currentMode == Mode::Scrolling ||
                           e.mods.isRightButtonDown() ||
-                          touchFingerCount >= 3;
+                          touchFingerCount >= 2;
 
     if (isScrollGesture)
     {
         dragStartPos = e.position.toInt();
         scrollStartOffset = juce::Point<int>(scrollOffsetX, scrollOffsetY);
         isDraggingToScroll = true;
+        scrollDragSourceIndex = e.source.getIndex();  // Track which source initiated scroll
         return;
     }
 
@@ -257,6 +287,10 @@ void PatchMatrixComponent::mouseDrag(const juce::MouseEvent& e)
 {
     if (isDraggingToScroll)
     {
+        // Only respond to the touch source that initiated the scroll (prevents jumping)
+        if (e.source.isTouch() && e.source.getIndex() != scrollDragSourceIndex)
+            return;
+
         // Scroll viewport
         auto delta = e.position.toInt() - dragStartPos;
         scrollOffsetX = juce::jlimit(0, maxScrollX, scrollStartOffset.x - delta.x);
@@ -283,6 +317,7 @@ void PatchMatrixComponent::mouseUp(const juce::MouseEvent& e)
     if (isDraggingToScroll)
     {
         isDraggingToScroll = false;
+        scrollDragSourceIndex = -1;  // Reset source tracking
         return;
     }
 
@@ -875,6 +910,15 @@ void PatchMatrixComponent::handleTestClick(int hardwareChannel)
 {
     if (!testSignalGenerator || hardwareChannel < 0 || hardwareChannel >= numHardwareChannels)
         return;
+
+    // Toggle behavior: if clicking on already-active channel, stop the test signal
+    if (hardwareChannel == activeTestHardwareChannel)
+    {
+        testSignalGenerator->setOutputChannel(-1);
+        activeTestHardwareChannel = -1;
+        repaint();
+        return;
+    }
 
     // Set test signal to this channel
     // User must manually select signal type and level from control panel for safety

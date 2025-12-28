@@ -26,6 +26,9 @@ public:
     /** Sync UI controls with current generator state (called after external changes) */
     void syncFromGenerator();
 
+    /** Callback when hold is disabled (to stop test signal and clear highlighting) */
+    std::function<void()> onHoldDisabled;
+
 private:
     TestSignalGenerator* testSignalGenerator;
 

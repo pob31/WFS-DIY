@@ -96,6 +96,11 @@ public:
     void setProcessingStateChanged(bool isProcessing);
 
     /**
+     * Clear the active test channel highlighting (called when hold is disabled)
+     */
+    void clearActiveTestChannel();
+
+    /**
      * Callback for when test signal is auto-configured (so UI can sync)
      */
     std::function<void()> onTestSignalConfigured;
@@ -160,6 +165,7 @@ private:
     juce::Point<int> scrollStartOffset;
     bool isDraggingToScroll = false;
     int touchFingerCount = 0;
+    int scrollDragSourceIndex = -1;  // Track which touch source initiated scroll
 
     // Patching drag state
     struct PatchDragState
