@@ -1845,9 +1845,12 @@ private:
             WSACleanup();
         }
 
-        if (networkInterfaceSelector.getNumItems() == 0)
+        // Always add localhost as a fallback option
         {
-            networkInterfaceSelector.addItem("No network adapters found", 1);
+            int nextIndex = networkInterfaceSelector.getNumItems() + 1;
+            networkInterfaceSelector.addItem("Localhost (127.0.0.1)", nextIndex);
+            interfaceNames.add("Localhost");
+            interfaceIPs.add("127.0.0.1");
         }
 #elif JUCE_MAC
         // First, get friendly names from SystemConfiguration framework
@@ -1962,14 +1965,18 @@ private:
             freeifaddrs(ifaddrsList);
         }
         
-        if (networkInterfaceSelector.getNumItems() == 0)
+        // Always add localhost as a fallback option
         {
-            networkInterfaceSelector.addItem("No network adapters found", 1);
+            int nextIndex = networkInterfaceSelector.getNumItems() + 1;
+            networkInterfaceSelector.addItem("Localhost (127.0.0.1)", nextIndex);
+            interfaceNames.add("Localhost");
+            interfaceIPs.add("127.0.0.1");
         }
 #else
-        networkInterfaceSelector.addItem("Network interface selection not supported on this platform", 1);
-        interfaceNames.add("Unsupported");
-        interfaceIPs.add("0.0.0.0");
+        // Unsupported platform - just add localhost
+        networkInterfaceSelector.addItem("Localhost (127.0.0.1)", 1);
+        interfaceNames.add("Localhost");
+        interfaceIPs.add("127.0.0.1");
 #endif
 
         // Select first item by default if nothing saved
