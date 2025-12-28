@@ -490,8 +490,17 @@ public:
      */
     void configureVisualisation(int numOutputs, int numReverbs)
     {
-        visualisationComponent.configure(numOutputs, numReverbs);
+        visualisationComponent.configure(numOutputs, numReverbs, &parameters);
         visualisationComponent.setSelectedInput(currentChannel - 1);
+    }
+
+    /**
+     * Refresh the visualisation array color indicators.
+     * Call this when output array assignments change.
+     */
+    void refreshVisualisationArrayColors()
+    {
+        visualisationComponent.refreshArrayColors();
     }
 
     /**

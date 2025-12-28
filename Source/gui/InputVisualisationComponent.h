@@ -1,6 +1,8 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "ColorUtilities.h"
+#include "../WfsParameters.h"
 
 //==============================================================================
 /**
@@ -40,17 +42,19 @@ public:
 
     void setOutputName(const juce::String& name) { outputName = name; }
     void setValueUnit(const juce::String& unit) { valueUnit = unit; }
+    void setArrayNumber(int array) { arrayNumber = array; repaint(); }
 
     void paint(juce::Graphics& g) override
     {
         auto bounds = getLocalBounds().toFloat();
+        constexpr float valueTextHeight = 18.0f;
 
         // Background
         g.setColour(juce::Colour(0xFF1A1A1A));
         g.fillRect(bounds);
 
         // Calculate fill height
-        float sliderArea = bounds.reduced(2.0f).getHeight() - 18.0f;  // Leave space for value text
+        float sliderArea = bounds.reduced(2.0f).getHeight() - valueTextHeight;
         float fillHeight = 0.0f;
 
         if (isCenterZero)
@@ -61,7 +65,7 @@ public:
             fillHeight = std::abs(normalizedValue) * sliderArea;
 
             auto fillBounds = bounds.reduced(2.0f);
-            fillBounds.removeFromTop(18.0f);  // Value text area
+            fillBounds.removeFromTop(valueTextHeight);
 
             g.setColour(fillColour);
             if (value >= 0)
@@ -76,18 +80,22 @@ public:
             fillHeight = normalizedValue * sliderArea;
 
             auto fillBounds = bounds.reduced(2.0f);
-            fillBounds.removeFromTop(18.0f);  // Value text area
+            fillBounds.removeFromTop(valueTextHeight);
 
             g.setColour(fillColour);
             g.fillRect(fillBounds.getX(), fillBounds.getBottom() - fillHeight,
                        fillBounds.getWidth(), fillHeight);
         }
 
-        // Value text at top
-        g.setColour(juce::Colours::white);
-        g.setFont(10.0f);
+        // Value text at top - colored by array assignment
+        // White for Single (0), array color for arrays 1-10
+        juce::Colour textColour = (arrayNumber > 0)
+            ? WfsColorUtilities::getArrayColor(arrayNumber)
+            : juce::Colours::white;
+        g.setColour(textColour);
+        g.setFont(juce::FontOptions(10.0f).withStyle("Bold"));
         juce::String valueText = juce::String(static_cast<int>(std::round(value)));
-        g.drawText(valueText, bounds.removeFromTop(18.0f), juce::Justification::centred, false);
+        g.drawText(valueText, bounds.removeFromTop(valueTextHeight), juce::Justification::centred, false);
     }
 
     juce::String getTooltip() override
@@ -103,6 +111,7 @@ private:
     juce::Colour fillColour { 0xFF4A90D9 };
     juce::String outputName;
     juce::String valueUnit;
+    int arrayNumber = 0;  // 0 = Single (grey), 1-10 = Array colors
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(VisualisationSlider)
 };
@@ -168,9 +177,11 @@ public:
     /**
      * Configure the component with output and reverb count.
      * Creates sliders for each output + reverb feed.
+     * @param params Pointer to WfsParameters for querying output array assignments (can be nullptr)
      */
-    void configure(int outputCount, int reverbCount)
+    void configure(int outputCount, int reverbCount, WfsParameters* params = nullptr)
     {
+        parameters = params;
         numOutputs = outputCount;
         numReverbs = reverbCount;
         int totalSliders = outputCount + reverbCount;
@@ -184,7 +195,15 @@ public:
             slider->setColour(juce::Colour(0xFFD4A017));  // Yellow
             slider->setValueUnit("ms");
             if (i < numOutputs)
+            {
                 slider->setOutputName("Output " + juce::String(i + 1));
+                // Set array number for output bar color indicators
+                if (parameters != nullptr)
+                {
+                    int array = static_cast<int>(parameters->getOutputParam(i, "outputArray"));
+                    slider->setArrayNumber(array);
+                }
+            }
             else
                 slider->setOutputName("Reverb " + juce::String(i - numOutputs + 1));
             addAndMakeVisible(slider);
@@ -199,7 +218,14 @@ public:
             slider->setColour(juce::Colour(0xFFE07878));  // Pink/coral
             slider->setValueUnit("dB");
             if (i < numOutputs)
+            {
                 slider->setOutputName("Output " + juce::String(i + 1));
+                if (parameters != nullptr)
+                {
+                    int array = static_cast<int>(parameters->getOutputParam(i, "outputArray"));
+                    slider->setArrayNumber(array);
+                }
+            }
             else
                 slider->setOutputName("Reverb " + juce::String(i - numOutputs + 1));
             addAndMakeVisible(slider);
@@ -214,13 +240,41 @@ public:
             slider->setColour(juce::Colour(0xFF4A90D9));  // Blue
             slider->setValueUnit("dB");
             if (i < numOutputs)
+            {
                 slider->setOutputName("Output " + juce::String(i + 1));
+                if (parameters != nullptr)
+                {
+                    int array = static_cast<int>(parameters->getOutputParam(i, "outputArray"));
+                    slider->setArrayNumber(array);
+                }
+            }
             else
                 slider->setOutputName("Reverb " + juce::String(i - numOutputs + 1));
             addAndMakeVisible(slider);
         }
 
         resized();
+    }
+
+    /**
+     * Refresh array color indicators when output array assignments change.
+     * Call this after output arrays are modified.
+     */
+    void refreshArrayColors()
+    {
+        if (parameters == nullptr)
+            return;
+
+        for (int i = 0; i < numOutputs; ++i)
+        {
+            int array = static_cast<int>(parameters->getOutputParam(i, "outputArray"));
+            if (i < delaySliders.size())
+                delaySliders[i]->setArrayNumber(array);
+            if (i < hfSliders.size())
+                hfSliders[i]->setArrayNumber(array);
+            if (i < levelSliders.size())
+                levelSliders[i]->setArrayNumber(array);
+        }
     }
 
     /**
@@ -413,6 +467,7 @@ private:
         }
     }
 
+    WfsParameters* parameters = nullptr;
     int numOutputs = 0;
     int numReverbs = 0;
     int selectedInput = 0;
