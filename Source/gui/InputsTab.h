@@ -1597,7 +1597,7 @@ private:
         lfoGyrophoneSelector.addItem("Clockwise", 3);
         lfoGyrophoneSelector.setSelectedId(2, juce::dontSendNotification);
         lfoGyrophoneSelector.onChange = [this]() {
-            saveInputParam(WFSParameterIDs::inputLFOgyrophone, lfoGyrophoneSelector.getSelectedId() - 1);
+            saveInputParam(WFSParameterIDs::inputLFOgyrophone, lfoGyrophoneSelector.getSelectedId() - 2);
         };
 
         // Jitter slider
@@ -3227,7 +3227,7 @@ private:
         lfoPhaseZDial.setAngle(static_cast<float>(phaseZDeg));
         lfoPhaseZValueLabel.setText(juce::String(phaseZDeg) + juce::String::fromUTF8("°"), juce::dontSendNotification);
 
-        lfoGyrophoneSelector.setSelectedId(getIntParam(WFSParameterIDs::inputLFOgyrophone, 1) + 1, juce::dontSendNotification);
+        lfoGyrophoneSelector.setSelectedId(getIntParam(WFSParameterIDs::inputLFOgyrophone, 0) + 2, juce::dontSendNotification);
 
         // Jitter stored as meters (0-10), default 0
         // Inverse of: meters = 10 * v^2 => v = sqrt(meters / 10)

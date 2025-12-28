@@ -228,6 +228,30 @@ MainComponent::MainComponent()
     tabbedComponent.addTab("Clusters", juce::Colours::darkgrey, clustersTab, true);
     tabbedComponent.addTab("Map", juce::Colours::darkgrey, mapTab, true);
 
+    // Set up navigation callback from Map tab to other tabs via long-press gesture
+    // Parameters: (tabType, index) where tabType is: 0=Input, 1=Cluster, 2=Output, 3=Reverb
+    mapTab->setNavigateToItemCallback([this](int tabType, int index) {
+        switch (tabType)
+        {
+            case 0:  // Input
+                tabbedComponent.setCurrentTabIndex(4);  // Inputs tab
+                inputsTab->selectChannel(index + 1);    // Convert 0-based to 1-based
+                break;
+            case 1:  // Cluster
+                tabbedComponent.setCurrentTabIndex(5);  // Clusters tab
+                clustersTab->setSelectedCluster(index);
+                break;
+            case 2:  // Output
+                tabbedComponent.setCurrentTabIndex(2);  // Outputs tab
+                outputsTab->selectChannel(index + 1);   // Convert 0-based to 1-based
+                break;
+            case 3:  // Reverb
+                tabbedComponent.setCurrentTabIndex(3);  // Reverb tab
+                reverbTab->selectChannel(index + 1);    // Convert 0-based to 1-based
+                break;
+        }
+    });
+
     // Initialize OSC Manager for network communication
     oscManager = std::make_unique<WFSNetwork::OSCManager>(parameters.getValueTreeState());
 

@@ -820,6 +820,19 @@ Based on input state:
 
 Stage constraints (inputConstraintX/Y/Z) only enforced when enabled.
 
+### Double-Tap Actions
+- **Double-tap on input marker** - Clears position offsets (X, Y, Z) for that input
+- **Double-tap on cluster barycenter** - Clears position offsets for all inputs in that cluster
+
+### Long-Press Navigation (700-1200ms)
+Long-press on any marker (without moving) navigates to the corresponding tab and selects the channel:
+- **Input marker** - Opens Inputs tab, selects that input channel
+- **Cluster barycenter** - Opens Clusters tab, selects that cluster
+- **Output marker** - Opens Outputs tab, selects that output channel
+- **Reverb marker** - Opens Reverb tab, selects that reverb channel
+
+Requirements: Hold 700-1200ms with less than 5px movement. Holding longer than 1.2s cancels the action.
+
 ### Coordinate System
 - Stage coordinates in meters, origin at (originWidth, originDepth)
 - Screen Y-axis inverted (Y increases downward on screen, upward on stage)
@@ -1026,6 +1039,6 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 
 ---
 
-*Last updated: 2025-12-24*
+*Last updated: 2025-12-28*
 *JUCE Version: 8.0.12*
 *Build: Visual Studio 2022 / Xcode, x64 Debug/Release*

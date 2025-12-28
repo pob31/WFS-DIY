@@ -318,7 +318,8 @@ private:
             if (gyrophone != 0)
             {
                 // Full rotation (2π) over one period, direction based on gyrophone sign
-                state.gyrophoneOffsetRad = static_cast<float> (gyrophone) * state.ramp
+                // Negated so positive (clockwise) rotates in positive angular direction
+                state.gyrophoneOffsetRad = static_cast<float> (-gyrophone) * state.ramp
                                            * juce::MathConstants<float>::twoPi * state.fadeLevel;
             }
             else

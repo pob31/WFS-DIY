@@ -23,6 +23,8 @@ public:
           reverbsTree(params.getReverbTree()),
           configTree(params.getConfigTree())
     {
+        DBG("MapTab constructor: this=" << juce::String::toHexString((juce::int64)(uintptr_t)this));
+
         // Add ValueTree listeners
         inputsTree.addListener(this);
         outputsTree.addListener(this);
@@ -81,6 +83,7 @@ public:
     void mouseDown(const juce::MouseEvent& e) override
     {
         int sourceIndex = e.source.getIndex();
+        DBG("mouseDown called: isTouch=" << static_cast<int>(e.source.isTouch()) << ", sourceIndex=" << sourceIndex);
 
         // Handle touch input
         if (e.source.isTouch())
@@ -94,6 +97,7 @@ public:
 
             // Check for input hit
             int hitInput = getInputAtPosition(e.position);
+            DBG("mouseDown(touch): hitInput=" << hitInput);
             if (hitInput >= 0)
             {
                 touch.type = TouchInfo::Type::Input;
@@ -103,6 +107,15 @@ public:
                 float offsetY = static_cast<float>(parameters.getInputParam(hitInput, "inputOffsetY"));
                 touch.startOffset = { offsetX, offsetY };
                 activeTouches[sourceIndex] = touch;
+
+                // Set up long-press state for navigation
+                longPressState.active = true;
+                longPressState.targetType = LongPressState::TargetType::Input;
+                longPressState.targetIndex = hitInput;
+                longPressState.startPos = e.position;
+                longPressState.startTime = juce::Time::getCurrentTime();
+                DBG("mouseDown(touch): set longPressState for Input " << hitInput);
+
                 repaint();
                 return;
             }
@@ -114,11 +127,46 @@ public:
                 touch.type = TouchInfo::Type::Barycenter;
                 touch.targetIndex = hitBarycenter;
                 activeTouches[sourceIndex] = touch;
+
+                // Set up long-press state for navigation
+                longPressState.active = true;
+                longPressState.targetType = LongPressState::TargetType::Cluster;
+                longPressState.targetIndex = hitBarycenter;
+                longPressState.startPos = e.position;
+                longPressState.startTime = juce::Time::getCurrentTime();
+
                 repaint();
                 return;
             }
 
-            // Touch on empty area
+            // Check for output marker hit (not draggable, but long-press navigates)
+            int hitOutput = getOutputAtPosition(e.position);
+            if (hitOutput >= 0)
+            {
+                longPressState.active = true;
+                longPressState.targetType = LongPressState::TargetType::Output;
+                longPressState.targetIndex = hitOutput;
+                longPressState.startPos = e.position;
+                longPressState.startTime = juce::Time::getCurrentTime();
+                repaint();
+                return;
+            }
+
+            // Check for reverb marker hit (not draggable, but long-press navigates)
+            int hitReverb = getReverbAtPosition(e.position);
+            if (hitReverb >= 0)
+            {
+                longPressState.active = true;
+                longPressState.targetType = LongPressState::TargetType::Reverb;
+                longPressState.targetIndex = hitReverb;
+                longPressState.startPos = e.position;
+                longPressState.startTime = juce::Time::getCurrentTime();
+                repaint();
+                return;
+            }
+
+            // Touch on empty area - clear long-press state
+            longPressState.active = false;
             int itemDraggingCount = countItemDraggingTouches();
 
             if (itemDraggingCount == 0)
@@ -195,10 +243,11 @@ public:
             return;
         }
 
-        // Left-click only: check for input/barycenter hit
+        // Left-click only: check for input/barycenter/output/reverb hit
         if (e.mods.isLeftButtonDown())
         {
             int hitInput = getInputAtPosition(e.position);
+            DBG("mouseDown: hitInput=" << hitInput);
             if (hitInput >= 0)
             {
                 selectedInput = hitInput;
@@ -211,6 +260,14 @@ public:
                 float offsetX = static_cast<float>(parameters.getInputParam(hitInput, "inputOffsetX"));
                 float offsetY = static_cast<float>(parameters.getInputParam(hitInput, "inputOffsetY"));
                 inputDragStartOffset = { offsetX, offsetY };
+
+                // Set up long-press state for navigation
+                longPressState.active = true;
+                longPressState.targetType = LongPressState::TargetType::Input;
+                longPressState.targetIndex = hitInput;
+                longPressState.startPos = e.position;
+                longPressState.startTime = juce::Time::getCurrentTime();
+                DBG("mouseDown: set longPressState for Input " << hitInput);
 
                 repaint();
                 return;
@@ -225,6 +282,40 @@ public:
                 selectedInput = -1;
                 isInViewGesture = false;
                 barycenterDragStartStagePos = getClusterBarycenter(hitBarycenter);
+
+                // Set up long-press state for navigation
+                longPressState.active = true;
+                longPressState.targetType = LongPressState::TargetType::Cluster;
+                longPressState.targetIndex = hitBarycenter;
+                longPressState.startPos = e.position;
+                longPressState.startTime = juce::Time::getCurrentTime();
+
+                repaint();
+                return;
+            }
+
+            // Check for output marker hit (not draggable, but long-press navigates)
+            int hitOutput = getOutputAtPosition(e.position);
+            if (hitOutput >= 0)
+            {
+                longPressState.active = true;
+                longPressState.targetType = LongPressState::TargetType::Output;
+                longPressState.targetIndex = hitOutput;
+                longPressState.startPos = e.position;
+                longPressState.startTime = juce::Time::getCurrentTime();
+                repaint();
+                return;
+            }
+
+            // Check for reverb marker hit (not draggable, but long-press navigates)
+            int hitReverb = getReverbAtPosition(e.position);
+            if (hitReverb >= 0)
+            {
+                longPressState.active = true;
+                longPressState.targetType = LongPressState::TargetType::Reverb;
+                longPressState.targetIndex = hitReverb;
+                longPressState.startPos = e.position;
+                longPressState.startTime = juce::Time::getCurrentTime();
                 repaint();
                 return;
             }
@@ -236,6 +327,7 @@ public:
             isDraggingBarycenter = false;
             isInViewGesture = true;
             gestureMode = GestureMode::None;
+            longPressState.active = false;
             startTimer(50);
             repaint();
         }
@@ -422,10 +514,45 @@ public:
     void mouseUp(const juce::MouseEvent& e) override
     {
         int sourceIndex = e.source.getIndex();
+        DBG("mouseUp called: isTouch=" << static_cast<int>(e.source.isTouch()) << ", sourceIndex=" << sourceIndex);
 
         // Handle touch input
         if (e.source.isTouch())
         {
+            // Check for long-press gesture (navigation)
+            // Note: Short double-tap (clear offsets) is handled immediately in mouseDoubleClick
+            DBG("mouseUp(touch): longPressState.active=" << static_cast<int>(longPressState.active));
+            if (longPressState.active)
+            {
+                auto holdDuration = juce::Time::getCurrentTime() - longPressState.startTime;
+                float movement = e.position.getDistanceFrom(longPressState.startPos);
+
+                DBG("mouseUp(touch): holdDuration=" << holdDuration.inMilliseconds() << "ms, movement=" << movement << "px");
+
+                // Long hold (700-1200ms) with minimal movement (< 5px): navigate to tab
+                if (holdDuration.inMilliseconds() >= 700 && holdDuration.inMilliseconds() <= 1200 && movement < 5.0f)
+                {
+                    DBG("mouseUp(touch): conditions met, navigateToItemCallback=" << (navigateToItemCallback != nullptr ? 1 : 0));
+                    if (navigateToItemCallback)
+                    {
+                        int tabType = -1;
+                        switch (longPressState.targetType)
+                        {
+                            case LongPressState::TargetType::Input:   tabType = 0; break;
+                            case LongPressState::TargetType::Cluster: tabType = 1; break;
+                            case LongPressState::TargetType::Output:  tabType = 2; break;
+                            case LongPressState::TargetType::Reverb:  tabType = 3; break;
+                            default: break;
+                        }
+                        DBG("mouseUp(touch): calling callback with tabType=" << tabType << ", index=" << longPressState.targetIndex);
+                        if (tabType >= 0)
+                            navigateToItemCallback(tabType, longPressState.targetIndex);
+                    }
+                }
+
+                longPressState.active = false;
+            }
+
             auto it = activeTouches.find(sourceIndex);
             if (it != activeTouches.end())
             {
@@ -453,12 +580,71 @@ public:
         isInViewGesture = false;
         gestureMode = GestureMode::None;
         stopTimer();
+
+        // Check for long-press navigation gesture
+        DBG("mouseUp: this=" << juce::String::toHexString((juce::int64)(uintptr_t)this) << ", longPressState.active=" << static_cast<int>(longPressState.active));
+        if (longPressState.active)
+        {
+            auto holdDuration = juce::Time::getCurrentTime() - longPressState.startTime;
+            float movement = e.position.getDistanceFrom(longPressState.startPos);
+
+            DBG("mouseUp: holdDuration=" << holdDuration.inMilliseconds() << "ms, movement=" << movement << "px");
+
+            // Long hold (700-1200ms) with minimal movement (< 5px): navigate to tab
+            if (holdDuration.inMilliseconds() >= 700 && holdDuration.inMilliseconds() <= 1200 && movement < 5.0f)
+            {
+                DBG("mouseUp: conditions met, navigateToItemCallback=" << (navigateToItemCallback != nullptr ? 1 : 0));
+                if (navigateToItemCallback)
+                {
+                    int tabType = -1;
+                    switch (longPressState.targetType)
+                    {
+                        case LongPressState::TargetType::Input:   tabType = 0; break;
+                        case LongPressState::TargetType::Cluster: tabType = 1; break;
+                        case LongPressState::TargetType::Output:  tabType = 2; break;
+                        case LongPressState::TargetType::Reverb:  tabType = 3; break;
+                        default: break;
+                    }
+                    DBG("mouseUp: calling callback with tabType=" << tabType << ", index=" << longPressState.targetIndex);
+                    if (tabType >= 0)
+                        navigateToItemCallback(tabType, longPressState.targetIndex);
+                }
+            }
+
+            longPressState.active = false;
+        }
     }
 
     void mouseDoubleClick(const juce::MouseEvent& e) override
     {
-        juce::ignoreUnused(e);
-        // Double-click currently unused (middle-click resets view)
+        // Double-tap/click on input marker: clear position offsets
+        int hitInput = getInputAtPosition(e.position);
+        if (hitInput >= 0)
+        {
+            parameters.setInputParam(hitInput, "inputOffsetX", 0.0f);
+            parameters.setInputParam(hitInput, "inputOffsetY", 0.0f);
+            parameters.setInputParam(hitInput, "inputOffsetZ", 0.0f);
+            repaint();
+            return;
+        }
+
+        // Double-tap/click on cluster barycenter: clear offsets for all cluster members
+        int hitBarycenter = getBarycenterAtPosition(e.position);
+        if (hitBarycenter > 0)
+        {
+            int numInputs = parameters.getNumInputChannels();
+            for (int i = 0; i < numInputs; ++i)
+            {
+                int inputCluster = static_cast<int>(parameters.getInputParam(i, "inputCluster"));
+                if (inputCluster == hitBarycenter)
+                {
+                    parameters.setInputParam(i, "inputOffsetX", 0.0f);
+                    parameters.setInputParam(i, "inputOffsetY", 0.0f);
+                    parameters.setInputParam(i, "inputOffsetZ", 0.0f);
+                }
+            }
+            repaint();
+        }
     }
 
     void mouseWheelMove(const juce::MouseEvent& e, const juce::MouseWheelDetails& wheel) override
@@ -1077,8 +1263,8 @@ public:
                 float scaleFactorY = distanceRatio;
                 applyClusterScale(clusterNum, scaleFactorX, scaleFactorY);
 
-                // Apply incremental rotation
-                float angleDeg = juce::radiansToDegrees(angleDelta);
+                // Apply incremental rotation (negated: screen Y is down, stage Y is up)
+                float angleDeg = -juce::radiansToDegrees(angleDelta);
                 applyClusterRotation(clusterNum, angleDeg);
 
                 // Update start values for next incremental update
@@ -1237,6 +1423,15 @@ public:
         speedLimitedPositionCallback = std::move(callback);
     }
 
+    /** Set callback for navigating to an item in another tab via long-press gesture.
+        Parameters: (tabType, index) where tabType is: 0=Input, 1=Cluster, 2=Output, 3=Reverb */
+    void setNavigateToItemCallback(std::function<void(int, int)> callback)
+    {
+        DBG("setNavigateToItemCallback called on this=" << juce::String::toHexString((juce::int64)(uintptr_t)this) << ", callback valid=" << (callback != nullptr ? 1 : 0));
+        navigateToItemCallback = std::move(callback);
+        DBG("setNavigateToItemCallback after assignment, navigateToItemCallback valid=" << (navigateToItemCallback != nullptr ? 1 : 0));
+    }
+
 private:
     WfsParameters& parameters;
     juce::ValueTree inputsTree;
@@ -1249,6 +1444,22 @@ private:
 
     // Speed-limited position callback for visualization
     std::function<void(int, float&, float&, float&)> speedLimitedPositionCallback;
+
+    // Navigation callback for long-press gesture
+    // Parameters: (tabType, index) where tabType is: 0=Input, 1=Cluster, 2=Output, 3=Reverb
+    std::function<void(int, int)> navigateToItemCallback;
+
+    // Long-press gesture tracking (for navigating to item's tab)
+    struct LongPressState
+    {
+        bool active = false;
+        enum class TargetType { None, Input, Cluster, Output, Reverb };
+        TargetType targetType = TargetType::None;
+        int targetIndex = -1;
+        juce::Point<float> startPos;
+        juce::Time startTime;
+    };
+    LongPressState longPressState;
 
     // View state
     float viewScale = 30.0f;  // pixels per meter
@@ -1588,16 +1799,6 @@ private:
     {
         int numOutputs = parameters.getNumOutputChannels();
 
-        // Debug: Print first output position
-        if (numOutputs > 0)
-        {
-            auto posXVar = parameters.getOutputParam(0, "outputPositionX");
-            auto posYVar = parameters.getOutputParam(0, "outputPositionY");
-            DBG("MapTab::drawOutputs - numOutputs=" << numOutputs
-                << " output[0] posX=" << (posXVar.isVoid() ? "VOID" : posXVar.toString())
-                << " posY=" << (posYVar.isVoid() ? "VOID" : posYVar.toString()));
-        }
-
         for (int i = 0; i < numOutputs; ++i)
         {
             // Check visibility - individual or array-based
@@ -1715,16 +1916,6 @@ private:
             return;
 
         int numReverbs = parameters.getNumReverbChannels();
-
-        // Debug: Print first reverb position
-        if (numReverbs > 0)
-        {
-            auto posXVar = parameters.getReverbParam(0, "reverbPositionX");
-            auto posYVar = parameters.getReverbParam(0, "reverbPositionY");
-            DBG("MapTab::drawReverbs - numReverbs=" << numReverbs
-                << " reverb[0] posX=" << (posXVar.isVoid() ? "VOID" : posXVar.toString())
-                << " posY=" << (posYVar.isVoid() ? "VOID" : posYVar.toString()));
-        }
 
         for (int i = 0; i < numReverbs; ++i)
         {
@@ -2169,7 +2360,7 @@ private:
     int getInputAtPosition(juce::Point<float> screenPos) const
     {
         int numInputs = parameters.getNumInputChannels();
-        float pickupRadius = markerRadius * 1.25f;  // Slightly larger for easier pickup
+        float pickupRadius = markerRadius * 1.5f;  // Larger for easier touch pickup
 
         // Check in reverse order (top-most first)
         for (int i = 0; i < numInputs; ++i)
@@ -2218,7 +2409,7 @@ private:
     int getBarycenterAtPosition(juce::Point<float> screenPos) const
     {
         int numInputs = parameters.getNumInputChannels();
-        float pickupRadius = 10.0f * 1.25f;  // Barycenter visual size * 1.25 for easier pickup
+        float pickupRadius = 10.0f * 1.5f;  // Barycenter visual size * 1.5 for easier touch pickup
 
         for (int cluster = 1; cluster <= 10; ++cluster)
         {
@@ -2257,6 +2448,70 @@ private:
             float distance = screenPos.getDistanceFrom(barycenterScreen);
             if (distance <= pickupRadius)
                 return cluster;
+        }
+
+        return -1;
+    }
+
+    // Check if a screen position hits an output marker
+    // Returns output index (0-based) if hit, -1 if none
+    int getOutputAtPosition(juce::Point<float> screenPos) const
+    {
+        int numOutputs = parameters.getNumOutputChannels();
+        float pickupRadius = 15.0f;  // Approximate radius for output keystone
+
+        for (int i = 0; i < numOutputs; ++i)
+        {
+            // Check visibility
+            int array = static_cast<int>(parameters.getOutputParam(i, "outputArray"));
+            bool visible = true;
+            if (array == 0)
+            {
+                auto val = parameters.getOutputParam(i, "outputMapVisible");
+                visible = val.isVoid() || static_cast<int>(val) != 0;
+            }
+            else
+            {
+                auto val = parameters.getOutputParam(i, "outputArrayMapVisible");
+                visible = val.isVoid() || static_cast<int>(val) != 0;
+            }
+            if (!visible)
+                continue;
+
+            float posX = static_cast<float>(parameters.getOutputParam(i, "outputPositionX"));
+            float posY = static_cast<float>(parameters.getOutputParam(i, "outputPositionY"));
+            auto markerScreenPos = stageToScreen({ posX, posY });
+
+            float distance = screenPos.getDistanceFrom(markerScreenPos);
+            if (distance <= pickupRadius)
+                return i;
+        }
+
+        return -1;
+    }
+
+    // Check if a screen position hits a reverb marker
+    // Returns reverb index (0-based) if hit, -1 if none
+    int getReverbAtPosition(juce::Point<float> screenPos) const
+    {
+        // Check global reverb visibility toggle
+        auto reverbsVisibleVar = parameters.getConfigParam("reverbsMapVisible");
+        bool reverbsVisible = reverbsVisibleVar.isVoid() || static_cast<int>(reverbsVisibleVar) != 0;
+        if (!reverbsVisible)
+            return -1;
+
+        int numReverbs = parameters.getNumReverbChannels();
+        float pickupRadius = 12.0f;  // Diamond size is 10, slightly larger for touch
+
+        for (int i = 0; i < numReverbs; ++i)
+        {
+            float posX = static_cast<float>(parameters.getReverbParam(i, "reverbPositionX"));
+            float posY = static_cast<float>(parameters.getReverbParam(i, "reverbPositionY"));
+            auto markerScreenPos = stageToScreen({ posX, posY });
+
+            float distance = screenPos.getDistanceFrom(markerScreenPos);
+            if (distance <= pickupRadius)
+                return i;
         }
 
         return -1;
