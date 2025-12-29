@@ -164,56 +164,88 @@ void ArrayPreviewComponent::paint(juce::Graphics& g)
     // Background
     g.fillAll(juce::Colour(0xFF1A1A1A));
 
-    // Get stage dimensions from parameters
+    // Get stage shape and dimensions from parameters
+    int stageShape = parameters.getConfigParam("stageShape").isVoid() ? 0 :
+                     static_cast<int>(parameters.getConfigParam("stageShape"));
     float stageWidth = parameters.getConfigParam("stageWidth").isVoid() ? 20.0f :
                        static_cast<float>(parameters.getConfigParam("stageWidth"));
     float stageDepth = parameters.getConfigParam("stageDepth").isVoid() ? 15.0f :
                        static_cast<float>(parameters.getConfigParam("stageDepth"));
-    float originX = parameters.getConfigParam("originWidth").isVoid() ? stageWidth / 2.0f :
+    float stageDiameter = parameters.getConfigParam("stageDiameter").isVoid() ? 20.0f :
+                          static_cast<float>(parameters.getConfigParam("stageDiameter"));
+    float originX = parameters.getConfigParam("originWidth").isVoid() ? 0.0f :
                     static_cast<float>(parameters.getConfigParam("originWidth"));
     float originY = parameters.getConfigParam("originDepth").isVoid() ? 0.0f :
                     static_cast<float>(parameters.getConfigParam("originDepth"));
+
+    // Determine stage size based on shape
+    // For cylinder/dome (shapes 1 and 2), use diameter for both dimensions
+    bool isCircular = (stageShape != 0);
+    float stageExtentX = isCircular ? stageDiameter : stageWidth;
+    float stageExtentY = isCircular ? stageDiameter : stageDepth;
 
     // Calculate transform to fit stage in view with padding
     const float padding = 20.0f;
     float viewWidth = bounds.getWidth() - padding * 2;
     float viewHeight = bounds.getHeight() - padding * 2;
 
-    float scaleX = viewWidth / stageWidth;
-    float scaleY = viewHeight / stageDepth;
+    float scaleX = viewWidth / stageExtentX;
+    float scaleY = viewHeight / stageExtentY;
     scale = juce::jmin(scaleX, scaleY);
 
-    // Center the stage in the view
-    float scaledWidth = stageWidth * scale;
-    float scaledHeight = stageDepth * scale;
-    offsetX = padding + (viewWidth - scaledWidth) / 2.0f + originX * scale;
-    offsetY = padding + (viewHeight - scaledHeight) / 2.0f + originY * scale;
+    // Center the stage in the view (origin is at center for center-referenced system)
+    float scaledWidth = stageExtentX * scale;
+    float scaledHeight = stageExtentY * scale;
+    offsetX = padding + (viewWidth - scaledWidth) / 2.0f + (stageExtentX / 2.0f + originX) * scale;
+    offsetY = padding + (viewHeight - scaledHeight) / 2.0f + (stageExtentY / 2.0f + originY) * scale;
 
     // Draw stage bounds
-    auto stageTopLeft = stageToScreen(-originX, stageDepth - originY);
-    auto stageBottomRight = stageToScreen(stageWidth - originX, -originY);
+    if (isCircular)
+    {
+        // Cylinder or Dome - draw circle
+        float radius = stageDiameter / 2.0f;
+        auto center = stageToScreen(-originX, -originY);
+        float radiusPixels = radius * scale;
 
-    juce::Rectangle<float> stageRect(stageTopLeft.x, stageTopLeft.y,
-                                      stageBottomRight.x - stageTopLeft.x,
-                                      stageBottomRight.y - stageTopLeft.y);
+        g.setColour(juce::Colour(0xFF303030));
+        g.fillEllipse(center.x - radiusPixels, center.y - radiusPixels,
+                      radiusPixels * 2.0f, radiusPixels * 2.0f);
+        g.setColour(juce::Colours::white.withAlpha(0.5f));
+        g.drawEllipse(center.x - radiusPixels, center.y - radiusPixels,
+                      radiusPixels * 2.0f, radiusPixels * 2.0f, 1.0f);
+    }
+    else
+    {
+        // Box - draw rectangle
+        float halfWidth = stageWidth / 2.0f;
+        float halfDepth = stageDepth / 2.0f;
+        auto stageTopLeft = stageToScreen(-halfWidth - originX, halfDepth - originY);
+        auto stageBottomRight = stageToScreen(halfWidth - originX, -halfDepth - originY);
 
-    g.setColour(juce::Colour(0xFF303030));
-    g.fillRect(stageRect);
-    g.setColour(juce::Colours::white.withAlpha(0.5f));
-    g.drawRect(stageRect, 1.0f);
+        juce::Rectangle<float> stageRect(stageTopLeft.x, stageTopLeft.y,
+                                          stageBottomRight.x - stageTopLeft.x,
+                                          stageBottomRight.y - stageTopLeft.y);
+
+        g.setColour(juce::Colour(0xFF303030));
+        g.fillRect(stageRect);
+        g.setColour(juce::Colours::white.withAlpha(0.5f));
+        g.drawRect(stageRect, 1.0f);
+    }
 
     // Draw grid lines (1m spacing)
     g.setColour(juce::Colour(0xFF404040));
-    for (float x = -originX; x <= stageWidth - originX; x += 1.0f)
+    float halfExtentX = stageExtentX / 2.0f;
+    float halfExtentY = stageExtentY / 2.0f;
+    for (float x = -halfExtentX - originX; x <= halfExtentX - originX; x += 1.0f)
     {
-        auto top = stageToScreen(x, stageDepth - originY);
-        auto bottom = stageToScreen(x, -originY);
+        auto top = stageToScreen(x, halfExtentY - originY);
+        auto bottom = stageToScreen(x, -halfExtentY - originY);
         g.drawLine(top.x, top.y, bottom.x, bottom.y, 0.5f);
     }
-    for (float y = -originY; y <= stageDepth - originY; y += 1.0f)
+    for (float y = -halfExtentY - originY; y <= halfExtentY - originY; y += 1.0f)
     {
-        auto left = stageToScreen(-originX, y);
-        auto right = stageToScreen(stageWidth - originX, y);
+        auto left = stageToScreen(-halfExtentX - originX, y);
+        auto right = stageToScreen(halfExtentX - originX, y);
         g.drawLine(left.x, left.y, right.x, right.y, 0.5f);
     }
 
@@ -238,11 +270,12 @@ void ArrayPreviewComponent::paint(juce::Graphics& g)
         g.fillEllipse(screenPos.x - speakerRadius, screenPos.y - speakerRadius,
                       speakerRadius * 2, speakerRadius * 2);
 
-        // Draw orientation arrow
-        // 0 degrees = facing audience (toward negative Y in stage coords, positive Y on screen)
-        float orientRad = juce::degreesToRadians(pos.orientation);
-        float arrowDx = std::sin(orientRad) * arrowLength;
-        float arrowDy = std::cos(orientRad) * arrowLength;  // Positive because screen Y is inverted
+        // Draw orientation arrow (matching MapTab convention)
+        // 0 degrees = facing back of stage (toward +Y stage, -Y screen = up)
+        // 180 degrees = facing audience (toward -Y stage, +Y screen = down)
+        float angleRad = juce::degreesToRadians(pos.orientation - 90.0f);
+        float arrowDx = std::cos(angleRad) * arrowLength;
+        float arrowDy = std::sin(angleRad) * arrowLength;
 
         g.setColour(juce::Colours::white);
         g.drawArrow(juce::Line<float>(screenPos.x, screenPos.y,
@@ -257,10 +290,53 @@ void ArrayPreviewComponent::paint(juce::Graphics& g)
                    juce::Justification::centred);
     }
 
-    // Draw "Audience" label at bottom
+    // Draw "Audience" label(s) based on stage shape and preset
     g.setColour(juce::Colours::grey);
     g.setFont(12.0f);
-    g.drawText("Audience", bounds.removeFromBottom(20), juce::Justification::centred);
+
+    // isCircular already defined above
+    bool isCirclePreset = (currentPreset == ArrayPresetType::Circle);
+
+    if (isCirclePreset)
+    {
+        // Circle preset
+        if (circleFacingInward)
+        {
+            // Facing inward: audience in the center of the circle
+            auto center = stageToScreen(-originX, -originY);
+            g.drawText("Audience",
+                       juce::Rectangle<float>(center.x - 40, center.y - 8, 80, 16),
+                       juce::Justification::centred);
+        }
+        else
+        {
+            // Facing outward: audience at top and bottom
+            float radius = circleRadius > 0 ? circleRadius : 5.0f;
+
+            auto topPos = stageToScreen(-originX, -originY + radius + 2.0f);
+            auto bottomPos = stageToScreen(-originX, -originY - radius - 2.0f);
+
+            g.drawText("Audience",
+                       juce::Rectangle<float>(topPos.x - 40, topPos.y - 16, 80, 16),
+                       juce::Justification::centred);
+            g.drawText("Audience",
+                       juce::Rectangle<float>(bottomPos.x - 40, bottomPos.y, 80, 16),
+                       juce::Justification::centred);
+        }
+    }
+    else if (!isCircular)
+    {
+        // Box mode: audience label in middle of space beneath the stage
+        float halfDepth = stageDepth / 2.0f;
+        auto stageBottom = stageToScreen(0, -halfDepth - originY);
+        float spaceBelow = bounds.getBottom() - stageBottom.y;
+
+        g.drawText("Audience",
+                   juce::Rectangle<float>(bounds.getX(), stageBottom.y + spaceBelow / 2.0f - 8,
+                                          bounds.getWidth(), 16),
+                   juce::Justification::centred);
+    }
+    // For Cylinder/Dome with non-circle preset: no audience label
 }
 
 void ArrayPreviewComponent::resized()
@@ -277,6 +353,14 @@ void ArrayPreviewComponent::setPositions(const std::vector<SpeakerPosition>& pos
 void ArrayPreviewComponent::clearPositions()
 {
     speakerPositions.clear();
+    repaint();
+}
+
+void ArrayPreviewComponent::setPresetInfo(ArrayPresetType preset, bool circleInward, float radius)
+{
+    currentPreset = preset;
+    circleFacingInward = circleInward;
+    circleRadius = radius;
     repaint();
 }
 
@@ -987,6 +1071,11 @@ void OutputArrayHelperContent::onPresetChanged()
     currentPreset = static_cast<ArrayPresetType>(selectedId - 1);
     loadPresetDefaults(currentPreset);
     updateGeometryVisibility();
+
+    // Update preview preset info before calculating
+    float radius = (currentPreset == ArrayPresetType::Circle) ? radiusEditor.getText().getFloatValue() : 5.0f;
+    preview->setPresetInfo(currentPreset, facingInwardRadio.getToggleState(), radius);
+
     autoCalculatePreview();  // Auto-calculate with new preset defaults
 }
 
@@ -1085,7 +1174,7 @@ void OutputArrayHelperContent::loadPresetDefaults(ArrayPresetType preset)
         case ArrayPresetType::Circle:
             numSpeakersEditor.setText("12");
             centerXEditor.setText("0");
-            centerYEditor.setText("5");
+            centerYEditor.setText("0");  // Center at origin by default
             radiusEditor.setText("5");
             startAngleEditor.setText("0");
             facingInwardRadio.setToggleState(true, juce::dontSendNotification);
@@ -1196,6 +1285,9 @@ void OutputArrayHelperContent::autoCalculatePreview()
         }
     }
 
+    // Update preview with positions and preset info
+    float radius = (currentPreset == ArrayPresetType::Circle) ? radiusEditor.getText().getFloatValue() : 5.0f;
+    preview->setPresetInfo(currentPreset, facingInwardRadio.getToggleState(), radius);
     preview->setPositions(positions);
 }
 
@@ -1302,6 +1394,9 @@ void OutputArrayHelperContent::calculatePositions()
         }
     }
 
+    // Update preview with positions and preset info
+    float radius = (currentPreset == ArrayPresetType::Circle) ? radiusEditor.getText().getFloatValue() : 5.0f;
+    preview->setPresetInfo(currentPreset, facingInwardRadio.getToggleState(), radius);
     preview->setPositions(calculatedPositions);
     showStatus("Calculated " + juce::String(calculatedPositions.size()) + " positions");
 }

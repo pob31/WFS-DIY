@@ -42,6 +42,24 @@ public:
         float value);
 
     /**
+     * Build an OSC message for a config parameter change.
+     * Config parameters are global (no channel ID).
+     * @param paramId The parameter identifier (e.g., stageShape)
+     * @param value The parameter value
+     * @return OSC message or nullopt if parameter not mapped
+     */
+    static std::optional<juce::OSCMessage> buildConfigMessage(
+        const juce::Identifier& paramId,
+        float value);
+
+    /**
+     * Build an OSC message for a config integer parameter.
+     */
+    static std::optional<juce::OSCMessage> buildConfigMessage(
+        const juce::Identifier& paramId,
+        int value);
+
+    /**
      * Build an OSC message for a string parameter (e.g., name).
      */
     static std::optional<juce::OSCMessage> buildInputStringMessage(
@@ -101,10 +119,16 @@ public:
     static juce::String getOutputOSCPath(const juce::Identifier& paramId);
 
     /**
+     * Get the OSC path for a config parameter.
+     */
+    static juce::String getConfigOSCPath(const juce::Identifier& paramId);
+
+    /**
      * Check if a parameter ID is mapped for OSC.
      */
     static bool isInputMapped(const juce::Identifier& paramId);
     static bool isOutputMapped(const juce::Identifier& paramId);
+    static bool isConfigMapped(const juce::Identifier& paramId);
 
     //==========================================================================
     // Bundle Building
@@ -128,6 +152,7 @@ private:
 
     static const std::map<juce::Identifier, ParamMapping>& getInputMappings();
     static const std::map<juce::Identifier, ParamMapping>& getOutputMappings();
+    static const std::map<juce::Identifier, juce::String>& getConfigMappings();
 
     static juce::OSCMessage buildMessage(
         const juce::String& address,
@@ -138,6 +163,15 @@ private:
         const juce::String& address,
         int channelId,
         const juce::String& value);
+
+    // Config message helpers (no channel ID)
+    static juce::OSCMessage buildConfigFloatMessage(
+        const juce::String& address,
+        float value);
+
+    static juce::OSCMessage buildConfigIntMessage(
+        const juce::String& address,
+        int value);
 };
 
 } // namespace WFSNetwork

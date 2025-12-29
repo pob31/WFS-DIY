@@ -45,6 +45,10 @@ namespace WFSParameterDefaults
     // Config > Stage Section
     //==========================================================================
 
+    constexpr int stageShapeDefault         = 0;       // 0=box, 1=cylinder, 2=dome
+    constexpr int stageShapeMin             = 0;
+    constexpr int stageShapeMax             = 2;
+
     constexpr float stageWidthDefault       = 20.0f;
     constexpr float stageWidthMin           = 0.0f;
     constexpr float stageWidthMax           = 100.0f;
@@ -57,11 +61,19 @@ namespace WFSParameterDefaults
     constexpr float stageHeightMin          = 0.0f;
     constexpr float stageHeightMax          = 100.0f;
 
-    constexpr float originWidthDefault      = 10.0f;  // Half of stage width
+    constexpr float stageDiameterDefault    = 20.0f;   // For cylinder/dome (meters)
+    constexpr float stageDiameterMin        = 0.1f;    // Minimum 0.1m
+    constexpr float stageDiameterMax        = 100.0f;
+
+    constexpr float domeElevationDefault    = 180.0f;  // Hemisphere (degrees)
+    constexpr float domeElevationMin        = 1.0f;    // Minimum 1 degree
+    constexpr float domeElevationMax        = 360.0f;  // Full sphere max
+
+    constexpr float originWidthDefault      = 0.0f;   // Center-referenced (0 = center)
     constexpr float originWidthMin          = -100.0f;
     constexpr float originWidthMax          = 200.0f;
 
-    constexpr float originDepthDefault      = 0.0f;
+    constexpr float originDepthDefault      = -5.0f;  // Downstage center (-stageDepth/2)
     constexpr float originDepthMin          = -100.0f;
     constexpr float originDepthMax          = 200.0f;
 
@@ -469,8 +481,8 @@ namespace WFSParameterDefaults
 
     /**
      * Calculate default input position distributed across the stage.
-     * Inputs are arranged in rows of up to 8, centered on the stage.
-     * Returns origin-relative coordinates (position relative to coordinate origin).
+     * Inputs are arranged in rows of up to 8, distributed within stage bounds.
+     * Returns origin-relative coordinates (center-referenced for X/Y).
      */
     inline void getDefaultInputPosition (int index, int totalInputs,
                                          float stageWidth, float stageDepth, float /*stageHeight*/,
@@ -482,15 +494,17 @@ namespace WFSParameterDefaults
         const int col = index % numCols;
         const int row = index / numCols;
 
-        const float colSpacing = stageWidth / (float)(numCols + 1);
-        const float rowSpacing = stageDepth / (float)(numRows + 1);
+        // Calculate position as fraction across stage (0 to 1)
+        float fracX = (col + 1) / (float)(numCols + 1);
+        float fracY = (row + 1) / (float)(numRows + 1);
 
-        // Calculate absolute stage position, then convert to origin-relative
-        float absX = colSpacing * (col + 1);
-        float absY = rowSpacing * (row + 1);
+        // Stage bounds in origin-relative coordinates (center-referenced)
+        float minX = -stageWidth / 2.0f - originW;
+        float minY = -stageDepth / 2.0f - originD;
 
-        x = absX - originW;
-        y = absY - originD;
+        // Position within stage bounds
+        x = minX + stageWidth * fracX;
+        y = minY + stageDepth * fracY;
         z = 0.0f;
     }
 

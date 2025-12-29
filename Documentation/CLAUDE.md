@@ -87,10 +87,31 @@ The DSP calculation layer transforms human control parameters into real-time DSP
 - **InputVisualisationComponent.h** - Real-time DSP matrix visualization
 
 ### Coordinate System
-- **X**: Across stage (left-right)
-- **Y**: Positive upstage (away from audience), 0° orientation faces -Y
-- **Z**: Height
-- **Origin (0,0,0)**: Downstage left corner (from audience perspective)
+- **X**: Across stage (left-right, positive = right)
+- **Y**: Along stage (positive = upstage/back, negative = downstage/front toward audience)
+- **Z**: Height (positive = up)
+- **Origin**: User-configurable offset from stage center (center-referenced system)
+
+### Stage Shapes
+Three stage shapes available, selected in SystemConfigTab:
+
+| Shape | Parameters | Description |
+|-------|------------|-------------|
+| **Box** | Width, Depth, Height (m) | Rectangular stage |
+| **Cylinder** | Diameter, Height (m) | Vertical cylinder with circular footprint |
+| **Dome** | Diameter, Elevation (1°-360°) | Partial sphere, 180°=hemisphere, 360°=full sphere |
+
+**Origin Offset**: Stage center is at (0,0,0) in the center-referenced system. Origin offsets move the coordinate origin relative to stage center:
+- **originWidth** (X offset): 0 = centered, negative = left
+- **originDepth** (Y offset): 0 = centered, negative = front/downstage
+- **originHeight** (Z offset): 0 = floor level, positive = above floor
+
+**Origin Presets**:
+- **Front**: Origin at front-center of stage (typical for frontal setups)
+- **Center Ground**: Origin at stage center, floor level (typical for surround/cylinder)
+- **Center**: Origin at volumetric center of stage
+
+When changing stage shape, origin automatically resets to Center Ground (0,0,0).
 
 ### WFSCalculationEngine
 Calculates per input->output pair:
@@ -773,8 +794,8 @@ Interactive 2D visualization of the WFS spatial layout:
 
 ### Display Elements
 - **Grid** - 1m grid lines (dark gray)
-- **Stage bounds** - White rectangle showing stage dimensions
-- **Origin marker** - White circle with crosshairs at coordinate origin
+- **Stage bounds** - White rectangle (Box) or circle (Cylinder/Dome) showing stage dimensions
+- **Origin marker** - White crosshairs at coordinate origin (0,0)
 - **Inputs** - Colored circles with channel numbers (interactive, draggable)
 - **Outputs** - Trapezoid speaker icons with membrane, showing orientation, color-coded by array
 - **Reverbs** - Purple diamond shapes
@@ -901,10 +922,11 @@ A wizard-style dialog for quickly configuring speaker array positions with prese
 - **Surround pairs** - Width and Y range for left/right mirrored speakers
 
 ### Key Features
-- **Live preview** - Auto-updates as parameters change
+- **Live preview** - Auto-updates as parameters change, shows stage shape (Box/Cylinder/Dome)
 - **Target section** - Select array assignment and starting output
 - **Auto-advance** - After Apply, advances to next array and output position
-- **Orientation convention** - 0 degrees = facing audience (toward -Y)
+- **Orientation convention** - 0° = facing back of stage (+Y), 180° = facing audience (-Y)
+- **Circle preset** - Defaults to center at origin (0,0)
 
 ### Geometry Calculations (Source/Helpers/ArrayGeometryCalculator.cpp)
 - `calculateStraightFromCenter()` - Straight line from center point
@@ -1039,6 +1061,6 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 
 ---
 
-*Last updated: 2025-12-28*
+*Last updated: 2025-12-29*
 *JUCE Version: 8.0.12*
 *Build: Visual Studio 2022 / Xcode, x64 Debug/Release*

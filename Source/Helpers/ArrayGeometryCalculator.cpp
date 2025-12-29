@@ -22,11 +22,12 @@ float calculateOrientationToward(float speakerX, float speakerY,
     float dx = targetX - speakerX;
     float dy = targetY - speakerY;
 
-    // In our coordinate system:
-    // - 0 degrees = facing audience (toward negative Y)
+    // In our coordinate system (matching MapTab convention):
+    // - 0 degrees = facing back of stage (toward positive Y)
     // - 90 degrees = facing right (toward positive X)
+    // - 180 degrees = facing audience (toward negative Y)
     // atan2 returns angle from positive X axis, so we need to adjust
-    float angleRad = std::atan2(dx, -dy);  // -dy because 0° is toward -Y
+    float angleRad = std::atan2(dx, dy);  // 0° is toward +Y (back of stage)
     float angleDeg = juce::radiansToDegrees(angleRad);
 
     return normalizeAngle(angleDeg);
@@ -195,9 +196,10 @@ std::vector<SpeakerPosition> calculateCurvedArray(
             normalY = -normalY;
         }
 
-        // Calculate orientation: 0° = facing -Y (audience)
-        // atan2(x, -y) gives angle where 0 = facing -Y
-        float orientation = juce::radiansToDegrees(std::atan2(normalX, -normalY));
+        // Calculate orientation (matching MapTab convention):
+        // 0° = facing +Y (back of stage), 180° = facing -Y (audience)
+        // atan2(x, y) gives angle where 0 = facing +Y
+        float orientation = juce::radiansToDegrees(std::atan2(normalX, normalY));
         orientation = normalizeAngle(orientation);
 
         positions.push_back({ x, y, z, orientation });

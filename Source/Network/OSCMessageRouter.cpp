@@ -277,6 +277,26 @@ const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getRemoteAddre
     return addressMap;
 }
 
+const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getConfigAddressMap()
+{
+    // Config parameter addresses -> parameter IDs
+    // Note: These use full paths (not just the param name) because config paths have subpaths
+    static const std::map<juce::String, juce::Identifier> addressMap = {
+        // Stage parameters
+        { OSCPaths::CONFIG_STAGE_SHAPE,          WFSParameterIDs::stageShape },
+        { OSCPaths::CONFIG_STAGE_WIDTH,          WFSParameterIDs::stageWidth },
+        { OSCPaths::CONFIG_STAGE_DEPTH,          WFSParameterIDs::stageDepth },
+        { OSCPaths::CONFIG_STAGE_HEIGHT,         WFSParameterIDs::stageHeight },
+        { OSCPaths::CONFIG_STAGE_DIAMETER,       WFSParameterIDs::stageDiameter },
+        { OSCPaths::CONFIG_STAGE_DOME_ELEVATION, WFSParameterIDs::domeElevation },
+        { OSCPaths::CONFIG_STAGE_ORIGIN_X,       WFSParameterIDs::originWidth },
+        { OSCPaths::CONFIG_STAGE_ORIGIN_Y,       WFSParameterIDs::originDepth },
+        { OSCPaths::CONFIG_STAGE_ORIGIN_Z,       WFSParameterIDs::originHeight },
+    };
+
+    return addressMap;
+}
+
 //==============================================================================
 // Address Pattern Matching
 //==============================================================================
@@ -294,6 +314,11 @@ bool OSCMessageRouter::isOutputAddress(const juce::String& address)
 bool OSCMessageRouter::isReverbAddress(const juce::String& address)
 {
     return address.startsWith("/wfs/reverb/");
+}
+
+bool OSCMessageRouter::isConfigAddress(const juce::String& address)
+{
+    return address.startsWith("/wfs/config/");
 }
 
 bool OSCMessageRouter::isRemoteInputAddress(const juce::String& address)
@@ -347,6 +372,18 @@ juce::Identifier OSCMessageRouter::getReverbParamId(const juce::String& address)
     const auto& addressMap = getReverbAddressMap();
 
     auto it = addressMap.find(paramName);
+    if (it != addressMap.end())
+        return it->second;
+
+    return {};
+}
+
+juce::Identifier OSCMessageRouter::getConfigParamId(const juce::String& address)
+{
+    // Config addresses use full paths, not just the param name
+    const auto& addressMap = getConfigAddressMap();
+
+    auto it = addressMap.find(address);
     if (it != addressMap.end())
         return it->second;
 
@@ -493,6 +530,38 @@ OSCMessageRouter::ParsedReverbMessage OSCMessageRouter::parseReverbMessage(const
         else
             result.value = extractFloat(message[1]);
     }
+
+    result.valid = true;
+    return result;
+}
+
+OSCMessageRouter::ParsedConfigMessage OSCMessageRouter::parseConfigMessage(const juce::OSCMessage& message)
+{
+    ParsedConfigMessage result;
+
+    juce::String address = message.getAddressPattern().toString();
+
+    if (!isConfigAddress(address))
+        return result;
+
+    result.paramId = getConfigParamId(address);
+    if (!result.paramId.isValid())
+        return result;
+
+    // Config messages have format: /wfs/config/... <value>
+    // No channel ID - just a single value
+    if (message.size() < 1)
+        return result;
+
+    // Determine value type based on argument
+    if (message[0].isInt32())
+        result.value = extractInt(message[0]);
+    else if (message[0].isFloat32())
+        result.value = extractFloat(message[0]);
+    else if (message[0].isString())
+        result.value = extractString(message[0]);
+    else
+        return result;
 
     result.valid = true;
     return result;

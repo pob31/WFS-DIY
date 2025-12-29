@@ -123,6 +123,17 @@ namespace OSCPaths
     constexpr const char* OUTPUT_PREFIX = "/wfs/output/";
     constexpr const char* CONFIG_PREFIX = "/wfs/config/";
 
+    // Config/Stage paths (global parameters, no channel ID)
+    constexpr const char* CONFIG_STAGE_SHAPE = "/wfs/config/stage/shape";
+    constexpr const char* CONFIG_STAGE_WIDTH = "/wfs/config/stage/width";
+    constexpr const char* CONFIG_STAGE_DEPTH = "/wfs/config/stage/depth";
+    constexpr const char* CONFIG_STAGE_HEIGHT = "/wfs/config/stage/height";
+    constexpr const char* CONFIG_STAGE_DIAMETER = "/wfs/config/stage/diameter";
+    constexpr const char* CONFIG_STAGE_DOME_ELEVATION = "/wfs/config/stage/domeElevation";
+    constexpr const char* CONFIG_STAGE_ORIGIN_X = "/wfs/config/stage/originX";
+    constexpr const char* CONFIG_STAGE_ORIGIN_Y = "/wfs/config/stage/originY";
+    constexpr const char* CONFIG_STAGE_ORIGIN_Z = "/wfs/config/stage/originZ";
+
     // REMOTE protocol paths
     constexpr const char* REMOTE_INPUT_PREFIX = "/remoteInput/";
     constexpr const char* REMOTE_OUTPUT_PREFIX = "/remoteOutput/";

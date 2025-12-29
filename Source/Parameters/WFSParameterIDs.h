@@ -77,9 +77,12 @@ namespace WFSParameterIDs
     // Config > Stage Section
     //==========================================================================
 
+    const juce::Identifier stageShape        ("stageShape");       // 0=box, 1=cylinder, 2=dome
     const juce::Identifier stageWidth        ("stageWidth");
     const juce::Identifier stageDepth        ("stageDepth");
     const juce::Identifier stageHeight       ("stageHeight");
+    const juce::Identifier stageDiameter     ("stageDiameter");    // For cylinder/dome
+    const juce::Identifier domeElevation     ("domeElevation");    // Elevation angle in degrees
     const juce::Identifier originWidth       ("originWidth");
     const juce::Identifier originDepth       ("originDepth");
     const juce::Identifier originHeight      ("originHeight");

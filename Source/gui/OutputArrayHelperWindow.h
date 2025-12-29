@@ -83,9 +83,17 @@ public:
     /** Clear the displayed positions */
     void clearPositions();
 
+    /** Set current preset info for audience label display */
+    void setPresetInfo(ArrayPresetType preset, bool circleInward, float radius = 5.0f);
+
 private:
     WfsParameters& parameters;
     std::vector<SpeakerPosition> speakerPositions;
+
+    // Preset info for audience label
+    ArrayPresetType currentPreset = ArrayPresetType::NearFieldStraight;
+    bool circleFacingInward = true;
+    float circleRadius = 5.0f;
 
     // Coordinate transformation
     float scale = 1.0f;

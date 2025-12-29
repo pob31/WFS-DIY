@@ -114,6 +114,24 @@ const std::map<juce::Identifier, OSCMessageBuilder::ParamMapping>& OSCMessageBui
     return mappings;
 }
 
+const std::map<juce::Identifier, juce::String>& OSCMessageBuilder::getConfigMappings()
+{
+    static const std::map<juce::Identifier, juce::String> mappings = {
+        // Stage parameters
+        { WFSParameterIDs::stageShape,        OSCPaths::CONFIG_STAGE_SHAPE },
+        { WFSParameterIDs::stageWidth,        OSCPaths::CONFIG_STAGE_WIDTH },
+        { WFSParameterIDs::stageDepth,        OSCPaths::CONFIG_STAGE_DEPTH },
+        { WFSParameterIDs::stageHeight,       OSCPaths::CONFIG_STAGE_HEIGHT },
+        { WFSParameterIDs::stageDiameter,     OSCPaths::CONFIG_STAGE_DIAMETER },
+        { WFSParameterIDs::domeElevation,     OSCPaths::CONFIG_STAGE_DOME_ELEVATION },
+        { WFSParameterIDs::originWidth,       OSCPaths::CONFIG_STAGE_ORIGIN_X },
+        { WFSParameterIDs::originDepth,       OSCPaths::CONFIG_STAGE_ORIGIN_Y },
+        { WFSParameterIDs::originHeight,      OSCPaths::CONFIG_STAGE_ORIGIN_Z },
+    };
+
+    return mappings;
+}
+
 const std::map<juce::Identifier, OSCMessageBuilder::ParamMapping>& OSCMessageBuilder::getOutputMappings()
 {
     static const std::map<juce::Identifier, ParamMapping> mappings = {
@@ -179,6 +197,36 @@ std::optional<juce::OSCMessage> OSCMessageBuilder::buildOutputMessage(
         return std::nullopt;
 
     return buildMessage(it->second.oscPath, channelId, value);
+}
+
+//==============================================================================
+// Message Building - Config Values (no channel ID)
+//==============================================================================
+
+std::optional<juce::OSCMessage> OSCMessageBuilder::buildConfigMessage(
+    const juce::Identifier& paramId,
+    float value)
+{
+    const auto& mappings = getConfigMappings();
+    auto it = mappings.find(paramId);
+
+    if (it == mappings.end())
+        return std::nullopt;
+
+    return buildConfigFloatMessage(it->second, value);
+}
+
+std::optional<juce::OSCMessage> OSCMessageBuilder::buildConfigMessage(
+    const juce::Identifier& paramId,
+    int value)
+{
+    const auto& mappings = getConfigMappings();
+    auto it = mappings.find(paramId);
+
+    if (it == mappings.end())
+        return std::nullopt;
+
+    return buildConfigIntMessage(it->second, value);
 }
 
 //==============================================================================
@@ -270,6 +318,13 @@ juce::String OSCMessageBuilder::getOutputOSCPath(const juce::Identifier& paramId
     return (it != mappings.end()) ? it->second.oscPath : juce::String();
 }
 
+juce::String OSCMessageBuilder::getConfigOSCPath(const juce::Identifier& paramId)
+{
+    const auto& mappings = getConfigMappings();
+    auto it = mappings.find(paramId);
+    return (it != mappings.end()) ? it->second : juce::String();
+}
+
 bool OSCMessageBuilder::isInputMapped(const juce::Identifier& paramId)
 {
     return getInputMappings().find(paramId) != getInputMappings().end();
@@ -278,6 +333,11 @@ bool OSCMessageBuilder::isInputMapped(const juce::Identifier& paramId)
 bool OSCMessageBuilder::isOutputMapped(const juce::Identifier& paramId)
 {
     return getOutputMappings().find(paramId) != getOutputMappings().end();
+}
+
+bool OSCMessageBuilder::isConfigMapped(const juce::Identifier& paramId)
+{
+    return getConfigMappings().find(paramId) != getConfigMappings().end();
 }
 
 //==============================================================================
@@ -331,6 +391,24 @@ juce::OSCMessage OSCMessageBuilder::buildRemotePositionXYMessage(
     msg.addInt32(channelId);
     msg.addFloat32(normX);
     msg.addFloat32(normY);
+    return msg;
+}
+
+juce::OSCMessage OSCMessageBuilder::buildConfigFloatMessage(
+    const juce::String& address,
+    float value)
+{
+    juce::OSCMessage msg(address);
+    msg.addFloat32(value);
+    return msg;
+}
+
+juce::OSCMessage OSCMessageBuilder::buildConfigIntMessage(
+    const juce::String& address,
+    int value)
+{
+    juce::OSCMessage msg(address);
+    msg.addInt32(value);
     return msg;
 }
 

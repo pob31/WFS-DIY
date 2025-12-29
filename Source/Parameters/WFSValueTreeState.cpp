@@ -876,9 +876,12 @@ void WFSValueTreeState::createIOSection (juce::ValueTree& config)
 void WFSValueTreeState::createStageSection (juce::ValueTree& config)
 {
     juce::ValueTree stage (Stage);
+    stage.setProperty (stageShape, stageShapeDefault, nullptr);
     stage.setProperty (stageWidth, stageWidthDefault, nullptr);
     stage.setProperty (stageDepth, stageDepthDefault, nullptr);
     stage.setProperty (stageHeight, stageHeightDefault, nullptr);
+    stage.setProperty (stageDiameter, stageDiameterDefault, nullptr);
+    stage.setProperty (domeElevation, domeElevationDefault, nullptr);
     stage.setProperty (originWidth, originWidthDefault, nullptr);
     stage.setProperty (originDepth, originDepthDefault, nullptr);
     stage.setProperty (originHeight, originHeightDefault, nullptr);

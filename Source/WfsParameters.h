@@ -260,9 +260,12 @@ private:
         if (paramName == "ProcessingAlgorithm") return WFSParameterIDs::algorithmDSP;
 
         // Stage section
+        if (paramName == "StageShape") return WFSParameterIDs::stageShape;
         if (paramName == "StageWidth") return WFSParameterIDs::stageWidth;
         if (paramName == "StageDepth") return WFSParameterIDs::stageDepth;
         if (paramName == "StageHeight") return WFSParameterIDs::stageHeight;
+        if (paramName == "StageDiameter") return WFSParameterIDs::stageDiameter;
+        if (paramName == "DomeElevation") return WFSParameterIDs::domeElevation;
         if (paramName == "StageOriginWidth") return WFSParameterIDs::originWidth;
         if (paramName == "StageOriginDepth") return WFSParameterIDs::originDepth;
         if (paramName == "StageOriginHeight") return WFSParameterIDs::originHeight;

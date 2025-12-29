@@ -4009,30 +4009,46 @@ private:
     //==============================================================================
     // Stage bounds helper methods for constraint enforcement
 
+    // Stage bounds (center-referenced for X/Y, floor-referenced for Z)
+    // For circular shapes (cylinder/dome), use diameter instead of width/depth
     float getStageMinX() const
     {
+        int shape = static_cast<int>(parameters.getConfigParam("StageShape"));
+        float halfSize = (shape == 0)
+            ? static_cast<float>(parameters.getConfigParam("StageWidth")) / 2.0f
+            : static_cast<float>(parameters.getConfigParam("StageDiameter")) / 2.0f;
         float originWidth = static_cast<float>(parameters.getConfigParam("StageOriginWidth"));
-        return -originWidth;
+        return -halfSize - originWidth;
     }
 
     float getStageMaxX() const
     {
-        float stageWidth = static_cast<float>(parameters.getConfigParam("StageWidth"));
+        int shape = static_cast<int>(parameters.getConfigParam("StageShape"));
+        float halfSize = (shape == 0)
+            ? static_cast<float>(parameters.getConfigParam("StageWidth")) / 2.0f
+            : static_cast<float>(parameters.getConfigParam("StageDiameter")) / 2.0f;
         float originWidth = static_cast<float>(parameters.getConfigParam("StageOriginWidth"));
-        return stageWidth - originWidth;
+        return halfSize - originWidth;
     }
 
     float getStageMinY() const
     {
+        int shape = static_cast<int>(parameters.getConfigParam("StageShape"));
+        float halfSize = (shape == 0)
+            ? static_cast<float>(parameters.getConfigParam("StageDepth")) / 2.0f
+            : static_cast<float>(parameters.getConfigParam("StageDiameter")) / 2.0f;
         float originDepth = static_cast<float>(parameters.getConfigParam("StageOriginDepth"));
-        return -originDepth;
+        return -halfSize - originDepth;
     }
 
     float getStageMaxY() const
     {
-        float stageDepth = static_cast<float>(parameters.getConfigParam("StageDepth"));
+        int shape = static_cast<int>(parameters.getConfigParam("StageShape"));
+        float halfSize = (shape == 0)
+            ? static_cast<float>(parameters.getConfigParam("StageDepth")) / 2.0f
+            : static_cast<float>(parameters.getConfigParam("StageDiameter")) / 2.0f;
         float originDepth = static_cast<float>(parameters.getConfigParam("StageOriginDepth"));
-        return stageDepth - originDepth;
+        return halfSize - originDepth;
     }
 
     float getStageMinZ() const

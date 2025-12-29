@@ -1692,19 +1692,55 @@ private:
         return WFSParameterDefaults::stageHeightDefault;
     }
 
-    // Origin-relative stage bounds (matching InputsTab/ClustersTab coordinate system)
-    float getStageMinX() const { return -getOriginWidth(); }
-    float getStageMaxX() const { return getStageWidth() - getOriginWidth(); }
-    float getStageMinY() const { return -getOriginDepth(); }
-    float getStageMaxY() const { return getStageDepth() - getOriginDepth(); }
+    int getStageShape() const
+    {
+        auto stageTree = configTree.getChildWithName(WFSParameterIDs::Stage);
+        if (stageTree.isValid())
+            return static_cast<int>(stageTree.getProperty(WFSParameterIDs::stageShape,
+                                    WFSParameterDefaults::stageShapeDefault));
+        return WFSParameterDefaults::stageShapeDefault;
+    }
+
+    float getStageDiameter() const
+    {
+        auto stageTree = configTree.getChildWithName(WFSParameterIDs::Stage);
+        if (stageTree.isValid())
+            return static_cast<float>(stageTree.getProperty(WFSParameterIDs::stageDiameter,
+                                      WFSParameterDefaults::stageDiameterDefault));
+        return WFSParameterDefaults::stageDiameterDefault;
+    }
+
+    // Origin-relative stage bounds (center-referenced for X/Y, floor-referenced for Z)
+    // For circular shapes (cylinder/dome), use diameter instead of width/depth
+    float getStageMinX() const
+    {
+        float halfSize = (getStageShape() == 0) ? getStageWidth() / 2.0f : getStageDiameter() / 2.0f;
+        return -halfSize - getOriginWidth();
+    }
+    float getStageMaxX() const
+    {
+        float halfSize = (getStageShape() == 0) ? getStageWidth() / 2.0f : getStageDiameter() / 2.0f;
+        return halfSize - getOriginWidth();
+    }
+    float getStageMinY() const
+    {
+        float halfSize = (getStageShape() == 0) ? getStageDepth() / 2.0f : getStageDiameter() / 2.0f;
+        return -halfSize - getOriginDepth();
+    }
+    float getStageMaxY() const
+    {
+        float halfSize = (getStageShape() == 0) ? getStageDepth() / 2.0f : getStageDiameter() / 2.0f;
+        return halfSize - getOriginDepth();
+    }
     float getStageMinZ() const { return 0.0f; }
     float getStageMaxZ() const { return getStageHeight(); }
 
     void resetView()
     {
         // Reset view to show entire stage centered in viewport
-        float stageW = getStageWidth();
-        float stageD = getStageDepth();
+        int shape = getStageShape();
+        float stageW = (shape == 0) ? getStageWidth() : getStageDiameter();
+        float stageD = (shape == 0) ? getStageDepth() : getStageDiameter();
         float originW = getOriginWidth();
         float originD = getOriginDepth();
 
@@ -1715,13 +1751,11 @@ private:
         viewScale = juce::jlimit(5.0f, 500.0f, viewScale);
 
         // Calculate offset to center the stage (not the origin) in the viewport
-        // Stage center in origin-relative coords: ((stageW-2*originW)/2, (stageD-2*originD)/2)
+        // With center-referenced system, stage center is at (-originW, -originD) in origin-relative coords
         // stageToScreen: screenX = width/2 + stageX * scale + offsetX
-        // To center the stage: offsetX = -stageCenterX * scale = (originW - stageW/2) * scale
-        float stageCenterX = stageW / 2.0f;
-        float stageCenterY = stageD / 2.0f;
-        viewOffset.x = (originW - stageCenterX) * viewScale;
-        viewOffset.y = (stageCenterY - originD) * viewScale;  // Y is inverted in screen coords
+        // To center the stage: offsetX = -stageCenterX * scale = originW * scale
+        viewOffset.x = originW * viewScale;
+        viewOffset.y = -originD * viewScale;  // Y is inverted in screen coords
     }
 
     //==========================================================================
@@ -1766,16 +1800,33 @@ private:
 
     void drawStageBounds(juce::Graphics& g)
     {
-        // Stage bounds in origin-relative coordinates
-        auto topLeft = stageToScreen({ getStageMinX(), getStageMaxY() });
-        auto bottomRight = stageToScreen({ getStageMaxX(), getStageMinY() });
-
-        juce::Rectangle<float> stageRect(topLeft.x, topLeft.y,
-                                         bottomRight.x - topLeft.x,
-                                         bottomRight.y - topLeft.y);
-
         g.setColour(juce::Colours::white);
-        g.drawRect(stageRect, 2.0f);
+
+        int shape = getStageShape();
+        if (shape == 0)  // Box - draw rectangle
+        {
+            auto topLeft = stageToScreen({ getStageMinX(), getStageMaxY() });
+            auto bottomRight = stageToScreen({ getStageMaxX(), getStageMinY() });
+
+            juce::Rectangle<float> stageRect(topLeft.x, topLeft.y,
+                                             bottomRight.x - topLeft.x,
+                                             bottomRight.y - topLeft.y);
+            g.drawRect(stageRect, 2.0f);
+        }
+        else  // Cylinder or Dome - draw circle
+        {
+            // Circle center is at stage center (in origin-relative coords: -originW, -originD)
+            float originW = getOriginWidth();
+            float originD = getOriginDepth();
+            auto center = stageToScreen({ -originW, -originD });
+
+            // Circle radius in screen pixels
+            float diameter = getStageDiameter();
+            float radiusPixels = (diameter / 2.0f) * viewScale;
+
+            g.drawEllipse(center.x - radiusPixels, center.y - radiusPixels,
+                          radiusPixels * 2.0f, radiusPixels * 2.0f, 2.0f);
+        }
     }
 
     void drawOriginMarker(juce::Graphics& g)
@@ -1834,7 +1885,8 @@ private:
             juce::Colour membraneColor = (array == 0) ? juce::Colours::lightgrey : WfsColorUtilities::getArrayColor(array);
 
             // Draw speaker keystone shape showing orientation
-            // Orientation 0° = pointing toward audience (up on screen, which is -Y in screen coords)
+            // Orientation 0° = pointing toward back of stage (up on screen, -Y in screen coords)
+            // Orientation 180° = pointing toward audience (down on screen, +Y in screen coords)
             float angleRad = juce::degreesToRadians(static_cast<float>(orientation) - 90.0f);
 
             // Direction vector (where speaker points)

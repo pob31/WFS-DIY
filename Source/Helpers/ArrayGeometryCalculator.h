@@ -12,7 +12,7 @@ struct SpeakerPosition
     float x;           // X position in meters
     float y;           // Y position in meters
     float z;           // Z position in meters (height)
-    float orientation; // Orientation in degrees (0 = facing audience, away from Y+)
+    float orientation; // Orientation in degrees (0 = facing back/+Y, 180 = facing audience/-Y)
 };
 
 /**
@@ -149,7 +149,8 @@ namespace ArrayGeometry
 
     /**
      * Calculate orientation from speaker position toward a target point.
-     * Returns angle in degrees where 0 = facing audience (toward negative Y).
+     * Returns angle in degrees where 0 = facing back of stage (toward positive Y),
+     * 90 = facing right (toward positive X), 180 = facing audience (toward negative Y).
      *
      * @param speakerX Speaker X position
      * @param speakerY Speaker Y position

@@ -249,8 +249,18 @@ public:
         processingButton.onClick = [this]() { toggleProcessing(); };
 
         // Stage Section
+        addAndMakeVisible(stageShapeLabel);
+        stageShapeLabel.setText("Stage Shape:", juce::dontSendNotification);
+        stageShapeLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        addAndMakeVisible(stageShapeSelector);
+        stageShapeSelector.addItem("Box", 1);
+        stageShapeSelector.addItem("Cylinder", 2);
+        stageShapeSelector.addItem("Dome", 3);
+        stageShapeSelector.setSelectedId(1, juce::dontSendNotification);
+        stageShapeSelector.onChange = [this]() { onStageShapeChanged(); };
+
         addAndMakeVisible(stageWidthLabel);
-        stageWidthLabel.setText("Stage Width:", juce::dontSendNotification);
+        stageWidthLabel.setText("Width:", juce::dontSendNotification);
         stageWidthLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(stageWidthEditor);
         addAndMakeVisible(stageWidthUnitLabel);
@@ -258,7 +268,7 @@ public:
         stageWidthUnitLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
         addAndMakeVisible(stageDepthLabel);
-        stageDepthLabel.setText("Stage Depth:", juce::dontSendNotification);
+        stageDepthLabel.setText("Depth:", juce::dontSendNotification);
         stageDepthLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(stageDepthEditor);
         addAndMakeVisible(stageDepthUnitLabel);
@@ -266,12 +276,28 @@ public:
         stageDepthUnitLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
         addAndMakeVisible(stageHeightLabel);
-        stageHeightLabel.setText("Stage Height:", juce::dontSendNotification);
+        stageHeightLabel.setText("Height:", juce::dontSendNotification);
         stageHeightLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(stageHeightEditor);
         addAndMakeVisible(stageHeightUnitLabel);
         stageHeightUnitLabel.setText("m", juce::dontSendNotification);
         stageHeightUnitLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+
+        addAndMakeVisible(stageDiameterLabel);
+        stageDiameterLabel.setText("Diameter:", juce::dontSendNotification);
+        stageDiameterLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        addAndMakeVisible(stageDiameterEditor);
+        addAndMakeVisible(stageDiameterUnitLabel);
+        stageDiameterUnitLabel.setText("m", juce::dontSendNotification);
+        stageDiameterUnitLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+
+        addAndMakeVisible(domeElevationLabel);
+        domeElevationLabel.setText("Elevation:", juce::dontSendNotification);
+        domeElevationLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        addAndMakeVisible(domeElevationEditor);
+        addAndMakeVisible(domeElevationUnitLabel);
+        domeElevationUnitLabel.setText(juce::CharPointer_UTF8("\xc2\xb0"), juce::dontSendNotification);
+        domeElevationUnitLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
         addAndMakeVisible(stageOriginWidthLabel);
         stageOriginWidthLabel.setText("Origin Width:", juce::dontSendNotification);
@@ -517,16 +543,30 @@ public:
         x = 500;
         y = 40;
 
+        // Stage shape selector
+        stageShapeLabel.setBounds(x, y, labelWidth, rowHeight);
+        stageShapeSelector.setBounds(x + labelWidth, y, editorWidth + unitWidth + spacing, rowHeight);
+        y += rowHeight + spacing;
+
+        // Dimension row 1: Width (box) or Diameter (cylinder/dome)
         stageWidthLabel.setBounds(x, y, labelWidth, rowHeight);
         stageWidthEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
         stageWidthUnitLabel.setBounds(x + labelWidth + editorWidth + spacing, y, unitWidth, rowHeight);
+        stageDiameterLabel.setBounds(x, y, labelWidth, rowHeight);
+        stageDiameterEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
+        stageDiameterUnitLabel.setBounds(x + labelWidth + editorWidth + spacing, y, unitWidth, rowHeight);
         y += rowHeight + spacing;
 
+        // Dimension row 2: Depth (box) or Height (cylinder) or Elevation (dome)
         stageDepthLabel.setBounds(x, y, labelWidth, rowHeight);
         stageDepthEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
         stageDepthUnitLabel.setBounds(x + labelWidth + editorWidth + spacing, y, unitWidth, rowHeight);
+        domeElevationLabel.setBounds(x, y, labelWidth, rowHeight);
+        domeElevationEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
+        domeElevationUnitLabel.setBounds(x + labelWidth + editorWidth + spacing, y, unitWidth, rowHeight);
         y += rowHeight + spacing;
 
+        // Dimension row 3: Height (box/cylinder only)
         stageHeightLabel.setBounds(x, y, labelWidth, rowHeight);
         stageHeightEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
         stageHeightUnitLabel.setBounds(x + labelWidth + editorWidth + spacing, y, unitWidth, rowHeight);
@@ -734,6 +774,10 @@ private:
             editor.setText(juce::String((float)parameters.getConfigParam("StageDepth"), 2), false);
         else if (&editor == &stageHeightEditor)
             editor.setText(juce::String((float)parameters.getConfigParam("StageHeight"), 2), false);
+        else if (&editor == &stageDiameterEditor)
+            editor.setText(juce::String((float)parameters.getConfigParam("StageDiameter"), 2), false);
+        else if (&editor == &domeElevationEditor)
+            editor.setText(juce::String((float)parameters.getConfigParam("DomeElevation"), 0), false);
         else if (&editor == &stageOriginWidthEditor)
             editor.setText(juce::String((float)parameters.getConfigParam("StageOriginWidth"), 2), false);
         else if (&editor == &stageOriginDepthEditor)
@@ -781,15 +825,24 @@ private:
         outputChannelsEditor.setText(juce::String(parameters.getNumOutputChannels()), false);
         reverbChannelsEditor.setText(juce::String(parameters.getNumReverbChannels()), false);
 
+        // Stage shape selector
+        int shapeId = (int)parameters.getConfigParam("StageShape");
+        stageShapeSelector.setSelectedId(shapeId + 1, juce::dontSendNotification);  // +1 because ComboBox IDs start at 1
+
         // Float values - format with 2 decimal places to avoid precision issues
         stageWidthEditor.setText(juce::String((float)parameters.getConfigParam("StageWidth"), 2), false);
         stageDepthEditor.setText(juce::String((float)parameters.getConfigParam("StageDepth"), 2), false);
         stageHeightEditor.setText(juce::String((float)parameters.getConfigParam("StageHeight"), 2), false);
+        stageDiameterEditor.setText(juce::String((float)parameters.getConfigParam("StageDiameter"), 2), false);
+        domeElevationEditor.setText(juce::String((float)parameters.getConfigParam("DomeElevation"), 0), false);
         stageOriginWidthEditor.setText(juce::String((float)parameters.getConfigParam("StageOriginWidth"), 2), false);
         stageOriginDepthEditor.setText(juce::String((float)parameters.getConfigParam("StageOriginDepth"), 2), false);
         stageOriginHeightEditor.setText(juce::String((float)parameters.getConfigParam("StageOriginHeight"), 2), false);
         speedOfSoundEditor.setText(juce::String((float)parameters.getConfigParam("SpeedOfSound"), 2), false);
         temperatureEditor.setText(juce::String((float)parameters.getConfigParam("Temperature"), 2), false);
+
+        // Update visibility based on shape
+        updateStageParameterVisibility();
         masterLevelEditor.setText(juce::String((float)parameters.getConfigParam("MasterLevel"), 2), false);
         systemLatencyEditor.setText(juce::String((float)parameters.getConfigParam("SystemLatency"), 2), false);
         haasEffectEditor.setText(juce::String((float)parameters.getConfigParam("HaasEffect"), 2), false);
@@ -839,6 +892,10 @@ private:
             parameters.setConfigParam("StageDepth", text.getFloatValue());
         else if (&editor == &stageHeightEditor)
             parameters.setConfigParam("StageHeight", text.getFloatValue());
+        else if (&editor == &stageDiameterEditor)
+            parameters.setConfigParam("StageDiameter", text.getFloatValue());
+        else if (&editor == &domeElevationEditor)
+            parameters.setConfigParam("DomeElevation", text.getFloatValue());
         else if (&editor == &stageOriginWidthEditor)
             parameters.setConfigParam("StageOriginWidth", text.getFloatValue());
         else if (&editor == &stageOriginDepthEditor)
@@ -899,6 +956,10 @@ private:
             value = juce::jlimit(0.0f, 100.0f, std::abs(value));
         else if (&editor == &stageHeightEditor)
             value = juce::jlimit(0.0f, 100.0f, std::abs(value));
+        else if (&editor == &stageDiameterEditor)
+            value = juce::jlimit(0.1f, 100.0f, std::abs(value));  // Min 0.1m, max 100m
+        else if (&editor == &domeElevationEditor)
+            value = juce::jlimit(1.0f, 360.0f, std::abs(value));  // Min 1°, max 360°
         else if (&editor == &stageOriginWidthEditor)
             value = juce::jlimit(-100.0f, 200.0f, value);  // Allows negative
         else if (&editor == &stageOriginDepthEditor)
@@ -969,36 +1030,111 @@ private:
     }
 
     //==============================================================================
+    // Stage shape methods
+
+    void onStageShapeChanged()
+    {
+        int shapeId = stageShapeSelector.getSelectedId() - 1;  // Convert to 0-based
+        parameters.setConfigParam("StageShape", shapeId);
+
+        // Reset dimensions to defaults when shape changes
+        if (shapeId == 0)  // Box
+        {
+            parameters.setConfigParam("StageWidth", WFSParameterDefaults::stageWidthDefault);
+            parameters.setConfigParam("StageDepth", WFSParameterDefaults::stageDepthDefault);
+            parameters.setConfigParam("StageHeight", WFSParameterDefaults::stageHeightDefault);
+        }
+        else if (shapeId == 1)  // Cylinder
+        {
+            parameters.setConfigParam("StageDiameter", WFSParameterDefaults::stageDiameterDefault);
+            parameters.setConfigParam("StageHeight", WFSParameterDefaults::stageHeightDefault);
+        }
+        else  // Dome
+        {
+            parameters.setConfigParam("StageDiameter", WFSParameterDefaults::stageDiameterDefault);
+            parameters.setConfigParam("DomeElevation", WFSParameterDefaults::domeElevationDefault);
+        }
+
+        // Reset origin to center
+        setOriginToCenterGround();
+
+        // Update UI
+        loadParametersToUI();
+    }
+
+    void updateStageParameterVisibility()
+    {
+        int shapeId = stageShapeSelector.getSelectedId() - 1;  // 0=box, 1=cylinder, 2=dome
+
+        // Box: show width, depth, height
+        bool isBox = (shapeId == 0);
+        stageWidthLabel.setVisible(isBox);
+        stageWidthEditor.setVisible(isBox);
+        stageWidthUnitLabel.setVisible(isBox);
+        stageDepthLabel.setVisible(isBox);
+        stageDepthEditor.setVisible(isBox);
+        stageDepthUnitLabel.setVisible(isBox);
+
+        // Cylinder/Dome: show diameter
+        bool isCircular = (shapeId != 0);
+        stageDiameterLabel.setVisible(isCircular);
+        stageDiameterEditor.setVisible(isCircular);
+        stageDiameterUnitLabel.setVisible(isCircular);
+
+        // Box/Cylinder: show height
+        bool hasHeight = (shapeId == 0 || shapeId == 1);
+        stageHeightLabel.setVisible(hasHeight);
+        stageHeightEditor.setVisible(hasHeight);
+        stageHeightUnitLabel.setVisible(hasHeight);
+
+        // Dome: show elevation
+        bool isDome = (shapeId == 2);
+        domeElevationLabel.setVisible(isDome);
+        domeElevationEditor.setVisible(isDome);
+        domeElevationUnitLabel.setVisible(isDome);
+    }
+
+    //==============================================================================
     // Origin preset methods
 
     void setOriginToFront()
     {
-        // Front of stage: X = half width, Y = 0, Z = 0
-        float stageWidth = (float)parameters.getConfigParam("StageWidth");
-        parameters.setConfigParam("StageOriginWidth", stageWidth * 0.5f);
-        parameters.setConfigParam("StageOriginDepth", 0.0f);
+        // Front-center of stage: X = center, Y = front edge, Z = floor
+        int shapeId = stageShapeSelector.getSelectedId() - 1;
+        float frontOffset = 0.0f;
+
+        if (shapeId == 0)  // Box
+            frontOffset = -((float)parameters.getConfigParam("StageDepth")) * 0.5f;
+        else  // Cylinder/Dome
+            frontOffset = -((float)parameters.getConfigParam("StageDiameter")) * 0.5f;
+
+        parameters.setConfigParam("StageOriginWidth", 0.0f);
+        parameters.setConfigParam("StageOriginDepth", frontOffset);
         parameters.setConfigParam("StageOriginHeight", 0.0f);
     }
 
     void setOriginToCenterGround()
     {
-        // Center at ground level: X = half width, Y = half depth, Z = 0
-        float stageWidth = (float)parameters.getConfigParam("StageWidth");
-        float stageDepth = (float)parameters.getConfigParam("StageDepth");
-        parameters.setConfigParam("StageOriginWidth", stageWidth * 0.5f);
-        parameters.setConfigParam("StageOriginDepth", stageDepth * 0.5f);
+        // Center at ground level: all offsets zero (center-referenced)
+        parameters.setConfigParam("StageOriginWidth", 0.0f);
+        parameters.setConfigParam("StageOriginDepth", 0.0f);
         parameters.setConfigParam("StageOriginHeight", 0.0f);
     }
 
     void setOriginToCenter()
     {
-        // Center of stage: X = half width, Y = half depth, Z = half height
-        float stageWidth = (float)parameters.getConfigParam("StageWidth");
-        float stageDepth = (float)parameters.getConfigParam("StageDepth");
-        float stageHeight = (float)parameters.getConfigParam("StageHeight");
-        parameters.setConfigParam("StageOriginWidth", stageWidth * 0.5f);
-        parameters.setConfigParam("StageOriginDepth", stageDepth * 0.5f);
-        parameters.setConfigParam("StageOriginHeight", stageHeight * 0.5f);
+        // Center of stage cube/cylinder/dome: X = center, Y = center, Z = half height
+        int shapeId = stageShapeSelector.getSelectedId() - 1;
+        float halfHeight = 0.0f;
+
+        if (shapeId == 2)  // Dome - use diameter for spherical center
+            halfHeight = ((float)parameters.getConfigParam("StageDiameter")) * 0.5f;
+        else  // Box/Cylinder
+            halfHeight = ((float)parameters.getConfigParam("StageHeight")) * 0.5f;
+
+        parameters.setConfigParam("StageOriginWidth", 0.0f);
+        parameters.setConfigParam("StageOriginDepth", 0.0f);
+        parameters.setConfigParam("StageOriginHeight", halfHeight);
     }
 
     //==============================================================================
@@ -1269,15 +1405,18 @@ private:
         helpTextMap[&audioPatchingButton] = "Open patching window to route Input and Output channels to the Audio Interface.";
         helpTextMap[&algorithmSelector] = "Select the rendering algorithm from the menu.";
         helpTextMap[&processingButton] = "Lock all I/O parameters and start the DSP. Long press to stop the DSP.";
-        helpTextMap[&stageWidthEditor] = "Width of the stage (used for remote application and ADM-OSC).";
-        helpTextMap[&stageDepthEditor] = "Depth of the stage (used for remote application and ADM-OSC).";
-        helpTextMap[&stageHeightEditor] = "Height of the stage (used for remote application and ADM-OSC).";
-        helpTextMap[&stageOriginWidthEditor] = "Origin of the stage in Width (set by default to half of the stage width).";
-        helpTextMap[&stageOriginDepthEditor] = "Origin of the stage in Depth (set by default to 0).";
-        helpTextMap[&stageOriginHeightEditor] = "Origin of the stage in Height (set by default to 0).";
-        helpTextMap[&originFrontButton] = "Set origin to front center of stage (X=width/2, Y=0, Z=0). Typical for frontal stages.";
-        helpTextMap[&originCenterGroundButton] = "Set origin to center of stage at ground level (X=width/2, Y=depth/2, Z=0). Typical for a Surround or Central Cylindrical Setup.";
-        helpTextMap[&originCenterButton] = "Set origin to center of stage (X=width/2, Y=depth/2, Z=height/2). Typical for a Spherical Dome Setup.";
+        helpTextMap[&stageShapeSelector] = "Stage shape: Box (rectangular), Cylinder (circular footprint), or Dome (partial sphere).";
+        helpTextMap[&stageWidthEditor] = "Width of the stage in meters (Box shape only).";
+        helpTextMap[&stageDepthEditor] = "Depth of the stage in meters (Box shape only).";
+        helpTextMap[&stageHeightEditor] = "Height of the stage in meters (Box and Cylinder shapes).";
+        helpTextMap[&stageDiameterEditor] = "Diameter of the stage in meters (Cylinder and Dome shapes).";
+        helpTextMap[&domeElevationEditor] = "Dome elevation angle: 180 = hemisphere, 360 = full sphere.";
+        helpTextMap[&stageOriginWidthEditor] = "Origin X offset from stage center (0 = centered, negative = left).";
+        helpTextMap[&stageOriginDepthEditor] = "Origin Y offset from stage center (0 = centered, negative = front/downstage).";
+        helpTextMap[&stageOriginHeightEditor] = "Origin Z offset from floor (0 = floor level, positive = above floor).";
+        helpTextMap[&originFrontButton] = "Set origin to front center of stage. Typical for frontal stages.";
+        helpTextMap[&originCenterGroundButton] = "Set origin to center of stage at ground level. Typical for Surround or Cylindrical setups.";
+        helpTextMap[&originCenterButton] = "Set origin to center of stage volume. Typical for Spherical Dome setups.";
         helpTextMap[&speedOfSoundEditor] = "Speed of Sound (related to the temperature).";
         helpTextMap[&temperatureEditor] = "Temperature (gives the Speed of Sound).";
         helpTextMap[&masterLevelEditor] = "Master Level (affects all outputs).";
@@ -1349,6 +1488,8 @@ private:
     juce::TextButton processingButton;
 
     // Stage Section
+    juce::Label stageShapeLabel;
+    juce::ComboBox stageShapeSelector;
     juce::Label stageWidthLabel;
     juce::TextEditor stageWidthEditor;
     juce::Label stageWidthUnitLabel;
@@ -1358,6 +1499,12 @@ private:
     juce::Label stageHeightLabel;
     juce::TextEditor stageHeightEditor;
     juce::Label stageHeightUnitLabel;
+    juce::Label stageDiameterLabel;
+    juce::TextEditor stageDiameterEditor;
+    juce::Label stageDiameterUnitLabel;
+    juce::Label domeElevationLabel;
+    juce::TextEditor domeElevationEditor;
+    juce::Label domeElevationUnitLabel;
     juce::Label stageOriginWidthLabel;
     juce::TextEditor stageOriginWidthEditor;
     juce::Label stageOriginWidthUnitLabel;
