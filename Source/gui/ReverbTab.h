@@ -9,6 +9,7 @@
 #include "DialUIComponents.h"
 #include "StatusBar.h"
 #include "EQDisplayComponent.h"
+#include "../Helpers/CoordinateConverter.h"
 
 /**
  * Reverb Tab Component
@@ -269,6 +270,21 @@ private:
 
     void setupPositionSubTab()
     {
+        // Coordinate Mode selector
+        addAndMakeVisible(coordModeLabel);
+        coordModeLabel.setText("Coord:", juce::dontSendNotification);
+        coordModeLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        addAndMakeVisible(coordModeSelector);
+        coordModeSelector.addItem("XYZ", 1);
+        coordModeSelector.addItem(juce::String(juce::CharPointer_UTF8("r \xce\xb8 Z")), 2);    // r θ Z
+        coordModeSelector.addItem(juce::String(juce::CharPointer_UTF8("r \xce\xb8 \xcf\x86")), 3);  // r θ φ
+        coordModeSelector.setSelectedId(1, juce::dontSendNotification);
+        coordModeSelector.onChange = [this]() {
+            int mode = coordModeSelector.getSelectedId() - 1;
+            saveReverbParam(WFSParameterIDs::reverbCoordinateMode, mode);
+            updatePositionLabelsAndValues();
+        };
+
         // Position X/Y/Z
         const char* posLabels[] = { "Position X:", "Position Y:", "Position Z:" };
         juce::Label* posLabelPtrs[] = { &posXLabel, &posYLabel, &posZLabel };
@@ -694,6 +710,7 @@ private:
         helpTextMap[&pitchSlider] = "Vertical orientation of reverb (-90 to +90 degrees).";
         helpTextMap[&hfDampingSlider] = "High frequency loss per meter (-6.0 to 0.0 dB/m).";
         helpTextMap[&distanceAttenEnableSlider] = "Distance attenuation percentage (0-200%).";
+        helpTextMap[&coordModeSelector] = "Coordinate display mode: Cartesian (X/Y/Z), Cylindrical (radius/azimuth/height), or Spherical (radius/azimuth/elevation).";
         helpTextMap[&eqEnableButton] = "Enable or disable EQ processing for this reverb.";
         helpTextMap[&distanceAttenDial] = "Distance attenuation for reverb return (-6.0 to 0.0 dB/m).";
         helpTextMap[&commonAttenDial] = "Common attenuation percentage (0-100%).";
@@ -716,6 +733,7 @@ private:
         oscMethodMap[&angleOffSlider] = "/wfs/reverb/angleOff <ID> <value>";
         oscMethodMap[&pitchSlider] = "/wfs/reverb/pitch <ID> <value>";
         oscMethodMap[&hfDampingSlider] = "/wfs/reverb/HFdamping <ID> <value>";
+        oscMethodMap[&coordModeSelector] = "/wfs/reverb/coordinateMode <ID> <value>";
         oscMethodMap[&distanceAttenDial] = "/wfs/reverb/distanceAttenuation <ID> <value>";
         oscMethodMap[&commonAttenDial] = "/wfs/reverb/commonAtten <ID> <value>";
     }
@@ -821,6 +839,12 @@ private:
 
         auto leftCol = area.removeFromLeft (area.getWidth() / 2).reduced (10, 0);
         auto rightCol = area.reduced (10, 0);
+
+        // Coordinate mode selector row
+        auto row = leftCol.removeFromTop(rowHeight);
+        coordModeLabel.setBounds(row.removeFromLeft(50));
+        coordModeSelector.setBounds(row.removeFromLeft(80));
+        leftCol.removeFromTop(spacing);
 
         // Position section (left)
         juce::Label* posLabelPtrs[] = { &posXLabel, &posYLabel, &posZLabel };
@@ -1046,6 +1070,7 @@ private:
 
     void setPositionVisible (bool visible)
     {
+        coordModeLabel.setVisible(visible); coordModeSelector.setVisible(visible);
         posXLabel.setVisible (visible); posYLabel.setVisible (visible); posZLabel.setVisible (visible);
         posXEditor.setVisible (visible); posYEditor.setVisible (visible); posZEditor.setVisible (visible);
         posXUnitLabel.setVisible (visible); posYUnitLabel.setVisible (visible); posZUnitLabel.setVisible (visible);
@@ -1146,6 +1171,62 @@ private:
     }
 
     //==========================================================================
+    // Coordinate Mode Handling
+    //==========================================================================
+
+    void updatePositionLabelsAndValues()
+    {
+        // Get current coordinate mode
+        int mode = static_cast<int>(parameters.getReverbParam(currentChannel - 1, "reverbCoordinateMode"));
+        auto coordMode = static_cast<WFSCoordinates::Mode>(mode);
+
+        // Update selector to match (in case called from loadChannelParameters)
+        coordModeSelector.setSelectedId(mode + 1, juce::dontSendNotification);
+
+        // Get labels and units for this mode
+        juce::String label1, label2, label3, unit1, unit2, unit3;
+        WFSCoordinates::getCoordinateLabels(coordMode, label1, label2, label3, unit1, unit2, unit3);
+
+        // Update labels and units
+        posXLabel.setText(label1, juce::dontSendNotification);
+        posYLabel.setText(label2, juce::dontSendNotification);
+        posZLabel.setText(label3, juce::dontSendNotification);
+        posXUnitLabel.setText(unit1, juce::dontSendNotification);
+        posYUnitLabel.setText(unit2, juce::dontSendNotification);
+        posZUnitLabel.setText(unit3, juce::dontSendNotification);
+
+        // Get Cartesian values from storage
+        float x = static_cast<float>(parameters.getReverbParam(currentChannel - 1, "reverbPositionX"));
+        float y = static_cast<float>(parameters.getReverbParam(currentChannel - 1, "reverbPositionY"));
+        float z = static_cast<float>(parameters.getReverbParam(currentChannel - 1, "reverbPositionZ"));
+
+        // Convert to display coordinates
+        float v1, v2, v3;
+        WFSCoordinates::cartesianToDisplay(coordMode, x, y, z, v1, v2, v3);
+
+        // Update editors with appropriate precision
+        // Distance in meters: 2 decimals, angles in degrees: 1 decimal
+        if (coordMode == WFSCoordinates::Mode::Cartesian)
+        {
+            posXEditor.setText(juce::String(v1, 2), juce::dontSendNotification);
+            posYEditor.setText(juce::String(v2, 2), juce::dontSendNotification);
+            posZEditor.setText(juce::String(v3, 2), juce::dontSendNotification);
+        }
+        else if (coordMode == WFSCoordinates::Mode::Cylindrical)
+        {
+            posXEditor.setText(juce::String(v1, 2), juce::dontSendNotification);  // radius
+            posYEditor.setText(juce::String(v2, 1), juce::dontSendNotification);  // theta
+            posZEditor.setText(juce::String(v3, 2), juce::dontSendNotification);  // height
+        }
+        else  // Spherical
+        {
+            posXEditor.setText(juce::String(v1, 2), juce::dontSendNotification);  // radius
+            posYEditor.setText(juce::String(v2, 1), juce::dontSendNotification);  // theta
+            posZEditor.setText(juce::String(v3, 1), juce::dontSendNotification);  // phi
+        }
+    }
+
+    //==========================================================================
     // Parameter Methods
     //==========================================================================
 
@@ -1191,10 +1272,8 @@ private:
         delayLatencySlider.setValue (delayMs / 100.0f);  // v = ms / 100 (bidirectional -1 to 1)
         delayLatencyValueLabel.setText (juce::String (delayMs, 1) + " ms", juce::dontSendNotification);
 
-        // Position
-        posXEditor.setText (juce::String (getFloatParam (WFSParameterIDs::reverbPositionX, 0.0f), 2), juce::dontSendNotification);
-        posYEditor.setText (juce::String (getFloatParam (WFSParameterIDs::reverbPositionY, 0.0f), 2), juce::dontSendNotification);
-        posZEditor.setText (juce::String (getFloatParam (WFSParameterIDs::reverbPositionZ, 0.0f), 2), juce::dontSendNotification);
+        // Position - update coordinate mode selector and position editors (handles coordinate conversion)
+        updatePositionLabelsAndValues();
 
         // Return Offset
         returnOffsetXEditor.setText (juce::String (getFloatParam (WFSParameterIDs::reverbReturnOffsetX, 0.0f), 2), juce::dontSendNotification);
@@ -1604,12 +1683,26 @@ private:
 
         if (&editor == &nameEditor)
             saveReverbParam (WFSParameterIDs::reverbName, nameEditor.getText());
-        else if (&editor == &posXEditor)
-            saveReverbParam (WFSParameterIDs::reverbPositionX, editor.getText().getFloatValue());
-        else if (&editor == &posYEditor)
-            saveReverbParam (WFSParameterIDs::reverbPositionY, editor.getText().getFloatValue());
-        else if (&editor == &posZEditor)
-            saveReverbParam (WFSParameterIDs::reverbPositionZ, editor.getText().getFloatValue());
+        else if (&editor == &posXEditor || &editor == &posYEditor || &editor == &posZEditor)
+        {
+            // Get all three values from editors
+            float v1 = posXEditor.getText().getFloatValue();
+            float v2 = posYEditor.getText().getFloatValue();
+            float v3 = posZEditor.getText().getFloatValue();
+
+            // Get coordinate mode and convert to Cartesian
+            int mode = static_cast<int>(parameters.getReverbParam(currentChannel - 1, "reverbCoordinateMode"));
+            auto coordMode = static_cast<WFSCoordinates::Mode>(mode);
+            auto cart = WFSCoordinates::displayToCartesian(coordMode, v1, v2, v3);
+
+            // Save Cartesian values
+            saveReverbParam(WFSParameterIDs::reverbPositionX, cart.x);
+            saveReverbParam(WFSParameterIDs::reverbPositionY, cart.y);
+            saveReverbParam(WFSParameterIDs::reverbPositionZ, cart.z);
+
+            // Update display with values (converted back to display coords)
+            updatePositionLabelsAndValues();
+        }
         else if (&editor == &returnOffsetXEditor)
             saveReverbParam (WFSParameterIDs::reverbReturnOffsetX, editor.getText().getFloatValue());
         else if (&editor == &returnOffsetYEditor)
@@ -1898,6 +1991,8 @@ private:
     juce::Label delayLatencyValueLabel;
 
     // Position sub-tab
+    juce::Label coordModeLabel;
+    juce::ComboBox coordModeSelector;
     juce::Label posXLabel, posYLabel, posZLabel;
     juce::TextEditor posXEditor, posYEditor, posZEditor;
     juce::Label posXUnitLabel, posYUnitLabel, posZUnitLabel;

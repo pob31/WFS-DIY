@@ -10,6 +10,7 @@
 #include "StatusBar.h"
 #include "OutputArrayHelperWindow.h"
 #include "EQDisplayComponent.h"
+#include "../Helpers/CoordinateConverter.h"
 
 /**
  * Outputs Tab Component
@@ -470,6 +471,21 @@ private:
 
     void setupPositionTab()
     {
+        // Coordinate Mode selector
+        addAndMakeVisible(coordModeLabel);
+        coordModeLabel.setText("Coord:", juce::dontSendNotification);
+        coordModeLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        addAndMakeVisible(coordModeSelector);
+        coordModeSelector.addItem("XYZ", 1);
+        coordModeSelector.addItem(juce::String(juce::CharPointer_UTF8("r \xce\xb8 Z")), 2);    // r θ Z
+        coordModeSelector.addItem(juce::String(juce::CharPointer_UTF8("r \xce\xb8 \xcf\x86")), 3);  // r θ φ
+        coordModeSelector.setSelectedId(1, juce::dontSendNotification);
+        coordModeSelector.onChange = [this]() {
+            int mode = coordModeSelector.getSelectedId() - 1;
+            saveOutputParam(WFSParameterIDs::outputCoordinateMode, mode);
+            updatePositionLabelsAndValues();
+        };
+
         // Position X
         addAndMakeVisible(posXLabel);
         posXLabel.setText("Position X:", juce::dontSendNotification);
@@ -819,6 +835,8 @@ private:
 
     void setPositionVisible(bool visible)
     {
+        coordModeLabel.setVisible(visible);
+        coordModeSelector.setVisible(visible);
         posXLabel.setVisible(visible);
         posXEditor.setVisible(visible);
         posXUnitLabel.setVisible(visible);
@@ -958,6 +976,12 @@ private:
         // Left column - Position editors and sliders
         auto leftCol = area.removeFromLeft(area.getWidth() * 2 / 3).reduced(5, 0);
 
+        // Coordinate mode selector row
+        auto row = leftCol.removeFromTop(rowHeight);
+        coordModeLabel.setBounds(row.removeFromLeft(50));
+        coordModeSelector.setBounds(row.removeFromLeft(80));
+        leftCol.removeFromTop(spacing);
+
         // Position X, Y, Z in a row
         auto posRow = leftCol.removeFromTop(rowHeight);
         posXLabel.setBounds(posRow.removeFromLeft(labelWidth - 20));
@@ -974,7 +998,7 @@ private:
         leftCol.removeFromTop(spacing * 2);
 
         // Angle On
-        auto row = leftCol.removeFromTop(rowHeight);
+        row = leftCol.removeFromTop(rowHeight);
         angleOnLabel.setBounds(row.removeFromLeft(labelWidth));
         angleOnValueLabel.setBounds(row.removeFromRight(valueWidth));
         leftCol.removeFromTop(spacing / 2);
@@ -1068,6 +1092,60 @@ private:
         }
     }
 
+    // ==================== COORDINATE MODE HANDLING ====================
+
+    void updatePositionLabelsAndValues()
+    {
+        // Get current coordinate mode
+        int mode = static_cast<int>(parameters.getOutputParam(currentChannel - 1, "outputCoordinateMode"));
+        auto coordMode = static_cast<WFSCoordinates::Mode>(mode);
+
+        // Update selector to match (in case called from loadChannelParameters)
+        coordModeSelector.setSelectedId(mode + 1, juce::dontSendNotification);
+
+        // Get labels and units for this mode
+        juce::String label1, label2, label3, unit1, unit2, unit3;
+        WFSCoordinates::getCoordinateLabels(coordMode, label1, label2, label3, unit1, unit2, unit3);
+
+        // Update labels and units
+        posXLabel.setText(label1, juce::dontSendNotification);
+        posYLabel.setText(label2, juce::dontSendNotification);
+        posZLabel.setText(label3, juce::dontSendNotification);
+        posXUnitLabel.setText(unit1, juce::dontSendNotification);
+        posYUnitLabel.setText(unit2, juce::dontSendNotification);
+        posZUnitLabel.setText(unit3, juce::dontSendNotification);
+
+        // Get Cartesian values from storage
+        float x = static_cast<float>(parameters.getOutputParam(currentChannel - 1, "outputPositionX"));
+        float y = static_cast<float>(parameters.getOutputParam(currentChannel - 1, "outputPositionY"));
+        float z = static_cast<float>(parameters.getOutputParam(currentChannel - 1, "outputPositionZ"));
+
+        // Convert to display coordinates
+        float v1, v2, v3;
+        WFSCoordinates::cartesianToDisplay(coordMode, x, y, z, v1, v2, v3);
+
+        // Update editors with appropriate precision
+        // Distance in meters: 2 decimals, angles in degrees: 1 decimal
+        if (coordMode == WFSCoordinates::Mode::Cartesian)
+        {
+            posXEditor.setText(juce::String(v1, 2), juce::dontSendNotification);
+            posYEditor.setText(juce::String(v2, 2), juce::dontSendNotification);
+            posZEditor.setText(juce::String(v3, 2), juce::dontSendNotification);
+        }
+        else if (coordMode == WFSCoordinates::Mode::Cylindrical)
+        {
+            posXEditor.setText(juce::String(v1, 2), juce::dontSendNotification);  // radius
+            posYEditor.setText(juce::String(v2, 1), juce::dontSendNotification);  // theta
+            posZEditor.setText(juce::String(v3, 2), juce::dontSendNotification);  // height
+        }
+        else  // Spherical
+        {
+            posXEditor.setText(juce::String(v1, 2), juce::dontSendNotification);  // radius
+            posYEditor.setText(juce::String(v2, 1), juce::dontSendNotification);  // theta
+            posZEditor.setText(juce::String(v3, 1), juce::dontSendNotification);  // phi
+        }
+    }
+
     // ==================== PARAMETER MANAGEMENT ====================
 
     void loadChannelParameters(int channel)
@@ -1143,15 +1221,8 @@ private:
         float vParallax = getFloatParam("outputVparallax", 0.0f);
         vParallaxEditor.setText(juce::String(vParallax, 2), false);
 
-        // Position
-        float posX = getFloatParam("outputPositionX", 0.0f);
-        posXEditor.setText(juce::String(posX, 2), false);
-
-        float posY = getFloatParam("outputPositionY", 0.0f);
-        posYEditor.setText(juce::String(posY, 2), false);
-
-        float posZ = getFloatParam("outputPositionZ", 0.0f);
-        posZEditor.setText(juce::String(posZ, 2), false);
+        // Position - update coordinate mode selector and position editors (handles coordinate conversion)
+        updatePositionLabelsAndValues();
 
         float orientation = getFloatParam("outputOrientation", 0.0f);
         orientationDial.setAngle(orientation);
@@ -1372,12 +1443,26 @@ private:
         // Save text editor values to parameters
         if (&editor == &nameEditor)
             saveOutputParam(WFSParameterIDs::outputName, nameEditor.getText());
-        else if (&editor == &posXEditor)
-            saveOutputParam(WFSParameterIDs::outputPositionX, posXEditor.getText().getFloatValue());
-        else if (&editor == &posYEditor)
-            saveOutputParam(WFSParameterIDs::outputPositionY, posYEditor.getText().getFloatValue());
-        else if (&editor == &posZEditor)
-            saveOutputParam(WFSParameterIDs::outputPositionZ, posZEditor.getText().getFloatValue());
+        else if (&editor == &posXEditor || &editor == &posYEditor || &editor == &posZEditor)
+        {
+            // Get all three values from editors
+            float v1 = posXEditor.getText().getFloatValue();
+            float v2 = posYEditor.getText().getFloatValue();
+            float v3 = posZEditor.getText().getFloatValue();
+
+            // Get coordinate mode and convert to Cartesian
+            int mode = static_cast<int>(parameters.getOutputParam(currentChannel - 1, "outputCoordinateMode"));
+            auto coordMode = static_cast<WFSCoordinates::Mode>(mode);
+            auto cart = WFSCoordinates::displayToCartesian(coordMode, v1, v2, v3);
+
+            // Save Cartesian values
+            saveOutputParam(WFSParameterIDs::outputPositionX, cart.x);
+            saveOutputParam(WFSParameterIDs::outputPositionY, cart.y);
+            saveOutputParam(WFSParameterIDs::outputPositionZ, cart.z);
+
+            // Update display with values (converted back to display coords)
+            updatePositionLabelsAndValues();
+        }
         else if (&editor == &hParallaxEditor)
             saveOutputParam(WFSParameterIDs::outputHparallax, hParallaxEditor.getText().getFloatValue());
         else if (&editor == &vParallaxEditor)
@@ -1604,6 +1689,7 @@ private:
         helpTextMap[&distanceAttenSlider] = "Ratio of Distance Attenuation for Selected Output. (changes may affect the rest of the array)";
         helpTextMap[&hParallaxEditor] = "Horizontal Distance from Speaker to 'Targeted' Listener. (changes may affect the rest of the array)";
         helpTextMap[&vParallaxEditor] = "Vertical Distance from Speaker to 'Targeted' Listener. Positive when the Speaker is Below the head of the Listener. (changes may affect the rest of the array)";
+        helpTextMap[&coordModeSelector] = "Coordinate display mode: Cartesian (X/Y/Z), Cylindrical (radius/azimuth/height), or Spherical (radius/azimuth/elevation).";
         helpTextMap[&posXEditor] = "Output Channel Position in Width.";
         helpTextMap[&posYEditor] = "Output Channel Position in Depth.";
         helpTextMap[&posZEditor] = "Output Channel Position in Height.";
@@ -1636,6 +1722,7 @@ private:
         oscMethodMap[&distanceAttenSlider] = "/wfs/output/DistanceAttenPercent <ID> <value>";
         oscMethodMap[&hParallaxEditor] = "/wfs/output/Hparallax <ID> <value>";
         oscMethodMap[&vParallaxEditor] = "/wfs/output/Vparallax <ID> <value>";
+        oscMethodMap[&coordModeSelector] = "/wfs/output/coordinateMode <ID> <value>";
         oscMethodMap[&posXEditor] = "/wfs/output/positionX <ID> <value>";
         oscMethodMap[&posYEditor] = "/wfs/output/positionY <ID> <value>";
         oscMethodMap[&posZEditor] = "/wfs/output/positionZ <ID> <value>";
@@ -1778,6 +1865,8 @@ private:
     juce::Label vParallaxUnitLabel;
 
     // Position tab components
+    juce::Label coordModeLabel;
+    juce::ComboBox coordModeSelector;
     juce::Label posXLabel;
     juce::TextEditor posXEditor;
     juce::Label posXUnitLabel;

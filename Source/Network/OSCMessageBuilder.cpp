@@ -36,6 +36,7 @@ const std::map<juce::Identifier, OSCMessageBuilder::ParamMapping>& OSCMessageBui
         { WFSParameterIDs::inputMaxSpeedActive,   { "/wfs/input/maxSpeedActive",   "/remoteInput/maxSpeedActive" } },
         { WFSParameterIDs::inputMaxSpeed,         { "/wfs/input/maxSpeed",         "/remoteInput/maxSpeed" } },
         { WFSParameterIDs::inputHeightFactor,     { "/wfs/input/heightFactor",     "/remoteInput/heightFactor" } },
+        { WFSParameterIDs::inputCoordinateMode,   { "/wfs/input/coordinateMode",   "/remoteInput/coordinateMode" } },
 
         // Attenuation
         { WFSParameterIDs::inputAttenuationLaw,       { "/wfs/input/attenuationLaw",       "/remoteInput/attenuationLaw" } },
@@ -146,6 +147,7 @@ const std::map<juce::Identifier, OSCMessageBuilder::ParamMapping>& OSCMessageBui
         { WFSParameterIDs::outputPositionX,          { "/wfs/output/positionX",         "/remoteInput/output/positionX" } },
         { WFSParameterIDs::outputPositionY,          { "/wfs/output/positionY",         "/remoteInput/output/positionY" } },
         { WFSParameterIDs::outputPositionZ,          { "/wfs/output/positionZ",         "/remoteInput/output/positionZ" } },
+        { WFSParameterIDs::outputCoordinateMode,     { "/wfs/output/coordinateMode",    "/remoteInput/output/coordinateMode" } },
         { WFSParameterIDs::outputOrientation,        { "/wfs/output/orientation",       "/remoteInput/output/orientation" } },
         { WFSParameterIDs::outputAngleOn,            { "/wfs/output/angleOn",           "/remoteInput/output/angleOn" } },
         { WFSParameterIDs::outputAngleOff,           { "/wfs/output/angleOff",          "/remoteInput/output/angleOff" } },

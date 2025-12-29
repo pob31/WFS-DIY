@@ -216,6 +216,11 @@ namespace WFSParameterDefaults
     constexpr int inputHeightFactorMin          = 0;
     constexpr int inputHeightFactorMax          = 100;
 
+    // Input > Coordinate Mode (0=Cartesian, 1=Cylindrical, 2=Spherical)
+    constexpr int inputCoordinateModeDefault    = 0;
+    constexpr int inputCoordinateModeMin        = 0;
+    constexpr int inputCoordinateModeMax        = 2;
+
     // Input > Attenuation
     constexpr int inputAttenuationLawDefault    = 0;  // 0=Log, 1=1/d
     constexpr float inputDistanceAttenuationDefault = -0.7f;
@@ -416,6 +421,11 @@ namespace WFSParameterDefaults
     constexpr float outputHFdampingMin          = -24.0f;
     constexpr float outputHFdampingMax          = 0.0f;
 
+    // Output > Coordinate Mode (0=Cartesian, 1=Cylindrical, 2=Spherical)
+    constexpr int outputCoordinateModeDefault   = 0;
+    constexpr int outputCoordinateModeMin       = 0;
+    constexpr int outputCoordinateModeMax       = 2;
+
     // Output > Options
     constexpr int outputMiniLatencyEnableDefault = 1;    // 0=OFF, 1=ON
     constexpr int outputLSattenEnableDefault    = 1;     // 0=OFF, 1=ON
@@ -531,6 +541,11 @@ namespace WFSParameterDefaults
     constexpr float reverbReturnOffsetDefault    = 0.0f;
     constexpr float reverbReturnOffsetMin        = -50.0f;
     constexpr float reverbReturnOffsetMax        = 50.0f;
+
+    // Reverb > Coordinate Mode (0=Cartesian, 1=Cylindrical, 2=Spherical)
+    constexpr int reverbCoordinateModeDefault   = 0;
+    constexpr int reverbCoordinateModeMin       = 0;
+    constexpr int reverbCoordinateModeMax       = 2;
 
     // Reverb > Feed
     constexpr int reverbOrientationDefault       = 0;

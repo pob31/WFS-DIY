@@ -6,6 +6,7 @@
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/WFSParameterDefaults.h"
 #include "ColorUtilities.h"
+#include "../Helpers/CoordinateConverter.h"
 
 /**
  * Map Tab Component
@@ -2341,17 +2342,30 @@ private:
         // Show coordinates when dragging
         if (isBeingDragged)
         {
-            juce::String coordText = "(" + juce::String(posX, 1) + ", " + juce::String(posY, 1) + ")";
-            g.setColour(juce::Colours::yellow);
+            // Get coordinate mode and format accordingly
+            int mode = static_cast<int>(parameters.getInputParam(inputIndex, "inputCoordinateMode"));
+            auto coordMode = static_cast<WFSCoordinates::Mode>(mode);
+            juce::String coordText = WFSCoordinates::formatCoordinate(coordMode, posX, posY, targetZ);
+
+            // Color coding: yellow for Cartesian, light blue for Cylindrical, pink for Spherical
+            juce::Colour coordColor;
+            if (coordMode == WFSCoordinates::Mode::Cylindrical)
+                coordColor = juce::Colour(0xFF87CEEB);  // Light blue
+            else if (coordMode == WFSCoordinates::Mode::Spherical)
+                coordColor = juce::Colour(0xFFFFB6C1);  // Light pink
+            else
+                coordColor = juce::Colours::yellow;     // Cartesian
+
+            g.setColour(coordColor);
             g.setFont(10.0f);
 
             // Position text to the right or left depending on screen position
             if (screenPos.x < getWidth() / 2)
                 g.drawText(coordText, static_cast<int>(screenPos.x + markerRadius + 5),
-                           static_cast<int>(screenPos.y) - 5, 80, 12, juce::Justification::left);
+                           static_cast<int>(screenPos.y) - 5, 120, 12, juce::Justification::left);
             else
-                g.drawText(coordText, static_cast<int>(screenPos.x - markerRadius - 85),
-                           static_cast<int>(screenPos.y) - 5, 80, 12, juce::Justification::right);
+                g.drawText(coordText, static_cast<int>(screenPos.x - markerRadius - 125),
+                           static_cast<int>(screenPos.y) - 5, 120, 12, juce::Justification::right);
         }
 
         // Draw input name beneath marker

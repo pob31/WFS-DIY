@@ -192,6 +192,7 @@ namespace WFSParameterIDs
     const juce::Identifier inputMaxSpeedActive   ("inputMaxSpeedActive");
     const juce::Identifier inputMaxSpeed         ("inputMaxSpeed");
     const juce::Identifier inputHeightFactor     ("inputHeightFactor");
+    const juce::Identifier inputCoordinateMode   ("inputCoordinateMode");  // 0=Cartesian, 1=Cylindrical, 2=Spherical
 
     // Input > Attenuation
     const juce::Identifier inputAttenuationLaw       ("inputAttenuationLaw");
@@ -302,6 +303,7 @@ namespace WFSParameterIDs
     const juce::Identifier outputAngleOff        ("outputAngleOff");
     const juce::Identifier outputPitch           ("outputPitch");
     const juce::Identifier outputHFdamping       ("outputHFdamping");
+    const juce::Identifier outputCoordinateMode  ("outputCoordinateMode");  // 0=Cartesian, 1=Cylindrical, 2=Spherical
 
     // Output > Options
     const juce::Identifier outputMiniLatencyEnable   ("outputMiniLatencyEnable");
@@ -361,6 +363,7 @@ namespace WFSParameterIDs
     const juce::Identifier reverbReturnOffsetX   ("reverbReturnOffsetX");
     const juce::Identifier reverbReturnOffsetY   ("reverbReturnOffsetY");
     const juce::Identifier reverbReturnOffsetZ   ("reverbReturnOffsetZ");
+    const juce::Identifier reverbCoordinateMode  ("reverbCoordinateMode");  // 0=Cartesian, 1=Cylindrical, 2=Spherical
 
     // Reverb > Feed
     const juce::Identifier reverbOrientation     ("reverbOrientation");

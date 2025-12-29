@@ -3,7 +3,7 @@
 ## Project Overview
 Wave Field Synthesis (WFS) audio application built with JUCE framework for real-time multi-channel audio processing with comprehensive OSC network control.
 
-## Current Implementation Status (As of 2025-12-25)
+## Current Implementation Status (As of 2025-12-29)
 
 ### Overall Progress: ~65% Complete
 
@@ -91,6 +91,42 @@ The DSP calculation layer transforms human control parameters into real-time DSP
 - **Y**: Along stage (positive = upstage/back, negative = downstage/front toward audience)
 - **Z**: Height (positive = up)
 - **Origin**: User-configurable offset from stage center (center-referenced system)
+
+### Coordinate Display Modes
+Positions can be displayed and input in three coordinate systems. Data is always stored as Cartesian (X, Y, Z) internally.
+
+| Mode | Components | Description |
+|------|------------|-------------|
+| **Cartesian** | X, Y, Z (meters) | Default system, used for storage |
+| **Cylindrical** | r, θ, Z | Radius, azimuth angle, height |
+| **Spherical** | r, θ, φ | Radius, azimuth angle, elevation |
+
+**Angle Conventions:**
+- **Azimuth (θ)**: 0° = toward audience (-Y), 180°/-180° = upstage (+Y), 90° = stage right (+X)
+- **Elevation (φ)**: 0° = horizontal plane, 90° = up (+Z), -90° = down (-Z)
+
+**Conversion Formulas:**
+
+Cartesian to Cylindrical:
+```cpp
+r = sqrt(x² + y²)
+θ = atan2(-x, -y) * (180/π)  // 0° toward audience
+Z = z
+```
+
+Cartesian to Spherical:
+```cpp
+r = sqrt(x² + y² + z²)
+θ = atan2(-x, -y) * (180/π)  // 0° toward audience
+φ = asin(z / r) * (180/π)    // 0° horizontal, 90° up
+```
+
+**Color Coding (MapTab):**
+- **Yellow**: Cartesian mode (X, Y, Z)
+- **Light Blue**: Cylindrical mode (r, θ, Z)
+- **Light Pink**: Spherical mode (r, θ, φ)
+
+Per-channel coordinate mode is set via the "Coord:" dropdown in each tab (Inputs, Outputs, Reverbs).
 
 ### Stage Shapes
 Three stage shapes available, selected in SystemConfigTab:

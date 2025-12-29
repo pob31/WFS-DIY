@@ -1106,6 +1106,7 @@ juce::ValueTree WFSValueTreeState::createInputPositionSection (int index, int to
     position.setProperty (inputMaxSpeedActive, inputMaxSpeedActiveDefault, nullptr);
     position.setProperty (inputMaxSpeed, inputMaxSpeedDefault, nullptr);
     position.setProperty (inputHeightFactor, inputHeightFactorDefault, nullptr);
+    position.setProperty (inputCoordinateMode, inputCoordinateModeDefault, nullptr);
     position.setProperty (inputJitter, inputJitterDefault, nullptr);
 
     return position;
@@ -1262,6 +1263,7 @@ juce::ValueTree WFSValueTreeState::createOutputPositionSection()
     position.setProperty (outputAngleOff, outputAngleOffDefault, nullptr);
     position.setProperty (outputPitch, outputPitchDefault, nullptr);
     position.setProperty (outputHFdamping, outputHFdampingDefault, nullptr);
+    position.setProperty (outputCoordinateMode, outputCoordinateModeDefault, nullptr);
     return position;
 }
 
@@ -1329,6 +1331,7 @@ juce::ValueTree WFSValueTreeState::createReverbPositionSection()
     position.setProperty (reverbReturnOffsetX, reverbReturnOffsetDefault, nullptr);
     position.setProperty (reverbReturnOffsetY, reverbReturnOffsetDefault, nullptr);
     position.setProperty (reverbReturnOffsetZ, reverbReturnOffsetDefault, nullptr);
+    position.setProperty (reverbCoordinateMode, reverbCoordinateModeDefault, nullptr);
     return position;
 }
 

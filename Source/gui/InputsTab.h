@@ -13,6 +13,7 @@
 #include "InputVisualisationComponent.h"
 #include "dials/WfsLFOIndicators.h"
 #include "../DSP/AutomOtionProcessor.h"
+#include "../Helpers/CoordinateConverter.h"
 
 //==============================================================================
 // Custom Transport Button - Play (right-pointing triangle)
@@ -607,6 +608,21 @@ private:
 
     void setupPositionTab()
     {
+        // Coordinate Mode selector
+        addAndMakeVisible(coordModeLabel);
+        coordModeLabel.setText("Coord:", juce::dontSendNotification);
+        coordModeLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        addAndMakeVisible(coordModeSelector);
+        coordModeSelector.addItem("XYZ", 1);
+        coordModeSelector.addItem(juce::String(juce::CharPointer_UTF8("r \xce\xb8 Z")), 2);    // r θ Z
+        coordModeSelector.addItem(juce::String(juce::CharPointer_UTF8("r \xce\xb8 \xcf\x86")), 3);  // r θ φ
+        coordModeSelector.setSelectedId(1, juce::dontSendNotification);
+        coordModeSelector.onChange = [this]() {
+            int mode = coordModeSelector.getSelectedId() - 1;
+            saveInputParam(WFSParameterIDs::inputCoordinateMode, mode);
+            updatePositionLabelsAndValues();
+        };
+
         // Position X
         addAndMakeVisible(posXLabel);
         posXLabel.setText("Position X:", juce::dontSendNotification);
@@ -2071,6 +2087,7 @@ private:
 
     void setPositionVisible(bool v)
     {
+        coordModeLabel.setVisible(v); coordModeSelector.setVisible(v);
         posXLabel.setVisible(v); posXEditor.setVisible(v); posXUnitLabel.setVisible(v);
         posYLabel.setVisible(v); posYEditor.setVisible(v); posYUnitLabel.setVisible(v);
         posZLabel.setVisible(v); posZEditor.setVisible(v); posZUnitLabel.setVisible(v);
@@ -2177,8 +2194,14 @@ private:
         auto leftCol = area.removeFromLeft(area.getWidth() / 2).reduced(5, 0);
         auto rightCol = area.reduced(5, 0);
 
-        // Position row
+        // Coordinate mode selector row
         auto row = leftCol.removeFromTop(rowHeight);
+        coordModeLabel.setBounds(row.removeFromLeft(50));
+        coordModeSelector.setBounds(row.removeFromLeft(80));
+        leftCol.removeFromTop(spacing);
+
+        // Position row
+        row = leftCol.removeFromTop(rowHeight);
         posXLabel.setBounds(row.removeFromLeft(labelWidth));
         posXEditor.setBounds(row.removeFromLeft(editorWidth));
         posXUnitLabel.setBounds(row.removeFromLeft(unitWidth));
@@ -2927,9 +2950,8 @@ private:
         minimalLatencyButton.setButtonText(minLatency ? "Minimal Latency: ON" : "Minimal Latency: OFF");
 
         // ==================== POSITION TAB ====================
-        posXEditor.setText(juce::String(getFloatParam(WFSParameterIDs::inputPositionX, 0.0f), 2), juce::dontSendNotification);
-        posYEditor.setText(juce::String(getFloatParam(WFSParameterIDs::inputPositionY, 0.0f), 2), juce::dontSendNotification);
-        posZEditor.setText(juce::String(getFloatParam(WFSParameterIDs::inputPositionZ, 0.0f), 2), juce::dontSendNotification);
+        // Update coordinate mode selector and position editors (handles coordinate conversion)
+        updatePositionLabelsAndValues();
         offsetXEditor.setText(juce::String(getFloatParam(WFSParameterIDs::inputOffsetX, 0.0f), 2), juce::dontSendNotification);
         offsetYEditor.setText(juce::String(getFloatParam(WFSParameterIDs::inputOffsetY, 0.0f), 2), juce::dontSendNotification);
         offsetZEditor.setText(juce::String(getFloatParam(WFSParameterIDs::inputOffsetZ, 0.0f), 2), juce::dontSendNotification);
@@ -3395,12 +3417,8 @@ private:
         // Revert to stored value and release focus
         if (&editor == &nameEditor)
             editor.setText(parameters.getInputParam(currentChannel - 1, "inputName").toString(), false);
-        else if (&editor == &posXEditor)
-            editor.setText(juce::String((float)parameters.getInputParam(currentChannel - 1, "inputPositionX"), 2), false);
-        else if (&editor == &posYEditor)
-            editor.setText(juce::String((float)parameters.getInputParam(currentChannel - 1, "inputPositionY"), 2), false);
-        else if (&editor == &posZEditor)
-            editor.setText(juce::String((float)parameters.getInputParam(currentChannel - 1, "inputPositionZ"), 2), false);
+        else if (&editor == &posXEditor || &editor == &posYEditor || &editor == &posZEditor)
+            updatePositionLabelsAndValues();  // Revert all position editors to stored values
         else if (&editor == &offsetXEditor)
             editor.setText(juce::String((float)parameters.getInputParam(currentChannel - 1, "inputOffsetX"), 2), false);
         else if (&editor == &offsetYEditor)
@@ -3427,30 +3445,34 @@ private:
         {
             saveInputParam(WFSParameterIDs::inputName, nameEditor.getText());
         }
-        // Position tab - Position editors with constraint support
-        else if (&editor == &posXEditor)
+        // Position tab - Position editors with coordinate conversion and constraint support
+        else if (&editor == &posXEditor || &editor == &posYEditor || &editor == &posZEditor)
         {
-            float value = editor.getText().getFloatValue();
+            // Get all three values from editors
+            float v1 = posXEditor.getText().getFloatValue();
+            float v2 = posYEditor.getText().getFloatValue();
+            float v3 = posZEditor.getText().getFloatValue();
+
+            // Get coordinate mode and convert to Cartesian
+            int mode = static_cast<int>(parameters.getInputParam(currentChannel - 1, "inputCoordinateMode"));
+            auto coordMode = static_cast<WFSCoordinates::Mode>(mode);
+            auto cart = WFSCoordinates::displayToCartesian(coordMode, v1, v2, v3);
+
+            // Apply constraints in Cartesian space
             if (constraintXButton.getToggleState())
-                value = juce::jlimit(getStageMinX(), getStageMaxX(), value);
-            editor.setText(juce::String(value, 2), juce::dontSendNotification);
-            saveInputParam(WFSParameterIDs::inputPositionX, value);
-        }
-        else if (&editor == &posYEditor)
-        {
-            float value = editor.getText().getFloatValue();
+                cart.x = juce::jlimit(getStageMinX(), getStageMaxX(), cart.x);
             if (constraintYButton.getToggleState())
-                value = juce::jlimit(getStageMinY(), getStageMaxY(), value);
-            editor.setText(juce::String(value, 2), juce::dontSendNotification);
-            saveInputParam(WFSParameterIDs::inputPositionY, value);
-        }
-        else if (&editor == &posZEditor)
-        {
-            float value = editor.getText().getFloatValue();
+                cart.y = juce::jlimit(getStageMinY(), getStageMaxY(), cart.y);
             if (constraintZButton.getToggleState())
-                value = juce::jlimit(getStageMinZ(), getStageMaxZ(), value);
-            editor.setText(juce::String(value, 2), juce::dontSendNotification);
-            saveInputParam(WFSParameterIDs::inputPositionZ, value);
+                cart.z = juce::jlimit(getStageMinZ(), getStageMaxZ(), cart.z);
+
+            // Save Cartesian values
+            saveInputParam(WFSParameterIDs::inputPositionX, cart.x);
+            saveInputParam(WFSParameterIDs::inputPositionY, cart.y);
+            saveInputParam(WFSParameterIDs::inputPositionZ, cart.z);
+
+            // Update display with constrained values (converted back to display coords)
+            updatePositionLabelsAndValues();
         }
         // Offset editors - also apply constraints (position + offset must be within bounds)
         else if (&editor == &offsetXEditor)
@@ -4065,6 +4087,62 @@ private:
     }
 
     //==============================================================================
+    // Coordinate mode helpers
+
+    /** Update position labels and values based on current coordinate mode */
+    void updatePositionLabelsAndValues()
+    {
+        // Get current coordinate mode
+        int mode = static_cast<int>(parameters.getInputParam(currentChannel - 1, "inputCoordinateMode"));
+        auto coordMode = static_cast<WFSCoordinates::Mode>(mode);
+
+        // Update selector to match (in case called from loadChannelParameters)
+        coordModeSelector.setSelectedId(mode + 1, juce::dontSendNotification);
+
+        // Get labels and units for this mode
+        juce::String label1, label2, label3, unit1, unit2, unit3;
+        WFSCoordinates::getCoordinateLabels(coordMode, label1, label2, label3, unit1, unit2, unit3);
+
+        // Update labels and units
+        posXLabel.setText(label1, juce::dontSendNotification);
+        posYLabel.setText(label2, juce::dontSendNotification);
+        posZLabel.setText(label3, juce::dontSendNotification);
+        posXUnitLabel.setText(unit1, juce::dontSendNotification);
+        posYUnitLabel.setText(unit2, juce::dontSendNotification);
+        posZUnitLabel.setText(unit3, juce::dontSendNotification);
+
+        // Get Cartesian values from storage
+        float x = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionX"));
+        float y = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionY"));
+        float z = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionZ"));
+
+        // Convert to display coordinates
+        float v1, v2, v3;
+        WFSCoordinates::cartesianToDisplay(coordMode, x, y, z, v1, v2, v3);
+
+        // Update editors with appropriate precision
+        // Distance in meters: 2 decimals, angles in degrees: 1 decimal
+        if (coordMode == WFSCoordinates::Mode::Cartesian)
+        {
+            posXEditor.setText(juce::String(v1, 2), juce::dontSendNotification);
+            posYEditor.setText(juce::String(v2, 2), juce::dontSendNotification);
+            posZEditor.setText(juce::String(v3, 2), juce::dontSendNotification);
+        }
+        else if (coordMode == WFSCoordinates::Mode::Cylindrical)
+        {
+            posXEditor.setText(juce::String(v1, 2), juce::dontSendNotification);  // radius
+            posYEditor.setText(juce::String(v2, 1), juce::dontSendNotification);  // theta
+            posZEditor.setText(juce::String(v3, 2), juce::dontSendNotification);  // height
+        }
+        else  // Spherical
+        {
+            posXEditor.setText(juce::String(v1, 2), juce::dontSendNotification);  // radius
+            posYEditor.setText(juce::String(v2, 1), juce::dontSendNotification);  // theta
+            posZEditor.setText(juce::String(v3, 1), juce::dontSendNotification);  // phi
+        }
+    }
+
+    //==============================================================================
     // Status bar helper methods
 
     void setupHelpText()
@@ -4095,6 +4173,7 @@ private:
         helpTextMap[&maxSpeedActiveButton] = "Enable or Disable Speed Limiting for Object.";
         helpTextMap[&maxSpeedDial] = "Maximum Speed Limit for Object.";
         helpTextMap[&heightFactorDial] = "Take Elevation of Object into Account Fully, Partially or Not.";
+        helpTextMap[&coordModeSelector] = "Coordinate display mode: Cartesian (X/Y/Z), Cylindrical (radius/azimuth/height), or Spherical (radius/azimuth/elevation).";
         helpTextMap[&positionJoystick] = "Drag to adjust X/Y position in real-time. Returns to center on release.";
         helpTextMap[&positionZSlider] = "Drag to adjust Z (height) position in real-time. Returns to center on release.";
         helpTextMap[&attenuationLawButton] = "Attenuation Law Model (Linear Decrease of Volume with Distance Between Object and Speaker or Squared).";
@@ -4626,6 +4705,8 @@ private:
     juce::TextButton minimalLatencyButton;
 
     // Position tab
+    juce::Label coordModeLabel;
+    juce::ComboBox coordModeSelector;
     juce::Label posXLabel, posYLabel, posZLabel;
     juce::TextEditor posXEditor, posYEditor, posZEditor;
     juce::Label posXUnitLabel, posYUnitLabel, posZUnitLabel;
