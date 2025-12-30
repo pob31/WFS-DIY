@@ -3930,6 +3930,18 @@ private:
             // Force label update
             otomoResetValueLabel.setText(juce::String(dB, 1) + " dB", juce::dontSendNotification);
         }
+        // Sidelines fringe (Mutes tab)
+        else if (label == &sidelinesFringeValueLabel)
+        {
+            float fringe = juce::jlimit(WFSParameterDefaults::inputSidelinesFringeMin,
+                                        WFSParameterDefaults::inputSidelinesFringeMax, value);
+            // Convert meters to dial value (0-1)
+            float dialValue = (fringe - WFSParameterDefaults::inputSidelinesFringeMin) /
+                              (WFSParameterDefaults::inputSidelinesFringeMax - WFSParameterDefaults::inputSidelinesFringeMin);
+            sidelinesFringeDial.setValue(juce::jlimit(0.0f, 1.0f, dialValue));
+            // Force label update
+            sidelinesFringeValueLabel.setText(juce::String(fringe, 2) + " m", juce::dontSendNotification);
+        }
         // Array attenuation dials (Mutes tab)
         else
         {
