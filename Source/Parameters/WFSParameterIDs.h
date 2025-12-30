@@ -267,6 +267,10 @@ namespace WFSParameterIDs
     const juce::Identifier inputMutes            ("inputMutes");
     const juce::Identifier inputMuteMacro        ("inputMuteMacro");
 
+    // Input > Sidelines (auto-mute at stage edges)
+    const juce::Identifier inputSidelinesActive  ("inputSidelinesActive");  // 0=OFF, 1=ON
+    const juce::Identifier inputSidelinesFringe  ("inputSidelinesFringe");  // Fringe size in meters
+
     // Input > Array Attenuation (per-array level control, 0 dB default, -60 to 0 dB range)
     const juce::Identifier inputArrayAtten1      ("inputArrayAtten1");
     const juce::Identifier inputArrayAtten2      ("inputArrayAtten2");

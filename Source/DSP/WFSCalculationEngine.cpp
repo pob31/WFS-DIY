@@ -460,6 +460,91 @@ bool WFSCalculationEngine::isRoutingMuted (int inputIndex, int outputIndex) cons
     return false;
 }
 
+float WFSCalculationEngine::calculateSidelineAttenuation (int inputIndex, const Position& inputPos) const
+{
+    // Get sidelines parameters from Mutes section
+    auto mutesSection = valueTreeState.getInputMutesSection (inputIndex);
+    if (! mutesSection.isValid())
+        return 1.0f;
+
+    int sidelinesActive = mutesSection.getProperty (inputSidelinesActive, 0);
+    if (sidelinesActive == 0)
+        return 1.0f;  // Sidelines disabled - no attenuation
+
+    float fringeSize = static_cast<float> (mutesSection.getProperty (inputSidelinesFringe, 1.0f));
+
+    // Get stage parameters
+    auto stageState = valueTreeState.getStageState();
+    if (! stageState.isValid())
+        return 1.0f;
+
+    int stageShape = stageState.getProperty (WFSParameterIDs::stageShape, 0);
+    float originW = static_cast<float> (stageState.getProperty (originWidth, 0.0f));
+    float originD = static_cast<float> (stageState.getProperty (originDepth, -5.0f));
+
+    float distanceFromEdge = 0.0f;
+
+    if (stageShape == 0)  // Box stage
+    {
+        float stageW = static_cast<float> (stageState.getProperty (WFSParameterIDs::stageWidth, 20.0f));
+        float stageD = static_cast<float> (stageState.getProperty (WFSParameterIDs::stageDepth, 10.0f));
+
+        // Calculate stage bounds in origin-relative coordinates
+        float leftEdge = -stageW / 2.0f - originW;
+        float rightEdge = stageW / 2.0f - originW;
+        float upstageEdge = stageD / 2.0f - originD;  // Back (positive Y)
+        // Downstage edge is NOT included (front toward audience)
+
+        // Calculate minimum distance to any relevant edge (left, right, upstage)
+        float distToLeft = inputPos.x - leftEdge;
+        float distToRight = rightEdge - inputPos.x;
+        float distToUpstage = upstageEdge - inputPos.y;
+
+        distanceFromEdge = juce::jmin (distToLeft, distToRight, distToUpstage);
+    }
+    else  // Cylinder (1) or Dome (2) - radial distance
+    {
+        float stageDiam = static_cast<float> (stageState.getProperty (WFSParameterIDs::stageDiameter, 20.0f));
+        float stageRadius = stageDiam / 2.0f;
+
+        // Calculate radial distance from stage center
+        float dx = inputPos.x + originW;  // Offset to center
+        float dy = inputPos.y + originD;
+        float radialDistance = std::sqrt (dx * dx + dy * dy);
+
+        // Distance from circular edge
+        distanceFromEdge = stageRadius - radialDistance;
+    }
+
+    // Apply fringe zone logic
+    // fringeSize = total fringe zone
+    // Outer half (fringeSize/2 to 0): full mute
+    // Inner half (fringeSize to fringeSize/2): linear fade
+    float halfFringe = fringeSize / 2.0f;
+
+    if (distanceFromEdge <= 0.0f)
+    {
+        // Outside stage - full mute
+        return 0.0f;
+    }
+    else if (distanceFromEdge <= halfFringe)
+    {
+        // In outer half of fringe - full mute
+        return 0.0f;
+    }
+    else if (distanceFromEdge <= fringeSize)
+    {
+        // In inner half of fringe - linear fade
+        // At halfFringe: attenuation = 0
+        // At fringeSize: attenuation = 1
+        float fadeProgress = (distanceFromEdge - halfFringe) / halfFringe;
+        return fadeProgress;
+    }
+
+    // Inside safe zone - no attenuation
+    return 1.0f;
+}
+
 bool WFSCalculationEngine::isInputReverbMuted (int inputIndex) const
 {
     // Check if inputMuteReverbSends is enabled for this input
@@ -1285,6 +1370,10 @@ void WFSCalculationEngine::recalculateMatrix()
             if (sharedLSGains != nullptr)
                 linearLevel *= sharedLSGains[matrixIdx];
 
+            // Apply Sideline attenuation (linear multiplier 0.0-1.0)
+            float sidelineAtten = calculateSidelineAttenuation (inIdx, inputPos);
+            linearLevel *= sidelineAtten;
+
             newLevels[matrixIdx] = linearLevel;
         }
     }
@@ -2101,9 +2190,11 @@ void WFSCalculationEngine::valueTreePropertyChanged (juce::ValueTree& tree,
                                        property == inputTilt ||
                                        property == inputHFshelf);
 
-    // Input mute and array attenuation parameters
+    // Input mute, sidelines, and array attenuation parameters
     bool isInputMuteProperty = (property == inputMutes ||
                                 property == inputMuteReverbSends ||
+                                property == inputSidelinesActive ||
+                                property == inputSidelinesFringe ||
                                 property == inputArrayAtten1 ||
                                 property == inputArrayAtten2 ||
                                 property == inputArrayAtten3 ||

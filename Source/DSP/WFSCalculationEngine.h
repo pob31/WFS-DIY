@@ -234,6 +234,12 @@ private:
     /** Check if input→output routing is muted */
     bool isRoutingMuted (int inputIndex, int outputIndex) const;
 
+    /** Calculate sideline attenuation factor (0.0 = muted, 1.0 = full) for an input.
+        Based on stage shape (box vs cylinder/dome) and source position relative to edges.
+        Box: attenuates near left, right, and upstage edges (NOT downstage).
+        Cylinder/Dome: attenuates near circular edge based on radial distance. */
+    float calculateSidelineAttenuation (int inputIndex, const Position& inputPos) const;
+
     /** Calculate angular attenuation for input→output pair.
         Returns 0.0 (muted) to 1.0 (full).
         Based on speaker orientation, pitch, angleOn, angleOff. */

@@ -207,6 +207,43 @@ return (angleOff - angle) / (angleOff - angleOn);  // Transition
 - Example: `"1,5,12"` mutes this input for outputs 1, 5, and 12
 - Muted routings skip calculation entirely (level = 0, no processing)
 
+### Sidelines (Edge Muting)
+Automatic position-based muting when sources approach stage edges. Per-channel feature that prevents sound from "spilling" outside the intended performance area.
+
+**Stage Shape Behavior:**
+| Shape | Affected Edges | Detection Method |
+|-------|---------------|------------------|
+| **Box** | Left, Right, Upstage (back) | Min distance to any edge |
+| **Cylinder/Dome** | Circular edge | Radial distance from center |
+
+**Note:** Downstage edge (front toward audience) is NOT affected - sound naturally projects toward audience.
+
+**Fringe Zone Logic:**
+```
+Total Fringe = inputSidelinesFringe (0.1-10.0m)
+
+Distance from edge:
+  > fringe        → Full signal (attenuation = 1.0)
+  fringe/2 to fringe → Linear fade (0.0 to 1.0)
+  0 to fringe/2   → Full mute (attenuation = 0.0)
+  < 0 (outside)   → Full mute (attenuation = 0.0)
+```
+
+**Parameters:**
+| Parameter | Range | Description |
+|-----------|-------|-------------|
+| `inputSidelinesActive` | 0/1 | Enable sidelines for this input |
+| `inputSidelinesFringe` | 0.1-10.0 m | Total fringe zone width |
+
+**OSC Addresses:**
+- `/wfs/input/sidelinesEnable <ID> <value>` (0/1)
+- `/wfs/input/sidelinesFringe <ID> <value>` (meters)
+
+**Integration:**
+- Applied as final linear multiplier in level calculation (after Live Source Tamer)
+- UI controls in InputsTab Mutes sub-tab
+- Recalculated at 50Hz when position or sidelines parameters change
+
 ### Height Factor
 - `inputHeightFactor` (0-100%) scales Z contribution in distance calculations
 - Affects delay and level calculations, NOT angular calculations
@@ -1097,6 +1134,6 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 
 ---
 
-*Last updated: 2025-12-29*
+*Last updated: 2025-12-30*
 *JUCE Version: 8.0.12*
 *Build: Visual Studio 2022 / Xcode, x64 Debug/Release*

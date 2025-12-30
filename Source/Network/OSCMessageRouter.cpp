@@ -108,6 +108,10 @@ const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getInputAddres
         { "mutes",           WFSParameterIDs::inputMutes },
         { "muteMacro",       WFSParameterIDs::inputMuteMacro },
 
+        // Sidelines
+        { "sidelinesEnable", WFSParameterIDs::inputSidelinesActive },
+        { "sidelinesFringe", WFSParameterIDs::inputSidelinesFringe },
+
         // Reverb
         { "reverbSend",      WFSParameterIDs::inputReverbSend },
     };

@@ -1211,6 +1211,10 @@ juce::ValueTree WFSValueTreeState::createInputMutesSection (int numOutputs)
         muteArray.add ("0");
     mutes.setProperty (inputMutes, muteArray.joinIntoString (","), nullptr);
 
+    // Sidelines (auto-mute at stage edges)
+    mutes.setProperty (inputSidelinesActive, inputSidelinesActiveDefault, nullptr);
+    mutes.setProperty (inputSidelinesFringe, inputSidelinesFringeDefault, nullptr);
+
     // Array attenuation (per-array level control, 0 dB default)
     mutes.setProperty (inputArrayAtten1, inputArrayAttenDefault, nullptr);
     mutes.setProperty (inputArrayAtten2, inputArrayAttenDefault, nullptr);

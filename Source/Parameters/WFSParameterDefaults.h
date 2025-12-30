@@ -370,6 +370,12 @@ namespace WFSParameterDefaults
 
     constexpr int inputOtomoPauseResumeDefault  = 1;  // 0=Paused, 1=Resume
 
+    // Input > Sidelines (auto-mute at stage edges)
+    constexpr int inputSidelinesActiveDefault    = 0;      // OFF by default
+    constexpr float inputSidelinesFringeDefault  = 1.0f;   // 1 meter
+    constexpr float inputSidelinesFringeMin      = 0.1f;   // 10cm minimum
+    constexpr float inputSidelinesFringeMax      = 10.0f;  // 10m maximum
+
     // Input > Array Attenuation
     constexpr float inputArrayAttenDefault      = 0.0f;   // 0 dB (no attenuation)
     constexpr float inputArrayAttenMin          = -60.0f; // -60 dB

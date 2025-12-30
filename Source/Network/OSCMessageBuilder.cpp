@@ -108,6 +108,10 @@ const std::map<juce::Identifier, OSCMessageBuilder::ParamMapping>& OSCMessageBui
         { WFSParameterIDs::inputMutes,           { "/wfs/input/mutes",            "/remoteInput/mutes" } },
         { WFSParameterIDs::inputMuteMacro,       { "/wfs/input/muteMacro",        "/remoteInput/muteMacro" } },
 
+        // Sidelines
+        { WFSParameterIDs::inputSidelinesActive, { "/wfs/input/sidelinesEnable",  "/remoteInput/sidelinesActive" } },
+        { WFSParameterIDs::inputSidelinesFringe, { "/wfs/input/sidelinesFringe",  "/remoteInput/sidelinesFringe" } },
+
         // Reverb Sends
         { WFSParameterIDs::inputReverbSend,      { "/wfs/input/reverbSend",       "/remoteInput/reverbSend" } },
     };

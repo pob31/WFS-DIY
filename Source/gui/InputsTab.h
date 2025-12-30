@@ -2001,6 +2001,36 @@ private:
             setupEditableValueLabel(arrayAttenValueLabels[i]);
             addAndMakeVisible(arrayAttenValueLabels[i]);
         }
+
+        // Sidelines section (auto-mute at stage edges)
+        addAndMakeVisible(sidelinesActiveButton);
+        sidelinesActiveButton.setButtonText("Sidelines");
+        sidelinesActiveButton.setColour(juce::ToggleButton::textColourId, juce::Colours::white);
+        sidelinesActiveButton.setColour(juce::ToggleButton::tickColourId, juce::Colour(0xFF00C853));
+        sidelinesActiveButton.onClick = [this]() {
+            saveInputParam(WFSParameterIDs::inputSidelinesActive,
+                           sidelinesActiveButton.getToggleState() ? 1 : 0);
+        };
+
+        addAndMakeVisible(sidelinesFringeLabel);
+        sidelinesFringeLabel.setText("Fringe:", juce::dontSendNotification);
+        sidelinesFringeLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+
+        addAndMakeVisible(sidelinesFringeDial);
+        sidelinesFringeDial.setColours(juce::Colours::black, juce::Colour(0xFF00C853), juce::Colours::grey);
+        sidelinesFringeDial.onValueChanged = [this](float v) {
+            // Map dial value (0-1) to meters (0.1-10.0) - linear
+            float fringe = WFSParameterDefaults::inputSidelinesFringeMin +
+                           v * (WFSParameterDefaults::inputSidelinesFringeMax - WFSParameterDefaults::inputSidelinesFringeMin);
+            sidelinesFringeValueLabel.setText(juce::String(fringe, 2) + " m", juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputSidelinesFringe, fringe);
+        };
+
+        addAndMakeVisible(sidelinesFringeValueLabel);
+        sidelinesFringeValueLabel.setText("1.00 m", juce::dontSendNotification);
+        sidelinesFringeValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+        sidelinesFringeValueLabel.setJustificationType(juce::Justification::centred);
+        setupEditableValueLabel(sidelinesFringeValueLabel);
     }
 
     void applyMuteMacro(int macroId)
@@ -2826,6 +2856,12 @@ private:
             arrayAttenDials[i].setAlpha(alpha);
             arrayAttenValueLabels[i].setAlpha(alpha);
         }
+
+        // Sidelines controls
+        sidelinesActiveButton.setVisible(v);
+        sidelinesFringeLabel.setVisible(v);
+        sidelinesFringeDial.setVisible(v);
+        sidelinesFringeValueLabel.setVisible(v);
     }
 
     void layoutMutesTab()
@@ -2895,6 +2931,17 @@ private:
             arrayAttenDials[i].setBounds(dialRect.withSizeKeepingCentre(dialSize, dialSize));
             arrayAttenValueLabels[i].setBounds(dialArea.removeFromTop(valueHeight));
         }
+
+        area.removeFromTop(20);
+
+        // Sidelines section
+        auto sidelinesRow = area.removeFromTop(rowHeight + 10);
+        sidelinesActiveButton.setBounds(sidelinesRow.removeFromLeft(100));
+        sidelinesRow.removeFromLeft(20);
+        sidelinesFringeLabel.setBounds(sidelinesRow.removeFromLeft(50));
+        sidelinesFringeDial.setBounds(sidelinesRow.removeFromLeft(50));
+        sidelinesRow.removeFromLeft(5);
+        sidelinesFringeValueLabel.setBounds(sidelinesRow.removeFromLeft(70));
     }
 
     // ==================== PARAMETER MANAGEMENT ====================
@@ -3396,6 +3443,17 @@ private:
             arrayAttenDials[i].setValue(juce::jlimit(0.0f, 1.0f, dialValue));
             arrayAttenValueLabels[i].setText(juce::String(attenDb, 1) + " dB", juce::dontSendNotification);
         }
+
+        // Sidelines parameters
+        bool sidelinesActive = getIntParam(WFSParameterIDs::inputSidelinesActive, 0) != 0;
+        sidelinesActiveButton.setToggleState(sidelinesActive, juce::dontSendNotification);
+        float sidelinesFringe = getFloatParam(WFSParameterIDs::inputSidelinesFringe, WFSParameterDefaults::inputSidelinesFringeDefault);
+        sidelinesFringe = juce::jlimit(WFSParameterDefaults::inputSidelinesFringeMin, WFSParameterDefaults::inputSidelinesFringeMax, sidelinesFringe);
+        // Convert meters to dial value (0-1)
+        float dialValue = (sidelinesFringe - WFSParameterDefaults::inputSidelinesFringeMin) /
+                          (WFSParameterDefaults::inputSidelinesFringeMax - WFSParameterDefaults::inputSidelinesFringeMin);
+        sidelinesFringeDial.setValue(juce::jlimit(0.0f, 1.0f, dialValue));
+        sidelinesFringeValueLabel.setText(juce::String(sidelinesFringe, 2) + " m", juce::dontSendNotification);
 
         // Update visualisation component's selected input
         visualisationComponent.setSelectedInput(currentChannel - 1);
@@ -4244,6 +4302,9 @@ private:
         // Array attenuation
         for (int i = 0; i < 10; ++i)
             helpTextMap[&arrayAttenDials[i]] = "Attenuation for Array " + juce::String(i + 1) + " (-60 to 0 dB).";
+        // Sidelines
+        helpTextMap[&sidelinesActiveButton] = "Enable Automatic Muting when Source Approaches Stage Edges. Does Not Apply to Downstage (Front) Edge.";
+        helpTextMap[&sidelinesFringeDial] = "Fringe Zone Size in Meters. Outer Half is Full Mute, Inner Half Fades Linearly.";
         helpTextMap[&storeButton] = "Store Input Configuration to file (with backup).";
         helpTextMap[&reloadButton] = "Reload Input Configuration from file.";
         helpTextMap[&reloadBackupButton] = "Reload Input Configuration from backup file.";
@@ -4351,6 +4412,9 @@ private:
         // Array attenuation
         for (int i = 0; i < 10; ++i)
             oscMethodMap[&arrayAttenDials[i]] = "/wfs/input/arrayAtten" + juce::String(i + 1) + " <ID> <value>";
+        // Sidelines
+        oscMethodMap[&sidelinesActiveButton] = "/wfs/input/sidelinesEnable <ID> <value>";
+        oscMethodMap[&sidelinesFringeDial] = "/wfs/input/sidelinesFringe <ID> <value>";
     }
 
     void setupMouseListeners()
@@ -4876,6 +4940,12 @@ private:
     juce::Label arrayAttenDialLabels[10];
     WfsBasicDial arrayAttenDials[10];
     juce::Label arrayAttenValueLabels[10];
+
+    // Sidelines (auto-mute at stage edges)
+    juce::ToggleButton sidelinesActiveButton;
+    juce::Label sidelinesFringeLabel;
+    WfsBasicDial sidelinesFringeDial;
+    juce::Label sidelinesFringeValueLabel;
 
     // Footer buttons - Config
     juce::TextButton storeButton;
