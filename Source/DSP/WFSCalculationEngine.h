@@ -54,6 +54,10 @@ public:
     /** Get cached input position */
     Position getInputPosition (int inputIndex) const;
 
+    /** Get composite input position (speed-limited + flip + offset + LFO).
+        This is the final position used for all calculations including Live Source Tamer. */
+    Position getCompositeInputPosition (int inputIndex) const;
+
     /** Force recalculation of all listener positions */
     void recalculateAllListenerPositions();
 
@@ -281,6 +285,7 @@ private:
     std::vector<Position> speakerPositions;        // [outputIndex]
     std::vector<Position> inputPositions;          // [inputIndex] - Raw target positions from ValueTree
     std::vector<Position> speedLimitedPositions;   // [inputIndex] - Speed-limited interpolated positions
+    std::vector<Position> compositeInputPositions; // [inputIndex] - Final positions (speed-limited + flip + offset + LFO)
     std::vector<Position> reverbFeedPositions;     // [reverbIndex]
     std::vector<Position> reverbReturnPositions;   // [reverbIndex]
     std::vector<Position> lfoOffsets;              // [inputIndex] - LFO position offsets

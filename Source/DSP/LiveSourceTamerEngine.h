@@ -110,8 +110,8 @@ public:
             // Convert fixed attenuation from dB to linear
             float fixedAttenLinear = std::pow(10.0f, fixedAttenDb / 20.0f);
 
-            // Get input position
-            auto inputPos = calculationEngine.getInputPosition(inIdx);
+            // Get composite input position (includes speed-limiting, flip, offset, LFO)
+            auto inputPos = calculationEngine.getCompositeInputPosition(inIdx);
 
             // Get dynamic gain reductions
             float peakGR = (inIdx < static_cast<int>(peakGRs.size())) ? peakGRs[inIdx] : 1.0f;

@@ -841,9 +841,9 @@ private:
         auto rightCol = area.reduced (10, 0);
 
         // Coordinate mode selector row
-        auto row = leftCol.removeFromTop(rowHeight);
-        coordModeLabel.setBounds(row.removeFromLeft(50));
-        coordModeSelector.setBounds(row.removeFromLeft(80));
+        auto coordModeRow = leftCol.removeFromTop(rowHeight);
+        coordModeLabel.setBounds(coordModeRow.removeFromLeft(50));
+        coordModeSelector.setBounds(coordModeRow.removeFromLeft(80));
         leftCol.removeFromTop(spacing);
 
         // Position section (left)

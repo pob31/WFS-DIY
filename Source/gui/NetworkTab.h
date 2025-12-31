@@ -942,8 +942,9 @@ private:
             {
                 DBG("NetworkTab: Connecting target " << i << " to " << targetConfig.ipAddress
                     << ":" << targetConfig.port << " protocol=" << static_cast<int>(targetConfig.protocol));
-                bool connected = oscManager->connectTarget(i);
-                DBG("NetworkTab: Target " << i << " connected=" << (connected ? "yes" : "no"));
+                bool wasConnected = oscManager->connectTarget(i);
+                juce::ignoreUnused(wasConnected);
+                DBG("NetworkTab: Target " << i << " connected=" << (wasConnected ? "yes" : "no"));
             }
         }
 

@@ -18,6 +18,7 @@ WFSCalculationEngine::WFSCalculationEngine (WFSValueTreeState& state)
     speakerPositions.resize (static_cast<size_t> (numOutputs));
     inputPositions.resize (static_cast<size_t> (numInputs));
     speedLimitedPositions.resize (static_cast<size_t> (numInputs));  // Speed-limited interpolated positions
+    compositeInputPositions.resize (static_cast<size_t> (numInputs));  // Final positions (speed-limited + flip + offset + LFO)
     reverbFeedPositions.resize (static_cast<size_t> (numReverbs));
     reverbReturnPositions.resize (static_cast<size_t> (numReverbs));
     lfoOffsets.resize (static_cast<size_t> (numInputs));  // LFO position offsets
@@ -100,6 +101,15 @@ WFSCalculationEngine::Position WFSCalculationEngine::getInputPosition (int input
 
     const juce::ScopedLock sl (positionLock);
     return inputPositions[static_cast<size_t> (inputIndex)];
+}
+
+WFSCalculationEngine::Position WFSCalculationEngine::getCompositeInputPosition (int inputIndex) const
+{
+    if (inputIndex < 0 || inputIndex >= numInputs)
+        return {};
+
+    const juce::ScopedLock sl (positionLock);
+    return compositeInputPositions[static_cast<size_t> (inputIndex)];
 }
 
 //==============================================================================
@@ -478,13 +488,13 @@ float WFSCalculationEngine::calculateSidelineAttenuation (int inputIndex, const 
     if (! stageState.isValid())
         return 1.0f;
 
-    int stageShape = stageState.getProperty (WFSParameterIDs::stageShape, 0);
+    int currentStageShape = stageState.getProperty (WFSParameterIDs::stageShape, 0);
     float originW = static_cast<float> (stageState.getProperty (originWidth, 0.0f));
     float originD = static_cast<float> (stageState.getProperty (originDepth, -5.0f));
 
     float distanceFromEdge = 0.0f;
 
-    if (stageShape == 0)  // Box stage
+    if (currentStageShape == 0)  // Box stage
     {
         float stageW = static_cast<float> (stageState.getProperty (WFSParameterIDs::stageWidth, 20.0f));
         float stageD = static_cast<float> (stageState.getProperty (WFSParameterIDs::stageDepth, 10.0f));
@@ -792,6 +802,9 @@ void WFSCalculationEngine::recalculateMatrix()
             localInputPositions[i].y += lfoOffsets[i].y;
             localInputPositions[i].z += lfoOffsets[i].z;
         }
+
+        // Store composite positions for external access (used by LiveSourceTamerEngine)
+        compositeInputPositions = localInputPositions;
 
         // Copy gyrophone rotation offsets
         localGyrophoneOffsets = gyrophoneOffsets;
