@@ -35,6 +35,7 @@ const std::map<juce::Identifier, OSCMessageBuilder::ParamMapping>& OSCMessageBui
         { WFSParameterIDs::inputTrackingSmooth,   { "/wfs/input/trackingSmooth",   "/remoteInput/trackingSmooth" } },
         { WFSParameterIDs::inputMaxSpeedActive,   { "/wfs/input/maxSpeedActive",   "/remoteInput/maxSpeedActive" } },
         { WFSParameterIDs::inputMaxSpeed,         { "/wfs/input/maxSpeed",         "/remoteInput/maxSpeed" } },
+        { WFSParameterIDs::inputPathModeActive,   { "/wfs/input/pathModeActive",   "/remoteInput/pathModeActive" } },
         { WFSParameterIDs::inputHeightFactor,     { "/wfs/input/heightFactor",     "/remoteInput/heightFactor" } },
         { WFSParameterIDs::inputCoordinateMode,   { "/wfs/input/coordinateMode",   "/remoteInput/coordinateMode" } },
 

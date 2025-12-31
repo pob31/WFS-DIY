@@ -1042,6 +1042,7 @@ void OSCManager::sendRemoteChannelDump(int channelId)
     paramValues[WFSParameterIDs::inputCluster] = getParam(WFSParameterIDs::inputCluster);
     paramValues[WFSParameterIDs::inputMaxSpeedActive] = getParam(WFSParameterIDs::inputMaxSpeedActive);
     paramValues[WFSParameterIDs::inputMaxSpeed] = getParam(WFSParameterIDs::inputMaxSpeed);
+    paramValues[WFSParameterIDs::inputPathModeActive] = getParam(WFSParameterIDs::inputPathModeActive);
     paramValues[WFSParameterIDs::inputHeightFactor] = getParam(WFSParameterIDs::inputHeightFactor);
 
     // Attenuation parameters

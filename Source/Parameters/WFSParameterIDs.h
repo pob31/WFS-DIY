@@ -191,6 +191,7 @@ namespace WFSParameterIDs
     const juce::Identifier inputTrackingSmooth   ("inputTrackingSmooth");
     const juce::Identifier inputMaxSpeedActive   ("inputMaxSpeedActive");
     const juce::Identifier inputMaxSpeed         ("inputMaxSpeed");
+    const juce::Identifier inputPathModeActive   ("inputPathModeActive");   // 0=OFF, 1=ON
     const juce::Identifier inputHeightFactor     ("inputHeightFactor");
     const juce::Identifier inputCoordinateMode   ("inputCoordinateMode");  // 0=Cartesian, 1=Cylindrical, 2=Spherical
 

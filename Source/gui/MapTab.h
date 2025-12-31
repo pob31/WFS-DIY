@@ -117,6 +117,10 @@ public:
                 longPressState.startTime = juce::Time::getCurrentTime();
                 DBG("mouseDown(touch): set longPressState for Input " << hitInput);
 
+                // Notify path mode waypoint recording
+                if (onDragStartCallback)
+                    onDragStartCallback(hitInput);
+
                 repaint();
                 return;
             }
@@ -269,6 +273,10 @@ public:
                 longPressState.startPos = e.position;
                 longPressState.startTime = juce::Time::getCurrentTime();
                 DBG("mouseDown: set longPressState for Input " << hitInput);
+
+                // Notify path mode waypoint recording
+                if (onDragStartCallback)
+                    onDragStartCallback(hitInput);
 
                 repaint();
                 return;
@@ -480,6 +488,13 @@ public:
                 float storedY = flipY ? -stagePos.y : stagePos.y;
                 parameters.setInputParam(selectedInput, "inputPositionX", storedX);
                 parameters.setInputParam(selectedInput, "inputPositionY", storedY);
+
+                // Capture waypoint for path mode (using flip-adjusted coordinates)
+                if (waypointCaptureCallback)
+                {
+                    float storedZ = static_cast<float>(parameters.getInputParam(selectedInput, "inputPositionZ"));
+                    waypointCaptureCallback(selectedInput, storedX, storedY, storedZ);
+                }
             }
 
             repaint();
@@ -559,6 +574,12 @@ public:
             {
                 bool wasViewGesture = (it->second.type == TouchInfo::Type::ViewGesture);
                 bool wasSecondaryTouch = (it->second.type == TouchInfo::Type::SecondaryTouch);
+                bool wasInputDrag = (it->second.type == TouchInfo::Type::Input);
+                int draggedInputIndex = it->second.targetIndex;
+
+                // Notify path mode that drag ended (before erasing touch)
+                if (wasInputDrag && draggedInputIndex >= 0 && onDragEndCallback)
+                    onDragEndCallback(draggedInputIndex);
 
                 activeTouches.erase(it);
 
@@ -576,6 +597,10 @@ public:
         }
 
         // Mouse input (existing behavior)
+        // Notify path mode that drag ended (before clearing state)
+        if (isDraggingInput && selectedInput >= 0 && onDragEndCallback)
+            onDragEndCallback(selectedInput);
+
         isDraggingInput = false;
         isDraggingBarycenter = false;
         isInViewGesture = false;
@@ -922,8 +947,17 @@ public:
         }
         else
         {
+            // Note: Touch doesn't apply flip - it stores stagePos directly
+            // This is different from mouse input which applies flip
             parameters.setInputParam(inputIdx, "inputPositionX", stagePos.x);
             parameters.setInputParam(inputIdx, "inputPositionY", stagePos.y);
+
+            // Capture waypoint for path mode (read back stored values for consistency)
+            if (waypointCaptureCallback)
+            {
+                float storedZ = static_cast<float>(parameters.getInputParam(inputIdx, "inputPositionZ"));
+                waypointCaptureCallback(inputIdx, stagePos.x, stagePos.y, storedZ);
+            }
         }
     }
 
@@ -1433,6 +1467,25 @@ public:
         DBG("setNavigateToItemCallback after assignment, navigateToItemCallback valid=" << (navigateToItemCallback != nullptr ? 1 : 0));
     }
 
+    /** Set callback for when a drag operation starts on an input (for path mode waypoint recording) */
+    void setDragStartCallback(std::function<void(int)> callback)
+    {
+        onDragStartCallback = std::move(callback);
+    }
+
+    /** Set callback for when a drag operation ends on an input (for path mode waypoint recording) */
+    void setDragEndCallback(std::function<void(int)> callback)
+    {
+        onDragEndCallback = std::move(callback);
+    }
+
+    /** Set callback for capturing waypoints during drag (for path mode).
+        Parameters: (inputIndex, x, y, z) - flip-adjusted coordinates */
+    void setWaypointCaptureCallback(std::function<void(int, float, float, float)> callback)
+    {
+        waypointCaptureCallback = std::move(callback);
+    }
+
 private:
     WfsParameters& parameters;
     juce::ValueTree inputsTree;
@@ -1449,6 +1502,11 @@ private:
     // Navigation callback for long-press gesture
     // Parameters: (tabType, index) where tabType is: 0=Input, 1=Cluster, 2=Output, 3=Reverb
     std::function<void(int, int)> navigateToItemCallback;
+
+    // Path mode waypoint capture callbacks
+    std::function<void(int)> onDragStartCallback;
+    std::function<void(int)> onDragEndCallback;
+    std::function<void(int, float, float, float)> waypointCaptureCallback;
 
     // Long-press gesture tracking (for navigating to item's tab)
     struct LongPressState

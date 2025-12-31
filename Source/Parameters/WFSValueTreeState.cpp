@@ -1105,6 +1105,7 @@ juce::ValueTree WFSValueTreeState::createInputPositionSection (int index, int to
     position.setProperty (inputTrackingSmooth, inputTrackingSmoothDefault, nullptr);
     position.setProperty (inputMaxSpeedActive, inputMaxSpeedActiveDefault, nullptr);
     position.setProperty (inputMaxSpeed, inputMaxSpeedDefault, nullptr);
+    position.setProperty (inputPathModeActive, inputPathModeActiveDefault, nullptr);
     position.setProperty (inputHeightFactor, inputHeightFactorDefault, nullptr);
     position.setProperty (inputCoordinateMode, inputCoordinateModeDefault, nullptr);
     position.setProperty (inputJitter, inputJitterDefault, nullptr);

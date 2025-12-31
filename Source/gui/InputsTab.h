@@ -823,6 +823,16 @@ private:
         maxSpeedValueLabel.setJustificationType(juce::Justification::centred);
         setupEditableValueLabel(maxSpeedValueLabel);
 
+        // Path Mode toggle (follows drawn path instead of straight line)
+        addAndMakeVisible(pathModeButton);
+        pathModeButton.setButtonText("Path Mode: OFF");
+        pathModeButton.setClickingTogglesState(true);
+        pathModeButton.onClick = [this]() {
+            bool enabled = pathModeButton.getToggleState();
+            pathModeButton.setButtonText(enabled ? "Path Mode: ON" : "Path Mode: OFF");
+            saveInputParam(WFSParameterIDs::inputPathModeActive, enabled ? 1 : 0);
+        };
+
         // Height Factor dial
         addAndMakeVisible(heightFactorLabel);
         heightFactorLabel.setText("Height Factor:", juce::dontSendNotification);
@@ -2131,6 +2141,7 @@ private:
         trackingSmoothLabel.setVisible(v); trackingSmoothDial.setVisible(v); trackingSmoothValueLabel.setVisible(v);
         maxSpeedActiveButton.setVisible(v);
         maxSpeedLabel.setVisible(v); maxSpeedDial.setVisible(v); maxSpeedValueLabel.setVisible(v);
+        pathModeButton.setVisible(v);
         heightFactorLabel.setVisible(v); heightFactorDial.setVisible(v); heightFactorValueLabel.setVisible(v);
         positionJoystick.setVisible(v); positionJoystickLabel.setVisible(v);
         positionZSlider.setVisible(v); positionZSliderLabel.setVisible(v);
@@ -2322,6 +2333,11 @@ private:
         dialArea = rightCol.removeFromTop(dialSize);
         maxSpeedDial.setBounds(dialArea.withSizeKeepingCentre(dialSize, dialSize));
         maxSpeedValueLabel.setBounds(rightCol.removeFromTop(rowHeight - 5));
+        rightCol.removeFromTop(spacing);
+
+        // Path Mode button
+        row = rightCol.removeFromTop(rowHeight);
+        pathModeButton.setBounds(row.removeFromLeft(150));
         rightCol.removeFromTop(spacing);
 
         // Height Factor dial
@@ -3050,6 +3066,10 @@ private:
         float maxSpeedSliderVal = (maxSpeedMs - 0.01f) / 19.99f;
         maxSpeedDial.setValue(juce::jlimit(0.0f, 1.0f, maxSpeedSliderVal));
         maxSpeedValueLabel.setText(juce::String(maxSpeedMs, 2) + " m/s", juce::dontSendNotification);
+
+        bool pathModeActive = getIntParam(WFSParameterIDs::inputPathModeActive, 0) != 0;
+        pathModeButton.setToggleState(pathModeActive, juce::dontSendNotification);
+        pathModeButton.setButtonText(pathModeActive ? "Path Mode: ON" : "Path Mode: OFF");
 
         // Height Factor stored as percent (0-100), default 100%
         float heightFactorPct = getFloatParam(WFSParameterIDs::inputHeightFactor, 100.0f);
@@ -4242,6 +4262,7 @@ private:
         helpTextMap[&trackingSmoothDial] = "Smoothing of Tracking Data for Object.";
         helpTextMap[&maxSpeedActiveButton] = "Enable or Disable Speed Limiting for Object.";
         helpTextMap[&maxSpeedDial] = "Maximum Speed Limit for Object.";
+        helpTextMap[&pathModeButton] = "Enable Path Mode to Follow Drawn Movement Paths Instead of Direct Lines.";
         helpTextMap[&heightFactorDial] = "Take Elevation of Object into Account Fully, Partially or Not.";
         helpTextMap[&coordModeSelector] = "Coordinate display mode: Cartesian (X/Y/Z), Cylindrical (radius/azimuth/height), or Spherical (radius/azimuth/elevation).";
         helpTextMap[&positionJoystick] = "Drag to adjust X/Y position in real-time. Returns to center on release.";
@@ -4355,6 +4376,7 @@ private:
         oscMethodMap[&trackingSmoothDial] = "/wfs/input/trackingSmooth <ID> <value>";
         oscMethodMap[&maxSpeedActiveButton] = "/wfs/input/maxSpeedActive <ID> <value>";
         oscMethodMap[&maxSpeedDial] = "/wfs/input/maxSpeed <ID> <value>";
+        oscMethodMap[&pathModeButton] = "/wfs/input/pathModeActive <ID> <value>";
         oscMethodMap[&heightFactorDial] = "/wfs/input/heightFactor <ID> <value>";
         oscMethodMap[&attenuationLawButton] = "/wfs/input/attenuationLaw <ID> <value>";
         oscMethodMap[&distanceAttenDial] = "/wfs/input/distanceAttenuation <ID> <value>";
@@ -4801,6 +4823,7 @@ private:
     juce::Label maxSpeedLabel;
     WfsBasicDial maxSpeedDial;
     juce::Label maxSpeedValueLabel;
+    juce::TextButton pathModeButton;
     juce::Label heightFactorLabel;
     WfsBasicDial heightFactorDial;
     juce::Label heightFactorValueLabel;

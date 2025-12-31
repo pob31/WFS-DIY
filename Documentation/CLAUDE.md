@@ -336,12 +336,28 @@ This provides:
 |-----------|-------|-------------|
 | `inputMaxSpeedActive` | 0/1 | Enable speed limiting for this input |
 | `inputMaxSpeed` | 0.01-20 m/s | Maximum movement speed |
+| `inputPathModeActive` | 0/1 | Enable path mode (follow drawn path) |
+
+**Path Mode:**
+When enabled, the speed-limited marker follows the path drawn during drag operations instead of moving in a straight line to the target.
+
+- **Waypoint capture:** During map drag, waypoints are captured at ~50Hz into a circular buffer (max 100 waypoints)
+- **Immediate following:** The marker starts following waypoints immediately during drag, not after release
+- **Constant speed:** Movement between waypoints uses constant speed (no deceleration) for smooth path following
+- **Final deceleration:** Tanh smoothing is only applied when approaching the final target after all waypoints are consumed
+- **Per-input toggle:** Path mode can be enabled/disabled independently for each input
+
+**OSC Addresses:**
+- `/wfs/input/maxSpeedActive <ID> <value>` (0/1)
+- `/wfs/input/maxSpeed <ID> <value>` (m/s)
+- `/wfs/input/pathModeActive <ID> <value>` (0/1)
 
 **Integration:**
 - Speed limiter runs at 50Hz in MainComponent timer callback
 - Speed-limited positions passed to WFSCalculationEngine
 - MapTab displays markers at speed-limited positions
 - Hit-testing uses speed-limited positions for consistent interaction
+- Waypoint callbacks wired from MapTab to InputSpeedLimiter in MainComponent
 
 ### LFO Processor (Position Modulation)
 The LFOProcessor generates periodic position offsets for each input channel, creating automated movement effects.

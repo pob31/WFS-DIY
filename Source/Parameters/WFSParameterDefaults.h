@@ -212,6 +212,8 @@ namespace WFSParameterDefaults
     constexpr float inputMaxSpeedMin            = 0.01f;
     constexpr float inputMaxSpeedMax            = 20.0f;
 
+    constexpr int inputPathModeActiveDefault    = 0;  // 0=OFF, 1=ON
+
     constexpr int inputHeightFactorDefault      = 0;
     constexpr int inputHeightFactorMin          = 0;
     constexpr int inputHeightFactorMax          = 100;

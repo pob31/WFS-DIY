@@ -35,6 +35,7 @@ const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getInputAddres
         { "trackingSmooth",   WFSParameterIDs::inputTrackingSmooth },
         { "maxSpeedActive",   WFSParameterIDs::inputMaxSpeedActive },
         { "maxSpeed",         WFSParameterIDs::inputMaxSpeed },
+        { "pathModeActive",   WFSParameterIDs::inputPathModeActive },
         { "heightFactor",     WFSParameterIDs::inputHeightFactor },
 
         // Attenuation
@@ -218,6 +219,7 @@ const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getRemoteAddre
         { "cluster",          WFSParameterIDs::inputCluster },
         { "maxSpeedActive",   WFSParameterIDs::inputMaxSpeedActive },
         { "maxSpeed",         WFSParameterIDs::inputMaxSpeed },
+        { "pathModeActive",   WFSParameterIDs::inputPathModeActive },
         { "heightFactor",     WFSParameterIDs::inputHeightFactor },
 
         // Attenuation

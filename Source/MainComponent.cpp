@@ -297,6 +297,22 @@ MainComponent::MainComponent()
                 speedLimiter->getPosition(inputIndex, x, y, z);
             }
         });
+
+        // Set up path mode waypoint capture callbacks
+        mapTab->setDragStartCallback([this](int inputIndex) {
+            if (speedLimiter != nullptr)
+                speedLimiter->startRecording(inputIndex);
+        });
+
+        mapTab->setDragEndCallback([this](int inputIndex) {
+            if (speedLimiter != nullptr)
+                speedLimiter->stopRecording(inputIndex);
+        });
+
+        mapTab->setWaypointCaptureCallback([this](int inputIndex, float x, float y, float z) {
+            if (speedLimiter != nullptr)
+                speedLimiter->addWaypoint(inputIndex, x, y, z);
+        });
     }
 
     // Configure OSC Manager with initial network settings from parameters
@@ -1253,9 +1269,11 @@ void MainComponent::timerCallback()
 
                 bool active = static_cast<int>(posSection.getProperty(WFSParameterIDs::inputMaxSpeedActive, 0)) != 0;
                 float maxSpeed = posSection.getProperty(WFSParameterIDs::inputMaxSpeed, 1.0f);
+                bool pathModeActive = static_cast<int>(posSection.getProperty(WFSParameterIDs::inputPathModeActive, 0)) != 0;
 
                 speedLimiter->setTargetPosition(i, targetX, targetY, targetZ);
                 speedLimiter->setSpeedLimit(i, active, maxSpeed);
+                speedLimiter->setPathModeEnabled(i, pathModeActive);
             }
 
             speedLimiter->process(0.02f);  // 20ms delta time (50Hz)
