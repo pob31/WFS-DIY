@@ -389,18 +389,6 @@ juce::OSCMessage OSCMessageBuilder::buildMessage(
     return msg;
 }
 
-juce::OSCMessage OSCMessageBuilder::buildRemotePositionXYMessage(
-    int channelId,
-    float normX,
-    float normY)
-{
-    juce::OSCMessage msg("/remoteInput/positionXY");
-    msg.addInt32(channelId);
-    msg.addFloat32(normX);
-    msg.addFloat32(normY);
-    return msg;
-}
-
 juce::OSCMessage OSCMessageBuilder::buildConfigFloatMessage(
     const juce::String& address,
     float value)

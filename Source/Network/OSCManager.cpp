@@ -449,20 +449,6 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
     if (channelId < 0)
         return;
 
-    // Track position changes for batched positionXY (all inputs, not just selected)
-    // This enables 20Hz position updates for Remote protocol
-    if (isInput && !suppressPositionXYEcho &&
-        (property == WFSParameterIDs::inputPositionX ||
-         property == WFSParameterIDs::inputPositionY))
-    {
-        bool isNumericValue = value.isDouble() || value.isInt() || value.isInt64();
-        if (isNumericValue)
-        {
-            trackPositionChange(channelId, property,
-                static_cast<float>(static_cast<double>(value)));
-        }
-    }
-
     // Send to appropriate targets based on protocol
     for (int i = 0; i < MAX_TARGETS; ++i)
     {
@@ -706,13 +692,29 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
                 int channelIndex = parsed.channelId - 1;
                 if (channelIndex >= 0)
                 {
-                    if (parsed.value.isDouble())
+                    juce::var valueToSet = parsed.value;
+
+                    // Apply constraints to position parameters
+                    if (parsed.value.isDouble() &&
+                        (parsed.paramId == WFSParameterIDs::inputPositionX ||
+                         parsed.paramId == WFSParameterIDs::inputPositionY ||
+                         parsed.paramId == WFSParameterIDs::inputPositionZ))
                     {
-                        state.setInputParameter(channelIndex, parsed.paramId, parsed.value);
+                        float floatValue = static_cast<float>(static_cast<double>(parsed.value));
+
+                        if (parsed.paramId == WFSParameterIDs::inputPositionX)
+                            floatValue = applyConstraintX(channelIndex, floatValue);
+                        else if (parsed.paramId == WFSParameterIDs::inputPositionY)
+                            floatValue = applyConstraintY(channelIndex, floatValue);
+                        else if (parsed.paramId == WFSParameterIDs::inputPositionZ)
+                            floatValue = applyConstraintZ(channelIndex, floatValue);
+
+                        valueToSet = floatValue;
                     }
-                    else if (parsed.value.isString())
+
+                    if (parsed.value.isDouble() || parsed.value.isString())
                     {
-                        state.setInputParameter(channelIndex, parsed.paramId, parsed.value);
+                        state.setInputParameter(channelIndex, parsed.paramId, valueToSet);
                     }
                 }
                 incomingProtocol = Protocol::Disabled;  // Clear flag
@@ -801,16 +803,6 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
 
 void OSCManager::handleRemoteInputMessage(const juce::OSCMessage& message)
 {
-    // Handle combined positionXY message first (before standard parsing)
-    juce::String address = message.getAddressPattern().toString();
-    juce::String paramName = address.substring(address.lastIndexOf("/") + 1);
-
-    if (paramName == "positionXY")
-    {
-        handleRemotePositionXY(message);
-        return;
-    }
-
     auto parsed = OSCMessageRouter::parseRemoteInputMessage(message);
 
     if (!parsed.valid)
@@ -917,7 +909,28 @@ void OSCManager::handleRemoteParameterSet(const OSCMessageRouter::ParsedRemoteIn
         int channelIndex = parsed.channelId - 1;
         if (channelIndex >= 0)
         {
-            state.setInputParameter(channelIndex, parsed.paramId, parsed.value);
+            juce::var valueToSet = parsed.value;
+
+            // Apply constraints to position parameters
+            if (parsed.paramId == WFSParameterIDs::inputPositionX ||
+                parsed.paramId == WFSParameterIDs::inputPositionY ||
+                parsed.paramId == WFSParameterIDs::inputPositionZ)
+            {
+                float floatValue = parsed.value.isDouble()
+                    ? static_cast<float>(static_cast<double>(parsed.value))
+                    : static_cast<float>(static_cast<int>(parsed.value));
+
+                if (parsed.paramId == WFSParameterIDs::inputPositionX)
+                    floatValue = applyConstraintX(channelIndex, floatValue);
+                else if (parsed.paramId == WFSParameterIDs::inputPositionY)
+                    floatValue = applyConstraintY(channelIndex, floatValue);
+                else if (parsed.paramId == WFSParameterIDs::inputPositionZ)
+                    floatValue = applyConstraintZ(channelIndex, floatValue);
+
+                valueToSet = floatValue;
+            }
+
+            state.setInputParameter(channelIndex, parsed.paramId, valueToSet);
         }
 
         incomingProtocol = Protocol::Disabled;  // Clear flag
@@ -1130,143 +1143,109 @@ void OSCManager::updateTargetStatus(int targetIndex, ConnectionStatus newStatus)
 }
 
 //==============================================================================
-// Coordinate Conversion
+// Stage Bounds
 //==============================================================================
 
-float OSCManager::metersToNormalizedX(float meters) const
+float OSCManager::getStageMinX() const
 {
     auto stageTree = state.getStageState();
-    float stageWidth = stageTree.isValid()
-        ? static_cast<float>(stageTree.getProperty(WFSParameterIDs::stageWidth))
-        : 20.0f;
-    return (meters + stageWidth / 2.0f) / stageWidth;
+    if (!stageTree.isValid())
+        return -10.0f;
+
+    int shape = stageTree.getProperty(WFSParameterIDs::stageShape);
+    float halfSize = (shape == 0)
+        ? static_cast<float>(stageTree.getProperty(WFSParameterIDs::stageWidth)) / 2.0f
+        : static_cast<float>(stageTree.getProperty(WFSParameterIDs::stageDiameter)) / 2.0f;
+    float originWidth = static_cast<float>(stageTree.getProperty(WFSParameterIDs::originWidth));
+    return -halfSize - originWidth;
 }
 
-float OSCManager::metersToNormalizedY(float meters) const
+float OSCManager::getStageMaxX() const
 {
     auto stageTree = state.getStageState();
-    float stageDepth = stageTree.isValid()
-        ? static_cast<float>(stageTree.getProperty(WFSParameterIDs::stageDepth))
-        : 10.0f;
-    return meters / stageDepth;
+    if (!stageTree.isValid())
+        return 10.0f;
+
+    int shape = stageTree.getProperty(WFSParameterIDs::stageShape);
+    float halfSize = (shape == 0)
+        ? static_cast<float>(stageTree.getProperty(WFSParameterIDs::stageWidth)) / 2.0f
+        : static_cast<float>(stageTree.getProperty(WFSParameterIDs::stageDiameter)) / 2.0f;
+    float originWidth = static_cast<float>(stageTree.getProperty(WFSParameterIDs::originWidth));
+    return halfSize - originWidth;
 }
 
-float OSCManager::normalizedToMetersX(float normalized) const
+float OSCManager::getStageMinY() const
 {
     auto stageTree = state.getStageState();
-    float stageWidth = stageTree.isValid()
-        ? static_cast<float>(stageTree.getProperty(WFSParameterIDs::stageWidth))
-        : 20.0f;
-    return (normalized * stageWidth) - (stageWidth / 2.0f);
+    if (!stageTree.isValid())
+        return -5.0f;
+
+    int shape = stageTree.getProperty(WFSParameterIDs::stageShape);
+    float halfSize = (shape == 0)
+        ? static_cast<float>(stageTree.getProperty(WFSParameterIDs::stageDepth)) / 2.0f
+        : static_cast<float>(stageTree.getProperty(WFSParameterIDs::stageDiameter)) / 2.0f;
+    float originDepth = static_cast<float>(stageTree.getProperty(WFSParameterIDs::originDepth));
+    return -halfSize - originDepth;
 }
 
-float OSCManager::normalizedToMetersY(float normalized) const
+float OSCManager::getStageMaxY() const
 {
     auto stageTree = state.getStageState();
-    float stageDepth = stageTree.isValid()
-        ? static_cast<float>(stageTree.getProperty(WFSParameterIDs::stageDepth))
-        : 10.0f;
-    return normalized * stageDepth;
+    if (!stageTree.isValid())
+        return 5.0f;
+
+    int shape = stageTree.getProperty(WFSParameterIDs::stageShape);
+    float halfSize = (shape == 0)
+        ? static_cast<float>(stageTree.getProperty(WFSParameterIDs::stageDepth)) / 2.0f
+        : static_cast<float>(stageTree.getProperty(WFSParameterIDs::stageDiameter)) / 2.0f;
+    float originDepth = static_cast<float>(stageTree.getProperty(WFSParameterIDs::originDepth));
+    return halfSize - originDepth;
+}
+
+float OSCManager::getStageMaxZ() const
+{
+    auto stageTree = state.getStageState();
+    if (!stageTree.isValid())
+        return 5.0f;
+
+    return static_cast<float>(stageTree.getProperty(WFSParameterIDs::stageHeight));
 }
 
 //==============================================================================
-// Position Batching for Remote Protocol
+// Constraint Application
 //==============================================================================
 
-void OSCManager::trackPositionChange(int channelId, const juce::Identifier& paramId, float value)
+float OSCManager::applyConstraintX(int channelIndex, float value) const
 {
-    auto& pending = pendingPositions[channelId];
-    if (paramId == WFSParameterIDs::inputPositionX)
-    {
-        pending.x = value;
-        pending.xChanged = true;
-    }
-    else if (paramId == WFSParameterIDs::inputPositionY)
-    {
-        pending.y = value;
-        pending.yChanged = true;
-    }
+    juce::var constraintVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputConstraintX);
+    int constraint = constraintVar.isInt() ? static_cast<int>(constraintVar) : 1;
 
-    // Check if it's time to flush (end of 20Hz cycle)
-    auto now = juce::Time::currentTimeMillis();
-    if (now - lastPositionBatchTime >= POSITION_BATCH_INTERVAL_MS)
-    {
-        flushPositionBatch();
-        lastPositionBatchTime = now;
-    }
+    if (constraint != 0)
+        return juce::jlimit(getStageMinX(), getStageMaxX(), value);
+
+    return value;
 }
 
-void OSCManager::flushPositionBatch()
+float OSCManager::applyConstraintY(int channelIndex, float value) const
 {
-    if (pendingPositions.empty())
-        return;
+    juce::var constraintVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputConstraintY);
+    int constraint = constraintVar.isInt() ? static_cast<int>(constraintVar) : 1;
 
-    for (auto& [channelId, pending] : pendingPositions)
-    {
-        if (!pending.xChanged && !pending.yChanged)
-            continue;
+    if (constraint != 0)
+        return juce::jlimit(getStageMinY(), getStageMaxY(), value);
 
-        // Get current values for unchanged coordinates
-        if (!pending.xChanged)
-        {
-            juce::var val = state.getInputParameter(channelId, WFSParameterIDs::inputPositionX);
-            pending.x = val.isDouble() ? static_cast<float>(static_cast<double>(val)) : 0.0f;
-        }
-        if (!pending.yChanged)
-        {
-            juce::var val = state.getInputParameter(channelId, WFSParameterIDs::inputPositionY);
-            pending.y = val.isDouble() ? static_cast<float>(static_cast<double>(val)) : 0.0f;
-        }
-
-        // Convert meters to normalized coordinates
-        float normX = metersToNormalizedX(pending.x);
-        float normY = metersToNormalizedY(pending.y);
-
-        // Build message (1-based channel ID for OSC)
-        auto msg = OSCMessageBuilder::buildRemotePositionXYMessage(channelId + 1, normX, normY);
-
-        // Send to all Remote targets
-        for (int i = 0; i < MAX_TARGETS; ++i)
-        {
-            const auto& config = targetConfigs[static_cast<size_t>(i)];
-            if (config.protocol == Protocol::Remote && config.txEnabled)
-            {
-                sendMessage(i, msg);
-            }
-        }
-    }
-    pendingPositions.clear();
+    return value;
 }
 
-void OSCManager::handleRemotePositionXY(const juce::OSCMessage& message)
+float OSCManager::applyConstraintZ(int channelIndex, float value) const
 {
-    // Format: /remoteInput/positionXY <ID> <normX> <normY> (normalized 0.0-1.0)
-    // Also accept: /marker/positionXY from Android
-    if (message.size() < 3)
-        return;
+    juce::var constraintVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputConstraintZ);
+    int constraint = constraintVar.isInt() ? static_cast<int>(constraintVar) : 1;
 
-    int channelId = OSCMessageRouter::extractInt(message[0]) - 1;  // Convert to 0-based
-    float normX = OSCMessageRouter::extractFloat(message[1]);
-    float normY = OSCMessageRouter::extractFloat(message[2]);
+    if (constraint != 0)
+        return juce::jlimit(0.0f, getStageMaxZ(), value);
 
-    if (channelId < 0)
-        return;
-
-    juce::MessageManager::callAsync([this, channelId, normX, normY]()
-    {
-        suppressPositionXYEcho = true;  // Prevent echo
-        incomingProtocol = Protocol::Remote;
-
-        // Convert normalized to meters
-        float metersX = normalizedToMetersX(normX);
-        float metersY = normalizedToMetersY(normY);
-
-        state.setInputParameter(channelId, WFSParameterIDs::inputPositionX, metersX);
-        state.setInputParameter(channelId, WFSParameterIDs::inputPositionY, metersY);
-
-        incomingProtocol = Protocol::Disabled;
-        suppressPositionXYEcho = false;
-    });
+    return value;
 }
 
 } // namespace WFSNetwork

@@ -273,17 +273,18 @@ private:
     void handleRemoteParameterSet(const OSCMessageRouter::ParsedRemoteInput& parsed);
     void handleRemoteParameterDelta(const OSCMessageRouter::ParsedRemoteInput& parsed);
     void handleArrayAdjustMessage(const juce::OSCMessage& message);
-    void handleRemotePositionXY(const juce::OSCMessage& message);
 
-    // Position batching for 20Hz positionXY updates
-    void trackPositionChange(int channelId, const juce::Identifier& paramId, float value);
-    void flushPositionBatch();
+    // Stage bounds for constraint application
+    float getStageMinX() const;
+    float getStageMaxX() const;
+    float getStageMinY() const;
+    float getStageMaxY() const;
+    float getStageMaxZ() const;
 
-    // Coordinate conversion (meters <-> normalized)
-    float metersToNormalizedX(float meters) const;
-    float metersToNormalizedY(float meters) const;
-    float normalizedToMetersX(float normalized) const;
-    float normalizedToMetersY(float normalized) const;
+    // Apply constraints to position values (returns constrained value)
+    float applyConstraintX(int channelIndex, float value) const;
+    float applyConstraintY(int channelIndex, float value) const;
+    float applyConstraintZ(int channelIndex, float value) const;
 
     void sendRemoteChannelDump(int channelId);
 
@@ -335,21 +336,6 @@ private:
     // Set to Protocol::Disabled when not processing an incoming message
     // When set, only blocks re-sending to targets of the SAME protocol type
     Protocol incomingProtocol = Protocol::Disabled;
-
-    // Position batching for 20Hz positionXY updates (Remote protocol)
-    struct PendingPositionUpdate
-    {
-        float x = 0.0f;
-        float y = 0.0f;
-        bool xChanged = false;
-        bool yChanged = false;
-    };
-    std::map<int, PendingPositionUpdate> pendingPositions;  // channelId -> position
-    juce::int64 lastPositionBatchTime = 0;
-    static constexpr int POSITION_BATCH_INTERVAL_MS = 50;  // 20Hz
-
-    // Path-level loop prevention for positionXY
-    bool suppressPositionXYEcho = false;
 
     // Statistics
     std::atomic<int> messagesSent { 0 };

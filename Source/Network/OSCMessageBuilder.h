@@ -93,16 +93,6 @@ public:
         int channelId,
         const std::map<juce::Identifier, float>& paramValues);
 
-    /**
-     * Build combined position message for REMOTE protocol.
-     * Format: /remoteInput/positionXY <channelID> <normX> <normY>
-     * Coordinates are normalized 0.0-1.0.
-     */
-    static juce::OSCMessage buildRemotePositionXYMessage(
-        int channelId,
-        float normX,
-        float normY);
-
     //==========================================================================
     // Path Queries
     //==========================================================================
