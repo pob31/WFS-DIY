@@ -116,6 +116,31 @@ public:
     /** Set output channel parameter */
     void setOutputParameter (int channelIndex, const juce::Identifier& id, const juce::var& value);
 
+    /** Set output channel parameter with array propagation
+     *  If the output is part of an array and applyToArray is enabled,
+     *  propagates the change to other array members.
+     *  @param channelIndex The output channel being modified (0-based)
+     *  @param id The parameter identifier
+     *  @param value The new value
+     *  @param propagateToArray If true, considers array linking mode (default true)
+     */
+    void setOutputParameterWithArrayPropagation (int channelIndex,
+                                                  const juce::Identifier& id,
+                                                  const juce::var& value,
+                                                  bool propagateToArray = true);
+
+    /** Set output EQ band parameter with array propagation */
+    void setOutputEQBandParameterWithArrayPropagation (int channelIndex,
+                                                        int bandIndex,
+                                                        const juce::Identifier& id,
+                                                        const juce::var& value);
+
+    /** Check if a parameter is array-linked (should propagate to array members) */
+    static bool isArrayLinkedParameter (const juce::Identifier& paramId);
+
+    /** Check if an EQ band parameter is array-linked */
+    static bool isArrayLinkedEQParameter (const juce::Identifier& paramId);
+
     /** Get the ValueTree for a specific output channel subsection */
     juce::ValueTree getOutputChannelSection (int channelIndex);
     juce::ValueTree getOutputPositionSection (int channelIndex);
@@ -353,6 +378,15 @@ private:
     /** Enforce cluster tracking constraint: only one tracked input per cluster
      *  Called when inputTrackingActive or inputCluster changes */
     void enforceClusterTrackingConstraint (int changedInputIndex);
+
+    /** Clamp a value to the valid range for a given output parameter */
+    static float clampOutputParamToRange (const juce::Identifier& paramId, float value);
+
+    /** Set output parameter directly without array propagation (internal use) */
+    void setOutputParameterDirect (int channelIndex, const juce::Identifier& id, const juce::var& value);
+
+    /** Set EQ band parameter directly without array propagation (internal use) */
+    void setOutputEQBandParameterDirect (int channelIndex, int bandIndex, const juce::Identifier& id, const juce::var& value);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (WFSValueTreeState)
 };

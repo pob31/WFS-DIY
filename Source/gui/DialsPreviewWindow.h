@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "DialUIComponents.h"
+#include "WindowUtils.h"
 
 class DialsPreviewComponent : public juce::Component
 {
@@ -183,13 +184,14 @@ public:
 
         centreWithSize(windowWidth, windowHeight);
         setVisible(true);
+        WindowUtils::enableDarkTitleBar(this);
     }
 
     void closeButtonPressed() override
     {
         setVisible(false);
     }
-    
+
     ~DialsPreviewWindow() override
     {
         // Cleanup handled by unique_ptr

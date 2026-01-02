@@ -8,6 +8,7 @@
 
 #include <JuceHeader.h>
 #include "MainComponent.h"
+#include "gui/WindowUtils.h"
 
 //==============================================================================
 class WFSDIYApplication  : public juce::JUCEApplication
@@ -77,6 +78,7 @@ public:
            #endif
 
             setVisible (true);
+            WindowUtils::enableDarkTitleBar (this);
         }
 
         void closeButtonPressed() override

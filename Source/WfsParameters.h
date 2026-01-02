@@ -101,11 +101,30 @@ public:
         return valueTreeState.getOutputParameter (channelIndex, id);
     }
 
-    /** Set output channel parameter */
+    /** Set output channel parameter with array propagation
+     *  If the output is part of an array and applyToArray is enabled,
+     *  propagates the change to other array members.
+     */
     void setOutputParam (int channelIndex, const juce::String& paramName, const juce::var& value)
     {
         auto id = mapParamNameToIdentifier (paramName);
+        valueTreeState.setOutputParameterWithArrayPropagation (channelIndex, id, value);
+    }
+
+    /** Set output channel parameter without array propagation
+     *  Use this when you explicitly want to set only this output's parameter.
+     */
+    void setOutputParamDirect (int channelIndex, const juce::String& paramName, const juce::var& value)
+    {
+        auto id = mapParamNameToIdentifier (paramName);
         valueTreeState.setOutputParameter (channelIndex, id, value);
+    }
+
+    /** Set output EQ band parameter with array propagation */
+    void setOutputEQBandParam (int channelIndex, int bandIndex, const juce::String& paramName, const juce::var& value)
+    {
+        auto id = mapParamNameToIdentifier (paramName);
+        valueTreeState.setOutputEQBandParameterWithArrayPropagation (channelIndex, bandIndex, id, value);
     }
 
     //==============================================================================

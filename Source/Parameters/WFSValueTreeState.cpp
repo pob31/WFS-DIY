@@ -317,6 +317,272 @@ void WFSValueTreeState::setOutputParameter (int channelIndex, const juce::Identi
     }
 }
 
+void WFSValueTreeState::setOutputParameterDirect (int channelIndex, const juce::Identifier& paramId, const juce::var& value)
+{
+    auto output = getOutputState (channelIndex);
+    if (!output.isValid())
+        return;
+
+    // Search through all subsections (but skip EQ bands)
+    for (int i = 0; i < output.getNumChildren(); ++i)
+    {
+        auto child = output.getChild (i);
+        if (child.hasProperty (paramId))
+        {
+            child.setProperty (paramId, value, &undoManager);
+            return;
+        }
+    }
+}
+
+void WFSValueTreeState::setOutputEQBandParameterDirect (int channelIndex, int bandIndex, const juce::Identifier& paramId, const juce::var& value)
+{
+    auto band = getOutputEQBand (channelIndex, bandIndex);
+    if (band.isValid() && band.hasProperty (paramId))
+        band.setProperty (paramId, value, &undoManager);
+}
+
+bool WFSValueTreeState::isArrayLinkedParameter (const juce::Identifier& paramId)
+{
+    // Parameters that should propagate to array members
+    return paramId == outputAttenuation ||
+           paramId == outputDelayLatency ||
+           paramId == outputOrientation ||
+           paramId == outputAngleOn ||
+           paramId == outputAngleOff ||
+           paramId == outputPitch ||
+           paramId == outputHFdamping ||
+           paramId == outputMiniLatencyEnable ||
+           paramId == outputLSattenEnable ||
+           paramId == outputFRenable ||
+           paramId == outputDistanceAttenPercent ||
+           paramId == outputHparallax ||
+           paramId == outputVparallax ||
+           paramId == outputEQenabled;
+}
+
+bool WFSValueTreeState::isArrayLinkedEQParameter (const juce::Identifier& paramId)
+{
+    // EQ band parameters that should propagate to array members
+    return paramId == eqShape ||
+           paramId == eqFrequency ||
+           paramId == eqGain ||
+           paramId == eqQ ||
+           paramId == eqSlope;
+}
+
+float WFSValueTreeState::clampOutputParamToRange (const juce::Identifier& paramId, float value)
+{
+    using namespace WFSParameterDefaults;
+
+    if (paramId == outputAttenuation)
+        return juce::jlimit (outputAttenuationMin, outputAttenuationMax, value);
+    if (paramId == outputDelayLatency)
+        return juce::jlimit (outputDelayLatencyMin, outputDelayLatencyMax, value);
+    if (paramId == outputOrientation)
+        return juce::jlimit (static_cast<float> (outputOrientationMin), static_cast<float> (outputOrientationMax), value);
+    if (paramId == outputAngleOn)
+        return juce::jlimit (static_cast<float> (outputAngleOnMin), static_cast<float> (outputAngleOnMax), value);
+    if (paramId == outputAngleOff)
+        return juce::jlimit (static_cast<float> (outputAngleOffMin), static_cast<float> (outputAngleOffMax), value);
+    if (paramId == outputPitch)
+        return juce::jlimit (static_cast<float> (outputPitchMin), static_cast<float> (outputPitchMax), value);
+    if (paramId == outputHFdamping)
+        return juce::jlimit (outputHFdampingMin, outputHFdampingMax, value);
+    if (paramId == outputDistanceAttenPercent)
+        return juce::jlimit (static_cast<float> (outputDistanceAttenPercentMin), static_cast<float> (outputDistanceAttenPercentMax), value);
+    if (paramId == outputHparallax || paramId == outputVparallax)
+        return juce::jlimit (outputParallaxMin, outputParallaxMax, value);
+
+    // EQ parameters
+    if (paramId == eqFrequency)
+        return juce::jlimit (eqFrequencyMin, eqFrequencyMax, value);
+    if (paramId == eqGain)
+        return juce::jlimit (eqGainMin, eqGainMax, value);
+    if (paramId == eqQ)
+        return juce::jlimit (eqQMin, eqQMax, value);
+    if (paramId == eqSlope)
+        return juce::jlimit (eqSlopeMin, eqSlopeMax, value);
+    if (paramId == eqShape)
+        return juce::jlimit (static_cast<float> (eqShapeMin), static_cast<float> (eqShapeMax), value);
+
+    // Boolean/toggle parameters (0 or 1)
+    if (paramId == outputMiniLatencyEnable || paramId == outputLSattenEnable ||
+        paramId == outputFRenable || paramId == outputEQenabled)
+        return value != 0.0f ? 1.0f : 0.0f;
+
+    return value;
+}
+
+void WFSValueTreeState::setOutputParameterWithArrayPropagation (int channelIndex,
+                                                                 const juce::Identifier& paramId,
+                                                                 const juce::var& value,
+                                                                 bool propagateToArray)
+{
+    // Check if this is an array-linked parameter
+    if (!propagateToArray || !isArrayLinkedParameter (paramId))
+    {
+        setOutputParameter (channelIndex, paramId, value);
+        return;
+    }
+
+    // Get array assignment for this output
+    int arrayId = static_cast<int> (getOutputParameter (channelIndex, outputArray));
+    if (arrayId == 0)  // Single, not in array
+    {
+        setOutputParameter (channelIndex, paramId, value);
+        return;
+    }
+
+    // Get apply mode for this output
+    int applyMode = static_cast<int> (getOutputParameter (channelIndex, outputApplyToArray));
+    if (applyMode == 0)  // OFF
+    {
+        setOutputParameter (channelIndex, paramId, value);
+        return;
+    }
+
+    // Begin undo transaction for the array change
+    beginUndoTransaction ("Array: " + paramId.toString());
+
+    // Get old value for RELATIVE mode delta calculation
+    auto oldValue = getOutputParameter (channelIndex, paramId);
+    float oldFloat = static_cast<float> (oldValue);
+    float newFloat = static_cast<float> (value);
+    float delta = newFloat - oldFloat;
+
+    // Set the originating channel
+    setOutputParameter (channelIndex, paramId, value);
+
+    // Propagate to array members
+    int numOutputs = getNumOutputChannels();
+    for (int i = 0; i < numOutputs; ++i)
+    {
+        if (i == channelIndex)
+            continue;  // Skip originating channel
+
+        // Check if this output is in the same array
+        int memberArray = static_cast<int> (getOutputParameter (i, outputArray));
+        if (memberArray != arrayId)
+            continue;
+
+        // Check member's apply mode (per-output unlinking)
+        int memberApplyMode = static_cast<int> (getOutputParameter (i, outputApplyToArray));
+        if (memberApplyMode == 0)  // This member is unlinked (OFF)
+            continue;
+
+        if (applyMode == 1)  // ABSOLUTE
+        {
+            setOutputParameterDirect (i, paramId, value);
+        }
+        else  // RELATIVE (applyMode == 2)
+        {
+            float memberCurrent = static_cast<float> (getOutputParameter (i, paramId));
+            float memberNew = clampOutputParamToRange (paramId, memberCurrent + delta);
+
+            // For int parameters, round the result
+            if (paramId == outputOrientation || paramId == outputAngleOn ||
+                paramId == outputAngleOff || paramId == outputPitch ||
+                paramId == outputDistanceAttenPercent ||
+                paramId == outputMiniLatencyEnable || paramId == outputLSattenEnable ||
+                paramId == outputFRenable || paramId == outputEQenabled)
+            {
+                setOutputParameterDirect (i, paramId, static_cast<int> (std::round (memberNew)));
+            }
+            else
+            {
+                setOutputParameterDirect (i, paramId, memberNew);
+            }
+        }
+    }
+}
+
+void WFSValueTreeState::setOutputEQBandParameterWithArrayPropagation (int channelIndex,
+                                                                       int bandIndex,
+                                                                       const juce::Identifier& paramId,
+                                                                       const juce::var& value)
+{
+    // Check if this is an array-linked EQ parameter
+    if (!isArrayLinkedEQParameter (paramId))
+    {
+        auto band = getOutputEQBand (channelIndex, bandIndex);
+        if (band.isValid())
+            band.setProperty (paramId, value, &undoManager);
+        return;
+    }
+
+    // Get array assignment for this output
+    int arrayId = static_cast<int> (getOutputParameter (channelIndex, outputArray));
+    if (arrayId == 0)  // Single, not in array
+    {
+        auto band = getOutputEQBand (channelIndex, bandIndex);
+        if (band.isValid())
+            band.setProperty (paramId, value, &undoManager);
+        return;
+    }
+
+    // Get apply mode for this output
+    int applyMode = static_cast<int> (getOutputParameter (channelIndex, outputApplyToArray));
+    if (applyMode == 0)  // OFF
+    {
+        auto band = getOutputEQBand (channelIndex, bandIndex);
+        if (band.isValid())
+            band.setProperty (paramId, value, &undoManager);
+        return;
+    }
+
+    // Begin undo transaction for the array change
+    beginUndoTransaction ("Array EQ: " + paramId.toString());
+
+    // Get old value for RELATIVE mode delta calculation
+    auto band = getOutputEQBand (channelIndex, bandIndex);
+    if (!band.isValid())
+        return;
+
+    float oldFloat = static_cast<float> (band.getProperty (paramId));
+    float newFloat = static_cast<float> (value);
+    float delta = newFloat - oldFloat;
+
+    // Set the originating channel's band
+    band.setProperty (paramId, value, &undoManager);
+
+    // Propagate to array members
+    int numOutputs = getNumOutputChannels();
+    for (int i = 0; i < numOutputs; ++i)
+    {
+        if (i == channelIndex)
+            continue;
+
+        int memberArray = static_cast<int> (getOutputParameter (i, outputArray));
+        if (memberArray != arrayId)
+            continue;
+
+        int memberApplyMode = static_cast<int> (getOutputParameter (i, outputApplyToArray));
+        if (memberApplyMode == 0)
+            continue;
+
+        auto memberBand = getOutputEQBand (i, bandIndex);
+        if (!memberBand.isValid())
+            continue;
+
+        if (applyMode == 1)  // ABSOLUTE
+        {
+            setOutputEQBandParameterDirect (i, bandIndex, paramId, value);
+        }
+        else  // RELATIVE
+        {
+            float memberCurrent = static_cast<float> (memberBand.getProperty (paramId));
+            float memberNew = clampOutputParamToRange (paramId, memberCurrent + delta);
+
+            // For eqShape (int), round the result
+            if (paramId == eqShape)
+                setOutputEQBandParameterDirect (i, bandIndex, paramId, static_cast<int> (std::round (memberNew)));
+            else
+                setOutputEQBandParameterDirect (i, bandIndex, paramId, memberNew);
+        }
+    }
+}
+
 juce::ValueTree WFSValueTreeState::getOutputChannelSection (int channelIndex)
 {
     return getOutputState (channelIndex).getChildWithName (Channel);

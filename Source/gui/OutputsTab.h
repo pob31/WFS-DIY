@@ -13,6 +13,76 @@
 #include "../Helpers/CoordinateConverter.h"
 
 /**
+ * Small colored indicator to show that a parameter is linked across an array.
+ * Uses the array color from WfsColorUtilities.
+ * - Filled disk for ABSOLUTE mode
+ * - Outline circle for RELATIVE mode
+ */
+class ArrayLinkIndicator : public juce::Component
+{
+public:
+    ArrayLinkIndicator() { setInterceptsMouseClicks(false, false); }
+
+    void setArrayNumber(int arrayNum)
+    {
+        if (arrayNumber != arrayNum)
+        {
+            arrayNumber = arrayNum;
+            repaint();
+        }
+    }
+
+    void setFilled(bool shouldBeFilled)
+    {
+        if (filled != shouldBeFilled)
+        {
+            filled = shouldBeFilled;
+            repaint();
+        }
+    }
+
+    void setActive(bool shouldBeActive)
+    {
+        if (active != shouldBeActive)
+        {
+            active = shouldBeActive;
+            repaint();
+        }
+    }
+
+    bool isActive() const { return active; }
+
+    void paint(juce::Graphics& g) override
+    {
+        if (!active || arrayNumber < 1)
+            return;
+
+        auto colour = WfsColorUtilities::getArrayColor(arrayNumber);
+        auto bounds = getLocalBounds().toFloat().reduced(0.5f);
+        float size = juce::jmin(bounds.getWidth(), bounds.getHeight());
+        auto dotBounds = bounds.withSizeKeepingCentre(size, size);
+
+        if (filled)
+        {
+            // ABSOLUTE mode: filled disk
+            g.setColour(colour);
+            g.fillEllipse(dotBounds);
+        }
+        else
+        {
+            // RELATIVE mode: outline circle
+            g.setColour(colour);
+            g.drawEllipse(dotBounds.reduced(0.5f), 1.0f);
+        }
+    }
+
+private:
+    int arrayNumber = 0;
+    bool active = false;
+    bool filled = true;  // true = ABSOLUTE (disk), false = RELATIVE (circle)
+};
+
+/**
  * Outputs Tab Component
  * Configuration for output channels with sub-tabs for different parameter groups.
  *
@@ -399,30 +469,8 @@ private:
         floorReflectionsEnableButton.onClick = [this]() {
             bool enabled = floorReflectionsEnableButton.getToggleState();
             floorReflectionsEnableButton.setButtonText(enabled ? "Floor Reflections: ON" : "Floor Reflections: OFF");
-
-            // Check if Apply to Array is enabled
-            int applyToArray = applyToArraySelector.getSelectedId() - 1;  // 0=OFF, 1=ABSOLUTE, 2=RELATIVE
-            bool isPartOfArray = arraySelector.getSelectedId() > 1;
-
-            if (isPartOfArray && applyToArray > 0)
-            {
-                // Apply to all outputs in the same array
-                int array = arraySelector.getSelectedId() - 1;
-                int numOutputs = parameters.getNumOutputChannels();
-                for (int i = 0; i < numOutputs; ++i)
-                {
-                    int outputArray = static_cast<int>(parameters.getOutputParam(i, "outputArray"));
-                    if (outputArray == array)
-                    {
-                        parameters.setOutputParam(i, "outputFRenable", enabled ? 1 : 0);
-                    }
-                }
-            }
-            else
-            {
-                // Only apply to current output
-                saveOutputParam(WFSParameterIDs::outputFRenable, enabled ? 1 : 0);
-            }
+            // Array propagation is now handled automatically by setOutputParam
+            saveOutputParam(WFSParameterIDs::outputFRenable, enabled ? 1 : 0);
         };
 
         // Distance Attenuation % slider (0-200%, default 100% in center)
@@ -447,7 +495,7 @@ private:
 
         // Horizontal Parallax
         addAndMakeVisible(hParallaxLabel);
-        hParallaxLabel.setText("H Parallax:", juce::dontSendNotification);
+        hParallaxLabel.setText("Horizontal Parallax:", juce::dontSendNotification);
         hParallaxLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(hParallaxEditor);
         hParallaxEditor.setText("0.00", juce::dontSendNotification);
@@ -458,7 +506,7 @@ private:
 
         // Vertical Parallax
         addAndMakeVisible(vParallaxLabel);
-        vParallaxLabel.setText("V Parallax:", juce::dontSendNotification);
+        vParallaxLabel.setText("Vertical Parallax:", juce::dontSendNotification);
         vParallaxLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(vParallaxEditor);
         vParallaxEditor.setText("0.00", juce::dontSendNotification);
@@ -466,13 +514,28 @@ private:
         addAndMakeVisible(vParallaxUnitLabel);
         vParallaxUnitLabel.setText("m", juce::dontSendNotification);
         vParallaxUnitLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+
+        // Initialize array link indicators (all hidden by default)
+        addAndMakeVisible(attenuationIndicator);
+        addAndMakeVisible(delayLatencyIndicator);
+        addAndMakeVisible(minLatencyIndicator);
+        addAndMakeVisible(liveSourceIndicator);
+        addAndMakeVisible(floorReflectionsIndicator);
+        addAndMakeVisible(distanceAttenIndicator);
+        addAndMakeVisible(hParallaxIndicator);
+        addAndMakeVisible(vParallaxIndicator);
+        addAndMakeVisible(orientationIndicator);
+        addAndMakeVisible(angleOnIndicator);
+        addAndMakeVisible(angleOffIndicator);
+        addAndMakeVisible(pitchIndicator);
+        addAndMakeVisible(hfDampingIndicator);
     }
 
     void setupPositionTab()
     {
         // Coordinate Mode selector
         addAndMakeVisible(coordModeLabel);
-        coordModeLabel.setText("Coord:", juce::dontSendNotification);
+        coordModeLabel.setText("Coordinates:", juce::dontSendNotification);
         coordModeLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(coordModeSelector);
         coordModeSelector.addItem("XYZ", 1);
@@ -712,6 +775,9 @@ private:
             // Initialize appearance (greyed out since default is OFF)
             updateEqBandAppearance(i);
         }
+
+        // EQ array link indicator
+        addAndMakeVisible(eqIndicator);
     }
 
     void updateEqBandAppearance(int bandIndex)
@@ -782,6 +848,62 @@ private:
     {
         label.setEditable(true, false);  // Single click to edit
         label.addListener(this);
+    }
+
+    /** Update all array link indicators based on current array and applyToArray settings */
+    void updateArrayLinkIndicators()
+    {
+        // Get array number (0=Single, 1-10=Array 1-10)
+        int arrayNum = arraySelector.getSelectedId() - 1;
+        // Get apply mode (0=OFF, 1=ABSOLUTE, 2=RELATIVE)
+        int applyMode = applyToArraySelector.getSelectedId() - 1;
+
+        // Active when in an array (arrayNum > 0) and apply mode is not OFF (applyMode > 0)
+        bool active = (arrayNum > 0) && (applyMode > 0);
+        // Filled disk for ABSOLUTE (1), outline circle for RELATIVE (2)
+        bool filled = (applyMode == 1);
+
+        // Helper to update an indicator
+        auto updateIndicator = [arrayNum, active, filled](ArrayLinkIndicator& ind) {
+            ind.setArrayNumber(arrayNum);
+            ind.setActive(active);
+            ind.setFilled(filled);
+        };
+
+        // Update all indicators
+        updateIndicator(attenuationIndicator);
+        updateIndicator(delayLatencyIndicator);
+        updateIndicator(minLatencyIndicator);
+        updateIndicator(liveSourceIndicator);
+        updateIndicator(floorReflectionsIndicator);
+        updateIndicator(distanceAttenIndicator);
+        updateIndicator(hParallaxIndicator);
+        updateIndicator(vParallaxIndicator);
+        updateIndicator(orientationIndicator);
+        updateIndicator(angleOnIndicator);
+        updateIndicator(angleOffIndicator);
+        updateIndicator(pitchIndicator);
+        updateIndicator(hfDampingIndicator);
+        updateIndicator(eqIndicator);
+
+        // Update visibility based on current tab
+        bool onOutputParamsTab = (subTabBar.getCurrentTabIndex() == 0);
+        bool onEqTab = (subTabBar.getCurrentTabIndex() == 1);
+
+        attenuationIndicator.setVisible(onOutputParamsTab && active);
+        delayLatencyIndicator.setVisible(onOutputParamsTab && active);
+        minLatencyIndicator.setVisible(onOutputParamsTab && active);
+        liveSourceIndicator.setVisible(onOutputParamsTab && active);
+        floorReflectionsIndicator.setVisible(onOutputParamsTab && active);
+        distanceAttenIndicator.setVisible(onOutputParamsTab && active);
+        hParallaxIndicator.setVisible(onOutputParamsTab && active);
+        vParallaxIndicator.setVisible(onOutputParamsTab && active);
+        orientationIndicator.setVisible(onOutputParamsTab && active);
+        angleOnIndicator.setVisible(onOutputParamsTab && active);
+        angleOffIndicator.setVisible(onOutputParamsTab && active);
+        pitchIndicator.setVisible(onOutputParamsTab && active);
+        hfDampingIndicator.setVisible(onOutputParamsTab && active);
+        eqIndicator.setVisible(onEqTab && active);
     }
 
     // ==================== LAYOUT METHODS ====================
@@ -856,6 +978,22 @@ private:
         hfDampingLabel.setVisible(visible);
         hfDampingSlider.setVisible(visible);
         hfDampingValueLabel.setVisible(visible);
+
+        // Array link indicators - only show if visible AND active
+        bool showIndicators = visible && attenuationIndicator.isActive();
+        attenuationIndicator.setVisible(showIndicators);
+        delayLatencyIndicator.setVisible(showIndicators);
+        minLatencyIndicator.setVisible(showIndicators);
+        liveSourceIndicator.setVisible(showIndicators);
+        floorReflectionsIndicator.setVisible(showIndicators);
+        distanceAttenIndicator.setVisible(showIndicators);
+        hParallaxIndicator.setVisible(showIndicators);
+        vParallaxIndicator.setVisible(showIndicators);
+        orientationIndicator.setVisible(showIndicators);
+        angleOnIndicator.setVisible(showIndicators);
+        angleOffIndicator.setVisible(showIndicators);
+        pitchIndicator.setVisible(showIndicators);
+        hfDampingIndicator.setVisible(showIndicators);
     }
 
     void setEqVisible(bool visible)
@@ -889,6 +1027,9 @@ private:
                 eqBandGainValueLabel[i].setVisible(false);
             }
         }
+
+        // EQ array link indicator - only show if visible AND active
+        eqIndicator.setVisible(visible && eqIndicator.isActive());
     }
 
     void layoutOutputParametersTab()
@@ -899,8 +1040,30 @@ private:
         const int spacing = 8;
         const int labelWidth = 110;
         const int valueWidth = 80;
-        const int editorWidth = 70;
-        const int unitWidth = 25;
+        const int indicatorSize = 6;
+
+        // Helper to position indicator as superscript after label text (like a footnote marker)
+        auto positionIndicatorForLabel = [indicatorSize](ArrayLinkIndicator& indicator, const juce::Label& label) {
+            auto labelBounds = label.getBounds();
+            // Get the actual text width for consistent positioning using GlyphArrangement
+            juce::GlyphArrangement glyphs;
+            glyphs.addLineOfText(label.getFont(), label.getText(), 0.0f, 0.0f);
+            int textWidth = static_cast<int>(std::ceil(glyphs.getBoundingBox(0, -1, true).getWidth()));
+            int labelX = labelBounds.getX();
+            // Position as superscript: after text, at top of label (like Orientation)
+            indicator.setBounds(labelX + textWidth + 1,
+                               labelBounds.getY(),
+                               indicatorSize, indicatorSize);
+        };
+
+        // Helper to position indicator in top-right corner of button (inside the curve)
+        auto positionIndicatorForButton = [indicatorSize](ArrayLinkIndicator& indicator, const juce::Button& button) {
+            auto buttonBounds = button.getBounds();
+            // Position in top-right corner, inset to match button curve
+            indicator.setBounds(buttonBounds.getRight() - indicatorSize - 6,
+                               buttonBounds.getY() + 4,
+                               indicatorSize, indicatorSize);
+        };
 
         // ==================== LEFT COLUMN (Level & Timing) ====================
         auto leftCol = area.removeFromLeft(area.getWidth() / 2).reduced(10, 10);
@@ -908,6 +1071,7 @@ private:
         // Attenuation
         auto row = leftCol.removeFromTop(rowHeight);
         attenuationLabel.setBounds(row.removeFromLeft(labelWidth));
+        positionIndicatorForLabel(attenuationIndicator, attenuationLabel);
         attenuationValueLabel.setBounds(row.removeFromRight(valueWidth));
         attenuationSlider.setBounds(leftCol.removeFromTop(sliderHeight));
         leftCol.removeFromTop(spacing);
@@ -915,6 +1079,7 @@ private:
         // Delay/Latency
         row = leftCol.removeFromTop(rowHeight);
         delayLatencyLabel.setBounds(row.removeFromLeft(labelWidth));
+        positionIndicatorForLabel(delayLatencyIndicator, delayLatencyLabel);
         delayLatencyValueLabel.setBounds(row.removeFromRight(valueWidth + 20));
         delayLatencySlider.setBounds(leftCol.removeFromTop(sliderHeight));
         leftCol.removeFromTop(spacing);
@@ -922,54 +1087,88 @@ private:
         // Distance Attenuation
         row = leftCol.removeFromTop(rowHeight);
         distanceAttenLabel.setBounds(row.removeFromLeft(labelWidth));
+        positionIndicatorForLabel(distanceAttenIndicator, distanceAttenLabel);
         distanceAttenValueLabel.setBounds(row.removeFromRight(valueWidth));
         distanceAttenSlider.setBounds(leftCol.removeFromTop(sliderHeight));
         leftCol.removeFromTop(spacing * 2);  // Extra space before buttons
 
-        // Enable buttons - all three on a single row with equal width and spacing
+        // Enable buttons - all three on a single row with equal width and doubled spacing
         row = leftCol.removeFromTop(rowHeight);
-        const int buttonSpacing = 15;
+        const int buttonSpacing = 30;  // Doubled spacing between buttons
         const int totalButtonSpace = row.getWidth() - (buttonSpacing * 2);
         const int buttonWidth = totalButtonSpace / 3;
         minLatencyEnableButton.setBounds(row.removeFromLeft(buttonWidth));
+        positionIndicatorForButton(minLatencyIndicator, minLatencyEnableButton);
         row.removeFromLeft(buttonSpacing);
         liveSourceEnableButton.setBounds(row.removeFromLeft(buttonWidth));
+        positionIndicatorForButton(liveSourceIndicator, liveSourceEnableButton);
         row.removeFromLeft(buttonSpacing);
         floorReflectionsEnableButton.setBounds(row.removeFromLeft(buttonWidth));
+        positionIndicatorForButton(floorReflectionsIndicator, floorReflectionsEnableButton);
 
         // ==================== RIGHT COLUMN (Position & Directivity) ====================
         auto rightCol = area.reduced(10, 10);
 
-        // Coordinate mode and position row
+        // Coordinate mode and position row - distribute evenly across full width
         row = rightCol.removeFromTop(rowHeight);
-        coordModeLabel.setBounds(row.removeFromLeft(45));
-        coordModeSelector.setBounds(row.removeFromLeft(70));
-        row.removeFromLeft(spacing);
-        posXLabel.setBounds(row.removeFromLeft(65));
-        posXEditor.setBounds(row.removeFromLeft(editorWidth));
-        posXUnitLabel.setBounds(row.removeFromLeft(unitWidth));
-        row.removeFromLeft(spacing);
-        posYLabel.setBounds(row.removeFromLeft(65));
-        posYEditor.setBounds(row.removeFromLeft(editorWidth));
-        posYUnitLabel.setBounds(row.removeFromLeft(unitWidth));
-        row.removeFromLeft(spacing);
-        posZLabel.setBounds(row.removeFromLeft(65));
-        posZEditor.setBounds(row.removeFromLeft(editorWidth));
-        posZUnitLabel.setBounds(row.removeFromLeft(unitWidth));
-        rightCol.removeFromTop(spacing);
+        const int coordLabelWidth = 85;
+        const int coordSelectorWidth = 80;
+        const int posLabelWidth = 75;  // Fits "Position X:", "Azimuth:", "Elevation:"
+        const int posEditorWidth = 65;
+        const int posUnitWidth = 25;
+        const int coordSpacing = 15;  // Spacing between coordinate groups
 
-        // Orientation dial on the right side (with extra margin)
+        coordModeLabel.setBounds(row.removeFromLeft(coordLabelWidth));
+        coordModeSelector.setBounds(row.removeFromLeft(coordSelectorWidth));
+        row.removeFromLeft(coordSpacing);
+        posXLabel.setBounds(row.removeFromLeft(posLabelWidth));
+        posXEditor.setBounds(row.removeFromLeft(posEditorWidth));
+        row.removeFromLeft(4);
+        posXUnitLabel.setBounds(row.removeFromLeft(posUnitWidth));
+        row.removeFromLeft(coordSpacing);
+        posYLabel.setBounds(row.removeFromLeft(posLabelWidth));
+        posYEditor.setBounds(row.removeFromLeft(posEditorWidth));
+        row.removeFromLeft(4);
+        posYUnitLabel.setBounds(row.removeFromLeft(posUnitWidth));
+        row.removeFromLeft(coordSpacing);
+        posZLabel.setBounds(row.removeFromLeft(posLabelWidth));
+        posZEditor.setBounds(row.removeFromLeft(posEditorWidth));
+        row.removeFromLeft(4);
+        posZUnitLabel.setBounds(row.removeFromLeft(posUnitWidth));
+        rightCol.removeFromTop(spacing * 3);  // 3x spacing before directivity group
+
+        // Calculate heights for vertical centering of dial with slider group
         const int dialSize = 100;
         const int dialMargin = 40;
+        const int sliderGroupHeight = 4 * (rowHeight + sliderHeight) + 3 * spacing;  // 4 sliders with spacing
+        const int dialGroupHeight = rowHeight + dialSize + rowHeight;  // label + dial + value
+        const int dialTopOffset = (sliderGroupHeight - dialGroupHeight) / 2;
+
+        // Orientation dial on the right side, vertically centered with slider group
         auto dialColumn = rightCol.removeFromRight(dialSize + dialMargin);
-        orientationLabel.setBounds(dialColumn.removeFromTop(rowHeight).withWidth(dialSize + dialMargin));
+        dialColumn.removeFromTop(dialTopOffset);  // Center dial with slider group
+        auto orientLabelArea = dialColumn.removeFromTop(rowHeight);
+        orientationLabel.setBounds(orientLabelArea);
+        orientationLabel.setJustificationType(juce::Justification::centred);
+        // Position indicator as superscript relative to centered text
+        {
+            juce::GlyphArrangement glyphs;
+            glyphs.addLineOfText(orientationLabel.getFont(), orientationLabel.getText(), 0.0f, 0.0f);
+            int textWidth = static_cast<int>(std::ceil(glyphs.getBoundingBox(0, -1, true).getWidth()));
+            int centerX = orientLabelArea.getCentreX();
+            orientationIndicator.setBounds(centerX + textWidth / 2 + 1,
+                                          orientLabelArea.getY(),
+                                          indicatorSize, indicatorSize);
+        }
         auto dialArea = dialColumn.removeFromTop(dialSize);
         orientationDial.setBounds(dialArea.withSizeKeepingCentre(dialSize, dialSize));
-        orientationValueLabel.setBounds(dialColumn.removeFromTop(rowHeight).withWidth(dialSize + dialMargin));
+        orientationValueLabel.setBounds(dialColumn.removeFromTop(rowHeight));
+        orientationValueLabel.setJustificationType(juce::Justification::centred);
 
         // Angle On
         row = rightCol.removeFromTop(rowHeight);
         angleOnLabel.setBounds(row.removeFromLeft(labelWidth));
+        positionIndicatorForLabel(angleOnIndicator, angleOnLabel);
         angleOnValueLabel.setBounds(row.removeFromRight(valueWidth));
         angleOnSlider.setBounds(rightCol.removeFromTop(sliderHeight));
         rightCol.removeFromTop(spacing);
@@ -977,6 +1176,7 @@ private:
         // Angle Off
         row = rightCol.removeFromTop(rowHeight);
         angleOffLabel.setBounds(row.removeFromLeft(labelWidth));
+        positionIndicatorForLabel(angleOffIndicator, angleOffLabel);
         angleOffValueLabel.setBounds(row.removeFromRight(valueWidth));
         angleOffSlider.setBounds(rightCol.removeFromTop(sliderHeight));
         rightCol.removeFromTop(spacing);
@@ -984,6 +1184,7 @@ private:
         // Pitch
         row = rightCol.removeFromTop(rowHeight);
         pitchLabel.setBounds(row.removeFromLeft(labelWidth));
+        positionIndicatorForLabel(pitchIndicator, pitchLabel);
         pitchValueLabel.setBounds(row.removeFromRight(valueWidth));
         pitchSlider.setBounds(rightCol.removeFromTop(sliderHeight));
         rightCol.removeFromTop(spacing);
@@ -991,21 +1192,33 @@ private:
         // HF Damping
         row = rightCol.removeFromTop(rowHeight);
         hfDampingLabel.setBounds(row.removeFromLeft(labelWidth));
+        positionIndicatorForLabel(hfDampingIndicator, hfDampingLabel);
         hfDampingValueLabel.setBounds(row.removeFromRight(valueWidth));
         hfDampingSlider.setBounds(rightCol.removeFromTop(sliderHeight));
-        rightCol.removeFromTop(spacing);
+        rightCol.removeFromTop(spacing * 3);  // 3x spacing before parallax
 
-        // Parallax editors (at end of right column)
+        // Parallax editors (both on same row, V Parallax starts at center)
         row = rightCol.removeFromTop(rowHeight);
-        hParallaxLabel.setBounds(row.removeFromLeft(75));
-        hParallaxEditor.setBounds(row.removeFromLeft(80));
-        row.removeFromLeft(5);
-        hParallaxUnitLabel.setBounds(row.removeFromLeft(25));
-        row.removeFromLeft(spacing * 4);  // Extra space between H and V Parallax
-        vParallaxLabel.setBounds(row.removeFromLeft(75));
-        vParallaxEditor.setBounds(row.removeFromLeft(80));
-        row.removeFromLeft(5);
-        vParallaxUnitLabel.setBounds(row.removeFromLeft(25));
+        const int parallaxEditorWidth = 60;
+        const int parallaxUnitWidth = 20;
+        const int labelToEditorGap = 10;  // Gap between label and editor
+
+        // Horizontal Parallax - left half
+        auto hArea = row.removeFromLeft(row.getWidth() / 2);
+        hParallaxLabel.setBounds(hArea.removeFromLeft(130));
+        positionIndicatorForLabel(hParallaxIndicator, hParallaxLabel);
+        hArea.removeFromLeft(labelToEditorGap);
+        hParallaxEditor.setBounds(hArea.removeFromLeft(parallaxEditorWidth));
+        hArea.removeFromLeft(4);
+        hParallaxUnitLabel.setBounds(hArea.removeFromLeft(parallaxUnitWidth));
+
+        // Vertical Parallax - starts at center of column
+        vParallaxLabel.setBounds(row.removeFromLeft(120));
+        positionIndicatorForLabel(vParallaxIndicator, vParallaxLabel);
+        row.removeFromLeft(labelToEditorGap);
+        vParallaxEditor.setBounds(row.removeFromLeft(parallaxEditorWidth));
+        row.removeFromLeft(4);
+        vParallaxUnitLabel.setBounds(row.removeFromLeft(parallaxUnitWidth));
     }
 
     void layoutEqTab()
@@ -1017,9 +1230,14 @@ private:
         const int sliderHeight = 35;
         const int labelHeight = 20;
         const int spacing = 5;
+        const int indicatorSize = 6;
 
-        // EQ Enable button at top
+        // EQ Enable button at top with array link indicator in top-right corner
         eqEnableButton.setBounds(area.removeFromTop(buttonHeight).withWidth(100));
+        auto eqBtnBounds = eqEnableButton.getBounds();
+        eqIndicator.setBounds(eqBtnBounds.getRight() - indicatorSize - 6,
+                             eqBtnBounds.getY() + 4,
+                             indicatorSize, indicatorSize);
         area.removeFromTop(spacing * 2);
 
         // EQ Display component (takes upper portion, min 200px, target ~40% of remaining height)
@@ -1272,6 +1490,7 @@ private:
         isLoadingParameters = false;
         updateApplyToArrayEnabledState();
         updateMapVisibilityButtonState();
+        updateArrayLinkIndicators();
     }
 
     void saveOutputParam(const juce::Identifier& paramId, const juce::var& value)
@@ -1283,14 +1502,8 @@ private:
     void saveEqBandParam(int bandIndex, const juce::Identifier& paramId, const juce::var& value)
     {
         if (isLoadingParameters) return;
-        auto& vts = parameters.getValueTreeState();
-        auto eqSection = vts.getOutputEQSection(currentChannel - 1);
-        if (eqSection.isValid() && bandIndex >= 0 && bandIndex < numEqBands)
-        {
-            auto band = eqSection.getChild(bandIndex);
-            if (band.isValid())
-                band.setProperty(paramId, value, nullptr);
-        }
+        // Array propagation is now handled automatically by setOutputEQBandParam
+        parameters.setOutputEQBandParam(currentChannel - 1, bandIndex, paramId.toString(), value);
     }
 
     juce::String formatFrequency(int freq)
@@ -1305,11 +1518,13 @@ private:
     {
         updateApplyToArrayEnabledState();
         updateMapVisibilityButtonState();
+        updateArrayLinkIndicators();
         saveOutputParam(WFSParameterIDs::outputArray, arraySelector.getSelectedId() - 1);
     }
 
     void updateApplyToArrayParameter()
     {
+        updateArrayLinkIndicators();
         saveOutputParam(WFSParameterIDs::outputApplyToArray, applyToArraySelector.getSelectedId() - 1);
     }
 
@@ -1884,6 +2099,22 @@ private:
     // EQ Display Component
     std::unique_ptr<EQDisplayComponent> eqDisplay;
     int lastEqDisplayChannel = -1;  // Track which channel's EQ display is shown
+
+    // Array link indicators - colored dots showing parameter is linked across array
+    ArrayLinkIndicator attenuationIndicator;
+    ArrayLinkIndicator delayLatencyIndicator;
+    ArrayLinkIndicator minLatencyIndicator;
+    ArrayLinkIndicator liveSourceIndicator;
+    ArrayLinkIndicator floorReflectionsIndicator;
+    ArrayLinkIndicator distanceAttenIndicator;
+    ArrayLinkIndicator hParallaxIndicator;
+    ArrayLinkIndicator vParallaxIndicator;
+    ArrayLinkIndicator orientationIndicator;
+    ArrayLinkIndicator angleOnIndicator;
+    ArrayLinkIndicator angleOffIndicator;
+    ArrayLinkIndicator pitchIndicator;
+    ArrayLinkIndicator hfDampingIndicator;
+    ArrayLinkIndicator eqIndicator;  // Single indicator for all EQ parameters
 
     // Footer buttons
     juce::TextButton storeButton;

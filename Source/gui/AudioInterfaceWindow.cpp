@@ -1,4 +1,5 @@
 #include "AudioInterfaceWindow.h"
+#include "WindowUtils.h"
 
 //==============================================================================
 // DeviceInfoBar Implementation
@@ -654,6 +655,7 @@ AudioInterfaceWindow::AudioInterfaceWindow(juce::AudioDeviceManager& deviceManag
 
     centreWithSize(windowWidth, windowHeight);
     setVisible(true);
+    WindowUtils::enableDarkTitleBar(this);
 }
 
 void AudioInterfaceWindow::closeButtonPressed()

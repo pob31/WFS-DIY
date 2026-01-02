@@ -4,6 +4,7 @@
 #include "../WfsParameters.h"
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Helpers/ArrayGeometryCalculator.h"
+#include "WindowUtils.h"
 
 //==============================================================================
 // Forward declarations
@@ -285,6 +286,7 @@ public:
         setResizeLimits(700, 500, userArea.getWidth(), userArea.getHeight());
         centreWithSize(windowWidth, windowHeight);
         setVisible(true);
+        WindowUtils::enableDarkTitleBar(this);
     }
 
     void closeButtonPressed() override

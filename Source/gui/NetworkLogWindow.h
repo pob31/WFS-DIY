@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "../Network/OSCLogger.h"
 #include "../Network/OSCManager.h"
+#include "WindowUtils.h"
 
 namespace WFSNetwork { class OSCLogger; class OSCManager; }
 
@@ -179,6 +180,7 @@ public:
 
         centreWithSize(windowWidth, windowHeight);
         setVisible(true);
+        WindowUtils::enableDarkTitleBar(this);
     }
 
     void closeButtonPressed() override

@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "GuiPreviewComponent.h"
+#include "WindowUtils.h"
 
 class GuiPreviewRootComponent : public juce::Component
 {
@@ -88,13 +89,14 @@ public:
 
         centreWithSize(windowWidth, windowHeight);
         setVisible(true);
+        WindowUtils::enableDarkTitleBar(this);
     }
 
     void closeButtonPressed() override
     {
         setVisible(false);
     }
-    
+
     ~GuiPreviewWindow() override
     {
         // Cleanup handled by unique_ptr
