@@ -41,9 +41,16 @@ The application has established a solid foundation with infrastructure and core 
 ### GUI Structure
 - **SystemConfigTab** - Processing toggle, channel count configuration
 - **NetworkTab** - OSC target configuration, IP filtering, connection status
-- **InputsTab / OutputsTab** - Channel parameter controls
+- **InputsTab** - Input channel parameters with sub-tabs
+- **OutputsTab** - Output channel parameters with 3 condensed sub-tabs:
+  - "Channel Parameters" (3-column layout: Position/Orientation, Angular Settings, Array Assignment)
+  - "Output EQ" (6-band parametric EQ with interactive display)
+  - "Options" (LS attenuation, FR enable, parallax, HF attenuation)
 - **ClustersTab** - Input cluster management with position/rotation/scale/attenuation controls
-- **ReverbTab** - Reverb processing settings
+- **ReverbTab** - Reverb processing with 3 condensed sub-tabs:
+  - "Channel Parameters" (3-column layout: Reverb+Position, Reverb Feed, Reverb Return)
+  - "Reverb EQ" (4-band parametric EQ with interactive display)
+  - "Algorithm" (placeholder for reverb algorithm selection)
 - **MapTab** - Spatial visualization
 
 ### Floating Windows
@@ -1071,8 +1078,15 @@ EQDisplayConfig::forReverbEQ()
 | Q ID | `eqQ` | `reverbEQq` |
 | Q Range | 0.1-10.0 | 0.1-20.0 |
 
-### Band Colors (8-color palette)
-1. Red, 2. Orange, 3. Yellow, 4. Green, 5. Teal, 6. Blue, 7. Purple, 8. Pink
+### Band Colors (Rainbow 8-color palette)
+1. Red (#E74C3C), 2. Orange (#E67E22), 3. Yellow (#FFEB3B), 4. Green (#2ECC71),
+5. Blue (#3498DB), 6. Purple (#9B59B6), 7. Teal (#1ABC9C), 8. Pink (#E91E63)
+
+### Band Marker Behavior
+- **Active bands**: Full color marker at gain/frequency intersection
+- **OFF bands**: Darkened marker (60% darker) positioned at frequency on 0dB line
+- **Selected band**: White selection ring, larger marker size (28px vs 20px)
+- **Band number**: Bold black text centered in marker
 
 ### Biquad Calculations
 Uses Audio EQ Cookbook formulas matching filterCalc.js:
@@ -1150,6 +1164,6 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 
 ---
 
-*Last updated: 2025-12-30*
+*Last updated: 2026-01-02*
 *JUCE Version: 8.0.12*
 *Build: Visual Studio 2022 / Xcode, x64 Debug/Release*

@@ -384,6 +384,23 @@ public:
         repaint();
     }
 
+    // Get band colour - static so it can be used by other components
+    // Rainbow progression: Red -> Orange -> Yellow -> Green -> Blue -> Purple
+    static juce::Colour getBandColour (int band)
+    {
+        static const juce::Colour colours[] = {
+            juce::Colour (0xFFE74C3C),  // Band 1: Red
+            juce::Colour (0xFFE67E22),  // Band 2: Orange
+            juce::Colour (0xFFFFEB3B),  // Band 3: Yellow (pure)
+            juce::Colour (0xFF2ECC71),  // Band 4: Green
+            juce::Colour (0xFF3498DB),  // Band 5: Blue
+            juce::Colour (0xFF9B59B6),  // Band 6: Purple
+            juce::Colour (0xFF1ABC9C),  // Band 7: Teal
+            juce::Colour (0xFFE91E63),  // Band 8: Pink
+        };
+        return colours[band % 8];
+    }
+
 private:
     //==========================================================================
     // ValueTree::Listener
@@ -532,17 +549,30 @@ private:
                 continue;
 
             int shape = bandTree.getProperty (config.shapeId);
-            if (shape == 0) // Skip if Off
-                continue;
+            bool isOff = (shape == 0);
 
-            auto markerPos = getBandMarkerPosition (band);
-            float x = markerPos.x;
-            float y = markerPos.y;
+            float x, y;
+            if (isOff)
+            {
+                // OFF bands: place at their frequency position on the 0dB line
+                float freq = bandTree.getProperty (config.frequencyId);
+                x = frequencyToX (freq);
+                y = dBToY (0.0f);
+            }
+            else
+            {
+                auto markerPos = getBandMarkerPosition (band);
+                x = markerPos.x;
+                y = markerPos.y;
+            }
 
-            // Band color
+            // Band color (darkened if OFF, like inactive slider track)
             juce::Colour bandColour = getBandColour (band);
+            if (isOff)
+                bandColour = bandColour.darker (0.6f);
+
             bool isSelected = (selectedBand == band);
-            float markerSize = isSelected ? 14.0f : 10.0f;
+            float markerSize = isSelected ? 28.0f : 20.0f;
 
             // Draw marker circle
             g.setColour (bandColour);
@@ -557,10 +587,11 @@ private:
             }
 
             // Band number
-            g.setColour (juce::Colours::white);
-            g.setFont (10.0f);
+            g.setColour (juce::Colours::black);
+            g.setFont (juce::FontOptions (18.0f, juce::Font::bold));
             g.drawText (juce::String (band + 1),
-                        static_cast<int> (x) - 6, static_cast<int> (y) - 6, 12, 12,
+                        static_cast<int> (x - markerSize / 2), static_cast<int> (y - markerSize / 2),
+                        static_cast<int> (markerSize), static_cast<int> (markerSize),
                         juce::Justification::centred);
         }
     }
@@ -855,21 +886,6 @@ private:
         }
 
         return -1;
-    }
-
-    juce::Colour getBandColour (int band)
-    {
-        static const juce::Colour colours[] = {
-            juce::Colour (0xFFE74C3C),  // Red
-            juce::Colour (0xFFE67E22),  // Orange
-            juce::Colour (0xFFF39C12),  // Yellow
-            juce::Colour (0xFF2ECC71),  // Green
-            juce::Colour (0xFF1ABC9C),  // Teal
-            juce::Colour (0xFF3498DB),  // Blue
-            juce::Colour (0xFF9B59B6),  // Purple
-            juce::Colour (0xFFE91E63),  // Pink
-        };
-        return colours[band % 8];
     }
 
     //==========================================================================

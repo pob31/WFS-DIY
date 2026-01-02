@@ -18,7 +18,7 @@
  *
  * Structure:
  * - Header: Channel selector + Name editor + Array settings (always visible)
- * - Sub-tabs: Output Properties, Position (EQ to be added later)
+ * - Sub-tabs: Output Parameters (two-column layout), Output EQ
  * - Footer: Store/Reload buttons (always visible)
  */
 class OutputsTab : public juce::Component,
@@ -112,9 +112,8 @@ public:
 
         // ==================== SUB-TABS ====================
         addAndMakeVisible(subTabBar);
-        subTabBar.addTab("Output Properties", juce::Colour(0xFF2A2A2A), -1);
-        subTabBar.addTab("Position", juce::Colour(0xFF2A2A2A), -1);
-        subTabBar.addTab("EQ", juce::Colour(0xFF2A2A2A), -1);
+        subTabBar.addTab("Output Parameters", juce::Colour(0xFF2A2A2A), -1);
+        subTabBar.addTab("Output EQ", juce::Colour(0xFF2A2A2A), -1);
         subTabBar.setCurrentTabIndex(0);
         subTabBar.addChangeListener(static_cast<juce::ChangeListener*>(this));
 
@@ -372,12 +371,12 @@ private:
 
         // Min Latency Enable button
         addAndMakeVisible(minLatencyEnableButton);
-        minLatencyEnableButton.setButtonText("Min Latency: ON");
+        minLatencyEnableButton.setButtonText("Minimal Latency: ON");
         minLatencyEnableButton.setClickingTogglesState(true);
         minLatencyEnableButton.setToggleState(true, juce::dontSendNotification);
         minLatencyEnableButton.onClick = [this]() {
             bool enabled = minLatencyEnableButton.getToggleState();
-            minLatencyEnableButton.setButtonText(enabled ? "Min Latency: ON" : "Min Latency: OFF");
+            minLatencyEnableButton.setButtonText(enabled ? "Minimal Latency: ON" : "Minimal Latency: OFF");
             saveOutputParam(WFSParameterIDs::outputMiniLatencyEnable, enabled ? 1 : 0);
         };
 
@@ -630,10 +629,10 @@ private:
         // 6 EQ Bands
         for (int i = 0; i < numEqBands; ++i)
         {
-            // Band label
+            // Band label - colored to match EQ display markers
             addAndMakeVisible(eqBandLabel[i]);
             eqBandLabel[i].setText("Band " + juce::String(i + 1), juce::dontSendNotification);
-            eqBandLabel[i].setColour(juce::Label::textColourId, juce::Colours::white);
+            eqBandLabel[i].setColour(juce::Label::textColourId, EQDisplayComponent::getBandColour(i));
             eqBandLabel[i].setJustificationType(juce::Justification::centred);
 
             // Shape dropdown
@@ -654,12 +653,13 @@ private:
                 updateEqBandAppearance(i);
             };
 
-            // Frequency slider
+            // Frequency slider - colored to match band
             addAndMakeVisible(eqBandFreqLabel[i]);
             eqBandFreqLabel[i].setText("Freq:", juce::dontSendNotification);
             eqBandFreqLabel[i].setColour(juce::Label::textColourId, juce::Colours::grey);
 
-            eqBandFreqSlider[i].setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFF2196F3));
+            juce::Colour bandColour = EQDisplayComponent::getBandColour(i);
+            eqBandFreqSlider[i].setTrackColours(juce::Colour(0xFF2D2D2D), bandColour);
             eqBandFreqSlider[i].onValueChanged = [this, i](float v) {
                 int freq = static_cast<int>(20.0f * std::pow(10.0f, 3.0f * v));
                 eqBandFreqValueLabel[i].setText(formatFrequency(freq), juce::dontSendNotification);
@@ -671,12 +671,13 @@ private:
             eqBandFreqValueLabel[i].setText("1000 Hz", juce::dontSendNotification);
             eqBandFreqValueLabel[i].setColour(juce::Label::textColourId, juce::Colours::white);
 
-            // Gain dial
+            // Gain dial - colored to match band
             addAndMakeVisible(eqBandGainLabel[i]);
             eqBandGainLabel[i].setText("Gain", juce::dontSendNotification);
             eqBandGainLabel[i].setColour(juce::Label::textColourId, juce::Colours::grey);
             eqBandGainLabel[i].setJustificationType(juce::Justification::centred);
 
+            eqBandGainDial[i].setTrackColours(juce::Colour(0xFF2D2D2D), bandColour);
             eqBandGainDial[i].onValueChanged = [this, i](float v) {
                 float gain = v * 48.0f - 24.0f;  // -24 to +24 dB
                 eqBandGainValueLabel[i].setText(juce::String(gain, 1) + " dB", juce::dontSendNotification);
@@ -689,12 +690,13 @@ private:
             eqBandGainValueLabel[i].setColour(juce::Label::textColourId, juce::Colours::white);
             eqBandGainValueLabel[i].setJustificationType(juce::Justification::centred);
 
-            // Q dial
+            // Q dial - colored to match band
             addAndMakeVisible(eqBandQLabel[i]);
             eqBandQLabel[i].setText("Q", juce::dontSendNotification);
             eqBandQLabel[i].setColour(juce::Label::textColourId, juce::Colours::grey);
             eqBandQLabel[i].setJustificationType(juce::Justification::centred);
 
+            eqBandQDial[i].setTrackColours(juce::Colour(0xFF2D2D2D), bandColour);
             eqBandQDial[i].onValueChanged = [this, i](float v) {
                 float q = 0.1f + 0.099f * (std::pow(100.0f, v) - 1.0f);  // 0.1-10.0
                 eqBandQValueLabel[i].setText(juce::String(q, 2), juce::dontSendNotification);
@@ -734,7 +736,7 @@ private:
         eqBandShapeSelector[bandIndex].setAlpha(shapeAlpha);
 
         // Only update visibility if EQ tab is currently selected
-        bool eqTabSelected = (subTabBar.getCurrentTabIndex() == 2);
+        bool eqTabSelected = (subTabBar.getCurrentTabIndex() == 1);
 
         // Parameters follow both global EQ and band off state
         if (eqTabSelected)
@@ -789,30 +791,25 @@ private:
         int tabIndex = subTabBar.getCurrentTabIndex();
 
         // Hide all components first
-        setOutputPropertiesVisible(false);
-        setPositionVisible(false);
+        setOutputParametersVisible(false);
         setEqVisible(false);
 
         // Show and layout current tab
         if (tabIndex == 0)
         {
-            setOutputPropertiesVisible(true);
-            layoutOutputPropertiesTab();
+            setOutputParametersVisible(true);
+            layoutOutputParametersTab();
         }
         else if (tabIndex == 1)
-        {
-            setPositionVisible(true);
-            layoutPositionTab();
-        }
-        else if (tabIndex == 2)
         {
             setEqVisible(true);
             layoutEqTab();
         }
     }
 
-    void setOutputPropertiesVisible(bool visible)
+    void setOutputParametersVisible(bool visible)
     {
+        // Level & Timing components (left column)
         attenuationLabel.setVisible(visible);
         attenuationSlider.setVisible(visible);
         attenuationValueLabel.setVisible(visible);
@@ -831,10 +828,8 @@ private:
         vParallaxLabel.setVisible(visible);
         vParallaxEditor.setVisible(visible);
         vParallaxUnitLabel.setVisible(visible);
-    }
 
-    void setPositionVisible(bool visible)
-    {
+        // Position & Directivity components (right column)
         coordModeLabel.setVisible(visible);
         coordModeSelector.setVisible(visible);
         posXLabel.setVisible(visible);
@@ -896,23 +891,24 @@ private:
         }
     }
 
-    void layoutOutputPropertiesTab()
+    void layoutOutputParametersTab()
     {
         auto area = subTabContentArea;
         const int rowHeight = 30;
         const int sliderHeight = 40;
-        const int spacing = 10;
-        const int labelWidth = 120;
+        const int spacing = 8;
+        const int labelWidth = 110;
         const int valueWidth = 80;
+        const int editorWidth = 70;
+        const int unitWidth = 25;
 
-        // Left column
-        auto leftCol = area.removeFromLeft(area.getWidth() / 2).reduced(5, 0);
+        // ==================== LEFT COLUMN (Level & Timing) ====================
+        auto leftCol = area.removeFromLeft(area.getWidth() / 2).reduced(10, 10);
 
         // Attenuation
         auto row = leftCol.removeFromTop(rowHeight);
         attenuationLabel.setBounds(row.removeFromLeft(labelWidth));
         attenuationValueLabel.setBounds(row.removeFromRight(valueWidth));
-        leftCol.removeFromTop(spacing / 2);
         attenuationSlider.setBounds(leftCol.removeFromTop(sliderHeight));
         leftCol.removeFromTop(spacing);
 
@@ -920,7 +916,6 @@ private:
         row = leftCol.removeFromTop(rowHeight);
         delayLatencyLabel.setBounds(row.removeFromLeft(labelWidth));
         delayLatencyValueLabel.setBounds(row.removeFromRight(valueWidth + 20));
-        leftCol.removeFromTop(spacing / 2);
         delayLatencySlider.setBounds(leftCol.removeFromTop(sliderHeight));
         leftCol.removeFromTop(spacing);
 
@@ -928,115 +923,89 @@ private:
         row = leftCol.removeFromTop(rowHeight);
         distanceAttenLabel.setBounds(row.removeFromLeft(labelWidth));
         distanceAttenValueLabel.setBounds(row.removeFromRight(valueWidth));
-        leftCol.removeFromTop(spacing / 2);
         distanceAttenSlider.setBounds(leftCol.removeFromTop(sliderHeight));
+        leftCol.removeFromTop(spacing * 2);  // Extra space before buttons
 
-        // Right column
-        auto rightCol = area.reduced(5, 0);
+        // Enable buttons - all three on a single row with equal width and spacing
+        row = leftCol.removeFromTop(rowHeight);
+        const int buttonSpacing = 15;
+        const int totalButtonSpace = row.getWidth() - (buttonSpacing * 2);
+        const int buttonWidth = totalButtonSpace / 3;
+        minLatencyEnableButton.setBounds(row.removeFromLeft(buttonWidth));
+        row.removeFromLeft(buttonSpacing);
+        liveSourceEnableButton.setBounds(row.removeFromLeft(buttonWidth));
+        row.removeFromLeft(buttonSpacing);
+        floorReflectionsEnableButton.setBounds(row.removeFromLeft(buttonWidth));
 
-        // Enable buttons
+        // ==================== RIGHT COLUMN (Position & Directivity) ====================
+        auto rightCol = area.reduced(10, 10);
+
+        // Coordinate mode and position row
         row = rightCol.removeFromTop(rowHeight);
-        minLatencyEnableButton.setBounds(row.removeFromLeft(180));
+        coordModeLabel.setBounds(row.removeFromLeft(45));
+        coordModeSelector.setBounds(row.removeFromLeft(70));
+        row.removeFromLeft(spacing);
+        posXLabel.setBounds(row.removeFromLeft(65));
+        posXEditor.setBounds(row.removeFromLeft(editorWidth));
+        posXUnitLabel.setBounds(row.removeFromLeft(unitWidth));
+        row.removeFromLeft(spacing);
+        posYLabel.setBounds(row.removeFromLeft(65));
+        posYEditor.setBounds(row.removeFromLeft(editorWidth));
+        posYUnitLabel.setBounds(row.removeFromLeft(unitWidth));
+        row.removeFromLeft(spacing);
+        posZLabel.setBounds(row.removeFromLeft(65));
+        posZEditor.setBounds(row.removeFromLeft(editorWidth));
+        posZUnitLabel.setBounds(row.removeFromLeft(unitWidth));
         rightCol.removeFromTop(spacing);
 
-        row = rightCol.removeFromTop(rowHeight);
-        liveSourceEnableButton.setBounds(row.removeFromLeft(180));
-        rightCol.removeFromTop(spacing);
-
-        row = rightCol.removeFromTop(rowHeight);
-        floorReflectionsEnableButton.setBounds(row.removeFromLeft(200));
-        rightCol.removeFromTop(spacing * 2);
-
-        // Parallax editors
-        row = rightCol.removeFromTop(rowHeight);
-        hParallaxLabel.setBounds(row.removeFromLeft(80));
-        hParallaxEditor.setBounds(row.removeFromLeft(100));
-        row.removeFromLeft(5);
-        hParallaxUnitLabel.setBounds(row.removeFromLeft(30));
-        rightCol.removeFromTop(spacing);
-
-        row = rightCol.removeFromTop(rowHeight);
-        vParallaxLabel.setBounds(row.removeFromLeft(80));
-        vParallaxEditor.setBounds(row.removeFromLeft(100));
-        row.removeFromLeft(5);
-        vParallaxUnitLabel.setBounds(row.removeFromLeft(30));
-    }
-
-    void layoutPositionTab()
-    {
-        auto area = subTabContentArea;
-        const int rowHeight = 30;
-        const int sliderHeight = 40;
-        const int spacing = 10;
-        const int labelWidth = 100;
-        const int valueWidth = 60;
-        const int editorWidth = 80;
-        const int unitWidth = 30;
-
-        // Left column - Position editors and sliders
-        auto leftCol = area.removeFromLeft(area.getWidth() * 2 / 3).reduced(5, 0);
-
-        // Coordinate mode selector row
-        auto row = leftCol.removeFromTop(rowHeight);
-        coordModeLabel.setBounds(row.removeFromLeft(50));
-        coordModeSelector.setBounds(row.removeFromLeft(80));
-        leftCol.removeFromTop(spacing);
-
-        // Position X, Y, Z in a row
-        auto posRow = leftCol.removeFromTop(rowHeight);
-        posXLabel.setBounds(posRow.removeFromLeft(labelWidth - 20));
-        posXEditor.setBounds(posRow.removeFromLeft(editorWidth));
-        posXUnitLabel.setBounds(posRow.removeFromLeft(unitWidth));
-        posRow.removeFromLeft(spacing);
-        posYLabel.setBounds(posRow.removeFromLeft(labelWidth - 20));
-        posYEditor.setBounds(posRow.removeFromLeft(editorWidth));
-        posYUnitLabel.setBounds(posRow.removeFromLeft(unitWidth));
-        posRow.removeFromLeft(spacing);
-        posZLabel.setBounds(posRow.removeFromLeft(labelWidth - 20));
-        posZEditor.setBounds(posRow.removeFromLeft(editorWidth));
-        posZUnitLabel.setBounds(posRow.removeFromLeft(unitWidth));
-        leftCol.removeFromTop(spacing * 2);
+        // Orientation dial on the right side (with extra margin)
+        const int dialSize = 100;
+        const int dialMargin = 40;
+        auto dialColumn = rightCol.removeFromRight(dialSize + dialMargin);
+        orientationLabel.setBounds(dialColumn.removeFromTop(rowHeight).withWidth(dialSize + dialMargin));
+        auto dialArea = dialColumn.removeFromTop(dialSize);
+        orientationDial.setBounds(dialArea.withSizeKeepingCentre(dialSize, dialSize));
+        orientationValueLabel.setBounds(dialColumn.removeFromTop(rowHeight).withWidth(dialSize + dialMargin));
 
         // Angle On
-        row = leftCol.removeFromTop(rowHeight);
+        row = rightCol.removeFromTop(rowHeight);
         angleOnLabel.setBounds(row.removeFromLeft(labelWidth));
         angleOnValueLabel.setBounds(row.removeFromRight(valueWidth));
-        leftCol.removeFromTop(spacing / 2);
-        angleOnSlider.setBounds(leftCol.removeFromTop(sliderHeight));
-        leftCol.removeFromTop(spacing);
+        angleOnSlider.setBounds(rightCol.removeFromTop(sliderHeight));
+        rightCol.removeFromTop(spacing);
 
         // Angle Off
-        row = leftCol.removeFromTop(rowHeight);
+        row = rightCol.removeFromTop(rowHeight);
         angleOffLabel.setBounds(row.removeFromLeft(labelWidth));
         angleOffValueLabel.setBounds(row.removeFromRight(valueWidth));
-        leftCol.removeFromTop(spacing / 2);
-        angleOffSlider.setBounds(leftCol.removeFromTop(sliderHeight));
-        leftCol.removeFromTop(spacing);
+        angleOffSlider.setBounds(rightCol.removeFromTop(sliderHeight));
+        rightCol.removeFromTop(spacing);
 
         // Pitch
-        row = leftCol.removeFromTop(rowHeight);
+        row = rightCol.removeFromTop(rowHeight);
         pitchLabel.setBounds(row.removeFromLeft(labelWidth));
         pitchValueLabel.setBounds(row.removeFromRight(valueWidth));
-        leftCol.removeFromTop(spacing / 2);
-        pitchSlider.setBounds(leftCol.removeFromTop(sliderHeight));
-        leftCol.removeFromTop(spacing);
+        pitchSlider.setBounds(rightCol.removeFromTop(sliderHeight));
+        rightCol.removeFromTop(spacing);
 
         // HF Damping
-        row = leftCol.removeFromTop(rowHeight);
+        row = rightCol.removeFromTop(rowHeight);
         hfDampingLabel.setBounds(row.removeFromLeft(labelWidth));
         hfDampingValueLabel.setBounds(row.removeFromRight(valueWidth));
-        leftCol.removeFromTop(spacing / 2);
-        hfDampingSlider.setBounds(leftCol.removeFromTop(sliderHeight));
+        hfDampingSlider.setBounds(rightCol.removeFromTop(sliderHeight));
+        rightCol.removeFromTop(spacing);
 
-        // Right column - Orientation dial
-        auto rightCol = area.reduced(5, 0);
-        orientationLabel.setBounds(rightCol.removeFromTop(rowHeight));
-
-        const int dialSize = juce::jmin(150, rightCol.getHeight() - 40);
-        auto dialArea = rightCol.removeFromTop(dialSize);
-        orientationDial.setBounds(dialArea.withSizeKeepingCentre(dialSize, dialSize));
-
-        orientationValueLabel.setBounds(rightCol.removeFromTop(rowHeight));
+        // Parallax editors (at end of right column)
+        row = rightCol.removeFromTop(rowHeight);
+        hParallaxLabel.setBounds(row.removeFromLeft(75));
+        hParallaxEditor.setBounds(row.removeFromLeft(80));
+        row.removeFromLeft(5);
+        hParallaxUnitLabel.setBounds(row.removeFromLeft(25));
+        row.removeFromLeft(spacing * 4);  // Extra space between H and V Parallax
+        vParallaxLabel.setBounds(row.removeFromLeft(75));
+        vParallaxEditor.setBounds(row.removeFromLeft(80));
+        row.removeFromLeft(5);
+        vParallaxUnitLabel.setBounds(row.removeFromLeft(25));
     }
 
     void layoutEqTab()
@@ -1201,7 +1170,7 @@ private:
 
         bool minLatency = getIntParam("outputMiniLatencyEnable", 1) != 0;  // Default ON
         minLatencyEnableButton.setToggleState(minLatency, juce::dontSendNotification);
-        minLatencyEnableButton.setButtonText(minLatency ? "Min Latency: ON" : "Min Latency: OFF");
+        minLatencyEnableButton.setButtonText(minLatency ? "Minimal Latency: ON" : "Minimal Latency: OFF");
 
         bool lsAtten = getIntParam("outputLSattenEnable", 1) != 0;  // Default ON
         liveSourceEnableButton.setToggleState(lsAtten, juce::dontSendNotification);
@@ -1289,7 +1258,7 @@ private:
             // Update EQ display enabled state
             eqDisplay->setEQEnabled(eqEnabled);
             // Update visibility based on current tab
-            bool eqTabVisible = (subTabBar.getCurrentTabIndex() == 2);
+            bool eqTabVisible = (subTabBar.getCurrentTabIndex() == 1);
             eqDisplay->setVisible(eqTabVisible);
             if (eqTabVisible)
                 layoutEqTab();

@@ -217,12 +217,9 @@ private:
     void setupSubTabs()
     {
         addAndMakeVisible (subTabBar);
-        subTabBar.addTab ("Reverb", juce::Colour (0xFF2A2A2A), -1);
-        subTabBar.addTab ("Position", juce::Colour (0xFF2A2A2A), -1);
-        subTabBar.addTab ("Reverb Feed", juce::Colour (0xFF2A2A2A), -1);
-        subTabBar.addTab ("EQ", juce::Colour (0xFF2A2A2A), -1);
+        subTabBar.addTab ("Channel Parameters", juce::Colour (0xFF2A2A2A), -1);
+        subTabBar.addTab ("Reverb EQ", juce::Colour (0xFF2A2A2A), -1);
         subTabBar.addTab ("Algorithm", juce::Colour (0xFF2A2A2A), -1);
-        subTabBar.addTab ("Reverb Return", juce::Colour (0xFF2A2A2A), -1);
         subTabBar.addChangeListener (static_cast<juce::ChangeListener*> (this));
     }
 
@@ -334,6 +331,17 @@ private:
 
     void setupReverbFeedSubTab()
     {
+        // Column title labels
+        addAndMakeVisible (reverbFeedTitleLabel);
+        reverbFeedTitleLabel.setText ("Reverb Feed", juce::dontSendNotification);
+        reverbFeedTitleLabel.setFont (juce::FontOptions().withHeight (18.0f).withStyle ("Bold"));
+        reverbFeedTitleLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+
+        addAndMakeVisible (reverbReturnTitleLabel);
+        reverbReturnTitleLabel.setText ("Reverb Return", juce::dontSendNotification);
+        reverbReturnTitleLabel.setFont (juce::FontOptions().withHeight (18.0f).withStyle ("Bold"));
+        reverbReturnTitleLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+
         // Orientation dial
         addAndMakeVisible (orientationLabel);
         orientationLabel.setText ("Orientation:", juce::dontSendNotification);
@@ -351,6 +359,7 @@ private:
         orientationValueLabel.setText (juce::String ("0") + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
         orientationValueLabel.setColour (juce::Label::textColourId, juce::Colours::white);
         orientationValueLabel.setJustificationType (juce::Justification::centred);
+        setupEditableValueLabel (orientationValueLabel);
 
         // Angle On slider
         addAndMakeVisible (angleOnLabel);
@@ -369,6 +378,7 @@ private:
         addAndMakeVisible (angleOnValueLabel);
         angleOnValueLabel.setText ("86" + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
         angleOnValueLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+        setupEditableValueLabel (angleOnValueLabel);
 
         // Angle Off slider
         addAndMakeVisible (angleOffLabel);
@@ -387,6 +397,7 @@ private:
         addAndMakeVisible (angleOffValueLabel);
         angleOffValueLabel.setText ("90" + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
         angleOffValueLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+        setupEditableValueLabel (angleOffValueLabel);
 
         // Pitch slider
         addAndMakeVisible (pitchLabel);
@@ -405,6 +416,7 @@ private:
         addAndMakeVisible (pitchValueLabel);
         pitchValueLabel.setText ("0" + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
         pitchValueLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+        setupEditableValueLabel (pitchValueLabel);
 
         // HF Damping slider
         addAndMakeVisible (hfDampingLabel);
@@ -423,27 +435,38 @@ private:
         addAndMakeVisible (hfDampingValueLabel);
         hfDampingValueLabel.setText ("0.0 dB/m", juce::dontSendNotification);
         hfDampingValueLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+        setupEditableValueLabel (hfDampingValueLabel);
 
         // Toggle buttons
         addAndMakeVisible (miniLatencyEnableButton);
-        miniLatencyEnableButton.setButtonText ("MINIMAL LATENCY");
+        miniLatencyEnableButton.setButtonText ("Minimal Latency OFF");
         miniLatencyEnableButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF2D2D2D));
+        miniLatencyEnableButton.setColour (juce::TextButton::buttonOnColourId, juce::Colour (0xFF2D2D2D));
+        miniLatencyEnableButton.setTooltip ("Enables minimal latency mode for the reverb feed");
         miniLatencyEnableButton.onClick = [this]
         {
             bool enabled = !miniLatencyEnableButton.getToggleState();
             miniLatencyEnableButton.setToggleState (enabled, juce::dontSendNotification);
-            miniLatencyEnableButton.setButtonText (enabled ? "ENABLE" : "DISABLE");
+            miniLatencyEnableButton.setButtonText (enabled ? "Minimal Latency ON" : "Minimal Latency OFF");
+            juce::Colour btnColour = enabled ? juce::Colour (0xFF4CAF50) : juce::Colour (0xFF2D2D2D);
+            miniLatencyEnableButton.setColour (juce::TextButton::buttonColourId, btnColour);
+            miniLatencyEnableButton.setColour (juce::TextButton::buttonOnColourId, btnColour);
             saveReverbParam (WFSParameterIDs::reverbMiniLatencyEnable, enabled ? 1 : 0);
         };
 
         addAndMakeVisible (lsEnableButton);
-        lsEnableButton.setButtonText ("LIVE SOURCE ATTEN");
+        lsEnableButton.setButtonText ("Live Source Atten OFF");
         lsEnableButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF2D2D2D));
+        lsEnableButton.setColour (juce::TextButton::buttonOnColourId, juce::Colour (0xFF2D2D2D));
+        lsEnableButton.setTooltip ("Enables live source attenuation for the reverb feed");
         lsEnableButton.onClick = [this]
         {
             bool enabled = !lsEnableButton.getToggleState();
             lsEnableButton.setToggleState (enabled, juce::dontSendNotification);
-            lsEnableButton.setButtonText (enabled ? "LS ENABLE" : "LS DISABLE");
+            lsEnableButton.setButtonText (enabled ? "Live Source Atten ON" : "Live Source Atten OFF");
+            juce::Colour btnColour = enabled ? juce::Colour (0xFF4CAF50) : juce::Colour (0xFF2D2D2D);
+            lsEnableButton.setColour (juce::TextButton::buttonColourId, btnColour);
+            lsEnableButton.setColour (juce::TextButton::buttonOnColourId, btnColour);
             saveReverbParam (WFSParameterIDs::reverbLSenable, enabled ? 1 : 0);
         };
 
@@ -464,6 +487,7 @@ private:
         addAndMakeVisible (distanceAttenEnableValueLabel);
         distanceAttenEnableValueLabel.setText ("100%", juce::dontSendNotification);
         distanceAttenEnableValueLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+        setupEditableValueLabel (distanceAttenEnableValueLabel);
     }
 
     void setupEQSubTab()
@@ -479,6 +503,9 @@ private:
             eqEnableButton.setButtonText (enabled ? "EQ ON" : "EQ OFF");
             eqEnableButton.setColour (juce::TextButton::buttonColourId,
                                       enabled ? juce::Colour (0xFF4CAF50) : juce::Colour (0xFF2D2D2D));
+            // Update all band appearances when global EQ state changes
+            for (int i = 0; i < numEqBands; ++i)
+                updateEQBandAppearance (i);
             // Update EQ display grey-out state
             if (eqDisplay != nullptr)
                 eqDisplay->setEQEnabled (enabled);
@@ -488,10 +515,10 @@ private:
         // 4 EQ bands
         for (int i = 0; i < numEqBands; ++i)
         {
-            // Band label
+            // Band label - colored to match EQ display markers
             addAndMakeVisible (eqBandLabel[i]);
             eqBandLabel[i].setText ("Band " + juce::String (i + 1), juce::dontSendNotification);
-            eqBandLabel[i].setColour (juce::Label::textColourId, juce::Colours::white);
+            eqBandLabel[i].setColour (juce::Label::textColourId, EQDisplayComponent::getBandColour(i));
             eqBandLabel[i].setJustificationType (juce::Justification::centred);
 
             // Shape selector (no band-pass)
@@ -508,15 +535,16 @@ private:
                 int shape = eqBandShapeSelector[i].getSelectedId() - 1;
                 saveEQBandParam (i, WFSParameterIDs::reverbEQshape, shape);
                 // Update gain visibility when shape changes
-                updateEQBandGainVisibility (i);
+                updateEQBandAppearance (i);
             };
 
-            // Frequency slider
+            // Frequency slider - colored to match band
             addAndMakeVisible (eqBandFreqLabel[i]);
             eqBandFreqLabel[i].setText ("Freq:", juce::dontSendNotification);
             eqBandFreqLabel[i].setColour (juce::Label::textColourId, juce::Colours::grey);
 
-            eqBandFreqSlider[i].setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF2196F3));
+            juce::Colour bandColour = EQDisplayComponent::getBandColour(i);
+            eqBandFreqSlider[i].setTrackColours (juce::Colour (0xFF2D2D2D), bandColour);
             eqBandFreqSlider[i].onValueChanged = [this, i] (float v)
             {
                 int freq = static_cast<int> (20.0f * std::pow (10.0f, 3.0f * v));
@@ -529,12 +557,13 @@ private:
             eqBandFreqValueLabel[i].setText ("1000 Hz", juce::dontSendNotification);
             eqBandFreqValueLabel[i].setColour (juce::Label::textColourId, juce::Colours::white);
 
-            // Gain dial
+            // Gain dial - colored to match band
             addAndMakeVisible (eqBandGainLabel[i]);
             eqBandGainLabel[i].setText ("Gain", juce::dontSendNotification);
             eqBandGainLabel[i].setColour (juce::Label::textColourId, juce::Colours::grey);
             eqBandGainLabel[i].setJustificationType (juce::Justification::centred);
 
+            eqBandGainDial[i].setTrackColours (juce::Colour (0xFF2D2D2D), bandColour);
             eqBandGainDial[i].onValueChanged = [this, i] (float v)
             {
                 float gain = v * 48.0f - 24.0f;  // -24 to +24 dB
@@ -548,12 +577,13 @@ private:
             eqBandGainValueLabel[i].setColour (juce::Label::textColourId, juce::Colours::white);
             eqBandGainValueLabel[i].setJustificationType (juce::Justification::centred);
 
-            // Q dial
+            // Q dial - colored to match band
             addAndMakeVisible (eqBandQLabel[i]);
             eqBandQLabel[i].setText ("Q", juce::dontSendNotification);
             eqBandQLabel[i].setColour (juce::Label::textColourId, juce::Colours::grey);
             eqBandQLabel[i].setJustificationType (juce::Justification::centred);
 
+            eqBandQDial[i].setTrackColours (juce::Colour (0xFF2D2D2D), bandColour);
             eqBandQDial[i].onValueChanged = [this, i] (float v)
             {
                 float q = 0.1f + 0.21f * (std::pow (100.0f, v) - 1.0f);  // 0.1-20.0
@@ -597,6 +627,7 @@ private:
         distanceAttenValueLabel.setText ("-0.7 dB/m", juce::dontSendNotification);
         distanceAttenValueLabel.setColour (juce::Label::textColourId, juce::Colours::white);
         distanceAttenValueLabel.setJustificationType (juce::Justification::centred);
+        setupEditableValueLabel (distanceAttenValueLabel);
 
         // Common Attenuation dial
         addAndMakeVisible (commonAttenLabel);
@@ -615,6 +646,7 @@ private:
         commonAttenValueLabel.setText ("100%", juce::dontSendNotification);
         commonAttenValueLabel.setColour (juce::Label::textColourId, juce::Colours::white);
         commonAttenValueLabel.setJustificationType (juce::Justification::centred);
+        setupEditableValueLabel (commonAttenValueLabel);
 
         // Mute buttons (styled like InputsTab)
         addAndMakeVisible (mutesLabel);
@@ -783,160 +815,17 @@ private:
     {
         int tabIndex = subTabBar.getCurrentTabIndex();
 
-        setReverbVisible (false);
-        setPositionVisible (false);
-        setReverbFeedVisible (false);
+        // Hide all sub-tab components
+        setChannelParametersVisible (false);
         setEQVisible (false);
         setAlgorithmVisible (false);
-        setReverbReturnVisible (false);
 
         switch (tabIndex)
         {
-            case 0: setReverbVisible (true); layoutReverbSubTab(); break;
-            case 1: setPositionVisible (true); layoutPositionSubTab(); break;
-            case 2: setReverbFeedVisible (true); layoutReverbFeedSubTab(); break;
-            case 3: setEQVisible (true); layoutEQSubTab(); break;
-            case 4: setAlgorithmVisible (true); layoutAlgorithmSubTab(); break;
-            case 5: setReverbReturnVisible (true); layoutReverbReturnSubTab(); break;
+            case 0: setChannelParametersVisible (true); layoutChannelParametersTab(); break;
+            case 1: setEQVisible (true); layoutEQSubTab(); break;
+            case 2: setAlgorithmVisible (true); layoutAlgorithmSubTab(); break;
         }
-    }
-
-    void layoutReverbSubTab()
-    {
-        auto area = subTabContentArea;
-        const int rowHeight = 30;
-        const int sliderHeight = 40;
-        const int spacing = 15;
-        const int labelWidth = 120;
-        const int valueWidth = 80;
-
-        auto leftCol = area.removeFromLeft (area.getWidth() / 2).reduced (10, 0);
-
-        // Attenuation
-        auto row = leftCol.removeFromTop (rowHeight);
-        attenuationLabel.setBounds (row.removeFromLeft (labelWidth));
-        attenuationValueLabel.setBounds (row.removeFromRight (valueWidth));
-        leftCol.removeFromTop (5);
-        attenuationSlider.setBounds (leftCol.removeFromTop (sliderHeight));
-        leftCol.removeFromTop (spacing);
-
-        // Delay/Latency
-        row = leftCol.removeFromTop (rowHeight);
-        delayLatencyLabel.setBounds (row.removeFromLeft (labelWidth));
-        delayLatencyValueLabel.setBounds (row.removeFromRight (valueWidth));
-        leftCol.removeFromTop (5);
-        delayLatencySlider.setBounds (leftCol.removeFromTop (sliderHeight));
-    }
-
-    void layoutPositionSubTab()
-    {
-        auto area = subTabContentArea;
-        const int rowHeight = 30;
-        const int spacing = 10;
-        const int labelWidth = 140;
-        const int editorWidth = 80;
-        const int unitWidth = 30;
-
-        auto leftCol = area.removeFromLeft (area.getWidth() / 2).reduced (10, 0);
-        auto rightCol = area.reduced (10, 0);
-
-        // Coordinate mode selector row
-        auto coordModeRow = leftCol.removeFromTop(rowHeight);
-        coordModeLabel.setBounds(coordModeRow.removeFromLeft(50));
-        coordModeSelector.setBounds(coordModeRow.removeFromLeft(80));
-        leftCol.removeFromTop(spacing);
-
-        // Position section (left)
-        juce::Label* posLabelPtrs[] = { &posXLabel, &posYLabel, &posZLabel };
-        juce::TextEditor* posEditorPtrs[] = { &posXEditor, &posYEditor, &posZEditor };
-        juce::Label* posUnitPtrs[] = { &posXUnitLabel, &posYUnitLabel, &posZUnitLabel };
-
-        for (int i = 0; i < 3; ++i)
-        {
-            auto row = leftCol.removeFromTop (rowHeight);
-            posLabelPtrs[i]->setBounds (row.removeFromLeft (labelWidth));
-            posEditorPtrs[i]->setBounds (row.removeFromLeft (editorWidth));
-            row.removeFromLeft (5);
-            posUnitPtrs[i]->setBounds (row.removeFromLeft (unitWidth));
-            leftCol.removeFromTop (spacing);
-        }
-
-        // Return Offset section (right)
-        juce::Label* offsetLabelPtrs[] = { &returnOffsetXLabel, &returnOffsetYLabel, &returnOffsetZLabel };
-        juce::TextEditor* offsetEditorPtrs[] = { &returnOffsetXEditor, &returnOffsetYEditor, &returnOffsetZEditor };
-        juce::Label* offsetUnitPtrs[] = { &returnOffsetXUnitLabel, &returnOffsetYUnitLabel, &returnOffsetZUnitLabel };
-
-        for (int i = 0; i < 3; ++i)
-        {
-            auto row = rightCol.removeFromTop (rowHeight);
-            offsetLabelPtrs[i]->setBounds (row.removeFromLeft (labelWidth));
-            offsetEditorPtrs[i]->setBounds (row.removeFromLeft (editorWidth));
-            row.removeFromLeft (5);
-            offsetUnitPtrs[i]->setBounds (row.removeFromLeft (unitWidth));
-            rightCol.removeFromTop (spacing);
-        }
-    }
-
-    void layoutReverbFeedSubTab()
-    {
-        auto area = subTabContentArea;
-        const int rowHeight = 30;
-        const int sliderHeight = 40;
-        const int spacing = 10;
-        const int labelWidth = 140;
-        const int valueWidth = 80;
-        const int dialSize = 80;
-
-        auto leftCol = area.removeFromLeft (area.getWidth() / 3).reduced (5, 0);
-        auto middleCol = area.removeFromLeft (area.getWidth() / 2).reduced (5, 0);
-        auto rightCol = area.reduced (5, 0);
-
-        // Left column: Orientation dial
-        orientationLabel.setBounds (leftCol.removeFromTop (rowHeight));
-        auto dialArea = leftCol.removeFromTop (dialSize + 20);
-        orientationDial.setBounds (dialArea.removeFromLeft (dialSize).withSizeKeepingCentre (dialSize, dialSize));
-        orientationValueLabel.setBounds (leftCol.removeFromTop (rowHeight));
-
-        // Left column: Buttons
-        leftCol.removeFromTop (spacing * 2);
-        miniLatencyEnableButton.setBounds (leftCol.removeFromTop (rowHeight));
-        leftCol.removeFromTop (spacing);
-        lsEnableButton.setBounds (leftCol.removeFromTop (rowHeight));
-
-        // Middle column: Angle sliders
-        auto row = middleCol.removeFromTop (rowHeight);
-        angleOnLabel.setBounds (row.removeFromLeft (labelWidth));
-        angleOnValueLabel.setBounds (row.removeFromRight (valueWidth));
-        middleCol.removeFromTop (5);
-        angleOnSlider.setBounds (middleCol.removeFromTop (sliderHeight));
-        middleCol.removeFromTop (spacing);
-
-        row = middleCol.removeFromTop (rowHeight);
-        angleOffLabel.setBounds (row.removeFromLeft (labelWidth));
-        angleOffValueLabel.setBounds (row.removeFromRight (valueWidth));
-        middleCol.removeFromTop (5);
-        angleOffSlider.setBounds (middleCol.removeFromTop (sliderHeight));
-        middleCol.removeFromTop (spacing);
-
-        row = middleCol.removeFromTop (rowHeight);
-        pitchLabel.setBounds (row.removeFromLeft (labelWidth));
-        pitchValueLabel.setBounds (row.removeFromRight (valueWidth));
-        middleCol.removeFromTop (5);
-        pitchSlider.setBounds (middleCol.removeFromTop (sliderHeight));
-
-        // Right column: HF Damping and Distance Atten
-        row = rightCol.removeFromTop (rowHeight);
-        hfDampingLabel.setBounds (row.removeFromLeft (labelWidth));
-        hfDampingValueLabel.setBounds (row.removeFromRight (valueWidth));
-        rightCol.removeFromTop (5);
-        hfDampingSlider.setBounds (rightCol.removeFromTop (sliderHeight));
-        rightCol.removeFromTop (spacing);
-
-        row = rightCol.removeFromTop (rowHeight);
-        distanceAttenEnableLabel.setBounds (row.removeFromLeft (labelWidth));
-        distanceAttenEnableValueLabel.setBounds (row.removeFromRight (valueWidth));
-        rightCol.removeFromTop (5);
-        distanceAttenEnableSlider.setBounds (rightCol.removeFromTop (sliderHeight));
     }
 
     void layoutEQSubTab()
@@ -997,54 +886,195 @@ private:
         algorithmPlaceholderLabel.setBounds (subTabContentArea);
     }
 
-    void layoutReverbReturnSubTab()
+    void layoutChannelParametersTab()
     {
-        auto area = subTabContentArea;
-        const int dialSize = 80;
-        const int labelHeight = 25;
+        auto area = subTabContentArea.reduced (10, 10);
+        const int rowHeight = 30;
+        const int sliderHeight = 40;
         const int spacing = 10;
+        const int labelWidth = 100;
+        const int valueWidth = 80;
+        const int editorWidth = 70;
+        const int unitWidth = 25;
+        const int dialSize = 70;
+        const int titleHeight = 25;
 
-        auto topRow = area.removeFromTop (dialSize + labelHeight * 2 + spacing);
+        // Divide into 3 columns
+        int colWidth = area.getWidth() / 3;
+        auto col1 = area.removeFromLeft (colWidth).reduced (5, 0);
+        auto col2 = area.removeFromLeft (colWidth).reduced (5, 0);
+        auto col3 = area.reduced (5, 0);
 
-        // Distance Attenuation dial
-        auto dialArea = topRow.removeFromLeft (150).reduced (10, 0);
-        distanceAttenLabel.setBounds (dialArea.removeFromTop (labelHeight));
-        distanceAttenDial.setBounds (dialArea.removeFromTop (dialSize).withSizeKeepingCentre (dialSize, dialSize));
-        distanceAttenValueLabel.setBounds (dialArea.removeFromTop (labelHeight));
+        // =====================================================================
+        // Column 1: Reverb + Position
+        // =====================================================================
 
-        // Common Attenuation dial
-        dialArea = topRow.removeFromLeft (150).reduced (10, 0);
-        commonAttenLabel.setBounds (dialArea.removeFromTop (labelHeight));
-        commonAttenDial.setBounds (dialArea.removeFromTop (dialSize).withSizeKeepingCentre (dialSize, dialSize));
-        commonAttenValueLabel.setBounds (dialArea.removeFromTop (labelHeight));
+        // Attenuation
+        auto row = col1.removeFromTop (rowHeight);
+        attenuationLabel.setBounds (row.removeFromLeft (labelWidth));
+        attenuationValueLabel.setBounds (row.removeFromRight (valueWidth));
+        col1.removeFromTop (3);
+        attenuationSlider.setBounds (col1.removeFromTop (sliderHeight));
+        col1.removeFromTop (spacing);
+
+        // Delay/Latency
+        row = col1.removeFromTop (rowHeight);
+        delayLatencyLabel.setBounds (row.removeFromLeft (labelWidth));
+        delayLatencyValueLabel.setBounds (row.removeFromRight (valueWidth));
+        col1.removeFromTop (3);
+        delayLatencySlider.setBounds (col1.removeFromTop (sliderHeight));
+        col1.removeFromTop (spacing);
+
+        // Coordinate mode selector
+        auto coordModeRow = col1.removeFromTop (rowHeight);
+        coordModeLabel.setBounds (coordModeRow.removeFromLeft (50));
+        coordModeSelector.setBounds (coordModeRow.removeFromLeft (80));
+        col1.removeFromTop (spacing);
+
+        // Position X/Y/Z with Return Offset on same rows
+        juce::Label* posLabelPtrs[] = { &posXLabel, &posYLabel, &posZLabel };
+        juce::TextEditor* posEditorPtrs[] = { &posXEditor, &posYEditor, &posZEditor };
+        juce::Label* posUnitPtrs[] = { &posXUnitLabel, &posYUnitLabel, &posZUnitLabel };
+        juce::Label* offsetLabelPtrs[] = { &returnOffsetXLabel, &returnOffsetYLabel, &returnOffsetZLabel };
+        juce::TextEditor* offsetEditorPtrs[] = { &returnOffsetXEditor, &returnOffsetYEditor, &returnOffsetZEditor };
+        juce::Label* offsetUnitPtrs[] = { &returnOffsetXUnitLabel, &returnOffsetYUnitLabel, &returnOffsetZUnitLabel };
+
+        for (int i = 0; i < 3; ++i)
+        {
+            row = col1.removeFromTop (rowHeight);
+            // Position on left side
+            posLabelPtrs[i]->setBounds (row.removeFromLeft (labelWidth));
+            posEditorPtrs[i]->setBounds (row.removeFromLeft (editorWidth));
+            row.removeFromLeft (3);
+            posUnitPtrs[i]->setBounds (row.removeFromLeft (unitWidth));
+            // Larger gap between position and offset columns
+            row.removeFromLeft (25);
+            // Return Offset on right side
+            offsetLabelPtrs[i]->setBounds (row.removeFromLeft (labelWidth));
+            offsetEditorPtrs[i]->setBounds (row.removeFromLeft (editorWidth));
+            row.removeFromLeft (3);
+            offsetUnitPtrs[i]->setBounds (row.removeFromLeft (unitWidth));
+            col1.removeFromTop (5);
+        }
+
+        // =====================================================================
+        // Column 2: Reverb Feed
+        // =====================================================================
+
+        // Column title
+        reverbFeedTitleLabel.setBounds (col2.removeFromTop (titleHeight));
+        col2.removeFromTop (spacing);
+
+        // Orientation dial - centered with label above, value below
+        orientationLabel.setBounds (col2.removeFromTop (rowHeight).withSizeKeepingCentre (dialSize + 40, rowHeight));
+        orientationLabel.setJustificationType (juce::Justification::centred);
+        auto dialArea = col2.removeFromTop (dialSize);
+        orientationDial.setBounds (dialArea.withSizeKeepingCentre (dialSize, dialSize));
+        orientationValueLabel.setBounds (col2.removeFromTop (rowHeight).withSizeKeepingCentre (dialSize + 40, rowHeight));
+        col2.removeFromTop (spacing);
+
+        // Angle On slider
+        row = col2.removeFromTop (rowHeight);
+        angleOnLabel.setBounds (row.removeFromLeft (labelWidth));
+        angleOnValueLabel.setBounds (row.removeFromRight (valueWidth));
+        col2.removeFromTop (3);
+        angleOnSlider.setBounds (col2.removeFromTop (sliderHeight));
+        col2.removeFromTop (spacing);
+
+        // Angle Off slider
+        row = col2.removeFromTop (rowHeight);
+        angleOffLabel.setBounds (row.removeFromLeft (labelWidth));
+        angleOffValueLabel.setBounds (row.removeFromRight (valueWidth));
+        col2.removeFromTop (3);
+        angleOffSlider.setBounds (col2.removeFromTop (sliderHeight));
+        col2.removeFromTop (spacing);
+
+        // Pitch slider
+        row = col2.removeFromTop (rowHeight);
+        pitchLabel.setBounds (row.removeFromLeft (labelWidth));
+        pitchValueLabel.setBounds (row.removeFromRight (valueWidth));
+        col2.removeFromTop (3);
+        pitchSlider.setBounds (col2.removeFromTop (sliderHeight));
+        col2.removeFromTop (spacing);
+
+        // HF Damping slider
+        row = col2.removeFromTop (rowHeight);
+        hfDampingLabel.setBounds (row.removeFromLeft (labelWidth));
+        hfDampingValueLabel.setBounds (row.removeFromRight (valueWidth));
+        col2.removeFromTop (3);
+        hfDampingSlider.setBounds (col2.removeFromTop (sliderHeight));
+        col2.removeFromTop (spacing);
+
+        // Distance Atten Enable slider
+        row = col2.removeFromTop (rowHeight);
+        distanceAttenEnableLabel.setBounds (row.removeFromLeft (labelWidth));
+        distanceAttenEnableValueLabel.setBounds (row.removeFromRight (valueWidth));
+        col2.removeFromTop (3);
+        distanceAttenEnableSlider.setBounds (col2.removeFromTop (sliderHeight));
+        col2.removeFromTop (spacing);
+
+        // Buttons - side by side on same row
+        int buttonWidth = (col2.getWidth() - spacing) / 2;
+        auto buttonRow = col2.removeFromTop (rowHeight);
+        miniLatencyEnableButton.setBounds (buttonRow.removeFromLeft (buttonWidth));
+        buttonRow.removeFromLeft (spacing);
+        lsEnableButton.setBounds (buttonRow.removeFromLeft (buttonWidth));
+
+        // =====================================================================
+        // Column 3: Reverb Return
+        // =====================================================================
+
+        // Column title
+        reverbReturnTitleLabel.setBounds (col3.removeFromTop (titleHeight));
+        col3.removeFromTop (spacing);
+
+        // Distance Attenuation and Common Attenuation dials side by side
+        int halfColWidth = col3.getWidth() / 2;
+        auto dialsRow = col3.removeFromTop (dialSize + rowHeight * 2 + spacing);
+
+        // Left half: Distance Attenuation
+        auto leftDialArea = dialsRow.removeFromLeft (halfColWidth);
+        distanceAttenLabel.setBounds (leftDialArea.removeFromTop (rowHeight).withSizeKeepingCentre (dialSize + 40, rowHeight));
+        distanceAttenLabel.setJustificationType (juce::Justification::centred);
+        distanceAttenDial.setBounds (leftDialArea.removeFromTop (dialSize).withSizeKeepingCentre (dialSize, dialSize));
+        distanceAttenValueLabel.setBounds (leftDialArea.removeFromTop (rowHeight).withSizeKeepingCentre (dialSize + 40, rowHeight));
+
+        // Right half: Common Attenuation
+        auto rightDialArea = dialsRow;
+        commonAttenLabel.setBounds (rightDialArea.removeFromTop (rowHeight).withSizeKeepingCentre (dialSize + 40, rowHeight));
+        commonAttenLabel.setJustificationType (juce::Justification::centred);
+        commonAttenDial.setBounds (rightDialArea.removeFromTop (dialSize).withSizeKeepingCentre (dialSize, dialSize));
+        commonAttenValueLabel.setBounds (rightDialArea.removeFromTop (rowHeight).withSizeKeepingCentre (dialSize + 40, rowHeight));
+
+        col3.removeFromTop (spacing);
 
         // Mute Macro selector
-        topRow.removeFromLeft (20);
-        auto macroArea = topRow.removeFromLeft (200);
-        muteMacrosLabel.setBounds (macroArea.removeFromTop (labelHeight));
-        muteMacrosSelector.setBounds (macroArea.removeFromTop (30));
+        muteMacrosLabel.setBounds (col3.removeFromTop (rowHeight));
+        muteMacrosSelector.setBounds (col3.removeFromTop (30));
+        col3.removeFromTop (spacing);
 
         // Mutes section
-        area.removeFromTop (spacing);
-        mutesLabel.setBounds (area.removeFromTop (labelHeight));
-        area.removeFromTop (spacing);
+        mutesLabel.setBounds (col3.removeFromTop (titleHeight));
+        col3.removeFromTop (5);
 
-        // Layout mute buttons in a grid
+        // Layout mute buttons in a grid - use full column width
         int numOutputs = parameters.getNumOutputChannels();
         if (numOutputs <= 0) numOutputs = 16;
-        int numColumns = juce::jmin (8, numOutputs);
-        const int buttonSize = 40;
-        const int buttonSpacing = 5;
+        const int buttonSize = 35;
+        const int buttonSpacing = 3;
+        // Calculate how many buttons fit in the column width
+        int numColumns = (col3.getWidth() + buttonSpacing) / (buttonSize + buttonSpacing);
+        numColumns = juce::jmax (1, numColumns);  // At least 1 column
 
         for (int i = 0; i < maxMuteButtons; ++i)
         {
             if (i < numOutputs)
             {
-                int col = i % numColumns;
-                int row = i / numColumns;
-                int x = col * (buttonSize + buttonSpacing);
-                int y = row * (buttonSize + buttonSpacing);
-                muteButtons[i].setBounds (area.getX() + x, area.getY() + y, buttonSize, buttonSize);
+                int colIdx = i % numColumns;
+                int rowIdx = i / numColumns;
+                int x = colIdx * (buttonSize + buttonSpacing);
+                int y = rowIdx * (buttonSize + buttonSpacing);
+                muteButtons[i].setBounds (col3.getX() + x, col3.getY() + y, buttonSize, buttonSize);
                 muteButtons[i].setVisible (true);
             }
             else
@@ -1057,43 +1087,6 @@ private:
     //==========================================================================
     // Visibility Methods
     //==========================================================================
-
-    void setReverbVisible (bool visible)
-    {
-        attenuationLabel.setVisible (visible);
-        attenuationSlider.setVisible (visible);
-        attenuationValueLabel.setVisible (visible);
-        delayLatencyLabel.setVisible (visible);
-        delayLatencySlider.setVisible (visible);
-        delayLatencyValueLabel.setVisible (visible);
-    }
-
-    void setPositionVisible (bool visible)
-    {
-        coordModeLabel.setVisible(visible); coordModeSelector.setVisible(visible);
-        posXLabel.setVisible (visible); posYLabel.setVisible (visible); posZLabel.setVisible (visible);
-        posXEditor.setVisible (visible); posYEditor.setVisible (visible); posZEditor.setVisible (visible);
-        posXUnitLabel.setVisible (visible); posYUnitLabel.setVisible (visible); posZUnitLabel.setVisible (visible);
-        returnOffsetXLabel.setVisible (visible); returnOffsetYLabel.setVisible (visible); returnOffsetZLabel.setVisible (visible);
-        returnOffsetXEditor.setVisible (visible); returnOffsetYEditor.setVisible (visible); returnOffsetZEditor.setVisible (visible);
-        returnOffsetXUnitLabel.setVisible (visible); returnOffsetYUnitLabel.setVisible (visible); returnOffsetZUnitLabel.setVisible (visible);
-    }
-
-    void setReverbFeedVisible (bool visible)
-    {
-        orientationLabel.setVisible (visible);
-        orientationDial.setVisible (visible);
-        orientationValueLabel.setVisible (visible);
-        angleOnLabel.setVisible (visible); angleOnSlider.setVisible (visible); angleOnValueLabel.setVisible (visible);
-        angleOffLabel.setVisible (visible); angleOffSlider.setVisible (visible); angleOffValueLabel.setVisible (visible);
-        pitchLabel.setVisible (visible); pitchSlider.setVisible (visible); pitchValueLabel.setVisible (visible);
-        hfDampingLabel.setVisible (visible); hfDampingSlider.setVisible (visible); hfDampingValueLabel.setVisible (visible);
-        miniLatencyEnableButton.setVisible (visible);
-        lsEnableButton.setVisible (visible);
-        distanceAttenEnableLabel.setVisible (visible);
-        distanceAttenEnableSlider.setVisible (visible);
-        distanceAttenEnableValueLabel.setVisible (visible);
-    }
 
     void setEQVisible (bool visible)
     {
@@ -1116,7 +1109,7 @@ private:
 
             // Show/hide gain based on filter shape (hide for cut filters)
             if (visible)
-                updateEQBandGainVisibility (i);
+                updateEQBandAppearance (i);
             else
             {
                 eqBandGainLabel[i].setVisible (false);
@@ -1126,28 +1119,62 @@ private:
         }
     }
 
-    void updateEQBandGainVisibility (int bandIndex)
+    void updateEQBandAppearance (int bandIndex)
     {
-        auto eqSection = parameters.getValueTreeState().getReverbEQSection (currentChannel - 1);
-        if (! eqSection.isValid())
-            return;
+        bool eqEnabled = eqEnableButton.getToggleState();
+        int shapeId = eqBandShapeSelector[bandIndex].getSelectedId();
+        bool bandIsOff = (shapeId == 1);  // OFF
 
-        auto bandTree = eqSection.getChild (bandIndex);
-        if (! bandTree.isValid())
-            return;
+        // Determine if this is a cut filter (no gain control)
+        // Reverb EQ shapes: 1=OFF, 2=LowCut, 3=LowShelf, 4=Peak, 5=HighShelf, 6=HighCut
+        bool isCutFilter = (shapeId == 2 || shapeId == 6);
+        bool showGain = !isCutFilter;
 
-        int shape = bandTree.getProperty (WFSParameterIDs::reverbEQshape);
-        // Reverb EQ: 0=Off, 1=LowCut, 5=HighCut - hide gain for cuts
-        bool isCutFilter = (shape == 1 || shape == 5);
-        bool showGain = ! isCutFilter;
+        // Grey out entire band if global EQ is off
+        // Grey out band parameters (except shape) if band is off but EQ is on
+        float bandLabelAlpha = eqEnabled ? 1.0f : 0.4f;
+        float shapeAlpha = eqEnabled ? 1.0f : 0.4f;
+        float paramAlpha = (eqEnabled && !bandIsOff) ? 1.0f : 0.4f;
 
-        // Only set visible if EQ tab is currently selected
-        bool eqTabSelected = (subTabBar.getCurrentTabIndex() == 3);
+        // Band label and shape dropdown follow global EQ state
+        eqBandLabel[bandIndex].setAlpha (bandLabelAlpha);
+        eqBandShapeSelector[bandIndex].setAlpha (shapeAlpha);
+
+        // Only update visibility if EQ tab is currently selected
+        bool eqTabSelected = (subTabBar.getCurrentTabIndex() == 1);
+
+        // Parameters follow both global EQ and band off state
+        if (eqTabSelected)
+        {
+            eqBandFreqLabel[bandIndex].setVisible (true);
+            eqBandFreqSlider[bandIndex].setVisible (true);
+            eqBandFreqValueLabel[bandIndex].setVisible (true);
+        }
+        eqBandFreqLabel[bandIndex].setAlpha (paramAlpha);
+        eqBandFreqSlider[bandIndex].setAlpha (paramAlpha);
+        eqBandFreqValueLabel[bandIndex].setAlpha (paramAlpha);
+
+        if (eqTabSelected)
+        {
+            eqBandQLabel[bandIndex].setVisible (true);
+            eqBandQDial[bandIndex].setVisible (true);
+            eqBandQValueLabel[bandIndex].setVisible (true);
+        }
+        eqBandQLabel[bandIndex].setAlpha (paramAlpha);
+        eqBandQDial[bandIndex].setAlpha (paramAlpha);
+        eqBandQValueLabel[bandIndex].setAlpha (paramAlpha);
+
+        // Gain controls - hide for cut filters, only show if EQ tab selected
         bool showGainVisible = showGain && eqTabSelected;
-
         eqBandGainLabel[bandIndex].setVisible (showGainVisible);
         eqBandGainDial[bandIndex].setVisible (showGainVisible);
         eqBandGainValueLabel[bandIndex].setVisible (showGainVisible);
+        if (showGain)
+        {
+            eqBandGainLabel[bandIndex].setAlpha (paramAlpha);
+            eqBandGainDial[bandIndex].setAlpha (paramAlpha);
+            eqBandGainValueLabel[bandIndex].setAlpha (paramAlpha);
+        }
     }
 
     void setAlgorithmVisible (bool visible)
@@ -1155,8 +1182,45 @@ private:
         algorithmPlaceholderLabel.setVisible (visible);
     }
 
-    void setReverbReturnVisible (bool visible)
+    void setChannelParametersVisible (bool visible)
     {
+        // Column title labels
+        reverbFeedTitleLabel.setVisible (visible);
+        reverbReturnTitleLabel.setVisible (visible);
+
+        // Reverb components
+        attenuationLabel.setVisible (visible);
+        attenuationSlider.setVisible (visible);
+        attenuationValueLabel.setVisible (visible);
+        delayLatencyLabel.setVisible (visible);
+        delayLatencySlider.setVisible (visible);
+        delayLatencyValueLabel.setVisible (visible);
+
+        // Position components
+        coordModeLabel.setVisible (visible);
+        coordModeSelector.setVisible (visible);
+        posXLabel.setVisible (visible); posYLabel.setVisible (visible); posZLabel.setVisible (visible);
+        posXEditor.setVisible (visible); posYEditor.setVisible (visible); posZEditor.setVisible (visible);
+        posXUnitLabel.setVisible (visible); posYUnitLabel.setVisible (visible); posZUnitLabel.setVisible (visible);
+        returnOffsetXLabel.setVisible (visible); returnOffsetYLabel.setVisible (visible); returnOffsetZLabel.setVisible (visible);
+        returnOffsetXEditor.setVisible (visible); returnOffsetYEditor.setVisible (visible); returnOffsetZEditor.setVisible (visible);
+        returnOffsetXUnitLabel.setVisible (visible); returnOffsetYUnitLabel.setVisible (visible); returnOffsetZUnitLabel.setVisible (visible);
+
+        // Reverb Feed components
+        orientationLabel.setVisible (visible);
+        orientationDial.setVisible (visible);
+        orientationValueLabel.setVisible (visible);
+        angleOnLabel.setVisible (visible); angleOnSlider.setVisible (visible); angleOnValueLabel.setVisible (visible);
+        angleOffLabel.setVisible (visible); angleOffSlider.setVisible (visible); angleOffValueLabel.setVisible (visible);
+        pitchLabel.setVisible (visible); pitchSlider.setVisible (visible); pitchValueLabel.setVisible (visible);
+        hfDampingLabel.setVisible (visible); hfDampingSlider.setVisible (visible); hfDampingValueLabel.setVisible (visible);
+        miniLatencyEnableButton.setVisible (visible);
+        lsEnableButton.setVisible (visible);
+        distanceAttenEnableLabel.setVisible (visible);
+        distanceAttenEnableSlider.setVisible (visible);
+        distanceAttenEnableValueLabel.setVisible (visible);
+
+        // Reverb Return components
         distanceAttenLabel.setVisible (visible);
         distanceAttenDial.setVisible (visible);
         distanceAttenValueLabel.setVisible (visible);
@@ -1303,11 +1367,21 @@ private:
 
         int miniLatency = getIntParam (WFSParameterIDs::reverbMiniLatencyEnable, 1);
         miniLatencyEnableButton.setToggleState (miniLatency != 0, juce::dontSendNotification);
-        miniLatencyEnableButton.setButtonText (miniLatency != 0 ? "ENABLE" : "DISABLE");
+        miniLatencyEnableButton.setButtonText (miniLatency != 0 ? "Minimal Latency ON" : "Minimal Latency OFF");
+        {
+            juce::Colour btnColour = miniLatency != 0 ? juce::Colour (0xFF4CAF50) : juce::Colour (0xFF2D2D2D);
+            miniLatencyEnableButton.setColour (juce::TextButton::buttonColourId, btnColour);
+            miniLatencyEnableButton.setColour (juce::TextButton::buttonOnColourId, btnColour);
+        }
 
         int lsEnable = getIntParam (WFSParameterIDs::reverbLSenable, 1);
         lsEnableButton.setToggleState (lsEnable != 0, juce::dontSendNotification);
-        lsEnableButton.setButtonText (lsEnable != 0 ? "LS ENABLE" : "LS DISABLE");
+        lsEnableButton.setButtonText (lsEnable != 0 ? "Live Source Atten ON" : "Live Source Atten OFF");
+        {
+            juce::Colour btnColour = lsEnable != 0 ? juce::Colour (0xFF4CAF50) : juce::Colour (0xFF2D2D2D);
+            lsEnableButton.setColour (juce::TextButton::buttonColourId, btnColour);
+            lsEnableButton.setColour (juce::TextButton::buttonOnColourId, btnColour);
+        }
 
         int distanceAttenEnable = getIntParam (WFSParameterIDs::reverbDistanceAttenEnable, 100);
         distanceAttenEnableSlider.setValue ((distanceAttenEnable - 100.0f) / 100.0f);  // v = (percent - 100) / 100 (bidirectional -1 to 1)
@@ -1336,7 +1410,7 @@ private:
             // Update EQ display enabled state
             eqDisplay->setEQEnabled (eqEnabled != 0);
             // Update visibility based on current tab
-            bool eqTabVisible = (subTabBar.getCurrentTabIndex() == 3);  // EQ is sub-tab index 3
+            bool eqTabVisible = (subTabBar.getCurrentTabIndex() == 1);  // EQ is sub-tab index 1
             eqDisplay->setVisible (eqTabVisible);
             if (eqTabVisible)
                 layoutEQSubTab();
@@ -1384,8 +1458,8 @@ private:
             eqBandQDial[i].setValue (juce::jlimit (0.0f, 1.0f, qSlider));
             eqBandQValueLabel[i].setText (juce::String (q, 2), juce::dontSendNotification);
 
-            // Update gain visibility based on filter shape
-            updateEQBandGainVisibility (i);
+            // Update band appearance based on EQ state and filter shape
+            updateEQBandAppearance (i);
         }
     }
 
@@ -1736,6 +1810,54 @@ private:
             juce::String labelText = (ms < 0) ? "Latency: " : "Delay: ";
             delayLatencyValueLabel.setText (labelText + juce::String (std::abs (ms), 1) + " ms", juce::dontSendNotification);
         }
+        else if (label == &orientationValueLabel)
+        {
+            int degrees = juce::jlimit (-179, 180, static_cast<int> (value));
+            orientationDial.setAngle (static_cast<float> (degrees));
+            orientationValueLabel.setText (juce::String (degrees) + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
+        }
+        else if (label == &angleOnValueLabel)
+        {
+            int degrees = juce::jlimit (1, 180, static_cast<int> (value));
+            angleOnSlider.setValue ((degrees - 1.0f) / 179.0f);
+            angleOnValueLabel.setText (juce::String (degrees) + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
+        }
+        else if (label == &angleOffValueLabel)
+        {
+            int degrees = juce::jlimit (0, 179, static_cast<int> (value));
+            angleOffSlider.setValue (degrees / 179.0f);
+            angleOffValueLabel.setText (juce::String (degrees) + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
+        }
+        else if (label == &pitchValueLabel)
+        {
+            int degrees = juce::jlimit (-90, 90, static_cast<int> (value));
+            pitchSlider.setValue (degrees / 90.0f);
+            pitchValueLabel.setText (juce::String (degrees) + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
+        }
+        else if (label == &hfDampingValueLabel)
+        {
+            float dB = juce::jlimit (-6.0f, 0.0f, value);
+            hfDampingSlider.setValue ((dB + 6.0f) / 6.0f);
+            hfDampingValueLabel.setText (juce::String (dB, 1) + " dB/m", juce::dontSendNotification);
+        }
+        else if (label == &distanceAttenEnableValueLabel)
+        {
+            int percent = juce::jlimit (0, 200, static_cast<int> (value));
+            distanceAttenEnableSlider.setValue (percent / 100.0f - 1.0f);  // 0-200% maps to -1 to +1
+            distanceAttenEnableValueLabel.setText (juce::String (percent) + "%", juce::dontSendNotification);
+        }
+        else if (label == &distanceAttenValueLabel)
+        {
+            float dB = juce::jlimit (-6.0f, 0.0f, value);
+            distanceAttenDial.setValue ((dB + 6.0f) / 6.0f);
+            distanceAttenValueLabel.setText (juce::String (dB, 1) + " dB/m", juce::dontSendNotification);
+        }
+        else if (label == &commonAttenValueLabel)
+        {
+            int percent = juce::jlimit (0, 100, static_cast<int> (value));
+            commonAttenDial.setValue (percent / 100.0f);
+            commonAttenValueLabel.setText (juce::String (percent) + "%", juce::dontSendNotification);
+        }
     }
 
     void valueTreePropertyChanged (juce::ValueTree& tree, const juce::Identifier& property) override
@@ -1999,6 +2121,10 @@ private:
     juce::Label returnOffsetXLabel, returnOffsetYLabel, returnOffsetZLabel;
     juce::TextEditor returnOffsetXEditor, returnOffsetYEditor, returnOffsetZEditor;
     juce::Label returnOffsetXUnitLabel, returnOffsetYUnitLabel, returnOffsetZUnitLabel;
+
+    // Column title labels for Channel Parameters tab
+    juce::Label reverbFeedTitleLabel;
+    juce::Label reverbReturnTitleLabel;
 
     // Reverb Feed sub-tab
     juce::Label orientationLabel;
