@@ -81,6 +81,20 @@ public:
         bool valid = false;
     };
 
+    struct ParsedClusterMoveMessage
+    {
+        enum class Type {
+            ClusterMove,      // /cluster/move <clusterId> <deltaX> <deltaY>
+            BarycenterMove    // /cluster/barycenter/move <clusterId> <deltaX> <deltaY>
+        };
+
+        Type type = Type::ClusterMove;
+        int clusterId = 0;       // Cluster ID (1-10)
+        float deltaX = 0.0f;     // X delta in meters
+        float deltaY = 0.0f;     // Y delta in meters
+        bool valid = false;
+    };
+
     //==========================================================================
     // Message Routing
     //==========================================================================
@@ -107,6 +121,12 @@ public:
     static ParsedArrayAdjustMessage parseArrayAdjustMessage(const juce::OSCMessage& message);
 
     /**
+     * Parse a cluster move message from remote.
+     * Handles /cluster/move and /cluster/barycenter/move addresses.
+     */
+    static ParsedClusterMoveMessage parseClusterMoveMessage(const juce::OSCMessage& message);
+
+    /**
      * Check if an address matches input, output, reverb, or config patterns.
      */
     static bool isInputAddress(const juce::String& address);
@@ -115,6 +135,7 @@ public:
     static bool isConfigAddress(const juce::String& address);
     static bool isRemoteInputAddress(const juce::String& address);
     static bool isArrayAdjustAddress(const juce::String& address);
+    static bool isClusterMoveAddress(const juce::String& address);
 
     //==========================================================================
     // Address Pattern Matching

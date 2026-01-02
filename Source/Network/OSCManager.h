@@ -273,6 +273,7 @@ private:
     void handleRemoteParameterSet(const OSCMessageRouter::ParsedRemoteInput& parsed);
     void handleRemoteParameterDelta(const OSCMessageRouter::ParsedRemoteInput& parsed);
     void handleArrayAdjustMessage(const juce::OSCMessage& message);
+    void handleClusterMoveMessage(const juce::OSCMessage& message);
 
     // Stage bounds for constraint application
     float getStageMinX() const;
@@ -287,6 +288,12 @@ private:
     float applyConstraintZ(int channelIndex, float value) const;
 
     void sendRemoteChannelDump(int channelId);
+
+    /**
+     * Send stage configuration to all connected Remote targets.
+     * Sends origin, dimensions, shape, and input count.
+     */
+    void sendStageConfigToRemote();
 
     void sendParameterUpdate(int targetIndex, const juce::Identifier& paramId,
                              int channelId, float value, bool isOutput);

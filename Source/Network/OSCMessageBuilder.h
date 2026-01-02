@@ -129,6 +129,28 @@ public:
      */
     static juce::OSCBundle createBundle(const std::vector<juce::OSCMessage>& messages);
 
+    //==========================================================================
+    // Direct Message Building (for stage config, etc.)
+    //==========================================================================
+
+    /**
+     * Build a config float message with custom address.
+     * @param address The OSC address (e.g., "/stage/width")
+     * @param value The float value
+     */
+    static juce::OSCMessage buildConfigFloatMessage(
+        const juce::String& address,
+        float value);
+
+    /**
+     * Build a config integer message with custom address.
+     * @param address The OSC address (e.g., "/stage/shape")
+     * @param value The integer value
+     */
+    static juce::OSCMessage buildConfigIntMessage(
+        const juce::String& address,
+        int value);
+
 private:
     //==========================================================================
     // Internal Mapping
@@ -153,15 +175,6 @@ private:
         const juce::String& address,
         int channelId,
         const juce::String& value);
-
-    // Config message helpers (no channel ID)
-    static juce::OSCMessage buildConfigFloatMessage(
-        const juce::String& address,
-        float value);
-
-    static juce::OSCMessage buildConfigIntMessage(
-        const juce::String& address,
-        int value);
 };
 
 } // namespace WFSNetwork

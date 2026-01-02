@@ -1636,8 +1636,9 @@ void WFSValueTreeState::enforceClusterTrackingConstraint (int changedInputIndex)
 WFSValueTreeState::ParameterScope WFSValueTreeState::getParameterScope (const juce::Identifier& paramId) const
 {
     // Check for config-level parameters that might have misleading prefixes
-    // reverbChannels is stored in Config/IO, not in Reverbs section
-    if (paramId == reverbChannels)
+    // inputChannels, outputChannels, reverbChannels are stored in Config/IO,
+    // not in their respective channel sections
+    if (paramId == inputChannels || paramId == outputChannels || paramId == reverbChannels)
         return ParameterScope::Config;
 
     // Check if it's an input parameter

@@ -337,6 +337,11 @@ bool OSCMessageRouter::isArrayAdjustAddress(const juce::String& address)
     return address.startsWith("/arrayAdjust/");
 }
 
+bool OSCMessageRouter::isClusterMoveAddress(const juce::String& address)
+{
+    return address == "/cluster/move" || address == "/cluster/barycenter/move";
+}
+
 juce::String OSCMessageRouter::extractParamName(const juce::String& address)
 {
     // Extract the last part of the path
@@ -685,6 +690,39 @@ OSCMessageRouter::ParsedArrayAdjustMessage OSCMessageRouter::parseArrayAdjustMes
     result.valueChange = extractFloat(message[1]);
     result.valid = true;
 
+    return result;
+}
+
+OSCMessageRouter::ParsedClusterMoveMessage OSCMessageRouter::parseClusterMoveMessage(const juce::OSCMessage& message)
+{
+    ParsedClusterMoveMessage result;
+
+    juce::String address = message.getAddressPattern().toString();
+
+    if (!isClusterMoveAddress(address))
+        return result;
+
+    // Both message types require 3 arguments: clusterId (int), deltaX (float), deltaY (float)
+    if (message.size() < 3)
+        return result;
+
+    // Determine type from address
+    if (address == "/cluster/move")
+        result.type = ParsedClusterMoveMessage::Type::ClusterMove;
+    else if (address == "/cluster/barycenter/move")
+        result.type = ParsedClusterMoveMessage::Type::BarycenterMove;
+    else
+        return result;
+
+    result.clusterId = extractInt(message[0]);
+    result.deltaX = extractFloat(message[1]);
+    result.deltaY = extractFloat(message[2]);
+
+    // Validate cluster ID (1-10)
+    if (result.clusterId < 1 || result.clusterId > 10)
+        return result;
+
+    result.valid = true;
     return result;
 }
 

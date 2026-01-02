@@ -419,6 +419,21 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
         << " property=" << property.toString()
         << " incomingProtocol=" << static_cast<int>(incomingProtocol));
 
+    // Check if this is a stage/config parameter that needs broadcasting to Remote
+    if (property == WFSParameterIDs::stageWidth ||
+        property == WFSParameterIDs::stageDepth ||
+        property == WFSParameterIDs::stageHeight ||
+        property == WFSParameterIDs::stageDiameter ||
+        property == WFSParameterIDs::stageShape ||
+        property == WFSParameterIDs::originWidth ||
+        property == WFSParameterIDs::originDepth ||
+        property == WFSParameterIDs::originHeight ||
+        property == WFSParameterIDs::inputChannels)
+    {
+        sendStageConfigToRemote();
+        return;  // Don't process as channel parameter
+    }
+
     // Determine if this is an input or output parameter change
     juce::String typeName = tree.getType().toString();
     juce::var value = tree.getProperty(property);
@@ -622,6 +637,10 @@ void OSCManager::handleIncomingMessage(const juce::OSCMessage& message,
     {
         handleArrayAdjustMessage(message);
     }
+    else if (OSCMessageRouter::isClusterMoveAddress(address))
+    {
+        handleClusterMoveMessage(message);
+    }
 }
 
 void OSCManager::handleIncomingBundle(const juce::OSCBundle& bundle,
@@ -664,6 +683,10 @@ void OSCManager::handleIncomingBundle(const juce::OSCBundle& bundle,
             else if (OSCMessageRouter::isArrayAdjustAddress(address))
             {
                 handleArrayAdjustMessage(message);
+            }
+            else if (OSCMessageRouter::isClusterMoveAddress(address))
+            {
+                handleClusterMoveMessage(message);
             }
         }
         else if (element.isBundle())
@@ -1023,6 +1046,61 @@ void OSCManager::handleArrayAdjustMessage(const juce::OSCMessage& message)
     });
 }
 
+void OSCManager::handleClusterMoveMessage(const juce::OSCMessage& message)
+{
+    auto parsed = OSCMessageRouter::parseClusterMoveMessage(message);
+
+    if (!parsed.valid)
+    {
+        ++parseErrors;
+        return;
+    }
+
+    // Move inputs in the specified cluster by delta
+    juce::MessageManager::callAsync([this, parsed]()
+    {
+        incomingProtocol = Protocol::Remote;  // Flag: processing incoming remote message
+
+        // Get number of configured input channels
+        int numInputs = state.getIntParameter(WFSParameterIDs::inputChannels);
+
+        // Both ClusterMove and BarycenterMove result in moving all cluster members by delta
+        // For ClusterMove (First Input mode): all inputs move by delta
+        // For BarycenterMove (Barycenter mode): all inputs move by delta (to shift barycenter)
+
+        // Iterate through all inputs and adjust those in the target cluster
+        for (int inputIndex = 0; inputIndex < numInputs; ++inputIndex)
+        {
+            // Get the cluster assignment for this input
+            juce::var clusterVar = state.getInputParameter(inputIndex, WFSParameterIDs::inputCluster);
+            int inputClusterId = clusterVar.isInt() ? static_cast<int>(clusterVar) : 0;
+
+            // Check if this input belongs to the target cluster
+            if (inputClusterId == parsed.clusterId)
+            {
+                // Get current position
+                juce::var posXVar = state.getInputParameter(inputIndex, WFSParameterIDs::inputPositionX);
+                juce::var posYVar = state.getInputParameter(inputIndex, WFSParameterIDs::inputPositionY);
+
+                float currentX = posXVar.isDouble() ? static_cast<float>(static_cast<double>(posXVar)) :
+                                (posXVar.isInt() ? static_cast<float>(static_cast<int>(posXVar)) : 0.0f);
+                float currentY = posYVar.isDouble() ? static_cast<float>(static_cast<double>(posYVar)) :
+                                (posYVar.isInt() ? static_cast<float>(static_cast<int>(posYVar)) : 0.0f);
+
+                // Apply delta
+                float newX = currentX + parsed.deltaX;
+                float newY = currentY + parsed.deltaY;
+
+                // Set new position
+                state.setInputParameter(inputIndex, WFSParameterIDs::inputPositionX, newX);
+                state.setInputParameter(inputIndex, WFSParameterIDs::inputPositionY, newY);
+            }
+        }
+
+        incomingProtocol = Protocol::Disabled;  // Clear flag
+    });
+}
+
 void OSCManager::sendRemoteChannelDump(int channelId)
 {
     // Helper lambda to get a parameter value as float
@@ -1131,12 +1209,66 @@ void OSCManager::sendRemoteChannelDump(int channelId)
     }
 }
 
+void OSCManager::sendStageConfigToRemote()
+{
+    auto stageTree = state.getStageState();
+    if (!stageTree.isValid())
+        return;
+
+    // Gather stage parameters
+    float originX = static_cast<float>(stageTree.getProperty(WFSParameterIDs::originWidth));
+    float originY = static_cast<float>(stageTree.getProperty(WFSParameterIDs::originDepth));
+    float originZ = static_cast<float>(stageTree.getProperty(WFSParameterIDs::originHeight));
+    float width = static_cast<float>(stageTree.getProperty(WFSParameterIDs::stageWidth));
+    float depth = static_cast<float>(stageTree.getProperty(WFSParameterIDs::stageDepth));
+    float height = static_cast<float>(stageTree.getProperty(WFSParameterIDs::stageHeight));
+    int shape = static_cast<int>(stageTree.getProperty(WFSParameterIDs::stageShape));
+    float diameter = static_cast<float>(stageTree.getProperty(WFSParameterIDs::stageDiameter));
+
+    // Get input count from IO section (can't use getIntParameter as "inputChannels" starts with "input"
+    // and would be incorrectly routed to the Input channel scope instead of Config/IO)
+    auto ioTree = state.getIOState();
+    int inputs = ioTree.isValid()
+        ? static_cast<int>(ioTree.getProperty(WFSParameterIDs::inputChannels))
+        : 8;
+
+    // Build messages
+    std::vector<juce::OSCMessage> messages;
+    messages.push_back(OSCMessageBuilder::buildConfigFloatMessage("/stage/originX", originX));
+    messages.push_back(OSCMessageBuilder::buildConfigFloatMessage("/stage/originY", originY));
+    messages.push_back(OSCMessageBuilder::buildConfigFloatMessage("/stage/originZ", originZ));
+    messages.push_back(OSCMessageBuilder::buildConfigFloatMessage("/stage/width", width));
+    messages.push_back(OSCMessageBuilder::buildConfigFloatMessage("/stage/depth", depth));
+    messages.push_back(OSCMessageBuilder::buildConfigFloatMessage("/stage/height", height));
+    messages.push_back(OSCMessageBuilder::buildConfigIntMessage("/stage/shape", shape));
+    messages.push_back(OSCMessageBuilder::buildConfigFloatMessage("/stage/diameter", diameter));
+    messages.push_back(OSCMessageBuilder::buildConfigIntMessage("/inputs", inputs));
+
+    // Send to all Remote protocol targets that are connected
+    for (int i = 0; i < MAX_TARGETS; ++i)
+    {
+        if (targetConfigs[static_cast<size_t>(i)].protocol == Protocol::Remote &&
+            targetStatuses[static_cast<size_t>(i)] == ConnectionStatus::Connected)
+        {
+            for (const auto& msg : messages)
+                sendMessage(i, msg);
+        }
+    }
+}
+
 void OSCManager::updateTargetStatus(int targetIndex, ConnectionStatus newStatus)
 {
     if (targetIndex < 0 || targetIndex >= MAX_TARGETS)
         return;
 
     targetStatuses[static_cast<size_t>(targetIndex)] = newStatus;
+
+    // Send stage config when Remote target connects
+    if (newStatus == ConnectionStatus::Connected &&
+        targetConfigs[static_cast<size_t>(targetIndex)].protocol == Protocol::Remote)
+    {
+        sendStageConfigToRemote();
+    }
 
     if (onConnectionStatusChanged)
         onConnectionStatusChanged(targetIndex, newStatus);
