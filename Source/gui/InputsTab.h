@@ -775,6 +775,7 @@ private:
         // Tracking Smoothing dial (0-100%)
         addAndMakeVisible(trackingSmoothLabel);
         trackingSmoothLabel.setText("Tracking Smooth:", juce::dontSendNotification);
+        trackingSmoothLabel.setJustificationType(juce::Justification::centred);
         trackingSmoothDial.setColours(juce::Colours::black, juce::Colour(0xFF00BCD4), juce::Colours::grey);
         trackingSmoothDial.setValue(1.0f);  // Default 100%
         trackingSmoothDial.onValueChanged = [this](float v) {
@@ -801,6 +802,7 @@ private:
         // Max Speed dial (0.01-20.0 m/s)
         addAndMakeVisible(maxSpeedLabel);
         maxSpeedLabel.setText("Max Speed:", juce::dontSendNotification);
+        maxSpeedLabel.setJustificationType(juce::Justification::centred);
         maxSpeedDial.setColours(juce::Colours::black, juce::Colour(0xFFFF9800), juce::Colours::grey);
         maxSpeedDial.onValueChanged = [this](float v) {
             float speed = v * 19.99f + 0.01f;
@@ -826,6 +828,7 @@ private:
         // Height Factor dial
         addAndMakeVisible(heightFactorLabel);
         heightFactorLabel.setText("Height Factor:", juce::dontSendNotification);
+        heightFactorLabel.setJustificationType(juce::Justification::centred);
         heightFactorDial.setColours(juce::Colours::black, juce::Colour(0xFF4CAF50), juce::Colours::grey);
         heightFactorDial.onValueChanged = [this](float v) {
             int percent = static_cast<int>(v * 100.0f);
@@ -1013,6 +1016,7 @@ private:
         // Distance Attenuation dial (visible when attenuationLaw == Log)
         addAndMakeVisible(distanceAttenLabel);
         distanceAttenLabel.setText("Distance Atten:", juce::dontSendNotification);
+        distanceAttenLabel.setJustificationType(juce::Justification::centred);
         distanceAttenDial.setColours(juce::Colours::black, juce::Colour(0xFF9C27B0), juce::Colours::grey);
         distanceAttenDial.onValueChanged = [this](float v) {
             float dBm = (v * 6.0f) - 6.0f;
@@ -1028,6 +1032,7 @@ private:
         // Distance Ratio dial (visible when attenuationLaw == 1/d)
         addAndMakeVisible(distanceRatioLabel);
         distanceRatioLabel.setText("Distance Ratio:", juce::dontSendNotification);
+        distanceRatioLabel.setJustificationType(juce::Justification::centred);
         distanceRatioDial.setColours(juce::Colours::black, juce::Colour(0xFF9C27B0), juce::Colours::grey);
         distanceRatioDial.onValueChanged = [this](float v) {
             // Formula: pow(10.0,(x*2.0)-1.0) maps 0-1 to 0.1-10.0
@@ -1049,6 +1054,7 @@ private:
         // Common Attenuation dial
         addAndMakeVisible(commonAttenLabel);
         commonAttenLabel.setText("Common Atten:", juce::dontSendNotification);
+        commonAttenLabel.setJustificationType(juce::Justification::centred);
         commonAttenDial.setColours(juce::Colours::black, juce::Colour(0xFF2196F3), juce::Colours::grey);
         commonAttenDial.setValue(1.0f);
         commonAttenDial.onValueChanged = [this](float v) {
@@ -1080,6 +1086,7 @@ private:
         // Rotation dial
         addAndMakeVisible(rotationLabel);
         rotationLabel.setText("Rotation:", juce::dontSendNotification);
+        rotationLabel.setJustificationType(juce::Justification::centred);
         rotationDial.setColours(juce::Colours::black, juce::Colours::white, juce::Colours::grey);
         rotationDial.onAngleChanged = [this](float angle) {
             rotationValueLabel.setText(juce::String(static_cast<int>(angle)) + juce::String::fromUTF8("°"), juce::dontSendNotification);
@@ -1195,6 +1202,7 @@ private:
         // Peak Ratio dial
         addAndMakeVisible(lsPeakRatioLabel);
         lsPeakRatioLabel.setText("Peak Ratio:", juce::dontSendNotification);
+        lsPeakRatioLabel.setJustificationType(juce::Justification::centred);
         lsPeakRatioDial.setColours(juce::Colours::black, juce::Colour(0xFFE91E63), juce::Colours::grey);
         lsPeakRatioDial.onValueChanged = [this](float v) {
             float ratio = (v * 9.0f) + 1.0f;
@@ -1225,6 +1233,7 @@ private:
         // Slow Ratio dial
         addAndMakeVisible(lsSlowRatioLabel);
         lsSlowRatioLabel.setText("Slow Ratio:", juce::dontSendNotification);
+        lsSlowRatioLabel.setJustificationType(juce::Justification::centred);
         lsSlowRatioDial.setColours(juce::Colours::black, juce::Colour(0xFF9C27B0), juce::Colours::grey);
         lsSlowRatioDial.onValueChanged = [this](float v) {
             float ratio = (v * 9.0f) + 1.0f;
@@ -1268,6 +1277,7 @@ private:
         // FR Diffusion dial
         addAndMakeVisible(frDiffusionLabel);
         frDiffusionLabel.setText("FR Diffusion:", juce::dontSendNotification);
+        frDiffusionLabel.setJustificationType(juce::Justification::centred);
         frDiffusionDial.setColours(juce::Colours::black, juce::Colour(0xFF795548), juce::Colours::grey);
         frDiffusionDial.setValue(0.2f);
         frDiffusionDial.onValueChanged = [this](float v) {
@@ -1388,6 +1398,7 @@ private:
         // Period dial (0.01-100.0 s) - Formula: pow(10.0,sqrt(x)*4.0-2.0)
         addAndMakeVisible(lfoPeriodLabel);
         lfoPeriodLabel.setText("Period:", juce::dontSendNotification);
+        lfoPeriodLabel.setJustificationType(juce::Justification::centred);
         lfoPeriodDial.setColours(juce::Colours::black, juce::Colour(0xFF00BCD4), juce::Colours::grey);
         lfoPeriodDial.onValueChanged = [this](float v) {
             float period = std::pow(10.0f, std::sqrt(v) * 4.0f - 2.0f);
@@ -1403,6 +1414,7 @@ private:
         // Main Phase dial (-180° to 180°) - uses WfsRotationDial
         addAndMakeVisible(lfoPhaseLabel);
         lfoPhaseLabel.setText("Phase:", juce::dontSendNotification);
+        lfoPhaseLabel.setJustificationType(juce::Justification::centred);
         lfoPhaseDial.setColours(juce::Colours::black, juce::Colour(0xFF4CAF50), juce::Colours::grey);
         lfoPhaseDial.onAngleChanged = [this](float angle) {
             int degrees = static_cast<int>(angle);
@@ -1531,6 +1543,7 @@ private:
         // Phase X/Y/Z dials (-180° to 180°)
         addAndMakeVisible(lfoPhaseXLabel);
         lfoPhaseXLabel.setText("Phase X:", juce::dontSendNotification);
+        lfoPhaseXLabel.setJustificationType(juce::Justification::centred);
         lfoPhaseXDial.setColours(juce::Colours::black, juce::Colour(0xFFFF9800), juce::Colours::grey);
         lfoPhaseXDial.onAngleChanged = [this](float angle) {
             int degrees = static_cast<int>(angle);
@@ -1545,6 +1558,7 @@ private:
 
         addAndMakeVisible(lfoPhaseYLabel);
         lfoPhaseYLabel.setText("Phase Y:", juce::dontSendNotification);
+        lfoPhaseYLabel.setJustificationType(juce::Justification::centred);
         lfoPhaseYDial.setColours(juce::Colours::black, juce::Colour(0xFFFF9800), juce::Colours::grey);
         lfoPhaseYDial.onAngleChanged = [this](float angle) {
             int degrees = static_cast<int>(angle);
@@ -1559,6 +1573,7 @@ private:
 
         addAndMakeVisible(lfoPhaseZLabel);
         lfoPhaseZLabel.setText("Phase Z:", juce::dontSendNotification);
+        lfoPhaseZLabel.setJustificationType(juce::Justification::centred);
         lfoPhaseZDial.setColours(juce::Colours::black, juce::Colour(0xFFFF9800), juce::Colours::grey);
         lfoPhaseZDial.onAngleChanged = [this](float angle) {
             int degrees = static_cast<int>(angle);
@@ -1671,6 +1686,7 @@ private:
         // Duration dial (0.1 to 3600 seconds, logarithmic)
         addAndMakeVisible(otomoDurationLabel);
         otomoDurationLabel.setText("Duration:", juce::dontSendNotification);
+        otomoDurationLabel.setJustificationType(juce::Justification::centred);
         otomoDurationDial.setColours(juce::Colours::black, juce::Colour(0xFF4CAF50), juce::Colours::grey);
         otomoDurationDial.onValueChanged = [this](float v) {
             // Logarithmic scale: 0.1s to 3600s
@@ -1699,6 +1715,7 @@ private:
         // Curve dial (-100 to +100, bipolar)
         addAndMakeVisible(otomoCurveLabel);
         otomoCurveLabel.setText("Curve:", juce::dontSendNotification);
+        otomoCurveLabel.setJustificationType(juce::Justification::centred);
         otomoCurveDial.setColours(juce::Colours::black, juce::Colour(0xFFFF9800), juce::Colours::grey);
         otomoCurveDial.onValueChanged = [this](float v) {
             // Bipolar: -100 to +100
@@ -1715,6 +1732,7 @@ private:
         // Speed Profile dial (0-100%)
         addAndMakeVisible(otomoSpeedProfileLabel);
         otomoSpeedProfileLabel.setText("Speed Profile:", juce::dontSendNotification);
+        otomoSpeedProfileLabel.setJustificationType(juce::Justification::centred);
         otomoSpeedProfileDial.setColours(juce::Colours::black, juce::Colour(0xFF2196F3), juce::Colours::grey);
         otomoSpeedProfileDial.onValueChanged = [this](float v) {
             int percent = static_cast<int>(v * 100.0f);
@@ -1740,6 +1758,7 @@ private:
         // Trigger Threshold dial (-92 to 0 dB)
         addAndMakeVisible(otomoThresholdLabel);
         otomoThresholdLabel.setText("Threshold:", juce::dontSendNotification);
+        otomoThresholdLabel.setJustificationType(juce::Justification::centred);
         otomoThresholdDial.setColours(juce::Colours::black, juce::Colour(0xFFE91E63), juce::Colours::grey);
         otomoThresholdDial.onValueChanged = [this](float v) {
             float dB = 20.0f * std::log10(std::pow(10.0f, -92.0f / 20.0f) +
@@ -1756,6 +1775,7 @@ private:
         // Trigger Reset dial (-92 to 0 dB)
         addAndMakeVisible(otomoResetLabel);
         otomoResetLabel.setText("Reset:", juce::dontSendNotification);
+        otomoResetLabel.setJustificationType(juce::Justification::centred);
         otomoResetDial.setColours(juce::Colours::black, juce::Colour(0xFF9C27B0), juce::Colours::grey);
         otomoResetDial.onValueChanged = [this](float v) {
             float dB = 20.0f * std::log10(std::pow(10.0f, -92.0f / 20.0f) +
@@ -1931,6 +1951,7 @@ private:
 
         addAndMakeVisible(sidelinesFringeLabel);
         sidelinesFringeLabel.setText("Fringe:", juce::dontSendNotification);
+        sidelinesFringeLabel.setJustificationType(juce::Justification::centred);
 
         addAndMakeVisible(sidelinesFringeDial);
         sidelinesFringeDial.setColours(juce::Colours::black, juce::Colour(0xFF00C853), juce::Colours::grey);
@@ -2139,7 +2160,7 @@ private:
         // Delay/Latency
         row = leftCol.removeFromTop(rowHeight);
         delayLatencyLabel.setBounds(row.removeFromLeft(labelWidth));
-        delayLatencyValueLabel.setBounds(row.removeFromRight(valueWidth));
+        delayLatencyValueLabel.setBounds(row.removeFromRight(130));  // Wider for "Latency: 100.0 ms"
         leftCol.removeFromTop(spacing / 2);
         delayLatencySlider.setBounds(leftCol.removeFromTop(sliderHeight));
         leftCol.removeFromTop(spacing);
@@ -2789,14 +2810,14 @@ private:
         // Attenuation
         auto row = col1.removeFromTop(rowHeight);
         attenuationLabel.setBounds(row.removeFromLeft(labelWidth));
-        attenuationValueLabel.setBounds(row.removeFromRight(valueWidth));
+        attenuationValueLabel.setBounds(row.removeFromRight(100));  // Wider for "-12.0 dB"
         attenuationSlider.setBounds(col1.removeFromTop(sliderHeight));
         col1.removeFromTop(spacing);
 
         // Delay/Latency
         row = col1.removeFromTop(rowHeight);
         delayLatencyLabel.setBounds(row.removeFromLeft(labelWidth));
-        delayLatencyValueLabel.setBounds(row.removeFromRight(valueWidth));
+        delayLatencyValueLabel.setBounds(row.removeFromRight(130));  // Wider for "Latency: 100.0 ms"
         delayLatencySlider.setBounds(col1.removeFromTop(sliderHeight));
         col1.removeFromTop(spacing);
 
@@ -2966,39 +2987,44 @@ private:
 
         // ========== COLUMN 2: Sound + Mutes ==========
 
-        // --- Top row: Attenuation Law, Distance Atten, Common Atten (3-column like tracking section) ---
-        const int col2ThreeColWidth = col2.getWidth() / 3;
-        const int topBlockHeight = dialSize + rowHeight * 2 + spacing;
+        // --- Top row: Attenuation Law, Distance Atten, Common Atten (tighter layout) ---
+        const int topBlockHeight = dialSize + rowHeight * 2;
         auto topBlock = col2.removeFromTop(topBlockHeight);
 
-        // Column 1: Attenuation Law label and button (centered)
-        auto attenLawCol = topBlock.removeFromLeft(col2ThreeColWidth);
-        int col2CenterX = attenLawCol.getX() + col2ThreeColWidth / 2;
-        // Label at top, button below, vertically centered as a group
-        int attenLawGroupHeight = rowHeight * 2 + spacing;
-        int attenLawGroupY = attenLawCol.getY() + (topBlockHeight - attenLawGroupHeight) / 2;
-        attenuationLawLabel.setBounds(col2CenterX - 70, attenLawGroupY, 140, rowHeight);
-        attenuationLawButton.setBounds(col2CenterX - 60, attenLawGroupY + rowHeight + spacing, 120, rowHeight);
+        // Calculate item widths and total needed width
+        const int attenLawWidth = 140;  // Label/button width
+        const int dialSectionWidth = 110;  // Label width for dial sections
+        const int itemSpacing = spacing * 4;  // Spacing between items
+        const int totalTopRowWidth = attenLawWidth + dialSectionWidth * 2 + itemSpacing * 2;
 
-        // Column 2: Distance Atten dial (centered)
-        auto distCol = topBlock.removeFromLeft(col2ThreeColWidth);
-        col2CenterX = distCol.getX() + col2ThreeColWidth / 2;
-        distanceAttenLabel.setBounds(col2CenterX - 55, distCol.getY(), 110, rowHeight);
+        // Center the group within topBlock
+        int topRowStartX = topBlock.getX() + (topBlock.getWidth() - totalTopRowWidth) / 2;
+        int topRowY = topBlock.getY();
+
+        // Column 1: Attenuation Law - label aligned with dial labels, button centered with dials
+        int attenLawCenterX = topRowStartX + attenLawWidth / 2;
+        attenuationLawLabel.setBounds(attenLawCenterX - 70, topRowY, 140, rowHeight);
+        // Button vertically centered with dials (dials start at topRowY + rowHeight)
+        int dialCenterY = topRowY + rowHeight + dialSize / 2;
+        attenuationLawButton.setBounds(attenLawCenterX - 60, dialCenterY - rowHeight / 2, 120, rowHeight);
+
+        // Column 2: Distance Atten dial
+        int distCenterX = topRowStartX + attenLawWidth + itemSpacing + dialSectionWidth / 2;
+        distanceAttenLabel.setBounds(distCenterX - 55, topRowY, 110, rowHeight);
         distanceRatioLabel.setBounds(distanceAttenLabel.getBounds());
-        distanceAttenDial.setBounds(col2CenterX - dialSize / 2, distCol.getY() + rowHeight, dialSize, dialSize);
+        distanceAttenDial.setBounds(distCenterX - dialSize / 2, topRowY + rowHeight, dialSize, dialSize);
         distanceRatioDial.setBounds(distanceAttenDial.getBounds());
-        distanceAttenValueLabel.setBounds(col2CenterX - 55, distCol.getY() + rowHeight + dialSize, 110, rowHeight);
+        distanceAttenValueLabel.setBounds(distCenterX - 55, topRowY + rowHeight + dialSize, 110, rowHeight);
         distanceRatioValueLabel.setBounds(distanceAttenValueLabel.getBounds());
 
-        // Column 3: Common Atten dial (centered)
-        auto commonCol = topBlock;
-        col2CenterX = commonCol.getX() + commonCol.getWidth() / 2;
-        commonAttenLabel.setBounds(col2CenterX - 55, commonCol.getY(), 110, rowHeight);
-        commonAttenDial.setBounds(col2CenterX - dialSize / 2, commonCol.getY() + rowHeight, dialSize, dialSize);
-        commonAttenValueLabel.setBounds(col2CenterX - 55, commonCol.getY() + rowHeight + dialSize, 110, rowHeight);
+        // Column 3: Common Atten dial
+        int commonCenterX = topRowStartX + attenLawWidth + itemSpacing + dialSectionWidth + itemSpacing + dialSectionWidth / 2;
+        commonAttenLabel.setBounds(commonCenterX - 55, topRowY, 110, rowHeight);
+        commonAttenDial.setBounds(commonCenterX - dialSize / 2, topRowY + rowHeight, dialSize, dialSize);
+        commonAttenValueLabel.setBounds(commonCenterX - 55, topRowY + rowHeight + dialSize, 110, rowHeight);
 
-        // Extra padding before sliders section
-        col2.removeFromTop(spacing * 3);
+        // Reduced padding before sliders section
+        col2.removeFromTop(spacing);
 
         // --- Sliders + Rotation dial section ---
         const int largeRotationDial = dialSize * 2;  // Twice as large
@@ -3012,21 +3038,21 @@ private:
         // Directivity
         row = slidersArea.removeFromTop(rowHeight);
         directivityLabel.setBounds(row.removeFromLeft(70));
-        directivityValueLabel.setBounds(row.removeFromRight(60));
+        directivityValueLabel.setBounds(row.removeFromRight(90));
         directivitySlider.setBounds(slidersArea.removeFromTop(sliderHeight));
         slidersArea.removeFromTop(spacing);
 
         // Tilt
         row = slidersArea.removeFromTop(rowHeight);
         tiltLabel.setBounds(row.removeFromLeft(70));
-        tiltValueLabel.setBounds(row.removeFromRight(60));
+        tiltValueLabel.setBounds(row.removeFromRight(90));
         tiltSlider.setBounds(slidersArea.removeFromTop(sliderHeight));
         slidersArea.removeFromTop(spacing);
 
         // HF Shelf
         row = slidersArea.removeFromTop(rowHeight);
         hfShelfLabel.setBounds(row.removeFromLeft(70));
-        hfShelfValueLabel.setBounds(row.removeFromRight(60));
+        hfShelfValueLabel.setBounds(row.removeFromRight(90));
         hfShelfSlider.setBounds(slidersArea.removeFromTop(sliderHeight));
 
         // Right side: Large Rotation dial (centered vertically)
@@ -3076,42 +3102,44 @@ private:
         // --- Array Attenuation - all 10 dials on single line ---
         const int smallDialSize = 36;
         const int arrayDialSpacing = (col2.getWidth() - smallDialSize * 10) / 10;
+        const int arrayLabelWidth = smallDialSize + arrayDialSpacing;  // Full width per dial slot
         arrayAttenLabel.setBounds(col2.removeFromTop(rowHeight).removeFromLeft(150));
 
         auto arrayRow = col2.removeFromTop(smallDialSize + 30);
         for (int i = 0; i < 10; ++i)
         {
-            int dialX = arrayRow.getX() + i * (smallDialSize + arrayDialSpacing) + arrayDialSpacing / 2;
-            arrayAttenDialLabels[i].setBounds(dialX, arrayRow.getY(), smallDialSize, 12);
+            int slotX = arrayRow.getX() + i * (smallDialSize + arrayDialSpacing);
+            int dialX = slotX + arrayDialSpacing / 2;
+            int labelCenterX = dialX + smallDialSize / 2;  // Center of dial
+            arrayAttenDialLabels[i].setBounds(labelCenterX - arrayLabelWidth / 2, arrayRow.getY(), arrayLabelWidth, 12);
             arrayAttenDials[i].setBounds(dialX, arrayRow.getY() + 12, smallDialSize, smallDialSize);
-            arrayAttenValueLabels[i].setBounds(dialX, arrayRow.getY() + 12 + smallDialSize, smallDialSize, 12);
+            arrayAttenValueLabels[i].setBounds(labelCenterX - arrayLabelWidth / 2, arrayRow.getY() + 12 + smallDialSize, arrayLabelWidth, 12);
         }
 
         // Extra padding after array attenuation
-        col2.removeFromTop(spacing * 3);
+        col2.removeFromTop(spacing * 2);
 
-        // Sidelines - centered in the right half of col2
+        // Sidelines - centered in the column
         // Calculate the total width needed: button + spacing + dial section
         const int sidelinesButtonWidth = 120;
         const int fringeSectionWidth = dialSize + 20;
-        const int sidelinesSpacing = spacing * 3;
+        const int sidelinesSpacing = spacing * 4;  // Double the spacing
         const int totalSidelinesWidth = sidelinesButtonWidth + sidelinesSpacing + fringeSectionWidth;
 
-        // Use right half of col2 and center the sidelines section within it
-        auto rightHalf = col2.removeFromRight(col2.getWidth() / 2);
-        int sidelinesStartX = rightHalf.getX() + (rightHalf.getWidth() - totalSidelinesWidth) / 2;
+        // Center the sidelines section within col2
+        int sidelinesStartX = col2.getX() + (col2.getWidth() - totalSidelinesWidth) / 2;
 
         // Sidelines section height: label + dial + value
-        const int sidelinesBlockHeight = rowHeight + dialSize + rowHeight;
         int sidelinesTopY = col2.getY();
 
         // Button aligned vertically with dial center
-        int dialCenterY = sidelinesTopY + rowHeight + dialSize / 2;
-        sidelinesActiveButton.setBounds(sidelinesStartX, dialCenterY - rowHeight / 2, sidelinesButtonWidth, rowHeight);
+        int sidelineDialCenterY = sidelinesTopY + rowHeight + dialSize / 2;
+        sidelinesActiveButton.setBounds(sidelinesStartX, sidelineDialCenterY - rowHeight / 2, sidelinesButtonWidth, rowHeight);
 
-        // Fringe dial section
+        // Fringe dial section - label centered above dial
         int fringeCenterX = sidelinesStartX + sidelinesButtonWidth + sidelinesSpacing + fringeSectionWidth / 2;
-        sidelinesFringeLabel.setBounds(fringeCenterX - 35, sidelinesTopY, 70, rowHeight);
+        const int fringeLabelWidth = 60;
+        sidelinesFringeLabel.setBounds(fringeCenterX - fringeLabelWidth / 2, sidelinesTopY, fringeLabelWidth, rowHeight);
         sidelinesFringeDial.setBounds(fringeCenterX - dialSize / 2, sidelinesTopY + rowHeight, dialSize, dialSize);
         sidelinesFringeValueLabel.setBounds(fringeCenterX - 35, sidelinesTopY + rowHeight + dialSize, 70, rowHeight);
     }
@@ -3124,7 +3152,7 @@ private:
         const int sliderHeight = 32;
         const int spacing = 6;
         const int labelWidth = 100;
-        const int valueWidth = 70;
+        const int valueWidth = 95;  // Wider for "-20.0 dB" values
         const int dialSize = 65;
         const int buttonWidth = 120;
 
