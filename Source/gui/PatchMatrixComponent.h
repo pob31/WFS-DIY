@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "ColorScheme.h"
 #include "../WfsParameters.h"
 #include "../DSP/TestSignalGenerator.h"
 
@@ -136,12 +137,6 @@ private:
     static constexpr int headerHeight = 50;
     static constexpr int rowHeaderWidth = 120;
     static constexpr int scrollBarThickness = 16;
-
-    // Color scheme (consistent with codebase)
-    const juce::Colour backgroundColour{0xFF1E1E1E};
-    const juce::Colour headerColour{0xFF252525};
-    const juce::Colour gridLineColour{0xFF404040};
-    const juce::Colour emptyCellColour{0xFF2A2A2A};
 
     // Data
     WFSValueTreeState& parameters;

@@ -1,4 +1,5 @@
 #include "AudioPatchTab.h"
+#include "ColorScheme.h"
 
 //==============================================================================
 // TestSignalControlPanel Implementation
@@ -108,10 +109,10 @@ void TestSignalControlPanel::resized()
 
 void TestSignalControlPanel::paint(juce::Graphics& g)
 {
-    g.fillAll(juce::Colour(0xFF252525));
+    g.fillAll(ColorScheme::get().backgroundAlt);
 
     // Draw border
-    g.setColour(juce::Colour(0xFF404040));
+    g.setColour(ColorScheme::get().chromeDivider);
     g.drawRect(getLocalBounds(), 1);
 }
 
@@ -245,7 +246,7 @@ void InputPatchTab::resized()
 
 void InputPatchTab::paint(juce::Graphics& g)
 {
-    g.fillAll(juce::Colour(0xFF1E1E1E));
+    g.fillAll(ColorScheme::get().background);
 }
 
 void InputPatchTab::setMode(PatchMatrixComponent::Mode mode)
@@ -379,7 +380,7 @@ void OutputPatchTab::resized()
 
 void OutputPatchTab::paint(juce::Graphics& g)
 {
-    g.fillAll(juce::Colour(0xFF1E1E1E));
+    g.fillAll(ColorScheme::get().background);
 }
 
 void OutputPatchTab::setMode(PatchMatrixComponent::Mode mode)

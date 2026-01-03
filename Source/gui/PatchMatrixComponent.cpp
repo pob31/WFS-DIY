@@ -183,7 +183,7 @@ void PatchMatrixComponent::clearActiveTestChannel()
 
 void PatchMatrixComponent::paint(juce::Graphics& g)
 {
-    g.fillAll(backgroundColour);
+    g.fillAll(ColorScheme::get().background);
 
     // Draw cells, clipped to the content area to prevent overlap with headers
     {
@@ -554,14 +554,14 @@ juce::Rectangle<int> PatchMatrixComponent::getCellBounds(int row, int col) const
 void PatchMatrixComponent::drawHeader(juce::Graphics& g)
 {
     // Draw header background
-    g.setColour(headerColour);
+    g.setColour(ColorScheme::get().backgroundAlt);
     g.fillRect(rowHeaderWidth, 0, getWidth() - rowHeaderWidth, headerHeight);
 
     // Draw hardware channel numbers
     int visibleCols = (getWidth() - rowHeaderWidth) / cellWidth + 2;
     int firstCol = scrollOffsetX / cellWidth;
 
-    g.setColour(juce::Colours::white);
+    g.setColour(ColorScheme::get().textPrimary);
     g.setFont(14.0f);
 
     for (int c = 0; c < visibleCols; ++c)
@@ -581,16 +581,16 @@ void PatchMatrixComponent::drawHeader(juce::Graphics& g)
         // Highlight if hovered
         else if (hoveredCell.x == col && currentMode == Mode::Testing)
         {
-            g.setColour(juce::Colours::white.withAlpha(0.1f));
+            g.setColour(ColorScheme::get().textPrimary.withAlpha(0.1f));
             g.fillRect(x, 0, cellWidth, headerHeight);
         }
 
-        g.setColour(juce::Colours::white);
+        g.setColour(ColorScheme::get().textPrimary);
         g.drawText(juce::String(col + 1), x, 0, cellWidth, headerHeight,
                    juce::Justification::centred);
 
         // Draw grid line
-        g.setColour(gridLineColour);
+        g.setColour(ColorScheme::get().chromeDivider);
         g.drawVerticalLine(x, 0, static_cast<float>(headerHeight));
     }
 }
@@ -598,7 +598,7 @@ void PatchMatrixComponent::drawHeader(juce::Graphics& g)
 void PatchMatrixComponent::drawRowHeaders(juce::Graphics& g)
 {
     // Draw row header background
-    g.setColour(headerColour);
+    g.setColour(ColorScheme::get().backgroundAlt);
     g.fillRect(0, headerHeight, rowHeaderWidth, getHeight() - headerHeight);
 
     // Draw WFS channel labels
@@ -663,14 +663,14 @@ void PatchMatrixComponent::drawRowHeaders(juce::Graphics& g)
         }
         else
         {
-            g.setColour(juce::Colours::white);
+            g.setColour(ColorScheme::get().textPrimary);
         }
 
         g.drawText(label, 5, y, rowHeaderWidth - 10, cellHeight,
                    juce::Justification::centredLeft);
 
         // Draw grid line
-        g.setColour(gridLineColour);
+        g.setColour(ColorScheme::get().chromeDivider);
         g.drawHorizontalLine(y, 0, static_cast<float>(rowHeaderWidth));
     }
 }
@@ -735,7 +735,7 @@ void PatchMatrixComponent::drawCell(juce::Graphics& g, int row, int col,
     }
     else
     {
-        g.setColour(emptyCellColour);
+        g.setColour(ColorScheme::get().surfaceCard);
         g.fillRect(bounds);
     }
 
@@ -743,7 +743,7 @@ void PatchMatrixComponent::drawCell(juce::Graphics& g, int row, int col,
     if (currentMode == Mode::Patching &&
         hoveredCell.x == col && hoveredCell.y == row)
     {
-        g.setColour(juce::Colours::white.withAlpha(0.1f));
+        g.setColour(ColorScheme::get().textPrimary.withAlpha(0.1f));
         g.fillRect(bounds);
     }
 
@@ -756,7 +756,7 @@ void PatchMatrixComponent::drawCell(juce::Graphics& g, int row, int col,
     }
 
     // Draw grid lines
-    g.setColour(gridLineColour);
+    g.setColour(ColorScheme::get().chromeDivider);
     g.drawRect(bounds, 1);
 }
 

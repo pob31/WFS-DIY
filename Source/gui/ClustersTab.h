@@ -4,6 +4,7 @@
 #include "../WfsParameters.h"
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/WFSParameterDefaults.h"
+#include "ColorScheme.h"
 #include "ColorUtilities.h"
 #include "WfsJoystickComponent.h"
 #include "sliders/WfsAutoCenterSlider.h"
@@ -51,17 +52,15 @@ public:
         addAndMakeVisible(assignedInputsLabel);
         assignedInputsLabel.setText("Assigned Inputs", juce::dontSendNotification);
         assignedInputsLabel.setFont(juce::FontOptions().withHeight(14.0f).withStyle("Bold"));
-        assignedInputsLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
         addAndMakeVisible(inputsList);
         inputsList.setModel(this);
-        inputsList.setColour(juce::ListBox::backgroundColourId, juce::Colour(0xFF252525));
+        inputsList.setColour(juce::ListBox::backgroundColourId, ColorScheme::get().backgroundAlt);
         inputsList.setRowHeight(24);
 
         // Reference mode selector
         addAndMakeVisible(referenceModeLabel);
         referenceModeLabel.setText("Reference:", juce::dontSendNotification);
-        referenceModeLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
         addAndMakeVisible(referenceModeSelector);
         referenceModeSelector.addItem("First Input", 1);
@@ -100,7 +99,6 @@ public:
         addAndMakeVisible(positionLabel);
         positionLabel.setText("Position", juce::dontSendNotification);
         positionLabel.setFont(juce::FontOptions().withHeight(12.0f));
-        positionLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         positionLabel.setJustificationType(juce::Justification::centred);
 
         // Position joystick
@@ -113,7 +111,6 @@ public:
         addAndMakeVisible(zSliderLabel);
         zSliderLabel.setText("Z", juce::dontSendNotification);
         zSliderLabel.setFont(juce::FontOptions().withHeight(12.0f));
-        zSliderLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         zSliderLabel.setJustificationType(juce::Justification::centred);
 
         // Z slider
@@ -124,7 +121,6 @@ public:
         addAndMakeVisible(attenuationLabel);
         attenuationLabel.setText("Atten", juce::dontSendNotification);
         attenuationLabel.setFont(juce::FontOptions().withHeight(12.0f));
-        attenuationLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         attenuationLabel.setJustificationType(juce::Justification::centred);
 
         // Attenuation slider
@@ -135,7 +131,6 @@ public:
         addAndMakeVisible(rotationLabel);
         rotationLabel.setText("Rotation", juce::dontSendNotification);
         rotationLabel.setFont(juce::FontOptions().withHeight(12.0f));
-        rotationLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         rotationLabel.setJustificationType(juce::Justification::centred);
 
         // Rotation dial
@@ -146,7 +141,6 @@ public:
         addAndMakeVisible(scaleLabel);
         scaleLabel.setText("Scale", juce::dontSendNotification);
         scaleLabel.setFont(juce::FontOptions().withHeight(12.0f));
-        scaleLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         scaleLabel.setJustificationType(juce::Justification::centred);
 
         // Scale joystick
@@ -158,7 +152,6 @@ public:
         // Plane selector
         addAndMakeVisible(planeLabel);
         planeLabel.setText("Plane:", juce::dontSendNotification);
-        planeLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
         addAndMakeVisible(planeSelector);
         planeSelector.addItem("XY", 1);
@@ -173,7 +166,6 @@ public:
         addAndMakeVisible(controlsLabel);
         controlsLabel.setText("Controls", juce::dontSendNotification);
         controlsLabel.setFont(juce::FontOptions().withHeight(14.0f).withStyle("Bold"));
-        controlsLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
         // Start with first cluster selected
         selectCluster(1);
@@ -192,12 +184,12 @@ public:
 
     void paint(juce::Graphics& g) override
     {
-        g.fillAll(juce::Colour(0xFF1E1E1E));
+        g.fillAll(ColorScheme::get().background);
 
         // Draw separator between left and right panels
         auto bounds = getLocalBounds();
         auto leftPanelWidth = bounds.getWidth() / 2;
-        g.setColour(juce::Colour(0xFF404040));
+        g.setColour(ColorScheme::get().chromeDivider);
         g.drawVerticalLine(leftPanelWidth, 50.0f, bounds.getHeight() - 10.0f);
     }
 
@@ -311,16 +303,16 @@ public:
 
         // Background
         if (rowIsSelected)
-            g.fillAll(juce::Colour(0xFF404040));
+            g.fillAll(ColorScheme::get().listSelection);
         else if (isTracked)
-            g.fillAll(juce::Colour(0xFF3D2F00));  // Orange tint for tracked
+            g.fillAll(ColorScheme::get().listSelection.interpolatedWith(juce::Colour(0xFFFF9800), 0.3f));  // Orange tint for tracked
         else if (isFirst && referenceModeSelector.getSelectedId() == 1)
-            g.fillAll(juce::Colour(0xFF2F3D2F));  // Green tint for first input in first-input mode
+            g.fillAll(ColorScheme::get().listSelection.interpolatedWith(juce::Colour(0xFF00FF00), 0.2f));  // Green tint for first input in first-input mode
         else
-            g.fillAll(juce::Colour(0xFF2A2A2A));
+            g.fillAll(ColorScheme::get().surfaceCard);
 
         // Text
-        g.setColour(isTracked ? juce::Colour(0xFFFF9800) : juce::Colours::white);
+        g.setColour(isTracked ? juce::Colour(0xFFFF9800) : ColorScheme::get().textPrimary);
         juce::String text = "Input " + juce::String(inputIdx + 1);
         if (isTracked)
             text += " [T]";

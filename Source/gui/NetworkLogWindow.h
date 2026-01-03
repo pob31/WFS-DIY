@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "../Network/OSCLogger.h"
 #include "../Network/OSCManager.h"
+#include "ColorScheme.h"
 #include "WindowUtils.h"
 
 namespace WFSNetwork { class OSCLogger; class OSCManager; }
@@ -151,7 +152,7 @@ public:
                      WFSNetwork::OSCManager& oscManager,
                      const juce::File& projectFolder)
         : DocumentWindow("Network Log",
-                         juce::Colour(0xFF1E1E1E),
+                         ColorScheme::get().background,
                          DocumentWindow::allButtons)
     {
         setUsingNativeTitleBar(true);

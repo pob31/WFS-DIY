@@ -1,4 +1,5 @@
 #include "AudioInterfaceWindow.h"
+#include "ColorScheme.h"
 #include "WindowUtils.h"
 
 //==============================================================================
@@ -19,16 +20,16 @@ DeviceInfoBar::~DeviceInfoBar()
 
 void DeviceInfoBar::paint(juce::Graphics& g)
 {
-    g.fillAll(juce::Colour(0xFF252525));
+    g.fillAll(ColorScheme::get().backgroundAlt);
 
     // Draw border
-    g.setColour(juce::Colour(0xFF404040));
+    g.setColour(ColorScheme::get().chromeDivider);
     g.drawRect(getLocalBounds(), 1);
 
     // Draw device info
     auto bounds = getLocalBounds().reduced(10);
 
-    g.setColour(juce::Colours::white);
+    g.setColour(ColorScheme::get().textPrimary);
     g.setFont(14.0f);
 
     // Line 1: Device type and name
@@ -188,7 +189,7 @@ void DeviceSettingsPanel::resized()
 
 void DeviceSettingsPanel::paint(juce::Graphics& g)
 {
-    g.fillAll(juce::Colour(0xFF1E1E1E));
+    g.fillAll(ColorScheme::get().background);
 }
 
 void DeviceSettingsPanel::setEnabled(bool shouldBeEnabled)
@@ -562,9 +563,9 @@ AudioInterfaceContent::AudioInterfaceContent(juce::AudioDeviceManager& devManage
     outputPatchTab = new OutputPatchTab(parameters, testSignalGen);
 
     // Add tabs to tabbed component
-    tabbedComponent.addTab("Device Settings", juce::Colours::darkgrey, deviceSettingsPanel.get(), false);
-    tabbedComponent.addTab("Input Patch", juce::Colours::darkgrey, inputPatchTab, true);
-    tabbedComponent.addTab("Output Patch", juce::Colours::darkgrey, outputPatchTab, true);
+    tabbedComponent.addTab("Device Settings", ColorScheme::get().chromeBackground, deviceSettingsPanel.get(), false);
+    tabbedComponent.addTab("Input Patch", ColorScheme::get().chromeBackground, inputPatchTab, true);
+    tabbedComponent.addTab("Output Patch", ColorScheme::get().chromeBackground, outputPatchTab, true);
 }
 
 AudioInterfaceContent::~AudioInterfaceContent()
@@ -584,7 +585,7 @@ void AudioInterfaceContent::resized()
 
 void AudioInterfaceContent::paint(juce::Graphics& g)
 {
-    g.fillAll(juce::Colour(0xFF1E1E1E));
+    g.fillAll(ColorScheme::get().background);
 }
 
 void AudioInterfaceContent::setProcessingStateChanged(bool isProcessing)
@@ -624,7 +625,7 @@ AudioInterfaceWindow::AudioInterfaceWindow(juce::AudioDeviceManager& deviceManag
                                            WFSValueTreeState& valueTreeState,
                                            TestSignalGenerator* testSignalGen)
     : DocumentWindow("Audio Interface and Patching",
-                     juce::Colour(0xFF1E1E1E),
+                     ColorScheme::get().background,
                      DocumentWindow::allButtons),
       testSignalGenerator(testSignalGen)
 {

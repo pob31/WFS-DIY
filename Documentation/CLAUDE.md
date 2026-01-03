@@ -846,6 +846,99 @@ When using WfsBidirectionalSlider, formulas must account for -1 to 1 range:
 
 ---
 
+## Color Scheme System (Source/gui/ColorScheme.h)
+
+### Overview
+Centralized theming system with three color schemes: Default (dark gray), OLED Black, and Light. Theme selection persists to XML configuration.
+
+### Core Files
+- **ColorScheme.h** - Palette struct, Manager singleton, theme definitions
+- **WfsLookAndFeel.h** - Custom LookAndFeel for JUCE widget theming
+- **MainComponent.cpp** - Theme change listener and repaint coordination
+
+### Available Themes
+
+| Theme | Background | Text | Description |
+|-------|------------|------|-------------|
+| Default | 0xFF1E1E1E | White | Dark gray theme (original) |
+| OLED Black | 0xFF000000 | 0xFFE8E8E8 | Pure black for OLED displays |
+| Light | 0xFFF5F5F5 | 0xFF212121 | Light theme for daytime use |
+
+### Palette Colors
+
+| Semantic Name | Purpose |
+|---------------|---------|
+| `background` | Main component backgrounds |
+| `backgroundAlt` | Alternate/canvas backgrounds |
+| `surfaceCard` | Card/panel surfaces |
+| `chromeBackground` | Status bar, tab bar background |
+| `chromeSurface` | Footer areas |
+| `chromeDivider` | Separator lines |
+| `textPrimary` | Primary text |
+| `textSecondary` | Dimmed/secondary text |
+| `textDisabled` | Disabled state text |
+| `buttonNormal/Hover/Pressed` | Button states |
+| `accentBlue/Red/Green` | Functional accent colors (same across themes) |
+| `sliderTrackBg/sliderThumb` | Slider components |
+| `listBackground/listSelection` | ListBox colors |
+| `tabBackground/tabSelected` | Tab bar colors |
+
+### Usage Pattern
+
+**Accessing colors:**
+```cpp
+#include "ColorScheme.h"
+
+// In paint() methods
+g.fillAll(ColorScheme::get().background);
+g.setColour(ColorScheme::get().textPrimary);
+```
+
+**Listening for theme changes:**
+```cpp
+class MyComponent : public ColorScheme::Manager::Listener
+{
+    MyComponent() {
+        ColorScheme::Manager::getInstance().addListener(this);
+    }
+
+    void colorSchemeChanged() override {
+        repaint();
+    }
+};
+```
+
+**Setting theme programmatically:**
+```cpp
+ColorScheme::Manager::getInstance().setTheme(1);  // 0=Default, 1=OLED, 2=Light
+```
+
+### WfsLookAndFeel Integration
+Custom LookAndFeel that:
+- Inherits from `juce::LookAndFeel_V4`
+- Listens for color scheme changes
+- Updates all JUCE widget colors (TextEditor, ComboBox, Slider, Label, etc.)
+- Provides font methods for future multilingual support
+
+**Setup in MainComponent:**
+```cpp
+wfsLookAndFeel = std::make_unique<WfsLookAndFeel>();
+juce::LookAndFeel::setDefaultLookAndFeel(wfsLookAndFeel.get());
+```
+
+### Theme Persistence
+Saved in XML configuration:
+```xml
+<Config>
+  <ColorScheme>1</ColorScheme>  <!-- 0=Default, 1=OLED, 2=Light -->
+</Config>
+```
+
+### UI Location
+Theme selector in SystemConfigTab, third column under "UI" section header.
+
+---
+
 ## Tracking System
 Tracking is active only when ALL THREE conditions are true:
 1. **Global toggle ON** - `trackingEnabled != 0`
@@ -1135,6 +1228,8 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 - `Source/gui/ReverbTab.h` - Reverb settings with EQ
 - `Source/gui/NetworkLogWindow.h/cpp` - Log window UI
 - `Source/gui/OutputArrayHelperWindow.h/cpp` - Wizard of OutZ window
+- `Source/gui/ColorScheme.h` - Centralized color scheme system with 3 themes
+- `Source/gui/WfsLookAndFeel.h` - Custom LookAndFeel for widget theming
 - `Source/Helpers/ArrayGeometryCalculator.h/cpp` - Speaker array geometry calculations
 
 ---
@@ -1164,6 +1259,6 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 
 ---
 
-*Last updated: 2026-01-02*
+*Last updated: 2026-01-03*
 *JUCE Version: 8.0.12*
 *Build: Visual Studio 2022 / Xcode, x64 Debug/Release*

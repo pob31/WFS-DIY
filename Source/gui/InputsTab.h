@@ -4,6 +4,7 @@
 #include "../WfsParameters.h"
 #include "../Parameters/WFSParameterIDs.h"
 #include "ChannelSelector.h"
+#include "ColorScheme.h"
 #include "ColorUtilities.h"
 #include "SliderUIComponents.h"
 #include "DialUIComponents.h"
@@ -46,7 +47,7 @@ public:
             iconBounds.getX(), iconBounds.getBottom(),
             iconBounds.getRight(), iconBounds.getCentreY());
 
-        g.setColour(juce::Colours::white);
+        g.setColour(ColorScheme::get().textPrimary);
         g.fillPath(triangle);
     }
 };
@@ -76,7 +77,7 @@ public:
 
         // Draw stop square
         auto iconBounds = bounds.reduced(10.0f);
-        g.setColour(juce::Colours::white);
+        g.setColour(ColorScheme::get().textPrimary);
         g.fillRect(iconBounds);
     }
 };
@@ -109,7 +110,7 @@ public:
         float barWidth = iconBounds.getWidth() * 0.3f;
         float gap = iconBounds.getWidth() * 0.4f;
 
-        g.setColour(juce::Colours::white);
+        g.setColour(ColorScheme::get().textPrimary);
         g.fillRect(iconBounds.getX(), iconBounds.getY(), barWidth, iconBounds.getHeight());
         g.fillRect(iconBounds.getX() + barWidth + gap, iconBounds.getY(), barWidth, iconBounds.getHeight());
     }
@@ -175,14 +176,12 @@ public:
         // Input Name
         addAndMakeVisible(nameLabel);
         nameLabel.setText("Name:", juce::dontSendNotification);
-        nameLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(nameEditor);
         nameEditor.addListener(this);
 
         // Cluster selector
         addAndMakeVisible(clusterLabel);
         clusterLabel.setText("Cluster:", juce::dontSendNotification);
-        clusterLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(clusterSelector);
         clusterSelector.addItem("Single", 1);
         for (int i = 1; i <= 10; ++i)
@@ -386,18 +385,18 @@ public:
 
     void paint(juce::Graphics& g) override
     {
-        g.fillAll(juce::Colour(0xFF1E1E1E));
+        g.fillAll(ColorScheme::get().background);
 
         // Header background
-        g.setColour(juce::Colour(0xFF252525));
+        g.setColour(ColorScheme::get().chromeSurface);
         g.fillRect(0, 0, getWidth(), headerHeight);
 
         // Footer background
-        g.setColour(juce::Colour(0xFF252525));
+        g.setColour(ColorScheme::get().chromeSurface);
         g.fillRect(0, getHeight() - footerHeight, getWidth(), footerHeight);
 
         // Section dividers
-        g.setColour(juce::Colour(0xFF404040));
+        g.setColour(ColorScheme::get().chromeDivider);
         g.drawLine(0.0f, (float)headerHeight, (float)getWidth(), (float)headerHeight, 1.0f);
         g.drawLine(0.0f, (float)(getHeight() - footerHeight), (float)getWidth(), (float)(getHeight() - footerHeight), 1.0f);
     }
@@ -559,7 +558,6 @@ private:
         // Attenuation slider (-92 to 0 dB)
         addAndMakeVisible(attenuationLabel);
         attenuationLabel.setText("Attenuation:", juce::dontSendNotification);
-        attenuationLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
         attenuationSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFFFF5722));
         attenuationSlider.onValueChanged = [this](float v) {
@@ -572,13 +570,11 @@ private:
 
         addAndMakeVisible(attenuationValueLabel);
         attenuationValueLabel.setText("0.0 dB", juce::dontSendNotification);
-        attenuationValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         setupEditableValueLabel(attenuationValueLabel);
 
         // Delay/Latency slider (-100 to 100 ms)
         addAndMakeVisible(delayLatencyLabel);
         delayLatencyLabel.setText("Delay/Latency:", juce::dontSendNotification);
-        delayLatencyLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
         delayLatencySlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF4CAF50));
         delayLatencySlider.onValueChanged = [this](float v) {
@@ -592,7 +588,6 @@ private:
 
         addAndMakeVisible(delayLatencyValueLabel);
         delayLatencyValueLabel.setText("Delay: 0.0 ms", juce::dontSendNotification);
-        delayLatencyValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         setupEditableValueLabel(delayLatencyValueLabel);
 
         // Minimal Latency button
@@ -611,7 +606,6 @@ private:
         // Coordinate Mode selector
         addAndMakeVisible(coordModeLabel);
         coordModeLabel.setText("Coord:", juce::dontSendNotification);
-        coordModeLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(coordModeSelector);
         coordModeSelector.addItem("XYZ", 1);
         coordModeSelector.addItem(juce::String(juce::CharPointer_UTF8("r \xce\xb8 Z")), 2);    // r θ Z
@@ -626,68 +620,56 @@ private:
         // Position X
         addAndMakeVisible(posXLabel);
         posXLabel.setText("Position X:", juce::dontSendNotification);
-        posXLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(posXEditor);
         posXEditor.setText("0.00", juce::dontSendNotification);
         setupNumericEditor(posXEditor, true, true);
         addAndMakeVisible(posXUnitLabel);
         posXUnitLabel.setText("m", juce::dontSendNotification);
-        posXUnitLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
         // Position Y
         addAndMakeVisible(posYLabel);
         posYLabel.setText("Position Y:", juce::dontSendNotification);
-        posYLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(posYEditor);
         posYEditor.setText("0.00", juce::dontSendNotification);
         setupNumericEditor(posYEditor, true, true);
         addAndMakeVisible(posYUnitLabel);
         posYUnitLabel.setText("m", juce::dontSendNotification);
-        posYUnitLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
         // Position Z
         addAndMakeVisible(posZLabel);
         posZLabel.setText("Position Z:", juce::dontSendNotification);
-        posZLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(posZEditor);
         posZEditor.setText("0.00", juce::dontSendNotification);
         setupNumericEditor(posZEditor, true, true);
         addAndMakeVisible(posZUnitLabel);
         posZUnitLabel.setText("m", juce::dontSendNotification);
-        posZUnitLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
         // Offset X
         addAndMakeVisible(offsetXLabel);
         offsetXLabel.setText("Offset X:", juce::dontSendNotification);
-        offsetXLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(offsetXEditor);
         offsetXEditor.setText("0.00", juce::dontSendNotification);
         setupNumericEditor(offsetXEditor, true, true);
         addAndMakeVisible(offsetXUnitLabel);
         offsetXUnitLabel.setText("m", juce::dontSendNotification);
-        offsetXUnitLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
         // Offset Y
         addAndMakeVisible(offsetYLabel);
         offsetYLabel.setText("Offset Y:", juce::dontSendNotification);
-        offsetYLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(offsetYEditor);
         offsetYEditor.setText("0.00", juce::dontSendNotification);
         setupNumericEditor(offsetYEditor, true, true);
         addAndMakeVisible(offsetYUnitLabel);
         offsetYUnitLabel.setText("m", juce::dontSendNotification);
-        offsetYUnitLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
         // Offset Z
         addAndMakeVisible(offsetZLabel);
         offsetZLabel.setText("Offset Z:", juce::dontSendNotification);
-        offsetZLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(offsetZEditor);
         offsetZEditor.setText("0.00", juce::dontSendNotification);
         setupNumericEditor(offsetZEditor, true, true);
         addAndMakeVisible(offsetZUnitLabel);
         offsetZUnitLabel.setText("m", juce::dontSendNotification);
-        offsetZUnitLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
         // Constraint buttons
         addAndMakeVisible(constraintXButton);
@@ -769,7 +751,6 @@ private:
         // Tracking ID selector (1-32)
         addAndMakeVisible(trackingIdLabel);
         trackingIdLabel.setText("Tracking ID:", juce::dontSendNotification);
-        trackingIdLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(trackingIdSelector);
         for (int i = 1; i <= 32; ++i)
             trackingIdSelector.addItem(juce::String(i), i);
@@ -781,7 +762,6 @@ private:
         // Tracking Smoothing dial (0-100%)
         addAndMakeVisible(trackingSmoothLabel);
         trackingSmoothLabel.setText("Tracking Smooth:", juce::dontSendNotification);
-        trackingSmoothLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         trackingSmoothDial.setColours(juce::Colours::black, juce::Colour(0xFF00BCD4), juce::Colours::grey);
         trackingSmoothDial.setValue(1.0f);  // Default 100%
         trackingSmoothDial.onValueChanged = [this](float v) {
@@ -792,7 +772,6 @@ private:
         addAndMakeVisible(trackingSmoothDial);
         addAndMakeVisible(trackingSmoothValueLabel);
         trackingSmoothValueLabel.setText("100 %", juce::dontSendNotification);
-        trackingSmoothValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         trackingSmoothValueLabel.setJustificationType(juce::Justification::centred);
         setupEditableValueLabel(trackingSmoothValueLabel);
 
@@ -809,7 +788,6 @@ private:
         // Max Speed dial (0.01-20.0 m/s)
         addAndMakeVisible(maxSpeedLabel);
         maxSpeedLabel.setText("Max Speed:", juce::dontSendNotification);
-        maxSpeedLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         maxSpeedDial.setColours(juce::Colours::black, juce::Colour(0xFFFF9800), juce::Colours::grey);
         maxSpeedDial.onValueChanged = [this](float v) {
             float speed = v * 19.99f + 0.01f;
@@ -819,7 +797,6 @@ private:
         addAndMakeVisible(maxSpeedDial);
         addAndMakeVisible(maxSpeedValueLabel);
         maxSpeedValueLabel.setText("1.00 m/s", juce::dontSendNotification);
-        maxSpeedValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         maxSpeedValueLabel.setJustificationType(juce::Justification::centred);
         setupEditableValueLabel(maxSpeedValueLabel);
 
@@ -836,7 +813,6 @@ private:
         // Height Factor dial
         addAndMakeVisible(heightFactorLabel);
         heightFactorLabel.setText("Height Factor:", juce::dontSendNotification);
-        heightFactorLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         heightFactorDial.setColours(juce::Colours::black, juce::Colour(0xFF4CAF50), juce::Colours::grey);
         heightFactorDial.onValueChanged = [this](float v) {
             int percent = static_cast<int>(v * 100.0f);
@@ -846,7 +822,6 @@ private:
         addAndMakeVisible(heightFactorDial);
         addAndMakeVisible(heightFactorValueLabel);
         heightFactorValueLabel.setText("0 %", juce::dontSendNotification);
-        heightFactorValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         heightFactorValueLabel.setJustificationType(juce::Justification::centred);
         setupEditableValueLabel(heightFactorValueLabel);
 
@@ -933,7 +908,6 @@ private:
         });
         addAndMakeVisible(positionJoystickLabel);
         positionJoystickLabel.setText("X/Y", juce::dontSendNotification);
-        positionJoystickLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         positionJoystickLabel.setJustificationType(juce::Justification::centred);
 
         // Position Z Slider (vertical, auto-center with continuous polling like joystick)
@@ -997,7 +971,6 @@ private:
         };
         addAndMakeVisible(positionZSliderLabel);
         positionZSliderLabel.setText("Z", juce::dontSendNotification);
-        positionZSliderLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         positionZSliderLabel.setJustificationType(juce::Justification::centred);
     }
 
@@ -1023,7 +996,6 @@ private:
         // Distance Attenuation dial (visible when attenuationLaw == Log)
         addAndMakeVisible(distanceAttenLabel);
         distanceAttenLabel.setText("Distance Atten:", juce::dontSendNotification);
-        distanceAttenLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         distanceAttenDial.setColours(juce::Colours::black, juce::Colour(0xFF9C27B0), juce::Colours::grey);
         distanceAttenDial.onValueChanged = [this](float v) {
             float dBm = (v * 6.0f) - 6.0f;
@@ -1033,14 +1005,12 @@ private:
         addAndMakeVisible(distanceAttenDial);
         addAndMakeVisible(distanceAttenValueLabel);
         distanceAttenValueLabel.setText("-0.7 dB/m", juce::dontSendNotification);
-        distanceAttenValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         distanceAttenValueLabel.setJustificationType(juce::Justification::centred);
         setupEditableValueLabel(distanceAttenValueLabel);
 
         // Distance Ratio dial (visible when attenuationLaw == 1/d)
         addAndMakeVisible(distanceRatioLabel);
         distanceRatioLabel.setText("Distance Ratio:", juce::dontSendNotification);
-        distanceRatioLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         distanceRatioDial.setColours(juce::Colours::black, juce::Colour(0xFF9C27B0), juce::Colours::grey);
         distanceRatioDial.onValueChanged = [this](float v) {
             // Formula: pow(10.0,(x*2.0)-1.0) maps 0-1 to 0.1-10.0
@@ -1052,7 +1022,6 @@ private:
         addAndMakeVisible(distanceRatioDial);
         addAndMakeVisible(distanceRatioValueLabel);
         distanceRatioValueLabel.setText("1.00x", juce::dontSendNotification);
-        distanceRatioValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         distanceRatioValueLabel.setJustificationType(juce::Justification::centred);
         setupEditableValueLabel(distanceRatioValueLabel);
         // Initially hidden (Log is default)
@@ -1063,7 +1032,6 @@ private:
         // Common Attenuation dial
         addAndMakeVisible(commonAttenLabel);
         commonAttenLabel.setText("Common Atten:", juce::dontSendNotification);
-        commonAttenLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         commonAttenDial.setColours(juce::Colours::black, juce::Colour(0xFF2196F3), juce::Colours::grey);
         commonAttenDial.setValue(1.0f);
         commonAttenDial.onValueChanged = [this](float v) {
@@ -1074,14 +1042,12 @@ private:
         addAndMakeVisible(commonAttenDial);
         addAndMakeVisible(commonAttenValueLabel);
         commonAttenValueLabel.setText("100 %", juce::dontSendNotification);
-        commonAttenValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         commonAttenValueLabel.setJustificationType(juce::Justification::centred);
         setupEditableValueLabel(commonAttenValueLabel);
 
         // Directivity slider
         addAndMakeVisible(directivityLabel);
         directivityLabel.setText("Directivity:", juce::dontSendNotification);
-        directivityLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         directivitySlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF00BCD4));
         directivitySlider.setValue(1.0f);
         directivitySlider.onValueChanged = [this](float v) {
@@ -1092,13 +1058,11 @@ private:
         addAndMakeVisible(directivitySlider);
         addAndMakeVisible(directivityValueLabel);
         directivityValueLabel.setText(juce::String::fromUTF8("360°"), juce::dontSendNotification);
-        directivityValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         setupEditableValueLabel(directivityValueLabel);
 
         // Rotation dial
         addAndMakeVisible(rotationLabel);
         rotationLabel.setText("Rotation:", juce::dontSendNotification);
-        rotationLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         rotationDial.setColours(juce::Colours::black, juce::Colours::white, juce::Colours::grey);
         rotationDial.onAngleChanged = [this](float angle) {
             rotationValueLabel.setText(juce::String(static_cast<int>(angle)) + juce::String::fromUTF8("°"), juce::dontSendNotification);
@@ -1107,14 +1071,12 @@ private:
         addAndMakeVisible(rotationDial);
         addAndMakeVisible(rotationValueLabel);
         rotationValueLabel.setText(juce::String::fromUTF8("0°"), juce::dontSendNotification);
-        rotationValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         rotationValueLabel.setJustificationType(juce::Justification::centred);
         setupEditableValueLabel(rotationValueLabel);
 
         // Tilt slider
         addAndMakeVisible(tiltLabel);
         tiltLabel.setText("Tilt:", juce::dontSendNotification);
-        tiltLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         tiltSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF2196F3));
         tiltSlider.onValueChanged = [this](float v) {
             // Slider range is -1 to 1, map to -90° to 90°
@@ -1125,13 +1087,11 @@ private:
         addAndMakeVisible(tiltSlider);
         addAndMakeVisible(tiltValueLabel);
         tiltValueLabel.setText(juce::String::fromUTF8("0°"), juce::dontSendNotification);
-        tiltValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         setupEditableValueLabel(tiltValueLabel);
 
         // HF Shelf slider
         addAndMakeVisible(hfShelfLabel);
         hfShelfLabel.setText("HF Shelf:", juce::dontSendNotification);
-        hfShelfLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         hfShelfSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFFFF9800));
         hfShelfSlider.onValueChanged = [this](float v) {
             float dB = 20.0f * std::log10(std::pow(10.0f, -24.0f / 20.0f) +
@@ -1142,7 +1102,6 @@ private:
         addAndMakeVisible(hfShelfSlider);
         addAndMakeVisible(hfShelfValueLabel);
         hfShelfValueLabel.setText("-6.0 dB", juce::dontSendNotification);
-        hfShelfValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         setupEditableValueLabel(hfShelfValueLabel);
     }
 
@@ -1161,7 +1120,6 @@ private:
         // Radius slider
         addAndMakeVisible(lsRadiusLabel);
         lsRadiusLabel.setText("Radius:", juce::dontSendNotification);
-        lsRadiusLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         lsRadiusSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF00BCD4));
         lsRadiusSlider.setValue(0.06f);  // 3m
         lsRadiusSlider.onValueChanged = [this](float v) {
@@ -1172,13 +1130,11 @@ private:
         addAndMakeVisible(lsRadiusSlider);
         addAndMakeVisible(lsRadiusValueLabel);
         lsRadiusValueLabel.setText("3.0 m", juce::dontSendNotification);
-        lsRadiusValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         setupEditableValueLabel(lsRadiusValueLabel);
 
         // Shape selector
         addAndMakeVisible(lsShapeLabel);
         lsShapeLabel.setText("Shape:", juce::dontSendNotification);
-        lsShapeLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(lsShapeSelector);
         lsShapeSelector.addItem("linear", 1);
         lsShapeSelector.addItem("log", 2);
@@ -1192,7 +1148,6 @@ private:
         // Attenuation slider
         addAndMakeVisible(lsAttenuationLabel);
         lsAttenuationLabel.setText("Attenuation:", juce::dontSendNotification);
-        lsAttenuationLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         lsAttenuationSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFFFF5722));
         lsAttenuationSlider.onValueChanged = [this](float v) {
             float dB = 20.0f * std::log10(std::pow(10.0f, -24.0f / 20.0f) +
@@ -1203,13 +1158,11 @@ private:
         addAndMakeVisible(lsAttenuationSlider);
         addAndMakeVisible(lsAttenuationValueLabel);
         lsAttenuationValueLabel.setText("0.0 dB", juce::dontSendNotification);
-        lsAttenuationValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         setupEditableValueLabel(lsAttenuationValueLabel);
 
         // Peak Threshold slider
         addAndMakeVisible(lsPeakThresholdLabel);
         lsPeakThresholdLabel.setText("Peak Threshold:", juce::dontSendNotification);
-        lsPeakThresholdLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         lsPeakThresholdSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFFE91E63));
         lsPeakThresholdSlider.onValueChanged = [this](float v) {
             float dB = 20.0f * std::log10(std::pow(10.0f, -48.0f / 20.0f) +
@@ -1220,13 +1173,11 @@ private:
         addAndMakeVisible(lsPeakThresholdSlider);
         addAndMakeVisible(lsPeakThresholdValueLabel);
         lsPeakThresholdValueLabel.setText("-20.0 dB", juce::dontSendNotification);
-        lsPeakThresholdValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         setupEditableValueLabel(lsPeakThresholdValueLabel);
 
         // Peak Ratio dial
         addAndMakeVisible(lsPeakRatioLabel);
         lsPeakRatioLabel.setText("Peak Ratio:", juce::dontSendNotification);
-        lsPeakRatioLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         lsPeakRatioDial.setColours(juce::Colours::black, juce::Colour(0xFFE91E63), juce::Colours::grey);
         lsPeakRatioDial.onValueChanged = [this](float v) {
             float ratio = (v * 9.0f) + 1.0f;
@@ -1236,14 +1187,12 @@ private:
         addAndMakeVisible(lsPeakRatioDial);
         addAndMakeVisible(lsPeakRatioValueLabel);
         lsPeakRatioValueLabel.setText("2.0:1", juce::dontSendNotification);
-        lsPeakRatioValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         lsPeakRatioValueLabel.setJustificationType(juce::Justification::centred);
         setupEditableValueLabel(lsPeakRatioValueLabel);
 
         // Slow Threshold slider
         addAndMakeVisible(lsSlowThresholdLabel);
         lsSlowThresholdLabel.setText("Slow Threshold:", juce::dontSendNotification);
-        lsSlowThresholdLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         lsSlowThresholdSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFF9C27B0));
         lsSlowThresholdSlider.onValueChanged = [this](float v) {
             float dB = 20.0f * std::log10(std::pow(10.0f, -48.0f / 20.0f) +
@@ -1254,13 +1203,11 @@ private:
         addAndMakeVisible(lsSlowThresholdSlider);
         addAndMakeVisible(lsSlowThresholdValueLabel);
         lsSlowThresholdValueLabel.setText("-20.0 dB", juce::dontSendNotification);
-        lsSlowThresholdValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         setupEditableValueLabel(lsSlowThresholdValueLabel);
 
         // Slow Ratio dial
         addAndMakeVisible(lsSlowRatioLabel);
         lsSlowRatioLabel.setText("Slow Ratio:", juce::dontSendNotification);
-        lsSlowRatioLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         lsSlowRatioDial.setColours(juce::Colours::black, juce::Colour(0xFF9C27B0), juce::Colours::grey);
         lsSlowRatioDial.onValueChanged = [this](float v) {
             float ratio = (v * 9.0f) + 1.0f;
@@ -1270,7 +1217,6 @@ private:
         addAndMakeVisible(lsSlowRatioDial);
         addAndMakeVisible(lsSlowRatioValueLabel);
         lsSlowRatioValueLabel.setText("2.0:1", juce::dontSendNotification);
-        lsSlowRatioValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         lsSlowRatioValueLabel.setJustificationType(juce::Justification::centred);
         setupEditableValueLabel(lsSlowRatioValueLabel);
     }
@@ -1290,7 +1236,6 @@ private:
         // FR Attenuation slider
         addAndMakeVisible(frAttenuationLabel);
         frAttenuationLabel.setText("FR Attenuation:", juce::dontSendNotification);
-        frAttenuationLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         frAttenuationSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFF795548));
         frAttenuationSlider.onValueChanged = [this](float v) {
             float dB = 20.0f * std::log10(std::pow(10.0f, -60.0f / 20.0f) +
@@ -1301,13 +1246,11 @@ private:
         addAndMakeVisible(frAttenuationSlider);
         addAndMakeVisible(frAttenuationValueLabel);
         frAttenuationValueLabel.setText("-3.0 dB", juce::dontSendNotification);
-        frAttenuationValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         setupEditableValueLabel(frAttenuationValueLabel);
 
         // FR Diffusion dial
         addAndMakeVisible(frDiffusionLabel);
         frDiffusionLabel.setText("FR Diffusion:", juce::dontSendNotification);
-        frDiffusionLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         frDiffusionDial.setColours(juce::Colours::black, juce::Colour(0xFF795548), juce::Colours::grey);
         frDiffusionDial.setValue(0.2f);
         frDiffusionDial.onValueChanged = [this](float v) {
@@ -1318,7 +1261,6 @@ private:
         addAndMakeVisible(frDiffusionDial);
         addAndMakeVisible(frDiffusionValueLabel);
         frDiffusionValueLabel.setText("20 %", juce::dontSendNotification);
-        frDiffusionValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         frDiffusionValueLabel.setJustificationType(juce::Justification::centred);
         setupEditableValueLabel(frDiffusionValueLabel);
 
@@ -1336,7 +1278,6 @@ private:
         // FR Low Cut Frequency slider (20-20000 Hz)
         addAndMakeVisible(frLowCutFreqLabel);
         frLowCutFreqLabel.setText("Low Cut Freq:", juce::dontSendNotification);
-        frLowCutFreqLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         frLowCutFreqSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFF607D8B));
         frLowCutFreqSlider.onValueChanged = [this](float v) {
             // Formula: 20*pow(10,4*x) maps 0-1 to 20-20000 Hz
@@ -1347,7 +1288,6 @@ private:
         addAndMakeVisible(frLowCutFreqSlider);
         addAndMakeVisible(frLowCutFreqValueLabel);
         frLowCutFreqValueLabel.setText("100 Hz", juce::dontSendNotification);
-        frLowCutFreqValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         setupEditableValueLabel(frLowCutFreqValueLabel);
 
         // FR High Shelf Active
@@ -1364,7 +1304,6 @@ private:
         // FR High Shelf Frequency slider (20-20000 Hz)
         addAndMakeVisible(frHighShelfFreqLabel);
         frHighShelfFreqLabel.setText("HS Freq:", juce::dontSendNotification);
-        frHighShelfFreqLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         frHighShelfFreqSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFF607D8B));
         frHighShelfFreqSlider.onValueChanged = [this](float v) {
             int freq = static_cast<int>(20.0f * std::pow(10.0f, 3.0f * v));
@@ -1374,13 +1313,11 @@ private:
         addAndMakeVisible(frHighShelfFreqSlider);
         addAndMakeVisible(frHighShelfFreqValueLabel);
         frHighShelfFreqValueLabel.setText("3000 Hz", juce::dontSendNotification);
-        frHighShelfFreqValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         setupEditableValueLabel(frHighShelfFreqValueLabel);
 
         // FR High Shelf Gain slider (-24 to 0 dB)
         addAndMakeVisible(frHighShelfGainLabel);
         frHighShelfGainLabel.setText("HS Gain:", juce::dontSendNotification);
-        frHighShelfGainLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         frHighShelfGainSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFF607D8B));
         frHighShelfGainSlider.onValueChanged = [this](float v) {
             float dB = 20.0f * std::log10(std::pow(10.0f, -24.0f / 20.0f) +
@@ -1391,13 +1328,11 @@ private:
         addAndMakeVisible(frHighShelfGainSlider);
         addAndMakeVisible(frHighShelfGainValueLabel);
         frHighShelfGainValueLabel.setText("-2.0 dB", juce::dontSendNotification);
-        frHighShelfGainValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         setupEditableValueLabel(frHighShelfGainValueLabel);
 
         // FR High Shelf Slope slider (0.1-0.9)
         addAndMakeVisible(frHighShelfSlopeLabel);
         frHighShelfSlopeLabel.setText("HS Slope:", juce::dontSendNotification);
-        frHighShelfSlopeLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         frHighShelfSlopeSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFF607D8B));
         frHighShelfSlopeSlider.onValueChanged = [this](float v) {
             // Formula: (x*0.8)+0.1 maps 0-1 to 0.1-0.9
@@ -1408,7 +1343,6 @@ private:
         addAndMakeVisible(frHighShelfSlopeSlider);
         addAndMakeVisible(frHighShelfSlopeValueLabel);
         frHighShelfSlopeValueLabel.setText("0.40", juce::dontSendNotification);
-        frHighShelfSlopeValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         setupEditableValueLabel(frHighShelfSlopeValueLabel);
 
         // Mute Sends to Reverbs
@@ -1437,7 +1371,6 @@ private:
         // Period dial (0.01-100.0 s) - Formula: pow(10.0,sqrt(x)*4.0-2.0)
         addAndMakeVisible(lfoPeriodLabel);
         lfoPeriodLabel.setText("Period:", juce::dontSendNotification);
-        lfoPeriodLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         lfoPeriodDial.setColours(juce::Colours::black, juce::Colour(0xFF00BCD4), juce::Colours::grey);
         lfoPeriodDial.onValueChanged = [this](float v) {
             float period = std::pow(10.0f, std::sqrt(v) * 4.0f - 2.0f);
@@ -1447,14 +1380,12 @@ private:
         addAndMakeVisible(lfoPeriodDial);
         addAndMakeVisible(lfoPeriodValueLabel);
         lfoPeriodValueLabel.setText("5.00 s", juce::dontSendNotification);
-        lfoPeriodValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         lfoPeriodValueLabel.setJustificationType(juce::Justification::centred);
         setupEditableValueLabel(lfoPeriodValueLabel);
 
         // Main Phase dial (-180° to 180°) - uses WfsRotationDial
         addAndMakeVisible(lfoPhaseLabel);
         lfoPhaseLabel.setText("Phase:", juce::dontSendNotification);
-        lfoPhaseLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         lfoPhaseDial.setColours(juce::Colours::black, juce::Colour(0xFF4CAF50), juce::Colours::grey);
         lfoPhaseDial.onAngleChanged = [this](float angle) {
             int degrees = static_cast<int>(angle);
@@ -1464,7 +1395,6 @@ private:
         addAndMakeVisible(lfoPhaseDial);
         addAndMakeVisible(lfoPhaseValueLabel);
         lfoPhaseValueLabel.setText(juce::String::fromUTF8("0°"), juce::dontSendNotification);
-        lfoPhaseValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         lfoPhaseValueLabel.setJustificationType(juce::Justification::centred);
         setupEditableValueLabel(lfoPhaseValueLabel);
 
@@ -1473,7 +1403,6 @@ private:
 
         addAndMakeVisible(lfoShapeXLabel);
         lfoShapeXLabel.setText("Shape X:", juce::dontSendNotification);
-        lfoShapeXLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(lfoShapeXSelector);
         for (int i = 0; i < lfoShapes.size(); ++i)
             lfoShapeXSelector.addItem(lfoShapes[i], i + 1);
@@ -1484,7 +1413,6 @@ private:
 
         addAndMakeVisible(lfoShapeYLabel);
         lfoShapeYLabel.setText("Shape Y:", juce::dontSendNotification);
-        lfoShapeYLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(lfoShapeYSelector);
         for (int i = 0; i < lfoShapes.size(); ++i)
             lfoShapeYSelector.addItem(lfoShapes[i], i + 1);
@@ -1495,7 +1423,6 @@ private:
 
         addAndMakeVisible(lfoShapeZLabel);
         lfoShapeZLabel.setText("Shape Z:", juce::dontSendNotification);
-        lfoShapeZLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(lfoShapeZSelector);
         for (int i = 0; i < lfoShapes.size(); ++i)
             lfoShapeZSelector.addItem(lfoShapes[i], i + 1);
@@ -1507,7 +1434,6 @@ private:
         // Rate X/Y/Z sliders (0.01-100, formula: pow(10.0,(x*4.0)-2.0))
         addAndMakeVisible(lfoRateXLabel);
         lfoRateXLabel.setText("Rate X:", juce::dontSendNotification);
-        lfoRateXLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         lfoRateXSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFFE91E63));
         lfoRateXSlider.onValueChanged = [this](float v) {
             float rate = std::pow(10.0f, (v * 4.0f) - 2.0f);
@@ -1517,12 +1443,10 @@ private:
         addAndMakeVisible(lfoRateXSlider);
         addAndMakeVisible(lfoRateXValueLabel);
         lfoRateXValueLabel.setText("1.00x", juce::dontSendNotification);
-        lfoRateXValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         setupEditableValueLabel(lfoRateXValueLabel);
 
         addAndMakeVisible(lfoRateYLabel);
         lfoRateYLabel.setText("Rate Y:", juce::dontSendNotification);
-        lfoRateYLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         lfoRateYSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFFE91E63));
         lfoRateYSlider.onValueChanged = [this](float v) {
             float rate = std::pow(10.0f, (v * 4.0f) - 2.0f);
@@ -1532,12 +1456,10 @@ private:
         addAndMakeVisible(lfoRateYSlider);
         addAndMakeVisible(lfoRateYValueLabel);
         lfoRateYValueLabel.setText("1.00x", juce::dontSendNotification);
-        lfoRateYValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         setupEditableValueLabel(lfoRateYValueLabel);
 
         addAndMakeVisible(lfoRateZLabel);
         lfoRateZLabel.setText("Rate Z:", juce::dontSendNotification);
-        lfoRateZLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         lfoRateZSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFFE91E63));
         lfoRateZSlider.onValueChanged = [this](float v) {
             float rate = std::pow(10.0f, (v * 4.0f) - 2.0f);
@@ -1547,13 +1469,11 @@ private:
         addAndMakeVisible(lfoRateZSlider);
         addAndMakeVisible(lfoRateZValueLabel);
         lfoRateZValueLabel.setText("1.00x", juce::dontSendNotification);
-        lfoRateZValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         setupEditableValueLabel(lfoRateZValueLabel);
 
         // Amplitude X/Y/Z sliders (0-50 m)
         addAndMakeVisible(lfoAmplitudeXLabel);
         lfoAmplitudeXLabel.setText("Ampl. X:", juce::dontSendNotification);
-        lfoAmplitudeXLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         lfoAmplitudeXSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF9C27B0));
         lfoAmplitudeXSlider.onValueChanged = [this](float v) {
             float amp = v * 50.0f;
@@ -1563,12 +1483,10 @@ private:
         addAndMakeVisible(lfoAmplitudeXSlider);
         addAndMakeVisible(lfoAmplitudeXValueLabel);
         lfoAmplitudeXValueLabel.setText("1.0 m", juce::dontSendNotification);
-        lfoAmplitudeXValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         setupEditableValueLabel(lfoAmplitudeXValueLabel);
 
         addAndMakeVisible(lfoAmplitudeYLabel);
         lfoAmplitudeYLabel.setText("Ampl. Y:", juce::dontSendNotification);
-        lfoAmplitudeYLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         lfoAmplitudeYSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF9C27B0));
         lfoAmplitudeYSlider.onValueChanged = [this](float v) {
             float amp = v * 50.0f;
@@ -1578,12 +1496,10 @@ private:
         addAndMakeVisible(lfoAmplitudeYSlider);
         addAndMakeVisible(lfoAmplitudeYValueLabel);
         lfoAmplitudeYValueLabel.setText("1.0 m", juce::dontSendNotification);
-        lfoAmplitudeYValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         setupEditableValueLabel(lfoAmplitudeYValueLabel);
 
         addAndMakeVisible(lfoAmplitudeZLabel);
         lfoAmplitudeZLabel.setText("Ampl. Z:", juce::dontSendNotification);
-        lfoAmplitudeZLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         lfoAmplitudeZSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF9C27B0));
         lfoAmplitudeZSlider.onValueChanged = [this](float v) {
             float amp = v * 50.0f;
@@ -1593,13 +1509,11 @@ private:
         addAndMakeVisible(lfoAmplitudeZSlider);
         addAndMakeVisible(lfoAmplitudeZValueLabel);
         lfoAmplitudeZValueLabel.setText("1.0 m", juce::dontSendNotification);
-        lfoAmplitudeZValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         setupEditableValueLabel(lfoAmplitudeZValueLabel);
 
         // Phase X/Y/Z dials (-180° to 180°)
         addAndMakeVisible(lfoPhaseXLabel);
         lfoPhaseXLabel.setText("Phase X:", juce::dontSendNotification);
-        lfoPhaseXLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         lfoPhaseXDial.setColours(juce::Colours::black, juce::Colour(0xFFFF9800), juce::Colours::grey);
         lfoPhaseXDial.onAngleChanged = [this](float angle) {
             int degrees = static_cast<int>(angle);
@@ -1609,13 +1523,11 @@ private:
         addAndMakeVisible(lfoPhaseXDial);
         addAndMakeVisible(lfoPhaseXValueLabel);
         lfoPhaseXValueLabel.setText(juce::String::fromUTF8("0°"), juce::dontSendNotification);
-        lfoPhaseXValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         lfoPhaseXValueLabel.setJustificationType(juce::Justification::centred);
         setupEditableValueLabel(lfoPhaseXValueLabel);
 
         addAndMakeVisible(lfoPhaseYLabel);
         lfoPhaseYLabel.setText("Phase Y:", juce::dontSendNotification);
-        lfoPhaseYLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         lfoPhaseYDial.setColours(juce::Colours::black, juce::Colour(0xFFFF9800), juce::Colours::grey);
         lfoPhaseYDial.onAngleChanged = [this](float angle) {
             int degrees = static_cast<int>(angle);
@@ -1625,13 +1537,11 @@ private:
         addAndMakeVisible(lfoPhaseYDial);
         addAndMakeVisible(lfoPhaseYValueLabel);
         lfoPhaseYValueLabel.setText(juce::String::fromUTF8("0°"), juce::dontSendNotification);
-        lfoPhaseYValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         lfoPhaseYValueLabel.setJustificationType(juce::Justification::centred);
         setupEditableValueLabel(lfoPhaseYValueLabel);
 
         addAndMakeVisible(lfoPhaseZLabel);
         lfoPhaseZLabel.setText("Phase Z:", juce::dontSendNotification);
-        lfoPhaseZLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         lfoPhaseZDial.setColours(juce::Colours::black, juce::Colour(0xFFFF9800), juce::Colours::grey);
         lfoPhaseZDial.onAngleChanged = [this](float angle) {
             int degrees = static_cast<int>(angle);
@@ -1641,14 +1551,12 @@ private:
         addAndMakeVisible(lfoPhaseZDial);
         addAndMakeVisible(lfoPhaseZValueLabel);
         lfoPhaseZValueLabel.setText(juce::String::fromUTF8("0°"), juce::dontSendNotification);
-        lfoPhaseZValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         lfoPhaseZValueLabel.setJustificationType(juce::Justification::centred);
         setupEditableValueLabel(lfoPhaseZValueLabel);
 
         // Gyrophone dropdown
         addAndMakeVisible(lfoGyrophoneLabel);
         lfoGyrophoneLabel.setText("Gyrophone:", juce::dontSendNotification);
-        lfoGyrophoneLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(lfoGyrophoneSelector);
         lfoGyrophoneSelector.addItem("Anti-Clockwise", 1);
         lfoGyrophoneSelector.addItem("OFF", 2);
@@ -1661,7 +1569,6 @@ private:
         // Jitter slider
         addAndMakeVisible(jitterLabel);
         jitterLabel.setText("Jitter:", juce::dontSendNotification);
-        jitterLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         jitterSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFFCDDC39));
         jitterSlider.onValueChanged = [this](float v) {
             float meters = 10.0f * v * v;
@@ -1671,7 +1578,6 @@ private:
         addAndMakeVisible(jitterSlider);
         addAndMakeVisible(jitterValueLabel);
         jitterValueLabel.setText("0.00 m", juce::dontSendNotification);
-        jitterValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         setupEditableValueLabel(jitterValueLabel);
 
         // LFO Progress dial (read-only)
@@ -1703,33 +1609,27 @@ private:
         // Destination X/Y/Z number boxes
         addAndMakeVisible(otomoDestXLabel);
         otomoDestXLabel.setText("Dest. X:", juce::dontSendNotification);
-        otomoDestXLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(otomoDestXEditor);
         otomoDestXEditor.setText("0.00", juce::dontSendNotification);
         setupNumericEditor(otomoDestXEditor, true, true);
         addAndMakeVisible(otomoDestXUnitLabel);
         otomoDestXUnitLabel.setText("m", juce::dontSendNotification);
-        otomoDestXUnitLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
         addAndMakeVisible(otomoDestYLabel);
         otomoDestYLabel.setText("Dest. Y:", juce::dontSendNotification);
-        otomoDestYLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(otomoDestYEditor);
         otomoDestYEditor.setText("0.00", juce::dontSendNotification);
         setupNumericEditor(otomoDestYEditor, true, true);
         addAndMakeVisible(otomoDestYUnitLabel);
         otomoDestYUnitLabel.setText("m", juce::dontSendNotification);
-        otomoDestYUnitLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
         addAndMakeVisible(otomoDestZLabel);
         otomoDestZLabel.setText("Dest. Z:", juce::dontSendNotification);
-        otomoDestZLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(otomoDestZEditor);
         otomoDestZEditor.setText("0.00", juce::dontSendNotification);
         setupNumericEditor(otomoDestZEditor, true, true);
         addAndMakeVisible(otomoDestZUnitLabel);
         otomoDestZUnitLabel.setText("m", juce::dontSendNotification);
-        otomoDestZUnitLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
         // Absolute/Relative button
         addAndMakeVisible(otomoAbsRelButton);
@@ -1754,7 +1654,6 @@ private:
         // Duration dial (0.1 to 3600 seconds, logarithmic)
         addAndMakeVisible(otomoDurationLabel);
         otomoDurationLabel.setText("Duration:", juce::dontSendNotification);
-        otomoDurationLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         otomoDurationDial.setColours(juce::Colours::black, juce::Colour(0xFF4CAF50), juce::Colours::grey);
         otomoDurationDial.onValueChanged = [this](float v) {
             // Logarithmic scale: 0.1s to 3600s
@@ -1777,14 +1676,12 @@ private:
         addAndMakeVisible(otomoDurationDial);
         addAndMakeVisible(otomoDurationValueLabel);
         otomoDurationValueLabel.setText("5.00 s", juce::dontSendNotification);
-        otomoDurationValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         otomoDurationValueLabel.setJustificationType(juce::Justification::centred);
         setupEditableValueLabel(otomoDurationValueLabel);
 
         // Curve dial (-100 to +100, bipolar)
         addAndMakeVisible(otomoCurveLabel);
         otomoCurveLabel.setText("Curve:", juce::dontSendNotification);
-        otomoCurveLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         otomoCurveDial.setColours(juce::Colours::black, juce::Colour(0xFFFF9800), juce::Colours::grey);
         otomoCurveDial.onValueChanged = [this](float v) {
             // Bipolar: -100 to +100
@@ -1795,14 +1692,12 @@ private:
         addAndMakeVisible(otomoCurveDial);
         addAndMakeVisible(otomoCurveValueLabel);
         otomoCurveValueLabel.setText("0 %", juce::dontSendNotification);
-        otomoCurveValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         otomoCurveValueLabel.setJustificationType(juce::Justification::centred);
         setupEditableValueLabel(otomoCurveValueLabel);
 
         // Speed Profile dial (0-100%)
         addAndMakeVisible(otomoSpeedProfileLabel);
         otomoSpeedProfileLabel.setText("Speed Profile:", juce::dontSendNotification);
-        otomoSpeedProfileLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         otomoSpeedProfileDial.setColours(juce::Colours::black, juce::Colour(0xFF2196F3), juce::Colours::grey);
         otomoSpeedProfileDial.onValueChanged = [this](float v) {
             int percent = static_cast<int>(v * 100.0f);
@@ -1812,7 +1707,6 @@ private:
         addAndMakeVisible(otomoSpeedProfileDial);
         addAndMakeVisible(otomoSpeedProfileValueLabel);
         otomoSpeedProfileValueLabel.setText("0 %", juce::dontSendNotification);
-        otomoSpeedProfileValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         otomoSpeedProfileValueLabel.setJustificationType(juce::Justification::centred);
         setupEditableValueLabel(otomoSpeedProfileValueLabel);
 
@@ -1829,7 +1723,6 @@ private:
         // Trigger Threshold dial (-92 to 0 dB)
         addAndMakeVisible(otomoThresholdLabel);
         otomoThresholdLabel.setText("Threshold:", juce::dontSendNotification);
-        otomoThresholdLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         otomoThresholdDial.setColours(juce::Colours::black, juce::Colour(0xFFE91E63), juce::Colours::grey);
         otomoThresholdDial.onValueChanged = [this](float v) {
             float dB = 20.0f * std::log10(std::pow(10.0f, -92.0f / 20.0f) +
@@ -1840,14 +1733,12 @@ private:
         addAndMakeVisible(otomoThresholdDial);
         addAndMakeVisible(otomoThresholdValueLabel);
         otomoThresholdValueLabel.setText("-20.0 dB", juce::dontSendNotification);
-        otomoThresholdValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         otomoThresholdValueLabel.setJustificationType(juce::Justification::centred);
         setupEditableValueLabel(otomoThresholdValueLabel);
 
         // Trigger Reset dial (-92 to 0 dB)
         addAndMakeVisible(otomoResetLabel);
         otomoResetLabel.setText("Reset:", juce::dontSendNotification);
-        otomoResetLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         otomoResetDial.setColours(juce::Colours::black, juce::Colour(0xFF9C27B0), juce::Colours::grey);
         otomoResetDial.onValueChanged = [this](float v) {
             float dB = 20.0f * std::log10(std::pow(10.0f, -92.0f / 20.0f) +
@@ -1858,7 +1749,6 @@ private:
         addAndMakeVisible(otomoResetDial);
         addAndMakeVisible(otomoResetValueLabel);
         otomoResetValueLabel.setText("-60.0 dB", juce::dontSendNotification);
-        otomoResetValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         otomoResetValueLabel.setJustificationType(juce::Justification::centred);
         setupEditableValueLabel(otomoResetValueLabel);
 
@@ -1941,7 +1831,6 @@ private:
         // Mute Macros selector
         addAndMakeVisible(muteMacrosLabel);
         muteMacrosLabel.setText("Mute Macros:", juce::dontSendNotification);
-        muteMacrosLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
         addAndMakeVisible(muteMacrosSelector);
         muteMacrosSelector.addItem("Select Macro...", 1);
@@ -1970,7 +1859,6 @@ private:
         // Array Attenuation section
         addAndMakeVisible(arrayAttenLabel);
         arrayAttenLabel.setText("Array Attenuation:", juce::dontSendNotification);
-        arrayAttenLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
         for (int i = 0; i < 10; ++i)
         {
@@ -1979,7 +1867,7 @@ private:
 
             // Dial label (Array 1, Array 2, etc.)
             arrayAttenDialLabels[i].setText("Array " + juce::String(i + 1), juce::dontSendNotification);
-            arrayAttenDialLabels[i].setColour(juce::Label::textColourId, juce::Colours::white);
+            arrayAttenDialLabels[i].setColour(juce::Label::textColourId, ColorScheme::get().textPrimary);
             arrayAttenDialLabels[i].setJustificationType(juce::Justification::centred);
             addAndMakeVisible(arrayAttenDialLabels[i]);
 
@@ -2006,7 +1894,7 @@ private:
 
             // Value label
             arrayAttenValueLabels[i].setText("0.0 dB", juce::dontSendNotification);
-            arrayAttenValueLabels[i].setColour(juce::Label::textColourId, juce::Colours::white);
+            arrayAttenValueLabels[i].setColour(juce::Label::textColourId, ColorScheme::get().textPrimary);
             arrayAttenValueLabels[i].setJustificationType(juce::Justification::centred);
             setupEditableValueLabel(arrayAttenValueLabels[i]);
             addAndMakeVisible(arrayAttenValueLabels[i]);
@@ -2015,7 +1903,7 @@ private:
         // Sidelines section (auto-mute at stage edges)
         addAndMakeVisible(sidelinesActiveButton);
         sidelinesActiveButton.setButtonText("Sidelines");
-        sidelinesActiveButton.setColour(juce::ToggleButton::textColourId, juce::Colours::white);
+        // Text color from WfsLookAndFeel, green tick for active state
         sidelinesActiveButton.setColour(juce::ToggleButton::tickColourId, juce::Colour(0xFF00C853));
         sidelinesActiveButton.onClick = [this]() {
             saveInputParam(WFSParameterIDs::inputSidelinesActive,
@@ -2024,7 +1912,6 @@ private:
 
         addAndMakeVisible(sidelinesFringeLabel);
         sidelinesFringeLabel.setText("Fringe:", juce::dontSendNotification);
-        sidelinesFringeLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
         addAndMakeVisible(sidelinesFringeDial);
         sidelinesFringeDial.setColours(juce::Colours::black, juce::Colour(0xFF00C853), juce::Colours::grey);
@@ -2038,7 +1925,6 @@ private:
 
         addAndMakeVisible(sidelinesFringeValueLabel);
         sidelinesFringeValueLabel.setText("1.00 m", juce::dontSendNotification);
-        sidelinesFringeValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         sidelinesFringeValueLabel.setJustificationType(juce::Justification::centred);
         setupEditableValueLabel(sidelinesFringeValueLabel);
     }

@@ -212,14 +212,26 @@ MainComponent::MainComponent()
         handleConfigReloaded();
     };
 
+    // Create and apply custom LookAndFeel for centralized widget theming
+    wfsLookAndFeel = std::make_unique<WfsLookAndFeel>();
+    juce::LookAndFeel::setDefaultLookAndFeel(wfsLookAndFeel.get());
+
     // Add tabs to tabbed component
-    tabbedComponent.addTab("System Configuration", juce::Colours::darkgrey, systemConfigTab, true);
-    tabbedComponent.addTab("Network", juce::Colours::darkgrey, networkTab, true);
-    tabbedComponent.addTab("Outputs", juce::Colours::darkgrey, outputsTab, true);
-    tabbedComponent.addTab("Reverb", juce::Colours::darkgrey, reverbTab, true);
-    tabbedComponent.addTab("Inputs", juce::Colours::darkgrey, inputsTab, true);
-    tabbedComponent.addTab("Clusters", juce::Colours::darkgrey, clustersTab, true);
-    tabbedComponent.addTab("Map", juce::Colours::darkgrey, mapTab, true);
+    tabbedComponent.addTab("System Configuration", ColorScheme::get().chromeBackground, systemConfigTab, true);
+    tabbedComponent.addTab("Network", ColorScheme::get().chromeBackground, networkTab, true);
+    tabbedComponent.addTab("Outputs", ColorScheme::get().chromeBackground, outputsTab, true);
+    tabbedComponent.addTab("Reverb", ColorScheme::get().chromeBackground, reverbTab, true);
+    tabbedComponent.addTab("Inputs", ColorScheme::get().chromeBackground, inputsTab, true);
+    tabbedComponent.addTab("Clusters", ColorScheme::get().chromeBackground, clustersTab, true);
+    tabbedComponent.addTab("Map", ColorScheme::get().chromeBackground, mapTab, true);
+
+    // Load saved color scheme from parameters and apply it
+    // This will trigger WfsLookAndFeel::colorSchemeChanged() to update widget colors
+    int colorSchemeId = (int)parameters.getConfigParam("ColorScheme");
+    ColorScheme::Manager::getInstance().setTheme(colorSchemeId);
+
+    // Subscribe to color scheme changes for component repaints
+    ColorScheme::Manager::getInstance().addListener(this);
 
     // Set up navigation callback from Map tab to other tabs via long-press gesture
     // Parameters: (tabType, index) where tabType is: 0=Input, 1=Cluster, 2=Output, 3=Reverb
@@ -469,6 +481,13 @@ MainComponent::MainComponent()
 
 MainComponent::~MainComponent()
 {
+    // Stop listening to color scheme changes
+    ColorScheme::Manager::getInstance().removeListener(this);
+
+    // Reset default LookAndFeel before destroying our custom one
+    juce::LookAndFeel::setDefaultLookAndFeel(nullptr);
+    wfsLookAndFeel.reset();
+
     // Stop listening to device manager changes
     deviceManager.removeChangeListener(this);
 
@@ -539,6 +558,22 @@ void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
             audioCallbacksAttached = false;
         }
     }
+}
+
+void MainComponent::colorSchemeChanged()
+{
+    // Update tab colors to match new theme
+    for (int i = 0; i < tabbedComponent.getNumTabs(); ++i)
+    {
+        tabbedComponent.setTabBackgroundColour(i, ColorScheme::get().chromeBackground);
+    }
+
+    // Notify all components that the LookAndFeel has changed
+    // This triggers lookAndFeelChanged() on all child components
+    sendLookAndFeelChange();
+
+    // Force repaint of the entire component hierarchy
+    repaint();
 }
 
 void MainComponent::resizeRoutingMatrices()

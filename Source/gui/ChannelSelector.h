@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "ColorUtilities.h"
+#include "ColorScheme.h"
 
 // Forward declaration
 class ChannelSelectorOverlay;
@@ -111,7 +112,7 @@ public:
         g.drawRoundedRectangle(bounds.reduced(0.5f), 8.0f, 1.0f);
 
         // Draw title
-        g.setColour(juce::Colours::white);
+        g.setColour(ColorScheme::get().textPrimary);
         g.setFont(juce::FontOptions().withHeight(14.0f).withStyle("Bold"));
         g.drawText("Select Channel", padding, padding, getWidth() - padding * 2 - 30, titleHeight - padding,
                    juce::Justification::centredLeft);

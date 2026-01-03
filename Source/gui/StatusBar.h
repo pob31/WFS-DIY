@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "ColorScheme.h"
 
 /**
  * Status Bar Component
@@ -23,7 +24,6 @@ public:
         // Mode selector
         addAndMakeVisible(modeLabel);
         modeLabel.setText("Display:", juce::dontSendNotification);
-        modeLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
         addAndMakeVisible(modeSelector);
         modeSelector.addItem("Help", 1);
@@ -36,8 +36,6 @@ public:
 
         // Status text
         addAndMakeVisible(statusLabel);
-        statusLabel.setColour(juce::Label::textColourId, juce::Colours::white);
-        statusLabel.setColour(juce::Label::backgroundColourId, juce::Colours::darkgrey);
         statusLabel.setJustificationType(juce::Justification::centredLeft);
 
         setSize(800, 30);
@@ -45,10 +43,10 @@ public:
 
     void paint(juce::Graphics& g) override
     {
-        g.fillAll(juce::Colours::darkgrey);
+        g.fillAll(ColorScheme::get().chromeBackground);
 
         // Draw separator line at top
-        g.setColour(juce::Colours::black);
+        g.setColour(ColorScheme::get().chromeDivider);
         g.drawLine(0.0f, 0.0f, (float)getWidth(), 0.0f, 2.0f);
     }
 

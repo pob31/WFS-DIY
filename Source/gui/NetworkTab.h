@@ -5,6 +5,7 @@
 #include "../WfsParameters.h"
 #include "StatusBar.h"
 #include "../Network/OSCManager.h"
+#include "ColorScheme.h"
 
 #if JUCE_WINDOWS
     #include <winsock2.h>
@@ -44,30 +45,25 @@ public:
         // ==================== NETWORK SECTION ====================
         addAndMakeVisible(networkInterfaceLabel);
         networkInterfaceLabel.setText("Network Interface:", juce::dontSendNotification);
-        networkInterfaceLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(networkInterfaceSelector);
         networkInterfaceSelector.onChange = [this]() { onNetworkInterfaceChanged(); };
 
         addAndMakeVisible(currentIPLabel);
         currentIPLabel.setText("Current IPv4:", juce::dontSendNotification);
-        currentIPLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(currentIPEditor);
         currentIPEditor.setReadOnly(true);
 
         addAndMakeVisible(udpPortLabel);
         udpPortLabel.setText("UDP Port:", juce::dontSendNotification);
-        udpPortLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(udpPortEditor);
 
         addAndMakeVisible(tcpPortLabel);
         tcpPortLabel.setText("TCP Port:", juce::dontSendNotification);
-        tcpPortLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(tcpPortEditor);
 
         // ==================== OSC QUERY ====================
         addAndMakeVisible(oscQueryLabel);
         oscQueryLabel.setText("OSC Query:", juce::dontSendNotification);
-        oscQueryLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(oscQueryPortEditor);
         oscQueryPortEditor.setText("5005");
         oscQueryPortEditor.setInputRestrictions(5, "0123456789");
@@ -186,19 +182,19 @@ public:
 
     void paint(juce::Graphics& g) override
     {
-        g.fillAll(juce::Colour(0xFF1E1E1E));
+        g.fillAll(ColorScheme::get().background);
 
         // Footer background (matching Input/Output tabs)
         const int footerHeight = 50;
-        g.setColour(juce::Colour(0xFF252525));
+        g.setColour(ColorScheme::get().chromeSurface);
         g.fillRect(0, getHeight() - footerHeight, getWidth(), footerHeight);
 
         // Footer divider line
-        g.setColour(juce::Colour(0xFF404040));
+        g.setColour(ColorScheme::get().chromeDivider);
         g.drawLine(0.0f, (float)(getHeight() - footerHeight), (float)getWidth(), (float)(getHeight() - footerHeight), 1.0f);
 
         // Draw section headers
-        g.setColour(juce::Colours::white);
+        g.setColour(ColorScheme::get().textPrimary);
         g.setFont(juce::FontOptions().withHeight(14.0f).withStyle("Bold"));
         g.drawText("Network", 20, 10, 200, 20, juce::Justification::left);
         g.drawText("Network Connections", 20, networkConnectionsSectionY - 25, 200, 20, juce::Justification::left);
@@ -206,7 +202,7 @@ public:
         g.drawText("Tracking", 20, trackingSectionY - 25, 200, 20, juce::Justification::left);
 
         // Draw section dividers
-        g.setColour(juce::Colour(0xFF404040));
+        g.setColour(ColorScheme::get().chromeDivider);
         g.drawLine(20.0f, (float)(networkConnectionsSectionY - 10), (float)(getWidth() - 20), (float)(networkConnectionsSectionY - 10), 1.0f);
         g.drawLine(20.0f, (float)(admOscSectionY - 10), (float)(getWidth() - 20), (float)(admOscSectionY - 10), 1.0f);
         g.drawLine(20.0f, (float)(trackingSectionY - 10), (float)(getWidth() - 20), (float)(trackingSectionY - 10), 1.0f);
@@ -575,7 +571,6 @@ private:
         // Offset X
         addAndMakeVisible(admOscOffsetXLabel);
         admOscOffsetXLabel.setText("Offset X:", juce::dontSendNotification);
-        admOscOffsetXLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(admOscOffsetXEditor);
         addAndMakeVisible(admOscOffsetXUnitLabel);
         admOscOffsetXUnitLabel.setText("m", juce::dontSendNotification);
@@ -584,7 +579,6 @@ private:
         // Offset Y
         addAndMakeVisible(admOscOffsetYLabel);
         admOscOffsetYLabel.setText("Offset Y:", juce::dontSendNotification);
-        admOscOffsetYLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(admOscOffsetYEditor);
         addAndMakeVisible(admOscOffsetYUnitLabel);
         admOscOffsetYUnitLabel.setText("m", juce::dontSendNotification);
@@ -593,7 +587,6 @@ private:
         // Offset Z
         addAndMakeVisible(admOscOffsetZLabel);
         admOscOffsetZLabel.setText("Offset Z:", juce::dontSendNotification);
-        admOscOffsetZLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(admOscOffsetZEditor);
         addAndMakeVisible(admOscOffsetZUnitLabel);
         admOscOffsetZUnitLabel.setText("m", juce::dontSendNotification);
@@ -602,7 +595,6 @@ private:
         // Scale X
         addAndMakeVisible(admOscScaleXLabel);
         admOscScaleXLabel.setText("Scale X:", juce::dontSendNotification);
-        admOscScaleXLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(admOscScaleXEditor);
         addAndMakeVisible(admOscScaleXUnitLabel);
         admOscScaleXUnitLabel.setText("x", juce::dontSendNotification);
@@ -611,7 +603,6 @@ private:
         // Scale Y
         addAndMakeVisible(admOscScaleYLabel);
         admOscScaleYLabel.setText("Scale Y:", juce::dontSendNotification);
-        admOscScaleYLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(admOscScaleYEditor);
         addAndMakeVisible(admOscScaleYUnitLabel);
         admOscScaleYUnitLabel.setText("x", juce::dontSendNotification);
@@ -620,7 +611,6 @@ private:
         // Scale Z
         addAndMakeVisible(admOscScaleZLabel);
         admOscScaleZLabel.setText("Scale Z:", juce::dontSendNotification);
-        admOscScaleZLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(admOscScaleZEditor);
         addAndMakeVisible(admOscScaleZUnitLabel);
         admOscScaleZUnitLabel.setText("x", juce::dontSendNotification);
@@ -684,7 +674,6 @@ private:
         // Protocol selector
         addAndMakeVisible(trackingProtocolLabel);
         trackingProtocolLabel.setText("Protocol:", juce::dontSendNotification);
-        trackingProtocolLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(trackingProtocolSelector);
         trackingProtocolSelector.addItem("DISABLED", 1);
         trackingProtocolSelector.addItem("OSC", 2);
@@ -709,13 +698,11 @@ private:
         // Port
         addAndMakeVisible(trackingPortLabel);
         trackingPortLabel.setText("Rx Port:", juce::dontSendNotification);
-        trackingPortLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(trackingPortEditor);
 
         // Offset X
         addAndMakeVisible(trackingOffsetXLabel);
         trackingOffsetXLabel.setText("Offset X:", juce::dontSendNotification);
-        trackingOffsetXLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(trackingOffsetXEditor);
         addAndMakeVisible(trackingOffsetXUnitLabel);
         trackingOffsetXUnitLabel.setText("m", juce::dontSendNotification);
@@ -724,7 +711,6 @@ private:
         // Offset Y
         addAndMakeVisible(trackingOffsetYLabel);
         trackingOffsetYLabel.setText("Offset Y:", juce::dontSendNotification);
-        trackingOffsetYLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(trackingOffsetYEditor);
         addAndMakeVisible(trackingOffsetYUnitLabel);
         trackingOffsetYUnitLabel.setText("m", juce::dontSendNotification);
@@ -733,7 +719,6 @@ private:
         // Offset Z
         addAndMakeVisible(trackingOffsetZLabel);
         trackingOffsetZLabel.setText("Offset Z:", juce::dontSendNotification);
-        trackingOffsetZLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(trackingOffsetZEditor);
         addAndMakeVisible(trackingOffsetZUnitLabel);
         trackingOffsetZUnitLabel.setText("m", juce::dontSendNotification);
@@ -742,7 +727,6 @@ private:
         // Scale X
         addAndMakeVisible(trackingScaleXLabel);
         trackingScaleXLabel.setText("Scale X:", juce::dontSendNotification);
-        trackingScaleXLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(trackingScaleXEditor);
         addAndMakeVisible(trackingScaleXUnitLabel);
         trackingScaleXUnitLabel.setText("x", juce::dontSendNotification);
@@ -751,7 +735,6 @@ private:
         // Scale Y
         addAndMakeVisible(trackingScaleYLabel);
         trackingScaleYLabel.setText("Scale Y:", juce::dontSendNotification);
-        trackingScaleYLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(trackingScaleYEditor);
         addAndMakeVisible(trackingScaleYUnitLabel);
         trackingScaleYUnitLabel.setText("x", juce::dontSendNotification);
@@ -760,7 +743,6 @@ private:
         // Scale Z
         addAndMakeVisible(trackingScaleZLabel);
         trackingScaleZLabel.setText("Scale Z:", juce::dontSendNotification);
-        trackingScaleZLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(trackingScaleZEditor);
         addAndMakeVisible(trackingScaleZUnitLabel);
         trackingScaleZUnitLabel.setText("x", juce::dontSendNotification);
@@ -972,7 +954,6 @@ private:
         {
             addAndMakeVisible(label);
             label.setText(text, juce::dontSendNotification);
-            label.setColour(juce::Label::textColourId, juce::Colours::white);
             label.setFont(juce::FontOptions().withHeight(12.0f).withStyle("Bold"));
             label.setJustificationType(juce::Justification::centred);
 
@@ -1215,8 +1196,8 @@ private:
             }
             else
             {
-                // Inactive rows get default background
-                row.nameEditor.setColour(juce::TextEditor::backgroundColourId, juce::Colour(0xFF303030));
+                // Inactive rows get default background from theme
+                row.nameEditor.setColour(juce::TextEditor::backgroundColourId, ColorScheme::get().surfaceCard);
             }
         }
     }
@@ -1245,7 +1226,7 @@ private:
                 break;
             case WFSNetwork::ConnectionStatus::Disconnected:
             default:
-                bgColor = juce::Colour(0xFF303030);  // Default dark gray
+                bgColor = ColorScheme::get().surfaceCard;  // Default from theme
                 break;
         }
 

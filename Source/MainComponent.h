@@ -21,6 +21,8 @@
 #include "gui/MapTab.h"
 #include "gui/AudioInterfaceWindow.h"
 #include "gui/NetworkLogWindow.h"
+#include "gui/ColorScheme.h"
+#include "gui/WfsLookAndFeel.h"
 #include "Network/OSCManager.h"
 
 //==============================================================================
@@ -30,7 +32,8 @@
 */
 class MainComponent  : public juce::AudioAppComponent,
                          private juce::Timer,
-                         private juce::ChangeListener
+                         private juce::ChangeListener,
+                         private ColorScheme::Manager::Listener
 {
 public:
     //==============================================================================
@@ -53,6 +56,7 @@ public:
     void saveSettings();
     void timerCallback() override;
     void changeListenerCallback(juce::ChangeBroadcaster* source) override;
+    void colorSchemeChanged() override;
 
     // Routing matrix access
     void setDelay(int inputChannel, int outputChannel, float delayMs);
@@ -93,6 +97,9 @@ private:
 
     std::unique_ptr<AudioInterfaceWindow> audioInterfaceWindow;
     std::unique_ptr<NetworkLogWindow> networkLogWindow;
+
+    // Custom LookAndFeel for centralized widget theming
+    std::unique_ptr<WfsLookAndFeel> wfsLookAndFeel;
 
     // Threaded processing architecture
     enum class ProcessingAlgorithm

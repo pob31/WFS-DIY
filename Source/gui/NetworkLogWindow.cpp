@@ -1,4 +1,5 @@
 #include "NetworkLogWindow.h"
+#include "ColorScheme.h"
 
 //==============================================================================
 // Color Constants
@@ -112,7 +113,7 @@ void NetworkLogTableComponent::paint(juce::Graphics& g)
     auto bounds = getLocalBounds();
 
     // Background
-    g.fillAll(juce::Colour(0xFF1E1E1E));
+    g.fillAll(ColorScheme::get().background);
 
     // Draw header
     drawHeader(g);
@@ -139,10 +140,10 @@ void NetworkLogTableComponent::paint(juce::Graphics& g)
 
 void NetworkLogTableComponent::drawHeader(juce::Graphics& g)
 {
-    g.setColour(juce::Colour(0xFF252525));
+    g.setColour(ColorScheme::get().backgroundAlt);
     g.fillRect(0, 0, getWidth(), headerHeight);
 
-    g.setColour(juce::Colours::white);
+    g.setColour(ColorScheme::get().textPrimary);
     g.setFont(juce::FontOptions(13.0f).withStyle("Bold"));
 
     int x = 4;
@@ -199,7 +200,7 @@ void NetworkLogTableComponent::drawRow(juce::Graphics& g, int rowIndex, int y, c
     }
 
     // Text
-    g.setColour(entry.isRejected ? juce::Colour(0xFFCC8888) : juce::Colours::white);
+    g.setColour(entry.isRejected ? juce::Colour(0xFFCC8888) : ColorScheme::get().textPrimary);
     g.setFont(juce::FontOptions(12.0f));
 
     int x = 4;
@@ -398,7 +399,7 @@ NetworkLogWindowContent::~NetworkLogWindowContent()
 
 void NetworkLogWindowContent::paint(juce::Graphics& g)
 {
-    g.fillAll(juce::Colour(0xFF1E1E1E));
+    g.fillAll(ColorScheme::get().background);
 }
 
 void NetworkLogWindowContent::resized()

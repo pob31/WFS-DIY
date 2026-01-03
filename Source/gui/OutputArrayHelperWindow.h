@@ -4,6 +4,7 @@
 #include "../WfsParameters.h"
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Helpers/ArrayGeometryCalculator.h"
+#include "ColorScheme.h"
 #include "WindowUtils.h"
 
 //==============================================================================
@@ -260,7 +261,7 @@ class OutputArrayHelperWindow : public juce::DocumentWindow
 public:
     OutputArrayHelperWindow(WfsParameters& params)
         : DocumentWindow("Wizard of OutZ",
-                         juce::Colour(0xFF1E1E1E),
+                         ColorScheme::get().background,
                          DocumentWindow::allButtons)
     {
         setUsingNativeTitleBar(true);

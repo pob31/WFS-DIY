@@ -98,6 +98,13 @@ namespace WFSParameterIDs
     const juce::Identifier haasEffect        ("haasEffect");
 
     //==========================================================================
+    // Config > UI Section
+    //==========================================================================
+
+    const juce::Identifier UI                ("UI");
+    const juce::Identifier colorScheme       ("colorScheme");  // 0=Default, 1=OLED Black, 2=Light
+
+    //==========================================================================
     // Config > Network Section
     //==========================================================================
 

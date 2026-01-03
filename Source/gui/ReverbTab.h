@@ -5,6 +5,7 @@
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/WFSParameterDefaults.h"
 #include "ChannelSelector.h"
+#include "ColorScheme.h"
 #include "SliderUIComponents.h"
 #include "DialUIComponents.h"
 #include "StatusBar.h"
@@ -141,14 +142,14 @@ public:
 
     void paint (juce::Graphics& g) override
     {
-        g.fillAll (juce::Colour (0xFF1E1E1E));
+        g.fillAll (ColorScheme::get().background);
 
         // Footer background
-        g.setColour (juce::Colour (0xFF252525));
+        g.setColour (ColorScheme::get().chromeSurface);
         g.fillRect (0, getHeight() - footerHeight, getWidth(), footerHeight);
 
         // Footer divider line
-        g.setColour (juce::Colour (0xFF404040));
+        g.setColour (ColorScheme::get().chromeDivider);
         g.drawLine (0.0f, static_cast<float> (getHeight() - footerHeight),
                     static_cast<float> (getWidth()), static_cast<float> (getHeight() - footerHeight), 1.0f);
     }
@@ -200,11 +201,11 @@ private:
 
         addAndMakeVisible (nameLabel);
         nameLabel.setText ("Name:", juce::dontSendNotification);
-        nameLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+        nameLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
         addAndMakeVisible (nameEditor);
         nameEditor.setColour (juce::TextEditor::backgroundColourId, juce::Colour (0xFF2D2D2D));
-        nameEditor.setColour (juce::TextEditor::textColourId, juce::Colours::white);
+        nameEditor.setColour (juce::TextEditor::textColourId, ColorScheme::get().textPrimary);
         nameEditor.setColour (juce::TextEditor::outlineColourId, juce::Colour (0xFF3D3D3D));
         nameEditor.addListener (this);
 
@@ -228,7 +229,7 @@ private:
         // Attenuation
         addAndMakeVisible (attenuationLabel);
         attenuationLabel.setText ("Attenuation:", juce::dontSendNotification);
-        attenuationLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+        attenuationLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
         attenuationSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFFF5722));
         attenuationSlider.onValueChanged = [this] (float v)
@@ -242,13 +243,13 @@ private:
 
         addAndMakeVisible (attenuationValueLabel);
         attenuationValueLabel.setText ("0.0 dB", juce::dontSendNotification);
-        attenuationValueLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+        attenuationValueLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
         setupEditableValueLabel (attenuationValueLabel);
 
         // Delay/Latency
         addAndMakeVisible (delayLatencyLabel);
         delayLatencyLabel.setText ("Delay/Latency:", juce::dontSendNotification);
-        delayLatencyLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+        delayLatencyLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
         delayLatencySlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF4CAF50));
         delayLatencySlider.onValueChanged = [this] (float v)
@@ -261,7 +262,7 @@ private:
 
         addAndMakeVisible (delayLatencyValueLabel);
         delayLatencyValueLabel.setText ("0.0 ms", juce::dontSendNotification);
-        delayLatencyValueLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+        delayLatencyValueLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
         setupEditableValueLabel (delayLatencyValueLabel);
     }
 
@@ -270,7 +271,6 @@ private:
         // Coordinate Mode selector
         addAndMakeVisible(coordModeLabel);
         coordModeLabel.setText("Coord:", juce::dontSendNotification);
-        coordModeLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(coordModeSelector);
         coordModeSelector.addItem("XYZ", 1);
         coordModeSelector.addItem(juce::String(juce::CharPointer_UTF8("r \xce\xb8 Z")), 2);    // r θ Z
@@ -292,11 +292,11 @@ private:
         {
             addAndMakeVisible (*posLabelPtrs[i]);
             posLabelPtrs[i]->setText (posLabels[i], juce::dontSendNotification);
-            posLabelPtrs[i]->setColour (juce::Label::textColourId, juce::Colours::white);
+            posLabelPtrs[i]->setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
             addAndMakeVisible (*posEditorPtrs[i]);
             posEditorPtrs[i]->setColour (juce::TextEditor::backgroundColourId, juce::Colour (0xFF2D2D2D));
-            posEditorPtrs[i]->setColour (juce::TextEditor::textColourId, juce::Colours::white);
+            posEditorPtrs[i]->setColour (juce::TextEditor::textColourId, ColorScheme::get().textPrimary);
             posEditorPtrs[i]->setInputRestrictions (10, "-0123456789.");
             posEditorPtrs[i]->addListener (this);
 
@@ -315,11 +315,11 @@ private:
         {
             addAndMakeVisible (*offsetLabelPtrs[i]);
             offsetLabelPtrs[i]->setText (offsetLabels[i], juce::dontSendNotification);
-            offsetLabelPtrs[i]->setColour (juce::Label::textColourId, juce::Colours::white);
+            offsetLabelPtrs[i]->setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
             addAndMakeVisible (*offsetEditorPtrs[i]);
             offsetEditorPtrs[i]->setColour (juce::TextEditor::backgroundColourId, juce::Colour (0xFF2D2D2D));
-            offsetEditorPtrs[i]->setColour (juce::TextEditor::textColourId, juce::Colours::white);
+            offsetEditorPtrs[i]->setColour (juce::TextEditor::textColourId, ColorScheme::get().textPrimary);
             offsetEditorPtrs[i]->setInputRestrictions (10, "-0123456789.");
             offsetEditorPtrs[i]->addListener (this);
 
@@ -335,17 +335,17 @@ private:
         addAndMakeVisible (reverbFeedTitleLabel);
         reverbFeedTitleLabel.setText ("Reverb Feed", juce::dontSendNotification);
         reverbFeedTitleLabel.setFont (juce::FontOptions().withHeight (18.0f).withStyle ("Bold"));
-        reverbFeedTitleLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+        reverbFeedTitleLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
         addAndMakeVisible (reverbReturnTitleLabel);
         reverbReturnTitleLabel.setText ("Reverb Return", juce::dontSendNotification);
         reverbReturnTitleLabel.setFont (juce::FontOptions().withHeight (18.0f).withStyle ("Bold"));
-        reverbReturnTitleLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+        reverbReturnTitleLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
         // Orientation dial
         addAndMakeVisible (orientationLabel);
         orientationLabel.setText ("Orientation:", juce::dontSendNotification);
-        orientationLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+        orientationLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
         orientationDial.onAngleChanged = [this] (float v)
         {
@@ -357,14 +357,14 @@ private:
 
         addAndMakeVisible (orientationValueLabel);
         orientationValueLabel.setText (juce::String ("0") + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
-        orientationValueLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+        orientationValueLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
         orientationValueLabel.setJustificationType (juce::Justification::centred);
         setupEditableValueLabel (orientationValueLabel);
 
         // Angle On slider
         addAndMakeVisible (angleOnLabel);
         angleOnLabel.setText ("Angle On:", juce::dontSendNotification);
-        angleOnLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+        angleOnLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
         angleOnSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF2196F3));
         angleOnSlider.onValueChanged = [this] (float v)
@@ -377,13 +377,13 @@ private:
 
         addAndMakeVisible (angleOnValueLabel);
         angleOnValueLabel.setText ("86" + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
-        angleOnValueLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+        angleOnValueLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
         setupEditableValueLabel (angleOnValueLabel);
 
         // Angle Off slider
         addAndMakeVisible (angleOffLabel);
         angleOffLabel.setText ("Angle Off:", juce::dontSendNotification);
-        angleOffLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+        angleOffLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
         angleOffSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF9C27B0));
         angleOffSlider.onValueChanged = [this] (float v)
@@ -396,13 +396,13 @@ private:
 
         addAndMakeVisible (angleOffValueLabel);
         angleOffValueLabel.setText ("90" + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
-        angleOffValueLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+        angleOffValueLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
         setupEditableValueLabel (angleOffValueLabel);
 
         // Pitch slider
         addAndMakeVisible (pitchLabel);
         pitchLabel.setText ("Pitch:", juce::dontSendNotification);
-        pitchLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+        pitchLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
         pitchSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF00BCD4));
         pitchSlider.onValueChanged = [this] (float v)
@@ -415,13 +415,13 @@ private:
 
         addAndMakeVisible (pitchValueLabel);
         pitchValueLabel.setText ("0" + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
-        pitchValueLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+        pitchValueLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
         setupEditableValueLabel (pitchValueLabel);
 
         // HF Damping slider
         addAndMakeVisible (hfDampingLabel);
         hfDampingLabel.setText ("HF Damping:", juce::dontSendNotification);
-        hfDampingLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+        hfDampingLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
         hfDampingSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFFF9800));
         hfDampingSlider.onValueChanged = [this] (float v)
@@ -434,7 +434,7 @@ private:
 
         addAndMakeVisible (hfDampingValueLabel);
         hfDampingValueLabel.setText ("0.0 dB/m", juce::dontSendNotification);
-        hfDampingValueLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+        hfDampingValueLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
         setupEditableValueLabel (hfDampingValueLabel);
 
         // Toggle buttons
@@ -473,7 +473,7 @@ private:
         // Distance Attenuation Enable slider
         addAndMakeVisible (distanceAttenEnableLabel);
         distanceAttenEnableLabel.setText ("Distance Atten %:", juce::dontSendNotification);
-        distanceAttenEnableLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+        distanceAttenEnableLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
         distanceAttenEnableSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF4CAF50));
         distanceAttenEnableSlider.onValueChanged = [this] (float v)
@@ -486,7 +486,7 @@ private:
 
         addAndMakeVisible (distanceAttenEnableValueLabel);
         distanceAttenEnableValueLabel.setText ("100%", juce::dontSendNotification);
-        distanceAttenEnableValueLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+        distanceAttenEnableValueLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
         setupEditableValueLabel (distanceAttenEnableValueLabel);
     }
 
@@ -555,7 +555,7 @@ private:
 
             addAndMakeVisible (eqBandFreqValueLabel[i]);
             eqBandFreqValueLabel[i].setText ("1000 Hz", juce::dontSendNotification);
-            eqBandFreqValueLabel[i].setColour (juce::Label::textColourId, juce::Colours::white);
+            eqBandFreqValueLabel[i].setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
             // Gain dial - colored to match band
             addAndMakeVisible (eqBandGainLabel[i]);
@@ -574,7 +574,7 @@ private:
 
             addAndMakeVisible (eqBandGainValueLabel[i]);
             eqBandGainValueLabel[i].setText ("0.0 dB", juce::dontSendNotification);
-            eqBandGainValueLabel[i].setColour (juce::Label::textColourId, juce::Colours::white);
+            eqBandGainValueLabel[i].setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
             eqBandGainValueLabel[i].setJustificationType (juce::Justification::centred);
 
             // Q dial - colored to match band
@@ -594,7 +594,7 @@ private:
 
             addAndMakeVisible (eqBandQValueLabel[i]);
             eqBandQValueLabel[i].setText ("0.70", juce::dontSendNotification);
-            eqBandQValueLabel[i].setColour (juce::Label::textColourId, juce::Colours::white);
+            eqBandQValueLabel[i].setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
             eqBandQValueLabel[i].setJustificationType (juce::Justification::centred);
         }
     }
@@ -613,7 +613,7 @@ private:
         // Distance Attenuation dial
         addAndMakeVisible (distanceAttenLabel);
         distanceAttenLabel.setText ("Distance Atten:", juce::dontSendNotification);
-        distanceAttenLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+        distanceAttenLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
         distanceAttenDial.onValueChanged = [this] (float v)
         {
@@ -625,14 +625,14 @@ private:
 
         addAndMakeVisible (distanceAttenValueLabel);
         distanceAttenValueLabel.setText ("-0.7 dB/m", juce::dontSendNotification);
-        distanceAttenValueLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+        distanceAttenValueLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
         distanceAttenValueLabel.setJustificationType (juce::Justification::centred);
         setupEditableValueLabel (distanceAttenValueLabel);
 
         // Common Attenuation dial
         addAndMakeVisible (commonAttenLabel);
         commonAttenLabel.setText ("Common Atten:", juce::dontSendNotification);
-        commonAttenLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+        commonAttenLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
         commonAttenDial.onValueChanged = [this] (float v)
         {
@@ -644,14 +644,14 @@ private:
 
         addAndMakeVisible (commonAttenValueLabel);
         commonAttenValueLabel.setText ("100%", juce::dontSendNotification);
-        commonAttenValueLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+        commonAttenValueLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
         commonAttenValueLabel.setJustificationType (juce::Justification::centred);
         setupEditableValueLabel (commonAttenValueLabel);
 
         // Mute buttons (styled like InputsTab)
         addAndMakeVisible (mutesLabel);
         mutesLabel.setText ("Output Mutes:", juce::dontSendNotification);
-        mutesLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+        mutesLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
         for (int i = 0; i < maxMuteButtons; ++i)
         {
@@ -669,7 +669,7 @@ private:
         // Mute Macro selector
         addAndMakeVisible (muteMacrosLabel);
         muteMacrosLabel.setText ("Mute Macro:", juce::dontSendNotification);
-        muteMacrosLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+        muteMacrosLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
         addAndMakeVisible (muteMacrosSelector);
         muteMacrosSelector.addItem ("Mute Macro Select", 1);

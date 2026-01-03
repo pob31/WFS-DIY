@@ -93,7 +93,6 @@ private:
     {
         label.setText(text, juce::dontSendNotification);
         label.setJustificationType(juce::Justification::centred);
-        label.setColour(juce::Label::textColourId, juce::Colours::white);
         label.setFont(juce::Font(juce::FontOptions(juce::Font::getDefaultSansSerifFontName(), 16.0f, juce::Font::bold)));
     }
 

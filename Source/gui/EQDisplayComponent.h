@@ -5,6 +5,7 @@
 #include <limits>
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/WFSParameterDefaults.h"
+#include "ColorScheme.h"
 
 //==============================================================================
 /**
@@ -536,7 +537,7 @@ private:
         g.fillPath (filledCurve);
 
         // Curve outline
-        g.setColour (juce::Colours::white);
+        g.setColour (ColorScheme::get().textPrimary);
         g.strokePath (responseCurve, juce::PathStrokeType (2.0f));
     }
 
@@ -581,7 +582,7 @@ private:
             // Selection ring
             if (isSelected)
             {
-                g.setColour (juce::Colours::white);
+                g.setColour (ColorScheme::get().textPrimary);
                 g.drawEllipse (x - markerSize / 2 - 3, y - markerSize / 2 - 3,
                                markerSize + 6, markerSize + 6, 2.0f);
             }

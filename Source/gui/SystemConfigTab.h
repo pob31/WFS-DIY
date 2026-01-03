@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "../WfsParameters.h"
 #include "StatusBar.h"
+#include "ColorScheme.h"
 
 #if JUCE_WINDOWS
     #include <winsock2.h>
@@ -40,7 +41,7 @@ public:
         float lineThickness = 2.0f;
         float gapSize = iconBounds.getWidth() * 0.55f;  // Wider gap in the middle of bottom edge
 
-        g.setColour(juce::Colours::white);
+        g.setColour(ColorScheme::get().textPrimary);
 
         // Left side (full height)
         g.drawLine(iconBounds.getX(), iconBounds.getY(),
@@ -97,7 +98,7 @@ public:
         auto iconBounds = bounds.reduced(6.0f);
         float lineThickness = 2.0f;
 
-        g.setColour(juce::Colours::white);
+        g.setColour(ColorScheme::get().textPrimary);
 
         // Complete rectangle
         g.drawRect(iconBounds, lineThickness);
@@ -138,7 +139,7 @@ public:
         float lineThickness = 2.0f;
         float depth = iconBounds.getWidth() * 0.3f;  // Depth offset for 3D effect
 
-        g.setColour(juce::Colours::white);
+        g.setColour(ColorScheme::get().textPrimary);
 
         // Front face (rectangle) - positioned at bottom-left
         auto frontFace = juce::Rectangle<float>(
@@ -232,7 +233,6 @@ public:
         // Algorithm selector
         addAndMakeVisible(algorithmLabel);
         algorithmLabel.setText("Algorithm:", juce::dontSendNotification);
-        algorithmLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
         addAndMakeVisible(algorithmSelector);
         algorithmSelector.addItem("InputBuffer (read-time delays)", 1);
@@ -251,7 +251,6 @@ public:
         // Stage Section
         addAndMakeVisible(stageShapeLabel);
         stageShapeLabel.setText("Stage Shape:", juce::dontSendNotification);
-        stageShapeLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(stageShapeSelector);
         stageShapeSelector.addItem("Box", 1);
         stageShapeSelector.addItem("Cylinder", 2);
@@ -261,67 +260,51 @@ public:
 
         addAndMakeVisible(stageWidthLabel);
         stageWidthLabel.setText("Width:", juce::dontSendNotification);
-        stageWidthLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(stageWidthEditor);
         addAndMakeVisible(stageWidthUnitLabel);
         stageWidthUnitLabel.setText("m", juce::dontSendNotification);
-        stageWidthUnitLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
         addAndMakeVisible(stageDepthLabel);
         stageDepthLabel.setText("Depth:", juce::dontSendNotification);
-        stageDepthLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(stageDepthEditor);
         addAndMakeVisible(stageDepthUnitLabel);
         stageDepthUnitLabel.setText("m", juce::dontSendNotification);
-        stageDepthUnitLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
         addAndMakeVisible(stageHeightLabel);
         stageHeightLabel.setText("Height:", juce::dontSendNotification);
-        stageHeightLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(stageHeightEditor);
         addAndMakeVisible(stageHeightUnitLabel);
         stageHeightUnitLabel.setText("m", juce::dontSendNotification);
-        stageHeightUnitLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
         addAndMakeVisible(stageDiameterLabel);
         stageDiameterLabel.setText("Diameter:", juce::dontSendNotification);
-        stageDiameterLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(stageDiameterEditor);
         addAndMakeVisible(stageDiameterUnitLabel);
         stageDiameterUnitLabel.setText("m", juce::dontSendNotification);
-        stageDiameterUnitLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
         addAndMakeVisible(domeElevationLabel);
         domeElevationLabel.setText("Elevation:", juce::dontSendNotification);
-        domeElevationLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(domeElevationEditor);
         addAndMakeVisible(domeElevationUnitLabel);
         domeElevationUnitLabel.setText(juce::CharPointer_UTF8("\xc2\xb0"), juce::dontSendNotification);
-        domeElevationUnitLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
         addAndMakeVisible(stageOriginWidthLabel);
         stageOriginWidthLabel.setText("Origin Width:", juce::dontSendNotification);
-        stageOriginWidthLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(stageOriginWidthEditor);
         addAndMakeVisible(stageOriginWidthUnitLabel);
         stageOriginWidthUnitLabel.setText("m", juce::dontSendNotification);
-        stageOriginWidthUnitLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
         addAndMakeVisible(stageOriginDepthLabel);
         stageOriginDepthLabel.setText("Origin Depth:", juce::dontSendNotification);
-        stageOriginDepthLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(stageOriginDepthEditor);
         addAndMakeVisible(stageOriginDepthUnitLabel);
         stageOriginDepthUnitLabel.setText("m", juce::dontSendNotification);
-        stageOriginDepthUnitLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
         addAndMakeVisible(stageOriginHeightLabel);
         stageOriginHeightLabel.setText("Origin Height:", juce::dontSendNotification);
-        stageOriginHeightLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(stageOriginHeightEditor);
         addAndMakeVisible(stageOriginHeightUnitLabel);
         stageOriginHeightUnitLabel.setText("m", juce::dontSendNotification);
-        stageOriginHeightUnitLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
         // Origin preset buttons (custom drawn icons)
         addAndMakeVisible(originFrontButton);
@@ -335,44 +318,49 @@ public:
 
         addAndMakeVisible(speedOfSoundLabel);
         speedOfSoundLabel.setText("Speed of Sound:", juce::dontSendNotification);
-        speedOfSoundLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(speedOfSoundEditor);
         addAndMakeVisible(speedOfSoundUnitLabel);
         speedOfSoundUnitLabel.setText("m/s", juce::dontSendNotification);
-        speedOfSoundUnitLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
         addAndMakeVisible(temperatureLabel);
         temperatureLabel.setText("Temperature:", juce::dontSendNotification);
-        temperatureLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(temperatureEditor);
         addAndMakeVisible(temperatureUnitLabel);
         temperatureUnitLabel.setText(juce::CharPointer_UTF8("\xc2\xb0""C"), juce::dontSendNotification);
-        temperatureUnitLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
         // Master Section
         addAndMakeVisible(masterLevelLabel);
         masterLevelLabel.setText("Master Level:", juce::dontSendNotification);
-        masterLevelLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(masterLevelEditor);
         addAndMakeVisible(masterLevelUnitLabel);
         masterLevelUnitLabel.setText("dB", juce::dontSendNotification);
-        masterLevelUnitLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
         addAndMakeVisible(systemLatencyLabel);
         systemLatencyLabel.setText("System Latency:", juce::dontSendNotification);
-        systemLatencyLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(systemLatencyEditor);
         addAndMakeVisible(systemLatencyUnitLabel);
         systemLatencyUnitLabel.setText("ms", juce::dontSendNotification);
-        systemLatencyUnitLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
         addAndMakeVisible(haasEffectLabel);
         haasEffectLabel.setText("Haas Effect:", juce::dontSendNotification);
-        haasEffectLabel.setColour(juce::Label::textColourId, juce::Colours::white);
         addAndMakeVisible(haasEffectEditor);
         addAndMakeVisible(haasEffectUnitLabel);
         haasEffectUnitLabel.setText("ms", juce::dontSendNotification);
-        haasEffectUnitLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+
+        // UI Section - Color Scheme
+        addAndMakeVisible(colorSchemeLabel);
+        colorSchemeLabel.setText("Color Scheme:", juce::dontSendNotification);
+
+        addAndMakeVisible(colorSchemeSelector);
+        colorSchemeSelector.addItem("Default (Dark Gray)", 1);
+        colorSchemeSelector.addItem("OLED Black", 2);
+        colorSchemeSelector.addItem("Light", 3);
+        colorSchemeSelector.setSelectedId(ColorScheme::getThemeIndex() + 1, juce::dontSendNotification);
+        colorSchemeSelector.onChange = [this]() {
+            int schemeIndex = colorSchemeSelector.getSelectedId() - 1;  // Convert to 0-based
+            ColorScheme::Manager::getInstance().setTheme(schemeIndex);
+            parameters.setConfigParam("ColorScheme", schemeIndex);
+        };
 
         // Store/Reload Section
         addAndMakeVisible(selectProjectFolderButton);
@@ -476,24 +464,25 @@ public:
 
     void paint(juce::Graphics& g) override
     {
-        g.fillAll(juce::Colour(0xFF1E1E1E));
+        g.fillAll(ColorScheme::get().background);
 
         // Footer background (matching Input/Output tabs)
         const int footerHeight = 90;  // Two button rows
-        g.setColour(juce::Colour(0xFF252525));
+        g.setColour(ColorScheme::get().chromeSurface);
         g.fillRect(0, getHeight() - footerHeight, getWidth(), footerHeight);
 
         // Footer divider line
-        g.setColour(juce::Colour(0xFF404040));
+        g.setColour(ColorScheme::get().chromeDivider);
         g.drawLine(0.0f, (float)(getHeight() - footerHeight), (float)getWidth(), (float)(getHeight() - footerHeight), 1.0f);
 
         // Section headers
-        g.setColour(juce::Colours::white);
+        g.setColour(ColorScheme::get().textPrimary);
         g.setFont(14.0f);
         g.drawText("Show", 20, 10, 200, 20, juce::Justification::left);
         g.drawText("I/O", 20, 110, 200, 20, juce::Justification::left);
         g.drawText("Stage", 500, 10, 200, 20, juce::Justification::left);
         g.drawText("Master Section", 500, 390, 200, 20, juce::Justification::left);
+        g.drawText("UI", 900, 10, 200, 20, juce::Justification::left);
     }
 
     void resized() override
@@ -620,6 +609,13 @@ public:
         haasEffectLabel.setBounds(x, y, labelWidth, rowHeight);
         haasEffectEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
         haasEffectUnitLabel.setBounds(x + labelWidth + editorWidth + spacing, y, unitWidth, rowHeight);
+
+        // UI Section (third column)
+        x = 900;
+        y = 40;
+
+        colorSchemeLabel.setBounds(x, y, labelWidth, rowHeight);
+        colorSchemeSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
 
         // Footer buttons - full width at bottom (matching Output tab style)
         const int footerHeight = 90;  // Two 30px button rows + 10px spacing + 20px padding
@@ -852,6 +848,10 @@ private:
         if (algorithmId >= 1 && algorithmId <= 2)  // Valid range for current algorithms
             algorithmSelector.setSelectedId(algorithmId, juce::dontSendNotification);
 
+        // Color scheme selector
+        int colorSchemeId = (int)parameters.getConfigParam("ColorScheme");
+        colorSchemeSelector.setSelectedId(colorSchemeId + 1, juce::dontSendNotification);  // +1 for ComboBox
+
         // Processing button state
         processingEnabled = (bool)parameters.getConfigParam("ProcessingEnabled");
         processingButton.setButtonText(processingEnabled ? "Processing: ON" : "Processing: OFF");
@@ -1020,9 +1020,9 @@ private:
         audioPatchingButton.setEnabled(enabled);
         algorithmSelector.setEnabled(enabled);
 
-        // Visual feedback - dim disabled controls
-        auto disabledColour = juce::Colour(0xFF808080);
-        auto enabledColour = juce::Colours::white;
+        // Visual feedback - dim disabled controls using theme colors
+        auto disabledColour = ColorScheme::get().textDisabled;
+        auto enabledColour = ColorScheme::get().textPrimary;
 
         inputChannelsEditor.setColour(juce::TextEditor::textColourId, enabled ? enabledColour : disabledColour);
         outputChannelsEditor.setColour(juce::TextEditor::textColourId, enabled ? enabledColour : disabledColour);
@@ -1422,6 +1422,7 @@ private:
         helpTextMap[&masterLevelEditor] = "Master Level (affects all outputs).";
         helpTextMap[&systemLatencyEditor] = "Total latency of the system (Mixing board & Computer) / Specific Input and Output Latency/Delay can be set in the respective Input and Output settings.";
         helpTextMap[&haasEffectEditor] = "Hass Effect to apply to the system. Will take into account the Latency Compensations (System, Input and Output).";
+        helpTextMap[&colorSchemeSelector] = "Select the color scheme: Default (dark gray), OLED Black (pure black for OLED displays), or Light (daytime use).";
         helpTextMap[&selectProjectFolderButton] = "Select the Location of the Current Project Folder where to store files.";
         helpTextMap[&storeCompleteConfigButton] = "Store Complete Configuration to files (with backup).";
         helpTextMap[&reloadCompleteConfigButton] = "Reload Complete Configuration from files.";
@@ -1534,6 +1535,10 @@ private:
     juce::Label haasEffectLabel;
     juce::TextEditor haasEffectEditor;
     juce::Label haasEffectUnitLabel;
+
+    // UI Section
+    juce::Label colorSchemeLabel;
+    juce::ComboBox colorSchemeSelector;
 
     // Store/Reload Section
     juce::TextButton selectProjectFolderButton;

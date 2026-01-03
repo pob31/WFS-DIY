@@ -1,4 +1,5 @@
 #include "OutputArrayHelperWindow.h"
+#include "ColorScheme.h"
 
 //==============================================================================
 // Preset configurations
@@ -210,7 +211,7 @@ void ArrayPreviewComponent::paint(juce::Graphics& g)
         g.setColour(juce::Colour(0xFF303030));
         g.fillEllipse(center.x - radiusPixels, center.y - radiusPixels,
                       radiusPixels * 2.0f, radiusPixels * 2.0f);
-        g.setColour(juce::Colours::white.withAlpha(0.5f));
+        g.setColour(ColorScheme::get().textPrimary.withAlpha(0.5f));
         g.drawEllipse(center.x - radiusPixels, center.y - radiusPixels,
                       radiusPixels * 2.0f, radiusPixels * 2.0f, 1.0f);
     }
@@ -228,7 +229,7 @@ void ArrayPreviewComponent::paint(juce::Graphics& g)
 
         g.setColour(juce::Colour(0xFF303030));
         g.fillRect(stageRect);
-        g.setColour(juce::Colours::white.withAlpha(0.5f));
+        g.setColour(ColorScheme::get().textPrimary.withAlpha(0.5f));
         g.drawRect(stageRect, 1.0f);
     }
 
@@ -251,7 +252,7 @@ void ArrayPreviewComponent::paint(juce::Graphics& g)
 
     // Draw origin marker
     auto origin = stageToScreen(0, 0);
-    g.setColour(juce::Colours::white);
+    g.setColour(ColorScheme::get().textPrimary);
     g.drawLine(origin.x - 10, origin.y, origin.x + 10, origin.y, 1.0f);
     g.drawLine(origin.x, origin.y - 10, origin.x, origin.y + 10, 1.0f);
     g.drawEllipse(origin.x - 5, origin.y - 5, 10, 10, 1.0f);
@@ -277,13 +278,13 @@ void ArrayPreviewComponent::paint(juce::Graphics& g)
         float arrowDx = std::cos(angleRad) * arrowLength;
         float arrowDy = std::sin(angleRad) * arrowLength;
 
-        g.setColour(juce::Colours::white);
+        g.setColour(ColorScheme::get().textPrimary);
         g.drawArrow(juce::Line<float>(screenPos.x, screenPos.y,
                                        screenPos.x + arrowDx, screenPos.y + arrowDy),
                     2.0f, 6.0f, 6.0f);
 
         // Draw speaker number
-        g.setColour(juce::Colours::white);
+        g.setColour(ColorScheme::get().textPrimary);
         g.setFont(10.0f);
         g.drawText(juce::String(i + 1),
                    juce::Rectangle<float>(screenPos.x - 15, screenPos.y - speakerRadius - 15, 30, 12),
@@ -406,7 +407,6 @@ void OutputArrayHelperContent::setupPresetSelector()
 {
     addAndMakeVisible(presetLabel);
     presetLabel.setText("Preset:", juce::dontSendNotification);
-    presetLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
     addAndMakeVisible(presetSelector);
     for (size_t i = 0; i < presetConfigs.size(); ++i)
@@ -421,8 +421,7 @@ void OutputArrayHelperContent::setupGeometrySection()
 {
     addAndMakeVisible(geometryGroup);
     geometryGroup.setText("Geometry");
-    geometryGroup.setColour(juce::GroupComponent::outlineColourId, juce::Colour(0xFF606060));
-    geometryGroup.setColour(juce::GroupComponent::textColourId, juce::Colours::white);
+    // Colors handled by WfsLookAndFeel
 
     // Geometry method radio buttons
     addAndMakeVisible(centerSpacingRadio);
@@ -440,15 +439,12 @@ void OutputArrayHelperContent::setupGeometrySection()
     auto setupLabel = [this](juce::Label& label, const juce::String& text) {
         addAndMakeVisible(label);
         label.setText(text, juce::dontSendNotification);
-        label.setColour(juce::Label::textColourId, juce::Colours::white);
     };
 
     auto setupEditor = [this](juce::TextEditor& editor, const juce::String& defaultText = "") {
         addAndMakeVisible(editor);
         editor.setText(defaultText);
-        editor.setColour(juce::TextEditor::backgroundColourId, juce::Colour(0xFF2A2A2A));
-        editor.setColour(juce::TextEditor::textColourId, juce::Colours::white);
-        editor.setColour(juce::TextEditor::outlineColourId, juce::Colour(0xFF606060));
+        // Colors handled by WfsLookAndFeel
         // Auto-calculate preview on text change
         editor.onTextChange = [this]() { autoCalculatePreview(); };
     };
@@ -543,21 +539,17 @@ void OutputArrayHelperContent::setupAcousticSection()
 {
     addAndMakeVisible(acousticGroup);
     acousticGroup.setText("Acoustic Defaults");
-    acousticGroup.setColour(juce::GroupComponent::outlineColourId, juce::Colour(0xFF606060));
-    acousticGroup.setColour(juce::GroupComponent::textColourId, juce::Colours::white);
+    // Colors handled by WfsLookAndFeel
 
     auto setupLabel = [this](juce::Label& label, const juce::String& text) {
         addAndMakeVisible(label);
         label.setText(text, juce::dontSendNotification);
-        label.setColour(juce::Label::textColourId, juce::Colours::white);
     };
 
     auto setupEditor = [this](juce::TextEditor& editor, const juce::String& defaultText = "") {
         addAndMakeVisible(editor);
         editor.setText(defaultText);
-        editor.setColour(juce::TextEditor::backgroundColourId, juce::Colour(0xFF2A2A2A));
-        editor.setColour(juce::TextEditor::textColourId, juce::Colours::white);
-        editor.setColour(juce::TextEditor::outlineColourId, juce::Colour(0xFF606060));
+        // Colors handled by WfsLookAndFeel
     };
 
     addAndMakeVisible(lsEnableButton);
@@ -600,12 +592,10 @@ void OutputArrayHelperContent::setupTargetSection()
 {
     addAndMakeVisible(targetGroup);
     targetGroup.setText("Target");
-    targetGroup.setColour(juce::GroupComponent::outlineColourId, juce::Colour(0xFF606060));
-    targetGroup.setColour(juce::GroupComponent::textColourId, juce::Colours::white);
+    // Colors handled by WfsLookAndFeel
 
     addAndMakeVisible(arrayLabel);
     arrayLabel.setText("Array:", juce::dontSendNotification);
-    arrayLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
     addAndMakeVisible(arraySelector);
     for (int i = 1; i <= 10; ++i)
@@ -614,7 +604,6 @@ void OutputArrayHelperContent::setupTargetSection()
 
     addAndMakeVisible(startOutputLabel);
     startOutputLabel.setText("Starting Output:", juce::dontSendNotification);
-    startOutputLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
     addAndMakeVisible(startOutputSelector);
     int numOutputs = parameters.getNumOutputChannels();

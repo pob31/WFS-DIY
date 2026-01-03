@@ -6,6 +6,7 @@
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/WFSParameterDefaults.h"
 #include "ColorUtilities.h"
+#include "ColorScheme.h"
 #include "../Helpers/CoordinateConverter.h"
 
 /**
@@ -55,7 +56,7 @@ public:
 
     void paint(juce::Graphics& g) override
     {
-        g.fillAll(juce::Colour(0xFF1E1E1E));
+        g.fillAll(ColorScheme::get().background);
 
         drawGrid(g);
         drawStageBounds(g);
@@ -1859,7 +1860,7 @@ private:
 
     void drawStageBounds(juce::Graphics& g)
     {
-        g.setColour(juce::Colours::white);
+        g.setColour(ColorScheme::get().textPrimary);
 
         int shape = getStageShape();
         if (shape == 0)  // Box - draw rectangle
@@ -1895,7 +1896,7 @@ private:
 
         // Draw crosshairs
         float crosshairLength = 20.0f;
-        g.setColour(juce::Colours::white.withAlpha(0.7f));
+        g.setColour(ColorScheme::get().textPrimary.withAlpha(0.7f));
         g.drawLine(originScreen.x - crosshairLength, originScreen.y,
                    originScreen.x + crosshairLength, originScreen.y, 2.0f);
         g.drawLine(originScreen.x, originScreen.y - crosshairLength,
@@ -1986,9 +1987,9 @@ private:
             keystone.lineTo(backRightX, backRightY);
             keystone.closeSubPath();
 
-            g.setColour(juce::Colour(0xFF1E1E1E));  // Fill with background color
+            g.setColour(ColorScheme::get().background);  // Fill with background color
             g.fillPath(keystone);
-            g.setColour(juce::Colours::white);
+            g.setColour(ColorScheme::get().textPrimary);
             g.strokePath(keystone, juce::PathStrokeType(1.5f));
 
             // Draw membrane triangle - base corners at trapezoid back corners, tip toward front
@@ -2004,7 +2005,7 @@ private:
 
             g.setColour(membraneColor);
             g.fillPath(membrane);
-            g.setColour(juce::Colours::white);
+            g.setColour(ColorScheme::get().textPrimary);
             g.strokePath(membrane, juce::PathStrokeType(1.0f));
 
             // Draw channel number at center of membrane triangle (centroid)
@@ -2053,7 +2054,7 @@ private:
 
             // Draw channel number
             g.setFont(9.0f);
-            g.setColour(juce::Colours::white);
+            g.setColour(ColorScheme::get().textPrimary);
             g.drawText("R" + juce::String(i + 1),
                        static_cast<int>(screenPos.x) - 10, static_cast<int>(screenPos.y) - 5,
                        20, 10, juce::Justification::centred);
@@ -2385,7 +2386,7 @@ private:
                                      screenPos.x + triSize, screenPos.y + triOffset);
             }
 
-            g.setColour(juce::Colours::white);
+            g.setColour(ColorScheme::get().textPrimary);
             g.fillPath(triangle);
         }
 
@@ -2431,7 +2432,7 @@ private:
         if (inputName.isEmpty())
             inputName = "Input " + juce::String(inputIndex + 1);
 
-        g.setColour(juce::Colours::white.withAlpha(0.8f));
+        g.setColour(ColorScheme::get().textPrimary.withAlpha(0.8f));
         g.setFont(9.0f);
         g.drawText(inputName,
                    static_cast<int>(screenPos.x) - 40,

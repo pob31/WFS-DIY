@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "ColorScheme.h"
 #include "ColorUtilities.h"
 #include "../WfsParameters.h"
 
@@ -88,10 +89,10 @@ public:
         }
 
         // Value text at top - colored by array assignment
-        // White for Single (0), array color for arrays 1-10
+        // Theme text color for Single (0), array color for arrays 1-10
         juce::Colour textColour = (arrayNumber > 0)
             ? WfsColorUtilities::getArrayColor(arrayNumber)
-            : juce::Colours::white;
+            : ColorScheme::get().textPrimary;
         g.setColour(textColour);
         g.setFont(juce::FontOptions(10.0f).withStyle("Bold"));
         juce::String valueText = juce::String(static_cast<int>(std::round(value)));
@@ -346,7 +347,7 @@ public:
 
     void paint(juce::Graphics& g) override
     {
-        g.fillAll(juce::Colour(0xFF1E1E1E));
+        g.fillAll(ColorScheme::get().background);
 
         // Draw row backgrounds with colored borders matching slider colors
         auto bounds = getLocalBounds();
