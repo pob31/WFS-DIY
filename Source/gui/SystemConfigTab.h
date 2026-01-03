@@ -515,14 +515,14 @@ public:
         g.setColour(ColorScheme::get().chromeDivider);
         g.drawLine(0.0f, (float)(getHeight() - footerHeight), (float)getWidth(), (float)(getHeight() - footerHeight), 1.0f);
 
-        // Section headers
+        // Section headers (bold like NetworkTab)
         g.setColour(ColorScheme::get().textPrimary);
-        g.setFont(14.0f);
-        g.drawText("Show", 20, 10, 200, 20, juce::Justification::left);
-        g.drawText("I/O", 20, 110, 200, 20, juce::Justification::left);
-        g.drawText("Stage", 500, 10, 200, 20, juce::Justification::left);
-        g.drawText("Master Section", 500, 390, 200, 20, juce::Justification::left);
-        g.drawText("UI", 900, 10, 200, 20, juce::Justification::left);
+        g.setFont(juce::FontOptions().withHeight(14.0f).withStyle("Bold"));
+        g.drawText("Show", col1X, 10, 200, 20, juce::Justification::left);
+        g.drawText("I/O", col1X, 110, 200, 20, juce::Justification::left);
+        g.drawText("Stage", col2X, 10, 200, 20, juce::Justification::left);
+        g.drawText("Master Section", col2X, 390, 200, 20, juce::Justification::left);
+        g.drawText("UI", col3X, 10, 200, 20, juce::Justification::left);
     }
 
     void resized() override
@@ -533,7 +533,7 @@ public:
         const int rowHeight = 30;
         const int spacing = 5;
 
-        int x = 20;
+        int x = col1X;
         int y = 40;
 
         // Show Section
@@ -569,12 +569,12 @@ public:
         processingButton.setBounds(x, y, editorWidth + labelWidth, rowHeight);
 
         // Stage Section
-        x = 500;
+        x = col2X;
         y = 40;
 
-        // Stage shape selector
+        // Stage shape selector (same width as number editors)
         stageShapeLabel.setBounds(x, y, labelWidth, rowHeight);
-        stageShapeSelector.setBounds(x + labelWidth, y, editorWidth + unitWidth + spacing, rowHeight);
+        stageShapeSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
         y += rowHeight + spacing;
 
         // Dimension row 1: Width (box) or Diameter (cylinder/dome)
@@ -633,7 +633,7 @@ public:
         temperatureUnitLabel.setBounds(x + labelWidth + editorWidth + spacing, y, unitWidth, rowHeight);
 
         // Master Section
-        x = 500;
+        x = col2X;
         y = 420;
 
         masterLevelLabel.setBounds(x, y, labelWidth, rowHeight);
@@ -651,7 +651,7 @@ public:
         haasEffectUnitLabel.setBounds(x + labelWidth + editorWidth + spacing, y, unitWidth, rowHeight);
 
         // UI Section (third column)
-        x = 900;
+        x = col3X;
         y = 40;
 
         colorSchemeLabel.setBounds(x, y, labelWidth, rowHeight);
@@ -1504,6 +1504,11 @@ private:
 
     //==============================================================================
     // Member variables
+
+    // Column X positions for consistent layout
+    static constexpr int col1X = 20;
+    static constexpr int col2X = 480;
+    static constexpr int col3X = 940;
 
     WfsParameters& parameters;
     juce::ValueTree configTree;  // Store for safe listener removal in destructor

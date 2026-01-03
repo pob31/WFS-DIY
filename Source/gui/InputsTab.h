@@ -214,15 +214,11 @@ public:
 
         // ==================== SUB-TABS ====================
         addAndMakeVisible(subTabBar);
-        subTabBar.addTab("Input", juce::Colour(0xFF2A2A2A), -1);
-        subTabBar.addTab("Position", juce::Colour(0xFF2A2A2A), -1);
-        subTabBar.addTab("Sound", juce::Colour(0xFF2A2A2A), -1);
-        subTabBar.addTab("Live Source", juce::Colour(0xFF2A2A2A), -1);
-        subTabBar.addTab("Hackoustics", juce::Colour(0xFF2A2A2A), -1);
-        subTabBar.addTab("L.F.O", juce::Colour(0xFF2A2A2A), -1);
-        subTabBar.addTab("AutomOtion", juce::Colour(0xFF2A2A2A), -1);
+        subTabBar.addTab("Input Parameters", juce::Colour(0xFF2A2A2A), -1);
+        subTabBar.addTab("Live Source & Hackoustics", juce::Colour(0xFF2A2A2A), -1);
+        subTabBar.addTab("Movements", juce::Colour(0xFF2A2A2A), -1);
         subTabBar.addTab("Visualisation", juce::Colour(0xFF2A2A2A), -1);
-        subTabBar.addTab("Mutes", juce::Colour(0xFF2A2A2A), -1);
+        subTabBar.setMinimumTabScaleFactor(1.0);  // Prevent tab shrinking - maintain full text width
         subTabBar.setCurrentTabIndex(0);
         subTabBar.addChangeListener(static_cast<juce::ChangeListener*>(this));
 
@@ -478,10 +474,11 @@ public:
         exportButton.setBounds(footerRow2);
 
         // ==================== SUB-TABS AREA ====================
-        auto contentArea = bounds.reduced(padding, 0);
-        auto tabBarArea = contentArea.removeFromTop(32);
+        // Use full width for tab bar to fit longer tab names
+        auto tabBarArea = bounds.removeFromTop(32);
         subTabBar.setBounds(tabBarArea);
 
+        auto contentArea = bounds.reduced(padding, 0);
         subTabContentArea = contentArea.reduced(0, padding);
         layoutCurrentSubTab();
     }
@@ -992,20 +989,24 @@ private:
 
     void setupSoundTab()
     {
-        // Attenuation Law button
+        // Attenuation Law label and button
+        addAndMakeVisible(attenuationLawLabel);
+        attenuationLawLabel.setText("Attenuation Law:", juce::dontSendNotification);
+        attenuationLawLabel.setJustificationType(juce::Justification::centred);
+
         addAndMakeVisible(attenuationLawButton);
         attenuationLawButton.setButtonText("Log");
         attenuationLawButton.setClickingTogglesState(true);
         attenuationLawButton.onClick = [this]() {
             bool is1OverD = attenuationLawButton.getToggleState();
             attenuationLawButton.setButtonText(is1OverD ? "1/d" : "Log");
-            // Show/hide Distance Atten vs Distance Ratio based on law
-            distanceAttenLabel.setVisible(!is1OverD && subTabBar.getCurrentTabIndex() == 2);
-            distanceAttenDial.setVisible(!is1OverD && subTabBar.getCurrentTabIndex() == 2);
-            distanceAttenValueLabel.setVisible(!is1OverD && subTabBar.getCurrentTabIndex() == 2);
-            distanceRatioLabel.setVisible(is1OverD && subTabBar.getCurrentTabIndex() == 2);
-            distanceRatioDial.setVisible(is1OverD && subTabBar.getCurrentTabIndex() == 2);
-            distanceRatioValueLabel.setVisible(is1OverD && subTabBar.getCurrentTabIndex() == 2);
+            // Show/hide Distance Atten vs Distance Ratio based on law (now in Input Parameters tab)
+            distanceAttenLabel.setVisible(!is1OverD && subTabBar.getCurrentTabIndex() == 0);
+            distanceAttenDial.setVisible(!is1OverD && subTabBar.getCurrentTabIndex() == 0);
+            distanceAttenValueLabel.setVisible(!is1OverD && subTabBar.getCurrentTabIndex() == 0);
+            distanceRatioLabel.setVisible(is1OverD && subTabBar.getCurrentTabIndex() == 0);
+            distanceRatioDial.setVisible(is1OverD && subTabBar.getCurrentTabIndex() == 0);
+            distanceRatioValueLabel.setVisible(is1OverD && subTabBar.getCurrentTabIndex() == 0);
             saveInputParam(WFSParameterIDs::inputAttenuationLaw, is1OverD ? 1 : 0);
         };
 
@@ -1916,12 +1917,16 @@ private:
 
         // Sidelines section (auto-mute at stage edges)
         addAndMakeVisible(sidelinesActiveButton);
-        sidelinesActiveButton.setButtonText("Sidelines");
-        // Text color from WfsLookAndFeel, green tick for active state
-        sidelinesActiveButton.setColour(juce::ToggleButton::tickColourId, juce::Colour(0xFF00C853));
+        sidelinesActiveButton.setButtonText("Sidelines Off");
+        sidelinesActiveButton.setClickingTogglesState(true);
         sidelinesActiveButton.onClick = [this]() {
-            saveInputParam(WFSParameterIDs::inputSidelinesActive,
-                           sidelinesActiveButton.getToggleState() ? 1 : 0);
+            bool active = sidelinesActiveButton.getToggleState();
+            sidelinesActiveButton.setButtonText(active ? "Sidelines ON" : "Sidelines Off");
+            // Grey out dial when inactive (but keep it editable)
+            sidelinesFringeDial.setAlpha(active ? 1.0f : 0.5f);
+            sidelinesFringeLabel.setAlpha(active ? 1.0f : 0.5f);
+            sidelinesFringeValueLabel.setAlpha(active ? 1.0f : 0.5f);
+            saveInputParam(WFSParameterIDs::inputSidelinesActive, active ? 1 : 0);
         };
 
         addAndMakeVisible(sidelinesFringeLabel);
@@ -2002,16 +2007,36 @@ private:
         setVisualisationVisible(false);
         setMutesVisible(false);
 
-        // Show current
-        if (tabIndex == 0) { setInputPropertiesVisible(true); layoutInputPropertiesTab(); }
-        else if (tabIndex == 1) { setPositionVisible(true); layoutPositionTab(); }
-        else if (tabIndex == 2) { setSoundVisible(true); layoutSoundTab(); }
-        else if (tabIndex == 3) { setLiveSourceVisible(true); layoutLiveSourceTab(); }
-        else if (tabIndex == 4) { setEffectsVisible(true); layoutEffectsTab(); }
-        else if (tabIndex == 5) { setLfoVisible(true); layoutLfoTab(); }
-        else if (tabIndex == 6) { setAutomotionVisible(true); layoutAutomotionTab(); }
-        else if (tabIndex == 7) { setVisualisationVisible(true); layoutVisualisationTab(); }
-        else if (tabIndex == 8) { setMutesVisible(true); layoutMutesTab(); }
+        // Show current - new 4-tab structure
+        if (tabIndex == 0)
+        {
+            // Input Parameters: Column 1 (Input+Position), Column 2 (Sound+Mutes)
+            setInputPropertiesVisible(true);
+            setPositionVisible(true);
+            setSoundVisible(true);
+            setMutesVisible(true);
+            layoutInputParametersTab();
+        }
+        else if (tabIndex == 1)
+        {
+            // Live Source & Hackoustics: Column 1 (Live Source), Column 2 (Hackoustics)
+            setLiveSourceVisible(true);
+            setEffectsVisible(true);
+            layoutLiveSourceHackousticsTab();
+        }
+        else if (tabIndex == 2)
+        {
+            // Movements: Column 1 (LFO), Column 2 (AutomOtion)
+            setLfoVisible(true);
+            setAutomotionVisible(true);
+            layoutMovementsTab();
+        }
+        else if (tabIndex == 3)
+        {
+            // Visualisation - unchanged
+            setVisualisationVisible(true);
+            layoutVisualisationTab();
+        }
     }
 
     void setInputPropertiesVisible(bool v)
@@ -2049,6 +2074,7 @@ private:
 
     void setSoundVisible(bool v)
     {
+        attenuationLawLabel.setVisible(v);
         attenuationLawButton.setVisible(v);
         // Show Distance Atten or Distance Ratio based on attenuation law
         bool is1OverD = attenuationLawButton.getToggleState();
@@ -2738,6 +2764,691 @@ private:
         visualisationComponent.setBounds(subTabContentArea);
     }
 
+    // ==================== COMBINED LAYOUT METHODS (4-tab structure) ====================
+
+    void layoutInputParametersTab()
+    {
+        // 2-column layout: Column 1 (Input+Position), Column 2 (Sound+Mutes)
+        auto area = subTabContentArea;
+        const int rowHeight = 24;
+        const int sliderHeight = 32;
+        const int spacing = 6;
+        const int labelWidth = 80;
+        const int valueWidth = 70;
+        const int editorWidth = 70;
+        const int unitWidth = 25;
+        const int buttonWidth = 110;
+        const int dialSize = 55;
+
+        auto col1 = area.removeFromLeft(area.getWidth() / 2).reduced(5, 0);
+        auto col2 = area.reduced(5, 0);
+
+        // ========== COLUMN 1: Input + Position ==========
+
+        // --- Input section ---
+        // Attenuation
+        auto row = col1.removeFromTop(rowHeight);
+        attenuationLabel.setBounds(row.removeFromLeft(labelWidth));
+        attenuationValueLabel.setBounds(row.removeFromRight(valueWidth));
+        attenuationSlider.setBounds(col1.removeFromTop(sliderHeight));
+        col1.removeFromTop(spacing);
+
+        // Delay/Latency
+        row = col1.removeFromTop(rowHeight);
+        delayLatencyLabel.setBounds(row.removeFromLeft(labelWidth));
+        delayLatencyValueLabel.setBounds(row.removeFromRight(valueWidth));
+        delayLatencySlider.setBounds(col1.removeFromTop(sliderHeight));
+        col1.removeFromTop(spacing);
+
+        // Minimal Latency button
+        minimalLatencyButton.setBounds(col1.removeFromTop(rowHeight).withWidth(150));
+        col1.removeFromTop(spacing * 2);
+
+        // --- Position section (compact 3-row layout with joystick on right) ---
+        const int joystickSize = 140;
+        const int zSliderWidth = 40;
+        const int posBlockHeight = joystickSize + 20;  // Match joystick height + label
+
+        // Create position block area with joystick on right
+        auto posBlock = col1.removeFromTop(posBlockHeight);
+
+        // Right side: Joystick and Z slider
+        const int zLabelWidth = 20;
+        auto joystickBlock = posBlock.removeFromRight(joystickSize + spacing + zSliderWidth + zLabelWidth);
+
+        // X/Y label at top-left of joystick
+        auto labelRow = joystickBlock.removeFromTop(18);
+        positionJoystickLabel.setBounds(labelRow.removeFromLeft(30));
+
+        // Joystick area
+        auto joystickRow = joystickBlock;
+        positionJoystick.setBounds(joystickRow.removeFromLeft(joystickSize));
+        joystickRow.removeFromLeft(spacing);
+
+        // Z slider with label to the right at middle position
+        auto zSliderArea = joystickRow.removeFromLeft(zSliderWidth);
+        positionZSlider.setBounds(zSliderArea);
+        // Z label positioned at vertical center of slider (middle position indicator)
+        auto zLabelArea = joystickRow;
+        int sliderMidY = zSliderArea.getY() + zSliderArea.getHeight() / 2 - 8;
+        positionZSliderLabel.setBounds(zLabelArea.getX(), sliderMidY, zLabelWidth, 16);
+
+        // Left side: Position/Offset/Constraints/Flips organized by axis
+        const int posLabelWidth = 75;    // "Position X:" fits fully
+        const int posEditorWidth = 55;
+        const int posUnitWidth = 25;     // "m" unit label
+        const int constraintBtnWidth = 100;  // Enlarged constraint buttons
+        const int flipBtnWidth = 80;
+        const int rowGap = 14;  // Vertical padding between rows
+
+        // Calculate vertical centering for 3 rows within joystick height
+        const int rowsHeight = rowHeight * 3 + rowGap * 2;  // 3 rows + 2 gaps
+        const int topPadding = (posBlock.getHeight() - rowsHeight) / 2;
+        posBlock.removeFromTop(topPadding);
+
+        // Row 1: Coord mode + X axis (Position X, Offset X, Constraint X, Flip X)
+        row = posBlock.removeFromTop(rowHeight);
+        coordModeLabel.setBounds(row.removeFromLeft(40));
+        coordModeSelector.setBounds(row.removeFromLeft(70));
+        row.removeFromLeft(spacing);
+        posXLabel.setBounds(row.removeFromLeft(posLabelWidth));
+        posXEditor.setBounds(row.removeFromLeft(posEditorWidth));
+        posXUnitLabel.setBounds(row.removeFromLeft(posUnitWidth));
+        row.removeFromLeft(spacing);
+        offsetXLabel.setBounds(row.removeFromLeft(posLabelWidth));
+        offsetXEditor.setBounds(row.removeFromLeft(posEditorWidth));
+        offsetXUnitLabel.setBounds(row.removeFromLeft(posUnitWidth));
+        row.removeFromLeft(spacing);
+        constraintXButton.setBounds(row.removeFromLeft(constraintBtnWidth));
+        row.removeFromLeft(spacing);
+        flipXButton.setBounds(row.removeFromLeft(flipBtnWidth));
+        posBlock.removeFromTop(rowGap);
+
+        // Row 2: Y axis (Position Y, Offset Y, Constraint Y, Flip Y)
+        row = posBlock.removeFromTop(rowHeight);
+        row.removeFromLeft(40 + 70 + spacing);  // Skip coord mode space
+        posYLabel.setBounds(row.removeFromLeft(posLabelWidth));
+        posYEditor.setBounds(row.removeFromLeft(posEditorWidth));
+        posYUnitLabel.setBounds(row.removeFromLeft(posUnitWidth));
+        row.removeFromLeft(spacing);
+        offsetYLabel.setBounds(row.removeFromLeft(posLabelWidth));
+        offsetYEditor.setBounds(row.removeFromLeft(posEditorWidth));
+        offsetYUnitLabel.setBounds(row.removeFromLeft(posUnitWidth));
+        row.removeFromLeft(spacing);
+        constraintYButton.setBounds(row.removeFromLeft(constraintBtnWidth));
+        row.removeFromLeft(spacing);
+        flipYButton.setBounds(row.removeFromLeft(flipBtnWidth));
+        posBlock.removeFromTop(rowGap);
+
+        // Row 3: Z axis (Position Z, Offset Z, Constraint Z, Flip Z)
+        row = posBlock.removeFromTop(rowHeight);
+        row.removeFromLeft(40 + 70 + spacing);  // Skip coord mode space
+        posZLabel.setBounds(row.removeFromLeft(posLabelWidth));
+        posZEditor.setBounds(row.removeFromLeft(posEditorWidth));
+        posZUnitLabel.setBounds(row.removeFromLeft(posUnitWidth));
+        row.removeFromLeft(spacing);
+        offsetZLabel.setBounds(row.removeFromLeft(posLabelWidth));
+        offsetZEditor.setBounds(row.removeFromLeft(posEditorWidth));
+        offsetZUnitLabel.setBounds(row.removeFromLeft(posUnitWidth));
+        row.removeFromLeft(spacing);
+        constraintZButton.setBounds(row.removeFromLeft(constraintBtnWidth));
+        row.removeFromLeft(spacing);
+        flipZButton.setBounds(row.removeFromLeft(flipBtnWidth));
+
+        col1.removeFromTop(spacing * 2);
+
+        // Three-column layout for Tracking, Max Speed, Height Factor
+        // Spans left half width (col1)
+        const int threeColWidth = col1.getWidth() / 3;
+        const int controlBlockHeight = rowHeight * 2 + spacing * 2 + dialSize + rowHeight * 2;
+        auto controlBlock = col1.removeFromTop(controlBlockHeight);
+        const int uniformButtonWidth = 130;  // Same width for all buttons
+        const int dialLabelWidth = 120;      // Wide enough for "Tracking Smoothing:"
+
+        // Column 1: Tracking
+        auto trackCol = controlBlock.removeFromLeft(threeColWidth);
+        int colCenterX = trackCol.getX() + threeColWidth / 2;
+
+        // Row 1: Tracking button (centered)
+        row = trackCol.removeFromTop(rowHeight);
+        trackingActiveButton.setBounds(colCenterX - uniformButtonWidth / 2, row.getY(), uniformButtonWidth, rowHeight);
+        trackCol.removeFromTop(spacing);
+
+        // Row 2: Tracking ID (centered)
+        row = trackCol.removeFromTop(rowHeight);
+        int idRowWidth = 75 + 50;  // label + selector
+        int idRowX = colCenterX - idRowWidth / 2;
+        trackingIdLabel.setBounds(idRowX, row.getY(), 75, rowHeight);
+        trackingIdSelector.setBounds(idRowX + 75, row.getY(), 50, rowHeight);
+        trackCol.removeFromTop(spacing);
+
+        // Dial section: label, dial, value (all centered)
+        trackingSmoothLabel.setBounds(colCenterX - dialLabelWidth / 2, trackCol.getY(), dialLabelWidth, rowHeight);
+        trackCol.removeFromTop(rowHeight);
+        trackingSmoothDial.setBounds(colCenterX - dialSize / 2, trackCol.getY(), dialSize, dialSize);
+        trackCol.removeFromTop(dialSize);
+        trackingSmoothValueLabel.setBounds(colCenterX - dialLabelWidth / 2, trackCol.getY(), dialLabelWidth, rowHeight);
+
+        // Column 2: Max Speed
+        auto speedCol = controlBlock.removeFromLeft(threeColWidth);
+        colCenterX = speedCol.getX() + threeColWidth / 2;
+
+        // Row 1: Max Speed button (centered)
+        row = speedCol.removeFromTop(rowHeight);
+        maxSpeedActiveButton.setBounds(colCenterX - uniformButtonWidth / 2, row.getY(), uniformButtonWidth, rowHeight);
+        speedCol.removeFromTop(spacing);
+
+        // Row 2: Path Mode button (centered, same width)
+        row = speedCol.removeFromTop(rowHeight);
+        pathModeButton.setBounds(colCenterX - uniformButtonWidth / 2, row.getY(), uniformButtonWidth, rowHeight);
+        speedCol.removeFromTop(spacing);
+
+        // Dial section: label, dial, value (all centered)
+        maxSpeedLabel.setBounds(colCenterX - dialLabelWidth / 2, speedCol.getY(), dialLabelWidth, rowHeight);
+        speedCol.removeFromTop(rowHeight);
+        maxSpeedDial.setBounds(colCenterX - dialSize / 2, speedCol.getY(), dialSize, dialSize);
+        speedCol.removeFromTop(dialSize);
+        maxSpeedValueLabel.setBounds(colCenterX - dialLabelWidth / 2, speedCol.getY(), dialLabelWidth, rowHeight);
+
+        // Column 3: Height Factor
+        auto heightCol = controlBlock;
+        colCenterX = heightCol.getX() + heightCol.getWidth() / 2;
+
+        // Skip first two rows (no buttons in this column)
+        heightCol.removeFromTop(rowHeight + spacing + rowHeight + spacing);
+
+        // Dial section: label, dial, value (all centered)
+        heightFactorLabel.setBounds(colCenterX - dialLabelWidth / 2, heightCol.getY(), dialLabelWidth, rowHeight);
+        heightCol.removeFromTop(rowHeight);
+        heightFactorDial.setBounds(colCenterX - dialSize / 2, heightCol.getY(), dialSize, dialSize);
+        heightCol.removeFromTop(dialSize);
+        heightFactorValueLabel.setBounds(colCenterX - dialLabelWidth / 2, heightCol.getY(), dialLabelWidth, rowHeight);
+
+        // ========== COLUMN 2: Sound + Mutes ==========
+
+        // --- Top row: Attenuation Law, Distance Atten, Common Atten (3-column like tracking section) ---
+        const int col2ThreeColWidth = col2.getWidth() / 3;
+        const int topBlockHeight = dialSize + rowHeight * 2 + spacing;
+        auto topBlock = col2.removeFromTop(topBlockHeight);
+
+        // Column 1: Attenuation Law label and button (centered)
+        auto attenLawCol = topBlock.removeFromLeft(col2ThreeColWidth);
+        int col2CenterX = attenLawCol.getX() + col2ThreeColWidth / 2;
+        // Label at top, button below, vertically centered as a group
+        int attenLawGroupHeight = rowHeight * 2 + spacing;
+        int attenLawGroupY = attenLawCol.getY() + (topBlockHeight - attenLawGroupHeight) / 2;
+        attenuationLawLabel.setBounds(col2CenterX - 70, attenLawGroupY, 140, rowHeight);
+        attenuationLawButton.setBounds(col2CenterX - 60, attenLawGroupY + rowHeight + spacing, 120, rowHeight);
+
+        // Column 2: Distance Atten dial (centered)
+        auto distCol = topBlock.removeFromLeft(col2ThreeColWidth);
+        col2CenterX = distCol.getX() + col2ThreeColWidth / 2;
+        distanceAttenLabel.setBounds(col2CenterX - 55, distCol.getY(), 110, rowHeight);
+        distanceRatioLabel.setBounds(distanceAttenLabel.getBounds());
+        distanceAttenDial.setBounds(col2CenterX - dialSize / 2, distCol.getY() + rowHeight, dialSize, dialSize);
+        distanceRatioDial.setBounds(distanceAttenDial.getBounds());
+        distanceAttenValueLabel.setBounds(col2CenterX - 55, distCol.getY() + rowHeight + dialSize, 110, rowHeight);
+        distanceRatioValueLabel.setBounds(distanceAttenValueLabel.getBounds());
+
+        // Column 3: Common Atten dial (centered)
+        auto commonCol = topBlock;
+        col2CenterX = commonCol.getX() + commonCol.getWidth() / 2;
+        commonAttenLabel.setBounds(col2CenterX - 55, commonCol.getY(), 110, rowHeight);
+        commonAttenDial.setBounds(col2CenterX - dialSize / 2, commonCol.getY() + rowHeight, dialSize, dialSize);
+        commonAttenValueLabel.setBounds(col2CenterX - 55, commonCol.getY() + rowHeight + dialSize, 110, rowHeight);
+
+        // Extra padding before sliders section
+        col2.removeFromTop(spacing * 3);
+
+        // --- Sliders + Rotation dial section ---
+        const int largeRotationDial = dialSize * 2;  // Twice as large
+        const int slidersWidth = col2.getWidth() - largeRotationDial - spacing * 2;
+        const int slidersBlockHeight = (rowHeight + sliderHeight + spacing) * 3;
+        auto slidersBlock = col2.removeFromTop(slidersBlockHeight);
+
+        // Left side: Three sliders
+        auto slidersArea = slidersBlock.removeFromLeft(slidersWidth);
+
+        // Directivity
+        row = slidersArea.removeFromTop(rowHeight);
+        directivityLabel.setBounds(row.removeFromLeft(70));
+        directivityValueLabel.setBounds(row.removeFromRight(60));
+        directivitySlider.setBounds(slidersArea.removeFromTop(sliderHeight));
+        slidersArea.removeFromTop(spacing);
+
+        // Tilt
+        row = slidersArea.removeFromTop(rowHeight);
+        tiltLabel.setBounds(row.removeFromLeft(70));
+        tiltValueLabel.setBounds(row.removeFromRight(60));
+        tiltSlider.setBounds(slidersArea.removeFromTop(sliderHeight));
+        slidersArea.removeFromTop(spacing);
+
+        // HF Shelf
+        row = slidersArea.removeFromTop(rowHeight);
+        hfShelfLabel.setBounds(row.removeFromLeft(70));
+        hfShelfValueLabel.setBounds(row.removeFromRight(60));
+        hfShelfSlider.setBounds(slidersArea.removeFromTop(sliderHeight));
+
+        // Right side: Large Rotation dial (centered vertically)
+        slidersBlock.removeFromLeft(spacing);
+        auto rotArea = slidersBlock;
+        int rotCenterX = rotArea.getX() + rotArea.getWidth() / 2;
+        int rotCenterY = rotArea.getY() + rotArea.getHeight() / 2;
+        rotationLabel.setBounds(rotCenterX - 50, rotArea.getY(), 100, rowHeight);
+        rotationDial.setBounds(rotCenterX - largeRotationDial / 2, rotCenterY - largeRotationDial / 2, largeRotationDial, largeRotationDial);
+        rotationValueLabel.setBounds(rotCenterX - 50, rotArea.getBottom() - rowHeight, 100, rowHeight);
+
+        // Extra padding after HF Shelf
+        col2.removeFromTop(spacing * 3);
+
+        // --- Mute Macros selector (moved above mute buttons) ---
+        row = col2.removeFromTop(rowHeight);
+        muteMacrosLabel.setBounds(row.removeFromLeft(90));
+        muteMacrosSelector.setBounds(row.removeFromLeft(150));
+        col2.removeFromTop(spacing);
+
+        // --- Mutes section (single line, fill width) ---
+        const int muteButtonSize = 36;
+        const int muteSpacing = 4;
+        int numOutputs = parameters.getNumOutputChannels();
+        if (numOutputs <= 0) numOutputs = 16;
+
+        // Calculate how many fit per row
+        int muteButtonsPerRow = (col2.getWidth() + muteSpacing) / (muteButtonSize + muteSpacing);
+        int muteRows = (numOutputs + muteButtonsPerRow - 1) / muteButtonsPerRow;
+
+        auto muteGridArea = col2.removeFromTop(muteRows * (muteButtonSize + muteSpacing));
+        for (int r = 0; r < muteRows; ++r)
+        {
+            auto rowArea = muteGridArea.removeFromTop(muteButtonSize + muteSpacing);
+            for (int c = 0; c < muteButtonsPerRow; ++c)
+            {
+                int index = r * muteButtonsPerRow + c;
+                if (index < numOutputs)
+                {
+                    muteButtons[index].setBounds(rowArea.removeFromLeft(muteButtonSize));
+                    rowArea.removeFromLeft(muteSpacing);
+                }
+            }
+        }
+        col2.removeFromTop(spacing);
+
+        // --- Array Attenuation - all 10 dials on single line ---
+        const int smallDialSize = 36;
+        const int arrayDialSpacing = (col2.getWidth() - smallDialSize * 10) / 10;
+        arrayAttenLabel.setBounds(col2.removeFromTop(rowHeight).removeFromLeft(150));
+
+        auto arrayRow = col2.removeFromTop(smallDialSize + 30);
+        for (int i = 0; i < 10; ++i)
+        {
+            int dialX = arrayRow.getX() + i * (smallDialSize + arrayDialSpacing) + arrayDialSpacing / 2;
+            arrayAttenDialLabels[i].setBounds(dialX, arrayRow.getY(), smallDialSize, 12);
+            arrayAttenDials[i].setBounds(dialX, arrayRow.getY() + 12, smallDialSize, smallDialSize);
+            arrayAttenValueLabels[i].setBounds(dialX, arrayRow.getY() + 12 + smallDialSize, smallDialSize, 12);
+        }
+
+        // Extra padding after array attenuation
+        col2.removeFromTop(spacing * 3);
+
+        // Sidelines - centered in the right half of col2
+        // Calculate the total width needed: button + spacing + dial section
+        const int sidelinesButtonWidth = 120;
+        const int fringeSectionWidth = dialSize + 20;
+        const int sidelinesSpacing = spacing * 3;
+        const int totalSidelinesWidth = sidelinesButtonWidth + sidelinesSpacing + fringeSectionWidth;
+
+        // Use right half of col2 and center the sidelines section within it
+        auto rightHalf = col2.removeFromRight(col2.getWidth() / 2);
+        int sidelinesStartX = rightHalf.getX() + (rightHalf.getWidth() - totalSidelinesWidth) / 2;
+
+        // Sidelines section height: label + dial + value
+        const int sidelinesBlockHeight = rowHeight + dialSize + rowHeight;
+        int sidelinesTopY = col2.getY();
+
+        // Button aligned vertically with dial center
+        int dialCenterY = sidelinesTopY + rowHeight + dialSize / 2;
+        sidelinesActiveButton.setBounds(sidelinesStartX, dialCenterY - rowHeight / 2, sidelinesButtonWidth, rowHeight);
+
+        // Fringe dial section
+        int fringeCenterX = sidelinesStartX + sidelinesButtonWidth + sidelinesSpacing + fringeSectionWidth / 2;
+        sidelinesFringeLabel.setBounds(fringeCenterX - 35, sidelinesTopY, 70, rowHeight);
+        sidelinesFringeDial.setBounds(fringeCenterX - dialSize / 2, sidelinesTopY + rowHeight, dialSize, dialSize);
+        sidelinesFringeValueLabel.setBounds(fringeCenterX - 35, sidelinesTopY + rowHeight + dialSize, 70, rowHeight);
+    }
+
+    void layoutLiveSourceHackousticsTab()
+    {
+        // 2-column layout: Column 1 (Live Source), Column 2 (Hackoustics)
+        auto area = subTabContentArea;
+        const int rowHeight = 26;
+        const int sliderHeight = 32;
+        const int spacing = 6;
+        const int labelWidth = 100;
+        const int valueWidth = 70;
+        const int dialSize = 65;
+        const int buttonWidth = 120;
+
+        auto col1 = area.removeFromLeft(area.getWidth() / 2).reduced(5, 0);
+        auto col2 = area.reduced(5, 0);
+
+        // ========== COLUMN 1: Live Source ==========
+        lsActiveButton.setBounds(col1.removeFromTop(rowHeight).withWidth(180));
+        col1.removeFromTop(spacing);
+
+        // Shape selector
+        auto row = col1.removeFromTop(rowHeight);
+        lsShapeLabel.setBounds(row.removeFromLeft(labelWidth));
+        lsShapeSelector.setBounds(row.removeFromLeft(100));
+        col1.removeFromTop(spacing);
+
+        // Radius
+        row = col1.removeFromTop(rowHeight);
+        lsRadiusLabel.setBounds(row.removeFromLeft(labelWidth));
+        lsRadiusValueLabel.setBounds(row.removeFromRight(valueWidth));
+        lsRadiusSlider.setBounds(col1.removeFromTop(sliderHeight));
+        col1.removeFromTop(spacing);
+
+        // Attenuation
+        row = col1.removeFromTop(rowHeight);
+        lsAttenuationLabel.setBounds(row.removeFromLeft(labelWidth));
+        lsAttenuationValueLabel.setBounds(row.removeFromRight(valueWidth));
+        lsAttenuationSlider.setBounds(col1.removeFromTop(sliderHeight));
+        col1.removeFromTop(spacing);
+
+        // Peak Threshold
+        row = col1.removeFromTop(rowHeight);
+        lsPeakThresholdLabel.setBounds(row.removeFromLeft(labelWidth));
+        lsPeakThresholdValueLabel.setBounds(row.removeFromRight(valueWidth));
+        lsPeakThresholdSlider.setBounds(col1.removeFromTop(sliderHeight));
+        col1.removeFromTop(spacing);
+
+        // Slow Threshold
+        row = col1.removeFromTop(rowHeight);
+        lsSlowThresholdLabel.setBounds(row.removeFromLeft(labelWidth));
+        lsSlowThresholdValueLabel.setBounds(row.removeFromRight(valueWidth));
+        lsSlowThresholdSlider.setBounds(col1.removeFromTop(sliderHeight));
+        col1.removeFromTop(spacing * 2);
+
+        // Ratio dials
+        auto dialsRow = col1.removeFromTop(dialSize + rowHeight * 2);
+        auto peakDialArea = dialsRow.removeFromLeft(dialSize + 30);
+        lsPeakRatioLabel.setBounds(peakDialArea.removeFromTop(rowHeight));
+        lsPeakRatioDial.setBounds(peakDialArea.removeFromTop(dialSize).withSizeKeepingCentre(dialSize, dialSize));
+        lsPeakRatioValueLabel.setBounds(peakDialArea.removeFromTop(rowHeight));
+        dialsRow.removeFromLeft(spacing * 2);
+
+        auto slowDialArea = dialsRow.removeFromLeft(dialSize + 30);
+        lsSlowRatioLabel.setBounds(slowDialArea.removeFromTop(rowHeight));
+        lsSlowRatioDial.setBounds(slowDialArea.removeFromTop(dialSize).withSizeKeepingCentre(dialSize, dialSize));
+        lsSlowRatioValueLabel.setBounds(slowDialArea.removeFromTop(rowHeight));
+
+        // ========== COLUMN 2: Hackoustics (Floor Reflections) ==========
+        frActiveButton.setBounds(col2.removeFromTop(rowHeight).withWidth(180));
+        col2.removeFromTop(spacing);
+
+        // FR Attenuation
+        row = col2.removeFromTop(rowHeight);
+        frAttenuationLabel.setBounds(row.removeFromLeft(labelWidth));
+        frAttenuationValueLabel.setBounds(row.removeFromRight(valueWidth));
+        frAttenuationSlider.setBounds(col2.removeFromTop(sliderHeight));
+        col2.removeFromTop(spacing);
+
+        // Low Cut Active + Frequency
+        row = col2.removeFromTop(rowHeight);
+        frLowCutActiveButton.setBounds(row.removeFromLeft(buttonWidth));
+        row.removeFromLeft(spacing);
+        frLowCutFreqLabel.setBounds(row.removeFromLeft(labelWidth - 20));
+        frLowCutFreqValueLabel.setBounds(row.removeFromRight(valueWidth));
+        frLowCutFreqSlider.setBounds(col2.removeFromTop(sliderHeight));
+        col2.removeFromTop(spacing);
+
+        // High Shelf Active + Frequency
+        row = col2.removeFromTop(rowHeight);
+        frHighShelfActiveButton.setBounds(row.removeFromLeft(buttonWidth));
+        row.removeFromLeft(spacing);
+        frHighShelfFreqLabel.setBounds(row.removeFromLeft(labelWidth - 30));
+        frHighShelfFreqValueLabel.setBounds(row.removeFromRight(valueWidth));
+        frHighShelfFreqSlider.setBounds(col2.removeFromTop(sliderHeight));
+        col2.removeFromTop(spacing);
+
+        // High Shelf Gain
+        row = col2.removeFromTop(rowHeight);
+        frHighShelfGainLabel.setBounds(row.removeFromLeft(labelWidth));
+        frHighShelfGainValueLabel.setBounds(row.removeFromRight(valueWidth));
+        frHighShelfGainSlider.setBounds(col2.removeFromTop(sliderHeight));
+        col2.removeFromTop(spacing);
+
+        // High Shelf Slope
+        row = col2.removeFromTop(rowHeight);
+        frHighShelfSlopeLabel.setBounds(row.removeFromLeft(labelWidth));
+        frHighShelfSlopeValueLabel.setBounds(row.removeFromRight(valueWidth));
+        frHighShelfSlopeSlider.setBounds(col2.removeFromTop(sliderHeight));
+        col2.removeFromTop(spacing * 2);
+
+        // FR Diffusion dial + Mute Reverb Sends button
+        auto bottomRow = col2.removeFromTop(dialSize + rowHeight * 2);
+        auto diffDialArea = bottomRow.removeFromLeft(dialSize + 30);
+        frDiffusionLabel.setBounds(diffDialArea.removeFromTop(rowHeight));
+        frDiffusionDial.setBounds(diffDialArea.removeFromTop(dialSize).withSizeKeepingCentre(dialSize, dialSize));
+        frDiffusionValueLabel.setBounds(diffDialArea.removeFromTop(rowHeight));
+        bottomRow.removeFromLeft(spacing * 3);
+
+        muteReverbSendsButton.setBounds(bottomRow.removeFromTop(rowHeight + 10).withWidth(200));
+    }
+
+    void layoutMovementsTab()
+    {
+        // 2-column layout: Column 1 (LFO), Column 2 (AutomOtion)
+        auto area = subTabContentArea;
+        const int rowHeight = 22;
+        const int sliderHeight = 26;
+        const int spacing = 4;
+        const int labelWidth = 65;
+        const int valueWidth = 55;
+        const int selectorWidth = 90;
+        const int dialSize = 50;
+        const int buttonWidth = 95;
+        const int editorWidth = 70;
+        const int unitWidth = 25;
+        const int transportButtonSize = 35;
+
+        auto col1 = area.removeFromLeft(area.getWidth() / 2).reduced(5, 0);
+        auto col2 = area.reduced(5, 0);
+
+        // ========== COLUMN 1: LFO ==========
+        lfoActiveButton.setBounds(col1.removeFromTop(rowHeight).withWidth(110));
+        col1.removeFromTop(spacing);
+
+        // Period dial with progress indicator
+        auto dialRow = col1.removeFromTop(dialSize + spacing);
+        lfoPeriodLabel.setBounds(dialRow.removeFromLeft(labelWidth));
+        lfoPeriodDial.setBounds(dialRow.removeFromLeft(dialSize).withSizeKeepingCentre(dialSize, dialSize));
+        dialRow.removeFromLeft(spacing);
+        lfoProgressDial.setBounds(dialRow.removeFromLeft(dialSize).withSizeKeepingCentre(dialSize, dialSize));
+        dialRow.removeFromLeft(spacing);
+        lfoPeriodValueLabel.setBounds(dialRow.removeFromLeft(valueWidth));
+        col1.removeFromTop(spacing);
+
+        // Main Phase dial
+        dialRow = col1.removeFromTop(dialSize + spacing);
+        lfoPhaseLabel.setBounds(dialRow.removeFromLeft(labelWidth));
+        lfoPhaseDial.setBounds(dialRow.removeFromLeft(dialSize).withSizeKeepingCentre(dialSize, dialSize));
+        dialRow.removeFromLeft(spacing);
+        lfoPhaseValueLabel.setBounds(dialRow.removeFromLeft(valueWidth));
+        col1.removeFromTop(spacing);
+
+        // Shape selectors row
+        auto row = col1.removeFromTop(rowHeight);
+        lfoShapeXLabel.setBounds(row.removeFromLeft(labelWidth));
+        lfoShapeXSelector.setBounds(row.removeFromLeft(selectorWidth));
+        row.removeFromLeft(spacing);
+        lfoShapeYLabel.setBounds(row.removeFromLeft(labelWidth));
+        lfoShapeYSelector.setBounds(row.removeFromLeft(selectorWidth));
+        col1.removeFromTop(spacing);
+
+        row = col1.removeFromTop(rowHeight);
+        lfoShapeZLabel.setBounds(row.removeFromLeft(labelWidth));
+        lfoShapeZSelector.setBounds(row.removeFromLeft(selectorWidth));
+        row.removeFromLeft(spacing);
+        lfoGyrophoneLabel.setBounds(row.removeFromLeft(labelWidth));
+        lfoGyrophoneSelector.setBounds(row.removeFromLeft(selectorWidth));
+        col1.removeFromTop(spacing);
+
+        // Rate sliders
+        row = col1.removeFromTop(rowHeight);
+        lfoRateXLabel.setBounds(row.removeFromLeft(labelWidth));
+        lfoRateXValueLabel.setBounds(row.removeFromRight(valueWidth));
+        lfoRateXSlider.setBounds(col1.removeFromTop(sliderHeight));
+        col1.removeFromTop(spacing);
+
+        row = col1.removeFromTop(rowHeight);
+        lfoRateYLabel.setBounds(row.removeFromLeft(labelWidth));
+        lfoRateYValueLabel.setBounds(row.removeFromRight(valueWidth));
+        lfoRateYSlider.setBounds(col1.removeFromTop(sliderHeight));
+        col1.removeFromTop(spacing);
+
+        row = col1.removeFromTop(rowHeight);
+        lfoRateZLabel.setBounds(row.removeFromLeft(labelWidth));
+        lfoRateZValueLabel.setBounds(row.removeFromRight(valueWidth));
+        lfoRateZSlider.setBounds(col1.removeFromTop(sliderHeight));
+        col1.removeFromTop(spacing);
+
+        // Amplitude sliders
+        row = col1.removeFromTop(rowHeight);
+        lfoAmplitudeXLabel.setBounds(row.removeFromLeft(labelWidth));
+        lfoAmplitudeXValueLabel.setBounds(row.removeFromRight(valueWidth));
+        lfoAmplitudeXSlider.setBounds(col1.removeFromTop(sliderHeight));
+        col1.removeFromTop(spacing);
+
+        row = col1.removeFromTop(rowHeight);
+        lfoAmplitudeYLabel.setBounds(row.removeFromLeft(labelWidth));
+        lfoAmplitudeYValueLabel.setBounds(row.removeFromRight(valueWidth));
+        lfoAmplitudeYSlider.setBounds(col1.removeFromTop(sliderHeight));
+        col1.removeFromTop(spacing);
+
+        row = col1.removeFromTop(rowHeight);
+        lfoAmplitudeZLabel.setBounds(row.removeFromLeft(labelWidth));
+        lfoAmplitudeZValueLabel.setBounds(row.removeFromRight(valueWidth));
+        lfoAmplitudeZSlider.setBounds(col1.removeFromTop(sliderHeight));
+        col1.removeFromTop(spacing);
+
+        // Phase dials row
+        auto phaseRow = col1.removeFromTop(dialSize + rowHeight);
+        auto phaseXArea = phaseRow.removeFromLeft(dialSize + 20);
+        lfoPhaseXLabel.setBounds(phaseXArea.removeFromTop(rowHeight - 5));
+        lfoPhaseXDial.setBounds(phaseXArea.removeFromTop(dialSize).withSizeKeepingCentre(dialSize, dialSize));
+        lfoPhaseXValueLabel.setBounds(phaseXArea);
+        phaseRow.removeFromLeft(spacing);
+
+        auto phaseYArea = phaseRow.removeFromLeft(dialSize + 20);
+        lfoPhaseYLabel.setBounds(phaseYArea.removeFromTop(rowHeight - 5));
+        lfoPhaseYDial.setBounds(phaseYArea.removeFromTop(dialSize).withSizeKeepingCentre(dialSize, dialSize));
+        lfoPhaseYValueLabel.setBounds(phaseYArea);
+        phaseRow.removeFromLeft(spacing);
+
+        auto phaseZArea = phaseRow.removeFromLeft(dialSize + 20);
+        lfoPhaseZLabel.setBounds(phaseZArea.removeFromTop(rowHeight - 5));
+        lfoPhaseZDial.setBounds(phaseZArea.removeFromTop(dialSize).withSizeKeepingCentre(dialSize, dialSize));
+        lfoPhaseZValueLabel.setBounds(phaseZArea);
+        col1.removeFromTop(spacing);
+
+        // Jitter slider
+        row = col1.removeFromTop(rowHeight);
+        jitterLabel.setBounds(row.removeFromLeft(labelWidth));
+        jitterValueLabel.setBounds(row.removeFromRight(valueWidth));
+        jitterSlider.setBounds(col1.removeFromTop(sliderHeight));
+
+        // LFO Output sliders (at bottom of column, if space allows)
+        col1.removeFromTop(spacing);
+        row = col1.removeFromTop(rowHeight);
+        lfoOutputXLabel.setBounds(row.removeFromLeft(labelWidth));
+        lfoOutputXSlider.setBounds(col1.removeFromTop(sliderHeight - 5));
+
+        row = col1.removeFromTop(rowHeight);
+        lfoOutputYLabel.setBounds(row.removeFromLeft(labelWidth));
+        lfoOutputYSlider.setBounds(col1.removeFromTop(sliderHeight - 5));
+
+        row = col1.removeFromTop(rowHeight);
+        lfoOutputZLabel.setBounds(row.removeFromLeft(labelWidth));
+        lfoOutputZSlider.setBounds(col1.removeFromTop(sliderHeight - 5));
+
+        // ========== COLUMN 2: AutomOtion ==========
+        // Destination X/Y/Z
+        row = col2.removeFromTop(rowHeight);
+        otomoDestXLabel.setBounds(row.removeFromLeft(labelWidth));
+        otomoDestXEditor.setBounds(row.removeFromLeft(editorWidth));
+        otomoDestXUnitLabel.setBounds(row.removeFromLeft(unitWidth));
+        row.removeFromLeft(spacing);
+        otomoDestYLabel.setBounds(row.removeFromLeft(labelWidth));
+        otomoDestYEditor.setBounds(row.removeFromLeft(editorWidth));
+        otomoDestYUnitLabel.setBounds(row.removeFromLeft(unitWidth));
+        col2.removeFromTop(spacing);
+
+        row = col2.removeFromTop(rowHeight);
+        otomoDestZLabel.setBounds(row.removeFromLeft(labelWidth));
+        otomoDestZEditor.setBounds(row.removeFromLeft(editorWidth));
+        otomoDestZUnitLabel.setBounds(row.removeFromLeft(unitWidth));
+        col2.removeFromTop(spacing);
+
+        // Buttons row
+        row = col2.removeFromTop(rowHeight);
+        otomoAbsRelButton.setBounds(row.removeFromLeft(buttonWidth));
+        row.removeFromLeft(spacing);
+        otomoStayReturnButton.setBounds(row.removeFromLeft(buttonWidth));
+        row.removeFromLeft(spacing);
+        otomoTriggerButton.setBounds(row.removeFromLeft(buttonWidth));
+        col2.removeFromTop(spacing * 2);
+
+        // Dials row 1: Duration, Curve, Speed Profile
+        auto otomoDials1 = col2.removeFromTop(dialSize + rowHeight * 2 - 5);
+        auto durDialArea = otomoDials1.removeFromLeft(dialSize + 20);
+        otomoDurationLabel.setBounds(durDialArea.removeFromTop(rowHeight));
+        otomoDurationDial.setBounds(durDialArea.removeFromTop(dialSize).withSizeKeepingCentre(dialSize, dialSize));
+        otomoDurationValueLabel.setBounds(durDialArea.removeFromTop(rowHeight));
+        otomoDials1.removeFromLeft(spacing);
+
+        auto curveDialArea = otomoDials1.removeFromLeft(dialSize + 20);
+        otomoCurveLabel.setBounds(curveDialArea.removeFromTop(rowHeight));
+        otomoCurveDial.setBounds(curveDialArea.removeFromTop(dialSize).withSizeKeepingCentre(dialSize, dialSize));
+        otomoCurveValueLabel.setBounds(curveDialArea.removeFromTop(rowHeight));
+        otomoDials1.removeFromLeft(spacing);
+
+        auto speedDialArea = otomoDials1.removeFromLeft(dialSize + 20);
+        otomoSpeedProfileLabel.setBounds(speedDialArea.removeFromTop(rowHeight));
+        otomoSpeedProfileDial.setBounds(speedDialArea.removeFromTop(dialSize).withSizeKeepingCentre(dialSize, dialSize));
+        otomoSpeedProfileValueLabel.setBounds(speedDialArea.removeFromTop(rowHeight));
+        col2.removeFromTop(spacing);
+
+        // Dials row 2: Threshold, Reset (audio trigger)
+        auto otomoDials2 = col2.removeFromTop(dialSize + rowHeight * 2 - 5);
+        auto threshDialArea = otomoDials2.removeFromLeft(dialSize + 20);
+        otomoThresholdLabel.setBounds(threshDialArea.removeFromTop(rowHeight));
+        otomoThresholdDial.setBounds(threshDialArea.removeFromTop(dialSize).withSizeKeepingCentre(dialSize, dialSize));
+        otomoThresholdValueLabel.setBounds(threshDialArea.removeFromTop(rowHeight));
+        otomoDials2.removeFromLeft(spacing);
+
+        auto resetDialArea = otomoDials2.removeFromLeft(dialSize + 20);
+        otomoResetLabel.setBounds(resetDialArea.removeFromTop(rowHeight));
+        otomoResetDial.setBounds(resetDialArea.removeFromTop(dialSize).withSizeKeepingCentre(dialSize, dialSize));
+        otomoResetValueLabel.setBounds(resetDialArea.removeFromTop(rowHeight));
+        col2.removeFromTop(spacing * 2);
+
+        // Transport buttons (per-input)
+        row = col2.removeFromTop(transportButtonSize);
+        otomoStartButton.setBounds(row.removeFromLeft(transportButtonSize));
+        row.removeFromLeft(spacing);
+        otomoPauseButton.setBounds(row.removeFromLeft(transportButtonSize));
+        row.removeFromLeft(spacing);
+        otomoStopButton.setBounds(row.removeFromLeft(transportButtonSize));
+        col2.removeFromTop(spacing * 2);
+
+        // Global buttons
+        row = col2.removeFromTop(rowHeight + 5);
+        otomoStopAllButton.setBounds(row.removeFromLeft(buttonWidth));
+        row.removeFromLeft(spacing);
+        otomoPauseResumeAllButton.setBounds(row.removeFromLeft(buttonWidth));
+    }
+
     void setMutesVisible(bool v)
     {
         int numOutputs = parameters.getNumOutputChannels();
@@ -2980,7 +3691,7 @@ private:
         // ==================== SOUND TAB ====================
         bool attenLaw = getIntParam(WFSParameterIDs::inputAttenuationLaw, 0) != 0;
         attenuationLawButton.setToggleState(attenLaw, juce::dontSendNotification);
-        attenuationLawButton.setButtonText(attenLaw ? "Spherical" : "Cylindrical");
+        attenuationLawButton.setButtonText(attenLaw ? "1/d" : "Log");
 
         // Distance Attenuation stored as dB/m (-6 to 0), default -0.7
         // Formula: dB = (x * 6.0) - 6.0 => x = (dB + 6) / 6
@@ -3367,6 +4078,11 @@ private:
         // Sidelines parameters
         bool sidelinesActive = getIntParam(WFSParameterIDs::inputSidelinesActive, 0) != 0;
         sidelinesActiveButton.setToggleState(sidelinesActive, juce::dontSendNotification);
+        sidelinesActiveButton.setButtonText(sidelinesActive ? "Sidelines ON" : "Sidelines Off");
+        // Grey out dial when inactive
+        sidelinesFringeDial.setAlpha(sidelinesActive ? 1.0f : 0.5f);
+        sidelinesFringeLabel.setAlpha(sidelinesActive ? 1.0f : 0.5f);
+        sidelinesFringeValueLabel.setAlpha(sidelinesActive ? 1.0f : 0.5f);
         float sidelinesFringe = getFloatParam(WFSParameterIDs::inputSidelinesFringe, WFSParameterDefaults::inputSidelinesFringeDefault);
         sidelinesFringe = juce::jlimit(WFSParameterDefaults::inputSidelinesFringeMin, WFSParameterDefaults::inputSidelinesFringeMax, sidelinesFringe);
         // Convert meters to dial value (0-1)
@@ -4393,11 +5109,11 @@ private:
         // Check if output channel count changed (affects mute buttons, stored in IO tree)
         if (tree == ioTree && property == WFSParameterIDs::outputChannels)
         {
-            // Update mute button visibility and layout if Mutes tab is visible
-            if (subTabBar.getCurrentTabIndex() == 8)  // Mutes tab
+            // Update mute button visibility and layout if Input Parameters tab is visible (contains mutes)
+            if (subTabBar.getCurrentTabIndex() == 0)
             {
                 setMutesVisible(true);
-                layoutMutesTab();
+                layoutInputParametersTab();
             }
         }
 
@@ -4734,6 +5450,7 @@ private:
     juce::Label positionZSliderLabel;
 
     // Sound tab
+    juce::Label attenuationLawLabel;
     juce::TextButton attenuationLawButton;
     juce::Label distanceAttenLabel;
     WfsBasicDial distanceAttenDial;
@@ -4877,7 +5594,7 @@ private:
     juce::Label arrayAttenValueLabels[10];
 
     // Sidelines (auto-mute at stage edges)
-    juce::ToggleButton sidelinesActiveButton;
+    juce::TextButton sidelinesActiveButton;
     juce::Label sidelinesFringeLabel;
     WfsBasicDial sidelinesFringeDial;
     juce::Label sidelinesFringeValueLabel;
