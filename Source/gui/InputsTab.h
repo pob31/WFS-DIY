@@ -1138,6 +1138,7 @@ private:
         lsActiveButton.onClick = [this]() {
             bool enabled = lsActiveButton.getToggleState();
             lsActiveButton.setButtonText(enabled ? "Live Source Tamer: ON" : "Live Source Tamer: OFF");
+            setLiveSourceParametersAlpha(enabled ? 1.0f : 0.5f);
             saveInputParam(WFSParameterIDs::inputLSactive, enabled ? 1 : 0);
         };
 
@@ -1256,12 +1257,15 @@ private:
         frActiveButton.onClick = [this]() {
             bool enabled = frActiveButton.getToggleState();
             frActiveButton.setButtonText(enabled ? "Floor Reflections: ON" : "Floor Reflections: OFF");
+            setFloorReflectionsParametersAlpha(enabled ? 1.0f : 0.5f);
+            updateLowCutAlpha();
+            updateHighShelfAlpha();
             saveInputParam(WFSParameterIDs::inputFRactive, enabled ? 1 : 0);
         };
 
-        // FR Attenuation slider
+        // Floor Reflections Attenuation slider
         addAndMakeVisible(frAttenuationLabel);
-        frAttenuationLabel.setText("FR Attenuation:", juce::dontSendNotification);
+        frAttenuationLabel.setText("Attenuation:", juce::dontSendNotification);
         frAttenuationSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFF795548));
         frAttenuationSlider.onValueChanged = [this](float v) {
             float dB = 20.0f * std::log10(std::pow(10.0f, -60.0f / 20.0f) +
@@ -1274,9 +1278,9 @@ private:
         frAttenuationValueLabel.setText("-3.0 dB", juce::dontSendNotification);
         setupEditableValueLabel(frAttenuationValueLabel);
 
-        // FR Diffusion dial
+        // Floor Reflections Diffusion dial
         addAndMakeVisible(frDiffusionLabel);
-        frDiffusionLabel.setText("FR Diffusion:", juce::dontSendNotification);
+        frDiffusionLabel.setText("Diffusion:", juce::dontSendNotification);
         frDiffusionLabel.setJustificationType(juce::Justification::centred);
         frDiffusionDial.setColours(juce::Colours::black, juce::Colour(0xFF795548), juce::Colours::grey);
         frDiffusionDial.setValue(0.2f);
@@ -1299,12 +1303,13 @@ private:
         frLowCutActiveButton.onClick = [this]() {
             bool enabled = frLowCutActiveButton.getToggleState();
             frLowCutActiveButton.setButtonText(enabled ? "Low Cut: ON" : "Low Cut: OFF");
+            updateLowCutAlpha();
             saveInputParam(WFSParameterIDs::inputFRlowCutActive, enabled ? 1 : 0);
         };
 
-        // FR Low Cut Frequency slider (20-20000 Hz)
+        // Low Cut Frequency slider (20-20000 Hz)
         addAndMakeVisible(frLowCutFreqLabel);
-        frLowCutFreqLabel.setText("Low Cut Freq:", juce::dontSendNotification);
+        frLowCutFreqLabel.setText("Frequency:", juce::dontSendNotification);
         frLowCutFreqSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFF607D8B));
         frLowCutFreqSlider.onValueChanged = [this](float v) {
             // Formula: 20*pow(10,4*x) maps 0-1 to 20-20000 Hz
@@ -1325,12 +1330,13 @@ private:
         frHighShelfActiveButton.onClick = [this]() {
             bool enabled = frHighShelfActiveButton.getToggleState();
             frHighShelfActiveButton.setButtonText(enabled ? "High Shelf: ON" : "High Shelf: OFF");
+            updateHighShelfAlpha();
             saveInputParam(WFSParameterIDs::inputFRhighShelfActive, enabled ? 1 : 0);
         };
 
-        // FR High Shelf Frequency slider (20-20000 Hz)
+        // High Shelf Frequency slider (20-20000 Hz)
         addAndMakeVisible(frHighShelfFreqLabel);
-        frHighShelfFreqLabel.setText("HS Freq:", juce::dontSendNotification);
+        frHighShelfFreqLabel.setText("Frequency:", juce::dontSendNotification);
         frHighShelfFreqSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFF607D8B));
         frHighShelfFreqSlider.onValueChanged = [this](float v) {
             int freq = static_cast<int>(20.0f * std::pow(10.0f, 3.0f * v));
@@ -1342,9 +1348,9 @@ private:
         frHighShelfFreqValueLabel.setText("3000 Hz", juce::dontSendNotification);
         setupEditableValueLabel(frHighShelfFreqValueLabel);
 
-        // FR High Shelf Gain slider (-24 to 0 dB)
+        // High Shelf Gain slider (-24 to 0 dB)
         addAndMakeVisible(frHighShelfGainLabel);
-        frHighShelfGainLabel.setText("HS Gain:", juce::dontSendNotification);
+        frHighShelfGainLabel.setText("Gain:", juce::dontSendNotification);
         frHighShelfGainSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFF607D8B));
         frHighShelfGainSlider.onValueChanged = [this](float v) {
             float dB = 20.0f * std::log10(std::pow(10.0f, -24.0f / 20.0f) +
@@ -1357,9 +1363,9 @@ private:
         frHighShelfGainValueLabel.setText("-2.0 dB", juce::dontSendNotification);
         setupEditableValueLabel(frHighShelfGainValueLabel);
 
-        // FR High Shelf Slope slider (0.1-0.9)
+        // High Shelf Slope slider (0.1-0.9)
         addAndMakeVisible(frHighShelfSlopeLabel);
-        frHighShelfSlopeLabel.setText("HS Slope:", juce::dontSendNotification);
+        frHighShelfSlopeLabel.setText("Slope:", juce::dontSendNotification);
         frHighShelfSlopeSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFF607D8B));
         frHighShelfSlopeSlider.onValueChanged = [this](float v) {
             // Formula: (x*0.8)+0.1 maps 0-1 to 0.1-0.9
@@ -2138,6 +2144,96 @@ private:
         muteReverbSendsButton.setVisible(v);
     }
 
+    void setLiveSourceParametersAlpha(float alpha)
+    {
+        // Dim all Live Source Tamer parameters (but keep them editable)
+        lsRadiusLabel.setAlpha(alpha);
+        lsRadiusSlider.setAlpha(alpha);
+        lsRadiusValueLabel.setAlpha(alpha);
+        lsShapeLabel.setAlpha(alpha);
+        lsShapeSelector.setAlpha(alpha);
+        lsAttenuationLabel.setAlpha(alpha);
+        lsAttenuationSlider.setAlpha(alpha);
+        lsAttenuationValueLabel.setAlpha(alpha);
+        lsPeakThresholdLabel.setAlpha(alpha);
+        lsPeakThresholdSlider.setAlpha(alpha);
+        lsPeakThresholdValueLabel.setAlpha(alpha);
+        lsPeakRatioLabel.setAlpha(alpha);
+        lsPeakRatioDial.setAlpha(alpha);
+        lsPeakRatioValueLabel.setAlpha(alpha);
+        lsSlowThresholdLabel.setAlpha(alpha);
+        lsSlowThresholdSlider.setAlpha(alpha);
+        lsSlowThresholdValueLabel.setAlpha(alpha);
+        lsSlowRatioLabel.setAlpha(alpha);
+        lsSlowRatioDial.setAlpha(alpha);
+        lsSlowRatioValueLabel.setAlpha(alpha);
+    }
+
+    void setFloorReflectionsParametersAlpha(float alpha)
+    {
+        // Dim all Floor Reflections parameters (but keep them editable)
+        frAttenuationLabel.setAlpha(alpha);
+        frAttenuationSlider.setAlpha(alpha);
+        frAttenuationValueLabel.setAlpha(alpha);
+        frDiffusionLabel.setAlpha(alpha);
+        frDiffusionDial.setAlpha(alpha);
+        frDiffusionValueLabel.setAlpha(alpha);
+        frLowCutActiveButton.setAlpha(alpha);
+        frLowCutFreqLabel.setAlpha(alpha);
+        frLowCutFreqSlider.setAlpha(alpha);
+        frLowCutFreqValueLabel.setAlpha(alpha);
+        frHighShelfActiveButton.setAlpha(alpha);
+        frHighShelfFreqLabel.setAlpha(alpha);
+        frHighShelfFreqSlider.setAlpha(alpha);
+        frHighShelfFreqValueLabel.setAlpha(alpha);
+        frHighShelfGainLabel.setAlpha(alpha);
+        frHighShelfGainSlider.setAlpha(alpha);
+        frHighShelfGainValueLabel.setAlpha(alpha);
+        frHighShelfSlopeLabel.setAlpha(alpha);
+        frHighShelfSlopeSlider.setAlpha(alpha);
+        frHighShelfSlopeValueLabel.setAlpha(alpha);
+    }
+
+    void setLowCutParametersAlpha(float alpha)
+    {
+        // Dim Low Cut frequency slider (respects both FR master and Low Cut toggle)
+        frLowCutFreqLabel.setAlpha(alpha);
+        frLowCutFreqSlider.setAlpha(alpha);
+        frLowCutFreqValueLabel.setAlpha(alpha);
+    }
+
+    void setHighShelfParametersAlpha(float alpha)
+    {
+        // Dim High Shelf parameters (respects both FR master and High Shelf toggle)
+        frHighShelfFreqLabel.setAlpha(alpha);
+        frHighShelfFreqSlider.setAlpha(alpha);
+        frHighShelfFreqValueLabel.setAlpha(alpha);
+        frHighShelfGainLabel.setAlpha(alpha);
+        frHighShelfGainSlider.setAlpha(alpha);
+        frHighShelfGainValueLabel.setAlpha(alpha);
+        frHighShelfSlopeLabel.setAlpha(alpha);
+        frHighShelfSlopeSlider.setAlpha(alpha);
+        frHighShelfSlopeValueLabel.setAlpha(alpha);
+    }
+
+    void updateLowCutAlpha()
+    {
+        // Low Cut params are full opacity only when BOTH FR and Low Cut are enabled
+        bool frEnabled = frActiveButton.getToggleState();
+        bool lowCutEnabled = frLowCutActiveButton.getToggleState();
+        float alpha = (frEnabled && lowCutEnabled) ? 1.0f : 0.5f;
+        setLowCutParametersAlpha(alpha);
+    }
+
+    void updateHighShelfAlpha()
+    {
+        // High Shelf params are full opacity only when BOTH FR and High Shelf are enabled
+        bool frEnabled = frActiveButton.getToggleState();
+        bool highShelfEnabled = frHighShelfActiveButton.getToggleState();
+        float alpha = (frEnabled && highShelfEnabled) ? 1.0f : 0.5f;
+        setHighShelfParametersAlpha(alpha);
+    }
+
     void layoutInputPropertiesTab()
     {
         auto area = subTabContentArea;
@@ -2488,10 +2584,6 @@ private:
         auto dialArea = rightCol.removeFromTop(dialSize);
         frDiffusionDial.setBounds(dialArea.withSizeKeepingCentre(dialSize, dialSize));
         frDiffusionValueLabel.setBounds(rightCol.removeFromTop(rowHeight));
-
-        // Mute Sends to Reverbs button
-        rightCol.removeFromTop(spacing * 3);
-        muteReverbSendsButton.setBounds(rightCol.removeFromTop(rowHeight).withWidth(220));
     }
 
     void setLfoVisible(bool v)
@@ -3161,80 +3253,111 @@ private:
 
         // ========== COLUMN 1: Live Source ==========
         lsActiveButton.setBounds(col1.removeFromTop(rowHeight).withWidth(180));
-        col1.removeFromTop(spacing);
+        col1.removeFromTop(spacing * 2);  // Extra padding after toggle
 
         // Shape selector
         auto row = col1.removeFromTop(rowHeight);
         lsShapeLabel.setBounds(row.removeFromLeft(labelWidth));
         lsShapeSelector.setBounds(row.removeFromLeft(100));
-        col1.removeFromTop(spacing);
+        col1.removeFromTop(spacing * 2);  // Extra padding after shape
 
         // Radius
         row = col1.removeFromTop(rowHeight);
         lsRadiusLabel.setBounds(row.removeFromLeft(labelWidth));
         lsRadiusValueLabel.setBounds(row.removeFromRight(valueWidth));
         lsRadiusSlider.setBounds(col1.removeFromTop(sliderHeight));
-        col1.removeFromTop(spacing);
+        col1.removeFromTop(spacing * 2);  // Extra padding after radius
 
         // Attenuation
         row = col1.removeFromTop(rowHeight);
         lsAttenuationLabel.setBounds(row.removeFromLeft(labelWidth));
         lsAttenuationValueLabel.setBounds(row.removeFromRight(valueWidth));
         lsAttenuationSlider.setBounds(col1.removeFromTop(sliderHeight));
-        col1.removeFromTop(spacing);
+        col1.removeFromTop(spacing * 2);  // Extra padding before thresholds
 
-        // Peak Threshold
-        row = col1.removeFromTop(rowHeight);
-        lsPeakThresholdLabel.setBounds(row.removeFromLeft(labelWidth));
-        lsPeakThresholdValueLabel.setBounds(row.removeFromRight(valueWidth));
-        lsPeakThresholdSlider.setBounds(col1.removeFromTop(sliderHeight));
-        col1.removeFromTop(spacing);
+        // Peak Threshold + Peak Ratio (side by side, vertically aligned)
+        const int sliderPortion = static_cast<int>(col1.getWidth() * 0.68f);
+        const int thresholdBlockHeight = dialSize + rowHeight * 2;
 
-        // Slow Threshold
-        row = col1.removeFromTop(rowHeight);
-        lsSlowThresholdLabel.setBounds(row.removeFromLeft(labelWidth));
-        lsSlowThresholdValueLabel.setBounds(row.removeFromRight(valueWidth));
-        lsSlowThresholdSlider.setBounds(col1.removeFromTop(sliderHeight));
-        col1.removeFromTop(spacing * 2);
+        auto peakBlock = col1.removeFromTop(thresholdBlockHeight);
+        auto peakSliderArea = peakBlock.removeFromLeft(sliderPortion);
+        peakBlock.removeFromLeft(spacing * 2);
+        auto peakDialArea = peakBlock;
 
-        // Ratio dials
-        auto dialsRow = col1.removeFromTop(dialSize + rowHeight * 2);
-        auto peakDialArea = dialsRow.removeFromLeft(dialSize + 30);
+        // Peak dial section (right) - label, dial, value stacked vertically
         lsPeakRatioLabel.setBounds(peakDialArea.removeFromTop(rowHeight));
         lsPeakRatioDial.setBounds(peakDialArea.removeFromTop(dialSize).withSizeKeepingCentre(dialSize, dialSize));
         lsPeakRatioValueLabel.setBounds(peakDialArea.removeFromTop(rowHeight));
-        dialsRow.removeFromLeft(spacing * 2);
 
-        auto slowDialArea = dialsRow.removeFromLeft(dialSize + 30);
+        // Peak slider section (left) - vertically centered with dial
+        // Center the slider vertically: label at top, slider centered with dial, value at bottom
+        lsPeakThresholdLabel.setBounds(peakSliderArea.removeFromTop(rowHeight));
+        int sliderVerticalOffset = (dialSize - sliderHeight) / 2;  // Center slider with dial
+        peakSliderArea.removeFromTop(sliderVerticalOffset);
+        lsPeakThresholdSlider.setBounds(peakSliderArea.removeFromTop(sliderHeight));
+        peakSliderArea.removeFromTop(sliderVerticalOffset);
+        lsPeakThresholdValueLabel.setBounds(peakSliderArea.removeFromTop(rowHeight));
+
+        col1.removeFromTop(spacing * 2);
+
+        // Slow Threshold + Slow Ratio (side by side, vertically aligned)
+        auto slowBlock = col1.removeFromTop(thresholdBlockHeight);
+        auto slowSliderArea = slowBlock.removeFromLeft(sliderPortion);
+        slowBlock.removeFromLeft(spacing * 2);
+        auto slowDialArea = slowBlock;
+
+        // Slow dial section (right) - label, dial, value stacked vertically
         lsSlowRatioLabel.setBounds(slowDialArea.removeFromTop(rowHeight));
         lsSlowRatioDial.setBounds(slowDialArea.removeFromTop(dialSize).withSizeKeepingCentre(dialSize, dialSize));
         lsSlowRatioValueLabel.setBounds(slowDialArea.removeFromTop(rowHeight));
+
+        // Slow slider section (left) - vertically centered with dial
+        lsSlowThresholdLabel.setBounds(slowSliderArea.removeFromTop(rowHeight));
+        slowSliderArea.removeFromTop(sliderVerticalOffset);
+        lsSlowThresholdSlider.setBounds(slowSliderArea.removeFromTop(sliderHeight));
+        slowSliderArea.removeFromTop(sliderVerticalOffset);
+        lsSlowThresholdValueLabel.setBounds(slowSliderArea.removeFromTop(rowHeight));
 
         // ========== COLUMN 2: Hackoustics (Floor Reflections) ==========
         frActiveButton.setBounds(col2.removeFromTop(rowHeight).withWidth(180));
         col2.removeFromTop(spacing);
 
-        // FR Attenuation
+        // Attenuation
         row = col2.removeFromTop(rowHeight);
         frAttenuationLabel.setBounds(row.removeFromLeft(labelWidth));
         frAttenuationValueLabel.setBounds(row.removeFromRight(valueWidth));
         frAttenuationSlider.setBounds(col2.removeFromTop(sliderHeight));
         col2.removeFromTop(spacing);
 
-        // Low Cut Active + Frequency
-        row = col2.removeFromTop(rowHeight);
-        frLowCutActiveButton.setBounds(row.removeFromLeft(buttonWidth));
-        row.removeFromLeft(spacing);
-        frLowCutFreqLabel.setBounds(row.removeFromLeft(labelWidth - 20));
-        frLowCutFreqValueLabel.setBounds(row.removeFromRight(valueWidth));
-        frLowCutFreqSlider.setBounds(col2.removeFromTop(sliderHeight));
+        // Diffusion dial (centered in column)
+        int diffusionBlockHeight = dialSize + rowHeight * 2;
+        auto diffBlock = col2.removeFromTop(diffusionBlockHeight);
+        int diffCenterX = diffBlock.getX() + diffBlock.getWidth() / 2;
+        frDiffusionLabel.setBounds(diffCenterX - 50, diffBlock.getY(), 100, rowHeight);
+        frDiffusionDial.setBounds(diffCenterX - dialSize / 2, diffBlock.getY() + rowHeight, dialSize, dialSize);
+        frDiffusionValueLabel.setBounds(diffCenterX - 50, diffBlock.getY() + rowHeight + dialSize, 100, rowHeight);
+
+        col2.removeFromTop(spacing * 2);
+
+        // Low Cut section (toggle on its own line)
+        frLowCutActiveButton.setBounds(col2.removeFromTop(rowHeight).withWidth(buttonWidth));
         col2.removeFromTop(spacing);
 
-        // High Shelf Active + Frequency
+        // Low Cut Frequency (label + value on its own line)
         row = col2.removeFromTop(rowHeight);
-        frHighShelfActiveButton.setBounds(row.removeFromLeft(buttonWidth));
-        row.removeFromLeft(spacing);
-        frHighShelfFreqLabel.setBounds(row.removeFromLeft(labelWidth - 30));
+        frLowCutFreqLabel.setBounds(row.removeFromLeft(labelWidth));
+        frLowCutFreqValueLabel.setBounds(row.removeFromRight(valueWidth));
+        frLowCutFreqSlider.setBounds(col2.removeFromTop(sliderHeight));
+
+        col2.removeFromTop(spacing * 2);
+
+        // High Shelf section (toggle on its own line)
+        frHighShelfActiveButton.setBounds(col2.removeFromTop(rowHeight).withWidth(buttonWidth + 20));
+        col2.removeFromTop(spacing);
+
+        // High Shelf Frequency
+        row = col2.removeFromTop(rowHeight);
+        frHighShelfFreqLabel.setBounds(row.removeFromLeft(labelWidth));
         frHighShelfFreqValueLabel.setBounds(row.removeFromRight(valueWidth));
         frHighShelfFreqSlider.setBounds(col2.removeFromTop(sliderHeight));
         col2.removeFromTop(spacing);
@@ -3251,17 +3374,13 @@ private:
         frHighShelfSlopeLabel.setBounds(row.removeFromLeft(labelWidth));
         frHighShelfSlopeValueLabel.setBounds(row.removeFromRight(valueWidth));
         frHighShelfSlopeSlider.setBounds(col2.removeFromTop(sliderHeight));
-        col2.removeFromTop(spacing * 2);
 
-        // FR Diffusion dial + Mute Reverb Sends button
-        auto bottomRow = col2.removeFromTop(dialSize + rowHeight * 2);
-        auto diffDialArea = bottomRow.removeFromLeft(dialSize + 30);
-        frDiffusionLabel.setBounds(diffDialArea.removeFromTop(rowHeight));
-        frDiffusionDial.setBounds(diffDialArea.removeFromTop(dialSize).withSizeKeepingCentre(dialSize, dialSize));
-        frDiffusionValueLabel.setBounds(diffDialArea.removeFromTop(rowHeight));
-        bottomRow.removeFromLeft(spacing * 3);
+        col2.removeFromTop(spacing * 3);  // Extra padding before Sends to Reverbs
 
-        muteReverbSendsButton.setBounds(bottomRow.removeFromTop(rowHeight + 10).withWidth(200));
+        // Mute Sends to Reverbs (centered in column)
+        auto reverbSendsRow = col2.removeFromTop(rowHeight);
+        int buttonCenterX = reverbSendsRow.getX() + reverbSendsRow.getWidth() / 2;
+        muteReverbSendsButton.setBounds(buttonCenterX - 100, reverbSendsRow.getY(), 200, rowHeight);
     }
 
     void layoutMovementsTab()
@@ -3782,6 +3901,7 @@ private:
         bool lsActive = getIntParam(WFSParameterIDs::inputLSactive, 0) != 0;
         lsActiveButton.setToggleState(lsActive, juce::dontSendNotification);
         lsActiveButton.setButtonText(lsActive ? "Live Source Tamer: ON" : "Live Source Tamer: OFF");
+        setLiveSourceParametersAlpha(lsActive ? 1.0f : 0.5f);
 
         // LS Radius stored as meters (0-50), default 3
         // Formula: meters = x * 50 => x = meters / 50
@@ -3845,6 +3965,7 @@ private:
         bool frActive = getIntParam(WFSParameterIDs::inputFRactive, 0) != 0;
         frActiveButton.setToggleState(frActive, juce::dontSendNotification);
         frActiveButton.setButtonText(frActive ? "Floor Reflections: ON" : "Floor Reflections: OFF");
+        setFloorReflectionsParametersAlpha(frActive ? 1.0f : 0.5f);
 
         // FR Attenuation stored as dB (-60 to 0), default -3
         // Formula: dB = 20*log10(minLin + (1-minLin)*x^2), where minLin = pow(10, -60/20)
@@ -3906,6 +4027,10 @@ private:
         float frSlopeSliderVal = (frHighShelfSlopeVal - 0.1f) / 0.8f;
         frHighShelfSlopeSlider.setValue(juce::jlimit(0.0f, 1.0f, frSlopeSliderVal));
         frHighShelfSlopeValueLabel.setText(juce::String(frHighShelfSlopeVal, 2), juce::dontSendNotification);
+
+        // Update Low Cut and High Shelf alpha based on master FR and sub-toggle states
+        updateLowCutAlpha();
+        updateHighShelfAlpha();
 
         // Mute Sends to Reverbs (default OFF = 0)
         bool muteReverbSends = getIntParam(WFSParameterIDs::inputMuteReverbSends, 0) != 0;

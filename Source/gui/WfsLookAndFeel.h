@@ -285,8 +285,8 @@ public:
     int getTabButtonBestWidth(juce::TabBarButton& /*button*/, int /*tabDepth*/) override
     {
         // Return fixed width so all tabs are equal size
-        // Width calculated to fit "System Configuration" with generous padding
-        return 175;
+        // Width calculated to fit "Live Source & Hackoustics" with generous padding
+        return 220;
     }
 
 private:
