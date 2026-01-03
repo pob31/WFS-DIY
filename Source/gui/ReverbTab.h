@@ -20,7 +20,8 @@ class ReverbTab : public juce::Component,
                   private juce::TextEditor::Listener,
                   private juce::ChangeListener,
                   private juce::Label::Listener,
-                  private juce::ValueTree::Listener
+                  private juce::ValueTree::Listener,
+                  public ColorScheme::Manager::Listener
 {
 public:
     ReverbTab (WfsParameters& params)
@@ -36,6 +37,7 @@ public:
         configTree.addListener (this);
         if (ioTree.isValid())
             ioTree.addListener (this);
+        ColorScheme::Manager::getInstance().addListener(this);
 
         setupHeader();
         setupSubTabs();
@@ -68,10 +70,34 @@ public:
 
     ~ReverbTab() override
     {
+        ColorScheme::Manager::getInstance().removeListener(this);
         reverbsTree.removeListener (this);
         configTree.removeListener (this);
         if (ioTree.isValid())
             ioTree.removeListener (this);
+    }
+
+    /** ColorScheme::Manager::Listener callback - refresh colors when theme changes */
+    void colorSchemeChanged() override
+    {
+        // Update TextEditor colors - JUCE TextEditors cache colors internally
+        const auto& colors = ColorScheme::get();
+        auto updateTextEditor = [&colors](juce::TextEditor& editor) {
+            editor.setColour(juce::TextEditor::textColourId, colors.textPrimary);
+            editor.setColour(juce::TextEditor::backgroundColourId, colors.surfaceCard);
+            editor.setColour(juce::TextEditor::outlineColourId, colors.buttonBorder);
+            editor.applyFontToAllText(editor.getFont(), true);
+        };
+
+        updateTextEditor(nameEditor);
+        updateTextEditor(posXEditor);
+        updateTextEditor(posYEditor);
+        updateTextEditor(posZEditor);
+        updateTextEditor(returnOffsetXEditor);
+        updateTextEditor(returnOffsetYEditor);
+        updateTextEditor(returnOffsetZEditor);
+
+        repaint();
     }
 
     //==========================================================================
@@ -90,6 +116,24 @@ public:
     /** Refresh UI from ValueTree - call after config reload */
     void refreshFromValueTree()
     {
+        // Re-acquire reverbsTree reference in case config was replaced
+        auto newReverbsTree = parameters.getReverbTree();
+        if (newReverbsTree != reverbsTree)
+        {
+            reverbsTree.removeListener(this);
+            reverbsTree = newReverbsTree;
+            reverbsTree.addListener(this);
+        }
+
+        // Re-acquire configTree reference
+        auto newConfigTree = parameters.getConfigTree();
+        if (newConfigTree != configTree)
+        {
+            configTree.removeListener(this);
+            configTree = newConfigTree;
+            configTree.addListener(this);
+        }
+
         // Re-acquire ioTree reference in case config was replaced (e.g., copyPropertiesAndChildrenFrom)
         auto newIOTree = parameters.getConfigTree().getChildWithName(WFSParameterIDs::IO);
         if (newIOTree != ioTree)
@@ -101,6 +145,11 @@ public:
                 ioTree.addListener(this);
         }
 
+        // Reset EQ display - it holds a reference to the old ValueTree which is now stale
+        // It will be recreated in loadChannelParameters() with the new tree
+        eqDisplay.reset();
+        lastEqDisplayChannel = -1;
+
         // Update channel selector count
         int numReverbs = parameters.getNumReverbChannels();
         if (numReverbs > 0)
@@ -108,11 +157,18 @@ public:
             channelSelector.setNumChannels(numReverbs);
             if (currentChannel > numReverbs)
                 currentChannel = 1;
+
+            // Load channel parameters FIRST to create eqDisplay with new tree
+            // This must happen before resized() which tries to lay out the display
+            loadChannelParameters(currentChannel);
         }
 
         updateVisibility();
         resized();  // Re-layout components after visibility change
-        loadChannelParameters(currentChannel);
+
+        // Force layout of current sub-tab to ensure EQ display is properly visible
+        layoutCurrentSubTab();
+        repaint();
     }
 
     /** Callback when reverb config is reloaded - for triggering DSP recalculation */
@@ -201,12 +257,8 @@ private:
 
         addAndMakeVisible (nameLabel);
         nameLabel.setText ("Name:", juce::dontSendNotification);
-        nameLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
         addAndMakeVisible (nameEditor);
-        nameEditor.setColour (juce::TextEditor::backgroundColourId, juce::Colour (0xFF2D2D2D));
-        nameEditor.setColour (juce::TextEditor::textColourId, ColorScheme::get().textPrimary);
-        nameEditor.setColour (juce::TextEditor::outlineColourId, juce::Colour (0xFF3D3D3D));
         nameEditor.addListener (this);
 
         // Map visibility toggle button
@@ -229,7 +281,6 @@ private:
         // Attenuation
         addAndMakeVisible (attenuationLabel);
         attenuationLabel.setText ("Attenuation:", juce::dontSendNotification);
-        attenuationLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
         attenuationSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFFF5722));
         attenuationSlider.onValueChanged = [this] (float v)
@@ -243,13 +294,11 @@ private:
 
         addAndMakeVisible (attenuationValueLabel);
         attenuationValueLabel.setText ("0.0 dB", juce::dontSendNotification);
-        attenuationValueLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
         setupEditableValueLabel (attenuationValueLabel);
 
         // Delay/Latency
         addAndMakeVisible (delayLatencyLabel);
         delayLatencyLabel.setText ("Delay/Latency:", juce::dontSendNotification);
-        delayLatencyLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
         delayLatencySlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF4CAF50));
         delayLatencySlider.onValueChanged = [this] (float v)
@@ -262,7 +311,6 @@ private:
 
         addAndMakeVisible (delayLatencyValueLabel);
         delayLatencyValueLabel.setText ("0.0 ms", juce::dontSendNotification);
-        delayLatencyValueLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
         setupEditableValueLabel (delayLatencyValueLabel);
     }
 
@@ -292,11 +340,8 @@ private:
         {
             addAndMakeVisible (*posLabelPtrs[i]);
             posLabelPtrs[i]->setText (posLabels[i], juce::dontSendNotification);
-            posLabelPtrs[i]->setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
             addAndMakeVisible (*posEditorPtrs[i]);
-            posEditorPtrs[i]->setColour (juce::TextEditor::backgroundColourId, juce::Colour (0xFF2D2D2D));
-            posEditorPtrs[i]->setColour (juce::TextEditor::textColourId, ColorScheme::get().textPrimary);
             posEditorPtrs[i]->setInputRestrictions (10, "-0123456789.");
             posEditorPtrs[i]->addListener (this);
 
@@ -315,11 +360,8 @@ private:
         {
             addAndMakeVisible (*offsetLabelPtrs[i]);
             offsetLabelPtrs[i]->setText (offsetLabels[i], juce::dontSendNotification);
-            offsetLabelPtrs[i]->setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
             addAndMakeVisible (*offsetEditorPtrs[i]);
-            offsetEditorPtrs[i]->setColour (juce::TextEditor::backgroundColourId, juce::Colour (0xFF2D2D2D));
-            offsetEditorPtrs[i]->setColour (juce::TextEditor::textColourId, ColorScheme::get().textPrimary);
             offsetEditorPtrs[i]->setInputRestrictions (10, "-0123456789.");
             offsetEditorPtrs[i]->addListener (this);
 
@@ -335,17 +377,14 @@ private:
         addAndMakeVisible (reverbFeedTitleLabel);
         reverbFeedTitleLabel.setText ("Reverb Feed", juce::dontSendNotification);
         reverbFeedTitleLabel.setFont (juce::FontOptions().withHeight (18.0f).withStyle ("Bold"));
-        reverbFeedTitleLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
         addAndMakeVisible (reverbReturnTitleLabel);
         reverbReturnTitleLabel.setText ("Reverb Return", juce::dontSendNotification);
         reverbReturnTitleLabel.setFont (juce::FontOptions().withHeight (18.0f).withStyle ("Bold"));
-        reverbReturnTitleLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
         // Orientation dial
         addAndMakeVisible (orientationLabel);
         orientationLabel.setText ("Orientation:", juce::dontSendNotification);
-        orientationLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
         orientationDial.onAngleChanged = [this] (float v)
         {
@@ -357,14 +396,12 @@ private:
 
         addAndMakeVisible (orientationValueLabel);
         orientationValueLabel.setText (juce::String ("0") + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
-        orientationValueLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
         orientationValueLabel.setJustificationType (juce::Justification::centred);
         setupEditableValueLabel (orientationValueLabel);
 
         // Angle On slider
         addAndMakeVisible (angleOnLabel);
         angleOnLabel.setText ("Angle On:", juce::dontSendNotification);
-        angleOnLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
         angleOnSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF2196F3));
         angleOnSlider.onValueChanged = [this] (float v)
@@ -377,13 +414,11 @@ private:
 
         addAndMakeVisible (angleOnValueLabel);
         angleOnValueLabel.setText ("86" + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
-        angleOnValueLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
         setupEditableValueLabel (angleOnValueLabel);
 
         // Angle Off slider
         addAndMakeVisible (angleOffLabel);
         angleOffLabel.setText ("Angle Off:", juce::dontSendNotification);
-        angleOffLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
         angleOffSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF9C27B0));
         angleOffSlider.onValueChanged = [this] (float v)
@@ -396,13 +431,11 @@ private:
 
         addAndMakeVisible (angleOffValueLabel);
         angleOffValueLabel.setText ("90" + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
-        angleOffValueLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
         setupEditableValueLabel (angleOffValueLabel);
 
         // Pitch slider
         addAndMakeVisible (pitchLabel);
         pitchLabel.setText ("Pitch:", juce::dontSendNotification);
-        pitchLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
         pitchSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF00BCD4));
         pitchSlider.onValueChanged = [this] (float v)
@@ -415,13 +448,11 @@ private:
 
         addAndMakeVisible (pitchValueLabel);
         pitchValueLabel.setText ("0" + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
-        pitchValueLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
         setupEditableValueLabel (pitchValueLabel);
 
         // HF Damping slider
         addAndMakeVisible (hfDampingLabel);
         hfDampingLabel.setText ("HF Damping:", juce::dontSendNotification);
-        hfDampingLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
         hfDampingSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFFF9800));
         hfDampingSlider.onValueChanged = [this] (float v)
@@ -434,7 +465,6 @@ private:
 
         addAndMakeVisible (hfDampingValueLabel);
         hfDampingValueLabel.setText ("0.0 dB/m", juce::dontSendNotification);
-        hfDampingValueLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
         setupEditableValueLabel (hfDampingValueLabel);
 
         // Toggle buttons
@@ -473,7 +503,6 @@ private:
         // Distance Attenuation Enable slider
         addAndMakeVisible (distanceAttenEnableLabel);
         distanceAttenEnableLabel.setText ("Distance Atten %:", juce::dontSendNotification);
-        distanceAttenEnableLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
         distanceAttenEnableSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF4CAF50));
         distanceAttenEnableSlider.onValueChanged = [this] (float v)
@@ -486,7 +515,6 @@ private:
 
         addAndMakeVisible (distanceAttenEnableValueLabel);
         distanceAttenEnableValueLabel.setText ("100%", juce::dontSendNotification);
-        distanceAttenEnableValueLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
         setupEditableValueLabel (distanceAttenEnableValueLabel);
     }
 
@@ -555,7 +583,6 @@ private:
 
             addAndMakeVisible (eqBandFreqValueLabel[i]);
             eqBandFreqValueLabel[i].setText ("1000 Hz", juce::dontSendNotification);
-            eqBandFreqValueLabel[i].setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
             // Gain dial - colored to match band
             addAndMakeVisible (eqBandGainLabel[i]);
@@ -574,7 +601,6 @@ private:
 
             addAndMakeVisible (eqBandGainValueLabel[i]);
             eqBandGainValueLabel[i].setText ("0.0 dB", juce::dontSendNotification);
-            eqBandGainValueLabel[i].setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
             eqBandGainValueLabel[i].setJustificationType (juce::Justification::centred);
 
             // Q dial - colored to match band
@@ -594,7 +620,6 @@ private:
 
             addAndMakeVisible (eqBandQValueLabel[i]);
             eqBandQValueLabel[i].setText ("0.70", juce::dontSendNotification);
-            eqBandQValueLabel[i].setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
             eqBandQValueLabel[i].setJustificationType (juce::Justification::centred);
         }
     }
@@ -613,7 +638,6 @@ private:
         // Distance Attenuation dial
         addAndMakeVisible (distanceAttenLabel);
         distanceAttenLabel.setText ("Distance Atten:", juce::dontSendNotification);
-        distanceAttenLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
         distanceAttenDial.onValueChanged = [this] (float v)
         {
@@ -625,14 +649,12 @@ private:
 
         addAndMakeVisible (distanceAttenValueLabel);
         distanceAttenValueLabel.setText ("-0.7 dB/m", juce::dontSendNotification);
-        distanceAttenValueLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
         distanceAttenValueLabel.setJustificationType (juce::Justification::centred);
         setupEditableValueLabel (distanceAttenValueLabel);
 
         // Common Attenuation dial
         addAndMakeVisible (commonAttenLabel);
         commonAttenLabel.setText ("Common Atten:", juce::dontSendNotification);
-        commonAttenLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
         commonAttenDial.onValueChanged = [this] (float v)
         {
@@ -644,20 +666,18 @@ private:
 
         addAndMakeVisible (commonAttenValueLabel);
         commonAttenValueLabel.setText ("100%", juce::dontSendNotification);
-        commonAttenValueLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
         commonAttenValueLabel.setJustificationType (juce::Justification::centred);
         setupEditableValueLabel (commonAttenValueLabel);
 
         // Mute buttons (styled like InputsTab)
         addAndMakeVisible (mutesLabel);
         mutesLabel.setText ("Output Mutes:", juce::dontSendNotification);
-        mutesLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
         for (int i = 0; i < maxMuteButtons; ++i)
         {
             muteButtons[i].setButtonText (juce::String (i + 1));
             muteButtons[i].setClickingTogglesState (true);
-            muteButtons[i].setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF3A3A3A));
+            // Normal state uses theme color from WfsLookAndFeel, "on" state is orange for muted indication
             muteButtons[i].setColour (juce::TextButton::buttonOnColourId, juce::Colour (0xFFFF5722));
             muteButtons[i].onClick = [this, i]
             {
@@ -669,7 +689,6 @@ private:
         // Mute Macro selector
         addAndMakeVisible (muteMacrosLabel);
         muteMacrosLabel.setText ("Mute Macro:", juce::dontSendNotification);
-        muteMacrosLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
         addAndMakeVisible (muteMacrosSelector);
         muteMacrosSelector.addItem ("Mute Macro Select", 1);
@@ -841,6 +860,22 @@ private:
         // EQ Enable button at top
         eqEnableButton.setBounds (area.removeFromTop (buttonHeight).withWidth (100));
         area.removeFromTop (spacing * 2);
+
+        // Create EQ Display if it doesn't exist yet (fallback creation)
+        if (eqDisplay == nullptr && currentChannel > 0)
+        {
+            // Use ensureReverbEQSection to create EQ section if missing (e.g., old config files)
+            auto eqTree = parameters.getValueTreeState().ensureReverbEQSection (currentChannel - 1);
+            if (eqTree.isValid())
+            {
+                eqDisplay = std::make_unique<EQDisplayComponent> (eqTree, numEqBands, EQDisplayConfig::forReverbEQ());
+                addAndMakeVisible (*eqDisplay);
+                lastEqDisplayChannel = currentChannel;
+
+                bool eqEnabled = eqEnableButton.getToggleState();
+                eqDisplay->setEQEnabled (eqEnabled);
+            }
+        }
 
         // EQ Display component (takes upper portion, min 180px, target ~35% of remaining height)
         if (eqDisplay)
@@ -1092,7 +1127,22 @@ private:
     {
         eqEnableButton.setVisible (visible);
 
-        // EQ Display
+        // EQ Display - create if needed and visible
+        if (visible && eqDisplay == nullptr && currentChannel > 0)
+        {
+            // Use ensureReverbEQSection to create EQ section if missing (e.g., old config files)
+            auto eqTree = parameters.getValueTreeState().ensureReverbEQSection (currentChannel - 1);
+            if (eqTree.isValid())
+            {
+                eqDisplay = std::make_unique<EQDisplayComponent> (eqTree, numEqBands, EQDisplayConfig::forReverbEQ());
+                addAndMakeVisible (*eqDisplay);
+                lastEqDisplayChannel = currentChannel;
+
+                int eqEnabled = currentChannel > 0 ?
+                    static_cast<int>(parameters.getValueTreeState().getReverbParameter (currentChannel - 1, WFSParameterIDs::reverbEQenable)) : 1;
+                eqDisplay->setEQEnabled (eqEnabled != 0);
+            }
+        }
         if (eqDisplay)
             eqDisplay->setVisible (visible);
 
@@ -1398,7 +1448,8 @@ private:
 
         // Create EQ display component only if channel changed or doesn't exist
         // This prevents destroying the component mid-drag when ValueTree changes trigger reload
-        auto eqTree = parameters.getValueTreeState().getReverbEQSection (channel - 1);
+        // Use ensureReverbEQSection to create EQ section if missing (e.g., old config files)
+        auto eqTree = parameters.getValueTreeState().ensureReverbEQSection (channel - 1);
         if (eqTree.isValid())
         {
             if (eqDisplay == nullptr || lastEqDisplayChannel != channel)

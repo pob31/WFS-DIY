@@ -256,7 +256,8 @@ private:
  * A wizard-style dialog for quickly configuring speaker array positions
  * with preset acoustic defaults.
  */
-class OutputArrayHelperWindow : public juce::DocumentWindow
+class OutputArrayHelperWindow : public juce::DocumentWindow,
+                                public ColorScheme::Manager::Listener
 {
 public:
     OutputArrayHelperWindow(WfsParameters& params)
@@ -288,11 +289,27 @@ public:
         centreWithSize(windowWidth, windowHeight);
         setVisible(true);
         WindowUtils::enableDarkTitleBar(this);
+
+        // Register for theme changes
+        ColorScheme::Manager::getInstance().addListener(this);
+    }
+
+    ~OutputArrayHelperWindow() override
+    {
+        ColorScheme::Manager::getInstance().removeListener(this);
     }
 
     void closeButtonPressed() override
     {
         setVisible(false);
+    }
+
+    void colorSchemeChanged() override
+    {
+        setBackgroundColour(ColorScheme::get().background);
+        repaint();
+        if (content != nullptr)
+            content->repaint();
     }
 
 private:

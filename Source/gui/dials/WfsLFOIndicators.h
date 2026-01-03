@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "../sliders/WfsBidirectionalSlider.h"
+#include "../ColorScheme.h"
 
 /**
  * Read-only bidirectional slider for displaying LFO output values.
@@ -14,7 +15,7 @@ public:
     WfsLFOOutputSlider()
     {
         slider.setEnabled (false);
-        slider.setTrackColours (juce::Colour (0xFF1E1E1E), juce::Colour (0xFF00BCD4));
+        slider.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFF00BCD4));
         slider.setInterceptsMouseClicks (false, false);
         addAndMakeVisible (slider);
     }
@@ -31,7 +32,7 @@ public:
 
     void setTrackColour (juce::Colour colour)
     {
-        slider.setTrackColours (juce::Colour (0xFF1E1E1E), colour);
+        slider.setTrackColours (ColorScheme::get().sliderTrackBg, colour);
     }
 
     void resized() override
@@ -72,9 +73,9 @@ public:
 
     float getProgress() const noexcept { return progress; }
 
-    void setColours (juce::Colour bg, juce::Colour indicator)
+    void setColours (juce::Colour /*bg*/, juce::Colour indicator)
     {
-        backgroundColour = bg;
+        // Background now uses theme colors, only indicator color is customizable
         indicatorColour = indicator;
         repaint();
     }
@@ -96,20 +97,21 @@ private:
         auto centre = bounds.getCentre();
         auto radius = size * 0.5f;
 
-        // Background circle
+        // Background circle - use theme color
         juce::Rectangle<float> circleBounds (
             centre.x - radius,
             centre.y - radius,
             radius * 2.0f,
             radius * 2.0f);
 
-        g.setColour (backgroundColour.darker (0.7f));
+        auto bgColor = ColorScheme::get().buttonBorder;
+        g.setColour (bgColor.darker (0.5f));
         g.fillEllipse (circleBounds);
 
-        // Draw track circle
+        // Draw track circle - use theme color
         auto trackRadius = radius * 0.75f;
         auto trackWidth = radius * 0.15f;
-        g.setColour (backgroundColour.brighter (0.2f));
+        g.setColour (bgColor);
         g.drawEllipse (
             centre.x - trackRadius,
             centre.y - trackRadius,
@@ -141,6 +143,5 @@ private:
 
     float progress = 0.0f;
     bool isActive = false;
-    juce::Colour backgroundColour { juce::Colours::black };
-    juce::Colour indicatorColour { juce::Colour (0xFF00BCD4) };  // Cyan
+    juce::Colour indicatorColour { juce::Colour (0xFF00BCD4) };  // Cyan indicator
 };

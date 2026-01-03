@@ -241,6 +241,56 @@ public:
         return juce::Font(juce::FontOptions(17.0f).withStyle("Bold"));
     }
 
+    //==========================================================================
+    // Tab button drawing - override for proper contrast between selected/unselected
+
+    void drawTabButton(juce::TabBarButton& button, juce::Graphics& g,
+                       bool isMouseOver, bool isMouseDown) override
+    {
+        const auto& colors = ColorScheme::get();
+        auto area = button.getActiveArea();
+        bool isFrontTab = button.isFrontTab();
+
+        // Background color based on state
+        juce::Colour bgColor;
+        if (isFrontTab)
+            bgColor = colors.tabButtonSelected;
+        else if (isMouseDown)
+            bgColor = colors.buttonPressed;
+        else if (isMouseOver)
+            bgColor = colors.buttonHover;
+        else
+            bgColor = colors.tabButtonNormal;
+
+        g.setColour(bgColor);
+        g.fillRect(area);
+
+        // Draw bottom border for selected tab (accent color indicator)
+        if (isFrontTab)
+        {
+            g.setColour(colors.tabSelected);
+            g.fillRect(area.getX(), area.getBottom() - 3, area.getWidth(), 3);
+        }
+
+        // Text color based on state
+        juce::Colour textColor = isFrontTab ? colors.tabTextSelected : colors.tabTextNormal;
+        g.setColour(textColor);
+
+        // Draw the tab text
+        auto font = juce::Font(juce::FontOptions(14.0f));
+        g.setFont(font);
+        g.drawText(button.getButtonText(), area, juce::Justification::centred, true);
+    }
+
+    int getTabButtonBestWidth(juce::TabBarButton& button, int /*tabDepth*/) override
+    {
+        auto font = juce::Font(juce::FontOptions(14.0f));
+        juce::GlyphArrangement glyphs;
+        glyphs.addLineOfText(font, button.getButtonText(), 0.0f, 0.0f);
+        int textWidth = (int)std::ceil(glyphs.getBoundingBox(0, -1, true).getWidth()) + 30;
+        return juce::jmax(textWidth, 100);
+    }
+
 private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(WfsLookAndFeel)
 };

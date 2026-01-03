@@ -139,11 +139,11 @@ public:
         // Draw grey overlay when EQ is disabled
         if (! eqEnabled)
         {
-            g.setColour (juce::Colours::black.withAlpha (0.6f));
+            g.setColour (ColorScheme::get().background.withAlpha (0.7f));
             g.fillRect (getLocalBounds());
 
             // Draw "EQ OFF" text
-            g.setColour (juce::Colours::grey);
+            g.setColour (ColorScheme::get().textSecondary);
             g.setFont (juce::FontOptions (24.0f));
             g.drawText ("EQ OFF", getLocalBounds(), juce::Justification::centred);
         }
@@ -442,8 +442,8 @@ private:
     {
         auto bounds = getLocalBounds().toFloat();
 
-        // Background
-        g.setColour (juce::Colours::black);
+        // Background - use dark theme color for contrast
+        g.setColour (ColorScheme::get().backgroundAlt.darker (0.3f));
         g.fillRect (bounds);
 
         // Frequency grid lines (logarithmic)
@@ -454,20 +454,21 @@ private:
             10000, 20000
         };
 
+        auto gridColor = ColorScheme::get().chromeDivider;
         for (float freq : freqLines)
         {
             float x = frequencyToX (freq);
 
             // Major lines at decade points
             bool isMajor = (freq == 100 || freq == 1000 || freq == 10000);
-            g.setColour (isMajor ? juce::Colours::grey.withAlpha (0.5f)
-                                 : juce::Colours::grey.withAlpha (0.2f));
+            g.setColour (isMajor ? gridColor.withAlpha (0.6f)
+                                 : gridColor.withAlpha (0.3f));
 
             g.drawVerticalLine (static_cast<int> (x), bounds.getY(), bounds.getBottom());
         }
 
         // Frequency labels
-        g.setColour (juce::Colours::grey);
+        g.setColour (ColorScheme::get().textSecondary);
         g.setFont (10.0f);
 
         const float labelFreqs[] = { 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000 };
@@ -491,17 +492,17 @@ private:
             // 0 dB line emphasized
             if (std::abs (dB) < 0.1f)
             {
-                g.setColour (juce::Colours::grey.withAlpha (0.7f));
+                g.setColour (gridColor.withAlpha (0.8f));
                 g.drawHorizontalLine (static_cast<int> (y), bounds.getX(), bounds.getRight());
             }
             else
             {
-                g.setColour (juce::Colours::grey.withAlpha (0.3f));
+                g.setColour (gridColor.withAlpha (0.4f));
                 g.drawHorizontalLine (static_cast<int> (y), bounds.getX(), bounds.getRight());
             }
 
             // dB labels
-            g.setColour (juce::Colours::grey);
+            g.setColour (ColorScheme::get().textSecondary);
             juce::String label = (dB > 0 ? "+" : "") + juce::String (static_cast<int> (dB));
             g.drawText (label, 2, static_cast<int> (y) - 6, 25, 12,
                         juce::Justification::left);
@@ -533,7 +534,7 @@ private:
         filledCurve.lineTo (0.0f, zeroY);
         filledCurve.closeSubPath();
 
-        g.setColour (juce::Colours::blue.withAlpha (0.15f));
+        g.setColour (ColorScheme::get().accentBlue.withAlpha (0.2f));
         g.fillPath (filledCurve);
 
         // Curve outline

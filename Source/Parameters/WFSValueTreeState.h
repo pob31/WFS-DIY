@@ -163,6 +163,7 @@ public:
     juce::ValueTree getReverbPositionSection (int channelIndex);
     juce::ValueTree getReverbFeedSection (int channelIndex);
     juce::ValueTree getReverbEQSection (int channelIndex);
+    juce::ValueTree ensureReverbEQSection (int channelIndex);  // Creates if missing
     juce::ValueTree getReverbEQBand (int channelIndex, int bandIndex);
     juce::ValueTree getReverbReturnSection (int channelIndex);
 

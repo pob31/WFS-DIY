@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include <cmath>
+#include "../ColorScheme.h"
 
 class WfsEndlessDial : public juce::Component
 {
@@ -60,24 +61,17 @@ private:
         auto centre = bounds.getCentre();
         auto radius = size * 0.5f;
 
-        juce::Rectangle<float> circleBounds(
-            centre.x - radius,
-            centre.y - radius,
-            radius * 2.0f,
-            radius * 2.0f);
+        // Background is transparent - no fill
 
-        g.setColour(backgroundColour.darker(0.7f));
-        g.fillEllipse(circleBounds);
-
-        // Draw full circle track
+        // Draw full circle track - use theme color
         auto trackRadius = radius * 0.8f;
         auto trackWidth = radius * 0.12f;
-        g.setColour(backgroundColour.brighter(0.2f));
+        g.setColour(ColorScheme::get().buttonBorder);
         g.drawEllipse(juce::Rectangle<float>(
             centre.x - trackRadius, centre.y - trackRadius,
             trackRadius * 2.0f, trackRadius * 2.0f), trackWidth);
 
-        // Draw indicator dot on the track (Android app style)
+        // Draw indicator dot on the track (Android app style) - use theme color
         // +90 offset so 0° is at the bottom
         auto angleRad = juce::degreesToRadians(angleDegrees + 90.0f);
         auto dotRadius = trackWidth * 0.8f;
@@ -85,7 +79,7 @@ private:
             centre.x + trackRadius * std::cos(angleRad),
             centre.y + trackRadius * std::sin(angleRad));
 
-        g.setColour(indicatorColour);
+        g.setColour(ColorScheme::get().sliderThumb);
         g.fillEllipse(dotPosition.x - dotRadius, dotPosition.y - dotRadius,
                       dotRadius * 2.0f, dotRadius * 2.0f);
     }

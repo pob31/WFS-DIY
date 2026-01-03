@@ -96,7 +96,8 @@ class OutputsTab : public juce::Component,
                    private juce::TextEditor::Listener,
                    private juce::ChangeListener,
                    private juce::Label::Listener,
-                   private juce::ValueTree::Listener
+                   private juce::ValueTree::Listener,
+                   public ColorScheme::Manager::Listener
 {
 public:
     OutputsTab(WfsParameters& params)
@@ -113,6 +114,7 @@ public:
         configTree.addListener(this);
         if (ioTree.isValid())
             ioTree.addListener(this);
+        ColorScheme::Manager::getInstance().addListener(this);
 
         // ==================== HEADER SECTION ====================
         // Channel Selector - use configured output count
@@ -226,10 +228,33 @@ public:
 
     ~OutputsTab() override
     {
+        ColorScheme::Manager::getInstance().removeListener(this);
         outputsTree.removeListener(this);
         configTree.removeListener(this);
         if (ioTree.isValid())
             ioTree.removeListener(this);
+    }
+
+    /** ColorScheme::Manager::Listener callback - refresh colors when theme changes */
+    void colorSchemeChanged() override
+    {
+        // Update TextEditor colors - JUCE TextEditors cache colors internally
+        const auto& colors = ColorScheme::get();
+        auto updateTextEditor = [&colors](juce::TextEditor& editor) {
+            editor.setColour(juce::TextEditor::textColourId, colors.textPrimary);
+            editor.setColour(juce::TextEditor::backgroundColourId, colors.surfaceCard);
+            editor.setColour(juce::TextEditor::outlineColourId, colors.buttonBorder);
+            editor.applyFontToAllText(editor.getFont(), true);
+        };
+
+        updateTextEditor(nameEditor);
+        updateTextEditor(posXEditor);
+        updateTextEditor(posYEditor);
+        updateTextEditor(posZEditor);
+        updateTextEditor(hParallaxEditor);
+        updateTextEditor(vParallaxEditor);
+
+        repaint();
     }
 
     /** Get the currently selected channel (1-based) */
@@ -703,7 +728,6 @@ private:
 
             addAndMakeVisible(eqBandFreqValueLabel[i]);
             eqBandFreqValueLabel[i].setText("1000 Hz", juce::dontSendNotification);
-            eqBandFreqValueLabel[i].setColour(juce::Label::textColourId, ColorScheme::get().textPrimary);
 
             // Gain dial - colored to match band
             addAndMakeVisible(eqBandGainLabel[i]);
@@ -721,7 +745,6 @@ private:
 
             addAndMakeVisible(eqBandGainValueLabel[i]);
             eqBandGainValueLabel[i].setText("0.0 dB", juce::dontSendNotification);
-            eqBandGainValueLabel[i].setColour(juce::Label::textColourId, ColorScheme::get().textPrimary);
             eqBandGainValueLabel[i].setJustificationType(juce::Justification::centred);
 
             // Q dial - colored to match band
@@ -740,7 +763,6 @@ private:
 
             addAndMakeVisible(eqBandQValueLabel[i]);
             eqBandQValueLabel[i].setText("0.70", juce::dontSendNotification);
-            eqBandQValueLabel[i].setColour(juce::Label::textColourId, ColorScheme::get().textPrimary);
             eqBandQValueLabel[i].setJustificationType(juce::Justification::centred);
 
             // Initialize appearance (greyed out since default is OFF)

@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include <limits>
+#include "../ColorScheme.h"
 
 // Shared interactive base class for custom JUCE sliders that mimics
 // the bespoke Compose sliders from the Android app. It handles hit
@@ -150,8 +151,8 @@ protected:
                             const juce::Point<float>& thumbPos,
                             float alpha) const
     {
-        // Draw thin white line thumb matching Android app design
-        auto colour = thumbColour.withAlpha(alpha);
+        // Draw thin line thumb matching Android app design - uses ColorScheme for theming
+        auto colour = ColorScheme::get().sliderThumb.withAlpha(alpha);
         g.setColour(colour);
         
         // Thumb line thickness (stroke width along track) - kept thin for clean look

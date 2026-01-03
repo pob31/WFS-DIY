@@ -35,13 +35,15 @@
  */
 class NetworkTab : public juce::Component,
                    private juce::ValueTree::Listener,
-                   private juce::TextEditor::Listener
+                   private juce::TextEditor::Listener,
+                   public ColorScheme::Manager::Listener
 {
 public:
     using NetworkLogWindowCallback = std::function<void()>;
     NetworkTab(WfsParameters& params, StatusBar* statusBarPtr = nullptr)
         : parameters(params), statusBar(statusBarPtr)
     {
+        ColorScheme::Manager::getInstance().addListener(this);
         // ==================== NETWORK SECTION ====================
         addAndMakeVisible(networkInterfaceLabel);
         networkInterfaceLabel.setText("Network Interface:", juce::dontSendNotification);
@@ -144,7 +146,49 @@ public:
 
     ~NetworkTab() override
     {
+        ColorScheme::Manager::getInstance().removeListener(this);
         configTree.removeListener(this);
+    }
+
+    /** ColorScheme::Manager::Listener callback - refresh colors when theme changes */
+    void colorSchemeChanged() override
+    {
+        // Update TextEditor colors - JUCE TextEditors cache colors internally
+        const auto& colors = ColorScheme::get();
+        auto updateTextEditor = [&colors](juce::TextEditor& editor) {
+            editor.setColour(juce::TextEditor::textColourId, colors.textPrimary);
+            editor.setColour(juce::TextEditor::backgroundColourId, colors.surfaceCard);
+            editor.setColour(juce::TextEditor::outlineColourId, colors.buttonBorder);
+            editor.applyFontToAllText(editor.getFont(), true);
+        };
+
+        updateTextEditor(currentIPEditor);
+        updateTextEditor(udpPortEditor);
+        updateTextEditor(tcpPortEditor);
+        updateTextEditor(oscQueryPortEditor);
+        updateTextEditor(admOscOffsetXEditor);
+        updateTextEditor(admOscOffsetYEditor);
+        updateTextEditor(admOscOffsetZEditor);
+        updateTextEditor(admOscScaleXEditor);
+        updateTextEditor(admOscScaleYEditor);
+        updateTextEditor(admOscScaleZEditor);
+        updateTextEditor(trackingPortEditor);
+        updateTextEditor(trackingOffsetXEditor);
+        updateTextEditor(trackingOffsetYEditor);
+        updateTextEditor(trackingOffsetZEditor);
+        updateTextEditor(trackingScaleXEditor);
+        updateTextEditor(trackingScaleYEditor);
+        updateTextEditor(trackingScaleZEditor);
+
+        // Update network connection rows
+        for (int i = 0; i < maxTargets; ++i)
+        {
+            updateTextEditor(targetRows[i].nameEditor);
+            updateTextEditor(targetRows[i].ipEditor);
+            updateTextEditor(targetRows[i].txPortEditor);
+        }
+
+        repaint();
     }
 
     void setStatusBar(StatusBar* bar)
@@ -1211,26 +1255,34 @@ private:
         if (!row.isActive)
             return;
 
-        // Set background color based on connection status
+        // Set background and text color based on connection status
         juce::Colour bgColor;
+        juce::Colour textColor;
+
         switch (status)
         {
             case WFSNetwork::ConnectionStatus::Connected:
                 bgColor = juce::Colour(0xFF1A4D1A);  // Dark green tint
+                textColor = juce::Colours::white;
                 break;
             case WFSNetwork::ConnectionStatus::Connecting:
                 bgColor = juce::Colour(0xFF4D4D1A);  // Dark yellow tint
+                textColor = juce::Colours::white;
                 break;
             case WFSNetwork::ConnectionStatus::Error:
                 bgColor = juce::Colour(0xFF4D1A1A);  // Dark red tint
+                textColor = juce::Colours::white;
                 break;
             case WFSNetwork::ConnectionStatus::Disconnected:
             default:
                 bgColor = ColorScheme::get().surfaceCard;  // Default from theme
+                textColor = ColorScheme::get().textPrimary;
                 break;
         }
 
         row.nameEditor.setColour(juce::TextEditor::backgroundColourId, bgColor);
+        row.nameEditor.setColour(juce::TextEditor::textColourId, textColor);
+        row.nameEditor.applyFontToAllText(row.nameEditor.getFont(), true);
         row.nameEditor.repaint();
     }
 

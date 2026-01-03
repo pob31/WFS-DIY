@@ -27,16 +27,16 @@ public:
     {
         auto bounds = getLocalBounds().toFloat().reduced(2.0f);
 
-        // Background
+        // Background - use theme colors
         if (shouldDrawButtonAsDown)
-            g.setColour(juce::Colour(0xFF404040));
+            g.setColour(ColorScheme::get().buttonPressed);
         else if (shouldDrawButtonAsHighlighted)
-            g.setColour(juce::Colour(0xFF353535));
+            g.setColour(ColorScheme::get().buttonHover);
         else
-            g.setColour(juce::Colour(0xFF2A2A2A));
+            g.setColour(ColorScheme::get().buttonNormal);
 
         g.fillRoundedRectangle(bounds, 4.0f);
-        g.setColour(juce::Colour(0xFF606060));
+        g.setColour(ColorScheme::get().buttonBorder);
         g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
 
         // Draw play triangle
@@ -63,16 +63,16 @@ public:
     {
         auto bounds = getLocalBounds().toFloat().reduced(2.0f);
 
-        // Background
+        // Background - use theme colors
         if (shouldDrawButtonAsDown)
-            g.setColour(juce::Colour(0xFF404040));
+            g.setColour(ColorScheme::get().buttonPressed);
         else if (shouldDrawButtonAsHighlighted)
-            g.setColour(juce::Colour(0xFF353535));
+            g.setColour(ColorScheme::get().buttonHover);
         else
-            g.setColour(juce::Colour(0xFF2A2A2A));
+            g.setColour(ColorScheme::get().buttonNormal);
 
         g.fillRoundedRectangle(bounds, 4.0f);
-        g.setColour(juce::Colour(0xFF606060));
+        g.setColour(ColorScheme::get().buttonBorder);
         g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
 
         // Draw stop square
@@ -93,16 +93,16 @@ public:
     {
         auto bounds = getLocalBounds().toFloat().reduced(2.0f);
 
-        // Background - toggle state affects color
+        // Background - use theme colors, toggle state affects color
         if (shouldDrawButtonAsDown || getToggleState())
-            g.setColour(juce::Colour(0xFF505050));
+            g.setColour(ColorScheme::get().buttonPressed);
         else if (shouldDrawButtonAsHighlighted)
-            g.setColour(juce::Colour(0xFF353535));
+            g.setColour(ColorScheme::get().buttonHover);
         else
-            g.setColour(juce::Colour(0xFF2A2A2A));
+            g.setColour(ColorScheme::get().buttonNormal);
 
         g.fillRoundedRectangle(bounds, 4.0f);
-        g.setColour(juce::Colour(0xFF606060));
+        g.setColour(ColorScheme::get().buttonBorder);
         g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
 
         // Draw pause bars (two vertical rectangles)
@@ -129,7 +129,8 @@ class InputsTab : public juce::Component,
                   private juce::TextEditor::Listener,
                   private juce::ChangeListener,
                   private juce::Label::Listener,
-                  private juce::ValueTree::Listener
+                  private juce::ValueTree::Listener,
+                  public ColorScheme::Manager::Listener
 {
 public:
     InputsTab(WfsParameters& params)
@@ -146,6 +147,7 @@ public:
         configTree.addListener(this);
         if (ioTree.isValid())
             ioTree.addListener(this);
+        ColorScheme::Manager::getInstance().addListener(this);
 
         // ==================== HEADER SECTION ====================
         // Channel Selector - use configured input count
@@ -297,10 +299,24 @@ public:
 
     ~InputsTab() override
     {
+        ColorScheme::Manager::getInstance().removeListener(this);
         inputsTree.removeListener(this);
         configTree.removeListener(this);
         if (ioTree.isValid())
             ioTree.removeListener(this);
+    }
+
+    /** ColorScheme::Manager::Listener callback - refresh colors when theme changes */
+    void colorSchemeChanged() override
+    {
+        // Update TextEditor colors - JUCE TextEditors cache colors internally
+        const auto& colors = ColorScheme::get();
+        nameEditor.setColour(juce::TextEditor::textColourId, colors.textPrimary);
+        nameEditor.setColour(juce::TextEditor::backgroundColourId, colors.surfaceCard);
+        nameEditor.setColour(juce::TextEditor::outlineColourId, colors.buttonBorder);
+        nameEditor.applyFontToAllText(nameEditor.getFont(), true);
+
+        repaint();
     }
 
     /**
@@ -1820,7 +1836,7 @@ private:
         {
             muteButtons[i].setButtonText(juce::String(i + 1));
             muteButtons[i].setClickingTogglesState(true);
-            muteButtons[i].setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF3A3A3A));
+            // Normal state uses theme color from WfsLookAndFeel, "on" state is orange for muted indication
             muteButtons[i].setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFFFF5722));
             muteButtons[i].onClick = [this, i]() {
                 saveMuteStates();
@@ -1867,7 +1883,6 @@ private:
 
             // Dial label (Array 1, Array 2, etc.)
             arrayAttenDialLabels[i].setText("Array " + juce::String(i + 1), juce::dontSendNotification);
-            arrayAttenDialLabels[i].setColour(juce::Label::textColourId, ColorScheme::get().textPrimary);
             arrayAttenDialLabels[i].setJustificationType(juce::Justification::centred);
             addAndMakeVisible(arrayAttenDialLabels[i]);
 
@@ -1894,7 +1909,6 @@ private:
 
             // Value label
             arrayAttenValueLabels[i].setText("0.0 dB", juce::dontSendNotification);
-            arrayAttenValueLabels[i].setColour(juce::Label::textColourId, ColorScheme::get().textPrimary);
             arrayAttenValueLabels[i].setJustificationType(juce::Justification::centred);
             setupEditableValueLabel(arrayAttenValueLabels[i]);
             addAndMakeVisible(arrayAttenValueLabels[i]);

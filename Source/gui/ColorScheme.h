@@ -61,6 +61,10 @@ namespace ColorScheme
         // Tab bar specific
         juce::Colour tabBackground;       // Tab bar background
         juce::Colour tabSelected;         // Selected tab indicator
+        juce::Colour tabButtonNormal;     // Unselected tab button background
+        juce::Colour tabButtonSelected;   // Selected tab button background
+        juce::Colour tabTextNormal;       // Unselected tab text
+        juce::Colour tabTextSelected;     // Selected tab text
     };
 
     // Default Dark Gray Palette (current theme)
@@ -94,7 +98,7 @@ namespace ColorScheme
 
         // Sliders
         juce::Colour(0xFF1E1E1E),  // sliderTrackBg
-        juce::Colours::darkgrey,   // sliderThumb
+        juce::Colours::white,      // sliderThumb - white to match text
 
         // List
         juce::Colour(0xFF252525),  // listBackground
@@ -104,6 +108,10 @@ namespace ColorScheme
         // Tab bar
         juce::Colours::darkgrey,   // tabBackground
         juce::Colour(0xFF4A90D9),  // tabSelected
+        juce::Colour(0xFF3A3A3A),  // tabButtonNormal - darker, unselected
+        juce::Colour(0xFF505050),  // tabButtonSelected - lighter, selected
+        juce::Colour(0xFF909090),  // tabTextNormal - dimmed text
+        juce::Colours::white,      // tabTextSelected - bright text
     };
 
     // OLED Black Palette (pure black for power savings)
@@ -137,7 +145,7 @@ namespace ColorScheme
 
         // Sliders
         juce::Colour(0xFF000000),  // sliderTrackBg
-        juce::Colour(0xFF404040),  // sliderThumb
+        juce::Colour(0xFFE8E8E8),  // sliderThumb - near white to match text
 
         // List
         juce::Colour(0xFF0A0A0A),  // listBackground
@@ -147,6 +155,10 @@ namespace ColorScheme
         // Tab bar
         juce::Colour(0xFF0D0D0D),  // tabBackground
         juce::Colour(0xFF4A90D9),  // tabSelected
+        juce::Colour(0xFF1A1A1A),  // tabButtonNormal - darker, unselected
+        juce::Colour(0xFF303030),  // tabButtonSelected - lighter, selected
+        juce::Colour(0xFF707070),  // tabTextNormal - dimmed text
+        juce::Colour(0xFFE8E8E8),  // tabTextSelected - bright text
     };
 
     // Light Palette (daytime use)
@@ -180,7 +192,7 @@ namespace ColorScheme
 
         // Sliders
         juce::Colour(0xFFE0E0E0),  // sliderTrackBg
-        juce::Colour(0xFF757575),  // sliderThumb
+        juce::Colour(0xFF212121),  // sliderThumb - dark to match text
 
         // List
         juce::Colour(0xFFEEEEEE),  // listBackground
@@ -190,6 +202,10 @@ namespace ColorScheme
         // Tab bar
         juce::Colour(0xFFE0E0E0),  // tabBackground
         juce::Colour(0xFF1976D2),  // tabSelected
+        juce::Colour(0xFFD0D0D0),  // tabButtonNormal - lighter, unselected
+        juce::Colour(0xFFFFFFFF),  // tabButtonSelected - white, selected
+        juce::Colour(0xFF757575),  // tabTextNormal - dimmed text
+        juce::Colour(0xFF212121),  // tabTextSelected - dark text
     };
 
     /**

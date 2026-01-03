@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "ColorScheme.h"
 
 class WfsJoystickComponent : public juce::Component,
                              private juce::Timer
@@ -12,7 +13,7 @@ public:
         setReportingIntervalHz(reportingIntervalHz);
         setWantsKeyboardFocus(false);
         setFocusContainerType(FocusContainerType::none);
-        setOpaque(true); // Opaque to prevent JUCE from drawing default backgrounds
+        setOpaque(false); // Transparent background
         setMouseClickGrabsKeyboardFocus(false);
     }
     
@@ -51,9 +52,8 @@ public:
 private:
     void paint(juce::Graphics& g) override
     {
-        // Always fill with black background to prevent any hover background from showing
-        g.fillAll(juce::Colours::black);
-        
+        // Background is transparent - no fill
+
         static constexpr float thumbRatio = 0.33f;
 
         auto bounds = getLocalBounds().toFloat();
@@ -67,18 +67,22 @@ private:
             diameter,
             diameter);
 
-        g.setColour(outerColour.darker(0.1f));
+        // Outer circle fill and border - use theme colors
+        auto borderColor = ColorScheme::get().buttonBorder;
+        g.setColour(borderColor.darker(0.3f));
         g.fillEllipse(circleBounds);
-        g.setColour(outerColour.withAlpha(0.8f));
+        g.setColour(borderColor);
         g.drawEllipse(circleBounds, 2.0f);
 
-        g.setColour(outerColour.withMultipliedAlpha(0.5f));
+        // Crosshairs - use theme color with transparency
+        g.setColour(borderColor.withMultipliedAlpha(0.5f));
         g.drawLine(center.x, circleBounds.getY() + 6.0f, center.x, circleBounds.getBottom() - 6.0f, 1.0f);
         g.drawLine(circleBounds.getX() + 6.0f, center.y, circleBounds.getRight() - 6.0f, center.y, 1.0f);
 
         const auto thumbRadius = radius * thumbRatio;
         const auto thumbCentre = center + thumbOffset;
 
+        // Thumb keeps its set color (typically accent orange)
         g.setColour(thumbColour.brighter(0.2f));
         g.fillEllipse({ thumbCentre.x - thumbRadius, thumbCentre.y - thumbRadius, thumbRadius * 2.0f, thumbRadius * 2.0f });
         g.setColour(thumbColour.darker(0.2f));

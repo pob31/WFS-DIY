@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "../ColorScheme.h"
 
 class WfsBasicDial : public juce::Component
 {
@@ -71,14 +72,7 @@ private:
         auto centre = bounds.getCentre();
         auto radius = size * 0.5f;
 
-        juce::Rectangle<float> circleBounds(
-            centre.x - radius,
-            centre.y - radius,
-            radius * 2.0f,
-            radius * 2.0f);
-
-        g.setColour(backgroundColour.darker(0.8f));
-        g.fillEllipse(circleBounds);
+        // Background is transparent - no fill
 
         // Needle angle parameters: 315° range
         const float needleAngleRange = juce::degreesToRadians(315.0f);
@@ -89,13 +83,13 @@ private:
         const float trackStartAngle = juce::degreesToRadians(202.5f);  // Track starts at 4:30 position
         const float trackEndAngle = trackStartAngle + trackAngleRange; // Track ends at 7:30 position
 
-        // Draw inactive track (full range)
+        // Draw inactive track (full range) - use theme color
         auto trackRadius = radius * 0.8f;
         auto trackWidth = radius * 0.12f;
         juce::Path inactiveTrack;
         inactiveTrack.addCentredArc(centre.x, centre.y, trackRadius, trackRadius,
                                      0.0f, trackStartAngle, trackEndAngle, true);
-        g.setColour(inactiveTrackColour);
+        g.setColour(ColorScheme::get().buttonBorder);
         g.strokePath(inactiveTrack, juce::PathStrokeType(trackWidth, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
 
         // Calculate current needle angle
@@ -112,17 +106,13 @@ private:
         g.setColour(activeTrackColour);
         g.strokePath(activeTrack, juce::PathStrokeType(trackWidth, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
 
-        // Draw outer rim
-        g.setColour(backgroundColour.brighter(0.2f));
-        g.drawEllipse(circleBounds, 2.0f);
-
-        // Draw indicator dot on the track (Android app style)
+        // Draw indicator dot on the track (Android app style) - use theme color
         auto dotRadius = trackWidth * 0.8f; // Dot slightly smaller than track width
         juce::Point<float> dotPosition(
             centre.x + trackRadius * std::cos(currentNeedleAngle),
             centre.y + trackRadius * std::sin(currentNeedleAngle));
 
-        g.setColour(indicatorColour);
+        g.setColour(ColorScheme::get().sliderThumb);
         g.fillEllipse(dotPosition.x - dotRadius, dotPosition.y - dotRadius,
                       dotRadius * 2.0f, dotRadius * 2.0f);
     }

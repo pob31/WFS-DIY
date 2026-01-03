@@ -1085,6 +1085,21 @@ bool WFSFileManager::applyConfigSection (const juce::ValueTree& configTree)
     if (preservedTracking.isValid() && !existingConfig.getChildWithName (Tracking).isValid())
         existingConfig.appendChild (preservedTracking, undoManager);
 
+    // Ensure channel children are created/removed to match loaded counts
+    // The config now has the new channel counts, but the actual channel children
+    // in Inputs/Outputs/Reverbs need to be synchronized
+    auto io = existingConfig.getChildWithName (IO);
+    if (io.isValid())
+    {
+        int inputCount = io.getProperty (inputChannels, 0);
+        int outputCount = io.getProperty (outputChannels, 0);
+        int reverbCount = io.getProperty (reverbChannels, 0);
+
+        valueTreeState.setNumInputChannels (inputCount);
+        valueTreeState.setNumOutputChannels (outputCount);
+        valueTreeState.setNumReverbChannels (reverbCount);
+    }
+
     return true;
 }
 

@@ -162,8 +162,8 @@ void ArrayPreviewComponent::paint(juce::Graphics& g)
 {
     auto bounds = getLocalBounds().toFloat();
 
-    // Background
-    g.fillAll(juce::Colour(0xFF1A1A1A));
+    // Background - use theme color
+    g.fillAll(ColorScheme::get().backgroundAlt);
 
     // Get stage shape and dimensions from parameters
     int stageShape = parameters.getConfigParam("stageShape").isVoid() ? 0 :
@@ -208,7 +208,7 @@ void ArrayPreviewComponent::paint(juce::Graphics& g)
         auto center = stageToScreen(-originX, -originY);
         float radiusPixels = radius * scale;
 
-        g.setColour(juce::Colour(0xFF303030));
+        g.setColour(ColorScheme::get().surfaceCard);
         g.fillEllipse(center.x - radiusPixels, center.y - radiusPixels,
                       radiusPixels * 2.0f, radiusPixels * 2.0f);
         g.setColour(ColorScheme::get().textPrimary.withAlpha(0.5f));
@@ -227,14 +227,14 @@ void ArrayPreviewComponent::paint(juce::Graphics& g)
                                           stageBottomRight.x - stageTopLeft.x,
                                           stageBottomRight.y - stageTopLeft.y);
 
-        g.setColour(juce::Colour(0xFF303030));
+        g.setColour(ColorScheme::get().surfaceCard);
         g.fillRect(stageRect);
         g.setColour(ColorScheme::get().textPrimary.withAlpha(0.5f));
         g.drawRect(stageRect, 1.0f);
     }
 
     // Draw grid lines (1m spacing)
-    g.setColour(juce::Colour(0xFF404040));
+    g.setColour(ColorScheme::get().chromeDivider);
     float halfExtentX = stageExtentX / 2.0f;
     float halfExtentY = stageExtentY / 2.0f;
     for (float x = -halfExtentX - originX; x <= halfExtentX - originX; x += 1.0f)
@@ -267,7 +267,7 @@ void ArrayPreviewComponent::paint(juce::Graphics& g)
         auto screenPos = stageToScreen(pos.x, pos.y);
 
         // Draw speaker circle
-        g.setColour(juce::Colour(0xFF4080FF));
+        g.setColour(ColorScheme::get().accentBlue);
         g.fillEllipse(screenPos.x - speakerRadius, screenPos.y - speakerRadius,
                       speakerRadius * 2, speakerRadius * 2);
 
@@ -292,7 +292,7 @@ void ArrayPreviewComponent::paint(juce::Graphics& g)
     }
 
     // Draw "Audience" label(s) based on stage shape and preset
-    g.setColour(juce::Colours::grey);
+    g.setColour(ColorScheme::get().textSecondary);
     g.setFont(12.0f);
 
     // isCircular already defined above
@@ -617,12 +617,12 @@ void OutputArrayHelperContent::setupButtons()
 {
     addAndMakeVisible(applyButton);
     applyButton.setButtonText("Apply");
-    applyButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF338C33));
+    applyButton.setColour(juce::TextButton::buttonColourId, ColorScheme::get().accentGreen);
     applyButton.onClick = [this]() { applyToOutputs(); };
 
     addAndMakeVisible(closeButton);
     closeButton.setButtonText("Close");
-    closeButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF8C3333));
+    closeButton.setColour(juce::TextButton::buttonColourId, ColorScheme::get().accentRed);
     closeButton.onClick = [this]() {
         if (auto* window = findParentComponentOfClass<OutputArrayHelperWindow>())
             window->setVisible(false);
@@ -630,12 +630,12 @@ void OutputArrayHelperContent::setupButtons()
 
     addAndMakeVisible(statusLabel);
     statusLabel.setText("Ready", juce::dontSendNotification);
-    statusLabel.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    statusLabel.setColour(juce::Label::textColourId, ColorScheme::get().textSecondary);
 }
 
 void OutputArrayHelperContent::paint(juce::Graphics& g)
 {
-    g.fillAll(juce::Colour(0xFF252525));
+    g.fillAll(ColorScheme::get().background);
 }
 
 void OutputArrayHelperContent::resized()
@@ -1498,12 +1498,12 @@ void OutputArrayHelperContent::applyToOutputs()
 
 void OutputArrayHelperContent::showStatus(const juce::String& message)
 {
-    statusLabel.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    statusLabel.setColour(juce::Label::textColourId, ColorScheme::get().textSecondary);
     statusLabel.setText(message, juce::dontSendNotification);
 }
 
 void OutputArrayHelperContent::showError(const juce::String& message)
 {
-    statusLabel.setColour(juce::Label::textColourId, juce::Colours::red);
+    statusLabel.setColour(juce::Label::textColourId, ColorScheme::get().accentRed);
     statusLabel.setText("Error: " + message, juce::dontSendNotification);
 }

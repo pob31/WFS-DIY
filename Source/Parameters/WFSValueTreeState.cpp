@@ -694,6 +694,22 @@ juce::ValueTree WFSValueTreeState::getReverbEQSection (int channelIndex)
     return getReverbState (channelIndex).getChildWithName (EQ);
 }
 
+juce::ValueTree WFSValueTreeState::ensureReverbEQSection (int channelIndex)
+{
+    auto reverb = getReverbState (channelIndex);
+    if (! reverb.isValid())
+        return {};
+
+    auto eq = reverb.getChildWithName (EQ);
+    if (! eq.isValid())
+    {
+        // Create the EQ section if it doesn't exist (e.g., loading old config)
+        eq = createReverbEQSection();
+        reverb.appendChild (eq, nullptr);
+    }
+    return eq;
+}
+
 juce::ValueTree WFSValueTreeState::getReverbEQBand (int channelIndex, int bandIndex)
 {
     auto eq = getReverbEQSection (channelIndex);

@@ -24,16 +24,16 @@ public:
     {
         auto bounds = getLocalBounds().toFloat().reduced(2.0f);
 
-        // Background
+        // Background - use theme colors
         if (shouldDrawButtonAsDown)
-            g.setColour(juce::Colour(0xFF404040));
+            g.setColour(ColorScheme::get().buttonPressed);
         else if (shouldDrawButtonAsHighlighted)
-            g.setColour(juce::Colour(0xFF353535));
+            g.setColour(ColorScheme::get().buttonHover);
         else
-            g.setColour(juce::Colour(0xFF2A2A2A));
+            g.setColour(ColorScheme::get().buttonNormal);
 
         g.fillRoundedRectangle(bounds, 4.0f);
-        g.setColour(juce::Colour(0xFF606060));
+        g.setColour(ColorScheme::get().buttonBorder);
         g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
 
         // Draw icon - broken rectangle (open at bottom) with dot at front center
@@ -82,16 +82,16 @@ public:
     {
         auto bounds = getLocalBounds().toFloat().reduced(2.0f);
 
-        // Background
+        // Background - use theme colors
         if (shouldDrawButtonAsDown)
-            g.setColour(juce::Colour(0xFF404040));
+            g.setColour(ColorScheme::get().buttonPressed);
         else if (shouldDrawButtonAsHighlighted)
-            g.setColour(juce::Colour(0xFF353535));
+            g.setColour(ColorScheme::get().buttonHover);
         else
-            g.setColour(juce::Colour(0xFF2A2A2A));
+            g.setColour(ColorScheme::get().buttonNormal);
 
         g.fillRoundedRectangle(bounds, 4.0f);
-        g.setColour(juce::Colour(0xFF606060));
+        g.setColour(ColorScheme::get().buttonBorder);
         g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
 
         // Draw icon - complete rectangle with dot in center
@@ -122,16 +122,16 @@ public:
     {
         auto bounds = getLocalBounds().toFloat().reduced(2.0f);
 
-        // Background
+        // Background - use theme colors
         if (shouldDrawButtonAsDown)
-            g.setColour(juce::Colour(0xFF404040));
+            g.setColour(ColorScheme::get().buttonPressed);
         else if (shouldDrawButtonAsHighlighted)
-            g.setColour(juce::Colour(0xFF353535));
+            g.setColour(ColorScheme::get().buttonHover);
         else
-            g.setColour(juce::Colour(0xFF2A2A2A));
+            g.setColour(ColorScheme::get().buttonNormal);
 
         g.fillRoundedRectangle(bounds, 4.0f);
-        g.setColour(juce::Colour(0xFF606060));
+        g.setColour(ColorScheme::get().buttonBorder);
         g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
 
         // Draw icon - 3D cube with dot in center
@@ -186,7 +186,8 @@ public:
  */
 class SystemConfigTab : public juce::Component,
                         private juce::ValueTree::Listener,
-                        private juce::TextEditor::Listener
+                        private juce::TextEditor::Listener,
+                        public ColorScheme::Manager::Listener
 {
 public:
     // Callback types for notifying MainComponent of changes
@@ -353,7 +354,7 @@ public:
 
         addAndMakeVisible(colorSchemeSelector);
         colorSchemeSelector.addItem("Default (Dark Gray)", 1);
-        colorSchemeSelector.addItem("OLED Black", 2);
+        colorSchemeSelector.addItem("Black", 2);
         colorSchemeSelector.addItem("Light", 3);
         colorSchemeSelector.setSelectedId(ColorScheme::getThemeIndex() + 1, juce::dontSendNotification);
         colorSchemeSelector.onChange = [this]() {
@@ -455,11 +456,50 @@ public:
 
         // Load initial values
         loadParametersToUI();
+
+        // Listen for color scheme changes to update dynamic colors
+        ColorScheme::Manager::getInstance().addListener(this);
     }
 
     ~SystemConfigTab() override
     {
+        ColorScheme::Manager::getInstance().removeListener(this);
         configTree.removeListener(this);
+    }
+
+    /** ColorScheme::Manager::Listener callback - refresh colors when theme changes */
+    void colorSchemeChanged() override
+    {
+        // Re-apply enabled/disabled colors with current theme colors
+        updateIOControlsEnabledState();
+
+        // Update all TextEditor colors - JUCE TextEditors cache colors internally
+        // and don't automatically refresh from LookAndFeel on theme change
+        const auto& colors = ColorScheme::get();
+        auto updateTextEditor = [&colors](juce::TextEditor& editor) {
+            editor.setColour(juce::TextEditor::textColourId, colors.textPrimary);
+            editor.setColour(juce::TextEditor::backgroundColourId, colors.surfaceCard);
+            editor.setColour(juce::TextEditor::outlineColourId, colors.buttonBorder);
+            editor.applyFontToAllText(editor.getFont(), true);  // Force text color refresh
+        };
+
+        updateTextEditor(showNameEditor);
+        updateTextEditor(showLocationEditor);
+        updateTextEditor(stageWidthEditor);
+        updateTextEditor(stageDepthEditor);
+        updateTextEditor(stageHeightEditor);
+        updateTextEditor(stageDiameterEditor);
+        updateTextEditor(domeElevationEditor);
+        updateTextEditor(stageOriginWidthEditor);
+        updateTextEditor(stageOriginDepthEditor);
+        updateTextEditor(stageOriginHeightEditor);
+        updateTextEditor(speedOfSoundEditor);
+        updateTextEditor(temperatureEditor);
+        updateTextEditor(masterLevelEditor);
+        updateTextEditor(systemLatencyEditor);
+        updateTextEditor(haasEffectEditor);
+
+        repaint();
     }
 
     void paint(juce::Graphics& g) override
@@ -1422,7 +1462,7 @@ private:
         helpTextMap[&masterLevelEditor] = "Master Level (affects all outputs).";
         helpTextMap[&systemLatencyEditor] = "Total latency of the system (Mixing board & Computer) / Specific Input and Output Latency/Delay can be set in the respective Input and Output settings.";
         helpTextMap[&haasEffectEditor] = "Hass Effect to apply to the system. Will take into account the Latency Compensations (System, Input and Output).";
-        helpTextMap[&colorSchemeSelector] = "Select the color scheme: Default (dark gray), OLED Black (pure black for OLED displays), or Light (daytime use).";
+        helpTextMap[&colorSchemeSelector] = "Select the color scheme: Default (dark gray), Black (pure black for OLED displays), or Light (daytime use).";
         helpTextMap[&selectProjectFolderButton] = "Select the Location of the Current Project Folder where to store files.";
         helpTextMap[&storeCompleteConfigButton] = "Store Complete Configuration to files (with backup).";
         helpTextMap[&reloadCompleteConfigButton] = "Reload Complete Configuration from files.";
