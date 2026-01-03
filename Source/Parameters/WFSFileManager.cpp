@@ -1085,15 +1085,15 @@ bool WFSFileManager::applyConfigSection (const juce::ValueTree& configTree)
     if (preservedTracking.isValid() && !existingConfig.getChildWithName (Tracking).isValid())
         existingConfig.appendChild (preservedTracking, undoManager);
 
-    // Ensure channel children are created/removed to match loaded counts
-    // The config now has the new channel counts, but the actual channel children
-    // in Inputs/Outputs/Reverbs need to be synchronized
-    auto io = existingConfig.getChildWithName (IO);
-    if (io.isValid())
+    // AFTER copying: Ensure channel children exist with proper structure (including EQ sections)
+    // This must happen AFTER copyPropertiesAndChildrenFrom because that function replaces all children.
+    // Loaded XML may have old-format Reverb children without EQ sections.
+    auto ioSection = existingConfig.getChildWithName (IO);
+    if (ioSection.isValid())
     {
-        int inputCount = io.getProperty (inputChannels, 0);
-        int outputCount = io.getProperty (outputChannels, 0);
-        int reverbCount = io.getProperty (reverbChannels, 0);
+        int inputCount = ioSection.getProperty (inputChannels, 0);
+        int outputCount = ioSection.getProperty (outputChannels, 0);
+        int reverbCount = ioSection.getProperty (reverbChannels, 0);
 
         valueTreeState.setNumInputChannels (inputCount);
         valueTreeState.setNumOutputChannels (outputCount);

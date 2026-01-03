@@ -276,19 +276,17 @@ public:
         juce::Colour textColor = isFrontTab ? colors.tabTextSelected : colors.tabTextNormal;
         g.setColour(textColor);
 
-        // Draw the tab text
-        auto font = juce::Font(juce::FontOptions(14.0f));
+        // Draw the tab text with larger bold font
+        auto font = juce::Font(juce::FontOptions(15.0f).withStyle("Bold"));
         g.setFont(font);
         g.drawText(button.getButtonText(), area, juce::Justification::centred, true);
     }
 
-    int getTabButtonBestWidth(juce::TabBarButton& button, int /*tabDepth*/) override
+    int getTabButtonBestWidth(juce::TabBarButton& /*button*/, int /*tabDepth*/) override
     {
-        auto font = juce::Font(juce::FontOptions(14.0f));
-        juce::GlyphArrangement glyphs;
-        glyphs.addLineOfText(font, button.getButtonText(), 0.0f, 0.0f);
-        int textWidth = (int)std::ceil(glyphs.getBoundingBox(0, -1, true).getWidth()) + 30;
-        return juce::jmax(textWidth, 100);
+        // Return fixed width so all tabs are equal size
+        // Width calculated to fit "System Configuration" with generous padding
+        return 175;
     }
 
 private:

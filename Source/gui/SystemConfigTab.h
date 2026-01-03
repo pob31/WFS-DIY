@@ -888,9 +888,10 @@ private:
         if (algorithmId >= 1 && algorithmId <= 2)  // Valid range for current algorithms
             algorithmSelector.setSelectedId(algorithmId, juce::dontSendNotification);
 
-        // Color scheme selector
+        // Color scheme selector - update UI and apply the theme
         int colorSchemeId = (int)parameters.getConfigParam("ColorScheme");
         colorSchemeSelector.setSelectedId(colorSchemeId + 1, juce::dontSendNotification);  // +1 for ComboBox
+        ColorScheme::Manager::getInstance().setTheme(colorSchemeId);  // Actually apply the theme
 
         // Processing button state
         processingEnabled = (bool)parameters.getConfigParam("ProcessingEnabled");

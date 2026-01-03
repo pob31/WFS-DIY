@@ -897,6 +897,10 @@ void WFSValueTreeState::setNumReverbChannels (int numChannels)
             reverbs.removeChild (reverbs.getNumChildren() - 1, &undoManager);
     }
 
+    // Ensure all existing reverb channels have EQ sections (handles old configs without EQ)
+    for (int i = 0; i < numChannels; ++i)
+        ensureReverbEQSection (i);
+
     // Update the count in config
     setParameter (reverbChannels, numChannels);
     reverbs.setProperty (count, numChannels, &undoManager);

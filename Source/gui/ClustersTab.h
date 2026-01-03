@@ -10,6 +10,29 @@
 #include "sliders/WfsAutoCenterSlider.h"
 #include "dials/WfsEndlessDial.h"
 
+//==============================================================================
+/**
+ * Custom button for cluster selection with bold text
+ */
+class ClusterButton : public juce::TextButton
+{
+public:
+    ClusterButton (const juce::String& text) : juce::TextButton (text) {}
+
+    void paintButton (juce::Graphics& g, bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown) override
+    {
+        auto& lf = getLookAndFeel();
+        lf.drawButtonBackground (g, *this, findColour (getToggleState() ? buttonOnColourId : buttonColourId),
+                                 shouldDrawButtonAsHighlighted, shouldDrawButtonAsDown);
+
+        // Draw text with bold font
+        g.setFont (juce::FontOptions (14.0f).withStyle ("Bold"));
+        g.setColour (findColour (getToggleState() ? textColourOnId : textColourOffId));
+        g.drawText (getButtonText(), getLocalBounds(), juce::Justification::centred);
+    }
+};
+
+//==============================================================================
 /**
  * Clusters Tab Component
  * Management of input clusters with position, rotation, scale, and attenuation controls.
@@ -32,7 +55,7 @@ public:
         // ==================== CLUSTER SELECTOR BAR ====================
         for (int i = 0; i < 10; ++i)
         {
-            auto* btn = new juce::TextButton(juce::String(i + 1));
+            auto* btn = new ClusterButton(juce::String(i + 1));
             btn->setClickingTogglesState(true);
             btn->setRadioGroupId(1001);
             // Use cluster colors matching Map tab
@@ -365,7 +388,7 @@ private:
     std::vector<int> assignedInputs;
 
     // Cluster selector buttons
-    juce::OwnedArray<juce::TextButton> clusterButtons;
+    juce::OwnedArray<ClusterButton> clusterButtons;
 
     // Assigned inputs panel
     juce::Label assignedInputsLabel;

@@ -146,7 +146,7 @@ public:
         }
 
         // Reset EQ display - it holds a reference to the old ValueTree which is now stale
-        // It will be recreated in loadChannelParameters() with the new tree
+        // It will be recreated below with the new tree
         eqDisplay.reset();
         lastEqDisplayChannel = -1;
 
@@ -158,16 +158,31 @@ public:
             if (currentChannel > numReverbs)
                 currentChannel = 1;
 
-            // Load channel parameters FIRST to create eqDisplay with new tree
-            // This must happen before resized() which tries to lay out the display
+            // Load channel parameters to update UI controls
             loadChannelParameters(currentChannel);
+
+            // ALWAYS ensure eqDisplay is created and laid out, regardless of current sub-tab
+            // This prevents timing issues where the display isn't ready when switching tabs
+            if (eqDisplay == nullptr && currentChannel > 0)
+            {
+                auto eqTree = parameters.getValueTreeState().ensureReverbEQSection (currentChannel - 1);
+                if (eqTree.isValid())
+                {
+                    eqDisplay = std::make_unique<EQDisplayComponent> (eqTree, numEqBands, EQDisplayConfig::forReverbEQ());
+                    addAndMakeVisible (*eqDisplay);
+                    lastEqDisplayChannel = currentChannel;
+                    eqDisplay->setEQEnabled (eqEnableButton.getToggleState());
+                }
+            }
         }
 
         updateVisibility();
         resized();  // Re-layout components after visibility change
 
-        // Force layout of current sub-tab to ensure EQ display is properly visible
-        layoutCurrentSubTab();
+        // If we're on the EQ tab, force re-layout to ensure eqDisplay gets bounds
+        if (subTabBar.getCurrentTabIndex() == 1)
+            layoutEQSubTab();
+
         repaint();
     }
 
@@ -801,17 +816,19 @@ private:
 
     void layoutHeader (juce::Rectangle<int> area)
     {
-        auto selectorArea = area.removeFromLeft (200);
-        channelSelector.setBounds (selectorArea);
+        const int rowHeight = 30;
+        const int spacing = 5;
 
-        area.removeFromLeft (20);
+        auto row = area.removeFromTop (rowHeight);
 
-        nameLabel.setBounds (area.removeFromLeft (50));
-        area.removeFromLeft (5);
-        nameEditor.setBounds (area.removeFromLeft (200));
+        channelSelector.setBounds (row.removeFromLeft (150));
+        row.removeFromLeft (spacing * 2);
 
-        area.removeFromLeft (20);
-        mapVisibilityButton.setBounds (area.removeFromLeft (200));
+        nameLabel.setBounds (row.removeFromLeft (50));
+        nameEditor.setBounds (row.removeFromLeft (200));
+
+        row.removeFromLeft (spacing * 4);
+        mapVisibilityButton.setBounds (row.removeFromLeft (180));
     }
 
     void layoutFooter (juce::Rectangle<int> area)
