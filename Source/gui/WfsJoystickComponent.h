@@ -57,7 +57,8 @@ private:
         static constexpr float thumbRatio = 0.33f;
 
         auto bounds = getLocalBounds().toFloat();
-        const auto diameter = juce::jmin(bounds.getWidth(), bounds.getHeight());
+        const auto strokeWidth = 2.0f;
+        const auto diameter = juce::jmin(bounds.getWidth(), bounds.getHeight()) - strokeWidth;
         const auto radius = diameter * 0.5f;
         const auto center = bounds.getCentre();
 
@@ -115,7 +116,8 @@ private:
         static constexpr float thumbRatio = 0.33f;
 
         auto bounds = getLocalBounds().toFloat();
-        const auto diameter = juce::jmin(bounds.getWidth(), bounds.getHeight());
+        const auto strokeWidth = 2.0f;
+        const auto diameter = juce::jmin(bounds.getWidth(), bounds.getHeight()) - strokeWidth;
         const auto radius = diameter * 0.5f;
         const auto thumbRadius = radius * thumbRatio;
         const auto maxThumbDistance = juce::jmax(0.0f, radius - thumbRadius);

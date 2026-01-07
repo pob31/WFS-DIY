@@ -2956,11 +2956,14 @@ private:
         const int posUnitWidth = 25;     // "m" unit label
         const int constraintBtnWidth = 100;  // Enlarged constraint buttons
         const int flipBtnWidth = 80;
-        const int rowGap = 14;  // Vertical padding between rows
+        const int rowGap = 20;  // Increased vertical padding between rows
 
-        // Calculate vertical centering for 3 rows within joystick height
-        const int rowsHeight = rowHeight * 3 + rowGap * 2;  // 3 rows + 2 gaps
-        const int topPadding = (posBlock.getHeight() - rowsHeight) / 2;
+        // Align Y row (second row) center with joystick center
+        // Joystick center is at: labelRowHeight(18) + joystickSize/2
+        const int joystickCenterY = 18 + joystickSize / 2;  // 88px from posBlock top
+        // Y row center = topPadding + rowHeight + rowGap + rowHeight/2
+        // Solve for topPadding: topPadding = joystickCenterY - rowHeight - rowGap - rowHeight/2
+        const int topPadding = joystickCenterY - rowHeight - rowGap - rowHeight / 2;
         posBlock.removeFromTop(topPadding);
 
         // Row 1: Coord mode + X axis (Position X, Offset X, Constraint X, Flip X)
@@ -3410,7 +3413,10 @@ private:
 
         // --- Header row: Toggle, Period dial, Phase dial, Progress dial, Gyrophone (full width) ---
         const int headerDialSize = 40;
-        auto headerRow = col1.removeFromTop(headerDialSize + rowHeight + 4);
+        const int headerLabelHeight = 16;
+        const int headerValueHeight = 16;
+        const int headerRowHeight = headerLabelHeight + headerDialSize + headerValueHeight;
+        auto headerRow = col1.removeFromTop(headerRowHeight);
         const int headerWidth = headerRow.getWidth();
 
         // Divide header into 5 sections
@@ -3419,43 +3425,50 @@ private:
         const int gyroWidth = selectorWidth + 10;
         const int headerSpacing = (headerWidth - toggleWidth - 3 * dialBlockWidth - gyroWidth) / 4;
 
-        // Toggle button at left (vertically centered)
+        // Calculate vertical center for UI elements (below labels)
+        const int uiCenterY = headerLabelHeight + headerDialSize / 2;
+
+        // Toggle button at left (vertically centered with dials)
         auto toggleArea = headerRow.removeFromLeft(toggleWidth);
-        toggleArea.removeFromTop((headerDialSize + rowHeight + 4 - rowHeight) / 2);
-        lfoActiveButton.setBounds(toggleArea.removeFromTop(rowHeight));
+        int toggleY = uiCenterY - rowHeight / 2;
+        lfoActiveButton.setBounds(toggleArea.getX(), headerRow.getY() + toggleY, toggleWidth, rowHeight);
         headerRow.removeFromLeft(headerSpacing);
 
-        // Period: label above dial, value below
+        // Period: label at top, dial centered, value at bottom
         auto periodArea = headerRow.removeFromLeft(dialBlockWidth);
-        lfoPeriodLabel.setBounds(periodArea.removeFromTop(rowHeight - 6));
+        lfoPeriodLabel.setBounds(periodArea.removeFromTop(headerLabelHeight));
         lfoPeriodDial.setBounds(periodArea.removeFromTop(headerDialSize).withSizeKeepingCentre(headerDialSize, headerDialSize));
         lfoPeriodValueLabel.setBounds(periodArea);
         headerRow.removeFromLeft(headerSpacing);
 
-        // Phase: label above dial, value below
+        // Phase: label at top, dial centered, value at bottom
         auto phaseArea = headerRow.removeFromLeft(dialBlockWidth);
-        lfoPhaseLabel.setBounds(phaseArea.removeFromTop(rowHeight - 6));
+        lfoPhaseLabel.setBounds(phaseArea.removeFromTop(headerLabelHeight));
         lfoPhaseDial.setBounds(phaseArea.removeFromTop(headerDialSize).withSizeKeepingCentre(headerDialSize, headerDialSize));
         lfoPhaseValueLabel.setBounds(phaseArea);
         headerRow.removeFromLeft(headerSpacing);
 
         // Progress indicator (no label, aligned with dials)
         auto progressArea = headerRow.removeFromLeft(dialBlockWidth);
-        progressArea.removeFromTop(rowHeight - 6);  // Align with other dials
+        progressArea.removeFromTop(headerLabelHeight);  // Align with other dials
         lfoProgressDial.setBounds(progressArea.removeFromTop(headerDialSize).withSizeKeepingCentre(headerDialSize, headerDialSize));
         headerRow.removeFromLeft(headerSpacing);
 
-        // Gyrophone selector at right of header
+        // Gyrophone selector at right of header (label at top, selector centered with dials)
         auto gyroArea = headerRow;
-        lfoGyrophoneLabel.setBounds(gyroArea.removeFromTop(rowHeight - 6));
-        lfoGyrophoneSelector.setBounds(gyroArea.removeFromTop(rowHeight).withWidth(selectorWidth));
+        lfoGyrophoneLabel.setBounds(gyroArea.removeFromTop(headerLabelHeight));
+        int selectorY = (headerDialSize - rowHeight) / 2;  // Center selector vertically in dial area
+        auto selectorRect = gyroArea.removeFromTop(headerDialSize);
+        lfoGyrophoneSelector.setBounds(selectorRect.getX(), selectorRect.getY() + selectorY, selectorWidth, rowHeight);
 
         col1.removeFromTop(spacing);
 
         // --- Axis rows: X, Y, Z ---
         // Each row: [Shape selector] [Amp/Rate sliders stacked] [Phase dial] [Output slider]
         // All sliders same width
-        const int axisRowHeight = 88;
+        const int axisRowHeight = 92;   // Height for amp/rate stack with increased spacing
+        const int axisRowSpacing = 24;  // Doubled spacing between axis rows
+        const int ampRateSpacing = 8;   // Doubled spacing between amp and rate sliders
         const int axisDial = 40;
         const int shapeWidth = 75;
         const int phaseDialWidth = axisDial + 15;
@@ -3473,8 +3486,11 @@ private:
                                   juce::Label& outLabel, WfsLFOOutputSlider& outSlider) {
             auto axisRow = col1.removeFromTop(axisRowHeight);
 
-            // Shape selector (left)
+            // Shape selector (left) - vertically centered
             auto shapeArea = axisRow.removeFromLeft(shapeWidth);
+            const int shapeBlockHeight = rowHeight + rowHeight;  // label + selector
+            const int shapeCenterOffset = (axisRowHeight - shapeBlockHeight) / 2;
+            shapeArea.removeFromTop(shapeCenterOffset);
             shapeLabel.setBounds(shapeArea.removeFromTop(rowHeight));
             shapeSelector.setBounds(shapeArea.removeFromTop(rowHeight).withWidth(shapeWidth - 5));
             axisRow.removeFromLeft(spacing);
@@ -3487,7 +3503,7 @@ private:
             ampLabel.setBounds(ampRow.removeFromLeft(45));
             ampValue.setBounds(ampRow.removeFromRight(50));
             ampSlider.setBounds(sliderArea.removeFromTop(sliderHeight));
-            sliderArea.removeFromTop(spacing);
+            sliderArea.removeFromTop(ampRateSpacing);  // Doubled spacing between amp and rate
             // Rate row
             auto rateRow = sliderArea.removeFromTop(rowHeight);
             rateLabel.setBounds(rateRow.removeFromLeft(45));
@@ -3495,11 +3511,14 @@ private:
             rateSlider.setBounds(sliderArea.removeFromTop(sliderHeight));
             axisRow.removeFromLeft(spacing);
 
-            // Phase dial
+            // Phase dial - vertically centered
             auto phaseDialArea = axisRow.removeFromLeft(phaseDialWidth);
+            const int phaseBlockHeight = rowHeight + axisDial + rowHeight - 4;  // label + dial + value
+            const int phaseCenterOffset = (axisRowHeight - phaseBlockHeight) / 2;
+            phaseDialArea.removeFromTop(phaseCenterOffset);
             phaseLabel.setBounds(phaseDialArea.removeFromTop(rowHeight - 2));
             phaseDial.setBounds(phaseDialArea.removeFromTop(axisDial).withSizeKeepingCentre(axisDial, axisDial));
-            phaseValue.setBounds(phaseDialArea);
+            phaseValue.setBounds(phaseDialArea.removeFromTop(rowHeight - 2));
             axisRow.removeFromLeft(spacing);
 
             // Output slider - use remaining space (1/3 of slider space)
@@ -3514,7 +3533,7 @@ private:
                       lfoRateXLabel, lfoRateXSlider, lfoRateXValueLabel,
                       lfoPhaseXLabel, lfoPhaseXDial, lfoPhaseXValueLabel,
                       lfoOutputXLabel, lfoOutputXSlider);
-        col1.removeFromTop(spacing);
+        col1.removeFromTop(axisRowSpacing);
 
         // Y axis row
         layoutAxisRow(lfoShapeYLabel, lfoShapeYSelector,
@@ -3522,7 +3541,7 @@ private:
                       lfoRateYLabel, lfoRateYSlider, lfoRateYValueLabel,
                       lfoPhaseYLabel, lfoPhaseYDial, lfoPhaseYValueLabel,
                       lfoOutputYLabel, lfoOutputYSlider);
-        col1.removeFromTop(spacing);
+        col1.removeFromTop(axisRowSpacing);
 
         // Z axis row
         layoutAxisRow(lfoShapeZLabel, lfoShapeZSelector,
