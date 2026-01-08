@@ -628,6 +628,11 @@ private:
             int mode = coordModeSelector.getSelectedId() - 1;
             saveInputParam(WFSParameterIDs::inputCoordinateMode, mode);
             updatePositionLabelsAndValues();
+            updateConstraintVisibility();
+            resized();  // Trigger layout update for visibility changes
+            // Snap to distance constraint if enabled in non-Cartesian mode
+            if (mode != 0 && constraintDistanceButton.getToggleState())
+                applyDistanceConstraintSnap();
         };
 
         // Position X
@@ -714,6 +719,105 @@ private:
             constraintZButton.setButtonText(enabled ? "Constraint Z: ON" : "Constraint Z: OFF");
             saveInputParam(WFSParameterIDs::inputConstraintZ, enabled ? 1 : 0);
         };
+
+        // Distance constraint (for Cylindrical/Spherical modes)
+        addAndMakeVisible(constraintDistanceButton);
+        constraintDistanceButton.setButtonText("Constraint R: OFF");
+        constraintDistanceButton.setClickingTogglesState(true);
+        constraintDistanceButton.setToggleState(false, juce::dontSendNotification);
+        constraintDistanceButton.onClick = [this]() {
+            bool enabled = constraintDistanceButton.getToggleState();
+            constraintDistanceButton.setButtonText(enabled ? "Constraint R: ON" : "Constraint R: OFF");
+            // Dim slider when constraint is off
+            distanceRangeSlider.setEnabled(enabled);
+            distanceMinEditor.setEnabled(enabled);
+            distanceMaxEditor.setEnabled(enabled);
+            saveInputParam(WFSParameterIDs::inputConstraintDistance, enabled ? 1 : 0);
+            // Snap position to valid range when enabled
+            if (enabled)
+                applyDistanceConstraintSnap();
+        };
+
+        // Distance range slider
+        addAndMakeVisible(distanceRangeSlider);
+        distanceRangeSlider.setTrackColours(juce::Colour(0xFF1C1C1C), juce::Colour(0xFF00BCD4));
+        distanceRangeSlider.onValuesChanged = [this](float minVal, float maxVal) {
+            distanceMinEditor.setText(juce::String(minVal, 2), juce::dontSendNotification);
+            distanceMaxEditor.setText(juce::String(maxVal, 2), juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputConstraintDistanceMin, minVal);
+            saveInputParam(WFSParameterIDs::inputConstraintDistanceMax, maxVal);
+            // Snap if constraints active
+            if (constraintDistanceButton.getToggleState())
+                applyDistanceConstraintSnap();
+        };
+
+        // Distance Min editor
+        addAndMakeVisible(distanceMinLabel);
+        distanceMinLabel.setText("Min:", juce::dontSendNotification);
+        addAndMakeVisible(distanceMinEditor);
+        distanceMinEditor.setText("0.00", juce::dontSendNotification);
+        distanceMinEditor.setInputRestrictions(6, "0123456789.-");
+        distanceMinEditor.onReturnKey = [this]() {
+            float val = distanceMinEditor.getText().getFloatValue();
+            val = juce::jlimit(0.0f, 50.0f, val);
+            distanceRangeSlider.setValues(val, distanceRangeSlider.getThumb2Value());
+            saveInputParam(WFSParameterIDs::inputConstraintDistanceMin, distanceRangeSlider.getMinValue());
+            saveInputParam(WFSParameterIDs::inputConstraintDistanceMax, distanceRangeSlider.getMaxValue());
+            if (constraintDistanceButton.getToggleState())
+                applyDistanceConstraintSnap();
+        };
+        distanceMinEditor.onFocusLost = [this]() {
+            float val = distanceMinEditor.getText().getFloatValue();
+            val = juce::jlimit(0.0f, 50.0f, val);
+            distanceRangeSlider.setValues(val, distanceRangeSlider.getThumb2Value());
+            saveInputParam(WFSParameterIDs::inputConstraintDistanceMin, distanceRangeSlider.getMinValue());
+            saveInputParam(WFSParameterIDs::inputConstraintDistanceMax, distanceRangeSlider.getMaxValue());
+            if (constraintDistanceButton.getToggleState())
+                applyDistanceConstraintSnap();
+        };
+        addAndMakeVisible(distanceMinUnitLabel);
+        distanceMinUnitLabel.setText("m", juce::dontSendNotification);
+
+        // Distance Max editor
+        addAndMakeVisible(distanceMaxLabel);
+        distanceMaxLabel.setText("Max:", juce::dontSendNotification);
+        addAndMakeVisible(distanceMaxEditor);
+        distanceMaxEditor.setText("50.00", juce::dontSendNotification);
+        distanceMaxEditor.setInputRestrictions(6, "0123456789.-");
+        distanceMaxEditor.onReturnKey = [this]() {
+            float val = distanceMaxEditor.getText().getFloatValue();
+            val = juce::jlimit(0.0f, 50.0f, val);
+            distanceRangeSlider.setValues(distanceRangeSlider.getThumb1Value(), val);
+            saveInputParam(WFSParameterIDs::inputConstraintDistanceMin, distanceRangeSlider.getMinValue());
+            saveInputParam(WFSParameterIDs::inputConstraintDistanceMax, distanceRangeSlider.getMaxValue());
+            if (constraintDistanceButton.getToggleState())
+                applyDistanceConstraintSnap();
+        };
+        distanceMaxEditor.onFocusLost = [this]() {
+            float val = distanceMaxEditor.getText().getFloatValue();
+            val = juce::jlimit(0.0f, 50.0f, val);
+            distanceRangeSlider.setValues(distanceRangeSlider.getThumb1Value(), val);
+            saveInputParam(WFSParameterIDs::inputConstraintDistanceMin, distanceRangeSlider.getMinValue());
+            saveInputParam(WFSParameterIDs::inputConstraintDistanceMax, distanceRangeSlider.getMaxValue());
+            if (constraintDistanceButton.getToggleState())
+                applyDistanceConstraintSnap();
+        };
+        addAndMakeVisible(distanceMaxUnitLabel);
+        distanceMaxUnitLabel.setText("m", juce::dontSendNotification);
+
+        // Initially hide distance controls (shown only in Cylindrical/Spherical modes)
+        // Also disable slider/editors since constraint starts OFF
+        constraintDistanceButton.setVisible(false);
+        distanceRangeSlider.setVisible(false);
+        distanceRangeSlider.setEnabled(false);
+        distanceMinLabel.setVisible(false);
+        distanceMinEditor.setVisible(false);
+        distanceMinEditor.setEnabled(false);
+        distanceMinUnitLabel.setVisible(false);
+        distanceMaxLabel.setVisible(false);
+        distanceMaxEditor.setVisible(false);
+        distanceMaxEditor.setEnabled(false);
+        distanceMaxUnitLabel.setVisible(false);
 
         // Flip buttons
         addAndMakeVisible(flipXButton);
@@ -2041,6 +2145,7 @@ private:
             // Input Parameters: Column 1 (Input+Position), Column 2 (Sound+Mutes)
             setInputPropertiesVisible(true);
             setPositionVisible(true);
+            updateConstraintVisibility();  // Set constraint button visibility based on coord mode
             setSoundVisible(true);
             setMutesVisible(true);
             layoutInputParametersTab();
@@ -2087,7 +2192,22 @@ private:
         offsetXLabel.setVisible(v); offsetXEditor.setVisible(v); offsetXUnitLabel.setVisible(v);
         offsetYLabel.setVisible(v); offsetYEditor.setVisible(v); offsetYUnitLabel.setVisible(v);
         offsetZLabel.setVisible(v); offsetZEditor.setVisible(v); offsetZUnitLabel.setVisible(v);
-        constraintXButton.setVisible(v); constraintYButton.setVisible(v); constraintZButton.setVisible(v);
+        // Don't set constraint button visibility here - updateConstraintVisibility() handles it based on coord mode
+        // Just set them invisible when hiding the whole section
+        if (!v)
+        {
+            constraintXButton.setVisible(false);
+            constraintYButton.setVisible(false);
+            constraintZButton.setVisible(false);
+            constraintDistanceButton.setVisible(false);
+            distanceRangeSlider.setVisible(false);
+            distanceMinLabel.setVisible(false);
+            distanceMinEditor.setVisible(false);
+            distanceMinUnitLabel.setVisible(false);
+            distanceMaxLabel.setVisible(false);
+            distanceMaxEditor.setVisible(false);
+            distanceMaxUnitLabel.setVisible(false);
+        }
         flipXButton.setVisible(v); flipYButton.setVisible(v); flipZButton.setVisible(v);
         trackingActiveButton.setVisible(v);
         trackingIdLabel.setVisible(v); trackingIdSelector.setVisible(v);
@@ -2319,13 +2439,28 @@ private:
         offsetZUnitLabel.setBounds(row.removeFromLeft(unitWidth));
         leftCol.removeFromTop(spacing * 2);
 
-        // Constraint buttons
+        // Constraint buttons (visibility depends on coordinate mode)
         row = leftCol.removeFromTop(rowHeight);
-        constraintXButton.setBounds(row.removeFromLeft(buttonWidth));
+        auto constraintXPos = row.removeFromLeft(buttonWidth);
+        constraintXButton.setBounds(constraintXPos);
+        constraintDistanceButton.setBounds(constraintXPos);  // Overlay (mutually exclusive)
         row.removeFromLeft(spacing);
         constraintYButton.setBounds(row.removeFromLeft(buttonWidth));
         row.removeFromLeft(spacing);
         constraintZButton.setBounds(row.removeFromLeft(buttonWidth));
+        leftCol.removeFromTop(spacing);
+
+        // Distance constraint slider (for Cylindrical/Spherical modes)
+        row = leftCol.removeFromTop(rowHeight);
+        distanceMinLabel.setBounds(row.removeFromLeft(35));
+        distanceMinEditor.setBounds(row.removeFromLeft(55));
+        distanceMinUnitLabel.setBounds(row.removeFromLeft(20));
+        row.removeFromLeft(spacing);
+        distanceRangeSlider.setBounds(row.removeFromLeft(140));
+        row.removeFromLeft(spacing);
+        distanceMaxLabel.setBounds(row.removeFromLeft(35));
+        distanceMaxEditor.setBounds(row.removeFromLeft(55));
+        distanceMaxUnitLabel.setBounds(row.removeFromLeft(20));
         leftCol.removeFromTop(spacing);
 
         // Flip buttons
@@ -2914,7 +3049,7 @@ private:
         minimalLatencyButton.setBounds(col1.removeFromTop(rowHeight).withWidth(150));
         col1.removeFromTop(spacing * 2);
 
-        // --- Position section (compact 3-row layout with joystick on right) ---
+        // --- Position section (3-row layout with joystick on right) ---
         const int joystickSize = 140;
         const int zSliderWidth = 40;
         const int posBlockHeight = joystickSize + 20;  // Match joystick height + label
@@ -2976,7 +3111,9 @@ private:
         offsetXEditor.setBounds(row.removeFromLeft(posEditorWidth));
         offsetXUnitLabel.setBounds(row.removeFromLeft(posUnitWidth));
         row.removeFromLeft(spacing);
-        constraintXButton.setBounds(row.removeFromLeft(constraintBtnWidth));
+        auto constraintXPos = row.removeFromLeft(constraintBtnWidth);
+        constraintXButton.setBounds(constraintXPos);
+        constraintDistanceButton.setBounds(constraintXPos);  // Overlay on same position (mutually exclusive)
         row.removeFromLeft(spacing);
         flipXButton.setBounds(row.removeFromLeft(flipBtnWidth));
         posBlock.removeFromTop(rowGap);
@@ -3012,7 +3149,27 @@ private:
         row.removeFromLeft(spacing);
         flipZButton.setBounds(row.removeFromLeft(flipBtnWidth));
 
-        col1.removeFromTop(spacing * 2);
+        // Distance constraint slider row (after position block, for Cylindrical/Spherical modes)
+        // Center the slider row horizontally with Constraint R button (which replaces Constraint X)
+        col1.removeFromTop(spacing);
+        row = col1.removeFromTop(rowHeight);
+        // Constraint R button starts after pos/offset fields and is centered
+        const int constraintStart = 40 + 70 + spacing + (posLabelWidth + posEditorWidth + posUnitWidth + spacing) * 2;
+        const int constraintRCenterX = constraintStart + constraintBtnWidth / 2;  // Center of single button
+        const int sliderRowWidth = 35 + 55 + 20 + spacing + 180 + spacing + 35 + 55 + 20;
+        const int sliderRowStartX = constraintRCenterX - sliderRowWidth / 2;
+        row.removeFromLeft(sliderRowStartX);
+        distanceMinLabel.setBounds(row.removeFromLeft(35));
+        distanceMinEditor.setBounds(row.removeFromLeft(55));
+        distanceMinUnitLabel.setBounds(row.removeFromLeft(20));
+        row.removeFromLeft(spacing);
+        distanceRangeSlider.setBounds(row.removeFromLeft(180));
+        row.removeFromLeft(spacing);
+        distanceMaxLabel.setBounds(row.removeFromLeft(35));
+        distanceMaxEditor.setBounds(row.removeFromLeft(55));
+        distanceMaxUnitLabel.setBounds(row.removeFromLeft(20));
+
+        col1.removeFromTop(spacing);
 
         // Three-column layout for Tracking, Max Speed, Height Factor
         // Spans left half width (col1)
@@ -3177,6 +3334,7 @@ private:
 
         // Calculate how many fit per row
         int muteButtonsPerRow = (col2.getWidth() + muteSpacing) / (muteButtonSize + muteSpacing);
+        if (muteButtonsPerRow <= 0) muteButtonsPerRow = 1;  // Prevent division by zero
         int muteRows = (numOutputs + muteButtonsPerRow - 1) / muteButtonsPerRow;
 
         auto muteGridArea = col2.removeFromTop(muteRows * (muteButtonSize + muteSpacing));
@@ -3822,6 +3980,22 @@ private:
         bool constZ = getIntParam(WFSParameterIDs::inputConstraintZ, 0) != 0;
         constraintZButton.setToggleState(constZ, juce::dontSendNotification);
         constraintZButton.setButtonText(constZ ? "Constraint Z: ON" : "Constraint Z: OFF");
+
+        // Distance constraint (for Cylindrical/Spherical modes)
+        bool constDist = getIntParam(WFSParameterIDs::inputConstraintDistance, 0) != 0;
+        constraintDistanceButton.setToggleState(constDist, juce::dontSendNotification);
+        constraintDistanceButton.setButtonText(constDist ? "Constraint R: ON" : "Constraint R: OFF");
+        float distMin = getFloatParam(WFSParameterIDs::inputConstraintDistanceMin, 0.0f);
+        float distMax = getFloatParam(WFSParameterIDs::inputConstraintDistanceMax, 50.0f);
+        distanceRangeSlider.setValues(distMin, distMax);
+        distanceMinEditor.setText(juce::String(distanceRangeSlider.getMinValue(), 2), juce::dontSendNotification);
+        distanceMaxEditor.setText(juce::String(distanceRangeSlider.getMaxValue(), 2), juce::dontSendNotification);
+        // Dim slider when constraint is off
+        distanceRangeSlider.setEnabled(constDist);
+        distanceMinEditor.setEnabled(constDist);
+        distanceMaxEditor.setEnabled(constDist);
+        updateConstraintVisibility();
+        resized();  // Trigger layout update for visibility changes
 
         bool flipX = getIntParam(WFSParameterIDs::inputFlipX, 0) != 0;
         flipXButton.setToggleState(flipX, juce::dontSendNotification);
@@ -5035,6 +5209,98 @@ private:
         }
     }
 
+    /** Update constraint button visibility based on coordinate mode */
+    void updateConstraintVisibility()
+    {
+        int mode = coordModeSelector.getSelectedId() - 1;  // 0=Cartesian, 1=Cylindrical, 2=Spherical
+
+        bool isCartesian = (mode == 0);
+        bool isCylindrical = (mode == 1);
+        bool isSpherical = (mode == 2);
+
+        // X/Y constraints: visible only in Cartesian mode
+        constraintXButton.setVisible(isCartesian);
+        constraintYButton.setVisible(isCartesian);
+
+        // Z constraint: visible in Cartesian and Cylindrical (hide in Spherical)
+        constraintZButton.setVisible(isCartesian || isCylindrical);
+
+        // Distance constraints: visible in Cylindrical and Spherical
+        bool showDistance = isCylindrical || isSpherical;
+        constraintDistanceButton.setVisible(showDistance);
+        distanceRangeSlider.setVisible(showDistance);
+        distanceMinLabel.setVisible(showDistance);
+        distanceMinEditor.setVisible(showDistance);
+        distanceMinUnitLabel.setVisible(showDistance);
+        distanceMaxLabel.setVisible(showDistance);
+        distanceMaxEditor.setVisible(showDistance);
+        distanceMaxUnitLabel.setVisible(showDistance);
+    }
+
+    /** Calculate distance from origin based on coordinate mode */
+    float calculateDistanceFromOrigin(float x, float y, float z, int coordMode) const
+    {
+        if (coordMode == 1)  // Cylindrical: sqrt(x^2 + y^2)
+            return std::sqrt(x * x + y * y);
+        else if (coordMode == 2)  // Spherical: sqrt(x^2 + y^2 + z^2)
+            return std::sqrt(x * x + y * y + z * z);
+        return 0.0f;
+    }
+
+    /** Apply distance constraint, modifying Cartesian position in-place */
+    void applyDistanceConstraint(float& x, float& y, float& z, int coordMode,
+                                 float minDist, float maxDist)
+    {
+        float currentDist = calculateDistanceFromOrigin(x, y, z, coordMode);
+        if (currentDist < 0.0001f) currentDist = 0.0001f;  // Avoid division by zero
+
+        float targetDist = juce::jlimit(minDist, maxDist, currentDist);
+
+        if (!juce::approximatelyEqual(currentDist, targetDist))
+        {
+            float scale = targetDist / currentDist;
+
+            if (coordMode == 1)  // Cylindrical: scale X/Y only
+            {
+                x *= scale;
+                y *= scale;
+            }
+            else if (coordMode == 2)  // Spherical: scale all axes
+            {
+                x *= scale;
+                y *= scale;
+                z *= scale;
+            }
+        }
+    }
+
+    /** Snap current position to valid distance range */
+    void applyDistanceConstraintSnap()
+    {
+        if (currentChannel <= 0) return;
+
+        int coordMode = coordModeSelector.getSelectedId() - 1;
+        if (coordMode == 0) return;  // No distance constraint in Cartesian
+
+        float minDist = distanceRangeSlider.getMinValue();
+        float maxDist = distanceRangeSlider.getMaxValue();
+
+        // Get Cartesian values from storage
+        float x = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionX"));
+        float y = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionY"));
+        float z = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionZ"));
+
+        applyDistanceConstraint(x, y, z, coordMode, minDist, maxDist);
+
+        // Save and update display
+        saveInputParam(WFSParameterIDs::inputPositionX, x);
+        saveInputParam(WFSParameterIDs::inputPositionY, y);
+        if (coordMode == 2)  // Spherical affects Z too
+            saveInputParam(WFSParameterIDs::inputPositionZ, z);
+
+        updatePositionLabelsAndValues();
+    }
+
     //==============================================================================
     // Status bar helper methods
 
@@ -5057,6 +5323,10 @@ private:
         helpTextMap[&constraintXButton] = "Limit Position to the Bounds of the Stage in Width.";
         helpTextMap[&constraintYButton] = "Limit Position to the Bounds of the Stage in Depth.";
         helpTextMap[&constraintZButton] = "Limit Position to the Bounds of the Stage in Height.";
+        helpTextMap[&constraintDistanceButton] = "Limit Position to Distance Range from Origin (for Cylindrical/Spherical modes).";
+        helpTextMap[&distanceRangeSlider] = "Set Minimum and Maximum Distance from Origin.";
+        helpTextMap[&distanceMinEditor] = "Minimum Distance from Origin in Meters.";
+        helpTextMap[&distanceMaxEditor] = "Maximum Distance from Origin in Meters.";
         helpTextMap[&flipXButton] = "X will be Symetrical to the Origin. Keyboard Nudging will be Inverted.";
         helpTextMap[&flipYButton] = "Y will be Symetrical to the Origin. Keyboard Nudging will be Inverted.";
         helpTextMap[&flipZButton] = "Z will be Symetrical to the Origin. Keyboard Nudging will be Inverted.";
@@ -5615,6 +5885,11 @@ private:
     juce::TextEditor offsetXEditor, offsetYEditor, offsetZEditor;
     juce::Label offsetXUnitLabel, offsetYUnitLabel, offsetZUnitLabel;
     juce::TextButton constraintXButton, constraintYButton, constraintZButton;
+    juce::TextButton constraintDistanceButton;
+    WfsRangeSlider distanceRangeSlider { 0.0f, 50.0f };
+    juce::Label distanceMinLabel, distanceMaxLabel;
+    juce::TextEditor distanceMinEditor, distanceMaxEditor;
+    juce::Label distanceMinUnitLabel, distanceMaxUnitLabel;
     juce::TextButton flipXButton, flipYButton, flipZButton;
     juce::TextButton trackingActiveButton;
     juce::Label trackingIdLabel;

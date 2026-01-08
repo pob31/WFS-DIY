@@ -1382,6 +1382,9 @@ juce::ValueTree WFSValueTreeState::createInputPositionSection (int index, int to
     position.setProperty (inputConstraintX, inputConstraintDefault, nullptr);
     position.setProperty (inputConstraintY, inputConstraintDefault, nullptr);
     position.setProperty (inputConstraintZ, inputConstraintDefault, nullptr);
+    position.setProperty (inputConstraintDistance, inputConstraintDistanceDefault, nullptr);
+    position.setProperty (inputConstraintDistanceMin, inputConstraintDistanceMinDefault, nullptr);
+    position.setProperty (inputConstraintDistanceMax, inputConstraintDistanceMaxDefault, nullptr);
     position.setProperty (inputFlipX, inputFlipDefault, nullptr);
     position.setProperty (inputFlipY, inputFlipDefault, nullptr);
     position.setProperty (inputFlipZ, inputFlipDefault, nullptr);

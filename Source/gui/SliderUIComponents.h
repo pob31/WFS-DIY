@@ -5,3 +5,4 @@
 #include "sliders/WfsBidirectionalSlider.h"
 #include "sliders/WfsAutoCenterSlider.h"
 #include "sliders/WfsWidthExpansionSlider.h"
+#include "sliders/WfsRangeSlider.h"

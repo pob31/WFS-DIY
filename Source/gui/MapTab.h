@@ -420,13 +420,48 @@ public:
 
             // Check constraint parameters - only clamp if constraint is enabled
             // Note: screenToStage returns origin-relative coordinates (matching InputsTab/ClustersTab)
+            int coordMode = static_cast<int>(parameters.getInputParam(selectedInput, "inputCoordinateMode"));
             int constraintX = static_cast<int>(parameters.getInputParam(selectedInput, "inputConstraintX"));
             int constraintY = static_cast<int>(parameters.getInputParam(selectedInput, "inputConstraintY"));
 
-            if (constraintX != 0)
-                stagePos.x = juce::jlimit(getStageMinX(), getStageMaxX(), stagePos.x);
-            if (constraintY != 0)
-                stagePos.y = juce::jlimit(getStageMinY(), getStageMaxY(), stagePos.y);
+            // Apply X/Y constraints only in Cartesian mode
+            if (coordMode == 0)
+            {
+                if (constraintX != 0)
+                    stagePos.x = juce::jlimit(getStageMinX(), getStageMaxX(), stagePos.x);
+                if (constraintY != 0)
+                    stagePos.y = juce::jlimit(getStageMinY(), getStageMaxY(), stagePos.y);
+            }
+            else
+            {
+                // Cylindrical/Spherical: apply distance constraint if enabled
+                int constraintDist = static_cast<int>(parameters.getInputParam(selectedInput, "inputConstraintDistance"));
+                if (constraintDist != 0)
+                {
+                    float minDist = static_cast<float>(parameters.getInputParam(selectedInput, "inputConstraintDistanceMin"));
+                    float maxDist = static_cast<float>(parameters.getInputParam(selectedInput, "inputConstraintDistanceMax"));
+                    float z = static_cast<float>(parameters.getInputParam(selectedInput, "inputPositionZ"));
+
+                    // Calculate distance based on coordinate mode
+                    float currentDist;
+                    if (coordMode == 1)  // Cylindrical: XY-plane distance
+                        currentDist = std::sqrt(stagePos.x * stagePos.x + stagePos.y * stagePos.y);
+                    else  // Spherical: full 3D distance
+                        currentDist = std::sqrt(stagePos.x * stagePos.x + stagePos.y * stagePos.y + z * z);
+
+                    if (currentDist > 0.0001f)
+                    {
+                        float targetDist = juce::jlimit(minDist, maxDist, currentDist);
+                        if (!juce::approximatelyEqual(currentDist, targetDist))
+                        {
+                            float scale = targetDist / currentDist;
+                            stagePos.x *= scale;
+                            stagePos.y *= scale;
+                            // Note: Z not modified here since map is 2D
+                        }
+                    }
+                }
+            }
 
             // Determine drag behavior based on input state
             bool isTracked = isInputFullyTracked(selectedInput);
@@ -894,13 +929,47 @@ public:
 
         // Check constraint parameters
         // Note: screenToStage returns origin-relative coordinates (matching InputsTab/ClustersTab)
+        int coordMode = static_cast<int>(parameters.getInputParam(inputIdx, "inputCoordinateMode"));
         int constraintX = static_cast<int>(parameters.getInputParam(inputIdx, "inputConstraintX"));
         int constraintY = static_cast<int>(parameters.getInputParam(inputIdx, "inputConstraintY"));
 
-        if (constraintX != 0)
-            stagePos.x = juce::jlimit(getStageMinX(), getStageMaxX(), stagePos.x);
-        if (constraintY != 0)
-            stagePos.y = juce::jlimit(getStageMinY(), getStageMaxY(), stagePos.y);
+        // Apply X/Y constraints only in Cartesian mode
+        if (coordMode == 0)
+        {
+            if (constraintX != 0)
+                stagePos.x = juce::jlimit(getStageMinX(), getStageMaxX(), stagePos.x);
+            if (constraintY != 0)
+                stagePos.y = juce::jlimit(getStageMinY(), getStageMaxY(), stagePos.y);
+        }
+        else
+        {
+            // Cylindrical/Spherical: apply distance constraint if enabled
+            int constraintDist = static_cast<int>(parameters.getInputParam(inputIdx, "inputConstraintDistance"));
+            if (constraintDist != 0)
+            {
+                float minDist = static_cast<float>(parameters.getInputParam(inputIdx, "inputConstraintDistanceMin"));
+                float maxDist = static_cast<float>(parameters.getInputParam(inputIdx, "inputConstraintDistanceMax"));
+                float z = static_cast<float>(parameters.getInputParam(inputIdx, "inputPositionZ"));
+
+                // Calculate distance based on coordinate mode
+                float currentDist;
+                if (coordMode == 1)  // Cylindrical: XY-plane distance
+                    currentDist = std::sqrt(stagePos.x * stagePos.x + stagePos.y * stagePos.y);
+                else  // Spherical: full 3D distance
+                    currentDist = std::sqrt(stagePos.x * stagePos.x + stagePos.y * stagePos.y + z * z);
+
+                if (currentDist > 0.0001f)
+                {
+                    float targetDist = juce::jlimit(minDist, maxDist, currentDist);
+                    if (!juce::approximatelyEqual(currentDist, targetDist))
+                    {
+                        float scale = targetDist / currentDist;
+                        stagePos.x *= scale;
+                        stagePos.y *= scale;
+                    }
+                }
+            }
+        }
 
         // Determine drag behavior
         bool isTracked = isInputFullyTracked(inputIdx);

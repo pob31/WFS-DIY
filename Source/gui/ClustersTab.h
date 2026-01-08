@@ -614,6 +614,46 @@ private:
     }
 
     //==========================================================================
+    // Distance Constraint Helpers (for Cylindrical/Spherical modes)
+    //==========================================================================
+
+    float calculateDistanceFromOrigin(float x, float y, float z, int coordMode) const
+    {
+        if (coordMode == 1)  // Cylindrical: radial distance in XY plane
+            return std::sqrt(x * x + y * y);
+        else if (coordMode == 2)  // Spherical: full 3D distance
+            return std::sqrt(x * x + y * y + z * z);
+        return 0.0f;
+    }
+
+    void applyDistanceConstraint(float& x, float& y, float& z, int coordMode, float minDist, float maxDist)
+    {
+        float currentDist = calculateDistanceFromOrigin(x, y, z, coordMode);
+
+        // Avoid division by zero
+        if (currentDist < 0.0001f)
+            currentDist = 0.0001f;
+
+        float targetDist = juce::jlimit(minDist, maxDist, currentDist);
+
+        if (!juce::approximatelyEqual(currentDist, targetDist))
+        {
+            float scale = targetDist / currentDist;
+            if (coordMode == 1)  // Cylindrical: scale X, Y only
+            {
+                x *= scale;
+                y *= scale;
+            }
+            else if (coordMode == 2)  // Spherical: scale X, Y, Z
+            {
+                x *= scale;
+                y *= scale;
+                z *= scale;
+            }
+        }
+    }
+
+    //==========================================================================
     // Stage Bounds Helpers (for constraint enforcement)
     //==========================================================================
 
@@ -722,6 +762,26 @@ private:
                 newOz = totalZ - pz;
             }
 
+            // Apply distance constraint for Cylindrical/Spherical modes
+            int coordMode = static_cast<int>(parameters.getInputParam(trackedIdx, "inputCoordinateMode"));
+            if (coordMode == 1 || coordMode == 2)
+            {
+                int constraintDist = static_cast<int>(parameters.getInputParam(trackedIdx, "inputConstraintDistance"));
+                if (constraintDist != 0)
+                {
+                    float minDist = static_cast<float>(parameters.getInputParam(trackedIdx, "inputConstraintDistanceMin"));
+                    float maxDist = static_cast<float>(parameters.getInputParam(trackedIdx, "inputConstraintDistanceMax"));
+                    // Apply constraint to total position, then recalculate offset
+                    float totalX = px + newOx;
+                    float totalY = py + newOy;
+                    float totalZ = pz + newOz;
+                    applyDistanceConstraint(totalX, totalY, totalZ, coordMode, minDist, maxDist);
+                    newOx = totalX - px;
+                    newOy = totalY - py;
+                    newOz = totalZ - pz;
+                }
+            }
+
             setInputOffset(trackedIdx, newOx, newOy, newOz);
         }
         else
@@ -745,6 +805,19 @@ private:
                     newY = juce::jlimit(getStageMinY(), getStageMaxY(), newY);
                 if (constrainZ)
                     newZ = juce::jlimit(getStageMinZ(), getStageMaxZ(), newZ);
+
+                // Apply distance constraint for Cylindrical/Spherical modes
+                int coordMode = static_cast<int>(parameters.getInputParam(inputIdx, "inputCoordinateMode"));
+                if (coordMode == 1 || coordMode == 2)
+                {
+                    int constraintDist = static_cast<int>(parameters.getInputParam(inputIdx, "inputConstraintDistance"));
+                    if (constraintDist != 0)
+                    {
+                        float minDist = static_cast<float>(parameters.getInputParam(inputIdx, "inputConstraintDistanceMin"));
+                        float maxDist = static_cast<float>(parameters.getInputParam(inputIdx, "inputConstraintDistanceMax"));
+                        applyDistanceConstraint(newX, newY, newZ, coordMode, minDist, maxDist);
+                    }
+                }
 
                 setInputPosition(inputIdx, newX, newY, newZ);
             }

@@ -1845,6 +1845,77 @@ void MainComponent::nudgeInputPosition(int axis, float delta)
         newValue = juce::jlimit(minVal, maxVal, newValue);
     }
 
+    // Apply distance constraint for Cylindrical/Spherical modes
+    int coordMode = state.getIntParameter(WFSParameterIDs::inputCoordinateMode, channel);
+    if (coordMode == 1 || coordMode == 2)
+    {
+        int constraintDist = state.getIntParameter(WFSParameterIDs::inputConstraintDistance, channel);
+        if (constraintDist != 0)
+        {
+            float minDist = state.getFloatParameter(WFSParameterIDs::inputConstraintDistanceMin, channel);
+            float maxDist = state.getFloatParameter(WFSParameterIDs::inputConstraintDistanceMax, channel);
+
+            // Get all position values (use offset if tracking, position otherwise)
+            float x, y, z;
+            if (useOffset)
+            {
+                x = state.getFloatParameter(WFSParameterIDs::inputOffsetX, channel);
+                y = state.getFloatParameter(WFSParameterIDs::inputOffsetY, channel);
+                z = state.getFloatParameter(WFSParameterIDs::inputOffsetZ, channel);
+            }
+            else
+            {
+                x = state.getFloatParameter(WFSParameterIDs::inputPositionX, channel);
+                y = state.getFloatParameter(WFSParameterIDs::inputPositionY, channel);
+                z = state.getFloatParameter(WFSParameterIDs::inputPositionZ, channel);
+            }
+
+            // Update with new value being set
+            if (axis == 0) x = newValue;
+            else if (axis == 1) y = newValue;
+            else if (axis == 2) z = newValue;
+
+            // Calculate and apply distance constraint
+            float currentDist = (coordMode == 1)
+                ? std::sqrt(x * x + y * y)        // Cylindrical: XY plane
+                : std::sqrt(x * x + y * y + z * z);  // Spherical: 3D
+
+            if (currentDist < 0.0001f) currentDist = 0.0001f;
+            float targetDist = juce::jlimit(minDist, maxDist, currentDist);
+
+            if (!juce::approximatelyEqual(currentDist, targetDist))
+            {
+                float scale = targetDist / currentDist;
+                if (coordMode == 1)  // Cylindrical: scale X, Y
+                {
+                    x *= scale;
+                    y *= scale;
+                }
+                else  // Spherical: scale X, Y, Z
+                {
+                    x *= scale;
+                    y *= scale;
+                    z *= scale;
+                }
+
+                // Set all position values
+                if (useOffset)
+                {
+                    state.setInputParameter(channel, WFSParameterIDs::inputOffsetX, x);
+                    state.setInputParameter(channel, WFSParameterIDs::inputOffsetY, y);
+                    state.setInputParameter(channel, WFSParameterIDs::inputOffsetZ, z);
+                }
+                else
+                {
+                    state.setInputParameter(channel, WFSParameterIDs::inputPositionX, x);
+                    state.setInputParameter(channel, WFSParameterIDs::inputPositionY, y);
+                    state.setInputParameter(channel, WFSParameterIDs::inputPositionZ, z);
+                }
+                return;  // Already set all values
+            }
+        }
+    }
+
     state.setInputParameter(channel, paramId, newValue);
 }
 

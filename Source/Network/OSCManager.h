@@ -286,6 +286,8 @@ private:
     float applyConstraintX(int channelIndex, float value) const;
     float applyConstraintY(int channelIndex, float value) const;
     float applyConstraintZ(int channelIndex, float value) const;
+    // Apply distance constraint for Cylindrical/Spherical modes (modifies position in place)
+    void applyConstraintDistance(int channelIndex, float& x, float& y, float& z) const;
 
     void sendRemoteChannelDump(int channelId);
 

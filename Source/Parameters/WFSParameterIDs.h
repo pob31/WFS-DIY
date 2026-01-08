@@ -189,6 +189,9 @@ namespace WFSParameterIDs
     const juce::Identifier inputConstraintX      ("inputConstraintX");
     const juce::Identifier inputConstraintY      ("inputConstraintY");
     const juce::Identifier inputConstraintZ      ("inputConstraintZ");
+    const juce::Identifier inputConstraintDistance      ("inputConstraintDistance");     // 0=OFF, 1=ON (for Cylindrical/Spherical modes)
+    const juce::Identifier inputConstraintDistanceMin   ("inputConstraintDistanceMin");  // meters (0-50)
+    const juce::Identifier inputConstraintDistanceMax   ("inputConstraintDistanceMax");  // meters (0-50)
     const juce::Identifier inputFlipX            ("inputFlipX");
     const juce::Identifier inputFlipY            ("inputFlipY");
     const juce::Identifier inputFlipZ            ("inputFlipZ");

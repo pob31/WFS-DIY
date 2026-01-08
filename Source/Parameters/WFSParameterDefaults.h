@@ -195,6 +195,9 @@ namespace WFSParameterDefaults
     constexpr float inputOffsetMax              = 50.0f;
 
     constexpr int inputConstraintDefault        = 1;  // 0=Free, 1=Constrained
+    constexpr int inputConstraintDistanceDefault        = 0;      // 0=OFF, 1=ON (for Cylindrical/Spherical modes)
+    constexpr float inputConstraintDistanceMinDefault   = 0.0f;   // meters
+    constexpr float inputConstraintDistanceMaxDefault   = 50.0f;  // meters
     constexpr int inputFlipDefault              = 0;  // 0=Normal, 1=Flipped
     constexpr int inputClusterDefault           = 0;  // 0=Single, 1-10=Cluster 1-10
     constexpr int inputClusterMin               = 0;
