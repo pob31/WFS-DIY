@@ -760,6 +760,7 @@ private:
     void setupEditableValueLabel (juce::Label& label)
     {
         label.setEditable (true, false);
+        label.setJustificationType (juce::Justification::right);
         label.addListener (this);
     }
 
@@ -945,7 +946,7 @@ private:
         const int sliderHeight = 40;
         const int spacing = 10;
         const int labelWidth = 100;
-        const int valueWidth = 80;
+        const int valueWidth = 60;  // Tight value width like LFO section
         const int editorWidth = 70;
         const int unitWidth = 25;
         const int dialSize = 70;
@@ -972,7 +973,7 @@ private:
         // Delay/Latency
         row = col1.removeFromTop (rowHeight);
         delayLatencyLabel.setBounds (row.removeFromLeft (labelWidth));
-        delayLatencyValueLabel.setBounds (row.removeFromRight (valueWidth));
+        delayLatencyValueLabel.setBounds (row.removeFromRight (130));  // Wider for "Latency: 100.0 ms"
         col1.removeFromTop (3);
         delayLatencySlider.setBounds (col1.removeFromTop (sliderHeight));
         col1.removeFromTop (spacing);

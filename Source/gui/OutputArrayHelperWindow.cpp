@@ -1103,7 +1103,7 @@ void OutputArrayHelperContent::loadPresetDefaults(ArrayPresetType preset)
             startYEditor.setText("-0.5");
             endXEditor.setText("4");
             endYEditor.setText("-0.5");
-            orientationEditor.setText("0");
+            orientationEditor.setText("180");  // Face audience (-Y)
             break;
 
         case ArrayPresetType::NearFieldCurved:
@@ -1124,7 +1124,7 @@ void OutputArrayHelperContent::loadPresetDefaults(ArrayPresetType preset)
             startYEditor.setText("-0.5");
             endXEditor.setText("8");
             endYEditor.setText("-0.5");
-            orientationEditor.setText("0");
+            orientationEditor.setText("180");  // Face audience (-Y)
             break;
 
         case ArrayPresetType::SubBass:
@@ -1136,7 +1136,7 @@ void OutputArrayHelperContent::loadPresetDefaults(ArrayPresetType preset)
             startYEditor.setText("0");
             endXEditor.setText("8");
             endYEditor.setText("0");
-            orientationEditor.setText("0");
+            orientationEditor.setText("180");  // Face audience (-Y)
             // Select endpoints method by default for sub bass
             endpointsRadio.setToggleState(true, juce::dontSendNotification);
             break;
@@ -1228,7 +1228,7 @@ void OutputArrayHelperContent::autoCalculatePreview()
 
         case ArrayPresetType::DelayLine:
         {
-            float delayOrientation = frontFacingRadio.getToggleState() ? 0.0f : 180.0f;
+            float delayOrientation = frontFacingRadio.getToggleState() ? 180.0f : 0.0f;  // Front=audience, Back=stage
             if (centerSpacingRadio.getToggleState() && config.supportsCenterSpacing)
             {
                 float cx = centerXEditor.getText().getFloatValue();
@@ -1336,7 +1336,7 @@ void OutputArrayHelperContent::calculatePositions()
 
         case ArrayPresetType::DelayLine:
         {
-            float delayOrientation = frontFacingRadio.getToggleState() ? 0.0f : 180.0f;
+            float delayOrientation = frontFacingRadio.getToggleState() ? 180.0f : 0.0f;  // Front=audience, Back=stage
             if (centerSpacingRadio.getToggleState() && config.supportsCenterSpacing)
             {
                 float cx = centerXEditor.getText().getFloatValue();

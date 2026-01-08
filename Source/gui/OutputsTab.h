@@ -840,6 +840,7 @@ private:
     void setupEditableValueLabel(juce::Label& label)
     {
         label.setEditable(true, false);  // Single click to edit
+        label.setJustificationType(juce::Justification::right);
         label.addListener(this);
     }
 
@@ -1032,7 +1033,7 @@ private:
         const int sliderHeight = 40;
         const int spacing = 8;
         const int labelWidth = 110;
-        const int valueWidth = 80;
+        const int valueWidth = 60;  // Tight value width like LFO section
         const int indicatorSize = 6;
 
         // Helper to position indicator as superscript after label text (like a footnote marker)
@@ -1073,7 +1074,7 @@ private:
         row = leftCol.removeFromTop(rowHeight);
         delayLatencyLabel.setBounds(row.removeFromLeft(labelWidth));
         positionIndicatorForLabel(delayLatencyIndicator, delayLatencyLabel);
-        delayLatencyValueLabel.setBounds(row.removeFromRight(valueWidth + 20));
+        delayLatencyValueLabel.setBounds(row.removeFromRight(130));  // Wider for "Latency: 100.0 ms"
         delayLatencySlider.setBounds(leftCol.removeFromTop(sliderHeight));
         leftCol.removeFromTop(spacing);
 

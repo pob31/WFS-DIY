@@ -1508,7 +1508,7 @@ private:
 
         // Amplitude X/Y/Z sliders (0-50 m)
         addAndMakeVisible(lfoAmplitudeXLabel);
-        lfoAmplitudeXLabel.setText("Ampl. X:", juce::dontSendNotification);
+        lfoAmplitudeXLabel.setText("Amplitude X:", juce::dontSendNotification);
         lfoAmplitudeXSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF9C27B0));
         lfoAmplitudeXSlider.onValueChanged = [this](float v) {
             float amp = v * 50.0f;
@@ -1521,7 +1521,7 @@ private:
         setupEditableValueLabel(lfoAmplitudeXValueLabel);
 
         addAndMakeVisible(lfoAmplitudeYLabel);
-        lfoAmplitudeYLabel.setText("Ampl. Y:", juce::dontSendNotification);
+        lfoAmplitudeYLabel.setText("Amplitude Y:", juce::dontSendNotification);
         lfoAmplitudeYSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF9C27B0));
         lfoAmplitudeYSlider.onValueChanged = [this](float v) {
             float amp = v * 50.0f;
@@ -1534,7 +1534,7 @@ private:
         setupEditableValueLabel(lfoAmplitudeYValueLabel);
 
         addAndMakeVisible(lfoAmplitudeZLabel);
-        lfoAmplitudeZLabel.setText("Ampl. Z:", juce::dontSendNotification);
+        lfoAmplitudeZLabel.setText("Amplitude Z:", juce::dontSendNotification);
         lfoAmplitudeZSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF9C27B0));
         lfoAmplitudeZSlider.onValueChanged = [this](float v) {
             float amp = v * 50.0f;
@@ -2014,6 +2014,7 @@ private:
     void setupEditableValueLabel(juce::Label& label)
     {
         label.setEditable(true, false);  // Single click to edit
+        label.setJustificationType(juce::Justification::right);
         label.addListener(this);
     }
 
@@ -2887,10 +2888,6 @@ private:
         const int sliderHeight = 32;
         const int spacing = 6;
         const int labelWidth = 80;
-        const int valueWidth = 70;
-        const int editorWidth = 70;
-        const int unitWidth = 25;
-        const int buttonWidth = 110;
         const int dialSize = 55;
 
         auto col1 = area.removeFromLeft(area.getWidth() / 2).reduced(5, 0);
@@ -2902,14 +2899,14 @@ private:
         // Attenuation
         auto row = col1.removeFromTop(rowHeight);
         attenuationLabel.setBounds(row.removeFromLeft(labelWidth));
-        attenuationValueLabel.setBounds(row.removeFromRight(100));  // Wider for "-12.0 dB"
+        attenuationValueLabel.setBounds(row.removeFromRight(60));  // Tight value like LFO
         attenuationSlider.setBounds(col1.removeFromTop(sliderHeight));
         col1.removeFromTop(spacing);
 
         // Delay/Latency
         row = col1.removeFromTop(rowHeight);
         delayLatencyLabel.setBounds(row.removeFromLeft(labelWidth));
-        delayLatencyValueLabel.setBounds(row.removeFromRight(130));  // Wider for "Latency: 100.0 ms"
+        delayLatencyValueLabel.setBounds(row.removeFromRight(100));  // Wider for "Latency: 100.0 ms"
         delayLatencySlider.setBounds(col1.removeFromTop(sliderHeight));
         col1.removeFromTop(spacing);
 
@@ -3251,7 +3248,7 @@ private:
         const int sliderHeight = 32;
         const int spacing = 6;
         const int labelWidth = 100;
-        const int valueWidth = 95;  // Wider for "-20.0 dB" values
+        const int valueWidth = 60;  // Tight value width like LFO section
         const int dialSize = 65;
         const int buttonWidth = 120;
 
@@ -3296,14 +3293,13 @@ private:
         lsPeakRatioDial.setBounds(peakDialArea.removeFromTop(dialSize).withSizeKeepingCentre(dialSize, dialSize));
         lsPeakRatioValueLabel.setBounds(peakDialArea.removeFromTop(rowHeight));
 
-        // Peak slider section (left) - vertically centered with dial
-        // Center the slider vertically: label at top, slider centered with dial, value at bottom
-        lsPeakThresholdLabel.setBounds(peakSliderArea.removeFromTop(rowHeight));
+        // Peak slider section (left) - label + value on same row, slider below
+        row = peakSliderArea.removeFromTop(rowHeight);
+        lsPeakThresholdLabel.setBounds(row.removeFromLeft(labelWidth));
+        lsPeakThresholdValueLabel.setBounds(row.removeFromRight(valueWidth));
         int sliderVerticalOffset = (dialSize - sliderHeight) / 2;  // Center slider with dial
         peakSliderArea.removeFromTop(sliderVerticalOffset);
         lsPeakThresholdSlider.setBounds(peakSliderArea.removeFromTop(sliderHeight));
-        peakSliderArea.removeFromTop(sliderVerticalOffset);
-        lsPeakThresholdValueLabel.setBounds(peakSliderArea.removeFromTop(rowHeight));
 
         col1.removeFromTop(spacing * 2);
 
@@ -3318,12 +3314,12 @@ private:
         lsSlowRatioDial.setBounds(slowDialArea.removeFromTop(dialSize).withSizeKeepingCentre(dialSize, dialSize));
         lsSlowRatioValueLabel.setBounds(slowDialArea.removeFromTop(rowHeight));
 
-        // Slow slider section (left) - vertically centered with dial
-        lsSlowThresholdLabel.setBounds(slowSliderArea.removeFromTop(rowHeight));
+        // Slow slider section (left) - label + value on same row, slider below
+        row = slowSliderArea.removeFromTop(rowHeight);
+        lsSlowThresholdLabel.setBounds(row.removeFromLeft(labelWidth));
+        lsSlowThresholdValueLabel.setBounds(row.removeFromRight(valueWidth));
         slowSliderArea.removeFromTop(sliderVerticalOffset);
         lsSlowThresholdSlider.setBounds(slowSliderArea.removeFromTop(sliderHeight));
-        slowSliderArea.removeFromTop(sliderVerticalOffset);
-        lsSlowThresholdValueLabel.setBounds(slowSliderArea.removeFromTop(rowHeight));
 
         // ========== COLUMN 2: Hackoustics (Floor Reflections) ==========
         frActiveButton.setBounds(col2.removeFromTop(rowHeight).withWidth(180));
@@ -3500,13 +3496,13 @@ private:
             auto sliderArea = axisRow.removeFromLeft(ampRateWidth);
             // Amplitude row
             auto ampRow = sliderArea.removeFromTop(rowHeight);
-            ampLabel.setBounds(ampRow.removeFromLeft(45));
+            ampLabel.setBounds(ampRow.removeFromLeft(70));  // Wider to fit "Amplitude:"
             ampValue.setBounds(ampRow.removeFromRight(50));
             ampSlider.setBounds(sliderArea.removeFromTop(sliderHeight));
             sliderArea.removeFromTop(ampRateSpacing);  // Doubled spacing between amp and rate
             // Rate row
             auto rateRow = sliderArea.removeFromTop(rowHeight);
-            rateLabel.setBounds(rateRow.removeFromLeft(45));
+            rateLabel.setBounds(rateRow.removeFromLeft(70));  // Match amplitude label width
             rateValue.setBounds(rateRow.removeFromRight(50));
             rateSlider.setBounds(sliderArea.removeFromTop(sliderHeight));
             axisRow.removeFromLeft(spacing);
@@ -3550,8 +3546,8 @@ private:
                       lfoPhaseZLabel, lfoPhaseZDial, lfoPhaseZValueLabel,
                       lfoOutputZLabel, lfoOutputZSlider);
 
-        // --- Jitter slider at bottom (just above footer/save-recall bar) ---
-        col1.removeFromTop(spacing * 2);
+        // --- Jitter slider at bottom (separate effect, more spacing) ---
+        col1.removeFromTop(spacing * 8);  // Much more spacing to separate from LFO
         auto row = col1.removeFromTop(rowHeight);
         jitterLabel.setBounds(row.removeFromLeft(labelWidth));
         jitterValueLabel.setBounds(row.removeFromRight(valueWidth));
