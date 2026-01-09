@@ -146,12 +146,17 @@ const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getOutputAddre
         // Options
         { "miniLatencyEnable",      WFSParameterIDs::outputMiniLatencyEnable },
         { "LSenable",               WFSParameterIDs::outputLSattenEnable },
+        { "FRenable",               WFSParameterIDs::outputFRenable },
         { "DistanceAttenPercent",   WFSParameterIDs::outputDistanceAttenPercent },
         { "Hparallax",              WFSParameterIDs::outputHparallax },
         { "Vparallax",              WFSParameterIDs::outputVparallax },
 
         // EQ
-        { "EQenabled",          WFSParameterIDs::outputEQenabled },
+        { "EQenable",           WFSParameterIDs::outputEQenabled },
+        { "EQshape",            WFSParameterIDs::eqShape },
+        { "EQfreq",             WFSParameterIDs::eqFrequency },
+        { "EQgain",             WFSParameterIDs::eqGain },
+        { "EQq",                WFSParameterIDs::eqQ },
     };
 
     return addressMap;
@@ -478,17 +483,42 @@ OSCMessageRouter::ParsedOutputMessage OSCMessageRouter::parseOutputMessage(const
     if (!result.paramId.isValid())
         return result;
 
-    // Expected format: /wfs/output/{param} <channelID> <value>
-    if (message.size() < 2)
-        return result;
+    juce::String paramName = extractParamName(address);
 
-    result.channelId = extractInt(message[0]);
+    // Check if this is an EQ parameter that needs band index
+    // EQ parameters have format: /wfs/output/{EQparam} <channelID> <bandIndex> <value>
+    bool isEQParam = paramName.startsWith("EQ") && paramName != "EQenable";
 
-    // Determine value type based on argument
-    if (message[1].isString())
-        result.value = extractString(message[1]);
+    if (isEQParam)
+    {
+        // Expected format: /wfs/output/EQ{param} <channelID> <bandIndex> <value>
+        if (message.size() < 3)
+            return result;
+
+        result.isEQparam = true;
+        result.channelId = extractInt(message[0]);
+        result.bandIndex = extractInt(message[1]);
+
+        // Determine value type based on argument
+        if (message[2].isString())
+            result.value = extractString(message[2]);
+        else
+            result.value = extractFloat(message[2]);
+    }
     else
-        result.value = extractFloat(message[1]);
+    {
+        // Expected format: /wfs/output/{param} <channelID> <value>
+        if (message.size() < 2)
+            return result;
+
+        result.channelId = extractInt(message[0]);
+
+        // Determine value type based on argument
+        if (message[1].isString())
+            result.value = extractString(message[1]);
+        else
+            result.value = extractFloat(message[1]);
+    }
 
     result.valid = true;
     return result;

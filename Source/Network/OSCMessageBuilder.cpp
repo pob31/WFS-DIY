@@ -171,7 +171,11 @@ const std::map<juce::Identifier, OSCMessageBuilder::ParamMapping>& OSCMessageBui
         { WFSParameterIDs::outputVparallax,              { "/wfs/output/Vparallax",           "/remoteInput/output/Vparallax" } },
 
         // EQ
-        { WFSParameterIDs::outputEQenabled,          { "/wfs/output/EQenabled",         "/remoteInput/output/EQenabled" } },
+        { WFSParameterIDs::outputEQenabled,          { "/wfs/output/EQenable",          "/remoteInput/output/EQenable" } },
+        { WFSParameterIDs::eqShape,                  { "/wfs/output/EQshape",           "/remoteInput/output/EQshape" } },
+        { WFSParameterIDs::eqFrequency,              { "/wfs/output/EQfreq",            "/remoteInput/output/EQfreq" } },
+        { WFSParameterIDs::eqGain,                   { "/wfs/output/EQgain",            "/remoteInput/output/EQgain" } },
+        { WFSParameterIDs::eqQ,                      { "/wfs/output/EQq",               "/remoteInput/output/EQq" } },
     };
 
     return mappings;

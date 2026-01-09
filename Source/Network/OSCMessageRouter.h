@@ -33,8 +33,10 @@ public:
     {
         juce::Identifier paramId;
         int channelId = 0;
+        int bandIndex = 0;  // For EQ parameters (1-6)
         juce::var value;
         bool valid = false;
+        bool isEQparam = false;  // True for EQ parameters that need band index
     };
 
     struct ParsedReverbMessage
