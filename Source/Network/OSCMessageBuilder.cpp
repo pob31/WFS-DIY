@@ -176,6 +176,7 @@ const std::map<juce::Identifier, OSCMessageBuilder::ParamMapping>& OSCMessageBui
         { WFSParameterIDs::eqFrequency,              { "/wfs/output/EQfreq",            "/remoteInput/output/EQfreq" } },
         { WFSParameterIDs::eqGain,                   { "/wfs/output/EQgain",            "/remoteInput/output/EQgain" } },
         { WFSParameterIDs::eqQ,                      { "/wfs/output/EQq",               "/remoteInput/output/EQq" } },
+        { WFSParameterIDs::eqSlope,                  { "/wfs/output/EQslope",           "/remoteInput/output/EQslope" } },
     };
 
     return mappings;

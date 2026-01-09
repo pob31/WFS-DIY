@@ -157,6 +157,7 @@ const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getOutputAddre
         { "EQfreq",             WFSParameterIDs::eqFrequency },
         { "EQgain",             WFSParameterIDs::eqGain },
         { "EQq",                WFSParameterIDs::eqQ },
+        { "EQslope",            WFSParameterIDs::eqSlope },
     };
 
     return addressMap;
