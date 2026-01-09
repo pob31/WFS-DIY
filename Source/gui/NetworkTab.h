@@ -2225,6 +2225,7 @@ private:
         if (fileManager.loadNetworkConfig())
         {
             loadParametersFromValueTree();
+            updateOSCManagerConfig();
             showStatusMessage("Network configuration reloaded.");
         }
         else
@@ -2251,6 +2252,7 @@ private:
         if (fileManager.loadNetworkConfigBackup(0))
         {
             loadParametersFromValueTree();
+            updateOSCManagerConfig();
             showStatusMessage("Network configuration loaded from backup.");
         }
         else
@@ -2273,6 +2275,7 @@ private:
                 if (fileManager.importNetworkConfig(result))
                 {
                     loadParametersFromValueTree();
+                    updateOSCManagerConfig();
                     showStatusMessage("Network configuration imported.");
                 }
                 else
