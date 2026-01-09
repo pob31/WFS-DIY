@@ -187,7 +187,7 @@ const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getReverbAddre
         { "HFdamping",          WFSParameterIDs::reverbHFdamping },
         { "miniLatencyEnable",  WFSParameterIDs::reverbMiniLatencyEnable },
         { "LSenable",           WFSParameterIDs::reverbLSenable },
-        { "distanceAttenEnable", WFSParameterIDs::reverbDistanceAttenEnable },
+        { "DistanceAttenPercent", WFSParameterIDs::reverbDistanceAttenEnable },
 
         // EQ
         { "EQenable",           WFSParameterIDs::reverbEQenable },

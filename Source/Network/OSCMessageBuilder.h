@@ -42,6 +42,14 @@ public:
         float value);
 
     /**
+     * Build an OSC message for a reverb parameter change.
+     */
+    static std::optional<juce::OSCMessage> buildReverbMessage(
+        const juce::Identifier& paramId,
+        int channelId,
+        float value);
+
+    /**
      * Build an OSC message for a config parameter change.
      * Config parameters are global (no channel ID).
      * @param paramId The parameter identifier (e.g., stageShape)
@@ -68,6 +76,11 @@ public:
         const juce::String& value);
 
     static std::optional<juce::OSCMessage> buildOutputStringMessage(
+        const juce::Identifier& paramId,
+        int channelId,
+        const juce::String& value);
+
+    static std::optional<juce::OSCMessage> buildReverbStringMessage(
         const juce::Identifier& paramId,
         int channelId,
         const juce::String& value);
@@ -114,10 +127,16 @@ public:
     static juce::String getConfigOSCPath(const juce::Identifier& paramId);
 
     /**
+     * Get the OSC path for a reverb parameter.
+     */
+    static juce::String getReverbOSCPath(const juce::Identifier& paramId);
+
+    /**
      * Check if a parameter ID is mapped for OSC.
      */
     static bool isInputMapped(const juce::Identifier& paramId);
     static bool isOutputMapped(const juce::Identifier& paramId);
+    static bool isReverbMapped(const juce::Identifier& paramId);
     static bool isConfigMapped(const juce::Identifier& paramId);
 
     //==========================================================================
@@ -164,6 +183,7 @@ private:
 
     static const std::map<juce::Identifier, ParamMapping>& getInputMappings();
     static const std::map<juce::Identifier, ParamMapping>& getOutputMappings();
+    static const std::map<juce::Identifier, ParamMapping>& getReverbMappings();
     static const std::map<juce::Identifier, juce::String>& getConfigMappings();
 
     static juce::OSCMessage buildMessage(

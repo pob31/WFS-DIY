@@ -182,6 +182,50 @@ const std::map<juce::Identifier, OSCMessageBuilder::ParamMapping>& OSCMessageBui
     return mappings;
 }
 
+const std::map<juce::Identifier, OSCMessageBuilder::ParamMapping>& OSCMessageBuilder::getReverbMappings()
+{
+    static const std::map<juce::Identifier, ParamMapping> mappings = {
+        // Channel
+        { WFSParameterIDs::reverbName,               { "/wfs/reverb/name",              "/remoteInput/reverb/name" } },
+        { WFSParameterIDs::reverbAttenuation,        { "/wfs/reverb/attenuation",       "/remoteInput/reverb/attenuation" } },
+        { WFSParameterIDs::reverbDelayLatency,       { "/wfs/reverb/delayLatency",      "/remoteInput/reverb/delayLatency" } },
+
+        // Position
+        { WFSParameterIDs::reverbPositionX,          { "/wfs/reverb/positionX",         "/remoteInput/reverb/positionX" } },
+        { WFSParameterIDs::reverbPositionY,          { "/wfs/reverb/positionY",         "/remoteInput/reverb/positionY" } },
+        { WFSParameterIDs::reverbPositionZ,          { "/wfs/reverb/positionZ",         "/remoteInput/reverb/positionZ" } },
+        { WFSParameterIDs::reverbReturnOffsetX,      { "/wfs/reverb/returnOffsetX",     "/remoteInput/reverb/returnOffsetX" } },
+        { WFSParameterIDs::reverbReturnOffsetY,      { "/wfs/reverb/returnOffsetY",     "/remoteInput/reverb/returnOffsetY" } },
+        { WFSParameterIDs::reverbReturnOffsetZ,      { "/wfs/reverb/returnOffsetZ",     "/remoteInput/reverb/returnOffsetZ" } },
+
+        // Feed
+        { WFSParameterIDs::reverbOrientation,        { "/wfs/reverb/orientation",       "/remoteInput/reverb/orientation" } },
+        { WFSParameterIDs::reverbAngleOn,            { "/wfs/reverb/angleOn",           "/remoteInput/reverb/angleOn" } },
+        { WFSParameterIDs::reverbAngleOff,           { "/wfs/reverb/angleOff",          "/remoteInput/reverb/angleOff" } },
+        { WFSParameterIDs::reverbPitch,              { "/wfs/reverb/pitch",             "/remoteInput/reverb/pitch" } },
+        { WFSParameterIDs::reverbHFdamping,          { "/wfs/reverb/HFdamping",         "/remoteInput/reverb/HFdamping" } },
+        { WFSParameterIDs::reverbMiniLatencyEnable,  { "/wfs/reverb/miniLatencyEnable", "/remoteInput/reverb/miniLatencyEnable" } },
+        { WFSParameterIDs::reverbLSenable,           { "/wfs/reverb/LSenable",          "/remoteInput/reverb/LSenable" } },
+        { WFSParameterIDs::reverbDistanceAttenEnable, { "/wfs/reverb/DistanceAttenPercent", "/remoteInput/reverb/DistanceAttenPercent" } },
+
+        // EQ
+        { WFSParameterIDs::reverbEQenable,           { "/wfs/reverb/EQenable",          "/remoteInput/reverb/EQenable" } },
+        { WFSParameterIDs::reverbEQshape,            { "/wfs/reverb/EQshape",           "/remoteInput/reverb/EQshape" } },
+        { WFSParameterIDs::reverbEQfreq,             { "/wfs/reverb/EQfreq",            "/remoteInput/reverb/EQfreq" } },
+        { WFSParameterIDs::reverbEQgain,             { "/wfs/reverb/EQgain",            "/remoteInput/reverb/EQgain" } },
+        { WFSParameterIDs::reverbEQq,                { "/wfs/reverb/EQq",               "/remoteInput/reverb/EQq" } },
+        { WFSParameterIDs::reverbEQslope,            { "/wfs/reverb/EQslope",           "/remoteInput/reverb/EQslope" } },
+
+        // Return
+        { WFSParameterIDs::reverbDistanceAttenuation, { "/wfs/reverb/distanceAttenuation", "/remoteInput/reverb/distanceAttenuation" } },
+        { WFSParameterIDs::reverbCommonAtten,        { "/wfs/reverb/commonAtten",       "/remoteInput/reverb/commonAtten" } },
+        { WFSParameterIDs::reverbMutes,              { "/wfs/reverb/mutes",             "/remoteInput/reverb/mutes" } },
+        { WFSParameterIDs::reverbMuteMacro,          { "/wfs/reverb/muteMacro",         "/remoteInput/reverb/muteMacro" } },
+    };
+
+    return mappings;
+}
+
 //==============================================================================
 // Message Building - Float Values
 //==============================================================================
@@ -206,6 +250,20 @@ std::optional<juce::OSCMessage> OSCMessageBuilder::buildOutputMessage(
     float value)
 {
     const auto& mappings = getOutputMappings();
+    auto it = mappings.find(paramId);
+
+    if (it == mappings.end())
+        return std::nullopt;
+
+    return buildMessage(it->second.oscPath, channelId, value);
+}
+
+std::optional<juce::OSCMessage> OSCMessageBuilder::buildReverbMessage(
+    const juce::Identifier& paramId,
+    int channelId,
+    float value)
+{
+    const auto& mappings = getReverbMappings();
     auto it = mappings.find(paramId);
 
     if (it == mappings.end())
@@ -268,6 +326,20 @@ std::optional<juce::OSCMessage> OSCMessageBuilder::buildOutputStringMessage(
     const juce::String& value)
 {
     const auto& mappings = getOutputMappings();
+    auto it = mappings.find(paramId);
+
+    if (it == mappings.end())
+        return std::nullopt;
+
+    return buildMessage(it->second.oscPath, channelId, value);
+}
+
+std::optional<juce::OSCMessage> OSCMessageBuilder::buildReverbStringMessage(
+    const juce::Identifier& paramId,
+    int channelId,
+    const juce::String& value)
+{
+    const auto& mappings = getReverbMappings();
     auto it = mappings.find(paramId);
 
     if (it == mappings.end())
@@ -340,6 +412,13 @@ juce::String OSCMessageBuilder::getConfigOSCPath(const juce::Identifier& paramId
     return (it != mappings.end()) ? it->second : juce::String();
 }
 
+juce::String OSCMessageBuilder::getReverbOSCPath(const juce::Identifier& paramId)
+{
+    const auto& mappings = getReverbMappings();
+    auto it = mappings.find(paramId);
+    return (it != mappings.end()) ? it->second.oscPath : juce::String();
+}
+
 bool OSCMessageBuilder::isInputMapped(const juce::Identifier& paramId)
 {
     return getInputMappings().find(paramId) != getInputMappings().end();
@@ -348,6 +427,11 @@ bool OSCMessageBuilder::isInputMapped(const juce::Identifier& paramId)
 bool OSCMessageBuilder::isOutputMapped(const juce::Identifier& paramId)
 {
     return getOutputMappings().find(paramId) != getOutputMappings().end();
+}
+
+bool OSCMessageBuilder::isReverbMapped(const juce::Identifier& paramId)
+{
+    return getReverbMappings().find(paramId) != getReverbMappings().end();
 }
 
 bool OSCMessageBuilder::isConfigMapped(const juce::Identifier& paramId)
