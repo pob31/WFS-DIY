@@ -232,6 +232,15 @@ void WFSValueTreeState::setInputParameter (int channelIndex, const juce::Identif
             return;
         }
     }
+
+    // Property not found - add it to the appropriate section if we know where it belongs
+    // This handles old config files that may be missing newer properties
+    if (paramId == inputCoordinateMode)
+    {
+        auto position = getInputPositionSection (channelIndex);
+        if (position.isValid())
+            position.setProperty (paramId, value, &undoManager);
+    }
 }
 
 juce::ValueTree WFSValueTreeState::getInputChannelSection (int channelIndex)
@@ -314,6 +323,15 @@ void WFSValueTreeState::setOutputParameter (int channelIndex, const juce::Identi
             child.setProperty (paramId, value, &undoManager);
             return;
         }
+    }
+
+    // Property not found - add it to the appropriate section if we know where it belongs
+    // This handles old config files that may be missing newer properties
+    if (paramId == outputCoordinateMode)
+    {
+        auto position = getOutputPositionSection (channelIndex);
+        if (position.isValid())
+            position.setProperty (paramId, value, &undoManager);
     }
 }
 
@@ -671,6 +689,15 @@ void WFSValueTreeState::setReverbParameter (int channelIndex, const juce::Identi
                 }
             }
         }
+    }
+
+    // Property not found - add it to the appropriate section if we know where it belongs
+    // This handles old config files that may be missing newer properties
+    if (paramId == reverbCoordinateMode)
+    {
+        auto position = getReverbPositionSection (channelIndex);
+        if (position.isValid())
+            position.setProperty (paramId, value, &undoManager);
     }
 }
 
