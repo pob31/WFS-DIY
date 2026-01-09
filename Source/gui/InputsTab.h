@@ -15,6 +15,7 @@
 #include "dials/WfsLFOIndicators.h"
 #include "../DSP/AutomOtionProcessor.h"
 #include "../Helpers/CoordinateConverter.h"
+#include "SetAllInputsWindow.h"
 
 //==============================================================================
 // Custom Transport Button - Play (right-pointing triangle)
@@ -116,6 +117,125 @@ public:
     }
 };
 
+//==============================================================================
+// Long-Press Button for "Set All Inputs" window
+// Activates on release after holding for 2+ seconds. Cancels if pointer leaves button.
+class SetAllInputsLongPressButton : public juce::TextButton,
+                                     private juce::Timer
+{
+public:
+    SetAllInputsLongPressButton()
+    {
+        setButtonText("Set all Inputs...");
+    }
+
+    void mouseDown(const juce::MouseEvent& e) override
+    {
+        if (e.mods.isLeftButtonDown())
+        {
+            pressStartTime = juce::Time::getCurrentTime();
+            isLongPressActive = true;
+            thresholdReached = false;
+            startTimer(50);  // Check every 50ms
+        }
+        TextButton::mouseDown(e);
+    }
+
+    void mouseUp(const juce::MouseEvent& e) override
+    {
+        stopTimer();
+
+        // Trigger action only if threshold was reached and pointer is still over button
+        if (thresholdReached && isLongPressActive && contains(e.getPosition()))
+        {
+            if (onLongPress)
+                onLongPress();
+        }
+
+        isLongPressActive = false;
+        thresholdReached = false;
+        repaint();
+        TextButton::mouseUp(e);
+    }
+
+    void mouseExit(const juce::MouseEvent& e) override
+    {
+        // Cancel long-press if pointer leaves button
+        if (isLongPressActive)
+        {
+            stopTimer();
+            isLongPressActive = false;
+            thresholdReached = false;
+            repaint();
+        }
+        TextButton::mouseExit(e);
+    }
+
+    std::function<void()> onLongPress;
+
+    static constexpr int longPressDurationMs = 2000;  // 2 seconds
+
+private:
+    void timerCallback() override
+    {
+        if (isLongPressActive && !thresholdReached)
+        {
+            auto elapsed = (juce::Time::getCurrentTime() - pressStartTime).inMilliseconds();
+            if (elapsed >= longPressDurationMs)
+            {
+                thresholdReached = true;
+                stopTimer();
+            }
+        }
+        repaint();  // Update progress indicator
+    }
+
+    void paintButton(juce::Graphics& g, bool shouldHighlight, bool shouldBeDown) override
+    {
+        auto bounds = getLocalBounds().toFloat().reduced(1.0f);
+
+        // Background
+        if (shouldBeDown)
+            g.setColour(ColorScheme::get().buttonPressed);
+        else if (shouldHighlight)
+            g.setColour(ColorScheme::get().buttonHover);
+        else
+            g.setColour(ColorScheme::get().buttonNormal);
+
+        g.fillRoundedRectangle(bounds, 4.0f);
+        g.setColour(ColorScheme::get().buttonBorder);
+        g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
+
+        // Progress indicator during long press (fills from bottom)
+        if (isLongPressActive && !thresholdReached)
+        {
+            auto elapsed = (juce::Time::getCurrentTime() - pressStartTime).inMilliseconds();
+            float progress = juce::jlimit(0.0f, 1.0f, static_cast<float>(elapsed) / static_cast<float>(longPressDurationMs));
+
+            g.setColour(ColorScheme::get().accentBlue.withAlpha(0.5f));
+            auto progressBounds = bounds;
+            progressBounds = progressBounds.removeFromBottom(bounds.getHeight() * progress);
+            g.fillRoundedRectangle(progressBounds, 4.0f);
+        }
+
+        // Show green when threshold reached (ready to release)
+        if (thresholdReached && isLongPressActive)
+        {
+            g.setColour(ColorScheme::get().accentGreen.withAlpha(0.5f));
+            g.fillRoundedRectangle(bounds, 4.0f);
+        }
+
+        // Text
+        g.setColour(ColorScheme::get().textPrimary);
+        g.setFont(juce::FontOptions(14.0f));
+        g.drawText(getButtonText(), bounds, juce::Justification::centred);
+    }
+
+    juce::Time pressStartTime;
+    bool isLongPressActive = false;
+    bool thresholdReached = false;
+};
+
 /**
  * Inputs Tab Component
  * Configuration for input channels (audio objects) with sub-tabs for different parameter groups.
@@ -211,6 +331,10 @@ public:
         // Map visibility button
         addAndMakeVisible(mapVisibilityButton);
         mapVisibilityButton.onClick = [this]() { toggleMapVisibility(); };
+
+        // Set All Inputs button (long-press to open)
+        addAndMakeVisible(setAllInputsButton);
+        setAllInputsButton.onLongPress = [this]() { openSetAllInputsWindow(); };
 
         // ==================== SUB-TABS ====================
         addAndMakeVisible(subTabBar);
@@ -435,6 +559,8 @@ public:
         mapLockButton.setBounds(row1.removeFromLeft(120));
         row1.removeFromLeft(spacing);
         mapVisibilityButton.setBounds(row1.removeFromLeft(160));
+        // Set All Inputs button at far right
+        setAllInputsButton.setBounds(row1.removeFromRight(130));
 
         // ==================== FOOTER ==================== (matching Output tab style)
         auto footerArea = bounds.removeFromBottom(footerHeight).reduced(padding, padding);
@@ -4145,6 +4271,16 @@ private:
         bool attenLaw = getIntParam(WFSParameterIDs::inputAttenuationLaw, 0) != 0;
         attenuationLawButton.setToggleState(attenLaw, juce::dontSendNotification);
         attenuationLawButton.setButtonText(attenLaw ? "1/d" : "Log");
+        // Update dial visibility based on attenuation law (Log shows dB/m, 1/d shows ratio)
+        bool showInputParams = subTabBar.getCurrentTabIndex() == 0;
+        distanceAttenLabel.setVisible(!attenLaw && showInputParams);
+        distanceAttenDial.setVisible(!attenLaw && showInputParams);
+        distanceAttenValueLabel.setVisible(!attenLaw && showInputParams);
+        distanceAttenUnitLabel.setVisible(!attenLaw && showInputParams);
+        distanceRatioLabel.setVisible(attenLaw && showInputParams);
+        distanceRatioDial.setVisible(attenLaw && showInputParams);
+        distanceRatioValueLabel.setVisible(attenLaw && showInputParams);
+        distanceRatioUnitLabel.setVisible(attenLaw && showInputParams);
 
         // Distance Attenuation stored as dB/m (-6 to 0), default -0.7
         // Formula: dB = (x * 6.0) - 6.0 => x = (dB + 6) / 6
@@ -5743,6 +5879,18 @@ private:
         updateMapButtonStates();
     }
 
+    void openSetAllInputsWindow()
+    {
+        if (setAllInputsWindow == nullptr || !setAllInputsWindow->isVisible())
+        {
+            setAllInputsWindow = std::make_unique<SetAllInputsWindow>(parameters);
+        }
+        else
+        {
+            setAllInputsWindow->toFront(true);
+        }
+    }
+
     void updateMapButtonStates()
     {
         // Lock button - show lock icon and state
@@ -5960,6 +6108,8 @@ private:
     juce::ComboBox clusterSelector;
     juce::TextButton mapLockButton;
     juce::TextButton mapVisibilityButton;
+    SetAllInputsLongPressButton setAllInputsButton;
+    std::unique_ptr<SetAllInputsWindow> setAllInputsWindow;
 
     // Sub-tab bar
     juce::TabbedButtonBar subTabBar { juce::TabbedButtonBar::TabsAtTop };

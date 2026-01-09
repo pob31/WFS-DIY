@@ -9,6 +9,7 @@
 #include <JuceHeader.h>
 #include "MainComponent.h"
 #include "gui/WindowUtils.h"
+#include "gui/ColorScheme.h"
 
 //==============================================================================
 class WFSDIYApplication  : public juce::JUCEApplication
@@ -63,8 +64,7 @@ public:
     public:
         MainWindow (juce::String name)
             : DocumentWindow (name,
-                              juce::Desktop::getInstance().getDefaultLookAndFeel()
-                                                          .findColour (juce::ResizableWindow::backgroundColourId),
+                              ColorScheme::get().background,  // Dark background to avoid white flash
                               DocumentWindow::allButtons)
         {
             setUsingNativeTitleBar (true);
