@@ -135,6 +135,61 @@ r = sqrt(x² + y² + z²)
 
 Per-channel coordinate mode is set via the "Coord:" dropdown in each tab (Inputs, Outputs, Reverbs).
 
+### Position Constraints
+Input positions can be constrained to stay within stage bounds or distance limits.
+
+**Axis Constraints (Cartesian Mode):**
+- **Constraint X/Y/Z** - Per-axis toggles limiting position to stage bounds
+- Stage bounds: `[-origin, stageSize - origin]` for each axis
+- Applied in: joystick, text editors, map drag, keyboard nudge, OSC, cluster movement
+
+**Distance Constraint (Cylindrical/Spherical Modes):**
+When coordinate mode is Cylindrical or Spherical, a radial distance constraint replaces the X/Y axis constraints.
+
+| Mode | Distance Calculation | Affected Axes |
+|------|---------------------|---------------|
+| **Cylindrical** | `sqrt(x² + y²)` | X, Y (Z unaffected) |
+| **Spherical** | `sqrt(x² + y² + z²)` | X, Y, Z |
+
+**Constraint Application:**
+```cpp
+// Scale position to maintain direction while constraining distance
+float targetDist = jlimit(minDist, maxDist, currentDist);
+float scale = targetDist / currentDist;
+// Cylindrical: x *= scale; y *= scale;
+// Spherical: x *= scale; y *= scale; z *= scale;
+```
+
+**UI Controls (InputsTab):**
+- **Constraint R: ON/OFF** - Toggle button (replaces Constraint X in non-Cartesian modes)
+- **Range slider** - Double-thumbed WfsRangeSlider for min/max distance
+- **Min/Max editors** - Direct numeric entry (0-50m range)
+- Controls are dimmed when constraint is disabled
+
+**Parameters:**
+| Parameter | Range | Description |
+|-----------|-------|-------------|
+| `inputConstraintDistance` | 0/1 | Enable distance constraint |
+| `inputConstraintDistanceMin` | 0-50m | Minimum allowed distance from origin |
+| `inputConstraintDistanceMax` | 0-50m | Maximum allowed distance from origin |
+
+**OSC Addresses:**
+- `/wfs/input/constraintDistance <ID> <value>` (0/1)
+- `/wfs/input/constraintDistanceMin <ID> <value>` (meters)
+- `/wfs/input/constraintDistanceMax <ID> <value>` (meters)
+
+**Visibility Rules:**
+| Coord Mode | X/Y Buttons | Z Button | Distance Controls |
+|------------|-------------|----------|-------------------|
+| Cartesian | Visible | Visible | Hidden |
+| Cylindrical | Hidden | Visible | Visible |
+| Spherical | Hidden | Hidden | Visible |
+
+**Snap Behavior:**
+- Position snaps immediately when constraint is enabled
+- Position snaps when switching to Cylindrical/Spherical mode with constraint active
+- Applied to all input paths: joystick, map drag, text editors, OSC, keyboard, cluster movement
+
 ### Stage Shapes
 Three stage shapes available, selected in SystemConfigTab:
 
@@ -831,6 +886,7 @@ AudioPatch
 - **WfsBidirectionalSlider** - Center-zero slider (-1 to 1 range)
 - **WfsAutoCenterSlider** - Returns to center on mouse release, supports 50Hz timer-based polling via `onPositionPolled` callback
 - **WfsWidthExpansionSlider** - For angle parameters
+- **WfsRangeSlider** - Double-thumbed slider for min/max range selection (crossable thumbs)
 
 ### Other Custom Components
 - **WfsJoystickComponent** - 2D XY control with auto-center
@@ -1230,6 +1286,7 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 - `Source/gui/OutputArrayHelperWindow.h/cpp` - Wizard of OutZ window
 - `Source/gui/ColorScheme.h` - Centralized color scheme system with 3 themes
 - `Source/gui/WfsLookAndFeel.h` - Custom LookAndFeel for widget theming
+- `Source/gui/sliders/WfsRangeSlider.h` - Double-thumbed range slider for distance constraints
 - `Source/Helpers/ArrayGeometryCalculator.h/cpp` - Speaker array geometry calculations
 
 ---
@@ -1259,6 +1316,6 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 
 ---
 
-*Last updated: 2026-01-03*
+*Last updated: 2026-01-09*
 *JUCE Version: 8.0.12*
 *Build: Visual Studio 2022 / Xcode, x64 Debug/Release*
