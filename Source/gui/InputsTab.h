@@ -884,14 +884,17 @@ private:
         trackingSmoothDial.setValue(1.0f);  // Default 100%
         trackingSmoothDial.onValueChanged = [this](float v) {
             int percent = static_cast<int>(v * 100.0f);
-            trackingSmoothValueLabel.setText(juce::String(percent) + " %", juce::dontSendNotification);
+            trackingSmoothValueLabel.setText(juce::String(percent), juce::dontSendNotification);
             saveInputParam(WFSParameterIDs::inputTrackingSmooth, percent);
         };
         addAndMakeVisible(trackingSmoothDial);
         addAndMakeVisible(trackingSmoothValueLabel);
-        trackingSmoothValueLabel.setText("100 %", juce::dontSendNotification);
-        trackingSmoothValueLabel.setJustificationType(juce::Justification::centred);
+        trackingSmoothValueLabel.setText("100", juce::dontSendNotification);
+        trackingSmoothValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(trackingSmoothValueLabel);
+        addAndMakeVisible(trackingSmoothUnitLabel);
+        trackingSmoothUnitLabel.setText("%", juce::dontSendNotification);
+        trackingSmoothUnitLabel.setJustificationType(juce::Justification::left);
 
         // Max Speed
         addAndMakeVisible(maxSpeedActiveButton);
@@ -910,14 +913,17 @@ private:
         maxSpeedDial.setColours(juce::Colours::black, juce::Colour(0xFFFF9800), juce::Colours::grey);
         maxSpeedDial.onValueChanged = [this](float v) {
             float speed = v * 19.99f + 0.01f;
-            maxSpeedValueLabel.setText(juce::String(speed, 2) + " m/s", juce::dontSendNotification);
+            maxSpeedValueLabel.setText(juce::String(speed, 2), juce::dontSendNotification);
             saveInputParam(WFSParameterIDs::inputMaxSpeed, speed);
         };
         addAndMakeVisible(maxSpeedDial);
         addAndMakeVisible(maxSpeedValueLabel);
-        maxSpeedValueLabel.setText("1.00 m/s", juce::dontSendNotification);
-        maxSpeedValueLabel.setJustificationType(juce::Justification::centred);
+        maxSpeedValueLabel.setText("1.00", juce::dontSendNotification);
+        maxSpeedValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(maxSpeedValueLabel);
+        addAndMakeVisible(maxSpeedUnitLabel);
+        maxSpeedUnitLabel.setText("m/s", juce::dontSendNotification);
+        maxSpeedUnitLabel.setJustificationType(juce::Justification::left);
 
         // Path Mode toggle (follows drawn path instead of straight line)
         addAndMakeVisible(pathModeButton);
@@ -936,14 +942,17 @@ private:
         heightFactorDial.setColours(juce::Colours::black, juce::Colour(0xFF4CAF50), juce::Colours::grey);
         heightFactorDial.onValueChanged = [this](float v) {
             int percent = static_cast<int>(v * 100.0f);
-            heightFactorValueLabel.setText(juce::String(percent) + " %", juce::dontSendNotification);
+            heightFactorValueLabel.setText(juce::String(percent), juce::dontSendNotification);
             saveInputParam(WFSParameterIDs::inputHeightFactor, percent);
         };
         addAndMakeVisible(heightFactorDial);
         addAndMakeVisible(heightFactorValueLabel);
-        heightFactorValueLabel.setText("0 %", juce::dontSendNotification);
-        heightFactorValueLabel.setJustificationType(juce::Justification::centred);
+        heightFactorValueLabel.setText("0", juce::dontSendNotification);
+        heightFactorValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(heightFactorValueLabel);
+        addAndMakeVisible(heightFactorUnitLabel);
+        heightFactorUnitLabel.setText("%", juce::dontSendNotification);
+        heightFactorUnitLabel.setJustificationType(juce::Justification::left);
 
         // Position Joystick (for X/Y real-time control)
         addAndMakeVisible(positionJoystick);
@@ -1111,9 +1120,11 @@ private:
             distanceAttenLabel.setVisible(!is1OverD && subTabBar.getCurrentTabIndex() == 0);
             distanceAttenDial.setVisible(!is1OverD && subTabBar.getCurrentTabIndex() == 0);
             distanceAttenValueLabel.setVisible(!is1OverD && subTabBar.getCurrentTabIndex() == 0);
+            distanceAttenUnitLabel.setVisible(!is1OverD && subTabBar.getCurrentTabIndex() == 0);
             distanceRatioLabel.setVisible(is1OverD && subTabBar.getCurrentTabIndex() == 0);
             distanceRatioDial.setVisible(is1OverD && subTabBar.getCurrentTabIndex() == 0);
             distanceRatioValueLabel.setVisible(is1OverD && subTabBar.getCurrentTabIndex() == 0);
+            distanceRatioUnitLabel.setVisible(is1OverD && subTabBar.getCurrentTabIndex() == 0);
             saveInputParam(WFSParameterIDs::inputAttenuationLaw, is1OverD ? 1 : 0);
         };
 
@@ -1124,14 +1135,17 @@ private:
         distanceAttenDial.setColours(juce::Colours::black, juce::Colour(0xFF9C27B0), juce::Colours::grey);
         distanceAttenDial.onValueChanged = [this](float v) {
             float dBm = (v * 6.0f) - 6.0f;
-            distanceAttenValueLabel.setText(juce::String(dBm, 1) + " dB/m", juce::dontSendNotification);
+            distanceAttenValueLabel.setText(juce::String(dBm, 1), juce::dontSendNotification);
             saveInputParam(WFSParameterIDs::inputDistanceAttenuation, dBm);
         };
         addAndMakeVisible(distanceAttenDial);
         addAndMakeVisible(distanceAttenValueLabel);
-        distanceAttenValueLabel.setText("-0.7 dB/m", juce::dontSendNotification);
-        distanceAttenValueLabel.setJustificationType(juce::Justification::centred);
+        distanceAttenValueLabel.setText("-0.7", juce::dontSendNotification);
+        distanceAttenValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(distanceAttenValueLabel);
+        addAndMakeVisible(distanceAttenUnitLabel);
+        distanceAttenUnitLabel.setText("dB/m", juce::dontSendNotification);
+        distanceAttenUnitLabel.setJustificationType(juce::Justification::left);
 
         // Distance Ratio dial (visible when attenuationLaw == 1/d)
         addAndMakeVisible(distanceRatioLabel);
@@ -1141,19 +1155,23 @@ private:
         distanceRatioDial.onValueChanged = [this](float v) {
             // Formula: pow(10.0,(x*2.0)-1.0) maps 0-1 to 0.1-10.0
             float ratio = std::pow(10.0f, (v * 2.0f) - 1.0f);
-            distanceRatioValueLabel.setText(juce::String(ratio, 2) + "x", juce::dontSendNotification);
+            distanceRatioValueLabel.setText(juce::String(ratio, 2), juce::dontSendNotification);
             saveInputParam(WFSParameterIDs::inputDistanceRatio, ratio);
         };
         distanceRatioDial.setValue(0.5f);  // Default 1.0x
         addAndMakeVisible(distanceRatioDial);
         addAndMakeVisible(distanceRatioValueLabel);
-        distanceRatioValueLabel.setText("1.00x", juce::dontSendNotification);
-        distanceRatioValueLabel.setJustificationType(juce::Justification::centred);
+        distanceRatioValueLabel.setText("1.00", juce::dontSendNotification);
+        distanceRatioValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(distanceRatioValueLabel);
+        addAndMakeVisible(distanceRatioUnitLabel);
+        distanceRatioUnitLabel.setText("x", juce::dontSendNotification);
+        distanceRatioUnitLabel.setJustificationType(juce::Justification::left);
         // Initially hidden (Log is default)
         distanceRatioLabel.setVisible(false);
         distanceRatioDial.setVisible(false);
         distanceRatioValueLabel.setVisible(false);
+        distanceRatioUnitLabel.setVisible(false);
 
         // Common Attenuation dial
         addAndMakeVisible(commonAttenLabel);
@@ -1163,14 +1181,17 @@ private:
         commonAttenDial.setValue(1.0f);
         commonAttenDial.onValueChanged = [this](float v) {
             int percent = static_cast<int>(v * 100.0f);
-            commonAttenValueLabel.setText(juce::String(percent) + " %", juce::dontSendNotification);
+            commonAttenValueLabel.setText(juce::String(percent), juce::dontSendNotification);
             saveInputParam(WFSParameterIDs::inputCommonAtten, percent);
         };
         addAndMakeVisible(commonAttenDial);
         addAndMakeVisible(commonAttenValueLabel);
-        commonAttenValueLabel.setText("100 %", juce::dontSendNotification);
-        commonAttenValueLabel.setJustificationType(juce::Justification::centred);
+        commonAttenValueLabel.setText("100", juce::dontSendNotification);
+        commonAttenValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(commonAttenValueLabel);
+        addAndMakeVisible(commonAttenUnitLabel);
+        commonAttenUnitLabel.setText("%", juce::dontSendNotification);
+        commonAttenUnitLabel.setJustificationType(juce::Justification::left);
 
         // Directivity slider
         addAndMakeVisible(directivityLabel);
@@ -1193,14 +1214,17 @@ private:
         rotationLabel.setJustificationType(juce::Justification::centred);
         rotationDial.setColours(juce::Colours::black, juce::Colours::white, juce::Colours::grey);
         rotationDial.onAngleChanged = [this](float angle) {
-            rotationValueLabel.setText(juce::String(static_cast<int>(angle)) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+            rotationValueLabel.setText(juce::String(static_cast<int>(angle)), juce::dontSendNotification);
             saveInputParam(WFSParameterIDs::inputRotation, static_cast<int>(angle));
         };
         addAndMakeVisible(rotationDial);
         addAndMakeVisible(rotationValueLabel);
-        rotationValueLabel.setText(juce::String::fromUTF8("0°"), juce::dontSendNotification);
-        rotationValueLabel.setJustificationType(juce::Justification::centred);
+        rotationValueLabel.setText("0", juce::dontSendNotification);
+        rotationValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(rotationValueLabel);
+        addAndMakeVisible(rotationUnitLabel);
+        rotationUnitLabel.setText(juce::String::fromUTF8("°"), juce::dontSendNotification);
+        rotationUnitLabel.setJustificationType(juce::Justification::left);
 
         // Tilt slider
         addAndMakeVisible(tiltLabel);
@@ -1311,13 +1335,16 @@ private:
         lsPeakRatioDial.setColours(juce::Colours::black, juce::Colour(0xFFE91E63), juce::Colours::grey);
         lsPeakRatioDial.onValueChanged = [this](float v) {
             float ratio = (v * 9.0f) + 1.0f;
-            lsPeakRatioValueLabel.setText(juce::String(ratio, 1) + ":1", juce::dontSendNotification);
+            lsPeakRatioValueLabel.setText(juce::String(ratio, 1), juce::dontSendNotification);
             saveInputParam(WFSParameterIDs::inputLSpeakRatio, ratio);
         };
         addAndMakeVisible(lsPeakRatioDial);
+        addAndMakeVisible(lsPeakRatioUnitLabel);
+        lsPeakRatioUnitLabel.setText("1:", juce::dontSendNotification);
+        lsPeakRatioUnitLabel.setJustificationType(juce::Justification::right);
         addAndMakeVisible(lsPeakRatioValueLabel);
-        lsPeakRatioValueLabel.setText("2.0:1", juce::dontSendNotification);
-        lsPeakRatioValueLabel.setJustificationType(juce::Justification::centred);
+        lsPeakRatioValueLabel.setText("2.0", juce::dontSendNotification);
+        lsPeakRatioValueLabel.setJustificationType(juce::Justification::left);
         setupEditableValueLabel(lsPeakRatioValueLabel);
 
         // Slow Threshold slider
@@ -1342,13 +1369,16 @@ private:
         lsSlowRatioDial.setColours(juce::Colours::black, juce::Colour(0xFF9C27B0), juce::Colours::grey);
         lsSlowRatioDial.onValueChanged = [this](float v) {
             float ratio = (v * 9.0f) + 1.0f;
-            lsSlowRatioValueLabel.setText(juce::String(ratio, 1) + ":1", juce::dontSendNotification);
+            lsSlowRatioValueLabel.setText(juce::String(ratio, 1), juce::dontSendNotification);
             saveInputParam(WFSParameterIDs::inputLSslowRatio, ratio);
         };
         addAndMakeVisible(lsSlowRatioDial);
+        addAndMakeVisible(lsSlowRatioUnitLabel);
+        lsSlowRatioUnitLabel.setText("1:", juce::dontSendNotification);
+        lsSlowRatioUnitLabel.setJustificationType(juce::Justification::right);
         addAndMakeVisible(lsSlowRatioValueLabel);
-        lsSlowRatioValueLabel.setText("2.0:1", juce::dontSendNotification);
-        lsSlowRatioValueLabel.setJustificationType(juce::Justification::centred);
+        lsSlowRatioValueLabel.setText("2.0", juce::dontSendNotification);
+        lsSlowRatioValueLabel.setJustificationType(juce::Justification::left);
         setupEditableValueLabel(lsSlowRatioValueLabel);
     }
 
@@ -1390,14 +1420,17 @@ private:
         frDiffusionDial.setValue(0.2f);
         frDiffusionDial.onValueChanged = [this](float v) {
             int percent = static_cast<int>(v * 100.0f);
-            frDiffusionValueLabel.setText(juce::String(percent) + " %", juce::dontSendNotification);
+            frDiffusionValueLabel.setText(juce::String(percent), juce::dontSendNotification);
             saveInputParam(WFSParameterIDs::inputFRdiffusion, percent);
         };
         addAndMakeVisible(frDiffusionDial);
         addAndMakeVisible(frDiffusionValueLabel);
-        frDiffusionValueLabel.setText("20 %", juce::dontSendNotification);
-        frDiffusionValueLabel.setJustificationType(juce::Justification::centred);
+        frDiffusionValueLabel.setText("20", juce::dontSendNotification);
+        frDiffusionValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(frDiffusionValueLabel);
+        addAndMakeVisible(frDiffusionUnitLabel);
+        frDiffusionUnitLabel.setText("%", juce::dontSendNotification);
+        frDiffusionUnitLabel.setJustificationType(juce::Justification::left);
 
         // FR Low Cut Active
         addAndMakeVisible(frLowCutActiveButton);
@@ -1512,14 +1545,17 @@ private:
         lfoPeriodDial.setColours(juce::Colours::black, juce::Colour(0xFF00BCD4), juce::Colours::grey);
         lfoPeriodDial.onValueChanged = [this](float v) {
             float period = std::pow(10.0f, std::sqrt(v) * 4.0f - 2.0f);
-            lfoPeriodValueLabel.setText(juce::String(period, 2) + " s", juce::dontSendNotification);
+            lfoPeriodValueLabel.setText(juce::String(period, 2), juce::dontSendNotification);
             saveInputParam(WFSParameterIDs::inputLFOperiod, period);  // Save real period in seconds
         };
         addAndMakeVisible(lfoPeriodDial);
         addAndMakeVisible(lfoPeriodValueLabel);
-        lfoPeriodValueLabel.setText("5.00 s", juce::dontSendNotification);
-        lfoPeriodValueLabel.setJustificationType(juce::Justification::centred);
+        lfoPeriodValueLabel.setText("5.00", juce::dontSendNotification);
+        lfoPeriodValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(lfoPeriodValueLabel);
+        addAndMakeVisible(lfoPeriodUnitLabel);
+        lfoPeriodUnitLabel.setText("s", juce::dontSendNotification);
+        lfoPeriodUnitLabel.setJustificationType(juce::Justification::left);
 
         // Main Phase dial (-180° to 180°) - uses WfsRotationDial
         addAndMakeVisible(lfoPhaseLabel);
@@ -1528,14 +1564,17 @@ private:
         lfoPhaseDial.setColours(juce::Colours::black, juce::Colour(0xFF4CAF50), juce::Colours::grey);
         lfoPhaseDial.onAngleChanged = [this](float angle) {
             int degrees = static_cast<int>(angle);
-            lfoPhaseValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+            lfoPhaseValueLabel.setText(juce::String(degrees), juce::dontSendNotification);
             saveInputParam(WFSParameterIDs::inputLFOphase, degrees);  // Save as -180 to 180
         };
         addAndMakeVisible(lfoPhaseDial);
         addAndMakeVisible(lfoPhaseValueLabel);
-        lfoPhaseValueLabel.setText(juce::String::fromUTF8("0°"), juce::dontSendNotification);
-        lfoPhaseValueLabel.setJustificationType(juce::Justification::centred);
+        lfoPhaseValueLabel.setText("0", juce::dontSendNotification);
+        lfoPhaseValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(lfoPhaseValueLabel);
+        addAndMakeVisible(lfoPhaseUnitLabel);
+        lfoPhaseUnitLabel.setText(juce::String::fromUTF8("°"), juce::dontSendNotification);
+        lfoPhaseUnitLabel.setJustificationType(juce::Justification::left);
 
         // Shape X/Y/Z dropdowns
         juce::StringArray lfoShapes = {"OFF", "sine", "square", "sawtooth", "triangle", "keystone", "log", "exp", "random"};
@@ -1657,14 +1696,17 @@ private:
         lfoPhaseXDial.setColours(juce::Colours::black, juce::Colour(0xFFFF9800), juce::Colours::grey);
         lfoPhaseXDial.onAngleChanged = [this](float angle) {
             int degrees = static_cast<int>(angle);
-            lfoPhaseXValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+            lfoPhaseXValueLabel.setText(juce::String(degrees), juce::dontSendNotification);
             saveInputParam(WFSParameterIDs::inputLFOphaseX, degrees);  // Save as -180 to 180
         };
         addAndMakeVisible(lfoPhaseXDial);
         addAndMakeVisible(lfoPhaseXValueLabel);
-        lfoPhaseXValueLabel.setText(juce::String::fromUTF8("0°"), juce::dontSendNotification);
-        lfoPhaseXValueLabel.setJustificationType(juce::Justification::centred);
+        lfoPhaseXValueLabel.setText("0", juce::dontSendNotification);
+        lfoPhaseXValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(lfoPhaseXValueLabel);
+        addAndMakeVisible(lfoPhaseXUnitLabel);
+        lfoPhaseXUnitLabel.setText(juce::String::fromUTF8("°"), juce::dontSendNotification);
+        lfoPhaseXUnitLabel.setJustificationType(juce::Justification::left);
 
         addAndMakeVisible(lfoPhaseYLabel);
         lfoPhaseYLabel.setText("Phase Y:", juce::dontSendNotification);
@@ -1672,14 +1714,17 @@ private:
         lfoPhaseYDial.setColours(juce::Colours::black, juce::Colour(0xFFFF9800), juce::Colours::grey);
         lfoPhaseYDial.onAngleChanged = [this](float angle) {
             int degrees = static_cast<int>(angle);
-            lfoPhaseYValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+            lfoPhaseYValueLabel.setText(juce::String(degrees), juce::dontSendNotification);
             saveInputParam(WFSParameterIDs::inputLFOphaseY, degrees);  // Save as -180 to 180
         };
         addAndMakeVisible(lfoPhaseYDial);
         addAndMakeVisible(lfoPhaseYValueLabel);
-        lfoPhaseYValueLabel.setText(juce::String::fromUTF8("0°"), juce::dontSendNotification);
-        lfoPhaseYValueLabel.setJustificationType(juce::Justification::centred);
+        lfoPhaseYValueLabel.setText("0", juce::dontSendNotification);
+        lfoPhaseYValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(lfoPhaseYValueLabel);
+        addAndMakeVisible(lfoPhaseYUnitLabel);
+        lfoPhaseYUnitLabel.setText(juce::String::fromUTF8("°"), juce::dontSendNotification);
+        lfoPhaseYUnitLabel.setJustificationType(juce::Justification::left);
 
         addAndMakeVisible(lfoPhaseZLabel);
         lfoPhaseZLabel.setText("Phase Z:", juce::dontSendNotification);
@@ -1687,14 +1732,17 @@ private:
         lfoPhaseZDial.setColours(juce::Colours::black, juce::Colour(0xFFFF9800), juce::Colours::grey);
         lfoPhaseZDial.onAngleChanged = [this](float angle) {
             int degrees = static_cast<int>(angle);
-            lfoPhaseZValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+            lfoPhaseZValueLabel.setText(juce::String(degrees), juce::dontSendNotification);
             saveInputParam(WFSParameterIDs::inputLFOphaseZ, degrees);  // Save as -180 to 180
         };
         addAndMakeVisible(lfoPhaseZDial);
         addAndMakeVisible(lfoPhaseZValueLabel);
-        lfoPhaseZValueLabel.setText(juce::String::fromUTF8("0°"), juce::dontSendNotification);
-        lfoPhaseZValueLabel.setJustificationType(juce::Justification::centred);
+        lfoPhaseZValueLabel.setText("0", juce::dontSendNotification);
+        lfoPhaseZValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(lfoPhaseZValueLabel);
+        addAndMakeVisible(lfoPhaseZUnitLabel);
+        lfoPhaseZUnitLabel.setText(juce::String::fromUTF8("°"), juce::dontSendNotification);
+        lfoPhaseZUnitLabel.setJustificationType(juce::Justification::left);
 
         // Gyrophone dropdown
         addAndMakeVisible(lfoGyrophoneLabel);
@@ -1830,14 +1878,17 @@ private:
         otomoCurveDial.onValueChanged = [this](float v) {
             // Bipolar: -100 to +100
             int curve = static_cast<int>((v * 200.0f) - 100.0f);
-            otomoCurveValueLabel.setText(juce::String(curve) + " %", juce::dontSendNotification);
+            otomoCurveValueLabel.setText(juce::String(curve), juce::dontSendNotification);
             saveInputParam(WFSParameterIDs::inputOtomoCurve, curve);
         };
         addAndMakeVisible(otomoCurveDial);
         addAndMakeVisible(otomoCurveValueLabel);
-        otomoCurveValueLabel.setText("0 %", juce::dontSendNotification);
-        otomoCurveValueLabel.setJustificationType(juce::Justification::centred);
+        otomoCurveValueLabel.setText("0", juce::dontSendNotification);
+        otomoCurveValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(otomoCurveValueLabel);
+        addAndMakeVisible(otomoCurveUnitLabel);
+        otomoCurveUnitLabel.setText("%", juce::dontSendNotification);
+        otomoCurveUnitLabel.setJustificationType(juce::Justification::left);
 
         // Speed Profile dial (0-100%)
         addAndMakeVisible(otomoSpeedProfileLabel);
@@ -1846,14 +1897,17 @@ private:
         otomoSpeedProfileDial.setColours(juce::Colours::black, juce::Colour(0xFF2196F3), juce::Colours::grey);
         otomoSpeedProfileDial.onValueChanged = [this](float v) {
             int percent = static_cast<int>(v * 100.0f);
-            otomoSpeedProfileValueLabel.setText(juce::String(percent) + " %", juce::dontSendNotification);
+            otomoSpeedProfileValueLabel.setText(juce::String(percent), juce::dontSendNotification);
             saveInputParam(WFSParameterIDs::inputOtomoSpeedProfile, percent);  // Save real percent
         };
         addAndMakeVisible(otomoSpeedProfileDial);
         addAndMakeVisible(otomoSpeedProfileValueLabel);
-        otomoSpeedProfileValueLabel.setText("0 %", juce::dontSendNotification);
-        otomoSpeedProfileValueLabel.setJustificationType(juce::Justification::centred);
+        otomoSpeedProfileValueLabel.setText("0", juce::dontSendNotification);
+        otomoSpeedProfileValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(otomoSpeedProfileValueLabel);
+        addAndMakeVisible(otomoSpeedProfileUnitLabel);
+        otomoSpeedProfileUnitLabel.setText("%", juce::dontSendNotification);
+        otomoSpeedProfileUnitLabel.setJustificationType(juce::Justification::left);
 
         // Trigger button (Manual/Trigger)
         addAndMakeVisible(otomoTriggerButton);
@@ -1873,14 +1927,17 @@ private:
         otomoThresholdDial.onValueChanged = [this](float v) {
             float dB = 20.0f * std::log10(std::pow(10.0f, -92.0f / 20.0f) +
                        ((1.0f - std::pow(10.0f, -92.0f / 20.0f)) * v * v));
-            otomoThresholdValueLabel.setText(juce::String(dB, 1) + " dB", juce::dontSendNotification);
+            otomoThresholdValueLabel.setText(juce::String(dB, 1), juce::dontSendNotification);
             saveInputParam(WFSParameterIDs::inputOtomoThreshold, dB);  // Save real dB value
         };
         addAndMakeVisible(otomoThresholdDial);
         addAndMakeVisible(otomoThresholdValueLabel);
-        otomoThresholdValueLabel.setText("-20.0 dB", juce::dontSendNotification);
-        otomoThresholdValueLabel.setJustificationType(juce::Justification::centred);
+        otomoThresholdValueLabel.setText("-20.0", juce::dontSendNotification);
+        otomoThresholdValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(otomoThresholdValueLabel);
+        addAndMakeVisible(otomoThresholdUnitLabel);
+        otomoThresholdUnitLabel.setText("dB", juce::dontSendNotification);
+        otomoThresholdUnitLabel.setJustificationType(juce::Justification::left);
 
         // Trigger Reset dial (-92 to 0 dB)
         addAndMakeVisible(otomoResetLabel);
@@ -1890,14 +1947,17 @@ private:
         otomoResetDial.onValueChanged = [this](float v) {
             float dB = 20.0f * std::log10(std::pow(10.0f, -92.0f / 20.0f) +
                        ((1.0f - std::pow(10.0f, -92.0f / 20.0f)) * v * v));
-            otomoResetValueLabel.setText(juce::String(dB, 1) + " dB", juce::dontSendNotification);
+            otomoResetValueLabel.setText(juce::String(dB, 1), juce::dontSendNotification);
             saveInputParam(WFSParameterIDs::inputOtomoReset, dB);  // Save real dB value
         };
         addAndMakeVisible(otomoResetDial);
         addAndMakeVisible(otomoResetValueLabel);
-        otomoResetValueLabel.setText("-60.0 dB", juce::dontSendNotification);
-        otomoResetValueLabel.setJustificationType(juce::Justification::centred);
+        otomoResetValueLabel.setText("-60.0", juce::dontSendNotification);
+        otomoResetValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(otomoResetValueLabel);
+        addAndMakeVisible(otomoResetUnitLabel);
+        otomoResetUnitLabel.setText("dB", juce::dontSendNotification);
+        otomoResetUnitLabel.setJustificationType(juce::Justification::left);
 
         // Transport buttons (custom drawn icons)
         addAndMakeVisible(otomoStartButton);
@@ -2118,8 +2178,21 @@ private:
     void setupEditableValueLabel(juce::Label& label)
     {
         label.setEditable(true, false);  // Single click to edit
-        label.setJustificationType(juce::Justification::right);
+        // Keep existing justification (labels set centred should stay centred)
         label.addListener(this);
+    }
+
+    // Helper to layout dial value and unit labels relative to dial center
+    // Value is right-justified ending near dial center, unit is left-justified starting near dial center
+    // Gap parameter controls spacing between value and unit (default 2 pixels)
+    void layoutDialValueUnit(juce::Label& valueLabel, juce::Label& unitLabel,
+                             int dialCenterX, int y, int height,
+                             int valueWidth = 45, int unitWidth = 35, int gap = 2)
+    {
+        valueLabel.setBounds(dialCenterX - valueWidth - gap / 2, y, valueWidth, height);
+        valueLabel.setJustificationType(juce::Justification::right);
+        unitLabel.setBounds(dialCenterX + gap / 2, y, unitWidth, height);
+        unitLabel.setJustificationType(juce::Justification::left);
     }
 
     // ==================== LAYOUT METHODS ====================
@@ -2211,11 +2284,11 @@ private:
         flipXButton.setVisible(v); flipYButton.setVisible(v); flipZButton.setVisible(v);
         trackingActiveButton.setVisible(v);
         trackingIdLabel.setVisible(v); trackingIdSelector.setVisible(v);
-        trackingSmoothLabel.setVisible(v); trackingSmoothDial.setVisible(v); trackingSmoothValueLabel.setVisible(v);
+        trackingSmoothLabel.setVisible(v); trackingSmoothDial.setVisible(v); trackingSmoothValueLabel.setVisible(v); trackingSmoothUnitLabel.setVisible(v);
         maxSpeedActiveButton.setVisible(v);
-        maxSpeedLabel.setVisible(v); maxSpeedDial.setVisible(v); maxSpeedValueLabel.setVisible(v);
+        maxSpeedLabel.setVisible(v); maxSpeedDial.setVisible(v); maxSpeedValueLabel.setVisible(v); maxSpeedUnitLabel.setVisible(v);
         pathModeButton.setVisible(v);
-        heightFactorLabel.setVisible(v); heightFactorDial.setVisible(v); heightFactorValueLabel.setVisible(v);
+        heightFactorLabel.setVisible(v); heightFactorDial.setVisible(v); heightFactorValueLabel.setVisible(v); heightFactorUnitLabel.setVisible(v);
         positionJoystick.setVisible(v); positionJoystickLabel.setVisible(v);
         positionZSlider.setVisible(v); positionZSliderLabel.setVisible(v);
     }
@@ -2229,12 +2302,14 @@ private:
         distanceAttenLabel.setVisible(v && !is1OverD);
         distanceAttenDial.setVisible(v && !is1OverD);
         distanceAttenValueLabel.setVisible(v && !is1OverD);
+        distanceAttenUnitLabel.setVisible(v && !is1OverD);
         distanceRatioLabel.setVisible(v && is1OverD);
         distanceRatioDial.setVisible(v && is1OverD);
         distanceRatioValueLabel.setVisible(v && is1OverD);
-        commonAttenLabel.setVisible(v); commonAttenDial.setVisible(v); commonAttenValueLabel.setVisible(v);
+        distanceRatioUnitLabel.setVisible(v && is1OverD);
+        commonAttenLabel.setVisible(v); commonAttenDial.setVisible(v); commonAttenValueLabel.setVisible(v); commonAttenUnitLabel.setVisible(v);
         directivityLabel.setVisible(v); directivitySlider.setVisible(v); directivityValueLabel.setVisible(v);
-        rotationLabel.setVisible(v); rotationDial.setVisible(v); rotationValueLabel.setVisible(v);
+        rotationLabel.setVisible(v); rotationDial.setVisible(v); rotationValueLabel.setVisible(v); rotationUnitLabel.setVisible(v);
         tiltLabel.setVisible(v); tiltSlider.setVisible(v); tiltValueLabel.setVisible(v);
         hfShelfLabel.setVisible(v); hfShelfSlider.setVisible(v); hfShelfValueLabel.setVisible(v);
     }
@@ -2246,16 +2321,16 @@ private:
         lsShapeLabel.setVisible(v); lsShapeSelector.setVisible(v);
         lsAttenuationLabel.setVisible(v); lsAttenuationSlider.setVisible(v); lsAttenuationValueLabel.setVisible(v);
         lsPeakThresholdLabel.setVisible(v); lsPeakThresholdSlider.setVisible(v); lsPeakThresholdValueLabel.setVisible(v);
-        lsPeakRatioLabel.setVisible(v); lsPeakRatioDial.setVisible(v); lsPeakRatioValueLabel.setVisible(v);
+        lsPeakRatioLabel.setVisible(v); lsPeakRatioDial.setVisible(v); lsPeakRatioValueLabel.setVisible(v); lsPeakRatioUnitLabel.setVisible(v);
         lsSlowThresholdLabel.setVisible(v); lsSlowThresholdSlider.setVisible(v); lsSlowThresholdValueLabel.setVisible(v);
-        lsSlowRatioLabel.setVisible(v); lsSlowRatioDial.setVisible(v); lsSlowRatioValueLabel.setVisible(v);
+        lsSlowRatioLabel.setVisible(v); lsSlowRatioDial.setVisible(v); lsSlowRatioValueLabel.setVisible(v); lsSlowRatioUnitLabel.setVisible(v);
     }
 
     void setEffectsVisible(bool v)
     {
         frActiveButton.setVisible(v);
         frAttenuationLabel.setVisible(v); frAttenuationSlider.setVisible(v); frAttenuationValueLabel.setVisible(v);
-        frDiffusionLabel.setVisible(v); frDiffusionDial.setVisible(v); frDiffusionValueLabel.setVisible(v);
+        frDiffusionLabel.setVisible(v); frDiffusionDial.setVisible(v); frDiffusionValueLabel.setVisible(v); frDiffusionUnitLabel.setVisible(v);
         frLowCutActiveButton.setVisible(v);
         frLowCutFreqLabel.setVisible(v); frLowCutFreqSlider.setVisible(v); frLowCutFreqValueLabel.setVisible(v);
         frHighShelfActiveButton.setVisible(v);
@@ -2725,8 +2800,8 @@ private:
     void setLfoVisible(bool v)
     {
         lfoActiveButton.setVisible(v);
-        lfoPeriodLabel.setVisible(v); lfoPeriodDial.setVisible(v); lfoPeriodValueLabel.setVisible(v);
-        lfoPhaseLabel.setVisible(v); lfoPhaseDial.setVisible(v); lfoPhaseValueLabel.setVisible(v);
+        lfoPeriodLabel.setVisible(v); lfoPeriodDial.setVisible(v); lfoPeriodValueLabel.setVisible(v); lfoPeriodUnitLabel.setVisible(v);
+        lfoPhaseLabel.setVisible(v); lfoPhaseDial.setVisible(v); lfoPhaseValueLabel.setVisible(v); lfoPhaseUnitLabel.setVisible(v);
         lfoShapeXLabel.setVisible(v); lfoShapeXSelector.setVisible(v);
         lfoShapeYLabel.setVisible(v); lfoShapeYSelector.setVisible(v);
         lfoShapeZLabel.setVisible(v); lfoShapeZSelector.setVisible(v);
@@ -2736,9 +2811,9 @@ private:
         lfoAmplitudeXLabel.setVisible(v); lfoAmplitudeXSlider.setVisible(v); lfoAmplitudeXValueLabel.setVisible(v);
         lfoAmplitudeYLabel.setVisible(v); lfoAmplitudeYSlider.setVisible(v); lfoAmplitudeYValueLabel.setVisible(v);
         lfoAmplitudeZLabel.setVisible(v); lfoAmplitudeZSlider.setVisible(v); lfoAmplitudeZValueLabel.setVisible(v);
-        lfoPhaseXLabel.setVisible(v); lfoPhaseXDial.setVisible(v); lfoPhaseXValueLabel.setVisible(v);
-        lfoPhaseYLabel.setVisible(v); lfoPhaseYDial.setVisible(v); lfoPhaseYValueLabel.setVisible(v);
-        lfoPhaseZLabel.setVisible(v); lfoPhaseZDial.setVisible(v); lfoPhaseZValueLabel.setVisible(v);
+        lfoPhaseXLabel.setVisible(v); lfoPhaseXDial.setVisible(v); lfoPhaseXValueLabel.setVisible(v); lfoPhaseXUnitLabel.setVisible(v);
+        lfoPhaseYLabel.setVisible(v); lfoPhaseYDial.setVisible(v); lfoPhaseYValueLabel.setVisible(v); lfoPhaseYUnitLabel.setVisible(v);
+        lfoPhaseZLabel.setVisible(v); lfoPhaseZDial.setVisible(v); lfoPhaseZValueLabel.setVisible(v); lfoPhaseZUnitLabel.setVisible(v);
         lfoGyrophoneLabel.setVisible(v); lfoGyrophoneSelector.setVisible(v);
         jitterLabel.setVisible(v); jitterSlider.setVisible(v); jitterValueLabel.setVisible(v);
         // LFO progress dial and output indicators
@@ -2897,11 +2972,11 @@ private:
         otomoAbsRelButton.setVisible(v);
         otomoStayReturnButton.setVisible(v);
         otomoDurationLabel.setVisible(v); otomoDurationDial.setVisible(v); otomoDurationValueLabel.setVisible(v);
-        otomoCurveLabel.setVisible(v); otomoCurveDial.setVisible(v); otomoCurveValueLabel.setVisible(v);
-        otomoSpeedProfileLabel.setVisible(v); otomoSpeedProfileDial.setVisible(v); otomoSpeedProfileValueLabel.setVisible(v);
+        otomoCurveLabel.setVisible(v); otomoCurveDial.setVisible(v); otomoCurveValueLabel.setVisible(v); otomoCurveUnitLabel.setVisible(v);
+        otomoSpeedProfileLabel.setVisible(v); otomoSpeedProfileDial.setVisible(v); otomoSpeedProfileValueLabel.setVisible(v); otomoSpeedProfileUnitLabel.setVisible(v);
         otomoTriggerButton.setVisible(v);
-        otomoThresholdLabel.setVisible(v); otomoThresholdDial.setVisible(v); otomoThresholdValueLabel.setVisible(v);
-        otomoResetLabel.setVisible(v); otomoResetDial.setVisible(v); otomoResetValueLabel.setVisible(v);
+        otomoThresholdLabel.setVisible(v); otomoThresholdDial.setVisible(v); otomoThresholdValueLabel.setVisible(v); otomoThresholdUnitLabel.setVisible(v);
+        otomoResetLabel.setVisible(v); otomoResetDial.setVisible(v); otomoResetValueLabel.setVisible(v); otomoResetUnitLabel.setVisible(v);
         otomoStartButton.setVisible(v);
         otomoStopButton.setVisible(v);
         otomoPauseButton.setVisible(v);
@@ -3196,12 +3271,12 @@ private:
         trackingIdSelector.setBounds(idRowX + 75, row.getY(), 50, rowHeight);
         trackCol.removeFromTop(spacing);
 
-        // Dial section: label, dial, value (all centered)
+        // Dial section: label, dial, value+unit (value right-justified to center, unit left-justified from center)
         trackingSmoothLabel.setBounds(colCenterX - dialLabelWidth / 2, trackCol.getY(), dialLabelWidth, rowHeight);
         trackCol.removeFromTop(rowHeight);
         trackingSmoothDial.setBounds(colCenterX - dialSize / 2, trackCol.getY(), dialSize, dialSize);
         trackCol.removeFromTop(dialSize);
-        trackingSmoothValueLabel.setBounds(colCenterX - dialLabelWidth / 2, trackCol.getY(), dialLabelWidth, rowHeight);
+        layoutDialValueUnit(trackingSmoothValueLabel, trackingSmoothUnitLabel, colCenterX, trackCol.getY(), rowHeight);
 
         // Column 2: Max Speed
         auto speedCol = controlBlock.removeFromLeft(threeColWidth);
@@ -3217,12 +3292,12 @@ private:
         pathModeButton.setBounds(colCenterX - uniformButtonWidth / 2, row.getY(), uniformButtonWidth, rowHeight);
         speedCol.removeFromTop(spacing);
 
-        // Dial section: label, dial, value (all centered)
+        // Dial section: label, dial, value+unit
         maxSpeedLabel.setBounds(colCenterX - dialLabelWidth / 2, speedCol.getY(), dialLabelWidth, rowHeight);
         speedCol.removeFromTop(rowHeight);
         maxSpeedDial.setBounds(colCenterX - dialSize / 2, speedCol.getY(), dialSize, dialSize);
         speedCol.removeFromTop(dialSize);
-        maxSpeedValueLabel.setBounds(colCenterX - dialLabelWidth / 2, speedCol.getY(), dialLabelWidth, rowHeight);
+        layoutDialValueUnit(maxSpeedValueLabel, maxSpeedUnitLabel, colCenterX, speedCol.getY(), rowHeight, 40, 30);
 
         // Column 3: Height Factor
         auto heightCol = controlBlock;
@@ -3231,12 +3306,12 @@ private:
         // Skip first two rows (no buttons in this column)
         heightCol.removeFromTop(rowHeight + spacing + rowHeight + spacing);
 
-        // Dial section: label, dial, value (all centered)
+        // Dial section: label, dial, value+unit
         heightFactorLabel.setBounds(colCenterX - dialLabelWidth / 2, heightCol.getY(), dialLabelWidth, rowHeight);
         heightCol.removeFromTop(rowHeight);
         heightFactorDial.setBounds(colCenterX - dialSize / 2, heightCol.getY(), dialSize, dialSize);
         heightCol.removeFromTop(dialSize);
-        heightFactorValueLabel.setBounds(colCenterX - dialLabelWidth / 2, heightCol.getY(), dialLabelWidth, rowHeight);
+        layoutDialValueUnit(heightFactorValueLabel, heightFactorUnitLabel, colCenterX, heightCol.getY(), rowHeight);
 
         // ========== COLUMN 2: Sound + Mutes ==========
 
@@ -3267,14 +3342,14 @@ private:
         distanceRatioLabel.setBounds(distanceAttenLabel.getBounds());
         distanceAttenDial.setBounds(distCenterX - dialSize / 2, topRowY + rowHeight, dialSize, dialSize);
         distanceRatioDial.setBounds(distanceAttenDial.getBounds());
-        distanceAttenValueLabel.setBounds(distCenterX - 55, topRowY + rowHeight + dialSize, 110, rowHeight);
-        distanceRatioValueLabel.setBounds(distanceAttenValueLabel.getBounds());
+        layoutDialValueUnit(distanceAttenValueLabel, distanceAttenUnitLabel, distCenterX, topRowY + rowHeight + dialSize, rowHeight, 35, 40);
+        layoutDialValueUnit(distanceRatioValueLabel, distanceRatioUnitLabel, distCenterX, topRowY + rowHeight + dialSize, rowHeight, 35, 20);
 
         // Column 3: Common Atten dial
         int commonCenterX = topRowStartX + attenLawWidth + itemSpacing + dialSectionWidth + itemSpacing + dialSectionWidth / 2;
         commonAttenLabel.setBounds(commonCenterX - 55, topRowY, 110, rowHeight);
         commonAttenDial.setBounds(commonCenterX - dialSize / 2, topRowY + rowHeight, dialSize, dialSize);
-        commonAttenValueLabel.setBounds(commonCenterX - 55, topRowY + rowHeight + dialSize, 110, rowHeight);
+        layoutDialValueUnit(commonAttenValueLabel, commonAttenUnitLabel, commonCenterX, topRowY + rowHeight + dialSize, rowHeight);
 
         // Reduced padding before sliders section
         col2.removeFromTop(spacing);
@@ -3315,7 +3390,7 @@ private:
         int rotCenterY = rotArea.getY() + rotArea.getHeight() / 2;
         rotationLabel.setBounds(rotCenterX - 50, rotArea.getY(), 100, rowHeight);
         rotationDial.setBounds(rotCenterX - largeRotationDial / 2, rotCenterY - largeRotationDial / 2, largeRotationDial, largeRotationDial);
-        rotationValueLabel.setBounds(rotCenterX - 50, rotArea.getBottom() - rowHeight, 100, rowHeight);
+        layoutDialValueUnit(rotationValueLabel, rotationUnitLabel, rotCenterX, rotArea.getBottom() - rowHeight, rowHeight, 40, 20);
 
         // Extra padding after HF Shelf
         col2.removeFromTop(spacing * 3);
@@ -3446,10 +3521,14 @@ private:
         peakBlock.removeFromLeft(spacing * 2);
         auto peakDialArea = peakBlock;
 
-        // Peak dial section (right) - label, dial, value stacked vertically
+        // Peak dial section (right) - label, dial, prefix+value stacked vertically (ratio format "1:2.0")
         lsPeakRatioLabel.setBounds(peakDialArea.removeFromTop(rowHeight));
-        lsPeakRatioDial.setBounds(peakDialArea.removeFromTop(dialSize).withSizeKeepingCentre(dialSize, dialSize));
-        lsPeakRatioValueLabel.setBounds(peakDialArea.removeFromTop(rowHeight));
+        auto peakRatioDialBounds = peakDialArea.removeFromTop(dialSize);
+        lsPeakRatioDial.setBounds(peakRatioDialBounds.withSizeKeepingCentre(dialSize, dialSize));
+        int peakDialCenterX = peakRatioDialBounds.getX() + peakRatioDialBounds.getWidth() / 2;
+        // Ratio format: prefix "1:" on left (right-justified), value on right (left-justified)
+        lsPeakRatioUnitLabel.setBounds(peakDialCenterX - 20 - 1, peakDialArea.getY(), 20, rowHeight);
+        lsPeakRatioValueLabel.setBounds(peakDialCenterX + 1, peakDialArea.getY(), 30, rowHeight);
 
         // Peak slider section (left) - label + value on same row, slider below
         row = peakSliderArea.removeFromTop(rowHeight);
@@ -3467,10 +3546,14 @@ private:
         slowBlock.removeFromLeft(spacing * 2);
         auto slowDialArea = slowBlock;
 
-        // Slow dial section (right) - label, dial, value stacked vertically
+        // Slow dial section (right) - label, dial, prefix+value stacked vertically (ratio format "1:2.0")
         lsSlowRatioLabel.setBounds(slowDialArea.removeFromTop(rowHeight));
-        lsSlowRatioDial.setBounds(slowDialArea.removeFromTop(dialSize).withSizeKeepingCentre(dialSize, dialSize));
-        lsSlowRatioValueLabel.setBounds(slowDialArea.removeFromTop(rowHeight));
+        auto slowRatioDialBounds = slowDialArea.removeFromTop(dialSize);
+        lsSlowRatioDial.setBounds(slowRatioDialBounds.withSizeKeepingCentre(dialSize, dialSize));
+        int slowDialCenterX = slowRatioDialBounds.getX() + slowRatioDialBounds.getWidth() / 2;
+        // Ratio format: prefix "1:" on left (right-justified), value on right (left-justified)
+        lsSlowRatioUnitLabel.setBounds(slowDialCenterX - 20 - 1, slowDialArea.getY(), 20, rowHeight);
+        lsSlowRatioValueLabel.setBounds(slowDialCenterX + 1, slowDialArea.getY(), 30, rowHeight);
 
         // Slow slider section (left) - label + value on same row, slider below
         row = slowSliderArea.removeFromTop(rowHeight);
@@ -3490,13 +3573,13 @@ private:
         frAttenuationSlider.setBounds(col2.removeFromTop(sliderHeight));
         col2.removeFromTop(spacing);
 
-        // Diffusion dial (centered in column)
+        // Diffusion dial (centered in column) with split value/unit
         int diffusionBlockHeight = dialSize + rowHeight * 2;
         auto diffBlock = col2.removeFromTop(diffusionBlockHeight);
         int diffCenterX = diffBlock.getX() + diffBlock.getWidth() / 2;
         frDiffusionLabel.setBounds(diffCenterX - 50, diffBlock.getY(), 100, rowHeight);
         frDiffusionDial.setBounds(diffCenterX - dialSize / 2, diffBlock.getY() + rowHeight, dialSize, dialSize);
-        frDiffusionValueLabel.setBounds(diffCenterX - 50, diffBlock.getY() + rowHeight + dialSize, 100, rowHeight);
+        layoutDialValueUnit(frDiffusionValueLabel, frDiffusionUnitLabel, diffCenterX, diffBlock.getY() + rowHeight + dialSize, rowHeight, 30, 20);
 
         col2.removeFromTop(spacing * 2);
 
@@ -3588,18 +3671,22 @@ private:
         lfoActiveButton.setBounds(toggleArea.getX(), headerRow.getY() + toggleY, toggleWidth, rowHeight);
         headerRow.removeFromLeft(headerSpacing);
 
-        // Period: label at top, dial centered, value at bottom
+        // Period: label at top, dial centered, value+unit at bottom
         auto periodArea = headerRow.removeFromLeft(dialBlockWidth);
         lfoPeriodLabel.setBounds(periodArea.removeFromTop(headerLabelHeight));
-        lfoPeriodDial.setBounds(periodArea.removeFromTop(headerDialSize).withSizeKeepingCentre(headerDialSize, headerDialSize));
-        lfoPeriodValueLabel.setBounds(periodArea);
+        auto periodDialBounds = periodArea.removeFromTop(headerDialSize);
+        lfoPeriodDial.setBounds(periodDialBounds.withSizeKeepingCentre(headerDialSize, headerDialSize));
+        int periodCenterX = periodDialBounds.getX() + periodDialBounds.getWidth() / 2;
+        layoutDialValueUnit(lfoPeriodValueLabel, lfoPeriodUnitLabel, periodCenterX, periodArea.getY(), periodArea.getHeight(), 35, 12);
         headerRow.removeFromLeft(headerSpacing);
 
-        // Phase: label at top, dial centered, value at bottom
+        // Phase: label at top, dial centered, value+unit at bottom
         auto phaseArea = headerRow.removeFromLeft(dialBlockWidth);
         lfoPhaseLabel.setBounds(phaseArea.removeFromTop(headerLabelHeight));
-        lfoPhaseDial.setBounds(phaseArea.removeFromTop(headerDialSize).withSizeKeepingCentre(headerDialSize, headerDialSize));
-        lfoPhaseValueLabel.setBounds(phaseArea);
+        auto phaseDialBounds = phaseArea.removeFromTop(headerDialSize);
+        lfoPhaseDial.setBounds(phaseDialBounds.withSizeKeepingCentre(headerDialSize, headerDialSize));
+        int phaseCenterX = phaseDialBounds.getX() + phaseDialBounds.getWidth() / 2;
+        layoutDialValueUnit(lfoPhaseValueLabel, lfoPhaseUnitLabel, phaseCenterX, phaseArea.getY(), phaseArea.getHeight(), 28, 12);
         headerRow.removeFromLeft(headerSpacing);
 
         // Progress indicator (no label, aligned with dials)
@@ -3625,7 +3712,7 @@ private:
         const int ampRateSpacing = 8;   // Doubled spacing between amp and rate sliders
         const int axisDial = 40;
         const int shapeWidth = 75;
-        const int phaseDialWidth = axisDial + 15;
+        const int phaseDialWidth = axisDial + 25;  // Wider to fit "Phase X:" label
 
         // Calculate uniform slider width: total width minus fixed elements, divided among 3 sliders
         const int fixedWidth = shapeWidth + phaseDialWidth + spacing * 4;
@@ -3636,7 +3723,7 @@ private:
         auto layoutAxisRow = [&](juce::Label& shapeLabel, juce::ComboBox& shapeSelector,
                                   juce::Label& ampLabel, WfsStandardSlider& ampSlider, juce::Label& ampValue,
                                   juce::Label& rateLabel, WfsStandardSlider& rateSlider, juce::Label& rateValue,
-                                  juce::Label& phaseLabel, WfsRotationDial& phaseDial, juce::Label& phaseValue,
+                                  juce::Label& phaseLabel, WfsRotationDial& phaseDial, juce::Label& phaseValue, juce::Label& phaseUnit,
                                   juce::Label& outLabel, WfsLFOOutputSlider& outSlider) {
             auto axisRow = col1.removeFromTop(axisRowHeight);
 
@@ -3665,14 +3752,16 @@ private:
             rateSlider.setBounds(sliderArea.removeFromTop(sliderHeight));
             axisRow.removeFromLeft(spacing);
 
-            // Phase dial - vertically centered
+            // Phase dial - vertically centered with split value/unit
             auto phaseDialArea = axisRow.removeFromLeft(phaseDialWidth);
             const int phaseBlockHeight = rowHeight + axisDial + rowHeight - 4;  // label + dial + value
             const int phaseCenterOffset = (axisRowHeight - phaseBlockHeight) / 2;
             phaseDialArea.removeFromTop(phaseCenterOffset);
             phaseLabel.setBounds(phaseDialArea.removeFromTop(rowHeight - 2));
-            phaseDial.setBounds(phaseDialArea.removeFromTop(axisDial).withSizeKeepingCentre(axisDial, axisDial));
-            phaseValue.setBounds(phaseDialArea.removeFromTop(rowHeight - 2));
+            auto axisPhaseDialBounds = phaseDialArea.removeFromTop(axisDial);
+            phaseDial.setBounds(axisPhaseDialBounds.withSizeKeepingCentre(axisDial, axisDial));
+            int axisPhaseDialCenterX = axisPhaseDialBounds.getX() + axisPhaseDialBounds.getWidth() / 2;
+            layoutDialValueUnit(phaseValue, phaseUnit, axisPhaseDialCenterX, phaseDialArea.getY(), rowHeight - 2, 28, 12);
             axisRow.removeFromLeft(spacing);
 
             // Output slider - use remaining space (1/3 of slider space)
@@ -3685,7 +3774,7 @@ private:
         layoutAxisRow(lfoShapeXLabel, lfoShapeXSelector,
                       lfoAmplitudeXLabel, lfoAmplitudeXSlider, lfoAmplitudeXValueLabel,
                       lfoRateXLabel, lfoRateXSlider, lfoRateXValueLabel,
-                      lfoPhaseXLabel, lfoPhaseXDial, lfoPhaseXValueLabel,
+                      lfoPhaseXLabel, lfoPhaseXDial, lfoPhaseXValueLabel, lfoPhaseXUnitLabel,
                       lfoOutputXLabel, lfoOutputXSlider);
         col1.removeFromTop(axisRowSpacing);
 
@@ -3693,7 +3782,7 @@ private:
         layoutAxisRow(lfoShapeYLabel, lfoShapeYSelector,
                       lfoAmplitudeYLabel, lfoAmplitudeYSlider, lfoAmplitudeYValueLabel,
                       lfoRateYLabel, lfoRateYSlider, lfoRateYValueLabel,
-                      lfoPhaseYLabel, lfoPhaseYDial, lfoPhaseYValueLabel,
+                      lfoPhaseYLabel, lfoPhaseYDial, lfoPhaseYValueLabel, lfoPhaseYUnitLabel,
                       lfoOutputYLabel, lfoOutputYSlider);
         col1.removeFromTop(axisRowSpacing);
 
@@ -3701,7 +3790,7 @@ private:
         layoutAxisRow(lfoShapeZLabel, lfoShapeZSelector,
                       lfoAmplitudeZLabel, lfoAmplitudeZSlider, lfoAmplitudeZValueLabel,
                       lfoRateZLabel, lfoRateZSlider, lfoRateZValueLabel,
-                      lfoPhaseZLabel, lfoPhaseZDial, lfoPhaseZValueLabel,
+                      lfoPhaseZLabel, lfoPhaseZDial, lfoPhaseZValueLabel, lfoPhaseZUnitLabel,
                       lfoOutputZLabel, lfoOutputZSlider);
 
         // --- Jitter slider at bottom (separate effect, more spacing) ---
@@ -3739,37 +3828,46 @@ private:
         col2.removeFromTop(spacing * 2);
 
         // Dials row 1: Duration, Curve, Speed Profile
+        const int otomoDialWidth = dialSize + 30;  // Wide enough for "Speed Profile:" label
         auto otomoDials1 = col2.removeFromTop(dialSize + rowHeight * 2 - 5);
-        auto durDialArea = otomoDials1.removeFromLeft(dialSize + 20);
+        auto durDialArea = otomoDials1.removeFromLeft(otomoDialWidth);
         otomoDurationLabel.setBounds(durDialArea.removeFromTop(rowHeight));
         otomoDurationDial.setBounds(durDialArea.removeFromTop(dialSize).withSizeKeepingCentre(dialSize, dialSize));
         otomoDurationValueLabel.setBounds(durDialArea.removeFromTop(rowHeight));
         otomoDials1.removeFromLeft(spacing);
 
-        auto curveDialArea = otomoDials1.removeFromLeft(dialSize + 20);
+        auto curveDialArea = otomoDials1.removeFromLeft(otomoDialWidth);
         otomoCurveLabel.setBounds(curveDialArea.removeFromTop(rowHeight));
-        otomoCurveDial.setBounds(curveDialArea.removeFromTop(dialSize).withSizeKeepingCentre(dialSize, dialSize));
-        otomoCurveValueLabel.setBounds(curveDialArea.removeFromTop(rowHeight));
+        auto curveDialBounds = curveDialArea.removeFromTop(dialSize);
+        otomoCurveDial.setBounds(curveDialBounds.withSizeKeepingCentre(dialSize, dialSize));
+        int curveCenterX = curveDialBounds.getX() + curveDialBounds.getWidth() / 2;
+        layoutDialValueUnit(otomoCurveValueLabel, otomoCurveUnitLabel, curveCenterX, curveDialArea.getY(), rowHeight, 30, 18);
         otomoDials1.removeFromLeft(spacing);
 
-        auto speedDialArea = otomoDials1.removeFromLeft(dialSize + 20);
+        auto speedDialArea = otomoDials1.removeFromLeft(otomoDialWidth);
         otomoSpeedProfileLabel.setBounds(speedDialArea.removeFromTop(rowHeight));
-        otomoSpeedProfileDial.setBounds(speedDialArea.removeFromTop(dialSize).withSizeKeepingCentre(dialSize, dialSize));
-        otomoSpeedProfileValueLabel.setBounds(speedDialArea.removeFromTop(rowHeight));
+        auto speedDialBounds = speedDialArea.removeFromTop(dialSize);
+        otomoSpeedProfileDial.setBounds(speedDialBounds.withSizeKeepingCentre(dialSize, dialSize));
+        int speedCenterX = speedDialBounds.getX() + speedDialBounds.getWidth() / 2;
+        layoutDialValueUnit(otomoSpeedProfileValueLabel, otomoSpeedProfileUnitLabel, speedCenterX, speedDialArea.getY(), rowHeight, 30, 18);
         col2.removeFromTop(spacing);
 
-        // Dials row 2: Threshold, Reset (audio trigger)
+        // Dials row 2: Threshold, Reset (audio trigger) with split value/unit
         auto otomoDials2 = col2.removeFromTop(dialSize + rowHeight * 2 - 5);
-        auto threshDialArea = otomoDials2.removeFromLeft(dialSize + 20);
+        auto threshDialArea = otomoDials2.removeFromLeft(otomoDialWidth);
         otomoThresholdLabel.setBounds(threshDialArea.removeFromTop(rowHeight));
-        otomoThresholdDial.setBounds(threshDialArea.removeFromTop(dialSize).withSizeKeepingCentre(dialSize, dialSize));
-        otomoThresholdValueLabel.setBounds(threshDialArea.removeFromTop(rowHeight));
+        auto threshDialBounds = threshDialArea.removeFromTop(dialSize);
+        otomoThresholdDial.setBounds(threshDialBounds.withSizeKeepingCentre(dialSize, dialSize));
+        int threshCenterX = threshDialBounds.getX() + threshDialBounds.getWidth() / 2;
+        layoutDialValueUnit(otomoThresholdValueLabel, otomoThresholdUnitLabel, threshCenterX, threshDialArea.getY(), rowHeight, 35, 18);
         otomoDials2.removeFromLeft(spacing);
 
-        auto resetDialArea = otomoDials2.removeFromLeft(dialSize + 20);
+        auto resetDialArea = otomoDials2.removeFromLeft(otomoDialWidth);
         otomoResetLabel.setBounds(resetDialArea.removeFromTop(rowHeight));
-        otomoResetDial.setBounds(resetDialArea.removeFromTop(dialSize).withSizeKeepingCentre(dialSize, dialSize));
-        otomoResetValueLabel.setBounds(resetDialArea.removeFromTop(rowHeight));
+        auto resetDialBounds = resetDialArea.removeFromTop(dialSize);
+        otomoResetDial.setBounds(resetDialBounds.withSizeKeepingCentre(dialSize, dialSize));
+        int resetCenterX = resetDialBounds.getX() + resetDialBounds.getWidth() / 2;
+        layoutDialValueUnit(otomoResetValueLabel, otomoResetUnitLabel, resetCenterX, resetDialArea.getY(), rowHeight, 35, 18);
         col2.removeFromTop(spacing * 2);
 
         // Transport buttons (per-input)
@@ -4013,13 +4111,13 @@ private:
         trackingActiveButton.setToggleState(trackActive, juce::dontSendNotification);
         trackingActiveButton.setButtonText(trackActive ? "Tracking: ON" : "Tracking: OFF");
 
-        trackingIdSelector.setSelectedId(getIntParam(WFSParameterIDs::inputTrackingID, 0) + 1, juce::dontSendNotification);
+        trackingIdSelector.setSelectedId(getIntParam(WFSParameterIDs::inputTrackingID, 1), juce::dontSendNotification);
 
         // Tracking Smooth stored as percent (0-100), default 0%
         float trackSmoothPct = getFloatParam(WFSParameterIDs::inputTrackingSmooth, 0.0f);
         trackSmoothPct = juce::jlimit(0.0f, 100.0f, trackSmoothPct);
         trackingSmoothDial.setValue(trackSmoothPct / 100.0f);
-        trackingSmoothValueLabel.setText(juce::String(static_cast<int>(trackSmoothPct)) + " %", juce::dontSendNotification);
+        trackingSmoothValueLabel.setText(juce::String(static_cast<int>(trackSmoothPct)), juce::dontSendNotification);
 
         bool maxSpeedActive = getIntParam(WFSParameterIDs::inputMaxSpeedActive, 0) != 0;
         maxSpeedActiveButton.setToggleState(maxSpeedActive, juce::dontSendNotification);
@@ -4031,7 +4129,7 @@ private:
         maxSpeedMs = juce::jlimit(0.01f, 20.0f, maxSpeedMs);
         float maxSpeedSliderVal = (maxSpeedMs - 0.01f) / 19.99f;
         maxSpeedDial.setValue(juce::jlimit(0.0f, 1.0f, maxSpeedSliderVal));
-        maxSpeedValueLabel.setText(juce::String(maxSpeedMs, 2) + " m/s", juce::dontSendNotification);
+        maxSpeedValueLabel.setText(juce::String(maxSpeedMs, 2), juce::dontSendNotification);
 
         bool pathModeActive = getIntParam(WFSParameterIDs::inputPathModeActive, 0) != 0;
         pathModeButton.setToggleState(pathModeActive, juce::dontSendNotification);
@@ -4041,7 +4139,7 @@ private:
         float heightFactorPct = getFloatParam(WFSParameterIDs::inputHeightFactor, 100.0f);
         heightFactorPct = juce::jlimit(0.0f, 100.0f, heightFactorPct);
         heightFactorDial.setValue(heightFactorPct / 100.0f);
-        heightFactorValueLabel.setText(juce::String(static_cast<int>(heightFactorPct)) + " %", juce::dontSendNotification);
+        heightFactorValueLabel.setText(juce::String(static_cast<int>(heightFactorPct)), juce::dontSendNotification);
 
         // ==================== SOUND TAB ====================
         bool attenLaw = getIntParam(WFSParameterIDs::inputAttenuationLaw, 0) != 0;
@@ -4054,7 +4152,7 @@ private:
         distAttenDB = juce::jlimit(-6.0f, 0.0f, distAttenDB);
         float distAttenSliderVal = (distAttenDB + 6.0f) / 6.0f;
         distanceAttenDial.setValue(juce::jlimit(0.0f, 1.0f, distAttenSliderVal));
-        distanceAttenValueLabel.setText(juce::String(distAttenDB, 1) + " dB/m", juce::dontSendNotification);
+        distanceAttenValueLabel.setText(juce::String(distAttenDB, 1), juce::dontSendNotification);
 
         // Distance Ratio stored as multiplier (0.1 to 10), default 1.0
         // Formula: ratio = pow(10, (x * 2) - 1) => x = (log10(ratio) + 1) / 2
@@ -4062,14 +4160,14 @@ private:
         distRatioVal = juce::jlimit(0.1f, 10.0f, distRatioVal);
         float distRatioSliderVal = (std::log10(distRatioVal) + 1.0f) / 2.0f;
         distanceRatioDial.setValue(juce::jlimit(0.0f, 1.0f, distRatioSliderVal));
-        distanceRatioValueLabel.setText(juce::String(distRatioVal, 2) + "x", juce::dontSendNotification);
+        distanceRatioValueLabel.setText(juce::String(distRatioVal, 2), juce::dontSendNotification);
 
         // Common Attenuation stored as percent (0-100), default 100
         // Formula: percent = x * 100 => x = percent / 100
         float commonAttenPct = getFloatParam(WFSParameterIDs::inputCommonAtten, 100.0f);
         commonAttenPct = juce::jlimit(0.0f, 100.0f, commonAttenPct);
         commonAttenDial.setValue(commonAttenPct / 100.0f);
-        commonAttenValueLabel.setText(juce::String(static_cast<int>(commonAttenPct)) + " %", juce::dontSendNotification);
+        commonAttenValueLabel.setText(juce::String(static_cast<int>(commonAttenPct)), juce::dontSendNotification);
 
         // Directivity stored as degrees (2-360), default 360
         // Inverse of: degrees = (x * 358) + 2 => x = (degrees - 2) / 358
@@ -4084,7 +4182,7 @@ private:
         rotationDial.setAngle(rotation);  // WfsEndlessDial normalizes to -180/180 automatically
         int rotDegrees = static_cast<int>(rotation);
         if (rotDegrees < 0) rotDegrees += 360;
-        rotationValueLabel.setText(juce::String(rotDegrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+        rotationValueLabel.setText(juce::String(rotDegrees), juce::dontSendNotification);
 
         // Tilt stored as degrees (-90 to 90), default 0
         // Bidirectional slider: v = degrees / 90 (maps -90..90 to -1..1)
@@ -4148,7 +4246,7 @@ private:
         peakRatioVal = juce::jlimit(1.0f, 10.0f, peakRatioVal);
         float peakRatioSliderVal = (peakRatioVal - 1.0f) / 9.0f;
         lsPeakRatioDial.setValue(juce::jlimit(0.0f, 1.0f, peakRatioSliderVal));
-        lsPeakRatioValueLabel.setText(juce::String(peakRatioVal, 1) + ":1", juce::dontSendNotification);
+        lsPeakRatioValueLabel.setText(juce::String(peakRatioVal, 1), juce::dontSendNotification);
 
         // Slow Threshold stored as dB (-48 to 0), default -20
         // Formula: dB = 20*log10(minLin + (1-minLin)*x^2), where minLin = pow(10, -48/20)
@@ -4167,7 +4265,7 @@ private:
         slowRatioVal = juce::jlimit(1.0f, 10.0f, slowRatioVal);
         float slowRatioSliderVal = (slowRatioVal - 1.0f) / 9.0f;
         lsSlowRatioDial.setValue(juce::jlimit(0.0f, 1.0f, slowRatioSliderVal));
-        lsSlowRatioValueLabel.setText(juce::String(slowRatioVal, 1) + ":1", juce::dontSendNotification);
+        lsSlowRatioValueLabel.setText(juce::String(slowRatioVal, 1), juce::dontSendNotification);
 
         // ==================== EFFECTS (HACKOUSTICS) TAB ====================
         bool frActive = getIntParam(WFSParameterIDs::inputFRactive, 0) != 0;
@@ -4191,7 +4289,7 @@ private:
         float frDiffusionPct = getFloatParam(WFSParameterIDs::inputFRdiffusion, 20.0f);
         frDiffusionPct = juce::jlimit(0.0f, 100.0f, frDiffusionPct);
         frDiffusionDial.setValue(frDiffusionPct / 100.0f);
-        frDiffusionValueLabel.setText(juce::String(static_cast<int>(frDiffusionPct)) + " %", juce::dontSendNotification);
+        frDiffusionValueLabel.setText(juce::String(static_cast<int>(frDiffusionPct)), juce::dontSendNotification);
 
         bool frLowCutActive = getIntParam(WFSParameterIDs::inputFRlowCutActive, 0) != 0;
         frLowCutActiveButton.setToggleState(frLowCutActive, juce::dontSendNotification);
@@ -4256,13 +4354,13 @@ private:
         // Inverse of: period = pow(10, sqrt(v)*4 - 2) => v = pow((log10(period)+2)/4, 2)
         float lfoPeriodSlider = std::pow((std::log10(lfoPeriodSec) + 2.0f) / 4.0f, 2.0f);
         lfoPeriodDial.setValue(juce::jlimit(0.0f, 1.0f, lfoPeriodSlider));
-        lfoPeriodValueLabel.setText(juce::String(lfoPeriodSec, 2) + " s", juce::dontSendNotification);
+        lfoPeriodValueLabel.setText(juce::String(lfoPeriodSec, 2), juce::dontSendNotification);
 
         // LFO Phase stored as degrees (-180 to 180), default 0
         int lfoPhaseDeg = getIntParam(WFSParameterIDs::inputLFOphase, 0);
         lfoPhaseDeg = juce::jlimit(-180, 180, lfoPhaseDeg);
         lfoPhaseDial.setAngle(static_cast<float>(lfoPhaseDeg));
-        lfoPhaseValueLabel.setText(juce::String(lfoPhaseDeg) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+        lfoPhaseValueLabel.setText(juce::String(lfoPhaseDeg), juce::dontSendNotification);
 
         lfoShapeXSelector.setSelectedId(getIntParam(WFSParameterIDs::inputLFOshapeX, 0) + 1, juce::dontSendNotification);
         lfoShapeYSelector.setSelectedId(getIntParam(WFSParameterIDs::inputLFOshapeY, 0) + 1, juce::dontSendNotification);
@@ -4308,17 +4406,17 @@ private:
         int phaseXDeg = getIntParam(WFSParameterIDs::inputLFOphaseX, 0);
         phaseXDeg = juce::jlimit(-180, 180, phaseXDeg);
         lfoPhaseXDial.setAngle(static_cast<float>(phaseXDeg));
-        lfoPhaseXValueLabel.setText(juce::String(phaseXDeg) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+        lfoPhaseXValueLabel.setText(juce::String(phaseXDeg), juce::dontSendNotification);
 
         int phaseYDeg = getIntParam(WFSParameterIDs::inputLFOphaseY, 0);
         phaseYDeg = juce::jlimit(-180, 180, phaseYDeg);
         lfoPhaseYDial.setAngle(static_cast<float>(phaseYDeg));
-        lfoPhaseYValueLabel.setText(juce::String(phaseYDeg) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+        lfoPhaseYValueLabel.setText(juce::String(phaseYDeg), juce::dontSendNotification);
 
         int phaseZDeg = getIntParam(WFSParameterIDs::inputLFOphaseZ, 0);
         phaseZDeg = juce::jlimit(-180, 180, phaseZDeg);
         lfoPhaseZDial.setAngle(static_cast<float>(phaseZDeg));
-        lfoPhaseZValueLabel.setText(juce::String(phaseZDeg) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+        lfoPhaseZValueLabel.setText(juce::String(phaseZDeg), juce::dontSendNotification);
 
         lfoGyrophoneSelector.setSelectedId(getIntParam(WFSParameterIDs::inputLFOgyrophone, 0) + 2, juce::dontSendNotification);
 
@@ -4368,13 +4466,13 @@ private:
         // Inverse of: curve = (v * 200) - 100 => v = (curve + 100) / 200
         float curveDial = (static_cast<float>(curve) + 100.0f) / 200.0f;
         otomoCurveDial.setValue(juce::jlimit(0.0f, 1.0f, curveDial));
-        otomoCurveValueLabel.setText(juce::String(curve) + " %", juce::dontSendNotification);
+        otomoCurveValueLabel.setText(juce::String(curve), juce::dontSendNotification);
 
         // Speed Profile stored as percent (0-100), default 0
         int speedProfilePct = getIntParam(WFSParameterIDs::inputOtomoSpeedProfile, 0);
         speedProfilePct = juce::jlimit(0, 100, speedProfilePct);
         otomoSpeedProfileDial.setValue(speedProfilePct / 100.0f);
-        otomoSpeedProfileValueLabel.setText(juce::String(speedProfilePct) + " %", juce::dontSendNotification);
+        otomoSpeedProfileValueLabel.setText(juce::String(speedProfilePct), juce::dontSendNotification);
 
         bool trigger = getIntParam(WFSParameterIDs::inputOtomoTrigger, 0) != 0;
         otomoTriggerButton.setToggleState(trigger, juce::dontSendNotification);
@@ -4388,7 +4486,7 @@ private:
         float threshLinear = std::pow(10.0f, threshDB / 20.0f);
         float threshSlider = std::sqrt((threshLinear - otomoMinLinear) / (1.0f - otomoMinLinear));
         otomoThresholdDial.setValue(juce::jlimit(0.0f, 1.0f, threshSlider));
-        otomoThresholdValueLabel.setText(juce::String(threshDB, 1) + " dB", juce::dontSendNotification);
+        otomoThresholdValueLabel.setText(juce::String(threshDB, 1), juce::dontSendNotification);
 
         // Reset stored as dB (-92 to 0), default -60 dB
         float resetDB = getFloatParam(WFSParameterIDs::inputOtomoReset, -60.0f);
@@ -4396,7 +4494,7 @@ private:
         float resetLinear = std::pow(10.0f, resetDB / 20.0f);
         float resetSlider = std::sqrt((resetLinear - otomoMinLinear) / (1.0f - otomoMinLinear));
         otomoResetDial.setValue(juce::jlimit(0.0f, 1.0f, resetSlider));
-        otomoResetValueLabel.setText(juce::String(resetDB, 1) + " dB", juce::dontSendNotification);
+        otomoResetValueLabel.setText(juce::String(resetDB, 1), juce::dontSendNotification);
 
         bool pauseResume = getIntParam(WFSParameterIDs::inputOtomoPauseResume, 0) != 0;
         otomoPauseButton.setToggleState(pauseResume, juce::dontSendNotification);
@@ -4612,23 +4710,23 @@ private:
         {
             int percent = juce::jlimit(0, 100, static_cast<int>(value));
             trackingSmoothDial.setValue(percent / 100.0f);
-            // Force label update
-            trackingSmoothValueLabel.setText(juce::String(percent) + " %", juce::dontSendNotification);
+            // Force label update (number only, unit is separate)
+            trackingSmoothValueLabel.setText(juce::String(percent), juce::dontSendNotification);
         }
         else if (label == &maxSpeedValueLabel)
         {
             float speed = juce::jlimit(0.01f, 20.0f, value);
             // Inverse of: speed = v * 19.99 + 0.01
             maxSpeedDial.setValue((speed - 0.01f) / 19.99f);
-            // Force label update
-            maxSpeedValueLabel.setText(juce::String(speed, 2) + " m/s", juce::dontSendNotification);
+            // Force label update (number only, unit is separate)
+            maxSpeedValueLabel.setText(juce::String(speed, 2), juce::dontSendNotification);
         }
         else if (label == &heightFactorValueLabel)
         {
             int percent = juce::jlimit(0, 100, static_cast<int>(value));
             heightFactorDial.setValue(percent / 100.0f);
-            // Force label update
-            heightFactorValueLabel.setText(juce::String(percent) + " %", juce::dontSendNotification);
+            // Force label update (number only, unit is separate)
+            heightFactorValueLabel.setText(juce::String(percent), juce::dontSendNotification);
         }
         // Sound tab
         else if (label == &distanceAttenValueLabel)
@@ -4636,23 +4734,23 @@ private:
             float dBm = juce::jlimit(-6.0f, 0.0f, value);
             // Inverse of: dBm = (v * 6.0) - 6.0
             distanceAttenDial.setValue((dBm + 6.0f) / 6.0f);
-            // Force label update
-            distanceAttenValueLabel.setText(juce::String(dBm, 1) + " dB/m", juce::dontSendNotification);
+            // Force label update (unit label is separate)
+            distanceAttenValueLabel.setText(juce::String(dBm, 1), juce::dontSendNotification);
         }
         else if (label == &distanceRatioValueLabel)
         {
             float ratio = juce::jlimit(0.1f, 10.0f, value);
             // Inverse of: ratio = pow(10, (v * 2) - 1)
             distanceRatioDial.setValue((std::log10(ratio) + 1.0f) / 2.0f);
-            // Force label update
-            distanceRatioValueLabel.setText(juce::String(ratio, 2) + "x", juce::dontSendNotification);
+            // Force label update (unit label is separate)
+            distanceRatioValueLabel.setText(juce::String(ratio, 2), juce::dontSendNotification);
         }
         else if (label == &commonAttenValueLabel)
         {
             int percent = juce::jlimit(0, 100, static_cast<int>(value));
             commonAttenDial.setValue(percent / 100.0f);
-            // Force label update
-            commonAttenValueLabel.setText(juce::String(percent) + " %", juce::dontSendNotification);
+            // Force label update (unit label is separate)
+            commonAttenValueLabel.setText(juce::String(percent), juce::dontSendNotification);
         }
         else if (label == &directivityValueLabel)
         {
@@ -4666,8 +4764,8 @@ private:
         {
             int degrees = juce::jlimit(-179, 180, static_cast<int>(value));
             rotationDial.setAngle(static_cast<float>(degrees));
-            // Force label update
-            rotationValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+            // Force label update (unit label is separate)
+            rotationValueLabel.setText(juce::String(degrees), juce::dontSendNotification);
         }
         else if (label == &tiltValueLabel)
         {
@@ -4726,7 +4824,7 @@ private:
             // Inverse of: ratio = v * 9.0 + 1.0
             lsPeakRatioDial.setValue((ratio - 1.0f) / 9.0f);
             // Force label update
-            lsPeakRatioValueLabel.setText(juce::String(ratio, 1) + ":1", juce::dontSendNotification);
+            lsPeakRatioValueLabel.setText(juce::String(ratio, 1), juce::dontSendNotification);
         }
         else if (label == &lsSlowThresholdValueLabel)
         {
@@ -4744,7 +4842,7 @@ private:
             float ratio = juce::jlimit(1.0f, 10.0f, value);
             lsSlowRatioDial.setValue((ratio - 1.0f) / 9.0f);
             // Force label update
-            lsSlowRatioValueLabel.setText(juce::String(ratio, 1) + ":1", juce::dontSendNotification);
+            lsSlowRatioValueLabel.setText(juce::String(ratio, 1), juce::dontSendNotification);
         }
         // Effects/Hackoustics tab
         else if (label == &frAttenuationValueLabel)
@@ -4763,7 +4861,7 @@ private:
             int percent = juce::jlimit(0, 100, static_cast<int>(value));
             frDiffusionDial.setValue(percent / 100.0f);
             // Force label update
-            frDiffusionValueLabel.setText(juce::String(percent) + " %", juce::dontSendNotification);
+            frDiffusionValueLabel.setText(juce::String(percent), juce::dontSendNotification);
         }
         else if (label == &frLowCutFreqValueLabel)
         {
@@ -4820,14 +4918,14 @@ private:
             float v = sqrtV * sqrtV;
             lfoPeriodDial.setValue(juce::jlimit(0.0f, 1.0f, v));
             // Force label update
-            lfoPeriodValueLabel.setText(juce::String(period, 2) + " s", juce::dontSendNotification);
+            lfoPeriodValueLabel.setText(juce::String(period, 2), juce::dontSendNotification);
         }
         else if (label == &lfoPhaseValueLabel)
         {
             int degrees = juce::jlimit(0, 360, static_cast<int>(value));
             lfoPhaseDial.setAngle(static_cast<float>(degrees));
             // Force label update
-            lfoPhaseValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+            lfoPhaseValueLabel.setText(juce::String(degrees), juce::dontSendNotification);
         }
         else if (label == &lfoRateXValueLabel)
         {
@@ -4881,21 +4979,21 @@ private:
             int degrees = juce::jlimit(0, 360, static_cast<int>(value));
             lfoPhaseXDial.setAngle(static_cast<float>(degrees));
             // Force label update
-            lfoPhaseXValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+            lfoPhaseXValueLabel.setText(juce::String(degrees), juce::dontSendNotification);
         }
         else if (label == &lfoPhaseYValueLabel)
         {
             int degrees = juce::jlimit(0, 360, static_cast<int>(value));
             lfoPhaseYDial.setAngle(static_cast<float>(degrees));
             // Force label update
-            lfoPhaseYValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+            lfoPhaseYValueLabel.setText(juce::String(degrees), juce::dontSendNotification);
         }
         else if (label == &lfoPhaseZValueLabel)
         {
             int degrees = juce::jlimit(0, 360, static_cast<int>(value));
             lfoPhaseZDial.setAngle(static_cast<float>(degrees));
             // Force label update
-            lfoPhaseZValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+            lfoPhaseZValueLabel.setText(juce::String(degrees), juce::dontSendNotification);
         }
         // AutomOtion tab
         else if (label == &otomoSpeedProfileValueLabel)
@@ -4903,7 +5001,7 @@ private:
             int percent = juce::jlimit(0, 100, static_cast<int>(value));
             otomoSpeedProfileDial.setValue(percent / 100.0f);
             // Force label update
-            otomoSpeedProfileValueLabel.setText(juce::String(percent) + " %", juce::dontSendNotification);
+            otomoSpeedProfileValueLabel.setText(juce::String(percent), juce::dontSendNotification);
         }
         else if (label == &otomoThresholdValueLabel)
         {
@@ -4914,7 +5012,7 @@ private:
             float dialValue = std::sqrt((linear - otomoMinLinear) / (1.0f - otomoMinLinear));
             otomoThresholdDial.setValue(juce::jlimit(0.0f, 1.0f, dialValue));
             // Force label update
-            otomoThresholdValueLabel.setText(juce::String(dB, 1) + " dB", juce::dontSendNotification);
+            otomoThresholdValueLabel.setText(juce::String(dB, 1), juce::dontSendNotification);
         }
         else if (label == &otomoResetValueLabel)
         {
@@ -4925,7 +5023,7 @@ private:
             float dialValue = std::sqrt((linear - otomoMinLinear) / (1.0f - otomoMinLinear));
             otomoResetDial.setValue(juce::jlimit(0.0f, 1.0f, dialValue));
             // Force label update
-            otomoResetValueLabel.setText(juce::String(dB, 1) + " dB", juce::dontSendNotification);
+            otomoResetValueLabel.setText(juce::String(dB, 1), juce::dontSendNotification);
         }
         // Sidelines fringe (Mutes tab)
         else if (label == &sidelinesFringeValueLabel)
@@ -5897,14 +5995,17 @@ private:
     juce::Label trackingSmoothLabel;
     WfsBasicDial trackingSmoothDial;
     juce::Label trackingSmoothValueLabel;
+    juce::Label trackingSmoothUnitLabel;
     juce::TextButton maxSpeedActiveButton;
     juce::Label maxSpeedLabel;
     WfsBasicDial maxSpeedDial;
     juce::Label maxSpeedValueLabel;
+    juce::Label maxSpeedUnitLabel;
     juce::TextButton pathModeButton;
     juce::Label heightFactorLabel;
     WfsBasicDial heightFactorDial;
     juce::Label heightFactorValueLabel;
+    juce::Label heightFactorUnitLabel;
     // Position joystick and Z slider for real-time control
     WfsJoystickComponent positionJoystick;
     juce::Label positionJoystickLabel;
@@ -5917,18 +6018,22 @@ private:
     juce::Label distanceAttenLabel;
     WfsBasicDial distanceAttenDial;
     juce::Label distanceAttenValueLabel;
+    juce::Label distanceAttenUnitLabel;
     juce::Label distanceRatioLabel;
     WfsBasicDial distanceRatioDial;
     juce::Label distanceRatioValueLabel;
+    juce::Label distanceRatioUnitLabel;
     juce::Label commonAttenLabel;
     WfsBasicDial commonAttenDial;
     juce::Label commonAttenValueLabel;
+    juce::Label commonAttenUnitLabel;
     juce::Label directivityLabel;
     WfsWidthExpansionSlider directivitySlider;
     juce::Label directivityValueLabel;
     juce::Label rotationLabel;
     WfsEndlessDial rotationDial;
     juce::Label rotationValueLabel;
+    juce::Label rotationUnitLabel;
     juce::Label tiltLabel;
     WfsBidirectionalSlider tiltSlider;
     juce::Label tiltValueLabel;
@@ -5952,12 +6057,14 @@ private:
     juce::Label lsPeakRatioLabel;
     WfsBasicDial lsPeakRatioDial;
     juce::Label lsPeakRatioValueLabel;
+    juce::Label lsPeakRatioUnitLabel;
     juce::Label lsSlowThresholdLabel;
     WfsStandardSlider lsSlowThresholdSlider;
     juce::Label lsSlowThresholdValueLabel;
     juce::Label lsSlowRatioLabel;
     WfsBasicDial lsSlowRatioDial;
     juce::Label lsSlowRatioValueLabel;
+    juce::Label lsSlowRatioUnitLabel;
 
     // Effects tab
     juce::TextButton frActiveButton;
@@ -5967,6 +6074,7 @@ private:
     juce::Label frDiffusionLabel;
     WfsBasicDial frDiffusionDial;
     juce::Label frDiffusionValueLabel;
+    juce::Label frDiffusionUnitLabel;
     juce::TextButton frLowCutActiveButton;
     juce::Label frLowCutFreqLabel;
     WfsStandardSlider frLowCutFreqSlider;
@@ -5988,9 +6096,11 @@ private:
     juce::Label lfoPeriodLabel;
     WfsBasicDial lfoPeriodDial;
     juce::Label lfoPeriodValueLabel;
+    juce::Label lfoPeriodUnitLabel;
     juce::Label lfoPhaseLabel;
     WfsRotationDial lfoPhaseDial;
     juce::Label lfoPhaseValueLabel;
+    juce::Label lfoPhaseUnitLabel;
     juce::Label lfoShapeXLabel, lfoShapeYLabel, lfoShapeZLabel;
     juce::ComboBox lfoShapeXSelector, lfoShapeYSelector, lfoShapeZSelector;
     juce::Label lfoRateXLabel, lfoRateYLabel, lfoRateZLabel;
@@ -6002,6 +6112,7 @@ private:
     juce::Label lfoPhaseXLabel, lfoPhaseYLabel, lfoPhaseZLabel;
     WfsRotationDial lfoPhaseXDial, lfoPhaseYDial, lfoPhaseZDial;
     juce::Label lfoPhaseXValueLabel, lfoPhaseYValueLabel, lfoPhaseZValueLabel;
+    juce::Label lfoPhaseXUnitLabel, lfoPhaseYUnitLabel, lfoPhaseZUnitLabel;
     juce::Label lfoGyrophoneLabel;
     juce::ComboBox lfoGyrophoneSelector;
     juce::Label jitterLabel;
@@ -6022,19 +6133,24 @@ private:
     juce::Label otomoDurationLabel;
     WfsBasicDial otomoDurationDial;
     juce::Label otomoDurationValueLabel;
+    juce::Label otomoDurationUnitLabel;
     juce::Label otomoCurveLabel;
     WfsBasicDial otomoCurveDial;
     juce::Label otomoCurveValueLabel;
+    juce::Label otomoCurveUnitLabel;
     juce::Label otomoSpeedProfileLabel;
     WfsBasicDial otomoSpeedProfileDial;
     juce::Label otomoSpeedProfileValueLabel;
+    juce::Label otomoSpeedProfileUnitLabel;
     juce::TextButton otomoTriggerButton;
     juce::Label otomoThresholdLabel;
     WfsBasicDial otomoThresholdDial;
     juce::Label otomoThresholdValueLabel;
+    juce::Label otomoThresholdUnitLabel;
     juce::Label otomoResetLabel;
     WfsBasicDial otomoResetDial;
     juce::Label otomoResetValueLabel;
+    juce::Label otomoResetUnitLabel;
     PlayButton otomoStartButton;
     StopButton otomoStopButton;
     PauseButton otomoPauseButton;
@@ -6054,12 +6170,14 @@ private:
     juce::Label arrayAttenDialLabels[10];
     WfsBasicDial arrayAttenDials[10];
     juce::Label arrayAttenValueLabels[10];
+    juce::Label arrayAttenUnitLabels[10];
 
     // Sidelines (auto-mute at stage edges)
     juce::TextButton sidelinesActiveButton;
     juce::Label sidelinesFringeLabel;
     WfsBasicDial sidelinesFringeDial;
     juce::Label sidelinesFringeValueLabel;
+    juce::Label sidelinesFringeUnitLabel;
 
     // Footer buttons - Config
     juce::TextButton storeButton;

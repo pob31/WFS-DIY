@@ -272,7 +272,7 @@ public:
         setContentOwned(content.get(), false);
 
         // Set size with display awareness
-        const int preferredWidth = 900;
+        const int preferredWidth = 1050;
         const int preferredHeight = 700;
 
         auto& displays = juce::Desktop::getInstance().getDisplays();

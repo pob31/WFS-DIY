@@ -800,23 +800,27 @@ void PatchMatrixComponent::updatePatchDrag(juce::Point<int> currentCell)
     patchDragState.currentCell = currentCell;
 
     // Calculate diagonal patches from start to current
+    // Only allow 45° diagonals to prevent duplicate row/col patches
     int deltaRow = currentCell.y - patchDragState.startCell.y;
     int deltaCol = currentCell.x - patchDragState.startCell.x;
 
-    int steps = juce::jmax(std::abs(deltaRow), std::abs(deltaCol));
+    // Use the minimum extent to constrain to 45° angles
+    int steps = juce::jmin(std::abs(deltaRow), std::abs(deltaCol));
+
+    // If one delta is zero, allow straight horizontal or vertical lines
+    if (deltaRow == 0 || deltaCol == 0)
+        steps = juce::jmax(std::abs(deltaRow), std::abs(deltaCol));
+
+    // Direction increments: -1, 0, or +1
+    int rowIncrement = (deltaRow > 0) ? 1 : (deltaRow < 0) ? -1 : 0;
+    int colIncrement = (deltaCol > 0) ? 1 : (deltaCol < 0) ? -1 : 0;
 
     patchDragState.previewPatches.clear();
 
     for (int i = 0; i <= steps; ++i)
     {
-        int row = patchDragState.startCell.y;
-        int col = patchDragState.startCell.x;
-
-        if (steps > 0)
-        {
-            row += (deltaRow * i) / steps;
-            col += (deltaCol * i) / steps;
-        }
+        int row = patchDragState.startCell.y + (i * rowIncrement);
+        int col = patchDragState.startCell.x + (i * colIncrement);
 
         if (row >= 0 && row < numWFSChannels &&
             col >= 0 && col < numHardwareChannels &&

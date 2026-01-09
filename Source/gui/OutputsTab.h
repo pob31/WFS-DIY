@@ -592,14 +592,17 @@ private:
         orientationLabel.setText("Orientation:", juce::dontSendNotification);
         orientationDial.setColours(juce::Colours::black, juce::Colours::white, juce::Colours::grey);
         orientationDial.onAngleChanged = [this](float angle) {
-            orientationValueLabel.setText(juce::String(static_cast<int>(angle)) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+            orientationValueLabel.setText(juce::String(static_cast<int>(angle)), juce::dontSendNotification);
             saveOutputParam(WFSParameterIDs::outputOrientation, angle);
         };
         addAndMakeVisible(orientationDial);
         addAndMakeVisible(orientationValueLabel);
-        orientationValueLabel.setText(juce::String::fromUTF8("0°"), juce::dontSendNotification);
-        orientationValueLabel.setJustificationType(juce::Justification::centred);
+        orientationValueLabel.setText("0", juce::dontSendNotification);
+        orientationValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(orientationValueLabel);
+        addAndMakeVisible(orientationUnitLabel);
+        orientationUnitLabel.setText(juce::String::fromUTF8("°"), juce::dontSendNotification);
+        orientationUnitLabel.setJustificationType(juce::Justification::left);
 
         // Angle On slider (1-180°)
         addAndMakeVisible(angleOnLabel);
@@ -960,6 +963,7 @@ private:
         orientationLabel.setVisible(visible);
         orientationDial.setVisible(visible);
         orientationValueLabel.setVisible(visible);
+        orientationUnitLabel.setVisible(visible);
         angleOnLabel.setVisible(visible);
         angleOnSlider.setVisible(visible);
         angleOnValueLabel.setVisible(visible);
@@ -1032,7 +1036,7 @@ private:
         const int rowHeight = 30;
         const int sliderHeight = 40;
         const int spacing = 8;
-        const int labelWidth = 110;
+        const int labelWidth = 115;
         const int valueWidth = 60;  // Tight value width like LFO section
         const int indicatorSize = 6;
 
@@ -1155,9 +1159,13 @@ private:
                                           indicatorSize, indicatorSize);
         }
         auto dialArea = dialColumn.removeFromTop(dialSize);
+        int orientDialCenterX = dialArea.getCentreX();
         orientationDial.setBounds(dialArea.withSizeKeepingCentre(dialSize, dialSize));
-        orientationValueLabel.setBounds(dialColumn.removeFromTop(rowHeight));
-        orientationValueLabel.setJustificationType(juce::Justification::centred);
+        auto orientValueRow = dialColumn.removeFromTop(rowHeight);
+        orientationValueLabel.setBounds(orientDialCenterX - 40, orientValueRow.getY(), 40, rowHeight);
+        orientationValueLabel.setJustificationType(juce::Justification::right);
+        orientationUnitLabel.setBounds(orientDialCenterX, orientValueRow.getY(), 20, rowHeight);
+        orientationUnitLabel.setJustificationType(juce::Justification::left);
 
         // Angle On
         row = rightCol.removeFromTop(rowHeight);
@@ -1407,7 +1415,7 @@ private:
 
         float orientation = getFloatParam("outputOrientation", 0.0f);
         orientationDial.setAngle(orientation);
-        orientationValueLabel.setText(juce::String(static_cast<int>(orientation)) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+        orientationValueLabel.setText(juce::String(static_cast<int>(orientation)), juce::dontSendNotification);
 
         int angleOn = getIntParam("outputAngleOn", 86);  // Default 86°
         angleOnSlider.setValue((angleOn - 1.0f) / 179.0f);
@@ -1692,8 +1700,8 @@ private:
             while (degrees > 180) degrees -= 360;
             while (degrees < -179) degrees += 360;
             orientationDial.setAngle(static_cast<float>(degrees));
-            // Force label update
-            orientationValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+            // Force label update (unit label is separate)
+            orientationValueLabel.setText(juce::String(degrees), juce::dontSendNotification);
         }
         else if (label == &angleOnValueLabel)
         {
@@ -2057,6 +2065,7 @@ private:
     juce::Label orientationLabel;
     WfsEndlessDial orientationDial;
     juce::Label orientationValueLabel;
+    juce::Label orientationUnitLabel;
     juce::Label angleOnLabel;
     WfsWidthExpansionSlider angleOnSlider;
     juce::Label angleOnValueLabel;

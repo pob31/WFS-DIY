@@ -404,15 +404,18 @@ private:
         orientationDial.onAngleChanged = [this] (float v)
         {
             int degrees = static_cast<int> (v);
-            orientationValueLabel.setText (juce::String (degrees) + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
+            orientationValueLabel.setText (juce::String (degrees), juce::dontSendNotification);
             saveReverbParam (WFSParameterIDs::reverbOrientation, degrees);
         };
         addAndMakeVisible (orientationDial);
 
         addAndMakeVisible (orientationValueLabel);
-        orientationValueLabel.setText (juce::String ("0") + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
-        orientationValueLabel.setJustificationType (juce::Justification::centred);
+        orientationValueLabel.setText ("0", juce::dontSendNotification);
+        orientationValueLabel.setJustificationType (juce::Justification::right);
         setupEditableValueLabel (orientationValueLabel);
+        addAndMakeVisible (orientationUnitLabel);
+        orientationUnitLabel.setText (juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
+        orientationUnitLabel.setJustificationType (juce::Justification::left);
 
         // Angle On slider
         addAndMakeVisible (angleOnLabel);
@@ -657,15 +660,18 @@ private:
         distanceAttenDial.onValueChanged = [this] (float v)
         {
             float dB = v * 6.0f - 6.0f;  // -6 to 0 dB/m
-            distanceAttenValueLabel.setText (juce::String (dB, 1) + " dB/m", juce::dontSendNotification);
+            distanceAttenValueLabel.setText (juce::String (dB, 1), juce::dontSendNotification);
             saveReverbParam (WFSParameterIDs::reverbDistanceAttenuation, dB);
         };
         addAndMakeVisible (distanceAttenDial);
 
         addAndMakeVisible (distanceAttenValueLabel);
-        distanceAttenValueLabel.setText ("-0.7 dB/m", juce::dontSendNotification);
-        distanceAttenValueLabel.setJustificationType (juce::Justification::centred);
+        distanceAttenValueLabel.setText ("-0.7", juce::dontSendNotification);
+        distanceAttenValueLabel.setJustificationType (juce::Justification::right);
         setupEditableValueLabel (distanceAttenValueLabel);
+        addAndMakeVisible (distanceAttenUnitLabel);
+        distanceAttenUnitLabel.setText ("dB/m", juce::dontSendNotification);
+        distanceAttenUnitLabel.setJustificationType (juce::Justification::left);
 
         // Common Attenuation dial
         addAndMakeVisible (commonAttenLabel);
@@ -674,15 +680,18 @@ private:
         commonAttenDial.onValueChanged = [this] (float v)
         {
             int percent = static_cast<int> (v * 100.0f);  // 0-100%
-            commonAttenValueLabel.setText (juce::String (percent) + "%", juce::dontSendNotification);
+            commonAttenValueLabel.setText (juce::String (percent), juce::dontSendNotification);
             saveReverbParam (WFSParameterIDs::reverbCommonAtten, percent);
         };
         addAndMakeVisible (commonAttenDial);
 
         addAndMakeVisible (commonAttenValueLabel);
-        commonAttenValueLabel.setText ("100%", juce::dontSendNotification);
-        commonAttenValueLabel.setJustificationType (juce::Justification::centred);
+        commonAttenValueLabel.setText ("100", juce::dontSendNotification);
+        commonAttenValueLabel.setJustificationType (juce::Justification::right);
         setupEditableValueLabel (commonAttenValueLabel);
+        addAndMakeVisible (commonAttenUnitLabel);
+        commonAttenUnitLabel.setText ("%", juce::dontSendNotification);
+        commonAttenUnitLabel.setJustificationType (juce::Justification::left);
 
         // Mute buttons (styled like InputsTab)
         addAndMakeVisible (mutesLabel);
@@ -945,7 +954,7 @@ private:
         const int rowHeight = 30;
         const int sliderHeight = 40;
         const int spacing = 10;
-        const int labelWidth = 100;
+        const int labelWidth = 115;
         const int valueWidth = 60;  // Tight value width like LFO section
         const int editorWidth = 70;
         const int unitWidth = 25;
@@ -1022,8 +1031,11 @@ private:
         orientationLabel.setBounds (col2.removeFromTop (rowHeight).withSizeKeepingCentre (dialSize + 40, rowHeight));
         orientationLabel.setJustificationType (juce::Justification::centred);
         auto dialArea = col2.removeFromTop (dialSize);
+        int orientCenterX = dialArea.getCentreX();
         orientationDial.setBounds (dialArea.withSizeKeepingCentre (dialSize, dialSize));
-        orientationValueLabel.setBounds (col2.removeFromTop (rowHeight).withSizeKeepingCentre (dialSize + 40, rowHeight));
+        auto orientValueRow = col2.removeFromTop (rowHeight);
+        orientationValueLabel.setBounds (orientCenterX - 40, orientValueRow.getY(), 40, rowHeight);
+        orientationUnitLabel.setBounds (orientCenterX, orientValueRow.getY(), 20, rowHeight);
         col2.removeFromTop (spacing);
 
         // Angle On slider
@@ -1089,15 +1101,23 @@ private:
         auto leftDialArea = dialsRow.removeFromLeft (halfColWidth);
         distanceAttenLabel.setBounds (leftDialArea.removeFromTop (rowHeight).withSizeKeepingCentre (dialSize + 40, rowHeight));
         distanceAttenLabel.setJustificationType (juce::Justification::centred);
-        distanceAttenDial.setBounds (leftDialArea.removeFromTop (dialSize).withSizeKeepingCentre (dialSize, dialSize));
-        distanceAttenValueLabel.setBounds (leftDialArea.removeFromTop (rowHeight).withSizeKeepingCentre (dialSize + 40, rowHeight));
+        auto leftDialBounds = leftDialArea.removeFromTop (dialSize);
+        int distCenterX = leftDialBounds.getCentreX();
+        distanceAttenDial.setBounds (leftDialBounds.withSizeKeepingCentre (dialSize, dialSize));
+        auto distValueRow = leftDialArea.removeFromTop (rowHeight);
+        distanceAttenValueLabel.setBounds (distCenterX - 35, distValueRow.getY(), 35, rowHeight);
+        distanceAttenUnitLabel.setBounds (distCenterX, distValueRow.getY(), 40, rowHeight);
 
         // Right half: Common Attenuation
         auto rightDialArea = dialsRow;
         commonAttenLabel.setBounds (rightDialArea.removeFromTop (rowHeight).withSizeKeepingCentre (dialSize + 40, rowHeight));
         commonAttenLabel.setJustificationType (juce::Justification::centred);
-        commonAttenDial.setBounds (rightDialArea.removeFromTop (dialSize).withSizeKeepingCentre (dialSize, dialSize));
-        commonAttenValueLabel.setBounds (rightDialArea.removeFromTop (rowHeight).withSizeKeepingCentre (dialSize + 40, rowHeight));
+        auto rightDialBounds = rightDialArea.removeFromTop (dialSize);
+        int commonCenterX = rightDialBounds.getCentreX();
+        commonAttenDial.setBounds (rightDialBounds.withSizeKeepingCentre (dialSize, dialSize));
+        auto commonValueRow = rightDialArea.removeFromTop (rowHeight);
+        commonAttenValueLabel.setBounds (commonCenterX - 40, commonValueRow.getY(), 40, rowHeight);
+        commonAttenUnitLabel.setBounds (commonCenterX, commonValueRow.getY(), 20, rowHeight);
 
         col3.removeFromTop (spacing);
 
@@ -1278,6 +1298,7 @@ private:
         orientationLabel.setVisible (visible);
         orientationDial.setVisible (visible);
         orientationValueLabel.setVisible (visible);
+        orientationUnitLabel.setVisible (visible);
         angleOnLabel.setVisible (visible); angleOnSlider.setVisible (visible); angleOnValueLabel.setVisible (visible);
         angleOffLabel.setVisible (visible); angleOffSlider.setVisible (visible); angleOffValueLabel.setVisible (visible);
         pitchLabel.setVisible (visible); pitchSlider.setVisible (visible); pitchValueLabel.setVisible (visible);
@@ -1292,9 +1313,11 @@ private:
         distanceAttenLabel.setVisible (visible);
         distanceAttenDial.setVisible (visible);
         distanceAttenValueLabel.setVisible (visible);
+        distanceAttenUnitLabel.setVisible (visible);
         commonAttenLabel.setVisible (visible);
         commonAttenDial.setVisible (visible);
         commonAttenValueLabel.setVisible (visible);
+        commonAttenUnitLabel.setVisible (visible);
         mutesLabel.setVisible (visible);
         muteMacrosLabel.setVisible (visible);
         muteMacrosSelector.setVisible (visible);
@@ -1415,7 +1438,7 @@ private:
         // Reverb Feed
         int orientation = getIntParam (WFSParameterIDs::reverbOrientation, 0);
         orientationDial.setAngle (static_cast<float> (orientation));
-        orientationValueLabel.setText (juce::String (orientation) + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
+        orientationValueLabel.setText (juce::String (orientation), juce::dontSendNotification);
 
         int angleOn = getIntParam (WFSParameterIDs::reverbAngleOn, 86);
         angleOnSlider.setValue ((angleOn - 1.0f) / 179.0f);
@@ -1488,11 +1511,11 @@ private:
         // Reverb Return
         float distanceAtten = getFloatParam (WFSParameterIDs::reverbDistanceAttenuation, -0.7f);
         distanceAttenDial.setValue ((distanceAtten + 6.0f) / 6.0f);
-        distanceAttenValueLabel.setText (juce::String (distanceAtten, 1) + " dB/m", juce::dontSendNotification);
+        distanceAttenValueLabel.setText (juce::String (distanceAtten, 1), juce::dontSendNotification);
 
         int commonAtten = getIntParam (WFSParameterIDs::reverbCommonAtten, 100);
         commonAttenDial.setValue (commonAtten / 100.0f);
-        commonAttenValueLabel.setText (juce::String (commonAtten) + "%", juce::dontSendNotification);
+        commonAttenValueLabel.setText (juce::String (commonAtten), juce::dontSendNotification);
 
         loadMuteStates();
 
@@ -1883,7 +1906,7 @@ private:
         {
             int degrees = juce::jlimit (-179, 180, static_cast<int> (value));
             orientationDial.setAngle (static_cast<float> (degrees));
-            orientationValueLabel.setText (juce::String (degrees) + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
+            orientationValueLabel.setText (juce::String (degrees), juce::dontSendNotification);
         }
         else if (label == &angleOnValueLabel)
         {
@@ -1919,13 +1942,13 @@ private:
         {
             float dB = juce::jlimit (-6.0f, 0.0f, value);
             distanceAttenDial.setValue ((dB + 6.0f) / 6.0f);
-            distanceAttenValueLabel.setText (juce::String (dB, 1) + " dB/m", juce::dontSendNotification);
+            distanceAttenValueLabel.setText (juce::String (dB, 1), juce::dontSendNotification);
         }
         else if (label == &commonAttenValueLabel)
         {
             int percent = juce::jlimit (0, 100, static_cast<int> (value));
             commonAttenDial.setValue (percent / 100.0f);
-            commonAttenValueLabel.setText (juce::String (percent) + "%", juce::dontSendNotification);
+            commonAttenValueLabel.setText (juce::String (percent), juce::dontSendNotification);
         }
     }
 
@@ -2084,6 +2107,7 @@ private:
         orientationLabel.setVisible (hasChannels);
         orientationDial.setVisible (hasChannels);
         orientationValueLabel.setVisible (hasChannels);
+        orientationUnitLabel.setVisible (hasChannels);
         angleOnLabel.setVisible (hasChannels);
         angleOffLabel.setVisible (hasChannels);
         angleOnSlider.setVisible (hasChannels);
@@ -2126,9 +2150,11 @@ private:
         distanceAttenLabel.setVisible (hasChannels);
         distanceAttenDial.setVisible (hasChannels);
         distanceAttenValueLabel.setVisible (hasChannels);
+        distanceAttenUnitLabel.setVisible (hasChannels);
         commonAttenLabel.setVisible (hasChannels);
         commonAttenDial.setVisible (hasChannels);
         commonAttenValueLabel.setVisible (hasChannels);
+        commonAttenUnitLabel.setVisible (hasChannels);
         mutesLabel.setVisible (hasChannels);
         for (int i = 0; i < maxMuteButtons; ++i)
             muteButtons[i].setVisible (hasChannels && i < parameters.getNumOutputChannels());
@@ -2199,6 +2225,7 @@ private:
     juce::Label orientationLabel;
     WfsEndlessDial orientationDial;
     juce::Label orientationValueLabel;
+    juce::Label orientationUnitLabel;
     juce::Label angleOnLabel, angleOffLabel;
     WfsWidthExpansionSlider angleOnSlider, angleOffSlider;
     juce::Label angleOnValueLabel, angleOffValueLabel;
@@ -2239,9 +2266,11 @@ private:
     juce::Label distanceAttenLabel;
     WfsBasicDial distanceAttenDial;
     juce::Label distanceAttenValueLabel;
+    juce::Label distanceAttenUnitLabel;
     juce::Label commonAttenLabel;
     WfsBasicDial commonAttenDial;
     juce::Label commonAttenValueLabel;
+    juce::Label commonAttenUnitLabel;
     juce::Label mutesLabel;
     juce::TextButton muteButtons[maxMuteButtons];
     juce::Label muteMacrosLabel;

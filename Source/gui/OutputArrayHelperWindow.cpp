@@ -693,7 +693,7 @@ void OutputArrayHelperContent::layoutGeometrySection(juce::Rectangle<int>& area)
     const int editorWidth = 60;
     const int colSpacing = 10;
     const int checkboxWidth = 25;
-    const int labelWidth = 110;
+    const int labelWidth = 130;
 
     auto& config = presetConfigs[static_cast<int>(currentPreset)];
 
@@ -964,7 +964,7 @@ void OutputArrayHelperContent::layoutAcousticSection(juce::Rectangle<int>& area)
     const int editorWidth = 60;
     const int colSpacing = 10;
     const int checkboxWidth = 25;
-    const int labelWidth = 110;
+    const int labelWidth = 130;
 
     int height = 30 + rowHeight * 4 + 15;
     auto section = area.removeFromTop(height);
@@ -1026,8 +1026,10 @@ void OutputArrayHelperContent::layoutTargetSection(juce::Rectangle<int>& area)
     const int rowHeight = 26;
     const int colSpacing = 10;
     const int checkboxWidth = 25;
-    const int labelWidth = 110;
+    const int labelWidth = 130;
     const int selectorWidth = 100;
+    const int arrayLabelWidth = 60;       // Shorter label for "Array:"
+    const int arraySelectorWidth = 150;   // Wider to show full "Array 10"
 
     int height = 30 + rowHeight + 15;
     auto section = area.removeFromTop(height);
@@ -1044,8 +1046,8 @@ void OutputArrayHelperContent::layoutTargetSection(juce::Rectangle<int>& area)
     row.removeFromLeft(colSpacing);
     auto rightCol = row;
     leftCol.removeFromLeft(checkboxWidth);  // Skip checkbox space
-    arrayLabel.setBounds(leftCol.removeFromLeft(labelWidth));
-    arraySelector.setBounds(leftCol.removeFromLeft(selectorWidth));
+    arrayLabel.setBounds(leftCol.removeFromLeft(arrayLabelWidth));
+    arraySelector.setBounds(leftCol.removeFromLeft(arraySelectorWidth));
     rightCol.removeFromLeft(checkboxWidth);  // Skip checkbox space
     startOutputLabel.setBounds(rightCol.removeFromLeft(labelWidth));
     startOutputSelector.setBounds(rightCol.removeFromLeft(selectorWidth));
