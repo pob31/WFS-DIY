@@ -37,18 +37,20 @@
               file="Source/gui/NetworkLogWindow.h"/>
         <FILE id="guiNetLogCpp" name="NetworkLogWindow.cpp" compile="1" resource="0"
               file="Source/gui/NetworkLogWindow.cpp"/>
-        <FILE id="guiArrHelperH" name="OutputArrayHelperWindow.h" compile="0" resource="0"
-              file="Source/gui/OutputArrayHelperWindow.h"/>
-        <FILE id="guiArrHelperCpp" name="OutputArrayHelperWindow.cpp" compile="1" resource="0"
-              file="Source/gui/OutputArrayHelperWindow.cpp"/>
+        <FILE id="guiArrHelperH" name="OutputArrayHelperWindow.h" compile="0"
+              resource="0" file="Source/gui/OutputArrayHelperWindow.h"/>
+        <FILE id="guiArrHelperCpp" name="OutputArrayHelperWindow.cpp" compile="1"
+              resource="0" file="Source/gui/OutputArrayHelperWindow.cpp"/>
+        <FILE id="guiWinUtilsMm" name="WindowUtils.mm" compile="1" resource="0"
+              file="Source/gui/WindowUtils.mm"/>
         <FILE id="guiAudIfcH" name="AudioInterfaceWindow.h" compile="0" resource="0"
               file="Source/gui/AudioInterfaceWindow.h"/>
-        <FILE id="guiAudIfcCpp" name="AudioInterfaceWindow.cpp" compile="1" resource="0"
-              file="Source/gui/AudioInterfaceWindow.cpp"/>
+        <FILE id="guiAudIfcCpp" name="AudioInterfaceWindow.cpp" compile="1"
+              resource="0" file="Source/gui/AudioInterfaceWindow.cpp"/>
         <FILE id="guiPatchMatH" name="PatchMatrixComponent.h" compile="0" resource="0"
               file="Source/gui/PatchMatrixComponent.h"/>
-        <FILE id="guiPatchMatCpp" name="PatchMatrixComponent.cpp" compile="1" resource="0"
-              file="Source/gui/PatchMatrixComponent.cpp"/>
+        <FILE id="guiPatchMatCpp" name="PatchMatrixComponent.cpp" compile="1"
+              resource="0" file="Source/gui/PatchMatrixComponent.cpp"/>
         <FILE id="guiAudPatchH" name="AudioPatchTab.h" compile="0" resource="0"
               file="Source/gui/AudioPatchTab.h"/>
         <FILE id="guiAudPatchCpp" name="AudioPatchTab.cpp" compile="1" resource="0"
@@ -57,8 +59,8 @@
       <GROUP id="{HELPERSGROUP}" name="Helpers">
         <FILE id="arrGeomH" name="ArrayGeometryCalculator.h" compile="0" resource="0"
               file="Source/Helpers/ArrayGeometryCalculator.h"/>
-        <FILE id="arrGeomCpp" name="ArrayGeometryCalculator.cpp" compile="1" resource="0"
-              file="Source/Helpers/ArrayGeometryCalculator.cpp"/>
+        <FILE id="arrGeomCpp" name="ArrayGeometryCalculator.cpp" compile="1"
+              resource="0" file="Source/Helpers/ArrayGeometryCalculator.cpp"/>
       </GROUP>
       <GROUP id="{NETWORKGROUP}" name="Network">
         <FILE id="netTypes" name="OSCProtocolTypes.h" compile="0" resource="0"
@@ -71,8 +73,7 @@
               file="Source/Network/OSCRateLimiter.h"/>
         <FILE id="netRateCpp" name="OSCRateLimiter.cpp" compile="1" resource="0"
               file="Source/Network/OSCRateLimiter.cpp"/>
-        <FILE id="netLogH" name="OSCLogger.h" compile="0" resource="0"
-              file="Source/Network/OSCLogger.h"/>
+        <FILE id="netLogH" name="OSCLogger.h" compile="0" resource="0" file="Source/Network/OSCLogger.h"/>
         <FILE id="netLogCpp" name="OSCLogger.cpp" compile="1" resource="0"
               file="Source/Network/OSCLogger.cpp"/>
         <FILE id="netBuildH" name="OSCMessageBuilder.h" compile="0" resource="0"
@@ -83,20 +84,18 @@
               file="Source/Network/OSCMessageRouter.h"/>
         <FILE id="netRouteCpp" name="OSCMessageRouter.cpp" compile="1" resource="0"
               file="Source/Network/OSCMessageRouter.cpp"/>
-        <FILE id="netMgrH" name="OSCManager.h" compile="0" resource="0"
-              file="Source/Network/OSCManager.h"/>
+        <FILE id="netMgrH" name="OSCManager.h" compile="0" resource="0" file="Source/Network/OSCManager.h"/>
         <FILE id="netMgrCpp" name="OSCManager.cpp" compile="1" resource="0"
               file="Source/Network/OSCManager.cpp"/>
         <FILE id="netUdpRxH" name="OSCReceiverWithSenderIP.h" compile="0" resource="0"
               file="Source/Network/OSCReceiverWithSenderIP.h"/>
-        <FILE id="netUdpRxCpp" name="OSCReceiverWithSenderIP.cpp" compile="1" resource="0"
-              file="Source/Network/OSCReceiverWithSenderIP.cpp"/>
+        <FILE id="netUdpRxCpp" name="OSCReceiverWithSenderIP.cpp" compile="1"
+              resource="0" file="Source/Network/OSCReceiverWithSenderIP.cpp"/>
         <FILE id="netTcpRxH" name="OSCTCPReceiver.h" compile="0" resource="0"
               file="Source/Network/OSCTCPReceiver.h"/>
         <FILE id="netTcpRxCpp" name="OSCTCPReceiver.cpp" compile="1" resource="0"
               file="Source/Network/OSCTCPReceiver.cpp"/>
-        <FILE id="netParseH" name="OSCParser.h" compile="0" resource="0"
-              file="Source/Network/OSCParser.h"/>
+        <FILE id="netParseH" name="OSCParser.h" compile="0" resource="0" file="Source/Network/OSCParser.h"/>
         <FILE id="netQueryH" name="OSCQueryServer.h" compile="0" resource="0"
               file="Source/Network/OSCQueryServer.h"/>
         <FILE id="netQueryCpp" name="OSCQueryServer.cpp" compile="1" resource="0"
@@ -133,8 +132,8 @@
               file="Source/DSP/InputBufferAlgorithmGPU.cpp"/>
         <FILE id="testSigGenH" name="TestSignalGenerator.h" compile="0" resource="0"
               file="Source/DSP/TestSignalGenerator.h"/>
-        <FILE id="testSigGenCpp" name="TestSignalGenerator.cpp" compile="1" resource="0"
-              file="Source/DSP/TestSignalGenerator.cpp"/>
+        <FILE id="testSigGenCpp" name="TestSignalGenerator.cpp" compile="1"
+              resource="0" file="Source/DSP/TestSignalGenerator.cpp"/>
       </GROUP>
     </GROUP>
   </MAINGROUP>
@@ -157,7 +156,7 @@
     <MODULE id="juce_osc" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
   </MODULES>
   <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1" JUCE_USE_ANDROID_OBOE="0" JUCE_JACK="0"
-               JUCE_ASIO="1"/>
+               JUCE_ASIO="1" JUCE_ALSA="0" JUCE_PLUGINHOST_LV2="0" JUCE_PLUGINHOST_ARA="0"/>
   <EXPORTFORMATS>
     <LINUX_MAKE targetFolder="Builds/LinuxMakefile">
       <CONFIGURATIONS>
@@ -211,25 +210,27 @@
     </VS2022>
     <XCODE_MAC targetFolder="Builds/MacOSX">
       <CONFIGURATIONS>
-        <CONFIGURATION isDebug="1" name="Debug" targetName="WFS-DIY" extraLinkerFlags="-framework SystemConfiguration -framework CoreFoundation"/>
-        <CONFIGURATION isDebug="0" name="Release" targetName="WFS-DIY" extraLinkerFlags="-framework SystemConfiguration -framework CoreFoundation"/>
+        <CONFIGURATION isDebug="1" name="Debug" targetName="WFS-DIY" extraLinkerFlags="-framework SystemConfiguration -framework CoreFoundation"
+                       headerPath="/Users/pierre-olivierboulant/JUCE/modules"/>
+        <CONFIGURATION isDebug="0" name="Release" targetName="WFS-DIY" extraLinkerFlags="-framework SystemConfiguration -framework CoreFoundation"
+                       headerPath="/Users/pierre-olivierboulant/JUCE/modules"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
-        <MODULEPATH id="juce_audio_basics" path="../../../JUCE/modules"/>
-        <MODULEPATH id="juce_audio_devices" path="../../../JUCE/modules"/>
-        <MODULEPATH id="juce_audio_formats" path="../../../JUCE/modules"/>
-        <MODULEPATH id="juce_audio_processors" path="../../../JUCE/modules"/>
-        <MODULEPATH id="juce_audio_utils" path="../../../JUCE/modules"/>
-        <MODULEPATH id="juce_core" path="../../../JUCE/modules"/>
-        <MODULEPATH id="juce_data_structures" path="../../../JUCE/modules"/>
-        <MODULEPATH id="juce_dsp" path="../../../JUCE/modules"/>
-        <MODULEPATH id="juce_events" path="../../../JUCE/modules"/>
-        <MODULEPATH id="juce_graphics" path="../../../JUCE/modules"/>
-        <MODULEPATH id="juce_gui_basics" path="../../../JUCE/modules"/>
-        <MODULEPATH id="juce_gui_extra" path="../../../JUCE/modules"/>
-        <MODULEPATH id="juce_opengl" path="../../../JUCE/modules"/>
-        <MODULEPATH id="juce_osc" path="../../../JUCE/modules"/>
-        <MODULEPATH id="juce_audio_processors_headless" path="../../../JUCE/modules"/>
+        <MODULEPATH id="juce_audio_basics" path="/Users/pierre-olivierboulant/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="/Users/pierre-olivierboulant/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="/Users/pierre-olivierboulant/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="/Users/pierre-olivierboulant/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="/Users/pierre-olivierboulant/JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="/Users/pierre-olivierboulant/JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="/Users/pierre-olivierboulant/JUCE/modules"/>
+        <MODULEPATH id="juce_dsp" path="/Users/pierre-olivierboulant/JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="/Users/pierre-olivierboulant/JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="/Users/pierre-olivierboulant/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="/Users/pierre-olivierboulant/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="/Users/pierre-olivierboulant/JUCE/modules"/>
+        <MODULEPATH id="juce_opengl" path="/Users/pierre-olivierboulant/JUCE/modules"/>
+        <MODULEPATH id="juce_osc" path="/Users/pierre-olivierboulant/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors_headless" path="/Users/pierre-olivierboulant/JUCE/modules"/>
       </MODULEPATHS>
     </XCODE_MAC>
   </EXPORTFORMATS>

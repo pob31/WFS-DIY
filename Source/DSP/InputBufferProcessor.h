@@ -1,7 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "LockFreeRingBuffer.h"
+#include "../LockFreeRingBuffer.h"
 #include "WFSHighShelfFilter.h"
 #include "WFSBiquadFilter.h"
 #include "LiveSourceLevelDetector.h"

@@ -236,7 +236,7 @@ void OSCTCPReceiver::ClientHandler::run()
 
         if (packetSize == 0 || packetSize > static_cast<uint32_t>(maxPacketSize))
         {
-            DBG("OSCTCPReceiver: Invalid packet size " << packetSize << " from " << clientIP);
+            DBG("OSCTCPReceiver: Invalid packet size " + juce::String(packetSize) + " from " + clientIP);
             break;
         }
 
