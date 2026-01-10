@@ -265,13 +265,17 @@ private:
     juce::TextButton closeButton;
 
     // Helper to layout dial value and unit labels (matching InputsTab pattern)
+    // Places value and unit adjacent, centered as a pair under dial with overlap to reduce font padding gap
     void layoutDialValueUnit(juce::Label& valueLabel, juce::Label& unitLabel,
                              int dialCenterX, int y, int height,
-                             int valueWidth = 45, int unitWidth = 35, int gap = 2)
+                             int valueWidth = 40, int unitWidth = 40)
     {
-        valueLabel.setBounds(dialCenterX - valueWidth - gap / 2, y, valueWidth, height);
+        const int overlap = 7;  // Pixels to overlap to reduce visual gap from font padding
+        int totalWidth = valueWidth + unitWidth - overlap;
+        int startX = dialCenterX - totalWidth / 2;
+        valueLabel.setBounds(startX, y, valueWidth, height);
         valueLabel.setJustificationType(juce::Justification::right);
-        unitLabel.setBounds(dialCenterX + gap / 2, y, unitWidth, height);
+        unitLabel.setBounds(startX + valueWidth - overlap, y, unitWidth, height);
         unitLabel.setJustificationType(juce::Justification::left);
     }
 

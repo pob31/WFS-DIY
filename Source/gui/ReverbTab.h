@@ -416,6 +416,7 @@ private:
         addAndMakeVisible (orientationUnitLabel);
         orientationUnitLabel.setText (juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
         orientationUnitLabel.setJustificationType (juce::Justification::left);
+        orientationUnitLabel.setMinimumHorizontalScale (1.0f);
 
         // Angle On slider
         addAndMakeVisible (angleOnLabel);
@@ -672,6 +673,7 @@ private:
         addAndMakeVisible (distanceAttenUnitLabel);
         distanceAttenUnitLabel.setText ("dB/m", juce::dontSendNotification);
         distanceAttenUnitLabel.setJustificationType (juce::Justification::left);
+        distanceAttenUnitLabel.setMinimumHorizontalScale (1.0f);
 
         // Common Attenuation dial
         addAndMakeVisible (commonAttenLabel);
@@ -692,6 +694,7 @@ private:
         addAndMakeVisible (commonAttenUnitLabel);
         commonAttenUnitLabel.setText ("%", juce::dontSendNotification);
         commonAttenUnitLabel.setJustificationType (juce::Justification::left);
+        commonAttenUnitLabel.setMinimumHorizontalScale (1.0f);
 
         // Mute buttons (styled like InputsTab)
         addAndMakeVisible (mutesLabel);
@@ -1034,8 +1037,11 @@ private:
         int orientCenterX = dialArea.getCentreX();
         orientationDial.setBounds (dialArea.withSizeKeepingCentre (dialSize, dialSize));
         auto orientValueRow = col2.removeFromTop (rowHeight);
-        orientationValueLabel.setBounds (orientCenterX - 40, orientValueRow.getY(), 40, rowHeight);
-        orientationUnitLabel.setBounds (orientCenterX, orientValueRow.getY(), 20, rowHeight);
+        // Value and unit adjacent, centered as a pair under dial (with overlap to reduce font padding gap)
+        const int orientValW = 40, orientUnitW = 30, orientOverlap = 7;
+        int orientStartX = orientCenterX - (orientValW + orientUnitW - orientOverlap) / 2;
+        orientationValueLabel.setBounds (orientStartX, orientValueRow.getY(), orientValW, rowHeight);
+        orientationUnitLabel.setBounds (orientStartX + orientValW - orientOverlap, orientValueRow.getY(), orientUnitW, rowHeight);
         col2.removeFromTop (spacing);
 
         // Angle On slider
@@ -1105,8 +1111,11 @@ private:
         int distCenterX = leftDialBounds.getCentreX();
         distanceAttenDial.setBounds (leftDialBounds.withSizeKeepingCentre (dialSize, dialSize));
         auto distValueRow = leftDialArea.removeFromTop (rowHeight);
-        distanceAttenValueLabel.setBounds (distCenterX - 35, distValueRow.getY(), 35, rowHeight);
-        distanceAttenUnitLabel.setBounds (distCenterX, distValueRow.getY(), 40, rowHeight);
+        // Value and unit adjacent, centered as a pair under dial (with overlap to reduce font padding gap)
+        const int distValW = 35, distUnitW = 50, distOverlap = 7;
+        int distStartX = distCenterX - (distValW + distUnitW - distOverlap) / 2;
+        distanceAttenValueLabel.setBounds (distStartX, distValueRow.getY(), distValW, rowHeight);
+        distanceAttenUnitLabel.setBounds (distStartX + distValW - distOverlap, distValueRow.getY(), distUnitW, rowHeight);
 
         // Right half: Common Attenuation
         auto rightDialArea = dialsRow;
@@ -1116,8 +1125,11 @@ private:
         int commonCenterX = rightDialBounds.getCentreX();
         commonAttenDial.setBounds (rightDialBounds.withSizeKeepingCentre (dialSize, dialSize));
         auto commonValueRow = rightDialArea.removeFromTop (rowHeight);
-        commonAttenValueLabel.setBounds (commonCenterX - 40, commonValueRow.getY(), 40, rowHeight);
-        commonAttenUnitLabel.setBounds (commonCenterX, commonValueRow.getY(), 20, rowHeight);
+        // Value and unit adjacent, centered as a pair under dial (with overlap to reduce font padding gap)
+        const int commonValW = 40, commonUnitW = 30, commonOverlap = 7;
+        int commonStartX = commonCenterX - (commonValW + commonUnitW - commonOverlap) / 2;
+        commonAttenValueLabel.setBounds (commonStartX, commonValueRow.getY(), commonValW, rowHeight);
+        commonAttenUnitLabel.setBounds (commonStartX + commonValW - commonOverlap, commonValueRow.getY(), commonUnitW, rowHeight);
 
         col3.removeFromTop (spacing);
 

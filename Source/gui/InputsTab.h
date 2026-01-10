@@ -1021,6 +1021,7 @@ private:
         addAndMakeVisible(trackingSmoothUnitLabel);
         trackingSmoothUnitLabel.setText("%", juce::dontSendNotification);
         trackingSmoothUnitLabel.setJustificationType(juce::Justification::left);
+        trackingSmoothUnitLabel.setMinimumHorizontalScale(1.0f);
 
         // Max Speed
         addAndMakeVisible(maxSpeedActiveButton);
@@ -1050,6 +1051,7 @@ private:
         addAndMakeVisible(maxSpeedUnitLabel);
         maxSpeedUnitLabel.setText("m/s", juce::dontSendNotification);
         maxSpeedUnitLabel.setJustificationType(juce::Justification::left);
+        maxSpeedUnitLabel.setMinimumHorizontalScale(1.0f);
 
         // Path Mode toggle (follows drawn path instead of straight line)
         addAndMakeVisible(pathModeButton);
@@ -1079,6 +1081,7 @@ private:
         addAndMakeVisible(heightFactorUnitLabel);
         heightFactorUnitLabel.setText("%", juce::dontSendNotification);
         heightFactorUnitLabel.setJustificationType(juce::Justification::left);
+        heightFactorUnitLabel.setMinimumHorizontalScale(1.0f);
 
         // Position Joystick (for X/Y real-time control)
         addAndMakeVisible(positionJoystick);
@@ -1272,6 +1275,7 @@ private:
         addAndMakeVisible(distanceAttenUnitLabel);
         distanceAttenUnitLabel.setText("dB/m", juce::dontSendNotification);
         distanceAttenUnitLabel.setJustificationType(juce::Justification::left);
+        distanceAttenUnitLabel.setMinimumHorizontalScale(1.0f);
 
         // Distance Ratio dial (visible when attenuationLaw == 1/d)
         addAndMakeVisible(distanceRatioLabel);
@@ -1293,6 +1297,7 @@ private:
         addAndMakeVisible(distanceRatioUnitLabel);
         distanceRatioUnitLabel.setText("x", juce::dontSendNotification);
         distanceRatioUnitLabel.setJustificationType(juce::Justification::left);
+        distanceRatioUnitLabel.setMinimumHorizontalScale(1.0f);
         // Initially hidden (Log is default)
         distanceRatioLabel.setVisible(false);
         distanceRatioDial.setVisible(false);
@@ -1318,6 +1323,7 @@ private:
         addAndMakeVisible(commonAttenUnitLabel);
         commonAttenUnitLabel.setText("%", juce::dontSendNotification);
         commonAttenUnitLabel.setJustificationType(juce::Justification::left);
+        commonAttenUnitLabel.setMinimumHorizontalScale(1.0f);
 
         // Directivity slider
         addAndMakeVisible(directivityLabel);
@@ -1351,6 +1357,7 @@ private:
         addAndMakeVisible(rotationUnitLabel);
         rotationUnitLabel.setText(juce::String::fromUTF8("°"), juce::dontSendNotification);
         rotationUnitLabel.setJustificationType(juce::Justification::left);
+        rotationUnitLabel.setMinimumHorizontalScale(1.0f);
 
         // Tilt slider
         addAndMakeVisible(tiltLabel);
@@ -1468,6 +1475,7 @@ private:
         addAndMakeVisible(lsPeakRatioUnitLabel);
         lsPeakRatioUnitLabel.setText("1:", juce::dontSendNotification);
         lsPeakRatioUnitLabel.setJustificationType(juce::Justification::right);
+        lsPeakRatioUnitLabel.setMinimumHorizontalScale(1.0f);
         addAndMakeVisible(lsPeakRatioValueLabel);
         lsPeakRatioValueLabel.setText("2.0", juce::dontSendNotification);
         lsPeakRatioValueLabel.setJustificationType(juce::Justification::left);
@@ -1502,6 +1510,7 @@ private:
         addAndMakeVisible(lsSlowRatioUnitLabel);
         lsSlowRatioUnitLabel.setText("1:", juce::dontSendNotification);
         lsSlowRatioUnitLabel.setJustificationType(juce::Justification::right);
+        lsSlowRatioUnitLabel.setMinimumHorizontalScale(1.0f);
         addAndMakeVisible(lsSlowRatioValueLabel);
         lsSlowRatioValueLabel.setText("2.0", juce::dontSendNotification);
         lsSlowRatioValueLabel.setJustificationType(juce::Justification::left);
@@ -1557,6 +1566,7 @@ private:
         addAndMakeVisible(frDiffusionUnitLabel);
         frDiffusionUnitLabel.setText("%", juce::dontSendNotification);
         frDiffusionUnitLabel.setJustificationType(juce::Justification::left);
+        frDiffusionUnitLabel.setMinimumHorizontalScale(1.0f);
 
         // FR Low Cut Active
         addAndMakeVisible(frLowCutActiveButton);
@@ -1662,6 +1672,7 @@ private:
             bool enabled = lfoActiveButton.getToggleState();
             lfoActiveButton.setButtonText(enabled ? "L.F.O: ON" : "L.F.O: OFF");
             saveInputParam(WFSParameterIDs::inputLFOactive, enabled ? 1 : 0);
+            updateLfoAlpha();
         };
 
         // Period dial (0.01-100.0 s) - Formula: pow(10.0,sqrt(x)*4.0-2.0)
@@ -1682,6 +1693,7 @@ private:
         addAndMakeVisible(lfoPeriodUnitLabel);
         lfoPeriodUnitLabel.setText("s", juce::dontSendNotification);
         lfoPeriodUnitLabel.setJustificationType(juce::Justification::left);
+        lfoPeriodUnitLabel.setMinimumHorizontalScale(1.0f);
 
         // Main Phase dial (-180° to 180°) - uses WfsRotationDial
         addAndMakeVisible(lfoPhaseLabel);
@@ -1701,6 +1713,7 @@ private:
         addAndMakeVisible(lfoPhaseUnitLabel);
         lfoPhaseUnitLabel.setText(juce::String::fromUTF8("°"), juce::dontSendNotification);
         lfoPhaseUnitLabel.setJustificationType(juce::Justification::left);
+        lfoPhaseUnitLabel.setMinimumHorizontalScale(1.0f);
 
         // Shape X/Y/Z dropdowns
         juce::StringArray lfoShapes = {"OFF", "sine", "square", "sawtooth", "triangle", "keystone", "log", "exp", "random"};
@@ -1713,6 +1726,7 @@ private:
         lfoShapeXSelector.setSelectedId(1, juce::dontSendNotification);
         lfoShapeXSelector.onChange = [this]() {
             saveInputParam(WFSParameterIDs::inputLFOshapeX, lfoShapeXSelector.getSelectedId() - 1);
+            updateLfoAlpha();
         };
 
         addAndMakeVisible(lfoShapeYLabel);
@@ -1723,6 +1737,7 @@ private:
         lfoShapeYSelector.setSelectedId(1, juce::dontSendNotification);
         lfoShapeYSelector.onChange = [this]() {
             saveInputParam(WFSParameterIDs::inputLFOshapeY, lfoShapeYSelector.getSelectedId() - 1);
+            updateLfoAlpha();
         };
 
         addAndMakeVisible(lfoShapeZLabel);
@@ -1733,6 +1748,7 @@ private:
         lfoShapeZSelector.setSelectedId(1, juce::dontSendNotification);
         lfoShapeZSelector.onChange = [this]() {
             saveInputParam(WFSParameterIDs::inputLFOshapeZ, lfoShapeZSelector.getSelectedId() - 1);
+            updateLfoAlpha();
         };
 
         // Rate X/Y/Z sliders (0.01-100, formula: pow(10.0,(x*4.0)-2.0))
@@ -1833,6 +1849,7 @@ private:
         addAndMakeVisible(lfoPhaseXUnitLabel);
         lfoPhaseXUnitLabel.setText(juce::String::fromUTF8("°"), juce::dontSendNotification);
         lfoPhaseXUnitLabel.setJustificationType(juce::Justification::left);
+        lfoPhaseXUnitLabel.setMinimumHorizontalScale(1.0f);
 
         addAndMakeVisible(lfoPhaseYLabel);
         lfoPhaseYLabel.setText("Phase Y:", juce::dontSendNotification);
@@ -1851,6 +1868,7 @@ private:
         addAndMakeVisible(lfoPhaseYUnitLabel);
         lfoPhaseYUnitLabel.setText(juce::String::fromUTF8("°"), juce::dontSendNotification);
         lfoPhaseYUnitLabel.setJustificationType(juce::Justification::left);
+        lfoPhaseYUnitLabel.setMinimumHorizontalScale(1.0f);
 
         addAndMakeVisible(lfoPhaseZLabel);
         lfoPhaseZLabel.setText("Phase Z:", juce::dontSendNotification);
@@ -1869,6 +1887,7 @@ private:
         addAndMakeVisible(lfoPhaseZUnitLabel);
         lfoPhaseZUnitLabel.setText(juce::String::fromUTF8("°"), juce::dontSendNotification);
         lfoPhaseZUnitLabel.setJustificationType(juce::Justification::left);
+        lfoPhaseZUnitLabel.setMinimumHorizontalScale(1.0f);
 
         // Gyrophone dropdown
         addAndMakeVisible(lfoGyrophoneLabel);
@@ -2015,6 +2034,7 @@ private:
         addAndMakeVisible(otomoCurveUnitLabel);
         otomoCurveUnitLabel.setText("%", juce::dontSendNotification);
         otomoCurveUnitLabel.setJustificationType(juce::Justification::left);
+        otomoCurveUnitLabel.setMinimumHorizontalScale(1.0f);
 
         // Speed Profile dial (0-100%)
         addAndMakeVisible(otomoSpeedProfileLabel);
@@ -2034,6 +2054,7 @@ private:
         addAndMakeVisible(otomoSpeedProfileUnitLabel);
         otomoSpeedProfileUnitLabel.setText("%", juce::dontSendNotification);
         otomoSpeedProfileUnitLabel.setJustificationType(juce::Justification::left);
+        otomoSpeedProfileUnitLabel.setMinimumHorizontalScale(1.0f);
 
         // Trigger button (Manual/Trigger)
         addAndMakeVisible(otomoTriggerButton);
@@ -2064,6 +2085,7 @@ private:
         addAndMakeVisible(otomoThresholdUnitLabel);
         otomoThresholdUnitLabel.setText("dB", juce::dontSendNotification);
         otomoThresholdUnitLabel.setJustificationType(juce::Justification::left);
+        otomoThresholdUnitLabel.setMinimumHorizontalScale(1.0f);
 
         // Trigger Reset dial (-92 to 0 dB)
         addAndMakeVisible(otomoResetLabel);
@@ -2084,6 +2106,7 @@ private:
         addAndMakeVisible(otomoResetUnitLabel);
         otomoResetUnitLabel.setText("dB", juce::dontSendNotification);
         otomoResetUnitLabel.setJustificationType(juce::Justification::left);
+        otomoResetUnitLabel.setMinimumHorizontalScale(1.0f);
 
         // Transport buttons (custom drawn icons)
         addAndMakeVisible(otomoStartButton);
@@ -2308,16 +2331,19 @@ private:
         label.addListener(this);
     }
 
-    // Helper to layout dial value and unit labels relative to dial center
-    // Value is right-justified ending near dial center, unit is left-justified starting near dial center
-    // Gap parameter controls spacing between value and unit (default 2 pixels)
+    // Helper to layout dial value and unit labels under dial
+    // Places value and unit adjacent, centered as a pair under the dial
+    // Uses slight overlap to compensate for JUCE font padding
     void layoutDialValueUnit(juce::Label& valueLabel, juce::Label& unitLabel,
                              int dialCenterX, int y, int height,
-                             int valueWidth = 45, int unitWidth = 35, int gap = 2)
+                             int valueWidth = 40, int unitWidth = 40)
     {
-        valueLabel.setBounds(dialCenterX - valueWidth - gap / 2, y, valueWidth, height);
+        const int overlap = 7;  // Pixels to overlap to reduce visual gap from font padding
+        int totalWidth = valueWidth + unitWidth - overlap;
+        int startX = dialCenterX - totalWidth / 2;
+        valueLabel.setBounds(startX, y, valueWidth, height);
         valueLabel.setJustificationType(juce::Justification::right);
-        unitLabel.setBounds(dialCenterX + gap / 2, y, unitWidth, height);
+        unitLabel.setBounds(startX + valueWidth - overlap, y, unitWidth, height);
         unitLabel.setJustificationType(juce::Justification::left);
     }
 
@@ -2482,12 +2508,14 @@ private:
         lsPeakThresholdValueLabel.setAlpha(alpha);
         lsPeakRatioLabel.setAlpha(alpha);
         lsPeakRatioDial.setAlpha(alpha);
+        lsPeakRatioUnitLabel.setAlpha(alpha);
         lsPeakRatioValueLabel.setAlpha(alpha);
         lsSlowThresholdLabel.setAlpha(alpha);
         lsSlowThresholdSlider.setAlpha(alpha);
         lsSlowThresholdValueLabel.setAlpha(alpha);
         lsSlowRatioLabel.setAlpha(alpha);
         lsSlowRatioDial.setAlpha(alpha);
+        lsSlowRatioUnitLabel.setAlpha(alpha);
         lsSlowRatioValueLabel.setAlpha(alpha);
     }
 
@@ -2500,6 +2528,7 @@ private:
         frDiffusionLabel.setAlpha(alpha);
         frDiffusionDial.setAlpha(alpha);
         frDiffusionValueLabel.setAlpha(alpha);
+        frDiffusionUnitLabel.setAlpha(alpha);
         frLowCutActiveButton.setAlpha(alpha);
         frLowCutFreqLabel.setAlpha(alpha);
         frLowCutFreqSlider.setAlpha(alpha);
@@ -2554,6 +2583,95 @@ private:
         bool highShelfEnabled = frHighShelfActiveButton.getToggleState();
         float alpha = (frEnabled && highShelfEnabled) ? 1.0f : 0.5f;
         setHighShelfParametersAlpha(alpha);
+    }
+
+    void setLfoParametersAlpha(float alpha)
+    {
+        // Dim all LFO parameters except the main active button
+        lfoPeriodLabel.setAlpha(alpha);
+        lfoPeriodDial.setAlpha(alpha);
+        lfoPeriodValueLabel.setAlpha(alpha);
+        lfoPeriodUnitLabel.setAlpha(alpha);
+        lfoPhaseLabel.setAlpha(alpha);
+        lfoPhaseDial.setAlpha(alpha);
+        lfoPhaseValueLabel.setAlpha(alpha);
+        lfoPhaseUnitLabel.setAlpha(alpha);
+        lfoProgressDial.setAlpha(alpha);
+        lfoGyrophoneLabel.setAlpha(alpha);
+        lfoGyrophoneSelector.setAlpha(alpha);
+        jitterLabel.setAlpha(alpha);
+        jitterSlider.setAlpha(alpha);
+        jitterValueLabel.setAlpha(alpha);
+    }
+
+    void setLfoAxisXAlpha(float alpha)
+    {
+        lfoShapeXLabel.setAlpha(alpha);
+        lfoShapeXSelector.setAlpha(alpha);
+        lfoAmplitudeXLabel.setAlpha(alpha);
+        lfoAmplitudeXSlider.setAlpha(alpha);
+        lfoAmplitudeXValueLabel.setAlpha(alpha);
+        lfoRateXLabel.setAlpha(alpha);
+        lfoRateXSlider.setAlpha(alpha);
+        lfoRateXValueLabel.setAlpha(alpha);
+        lfoPhaseXLabel.setAlpha(alpha);
+        lfoPhaseXDial.setAlpha(alpha);
+        lfoPhaseXValueLabel.setAlpha(alpha);
+        lfoPhaseXUnitLabel.setAlpha(alpha);
+        lfoOutputXLabel.setAlpha(alpha);
+        lfoOutputXSlider.setAlpha(alpha);
+    }
+
+    void setLfoAxisYAlpha(float alpha)
+    {
+        lfoShapeYLabel.setAlpha(alpha);
+        lfoShapeYSelector.setAlpha(alpha);
+        lfoAmplitudeYLabel.setAlpha(alpha);
+        lfoAmplitudeYSlider.setAlpha(alpha);
+        lfoAmplitudeYValueLabel.setAlpha(alpha);
+        lfoRateYLabel.setAlpha(alpha);
+        lfoRateYSlider.setAlpha(alpha);
+        lfoRateYValueLabel.setAlpha(alpha);
+        lfoPhaseYLabel.setAlpha(alpha);
+        lfoPhaseYDial.setAlpha(alpha);
+        lfoPhaseYValueLabel.setAlpha(alpha);
+        lfoPhaseYUnitLabel.setAlpha(alpha);
+        lfoOutputYLabel.setAlpha(alpha);
+        lfoOutputYSlider.setAlpha(alpha);
+    }
+
+    void setLfoAxisZAlpha(float alpha)
+    {
+        lfoShapeZLabel.setAlpha(alpha);
+        lfoShapeZSelector.setAlpha(alpha);
+        lfoAmplitudeZLabel.setAlpha(alpha);
+        lfoAmplitudeZSlider.setAlpha(alpha);
+        lfoAmplitudeZValueLabel.setAlpha(alpha);
+        lfoRateZLabel.setAlpha(alpha);
+        lfoRateZSlider.setAlpha(alpha);
+        lfoRateZValueLabel.setAlpha(alpha);
+        lfoPhaseZLabel.setAlpha(alpha);
+        lfoPhaseZDial.setAlpha(alpha);
+        lfoPhaseZValueLabel.setAlpha(alpha);
+        lfoPhaseZUnitLabel.setAlpha(alpha);
+        lfoOutputZLabel.setAlpha(alpha);
+        lfoOutputZSlider.setAlpha(alpha);
+    }
+
+    void updateLfoAlpha()
+    {
+        bool lfoEnabled = lfoActiveButton.getToggleState();
+        float mainAlpha = lfoEnabled ? 1.0f : 0.5f;
+        setLfoParametersAlpha(mainAlpha);
+
+        // Per-axis dimming: dim if LFO is off OR if that axis shape is OFF (id == 1)
+        float xAlpha = (lfoEnabled && lfoShapeXSelector.getSelectedId() != 1) ? 1.0f : 0.5f;
+        float yAlpha = (lfoEnabled && lfoShapeYSelector.getSelectedId() != 1) ? 1.0f : 0.5f;
+        float zAlpha = (lfoEnabled && lfoShapeZSelector.getSelectedId() != 1) ? 1.0f : 0.5f;
+
+        setLfoAxisXAlpha(xAlpha);
+        setLfoAxisYAlpha(yAlpha);
+        setLfoAxisZAlpha(zAlpha);
     }
 
     void layoutInputPropertiesTab()
@@ -3423,7 +3541,7 @@ private:
         speedCol.removeFromTop(rowHeight);
         maxSpeedDial.setBounds(colCenterX - dialSize / 2, speedCol.getY(), dialSize, dialSize);
         speedCol.removeFromTop(dialSize);
-        layoutDialValueUnit(maxSpeedValueLabel, maxSpeedUnitLabel, colCenterX, speedCol.getY(), rowHeight, 40, 30);
+        layoutDialValueUnit(maxSpeedValueLabel, maxSpeedUnitLabel, colCenterX, speedCol.getY(), rowHeight, 40, 35);
 
         // Column 3: Height Factor
         auto heightCol = controlBlock;
@@ -3468,8 +3586,8 @@ private:
         distanceRatioLabel.setBounds(distanceAttenLabel.getBounds());
         distanceAttenDial.setBounds(distCenterX - dialSize / 2, topRowY + rowHeight, dialSize, dialSize);
         distanceRatioDial.setBounds(distanceAttenDial.getBounds());
-        layoutDialValueUnit(distanceAttenValueLabel, distanceAttenUnitLabel, distCenterX, topRowY + rowHeight + dialSize, rowHeight, 35, 40);
-        layoutDialValueUnit(distanceRatioValueLabel, distanceRatioUnitLabel, distCenterX, topRowY + rowHeight + dialSize, rowHeight, 35, 20);
+        layoutDialValueUnit(distanceAttenValueLabel, distanceAttenUnitLabel, distCenterX, topRowY + rowHeight + dialSize, rowHeight, 35, 50);
+        layoutDialValueUnit(distanceRatioValueLabel, distanceRatioUnitLabel, distCenterX, topRowY + rowHeight + dialSize, rowHeight, 35, 25);
 
         // Column 3: Common Atten dial
         int commonCenterX = topRowStartX + attenLawWidth + itemSpacing + dialSectionWidth + itemSpacing + dialSectionWidth / 2;
@@ -3516,7 +3634,7 @@ private:
         int rotCenterY = rotArea.getY() + rotArea.getHeight() / 2;
         rotationLabel.setBounds(rotCenterX - 50, rotArea.getY(), 100, rowHeight);
         rotationDial.setBounds(rotCenterX - largeRotationDial / 2, rotCenterY - largeRotationDial / 2, largeRotationDial, largeRotationDial);
-        layoutDialValueUnit(rotationValueLabel, rotationUnitLabel, rotCenterX, rotArea.getBottom() - rowHeight, rowHeight, 40, 20);
+        layoutDialValueUnit(rotationValueLabel, rotationUnitLabel, rotCenterX, rotArea.getBottom() - rowHeight, rowHeight, 40, 25);
 
         // Extra padding after HF Shelf
         col2.removeFromTop(spacing * 3);
@@ -3652,9 +3770,11 @@ private:
         auto peakRatioDialBounds = peakDialArea.removeFromTop(dialSize);
         lsPeakRatioDial.setBounds(peakRatioDialBounds.withSizeKeepingCentre(dialSize, dialSize));
         int peakDialCenterX = peakRatioDialBounds.getX() + peakRatioDialBounds.getWidth() / 2;
-        // Ratio format: prefix "1:" on left (right-justified), value on right (left-justified)
-        lsPeakRatioUnitLabel.setBounds(peakDialCenterX - 20 - 1, peakDialArea.getY(), 20, rowHeight);
-        lsPeakRatioValueLabel.setBounds(peakDialCenterX + 1, peakDialArea.getY(), 30, rowHeight);
+        // Ratio format: prefix "1:" on left (right-justified), value on right (left-justified), centered as pair with overlap
+        const int peakPrefixW = 28, peakValueW = 35, peakOverlap = 7;
+        int peakStartX = peakDialCenterX - (peakPrefixW + peakValueW - peakOverlap) / 2;
+        lsPeakRatioUnitLabel.setBounds(peakStartX, peakDialArea.getY(), peakPrefixW, rowHeight);
+        lsPeakRatioValueLabel.setBounds(peakStartX + peakPrefixW - peakOverlap, peakDialArea.getY(), peakValueW, rowHeight);
 
         // Peak slider section (left) - label + value on same row, slider below
         row = peakSliderArea.removeFromTop(rowHeight);
@@ -3677,9 +3797,11 @@ private:
         auto slowRatioDialBounds = slowDialArea.removeFromTop(dialSize);
         lsSlowRatioDial.setBounds(slowRatioDialBounds.withSizeKeepingCentre(dialSize, dialSize));
         int slowDialCenterX = slowRatioDialBounds.getX() + slowRatioDialBounds.getWidth() / 2;
-        // Ratio format: prefix "1:" on left (right-justified), value on right (left-justified)
-        lsSlowRatioUnitLabel.setBounds(slowDialCenterX - 20 - 1, slowDialArea.getY(), 20, rowHeight);
-        lsSlowRatioValueLabel.setBounds(slowDialCenterX + 1, slowDialArea.getY(), 30, rowHeight);
+        // Ratio format: prefix "1:" on left (right-justified), value on right (left-justified), centered as pair with overlap
+        const int slowPrefixW = 28, slowValueW = 35, slowOverlap = 7;
+        int slowStartX = slowDialCenterX - (slowPrefixW + slowValueW - slowOverlap) / 2;
+        lsSlowRatioUnitLabel.setBounds(slowStartX, slowDialArea.getY(), slowPrefixW, rowHeight);
+        lsSlowRatioValueLabel.setBounds(slowStartX + slowPrefixW - slowOverlap, slowDialArea.getY(), slowValueW, rowHeight);
 
         // Slow slider section (left) - label + value on same row, slider below
         row = slowSliderArea.removeFromTop(rowHeight);
@@ -3705,7 +3827,7 @@ private:
         int diffCenterX = diffBlock.getX() + diffBlock.getWidth() / 2;
         frDiffusionLabel.setBounds(diffCenterX - 50, diffBlock.getY(), 100, rowHeight);
         frDiffusionDial.setBounds(diffCenterX - dialSize / 2, diffBlock.getY() + rowHeight, dialSize, dialSize);
-        layoutDialValueUnit(frDiffusionValueLabel, frDiffusionUnitLabel, diffCenterX, diffBlock.getY() + rowHeight + dialSize, rowHeight, 30, 20);
+        layoutDialValueUnit(frDiffusionValueLabel, frDiffusionUnitLabel, diffCenterX, diffBlock.getY() + rowHeight + dialSize, rowHeight, 30, 25);
 
         col2.removeFromTop(spacing * 2);
 
@@ -3803,7 +3925,7 @@ private:
         auto periodDialBounds = periodArea.removeFromTop(headerDialSize);
         lfoPeriodDial.setBounds(periodDialBounds.withSizeKeepingCentre(headerDialSize, headerDialSize));
         int periodCenterX = periodDialBounds.getX() + periodDialBounds.getWidth() / 2;
-        layoutDialValueUnit(lfoPeriodValueLabel, lfoPeriodUnitLabel, periodCenterX, periodArea.getY(), periodArea.getHeight(), 35, 12);
+        layoutDialValueUnit(lfoPeriodValueLabel, lfoPeriodUnitLabel, periodCenterX, periodArea.getY(), periodArea.getHeight(), 32, 25);
         headerRow.removeFromLeft(headerSpacing);
 
         // Phase: label at top, dial centered, value+unit at bottom
@@ -3812,7 +3934,7 @@ private:
         auto phaseDialBounds = phaseArea.removeFromTop(headerDialSize);
         lfoPhaseDial.setBounds(phaseDialBounds.withSizeKeepingCentre(headerDialSize, headerDialSize));
         int phaseCenterX = phaseDialBounds.getX() + phaseDialBounds.getWidth() / 2;
-        layoutDialValueUnit(lfoPhaseValueLabel, lfoPhaseUnitLabel, phaseCenterX, phaseArea.getY(), phaseArea.getHeight(), 28, 12);
+        layoutDialValueUnit(lfoPhaseValueLabel, lfoPhaseUnitLabel, phaseCenterX, phaseArea.getY(), phaseArea.getHeight(), 25, 25);
         headerRow.removeFromLeft(headerSpacing);
 
         // Progress indicator (no label, aligned with dials)
@@ -3887,7 +4009,7 @@ private:
             auto axisPhaseDialBounds = phaseDialArea.removeFromTop(axisDial);
             phaseDial.setBounds(axisPhaseDialBounds.withSizeKeepingCentre(axisDial, axisDial));
             int axisPhaseDialCenterX = axisPhaseDialBounds.getX() + axisPhaseDialBounds.getWidth() / 2;
-            layoutDialValueUnit(phaseValue, phaseUnit, axisPhaseDialCenterX, phaseDialArea.getY(), rowHeight - 2, 28, 12);
+            layoutDialValueUnit(phaseValue, phaseUnit, axisPhaseDialCenterX, phaseDialArea.getY(), rowHeight - 2, 25, 25);
             axisRow.removeFromLeft(spacing);
 
             // Output slider - use remaining space (1/3 of slider space)
@@ -3967,7 +4089,7 @@ private:
         auto curveDialBounds = curveDialArea.removeFromTop(dialSize);
         otomoCurveDial.setBounds(curveDialBounds.withSizeKeepingCentre(dialSize, dialSize));
         int curveCenterX = curveDialBounds.getX() + curveDialBounds.getWidth() / 2;
-        layoutDialValueUnit(otomoCurveValueLabel, otomoCurveUnitLabel, curveCenterX, curveDialArea.getY(), rowHeight, 30, 18);
+        layoutDialValueUnit(otomoCurveValueLabel, otomoCurveUnitLabel, curveCenterX, curveDialArea.getY(), rowHeight, 30, 25);
         otomoDials1.removeFromLeft(spacing);
 
         auto speedDialArea = otomoDials1.removeFromLeft(otomoDialWidth);
@@ -3975,7 +4097,7 @@ private:
         auto speedDialBounds = speedDialArea.removeFromTop(dialSize);
         otomoSpeedProfileDial.setBounds(speedDialBounds.withSizeKeepingCentre(dialSize, dialSize));
         int speedCenterX = speedDialBounds.getX() + speedDialBounds.getWidth() / 2;
-        layoutDialValueUnit(otomoSpeedProfileValueLabel, otomoSpeedProfileUnitLabel, speedCenterX, speedDialArea.getY(), rowHeight, 30, 18);
+        layoutDialValueUnit(otomoSpeedProfileValueLabel, otomoSpeedProfileUnitLabel, speedCenterX, speedDialArea.getY(), rowHeight, 30, 25);
         col2.removeFromTop(spacing);
 
         // Dials row 2: Threshold, Reset (audio trigger) with split value/unit
@@ -3985,7 +4107,7 @@ private:
         auto threshDialBounds = threshDialArea.removeFromTop(dialSize);
         otomoThresholdDial.setBounds(threshDialBounds.withSizeKeepingCentre(dialSize, dialSize));
         int threshCenterX = threshDialBounds.getX() + threshDialBounds.getWidth() / 2;
-        layoutDialValueUnit(otomoThresholdValueLabel, otomoThresholdUnitLabel, threshCenterX, threshDialArea.getY(), rowHeight, 35, 18);
+        layoutDialValueUnit(otomoThresholdValueLabel, otomoThresholdUnitLabel, threshCenterX, threshDialArea.getY(), rowHeight, 42, 30);
         otomoDials2.removeFromLeft(spacing);
 
         auto resetDialArea = otomoDials2.removeFromLeft(otomoDialWidth);
@@ -3993,7 +4115,7 @@ private:
         auto resetDialBounds = resetDialArea.removeFromTop(dialSize);
         otomoResetDial.setBounds(resetDialBounds.withSizeKeepingCentre(dialSize, dialSize));
         int resetCenterX = resetDialBounds.getX() + resetDialBounds.getWidth() / 2;
-        layoutDialValueUnit(otomoResetValueLabel, otomoResetUnitLabel, resetCenterX, resetDialArea.getY(), rowHeight, 35, 18);
+        layoutDialValueUnit(otomoResetValueLabel, otomoResetUnitLabel, resetCenterX, resetDialArea.getY(), rowHeight, 42, 30);
         col2.removeFromTop(spacing * 2);
 
         // Transport buttons (per-input)
@@ -4563,6 +4685,9 @@ private:
         float jitterSliderVal = std::sqrt(jitterMeters / 10.0f);
         jitterSlider.setValue(juce::jlimit(0.0f, 1.0f, jitterSliderVal));
         jitterValueLabel.setText(juce::String(jitterMeters, 2) + " m", juce::dontSendNotification);
+
+        // Update LFO section alpha based on active state and shape selections
+        updateLfoAlpha();
 
         // ==================== AUTOMOTION TAB ====================
         otomoDestXEditor.setText(juce::String(getFloatParam(WFSParameterIDs::inputOtomoX, 0.0f), 2), juce::dontSendNotification);

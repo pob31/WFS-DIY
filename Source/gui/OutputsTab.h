@@ -603,6 +603,7 @@ private:
         addAndMakeVisible(orientationUnitLabel);
         orientationUnitLabel.setText(juce::String::fromUTF8("°"), juce::dontSendNotification);
         orientationUnitLabel.setJustificationType(juce::Justification::left);
+        orientationUnitLabel.setMinimumHorizontalScale(1.0f);
 
         // Angle On slider (1-180°)
         addAndMakeVisible(angleOnLabel);
@@ -1162,9 +1163,12 @@ private:
         int orientDialCenterX = dialArea.getCentreX();
         orientationDial.setBounds(dialArea.withSizeKeepingCentre(dialSize, dialSize));
         auto orientValueRow = dialColumn.removeFromTop(rowHeight);
-        orientationValueLabel.setBounds(orientDialCenterX - 40, orientValueRow.getY(), 40, rowHeight);
+        // Value and unit adjacent, centered as a pair under dial (with overlap to reduce font padding gap)
+        const int orientValW = 40, orientUnitW = 30, overlap = 7;
+        int orientStartX = orientDialCenterX - (orientValW + orientUnitW - overlap) / 2;
+        orientationValueLabel.setBounds(orientStartX, orientValueRow.getY(), orientValW, rowHeight);
         orientationValueLabel.setJustificationType(juce::Justification::right);
-        orientationUnitLabel.setBounds(orientDialCenterX, orientValueRow.getY(), 20, rowHeight);
+        orientationUnitLabel.setBounds(orientStartX + orientValW - overlap, orientValueRow.getY(), orientUnitW, rowHeight);
         orientationUnitLabel.setJustificationType(juce::Justification::left);
 
         // Angle On
