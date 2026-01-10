@@ -57,6 +57,7 @@ The application has established a solid foundation with infrastructure and core 
 - **AudioInterfaceWindow** - Audio device settings and input/output patching with test signal generation
 - **NetworkLogWindow** - Network traffic monitoring with filtering and export
 - **OutputArrayHelperWindow** - "Wizard of OutZ" for speaker array positioning
+- **SetAllInputsWindow** - Bulk parameter changes across all inputs (long-press access)
 
 ### Core Systems Status
 
@@ -1182,6 +1183,61 @@ A wizard-style dialog for quickly configuring speaker array positions with prese
 
 ---
 
+## Set All Inputs Window (Source/gui/SetAllInputsWindow.h)
+Bulk parameter control window for applying changes to ALL input channels simultaneously.
+
+### Access
+- **Long-press button** (2 seconds) in InputsTab header: "Set all Inputs..."
+- Progress indicator fills during long-press, triggers on release
+- Cancels if pointer moves away from button before release
+
+### Window Design
+- **Red warning strip** at top with black bold text: "Changes will apply to ALL inputs"
+- Full ColorScheme theming support
+- 450×850 pixel window size
+
+### Available Controls
+
+| Control | Type | Action |
+|---------|------|--------|
+| Coordinate mode | ComboBox | Set XYZ / r θ Z / r θ φ for all inputs |
+| Curvature only | ON/OFF buttons | Enable/disable minimal latency mode |
+| Flip XYZ > OFF | Action button | Reset all flip toggles to OFF |
+| Constraint positions | ON/OFF buttons | Enable/disable X/Y/Z/Distance constraints |
+| Height factor | Dial (0-100%) | Set height factor for all inputs |
+| All Log | Action button | Set distance attenuation to Log mode |
+| All 1/d | Action button | Set distance attenuation to 1/d mode |
+| dB/m dial | Dial (-6 to 0 dB/m) | Set Log attenuation rate (visible when Log) |
+| ratio dial | Dial (0.1-10x) | Set 1/d ratio (visible when 1/d) |
+| common dial | Dial (0-100%) | Set common attenuation for all inputs |
+| Reset directivity | Action button | Reset directivity, rotation, tilt, HF shelf to defaults |
+| Mute macros | ComboBox | MUTE ALL, UNMUTE ALL, INVERT, ODD/EVEN, per-array |
+| Turn OFF Live source atten | Action button | Disable Live Source Tamer on all inputs |
+| Sidelines | ON/OFF buttons | Enable/disable sidelines edge muting |
+| Fringe dial | Dial (0.1-10m) | Set sidelines fringe distance |
+| Turn OFF jitter & LFO | Action button | Disable jitter and LFO on all inputs |
+| Floor Reflections | ON/OFF buttons | Enable/disable floor reflections |
+| CLOSE WINDOW | Button | Close the window |
+
+### Button Feedback
+- Action buttons briefly flash green (200ms) when clicked to confirm the action was applied
+
+### Mute Macros
+Applies mute changes to all inputs using comma-separated string format (compatible with InputsTab):
+- **MUTE ALL** - Mute all outputs for all inputs
+- **UNMUTE ALL** - Clear all mutes for all inputs
+- **INVERT MUTES** - Toggle mute state of each output
+- **MUTE ODD/EVEN** - Mute odd or even numbered outputs
+- **MUTE/UNMUTE ARRAY 1-10** - Mute/unmute outputs assigned to specific array
+
+### Implementation Notes
+- Located in InputsTab.h as `SetAllInputsLongPressButton` class
+- Window instance managed by InputsTab as `std::unique_ptr<SetAllInputsWindow>`
+- Uses `applyToAllInputs()` helper to iterate all input channels
+- Attenuation law dial visibility syncs between popup and InputsTab
+
+---
+
 ## EQ Display Component (Source/gui/EQDisplayComponent.h)
 Reusable interactive parametric EQ visualization for OutputsTab (6 bands) and ReverbTab (4 bands).
 
@@ -1280,6 +1336,7 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 - `Source/Network/OSCManager.h/cpp` - Network coordination
 - `Source/Network/OSCLogger.h/cpp` - Message logging
 - `Source/gui/InputsTab.h` - Input channel controls with joystick
+- `Source/gui/SetAllInputsWindow.h` - Bulk parameter changes for all inputs
 - `Source/gui/InputVisualisationComponent.h` - DSP matrix visualization sliders
 - `Source/gui/ReverbTab.h` - Reverb settings with EQ
 - `Source/gui/NetworkLogWindow.h/cpp` - Log window UI
@@ -1316,6 +1373,6 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 
 ---
 
-*Last updated: 2026-01-09*
+*Last updated: 2026-01-10*
 *JUCE Version: 8.0.12*
 *Build: Visual Studio 2022 / Xcode, x64 Debug/Release*
