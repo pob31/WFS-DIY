@@ -932,6 +932,11 @@ void MainComponent::handleConfigReloaded()
                 reverbDelays.data(), reverbLevels.data(), reverbHF.data());
         }
     }
+
+    // Flush all pending OSC messages immediately after loading
+    // This ensures all parameter changes are broadcast to OSC targets
+    if (oscManager != nullptr)
+        oscManager->flushMessages();
 }
 
 void MainComponent::openAudioInterfaceWindow()
