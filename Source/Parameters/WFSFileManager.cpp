@@ -876,6 +876,621 @@ bool WFSFileManager::setSnapshotScope (const juce::String& snapshotName, const S
 }
 
 //==============================================================================
+// Extended Snapshot Scope - Static Definitions
+//==============================================================================
+
+const std::vector<WFSFileManager::ScopeItem>& WFSFileManager::ExtendedSnapshotScope::getScopeItems()
+{
+    static std::vector<ScopeItem> items = {
+        // Input Section
+        { "inputAttenuation", "Attenuation", Channel, { inputAttenuation } },
+        { "inputDelay", "Delay/Latency", Channel, { inputDelayLatency, inputMinimalLatency } },
+
+        // Position Section
+        { "position", "Position (XYZ)", Position, { inputPositionX, inputPositionY, inputPositionZ, inputCoordinateMode } },
+        { "offset", "Offset (XYZ)", Position, { inputOffsetX, inputOffsetY, inputOffsetZ } },
+        { "constraints", "Constraints", Position, { inputConstraintX, inputConstraintY, inputConstraintZ, inputConstraintDistance, inputConstraintDistanceMin, inputConstraintDistanceMax } },
+        { "flip", "Flip (XYZ)", Position, { inputFlipX, inputFlipY, inputFlipZ } },
+        { "cluster", "Cluster", Position, { inputCluster } },
+        { "tracking", "Tracking", Position, { inputTrackingActive, inputTrackingID, inputTrackingSmooth } },
+        { "speedLimit", "Speed Limit", Position, { inputMaxSpeedActive, inputMaxSpeed } },
+        { "pathMode", "Path Mode", Position, { inputPathModeActive } },
+        { "heightFactor", "Height Factor", Position, { inputHeightFactor } },
+
+        // Attenuation Section
+        { "attenuationLaw", "Attenuation Law", Attenuation, { inputAttenuationLaw, inputDistanceAttenuation, inputDistanceRatio } },
+        { "commonAtten", "Common Atten", Attenuation, { inputCommonAtten } },
+
+        // Directivity Section
+        { "directivity", "Directivity", Directivity, { inputDirectivity, inputRotation, inputTilt } },
+        { "hfShelf", "HF Shelf", Directivity, { inputHFshelf } },
+
+        // Live Source Tamer Section
+        { "lsEnable", "Enable", LiveSourceTamer, { inputLSactive } },
+        { "lsRadiusShape", "Radius/Shape", LiveSourceTamer, { inputLSradius, inputLSshape } },
+        { "lsFixedAtten", "Fixed Atten", LiveSourceTamer, { inputLSattenuation } },
+        { "lsPeakComp", "Peak Comp", LiveSourceTamer, { inputLSpeakThreshold, inputLSpeakRatio } },
+        { "lsSlowComp", "Slow Comp", LiveSourceTamer, { inputLSslowThreshold, inputLSslowRatio } },
+
+        // Hackoustics Section
+        { "frEnable", "Enable", Hackoustics, { inputFRactive } },
+        { "frAttenuation", "Attenuation", Hackoustics, { inputFRattenuation } },
+        { "frLowCut", "Low Cut", Hackoustics, { inputFRlowCutActive, inputFRlowCutFreq } },
+        { "frHighShelf", "High Shelf", Hackoustics, { inputFRhighShelfActive, inputFRhighShelfFreq, inputFRhighShelfGain, inputFRhighShelfSlope } },
+        { "frDiffusion", "Diffusion", Hackoustics, { inputFRdiffusion } },
+        { "reverbSends", "Reverb Sends", Hackoustics, { inputMuteReverbSends } },
+
+        // LFO Section
+        { "lfoEnable", "Enable/Period", LFO, { inputLFOactive, inputLFOperiod, inputLFOphase, inputLFOgyrophone } },
+        { "lfoX", "LFO X", LFO, { inputLFOshapeX, inputLFOrateX, inputLFOamplitudeX, inputLFOphaseX } },
+        { "lfoY", "LFO Y", LFO, { inputLFOshapeY, inputLFOrateY, inputLFOamplitudeY, inputLFOphaseY } },
+        { "lfoZ", "LFO Z", LFO, { inputLFOshapeZ, inputLFOrateZ, inputLFOamplitudeZ, inputLFOphaseZ } },
+        { "jitter", "Jitter", LFO, { inputJitter } },
+
+        // AutomOtion Section
+        { "otomoDestination", "Destination", AutomOtion, { inputOtomoX, inputOtomoY, inputOtomoZ, inputOtomoAbsoluteRelative } },
+        { "otomoMovement", "Movement", AutomOtion, { inputOtomoStayReturn, inputOtomoDuration, inputOtomoCurve, inputOtomoSpeedProfile } },
+        { "otomoAudioTrigger", "Audio Trigger", AutomOtion, { inputOtomoTrigger, inputOtomoThreshold, inputOtomoReset } },
+
+        // Mutes Section
+        { "mutes", "Mutes", Mutes, { inputMutes, inputMuteMacro } },
+        { "sidelines", "Sidelines", Mutes, { inputSidelinesActive, inputSidelinesFringe } },
+        { "arrayAttens", "Array Attens", Mutes, { inputArrayAtten1, inputArrayAtten2, inputArrayAtten3, inputArrayAtten4, inputArrayAtten5, inputArrayAtten6, inputArrayAtten7, inputArrayAtten8, inputArrayAtten9, inputArrayAtten10 } }
+    };
+    return items;
+}
+
+const std::vector<juce::Identifier>& WFSFileManager::ExtendedSnapshotScope::getSectionIds()
+{
+    static std::vector<juce::Identifier> sections = {
+        Channel, Position, Attenuation, Directivity, LiveSourceTamer,
+        Hackoustics, LFO, AutomOtion, Mutes
+    };
+    return sections;
+}
+
+std::vector<const WFSFileManager::ScopeItem*> WFSFileManager::ExtendedSnapshotScope::getItemsForSection (const juce::Identifier& sectionId)
+{
+    std::vector<const ScopeItem*> result;
+    for (const auto& item : getScopeItems())
+    {
+        if (item.sectionId == sectionId)
+            result.push_back (&item);
+    }
+    return result;
+}
+
+//==============================================================================
+// Extended Snapshot Scope - Instance Methods
+//==============================================================================
+
+juce::String WFSFileManager::ExtendedSnapshotScope::makeKey (const juce::String& itemId, int channelIndex)
+{
+    return itemId + "_" + juce::String (channelIndex);
+}
+
+bool WFSFileManager::ExtendedSnapshotScope::isIncluded (const juce::String& itemId, int channelIndex) const
+{
+    auto key = makeKey (itemId, channelIndex);
+    auto it = itemChannelStates.find (key);
+    return it == itemChannelStates.end() ? true : it->second;  // Default: included
+}
+
+bool WFSFileManager::ExtendedSnapshotScope::isParameterIncluded (const juce::Identifier& paramId, int channelIndex) const
+{
+    // Find which scope item contains this parameter
+    for (const auto& item : getScopeItems())
+    {
+        for (const auto& pid : item.parameterIds)
+        {
+            if (pid == paramId)
+                return isIncluded (item.itemId, channelIndex);
+        }
+    }
+    return true;  // Unknown parameters are included by default
+}
+
+void WFSFileManager::ExtendedSnapshotScope::setIncluded (const juce::String& itemId, int channelIndex, bool included)
+{
+    auto key = makeKey (itemId, channelIndex);
+    if (included)
+        itemChannelStates.erase (key);  // Remove from map (default is included)
+    else
+        itemChannelStates[key] = false;
+}
+
+void WFSFileManager::ExtendedSnapshotScope::toggle (const juce::String& itemId, int channelIndex)
+{
+    setIncluded (itemId, channelIndex, !isIncluded (itemId, channelIndex));
+}
+
+void WFSFileManager::ExtendedSnapshotScope::setAllItemsForChannel (int channelIndex, bool included)
+{
+    for (const auto& item : getScopeItems())
+        setIncluded (item.itemId, channelIndex, included);
+}
+
+void WFSFileManager::ExtendedSnapshotScope::setItemForAllChannels (const juce::String& itemId, bool included, int numChannels)
+{
+    for (int ch = 0; ch < numChannels; ++ch)
+        setIncluded (itemId, ch, included);
+}
+
+void WFSFileManager::ExtendedSnapshotScope::setSectionForAllChannels (const juce::Identifier& sectionId, bool included, int numChannels)
+{
+    for (const auto& item : getScopeItems())
+    {
+        if (item.sectionId == sectionId)
+        {
+            for (int ch = 0; ch < numChannels; ++ch)
+                setIncluded (item.itemId, ch, included);
+        }
+    }
+}
+
+void WFSFileManager::ExtendedSnapshotScope::setAll (bool included, int numChannels)
+{
+    if (included)
+    {
+        itemChannelStates.clear();  // Clear map = all included (default)
+    }
+    else
+    {
+        for (const auto& item : getScopeItems())
+        {
+            for (int ch = 0; ch < numChannels; ++ch)
+                setIncluded (item.itemId, ch, false);
+        }
+    }
+}
+
+WFSFileManager::ExtendedSnapshotScope::InclusionState
+WFSFileManager::ExtendedSnapshotScope::getSectionState (const juce::Identifier& sectionId, int numChannels) const
+{
+    int includedCount = 0;
+    int totalCount = 0;
+
+    for (const auto& item : getScopeItems())
+    {
+        if (item.sectionId == sectionId)
+        {
+            for (int ch = 0; ch < numChannels; ++ch)
+            {
+                ++totalCount;
+                if (isIncluded (item.itemId, ch))
+                    ++includedCount;
+            }
+        }
+    }
+
+    if (includedCount == 0) return InclusionState::AllExcluded;
+    if (includedCount == totalCount) return InclusionState::AllIncluded;
+    return InclusionState::Partial;
+}
+
+WFSFileManager::ExtendedSnapshotScope::InclusionState
+WFSFileManager::ExtendedSnapshotScope::getSectionStateForChannel (const juce::Identifier& sectionId, int channelIndex) const
+{
+    int includedCount = 0;
+    int totalCount = 0;
+
+    for (const auto& item : getScopeItems())
+    {
+        if (item.sectionId == sectionId)
+        {
+            ++totalCount;
+            if (isIncluded (item.itemId, channelIndex))
+                ++includedCount;
+        }
+    }
+
+    if (includedCount == 0) return InclusionState::AllExcluded;
+    if (includedCount == totalCount) return InclusionState::AllIncluded;
+    return InclusionState::Partial;
+}
+
+WFSFileManager::ExtendedSnapshotScope::InclusionState
+WFSFileManager::ExtendedSnapshotScope::getChannelState (int channelIndex) const
+{
+    int includedCount = 0;
+    int totalCount = 0;
+
+    for (const auto& item : getScopeItems())
+    {
+        ++totalCount;
+        if (isIncluded (item.itemId, channelIndex))
+            ++includedCount;
+    }
+
+    if (includedCount == 0) return InclusionState::AllExcluded;
+    if (includedCount == totalCount) return InclusionState::AllIncluded;
+    return InclusionState::Partial;
+}
+
+WFSFileManager::ExtendedSnapshotScope::InclusionState
+WFSFileManager::ExtendedSnapshotScope::getOverallState (int numChannels) const
+{
+    if (itemChannelStates.empty())
+        return InclusionState::AllIncluded;
+
+    int includedCount = 0;
+    int totalCount = 0;
+
+    for (const auto& item : getScopeItems())
+    {
+        for (int ch = 0; ch < numChannels; ++ch)
+        {
+            ++totalCount;
+            if (isIncluded (item.itemId, ch))
+                ++includedCount;
+        }
+    }
+
+    if (includedCount == 0) return InclusionState::AllExcluded;
+    if (includedCount == totalCount) return InclusionState::AllIncluded;
+    return InclusionState::Partial;
+}
+
+void WFSFileManager::ExtendedSnapshotScope::initializeDefaults (int numChannels)
+{
+    (void) numChannels;  // Unused - defaults are "all included" which is empty map
+    itemChannelStates.clear();
+    applyMode = ApplyMode::OnRecall;
+}
+
+//==============================================================================
+// Extended Snapshot Scope - File Operations
+//==============================================================================
+
+bool WFSFileManager::saveInputSnapshotWithExtendedScope (const juce::String& snapshotName, const ExtendedSnapshotScope& scope)
+{
+    auto folder = getInputSnapshotsFolder();
+    folder.createDirectory();
+
+    auto file = folder.getChildFile (snapshotName + snapshotExtension);
+
+    juce::ValueTree snapshot ("InputSnapshot");
+    snapshot.setProperty (version, "2.0", nullptr);  // Version 2.0 for extended scope
+    snapshot.setProperty (name, snapshotName, nullptr);
+
+    int numInputs = valueTreeState.getNumInputChannels();
+
+    // Serialize extended scope
+    snapshot.appendChild (serializeExtendedScope (scope, numInputs), nullptr);
+
+    // Store input data (filtered by scope if ApplyMode is OnSave)
+    juce::ValueTree inputsData (Inputs);
+
+    for (int i = 0; i < numInputs; ++i)
+    {
+        if (scope.applyMode == ExtendedSnapshotScope::ApplyMode::OnSave)
+            inputsData.appendChild (extractInputWithExtendedScope (i, scope), nullptr);
+        else
+            inputsData.appendChild (extractInputWithExtendedScope (i, ExtendedSnapshotScope()), nullptr);  // All included
+    }
+    snapshot.appendChild (inputsData, nullptr);
+
+    return writeToXmlFile (snapshot, file);
+}
+
+bool WFSFileManager::loadInputSnapshotWithExtendedScope (const juce::String& snapshotName, const ExtendedSnapshotScope& scope)
+{
+    auto file = getInputSnapshotsFolder().getChildFile (snapshotName + snapshotExtension);
+    auto snapshot = readFromXmlFile (file);
+
+    if (!snapshot.isValid())
+        return false;
+
+    auto inputsData = snapshot.getChildWithName (Inputs);
+    if (!inputsData.isValid())
+    {
+        setError ("No input data in snapshot");
+        return false;
+    }
+
+    valueTreeState.beginUndoTransaction ("Load Input Snapshot: " + snapshotName);
+
+    for (int i = 0; i < inputsData.getNumChildren(); ++i)
+    {
+        auto inputData = inputsData.getChild (i);
+        int channelIndex = static_cast<int> (inputData.getProperty (id)) - 1;
+
+        if (channelIndex >= 0)
+        {
+            if (scope.applyMode == ExtendedSnapshotScope::ApplyMode::OnRecall)
+                applyInputWithExtendedScope (channelIndex, inputData, scope);
+            else
+                applyInputWithExtendedScope (channelIndex, inputData, ExtendedSnapshotScope());  // All included
+        }
+    }
+
+    return true;
+}
+
+WFSFileManager::ExtendedSnapshotScope WFSFileManager::getExtendedSnapshotScope (const juce::String& snapshotName) const
+{
+    ExtendedSnapshotScope scope;
+    auto file = getInputSnapshotsFolder().getChildFile (snapshotName + snapshotExtension);
+    auto snapshot = const_cast<WFSFileManager*>(this)->readFromXmlFile (file);
+
+    if (snapshot.isValid())
+    {
+        auto scopeTree = snapshot.getChildWithName ("ExtendedScope");
+        if (scopeTree.isValid())
+            scope = const_cast<WFSFileManager*>(this)->deserializeExtendedScope (scopeTree);
+    }
+
+    return scope;
+}
+
+bool WFSFileManager::setExtendedSnapshotScope (const juce::String& snapshotName, const ExtendedSnapshotScope& scope)
+{
+    auto file = getInputSnapshotsFolder().getChildFile (snapshotName + snapshotExtension);
+    auto snapshot = readFromXmlFile (file);
+
+    if (!snapshot.isValid())
+    {
+        setError ("Snapshot not found: " + snapshotName);
+        return false;
+    }
+
+    // Remove existing scope and add new one
+    auto existingScope = snapshot.getChildWithName ("ExtendedScope");
+    if (existingScope.isValid())
+        snapshot.removeChild (existingScope, nullptr);
+
+    int numInputs = valueTreeState.getNumInputChannels();
+    snapshot.appendChild (serializeExtendedScope (scope, numInputs), nullptr);
+
+    return writeToXmlFile (snapshot, file);
+}
+
+juce::ValueTree WFSFileManager::serializeExtendedScope (const ExtendedSnapshotScope& scope, int numChannels) const
+{
+    juce::ValueTree scopeTree ("ExtendedScope");
+    scopeTree.setProperty ("applyMode", scope.applyMode == ExtendedSnapshotScope::ApplyMode::OnSave ? "OnSave" : "OnRecall", nullptr);
+
+    // Find channels that are fully included, fully excluded, or partial
+    std::vector<int> fullChannels, excludedChannels, partialChannels;
+
+    for (int ch = 0; ch < numChannels; ++ch)
+    {
+        auto state = scope.getChannelState (ch);
+        if (state == ExtendedSnapshotScope::InclusionState::AllIncluded)
+            fullChannels.push_back (ch);
+        else if (state == ExtendedSnapshotScope::InclusionState::AllExcluded)
+            excludedChannels.push_back (ch);
+        else
+            partialChannels.push_back (ch);
+    }
+
+    // Serialize full channels
+    if (!fullChannels.empty())
+    {
+        juce::StringArray indices;
+        for (int ch : fullChannels)
+            indices.add (juce::String (ch + 1));  // 1-based for user display
+        scopeTree.setProperty ("fullChannels", indices.joinIntoString (","), nullptr);
+    }
+
+    // Serialize excluded channels
+    if (!excludedChannels.empty())
+    {
+        juce::StringArray indices;
+        for (int ch : excludedChannels)
+            indices.add (juce::String (ch + 1));
+        scopeTree.setProperty ("excludedChannels", indices.joinIntoString (","), nullptr);
+    }
+
+    // Serialize partial channels
+    for (int ch : partialChannels)
+    {
+        juce::ValueTree partialTree ("PartialChannel");
+        partialTree.setProperty ("index", ch + 1, nullptr);
+
+        // Collect excluded items for this channel (store whichever list is shorter)
+        juce::StringArray excludedItems;
+        for (const auto& item : ExtendedSnapshotScope::getScopeItems())
+        {
+            if (!scope.isIncluded (item.itemId, ch))
+                excludedItems.add (item.itemId);
+        }
+
+        if (!excludedItems.isEmpty())
+            partialTree.setProperty ("excludedItems", excludedItems.joinIntoString (","), nullptr);
+
+        scopeTree.appendChild (partialTree, nullptr);
+    }
+
+    return scopeTree;
+}
+
+WFSFileManager::ExtendedSnapshotScope WFSFileManager::deserializeExtendedScope (const juce::ValueTree& scopeTree) const
+{
+    ExtendedSnapshotScope scope;
+
+    // Parse apply mode
+    auto modeStr = scopeTree.getProperty ("applyMode").toString();
+    scope.applyMode = (modeStr == "OnSave")
+        ? ExtendedSnapshotScope::ApplyMode::OnSave
+        : ExtendedSnapshotScope::ApplyMode::OnRecall;
+
+    int numChannels = valueTreeState.getNumInputChannels();
+
+    // Parse excluded channels
+    auto excludedStr = scopeTree.getProperty ("excludedChannels").toString();
+    if (excludedStr.isNotEmpty())
+    {
+        juce::StringArray indices;
+        indices.addTokens (excludedStr, ",", "");
+        for (const auto& idx : indices)
+        {
+            int ch = idx.getIntValue() - 1;  // Convert from 1-based
+            if (ch >= 0 && ch < numChannels)
+                scope.setAllItemsForChannel (ch, false);
+        }
+    }
+
+    // Parse partial channels
+    for (int i = 0; i < scopeTree.getNumChildren(); ++i)
+    {
+        auto partialTree = scopeTree.getChild (i);
+        if (partialTree.getType().toString() == "PartialChannel")
+        {
+            int ch = static_cast<int> (partialTree.getProperty ("index")) - 1;
+            if (ch >= 0 && ch < numChannels)
+            {
+                auto excludedItems = partialTree.getProperty ("excludedItems").toString();
+                if (excludedItems.isNotEmpty())
+                {
+                    juce::StringArray items;
+                    items.addTokens (excludedItems, ",", "");
+                    for (const auto& itemId : items)
+                        scope.setIncluded (itemId, ch, false);
+                }
+            }
+        }
+    }
+
+    return scope;
+}
+
+juce::ValueTree WFSFileManager::extractInputWithExtendedScope (int channelIndex, const ExtendedSnapshotScope& scope) const
+{
+    auto input = const_cast<WFSValueTreeState&>(valueTreeState).getInputState (channelIndex);
+    if (!input.isValid())
+        return {};
+
+    juce::ValueTree filtered (Input);
+    filtered.setProperty (id, channelIndex + 1, nullptr);
+
+    // Always include input name
+    auto channelTree = input.getChildWithName (Channel);
+    if (channelTree.isValid())
+    {
+        juce::ValueTree filteredChannel (Channel);
+        filteredChannel.setProperty (inputName, channelTree.getProperty (inputName), nullptr);
+
+        // Add other Channel properties based on scope
+        if (scope.isIncluded ("inputAttenuation", channelIndex))
+            filteredChannel.setProperty (inputAttenuation, channelTree.getProperty (inputAttenuation), nullptr);
+        if (scope.isIncluded ("inputDelay", channelIndex))
+        {
+            filteredChannel.setProperty (inputDelayLatency, channelTree.getProperty (inputDelayLatency), nullptr);
+            filteredChannel.setProperty (inputMinimalLatency, channelTree.getProperty (inputMinimalLatency), nullptr);
+        }
+
+        filtered.appendChild (filteredChannel, nullptr);
+    }
+
+    // Helper lambda to copy section properties based on scope items
+    auto copySection = [&](const juce::Identifier& sectionId, const juce::ValueTree& sourceSection)
+    {
+        if (!sourceSection.isValid())
+            return;
+
+        juce::ValueTree filteredSection (sectionId);
+        bool hasContent = false;
+
+        for (const auto& item : ExtendedSnapshotScope::getScopeItems())
+        {
+            if (item.sectionId == sectionId && scope.isIncluded (item.itemId, channelIndex))
+            {
+                for (const auto& paramId : item.parameterIds)
+                {
+                    if (sourceSection.hasProperty (paramId))
+                    {
+                        filteredSection.setProperty (paramId, sourceSection.getProperty (paramId), nullptr);
+                        hasContent = true;
+                    }
+                }
+            }
+        }
+
+        if (hasContent)
+            filtered.appendChild (filteredSection, nullptr);
+    };
+
+    copySection (Position, input.getChildWithName (Position));
+    copySection (Attenuation, input.getChildWithName (Attenuation));
+    copySection (Directivity, input.getChildWithName (Directivity));
+    copySection (LiveSourceTamer, input.getChildWithName (LiveSourceTamer));
+    copySection (Hackoustics, input.getChildWithName (Hackoustics));
+    copySection (LFO, input.getChildWithName (LFO));
+    copySection (AutomOtion, input.getChildWithName (AutomOtion));
+    copySection (Mutes, input.getChildWithName (Mutes));
+
+    return filtered;
+}
+
+bool WFSFileManager::applyInputWithExtendedScope (int channelIndex, const juce::ValueTree& inputData, const ExtendedSnapshotScope& scope)
+{
+    auto input = valueTreeState.getInputState (channelIndex);
+    if (!input.isValid())
+        return false;
+
+    auto* undoManager = valueTreeState.getUndoManager();
+
+    // Helper lambda to apply section properties based on scope
+    auto applySection = [&](const juce::Identifier& sectionId, const juce::ValueTree& sourceSection)
+    {
+        if (!sourceSection.isValid())
+            return;
+
+        auto targetSection = input.getChildWithName (sectionId);
+        if (!targetSection.isValid())
+            return;
+
+        for (const auto& item : ExtendedSnapshotScope::getScopeItems())
+        {
+            if (item.sectionId == sectionId && scope.isIncluded (item.itemId, channelIndex))
+            {
+                for (const auto& paramId : item.parameterIds)
+                {
+                    if (sourceSection.hasProperty (paramId))
+                        targetSection.setProperty (paramId, sourceSection.getProperty (paramId), undoManager);
+                }
+            }
+        }
+    };
+
+    // Apply Channel section
+    auto loadedChannel = inputData.getChildWithName (Channel);
+    if (loadedChannel.isValid())
+    {
+        auto existingChannel = input.getChildWithName (Channel);
+        if (existingChannel.isValid())
+        {
+            // Always apply name
+            if (loadedChannel.hasProperty (inputName))
+                existingChannel.setProperty (inputName, loadedChannel.getProperty (inputName), undoManager);
+
+            if (scope.isIncluded ("inputAttenuation", channelIndex) && loadedChannel.hasProperty (inputAttenuation))
+                existingChannel.setProperty (inputAttenuation, loadedChannel.getProperty (inputAttenuation), undoManager);
+
+            if (scope.isIncluded ("inputDelay", channelIndex))
+            {
+                if (loadedChannel.hasProperty (inputDelayLatency))
+                    existingChannel.setProperty (inputDelayLatency, loadedChannel.getProperty (inputDelayLatency), undoManager);
+                if (loadedChannel.hasProperty (inputMinimalLatency))
+                    existingChannel.setProperty (inputMinimalLatency, loadedChannel.getProperty (inputMinimalLatency), undoManager);
+            }
+        }
+    }
+
+    applySection (Position, inputData.getChildWithName (Position));
+    applySection (Attenuation, inputData.getChildWithName (Attenuation));
+    applySection (Directivity, inputData.getChildWithName (Directivity));
+    applySection (LiveSourceTamer, inputData.getChildWithName (LiveSourceTamer));
+    applySection (Hackoustics, inputData.getChildWithName (Hackoustics));
+    applySection (LFO, inputData.getChildWithName (LFO));
+    applySection (AutomOtion, inputData.getChildWithName (AutomOtion));
+    applySection (Mutes, inputData.getChildWithName (Mutes));
+
+    return true;
+}
+
+//==============================================================================
 // Backup Management
 //==============================================================================
 

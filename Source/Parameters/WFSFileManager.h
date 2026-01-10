@@ -195,7 +195,7 @@ public:
     // Snapshots
     //==========================================================================
 
-    /** Scope options for snapshots */
+    /** Scope options for snapshots (legacy section-level) */
     struct SnapshotScope
     {
         bool includePosition = true;
@@ -207,6 +207,106 @@ public:
         bool includeAutomOtion = true;
         bool includeMutes = true;
         juce::Array<int> channelIndices;  // Empty = all channels
+    };
+
+    //==========================================================================
+    // Extended Snapshot Scope (parameter-level, per-channel granularity)
+    //==========================================================================
+
+    /** Scope item definition - groups related parameters */
+    struct ScopeItem
+    {
+        juce::String itemId;           // Unique identifier for this scope item
+        juce::String displayName;      // Display name in UI
+        juce::Identifier sectionId;    // Section this item belongs to (Position, Attenuation, etc.)
+        std::vector<juce::Identifier> parameterIds;  // Parameters included in this group
+    };
+
+    /** Extended scope supporting parameter-level, per-channel granularity */
+    struct ExtendedSnapshotScope
+    {
+        /** When to apply the scope filtering */
+        enum class ApplyMode { OnSave, OnRecall };
+        ApplyMode applyMode = ApplyMode::OnRecall;
+
+        /** Per-item, per-channel inclusion state
+         *  Key format: "itemId_channelIndex"
+         *  Default: all items included (true)
+         */
+        std::map<juce::String, bool> itemChannelStates;
+
+        //----------------------------------------------------------------------
+        // Static scope item definitions
+        //----------------------------------------------------------------------
+
+        /** Get all scopeable items with their grouped parameters */
+        static const std::vector<ScopeItem>& getScopeItems();
+
+        /** Get all unique section identifiers in order */
+        static const std::vector<juce::Identifier>& getSectionIds();
+
+        /** Get scope items for a specific section */
+        static std::vector<const ScopeItem*> getItemsForSection (const juce::Identifier& sectionId);
+
+        //----------------------------------------------------------------------
+        // Query methods
+        //----------------------------------------------------------------------
+
+        /** Check if a scope item is included for a channel */
+        bool isIncluded (const juce::String& itemId, int channelIndex) const;
+
+        /** Check if a parameter is included for a channel (via its scope item) */
+        bool isParameterIncluded (const juce::Identifier& paramId, int channelIndex) const;
+
+        //----------------------------------------------------------------------
+        // Modification methods
+        //----------------------------------------------------------------------
+
+        /** Set inclusion state for a scope item and channel */
+        void setIncluded (const juce::String& itemId, int channelIndex, bool included);
+
+        /** Toggle inclusion state for a scope item and channel */
+        void toggle (const juce::String& itemId, int channelIndex);
+
+        /** Set all items for a specific channel */
+        void setAllItemsForChannel (int channelIndex, bool included);
+
+        /** Set a specific item for all channels */
+        void setItemForAllChannels (const juce::String& itemId, bool included, int numChannels);
+
+        /** Set all items in a section for all channels */
+        void setSectionForAllChannels (const juce::Identifier& sectionId, bool included, int numChannels);
+
+        /** Set all items for all channels */
+        void setAll (bool included, int numChannels);
+
+        //----------------------------------------------------------------------
+        // State queries for UI
+        //----------------------------------------------------------------------
+
+        enum class InclusionState { AllIncluded, AllExcluded, Partial };
+
+        /** Get the inclusion state for a section across all channels */
+        InclusionState getSectionState (const juce::Identifier& sectionId, int numChannels) const;
+
+        /** Get the inclusion state for a section in a specific channel */
+        InclusionState getSectionStateForChannel (const juce::Identifier& sectionId, int channelIndex) const;
+
+        /** Get the inclusion state for a channel (all items) */
+        InclusionState getChannelState (int channelIndex) const;
+
+        /** Get overall state (all items, all channels) */
+        InclusionState getOverallState (int numChannels) const;
+
+        //----------------------------------------------------------------------
+        // Initialization
+        //----------------------------------------------------------------------
+
+        /** Initialize with all items included for all channels */
+        void initializeDefaults (int numChannels);
+
+        /** Create key string for itemId and channel */
+        static juce::String makeKey (const juce::String& itemId, int channelIndex);
     };
 
     /** Save a new input snapshot */
@@ -230,6 +330,22 @@ public:
     /** Get/set snapshot scope for a named snapshot */
     SnapshotScope getSnapshotScope (const juce::String& snapshotName) const;
     bool setSnapshotScope (const juce::String& snapshotName, const SnapshotScope& scope);
+
+    //==========================================================================
+    // Extended Snapshot Scope Operations
+    //==========================================================================
+
+    /** Save a new input snapshot with extended scope */
+    bool saveInputSnapshotWithExtendedScope (const juce::String& snapshotName, const ExtendedSnapshotScope& scope);
+
+    /** Load an input snapshot with extended scope */
+    bool loadInputSnapshotWithExtendedScope (const juce::String& snapshotName, const ExtendedSnapshotScope& scope);
+
+    /** Get extended scope from snapshot file */
+    ExtendedSnapshotScope getExtendedSnapshotScope (const juce::String& snapshotName) const;
+
+    /** Save extended scope to snapshot file (updates scope only, not parameters) */
+    bool setExtendedSnapshotScope (const juce::String& snapshotName, const ExtendedSnapshotScope& scope);
 
     //==========================================================================
     // Backup Management
@@ -330,6 +446,18 @@ private:
 
     /** Apply input data with scope filtering */
     bool applyInputWithScope (int channelIndex, const juce::ValueTree& inputData, const SnapshotScope& scope);
+
+    /** Extract input data with extended scope filtering */
+    juce::ValueTree extractInputWithExtendedScope (int channelIndex, const ExtendedSnapshotScope& scope) const;
+
+    /** Apply input data with extended scope filtering */
+    bool applyInputWithExtendedScope (int channelIndex, const juce::ValueTree& inputData, const ExtendedSnapshotScope& scope);
+
+    /** Serialize extended scope to ValueTree */
+    juce::ValueTree serializeExtendedScope (const ExtendedSnapshotScope& scope, int numChannels) const;
+
+    /** Deserialize extended scope from ValueTree */
+    ExtendedSnapshotScope deserializeExtendedScope (const juce::ValueTree& scopeTree) const;
 
     /** Create file header comment */
     static juce::String createXmlHeader (const juce::String& fileType);

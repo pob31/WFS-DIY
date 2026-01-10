@@ -16,6 +16,7 @@
 #include "../DSP/AutomOtionProcessor.h"
 #include "../Helpers/CoordinateConverter.h"
 #include "SetAllInputsWindow.h"
+#include "SnapshotScopeWindow.h"
 
 //==============================================================================
 // Custom Transport Button - Play (right-pointing triangle)
@@ -5426,32 +5427,243 @@ private:
 
     void storeNewSnapshot()
     {
-        // TODO: Implement snapshot creation dialog
-        showStatusMessage("Snapshot feature not yet implemented.");
+        auto& fileManager = parameters.getFileManager();
+        if (!fileManager.hasValidProjectFolder())
+        {
+            showStatusMessage("Please select a project folder in System Config first.");
+            return;
+        }
+
+        auto defaultName = WFSFileManager::getDefaultSnapshotName();
+
+        auto* dialog = new juce::AlertWindow(
+            "Store New Snapshot",
+            "Enter a name for the new snapshot:",
+            juce::MessageBoxIconType::NoIcon);
+
+        dialog->addTextEditor("name", defaultName, "Name:");
+        dialog->addButton("OK", 1, juce::KeyPress(juce::KeyPress::returnKey));
+        dialog->addButton("Cancel", 0, juce::KeyPress(juce::KeyPress::escapeKey));
+
+        dialog->enterModalState(true, juce::ModalCallbackFunction::create(
+            [this, dialog](int result)
+            {
+                if (result == 1)
+                {
+                    auto name = dialog->getTextEditorContents("name");
+                    if (name.isNotEmpty())
+                    {
+                        // Use current scope if configured, otherwise create default
+                        WFSFileManager::ExtendedSnapshotScope scope;
+                        if (currentScopeInitialized)
+                        {
+                            scope = currentScope;
+                        }
+                        else
+                        {
+                            scope.initializeDefaults(parameters.getNumInputChannels());
+                        }
+                        snapshotScopes[name] = scope;
+
+                        auto& fileManager = parameters.getFileManager();
+                        if (fileManager.saveInputSnapshotWithExtendedScope(name, scope))
+                        {
+                            refreshSnapshotList();
+                            snapshotSelector.setText(name, juce::dontSendNotification);
+                            showStatusMessage("Snapshot '" + name + "' stored.");
+                        }
+                        else
+                        {
+                            showStatusMessage("Error: " + fileManager.getLastError());
+                        }
+                    }
+                }
+                delete dialog;
+            }
+        ), true);
     }
 
     void reloadSnapshot()
     {
-        // TODO: Implement snapshot loading
-        showStatusMessage("Snapshot feature not yet implemented.");
+        auto selectedSnapshot = snapshotSelector.getText();
+        if (selectedSnapshot.isEmpty() || selectedSnapshot == "Select Snapshot...")
+        {
+            showStatusMessage("No snapshot selected.");
+            return;
+        }
+
+        auto& fileManager = parameters.getFileManager();
+
+        // Load scope if not cached
+        if (snapshotScopes.find(selectedSnapshot) == snapshotScopes.end())
+        {
+            snapshotScopes[selectedSnapshot] = fileManager.getExtendedSnapshotScope(selectedSnapshot);
+        }
+
+        auto& scope = snapshotScopes[selectedSnapshot];
+
+        if (fileManager.loadInputSnapshotWithExtendedScope(selectedSnapshot, scope))
+        {
+            loadChannelParameters(currentChannel);
+            showStatusMessage("Snapshot '" + selectedSnapshot + "' loaded.");
+            if (onConfigReloaded)
+                onConfigReloaded();
+        }
+        else
+        {
+            showStatusMessage("Error: " + fileManager.getLastError());
+        }
     }
 
     void updateSnapshot()
     {
-        // TODO: Implement snapshot update
-        showStatusMessage("Snapshot feature not yet implemented.");
+        auto selectedSnapshot = snapshotSelector.getText();
+        if (selectedSnapshot.isEmpty() || selectedSnapshot == "Select Snapshot...")
+        {
+            showStatusMessage("No snapshot selected.");
+            return;
+        }
+
+        juce::AlertWindow::showOkCancelBox(
+            juce::AlertWindow::QuestionIcon,
+            "Update Snapshot",
+            "Update snapshot '" + selectedSnapshot + "' with current settings?\nA backup will be created.",
+            "Update",
+            "Cancel",
+            nullptr,
+            juce::ModalCallbackFunction::create([this, selectedSnapshot](int result) {
+                if (result == 1)
+                {
+                    auto& fileManager = parameters.getFileManager();
+
+                    // Get existing scope or create default
+                    if (snapshotScopes.find(selectedSnapshot) == snapshotScopes.end())
+                        snapshotScopes[selectedSnapshot] = fileManager.getExtendedSnapshotScope(selectedSnapshot);
+
+                    auto& scope = snapshotScopes[selectedSnapshot];
+
+                    // Create backup then save
+                    auto file = fileManager.getInputSnapshotsFolder().getChildFile(selectedSnapshot + ".xml");
+                    fileManager.createBackup(file);
+
+                    if (fileManager.saveInputSnapshotWithExtendedScope(selectedSnapshot, scope))
+                        showStatusMessage("Snapshot '" + selectedSnapshot + "' updated.");
+                    else
+                        showStatusMessage("Error: " + fileManager.getLastError());
+                }
+            })
+        );
     }
 
     void editSnapshotScope()
     {
-        // TODO: Implement snapshot scope editing
-        showStatusMessage("Snapshot feature not yet implemented.");
+        auto selectedSnapshot = snapshotSelector.getText();
+        bool hasSelectedSnapshot = !selectedSnapshot.isEmpty() && selectedSnapshot != "Select Snapshot...";
+
+        auto& fileManager = parameters.getFileManager();
+
+        // Determine which scope to edit
+        WFSFileManager::ExtendedSnapshotScope* scopePtr = nullptr;
+        juce::String windowTitle;
+
+        if (hasSelectedSnapshot)
+        {
+            // Load scope for selected snapshot if not cached
+            if (snapshotScopes.find(selectedSnapshot) == snapshotScopes.end())
+            {
+                snapshotScopes[selectedSnapshot] = fileManager.getExtendedSnapshotScope(selectedSnapshot);
+            }
+            scopePtr = &snapshotScopes[selectedSnapshot];
+            windowTitle = selectedSnapshot;
+        }
+        else
+        {
+            // Use current scope (for new snapshots)
+            if (!currentScopeInitialized)
+            {
+                currentScope.initializeDefaults(parameters.getNumInputChannels());
+                currentScopeInitialized = true;
+            }
+            scopePtr = &currentScope;
+            windowTitle = "(New Snapshot)";
+        }
+
+        if (snapshotScopeWindow == nullptr || !snapshotScopeWindow->isVisible())
+        {
+            snapshotScopeWindow = std::make_unique<SnapshotScopeWindow>(parameters, windowTitle, *scopePtr);
+            snapshotScopeWindow->onWindowClosed = [this, hasSelectedSnapshot, selectedSnapshot](bool saved) {
+                if (saved)
+                {
+                    if (hasSelectedSnapshot)
+                    {
+                        auto& fileManager = parameters.getFileManager();
+                        if (fileManager.setExtendedSnapshotScope(selectedSnapshot, snapshotScopes[selectedSnapshot]))
+                            showStatusMessage("Snapshot scope saved.");
+                        else
+                            showStatusMessage("Error: " + fileManager.getLastError());
+                    }
+                    else
+                    {
+                        showStatusMessage("Scope configured for next snapshot.");
+                    }
+                }
+                snapshotScopeWindow.reset();
+            };
+        }
+        else
+        {
+            snapshotScopeWindow->toFront(true);
+        }
     }
 
     void deleteSnapshot()
     {
-        // TODO: Implement snapshot deletion
-        showStatusMessage("Snapshot feature not yet implemented.");
+        auto selectedSnapshot = snapshotSelector.getText();
+        if (selectedSnapshot.isEmpty() || selectedSnapshot == "Select Snapshot...")
+        {
+            showStatusMessage("No snapshot selected.");
+            return;
+        }
+
+        juce::AlertWindow::showOkCancelBox(
+            juce::AlertWindow::WarningIcon,
+            "Delete Snapshot",
+            "Delete snapshot '" + selectedSnapshot + "'?\nThis cannot be undone.",
+            "Delete",
+            "Cancel",
+            nullptr,
+            juce::ModalCallbackFunction::create([this, selectedSnapshot](int result) {
+                if (result == 1)
+                {
+                    auto& fileManager = parameters.getFileManager();
+                    if (fileManager.deleteInputSnapshot(selectedSnapshot))
+                    {
+                        snapshotScopes.erase(selectedSnapshot);
+                        refreshSnapshotList();
+                        showStatusMessage("Snapshot '" + selectedSnapshot + "' deleted.");
+                    }
+                    else
+                    {
+                        showStatusMessage("Error: " + fileManager.getLastError());
+                    }
+                }
+            })
+        );
+    }
+
+    void refreshSnapshotList()
+    {
+        auto& fileManager = parameters.getFileManager();
+        auto names = fileManager.getInputSnapshotNames();
+
+        snapshotSelector.clear(juce::dontSendNotification);
+        snapshotSelector.addItem("Select Snapshot...", 1);
+
+        int id = 2;
+        for (const auto& name : names)
+        {
+            snapshotSelector.addItem(name, id++);
+        }
     }
 
     //==============================================================================
@@ -6248,6 +6460,12 @@ private:
     juce::TextButton mapVisibilityButton;
     SetAllInputsLongPressButton setAllInputsButton;
     std::unique_ptr<SetAllInputsWindow> setAllInputsWindow;
+
+    // Snapshot scope
+    std::unique_ptr<SnapshotScopeWindow> snapshotScopeWindow;
+    std::map<juce::String, WFSFileManager::ExtendedSnapshotScope> snapshotScopes;
+    WFSFileManager::ExtendedSnapshotScope currentScope;  // Used when no snapshot selected
+    bool currentScopeInitialized = false;
 
     // Sub-tab bar
     juce::TabbedButtonBar subTabBar { juce::TabbedButtonBar::TabsAtTop };
