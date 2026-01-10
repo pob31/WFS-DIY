@@ -827,11 +827,22 @@ private:
         trackingScaleZEditor.addListener(this);
     }
 
+    // Helper to check if source component is or is a child of target (for ComboBox hover detection)
+    bool isOrIsChildOf(juce::Component* source, juce::Component* target)
+    {
+        while (source != nullptr)
+        {
+            if (source == target) return true;
+            source = source->getParentComponent();
+        }
+        return false;
+    }
+
     void setupMouseListeners()
     {
         // ==================== NETWORK SECTION ====================
         networkInterfaceLabel.addMouseListener(this, false);
-        networkInterfaceSelector.addMouseListener(this, false);
+        networkInterfaceSelector.addMouseListener(this, true);  // true for ComboBox children
         currentIPLabel.addMouseListener(this, false);
         currentIPEditor.addMouseListener(this, false);
         udpPortLabel.addMouseListener(this, false);
@@ -854,12 +865,12 @@ private:
         {
             auto& row = targetRows[i];
             row.nameEditor.addMouseListener(this, false);
-            row.dataModeSelector.addMouseListener(this, false);
+            row.dataModeSelector.addMouseListener(this, true);  // true for ComboBox children
             row.ipEditor.addMouseListener(this, false);
             row.txPortEditor.addMouseListener(this, false);
             row.rxEnableButton.addMouseListener(this, false);
             row.txEnableButton.addMouseListener(this, false);
-            row.protocolSelector.addMouseListener(this, false);
+            row.protocolSelector.addMouseListener(this, true);  // true for ComboBox children
             row.removeButton.addMouseListener(this, false);
         }
 
@@ -883,7 +894,7 @@ private:
         // ==================== TRACKING SECTION ====================
         trackingEnabledButton.addMouseListener(this, false);
         trackingProtocolLabel.addMouseListener(this, false);
-        trackingProtocolSelector.addMouseListener(this, false);
+        trackingProtocolSelector.addMouseListener(this, true);  // true for ComboBox children
         trackingPortLabel.addMouseListener(this, false);
         trackingPortEditor.addMouseListener(this, false);
         trackingOffsetXLabel.addMouseListener(this, false);
@@ -1525,7 +1536,7 @@ private:
         auto* source = e.eventComponent;
 
         // ==================== NETWORK SECTION ====================
-        if (source == &networkInterfaceLabel || source == &networkInterfaceSelector)
+        if (source == &networkInterfaceLabel || isOrIsChildOf(source, &networkInterfaceSelector))
             statusBar->setHelpText("Select the Network Interface.");
         else if (source == &currentIPLabel || source == &currentIPEditor)
             statusBar->setHelpText("IP address of the Processor.");
@@ -1585,7 +1596,7 @@ private:
         // ==================== TRACKING SECTION ====================
         else if (source == &trackingEnabledButton)
             statusBar->setHelpText("Enable or Disable Incoming Tracking data processing.");
-        else if (source == &trackingProtocolLabel || source == &trackingProtocolSelector)
+        else if (source == &trackingProtocolLabel || isOrIsChildOf(source, &trackingProtocolSelector))
             statusBar->setHelpText("Select the type of Tracking Protocol.");
         else if (source == &trackingPortLabel || source == &trackingPortEditor)
             statusBar->setHelpText("Specify the Port to receive Tracking data.");
@@ -1628,7 +1639,7 @@ private:
                 auto& row = targetRows[i];
                 if (source == &row.nameEditor)
                     { statusBar->setHelpText("Network Target Name."); return; }
-                else if (source == &row.dataModeSelector)
+                else if (isOrIsChildOf(source, &row.dataModeSelector))
                     { statusBar->setHelpText("Select UDP or TCP data transmission."); return; }
                 else if (source == &row.ipEditor)
                     { statusBar->setHelpText("IP Address of the Target (use 127.0.0.1 for local host)."); return; }
@@ -1638,7 +1649,7 @@ private:
                     { statusBar->setHelpText("Enable or Disable Data Reception."); return; }
                 else if (source == &row.txEnableButton)
                     { statusBar->setHelpText("Enable or Disable Data Transmission."); return; }
-                else if (source == &row.protocolSelector)
+                else if (isOrIsChildOf(source, &row.protocolSelector))
                     { statusBar->setHelpText("Select the Protocol: DISABLED, OSC, REMOTE, or ADM-OSC."); return; }
                 else if (source == &row.removeButton)
                     { statusBar->setHelpText("Delete this Network Target."); return; }

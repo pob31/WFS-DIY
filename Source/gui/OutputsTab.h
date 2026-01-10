@@ -1928,7 +1928,9 @@ private:
         // Enable mouse enter/exit events for all components with help text
         for (auto& pair : helpTextMap)
         {
-            pair.first->addMouseListener(this, false);
+            // Use true for ComboBoxes to receive events from their internal child components
+            bool wantsEventsFromChildren = (dynamic_cast<juce::ComboBox*>(pair.first) != nullptr);
+            pair.first->addMouseListener(this, wantsEventsFromChildren);
         }
     }
 
@@ -1936,18 +1938,18 @@ private:
     {
         if (statusBar == nullptr) return;
 
-        auto* component = event.eventComponent;
-
-        // Set help text if available
-        if (helpTextMap.find(component) != helpTextMap.end())
+        // Walk up parent chain to find a registered component (needed for ComboBox children)
+        juce::Component* component = event.eventComponent;
+        while (component != nullptr)
         {
-            statusBar->setHelpText(helpTextMap[component]);
-        }
-
-        // Set OSC method if available
-        if (oscMethodMap.find(component) != oscMethodMap.end())
-        {
-            statusBar->setOscMethod(oscMethodMap[component]);
+            if (helpTextMap.find(component) != helpTextMap.end())
+            {
+                statusBar->setHelpText(helpTextMap[component]);
+                if (oscMethodMap.find(component) != oscMethodMap.end())
+                    statusBar->setOscMethod(oscMethodMap[component]);
+                return;
+            }
+            component = component->getParentComponent();
         }
     }
 

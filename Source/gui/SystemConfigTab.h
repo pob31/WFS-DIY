@@ -1481,7 +1481,9 @@ private:
         for (auto& pair : helpTextMap)
         {
             pair.first->setMouseCursor(juce::MouseCursor::PointingHandCursor);
-            pair.first->addMouseListener(this, false);
+            // Use true for ComboBoxes to receive events from their internal child components
+            bool wantsEventsFromChildren = (dynamic_cast<juce::ComboBox*>(pair.first) != nullptr);
+            pair.first->addMouseListener(this, wantsEventsFromChildren);
         }
     }
 
@@ -1489,10 +1491,16 @@ private:
     {
         if (statusBar == nullptr) return;
 
-        auto* component = event.eventComponent;
-        if (helpTextMap.find(component) != helpTextMap.end())
+        // Walk up parent chain to find a registered component (needed for ComboBox children)
+        juce::Component* component = event.eventComponent;
+        while (component != nullptr)
         {
-            statusBar->setHelpText(helpTextMap[component]);
+            if (helpTextMap.find(component) != helpTextMap.end())
+            {
+                statusBar->setHelpText(helpTextMap[component]);
+                return;
+            }
+            component = component->getParentComponent();
         }
     }
 
