@@ -3,27 +3,51 @@
 ## Project Overview
 Wave Field Synthesis (WFS) audio application built with JUCE framework for real-time multi-channel audio processing with comprehensive OSC network control.
 
-## Current Implementation Status (As of 2025-12-29)
+## Codebase Statistics
 
-### Overall Progress: ~65% Complete
+| Metric | Value |
+|--------|-------|
+| **Total Source Files** | 99 files (76 headers, 23 cpp) |
+| **Total Lines of Code** | ~55,400 lines |
+| **Git Commits** | 185 commits |
+| **Development Started** | October 2025 |
+
+### Code Distribution by Module
+
+| Module | Files | Lines | Description |
+|--------|-------|-------|-------------|
+| GUI | 44 | 31,100 | Tabs, windows, custom components |
+| DSP | 19 | 7,700 | Audio processing, calculations |
+| Network | 20 | 6,300 | OSC, protocols, logging |
+| Parameters | 6 | 5,900 | ValueTree state, file I/O |
+| Core | 7 | 3,000 | MainComponent, WfsParameters |
+| Helpers | 3 | 800 | Geometry calculations |
+
+---
+
+## Current Implementation Status (As of 2026-01-10)
+
+### Overall Progress: ~70% Complete
 
 The application has established a solid foundation with infrastructure and core UI:
 - Complete parameter management system
 - Professional GUI framework with tabbed interface
 - Bidirectional OSC communication
-- Project-based save/load system
+- Project-based save/load system with snapshot scope editing
 - Interactive multitouch Map view
 - Complete Clusters management
 - Network Log window
+- Color scheme system (3 themes: Default, OLED Black, Light)
 - **DSP Calculation Layer** (delay/level/HF matrices from geometry)
 - **Input Visualisation** (real-time DSP matrix display)
 - **Live Source Tamer** (per-speaker gain reduction for feedback prevention)
 - **Floor Reflections** (simulated floor bounce with filtering and diffusion)
 - **Audio Interface & Patching Window** (input/output patch matrices with test signal generation)
+- **Snapshot Scope Window** (parameter-level, per-channel granularity for snapshots)
 
 **Major features still to implement:**
 - Reverb algorithm design (convolution/algorithmic)
-- Snapshot system UI
+- Snapshot system UI in InputsTab (scope window complete)
 - Tracking protocols (PSN, RTTrP, OSC for tracking)
 - ADM-OSC protocol
 - GPU Audio framework port
@@ -58,6 +82,7 @@ The application has established a solid foundation with infrastructure and core 
 - **NetworkLogWindow** - Network traffic monitoring with filtering and export
 - **OutputArrayHelperWindow** - "Wizard of OutZ" for speaker array positioning
 - **SetAllInputsWindow** - Bulk parameter changes across all inputs (long-press access)
+- **SnapshotScopeWindow** - Extended scope editing for input snapshots (parameter-level, per-channel)
 
 ### Core Systems Status
 
@@ -66,12 +91,13 @@ The application has established a solid foundation with infrastructure and core 
 | Parameters | Complete | ValueTree-based hierarchical state management |
 | GUI Tabs | 90% | All 7 tabs have UI, some features pending |
 | OSC Network | 90% | OSC, Remote protocols complete; ADM-OSC, PSN, RTTrP pending |
-| Save/Load | 80% | Project folder management (snapshots UI TODO) |
+| Save/Load | 85% | Project folder management, snapshot scope editing complete |
 | Audio Engine | 80% | Dual algorithm support with DSP calculation layer + Live Source Tamer + Floor Reflections |
-| Separate Windows | 90% | Log window, Patch window, Array Helper all complete |
+| Separate Windows | 95% | Log, Patch, Array Helper, Snapshot Scope windows complete |
 | Map View | 90% | Interactive multitouch map complete |
 | Data Processing | 90% | WFS delay/level/HF + reverb matrices implemented |
 | DSP Algorithms | 75% | Delay/gain/HF/FR filters working, reverb TODO |
+| Theming | Complete | 3 color schemes with live switching |
 
 ---
 
@@ -1552,6 +1578,6 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 
 ---
 
-*Last updated: 2026-01-10 (Snapshot and Scope System documentation added)*
+*Last updated: 2026-01-10*
 *JUCE Version: 8.0.12*
 *Build: Visual Studio 2022 / Xcode, x64 Debug/Release*
