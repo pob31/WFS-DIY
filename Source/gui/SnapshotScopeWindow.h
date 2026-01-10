@@ -142,7 +142,7 @@ public:
 
         // Section name
         juce::String displayName = getSectionDisplayName (sectionId);
-        g.setFont (juce::Font (14.0f).boldened());
+        g.setFont (juce::Font (juce::FontOptions (14.0f).withStyle ("Bold")));
         g.drawText (displayName, 22, y, paramLabelWidth - 26, cellSize, juce::Justification::centredLeft);
 
         // Draw section state cells for each channel
@@ -164,7 +164,7 @@ public:
 
         juce::String displayName = getItemDisplayName (itemId);
         g.setColour (colors.textPrimary);
-        g.setFont (juce::Font (12.0f));
+        g.setFont (juce::Font (juce::FontOptions (12.0f)));
         g.drawText (displayName, 22, y, paramLabelWidth - 26, cellSize, juce::Justification::centredLeft);
 
         // Draw cells for each channel
@@ -387,7 +387,7 @@ public:
 
         g.fillRoundedRectangle (allBounds, 3.0f);
         g.setColour (colors.textPrimary);
-        g.setFont (juce::Font (11.0f).boldened());
+        g.setFont (juce::Font (juce::FontOptions (11.0f).withStyle ("Bold")));
         g.drawText ("ALL", allBounds.toNearestInt(), juce::Justification::centred);
 
         // Draw channel numbers
@@ -410,7 +410,7 @@ public:
             g.fillRoundedRectangle (cellBounds, 3.0f);
 
             g.setColour (colors.textPrimary);
-            g.setFont (juce::Font (10.0f));
+            g.setFont (juce::Font (juce::FontOptions (10.0f)));
             g.drawText (juce::String (ch + 1), cellBounds.toNearestInt(), juce::Justification::centred);
         }
     }
@@ -474,7 +474,7 @@ public:
         // Title label
         addAndMakeVisible (titleLabel);
         titleLabel.setText ("Snapshot Scope: " + snapshotName, juce::dontSendNotification);
-        titleLabel.setFont (juce::Font (16.0f).boldened());
+        titleLabel.setFont (juce::Font (juce::FontOptions (16.0f).withStyle ("Bold")));
         titleLabel.setJustificationType (juce::Justification::centred);
 
         // Apply mode radio buttons
