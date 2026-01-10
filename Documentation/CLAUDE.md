@@ -996,6 +996,184 @@ Theme selector in SystemConfigTab, third column under "UI" section header.
 
 ---
 
+## Snapshot and Scope System (Source/Parameters/WFSFileManager.h, Source/gui/SnapshotScopeWindow.h)
+
+### Overview
+The snapshot system allows saving and recalling input channel configurations with precise control over which parameters and channels are included. Supports two scope modes: legacy section-level filtering and extended parameter-level, per-channel granularity.
+
+### Core Files
+- **WFSFileManager.h/cpp** - File I/O and scope data structures (`SnapshotScope`, `ExtendedSnapshotScope`, `ScopeItem`)
+- **SnapshotScopeWindow.h** - UI for editing extended scope (`ScopeGridComponent`, `ScopeChannelHeader`, `SnapshotScopeContent`)
+
+### Snapshot Storage
+Snapshots are stored as XML files in the project folder structure:
+```
+project_folder/
+├── snapshots/
+│   ├── inputs/         # Input snapshots (*.xml)
+│   └── outputs/        # Output snapshots (*.xml)
+```
+
+### Legacy SnapshotScope (Section-Level)
+Simple boolean flags for entire parameter sections:
+
+```cpp
+struct SnapshotScope {
+    bool includePosition = true;
+    bool includeAttenuation = true;
+    bool includeDirectivity = true;
+    bool includeLiveSource = true;
+    bool includeHackoustics = true;
+    bool includeLFO = true;
+    bool includeAutomOtion = true;
+    bool includeMutes = true;
+    juce::Array<int> channelIndices;  // Empty = all channels
+};
+```
+
+### Extended SnapshotScope (Parameter-Level, Per-Channel)
+Fine-grained control over individual parameters for each channel:
+
+**Apply Modes:**
+| Mode | Behavior |
+|------|----------|
+| **OnSave** | Filter parameters when saving snapshot (excluded params not stored) |
+| **OnRecall** | Filter parameters when loading snapshot (excluded params not applied) |
+
+**Data Structure:**
+```cpp
+struct ExtendedSnapshotScope {
+    ApplyMode applyMode = ApplyMode::OnRecall;
+    std::map<juce::String, bool> itemChannelStates;  // Key: "itemId_channelIndex"
+};
+```
+
+### Scope Items
+Parameters are grouped into logical items for easier management. Each scope item contains related parameters:
+
+| Section | Item ID | Display Name | Parameters |
+|---------|---------|--------------|------------|
+| **Channel** | `inputAttenuation` | Attenuation | `inputAttenuation` |
+| **Channel** | `inputDelay` | Delay/Latency | `inputDelayLatency`, `inputMinimalLatency` |
+| **Position** | `position` | Position (XYZ) | `inputPositionX/Y/Z`, `inputCoordinateMode` |
+| **Position** | `offset` | Offset (XYZ) | `inputOffsetX/Y/Z` |
+| **Position** | `constraints` | Constraints | All constraint params |
+| **Position** | `flip` | Flip (XYZ) | `inputFlipX/Y/Z` |
+| **Position** | `cluster` | Cluster | `inputCluster` |
+| **Position** | `tracking` | Tracking | `inputTrackingActive/ID/Smooth` |
+| **Position** | `speedLimit` | Speed Limit | `inputMaxSpeedActive`, `inputMaxSpeed` |
+| **Position** | `pathMode` | Path Mode | `inputPathModeActive` |
+| **Position** | `heightFactor` | Height Factor | `inputHeightFactor` |
+| **Attenuation** | `attenuationLaw` | Attenuation Law | Law, distance atten, ratio |
+| **Attenuation** | `commonAtten` | Common Atten | `inputCommonAtten` |
+| **Directivity** | `directivity` | Directivity | Directivity, rotation, tilt |
+| **Directivity** | `hfShelf` | HF Shelf | `inputHFshelf` |
+| **LiveSourceTamer** | `lsEnable` | Enable | `inputLSactive` |
+| **LiveSourceTamer** | `lsRadiusShape` | Radius/Shape | Radius, shape params |
+| **LiveSourceTamer** | `lsFixedAtten` | Fixed Atten | `inputLSattenuation` |
+| **LiveSourceTamer** | `lsPeakComp` | Peak Comp | Threshold, ratio |
+| **LiveSourceTamer** | `lsSlowComp` | Slow Comp | Threshold, ratio |
+| **Hackoustics** | `frEnable` | Enable | `inputFRactive` |
+| **Hackoustics** | `frAttenuation` | Attenuation | `inputFRattenuation` |
+| **Hackoustics** | `frLowCut` | Low Cut | Active, frequency |
+| **Hackoustics** | `frHighShelf` | High Shelf | All high-shelf params |
+| **Hackoustics** | `frDiffusion` | Diffusion | `inputFRdiffusion` |
+| **Hackoustics** | `reverbSends` | Reverb Sends | `inputMuteReverbSends` |
+| **LFO** | `lfoEnable` | Enable/Period | Active, period, phase, gyrophone |
+| **LFO** | `lfoX/Y/Z` | LFO X/Y/Z | Shape, rate, amplitude, phase per axis |
+| **LFO** | `jitter` | Jitter | `inputJitter` |
+| **AutomOtion** | `otomoDestination` | Destination | X/Y/Z target, absolute/relative |
+| **AutomOtion** | `otomoMovement` | Movement | Stay/return, duration, curve, speed |
+| **AutomOtion** | `otomoAudioTrigger` | Audio Trigger | Trigger mode, thresholds |
+| **Mutes** | `mutes` | Mutes | `inputMutes`, `inputMuteMacro` |
+| **Mutes** | `sidelines` | Sidelines | Active, fringe |
+| **Mutes** | `arrayAttens` | Array Attens | `inputArrayAtten1-10` |
+
+### Sections
+Items are organized into 9 sections:
+1. **Channel** - Basic input properties
+2. **Position** - Location, offset, constraints, tracking
+3. **Attenuation** - Distance attenuation settings
+4. **Directivity** - Beam pattern and HF control
+5. **LiveSourceTamer** - Feedback prevention settings
+6. **Hackoustics** - Floor reflections settings
+7. **LFO** - Position modulation oscillator
+8. **AutomOtion** - Programmed movement
+9. **Mutes** - Output muting and sidelines
+
+### Scope Window UI Components
+
+**ScopeGridComponent:**
+- Scrollable grid with rows (scope items) and columns (channels)
+- Section headers expandable/collapsible with triangle icon
+- Cells show inclusion state: green (included), grey (excluded), striped (partial)
+- Click cell to toggle single item/channel
+- Click section header to toggle entire section
+- Click item label to toggle item for all channels
+
+**ScopeChannelHeader:**
+- Fixed header row with channel numbers
+- "ALL" button in corner toggles everything
+- Click channel number to toggle entire channel
+
+**Visual Feedback:**
+| State | Appearance |
+|-------|------------|
+| All Included | Solid green fill |
+| All Excluded | Grey fill with border |
+| Partial | Green/grey diagonal stripes |
+
+### API Usage
+
+**Creating a snapshot with extended scope:**
+```cpp
+WFSFileManager::ExtendedSnapshotScope scope;
+scope.initializeDefaults(numInputChannels);  // All items included
+scope.applyMode = ExtendedSnapshotScope::ApplyMode::OnRecall;
+
+// Exclude specific items for specific channels
+scope.setIncluded("position", 0, false);     // Exclude position for ch 0
+scope.setItemForAllChannels("lfoEnable", false, numChannels);  // Exclude LFO enable for all
+
+fileManager.saveInputSnapshotWithExtendedScope("MySnapshot", scope);
+```
+
+**Loading a snapshot:**
+```cpp
+auto scope = fileManager.getExtendedSnapshotScope("MySnapshot");
+fileManager.loadInputSnapshotWithExtendedScope("MySnapshot", scope);
+```
+
+**Querying inclusion:**
+```cpp
+bool included = scope.isIncluded("position", channelIndex);
+bool paramIncluded = scope.isParameterIncluded(inputPositionX, channelIndex);
+auto state = scope.getChannelState(channelIndex);  // AllIncluded/AllExcluded/Partial
+```
+
+### XML Format
+
+**Snapshot file structure:**
+```xml
+<InputSnapshot version="1.0" name="MySnapshot">
+  <ExtendedScope applyMode="1">  <!-- 0=OnSave, 1=OnRecall -->
+    <Item id="position_0" included="0"/>
+    <Item id="lfoEnable_0" included="0"/>
+    <Item id="lfoEnable_1" included="0"/>
+    <!-- Only stores excluded items (default is included) -->
+  </ExtendedScope>
+  <Inputs>
+    <Input id="1">
+      <Position x="1.5" y="2.0" z="0.5" coordinateMode="0"/>
+      <!-- Parameters filtered by scope if applyMode=OnSave -->
+    </Input>
+    <!-- More inputs... -->
+  </Inputs>
+</InputSnapshot>
+```
+
+---
+
 ## Tracking System
 Tracking is active only when ALL THREE conditions are true:
 1. **Global toggle ON** - `trackingEnabled != 0`
@@ -1344,6 +1522,7 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 - `Source/gui/ColorScheme.h` - Centralized color scheme system with 3 themes
 - `Source/gui/WfsLookAndFeel.h` - Custom LookAndFeel for widget theming
 - `Source/gui/sliders/WfsRangeSlider.h` - Double-thumbed range slider for distance constraints
+- `Source/gui/SnapshotScopeWindow.h` - Extended scope editing UI for snapshots
 - `Source/Helpers/ArrayGeometryCalculator.h/cpp` - Speaker array geometry calculations
 
 ---
@@ -1359,7 +1538,7 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 ## TODO Summary by Priority
 
 ### High Priority
-1. **Snapshot System UI**: InputsTab snapshot buttons need implementation
+1. **Snapshot System UI**: InputsTab snapshot buttons need implementation (scope editing window complete)
 
 ### Medium Priority
 2. **Reverb Algorithm**: Design convolution/algorithmic reverb processing
@@ -1373,6 +1552,6 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 
 ---
 
-*Last updated: 2026-01-10*
+*Last updated: 2026-01-10 (Snapshot and Scope System documentation added)*
 *JUCE Version: 8.0.12*
 *Build: Visual Studio 2022 / Xcode, x64 Debug/Release*
