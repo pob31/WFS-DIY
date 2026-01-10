@@ -787,8 +787,11 @@ private:
 
     void textEditorReturnKeyPressed(juce::TextEditor& editor) override
     {
+        // Set flag to prevent textEditorFocusLost from re-validating
+        isValidatingFromReturnKey = true;
         validateAndClampValue(editor);
         editor.giveAwayKeyboardFocus();
+        isValidatingFromReturnKey = false;
     }
 
     void textEditorEscapeKeyPressed(juce::TextEditor& editor) override
@@ -836,6 +839,9 @@ private:
 
     void textEditorFocusLost(juce::TextEditor& editor) override
     {
+        // Skip if we just validated via Return key (prevents double dialog)
+        if (isValidatingFromReturnKey)
+            return;
         validateAndClampValue(editor);
     }
 
@@ -911,21 +917,135 @@ private:
             parameters.setConfigParam("ShowLocation", text);
         else if (&editor == &inputChannelsEditor)
         {
-            int inputs = text.getIntValue();
-            parameters.setNumInputChannels(inputs);
-            notifyChannelCountChanged();
+            int newInputs = text.getIntValue();
+            int currentInputs = parameters.getNumInputChannels();
+            if (newInputs < currentInputs)
+            {
+                // Prevent multiple dialogs from appearing
+                if (isShowingChannelReductionDialog)
+                {
+                    inputChannelsEditor.setText(juce::String(currentInputs), false);
+                    return;
+                }
+                isShowingChannelReductionDialog = true;
+
+                // Show JUCE AlertWindow confirmation dialog for reducing channels
+                auto options = juce::MessageBoxOptions()
+                    .withIconType(juce::MessageBoxIconType::WarningIcon)
+                    .withTitle("Reduce Input Channels?")
+                    .withMessage("Reducing from " + juce::String(currentInputs) + " to " + juce::String(newInputs) +
+                        " input channels will remove settings for channels " + juce::String(newInputs + 1) +
+                        " to " + juce::String(currentInputs) + ".\n\nThis cannot be undone.")
+                    .withButton("Reduce")
+                    .withButton("Cancel")
+                    .withAssociatedComponent(this);
+
+                juce::AlertWindow::showAsync(options, [this, newInputs, currentInputs](int result) {
+                    isShowingChannelReductionDialog = false;
+                    if (result == 1)  // Reduce pressed
+                    {
+                        parameters.setNumInputChannels(newInputs);
+                        notifyChannelCountChanged();
+                    }
+                    else  // Cancel pressed - restore original value
+                    {
+                        inputChannelsEditor.setText(juce::String(currentInputs), false);
+                    }
+                });
+            }
+            else
+            {
+                parameters.setNumInputChannels(newInputs);
+                notifyChannelCountChanged();
+            }
         }
         else if (&editor == &outputChannelsEditor)
         {
-            int outputs = text.getIntValue();
-            parameters.setNumOutputChannels(outputs);
-            notifyChannelCountChanged();
+            int newOutputs = text.getIntValue();
+            int currentOutputs = parameters.getNumOutputChannels();
+            if (newOutputs < currentOutputs)
+            {
+                // Prevent multiple dialogs from appearing
+                if (isShowingChannelReductionDialog)
+                {
+                    outputChannelsEditor.setText(juce::String(currentOutputs), false);
+                    return;
+                }
+                isShowingChannelReductionDialog = true;
+
+                // Show JUCE AlertWindow confirmation dialog for reducing channels
+                auto options = juce::MessageBoxOptions()
+                    .withIconType(juce::MessageBoxIconType::WarningIcon)
+                    .withTitle("Reduce Output Channels?")
+                    .withMessage("Reducing from " + juce::String(currentOutputs) + " to " + juce::String(newOutputs) +
+                        " output channels will remove settings for channels " + juce::String(newOutputs + 1) +
+                        " to " + juce::String(currentOutputs) + ".\n\nThis cannot be undone.")
+                    .withButton("Reduce")
+                    .withButton("Cancel")
+                    .withAssociatedComponent(this);
+
+                juce::AlertWindow::showAsync(options, [this, newOutputs, currentOutputs](int result) {
+                    isShowingChannelReductionDialog = false;
+                    if (result == 1)  // Reduce pressed
+                    {
+                        parameters.setNumOutputChannels(newOutputs);
+                        notifyChannelCountChanged();
+                    }
+                    else  // Cancel pressed - restore original value
+                    {
+                        outputChannelsEditor.setText(juce::String(currentOutputs), false);
+                    }
+                });
+            }
+            else
+            {
+                parameters.setNumOutputChannels(newOutputs);
+                notifyChannelCountChanged();
+            }
         }
         else if (&editor == &reverbChannelsEditor)
         {
-            int reverbs = text.getIntValue();
-            parameters.setNumReverbChannels(reverbs);
-            notifyChannelCountChanged();
+            int newReverbs = text.getIntValue();
+            int currentReverbs = parameters.getNumReverbChannels();
+            if (newReverbs < currentReverbs)
+            {
+                // Prevent multiple dialogs from appearing
+                if (isShowingChannelReductionDialog)
+                {
+                    reverbChannelsEditor.setText(juce::String(currentReverbs), false);
+                    return;
+                }
+                isShowingChannelReductionDialog = true;
+
+                // Show JUCE AlertWindow confirmation dialog for reducing channels
+                auto options = juce::MessageBoxOptions()
+                    .withIconType(juce::MessageBoxIconType::WarningIcon)
+                    .withTitle("Reduce Reverb Channels?")
+                    .withMessage("Reducing from " + juce::String(currentReverbs) + " to " + juce::String(newReverbs) +
+                        " reverb channels will remove settings for channels " + juce::String(newReverbs + 1) +
+                        " to " + juce::String(currentReverbs) + ".\n\nThis cannot be undone.")
+                    .withButton("Reduce")
+                    .withButton("Cancel")
+                    .withAssociatedComponent(this);
+
+                juce::AlertWindow::showAsync(options, [this, newReverbs, currentReverbs](int result) {
+                    isShowingChannelReductionDialog = false;
+                    if (result == 1)  // Reduce pressed
+                    {
+                        parameters.setNumReverbChannels(newReverbs);
+                        notifyChannelCountChanged();
+                    }
+                    else  // Cancel pressed - restore original value
+                    {
+                        reverbChannelsEditor.setText(juce::String(currentReverbs), false);
+                    }
+                });
+            }
+            else
+            {
+                parameters.setNumReverbChannels(newReverbs);
+                notifyChannelCountChanged();
+            }
         }
         else if (&editor == &stageWidthEditor)
             parameters.setConfigParam("StageWidth", text.getFloatValue());
@@ -1523,6 +1643,8 @@ private:
     StatusBar* statusBar = nullptr;
     std::map<juce::Component*, juce::String> helpTextMap;
     bool processingEnabled = false;
+    bool isValidatingFromReturnKey = false;  // Prevents double validation when Enter triggers both ReturnKey and FocusLost
+    bool isShowingChannelReductionDialog = false;  // Prevents multiple dialogs from appearing
 
     // Show Section
     juce::Label showNameLabel;
