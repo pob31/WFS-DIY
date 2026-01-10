@@ -52,32 +52,38 @@ public:
     {
         const int rowHeight = 28;
         const int dialSize = 50;
-        const int spacing = 6;
+        const int spacing = 10;
+        const int sectionSpacing = 16;
         const int buttonWidth = 90;
-        const int labelWidth = 120;
+        const int labelWidth = 140;
+        const int margin = 20;
+        const int buttonPairWidth = buttonWidth * 2 + spacing;  // 190px - width of ON+OFF buttons
+        const int actionButtonWidth = buttonPairWidth;  // Match button pair width
 
         // Warning label (full width, centered within red strip)
         warningLabel.setBounds(0, 0, getWidth(), 40);
 
         // Content starts below the red strip
-        auto bounds = getLocalBounds().withTrimmedTop(45).reduced(15, 0).withTrimmedBottom(15);
+        auto bounds = getLocalBounds().withTrimmedTop(50).reduced(margin, 0).withTrimmedBottom(15);
 
-        // Coordinate mode row
+        // === INPUT PROPERTIES SECTION ===
+        // Minimal Latency - ON/OFF button pair
         auto row = bounds.removeFromTop(rowHeight);
-        coordModeLabel.setBounds(row.removeFromLeft(labelWidth));
-        coordModeSelector.setBounds(row.removeFromLeft(120));
-        bounds.removeFromTop(spacing);
-
-        // Curvature only - ON/OFF button pair
-        row = bounds.removeFromTop(rowHeight);
         curvatureOnlyLabel.setBounds(row.removeFromLeft(labelWidth));
         curvatureOnlyOnButton.setBounds(row.removeFromLeft(buttonWidth));
         row.removeFromLeft(spacing);
         curvatureOnlyOffButton.setBounds(row.removeFromLeft(buttonWidth));
+        bounds.removeFromTop(sectionSpacing);
+
+        // === POSITION SECTION ===
+        // Coordinate mode row
+        row = bounds.removeFromTop(rowHeight);
+        coordModeLabel.setBounds(row.removeFromLeft(labelWidth));
+        coordModeSelector.setBounds(row.removeFromLeft(buttonPairWidth));
         bounds.removeFromTop(spacing);
 
-        // Flip XYZ OFF action button
-        flipXYZOffButton.setBounds(bounds.removeFromTop(rowHeight).withWidth(200));
+        // Flip XYZ OFF action button (centered)
+        flipXYZOffButton.setBounds(bounds.removeFromTop(rowHeight).withSizeKeepingCentre(actionButtonWidth, rowHeight));
         bounds.removeFromTop(spacing);
 
         // Constraint positions - ON/OFF button pair
@@ -93,94 +99,100 @@ public:
         heightFactorLabel.setBounds(row.removeFromLeft(labelWidth).removeFromTop(rowHeight));
         auto dialArea = row.removeFromLeft(dialSize);
         heightFactorDial.setBounds(dialArea.withHeight(dialSize));
-        // Value and unit: split layout centered under dial
         int dialCenterX = dialArea.getX() + dialSize / 2;
         layoutDialValueUnit(heightFactorValueLabel, heightFactorUnitLabel, dialCenterX, dialArea.getY() + dialSize, rowHeight);
-        bounds.removeFromTop(spacing);
+        bounds.removeFromTop(sectionSpacing);
 
+        // === SOUND/ATTENUATION SECTION ===
         // Distance attenuation section label
         distAttenSectionLabel.setBounds(bounds.removeFromTop(rowHeight));
         bounds.removeFromTop(spacing / 2);
 
-        // All Log / All 1/d buttons row
+        // All Log / All 1/d buttons row (same size as ON/OFF buttons)
         row = bounds.removeFromTop(rowHeight);
-        allLogButton.setBounds(row.removeFromLeft(100));
+        row.removeFromLeft(labelWidth);  // Indent to align with other button pairs
+        int buttonPairStartX = row.getX();
+        allLogButton.setBounds(row.removeFromLeft(buttonWidth));
         row.removeFromLeft(spacing);
-        all1dButton.setBounds(row.removeFromLeft(100));
+        all1dButton.setBounds(row.removeFromLeft(buttonWidth));
+        // Center of button pair for dial positioning below
+        int buttonPairCenterX = buttonPairStartX + buttonWidth + spacing / 2;
         bounds.removeFromTop(spacing);
 
-        // Dials row: dB/m OR ratio (same position), common
+        // Dials row: common on left, dB/m OR ratio centered under buttons
         row = bounds.removeFromTop(dialSize + rowHeight * 2);
-        const int dialColWidth = (getWidth() - 30) / 2;  // Two columns now
 
-        // dB/m and ratio share the same column (first column) - only one visible at a time
-        auto col = row.removeFromLeft(dialColWidth);
-        auto labelBounds = col.removeFromTop(rowHeight);
-        dbmLabel.setBounds(labelBounds);
-        ratioLabel.setBounds(labelBounds);  // Same position as dbmLabel
-        auto dialBounds = col.removeFromTop(dialSize);
-        auto dialRect = dialBounds.withSizeKeepingCentre(dialSize, dialSize);
-        dbmDial.setBounds(dialRect);
-        ratioDial.setBounds(dialRect);  // Same position as dbmDial
-        int attenDialCenterX = dialBounds.getX() + dialBounds.getWidth() / 2;
-        layoutDialValueUnit(dbmValueLabel, dbmUnitLabel, attenDialCenterX, col.getY(), rowHeight, 35, 40);
-        layoutDialValueUnit(ratioValueLabel, ratioUnitLabel, attenDialCenterX, col.getY(), rowHeight, 35, 20);
-
-        // common column (second column)
-        col = row;
+        // Common dial on left (first column)
+        auto col = row.removeFromLeft(labelWidth);
         commonLabel.setBounds(col.removeFromTop(rowHeight));
         auto commonDialBounds = col.removeFromTop(dialSize);
         commonDial.setBounds(commonDialBounds.withSizeKeepingCentre(dialSize, dialSize));
         int commonCenterX = commonDialBounds.getX() + commonDialBounds.getWidth() / 2;
         layoutDialValueUnit(commonValueLabel, commonUnitLabel, commonCenterX, col.getY(), rowHeight);
 
+        // dB/m and ratio dials centered under button pair
+        auto remainingCol = row;
+        auto labelBounds = remainingCol.removeFromTop(rowHeight);
+        // Position labels centered under button pair
+        dbmLabel.setBounds(labelBounds.withX(buttonPairCenterX - 40).withWidth(80));
+        ratioLabel.setBounds(labelBounds.withX(buttonPairCenterX - 40).withWidth(80));
+        auto dialBounds = remainingCol.removeFromTop(dialSize);
+        auto dialRect = juce::Rectangle<int>(buttonPairCenterX - dialSize / 2, dialBounds.getY(), dialSize, dialSize);
+        dbmDial.setBounds(dialRect);
+        ratioDial.setBounds(dialRect);
+        layoutDialValueUnit(dbmValueLabel, dbmUnitLabel, buttonPairCenterX, dialBounds.getY() + dialSize, rowHeight, 35, 40);
+        layoutDialValueUnit(ratioValueLabel, ratioUnitLabel, buttonPairCenterX, dialBounds.getY() + dialSize, rowHeight, 35, 20);
         bounds.removeFromTop(spacing);
 
-        // Reset directivity action
-        resetDirectivityButton.setBounds(bounds.removeFromTop(rowHeight).withWidth(200));
-        bounds.removeFromTop(spacing);
+        // Reset directivity action (centered)
+        resetDirectivityButton.setBounds(bounds.removeFromTop(rowHeight).withSizeKeepingCentre(actionButtonWidth, rowHeight));
+        bounds.removeFromTop(sectionSpacing);
 
-        // Mute macros row
-        row = bounds.removeFromTop(rowHeight);
-        muteMacrosLabel.setBounds(row.removeFromLeft(labelWidth));
-        muteMacrosSelector.setBounds(row.removeFromLeft(150));
-        bounds.removeFromTop(spacing);
+        // === LIVE SOURCE SECTION ===
+        liveSourceOffButton.setBounds(bounds.removeFromTop(rowHeight).withSizeKeepingCentre(actionButtonWidth, rowHeight));
+        bounds.removeFromTop(sectionSpacing);
 
-        // Live Source OFF action
-        liveSourceOffButton.setBounds(bounds.removeFromTop(rowHeight).withWidth(220));
-        bounds.removeFromTop(spacing);
-
-        // Sidelines - ON/OFF button pair
-        row = bounds.removeFromTop(rowHeight);
-        sidelinesLabel.setBounds(row.removeFromLeft(labelWidth));
-        sidelinesOnButton.setBounds(row.removeFromLeft(buttonWidth));
-        row.removeFromLeft(spacing);
-        sidelinesOffButton.setBounds(row.removeFromLeft(buttonWidth));
-        bounds.removeFromTop(spacing);
-
-        // Fringe dial row
-        row = bounds.removeFromTop(dialSize + rowHeight);
-        sidelinesFringeLabel.setBounds(row.removeFromLeft(labelWidth).removeFromTop(rowHeight));
-        auto fringeDialArea = row.removeFromLeft(dialSize);
-        sidelinesFringeDial.setBounds(fringeDialArea.withHeight(dialSize));
-        int fringeCenterX = fringeDialArea.getX() + dialSize / 2;
-        layoutDialValueUnit(sidelinesFringeValueLabel, sidelinesFringeUnitLabel, fringeCenterX, fringeDialArea.getY() + dialSize, rowHeight, 35, 20);
-        bounds.removeFromTop(spacing);
-
-        // Jitter & LFO OFF action
-        jitterLfoOffButton.setBounds(bounds.removeFromTop(rowHeight).withWidth(200));
-        bounds.removeFromTop(spacing);
-
+        // === HACKOUSTICS SECTION ===
         // Floor Reflections - ON/OFF button pair
         row = bounds.removeFromTop(rowHeight);
         floorReflectionsLabel.setBounds(row.removeFromLeft(labelWidth));
         floorReflectionsOnButton.setBounds(row.removeFromLeft(buttonWidth));
         row.removeFromLeft(spacing);
         floorReflectionsOffButton.setBounds(row.removeFromLeft(buttonWidth));
+        bounds.removeFromTop(sectionSpacing);
+
+        // === LFO SECTION ===
+        jitterLfoOffButton.setBounds(bounds.removeFromTop(rowHeight).withSizeKeepingCentre(actionButtonWidth, rowHeight));
+        bounds.removeFromTop(sectionSpacing);
+
+        // === MUTES SECTION ===
+        // Mute macros row
+        row = bounds.removeFromTop(rowHeight);
+        muteMacrosLabel.setBounds(row.removeFromLeft(labelWidth));
+        muteMacrosSelector.setBounds(row.removeFromLeft(buttonPairWidth));
+        bounds.removeFromTop(spacing);
+
+        // Sidelines - ON/OFF button pair
+        row = bounds.removeFromTop(rowHeight);
+        sidelinesLabel.setBounds(row.removeFromLeft(labelWidth));
+        int sidelinesButtonStartX = row.getX();
+        sidelinesOnButton.setBounds(row.removeFromLeft(buttonWidth));
+        row.removeFromLeft(spacing);
+        sidelinesOffButton.setBounds(row.removeFromLeft(buttonWidth));
+        // Center of sidelines button pair for fringe dial
+        int sidelinesButtonCenterX = sidelinesButtonStartX + buttonWidth + spacing / 2;
+        bounds.removeFromTop(spacing);
+
+        // Fringe dial row - centered under Sidelines ON/OFF buttons
+        row = bounds.removeFromTop(dialSize + rowHeight);
+        sidelinesFringeLabel.setBounds(row.removeFromLeft(labelWidth).removeFromTop(rowHeight));
+        auto fringeDialRect = juce::Rectangle<int>(sidelinesButtonCenterX - dialSize / 2, row.getY(), dialSize, dialSize);
+        sidelinesFringeDial.setBounds(fringeDialRect);
+        layoutDialValueUnit(sidelinesFringeValueLabel, sidelinesFringeUnitLabel, sidelinesButtonCenterX, row.getY() + dialSize, rowHeight, 35, 20);
         bounds.removeFromTop(spacing);
 
         // Close button at bottom (centered)
-        closeButton.setBounds(bounds.removeFromBottom(35).withSizeKeepingCentre(200, 35));
+        closeButton.setBounds(bounds.removeFromBottom(40).withSizeKeepingCentre(actionButtonWidth, 38));
     }
 
     std::function<void()> onCloseRequested;
@@ -195,7 +207,7 @@ private:
     juce::Label coordModeLabel;
     juce::ComboBox coordModeSelector;
 
-    // Curvature only (minimal latency) - ON/OFF buttons
+    // Minimal Latency - ON/OFF buttons
     juce::Label curvatureOnlyLabel;
     juce::TextButton curvatureOnlyOnButton;
     juce::TextButton curvatureOnlyOffButton;
@@ -301,9 +313,9 @@ private:
             applyToAllInputs(WFSParameterIDs::inputCoordinateMode, mode);
         };
 
-        // Curvature only (minimal latency) - ON/OFF buttons
+        // Minimal Latency - ON/OFF buttons
         addAndMakeVisible(curvatureOnlyLabel);
-        curvatureOnlyLabel.setText("Curvature only:", juce::dontSendNotification);
+        curvatureOnlyLabel.setText("Minimal Latency:", juce::dontSendNotification);
 
         addAndMakeVisible(curvatureOnlyOnButton);
         curvatureOnlyOnButton.setButtonText("ON");
@@ -817,7 +829,7 @@ public:
         content->onCloseRequested = [this]() { closeButtonPressed(); };
         setContentOwned(content.release(), false);
 
-        centreWithSize(450, 850);
+        centreWithSize(370, 880);
         setVisible(true);
         WindowUtils::enableDarkTitleBar(this);
 

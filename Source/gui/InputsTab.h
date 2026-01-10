@@ -207,7 +207,7 @@ private:
         g.setColour(ColorScheme::get().buttonBorder);
         g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
 
-        // Progress indicator during long press (fills from bottom)
+        // Progress indicator during long press (fills from left to right)
         if (isLongPressActive && !thresholdReached)
         {
             auto elapsed = (juce::Time::getCurrentTime() - pressStartTime).inMilliseconds();
@@ -215,7 +215,7 @@ private:
 
             g.setColour(ColorScheme::get().accentBlue.withAlpha(0.5f));
             auto progressBounds = bounds;
-            progressBounds = progressBounds.removeFromBottom(bounds.getHeight() * progress);
+            progressBounds = progressBounds.removeFromLeft(bounds.getWidth() * progress);
             g.fillRoundedRectangle(progressBounds, 4.0f);
         }
 
