@@ -259,7 +259,7 @@ private:
     }
 
     // Configuration
-    bool ttsEnabled = false;  // Off by default, user opt-in
+    bool ttsEnabled = true;  // On by default - postAnnouncement() is a no-op when no screen reader is active
     int helpTextDelayMs = 3500;  // 3.5 seconds for full help
     int minAnnouncementIntervalMs = 500;  // Rate limiting (2 per second max)
 

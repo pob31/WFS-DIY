@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "../WfsParameters.h"
 #include "../Accessibility/TTSManager.h"
+#include "../Localization/LocalizationManager.h"
 #include "StatusBar.h"
 #include "ColorScheme.h"
 
@@ -369,11 +370,13 @@ public:
         ttsLabel.setText("Screen Reader:", juce::dontSendNotification);
 
         addAndMakeVisible(ttsToggleButton);
-        ttsToggleButton.setButtonText("OFF");
         ttsToggleButton.setToggleable(true);
-        ttsToggleButton.setToggleState(TTSManager::getInstance().isEnabled(), juce::dontSendNotification);
+        // TTS is enabled by default (postAnnouncement is a no-op when no screen reader is active)
+        bool ttsState = TTSManager::getInstance().isEnabled();
+        ttsToggleButton.setButtonText(ttsState ? "ON" : "OFF");
+        ttsToggleButton.setToggleState(ttsState, juce::dontSendNotification);
         ttsToggleButton.setColour(juce::TextButton::buttonColourId,
-            TTSManager::getInstance().isEnabled() ? juce::Colour(0xFF338C33) : juce::Colours::darkgrey);
+            ttsState ? juce::Colour(0xFF338C33) : juce::Colours::darkgrey);
         ttsToggleButton.onClick = [this]() {
             bool newState = !TTSManager::getInstance().isEnabled();
             TTSManager::getInstance().setEnabled(newState);
@@ -387,6 +390,28 @@ public:
             if (newState)
                 TTSManager::getInstance().announceImmediate("Screen reader enabled",
                     juce::AccessibilityHandler::AnnouncementPriority::high);
+        };
+
+        // Language selector
+        addAndMakeVisible(languageLabel);
+        languageLabel.setText("Language:", juce::dontSendNotification);
+
+        addAndMakeVisible(languageSelector);
+        populateLanguageSelector();
+        languageSelector.onChange = [this]() {
+            int selectedIdx = languageSelector.getSelectedId() - 1;
+            if (selectedIdx >= 0 && selectedIdx < availableLanguages.size())
+            {
+                juce::String locale = availableLanguages[selectedIdx];
+                if (LocalizationManager::getInstance().loadLanguage(locale))
+                {
+                    parameters.setConfigParam("Language", locale);
+                    // Note: UI text won't update until strings are migrated to use LOC()
+                    if (statusBar != nullptr)
+                        statusBar->showTemporaryMessage("Language changed to: " +
+                            languageSelector.getText() + " (requires restart for full effect)", 3000);
+                }
+            }
         };
 
         // Store/Reload Section
@@ -686,6 +711,10 @@ public:
 
         ttsLabel.setBounds(x, y, labelWidth, rowHeight);
         ttsToggleButton.setBounds(x + labelWidth, y, 60, rowHeight);
+        y += rowHeight + spacing;
+
+        languageLabel.setBounds(x, y, labelWidth, rowHeight);
+        languageSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
 
         // Footer buttons - full width at bottom (matching Output tab style)
         const int footerHeight = 90;  // Two 30px button rows + 10px spacing + 20px padding
@@ -1577,6 +1606,52 @@ private:
     }
 
     //==============================================================================
+    // Language selector helper
+
+    void populateLanguageSelector()
+    {
+        languageSelector.clear();
+        availableLanguages.clear();
+
+        // Get available languages from LocalizationManager
+        auto& locMgr = LocalizationManager::getInstance();
+        availableLanguages = locMgr.getAvailableLanguages();
+
+        // If no language files found, add English as default
+        if (availableLanguages.isEmpty())
+            availableLanguages.add("en");
+
+        // Map locale codes to display names
+        std::map<juce::String, juce::String> languageNames = {
+            {"en", "English"},
+            {"fr", "French"},
+            {"de", "German"},
+            {"es", "Spanish"},
+            {"it", "Italian"},
+            {"pt", "Portuguese"},
+            {"ja", "Japanese"},
+            {"zh", "Chinese"},
+            {"ko", "Korean"}
+        };
+
+        // Populate ComboBox
+        int selectedId = 1;
+        for (int i = 0; i < availableLanguages.size(); ++i)
+        {
+            const auto& locale = availableLanguages[i];
+            juce::String displayName = languageNames.count(locale) > 0
+                ? languageNames.at(locale)
+                : locale.toUpperCase();
+            languageSelector.addItem(displayName, i + 1);
+
+            if (locale == locMgr.getCurrentLocale())
+                selectedId = i + 1;
+        }
+
+        languageSelector.setSelectedId(selectedId, juce::dontSendNotification);
+    }
+
+    //==============================================================================
     // Status bar helper methods
 
     void showStatusMessage(const juce::String& message, int durationMs = 3000)
@@ -1615,6 +1690,7 @@ private:
         helpTextMap[&haasEffectEditor] = "Hass Effect to apply to the system. Will take into account the Latency Compensations (System, Input and Output).";
         helpTextMap[&colorSchemeSelector] = "Select the color scheme: Default (dark gray), Black (pure black for OLED displays), or Light (daytime use).";
         helpTextMap[&ttsToggleButton] = "Enable or disable screen reader announcements. When enabled, parameter names and values are announced on hover, and help text is read after a few seconds.";
+        helpTextMap[&languageSelector] = "Select the user interface language. Changes take full effect after restarting the application.";
         helpTextMap[&selectProjectFolderButton] = "Select the Location of the Current Project Folder where to store files.";
         helpTextMap[&storeCompleteConfigButton] = "Store Complete Configuration to files (with backup).";
         helpTextMap[&reloadCompleteConfigButton] = "Reload Complete Configuration from files.";
@@ -1755,6 +1831,9 @@ private:
     juce::ComboBox colorSchemeSelector;
     juce::Label ttsLabel;
     juce::TextButton ttsToggleButton;
+    juce::Label languageLabel;
+    juce::ComboBox languageSelector;
+    juce::StringArray availableLanguages;
 
     // Store/Reload Section
     juce::TextButton selectProjectFolderButton;
