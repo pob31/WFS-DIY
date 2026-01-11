@@ -1,9 +1,19 @@
 #include "MainComponent.h"
 #include "Parameters/WFSParameterIDs.h"
+#include "Localization/LocalizationManager.h"
 
 //==============================================================================
 MainComponent::MainComponent()
 {
+    // Initialize localization - try to load language file from Resources/lang/
+    auto& locMgr = LocalizationManager::getInstance();
+    auto exeDir = juce::File::getSpecialLocation(juce::File::currentExecutableFile).getParentDirectory();
+    locMgr.setResourceDirectory(exeDir.getChildFile("Resources"));
+    if (!locMgr.loadLanguage("en"))
+    {
+        DBG("LocalizationManager: Could not load en.json - using fallback strings");
+    }
+
     // Load saved channel counts and device state
     juce::PropertiesFile::Options options;
     options.applicationName = "WFS-DIY";

@@ -1,0 +1,232 @@
+{
+  "meta": {
+    "language": "English",
+    "locale": "en",
+    "version": "1.0.0",
+    "author": "WFS-DIY Team"
+  },
+
+  "common": {
+    "ok": "OK",
+    "cancel": "Cancel",
+    "apply": "Apply",
+    "reset": "Reset",
+    "save": "Save",
+    "load": "Load",
+    "store": "Store",
+    "reload": "Reload",
+    "import": "Import",
+    "export": "Export",
+    "enable": "Enable",
+    "disable": "Disable",
+    "on": "ON",
+    "off": "OFF",
+    "yes": "Yes",
+    "no": "No",
+    "delete": "Delete",
+    "add": "Add",
+    "remove": "Remove",
+    "edit": "Edit",
+    "close": "Close",
+    "select": "Select",
+    "all": "All",
+    "none": "None"
+  },
+
+  "units": {
+    "meters": "m",
+    "decibels": "dB",
+    "milliseconds": "ms",
+    "seconds": "s",
+    "degrees": "\u00b0",
+    "hertz": "Hz",
+    "percent": "%"
+  },
+
+  "tabs": {
+    "systemConfig": "System Config",
+    "inputs": "Inputs",
+    "outputs": "Outputs",
+    "reverb": "Reverb",
+    "network": "Network",
+    "clusters": "Clusters",
+    "map": "Map"
+  },
+
+  "statusBar": {
+    "displayLabel": "Display:",
+    "helpMode": "Help",
+    "oscMode": "OSC"
+  },
+
+  "systemConfig": {
+    "sections": {
+      "show": "Show",
+      "io": "I/O",
+      "stage": "Stage",
+      "master": "Master",
+      "ui": "UI",
+      "files": "Files"
+    },
+
+    "labels": {
+      "showName": "Name:",
+      "showLocation": "Location:",
+      "inputChannels": "Input Channels:",
+      "outputChannels": "Output Channels:",
+      "reverbChannels": "Reverb Channels:",
+      "algorithm": "Algorithm:",
+      "processing": "Processing:",
+      "stageShape": "Stage Shape:",
+      "stageWidth": "Width:",
+      "stageDepth": "Depth:",
+      "stageHeight": "Height:",
+      "stageDiameter": "Diameter:",
+      "domeElevation": "Elevation:",
+      "originWidth": "Origin Width:",
+      "originDepth": "Origin Depth:",
+      "originHeight": "Origin Height:",
+      "speedOfSound": "Speed of Sound:",
+      "temperature": "Temperature:",
+      "masterLevel": "Master Level:",
+      "systemLatency": "System Latency:",
+      "haasEffect": "Haas Effect:",
+      "colorScheme": "Color Scheme:",
+      "screenReader": "Screen Reader:"
+    },
+
+    "buttons": {
+      "audioPatch": "Audio Interface and Patching Window",
+      "processingOff": "Processing: OFF",
+      "processingOn": "Processing: ON",
+      "selectProjectFolder": "Select Project Folder",
+      "storeComplete": "Store Complete Configuration",
+      "reloadComplete": "Reload Complete Configuration",
+      "reloadCompleteBackup": "Reload Complete Config. Backup",
+      "storeSystem": "Store System Configuration",
+      "reloadSystem": "Reload System Configuration",
+      "reloadSystemBackup": "Reload System Config. Backup",
+      "importSystem": "Import...",
+      "exportSystem": "Export..."
+    },
+
+    "algorithms": {
+      "inputBuffer": "InputBuffer (read-time delays)",
+      "outputBuffer": "OutputBuffer (write-time delays)"
+    },
+
+    "stageShapes": {
+      "box": "Box",
+      "cylinder": "Cylinder",
+      "dome": "Dome"
+    },
+
+    "colorSchemes": {
+      "default": "Default (Dark Gray)",
+      "black": "Black",
+      "light": "Light"
+    },
+
+    "help": {
+      "showName": "Name of the current show.",
+      "showLocation": "Location of the current show.",
+      "inputChannels": "Number of Input Channels.",
+      "outputChannels": "Number of Output Channels.",
+      "reverbChannels": "Number of Reverb Channels.",
+      "audioPatch": "Opens the Audio Interface and Patching Window.",
+      "algorithm": "Select the rendering algorithm from the menu.",
+      "processing": "Lock all I/O parameters and start the DSP. Long press to stop the DSP.",
+      "stageShape": "Select the shape of the stage (Box, Cylinder, or Dome).",
+      "stageWidth": "Width of the stage in meters (Box shape only).",
+      "stageDepth": "Depth of the stage in meters (Box shape only).",
+      "stageHeight": "Height of the stage in meters (Box and Cylinder shapes).",
+      "stageDiameter": "Diameter of the stage in meters (Cylinder and Dome shapes).",
+      "domeElevation": "Dome elevation angle: 180 = hemisphere, 360 = full sphere.",
+      "originWidth": "Origin X offset from stage center (0 = centered, negative = left).",
+      "originDepth": "Origin Y offset from stage center (0 = centered, negative = front/downstage).",
+      "originHeight": "Origin Z offset from floor (0 = floor level, positive = above floor).",
+      "originFront": "Set origin to front center of stage. Typical for frontal stages.",
+      "originCenterGround": "Set origin to center of stage at ground level. Typical for Surround or Cylindrical setups.",
+      "originCenter": "Set origin to center of stage volume. Typical for Spherical Dome setups.",
+      "speedOfSound": "Speed of Sound (related to the temperature).",
+      "temperature": "Temperature (gives the Speed of Sound).",
+      "masterLevel": "Master Level (affects all outputs).",
+      "systemLatency": "Total latency of the system (Mixing board & Computer) / Specific Input and Output Latency/Delay can be set in the respective Input and Output settings.",
+      "haasEffect": "Hass Effect to apply to the system. Will take into account the Latency Compensations (System, Input and Output).",
+      "colorScheme": "Select the color scheme: Default (dark gray), Black (pure black for OLED displays), or Light (daytime use).",
+      "screenReader": "Enable or disable screen reader announcements. When enabled, parameter names and values are announced on hover, and help text is read after a few seconds.",
+      "selectProjectFolder": "Select the Location of the Current Project Folder where to store files.",
+      "storeComplete": "Store Complete Configuration to files (with backup).",
+      "reloadComplete": "Reload Complete Configuration from files.",
+      "reloadCompleteBackup": "Reload Complete Configuration from backup files.",
+      "storeSystem": "Store System Configuration to file (with backup).",
+      "reloadSystem": "Reload System Configuration from file.",
+      "reloadSystemBackup": "Reload System Configuration from backup file.",
+      "importSystem": "Import System Configuration from file (with file explorer window).",
+      "exportSystem": "Export System Configuration to file (with file explorer window)."
+    }
+  },
+
+  "inputs": {
+    "sections": {
+      "channel": "Channel",
+      "position": "Position",
+      "attenuation": "Attenuation",
+      "directivity": "Directivity",
+      "liveSource": "Live Source Tamer",
+      "hackoustics": "Hackoustics",
+      "lfo": "LFO",
+      "automotion": "AutomOtion",
+      "mutes": "Mutes"
+    },
+
+    "labels": {
+      "name": "Name",
+      "cluster": "Cluster",
+      "attenuation": "Attenuation",
+      "delayLatency": "Delay/Latency",
+      "positionX": "X",
+      "positionY": "Y",
+      "positionZ": "Z"
+    }
+  },
+
+  "outputs": {
+    "sections": {
+      "channel": "Channel",
+      "position": "Position",
+      "settings": "Settings"
+    },
+
+    "labels": {
+      "name": "Name",
+      "positionX": "X",
+      "positionY": "Y",
+      "positionZ": "Z",
+      "attenuation": "Attenuation",
+      "delay": "Delay"
+    }
+  },
+
+  "network": {
+    "sections": {
+      "network": "Network",
+      "connections": "Connections",
+      "admOsc": "ADM-OSC",
+      "tracking": "Tracking"
+    },
+
+    "labels": {
+      "interface": "Interface:",
+      "ipAddress": "IP Address:",
+      "udpPort": "UDP Port:",
+      "tcpPort": "TCP Port:",
+      "oscQuery": "OSC Query:"
+    }
+  },
+
+  "accessibility": {
+    "ttsEnabled": "Screen reader enabled",
+    "ttsDisabled": "Screen reader disabled"
+  }
+}

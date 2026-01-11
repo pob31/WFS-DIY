@@ -68,6 +68,10 @@
         <FILE id="accTTSInfo" name="TTSComponentInfo.h" compile="0" resource="0"
               file="Source/Accessibility/TTSComponentInfo.h"/>
       </GROUP>
+      <GROUP id="{LOCALGROUP}" name="Localization">
+        <FILE id="locMgr" name="LocalizationManager.h" compile="0" resource="0"
+              file="Source/Localization/LocalizationManager.h"/>
+      </GROUP>
       <GROUP id="{NETWORKGROUP}" name="Network">
         <FILE id="netTypes" name="OSCProtocolTypes.h" compile="0" resource="0"
               file="Source/Network/OSCProtocolTypes.h"/>
