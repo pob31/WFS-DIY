@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include <map>
 #include "../WfsParameters.h"
+#include "../Accessibility/TTSManager.h"
 #include "StatusBar.h"
 #include "../Network/OSCManager.h"
 #include "ColorScheme.h"
@@ -1534,102 +1535,103 @@ private:
         if (statusBar == nullptr) return;
 
         auto* source = e.eventComponent;
+        juce::String helpText;
 
         // ==================== NETWORK SECTION ====================
         if (source == &networkInterfaceLabel || isOrIsChildOf(source, &networkInterfaceSelector))
-            statusBar->setHelpText("Select the Network Interface.");
+            helpText = "Select the Network Interface.";
         else if (source == &currentIPLabel || source == &currentIPEditor)
-            statusBar->setHelpText("IP address of the Processor.");
+            helpText = "IP address of the Processor.";
         else if (source == &udpPortLabel || source == &udpPortEditor)
-            statusBar->setHelpText("UDP Receive Port of the Processor.");
+            helpText = "UDP Receive Port of the Processor.";
         else if (source == &tcpPortLabel || source == &tcpPortEditor)
-            statusBar->setHelpText("TCP Receive Port of the Processor.");
+            helpText = "TCP Receive Port of the Processor.";
         else if (source == &oscQueryLabel || source == &oscQueryPortEditor)
-            statusBar->setHelpText("HTTP port for OSC Query discovery. Other apps can browse parameters at http://localhost:<port>/");
+            helpText = "HTTP port for OSC Query discovery. Other apps can browse parameters at http://localhost:<port>/";
         else if (source == &oscQueryEnableButton)
-            statusBar->setHelpText("Enable/disable OSC Query server for automatic parameter discovery via HTTP/WebSocket.");
+            helpText = "Enable/disable OSC Query server for automatic parameter discovery via HTTP/WebSocket.";
 
         // ==================== NETWORK CONNECTIONS TABLE ====================
         else if (source == &headerNameLabel)
-            statusBar->setHelpText("Network Target Name.");
+            helpText = "Network Target Name.";
         else if (source == &headerDataModeLabel)
-            statusBar->setHelpText("Select UDP or TCP data transmission.");
+            helpText = "Select UDP or TCP data transmission.";
         else if (source == &headerIpLabel)
-            statusBar->setHelpText("IP Address of the Target (use 127.0.0.1 for local host).");
+            helpText = "IP Address of the Target (use 127.0.0.1 for local host).";
         else if (source == &headerTxPortLabel)
-            statusBar->setHelpText("Transmit Port for this Target.");
+            helpText = "Transmit Port for this Target.";
         else if (source == &headerRxEnableLabel)
-            statusBar->setHelpText("Enable or Disable Data Reception.");
+            helpText = "Enable or Disable Data Reception.";
         else if (source == &headerTxEnableLabel)
-            statusBar->setHelpText("Enable or Disable Data Transmission.");
+            helpText = "Enable or Disable Data Transmission.";
         else if (source == &headerProtocolLabel)
-            statusBar->setHelpText("Select the Protocol: DISABLED, OSC, REMOTE, or ADM-OSC.");
+            helpText = "Select the Protocol: DISABLED, OSC, REMOTE, or ADM-OSC.";
         else if (source == &addTargetButton)
-            statusBar->setHelpText("Add new network target.");
+            helpText = "Add new network target.";
         else if (source == &openLogWindowButton)
-            statusBar->setHelpText("Open Network Logging window.");
+            helpText = "Open Network Logging window.";
         else if (source == &findMyRemoteButton)
-            statusBar->setHelpText("Make your Remote Flash and Buzz to Find it.");
+            helpText = "Make your Remote Flash and Buzz to Find it.";
         else if (source == &oscSourceFilterButton)
-            statusBar->setHelpText("Filter incoming OSC: Accept All sources or only Registered connections with Rx enabled.");
+            helpText = "Filter incoming OSC: Accept All sources or only Registered connections with Rx enabled.";
 
         // ==================== ADM-OSC SECTION ====================
         else if (source == &admOscOffsetXLabel || source == &admOscOffsetXEditor)
-            statusBar->setHelpText("Offset ADM-OSC X Coordinate.");
+            helpText = "Offset ADM-OSC X Coordinate.";
         else if (source == &admOscOffsetYLabel || source == &admOscOffsetYEditor)
-            statusBar->setHelpText("Offset ADM-OSC Y Coordinate.");
+            helpText = "Offset ADM-OSC Y Coordinate.";
         else if (source == &admOscOffsetZLabel || source == &admOscOffsetZEditor)
-            statusBar->setHelpText("Offset ADM-OSC Z Coordinate.");
+            helpText = "Offset ADM-OSC Z Coordinate.";
         else if (source == &admOscScaleXLabel || source == &admOscScaleXEditor)
-            statusBar->setHelpText("Scale ADM-OSC X Coordinate.");
+            helpText = "Scale ADM-OSC X Coordinate.";
         else if (source == &admOscScaleYLabel || source == &admOscScaleYEditor)
-            statusBar->setHelpText("Scale ADM-OSC Y Coordinate.");
+            helpText = "Scale ADM-OSC Y Coordinate.";
         else if (source == &admOscScaleZLabel || source == &admOscScaleZEditor)
-            statusBar->setHelpText("Scale ADM-OSC Z Coordinate.");
+            helpText = "Scale ADM-OSC Z Coordinate.";
         else if (source == &admOscFlipXButton)
-            statusBar->setHelpText("Invert Axis of ADM-OSC X Coordinate.");
+            helpText = "Invert Axis of ADM-OSC X Coordinate.";
         else if (source == &admOscFlipYButton)
-            statusBar->setHelpText("Invert Axis of ADM-OSC Y Coordinate.");
+            helpText = "Invert Axis of ADM-OSC Y Coordinate.";
         else if (source == &admOscFlipZButton)
-            statusBar->setHelpText("Invert Axis of ADM-OSC Z Coordinate.");
+            helpText = "Invert Axis of ADM-OSC Z Coordinate.";
 
         // ==================== TRACKING SECTION ====================
         else if (source == &trackingEnabledButton)
-            statusBar->setHelpText("Enable or Disable Incoming Tracking data processing.");
+            helpText = "Enable or Disable Incoming Tracking data processing.";
         else if (source == &trackingProtocolLabel || isOrIsChildOf(source, &trackingProtocolSelector))
-            statusBar->setHelpText("Select the type of Tracking Protocol.");
+            helpText = "Select the type of Tracking Protocol.";
         else if (source == &trackingPortLabel || source == &trackingPortEditor)
-            statusBar->setHelpText("Specify the Port to receive Tracking data.");
+            helpText = "Specify the Port to receive Tracking data.";
         else if (source == &trackingOffsetXLabel || source == &trackingOffsetXEditor)
-            statusBar->setHelpText("Offset Tracking X Coordinate.");
+            helpText = "Offset Tracking X Coordinate.";
         else if (source == &trackingOffsetYLabel || source == &trackingOffsetYEditor)
-            statusBar->setHelpText("Offset Tracking Y Coordinate.");
+            helpText = "Offset Tracking Y Coordinate.";
         else if (source == &trackingOffsetZLabel || source == &trackingOffsetZEditor)
-            statusBar->setHelpText("Offset Tracking Z Coordinate.");
+            helpText = "Offset Tracking Z Coordinate.";
         else if (source == &trackingScaleXLabel || source == &trackingScaleXEditor)
-            statusBar->setHelpText("Scale Tracking X Coordinate.");
+            helpText = "Scale Tracking X Coordinate.";
         else if (source == &trackingScaleYLabel || source == &trackingScaleYEditor)
-            statusBar->setHelpText("Scale Tracking Y Coordinate.");
+            helpText = "Scale Tracking Y Coordinate.";
         else if (source == &trackingScaleZLabel || source == &trackingScaleZEditor)
-            statusBar->setHelpText("Scale Tracking Z Coordinate.");
+            helpText = "Scale Tracking Z Coordinate.";
         else if (source == &trackingFlipXButton)
-            statusBar->setHelpText("Invert Axis of Tracking X Coordinate.");
+            helpText = "Invert Axis of Tracking X Coordinate.";
         else if (source == &trackingFlipYButton)
-            statusBar->setHelpText("Invert Axis of Tracking Y Coordinate.");
+            helpText = "Invert Axis of Tracking Y Coordinate.";
         else if (source == &trackingFlipZButton)
-            statusBar->setHelpText("Invert Axis of Tracking Z Coordinate.");
+            helpText = "Invert Axis of Tracking Z Coordinate.";
 
         // ==================== FOOTER BUTTONS ====================
         else if (source == &storeButton)
-            statusBar->setHelpText("Store Network Configuration to file.");
+            helpText = "Store Network Configuration to file.";
         else if (source == &reloadButton)
-            statusBar->setHelpText("Reload Network Configuration from file.");
+            helpText = "Reload Network Configuration from file.";
         else if (source == &reloadBackupButton)
-            statusBar->setHelpText("Reload Network Configuration from backup file.");
+            helpText = "Reload Network Configuration from backup file.";
         else if (source == &importButton)
-            statusBar->setHelpText("Import Network Configuration from file.");
+            helpText = "Import Network Configuration from file.";
         else if (source == &exportButton)
-            statusBar->setHelpText("Export Network Configuration to file.");
+            helpText = "Export Network Configuration to file.";
 
         // ==================== TARGET ROW COMPONENTS ====================
         else
@@ -1638,22 +1640,32 @@ private:
             {
                 auto& row = targetRows[i];
                 if (source == &row.nameEditor)
-                    { statusBar->setHelpText("Network Target Name."); return; }
+                    helpText = "Network Target Name.";
                 else if (isOrIsChildOf(source, &row.dataModeSelector))
-                    { statusBar->setHelpText("Select UDP or TCP data transmission."); return; }
+                    helpText = "Select UDP or TCP data transmission.";
                 else if (source == &row.ipEditor)
-                    { statusBar->setHelpText("IP Address of the Target (use 127.0.0.1 for local host)."); return; }
+                    helpText = "IP Address of the Target (use 127.0.0.1 for local host).";
                 else if (source == &row.txPortEditor)
-                    { statusBar->setHelpText("Transmit Port for this Target."); return; }
+                    helpText = "Transmit Port for this Target.";
                 else if (source == &row.rxEnableButton)
-                    { statusBar->setHelpText("Enable or Disable Data Reception."); return; }
+                    helpText = "Enable or Disable Data Reception.";
                 else if (source == &row.txEnableButton)
-                    { statusBar->setHelpText("Enable or Disable Data Transmission."); return; }
+                    helpText = "Enable or Disable Data Transmission.";
                 else if (isOrIsChildOf(source, &row.protocolSelector))
-                    { statusBar->setHelpText("Select the Protocol: DISABLED, OSC, REMOTE, or ADM-OSC."); return; }
+                    helpText = "Select the Protocol: DISABLED, OSC, REMOTE, or ADM-OSC.";
                 else if (source == &row.removeButton)
-                    { statusBar->setHelpText("Delete this Network Target."); return; }
+                    helpText = "Delete this Network Target.";
+
+                if (helpText.isNotEmpty())
+                    break;
             }
+        }
+
+        // Update status bar and TTS
+        if (helpText.isNotEmpty())
+        {
+            statusBar->setHelpText(helpText);
+            TTSManager::getInstance().onComponentEnter("", "", helpText);
         }
     }
 
@@ -1661,6 +1673,9 @@ private:
     {
         if (statusBar != nullptr)
             statusBar->clearText();
+
+        // TTS: Cancel any pending announcements
+        TTSManager::getInstance().onComponentExit();
     }
 
     void mouseDown(const juce::MouseEvent& e) override

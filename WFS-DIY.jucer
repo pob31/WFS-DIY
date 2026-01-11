@@ -62,6 +62,12 @@
         <FILE id="arrGeomCpp" name="ArrayGeometryCalculator.cpp" compile="1"
               resource="0" file="Source/Helpers/ArrayGeometryCalculator.cpp"/>
       </GROUP>
+      <GROUP id="{ACCESSGROUP}" name="Accessibility">
+        <FILE id="accTTSMgr" name="TTSManager.h" compile="0" resource="0"
+              file="Source/Accessibility/TTSManager.h"/>
+        <FILE id="accTTSInfo" name="TTSComponentInfo.h" compile="0" resource="0"
+              file="Source/Accessibility/TTSComponentInfo.h"/>
+      </GROUP>
       <GROUP id="{NETWORKGROUP}" name="Network">
         <FILE id="netTypes" name="OSCProtocolTypes.h" compile="0" resource="0"
               file="Source/Network/OSCProtocolTypes.h"/>

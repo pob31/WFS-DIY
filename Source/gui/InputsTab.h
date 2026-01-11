@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "../WfsParameters.h"
 #include "../Parameters/WFSParameterIDs.h"
+#include "../Accessibility/TTSManager.h"
 #include "ChannelSelector.h"
 #include "ColorScheme.h"
 #include "ColorUtilities.h"
@@ -6115,9 +6116,14 @@ private:
         {
             if (helpTextMap.find(component) != helpTextMap.end())
             {
-                statusBar->setHelpText(helpTextMap[component]);
+                const auto& helpText = helpTextMap[component];
+                statusBar->setHelpText(helpText);
                 if (oscMethodMap.find(component) != oscMethodMap.end())
                     statusBar->setOscMethod(oscMethodMap[component]);
+
+                // TTS: Announce help text for accessibility
+                // Pass empty name/value so only the delayed help text is announced
+                TTSManager::getInstance().onComponentEnter("", "", helpText);
                 return;
             }
             component = component->getParentComponent();
@@ -6128,6 +6134,9 @@ private:
     {
         if (statusBar != nullptr)
             statusBar->clearText();
+
+        // TTS: Cancel any pending announcements
+        TTSManager::getInstance().onComponentExit();
     }
 
     // ==================== VALUETREE LISTENER ====================

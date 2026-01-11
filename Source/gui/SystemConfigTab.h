@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "../WfsParameters.h"
+#include "../Accessibility/TTSManager.h"
 #include "StatusBar.h"
 #include "ColorScheme.h"
 
@@ -363,6 +364,31 @@ public:
             parameters.setConfigParam("ColorScheme", schemeIndex);
         };
 
+        // TTS (Screen Reader) toggle
+        addAndMakeVisible(ttsLabel);
+        ttsLabel.setText("Screen Reader:", juce::dontSendNotification);
+
+        addAndMakeVisible(ttsToggleButton);
+        ttsToggleButton.setButtonText("OFF");
+        ttsToggleButton.setToggleable(true);
+        ttsToggleButton.setToggleState(TTSManager::getInstance().isEnabled(), juce::dontSendNotification);
+        ttsToggleButton.setColour(juce::TextButton::buttonColourId,
+            TTSManager::getInstance().isEnabled() ? juce::Colour(0xFF338C33) : juce::Colours::darkgrey);
+        ttsToggleButton.onClick = [this]() {
+            bool newState = !TTSManager::getInstance().isEnabled();
+            TTSManager::getInstance().setEnabled(newState);
+            TTSManager::getInstance().saveSettings();
+            ttsToggleButton.setToggleState(newState, juce::dontSendNotification);
+            ttsToggleButton.setButtonText(newState ? "ON" : "OFF");
+            ttsToggleButton.setColour(juce::TextButton::buttonColourId,
+                newState ? juce::Colour(0xFF338C33) : juce::Colours::darkgrey);
+
+            // Announce the change if TTS was just enabled
+            if (newState)
+                TTSManager::getInstance().announceImmediate("Screen reader enabled",
+                    juce::AccessibilityHandler::AnnouncementPriority::high);
+        };
+
         // Store/Reload Section
         addAndMakeVisible(selectProjectFolderButton);
         selectProjectFolderButton.setButtonText("Select Project Folder");
@@ -656,6 +682,10 @@ public:
 
         colorSchemeLabel.setBounds(x, y, labelWidth, rowHeight);
         colorSchemeSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
+        y += rowHeight + spacing;
+
+        ttsLabel.setBounds(x, y, labelWidth, rowHeight);
+        ttsToggleButton.setBounds(x + labelWidth, y, 60, rowHeight);
 
         // Footer buttons - full width at bottom (matching Output tab style)
         const int footerHeight = 90;  // Two 30px button rows + 10px spacing + 20px padding
@@ -1584,6 +1614,7 @@ private:
         helpTextMap[&systemLatencyEditor] = "Total latency of the system (Mixing board & Computer) / Specific Input and Output Latency/Delay can be set in the respective Input and Output settings.";
         helpTextMap[&haasEffectEditor] = "Hass Effect to apply to the system. Will take into account the Latency Compensations (System, Input and Output).";
         helpTextMap[&colorSchemeSelector] = "Select the color scheme: Default (dark gray), Black (pure black for OLED displays), or Light (daytime use).";
+        helpTextMap[&ttsToggleButton] = "Enable or disable screen reader announcements. When enabled, parameter names and values are announced on hover, and help text is read after a few seconds.";
         helpTextMap[&selectProjectFolderButton] = "Select the Location of the Current Project Folder where to store files.";
         helpTextMap[&storeCompleteConfigButton] = "Store Complete Configuration to files (with backup).";
         helpTextMap[&reloadCompleteConfigButton] = "Reload Complete Configuration from files.";
@@ -1617,7 +1648,11 @@ private:
         {
             if (helpTextMap.find(component) != helpTextMap.end())
             {
-                statusBar->setHelpText(helpTextMap[component]);
+                const auto& helpText = helpTextMap[component];
+                statusBar->setHelpText(helpText);
+
+                // TTS: Announce help text for accessibility
+                TTSManager::getInstance().onComponentEnter("", "", helpText);
                 return;
             }
             component = component->getParentComponent();
@@ -1628,6 +1663,9 @@ private:
     {
         if (statusBar != nullptr)
             statusBar->clearText();
+
+        // TTS: Cancel any pending announcements
+        TTSManager::getInstance().onComponentExit();
     }
 
     //==============================================================================
@@ -1715,6 +1753,8 @@ private:
     // UI Section
     juce::Label colorSchemeLabel;
     juce::ComboBox colorSchemeSelector;
+    juce::Label ttsLabel;
+    juce::TextButton ttsToggleButton;
 
     // Store/Reload Section
     juce::TextButton selectProjectFolderButton;

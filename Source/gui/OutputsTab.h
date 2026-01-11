@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "../WfsParameters.h"
 #include "../Parameters/WFSParameterIDs.h"
+#include "../Accessibility/TTSManager.h"
 #include "ChannelSelector.h"
 #include "ColorUtilities.h"
 #include "ColorScheme.h"
@@ -1944,9 +1945,13 @@ private:
         {
             if (helpTextMap.find(component) != helpTextMap.end())
             {
-                statusBar->setHelpText(helpTextMap[component]);
+                const auto& helpText = helpTextMap[component];
+                statusBar->setHelpText(helpText);
                 if (oscMethodMap.find(component) != oscMethodMap.end())
                     statusBar->setOscMethod(oscMethodMap[component]);
+
+                // TTS: Announce help text for accessibility
+                TTSManager::getInstance().onComponentEnter("", "", helpText);
                 return;
             }
             component = component->getParentComponent();
@@ -1957,6 +1962,9 @@ private:
     {
         if (statusBar != nullptr)
             statusBar->clearText();
+
+        // TTS: Cancel any pending announcements
+        TTSManager::getInstance().onComponentExit();
     }
 
     // ==================== VALUETREE LISTENER ====================

@@ -4,6 +4,7 @@
 #include "../WfsParameters.h"
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/WFSParameterDefaults.h"
+#include "../Accessibility/TTSManager.h"
 #include "ChannelSelector.h"
 #include "ColorScheme.h"
 #include "SliderUIComponents.h"
@@ -2029,9 +2030,13 @@ private:
         {
             if (helpTextMap.find (component) != helpTextMap.end())
             {
-                statusBar->setHelpText (helpTextMap[component]);
+                const auto& helpText = helpTextMap[component];
+                statusBar->setHelpText (helpText);
                 if (oscMethodMap.find (component) != oscMethodMap.end())
                     statusBar->setOscMethod (oscMethodMap[component]);
+
+                // TTS: Announce help text for accessibility
+                TTSManager::getInstance().onComponentEnter ("", "", helpText);
                 return;
             }
             component = component->getParentComponent();
@@ -2045,6 +2050,9 @@ private:
             statusBar->setHelpText ("");
             statusBar->setOscMethod ("");
         }
+
+        // TTS: Cancel any pending announcements
+        TTSManager::getInstance().onComponentExit();
     }
 
     //==========================================================================
