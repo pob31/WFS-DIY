@@ -40,10 +40,14 @@ public:
     {
         juce::TabbedComponent::currentTabChanged(newCurrentTabIndex, newCurrentTabName);
 
-        // Announce tab change for screen readers
-        TTSManager::getInstance().announceImmediate(
-            newCurrentTabName + " tab",
-            juce::AccessibilityHandler::AnnouncementPriority::medium);
+        // Announce tab change for screen readers (only if name is valid)
+        if (newCurrentTabName.isNotEmpty())
+        {
+            juce::String announcement = newCurrentTabName + " tab";
+            TTSManager::getInstance().announceImmediate(
+                announcement,
+                juce::AccessibilityHandler::AnnouncementPriority::medium);
+        }
     }
 };
 

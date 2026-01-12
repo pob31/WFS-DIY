@@ -9,11 +9,25 @@ MainComponent::MainComponent()
     // Initialize localization - try to load language file from Resources/lang/
     auto& locMgr = LocalizationManager::getInstance();
     auto exeDir = juce::File::getSpecialLocation(juce::File::currentExecutableFile).getParentDirectory();
-    locMgr.setResourceDirectory(exeDir.getChildFile("Resources"));
-    if (!locMgr.loadLanguage("en"))
+
+    // Try multiple locations for Resources folder:
+    // 1. Next to executable (production deployment)
+    // 2. Project root (development from Visual Studio)
+    juce::File resourceDir = exeDir.getChildFile("Resources");
+
+    if (!resourceDir.getChildFile("lang/en.json").existsAsFile())
     {
-        DBG("LocalizationManager: Could not load en.json - using fallback strings");
+        // Try development path: go up from Builds/VisualStudio2022/x64/Debug/App to project root
+        auto projectRoot = exeDir.getParentDirectory()  // x64/Debug
+                                 .getParentDirectory()  // x64
+                                 .getParentDirectory()  // VisualStudio2022
+                                 .getParentDirectory()  // Builds
+                                 .getParentDirectory(); // Project root
+        resourceDir = projectRoot.getChildFile("Resources");
+        DBG("LocalizationManager: Trying development path: " + resourceDir.getFullPathName());
     }
+
+    locMgr.setResourceDirectory(resourceDir);
 
     // Load saved channel counts and device state
     juce::PropertiesFile::Options options;
@@ -31,6 +45,16 @@ MainComponent::MainComponent()
     juce::PropertiesFile props(options);
 
     DBG("Settings file location: " + props.getFile().getFullPathName());
+
+    // Load saved language preference from app settings, default to "en"
+    juce::String savedLanguage = props.getValue("language", "en");
+    if (!locMgr.loadLanguage(savedLanguage))
+    {
+        // Fall back to English if saved language fails to load
+        if (savedLanguage != "en")
+            locMgr.loadLanguage("en");
+        DBG("LocalizationManager: Could not load " + savedLanguage + ".json - using fallback");
+    }
 
     // Load channel counts (persisted), clamp, and fall back to a usable default
     numInputChannels = props.getIntValue("numInputChannels", 0);
@@ -236,14 +260,23 @@ MainComponent::MainComponent()
     wfsLookAndFeel = std::make_unique<WfsLookAndFeel>();
     juce::LookAndFeel::setDefaultLookAndFeel(wfsLookAndFeel.get());
 
-    // Add tabs to tabbed component
-    tabbedComponent.addTab("System Configuration", ColorScheme::get().chromeBackground, systemConfigTab, true);
-    tabbedComponent.addTab("Network", ColorScheme::get().chromeBackground, networkTab, true);
-    tabbedComponent.addTab("Outputs", ColorScheme::get().chromeBackground, outputsTab, true);
-    tabbedComponent.addTab("Reverb", ColorScheme::get().chromeBackground, reverbTab, true);
-    tabbedComponent.addTab("Inputs", ColorScheme::get().chromeBackground, inputsTab, true);
-    tabbedComponent.addTab("Clusters", ColorScheme::get().chromeBackground, clustersTab, true);
-    tabbedComponent.addTab("Map", ColorScheme::get().chromeBackground, mapTab, true);
+    // Add tabs to tabbed component (using localized names)
+    // Store names in local variables to ensure proper String lifetime
+    juce::String tabSystemConfig = LOC("tabs.systemConfig");
+    juce::String tabNetwork = LOC("tabs.network");
+    juce::String tabOutputs = LOC("tabs.outputs");
+    juce::String tabReverb = LOC("tabs.reverb");
+    juce::String tabInputs = LOC("tabs.inputs");
+    juce::String tabClusters = LOC("tabs.clusters");
+    juce::String tabMap = LOC("tabs.map");
+
+    tabbedComponent.addTab(tabSystemConfig, ColorScheme::get().chromeBackground, systemConfigTab, true);
+    tabbedComponent.addTab(tabNetwork, ColorScheme::get().chromeBackground, networkTab, true);
+    tabbedComponent.addTab(tabOutputs, ColorScheme::get().chromeBackground, outputsTab, true);
+    tabbedComponent.addTab(tabReverb, ColorScheme::get().chromeBackground, reverbTab, true);
+    tabbedComponent.addTab(tabInputs, ColorScheme::get().chromeBackground, inputsTab, true);
+    tabbedComponent.addTab(tabClusters, ColorScheme::get().chromeBackground, clustersTab, true);
+    tabbedComponent.addTab(tabMap, ColorScheme::get().chromeBackground, mapTab, true);
 
     // Load saved color scheme from parameters and apply it
     // This will trigger WfsLookAndFeel::colorSchemeChanged() to update widget colors
@@ -506,6 +539,9 @@ MainComponent::~MainComponent()
 
     // Destroy TTSManager singleton before JUCE timer thread shuts down
     TTSManager::shutdown();
+
+    // Clear LocalizationManager resources before JUCE leak detector runs
+    LocalizationManager::getInstance().shutdown();
 
     // Remove all child components before destroying LookAndFeel
     // This ensures Windows UI Automation providers are properly released

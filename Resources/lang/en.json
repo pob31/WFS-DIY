@@ -40,7 +40,9 @@
     "seconds": "s",
     "degrees": "\u00b0",
     "hertz": "Hz",
-    "percent": "%"
+    "percent": "%",
+    "celsius": "\u00b0C",
+    "metersPerSecond": "m/s"
   },
 
   "tabs": {
@@ -64,7 +66,7 @@
       "show": "Show",
       "io": "I/O",
       "stage": "Stage",
-      "master": "Master",
+      "master": "Master Section",
       "ui": "UI",
       "files": "Files"
     },
@@ -92,7 +94,8 @@
       "systemLatency": "System Latency:",
       "haasEffect": "Haas Effect:",
       "colorScheme": "Color Scheme:",
-      "screenReader": "Screen Reader:"
+      "screenReader": "Screen Reader:",
+      "language": "Language:"
     },
 
     "buttons": {
@@ -106,8 +109,8 @@
       "storeSystem": "Store System Configuration",
       "reloadSystem": "Reload System Configuration",
       "reloadSystemBackup": "Reload System Config. Backup",
-      "importSystem": "Import...",
-      "exportSystem": "Export..."
+      "importSystem": "Import System Configuration",
+      "exportSystem": "Export System Configuration"
     },
 
     "algorithms": {
@@ -163,7 +166,45 @@
       "reloadSystem": "Reload System Configuration from file.",
       "reloadSystemBackup": "Reload System Configuration from backup file.",
       "importSystem": "Import System Configuration from file (with file explorer window).",
-      "exportSystem": "Export System Configuration to file (with file explorer window)."
+      "exportSystem": "Export System Configuration to file (with file explorer window).",
+      "language": "Select the user interface language. Changes take full effect after restarting the application."
+    },
+
+    "messages": {
+      "selectFolderFirst": "Please select a project folder first.",
+      "configSaved": "Complete configuration saved.",
+      "configLoaded": "Complete configuration loaded.",
+      "systemConfigSaved": "System configuration saved.",
+      "systemConfigLoaded": "System configuration loaded.",
+      "systemConfigFileNotFound": "System configuration file not found.",
+      "configLoadedFromBackup": "Configuration loaded from backup.",
+      "systemConfigLoadedFromBackup": "System configuration loaded from backup.",
+      "noBackupFilesFound": "No backup files found.",
+      "systemConfigImported": "System configuration imported.",
+      "systemConfigExported": "System configuration exported.",
+      "partialLoad": "Partial load: {error}",
+      "partialLoadFromBackup": "Partial load from backup: {error}",
+      "error": "Error: {error}",
+      "languageChanged": "Language changed to: {language} (requires restart for full effect)"
+    },
+
+    "dialogs": {
+      "reduceInputChannels": {
+        "title": "Reduce Input Channels?",
+        "message": "Reducing from {current} to {new} input channels will remove settings for channels {start} to {end}.\n\nThis cannot be undone."
+      },
+      "reduceOutputChannels": {
+        "title": "Reduce Output Channels?",
+        "message": "Reducing from {current} to {new} output channels will remove settings for channels {start} to {end}.\n\nThis cannot be undone."
+      },
+      "reduceReverbChannels": {
+        "title": "Reduce Reverb Channels?",
+        "message": "Reducing from {current} to {new} reverb channels will remove settings for channels {start} to {end}.\n\nThis cannot be undone."
+      },
+      "reduce": "Reduce",
+      "selectProjectFolder": "Select Project Folder",
+      "importSystemConfig": "Import System Configuration",
+      "exportSystemConfig": "Export System Configuration"
     }
   },
 

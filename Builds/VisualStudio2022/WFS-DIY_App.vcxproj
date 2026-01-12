@@ -81,6 +81,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\JuceLibraryCode;C:\JUCE\modules;D:\Dev\JUCE_Modules\ASIOSDK\common;ThirdParty\GPUAudioSDK\gpuaudio\include;ThirdParty\GPUAudioSDK\gain_processor\gain_processor\include;ThirdParty\GPUAudioSDK\build\_deps\json-src\single_include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -127,6 +128,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\JuceLibraryCode;C:\JUCE\modules;D:\Dev\JUCE_Modules\ASIOSDK\common;ThirdParty\GPUAudioSDK\gpuaudio\include;ThirdParty\GPUAudioSDK\gain_processor\gain_processor\include;ThirdParty\GPUAudioSDK\build\_deps\json-src\single_include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -162,6 +164,7 @@
     <ClCompile Include="..\..\Source\gui\PatchMatrixComponent.cpp"/>
     <ClCompile Include="..\..\Source\gui\AudioPatchTab.cpp"/>
     <ClCompile Include="..\..\Source\Helpers\ArrayGeometryCalculator.cpp"/>
+    <ClCompile Include="..\..\Source\Localization\LocalizationManager.cpp"/>
     <ClCompile Include="..\..\Source\Network\OSCConnection.cpp"/>
     <ClCompile Include="..\..\Source\Network\OSCRateLimiter.cpp"/>
     <ClCompile Include="..\..\Source\Network\OSCLogger.cpp"/>

@@ -71,6 +71,8 @@
       <GROUP id="{LOCALGROUP}" name="Localization">
         <FILE id="locMgr" name="LocalizationManager.h" compile="0" resource="0"
               file="Source/Localization/LocalizationManager.h"/>
+        <FILE id="locMgrCpp" name="LocalizationManager.cpp" compile="1" resource="0"
+              file="Source/Localization/LocalizationManager.cpp"/>
       </GROUP>
       <GROUP id="{NETWORKGROUP}" name="Network">
         <FILE id="netTypes" name="OSCProtocolTypes.h" compile="0" resource="0"

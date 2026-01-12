@@ -11,6 +11,9 @@
     <Filter Include="WFS-DIY\Source\Helpers">
       <UniqueIdentifier>{2BB708EF-7B83-16C7-077A-7F02181540C4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="WFS-DIY\Source\Localization">
+      <UniqueIdentifier>{A7B2F8C1-3D4E-5F6A-8B9C-0D1E2F3A4B5C}</UniqueIdentifier>
+    </Filter>
     <Filter Include="WFS-DIY\Source\Network">
       <UniqueIdentifier>{F0025758-791F-87C4-6ABD-F1E1A184504B}</UniqueIdentifier>
     </Filter>
@@ -972,6 +975,9 @@
     </ClCompile>
     <ClCompile Include="..\..\Source\Helpers\ArrayGeometryCalculator.cpp">
       <Filter>WFS-DIY\Source\Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Localization\LocalizationManager.cpp">
+      <Filter>WFS-DIY\Source\Localization</Filter>
     </ClCompile>
     <ClCompile Include="..\..\Source\Network\OSCConnection.cpp">
       <Filter>WFS-DIY\Source\Network</Filter>
@@ -4937,6 +4943,9 @@
     </ClInclude>
     <ClInclude Include="..\..\Source\Helpers\ArrayGeometryCalculator.h">
       <Filter>WFS-DIY\Source\Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Localization\LocalizationManager.h">
+      <Filter>WFS-DIY\Source\Localization</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Network\OSCProtocolTypes.h">
       <Filter>WFS-DIY\Source\Network</Filter>

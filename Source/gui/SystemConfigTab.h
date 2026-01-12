@@ -206,28 +206,28 @@ public:
 
         // Show Section
         addAndMakeVisible(showNameLabel);
-        showNameLabel.setText("Name:", juce::dontSendNotification);
+        showNameLabel.setText(LOC("systemConfig.labels.showName"), juce::dontSendNotification);
         addAndMakeVisible(showNameEditor);
 
         addAndMakeVisible(showLocationLabel);
-        showLocationLabel.setText("Location:", juce::dontSendNotification);
+        showLocationLabel.setText(LOC("systemConfig.labels.showLocation"), juce::dontSendNotification);
         addAndMakeVisible(showLocationEditor);
 
         // I/O Section
         addAndMakeVisible(inputChannelsLabel);
-        inputChannelsLabel.setText("Input Channels:", juce::dontSendNotification);
+        inputChannelsLabel.setText(LOC("systemConfig.labels.inputChannels"), juce::dontSendNotification);
         addAndMakeVisible(inputChannelsEditor);
 
         addAndMakeVisible(outputChannelsLabel);
-        outputChannelsLabel.setText("Output Channels:", juce::dontSendNotification);
+        outputChannelsLabel.setText(LOC("systemConfig.labels.outputChannels"), juce::dontSendNotification);
         addAndMakeVisible(outputChannelsEditor);
 
         addAndMakeVisible(reverbChannelsLabel);
-        reverbChannelsLabel.setText("Reverb Channels:", juce::dontSendNotification);
+        reverbChannelsLabel.setText(LOC("systemConfig.labels.reverbChannels"), juce::dontSendNotification);
         addAndMakeVisible(reverbChannelsEditor);
 
         addAndMakeVisible(audioPatchingButton);
-        audioPatchingButton.setButtonText("Audio Interface and Patching Window");
+        audioPatchingButton.setButtonText(LOC("systemConfig.buttons.audioPatch"));
         audioPatchingButton.onClick = [this]() {
             if (onAudioInterfaceWindowRequested)
                 onAudioInterfaceWindowRequested();
@@ -235,11 +235,11 @@ public:
 
         // Algorithm selector
         addAndMakeVisible(algorithmLabel);
-        algorithmLabel.setText("Algorithm:", juce::dontSendNotification);
+        algorithmLabel.setText(LOC("systemConfig.labels.algorithm"), juce::dontSendNotification);
 
         addAndMakeVisible(algorithmSelector);
-        algorithmSelector.addItem("InputBuffer (read-time delays)", 1);
-        algorithmSelector.addItem("OutputBuffer (write-time delays)", 2);
+        algorithmSelector.addItem(LOC("systemConfig.algorithms.inputBuffer"), 1);
+        algorithmSelector.addItem(LOC("systemConfig.algorithms.outputBuffer"), 2);
         // algorithmSelector.addItem("GPU InputBuffer (GPU Audio)", 3);  // Commented out - GPU Audio SDK not configured
         algorithmSelector.setSelectedId(1, juce::dontSendNotification);
         algorithmSelector.onChange = [this]() {
@@ -250,16 +250,16 @@ public:
         };
 
         addAndMakeVisible(processingButton);
-        processingButton.setButtonText("Processing: OFF");
+        processingButton.setButtonText(LOC("systemConfig.buttons.processingOff"));
         processingButton.onClick = [this]() { toggleProcessing(); };
 
         // Stage Section
         addAndMakeVisible(stageShapeLabel);
-        stageShapeLabel.setText("Stage Shape:", juce::dontSendNotification);
+        stageShapeLabel.setText(LOC("systemConfig.labels.stageShape"), juce::dontSendNotification);
         addAndMakeVisible(stageShapeSelector);
-        stageShapeSelector.addItem("Box", 1);
-        stageShapeSelector.addItem("Cylinder", 2);
-        stageShapeSelector.addItem("Dome", 3);
+        stageShapeSelector.addItem(LOC("systemConfig.stageShapes.box"), 1);
+        stageShapeSelector.addItem(LOC("systemConfig.stageShapes.cylinder"), 2);
+        stageShapeSelector.addItem(LOC("systemConfig.stageShapes.dome"), 3);
         stageShapeSelector.setSelectedId(1, juce::dontSendNotification);
         stageShapeSelector.onChange = [this]() {
             onStageShapeChanged();
@@ -268,52 +268,52 @@ public:
         };
 
         addAndMakeVisible(stageWidthLabel);
-        stageWidthLabel.setText("Width:", juce::dontSendNotification);
+        stageWidthLabel.setText(LOC("systemConfig.labels.stageWidth"), juce::dontSendNotification);
         addAndMakeVisible(stageWidthEditor);
         addAndMakeVisible(stageWidthUnitLabel);
-        stageWidthUnitLabel.setText("m", juce::dontSendNotification);
+        stageWidthUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
 
         addAndMakeVisible(stageDepthLabel);
-        stageDepthLabel.setText("Depth:", juce::dontSendNotification);
+        stageDepthLabel.setText(LOC("systemConfig.labels.stageDepth"), juce::dontSendNotification);
         addAndMakeVisible(stageDepthEditor);
         addAndMakeVisible(stageDepthUnitLabel);
-        stageDepthUnitLabel.setText("m", juce::dontSendNotification);
+        stageDepthUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
 
         addAndMakeVisible(stageHeightLabel);
-        stageHeightLabel.setText("Height:", juce::dontSendNotification);
+        stageHeightLabel.setText(LOC("systemConfig.labels.stageHeight"), juce::dontSendNotification);
         addAndMakeVisible(stageHeightEditor);
         addAndMakeVisible(stageHeightUnitLabel);
-        stageHeightUnitLabel.setText("m", juce::dontSendNotification);
+        stageHeightUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
 
         addAndMakeVisible(stageDiameterLabel);
-        stageDiameterLabel.setText("Diameter:", juce::dontSendNotification);
+        stageDiameterLabel.setText(LOC("systemConfig.labels.stageDiameter"), juce::dontSendNotification);
         addAndMakeVisible(stageDiameterEditor);
         addAndMakeVisible(stageDiameterUnitLabel);
-        stageDiameterUnitLabel.setText("m", juce::dontSendNotification);
+        stageDiameterUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
 
         addAndMakeVisible(domeElevationLabel);
-        domeElevationLabel.setText("Elevation:", juce::dontSendNotification);
+        domeElevationLabel.setText(LOC("systemConfig.labels.domeElevation"), juce::dontSendNotification);
         addAndMakeVisible(domeElevationEditor);
         addAndMakeVisible(domeElevationUnitLabel);
-        domeElevationUnitLabel.setText(juce::CharPointer_UTF8("\xc2\xb0"), juce::dontSendNotification);
+        domeElevationUnitLabel.setText(LOC("units.degrees"), juce::dontSendNotification);
 
         addAndMakeVisible(stageOriginWidthLabel);
-        stageOriginWidthLabel.setText("Origin Width:", juce::dontSendNotification);
+        stageOriginWidthLabel.setText(LOC("systemConfig.labels.originWidth"), juce::dontSendNotification);
         addAndMakeVisible(stageOriginWidthEditor);
         addAndMakeVisible(stageOriginWidthUnitLabel);
-        stageOriginWidthUnitLabel.setText("m", juce::dontSendNotification);
+        stageOriginWidthUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
 
         addAndMakeVisible(stageOriginDepthLabel);
-        stageOriginDepthLabel.setText("Origin Depth:", juce::dontSendNotification);
+        stageOriginDepthLabel.setText(LOC("systemConfig.labels.originDepth"), juce::dontSendNotification);
         addAndMakeVisible(stageOriginDepthEditor);
         addAndMakeVisible(stageOriginDepthUnitLabel);
-        stageOriginDepthUnitLabel.setText("m", juce::dontSendNotification);
+        stageOriginDepthUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
 
         addAndMakeVisible(stageOriginHeightLabel);
-        stageOriginHeightLabel.setText("Origin Height:", juce::dontSendNotification);
+        stageOriginHeightLabel.setText(LOC("systemConfig.labels.originHeight"), juce::dontSendNotification);
         addAndMakeVisible(stageOriginHeightEditor);
         addAndMakeVisible(stageOriginHeightUnitLabel);
-        stageOriginHeightUnitLabel.setText("m", juce::dontSendNotification);
+        stageOriginHeightUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
 
         // Origin preset buttons (custom drawn icons)
         addAndMakeVisible(originFrontButton);
@@ -326,44 +326,44 @@ public:
         originCenterButton.onClick = [this]() { setOriginToCenter(); };
 
         addAndMakeVisible(speedOfSoundLabel);
-        speedOfSoundLabel.setText("Speed of Sound:", juce::dontSendNotification);
+        speedOfSoundLabel.setText(LOC("systemConfig.labels.speedOfSound"), juce::dontSendNotification);
         addAndMakeVisible(speedOfSoundEditor);
         addAndMakeVisible(speedOfSoundUnitLabel);
-        speedOfSoundUnitLabel.setText("m/s", juce::dontSendNotification);
+        speedOfSoundUnitLabel.setText(LOC("units.metersPerSecond"), juce::dontSendNotification);
 
         addAndMakeVisible(temperatureLabel);
-        temperatureLabel.setText("Temperature:", juce::dontSendNotification);
+        temperatureLabel.setText(LOC("systemConfig.labels.temperature"), juce::dontSendNotification);
         addAndMakeVisible(temperatureEditor);
         addAndMakeVisible(temperatureUnitLabel);
-        temperatureUnitLabel.setText(juce::CharPointer_UTF8("\xc2\xb0""C"), juce::dontSendNotification);
+        temperatureUnitLabel.setText(LOC("units.celsius"), juce::dontSendNotification);
 
         // Master Section
         addAndMakeVisible(masterLevelLabel);
-        masterLevelLabel.setText("Master Level:", juce::dontSendNotification);
+        masterLevelLabel.setText(LOC("systemConfig.labels.masterLevel"), juce::dontSendNotification);
         addAndMakeVisible(masterLevelEditor);
         addAndMakeVisible(masterLevelUnitLabel);
-        masterLevelUnitLabel.setText("dB", juce::dontSendNotification);
+        masterLevelUnitLabel.setText(LOC("units.decibels"), juce::dontSendNotification);
 
         addAndMakeVisible(systemLatencyLabel);
-        systemLatencyLabel.setText("System Latency:", juce::dontSendNotification);
+        systemLatencyLabel.setText(LOC("systemConfig.labels.systemLatency"), juce::dontSendNotification);
         addAndMakeVisible(systemLatencyEditor);
         addAndMakeVisible(systemLatencyUnitLabel);
-        systemLatencyUnitLabel.setText("ms", juce::dontSendNotification);
+        systemLatencyUnitLabel.setText(LOC("units.milliseconds"), juce::dontSendNotification);
 
         addAndMakeVisible(haasEffectLabel);
-        haasEffectLabel.setText("Haas Effect:", juce::dontSendNotification);
+        haasEffectLabel.setText(LOC("systemConfig.labels.haasEffect"), juce::dontSendNotification);
         addAndMakeVisible(haasEffectEditor);
         addAndMakeVisible(haasEffectUnitLabel);
-        haasEffectUnitLabel.setText("ms", juce::dontSendNotification);
+        haasEffectUnitLabel.setText(LOC("units.milliseconds"), juce::dontSendNotification);
 
         // UI Section - Color Scheme
         addAndMakeVisible(colorSchemeLabel);
-        colorSchemeLabel.setText("Color Scheme:", juce::dontSendNotification);
+        colorSchemeLabel.setText(LOC("systemConfig.labels.colorScheme"), juce::dontSendNotification);
 
         addAndMakeVisible(colorSchemeSelector);
-        colorSchemeSelector.addItem("Default (Dark Gray)", 1);
-        colorSchemeSelector.addItem("Black", 2);
-        colorSchemeSelector.addItem("Light", 3);
+        colorSchemeSelector.addItem(LOC("systemConfig.colorSchemes.default"), 1);
+        colorSchemeSelector.addItem(LOC("systemConfig.colorSchemes.black"), 2);
+        colorSchemeSelector.addItem(LOC("systemConfig.colorSchemes.light"), 3);
         colorSchemeSelector.setSelectedId(ColorScheme::getThemeIndex() + 1, juce::dontSendNotification);
         colorSchemeSelector.onChange = [this]() {
             int schemeIndex = colorSchemeSelector.getSelectedId() - 1;  // Convert to 0-based
@@ -375,7 +375,7 @@ public:
 
         // Language selector
         addAndMakeVisible(languageLabel);
-        languageLabel.setText("Language:", juce::dontSendNotification);
+        languageLabel.setText(LOC("systemConfig.labels.language"), juce::dontSendNotification);
 
         addAndMakeVisible(languageSelector);
         populateLanguageSelector();
@@ -386,11 +386,21 @@ public:
                 juce::String locale = availableLanguages[selectedIdx];
                 if (LocalizationManager::getInstance().loadLanguage(locale))
                 {
-                    parameters.setConfigParam("Language", locale);
-                    // Note: UI text won't update until strings are migrated to use LOC()
+                    // Save language to app settings (not project settings)
+                    juce::PropertiesFile::Options options;
+                    options.applicationName = "WFS-DIY";
+                    options.filenameSuffix = ".settings";
+                    options.osxLibrarySubFolder = "Application Support";
+                    options.folderName = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
+                                            .getChildFile("WFS-DIY").getFullPathName();
+                    juce::PropertiesFile props(options);
+                    props.setValue("language", locale);
+                    props.saveIfNeeded();
+
                     if (statusBar != nullptr)
-                        statusBar->showTemporaryMessage("Language changed to: " +
-                            languageSelector.getText() + " (requires restart for full effect)", 3000);
+                        statusBar->showTemporaryMessage(
+                            LocalizationManager::getInstance().get("systemConfig.messages.languageChanged",
+                                {{"language", languageSelector.getText()}}), 3000);
                     // TTS: Announce selection change
                     TTSManager::getInstance().announceValueChange("Language", languageSelector.getText());
                 }
@@ -399,47 +409,47 @@ public:
 
         // Store/Reload Section
         addAndMakeVisible(selectProjectFolderButton);
-        selectProjectFolderButton.setButtonText("Select Project Folder");
+        selectProjectFolderButton.setButtonText(LOC("systemConfig.buttons.selectProjectFolder"));
         selectProjectFolderButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF33668C));  // Blueish
         selectProjectFolderButton.onClick = [this]() { selectProjectFolder(); };
 
         addAndMakeVisible(storeCompleteConfigButton);
-        storeCompleteConfigButton.setButtonText("Store Complete Configuration");
+        storeCompleteConfigButton.setButtonText(LOC("systemConfig.buttons.storeComplete"));
         storeCompleteConfigButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF8C3333));  // Reddish
         storeCompleteConfigButton.onClick = [this]() { storeCompleteConfiguration(); };
 
         addAndMakeVisible(reloadCompleteConfigButton);
-        reloadCompleteConfigButton.setButtonText("Reload Complete Configuration");
+        reloadCompleteConfigButton.setButtonText(LOC("systemConfig.buttons.reloadComplete"));
         reloadCompleteConfigButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF338C33));  // Greenish
         reloadCompleteConfigButton.onClick = [this]() { reloadCompleteConfiguration(); };
 
         addAndMakeVisible(reloadCompleteConfigBackupButton);
-        reloadCompleteConfigBackupButton.setButtonText("Reload Complete Config. Backup");
+        reloadCompleteConfigBackupButton.setButtonText(LOC("systemConfig.buttons.reloadCompleteBackup"));
         reloadCompleteConfigBackupButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF266626));  // Darker green
         reloadCompleteConfigBackupButton.onClick = [this]() { reloadCompleteConfigBackup(); };
 
         addAndMakeVisible(storeSystemConfigButton);
-        storeSystemConfigButton.setButtonText("Store System Configuration");
+        storeSystemConfigButton.setButtonText(LOC("systemConfig.buttons.storeSystem"));
         storeSystemConfigButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF8C3333));  // Reddish
         storeSystemConfigButton.onClick = [this]() { storeSystemConfiguration(); };
 
         addAndMakeVisible(reloadSystemConfigButton);
-        reloadSystemConfigButton.setButtonText("Reload System Configuration");
+        reloadSystemConfigButton.setButtonText(LOC("systemConfig.buttons.reloadSystem"));
         reloadSystemConfigButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF338C33));  // Greenish
         reloadSystemConfigButton.onClick = [this]() { reloadSystemConfiguration(); };
 
         addAndMakeVisible(reloadSystemConfigBackupButton);
-        reloadSystemConfigBackupButton.setButtonText("Reload System Config. Backup");
+        reloadSystemConfigBackupButton.setButtonText(LOC("systemConfig.buttons.reloadSystemBackup"));
         reloadSystemConfigBackupButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF266626));  // Darker green
         reloadSystemConfigBackupButton.onClick = [this]() { reloadSystemConfigBackup(); };
 
         addAndMakeVisible(importSystemConfigButton);
-        importSystemConfigButton.setButtonText("Import System Configuration");
+        importSystemConfigButton.setButtonText(LOC("systemConfig.buttons.importSystem"));
         importSystemConfigButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF338C33));  // Greenish
         importSystemConfigButton.onClick = [this]() { importSystemConfiguration(); };
 
         addAndMakeVisible(exportSystemConfigButton);
-        exportSystemConfigButton.setButtonText("Export System Configuration");
+        exportSystemConfigButton.setButtonText(LOC("systemConfig.buttons.exportSystem"));
         exportSystemConfigButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF8C3333));  // Reddish
         exportSystemConfigButton.onClick = [this]() { exportSystemConfiguration(); };
 
@@ -552,11 +562,11 @@ public:
         // Section headers (bold like NetworkTab)
         g.setColour(ColorScheme::get().textPrimary);
         g.setFont(juce::FontOptions().withHeight(14.0f).withStyle("Bold"));
-        g.drawText("Show", col1X, 10, 200, 20, juce::Justification::left);
-        g.drawText("I/O", col1X, 110, 200, 20, juce::Justification::left);
-        g.drawText("Stage", col2X, 10, 200, 20, juce::Justification::left);
-        g.drawText("Master Section", col2X, 390, 200, 20, juce::Justification::left);
-        g.drawText("UI", col3X, 10, 200, 20, juce::Justification::left);
+        g.drawText(LOC("systemConfig.sections.show"), col1X, 10, 200, 20, juce::Justification::left);
+        g.drawText(LOC("systemConfig.sections.io"), col1X, 110, 200, 20, juce::Justification::left);
+        g.drawText(LOC("systemConfig.sections.stage"), col2X, 10, 200, 20, juce::Justification::left);
+        g.drawText(LOC("systemConfig.sections.master"), col2X, 390, 200, 20, juce::Justification::left);
+        g.drawText(LOC("systemConfig.sections.ui"), col3X, 10, 200, 20, juce::Justification::left);
     }
 
     void resized() override
@@ -939,7 +949,7 @@ private:
 
         // Processing button state
         processingEnabled = (bool)parameters.getConfigParam("ProcessingEnabled");
-        processingButton.setButtonText(processingEnabled ? "Processing: ON" : "Processing: OFF");
+        processingButton.setButtonText(processingEnabled ? LOC("systemConfig.buttons.processingOn") : LOC("systemConfig.buttons.processingOff"));
 
         // Update I/O controls enabled state based on processing state
         updateIOControlsEnabledState();
@@ -970,12 +980,15 @@ private:
                 // Show JUCE AlertWindow confirmation dialog for reducing channels
                 auto options = juce::MessageBoxOptions()
                     .withIconType(juce::MessageBoxIconType::WarningIcon)
-                    .withTitle("Reduce Input Channels?")
-                    .withMessage("Reducing from " + juce::String(currentInputs) + " to " + juce::String(newInputs) +
-                        " input channels will remove settings for channels " + juce::String(newInputs + 1) +
-                        " to " + juce::String(currentInputs) + ".\n\nThis cannot be undone.")
-                    .withButton("Reduce")
-                    .withButton("Cancel")
+                    .withTitle(LOC("systemConfig.dialogs.reduceInputChannels.title"))
+                    .withMessage(LocalizationManager::getInstance().get(
+                        "systemConfig.dialogs.reduceInputChannels.message",
+                        {{"current", juce::String(currentInputs)},
+                         {"new", juce::String(newInputs)},
+                         {"start", juce::String(newInputs + 1)},
+                         {"end", juce::String(currentInputs)}}))
+                    .withButton(LOC("systemConfig.dialogs.reduce"))
+                    .withButton(LOC("common.cancel"))
                     .withAssociatedComponent(this);
 
                 juce::AlertWindow::showAsync(options, [this, newInputs, currentInputs](int result) {
@@ -1014,12 +1027,15 @@ private:
                 // Show JUCE AlertWindow confirmation dialog for reducing channels
                 auto options = juce::MessageBoxOptions()
                     .withIconType(juce::MessageBoxIconType::WarningIcon)
-                    .withTitle("Reduce Output Channels?")
-                    .withMessage("Reducing from " + juce::String(currentOutputs) + " to " + juce::String(newOutputs) +
-                        " output channels will remove settings for channels " + juce::String(newOutputs + 1) +
-                        " to " + juce::String(currentOutputs) + ".\n\nThis cannot be undone.")
-                    .withButton("Reduce")
-                    .withButton("Cancel")
+                    .withTitle(LOC("systemConfig.dialogs.reduceOutputChannels.title"))
+                    .withMessage(LocalizationManager::getInstance().get(
+                        "systemConfig.dialogs.reduceOutputChannels.message",
+                        {{"current", juce::String(currentOutputs)},
+                         {"new", juce::String(newOutputs)},
+                         {"start", juce::String(newOutputs + 1)},
+                         {"end", juce::String(currentOutputs)}}))
+                    .withButton(LOC("systemConfig.dialogs.reduce"))
+                    .withButton(LOC("common.cancel"))
                     .withAssociatedComponent(this);
 
                 juce::AlertWindow::showAsync(options, [this, newOutputs, currentOutputs](int result) {
@@ -1058,12 +1074,15 @@ private:
                 // Show JUCE AlertWindow confirmation dialog for reducing channels
                 auto options = juce::MessageBoxOptions()
                     .withIconType(juce::MessageBoxIconType::WarningIcon)
-                    .withTitle("Reduce Reverb Channels?")
-                    .withMessage("Reducing from " + juce::String(currentReverbs) + " to " + juce::String(newReverbs) +
-                        " reverb channels will remove settings for channels " + juce::String(newReverbs + 1) +
-                        " to " + juce::String(currentReverbs) + ".\n\nThis cannot be undone.")
-                    .withButton("Reduce")
-                    .withButton("Cancel")
+                    .withTitle(LOC("systemConfig.dialogs.reduceReverbChannels.title"))
+                    .withMessage(LocalizationManager::getInstance().get(
+                        "systemConfig.dialogs.reduceReverbChannels.message",
+                        {{"current", juce::String(currentReverbs)},
+                         {"new", juce::String(newReverbs)},
+                         {"start", juce::String(newReverbs + 1)},
+                         {"end", juce::String(currentReverbs)}}))
+                    .withButton(LOC("systemConfig.dialogs.reduce"))
+                    .withButton(LOC("common.cancel"))
                     .withAssociatedComponent(this);
 
                 juce::AlertWindow::showAsync(options, [this, newReverbs, currentReverbs](int result) {
@@ -1197,7 +1216,7 @@ private:
     void toggleProcessing()
     {
         processingEnabled = !processingEnabled;
-        processingButton.setButtonText(processingEnabled ? "Processing: ON" : "Processing: OFF");
+        processingButton.setButtonText(processingEnabled ? LOC("systemConfig.buttons.processingOn") : LOC("systemConfig.buttons.processingOff"));
         parameters.setConfigParam("ProcessingEnabled", processingEnabled);
 
         // Lock/unlock I/O controls based on processing state
@@ -1341,7 +1360,7 @@ private:
 
     void selectProjectFolder()
     {
-        auto chooser = std::make_shared<juce::FileChooser>("Select Project Folder", projectFolder);
+        auto chooser = std::make_shared<juce::FileChooser>(LOC("systemConfig.dialogs.selectProjectFolder"), projectFolder);
         auto chooserFlags = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectDirectories;
 
         chooser->launchAsync(chooserFlags, [this, chooser](const juce::FileChooser& fc)
@@ -1362,15 +1381,15 @@ private:
 
         if (!fileManager.hasValidProjectFolder())
         {
-            showStatusMessage("Please select a project folder first.");
+            showStatusMessage(LOC("systemConfig.messages.selectFolderFirst"));
             return;
         }
 
         // Backup is created automatically by file manager before overwrite
         if (fileManager.saveCompleteConfig())
-            showStatusMessage("Complete configuration saved.");
+            showStatusMessage(LOC("systemConfig.messages.configSaved"));
         else
-            showStatusMessage("Error: " + fileManager.getLastError());
+            showStatusMessage(LocalizationManager::getInstance().get("systemConfig.messages.error", {{"error", fileManager.getLastError()}}));
     }
 
     void reloadCompleteConfiguration()
@@ -1379,7 +1398,7 @@ private:
 
         if (!fileManager.hasValidProjectFolder())
         {
-            showStatusMessage("Please select a project folder first.");
+            showStatusMessage(LOC("systemConfig.messages.selectFolderFirst"));
             return;
         }
 
@@ -1387,9 +1406,9 @@ private:
         bool success = fileManager.loadCompleteConfig();
 
         if (success)
-            showStatusMessage("Complete configuration loaded.");
+            showStatusMessage(LOC("systemConfig.messages.configLoaded"));
         else
-            showStatusMessage("Partial load: " + fileManager.getLastError());
+            showStatusMessage(LocalizationManager::getInstance().get("systemConfig.messages.partialLoad", {{"error", fileManager.getLastError()}}));
 
         // Always refresh UI and trigger recalculation, even on partial load
         // Some files may have loaded successfully (e.g., system and outputs but not reverbs)
@@ -1411,23 +1430,23 @@ private:
 
         if (!fileManager.hasValidProjectFolder())
         {
-            showStatusMessage("Please select a project folder first.");
+            showStatusMessage(LOC("systemConfig.messages.selectFolderFirst"));
             return;
         }
 
         auto backups = fileManager.getBackups("complete");
         if (backups.isEmpty())
         {
-            showStatusMessage("No backup files found.");
+            showStatusMessage(LOC("systemConfig.messages.noBackupFilesFound"));
             return;
         }
 
         bool success = fileManager.loadCompleteConfigBackup(0);
 
         if (success)
-            showStatusMessage("Configuration loaded from backup.");
+            showStatusMessage(LOC("systemConfig.messages.configLoadedFromBackup"));
         else
-            showStatusMessage("Partial load from backup: " + fileManager.getLastError());
+            showStatusMessage(LocalizationManager::getInstance().get("systemConfig.messages.partialLoadFromBackup", {{"error", fileManager.getLastError()}}));
 
         // Always refresh UI and trigger recalculation, even on partial load
 
@@ -1448,15 +1467,15 @@ private:
 
         if (!fileManager.hasValidProjectFolder())
         {
-            showStatusMessage("Please select a project folder first.");
+            showStatusMessage(LOC("systemConfig.messages.selectFolderFirst"));
             return;
         }
 
         // Backup is created automatically by file manager before overwrite
         if (fileManager.saveSystemConfig())
-            showStatusMessage("System configuration saved.");
+            showStatusMessage(LOC("systemConfig.messages.systemConfigSaved"));
         else
-            showStatusMessage("Error: " + fileManager.getLastError());
+            showStatusMessage(LocalizationManager::getInstance().get("systemConfig.messages.error", {{"error", fileManager.getLastError()}}));
     }
 
     void reloadSystemConfiguration()
@@ -1465,20 +1484,20 @@ private:
 
         if (!fileManager.hasValidProjectFolder())
         {
-            showStatusMessage("Please select a project folder first.");
+            showStatusMessage(LOC("systemConfig.messages.selectFolderFirst"));
             return;
         }
 
         auto configFile = fileManager.getSystemConfigFile();
         if (!configFile.existsAsFile())
         {
-            showStatusMessage("System configuration file not found.");
+            showStatusMessage(LOC("systemConfig.messages.systemConfigFileNotFound"));
             return;
         }
 
         if (fileManager.loadSystemConfig())
         {
-            showStatusMessage("System configuration loaded.");
+            showStatusMessage(LOC("systemConfig.messages.systemConfigLoaded"));
 
             // Update UI from ValueTree
             loadParametersToUI();
@@ -1489,7 +1508,7 @@ private:
         }
         else
         {
-            showStatusMessage("Error: " + fileManager.getLastError());
+            showStatusMessage(LocalizationManager::getInstance().get("systemConfig.messages.error", {{"error", fileManager.getLastError()}}));
         }
     }
 
@@ -1499,20 +1518,20 @@ private:
 
         if (!fileManager.hasValidProjectFolder())
         {
-            showStatusMessage("Please select a project folder first.");
+            showStatusMessage(LOC("systemConfig.messages.selectFolderFirst"));
             return;
         }
 
         auto backups = fileManager.getBackups("system");
         if (backups.isEmpty())
         {
-            showStatusMessage("No backup files found.");
+            showStatusMessage(LOC("systemConfig.messages.noBackupFilesFound"));
             return;
         }
 
         if (fileManager.loadSystemConfigBackup(0))
         {
-            showStatusMessage("System configuration loaded from backup.");
+            showStatusMessage(LOC("systemConfig.messages.systemConfigLoadedFromBackup"));
 
             // Update UI from ValueTree
             loadParametersToUI();
@@ -1523,13 +1542,13 @@ private:
         }
         else
         {
-            showStatusMessage("Error: " + fileManager.getLastError());
+            showStatusMessage(LocalizationManager::getInstance().get("systemConfig.messages.error", {{"error", fileManager.getLastError()}}));
         }
     }
 
     void importSystemConfiguration()
     {
-        auto chooser = std::make_shared<juce::FileChooser>("Import System Configuration",
+        auto chooser = std::make_shared<juce::FileChooser>(LOC("systemConfig.dialogs.importSystemConfig"),
             juce::File::getSpecialLocation(juce::File::userHomeDirectory),
             "*.xml");
         auto chooserFlags = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
@@ -1542,7 +1561,7 @@ private:
                 auto& fileManager = parameters.getFileManager();
                 if (fileManager.importSystemConfig(result))
                 {
-                    showStatusMessage("System configuration imported.");
+                    showStatusMessage(LOC("systemConfig.messages.systemConfigImported"));
 
                     // Update UI from ValueTree
                     loadParametersToUI();
@@ -1553,7 +1572,7 @@ private:
                 }
                 else
                 {
-                    showStatusMessage("Error: " + fileManager.getLastError());
+                    showStatusMessage(LocalizationManager::getInstance().get("systemConfig.messages.error", {{"error", fileManager.getLastError()}}));
                 }
             }
         });
@@ -1561,7 +1580,7 @@ private:
 
     void exportSystemConfiguration()
     {
-        auto chooser = std::make_shared<juce::FileChooser>("Export System Configuration",
+        auto chooser = std::make_shared<juce::FileChooser>(LOC("systemConfig.dialogs.exportSystemConfig"),
             juce::File::getSpecialLocation(juce::File::userHomeDirectory),
             "*.xml");
         auto chooserFlags = juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles;
@@ -1577,9 +1596,9 @@ private:
 
                 auto& fileManager = parameters.getFileManager();
                 if (fileManager.exportSystemConfig(result))
-                    showStatusMessage("System configuration exported.");
+                    showStatusMessage(LOC("systemConfig.messages.systemConfigExported"));
                 else
-                    showStatusMessage("Error: " + fileManager.getLastError());
+                    showStatusMessage(LocalizationManager::getInstance().get("systemConfig.messages.error", {{"error", fileManager.getLastError()}}));
             }
         });
     }
@@ -1600,17 +1619,17 @@ private:
         if (availableLanguages.isEmpty())
             availableLanguages.add("en");
 
-        // Map locale codes to display names
+        // Map locale codes to native language names (using Unicode escapes for safety)
         std::map<juce::String, juce::String> languageNames = {
             {"en", "English"},
-            {"fr", "French"},
-            {"de", "German"},
-            {"es", "Spanish"},
-            {"it", "Italian"},
-            {"pt", "Portuguese"},
-            {"ja", "Japanese"},
-            {"zh", "Chinese"},
-            {"ko", "Korean"}
+            {"fr", juce::String::fromUTF8("Fran\xc3\xa7" "ais")},      // Français
+            {"de", "Deutsch"},
+            {"es", juce::String::fromUTF8("Espa\xc3\xb1" "ol")},       // Español
+            {"it", "Italiano"},
+            {"pt", juce::String::fromUTF8("Portugu\xc3\xaa" "s")},     // Português
+            {"ja", juce::String::fromUTF8("\xe6\x97\xa5\xe6\x9c\xac\xe8\xaa\x9e")},  // 日本語
+            {"zh", juce::String::fromUTF8("\xe4\xb8\xad\xe6\x96\x87")},              // 中文
+            {"ko", juce::String::fromUTF8("\xed\x95\x9c\xea\xb5\xad\xec\x96\xb4")}   // 한국어
         };
 
         // Populate ComboBox
@@ -1641,43 +1660,43 @@ private:
 
     void setupHelpText()
     {
-        // Based on WFS-UI_config.csv help text column
-        helpTextMap[&showNameEditor] = "Name of the current show.";
-        helpTextMap[&showLocationEditor] = "Location of the current show.";
-        helpTextMap[&inputChannelsEditor] = "Number of Input Channels.";
-        helpTextMap[&outputChannelsEditor] = "Number of Output Channels.";
-        helpTextMap[&reverbChannelsEditor] = "Number of Reverb Channels.";
-        helpTextMap[&audioPatchingButton] = "Open patching window to route Input and Output channels to the Audio Interface.";
-        helpTextMap[&algorithmSelector] = "Select the rendering algorithm from the menu.";
-        helpTextMap[&processingButton] = "Lock all I/O parameters and start the DSP. Long press to stop the DSP.";
-        helpTextMap[&stageShapeSelector] = "Stage shape: Box (rectangular), Cylinder (circular footprint), or Dome (partial sphere).";
-        helpTextMap[&stageWidthEditor] = "Width of the stage in meters (Box shape only).";
-        helpTextMap[&stageDepthEditor] = "Depth of the stage in meters (Box shape only).";
-        helpTextMap[&stageHeightEditor] = "Height of the stage in meters (Box and Cylinder shapes).";
-        helpTextMap[&stageDiameterEditor] = "Diameter of the stage in meters (Cylinder and Dome shapes).";
-        helpTextMap[&domeElevationEditor] = "Dome elevation angle: 180 = hemisphere, 360 = full sphere.";
-        helpTextMap[&stageOriginWidthEditor] = "Origin X offset from stage center (0 = centered, negative = left).";
-        helpTextMap[&stageOriginDepthEditor] = "Origin Y offset from stage center (0 = centered, negative = front/downstage).";
-        helpTextMap[&stageOriginHeightEditor] = "Origin Z offset from floor (0 = floor level, positive = above floor).";
-        helpTextMap[&originFrontButton] = "Set origin to front center of stage. Typical for frontal stages.";
-        helpTextMap[&originCenterGroundButton] = "Set origin to center of stage at ground level. Typical for Surround or Cylindrical setups.";
-        helpTextMap[&originCenterButton] = "Set origin to center of stage volume. Typical for Spherical Dome setups.";
-        helpTextMap[&speedOfSoundEditor] = "Speed of Sound (related to the temperature).";
-        helpTextMap[&temperatureEditor] = "Temperature (gives the Speed of Sound).";
-        helpTextMap[&masterLevelEditor] = "Master Level (affects all outputs).";
-        helpTextMap[&systemLatencyEditor] = "Total latency of the system (Mixing board & Computer) / Specific Input and Output Latency/Delay can be set in the respective Input and Output settings.";
-        helpTextMap[&haasEffectEditor] = "Hass Effect to apply to the system. Will take into account the Latency Compensations (System, Input and Output).";
-        helpTextMap[&colorSchemeSelector] = "Select the color scheme: Default (dark gray), Black (pure black for OLED displays), or Light (daytime use).";
-        helpTextMap[&languageSelector] = "Select the user interface language. Changes take full effect after restarting the application.";
-        helpTextMap[&selectProjectFolderButton] = "Select the Location of the Current Project Folder where to store files.";
-        helpTextMap[&storeCompleteConfigButton] = "Store Complete Configuration to files (with backup).";
-        helpTextMap[&reloadCompleteConfigButton] = "Reload Complete Configuration from files.";
-        helpTextMap[&reloadCompleteConfigBackupButton] = "Reload Complete Configuration from backup files.";
-        helpTextMap[&storeSystemConfigButton] = "Store System Configuration to file (with backup).";
-        helpTextMap[&reloadSystemConfigButton] = "Reload System Configuration from file.";
-        helpTextMap[&reloadSystemConfigBackupButton] = "Reload System Configuration from backup file.";
-        helpTextMap[&importSystemConfigButton] = "Import System Configuration from file (with file explorer window).";
-        helpTextMap[&exportSystemConfigButton] = "Export System Configuration to file (with file explorer window).";
+        // Help text from localization
+        helpTextMap[&showNameEditor] = LOC("systemConfig.help.showName");
+        helpTextMap[&showLocationEditor] = LOC("systemConfig.help.showLocation");
+        helpTextMap[&inputChannelsEditor] = LOC("systemConfig.help.inputChannels");
+        helpTextMap[&outputChannelsEditor] = LOC("systemConfig.help.outputChannels");
+        helpTextMap[&reverbChannelsEditor] = LOC("systemConfig.help.reverbChannels");
+        helpTextMap[&audioPatchingButton] = LOC("systemConfig.help.audioPatch");
+        helpTextMap[&algorithmSelector] = LOC("systemConfig.help.algorithm");
+        helpTextMap[&processingButton] = LOC("systemConfig.help.processing");
+        helpTextMap[&stageShapeSelector] = LOC("systemConfig.help.stageShape");
+        helpTextMap[&stageWidthEditor] = LOC("systemConfig.help.stageWidth");
+        helpTextMap[&stageDepthEditor] = LOC("systemConfig.help.stageDepth");
+        helpTextMap[&stageHeightEditor] = LOC("systemConfig.help.stageHeight");
+        helpTextMap[&stageDiameterEditor] = LOC("systemConfig.help.stageDiameter");
+        helpTextMap[&domeElevationEditor] = LOC("systemConfig.help.domeElevation");
+        helpTextMap[&stageOriginWidthEditor] = LOC("systemConfig.help.originWidth");
+        helpTextMap[&stageOriginDepthEditor] = LOC("systemConfig.help.originDepth");
+        helpTextMap[&stageOriginHeightEditor] = LOC("systemConfig.help.originHeight");
+        helpTextMap[&originFrontButton] = LOC("systemConfig.help.originFront");
+        helpTextMap[&originCenterGroundButton] = LOC("systemConfig.help.originCenterGround");
+        helpTextMap[&originCenterButton] = LOC("systemConfig.help.originCenter");
+        helpTextMap[&speedOfSoundEditor] = LOC("systemConfig.help.speedOfSound");
+        helpTextMap[&temperatureEditor] = LOC("systemConfig.help.temperature");
+        helpTextMap[&masterLevelEditor] = LOC("systemConfig.help.masterLevel");
+        helpTextMap[&systemLatencyEditor] = LOC("systemConfig.help.systemLatency");
+        helpTextMap[&haasEffectEditor] = LOC("systemConfig.help.haasEffect");
+        helpTextMap[&colorSchemeSelector] = LOC("systemConfig.help.colorScheme");
+        helpTextMap[&languageSelector] = LOC("systemConfig.help.language");
+        helpTextMap[&selectProjectFolderButton] = LOC("systemConfig.help.selectProjectFolder");
+        helpTextMap[&storeCompleteConfigButton] = LOC("systemConfig.help.storeComplete");
+        helpTextMap[&reloadCompleteConfigButton] = LOC("systemConfig.help.reloadComplete");
+        helpTextMap[&reloadCompleteConfigBackupButton] = LOC("systemConfig.help.reloadCompleteBackup");
+        helpTextMap[&storeSystemConfigButton] = LOC("systemConfig.help.storeSystem");
+        helpTextMap[&reloadSystemConfigButton] = LOC("systemConfig.help.reloadSystem");
+        helpTextMap[&reloadSystemConfigBackupButton] = LOC("systemConfig.help.reloadSystemBackup");
+        helpTextMap[&importSystemConfigButton] = LOC("systemConfig.help.importSystem");
+        helpTextMap[&exportSystemConfigButton] = LOC("systemConfig.help.exportSystem");
     }
 
     void setupMouseListeners()

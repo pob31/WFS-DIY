@@ -1,0 +1,273 @@
+{
+  "meta": {
+    "language": "Français",
+    "locale": "fr",
+    "version": "1.0.0",
+    "author": "WFS-DIY Team"
+  },
+
+  "common": {
+    "ok": "OK",
+    "cancel": "Annuler",
+    "apply": "Appliquer",
+    "reset": "Réinitialiser",
+    "save": "Sauvegarder",
+    "load": "Charger",
+    "store": "Enregistrer",
+    "reload": "Recharger",
+    "import": "Importer",
+    "export": "Exporter",
+    "enable": "Activer",
+    "disable": "Désactiver",
+    "on": "ON",
+    "off": "OFF",
+    "yes": "Oui",
+    "no": "Non",
+    "delete": "Supprimer",
+    "add": "Ajouter",
+    "remove": "Retirer",
+    "edit": "Modifier",
+    "close": "Fermer",
+    "select": "Sélectionner",
+    "all": "Tout",
+    "none": "Aucun"
+  },
+
+  "units": {
+    "meters": "m",
+    "decibels": "dB",
+    "milliseconds": "ms",
+    "seconds": "s",
+    "degrees": "\u00b0",
+    "hertz": "Hz",
+    "percent": "%",
+    "celsius": "\u00b0C",
+    "metersPerSecond": "m/s"
+  },
+
+  "tabs": {
+    "systemConfig": "Configuration",
+    "inputs": "Entrées",
+    "outputs": "Sorties",
+    "reverb": "Réverb",
+    "network": "Réseau",
+    "clusters": "Clusters",
+    "map": "Carte"
+  },
+
+  "statusBar": {
+    "displayLabel": "Affichage :",
+    "helpMode": "Aide",
+    "oscMode": "OSC"
+  },
+
+  "systemConfig": {
+    "sections": {
+      "show": "Spectacle",
+      "io": "E/S",
+      "stage": "Scène",
+      "master": "Section Master",
+      "ui": "Interface",
+      "files": "Fichiers"
+    },
+
+    "labels": {
+      "showName": "Nom :",
+      "showLocation": "Lieu :",
+      "inputChannels": "Canaux d'entrée :",
+      "outputChannels": "Canaux de sortie :",
+      "reverbChannels": "Canaux de réverb :",
+      "algorithm": "Algorithme :",
+      "processing": "Traitement :",
+      "stageShape": "Forme de scène :",
+      "stageWidth": "Largeur :",
+      "stageDepth": "Profondeur :",
+      "stageHeight": "Hauteur :",
+      "stageDiameter": "Diamètre :",
+      "domeElevation": "Élévation :",
+      "originWidth": "Origine largeur :",
+      "originDepth": "Origine profondeur :",
+      "originHeight": "Origine hauteur :",
+      "speedOfSound": "Vitesse du son :",
+      "temperature": "Température :",
+      "masterLevel": "Niveau master :",
+      "systemLatency": "Latence système :",
+      "haasEffect": "Effet Haas :",
+      "colorScheme": "Thème couleur :",
+      "screenReader": "Lecteur d'écran :",
+      "language": "Langue :"
+    },
+
+    "buttons": {
+      "audioPatch": "Interface audio et routage",
+      "processingOff": "Traitement : OFF",
+      "processingOn": "Traitement : ON",
+      "selectProjectFolder": "Sélectionner dossier projet",
+      "storeComplete": "Enregistrer configuration complète",
+      "reloadComplete": "Recharger configuration complète",
+      "reloadCompleteBackup": "Recharger config. complète (backup)",
+      "storeSystem": "Enregistrer configuration système",
+      "reloadSystem": "Recharger configuration système",
+      "reloadSystemBackup": "Recharger config. système (backup)",
+      "importSystem": "Importer configuration système",
+      "exportSystem": "Exporter configuration système"
+    },
+
+    "algorithms": {
+      "inputBuffer": "InputBuffer (délais en lecture)",
+      "outputBuffer": "OutputBuffer (délais en écriture)"
+    },
+
+    "stageShapes": {
+      "box": "Boîte",
+      "cylinder": "Cylindre",
+      "dome": "Dôme"
+    },
+
+    "colorSchemes": {
+      "default": "Défaut (gris foncé)",
+      "black": "Noir",
+      "light": "Clair"
+    },
+
+    "help": {
+      "showName": "Nom du spectacle actuel.",
+      "showLocation": "Lieu du spectacle actuel.",
+      "inputChannels": "Nombre de canaux d'entrée.",
+      "outputChannels": "Nombre de canaux de sortie.",
+      "reverbChannels": "Nombre de canaux de réverbération.",
+      "audioPatch": "Ouvre la fenêtre d'interface audio et de routage.",
+      "algorithm": "Sélectionnez l'algorithme de rendu dans le menu.",
+      "processing": "Verrouille tous les paramètres E/S et démarre le DSP. Appui long pour arrêter le DSP.",
+      "stageShape": "Sélectionnez la forme de la scène (Boîte, Cylindre ou Dôme).",
+      "stageWidth": "Largeur de la scène en mètres (forme Boîte uniquement).",
+      "stageDepth": "Profondeur de la scène en mètres (forme Boîte uniquement).",
+      "stageHeight": "Hauteur de la scène en mètres (formes Boîte et Cylindre).",
+      "stageDiameter": "Diamètre de la scène en mètres (formes Cylindre et Dôme).",
+      "domeElevation": "Angle d'élévation du dôme : 180 = hémisphère, 360 = sphère complète.",
+      "originWidth": "Décalage X de l'origine depuis le centre de la scène (0 = centré, négatif = gauche).",
+      "originDepth": "Décalage Y de l'origine depuis le centre de la scène (0 = centré, négatif = avant/devant scène).",
+      "originHeight": "Décalage Z de l'origine depuis le sol (0 = niveau du sol, positif = au-dessus du sol).",
+      "originFront": "Place l'origine au centre avant de la scène. Typique pour les scènes frontales.",
+      "originCenterGround": "Place l'origine au centre de la scène au niveau du sol. Typique pour les configurations Surround ou Cylindriques.",
+      "originCenter": "Place l'origine au centre du volume de la scène. Typique pour les configurations Dôme Sphérique.",
+      "speedOfSound": "Vitesse du son (liée à la température).",
+      "temperature": "Température (détermine la vitesse du son).",
+      "masterLevel": "Niveau master (affecte toutes les sorties).",
+      "systemLatency": "Latence totale du système (console de mixage et ordinateur) / La latence/délai spécifique des entrées et sorties peut être définie dans les paramètres respectifs.",
+      "haasEffect": "Effet Haas à appliquer au système. Prend en compte les compensations de latence (système, entrée et sortie).",
+      "colorScheme": "Sélectionnez le thème couleur : Défaut (gris foncé), Noir (noir pur pour écrans OLED), ou Clair (utilisation de jour).",
+      "screenReader": "Activer ou désactiver les annonces du lecteur d'écran. Lorsqu'activé, les noms et valeurs des paramètres sont annoncés au survol, et le texte d'aide est lu après quelques secondes.",
+      "selectProjectFolder": "Sélectionnez l'emplacement du dossier de projet actuel pour stocker les fichiers.",
+      "storeComplete": "Enregistre la configuration complète dans des fichiers (avec sauvegarde).",
+      "reloadComplete": "Recharge la configuration complète depuis les fichiers.",
+      "reloadCompleteBackup": "Recharge la configuration complète depuis les fichiers de sauvegarde.",
+      "storeSystem": "Enregistre la configuration système dans un fichier (avec sauvegarde).",
+      "reloadSystem": "Recharge la configuration système depuis le fichier.",
+      "reloadSystemBackup": "Recharge la configuration système depuis le fichier de sauvegarde.",
+      "importSystem": "Importe la configuration système depuis un fichier (avec explorateur de fichiers).",
+      "exportSystem": "Exporte la configuration système vers un fichier (avec explorateur de fichiers).",
+      "language": "Sélectionnez la langue de l'interface. Les changements prennent plein effet après redémarrage de l'application."
+    },
+
+    "messages": {
+      "selectFolderFirst": "Veuillez d'abord sélectionner un dossier de projet.",
+      "configSaved": "Configuration complète enregistrée.",
+      "configLoaded": "Configuration complète chargée.",
+      "systemConfigSaved": "Configuration système enregistrée.",
+      "systemConfigLoaded": "Configuration système chargée.",
+      "systemConfigFileNotFound": "Fichier de configuration système introuvable.",
+      "configLoadedFromBackup": "Configuration chargée depuis la sauvegarde.",
+      "systemConfigLoadedFromBackup": "Configuration système chargée depuis la sauvegarde.",
+      "noBackupFilesFound": "Aucun fichier de sauvegarde trouvé.",
+      "systemConfigImported": "Configuration système importée.",
+      "systemConfigExported": "Configuration système exportée.",
+      "partialLoad": "Chargement partiel : {error}",
+      "partialLoadFromBackup": "Chargement partiel depuis sauvegarde : {error}",
+      "error": "Erreur : {error}",
+      "languageChanged": "Langue changée en : {language} (nécessite un redémarrage pour prendre plein effet)"
+    },
+
+    "dialogs": {
+      "reduceInputChannels": {
+        "title": "Réduire les canaux d'entrée ?",
+        "message": "Réduire de {current} à {new} canaux d'entrée supprimera les paramètres des canaux {start} à {end}.\n\nCette action est irréversible."
+      },
+      "reduceOutputChannels": {
+        "title": "Réduire les canaux de sortie ?",
+        "message": "Réduire de {current} à {new} canaux de sortie supprimera les paramètres des canaux {start} à {end}.\n\nCette action est irréversible."
+      },
+      "reduceReverbChannels": {
+        "title": "Réduire les canaux de réverb ?",
+        "message": "Réduire de {current} à {new} canaux de réverb supprimera les paramètres des canaux {start} à {end}.\n\nCette action est irréversible."
+      },
+      "reduce": "Réduire",
+      "selectProjectFolder": "Sélectionner dossier projet",
+      "importSystemConfig": "Importer configuration système",
+      "exportSystemConfig": "Exporter configuration système"
+    }
+  },
+
+  "inputs": {
+    "sections": {
+      "channel": "Canal",
+      "position": "Position",
+      "attenuation": "Atténuation",
+      "directivity": "Directivité",
+      "liveSource": "Live Source Tamer",
+      "hackoustics": "Hackoustics",
+      "lfo": "LFO",
+      "automotion": "AutomOtion",
+      "mutes": "Mutes"
+    },
+
+    "labels": {
+      "name": "Nom",
+      "cluster": "Cluster",
+      "attenuation": "Atténuation",
+      "delayLatency": "Délai/Latence",
+      "positionX": "X",
+      "positionY": "Y",
+      "positionZ": "Z"
+    }
+  },
+
+  "outputs": {
+    "sections": {
+      "channel": "Canal",
+      "position": "Position",
+      "settings": "Paramètres"
+    },
+
+    "labels": {
+      "name": "Nom",
+      "positionX": "X",
+      "positionY": "Y",
+      "positionZ": "Z",
+      "attenuation": "Atténuation",
+      "delay": "Délai"
+    }
+  },
+
+  "network": {
+    "sections": {
+      "network": "Réseau",
+      "connections": "Connexions",
+      "admOsc": "ADM-OSC",
+      "tracking": "Tracking"
+    },
+
+    "labels": {
+      "interface": "Interface :",
+      "ipAddress": "Adresse IP :",
+      "udpPort": "Port UDP :",
+      "tcpPort": "Port TCP :",
+      "oscQuery": "OSC Query :"
+    }
+  },
+
+  "accessibility": {
+    "ttsEnabled": "Lecteur d'écran activé",
+    "ttsDisabled": "Lecteur d'écran désactivé"
+  }
+}
