@@ -159,7 +159,11 @@ public:
         for (int i = 1; i <= 10; ++i)
             arraySelector.addItem("Array " + juce::String(i), i + 1);
         arraySelector.setSelectedId(1, juce::dontSendNotification);
-        arraySelector.onChange = [this]() { updateArrayParameter(); };
+        arraySelector.onChange = [this]() {
+            updateArrayParameter();
+            // TTS: Announce selection change
+            TTSManager::getInstance().announceValueChange("Array", arraySelector.getText());
+        };
 
         // Apply to Array selector
         addAndMakeVisible(applyToArrayLabel);
@@ -169,7 +173,11 @@ public:
         applyToArraySelector.addItem("ABSOLUTE", 2);
         applyToArraySelector.addItem("RELATIVE", 3);
         applyToArraySelector.setSelectedId(2, juce::dontSendNotification);
-        applyToArraySelector.onChange = [this]() { updateApplyToArrayParameter(); };
+        applyToArraySelector.onChange = [this]() {
+            updateApplyToArrayParameter();
+            // TTS: Announce selection change
+            TTSManager::getInstance().announceValueChange("Apply to Array", applyToArraySelector.getText());
+        };
 
         // Map visibility toggle button
         addAndMakeVisible(mapVisibilityButton);
@@ -417,6 +425,15 @@ private:
     {
         layoutCurrentSubTab();
         repaint();
+
+        // TTS: Announce subtab change for accessibility
+        int tabIndex = subTabBar.getCurrentTabIndex();
+        if (tabIndex >= 0 && tabIndex < subTabBar.getNumTabs())
+        {
+            juce::String tabName = subTabBar.getTabButton(tabIndex)->getButtonText();
+            TTSManager::getInstance().announceImmediate(tabName + " tab",
+                juce::AccessibilityHandler::AnnouncementPriority::medium);
+        }
     }
 
     // ==================== SETUP METHODS ====================
@@ -559,6 +576,8 @@ private:
             int mode = coordModeSelector.getSelectedId() - 1;
             saveOutputParam(WFSParameterIDs::outputCoordinateMode, mode);
             updatePositionLabelsAndValues();
+            // TTS: Announce selection change
+            TTSManager::getInstance().announceValueChange("Coordinate Mode", coordModeSelector.getText());
         };
 
         // Position X
@@ -715,6 +734,8 @@ private:
                 int shape = eqBandShapeSelector[i].getSelectedId() - 1;
                 saveEqBandParam(i, WFSParameterIDs::eqShape, shape);
                 updateEqBandAppearance(i);
+                // TTS: Announce selection change
+                TTSManager::getInstance().announceValueChange("EQ Band " + juce::String(i + 1) + " Shape", eqBandShapeSelector[i].getText());
             };
 
             // Frequency slider - colored to match band

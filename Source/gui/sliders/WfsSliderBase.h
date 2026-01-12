@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include <limits>
 #include "../ColorScheme.h"
+#include "../../Accessibility/TTSManager.h"
 
 // Shared interactive base class for custom JUCE sliders that mimics
 // the bespoke Compose sliders from the Android app. It handles hit
@@ -69,6 +70,19 @@ public:
     // Public callback for value changes
     std::function<void(float)> onValueChanged;
 
+    /** Set parameter name for TTS announcements (e.g., "X Position") */
+    void setTTSParameterName(const juce::String& name) { ttsParameterName = name; }
+
+    /** Set unit suffix for TTS announcements (e.g., "m", "dB") */
+    void setTTSUnit(const juce::String& unit) { ttsUnit = unit; }
+
+    /** Configure TTS in one call */
+    void setTTSInfo(const juce::String& name, const juce::String& unit)
+    {
+        ttsParameterName = name;
+        ttsUnit = unit;
+    }
+
     void setThumbColour(juce::Colour newThumbColour) noexcept
     {
         thumbColour = newThumbColour;
@@ -129,6 +143,15 @@ protected:
     {
         if (onValueChanged)
             onValueChanged(value);
+
+        // TTS: Announce value change for accessibility
+        if (ttsParameterName.isNotEmpty())
+        {
+            juce::String valueStr = juce::String(value, 2);
+            if (ttsUnit.isNotEmpty())
+                valueStr += " " + ttsUnit;
+            TTSManager::getInstance().announceValueChange(ttsParameterName, valueStr);
+        }
     }
 
     virtual float valueFromNormalized(float normalizedPos) const
@@ -189,6 +212,10 @@ protected:
 
     float minValue = 0.0f;
     float maxValue = 1.0f;
+
+    // TTS accessibility
+    juce::String ttsParameterName;
+    juce::String ttsUnit;
 
     // Track thickness: dimension perpendicular to slider displacement
     // Thumb width will be 80% of track thickness automatically

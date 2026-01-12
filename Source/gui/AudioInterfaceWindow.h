@@ -97,6 +97,26 @@ private:
 };
 
 /**
+ * PatchTabbedComponent
+ *
+ * Custom TabbedComponent that gives focus to patch matrices when their tabs are selected.
+ */
+class PatchTabbedComponent : public juce::TabbedComponent
+{
+public:
+    PatchTabbedComponent()
+        : juce::TabbedComponent(juce::TabbedButtonBar::TabsAtTop) {}
+
+    std::function<void(int)> onTabChanged;
+
+    void currentTabChanged(int newCurrentTabIndex, const juce::String&) override
+    {
+        if (onTabChanged)
+            onTabChanged(newCurrentTabIndex);
+    }
+};
+
+/**
  * AudioInterfaceContent
  *
  * Main content component for the Audio Interface window.
@@ -126,7 +146,7 @@ private:
 
     // Components
     std::unique_ptr<DeviceInfoBar> deviceInfoBar;
-    juce::TabbedComponent tabbedComponent{juce::TabbedButtonBar::TabsAtTop};
+    PatchTabbedComponent tabbedComponent;
 
     // Custom device settings panel (replaces AudioDeviceSelectorComponent)
     std::unique_ptr<DeviceSettingsPanel> deviceSettingsPanel;

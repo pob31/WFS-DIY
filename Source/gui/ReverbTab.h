@@ -344,6 +344,8 @@ private:
             int mode = coordModeSelector.getSelectedId() - 1;
             saveReverbParam(WFSParameterIDs::reverbCoordinateMode, mode);
             updatePositionLabelsAndValues();
+            // TTS: Announce selection change
+            TTSManager::getInstance().announceValueChange("Coordinate Mode", coordModeSelector.getText());
         };
 
         // Position X/Y/Z
@@ -584,6 +586,8 @@ private:
                 saveEQBandParam (i, WFSParameterIDs::reverbEQshape, shape);
                 // Update gain visibility when shape changes
                 updateEQBandAppearance (i);
+                // TTS: Announce selection change
+                TTSManager::getInstance().announceValueChange("EQ Band " + juce::String(i + 1) + " Shape", eqBandShapeSelector[i].getText());
             };
 
             // Frequency slider - colored to match band
@@ -736,6 +740,8 @@ private:
             int macroId = muteMacrosSelector.getSelectedId();
             if (macroId > 1)
             {
+                // TTS: Announce macro applied (before resetting selector)
+                TTSManager::getInstance().announceValueChange("Mute Macro", muteMacrosSelector.getText() + " applied");
                 applyMuteMacro (macroId);
                 muteMacrosSelector.setSelectedId (1, juce::dontSendNotification);
             }
@@ -1829,6 +1835,15 @@ private:
     {
         layoutCurrentSubTab();
         repaint();
+
+        // TTS: Announce subtab change for accessibility
+        int tabIndex = subTabBar.getCurrentTabIndex();
+        if (tabIndex >= 0 && tabIndex < subTabBar.getNumTabs())
+        {
+            juce::String tabName = subTabBar.getTabButton(tabIndex)->getButtonText();
+            TTSManager::getInstance().announceImmediate(tabName + " tab",
+                juce::AccessibilityHandler::AnnouncementPriority::medium);
+        }
     }
 
     void textEditorReturnKeyPressed (juce::TextEditor& editor) override

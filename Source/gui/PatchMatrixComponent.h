@@ -106,6 +106,11 @@ public:
      */
     std::function<void()> onTestSignalConfigured;
 
+    /**
+     * Callback for status bar messages (e.g., "Choose a Test Signal to Enable Testing")
+     */
+    std::function<void(const juce::String&)> onStatusMessage;
+
     // Component overrides
     void paint(juce::Graphics& g) override;
     void resized() override;
@@ -118,6 +123,12 @@ public:
     void mouseExit(const juce::MouseEvent& e) override;
     void mouseWheelMove(const juce::MouseEvent& event,
                         const juce::MouseWheelDetails& wheel) override;
+
+    // Keyboard navigation for accessibility
+    bool keyPressed(const juce::KeyPress& key) override;
+    bool keyStateChanged(bool isKeyDown) override;
+    void focusGained(FocusChangeType cause) override;
+    void focusLost(FocusChangeType cause) override;
 
     // ScrollBar::Listener
     void scrollBarMoved(juce::ScrollBar* bar, double newRangeStart) override;
@@ -175,8 +186,13 @@ private:
     // Hover state
     juce::Point<int> hoveredCell{-1, -1};
 
+    // Keyboard navigation state
+    juce::Point<int> selectedCell{-1, -1};  // Currently selected cell for keyboard navigation
+    bool keyboardNavigationActive = false;   // True when using arrow keys
+
     // Active test channel (for highlighting)
     int activeTestHardwareChannel = -1;
+    bool spacebarTestActive = false;  // True when spacebar started test without hold
 
     // Channel dimensions
     int numWFSChannels = 0;
@@ -207,6 +223,11 @@ private:
 
     // Testing mode (output patch only)
     void handleTestClick(int hardwareChannel);
+
+    // Keyboard navigation helpers
+    void scrollToMakeVisible(juce::Point<int> cell);
+    void announceSelectedCell();
+    void handleCellActivation(juce::Point<int> cell);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PatchMatrixComponent)
 };

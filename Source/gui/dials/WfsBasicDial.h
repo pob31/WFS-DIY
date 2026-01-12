@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "../ColorScheme.h"
+#include "../../Accessibility/TTSManager.h"
 
 class WfsBasicDial : public juce::Component
 {
@@ -32,6 +33,16 @@ public:
             value = newValue;
             if (onValueChanged)
                 onValueChanged(value);
+
+            // TTS: Announce value change for accessibility
+            if (ttsParameterName.isNotEmpty())
+            {
+                juce::String valueStr = juce::String(value, 2);
+                if (ttsUnit.isNotEmpty())
+                    valueStr += " " + ttsUnit;
+                TTSManager::getInstance().announceValueChange(ttsParameterName, valueStr);
+            }
+
             repaint();
         }
     }
@@ -63,6 +74,19 @@ public:
     }
 
     std::function<void(float)> onValueChanged;
+
+    /** Set parameter name for TTS announcements (e.g., "Master Level") */
+    void setTTSParameterName(const juce::String& name) { ttsParameterName = name; }
+
+    /** Set unit suffix for TTS announcements (e.g., "dB") */
+    void setTTSUnit(const juce::String& unit) { ttsUnit = unit; }
+
+    /** Configure TTS in one call */
+    void setTTSInfo(const juce::String& name, const juce::String& unit)
+    {
+        ttsParameterName = name;
+        ttsUnit = unit;
+    }
 
 private:
     void paint(juce::Graphics& g) override
@@ -173,6 +197,10 @@ private:
     float value = 0.0f;
     float minValue = 0.0f;
     float maxValue = 1.0f;
+
+    // TTS accessibility
+    juce::String ttsParameterName;
+    juce::String ttsUnit;
 
     juce::Colour backgroundColour { juce::Colours::black };
     juce::Colour indicatorColour { juce::Colours::white };

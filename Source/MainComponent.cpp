@@ -1,6 +1,7 @@
 #include "MainComponent.h"
 #include "Parameters/WFSParameterIDs.h"
 #include "Localization/LocalizationManager.h"
+#include "Accessibility/TTSManager.h"
 
 //==============================================================================
 MainComponent::MainComponent()
@@ -182,6 +183,15 @@ MainComponent::MainComponent()
     clustersTab = new ClustersTab(parameters);
     reverbTab = new ReverbTab(parameters);
     mapTab = new MapTab(parameters);
+
+    // Set accessible names for screen readers (prevents "Custom" announcement)
+    systemConfigTab->setName("System Configuration");
+    networkTab->setName("Network");
+    outputsTab->setName("Outputs");
+    inputsTab->setName("Inputs");
+    clustersTab->setName("Clusters");
+    reverbTab->setName("Reverb");
+    mapTab->setName("Map");
 
     // Pass status bar to tabs that support it
     systemConfigTab->setStatusBar(statusBar);
@@ -493,6 +503,13 @@ MainComponent::~MainComponent()
 {
     // Stop listening to color scheme changes
     ColorScheme::Manager::getInstance().removeListener(this);
+
+    // Destroy TTSManager singleton before JUCE timer thread shuts down
+    TTSManager::shutdown();
+
+    // Remove all child components before destroying LookAndFeel
+    // This ensures Windows UI Automation providers are properly released
+    removeAllChildren();
 
     // Reset default LookAndFeel before destroying our custom one
     juce::LookAndFeel::setDefaultLookAndFeel(nullptr);

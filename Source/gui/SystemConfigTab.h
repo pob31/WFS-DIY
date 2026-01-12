@@ -245,6 +245,8 @@ public:
         algorithmSelector.onChange = [this]() {
             int selectedId = algorithmSelector.getSelectedId();
             parameters.setConfigParam("ProcessingAlgorithm", selectedId);
+            // TTS: Announce selection change
+            TTSManager::getInstance().announceValueChange("Algorithm", algorithmSelector.getText());
         };
 
         addAndMakeVisible(processingButton);
@@ -259,7 +261,11 @@ public:
         stageShapeSelector.addItem("Cylinder", 2);
         stageShapeSelector.addItem("Dome", 3);
         stageShapeSelector.setSelectedId(1, juce::dontSendNotification);
-        stageShapeSelector.onChange = [this]() { onStageShapeChanged(); };
+        stageShapeSelector.onChange = [this]() {
+            onStageShapeChanged();
+            // TTS: Announce selection change
+            TTSManager::getInstance().announceValueChange("Stage Shape", stageShapeSelector.getText());
+        };
 
         addAndMakeVisible(stageWidthLabel);
         stageWidthLabel.setText("Width:", juce::dontSendNotification);
@@ -363,33 +369,8 @@ public:
             int schemeIndex = colorSchemeSelector.getSelectedId() - 1;  // Convert to 0-based
             ColorScheme::Manager::getInstance().setTheme(schemeIndex);
             parameters.setConfigParam("ColorScheme", schemeIndex);
-        };
-
-        // TTS (Screen Reader) toggle
-        addAndMakeVisible(ttsLabel);
-        ttsLabel.setText("Screen Reader:", juce::dontSendNotification);
-
-        addAndMakeVisible(ttsToggleButton);
-        ttsToggleButton.setToggleable(true);
-        // TTS is enabled by default (postAnnouncement is a no-op when no screen reader is active)
-        bool ttsState = TTSManager::getInstance().isEnabled();
-        ttsToggleButton.setButtonText(ttsState ? "ON" : "OFF");
-        ttsToggleButton.setToggleState(ttsState, juce::dontSendNotification);
-        ttsToggleButton.setColour(juce::TextButton::buttonColourId,
-            ttsState ? juce::Colour(0xFF338C33) : juce::Colours::darkgrey);
-        ttsToggleButton.onClick = [this]() {
-            bool newState = !TTSManager::getInstance().isEnabled();
-            TTSManager::getInstance().setEnabled(newState);
-            TTSManager::getInstance().saveSettings();
-            ttsToggleButton.setToggleState(newState, juce::dontSendNotification);
-            ttsToggleButton.setButtonText(newState ? "ON" : "OFF");
-            ttsToggleButton.setColour(juce::TextButton::buttonColourId,
-                newState ? juce::Colour(0xFF338C33) : juce::Colours::darkgrey);
-
-            // Announce the change if TTS was just enabled
-            if (newState)
-                TTSManager::getInstance().announceImmediate("Screen reader enabled",
-                    juce::AccessibilityHandler::AnnouncementPriority::high);
+            // TTS: Announce selection change
+            TTSManager::getInstance().announceValueChange("Color Scheme", colorSchemeSelector.getText());
         };
 
         // Language selector
@@ -410,6 +391,8 @@ public:
                     if (statusBar != nullptr)
                         statusBar->showTemporaryMessage("Language changed to: " +
                             languageSelector.getText() + " (requires restart for full effect)", 3000);
+                    // TTS: Announce selection change
+                    TTSManager::getInstance().announceValueChange("Language", languageSelector.getText());
                 }
             }
         };
@@ -707,10 +690,6 @@ public:
 
         colorSchemeLabel.setBounds(x, y, labelWidth, rowHeight);
         colorSchemeSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
-        y += rowHeight + spacing;
-
-        ttsLabel.setBounds(x, y, labelWidth, rowHeight);
-        ttsToggleButton.setBounds(x + labelWidth, y, 60, rowHeight);
         y += rowHeight + spacing;
 
         languageLabel.setBounds(x, y, labelWidth, rowHeight);
@@ -1689,7 +1668,6 @@ private:
         helpTextMap[&systemLatencyEditor] = "Total latency of the system (Mixing board & Computer) / Specific Input and Output Latency/Delay can be set in the respective Input and Output settings.";
         helpTextMap[&haasEffectEditor] = "Hass Effect to apply to the system. Will take into account the Latency Compensations (System, Input and Output).";
         helpTextMap[&colorSchemeSelector] = "Select the color scheme: Default (dark gray), Black (pure black for OLED displays), or Light (daytime use).";
-        helpTextMap[&ttsToggleButton] = "Enable or disable screen reader announcements. When enabled, parameter names and values are announced on hover, and help text is read after a few seconds.";
         helpTextMap[&languageSelector] = "Select the user interface language. Changes take full effect after restarting the application.";
         helpTextMap[&selectProjectFolderButton] = "Select the Location of the Current Project Folder where to store files.";
         helpTextMap[&storeCompleteConfigButton] = "Store Complete Configuration to files (with backup).";
@@ -1831,8 +1809,6 @@ private:
     // UI Section
     juce::Label colorSchemeLabel;
     juce::ComboBox colorSchemeSelector;
-    juce::Label ttsLabel;
-    juce::TextButton ttsToggleButton;
     juce::Label languageLabel;
     juce::ComboBox languageSelector;
     juce::StringArray availableLanguages;

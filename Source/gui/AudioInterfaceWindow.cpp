@@ -144,6 +144,7 @@ void DeviceSettingsPanel::resized()
     auto bounds = getLocalBounds().reduced(20);
 
     const int labelWidth = 150;
+    const int comboWidth = 400;  // Limit combo box width
     const int rowHeight = 30;
     const int spacing = 10;
 
@@ -151,7 +152,7 @@ void DeviceSettingsPanel::resized()
     auto row = bounds.removeFromTop(rowHeight);
     deviceTypeLabel.setBounds(row.removeFromLeft(labelWidth));
     row.removeFromLeft(spacing);
-    deviceTypeCombo.setBounds(row);
+    deviceTypeCombo.setBounds(row.removeFromLeft(comboWidth));
 
     bounds.removeFromTop(spacing);
 
@@ -159,7 +160,7 @@ void DeviceSettingsPanel::resized()
     row = bounds.removeFromTop(rowHeight);
     deviceLabel.setBounds(row.removeFromLeft(labelWidth));
     row.removeFromLeft(spacing);
-    deviceCombo.setBounds(row);
+    deviceCombo.setBounds(row.removeFromLeft(comboWidth));
 
     bounds.removeFromTop(spacing);
 
@@ -167,7 +168,7 @@ void DeviceSettingsPanel::resized()
     row = bounds.removeFromTop(rowHeight);
     sampleRateLabel.setBounds(row.removeFromLeft(labelWidth));
     row.removeFromLeft(spacing);
-    sampleRateCombo.setBounds(row);
+    sampleRateCombo.setBounds(row.removeFromLeft(comboWidth));
 
     bounds.removeFromTop(spacing);
 
@@ -175,7 +176,7 @@ void DeviceSettingsPanel::resized()
     row = bounds.removeFromTop(rowHeight);
     bufferSizeLabel.setBounds(row.removeFromLeft(labelWidth));
     row.removeFromLeft(spacing);
-    bufferSizeCombo.setBounds(row);
+    bufferSizeCombo.setBounds(row.removeFromLeft(comboWidth));
 
     bounds.removeFromTop(spacing * 2);
 
@@ -562,10 +563,29 @@ AudioInterfaceContent::AudioInterfaceContent(juce::AudioDeviceManager& devManage
     inputPatchTab = new InputPatchTab(parameters);
     outputPatchTab = new OutputPatchTab(parameters, testSignalGen);
 
+    // Set accessible names for screen readers
+    deviceSettingsPanel->setName("Device Settings");
+    inputPatchTab->setName("Input Patch");
+    outputPatchTab->setName("Output Patch");
+
     // Add tabs to tabbed component
     tabbedComponent.addTab("Device Settings", ColorScheme::get().chromeBackground, deviceSettingsPanel.get(), false);
     tabbedComponent.addTab("Input Patch", ColorScheme::get().chromeBackground, inputPatchTab, true);
     tabbedComponent.addTab("Output Patch", ColorScheme::get().chromeBackground, outputPatchTab, true);
+
+    // Set up tab change callback to give focus to patch matrix and manage test audio
+    tabbedComponent.onTabChanged = [this](int tabIndex)
+    {
+        // Stop test audio when leaving Output Patch tab (but keep settings for quick re-testing)
+        if (tabIndex != 2 && outputPatchTab != nullptr)
+            outputPatchTab->stopTestAudio();
+
+        // Give focus to patch matrix for arrow key navigation
+        if (tabIndex == 1 && inputPatchTab != nullptr)
+            inputPatchTab->grabPatchMatrixFocus();
+        else if (tabIndex == 2 && outputPatchTab != nullptr)
+            outputPatchTab->grabPatchMatrixFocus();
+    };
 }
 
 AudioInterfaceContent::~AudioInterfaceContent()
@@ -637,10 +657,6 @@ AudioInterfaceWindow::AudioInterfaceWindow(juce::AudioDeviceManager& deviceManag
     setContentOwned(newContent, false);
     content = newContent;
 
-    // Window sizing (same pattern as NetworkLogWindow)
-    const int preferredWidth = 900;
-    const int preferredHeight = 700;
-
     // Get display bounds
     auto& displays = juce::Desktop::getInstance().getDisplays();
     const auto* displayPtr = displays.getPrimaryDisplay();
@@ -648,11 +664,11 @@ AudioInterfaceWindow::AudioInterfaceWindow(juce::AudioDeviceManager& deviceManag
         ? displayPtr->userArea
         : displays.getTotalBounds(true);
 
-    const int margin = 40;
-    const int windowWidth = juce::jmin(preferredWidth, userArea.getWidth() - margin);
-    const int windowHeight = juce::jmin(preferredHeight, userArea.getHeight() - margin);
+    // Window sizing: 80% of screen width and height (min 720px height)
+    const int windowWidth = static_cast<int>(userArea.getWidth() * 0.8);
+    const int windowHeight = juce::jmax(720, static_cast<int>(userArea.getHeight() * 0.8));
 
-    setResizeLimits(600, 500, userArea.getWidth(), userArea.getHeight());
+    setResizeLimits(600, 720, userArea.getWidth(), userArea.getHeight());
 
     centreWithSize(windowWidth, windowHeight);
     setVisible(true);

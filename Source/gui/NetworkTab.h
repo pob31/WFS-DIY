@@ -49,7 +49,11 @@ public:
         addAndMakeVisible(networkInterfaceLabel);
         networkInterfaceLabel.setText("Network Interface:", juce::dontSendNotification);
         addAndMakeVisible(networkInterfaceSelector);
-        networkInterfaceSelector.onChange = [this]() { onNetworkInterfaceChanged(); };
+        networkInterfaceSelector.onChange = [this]() {
+            onNetworkInterfaceChanged();
+            // TTS: Announce selection change
+            TTSManager::getInstance().announceValueChange("Network Interface", networkInterfaceSelector.getText());
+        };
 
         addAndMakeVisible(currentIPLabel);
         currentIPLabel.setText("Current IPv4:", juce::dontSendNotification);
@@ -738,6 +742,8 @@ private:
             {
                 parameters.setConfigParam("trackingProtocol", newProtocol);
             }
+            // TTS: Announce selection change
+            TTSManager::getInstance().announceValueChange("Tracking Protocol", trackingProtocolSelector.getText());
         };
 
         // Port
@@ -1047,6 +1053,8 @@ private:
             row.dataModeSelector.setSelectedId(1, juce::dontSendNotification);
             row.dataModeSelector.onChange = [this, i]() {
                 saveTargetToValueTree(i);
+                // TTS: Announce selection change
+                TTSManager::getInstance().announceValueChange("Target " + juce::String(i + 1) + " Data Mode", targetRows[i].dataModeSelector.getText());
             };
 
             // IP editor
@@ -1103,6 +1111,8 @@ private:
                 // Update ADM-OSC appearance when protocol changes
                 updateAdmOscAppearance();
                 saveTargetToValueTree(i);
+                // TTS: Announce selection change
+                TTSManager::getInstance().announceValueChange("Target " + juce::String(i + 1) + " Protocol", targetRows[i].protocolSelector.getText());
             };
 
             // Remove button

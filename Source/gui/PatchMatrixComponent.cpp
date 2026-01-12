@@ -1,6 +1,8 @@
 #include "PatchMatrixComponent.h"
 #include "../Parameters/WFSParameterIDs.h"
 #include "ColorUtilities.h"
+#include "../Accessibility/TTSManager.h"
+#include <cmath>
 
 PatchMatrixComponent::PatchMatrixComponent(WFSValueTreeState& valueTreeState,
                                            bool inputPatch,
@@ -35,8 +37,8 @@ PatchMatrixComponent::PatchMatrixComponent(WFSValueTreeState& valueTreeState,
 
     // Disable mouse activity effects
     setRepaintsOnMouseActivity(false);
-    setMouseClickGrabsKeyboardFocus(false);
-    setWantsKeyboardFocus(false);
+    setMouseClickGrabsKeyboardFocus(true);  // Allow clicking to grab focus for keyboard navigation
+    setWantsKeyboardFocus(true);  // Enable keyboard navigation
 
     // Enable double buffering for smooth scrolling
     setBufferedToImage(true);
@@ -62,15 +64,48 @@ void PatchMatrixComponent::setMode(Mode newMode)
         // Cancel any ongoing operations
         cancelPatchOperation();
 
-        // Stop test signals when leaving testing mode
+        // Stop test audio when leaving testing mode (but keep settings for quick re-testing)
         if (currentMode == Mode::Testing && testSignalGenerator)
         {
-            testSignalGenerator->reset();
+            testSignalGenerator->setOutputChannel(-1);
             activeTestHardwareChannel = -1;
+            spacebarTestActive = false;
         }
 
         currentMode = newMode;
         repaint();
+
+        // TTS: Announce mode change and provide hints
+        juce::String modeAnnouncement;
+        if (newMode == Mode::Patching)
+        {
+            modeAnnouncement = isInputPatch ? "Input patching mode" : "Output patching mode";
+            modeAnnouncement += ". Drag to create patches.";
+        }
+        else if (newMode == Mode::Testing && !isInputPatch)
+        {
+            modeAnnouncement = "Output testing mode. Click a patched cell to test.";
+
+            // Hint about test signal settings if not configured
+            if (testSignalGenerator)
+            {
+                auto signalType = testSignalGenerator->getSignalType();
+                float levelDb = testSignalGenerator->getLevelDb();
+
+                if (signalType == TestSignalGenerator::SignalType::Off)
+                    modeAnnouncement += " Warning: Test signal is OFF. Select a signal type.";
+                else if (levelDb <= -92.0f)
+                    modeAnnouncement += " Warning: Test level is very low.";
+            }
+        }
+        else if (newMode == Mode::Scrolling)
+        {
+            modeAnnouncement = "Scrolling mode.";
+        }
+
+        if (modeAnnouncement.isNotEmpty())
+            TTSManager::getInstance().announceImmediate(modeAnnouncement,
+                juce::AccessibilityHandler::AnnouncementPriority::medium);
     }
 }
 
@@ -168,6 +203,7 @@ void PatchMatrixComponent::setProcessingStateChanged(bool isProcessing)
     {
         testSignalGenerator->reset();
         activeTestHardwareChannel = -1;
+        spacebarTestActive = false;
     }
 }
 
@@ -178,6 +214,7 @@ void PatchMatrixComponent::clearActiveTestChannel()
         testSignalGenerator->setOutputChannel(-1);
     }
     activeTestHardwareChannel = -1;
+    spacebarTestActive = false;
     repaint();
 }
 
@@ -346,12 +383,102 @@ void PatchMatrixComponent::mouseMove(const juce::MouseEvent& e)
     {
         hoveredCell = newHoveredCell;
         repaint();
+
+        // TTS: Announce cell info for accessibility (in patching or testing mode)
+        if (hoveredCell.x >= 0 && hoveredCell.y >= 0 &&
+            (currentMode == Mode::Patching || currentMode == Mode::Testing))
+        {
+            int wfsChannel = hoveredCell.y;  // Row = WFS channel
+            int hwChannel = hoveredCell.x;   // Column = hardware channel
+
+            // Get WFS channel name
+            juce::String channelName;
+            juce::String channelType = isInputPatch ? "Input" : "Output";
+
+            if (isInputPatch)
+            {
+                auto inputsTree = parameters.getState().getChildWithName(WFSParameterIDs::Inputs);
+                if (wfsChannel < inputsTree.getNumChildren())
+                {
+                    auto inputTree = inputsTree.getChild(wfsChannel);
+                    auto channelTree = inputTree.getChildWithName(WFSParameterIDs::Channel);
+                    if (channelTree.isValid())
+                        channelName = channelTree.getProperty(WFSParameterIDs::inputName).toString();
+                }
+            }
+            else
+            {
+                auto outputsTree = parameters.getState().getChildWithName(WFSParameterIDs::Outputs);
+                if (wfsChannel < outputsTree.getNumChildren())
+                {
+                    auto outputTree = outputsTree.getChild(wfsChannel);
+                    auto channelTree = outputTree.getChildWithName(WFSParameterIDs::Channel);
+                    if (channelTree.isValid())
+                        channelName = channelTree.getProperty(WFSParameterIDs::outputName).toString();
+                }
+            }
+
+            // Build announcement based on mode
+            juce::String announcement;
+
+            if (currentMode == Mode::Testing)
+            {
+                // Testing mode: announce what would be tested
+                if (isPatchActive(wfsChannel, hwChannel))
+                {
+                    announcement = "Test " + channelType + " " + juce::String(wfsChannel + 1);
+                    if (channelName.isNotEmpty())
+                        announcement += ", " + channelName;
+                    announcement += " on audio interface channel " + juce::String(hwChannel + 1);
+                }
+                else
+                {
+                    // Not patched - can't test
+                    announcement = channelType + " " + juce::String(wfsChannel + 1) +
+                                   " not patched to channel " + juce::String(hwChannel + 1);
+                }
+            }
+            else if (currentMode == Mode::Patching)
+            {
+                // Patching mode: announce current status and action
+                int existingHwChannel = getHardwareChannelForWFS(wfsChannel);
+
+                if (existingHwChannel == hwChannel)
+                {
+                    // Already patched here
+                    announcement = channelType + " " + juce::String(wfsChannel + 1);
+                    if (channelName.isNotEmpty())
+                        announcement += ", " + channelName;
+                    announcement += " patched to audio interface channel " + juce::String(hwChannel + 1);
+                }
+                else if (existingHwChannel >= 0)
+                {
+                    // Patched elsewhere
+                    announcement = channelType + " " + juce::String(wfsChannel + 1);
+                    if (channelName.isNotEmpty())
+                        announcement += ", " + channelName;
+                    announcement += " currently patched to channel " + juce::String(existingHwChannel + 1);
+                }
+                else
+                {
+                    // Not patched - prompt to patch
+                    announcement = "Patch " + channelType + " " + juce::String(wfsChannel + 1);
+                    if (channelName.isNotEmpty())
+                        announcement += ", " + channelName;
+                    announcement += " to audio interface channel " + juce::String(hwChannel + 1);
+                }
+            }
+
+            if (announcement.isNotEmpty())
+                TTSManager::getInstance().announceDebounced(announcement);
+        }
     }
 }
 
 void PatchMatrixComponent::mouseExit(const juce::MouseEvent&)
 {
     hoveredCell = {-1, -1};
+    TTSManager::getInstance().cancelDebouncedAnnouncement();
     repaint();
 }
 
@@ -747,12 +874,79 @@ void PatchMatrixComponent::drawCell(juce::Graphics& g, int row, int col,
         g.fillRect(bounds);
     }
 
-    // Active test highlight (in testing mode) - highlight the patch that's being tested
+    // Active test highlight (in testing mode) - color based on signal type
     if (!isInputPatch && currentMode == Mode::Testing &&
-        isPatched && col == activeTestHardwareChannel)
+        isPatched && col == activeTestHardwareChannel && testSignalGenerator)
     {
-        g.setColour(juce::Colours::green.withAlpha(0.5f));
-        g.drawRect(bounds, 3);  // Thick border for emphasis
+        auto signalType = testSignalGenerator->getSignalType();
+
+        switch (signalType)
+        {
+            case TestSignalGenerator::SignalType::PinkNoise:
+                // Pink color for pink noise
+                g.setColour(juce::Colour(0xFFFF69B4));  // Hot pink
+                g.fillRect(bounds);
+                break;
+
+            case TestSignalGenerator::SignalType::Tone:
+            {
+                // Map frequency (20-20000 Hz) to hue (log scale)
+                // Purple (0.8) for low frequencies, red (0) for high frequencies
+                // Matches the frequency slider color
+                float freq = testSignalGenerator->getFrequency();
+                float logFreq = std::log10(juce::jlimit(20.0f, 20000.0f, freq));
+                float minLog = std::log10(20.0f);
+                float maxLog = std::log10(20000.0f);
+                float t = (logFreq - minLog) / (maxLog - minLog);  // 0 = low freq, 1 = high freq
+                float hue = 0.8f * (1.0f - t);  // Purple (0.8) at low, red (0) at high
+                g.setColour(juce::Colour::fromHSV(hue, 0.8f, 0.9f, 1.0f));
+                g.fillRect(bounds);
+                break;
+            }
+
+            case TestSignalGenerator::SignalType::Sweep:
+            {
+                // Rainbow gradient for sweep (purple/low freq to red/high freq)
+                // Draw pixel-by-pixel gradient horizontally
+                for (int x = bounds.getX(); x < bounds.getRight(); ++x)
+                {
+                    float t = static_cast<float>(x - bounds.getX()) / static_cast<float>(bounds.getWidth());
+                    // Purple (0.8) on left to red (0.0) on right
+                    float hue = 0.8f * (1.0f - t);
+                    g.setColour(juce::Colour::fromHSV(hue, 0.8f, 0.9f, 1.0f));
+                    g.drawVerticalLine(x, static_cast<float>(bounds.getY()), static_cast<float>(bounds.getBottom()));
+                }
+                break;
+            }
+
+            case TestSignalGenerator::SignalType::DiracPulse:
+                // White square for pulse
+                g.setColour(juce::Colours::white);
+                g.fillRect(bounds);
+                break;
+
+            default:
+                // Fallback green for unknown types
+                g.setColour(juce::Colours::green);
+                g.fillRect(bounds);
+                break;
+        }
+
+        // Draw bold black channel number on top of all test signal colors
+        g.setColour(juce::Colours::black);
+        g.setFont(juce::FontOptions(14.0f).withStyle("Bold"));
+        g.drawText(juce::String(col + 1), bounds, juce::Justification::centred);
+    }
+
+    // Keyboard selection highlight (bold contrasting border)
+    if (keyboardNavigationActive && selectedCell.x == col && selectedCell.y == row)
+    {
+        // Draw thick white border for high visibility
+        g.setColour(juce::Colours::white);
+        g.drawRect(bounds.reduced(1), 2);
+        // Draw inner black border for contrast on light backgrounds
+        g.setColour(juce::Colours::black);
+        g.drawRect(bounds.reduced(3), 1);
     }
 
     // Draw grid lines
@@ -918,20 +1112,394 @@ void PatchMatrixComponent::handleTestClick(int hardwareChannel)
     if (!testSignalGenerator || hardwareChannel < 0 || hardwareChannel >= numHardwareChannels)
         return;
 
+    // Block testing when signal type is Off - no visual feedback, just status message
+    if (testSignalGenerator->getSignalType() == TestSignalGenerator::SignalType::Off)
+    {
+        if (onStatusMessage)
+            onStatusMessage("Choose a Test Signal to Enable Testing");
+        return;
+    }
+
     // Toggle behavior: if clicking on already-active channel, stop the test signal
     if (hardwareChannel == activeTestHardwareChannel)
     {
         testSignalGenerator->setOutputChannel(-1);
         activeTestHardwareChannel = -1;
         repaint();
+
+        // TTS: Announce test stopped
+        TTSManager::getInstance().announceImmediate("Test stopped",
+            juce::AccessibilityHandler::AnnouncementPriority::medium);
         return;
     }
 
     // Set test signal to this channel
-    // User must manually select signal type and level from control panel for safety
     testSignalGenerator->setOutputChannel(hardwareChannel);
 
     // Track active channel for highlighting
     activeTestHardwareChannel = hardwareChannel;
     repaint();
+
+    // TTS: Announce test started
+    juce::String announcement = "Testing audio interface channel " + juce::String(hardwareChannel + 1);
+    TTSManager::getInstance().announceImmediate(announcement,
+        juce::AccessibilityHandler::AnnouncementPriority::medium);
+}
+
+// ============================================================================
+// Keyboard Navigation for Accessibility
+// ============================================================================
+
+bool PatchMatrixComponent::keyPressed(const juce::KeyPress& key)
+{
+    bool handled = false;
+    juce::Point<int> newCell = selectedCell;
+
+    // Check if this is an arrow key
+    bool isArrowKey = (key == juce::KeyPress::leftKey || key == juce::KeyPress::rightKey ||
+                       key == juce::KeyPress::upKey || key == juce::KeyPress::downKey);
+
+    // Arrow key navigation:
+    // - First press (not yet navigating): go to top-left corner (0,0)
+    // - Subsequent presses: move one cell at a time
+    if (isArrowKey)
+    {
+        if (!keyboardNavigationActive || selectedCell.x < 0 || selectedCell.y < 0)
+        {
+            // First press - go to top-left corner
+            newCell = {0, 0};
+            handled = true;
+        }
+        else
+        {
+            // Already navigating - move one cell at a time
+            if (key == juce::KeyPress::leftKey)
+            {
+                newCell.x = juce::jmax(0, selectedCell.x - 1);
+                handled = true;
+            }
+            else if (key == juce::KeyPress::rightKey)
+            {
+                newCell.x = juce::jmin(numHardwareChannels - 1, selectedCell.x + 1);
+                handled = true;
+            }
+            else if (key == juce::KeyPress::upKey)
+            {
+                newCell.y = juce::jmax(0, selectedCell.y - 1);
+                handled = true;
+            }
+            else if (key == juce::KeyPress::downKey)
+            {
+                newCell.y = juce::jmin(numWFSChannels - 1, selectedCell.y + 1);
+                handled = true;
+            }
+        }
+    }
+    // Space bar or Enter activates the cell (patch/unpatch or test) - only in Patch/Test mode
+    else if ((key == juce::KeyPress::spaceKey || key == juce::KeyPress::returnKey) &&
+             currentMode != Mode::Scrolling && keyboardNavigationActive)
+    {
+        // Special handling for spacebar in Testing mode without Hold
+        if (key == juce::KeyPress::spaceKey && currentMode == Mode::Testing &&
+            !isInputPatch && testSignalGenerator && !testSignalGenerator->isHoldEnabled())
+        {
+            // Hold is OFF: start test on press, will stop on release
+            int hwChannel = selectedCell.x;
+            int wfsChannel = selectedCell.y;
+
+            if (isPatchActive(wfsChannel, hwChannel))
+            {
+                // Block if signal type is Off
+                if (testSignalGenerator->getSignalType() == TestSignalGenerator::SignalType::Off)
+                {
+                    if (onStatusMessage)
+                        onStatusMessage("Choose a Test Signal to Enable Testing");
+                    return true;
+                }
+
+                // Start test signal
+                testSignalGenerator->setOutputChannel(hwChannel);
+                activeTestHardwareChannel = hwChannel;
+                spacebarTestActive = true;
+                repaint();
+
+                juce::String announcement = "Testing audio interface channel " + juce::String(hwChannel + 1);
+                TTSManager::getInstance().announceImmediate(announcement,
+                    juce::AccessibilityHandler::AnnouncementPriority::medium);
+            }
+            else
+            {
+                TTSManager::getInstance().announceImmediate("Cannot test - not patched here",
+                    juce::AccessibilityHandler::AnnouncementPriority::medium);
+            }
+            return true;
+        }
+
+        // Normal activation (Patching mode, or Testing with Hold ON, or Enter key)
+        handleCellActivation(selectedCell);
+        return true;
+    }
+    // Page navigation - move by 10 cells
+    else if (key == juce::KeyPress::pageUpKey)
+    {
+        newCell.y = juce::jmax(0, selectedCell.y - 10);
+        handled = true;
+    }
+    else if (key == juce::KeyPress::pageDownKey)
+    {
+        newCell.y = juce::jmin(numWFSChannels - 1, selectedCell.y + 10);
+        handled = true;
+    }
+    else if (key == juce::KeyPress::homeKey)
+    {
+        newCell = {0, 0};
+        handled = true;
+    }
+    else if (key == juce::KeyPress::endKey)
+    {
+        newCell = {numHardwareChannels - 1, numWFSChannels - 1};
+        handled = true;
+    }
+
+    // Update selection if moved
+    if (handled && newCell != selectedCell)
+    {
+        selectedCell = newCell;
+        keyboardNavigationActive = true;
+        scrollToMakeVisible(selectedCell);
+        announceSelectedCell();
+        repaint();
+    }
+
+    return handled;
+}
+
+bool PatchMatrixComponent::keyStateChanged(bool isKeyDown)
+{
+    // Handle spacebar release to stop test signal when Hold is off
+    if (!isKeyDown && spacebarTestActive)
+    {
+        // Check if spacebar is released
+        if (!juce::KeyPress::isKeyCurrentlyDown(juce::KeyPress::spaceKey))
+        {
+            // Stop test signal
+            if (testSignalGenerator)
+                testSignalGenerator->setOutputChannel(-1);
+
+            activeTestHardwareChannel = -1;
+            spacebarTestActive = false;
+            repaint();
+
+            TTSManager::getInstance().announceImmediate("Test stopped",
+                juce::AccessibilityHandler::AnnouncementPriority::medium);
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void PatchMatrixComponent::focusGained(FocusChangeType)
+{
+    // Announce mode when gaining focus
+    juce::String modeStr;
+    if (currentMode == Mode::Patching)
+    {
+        modeStr = isInputPatch ? "Input patch matrix" : "Output patch matrix";
+        modeStr += ". Use arrows to navigate, space to patch.";
+    }
+    else if (currentMode == Mode::Testing)
+    {
+        modeStr = "Output test matrix";
+        modeStr += ". Use arrows to navigate, space to test.";
+    }
+    else
+    {
+        modeStr = "Patch matrix, scroll mode";
+        modeStr += ". Use arrows to navigate.";
+    }
+
+    TTSManager::getInstance().announceImmediate(modeStr,
+        juce::AccessibilityHandler::AnnouncementPriority::medium);
+
+    // Don't activate keyboard navigation until they actually press an arrow
+    repaint();
+}
+
+void PatchMatrixComponent::focusLost(FocusChangeType)
+{
+    // Keep keyboardNavigationActive and selectedCell so navigation resumes
+    // from the same position when focus returns (e.g., after clicking a mode button)
+    repaint();
+}
+
+void PatchMatrixComponent::scrollToMakeVisible(juce::Point<int> cell)
+{
+    if (cell.x < 0 || cell.y < 0)
+        return;
+
+    auto matrixArea = getLocalBounds();
+    matrixArea.removeFromTop(headerHeight);
+    matrixArea.removeFromLeft(rowHeaderWidth);
+    matrixArea.removeFromRight(scrollBarThickness);
+    matrixArea.removeFromBottom(scrollBarThickness);
+
+    int visibleCols = matrixArea.getWidth() / cellWidth;
+    int visibleRows = matrixArea.getHeight() / cellHeight;
+
+    // Calculate which cell indices are currently visible
+    int firstVisibleCol = scrollOffsetX / cellWidth;
+    int lastVisibleCol = firstVisibleCol + visibleCols - 1;
+    int firstVisibleRow = scrollOffsetY / cellHeight;
+    int lastVisibleRow = firstVisibleRow + visibleRows - 1;
+
+    // Scroll horizontally if needed
+    if (cell.x < firstVisibleCol)
+        scrollOffsetX = cell.x * cellWidth;
+    else if (cell.x > lastVisibleCol)
+        scrollOffsetX = (cell.x - visibleCols + 1) * cellWidth;
+
+    // Scroll vertically if needed
+    if (cell.y < firstVisibleRow)
+        scrollOffsetY = cell.y * cellHeight;
+    else if (cell.y > lastVisibleRow)
+        scrollOffsetY = (cell.y - visibleRows + 1) * cellHeight;
+
+    // Clamp scroll positions
+    scrollOffsetX = juce::jlimit(0, maxScrollX, scrollOffsetX);
+    scrollOffsetY = juce::jlimit(0, maxScrollY, scrollOffsetY);
+
+    updateScrollBars();
+}
+
+void PatchMatrixComponent::announceSelectedCell()
+{
+    if (selectedCell.x < 0 || selectedCell.y < 0)
+        return;
+
+    int wfsChannel = selectedCell.y;
+    int hwChannel = selectedCell.x;
+
+    // Get WFS channel name
+    juce::String channelName;
+    juce::String channelType = isInputPatch ? "Input" : "Output";
+
+    if (isInputPatch)
+    {
+        auto inputsTree = parameters.getState().getChildWithName(WFSParameterIDs::Inputs);
+        if (wfsChannel < inputsTree.getNumChildren())
+        {
+            auto inputTree = inputsTree.getChild(wfsChannel);
+            auto channelTree = inputTree.getChildWithName(WFSParameterIDs::Channel);
+            if (channelTree.isValid())
+                channelName = channelTree.getProperty(WFSParameterIDs::inputName).toString();
+        }
+    }
+    else
+    {
+        auto outputsTree = parameters.getState().getChildWithName(WFSParameterIDs::Outputs);
+        if (wfsChannel < outputsTree.getNumChildren())
+        {
+            auto outputTree = outputsTree.getChild(wfsChannel);
+            auto channelTree = outputTree.getChildWithName(WFSParameterIDs::Channel);
+            if (channelTree.isValid())
+                channelName = channelTree.getProperty(WFSParameterIDs::outputName).toString();
+        }
+    }
+
+    // Build announcement
+    juce::String announcement = channelType + " " + juce::String(wfsChannel + 1);
+    if (channelName.isNotEmpty())
+        announcement += ", " + channelName;
+    announcement += ", interface channel " + juce::String(hwChannel + 1);
+
+    // Add patch status
+    if (isPatchActive(wfsChannel, hwChannel))
+        announcement += ", patched";
+    else
+    {
+        int existingHw = getHardwareChannelForWFS(wfsChannel);
+        if (existingHw >= 0)
+            announcement += ", patched elsewhere to " + juce::String(existingHw + 1);
+        else
+            announcement += ", not patched";
+    }
+
+    TTSManager::getInstance().announceImmediate(announcement,
+        juce::AccessibilityHandler::AnnouncementPriority::medium);
+}
+
+void PatchMatrixComponent::handleCellActivation(juce::Point<int> cell)
+{
+    if (cell.x < 0 || cell.y < 0)
+        return;
+
+    int wfsChannel = cell.y;
+    int hwChannel = cell.x;
+
+    if (currentMode == Mode::Testing && !isInputPatch)
+    {
+        // Testing mode: test if patched
+        if (isPatchActive(wfsChannel, hwChannel))
+        {
+            handleTestClick(hwChannel);
+        }
+        else
+        {
+            TTSManager::getInstance().announceImmediate("Cannot test - not patched here",
+                juce::AccessibilityHandler::AnnouncementPriority::medium);
+        }
+    }
+    else if (currentMode == Mode::Patching)
+    {
+        // Patching mode: toggle patch
+        if (isPatchActive(wfsChannel, hwChannel))
+        {
+            // Remove this patch
+            patches.erase(std::remove_if(patches.begin(), patches.end(),
+                [wfsChannel, hwChannel](const PatchPoint& p) {
+                    return p.wfsChannel == wfsChannel && p.hardwareChannel == hwChannel;
+                }), patches.end());
+            savePatchesToValueTree();
+            repaint();
+
+            juce::String channelType = isInputPatch ? "Input" : "Output";
+            TTSManager::getInstance().announceImmediate(
+                channelType + " " + juce::String(wfsChannel + 1) + " unpatched",
+                juce::AccessibilityHandler::AnnouncementPriority::medium);
+        }
+        else
+        {
+            // Check if this WFS channel is already patched elsewhere
+            int existingHw = getHardwareChannelForWFS(wfsChannel);
+            if (existingHw >= 0)
+            {
+                // Remove existing patch first
+                patches.erase(std::remove_if(patches.begin(), patches.end(),
+                    [wfsChannel](const PatchPoint& p) {
+                        return p.wfsChannel == wfsChannel;
+                    }), patches.end());
+            }
+
+            // Check if another WFS channel is patched to this hardware channel
+            for (auto it = patches.begin(); it != patches.end();)
+            {
+                if (it->hardwareChannel == hwChannel)
+                    it = patches.erase(it);
+                else
+                    ++it;
+            }
+
+            // Add new patch
+            patches.push_back({wfsChannel, hwChannel});
+            savePatchesToValueTree();
+            repaint();
+
+            juce::String channelType = isInputPatch ? "Input" : "Output";
+            TTSManager::getInstance().announceImmediate(
+                channelType + " " + juce::String(wfsChannel + 1) + " patched to interface channel " + juce::String(hwChannel + 1),
+                juce::AccessibilityHandler::AnnouncementPriority::medium);
+        }
+    }
 }

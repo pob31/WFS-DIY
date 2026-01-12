@@ -77,6 +77,11 @@ public:
     float getLevelDb() const;
 
     /**
+     * Get current frequency for Tone mode (Hz)
+     */
+    float getFrequency() const { return frequency; }
+
+    /**
      * Check if hold mode is enabled
      */
     bool isHoldEnabled() const { return holdEnabled.load(); }

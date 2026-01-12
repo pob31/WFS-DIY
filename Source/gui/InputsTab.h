@@ -324,6 +324,8 @@ public:
             {
                 saveInputParam(WFSParameterIDs::inputCluster, newCluster);
             }
+            // TTS: Announce selection change
+            TTSManager::getInstance().announceValueChange("Cluster", clusterSelector.getText());
         };
 
         // Map lock button
@@ -690,6 +692,15 @@ private:
     {
         layoutCurrentSubTab();
         repaint();
+
+        // TTS: Announce subtab change for accessibility
+        int tabIndex = subTabBar.getCurrentTabIndex();
+        if (tabIndex >= 0 && tabIndex < subTabBar.getNumTabs())
+        {
+            juce::String tabName = subTabBar.getTabButton(tabIndex)->getButtonText();
+            TTSManager::getInstance().announceImmediate(tabName + " tab",
+                juce::AccessibilityHandler::AnnouncementPriority::medium);
+        }
     }
 
     // ==================== SETUP METHODS ====================
@@ -761,6 +772,8 @@ private:
             // Snap to distance constraint if enabled in non-Cartesian mode
             if (mode != 0 && constraintDistanceButton.getToggleState())
                 applyDistanceConstraintSnap();
+            // TTS: Announce selection change
+            TTSManager::getInstance().announceValueChange("Coordinate Mode", coordModeSelector.getText());
         };
 
         // Position X
@@ -1002,6 +1015,8 @@ private:
         trackingIdSelector.setSelectedId(1, juce::dontSendNotification);
         trackingIdSelector.onChange = [this]() {
             saveInputParam(WFSParameterIDs::inputTrackingID, trackingIdSelector.getSelectedId());
+            // TTS: Announce selection change
+            TTSManager::getInstance().announceValueChange("Tracking ID", trackingIdSelector.getText());
         };
 
         // Tracking Smoothing dial (0-100%)
@@ -1431,6 +1446,8 @@ private:
         lsShapeSelector.setSelectedId(1, juce::dontSendNotification);
         lsShapeSelector.onChange = [this]() {
             saveInputParam(WFSParameterIDs::inputLSshape, lsShapeSelector.getSelectedId() - 1);
+            // TTS: Announce selection change
+            TTSManager::getInstance().announceValueChange("Live Source Shape", lsShapeSelector.getText());
         };
 
         // Attenuation slider
@@ -1729,6 +1746,8 @@ private:
         lfoShapeXSelector.onChange = [this]() {
             saveInputParam(WFSParameterIDs::inputLFOshapeX, lfoShapeXSelector.getSelectedId() - 1);
             updateLfoAlpha();
+            // TTS: Announce selection change
+            TTSManager::getInstance().announceValueChange("LFO Shape X", lfoShapeXSelector.getText());
         };
 
         addAndMakeVisible(lfoShapeYLabel);
@@ -1740,6 +1759,8 @@ private:
         lfoShapeYSelector.onChange = [this]() {
             saveInputParam(WFSParameterIDs::inputLFOshapeY, lfoShapeYSelector.getSelectedId() - 1);
             updateLfoAlpha();
+            // TTS: Announce selection change
+            TTSManager::getInstance().announceValueChange("LFO Shape Y", lfoShapeYSelector.getText());
         };
 
         addAndMakeVisible(lfoShapeZLabel);
@@ -1751,6 +1772,8 @@ private:
         lfoShapeZSelector.onChange = [this]() {
             saveInputParam(WFSParameterIDs::inputLFOshapeZ, lfoShapeZSelector.getSelectedId() - 1);
             updateLfoAlpha();
+            // TTS: Announce selection change
+            TTSManager::getInstance().announceValueChange("LFO Shape Z", lfoShapeZSelector.getText());
         };
 
         // Rate X/Y/Z sliders (0.01-100, formula: pow(10.0,(x*4.0)-2.0))
@@ -1901,6 +1924,8 @@ private:
         lfoGyrophoneSelector.setSelectedId(2, juce::dontSendNotification);
         lfoGyrophoneSelector.onChange = [this]() {
             saveInputParam(WFSParameterIDs::inputLFOgyrophone, lfoGyrophoneSelector.getSelectedId() - 2);
+            // TTS: Announce selection change
+            TTSManager::getInstance().announceValueChange("Gyrophone", lfoGyrophoneSelector.getText());
         };
 
         // Jitter slider
@@ -2207,6 +2232,8 @@ private:
             int macroId = muteMacrosSelector.getSelectedId();
             if (macroId > 1)
             {
+                // TTS: Announce macro applied (before resetting selector)
+                TTSManager::getInstance().announceValueChange("Mute Macro", muteMacrosSelector.getText() + " applied");
                 applyMuteMacro(macroId);
                 saveMuteStates();
                 saveInputParam(WFSParameterIDs::inputMuteMacro, macroId);

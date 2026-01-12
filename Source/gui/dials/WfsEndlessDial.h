@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include <cmath>
 #include "../ColorScheme.h"
+#include "../../Accessibility/TTSManager.h"
 
 class WfsEndlessDial : public juce::Component
 {
@@ -37,6 +38,14 @@ public:
             angleDegrees = degrees;
             if (onAngleChanged)
                 onAngleChanged(angleDegrees);
+
+            // TTS: Announce angle change for accessibility
+            if (ttsParameterName.isNotEmpty())
+            {
+                juce::String valueStr = juce::String(static_cast<int>(angleDegrees)) + " degrees";
+                TTSManager::getInstance().announceValueChange(ttsParameterName, valueStr);
+            }
+
             repaint();
         }
     }
@@ -52,6 +61,12 @@ public:
     }
 
     std::function<void(float)> onAngleChanged;
+
+    /** Set parameter name for TTS announcements (e.g., "Directivity Rotation") */
+    void setTTSParameterName(const juce::String& name) { ttsParameterName = name; }
+
+    /** Configure TTS - unit is automatically "degrees" for rotation dials */
+    void setTTSInfo(const juce::String& name) { ttsParameterName = name; }
 
 private:
     void paint(juce::Graphics& g) override
@@ -128,6 +143,9 @@ private:
 
     float angleDegrees = 0.0f;
     float dragSensitivity = 1.0f;
+
+    // TTS accessibility
+    juce::String ttsParameterName;
     juce::Colour backgroundColour { juce::Colours::black };
     juce::Colour indicatorColour { juce::Colours::white };
 

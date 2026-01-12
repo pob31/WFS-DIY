@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "PatchMatrixComponent.h"
+#include "sliders/WfsStandardSlider.h"
 #include "../WfsParameters.h"
 #include "../DSP/TestSignalGenerator.h"
 
@@ -66,6 +67,9 @@ public:
     /** Reset mode to scrolling (called when leaving tab or window) */
     void resetMode();
 
+    /** Give keyboard focus to the patch matrix for arrow key navigation */
+    void grabPatchMatrixFocus();
+
 private:
     WFSValueTreeState& parameters;
 
@@ -88,14 +92,15 @@ private:
  * OutputPatchTab
  *
  * Tab for output patch matrix with Scrolling, Patching, and Testing modes.
- * Includes test signal control panel for testing mode.
+ * Test signal controls appear inline in the button bar when in Testing mode.
  */
-class OutputPatchTab : public juce::Component
+class OutputPatchTab : public juce::Component,
+                       private juce::Timer
 {
 public:
     OutputPatchTab(WFSValueTreeState& valueTreeState,
                    TestSignalGenerator* testSignalGen);
-    ~OutputPatchTab() override = default;
+    ~OutputPatchTab() override { stopTimer(); }
 
     void resized() override;
     void paint(juce::Graphics& g) override;
@@ -105,6 +110,15 @@ public:
 
     /** Reset mode to scrolling (called when leaving tab or window) */
     void resetMode();
+
+    /** Give keyboard focus to the patch matrix for arrow key navigation */
+    void grabPatchMatrixFocus();
+
+    /** Stop test audio without resetting settings (for tab switching) */
+    void stopTestAudio();
+
+    /** Callback for status bar messages */
+    std::function<void(const juce::String&)> onStatusMessage;
 
 private:
     WFSValueTreeState& parameters;
@@ -119,11 +133,30 @@ private:
     // Patch matrix
     std::unique_ptr<PatchMatrixComponent> patchMatrix;
 
-    // Test signal controls
-    std::unique_ptr<TestSignalControlPanel> testControlPanel;
+    // Inline test signal controls (shown when in Testing mode)
+    juce::ComboBox signalTypeCombo;
+    juce::TextButton holdButton{"Hold"};
+    WfsStandardSlider levelSlider;
+    juce::Label levelValueLabel;
+    WfsStandardSlider frequencySlider;  // For Tone mode (after level)
+    juce::Label frequencyValueLabel;
+
+    // Status message label (shown briefly when action blocked)
+    juce::Label statusMessageLabel;
+    void showTemporaryMessage(const juce::String& msg);
+    void timerCallback() override;
 
     void setMode(PatchMatrixComponent::Mode mode);
     void handleUnpatchAll();
+    void applyTestSettings();
+    void updateTestControlsVisibility(bool visible);
+    void updateTestControlsEnabledState();
+    void updateFrequencyVisibility();
+    void updateFrequencySliderColor();
+    float sliderValueToDb(float sliderValue) const;
+    float dbToSliderValue(float dB) const;
+    float sliderValueToFrequency(float sliderValue) const;
+    float frequencyToSliderValue(float freq) const;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OutputPatchTab)
     JUCE_DECLARE_WEAK_REFERENCEABLE(OutputPatchTab)

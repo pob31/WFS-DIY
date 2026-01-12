@@ -269,6 +269,7 @@ public:
         setResizable(true, true);
 
         content = std::make_unique<OutputArrayHelperContent>(params);
+        content->setName("Output Array Helper");  // Accessible name for screen readers
         setContentOwned(content.get(), false);
 
         // Set size with display awareness

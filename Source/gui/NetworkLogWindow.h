@@ -160,6 +160,7 @@ public:
 
         // Create content
         auto* content = new NetworkLogWindowContent(logger, oscManager, projectFolder);
+        content->setName("Network Log");  // Accessible name for screen readers
         setContentOwned(content, false);
 
         // Window size

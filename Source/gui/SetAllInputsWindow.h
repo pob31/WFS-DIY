@@ -827,6 +827,7 @@ public:
 
         content = std::make_unique<SetAllInputsContent>(params);
         content->onCloseRequested = [this]() { closeButtonPressed(); };
+        content->setName("Set All Inputs");  // Accessible name for screen readers
         setContentOwned(content.release(), false);
 
         centreWithSize(370, 880);
