@@ -11,6 +11,7 @@
 #include "DSP/TestSignalGenerator.h"
 // #include "DSP/GpuInputBufferAlgorithm.h"  // Commented out - GPU Audio SDK not configured
 #include "WfsParameters.h"
+#include "Accessibility/TTSManager.h"
 #include "gui/StatusBar.h"
 #include "gui/SystemConfigTab.h"
 #include "gui/NetworkTab.h"
@@ -24,6 +25,27 @@
 #include "gui/ColorScheme.h"
 #include "gui/WfsLookAndFeel.h"
 #include "Network/OSCManager.h"
+
+//==============================================================================
+/**
+ * Custom TabbedComponent that announces tab changes for screen reader accessibility
+ */
+class AccessibleTabbedComponent : public juce::TabbedComponent
+{
+public:
+    AccessibleTabbedComponent(juce::TabbedButtonBar::Orientation orientation)
+        : juce::TabbedComponent(orientation) {}
+
+    void currentTabChanged(int newCurrentTabIndex, const juce::String& newCurrentTabName) override
+    {
+        juce::TabbedComponent::currentTabChanged(newCurrentTabIndex, newCurrentTabName);
+
+        // Announce tab change for screen readers
+        TTSManager::getInstance().announceImmediate(
+            newCurrentTabName + " tab",
+            juce::AccessibilityHandler::AnnouncementPriority::medium);
+    }
+};
 
 //==============================================================================
 /*
@@ -85,7 +107,7 @@ private:
     juce::ComboBox algorithmSelector;
 
     // Main tabbed interface with status bar
-    juce::TabbedComponent tabbedComponent { juce::TabbedButtonBar::TabsAtTop };
+    AccessibleTabbedComponent tabbedComponent { juce::TabbedButtonBar::TabsAtTop };
     StatusBar* statusBar = nullptr;  // Owned by container component
     SystemConfigTab* systemConfigTab = nullptr;  // Owned by TabbedComponent
     NetworkTab* networkTab = nullptr;
