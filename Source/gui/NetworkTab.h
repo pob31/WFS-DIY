@@ -1665,7 +1665,10 @@ private:
         if (helpText.isNotEmpty())
         {
             statusBar->setHelpText(helpText);
-            TTSManager::getInstance().onComponentEnter("", "", helpText);
+            // TTS: Announce parameter name and current value for accessibility
+            juce::String paramName = TTSManager::extractParameterName(helpText);
+            juce::String currentValue = TTSManager::getComponentValue(source);
+            TTSManager::getInstance().onComponentEnter(paramName, currentValue, helpText);
         }
     }
 

@@ -1950,8 +1950,10 @@ private:
                 if (oscMethodMap.find(component) != oscMethodMap.end())
                     statusBar->setOscMethod(oscMethodMap[component]);
 
-                // TTS: Announce help text for accessibility
-                TTSManager::getInstance().onComponentEnter("", "", helpText);
+                // TTS: Announce parameter name and current value for accessibility
+                juce::String paramName = TTSManager::extractParameterName(helpText);
+                juce::String currentValue = TTSManager::getComponentValue(component);
+                TTSManager::getInstance().onComponentEnter(paramName, currentValue, helpText);
                 return;
             }
             component = component->getParentComponent();

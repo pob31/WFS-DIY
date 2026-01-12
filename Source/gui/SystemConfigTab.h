@@ -1727,8 +1727,10 @@ private:
                 const auto& helpText = helpTextMap[component];
                 statusBar->setHelpText(helpText);
 
-                // TTS: Announce help text for accessibility
-                TTSManager::getInstance().onComponentEnter("", "", helpText);
+                // TTS: Announce parameter name and current value for accessibility
+                juce::String paramName = TTSManager::extractParameterName(helpText);
+                juce::String currentValue = TTSManager::getComponentValue(component);
+                TTSManager::getInstance().onComponentEnter(paramName, currentValue, helpText);
                 return;
             }
             component = component->getParentComponent();

@@ -169,6 +169,70 @@ public:
     }
 
     //==========================================================================
+    // Component Value Extraction Helpers
+    //==========================================================================
+
+    /**
+     * Get the current value from a component as a string.
+     * Handles common JUCE component types: Slider, ComboBox, TextEditor, Button, Label
+     */
+    static juce::String getComponentValue(juce::Component* component)
+    {
+        if (component == nullptr)
+            return {};
+
+        // Slider (including custom dial/slider subclasses)
+        if (auto* slider = dynamic_cast<juce::Slider*>(component))
+            return juce::String(slider->getValue(), 2);
+
+        // ComboBox
+        if (auto* combo = dynamic_cast<juce::ComboBox*>(component))
+            return combo->getText();
+
+        // TextEditor
+        if (auto* editor = dynamic_cast<juce::TextEditor*>(component))
+            return editor->getText();
+
+        // ToggleButton or TextButton
+        if (auto* button = dynamic_cast<juce::Button*>(component))
+        {
+            if (button->isToggleable())
+                return button->getToggleState() ? "On" : "Off";
+            return button->getButtonText();
+        }
+
+        // Label (display only)
+        if (auto* label = dynamic_cast<juce::Label*>(component))
+            return label->getText();
+
+        return {};
+    }
+
+    /**
+     * Extract a short parameter name from help text.
+     * Takes the first sentence or up to the first period.
+     */
+    static juce::String extractParameterName(const juce::String& helpText)
+    {
+        if (helpText.isEmpty())
+            return {};
+
+        // Find first period, comma, or parenthesis
+        int endPos = helpText.length();
+        for (int i = 0; i < helpText.length(); ++i)
+        {
+            juce::juce_wchar c = helpText[i];
+            if (c == '.' || c == '(' || c == ',')
+            {
+                endPos = i;
+                break;
+            }
+        }
+
+        return helpText.substring(0, endPos).trim();
+    }
+
+    //==========================================================================
     // Settings Persistence
     //==========================================================================
 
