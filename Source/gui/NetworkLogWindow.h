@@ -5,6 +5,7 @@
 #include "../Network/OSCManager.h"
 #include "ColorScheme.h"
 #include "WindowUtils.h"
+#include "../Localization/LocalizationManager.h"
 
 namespace WFSNetwork { class OSCLogger; class OSCManager; }
 
@@ -106,9 +107,9 @@ private:
     juce::File projectFolder;
 
     // Controls - top bar
-    juce::ToggleButton loggingSwitch { "Logging" };
-    juce::TextButton clearButton { "CLEAR" };
-    juce::TextButton exportButton { "EXPORT" };
+    juce::ToggleButton loggingSwitch;
+    juce::TextButton clearButton;
+    juce::TextButton exportButton;
     juce::ComboBox filterModeSelector;
     juce::TextButton topButton { juce::CharPointer_UTF8("\xe2\x86\x91") };      // ↑
     juce::TextButton bottomButton { juce::CharPointer_UTF8("\xe2\x86\x93") };   // ↓
@@ -151,7 +152,7 @@ public:
     NetworkLogWindow(WFSNetwork::OSCLogger& logger,
                      WFSNetwork::OSCManager& oscManager,
                      const juce::File& projectFolder)
-        : DocumentWindow("Network Log",
+        : DocumentWindow(LOC("networkLog.windowTitle"),
                          ColorScheme::get().background,
                          DocumentWindow::allButtons)
     {
@@ -160,7 +161,7 @@ public:
 
         // Create content
         auto* content = new NetworkLogWindowContent(logger, oscManager, projectFolder);
-        content->setName("Network Log");  // Accessible name for screen readers
+        content->setName(LOC("networkLog.windowTitle"));  // Accessible name for screen readers
         setContentOwned(content, false);
 
         // Window size

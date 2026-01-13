@@ -9,17 +9,18 @@
 TestSignalControlPanel::TestSignalControlPanel(TestSignalGenerator* testSignalGen)
     : testSignalGenerator(testSignalGen)
 {
-    // Signal type selector
+    // Signal type selector (localized)
     addAndMakeVisible(signalTypeLabel);
+    signalTypeLabel.setText(LOC("audioPatch.testSignal.labels.signal"), juce::dontSendNotification);
     signalTypeLabel.setJustificationType(juce::Justification::centredRight);
     signalTypeLabel.setFont(juce::FontOptions(14.0f));
 
     addAndMakeVisible(signalTypeCombo);
-    signalTypeCombo.addItem("Off", 1);
-    signalTypeCombo.addItem("Pink Noise", 2);
-    signalTypeCombo.addItem("Tone", 3);
-    signalTypeCombo.addItem("Sweep", 4);
-    signalTypeCombo.addItem("Dirac Pulse", 5);
+    signalTypeCombo.addItem(LOC("audioPatch.testSignal.types.off"), 1);
+    signalTypeCombo.addItem(LOC("audioPatch.testSignal.types.pinkNoise"), 2);
+    signalTypeCombo.addItem(LOC("audioPatch.testSignal.types.tone"), 3);
+    signalTypeCombo.addItem(LOC("audioPatch.testSignal.types.sweep"), 4);
+    signalTypeCombo.addItem(LOC("audioPatch.testSignal.types.diracPulse"), 5);
     signalTypeCombo.setSelectedId(1, juce::dontSendNotification);  // Default: Off
     signalTypeCombo.onChange = [this]() {
         updateFrequencyVisibility();
@@ -33,6 +34,7 @@ TestSignalControlPanel::TestSignalControlPanel(TestSignalGenerator* testSignalGe
 
     // Frequency slider (for Tone mode)
     addAndMakeVisible(frequencyLabel);
+    frequencyLabel.setText(LOC("audioPatch.testSignal.labels.frequency"), juce::dontSendNotification);
     frequencyLabel.setJustificationType(juce::Justification::centredRight);
     frequencyLabel.setFont(juce::FontOptions(14.0f));
 
@@ -46,6 +48,7 @@ TestSignalControlPanel::TestSignalControlPanel(TestSignalGenerator* testSignalGe
 
     // Level slider
     addAndMakeVisible(levelLabel);
+    levelLabel.setText(LOC("audioPatch.testSignal.labels.level"), juce::dontSendNotification);
     levelLabel.setJustificationType(juce::Justification::centredRight);
     levelLabel.setFont(juce::FontOptions(14.0f));
 
@@ -58,6 +61,7 @@ TestSignalControlPanel::TestSignalControlPanel(TestSignalGenerator* testSignalGe
 
     // Hold button
     addAndMakeVisible(holdButton);
+    holdButton.setButtonText(LOC("audioPatch.buttons.hold"));
     holdButton.setClickingTogglesState(true);
     holdButton.onClick = [this]()
     {
@@ -198,6 +202,7 @@ InputPatchTab::InputPatchTab(WFSValueTreeState& valueTreeState)
 {
     // Create mode buttons
     addAndMakeVisible(scrollingButton);
+    scrollingButton.setButtonText(LOC("audioPatch.modes.scrolling"));
     scrollingButton.setToggleState(true, juce::dontSendNotification);
     scrollingButton.setRadioGroupId(1);
     scrollingButton.setClickingTogglesState(true);
@@ -211,6 +216,7 @@ InputPatchTab::InputPatchTab(WFSValueTreeState& valueTreeState)
     };
 
     addAndMakeVisible(patchingButton);
+    patchingButton.setButtonText(LOC("audioPatch.modes.patching"));
     patchingButton.setRadioGroupId(1);
     patchingButton.setClickingTogglesState(true);
     patchingButton.onClick = [this]() {
@@ -224,6 +230,7 @@ InputPatchTab::InputPatchTab(WFSValueTreeState& valueTreeState)
 
     // Unpatch All button
     addAndMakeVisible(unpatchAllButton);
+    unpatchAllButton.setButtonText(LOC("audioPatch.buttons.unpatchAll"));
     unpatchAllButton.onClick = [this]() { handleUnpatchAll(); };
 
     // Create patch matrix
@@ -285,10 +292,10 @@ void InputPatchTab::handleUnpatchAll()
 
     juce::AlertWindow::showOkCancelBox(
         juce::MessageBoxIconType::WarningIcon,
-        "Unpatch All Inputs",
-        "Are you sure you want to remove all input patches?",
-        "Unpatch All",
-        "Cancel",
+        LOC("audioPatch.dialogs.unpatchInputsTitle"),
+        LOC("audioPatch.dialogs.unpatchInputsMessage"),
+        LOC("audioPatch.buttons.unpatchAll"),
+        LOC("common.cancel"),
         this,
         juce::ModalCallbackFunction::create([weakThis](int result) {
             if (weakThis != nullptr && result == 1)  // 1 = OK button clicked
@@ -310,6 +317,7 @@ OutputPatchTab::OutputPatchTab(WFSValueTreeState& valueTreeState,
 {
     // Create mode buttons
     addAndMakeVisible(scrollingButton);
+    scrollingButton.setButtonText(LOC("audioPatch.modes.scrolling"));
     scrollingButton.setToggleState(true, juce::dontSendNotification);
     scrollingButton.setRadioGroupId(2);
     scrollingButton.setClickingTogglesState(true);
@@ -323,6 +331,7 @@ OutputPatchTab::OutputPatchTab(WFSValueTreeState& valueTreeState,
     };
 
     addAndMakeVisible(patchingButton);
+    patchingButton.setButtonText(LOC("audioPatch.modes.patching"));
     patchingButton.setRadioGroupId(2);
     patchingButton.setClickingTogglesState(true);
     patchingButton.onClick = [this]() {
@@ -335,6 +344,7 @@ OutputPatchTab::OutputPatchTab(WFSValueTreeState& valueTreeState,
     };
 
     addAndMakeVisible(testingButton);
+    testingButton.setButtonText(LOC("audioPatch.modes.testing"));
     testingButton.setRadioGroupId(2);
     testingButton.setClickingTogglesState(true);
     testingButton.onClick = [this]() {
@@ -348,15 +358,16 @@ OutputPatchTab::OutputPatchTab(WFSValueTreeState& valueTreeState,
 
     // Unpatch All button
     addAndMakeVisible(unpatchAllButton);
+    unpatchAllButton.setButtonText(LOC("audioPatch.buttons.unpatchAll"));
     unpatchAllButton.onClick = [this]() { handleUnpatchAll(); };
 
     // Inline test signal controls (initially hidden)
     addChildComponent(signalTypeCombo);
-    signalTypeCombo.addItem("Off", 1);
-    signalTypeCombo.addItem("Pink Noise", 2);
-    signalTypeCombo.addItem("Tone", 3);
-    signalTypeCombo.addItem("Sweep", 4);
-    signalTypeCombo.addItem("Pulse", 5);
+    signalTypeCombo.addItem(LOC("audioPatch.testSignal.types.off"), 1);
+    signalTypeCombo.addItem(LOC("audioPatch.testSignal.types.pinkNoise"), 2);
+    signalTypeCombo.addItem(LOC("audioPatch.testSignal.types.tone"), 3);
+    signalTypeCombo.addItem(LOC("audioPatch.testSignal.types.sweep"), 4);
+    signalTypeCombo.addItem(LOC("audioPatch.testSignal.types.pulse"), 5);
     signalTypeCombo.setSelectedId(1, juce::dontSendNotification);
     signalTypeCombo.onChange = [this]() {
         bool isOff = signalTypeCombo.getSelectedId() == 1;
@@ -384,6 +395,7 @@ OutputPatchTab::OutputPatchTab(WFSValueTreeState& valueTreeState,
     };
 
     addChildComponent(holdButton);
+    holdButton.setButtonText(LOC("audioPatch.buttons.hold"));
     holdButton.setClickingTogglesState(true);
     holdButton.setColour(juce::TextButton::buttonOnColourId, juce::Colours::green);
     holdButton.onClick = [this]() {
@@ -726,10 +738,10 @@ void OutputPatchTab::handleUnpatchAll()
 
     juce::AlertWindow::showOkCancelBox(
         juce::MessageBoxIconType::WarningIcon,
-        "Unpatch All Outputs",
-        "Are you sure you want to remove all output patches?",
-        "Unpatch All",
-        "Cancel",
+        LOC("audioPatch.dialogs.unpatchOutputsTitle"),
+        LOC("audioPatch.dialogs.unpatchOutputsMessage"),
+        LOC("audioPatch.buttons.unpatchAll"),
+        LOC("common.cancel"),
         this,
         juce::ModalCallbackFunction::create([weakThis](int result) {
             if (weakThis != nullptr && result == 1)  // 1 = OK button clicked

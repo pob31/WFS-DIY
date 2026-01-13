@@ -1,0 +1,449 @@
+{
+  "meta": {
+    "language": "日本語",
+    "locale": "ja",
+    "version": "1.0.0",
+    "author": "WFS-DIY Team"
+  },
+
+  "common": {
+    "ok": "OK",
+    "cancel": "キャンセル",
+    "apply": "適用",
+    "reset": "リセット",
+    "save": "保存",
+    "load": "読込",
+    "store": "保存",
+    "reload": "再読込",
+    "import": "インポート",
+    "export": "エクスポート",
+    "enable": "有効",
+    "disable": "無効",
+    "on": "ON",
+    "off": "OFF",
+    "yes": "はい",
+    "no": "いいえ",
+    "delete": "削除",
+    "add": "追加",
+    "remove": "削除",
+    "edit": "編集",
+    "close": "閉じる",
+    "select": "選択",
+    "all": "すべて",
+    "none": "なし"
+  },
+
+  "units": {
+    "meters": "m",
+    "decibels": "dB",
+    "milliseconds": "ms",
+    "seconds": "s",
+    "degrees": "\u00b0",
+    "hertz": "Hz",
+    "percent": "%",
+    "celsius": "\u00b0C",
+    "metersPerSecond": "m/s"
+  },
+
+  "tabs": {
+    "systemConfig": "システム設定",
+    "inputs": "入力",
+    "outputs": "出力",
+    "reverb": "リバーブ",
+    "network": "ネットワーク",
+    "clusters": "クラスター",
+    "map": "マップ"
+  },
+
+  "statusBar": {
+    "displayLabel": "表示:",
+    "helpMode": "ヘルプ",
+    "oscMode": "OSC"
+  },
+
+  "systemConfig": {
+    "sections": {
+      "show": "ショー",
+      "io": "I/O",
+      "stage": "ステージ",
+      "master": "マスターセクション",
+      "ui": "UI",
+      "files": "ファイル"
+    },
+
+    "labels": {
+      "showName": "名前:",
+      "showLocation": "場所:",
+      "inputChannels": "入力チャンネル:",
+      "outputChannels": "出力チャンネル:",
+      "reverbChannels": "リバーブチャンネル:",
+      "algorithm": "アルゴリズム:",
+      "processing": "処理:",
+      "stageShape": "ステージ形状:",
+      "stageWidth": "幅:",
+      "stageDepth": "奥行:",
+      "stageHeight": "高さ:",
+      "stageDiameter": "直径:",
+      "domeElevation": "仰角:",
+      "originWidth": "原点 幅:",
+      "originDepth": "原点 奥行:",
+      "originHeight": "原点 高さ:",
+      "speedOfSound": "音速:",
+      "temperature": "温度:",
+      "masterLevel": "マスターレベル:",
+      "systemLatency": "システム遅延:",
+      "haasEffect": "ハース効果:",
+      "colorScheme": "カラースキーム:",
+      "screenReader": "スクリーンリーダー:",
+      "language": "言語:"
+    },
+
+    "buttons": {
+      "audioPatch": "オーディオインターフェースとパッチング",
+      "processingOff": "処理: OFF",
+      "processingOn": "処理: ON",
+      "selectProjectFolder": "プロジェクトフォルダを選択",
+      "storeComplete": "完全な設定を保存",
+      "reloadComplete": "完全な設定を再読込",
+      "reloadCompleteBackup": "完全な設定をバックアップから再読込",
+      "storeSystem": "システム設定を保存",
+      "reloadSystem": "システム設定を再読込",
+      "reloadSystemBackup": "システム設定をバックアップから再読込",
+      "importSystem": "システム設定をインポート",
+      "exportSystem": "システム設定をエクスポート"
+    },
+
+    "algorithms": {
+      "inputBuffer": "InputBuffer (読み取り時遅延)",
+      "outputBuffer": "OutputBuffer (書き込み時遅延)"
+    },
+
+    "stageShapes": {
+      "box": "ボックス",
+      "cylinder": "シリンダー",
+      "dome": "ドーム"
+    },
+
+    "colorSchemes": {
+      "default": "デフォルト (ダークグレー)",
+      "black": "ブラック",
+      "light": "ライト"
+    },
+
+    "help": {
+      "showName": "現在のショーの名前。",
+      "showLocation": "現在のショーの場所。",
+      "inputChannels": "入力チャンネル数。",
+      "outputChannels": "出力チャンネル数。",
+      "reverbChannels": "リバーブチャンネル数。",
+      "audioPatch": "オーディオインターフェースとパッチングウィンドウを開きます。",
+      "algorithm": "メニューからレンダリングアルゴリズムを選択します。",
+      "processing": "すべてのI/Oパラメータをロックし、DSPを開始します。長押しでDSPを停止します。",
+      "stageShape": "ステージの形状を選択します（ボックス、シリンダー、またはドーム）。",
+      "stageWidth": "ステージの幅（メートル）（ボックス形状のみ）。",
+      "stageDepth": "ステージの奥行（メートル）（ボックス形状のみ）。",
+      "stageHeight": "ステージの高さ（メートル）（ボックスおよびシリンダー形状）。",
+      "stageDiameter": "ステージの直径（メートル）（シリンダーおよびドーム形状）。",
+      "domeElevation": "ドームの仰角：180 = 半球、360 = 完全な球。",
+      "originWidth": "ステージ中心からの原点Xオフセット（0 = 中央、負 = 左）。",
+      "originDepth": "ステージ中心からの原点Yオフセット（0 = 中央、負 = 前方/ダウンステージ）。",
+      "originHeight": "床からの原点Zオフセット（0 = 床レベル、正 = 床上）。",
+      "originFront": "原点をステージ前方中央に設定します。フロンタルステージに一般的です。",
+      "originCenterGround": "原点をステージ中央の地面レベルに設定します。サラウンドまたはシリンドリカル設定に一般的です。",
+      "originCenter": "原点をステージボリュームの中央に設定します。球形ドーム設定に一般的です。",
+      "speedOfSound": "音速（温度に関連）。",
+      "temperature": "温度（音速を決定）。",
+      "masterLevel": "マスターレベル（すべての出力に影響）。",
+      "systemLatency": "システムの総遅延（ミキシングボードとコンピュータ）/ 特定の入出力遅延はそれぞれの設定で設定できます。",
+      "haasEffect": "システムに適用するハース効果。遅延補正（システム、入力、出力）を考慮します。",
+      "colorScheme": "カラースキームを選択：デフォルト（ダークグレー）、ブラック（OLEDディスプレイ用の純粋な黒）、またはライト（日中使用）。",
+      "screenReader": "スクリーンリーダーのアナウンスを有効または無効にします。有効にすると、パラメータ名と値がホバー時にアナウンスされ、数秒後にヘルプテキストが読み上げられます。",
+      "selectProjectFolder": "ファイルを保存する現在のプロジェクトフォルダの場所を選択します。",
+      "storeComplete": "完全な設定をファイルに保存します（バックアップ付き）。",
+      "reloadComplete": "ファイルから完全な設定を再読込します。",
+      "reloadCompleteBackup": "バックアップファイルから完全な設定を再読込します。",
+      "storeSystem": "システム設定をファイルに保存します（バックアップ付き）。",
+      "reloadSystem": "ファイルからシステム設定を再読込します。",
+      "reloadSystemBackup": "バックアップファイルからシステム設定を再読込します。",
+      "importSystem": "ファイルからシステム設定をインポートします（ファイルエクスプローラー使用）。",
+      "exportSystem": "システム設定をファイルにエクスポートします（ファイルエクスプローラー使用）。",
+      "language": "ユーザーインターフェースの言語を選択します。変更はアプリケーションの再起動後に完全に有効になります。"
+    },
+
+    "messages": {
+      "selectFolderFirst": "最初にプロジェクトフォルダを選択してください。",
+      "configSaved": "完全な設定を保存しました。",
+      "configLoaded": "完全な設定を読み込みました。",
+      "systemConfigSaved": "システム設定を保存しました。",
+      "systemConfigLoaded": "システム設定を読み込みました。",
+      "systemConfigFileNotFound": "システム設定ファイルが見つかりません。",
+      "configLoadedFromBackup": "バックアップから設定を読み込みました。",
+      "systemConfigLoadedFromBackup": "バックアップからシステム設定を読み込みました。",
+      "noBackupFilesFound": "バックアップファイルが見つかりません。",
+      "systemConfigImported": "システム設定をインポートしました。",
+      "systemConfigExported": "システム設定をエクスポートしました。",
+      "partialLoad": "部分的な読み込み: {error}",
+      "partialLoadFromBackup": "バックアップからの部分的な読み込み: {error}",
+      "error": "エラー: {error}",
+      "languageChanged": "言語を変更しました: {language}（完全に有効にするには再起動が必要です）"
+    },
+
+    "dialogs": {
+      "reduceInputChannels": {
+        "title": "入力チャンネルを減らしますか？",
+        "message": "{current}から{new}入力チャンネルに減らすと、チャンネル{start}から{end}の設定が削除されます。\n\nこの操作は元に戻せません。"
+      },
+      "reduceOutputChannels": {
+        "title": "出力チャンネルを減らしますか？",
+        "message": "{current}から{new}出力チャンネルに減らすと、チャンネル{start}から{end}の設定が削除されます。\n\nこの操作は元に戻せません。"
+      },
+      "reduceReverbChannels": {
+        "title": "リバーブチャンネルを減らしますか？",
+        "message": "{current}から{new}リバーブチャンネルに減らすと、チャンネル{start}から{end}の設定が削除されます。\n\nこの操作は元に戻せません。"
+      },
+      "reduce": "減らす",
+      "selectProjectFolder": "プロジェクトフォルダを選択",
+      "importSystemConfig": "システム設定をインポート",
+      "exportSystemConfig": "システム設定をエクスポート"
+    }
+  },
+
+  "inputs": {
+    "sections": {
+      "channel": "チャンネル",
+      "position": "位置",
+      "attenuation": "減衰",
+      "directivity": "指向性",
+      "liveSource": "ライブソーステイマー",
+      "hackoustics": "Hackoustics",
+      "lfo": "LFO",
+      "automotion": "AutomOtion",
+      "mutes": "ミュート"
+    },
+
+    "labels": {
+      "name": "名前",
+      "cluster": "クラスター",
+      "attenuation": "減衰",
+      "delayLatency": "遅延/レイテンシー",
+      "positionX": "X",
+      "positionY": "Y",
+      "positionZ": "Z"
+    }
+  },
+
+  "outputs": {
+    "sections": {
+      "channel": "チャンネル",
+      "position": "位置",
+      "settings": "設定"
+    },
+
+    "labels": {
+      "name": "名前",
+      "positionX": "X",
+      "positionY": "Y",
+      "positionZ": "Z",
+      "attenuation": "減衰",
+      "delay": "遅延"
+    }
+  },
+
+  "network": {
+    "sections": {
+      "network": "ネットワーク",
+      "connections": "ネットワーク接続",
+      "admOsc": "ADM-OSC",
+      "tracking": "トラッキング"
+    },
+
+    "labels": {
+      "interface": "ネットワークインターフェース:",
+      "currentIPv4": "現在のIPv4:",
+      "udpPort": "UDPポート:",
+      "tcpPort": "TCPポート:",
+      "oscQuery": "OSC Query:",
+      "protocol": "プロトコル:",
+      "rxPort": "受信ポート:",
+      "offsetX": "オフセットX:",
+      "offsetY": "オフセットY:",
+      "offsetZ": "オフセットZ:",
+      "scaleX": "スケールX:",
+      "scaleY": "スケールY:",
+      "scaleZ": "スケールZ:"
+    },
+
+    "buttons": {
+      "storeConfig": "ネットワーク設定を保存",
+      "reloadConfig": "ネットワーク設定を再読込",
+      "reloadBackup": "バックアップから再読込",
+      "import": "インポート",
+      "export": "エクスポート",
+      "openLogWindow": "ログウィンドウを開く",
+      "findMyRemote": "リモートを探す",
+      "add": "追加"
+    },
+
+    "toggles": {
+      "enabled": "有効",
+      "disabled": "無効",
+      "on": "ON",
+      "off": "OFF",
+      "trackingOn": "トラッキング: ON",
+      "trackingOff": "トラッキング: OFF",
+      "flipXOn": "反転X: ON",
+      "flipXOff": "反転X: OFF",
+      "flipYOn": "反転Y: ON",
+      "flipYOff": "反転Y: OFF",
+      "flipZOn": "反転Z: ON",
+      "flipZOff": "反転Z: OFF",
+      "oscFilterAcceptAll": "OSCフィルタ: 全て受信",
+      "oscFilterRegisteredOnly": "OSCフィルタ: 登録済みのみ"
+    },
+
+    "table": {
+      "name": "名前",
+      "mode": "モード",
+      "ipv4Address": "IPv4アドレス",
+      "txPort": "送信ポート",
+      "rx": "受信",
+      "tx": "送信",
+      "protocol": "プロトコル",
+      "defaultTarget": "ターゲット {num}"
+    },
+
+    "protocols": {
+      "disabled": "無効",
+      "osc": "OSC",
+      "remote": "リモート",
+      "admOsc": "ADM-OSC",
+      "psn": "PosiStageNet (PSN)",
+      "rttrp": "RTTrP",
+      "udp": "UDP",
+      "tcp": "TCP"
+    },
+
+    "messages": {
+      "configSaved": "ネットワーク設定を保存しました。",
+      "configNotFound": "ネットワーク設定ファイルが見つかりません。",
+      "configReloaded": "ネットワーク設定を再読込しました。",
+      "noBackupFound": "バックアップファイルが見つかりません。",
+      "configLoadedFromBackup": "バックアップからネットワーク設定を読み込みました。",
+      "configImported": "ネットワーク設定をインポートしました。",
+      "configExported": "ネットワーク設定をエクスポートしました。",
+      "onlyOneRemote": "リモート接続は1つのみ許可されています。"
+    }
+  },
+
+  "accessibility": {
+    "ttsEnabled": "スクリーンリーダーが有効になりました",
+    "ttsDisabled": "スクリーンリーダーが無効になりました"
+  },
+
+  "audioPatch": {
+    "windowTitle": "オーディオインターフェースとパッチング",
+
+    "tabs": {
+      "deviceSettings": "デバイス設定",
+      "inputPatch": "入力パッチ",
+      "outputPatch": "出力パッチ"
+    },
+
+    "deviceSettings": {
+      "labels": {
+        "deviceType": "オーディオデバイスタイプ:",
+        "device": "デバイス:",
+        "sampleRate": "サンプルレート:",
+        "bufferSize": "オーディオバッファサイズ:"
+      },
+      "buttons": {
+        "controlPanel": "コントロールパネル",
+        "resetDevice": "デバイスをリセット"
+      },
+      "noDevice": "デバイスなし",
+      "notConfigured": "未設定"
+    },
+
+    "modes": {
+      "scrolling": "スクロール",
+      "patching": "パッチング",
+      "testing": "テスト"
+    },
+
+    "buttons": {
+      "unpatchAll": "全て解除",
+      "hold": "ホールド"
+    },
+
+    "testSignal": {
+      "labels": {
+        "signal": "信号:",
+        "frequency": "周波数:",
+        "level": "レベル:"
+      },
+      "types": {
+        "off": "オフ",
+        "pinkNoise": "ピンクノイズ",
+        "tone": "トーン",
+        "sweep": "スイープ",
+        "diracPulse": "ディラックパルス",
+        "pulse": "パルス"
+      }
+    },
+
+    "dialogs": {
+      "unpatchInputsTitle": "すべての入力を解除",
+      "unpatchInputsMessage": "すべての入力パッチを削除してもよろしいですか？",
+      "unpatchOutputsTitle": "すべての出力を解除",
+      "unpatchOutputsMessage": "すべての出力パッチを削除してもよろしいですか？"
+    },
+
+    "messages": {
+      "chooseTestSignal": "テストを有効にするにはテスト信号を選択してください"
+    }
+  },
+
+  "networkLog": {
+    "windowTitle": "ネットワークログ",
+    "controls": {
+      "logging": "ログ記録",
+      "clear": "クリア",
+      "export": "エクスポート"
+    },
+    "exportMenu": {
+      "exportAll": "すべてエクスポート",
+      "exportFiltered": "フィルター済みをエクスポート"
+    },
+    "filterModes": {
+      "tcpUdp": "TCP/UDP",
+      "protocol": "プロトコル",
+      "clientIp": "クライアントIP",
+      "rejected": "拒否済み"
+    },
+    "filterToggles": {
+      "incoming": "受信",
+      "outgoing": "送信",
+      "udp": "UDP",
+      "tcp": "TCP"
+    },
+    "columns": {
+      "time": "時刻",
+      "direction": "方向",
+      "ip": "IP",
+      "port": "ポート",
+      "transport": "転送",
+      "protocol": "プロトコル",
+      "address": "アドレス",
+      "arguments": "引数"
+    },
+    "status": {
+      "rejected": "拒否"
+    },
+    "dialogs": {
+      "exportFailedTitle": "エクスポート失敗",
+      "exportFailedMessage": "ファイルに書き込めませんでした: {path}",
+      "exportCompleteTitle": "エクスポート完了",
+      "exportCompleteMessage": "ログをエクスポートしました: {path}"
+    }
+  }
+}

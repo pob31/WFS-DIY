@@ -4,6 +4,7 @@
 #include "AudioPatchTab.h"
 #include "../WfsParameters.h"
 #include "../DSP/TestSignalGenerator.h"
+#include "../Localization/LocalizationManager.h"
 
 /**
  * DeviceInfoBar
@@ -75,20 +76,20 @@ private:
     juce::AudioDeviceManager& deviceManager;
 
     // UI Components
-    juce::Label deviceTypeLabel{"", "Audio device type:"};
+    juce::Label deviceTypeLabel;
     juce::ComboBox deviceTypeCombo;
 
-    juce::Label deviceLabel{"", "Device:"};
+    juce::Label deviceLabel;
     juce::ComboBox deviceCombo;
 
-    juce::Label sampleRateLabel{"", "Sample rate:"};
+    juce::Label sampleRateLabel;
     juce::ComboBox sampleRateCombo;
 
-    juce::Label bufferSizeLabel{"", "Audio buffer size:"};
+    juce::Label bufferSizeLabel;
     juce::ComboBox bufferSizeCombo;
 
-    juce::TextButton controlPanelButton{"Control Panel"};
-    juce::TextButton resetDeviceButton{"Reset Device"};
+    juce::TextButton controlPanelButton;
+    juce::TextButton resetDeviceButton;
 
     // Track current state to avoid recursive updates
     bool isUpdating = false;

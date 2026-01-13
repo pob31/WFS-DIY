@@ -2,6 +2,7 @@
 #include "../Parameters/WFSParameterIDs.h"
 #include "ColorUtilities.h"
 #include "../Accessibility/TTSManager.h"
+#include "../Localization/LocalizationManager.h"
 #include <cmath>
 
 PatchMatrixComponent::PatchMatrixComponent(WFSValueTreeState& valueTreeState,
@@ -1116,7 +1117,7 @@ void PatchMatrixComponent::handleTestClick(int hardwareChannel)
     if (testSignalGenerator->getSignalType() == TestSignalGenerator::SignalType::Off)
     {
         if (onStatusMessage)
-            onStatusMessage("Choose a Test Signal to Enable Testing");
+            onStatusMessage(LOC("audioPatch.messages.chooseTestSignal"));
         return;
     }
 
@@ -1213,7 +1214,7 @@ bool PatchMatrixComponent::keyPressed(const juce::KeyPress& key)
                 if (testSignalGenerator->getSignalType() == TestSignalGenerator::SignalType::Off)
                 {
                     if (onStatusMessage)
-                        onStatusMessage("Choose a Test Signal to Enable Testing");
+                        onStatusMessage(LOC("audioPatch.messages.chooseTestSignal"));
                     return true;
                 }
 

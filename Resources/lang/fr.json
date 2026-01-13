@@ -252,22 +252,198 @@
   "network": {
     "sections": {
       "network": "Réseau",
-      "connections": "Connexions",
+      "connections": "Connexions réseau",
       "admOsc": "ADM-OSC",
-      "tracking": "Tracking"
+      "tracking": "Suivi"
     },
 
     "labels": {
-      "interface": "Interface :",
-      "ipAddress": "Adresse IP :",
+      "interface": "Interface réseau :",
+      "currentIPv4": "IPv4 actuelle :",
       "udpPort": "Port UDP :",
       "tcpPort": "Port TCP :",
-      "oscQuery": "OSC Query :"
+      "oscQuery": "OSC Query :",
+      "protocol": "Protocole :",
+      "rxPort": "Port Rx :",
+      "offsetX": "Décalage X :",
+      "offsetY": "Décalage Y :",
+      "offsetZ": "Décalage Z :",
+      "scaleX": "Échelle X :",
+      "scaleY": "Échelle Y :",
+      "scaleZ": "Échelle Z :"
+    },
+
+    "buttons": {
+      "storeConfig": "Enregistrer config réseau",
+      "reloadConfig": "Recharger config réseau",
+      "reloadBackup": "Recharger sauvegarde",
+      "import": "Importer",
+      "export": "Exporter",
+      "openLogWindow": "Ouvrir fenêtre journal",
+      "findMyRemote": "Trouver ma télécommande",
+      "add": "AJOUTER"
+    },
+
+    "toggles": {
+      "enabled": "Activé",
+      "disabled": "Désactivé",
+      "on": "ON",
+      "off": "OFF",
+      "trackingOn": "Suivi : ON",
+      "trackingOff": "Suivi : OFF",
+      "flipXOn": "Inverser X : ON",
+      "flipXOff": "Inverser X : OFF",
+      "flipYOn": "Inverser Y : ON",
+      "flipYOff": "Inverser Y : OFF",
+      "flipZOn": "Inverser Z : ON",
+      "flipZOff": "Inverser Z : OFF",
+      "oscFilterAcceptAll": "Filtre OSC : Accepter tout",
+      "oscFilterRegisteredOnly": "Filtre OSC : Enregistrés uniquement"
+    },
+
+    "table": {
+      "name": "Nom",
+      "mode": "Mode",
+      "ipv4Address": "Adresse IPv4",
+      "txPort": "Port Tx",
+      "rx": "Rx",
+      "tx": "Tx",
+      "protocol": "Protocole",
+      "defaultTarget": "Cible {num}"
+    },
+
+    "protocols": {
+      "disabled": "DÉSACTIVÉ",
+      "osc": "OSC",
+      "remote": "TÉLÉCOMMANDE",
+      "admOsc": "ADM-OSC",
+      "psn": "PosiStageNet (PSN)",
+      "rttrp": "RTTrP",
+      "udp": "UDP",
+      "tcp": "TCP"
+    },
+
+    "messages": {
+      "configSaved": "Configuration réseau enregistrée.",
+      "configNotFound": "Fichier de configuration réseau introuvable.",
+      "configReloaded": "Configuration réseau rechargée.",
+      "noBackupFound": "Aucun fichier de sauvegarde trouvé.",
+      "configLoadedFromBackup": "Configuration réseau chargée depuis la sauvegarde.",
+      "configImported": "Configuration réseau importée.",
+      "configExported": "Configuration réseau exportée.",
+      "onlyOneRemote": "Une seule connexion TÉLÉCOMMANDE est autorisée."
     }
   },
 
   "accessibility": {
     "ttsEnabled": "Lecteur d'écran activé",
     "ttsDisabled": "Lecteur d'écran désactivé"
+  },
+
+  "audioPatch": {
+    "windowTitle": "Interface audio et routage",
+
+    "tabs": {
+      "deviceSettings": "Paramètres appareil",
+      "inputPatch": "Patch entrées",
+      "outputPatch": "Patch sorties"
+    },
+
+    "deviceSettings": {
+      "labels": {
+        "deviceType": "Type d'appareil audio :",
+        "device": "Appareil :",
+        "sampleRate": "Fréquence d'échantillonnage :",
+        "bufferSize": "Taille du buffer audio :"
+      },
+      "buttons": {
+        "controlPanel": "Panneau de contrôle",
+        "resetDevice": "Réinitialiser appareil"
+      },
+      "noDevice": "Aucun appareil",
+      "notConfigured": "Non configuré"
+    },
+
+    "modes": {
+      "scrolling": "Défilement",
+      "patching": "Routage",
+      "testing": "Test"
+    },
+
+    "buttons": {
+      "unpatchAll": "Tout déconnecter",
+      "hold": "Maintenir"
+    },
+
+    "testSignal": {
+      "labels": {
+        "signal": "Signal :",
+        "frequency": "Fréquence :",
+        "level": "Niveau :"
+      },
+      "types": {
+        "off": "Off",
+        "pinkNoise": "Bruit rose",
+        "tone": "Tonalité",
+        "sweep": "Balayage",
+        "diracPulse": "Impulsion Dirac",
+        "pulse": "Impulsion"
+      }
+    },
+
+    "dialogs": {
+      "unpatchInputsTitle": "Déconnecter toutes les entrées",
+      "unpatchInputsMessage": "Êtes-vous sûr de vouloir supprimer tous les routages d'entrée ?",
+      "unpatchOutputsTitle": "Déconnecter toutes les sorties",
+      "unpatchOutputsMessage": "Êtes-vous sûr de vouloir supprimer tous les routages de sortie ?"
+    },
+
+    "messages": {
+      "chooseTestSignal": "Choisissez un signal de test pour activer le test"
+    }
+  },
+
+  "networkLog": {
+    "windowTitle": "Journal réseau",
+    "controls": {
+      "logging": "Journalisation",
+      "clear": "EFFACER",
+      "export": "EXPORTER"
+    },
+    "exportMenu": {
+      "exportAll": "Exporter tout",
+      "exportFiltered": "Exporter filtré"
+    },
+    "filterModes": {
+      "tcpUdp": "TCP/UDP",
+      "protocol": "Protocole",
+      "clientIp": "IP client",
+      "rejected": "Rejeté"
+    },
+    "filterToggles": {
+      "incoming": "Entrant",
+      "outgoing": "Sortant",
+      "udp": "UDP",
+      "tcp": "TCP"
+    },
+    "columns": {
+      "time": "Heure",
+      "direction": "Dir",
+      "ip": "IP",
+      "port": "Port",
+      "transport": "Trans",
+      "protocol": "Protocole",
+      "address": "Adresse",
+      "arguments": "Arguments"
+    },
+    "status": {
+      "rejected": "REJETÉ"
+    },
+    "dialogs": {
+      "exportFailedTitle": "Échec de l'exportation",
+      "exportFailedMessage": "Impossible d'écrire dans le fichier : {path}",
+      "exportCompleteTitle": "Exportation terminée",
+      "exportCompleteMessage": "Journal exporté vers : {path}"
+    }
   }
 }

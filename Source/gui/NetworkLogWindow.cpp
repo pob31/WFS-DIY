@@ -52,14 +52,14 @@ NetworkLogTableComponent::NetworkLogTableComponent()
 void NetworkLogTableComponent::setupColumns()
 {
     columns.clear();
-    columns.push_back({ "Time", 85, false });
-    columns.push_back({ "Dir", 35, false });
-    columns.push_back({ "IP", 110, false });
-    columns.push_back({ "Port", 50, false });
-    columns.push_back({ "Trans", 45, false });
-    columns.push_back({ "Protocol", 65, false });
-    columns.push_back({ "Address", 180, false });
-    columns.push_back({ "Arguments", 200, true });  // Flexible column
+    columns.push_back({ LOC("networkLog.columns.time"), 85, false });
+    columns.push_back({ LOC("networkLog.columns.direction"), 35, false });
+    columns.push_back({ LOC("networkLog.columns.ip"), 110, false });
+    columns.push_back({ LOC("networkLog.columns.port"), 50, false });
+    columns.push_back({ LOC("networkLog.columns.transport"), 45, false });
+    columns.push_back({ LOC("networkLog.columns.protocol"), 65, false });
+    columns.push_back({ LOC("networkLog.columns.address"), 180, false });
+    columns.push_back({ LOC("networkLog.columns.arguments"), 200, true });  // Flexible column
 }
 
 void NetworkLogTableComponent::setEntries(const std::vector<WFSNetwork::LogEntry>& newEntries)
@@ -245,7 +245,7 @@ juce::String NetworkLogTableComponent::getColumnValue(const WFSNetwork::LogEntry
         case 4:  // Transport
             return entry.getTransportString();
         case 5:  // Protocol
-            return entry.isRejected ? "REJECTED" : entry.getProtocolString();
+            return entry.isRejected ? LOC("networkLog.status.rejected") : entry.getProtocolString();
         case 6:  // Address
             return entry.address;
         case 7:  // Arguments
@@ -321,6 +321,7 @@ NetworkLogWindowContent::NetworkLogWindowContent(WFSNetwork::OSCLogger& log,
     , projectFolder(folder)
 {
     // Logging toggle
+    loggingSwitch.setButtonText(LOC("networkLog.controls.logging"));
     loggingSwitch.setToggleState(logger.getEnabled(), juce::dontSendNotification);
     loggingSwitch.onClick = [this]()
     {
@@ -329,6 +330,7 @@ NetworkLogWindowContent::NetworkLogWindowContent(WFSNetwork::OSCLogger& log,
     addAndMakeVisible(loggingSwitch);
 
     // Clear button
+    clearButton.setButtonText(LOC("networkLog.controls.clear"));
     clearButton.onClick = [this]()
     {
         logger.clear();
@@ -341,11 +343,12 @@ NetworkLogWindowContent::NetworkLogWindowContent(WFSNetwork::OSCLogger& log,
     addAndMakeVisible(clearButton);
 
     // Export button
+    exportButton.setButtonText(LOC("networkLog.controls.export"));
     exportButton.onClick = [this]()
     {
         juce::PopupMenu menu;
-        menu.addItem(1, "Export All");
-        menu.addItem(2, "Export Filtered");
+        menu.addItem(1, LOC("networkLog.exportMenu.exportAll"));
+        menu.addItem(2, LOC("networkLog.exportMenu.exportFiltered"));
         menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&exportButton),
             [this](int result)
             {
@@ -358,10 +361,10 @@ NetworkLogWindowContent::NetworkLogWindowContent(WFSNetwork::OSCLogger& log,
     addAndMakeVisible(exportButton);
 
     // Filter mode selector
-    filterModeSelector.addItem("TCP/UDP", 1);
-    filterModeSelector.addItem("Protocol", 2);
-    filterModeSelector.addItem("Client IP", 3);
-    filterModeSelector.addItem("Rejected", 4);
+    filterModeSelector.addItem(LOC("networkLog.filterModes.tcpUdp"), 1);
+    filterModeSelector.addItem(LOC("networkLog.filterModes.protocol"), 2);
+    filterModeSelector.addItem(LOC("networkLog.filterModes.clientIp"), 3);
+    filterModeSelector.addItem(LOC("networkLog.filterModes.rejected"), 4);
     filterModeSelector.setSelectedId(1, juce::dontSendNotification);
     filterModeSelector.onChange = [this]()
     {
@@ -480,10 +483,10 @@ void NetworkLogWindowContent::applyFilters()
         juce::String name = toggle->getButtonText();
         bool enabled = toggle->getToggleState();
 
-        if (name == "Incoming") showRx = enabled;
-        else if (name == "Outgoing") showTx = enabled;
-        else if (name == "UDP") showUDP = enabled;
-        else if (name == "TCP") showTCP = enabled;
+        if (name == LOC("networkLog.filterToggles.incoming")) showRx = enabled;
+        else if (name == LOC("networkLog.filterToggles.outgoing")) showTx = enabled;
+        else if (name == LOC("networkLog.filterToggles.udp")) showUDP = enabled;
+        else if (name == LOC("networkLog.filterToggles.tcp")) showTCP = enabled;
     }
 
     filter.showRx = showRx;
@@ -502,8 +505,10 @@ void NetworkLogWindowContent::applyFilters()
         for (auto* toggle : filterToggles)
         {
             juce::String name = toggle->getButtonText();
-            if (name != "Incoming" && name != "Outgoing" && toggle->getToggleState())
+            if (name != LOC("networkLog.filterToggles.incoming") &&
+                name != LOC("networkLog.filterToggles.outgoing") && toggle->getToggleState())
             {
+                // Protocol names come from getProtocolString() which is not localized
                 if (name == "OSC") filter.enabledProtocols.insert(WFSNetwork::Protocol::OSC);
                 else if (name == "OSCQuery") filter.enabledProtocols.insert(WFSNetwork::Protocol::OSCQuery);
                 else if (name == "Remote") filter.enabledProtocols.insert(WFSNetwork::Protocol::Remote);
@@ -519,7 +524,8 @@ void NetworkLogWindowContent::applyFilters()
         for (auto* toggle : filterToggles)
         {
             juce::String name = toggle->getButtonText();
-            if (name != "Incoming" && name != "Outgoing" && toggle->getToggleState())
+            if (name != LOC("networkLog.filterToggles.incoming") &&
+                name != LOC("networkLog.filterToggles.outgoing") && toggle->getToggleState())
             {
                 filter.enabledIPs.insert(name);
             }
@@ -553,18 +559,18 @@ void NetworkLogWindowContent::updateFilterToggles()
     switch (currentFilterMode)
     {
         case NetworkLogFilterMode::Transport:
-            addToggle("Incoming");
-            addToggle("Outgoing");
-            addToggle("UDP");
-            addToggle("TCP");
+            addToggle(LOC("networkLog.filterToggles.incoming"));
+            addToggle(LOC("networkLog.filterToggles.outgoing"));
+            addToggle(LOC("networkLog.filterToggles.udp"));
+            addToggle(LOC("networkLog.filterToggles.tcp"));
             break;
 
         case NetworkLogFilterMode::Protocol:
         {
-            addToggle("Incoming");
-            addToggle("Outgoing");
+            addToggle(LOC("networkLog.filterToggles.incoming"));
+            addToggle(LOC("networkLog.filterToggles.outgoing"));
 
-            // Add toggles for protocols seen in log
+            // Add toggles for protocols seen in log (protocol names from getProtocolString are not localized)
             auto protocols = logger.getUniqueProtocols();
             for (auto proto : protocols)
             {
@@ -577,8 +583,8 @@ void NetworkLogWindowContent::updateFilterToggles()
 
         case NetworkLogFilterMode::ClientIP:
         {
-            addToggle("Incoming");
-            addToggle("Outgoing");
+            addToggle(LOC("networkLog.filterToggles.incoming"));
+            addToggle(LOC("networkLog.filterToggles.outgoing"));
 
             // Add toggles for unique IPs
             auto ips = logger.getUniqueIPs();
@@ -650,7 +656,8 @@ void NetworkLogWindowContent::exportToCSV(bool filteredOnly)
     if (!output.openedOk())
     {
         juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::WarningIcon,
-            "Export Failed", "Could not create file: " + exportFile.getFullPathName());
+            LOC("networkLog.dialogs.exportFailedTitle"),
+            LOC("networkLog.dialogs.exportFailedMessage").replace("{path}", exportFile.getFullPathName()));
         return;
     }
 
@@ -682,6 +689,6 @@ void NetworkLogWindowContent::exportToCSV(bool filteredOnly)
     output.flush();
 
     juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon,
-        "Export Complete",
-        "Exported " + juce::String(static_cast<int>(entries.size())) + " entries to:\n" + exportFile.getFullPathName());
+        LOC("networkLog.dialogs.exportCompleteTitle"),
+        LOC("networkLog.dialogs.exportCompleteMessage").replace("{path}", exportFile.getFullPathName()));
 }

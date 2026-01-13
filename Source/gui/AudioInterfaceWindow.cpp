@@ -1,6 +1,7 @@
 #include "AudioInterfaceWindow.h"
 #include "ColorScheme.h"
 #include "WindowUtils.h"
+#include "../Localization/LocalizationManager.h"
 
 //==============================================================================
 // DeviceInfoBar Implementation
@@ -69,8 +70,8 @@ void DeviceInfoBar::updateDeviceInfo()
     }
     else
     {
-        deviceType = "No Device";
-        deviceName = "Not configured";
+        deviceType = LOC("audioPatch.deviceSettings.noDevice");
+        deviceName = LOC("audioPatch.deviceSettings.notConfigured");
         sampleRate = 0.0;
         bufferSize = 0;
     }
@@ -85,17 +86,21 @@ void DeviceInfoBar::updateDeviceInfo()
 DeviceSettingsPanel::DeviceSettingsPanel(juce::AudioDeviceManager& devManager)
     : deviceManager(devManager)
 {
-    // Setup labels
+    // Setup labels with localized text
     addAndMakeVisible(deviceTypeLabel);
+    deviceTypeLabel.setText(LOC("audioPatch.deviceSettings.labels.deviceType"), juce::dontSendNotification);
     deviceTypeLabel.setJustificationType(juce::Justification::centredRight);
 
     addAndMakeVisible(deviceLabel);
+    deviceLabel.setText(LOC("audioPatch.deviceSettings.labels.device"), juce::dontSendNotification);
     deviceLabel.setJustificationType(juce::Justification::centredRight);
 
     addAndMakeVisible(sampleRateLabel);
+    sampleRateLabel.setText(LOC("audioPatch.deviceSettings.labels.sampleRate"), juce::dontSendNotification);
     sampleRateLabel.setJustificationType(juce::Justification::centredRight);
 
     addAndMakeVisible(bufferSizeLabel);
+    bufferSizeLabel.setText(LOC("audioPatch.deviceSettings.labels.bufferSize"), juce::dontSendNotification);
     bufferSizeLabel.setJustificationType(juce::Justification::centredRight);
 
     // Setup combo boxes
@@ -111,8 +116,9 @@ DeviceSettingsPanel::DeviceSettingsPanel(juce::AudioDeviceManager& devManager)
     addAndMakeVisible(bufferSizeCombo);
     bufferSizeCombo.onChange = [this]() { bufferSizeChanged(); };
 
-    // Setup buttons
+    // Setup buttons with localized text
     addAndMakeVisible(controlPanelButton);
+    controlPanelButton.setButtonText(LOC("audioPatch.deviceSettings.buttons.controlPanel"));
     controlPanelButton.onClick = [this]()
     {
         if (auto* device = deviceManager.getCurrentAudioDevice())
@@ -122,6 +128,7 @@ DeviceSettingsPanel::DeviceSettingsPanel(juce::AudioDeviceManager& devManager)
     };
 
     addAndMakeVisible(resetDeviceButton);
+    resetDeviceButton.setButtonText(LOC("audioPatch.deviceSettings.buttons.resetDevice"));
     resetDeviceButton.onClick = [this]()
     {
         deviceManager.restartLastAudioDevice();
@@ -563,15 +570,15 @@ AudioInterfaceContent::AudioInterfaceContent(juce::AudioDeviceManager& devManage
     inputPatchTab = new InputPatchTab(parameters);
     outputPatchTab = new OutputPatchTab(parameters, testSignalGen);
 
-    // Set accessible names for screen readers
-    deviceSettingsPanel->setName("Device Settings");
-    inputPatchTab->setName("Input Patch");
-    outputPatchTab->setName("Output Patch");
+    // Set accessible names for screen readers (localized)
+    deviceSettingsPanel->setName(LOC("audioPatch.tabs.deviceSettings"));
+    inputPatchTab->setName(LOC("audioPatch.tabs.inputPatch"));
+    outputPatchTab->setName(LOC("audioPatch.tabs.outputPatch"));
 
-    // Add tabs to tabbed component
-    tabbedComponent.addTab("Device Settings", ColorScheme::get().chromeBackground, deviceSettingsPanel.get(), false);
-    tabbedComponent.addTab("Input Patch", ColorScheme::get().chromeBackground, inputPatchTab, true);
-    tabbedComponent.addTab("Output Patch", ColorScheme::get().chromeBackground, outputPatchTab, true);
+    // Add tabs to tabbed component (localized)
+    tabbedComponent.addTab(LOC("audioPatch.tabs.deviceSettings"), ColorScheme::get().chromeBackground, deviceSettingsPanel.get(), false);
+    tabbedComponent.addTab(LOC("audioPatch.tabs.inputPatch"), ColorScheme::get().chromeBackground, inputPatchTab, true);
+    tabbedComponent.addTab(LOC("audioPatch.tabs.outputPatch"), ColorScheme::get().chromeBackground, outputPatchTab, true);
 
     // Set up tab change callback to give focus to patch matrix and manage test audio
     tabbedComponent.onTabChanged = [this](int tabIndex)
@@ -644,7 +651,7 @@ void AudioInterfaceContent::resetAllModes()
 AudioInterfaceWindow::AudioInterfaceWindow(juce::AudioDeviceManager& deviceManager,
                                            WFSValueTreeState& valueTreeState,
                                            TestSignalGenerator* testSignalGen)
-    : DocumentWindow("Audio Interface and Patching",
+    : DocumentWindow(LOC("audioPatch.windowTitle"),
                      ColorScheme::get().background,
                      DocumentWindow::allButtons),
       testSignalGenerator(testSignalGen)

@@ -252,22 +252,198 @@
   "network": {
     "sections": {
       "network": "Network",
-      "connections": "Connections",
+      "connections": "Network Connections",
       "admOsc": "ADM-OSC",
       "tracking": "Tracking"
     },
 
     "labels": {
-      "interface": "Interface:",
-      "ipAddress": "IP Address:",
+      "interface": "Network Interface:",
+      "currentIPv4": "Current IPv4:",
       "udpPort": "UDP Port:",
       "tcpPort": "TCP Port:",
-      "oscQuery": "OSC Query:"
+      "oscQuery": "OSC Query:",
+      "protocol": "Protocol:",
+      "rxPort": "Rx Port:",
+      "offsetX": "Offset X:",
+      "offsetY": "Offset Y:",
+      "offsetZ": "Offset Z:",
+      "scaleX": "Scale X:",
+      "scaleY": "Scale Y:",
+      "scaleZ": "Scale Z:"
+    },
+
+    "buttons": {
+      "storeConfig": "Store Network Config",
+      "reloadConfig": "Reload Network Config",
+      "reloadBackup": "Reload Backup",
+      "import": "Import",
+      "export": "Export",
+      "openLogWindow": "Open Log Window",
+      "findMyRemote": "Find My Remote",
+      "add": "ADD"
+    },
+
+    "toggles": {
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "on": "ON",
+      "off": "OFF",
+      "trackingOn": "Tracking: ON",
+      "trackingOff": "Tracking: OFF",
+      "flipXOn": "Flip X: ON",
+      "flipXOff": "Flip X: OFF",
+      "flipYOn": "Flip Y: ON",
+      "flipYOff": "Flip Y: OFF",
+      "flipZOn": "Flip Z: ON",
+      "flipZOff": "Flip Z: OFF",
+      "oscFilterAcceptAll": "OSC Filter: Accept All",
+      "oscFilterRegisteredOnly": "OSC Filter: Registered Only"
+    },
+
+    "table": {
+      "name": "Name",
+      "mode": "Mode",
+      "ipv4Address": "IPv4 Address",
+      "txPort": "Tx Port",
+      "rx": "Rx",
+      "tx": "Tx",
+      "protocol": "Protocol",
+      "defaultTarget": "Target {num}"
+    },
+
+    "protocols": {
+      "disabled": "DISABLED",
+      "osc": "OSC",
+      "remote": "REMOTE",
+      "admOsc": "ADM-OSC",
+      "psn": "PosiStageNet (PSN)",
+      "rttrp": "RTTrP",
+      "udp": "UDP",
+      "tcp": "TCP"
+    },
+
+    "messages": {
+      "configSaved": "Network configuration saved.",
+      "configNotFound": "Network config file not found.",
+      "configReloaded": "Network configuration reloaded.",
+      "noBackupFound": "No backup files found.",
+      "configLoadedFromBackup": "Network configuration loaded from backup.",
+      "configImported": "Network configuration imported.",
+      "configExported": "Network configuration exported.",
+      "onlyOneRemote": "Only one REMOTE connection is allowed."
     }
   },
 
   "accessibility": {
     "ttsEnabled": "Screen reader enabled",
     "ttsDisabled": "Screen reader disabled"
+  },
+
+  "audioPatch": {
+    "windowTitle": "Audio Interface and Patching",
+
+    "tabs": {
+      "deviceSettings": "Device Settings",
+      "inputPatch": "Input Patch",
+      "outputPatch": "Output Patch"
+    },
+
+    "deviceSettings": {
+      "labels": {
+        "deviceType": "Audio device type:",
+        "device": "Device:",
+        "sampleRate": "Sample rate:",
+        "bufferSize": "Audio buffer size:"
+      },
+      "buttons": {
+        "controlPanel": "Control Panel",
+        "resetDevice": "Reset Device"
+      },
+      "noDevice": "No Device",
+      "notConfigured": "Not configured"
+    },
+
+    "modes": {
+      "scrolling": "Scrolling",
+      "patching": "Patching",
+      "testing": "Testing"
+    },
+
+    "buttons": {
+      "unpatchAll": "Unpatch All",
+      "hold": "Hold"
+    },
+
+    "testSignal": {
+      "labels": {
+        "signal": "Signal:",
+        "frequency": "Frequency:",
+        "level": "Level:"
+      },
+      "types": {
+        "off": "Off",
+        "pinkNoise": "Pink Noise",
+        "tone": "Tone",
+        "sweep": "Sweep",
+        "diracPulse": "Dirac Pulse",
+        "pulse": "Pulse"
+      }
+    },
+
+    "dialogs": {
+      "unpatchInputsTitle": "Unpatch All Inputs",
+      "unpatchInputsMessage": "Are you sure you want to remove all input patches?",
+      "unpatchOutputsTitle": "Unpatch All Outputs",
+      "unpatchOutputsMessage": "Are you sure you want to remove all output patches?"
+    },
+
+    "messages": {
+      "chooseTestSignal": "Choose a Test Signal to Enable Testing"
+    }
+  },
+
+  "networkLog": {
+    "windowTitle": "Network Log",
+    "controls": {
+      "logging": "Logging",
+      "clear": "CLEAR",
+      "export": "EXPORT"
+    },
+    "exportMenu": {
+      "exportAll": "Export All",
+      "exportFiltered": "Export Filtered"
+    },
+    "filterModes": {
+      "tcpUdp": "TCP/UDP",
+      "protocol": "Protocol",
+      "clientIp": "Client IP",
+      "rejected": "Rejected"
+    },
+    "filterToggles": {
+      "incoming": "Incoming",
+      "outgoing": "Outgoing",
+      "udp": "UDP",
+      "tcp": "TCP"
+    },
+    "columns": {
+      "time": "Time",
+      "direction": "Dir",
+      "ip": "IP",
+      "port": "Port",
+      "transport": "Trans",
+      "protocol": "Protocol",
+      "address": "Address",
+      "arguments": "Arguments"
+    },
+    "status": {
+      "rejected": "REJECTED"
+    },
+    "dialogs": {
+      "exportFailedTitle": "Export Failed",
+      "exportFailedMessage": "Could not write to file: {path}",
+      "exportCompleteTitle": "Export Complete",
+      "exportCompleteMessage": "Log exported to: {path}"
+    }
   }
 }

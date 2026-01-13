@@ -7,6 +7,7 @@
 #include "StatusBar.h"
 #include "../Network/OSCManager.h"
 #include "ColorScheme.h"
+#include "../Localization/LocalizationManager.h"
 
 #if JUCE_WINDOWS
     #include <winsock2.h>
@@ -47,41 +48,41 @@ public:
         ColorScheme::Manager::getInstance().addListener(this);
         // ==================== NETWORK SECTION ====================
         addAndMakeVisible(networkInterfaceLabel);
-        networkInterfaceLabel.setText("Network Interface:", juce::dontSendNotification);
+        networkInterfaceLabel.setText(LOC("network.labels.interface"), juce::dontSendNotification);
         addAndMakeVisible(networkInterfaceSelector);
         networkInterfaceSelector.onChange = [this]() {
             onNetworkInterfaceChanged();
             // TTS: Announce selection change
-            TTSManager::getInstance().announceValueChange("Network Interface", networkInterfaceSelector.getText());
+            TTSManager::getInstance().announceValueChange(LOC("network.labels.interface"), networkInterfaceSelector.getText());
         };
 
         addAndMakeVisible(currentIPLabel);
-        currentIPLabel.setText("Current IPv4:", juce::dontSendNotification);
+        currentIPLabel.setText(LOC("network.labels.currentIPv4"), juce::dontSendNotification);
         addAndMakeVisible(currentIPEditor);
         currentIPEditor.setReadOnly(true);
 
         addAndMakeVisible(udpPortLabel);
-        udpPortLabel.setText("UDP Port:", juce::dontSendNotification);
+        udpPortLabel.setText(LOC("network.labels.udpPort"), juce::dontSendNotification);
         addAndMakeVisible(udpPortEditor);
 
         addAndMakeVisible(tcpPortLabel);
-        tcpPortLabel.setText("TCP Port:", juce::dontSendNotification);
+        tcpPortLabel.setText(LOC("network.labels.tcpPort"), juce::dontSendNotification);
         addAndMakeVisible(tcpPortEditor);
 
         // ==================== OSC QUERY ====================
         addAndMakeVisible(oscQueryLabel);
-        oscQueryLabel.setText("OSC Query:", juce::dontSendNotification);
+        oscQueryLabel.setText(LOC("network.labels.oscQuery"), juce::dontSendNotification);
         addAndMakeVisible(oscQueryPortEditor);
         oscQueryPortEditor.setText("5005");
         oscQueryPortEditor.setInputRestrictions(5, "0123456789");
         oscQueryPortEditor.addListener(this);
 
         addAndMakeVisible(oscQueryEnableButton);
-        oscQueryEnableButton.setButtonText("Disabled");
+        oscQueryEnableButton.setButtonText(LOC("network.toggles.disabled"));
         oscQueryEnableButton.setClickingTogglesState(true);
         oscQueryEnableButton.onClick = [this]() {
             bool enabled = oscQueryEnableButton.getToggleState();
-            oscQueryEnableButton.setButtonText(enabled ? "Enabled" : "Disabled");
+            oscQueryEnableButton.setButtonText(enabled ? LOC("network.toggles.enabled") : LOC("network.toggles.disabled"));
             saveOscQueryToValueTree();
             updateOSCQueryServer();
         };
@@ -97,27 +98,27 @@ public:
 
         // ==================== FOOTER BUTTONS ====================
         addAndMakeVisible(storeButton);
-        storeButton.setButtonText("Store Network Config");
+        storeButton.setButtonText(LOC("network.buttons.storeConfig"));
         storeButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF8C3333));  // Reddish
         storeButton.onClick = [this]() { storeNetworkConfiguration(); };
 
         addAndMakeVisible(reloadButton);
-        reloadButton.setButtonText("Reload Network Config");
+        reloadButton.setButtonText(LOC("network.buttons.reloadConfig"));
         reloadButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF338C33));  // Greenish
         reloadButton.onClick = [this]() { reloadNetworkConfiguration(); };
 
         addAndMakeVisible(reloadBackupButton);
-        reloadBackupButton.setButtonText("Reload Backup");
+        reloadBackupButton.setButtonText(LOC("network.buttons.reloadBackup"));
         reloadBackupButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF266626));  // Darker green
         reloadBackupButton.onClick = [this]() { reloadNetworkConfigBackup(); };
 
         addAndMakeVisible(importButton);
-        importButton.setButtonText("Import");
+        importButton.setButtonText(LOC("network.buttons.import"));
         importButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF338C33));  // Greenish
         importButton.onClick = [this]() { importNetworkConfiguration(); };
 
         addAndMakeVisible(exportButton);
-        exportButton.setButtonText("Export");
+        exportButton.setButtonText(LOC("network.buttons.export"));
         exportButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF8C3333));  // Reddish
         exportButton.onClick = [this]() { exportNetworkConfiguration(); };
 
@@ -245,10 +246,10 @@ public:
         // Draw section headers
         g.setColour(ColorScheme::get().textPrimary);
         g.setFont(juce::FontOptions().withHeight(14.0f).withStyle("Bold"));
-        g.drawText("Network", 20, 10, 200, 20, juce::Justification::left);
-        g.drawText("Network Connections", 20, networkConnectionsSectionY - 25, 200, 20, juce::Justification::left);
-        g.drawText("ADM-OSC", 20, admOscSectionY - 25, 200, 20, juce::Justification::left);
-        g.drawText("Tracking", 20, trackingSectionY - 25, 200, 20, juce::Justification::left);
+        g.drawText(LOC("network.sections.network"), 20, 10, 200, 20, juce::Justification::left);
+        g.drawText(LOC("network.sections.connections"), 20, networkConnectionsSectionY - 25, 200, 20, juce::Justification::left);
+        g.drawText(LOC("network.sections.admOsc"), 20, admOscSectionY - 25, 200, 20, juce::Justification::left);
+        g.drawText(LOC("network.sections.tracking"), 20, trackingSectionY - 25, 200, 20, juce::Justification::left);
 
         // Draw section dividers
         g.setColour(ColorScheme::get().chromeDivider);
@@ -619,31 +620,31 @@ private:
     {
         // Offset X
         addAndMakeVisible(admOscOffsetXLabel);
-        admOscOffsetXLabel.setText("Offset X:", juce::dontSendNotification);
+        admOscOffsetXLabel.setText(LOC("network.labels.offsetX"), juce::dontSendNotification);
         addAndMakeVisible(admOscOffsetXEditor);
         addAndMakeVisible(admOscOffsetXUnitLabel);
-        admOscOffsetXUnitLabel.setText("m", juce::dontSendNotification);
+        admOscOffsetXUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
         admOscOffsetXUnitLabel.setColour(juce::Label::textColourId, juce::Colours::grey);
 
         // Offset Y
         addAndMakeVisible(admOscOffsetYLabel);
-        admOscOffsetYLabel.setText("Offset Y:", juce::dontSendNotification);
+        admOscOffsetYLabel.setText(LOC("network.labels.offsetY"), juce::dontSendNotification);
         addAndMakeVisible(admOscOffsetYEditor);
         addAndMakeVisible(admOscOffsetYUnitLabel);
-        admOscOffsetYUnitLabel.setText("m", juce::dontSendNotification);
+        admOscOffsetYUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
         admOscOffsetYUnitLabel.setColour(juce::Label::textColourId, juce::Colours::grey);
 
         // Offset Z
         addAndMakeVisible(admOscOffsetZLabel);
-        admOscOffsetZLabel.setText("Offset Z:", juce::dontSendNotification);
+        admOscOffsetZLabel.setText(LOC("network.labels.offsetZ"), juce::dontSendNotification);
         addAndMakeVisible(admOscOffsetZEditor);
         addAndMakeVisible(admOscOffsetZUnitLabel);
-        admOscOffsetZUnitLabel.setText("m", juce::dontSendNotification);
+        admOscOffsetZUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
         admOscOffsetZUnitLabel.setColour(juce::Label::textColourId, juce::Colours::grey);
 
         // Scale X
         addAndMakeVisible(admOscScaleXLabel);
-        admOscScaleXLabel.setText("Scale X:", juce::dontSendNotification);
+        admOscScaleXLabel.setText(LOC("network.labels.scaleX"), juce::dontSendNotification);
         addAndMakeVisible(admOscScaleXEditor);
         addAndMakeVisible(admOscScaleXUnitLabel);
         admOscScaleXUnitLabel.setText("x", juce::dontSendNotification);
@@ -651,7 +652,7 @@ private:
 
         // Scale Y
         addAndMakeVisible(admOscScaleYLabel);
-        admOscScaleYLabel.setText("Scale Y:", juce::dontSendNotification);
+        admOscScaleYLabel.setText(LOC("network.labels.scaleY"), juce::dontSendNotification);
         addAndMakeVisible(admOscScaleYEditor);
         addAndMakeVisible(admOscScaleYUnitLabel);
         admOscScaleYUnitLabel.setText("x", juce::dontSendNotification);
@@ -659,7 +660,7 @@ private:
 
         // Scale Z
         addAndMakeVisible(admOscScaleZLabel);
-        admOscScaleZLabel.setText("Scale Z:", juce::dontSendNotification);
+        admOscScaleZLabel.setText(LOC("network.labels.scaleZ"), juce::dontSendNotification);
         addAndMakeVisible(admOscScaleZEditor);
         addAndMakeVisible(admOscScaleZUnitLabel);
         admOscScaleZUnitLabel.setText("x", juce::dontSendNotification);
@@ -667,26 +668,26 @@ private:
 
         // Flip buttons
         addAndMakeVisible(admOscFlipXButton);
-        admOscFlipXButton.setButtonText("Flip X: OFF");
+        admOscFlipXButton.setButtonText(LOC("network.toggles.flipXOff"));
         admOscFlipXButton.setClickingTogglesState(true);
         admOscFlipXButton.onClick = [this]() {
-            admOscFlipXButton.setButtonText(admOscFlipXButton.getToggleState() ? "Flip X: ON" : "Flip X: OFF");
+            admOscFlipXButton.setButtonText(admOscFlipXButton.getToggleState() ? LOC("network.toggles.flipXOn") : LOC("network.toggles.flipXOff"));
             parameters.setConfigParam("admOscFlipX", admOscFlipXButton.getToggleState() ? 1 : 0);
         };
 
         addAndMakeVisible(admOscFlipYButton);
-        admOscFlipYButton.setButtonText("Flip Y: OFF");
+        admOscFlipYButton.setButtonText(LOC("network.toggles.flipYOff"));
         admOscFlipYButton.setClickingTogglesState(true);
         admOscFlipYButton.onClick = [this]() {
-            admOscFlipYButton.setButtonText(admOscFlipYButton.getToggleState() ? "Flip Y: ON" : "Flip Y: OFF");
+            admOscFlipYButton.setButtonText(admOscFlipYButton.getToggleState() ? LOC("network.toggles.flipYOn") : LOC("network.toggles.flipYOff"));
             parameters.setConfigParam("admOscFlipY", admOscFlipYButton.getToggleState() ? 1 : 0);
         };
 
         addAndMakeVisible(admOscFlipZButton);
-        admOscFlipZButton.setButtonText("Flip Z: OFF");
+        admOscFlipZButton.setButtonText(LOC("network.toggles.flipZOff"));
         admOscFlipZButton.setClickingTogglesState(true);
         admOscFlipZButton.onClick = [this]() {
-            admOscFlipZButton.setButtonText(admOscFlipZButton.getToggleState() ? "Flip Z: ON" : "Flip Z: OFF");
+            admOscFlipZButton.setButtonText(admOscFlipZButton.getToggleState() ? LOC("network.toggles.flipZOn") : LOC("network.toggles.flipZOff"));
             parameters.setConfigParam("admOscFlipZ", admOscFlipZButton.getToggleState() ? 1 : 0);
         };
 
@@ -703,7 +704,7 @@ private:
     {
         // Enable button
         addAndMakeVisible(trackingEnabledButton);
-        trackingEnabledButton.setButtonText("Tracking: OFF");
+        trackingEnabledButton.setButtonText(LOC("network.toggles.trackingOff"));
         trackingEnabledButton.setClickingTogglesState(true);
         trackingEnabledButton.onClick = [this]() {
             bool enabling = trackingEnabledButton.getToggleState();
@@ -714,7 +715,7 @@ private:
             }
             else
             {
-                trackingEnabledButton.setButtonText("Tracking: OFF");
+                trackingEnabledButton.setButtonText(LOC("network.toggles.trackingOff"));
                 parameters.setConfigParam("trackingEnabled", 0);
                 updateTrackingAppearance();
             }
@@ -722,12 +723,12 @@ private:
 
         // Protocol selector
         addAndMakeVisible(trackingProtocolLabel);
-        trackingProtocolLabel.setText("Protocol:", juce::dontSendNotification);
+        trackingProtocolLabel.setText(LOC("network.labels.protocol"), juce::dontSendNotification);
         addAndMakeVisible(trackingProtocolSelector);
-        trackingProtocolSelector.addItem("DISABLED", 1);
-        trackingProtocolSelector.addItem("OSC", 2);
-        trackingProtocolSelector.addItem("PosiStageNet (PSN)", 3);
-        trackingProtocolSelector.addItem("RTTrP", 4);
+        trackingProtocolSelector.addItem(LOC("network.protocols.disabled"), 1);
+        trackingProtocolSelector.addItem(LOC("network.protocols.osc"), 2);
+        trackingProtocolSelector.addItem(LOC("network.protocols.psn"), 3);
+        trackingProtocolSelector.addItem(LOC("network.protocols.rttrp"), 4);
         trackingProtocolSelector.setSelectedId(1, juce::dontSendNotification);
         trackingProtocolSelector.onChange = [this]() {
             int newProtocol = trackingProtocolSelector.getSelectedId() - 1;
@@ -743,41 +744,41 @@ private:
                 parameters.setConfigParam("trackingProtocol", newProtocol);
             }
             // TTS: Announce selection change
-            TTSManager::getInstance().announceValueChange("Tracking Protocol", trackingProtocolSelector.getText());
+            TTSManager::getInstance().announceValueChange(LOC("network.labels.protocol"), trackingProtocolSelector.getText());
         };
 
         // Port
         addAndMakeVisible(trackingPortLabel);
-        trackingPortLabel.setText("Rx Port:", juce::dontSendNotification);
+        trackingPortLabel.setText(LOC("network.labels.rxPort"), juce::dontSendNotification);
         addAndMakeVisible(trackingPortEditor);
 
         // Offset X
         addAndMakeVisible(trackingOffsetXLabel);
-        trackingOffsetXLabel.setText("Offset X:", juce::dontSendNotification);
+        trackingOffsetXLabel.setText(LOC("network.labels.offsetX"), juce::dontSendNotification);
         addAndMakeVisible(trackingOffsetXEditor);
         addAndMakeVisible(trackingOffsetXUnitLabel);
-        trackingOffsetXUnitLabel.setText("m", juce::dontSendNotification);
+        trackingOffsetXUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
         trackingOffsetXUnitLabel.setColour(juce::Label::textColourId, juce::Colours::grey);
 
         // Offset Y
         addAndMakeVisible(trackingOffsetYLabel);
-        trackingOffsetYLabel.setText("Offset Y:", juce::dontSendNotification);
+        trackingOffsetYLabel.setText(LOC("network.labels.offsetY"), juce::dontSendNotification);
         addAndMakeVisible(trackingOffsetYEditor);
         addAndMakeVisible(trackingOffsetYUnitLabel);
-        trackingOffsetYUnitLabel.setText("m", juce::dontSendNotification);
+        trackingOffsetYUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
         trackingOffsetYUnitLabel.setColour(juce::Label::textColourId, juce::Colours::grey);
 
         // Offset Z
         addAndMakeVisible(trackingOffsetZLabel);
-        trackingOffsetZLabel.setText("Offset Z:", juce::dontSendNotification);
+        trackingOffsetZLabel.setText(LOC("network.labels.offsetZ"), juce::dontSendNotification);
         addAndMakeVisible(trackingOffsetZEditor);
         addAndMakeVisible(trackingOffsetZUnitLabel);
-        trackingOffsetZUnitLabel.setText("m", juce::dontSendNotification);
+        trackingOffsetZUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
         trackingOffsetZUnitLabel.setColour(juce::Label::textColourId, juce::Colours::grey);
 
         // Scale X
         addAndMakeVisible(trackingScaleXLabel);
-        trackingScaleXLabel.setText("Scale X:", juce::dontSendNotification);
+        trackingScaleXLabel.setText(LOC("network.labels.scaleX"), juce::dontSendNotification);
         addAndMakeVisible(trackingScaleXEditor);
         addAndMakeVisible(trackingScaleXUnitLabel);
         trackingScaleXUnitLabel.setText("x", juce::dontSendNotification);
@@ -785,7 +786,7 @@ private:
 
         // Scale Y
         addAndMakeVisible(trackingScaleYLabel);
-        trackingScaleYLabel.setText("Scale Y:", juce::dontSendNotification);
+        trackingScaleYLabel.setText(LOC("network.labels.scaleY"), juce::dontSendNotification);
         addAndMakeVisible(trackingScaleYEditor);
         addAndMakeVisible(trackingScaleYUnitLabel);
         trackingScaleYUnitLabel.setText("x", juce::dontSendNotification);
@@ -793,7 +794,7 @@ private:
 
         // Scale Z
         addAndMakeVisible(trackingScaleZLabel);
-        trackingScaleZLabel.setText("Scale Z:", juce::dontSendNotification);
+        trackingScaleZLabel.setText(LOC("network.labels.scaleZ"), juce::dontSendNotification);
         addAndMakeVisible(trackingScaleZEditor);
         addAndMakeVisible(trackingScaleZUnitLabel);
         trackingScaleZUnitLabel.setText("x", juce::dontSendNotification);
@@ -801,26 +802,26 @@ private:
 
         // Flip buttons
         addAndMakeVisible(trackingFlipXButton);
-        trackingFlipXButton.setButtonText("Flip X: OFF");
+        trackingFlipXButton.setButtonText(LOC("network.toggles.flipXOff"));
         trackingFlipXButton.setClickingTogglesState(true);
         trackingFlipXButton.onClick = [this]() {
-            trackingFlipXButton.setButtonText(trackingFlipXButton.getToggleState() ? "Flip X: ON" : "Flip X: OFF");
+            trackingFlipXButton.setButtonText(trackingFlipXButton.getToggleState() ? LOC("network.toggles.flipXOn") : LOC("network.toggles.flipXOff"));
             parameters.setConfigParam("trackingFlipX", trackingFlipXButton.getToggleState() ? 1 : 0);
         };
 
         addAndMakeVisible(trackingFlipYButton);
-        trackingFlipYButton.setButtonText("Flip Y: OFF");
+        trackingFlipYButton.setButtonText(LOC("network.toggles.flipYOff"));
         trackingFlipYButton.setClickingTogglesState(true);
         trackingFlipYButton.onClick = [this]() {
-            trackingFlipYButton.setButtonText(trackingFlipYButton.getToggleState() ? "Flip Y: ON" : "Flip Y: OFF");
+            trackingFlipYButton.setButtonText(trackingFlipYButton.getToggleState() ? LOC("network.toggles.flipYOn") : LOC("network.toggles.flipYOff"));
             parameters.setConfigParam("trackingFlipY", trackingFlipYButton.getToggleState() ? 1 : 0);
         };
 
         addAndMakeVisible(trackingFlipZButton);
-        trackingFlipZButton.setButtonText("Flip Z: OFF");
+        trackingFlipZButton.setButtonText(LOC("network.toggles.flipZOff"));
         trackingFlipZButton.setClickingTogglesState(true);
         trackingFlipZButton.onClick = [this]() {
-            trackingFlipZButton.setButtonText(trackingFlipZButton.getToggleState() ? "Flip Z: ON" : "Flip Z: OFF");
+            trackingFlipZButton.setButtonText(trackingFlipZButton.getToggleState() ? LOC("network.toggles.flipZOn") : LOC("network.toggles.flipZOff"));
             parameters.setConfigParam("trackingFlipZ", trackingFlipZButton.getToggleState() ? 1 : 0);
         };
 
@@ -1023,17 +1024,17 @@ private:
             label.addMouseListener(this, false);
         };
 
-        setupHeaderLabel(headerNameLabel, "Name");
-        setupHeaderLabel(headerDataModeLabel, "Mode");
-        setupHeaderLabel(headerIpLabel, "IPv4 Address");
-        setupHeaderLabel(headerTxPortLabel, "Tx Port");
-        setupHeaderLabel(headerRxEnableLabel, "Rx");
-        setupHeaderLabel(headerTxEnableLabel, "Tx");
-        setupHeaderLabel(headerProtocolLabel, "Protocol");
+        setupHeaderLabel(headerNameLabel, LOC("network.table.name"));
+        setupHeaderLabel(headerDataModeLabel, LOC("network.table.mode"));
+        setupHeaderLabel(headerIpLabel, LOC("network.table.ipv4Address"));
+        setupHeaderLabel(headerTxPortLabel, LOC("network.table.txPort"));
+        setupHeaderLabel(headerRxEnableLabel, LOC("network.table.rx"));
+        setupHeaderLabel(headerTxEnableLabel, LOC("network.table.tx"));
+        setupHeaderLabel(headerProtocolLabel, LOC("network.table.protocol"));
 
         // Add button in header
         addAndMakeVisible(addTargetButton);
-        addTargetButton.setButtonText("ADD");
+        addTargetButton.setButtonText(LOC("network.buttons.add"));
         addTargetButton.onClick = [this]() { addNewTarget(); };
 
         // ==================== TARGET ROWS ====================
@@ -1043,18 +1044,18 @@ private:
 
             // Name editor
             addAndMakeVisible(row.nameEditor);
-            row.nameEditor.setText("Target " + juce::String(i + 1), false);
+            row.nameEditor.setText(LOC("network.table.defaultTarget").replace("{num}", juce::String(i + 1)), false);
             row.nameEditor.setJustification(juce::Justification::centred);
 
             // Data Mode selector (UDP/TCP)
             addAndMakeVisible(row.dataModeSelector);
-            row.dataModeSelector.addItem("UDP", 1);
-            row.dataModeSelector.addItem("TCP", 2);
+            row.dataModeSelector.addItem(LOC("network.protocols.udp"), 1);
+            row.dataModeSelector.addItem(LOC("network.protocols.tcp"), 2);
             row.dataModeSelector.setSelectedId(1, juce::dontSendNotification);
             row.dataModeSelector.onChange = [this, i]() {
                 saveTargetToValueTree(i);
                 // TTS: Announce selection change
-                TTSManager::getInstance().announceValueChange("Target " + juce::String(i + 1) + " Data Mode", targetRows[i].dataModeSelector.getText());
+                TTSManager::getInstance().announceValueChange(LOC("network.table.defaultTarget").replace("{num}", juce::String(i + 1)) + " " + LOC("network.table.mode"), targetRows[i].dataModeSelector.getText());
             };
 
             // IP editor
@@ -1070,30 +1071,30 @@ private:
 
             // Rx Enable button
             addAndMakeVisible(row.rxEnableButton);
-            row.rxEnableButton.setButtonText("OFF");
+            row.rxEnableButton.setButtonText(LOC("network.toggles.off"));
             row.rxEnableButton.setClickingTogglesState(true);
             row.rxEnableButton.onClick = [this, i]() {
                 auto& btn = targetRows[i].rxEnableButton;
-                btn.setButtonText(btn.getToggleState() ? "ON" : "OFF");
+                btn.setButtonText(btn.getToggleState() ? LOC("network.toggles.on") : LOC("network.toggles.off"));
                 saveTargetToValueTree(i);
             };
 
             // Tx Enable button
             addAndMakeVisible(row.txEnableButton);
-            row.txEnableButton.setButtonText("OFF");
+            row.txEnableButton.setButtonText(LOC("network.toggles.off"));
             row.txEnableButton.setClickingTogglesState(true);
             row.txEnableButton.onClick = [this, i]() {
                 auto& btn = targetRows[i].txEnableButton;
-                btn.setButtonText(btn.getToggleState() ? "ON" : "OFF");
+                btn.setButtonText(btn.getToggleState() ? LOC("network.toggles.on") : LOC("network.toggles.off"));
                 saveTargetToValueTree(i);
             };
 
             // Protocol selector
             addAndMakeVisible(row.protocolSelector);
-            row.protocolSelector.addItem("DISABLED", 1);
-            row.protocolSelector.addItem("OSC", 2);
-            row.protocolSelector.addItem("REMOTE", 3);
-            row.protocolSelector.addItem("ADM-OSC", 4);
+            row.protocolSelector.addItem(LOC("network.protocols.disabled"), 1);
+            row.protocolSelector.addItem(LOC("network.protocols.osc"), 2);
+            row.protocolSelector.addItem(LOC("network.protocols.remote"), 3);
+            row.protocolSelector.addItem(LOC("network.protocols.admOsc"), 4);
             row.protocolSelector.setSelectedId(1, juce::dontSendNotification);
             row.protocolSelector.onChange = [this, i]() {
                 // Check if trying to select REMOTE when one already exists
@@ -1104,7 +1105,7 @@ private:
                         // Revert to DISABLED and show message
                         targetRows[i].protocolSelector.setSelectedId(1, juce::dontSendNotification);
                         if (statusBar != nullptr)
-                            statusBar->setHelpText("Only one REMOTE connection is allowed.");
+                            statusBar->setHelpText(LOC("network.messages.onlyOneRemote"));
                         return;
                     }
                 }
@@ -1112,7 +1113,7 @@ private:
                 updateAdmOscAppearance();
                 saveTargetToValueTree(i);
                 // TTS: Announce selection change
-                TTSManager::getInstance().announceValueChange("Target " + juce::String(i + 1) + " Protocol", targetRows[i].protocolSelector.getText());
+                TTSManager::getInstance().announceValueChange(LOC("network.table.defaultTarget").replace("{num}", juce::String(i + 1)) + " " + LOC("network.table.protocol"), targetRows[i].protocolSelector.getText());
             };
 
             // Remove button
@@ -1136,22 +1137,22 @@ private:
 
         // ==================== BUTTONS BENEATH TABLE ====================
         addAndMakeVisible(openLogWindowButton);
-        openLogWindowButton.setButtonText("Open Log Window");
+        openLogWindowButton.setButtonText(LOC("network.buttons.openLogWindow"));
         openLogWindowButton.onClick = [this]() { openNetworkLogWindow(); };
 
         addAndMakeVisible(findMyRemoteButton);
-        findMyRemoteButton.setButtonText("Find My Remote");
+        findMyRemoteButton.setButtonText(LOC("network.buttons.findMyRemote"));
         findMyRemoteButton.onClick = [this]() { showFindMyRemoteDialog(); };
 
         // OSC Source Filter toggle
         addAndMakeVisible(oscSourceFilterButton);
-        oscSourceFilterButton.setButtonText("OSC Filter: Accept All");
+        oscSourceFilterButton.setButtonText(LOC("network.toggles.oscFilterAcceptAll"));
         oscSourceFilterButton.setClickingTogglesState(true);
         oscSourceFilterButton.onClick = [this]() {
             oscSourceFilterButton.setButtonText(
                 oscSourceFilterButton.getToggleState()
-                    ? "OSC Filter: Registered Only"
-                    : "OSC Filter: Accept All"
+                    ? LOC("network.toggles.oscFilterRegisteredOnly")
+                    : LOC("network.toggles.oscFilterAcceptAll")
             );
             saveOscSourceFilterToValueTree();
             updateOSCManagerConfig();
@@ -1478,7 +1479,7 @@ private:
         // Load Tracking parameters
         bool trackingEnabled = (int)parameters.getConfigParam("trackingEnabled") != 0;
         trackingEnabledButton.setToggleState(trackingEnabled, juce::dontSendNotification);
-        trackingEnabledButton.setButtonText(trackingEnabled ? "Tracking: ON" : "Tracking: OFF");
+        trackingEnabledButton.setButtonText(trackingEnabled ? LOC("network.toggles.trackingOn") : LOC("network.toggles.trackingOff"));
 
         trackingProtocolSelector.setSelectedId((int)parameters.getConfigParam("trackingProtocol") + 1, juce::dontSendNotification);
         trackingPortEditor.setText(juce::String((int)parameters.getConfigParam("trackingPort")), false);
@@ -2239,7 +2240,7 @@ private:
 
         // Backup is created automatically by file manager before overwrite
         if (fileManager.saveNetworkConfig())
-            showStatusMessage("Network configuration saved.");
+            showStatusMessage(LOC("network.messages.configSaved"));
         else
             showStatusMessage("Error: " + fileManager.getLastError());
     }
@@ -2257,7 +2258,7 @@ private:
         auto configFile = fileManager.getNetworkConfigFile();
         if (!configFile.existsAsFile())
         {
-            showStatusMessage("Network config file not found.");
+            showStatusMessage(LOC("network.messages.configNotFound"));
             return;
         }
 
@@ -2265,7 +2266,7 @@ private:
         {
             loadParametersFromValueTree();
             updateOSCManagerConfig();
-            showStatusMessage("Network configuration reloaded.");
+            showStatusMessage(LOC("network.messages.configReloaded"));
         }
         else
             showStatusMessage("Error: " + fileManager.getLastError());
@@ -2284,7 +2285,7 @@ private:
         auto backups = fileManager.getBackups("network");
         if (backups.isEmpty())
         {
-            showStatusMessage("No backup files found.");
+            showStatusMessage(LOC("network.messages.noBackupFound"));
             return;
         }
 
@@ -2292,7 +2293,7 @@ private:
         {
             loadParametersFromValueTree();
             updateOSCManagerConfig();
-            showStatusMessage("Network configuration loaded from backup.");
+            showStatusMessage(LOC("network.messages.configLoadedFromBackup"));
         }
         else
             showStatusMessage("Error: " + fileManager.getLastError());
@@ -2315,7 +2316,7 @@ private:
                 {
                     loadParametersFromValueTree();
                     updateOSCManagerConfig();
-                    showStatusMessage("Network configuration imported.");
+                    showStatusMessage(LOC("network.messages.configImported"));
                 }
                 else
                     showStatusMessage("Error: " + fileManager.getLastError());
@@ -2340,7 +2341,7 @@ private:
 
                 auto& fileManager = parameters.getFileManager();
                 if (fileManager.exportNetworkConfig(result))
-                    showStatusMessage("Network configuration exported.");
+                    showStatusMessage(LOC("network.messages.configExported"));
                 else
                     showStatusMessage("Error: " + fileManager.getLastError());
             }
@@ -2571,7 +2572,7 @@ private:
         // If protocol is disabled, no conflict possible
         if (protocolEnabled == 0 && !fromProtocolChange)
         {
-            trackingEnabledButton.setButtonText("Tracking: ON");
+            trackingEnabledButton.setButtonText(LOC("network.toggles.trackingOn"));
             parameters.setConfigParam("trackingEnabled", 1);
             updateTrackingAppearance();
             return;
@@ -2613,7 +2614,7 @@ private:
             }
             else
             {
-                trackingEnabledButton.setButtonText("Tracking: ON");
+                trackingEnabledButton.setButtonText(LOC("network.toggles.trackingOn"));
                 parameters.setConfigParam("trackingEnabled", 1);
                 updateTrackingAppearance();
             }
@@ -2661,7 +2662,7 @@ private:
                     }
                     else
                     {
-                        trackingEnabledButton.setButtonText("Tracking: ON");
+                        trackingEnabledButton.setButtonText(LOC("network.toggles.trackingOn"));
                         parameters.setConfigParam("trackingEnabled", 1);
                         updateTrackingAppearance();
                     }
@@ -2677,7 +2678,7 @@ private:
                     else
                     {
                         trackingEnabledButton.setToggleState(false, juce::dontSendNotification);
-                        trackingEnabledButton.setButtonText("Tracking: OFF");
+                        trackingEnabledButton.setButtonText(LOC("network.toggles.trackingOff"));
                     }
                 }
             })

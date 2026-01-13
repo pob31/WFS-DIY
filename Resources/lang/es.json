@@ -1,0 +1,449 @@
+{
+  "meta": {
+    "language": "Español",
+    "locale": "es",
+    "version": "1.0.0",
+    "author": "WFS-DIY Team"
+  },
+
+  "common": {
+    "ok": "OK",
+    "cancel": "Cancelar",
+    "apply": "Aplicar",
+    "reset": "Restablecer",
+    "save": "Guardar",
+    "load": "Cargar",
+    "store": "Almacenar",
+    "reload": "Recargar",
+    "import": "Importar",
+    "export": "Exportar",
+    "enable": "Activar",
+    "disable": "Desactivar",
+    "on": "ON",
+    "off": "OFF",
+    "yes": "Sí",
+    "no": "No",
+    "delete": "Eliminar",
+    "add": "Añadir",
+    "remove": "Quitar",
+    "edit": "Editar",
+    "close": "Cerrar",
+    "select": "Seleccionar",
+    "all": "Todo",
+    "none": "Ninguno"
+  },
+
+  "units": {
+    "meters": "m",
+    "decibels": "dB",
+    "milliseconds": "ms",
+    "seconds": "s",
+    "degrees": "\u00b0",
+    "hertz": "Hz",
+    "percent": "%",
+    "celsius": "\u00b0C",
+    "metersPerSecond": "m/s"
+  },
+
+  "tabs": {
+    "systemConfig": "Configuración",
+    "inputs": "Entradas",
+    "outputs": "Salidas",
+    "reverb": "Reverb",
+    "network": "Red",
+    "clusters": "Clusters",
+    "map": "Mapa"
+  },
+
+  "statusBar": {
+    "displayLabel": "Mostrar:",
+    "helpMode": "Ayuda",
+    "oscMode": "OSC"
+  },
+
+  "systemConfig": {
+    "sections": {
+      "show": "Show",
+      "io": "E/S",
+      "stage": "Escenario",
+      "master": "Sección Master",
+      "ui": "Interfaz",
+      "files": "Archivos"
+    },
+
+    "labels": {
+      "showName": "Nombre:",
+      "showLocation": "Ubicación:",
+      "inputChannels": "Canales de entrada:",
+      "outputChannels": "Canales de salida:",
+      "reverbChannels": "Canales de reverb:",
+      "algorithm": "Algoritmo:",
+      "processing": "Procesamiento:",
+      "stageShape": "Forma del escenario:",
+      "stageWidth": "Ancho:",
+      "stageDepth": "Profundidad:",
+      "stageHeight": "Altura:",
+      "stageDiameter": "Diámetro:",
+      "domeElevation": "Elevación:",
+      "originWidth": "Origen ancho:",
+      "originDepth": "Origen profundidad:",
+      "originHeight": "Origen altura:",
+      "speedOfSound": "Velocidad del sonido:",
+      "temperature": "Temperatura:",
+      "masterLevel": "Nivel master:",
+      "systemLatency": "Latencia del sistema:",
+      "haasEffect": "Efecto Haas:",
+      "colorScheme": "Esquema de color:",
+      "screenReader": "Lector de pantalla:",
+      "language": "Idioma:"
+    },
+
+    "buttons": {
+      "audioPatch": "Interfaz de audio y enrutamiento",
+      "processingOff": "Procesamiento: OFF",
+      "processingOn": "Procesamiento: ON",
+      "selectProjectFolder": "Seleccionar carpeta del proyecto",
+      "storeComplete": "Guardar configuración completa",
+      "reloadComplete": "Recargar configuración completa",
+      "reloadCompleteBackup": "Recargar config. completa (respaldo)",
+      "storeSystem": "Guardar configuración del sistema",
+      "reloadSystem": "Recargar configuración del sistema",
+      "reloadSystemBackup": "Recargar config. sistema (respaldo)",
+      "importSystem": "Importar configuración del sistema",
+      "exportSystem": "Exportar configuración del sistema"
+    },
+
+    "algorithms": {
+      "inputBuffer": "InputBuffer (retardos en lectura)",
+      "outputBuffer": "OutputBuffer (retardos en escritura)"
+    },
+
+    "stageShapes": {
+      "box": "Caja",
+      "cylinder": "Cilindro",
+      "dome": "Cúpula"
+    },
+
+    "colorSchemes": {
+      "default": "Por defecto (gris oscuro)",
+      "black": "Negro",
+      "light": "Claro"
+    },
+
+    "help": {
+      "showName": "Nombre del show actual.",
+      "showLocation": "Ubicación del show actual.",
+      "inputChannels": "Número de canales de entrada.",
+      "outputChannels": "Número de canales de salida.",
+      "reverbChannels": "Número de canales de reverberación.",
+      "audioPatch": "Abre la ventana de interfaz de audio y enrutamiento.",
+      "algorithm": "Seleccione el algoritmo de renderizado del menú.",
+      "processing": "Bloquea todos los parámetros de E/S e inicia el DSP. Mantenga presionado para detener el DSP.",
+      "stageShape": "Seleccione la forma del escenario (Caja, Cilindro o Cúpula).",
+      "stageWidth": "Ancho del escenario en metros (solo forma Caja).",
+      "stageDepth": "Profundidad del escenario en metros (solo forma Caja).",
+      "stageHeight": "Altura del escenario en metros (formas Caja y Cilindro).",
+      "stageDiameter": "Diámetro del escenario en metros (formas Cilindro y Cúpula).",
+      "domeElevation": "Ángulo de elevación de la cúpula: 180 = hemisferio, 360 = esfera completa.",
+      "originWidth": "Desplazamiento X del origen desde el centro del escenario (0 = centrado, negativo = izquierda).",
+      "originDepth": "Desplazamiento Y del origen desde el centro del escenario (0 = centrado, negativo = frente/proscenio).",
+      "originHeight": "Desplazamiento Z del origen desde el suelo (0 = nivel del suelo, positivo = sobre el suelo).",
+      "originFront": "Establece el origen en el centro frontal del escenario. Típico para escenarios frontales.",
+      "originCenterGround": "Establece el origen en el centro del escenario a nivel del suelo. Típico para configuraciones Surround o Cilíndricas.",
+      "originCenter": "Establece el origen en el centro del volumen del escenario. Típico para configuraciones de Cúpula Esférica.",
+      "speedOfSound": "Velocidad del sonido (relacionada con la temperatura).",
+      "temperature": "Temperatura (determina la velocidad del sonido).",
+      "masterLevel": "Nivel master (afecta a todas las salidas).",
+      "systemLatency": "Latencia total del sistema (mesa de mezclas y ordenador) / La latencia/retardo específico de entradas y salidas puede configurarse en sus respectivos ajustes.",
+      "haasEffect": "Efecto Haas a aplicar al sistema. Tiene en cuenta las compensaciones de latencia (sistema, entrada y salida).",
+      "colorScheme": "Seleccione el esquema de color: Por defecto (gris oscuro), Negro (negro puro para pantallas OLED), o Claro (uso diurno).",
+      "screenReader": "Activa o desactiva los anuncios del lector de pantalla. Cuando está activado, los nombres y valores de los parámetros se anuncian al pasar el cursor, y el texto de ayuda se lee después de unos segundos.",
+      "selectProjectFolder": "Seleccione la ubicación de la carpeta del proyecto actual para almacenar archivos.",
+      "storeComplete": "Guarda la configuración completa en archivos (con respaldo).",
+      "reloadComplete": "Recarga la configuración completa desde archivos.",
+      "reloadCompleteBackup": "Recarga la configuración completa desde archivos de respaldo.",
+      "storeSystem": "Guarda la configuración del sistema en un archivo (con respaldo).",
+      "reloadSystem": "Recarga la configuración del sistema desde archivo.",
+      "reloadSystemBackup": "Recarga la configuración del sistema desde archivo de respaldo.",
+      "importSystem": "Importa la configuración del sistema desde un archivo (con explorador de archivos).",
+      "exportSystem": "Exporta la configuración del sistema a un archivo (con explorador de archivos).",
+      "language": "Seleccione el idioma de la interfaz de usuario. Los cambios tienen efecto completo después de reiniciar la aplicación."
+    },
+
+    "messages": {
+      "selectFolderFirst": "Por favor, seleccione primero una carpeta de proyecto.",
+      "configSaved": "Configuración completa guardada.",
+      "configLoaded": "Configuración completa cargada.",
+      "systemConfigSaved": "Configuración del sistema guardada.",
+      "systemConfigLoaded": "Configuración del sistema cargada.",
+      "systemConfigFileNotFound": "Archivo de configuración del sistema no encontrado.",
+      "configLoadedFromBackup": "Configuración cargada desde respaldo.",
+      "systemConfigLoadedFromBackup": "Configuración del sistema cargada desde respaldo.",
+      "noBackupFilesFound": "No se encontraron archivos de respaldo.",
+      "systemConfigImported": "Configuración del sistema importada.",
+      "systemConfigExported": "Configuración del sistema exportada.",
+      "partialLoad": "Carga parcial: {error}",
+      "partialLoadFromBackup": "Carga parcial desde respaldo: {error}",
+      "error": "Error: {error}",
+      "languageChanged": "Idioma cambiado a: {language} (requiere reinicio para efecto completo)"
+    },
+
+    "dialogs": {
+      "reduceInputChannels": {
+        "title": "¿Reducir canales de entrada?",
+        "message": "Reducir de {current} a {new} canales de entrada eliminará la configuración de los canales {start} a {end}.\n\nEsta acción no se puede deshacer."
+      },
+      "reduceOutputChannels": {
+        "title": "¿Reducir canales de salida?",
+        "message": "Reducir de {current} a {new} canales de salida eliminará la configuración de los canales {start} a {end}.\n\nEsta acción no se puede deshacer."
+      },
+      "reduceReverbChannels": {
+        "title": "¿Reducir canales de reverb?",
+        "message": "Reducir de {current} a {new} canales de reverb eliminará la configuración de los canales {start} a {end}.\n\nEsta acción no se puede deshacer."
+      },
+      "reduce": "Reducir",
+      "selectProjectFolder": "Seleccionar carpeta del proyecto",
+      "importSystemConfig": "Importar configuración del sistema",
+      "exportSystemConfig": "Exportar configuración del sistema"
+    }
+  },
+
+  "inputs": {
+    "sections": {
+      "channel": "Canal",
+      "position": "Posición",
+      "attenuation": "Atenuación",
+      "directivity": "Directividad",
+      "liveSource": "Live Source Tamer",
+      "hackoustics": "Hackoustics",
+      "lfo": "LFO",
+      "automotion": "AutomOtion",
+      "mutes": "Silencios"
+    },
+
+    "labels": {
+      "name": "Nombre",
+      "cluster": "Cluster",
+      "attenuation": "Atenuación",
+      "delayLatency": "Retardo/Latencia",
+      "positionX": "X",
+      "positionY": "Y",
+      "positionZ": "Z"
+    }
+  },
+
+  "outputs": {
+    "sections": {
+      "channel": "Canal",
+      "position": "Posición",
+      "settings": "Ajustes"
+    },
+
+    "labels": {
+      "name": "Nombre",
+      "positionX": "X",
+      "positionY": "Y",
+      "positionZ": "Z",
+      "attenuation": "Atenuación",
+      "delay": "Retardo"
+    }
+  },
+
+  "network": {
+    "sections": {
+      "network": "Red",
+      "connections": "Conexiones de red",
+      "admOsc": "ADM-OSC",
+      "tracking": "Seguimiento"
+    },
+
+    "labels": {
+      "interface": "Interfaz de red:",
+      "currentIPv4": "IPv4 actual:",
+      "udpPort": "Puerto UDP:",
+      "tcpPort": "Puerto TCP:",
+      "oscQuery": "OSC Query:",
+      "protocol": "Protocolo:",
+      "rxPort": "Puerto Rx:",
+      "offsetX": "Desplazamiento X:",
+      "offsetY": "Desplazamiento Y:",
+      "offsetZ": "Desplazamiento Z:",
+      "scaleX": "Escala X:",
+      "scaleY": "Escala Y:",
+      "scaleZ": "Escala Z:"
+    },
+
+    "buttons": {
+      "storeConfig": "Guardar config red",
+      "reloadConfig": "Recargar config red",
+      "reloadBackup": "Recargar respaldo",
+      "import": "Importar",
+      "export": "Exportar",
+      "openLogWindow": "Abrir ventana de registro",
+      "findMyRemote": "Buscar mi control remoto",
+      "add": "AÑADIR"
+    },
+
+    "toggles": {
+      "enabled": "Activado",
+      "disabled": "Desactivado",
+      "on": "ON",
+      "off": "OFF",
+      "trackingOn": "Seguimiento: ON",
+      "trackingOff": "Seguimiento: OFF",
+      "flipXOn": "Invertir X: ON",
+      "flipXOff": "Invertir X: OFF",
+      "flipYOn": "Invertir Y: ON",
+      "flipYOff": "Invertir Y: OFF",
+      "flipZOn": "Invertir Z: ON",
+      "flipZOff": "Invertir Z: OFF",
+      "oscFilterAcceptAll": "Filtro OSC: Aceptar todos",
+      "oscFilterRegisteredOnly": "Filtro OSC: Solo registrados"
+    },
+
+    "table": {
+      "name": "Nombre",
+      "mode": "Modo",
+      "ipv4Address": "Dirección IPv4",
+      "txPort": "Puerto Tx",
+      "rx": "Rx",
+      "tx": "Tx",
+      "protocol": "Protocolo",
+      "defaultTarget": "Destino {num}"
+    },
+
+    "protocols": {
+      "disabled": "DESACTIVADO",
+      "osc": "OSC",
+      "remote": "REMOTO",
+      "admOsc": "ADM-OSC",
+      "psn": "PosiStageNet (PSN)",
+      "rttrp": "RTTrP",
+      "udp": "UDP",
+      "tcp": "TCP"
+    },
+
+    "messages": {
+      "configSaved": "Configuración de red guardada.",
+      "configNotFound": "Archivo de configuración de red no encontrado.",
+      "configReloaded": "Configuración de red recargada.",
+      "noBackupFound": "No se encontraron archivos de respaldo.",
+      "configLoadedFromBackup": "Configuración de red cargada desde respaldo.",
+      "configImported": "Configuración de red importada.",
+      "configExported": "Configuración de red exportada.",
+      "onlyOneRemote": "Solo se permite una conexión REMOTO."
+    }
+  },
+
+  "accessibility": {
+    "ttsEnabled": "Lector de pantalla activado",
+    "ttsDisabled": "Lector de pantalla desactivado"
+  },
+
+  "audioPatch": {
+    "windowTitle": "Interfaz de audio y enrutamiento",
+
+    "tabs": {
+      "deviceSettings": "Ajustes de dispositivo",
+      "inputPatch": "Patch de entradas",
+      "outputPatch": "Patch de salidas"
+    },
+
+    "deviceSettings": {
+      "labels": {
+        "deviceType": "Tipo de dispositivo de audio:",
+        "device": "Dispositivo:",
+        "sampleRate": "Frecuencia de muestreo:",
+        "bufferSize": "Tamaño del buffer de audio:"
+      },
+      "buttons": {
+        "controlPanel": "Panel de control",
+        "resetDevice": "Reiniciar dispositivo"
+      },
+      "noDevice": "Sin dispositivo",
+      "notConfigured": "No configurado"
+    },
+
+    "modes": {
+      "scrolling": "Desplazamiento",
+      "patching": "Enrutamiento",
+      "testing": "Prueba"
+    },
+
+    "buttons": {
+      "unpatchAll": "Desconectar todo",
+      "hold": "Mantener"
+    },
+
+    "testSignal": {
+      "labels": {
+        "signal": "Señal:",
+        "frequency": "Frecuencia:",
+        "level": "Nivel:"
+      },
+      "types": {
+        "off": "Off",
+        "pinkNoise": "Ruido rosa",
+        "tone": "Tono",
+        "sweep": "Barrido",
+        "diracPulse": "Impulso Dirac",
+        "pulse": "Impulso"
+      }
+    },
+
+    "dialogs": {
+      "unpatchInputsTitle": "Desconectar todas las entradas",
+      "unpatchInputsMessage": "¿Está seguro de que desea eliminar todos los enrutamientos de entrada?",
+      "unpatchOutputsTitle": "Desconectar todas las salidas",
+      "unpatchOutputsMessage": "¿Está seguro de que desea eliminar todos los enrutamientos de salida?"
+    },
+
+    "messages": {
+      "chooseTestSignal": "Elija una señal de prueba para activar el test"
+    }
+  },
+
+  "networkLog": {
+    "windowTitle": "Registro de red",
+    "controls": {
+      "logging": "Registro",
+      "clear": "BORRAR",
+      "export": "EXPORTAR"
+    },
+    "exportMenu": {
+      "exportAll": "Exportar todo",
+      "exportFiltered": "Exportar filtrado"
+    },
+    "filterModes": {
+      "tcpUdp": "TCP/UDP",
+      "protocol": "Protocolo",
+      "clientIp": "IP cliente",
+      "rejected": "Rechazado"
+    },
+    "filterToggles": {
+      "incoming": "Entrante",
+      "outgoing": "Saliente",
+      "udp": "UDP",
+      "tcp": "TCP"
+    },
+    "columns": {
+      "time": "Hora",
+      "direction": "Dir",
+      "ip": "IP",
+      "port": "Puerto",
+      "transport": "Trans",
+      "protocol": "Protocolo",
+      "address": "Dirección",
+      "arguments": "Argumentos"
+    },
+    "status": {
+      "rejected": "RECHAZADO"
+    },
+    "dialogs": {
+      "exportFailedTitle": "Error de exportación",
+      "exportFailedMessage": "No se pudo escribir en el archivo: {path}",
+      "exportCompleteTitle": "Exportación completada",
+      "exportCompleteMessage": "Registro exportado a: {path}"
+    }
+  }
+}

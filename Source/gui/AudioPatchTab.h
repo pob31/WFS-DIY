@@ -5,6 +5,7 @@
 #include "sliders/WfsStandardSlider.h"
 #include "../WfsParameters.h"
 #include "../DSP/TestSignalGenerator.h"
+#include "../Localization/LocalizationManager.h"
 
 /**
  * TestSignalControlPanel
@@ -33,16 +34,16 @@ public:
 private:
     TestSignalGenerator* testSignalGenerator;
 
-    juce::Label signalTypeLabel{"", "Signal:"};
+    juce::Label signalTypeLabel;
     juce::ComboBox signalTypeCombo;
 
-    juce::Label frequencyLabel{"", "Frequency:"};
+    juce::Label frequencyLabel;
     juce::Slider frequencySlider;
 
-    juce::Label levelLabel{"", "Level:"};
+    juce::Label levelLabel;
     juce::Slider levelSlider;
 
-    juce::ToggleButton holdButton{"Hold"};
+    juce::ToggleButton holdButton;
 
     void updateFrequencyVisibility();
     void applySettings();
@@ -74,9 +75,9 @@ private:
     WFSValueTreeState& parameters;
 
     // Mode buttons
-    juce::TextButton scrollingButton{"Scrolling"};
-    juce::TextButton patchingButton{"Patching"};
-    juce::TextButton unpatchAllButton{"Unpatch All"};
+    juce::TextButton scrollingButton;
+    juce::TextButton patchingButton;
+    juce::TextButton unpatchAllButton;
 
     // Patch matrix
     std::unique_ptr<PatchMatrixComponent> patchMatrix;
@@ -125,17 +126,17 @@ private:
     TestSignalGenerator* testSignalGenerator;
 
     // Mode buttons
-    juce::TextButton scrollingButton{"Scrolling"};
-    juce::TextButton patchingButton{"Patching"};
-    juce::TextButton testingButton{"Testing"};
-    juce::TextButton unpatchAllButton{"Unpatch All"};
+    juce::TextButton scrollingButton;
+    juce::TextButton patchingButton;
+    juce::TextButton testingButton;
+    juce::TextButton unpatchAllButton;
 
     // Patch matrix
     std::unique_ptr<PatchMatrixComponent> patchMatrix;
 
     // Inline test signal controls (shown when in Testing mode)
     juce::ComboBox signalTypeCombo;
-    juce::TextButton holdButton{"Hold"};
+    juce::TextButton holdButton;
     WfsStandardSlider levelSlider;
     juce::Label levelValueLabel;
     WfsStandardSlider frequencySlider;  // For Tone mode (after level)
