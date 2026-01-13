@@ -445,5 +445,46 @@
       "exportCompleteTitle": "エクスポート完了",
       "exportCompleteMessage": "ログをエクスポートしました: {path}"
     }
+  },
+
+  "map": {
+    "buttons": {
+      "home": "ステージを画面に合わせる"
+    },
+    "labels": {
+      "reverbPrefix": "R"
+    }
+  },
+
+  "clusters": {
+    "labels": {
+      "assignedInputs": "割り当て入力",
+      "reference": "リファレンス:",
+      "position": "ポジション",
+      "posPrefix": "位置:",
+      "controls": "コントロール",
+      "z": "Z",
+      "attenuation": "減衰",
+      "rotation": "回転",
+      "scale": "スケール",
+      "plane": "平面:",
+      "x": "X:",
+      "y": "Y:",
+      "inputPrefix": "入力"
+    },
+    "referenceMode": {
+      "firstInput": "最初の入力",
+      "barycenter": "重心"
+    },
+    "planes": {
+      "xy": "XY",
+      "xz": "XZ",
+      "yz": "YZ"
+    },
+    "status": {
+      "tracking": "トラッキング: 入力 {num} (リファレンスを上書き)",
+      "noInputs": "入力が割り当てられていません",
+      "trackedMarker": "[T]"
+    }
   }
 }

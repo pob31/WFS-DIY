@@ -8,6 +8,7 @@
 #include "ColorUtilities.h"
 #include "ColorScheme.h"
 #include "../Helpers/CoordinateConverter.h"
+#include "../Localization/LocalizationManager.h"
 
 /**
  * Map Tab Component
@@ -35,7 +36,7 @@ public:
 
         // Home button to reset view
         addAndMakeVisible(homeButton);
-        homeButton.setButtonText("Home");
+        homeButton.setButtonText(LOC("map.buttons.home"));
         homeButton.onClick = [this]() {
             resetView();
             repaint();
@@ -71,7 +72,7 @@ public:
     void resized() override
     {
         // Position home button in top-right corner
-        homeButton.setBounds(getWidth() - 70, 10, 60, 25);
+        homeButton.setBounds(getWidth() - 140, 10, 130, 25);
 
         // Reset view offset to center when resized
         if (viewOffset.isOrigin())
@@ -2124,7 +2125,7 @@ private:
             // Draw channel number
             g.setFont(9.0f);
             g.setColour(ColorScheme::get().textPrimary);
-            g.drawText("R" + juce::String(i + 1),
+            g.drawText(LOC("map.labels.reverbPrefix") + juce::String(i + 1),
                        static_cast<int>(screenPos.x) - 10, static_cast<int>(screenPos.y) - 5,
                        20, 10, juce::Justification::centred);
         }

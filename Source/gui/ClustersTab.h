@@ -9,6 +9,7 @@
 #include "WfsJoystickComponent.h"
 #include "sliders/WfsAutoCenterSlider.h"
 #include "dials/WfsEndlessDial.h"
+#include "../Localization/LocalizationManager.h"
 
 //==============================================================================
 /**
@@ -73,7 +74,7 @@ public:
 
         // ==================== ASSIGNED INPUTS PANEL ====================
         addAndMakeVisible(assignedInputsLabel);
-        assignedInputsLabel.setText("Assigned Inputs", juce::dontSendNotification);
+        assignedInputsLabel.setText(LOC("clusters.labels.assignedInputs"), juce::dontSendNotification);
         assignedInputsLabel.setFont(juce::FontOptions().withHeight(14.0f).withStyle("Bold"));
 
         addAndMakeVisible(inputsList);
@@ -83,11 +84,11 @@ public:
 
         // Reference mode selector
         addAndMakeVisible(referenceModeLabel);
-        referenceModeLabel.setText("Reference:", juce::dontSendNotification);
+        referenceModeLabel.setText(LOC("clusters.labels.reference"), juce::dontSendNotification);
 
         addAndMakeVisible(referenceModeSelector);
-        referenceModeSelector.addItem("First Input", 1);
-        referenceModeSelector.addItem("Barycenter", 2);
+        referenceModeSelector.addItem(LOC("clusters.referenceMode.firstInput"), 1);
+        referenceModeSelector.addItem(LOC("clusters.referenceMode.barycenter"), 2);
         referenceModeSelector.setSelectedId(1, juce::dontSendNotification);
         referenceModeSelector.onChange = [this]() {
             if (selectedCluster > 0)
@@ -100,7 +101,7 @@ public:
 
         // Reference position display
         addAndMakeVisible(refPosLabel);
-        refPosLabel.setText("Pos:", juce::dontSendNotification);
+        refPosLabel.setText(LOC("clusters.labels.posPrefix"), juce::dontSendNotification);
         refPosLabel.setColour(juce::Label::textColourId, juce::Colours::grey);
 
         addAndMakeVisible(refPosXLabel);
@@ -120,7 +121,7 @@ public:
         // ==================== CONTROLS PANEL ====================
         // Position joystick label
         addAndMakeVisible(positionLabel);
-        positionLabel.setText("Position", juce::dontSendNotification);
+        positionLabel.setText(LOC("clusters.labels.position"), juce::dontSendNotification);
         positionLabel.setFont(juce::FontOptions().withHeight(12.0f));
         positionLabel.setJustificationType(juce::Justification::centred);
 
@@ -132,7 +133,7 @@ public:
 
         // Z slider label
         addAndMakeVisible(zSliderLabel);
-        zSliderLabel.setText("Z", juce::dontSendNotification);
+        zSliderLabel.setText(LOC("clusters.labels.z"), juce::dontSendNotification);
         zSliderLabel.setFont(juce::FontOptions().withHeight(12.0f));
         zSliderLabel.setJustificationType(juce::Justification::centred);
 
@@ -142,7 +143,7 @@ public:
 
         // Attenuation slider label
         addAndMakeVisible(attenuationLabel);
-        attenuationLabel.setText("Atten", juce::dontSendNotification);
+        attenuationLabel.setText(LOC("clusters.labels.attenuation"), juce::dontSendNotification);
         attenuationLabel.setFont(juce::FontOptions().withHeight(12.0f));
         attenuationLabel.setJustificationType(juce::Justification::centred);
 
@@ -152,7 +153,7 @@ public:
 
         // Rotation dial label
         addAndMakeVisible(rotationLabel);
-        rotationLabel.setText("Rotation", juce::dontSendNotification);
+        rotationLabel.setText(LOC("clusters.labels.rotation"), juce::dontSendNotification);
         rotationLabel.setFont(juce::FontOptions().withHeight(12.0f));
         rotationLabel.setJustificationType(juce::Justification::centred);
 
@@ -162,7 +163,7 @@ public:
 
         // Scale joystick label
         addAndMakeVisible(scaleLabel);
-        scaleLabel.setText("Scale", juce::dontSendNotification);
+        scaleLabel.setText(LOC("clusters.labels.scale"), juce::dontSendNotification);
         scaleLabel.setFont(juce::FontOptions().withHeight(12.0f));
         scaleLabel.setJustificationType(juce::Justification::centred);
 
@@ -174,12 +175,12 @@ public:
 
         // Plane selector
         addAndMakeVisible(planeLabel);
-        planeLabel.setText("Plane:", juce::dontSendNotification);
+        planeLabel.setText(LOC("clusters.labels.plane"), juce::dontSendNotification);
 
         addAndMakeVisible(planeSelector);
-        planeSelector.addItem("XY", 1);
-        planeSelector.addItem("XZ", 2);
-        planeSelector.addItem("YZ", 3);
+        planeSelector.addItem(LOC("clusters.planes.xy"), 1);
+        planeSelector.addItem(LOC("clusters.planes.xz"), 2);
+        planeSelector.addItem(LOC("clusters.planes.yz"), 3);
         planeSelector.setSelectedId(1, juce::dontSendNotification);
         planeSelector.onChange = [this]() {
             currentPlane = static_cast<Plane>(planeSelector.getSelectedId() - 1);
@@ -187,7 +188,7 @@ public:
 
         // ==================== CONTROLS LABEL ====================
         addAndMakeVisible(controlsLabel);
-        controlsLabel.setText("Controls", juce::dontSendNotification);
+        controlsLabel.setText(LOC("clusters.labels.controls"), juce::dontSendNotification);
         controlsLabel.setFont(juce::FontOptions().withHeight(14.0f).withStyle("Bold"));
 
         // Start with first cluster selected
@@ -336,9 +337,9 @@ public:
 
         // Text
         g.setColour(isTracked ? juce::Colour(0xFFFF9800) : ColorScheme::get().textPrimary);
-        juce::String text = "Input " + juce::String(inputIdx + 1);
+        juce::String text = LOC("clusters.labels.inputPrefix") + " " + juce::String(inputIdx + 1);
         if (isTracked)
-            text += " [T]";
+            text += " " + LOC("clusters.status.trackedMarker");
 
         g.drawText(text, 10, 0, width - 20, height, juce::Justification::centredLeft);
     }
@@ -499,9 +500,9 @@ private:
     void updateReferencePositionDisplay()
     {
         auto [x, y, z] = calculateReferencePoint();
-        refPosXLabel.setText("X: " + juce::String(x, 2), juce::dontSendNotification);
-        refPosYLabel.setText("Y: " + juce::String(y, 2), juce::dontSendNotification);
-        refPosZLabel.setText("Z: " + juce::String(z, 2), juce::dontSendNotification);
+        refPosXLabel.setText(LOC("clusters.labels.x") + " " + juce::String(x, 2), juce::dontSendNotification);
+        refPosYLabel.setText(LOC("clusters.labels.y") + " " + juce::String(y, 2), juce::dontSendNotification);
+        refPosZLabel.setText(LOC("clusters.labels.z") + " " + juce::String(z, 2), juce::dontSendNotification);
     }
 
     void updateStatusLabel()
@@ -511,14 +512,14 @@ private:
         {
             if (isInputFullyTracked(inputIdx))
             {
-                statusLabel.setText("Tracking: Input " + juce::String(inputIdx + 1) + " (overrides reference)",
+                statusLabel.setText(LOC("clusters.status.tracking").replace("{num}", juce::String(inputIdx + 1)),
                                     juce::dontSendNotification);
                 return;
             }
         }
 
         if (assignedInputs.empty())
-            statusLabel.setText("No inputs assigned", juce::dontSendNotification);
+            statusLabel.setText(LOC("clusters.status.noInputs"), juce::dontSendNotification);
         else
             statusLabel.setText("", juce::dontSendNotification);
     }

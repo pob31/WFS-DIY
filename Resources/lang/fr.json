@@ -445,5 +445,46 @@
       "exportCompleteTitle": "Exportation terminée",
       "exportCompleteMessage": "Journal exporté vers : {path}"
     }
+  },
+
+  "map": {
+    "buttons": {
+      "home": "Ajuster la vue à la scène"
+    },
+    "labels": {
+      "reverbPrefix": "R"
+    }
+  },
+
+  "clusters": {
+    "labels": {
+      "assignedInputs": "Entrées assignées",
+      "reference": "Référence :",
+      "position": "Position",
+      "posPrefix": "Pos :",
+      "controls": "Contrôles",
+      "z": "Z",
+      "attenuation": "Atténuation",
+      "rotation": "Rotation",
+      "scale": "Échelle",
+      "plane": "Plan :",
+      "x": "X :",
+      "y": "Y :",
+      "inputPrefix": "Entrée"
+    },
+    "referenceMode": {
+      "firstInput": "Première entrée",
+      "barycenter": "Barycentre"
+    },
+    "planes": {
+      "xy": "XY",
+      "xz": "XZ",
+      "yz": "YZ"
+    },
+    "status": {
+      "tracking": "Suivi : Entrée {num} (remplace la référence)",
+      "noInputs": "Aucune entrée assignée",
+      "trackedMarker": "[S]"
+    }
   }
 }

@@ -445,5 +445,46 @@
       "exportCompleteTitle": "Export Complete",
       "exportCompleteMessage": "Log exported to: {path}"
     }
+  },
+
+  "map": {
+    "buttons": {
+      "home": "Fit Stage to Screen"
+    },
+    "labels": {
+      "reverbPrefix": "R"
+    }
+  },
+
+  "clusters": {
+    "labels": {
+      "assignedInputs": "Assigned Inputs",
+      "reference": "Reference:",
+      "position": "Position",
+      "posPrefix": "Pos:",
+      "controls": "Controls",
+      "z": "Z",
+      "attenuation": "Atten",
+      "rotation": "Rotation",
+      "scale": "Scale",
+      "plane": "Plane:",
+      "x": "X:",
+      "y": "Y:",
+      "inputPrefix": "Input"
+    },
+    "referenceMode": {
+      "firstInput": "First Input",
+      "barycenter": "Barycenter"
+    },
+    "planes": {
+      "xy": "XY",
+      "xz": "XZ",
+      "yz": "YZ"
+    },
+    "status": {
+      "tracking": "Tracking: Input {num} (overrides reference)",
+      "noInputs": "No inputs assigned",
+      "trackedMarker": "[T]"
+    }
   }
 }

@@ -445,5 +445,46 @@
       "exportCompleteTitle": "Exportación completada",
       "exportCompleteMessage": "Registro exportado a: {path}"
     }
+  },
+
+  "map": {
+    "buttons": {
+      "home": "Ajustar escenario"
+    },
+    "labels": {
+      "reverbPrefix": "R"
+    }
+  },
+
+  "clusters": {
+    "labels": {
+      "assignedInputs": "Entradas asignadas",
+      "reference": "Referencia:",
+      "position": "Posición",
+      "posPrefix": "Pos:",
+      "controls": "Controles",
+      "z": "Z",
+      "attenuation": "Atenuar",
+      "rotation": "Rotación",
+      "scale": "Escala",
+      "plane": "Plano:",
+      "x": "X:",
+      "y": "Y:",
+      "inputPrefix": "Entrada"
+    },
+    "referenceMode": {
+      "firstInput": "Primera entrada",
+      "barycenter": "Baricentro"
+    },
+    "planes": {
+      "xy": "XY",
+      "xz": "XZ",
+      "yz": "YZ"
+    },
+    "status": {
+      "tracking": "Seguimiento: Entrada {num} (anula referencia)",
+      "noInputs": "Sin entradas asignadas",
+      "trackedMarker": "[S]"
+    }
   }
 }
