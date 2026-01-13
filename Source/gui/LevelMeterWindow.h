@@ -294,6 +294,20 @@ public:
             soloBtn->onClick = [this, i]() {
                 bool newState = inputSoloButtons[i]->getToggleState();
                 valueTreeState.setInputSoloed(i, newState);
+
+                // In Single mode, also update Visual Solo
+                if (valueTreeState.getBinauralSoloMode() == 0 && newState)
+                {
+                    levelManager.setVisualSoloInput(i);
+                    soloSelector.setSelectedId(i + 2, juce::dontSendNotification);
+                }
+                else if (!newState && levelManager.getVisualSoloInput() == i)
+                {
+                    // Clearing solo also clears visual solo if it was this input
+                    levelManager.setVisualSoloInput(-1);
+                    soloSelector.setSelectedId(1, juce::dontSendNotification);
+                }
+
                 updateSoloButtonStates();
             };
             addAndMakeVisible(soloBtn);
@@ -335,18 +349,18 @@ private:
         }
 
         // Update output meters
+        // Solo highlighting only in Single mode
         int soloInput = levelManager.getVisualSoloInput();
+        bool isSingleMode = (valueTreeState.getBinauralSoloMode() == 0);
         for (int i = 0; i < outputMeters.size(); ++i)
         {
             auto level = levelManager.getOutputLevel(i);
             outputMeters[i]->setLevel(level.peakDb, level.rmsDb);
 
-            // Solo highlighting - highlight outputs that receive signal from solo input
+            // Solo highlighting - only in Single mode
             bool highlight = false;
-            if (soloInput >= 0)
+            if (isSingleMode && soloInput >= 0)
             {
-                // For now, just highlight all outputs when solo is active
-                // In future, could check actual contribution levels
                 highlight = level.peakDb > -60.0f;
             }
             outputMeters[i]->setSoloHighlight(highlight);

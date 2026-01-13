@@ -45,6 +45,9 @@ The application has established a solid foundation with infrastructure and core 
 - **Audio Interface & Patching Window** (input/output patch matrices with test signal generation)
 - **Snapshot Scope Window** (parameter-level, per-channel granularity for snapshots)
 
+- **Level Metering System** (floating window with input/output meters and thread performance)
+- **Binaural Solo Monitoring** (virtual speaker rendering for headphone monitoring)
+
 **Major features still to implement:**
 - Reverb algorithm design (convolution/algorithmic)
 - Snapshot system UI in InputsTab (scope window complete)
@@ -83,6 +86,7 @@ The application has established a solid foundation with infrastructure and core 
 - **OutputArrayHelperWindow** - "Wizard of OutZ" for speaker array positioning
 - **SetAllInputsWindow** - Bulk parameter changes across all inputs (long-press access)
 - **SnapshotScopeWindow** - Extended scope editing for input snapshots (parameter-level, per-channel)
+- **LevelMeterWindow** - Real-time level metering with input/output meters, solo buttons, and thread performance
 
 ### Core Systems Status
 
@@ -118,6 +122,9 @@ The DSP calculation layer transforms human control parameters into real-time DSP
 - **OutputBufferAlgorithm.h** - Manages collection of OutputBufferProcessors
 - **LiveSourceLevelDetector.h** - Per-input audio level detection (peak envelope, short peak, RMS)
 - **LiveSourceTamerEngine.h** - Control-rate engine for per-speaker LS gain calculation
+- **LevelMeteringManager.h** - Audio level metering for inputs/outputs with thread performance
+- **BinauralCalculationEngine.h** - Binaural solo delay/level/HF calculation
+- **BinauralProcessor.h** - Binaural solo rendering with delay lines and HF filters
 - **InputVisualisationComponent.h** - Real-time DSP matrix visualization
 
 ### Coordinate System
@@ -757,6 +764,168 @@ totalFRDelay = directDelay + frExtraDelay + noiseState;
 - FR filter parameters updated from ValueTree at 50Hz
 - Both InputBufferAlgorithm and OutputBufferAlgorithm support FR
 - FR and direct signals summed per output
+
+### Level Metering System
+The Level Metering System provides real-time audio level visualization for input and output channels, with thread performance monitoring.
+
+**Core Files:**
+- **LevelMeteringManager.h** - Central manager for audio level collection and retrieval
+- **LevelMeterWindow.h** - Floating window UI with meter bars and controls
+
+**Features:**
+- **Input meters** - Peak + RMS levels with peak hold for each input channel
+- **Output meters** - Peak + RMS levels with peak hold for each output channel
+- **Thread performance bars** - CPU usage percentage per processing thread
+- **Solo buttons** - "S" toggle under each input meter (linked to binaural solo)
+- **Visual Solo dropdown** - Select single input for contribution visualization
+- **Clear Solo button** - Clear all binaural solo states
+
+**Level Measurement:**
+```cpp
+struct LevelInfo {
+    float peakDb;    // Current peak level in dB
+    float rmsDb;     // Current RMS level in dB
+};
+```
+
+**Thread Performance:**
+```cpp
+struct ThreadPerformance {
+    float cpuPercent;           // CPU usage as percentage
+    float microsecondsPerBlock; // Processing time per audio block
+};
+```
+
+**Visual Solo Linking (Single Mode):**
+- In Single mode, clicking "S" button also sets Visual Solo dropdown
+- In Multi mode, Visual Solo dropdown remains independent
+- Output meter highlighting only occurs in Single mode when Visual Solo is active
+
+**Processing Algorithm Modes:**
+| Mode | Threads | Performance Display |
+|------|---------|---------------------|
+| InputBuffer | Per-input threads | Bars under input meters |
+| OutputBuffer | Per-output threads | Bars under output meters |
+
+**Meter Window Access:**
+- Button in SystemConfigTab: "Level Meter" button
+- Metering enabled when window is visible, disabled when closed (saves CPU)
+
+**UI Components:**
+- **LevelMeterBar** - Vertical bar showing peak (line) + RMS (filled) with peak hold
+- **ThreadPerformanceBar** - Horizontal bar showing CPU % with color coding
+- **LevelMeterWindowContent** - Main content with meters, labels, and controls
+- **LevelMeterWindow** - DocumentWindow container with dark mode support
+
+**Color Coding:**
+| Level | Color |
+|-------|-------|
+| < -12 dB | Green |
+| -12 to -6 dB | Yellow |
+| > -6 dB | Red |
+
+| CPU % | Color |
+|-------|-------|
+| < 50% | Green |
+| 50-80% | Yellow |
+| > 80% | Red |
+
+### Binaural Solo Monitoring
+Binaural Solo Monitoring renders soloed inputs through a virtual speaker pair for headphone monitoring, simulating the spatial position of sources.
+
+**Core Files:**
+- **BinauralCalculationEngine.h** - Calculates delay, level, and HF for virtual speaker pair
+- **BinauralProcessor.h** - Audio processor with delay lines and HF filters
+
+**Virtual Speaker Configuration:**
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| Speaker spacing | 20cm | ±10cm from listener center |
+| Speaker angles | 45° | Left/right from front-facing axis |
+| On angle | 135° | Full coverage zone (behind) |
+| Off angle | 30° | Mute zone (in front) |
+| HF attenuation | -0.3 dB/m | Air absorption simulation |
+
+**User Controls (SystemConfigTab):**
+| Control | Range | Default | Description |
+|---------|-------|---------|-------------|
+| Solo Mode | Single/Multi | Single | Single = one input, Multi = multiple inputs |
+| Output Channel | Off, 1-2, 3-4, ... 63-64 | Off | First channel of stereo output pair |
+| Listener Distance | 0.5-10m | 2m | Distance from origin |
+| Listener Angle | -180° to +180° | 0° | Horizontal rotation |
+| Binaural Level | -40 to 0 dB | 0 dB | Overall level offset |
+| Binaural Delay | 0-100ms | 0ms | Additional delay offset |
+
+**Solo Mode Behavior:**
+- **Single mode**: Only one input can be soloed at a time; clicking "S" clears others
+- **Multi mode**: Multiple inputs can be soloed simultaneously
+
+**Binaural Calculation:**
+```cpp
+struct BinauralOutput {
+    float delayMs;          // Propagation delay
+    float level;            // Linear attenuation (0-1)
+    float hfAttenuationDb;  // High-frequency loss
+};
+struct BinauralPair {
+    BinauralOutput left;
+    BinauralOutput right;
+};
+```
+
+**Delay Calculation:**
+```cpp
+float distanceToSpeaker = distance3D(inputPos, virtualSpeakerPos);
+float delayMs = (distanceToSpeaker / 343.0f) * 1000.0f + binauralDelay;
+```
+
+**Angular Attenuation (Keystone Pattern):**
+```cpp
+// Calculate angle from speaker's rear axis to input
+float angleFromRear = acos(dot(rearAxis, toInput));
+if (angle <= onAngle) return 1.0f;    // Full signal
+if (angle >= offAngle) return 0.0f;   // Muted
+return (offAngle - angle) / (offAngle - onAngle);  // Linear transition
+```
+
+**HF Attenuation:**
+```cpp
+float hfDb = distanceToSpeaker * -0.3f;  // -0.3 dB/m
+```
+
+**BinauralProcessor Signal Flow:**
+```
+Soloed Input Audio
+    |
+    +--> Delay Line (Left) --> HF Shelf Filter --> Level --> Sum to Left Output
+    |
+    +--> Delay Line (Right) --> HF Shelf Filter --> Level --> Sum to Right Output
+```
+
+**Parameters (ValueTree):**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `binauralSoloMode` | int | 0=Single, 1=Multi |
+| `binauralOutputChannel` | int | First output channel (-1=disabled) |
+| `binauralListenerDistance` | float | Listener distance in meters |
+| `binauralListenerAngle` | int | Listener rotation in degrees |
+| `binauralAttenuation` | float | Level offset in dB |
+| `binauralDelay` | float | Delay offset in ms |
+| `inputSoloStates` | string | Comma-separated 0/1 per input |
+
+**API Methods (WFSValueTreeState):**
+```cpp
+bool isInputSoloed(int inputIndex);
+void setInputSoloed(int inputIndex, bool soloed);
+void clearAllSoloStates();
+int getBinauralSoloMode();  // 0=Single, 1=Multi
+```
+
+**Integration:**
+- BinauralCalculationEngine uses WFSCalculationEngine for input composite positions
+- BinauralProcessor runs after main WFS processing in MainComponent audio callback
+- Solo buttons in InputsTab, LevelMeterWindow linked to same ValueTree state
+- Clear Solo button in SystemConfigTab, LevelMeterWindow
 
 ---
 
@@ -1677,6 +1846,9 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 - `Source/DSP/OutputBufferProcessor.h` - Per-output threaded audio processor (with FR)
 - `Source/DSP/LiveSourceLevelDetector.h` - Per-input audio level detection (peak, short peak, RMS)
 - `Source/DSP/LiveSourceTamerEngine.h` - Live Source Tamer gain calculation
+- `Source/DSP/LevelMeteringManager.h` - Audio level metering with thread performance
+- `Source/DSP/BinauralCalculationEngine.h` - Binaural solo delay/level/HF calculation
+- `Source/DSP/BinauralProcessor.h` - Binaural solo rendering with delay lines and HF filters
 - `Source/Network/OSCManager.h/cpp` - Network coordination
 - `Source/Network/OSCConnection.h/cpp` - Target connection with UDP/TCP transmission
 - `Source/Network/OSCTCPReceiver.h/cpp` - TCP server for incoming connections
@@ -1689,6 +1861,7 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 - `Source/gui/ReverbTab.h` - Reverb settings with EQ
 - `Source/gui/NetworkLogWindow.h/cpp` - Log window UI
 - `Source/gui/OutputArrayHelperWindow.h/cpp` - Wizard of OutZ window
+- `Source/gui/LevelMeterWindow.h` - Level metering floating window with solo buttons
 - `Source/gui/ColorScheme.h` - Centralized color scheme system with 3 themes
 - `Source/gui/WfsLookAndFeel.h` - Custom LookAndFeel for widget theming
 - `Source/gui/sliders/WfsRangeSlider.h` - Double-thumbed range slider for distance constraints
@@ -1723,5 +1896,6 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 ---
 
 *Last updated: 2026-01-13*
+*Features added: Level Metering, Binaural Solo Monitoring*
 *JUCE Version: 8.0.12*
 *Build: Visual Studio 2022 / Xcode, x64 Debug/Release*
