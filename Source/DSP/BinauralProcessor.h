@@ -82,10 +82,23 @@ public:
 
         int numInputs = juce::jmin (numInputChannels, inputBuffer.getNumChannels(), (int) delayBuffersL.size());
 
-        // Process each soloed input
+        // Check if any inputs are soloed
+        bool anySoloed = false;
+        for (int i = 0; i < numInputs; ++i)
+        {
+            if (binauralCalc.isInputSoloed (i))
+            {
+                anySoloed = true;
+                break;
+            }
+        }
+
+        // Process each input
+        // If solos exist, only process soloed inputs
+        // If no solos, process all inputs (full spatial mix for binaural preview)
         for (int inputIdx = 0; inputIdx < numInputs; ++inputIdx)
         {
-            if (!binauralCalc.isInputSoloed (inputIdx))
+            if (anySoloed && !binauralCalc.isInputSoloed (inputIdx))
                 continue;
 
             // Get binaural parameters for this input

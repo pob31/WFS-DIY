@@ -833,6 +833,9 @@ struct ThreadPerformance {
 ### Binaural Solo Monitoring
 Binaural Solo Monitoring renders soloed inputs through a virtual speaker pair for headphone monitoring, simulating the spatial position of sources.
 
+**Studio Preview Mode:**
+When no inputs are soloed, all inputs are rendered through the binaural spatialization, providing a full spatial mix preview on headphones. This enables pre-production work without a full WFS speaker array (home studio, hotel, train, airport).
+
 **Core Files:**
 - **BinauralCalculationEngine.h** - Calculates delay, level, and HF for virtual speaker pair
 - **BinauralProcessor.h** - Audio processor with delay lines and HF filters
@@ -859,6 +862,7 @@ Binaural Solo Monitoring renders soloed inputs through a virtual speaker pair fo
 **Solo Mode Behavior:**
 - **Single mode**: Only one input can be soloed at a time; clicking "S" clears others
 - **Multi mode**: Multiple inputs can be soloed simultaneously
+- **No solos**: Full spatial mix rendered to binaural output (studio preview mode)
 
 **Binaural Calculation:**
 ```cpp
