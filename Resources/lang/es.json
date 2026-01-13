@@ -669,5 +669,81 @@
       "notEnoughOutputs": "¡No hay suficientes canales de salida! Se necesitan {count} desde {start}",
       "prefix": "Error: "
     }
+  },
+
+  "reverbs": {
+    "noChannels": "No hay canales de reverberación configurados.\n\nConfigure el número de canales de reverberación en Config Sistema.",
+    "tabs": {
+      "channelParams": "Parámetros del canal",
+      "eq": "EQ Reverb",
+      "algorithm": "Algoritmo"
+    },
+    "labels": {
+      "name": "Nombre:",
+      "attenuation": "Atenuación:",
+      "delayLatency": "Retardo/Latencia:",
+      "coordinates": "Coord:",
+      "positionX": "Posición X:",
+      "positionY": "Posición Y:",
+      "positionZ": "Posición Z:",
+      "returnOffsetX": "Desplazamiento retorno X:",
+      "returnOffsetY": "Desplazamiento retorno Y:",
+      "returnOffsetZ": "Desplazamiento retorno Z:",
+      "orientation": "Orientación:",
+      "angleOn": "Ángulo On:",
+      "angleOff": "Ángulo Off:",
+      "pitch": "Inclinación:",
+      "hfDamping": "Atenuación HF:",
+      "distanceAttenPercent": "Atenuación distancia %:",
+      "distanceAtten": "Atenuación distancia:",
+      "commonAtten": "Atenuación común:",
+      "outputMutes": "Mutes salidas:",
+      "muteMacro": "Macro mute:"
+    },
+    "sections": {
+      "reverbFeed": "Entrada reverb",
+      "reverbReturn": "Retorno reverb"
+    },
+    "buttons": {
+      "visibleOnMap": "Reverbs visibles en mapa",
+      "hiddenOnMap": "Reverbs ocultas en mapa",
+      "storeConfig": "Guardar config reverb",
+      "reloadConfig": "Recargar config reverb",
+      "reloadBackup": "Recargar respaldo",
+      "import": "Importar",
+      "export": "Exportar"
+    },
+    "toggles": {
+      "minLatencyOn": "Latencia mín SÍ",
+      "minLatencyOff": "Latencia mín NO",
+      "liveSourceOn": "Atenuación live SÍ",
+      "liveSourceOff": "Atenuación live NO"
+    },
+    "muteMacros": {
+      "select": "Selección macro mute",
+      "muteAll": "SILENCIAR TODO",
+      "unmuteAll": "ACTIVAR TODO",
+      "invertMutes": "INVERTIR MUTES",
+      "muteOdd": "SILENCIAR IMPARES",
+      "muteEven": "SILENCIAR PARES",
+      "muteArray": "SILENCIAR GRUPO",
+      "unmuteArray": "ACTIVAR GRUPO"
+    },
+    "algorithm": {
+      "comingSoon": "Próximamente"
+    },
+    "dialogs": {
+      "import": "Importar configuración reverb",
+      "export": "Exportar configuración reverb"
+    },
+    "messages": {
+      "selectFolderFirst": "Por favor seleccione primero una carpeta de proyecto en Config Sistema.",
+      "configSaved": "Configuración reverb guardada.",
+      "configLoaded": "Configuración reverb cargada.",
+      "backupLoaded": "Configuración reverb cargada desde respaldo.",
+      "configImported": "Configuración reverb importada.",
+      "configExported": "Configuración reverb exportada.",
+      "error": "Error: {error}"
+    }
   }
 }

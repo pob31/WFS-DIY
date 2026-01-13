@@ -669,5 +669,81 @@
       "notEnoughOutputs": "Pas assez de canaux de sortie ! Besoin de {count} à partir de {start}",
       "prefix": "Erreur : "
     }
+  },
+
+  "reverbs": {
+    "noChannels": "Aucun canal de réverbération configuré.\n\nDéfinissez le nombre de canaux de réverbération dans Config Système.",
+    "tabs": {
+      "channelParams": "Paramètres du canal",
+      "eq": "EQ Réverb",
+      "algorithm": "Algorithme"
+    },
+    "labels": {
+      "name": "Nom :",
+      "attenuation": "Atténuation :",
+      "delayLatency": "Délai/Latence :",
+      "coordinates": "Coord :",
+      "positionX": "Position X :",
+      "positionY": "Position Y :",
+      "positionZ": "Position Z :",
+      "returnOffsetX": "Décalage retour X :",
+      "returnOffsetY": "Décalage retour Y :",
+      "returnOffsetZ": "Décalage retour Z :",
+      "orientation": "Orientation :",
+      "angleOn": "Angle On :",
+      "angleOff": "Angle Off :",
+      "pitch": "Inclinaison :",
+      "hfDamping": "Atténuation HF :",
+      "distanceAttenPercent": "Atténuation distance % :",
+      "distanceAtten": "Atténuation distance :",
+      "commonAtten": "Atténuation commune :",
+      "outputMutes": "Mutes sorties :",
+      "muteMacro": "Macro mute :"
+    },
+    "sections": {
+      "reverbFeed": "Entrée réverb",
+      "reverbReturn": "Retour réverb"
+    },
+    "buttons": {
+      "visibleOnMap": "Réverbs visibles sur la carte",
+      "hiddenOnMap": "Réverbs masquées sur la carte",
+      "storeConfig": "Enregistrer config réverb",
+      "reloadConfig": "Recharger config réverb",
+      "reloadBackup": "Recharger sauvegarde",
+      "import": "Importer",
+      "export": "Exporter"
+    },
+    "toggles": {
+      "minLatencyOn": "Latence min OUI",
+      "minLatencyOff": "Latence min NON",
+      "liveSourceOn": "Atténuation live OUI",
+      "liveSourceOff": "Atténuation live NON"
+    },
+    "muteMacros": {
+      "select": "Sélection macro mute",
+      "muteAll": "MUTER TOUT",
+      "unmuteAll": "DÉMUTER TOUT",
+      "invertMutes": "INVERSER MUTES",
+      "muteOdd": "MUTER IMPAIRS",
+      "muteEven": "MUTER PAIRS",
+      "muteArray": "MUTER GROUPE",
+      "unmuteArray": "DÉMUTER GROUPE"
+    },
+    "algorithm": {
+      "comingSoon": "Bientôt disponible"
+    },
+    "dialogs": {
+      "import": "Importer configuration réverb",
+      "export": "Exporter configuration réverb"
+    },
+    "messages": {
+      "selectFolderFirst": "Veuillez d'abord sélectionner un dossier projet dans Config Système.",
+      "configSaved": "Configuration réverb enregistrée.",
+      "configLoaded": "Configuration réverb chargée.",
+      "backupLoaded": "Configuration réverb chargée depuis la sauvegarde.",
+      "configImported": "Configuration réverb importée.",
+      "configExported": "Configuration réverb exportée.",
+      "error": "Erreur : {error}"
+    }
   }
 }

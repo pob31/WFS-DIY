@@ -669,5 +669,81 @@
       "notEnoughOutputs": "出力チャンネルが足りません！{start}から{count}個必要です",
       "prefix": "エラー: "
     }
+  },
+
+  "reverbs": {
+    "noChannels": "リバーブチャンネルが設定されていません。\n\nシステム設定でリバーブチャンネル数を設定してください。",
+    "tabs": {
+      "channelParams": "チャンネルパラメータ",
+      "eq": "リバーブEQ",
+      "algorithm": "アルゴリズム"
+    },
+    "labels": {
+      "name": "名前:",
+      "attenuation": "減衰:",
+      "delayLatency": "ディレイ/レイテンシー:",
+      "coordinates": "座標:",
+      "positionX": "位置 X:",
+      "positionY": "位置 Y:",
+      "positionZ": "位置 Z:",
+      "returnOffsetX": "リターンオフセット X:",
+      "returnOffsetY": "リターンオフセット Y:",
+      "returnOffsetZ": "リターンオフセット Z:",
+      "orientation": "向き:",
+      "angleOn": "アングル On:",
+      "angleOff": "アングル Off:",
+      "pitch": "ピッチ:",
+      "hfDamping": "HF減衰:",
+      "distanceAttenPercent": "距離減衰 %:",
+      "distanceAtten": "距離減衰:",
+      "commonAtten": "共通減衰:",
+      "outputMutes": "出力ミュート:",
+      "muteMacro": "ミュートマクロ:"
+    },
+    "sections": {
+      "reverbFeed": "リバーブフィード",
+      "reverbReturn": "リバーブリターン"
+    },
+    "buttons": {
+      "visibleOnMap": "マップにリバーブを表示",
+      "hiddenOnMap": "マップでリバーブを非表示",
+      "storeConfig": "リバーブ設定を保存",
+      "reloadConfig": "リバーブ設定を再読込",
+      "reloadBackup": "バックアップを読込",
+      "import": "インポート",
+      "export": "エクスポート"
+    },
+    "toggles": {
+      "minLatencyOn": "最小レイテンシー オン",
+      "minLatencyOff": "最小レイテンシー オフ",
+      "liveSourceOn": "ライブソース減衰 オン",
+      "liveSourceOff": "ライブソース減衰 オフ"
+    },
+    "muteMacros": {
+      "select": "ミュートマクロ選択",
+      "muteAll": "すべてミュート",
+      "unmuteAll": "すべてミュート解除",
+      "invertMutes": "ミュート反転",
+      "muteOdd": "奇数をミュート",
+      "muteEven": "偶数をミュート",
+      "muteArray": "アレイをミュート",
+      "unmuteArray": "アレイのミュート解除"
+    },
+    "algorithm": {
+      "comingSoon": "近日公開"
+    },
+    "dialogs": {
+      "import": "リバーブ設定をインポート",
+      "export": "リバーブ設定をエクスポート"
+    },
+    "messages": {
+      "selectFolderFirst": "まずシステム設定でプロジェクトフォルダを選択してください。",
+      "configSaved": "リバーブ設定を保存しました。",
+      "configLoaded": "リバーブ設定を読み込みました。",
+      "backupLoaded": "バックアップからリバーブ設定を読み込みました。",
+      "configImported": "リバーブ設定をインポートしました。",
+      "configExported": "リバーブ設定をエクスポートしました。",
+      "error": "エラー: {error}"
+    }
   }
 }

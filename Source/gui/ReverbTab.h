@@ -5,6 +5,7 @@
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/WFSParameterDefaults.h"
 #include "../Accessibility/TTSManager.h"
+#include "../Localization/LocalizationManager.h"
 #include "ChannelSelector.h"
 #include "ColorScheme.h"
 #include "SliderUIComponents.h"
@@ -54,7 +55,7 @@ public:
         setupMouseListeners();
 
         // Setup "no channels" message
-        noChannelsLabel.setText ("No reverb channels configured.\n\nSet the number of Reverb Channels in System Config.",
+        noChannelsLabel.setText (LOC("reverbs.noChannels"),
                                  juce::dontSendNotification);
         noChannelsLabel.setJustificationType (juce::Justification::centred);
         noChannelsLabel.setColour (juce::Label::textColourId, juce::Colours::grey);
@@ -272,7 +273,7 @@ private:
         };
 
         addAndMakeVisible (nameLabel);
-        nameLabel.setText ("Name:", juce::dontSendNotification);
+        nameLabel.setText (LOC("reverbs.labels.name"), juce::dontSendNotification);
 
         addAndMakeVisible (nameEditor);
         nameEditor.addListener (this);
@@ -286,9 +287,9 @@ private:
     void setupSubTabs()
     {
         addAndMakeVisible (subTabBar);
-        subTabBar.addTab ("Channel Parameters", juce::Colour (0xFF2A2A2A), -1);
-        subTabBar.addTab ("Reverb EQ", juce::Colour (0xFF2A2A2A), -1);
-        subTabBar.addTab ("Algorithm", juce::Colour (0xFF2A2A2A), -1);
+        subTabBar.addTab (LOC("reverbs.tabs.channelParams"), juce::Colour (0xFF2A2A2A), -1);
+        subTabBar.addTab (LOC("reverbs.tabs.eq"), juce::Colour (0xFF2A2A2A), -1);
+        subTabBar.addTab (LOC("reverbs.tabs.algorithm"), juce::Colour (0xFF2A2A2A), -1);
         subTabBar.addChangeListener (static_cast<juce::ChangeListener*> (this));
     }
 
@@ -296,7 +297,7 @@ private:
     {
         // Attenuation
         addAndMakeVisible (attenuationLabel);
-        attenuationLabel.setText ("Attenuation:", juce::dontSendNotification);
+        attenuationLabel.setText (LOC("reverbs.labels.attenuation"), juce::dontSendNotification);
 
         attenuationSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFFF5722));
         attenuationSlider.onValueChanged = [this] (float v)
@@ -314,7 +315,7 @@ private:
 
         // Delay/Latency
         addAndMakeVisible (delayLatencyLabel);
-        delayLatencyLabel.setText ("Delay/Latency:", juce::dontSendNotification);
+        delayLatencyLabel.setText (LOC("reverbs.labels.delayLatency"), juce::dontSendNotification);
 
         delayLatencySlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF4CAF50));
         delayLatencySlider.onValueChanged = [this] (float v)
@@ -334,7 +335,7 @@ private:
     {
         // Coordinate Mode selector
         addAndMakeVisible(coordModeLabel);
-        coordModeLabel.setText("Coord:", juce::dontSendNotification);
+        coordModeLabel.setText(LOC("reverbs.labels.coordinates"), juce::dontSendNotification);
         addAndMakeVisible(coordModeSelector);
         coordModeSelector.addItem("XYZ", 1);
         coordModeSelector.addItem(juce::String(juce::CharPointer_UTF8("r \xce\xb8 Z")), 2);    // r θ Z
@@ -393,11 +394,11 @@ private:
     {
         // Column title labels
         addAndMakeVisible (reverbFeedTitleLabel);
-        reverbFeedTitleLabel.setText ("Reverb Feed", juce::dontSendNotification);
+        reverbFeedTitleLabel.setText (LOC("reverbs.sections.reverbFeed"), juce::dontSendNotification);
         reverbFeedTitleLabel.setFont (juce::FontOptions().withHeight (18.0f).withStyle ("Bold"));
 
         addAndMakeVisible (reverbReturnTitleLabel);
-        reverbReturnTitleLabel.setText ("Reverb Return", juce::dontSendNotification);
+        reverbReturnTitleLabel.setText (LOC("reverbs.sections.reverbReturn"), juce::dontSendNotification);
         reverbReturnTitleLabel.setFont (juce::FontOptions().withHeight (18.0f).withStyle ("Bold"));
 
         // Orientation dial
@@ -491,7 +492,7 @@ private:
 
         // Toggle buttons
         addAndMakeVisible (miniLatencyEnableButton);
-        miniLatencyEnableButton.setButtonText ("Minimal Latency OFF");
+        miniLatencyEnableButton.setButtonText (LOC("reverbs.toggles.minLatencyOff"));
         miniLatencyEnableButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF2D2D2D));
         miniLatencyEnableButton.setColour (juce::TextButton::buttonOnColourId, juce::Colour (0xFF2D2D2D));
         miniLatencyEnableButton.setTooltip ("Enables minimal latency mode for the reverb feed");
@@ -499,7 +500,7 @@ private:
         {
             bool enabled = !miniLatencyEnableButton.getToggleState();
             miniLatencyEnableButton.setToggleState (enabled, juce::dontSendNotification);
-            miniLatencyEnableButton.setButtonText (enabled ? "Minimal Latency ON" : "Minimal Latency OFF");
+            miniLatencyEnableButton.setButtonText (enabled ? LOC("reverbs.toggles.minLatencyOn") : LOC("reverbs.toggles.minLatencyOff"));
             juce::Colour btnColour = enabled ? juce::Colour (0xFF4CAF50) : juce::Colour (0xFF2D2D2D);
             miniLatencyEnableButton.setColour (juce::TextButton::buttonColourId, btnColour);
             miniLatencyEnableButton.setColour (juce::TextButton::buttonOnColourId, btnColour);
@@ -507,7 +508,7 @@ private:
         };
 
         addAndMakeVisible (lsEnableButton);
-        lsEnableButton.setButtonText ("Live Source Atten OFF");
+        lsEnableButton.setButtonText (LOC("reverbs.toggles.liveSourceOff"));
         lsEnableButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF2D2D2D));
         lsEnableButton.setColour (juce::TextButton::buttonOnColourId, juce::Colour (0xFF2D2D2D));
         lsEnableButton.setTooltip ("Enables live source attenuation for the reverb feed");
@@ -515,7 +516,7 @@ private:
         {
             bool enabled = !lsEnableButton.getToggleState();
             lsEnableButton.setToggleState (enabled, juce::dontSendNotification);
-            lsEnableButton.setButtonText (enabled ? "Live Source Atten ON" : "Live Source Atten OFF");
+            lsEnableButton.setButtonText (enabled ? LOC("reverbs.toggles.liveSourceOn") : LOC("reverbs.toggles.liveSourceOff"));
             juce::Colour btnColour = enabled ? juce::Colour (0xFF4CAF50) : juce::Colour (0xFF2D2D2D);
             lsEnableButton.setColour (juce::TextButton::buttonColourId, btnColour);
             lsEnableButton.setColour (juce::TextButton::buttonOnColourId, btnColour);
@@ -524,7 +525,7 @@ private:
 
         // Distance Attenuation Enable slider
         addAndMakeVisible (distanceAttenEnableLabel);
-        distanceAttenEnableLabel.setText ("Distance Atten %:", juce::dontSendNotification);
+        distanceAttenEnableLabel.setText (LOC("reverbs.labels.distanceAttenPercent"), juce::dontSendNotification);
 
         distanceAttenEnableSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF4CAF50));
         distanceAttenEnableSlider.onValueChanged = [this] (float v)
@@ -544,13 +545,13 @@ private:
     {
         // EQ Enable button
         addAndMakeVisible (eqEnableButton);
-        eqEnableButton.setButtonText ("EQ ON");
+        eqEnableButton.setButtonText (LOC("eq.status.on"));
         eqEnableButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF4CAF50));
         eqEnableButton.onClick = [this]
         {
             bool enabled = !eqEnableButton.getToggleState();
             eqEnableButton.setToggleState (enabled, juce::dontSendNotification);
-            eqEnableButton.setButtonText (enabled ? "EQ ON" : "EQ OFF");
+            eqEnableButton.setButtonText (enabled ? LOC("eq.status.on") : LOC("eq.status.off"));
             eqEnableButton.setColour (juce::TextButton::buttonColourId,
                                       enabled ? juce::Colour (0xFF4CAF50) : juce::Colour (0xFF2D2D2D));
             // Update all band appearances when global EQ state changes
@@ -567,18 +568,18 @@ private:
         {
             // Band label - colored to match EQ display markers
             addAndMakeVisible (eqBandLabel[i]);
-            eqBandLabel[i].setText ("Band " + juce::String (i + 1), juce::dontSendNotification);
+            eqBandLabel[i].setText (LOC("eq.labels.band") + " " + juce::String (i + 1), juce::dontSendNotification);
             eqBandLabel[i].setColour (juce::Label::textColourId, EQDisplayComponent::getBandColour(i));
             eqBandLabel[i].setJustificationType (juce::Justification::centred);
 
             // Shape selector (no band-pass)
             addAndMakeVisible (eqBandShapeSelector[i]);
-            eqBandShapeSelector[i].addItem ("OFF", 1);
-            eqBandShapeSelector[i].addItem ("Low Cut", 2);
-            eqBandShapeSelector[i].addItem ("Low Shelf", 3);
-            eqBandShapeSelector[i].addItem ("Peak/Notch", 4);
-            eqBandShapeSelector[i].addItem ("High Shelf", 5);
-            eqBandShapeSelector[i].addItem ("High Cut", 6);
+            eqBandShapeSelector[i].addItem (LOC("eq.filterTypes.off"), 1);
+            eqBandShapeSelector[i].addItem (LOC("eq.filterTypes.lowCut"), 2);
+            eqBandShapeSelector[i].addItem (LOC("eq.filterTypes.lowShelf"), 3);
+            eqBandShapeSelector[i].addItem (LOC("eq.filterTypes.peakNotch"), 4);
+            eqBandShapeSelector[i].addItem (LOC("eq.filterTypes.highShelf"), 5);
+            eqBandShapeSelector[i].addItem (LOC("eq.filterTypes.highCut"), 6);
             eqBandShapeSelector[i].setSelectedId (1);
             eqBandShapeSelector[i].onChange = [this, i]
             {
@@ -592,7 +593,7 @@ private:
 
             // Frequency slider - colored to match band
             addAndMakeVisible (eqBandFreqLabel[i]);
-            eqBandFreqLabel[i].setText ("Freq:", juce::dontSendNotification);
+            eqBandFreqLabel[i].setText (LOC("eq.labels.freq"), juce::dontSendNotification);
             eqBandFreqLabel[i].setColour (juce::Label::textColourId, juce::Colours::grey);
 
             juce::Colour bandColour = EQDisplayComponent::getBandColour(i);
@@ -610,7 +611,7 @@ private:
 
             // Gain dial - colored to match band
             addAndMakeVisible (eqBandGainLabel[i]);
-            eqBandGainLabel[i].setText ("Gain", juce::dontSendNotification);
+            eqBandGainLabel[i].setText (LOC("eq.labels.gain"), juce::dontSendNotification);
             eqBandGainLabel[i].setColour (juce::Label::textColourId, juce::Colours::grey);
             eqBandGainLabel[i].setJustificationType (juce::Justification::centred);
 
@@ -629,7 +630,7 @@ private:
 
             // Q dial - colored to match band
             addAndMakeVisible (eqBandQLabel[i]);
-            eqBandQLabel[i].setText ("Q", juce::dontSendNotification);
+            eqBandQLabel[i].setText (LOC("eq.labels.q"), juce::dontSendNotification);
             eqBandQLabel[i].setColour (juce::Label::textColourId, juce::Colours::grey);
             eqBandQLabel[i].setJustificationType (juce::Justification::centred);
 
@@ -651,7 +652,7 @@ private:
     void setupAlgorithmSubTab()
     {
         addAndMakeVisible (algorithmPlaceholderLabel);
-        algorithmPlaceholderLabel.setText ("Coming Soon", juce::dontSendNotification);
+        algorithmPlaceholderLabel.setText (LOC("reverbs.algorithm.comingSoon"), juce::dontSendNotification);
         algorithmPlaceholderLabel.setFont (juce::FontOptions().withHeight (32.0f).withStyle ("Bold"));
         algorithmPlaceholderLabel.setColour (juce::Label::textColourId, juce::Colour (0xFF666666));
         algorithmPlaceholderLabel.setJustificationType (juce::Justification::centred);
@@ -661,7 +662,7 @@ private:
     {
         // Distance Attenuation dial
         addAndMakeVisible (distanceAttenLabel);
-        distanceAttenLabel.setText ("Distance Atten:", juce::dontSendNotification);
+        distanceAttenLabel.setText (LOC("reverbs.labels.distanceAtten"), juce::dontSendNotification);
 
         distanceAttenDial.onValueChanged = [this] (float v)
         {
@@ -682,7 +683,7 @@ private:
 
         // Common Attenuation dial
         addAndMakeVisible (commonAttenLabel);
-        commonAttenLabel.setText ("Common Atten:", juce::dontSendNotification);
+        commonAttenLabel.setText (LOC("reverbs.labels.commonAtten"), juce::dontSendNotification);
 
         commonAttenDial.onValueChanged = [this] (float v)
         {
@@ -703,7 +704,7 @@ private:
 
         // Mute buttons (styled like InputsTab)
         addAndMakeVisible (mutesLabel);
-        mutesLabel.setText ("Output Mutes:", juce::dontSendNotification);
+        mutesLabel.setText (LOC("reverbs.labels.outputMutes"), juce::dontSendNotification);
 
         for (int i = 0; i < maxMuteButtons; ++i)
         {
@@ -720,19 +721,19 @@ private:
 
         // Mute Macro selector
         addAndMakeVisible (muteMacrosLabel);
-        muteMacrosLabel.setText ("Mute Macro:", juce::dontSendNotification);
+        muteMacrosLabel.setText (LOC("reverbs.labels.muteMacro"), juce::dontSendNotification);
 
         addAndMakeVisible (muteMacrosSelector);
-        muteMacrosSelector.addItem ("Mute Macro Select", 1);
-        muteMacrosSelector.addItem ("MUTE ALL", 2);
-        muteMacrosSelector.addItem ("UNMUTE ALL", 3);
-        muteMacrosSelector.addItem ("INVERT MUTES", 4);
-        muteMacrosSelector.addItem ("MUTE ODD", 5);
-        muteMacrosSelector.addItem ("MUTE EVEN", 6);
+        muteMacrosSelector.addItem (LOC("reverbs.muteMacros.select"), 1);
+        muteMacrosSelector.addItem (LOC("reverbs.muteMacros.muteAll"), 2);
+        muteMacrosSelector.addItem (LOC("reverbs.muteMacros.unmuteAll"), 3);
+        muteMacrosSelector.addItem (LOC("reverbs.muteMacros.invertMutes"), 4);
+        muteMacrosSelector.addItem (LOC("reverbs.muteMacros.muteOdd"), 5);
+        muteMacrosSelector.addItem (LOC("reverbs.muteMacros.muteEven"), 6);
         for (int arr = 1; arr <= 10; ++arr)
         {
-            muteMacrosSelector.addItem ("MUTE ARRAY " + juce::String (arr), 6 + (arr - 1) * 2 + 1);
-            muteMacrosSelector.addItem ("UNMUTE ARRAY " + juce::String (arr), 6 + (arr - 1) * 2 + 2);
+            muteMacrosSelector.addItem (LOC("reverbs.muteMacros.muteArray") + " " + juce::String (arr), 6 + (arr - 1) * 2 + 1);
+            muteMacrosSelector.addItem (LOC("reverbs.muteMacros.unmuteArray") + " " + juce::String (arr), 6 + (arr - 1) * 2 + 2);
         }
         muteMacrosSelector.setSelectedId (1);
         muteMacrosSelector.onChange = [this]
@@ -751,27 +752,27 @@ private:
     void setupFooter()
     {
         addAndMakeVisible (storeButton);
-        storeButton.setButtonText ("Store Reverb Config");
+        storeButton.setButtonText (LOC("reverbs.buttons.storeConfig"));
         storeButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF8C3333));  // Reddish
         storeButton.onClick = [this] { storeReverbConfiguration(); };
 
         addAndMakeVisible (reloadButton);
-        reloadButton.setButtonText ("Reload Reverb Config");
+        reloadButton.setButtonText (LOC("reverbs.buttons.reloadConfig"));
         reloadButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF338C33));  // Greenish
         reloadButton.onClick = [this] { reloadReverbConfiguration(); };
 
         addAndMakeVisible (reloadBackupButton);
-        reloadBackupButton.setButtonText ("Reload Backup");
+        reloadBackupButton.setButtonText (LOC("reverbs.buttons.reloadBackup"));
         reloadBackupButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF266626));  // Darker green
         reloadBackupButton.onClick = [this] { reloadReverbConfigBackup(); };
 
         addAndMakeVisible (importButton);
-        importButton.setButtonText ("Import");
+        importButton.setButtonText (LOC("reverbs.buttons.import"));
         importButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF338C33));  // Greenish
         importButton.onClick = [this] { importReverbConfiguration(); };
 
         addAndMakeVisible (exportButton);
-        exportButton.setButtonText ("Export");
+        exportButton.setButtonText (LOC("reverbs.buttons.export"));
         exportButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF8C3333));  // Reddish
         exportButton.onClick = [this] { exportReverbConfiguration(); };
     }
@@ -1481,7 +1482,7 @@ private:
 
         int miniLatency = getIntParam (WFSParameterIDs::reverbMiniLatencyEnable, 1);
         miniLatencyEnableButton.setToggleState (miniLatency != 0, juce::dontSendNotification);
-        miniLatencyEnableButton.setButtonText (miniLatency != 0 ? "Minimal Latency ON" : "Minimal Latency OFF");
+        miniLatencyEnableButton.setButtonText (miniLatency != 0 ? LOC("reverbs.toggles.minLatencyOn") : LOC("reverbs.toggles.minLatencyOff"));
         {
             juce::Colour btnColour = miniLatency != 0 ? juce::Colour (0xFF4CAF50) : juce::Colour (0xFF2D2D2D);
             miniLatencyEnableButton.setColour (juce::TextButton::buttonColourId, btnColour);
@@ -1490,7 +1491,7 @@ private:
 
         int lsEnable = getIntParam (WFSParameterIDs::reverbLSenable, 1);
         lsEnableButton.setToggleState (lsEnable != 0, juce::dontSendNotification);
-        lsEnableButton.setButtonText (lsEnable != 0 ? "Live Source Atten ON" : "Live Source Atten OFF");
+        lsEnableButton.setButtonText (lsEnable != 0 ? LOC("reverbs.toggles.liveSourceOn") : LOC("reverbs.toggles.liveSourceOff"));
         {
             juce::Colour btnColour = lsEnable != 0 ? juce::Colour (0xFF4CAF50) : juce::Colour (0xFF2D2D2D);
             lsEnableButton.setColour (juce::TextButton::buttonColourId, btnColour);
@@ -1504,7 +1505,7 @@ private:
         // EQ
         int eqEnabled = getIntParam (WFSParameterIDs::reverbEQenable, 1);
         eqEnableButton.setToggleState (eqEnabled != 0, juce::dontSendNotification);
-        eqEnableButton.setButtonText (eqEnabled != 0 ? "EQ ON" : "EQ OFF");
+        eqEnableButton.setButtonText (eqEnabled != 0 ? LOC("eq.status.on") : LOC("eq.status.off"));
         eqEnableButton.setColour (juce::TextButton::buttonColourId,
                                   eqEnabled != 0 ? juce::Colour (0xFF4CAF50) : juce::Colour (0xFF2D2D2D));
 
@@ -1731,13 +1732,13 @@ private:
         auto& fileManager = parameters.getFileManager();
         if (!fileManager.hasValidProjectFolder())
         {
-            showStatusMessage ("Please select a project folder in System Config first.");
+            showStatusMessage (LOC("reverbs.messages.selectFolderFirst"));
             return;
         }
         if (fileManager.saveReverbConfig())
-            showStatusMessage ("Reverb configuration saved.");
+            showStatusMessage (LOC("reverbs.messages.configSaved"));
         else
-            showStatusMessage ("Error: " + fileManager.getLastError());
+            showStatusMessage (LOC("reverbs.messages.error").replace("{error}", fileManager.getLastError()));
     }
 
     void reloadReverbConfiguration()
@@ -1745,20 +1746,20 @@ private:
         auto& fileManager = parameters.getFileManager();
         if (!fileManager.hasValidProjectFolder())
         {
-            showStatusMessage ("Please select a project folder in System Config first.");
+            showStatusMessage (LOC("reverbs.messages.selectFolderFirst"));
             return;
         }
         if (fileManager.loadReverbConfig())
         {
             loadChannelParameters (currentChannel);
-            showStatusMessage ("Reverb configuration loaded.");
+            showStatusMessage (LOC("reverbs.messages.configLoaded"));
 
             // Trigger DSP recalculation via callback to MainComponent
             if (onConfigReloaded)
                 onConfigReloaded();
         }
         else
-            showStatusMessage ("Error: " + fileManager.getLastError());
+            showStatusMessage (LOC("reverbs.messages.error").replace("{error}", fileManager.getLastError()));
     }
 
     void reloadReverbConfigBackup()
@@ -1766,25 +1767,25 @@ private:
         auto& fileManager = parameters.getFileManager();
         if (!fileManager.hasValidProjectFolder())
         {
-            showStatusMessage ("Please select a project folder in System Config first.");
+            showStatusMessage (LOC("reverbs.messages.selectFolderFirst"));
             return;
         }
         if (fileManager.loadReverbConfigBackup (0))
         {
             loadChannelParameters (currentChannel);
-            showStatusMessage ("Reverb configuration loaded from backup.");
+            showStatusMessage (LOC("reverbs.messages.backupLoaded"));
 
             // Trigger DSP recalculation via callback to MainComponent
             if (onConfigReloaded)
                 onConfigReloaded();
         }
         else
-            showStatusMessage ("Error: " + fileManager.getLastError());
+            showStatusMessage (LOC("reverbs.messages.error").replace("{error}", fileManager.getLastError()));
     }
 
     void importReverbConfiguration()
     {
-        auto chooser = std::make_shared<juce::FileChooser> ("Import Reverb Configuration",
+        auto chooser = std::make_shared<juce::FileChooser> (LOC("reverbs.dialogs.import"),
             juce::File::getSpecialLocation (juce::File::userHomeDirectory), "*.xml");
         chooser->launchAsync (juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
             [this, chooser] (const juce::FileChooser& fc)
@@ -1796,21 +1797,21 @@ private:
                     if (fileManager.importReverbConfig (result))
                     {
                         loadChannelParameters (currentChannel);
-                        showStatusMessage ("Reverb configuration imported.");
+                        showStatusMessage (LOC("reverbs.messages.configImported"));
 
                         // Trigger DSP recalculation via callback to MainComponent
                         if (onConfigReloaded)
                             onConfigReloaded();
                     }
                     else
-                        showStatusMessage ("Error: " + fileManager.getLastError());
+                        showStatusMessage (LOC("reverbs.messages.error").replace("{error}", fileManager.getLastError()));
                 }
             });
     }
 
     void exportReverbConfiguration()
     {
-        auto chooser = std::make_shared<juce::FileChooser> ("Export Reverb Configuration",
+        auto chooser = std::make_shared<juce::FileChooser> (LOC("reverbs.dialogs.export"),
             juce::File::getSpecialLocation (juce::File::userHomeDirectory).getChildFile ("reverbs.xml"), "*.xml");
         chooser->launchAsync (juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles,
             [this, chooser] (const juce::FileChooser& fc)
@@ -1820,9 +1821,9 @@ private:
                 {
                     auto& fileManager = parameters.getFileManager();
                     if (fileManager.exportReverbConfig (result))
-                        showStatusMessage ("Reverb configuration exported.");
+                        showStatusMessage (LOC("reverbs.messages.configExported"));
                     else
-                        showStatusMessage ("Error: " + fileManager.getLastError());
+                        showStatusMessage (LOC("reverbs.messages.error").replace("{error}", fileManager.getLastError()));
                 }
             });
     }
@@ -2104,7 +2105,7 @@ private:
     {
         auto val = parameters.getConfigParam ("reverbsMapVisible");
         bool visible = val.isVoid() || static_cast<int> (val) != 0;
-        mapVisibilityButton.setButtonText (visible ? "Reverbs Visible on Map" : "Reverbs Hidden on Map");
+        mapVisibilityButton.setButtonText (visible ? LOC("reverbs.buttons.visibleOnMap") : LOC("reverbs.buttons.hiddenOnMap"));
     }
 
     void updateVisibility()

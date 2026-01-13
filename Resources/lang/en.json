@@ -669,5 +669,81 @@
       "notEnoughOutputs": "Not enough output channels! Need {count} starting from {start}",
       "prefix": "Error: "
     }
+  },
+
+  "reverbs": {
+    "noChannels": "No reverb channels configured.\n\nSet the number of Reverb Channels in System Config.",
+    "tabs": {
+      "channelParams": "Channel Parameters",
+      "eq": "Reverb EQ",
+      "algorithm": "Algorithm"
+    },
+    "labels": {
+      "name": "Name:",
+      "attenuation": "Attenuation:",
+      "delayLatency": "Delay/Latency:",
+      "coordinates": "Coord:",
+      "positionX": "Position X:",
+      "positionY": "Position Y:",
+      "positionZ": "Position Z:",
+      "returnOffsetX": "Return Offset X:",
+      "returnOffsetY": "Return Offset Y:",
+      "returnOffsetZ": "Return Offset Z:",
+      "orientation": "Orientation:",
+      "angleOn": "Angle On:",
+      "angleOff": "Angle Off:",
+      "pitch": "Pitch:",
+      "hfDamping": "HF Damping:",
+      "distanceAttenPercent": "Distance Atten %:",
+      "distanceAtten": "Distance Atten:",
+      "commonAtten": "Common Atten:",
+      "outputMutes": "Output Mutes:",
+      "muteMacro": "Mute Macro:"
+    },
+    "sections": {
+      "reverbFeed": "Reverb Feed",
+      "reverbReturn": "Reverb Return"
+    },
+    "buttons": {
+      "visibleOnMap": "Reverbs Visible on Map",
+      "hiddenOnMap": "Reverbs Hidden on Map",
+      "storeConfig": "Store Reverb Config",
+      "reloadConfig": "Reload Reverb Config",
+      "reloadBackup": "Reload Backup",
+      "import": "Import",
+      "export": "Export"
+    },
+    "toggles": {
+      "minLatencyOn": "Minimal Latency ON",
+      "minLatencyOff": "Minimal Latency OFF",
+      "liveSourceOn": "Live Source Atten ON",
+      "liveSourceOff": "Live Source Atten OFF"
+    },
+    "muteMacros": {
+      "select": "Mute Macro Select",
+      "muteAll": "MUTE ALL",
+      "unmuteAll": "UNMUTE ALL",
+      "invertMutes": "INVERT MUTES",
+      "muteOdd": "MUTE ODD",
+      "muteEven": "MUTE EVEN",
+      "muteArray": "MUTE ARRAY",
+      "unmuteArray": "UNMUTE ARRAY"
+    },
+    "algorithm": {
+      "comingSoon": "Coming Soon"
+    },
+    "dialogs": {
+      "import": "Import Reverb Configuration",
+      "export": "Export Reverb Configuration"
+    },
+    "messages": {
+      "selectFolderFirst": "Please select a project folder in System Config first.",
+      "configSaved": "Reverb configuration saved.",
+      "configLoaded": "Reverb configuration loaded.",
+      "backupLoaded": "Reverb configuration loaded from backup.",
+      "configImported": "Reverb configuration imported.",
+      "configExported": "Reverb configuration exported.",
+      "error": "Error: {error}"
+    }
   }
 }
