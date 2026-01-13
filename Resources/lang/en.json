@@ -101,6 +101,7 @@
 
     "buttons": {
       "audioPatch": "Audio Interface and Patching Window",
+      "levelMeter": "Level Meters",
       "processingOff": "Processing: OFF",
       "processingOn": "Processing: ON",
       "selectProjectFolder": "Select Project Folder",
@@ -451,11 +452,20 @@
 
   "map": {
     "buttons": {
-      "home": "Fit Stage to Screen"
+      "home": "Fit Stage to Screen",
+      "levels": "Show Levels"
     },
     "labels": {
       "reverbPrefix": "R"
     }
+  },
+
+  "levelMeter": {
+    "windowTitle": "Level Meters",
+    "inputs": "Inputs",
+    "outputs": "Outputs",
+    "solo": "Visual Solo:",
+    "soloNone": "None"
   },
 
   "clusters": {

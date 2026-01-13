@@ -1,8 +1,10 @@
 #pragma once
 
 #include "InputBufferProcessor.h"
+#include "OutputLevelDetector.h"
 #include <vector>
 #include <memory>
+#include <atomic>
 
 //==============================================================================
 /**
@@ -36,6 +38,10 @@ public:
                 const float* frLevelsPtr = nullptr,
                 const float* frHFAttenuationPtr = nullptr)
     {
+        // Store for output metering
+        cachedNumOutputs = numOutputs;
+        cachedSampleRate = sampleRate;
+
         // Create input-based processors (one thread per input channel)
         for (int i = 0; i < numInputs; ++i)
         {
@@ -50,6 +56,15 @@ public:
             inputProcessors.push_back(std::move(processor));
         }
 
+        // Create output level detectors (one per output channel)
+        outputDetectors.clear();
+        for (int i = 0; i < numOutputs; ++i)
+        {
+            auto detector = std::make_unique<OutputLevelDetector>();
+            detector->prepare(sampleRate);
+            outputDetectors.push_back(std::move(detector));
+        }
+
         // Start threads AFTER all processors are created and prepared
         for (auto& processor : inputProcessors)
         {
@@ -60,17 +75,23 @@ public:
 
     void reprepare(double sampleRate, int blockSize, bool processingEnabled)
     {
+        cachedSampleRate = sampleRate;
+
         // Stop threads first
         for (auto& processor : inputProcessors)
             processor->stopThread(1000);
 
-        // Re-prepare and restart
+        // Re-prepare input processors and restart
         for (auto& processor : inputProcessors)
         {
             processor->prepare(sampleRate, blockSize);
             processor->setProcessingEnabled(processingEnabled);
             processor->startThread(juce::Thread::Priority::high);
         }
+
+        // Re-prepare output detectors
+        for (auto& detector : outputDetectors)
+            detector->prepare(sampleRate);
     }
 
     void processBlock(const juce::AudioSourceChannelInfo& bufferToFill,
@@ -124,6 +145,20 @@ public:
                 for (int i = 0; i < samplesRead; ++i)
                 {
                     outputData[i] += tempData[i];
+                }
+            }
+        }
+
+        // Step 4: Run output level detection if enabled
+        if (outputMeteringEnabled.load(std::memory_order_relaxed))
+        {
+            int numOutputs = juce::jmin(numOutputChannels, totalChannels, (int)outputDetectors.size());
+            for (int outChannel = 0; outChannel < numOutputs; ++outChannel)
+            {
+                auto* outputData = bufferToFill.buffer->getReadPointer(outChannel, bufferToFill.startSample);
+                for (int i = 0; i < numSamples; ++i)
+                {
+                    outputDetectors[outChannel]->processSample(outputData[i]);
                 }
             }
         }
@@ -232,8 +267,59 @@ public:
             inputProcessors[inputIndex]->setFRDiffusion(diffusionPercent);
     }
 
+    // === Output Level Metering ===
+
+    void setOutputMeteringEnabled(bool enabled)
+    {
+        outputMeteringEnabled.store(enabled, std::memory_order_relaxed);
+    }
+
+    bool isOutputMeteringEnabled() const
+    {
+        return outputMeteringEnabled.load(std::memory_order_relaxed);
+    }
+
+    float getOutputPeakLevelDb(size_t outputIndex) const
+    {
+        if (outputIndex < outputDetectors.size())
+            return outputDetectors[outputIndex]->getPeakLevelDb();
+        return -200.0f;
+    }
+
+    float getOutputRmsLevelDb(size_t outputIndex) const
+    {
+        if (outputIndex < outputDetectors.size())
+            return outputDetectors[outputIndex]->getRmsLevelDb();
+        return -200.0f;
+    }
+
+    // Get input peak level in dB (for metering - delegates to processor's LiveSourceLevelDetector)
+    float getInputPeakLevelDb(size_t inputIndex) const
+    {
+        if (inputIndex < inputProcessors.size())
+            return inputProcessors[inputIndex]->getPeakLevelDb();
+        return -200.0f;
+    }
+
+    // Get input RMS level in dB (for metering - delegates to processor's LiveSourceLevelDetector)
+    float getInputRmsLevelDb(size_t inputIndex) const
+    {
+        if (inputIndex < inputProcessors.size())
+            return inputProcessors[inputIndex]->getRmsLevelDb();
+        return -200.0f;
+    }
+
+    size_t getNumOutputDetectors() const
+    {
+        return outputDetectors.size();
+    }
+
 private:
     std::vector<std::unique_ptr<InputBufferProcessor>> inputProcessors;
+    std::vector<std::unique_ptr<OutputLevelDetector>> outputDetectors;
+    std::atomic<bool> outputMeteringEnabled{false};
+    int cachedNumOutputs = 0;
+    double cachedSampleRate = 48000.0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(InputBufferAlgorithm)
 };

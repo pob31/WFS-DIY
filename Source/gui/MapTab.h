@@ -42,6 +42,17 @@ public:
             repaint();
         };
 
+        // Level overlay toggle button
+        addAndMakeVisible(levelOverlayButton);
+        levelOverlayButton.setButtonText(LOC("map.buttons.levels"));
+        levelOverlayButton.setClickingTogglesState(true);
+        levelOverlayButton.onClick = [this]() {
+            levelOverlayEnabled = levelOverlayButton.getToggleState();
+            if (onLevelOverlayChanged)
+                onLevelOverlayChanged(levelOverlayEnabled);
+            repaint();
+        };
+
         // Initialize view to center on stage
         resetView();
     }
@@ -71,8 +82,9 @@ public:
 
     void resized() override
     {
-        // Position home button in top-right corner
+        // Position buttons in top-right corner
         homeButton.setBounds(getWidth() - 140, 10, 130, 25);
+        levelOverlayButton.setBounds(getWidth() - 280, 10, 130, 25);
 
         // Reset view offset to center when resized
         if (viewOffset.isOrigin())
@@ -1557,6 +1569,28 @@ public:
         waypointCaptureCallback = std::move(callback);
     }
 
+    //==========================================================================
+    // Level Overlay Callbacks
+    //==========================================================================
+
+    /** Set callback that will be called when level overlay is toggled */
+    void setLevelOverlayChangedCallback(std::function<void(bool)> callback)
+    {
+        onLevelOverlayChanged = std::move(callback);
+    }
+
+    /** Set callback to get input peak level in dB for visualization */
+    void setInputLevelCallback(std::function<float(int)> callback)
+    {
+        getInputLevelDb = std::move(callback);
+    }
+
+    /** Set callback to get output peak level in dB for visualization */
+    void setOutputLevelCallback(std::function<float(int)> callback)
+    {
+        getOutputLevelDb = std::move(callback);
+    }
+
 private:
     WfsParameters& parameters;
     juce::ValueTree inputsTree;
@@ -1630,10 +1664,38 @@ private:
 
     // UI Components
     juce::TextButton homeButton;
+    juce::ToggleButton levelOverlayButton;
+
+    // Level overlay state
+    bool levelOverlayEnabled = false;
+
+    // Level overlay callbacks
+    std::function<void(bool)> onLevelOverlayChanged;
+    std::function<float(int)> getInputLevelDb;   // Returns peak dB for input index
+    std::function<float(int)> getOutputLevelDb;  // Returns peak dB for output index
 
     // Constants
     static constexpr float markerRadius = 14.0f;
     static constexpr float innerRadiusRatio = 0.6f;
+
+    /** Convert level in dB to color for metering visualization.
+        Green for quiet, yellow for moderate, red for loud. */
+    static juce::Colour levelToColor(float db)
+    {
+        if (db < -12.0f)
+            return juce::Colours::green;
+        else if (db < -6.0f)
+            return juce::Colours::yellow;
+        else
+            return juce::Colours::red;
+    }
+
+    /** Normalize level from dB to 0-1 range for visualization.
+        -60 dB maps to 0, 0 dB maps to 1. */
+    static float normalizeLevelDb(float db)
+    {
+        return juce::jlimit(0.0f, 1.0f, (db + 60.0f) / 60.0f);
+    }
 
     //==========================================================================
     // Input State Detection Helpers
@@ -2086,6 +2148,26 @@ private:
             g.drawText(juce::String(i + 1),
                        static_cast<int>(triangleCenterX) - 10, static_cast<int>(triangleCenterY) - 6,
                        20, 12, juce::Justification::centred);
+
+            // Draw level overlay if enabled
+            if (levelOverlayEnabled && getOutputLevelDb)
+            {
+                float levelDb = getOutputLevelDb(i);
+                float normalized = normalizeLevelDb(levelDb);
+
+                if (normalized > 0.01f)  // Only draw if there's signal
+                {
+                    juce::Colour levelColor = levelToColor(levelDb);
+                    g.setColour(levelColor.withAlpha(0.5f * normalized));
+                    g.fillPath(keystone);
+
+                    // Draw level ring around the speaker
+                    float ringRadius = height * 0.5f + 4.0f + normalized * 6.0f;
+                    g.setColour(levelColor.withAlpha(0.4f * normalized));
+                    g.drawEllipse(screenPos.x - ringRadius, screenPos.y - ringRadius,
+                                  ringRadius * 2, ringRadius * 2, 2.0f);
+                }
+            }
         }
     }
 
@@ -2466,6 +2548,33 @@ private:
             g.setColour(juce::Colours::yellow);
             g.drawEllipse(screenPos.x - markerRadius - 3, screenPos.y - markerRadius - 3,
                           (markerRadius + 3) * 2, (markerRadius + 3) * 2, 2.0f);
+        }
+
+        // Level overlay - pulsing ring around input
+        if (levelOverlayEnabled && getInputLevelDb)
+        {
+            float levelDb = getInputLevelDb(inputIndex);
+            float normalized = normalizeLevelDb(levelDb);
+
+            if (normalized > 0.01f)  // Only draw if there's signal
+            {
+                juce::Colour levelColor = levelToColor(levelDb);
+
+                // Draw pulsing ring with radius that scales with level
+                float ringRadius = markerRadius + 4.0f + normalized * 10.0f;
+                g.setColour(levelColor.withAlpha(0.6f * normalized));
+                g.drawEllipse(screenPos.x - ringRadius, screenPos.y - ringRadius,
+                              ringRadius * 2, ringRadius * 2, 2.5f);
+
+                // Draw second outer ring for louder signals
+                if (normalized > 0.3f)
+                {
+                    float outerRingRadius = ringRadius + 4.0f;
+                    g.setColour(levelColor.withAlpha(0.3f * normalized));
+                    g.drawEllipse(screenPos.x - outerRingRadius, screenPos.y - outerRingRadius,
+                                  outerRingRadius * 2, outerRingRadius * 2, 1.5f);
+                }
+            }
         }
 
         // Show coordinates when dragging

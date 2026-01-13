@@ -174,6 +174,12 @@ public:
         return lsDetector ? lsDetector->getShortPeakLevelDb() : -200.0f;
     }
 
+    // Get peak level in dB (100ms release for metering)
+    float getPeakLevelDb() const
+    {
+        return lsDetector ? lsDetector->getPeakLevelDb() : -200.0f;
+    }
+
     // Get RMS level in dB (200ms window)
     float getRmsLevelDb() const
     {

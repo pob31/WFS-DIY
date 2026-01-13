@@ -239,6 +239,10 @@ MainComponent::MainComponent()
         openAudioInterfaceWindow();
     });
 
+    systemConfigTab->setLevelMeterCallback([this]() {
+        openLevelMeterWindow();
+    });
+
     systemConfigTab->setConfigReloadedCallback([this]() {
         handleConfigReloaded();
     });
@@ -379,6 +383,30 @@ MainComponent::MainComponent()
                 speedLimiter->addWaypoint(inputIndex, x, y, z);
         });
     }
+
+    // Initialize level metering manager
+    levelMeteringManager = std::make_unique<LevelMeteringManager>(
+        parameters.getNumInputChannels(),
+        parameters.getNumOutputChannels());
+    levelMeteringManager->setAlgorithms(&inputAlgorithm, &outputAlgorithm);
+
+    // Set up MapTab level overlay callbacks
+    mapTab->setLevelOverlayChangedCallback([this](bool enabled) {
+        if (levelMeteringManager)
+            levelMeteringManager->setMapOverlayEnabled(enabled);
+    });
+
+    mapTab->setInputLevelCallback([this](int inputIndex) -> float {
+        if (levelMeteringManager)
+            return levelMeteringManager->getInputLevel(inputIndex).peakDb;
+        return -200.0f;
+    });
+
+    mapTab->setOutputLevelCallback([this](int outputIndex) -> float {
+        if (levelMeteringManager)
+            return levelMeteringManager->getOutputLevel(outputIndex).peakDb;
+        return -200.0f;
+    });
 
     // Configure OSC Manager with initial network settings from parameters
     WFSNetwork::GlobalConfig oscGlobalConfig;
@@ -1039,6 +1067,23 @@ void MainComponent::openNetworkLogWindow()
     }
 }
 
+void MainComponent::openLevelMeterWindow()
+{
+    if (levelMeterWindow == nullptr)
+    {
+        if (levelMeteringManager == nullptr)
+            return;
+
+        levelMeterWindow = std::make_unique<LevelMeterWindow>(*levelMeteringManager);
+    }
+    else
+    {
+        levelMeterWindow->setVisible(true);
+        levelMeterWindow->toFront(true);
+        levelMeteringManager->setMeterWindowEnabled(true);
+    }
+}
+
 //==============================================================================
 void MainComponent::startAudioEngine()
 {
@@ -1204,85 +1249,7 @@ void MainComponent::paint (juce::Graphics& g)
     // (Our component is opaque, so we must completely fill the background with a solid colour)
     g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
 
-    // Display CPU usage and processing time for processor threads
-    if (audioEngineStarted)
-    {
-        g.setColour(juce::Colours::white);
-        g.setFont(12.0f);
-
-        int yPos = getHeight() - 120;
-
-        if (currentAlgorithm == ProcessingAlgorithm::InputBuffer && !inputAlgorithm.isEmpty())
-        {
-            g.drawText("Thread Performance (InputBuffer):", 10, yPos, 300, 20, juce::Justification::left);
-
-            yPos += 20;
-        const auto inputProcessorCount = static_cast<int>(inputAlgorithm.getNumProcessors());
-        for (int i = 0; i < inputProcessorCount; ++i)
-        {
-            float cpuUsage = inputAlgorithm.getCpuUsagePercent(i);
-            float procTime = inputAlgorithm.getProcessingTimeMicroseconds(i);
-
-            juce::String text = juce::String::formatted("Input %d: %.1f%% | %.1f us/block",
-                                                        (int)i, cpuUsage, procTime);
-            g.drawText(text, 10, yPos + (i * 15), 300, 15, juce::Justification::left);
-        }
-        }
-        else if (currentAlgorithm == ProcessingAlgorithm::OutputBuffer && !outputAlgorithm.isEmpty())
-        {
-            g.drawText("Thread Performance (OutputBuffer):", 10, yPos, 300, 20, juce::Justification::left);
-
-            yPos += 20;
-            const auto outputProcessorCount = static_cast<int>(outputAlgorithm.getNumProcessors());
-            for (int i = 0; i < outputProcessorCount; ++i)
-            {
-                float cpuUsage = outputAlgorithm.getCpuUsagePercent(i);
-                float procTime = outputAlgorithm.getProcessingTimeMicroseconds(i);
-
-                juce::String text = juce::String::formatted("Output %d: %.1f%% | %.1f us/block",
-                                                            (int)i, cpuUsage, procTime);
-                g.drawText(text, 10, yPos + (i * 15), 300, 15, juce::Justification::left);
-            }
-        }
-        // else if (currentAlgorithm == ProcessingAlgorithm::GpuInputBuffer && gpuInputAlgorithm.isReady())
-        // {
-        //     g.drawText("GPU InputBuffer (GPU Audio)", 10, yPos, 320, 20, juce::Justification::left);
-        //
-        //     // Draw a readable telemetry badge in the lower-right corner
-        //     const int boxWidth = juce::jmin(420, getWidth() - 20);
-        //     const int boxHeight = 70;
-        //     const int boxX = getWidth() - boxWidth - 10;
-        //     const int boxY = getHeight() - boxHeight - 10;
-        //
-        //     g.setColour(juce::Colours::black.withAlpha(0.45f));
-        //     g.fillRoundedRectangle((float)boxX, (float)boxY, (float)boxWidth, (float)boxHeight, 6.0f);
-        //     g.setColour(juce::Colours::white.withAlpha(0.85f));
-        //     g.drawRoundedRectangle((float)boxX, (float)boxY, (float)boxWidth, (float)boxHeight, 6.0f, 1.5f);
-        //
-        //     juce::String device = gpuInputAlgorithm.getDeviceName();
-        //     if (device.isEmpty())
-        //         device = "<unknown device>";
-        //
-        //     const auto execMs = gpuInputAlgorithm.getLastGpuExecMs();
-        //     const auto execSamples = gpuInputAlgorithm.getLastGpuLaunchSamples();
-        //     const bool execFailed = gpuInputAlgorithm.getLastExecuteFailed();
-        //
-        //     g.setFont(14.0f);
-        //     g.setColour(juce::Colours::white);
-        //     g.drawText("GPU InputBuffer (GPU Audio)", boxX + 10, boxY + 6, boxWidth - 20, 20, juce::Justification::left);
-        //
-        //     g.setFont(13.0f);
-        //     g.drawText("Device: " + device, boxX + 10, boxY + 26, boxWidth - 20, 18, juce::Justification::left);
-        //
-        //     auto statusColour = execFailed ? juce::Colours::red : juce::Colours::greenyellow;
-        //     g.setColour(statusColour);
-        //     juce::String status = "Last launch: " + juce::String(execSamples) + " samples, " +
-        //                           juce::String(execMs, 2) + " ms";
-        //     if (execFailed)
-        //         status += " (failed)";
-        //     g.drawText(status, boxX + 10, boxY + 44, boxWidth - 20, 18, juce::Justification::left);
-        // }
-    }
+    // Thread performance is now displayed in the Level Meter window
 }
 
 void MainComponent::resized()
@@ -1424,6 +1391,20 @@ void MainComponent::timerCallback()
         if (automOtionProcessor != nullptr)
         {
             automOtionProcessor->process(0.02f);  // 20ms delta time (50Hz)
+        }
+
+        // Update level metering at 50Hz (20ms)
+        if (levelMeteringManager != nullptr && levelMeteringManager->isMeteringActive())
+        {
+            levelMeteringManager->setCurrentAlgorithm(
+                currentAlgorithm == ProcessingAlgorithm::InputBuffer
+                    ? LevelMeteringManager::ProcessingAlgorithm::InputBuffer
+                    : LevelMeteringManager::ProcessingAlgorithm::OutputBuffer);
+            levelMeteringManager->updateLevels();
+
+            // Repaint map if level overlay is enabled
+            if (levelMeteringManager->isMapOverlayEnabled() && mapTab != nullptr)
+                mapTab->repaint();
         }
 
         // Pass combined LFO + AutomOtion offsets and gyrophone offsets to calculation engine for DSP

@@ -22,7 +22,9 @@
 #include "gui/MapTab.h"
 #include "gui/AudioInterfaceWindow.h"
 #include "gui/NetworkLogWindow.h"
+#include "gui/LevelMeterWindow.h"
 #include "gui/ColorScheme.h"
+#include "DSP/LevelMeteringManager.h"
 #include "gui/WfsLookAndFeel.h"
 #include "Network/OSCManager.h"
 
@@ -96,6 +98,9 @@ public:
     // Network Log Window
     void openNetworkLogWindow();
 
+    // Level Meter Window
+    void openLevelMeterWindow();
+
 private:
     //==============================================================================
     // Your private member variables go here...
@@ -123,6 +128,8 @@ private:
 
     std::unique_ptr<AudioInterfaceWindow> audioInterfaceWindow;
     std::unique_ptr<NetworkLogWindow> networkLogWindow;
+    std::unique_ptr<LevelMeterWindow> levelMeterWindow;
+    std::unique_ptr<LevelMeteringManager> levelMeteringManager;
 
     // Custom LookAndFeel for centralized widget theming
     std::unique_ptr<WfsLookAndFeel> wfsLookAndFeel;

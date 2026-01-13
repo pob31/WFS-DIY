@@ -233,6 +233,13 @@ public:
                 onAudioInterfaceWindowRequested();
         };
 
+        addAndMakeVisible(levelMeterButton);
+        levelMeterButton.setButtonText(LOC("systemConfig.buttons.levelMeter"));
+        levelMeterButton.onClick = [this]() {
+            if (onLevelMeterWindowRequested)
+                onLevelMeterWindowRequested();
+        };
+
         // Algorithm selector
         addAndMakeVisible(algorithmLabel);
         algorithmLabel.setText(LOC("systemConfig.labels.algorithm"), juce::dontSendNotification);
@@ -606,6 +613,9 @@ public:
         audioPatchingButton.setBounds(x, y, editorWidth + labelWidth, rowHeight);
         y += rowHeight + spacing;
 
+        levelMeterButton.setBounds(x, y, editorWidth + labelWidth, rowHeight);
+        y += rowHeight + spacing;
+
         algorithmLabel.setBounds(x, y, labelWidth, rowHeight);
         algorithmSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
         y += rowHeight + spacing;
@@ -760,6 +770,11 @@ public:
     void setAudioInterfaceCallback(AudioInterfaceCallback callback)
     {
         onAudioInterfaceWindowRequested = callback;
+    }
+
+    void setLevelMeterCallback(std::function<void()> callback)
+    {
+        onLevelMeterWindowRequested = callback;
     }
 
     void setConfigReloadedCallback(ConfigReloadedCallback callback)
@@ -1773,6 +1788,7 @@ private:
     juce::Label reverbChannelsLabel;
     juce::TextEditor reverbChannelsEditor;
     juce::TextButton audioPatchingButton;
+    juce::TextButton levelMeterButton;
     juce::Label algorithmLabel;
     juce::ComboBox algorithmSelector;
     juce::TextButton processingButton;
@@ -1848,6 +1864,7 @@ private:
     ProcessingCallback onProcessingChanged;
     ChannelCountCallback onChannelCountChanged;
     AudioInterfaceCallback onAudioInterfaceWindowRequested;
+    std::function<void()> onLevelMeterWindowRequested;
     ConfigReloadedCallback onConfigReloaded;
 
     // Helper to notify MainComponent of any channel count change
