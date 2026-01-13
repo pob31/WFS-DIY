@@ -589,5 +589,85 @@
       "configExported": "Output configuration exported.",
       "error": "Error: {error}"
     }
+  },
+
+  "arrayHelper": {
+    "window": {
+      "title": "Wizard of OutZ",
+      "contentName": "Output Array Helper"
+    },
+    "presets": {
+      "label": "Preset:",
+      "nearFieldStraight": "Near Field Array Straight",
+      "nearFieldCurved": "Near Field Array Curved",
+      "mainRoomStraight": "Main Room Array Straight",
+      "subBass": "Sub Bass",
+      "surround": "Surround",
+      "delayLine": "Delay Line",
+      "circle": "Circle"
+    },
+    "sections": {
+      "geometry": "Geometry",
+      "acousticDefaults": "Acoustic Defaults",
+      "target": "Target"
+    },
+    "geometry": {
+      "centerSpacing": "Center + Spacing",
+      "endpoints": "Endpoints",
+      "nSpeakers": "N Speakers:",
+      "nPairs": "N Pairs:",
+      "zHeight": "Z Height (m):",
+      "orientation": "Orientation (deg):",
+      "centerX": "Center X (m):",
+      "centerY": "Center Y (m):",
+      "spacing": "Spacing (m):",
+      "startX": "Start X (m):",
+      "startY": "Start Y (m):",
+      "endX": "End X (m):",
+      "endY": "End Y (m):",
+      "sag": "Sag (m):",
+      "radius": "Radius (m):",
+      "startAngle": "Start Angle (deg):",
+      "facingInward": "Facing Inward",
+      "facingOutward": "Facing Outward",
+      "width": "Width (m):",
+      "yStart": "Y Start (m):",
+      "yEnd": "Y End (m):",
+      "frontFacing": "Front Facing",
+      "backFacing": "Back Facing"
+    },
+    "acoustic": {
+      "liveSource": "Live Source",
+      "floorReflections": "Floor Reflections",
+      "hfDamping": "HF Damping (dB/m):",
+      "hParallax": "H Parallax (m):",
+      "vParallax": "V Parallax (m):",
+      "distanceAtten": "Distance Atten (%):",
+      "lowCut": "Low Cut (Hz):",
+      "highCut": "High Cut (Hz):"
+    },
+    "target": {
+      "array": "Array:",
+      "arrayPrefix": "Array",
+      "startingOutput": "Starting Output:"
+    },
+    "buttons": {
+      "apply": "Apply",
+      "close": "Close"
+    },
+    "preview": {
+      "audience": "Audience"
+    },
+    "status": {
+      "ready": "Ready",
+      "calculated": "Calculated {count} positions",
+      "applied": "Applied {count} speakers to Array {array}. Ready for next array."
+    },
+    "errors": {
+      "speakerCountZero": "Number of speakers must be greater than 0",
+      "noPositions": "No positions to apply. Check geometry parameters.",
+      "notEnoughOutputs": "Not enough output channels! Need {count} starting from {start}",
+      "prefix": "Error: "
+    }
   }
 }

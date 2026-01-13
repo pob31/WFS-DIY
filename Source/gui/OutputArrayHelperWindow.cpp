@@ -1,5 +1,6 @@
 #include "OutputArrayHelperWindow.h"
 #include "ColorScheme.h"
+#include "../Localization/LocalizationManager.h"
 
 //==============================================================================
 // Preset configurations
@@ -305,7 +306,7 @@ void ArrayPreviewComponent::paint(juce::Graphics& g)
         {
             // Facing inward: audience in the center of the circle
             auto center = stageToScreen(-originX, -originY);
-            g.drawText("Audience",
+            g.drawText(LOC("arrayHelper.preview.audience"),
                        juce::Rectangle<float>(center.x - 40, center.y - 8, 80, 16),
                        juce::Justification::centred);
         }
@@ -317,10 +318,10 @@ void ArrayPreviewComponent::paint(juce::Graphics& g)
             auto topPos = stageToScreen(-originX, -originY + radius + 2.0f);
             auto bottomPos = stageToScreen(-originX, -originY - radius - 2.0f);
 
-            g.drawText("Audience",
+            g.drawText(LOC("arrayHelper.preview.audience"),
                        juce::Rectangle<float>(topPos.x - 40, topPos.y - 16, 80, 16),
                        juce::Justification::centred);
-            g.drawText("Audience",
+            g.drawText(LOC("arrayHelper.preview.audience"),
                        juce::Rectangle<float>(bottomPos.x - 40, bottomPos.y, 80, 16),
                        juce::Justification::centred);
         }
@@ -332,7 +333,7 @@ void ArrayPreviewComponent::paint(juce::Graphics& g)
         auto stageBottom = stageToScreen(0, -halfDepth - originY);
         float spaceBelow = bounds.getBottom() - stageBottom.y;
 
-        g.drawText("Audience",
+        g.drawText(LOC("arrayHelper.preview.audience"),
                    juce::Rectangle<float>(bounds.getX(), stageBottom.y + spaceBelow / 2.0f - 8,
                                           bounds.getWidth(), 16),
                    juce::Justification::centred);
@@ -406,13 +407,17 @@ OutputArrayHelperContent::~OutputArrayHelperContent() = default;
 void OutputArrayHelperContent::setupPresetSelector()
 {
     addAndMakeVisible(presetLabel);
-    presetLabel.setText("Preset:", juce::dontSendNotification);
+    presetLabel.setText(LOC("arrayHelper.presets.label"), juce::dontSendNotification);
 
     addAndMakeVisible(presetSelector);
-    for (size_t i = 0; i < presetConfigs.size(); ++i)
-    {
-        presetSelector.addItem(presetConfigs[i].name, static_cast<int>(i) + 1);
-    }
+    // Add localized preset names
+    presetSelector.addItem(LOC("arrayHelper.presets.nearFieldStraight"), 1);
+    presetSelector.addItem(LOC("arrayHelper.presets.nearFieldCurved"), 2);
+    presetSelector.addItem(LOC("arrayHelper.presets.mainRoomStraight"), 3);
+    presetSelector.addItem(LOC("arrayHelper.presets.subBass"), 4);
+    presetSelector.addItem(LOC("arrayHelper.presets.surround"), 5);
+    presetSelector.addItem(LOC("arrayHelper.presets.delayLine"), 6);
+    presetSelector.addItem(LOC("arrayHelper.presets.circle"), 7);
     presetSelector.setSelectedId(1, juce::dontSendNotification);
     presetSelector.onChange = [this]() { onPresetChanged(); };
 }
@@ -420,18 +425,18 @@ void OutputArrayHelperContent::setupPresetSelector()
 void OutputArrayHelperContent::setupGeometrySection()
 {
     addAndMakeVisible(geometryGroup);
-    geometryGroup.setText("Geometry");
+    geometryGroup.setText(LOC("arrayHelper.sections.geometry"));
     // Colors handled by WfsLookAndFeel
 
     // Geometry method radio buttons
     addAndMakeVisible(centerSpacingRadio);
-    centerSpacingRadio.setButtonText("Center + Spacing");
+    centerSpacingRadio.setButtonText(LOC("arrayHelper.geometry.centerSpacing"));
     centerSpacingRadio.setRadioGroupId(1);
     centerSpacingRadio.setToggleState(true, juce::dontSendNotification);
     centerSpacingRadio.onClick = [this]() { updateGeometryVisibility(); autoCalculatePreview(); };
 
     addAndMakeVisible(endpointsRadio);
-    endpointsRadio.setButtonText("Endpoints");
+    endpointsRadio.setButtonText(LOC("arrayHelper.geometry.endpoints"));
     endpointsRadio.setRadioGroupId(1);
     endpointsRadio.onClick = [this]() { updateGeometryVisibility(); autoCalculatePreview(); };
 
@@ -449,7 +454,7 @@ void OutputArrayHelperContent::setupGeometrySection()
         editor.onTextChange = [this]() { autoCalculatePreview(); };
     };
 
-    setupLabel(numSpeakersLabel, "N Speakers:");
+    setupLabel(numSpeakersLabel, LOC("arrayHelper.geometry.nSpeakers"));
     setupEditor(numSpeakersEditor, "8");
     numSpeakersEditor.onTextChange = [this]() {
         // For Sub Bass preset, update distance attenuation based on speaker count
@@ -461,76 +466,76 @@ void OutputArrayHelperContent::setupGeometrySection()
         autoCalculatePreview();
     };
 
-    setupLabel(zPositionLabel, "Z Height (m):");
+    setupLabel(zPositionLabel, LOC("arrayHelper.geometry.zHeight"));
     setupEditor(zPositionEditor, "0");
 
-    setupLabel(orientationLabel, "Orientation (deg):");
+    setupLabel(orientationLabel, LOC("arrayHelper.geometry.orientation"));
     setupEditor(orientationEditor, "0");
 
     // Center + Spacing fields
-    setupLabel(centerXLabel, "Center X (m):");
+    setupLabel(centerXLabel, LOC("arrayHelper.geometry.centerX"));
     setupEditor(centerXEditor, "0");
 
-    setupLabel(centerYLabel, "Center Y (m):");
+    setupLabel(centerYLabel, LOC("arrayHelper.geometry.centerY"));
     setupEditor(centerYEditor, "0");
 
-    setupLabel(spacingLabel, "Spacing (m):");
+    setupLabel(spacingLabel, LOC("arrayHelper.geometry.spacing"));
     setupEditor(spacingEditor, "1");
 
     // Endpoints fields
-    setupLabel(startXLabel, "Start X (m):");
+    setupLabel(startXLabel, LOC("arrayHelper.geometry.startX"));
     setupEditor(startXEditor, "-4");
 
-    setupLabel(startYLabel, "Start Y (m):");
+    setupLabel(startYLabel, LOC("arrayHelper.geometry.startY"));
     setupEditor(startYEditor, "0");
 
-    setupLabel(endXLabel, "End X (m):");
+    setupLabel(endXLabel, LOC("arrayHelper.geometry.endX"));
     setupEditor(endXEditor, "4");
 
-    setupLabel(endYLabel, "End Y (m):");
+    setupLabel(endYLabel, LOC("arrayHelper.geometry.endY"));
     setupEditor(endYEditor, "0");
 
     // Curved array
-    setupLabel(sagLabel, "Sag (m):");
+    setupLabel(sagLabel, LOC("arrayHelper.geometry.sag"));
     setupEditor(sagEditor, "1");
 
     // Circle array
-    setupLabel(radiusLabel, "Radius (m):");
+    setupLabel(radiusLabel, LOC("arrayHelper.geometry.radius"));
     setupEditor(radiusEditor, "5");
 
-    setupLabel(startAngleLabel, "Start Angle (deg):");
+    setupLabel(startAngleLabel, LOC("arrayHelper.geometry.startAngle"));
     setupEditor(startAngleEditor, "0");
 
     addAndMakeVisible(facingInwardRadio);
-    facingInwardRadio.setButtonText("Facing Inward");
+    facingInwardRadio.setButtonText(LOC("arrayHelper.geometry.facingInward"));
     facingInwardRadio.setRadioGroupId(2);
     facingInwardRadio.setToggleState(true, juce::dontSendNotification);
     facingInwardRadio.onClick = [this]() { autoCalculatePreview(); };
 
     addAndMakeVisible(facingOutwardRadio);
-    facingOutwardRadio.setButtonText("Facing Outward");
+    facingOutwardRadio.setButtonText(LOC("arrayHelper.geometry.facingOutward"));
     facingOutwardRadio.setRadioGroupId(2);
     facingOutwardRadio.onClick = [this]() { autoCalculatePreview(); };
 
     // Surround
-    setupLabel(widthLabel, "Width (m):");
+    setupLabel(widthLabel, LOC("arrayHelper.geometry.width"));
     setupEditor(widthEditor, "8");
 
-    setupLabel(yStartLabel, "Y Start (m):");
+    setupLabel(yStartLabel, LOC("arrayHelper.geometry.yStart"));
     setupEditor(yStartEditor, "2");
 
-    setupLabel(yEndLabel, "Y End (m):");
+    setupLabel(yEndLabel, LOC("arrayHelper.geometry.yEnd"));
     setupEditor(yEndEditor, "10");
 
     // Delay line
     addAndMakeVisible(frontFacingRadio);
-    frontFacingRadio.setButtonText("Front Facing");
+    frontFacingRadio.setButtonText(LOC("arrayHelper.geometry.frontFacing"));
     frontFacingRadio.setRadioGroupId(3);
     frontFacingRadio.setToggleState(true, juce::dontSendNotification);
     frontFacingRadio.onClick = [this]() { autoCalculatePreview(); };
 
     addAndMakeVisible(backFacingRadio);
-    backFacingRadio.setButtonText("Back Facing");
+    backFacingRadio.setButtonText(LOC("arrayHelper.geometry.backFacing"));
     backFacingRadio.setRadioGroupId(3);
     backFacingRadio.onClick = [this]() { autoCalculatePreview(); };
 }
@@ -538,7 +543,7 @@ void OutputArrayHelperContent::setupGeometrySection()
 void OutputArrayHelperContent::setupAcousticSection()
 {
     addAndMakeVisible(acousticGroup);
-    acousticGroup.setText("Acoustic Defaults");
+    acousticGroup.setText(LOC("arrayHelper.sections.acousticDefaults"));
     // Colors handled by WfsLookAndFeel
 
     auto setupLabel = [this](juce::Label& label, const juce::String& text) {
@@ -553,23 +558,23 @@ void OutputArrayHelperContent::setupAcousticSection()
     };
 
     addAndMakeVisible(lsEnableButton);
-    lsEnableButton.setButtonText("Live Source");
+    lsEnableButton.setButtonText(LOC("arrayHelper.acoustic.liveSource"));
     lsEnableButton.setToggleState(true, juce::dontSendNotification);
 
     addAndMakeVisible(frEnableButton);
-    frEnableButton.setButtonText("Floor Reflections");
+    frEnableButton.setButtonText(LOC("arrayHelper.acoustic.floorReflections"));
     frEnableButton.setToggleState(true, juce::dontSendNotification);
 
-    setupLabel(hfDampingLabel, "HF Damping (dB/m):");
+    setupLabel(hfDampingLabel, LOC("arrayHelper.acoustic.hfDamping"));
     setupEditor(hfDampingEditor, "-0.4");
 
-    setupLabel(hParallaxLabel, "H Parallax (m):");
+    setupLabel(hParallaxLabel, LOC("arrayHelper.acoustic.hParallax"));
     setupEditor(hParallaxEditor, "2");
 
-    setupLabel(vParallaxLabel, "V Parallax (m):");
+    setupLabel(vParallaxLabel, LOC("arrayHelper.acoustic.vParallax"));
     setupEditor(vParallaxEditor, "0.5");
 
-    setupLabel(distanceAttenLabel, "Distance Atten (%):");
+    setupLabel(distanceAttenLabel, LOC("arrayHelper.acoustic.distanceAtten"));
     setupEditor(distanceAttenEditor, "100");
 
     // EQ
@@ -577,33 +582,33 @@ void OutputArrayHelperContent::setupAcousticSection()
     lowCutEnableButton.setButtonText("");
     lowCutEnableButton.setToggleState(true, juce::dontSendNotification);
 
-    setupLabel(lowCutFreqLabel, "Low Cut (Hz):");
+    setupLabel(lowCutFreqLabel, LOC("arrayHelper.acoustic.lowCut"));
     setupEditor(lowCutFreqEditor, "80");
 
     addAndMakeVisible(highCutEnableButton);
     highCutEnableButton.setButtonText("");
     highCutEnableButton.setToggleState(false, juce::dontSendNotification);
 
-    setupLabel(highCutFreqLabel, "High Cut (Hz):");
+    setupLabel(highCutFreqLabel, LOC("arrayHelper.acoustic.highCut"));
     setupEditor(highCutFreqEditor, "300");
 }
 
 void OutputArrayHelperContent::setupTargetSection()
 {
     addAndMakeVisible(targetGroup);
-    targetGroup.setText("Target");
+    targetGroup.setText(LOC("arrayHelper.sections.target"));
     // Colors handled by WfsLookAndFeel
 
     addAndMakeVisible(arrayLabel);
-    arrayLabel.setText("Array:", juce::dontSendNotification);
+    arrayLabel.setText(LOC("arrayHelper.target.array"), juce::dontSendNotification);
 
     addAndMakeVisible(arraySelector);
     for (int i = 1; i <= 10; ++i)
-        arraySelector.addItem("Array " + juce::String(i), i);
+        arraySelector.addItem(LOC("arrayHelper.target.arrayPrefix") + " " + juce::String(i), i);
     arraySelector.setSelectedId(1, juce::dontSendNotification);
 
     addAndMakeVisible(startOutputLabel);
-    startOutputLabel.setText("Starting Output:", juce::dontSendNotification);
+    startOutputLabel.setText(LOC("arrayHelper.target.startingOutput"), juce::dontSendNotification);
 
     addAndMakeVisible(startOutputSelector);
     int numOutputs = parameters.getNumOutputChannels();
@@ -616,12 +621,12 @@ void OutputArrayHelperContent::setupTargetSection()
 void OutputArrayHelperContent::setupButtons()
 {
     addAndMakeVisible(applyButton);
-    applyButton.setButtonText("Apply");
+    applyButton.setButtonText(LOC("arrayHelper.buttons.apply"));
     applyButton.setColour(juce::TextButton::buttonColourId, ColorScheme::get().accentGreen);
     applyButton.onClick = [this]() { applyToOutputs(); };
 
     addAndMakeVisible(closeButton);
-    closeButton.setButtonText("Close");
+    closeButton.setButtonText(LOC("arrayHelper.buttons.close"));
     closeButton.setColour(juce::TextButton::buttonColourId, ColorScheme::get().accentRed);
     closeButton.onClick = [this]() {
         if (auto* window = findParentComponentOfClass<OutputArrayHelperWindow>())
@@ -629,7 +634,7 @@ void OutputArrayHelperContent::setupButtons()
     };
 
     addAndMakeVisible(statusLabel);
-    statusLabel.setText("Ready", juce::dontSendNotification);
+    statusLabel.setText(LOC("arrayHelper.status.ready"), juce::dontSendNotification);
     statusLabel.setColour(juce::Label::textColourId, ColorScheme::get().textSecondary);
 }
 
@@ -936,11 +941,11 @@ void OutputArrayHelperContent::layoutGeometrySection(juce::Rectangle<int>& area)
         yEndEditor.setBounds(rightCol.removeFromLeft(editorWidth));
 
         // Note: For surround, numSpeakers is actually number of pairs
-        numSpeakersLabel.setText("N Pairs:", juce::dontSendNotification);
+        numSpeakersLabel.setText(LOC("arrayHelper.geometry.nPairs"), juce::dontSendNotification);
     }
     else
     {
-        numSpeakersLabel.setText("N Speakers:", juce::dontSendNotification);
+        numSpeakersLabel.setText(LOC("arrayHelper.geometry.nSpeakers"), juce::dontSendNotification);
     }
 
     // Delay line front/back
@@ -1292,7 +1297,7 @@ void OutputArrayHelperContent::calculatePositions()
 
     if (numSpeakers <= 0)
     {
-        showError("Number of speakers must be greater than 0");
+        showError(LOC("arrayHelper.errors.speakerCountZero"));
         return;
     }
 
@@ -1389,7 +1394,7 @@ void OutputArrayHelperContent::calculatePositions()
     float radius = (currentPreset == ArrayPresetType::Circle) ? radiusEditor.getText().getFloatValue() : 5.0f;
     preview->setPresetInfo(currentPreset, facingInwardRadio.getToggleState(), radius);
     preview->setPositions(calculatedPositions);
-    showStatus("Calculated " + juce::String(calculatedPositions.size()) + " positions");
+    showStatus(LOC("arrayHelper.status.calculated").replace("{count}", juce::String(calculatedPositions.size())));
 }
 
 void OutputArrayHelperContent::applyToOutputs()
@@ -1399,7 +1404,7 @@ void OutputArrayHelperContent::applyToOutputs()
 
     if (calculatedPositions.empty())
     {
-        showError("No positions to apply. Check geometry parameters.");
+        showError(LOC("arrayHelper.errors.noPositions"));
         return;
     }
 
@@ -1413,8 +1418,9 @@ void OutputArrayHelperContent::applyToOutputs()
     // Validate
     if (startOutput + N > numOutputs)
     {
-        showError("Not enough output channels! Need " + juce::String(N) +
-                  " starting from " + juce::String(startOutput + 1));
+        showError(LOC("arrayHelper.errors.notEnoughOutputs")
+                  .replace("{count}", juce::String(N))
+                  .replace("{start}", juce::String(startOutput + 1)));
         return;
     }
 
@@ -1490,8 +1496,9 @@ void OutputArrayHelperContent::applyToOutputs()
 
     arraySelector.setSelectedId(nextArray, juce::dontSendNotification);
 
-    showStatus("Applied " + juce::String(N) + " speakers to Array " + juce::String(arrayId) +
-               ". Ready for next array.");
+    showStatus(LOC("arrayHelper.status.applied")
+               .replace("{count}", juce::String(N))
+               .replace("{array}", juce::String(arrayId)));
 
     // Clear calculated positions for next calculation
     calculatedPositions.clear();
@@ -1507,5 +1514,5 @@ void OutputArrayHelperContent::showStatus(const juce::String& message)
 void OutputArrayHelperContent::showError(const juce::String& message)
 {
     statusLabel.setColour(juce::Label::textColourId, ColorScheme::get().accentRed);
-    statusLabel.setText("Error: " + message, juce::dontSendNotification);
+    statusLabel.setText(LOC("arrayHelper.errors.prefix") + message, juce::dontSendNotification);
 }

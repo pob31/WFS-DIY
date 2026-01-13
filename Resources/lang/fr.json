@@ -589,5 +589,85 @@
       "configExported": "Configuration des sorties exportée.",
       "error": "Erreur : {error}"
     }
+  },
+
+  "arrayHelper": {
+    "window": {
+      "title": "Assistant OutZ",
+      "contentName": "Assistant de positionnement des sorties"
+    },
+    "presets": {
+      "label": "Préréglage :",
+      "nearFieldStraight": "Ligne droite champ proche",
+      "nearFieldCurved": "Ligne courbe champ proche",
+      "mainRoomStraight": "Ligne droite salle principale",
+      "subBass": "Sub Bass",
+      "surround": "Surround",
+      "delayLine": "Ligne de délai",
+      "circle": "Cercle"
+    },
+    "sections": {
+      "geometry": "Géométrie",
+      "acousticDefaults": "Paramètres acoustiques",
+      "target": "Cible"
+    },
+    "geometry": {
+      "centerSpacing": "Centre + Espacement",
+      "endpoints": "Points d'extrémité",
+      "nSpeakers": "N Enceintes :",
+      "nPairs": "N Paires :",
+      "zHeight": "Hauteur Z (m) :",
+      "orientation": "Orientation (deg) :",
+      "centerX": "Centre X (m) :",
+      "centerY": "Centre Y (m) :",
+      "spacing": "Espacement (m) :",
+      "startX": "Début X (m) :",
+      "startY": "Début Y (m) :",
+      "endX": "Fin X (m) :",
+      "endY": "Fin Y (m) :",
+      "sag": "Flèche (m) :",
+      "radius": "Rayon (m) :",
+      "startAngle": "Angle début (deg) :",
+      "facingInward": "Orienté vers l'intérieur",
+      "facingOutward": "Orienté vers l'extérieur",
+      "width": "Largeur (m) :",
+      "yStart": "Y Début (m) :",
+      "yEnd": "Y Fin (m) :",
+      "frontFacing": "Face avant",
+      "backFacing": "Face arrière"
+    },
+    "acoustic": {
+      "liveSource": "Source live",
+      "floorReflections": "Réflexions sol",
+      "hfDamping": "Atténuation HF (dB/m) :",
+      "hParallax": "Parallaxe H (m) :",
+      "vParallax": "Parallaxe V (m) :",
+      "distanceAtten": "Atténuation distance (%) :",
+      "lowCut": "Coupe-bas (Hz) :",
+      "highCut": "Coupe-haut (Hz) :"
+    },
+    "target": {
+      "array": "Groupe :",
+      "arrayPrefix": "Groupe",
+      "startingOutput": "Sortie de départ :"
+    },
+    "buttons": {
+      "apply": "Appliquer",
+      "close": "Fermer"
+    },
+    "preview": {
+      "audience": "Public"
+    },
+    "status": {
+      "ready": "Prêt",
+      "calculated": "{count} positions calculées",
+      "applied": "{count} enceintes appliquées au Groupe {array}. Prêt pour le suivant."
+    },
+    "errors": {
+      "speakerCountZero": "Le nombre d'enceintes doit être supérieur à 0",
+      "noPositions": "Aucune position à appliquer. Vérifiez les paramètres de géométrie.",
+      "notEnoughOutputs": "Pas assez de canaux de sortie ! Besoin de {count} à partir de {start}",
+      "prefix": "Erreur : "
+    }
   }
 }

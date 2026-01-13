@@ -4,6 +4,7 @@
 #include "../WfsParameters.h"
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Helpers/ArrayGeometryCalculator.h"
+#include "../Localization/LocalizationManager.h"
 #include "ColorScheme.h"
 #include "WindowUtils.h"
 
@@ -261,7 +262,7 @@ class OutputArrayHelperWindow : public juce::DocumentWindow,
 {
 public:
     OutputArrayHelperWindow(WfsParameters& params)
-        : DocumentWindow("Wizard of OutZ",
+        : DocumentWindow(LOC("arrayHelper.window.title"),
                          ColorScheme::get().background,
                          DocumentWindow::allButtons)
     {
@@ -269,7 +270,7 @@ public:
         setResizable(true, true);
 
         content = std::make_unique<OutputArrayHelperContent>(params);
-        content->setName("Output Array Helper");  // Accessible name for screen readers
+        content->setName(LOC("arrayHelper.window.contentName"));  // Accessible name for screen readers
         setContentOwned(content.get(), false);
 
         // Set size with display awareness

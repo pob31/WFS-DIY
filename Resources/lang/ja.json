@@ -589,5 +589,85 @@
       "configExported": "出力設定をエクスポートしました。",
       "error": "エラー: {error}"
     }
+  },
+
+  "arrayHelper": {
+    "window": {
+      "title": "OutZウィザード",
+      "contentName": "出力アレイヘルパー"
+    },
+    "presets": {
+      "label": "プリセット:",
+      "nearFieldStraight": "ニアフィールド直線アレイ",
+      "nearFieldCurved": "ニアフィールド曲線アレイ",
+      "mainRoomStraight": "メインルーム直線アレイ",
+      "subBass": "サブベース",
+      "surround": "サラウンド",
+      "delayLine": "ディレイライン",
+      "circle": "サークル"
+    },
+    "sections": {
+      "geometry": "ジオメトリ",
+      "acousticDefaults": "音響設定",
+      "target": "ターゲット"
+    },
+    "geometry": {
+      "centerSpacing": "中心 + 間隔",
+      "endpoints": "端点",
+      "nSpeakers": "スピーカー数:",
+      "nPairs": "ペア数:",
+      "zHeight": "Z高さ (m):",
+      "orientation": "向き (deg):",
+      "centerX": "中心 X (m):",
+      "centerY": "中心 Y (m):",
+      "spacing": "間隔 (m):",
+      "startX": "開始 X (m):",
+      "startY": "開始 Y (m):",
+      "endX": "終了 X (m):",
+      "endY": "終了 Y (m):",
+      "sag": "たわみ (m):",
+      "radius": "半径 (m):",
+      "startAngle": "開始角度 (deg):",
+      "facingInward": "内向き",
+      "facingOutward": "外向き",
+      "width": "幅 (m):",
+      "yStart": "Y開始 (m):",
+      "yEnd": "Y終了 (m):",
+      "frontFacing": "前面向き",
+      "backFacing": "背面向き"
+    },
+    "acoustic": {
+      "liveSource": "ライブソース",
+      "floorReflections": "床面反射",
+      "hfDamping": "HF減衰 (dB/m):",
+      "hParallax": "水平パララックス (m):",
+      "vParallax": "垂直パララックス (m):",
+      "distanceAtten": "距離減衰 (%):",
+      "lowCut": "ローカット (Hz):",
+      "highCut": "ハイカット (Hz):"
+    },
+    "target": {
+      "array": "アレイ:",
+      "arrayPrefix": "アレイ",
+      "startingOutput": "開始出力:"
+    },
+    "buttons": {
+      "apply": "適用",
+      "close": "閉じる"
+    },
+    "preview": {
+      "audience": "観客"
+    },
+    "status": {
+      "ready": "準備完了",
+      "calculated": "{count}個の位置を計算しました",
+      "applied": "{count}個のスピーカーをアレイ{array}に適用しました。次のアレイの準備完了。"
+    },
+    "errors": {
+      "speakerCountZero": "スピーカー数は0より大きくする必要があります",
+      "noPositions": "適用する位置がありません。ジオメトリパラメータを確認してください。",
+      "notEnoughOutputs": "出力チャンネルが足りません！{start}から{count}個必要です",
+      "prefix": "エラー: "
+    }
   }
 }

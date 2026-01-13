@@ -589,5 +589,85 @@
       "configExported": "Configuración de salidas exportada.",
       "error": "Error: {error}"
     }
+  },
+
+  "arrayHelper": {
+    "window": {
+      "title": "Asistente OutZ",
+      "contentName": "Asistente de posicionamiento de salidas"
+    },
+    "presets": {
+      "label": "Preajuste:",
+      "nearFieldStraight": "Línea recta campo cercano",
+      "nearFieldCurved": "Línea curva campo cercano",
+      "mainRoomStraight": "Línea recta sala principal",
+      "subBass": "Subgraves",
+      "surround": "Surround",
+      "delayLine": "Línea de retardo",
+      "circle": "Círculo"
+    },
+    "sections": {
+      "geometry": "Geometría",
+      "acousticDefaults": "Ajustes acústicos",
+      "target": "Destino"
+    },
+    "geometry": {
+      "centerSpacing": "Centro + Espaciado",
+      "endpoints": "Puntos extremos",
+      "nSpeakers": "N Altavoces:",
+      "nPairs": "N Pares:",
+      "zHeight": "Altura Z (m):",
+      "orientation": "Orientación (deg):",
+      "centerX": "Centro X (m):",
+      "centerY": "Centro Y (m):",
+      "spacing": "Espaciado (m):",
+      "startX": "Inicio X (m):",
+      "startY": "Inicio Y (m):",
+      "endX": "Fin X (m):",
+      "endY": "Fin Y (m):",
+      "sag": "Curvatura (m):",
+      "radius": "Radio (m):",
+      "startAngle": "Ángulo inicial (deg):",
+      "facingInward": "Orientado hacia adentro",
+      "facingOutward": "Orientado hacia afuera",
+      "width": "Ancho (m):",
+      "yStart": "Y Inicio (m):",
+      "yEnd": "Y Fin (m):",
+      "frontFacing": "Frente adelante",
+      "backFacing": "Frente atrás"
+    },
+    "acoustic": {
+      "liveSource": "Fuente en vivo",
+      "floorReflections": "Reflexiones suelo",
+      "hfDamping": "Atenuación HF (dB/m):",
+      "hParallax": "Paralaje H (m):",
+      "vParallax": "Paralaje V (m):",
+      "distanceAtten": "Atenuación distancia (%):",
+      "lowCut": "Corte bajo (Hz):",
+      "highCut": "Corte alto (Hz):"
+    },
+    "target": {
+      "array": "Grupo:",
+      "arrayPrefix": "Grupo",
+      "startingOutput": "Salida inicial:"
+    },
+    "buttons": {
+      "apply": "Aplicar",
+      "close": "Cerrar"
+    },
+    "preview": {
+      "audience": "Audiencia"
+    },
+    "status": {
+      "ready": "Listo",
+      "calculated": "{count} posiciones calculadas",
+      "applied": "{count} altavoces aplicados al Grupo {array}. Listo para el siguiente."
+    },
+    "errors": {
+      "speakerCountZero": "El número de altavoces debe ser mayor que 0",
+      "noPositions": "No hay posiciones para aplicar. Verifique los parámetros de geometría.",
+      "notEnoughOutputs": "¡No hay suficientes canales de salida! Se necesitan {count} desde {start}",
+      "prefix": "Error: "
+    }
   }
 }
