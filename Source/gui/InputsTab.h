@@ -1541,11 +1541,11 @@ private:
     {
         // Floor Reflections Active
         addAndMakeVisible(frActiveButton);
-        frActiveButton.setButtonText("Floor Reflections: OFF");
+        frActiveButton.setButtonText(LOC("inputs.toggles.floorReflectionsOff"));
         frActiveButton.setClickingTogglesState(true);
         frActiveButton.onClick = [this]() {
             bool enabled = frActiveButton.getToggleState();
-            frActiveButton.setButtonText(enabled ? "Floor Reflections: ON" : "Floor Reflections: OFF");
+            frActiveButton.setButtonText(enabled ? LOC("inputs.toggles.floorReflectionsOn") : LOC("inputs.toggles.floorReflectionsOff"));
             setFloorReflectionsParametersAlpha(enabled ? 1.0f : 0.5f);
             updateLowCutAlpha();
             updateHighShelfAlpha();
@@ -1554,7 +1554,7 @@ private:
 
         // Floor Reflections Attenuation slider
         addAndMakeVisible(frAttenuationLabel);
-        frAttenuationLabel.setText("Attenuation:", juce::dontSendNotification);
+        frAttenuationLabel.setText(LOC("inputs.labels.attenuation"), juce::dontSendNotification);
         frAttenuationSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFF795548));
         frAttenuationSlider.onValueChanged = [this](float v) {
             float dB = 20.0f * std::log10(std::pow(10.0f, -60.0f / 20.0f) +
@@ -1569,7 +1569,7 @@ private:
 
         // Floor Reflections Diffusion dial
         addAndMakeVisible(frDiffusionLabel);
-        frDiffusionLabel.setText("Diffusion:", juce::dontSendNotification);
+        frDiffusionLabel.setText(LOC("inputs.labels.diffusion"), juce::dontSendNotification);
         frDiffusionLabel.setJustificationType(juce::Justification::centred);
         frDiffusionDial.setColours(juce::Colours::black, juce::Colour(0xFF795548), juce::Colours::grey);
         frDiffusionDial.setValue(0.2f);
@@ -1590,19 +1590,19 @@ private:
 
         // FR Low Cut Active
         addAndMakeVisible(frLowCutActiveButton);
-        frLowCutActiveButton.setButtonText("Low Cut: ON");
+        frLowCutActiveButton.setButtonText(LOC("inputs.toggles.lowCutOn"));
         frLowCutActiveButton.setClickingTogglesState(true);
         frLowCutActiveButton.setToggleState(true, juce::dontSendNotification);
         frLowCutActiveButton.onClick = [this]() {
             bool enabled = frLowCutActiveButton.getToggleState();
-            frLowCutActiveButton.setButtonText(enabled ? "Low Cut: ON" : "Low Cut: OFF");
+            frLowCutActiveButton.setButtonText(enabled ? LOC("inputs.toggles.lowCutOn") : LOC("inputs.toggles.lowCutOff"));
             updateLowCutAlpha();
             saveInputParam(WFSParameterIDs::inputFRlowCutActive, enabled ? 1 : 0);
         };
 
         // Low Cut Frequency slider (20-20000 Hz)
         addAndMakeVisible(frLowCutFreqLabel);
-        frLowCutFreqLabel.setText("Frequency:", juce::dontSendNotification);
+        frLowCutFreqLabel.setText(LOC("inputs.labels.frequency"), juce::dontSendNotification);
         frLowCutFreqSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFF607D8B));
         frLowCutFreqSlider.onValueChanged = [this](float v) {
             // Formula: 20*pow(10,4*x) maps 0-1 to 20-20000 Hz
@@ -1617,19 +1617,19 @@ private:
 
         // FR High Shelf Active
         addAndMakeVisible(frHighShelfActiveButton);
-        frHighShelfActiveButton.setButtonText("High Shelf: ON");
+        frHighShelfActiveButton.setButtonText(LOC("inputs.toggles.highShelfOn"));
         frHighShelfActiveButton.setClickingTogglesState(true);
         frHighShelfActiveButton.setToggleState(true, juce::dontSendNotification);
         frHighShelfActiveButton.onClick = [this]() {
             bool enabled = frHighShelfActiveButton.getToggleState();
-            frHighShelfActiveButton.setButtonText(enabled ? "High Shelf: ON" : "High Shelf: OFF");
+            frHighShelfActiveButton.setButtonText(enabled ? LOC("inputs.toggles.highShelfOn") : LOC("inputs.toggles.highShelfOff"));
             updateHighShelfAlpha();
             saveInputParam(WFSParameterIDs::inputFRhighShelfActive, enabled ? 1 : 0);
         };
 
         // High Shelf Frequency slider (20-20000 Hz)
         addAndMakeVisible(frHighShelfFreqLabel);
-        frHighShelfFreqLabel.setText("Frequency:", juce::dontSendNotification);
+        frHighShelfFreqLabel.setText(LOC("inputs.labels.frequency"), juce::dontSendNotification);
         frHighShelfFreqSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFF607D8B));
         frHighShelfFreqSlider.onValueChanged = [this](float v) {
             int freq = static_cast<int>(20.0f * std::pow(10.0f, 3.0f * v));
@@ -1643,7 +1643,7 @@ private:
 
         // High Shelf Gain slider (-24 to 0 dB)
         addAndMakeVisible(frHighShelfGainLabel);
-        frHighShelfGainLabel.setText("Gain:", juce::dontSendNotification);
+        frHighShelfGainLabel.setText(LOC("inputs.labels.gain"), juce::dontSendNotification);
         frHighShelfGainSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFF607D8B));
         frHighShelfGainSlider.onValueChanged = [this](float v) {
             float dB = 20.0f * std::log10(std::pow(10.0f, -24.0f / 20.0f) +
@@ -1658,7 +1658,7 @@ private:
 
         // High Shelf Slope slider (0.1-0.9)
         addAndMakeVisible(frHighShelfSlopeLabel);
-        frHighShelfSlopeLabel.setText("Slope:", juce::dontSendNotification);
+        frHighShelfSlopeLabel.setText(LOC("inputs.labels.slope"), juce::dontSendNotification);
         frHighShelfSlopeSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFF607D8B));
         frHighShelfSlopeSlider.onValueChanged = [this](float v) {
             // Formula: (x*0.8)+0.1 maps 0-1 to 0.1-0.9
@@ -1673,11 +1673,11 @@ private:
 
         // Mute Sends to Reverbs
         addAndMakeVisible(muteReverbSendsButton);
-        muteReverbSendsButton.setButtonText("Sends to Reverbs: Unmuted");
+        muteReverbSendsButton.setButtonText(LOC("inputs.toggles.reverbSendsUnmuted"));
         muteReverbSendsButton.setClickingTogglesState(true);
         muteReverbSendsButton.onClick = [this]() {
             bool muted = muteReverbSendsButton.getToggleState();
-            muteReverbSendsButton.setButtonText(muted ? "Sends to Reverbs: MUTED" : "Sends to Reverbs: Unmuted");
+            muteReverbSendsButton.setButtonText(muted ? LOC("inputs.toggles.reverbSendsMuted") : LOC("inputs.toggles.reverbSendsUnmuted"));
             saveInputParam(WFSParameterIDs::inputMuteReverbSends, muted ? 1 : 0);
         };
     }
@@ -1686,18 +1686,18 @@ private:
     {
         // LFO Active button
         addAndMakeVisible(lfoActiveButton);
-        lfoActiveButton.setButtonText("L.F.O: OFF");
+        lfoActiveButton.setButtonText(LOC("inputs.toggles.lfoOff"));
         lfoActiveButton.setClickingTogglesState(true);
         lfoActiveButton.onClick = [this]() {
             bool enabled = lfoActiveButton.getToggleState();
-            lfoActiveButton.setButtonText(enabled ? "L.F.O: ON" : "L.F.O: OFF");
+            lfoActiveButton.setButtonText(enabled ? LOC("inputs.toggles.lfoOn") : LOC("inputs.toggles.lfoOff"));
             saveInputParam(WFSParameterIDs::inputLFOactive, enabled ? 1 : 0);
             updateLfoAlpha();
         };
 
         // Period dial (0.01-100.0 s) - Formula: pow(10.0,sqrt(x)*4.0-2.0)
         addAndMakeVisible(lfoPeriodLabel);
-        lfoPeriodLabel.setText("Period:", juce::dontSendNotification);
+        lfoPeriodLabel.setText(LOC("inputs.labels.period"), juce::dontSendNotification);
         lfoPeriodLabel.setJustificationType(juce::Justification::centred);
         lfoPeriodDial.setColours(juce::Colours::black, juce::Colour(0xFF00BCD4), juce::Colours::grey);
         lfoPeriodDial.onValueChanged = [this](float v) {
@@ -1717,7 +1717,7 @@ private:
 
         // Main Phase dial (-180° to 180°) - uses WfsRotationDial
         addAndMakeVisible(lfoPhaseLabel);
-        lfoPhaseLabel.setText("Phase:", juce::dontSendNotification);
+        lfoPhaseLabel.setText(LOC("inputs.labels.phase"), juce::dontSendNotification);
         lfoPhaseLabel.setJustificationType(juce::Justification::centred);
         lfoPhaseDial.setColours(juce::Colours::black, juce::Colour(0xFF4CAF50), juce::Colours::grey);
         lfoPhaseDial.onAngleChanged = [this](float angle) {
@@ -1735,14 +1735,14 @@ private:
         lfoPhaseUnitLabel.setJustificationType(juce::Justification::left);
         lfoPhaseUnitLabel.setMinimumHorizontalScale(1.0f);
 
-        // Shape X/Y/Z dropdowns
-        juce::StringArray lfoShapes = {"OFF", "sine", "square", "sawtooth", "triangle", "keystone", "log", "exp", "random"};
+        // Shape X/Y/Z dropdowns - use localized shape names
+        juce::StringArray lfoShapeKeys = {"off", "sine", "square", "sawtooth", "triangle", "keystone", "log", "exp", "random"};
 
         addAndMakeVisible(lfoShapeXLabel);
-        lfoShapeXLabel.setText("Shape X:", juce::dontSendNotification);
+        lfoShapeXLabel.setText(LOC("inputs.labels.shapeX"), juce::dontSendNotification);
         addAndMakeVisible(lfoShapeXSelector);
-        for (int i = 0; i < lfoShapes.size(); ++i)
-            lfoShapeXSelector.addItem(lfoShapes[i], i + 1);
+        for (int i = 0; i < lfoShapeKeys.size(); ++i)
+            lfoShapeXSelector.addItem(LOC("inputs.lfo.shapes." + lfoShapeKeys[i]), i + 1);
         lfoShapeXSelector.setSelectedId(1, juce::dontSendNotification);
         lfoShapeXSelector.onChange = [this]() {
             saveInputParam(WFSParameterIDs::inputLFOshapeX, lfoShapeXSelector.getSelectedId() - 1);
@@ -1752,10 +1752,10 @@ private:
         };
 
         addAndMakeVisible(lfoShapeYLabel);
-        lfoShapeYLabel.setText("Shape Y:", juce::dontSendNotification);
+        lfoShapeYLabel.setText(LOC("inputs.labels.shapeY"), juce::dontSendNotification);
         addAndMakeVisible(lfoShapeYSelector);
-        for (int i = 0; i < lfoShapes.size(); ++i)
-            lfoShapeYSelector.addItem(lfoShapes[i], i + 1);
+        for (int i = 0; i < lfoShapeKeys.size(); ++i)
+            lfoShapeYSelector.addItem(LOC("inputs.lfo.shapes." + lfoShapeKeys[i]), i + 1);
         lfoShapeYSelector.setSelectedId(1, juce::dontSendNotification);
         lfoShapeYSelector.onChange = [this]() {
             saveInputParam(WFSParameterIDs::inputLFOshapeY, lfoShapeYSelector.getSelectedId() - 1);
@@ -1765,10 +1765,10 @@ private:
         };
 
         addAndMakeVisible(lfoShapeZLabel);
-        lfoShapeZLabel.setText("Shape Z:", juce::dontSendNotification);
+        lfoShapeZLabel.setText(LOC("inputs.labels.shapeZ"), juce::dontSendNotification);
         addAndMakeVisible(lfoShapeZSelector);
-        for (int i = 0; i < lfoShapes.size(); ++i)
-            lfoShapeZSelector.addItem(lfoShapes[i], i + 1);
+        for (int i = 0; i < lfoShapeKeys.size(); ++i)
+            lfoShapeZSelector.addItem(LOC("inputs.lfo.shapes." + lfoShapeKeys[i]), i + 1);
         lfoShapeZSelector.setSelectedId(1, juce::dontSendNotification);
         lfoShapeZSelector.onChange = [this]() {
             saveInputParam(WFSParameterIDs::inputLFOshapeZ, lfoShapeZSelector.getSelectedId() - 1);
@@ -1779,7 +1779,7 @@ private:
 
         // Rate X/Y/Z sliders (0.01-100, formula: pow(10.0,(x*4.0)-2.0))
         addAndMakeVisible(lfoRateXLabel);
-        lfoRateXLabel.setText("Rate X:", juce::dontSendNotification);
+        lfoRateXLabel.setText(LOC("inputs.labels.rateX"), juce::dontSendNotification);
         lfoRateXSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFFE91E63));
         lfoRateXSlider.onValueChanged = [this](float v) {
             float rate = std::pow(10.0f, (v * 4.0f) - 2.0f);
@@ -1792,7 +1792,7 @@ private:
         setupEditableValueLabel(lfoRateXValueLabel);
 
         addAndMakeVisible(lfoRateYLabel);
-        lfoRateYLabel.setText("Rate Y:", juce::dontSendNotification);
+        lfoRateYLabel.setText(LOC("inputs.labels.rateY"), juce::dontSendNotification);
         lfoRateYSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFFE91E63));
         lfoRateYSlider.onValueChanged = [this](float v) {
             float rate = std::pow(10.0f, (v * 4.0f) - 2.0f);
@@ -1805,7 +1805,7 @@ private:
         setupEditableValueLabel(lfoRateYValueLabel);
 
         addAndMakeVisible(lfoRateZLabel);
-        lfoRateZLabel.setText("Rate Z:", juce::dontSendNotification);
+        lfoRateZLabel.setText(LOC("inputs.labels.rateZ"), juce::dontSendNotification);
         lfoRateZSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFFE91E63));
         lfoRateZSlider.onValueChanged = [this](float v) {
             float rate = std::pow(10.0f, (v * 4.0f) - 2.0f);
@@ -1819,7 +1819,7 @@ private:
 
         // Amplitude X/Y/Z sliders (0-50 m)
         addAndMakeVisible(lfoAmplitudeXLabel);
-        lfoAmplitudeXLabel.setText("Amplitude X:", juce::dontSendNotification);
+        lfoAmplitudeXLabel.setText(LOC("inputs.labels.amplitudeX"), juce::dontSendNotification);
         lfoAmplitudeXSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF9C27B0));
         lfoAmplitudeXSlider.onValueChanged = [this](float v) {
             float amp = v * 50.0f;
@@ -1832,7 +1832,7 @@ private:
         setupEditableValueLabel(lfoAmplitudeXValueLabel);
 
         addAndMakeVisible(lfoAmplitudeYLabel);
-        lfoAmplitudeYLabel.setText("Amplitude Y:", juce::dontSendNotification);
+        lfoAmplitudeYLabel.setText(LOC("inputs.labels.amplitudeY"), juce::dontSendNotification);
         lfoAmplitudeYSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF9C27B0));
         lfoAmplitudeYSlider.onValueChanged = [this](float v) {
             float amp = v * 50.0f;
@@ -1845,7 +1845,7 @@ private:
         setupEditableValueLabel(lfoAmplitudeYValueLabel);
 
         addAndMakeVisible(lfoAmplitudeZLabel);
-        lfoAmplitudeZLabel.setText("Amplitude Z:", juce::dontSendNotification);
+        lfoAmplitudeZLabel.setText(LOC("inputs.labels.amplitudeZ"), juce::dontSendNotification);
         lfoAmplitudeZSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF9C27B0));
         lfoAmplitudeZSlider.onValueChanged = [this](float v) {
             float amp = v * 50.0f;
@@ -1859,7 +1859,7 @@ private:
 
         // Phase X/Y/Z dials (-180° to 180°)
         addAndMakeVisible(lfoPhaseXLabel);
-        lfoPhaseXLabel.setText("Phase X:", juce::dontSendNotification);
+        lfoPhaseXLabel.setText(LOC("inputs.labels.phaseX"), juce::dontSendNotification);
         lfoPhaseXLabel.setJustificationType(juce::Justification::centred);
         lfoPhaseXDial.setColours(juce::Colours::black, juce::Colour(0xFFFF9800), juce::Colours::grey);
         lfoPhaseXDial.onAngleChanged = [this](float angle) {
@@ -1878,7 +1878,7 @@ private:
         lfoPhaseXUnitLabel.setMinimumHorizontalScale(1.0f);
 
         addAndMakeVisible(lfoPhaseYLabel);
-        lfoPhaseYLabel.setText("Phase Y:", juce::dontSendNotification);
+        lfoPhaseYLabel.setText(LOC("inputs.labels.phaseY"), juce::dontSendNotification);
         lfoPhaseYLabel.setJustificationType(juce::Justification::centred);
         lfoPhaseYDial.setColours(juce::Colours::black, juce::Colour(0xFFFF9800), juce::Colours::grey);
         lfoPhaseYDial.onAngleChanged = [this](float angle) {
@@ -1897,7 +1897,7 @@ private:
         lfoPhaseYUnitLabel.setMinimumHorizontalScale(1.0f);
 
         addAndMakeVisible(lfoPhaseZLabel);
-        lfoPhaseZLabel.setText("Phase Z:", juce::dontSendNotification);
+        lfoPhaseZLabel.setText(LOC("inputs.labels.phaseZ"), juce::dontSendNotification);
         lfoPhaseZLabel.setJustificationType(juce::Justification::centred);
         lfoPhaseZDial.setColours(juce::Colours::black, juce::Colour(0xFFFF9800), juce::Colours::grey);
         lfoPhaseZDial.onAngleChanged = [this](float angle) {
@@ -1917,11 +1917,11 @@ private:
 
         // Gyrophone dropdown
         addAndMakeVisible(lfoGyrophoneLabel);
-        lfoGyrophoneLabel.setText("Gyrophone:", juce::dontSendNotification);
+        lfoGyrophoneLabel.setText(LOC("inputs.labels.gyrophone"), juce::dontSendNotification);
         addAndMakeVisible(lfoGyrophoneSelector);
-        lfoGyrophoneSelector.addItem("Anti-Clockwise", 1);
-        lfoGyrophoneSelector.addItem("OFF", 2);
-        lfoGyrophoneSelector.addItem("Clockwise", 3);
+        lfoGyrophoneSelector.addItem(LOC("inputs.lfo.gyrophone.antiClockwise"), 1);
+        lfoGyrophoneSelector.addItem(LOC("inputs.lfo.gyrophone.off"), 2);
+        lfoGyrophoneSelector.addItem(LOC("inputs.lfo.gyrophone.clockwise"), 3);
         lfoGyrophoneSelector.setSelectedId(2, juce::dontSendNotification);
         lfoGyrophoneSelector.onChange = [this]() {
             saveInputParam(WFSParameterIDs::inputLFOgyrophone, lfoGyrophoneSelector.getSelectedId() - 2);
@@ -1931,7 +1931,7 @@ private:
 
         // Jitter slider
         addAndMakeVisible(jitterLabel);
-        jitterLabel.setText("Jitter:", juce::dontSendNotification);
+        jitterLabel.setText(LOC("inputs.labels.jitter"), juce::dontSendNotification);
         jitterSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFFCDDC39));
         jitterSlider.onValueChanged = [this](float v) {
             float meters = 10.0f * v * v;
@@ -1949,19 +1949,19 @@ private:
 
         // LFO Output sliders (read-only feedback)
         addAndMakeVisible(lfoOutputXLabel);
-        lfoOutputXLabel.setText("Out X:", juce::dontSendNotification);
+        lfoOutputXLabel.setText(LOC("inputs.labels.outX"), juce::dontSendNotification);
         lfoOutputXLabel.setColour(juce::Label::textColourId, juce::Colours::grey);
         addAndMakeVisible(lfoOutputXSlider);
         lfoOutputXSlider.setTrackColour(juce::Colour(0xFFE91E63));  // Pink for X
 
         addAndMakeVisible(lfoOutputYLabel);
-        lfoOutputYLabel.setText("Out Y:", juce::dontSendNotification);
+        lfoOutputYLabel.setText(LOC("inputs.labels.outY"), juce::dontSendNotification);
         lfoOutputYLabel.setColour(juce::Label::textColourId, juce::Colours::grey);
         addAndMakeVisible(lfoOutputYSlider);
         lfoOutputYSlider.setTrackColour(juce::Colour(0xFF4CAF50));  // Green for Y
 
         addAndMakeVisible(lfoOutputZLabel);
-        lfoOutputZLabel.setText("Out Z:", juce::dontSendNotification);
+        lfoOutputZLabel.setText(LOC("inputs.labels.outZ"), juce::dontSendNotification);
         lfoOutputZLabel.setColour(juce::Label::textColourId, juce::Colours::grey);
         addAndMakeVisible(lfoOutputZSlider);
         lfoOutputZSlider.setTrackColour(juce::Colour(0xFF2196F3));  // Blue for Z
@@ -1971,52 +1971,52 @@ private:
     {
         // Destination X/Y/Z number boxes
         addAndMakeVisible(otomoDestXLabel);
-        otomoDestXLabel.setText("Dest. X:", juce::dontSendNotification);
+        otomoDestXLabel.setText(LOC("inputs.labels.destX"), juce::dontSendNotification);
         addAndMakeVisible(otomoDestXEditor);
         otomoDestXEditor.setText("0.00", juce::dontSendNotification);
         setupNumericEditor(otomoDestXEditor, true, true);
         addAndMakeVisible(otomoDestXUnitLabel);
-        otomoDestXUnitLabel.setText("m", juce::dontSendNotification);
+        otomoDestXUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
 
         addAndMakeVisible(otomoDestYLabel);
-        otomoDestYLabel.setText("Dest. Y:", juce::dontSendNotification);
+        otomoDestYLabel.setText(LOC("inputs.labels.destY"), juce::dontSendNotification);
         addAndMakeVisible(otomoDestYEditor);
         otomoDestYEditor.setText("0.00", juce::dontSendNotification);
         setupNumericEditor(otomoDestYEditor, true, true);
         addAndMakeVisible(otomoDestYUnitLabel);
-        otomoDestYUnitLabel.setText("m", juce::dontSendNotification);
+        otomoDestYUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
 
         addAndMakeVisible(otomoDestZLabel);
-        otomoDestZLabel.setText("Dest. Z:", juce::dontSendNotification);
+        otomoDestZLabel.setText(LOC("inputs.labels.destZ"), juce::dontSendNotification);
         addAndMakeVisible(otomoDestZEditor);
         otomoDestZEditor.setText("0.00", juce::dontSendNotification);
         setupNumericEditor(otomoDestZEditor, true, true);
         addAndMakeVisible(otomoDestZUnitLabel);
-        otomoDestZUnitLabel.setText("m", juce::dontSendNotification);
+        otomoDestZUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
 
         // Absolute/Relative button
         addAndMakeVisible(otomoAbsRelButton);
-        otomoAbsRelButton.setButtonText("Absolute");
+        otomoAbsRelButton.setButtonText(LOC("inputs.toggles.absolute"));
         otomoAbsRelButton.setClickingTogglesState(true);
         otomoAbsRelButton.onClick = [this]() {
             bool isRelative = otomoAbsRelButton.getToggleState();
-            otomoAbsRelButton.setButtonText(isRelative ? "Relative" : "Absolute");
+            otomoAbsRelButton.setButtonText(isRelative ? LOC("inputs.toggles.relative") : LOC("inputs.toggles.absolute"));
             saveInputParam(WFSParameterIDs::inputOtomoAbsoluteRelative, isRelative ? 1 : 0);
         };
 
         // Stay/Return button
         addAndMakeVisible(otomoStayReturnButton);
-        otomoStayReturnButton.setButtonText("Stay");
+        otomoStayReturnButton.setButtonText(LOC("inputs.toggles.stay"));
         otomoStayReturnButton.setClickingTogglesState(true);
         otomoStayReturnButton.onClick = [this]() {
             bool isReturn = otomoStayReturnButton.getToggleState();
-            otomoStayReturnButton.setButtonText(isReturn ? "Return" : "Stay");
+            otomoStayReturnButton.setButtonText(isReturn ? LOC("inputs.toggles.return") : LOC("inputs.toggles.stay"));
             saveInputParam(WFSParameterIDs::inputOtomoStayReturn, isReturn ? 1 : 0);
         };
 
         // Duration dial (0.1 to 3600 seconds, logarithmic)
         addAndMakeVisible(otomoDurationLabel);
-        otomoDurationLabel.setText("Duration:", juce::dontSendNotification);
+        otomoDurationLabel.setText(LOC("inputs.labels.duration"), juce::dontSendNotification);
         otomoDurationLabel.setJustificationType(juce::Justification::centred);
         otomoDurationDial.setColours(juce::Colours::black, juce::Colour(0xFF4CAF50), juce::Colours::grey);
         otomoDurationDial.onValueChanged = [this](float v) {
@@ -2045,7 +2045,7 @@ private:
 
         // Curve dial (-100 to +100, bipolar)
         addAndMakeVisible(otomoCurveLabel);
-        otomoCurveLabel.setText("Curve:", juce::dontSendNotification);
+        otomoCurveLabel.setText(LOC("inputs.labels.curve"), juce::dontSendNotification);
         otomoCurveLabel.setJustificationType(juce::Justification::centred);
         otomoCurveDial.setColours(juce::Colours::black, juce::Colour(0xFFFF9800), juce::Colours::grey);
         otomoCurveDial.onValueChanged = [this](float v) {
@@ -2066,7 +2066,7 @@ private:
 
         // Speed Profile dial (0-100%)
         addAndMakeVisible(otomoSpeedProfileLabel);
-        otomoSpeedProfileLabel.setText("Speed Profile:", juce::dontSendNotification);
+        otomoSpeedProfileLabel.setText(LOC("inputs.labels.speedProfile"), juce::dontSendNotification);
         otomoSpeedProfileLabel.setJustificationType(juce::Justification::centred);
         otomoSpeedProfileDial.setColours(juce::Colours::black, juce::Colour(0xFF2196F3), juce::Colours::grey);
         otomoSpeedProfileDial.onValueChanged = [this](float v) {
@@ -2086,17 +2086,17 @@ private:
 
         // Trigger button (Manual/Trigger)
         addAndMakeVisible(otomoTriggerButton);
-        otomoTriggerButton.setButtonText("Manual");
+        otomoTriggerButton.setButtonText(LOC("inputs.toggles.manual"));
         otomoTriggerButton.setClickingTogglesState(true);
         otomoTriggerButton.onClick = [this]() {
             bool isTrigger = otomoTriggerButton.getToggleState();
-            otomoTriggerButton.setButtonText(isTrigger ? "Trigger" : "Manual");
+            otomoTriggerButton.setButtonText(isTrigger ? LOC("inputs.toggles.triggered") : LOC("inputs.toggles.manual"));
             saveInputParam(WFSParameterIDs::inputOtomoTrigger, isTrigger ? 1 : 0);
         };
 
         // Trigger Threshold dial (-92 to 0 dB)
         addAndMakeVisible(otomoThresholdLabel);
-        otomoThresholdLabel.setText("Threshold:", juce::dontSendNotification);
+        otomoThresholdLabel.setText(LOC("inputs.labels.threshold"), juce::dontSendNotification);
         otomoThresholdLabel.setJustificationType(juce::Justification::centred);
         otomoThresholdDial.setColours(juce::Colours::black, juce::Colour(0xFFE91E63), juce::Colours::grey);
         otomoThresholdDial.onValueChanged = [this](float v) {
@@ -2117,7 +2117,7 @@ private:
 
         // Trigger Reset dial (-92 to 0 dB)
         addAndMakeVisible(otomoResetLabel);
-        otomoResetLabel.setText("Reset:", juce::dontSendNotification);
+        otomoResetLabel.setText(LOC("inputs.labels.reset"), juce::dontSendNotification);
         otomoResetLabel.setJustificationType(juce::Justification::centred);
         otomoResetDial.setColours(juce::Colours::black, juce::Colour(0xFF9C27B0), juce::Colours::grey);
         otomoResetDial.onValueChanged = [this](float v) {
@@ -2165,14 +2165,14 @@ private:
 
         // Global controls
         addAndMakeVisible(otomoStopAllButton);
-        otomoStopAllButton.setButtonText("Stop All");
+        otomoStopAllButton.setButtonText(LOC("inputs.buttons.stopAll"));
         otomoStopAllButton.onClick = [this]() {
             if (automOtionProcessor != nullptr)
                 automOtionProcessor->stopAllMotion();
         };
 
         addAndMakeVisible(otomoPauseResumeAllButton);
-        otomoPauseResumeAllButton.setButtonText("Pause All");
+        otomoPauseResumeAllButton.setButtonText(LOC("inputs.buttons.pauseAll"));
         otomoPauseResumeAllButton.setClickingTogglesState(true);
         otomoPauseResumeAllButton.onClick = [this]() {
             if (automOtionProcessor != nullptr)
@@ -2180,12 +2180,12 @@ private:
                 if (otomoPauseResumeAllButton.getToggleState())
                 {
                     automOtionProcessor->pauseAllMotion();
-                    otomoPauseResumeAllButton.setButtonText("Resume All");
+                    otomoPauseResumeAllButton.setButtonText(LOC("inputs.buttons.resumeAll"));
                 }
                 else
                 {
                     automOtionProcessor->resumeAllMotion();
-                    otomoPauseResumeAllButton.setButtonText("Pause All");
+                    otomoPauseResumeAllButton.setButtonText(LOC("inputs.buttons.pauseAll"));
                 }
             }
         };
@@ -2214,19 +2214,19 @@ private:
 
         // Mute Macros selector
         addAndMakeVisible(muteMacrosLabel);
-        muteMacrosLabel.setText("Mute Macros:", juce::dontSendNotification);
+        muteMacrosLabel.setText(LOC("inputs.labels.muteMacros"), juce::dontSendNotification);
 
         addAndMakeVisible(muteMacrosSelector);
-        muteMacrosSelector.addItem("Select Macro...", 1);
-        muteMacrosSelector.addItem("MUTE ALL", 2);
-        muteMacrosSelector.addItem("UNMUTE ALL", 3);
-        muteMacrosSelector.addItem("INVERT MUTES", 4);
-        muteMacrosSelector.addItem("MUTE ODD", 5);
-        muteMacrosSelector.addItem("MUTE EVEN", 6);
+        muteMacrosSelector.addItem(LOC("inputs.muteMacros.selectMacro"), 1);
+        muteMacrosSelector.addItem(LOC("inputs.muteMacros.muteAll"), 2);
+        muteMacrosSelector.addItem(LOC("inputs.muteMacros.unmuteAll"), 3);
+        muteMacrosSelector.addItem(LOC("inputs.muteMacros.invertMutes"), 4);
+        muteMacrosSelector.addItem(LOC("inputs.muteMacros.muteOdd"), 5);
+        muteMacrosSelector.addItem(LOC("inputs.muteMacros.muteEven"), 6);
         for (int i = 1; i <= 10; ++i)
         {
-            muteMacrosSelector.addItem("MUTE ARRAY " + juce::String(i), 6 + (i * 2) - 1);
-            muteMacrosSelector.addItem("UNMUTE ARRAY " + juce::String(i), 6 + (i * 2));
+            muteMacrosSelector.addItem(LOC("inputs.muteMacros.muteArrayPrefix") + " " + juce::String(i), 6 + (i * 2) - 1);
+            muteMacrosSelector.addItem(LOC("inputs.muteMacros.unmuteArrayPrefix") + " " + juce::String(i), 6 + (i * 2));
         }
         muteMacrosSelector.setSelectedId(1, juce::dontSendNotification);
         muteMacrosSelector.onChange = [this]() {
@@ -2244,7 +2244,7 @@ private:
 
         // Array Attenuation section
         addAndMakeVisible(arrayAttenLabel);
-        arrayAttenLabel.setText("Array Attenuation:", juce::dontSendNotification);
+        arrayAttenLabel.setText(LOC("inputs.labels.arrayAttenuation"), juce::dontSendNotification);
 
         for (int i = 0; i < 10; ++i)
         {
@@ -2252,7 +2252,7 @@ private:
             juce::Colour arrayColor = WfsColorUtilities::getArrayColor(i + 1);
 
             // Dial label (Array 1, Array 2, etc.)
-            arrayAttenDialLabels[i].setText("Array " + juce::String(i + 1), juce::dontSendNotification);
+            arrayAttenDialLabels[i].setText(LOC("inputs.arrayPrefix") + " " + juce::String(i + 1), juce::dontSendNotification);
             arrayAttenDialLabels[i].setJustificationType(juce::Justification::centred);
             addAndMakeVisible(arrayAttenDialLabels[i]);
 
@@ -2286,11 +2286,11 @@ private:
 
         // Sidelines section (auto-mute at stage edges)
         addAndMakeVisible(sidelinesActiveButton);
-        sidelinesActiveButton.setButtonText("Sidelines Off");
+        sidelinesActiveButton.setButtonText(LOC("inputs.toggles.sidelinesOff"));
         sidelinesActiveButton.setClickingTogglesState(true);
         sidelinesActiveButton.onClick = [this]() {
             bool active = sidelinesActiveButton.getToggleState();
-            sidelinesActiveButton.setButtonText(active ? "Sidelines ON" : "Sidelines Off");
+            sidelinesActiveButton.setButtonText(active ? LOC("inputs.toggles.sidelinesOn") : LOC("inputs.toggles.sidelinesOff"));
             // Grey out dial when inactive (but keep it editable)
             sidelinesFringeDial.setAlpha(active ? 1.0f : 0.5f);
             sidelinesFringeLabel.setAlpha(active ? 1.0f : 0.5f);
@@ -2299,7 +2299,7 @@ private:
         };
 
         addAndMakeVisible(sidelinesFringeLabel);
-        sidelinesFringeLabel.setText("Fringe:", juce::dontSendNotification);
+        sidelinesFringeLabel.setText(LOC("inputs.labels.fringe"), juce::dontSendNotification);
         sidelinesFringeLabel.setJustificationType(juce::Justification::centred);
 
         addAndMakeVisible(sidelinesFringeDial);
@@ -4558,7 +4558,7 @@ private:
         // ==================== EFFECTS (HACKOUSTICS) TAB ====================
         bool frActive = getIntParam(WFSParameterIDs::inputFRactive, 0) != 0;
         frActiveButton.setToggleState(frActive, juce::dontSendNotification);
-        frActiveButton.setButtonText(frActive ? "Floor Reflections: ON" : "Floor Reflections: OFF");
+        frActiveButton.setButtonText(frActive ? LOC("inputs.toggles.floorReflectionsOn") : LOC("inputs.toggles.floorReflectionsOff"));
         setFloorReflectionsParametersAlpha(frActive ? 1.0f : 0.5f);
 
         // FR Attenuation stored as dB (-60 to 0), default -3
@@ -4581,7 +4581,7 @@ private:
 
         bool frLowCutActive = getIntParam(WFSParameterIDs::inputFRlowCutActive, 0) != 0;
         frLowCutActiveButton.setToggleState(frLowCutActive, juce::dontSendNotification);
-        frLowCutActiveButton.setButtonText(frLowCutActive ? "Low Cut: ON" : "Low Cut: OFF");
+        frLowCutActiveButton.setButtonText(frLowCutActive ? LOC("inputs.toggles.lowCutOn") : LOC("inputs.toggles.lowCutOff"));
 
         // FR Low Cut Freq stored as Hz (20-20000), default 100
         // Formula: freq = 20 * pow(10, 3*x) => x = log10(freq/20) / 3
@@ -4593,7 +4593,7 @@ private:
 
         bool frHighShelfActive = getIntParam(WFSParameterIDs::inputFRhighShelfActive, 0) != 0;
         frHighShelfActiveButton.setToggleState(frHighShelfActive, juce::dontSendNotification);
-        frHighShelfActiveButton.setButtonText(frHighShelfActive ? "High Shelf: ON" : "High Shelf: OFF");
+        frHighShelfActiveButton.setButtonText(frHighShelfActive ? LOC("inputs.toggles.highShelfOn") : LOC("inputs.toggles.highShelfOff"));
 
         // FR High Shelf Freq stored as Hz (20-20000), default 3000
         // Formula: freq = 20 * pow(10, 3*x) => x = log10(freq/20) / 3
@@ -4629,12 +4629,12 @@ private:
         // Mute Sends to Reverbs (default OFF = 0)
         bool muteReverbSends = getIntParam(WFSParameterIDs::inputMuteReverbSends, 0) != 0;
         muteReverbSendsButton.setToggleState(muteReverbSends, juce::dontSendNotification);
-        muteReverbSendsButton.setButtonText(muteReverbSends ? "Sends to Reverbs: MUTED" : "Sends to Reverbs: Unmuted");
+        muteReverbSendsButton.setButtonText(muteReverbSends ? LOC("inputs.toggles.reverbSendsMuted") : LOC("inputs.toggles.reverbSendsUnmuted"));
 
         // ==================== LFO TAB ====================
         bool lfoActive = getIntParam(WFSParameterIDs::inputLFOactive, 0) != 0;
         lfoActiveButton.setToggleState(lfoActive, juce::dontSendNotification);
-        lfoActiveButton.setButtonText(lfoActive ? "L.F.O: ON" : "L.F.O: OFF");
+        lfoActiveButton.setButtonText(lfoActive ? LOC("inputs.toggles.lfoOn") : LOC("inputs.toggles.lfoOff"));
 
         // LFO Period stored as seconds (0.01-100), default 5.0s
         float lfoPeriodSec = getFloatParam(WFSParameterIDs::inputLFOperiod, 5.0f);
@@ -4828,7 +4828,7 @@ private:
         // Sidelines parameters
         bool sidelinesActive = getIntParam(WFSParameterIDs::inputSidelinesActive, 0) != 0;
         sidelinesActiveButton.setToggleState(sidelinesActive, juce::dontSendNotification);
-        sidelinesActiveButton.setButtonText(sidelinesActive ? "Sidelines ON" : "Sidelines Off");
+        sidelinesActiveButton.setButtonText(sidelinesActive ? LOC("inputs.toggles.sidelinesOn") : LOC("inputs.toggles.sidelinesOff"));
         // Grey out dial when inactive
         sidelinesFringeDial.setAlpha(sidelinesActive ? 1.0f : 0.5f);
         sidelinesFringeLabel.setAlpha(sidelinesActive ? 1.0f : 0.5f);

@@ -900,6 +900,17 @@
     },
     "lfo": {
       "shapes": {
+        "off": "OFF",
+        "sine": "正弦波",
+        "square": "矩形波",
+        "sawtooth": "のこぎり波",
+        "triangle": "三角波",
+        "keystone": "台形波",
+        "log": "対数",
+        "exp": "指数",
+        "random": "ランダム"
+      },
+      "gyrophone": {
         "antiClockwise": "反時計回り",
         "off": "OFF",
         "clockwise": "時計回り"

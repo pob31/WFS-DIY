@@ -900,6 +900,17 @@
     },
     "lfo": {
       "shapes": {
+        "off": "OFF",
+        "sine": "seno",
+        "square": "cuadrada",
+        "sawtooth": "sierra",
+        "triangle": "triángulo",
+        "keystone": "trapecio",
+        "log": "log",
+        "exp": "exp",
+        "random": "aleatorio"
+      },
+      "gyrophone": {
         "antiClockwise": "Anti-horario",
         "off": "OFF",
         "clockwise": "Horario"

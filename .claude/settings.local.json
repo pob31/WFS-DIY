@@ -14,22 +14,58 @@
       "Bash(msbuild:*)",
       "Bash(\"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe\" \"D:\\Documents\\WFS-DIY_JUCE\\WFS-DIY\\Builds\\VisualStudio2022\\WFS-DIY.sln\" /p:Configuration=Debug /p:Platform=x64 /t:WFS-DIY_App /m)",
       "Bash(cmd /c:*)",
-      "Bash(powershell:*)"
+      "Bash(powershell:*)",
+      "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\":*)",
+      "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" \"WFS-DIY.sln\" -p:Configuration=Release -p:Platform=x64 -nologo -v:m)",
+      "Bash(\"C:\\\\Program Files\\\\CMake\\\\bin\\\\cmake.exe\" --build Builds --config Debug)",
+      "Bash(cmake --build:*)",
+      "Bash(cmd.exe /c \"\"\"C:/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\"\" \"\"d:/Dev/WFS_DIY_v1/Builds/VisualStudio2022/WFS-DIY.sln\"\" /p:Configuration=Debug /t:Build /v:minimal 2>&1\")",
+      "Bash(cmd.exe /c \"cd /d d:\\\\Dev\\\\WFS_DIY_v1\\\\Builds\\\\VisualStudio2022 && dir *.vcxproj /b\")",
+      "Bash(powershell.exe:*)",
+      "Bash(dir /s /b *.xaml)",
+      "Bash(dir /s /b *.xaml.cs)",
+      "Bash(grep:*)",
+      "Bash(\"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" WFS-DIY.sln /p:Configuration=Release /p:Platform=x64 /v:minimal)",
+      "Bash(\"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" \"WFS-DIY.sln\" -p:Configuration=Release -p:Platform=x64 -v:minimal)",
+      "Bash(\"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" \"d:\\\\Dev\\\\WFS_DIY_v1\\\\Builds\\\\VisualStudio2022\\\\WFS-DIY.sln\" -t:Rebuild -p:Configuration=Debug -p:Platform=x64 -m -v:normal)",
+      "Bash(\"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\":*)",
+      "Bash(MSBuild:*)",
+      "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" WFS-DIY.sln -p:Configuration=Debug -p:Platform=x64 -v:minimal)",
+      "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" WFS-DIY.sln -p:Configuration=Debug -p:Platform=x64 -v:normal)",
+      "Bash(git restore:*)",
+      "Bash(MSBuild.exe:*)",
+      "Bash(\"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" WFS_DIY.sln -p:Configuration=Release -p:Platform=x64 -verbosity:minimal)",
+      "Bash(\"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" \"d:\\\\Dev\\\\WFS_DIY_v1\\\\Builds\\\\VisualStudio2022\\\\WFS-DIY.sln\" -p:Configuration=Release -p:Platform=x64 -verbosity:minimal)",
+      "Bash(ls:*)",
+      "Bash(wc:*)",
+      "Bash(git fetch:*)",
+      "Bash(git -C /d/Dev/WFS_DIY_v1 log --oneline -10)",
+      "Bash(git -C /d/Dev/WFS_DIY_v1 show 1a77463 --stat)",
+      "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" WFS-DIY.sln -p:Configuration=Debug -p:Platform=x64 -verbosity:minimal)",
+      "Bash(git merge:*)",
+      "Bash(git branch:*)",
+      "Bash(\"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" \"Builds\\\\VisualStudio2022\\\\WFS-DIY.sln\" /p:Configuration=Release /p:Platform=x64 /t:Build /m /v:minimal)",
+      "Bash(\"C:/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" WFS-DIY.sln -p:Configuration=Release -p:Platform=x64 -t:Build -m -v:minimal)",
+      "Bash(\"C:/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" \"Builds/VisualStudio2022/WFS-DIY.sln\" -p:Configuration=Release -p:Platform=x64 -v:minimal -m)",
+      "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Professional/MSBuild/Current/Bin/MSBuild.exe\" Builds/VisualStudio2022/WFS-DIY.sln -p:Configuration=Debug -p:Platform=x64 -t:Build -v:minimal)",
+      "Bash(where.exe MSBuild.exe)",
+      "Bash(cmd //c \"where MSBuild.exe\")",
+      "Bash(\"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" WFS-DIY.sln /p:Configuration=Debug /p:Platform=x64 /m /v:minimal)",
+      "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" WFS-DIY.sln -p:Configuration=Debug -p:Platform=x64 -m -v:minimal)",
+      "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" WFS-DIY.sln -p:Configuration=Debug -p:Platform=x64 -t:Clean -v:minimal)",
+      "Bash(\"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" WFS-DIY.sln /p:Configuration=Debug /p:Platform=x64 /t:Build /v:m)",
+      "Bash(\"C:/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" WFS-DIY.sln -p:Configuration=Debug -p:Platform=x64 -t:Build -v:m)",
+      "Bash(\"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" BuildsVisualStudio2022WFS-DIY.sln /p:Configuration=Debug /p:Platform=x64 /t:Build /verbosity:minimal)",
+      "Bash(\"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" \"d:\\\\Dev\\\\WFS_DIY_v1\\\\Builds\\\\VisualStudio2022\\\\WFS-DIY.sln\" /p:Configuration=Debug /p:Platform=x64 /t:Build /verbosity:minimal)",
+      "Bash(cmd //c:*)",
+      "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" \"d:/Dev/WFS_DIY_v1/Builds/VisualStudio2022/WFS-DIY.sln\" -t:Build -p:Configuration=Debug -m -v:minimal)",
+      "Bash(\"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" WFS-DIY.sln /p:Configuration=Debug /p:Platform=x64 /t:Build /v:minimal)",
+      "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" WFS-DIY.sln -p:Configuration=Debug -p:Platform=x64 -t:Build -v:minimal)",
+      "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" WFS-DIY.sln -p:Configuration=Debug -p:Platform=x64 -t:Build -v:minimal -m:1)",
+      "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" WFS-DIY.sln -p:Configuration=Release -p:Platform=x64 -v:minimal)",
+      "Bash(\"C:/Program Files/CMake/bin/cmake.exe\" --build Builds --config Release)"
     ],
     "deny": [],
     "ask": []
-  }
-  {
-    "mcp": {
-      "servers": {
-        "juce-docs": {
-          "transport": "stdio",
-          "command": "node",
-          "args": [
-            "D:\\dev\\mcp-servers-jos\\juce-docs-mcp-server\\dist\\index.js"
-          ]
-        }
-      }
-    }
   }
 }
