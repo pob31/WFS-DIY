@@ -1713,9 +1713,19 @@ private:
                 // Array mute/unmute (macroId 7-26)
                 if (macroId >= 7)
                 {
-                    // TODO: Implement array-based muting based on output array assignments
-                    // int arrayIndex = (macroId - 7) / 2;
-                    // bool mute = ((macroId - 7) % 2) == 0;
+                    int arrayIndex = (macroId - 7) / 2;      // 0-9 for Arrays 1-10
+                    bool mute = ((macroId - 7) % 2) == 0;    // even=mute, odd=unmute
+                    int targetArray = arrayIndex + 1;        // Array number (1-10)
+
+                    auto& vts = parameters.getValueTreeState();
+                    for (int i = 0; i < numOutputs; ++i)
+                    {
+                        juce::var arrayVar = vts.getOutputParameter (i, WFSParameterIDs::outputArray);
+                        int outputArrayNum = arrayVar.isInt() ? static_cast<int> (arrayVar) : 0;
+
+                        if (outputArrayNum == targetArray)
+                            muteButtons[i].setToggleState (mute, juce::dontSendNotification);
+                    }
                 }
                 break;
         }
