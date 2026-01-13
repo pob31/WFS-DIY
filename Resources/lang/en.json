@@ -69,6 +69,7 @@
       "stage": "Stage",
       "master": "Master Section",
       "ui": "UI",
+      "binaural": "Binaural Solo",
       "files": "Files"
     },
 
@@ -96,14 +97,22 @@
       "haasEffect": "Haas Effect:",
       "colorScheme": "Color Scheme:",
       "screenReader": "Screen Reader:",
-      "language": "Language:"
+      "language": "Language:",
+      "binauralOutput": "Binaural Output:",
+      "binauralDistance": "Listener Distance:",
+      "binauralAngle": "Listener Angle:",
+      "binauralAtten": "Binaural Level:",
+      "binauralDelay": "Binaural Delay:"
     },
 
     "buttons": {
       "audioPatch": "Audio Interface and Patching Window",
       "levelMeter": "Level Meters",
+      "clearSolo": "Clear Solo",
       "processingOff": "Processing: OFF",
       "processingOn": "Processing: ON",
+      "soloModeSingle": "Solo: Single",
+      "soloModeMulti": "Solo: Multi",
       "selectProjectFolder": "Select Project Folder",
       "storeComplete": "Store Complete Configuration",
       "reloadComplete": "Reload Complete Configuration",
@@ -132,6 +141,10 @@
       "light": "Light"
     },
 
+    "binauralOutput": {
+      "off": "Off"
+    },
+
     "help": {
       "showName": "Name of the current show.",
       "showLocation": "Location of the current show.",
@@ -139,8 +152,11 @@
       "outputChannels": "Number of Output Channels.",
       "reverbChannels": "Number of Reverb Channels.",
       "audioPatch": "Opens the Audio Interface and Patching Window.",
+      "levelMeter": "Opens the Level Meter Window.",
+      "clearSolo": "Clear all input solo states.",
       "algorithm": "Select the rendering algorithm from the menu.",
       "processing": "Lock all I/O parameters and start the DSP. Long press to stop the DSP.",
+      "soloMode": "Single: one input at a time. Multi: multiple inputs simultaneously.",
       "stageShape": "Select the shape of the stage (Box, Cylinder, or Dome).",
       "stageWidth": "Width of the stage in meters (Box shape only).",
       "stageDepth": "Depth of the stage in meters (Box shape only).",
@@ -169,7 +185,12 @@
       "reloadSystemBackup": "Reload System Configuration from backup file.",
       "importSystem": "Import System Configuration from file (with file explorer window).",
       "exportSystem": "Export System Configuration to file (with file explorer window).",
-      "language": "Select the user interface language. Changes take full effect after restarting the application."
+      "language": "Select the user interface language. Changes take full effect after restarting the application.",
+      "binauralOutput": "Select output channel pair for binaural monitoring. Off disables binaural output.",
+      "binauralDistance": "Distance of binaural listener from stage origin (meters).",
+      "binauralAngle": "Horizontal rotation of binaural listener view (degrees, 0 = facing stage).",
+      "binauralAtten": "Overall level offset for binaural output (dB).",
+      "binauralDelay": "Additional delay for binaural output (milliseconds)."
     },
 
     "messages": {
@@ -465,7 +486,10 @@
     "inputs": "Inputs",
     "outputs": "Outputs",
     "solo": "Visual Solo:",
-    "soloNone": "None"
+    "soloNone": "None",
+    "buttons": {
+      "clearSolo": "Clear Solo"
+    }
   },
 
   "clusters": {
@@ -966,6 +990,9 @@
       "scopeConfigured": "Scope configured for next snapshot.",
       "trackingDisabled": "Tracking disabled for Input {channel}",
       "trackingSwitched": "Tracking switched from Input {from} to Input {to}"
+    },
+    "help": {
+      "solo": "Listen to Binaural Rendering of this channel."
     },
     "prefixes": {
       "delay": "Delay:",

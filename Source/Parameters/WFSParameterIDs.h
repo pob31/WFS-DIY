@@ -74,6 +74,19 @@ namespace WFSParameterIDs
     const juce::Identifier runDSP            ("runDSP");
 
     //==========================================================================
+    // Config > Binaural Section
+    //==========================================================================
+
+    const juce::Identifier Binaural              ("Binaural");
+    const juce::Identifier binauralSoloMode      ("binauralSoloMode");      // 0=Single, 1=Multi
+    const juce::Identifier binauralOutputChannel ("binauralOutputChannel"); // First output channel (-1=disabled)
+    const juce::Identifier binauralListenerDistance ("binauralListenerDistance"); // meters
+    const juce::Identifier binauralListenerAngle ("binauralListenerAngle"); // degrees
+    const juce::Identifier binauralAttenuation   ("binauralAttenuation");   // dB
+    const juce::Identifier binauralDelay         ("binauralDelay");         // ms
+    const juce::Identifier inputSoloStates       ("inputSoloStates");       // comma-separated 0/1
+
+    //==========================================================================
     // Config > Stage Section
     //==========================================================================
 

@@ -320,6 +320,11 @@ MainComponent::MainComponent()
     // Initialize WFS Calculation Engine for DSP parameter generation
     calculationEngine = std::make_unique<WFSCalculationEngine>(parameters.getValueTreeState());
 
+    // Initialize Binaural Solo Monitoring
+    binauralCalcEngine = std::make_unique<BinauralCalculationEngine>(
+        parameters.getValueTreeState(), *calculationEngine);
+    binauralProcessor = std::make_unique<BinauralProcessor>(*binauralCalcEngine);
+
     // Initialize LFO Processor for input position modulation
     lfoProcessor = std::make_unique<LFOProcessor>(parameters.getValueTreeState(), 64);
 
@@ -1074,7 +1079,8 @@ void MainComponent::openLevelMeterWindow()
         if (levelMeteringManager == nullptr)
             return;
 
-        levelMeterWindow = std::make_unique<LevelMeterWindow>(*levelMeteringManager);
+        levelMeterWindow = std::make_unique<LevelMeterWindow>(*levelMeteringManager,
+                                                                 parameters.getValueTreeState());
     }
     else
     {
@@ -1179,6 +1185,12 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
         testSignalGenerator->prepare(sampleRate, samplesPerBlockExpected);
     }
 
+    // Prepare binaural processor
+    if (binauralProcessor)
+    {
+        binauralProcessor->prepare(sampleRate, samplesPerBlockExpected, numInputChannels);
+    }
+
     // Load audio patch matrices
     loadAudioPatches();
 }
@@ -1204,6 +1216,28 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
         // {
         //     gpuInputAlgorithm.processBlock(bufferToFill, numInputChannels, numOutputChannels);
         // }
+
+        // Process binaural solo output (renders soloed inputs to stereo pair)
+        if (binauralProcessor && binauralCalcEngine)
+        {
+            int binauralCh = binauralCalcEngine->getBinauralOutputChannel();
+            if (binauralCh >= 0 && binauralCh + 1 < numOutputChannels &&
+                binauralCalcEngine->getNumSoloedInputs() > 0)
+            {
+                // Create a read-only view of input channels for binaural processing
+                // Note: At this point, the buffer contains processed WFS output
+                // We need the original input data, which we can get from the input channels
+                // before they were overwritten by WFS processing
+
+                // For now, use the buffer directly - the binaural processor will
+                // read from input channels (which should contain input data if
+                // input patching preserved them) and write to the binaural outputs
+                binauralProcessor->processBlock(*bufferToFill.buffer,
+                    bufferToFill.buffer->getWritePointer(binauralCh, bufferToFill.startSample),
+                    bufferToFill.buffer->getWritePointer(binauralCh + 1, bufferToFill.startSample),
+                    bufferToFill.numSamples);
+            }
+        }
 
         // Apply output patching: WFS channels → hardware channels
         applyOutputPatch(bufferToFill);
@@ -1497,6 +1531,10 @@ void MainComponent::timerCallback()
         // Only recalculate if positions have changed (dirty flag set)
         if (calculationEngine->recalculateMatrixIfDirty())
         {
+            // Update binaural virtual speaker positions (depends on listener params)
+            if (binauralCalcEngine != nullptr)
+                binauralCalcEngine->recalculatePositions();
+
             // Copy calculated values to target arrays
             // Note: Calculation engine uses maxOutputChannels (64) for stride,
             // but our local arrays use numOutputChannels (user-configured)

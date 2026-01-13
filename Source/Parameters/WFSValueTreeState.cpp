@@ -77,6 +77,16 @@ juce::ValueTree WFSValueTreeState::getClustersState() const
     return getConfigState().getChildWithName (Clusters);
 }
 
+juce::ValueTree WFSValueTreeState::getBinauralState()
+{
+    return getConfigState().getChildWithName (Binaural);
+}
+
+juce::ValueTree WFSValueTreeState::getBinauralState() const
+{
+    return getConfigState().getChildWithName (Binaural);
+}
+
 juce::ValueTree WFSValueTreeState::getClusterState (int clusterIndex)
 {
     auto clusters = getClustersState();
@@ -770,6 +780,120 @@ void WFSValueTreeState::setClusterParameter (int clusterIndex, const juce::Ident
 }
 
 //==============================================================================
+// Binaural Solo Access
+//==============================================================================
+
+int WFSValueTreeState::getBinauralSoloMode() const
+{
+    auto binaural = getBinauralState();
+    if (binaural.isValid())
+        return (int) binaural.getProperty (binauralSoloMode, binauralSoloModeDefault);
+    return binauralSoloModeDefault;
+}
+
+void WFSValueTreeState::setBinauralSoloMode (int mode)
+{
+    auto binaural = getBinauralState();
+    if (binaural.isValid())
+        binaural.setProperty (binauralSoloMode, mode, &undoManager);
+}
+
+bool WFSValueTreeState::isInputSoloed (int inputIndex) const
+{
+    auto binaural = getBinauralState();
+    if (!binaural.isValid())
+        return false;
+
+    juce::String soloStates = binaural.getProperty (inputSoloStates, "").toString();
+    if (soloStates.isEmpty())
+        return false;
+
+    juce::StringArray states;
+    states.addTokens (soloStates, ",", "");
+
+    if (inputIndex >= 0 && inputIndex < states.size())
+        return states[inputIndex] == "1";
+
+    return false;
+}
+
+void WFSValueTreeState::setInputSoloed (int inputIndex, bool soloed)
+{
+    auto binaural = getBinauralState();
+    if (!binaural.isValid() || inputIndex < 0)
+        return;
+
+    int numInputs = getNumInputChannels();
+    if (inputIndex >= numInputs)
+        return;
+
+    // Get current solo states
+    juce::String soloStates = binaural.getProperty (inputSoloStates, "").toString();
+    juce::StringArray states;
+    states.addTokens (soloStates, ",", "");
+
+    // Ensure array is large enough
+    while (states.size() < numInputs)
+        states.add ("0");
+
+    // In Single mode, clear all other solos first
+    if (soloed && getBinauralSoloMode() == 0)
+    {
+        for (int i = 0; i < states.size(); ++i)
+            states.set (i, "0");
+    }
+
+    // Set the requested input's solo state
+    states.set (inputIndex, soloed ? "1" : "0");
+
+    // Save back
+    binaural.setProperty (inputSoloStates, states.joinIntoString (","), &undoManager);
+}
+
+void WFSValueTreeState::clearAllSoloStates()
+{
+    auto binaural = getBinauralState();
+    if (binaural.isValid())
+        binaural.setProperty (inputSoloStates, "", &undoManager);
+}
+
+int WFSValueTreeState::getNumSoloedInputs() const
+{
+    auto binaural = getBinauralState();
+    if (!binaural.isValid())
+        return 0;
+
+    juce::String soloStates = binaural.getProperty (inputSoloStates, "").toString();
+    if (soloStates.isEmpty())
+        return 0;
+
+    juce::StringArray states;
+    states.addTokens (soloStates, ",", "");
+
+    int soloCount = 0;
+    for (const auto& s : states)
+        if (s == "1")
+            ++soloCount;
+
+    return soloCount;
+}
+
+int WFSValueTreeState::getBinauralOutputChannel() const
+{
+    auto binaural = getBinauralState();
+    if (binaural.isValid())
+        return (int) binaural.getProperty (binauralOutputChannel, binauralOutputChannelDefault);
+    return binauralOutputChannelDefault;
+}
+
+void WFSValueTreeState::setBinauralOutputChannel (int channel)
+{
+    auto binaural = getBinauralState();
+    if (binaural.isValid())
+        binaural.setProperty (binauralOutputChannel, channel, &undoManager);
+}
+
+//==============================================================================
 // Network Target Access
 //==============================================================================
 
@@ -1163,6 +1287,7 @@ void WFSValueTreeState::createConfigSection()
     createADMOSCSection (config);
     createTrackingSection (config);
     createClustersSection (config);
+    createBinauralSection (config);
 
     state.appendChild (config, nullptr);
 }
@@ -1272,6 +1397,19 @@ void WFSValueTreeState::createClustersSection (juce::ValueTree& config)
     }
 
     config.appendChild (clusters, nullptr);
+}
+
+void WFSValueTreeState::createBinauralSection (juce::ValueTree& config)
+{
+    juce::ValueTree binaural (Binaural);
+    binaural.setProperty (binauralSoloMode, binauralSoloModeDefault, nullptr);
+    binaural.setProperty (binauralOutputChannel, binauralOutputChannelDefault, nullptr);
+    binaural.setProperty (binauralListenerDistance, binauralListenerDistanceDefault, nullptr);
+    binaural.setProperty (binauralListenerAngle, binauralListenerAngleDefault, nullptr);
+    binaural.setProperty (binauralAttenuation, binauralAttenuationDefault, nullptr);
+    binaural.setProperty (binauralDelay, binauralDelayDefault, nullptr);
+    binaural.setProperty (inputSoloStates, "", nullptr);  // Empty = no solos
+    config.appendChild (binaural, nullptr);
 }
 
 void WFSValueTreeState::createInputsSection()

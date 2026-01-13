@@ -46,6 +46,8 @@ public:
     juce::ValueTree getClustersState();
     juce::ValueTree getClustersState() const;
     juce::ValueTree getClusterState (int clusterIndex);
+    juce::ValueTree getBinauralState();
+    juce::ValueTree getBinauralState() const;
 
     /** Get input/output states */
     juce::ValueTree getInputsState();
@@ -176,6 +178,34 @@ public:
 
     /** Set cluster parameter (1-based cluster index) */
     void setClusterParameter (int clusterIndex, const juce::Identifier& id, const juce::var& value);
+
+    //==========================================================================
+    // Binaural Solo Access
+    //==========================================================================
+
+    /** Get binaural solo mode (0=Single, 1=Multi) */
+    int getBinauralSoloMode() const;
+
+    /** Set binaural solo mode */
+    void setBinauralSoloMode (int mode);
+
+    /** Check if an input is soloed */
+    bool isInputSoloed (int inputIndex) const;
+
+    /** Set input solo state */
+    void setInputSoloed (int inputIndex, bool soloed);
+
+    /** Clear all input solo states */
+    void clearAllSoloStates();
+
+    /** Get number of currently soloed inputs */
+    int getNumSoloedInputs() const;
+
+    /** Get binaural output channel (-1 = disabled) */
+    int getBinauralOutputChannel() const;
+
+    /** Set binaural output channel */
+    void setBinauralOutputChannel (int channel);
 
     //==========================================================================
     // Network Target Access
@@ -321,6 +351,7 @@ private:
     void createADMOSCSection (juce::ValueTree& config);
     void createTrackingSection (juce::ValueTree& config);
     void createClustersSection (juce::ValueTree& config);
+    void createBinauralSection (juce::ValueTree& config);
     void createInputsSection();
     void createOutputsSection();
     void createReverbsSection();

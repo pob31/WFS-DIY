@@ -337,6 +337,13 @@ public:
         addAndMakeVisible(mapVisibilityButton);
         mapVisibilityButton.onClick = [this]() { toggleMapVisibility(); };
 
+        // Solo button for binaural monitoring
+        addAndMakeVisible(soloButton);
+        soloButton.setButtonText("S");
+        soloButton.setClickingTogglesState(true);
+        soloButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFFFFD700));  // Yellow when on
+        soloButton.onClick = [this]() { toggleSolo(); };
+
         // Set All Inputs button (long-press to open)
         addAndMakeVisible(setAllInputsButton);
         setAllInputsButton.onLongPress = [this]() { openSetAllInputsWindow(); };
@@ -564,6 +571,8 @@ public:
         mapLockButton.setBounds(row1.removeFromLeft(120));
         row1.removeFromLeft(spacing);
         mapVisibilityButton.setBounds(row1.removeFromLeft(160));
+        row1.removeFromLeft(spacing);
+        soloButton.setBounds(row1.removeFromLeft(30));  // Square button
         // Set All Inputs button at far right
         setAllInputsButton.setBounds(row1.removeFromRight(130));
 
@@ -4846,6 +4855,7 @@ private:
 
         isLoadingParameters = false;
         updateMapButtonStates();
+        updateSoloButtonState();
     }
 
     // ==================== TEXT EDITOR LISTENER ====================
@@ -5911,6 +5921,7 @@ private:
         helpTextMap[&clusterSelector] = "Object is Part of a Cluster.";
         helpTextMap[&mapLockButton] = "Prevent Interaction on the Map Tab";
         helpTextMap[&mapVisibilityButton] = "Make Visible or Hide The Selected Input on the Map";
+        helpTextMap[&soloButton] = LOC("inputs.help.solo");
         helpTextMap[&attenuationSlider] = "Input Channel Attenuation.";
         helpTextMap[&delayLatencySlider] = "Input Channel Delay (positive values) or Latency Compensation (negative values).";
         helpTextMap[&minimalLatencyButton] = "Select between Acoustic Precedence and Minimal Latency for Amplification Precedence.";
@@ -6267,6 +6278,21 @@ private:
         updateMapButtonStates();
     }
 
+    void toggleSolo()
+    {
+        auto& vts = parameters.getValueTreeState();
+        bool currentSoloed = vts.isInputSoloed(currentChannel - 1);
+        vts.setInputSoloed(currentChannel - 1, !currentSoloed);
+        updateSoloButtonState();
+    }
+
+    void updateSoloButtonState()
+    {
+        auto& vts = parameters.getValueTreeState();
+        bool isSoloed = vts.isInputSoloed(currentChannel - 1);
+        soloButton.setToggleState(isSoloed, juce::dontSendNotification);
+    }
+
     void openSetAllInputsWindow()
     {
         if (setAllInputsWindow == nullptr || !setAllInputsWindow->isVisible())
@@ -6496,6 +6522,7 @@ private:
     juce::ComboBox clusterSelector;
     juce::TextButton mapLockButton;
     juce::TextButton mapVisibilityButton;
+    juce::TextButton soloButton;
     SetAllInputsLongPressButton setAllInputsButton;
     std::unique_ptr<SetAllInputsWindow> setAllInputsWindow;
 

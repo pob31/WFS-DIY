@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "../DSP/LevelMeteringManager.h"
+#include "../Parameters/WFSValueTreeState.h"
 #include "ColorScheme.h"
 #include "WindowUtils.h"
 #include "../Localization/LocalizationManager.h"
@@ -170,8 +171,8 @@ class LevelMeterWindowContent : public juce::Component,
                                  private juce::Timer
 {
 public:
-    LevelMeterWindowContent(LevelMeteringManager& manager)
-        : levelManager(manager)
+    LevelMeterWindowContent(LevelMeteringManager& manager, WFSValueTreeState& vts)
+        : levelManager(manager), valueTreeState(vts)
     {
         // Input section label
         addAndMakeVisible(inputsLabel);
@@ -186,7 +187,7 @@ public:
         // Create meters
         rebuildMeters();
 
-        // Solo selector
+        // Visual Solo selector (for map highlighting)
         addAndMakeVisible(soloLabel);
         soloLabel.setText(LOC("levelMeter.solo"), juce::dontSendNotification);
 
@@ -198,6 +199,14 @@ public:
         soloSelector.onChange = [this]() {
             int selected = soloSelector.getSelectedId();
             levelManager.setVisualSoloInput(selected > 1 ? selected - 2 : -1);
+        };
+
+        // Clear Solo button (for binaural solo)
+        addAndMakeVisible(clearSoloButton);
+        clearSoloButton.setButtonText(LOC("levelMeter.buttons.clearSolo"));
+        clearSoloButton.onClick = [this]() {
+            valueTreeState.clearAllSoloStates();
+            updateSoloButtonStates();
         };
 
         startTimerHz(20);  // 20 Hz update rate
@@ -226,10 +235,12 @@ public:
         auto bounds = getLocalBounds().reduced(10);
         int controlHeight = 30;
 
-        // Bottom controls (solo selector)
+        // Bottom controls (solo selector and clear solo button)
         auto controlsArea = bounds.removeFromBottom(controlHeight);
         soloLabel.setBounds(controlsArea.removeFromLeft(80));
         soloSelector.setBounds(controlsArea.removeFromLeft(150));
+        controlsArea.removeFromLeft(20);  // Spacing
+        clearSoloButton.setBounds(controlsArea.removeFromLeft(100));
 
         bounds.removeFromBottom(10);  // Spacing
 
@@ -241,8 +252,8 @@ public:
 
         // Input section
         inputsLabel.setBounds(inputsArea.removeFromTop(20));
-        layoutMeters(inputsArea, inputMeters, inputLabels, inputPerfBars,
-                    levelManager.getCurrentAlgorithm() == LevelMeteringManager::ProcessingAlgorithm::InputBuffer);
+        layoutInputMeters(inputsArea,
+                         levelManager.getCurrentAlgorithm() == LevelMeteringManager::ProcessingAlgorithm::InputBuffer);
 
         // Output section
         outputsLabel.setBounds(outputsArea.removeFromTop(20));
@@ -255,6 +266,7 @@ public:
         inputMeters.clear();
         inputLabels.clear();
         inputPerfBars.clear();
+        inputSoloButtons.clear();
         outputMeters.clear();
         outputLabels.clear();
         outputPerfBars.clear();
@@ -275,6 +287,16 @@ public:
 
             auto* perfBar = inputPerfBars.add(new ThreadPerformanceBar());
             addAndMakeVisible(perfBar);
+
+            auto* soloBtn = inputSoloButtons.add(new juce::TextButton("S"));
+            soloBtn->setClickingTogglesState(true);
+            soloBtn->setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFFFFD700));  // Yellow when on
+            soloBtn->onClick = [this, i]() {
+                bool newState = inputSoloButtons[i]->getToggleState();
+                valueTreeState.setInputSoloed(i, newState);
+                updateSoloButtonStates();
+            };
+            addAndMakeVisible(soloBtn);
         }
 
         for (int i = 0; i < numOutputs; ++i)
@@ -358,6 +380,40 @@ private:
         }
     }
 
+    void layoutInputMeters(juce::Rectangle<int>& area, bool showPerfBars)
+    {
+        if (inputMeters.isEmpty())
+            return;
+
+        int numMeters = inputMeters.size();
+        int meterWidth = juce::jmin(30, (area.getWidth() - 20) / numMeters);
+        int spacing = juce::jmax(2, (area.getWidth() - numMeters * meterWidth) / (numMeters + 1));
+
+        int x = spacing;
+        int labelHeight = 15;
+        int soloButtonHeight = 18;
+        int perfBarHeight = showPerfBars ? 10 : 0;
+        int meterHeight = area.getHeight() - labelHeight - soloButtonHeight - perfBarHeight - 8;
+
+        for (int i = 0; i < numMeters; ++i)
+        {
+            int y = 0;
+            inputMeters[i]->setBounds(x, y, meterWidth, meterHeight);
+            y += meterHeight + 2;
+            inputLabels[i]->setBounds(x, y, meterWidth, labelHeight);
+            y += labelHeight + 2;
+            inputSoloButtons[i]->setBounds(x, y, meterWidth, soloButtonHeight);
+            y += soloButtonHeight + 2;
+
+            if (showPerfBars && i < inputPerfBars.size())
+            {
+                inputPerfBars[i]->setBounds(x, y, meterWidth, perfBarHeight);
+            }
+
+            x += meterWidth + spacing;
+        }
+    }
+
     void layoutMeters(juce::Rectangle<int>& area,
                       juce::OwnedArray<LevelMeterBar>& meters,
                       juce::OwnedArray<juce::Label>& labels,
@@ -390,7 +446,17 @@ private:
         }
     }
 
+    void updateSoloButtonStates()
+    {
+        for (int i = 0; i < inputSoloButtons.size(); ++i)
+        {
+            bool isSoloed = valueTreeState.isInputSoloed(i);
+            inputSoloButtons[i]->setToggleState(isSoloed, juce::dontSendNotification);
+        }
+    }
+
     LevelMeteringManager& levelManager;
+    WFSValueTreeState& valueTreeState;
 
     juce::Label inputsLabel;
     juce::Label outputsLabel;
@@ -400,10 +466,13 @@ private:
     juce::OwnedArray<LevelMeterBar> inputMeters;
     juce::OwnedArray<juce::Label> inputLabels;
     juce::OwnedArray<ThreadPerformanceBar> inputPerfBars;
+    juce::OwnedArray<juce::TextButton> inputSoloButtons;
 
     juce::OwnedArray<LevelMeterBar> outputMeters;
     juce::OwnedArray<juce::Label> outputLabels;
     juce::OwnedArray<ThreadPerformanceBar> outputPerfBars;
+
+    juce::TextButton clearSoloButton;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LevelMeterWindowContent)
 };
@@ -416,16 +485,16 @@ class LevelMeterWindow : public juce::DocumentWindow,
                          public ColorScheme::Manager::Listener
 {
 public:
-    LevelMeterWindow(LevelMeteringManager& manager)
+    LevelMeterWindow(LevelMeteringManager& manager, WFSValueTreeState& vts)
         : DocumentWindow(LOC("levelMeter.windowTitle"),
                          ColorScheme::get().background,
                          DocumentWindow::allButtons),
-          levelManager(manager)
+          levelManager(manager), valueTreeState(vts)
     {
         setUsingNativeTitleBar(true);
         setResizable(true, true);
 
-        content = std::make_unique<LevelMeterWindowContent>(manager);
+        content = std::make_unique<LevelMeterWindowContent>(manager, vts);
         content->setName(LOC("levelMeter.windowTitle"));
         setContentOwned(content.get(), false);
 
@@ -481,6 +550,7 @@ public:
 
 private:
     LevelMeteringManager& levelManager;
+    WFSValueTreeState& valueTreeState;
     std::unique_ptr<LevelMeterWindowContent> content;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LevelMeterWindow)

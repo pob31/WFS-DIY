@@ -240,6 +240,12 @@ public:
                 onLevelMeterWindowRequested();
         };
 
+        addAndMakeVisible(clearSoloButton);
+        clearSoloButton.setButtonText(LOC("systemConfig.buttons.clearSolo"));
+        clearSoloButton.onClick = [this]() {
+            parameters.getValueTreeState().clearAllSoloStates();
+        };
+
         // Algorithm selector
         addAndMakeVisible(algorithmLabel);
         algorithmLabel.setText(LOC("systemConfig.labels.algorithm"), juce::dontSendNotification);
@@ -259,6 +265,10 @@ public:
         addAndMakeVisible(processingButton);
         processingButton.setButtonText(LOC("systemConfig.buttons.processingOff"));
         processingButton.onClick = [this]() { toggleProcessing(); };
+
+        addAndMakeVisible(soloModeButton);
+        updateSoloModeButtonText();
+        soloModeButton.onClick = [this]() { toggleSoloMode(); };
 
         // Stage Section
         addAndMakeVisible(stageShapeLabel);
@@ -412,6 +422,77 @@ public:
                     TTSManager::getInstance().announceValueChange("Language", languageSelector.getText());
                 }
             }
+        };
+
+        // Binaural Section
+        addAndMakeVisible(binauralOutputLabel);
+        binauralOutputLabel.setText(LOC("systemConfig.labels.binauralOutput"), juce::dontSendNotification);
+
+        addAndMakeVisible(binauralOutputSelector);
+        binauralOutputSelector.addItem(LOC("systemConfig.binauralOutput.off"), 1);  // -1 = off
+        for (int i = 1; i <= 63; i += 2)
+            binauralOutputSelector.addItem(juce::String(i) + "-" + juce::String(i + 1), (i / 2) + 2);
+        binauralOutputSelector.setSelectedId(1, juce::dontSendNotification);
+        binauralOutputSelector.onChange = [this]() {
+            int selectedId = binauralOutputSelector.getSelectedId();
+            int channel = (selectedId == 1) ? -1 : ((selectedId - 2) * 2 + 1);  // Map back to channel
+            parameters.getValueTreeState().setBinauralOutputChannel(channel);
+        };
+
+        addAndMakeVisible(binauralDistanceLabel);
+        binauralDistanceLabel.setText(LOC("systemConfig.labels.binauralDistance"), juce::dontSendNotification);
+
+        addAndMakeVisible(binauralDistanceSlider);
+        binauralDistanceSlider.setRange(WFSParameterDefaults::binauralListenerDistanceMin,
+                                        WFSParameterDefaults::binauralListenerDistanceMax, 0.1);
+        binauralDistanceSlider.setValue(WFSParameterDefaults::binauralListenerDistanceDefault);
+        binauralDistanceSlider.setTextValueSuffix(" m");
+        binauralDistanceSlider.onValueChange = [this]() {
+            auto& vts = parameters.getValueTreeState();
+            vts.getBinauralState().setProperty(WFSParameterIDs::binauralListenerDistance,
+                                               (float)binauralDistanceSlider.getValue(), nullptr);
+        };
+
+        addAndMakeVisible(binauralAngleLabel);
+        binauralAngleLabel.setText(LOC("systemConfig.labels.binauralAngle"), juce::dontSendNotification);
+
+        addAndMakeVisible(binauralAngleSlider);
+        binauralAngleSlider.setRange(WFSParameterDefaults::binauralListenerAngleMin,
+                                     WFSParameterDefaults::binauralListenerAngleMax, 1);
+        binauralAngleSlider.setValue(WFSParameterDefaults::binauralListenerAngleDefault);
+        binauralAngleSlider.setTextValueSuffix(juce::String::fromUTF8("\xc2\xb0"));  // degree symbol
+        binauralAngleSlider.onValueChange = [this]() {
+            auto& vts = parameters.getValueTreeState();
+            vts.getBinauralState().setProperty(WFSParameterIDs::binauralListenerAngle,
+                                               (int)binauralAngleSlider.getValue(), nullptr);
+        };
+
+        addAndMakeVisible(binauralAttenLabel);
+        binauralAttenLabel.setText(LOC("systemConfig.labels.binauralAtten"), juce::dontSendNotification);
+
+        addAndMakeVisible(binauralAttenSlider);
+        binauralAttenSlider.setRange(WFSParameterDefaults::binauralAttenuationMin,
+                                     WFSParameterDefaults::binauralAttenuationMax, 0.1);
+        binauralAttenSlider.setValue(WFSParameterDefaults::binauralAttenuationDefault);
+        binauralAttenSlider.setTextValueSuffix(" dB");
+        binauralAttenSlider.onValueChange = [this]() {
+            auto& vts = parameters.getValueTreeState();
+            vts.getBinauralState().setProperty(WFSParameterIDs::binauralAttenuation,
+                                               (float)binauralAttenSlider.getValue(), nullptr);
+        };
+
+        addAndMakeVisible(binauralDelayLabel);
+        binauralDelayLabel.setText(LOC("systemConfig.labels.binauralDelay"), juce::dontSendNotification);
+
+        addAndMakeVisible(binauralDelaySlider);
+        binauralDelaySlider.setRange(WFSParameterDefaults::binauralDelayMin,
+                                     WFSParameterDefaults::binauralDelayMax, 0.1);
+        binauralDelaySlider.setValue(WFSParameterDefaults::binauralDelayDefault);
+        binauralDelaySlider.setTextValueSuffix(" ms");
+        binauralDelaySlider.onValueChange = [this]() {
+            auto& vts = parameters.getValueTreeState();
+            vts.getBinauralState().setProperty(WFSParameterIDs::binauralDelay,
+                                               (float)binauralDelaySlider.getValue(), nullptr);
         };
 
         // Store/Reload Section
@@ -574,6 +655,7 @@ public:
         g.drawText(LOC("systemConfig.sections.stage"), col2X, 10, 200, 20, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.master"), col2X, 390, 200, 20, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.ui"), col3X, 10, 200, 20, juce::Justification::left);
+        g.drawText(LOC("systemConfig.sections.binaural"), col3X, 110, 200, 20, juce::Justification::left);
     }
 
     void resized() override
@@ -613,14 +695,18 @@ public:
         audioPatchingButton.setBounds(x, y, editorWidth + labelWidth, rowHeight);
         y += rowHeight + spacing;
 
-        levelMeterButton.setBounds(x, y, editorWidth + labelWidth, rowHeight);
+        // Level Meter and Clear Solo buttons share the row
+        const int halfButtonWidth = (editorWidth + labelWidth - spacing) / 2;
+        levelMeterButton.setBounds(x, y, halfButtonWidth, rowHeight);
+        clearSoloButton.setBounds(x + halfButtonWidth + spacing, y, halfButtonWidth, rowHeight);
         y += rowHeight + spacing;
 
         algorithmLabel.setBounds(x, y, labelWidth, rowHeight);
         algorithmSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
         y += rowHeight + spacing;
 
-        processingButton.setBounds(x, y, editorWidth + labelWidth, rowHeight);
+        processingButton.setBounds(x, y, halfButtonWidth, rowHeight);
+        soloModeButton.setBounds(x + halfButtonWidth + spacing, y, halfButtonWidth, rowHeight);
 
         // Stage Section
         x = col2X;
@@ -714,6 +800,28 @@ public:
 
         languageLabel.setBounds(x, y, labelWidth, rowHeight);
         languageSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
+
+        // Binaural Section (same column, below UI section)
+        y = 140;  // Start after "Binaural" header
+
+        binauralOutputLabel.setBounds(x, y, labelWidth, rowHeight);
+        binauralOutputSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
+        y += rowHeight + spacing;
+
+        binauralDistanceLabel.setBounds(x, y, labelWidth, rowHeight);
+        binauralDistanceSlider.setBounds(x + labelWidth, y, editorWidth, rowHeight);
+        y += rowHeight + spacing;
+
+        binauralAngleLabel.setBounds(x, y, labelWidth, rowHeight);
+        binauralAngleSlider.setBounds(x + labelWidth, y, editorWidth, rowHeight);
+        y += rowHeight + spacing;
+
+        binauralAttenLabel.setBounds(x, y, labelWidth, rowHeight);
+        binauralAttenSlider.setBounds(x + labelWidth, y, editorWidth, rowHeight);
+        y += rowHeight + spacing;
+
+        binauralDelayLabel.setBounds(x, y, labelWidth, rowHeight);
+        binauralDelaySlider.setBounds(x + labelWidth, y, editorWidth, rowHeight);
 
         // Footer buttons - full width at bottom (matching Output tab style)
         const int footerHeight = 90;  // Two 30px button rows + 10px spacing + 20px padding
@@ -965,6 +1073,34 @@ private:
         // Processing button state
         processingEnabled = (bool)parameters.getConfigParam("ProcessingEnabled");
         processingButton.setButtonText(processingEnabled ? LOC("systemConfig.buttons.processingOn") : LOC("systemConfig.buttons.processingOff"));
+
+        // Solo mode button
+        updateSoloModeButtonText();
+
+        // Binaural section
+        auto& vts = parameters.getValueTreeState();
+        auto binauralState = vts.getBinauralState();
+
+        int binauralChannel = (int)binauralState.getProperty(WFSParameterIDs::binauralOutputChannel,
+                                                              WFSParameterDefaults::binauralOutputChannelDefault);
+        int selectedId = (binauralChannel == -1) ? 1 : ((binauralChannel - 1) / 2 + 2);
+        binauralOutputSelector.setSelectedId(selectedId, juce::dontSendNotification);
+
+        binauralDistanceSlider.setValue((float)binauralState.getProperty(WFSParameterIDs::binauralListenerDistance,
+                                                                          WFSParameterDefaults::binauralListenerDistanceDefault),
+                                        juce::dontSendNotification);
+
+        binauralAngleSlider.setValue((int)binauralState.getProperty(WFSParameterIDs::binauralListenerAngle,
+                                                                     WFSParameterDefaults::binauralListenerAngleDefault),
+                                     juce::dontSendNotification);
+
+        binauralAttenSlider.setValue((float)binauralState.getProperty(WFSParameterIDs::binauralAttenuation,
+                                                                       WFSParameterDefaults::binauralAttenuationDefault),
+                                     juce::dontSendNotification);
+
+        binauralDelaySlider.setValue((float)binauralState.getProperty(WFSParameterIDs::binauralDelay,
+                                                                       WFSParameterDefaults::binauralDelayDefault),
+                                     juce::dontSendNotification);
 
         // Update I/O controls enabled state based on processing state
         updateIOControlsEnabledState();
@@ -1260,6 +1396,28 @@ private:
         inputChannelsEditor.setColour(juce::TextEditor::textColourId, enabled ? enabledColour : disabledColour);
         outputChannelsEditor.setColour(juce::TextEditor::textColourId, enabled ? enabledColour : disabledColour);
         reverbChannelsEditor.setColour(juce::TextEditor::textColourId, enabled ? enabledColour : disabledColour);
+    }
+
+    //==============================================================================
+    // Solo mode toggle
+
+    void toggleSoloMode()
+    {
+        auto& vts = parameters.getValueTreeState();
+        int currentMode = vts.getBinauralSoloMode();
+        int newMode = (currentMode == 0) ? 1 : 0;  // Toggle between Single (0) and Multi (1)
+        vts.setBinauralSoloMode(newMode);
+        updateSoloModeButtonText();
+    }
+
+    void updateSoloModeButtonText()
+    {
+        auto& vts = parameters.getValueTreeState();
+        int mode = vts.getBinauralSoloMode();
+        if (mode == 0)
+            soloModeButton.setButtonText(LOC("systemConfig.buttons.soloModeSingle"));
+        else
+            soloModeButton.setButtonText(LOC("systemConfig.buttons.soloModeMulti"));
     }
 
     //==============================================================================
@@ -1682,8 +1840,11 @@ private:
         helpTextMap[&outputChannelsEditor] = LOC("systemConfig.help.outputChannels");
         helpTextMap[&reverbChannelsEditor] = LOC("systemConfig.help.reverbChannels");
         helpTextMap[&audioPatchingButton] = LOC("systemConfig.help.audioPatch");
+        helpTextMap[&levelMeterButton] = LOC("systemConfig.help.levelMeter");
+        helpTextMap[&clearSoloButton] = LOC("systemConfig.help.clearSolo");
         helpTextMap[&algorithmSelector] = LOC("systemConfig.help.algorithm");
         helpTextMap[&processingButton] = LOC("systemConfig.help.processing");
+        helpTextMap[&soloModeButton] = LOC("systemConfig.help.soloMode");
         helpTextMap[&stageShapeSelector] = LOC("systemConfig.help.stageShape");
         helpTextMap[&stageWidthEditor] = LOC("systemConfig.help.stageWidth");
         helpTextMap[&stageDepthEditor] = LOC("systemConfig.help.stageDepth");
@@ -1703,6 +1864,11 @@ private:
         helpTextMap[&haasEffectEditor] = LOC("systemConfig.help.haasEffect");
         helpTextMap[&colorSchemeSelector] = LOC("systemConfig.help.colorScheme");
         helpTextMap[&languageSelector] = LOC("systemConfig.help.language");
+        helpTextMap[&binauralOutputSelector] = LOC("systemConfig.help.binauralOutput");
+        helpTextMap[&binauralDistanceSlider] = LOC("systemConfig.help.binauralDistance");
+        helpTextMap[&binauralAngleSlider] = LOC("systemConfig.help.binauralAngle");
+        helpTextMap[&binauralAttenSlider] = LOC("systemConfig.help.binauralAtten");
+        helpTextMap[&binauralDelaySlider] = LOC("systemConfig.help.binauralDelay");
         helpTextMap[&selectProjectFolderButton] = LOC("systemConfig.help.selectProjectFolder");
         helpTextMap[&storeCompleteConfigButton] = LOC("systemConfig.help.storeComplete");
         helpTextMap[&reloadCompleteConfigButton] = LOC("systemConfig.help.reloadComplete");
@@ -1789,9 +1955,11 @@ private:
     juce::TextEditor reverbChannelsEditor;
     juce::TextButton audioPatchingButton;
     juce::TextButton levelMeterButton;
+    juce::TextButton clearSoloButton;
     juce::Label algorithmLabel;
     juce::ComboBox algorithmSelector;
     juce::TextButton processingButton;
+    juce::TextButton soloModeButton;
 
     // Stage Section
     juce::Label stageShapeLabel;
@@ -1847,6 +2015,18 @@ private:
     juce::Label languageLabel;
     juce::ComboBox languageSelector;
     juce::StringArray availableLanguages;
+
+    // Binaural Section
+    juce::Label binauralOutputLabel;
+    juce::ComboBox binauralOutputSelector;
+    juce::Label binauralDistanceLabel;
+    juce::Slider binauralDistanceSlider;
+    juce::Label binauralAngleLabel;
+    juce::Slider binauralAngleSlider;
+    juce::Label binauralAttenLabel;
+    juce::Slider binauralAttenSlider;
+    juce::Label binauralDelayLabel;
+    juce::Slider binauralDelaySlider;
 
     // Store/Reload Section
     juce::TextButton selectProjectFolderButton;

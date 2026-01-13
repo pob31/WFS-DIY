@@ -42,6 +42,38 @@ namespace WFSParameterDefaults
     constexpr int runDSPDefault             = 0;  // 0=stopped, 1=running
 
     //==========================================================================
+    // Config > Binaural Section
+    //==========================================================================
+
+    constexpr int binauralSoloModeDefault           = 0;      // 0=Single, 1=Multi
+    constexpr int binauralOutputChannelDefault      = -1;     // -1=disabled
+    constexpr int binauralOutputChannelMin          = -1;
+    constexpr int binauralOutputChannelMax          = 62;     // Max is numOutputs-2
+
+    constexpr float binauralListenerDistanceDefault = 2.0f;   // meters from origin
+    constexpr float binauralListenerDistanceMin     = 0.5f;
+    constexpr float binauralListenerDistanceMax     = 10.0f;
+
+    constexpr int binauralListenerAngleDefault      = 0;      // degrees (0=facing origin)
+    constexpr int binauralListenerAngleMin          = -180;
+    constexpr int binauralListenerAngleMax          = 180;
+
+    constexpr float binauralAttenuationDefault      = 0.0f;   // dB
+    constexpr float binauralAttenuationMin          = -40.0f;
+    constexpr float binauralAttenuationMax          = 0.0f;
+
+    constexpr float binauralDelayDefault            = 0.0f;   // ms
+    constexpr float binauralDelayMin                = 0.0f;
+    constexpr float binauralDelayMax                = 100.0f;
+
+    // Fixed binaural constants (not user-adjustable)
+    constexpr float binauralSpeakerSpacing          = 0.20f;  // 20cm total (+-10cm from center)
+    constexpr float binauralSpeakerAngle            = 45.0f;  // degrees from front-facing
+    constexpr int binauralOnAngle                   = 135;    // degrees - full coverage zone
+    constexpr int binauralOffAngle                  = 30;     // degrees - mute zone
+    constexpr float binauralHFShelfPerMeter         = -0.3f;  // dB/m
+
+    //==========================================================================
     // Config > Stage Section
     //==========================================================================
 

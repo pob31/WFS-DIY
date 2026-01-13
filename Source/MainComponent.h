@@ -9,6 +9,8 @@
 #include "DSP/InputSpeedLimiter.h"
 #include "DSP/LiveSourceTamerEngine.h"
 #include "DSP/TestSignalGenerator.h"
+#include "DSP/BinauralCalculationEngine.h"
+#include "DSP/BinauralProcessor.h"
 // #include "DSP/GpuInputBufferAlgorithm.h"  // Commented out - GPU Audio SDK not configured
 #include "WfsParameters.h"
 #include "Accessibility/TTSManager.h"
@@ -160,6 +162,10 @@ private:
 
     // WFS calculation engine (computes delays, levels, HF attenuation)
     std::unique_ptr<WFSCalculationEngine> calculationEngine;
+
+    // Binaural solo monitoring
+    std::unique_ptr<BinauralCalculationEngine> binauralCalcEngine;
+    std::unique_ptr<BinauralProcessor> binauralProcessor;
 
     // LFO processor for input position modulation
     std::unique_ptr<LFOProcessor> lfoProcessor;
