@@ -1,4 +1,5 @@
 #include "OSCConnection.h"
+#include "OSCSerializer.h"
 
 namespace WFSNetwork
 {
@@ -32,14 +33,16 @@ void OSCConnection::configure(const TargetConfig& newConfig)
 
     config = newConfig;
 
-    if (needsReconnect && sender != nullptr)
+    bool hasConnection = (sender != nullptr) || (tcpSocket != nullptr);
+
+    if (needsReconnect && hasConnection)
     {
         // Reconnect with new settings
         disconnect();
         if (config.isActive() && config.txEnabled)
             connect();
     }
-    else if (config.isActive() && config.txEnabled && sender == nullptr)
+    else if (config.isActive() && config.txEnabled && !hasConnection)
     {
         // Start connection if now active
         connect();
@@ -88,16 +91,12 @@ bool OSCConnection::connect()
     }
     else // TCP
     {
-        // Note: JUCE OSCSender TCP requires a StreamingSocket which is more complex.
-        // For now, fall back to UDP for TCP mode as well.
-        // TODO: Implement proper TCP support with StreamingSocket
-        DBG("OSCConnection[" << targetIndex << "]: TCP mode not yet fully supported, using UDP");
-        if (sender->connect(config.ipAddress, config.port))
+        if (connectTCP())
         {
             setStatus(ConnectionStatus::Connected);
             resetStats();
             DBG("OSCConnection[" << targetIndex << "]: Connected to "
-                << config.ipAddress << ":" << config.port << " (UDP fallback)");
+                << config.ipAddress << ":" << config.port << " (TCP)");
             return true;
         }
     }
@@ -113,12 +112,20 @@ void OSCConnection::disconnect()
     const juce::ScopedLock sl(sendLock);
 
     destroySender();
+    disconnectTCP();
     setStatus(ConnectionStatus::Disconnected);
 }
 
 bool OSCConnection::isConnected() const
 {
-    return status == ConnectionStatus::Connected && sender != nullptr;
+    const juce::ScopedLock sl(sendLock);
+
+    if (config.mode == ConnectionMode::TCP)
+        return status == ConnectionStatus::Connected &&
+               tcpSocket != nullptr &&
+               tcpSocket->isConnected();
+    else
+        return status == ConnectionStatus::Connected && sender != nullptr;
 }
 
 juce::String OSCConnection::getStatusString() const
@@ -152,7 +159,19 @@ bool OSCConnection::send(const juce::OSCMessage& message)
     DBG("OSCConnection[" << targetIndex << "]: Sending " << message.getAddressPattern().toString()
         << " to " << config.ipAddress << ":" << config.port);
 
-    if (sender->send(message))
+    bool success = false;
+
+    if (config.mode == ConnectionMode::TCP)
+    {
+        auto data = OSCSerializer::serializeMessage(message);
+        success = sendWithLengthPrefix(data);
+    }
+    else
+    {
+        success = sender->send(message);
+    }
+
+    if (success)
     {
         ++messagesSent;
         DBG("OSCConnection[" << targetIndex << "]: Send SUCCESS");
@@ -162,6 +181,11 @@ bool OSCConnection::send(const juce::OSCMessage& message)
     {
         ++sendErrors;
         DBG("OSCConnection[" << targetIndex << "]: Send FAILED for " << message.getAddressPattern().toString());
+
+        // Mark as disconnected on TCP failure to allow reconnection
+        if (config.mode == ConnectionMode::TCP)
+            setStatus(ConnectionStatus::Disconnected);
+
         return false;
     }
 }
@@ -173,7 +197,19 @@ bool OSCConnection::send(const juce::OSCBundle& bundle)
     if (!isConnected() || !config.txEnabled)
         return false;
 
-    if (sender->send(bundle))
+    bool success = false;
+
+    if (config.mode == ConnectionMode::TCP)
+    {
+        auto data = OSCSerializer::serializeBundle(bundle);
+        success = sendWithLengthPrefix(data);
+    }
+    else
+    {
+        success = sender->send(bundle);
+    }
+
+    if (success)
     {
         messagesSent += bundle.size();
         return true;
@@ -182,6 +218,11 @@ bool OSCConnection::send(const juce::OSCBundle& bundle)
     {
         ++sendErrors;
         DBG("OSCConnection[" << targetIndex << "]: Send error for bundle");
+
+        // Mark as disconnected on TCP failure to allow reconnection
+        if (config.mode == ConnectionMode::TCP)
+            setStatus(ConnectionStatus::Disconnected);
+
         return false;
     }
 }
@@ -225,6 +266,59 @@ void OSCConnection::destroySender()
         sender->disconnect();
         sender.reset();
     }
+}
+
+//==============================================================================
+// TCP-specific Methods
+//==============================================================================
+
+bool OSCConnection::connectTCP()
+{
+    tcpSocket = std::make_unique<juce::StreamingSocket>();
+
+    if (!tcpSocket->connect(config.ipAddress, config.port, 5000)) // 5 second timeout
+    {
+        DBG("OSCConnection[" << targetIndex
+            << "]: TCP connection failed to " << config.ipAddress << ":" << config.port);
+        tcpSocket.reset();
+        return false;
+    }
+
+    return true;
+}
+
+void OSCConnection::disconnectTCP()
+{
+    if (tcpSocket != nullptr)
+    {
+        tcpSocket->close();
+        tcpSocket.reset();
+    }
+}
+
+bool OSCConnection::sendWithLengthPrefix(const juce::MemoryBlock& oscData)
+{
+    if (tcpSocket == nullptr || !tcpSocket->isConnected())
+        return false;
+
+    // Create buffer with 4-byte length prefix + OSC data
+    juce::MemoryOutputStream out;
+
+    // Write length as 4-byte big-endian (matches OSCTCPReceiver expectation)
+    uint32_t length = static_cast<uint32_t>(oscData.getSize());
+    out.writeByte(static_cast<char>((length >> 24) & 0xFF));
+    out.writeByte(static_cast<char>((length >> 16) & 0xFF));
+    out.writeByte(static_cast<char>((length >> 8) & 0xFF));
+    out.writeByte(static_cast<char>(length & 0xFF));
+
+    // Write OSC data
+    out.write(oscData.getData(), oscData.getSize());
+
+    // Send everything
+    const auto& block = out.getMemoryBlock();
+    int written = tcpSocket->write(block.getData(), static_cast<int>(block.getSize()));
+
+    return written == static_cast<int>(block.getSize());
 }
 
 } // namespace WFSNetwork

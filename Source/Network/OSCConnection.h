@@ -96,7 +96,8 @@ private:
 
     int targetIndex;
     TargetConfig config;
-    std::unique_ptr<juce::OSCSender> sender;
+    std::unique_ptr<juce::OSCSender> sender;          // For UDP
+    std::unique_ptr<juce::StreamingSocket> tcpSocket; // For TCP
     ConnectionStatus status = ConnectionStatus::Disconnected;
     juce::CriticalSection sendLock;
 
@@ -111,6 +112,11 @@ private:
     void setStatus(ConnectionStatus newStatus);
     bool createSender();
     void destroySender();
+
+    // TCP-specific methods
+    bool connectTCP();
+    void disconnectTCP();
+    bool sendWithLengthPrefix(const juce::MemoryBlock& oscData);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OSCConnection)
 };
