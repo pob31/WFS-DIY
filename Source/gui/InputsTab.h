@@ -260,16 +260,19 @@ public:
         : parameters(params),
           inputsTree(params.getInputTree()),
           configTree(params.getConfigTree()),
-          ioTree(params.getConfigTree().getChildWithName(WFSParameterIDs::IO))
+          ioTree(params.getConfigTree().getChildWithName(WFSParameterIDs::IO)),
+          binauralTree(params.getValueTreeState().getBinauralState())
     {
         // Enable keyboard focus so we can receive focus back after text editing
         setWantsKeyboardFocus(true);
 
-        // Add listener to inputs tree, config tree, and IO tree (for channel count changes)
+        // Add listener to inputs tree, config tree, IO tree, and binaural tree (for solo state changes)
         inputsTree.addListener(this);
         configTree.addListener(this);
         if (ioTree.isValid())
             ioTree.addListener(this);
+        if (binauralTree.isValid())
+            binauralTree.addListener(this);
         ColorScheme::Manager::getInstance().addListener(this);
 
         // ==================== HEADER SECTION ====================
@@ -337,11 +340,28 @@ public:
         addAndMakeVisible(mapVisibilityButton);
         mapVisibilityButton.onClick = [this]() { toggleMapVisibility(); };
 
+        // Level Meter button
+        addAndMakeVisible(levelMeterButton);
+        levelMeterButton.setButtonText(LOC("systemConfig.buttons.levelMeter"));
+        levelMeterButton.onClick = [this]() {
+            if (onLevelMeterWindowRequested)
+                onLevelMeterWindowRequested();
+        };
+
+        // Clear Solo button
+        addAndMakeVisible(clearSoloButton);
+        clearSoloButton.setButtonText(LOC("systemConfig.buttons.clearSolo"));
+        clearSoloButton.onClick = [this]() {
+            parameters.getValueTreeState().clearAllSoloStates();
+            updateClearSoloButtonState();
+        };
+
         // Solo button for binaural monitoring
         addAndMakeVisible(soloButton);
-        soloButton.setButtonText("S");
+        soloButton.setButtonText("Solo");
         soloButton.setClickingTogglesState(true);
         soloButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFFFFD700));  // Yellow when on
+        soloButton.setColour(juce::TextButton::textColourOnId, juce::Colours::black);        // Black text when on
         soloButton.onClick = [this]() { toggleSolo(); };
 
         // Set All Inputs button (long-press to open)
@@ -436,6 +456,8 @@ public:
         configTree.removeListener(this);
         if (ioTree.isValid())
             ioTree.removeListener(this);
+        if (binauralTree.isValid())
+            binauralTree.removeListener(this);
     }
 
     /** ColorScheme::Manager::Listener callback - refresh colors when theme changes */
@@ -488,6 +510,9 @@ public:
 
     /** Callback when input config is reloaded - for triggering DSP recalculation */
     std::function<void()> onConfigReloaded;
+
+    /** Callback when Level Meter window is requested */
+    std::function<void()> onLevelMeterWindowRequested;
 
     /** Select a specific channel (1-based). Triggers onChannelSelected callback.
      *  Uses programmatic selection to prevent keyboard Enter from triggering overlay.
@@ -571,8 +596,12 @@ public:
         mapLockButton.setBounds(row1.removeFromLeft(120));
         row1.removeFromLeft(spacing);
         mapVisibilityButton.setBounds(row1.removeFromLeft(160));
+        row1.removeFromLeft(spacing * 2);
+        levelMeterButton.setBounds(row1.removeFromLeft(90));
         row1.removeFromLeft(spacing);
-        soloButton.setBounds(row1.removeFromLeft(30));  // Square button
+        clearSoloButton.setBounds(row1.removeFromLeft(90));
+        row1.removeFromLeft(spacing);
+        soloButton.setBounds(row1.removeFromLeft(50));  // Wider for "Solo" text
         // Set All Inputs button at far right
         setAllInputsButton.setBounds(row1.removeFromRight(130));
 
@@ -732,6 +761,7 @@ private:
 
         addAndMakeVisible(attenuationValueLabel);
         attenuationValueLabel.setText("0.0 dB", juce::dontSendNotification);
+        attenuationValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(attenuationValueLabel);
 
         // Delay/Latency slider (-100 to 100 ms)
@@ -750,6 +780,7 @@ private:
 
         addAndMakeVisible(delayLatencyValueLabel);
         delayLatencyValueLabel.setText("Delay: 0.0 ms", juce::dontSendNotification);
+        delayLatencyValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(delayLatencyValueLabel);
 
         // Minimal Latency button
@@ -1365,6 +1396,7 @@ private:
         addAndMakeVisible(directivitySlider);
         addAndMakeVisible(directivityValueLabel);
         directivityValueLabel.setText(juce::String::fromUTF8("360°"), juce::dontSendNotification);
+        directivityValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(directivityValueLabel);
 
         // Rotation dial
@@ -1399,6 +1431,7 @@ private:
         addAndMakeVisible(tiltSlider);
         addAndMakeVisible(tiltValueLabel);
         tiltValueLabel.setText(juce::String::fromUTF8("0°"), juce::dontSendNotification);
+        tiltValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(tiltValueLabel);
 
         // HF Shelf slider
@@ -1414,6 +1447,7 @@ private:
         addAndMakeVisible(hfShelfSlider);
         addAndMakeVisible(hfShelfValueLabel);
         hfShelfValueLabel.setText("-6.0 dB", juce::dontSendNotification);
+        hfShelfValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(hfShelfValueLabel);
     }
 
@@ -1443,6 +1477,7 @@ private:
         addAndMakeVisible(lsRadiusSlider);
         addAndMakeVisible(lsRadiusValueLabel);
         lsRadiusValueLabel.setText("3.0 m", juce::dontSendNotification);
+        lsRadiusValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(lsRadiusValueLabel);
 
         // Shape selector
@@ -1473,6 +1508,7 @@ private:
         addAndMakeVisible(lsAttenuationSlider);
         addAndMakeVisible(lsAttenuationValueLabel);
         lsAttenuationValueLabel.setText("0.0 dB", juce::dontSendNotification);
+        lsAttenuationValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(lsAttenuationValueLabel);
 
         // Peak Threshold slider
@@ -1488,6 +1524,7 @@ private:
         addAndMakeVisible(lsPeakThresholdSlider);
         addAndMakeVisible(lsPeakThresholdValueLabel);
         lsPeakThresholdValueLabel.setText("-20.0 dB", juce::dontSendNotification);
+        lsPeakThresholdValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(lsPeakThresholdValueLabel);
 
         // Peak Ratio dial
@@ -1523,6 +1560,7 @@ private:
         addAndMakeVisible(lsSlowThresholdSlider);
         addAndMakeVisible(lsSlowThresholdValueLabel);
         lsSlowThresholdValueLabel.setText("-20.0 dB", juce::dontSendNotification);
+        lsSlowThresholdValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(lsSlowThresholdValueLabel);
 
         // Slow Ratio dial
@@ -1574,6 +1612,7 @@ private:
         addAndMakeVisible(frAttenuationSlider);
         addAndMakeVisible(frAttenuationValueLabel);
         frAttenuationValueLabel.setText("-3.0 dB", juce::dontSendNotification);
+        frAttenuationValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(frAttenuationValueLabel);
 
         // Floor Reflections Diffusion dial
@@ -1622,6 +1661,7 @@ private:
         addAndMakeVisible(frLowCutFreqSlider);
         addAndMakeVisible(frLowCutFreqValueLabel);
         frLowCutFreqValueLabel.setText("100 Hz", juce::dontSendNotification);
+        frLowCutFreqValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(frLowCutFreqValueLabel);
 
         // FR High Shelf Active
@@ -1648,6 +1688,7 @@ private:
         addAndMakeVisible(frHighShelfFreqSlider);
         addAndMakeVisible(frHighShelfFreqValueLabel);
         frHighShelfFreqValueLabel.setText("3000 Hz", juce::dontSendNotification);
+        frHighShelfFreqValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(frHighShelfFreqValueLabel);
 
         // High Shelf Gain slider (-24 to 0 dB)
@@ -1663,6 +1704,7 @@ private:
         addAndMakeVisible(frHighShelfGainSlider);
         addAndMakeVisible(frHighShelfGainValueLabel);
         frHighShelfGainValueLabel.setText("-2.0 dB", juce::dontSendNotification);
+        frHighShelfGainValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(frHighShelfGainValueLabel);
 
         // High Shelf Slope slider (0.1-0.9)
@@ -1678,6 +1720,7 @@ private:
         addAndMakeVisible(frHighShelfSlopeSlider);
         addAndMakeVisible(frHighShelfSlopeValueLabel);
         frHighShelfSlopeValueLabel.setText("0.40", juce::dontSendNotification);
+        frHighShelfSlopeValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(frHighShelfSlopeValueLabel);
 
         // Mute Sends to Reverbs
@@ -1798,6 +1841,7 @@ private:
         addAndMakeVisible(lfoRateXSlider);
         addAndMakeVisible(lfoRateXValueLabel);
         lfoRateXValueLabel.setText("1.00x", juce::dontSendNotification);
+        lfoRateXValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(lfoRateXValueLabel);
 
         addAndMakeVisible(lfoRateYLabel);
@@ -1811,6 +1855,7 @@ private:
         addAndMakeVisible(lfoRateYSlider);
         addAndMakeVisible(lfoRateYValueLabel);
         lfoRateYValueLabel.setText("1.00x", juce::dontSendNotification);
+        lfoRateYValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(lfoRateYValueLabel);
 
         addAndMakeVisible(lfoRateZLabel);
@@ -1824,6 +1869,7 @@ private:
         addAndMakeVisible(lfoRateZSlider);
         addAndMakeVisible(lfoRateZValueLabel);
         lfoRateZValueLabel.setText("1.00x", juce::dontSendNotification);
+        lfoRateZValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(lfoRateZValueLabel);
 
         // Amplitude X/Y/Z sliders (0-50 m)
@@ -1838,6 +1884,7 @@ private:
         addAndMakeVisible(lfoAmplitudeXSlider);
         addAndMakeVisible(lfoAmplitudeXValueLabel);
         lfoAmplitudeXValueLabel.setText("1.0 m", juce::dontSendNotification);
+        lfoAmplitudeXValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(lfoAmplitudeXValueLabel);
 
         addAndMakeVisible(lfoAmplitudeYLabel);
@@ -1851,6 +1898,7 @@ private:
         addAndMakeVisible(lfoAmplitudeYSlider);
         addAndMakeVisible(lfoAmplitudeYValueLabel);
         lfoAmplitudeYValueLabel.setText("1.0 m", juce::dontSendNotification);
+        lfoAmplitudeYValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(lfoAmplitudeYValueLabel);
 
         addAndMakeVisible(lfoAmplitudeZLabel);
@@ -1864,6 +1912,7 @@ private:
         addAndMakeVisible(lfoAmplitudeZSlider);
         addAndMakeVisible(lfoAmplitudeZValueLabel);
         lfoAmplitudeZValueLabel.setText("1.0 m", juce::dontSendNotification);
+        lfoAmplitudeZValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(lfoAmplitudeZValueLabel);
 
         // Phase X/Y/Z dials (-180° to 180°)
@@ -1950,6 +1999,7 @@ private:
         addAndMakeVisible(jitterSlider);
         addAndMakeVisible(jitterValueLabel);
         jitterValueLabel.setText("0.00 m", juce::dontSendNotification);
+        jitterValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(jitterValueLabel);
 
         // LFO Progress dial (read-only)
@@ -2718,17 +2768,16 @@ private:
         auto area = subTabContentArea;
         const int rowHeight = 30;
         const int sliderHeight = 40;
-        const int spacing = 10;
-        const int labelWidth = 120;
-        const int valueWidth = 100;
+        const int spacing = 8;
+        const int labelWidth = 115;
+        const int valueWidth = 60;
 
-        auto leftCol = area.removeFromLeft(area.getWidth() / 2).reduced(5, 0);
+        auto leftCol = area.removeFromLeft(area.getWidth() / 2).reduced(10, 10);
 
         // Attenuation
         auto row = leftCol.removeFromTop(rowHeight);
         attenuationLabel.setBounds(row.removeFromLeft(labelWidth));
         attenuationValueLabel.setBounds(row.removeFromRight(valueWidth));
-        leftCol.removeFromTop(spacing / 2);
         attenuationSlider.setBounds(leftCol.removeFromTop(sliderHeight));
         leftCol.removeFromTop(spacing);
 
@@ -2736,12 +2785,14 @@ private:
         row = leftCol.removeFromTop(rowHeight);
         delayLatencyLabel.setBounds(row.removeFromLeft(labelWidth));
         delayLatencyValueLabel.setBounds(row.removeFromRight(130));  // Wider for "Latency: 100.0 ms"
-        leftCol.removeFromTop(spacing / 2);
         delayLatencySlider.setBounds(leftCol.removeFromTop(sliderHeight));
-        leftCol.removeFromTop(spacing);
+        leftCol.removeFromTop(spacing * 2);  // Extra padding before toggle
 
-        // Minimal Latency
-        minimalLatencyButton.setBounds(leftCol.removeFromTop(rowHeight).withWidth(200));
+        // Minimal Latency - centered beneath slider
+        row = leftCol.removeFromTop(rowHeight);
+        const int buttonWidth = 200;
+        const int buttonX = (row.getWidth() - buttonWidth) / 2;
+        minimalLatencyButton.setBounds(row.getX() + buttonX, row.getY(), buttonWidth, rowHeight);
     }
 
     void layoutPositionTab()
@@ -3377,13 +3428,14 @@ private:
     {
         // 2-column layout: Column 1 (Input+Position), Column 2 (Sound+Mutes)
         auto area = subTabContentArea;
-        const int rowHeight = 24;
-        const int sliderHeight = 32;
-        const int spacing = 6;
-        const int labelWidth = 80;
+        const int rowHeight = 30;      // Match OutputsTab
+        const int sliderHeight = 40;   // Match OutputsTab
+        const int spacing = 8;         // Match OutputsTab
+        const int labelWidth = 115;    // Match OutputsTab
+        const int valueWidth = 60;     // Match OutputsTab
         const int dialSize = 55;
 
-        auto col1 = area.removeFromLeft(area.getWidth() / 2).reduced(5, 0);
+        auto col1 = area.removeFromLeft(area.getWidth() / 2).reduced(10, 10);  // Match OutputsTab padding
         auto col2 = area.reduced(5, 0);
 
         // ========== COLUMN 1: Input + Position ==========
@@ -3392,19 +3444,22 @@ private:
         // Attenuation
         auto row = col1.removeFromTop(rowHeight);
         attenuationLabel.setBounds(row.removeFromLeft(labelWidth));
-        attenuationValueLabel.setBounds(row.removeFromRight(60));  // Tight value like LFO
+        attenuationValueLabel.setBounds(row.removeFromRight(valueWidth));
         attenuationSlider.setBounds(col1.removeFromTop(sliderHeight));
         col1.removeFromTop(spacing);
 
         // Delay/Latency
         row = col1.removeFromTop(rowHeight);
         delayLatencyLabel.setBounds(row.removeFromLeft(labelWidth));
-        delayLatencyValueLabel.setBounds(row.removeFromRight(100));  // Wider for "Latency: 100.0 ms"
+        delayLatencyValueLabel.setBounds(row.removeFromRight(130));  // Wider for "Latency: 100.0 ms"
         delayLatencySlider.setBounds(col1.removeFromTop(sliderHeight));
-        col1.removeFromTop(spacing);
+        col1.removeFromTop(spacing * 2);  // Extra padding before toggle
 
-        // Minimal Latency button
-        minimalLatencyButton.setBounds(col1.removeFromTop(rowHeight).withWidth(150));
+        // Minimal Latency button - centered beneath slider
+        row = col1.removeFromTop(rowHeight);
+        const int buttonWidth = 150;
+        const int buttonX = (row.getWidth() - buttonWidth) / 2;
+        minimalLatencyButton.setBounds(row.getX() + buttonX, row.getY(), buttonWidth, rowHeight);
         col1.removeFromTop(spacing * 2);
 
         // --- Position section (3-row layout with joystick on right) ---
@@ -6183,6 +6238,17 @@ private:
 
     void valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property) override
     {
+        // Check if solo states changed (stored in binaural tree)
+        if (tree == binauralTree && property == WFSParameterIDs::inputSoloStates)
+        {
+            juce::MessageManager::callAsync([this]()
+            {
+                updateSoloButtonState();
+                updateClearSoloButtonState();
+            });
+            return;
+        }
+
         // Check if input channel count changed (stored in IO tree)
         if (tree == ioTree && property == WFSParameterIDs::inputChannels)
         {
@@ -6291,6 +6357,36 @@ private:
         auto& vts = parameters.getValueTreeState();
         bool isSoloed = vts.isInputSoloed(currentChannel - 1);
         soloButton.setToggleState(isSoloed, juce::dontSendNotification);
+
+        // Yellow in Single mode, Orange in Multi mode
+        bool isMultiMode = (vts.getBinauralSoloMode() == 1);
+        juce::Colour buttonOnColour = isMultiMode ? juce::Colour(0xFFFF8C00) : juce::Colour(0xFFFFD700);
+        soloButton.setColour(juce::TextButton::buttonOnColourId, buttonOnColour);
+
+        // Also update Clear Solo button state
+        updateClearSoloButtonState();
+    }
+
+    void updateClearSoloButtonState()
+    {
+        // Check if any inputs are soloed
+        auto& vts = parameters.getValueTreeState();
+        int numInputs = parameters.getNumInputChannels();
+        bool anySoloed = false;
+        for (int i = 0; i < numInputs; ++i)
+        {
+            if (vts.isInputSoloed(i))
+            {
+                anySoloed = true;
+                break;
+            }
+        }
+
+        // Dim the button when no solos are engaged
+        auto disabledColour = ColorScheme::get().textDisabled;
+        auto enabledColour = ColorScheme::get().textPrimary;
+        clearSoloButton.setColour(juce::TextButton::textColourOffId, anySoloed ? enabledColour : disabledColour);
+        clearSoloButton.setColour(juce::TextButton::textColourOnId, anySoloed ? enabledColour : disabledColour);
     }
 
     void openSetAllInputsWindow()
@@ -6503,6 +6599,7 @@ private:
     juce::ValueTree inputsTree;
     juce::ValueTree configTree;
     juce::ValueTree ioTree;
+    juce::ValueTree binauralTree;
     bool isLoadingParameters = false;
     StatusBar* statusBar = nullptr;
     AutomOtionProcessor* automOtionProcessor = nullptr;
@@ -6522,6 +6619,8 @@ private:
     juce::ComboBox clusterSelector;
     juce::TextButton mapLockButton;
     juce::TextButton mapVisibilityButton;
+    juce::TextButton levelMeterButton;
+    juce::TextButton clearSoloButton;
     juce::TextButton soloButton;
     SetAllInputsLongPressButton setAllInputsButton;
     std::unique_ptr<SetAllInputsWindow> setAllInputsWindow;

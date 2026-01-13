@@ -36,7 +36,8 @@ public:
 
         // Home button to reset view
         addAndMakeVisible(homeButton);
-        homeButton.setButtonText(LOC("map.buttons.home"));
+        homeButton.setButtonText(LOC("map.buttons.fitView"));
+        homeButton.setTooltip(LOC("map.tooltips.fitView"));
         homeButton.onClick = [this]() {
             resetView();
             repaint();
@@ -44,10 +45,13 @@ public:
 
         // Level overlay toggle button
         addAndMakeVisible(levelOverlayButton);
-        levelOverlayButton.setButtonText(LOC("map.buttons.levels"));
-        levelOverlayButton.setClickingTogglesState(true);
+        levelOverlayButton.setButtonText(LOC("map.buttons.showLevels"));
+        levelOverlayButton.setTooltip(LOC("map.tooltips.levels"));
         levelOverlayButton.onClick = [this]() {
-            levelOverlayEnabled = levelOverlayButton.getToggleState();
+            levelOverlayEnabled = !levelOverlayEnabled;
+            levelOverlayButton.setButtonText(levelOverlayEnabled
+                ? LOC("map.buttons.hideLevels")
+                : LOC("map.buttons.showLevels"));
             if (onLevelOverlayChanged)
                 onLevelOverlayChanged(levelOverlayEnabled);
             repaint();
@@ -1664,7 +1668,7 @@ private:
 
     // UI Components
     juce::TextButton homeButton;
-    juce::ToggleButton levelOverlayButton;
+    juce::TextButton levelOverlayButton;
 
     // Level overlay state
     bool levelOverlayEnabled = false;

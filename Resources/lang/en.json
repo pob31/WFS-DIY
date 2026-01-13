@@ -474,8 +474,13 @@
 
   "map": {
     "buttons": {
-      "home": "Fit Stage to Screen",
-      "levels": "Show Levels"
+      "fitView": "Fit View to Screen",
+      "showLevels": "Show Levels",
+      "hideLevels": "Hide Levels"
+    },
+    "tooltips": {
+      "fitView": "Adjust the zoom and panning to fit the stage on the display",
+      "levels": "Display the levels for inputs and outputs on the map"
     },
     "labels": {
       "reverbPrefix": "R"
@@ -490,6 +495,10 @@
     "soloNone": "None",
     "buttons": {
       "clearSolo": "Clear Solo"
+    },
+    "tooltips": {
+      "solo": "Display the contribution of the input to all outputs in the Level Meter display (in Single mode) and play binaural render of soloed inputs",
+      "clearSolo": "Disengage all solo toggles"
     }
   },
 

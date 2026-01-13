@@ -251,11 +251,6 @@ public:
         g.drawText(LOC("network.sections.admOsc"), 20, admOscSectionY - 25, 200, 20, juce::Justification::left);
         g.drawText(LOC("network.sections.tracking"), 20, trackingSectionY - 25, 200, 20, juce::Justification::left);
 
-        // Draw section dividers
-        g.setColour(ColorScheme::get().chromeDivider);
-        g.drawLine(20.0f, (float)(networkConnectionsSectionY - 10), (float)(getWidth() - 20), (float)(networkConnectionsSectionY - 10), 1.0f);
-        g.drawLine(20.0f, (float)(admOscSectionY - 10), (float)(getWidth() - 20), (float)(admOscSectionY - 10), 1.0f);
-        g.drawLine(20.0f, (float)(trackingSectionY - 10), (float)(getWidth() - 20), (float)(trackingSectionY - 10), 1.0f);
     }
 
     void resized() override
@@ -265,7 +260,7 @@ public:
         const int unitWidth = 30;
         const int rowHeight = 25;
         const int spacing = 5;
-        const int sectionSpacing = 40;
+        const int sectionSpacing = 50;
 
         int x = 20;
         int y = 35;

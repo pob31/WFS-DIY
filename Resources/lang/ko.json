@@ -451,10 +451,31 @@
 
   "map": {
     "buttons": {
-      "home": "무대를 화면에 맞추기"
+      "fitView": "화면에 맞게 보기",
+      "showLevels": "레벨 표시",
+      "hideLevels": "레벨 숨기기"
+    },
+    "tooltips": {
+      "fitView": "줌과 패닝을 조정하여 무대를 화면에 맞춥니다",
+      "levels": "맵에 입력 및 출력 레벨 표시"
     },
     "labels": {
       "reverbPrefix": "리"
+    }
+  },
+
+  "levelMeter": {
+    "windowTitle": "레벨 미터",
+    "inputs": "입력",
+    "outputs": "출력",
+    "solo": "비주얼 솔로:",
+    "soloNone": "없음",
+    "buttons": {
+      "clearSolo": "솔로 해제"
+    },
+    "tooltips": {
+      "solo": "레벨 미터 디스플레이에서 입력의 모든 출력에 대한 기여도 표시(싱글 모드) 및 솔로 입력의 바이노럴 렌더링 재생",
+      "clearSolo": "모든 솔로 비활성화"
     }
   },
 

@@ -239,10 +239,6 @@ MainComponent::MainComponent()
         openAudioInterfaceWindow();
     });
 
-    systemConfigTab->setLevelMeterCallback([this]() {
-        openLevelMeterWindow();
-    });
-
     systemConfigTab->setConfigReloadedCallback([this]() {
         handleConfigReloaded();
     });
@@ -256,6 +252,15 @@ MainComponent::MainComponent()
         handleConfigReloaded();
     };
 
+    // Level Meter window callbacks for InputsTab and OutputsTab
+    inputsTab->onLevelMeterWindowRequested = [this]() {
+        openLevelMeterWindow();
+    };
+
+    outputsTab->onLevelMeterWindowRequested = [this]() {
+        openLevelMeterWindow();
+    };
+
     reverbTab->onConfigReloaded = [this]() {
         handleConfigReloaded();
     };
@@ -263,6 +268,9 @@ MainComponent::MainComponent()
     // Create and apply custom LookAndFeel for centralized widget theming
     wfsLookAndFeel = std::make_unique<WfsLookAndFeel>();
     juce::LookAndFeel::setDefaultLookAndFeel(wfsLookAndFeel.get());
+
+    // Create global tooltip window for hover tooltips
+    tooltipWindow = std::make_unique<juce::TooltipWindow>(this, 500);
 
     // Add tabs to tabbed component (using localized names)
     // Store names in local variables to ensure proper String lifetime

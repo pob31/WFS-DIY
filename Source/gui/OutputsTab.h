@@ -106,16 +106,19 @@ public:
         : parameters(params),
           outputsTree(params.getOutputTree()),
           configTree(params.getConfigTree()),
-          ioTree(params.getConfigTree().getChildWithName(WFSParameterIDs::IO))
+          ioTree(params.getConfigTree().getChildWithName(WFSParameterIDs::IO)),
+          binauralTree(params.getValueTreeState().getBinauralState())
     {
         // Enable keyboard focus so we can receive focus back after text editing
         setWantsKeyboardFocus(true);
 
-        // Add listener to outputs tree, config tree, and IO tree (for channel count changes)
+        // Add listener to outputs tree, config tree, IO tree, and binaural tree (for solo state changes)
         outputsTree.addListener(this);
         configTree.addListener(this);
         if (ioTree.isValid())
             ioTree.addListener(this);
+        if (binauralTree.isValid())
+            binauralTree.addListener(this);
         ColorScheme::Manager::getInstance().addListener(this);
 
         // ==================== HEADER SECTION ====================
@@ -185,6 +188,22 @@ public:
         mapVisibilityButton.setButtonText(LOC("outputs.buttons.speakerVisible"));
         mapVisibilityButton.onClick = [this]() { toggleMapVisibility(); };
 
+        // Level Meter button
+        addAndMakeVisible(levelMeterButton);
+        levelMeterButton.setButtonText(LOC("systemConfig.buttons.levelMeter"));
+        levelMeterButton.onClick = [this]() {
+            if (onLevelMeterWindowRequested)
+                onLevelMeterWindowRequested();
+        };
+
+        // Clear Solo button
+        addAndMakeVisible(clearSoloButton);
+        clearSoloButton.setButtonText(LOC("systemConfig.buttons.clearSolo"));
+        clearSoloButton.onClick = [this]() {
+            parameters.getValueTreeState().clearAllSoloStates();
+            updateClearSoloButtonState();
+        };
+
         // Wizard of OutZ button (array position helper)
         addAndMakeVisible(arrayPositionHelperButton);
         arrayPositionHelperButton.setButtonText(LOC("outputs.buttons.wizardOfOutZ"));
@@ -243,6 +262,8 @@ public:
         configTree.removeListener(this);
         if (ioTree.isValid())
             ioTree.removeListener(this);
+        if (binauralTree.isValid())
+            binauralTree.removeListener(this);
     }
 
     /** ColorScheme::Manager::Listener callback - refresh colors when theme changes */
@@ -309,6 +330,9 @@ public:
 
     /** Callback when output config is reloaded - for triggering DSP recalculation */
     std::function<void()> onConfigReloaded;
+
+    /** Callback when Level Meter window is requested */
+    std::function<void()> onLevelMeterWindowRequested;
 
     /** Cycle to next/previous channel. delta=1 for next, delta=-1 for previous. Wraps around. */
     void cycleChannel(int delta)
@@ -381,6 +405,10 @@ public:
         applyToArraySelector.setBounds(row1.removeFromLeft(100));
         row1.removeFromLeft(spacing * 2);
         mapVisibilityButton.setBounds(row1.removeFromLeft(180));
+        row1.removeFromLeft(spacing);
+        levelMeterButton.setBounds(row1.removeFromLeft(90));
+        row1.removeFromLeft(spacing);
+        clearSoloButton.setBounds(row1.removeFromLeft(90));
 
         // Wizard of OutZ button on the right
         arrayPositionHelperButton.setBounds(row1.removeFromRight(130));
@@ -400,11 +428,11 @@ public:
         exportButton.setBounds(footerArea.removeFromLeft(buttonWidth));
 
         // ==================== SUB-TABS AREA ====================
-        auto contentArea = bounds.reduced(padding, 0);
-        auto tabBarArea = contentArea.removeFromTop(32);
+        auto tabBarArea = bounds.removeFromTop(32);  // No left padding for tab bar
         subTabBar.setBounds(tabBarArea);
 
-        // Content area for sub-tabs
+        // Content area for sub-tabs (with padding)
+        auto contentArea = bounds.reduced(padding, 0);
         subTabContentArea = contentArea.reduced(0, padding);
 
         // Layout sub-tab content based on current tab
@@ -1114,18 +1142,17 @@ private:
         distanceAttenSlider.setBounds(leftCol.removeFromTop(sliderHeight));
         leftCol.removeFromTop(spacing * 2);  // Extra space before buttons
 
-        // Enable buttons - all three on a single row with equal width and doubled spacing
+        // Enable buttons - all three on a single row, aligned with sliders above
         row = leftCol.removeFromTop(rowHeight);
-        const int buttonSpacing = 30;  // Doubled spacing between buttons
-        const int totalButtonSpace = row.getWidth() - (buttonSpacing * 2);
-        const int buttonWidth = totalButtonSpace / 3;
+        const int buttonSpacing = 15;  // Spacing between buttons
+        const int buttonWidth = (row.getWidth() - buttonSpacing * 2) / 3;
         minLatencyEnableButton.setBounds(row.removeFromLeft(buttonWidth));
         positionIndicatorForButton(minLatencyIndicator, minLatencyEnableButton);
         row.removeFromLeft(buttonSpacing);
         liveSourceEnableButton.setBounds(row.removeFromLeft(buttonWidth));
         positionIndicatorForButton(liveSourceIndicator, liveSourceEnableButton);
         row.removeFromLeft(buttonSpacing);
-        floorReflectionsEnableButton.setBounds(row.removeFromLeft(buttonWidth));
+        floorReflectionsEnableButton.setBounds(row);  // Use remaining space to align with slider right edge
         positionIndicatorForButton(floorReflectionsIndicator, floorReflectionsEnableButton);
 
         // ==================== RIGHT COLUMN (Position & Directivity) ====================
@@ -1621,6 +1648,28 @@ private:
         }
     }
 
+    void updateClearSoloButtonState()
+    {
+        // Check if any inputs are soloed
+        auto& vts = parameters.getValueTreeState();
+        int numInputs = parameters.getNumInputChannels();
+        bool anySoloed = false;
+        for (int i = 0; i < numInputs; ++i)
+        {
+            if (vts.isInputSoloed(i))
+            {
+                anySoloed = true;
+                break;
+            }
+        }
+
+        // Dim the button when no solos are engaged
+        auto disabledColour = ColorScheme::get().textDisabled;
+        auto enabledColour = ColorScheme::get().textPrimary;
+        clearSoloButton.setColour(juce::TextButton::textColourOffId, anySoloed ? enabledColour : disabledColour);
+        clearSoloButton.setColour(juce::TextButton::textColourOnId, anySoloed ? enabledColour : disabledColour);
+    }
+
     // ==================== TEXT EDITOR LISTENER ====================
 
     void textEditorReturnKeyPressed(juce::TextEditor& editor) override
@@ -1995,6 +2044,16 @@ private:
 
     void valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property) override
     {
+        // Check if solo states changed (stored in binaural tree)
+        if (tree == binauralTree && property == WFSParameterIDs::inputSoloStates)
+        {
+            juce::MessageManager::callAsync([this]()
+            {
+                updateClearSoloButtonState();
+            });
+            return;
+        }
+
         // Check if output channel count changed (stored in IO tree)
         if (tree == ioTree && property == WFSParameterIDs::outputChannels)
         {
@@ -2045,6 +2104,7 @@ private:
     juce::ValueTree outputsTree;
     juce::ValueTree configTree;
     juce::ValueTree ioTree;
+    juce::ValueTree binauralTree;
     bool isLoadingParameters = false;
     StatusBar* statusBar = nullptr;
     std::map<juce::Component*, juce::String> helpTextMap;
@@ -2064,6 +2124,8 @@ private:
     juce::Label applyToArrayLabel;
     juce::ComboBox applyToArraySelector;
     juce::TextButton mapVisibilityButton;
+    juce::TextButton levelMeterButton;
+    juce::TextButton clearSoloButton;
 
     // Sub-tab bar
     juce::TabbedButtonBar subTabBar { juce::TabbedButtonBar::TabsAtTop };

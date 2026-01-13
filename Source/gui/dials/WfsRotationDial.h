@@ -4,7 +4,8 @@
 #include "../ColorScheme.h"
 #include "../../Accessibility/TTSManager.h"
 
-class WfsRotationDial : public juce::Component
+class WfsRotationDial : public juce::Component,
+                        public juce::SettableTooltipClient
 {
 public:
     WfsRotationDial()

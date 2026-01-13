@@ -187,24 +187,18 @@ public:
         // Create meters
         rebuildMeters();
 
-        // Visual Solo selector (for map highlighting)
-        addAndMakeVisible(soloLabel);
-        soloLabel.setText(LOC("levelMeter.solo"), juce::dontSendNotification);
-
-        addAndMakeVisible(soloSelector);
-        // Note: soloSelector items are populated in rebuildMeters()
-        soloSelector.onChange = [this]() {
-            int selected = soloSelector.getSelectedId();
-            levelManager.setVisualSoloInput(selected > 1 ? selected - 2 : -1);
-        };
-
         // Clear Solo button (for binaural solo)
         addAndMakeVisible(clearSoloButton);
         clearSoloButton.setButtonText(LOC("levelMeter.buttons.clearSolo"));
+        clearSoloButton.setTooltip(LOC("levelMeter.tooltips.clearSolo"));
         clearSoloButton.onClick = [this]() {
             valueTreeState.clearAllSoloStates();
             updateSoloButtonStates();
         };
+
+        // Initialize button states
+        updateSoloButtonStates();
+        updateSoloButtonColors();
 
         startTimerHz(20);  // 20 Hz update rate
     }
@@ -232,11 +226,8 @@ public:
         auto bounds = getLocalBounds().reduced(10);
         int controlHeight = 30;
 
-        // Bottom controls (solo selector and clear solo button)
+        // Bottom controls (clear solo button)
         auto controlsArea = bounds.removeFromBottom(controlHeight);
-        soloLabel.setBounds(controlsArea.removeFromLeft(80));
-        soloSelector.setBounds(controlsArea.removeFromLeft(150));
-        controlsArea.removeFromLeft(20);  // Spacing
         clearSoloButton.setBounds(controlsArea.removeFromLeft(100));
 
         bounds.removeFromBottom(10);  // Spacing
@@ -287,22 +278,22 @@ public:
 
             auto* soloBtn = inputSoloButtons.add(new juce::TextButton("S"));
             soloBtn->setClickingTogglesState(true);
-            soloBtn->setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFFFFD700));  // Yellow when on
+            soloBtn->setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFFFFD700));  // Yellow background when on
+            soloBtn->setColour(juce::TextButton::textColourOnId, juce::Colours::black);        // Black text when on
+            soloBtn->setTooltip(LOC("levelMeter.tooltips.solo"));
             soloBtn->onClick = [this, i]() {
                 bool newState = inputSoloButtons[i]->getToggleState();
                 valueTreeState.setInputSoloed(i, newState);
 
-                // In Single mode, also update Visual Solo
+                // In Single mode, also update Visual Solo (for map highlighting)
                 if (valueTreeState.getBinauralSoloMode() == 0 && newState)
                 {
                     levelManager.setVisualSoloInput(i);
-                    soloSelector.setSelectedId(i + 2, juce::dontSendNotification);
                 }
                 else if (!newState && levelManager.getVisualSoloInput() == i)
                 {
                     // Clearing solo also clears visual solo if it was this input
                     levelManager.setVisualSoloInput(-1);
-                    soloSelector.setSelectedId(1, juce::dontSendNotification);
                 }
 
                 updateSoloButtonStates();
@@ -324,13 +315,6 @@ public:
             auto* perfBar = outputPerfBars.add(new ThreadPerformanceBar());
             addAndMakeVisible(perfBar);
         }
-
-        // Rebuild solo selector
-        soloSelector.clear();
-        soloSelector.addItem(LOC("levelMeter.soloNone"), 1);
-        for (int i = 0; i < numInputs; ++i)
-            soloSelector.addItem("Input " + juce::String(i + 1), i + 2);
-        soloSelector.setSelectedId(1);
 
         resized();
     }
@@ -389,6 +373,10 @@ private:
             for (auto* bar : inputPerfBars)
                 bar->setVisible(false);
         }
+
+        // Update solo button states and colors
+        updateSoloButtonStates();
+        updateSoloButtonColors();
     }
 
     void layoutInputMeters(juce::Rectangle<int>& area, bool showPerfBars)
@@ -461,10 +449,31 @@ private:
 
     void updateSoloButtonStates()
     {
+        bool anySoloed = false;
         for (int i = 0; i < inputSoloButtons.size(); ++i)
         {
             bool isSoloed = valueTreeState.isInputSoloed(i);
             inputSoloButtons[i]->setToggleState(isSoloed, juce::dontSendNotification);
+            if (isSoloed) anySoloed = true;
+        }
+
+        // Dim Clear Solo button when no solos are engaged
+        auto disabledColour = ColorScheme::get().textDisabled;
+        auto enabledColour = ColorScheme::get().textPrimary;
+        clearSoloButton.setColour(juce::TextButton::textColourOffId, anySoloed ? enabledColour : disabledColour);
+        clearSoloButton.setColour(juce::TextButton::textColourOnId, anySoloed ? enabledColour : disabledColour);
+    }
+
+    void updateSoloButtonColors()
+    {
+        // Yellow in Single mode, Orange in Multi mode
+        bool isMultiMode = (valueTreeState.getBinauralSoloMode() == 1);
+        juce::Colour buttonOnColour = isMultiMode ? juce::Colour(0xFFFF8C00) : juce::Colour(0xFFFFD700);  // Orange vs Yellow
+
+        for (auto* btn : inputSoloButtons)
+        {
+            btn->setColour(juce::TextButton::buttonOnColourId, buttonOnColour);
+            btn->setColour(juce::TextButton::textColourOnId, juce::Colours::black);
         }
     }
 
@@ -473,8 +482,6 @@ private:
 
     juce::Label inputsLabel;
     juce::Label outputsLabel;
-    juce::Label soloLabel;
-    juce::ComboBox soloSelector;
 
     juce::OwnedArray<LevelMeterBar> inputMeters;
     juce::OwnedArray<juce::Label> inputLabels;

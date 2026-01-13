@@ -451,10 +451,31 @@
 
   "map": {
     "buttons": {
-      "home": "Adatta Palco allo Schermo"
+      "fitView": "Adatta Vista allo Schermo",
+      "showLevels": "Mostra Livelli",
+      "hideLevels": "Nascondi Livelli"
+    },
+    "tooltips": {
+      "fitView": "Regola lo zoom e la panoramica per adattare il palco allo schermo",
+      "levels": "Mostra i livelli di ingressi e uscite sulla mappa"
     },
     "labels": {
       "reverbPrefix": "R"
+    }
+  },
+
+  "levelMeter": {
+    "windowTitle": "Indicatori di livello",
+    "inputs": "Ingressi",
+    "outputs": "Uscite",
+    "solo": "Solo visivo:",
+    "soloNone": "Nessuno",
+    "buttons": {
+      "clearSolo": "Cancella solo"
+    },
+    "tooltips": {
+      "solo": "Mostra il contributo dell'ingresso a tutte le uscite nell'indicatore di livello (in modalità Solo singolo) e riproduce il rendering binaurale degli ingressi in solo",
+      "clearSolo": "Disattiva tutti i solo"
     }
   },
 

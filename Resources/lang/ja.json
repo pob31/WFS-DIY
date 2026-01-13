@@ -451,10 +451,31 @@
 
   "map": {
     "buttons": {
-      "home": "ステージを画面に合わせる"
+      "fitView": "ビューを画面に合わせる",
+      "showLevels": "レベル表示",
+      "hideLevels": "レベル非表示"
+    },
+    "tooltips": {
+      "fitView": "ズームとパンを調整してステージを画面に合わせる",
+      "levels": "マップ上に入出力のレベルを表示"
     },
     "labels": {
       "reverbPrefix": "R"
+    }
+  },
+
+  "levelMeter": {
+    "windowTitle": "レベルメーター",
+    "inputs": "入力",
+    "outputs": "出力",
+    "solo": "ビジュアルソロ:",
+    "soloNone": "なし",
+    "buttons": {
+      "clearSolo": "ソロ解除"
+    },
+    "tooltips": {
+      "solo": "レベルメーター表示で入力の全出力への貢献度を表示（シングルモード時）し、ソロ入力のバイノーラルレンダリングを再生",
+      "clearSolo": "すべてのソロを解除"
     }
   },
 

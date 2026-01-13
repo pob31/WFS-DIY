@@ -451,10 +451,31 @@
 
   "map": {
     "buttons": {
-      "home": "适应屏幕显示舞台"
+      "fitView": "适应屏幕显示",
+      "showLevels": "显示电平",
+      "hideLevels": "隐藏电平"
+    },
+    "tooltips": {
+      "fitView": "调整缩放和平移以使舞台适应屏幕",
+      "levels": "在地图上显示输入和输出的电平"
     },
     "labels": {
       "reverbPrefix": "混"
+    }
+  },
+
+  "levelMeter": {
+    "windowTitle": "电平表",
+    "inputs": "输入",
+    "outputs": "输出",
+    "solo": "视觉独奏:",
+    "soloNone": "无",
+    "buttons": {
+      "clearSolo": "清除独奏"
+    },
+    "tooltips": {
+      "solo": "在电平表显示中显示输入对所有输出的贡献（单独模式下）并播放独奏输入的双耳渲染",
+      "clearSolo": "取消所有独奏"
     }
   },
 

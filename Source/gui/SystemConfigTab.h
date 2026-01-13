@@ -235,19 +235,6 @@ public:
                 onAudioInterfaceWindowRequested();
         };
 
-        addAndMakeVisible(levelMeterButton);
-        levelMeterButton.setButtonText(LOC("systemConfig.buttons.levelMeter"));
-        levelMeterButton.onClick = [this]() {
-            if (onLevelMeterWindowRequested)
-                onLevelMeterWindowRequested();
-        };
-
-        addAndMakeVisible(clearSoloButton);
-        clearSoloButton.setButtonText(LOC("systemConfig.buttons.clearSolo"));
-        clearSoloButton.onClick = [this]() {
-            parameters.getValueTreeState().clearAllSoloStates();
-        };
-
         // Algorithm selector
         addAndMakeVisible(algorithmLabel);
         algorithmLabel.setText(LOC("systemConfig.labels.algorithm"), juce::dontSendNotification);
@@ -441,6 +428,7 @@ public:
             parameters.getValueTreeState().setBinauralOutputChannel(channel);
             updateBinauralControlsEnabledState();  // Dim controls when output is Off
         };
+        binauralOutputSelector.setTooltip(LOC("systemConfig.help.binauralOutput"));
 
         // Listener Distance - WfsStandardSlider with TextEditor
         addAndMakeVisible(binauralDistanceLabel);
@@ -455,12 +443,13 @@ public:
             auto& vts = parameters.getValueTreeState();
             vts.getBinauralState().setProperty(WFSParameterIDs::binauralListenerDistance, distance, nullptr);
         };
+        binauralDistanceSlider.setTooltip(LOC("systemConfig.help.binauralDistance"));
 
         addAndMakeVisible(binauralDistanceEditor);
         binauralDistanceEditor.setText(juce::String(WFSParameterDefaults::binauralListenerDistanceDefault, 1), juce::dontSendNotification);
         binauralDistanceEditor.setJustification(juce::Justification::centred);
-        binauralDistanceEditor.setColour(juce::TextEditor::backgroundColourId, ColorScheme::get().surfaceCard);
-        binauralDistanceEditor.setColour(juce::TextEditor::outlineColourId, ColorScheme::get().buttonBorder);
+        binauralDistanceEditor.setColour(juce::TextEditor::backgroundColourId, juce::Colours::transparentBlack);
+        binauralDistanceEditor.setColour(juce::TextEditor::outlineColourId, juce::Colours::transparentBlack);
         binauralDistanceEditor.addListener(this);
 
         addAndMakeVisible(binauralDistanceUnitLabel);
@@ -477,12 +466,13 @@ public:
             auto& vts = parameters.getValueTreeState();
             vts.getBinauralState().setProperty(WFSParameterIDs::binauralListenerAngle, (int)angle, nullptr);
         };
+        binauralAngleDial.setTooltip(LOC("systemConfig.help.binauralAngle"));
 
         addAndMakeVisible(binauralAngleEditor);
         binauralAngleEditor.setText(juce::String(WFSParameterDefaults::binauralListenerAngleDefault), juce::dontSendNotification);
         binauralAngleEditor.setJustification(juce::Justification::centred);
-        binauralAngleEditor.setColour(juce::TextEditor::backgroundColourId, ColorScheme::get().surfaceCard);
-        binauralAngleEditor.setColour(juce::TextEditor::outlineColourId, ColorScheme::get().buttonBorder);
+        binauralAngleEditor.setColour(juce::TextEditor::backgroundColourId, juce::Colours::transparentBlack);
+        binauralAngleEditor.setColour(juce::TextEditor::outlineColourId, juce::Colours::transparentBlack);
         binauralAngleEditor.addListener(this);
 
         addAndMakeVisible(binauralAngleUnitLabel);
@@ -506,12 +496,13 @@ public:
             auto& vts = parameters.getValueTreeState();
             vts.getBinauralState().setProperty(WFSParameterIDs::binauralAttenuation, dB, nullptr);
         };
+        binauralAttenSlider.setTooltip(LOC("systemConfig.help.binauralAtten"));
 
         addAndMakeVisible(binauralAttenEditor);
         binauralAttenEditor.setText(juce::String(WFSParameterDefaults::binauralAttenuationDefault, 1), juce::dontSendNotification);
         binauralAttenEditor.setJustification(juce::Justification::centred);
-        binauralAttenEditor.setColour(juce::TextEditor::backgroundColourId, ColorScheme::get().surfaceCard);
-        binauralAttenEditor.setColour(juce::TextEditor::outlineColourId, ColorScheme::get().buttonBorder);
+        binauralAttenEditor.setColour(juce::TextEditor::backgroundColourId, juce::Colours::transparentBlack);
+        binauralAttenEditor.setColour(juce::TextEditor::outlineColourId, juce::Colours::transparentBlack);
         binauralAttenEditor.addListener(this);
 
         addAndMakeVisible(binauralAttenUnitLabel);
@@ -529,12 +520,13 @@ public:
             auto& vts = parameters.getValueTreeState();
             vts.getBinauralState().setProperty(WFSParameterIDs::binauralDelay, delayMs, nullptr);
         };
+        binauralDelaySlider.setTooltip(LOC("systemConfig.help.binauralDelay"));
 
         addAndMakeVisible(binauralDelayEditor);
         binauralDelayEditor.setText(juce::String(WFSParameterDefaults::binauralDelayDefault, 1), juce::dontSendNotification);
         binauralDelayEditor.setJustification(juce::Justification::centred);
-        binauralDelayEditor.setColour(juce::TextEditor::backgroundColourId, ColorScheme::get().surfaceCard);
-        binauralDelayEditor.setColour(juce::TextEditor::outlineColourId, ColorScheme::get().buttonBorder);
+        binauralDelayEditor.setColour(juce::TextEditor::backgroundColourId, juce::Colours::transparentBlack);
+        binauralDelayEditor.setColour(juce::TextEditor::outlineColourId, juce::Colours::transparentBlack);
         binauralDelayEditor.addListener(this);
 
         addAndMakeVisible(binauralDelayUnitLabel);
@@ -676,10 +668,18 @@ public:
         updateTextEditor(masterLevelEditor);
         updateTextEditor(systemLatencyEditor);
         updateTextEditor(haasEffectEditor);
-        updateTextEditor(binauralDistanceEditor);
-        updateTextEditor(binauralAngleEditor);
-        updateTextEditor(binauralAttenEditor);
-        updateTextEditor(binauralDelayEditor);
+
+        // Binaural editors use transparent background
+        auto updateBinauralEditor = [&colors](juce::TextEditor& editor) {
+            editor.setColour(juce::TextEditor::textColourId, colors.textPrimary);
+            editor.setColour(juce::TextEditor::backgroundColourId, juce::Colours::transparentBlack);
+            editor.setColour(juce::TextEditor::outlineColourId, juce::Colours::transparentBlack);
+            editor.applyFontToAllText(editor.getFont(), true);
+        };
+        updateBinauralEditor(binauralDistanceEditor);
+        updateBinauralEditor(binauralAngleEditor);
+        updateBinauralEditor(binauralAttenEditor);
+        updateBinauralEditor(binauralDelayEditor);
 
         repaint();
     }
@@ -701,10 +701,10 @@ public:
         g.setColour(ColorScheme::get().textPrimary);
         g.setFont(juce::FontOptions().withHeight(14.0f).withStyle("Bold"));
         g.drawText(LOC("systemConfig.sections.show"), col1X, 10, 200, 20, juce::Justification::left);
-        g.drawText(LOC("systemConfig.sections.io"), col1X, 110, 200, 20, juce::Justification::left);
-        g.drawText(LOC("systemConfig.sections.binauralRenderer"), col1X, 360, 200, 20, juce::Justification::left);
+        g.drawText(LOC("systemConfig.sections.io"), col1X, 130, 200, 20, juce::Justification::left);
+        g.drawText(LOC("systemConfig.sections.binauralRenderer"), col1X, 395, 200, 20, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.stage"), col2X, 10, 200, 20, juce::Justification::left);
-        g.drawText(LOC("systemConfig.sections.master"), col2X, 390, 200, 20, juce::Justification::left);
+        g.drawText(LOC("systemConfig.sections.master"), col2X, 400, 200, 20, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.ui"), col3X, 10, 200, 20, juce::Justification::left);
     }
 
@@ -729,7 +729,7 @@ public:
         y += rowHeight + spacing;
 
         // I/O Section
-        y = 140; // Start after "I/O" header
+        y = 160; // Start after "I/O" header
         inputChannelsLabel.setBounds(x, y, labelWidth, rowHeight);
         inputChannelsEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
         y += rowHeight + spacing;
@@ -751,13 +751,8 @@ public:
 
         processingButton.setBounds(x, y, labelWidth + editorWidth, rowHeight);
 
-        // Level Meters and Clear Solo buttons at top right (next to tab area)
-        const int topButtonWidth = 100;
-        levelMeterButton.setBounds(getWidth() - topButtonWidth * 2 - spacing - 20, 10, topButtonWidth, rowHeight);
-        clearSoloButton.setBounds(getWidth() - topButtonWidth - 20, 10, topButtonWidth, rowHeight);
-
         // Binaural Renderer Section (Column 1, after Processing)
-        y = 390;  // Start after "Binaural Renderer" header at y=360
+        y = 425;  // Start after "Binaural Renderer" header at y=395
         const int binauralFullWidth = labelWidth + editorWidth;
         const int binauralValueWidth = 60;
         const int binauralUnitWidth = 30;
@@ -876,7 +871,7 @@ public:
 
         // Master Section
         x = col2X;
-        y = 420;
+        y = 430;
 
         masterLevelLabel.setBounds(x, y, labelWidth, rowHeight);
         masterLevelEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
@@ -958,11 +953,6 @@ public:
     void setAudioInterfaceCallback(AudioInterfaceCallback callback)
     {
         onAudioInterfaceWindowRequested = callback;
-    }
-
-    void setLevelMeterCallback(std::function<void()> callback)
-    {
-        onLevelMeterWindowRequested = callback;
     }
 
     void setConfigReloadedCallback(ConfigReloadedCallback callback)
@@ -1589,7 +1579,8 @@ private:
         binauralAttenEditor.setEnabled(enabled);
         binauralDelaySlider.setEnabled(enabled);
         binauralDelayEditor.setEnabled(enabled);
-        soloModeButton.setEnabled(enabled);
+        // Note: soloModeButton stays enabled even when binaural is Off
+        // so users can pre-configure solo mode before enabling binaural output
 
         // Visual feedback - dim disabled controls using theme colors
         auto disabledColour = ColorScheme::get().textDisabled;
@@ -1623,6 +1614,10 @@ private:
         binauralAttenSlider.repaint();
         binauralDelaySlider.repaint();
         binauralAngleDial.repaint();
+
+        // Solo mode button - visually dim when binaural off, but keep operable
+        soloModeButton.setColour(juce::TextButton::textColourOffId, enabled ? enabledColour : disabledColour);
+        soloModeButton.setColour(juce::TextButton::textColourOnId, enabled ? enabledColour : disabledColour);
     }
 
     //==============================================================================
@@ -2067,8 +2062,6 @@ private:
         helpTextMap[&outputChannelsEditor] = LOC("systemConfig.help.outputChannels");
         helpTextMap[&reverbChannelsEditor] = LOC("systemConfig.help.reverbChannels");
         helpTextMap[&audioPatchingButton] = LOC("systemConfig.help.audioPatch");
-        helpTextMap[&levelMeterButton] = LOC("systemConfig.help.levelMeter");
-        helpTextMap[&clearSoloButton] = LOC("systemConfig.help.clearSolo");
         helpTextMap[&algorithmSelector] = LOC("systemConfig.help.algorithm");
         helpTextMap[&processingButton] = LOC("systemConfig.help.processing");
         helpTextMap[&soloModeButton] = LOC("systemConfig.help.soloMode");
@@ -2185,8 +2178,6 @@ private:
     juce::Label reverbChannelsLabel;
     juce::TextEditor reverbChannelsEditor;
     juce::TextButton audioPatchingButton;
-    juce::TextButton levelMeterButton;
-    juce::TextButton clearSoloButton;
     juce::Label algorithmLabel;
     juce::ComboBox algorithmSelector;
     juce::TextButton processingButton;
@@ -2283,7 +2274,6 @@ private:
     ProcessingCallback onProcessingChanged;
     ChannelCountCallback onChannelCountChanged;
     AudioInterfaceCallback onAudioInterfaceWindowRequested;
-    std::function<void()> onLevelMeterWindowRequested;
     ConfigReloadedCallback onConfigReloaded;
 
     // Helper to notify MainComponent of any channel count change

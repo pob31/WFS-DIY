@@ -451,10 +451,31 @@
 
   "map": {
     "buttons": {
-      "home": "Ajuster la vue à la scène"
+      "fitView": "Ajuster la vue à l'écran",
+      "showLevels": "Afficher les niveaux",
+      "hideLevels": "Masquer les niveaux"
+    },
+    "tooltips": {
+      "fitView": "Ajuster le zoom et le panoramique pour adapter la scène à l'écran",
+      "levels": "Afficher les niveaux des entrées et sorties sur la carte"
     },
     "labels": {
       "reverbPrefix": "R"
+    }
+  },
+
+  "levelMeter": {
+    "windowTitle": "Niveaux",
+    "inputs": "Entrées",
+    "outputs": "Sorties",
+    "solo": "Solo visuel :",
+    "soloNone": "Aucun",
+    "buttons": {
+      "clearSolo": "Effacer solo"
+    },
+    "tooltips": {
+      "solo": "Afficher la contribution de l'entrée à toutes les sorties dans l'affichage des niveaux (mode Solo unique) et jouer le rendu binaural des entrées en solo",
+      "clearSolo": "Désactiver tous les solos"
     }
   },
 

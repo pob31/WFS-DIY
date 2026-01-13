@@ -311,6 +311,7 @@ private:
 
         addAndMakeVisible (attenuationValueLabel);
         attenuationValueLabel.setText ("0.0 dB", juce::dontSendNotification);
+        attenuationValueLabel.setJustificationType (juce::Justification::right);
         setupEditableValueLabel (attenuationValueLabel);
 
         // Delay/Latency
@@ -328,6 +329,7 @@ private:
 
         addAndMakeVisible (delayLatencyValueLabel);
         delayLatencyValueLabel.setText ("0.0 ms", juce::dontSendNotification);
+        delayLatencyValueLabel.setJustificationType (juce::Justification::right);
         setupEditableValueLabel (delayLatencyValueLabel);
     }
 
@@ -437,6 +439,7 @@ private:
 
         addAndMakeVisible (angleOnValueLabel);
         angleOnValueLabel.setText ("86" + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
+        angleOnValueLabel.setJustificationType (juce::Justification::right);
         setupEditableValueLabel (angleOnValueLabel);
 
         // Angle Off slider
@@ -454,6 +457,7 @@ private:
 
         addAndMakeVisible (angleOffValueLabel);
         angleOffValueLabel.setText ("90" + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
+        angleOffValueLabel.setJustificationType (juce::Justification::right);
         setupEditableValueLabel (angleOffValueLabel);
 
         // Pitch slider
@@ -471,6 +475,7 @@ private:
 
         addAndMakeVisible (pitchValueLabel);
         pitchValueLabel.setText ("0" + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
+        pitchValueLabel.setJustificationType (juce::Justification::right);
         setupEditableValueLabel (pitchValueLabel);
 
         // HF Damping slider
@@ -488,6 +493,7 @@ private:
 
         addAndMakeVisible (hfDampingValueLabel);
         hfDampingValueLabel.setText ("0.0 dB/m", juce::dontSendNotification);
+        hfDampingValueLabel.setJustificationType (juce::Justification::right);
         setupEditableValueLabel (hfDampingValueLabel);
 
         // Toggle buttons
@@ -538,6 +544,7 @@ private:
 
         addAndMakeVisible (distanceAttenEnableValueLabel);
         distanceAttenEnableValueLabel.setText ("100%", juce::dontSendNotification);
+        distanceAttenEnableValueLabel.setJustificationType (juce::Justification::right);
         setupEditableValueLabel (distanceAttenEnableValueLabel);
     }
 

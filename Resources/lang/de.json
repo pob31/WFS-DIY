@@ -451,10 +451,31 @@
 
   "map": {
     "buttons": {
-      "home": "Bühne einpassen"
+      "fitView": "Ansicht anpassen",
+      "showLevels": "Pegel anzeigen",
+      "hideLevels": "Pegel ausblenden"
+    },
+    "tooltips": {
+      "fitView": "Zoom und Position anpassen, um die Bühne auf dem Bildschirm einzupassen",
+      "levels": "Pegel für Eingänge und Ausgänge auf der Karte anzeigen"
     },
     "labels": {
       "reverbPrefix": "H"
+    }
+  },
+
+  "levelMeter": {
+    "windowTitle": "Pegelmesser",
+    "inputs": "Eingänge",
+    "outputs": "Ausgänge",
+    "solo": "Visuelles Solo:",
+    "soloNone": "Keines",
+    "buttons": {
+      "clearSolo": "Solo löschen"
+    },
+    "tooltips": {
+      "solo": "Beitrag des Eingangs zu allen Ausgängen in der Pegelanzeige anzeigen (im Einzelmodus) und binaurale Wiedergabe der Solo-Eingänge",
+      "clearSolo": "Alle Solos deaktivieren"
     }
   },
 

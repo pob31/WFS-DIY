@@ -63,9 +63,35 @@
       "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" WFS-DIY.sln -p:Configuration=Debug -p:Platform=x64 -t:Build -v:minimal)",
       "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" WFS-DIY.sln -p:Configuration=Debug -p:Platform=x64 -t:Build -v:minimal -m:1)",
       "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" WFS-DIY.sln -p:Configuration=Release -p:Platform=x64 -v:minimal)",
-      "Bash(\"C:/Program Files/CMake/bin/cmake.exe\" --build Builds --config Release)"
+      "Bash(\"C:/Program Files/CMake/bin/cmake.exe\" --build Builds --config Release)",
+      "Bash(dir /B /S \"d:\\\\Dev\\\\WFS_DIY_v1\\\\Source\")",
+      "Bash(findstr:*)",
+      "Bash(sort:*)",
+      "Bash(while read file)",
+      "Bash(do basename \"$file\")",
+      "Bash(done)",
+      "Bash(for f in Source/gui/GuiPreviewWindow.h Source/gui/DialsPreviewWindow.h Source/gui/GuiPreviewComponent.h)",
+      "Bash(do echo \"=== $f ===\")",
+      "Bash(\"C:/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" WFS-DIY.sln -p:Configuration=Release -p:Platform=x64 -verbosity:minimal)",
+      "Bash(\"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" WFS-DIY.sln /p:Configuration=Debug /p:Platform=x64 /t:Build /m /verbosity:minimal)",
+      "Bash(\"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" \"d:\\\\Dev\\\\WFS_DIY_v1\\\\Builds\\\\VisualStudio2022\\\\WFS-DIY.sln\" -p:Configuration=Debug -p:Platform=x64 -t:Build -m -verbosity:minimal)",
+      "Bash(\"C:\\\\Program Files\\\\CMake\\\\bin\\\\cmake.exe\" --build Builds --config Release)",
+      "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" \"d:/Dev/WFS_DIY_v1/Builds/VisualStudio2022/WFS-DIY.sln\" -p:Configuration=Release -m)",
+      "Bash(\"C:\\\\Program Files\\\\CMake\\\\bin\\\\cmake.exe\" --build builds --config Debug -- /nologo /v:q /m)",
+      "Bash(\"/c/Program Files/CMake/bin/cmake.exe\" --build:*)",
+      "Bash(\"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" \"WFS.sln\" /p:Configuration=Release /p:Platform=x64 /m /verbosity:minimal)",
+      "Bash(\"C:/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" WFS.sln -p:Configuration=Release -p:Platform=x64 -m -verbosity:minimal)",
+      "Bash(\"C:/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" WFS-DIY.sln -p:Configuration=Release -p:Platform=x64 -m -verbosity:minimal)",
+      "Bash(\"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" BuildsVisualStudio2022WFS_DIY.sln /p:Configuration=Debug /p:Platform=x64 /t:Build /v:minimal /nologo)",
+      "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" \"D:/Dev/WFS_DIY_v1/Builds/VisualStudio2022/WFS_DIY.sln\" -p:Configuration=Debug -p:Platform=x64 -t:Build -v:minimal)",
+      "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" \"D:/Dev/WFS_DIY_v1/Builds/VisualStudio2022/WFS-DIY.sln\" -p:Configuration=Debug -p:Platform=x64 -t:Build -v:minimal)",
+      "Bash(\"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" WFS_SFX.sln -t:Build -p:Configuration=Debug -p:Platform=x64 -v:minimal)",
+      "Bash(\"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" WFS-DIY.sln -t:Build -p:Configuration=Debug -p:Platform=x64 -v:minimal)"
     ],
     "deny": [],
-    "ask": []
+    "ask": [],
+    "additionalDirectories": [
+      "d:\\Dev\\WFS_DIY_v1"
+    ]
   }
 }

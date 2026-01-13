@@ -451,10 +451,31 @@
 
   "map": {
     "buttons": {
-      "home": "Ajustar Palco ao Ecrã"
+      "fitView": "Ajustar Vista ao Ecrã",
+      "showLevels": "Mostrar Níveis",
+      "hideLevels": "Ocultar Níveis"
+    },
+    "tooltips": {
+      "fitView": "Ajustar o zoom e panorâmica para adaptar o palco ao ecrã",
+      "levels": "Mostrar os níveis de entradas e saídas no mapa"
     },
     "labels": {
       "reverbPrefix": "R"
+    }
+  },
+
+  "levelMeter": {
+    "windowTitle": "Medidores de Nível",
+    "inputs": "Entradas",
+    "outputs": "Saídas",
+    "solo": "Solo visual:",
+    "soloNone": "Nenhum",
+    "buttons": {
+      "clearSolo": "Limpar solo"
+    },
+    "tooltips": {
+      "solo": "Mostrar a contribuição da entrada para todas as saídas no medidor de nível (em modo Solo único) e reproduzir renderização binaural das entradas em solo",
+      "clearSolo": "Desativar todos os solos"
     }
   },
 

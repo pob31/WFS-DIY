@@ -136,6 +136,9 @@ private:
     // Custom LookAndFeel for centralized widget theming
     std::unique_ptr<WfsLookAndFeel> wfsLookAndFeel;
 
+    // Global tooltip window for hover tooltips
+    std::unique_ptr<juce::TooltipWindow> tooltipWindow;
+
     // Threaded processing architecture
     enum class ProcessingAlgorithm
     {

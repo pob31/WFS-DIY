@@ -11,7 +11,8 @@
 // derived classes can focus on visual styling logic. Implemented
 // inline so projects that haven't regenerated exporter files still
 // get the new behaviour without linker steps.
-class WfsSliderBase : public juce::Component
+class WfsSliderBase : public juce::Component,
+                      public juce::SettableTooltipClient
 {
 public:
     enum class Orientation
