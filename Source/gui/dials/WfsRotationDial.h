@@ -62,6 +62,9 @@ public:
     /** Configure TTS - unit is automatically "degrees" for rotation dials */
     void setTTSInfo(const juce::String& name) { ttsParameterName = name; }
 
+    /** Set alpha for disabled state (used for visual dimming) */
+    void setDisabledAlpha(float alpha) noexcept { disabledAlpha = juce::jlimit(0.0f, 1.0f, alpha); }
+
 private:
     void paint(juce::Graphics& g) override
     {
@@ -72,22 +75,22 @@ private:
 
         // Background is transparent - no fill
 
-        // Draw full circle track - use theme color
+        // Draw full circle track - use theme color with disabled alpha
         auto trackRadius = radius * 0.8f;
         auto trackWidth = radius * 0.12f;
-        g.setColour(ColorScheme::get().buttonBorder);
+        g.setColour(ColorScheme::get().buttonBorder.withAlpha(disabledAlpha));
         g.drawEllipse(juce::Rectangle<float>(
             centre.x - trackRadius, centre.y - trackRadius,
             trackRadius * 2.0f, trackRadius * 2.0f), trackWidth);
 
-        // Draw indicator dot on the track (Android app style) - use theme color
+        // Draw indicator dot on the track (Android app style) - use theme color with disabled alpha
         auto angleRad = juce::degreesToRadians(angleDegrees - 90.0f);
         auto dotRadius = trackWidth * 0.8f;
         juce::Point<float> dotPosition(
             centre.x + trackRadius * std::cos(angleRad),
             centre.y + trackRadius * std::sin(angleRad));
 
-        g.setColour(ColorScheme::get().sliderThumb);
+        g.setColour(ColorScheme::get().sliderThumb.withAlpha(disabledAlpha));
         g.fillEllipse(dotPosition.x - dotRadius, dotPosition.y - dotRadius,
                       dotRadius * 2.0f, dotRadius * 2.0f);
     }
@@ -135,6 +138,7 @@ private:
     }
 
     float angleDegrees = 0.0f;
+    float disabledAlpha = 1.0f;  // Alpha for disabled state visual dimming
 
     // TTS accessibility
     juce::String ttsParameterName;

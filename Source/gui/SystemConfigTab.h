@@ -439,6 +439,7 @@ public:
             int selectedId = binauralOutputSelector.getSelectedId();
             int channel = (selectedId == 1) ? -1 : ((selectedId - 2) * 2 + 1);  // Map back to channel
             parameters.getValueTreeState().setBinauralOutputChannel(channel);
+            updateBinauralControlsEnabledState();  // Dim controls when output is Off
         };
 
         // Listener Distance - WfsStandardSlider with TextEditor
@@ -640,6 +641,7 @@ public:
     {
         // Re-apply enabled/disabled colors with current theme colors
         updateIOControlsEnabledState();
+        updateBinauralControlsEnabledState();
 
         // Update all TextEditor colors - JUCE TextEditors cache colors internally
         // and don't automatically refresh from LookAndFeel on theme change
@@ -688,10 +690,10 @@ public:
         g.setFont(juce::FontOptions().withHeight(14.0f).withStyle("Bold"));
         g.drawText(LOC("systemConfig.sections.show"), col1X, 10, 200, 20, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.io"), col1X, 110, 200, 20, juce::Justification::left);
+        g.drawText(LOC("systemConfig.sections.binauralRenderer"), col1X, 330, 200, 20, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.stage"), col2X, 10, 200, 20, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.master"), col2X, 390, 200, 20, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.ui"), col3X, 10, 200, 20, juce::Justification::left);
-        g.drawText(LOC("systemConfig.sections.binaural"), col3X, 110, 200, 20, juce::Justification::left);
     }
 
     void resized() override
@@ -731,18 +733,61 @@ public:
         audioPatchingButton.setBounds(x, y, editorWidth + labelWidth, rowHeight);
         y += rowHeight + spacing;
 
-        // Level Meter and Clear Solo buttons share the row
-        const int halfButtonWidth = (editorWidth + labelWidth - spacing) / 2;
-        levelMeterButton.setBounds(x, y, halfButtonWidth, rowHeight);
-        clearSoloButton.setBounds(x + halfButtonWidth + spacing, y, halfButtonWidth, rowHeight);
-        y += rowHeight + spacing;
-
         algorithmLabel.setBounds(x, y, labelWidth, rowHeight);
         algorithmSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
         y += rowHeight + spacing;
 
+        const int halfButtonWidth = (editorWidth + labelWidth - spacing) / 2;
         processingButton.setBounds(x, y, halfButtonWidth, rowHeight);
         soloModeButton.setBounds(x + halfButtonWidth + spacing, y, halfButtonWidth, rowHeight);
+
+        // Binaural Renderer Section (Column 1, after Processing)
+        y = 360;  // Start after "Binaural Renderer" header
+        const int binauralFullWidth = labelWidth + editorWidth;
+        const int binauralValueWidth = 70;
+        const int sliderHeight = 20;
+
+        // Binaural Output selector
+        binauralOutputLabel.setBounds(x, y, labelWidth, rowHeight);
+        binauralOutputSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
+        y += rowHeight + spacing;
+
+        // Level Meters and Clear Solo buttons (in binaural section)
+        levelMeterButton.setBounds(x, y, halfButtonWidth, rowHeight);
+        clearSoloButton.setBounds(x + halfButtonWidth + spacing, y, halfButtonWidth, rowHeight);
+        y += rowHeight + spacing;
+
+        // Listener Distance (Outputs tab style: label left, value right, slider below)
+        binauralDistanceLabel.setBounds(x, y, labelWidth, rowHeight);
+        binauralDistanceEditor.setBounds(x + binauralFullWidth - binauralValueWidth - 20, y, binauralValueWidth, rowHeight);
+        binauralDistanceUnitLabel.setBounds(x + binauralFullWidth - 18, y, 20, rowHeight);
+        y += rowHeight;
+        binauralDistanceSlider.setBounds(x, y, binauralFullWidth, sliderHeight);
+        y += sliderHeight + spacing;
+
+        // Listener Angle (dial with value)
+        const int dialSize = 50;
+        binauralAngleLabel.setBounds(x, y, labelWidth, rowHeight);
+        binauralAngleEditor.setBounds(x + binauralFullWidth - binauralValueWidth - 20, y, binauralValueWidth, rowHeight);
+        binauralAngleUnitLabel.setBounds(x + binauralFullWidth - 18, y, 20, rowHeight);
+        y += rowHeight;
+        binauralAngleDial.setBounds(x + (binauralFullWidth - dialSize) / 2, y, dialSize, dialSize);
+        y += dialSize + spacing;
+
+        // Binaural Level (Outputs tab style)
+        binauralAttenLabel.setBounds(x, y, labelWidth, rowHeight);
+        binauralAttenEditor.setBounds(x + binauralFullWidth - binauralValueWidth - 20, y, binauralValueWidth, rowHeight);
+        binauralAttenUnitLabel.setBounds(x + binauralFullWidth - 18, y, 20, rowHeight);
+        y += rowHeight;
+        binauralAttenSlider.setBounds(x, y, binauralFullWidth, sliderHeight);
+        y += sliderHeight + spacing;
+
+        // Binaural Delay (Outputs tab style)
+        binauralDelayLabel.setBounds(x, y, labelWidth, rowHeight);
+        binauralDelayEditor.setBounds(x + binauralFullWidth - binauralValueWidth - 20, y, binauralValueWidth, rowHeight);
+        binauralDelayUnitLabel.setBounds(x + binauralFullWidth - 18, y, 20, rowHeight);
+        y += rowHeight;
+        binauralDelaySlider.setBounds(x, y, binauralFullWidth, sliderHeight);
 
         // Stage Section
         x = col2X;
@@ -836,50 +881,6 @@ public:
 
         languageLabel.setBounds(x, y, labelWidth, rowHeight);
         languageSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
-
-        // Binaural Section (same column, below UI section)
-        y = 140;  // Start after "Binaural" header
-
-        binauralOutputLabel.setBounds(x, y, labelWidth, rowHeight);
-        binauralOutputSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
-        y += rowHeight + spacing;
-
-        // Binaural controls layout: Label | Slider | Editor | Unit
-        const int binauralSliderWidth = editorWidth - 80;  // Room for editor and unit
-        const int binauralValueWidth = 50;
-        const int binauralUnitWidth = 25;
-        const int binauralSliderRowHeight = 20;  // Sliders are shorter
-
-        // Distance row
-        binauralDistanceLabel.setBounds(x, y, labelWidth, rowHeight);
-        binauralDistanceEditor.setBounds(x + labelWidth, y, binauralValueWidth, rowHeight);
-        binauralDistanceUnitLabel.setBounds(x + labelWidth + binauralValueWidth + 2, y, binauralUnitWidth, rowHeight);
-        y += rowHeight + 2;
-        binauralDistanceSlider.setBounds(x + labelWidth, y, binauralSliderWidth + binauralValueWidth + binauralUnitWidth, binauralSliderRowHeight);
-        y += binauralSliderRowHeight + spacing;
-
-        // Angle row - dial instead of slider
-        const int dialSize = 50;
-        binauralAngleLabel.setBounds(x, y, labelWidth, dialSize);
-        binauralAngleDial.setBounds(x + labelWidth, y, dialSize, dialSize);
-        binauralAngleEditor.setBounds(x + labelWidth + dialSize + 5, y + (dialSize - rowHeight) / 2, binauralValueWidth, rowHeight);
-        binauralAngleUnitLabel.setBounds(x + labelWidth + dialSize + 5 + binauralValueWidth + 2, y + (dialSize - rowHeight) / 2, binauralUnitWidth, rowHeight);
-        y += dialSize + spacing;
-
-        // Attenuation row
-        binauralAttenLabel.setBounds(x, y, labelWidth, rowHeight);
-        binauralAttenEditor.setBounds(x + labelWidth, y, binauralValueWidth, rowHeight);
-        binauralAttenUnitLabel.setBounds(x + labelWidth + binauralValueWidth + 2, y, binauralUnitWidth, rowHeight);
-        y += rowHeight + 2;
-        binauralAttenSlider.setBounds(x + labelWidth, y, binauralSliderWidth + binauralValueWidth + binauralUnitWidth, binauralSliderRowHeight);
-        y += binauralSliderRowHeight + spacing;
-
-        // Delay row
-        binauralDelayLabel.setBounds(x, y, labelWidth, rowHeight);
-        binauralDelayEditor.setBounds(x + labelWidth, y, binauralValueWidth, rowHeight);
-        binauralDelayUnitLabel.setBounds(x + labelWidth + binauralValueWidth + 2, y, binauralUnitWidth, rowHeight);
-        y += rowHeight + 2;
-        binauralDelaySlider.setBounds(x + labelWidth, y, binauralSliderWidth + binauralValueWidth + binauralUnitWidth, binauralSliderRowHeight);
 
         // Footer buttons - full width at bottom (matching Output tab style)
         const int footerHeight = 90;  // Two 30px button rows + 10px spacing + 20px padding
@@ -1207,6 +1208,9 @@ private:
 
         // Update I/O controls enabled state based on processing state
         updateIOControlsEnabledState();
+
+        // Update binaural controls enabled state based on output selection
+        updateBinauralControlsEnabledState();
     }
 
     void updateParameterFromEditor(juce::TextEditor& editor)
@@ -1548,6 +1552,56 @@ private:
         inputChannelsEditor.setColour(juce::TextEditor::textColourId, enabled ? enabledColour : disabledColour);
         outputChannelsEditor.setColour(juce::TextEditor::textColourId, enabled ? enabledColour : disabledColour);
         reverbChannelsEditor.setColour(juce::TextEditor::textColourId, enabled ? enabledColour : disabledColour);
+    }
+
+    void updateBinauralControlsEnabledState()
+    {
+        // When binaural output is Off (selectedId == 1), disable/dim all binaural controls
+        bool enabled = (binauralOutputSelector.getSelectedId() != 1);
+
+        // Enable/disable controls
+        binauralDistanceSlider.setEnabled(enabled);
+        binauralDistanceEditor.setEnabled(enabled);
+        binauralAngleDial.setEnabled(enabled);
+        binauralAngleEditor.setEnabled(enabled);
+        binauralAttenSlider.setEnabled(enabled);
+        binauralAttenEditor.setEnabled(enabled);
+        binauralDelaySlider.setEnabled(enabled);
+        binauralDelayEditor.setEnabled(enabled);
+        soloModeButton.setEnabled(enabled);
+
+        // Visual feedback - dim disabled controls using theme colors
+        auto disabledColour = ColorScheme::get().textDisabled;
+        auto enabledColour = ColorScheme::get().textPrimary;
+        float alpha = enabled ? 1.0f : 0.38f;  // Material Design disabled alpha
+
+        // Labels
+        binauralDistanceLabel.setColour(juce::Label::textColourId, enabled ? enabledColour : disabledColour);
+        binauralDistanceUnitLabel.setColour(juce::Label::textColourId, enabled ? enabledColour : disabledColour);
+        binauralAngleLabel.setColour(juce::Label::textColourId, enabled ? enabledColour : disabledColour);
+        binauralAngleUnitLabel.setColour(juce::Label::textColourId, enabled ? enabledColour : disabledColour);
+        binauralAttenLabel.setColour(juce::Label::textColourId, enabled ? enabledColour : disabledColour);
+        binauralAttenUnitLabel.setColour(juce::Label::textColourId, enabled ? enabledColour : disabledColour);
+        binauralDelayLabel.setColour(juce::Label::textColourId, enabled ? enabledColour : disabledColour);
+        binauralDelayUnitLabel.setColour(juce::Label::textColourId, enabled ? enabledColour : disabledColour);
+
+        // Text editors
+        binauralDistanceEditor.setColour(juce::TextEditor::textColourId, enabled ? enabledColour : disabledColour);
+        binauralAngleEditor.setColour(juce::TextEditor::textColourId, enabled ? enabledColour : disabledColour);
+        binauralAttenEditor.setColour(juce::TextEditor::textColourId, enabled ? enabledColour : disabledColour);
+        binauralDelayEditor.setColour(juce::TextEditor::textColourId, enabled ? enabledColour : disabledColour);
+
+        // Sliders - use setDisabledAlpha for WfsSliderBase-derived components
+        binauralDistanceSlider.setDisabledAlpha(alpha);
+        binauralAttenSlider.setDisabledAlpha(alpha);
+        binauralDelaySlider.setDisabledAlpha(alpha);
+        binauralAngleDial.setDisabledAlpha(alpha);
+
+        // Force repaint of sliders
+        binauralDistanceSlider.repaint();
+        binauralAttenSlider.repaint();
+        binauralDelaySlider.repaint();
+        binauralAngleDial.repaint();
     }
 
     //==============================================================================

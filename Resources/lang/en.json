@@ -70,6 +70,7 @@
       "master": "Master Section",
       "ui": "UI",
       "binaural": "Binaural Solo",
+      "binauralRenderer": "Binaural Renderer",
       "files": "Files"
     },
 
