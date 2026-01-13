@@ -490,7 +490,8 @@
 
   "eq": {
     "status": {
-      "off": "EQ オフ"
+      "off": "EQ オフ",
+      "on": "EQ オン"
     },
     "filterTypes": {
       "off": "オフ",
@@ -500,6 +501,93 @@
       "bandPass": "バンドパス",
       "highShelf": "ハイシェルフ",
       "highCut": "ハイカット"
+    },
+    "labels": {
+      "band": "バンド",
+      "freq": "周波数:",
+      "gain": "ゲイン",
+      "q": "Q"
+    }
+  },
+
+  "outputs": {
+    "tabs": {
+      "parameters": "出力パラメータ",
+      "eq": "出力EQ"
+    },
+    "labels": {
+      "name": "名前:",
+      "array": "アレイ:",
+      "applyToArray": "アレイに適用:",
+      "attenuation": "減衰:",
+      "delayLatency": "ディレイ/レイテンシー:",
+      "distanceAtten": "距離減衰:",
+      "hParallax": "水平パララックス:",
+      "vParallax": "垂直パララックス:",
+      "coordinates": "座標:",
+      "positionX": "位置 X:",
+      "positionY": "位置 Y:",
+      "positionZ": "位置 Z:",
+      "orientation": "向き:",
+      "angleOn": "アングル On:",
+      "angleOff": "アングル Off:",
+      "pitch": "ピッチ:",
+      "hfDamping": "HF減衰:",
+      "delay": "ディレイ:",
+      "latency": "レイテンシー:"
+    },
+    "buttons": {
+      "speakerVisible": "マップにスピーカーを表示",
+      "wizardOfOutZ": "OutZウィザード...",
+      "storeConfig": "出力設定を保存",
+      "reloadConfig": "出力設定を再読込",
+      "reloadBackup": "バックアップを読込",
+      "import": "インポート",
+      "export": "エクスポート"
+    },
+    "toggles": {
+      "minLatencyOn": "最小レイテンシー: オン",
+      "minLatencyOff": "最小レイテンシー: オフ",
+      "liveSourceOn": "ライブソース減衰: オン",
+      "liveSourceOff": "ライブソース減衰: オフ",
+      "floorReflectionsOn": "床面反射: オン",
+      "floorReflectionsOff": "床面反射: オフ"
+    },
+    "arrayModes": {
+      "single": "シングル",
+      "array": "アレイ",
+      "off": "オフ",
+      "absolute": "絶対",
+      "relative": "相対"
+    },
+    "coordModes": {
+      "xyz": "XYZ"
+    },
+    "units": {
+      "meters": "m",
+      "dB": "dB",
+      "dBPerMeter": "dB/m",
+      "hz": "Hz",
+      "ms": "ms",
+      "percent": "%"
+    },
+    "dialogs": {
+      "import": "出力設定をインポート",
+      "export": "出力設定をエクスポート"
+    },
+    "messages": {
+      "setToSingle": "出力 {num} をシングルに設定",
+      "assignedToArray": "出力 {num} をアレイ {array} に割り当て",
+      "selectFolderFirst": "まずシステム設定でプロジェクトフォルダを選択してください。",
+      "configSaved": "出力設定を保存しました。",
+      "configLoaded": "出力設定を読み込みました。",
+      "configNotFound": "出力設定ファイルが見つかりません。",
+      "configReloaded": "出力設定を再読込しました。",
+      "noBackup": "出力設定のバックアップが見つかりません。",
+      "backupLoaded": "バックアップから出力設定を読み込みました。",
+      "configImported": "出力設定をインポートしました。",
+      "configExported": "出力設定をエクスポートしました。",
+      "error": "エラー: {error}"
     }
   }
 }

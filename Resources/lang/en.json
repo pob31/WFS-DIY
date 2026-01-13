@@ -490,7 +490,8 @@
 
   "eq": {
     "status": {
-      "off": "EQ OFF"
+      "off": "EQ OFF",
+      "on": "EQ ON"
     },
     "filterTypes": {
       "off": "OFF",
@@ -500,6 +501,93 @@
       "bandPass": "Band Pass",
       "highShelf": "High Shelf",
       "highCut": "High Cut"
+    },
+    "labels": {
+      "band": "Band",
+      "freq": "Freq:",
+      "gain": "Gain",
+      "q": "Q"
+    }
+  },
+
+  "outputs": {
+    "tabs": {
+      "parameters": "Output Parameters",
+      "eq": "Output EQ"
+    },
+    "labels": {
+      "name": "Name:",
+      "array": "Array:",
+      "applyToArray": "Apply to Array:",
+      "attenuation": "Attenuation:",
+      "delayLatency": "Delay/Latency:",
+      "distanceAtten": "Distance Atten:",
+      "hParallax": "Horizontal Parallax:",
+      "vParallax": "Vertical Parallax:",
+      "coordinates": "Coordinates:",
+      "positionX": "Position X:",
+      "positionY": "Position Y:",
+      "positionZ": "Position Z:",
+      "orientation": "Orientation:",
+      "angleOn": "Angle On:",
+      "angleOff": "Angle Off:",
+      "pitch": "Pitch:",
+      "hfDamping": "HF Damping:",
+      "delay": "Delay:",
+      "latency": "Latency:"
+    },
+    "buttons": {
+      "speakerVisible": "Speaker Visible on Map",
+      "wizardOfOutZ": "Wizard of OutZ...",
+      "storeConfig": "Store Output Config",
+      "reloadConfig": "Reload Output Config",
+      "reloadBackup": "Reload Backup",
+      "import": "Import",
+      "export": "Export"
+    },
+    "toggles": {
+      "minLatencyOn": "Minimal Latency: ON",
+      "minLatencyOff": "Minimal Latency: OFF",
+      "liveSourceOn": "Live Source Atten: ON",
+      "liveSourceOff": "Live Source Atten: OFF",
+      "floorReflectionsOn": "Floor Reflections: ON",
+      "floorReflectionsOff": "Floor Reflections: OFF"
+    },
+    "arrayModes": {
+      "single": "Single",
+      "array": "Array",
+      "off": "OFF",
+      "absolute": "ABSOLUTE",
+      "relative": "RELATIVE"
+    },
+    "coordModes": {
+      "xyz": "XYZ"
+    },
+    "units": {
+      "meters": "m",
+      "dB": "dB",
+      "dBPerMeter": "dB/m",
+      "hz": "Hz",
+      "ms": "ms",
+      "percent": "%"
+    },
+    "dialogs": {
+      "import": "Import Output Configuration",
+      "export": "Export Output Configuration"
+    },
+    "messages": {
+      "setToSingle": "Output {num} set to Single",
+      "assignedToArray": "Output {num} assigned to Array {array}",
+      "selectFolderFirst": "Please select a project folder in System Config first.",
+      "configSaved": "Output configuration saved.",
+      "configLoaded": "Output configuration loaded.",
+      "configNotFound": "Output config file not found.",
+      "configReloaded": "Output configuration reloaded.",
+      "noBackup": "No backup output configuration found.",
+      "backupLoaded": "Output configuration loaded from backup.",
+      "configImported": "Output configuration imported.",
+      "configExported": "Output configuration exported.",
+      "error": "Error: {error}"
     }
   }
 }

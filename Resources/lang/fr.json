@@ -490,7 +490,8 @@
 
   "eq": {
     "status": {
-      "off": "EQ DÉSACTIVÉ"
+      "off": "EQ DÉSACTIVÉ",
+      "on": "EQ ACTIVÉ"
     },
     "filterTypes": {
       "off": "DÉSACTIVÉ",
@@ -500,6 +501,93 @@
       "bandPass": "Passe-bande",
       "highShelf": "Aigu",
       "highCut": "Coupe-haut"
+    },
+    "labels": {
+      "band": "Bande",
+      "freq": "Fréq :",
+      "gain": "Gain",
+      "q": "Q"
+    }
+  },
+
+  "outputs": {
+    "tabs": {
+      "parameters": "Paramètres de sortie",
+      "eq": "EQ de sortie"
+    },
+    "labels": {
+      "name": "Nom :",
+      "array": "Groupe :",
+      "applyToArray": "Appliquer au groupe :",
+      "attenuation": "Atténuation :",
+      "delayLatency": "Délai/Latence :",
+      "distanceAtten": "Atténuation distance :",
+      "hParallax": "Parallaxe horizontal :",
+      "vParallax": "Parallaxe vertical :",
+      "coordinates": "Coordonnées :",
+      "positionX": "Position X :",
+      "positionY": "Position Y :",
+      "positionZ": "Position Z :",
+      "orientation": "Orientation :",
+      "angleOn": "Angle On :",
+      "angleOff": "Angle Off :",
+      "pitch": "Inclinaison :",
+      "hfDamping": "Atténuation HF :",
+      "delay": "Délai :",
+      "latency": "Latence :"
+    },
+    "buttons": {
+      "speakerVisible": "Enceinte visible sur la carte",
+      "wizardOfOutZ": "Assistant OutZ...",
+      "storeConfig": "Enregistrer config sorties",
+      "reloadConfig": "Recharger config sorties",
+      "reloadBackup": "Recharger sauvegarde",
+      "import": "Importer",
+      "export": "Exporter"
+    },
+    "toggles": {
+      "minLatencyOn": "Latence min : OUI",
+      "minLatencyOff": "Latence min : NON",
+      "liveSourceOn": "Atténuation live : OUI",
+      "liveSourceOff": "Atténuation live : NON",
+      "floorReflectionsOn": "Réflexions sol : OUI",
+      "floorReflectionsOff": "Réflexions sol : NON"
+    },
+    "arrayModes": {
+      "single": "Individuel",
+      "array": "Groupe",
+      "off": "DÉSACTIVÉ",
+      "absolute": "ABSOLU",
+      "relative": "RELATIF"
+    },
+    "coordModes": {
+      "xyz": "XYZ"
+    },
+    "units": {
+      "meters": "m",
+      "dB": "dB",
+      "dBPerMeter": "dB/m",
+      "hz": "Hz",
+      "ms": "ms",
+      "percent": "%"
+    },
+    "dialogs": {
+      "import": "Importer configuration des sorties",
+      "export": "Exporter configuration des sorties"
+    },
+    "messages": {
+      "setToSingle": "Sortie {num} définie en Individuel",
+      "assignedToArray": "Sortie {num} assignée au Groupe {array}",
+      "selectFolderFirst": "Veuillez d'abord sélectionner un dossier projet dans Config Système.",
+      "configSaved": "Configuration des sorties enregistrée.",
+      "configLoaded": "Configuration des sorties chargée.",
+      "configNotFound": "Fichier de configuration des sorties introuvable.",
+      "configReloaded": "Configuration des sorties rechargée.",
+      "noBackup": "Aucune sauvegarde de configuration des sorties trouvée.",
+      "backupLoaded": "Configuration des sorties chargée depuis la sauvegarde.",
+      "configImported": "Configuration des sorties importée.",
+      "configExported": "Configuration des sorties exportée.",
+      "error": "Erreur : {error}"
     }
   }
 }

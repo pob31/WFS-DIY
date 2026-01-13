@@ -13,6 +13,7 @@
 #include "OutputArrayHelperWindow.h"
 #include "EQDisplayComponent.h"
 #include "../Helpers/CoordinateConverter.h"
+#include "../Localization/LocalizationManager.h"
 
 /**
  * Small colored indicator to show that a parameter is linked across an array.
@@ -147,17 +148,17 @@ public:
 
         // Output Name
         addAndMakeVisible(nameLabel);
-        nameLabel.setText("Name:", juce::dontSendNotification);
+        nameLabel.setText(LOC("outputs.labels.name"), juce::dontSendNotification);
         addAndMakeVisible(nameEditor);
         nameEditor.addListener(this);
 
         // Array selector
         addAndMakeVisible(arrayLabel);
-        arrayLabel.setText("Array:", juce::dontSendNotification);
+        arrayLabel.setText(LOC("outputs.labels.array"), juce::dontSendNotification);
         addAndMakeVisible(arraySelector);
-        arraySelector.addItem("Single", 1);
+        arraySelector.addItem(LOC("outputs.arrayModes.single"), 1);
         for (int i = 1; i <= 10; ++i)
-            arraySelector.addItem("Array " + juce::String(i), i + 1);
+            arraySelector.addItem(LOC("outputs.arrayModes.array") + " " + juce::String(i), i + 1);
         arraySelector.setSelectedId(1, juce::dontSendNotification);
         arraySelector.onChange = [this]() {
             updateArrayParameter();
@@ -167,11 +168,11 @@ public:
 
         // Apply to Array selector
         addAndMakeVisible(applyToArrayLabel);
-        applyToArrayLabel.setText("Apply to Array:", juce::dontSendNotification);
+        applyToArrayLabel.setText(LOC("outputs.labels.applyToArray"), juce::dontSendNotification);
         addAndMakeVisible(applyToArraySelector);
-        applyToArraySelector.addItem("OFF", 1);
-        applyToArraySelector.addItem("ABSOLUTE", 2);
-        applyToArraySelector.addItem("RELATIVE", 3);
+        applyToArraySelector.addItem(LOC("outputs.arrayModes.off"), 1);
+        applyToArraySelector.addItem(LOC("outputs.arrayModes.absolute"), 2);
+        applyToArraySelector.addItem(LOC("outputs.arrayModes.relative"), 3);
         applyToArraySelector.setSelectedId(2, juce::dontSendNotification);
         applyToArraySelector.onChange = [this]() {
             updateApplyToArrayParameter();
@@ -181,18 +182,18 @@ public:
 
         // Map visibility toggle button
         addAndMakeVisible(mapVisibilityButton);
-        mapVisibilityButton.setButtonText("Speaker Visible on Map");
+        mapVisibilityButton.setButtonText(LOC("outputs.buttons.speakerVisible"));
         mapVisibilityButton.onClick = [this]() { toggleMapVisibility(); };
 
         // Wizard of OutZ button (array position helper)
         addAndMakeVisible(arrayPositionHelperButton);
-        arrayPositionHelperButton.setButtonText("Wizard of OutZ...");
+        arrayPositionHelperButton.setButtonText(LOC("outputs.buttons.wizardOfOutZ"));
         arrayPositionHelperButton.onClick = [this]() { openArrayPositionHelper(); };
 
         // ==================== SUB-TABS ====================
         addAndMakeVisible(subTabBar);
-        subTabBar.addTab("Output Parameters", juce::Colour(0xFF2A2A2A), -1);
-        subTabBar.addTab("Output EQ", juce::Colour(0xFF2A2A2A), -1);
+        subTabBar.addTab(LOC("outputs.tabs.parameters"), juce::Colour(0xFF2A2A2A), -1);
+        subTabBar.addTab(LOC("outputs.tabs.eq"), juce::Colour(0xFF2A2A2A), -1);
         subTabBar.setCurrentTabIndex(0);
         subTabBar.addChangeListener(static_cast<juce::ChangeListener*>(this));
 
@@ -207,27 +208,27 @@ public:
 
         // ==================== FOOTER - STORE/RELOAD BUTTONS ====================
         addAndMakeVisible(storeButton);
-        storeButton.setButtonText("Store Output Config");
+        storeButton.setButtonText(LOC("outputs.buttons.storeConfig"));
         storeButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF8C3333));  // Reddish
         storeButton.onClick = [this]() { storeOutputConfiguration(); };
 
         addAndMakeVisible(reloadButton);
-        reloadButton.setButtonText("Reload Output Config");
+        reloadButton.setButtonText(LOC("outputs.buttons.reloadConfig"));
         reloadButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF338C33));  // Greenish
         reloadButton.onClick = [this]() { reloadOutputConfiguration(); };
 
         addAndMakeVisible(reloadBackupButton);
-        reloadBackupButton.setButtonText("Reload Backup");
+        reloadBackupButton.setButtonText(LOC("outputs.buttons.reloadBackup"));
         reloadBackupButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF266626));  // Darker green
         reloadBackupButton.onClick = [this]() { reloadOutputConfigBackup(); };
 
         addAndMakeVisible(importButton);
-        importButton.setButtonText("Import");
+        importButton.setButtonText(LOC("outputs.buttons.import"));
         importButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF338C33));  // Greenish
         importButton.onClick = [this]() { importOutputConfiguration(); };
 
         addAndMakeVisible(exportButton);
-        exportButton.setButtonText("Export");
+        exportButton.setButtonText(LOC("outputs.buttons.export"));
         exportButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF8C3333));  // Reddish
         exportButton.onClick = [this]() { exportOutputConfiguration(); };
 
@@ -330,9 +331,9 @@ public:
         if (statusBar != nullptr)
         {
             if (array == 0)
-                statusBar->showTemporaryMessage("Output " + juce::String(currentChannel) + " set to Single", 2000);
+                statusBar->showTemporaryMessage(LOC("outputs.messages.setToSingle").replace("{num}", juce::String(currentChannel)), 2000);
             else
-                statusBar->showTemporaryMessage("Output " + juce::String(currentChannel) + " assigned to Array " + juce::String(array), 2000);
+                statusBar->showTemporaryMessage(LOC("outputs.messages.assignedToArray").replace("{num}", juce::String(currentChannel)).replace("{array}", juce::String(array)), 2000);
         }
     }
 
@@ -442,7 +443,7 @@ private:
     {
         // Attenuation slider (-92 to 0 dB)
         addAndMakeVisible(attenuationLabel);
-        attenuationLabel.setText("Attenuation:", juce::dontSendNotification);
+        attenuationLabel.setText(LOC("outputs.labels.attenuation"), juce::dontSendNotification);
 
         attenuationSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFFFF5722));
         attenuationSlider.onValueChanged = [this](float v) {
@@ -460,59 +461,59 @@ private:
 
         // Delay/Latency slider (-100 to 100 ms)
         addAndMakeVisible(delayLatencyLabel);
-        delayLatencyLabel.setText("Delay/Latency:", juce::dontSendNotification);
+        delayLatencyLabel.setText(LOC("outputs.labels.delayLatency"), juce::dontSendNotification);
 
         delayLatencySlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF4CAF50));
         delayLatencySlider.onValueChanged = [this](float v) {
             // Slider range is -1 to 1, map to -100ms to 100ms
             float ms = v * 100.0f;
-            juce::String label = (ms < 0) ? "Latency: " : "Delay: ";
-            delayLatencyValueLabel.setText(label + juce::String(std::abs(ms), 1) + " ms", juce::dontSendNotification);
+            juce::String label = (ms < 0) ? LOC("outputs.labels.latency") : LOC("outputs.labels.delay");
+            delayLatencyValueLabel.setText(label + " " + juce::String(std::abs(ms), 1) + " " + LOC("outputs.units.ms"), juce::dontSendNotification);
             saveOutputParam(WFSParameterIDs::outputDelayLatency, ms);  // Save real ms value
         };
         addAndMakeVisible(delayLatencySlider);
 
         addAndMakeVisible(delayLatencyValueLabel);
-        delayLatencyValueLabel.setText("Delay: 0.0 ms", juce::dontSendNotification);
+        delayLatencyValueLabel.setText(LOC("outputs.labels.delay") + " 0.0 " + LOC("outputs.units.ms"), juce::dontSendNotification);
         setupEditableValueLabel(delayLatencyValueLabel);
 
         // Min Latency Enable button
         addAndMakeVisible(minLatencyEnableButton);
-        minLatencyEnableButton.setButtonText("Minimal Latency: ON");
+        minLatencyEnableButton.setButtonText(LOC("outputs.toggles.minLatencyOn"));
         minLatencyEnableButton.setClickingTogglesState(true);
         minLatencyEnableButton.setToggleState(true, juce::dontSendNotification);
         minLatencyEnableButton.onClick = [this]() {
             bool enabled = minLatencyEnableButton.getToggleState();
-            minLatencyEnableButton.setButtonText(enabled ? "Minimal Latency: ON" : "Minimal Latency: OFF");
+            minLatencyEnableButton.setButtonText(enabled ? LOC("outputs.toggles.minLatencyOn") : LOC("outputs.toggles.minLatencyOff"));
             saveOutputParam(WFSParameterIDs::outputMiniLatencyEnable, enabled ? 1 : 0);
         };
 
         // Live Source Enable button
         addAndMakeVisible(liveSourceEnableButton);
-        liveSourceEnableButton.setButtonText("Live Source Atten: ON");
+        liveSourceEnableButton.setButtonText(LOC("outputs.toggles.liveSourceOn"));
         liveSourceEnableButton.setClickingTogglesState(true);
         liveSourceEnableButton.setToggleState(true, juce::dontSendNotification);
         liveSourceEnableButton.onClick = [this]() {
             bool enabled = liveSourceEnableButton.getToggleState();
-            liveSourceEnableButton.setButtonText(enabled ? "Live Source Atten: ON" : "Live Source Atten: OFF");
+            liveSourceEnableButton.setButtonText(enabled ? LOC("outputs.toggles.liveSourceOn") : LOC("outputs.toggles.liveSourceOff"));
             saveOutputParam(WFSParameterIDs::outputLSattenEnable, enabled ? 1 : 0);
         };
 
         // Floor Reflections Enable button
         addAndMakeVisible(floorReflectionsEnableButton);
-        floorReflectionsEnableButton.setButtonText("Floor Reflections: ON");
+        floorReflectionsEnableButton.setButtonText(LOC("outputs.toggles.floorReflectionsOn"));
         floorReflectionsEnableButton.setClickingTogglesState(true);
         floorReflectionsEnableButton.setToggleState(true, juce::dontSendNotification);
         floorReflectionsEnableButton.onClick = [this]() {
             bool enabled = floorReflectionsEnableButton.getToggleState();
-            floorReflectionsEnableButton.setButtonText(enabled ? "Floor Reflections: ON" : "Floor Reflections: OFF");
+            floorReflectionsEnableButton.setButtonText(enabled ? LOC("outputs.toggles.floorReflectionsOn") : LOC("outputs.toggles.floorReflectionsOff"));
             // Array propagation is now handled automatically by setOutputParam
             saveOutputParam(WFSParameterIDs::outputFRenable, enabled ? 1 : 0);
         };
 
         // Distance Attenuation % slider (0-200%, default 100% in center)
         addAndMakeVisible(distanceAttenLabel);
-        distanceAttenLabel.setText("Distance Atten:", juce::dontSendNotification);
+        distanceAttenLabel.setText(LOC("outputs.labels.distanceAtten"), juce::dontSendNotification);
 
         distanceAttenSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFF9C27B0));
         // Bidirectional slider: center (0) = 100%, no need to set initial value
@@ -530,21 +531,21 @@ private:
 
         // Horizontal Parallax
         addAndMakeVisible(hParallaxLabel);
-        hParallaxLabel.setText("Horizontal Parallax:", juce::dontSendNotification);
+        hParallaxLabel.setText(LOC("outputs.labels.hParallax"), juce::dontSendNotification);
         addAndMakeVisible(hParallaxEditor);
         hParallaxEditor.setText("0.00", juce::dontSendNotification);
         setupNumericEditor(hParallaxEditor, false, true);
         addAndMakeVisible(hParallaxUnitLabel);
-        hParallaxUnitLabel.setText("m", juce::dontSendNotification);
+        hParallaxUnitLabel.setText(LOC("outputs.units.meters"), juce::dontSendNotification);
 
         // Vertical Parallax
         addAndMakeVisible(vParallaxLabel);
-        vParallaxLabel.setText("Vertical Parallax:", juce::dontSendNotification);
+        vParallaxLabel.setText(LOC("outputs.labels.vParallax"), juce::dontSendNotification);
         addAndMakeVisible(vParallaxEditor);
         vParallaxEditor.setText("0.00", juce::dontSendNotification);
         setupNumericEditor(vParallaxEditor, true, true);
         addAndMakeVisible(vParallaxUnitLabel);
-        vParallaxUnitLabel.setText("m", juce::dontSendNotification);
+        vParallaxUnitLabel.setText(LOC("outputs.units.meters"), juce::dontSendNotification);
 
         // Initialize array link indicators (all hidden by default)
         addAndMakeVisible(attenuationIndicator);
@@ -566,9 +567,9 @@ private:
     {
         // Coordinate Mode selector
         addAndMakeVisible(coordModeLabel);
-        coordModeLabel.setText("Coordinates:", juce::dontSendNotification);
+        coordModeLabel.setText(LOC("outputs.labels.coordinates"), juce::dontSendNotification);
         addAndMakeVisible(coordModeSelector);
-        coordModeSelector.addItem("XYZ", 1);
+        coordModeSelector.addItem(LOC("outputs.coordModes.xyz"), 1);
         coordModeSelector.addItem(juce::String(juce::CharPointer_UTF8("r \xce\xb8 Z")), 2);    // r θ Z
         coordModeSelector.addItem(juce::String(juce::CharPointer_UTF8("r \xce\xb8 \xcf\x86")), 3);  // r θ φ
         coordModeSelector.setSelectedId(1, juce::dontSendNotification);
@@ -582,34 +583,34 @@ private:
 
         // Position X
         addAndMakeVisible(posXLabel);
-        posXLabel.setText("Position X:", juce::dontSendNotification);
+        posXLabel.setText(LOC("outputs.labels.positionX"), juce::dontSendNotification);
         addAndMakeVisible(posXEditor);
         posXEditor.setText("0.00", juce::dontSendNotification);
         setupNumericEditor(posXEditor, true, true);
         addAndMakeVisible(posXUnitLabel);
-        posXUnitLabel.setText("m", juce::dontSendNotification);
+        posXUnitLabel.setText(LOC("outputs.units.meters"), juce::dontSendNotification);
 
         // Position Y
         addAndMakeVisible(posYLabel);
-        posYLabel.setText("Position Y:", juce::dontSendNotification);
+        posYLabel.setText(LOC("outputs.labels.positionY"), juce::dontSendNotification);
         addAndMakeVisible(posYEditor);
         posYEditor.setText("0.00", juce::dontSendNotification);
         setupNumericEditor(posYEditor, true, true);
         addAndMakeVisible(posYUnitLabel);
-        posYUnitLabel.setText("m", juce::dontSendNotification);
+        posYUnitLabel.setText(LOC("outputs.units.meters"), juce::dontSendNotification);
 
         // Position Z
         addAndMakeVisible(posZLabel);
-        posZLabel.setText("Position Z:", juce::dontSendNotification);
+        posZLabel.setText(LOC("outputs.labels.positionZ"), juce::dontSendNotification);
         addAndMakeVisible(posZEditor);
         posZEditor.setText("0.00", juce::dontSendNotification);
         setupNumericEditor(posZEditor, true, true);
         addAndMakeVisible(posZUnitLabel);
-        posZUnitLabel.setText("m", juce::dontSendNotification);
+        posZUnitLabel.setText(LOC("outputs.units.meters"), juce::dontSendNotification);
 
         // Orientation dial
         addAndMakeVisible(orientationLabel);
-        orientationLabel.setText("Orientation:", juce::dontSendNotification);
+        orientationLabel.setText(LOC("outputs.labels.orientation"), juce::dontSendNotification);
         orientationDial.setColours(juce::Colours::black, juce::Colours::white, juce::Colours::grey);
         orientationDial.onAngleChanged = [this](float angle) {
             orientationValueLabel.setText(juce::String(static_cast<int>(angle)), juce::dontSendNotification);
@@ -627,7 +628,7 @@ private:
 
         // Angle On slider (1-180°)
         addAndMakeVisible(angleOnLabel);
-        angleOnLabel.setText("Angle On:", juce::dontSendNotification);
+        angleOnLabel.setText(LOC("outputs.labels.angleOn"), juce::dontSendNotification);
 
         angleOnSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF00BCD4));
         angleOnSlider.setValue(0.47f);  // ~86°
@@ -643,7 +644,7 @@ private:
 
         // Angle Off slider (0-179°)
         addAndMakeVisible(angleOffLabel);
-        angleOffLabel.setText("Angle Off:", juce::dontSendNotification);
+        angleOffLabel.setText(LOC("outputs.labels.angleOff"), juce::dontSendNotification);
 
         angleOffSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF00BCD4));
         angleOffSlider.setValue(0.5f);  // ~90°
@@ -659,7 +660,7 @@ private:
 
         // Pitch slider (-90 to 90°)
         addAndMakeVisible(pitchLabel);
-        pitchLabel.setText("Pitch:", juce::dontSendNotification);
+        pitchLabel.setText(LOC("outputs.labels.pitch"), juce::dontSendNotification);
 
         pitchSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF2196F3));
         pitchSlider.onValueChanged = [this](float v) {
@@ -675,7 +676,7 @@ private:
 
         // HF Damping slider (-6 to 0 dB/m)
         addAndMakeVisible(hfDampingLabel);
-        hfDampingLabel.setText("HF Damping:", juce::dontSendNotification);
+        hfDampingLabel.setText(LOC("outputs.labels.hfDamping"), juce::dontSendNotification);
 
         hfDampingSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFFFF9800));
         hfDampingSlider.setValue(1.0f);  // 0 dB/m
@@ -694,12 +695,12 @@ private:
     {
         // Global EQ Enable button
         addAndMakeVisible(eqEnableButton);
-        eqEnableButton.setButtonText("EQ ON");
+        eqEnableButton.setButtonText(LOC("eq.status.on"));
         eqEnableButton.setClickingTogglesState(true);
         eqEnableButton.setToggleState(true, juce::dontSendNotification);
         eqEnableButton.onClick = [this]() {
             bool enabled = eqEnableButton.getToggleState();
-            eqEnableButton.setButtonText(enabled ? "EQ ON" : "EQ OFF");
+            eqEnableButton.setButtonText(enabled ? LOC("eq.status.on") : LOC("eq.status.off"));
             // Update all band appearances when global EQ state changes
             for (int i = 0; i < numEqBands; ++i)
                 updateEqBandAppearance(i);
@@ -714,19 +715,19 @@ private:
         {
             // Band label - colored to match EQ display markers
             addAndMakeVisible(eqBandLabel[i]);
-            eqBandLabel[i].setText("Band " + juce::String(i + 1), juce::dontSendNotification);
+            eqBandLabel[i].setText(LOC("eq.labels.band") + " " + juce::String(i + 1), juce::dontSendNotification);
             eqBandLabel[i].setColour(juce::Label::textColourId, EQDisplayComponent::getBandColour(i));
             eqBandLabel[i].setJustificationType(juce::Justification::centred);
 
             // Shape dropdown
             addAndMakeVisible(eqBandShapeSelector[i]);
-            eqBandShapeSelector[i].addItem("OFF", 1);
-            eqBandShapeSelector[i].addItem("Low Cut", 2);
-            eqBandShapeSelector[i].addItem("Low Shelf", 3);
-            eqBandShapeSelector[i].addItem("Peak/Notch", 4);
-            eqBandShapeSelector[i].addItem("Band Pass", 5);
-            eqBandShapeSelector[i].addItem("High Shelf", 6);
-            eqBandShapeSelector[i].addItem("High Cut", 7);
+            eqBandShapeSelector[i].addItem(LOC("eq.filterTypes.off"), 1);
+            eqBandShapeSelector[i].addItem(LOC("eq.filterTypes.lowCut"), 2);
+            eqBandShapeSelector[i].addItem(LOC("eq.filterTypes.lowShelf"), 3);
+            eqBandShapeSelector[i].addItem(LOC("eq.filterTypes.peakNotch"), 4);
+            eqBandShapeSelector[i].addItem(LOC("eq.filterTypes.bandPass"), 5);
+            eqBandShapeSelector[i].addItem(LOC("eq.filterTypes.highShelf"), 6);
+            eqBandShapeSelector[i].addItem(LOC("eq.filterTypes.highCut"), 7);
             eqBandShapeSelector[i].setSelectedId(1, juce::dontSendNotification);  // OFF by default
 
             // Shape change handler - update appearance and save
@@ -740,7 +741,7 @@ private:
 
             // Frequency slider - colored to match band
             addAndMakeVisible(eqBandFreqLabel[i]);
-            eqBandFreqLabel[i].setText("Freq:", juce::dontSendNotification);
+            eqBandFreqLabel[i].setText(LOC("eq.labels.freq"), juce::dontSendNotification);
             eqBandFreqLabel[i].setColour(juce::Label::textColourId, juce::Colours::grey);
 
             juce::Colour bandColour = EQDisplayComponent::getBandColour(i);
@@ -757,7 +758,7 @@ private:
 
             // Gain dial - colored to match band
             addAndMakeVisible(eqBandGainLabel[i]);
-            eqBandGainLabel[i].setText("Gain", juce::dontSendNotification);
+            eqBandGainLabel[i].setText(LOC("eq.labels.gain"), juce::dontSendNotification);
             eqBandGainLabel[i].setColour(juce::Label::textColourId, juce::Colours::grey);
             eqBandGainLabel[i].setJustificationType(juce::Justification::centred);
 
@@ -775,7 +776,7 @@ private:
 
             // Q dial - colored to match band
             addAndMakeVisible(eqBandQLabel[i]);
-            eqBandQLabel[i].setText("Q", juce::dontSendNotification);
+            eqBandQLabel[i].setText(LOC("eq.labels.q"), juce::dontSendNotification);
             eqBandQLabel[i].setColour(juce::Label::textColourId, juce::Colours::grey);
             eqBandQLabel[i].setJustificationType(juce::Justification::centred);
 
@@ -1411,20 +1412,20 @@ private:
         float delayMs = getFloatParam("outputDelayLatency", 0.0f);
         delayMs = juce::jlimit(-100.0f, 100.0f, delayMs);
         delayLatencySlider.setValue(delayMs / 100.0f);  // Convert ms to slider value (-1 to 1)
-        juce::String delayLabel = (delayMs < 0) ? "Latency: " : "Delay: ";
-        delayLatencyValueLabel.setText(delayLabel + juce::String(std::abs(delayMs), 1) + " ms", juce::dontSendNotification);
+        juce::String delayLabel = (delayMs < 0) ? LOC("outputs.labels.latency") : LOC("outputs.labels.delay");
+        delayLatencyValueLabel.setText(delayLabel + " " + juce::String(std::abs(delayMs), 1) + " " + LOC("outputs.units.ms"), juce::dontSendNotification);
 
         bool minLatency = getIntParam("outputMiniLatencyEnable", 1) != 0;  // Default ON
         minLatencyEnableButton.setToggleState(minLatency, juce::dontSendNotification);
-        minLatencyEnableButton.setButtonText(minLatency ? "Minimal Latency: ON" : "Minimal Latency: OFF");
+        minLatencyEnableButton.setButtonText(minLatency ? LOC("outputs.toggles.minLatencyOn") : LOC("outputs.toggles.minLatencyOff"));
 
         bool lsAtten = getIntParam("outputLSattenEnable", 1) != 0;  // Default ON
         liveSourceEnableButton.setToggleState(lsAtten, juce::dontSendNotification);
-        liveSourceEnableButton.setButtonText(lsAtten ? "Live Source Atten: ON" : "Live Source Atten: OFF");
+        liveSourceEnableButton.setButtonText(lsAtten ? LOC("outputs.toggles.liveSourceOn") : LOC("outputs.toggles.liveSourceOff"));
 
         bool frEnable = getIntParam("outputFRenable", 1) != 0;  // Default ON
         floorReflectionsEnableButton.setToggleState(frEnable, juce::dontSendNotification);
-        floorReflectionsEnableButton.setButtonText(frEnable ? "Floor Reflections: ON" : "Floor Reflections: OFF");
+        floorReflectionsEnableButton.setButtonText(frEnable ? LOC("outputs.toggles.floorReflectionsOn") : LOC("outputs.toggles.floorReflectionsOff"));
 
         int distAtten = getIntParam("outputDistanceAttenPercent", 100);  // Default 100%
         distanceAttenSlider.setValue((distAtten / 100.0f) - 1.0f);
@@ -1462,7 +1463,7 @@ private:
         // EQ
         bool eqEnabled = getIntParam("outputEQenabled", 1) != 0;  // Default ON
         eqEnableButton.setToggleState(eqEnabled, juce::dontSendNotification);
-        eqEnableButton.setButtonText(eqEnabled ? "EQ ON" : "EQ OFF");
+        eqEnableButton.setButtonText(eqEnabled ? LOC("eq.status.on") : LOC("eq.status.off"));
 
         // Load EQ band parameters
         auto eqTree = parameters.getValueTreeState().getOutputEQSection(channel - 1);
@@ -1708,8 +1709,8 @@ private:
             float ms = juce::jlimit(-100.0f, 100.0f, value);
             delayLatencySlider.setValue(ms / 100.0f);
             // Force label update
-            juce::String labelText = (ms < 0) ? "Latency: " : "Delay: ";
-            delayLatencyValueLabel.setText(labelText + juce::String(std::abs(ms), 1) + " ms", juce::dontSendNotification);
+            juce::String labelText = (ms < 0) ? LOC("outputs.labels.latency") : LOC("outputs.labels.delay");
+            delayLatencyValueLabel.setText(labelText + " " + juce::String(std::abs(ms), 1) + " " + LOC("outputs.units.ms"), juce::dontSendNotification);
         }
         else if (label == &distanceAttenValueLabel)
         {
@@ -1776,13 +1777,13 @@ private:
         auto& fileManager = parameters.getFileManager();
         if (!fileManager.hasValidProjectFolder())
         {
-            showStatusMessage("Please select a project folder in System Config first.");
+            showStatusMessage(LOC("outputs.messages.selectFolderFirst"));
             return;
         }
         if (fileManager.saveOutputConfig())
-            showStatusMessage("Output configuration saved.");
+            showStatusMessage(LOC("outputs.messages.configSaved"));
         else
-            showStatusMessage("Error: " + fileManager.getLastError());
+            showStatusMessage(LOC("outputs.messages.error").replace("{error}", fileManager.getLastError()));
     }
 
     void reloadOutputConfiguration()
@@ -1790,20 +1791,20 @@ private:
         auto& fileManager = parameters.getFileManager();
         if (!fileManager.hasValidProjectFolder())
         {
-            showStatusMessage("Please select a project folder in System Config first.");
+            showStatusMessage(LOC("outputs.messages.selectFolderFirst"));
             return;
         }
         if (fileManager.loadOutputConfig())
         {
             loadChannelParameters(currentChannel);
-            showStatusMessage("Output configuration loaded.");
+            showStatusMessage(LOC("outputs.messages.configLoaded"));
 
             // Trigger DSP recalculation via callback to MainComponent
             if (onConfigReloaded)
                 onConfigReloaded();
         }
         else
-            showStatusMessage("Error: " + fileManager.getLastError());
+            showStatusMessage(LOC("outputs.messages.error").replace("{error}", fileManager.getLastError()));
     }
 
     void reloadOutputConfigBackup()
@@ -1812,19 +1813,19 @@ private:
         if (fileManager.loadOutputConfigBackup(0))
         {
             loadChannelParameters(currentChannel);
-            showStatusMessage("Output configuration loaded from backup.");
+            showStatusMessage(LOC("outputs.messages.backupLoaded"));
 
             // Trigger DSP recalculation via callback to MainComponent
             if (onConfigReloaded)
                 onConfigReloaded();
         }
         else
-            showStatusMessage("Error: " + fileManager.getLastError());
+            showStatusMessage(LOC("outputs.messages.error").replace("{error}", fileManager.getLastError()));
     }
 
     void importOutputConfiguration()
     {
-        auto chooser = std::make_shared<juce::FileChooser>("Import Output Configuration",
+        auto chooser = std::make_shared<juce::FileChooser>(LOC("outputs.dialogs.import"),
             juce::File::getSpecialLocation(juce::File::userHomeDirectory),
             "*.xml");
         auto chooserFlags = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
@@ -1838,21 +1839,21 @@ private:
                 if (fileManager.importOutputConfig(result))
                 {
                     loadChannelParameters(currentChannel);
-                    showStatusMessage("Output configuration imported.");
+                    showStatusMessage(LOC("outputs.messages.configImported"));
 
                     // Trigger DSP recalculation via callback to MainComponent
                     if (onConfigReloaded)
                         onConfigReloaded();
                 }
                 else
-                    showStatusMessage("Error: " + fileManager.getLastError());
+                    showStatusMessage(LOC("outputs.messages.error").replace("{error}", fileManager.getLastError()));
             }
         });
     }
 
     void exportOutputConfiguration()
     {
-        auto chooser = std::make_shared<juce::FileChooser>("Export Output Configuration",
+        auto chooser = std::make_shared<juce::FileChooser>(LOC("outputs.dialogs.export"),
             juce::File::getSpecialLocation(juce::File::userHomeDirectory),
             "*.xml");
         auto chooserFlags = juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles;
@@ -1867,9 +1868,9 @@ private:
 
                 auto& fileManager = parameters.getFileManager();
                 if (fileManager.exportOutputConfig(result))
-                    showStatusMessage("Output configuration exported.");
+                    showStatusMessage(LOC("outputs.messages.configExported"));
                 else
-                    showStatusMessage("Error: " + fileManager.getLastError());
+                    showStatusMessage(LOC("outputs.messages.error").replace("{error}", fileManager.getLastError()));
             }
         });
     }

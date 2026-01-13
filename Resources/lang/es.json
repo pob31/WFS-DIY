@@ -490,7 +490,8 @@
 
   "eq": {
     "status": {
-      "off": "EQ DESACTIVADO"
+      "off": "EQ DESACTIVADO",
+      "on": "EQ ACTIVADO"
     },
     "filterTypes": {
       "off": "DESACTIVADO",
@@ -500,6 +501,93 @@
       "bandPass": "Paso de banda",
       "highShelf": "Estante alto",
       "highCut": "Corte alto"
+    },
+    "labels": {
+      "band": "Banda",
+      "freq": "Frec:",
+      "gain": "Ganancia",
+      "q": "Q"
+    }
+  },
+
+  "outputs": {
+    "tabs": {
+      "parameters": "Parámetros de salida",
+      "eq": "EQ de salida"
+    },
+    "labels": {
+      "name": "Nombre:",
+      "array": "Grupo:",
+      "applyToArray": "Aplicar al grupo:",
+      "attenuation": "Atenuación:",
+      "delayLatency": "Retardo/Latencia:",
+      "distanceAtten": "Atenuación distancia:",
+      "hParallax": "Paralaje horizontal:",
+      "vParallax": "Paralaje vertical:",
+      "coordinates": "Coordenadas:",
+      "positionX": "Posición X:",
+      "positionY": "Posición Y:",
+      "positionZ": "Posición Z:",
+      "orientation": "Orientación:",
+      "angleOn": "Ángulo On:",
+      "angleOff": "Ángulo Off:",
+      "pitch": "Inclinación:",
+      "hfDamping": "Atenuación HF:",
+      "delay": "Retardo:",
+      "latency": "Latencia:"
+    },
+    "buttons": {
+      "speakerVisible": "Altavoz visible en mapa",
+      "wizardOfOutZ": "Asistente OutZ...",
+      "storeConfig": "Guardar config salidas",
+      "reloadConfig": "Recargar config salidas",
+      "reloadBackup": "Recargar respaldo",
+      "import": "Importar",
+      "export": "Exportar"
+    },
+    "toggles": {
+      "minLatencyOn": "Latencia mín: SÍ",
+      "minLatencyOff": "Latencia mín: NO",
+      "liveSourceOn": "Atenuación live: SÍ",
+      "liveSourceOff": "Atenuación live: NO",
+      "floorReflectionsOn": "Reflejos suelo: SÍ",
+      "floorReflectionsOff": "Reflejos suelo: NO"
+    },
+    "arrayModes": {
+      "single": "Individual",
+      "array": "Grupo",
+      "off": "DESACTIVADO",
+      "absolute": "ABSOLUTO",
+      "relative": "RELATIVO"
+    },
+    "coordModes": {
+      "xyz": "XYZ"
+    },
+    "units": {
+      "meters": "m",
+      "dB": "dB",
+      "dBPerMeter": "dB/m",
+      "hz": "Hz",
+      "ms": "ms",
+      "percent": "%"
+    },
+    "dialogs": {
+      "import": "Importar configuración de salidas",
+      "export": "Exportar configuración de salidas"
+    },
+    "messages": {
+      "setToSingle": "Salida {num} configurada como Individual",
+      "assignedToArray": "Salida {num} asignada al Grupo {array}",
+      "selectFolderFirst": "Por favor seleccione primero una carpeta de proyecto en Config Sistema.",
+      "configSaved": "Configuración de salidas guardada.",
+      "configLoaded": "Configuración de salidas cargada.",
+      "configNotFound": "Archivo de configuración de salidas no encontrado.",
+      "configReloaded": "Configuración de salidas recargada.",
+      "noBackup": "No se encontró respaldo de configuración de salidas.",
+      "backupLoaded": "Configuración de salidas cargada desde respaldo.",
+      "configImported": "Configuración de salidas importada.",
+      "configExported": "Configuración de salidas exportada.",
+      "error": "Error: {error}"
     }
   }
 }
