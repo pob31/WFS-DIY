@@ -42,7 +42,8 @@
     "hertz": "Hz",
     "percent": "%",
     "celsius": "\u00b0C",
-    "metersPerSecond": "m/s"
+    "metersPerSecond": "m/s",
+    "decibelPerMeter": "dB/m"
   },
 
   "tabs": {

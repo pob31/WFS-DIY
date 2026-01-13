@@ -1254,11 +1254,11 @@ private:
     {
         // Attenuation Law label and button
         addAndMakeVisible(attenuationLawLabel);
-        attenuationLawLabel.setText("Attenuation Law:", juce::dontSendNotification);
+        attenuationLawLabel.setText(LOC("inputs.labels.attenuationLaw"), juce::dontSendNotification);
         attenuationLawLabel.setJustificationType(juce::Justification::centred);
 
         addAndMakeVisible(attenuationLawButton);
-        attenuationLawButton.setButtonText("Log");
+        attenuationLawButton.setButtonText(LOC("inputs.toggles.attenuationLawLog"));
         attenuationLawButton.setClickingTogglesState(true);
         attenuationLawButton.onClick = [this]() {
             bool is1OverD = attenuationLawButton.getToggleState();
@@ -1277,7 +1277,7 @@ private:
 
         // Distance Attenuation dial (visible when attenuationLaw == Log)
         addAndMakeVisible(distanceAttenLabel);
-        distanceAttenLabel.setText("Distance Atten:", juce::dontSendNotification);
+        distanceAttenLabel.setText(LOC("inputs.labels.distanceAtten"), juce::dontSendNotification);
         distanceAttenLabel.setJustificationType(juce::Justification::centred);
         distanceAttenDial.setColours(juce::Colours::black, juce::Colour(0xFF9C27B0), juce::Colours::grey);
         distanceAttenDial.onValueChanged = [this](float v) {
@@ -1291,13 +1291,13 @@ private:
         distanceAttenValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(distanceAttenValueLabel);
         addAndMakeVisible(distanceAttenUnitLabel);
-        distanceAttenUnitLabel.setText("dB/m", juce::dontSendNotification);
+        distanceAttenUnitLabel.setText(LOC("units.decibelPerMeter"), juce::dontSendNotification);
         distanceAttenUnitLabel.setJustificationType(juce::Justification::left);
         distanceAttenUnitLabel.setMinimumHorizontalScale(1.0f);
 
         // Distance Ratio dial (visible when attenuationLaw == 1/d)
         addAndMakeVisible(distanceRatioLabel);
-        distanceRatioLabel.setText("Distance Ratio:", juce::dontSendNotification);
+        distanceRatioLabel.setText(LOC("inputs.labels.distanceRatio"), juce::dontSendNotification);
         distanceRatioLabel.setJustificationType(juce::Justification::centred);
         distanceRatioDial.setColours(juce::Colours::black, juce::Colour(0xFF9C27B0), juce::Colours::grey);
         distanceRatioDial.onValueChanged = [this](float v) {
@@ -1324,7 +1324,7 @@ private:
 
         // Common Attenuation dial
         addAndMakeVisible(commonAttenLabel);
-        commonAttenLabel.setText("Common Atten:", juce::dontSendNotification);
+        commonAttenLabel.setText(LOC("inputs.labels.commonAtten"), juce::dontSendNotification);
         commonAttenLabel.setJustificationType(juce::Justification::centred);
         commonAttenDial.setColours(juce::Colours::black, juce::Colour(0xFF2196F3), juce::Colours::grey);
         commonAttenDial.setValue(1.0f);
@@ -1345,7 +1345,7 @@ private:
 
         // Directivity slider
         addAndMakeVisible(directivityLabel);
-        directivityLabel.setText("Directivity:", juce::dontSendNotification);
+        directivityLabel.setText(LOC("inputs.labels.directivity"), juce::dontSendNotification);
         directivitySlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF00BCD4));
         directivitySlider.setValue(1.0f);
         directivitySlider.onValueChanged = [this](float v) {
@@ -1360,7 +1360,7 @@ private:
 
         // Rotation dial
         addAndMakeVisible(rotationLabel);
-        rotationLabel.setText("Rotation:", juce::dontSendNotification);
+        rotationLabel.setText(LOC("inputs.labels.rotation"), juce::dontSendNotification);
         rotationLabel.setJustificationType(juce::Justification::centred);
         rotationDial.setColours(juce::Colours::black, juce::Colours::white, juce::Colours::grey);
         rotationDial.onAngleChanged = [this](float angle) {
@@ -1379,7 +1379,7 @@ private:
 
         // Tilt slider
         addAndMakeVisible(tiltLabel);
-        tiltLabel.setText("Tilt:", juce::dontSendNotification);
+        tiltLabel.setText(LOC("inputs.labels.tilt"), juce::dontSendNotification);
         tiltSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF2196F3));
         tiltSlider.onValueChanged = [this](float v) {
             // Slider range is -1 to 1, map to -90° to 90°
@@ -1394,7 +1394,7 @@ private:
 
         // HF Shelf slider
         addAndMakeVisible(hfShelfLabel);
-        hfShelfLabel.setText("HF Shelf:", juce::dontSendNotification);
+        hfShelfLabel.setText(LOC("inputs.labels.hfShelf"), juce::dontSendNotification);
         hfShelfSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFFFF9800));
         hfShelfSlider.onValueChanged = [this](float v) {
             float dB = 20.0f * std::log10(std::pow(10.0f, -24.0f / 20.0f) +
@@ -5356,13 +5356,13 @@ private:
         auto& fileManager = parameters.getFileManager();
         if (!fileManager.hasValidProjectFolder())
         {
-            showStatusMessage("Please select a project folder in System Config first.");
+            showStatusMessage(LOC("inputs.messages.selectFolderFirst"));
             return;
         }
         if (fileManager.saveInputConfig())
-            showStatusMessage("Input configuration saved.");
+            showStatusMessage(LOC("inputs.messages.configSaved"));
         else
-            showStatusMessage("Error: " + fileManager.getLastError());
+            showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
     }
 
     void reloadInputConfiguration()
@@ -5370,20 +5370,20 @@ private:
         auto& fileManager = parameters.getFileManager();
         if (!fileManager.hasValidProjectFolder())
         {
-            showStatusMessage("Please select a project folder in System Config first.");
+            showStatusMessage(LOC("inputs.messages.selectFolderFirst"));
             return;
         }
         if (fileManager.loadInputConfig())
         {
             loadChannelParameters(currentChannel);
-            showStatusMessage("Input configuration loaded.");
+            showStatusMessage(LOC("inputs.messages.configLoaded"));
 
             // Trigger DSP recalculation via callback to MainComponent
             if (onConfigReloaded)
                 onConfigReloaded();
         }
         else
-            showStatusMessage("Error: " + fileManager.getLastError());
+            showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
     }
 
     void reloadInputConfigBackup()
@@ -5392,19 +5392,19 @@ private:
         if (fileManager.loadInputConfigBackup(0))
         {
             loadChannelParameters(currentChannel);
-            showStatusMessage("Input configuration loaded from backup.");
+            showStatusMessage(LOC("inputs.messages.backupLoaded"));
 
             // Trigger DSP recalculation via callback to MainComponent
             if (onConfigReloaded)
                 onConfigReloaded();
         }
         else
-            showStatusMessage("Error: " + fileManager.getLastError());
+            showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
     }
 
     void importInputConfiguration()
     {
-        auto chooser = std::make_shared<juce::FileChooser>("Import Input Configuration",
+        auto chooser = std::make_shared<juce::FileChooser>(LOC("inputs.dialogs.importConfig"),
             juce::File::getSpecialLocation(juce::File::userHomeDirectory),
             "*.xml");
         auto chooserFlags = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
@@ -5418,21 +5418,21 @@ private:
                 if (fileManager.importInputConfig(result))
                 {
                     loadChannelParameters(currentChannel);
-                    showStatusMessage("Input configuration imported.");
+                    showStatusMessage(LOC("inputs.messages.configImported"));
 
                     // Trigger DSP recalculation via callback to MainComponent
                     if (onConfigReloaded)
                         onConfigReloaded();
                 }
                 else
-                    showStatusMessage("Error: " + fileManager.getLastError());
+                    showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
             }
         });
     }
 
     void exportInputConfiguration()
     {
-        auto chooser = std::make_shared<juce::FileChooser>("Export Input Configuration",
+        auto chooser = std::make_shared<juce::FileChooser>(LOC("inputs.dialogs.exportConfig"),
             juce::File::getSpecialLocation(juce::File::userHomeDirectory),
             "*.xml");
         auto chooserFlags = juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles;
@@ -5447,9 +5447,9 @@ private:
 
                 auto& fileManager = parameters.getFileManager();
                 if (fileManager.exportInputConfig(result))
-                    showStatusMessage("Input configuration exported.");
+                    showStatusMessage(LOC("inputs.messages.configExported"));
                 else
-                    showStatusMessage("Error: " + fileManager.getLastError());
+                    showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
             }
         });
     }
@@ -5459,7 +5459,7 @@ private:
         auto& fileManager = parameters.getFileManager();
         if (!fileManager.hasValidProjectFolder())
         {
-            showStatusMessage("Please select a project folder in System Config first.");
+            showStatusMessage(LOC("inputs.messages.selectFolderFirst"));
             return;
         }
 
@@ -5503,7 +5503,7 @@ private:
                         }
                         else
                         {
-                            showStatusMessage("Error: " + fileManager.getLastError());
+                            showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
                         }
                     }
                 }
@@ -5517,7 +5517,7 @@ private:
         auto selectedSnapshot = snapshotSelector.getText();
         if (selectedSnapshot.isEmpty() || selectedSnapshot == "Select Snapshot...")
         {
-            showStatusMessage("No snapshot selected.");
+            showStatusMessage(LOC("inputs.messages.noSnapshotSelected"));
             return;
         }
 
@@ -5540,7 +5540,7 @@ private:
         }
         else
         {
-            showStatusMessage("Error: " + fileManager.getLastError());
+            showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
         }
     }
 
@@ -5549,7 +5549,7 @@ private:
         auto selectedSnapshot = snapshotSelector.getText();
         if (selectedSnapshot.isEmpty() || selectedSnapshot == "Select Snapshot...")
         {
-            showStatusMessage("No snapshot selected.");
+            showStatusMessage(LOC("inputs.messages.noSnapshotSelected"));
             return;
         }
 
@@ -5578,7 +5578,7 @@ private:
                     if (fileManager.saveInputSnapshotWithExtendedScope(selectedSnapshot, scope))
                         showStatusMessage("Snapshot '" + selectedSnapshot + "' updated.");
                     else
-                        showStatusMessage("Error: " + fileManager.getLastError());
+                        showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
                 }
             })
         );
@@ -5629,7 +5629,7 @@ private:
                         if (fileManager.setExtendedSnapshotScope(selectedSnapshot, snapshotScopes[selectedSnapshot]))
                             showStatusMessage("Snapshot scope saved.");
                         else
-                            showStatusMessage("Error: " + fileManager.getLastError());
+                            showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
                     }
                     else
                     {
@@ -5650,7 +5650,7 @@ private:
         auto selectedSnapshot = snapshotSelector.getText();
         if (selectedSnapshot.isEmpty() || selectedSnapshot == "Select Snapshot...")
         {
-            showStatusMessage("No snapshot selected.");
+            showStatusMessage(LOC("inputs.messages.noSnapshotSelected"));
             return;
         }
 
@@ -5673,7 +5673,7 @@ private:
                     }
                     else
                     {
-                        showStatusMessage("Error: " + fileManager.getLastError());
+                        showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
                     }
                 }
             })
@@ -5686,7 +5686,7 @@ private:
         auto names = fileManager.getInputSnapshotNames();
 
         snapshotSelector.clear(juce::dontSendNotification);
-        snapshotSelector.addItem("Select Snapshot...", 1);
+        snapshotSelector.addItem(LOC("inputs.snapshots.selectSnapshot"), 1);
 
         int id = 2;
         for (const auto& name : names)
@@ -6286,12 +6286,12 @@ private:
         bool isLocked = !lockedVal.isVoid() && static_cast<int>(lockedVal) != 0;
         // Use Unicode lock symbols
         juce::String lockIcon = isLocked ? juce::String::fromUTF8("\xf0\x9f\x94\x92") : juce::String::fromUTF8("\xf0\x9f\x94\x93");
-        mapLockButton.setButtonText(lockIcon + " Lock on Map");
+        mapLockButton.setButtonText(lockIcon + " " + LOC("inputs.buttons.lockOnMap"));
 
         // Visibility button
         auto visibleVal = parameters.getInputParam(currentChannel - 1, "inputMapVisible");
         bool isVisible = visibleVal.isVoid() || static_cast<int>(visibleVal) != 0;
-        mapVisibilityButton.setButtonText(isVisible ? "Input Visible on Map" : "Input Hidden on Map");
+        mapVisibilityButton.setButtonText(isVisible ? LOC("inputs.buttons.visibleOnMap") : LOC("inputs.buttons.hiddenOnMap"));
     }
 
     /**
@@ -6384,7 +6384,7 @@ private:
         if (inputCluster == 0)
         {
             // Input is "Single" (not in any cluster), no conflict possible
-            trackingActiveButton.setButtonText("Tracking: ON");
+            trackingActiveButton.setButtonText(LOC("inputs.toggles.trackingOn"));
             saveInputParam(WFSParameterIDs::inputTrackingActive, 1);
             return;
         }
@@ -6396,7 +6396,7 @@ private:
         if (globalTracking == 0 || protocolEnabled == 0)
         {
             // Global tracking or protocol not enabled, so enabling local tracking won't create a conflict yet
-            trackingActiveButton.setButtonText("Tracking: ON");
+            trackingActiveButton.setButtonText(LOC("inputs.toggles.trackingOn"));
             saveInputParam(WFSParameterIDs::inputTrackingActive, 1);
             return;
         }
@@ -6425,7 +6425,7 @@ private:
         if (existingTrackedInput < 0)
         {
             // No conflict, proceed with enabling tracking
-            trackingActiveButton.setButtonText("Tracking: ON");
+            trackingActiveButton.setButtonText(LOC("inputs.toggles.trackingOn"));
             saveInputParam(WFSParameterIDs::inputTrackingActive, 1);
             return;
         }
@@ -6447,7 +6447,7 @@ private:
                     // Disable tracking on existing input
                     parameters.setInputParam(existingTrackedInput, "inputTrackingActive", 0);
                     // Enable tracking on current input
-                    trackingActiveButton.setButtonText("Tracking: ON");
+                    trackingActiveButton.setButtonText(LOC("inputs.toggles.trackingOn"));
                     saveInputParam(WFSParameterIDs::inputTrackingActive, 1);
                     showStatusMessage("Tracking switched from Input " + juce::String(existingTrackedInput + 1) +
                                       " to Input " + juce::String(currentChannel));
@@ -6456,7 +6456,7 @@ private:
                 {
                     // Revert button state
                     trackingActiveButton.setToggleState(false, juce::dontSendNotification);
-                    trackingActiveButton.setButtonText("Tracking: OFF");
+                    trackingActiveButton.setButtonText(LOC("inputs.toggles.trackingOff"));
                 }
             })
         );
