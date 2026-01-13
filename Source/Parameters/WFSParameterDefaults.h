@@ -50,8 +50,8 @@ namespace WFSParameterDefaults
     constexpr int binauralOutputChannelMin          = -1;
     constexpr int binauralOutputChannelMax          = 62;     // Max is numOutputs-2
 
-    constexpr float binauralListenerDistanceDefault = 2.0f;   // meters from origin
-    constexpr float binauralListenerDistanceMin     = 0.5f;
+    constexpr float binauralListenerDistanceDefault = 5.0f;   // meters from origin (0.0 for inward circle + circular stage)
+    constexpr float binauralListenerDistanceMin     = 0.0f;
     constexpr float binauralListenerDistanceMax     = 10.0f;
 
     constexpr int binauralListenerAngleDefault      = 0;      // degrees (0=facing origin)

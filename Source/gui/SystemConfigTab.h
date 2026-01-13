@@ -6,6 +6,8 @@
 #include "../Localization/LocalizationManager.h"
 #include "StatusBar.h"
 #include "ColorScheme.h"
+#include "SliderUIComponents.h"
+#include "dials/WfsRotationDial.h"
 
 #if JUCE_WINDOWS
     #include <winsock2.h>
@@ -439,61 +441,95 @@ public:
             parameters.getValueTreeState().setBinauralOutputChannel(channel);
         };
 
+        // Listener Distance - WfsStandardSlider with TextEditor
         addAndMakeVisible(binauralDistanceLabel);
         binauralDistanceLabel.setText(LOC("systemConfig.labels.binauralDistance"), juce::dontSendNotification);
 
         addAndMakeVisible(binauralDistanceSlider);
-        binauralDistanceSlider.setRange(WFSParameterDefaults::binauralListenerDistanceMin,
-                                        WFSParameterDefaults::binauralListenerDistanceMax, 0.1);
-        binauralDistanceSlider.setValue(WFSParameterDefaults::binauralListenerDistanceDefault);
-        binauralDistanceSlider.setTextValueSuffix(" m");
-        binauralDistanceSlider.onValueChange = [this]() {
+        binauralDistanceSlider.setValue(WFSParameterDefaults::binauralListenerDistanceDefault /
+                                        WFSParameterDefaults::binauralListenerDistanceMax);
+        binauralDistanceSlider.onValueChanged = [this](float v) {
+            float distance = v * WFSParameterDefaults::binauralListenerDistanceMax;
+            binauralDistanceEditor.setText(juce::String(distance, 1), juce::dontSendNotification);
             auto& vts = parameters.getValueTreeState();
-            vts.getBinauralState().setProperty(WFSParameterIDs::binauralListenerDistance,
-                                               (float)binauralDistanceSlider.getValue(), nullptr);
+            vts.getBinauralState().setProperty(WFSParameterIDs::binauralListenerDistance, distance, nullptr);
         };
 
+        addAndMakeVisible(binauralDistanceEditor);
+        binauralDistanceEditor.setText(juce::String(WFSParameterDefaults::binauralListenerDistanceDefault, 1), juce::dontSendNotification);
+        binauralDistanceEditor.setJustification(juce::Justification::centred);
+        binauralDistanceEditor.addListener(this);
+
+        addAndMakeVisible(binauralDistanceUnitLabel);
+        binauralDistanceUnitLabel.setText("m", juce::dontSendNotification);
+
+        // Listener Angle - WfsRotationDial with TextEditor
         addAndMakeVisible(binauralAngleLabel);
         binauralAngleLabel.setText(LOC("systemConfig.labels.binauralAngle"), juce::dontSendNotification);
 
-        addAndMakeVisible(binauralAngleSlider);
-        binauralAngleSlider.setRange(WFSParameterDefaults::binauralListenerAngleMin,
-                                     WFSParameterDefaults::binauralListenerAngleMax, 1);
-        binauralAngleSlider.setValue(WFSParameterDefaults::binauralListenerAngleDefault);
-        binauralAngleSlider.setTextValueSuffix(juce::String::fromUTF8("\xc2\xb0"));  // degree symbol
-        binauralAngleSlider.onValueChange = [this]() {
+        addAndMakeVisible(binauralAngleDial);
+        binauralAngleDial.setAngle((float)WFSParameterDefaults::binauralListenerAngleDefault);
+        binauralAngleDial.onAngleChanged = [this](float angle) {
+            binauralAngleEditor.setText(juce::String((int)angle), juce::dontSendNotification);
             auto& vts = parameters.getValueTreeState();
-            vts.getBinauralState().setProperty(WFSParameterIDs::binauralListenerAngle,
-                                               (int)binauralAngleSlider.getValue(), nullptr);
+            vts.getBinauralState().setProperty(WFSParameterIDs::binauralListenerAngle, (int)angle, nullptr);
         };
 
+        addAndMakeVisible(binauralAngleEditor);
+        binauralAngleEditor.setText(juce::String(WFSParameterDefaults::binauralListenerAngleDefault), juce::dontSendNotification);
+        binauralAngleEditor.setJustification(juce::Justification::centred);
+        binauralAngleEditor.addListener(this);
+
+        addAndMakeVisible(binauralAngleUnitLabel);
+        binauralAngleUnitLabel.setText(juce::String::fromUTF8("\xc2\xb0"), juce::dontSendNotification);
+
+        // Binaural Level - WfsStandardSlider with TextEditor
         addAndMakeVisible(binauralAttenLabel);
         binauralAttenLabel.setText(LOC("systemConfig.labels.binauralAtten"), juce::dontSendNotification);
 
         addAndMakeVisible(binauralAttenSlider);
-        binauralAttenSlider.setRange(WFSParameterDefaults::binauralAttenuationMin,
-                                     WFSParameterDefaults::binauralAttenuationMax, 0.1);
-        binauralAttenSlider.setValue(WFSParameterDefaults::binauralAttenuationDefault);
-        binauralAttenSlider.setTextValueSuffix(" dB");
-        binauralAttenSlider.onValueChange = [this]() {
+        // Convert dB to 0-1 slider value (0 dB = 1.0, -40 dB = 0.0)
+        {
+            float attenDefault = (WFSParameterDefaults::binauralAttenuationDefault - WFSParameterDefaults::binauralAttenuationMin) /
+                                 (WFSParameterDefaults::binauralAttenuationMax - WFSParameterDefaults::binauralAttenuationMin);
+            binauralAttenSlider.setValue(attenDefault);
+        }
+        binauralAttenSlider.onValueChanged = [this](float v) {
+            float dB = WFSParameterDefaults::binauralAttenuationMin +
+                       v * (WFSParameterDefaults::binauralAttenuationMax - WFSParameterDefaults::binauralAttenuationMin);
+            binauralAttenEditor.setText(juce::String(dB, 1), juce::dontSendNotification);
             auto& vts = parameters.getValueTreeState();
-            vts.getBinauralState().setProperty(WFSParameterIDs::binauralAttenuation,
-                                               (float)binauralAttenSlider.getValue(), nullptr);
+            vts.getBinauralState().setProperty(WFSParameterIDs::binauralAttenuation, dB, nullptr);
         };
 
+        addAndMakeVisible(binauralAttenEditor);
+        binauralAttenEditor.setText(juce::String(WFSParameterDefaults::binauralAttenuationDefault, 1), juce::dontSendNotification);
+        binauralAttenEditor.setJustification(juce::Justification::centred);
+        binauralAttenEditor.addListener(this);
+
+        addAndMakeVisible(binauralAttenUnitLabel);
+        binauralAttenUnitLabel.setText("dB", juce::dontSendNotification);
+
+        // Binaural Delay - WfsStandardSlider with TextEditor
         addAndMakeVisible(binauralDelayLabel);
         binauralDelayLabel.setText(LOC("systemConfig.labels.binauralDelay"), juce::dontSendNotification);
 
         addAndMakeVisible(binauralDelaySlider);
-        binauralDelaySlider.setRange(WFSParameterDefaults::binauralDelayMin,
-                                     WFSParameterDefaults::binauralDelayMax, 0.1);
-        binauralDelaySlider.setValue(WFSParameterDefaults::binauralDelayDefault);
-        binauralDelaySlider.setTextValueSuffix(" ms");
-        binauralDelaySlider.onValueChange = [this]() {
+        binauralDelaySlider.setValue(WFSParameterDefaults::binauralDelayDefault / WFSParameterDefaults::binauralDelayMax);
+        binauralDelaySlider.onValueChanged = [this](float v) {
+            float delayMs = v * WFSParameterDefaults::binauralDelayMax;
+            binauralDelayEditor.setText(juce::String(delayMs, 1), juce::dontSendNotification);
             auto& vts = parameters.getValueTreeState();
-            vts.getBinauralState().setProperty(WFSParameterIDs::binauralDelay,
-                                               (float)binauralDelaySlider.getValue(), nullptr);
+            vts.getBinauralState().setProperty(WFSParameterIDs::binauralDelay, delayMs, nullptr);
         };
+
+        addAndMakeVisible(binauralDelayEditor);
+        binauralDelayEditor.setText(juce::String(WFSParameterDefaults::binauralDelayDefault, 1), juce::dontSendNotification);
+        binauralDelayEditor.setJustification(juce::Justification::centred);
+        binauralDelayEditor.addListener(this);
+
+        addAndMakeVisible(binauralDelayUnitLabel);
+        binauralDelayUnitLabel.setText("ms", juce::dontSendNotification);
 
         // Store/Reload Section
         addAndMakeVisible(selectProjectFolderButton);
@@ -808,20 +844,42 @@ public:
         binauralOutputSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
         y += rowHeight + spacing;
 
+        // Binaural controls layout: Label | Slider | Editor | Unit
+        const int binauralSliderWidth = editorWidth - 80;  // Room for editor and unit
+        const int binauralValueWidth = 50;
+        const int binauralUnitWidth = 25;
+        const int binauralSliderRowHeight = 20;  // Sliders are shorter
+
+        // Distance row
         binauralDistanceLabel.setBounds(x, y, labelWidth, rowHeight);
-        binauralDistanceSlider.setBounds(x + labelWidth, y, editorWidth, rowHeight);
-        y += rowHeight + spacing;
+        binauralDistanceEditor.setBounds(x + labelWidth, y, binauralValueWidth, rowHeight);
+        binauralDistanceUnitLabel.setBounds(x + labelWidth + binauralValueWidth + 2, y, binauralUnitWidth, rowHeight);
+        y += rowHeight + 2;
+        binauralDistanceSlider.setBounds(x + labelWidth, y, binauralSliderWidth + binauralValueWidth + binauralUnitWidth, binauralSliderRowHeight);
+        y += binauralSliderRowHeight + spacing;
 
-        binauralAngleLabel.setBounds(x, y, labelWidth, rowHeight);
-        binauralAngleSlider.setBounds(x + labelWidth, y, editorWidth, rowHeight);
-        y += rowHeight + spacing;
+        // Angle row - dial instead of slider
+        const int dialSize = 50;
+        binauralAngleLabel.setBounds(x, y, labelWidth, dialSize);
+        binauralAngleDial.setBounds(x + labelWidth, y, dialSize, dialSize);
+        binauralAngleEditor.setBounds(x + labelWidth + dialSize + 5, y + (dialSize - rowHeight) / 2, binauralValueWidth, rowHeight);
+        binauralAngleUnitLabel.setBounds(x + labelWidth + dialSize + 5 + binauralValueWidth + 2, y + (dialSize - rowHeight) / 2, binauralUnitWidth, rowHeight);
+        y += dialSize + spacing;
 
+        // Attenuation row
         binauralAttenLabel.setBounds(x, y, labelWidth, rowHeight);
-        binauralAttenSlider.setBounds(x + labelWidth, y, editorWidth, rowHeight);
-        y += rowHeight + spacing;
+        binauralAttenEditor.setBounds(x + labelWidth, y, binauralValueWidth, rowHeight);
+        binauralAttenUnitLabel.setBounds(x + labelWidth + binauralValueWidth + 2, y, binauralUnitWidth, rowHeight);
+        y += rowHeight + 2;
+        binauralAttenSlider.setBounds(x + labelWidth, y, binauralSliderWidth + binauralValueWidth + binauralUnitWidth, binauralSliderRowHeight);
+        y += binauralSliderRowHeight + spacing;
 
+        // Delay row
         binauralDelayLabel.setBounds(x, y, labelWidth, rowHeight);
-        binauralDelaySlider.setBounds(x + labelWidth, y, editorWidth, rowHeight);
+        binauralDelayEditor.setBounds(x + labelWidth, y, binauralValueWidth, rowHeight);
+        binauralDelayUnitLabel.setBounds(x + labelWidth + binauralValueWidth + 2, y, binauralUnitWidth, rowHeight);
+        y += rowHeight + 2;
+        binauralDelaySlider.setBounds(x + labelWidth, y, binauralSliderWidth + binauralValueWidth + binauralUnitWidth, binauralSliderRowHeight);
 
         // Footer buttons - full width at bottom (matching Output tab style)
         const int footerHeight = 90;  // Two 30px button rows + 10px spacing + 20px padding
@@ -946,6 +1004,12 @@ private:
         setupNumericEditor(inputChannelsEditor, false, false);
         setupNumericEditor(outputChannelsEditor, false, false);
         setupNumericEditor(reverbChannelsEditor, false, false);
+
+        // Binaural Section
+        setupNumericEditor(binauralDistanceEditor, false, true);  // 0.0 to 10.0
+        setupNumericEditor(binauralAngleEditor, true, false);     // -180 to 180 (integer)
+        setupNumericEditor(binauralAttenEditor, true, true);      // -40.0 to 0.0
+        setupNumericEditor(binauralDelayEditor, false, true);     // 0.0 to 100.0
     }
 
     //==============================================================================
@@ -1004,6 +1068,35 @@ private:
             editor.setText(juce::String((float)parameters.getConfigParam("SystemLatency"), 2), false);
         else if (&editor == &haasEffectEditor)
             editor.setText(juce::String((float)parameters.getConfigParam("HaasEffect"), 2), false);
+        // Binaural editors
+        else if (&editor == &binauralDistanceEditor)
+        {
+            auto binauralState = parameters.getValueTreeState().getBinauralState();
+            float distance = (float)binauralState.getProperty(WFSParameterIDs::binauralListenerDistance,
+                                                               WFSParameterDefaults::binauralListenerDistanceDefault);
+            editor.setText(juce::String(distance, 1), false);
+        }
+        else if (&editor == &binauralAngleEditor)
+        {
+            auto binauralState = parameters.getValueTreeState().getBinauralState();
+            int angle = (int)binauralState.getProperty(WFSParameterIDs::binauralListenerAngle,
+                                                        WFSParameterDefaults::binauralListenerAngleDefault);
+            editor.setText(juce::String(angle), false);
+        }
+        else if (&editor == &binauralAttenEditor)
+        {
+            auto binauralState = parameters.getValueTreeState().getBinauralState();
+            float attenDb = (float)binauralState.getProperty(WFSParameterIDs::binauralAttenuation,
+                                                              WFSParameterDefaults::binauralAttenuationDefault);
+            editor.setText(juce::String(attenDb, 1), false);
+        }
+        else if (&editor == &binauralDelayEditor)
+        {
+            auto binauralState = parameters.getValueTreeState().getBinauralState();
+            float delayMs = (float)binauralState.getProperty(WFSParameterIDs::binauralDelay,
+                                                              WFSParameterDefaults::binauralDelayDefault);
+            editor.setText(juce::String(delayMs, 1), false);
+        }
 
         editor.giveAwayKeyboardFocus();
     }
@@ -1086,21 +1179,31 @@ private:
         int selectedId = (binauralChannel == -1) ? 1 : ((binauralChannel - 1) / 2 + 2);
         binauralOutputSelector.setSelectedId(selectedId, juce::dontSendNotification);
 
-        binauralDistanceSlider.setValue((float)binauralState.getProperty(WFSParameterIDs::binauralListenerDistance,
-                                                                          WFSParameterDefaults::binauralListenerDistanceDefault),
-                                        juce::dontSendNotification);
+        // Distance
+        float distance = (float)binauralState.getProperty(WFSParameterIDs::binauralListenerDistance,
+                                                           WFSParameterDefaults::binauralListenerDistanceDefault);
+        binauralDistanceSlider.setValue(distance / WFSParameterDefaults::binauralListenerDistanceMax);
+        binauralDistanceEditor.setText(juce::String(distance, 1), juce::dontSendNotification);
 
-        binauralAngleSlider.setValue((int)binauralState.getProperty(WFSParameterIDs::binauralListenerAngle,
-                                                                     WFSParameterDefaults::binauralListenerAngleDefault),
-                                     juce::dontSendNotification);
+        // Angle
+        int angle = (int)binauralState.getProperty(WFSParameterIDs::binauralListenerAngle,
+                                                    WFSParameterDefaults::binauralListenerAngleDefault);
+        binauralAngleDial.setAngle((float)angle);
+        binauralAngleEditor.setText(juce::String(angle), juce::dontSendNotification);
 
-        binauralAttenSlider.setValue((float)binauralState.getProperty(WFSParameterIDs::binauralAttenuation,
-                                                                       WFSParameterDefaults::binauralAttenuationDefault),
-                                     juce::dontSendNotification);
+        // Attenuation
+        float attenDb = (float)binauralState.getProperty(WFSParameterIDs::binauralAttenuation,
+                                                          WFSParameterDefaults::binauralAttenuationDefault);
+        float attenSliderVal = (attenDb - WFSParameterDefaults::binauralAttenuationMin) /
+                               (WFSParameterDefaults::binauralAttenuationMax - WFSParameterDefaults::binauralAttenuationMin);
+        binauralAttenSlider.setValue(attenSliderVal);
+        binauralAttenEditor.setText(juce::String(attenDb, 1), juce::dontSendNotification);
 
-        binauralDelaySlider.setValue((float)binauralState.getProperty(WFSParameterIDs::binauralDelay,
-                                                                       WFSParameterDefaults::binauralDelayDefault),
-                                     juce::dontSendNotification);
+        // Delay
+        float delayMs = (float)binauralState.getProperty(WFSParameterIDs::binauralDelay,
+                                                          WFSParameterDefaults::binauralDelayDefault);
+        binauralDelaySlider.setValue(delayMs / WFSParameterDefaults::binauralDelayMax);
+        binauralDelayEditor.setText(juce::String(delayMs, 1), juce::dontSendNotification);
 
         // Update I/O controls enabled state based on processing state
         updateIOControlsEnabledState();
@@ -1295,6 +1398,37 @@ private:
             parameters.setConfigParam("SystemLatency", text.getFloatValue());
         else if (&editor == &haasEffectEditor)
             parameters.setConfigParam("HaasEffect", text.getFloatValue());
+        // Binaural editors
+        else if (&editor == &binauralDistanceEditor)
+        {
+            float distance = text.getFloatValue();
+            auto& vts = parameters.getValueTreeState();
+            vts.getBinauralState().setProperty(WFSParameterIDs::binauralListenerDistance, distance, nullptr);
+            binauralDistanceSlider.setValue(distance / WFSParameterDefaults::binauralListenerDistanceMax);
+        }
+        else if (&editor == &binauralAngleEditor)
+        {
+            int angle = text.getIntValue();
+            auto& vts = parameters.getValueTreeState();
+            vts.getBinauralState().setProperty(WFSParameterIDs::binauralListenerAngle, angle, nullptr);
+            binauralAngleDial.setAngle((float)angle);
+        }
+        else if (&editor == &binauralAttenEditor)
+        {
+            float attenDb = text.getFloatValue();
+            auto& vts = parameters.getValueTreeState();
+            vts.getBinauralState().setProperty(WFSParameterIDs::binauralAttenuation, attenDb, nullptr);
+            float sliderVal = (attenDb - WFSParameterDefaults::binauralAttenuationMin) /
+                              (WFSParameterDefaults::binauralAttenuationMax - WFSParameterDefaults::binauralAttenuationMin);
+            binauralAttenSlider.setValue(sliderVal);
+        }
+        else if (&editor == &binauralDelayEditor)
+        {
+            float delayMs = text.getFloatValue();
+            auto& vts = parameters.getValueTreeState();
+            vts.getBinauralState().setProperty(WFSParameterIDs::binauralDelay, delayMs, nullptr);
+            binauralDelaySlider.setValue(delayMs / WFSParameterDefaults::binauralDelayMax);
+        }
     }
 
     void validateAndClampValue(juce::TextEditor& editor)
@@ -1345,12 +1479,30 @@ private:
             value = juce::jlimit(0.0f, 10.0f, std::abs(value));
         else if (&editor == &haasEffectEditor)
             value = juce::jlimit(0.0f, 10.0f, std::abs(value));
+        // Binaural editors
+        else if (&editor == &binauralDistanceEditor)
+            value = juce::jlimit(WFSParameterDefaults::binauralListenerDistanceMin,
+                                 WFSParameterDefaults::binauralListenerDistanceMax, std::abs(value));
+        else if (&editor == &binauralAngleEditor)
+            value = juce::jlimit((float)WFSParameterDefaults::binauralListenerAngleMin,
+                                 (float)WFSParameterDefaults::binauralListenerAngleMax, value);
+        else if (&editor == &binauralAttenEditor)
+            value = juce::jlimit(WFSParameterDefaults::binauralAttenuationMin,
+                                 WFSParameterDefaults::binauralAttenuationMax, value);
+        else if (&editor == &binauralDelayEditor)
+            value = juce::jlimit(WFSParameterDefaults::binauralDelayMin,
+                                 WFSParameterDefaults::binauralDelayMax, std::abs(value));
 
-        // Update display with clamped value (2 decimal places for floats)
+        // Update display with clamped value
         if (&editor == &inputChannelsEditor || &editor == &outputChannelsEditor ||
-            &editor == &reverbChannelsEditor)
+            &editor == &reverbChannelsEditor || &editor == &binauralAngleEditor)
         {
             editor.setText(juce::String((int)value), false);
+        }
+        else if (&editor == &binauralDistanceEditor || &editor == &binauralAttenEditor ||
+                 &editor == &binauralDelayEditor)
+        {
+            editor.setText(juce::String(value, 1), false);  // 1 decimal place for binaural
         }
         else
         {
@@ -1866,9 +2018,13 @@ private:
         helpTextMap[&languageSelector] = LOC("systemConfig.help.language");
         helpTextMap[&binauralOutputSelector] = LOC("systemConfig.help.binauralOutput");
         helpTextMap[&binauralDistanceSlider] = LOC("systemConfig.help.binauralDistance");
-        helpTextMap[&binauralAngleSlider] = LOC("systemConfig.help.binauralAngle");
+        helpTextMap[&binauralDistanceEditor] = LOC("systemConfig.help.binauralDistance");
+        helpTextMap[&binauralAngleDial] = LOC("systemConfig.help.binauralAngle");
+        helpTextMap[&binauralAngleEditor] = LOC("systemConfig.help.binauralAngle");
         helpTextMap[&binauralAttenSlider] = LOC("systemConfig.help.binauralAtten");
+        helpTextMap[&binauralAttenEditor] = LOC("systemConfig.help.binauralAtten");
         helpTextMap[&binauralDelaySlider] = LOC("systemConfig.help.binauralDelay");
+        helpTextMap[&binauralDelayEditor] = LOC("systemConfig.help.binauralDelay");
         helpTextMap[&selectProjectFolderButton] = LOC("systemConfig.help.selectProjectFolder");
         helpTextMap[&storeCompleteConfigButton] = LOC("systemConfig.help.storeComplete");
         helpTextMap[&reloadCompleteConfigButton] = LOC("systemConfig.help.reloadComplete");
@@ -2020,13 +2176,21 @@ private:
     juce::Label binauralOutputLabel;
     juce::ComboBox binauralOutputSelector;
     juce::Label binauralDistanceLabel;
-    juce::Slider binauralDistanceSlider;
+    WfsStandardSlider binauralDistanceSlider;
+    juce::TextEditor binauralDistanceEditor;
+    juce::Label binauralDistanceUnitLabel;
     juce::Label binauralAngleLabel;
-    juce::Slider binauralAngleSlider;
+    WfsRotationDial binauralAngleDial;
+    juce::TextEditor binauralAngleEditor;
+    juce::Label binauralAngleUnitLabel;
     juce::Label binauralAttenLabel;
-    juce::Slider binauralAttenSlider;
+    WfsStandardSlider binauralAttenSlider;
+    juce::TextEditor binauralAttenEditor;
+    juce::Label binauralAttenUnitLabel;
     juce::Label binauralDelayLabel;
-    juce::Slider binauralDelaySlider;
+    WfsStandardSlider binauralDelaySlider;
+    juce::TextEditor binauralDelayEditor;
+    juce::Label binauralDelayUnitLabel;
 
     // Store/Reload Section
     juce::TextButton selectProjectFolderButton;
