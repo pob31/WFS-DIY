@@ -400,7 +400,8 @@ private:
         int meterWidth = juce::jmin(30, (area.getWidth() - 20) / numMeters);
         int spacing = juce::jmax(2, (area.getWidth() - numMeters * meterWidth) / (numMeters + 1));
 
-        int x = spacing;
+        int x = area.getX() + spacing;
+        int baseY = area.getY();
         int labelHeight = 15;
         int soloButtonHeight = 18;
         int perfBarHeight = showPerfBars ? 10 : 0;
@@ -408,7 +409,7 @@ private:
 
         for (int i = 0; i < numMeters; ++i)
         {
-            int y = 0;
+            int y = baseY;
             inputMeters[i]->setBounds(x, y, meterWidth, meterHeight);
             y += meterHeight + 2;
             inputLabels[i]->setBounds(x, y, meterWidth, labelHeight);
@@ -438,19 +439,20 @@ private:
         int meterWidth = juce::jmin(30, (area.getWidth() - 20) / numMeters);
         int spacing = juce::jmax(2, (area.getWidth() - numMeters * meterWidth) / (numMeters + 1));
 
-        int x = spacing;
+        int x = area.getX() + spacing;
+        int baseY = area.getY();
         int labelHeight = 15;
         int perfBarHeight = showPerfBars ? 10 : 0;
         int meterHeight = area.getHeight() - labelHeight - perfBarHeight - 5;
 
         for (int i = 0; i < numMeters; ++i)
         {
-            meters[i]->setBounds(x, 0, meterWidth, meterHeight);
-            labels[i]->setBounds(x, meterHeight + 2, meterWidth, labelHeight);
+            meters[i]->setBounds(x, baseY, meterWidth, meterHeight);
+            labels[i]->setBounds(x, baseY + meterHeight + 2, meterWidth, labelHeight);
 
             if (showPerfBars && i < perfBars.size())
             {
-                perfBars[i]->setBounds(x, meterHeight + labelHeight + 3, meterWidth, perfBarHeight);
+                perfBars[i]->setBounds(x, baseY + meterHeight + labelHeight + 3, meterWidth, perfBarHeight);
             }
 
             x += meterWidth + spacing;
