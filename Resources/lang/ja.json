@@ -332,7 +332,8 @@
       "configLoadedFromBackup": "バックアップからネットワーク設定を読み込みました。",
       "configImported": "ネットワーク設定をインポートしました。",
       "configExported": "ネットワーク設定をエクスポートしました。",
-      "onlyOneRemote": "リモート接続は1つのみ許可されています。"
+      "onlyOneRemote": "リモート接続は1つのみ許可されています。",
+      "findDeviceSent": "デバイス検索コマンドを送信しました。"
     }
   },
 

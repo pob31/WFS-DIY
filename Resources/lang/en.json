@@ -332,7 +332,8 @@
       "configLoadedFromBackup": "Network configuration loaded from backup.",
       "configImported": "Network configuration imported.",
       "configExported": "Network configuration exported.",
-      "onlyOneRemote": "Only one REMOTE connection is allowed."
+      "onlyOneRemote": "Only one REMOTE connection is allowed.",
+      "findDeviceSent": "Find Device command sent."
     }
   },
 

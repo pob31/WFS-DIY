@@ -332,7 +332,8 @@
       "configLoadedFromBackup": "已从备份加载网络配置。",
       "configImported": "网络配置已导入。",
       "configExported": "网络配置已导出。",
-      "onlyOneRemote": "只允许一个遥控连接。"
+      "onlyOneRemote": "只允许一个遥控连接。",
+      "findDeviceSent": "查找设备命令已发送。"
     }
   },
 

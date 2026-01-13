@@ -1341,6 +1341,27 @@ void OSCManager::sendStageConfigToRemote()
     }
 }
 
+void OSCManager::sendFindDevice(const juce::String& password)
+{
+    // Build /findDevice message with password argument
+    juce::OSCMessage msg("/findDevice");
+    msg.addString(password);
+
+    // Send to all connected REMOTE targets
+    int targetsSent = 0;
+    for (int i = 0; i < MAX_TARGETS; ++i)
+    {
+        if (targetConfigs[static_cast<size_t>(i)].protocol == Protocol::Remote &&
+            targetStatuses[static_cast<size_t>(i)] == ConnectionStatus::Connected)
+        {
+            sendMessage(i, msg);
+            ++targetsSent;
+        }
+    }
+
+    DBG("OSCManager::sendFindDevice sent to " << targetsSent << " REMOTE target(s)");
+}
+
 void OSCManager::updateTargetStatus(int targetIndex, ConnectionStatus newStatus)
 {
     if (targetIndex < 0 || targetIndex >= MAX_TARGETS)

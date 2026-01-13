@@ -332,7 +332,8 @@
       "configLoadedFromBackup": "Configuração de rede carregada do backup.",
       "configImported": "Configuração de rede importada.",
       "configExported": "Configuração de rede exportada.",
-      "onlyOneRemote": "Apenas uma ligação REMOTA é permitida."
+      "onlyOneRemote": "Apenas uma ligação REMOTA é permitida.",
+      "findDeviceSent": "Comando Encontrar dispositivo enviado."
     }
   },
 

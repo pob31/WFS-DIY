@@ -332,7 +332,8 @@
       "configLoadedFromBackup": "Netzwerkkonfiguration aus Backup geladen.",
       "configImported": "Netzwerkkonfiguration importiert.",
       "configExported": "Netzwerkkonfiguration exportiert.",
-      "onlyOneRemote": "Nur eine FERNSTEUERUNG-Verbindung ist erlaubt."
+      "onlyOneRemote": "Nur eine FERNSTEUERUNG-Verbindung ist erlaubt.",
+      "findDeviceSent": "Gerät-Suchen-Befehl gesendet."
     }
   },
 

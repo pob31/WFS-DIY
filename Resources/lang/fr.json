@@ -332,7 +332,8 @@
       "configLoadedFromBackup": "Configuration réseau chargée depuis la sauvegarde.",
       "configImported": "Configuration réseau importée.",
       "configExported": "Configuration réseau exportée.",
-      "onlyOneRemote": "Une seule connexion TÉLÉCOMMANDE est autorisée."
+      "onlyOneRemote": "Une seule connexion TÉLÉCOMMANDE est autorisée.",
+      "findDeviceSent": "Commande Trouver l'appareil envoyée."
     }
   },
 

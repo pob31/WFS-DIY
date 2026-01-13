@@ -2211,13 +2211,18 @@ private:
 
     void sendFindDeviceOsc()
     {
-        // TODO: Send OSC /findDevice with findDevicePassword
-        // For now, just show a confirmation
-        if (statusBar != nullptr)
-            statusBar->setHelpText("Sending Find Device command...");
+        if (oscManager != nullptr)
+        {
+            oscManager->sendFindDevice(findDevicePassword);
 
-        // The actual OSC sending will be implemented when OSC infrastructure is ready
-        DBG("Find My Remote: Sending /findDevice with password");
+            if (statusBar != nullptr)
+                statusBar->setHelpText(LOC("network.messages.findDeviceSent"));
+        }
+        else
+        {
+            if (statusBar != nullptr)
+                statusBar->setHelpText("Error: OSC Manager not available");
+        }
     }
 
     // Helper to show status bar messages
