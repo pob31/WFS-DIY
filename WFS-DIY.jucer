@@ -65,8 +65,6 @@
       <GROUP id="{ACCESSGROUP}" name="Accessibility">
         <FILE id="accTTSMgr" name="TTSManager.h" compile="0" resource="0"
               file="Source/Accessibility/TTSManager.h"/>
-        <FILE id="accTTSInfo" name="TTSComponentInfo.h" compile="0" resource="0"
-              file="Source/Accessibility/TTSComponentInfo.h"/>
       </GROUP>
       <GROUP id="{LOCALGROUP}" name="Localization">
         <FILE id="locMgr" name="LocalizationManager.h" compile="0" resource="0"
