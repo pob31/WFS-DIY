@@ -961,5 +961,38 @@
       "latency": "レイテンシー:",
       "ratioPrefix": "1:"
     }
+  },
+
+  "setAllInputs": {
+    "windowTitle": "全入力に適用",
+    "warning": "変更はすべての入力に適用されます",
+    "labels": {
+      "coordinateMode": "座標モード:",
+      "minimalLatency": "最小レイテンシー:",
+      "constraintPositions": "位置制約:",
+      "heightFactor": "高さ係数:",
+      "distanceAttenuation": "距離減衰",
+      "dbPerMeter": "dB/m",
+      "ratio": "比率",
+      "common": "共通",
+      "muteMacros": "ミュートマクロ:",
+      "sidelines": "サイドライン:",
+      "fringe": "マージン:",
+      "floorReflections": "床反射:"
+    },
+    "buttons": {
+      "flipXyzOff": "フリップ XYZ > OFF",
+      "allLog": "全てLog",
+      "all1d": "全て1/d",
+      "resetDirectivity": "指向性リセット",
+      "turnOffLiveSource": "ライブソース減衰をOFF",
+      "turnOffJitterLfo": "ジッター & LFO OFF",
+      "closeWindow": "ウィンドウを閉じる"
+    },
+    "coordinateModes": {
+      "xyz": "XYZ",
+      "rThetaZ": "r \u03b8 Z",
+      "rThetaPhi": "r \u03b8 \u03c6"
+    }
   }
 }

@@ -961,5 +961,38 @@
       "latency": "Latencia:",
       "ratioPrefix": "1:"
     }
+  },
+
+  "setAllInputs": {
+    "windowTitle": "Aplicar a todas las entradas",
+    "warning": "Los cambios se aplicarán a TODAS las entradas",
+    "labels": {
+      "coordinateMode": "Modo de coordenadas:",
+      "minimalLatency": "Latencia mínima:",
+      "constraintPositions": "Restricciones de posición:",
+      "heightFactor": "Factor de altura:",
+      "distanceAttenuation": "Atenuación por distancia",
+      "dbPerMeter": "dB/m",
+      "ratio": "ratio",
+      "common": "común",
+      "muteMacros": "Macros de mute:",
+      "sidelines": "Líneas laterales:",
+      "fringe": "Margen:",
+      "floorReflections": "Reflexiones del suelo:"
+    },
+    "buttons": {
+      "flipXyzOff": "Flip XYZ > OFF",
+      "allLog": "Todos Log",
+      "all1d": "Todos 1/d",
+      "resetDirectivity": "Reiniciar directividad",
+      "turnOffLiveSource": "Desact. atenuación Live Source",
+      "turnOffJitterLfo": "Desact. jitter & LFO",
+      "closeWindow": "CERRAR VENTANA"
+    },
+    "coordinateModes": {
+      "xyz": "XYZ",
+      "rThetaZ": "r \u03b8 Z",
+      "rThetaPhi": "r \u03b8 \u03c6"
+    }
   }
 }

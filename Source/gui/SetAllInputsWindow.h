@@ -4,6 +4,7 @@
 #include "../WfsParameters.h"
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/WFSParameterDefaults.h"
+#include "../Localization/LocalizationManager.h"
 #include "ColorScheme.h"
 #include "WindowUtils.h"
 #include "dials/WfsBasicDial.h"
@@ -295,18 +296,18 @@ private:
     {
         // Warning label
         addAndMakeVisible(warningLabel);
-        warningLabel.setText("Changes will apply to ALL inputs", juce::dontSendNotification);
+        warningLabel.setText(LOC("setAllInputs.warning"), juce::dontSendNotification);
         warningLabel.setJustificationType(juce::Justification::centred);
         warningLabel.setFont(juce::FontOptions(16.0f, juce::Font::bold));
 
         // Coordinate mode
         addAndMakeVisible(coordModeLabel);
-        coordModeLabel.setText("Coordinate mode:", juce::dontSendNotification);
+        coordModeLabel.setText(LOC("setAllInputs.labels.coordinateMode"), juce::dontSendNotification);
 
         addAndMakeVisible(coordModeSelector);
-        coordModeSelector.addItem("XYZ", 1);
-        coordModeSelector.addItem(juce::String(juce::CharPointer_UTF8("r \xce\xb8 Z")), 2);  // r theta Z
-        coordModeSelector.addItem(juce::String(juce::CharPointer_UTF8("r \xce\xb8 \xcf\x86")), 3);  // r theta phi
+        coordModeSelector.addItem(LOC("setAllInputs.coordinateModes.xyz"), 1);
+        coordModeSelector.addItem(LOC("setAllInputs.coordinateModes.rThetaZ"), 2);
+        coordModeSelector.addItem(LOC("setAllInputs.coordinateModes.rThetaPhi"), 3);
         coordModeSelector.setSelectedId(1, juce::dontSendNotification);
         coordModeSelector.onChange = [this]() {
             int mode = coordModeSelector.getSelectedId() - 1;
@@ -315,17 +316,17 @@ private:
 
         // Minimal Latency - ON/OFF buttons
         addAndMakeVisible(curvatureOnlyLabel);
-        curvatureOnlyLabel.setText("Minimal Latency:", juce::dontSendNotification);
+        curvatureOnlyLabel.setText(LOC("setAllInputs.labels.minimalLatency"), juce::dontSendNotification);
 
         addAndMakeVisible(curvatureOnlyOnButton);
-        curvatureOnlyOnButton.setButtonText("ON");
+        curvatureOnlyOnButton.setButtonText(LOC("common.on"));
         curvatureOnlyOnButton.onClick = [this]() {
             applyToAllInputs(WFSParameterIDs::inputMinimalLatency, 1);
             showActionFeedback(curvatureOnlyOnButton);
         };
 
         addAndMakeVisible(curvatureOnlyOffButton);
-        curvatureOnlyOffButton.setButtonText("OFF");
+        curvatureOnlyOffButton.setButtonText(LOC("common.off"));
         curvatureOnlyOffButton.onClick = [this]() {
             applyToAllInputs(WFSParameterIDs::inputMinimalLatency, 0);
             showActionFeedback(curvatureOnlyOffButton);
@@ -333,7 +334,7 @@ private:
 
         // Flip XYZ OFF
         addAndMakeVisible(flipXYZOffButton);
-        flipXYZOffButton.setButtonText("Flip XYZ > OFF");
+        flipXYZOffButton.setButtonText(LOC("setAllInputs.buttons.flipXyzOff"));
         flipXYZOffButton.onClick = [this]() {
             applyToAllInputs(WFSParameterIDs::inputFlipX, 0);
             applyToAllInputs(WFSParameterIDs::inputFlipY, 0);
@@ -343,10 +344,10 @@ private:
 
         // Constraint positions - ON/OFF buttons
         addAndMakeVisible(constraintLabel);
-        constraintLabel.setText("Constraint positions:", juce::dontSendNotification);
+        constraintLabel.setText(LOC("setAllInputs.labels.constraintPositions"), juce::dontSendNotification);
 
         addAndMakeVisible(constraintOnButton);
-        constraintOnButton.setButtonText("ON");
+        constraintOnButton.setButtonText(LOC("common.on"));
         constraintOnButton.onClick = [this]() {
             applyToAllInputs(WFSParameterIDs::inputConstraintX, 1);
             applyToAllInputs(WFSParameterIDs::inputConstraintY, 1);
@@ -356,7 +357,7 @@ private:
         };
 
         addAndMakeVisible(constraintOffButton);
-        constraintOffButton.setButtonText("OFF");
+        constraintOffButton.setButtonText(LOC("common.off"));
         constraintOffButton.onClick = [this]() {
             applyToAllInputs(WFSParameterIDs::inputConstraintX, 0);
             applyToAllInputs(WFSParameterIDs::inputConstraintY, 0);
@@ -367,7 +368,7 @@ private:
 
         // Height factor
         addAndMakeVisible(heightFactorLabel);
-        heightFactorLabel.setText("Height factor:", juce::dontSendNotification);
+        heightFactorLabel.setText(LOC("setAllInputs.labels.heightFactor"), juce::dontSendNotification);
 
         addAndMakeVisible(heightFactorDial);
         heightFactorDial.setValue(0.0f);  // Default 0%
@@ -385,12 +386,12 @@ private:
 
         // Distance attenuation section label
         addAndMakeVisible(distAttenSectionLabel);
-        distAttenSectionLabel.setText("Distance attenuation", juce::dontSendNotification);
+        distAttenSectionLabel.setText(LOC("setAllInputs.labels.distanceAttenuation"), juce::dontSendNotification);
         distAttenSectionLabel.setFont(juce::FontOptions(14.0f, juce::Font::bold));
 
         // All Log button - sets param to 0, shows dB/m dial in popup
         addAndMakeVisible(allLogButton);
-        allLogButton.setButtonText("All Log");
+        allLogButton.setButtonText(LOC("setAllInputs.buttons.allLog"));
         allLogButton.onClick = [this]() {
             applyToAllInputs(WFSParameterIDs::inputAttenuationLaw, 0);
             // For popup: is1OverD=false means Log mode, show dB/m
@@ -407,7 +408,7 @@ private:
 
         // All 1/d button - sets param to 1, shows ratio dial in popup
         addAndMakeVisible(all1dButton);
-        all1dButton.setButtonText("All 1/d");
+        all1dButton.setButtonText(LOC("setAllInputs.buttons.all1d"));
         all1dButton.onClick = [this]() {
             applyToAllInputs(WFSParameterIDs::inputAttenuationLaw, 1);
             // For popup: is1OverD=true means 1/d mode, show ratio
@@ -424,7 +425,7 @@ private:
 
         // dB/m dial
         addAndMakeVisible(dbmLabel);
-        dbmLabel.setText("dB/m", juce::dontSendNotification);
+        dbmLabel.setText(LOC("setAllInputs.labels.dbPerMeter"), juce::dontSendNotification);
         dbmLabel.setJustificationType(juce::Justification::centred);
 
         addAndMakeVisible(dbmDial);
@@ -440,11 +441,11 @@ private:
         dbmValueLabel.setText(juce::String(WFSParameterDefaults::inputDistanceAttenuationDefault, 1), juce::dontSendNotification);
 
         addAndMakeVisible(dbmUnitLabel);
-        dbmUnitLabel.setText("dB/m", juce::dontSendNotification);
+        dbmUnitLabel.setText(LOC("units.decibelPerMeter"), juce::dontSendNotification);
 
         // ratio dial
         addAndMakeVisible(ratioLabel);
-        ratioLabel.setText("ratio", juce::dontSendNotification);
+        ratioLabel.setText(LOC("setAllInputs.labels.ratio"), juce::dontSendNotification);
         ratioLabel.setJustificationType(juce::Justification::centred);
 
         addAndMakeVisible(ratioDial);
@@ -470,7 +471,7 @@ private:
 
         // common dial
         addAndMakeVisible(commonLabel);
-        commonLabel.setText("common", juce::dontSendNotification);
+        commonLabel.setText(LOC("setAllInputs.labels.common"), juce::dontSendNotification);
         commonLabel.setJustificationType(juce::Justification::centred);
 
         addAndMakeVisible(commonDial);
@@ -489,7 +490,7 @@ private:
 
         // Reset directivity (also resets Rotation, Tilt, HF Shelf)
         addAndMakeVisible(resetDirectivityButton);
-        resetDirectivityButton.setButtonText("Reset directivity");
+        resetDirectivityButton.setButtonText(LOC("setAllInputs.buttons.resetDirectivity"));
         resetDirectivityButton.onClick = [this]() {
             applyToAllInputs(WFSParameterIDs::inputDirectivity, WFSParameterDefaults::inputDirectivityDefault);
             applyToAllInputs(WFSParameterIDs::inputRotation, WFSParameterDefaults::inputRotationDefault);
@@ -500,19 +501,19 @@ private:
 
         // Mute macros
         addAndMakeVisible(muteMacrosLabel);
-        muteMacrosLabel.setText("Mute macros:", juce::dontSendNotification);
+        muteMacrosLabel.setText(LOC("setAllInputs.labels.muteMacros"), juce::dontSendNotification);
 
         addAndMakeVisible(muteMacrosSelector);
-        muteMacrosSelector.addItem("SELECT", 1);
-        muteMacrosSelector.addItem("MUTE ALL", 2);
-        muteMacrosSelector.addItem("UNMUTE ALL", 3);
-        muteMacrosSelector.addItem("INVERT MUTES", 4);
-        muteMacrosSelector.addItem("MUTE ODD", 5);
-        muteMacrosSelector.addItem("MUTE EVEN", 6);
+        muteMacrosSelector.addItem(LOC("inputs.muteMacros.selectMacro"), 1);
+        muteMacrosSelector.addItem(LOC("inputs.muteMacros.muteAll"), 2);
+        muteMacrosSelector.addItem(LOC("inputs.muteMacros.unmuteAll"), 3);
+        muteMacrosSelector.addItem(LOC("inputs.muteMacros.invertMutes"), 4);
+        muteMacrosSelector.addItem(LOC("inputs.muteMacros.muteOdd"), 5);
+        muteMacrosSelector.addItem(LOC("inputs.muteMacros.muteEven"), 6);
         for (int i = 1; i <= 10; ++i)
         {
-            muteMacrosSelector.addItem("MUTE ARRAY " + juce::String(i), 6 + (i * 2) - 1);
-            muteMacrosSelector.addItem("UNMUTE ARRAY " + juce::String(i), 6 + (i * 2));
+            muteMacrosSelector.addItem(LOC("inputs.muteMacros.muteArrayPrefix") + " " + juce::String(i), 6 + (i * 2) - 1);
+            muteMacrosSelector.addItem(LOC("inputs.muteMacros.unmuteArrayPrefix") + " " + juce::String(i), 6 + (i * 2));
         }
         muteMacrosSelector.setSelectedId(1, juce::dontSendNotification);
         muteMacrosSelector.onChange = [this]() {
@@ -526,7 +527,7 @@ private:
 
         // Live Source OFF
         addAndMakeVisible(liveSourceOffButton);
-        liveSourceOffButton.setButtonText("Turn OFF Live source atten.");
+        liveSourceOffButton.setButtonText(LOC("setAllInputs.buttons.turnOffLiveSource"));
         liveSourceOffButton.onClick = [this]() {
             applyToAllInputs(WFSParameterIDs::inputLSactive, 0);
             showActionFeedback(liveSourceOffButton);
@@ -534,24 +535,24 @@ private:
 
         // Sidelines - ON/OFF buttons
         addAndMakeVisible(sidelinesLabel);
-        sidelinesLabel.setText("Sidelines:", juce::dontSendNotification);
+        sidelinesLabel.setText(LOC("setAllInputs.labels.sidelines"), juce::dontSendNotification);
 
         addAndMakeVisible(sidelinesOnButton);
-        sidelinesOnButton.setButtonText("ON");
+        sidelinesOnButton.setButtonText(LOC("common.on"));
         sidelinesOnButton.onClick = [this]() {
             applyToAllInputs(WFSParameterIDs::inputSidelinesActive, 1);
             showActionFeedback(sidelinesOnButton);
         };
 
         addAndMakeVisible(sidelinesOffButton);
-        sidelinesOffButton.setButtonText("OFF");
+        sidelinesOffButton.setButtonText(LOC("common.off"));
         sidelinesOffButton.onClick = [this]() {
             applyToAllInputs(WFSParameterIDs::inputSidelinesActive, 0);
             showActionFeedback(sidelinesOffButton);
         };
 
         addAndMakeVisible(sidelinesFringeLabel);
-        sidelinesFringeLabel.setText("Fringe:", juce::dontSendNotification);
+        sidelinesFringeLabel.setText(LOC("setAllInputs.labels.fringe"), juce::dontSendNotification);
 
         addAndMakeVisible(sidelinesFringeDial);
         // Range: 0.1 to 10m
@@ -574,7 +575,7 @@ private:
 
         // Jitter & LFO OFF
         addAndMakeVisible(jitterLfoOffButton);
-        jitterLfoOffButton.setButtonText("Turn OFF jitter & LFO");
+        jitterLfoOffButton.setButtonText(LOC("setAllInputs.buttons.turnOffJitterLfo"));
         jitterLfoOffButton.onClick = [this]() {
             applyToAllInputs(WFSParameterIDs::inputJitter, 0.0f);
             applyToAllInputs(WFSParameterIDs::inputLFOactive, 0);
@@ -583,17 +584,17 @@ private:
 
         // Floor Reflections - ON/OFF buttons
         addAndMakeVisible(floorReflectionsLabel);
-        floorReflectionsLabel.setText("Floor Reflections:", juce::dontSendNotification);
+        floorReflectionsLabel.setText(LOC("setAllInputs.labels.floorReflections"), juce::dontSendNotification);
 
         addAndMakeVisible(floorReflectionsOnButton);
-        floorReflectionsOnButton.setButtonText("ON");
+        floorReflectionsOnButton.setButtonText(LOC("common.on"));
         floorReflectionsOnButton.onClick = [this]() {
             applyToAllInputs(WFSParameterIDs::inputFRactive, 1);
             showActionFeedback(floorReflectionsOnButton);
         };
 
         addAndMakeVisible(floorReflectionsOffButton);
-        floorReflectionsOffButton.setButtonText("OFF");
+        floorReflectionsOffButton.setButtonText(LOC("common.off"));
         floorReflectionsOffButton.onClick = [this]() {
             applyToAllInputs(WFSParameterIDs::inputFRactive, 0);
             showActionFeedback(floorReflectionsOffButton);
@@ -601,7 +602,7 @@ private:
 
         // Close button
         addAndMakeVisible(closeButton);
-        closeButton.setButtonText("CLOSE WINDOW");
+        closeButton.setButtonText(LOC("setAllInputs.buttons.closeWindow"));
         closeButton.onClick = [this]() {
             if (onCloseRequested)
                 onCloseRequested();
@@ -818,7 +819,7 @@ class SetAllInputsWindow : public juce::DocumentWindow,
 {
 public:
     SetAllInputsWindow(WfsParameters& params)
-        : DocumentWindow("Set All Inputs",
+        : DocumentWindow(LOC("setAllInputs.windowTitle"),
                          ColorScheme::get().background,
                          DocumentWindow::closeButton)
     {
@@ -827,7 +828,7 @@ public:
 
         content = std::make_unique<SetAllInputsContent>(params);
         content->onCloseRequested = [this]() { closeButtonPressed(); };
-        content->setName("Set All Inputs");  // Accessible name for screen readers
+        content->setName(LOC("setAllInputs.windowTitle"));  // Accessible name for screen readers
         setContentOwned(content.release(), false);
 
         centreWithSize(370, 880);
