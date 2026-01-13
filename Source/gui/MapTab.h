@@ -7,6 +7,7 @@
 #include "../Parameters/WFSParameterDefaults.h"
 #include "ColorUtilities.h"
 #include "ColorScheme.h"
+#include "StatusBar.h"
 #include "../Helpers/CoordinateConverter.h"
 #include "../Localization/LocalizationManager.h"
 
@@ -59,6 +60,10 @@ public:
 
         // Initialize view to center on stage
         resetView();
+
+        // Setup help text for status bar
+        setupHelpText();
+        setupMouseListeners();
     }
 
     ~MapTab() override
@@ -68,6 +73,33 @@ public:
         outputsTree.removeListener(this);
         reverbsTree.removeListener(this);
         configTree.removeListener(this);
+    }
+
+    void setStatusBar(StatusBar* bar)
+    {
+        statusBar = bar;
+    }
+
+    void mouseEnter(const juce::MouseEvent& event) override
+    {
+        if (statusBar == nullptr) return;
+
+        juce::Component* component = event.eventComponent;
+        while (component != nullptr)
+        {
+            if (helpTextMap.find(component) != helpTextMap.end())
+            {
+                statusBar->setHelpText(helpTextMap[component]);
+                return;
+            }
+            component = component->getParentComponent();
+        }
+    }
+
+    void mouseExit(const juce::MouseEvent&) override
+    {
+        if (statusBar != nullptr)
+            statusBar->clearText();
     }
 
     void paint(juce::Graphics& g) override
@@ -1677,6 +1709,22 @@ private:
     std::function<void(bool)> onLevelOverlayChanged;
     std::function<float(int)> getInputLevelDb;   // Returns peak dB for input index
     std::function<float(int)> getOutputLevelDb;  // Returns peak dB for output index
+
+    // Status bar and help text
+    StatusBar* statusBar = nullptr;
+    std::map<juce::Component*, juce::String> helpTextMap;
+
+    void setupHelpText()
+    {
+        helpTextMap[&homeButton] = LOC("map.tooltips.fitView");
+        helpTextMap[&levelOverlayButton] = LOC("map.tooltips.levels");
+    }
+
+    void setupMouseListeners()
+    {
+        for (auto& pair : helpTextMap)
+            pair.first->addMouseListener(this, false);
+    }
 
     // Constants
     static constexpr float markerRadius = 14.0f;
