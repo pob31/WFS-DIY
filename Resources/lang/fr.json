@@ -963,6 +963,30 @@
     }
   },
 
+  "snapshotScope": {
+    "windowTitle": "Portée du Snapshot d'Entrée",
+    "title": "Portée du Snapshot : {name}",
+    "applyScope": "Appliquer la portée :",
+    "whenSaving": "À l'enregistrement",
+    "whenRecalling": "Au rappel",
+    "all": "TOUT",
+    "sections": {
+      "input": "Entrée",
+      "position": "Position",
+      "attenuation": "Atténuation",
+      "directivity": "Directivité",
+      "liveSource": "Source Live",
+      "hackoustics": "Hackoustics",
+      "lfo": "LFO",
+      "automOtion": "AutomOtion",
+      "mutes": "Mutes"
+    },
+    "buttons": {
+      "save": "Enregistrer",
+      "cancel": "Annuler"
+    }
+  },
+
   "setAllInputs": {
     "windowTitle": "Appliquer à toutes les entrées",
     "warning": "Les modifications s'appliqueront à TOUTES les entrées",

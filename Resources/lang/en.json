@@ -963,6 +963,30 @@
     }
   },
 
+  "snapshotScope": {
+    "windowTitle": "Input Snapshot Scope",
+    "title": "Snapshot Scope: {name}",
+    "applyScope": "Apply scope:",
+    "whenSaving": "When Saving",
+    "whenRecalling": "When Recalling",
+    "all": "ALL",
+    "sections": {
+      "input": "Input",
+      "position": "Position",
+      "attenuation": "Attenuation",
+      "directivity": "Directivity",
+      "liveSource": "Live Source",
+      "hackoustics": "Hackoustics",
+      "lfo": "LFO",
+      "automOtion": "AutomOtion",
+      "mutes": "Mutes"
+    },
+    "buttons": {
+      "save": "Save",
+      "cancel": "Cancel"
+    }
+  },
+
   "setAllInputs": {
     "windowTitle": "Set All Inputs",
     "warning": "Changes will apply to ALL inputs",

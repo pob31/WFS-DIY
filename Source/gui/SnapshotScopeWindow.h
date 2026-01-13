@@ -4,6 +4,7 @@
 #include "../WfsParameters.h"
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/WFSFileManager.h"
+#include "../Localization/LocalizationManager.h"
 #include "ColorScheme.h"
 #include "WindowUtils.h"
 
@@ -308,15 +309,15 @@ public:
 
     juce::String getSectionDisplayName (const juce::String& sectionId) const
     {
-        if (sectionId == "Channel") return "Input";
-        if (sectionId == "Position") return "Position";
-        if (sectionId == "Attenuation") return "Attenuation";
-        if (sectionId == "Directivity") return "Directivity";
-        if (sectionId == "LiveSourceTamer") return "Live Source";
-        if (sectionId == "Hackoustics") return "Hackoustics";
-        if (sectionId == "LFO") return "LFO";
-        if (sectionId == "AutomOtion") return "AutomOtion";
-        if (sectionId == "Mutes") return "Mutes";
+        if (sectionId == "Channel") return LOC("snapshotScope.sections.input");
+        if (sectionId == "Position") return LOC("snapshotScope.sections.position");
+        if (sectionId == "Attenuation") return LOC("snapshotScope.sections.attenuation");
+        if (sectionId == "Directivity") return LOC("snapshotScope.sections.directivity");
+        if (sectionId == "LiveSourceTamer") return LOC("snapshotScope.sections.liveSource");
+        if (sectionId == "Hackoustics") return LOC("snapshotScope.sections.hackoustics");
+        if (sectionId == "LFO") return LOC("snapshotScope.sections.lfo");
+        if (sectionId == "AutomOtion") return LOC("snapshotScope.sections.automOtion");
+        if (sectionId == "Mutes") return LOC("snapshotScope.sections.mutes");
         return sectionId;
     }
 
@@ -388,7 +389,7 @@ public:
         g.fillRoundedRectangle (allBounds, 3.0f);
         g.setColour (colors.textPrimary);
         g.setFont (juce::Font (juce::FontOptions (11.0f).withStyle ("Bold")));
-        g.drawText ("ALL", allBounds.toNearestInt(), juce::Justification::centred);
+        g.drawText (LOC("snapshotScope.all"), allBounds.toNearestInt(), juce::Justification::centred);
 
         // Draw channel numbers
         for (int ch = 0; ch < numChannels; ++ch)
@@ -473,16 +474,16 @@ public:
 
         // Title label
         addAndMakeVisible (titleLabel);
-        titleLabel.setText ("Snapshot Scope: " + snapshotName, juce::dontSendNotification);
+        titleLabel.setText (LOC("snapshotScope.title").replace("{name}", snapshotName), juce::dontSendNotification);
         titleLabel.setFont (juce::Font (juce::FontOptions (16.0f).withStyle ("Bold")));
         titleLabel.setJustificationType (juce::Justification::centred);
 
         // Apply mode radio buttons
         addAndMakeVisible (applyModeLabel);
-        applyModeLabel.setText ("Apply scope:", juce::dontSendNotification);
+        applyModeLabel.setText (LOC("snapshotScope.applyScope"), juce::dontSendNotification);
 
         addAndMakeVisible (applySavingButton);
-        applySavingButton.setButtonText ("When Saving");
+        applySavingButton.setButtonText (LOC("snapshotScope.whenSaving"));
         applySavingButton.setRadioGroupId (1);
         applySavingButton.setClickingTogglesState (true);
         applySavingButton.onClick = [this]() {
@@ -490,7 +491,7 @@ public:
         };
 
         addAndMakeVisible (applyRecallingButton);
-        applyRecallingButton.setButtonText ("When Recalling");
+        applyRecallingButton.setButtonText (LOC("snapshotScope.whenRecalling"));
         applyRecallingButton.setRadioGroupId (1);
         applyRecallingButton.setClickingTogglesState (true);
         applyRecallingButton.onClick = [this]() {
@@ -519,14 +520,14 @@ public:
 
         // Action buttons
         addAndMakeVisible (saveButton);
-        saveButton.setButtonText ("Save");
+        saveButton.setButtonText (LOC("snapshotScope.buttons.save"));
         saveButton.onClick = [this]() {
             if (onSaveRequested)
                 onSaveRequested();
         };
 
         addAndMakeVisible (cancelButton);
-        cancelButton.setButtonText ("Cancel");
+        cancelButton.setButtonText (LOC("snapshotScope.buttons.cancel"));
         cancelButton.onClick = [this]() {
             if (onCloseRequested)
                 onCloseRequested();
@@ -636,7 +637,7 @@ public:
     using ExtendedScope = WFSFileManager::ExtendedSnapshotScope;
 
     SnapshotScopeWindow (WfsParameters& params, const juce::String& snapshotName, ExtendedScope& scope)
-        : DocumentWindow ("Input Snapshot Scope",
+        : DocumentWindow (LOC("snapshotScope.windowTitle"),
                           ColorScheme::get().background,
                           DocumentWindow::closeButton)
     {

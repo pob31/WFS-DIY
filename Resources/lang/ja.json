@@ -963,6 +963,30 @@
     }
   },
 
+  "snapshotScope": {
+    "windowTitle": "入力スナップショットの範囲",
+    "title": "スナップショットの範囲: {name}",
+    "applyScope": "範囲を適用:",
+    "whenSaving": "保存時",
+    "whenRecalling": "呼び出し時",
+    "all": "全て",
+    "sections": {
+      "input": "入力",
+      "position": "位置",
+      "attenuation": "減衰",
+      "directivity": "指向性",
+      "liveSource": "ライブソース",
+      "hackoustics": "Hackoustics",
+      "lfo": "LFO",
+      "automOtion": "AutomOtion",
+      "mutes": "ミュート"
+    },
+    "buttons": {
+      "save": "保存",
+      "cancel": "キャンセル"
+    }
+  },
+
   "setAllInputs": {
     "windowTitle": "全入力に適用",
     "warning": "変更はすべての入力に適用されます",
