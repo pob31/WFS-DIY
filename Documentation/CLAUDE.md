@@ -1022,6 +1022,122 @@ Theme selector in SystemConfigTab, third column under "UI" section header.
 
 ---
 
+## Internationalization (i18n) System (Source/Localization/)
+
+### Overview
+The application supports multiple languages through a JSON-based localization system. All user-facing strings are externalized to translation files, enabling runtime language switching.
+
+### Core Files
+- **LocalizationManager.h/cpp** - Singleton manager for loading and retrieving localized strings
+- **Resources/lang/*.json** - Translation files (one per language)
+
+### Available Languages (9 total)
+| Locale | Language | Native Name | File |
+|--------|----------|-------------|------|
+| en | English | English | en.json |
+| fr | French | Français | fr.json |
+| de | German | Deutsch | de.json |
+| es | Spanish | Español | es.json |
+| it | Italian | Italiano | it.json |
+| pt | Portuguese | Português | pt.json |
+| ja | Japanese | 日本語 | ja.json |
+| zh | Chinese | 中文 | zh.json |
+| ko | Korean | 한국어 | ko.json |
+
+### LOC() Macro
+Convenience macro for retrieving localized strings:
+```cpp
+#include "../Localization/LocalizationManager.h"
+
+// Basic usage
+label.setText(LOC("systemConfig.labels.showName"), juce::dontSendNotification);
+
+// With parameter substitution
+showStatus(LocalizationManager::getInstance().get(
+    "systemConfig.messages.languageChanged",
+    {{"language", selectedLanguage}}));
+```
+
+### JSON File Structure
+Translation files use nested JSON with dot-notation keys:
+```json
+{
+  "meta": {
+    "language": "English",
+    "locale": "en",
+    "version": "1.0.0"
+  },
+  "common": {
+    "ok": "OK",
+    "cancel": "Cancel",
+    "apply": "Apply"
+  },
+  "systemConfig": {
+    "labels": {
+      "showName": "Name:",
+      "inputChannels": "Input Channels:"
+    },
+    "messages": {
+      "configSaved": "Configuration saved.",
+      "error": "Error: {error}"
+    }
+  }
+}
+```
+
+### Key Sections in Translation Files
+| Section | Purpose |
+|---------|---------|
+| `meta` | Language metadata (name, locale, version) |
+| `common` | Shared strings (OK, Cancel, Yes, No, etc.) |
+| `units` | Unit abbreviations (m, dB, ms, Hz, %) |
+| `tabs` | Tab names |
+| `statusBar` | Status bar labels |
+| `systemConfig` | System Config tab strings |
+| `inputs` | Inputs tab strings |
+| `outputs` | Outputs tab strings |
+| `reverbs` | Reverb tab strings |
+| `network` | Network tab strings |
+| `clusters` | Clusters tab strings |
+| `map` | Map tab strings |
+| `audioPatch` | Audio Interface window strings |
+| `networkLog` | Network Log window strings |
+| `arrayHelper` | Wizard of OutZ strings |
+| `setAllInputs` | Set All Inputs window strings |
+| `snapshotScope` | Snapshot Scope window strings |
+| `eq` | EQ component strings |
+| `accessibility` | Screen reader strings |
+
+### Parameter Substitution
+Strings can contain `{placeholder}` markers for dynamic values:
+```cpp
+// JSON: "languageChanged": "Language changed to: {language}"
+LocalizationManager::getInstance().get(
+    "systemConfig.messages.languageChanged",
+    {{"language", "Français"}});
+// Result: "Language changed to: Français"
+```
+
+### Language Selection
+- **UI Location**: SystemConfigTab, third column under "UI" section, below Color Scheme
+- **Dropdown**: Dynamically populated by scanning `Resources/lang/` directory
+- **Display Names**: Native language names from `languageNames` map in SystemConfigTab
+- **Persistence**: Saved to XML configuration, loaded on startup
+
+### Adding New Strings
+1. Add key to `Resources/lang/en.json` (English reference)
+2. Add translations to all other language files
+3. Use `LOC("section.subsection.key")` in code
+4. For parameterized strings, use `LocalizationManager::getInstance().get()` with substitution map
+
+### Implementation Notes
+- Language files are loaded from `Resources/lang/` directory
+- `getAvailableLanguages()` scans directory for `*.json` files
+- Missing keys fall back to the key itself (visible as untranslated)
+- Language change requires application restart for full effect (some UI elements cached at startup)
+
+---
+
 ## Snapshot and Scope System (Source/Parameters/WFSFileManager.h, Source/gui/SnapshotScopeWindow.h)
 
 ### Overview
