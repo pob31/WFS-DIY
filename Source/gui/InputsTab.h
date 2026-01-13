@@ -1412,18 +1412,18 @@ private:
     {
         // Live Source Active button
         addAndMakeVisible(lsActiveButton);
-        lsActiveButton.setButtonText("Live Source Tamer: OFF");
+        lsActiveButton.setButtonText(LOC("inputs.toggles.liveSourceTamerOff"));
         lsActiveButton.setClickingTogglesState(true);
         lsActiveButton.onClick = [this]() {
             bool enabled = lsActiveButton.getToggleState();
-            lsActiveButton.setButtonText(enabled ? "Live Source Tamer: ON" : "Live Source Tamer: OFF");
+            lsActiveButton.setButtonText(enabled ? LOC("inputs.toggles.liveSourceTamerOn") : LOC("inputs.toggles.liveSourceTamerOff"));
             setLiveSourceParametersAlpha(enabled ? 1.0f : 0.5f);
             saveInputParam(WFSParameterIDs::inputLSactive, enabled ? 1 : 0);
         };
 
         // Radius slider
         addAndMakeVisible(lsRadiusLabel);
-        lsRadiusLabel.setText("Radius:", juce::dontSendNotification);
+        lsRadiusLabel.setText(LOC("inputs.labels.radius"), juce::dontSendNotification);
         lsRadiusSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF00BCD4));
         lsRadiusSlider.setValue(0.06f);  // 3m
         lsRadiusSlider.onValueChanged = [this](float v) {
@@ -1438,12 +1438,12 @@ private:
 
         // Shape selector
         addAndMakeVisible(lsShapeLabel);
-        lsShapeLabel.setText("Shape:", juce::dontSendNotification);
+        lsShapeLabel.setText(LOC("inputs.labels.shape"), juce::dontSendNotification);
         addAndMakeVisible(lsShapeSelector);
-        lsShapeSelector.addItem("linear", 1);
-        lsShapeSelector.addItem("log", 2);
+        lsShapeSelector.addItem(LOC("inputs.liveSource.linear"), 1);
+        lsShapeSelector.addItem(LOC("inputs.liveSource.log"), 2);
         lsShapeSelector.addItem(juce::CharPointer_UTF8("square d\xc2\xb2"), 3);
-        lsShapeSelector.addItem("sine", 4);
+        lsShapeSelector.addItem(LOC("inputs.liveSource.sine"), 4);
         lsShapeSelector.setSelectedId(1, juce::dontSendNotification);
         lsShapeSelector.onChange = [this]() {
             saveInputParam(WFSParameterIDs::inputLSshape, lsShapeSelector.getSelectedId() - 1);
@@ -1453,7 +1453,7 @@ private:
 
         // Attenuation slider
         addAndMakeVisible(lsAttenuationLabel);
-        lsAttenuationLabel.setText("Attenuation:", juce::dontSendNotification);
+        lsAttenuationLabel.setText(LOC("inputs.labels.attenuation"), juce::dontSendNotification);
         lsAttenuationSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFFFF5722));
         lsAttenuationSlider.onValueChanged = [this](float v) {
             float dB = 20.0f * std::log10(std::pow(10.0f, -24.0f / 20.0f) +
@@ -1468,7 +1468,7 @@ private:
 
         // Peak Threshold slider
         addAndMakeVisible(lsPeakThresholdLabel);
-        lsPeakThresholdLabel.setText("Peak Threshold:", juce::dontSendNotification);
+        lsPeakThresholdLabel.setText(LOC("inputs.labels.peakThreshold"), juce::dontSendNotification);
         lsPeakThresholdSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFFE91E63));
         lsPeakThresholdSlider.onValueChanged = [this](float v) {
             float dB = 20.0f * std::log10(std::pow(10.0f, -48.0f / 20.0f) +
@@ -1483,7 +1483,7 @@ private:
 
         // Peak Ratio dial
         addAndMakeVisible(lsPeakRatioLabel);
-        lsPeakRatioLabel.setText("Peak Ratio:", juce::dontSendNotification);
+        lsPeakRatioLabel.setText(LOC("inputs.labels.peakRatio"), juce::dontSendNotification);
         lsPeakRatioLabel.setJustificationType(juce::Justification::centred);
         lsPeakRatioDial.setColours(juce::Colours::black, juce::Colour(0xFFE91E63), juce::Colours::grey);
         lsPeakRatioDial.onValueChanged = [this](float v) {
@@ -1503,7 +1503,7 @@ private:
 
         // Slow Threshold slider
         addAndMakeVisible(lsSlowThresholdLabel);
-        lsSlowThresholdLabel.setText("Slow Threshold:", juce::dontSendNotification);
+        lsSlowThresholdLabel.setText(LOC("inputs.labels.slowThreshold"), juce::dontSendNotification);
         lsSlowThresholdSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFF9C27B0));
         lsSlowThresholdSlider.onValueChanged = [this](float v) {
             float dB = 20.0f * std::log10(std::pow(10.0f, -48.0f / 20.0f) +
@@ -1518,7 +1518,7 @@ private:
 
         // Slow Ratio dial
         addAndMakeVisible(lsSlowRatioLabel);
-        lsSlowRatioLabel.setText("Slow Ratio:", juce::dontSendNotification);
+        lsSlowRatioLabel.setText(LOC("inputs.labels.slowRatio"), juce::dontSendNotification);
         lsSlowRatioLabel.setJustificationType(juce::Justification::centred);
         lsSlowRatioDial.setColours(juce::Colours::black, juce::Colour(0xFF9C27B0), juce::Colours::grey);
         lsSlowRatioDial.onValueChanged = [this](float v) {
@@ -4494,7 +4494,7 @@ private:
         // ==================== LIVE SOURCE TAB ====================
         bool lsActive = getIntParam(WFSParameterIDs::inputLSactive, 0) != 0;
         lsActiveButton.setToggleState(lsActive, juce::dontSendNotification);
-        lsActiveButton.setButtonText(lsActive ? "Live Source Tamer: ON" : "Live Source Tamer: OFF");
+        lsActiveButton.setButtonText(lsActive ? LOC("inputs.toggles.liveSourceTamerOn") : LOC("inputs.toggles.liveSourceTamerOff"));
         setLiveSourceParametersAlpha(lsActive ? 1.0f : 0.5f);
 
         // LS Radius stored as meters (0-50), default 3
