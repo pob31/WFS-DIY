@@ -1,0 +1,1022 @@
+{
+  "meta": {
+    "language": "中文",
+    "locale": "zh",
+    "version": "1.0.0",
+    "author": "WFS-DIY Team"
+  },
+
+  "common": {
+    "ok": "确定",
+    "cancel": "取消",
+    "apply": "应用",
+    "reset": "重置",
+    "save": "保存",
+    "load": "加载",
+    "store": "存储",
+    "reload": "重新加载",
+    "import": "导入",
+    "export": "导出",
+    "enable": "启用",
+    "disable": "禁用",
+    "on": "开",
+    "off": "关",
+    "yes": "是",
+    "no": "否",
+    "delete": "删除",
+    "add": "添加",
+    "remove": "移除",
+    "edit": "编辑",
+    "close": "关闭",
+    "select": "选择",
+    "all": "全部",
+    "none": "无"
+  },
+
+  "units": {
+    "meters": "m",
+    "decibels": "dB",
+    "milliseconds": "ms",
+    "seconds": "s",
+    "degrees": "\u00b0",
+    "hertz": "Hz",
+    "percent": "%",
+    "celsius": "\u00b0C",
+    "metersPerSecond": "m/s",
+    "decibelPerMeter": "dB/m"
+  },
+
+  "tabs": {
+    "systemConfig": "系统配置",
+    "inputs": "输入",
+    "outputs": "输出",
+    "reverb": "混响",
+    "network": "网络",
+    "clusters": "集群",
+    "map": "地图"
+  },
+
+  "statusBar": {
+    "displayLabel": "显示:",
+    "helpMode": "帮助",
+    "oscMode": "OSC"
+  },
+
+  "systemConfig": {
+    "sections": {
+      "show": "演出",
+      "io": "输入/输出",
+      "stage": "舞台",
+      "master": "主控区",
+      "ui": "界面",
+      "files": "文件"
+    },
+
+    "labels": {
+      "showName": "名称:",
+      "showLocation": "地点:",
+      "inputChannels": "输入通道:",
+      "outputChannels": "输出通道:",
+      "reverbChannels": "混响通道:",
+      "algorithm": "算法:",
+      "processing": "处理:",
+      "stageShape": "舞台形状:",
+      "stageWidth": "宽度:",
+      "stageDepth": "深度:",
+      "stageHeight": "高度:",
+      "stageDiameter": "直径:",
+      "domeElevation": "穹顶角度:",
+      "originWidth": "原点宽度:",
+      "originDepth": "原点深度:",
+      "originHeight": "原点高度:",
+      "speedOfSound": "声速:",
+      "temperature": "温度:",
+      "masterLevel": "主电平:",
+      "systemLatency": "系统延迟:",
+      "haasEffect": "哈斯效应:",
+      "colorScheme": "配色方案:",
+      "screenReader": "屏幕阅读器:",
+      "language": "语言:"
+    },
+
+    "buttons": {
+      "audioPatch": "音频接口和路由窗口",
+      "processingOff": "处理: 关",
+      "processingOn": "处理: 开",
+      "selectProjectFolder": "选择项目文件夹",
+      "storeComplete": "保存完整配置",
+      "reloadComplete": "重新加载完整配置",
+      "reloadCompleteBackup": "从备份加载完整配置",
+      "storeSystem": "保存系统配置",
+      "reloadSystem": "重新加载系统配置",
+      "reloadSystemBackup": "从备份加载系统配置",
+      "importSystem": "导入系统配置",
+      "exportSystem": "导出系统配置"
+    },
+
+    "algorithms": {
+      "inputBuffer": "InputBuffer (读取时延迟)",
+      "outputBuffer": "OutputBuffer (写入时延迟)"
+    },
+
+    "stageShapes": {
+      "box": "立方体",
+      "cylinder": "圆柱体",
+      "dome": "穹顶"
+    },
+
+    "colorSchemes": {
+      "default": "默认 (深灰色)",
+      "black": "黑色",
+      "light": "浅色"
+    },
+
+    "help": {
+      "showName": "当前演出的名称。",
+      "showLocation": "当前演出的地点。",
+      "inputChannels": "输入通道数量。",
+      "outputChannels": "输出通道数量。",
+      "reverbChannels": "混响通道数量。",
+      "audioPatch": "打开音频接口和路由窗口。",
+      "algorithm": "从菜单中选择渲染算法。",
+      "processing": "锁定所有输入/输出参数并启动DSP。长按停止DSP。",
+      "stageShape": "选择舞台形状 (立方体、圆柱体或穹顶)。",
+      "stageWidth": "舞台宽度 (米) (仅限立方体形状)。",
+      "stageDepth": "舞台深度 (米) (仅限立方体形状)。",
+      "stageHeight": "舞台高度 (米) (立方体和圆柱体形状)。",
+      "stageDiameter": "舞台直径 (米) (圆柱体和穹顶形状)。",
+      "domeElevation": "穹顶仰角: 180 = 半球, 360 = 全球。",
+      "originWidth": "原点X偏移量 (0 = 居中, 负值 = 左侧)。",
+      "originDepth": "原点Y偏移量 (0 = 居中, 负值 = 前方/舞台前)。",
+      "originHeight": "原点Z偏移量 (0 = 地面, 正值 = 地面以上)。",
+      "originFront": "将原点设置在舞台前方中心。适用于正面舞台。",
+      "originCenterGround": "将原点设置在舞台中心地面。适用于环绕声或圆柱形设置。",
+      "originCenter": "将原点设置在舞台体积中心。适用于球形穹顶设置。",
+      "speedOfSound": "声速 (与温度相关)。",
+      "temperature": "温度 (决定声速)。",
+      "masterLevel": "主电平 (影响所有输出)。",
+      "systemLatency": "系统总延迟 (调音台和计算机) / 特定输入和输出延迟可在各自设置中设定。",
+      "haasEffect": "应用于系统的哈斯效应。将考虑延迟补偿 (系统、输入和输出)。",
+      "colorScheme": "选择配色方案: 默认 (深灰色)、黑色 (适用于OLED显示屏) 或浅色 (日间使用)。",
+      "screenReader": "启用或禁用屏幕阅读器播报。启用后, 悬停时会播报参数名称和值, 几秒后会朗读帮助文本。",
+      "selectProjectFolder": "选择当前项目文件夹的存储位置。",
+      "storeComplete": "将完整配置保存到文件 (含备份)。",
+      "reloadComplete": "从文件重新加载完整配置。",
+      "reloadCompleteBackup": "从备份文件重新加载完整配置。",
+      "storeSystem": "将系统配置保存到文件 (含备份)。",
+      "reloadSystem": "从文件重新加载系统配置。",
+      "reloadSystemBackup": "从备份文件重新加载系统配置。",
+      "importSystem": "从文件导入系统配置 (使用文件浏览器)。",
+      "exportSystem": "将系统配置导出到文件 (使用文件浏览器)。",
+      "language": "选择用户界面语言。重启应用程序后更改将完全生效。"
+    },
+
+    "messages": {
+      "selectFolderFirst": "请先选择项目文件夹。",
+      "configSaved": "完整配置已保存。",
+      "configLoaded": "完整配置已加载。",
+      "systemConfigSaved": "系统配置已保存。",
+      "systemConfigLoaded": "系统配置已加载。",
+      "systemConfigFileNotFound": "未找到系统配置文件。",
+      "configLoadedFromBackup": "已从备份加载配置。",
+      "systemConfigLoadedFromBackup": "已从备份加载系统配置。",
+      "noBackupFilesFound": "未找到备份文件。",
+      "systemConfigImported": "系统配置已导入。",
+      "systemConfigExported": "系统配置已导出。",
+      "partialLoad": "部分加载: {error}",
+      "partialLoadFromBackup": "从备份部分加载: {error}",
+      "error": "错误: {error}",
+      "languageChanged": "语言已更改为: {language} (需要重启才能完全生效)"
+    },
+
+    "dialogs": {
+      "reduceInputChannels": {
+        "title": "减少输入通道?",
+        "message": "从 {current} 减少到 {new} 个输入通道将删除通道 {start} 到 {end} 的设置。\n\n此操作无法撤销。"
+      },
+      "reduceOutputChannels": {
+        "title": "减少输出通道?",
+        "message": "从 {current} 减少到 {new} 个输出通道将删除通道 {start} 到 {end} 的设置。\n\n此操作无法撤销。"
+      },
+      "reduceReverbChannels": {
+        "title": "减少混响通道?",
+        "message": "从 {current} 减少到 {new} 个混响通道将删除通道 {start} 到 {end} 的设置。\n\n此操作无法撤销。"
+      },
+      "reduce": "减少",
+      "selectProjectFolder": "选择项目文件夹",
+      "importSystemConfig": "导入系统配置",
+      "exportSystemConfig": "导出系统配置"
+    }
+  },
+
+  "inputs": {
+    "sections": {
+      "channel": "通道",
+      "position": "位置",
+      "attenuation": "衰减",
+      "directivity": "指向性",
+      "liveSource": "现场声源驯服器",
+      "hackoustics": "Hackoustics",
+      "lfo": "LFO",
+      "automotion": "AutomOtion",
+      "mutes": "静音"
+    },
+
+    "labels": {
+      "name": "名称",
+      "cluster": "集群",
+      "attenuation": "衰减",
+      "delayLatency": "延迟/延时",
+      "positionX": "X",
+      "positionY": "Y",
+      "positionZ": "Z"
+    }
+  },
+
+  "outputs": {
+    "sections": {
+      "channel": "通道",
+      "position": "位置",
+      "settings": "设置"
+    },
+
+    "labels": {
+      "name": "名称",
+      "positionX": "X",
+      "positionY": "Y",
+      "positionZ": "Z",
+      "attenuation": "衰减",
+      "delay": "延迟"
+    }
+  },
+
+  "network": {
+    "sections": {
+      "network": "网络",
+      "connections": "网络连接",
+      "admOsc": "ADM-OSC",
+      "tracking": "追踪"
+    },
+
+    "labels": {
+      "interface": "网络接口:",
+      "currentIPv4": "当前IPv4:",
+      "udpPort": "UDP端口:",
+      "tcpPort": "TCP端口:",
+      "oscQuery": "OSC查询:",
+      "protocol": "协议:",
+      "rxPort": "接收端口:",
+      "offsetX": "偏移X:",
+      "offsetY": "偏移Y:",
+      "offsetZ": "偏移Z:",
+      "scaleX": "缩放X:",
+      "scaleY": "缩放Y:",
+      "scaleZ": "缩放Z:"
+    },
+
+    "buttons": {
+      "storeConfig": "保存网络配置",
+      "reloadConfig": "重新加载网络配置",
+      "reloadBackup": "加载备份",
+      "import": "导入",
+      "export": "导出",
+      "openLogWindow": "打开日志窗口",
+      "findMyRemote": "查找遥控器",
+      "add": "添加"
+    },
+
+    "toggles": {
+      "enabled": "已启用",
+      "disabled": "已禁用",
+      "on": "开",
+      "off": "关",
+      "trackingOn": "追踪: 开",
+      "trackingOff": "追踪: 关",
+      "flipXOn": "翻转X: 开",
+      "flipXOff": "翻转X: 关",
+      "flipYOn": "翻转Y: 开",
+      "flipYOff": "翻转Y: 关",
+      "flipZOn": "翻转Z: 开",
+      "flipZOff": "翻转Z: 关",
+      "oscFilterAcceptAll": "OSC过滤: 接受全部",
+      "oscFilterRegisteredOnly": "OSC过滤: 仅已注册"
+    },
+
+    "table": {
+      "name": "名称",
+      "mode": "模式",
+      "ipv4Address": "IPv4地址",
+      "txPort": "发送端口",
+      "rx": "接收",
+      "tx": "发送",
+      "protocol": "协议",
+      "defaultTarget": "目标 {num}"
+    },
+
+    "protocols": {
+      "disabled": "禁用",
+      "osc": "OSC",
+      "remote": "遥控",
+      "admOsc": "ADM-OSC",
+      "psn": "PosiStageNet (PSN)",
+      "rttrp": "RTTrP",
+      "udp": "UDP",
+      "tcp": "TCP"
+    },
+
+    "messages": {
+      "configSaved": "网络配置已保存。",
+      "configNotFound": "未找到网络配置文件。",
+      "configReloaded": "网络配置已重新加载。",
+      "noBackupFound": "未找到备份文件。",
+      "configLoadedFromBackup": "已从备份加载网络配置。",
+      "configImported": "网络配置已导入。",
+      "configExported": "网络配置已导出。",
+      "onlyOneRemote": "只允许一个遥控连接。"
+    }
+  },
+
+  "accessibility": {
+    "ttsEnabled": "屏幕阅读器已启用",
+    "ttsDisabled": "屏幕阅读器已禁用"
+  },
+
+  "audioPatch": {
+    "windowTitle": "音频接口和路由",
+
+    "tabs": {
+      "deviceSettings": "设备设置",
+      "inputPatch": "输入路由",
+      "outputPatch": "输出路由"
+    },
+
+    "deviceSettings": {
+      "labels": {
+        "deviceType": "音频设备类型:",
+        "device": "设备:",
+        "sampleRate": "采样率:",
+        "bufferSize": "音频缓冲区大小:"
+      },
+      "buttons": {
+        "controlPanel": "控制面板",
+        "resetDevice": "重置设备"
+      },
+      "noDevice": "无设备",
+      "notConfigured": "未配置"
+    },
+
+    "modes": {
+      "scrolling": "滚动",
+      "patching": "路由",
+      "testing": "测试"
+    },
+
+    "buttons": {
+      "unpatchAll": "断开全部",
+      "hold": "保持"
+    },
+
+    "testSignal": {
+      "labels": {
+        "signal": "信号:",
+        "frequency": "频率:",
+        "level": "电平:"
+      },
+      "types": {
+        "off": "关闭",
+        "pinkNoise": "粉红噪声",
+        "tone": "音调",
+        "sweep": "扫频",
+        "diracPulse": "狄拉克脉冲",
+        "pulse": "脉冲"
+      }
+    },
+
+    "dialogs": {
+      "unpatchInputsTitle": "断开所有输入",
+      "unpatchInputsMessage": "确定要移除所有输入路由吗?",
+      "unpatchOutputsTitle": "断开所有输出",
+      "unpatchOutputsMessage": "确定要移除所有输出路由吗?"
+    },
+
+    "messages": {
+      "chooseTestSignal": "选择测试信号以启用测试模式"
+    }
+  },
+
+  "networkLog": {
+    "windowTitle": "网络日志",
+    "controls": {
+      "logging": "日志记录",
+      "clear": "清除",
+      "export": "导出"
+    },
+    "exportMenu": {
+      "exportAll": "导出全部",
+      "exportFiltered": "导出已过滤"
+    },
+    "filterModes": {
+      "tcpUdp": "TCP/UDP",
+      "protocol": "协议",
+      "clientIp": "客户端IP",
+      "rejected": "已拒绝"
+    },
+    "filterToggles": {
+      "incoming": "传入",
+      "outgoing": "传出",
+      "udp": "UDP",
+      "tcp": "TCP"
+    },
+    "columns": {
+      "time": "时间",
+      "direction": "方向",
+      "ip": "IP",
+      "port": "端口",
+      "transport": "传输",
+      "protocol": "协议",
+      "address": "地址",
+      "arguments": "参数"
+    },
+    "status": {
+      "rejected": "已拒绝"
+    },
+    "dialogs": {
+      "exportFailedTitle": "导出失败",
+      "exportFailedMessage": "无法写入文件: {path}",
+      "exportCompleteTitle": "导出完成",
+      "exportCompleteMessage": "日志已导出到: {path}"
+    }
+  },
+
+  "map": {
+    "buttons": {
+      "home": "适应屏幕显示舞台"
+    },
+    "labels": {
+      "reverbPrefix": "混"
+    }
+  },
+
+  "clusters": {
+    "labels": {
+      "assignedInputs": "已分配输入",
+      "reference": "参考:",
+      "position": "位置",
+      "posPrefix": "位置:",
+      "controls": "控制",
+      "z": "Z",
+      "attenuation": "衰减",
+      "rotation": "旋转",
+      "scale": "缩放",
+      "plane": "平面:",
+      "x": "X:",
+      "y": "Y:",
+      "inputPrefix": "输入"
+    },
+    "referenceMode": {
+      "firstInput": "第一输入",
+      "barycenter": "重心"
+    },
+    "planes": {
+      "xy": "XY",
+      "xz": "XZ",
+      "yz": "YZ"
+    },
+    "status": {
+      "tracking": "追踪: 输入 {num} (覆盖参考)",
+      "noInputs": "未分配输入",
+      "trackedMarker": "[T]"
+    }
+  },
+
+  "eq": {
+    "status": {
+      "off": "EQ 关",
+      "on": "EQ 开"
+    },
+    "filterTypes": {
+      "off": "关",
+      "lowCut": "低切",
+      "lowShelf": "低频搁架",
+      "peakNotch": "峰值/陷波",
+      "bandPass": "带通",
+      "highShelf": "高频搁架",
+      "highCut": "高切"
+    },
+    "labels": {
+      "band": "频段",
+      "freq": "频率:",
+      "gain": "增益",
+      "q": "Q值"
+    }
+  },
+
+  "outputs": {
+    "tabs": {
+      "parameters": "输出参数",
+      "eq": "输出EQ"
+    },
+    "labels": {
+      "name": "名称:",
+      "array": "阵列:",
+      "applyToArray": "应用到阵列:",
+      "attenuation": "衰减:",
+      "delayLatency": "延迟/延时:",
+      "distanceAtten": "距离衰减:",
+      "hParallax": "水平视差:",
+      "vParallax": "垂直视差:",
+      "coordinates": "坐标:",
+      "positionX": "位置X:",
+      "positionY": "位置Y:",
+      "positionZ": "位置Z:",
+      "orientation": "朝向:",
+      "angleOn": "开启角度:",
+      "angleOff": "关闭角度:",
+      "pitch": "俯仰:",
+      "hfDamping": "高频衰减:",
+      "delay": "延迟:",
+      "latency": "延时:"
+    },
+    "buttons": {
+      "speakerVisible": "扬声器在地图上可见",
+      "wizardOfOutZ": "OutZ向导...",
+      "storeConfig": "保存输出配置",
+      "reloadConfig": "重新加载输出配置",
+      "reloadBackup": "加载备份",
+      "import": "导入",
+      "export": "导出"
+    },
+    "toggles": {
+      "minLatencyOn": "最小延时: 开",
+      "minLatencyOff": "最小延时: 关",
+      "liveSourceOn": "现场声源衰减: 开",
+      "liveSourceOff": "现场声源衰减: 关",
+      "floorReflectionsOn": "地板反射: 开",
+      "floorReflectionsOff": "地板反射: 关"
+    },
+    "arrayModes": {
+      "single": "单独",
+      "array": "阵列",
+      "off": "关",
+      "absolute": "绝对",
+      "relative": "相对"
+    },
+    "coordModes": {
+      "xyz": "XYZ"
+    },
+    "units": {
+      "meters": "m",
+      "dB": "dB",
+      "dBPerMeter": "dB/m",
+      "hz": "Hz",
+      "ms": "ms",
+      "percent": "%"
+    },
+    "dialogs": {
+      "import": "导入输出配置",
+      "export": "导出输出配置"
+    },
+    "messages": {
+      "setToSingle": "输出 {num} 设置为单独",
+      "assignedToArray": "输出 {num} 分配到阵列 {array}",
+      "selectFolderFirst": "请先在系统配置中选择项目文件夹。",
+      "configSaved": "输出配置已保存。",
+      "configLoaded": "输出配置已加载。",
+      "configNotFound": "未找到输出配置文件。",
+      "configReloaded": "输出配置已重新加载。",
+      "noBackup": "未找到输出配置备份。",
+      "backupLoaded": "已从备份加载输出配置。",
+      "configImported": "输出配置已导入。",
+      "configExported": "输出配置已导出。",
+      "error": "错误: {error}"
+    }
+  },
+
+  "arrayHelper": {
+    "window": {
+      "title": "OutZ向导",
+      "contentName": "输出阵列助手"
+    },
+    "presets": {
+      "label": "预设:",
+      "nearFieldStraight": "近场阵列直线",
+      "nearFieldCurved": "近场阵列弯曲",
+      "mainRoomStraight": "主厅阵列直线",
+      "subBass": "低音炮",
+      "surround": "环绕",
+      "delayLine": "延迟线",
+      "circle": "圆形"
+    },
+    "sections": {
+      "geometry": "几何",
+      "acousticDefaults": "声学默认值",
+      "target": "目标"
+    },
+    "geometry": {
+      "centerSpacing": "中心+间距",
+      "endpoints": "端点",
+      "nSpeakers": "扬声器数:",
+      "nPairs": "配对数:",
+      "zHeight": "Z高度 (m):",
+      "orientation": "朝向 (度):",
+      "centerX": "中心X (m):",
+      "centerY": "中心Y (m):",
+      "spacing": "间距 (m):",
+      "startX": "起点X (m):",
+      "startY": "起点Y (m):",
+      "endX": "终点X (m):",
+      "endY": "终点Y (m):",
+      "sag": "下垂 (m):",
+      "radius": "半径 (m):",
+      "startAngle": "起始角度 (度):",
+      "facingInward": "朝内",
+      "facingOutward": "朝外",
+      "width": "宽度 (m):",
+      "yStart": "Y起点 (m):",
+      "yEnd": "Y终点 (m):",
+      "frontFacing": "朝前",
+      "backFacing": "朝后"
+    },
+    "acoustic": {
+      "liveSource": "现场声源",
+      "floorReflections": "地板反射",
+      "hfDamping": "高频衰减 (dB/m):",
+      "hParallax": "水平视差 (m):",
+      "vParallax": "垂直视差 (m):",
+      "distanceAtten": "距离衰减 (%):",
+      "lowCut": "低切 (Hz):",
+      "highCut": "高切 (Hz):"
+    },
+    "target": {
+      "array": "阵列:",
+      "arrayPrefix": "阵列",
+      "startingOutput": "起始输出:"
+    },
+    "buttons": {
+      "apply": "应用",
+      "close": "关闭"
+    },
+    "preview": {
+      "audience": "观众"
+    },
+    "status": {
+      "ready": "就绪",
+      "calculated": "已计算 {count} 个位置",
+      "applied": "已将 {count} 个扬声器应用到阵列 {array}。准备下一个阵列。"
+    },
+    "errors": {
+      "speakerCountZero": "扬声器数量必须大于0",
+      "noPositions": "没有可应用的位置。请检查几何参数。",
+      "notEnoughOutputs": "输出通道不足! 从 {start} 开始需要 {count} 个",
+      "prefix": "错误: "
+    }
+  },
+
+  "reverbs": {
+    "noChannels": "未配置混响通道。\n\n请在系统配置中设置混响通道数量。",
+    "tabs": {
+      "channelParams": "通道参数",
+      "eq": "混响EQ",
+      "algorithm": "算法"
+    },
+    "labels": {
+      "name": "名称:",
+      "attenuation": "衰减:",
+      "delayLatency": "延迟/延时:",
+      "coordinates": "坐标:",
+      "positionX": "位置X:",
+      "positionY": "位置Y:",
+      "positionZ": "位置Z:",
+      "returnOffsetX": "返回偏移X:",
+      "returnOffsetY": "返回偏移Y:",
+      "returnOffsetZ": "返回偏移Z:",
+      "orientation": "朝向:",
+      "angleOn": "开启角度:",
+      "angleOff": "关闭角度:",
+      "pitch": "俯仰:",
+      "hfDamping": "高频衰减:",
+      "distanceAttenPercent": "距离衰减%:",
+      "distanceAtten": "距离衰减:",
+      "commonAtten": "公共衰减:",
+      "outputMutes": "输出静音:",
+      "muteMacro": "静音宏:"
+    },
+    "sections": {
+      "reverbFeed": "混响发送",
+      "reverbReturn": "混响返回"
+    },
+    "buttons": {
+      "visibleOnMap": "混响在地图上可见",
+      "hiddenOnMap": "混响在地图上隐藏",
+      "storeConfig": "保存混响配置",
+      "reloadConfig": "重新加载混响配置",
+      "reloadBackup": "加载备份",
+      "import": "导入",
+      "export": "导出"
+    },
+    "toggles": {
+      "minLatencyOn": "最小延时 开",
+      "minLatencyOff": "最小延时 关",
+      "liveSourceOn": "现场声源衰减 开",
+      "liveSourceOff": "现场声源衰减 关"
+    },
+    "muteMacros": {
+      "select": "选择静音宏",
+      "muteAll": "全部静音",
+      "unmuteAll": "全部解除静音",
+      "invertMutes": "反转静音",
+      "muteOdd": "静音奇数",
+      "muteEven": "静音偶数",
+      "muteArray": "静音阵列",
+      "unmuteArray": "解除阵列静音"
+    },
+    "algorithm": {
+      "comingSoon": "即将推出"
+    },
+    "dialogs": {
+      "import": "导入混响配置",
+      "export": "导出混响配置"
+    },
+    "messages": {
+      "selectFolderFirst": "请先在系统配置中选择项目文件夹。",
+      "configSaved": "混响配置已保存。",
+      "configLoaded": "混响配置已加载。",
+      "backupLoaded": "已从备份加载混响配置。",
+      "configImported": "混响配置已导入。",
+      "configExported": "混响配置已导出。",
+      "error": "错误: {error}"
+    }
+  },
+  "inputs": {
+    "tabs": {
+      "inputParams": "输入参数",
+      "liveSourceHackoustics": "现场声源 & Hackoustics",
+      "movements": "运动",
+      "visualisation": "可视化"
+    },
+    "labels": {
+      "name": "名称:",
+      "cluster": "集群:",
+      "attenuation": "衰减:",
+      "delayLatency": "延迟/延时:",
+      "coord": "坐标:",
+      "positionX": "位置X:",
+      "positionY": "位置Y:",
+      "positionZ": "位置Z:",
+      "offsetX": "偏移X:",
+      "offsetY": "偏移Y:",
+      "offsetZ": "偏移Z:",
+      "min": "最小:",
+      "max": "最大:",
+      "trackingId": "追踪ID:",
+      "trackingSmooth": "追踪平滑:",
+      "maxSpeed": "最大速度:",
+      "heightFactor": "高度因子:",
+      "xyJoystick": "X/Y",
+      "zSlider": "Z",
+      "attenuationLaw": "衰减曲线:",
+      "distanceAtten": "距离衰减:",
+      "distanceRatio": "距离比:",
+      "commonAtten": "公共衰减:",
+      "directivity": "指向性:",
+      "rotation": "旋转:",
+      "tilt": "倾斜:",
+      "hfShelf": "高频搁架:",
+      "radius": "半径:",
+      "shape": "形状:",
+      "peakThreshold": "峰值阈值:",
+      "peakRatio": "峰值比:",
+      "slowThreshold": "慢速阈值:",
+      "slowRatio": "慢速比:",
+      "diffusion": "扩散:",
+      "frequency": "频率:",
+      "gain": "增益:",
+      "slope": "斜率:",
+      "period": "周期:",
+      "phase": "相位:",
+      "shapeX": "形状X:",
+      "shapeY": "形状Y:",
+      "shapeZ": "形状Z:",
+      "rateX": "速率X:",
+      "rateY": "速率Y:",
+      "rateZ": "速率Z:",
+      "amplitudeX": "振幅X:",
+      "amplitudeY": "振幅Y:",
+      "amplitudeZ": "振幅Z:",
+      "phaseX": "相位X:",
+      "phaseY": "相位Y:",
+      "phaseZ": "相位Z:",
+      "gyrophone": "旋转声源:",
+      "jitter": "抖动:",
+      "outX": "输出X:",
+      "outY": "输出Y:",
+      "outZ": "输出Z:",
+      "destX": "目标X:",
+      "destY": "目标Y:",
+      "destZ": "目标Z:",
+      "duration": "持续时间:",
+      "curve": "曲线:",
+      "speedProfile": "速度曲线:",
+      "threshold": "阈值:",
+      "reset": "重置:",
+      "muteMacros": "静音宏:",
+      "arrayAttenuation": "阵列衰减:",
+      "fringe": "边缘:"
+    },
+    "buttons": {
+      "setAllInputs": "设置所有输入...",
+      "storeConfig": "保存输入配置",
+      "reloadConfig": "重新加载输入配置",
+      "reloadBackup": "加载备份",
+      "import": "导入",
+      "export": "导出",
+      "storeSnapshot": "保存快照",
+      "reloadSnapshot": "加载快照",
+      "updateSnapshot": "更新快照",
+      "editScope": "编辑范围",
+      "deleteSnapshot": "删除快照",
+      "visibleOnMap": "输入在地图上可见",
+      "hiddenOnMap": "输入在地图上隐藏",
+      "lockOnMap": "在地图上锁定",
+      "stopAll": "全部停止",
+      "pauseAll": "全部暂停",
+      "resumeAll": "全部恢复"
+    },
+    "toggles": {
+      "acousticPrecedence": "声学优先",
+      "minimalLatency": "最小延时",
+      "constraintXOn": "约束X: 开",
+      "constraintXOff": "约束X: 关",
+      "constraintYOn": "约束Y: 开",
+      "constraintYOff": "约束Y: 关",
+      "constraintZOn": "约束Z: 开",
+      "constraintZOff": "约束Z: 关",
+      "constraintROn": "约束R: 开",
+      "constraintROff": "约束R: 关",
+      "flipXOn": "翻转X: 开",
+      "flipXOff": "翻转X: 关",
+      "flipYOn": "翻转Y: 开",
+      "flipYOff": "翻转Y: 关",
+      "flipZOn": "翻转Z: 开",
+      "flipZOff": "翻转Z: 关",
+      "trackingOn": "追踪: 开",
+      "trackingOff": "追踪: 关",
+      "maxSpeedOn": "最大速度: 开",
+      "maxSpeedOff": "最大速度: 关",
+      "pathModeOn": "路径模式: 开",
+      "pathModeOff": "路径模式: 关",
+      "attenuationLawLog": "对数",
+      "attenuationLawLinear": "线性",
+      "liveSourceTamerOn": "现场声源驯服器: 开",
+      "liveSourceTamerOff": "现场声源驯服器: 关",
+      "floorReflectionsOn": "地板反射: 开",
+      "floorReflectionsOff": "地板反射: 关",
+      "lowCutOn": "低切: 开",
+      "lowCutOff": "低切: 关",
+      "highShelfOn": "高频搁架: 开",
+      "highShelfOff": "高频搁架: 关",
+      "reverbSendsUnmuted": "混响发送: 已启用",
+      "reverbSendsMuted": "混响发送: 已静音",
+      "lfoOn": "L.F.O: 开",
+      "lfoOff": "L.F.O: 关",
+      "absolute": "绝对",
+      "relative": "相对",
+      "stay": "停留",
+      "return": "返回",
+      "manual": "手动",
+      "triggered": "触发",
+      "sidelinesOn": "边线 开",
+      "sidelinesOff": "边线 关"
+    },
+    "clusters": {
+      "single": "单独",
+      "clusterPrefix": "集群"
+    },
+    "coordinates": {
+      "xyz": "XYZ"
+    },
+    "snapshots": {
+      "selectSnapshot": "选择快照..."
+    },
+    "lfo": {
+      "shapes": {
+        "off": "关",
+        "sine": "正弦",
+        "square": "方波",
+        "sawtooth": "锯齿",
+        "triangle": "三角",
+        "keystone": "梯形",
+        "log": "对数",
+        "exp": "指数",
+        "random": "随机"
+      },
+      "gyrophone": {
+        "antiClockwise": "逆时针",
+        "off": "关",
+        "clockwise": "顺时针"
+      }
+    },
+    "liveSource": {
+      "linear": "线性",
+      "log": "对数",
+      "sine": "正弦"
+    },
+    "muteMacros": {
+      "selectMacro": "选择宏...",
+      "muteAll": "全部静音",
+      "unmuteAll": "全部解除静音",
+      "invertMutes": "反转静音",
+      "muteOdd": "静音奇数",
+      "muteEven": "静音偶数",
+      "muteArrayPrefix": "静音阵列",
+      "unmuteArrayPrefix": "解除阵列静音"
+    },
+    "arrayPrefix": "阵列",
+    "dialogs": {
+      "importConfig": "导入输入配置",
+      "exportConfig": "导出输入配置"
+    },
+    "messages": {
+      "selectFolderFirst": "请先在系统配置中选择项目文件夹。",
+      "configSaved": "输入配置已保存。",
+      "configLoaded": "输入配置已加载。",
+      "backupLoaded": "已从备份加载输入配置。",
+      "configImported": "输入配置已导入。",
+      "configExported": "输入配置已导出。",
+      "error": "错误: {error}",
+      "setSingle": "输入 {channel} 设置为单独",
+      "assignedCluster": "输入 {channel} 分配到集群 {cluster}",
+      "noSnapshotSelected": "未选择快照。",
+      "snapshotStored": "快照 '{name}' 已保存。",
+      "snapshotLoaded": "快照 '{name}' 已加载。",
+      "snapshotUpdated": "快照 '{name}' 已更新。",
+      "snapshotDeleted": "快照 '{name}' 已删除。",
+      "scopeSaved": "快照范围已保存。",
+      "scopeConfigured": "已为下一个快照配置范围。",
+      "trackingDisabled": "输入 {channel} 的追踪已禁用",
+      "trackingSwitched": "追踪已从输入 {from} 切换到输入 {to}"
+    },
+    "prefixes": {
+      "delay": "延迟:",
+      "latency": "延时:",
+      "ratioPrefix": "1:"
+    }
+  },
+
+  "snapshotScope": {
+    "windowTitle": "输入快照范围",
+    "title": "快照范围: {name}",
+    "applyScope": "应用范围:",
+    "whenSaving": "保存时",
+    "whenRecalling": "调用时",
+    "all": "全部",
+    "sections": {
+      "input": "输入",
+      "position": "位置",
+      "attenuation": "衰减",
+      "directivity": "指向性",
+      "liveSource": "现场声源",
+      "hackoustics": "Hackoustics",
+      "lfo": "LFO",
+      "automOtion": "AutomOtion",
+      "mutes": "静音"
+    },
+    "buttons": {
+      "save": "保存",
+      "cancel": "取消"
+    }
+  },
+
+  "setAllInputs": {
+    "windowTitle": "设置所有输入",
+    "warning": "更改将应用于所有输入",
+    "labels": {
+      "coordinateMode": "坐标模式:",
+      "minimalLatency": "最小延时:",
+      "constraintPositions": "约束位置:",
+      "heightFactor": "高度因子:",
+      "distanceAttenuation": "距离衰减",
+      "dbPerMeter": "dB/m",
+      "ratio": "比率",
+      "common": "公共",
+      "muteMacros": "静音宏:",
+      "sidelines": "边线:",
+      "fringe": "边缘:",
+      "floorReflections": "地板反射:"
+    },
+    "buttons": {
+      "flipXyzOff": "翻转XYZ > 关",
+      "allLog": "全部对数",
+      "all1d": "全部1/d",
+      "resetDirectivity": "重置指向性",
+      "turnOffLiveSource": "关闭现场声源衰减",
+      "turnOffJitterLfo": "关闭抖动和LFO",
+      "closeWindow": "关闭窗口"
+    },
+    "coordinateModes": {
+      "xyz": "XYZ",
+      "rThetaZ": "r \u03b8 Z",
+      "rThetaPhi": "r \u03b8 \u03c6"
+    }
+  }
+}

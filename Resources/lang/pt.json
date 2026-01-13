@@ -1,0 +1,1022 @@
+{
+  "meta": {
+    "language": "Português",
+    "locale": "pt",
+    "version": "1.0.0",
+    "author": "WFS-DIY Team"
+  },
+
+  "common": {
+    "ok": "OK",
+    "cancel": "Cancelar",
+    "apply": "Aplicar",
+    "reset": "Reiniciar",
+    "save": "Guardar",
+    "load": "Carregar",
+    "store": "Armazenar",
+    "reload": "Recarregar",
+    "import": "Importar",
+    "export": "Exportar",
+    "enable": "Ativar",
+    "disable": "Desativar",
+    "on": "LIGADO",
+    "off": "DESLIGADO",
+    "yes": "Sim",
+    "no": "Não",
+    "delete": "Eliminar",
+    "add": "Adicionar",
+    "remove": "Remover",
+    "edit": "Editar",
+    "close": "Fechar",
+    "select": "Selecionar",
+    "all": "Todos",
+    "none": "Nenhum"
+  },
+
+  "units": {
+    "meters": "m",
+    "decibels": "dB",
+    "milliseconds": "ms",
+    "seconds": "s",
+    "degrees": "\u00b0",
+    "hertz": "Hz",
+    "percent": "%",
+    "celsius": "\u00b0C",
+    "metersPerSecond": "m/s",
+    "decibelPerMeter": "dB/m"
+  },
+
+  "tabs": {
+    "systemConfig": "Config. Sistema",
+    "inputs": "Entradas",
+    "outputs": "Saídas",
+    "reverb": "Reverberação",
+    "network": "Rede",
+    "clusters": "Clusters",
+    "map": "Mapa"
+  },
+
+  "statusBar": {
+    "displayLabel": "Exibir:",
+    "helpMode": "Ajuda",
+    "oscMode": "OSC"
+  },
+
+  "systemConfig": {
+    "sections": {
+      "show": "Espetáculo",
+      "io": "E/S",
+      "stage": "Palco",
+      "master": "Secção Principal",
+      "ui": "Interface",
+      "files": "Ficheiros"
+    },
+
+    "labels": {
+      "showName": "Nome:",
+      "showLocation": "Local:",
+      "inputChannels": "Canais de Entrada:",
+      "outputChannels": "Canais de Saída:",
+      "reverbChannels": "Canais de Reverb:",
+      "algorithm": "Algoritmo:",
+      "processing": "Processamento:",
+      "stageShape": "Forma do Palco:",
+      "stageWidth": "Largura:",
+      "stageDepth": "Profundidade:",
+      "stageHeight": "Altura:",
+      "stageDiameter": "Diâmetro:",
+      "domeElevation": "Elevação da Cúpula:",
+      "originWidth": "Origem Largura:",
+      "originDepth": "Origem Profundidade:",
+      "originHeight": "Origem Altura:",
+      "speedOfSound": "Velocidade do Som:",
+      "temperature": "Temperatura:",
+      "masterLevel": "Nível Principal:",
+      "systemLatency": "Latência do Sistema:",
+      "haasEffect": "Efeito Haas:",
+      "colorScheme": "Esquema de Cores:",
+      "screenReader": "Leitor de Ecrã:",
+      "language": "Idioma:"
+    },
+
+    "buttons": {
+      "audioPatch": "Interface de Áudio e Patch",
+      "processingOff": "Processamento: DESLIGADO",
+      "processingOn": "Processamento: LIGADO",
+      "selectProjectFolder": "Selecionar Pasta do Projeto",
+      "storeComplete": "Guardar Configuração Completa",
+      "reloadComplete": "Recarregar Configuração Completa",
+      "reloadCompleteBackup": "Recarregar Config. Completa do Backup",
+      "storeSystem": "Guardar Configuração do Sistema",
+      "reloadSystem": "Recarregar Configuração do Sistema",
+      "reloadSystemBackup": "Recarregar Config. Sistema do Backup",
+      "importSystem": "Importar Configuração do Sistema",
+      "exportSystem": "Exportar Configuração do Sistema"
+    },
+
+    "algorithms": {
+      "inputBuffer": "InputBuffer (atrasos de leitura)",
+      "outputBuffer": "OutputBuffer (atrasos de escrita)"
+    },
+
+    "stageShapes": {
+      "box": "Caixa",
+      "cylinder": "Cilindro",
+      "dome": "Cúpula"
+    },
+
+    "colorSchemes": {
+      "default": "Padrão (Cinza Escuro)",
+      "black": "Preto",
+      "light": "Claro"
+    },
+
+    "help": {
+      "showName": "Nome do espetáculo atual.",
+      "showLocation": "Local do espetáculo atual.",
+      "inputChannels": "Número de canais de entrada.",
+      "outputChannels": "Número de canais de saída.",
+      "reverbChannels": "Número de canais de reverberação.",
+      "audioPatch": "Abre a janela de Interface de Áudio e Patch.",
+      "algorithm": "Selecione o algoritmo de renderização no menu.",
+      "processing": "Bloquear todos os parâmetros de E/S e iniciar o DSP. Prima longamente para parar o DSP.",
+      "stageShape": "Selecione a forma do palco (Caixa, Cilindro ou Cúpula).",
+      "stageWidth": "Largura do palco em metros (apenas forma Caixa).",
+      "stageDepth": "Profundidade do palco em metros (apenas forma Caixa).",
+      "stageHeight": "Altura do palco em metros (formas Caixa e Cilindro).",
+      "stageDiameter": "Diâmetro do palco em metros (formas Cilindro e Cúpula).",
+      "domeElevation": "Ângulo de elevação da cúpula: 180 = hemisfério, 360 = esfera completa.",
+      "originWidth": "Deslocamento X da origem do centro do palco (0 = centrado, negativo = esquerda).",
+      "originDepth": "Deslocamento Y da origem do centro do palco (0 = centrado, negativo = frente).",
+      "originHeight": "Deslocamento Z da origem do chão (0 = nível do chão, positivo = acima do chão).",
+      "originFront": "Definir origem na frente central do palco. Típico para palcos frontais.",
+      "originCenterGround": "Definir origem no centro do palco ao nível do chão. Típico para configurações Surround ou Cilíndricas.",
+      "originCenter": "Definir origem no centro do volume do palco. Típico para configurações de Cúpula Esférica.",
+      "speedOfSound": "Velocidade do som (relacionada com a temperatura).",
+      "temperature": "Temperatura (determina a velocidade do som).",
+      "masterLevel": "Nível principal (afeta todas as saídas).",
+      "systemLatency": "Latência total do sistema (Mesa de mistura e Computador) / Latência específica de Entrada e Saída pode ser definida nas respetivas configurações.",
+      "haasEffect": "Efeito Haas a aplicar ao sistema. Terá em conta as compensações de latência (Sistema, Entrada e Saída).",
+      "colorScheme": "Selecione o esquema de cores: Padrão (cinza escuro), Preto (para ecrãs OLED) ou Claro (uso diurno).",
+      "screenReader": "Ativar ou desativar anúncios do leitor de ecrã. Quando ativado, nomes e valores de parâmetros são anunciados ao passar o rato, e texto de ajuda é lido após alguns segundos.",
+      "selectProjectFolder": "Selecione a localização da pasta do projeto atual para guardar ficheiros.",
+      "storeComplete": "Guardar configuração completa em ficheiros (com backup).",
+      "reloadComplete": "Recarregar configuração completa dos ficheiros.",
+      "reloadCompleteBackup": "Recarregar configuração completa dos ficheiros de backup.",
+      "storeSystem": "Guardar configuração do sistema em ficheiro (com backup).",
+      "reloadSystem": "Recarregar configuração do sistema do ficheiro.",
+      "reloadSystemBackup": "Recarregar configuração do sistema do ficheiro de backup.",
+      "importSystem": "Importar configuração do sistema do ficheiro (com explorador de ficheiros).",
+      "exportSystem": "Exportar configuração do sistema para ficheiro (com explorador de ficheiros).",
+      "language": "Selecione o idioma da interface. As alterações terão efeito completo após reiniciar a aplicação."
+    },
+
+    "messages": {
+      "selectFolderFirst": "Por favor, selecione primeiro uma pasta de projeto.",
+      "configSaved": "Configuração completa guardada.",
+      "configLoaded": "Configuração completa carregada.",
+      "systemConfigSaved": "Configuração do sistema guardada.",
+      "systemConfigLoaded": "Configuração do sistema carregada.",
+      "systemConfigFileNotFound": "Ficheiro de configuração do sistema não encontrado.",
+      "configLoadedFromBackup": "Configuração carregada do backup.",
+      "systemConfigLoadedFromBackup": "Configuração do sistema carregada do backup.",
+      "noBackupFilesFound": "Nenhum ficheiro de backup encontrado.",
+      "systemConfigImported": "Configuração do sistema importada.",
+      "systemConfigExported": "Configuração do sistema exportada.",
+      "partialLoad": "Carregamento parcial: {error}",
+      "partialLoadFromBackup": "Carregamento parcial do backup: {error}",
+      "error": "Erro: {error}",
+      "languageChanged": "Idioma alterado para: {language} (requer reinício para efeito completo)"
+    },
+
+    "dialogs": {
+      "reduceInputChannels": {
+        "title": "Reduzir Canais de Entrada?",
+        "message": "Reduzir de {current} para {new} canais de entrada irá remover as configurações dos canais {start} a {end}.\n\nEsta ação não pode ser desfeita."
+      },
+      "reduceOutputChannels": {
+        "title": "Reduzir Canais de Saída?",
+        "message": "Reduzir de {current} para {new} canais de saída irá remover as configurações dos canais {start} a {end}.\n\nEsta ação não pode ser desfeita."
+      },
+      "reduceReverbChannels": {
+        "title": "Reduzir Canais de Reverb?",
+        "message": "Reduzir de {current} para {new} canais de reverb irá remover as configurações dos canais {start} a {end}.\n\nEsta ação não pode ser desfeita."
+      },
+      "reduce": "Reduzir",
+      "selectProjectFolder": "Selecionar Pasta do Projeto",
+      "importSystemConfig": "Importar Configuração do Sistema",
+      "exportSystemConfig": "Exportar Configuração do Sistema"
+    }
+  },
+
+  "inputs": {
+    "sections": {
+      "channel": "Canal",
+      "position": "Posição",
+      "attenuation": "Atenuação",
+      "directivity": "Diretividade",
+      "liveSource": "Domador de Fonte Ao Vivo",
+      "hackoustics": "Hackoustics",
+      "lfo": "LFO",
+      "automotion": "AutomOtion",
+      "mutes": "Silenciamentos"
+    },
+
+    "labels": {
+      "name": "Nome",
+      "cluster": "Cluster",
+      "attenuation": "Atenuação",
+      "delayLatency": "Atraso/Latência",
+      "positionX": "X",
+      "positionY": "Y",
+      "positionZ": "Z"
+    }
+  },
+
+  "outputs": {
+    "sections": {
+      "channel": "Canal",
+      "position": "Posição",
+      "settings": "Definições"
+    },
+
+    "labels": {
+      "name": "Nome",
+      "positionX": "X",
+      "positionY": "Y",
+      "positionZ": "Z",
+      "attenuation": "Atenuação",
+      "delay": "Atraso"
+    }
+  },
+
+  "network": {
+    "sections": {
+      "network": "Rede",
+      "connections": "Ligações de Rede",
+      "admOsc": "ADM-OSC",
+      "tracking": "Rastreamento"
+    },
+
+    "labels": {
+      "interface": "Interface de Rede:",
+      "currentIPv4": "IPv4 Atual:",
+      "udpPort": "Porta UDP:",
+      "tcpPort": "Porta TCP:",
+      "oscQuery": "OSC Query:",
+      "protocol": "Protocolo:",
+      "rxPort": "Porta Rx:",
+      "offsetX": "Deslocamento X:",
+      "offsetY": "Deslocamento Y:",
+      "offsetZ": "Deslocamento Z:",
+      "scaleX": "Escala X:",
+      "scaleY": "Escala Y:",
+      "scaleZ": "Escala Z:"
+    },
+
+    "buttons": {
+      "storeConfig": "Guardar Config. Rede",
+      "reloadConfig": "Recarregar Config. Rede",
+      "reloadBackup": "Recarregar Backup",
+      "import": "Importar",
+      "export": "Exportar",
+      "openLogWindow": "Abrir Janela de Registo",
+      "findMyRemote": "Encontrar Controlo Remoto",
+      "add": "ADICIONAR"
+    },
+
+    "toggles": {
+      "enabled": "Ativado",
+      "disabled": "Desativado",
+      "on": "LIGADO",
+      "off": "DESLIGADO",
+      "trackingOn": "Rastreamento: LIGADO",
+      "trackingOff": "Rastreamento: DESLIGADO",
+      "flipXOn": "Inverter X: LIGADO",
+      "flipXOff": "Inverter X: DESLIGADO",
+      "flipYOn": "Inverter Y: LIGADO",
+      "flipYOff": "Inverter Y: DESLIGADO",
+      "flipZOn": "Inverter Z: LIGADO",
+      "flipZOff": "Inverter Z: DESLIGADO",
+      "oscFilterAcceptAll": "Filtro OSC: Aceitar Todos",
+      "oscFilterRegisteredOnly": "Filtro OSC: Apenas Registados"
+    },
+
+    "table": {
+      "name": "Nome",
+      "mode": "Modo",
+      "ipv4Address": "Endereço IPv4",
+      "txPort": "Porta Tx",
+      "rx": "Rx",
+      "tx": "Tx",
+      "protocol": "Protocolo",
+      "defaultTarget": "Destino {num}"
+    },
+
+    "protocols": {
+      "disabled": "DESATIVADO",
+      "osc": "OSC",
+      "remote": "REMOTO",
+      "admOsc": "ADM-OSC",
+      "psn": "PosiStageNet (PSN)",
+      "rttrp": "RTTrP",
+      "udp": "UDP",
+      "tcp": "TCP"
+    },
+
+    "messages": {
+      "configSaved": "Configuração de rede guardada.",
+      "configNotFound": "Ficheiro de configuração de rede não encontrado.",
+      "configReloaded": "Configuração de rede recarregada.",
+      "noBackupFound": "Nenhum ficheiro de backup encontrado.",
+      "configLoadedFromBackup": "Configuração de rede carregada do backup.",
+      "configImported": "Configuração de rede importada.",
+      "configExported": "Configuração de rede exportada.",
+      "onlyOneRemote": "Apenas uma ligação REMOTA é permitida."
+    }
+  },
+
+  "accessibility": {
+    "ttsEnabled": "Leitor de ecrã ativado",
+    "ttsDisabled": "Leitor de ecrã desativado"
+  },
+
+  "audioPatch": {
+    "windowTitle": "Interface de Áudio e Patch",
+
+    "tabs": {
+      "deviceSettings": "Definições do Dispositivo",
+      "inputPatch": "Patch de Entrada",
+      "outputPatch": "Patch de Saída"
+    },
+
+    "deviceSettings": {
+      "labels": {
+        "deviceType": "Tipo de dispositivo áudio:",
+        "device": "Dispositivo:",
+        "sampleRate": "Taxa de amostragem:",
+        "bufferSize": "Tamanho do buffer de áudio:"
+      },
+      "buttons": {
+        "controlPanel": "Painel de Controlo",
+        "resetDevice": "Reiniciar Dispositivo"
+      },
+      "noDevice": "Sem Dispositivo",
+      "notConfigured": "Não configurado"
+    },
+
+    "modes": {
+      "scrolling": "Deslocamento",
+      "patching": "Patch",
+      "testing": "Teste"
+    },
+
+    "buttons": {
+      "unpatchAll": "Desligar Todos",
+      "hold": "Manter"
+    },
+
+    "testSignal": {
+      "labels": {
+        "signal": "Sinal:",
+        "frequency": "Frequência:",
+        "level": "Nível:"
+      },
+      "types": {
+        "off": "Desligado",
+        "pinkNoise": "Ruído Rosa",
+        "tone": "Tom",
+        "sweep": "Varrimento",
+        "diracPulse": "Impulso Dirac",
+        "pulse": "Impulso"
+      }
+    },
+
+    "dialogs": {
+      "unpatchInputsTitle": "Desligar Todas as Entradas",
+      "unpatchInputsMessage": "Tem a certeza que deseja remover todos os patches de entrada?",
+      "unpatchOutputsTitle": "Desligar Todas as Saídas",
+      "unpatchOutputsMessage": "Tem a certeza que deseja remover todos os patches de saída?"
+    },
+
+    "messages": {
+      "chooseTestSignal": "Escolha um Sinal de Teste para Ativar o Modo de Teste"
+    }
+  },
+
+  "networkLog": {
+    "windowTitle": "Registo de Rede",
+    "controls": {
+      "logging": "Registo",
+      "clear": "LIMPAR",
+      "export": "EXPORTAR"
+    },
+    "exportMenu": {
+      "exportAll": "Exportar Tudo",
+      "exportFiltered": "Exportar Filtrado"
+    },
+    "filterModes": {
+      "tcpUdp": "TCP/UDP",
+      "protocol": "Protocolo",
+      "clientIp": "IP do Cliente",
+      "rejected": "Rejeitado"
+    },
+    "filterToggles": {
+      "incoming": "Entrada",
+      "outgoing": "Saída",
+      "udp": "UDP",
+      "tcp": "TCP"
+    },
+    "columns": {
+      "time": "Hora",
+      "direction": "Dir",
+      "ip": "IP",
+      "port": "Porta",
+      "transport": "Trans",
+      "protocol": "Protocolo",
+      "address": "Endereço",
+      "arguments": "Argumentos"
+    },
+    "status": {
+      "rejected": "REJEITADO"
+    },
+    "dialogs": {
+      "exportFailedTitle": "Exportação Falhou",
+      "exportFailedMessage": "Não foi possível escrever no ficheiro: {path}",
+      "exportCompleteTitle": "Exportação Completa",
+      "exportCompleteMessage": "Registo exportado para: {path}"
+    }
+  },
+
+  "map": {
+    "buttons": {
+      "home": "Ajustar Palco ao Ecrã"
+    },
+    "labels": {
+      "reverbPrefix": "R"
+    }
+  },
+
+  "clusters": {
+    "labels": {
+      "assignedInputs": "Entradas Atribuídas",
+      "reference": "Referência:",
+      "position": "Posição",
+      "posPrefix": "Pos:",
+      "controls": "Controlos",
+      "z": "Z",
+      "attenuation": "Aten.",
+      "rotation": "Rotação",
+      "scale": "Escala",
+      "plane": "Plano:",
+      "x": "X:",
+      "y": "Y:",
+      "inputPrefix": "Entrada"
+    },
+    "referenceMode": {
+      "firstInput": "Primeira Entrada",
+      "barycenter": "Baricentro"
+    },
+    "planes": {
+      "xy": "XY",
+      "xz": "XZ",
+      "yz": "YZ"
+    },
+    "status": {
+      "tracking": "Rastreamento: Entrada {num} (sobrepõe referência)",
+      "noInputs": "Sem entradas atribuídas",
+      "trackedMarker": "[T]"
+    }
+  },
+
+  "eq": {
+    "status": {
+      "off": "EQ DESLIGADO",
+      "on": "EQ LIGADO"
+    },
+    "filterTypes": {
+      "off": "DESLIGADO",
+      "lowCut": "Corte Grave",
+      "lowShelf": "Prateleira Grave",
+      "peakNotch": "Pico/Notch",
+      "bandPass": "Passa-Banda",
+      "highShelf": "Prateleira Agudo",
+      "highCut": "Corte Agudo"
+    },
+    "labels": {
+      "band": "Banda",
+      "freq": "Freq:",
+      "gain": "Ganho",
+      "q": "Q"
+    }
+  },
+
+  "outputs": {
+    "tabs": {
+      "parameters": "Parâmetros de Saída",
+      "eq": "EQ de Saída"
+    },
+    "labels": {
+      "name": "Nome:",
+      "array": "Array:",
+      "applyToArray": "Aplicar ao Array:",
+      "attenuation": "Atenuação:",
+      "delayLatency": "Atraso/Latência:",
+      "distanceAtten": "Aten. Distância:",
+      "hParallax": "Paralaxe Horiz.:",
+      "vParallax": "Paralaxe Vert.:",
+      "coordinates": "Coordenadas:",
+      "positionX": "Posição X:",
+      "positionY": "Posição Y:",
+      "positionZ": "Posição Z:",
+      "orientation": "Orientação:",
+      "angleOn": "Ângulo Ligado:",
+      "angleOff": "Ângulo Desligado:",
+      "pitch": "Inclinação:",
+      "hfDamping": "Amortecimento HF:",
+      "delay": "Atraso:",
+      "latency": "Latência:"
+    },
+    "buttons": {
+      "speakerVisible": "Altifalante Visível no Mapa",
+      "wizardOfOutZ": "Wizard of OutZ...",
+      "storeConfig": "Guardar Config. Saída",
+      "reloadConfig": "Recarregar Config. Saída",
+      "reloadBackup": "Recarregar Backup",
+      "import": "Importar",
+      "export": "Exportar"
+    },
+    "toggles": {
+      "minLatencyOn": "Latência Mínima: LIGADO",
+      "minLatencyOff": "Latência Mínima: DESLIGADO",
+      "liveSourceOn": "Aten. Fonte Ao Vivo: LIGADO",
+      "liveSourceOff": "Aten. Fonte Ao Vivo: DESLIGADO",
+      "floorReflectionsOn": "Reflexões do Chão: LIGADO",
+      "floorReflectionsOff": "Reflexões do Chão: DESLIGADO"
+    },
+    "arrayModes": {
+      "single": "Individual",
+      "array": "Array",
+      "off": "DESLIGADO",
+      "absolute": "ABSOLUTO",
+      "relative": "RELATIVO"
+    },
+    "coordModes": {
+      "xyz": "XYZ"
+    },
+    "units": {
+      "meters": "m",
+      "dB": "dB",
+      "dBPerMeter": "dB/m",
+      "hz": "Hz",
+      "ms": "ms",
+      "percent": "%"
+    },
+    "dialogs": {
+      "import": "Importar Configuração de Saída",
+      "export": "Exportar Configuração de Saída"
+    },
+    "messages": {
+      "setToSingle": "Saída {num} definida como Individual",
+      "assignedToArray": "Saída {num} atribuída ao Array {array}",
+      "selectFolderFirst": "Por favor, selecione primeiro uma pasta de projeto em Config. Sistema.",
+      "configSaved": "Configuração de saída guardada.",
+      "configLoaded": "Configuração de saída carregada.",
+      "configNotFound": "Ficheiro de configuração de saída não encontrado.",
+      "configReloaded": "Configuração de saída recarregada.",
+      "noBackup": "Nenhum backup de configuração de saída encontrado.",
+      "backupLoaded": "Configuração de saída carregada do backup.",
+      "configImported": "Configuração de saída importada.",
+      "configExported": "Configuração de saída exportada.",
+      "error": "Erro: {error}"
+    }
+  },
+
+  "arrayHelper": {
+    "window": {
+      "title": "Wizard of OutZ",
+      "contentName": "Assistente de Array de Saída"
+    },
+    "presets": {
+      "label": "Predefinição:",
+      "nearFieldStraight": "Array Campo Próximo Reto",
+      "nearFieldCurved": "Array Campo Próximo Curvo",
+      "mainRoomStraight": "Array Sala Principal Reto",
+      "subBass": "Sub Grave",
+      "surround": "Surround",
+      "delayLine": "Linha de Atraso",
+      "circle": "Círculo"
+    },
+    "sections": {
+      "geometry": "Geometria",
+      "acousticDefaults": "Padrões Acústicos",
+      "target": "Destino"
+    },
+    "geometry": {
+      "centerSpacing": "Centro + Espaçamento",
+      "endpoints": "Pontos Finais",
+      "nSpeakers": "N Altifalantes:",
+      "nPairs": "N Pares:",
+      "zHeight": "Altura Z (m):",
+      "orientation": "Orientação (graus):",
+      "centerX": "Centro X (m):",
+      "centerY": "Centro Y (m):",
+      "spacing": "Espaçamento (m):",
+      "startX": "Início X (m):",
+      "startY": "Início Y (m):",
+      "endX": "Fim X (m):",
+      "endY": "Fim Y (m):",
+      "sag": "Curvatura (m):",
+      "radius": "Raio (m):",
+      "startAngle": "Ângulo Inicial (graus):",
+      "facingInward": "Virado para Dentro",
+      "facingOutward": "Virado para Fora",
+      "width": "Largura (m):",
+      "yStart": "Y Início (m):",
+      "yEnd": "Y Fim (m):",
+      "frontFacing": "Virado para Frente",
+      "backFacing": "Virado para Trás"
+    },
+    "acoustic": {
+      "liveSource": "Fonte Ao Vivo",
+      "floorReflections": "Reflexões do Chão",
+      "hfDamping": "Amortecimento HF (dB/m):",
+      "hParallax": "Paralaxe H (m):",
+      "vParallax": "Paralaxe V (m):",
+      "distanceAtten": "Aten. Distância (%):",
+      "lowCut": "Corte Grave (Hz):",
+      "highCut": "Corte Agudo (Hz):"
+    },
+    "target": {
+      "array": "Array:",
+      "arrayPrefix": "Array",
+      "startingOutput": "Saída Inicial:"
+    },
+    "buttons": {
+      "apply": "Aplicar",
+      "close": "Fechar"
+    },
+    "preview": {
+      "audience": "Audiência"
+    },
+    "status": {
+      "ready": "Pronto",
+      "calculated": "Calculadas {count} posições",
+      "applied": "Aplicados {count} altifalantes ao Array {array}. Pronto para próximo array."
+    },
+    "errors": {
+      "speakerCountZero": "O número de altifalantes deve ser maior que 0",
+      "noPositions": "Sem posições para aplicar. Verifique os parâmetros de geometria.",
+      "notEnoughOutputs": "Canais de saída insuficientes! Necessários {count} a partir de {start}",
+      "prefix": "Erro: "
+    }
+  },
+
+  "reverbs": {
+    "noChannels": "Nenhum canal de reverberação configurado.\n\nDefina o número de Canais de Reverb em Config. Sistema.",
+    "tabs": {
+      "channelParams": "Parâmetros do Canal",
+      "eq": "EQ de Reverb",
+      "algorithm": "Algoritmo"
+    },
+    "labels": {
+      "name": "Nome:",
+      "attenuation": "Atenuação:",
+      "delayLatency": "Atraso/Latência:",
+      "coordinates": "Coord.:",
+      "positionX": "Posição X:",
+      "positionY": "Posição Y:",
+      "positionZ": "Posição Z:",
+      "returnOffsetX": "Deslocamento Retorno X:",
+      "returnOffsetY": "Deslocamento Retorno Y:",
+      "returnOffsetZ": "Deslocamento Retorno Z:",
+      "orientation": "Orientação:",
+      "angleOn": "Ângulo Ligado:",
+      "angleOff": "Ângulo Desligado:",
+      "pitch": "Inclinação:",
+      "hfDamping": "Amortecimento HF:",
+      "distanceAttenPercent": "Aten. Distância %:",
+      "distanceAtten": "Aten. Distância:",
+      "commonAtten": "Aten. Comum:",
+      "outputMutes": "Silenciamentos de Saída:",
+      "muteMacro": "Macro de Silenciamento:"
+    },
+    "sections": {
+      "reverbFeed": "Envio de Reverb",
+      "reverbReturn": "Retorno de Reverb"
+    },
+    "buttons": {
+      "visibleOnMap": "Reverbs Visíveis no Mapa",
+      "hiddenOnMap": "Reverbs Ocultos no Mapa",
+      "storeConfig": "Guardar Config. Reverb",
+      "reloadConfig": "Recarregar Config. Reverb",
+      "reloadBackup": "Recarregar Backup",
+      "import": "Importar",
+      "export": "Exportar"
+    },
+    "toggles": {
+      "minLatencyOn": "Latência Mínima LIGADO",
+      "minLatencyOff": "Latência Mínima DESLIGADO",
+      "liveSourceOn": "Aten. Fonte Ao Vivo LIGADO",
+      "liveSourceOff": "Aten. Fonte Ao Vivo DESLIGADO"
+    },
+    "muteMacros": {
+      "select": "Selecionar Macro de Silenciamento",
+      "muteAll": "SILENCIAR TODOS",
+      "unmuteAll": "ATIVAR TODOS",
+      "invertMutes": "INVERTER SILENCIAMENTOS",
+      "muteOdd": "SILENCIAR ÍMPARES",
+      "muteEven": "SILENCIAR PARES",
+      "muteArray": "SILENCIAR ARRAY",
+      "unmuteArray": "ATIVAR ARRAY"
+    },
+    "algorithm": {
+      "comingSoon": "Em Breve"
+    },
+    "dialogs": {
+      "import": "Importar Configuração de Reverb",
+      "export": "Exportar Configuração de Reverb"
+    },
+    "messages": {
+      "selectFolderFirst": "Por favor, selecione primeiro uma pasta de projeto em Config. Sistema.",
+      "configSaved": "Configuração de reverb guardada.",
+      "configLoaded": "Configuração de reverb carregada.",
+      "backupLoaded": "Configuração de reverb carregada do backup.",
+      "configImported": "Configuração de reverb importada.",
+      "configExported": "Configuração de reverb exportada.",
+      "error": "Erro: {error}"
+    }
+  },
+  "inputs": {
+    "tabs": {
+      "inputParams": "Parâmetros de Entrada",
+      "liveSourceHackoustics": "Fonte Ao Vivo & Hackoustics",
+      "movements": "Movimentos",
+      "visualisation": "Visualização"
+    },
+    "labels": {
+      "name": "Nome:",
+      "cluster": "Cluster:",
+      "attenuation": "Atenuação:",
+      "delayLatency": "Atraso/Latência:",
+      "coord": "Coord.:",
+      "positionX": "Posição X:",
+      "positionY": "Posição Y:",
+      "positionZ": "Posição Z:",
+      "offsetX": "Deslocamento X:",
+      "offsetY": "Deslocamento Y:",
+      "offsetZ": "Deslocamento Z:",
+      "min": "Mín:",
+      "max": "Máx:",
+      "trackingId": "ID de Rastreamento:",
+      "trackingSmooth": "Suavização Rastreamento:",
+      "maxSpeed": "Velocidade Máx:",
+      "heightFactor": "Fator de Altura:",
+      "xyJoystick": "X/Y",
+      "zSlider": "Z",
+      "attenuationLaw": "Lei de Atenuação:",
+      "distanceAtten": "Aten. Distância:",
+      "distanceRatio": "Rácio de Distância:",
+      "commonAtten": "Aten. Comum:",
+      "directivity": "Diretividade:",
+      "rotation": "Rotação:",
+      "tilt": "Inclinação:",
+      "hfShelf": "Prateleira HF:",
+      "radius": "Raio:",
+      "shape": "Forma:",
+      "peakThreshold": "Limiar de Pico:",
+      "peakRatio": "Rácio de Pico:",
+      "slowThreshold": "Limiar Lento:",
+      "slowRatio": "Rácio Lento:",
+      "diffusion": "Difusão:",
+      "frequency": "Frequência:",
+      "gain": "Ganho:",
+      "slope": "Inclinação:",
+      "period": "Período:",
+      "phase": "Fase:",
+      "shapeX": "Forma X:",
+      "shapeY": "Forma Y:",
+      "shapeZ": "Forma Z:",
+      "rateX": "Taxa X:",
+      "rateY": "Taxa Y:",
+      "rateZ": "Taxa Z:",
+      "amplitudeX": "Amplitude X:",
+      "amplitudeY": "Amplitude Y:",
+      "amplitudeZ": "Amplitude Z:",
+      "phaseX": "Fase X:",
+      "phaseY": "Fase Y:",
+      "phaseZ": "Fase Z:",
+      "gyrophone": "Girófone:",
+      "jitter": "Tremulação:",
+      "outX": "Saída X:",
+      "outY": "Saída Y:",
+      "outZ": "Saída Z:",
+      "destX": "Dest. X:",
+      "destY": "Dest. Y:",
+      "destZ": "Dest. Z:",
+      "duration": "Duração:",
+      "curve": "Curva:",
+      "speedProfile": "Perfil de Velocidade:",
+      "threshold": "Limiar:",
+      "reset": "Reiniciar:",
+      "muteMacros": "Macros de Silenciamento:",
+      "arrayAttenuation": "Atenuação de Array:",
+      "fringe": "Margem:"
+    },
+    "buttons": {
+      "setAllInputs": "Definir todas as Entradas...",
+      "storeConfig": "Guardar Config. Entrada",
+      "reloadConfig": "Recarregar Config. Entrada",
+      "reloadBackup": "Recarregar Backup",
+      "import": "Importar",
+      "export": "Exportar",
+      "storeSnapshot": "Guardar Snapshot",
+      "reloadSnapshot": "Recarregar Snapshot",
+      "updateSnapshot": "Atualizar Snapshot",
+      "editScope": "Editar Âmbito",
+      "deleteSnapshot": "Eliminar Snapshot",
+      "visibleOnMap": "Entrada Visível no Mapa",
+      "hiddenOnMap": "Entrada Oculta no Mapa",
+      "lockOnMap": "Bloquear no Mapa",
+      "stopAll": "Parar Tudo",
+      "pauseAll": "Pausar Tudo",
+      "resumeAll": "Retomar Tudo"
+    },
+    "toggles": {
+      "acousticPrecedence": "Precedência Acústica",
+      "minimalLatency": "Latência Mínima",
+      "constraintXOn": "Restrição X: LIGADO",
+      "constraintXOff": "Restrição X: DESLIGADO",
+      "constraintYOn": "Restrição Y: LIGADO",
+      "constraintYOff": "Restrição Y: DESLIGADO",
+      "constraintZOn": "Restrição Z: LIGADO",
+      "constraintZOff": "Restrição Z: DESLIGADO",
+      "constraintROn": "Restrição R: LIGADO",
+      "constraintROff": "Restrição R: DESLIGADO",
+      "flipXOn": "Inverter X: LIGADO",
+      "flipXOff": "Inverter X: DESLIGADO",
+      "flipYOn": "Inverter Y: LIGADO",
+      "flipYOff": "Inverter Y: DESLIGADO",
+      "flipZOn": "Inverter Z: LIGADO",
+      "flipZOff": "Inverter Z: DESLIGADO",
+      "trackingOn": "Rastreamento: LIGADO",
+      "trackingOff": "Rastreamento: DESLIGADO",
+      "maxSpeedOn": "Vel. Máx: LIGADO",
+      "maxSpeedOff": "Vel. Máx: DESLIGADO",
+      "pathModeOn": "Modo Caminho: LIGADO",
+      "pathModeOff": "Modo Caminho: DESLIGADO",
+      "attenuationLawLog": "Log",
+      "attenuationLawLinear": "Linear",
+      "liveSourceTamerOn": "Domador Fonte Ao Vivo: LIGADO",
+      "liveSourceTamerOff": "Domador Fonte Ao Vivo: DESLIGADO",
+      "floorReflectionsOn": "Reflexões do Chão: LIGADO",
+      "floorReflectionsOff": "Reflexões do Chão: DESLIGADO",
+      "lowCutOn": "Corte Grave: LIGADO",
+      "lowCutOff": "Corte Grave: DESLIGADO",
+      "highShelfOn": "Prateleira Agudo: LIGADO",
+      "highShelfOff": "Prateleira Agudo: DESLIGADO",
+      "reverbSendsUnmuted": "Envios para Reverbs: Ativos",
+      "reverbSendsMuted": "Envios para Reverbs: Silenciados",
+      "lfoOn": "L.F.O: LIGADO",
+      "lfoOff": "L.F.O: DESLIGADO",
+      "absolute": "Absoluto",
+      "relative": "Relativo",
+      "stay": "Ficar",
+      "return": "Regressar",
+      "manual": "Manual",
+      "triggered": "Acionado",
+      "sidelinesOn": "Linhas Laterais Ligadas",
+      "sidelinesOff": "Linhas Laterais Desligadas"
+    },
+    "clusters": {
+      "single": "Individual",
+      "clusterPrefix": "Cluster"
+    },
+    "coordinates": {
+      "xyz": "XYZ"
+    },
+    "snapshots": {
+      "selectSnapshot": "Selecionar Snapshot..."
+    },
+    "lfo": {
+      "shapes": {
+        "off": "DESLIGADO",
+        "sine": "seno",
+        "square": "quadrada",
+        "sawtooth": "dente de serra",
+        "triangle": "triângulo",
+        "keystone": "trapézio",
+        "log": "log",
+        "exp": "exp",
+        "random": "aleatório"
+      },
+      "gyrophone": {
+        "antiClockwise": "Anti-horário",
+        "off": "DESLIGADO",
+        "clockwise": "Horário"
+      }
+    },
+    "liveSource": {
+      "linear": "linear",
+      "log": "log",
+      "sine": "seno"
+    },
+    "muteMacros": {
+      "selectMacro": "Selecionar Macro...",
+      "muteAll": "SILENCIAR TODOS",
+      "unmuteAll": "ATIVAR TODOS",
+      "invertMutes": "INVERTER SILENCIAMENTOS",
+      "muteOdd": "SILENCIAR ÍMPARES",
+      "muteEven": "SILENCIAR PARES",
+      "muteArrayPrefix": "SILENCIAR ARRAY",
+      "unmuteArrayPrefix": "ATIVAR ARRAY"
+    },
+    "arrayPrefix": "Array",
+    "dialogs": {
+      "importConfig": "Importar Configuração de Entrada",
+      "exportConfig": "Exportar Configuração de Entrada"
+    },
+    "messages": {
+      "selectFolderFirst": "Por favor, selecione primeiro uma pasta de projeto em Config. Sistema.",
+      "configSaved": "Configuração de entrada guardada.",
+      "configLoaded": "Configuração de entrada carregada.",
+      "backupLoaded": "Configuração de entrada carregada do backup.",
+      "configImported": "Configuração de entrada importada.",
+      "configExported": "Configuração de entrada exportada.",
+      "error": "Erro: {error}",
+      "setSingle": "Entrada {channel} definida como Individual",
+      "assignedCluster": "Entrada {channel} atribuída ao Cluster {cluster}",
+      "noSnapshotSelected": "Nenhum snapshot selecionado.",
+      "snapshotStored": "Snapshot '{name}' guardado.",
+      "snapshotLoaded": "Snapshot '{name}' carregado.",
+      "snapshotUpdated": "Snapshot '{name}' atualizado.",
+      "snapshotDeleted": "Snapshot '{name}' eliminado.",
+      "scopeSaved": "Âmbito do snapshot guardado.",
+      "scopeConfigured": "Âmbito configurado para o próximo snapshot.",
+      "trackingDisabled": "Rastreamento desativado para Entrada {channel}",
+      "trackingSwitched": "Rastreamento mudou de Entrada {from} para Entrada {to}"
+    },
+    "prefixes": {
+      "delay": "Atraso:",
+      "latency": "Latência:",
+      "ratioPrefix": "1:"
+    }
+  },
+
+  "snapshotScope": {
+    "windowTitle": "Âmbito do Snapshot de Entrada",
+    "title": "Âmbito do Snapshot: {name}",
+    "applyScope": "Aplicar âmbito:",
+    "whenSaving": "Ao Guardar",
+    "whenRecalling": "Ao Recuperar",
+    "all": "TODOS",
+    "sections": {
+      "input": "Entrada",
+      "position": "Posição",
+      "attenuation": "Atenuação",
+      "directivity": "Diretividade",
+      "liveSource": "Fonte Ao Vivo",
+      "hackoustics": "Hackoustics",
+      "lfo": "LFO",
+      "automOtion": "AutomOtion",
+      "mutes": "Silenciamentos"
+    },
+    "buttons": {
+      "save": "Guardar",
+      "cancel": "Cancelar"
+    }
+  },
+
+  "setAllInputs": {
+    "windowTitle": "Definir Todas as Entradas",
+    "warning": "As alterações serão aplicadas a TODAS as entradas",
+    "labels": {
+      "coordinateMode": "Modo de coordenadas:",
+      "minimalLatency": "Latência Mínima:",
+      "constraintPositions": "Restringir posições:",
+      "heightFactor": "Fator de altura:",
+      "distanceAttenuation": "Atenuação de distância",
+      "dbPerMeter": "dB/m",
+      "ratio": "rácio",
+      "common": "comum",
+      "muteMacros": "Macros de silenciamento:",
+      "sidelines": "Linhas laterais:",
+      "fringe": "Margem:",
+      "floorReflections": "Reflexões do Chão:"
+    },
+    "buttons": {
+      "flipXyzOff": "Inverter XYZ > DESLIGADO",
+      "allLog": "Todos Log",
+      "all1d": "Todos 1/d",
+      "resetDirectivity": "Reiniciar diretividade",
+      "turnOffLiveSource": "Desligar aten. Fonte Ao Vivo",
+      "turnOffJitterLfo": "Desligar tremulação & LFO",
+      "closeWindow": "FECHAR JANELA"
+    },
+    "coordinateModes": {
+      "xyz": "XYZ",
+      "rThetaZ": "r \u03b8 Z",
+      "rThetaPhi": "r \u03b8 \u03c6"
+    }
+  }
+}
