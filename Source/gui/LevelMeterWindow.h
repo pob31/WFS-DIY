@@ -192,10 +192,7 @@ public:
         soloLabel.setText(LOC("levelMeter.solo"), juce::dontSendNotification);
 
         addAndMakeVisible(soloSelector);
-        soloSelector.addItem(LOC("levelMeter.soloNone"), 1);
-        for (int i = 0; i < levelManager.getNumInputChannels(); ++i)
-            soloSelector.addItem("Input " + juce::String(i + 1), i + 2);
-        soloSelector.setSelectedId(1);
+        // Note: soloSelector items are populated in rebuildMeters()
         soloSelector.onChange = [this]() {
             int selected = soloSelector.getSelectedId();
             levelManager.setVisualSoloInput(selected > 1 ? selected - 2 : -1);
