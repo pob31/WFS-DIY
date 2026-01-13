@@ -486,5 +486,20 @@
       "noInputs": "Aucune entrée assignée",
       "trackedMarker": "[S]"
     }
+  },
+
+  "eq": {
+    "status": {
+      "off": "EQ DÉSACTIVÉ"
+    },
+    "filterTypes": {
+      "off": "DÉSACTIVÉ",
+      "lowCut": "Coupe-bas",
+      "lowShelf": "Grave",
+      "peakNotch": "Pic/Creux",
+      "bandPass": "Passe-bande",
+      "highShelf": "Aigu",
+      "highCut": "Coupe-haut"
+    }
   }
 }

@@ -6,6 +6,7 @@
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/WFSParameterDefaults.h"
 #include "ColorScheme.h"
+#include "../Localization/LocalizationManager.h"
 
 //==============================================================================
 /**
@@ -145,7 +146,7 @@ public:
             // Draw "EQ OFF" text
             g.setColour (ColorScheme::get().textSecondary);
             g.setFont (juce::FontOptions (24.0f));
-            g.drawText ("EQ OFF", getLocalBounds(), juce::Justification::centred);
+            g.drawText (LOC("eq.status.off"), getLocalBounds(), juce::Justification::centred);
         }
     }
 

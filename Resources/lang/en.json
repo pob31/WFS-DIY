@@ -486,5 +486,20 @@
       "noInputs": "No inputs assigned",
       "trackedMarker": "[T]"
     }
+  },
+
+  "eq": {
+    "status": {
+      "off": "EQ OFF"
+    },
+    "filterTypes": {
+      "off": "OFF",
+      "lowCut": "Low Cut",
+      "lowShelf": "Low Shelf",
+      "peakNotch": "Peak/Notch",
+      "bandPass": "Band Pass",
+      "highShelf": "High Shelf",
+      "highCut": "High Cut"
+    }
   }
 }

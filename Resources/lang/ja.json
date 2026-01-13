@@ -486,5 +486,20 @@
       "noInputs": "入力が割り当てられていません",
       "trackedMarker": "[T]"
     }
+  },
+
+  "eq": {
+    "status": {
+      "off": "EQ オフ"
+    },
+    "filterTypes": {
+      "off": "オフ",
+      "lowCut": "ローカット",
+      "lowShelf": "ローシェルフ",
+      "peakNotch": "ピーク/ノッチ",
+      "bandPass": "バンドパス",
+      "highShelf": "ハイシェルフ",
+      "highCut": "ハイカット"
+    }
   }
 }
