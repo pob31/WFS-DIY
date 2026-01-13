@@ -798,11 +798,35 @@ Features:
 
 ### OSC Communication
 - **OSCManager** - Central coordinator for all OSC communication
-- **OSCConnection** - Individual target connection (UDP/TCP)
+- **OSCConnection** - Individual target connection (UDP/TCP transmission)
 - **OSCReceiverWithSenderIP** - Custom UDP receiver exposing sender IP
 - **OSCTCPReceiver** - TCP receiver for reliable connections
 - **OSCMessageRouter** - Address pattern parsing and routing
 - **OSCRateLimiter** - Message throttling with coalescing
+- **OSCSerializer** - Header-only OSC message/bundle serialization for TCP transmission
+- **OSCParser** - Header-only OSC message/bundle parsing for TCP reception
+
+### TCP Implementation
+Full bidirectional TCP support for OSC communication:
+
+**TCP Reception (OSCTCPReceiver):**
+- Multi-threaded server using `juce::StreamingSocket`
+- Length-prefix framing (4-byte big-endian size before each OSC packet)
+- Supports up to 16 simultaneous client connections
+- Thread-safe client management with `CriticalSection`
+- Async message posting to UI thread
+
+**TCP Transmission (OSCConnection):**
+- Uses `juce::StreamingSocket` for outbound connections
+- Length-prefix framing matching receiver implementation
+- 5 second connection timeout
+- Thread-safe via `sendLock` mutex
+- Automatic status update to `Disconnected` on send failure
+
+**Framing Protocol:**
+```
+[4 bytes: big-endian length][N bytes: OSC message/bundle data]
+```
 
 ### Logging System
 - **OSCLogger** - Ring buffer storage for network messages (1000 entries max)
@@ -1654,6 +1678,10 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 - `Source/DSP/LiveSourceLevelDetector.h` - Per-input audio level detection (peak, short peak, RMS)
 - `Source/DSP/LiveSourceTamerEngine.h` - Live Source Tamer gain calculation
 - `Source/Network/OSCManager.h/cpp` - Network coordination
+- `Source/Network/OSCConnection.h/cpp` - Target connection with UDP/TCP transmission
+- `Source/Network/OSCTCPReceiver.h/cpp` - TCP server for incoming connections
+- `Source/Network/OSCSerializer.h` - OSC message/bundle serialization for TCP
+- `Source/Network/OSCParser.h` - OSC message/bundle parsing for TCP
 - `Source/Network/OSCLogger.h/cpp` - Message logging
 - `Source/gui/InputsTab.h` - Input channel controls with joystick
 - `Source/gui/SetAllInputsWindow.h` - Bulk parameter changes for all inputs
@@ -1694,6 +1722,6 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 
 ---
 
-*Last updated: 2026-01-10*
+*Last updated: 2026-01-13*
 *JUCE Version: 8.0.12*
 *Build: Visual Studio 2022 / Xcode, x64 Debug/Release*
