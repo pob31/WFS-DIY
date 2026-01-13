@@ -18,6 +18,7 @@
 #include "../Helpers/CoordinateConverter.h"
 #include "SetAllInputsWindow.h"
 #include "SnapshotScopeWindow.h"
+#include "../Localization/LocalizationManager.h"
 
 //==============================================================================
 // Custom Transport Button - Play (right-pointing triangle)
@@ -128,7 +129,7 @@ class SetAllInputsLongPressButton : public juce::TextButton,
 public:
     SetAllInputsLongPressButton()
     {
-        setButtonText("Set all Inputs...");
+        setButtonText(LOC("inputs.buttons.setAllInputs"));
     }
 
     void mouseDown(const juce::MouseEvent& e) override
@@ -299,17 +300,17 @@ public:
 
         // Input Name
         addAndMakeVisible(nameLabel);
-        nameLabel.setText("Name:", juce::dontSendNotification);
+        nameLabel.setText(LOC("inputs.labels.name"), juce::dontSendNotification);
         addAndMakeVisible(nameEditor);
         nameEditor.addListener(this);
 
         // Cluster selector
         addAndMakeVisible(clusterLabel);
-        clusterLabel.setText("Cluster:", juce::dontSendNotification);
+        clusterLabel.setText(LOC("inputs.labels.cluster"), juce::dontSendNotification);
         addAndMakeVisible(clusterSelector);
-        clusterSelector.addItem("Single", 1);
+        clusterSelector.addItem(LOC("inputs.clusters.single"), 1);
         for (int i = 1; i <= 10; ++i)
-            clusterSelector.addItem("Cluster " + juce::String(i), i + 1);
+            clusterSelector.addItem(LOC("inputs.clusters.clusterPrefix") + " " + juce::String(i), i + 1);
         clusterSelector.setSelectedId(1, juce::dontSendNotification);
         clusterSelector.onChange = [this]() {
             int newCluster = clusterSelector.getSelectedId() - 1;
@@ -342,10 +343,10 @@ public:
 
         // ==================== SUB-TABS ====================
         addAndMakeVisible(subTabBar);
-        subTabBar.addTab("Input Parameters", juce::Colour(0xFF2A2A2A), -1);
-        subTabBar.addTab("Live Source & Hackoustics", juce::Colour(0xFF2A2A2A), -1);
-        subTabBar.addTab("Movements", juce::Colour(0xFF2A2A2A), -1);
-        subTabBar.addTab("Visualisation", juce::Colour(0xFF2A2A2A), -1);
+        subTabBar.addTab(LOC("inputs.tabs.inputParams"), juce::Colour(0xFF2A2A2A), -1);
+        subTabBar.addTab(LOC("inputs.tabs.liveSourceHackoustics"), juce::Colour(0xFF2A2A2A), -1);
+        subTabBar.addTab(LOC("inputs.tabs.movements"), juce::Colour(0xFF2A2A2A), -1);
+        subTabBar.addTab(LOC("inputs.tabs.visualisation"), juce::Colour(0xFF2A2A2A), -1);
         subTabBar.setMinimumTabScaleFactor(1.0);  // Prevent tab shrinking - maintain full text width
         subTabBar.setCurrentTabIndex(0);
         subTabBar.addChangeListener(static_cast<juce::ChangeListener*>(this));
@@ -363,57 +364,57 @@ public:
 
         // ==================== FOOTER - STORE/RELOAD BUTTONS ====================
         addAndMakeVisible(storeButton);
-        storeButton.setButtonText("Store Input Config");
+        storeButton.setButtonText(LOC("inputs.buttons.storeConfig"));
         storeButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF8C3333));  // Reddish
         storeButton.onClick = [this]() { storeInputConfiguration(); };
 
         addAndMakeVisible(reloadButton);
-        reloadButton.setButtonText("Reload Input Config");
+        reloadButton.setButtonText(LOC("inputs.buttons.reloadConfig"));
         reloadButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF338C33));  // Greenish
         reloadButton.onClick = [this]() { reloadInputConfiguration(); };
 
         addAndMakeVisible(reloadBackupButton);
-        reloadBackupButton.setButtonText("Reload Backup");
+        reloadBackupButton.setButtonText(LOC("inputs.buttons.reloadBackup"));
         reloadBackupButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF266626));  // Darker green
         reloadBackupButton.onClick = [this]() { reloadInputConfigBackup(); };
 
         addAndMakeVisible(importButton);
-        importButton.setButtonText("Import");
+        importButton.setButtonText(LOC("inputs.buttons.import"));
         importButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF338C33));  // Greenish
         importButton.onClick = [this]() { importInputConfiguration(); };
 
         addAndMakeVisible(exportButton);
-        exportButton.setButtonText("Export");
+        exportButton.setButtonText(LOC("inputs.buttons.export"));
         exportButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF8C3333));  // Reddish
         exportButton.onClick = [this]() { exportInputConfiguration(); };
 
         // Snapshot management
         addAndMakeVisible(storeSnapshotButton);
-        storeSnapshotButton.setButtonText("Store Snapshot");
+        storeSnapshotButton.setButtonText(LOC("inputs.buttons.storeSnapshot"));
         storeSnapshotButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF996633));  // Yellow-orange
         storeSnapshotButton.onClick = [this]() { storeNewSnapshot(); };
 
         addAndMakeVisible(snapshotSelector);
-        snapshotSelector.addItem("Select Snapshot...", 1);
+        snapshotSelector.addItem(LOC("inputs.snapshots.selectSnapshot"), 1);
         // Snapshots would be populated dynamically
 
         addAndMakeVisible(reloadSnapshotButton);
-        reloadSnapshotButton.setButtonText("Reload Snapshot");
+        reloadSnapshotButton.setButtonText(LOC("inputs.buttons.reloadSnapshot"));
         reloadSnapshotButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF669933));  // Yellow-green
         reloadSnapshotButton.onClick = [this]() { reloadSnapshot(); };
 
         addAndMakeVisible(updateSnapshotButton);
-        updateSnapshotButton.setButtonText("Update Snapshot");
+        updateSnapshotButton.setButtonText(LOC("inputs.buttons.updateSnapshot"));
         updateSnapshotButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF996633));  // Yellow-orange
         updateSnapshotButton.onClick = [this]() { updateSnapshot(); };
 
         addAndMakeVisible(editScopeButton);
-        editScopeButton.setButtonText("Edit Scope");
+        editScopeButton.setButtonText(LOC("inputs.buttons.editScope"));
         editScopeButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF33668C));  // Light blue
         editScopeButton.onClick = [this]() { editSnapshotScope(); };
 
         addAndMakeVisible(deleteSnapshotButton);
-        deleteSnapshotButton.setButtonText("Delete Snapshot");
+        deleteSnapshotButton.setButtonText(LOC("inputs.buttons.deleteSnapshot"));
         deleteSnapshotButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF661A33));  // Burgundy
         deleteSnapshotButton.onClick = [this]() { deleteSnapshot(); };
 
@@ -709,7 +710,7 @@ private:
     {
         // Attenuation slider (-92 to 0 dB)
         addAndMakeVisible(attenuationLabel);
-        attenuationLabel.setText("Attenuation:", juce::dontSendNotification);
+        attenuationLabel.setText(LOC("inputs.labels.attenuation"), juce::dontSendNotification);
 
         attenuationSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFFFF5722));
         attenuationSlider.onValueChanged = [this](float v) {
@@ -726,7 +727,7 @@ private:
 
         // Delay/Latency slider (-100 to 100 ms)
         addAndMakeVisible(delayLatencyLabel);
-        delayLatencyLabel.setText("Delay/Latency:", juce::dontSendNotification);
+        delayLatencyLabel.setText(LOC("inputs.labels.delayLatency"), juce::dontSendNotification);
 
         delayLatencySlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF4CAF50));
         delayLatencySlider.onValueChanged = [this](float v) {
@@ -744,11 +745,11 @@ private:
 
         // Minimal Latency button
         addAndMakeVisible(minimalLatencyButton);
-        minimalLatencyButton.setButtonText("Acoustic Precedence");
+        minimalLatencyButton.setButtonText(LOC("inputs.toggles.acousticPrecedence"));
         minimalLatencyButton.setClickingTogglesState(true);
         minimalLatencyButton.onClick = [this]() {
             bool minLat = minimalLatencyButton.getToggleState();
-            minimalLatencyButton.setButtonText(minLat ? "Minimal Latency" : "Acoustic Precedence");
+            minimalLatencyButton.setButtonText(minLat ? LOC("inputs.toggles.minimalLatency") : LOC("inputs.toggles.acousticPrecedence"));
             saveInputParam(WFSParameterIDs::inputMinimalLatency, minLat ? 1 : 0);
         };
     }
@@ -757,9 +758,9 @@ private:
     {
         // Coordinate Mode selector
         addAndMakeVisible(coordModeLabel);
-        coordModeLabel.setText("Coord:", juce::dontSendNotification);
+        coordModeLabel.setText(LOC("inputs.labels.coord"), juce::dontSendNotification);
         addAndMakeVisible(coordModeSelector);
-        coordModeSelector.addItem("XYZ", 1);
+        coordModeSelector.addItem(LOC("inputs.coordinates.xyz"), 1);
         coordModeSelector.addItem(juce::String(juce::CharPointer_UTF8("r \xce\xb8 Z")), 2);    // r θ Z
         coordModeSelector.addItem(juce::String(juce::CharPointer_UTF8("r \xce\xb8 \xcf\x86")), 3);  // r θ φ
         coordModeSelector.setSelectedId(1, juce::dontSendNotification);
@@ -778,97 +779,97 @@ private:
 
         // Position X
         addAndMakeVisible(posXLabel);
-        posXLabel.setText("Position X:", juce::dontSendNotification);
+        posXLabel.setText(LOC("inputs.labels.positionX"), juce::dontSendNotification);
         addAndMakeVisible(posXEditor);
         posXEditor.setText("0.00", juce::dontSendNotification);
         setupNumericEditor(posXEditor, true, true);
         addAndMakeVisible(posXUnitLabel);
-        posXUnitLabel.setText("m", juce::dontSendNotification);
+        posXUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
 
         // Position Y
         addAndMakeVisible(posYLabel);
-        posYLabel.setText("Position Y:", juce::dontSendNotification);
+        posYLabel.setText(LOC("inputs.labels.positionY"), juce::dontSendNotification);
         addAndMakeVisible(posYEditor);
         posYEditor.setText("0.00", juce::dontSendNotification);
         setupNumericEditor(posYEditor, true, true);
         addAndMakeVisible(posYUnitLabel);
-        posYUnitLabel.setText("m", juce::dontSendNotification);
+        posYUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
 
         // Position Z
         addAndMakeVisible(posZLabel);
-        posZLabel.setText("Position Z:", juce::dontSendNotification);
+        posZLabel.setText(LOC("inputs.labels.positionZ"), juce::dontSendNotification);
         addAndMakeVisible(posZEditor);
         posZEditor.setText("0.00", juce::dontSendNotification);
         setupNumericEditor(posZEditor, true, true);
         addAndMakeVisible(posZUnitLabel);
-        posZUnitLabel.setText("m", juce::dontSendNotification);
+        posZUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
 
         // Offset X
         addAndMakeVisible(offsetXLabel);
-        offsetXLabel.setText("Offset X:", juce::dontSendNotification);
+        offsetXLabel.setText(LOC("inputs.labels.offsetX"), juce::dontSendNotification);
         addAndMakeVisible(offsetXEditor);
         offsetXEditor.setText("0.00", juce::dontSendNotification);
         setupNumericEditor(offsetXEditor, true, true);
         addAndMakeVisible(offsetXUnitLabel);
-        offsetXUnitLabel.setText("m", juce::dontSendNotification);
+        offsetXUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
 
         // Offset Y
         addAndMakeVisible(offsetYLabel);
-        offsetYLabel.setText("Offset Y:", juce::dontSendNotification);
+        offsetYLabel.setText(LOC("inputs.labels.offsetY"), juce::dontSendNotification);
         addAndMakeVisible(offsetYEditor);
         offsetYEditor.setText("0.00", juce::dontSendNotification);
         setupNumericEditor(offsetYEditor, true, true);
         addAndMakeVisible(offsetYUnitLabel);
-        offsetYUnitLabel.setText("m", juce::dontSendNotification);
+        offsetYUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
 
         // Offset Z
         addAndMakeVisible(offsetZLabel);
-        offsetZLabel.setText("Offset Z:", juce::dontSendNotification);
+        offsetZLabel.setText(LOC("inputs.labels.offsetZ"), juce::dontSendNotification);
         addAndMakeVisible(offsetZEditor);
         offsetZEditor.setText("0.00", juce::dontSendNotification);
         setupNumericEditor(offsetZEditor, true, true);
         addAndMakeVisible(offsetZUnitLabel);
-        offsetZUnitLabel.setText("m", juce::dontSendNotification);
+        offsetZUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
 
         // Constraint buttons
         addAndMakeVisible(constraintXButton);
-        constraintXButton.setButtonText("Constraint X: ON");
+        constraintXButton.setButtonText(LOC("inputs.toggles.constraintXOn"));
         constraintXButton.setClickingTogglesState(true);
         constraintXButton.setToggleState(true, juce::dontSendNotification);
         constraintXButton.onClick = [this]() {
             bool enabled = constraintXButton.getToggleState();
-            constraintXButton.setButtonText(enabled ? "Constraint X: ON" : "Constraint X: OFF");
+            constraintXButton.setButtonText(enabled ? LOC("inputs.toggles.constraintXOn") : LOC("inputs.toggles.constraintXOff"));
             saveInputParam(WFSParameterIDs::inputConstraintX, enabled ? 1 : 0);
         };
 
         addAndMakeVisible(constraintYButton);
-        constraintYButton.setButtonText("Constraint Y: ON");
+        constraintYButton.setButtonText(LOC("inputs.toggles.constraintYOn"));
         constraintYButton.setClickingTogglesState(true);
         constraintYButton.setToggleState(true, juce::dontSendNotification);
         constraintYButton.onClick = [this]() {
             bool enabled = constraintYButton.getToggleState();
-            constraintYButton.setButtonText(enabled ? "Constraint Y: ON" : "Constraint Y: OFF");
+            constraintYButton.setButtonText(enabled ? LOC("inputs.toggles.constraintYOn") : LOC("inputs.toggles.constraintYOff"));
             saveInputParam(WFSParameterIDs::inputConstraintY, enabled ? 1 : 0);
         };
 
         addAndMakeVisible(constraintZButton);
-        constraintZButton.setButtonText("Constraint Z: ON");
+        constraintZButton.setButtonText(LOC("inputs.toggles.constraintZOn"));
         constraintZButton.setClickingTogglesState(true);
         constraintZButton.setToggleState(true, juce::dontSendNotification);
         constraintZButton.onClick = [this]() {
             bool enabled = constraintZButton.getToggleState();
-            constraintZButton.setButtonText(enabled ? "Constraint Z: ON" : "Constraint Z: OFF");
+            constraintZButton.setButtonText(enabled ? LOC("inputs.toggles.constraintZOn") : LOC("inputs.toggles.constraintZOff"));
             saveInputParam(WFSParameterIDs::inputConstraintZ, enabled ? 1 : 0);
         };
 
         // Distance constraint (for Cylindrical/Spherical modes)
         addAndMakeVisible(constraintDistanceButton);
-        constraintDistanceButton.setButtonText("Constraint R: OFF");
+        constraintDistanceButton.setButtonText(LOC("inputs.toggles.constraintROff"));
         constraintDistanceButton.setClickingTogglesState(true);
         constraintDistanceButton.setToggleState(false, juce::dontSendNotification);
         constraintDistanceButton.onClick = [this]() {
             bool enabled = constraintDistanceButton.getToggleState();
-            constraintDistanceButton.setButtonText(enabled ? "Constraint R: ON" : "Constraint R: OFF");
+            constraintDistanceButton.setButtonText(enabled ? LOC("inputs.toggles.constraintROn") : LOC("inputs.toggles.constraintROff"));
             // Dim slider when constraint is off
             distanceRangeSlider.setEnabled(enabled);
             distanceMinEditor.setEnabled(enabled);
@@ -894,7 +895,7 @@ private:
 
         // Distance Min editor
         addAndMakeVisible(distanceMinLabel);
-        distanceMinLabel.setText("Min:", juce::dontSendNotification);
+        distanceMinLabel.setText(LOC("inputs.labels.min"), juce::dontSendNotification);
         addAndMakeVisible(distanceMinEditor);
         distanceMinEditor.setText("0.00", juce::dontSendNotification);
         distanceMinEditor.setInputRestrictions(6, "0123456789.-");
@@ -917,11 +918,11 @@ private:
                 applyDistanceConstraintSnap();
         };
         addAndMakeVisible(distanceMinUnitLabel);
-        distanceMinUnitLabel.setText("m", juce::dontSendNotification);
+        distanceMinUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
 
         // Distance Max editor
         addAndMakeVisible(distanceMaxLabel);
-        distanceMaxLabel.setText("Max:", juce::dontSendNotification);
+        distanceMaxLabel.setText(LOC("inputs.labels.max"), juce::dontSendNotification);
         addAndMakeVisible(distanceMaxEditor);
         distanceMaxEditor.setText("50.00", juce::dontSendNotification);
         distanceMaxEditor.setInputRestrictions(6, "0123456789.-");
@@ -944,7 +945,7 @@ private:
                 applyDistanceConstraintSnap();
         };
         addAndMakeVisible(distanceMaxUnitLabel);
-        distanceMaxUnitLabel.setText("m", juce::dontSendNotification);
+        distanceMaxUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
 
         // Initially hide distance controls (shown only in Cylindrical/Spherical modes)
         // Also disable slider/editors since constraint starts OFF
@@ -962,35 +963,35 @@ private:
 
         // Flip buttons
         addAndMakeVisible(flipXButton);
-        flipXButton.setButtonText("Flip X: OFF");
+        flipXButton.setButtonText(LOC("inputs.toggles.flipXOff"));
         flipXButton.setClickingTogglesState(true);
         flipXButton.onClick = [this]() {
             bool enabled = flipXButton.getToggleState();
-            flipXButton.setButtonText(enabled ? "Flip X: ON" : "Flip X: OFF");
+            flipXButton.setButtonText(enabled ? LOC("inputs.toggles.flipXOn") : LOC("inputs.toggles.flipXOff"));
             saveInputParam(WFSParameterIDs::inputFlipX, enabled ? 1 : 0);
         };
 
         addAndMakeVisible(flipYButton);
-        flipYButton.setButtonText("Flip Y: OFF");
+        flipYButton.setButtonText(LOC("inputs.toggles.flipYOff"));
         flipYButton.setClickingTogglesState(true);
         flipYButton.onClick = [this]() {
             bool enabled = flipYButton.getToggleState();
-            flipYButton.setButtonText(enabled ? "Flip Y: ON" : "Flip Y: OFF");
+            flipYButton.setButtonText(enabled ? LOC("inputs.toggles.flipYOn") : LOC("inputs.toggles.flipYOff"));
             saveInputParam(WFSParameterIDs::inputFlipY, enabled ? 1 : 0);
         };
 
         addAndMakeVisible(flipZButton);
-        flipZButton.setButtonText("Flip Z: OFF");
+        flipZButton.setButtonText(LOC("inputs.toggles.flipZOff"));
         flipZButton.setClickingTogglesState(true);
         flipZButton.onClick = [this]() {
             bool enabled = flipZButton.getToggleState();
-            flipZButton.setButtonText(enabled ? "Flip Z: ON" : "Flip Z: OFF");
+            flipZButton.setButtonText(enabled ? LOC("inputs.toggles.flipZOn") : LOC("inputs.toggles.flipZOff"));
             saveInputParam(WFSParameterIDs::inputFlipZ, enabled ? 1 : 0);
         };
 
         // Tracking
         addAndMakeVisible(trackingActiveButton);
-        trackingActiveButton.setButtonText("Tracking: OFF");
+        trackingActiveButton.setButtonText(LOC("inputs.toggles.trackingOff"));
         trackingActiveButton.setClickingTogglesState(true);
         trackingActiveButton.onClick = [this]() {
             bool enabled = trackingActiveButton.getToggleState();
@@ -1001,14 +1002,14 @@ private:
             }
             else
             {
-                trackingActiveButton.setButtonText("Tracking: OFF");
+                trackingActiveButton.setButtonText(LOC("inputs.toggles.trackingOff"));
                 saveInputParam(WFSParameterIDs::inputTrackingActive, 0);
             }
         };
 
         // Tracking ID selector (1-32)
         addAndMakeVisible(trackingIdLabel);
-        trackingIdLabel.setText("Tracking ID:", juce::dontSendNotification);
+        trackingIdLabel.setText(LOC("inputs.labels.trackingId"), juce::dontSendNotification);
         addAndMakeVisible(trackingIdSelector);
         for (int i = 1; i <= 32; ++i)
             trackingIdSelector.addItem(juce::String(i), i);
@@ -1021,7 +1022,7 @@ private:
 
         // Tracking Smoothing dial (0-100%)
         addAndMakeVisible(trackingSmoothLabel);
-        trackingSmoothLabel.setText("Tracking Smooth:", juce::dontSendNotification);
+        trackingSmoothLabel.setText(LOC("inputs.labels.trackingSmooth"), juce::dontSendNotification);
         trackingSmoothLabel.setJustificationType(juce::Justification::centred);
         trackingSmoothDial.setColours(juce::Colours::black, juce::Colour(0xFF00BCD4), juce::Colours::grey);
         trackingSmoothDial.setValue(1.0f);  // Default 100%
@@ -1042,17 +1043,17 @@ private:
 
         // Max Speed
         addAndMakeVisible(maxSpeedActiveButton);
-        maxSpeedActiveButton.setButtonText("Max Speed: OFF");
+        maxSpeedActiveButton.setButtonText(LOC("inputs.toggles.maxSpeedOff"));
         maxSpeedActiveButton.setClickingTogglesState(true);
         maxSpeedActiveButton.onClick = [this]() {
             bool enabled = maxSpeedActiveButton.getToggleState();
-            maxSpeedActiveButton.setButtonText(enabled ? "Max Speed: ON" : "Max Speed: OFF");
+            maxSpeedActiveButton.setButtonText(enabled ? LOC("inputs.toggles.maxSpeedOn") : LOC("inputs.toggles.maxSpeedOff"));
             saveInputParam(WFSParameterIDs::inputMaxSpeedActive, enabled ? 1 : 0);
         };
 
         // Max Speed dial (0.01-20.0 m/s)
         addAndMakeVisible(maxSpeedLabel);
-        maxSpeedLabel.setText("Max Speed:", juce::dontSendNotification);
+        maxSpeedLabel.setText(LOC("inputs.labels.maxSpeed"), juce::dontSendNotification);
         maxSpeedLabel.setJustificationType(juce::Justification::centred);
         maxSpeedDial.setColours(juce::Colours::black, juce::Colour(0xFFFF9800), juce::Colours::grey);
         maxSpeedDial.onValueChanged = [this](float v) {
@@ -1066,23 +1067,23 @@ private:
         maxSpeedValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(maxSpeedValueLabel);
         addAndMakeVisible(maxSpeedUnitLabel);
-        maxSpeedUnitLabel.setText("m/s", juce::dontSendNotification);
+        maxSpeedUnitLabel.setText(LOC("units.metersPerSecond"), juce::dontSendNotification);
         maxSpeedUnitLabel.setJustificationType(juce::Justification::left);
         maxSpeedUnitLabel.setMinimumHorizontalScale(1.0f);
 
         // Path Mode toggle (follows drawn path instead of straight line)
         addAndMakeVisible(pathModeButton);
-        pathModeButton.setButtonText("Path Mode: OFF");
+        pathModeButton.setButtonText(LOC("inputs.toggles.pathModeOff"));
         pathModeButton.setClickingTogglesState(true);
         pathModeButton.onClick = [this]() {
             bool enabled = pathModeButton.getToggleState();
-            pathModeButton.setButtonText(enabled ? "Path Mode: ON" : "Path Mode: OFF");
+            pathModeButton.setButtonText(enabled ? LOC("inputs.toggles.pathModeOn") : LOC("inputs.toggles.pathModeOff"));
             saveInputParam(WFSParameterIDs::inputPathModeActive, enabled ? 1 : 0);
         };
 
         // Height Factor dial
         addAndMakeVisible(heightFactorLabel);
-        heightFactorLabel.setText("Height Factor:", juce::dontSendNotification);
+        heightFactorLabel.setText(LOC("inputs.labels.heightFactor"), juce::dontSendNotification);
         heightFactorLabel.setJustificationType(juce::Justification::centred);
         heightFactorDial.setColours(juce::Colours::black, juce::Colour(0xFF4CAF50), juce::Colours::grey);
         heightFactorDial.onValueChanged = [this](float v) {
@@ -1182,7 +1183,7 @@ private:
             }
         });
         addAndMakeVisible(positionJoystickLabel);
-        positionJoystickLabel.setText("X/Y", juce::dontSendNotification);
+        positionJoystickLabel.setText(LOC("inputs.labels.xyJoystick"), juce::dontSendNotification);
         positionJoystickLabel.setJustificationType(juce::Justification::centred);
 
         // Position Z Slider (vertical, auto-center with continuous polling like joystick)
@@ -1245,7 +1246,7 @@ private:
             }
         };
         addAndMakeVisible(positionZSliderLabel);
-        positionZSliderLabel.setText("Z", juce::dontSendNotification);
+        positionZSliderLabel.setText(LOC("inputs.labels.zSlider"), juce::dontSendNotification);
         positionZSliderLabel.setJustificationType(juce::Justification::centred);
     }
 
