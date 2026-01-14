@@ -1683,25 +1683,11 @@ bool WFSFileManager::applyConfigSection (const juce::ValueTree& configTree)
 
     auto* undoManager = valueTreeState.getUndoManager();
 
-    // Preserve Network, ADMOSC, and Tracking children (they're managed separately in network.xml)
-    // because copyPropertiesAndChildrenFrom would wipe them out
-    auto preservedNetwork = existingConfig.getChildWithName (Network).createCopy();
-    auto preservedAdmOsc = existingConfig.getChildWithName (ADMOSC).createCopy();
-    auto preservedTracking = existingConfig.getChildWithName (Tracking).createCopy();
+    // Merge properties and children from loaded config (preserves missing properties/children)
+    // Network, ADMOSC, and Tracking are automatically preserved if not in configTree
+    mergeTreeRecursive (existingConfig, configTree, undoManager);
 
-    // Copy properties and children from loaded config
-    existingConfig.copyPropertiesAndChildrenFrom (configTree, undoManager);
-
-    // Restore the network-related children if they were removed
-    if (preservedNetwork.isValid() && !existingConfig.getChildWithName (Network).isValid())
-        existingConfig.appendChild (preservedNetwork, undoManager);
-    if (preservedAdmOsc.isValid() && !existingConfig.getChildWithName (ADMOSC).isValid())
-        existingConfig.appendChild (preservedAdmOsc, undoManager);
-    if (preservedTracking.isValid() && !existingConfig.getChildWithName (Tracking).isValid())
-        existingConfig.appendChild (preservedTracking, undoManager);
-
-    // AFTER copying: Ensure channel children exist with proper structure (including EQ sections)
-    // This must happen AFTER copyPropertiesAndChildrenFrom because that function replaces all children.
+    // Ensure channel children exist with proper structure (including EQ sections)
     // Loaded XML may have old-format Reverb children without EQ sections.
     auto ioSection = existingConfig.getChildWithName (IO);
     if (ioSection.isValid())
@@ -1723,7 +1709,7 @@ bool WFSFileManager::applyInputsSection (const juce::ValueTree& inputsTree)
     auto existingInputs = valueTreeState.getInputsState();
     if (existingInputs.isValid())
     {
-        existingInputs.copyPropertiesAndChildrenFrom (inputsTree, valueTreeState.getUndoManager());
+        mergeTreeRecursive (existingInputs, inputsTree, valueTreeState.getUndoManager());
         return true;
     }
     return false;
@@ -1734,7 +1720,7 @@ bool WFSFileManager::applyOutputsSection (const juce::ValueTree& outputsTree)
     auto existingOutputs = valueTreeState.getOutputsState();
     if (existingOutputs.isValid())
     {
-        existingOutputs.copyPropertiesAndChildrenFrom (outputsTree, valueTreeState.getUndoManager());
+        mergeTreeRecursive (existingOutputs, outputsTree, valueTreeState.getUndoManager());
         return true;
     }
     return false;
@@ -1745,7 +1731,7 @@ bool WFSFileManager::applyReverbsSection (const juce::ValueTree& reverbsTree)
     auto existingReverbs = valueTreeState.getReverbsState();
     if (existingReverbs.isValid())
     {
-        existingReverbs.copyPropertiesAndChildrenFrom (reverbsTree, valueTreeState.getUndoManager());
+        mergeTreeRecursive (existingReverbs, reverbsTree, valueTreeState.getUndoManager());
         return true;
     }
     return false;
@@ -1756,7 +1742,7 @@ bool WFSFileManager::applyAudioPatchSection (const juce::ValueTree& audioPatchTr
     auto existingPatch = valueTreeState.getAudioPatchState();
     if (existingPatch.isValid())
     {
-        existingPatch.copyPropertiesAndChildrenFrom (audioPatchTree, valueTreeState.getUndoManager());
+        mergeTreeRecursive (existingPatch, audioPatchTree, valueTreeState.getUndoManager());
         return true;
     }
     return false;
@@ -1782,7 +1768,7 @@ bool WFSFileManager::applyNetworkSection (const juce::ValueTree& networkContaine
         auto existingNetwork = config.getChildWithName (Network);
         if (existingNetwork.isValid())
         {
-            existingNetwork.copyPropertiesAndChildrenFrom (loadedNetwork, undoManager);
+            mergeTreeRecursive (existingNetwork, loadedNetwork, undoManager);
             success = true;
         }
         else
@@ -1798,7 +1784,7 @@ bool WFSFileManager::applyNetworkSection (const juce::ValueTree& networkContaine
         auto existingAdmOsc = config.getChildWithName (ADMOSC);
         if (existingAdmOsc.isValid())
         {
-            existingAdmOsc.copyPropertiesAndChildrenFrom (loadedAdmOsc, undoManager);
+            mergeTreeRecursive (existingAdmOsc, loadedAdmOsc, undoManager);
             success = true;
         }
         else
@@ -1814,7 +1800,7 @@ bool WFSFileManager::applyNetworkSection (const juce::ValueTree& networkContaine
         auto existingTracking = config.getChildWithName (Tracking);
         if (existingTracking.isValid())
         {
-            existingTracking.copyPropertiesAndChildrenFrom (loadedTracking, undoManager);
+            mergeTreeRecursive (existingTracking, loadedTracking, undoManager);
             success = true;
         }
         else
@@ -1919,7 +1905,7 @@ bool WFSFileManager::applyInputWithScope (int channelIndex, const juce::ValueTre
     {
         auto existingChannel = input.getChildWithName (Channel);
         if (existingChannel.isValid())
-            existingChannel.copyPropertiesAndChildrenFrom (loadedChannel, undoManager);
+            mergeTreeRecursive (existingChannel, loadedChannel, undoManager);
     }
 
     // Apply sections based on scope
@@ -1930,7 +1916,7 @@ bool WFSFileManager::applyInputWithScope (int channelIndex, const juce::ValueTre
         {
             auto existingPos = input.getChildWithName (Position);
             if (existingPos.isValid())
-                existingPos.copyPropertiesAndChildrenFrom (loadedPos, undoManager);
+                mergeTreeRecursive (existingPos, loadedPos, undoManager);
         }
     }
 
@@ -1941,7 +1927,7 @@ bool WFSFileManager::applyInputWithScope (int channelIndex, const juce::ValueTre
         {
             auto existing = input.getChildWithName (Attenuation);
             if (existing.isValid())
-                existing.copyPropertiesAndChildrenFrom (loaded, undoManager);
+                mergeTreeRecursive (existing, loaded, undoManager);
         }
     }
 
@@ -1952,7 +1938,7 @@ bool WFSFileManager::applyInputWithScope (int channelIndex, const juce::ValueTre
         {
             auto existing = input.getChildWithName (Directivity);
             if (existing.isValid())
-                existing.copyPropertiesAndChildrenFrom (loaded, undoManager);
+                mergeTreeRecursive (existing, loaded, undoManager);
         }
     }
 
@@ -1963,7 +1949,7 @@ bool WFSFileManager::applyInputWithScope (int channelIndex, const juce::ValueTre
         {
             auto existing = input.getChildWithName (LiveSourceTamer);
             if (existing.isValid())
-                existing.copyPropertiesAndChildrenFrom (loaded, undoManager);
+                mergeTreeRecursive (existing, loaded, undoManager);
         }
     }
 
@@ -1974,7 +1960,7 @@ bool WFSFileManager::applyInputWithScope (int channelIndex, const juce::ValueTre
         {
             auto existing = input.getChildWithName (Hackoustics);
             if (existing.isValid())
-                existing.copyPropertiesAndChildrenFrom (loaded, undoManager);
+                mergeTreeRecursive (existing, loaded, undoManager);
         }
     }
 
@@ -1985,7 +1971,7 @@ bool WFSFileManager::applyInputWithScope (int channelIndex, const juce::ValueTre
         {
             auto existing = input.getChildWithName (LFO);
             if (existing.isValid())
-                existing.copyPropertiesAndChildrenFrom (loaded, undoManager);
+                mergeTreeRecursive (existing, loaded, undoManager);
         }
     }
 
@@ -1996,7 +1982,7 @@ bool WFSFileManager::applyInputWithScope (int channelIndex, const juce::ValueTre
         {
             auto existing = input.getChildWithName (AutomOtion);
             if (existing.isValid())
-                existing.copyPropertiesAndChildrenFrom (loaded, undoManager);
+                mergeTreeRecursive (existing, loaded, undoManager);
         }
     }
 
@@ -2007,7 +1993,7 @@ bool WFSFileManager::applyInputWithScope (int channelIndex, const juce::ValueTre
         {
             auto existing = input.getChildWithName (Mutes);
             if (existing.isValid())
-                existing.copyPropertiesAndChildrenFrom (loaded, undoManager);
+                mergeTreeRecursive (existing, loaded, undoManager);
         }
     }
 
@@ -2023,6 +2009,46 @@ juce::String WFSFileManager::createXmlHeader (const juce::String& fileType)
     header << "<!-- Created: " << juce::Time::getCurrentTime().toString (true, true) << " -->\n";
     header << "\n";
     return header;
+}
+
+//==============================================================================
+// Merge Helpers (preserves missing properties)
+//==============================================================================
+
+void WFSFileManager::mergeProperties (juce::ValueTree& target, const juce::ValueTree& source,
+                                       juce::UndoManager* undoManager)
+{
+    // Only copy properties that exist in source - missing properties keep their current value
+    for (int i = 0; i < source.getNumProperties(); ++i)
+    {
+        auto propName = source.getPropertyName (i);
+        target.setProperty (propName, source.getProperty (propName), undoManager);
+    }
+}
+
+void WFSFileManager::mergeTreeRecursive (juce::ValueTree& target, const juce::ValueTree& source,
+                                          juce::UndoManager* undoManager)
+{
+    // Merge properties (only those in source)
+    mergeProperties (target, source, undoManager);
+
+    // Merge children
+    for (int i = 0; i < source.getNumChildren(); ++i)
+    {
+        auto sourceChild = source.getChild (i);
+        auto targetChild = target.getChildWithName (sourceChild.getType());
+
+        if (targetChild.isValid())
+        {
+            // Child exists - recursively merge
+            mergeTreeRecursive (targetChild, sourceChild, undoManager);
+        }
+        else
+        {
+            // Child doesn't exist in target - add it (new section in file)
+            target.appendChild (sourceChild.createCopy(), undoManager);
+        }
+    }
 }
 
 void WFSFileManager::setError (const juce::String& error)

@@ -465,5 +465,13 @@ private:
     /** Set error message */
     void setError (const juce::String& error);
 
+    /** Merge properties from source to target (only set properties that exist in source) */
+    void mergeProperties (juce::ValueTree& target, const juce::ValueTree& source,
+                          juce::UndoManager* undoManager);
+
+    /** Recursively merge tree including children (preserves existing properties/children not in source) */
+    void mergeTreeRecursive (juce::ValueTree& target, const juce::ValueTree& source,
+                             juce::UndoManager* undoManager);
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (WFSFileManager)
 };
