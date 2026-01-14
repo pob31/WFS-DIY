@@ -51,7 +51,6 @@ The application has established a solid foundation with infrastructure and core 
 **Major features still to implement:**
 - Reverb algorithm design (convolution/algorithmic)
 - Snapshot system UI in InputsTab (scope window complete)
-- Tracking protocols (PSN, RTTrP, OSC for tracking)
 - ADM-OSC protocol
 - GPU Audio framework port
 
@@ -94,7 +93,7 @@ The application has established a solid foundation with infrastructure and core 
 |--------|--------|-------------|
 | Parameters | Complete | ValueTree-based hierarchical state management |
 | GUI Tabs | 90% | All 7 tabs have UI, some features pending |
-| OSC Network | 90% | OSC, Remote protocols complete; ADM-OSC, PSN, RTTrP pending |
+| OSC Network | 95% | OSC, Remote, PSN, RTTrP protocols complete; ADM-OSC pending |
 | Save/Load | 85% | Project folder management, snapshot scope editing complete |
 | Audio Engine | 80% | Dual algorithm support with DSP calculation layer + Live Source Tamer + Floor Reflections |
 | Separate Windows | 95% | Log, Patch, Array Helper, Snapshot Scope windows complete |
@@ -1011,7 +1010,8 @@ Full bidirectional TCP support for OSC communication:
 - **Remote** - Remote input control protocol
 - **ADM-OSC** - Audio Definition Model (placeholder)
 - **OSCQuery** - Parameter discovery server
-- **PSN / RTTrP** - Tracking protocols (placeholder)
+- **PSN** - PosiStageNet tracking protocol (UDP port 56565)
+- **RTTrP** - Real-Time Tracking Protocol (UDP port 24220)
 
 ### Network Log Window Features
 - Independent floating window (for second monitor)
@@ -1890,7 +1890,7 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 ### Medium Priority
 2. **Reverb Algorithm**: Design convolution/algorithmic reverb processing
 3. **Remote handshake**: Initialize and transmit state of all inputs
-4. **Protocol Implementation**: ADM-OSC, PSN, RTTrP
+4. **Protocol Implementation**: ADM-OSC
 
 ### Lower Priority
 5. **Remote Protocol Enhancements**: Secondary touch functions
@@ -1899,7 +1899,7 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 
 ---
 
-*Last updated: 2026-01-13*
-*Features added: Level Metering, Binaural Solo Monitoring*
+*Last updated: 2026-01-14*
+*Features added: PSN Tracking, RTTrP Tracking*
 *JUCE Version: 8.0.12*
 *Build: Visual Studio 2022 / Xcode, x64 Debug/Release*
