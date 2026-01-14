@@ -3770,10 +3770,28 @@ private:
         rotationDial.setBounds(rotCenterX - largeRotationDial / 2, rotCenterY - largeRotationDial / 2, largeRotationDial, largeRotationDial);
         layoutDialValueUnit(rotationValueLabel, rotationUnitLabel, rotCenterX, rotArea.getBottom() - rowHeight, rowHeight, 40, 25);
 
-        // Extra padding after HF Shelf
-        col2.removeFromTop(spacing * 3);
+        // Spacing after HF Shelf
+        col2.removeFromTop(spacing);
 
-        // --- Mute Macros selector (moved above mute buttons) ---
+        // --- Array Attenuation - all 10 dials on single line ---
+        const int smallDialSize = 36;
+        const int arrayDialSpacing = (col2.getWidth() - smallDialSize * 10) / 10;
+        const int arrayLabelWidth = smallDialSize + arrayDialSpacing;  // Full width per dial slot
+        arrayAttenLabel.setBounds(col2.removeFromTop(rowHeight).removeFromLeft(150));
+
+        auto arrayRow = col2.removeFromTop(smallDialSize + 30);
+        for (int i = 0; i < 10; ++i)
+        {
+            int slotX = arrayRow.getX() + i * (smallDialSize + arrayDialSpacing);
+            int dialX = slotX + arrayDialSpacing / 2;
+            int labelCenterX = dialX + smallDialSize / 2;  // Center of dial
+            arrayAttenDialLabels[i].setBounds(labelCenterX - arrayLabelWidth / 2, arrayRow.getY(), arrayLabelWidth, 12);
+            arrayAttenDials[i].setBounds(dialX, arrayRow.getY() + 12, smallDialSize, smallDialSize);
+            arrayAttenValueLabels[i].setBounds(labelCenterX - arrayLabelWidth / 2, arrayRow.getY() + 12 + smallDialSize, arrayLabelWidth, 12);
+        }
+        col2.removeFromTop(spacing);
+
+        // --- Mute Macros selector ---
         row = col2.removeFromTop(rowHeight);
         muteMacrosLabel.setBounds(row.removeFromLeft(90));
         muteMacrosSelector.setBounds(row.removeFromLeft(150));
@@ -3804,26 +3822,8 @@ private:
                 }
             }
         }
-        col2.removeFromTop(spacing);
 
-        // --- Array Attenuation - all 10 dials on single line ---
-        const int smallDialSize = 36;
-        const int arrayDialSpacing = (col2.getWidth() - smallDialSize * 10) / 10;
-        const int arrayLabelWidth = smallDialSize + arrayDialSpacing;  // Full width per dial slot
-        arrayAttenLabel.setBounds(col2.removeFromTop(rowHeight).removeFromLeft(150));
-
-        auto arrayRow = col2.removeFromTop(smallDialSize + 30);
-        for (int i = 0; i < 10; ++i)
-        {
-            int slotX = arrayRow.getX() + i * (smallDialSize + arrayDialSpacing);
-            int dialX = slotX + arrayDialSpacing / 2;
-            int labelCenterX = dialX + smallDialSize / 2;  // Center of dial
-            arrayAttenDialLabels[i].setBounds(labelCenterX - arrayLabelWidth / 2, arrayRow.getY(), arrayLabelWidth, 12);
-            arrayAttenDials[i].setBounds(dialX, arrayRow.getY() + 12, smallDialSize, smallDialSize);
-            arrayAttenValueLabels[i].setBounds(labelCenterX - arrayLabelWidth / 2, arrayRow.getY() + 12 + smallDialSize, arrayLabelWidth, 12);
-        }
-
-        // Extra padding after array attenuation
+        // Extra padding after mutes
         col2.removeFromTop(spacing * 2);
     }
 
