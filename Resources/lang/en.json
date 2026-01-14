@@ -294,7 +294,12 @@
       "offsetZ": "Offset Z:",
       "scaleX": "Scale X:",
       "scaleY": "Scale Y:",
-      "scaleZ": "Scale Z:"
+      "scaleZ": "Scale Z:",
+      "oscPath": "OSC Path:"
+    },
+
+    "help": {
+      "trackingOscPath": "OSC Path for the Tracking in OSC Mode (starts with a /)"
     },
 
     "buttons": {

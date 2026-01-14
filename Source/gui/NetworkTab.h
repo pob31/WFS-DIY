@@ -847,7 +847,7 @@ private:
 
         // OSC Path (shown when protocol is OSC)
         addAndMakeVisible(trackingOscPathLabel);
-        trackingOscPathLabel.setText("OSC Path:", juce::dontSendNotification);
+        trackingOscPathLabel.setText(LOC("network.labels.oscPath"), juce::dontSendNotification);
         addAndMakeVisible(trackingOscPathEditor);
         trackingOscPathEditor.setText("/wfs/tracking <ID> <x> <y> <z>", juce::dontSendNotification);
         trackingOscPathEditor.setVisible(false);  // Hidden by default
@@ -1676,7 +1676,7 @@ private:
         else if (source == &trackingFlipZButton)
             helpText = "Invert Axis of Tracking Z Coordinate.";
         else if (source == &trackingOscPathLabel || source == &trackingOscPathEditor)
-            helpText = "OSC message path pattern. Use <ID>, <x>, <y>, <z> as placeholders.";
+            helpText = LOC("network.help.trackingOscPath");
 
         // ==================== FOOTER BUTTONS ====================
         else if (source == &storeButton)

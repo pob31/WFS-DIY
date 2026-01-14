@@ -271,7 +271,12 @@
       "offsetZ": "Décalage Z :",
       "scaleX": "Échelle X :",
       "scaleY": "Échelle Y :",
-      "scaleZ": "Échelle Z :"
+      "scaleZ": "Échelle Z :",
+      "oscPath": "Chemin OSC :"
+    },
+
+    "help": {
+      "trackingOscPath": "Chemin OSC pour le Tracking en mode OSC (commence par /)"
     },
 
     "buttons": {
