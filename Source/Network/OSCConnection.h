@@ -11,8 +11,9 @@ namespace WFSNetwork
  *
  * Wraps juce::OSCSender for outgoing messages and tracks connection state.
  * Each instance represents one of the 6 configurable network targets.
+ * TCP connections are non-blocking and run in a background thread.
  */
-class OSCConnection
+class OSCConnection : private juce::Thread
 {
 public:
     //==========================================================================
@@ -39,11 +40,17 @@ public:
     // Connection Control
     //==========================================================================
 
-    /** Connect to the target (for TCP) or prepare sender (for UDP) */
+    /** Connect to the target (for TCP) or prepare sender (for UDP).
+        For TCP, this is non-blocking and returns true immediately while
+        connection happens in background. Use onStatusChanged callback
+        to get the final connection result. */
     bool connect();
 
     /** Disconnect from the target */
     void disconnect();
+
+    /** Callback for connection status changes (called from message thread) */
+    std::function<void(ConnectionStatus)> onStatusChanged;
 
     /** Check if connected/ready to send */
     bool isConnected() const;
@@ -114,9 +121,15 @@ private:
     void destroySender();
 
     // TCP-specific methods
-    bool connectTCP();
+    bool connectTCPSync();  // Blocking TCP connect (called from thread)
     void disconnectTCP();
     bool sendWithLengthPrefix(const juce::MemoryBlock& oscData);
+
+    // Thread override for async TCP connection
+    void run() override;
+
+    // Pending connection config (for async connect)
+    std::atomic<bool> connectionPending { false };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OSCConnection)
 };

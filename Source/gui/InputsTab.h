@@ -2402,7 +2402,23 @@ private:
                     muteButtons[i].setToggleState((i % 2) == 1, juce::sendNotification);
                 break;
             default:
-                // Array mute/unmute macros would need array information
+                // Array mute/unmute macros (macroId >= 7)
+                // IDs: Array 1 mute=7, unmute=8; Array 2 mute=9, unmute=10; etc.
+                if (macroId >= 7)
+                {
+                    bool shouldMute = ((macroId - 7) % 2 == 0);
+                    int arrayNumber = (macroId - 7) / 2 + 1;  // 1-10
+
+                    int numOutputs = parameters.getNumOutputChannels();
+                    if (numOutputs <= 0) numOutputs = 16;
+
+                    for (int outIdx = 0; outIdx < numOutputs && outIdx < 64; ++outIdx)
+                    {
+                        int outputArray = static_cast<int>(parameters.getOutputParam(outIdx, "outputArray"));
+                        if (outputArray == arrayNumber)
+                            muteButtons[outIdx].setToggleState(shouldMute, juce::sendNotification);
+                    }
+                }
                 break;
         }
     }
@@ -6277,22 +6293,16 @@ private:
         // Skip if we're already loading parameters (avoid recursion)
         if (!isLoadingParameters)
         {
-            DBG("InputsTab::valueTreePropertyChanged - tree=" << tree.getType().toString()
-                << " property=" << property.toString() << " isLoading=" << (isLoadingParameters ? "yes" : "no"));
-
             // Find if this tree belongs to the current channel's Input tree
             juce::ValueTree parent = tree;
             while (parent.isValid())
             {
-                DBG("InputsTab - checking parent type: " << parent.getType().toString());
                 if (parent.getType() == WFSParameterIDs::Input)
                 {
                     int channelId = parent.getProperty(WFSParameterIDs::id, -1);
-                    DBG("InputsTab - found Input parent, channelId=" << channelId << " currentChannel=" << currentChannel);
                     if (channelId == currentChannel)
                     {
                         // This is a parameter change for the current channel - refresh UI
-                        DBG("InputsTab - refreshing UI for channel " << currentChannel);
                         juce::MessageManager::callAsync([this]()
                         {
                             loadChannelParameters(currentChannel);

@@ -9,13 +9,16 @@ namespace WFSNetwork
 //==============================================================================
 
 OSCConnection::OSCConnection(int index)
-    : targetIndex(index)
+    : juce::Thread("OSCConnection_" + juce::String(index)),
+      targetIndex(index)
 {
     jassert(index >= 0 && index < MAX_TARGETS);
 }
 
 OSCConnection::~OSCConnection()
 {
+    // Stop any pending connection thread
+    stopThread(2500);
     disconnect();
 }
 
@@ -77,7 +80,7 @@ bool OSCConnection::connect()
     }
 
     // For UDP, we're "connected" as soon as the sender is created
-    // For TCP, we need to actually establish a connection
+    // For TCP, we need to actually establish a connection (non-blocking)
     if (config.mode == ConnectionMode::UDP)
     {
         if (sender->connect(config.ipAddress, config.port))
@@ -88,27 +91,33 @@ bool OSCConnection::connect()
                 << config.ipAddress << ":" << config.port << " (UDP)");
             return true;
         }
-    }
-    else // TCP
-    {
-        if (connectTCP())
-        {
-            setStatus(ConnectionStatus::Connected);
-            resetStats();
-            DBG("OSCConnection[" << targetIndex << "]: Connected to "
-                << config.ipAddress << ":" << config.port << " (TCP)");
-            return true;
-        }
-    }
 
-    setStatus(ConnectionStatus::Error);
-    DBG("OSCConnection[" << targetIndex << "]: Failed to connect to "
-        << config.ipAddress << ":" << config.port);
-    return false;
+        setStatus(ConnectionStatus::Error);
+        DBG("OSCConnection[" << targetIndex << "]: Failed to connect to "
+            << config.ipAddress << ":" << config.port << " (UDP)");
+        return false;
+    }
+    else // TCP - non-blocking connection in background thread
+    {
+        // Stop any existing connection attempt
+        stopThread(100);
+
+        // Start async connection
+        connectionPending = true;
+        startThread();
+
+        // Return true to indicate connection attempt started
+        // Final result will come via onStatusChanged callback
+        return true;
+    }
 }
 
 void OSCConnection::disconnect()
 {
+    // Stop any pending connection attempt
+    connectionPending = false;
+    stopThread(500);
+
     const juce::ScopedLock sl(sendLock);
 
     destroySender();
@@ -149,15 +158,7 @@ bool OSCConnection::send(const juce::OSCMessage& message)
     const juce::ScopedLock sl(sendLock);
 
     if (!isConnected() || !config.txEnabled)
-    {
-        DBG("OSCConnection[" << targetIndex << "]: Cannot send - connected=" << (isConnected() ? "yes" : "no")
-            << " txEnabled=" << (config.txEnabled ? "yes" : "no")
-            << " status=" << getStatusString());
         return false;
-    }
-
-    DBG("OSCConnection[" << targetIndex << "]: Sending " << message.getAddressPattern().toString()
-        << " to " << config.ipAddress << ":" << config.port);
 
     bool success = false;
 
@@ -174,13 +175,11 @@ bool OSCConnection::send(const juce::OSCMessage& message)
     if (success)
     {
         ++messagesSent;
-        DBG("OSCConnection[" << targetIndex << "]: Send SUCCESS");
         return true;
     }
     else
     {
         ++sendErrors;
-        DBG("OSCConnection[" << targetIndex << "]: Send FAILED for " << message.getAddressPattern().toString());
 
         // Mark as disconnected on TCP failure to allow reconnection
         if (config.mode == ConnectionMode::TCP)
@@ -272,11 +271,11 @@ void OSCConnection::destroySender()
 // TCP-specific Methods
 //==============================================================================
 
-bool OSCConnection::connectTCP()
+bool OSCConnection::connectTCPSync()
 {
     tcpSocket = std::make_unique<juce::StreamingSocket>();
 
-    if (!tcpSocket->connect(config.ipAddress, config.port, 5000)) // 5 second timeout
+    if (!tcpSocket->connect(config.ipAddress, config.port, 2000)) // 2 second timeout
     {
         DBG("OSCConnection[" << targetIndex
             << "]: TCP connection failed to " << config.ipAddress << ":" << config.port);
@@ -285,6 +284,60 @@ bool OSCConnection::connectTCP()
     }
 
     return true;
+}
+
+void OSCConnection::run()
+{
+    // Background thread for TCP connection
+    if (!connectionPending)
+        return;
+
+    // Copy config values we need (to avoid holding lock during connect)
+    juce::String targetIP;
+    int targetPort;
+    {
+        const juce::ScopedLock sl(sendLock);
+        targetIP = config.ipAddress;
+        targetPort = config.port;
+    }
+
+    DBG("OSCConnection[" << targetIndex << "]: Async TCP connecting to "
+        << targetIP << ":" << targetPort);
+
+    // Attempt TCP connection (blocking, but in background thread)
+    bool success = false;
+    {
+        const juce::ScopedLock sl(sendLock);
+        if (connectionPending && !threadShouldExit())
+            success = connectTCPSync();
+    }
+
+    // Check if we were cancelled
+    if (!connectionPending || threadShouldExit())
+        return;
+
+    connectionPending = false;
+
+    // Update status and notify via message thread
+    juce::MessageManager::callAsync([this, success, targetIP, targetPort]()
+    {
+        if (success)
+        {
+            setStatus(ConnectionStatus::Connected);
+            resetStats();
+            DBG("OSCConnection[" << targetIndex << "]: Connected to "
+                << targetIP << ":" << targetPort << " (TCP)");
+        }
+        else
+        {
+            setStatus(ConnectionStatus::Error);
+            DBG("OSCConnection[" << targetIndex << "]: Failed to connect to "
+                << targetIP << ":" << targetPort << " (TCP)");
+        }
+
+        if (onStatusChanged)
+            onStatusChanged(status);
+    });
 }
 
 void OSCConnection::disconnectTCP()

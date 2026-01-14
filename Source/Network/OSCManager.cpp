@@ -21,30 +21,17 @@ OSCManager::OSCManager(WFSValueTreeState& valueTreeState)
     // Set up rate limiter callback
     rateLimiter.setSendCallback([this](int targetIndex, const juce::OSCMessage& message)
     {
-        DBG("OSCManager rate limiter callback - target " << targetIndex
-            << " addr=" << message.getAddressPattern().toString());
-
         if (targetIndex >= 0 && targetIndex < MAX_TARGETS)
         {
             if (connections[static_cast<size_t>(targetIndex)])
             {
-                DBG("OSCManager rate limiter - sending to connection " << targetIndex);
                 if (connections[static_cast<size_t>(targetIndex)]->send(message))
                 {
                     ++messagesSent;
                     const auto& config = targetConfigs[static_cast<size_t>(targetIndex)];
                     logger.logSentWithDetails(targetIndex, message, config.protocol,
                                               config.ipAddress, config.port, config.mode);
-                    DBG("OSCManager rate limiter - message sent successfully");
                 }
-                else
-                {
-                    DBG("OSCManager rate limiter - send FAILED");
-                }
-            }
-            else
-            {
-                DBG("OSCManager rate limiter - no connection for target " << targetIndex);
             }
         }
     });
@@ -246,12 +233,40 @@ bool OSCManager::connectTarget(int targetIndex)
     DBG("OSCManager::connectTarget - configuring connection to " << config.ipAddress << ":" << config.port);
     conn->configure(config);
 
+    // Set up callback for async TCP connections
+    conn->onStatusChanged = [this, targetIndex, ipAddr = config.ipAddress, port = config.port](ConnectionStatus newStatus)
+    {
+        updateTargetStatus(targetIndex, newStatus);
+        if (newStatus == ConnectionStatus::Connected)
+        {
+            logger.logText("Connected to target " + juce::String(targetIndex + 1) +
+                           " (" + ipAddr + ":" + juce::String(port) + ")");
+        }
+        else if (newStatus == ConnectionStatus::Error)
+        {
+            logger.logText("Failed to connect to target " + juce::String(targetIndex + 1) +
+                           " (" + ipAddr + ":" + juce::String(port) + ")");
+        }
+    };
+
+    // For TCP, connect() returns true immediately and status comes via callback
+    // For UDP, connect() is synchronous
     if (conn->connect())
     {
-        updateTargetStatus(targetIndex, ConnectionStatus::Connected);
-        logger.logText("Connected to target " + juce::String(targetIndex + 1) +
-                       " (" + config.ipAddress + ":" + juce::String(config.port) + ")");
-        DBG("OSCManager::connectTarget - target " << targetIndex << " CONNECTED");
+        // For UDP, we're connected immediately
+        if (config.mode == ConnectionMode::UDP)
+        {
+            updateTargetStatus(targetIndex, ConnectionStatus::Connected);
+            logger.logText("Connected to target " + juce::String(targetIndex + 1) +
+                           " (" + config.ipAddress + ":" + juce::String(config.port) + ")");
+            DBG("OSCManager::connectTarget - target " << targetIndex << " CONNECTED (UDP)");
+        }
+        else
+        {
+            // TCP - set to Connecting, final status will come via callback
+            updateTargetStatus(targetIndex, ConnectionStatus::Connecting);
+            DBG("OSCManager::connectTarget - target " << targetIndex << " CONNECTING (TCP async)");
+        }
         return true;
     }
     else
@@ -306,13 +321,8 @@ void OSCManager::sendMessage(int targetIndex, const juce::OSCMessage& message)
 
     const auto& config = targetConfigs[static_cast<size_t>(targetIndex)];
     if (config.protocol == Protocol::Disabled || !config.txEnabled)
-    {
-        DBG("OSCManager::sendMessage - target " << targetIndex << " disabled or txEnabled=false");
         return;
-    }
 
-    DBG("OSCManager::sendMessage - queuing message to target " << targetIndex
-        << " addr=" << message.getAddressPattern().toString());
     rateLimiter.queueMessage(targetIndex, message);
 }
 
@@ -471,11 +481,6 @@ void OSCManager::resetStatistics()
 
 void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property)
 {
-    // Debug: log all property changes
-    DBG("OSCManager::valueTreePropertyChanged - tree=" << tree.getType().toString()
-        << " property=" << property.toString()
-        << " incomingProtocol=" << static_cast<int>(incomingProtocol));
-
     // Check if this is a stage/config parameter that needs broadcasting to Remote
     if (property == WFSParameterIDs::stageWidth ||
         property == WFSParameterIDs::stageDepth ||
@@ -532,10 +537,7 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
         // Loop prevention: skip targets with same protocol as incoming message
         // This prevents echo loops while still allowing cross-protocol forwarding
         if (incomingProtocol != Protocol::Disabled && config.protocol == incomingProtocol)
-        {
-            DBG("OSCManager: Skipping target " << i << " (same protocol as incoming)");
             continue;
-        }
 
         if (config.protocol == Protocol::OSC)
         {
@@ -549,24 +551,15 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
             {
                 msg = OSCMessageBuilder::buildInputMessage(property, channelId,
                                                            static_cast<float>(static_cast<double>(value)));
-                DBG("OSCManager: Input param " << property.toString() << " ch" << channelId
-                    << " value=" << static_cast<float>(static_cast<double>(value))
-                    << " mapped=" << (msg.has_value() ? "yes" : "no"));
             }
             else if (isOutput && isNumeric)
             {
                 msg = OSCMessageBuilder::buildOutputMessage(property, channelId,
                                                             static_cast<float>(static_cast<double>(value)));
-                DBG("OSCManager: Output param " << property.toString() << " ch" << channelId
-                    << " value=" << static_cast<float>(static_cast<double>(value))
-                    << " mapped=" << (msg.has_value() ? "yes" : "no"));
             }
 
             if (msg.has_value())
-            {
-                DBG("OSCManager: Sending to target " << i << ": " << msg->getAddressPattern().toString());
                 sendMessage(i, *msg);
-            }
         }
         else if (config.protocol == Protocol::Remote)
         {

@@ -27,8 +27,6 @@ public:
           reverbsTree(params.getReverbTree()),
           configTree(params.getConfigTree())
     {
-        DBG("MapTab constructor: this=" << juce::String::toHexString((juce::int64)(uintptr_t)this));
-
         // Add ValueTree listeners
         inputsTree.addListener(this);
         outputsTree.addListener(this);
@@ -132,7 +130,6 @@ public:
     void mouseDown(const juce::MouseEvent& e) override
     {
         int sourceIndex = e.source.getIndex();
-        DBG("mouseDown called: isTouch=" << static_cast<int>(e.source.isTouch()) << ", sourceIndex=" << sourceIndex);
 
         // Handle touch input
         if (e.source.isTouch())
@@ -146,7 +143,6 @@ public:
 
             // Check for input hit
             int hitInput = getInputAtPosition(e.position);
-            DBG("mouseDown(touch): hitInput=" << hitInput);
             if (hitInput >= 0)
             {
                 touch.type = TouchInfo::Type::Input;
@@ -163,7 +159,6 @@ public:
                 longPressState.targetIndex = hitInput;
                 longPressState.startPos = e.position;
                 longPressState.startTime = juce::Time::getCurrentTime();
-                DBG("mouseDown(touch): set longPressState for Input " << hitInput);
 
                 // Notify path mode waypoint recording
                 if (onDragStartCallback)
@@ -300,7 +295,6 @@ public:
         if (e.mods.isLeftButtonDown())
         {
             int hitInput = getInputAtPosition(e.position);
-            DBG("mouseDown: hitInput=" << hitInput);
             if (hitInput >= 0)
             {
                 selectedInput = hitInput;
@@ -320,7 +314,6 @@ public:
                 longPressState.targetIndex = hitInput;
                 longPressState.startPos = e.position;
                 longPressState.startTime = juce::Time::getCurrentTime();
-                DBG("mouseDown: set longPressState for Input " << hitInput);
 
                 // Notify path mode waypoint recording
                 if (onDragStartCallback)
@@ -613,25 +606,20 @@ public:
     void mouseUp(const juce::MouseEvent& e) override
     {
         int sourceIndex = e.source.getIndex();
-        DBG("mouseUp called: isTouch=" << static_cast<int>(e.source.isTouch()) << ", sourceIndex=" << sourceIndex);
 
         // Handle touch input
         if (e.source.isTouch())
         {
             // Check for long-press gesture (navigation)
             // Note: Short double-tap (clear offsets) is handled immediately in mouseDoubleClick
-            DBG("mouseUp(touch): longPressState.active=" << static_cast<int>(longPressState.active));
             if (longPressState.active)
             {
                 auto holdDuration = juce::Time::getCurrentTime() - longPressState.startTime;
                 float movement = e.position.getDistanceFrom(longPressState.startPos);
 
-                DBG("mouseUp(touch): holdDuration=" << holdDuration.inMilliseconds() << "ms, movement=" << movement << "px");
-
                 // Long hold (700-1200ms) with minimal movement (< 5px): navigate to tab
                 if (holdDuration.inMilliseconds() >= 700 && holdDuration.inMilliseconds() <= 1200 && movement < 5.0f)
                 {
-                    DBG("mouseUp(touch): conditions met, navigateToItemCallback=" << (navigateToItemCallback != nullptr ? 1 : 0));
                     if (navigateToItemCallback)
                     {
                         int tabType = -1;
@@ -643,7 +631,6 @@ public:
                             case LongPressState::TargetType::Reverb:  tabType = 3; break;
                             default: break;
                         }
-                        DBG("mouseUp(touch): calling callback with tabType=" << tabType << ", index=" << longPressState.targetIndex);
                         if (tabType >= 0)
                             navigateToItemCallback(tabType, longPressState.targetIndex);
                     }
@@ -691,18 +678,14 @@ public:
         stopTimer();
 
         // Check for long-press navigation gesture
-        DBG("mouseUp: this=" << juce::String::toHexString((juce::int64)(uintptr_t)this) << ", longPressState.active=" << static_cast<int>(longPressState.active));
         if (longPressState.active)
         {
             auto holdDuration = juce::Time::getCurrentTime() - longPressState.startTime;
             float movement = e.position.getDistanceFrom(longPressState.startPos);
 
-            DBG("mouseUp: holdDuration=" << holdDuration.inMilliseconds() << "ms, movement=" << movement << "px");
-
             // Long hold (700-1200ms) with minimal movement (< 5px): navigate to tab
             if (holdDuration.inMilliseconds() >= 700 && holdDuration.inMilliseconds() <= 1200 && movement < 5.0f)
             {
-                DBG("mouseUp: conditions met, navigateToItemCallback=" << (navigateToItemCallback != nullptr ? 1 : 0));
                 if (navigateToItemCallback)
                 {
                     int tabType = -1;
@@ -714,7 +697,6 @@ public:
                         case LongPressState::TargetType::Reverb:  tabType = 3; break;
                         default: break;
                     }
-                    DBG("mouseUp: calling callback with tabType=" << tabType << ", index=" << longPressState.targetIndex);
                     if (tabType >= 0)
                         navigateToItemCallback(tabType, longPressState.targetIndex);
                 }
@@ -1579,9 +1561,7 @@ public:
         Parameters: (tabType, index) where tabType is: 0=Input, 1=Cluster, 2=Output, 3=Reverb */
     void setNavigateToItemCallback(std::function<void(int, int)> callback)
     {
-        DBG("setNavigateToItemCallback called on this=" << juce::String::toHexString((juce::int64)(uintptr_t)this) << ", callback valid=" << (callback != nullptr ? 1 : 0));
         navigateToItemCallback = std::move(callback);
-        DBG("setNavigateToItemCallback after assignment, navigateToItemCallback valid=" << (navigateToItemCallback != nullptr ? 1 : 0));
     }
 
     /** Set callback for when a drag operation starts on an input (for path mode waypoint recording) */

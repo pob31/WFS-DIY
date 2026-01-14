@@ -63,10 +63,6 @@ float TestSignalGenerator::getLevelDb() const
 
 void TestSignalGenerator::setOutputChannel(int channel)
 {
-    DBG("TestSignalGenerator::setOutputChannel(" + juce::String(channel) +
-        ") - currentType=" + juce::String((int)currentType.load()) +
-        ", level=" + juce::String(levelLinear.load(), 3));
-
     int oldChannel = targetChannel.load();
     targetChannel.store(channel);
 
@@ -114,27 +110,7 @@ void TestSignalGenerator::renderNextBlock(juce::AudioBuffer<float>& outputBuffer
 
     // Early exit if inactive or channel out of range
     if (channel < 0 || channel >= outputBuffer.getNumChannels() || signalType == SignalType::Off)
-    {
-        // Debug: Log why we're not generating
-        static int debugCounter = 0;
-        if (++debugCounter % 1000 == 0)  // Log every 1000 calls to avoid spam
-        {
-            DBG("TestSignal: Not active - channel=" + juce::String(channel) +
-                ", bufferChannels=" + juce::String(outputBuffer.getNumChannels()) +
-                ", signalType=" + juce::String((int)signalType) +
-                ", level=" + juce::String(level, 3));
-        }
         return;
-    }
-
-    // Debug: Log that we're generating (occasionally)
-    static int activeCounter = 0;
-    if (++activeCounter % 5000 == 0)  // Log every 5000 calls
-    {
-        DBG("TestSignal: ACTIVE - channel=" + juce::String(channel) +
-            ", signalType=" + juce::String((int)signalType) +
-            ", level=" + juce::String(level, 3));
-    }
 
     auto* channelData = outputBuffer.getWritePointer(channel, startSample);
     float currentFade = fadePosition.load();
