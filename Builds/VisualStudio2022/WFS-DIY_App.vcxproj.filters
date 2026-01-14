@@ -11,8 +11,11 @@
     <Filter Include="WFS-DIY\Source\Helpers">
       <UniqueIdentifier>{2BB708EF-7B83-16C7-077A-7F02181540C4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="WFS-DIY\Source\Accessibility">
+      <UniqueIdentifier>{4A8C9132-D42B-0730-AC52-758F4C687AD2}</UniqueIdentifier>
+    </Filter>
     <Filter Include="WFS-DIY\Source\Localization">
-      <UniqueIdentifier>{A7B2F8C1-3D4E-5F6A-8B9C-0D1E2F3A4B5C}</UniqueIdentifier>
+      <UniqueIdentifier>{22FC1E9C-400F-2066-80C3-1D14B0E53721}</UniqueIdentifier>
     </Filter>
     <Filter Include="WFS-DIY\Source\Network">
       <UniqueIdentifier>{F0025758-791F-87C4-6ABD-F1E1A184504B}</UniqueIdentifier>
@@ -964,6 +967,9 @@
     <ClCompile Include="..\..\Source\gui\OutputArrayHelperWindow.cpp">
       <Filter>WFS-DIY\Source\gui</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Source\gui\WindowUtils.mm">
+      <Filter>WFS-DIY\Source\gui</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\Source\gui\AudioInterfaceWindow.cpp">
       <Filter>WFS-DIY\Source\gui</Filter>
     </ClCompile>
@@ -1004,6 +1010,9 @@
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClCompile>
     <ClCompile Include="..\..\Source\Network\OSCQueryServer.cpp">
+      <Filter>WFS-DIY\Source\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Network\TrackingOSCReceiver.cpp">
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClCompile>
     <ClCompile Include="..\..\Source\Main.cpp">
@@ -4944,6 +4953,9 @@
     <ClInclude Include="..\..\Source\Helpers\ArrayGeometryCalculator.h">
       <Filter>WFS-DIY\Source\Helpers</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\Accessibility\TTSManager.h">
+      <Filter>WFS-DIY\Source\Accessibility</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\Localization\LocalizationManager.h">
       <Filter>WFS-DIY\Source\Localization</Filter>
     </ClInclude>
@@ -4978,6 +4990,9 @@
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Network\OSCQueryServer.h">
+      <Filter>WFS-DIY\Source\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\TrackingOSCReceiver.h">
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\MainComponent.h">

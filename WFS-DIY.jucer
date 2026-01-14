@@ -110,6 +110,10 @@
               file="Source/Network/OSCQueryServer.h"/>
         <FILE id="netQueryCpp" name="OSCQueryServer.cpp" compile="1" resource="0"
               file="Source/Network/OSCQueryServer.cpp"/>
+        <FILE id="netTrackH" name="TrackingOSCReceiver.h" compile="0" resource="0"
+              file="Source/Network/TrackingOSCReceiver.h"/>
+        <FILE id="netTrackCpp" name="TrackingOSCReceiver.cpp" compile="1" resource="0"
+              file="Source/Network/TrackingOSCReceiver.cpp"/>
       </GROUP>
       <FILE id="UJ07Xn" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>
       <FILE id="jPX7jF" name="MainComponent.h" compile="0" resource="0" file="Source/MainComponent.h"/>
@@ -195,10 +199,12 @@
       <CONFIGURATIONS>
         <CONFIGURATION isDebug="1" name="Debug" targetName="WFS-DIY" headerPath="D:\Dev\JUCE_Modules\ASIOSDK\common;ThirdParty\GPUAudioSDK\gpuaudio\include;ThirdParty\GPUAudioSDK\gain_processor\gain_processor\include;ThirdParty\GPUAudioSDK\build\_deps\json-src\single_include"
                        libraryPath="ThirdParty\GPUAudioSDK\build\lib\RelWithDebInfo;ThirdParty\GPUAudioSDK\build\GainLib\gainlib\RelWithDebInfo;ThirdParty\GPUAudioSDK\build\simple_processor_launcher\ProcLaunchLib\RelWithDebInfo"
-                       externalLibraries="gain_processor_nvidia.lib;ProcLaunchLib.lib;gainlib.lib;nvidia_resources_gain_processor_gain_processor_device_nvidia.lib"/>
+                       externalLibraries="gain_processor_nvidia.lib;ProcLaunchLib.lib;gainlib.lib;nvidia_resources_gain_processor_gain_processor_device_nvidia.lib"
+                       extraCompilerFlags="/bigobj"/>
         <CONFIGURATION isDebug="0" name="Release" targetName="WFS-DIY" headerPath="D:\Dev\JUCE_Modules\ASIOSDK\common;ThirdParty\GPUAudioSDK\gpuaudio\include;ThirdParty\GPUAudioSDK\gain_processor\gain_processor\include;ThirdParty\GPUAudioSDK\build\_deps\json-src\single_include"
                        libraryPath="ThirdParty\GPUAudioSDK\build\lib\RelWithDebInfo;ThirdParty\GPUAudioSDK\build\GainLib\gainlib\RelWithDebInfo;ThirdParty\GPUAudioSDK\build\simple_processor_launcher\ProcLaunchLib\RelWithDebInfo"
-                       externalLibraries="gain_processor_nvidia.lib;ProcLaunchLib.lib;gainlib.lib;nvidia_resources_gain_processor_gain_processor_device_nvidia.lib"/>
+                       externalLibraries="gain_processor_nvidia.lib;ProcLaunchLib.lib;gainlib.lib;nvidia_resources_gain_processor_gain_processor_device_nvidia.lib"
+                       extraCompilerFlags="/bigobj"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_audio_basics" path="C:/JUCE/modules"/>

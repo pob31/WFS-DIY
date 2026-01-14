@@ -10,6 +10,7 @@
 #include "OSCReceiverWithSenderIP.h"
 #include "OSCTCPReceiver.h"
 #include "OSCQueryServer.h"
+#include "TrackingOSCReceiver.h"
 #include "../Parameters/WFSValueTreeState.h"
 
 namespace WFSNetwork
@@ -171,6 +172,41 @@ public:
      * Check if OSC Query server is running.
      */
     bool isOSCQueryRunning() const;
+
+    //==========================================================================
+    // Tracking OSC
+    //==========================================================================
+
+    /**
+     * Start the tracking OSC receiver.
+     * @param port UDP port to listen on for tracking data
+     * @param pathPattern OSC path pattern (e.g., "/wfs/tracking <ID> <x> <y> <z>")
+     * @return true if started successfully
+     */
+    bool startTrackingReceiver(int port, const juce::String& pathPattern);
+
+    /**
+     * Stop the tracking OSC receiver.
+     */
+    void stopTrackingReceiver();
+
+    /**
+     * Check if tracking OSC receiver is running.
+     */
+    bool isTrackingReceiverRunning() const;
+
+    /**
+     * Update tracking transformations (offset, scale, flip).
+     */
+    void updateTrackingTransformations(float offsetX, float offsetY, float offsetZ,
+                                        float scaleX, float scaleY, float scaleZ,
+                                        bool flipX, bool flipY, bool flipZ);
+
+    /**
+     * Update tracking path pattern while receiver is running.
+     * @return true if pattern is valid
+     */
+    bool updateTrackingPathPattern(const juce::String& pathPattern);
 
     //==========================================================================
     // Logging
@@ -343,6 +379,9 @@ private:
 
     // OSC Query server
     std::unique_ptr<OSCQueryServer> oscQueryServer;
+
+    // Tracking OSC receiver
+    std::unique_ptr<TrackingOSCReceiver> trackingReceiver;
 
     // REMOTE protocol state
     int remoteSelectedChannel = 1;

@@ -173,6 +173,7 @@ namespace WFSParameterIDs
     const juce::Identifier trackingFlipX     ("trackingFlipX");
     const juce::Identifier trackingFlipY     ("trackingFlipY");
     const juce::Identifier trackingFlipZ     ("trackingFlipZ");
+    const juce::Identifier trackingOscPath   ("trackingOscPath");
 
     //==========================================================================
     // Config > Clusters Section

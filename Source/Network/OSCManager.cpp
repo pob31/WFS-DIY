@@ -378,6 +378,63 @@ bool OSCManager::isOSCQueryRunning() const
 }
 
 //==============================================================================
+// Tracking OSC
+//==============================================================================
+
+bool OSCManager::startTrackingReceiver(int port, const juce::String& pathPattern)
+{
+    stopTrackingReceiver();
+
+    trackingReceiver = std::make_unique<TrackingOSCReceiver>(state);
+
+    if (!trackingReceiver->start(port, pathPattern))
+    {
+        logger.logText("Tracking OSC receiver failed to start on port " + juce::String(port));
+        trackingReceiver.reset();
+        return false;
+    }
+
+    logger.logText("Tracking OSC receiver started on port " + juce::String(port));
+    return true;
+}
+
+void OSCManager::stopTrackingReceiver()
+{
+    if (trackingReceiver)
+    {
+        trackingReceiver->stop();
+        trackingReceiver.reset();
+        logger.logText("Tracking OSC receiver stopped");
+    }
+}
+
+bool OSCManager::isTrackingReceiverRunning() const
+{
+    return trackingReceiver && trackingReceiver->isActive();
+}
+
+void OSCManager::updateTrackingTransformations(float offsetX, float offsetY, float offsetZ,
+                                                float scaleX, float scaleY, float scaleZ,
+                                                bool flipX, bool flipY, bool flipZ)
+{
+    if (trackingReceiver)
+    {
+        trackingReceiver->setTransformations(offsetX, offsetY, offsetZ,
+                                              scaleX, scaleY, scaleZ,
+                                              flipX, flipY, flipZ);
+    }
+}
+
+bool OSCManager::updateTrackingPathPattern(const juce::String& pathPattern)
+{
+    if (trackingReceiver)
+    {
+        return trackingReceiver->setPathPattern(pathPattern);
+    }
+    return false;
+}
+
+//==============================================================================
 // Logging
 //==============================================================================
 

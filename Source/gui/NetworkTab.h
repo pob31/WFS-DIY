@@ -827,6 +827,7 @@ private:
         trackingFlipXButton.onClick = [this]() {
             trackingFlipXButton.setButtonText(trackingFlipXButton.getToggleState() ? LOC("network.toggles.flipXOn") : LOC("network.toggles.flipXOff"));
             parameters.setConfigParam("trackingFlipX", trackingFlipXButton.getToggleState() ? 1 : 0);
+            updateTrackingTransformations();
         };
 
         addAndMakeVisible(trackingFlipYButton);
@@ -835,6 +836,7 @@ private:
         trackingFlipYButton.onClick = [this]() {
             trackingFlipYButton.setButtonText(trackingFlipYButton.getToggleState() ? LOC("network.toggles.flipYOn") : LOC("network.toggles.flipYOff"));
             parameters.setConfigParam("trackingFlipY", trackingFlipYButton.getToggleState() ? 1 : 0);
+            updateTrackingTransformations();
         };
 
         addAndMakeVisible(trackingFlipZButton);
@@ -843,6 +845,7 @@ private:
         trackingFlipZButton.onClick = [this]() {
             trackingFlipZButton.setButtonText(trackingFlipZButton.getToggleState() ? LOC("network.toggles.flipZOn") : LOC("network.toggles.flipZOff"));
             parameters.setConfigParam("trackingFlipZ", trackingFlipZButton.getToggleState() ? 1 : 0);
+            updateTrackingTransformations();
         };
 
         // OSC Path (shown when protocol is OSC)
@@ -1428,6 +1431,124 @@ private:
         trackingOscPathEditor.setVisible(isOscProtocol);
         trackingOscPathLabel.setAlpha(alpha);
         trackingOscPathEditor.setAlpha(alpha);
+
+        // Update OSC tracking receiver state
+        updateTrackingOSCReceiver();
+    }
+
+    /**
+     * Start/stop the tracking OSC receiver based on current settings.
+     * Called when tracking enabled, protocol, port, or path changes.
+     * @param forceRestart If true, always restart the receiver (e.g., when port changes)
+     */
+    void updateTrackingOSCReceiver(bool forceRestart = false)
+    {
+        if (oscManager == nullptr)
+            return;
+
+        bool trackingEnabled = trackingEnabledButton.getToggleState();
+        bool isOscProtocol = (trackingProtocolSelector.getSelectedId() == 2);  // OSC = ID 2
+
+        if (trackingEnabled && isOscProtocol)
+        {
+            // Get port and validate
+            int port = trackingPortEditor.getText().getIntValue();
+            if (port <= 0 || port > 65535)
+            {
+                oscManager->stopTrackingReceiver();
+                return;
+            }
+
+            // Get path pattern and validate
+            juce::String pathPattern = trackingOscPathEditor.getText().trim();
+            if (!isValidOscPath(pathPattern))
+            {
+                oscManager->stopTrackingReceiver();
+                return;
+            }
+
+            // Get transformation values
+            float offsetX = trackingOffsetXEditor.getText().getFloatValue();
+            float offsetY = trackingOffsetYEditor.getText().getFloatValue();
+            float offsetZ = trackingOffsetZEditor.getText().getFloatValue();
+            float scaleX = trackingScaleXEditor.getText().getFloatValue();
+            float scaleY = trackingScaleYEditor.getText().getFloatValue();
+            float scaleZ = trackingScaleZEditor.getText().getFloatValue();
+            bool flipX = trackingFlipXButton.getToggleState();
+            bool flipY = trackingFlipYButton.getToggleState();
+            bool flipZ = trackingFlipZButton.getToggleState();
+
+            // Ensure scale values are valid
+            if (scaleX <= 0.0f) scaleX = 1.0f;
+            if (scaleY <= 0.0f) scaleY = 1.0f;
+            if (scaleZ <= 0.0f) scaleZ = 1.0f;
+
+            // Start or update the tracking receiver
+            bool needsRestart = forceRestart || !oscManager->isTrackingReceiverRunning();
+
+            if (needsRestart)
+            {
+                // Start (or restart) the receiver
+                if (oscManager->startTrackingReceiver(port, pathPattern))
+                {
+                    // Set initial transformations
+                    oscManager->updateTrackingTransformations(offsetX, offsetY, offsetZ,
+                                                              scaleX, scaleY, scaleZ,
+                                                              flipX, flipY, flipZ);
+                    DBG("NetworkTab: Started tracking OSC receiver on port " << port);
+                }
+                else
+                {
+                    DBG("NetworkTab: Failed to start tracking OSC receiver on port " << port);
+                }
+            }
+            else
+            {
+                // Update transformations and path pattern in place
+                oscManager->updateTrackingTransformations(offsetX, offsetY, offsetZ,
+                                                          scaleX, scaleY, scaleZ,
+                                                          flipX, flipY, flipZ);
+                oscManager->updateTrackingPathPattern(pathPattern);
+            }
+        }
+        else
+        {
+            // Stop the receiver if it was running
+            if (oscManager->isTrackingReceiverRunning())
+            {
+                oscManager->stopTrackingReceiver();
+                DBG("NetworkTab: Stopped tracking OSC receiver");
+            }
+        }
+    }
+
+    /**
+     * Update just the tracking transformations without restarting receiver.
+     * Called when offset/scale/flip values change while receiver is running.
+     */
+    void updateTrackingTransformations()
+    {
+        if (oscManager == nullptr || !oscManager->isTrackingReceiverRunning())
+            return;
+
+        float offsetX = trackingOffsetXEditor.getText().getFloatValue();
+        float offsetY = trackingOffsetYEditor.getText().getFloatValue();
+        float offsetZ = trackingOffsetZEditor.getText().getFloatValue();
+        float scaleX = trackingScaleXEditor.getText().getFloatValue();
+        float scaleY = trackingScaleYEditor.getText().getFloatValue();
+        float scaleZ = trackingScaleZEditor.getText().getFloatValue();
+        bool flipX = trackingFlipXButton.getToggleState();
+        bool flipY = trackingFlipYButton.getToggleState();
+        bool flipZ = trackingFlipZButton.getToggleState();
+
+        // Ensure scale values are valid
+        if (scaleX <= 0.0f) scaleX = 1.0f;
+        if (scaleY <= 0.0f) scaleY = 1.0f;
+        if (scaleZ <= 0.0f) scaleZ = 1.0f;
+
+        oscManager->updateTrackingTransformations(offsetX, offsetY, offsetZ,
+                                                  scaleX, scaleY, scaleZ,
+                                                  flipX, flipY, flipZ);
     }
 
     void setupNumericEditors()
@@ -1801,39 +1922,48 @@ private:
         {
             int value = text.getIntValue();
             if (value >= 0 && value <= 65535)
+            {
                 parameters.setConfigParam("trackingPort", value);
+                updateTrackingOSCReceiver(true);  // Force restart receiver with new port
+            }
         }
         // Tracking Offset parameters
         else if (editor == &trackingOffsetXEditor)
         {
             float value = juce::jlimit(-50.0f, 50.0f, text.getFloatValue());
             parameters.setConfigParam("trackingOffsetX", value);
+            updateTrackingTransformations();
         }
         else if (editor == &trackingOffsetYEditor)
         {
             float value = juce::jlimit(-50.0f, 50.0f, text.getFloatValue());
             parameters.setConfigParam("trackingOffsetY", value);
+            updateTrackingTransformations();
         }
         else if (editor == &trackingOffsetZEditor)
         {
             float value = juce::jlimit(-50.0f, 50.0f, text.getFloatValue());
             parameters.setConfigParam("trackingOffsetZ", value);
+            updateTrackingTransformations();
         }
         // Tracking Scale parameters
         else if (editor == &trackingScaleXEditor)
         {
             float value = juce::jlimit(0.01f, 100.0f, text.getFloatValue());
             parameters.setConfigParam("trackingScaleX", value);
+            updateTrackingTransformations();
         }
         else if (editor == &trackingScaleYEditor)
         {
             float value = juce::jlimit(0.01f, 100.0f, text.getFloatValue());
             parameters.setConfigParam("trackingScaleY", value);
+            updateTrackingTransformations();
         }
         else if (editor == &trackingScaleZEditor)
         {
             float value = juce::jlimit(0.01f, 100.0f, text.getFloatValue());
             parameters.setConfigParam("trackingScaleZ", value);
+            updateTrackingTransformations();
         }
         // OSC Query Port
         else if (editor == &oscQueryPortEditor)
@@ -1852,6 +1982,7 @@ private:
             {
                 parameters.setConfigParam("trackingOscPath", path);
                 editor->setColour(juce::TextEditor::outlineColourId, ColorScheme::get().buttonBorder);
+                updateTrackingOSCReceiver();  // Update receiver with new path
             }
             else
             {
