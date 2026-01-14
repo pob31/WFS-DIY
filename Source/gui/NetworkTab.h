@@ -472,10 +472,14 @@ public:
         trackingFlipZButton.setBounds(rcol3, rightY, rightSubColWidth, rowHeight);
         rightY += rowHeight + rightRowSpacing;
 
-        // Row 5: OSC Path (only visible when protocol is OSC)
+        // Row 5: OSC Path (only visible when protocol is OSC) OR PSN Interface (when PSN selected)
         const int oscPathLabelWidth = 75;
         trackingOscPathLabel.setBounds(rcol1, rightY, oscPathLabelWidth, rowHeight);
         trackingOscPathEditor.setBounds(rcol1 + oscPathLabelWidth, rightY, rightColumnWidth - oscPathLabelWidth, rowHeight);
+        // PSN Interface selector shares the same row as OSC Path
+        const int psnInterfaceLabelWidth = 95;
+        trackingPsnInterfaceLabel.setBounds(rcol1, rightY, psnInterfaceLabelWidth, rowHeight);
+        trackingPsnInterfaceSelector.setBounds(rcol1 + psnInterfaceLabelWidth, rightY, rightColumnWidth - psnInterfaceLabelWidth, rowHeight);
 
         // ==================== FOOTER BUTTONS ====================
         const int footerPadding = 10;
@@ -634,6 +638,12 @@ private:
     juce::Label trackingOscPathLabel;
     juce::TextEditor trackingOscPathEditor;
 
+    // PSN Interface selector (shown when protocol is PSN)
+    juce::Label trackingPsnInterfaceLabel;
+    juce::ComboBox trackingPsnInterfaceSelector;
+    juce::StringArray psnInterfaceNames;
+    juce::StringArray psnInterfaceIPs;
+
     void setupAdmOscSection()
     {
         // Offset X
@@ -752,6 +762,20 @@ private:
             int newProtocol = trackingProtocolSelector.getSelectedId() - 1;
             int globalEnabled = static_cast<int>(parameters.getConfigParam("trackingEnabled"));
 
+            // Auto-fill default port based on protocol selection
+            // OSC (ID 2) = 5000, PSN (ID 3) = 56565
+            int protocolId = trackingProtocolSelector.getSelectedId();
+            if (protocolId == 2)  // OSC
+            {
+                trackingPortEditor.setText("5000", juce::dontSendNotification);
+                parameters.setConfigParam("trackingPort", 5000);
+            }
+            else if (protocolId == 3)  // PSN
+            {
+                trackingPortEditor.setText("56565", juce::dontSendNotification);
+                parameters.setConfigParam("trackingPort", 56565);
+            }
+
             // If enabling protocol while global tracking is on, check for conflicts
             if (newProtocol != 0 && globalEnabled != 0)
             {
@@ -856,6 +880,23 @@ private:
         trackingOscPathEditor.setVisible(false);  // Hidden by default
         trackingOscPathLabel.setVisible(false);
 
+        // PSN Interface selector (shown when protocol is PSN)
+        addAndMakeVisible(trackingPsnInterfaceLabel);
+        trackingPsnInterfaceLabel.setText(LOC("network.labels.psnInterface"), juce::dontSendNotification);
+        addAndMakeVisible(trackingPsnInterfaceSelector);
+        trackingPsnInterfaceSelector.setVisible(false);  // Hidden by default
+        trackingPsnInterfaceLabel.setVisible(false);
+        trackingPsnInterfaceSelector.onChange = [this]() {
+            // Save the selected PSN interface
+            int selectedId = trackingPsnInterfaceSelector.getSelectedId();
+            if (selectedId > 0 && selectedId <= psnInterfaceNames.size())
+            {
+                parameters.setConfigParam("trackingPsnInterface", psnInterfaceNames[selectedId - 1]);
+            }
+            // Update PSN receiver with new interface
+            updateTrackingReceiver();
+        };
+
         // Add text editor listeners
         trackingPortEditor.addListener(this);
         trackingOffsetXEditor.addListener(this);
@@ -954,6 +995,8 @@ private:
         trackingFlipZButton.addMouseListener(this, false);
         trackingOscPathLabel.addMouseListener(this, false);
         trackingOscPathEditor.addMouseListener(this, false);
+        trackingPsnInterfaceLabel.addMouseListener(this, false);
+        trackingPsnInterfaceSelector.addMouseListener(this, true);  // true for ComboBox children
 
         // ==================== FOOTER BUTTONS ====================
         storeButton.addMouseListener(this, false);
@@ -1426,28 +1469,66 @@ private:
         trackingFlipZButton.setAlpha(alpha);
 
         // OSC Path is only visible when protocol is OSC (ID 2)
-        bool isOscProtocol = (trackingProtocolSelector.getSelectedId() == 2);
+        // PSN Interface is only visible when protocol is PSN (ID 3)
+        int protocolId = trackingProtocolSelector.getSelectedId();
+        bool isOscProtocol = (protocolId == 2);
+        bool isPsnProtocol = (protocolId == 3);
+
         trackingOscPathLabel.setVisible(isOscProtocol);
         trackingOscPathEditor.setVisible(isOscProtocol);
         trackingOscPathLabel.setAlpha(alpha);
         trackingOscPathEditor.setAlpha(alpha);
 
-        // Update OSC tracking receiver state
-        updateTrackingOSCReceiver();
+        trackingPsnInterfaceLabel.setVisible(isPsnProtocol);
+        trackingPsnInterfaceSelector.setVisible(isPsnProtocol);
+        trackingPsnInterfaceLabel.setAlpha(alpha);
+        trackingPsnInterfaceSelector.setAlpha(alpha);
+
+        // Update tracking receiver state
+        updateTrackingReceiver();
     }
 
     /**
-     * Start/stop the tracking OSC receiver based on current settings.
-     * Called when tracking enabled, protocol, port, or path changes.
+     * Start/stop the tracking receiver based on current settings.
+     * Handles both OSC and PSN protocols.
+     * Called when tracking enabled, protocol, port, path, or interface changes.
      * @param forceRestart If true, always restart the receiver (e.g., when port changes)
      */
-    void updateTrackingOSCReceiver(bool forceRestart = false)
+    void updateTrackingReceiver(bool forceRestart = false)
     {
         if (oscManager == nullptr)
             return;
 
         bool trackingEnabled = trackingEnabledButton.getToggleState();
-        bool isOscProtocol = (trackingProtocolSelector.getSelectedId() == 2);  // OSC = ID 2
+        int protocolId = trackingProtocolSelector.getSelectedId();
+        bool isOscProtocol = (protocolId == 2);  // OSC = ID 2
+        bool isPsnProtocol = (protocolId == 3);  // PSN = ID 3
+
+        // Get transformation values (shared by both protocols)
+        float offsetX = trackingOffsetXEditor.getText().getFloatValue();
+        float offsetY = trackingOffsetYEditor.getText().getFloatValue();
+        float offsetZ = trackingOffsetZEditor.getText().getFloatValue();
+        float scaleX = trackingScaleXEditor.getText().getFloatValue();
+        float scaleY = trackingScaleYEditor.getText().getFloatValue();
+        float scaleZ = trackingScaleZEditor.getText().getFloatValue();
+        bool flipX = trackingFlipXButton.getToggleState();
+        bool flipY = trackingFlipYButton.getToggleState();
+        bool flipZ = trackingFlipZButton.getToggleState();
+
+        // Ensure scale values are valid
+        if (scaleX <= 0.0f) scaleX = 1.0f;
+        if (scaleY <= 0.0f) scaleY = 1.0f;
+        if (scaleZ <= 0.0f) scaleZ = 1.0f;
+
+        // Stop all receivers first if switching protocols or disabling
+        if (!trackingEnabled || (!isOscProtocol && oscManager->isTrackingReceiverRunning()))
+        {
+            oscManager->stopTrackingReceiver();
+        }
+        if (!trackingEnabled || (!isPsnProtocol && oscManager->isPSNReceiverRunning()))
+        {
+            oscManager->stopPSNReceiver();
+        }
 
         if (trackingEnabled && isOscProtocol)
         {
@@ -1466,22 +1547,6 @@ private:
                 oscManager->stopTrackingReceiver();
                 return;
             }
-
-            // Get transformation values
-            float offsetX = trackingOffsetXEditor.getText().getFloatValue();
-            float offsetY = trackingOffsetYEditor.getText().getFloatValue();
-            float offsetZ = trackingOffsetZEditor.getText().getFloatValue();
-            float scaleX = trackingScaleXEditor.getText().getFloatValue();
-            float scaleY = trackingScaleYEditor.getText().getFloatValue();
-            float scaleZ = trackingScaleZEditor.getText().getFloatValue();
-            bool flipX = trackingFlipXButton.getToggleState();
-            bool flipY = trackingFlipYButton.getToggleState();
-            bool flipZ = trackingFlipZButton.getToggleState();
-
-            // Ensure scale values are valid
-            if (scaleX <= 0.0f) scaleX = 1.0f;
-            if (scaleY <= 0.0f) scaleY = 1.0f;
-            if (scaleZ <= 0.0f) scaleZ = 1.0f;
 
             // Start or update the tracking receiver
             bool needsRestart = forceRestart || !oscManager->isTrackingReceiverRunning();
@@ -1511,13 +1576,51 @@ private:
                 oscManager->updateTrackingPathPattern(pathPattern);
             }
         }
-        else
+        else if (trackingEnabled && isPsnProtocol)
         {
-            // Stop the receiver if it was running
-            if (oscManager->isTrackingReceiverRunning())
+            // Get port and validate
+            int port = trackingPortEditor.getText().getIntValue();
+            if (port <= 0 || port > 65535)
             {
-                oscManager->stopTrackingReceiver();
-                DBG("NetworkTab: Stopped tracking OSC receiver");
+                oscManager->stopPSNReceiver();
+                return;
+            }
+
+            // Get selected PSN interface
+            juce::String psnInterface;
+            int selectedId = trackingPsnInterfaceSelector.getSelectedId();
+            if (selectedId > 0 && selectedId <= psnInterfaceNames.size())
+            {
+                // Get the IP address for the selected interface
+                psnInterface = psnInterfaceIPs[selectedId - 1];
+            }
+
+            // Start or update the PSN receiver
+            bool needsRestart = forceRestart || !oscManager->isPSNReceiverRunning();
+
+            if (needsRestart)
+            {
+                // Start (or restart) the PSN receiver
+                if (oscManager->startPSNReceiver(port, psnInterface))
+                {
+                    // Set initial transformations
+                    oscManager->updatePSNTransformations(offsetX, offsetY, offsetZ,
+                                                         scaleX, scaleY, scaleZ,
+                                                         flipX, flipY, flipZ);
+                    DBG("NetworkTab: Started PSN receiver on port " << port
+                        << (psnInterface.isNotEmpty() ? " interface " + psnInterface : ""));
+                }
+                else
+                {
+                    DBG("NetworkTab: Failed to start PSN receiver on port " << port);
+                }
+            }
+            else
+            {
+                // Update transformations in place
+                oscManager->updatePSNTransformations(offsetX, offsetY, offsetZ,
+                                                     scaleX, scaleY, scaleZ,
+                                                     flipX, flipY, flipZ);
             }
         }
     }
@@ -1525,10 +1628,17 @@ private:
     /**
      * Update just the tracking transformations without restarting receiver.
      * Called when offset/scale/flip values change while receiver is running.
+     * Updates both OSC and PSN receivers if they are running.
      */
     void updateTrackingTransformations()
     {
-        if (oscManager == nullptr || !oscManager->isTrackingReceiverRunning())
+        if (oscManager == nullptr)
+            return;
+
+        // Check if any receiver is running
+        bool oscRunning = oscManager->isTrackingReceiverRunning();
+        bool psnRunning = oscManager->isPSNReceiverRunning();
+        if (!oscRunning && !psnRunning)
             return;
 
         float offsetX = trackingOffsetXEditor.getText().getFloatValue();
@@ -1546,9 +1656,18 @@ private:
         if (scaleY <= 0.0f) scaleY = 1.0f;
         if (scaleZ <= 0.0f) scaleZ = 1.0f;
 
-        oscManager->updateTrackingTransformations(offsetX, offsetY, offsetZ,
-                                                  scaleX, scaleY, scaleZ,
-                                                  flipX, flipY, flipZ);
+        if (oscRunning)
+        {
+            oscManager->updateTrackingTransformations(offsetX, offsetY, offsetZ,
+                                                      scaleX, scaleY, scaleZ,
+                                                      flipX, flipY, flipZ);
+        }
+        if (psnRunning)
+        {
+            oscManager->updatePSNTransformations(offsetX, offsetY, offsetZ,
+                                                 scaleX, scaleY, scaleZ,
+                                                 flipX, flipY, flipZ);
+        }
     }
 
     void setupNumericEditors()
@@ -1798,6 +1917,8 @@ private:
             helpText = "Invert Axis of Tracking Z Coordinate.";
         else if (source == &trackingOscPathLabel || source == &trackingOscPathEditor)
             helpText = LOC("network.help.trackingOscPath");
+        else if (source == &trackingPsnInterfaceLabel || isOrIsChildOf(source, &trackingPsnInterfaceSelector))
+            helpText = LOC("network.help.psnInterface");
 
         // ==================== FOOTER BUTTONS ====================
         else if (source == &storeButton)
@@ -1867,6 +1988,11 @@ private:
         {
             refreshNetworkInterfacesBeforePopup();
         }
+        // Also refresh PSN interface list when clicking its dropdown
+        else if (isOrIsChildOf(e.eventComponent, &trackingPsnInterfaceSelector))
+        {
+            refreshPsnInterfacesBeforePopup();
+        }
     }
 
     void updateParameterFromEditor(juce::TextEditor* editor)
@@ -1924,7 +2050,7 @@ private:
             if (value >= 0 && value <= 65535)
             {
                 parameters.setConfigParam("trackingPort", value);
-                updateTrackingOSCReceiver(true);  // Force restart receiver with new port
+                updateTrackingReceiver(true);  // Force restart receiver with new port
             }
         }
         // Tracking Offset parameters
@@ -1982,7 +2108,7 @@ private:
             {
                 parameters.setConfigParam("trackingOscPath", path);
                 editor->setColour(juce::TextEditor::outlineColourId, ColorScheme::get().buttonBorder);
-                updateTrackingOSCReceiver();  // Update receiver with new path
+                updateTrackingReceiver();  // Update receiver with new path
             }
             else
             {
@@ -2266,6 +2392,169 @@ private:
         if (networkInterfaceSelector.getSelectedId() == 0 && networkInterfaceSelector.getNumItems() > 0)
         {
             networkInterfaceSelector.setSelectedId(1, juce::sendNotification);
+        }
+    }
+
+    /**
+     * Refresh the PSN interface selector before popup.
+     * Similar to refreshNetworkInterfacesBeforePopup but for the PSN multicast interface.
+     */
+    void refreshPsnInterfacesBeforePopup()
+    {
+        // Remember current selection
+        juce::String previousSelection;
+        int selectedId = trackingPsnInterfaceSelector.getSelectedId();
+        if (selectedId > 0)
+        {
+            int index = selectedId - 1;
+            if (index < psnInterfaceNames.size())
+                previousSelection = psnInterfaceNames[index];
+        }
+
+        // Clear existing items
+        trackingPsnInterfaceSelector.clear();
+        psnInterfaceNames.clear();
+        psnInterfaceIPs.clear();
+
+        int interfaceIndex = 1;
+
+#if JUCE_WINDOWS
+        // Windows: Use GetAdaptersAddresses
+        PIP_ADAPTER_ADDRESSES pAddresses = nullptr;
+        ULONG outBufLen = 15000;
+        ULONG family = AF_INET;
+
+        for (int attempts = 0; attempts < 3; attempts++)
+        {
+            pAddresses = (IP_ADAPTER_ADDRESSES*)malloc(outBufLen);
+            if (pAddresses == nullptr)
+                break;
+
+            ULONG flags = GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER;
+            DWORD result = GetAdaptersAddresses(family, flags, nullptr, pAddresses, &outBufLen);
+
+            if (result == ERROR_BUFFER_OVERFLOW)
+            {
+                free(pAddresses);
+                pAddresses = nullptr;
+                continue;
+            }
+
+            if (result == NO_ERROR)
+            {
+                for (PIP_ADAPTER_ADDRESSES pCurr = pAddresses; pCurr != nullptr; pCurr = pCurr->Next)
+                {
+                    if (pCurr->OperStatus != IfOperStatusUp)
+                        continue;
+
+                    if (pCurr->IfType == IF_TYPE_SOFTWARE_LOOPBACK)
+                        continue;
+
+                    for (PIP_ADAPTER_UNICAST_ADDRESS pUnicast = pCurr->FirstUnicastAddress;
+                         pUnicast != nullptr; pUnicast = pUnicast->Next)
+                    {
+                        if (pUnicast->Address.lpSockaddr->sa_family == AF_INET)
+                        {
+                            sockaddr_in* addr = (sockaddr_in*)pUnicast->Address.lpSockaddr;
+                            char ipStr[INET_ADDRSTRLEN];
+                            inet_ntop(AF_INET, &addr->sin_addr, ipStr, INET_ADDRSTRLEN);
+                            juce::String ipAddress(ipStr);
+
+                            // Get friendly name
+                            juce::String friendlyName(pCurr->FriendlyName);
+                            juce::String adapterName(pCurr->FriendlyName);
+
+                            juce::String displayName = friendlyName + " (" + ipAddress + ")";
+                            trackingPsnInterfaceSelector.addItem(displayName, interfaceIndex++);
+
+                            psnInterfaceNames.add(adapterName);
+                            psnInterfaceIPs.add(ipAddress);
+
+                            break;  // Only take first IPv4 address per adapter
+                        }
+                    }
+                }
+            }
+            break;
+        }
+
+        if (pAddresses != nullptr)
+            free(pAddresses);
+
+        // Add localhost option
+        int nextIndex = interfaceIndex;
+        if (nextIndex == 1 || trackingPsnInterfaceSelector.getNumItems() == 0)
+        {
+            trackingPsnInterfaceSelector.addItem("Localhost (127.0.0.1)", nextIndex);
+            psnInterfaceNames.add("Localhost");
+            psnInterfaceIPs.add("127.0.0.1");
+        }
+
+#elif JUCE_MAC
+        // macOS: Use getifaddrs
+        struct ifaddrs* ifAddrList = nullptr;
+        if (getifaddrs(&ifAddrList) == 0)
+        {
+            for (struct ifaddrs* ifa = ifAddrList; ifa != nullptr; ifa = ifa->ifa_next)
+            {
+                if (ifa->ifa_addr == nullptr)
+                    continue;
+
+                if (ifa->ifa_addr->sa_family != AF_INET)
+                    continue;
+
+                if ((ifa->ifa_flags & IFF_UP) == 0 || (ifa->ifa_flags & IFF_RUNNING) == 0)
+                    continue;
+
+                juce::String bsdName(ifa->ifa_name);
+                if (bsdName.startsWith("lo"))
+                    continue;
+
+                char ipStr[INET_ADDRSTRLEN];
+                inet_ntop(AF_INET, &((struct sockaddr_in*)ifa->ifa_addr)->sin_addr, ipStr, INET_ADDRSTRLEN);
+                juce::String ipAddress(ipStr);
+
+                juce::String displayName = bsdName + " (" + ipAddress + ")";
+                trackingPsnInterfaceSelector.addItem(displayName, interfaceIndex++);
+
+                psnInterfaceNames.add(bsdName);
+                psnInterfaceIPs.add(ipAddress);
+            }
+            freeifaddrs(ifAddrList);
+        }
+
+        // Add localhost if no other interfaces found
+        int nextIndex = interfaceIndex;
+        if (nextIndex == 1 || trackingPsnInterfaceSelector.getNumItems() == 0)
+        {
+            trackingPsnInterfaceSelector.addItem("Localhost (127.0.0.1)", nextIndex);
+            psnInterfaceNames.add("Localhost");
+            psnInterfaceIPs.add("127.0.0.1");
+        }
+#else
+        // Unsupported platform - just add localhost
+        trackingPsnInterfaceSelector.addItem("Localhost (127.0.0.1)", 1);
+        psnInterfaceNames.add("Localhost");
+        psnInterfaceIPs.add("127.0.0.1");
+#endif
+
+        // Restore previous selection or select first item
+        if (previousSelection.isNotEmpty())
+        {
+            for (int i = 0; i < psnInterfaceNames.size(); ++i)
+            {
+                if (psnInterfaceNames[i] == previousSelection)
+                {
+                    trackingPsnInterfaceSelector.setSelectedId(i + 1, juce::dontSendNotification);
+                    return;
+                }
+            }
+        }
+
+        // Select first item by default if nothing saved
+        if (trackingPsnInterfaceSelector.getSelectedId() == 0 && trackingPsnInterfaceSelector.getNumItems() > 0)
+        {
+            trackingPsnInterfaceSelector.setSelectedId(1, juce::sendNotification);
         }
     }
 

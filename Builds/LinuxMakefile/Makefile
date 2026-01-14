@@ -91,6 +91,7 @@ OBJECTS_APP := \
   $(JUCE_OBJDIR)/OSCTCPReceiver_c566011b.o \
   $(JUCE_OBJDIR)/OSCQueryServer_604ad0d6.o \
   $(JUCE_OBJDIR)/TrackingOSCReceiver_8ed4cb7.o \
+  $(JUCE_OBJDIR)/TrackingPSNReceiver_a269fe83.o \
   $(JUCE_OBJDIR)/Main_90ebc5c2.o \
   $(JUCE_OBJDIR)/MainComponent_a6ffb4a5.o \
   $(JUCE_OBJDIR)/WFSCalculationEngine_480062fe.o \
@@ -224,6 +225,11 @@ $(JUCE_OBJDIR)/OSCQueryServer_604ad0d6.o: ../../Source/Network/OSCQueryServer.cp
 $(JUCE_OBJDIR)/TrackingOSCReceiver_8ed4cb7.o: ../../Source/Network/TrackingOSCReceiver.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling TrackingOSCReceiver.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/TrackingPSNReceiver_a269fe83.o: ../../Source/Network/TrackingPSNReceiver.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling TrackingPSNReceiver.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/Main_90ebc5c2.o: ../../Source/Main.cpp

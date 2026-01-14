@@ -272,11 +272,13 @@
       "scaleX": "Échelle X :",
       "scaleY": "Échelle Y :",
       "scaleZ": "Échelle Z :",
-      "oscPath": "Chemin OSC :"
+      "oscPath": "Chemin OSC :",
+      "psnInterface": "Interface PSN :"
     },
 
     "help": {
-      "trackingOscPath": "Chemin OSC pour le Tracking en mode OSC (commence par /)"
+      "trackingOscPath": "Chemin OSC pour le Tracking en mode OSC (commence par /)",
+      "psnInterface": "Interface réseau pour la réception multicast PSN"
     },
 
     "buttons": {

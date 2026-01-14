@@ -295,11 +295,13 @@
       "scaleX": "Scale X:",
       "scaleY": "Scale Y:",
       "scaleZ": "Scale Z:",
-      "oscPath": "OSC Path:"
+      "oscPath": "OSC Path:",
+      "psnInterface": "PSN Interface:"
     },
 
     "help": {
-      "trackingOscPath": "OSC Path for the Tracking in OSC Mode (starts with a /)"
+      "trackingOscPath": "OSC Path for the Tracking in OSC Mode (starts with a /)",
+      "psnInterface": "Network interface for PSN multicast reception"
     },
 
     "buttons": {

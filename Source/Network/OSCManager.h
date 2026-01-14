@@ -11,6 +11,7 @@
 #include "OSCTCPReceiver.h"
 #include "OSCQueryServer.h"
 #include "TrackingOSCReceiver.h"
+#include "TrackingPSNReceiver.h"
 #include "../Parameters/WFSValueTreeState.h"
 
 namespace WFSNetwork
@@ -209,6 +210,38 @@ public:
     bool updateTrackingPathPattern(const juce::String& pathPattern);
 
     //==========================================================================
+    // PSN Tracking
+    //==========================================================================
+
+    /**
+     * Start the PSN tracking receiver.
+     * @param port UDP port to listen on (default 56565)
+     * @param networkInterface Network interface for multicast (empty = default)
+     * @param multicastAddress PSN multicast group (default 236.10.10.10)
+     * @return true if started successfully
+     */
+    bool startPSNReceiver(int port = 56565,
+                          const juce::String& networkInterface = "",
+                          const juce::String& multicastAddress = "236.10.10.10");
+
+    /**
+     * Stop the PSN tracking receiver.
+     */
+    void stopPSNReceiver();
+
+    /**
+     * Check if PSN tracking receiver is running.
+     */
+    bool isPSNReceiverRunning() const;
+
+    /**
+     * Update PSN tracking transformations (offset, scale, flip).
+     */
+    void updatePSNTransformations(float offsetX, float offsetY, float offsetZ,
+                                   float scaleX, float scaleY, float scaleZ,
+                                   bool flipX, bool flipY, bool flipZ);
+
+    //==========================================================================
     // Logging
     //==========================================================================
 
@@ -382,6 +415,9 @@ private:
 
     // Tracking OSC receiver
     std::unique_ptr<TrackingOSCReceiver> trackingReceiver;
+
+    // Tracking PSN receiver
+    std::unique_ptr<TrackingPSNReceiver> psnReceiver;
 
     // REMOTE protocol state
     int remoteSelectedChannel = 1;

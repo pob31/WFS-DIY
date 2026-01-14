@@ -96,3 +96,6 @@ Builds/*/resources.rc
 # Processor build artifacts
 Processors/*/build/
 Processors/*/out/
+# Claude Code temporary files
+tmpclaude-*
+**/tmpclaude-*

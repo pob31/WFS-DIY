@@ -445,6 +445,58 @@ bool OSCManager::updateTrackingPathPattern(const juce::String& pathPattern)
 }
 
 //==============================================================================
+// PSN Tracking
+//==============================================================================
+
+bool OSCManager::startPSNReceiver(int port,
+                                   const juce::String& networkInterface,
+                                   const juce::String& multicastAddress)
+{
+    stopPSNReceiver();
+
+    psnReceiver = std::make_unique<TrackingPSNReceiver>(state);
+
+    if (!psnReceiver->start(port, networkInterface, multicastAddress))
+    {
+        logger.logText("PSN tracking receiver failed to start on port " + juce::String(port));
+        psnReceiver.reset();
+        return false;
+    }
+
+    logger.logText("PSN tracking receiver started on port " + juce::String(port)
+                   + " multicast " + multicastAddress
+                   + (networkInterface.isNotEmpty() ? " interface " + networkInterface : ""));
+    return true;
+}
+
+void OSCManager::stopPSNReceiver()
+{
+    if (psnReceiver)
+    {
+        psnReceiver->stop();
+        psnReceiver.reset();
+        logger.logText("PSN tracking receiver stopped");
+    }
+}
+
+bool OSCManager::isPSNReceiverRunning() const
+{
+    return psnReceiver && psnReceiver->isActive();
+}
+
+void OSCManager::updatePSNTransformations(float offsetX, float offsetY, float offsetZ,
+                                           float scaleX, float scaleY, float scaleZ,
+                                           bool flipX, bool flipY, bool flipZ)
+{
+    if (psnReceiver)
+    {
+        psnReceiver->setTransformations(offsetX, offsetY, offsetZ,
+                                         scaleX, scaleY, scaleZ,
+                                         flipX, flipY, flipZ);
+    }
+}
+
+//==============================================================================
 // Logging
 //==============================================================================
 
