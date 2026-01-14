@@ -38,7 +38,6 @@ public:
         // Home button to reset view
         addAndMakeVisible(homeButton);
         homeButton.setButtonText(LOC("map.buttons.fitView"));
-        homeButton.setTooltip(LOC("map.tooltips.fitView"));
         homeButton.onClick = [this]() {
             resetView();
             repaint();
@@ -47,7 +46,6 @@ public:
         // Level overlay toggle button
         addAndMakeVisible(levelOverlayButton);
         levelOverlayButton.setButtonText(LOC("map.buttons.showLevels"));
-        levelOverlayButton.setTooltip(LOC("map.tooltips.levels"));
         levelOverlayButton.onClick = [this]() {
             levelOverlayEnabled = !levelOverlayEnabled;
             levelOverlayButton.setButtonText(levelOverlayEnabled
