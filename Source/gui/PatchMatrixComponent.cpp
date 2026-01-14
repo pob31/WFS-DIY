@@ -486,16 +486,28 @@ void PatchMatrixComponent::mouseExit(const juce::MouseEvent&)
 void PatchMatrixComponent::mouseWheelMove(const juce::MouseEvent& event,
                                           const juce::MouseWheelDetails& wheel)
 {
-    // Vertical scroll by default, horizontal with shift
-    if (event.mods.isShiftDown())
+    // Native horizontal scrolling (trackpad two-finger swipe left/right)
+    if (wheel.deltaX != 0.0f)
     {
         scrollOffsetX = juce::jlimit(0, maxScrollX,
-                                    scrollOffsetX - static_cast<int>(wheel.deltaX * cellWidth * 3));
+            scrollOffsetX - static_cast<int>(wheel.deltaX * cellWidth * 3));
     }
-    else
+
+    // Vertical scrolling, or Shift+wheel for horizontal
+    if (wheel.deltaY != 0.0f)
     {
-        scrollOffsetY = juce::jlimit(0, maxScrollY,
-                                    scrollOffsetY - static_cast<int>(wheel.deltaY * cellHeight * 3));
+        if (event.mods.isShiftDown())
+        {
+            // Shift+vertical wheel = horizontal scroll (for regular mouse wheels)
+            scrollOffsetX = juce::jlimit(0, maxScrollX,
+                scrollOffsetX - static_cast<int>(wheel.deltaY * cellWidth * 3));
+        }
+        else
+        {
+            // Normal vertical scroll
+            scrollOffsetY = juce::jlimit(0, maxScrollY,
+                scrollOffsetY - static_cast<int>(wheel.deltaY * cellHeight * 3));
+        }
     }
 
     updateScrollBars();
