@@ -278,7 +278,6 @@ public:
         // --- Network Section ---
         // Calculate proportional widths for left column
         const int leftLabelWidth = juce::jmin(120, leftColumnWidth / 5);
-        const int leftEditorWidth = juce::jmin(80, leftColumnWidth / 8);
 
         networkInterfaceLabel.setBounds(leftX, leftY, leftLabelWidth, rowHeight);
         networkInterfaceSelector.setBounds(leftX + leftLabelWidth, leftY, (leftColumnWidth - leftLabelWidth) * 2 / 5, rowHeight);
@@ -2484,8 +2483,8 @@ private:
             if (pAddresses == nullptr)
                 break;
 
-            ULONG flags = GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER;
-            DWORD result = GetAdaptersAddresses(family, flags, nullptr, pAddresses, &outBufLen);
+            ULONG adapterFlags = GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER;
+            DWORD result = GetAdaptersAddresses(family, adapterFlags, nullptr, pAddresses, &outBufLen);
 
             if (result == ERROR_BUFFER_OVERFLOW)
             {
