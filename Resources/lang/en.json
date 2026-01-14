@@ -501,11 +501,14 @@
     "solo": "Visual Solo:",
     "soloNone": "None",
     "buttons": {
-      "clearSolo": "Clear Solo"
+      "clearSolo": "Clear Solo",
+      "soloModeSingle": "Single",
+      "soloModeMulti": "Multi"
     },
     "tooltips": {
       "solo": "Display the contribution of the input to all outputs in the Level Meter display (in Single mode) and play binaural render of soloed inputs",
-      "clearSolo": "Disengage all solo toggles"
+      "clearSolo": "Disengage all solo toggles",
+      "soloMode": "Single: one input at a time. Multi: multiple inputs simultaneously."
     }
   },
 
@@ -892,7 +895,9 @@
       "lockOnMap": "Lock on Map",
       "stopAll": "Stop All",
       "pauseAll": "Pause All",
-      "resumeAll": "Resume All"
+      "resumeAll": "Resume All",
+      "soloModeSingle": "Single",
+      "soloModeMulti": "Multi"
     },
     "toggles": {
       "acousticPrecedence": "Acoustic Precedence",
@@ -1009,7 +1014,8 @@
       "trackingSwitched": "Tracking switched from Input {from} to Input {to}"
     },
     "help": {
-      "solo": "Listen to Binaural Rendering of this channel."
+      "solo": "Listen to Binaural Rendering of this channel.",
+      "soloMode": "Single: one input at a time. Multi: multiple inputs simultaneously."
     },
     "prefixes": {
       "delay": "Delay:",

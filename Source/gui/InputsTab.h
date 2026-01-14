@@ -364,6 +364,11 @@ public:
         soloButton.setColour(juce::TextButton::textColourOnId, juce::Colours::black);        // Black text when on
         soloButton.onClick = [this]() { toggleSolo(); };
 
+        // Solo mode toggle button (Single/Multi)
+        addAndMakeVisible(soloModeButton);
+        updateSoloModeButtonText();
+        soloModeButton.onClick = [this]() { toggleSoloMode(); };
+
         // Set All Inputs button (long-press to open)
         addAndMakeVisible(setAllInputsButton);
         setAllInputsButton.onLongPress = [this]() { openSetAllInputsWindow(); };
@@ -602,6 +607,8 @@ public:
         clearSoloButton.setBounds(row1.removeFromLeft(90));
         row1.removeFromLeft(spacing);
         soloButton.setBounds(row1.removeFromLeft(50));  // Wider for "Solo" text
+        row1.removeFromLeft(spacing);
+        soloModeButton.setBounds(row1.removeFromLeft(70));  // Single/Multi toggle
         // Set All Inputs button at far right
         setAllInputsButton.setBounds(row1.removeFromRight(130));
 
@@ -2693,6 +2700,7 @@ private:
     void setLfoParametersAlpha(float alpha)
     {
         // Dim all LFO parameters except the main active button
+        // Note: Jitter is independent from LFO and is NOT dimmed here
         lfoPeriodLabel.setAlpha(alpha);
         lfoPeriodDial.setAlpha(alpha);
         lfoPeriodValueLabel.setAlpha(alpha);
@@ -2704,9 +2712,6 @@ private:
         lfoProgressDial.setAlpha(alpha);
         lfoGyrophoneLabel.setAlpha(alpha);
         lfoGyrophoneSelector.setAlpha(alpha);
-        jitterLabel.setAlpha(alpha);
-        jitterSlider.setAlpha(alpha);
-        jitterValueLabel.setAlpha(alpha);
     }
 
     void setLfoAxisXAlpha(float alpha)
@@ -3600,17 +3605,36 @@ private:
 
         col1.removeFromTop(spacing);
 
-        // Three-column layout for Tracking, Max Speed, Height Factor
+        // Four-column layout for Sidelines, Tracking, Max Speed, Height Factor
         // Spans left half width (col1)
-        const int threeColWidth = col1.getWidth() / 3;
+        const int fourColWidth = col1.getWidth() / 4;
         const int controlBlockHeight = rowHeight * 2 + spacing * 2 + dialSize + rowHeight * 2;
         auto controlBlock = col1.removeFromTop(controlBlockHeight);
         const int uniformButtonWidth = 130;  // Same width for all buttons
         const int dialLabelWidth = 120;      // Wide enough for "Tracking Smoothing:"
 
-        // Column 1: Tracking
-        auto trackCol = controlBlock.removeFromLeft(threeColWidth);
-        int colCenterX = trackCol.getX() + threeColWidth / 2;
+        // Column 1: Sidelines
+        auto sidelinesCol = controlBlock.removeFromLeft(fourColWidth);
+        int colCenterX = sidelinesCol.getX() + fourColWidth / 2;
+
+        // Row 1: Sidelines button (centered)
+        row = sidelinesCol.removeFromTop(rowHeight);
+        sidelinesActiveButton.setBounds(colCenterX - uniformButtonWidth / 2, row.getY(), uniformButtonWidth, rowHeight);
+        sidelinesCol.removeFromTop(spacing);
+
+        // Row 2: empty (skip to align with other columns)
+        sidelinesCol.removeFromTop(rowHeight + spacing);
+
+        // Dial section: label, dial, value
+        sidelinesFringeLabel.setBounds(colCenterX - dialLabelWidth / 2, sidelinesCol.getY(), dialLabelWidth, rowHeight);
+        sidelinesCol.removeFromTop(rowHeight);
+        sidelinesFringeDial.setBounds(colCenterX - dialSize / 2, sidelinesCol.getY(), dialSize, dialSize);
+        sidelinesCol.removeFromTop(dialSize);
+        sidelinesFringeValueLabel.setBounds(colCenterX - 35, sidelinesCol.getY(), 70, rowHeight);
+
+        // Column 2: Tracking
+        auto trackCol = controlBlock.removeFromLeft(fourColWidth);
+        colCenterX = trackCol.getX() + fourColWidth / 2;
 
         // Row 1: Tracking button (centered)
         row = trackCol.removeFromTop(rowHeight);
@@ -3632,9 +3656,9 @@ private:
         trackCol.removeFromTop(dialSize);
         layoutDialValueUnit(trackingSmoothValueLabel, trackingSmoothUnitLabel, colCenterX, trackCol.getY(), rowHeight);
 
-        // Column 2: Max Speed
-        auto speedCol = controlBlock.removeFromLeft(threeColWidth);
-        colCenterX = speedCol.getX() + threeColWidth / 2;
+        // Column 3: Max Speed
+        auto speedCol = controlBlock.removeFromLeft(fourColWidth);
+        colCenterX = speedCol.getX() + fourColWidth / 2;
 
         // Row 1: Max Speed button (centered)
         row = speedCol.removeFromTop(rowHeight);
@@ -3653,7 +3677,7 @@ private:
         speedCol.removeFromTop(dialSize);
         layoutDialValueUnit(maxSpeedValueLabel, maxSpeedUnitLabel, colCenterX, speedCol.getY(), rowHeight, 40, 35);
 
-        // Column 3: Height Factor
+        // Column 4: Height Factor
         auto heightCol = controlBlock;
         colCenterX = heightCol.getX() + heightCol.getWidth() / 2;
 
@@ -3801,30 +3825,6 @@ private:
 
         // Extra padding after array attenuation
         col2.removeFromTop(spacing * 2);
-
-        // Sidelines - centered in the column
-        // Calculate the total width needed: button + spacing + dial section
-        const int sidelinesButtonWidth = 120;
-        const int fringeSectionWidth = dialSize + 20;
-        const int sidelinesSpacing = spacing * 4;  // Double the spacing
-        const int totalSidelinesWidth = sidelinesButtonWidth + sidelinesSpacing + fringeSectionWidth;
-
-        // Center the sidelines section within col2
-        int sidelinesStartX = col2.getX() + (col2.getWidth() - totalSidelinesWidth) / 2;
-
-        // Sidelines section height: label + dial + value
-        int sidelinesTopY = col2.getY();
-
-        // Button aligned vertically with dial center
-        int sidelineDialCenterY = sidelinesTopY + rowHeight + dialSize / 2;
-        sidelinesActiveButton.setBounds(sidelinesStartX, sidelineDialCenterY - rowHeight / 2, sidelinesButtonWidth, rowHeight);
-
-        // Fringe dial section - label centered above dial
-        int fringeCenterX = sidelinesStartX + sidelinesButtonWidth + sidelinesSpacing + fringeSectionWidth / 2;
-        const int fringeLabelWidth = 60;
-        sidelinesFringeLabel.setBounds(fringeCenterX - fringeLabelWidth / 2, sidelinesTopY, fringeLabelWidth, rowHeight);
-        sidelinesFringeDial.setBounds(fringeCenterX - dialSize / 2, sidelinesTopY + rowHeight, dialSize, dialSize);
-        sidelinesFringeValueLabel.setBounds(fringeCenterX - 35, sidelinesTopY + rowHeight + dialSize, 70, rowHeight);
     }
 
     void layoutLiveSourceHackousticsTab()
@@ -4927,6 +4927,7 @@ private:
         isLoadingParameters = false;
         updateMapButtonStates();
         updateSoloButtonState();
+        updateSoloModeButtonText();
     }
 
     // ==================== TEXT EDITOR LISTENER ====================
@@ -5993,6 +5994,7 @@ private:
         helpTextMap[&mapLockButton] = "Prevent Interaction on the Map Tab";
         helpTextMap[&mapVisibilityButton] = "Make Visible or Hide The Selected Input on the Map";
         helpTextMap[&soloButton] = LOC("inputs.help.solo");
+        helpTextMap[&soloModeButton] = LOC("inputs.help.soloMode");
         helpTextMap[&attenuationSlider] = "Input Channel Attenuation.";
         helpTextMap[&delayLatencySlider] = "Input Channel Delay (positive values) or Latency Compensation (negative values).";
         helpTextMap[&minimalLatencyButton] = "Select between Acoustic Precedence and Minimal Latency for Amplification Precedence.";
@@ -6399,6 +6401,26 @@ private:
         clearSoloButton.setColour(juce::TextButton::textColourOnId, anySoloed ? enabledColour : disabledColour);
     }
 
+    void toggleSoloMode()
+    {
+        auto& vts = parameters.getValueTreeState();
+        int currentMode = vts.getBinauralSoloMode();
+        int newMode = (currentMode == 0) ? 1 : 0;  // Toggle between Single (0) and Multi (1)
+        vts.setBinauralSoloMode(newMode);
+        updateSoloModeButtonText();
+        updateSoloButtonState();  // Update solo button color
+    }
+
+    void updateSoloModeButtonText()
+    {
+        auto& vts = parameters.getValueTreeState();
+        int mode = vts.getBinauralSoloMode();
+        if (mode == 0)
+            soloModeButton.setButtonText(LOC("inputs.buttons.soloModeSingle"));
+        else
+            soloModeButton.setButtonText(LOC("inputs.buttons.soloModeMulti"));
+    }
+
     void openSetAllInputsWindow()
     {
         if (setAllInputsWindow == nullptr || !setAllInputsWindow->isVisible())
@@ -6632,6 +6654,7 @@ private:
     juce::TextButton levelMeterButton;
     juce::TextButton clearSoloButton;
     juce::TextButton soloButton;
+    juce::TextButton soloModeButton;
     SetAllInputsLongPressButton setAllInputsButton;
     std::unique_ptr<SetAllInputsWindow> setAllInputsWindow;
 

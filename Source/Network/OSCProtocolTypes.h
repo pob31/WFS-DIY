@@ -17,8 +17,8 @@ enum class Protocol
     Remote = 2,
     ADMOSC = 3,
     OSCQuery = 4,   // OSC Query protocol
-    PSN = 5,        // PosiStageNet (placeholder for future)
-    RTTrP = 6       // RTTrP tracking (placeholder for future)
+    PSN = 5,        // PosiStageNet tracking protocol
+    RTTrP = 6       // RTTrP tracking protocol
 };
 
 /** Connection mode (transport layer) */

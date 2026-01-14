@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "../DSP/LevelMeteringManager.h"
+#include "../DSP/WFSCalculationEngine.h"
 #include "../Parameters/WFSValueTreeState.h"
 #include "ColorScheme.h"
 #include "WindowUtils.h"
@@ -40,58 +41,104 @@ public:
         repaint();
     }
 
+    /** Enable contribution mode - shows calculated level from soloed input */
+    void setContributionMode(bool enabled)
+    {
+        isContributionMode = enabled;
+        if (!enabled)
+            contributionDb = -200.0f;
+        repaint();
+    }
+
+    /** Set the contribution level (input level + attenuation) */
+    void setContributionLevel(float db)
+    {
+        contributionDb = db;
+        repaint();
+    }
+
     void paint(juce::Graphics& g) override
     {
         auto bounds = getLocalBounds().reduced(2);
 
-        // Background
-        g.setColour(ColorScheme::get().background.darker(0.3f));
+        // Background - darker purple tint when in contribution mode
+        if (isContributionMode)
+            g.setColour(juce::Colour(0xFF1A1A2E));  // Dark purple-ish background
+        else
+            g.setColour(ColorScheme::get().background.darker(0.3f));
         g.fillRoundedRectangle(bounds.toFloat(), 3.0f);
 
         // Calculate meter height (0 dB at top, -60 dB at bottom)
         auto meterBounds = bounds.reduced(2);
         float meterHeight = static_cast<float>(meterBounds.getHeight());
 
-        // RMS level (wider bar)
-        float rmsNormalized = juce::jlimit(0.0f, 1.0f, (currentRmsDb + 60.0f) / 60.0f);
-        float rmsHeight = rmsNormalized * meterHeight;
-        if (rmsHeight > 1.0f)
+        if (isContributionMode)
         {
-            auto rmsRect = meterBounds.removeFromBottom(static_cast<int>(rmsHeight));
-            g.setColour(getLevelColor(currentRmsDb).withAlpha(0.7f));
-            g.fillRoundedRectangle(rmsRect.toFloat(), 2.0f);
-        }
+            // Contribution mode: show calculated level with cyan/magenta color scheme
+            float contribNormalized = juce::jlimit(0.0f, 1.0f, (contributionDb + 60.0f) / 60.0f);
+            float contribHeight = contribNormalized * meterHeight;
+            if (contribHeight > 1.0f)
+            {
+                auto contribRect = meterBounds.removeFromBottom(static_cast<int>(contribHeight));
+                g.setColour(getContributionColor(contributionDb));
+                g.fillRoundedRectangle(contribRect.toFloat(), 2.0f);
+            }
 
-        // Peak level (thin line)
-        float peakNormalized = juce::jlimit(0.0f, 1.0f, (currentPeakDb + 60.0f) / 60.0f);
-        int peakY = meterBounds.getY() + static_cast<int>((1.0f - peakNormalized) * meterHeight);
-        if (peakNormalized > 0.01f)
-        {
-            g.setColour(getLevelColor(currentPeakDb));
-            g.fillRect(bounds.getX() + 2, peakY, bounds.getWidth() - 4, 3);
-        }
+            // Contribution level line at top of bar
+            if (contribNormalized > 0.01f)
+            {
+                int contribY = bounds.getY() + 2 + static_cast<int>((1.0f - contribNormalized) * meterHeight);
+                g.setColour(juce::Colours::white);
+                g.fillRect(bounds.getX() + 2, contribY, bounds.getWidth() - 4, 2);
+            }
 
-        // Peak hold line
-        float holdNormalized = juce::jlimit(0.0f, 1.0f, (peakHoldDb + 60.0f) / 60.0f);
-        int holdY = bounds.getY() + 2 + static_cast<int>((1.0f - holdNormalized) * meterHeight);
-        if (holdNormalized > 0.01f)
-        {
-            g.setColour(juce::Colours::white);
-            g.fillRect(bounds.getX() + 2, holdY, bounds.getWidth() - 4, 2);
-        }
-
-        // Solo highlight border
-        if (isSoloHighlighted)
-        {
-            g.setColour(juce::Colours::yellow);
+            // Contribution mode border - cyan
+            g.setColour(juce::Colour(0xFF00BFFF));  // Deep sky blue
             g.drawRoundedRectangle(getLocalBounds().toFloat(), 3.0f, 2.0f);
         }
-
-        // Clip indicator
-        if (currentPeakDb > -0.5f)
+        else
         {
-            g.setColour(juce::Colours::red);
-            g.fillRoundedRectangle(bounds.toFloat().removeFromTop(6), 2.0f);
+            // Normal mode: RMS level (wider bar)
+            float rmsNormalized = juce::jlimit(0.0f, 1.0f, (currentRmsDb + 60.0f) / 60.0f);
+            float rmsHeight = rmsNormalized * meterHeight;
+            if (rmsHeight > 1.0f)
+            {
+                auto rmsRect = meterBounds.removeFromBottom(static_cast<int>(rmsHeight));
+                g.setColour(getLevelColor(currentRmsDb).withAlpha(0.7f));
+                g.fillRoundedRectangle(rmsRect.toFloat(), 2.0f);
+            }
+
+            // Peak level (thin line)
+            float peakNormalized = juce::jlimit(0.0f, 1.0f, (currentPeakDb + 60.0f) / 60.0f);
+            int peakY = meterBounds.getY() + static_cast<int>((1.0f - peakNormalized) * meterHeight);
+            if (peakNormalized > 0.01f)
+            {
+                g.setColour(getLevelColor(currentPeakDb));
+                g.fillRect(bounds.getX() + 2, peakY, bounds.getWidth() - 4, 3);
+            }
+
+            // Peak hold line
+            float holdNormalized = juce::jlimit(0.0f, 1.0f, (peakHoldDb + 60.0f) / 60.0f);
+            int holdY = bounds.getY() + 2 + static_cast<int>((1.0f - holdNormalized) * meterHeight);
+            if (holdNormalized > 0.01f)
+            {
+                g.setColour(juce::Colours::white);
+                g.fillRect(bounds.getX() + 2, holdY, bounds.getWidth() - 4, 2);
+            }
+
+            // Solo highlight border
+            if (isSoloHighlighted)
+            {
+                g.setColour(juce::Colours::yellow);
+                g.drawRoundedRectangle(getLocalBounds().toFloat(), 3.0f, 2.0f);
+            }
+
+            // Clip indicator
+            if (currentPeakDb > -0.5f)
+            {
+                g.setColour(juce::Colours::red);
+                g.fillRoundedRectangle(bounds.toFloat().removeFromTop(6), 2.0f);
+            }
         }
     }
 
@@ -106,11 +153,37 @@ private:
             return juce::Colours::red;
     }
 
+    /** Contribution mode color: cyan → blue → magenta gradient */
+    static juce::Colour getContributionColor(float db)
+    {
+        // Map -60 to 0 dB to a cyan→magenta gradient
+        float normalized = juce::jlimit(0.0f, 1.0f, (db + 60.0f) / 60.0f);
+
+        // Cyan (0xFF00FFFF) at low levels → Magenta (0xFFFF00FF) at high levels
+        // Through blue (0xFF0080FF) in the middle
+        if (normalized < 0.5f)
+        {
+            // Cyan to Blue: increase red channel slightly, keep full blue
+            float t = normalized * 2.0f;
+            return juce::Colour::fromFloatRGBA(t * 0.5f, 1.0f - t * 0.5f, 1.0f, 0.85f);
+        }
+        else
+        {
+            // Blue to Magenta: increase red, decrease green
+            float t = (normalized - 0.5f) * 2.0f;
+            return juce::Colour::fromFloatRGBA(0.5f + t * 0.5f, 0.5f - t * 0.5f, 1.0f, 0.85f);
+        }
+    }
+
     float currentPeakDb = -200.0f;
     float currentRmsDb = -200.0f;
     float peakHoldDb = -200.0f;
     int64_t peakHoldTime = 0;
     bool isSoloHighlighted = false;
+
+    // Contribution mode state
+    bool isContributionMode = false;
+    float contributionDb = -200.0f;
 };
 
 /**
@@ -171,8 +244,9 @@ class LevelMeterWindowContent : public juce::Component,
                                  private juce::Timer
 {
 public:
-    LevelMeterWindowContent(LevelMeteringManager& manager, WFSValueTreeState& vts)
-        : levelManager(manager), valueTreeState(vts)
+    LevelMeterWindowContent(LevelMeteringManager& manager, WFSValueTreeState& vts,
+                            WFSCalculationEngine* calcEngine = nullptr)
+        : levelManager(manager), valueTreeState(vts), calculationEngine(calcEngine)
     {
         // Input section label
         addAndMakeVisible(inputsLabel);
@@ -194,6 +268,14 @@ public:
         clearSoloButton.onClick = [this]() {
             valueTreeState.clearAllSoloStates();
             updateSoloButtonStates();
+        };
+
+        // Solo mode toggle button (Single/Multi)
+        addAndMakeVisible(soloModeButton);
+        updateSoloModeButtonText();
+        soloModeButton.setTooltip(LOC("levelMeter.tooltips.soloMode"));
+        soloModeButton.onClick = [this]() {
+            toggleSoloMode();
         };
 
         // Initialize button states
@@ -226,9 +308,11 @@ public:
         auto bounds = getLocalBounds().reduced(10);
         int controlHeight = 30;
 
-        // Bottom controls (clear solo button)
+        // Bottom controls (clear solo button, solo mode toggle)
         auto controlsArea = bounds.removeFromBottom(controlHeight);
         clearSoloButton.setBounds(controlsArea.removeFromLeft(100));
+        controlsArea.removeFromLeft(10);  // Spacing
+        soloModeButton.setBounds(controlsArea.removeFromLeft(100));
 
         bounds.removeFromBottom(10);  // Spacing
 
@@ -330,21 +414,59 @@ private:
         }
 
         // Update output meters
-        // Solo highlighting only in Single mode
+        // Solo highlighting and contribution mode
         int soloInput = levelManager.getVisualSoloInput();
         bool isSingleMode = (valueTreeState.getBinauralSoloMode() == 0);
+        int numSoloed = valueTreeState.getNumSoloedInputs();
+
+        // Contribution mode: single mode with solo OR exactly one input soloed
+        bool showContribution = calculationEngine != nullptr &&
+                                ((isSingleMode && soloInput >= 0) || numSoloed == 1);
+
+        // If exactly one soloed but not in single mode, find which one
+        int contributionInput = soloInput;
+        if (showContribution && contributionInput < 0 && numSoloed == 1)
+        {
+            for (int ch = 0; ch < valueTreeState.getNumInputChannels(); ++ch)
+            {
+                if (valueTreeState.isInputSoloed(ch))
+                {
+                    contributionInput = ch;
+                    break;
+                }
+            }
+        }
+
         for (int i = 0; i < outputMeters.size(); ++i)
         {
             auto level = levelManager.getOutputLevel(i);
             outputMeters[i]->setLevel(level.peakDb, level.rmsDb);
 
-            // Solo highlighting - only in Single mode
-            bool highlight = false;
-            if (isSingleMode && soloInput >= 0)
+            if (showContribution && contributionInput >= 0)
             {
-                highlight = level.peakDb > -60.0f;
+                // Get routing level from calculation engine
+                float routingLevel = calculationEngine->getLevel(contributionInput, i);
+
+                // Calculate contribution: input level + routing attenuation
+                float contributionDb = levelManager.getInputContributionToOutput(
+                    contributionInput, i, routingLevel);
+
+                outputMeters[i]->setContributionMode(true);
+                outputMeters[i]->setContributionLevel(contributionDb);
+                outputMeters[i]->setSoloHighlight(false);  // Don't show yellow border in contribution mode
             }
-            outputMeters[i]->setSoloHighlight(highlight);
+            else
+            {
+                outputMeters[i]->setContributionMode(false);
+
+                // Solo highlighting - only in Single mode (when not in contribution mode)
+                bool highlight = false;
+                if (isSingleMode && soloInput >= 0)
+                {
+                    highlight = level.peakDb > -60.0f;
+                }
+                outputMeters[i]->setSoloHighlight(highlight);
+            }
         }
 
         // Update thread performance bars
@@ -377,6 +499,7 @@ private:
         // Update solo button states and colors
         updateSoloButtonStates();
         updateSoloButtonColors();
+        updateSoloModeButtonText();  // Keep in sync with changes from other tabs
     }
 
     void layoutInputMeters(juce::Rectangle<int>& area, bool showPerfBars)
@@ -477,8 +600,27 @@ private:
         }
     }
 
+    void toggleSoloMode()
+    {
+        int currentMode = valueTreeState.getBinauralSoloMode();
+        int newMode = (currentMode == 0) ? 1 : 0;  // Toggle between Single (0) and Multi (1)
+        valueTreeState.setBinauralSoloMode(newMode);
+        updateSoloModeButtonText();
+        updateSoloButtonColors();
+    }
+
+    void updateSoloModeButtonText()
+    {
+        int mode = valueTreeState.getBinauralSoloMode();
+        if (mode == 0)
+            soloModeButton.setButtonText(LOC("levelMeter.buttons.soloModeSingle"));
+        else
+            soloModeButton.setButtonText(LOC("levelMeter.buttons.soloModeMulti"));
+    }
+
     LevelMeteringManager& levelManager;
     WFSValueTreeState& valueTreeState;
+    WFSCalculationEngine* calculationEngine = nullptr;
 
     juce::Label inputsLabel;
     juce::Label outputsLabel;
@@ -493,6 +635,7 @@ private:
     juce::OwnedArray<ThreadPerformanceBar> outputPerfBars;
 
     juce::TextButton clearSoloButton;
+    juce::TextButton soloModeButton;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LevelMeterWindowContent)
 };
@@ -505,16 +648,17 @@ class LevelMeterWindow : public juce::DocumentWindow,
                          public ColorScheme::Manager::Listener
 {
 public:
-    LevelMeterWindow(LevelMeteringManager& manager, WFSValueTreeState& vts)
+    LevelMeterWindow(LevelMeteringManager& manager, WFSValueTreeState& vts,
+                     WFSCalculationEngine* calcEngine = nullptr)
         : DocumentWindow(LOC("levelMeter.windowTitle"),
                          ColorScheme::get().background,
                          DocumentWindow::allButtons),
-          levelManager(manager), valueTreeState(vts)
+          levelManager(manager), valueTreeState(vts), calculationEngine(calcEngine)
     {
         setUsingNativeTitleBar(true);
         setResizable(true, true);
 
-        content = std::make_unique<LevelMeterWindowContent>(manager, vts);
+        content = std::make_unique<LevelMeterWindowContent>(manager, vts, calcEngine);
         content->setName(LOC("levelMeter.windowTitle"));
         setContentOwned(content.get(), false);
 
@@ -571,6 +715,7 @@ public:
 private:
     LevelMeteringManager& levelManager;
     WFSValueTreeState& valueTreeState;
+    WFSCalculationEngine* calculationEngine = nullptr;
     std::unique_ptr<LevelMeterWindowContent> content;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LevelMeterWindow)

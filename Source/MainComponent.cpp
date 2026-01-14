@@ -1099,7 +1099,8 @@ void MainComponent::openLevelMeterWindow()
             return;
 
         levelMeterWindow = std::make_unique<LevelMeterWindow>(*levelMeteringManager,
-                                                                 parameters.getValueTreeState());
+                                                                 parameters.getValueTreeState(),
+                                                                 calculationEngine.get());
     }
     else
     {

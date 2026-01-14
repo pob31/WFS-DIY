@@ -412,10 +412,8 @@ public:
                 case TouchInfo::Type::ViewGesture:
                 {
                     int viewTouches = countViewGestureTouches();
-                    if (viewTouches == 2)
-                        applyMultitouchPan();
-                    else if (viewTouches >= 3)
-                        applyMultitouchZoom();
+                    if (viewTouches >= 2)
+                        applyMultitouchPanZoom();
                     break;
                 }
 
@@ -920,33 +918,47 @@ public:
         return count > 0 ? sum / static_cast<float>(count) : 0.0f;
     }
 
-    // Initialize view gesture when touch count reaches 2 or 3
+    // Get distance between view gesture touches (for pinch-to-zoom)
+    float getViewGestureTouchSpan() const
+    {
+        std::vector<juce::Point<float>> positions;
+        for (const auto& [idx, touch] : activeTouches)
+        {
+            if (touch.type == TouchInfo::Type::ViewGesture)
+                positions.push_back(touch.currentPos);
+        }
+        if (positions.size() < 2)
+            return 0.0f;
+        return positions[0].getDistanceFrom(positions[1]);
+    }
+
+    // Initialize view gesture when touch count reaches 2 or more
     void initializeViewGesture()
     {
         viewGestureStartCenter = getViewGestureTouchCenter();
         viewGestureStartOffset = viewOffset;
         viewGestureStartScale = viewScale;
+        viewGestureStartSpan = getViewGestureTouchSpan();
     }
 
-    // Apply multitouch pan gesture (2 fingers)
-    void applyMultitouchPan()
+    // Apply multitouch pan + zoom gesture (2+ fingers)
+    void applyMultitouchPanZoom()
     {
         auto currentCenter = getViewGestureTouchCenter();
+        float currentSpan = getViewGestureTouchSpan();
+
+        // Apply zoom if span changed (pinch gesture)
+        if (viewGestureStartSpan > 10.0f && currentSpan > 10.0f)
+        {
+            float zoomFactor = currentSpan / viewGestureStartSpan;
+            float newScale = viewGestureStartScale * zoomFactor;
+            viewScale = juce::jlimit(5.0f, 500.0f, newScale);
+        }
+
+        // Apply pan (center movement)
         auto delta = currentCenter - viewGestureStartCenter;
         viewOffset = viewGestureStartOffset + delta;
-        repaint();
-    }
 
-    // Apply multitouch zoom gesture (3 fingers, vertical)
-    void applyMultitouchZoom()
-    {
-        float currentY = getViewGestureAverageY();
-        float startY = viewGestureStartCenter.y;
-        float deltaY = currentY - startY;
-
-        float zoomFactor = 1.0f - deltaY * 0.005f;
-        float newScale = viewGestureStartScale * zoomFactor;
-        viewScale = juce::jlimit(5.0f, 500.0f, newScale);
         repaint();
     }
 
@@ -1669,7 +1681,7 @@ private:
     juce::Point<float> viewGestureStartCenter;
     juce::Point<float> viewGestureStartOffset;
     float viewGestureStartScale = 30.0f;
-    float viewGestureStartSpan = 0.0f;  // For pinch-to-zoom (future)
+    float viewGestureStartSpan = 0.0f;  // For pinch-to-zoom
 
     // Barycenter dragging state
     int selectedBarycenter = -1;  // Cluster number (1-10), -1 if none
