@@ -185,6 +185,7 @@ public:
         updateTextEditor(trackingScaleXEditor);
         updateTextEditor(trackingScaleYEditor);
         updateTextEditor(trackingScaleZEditor);
+        updateTextEditor(trackingOscPathEditor);
 
         // Update network connection rows
         for (int i = 0; i < maxTargets; ++i)
@@ -248,218 +249,235 @@ public:
         g.setFont(juce::FontOptions().withHeight(14.0f).withStyle("Bold"));
         g.drawText(LOC("network.sections.network"), 20, 10, 200, 20, juce::Justification::left);
         g.drawText(LOC("network.sections.connections"), 20, networkConnectionsSectionY - 25, 200, 20, juce::Justification::left);
-        g.drawText(LOC("network.sections.admOsc"), 20, admOscSectionY - 25, 200, 20, juce::Justification::left);
-        g.drawText(LOC("network.sections.tracking"), 20, trackingSectionY - 25, 200, 20, juce::Justification::left);
+        // ADM-OSC and Tracking headers are in the right column
+        g.drawText(LOC("network.sections.admOsc"), rightColumnX, admOscSectionY - 25, 200, 20, juce::Justification::left);
+        g.drawText(LOC("network.sections.tracking"), rightColumnX, trackingSectionY - 25, 200, 20, juce::Justification::left);
 
     }
 
     void resized() override
     {
-        const int labelWidth = 120;
-        const int editorWidth = 80;
-        const int unitWidth = 30;
         const int rowHeight = 25;
         const int spacing = 5;
-        const int sectionSpacing = 50;
+        const int sectionSpacing = 40;
+        const int margin = 20;
+        const int columnGap = 30;
+        const int footerHeight = 50;
 
-        int x = 20;
-        int y = 35;
+        // Calculate available width and split into two columns
+        const int totalWidth = getWidth() - margin * 2;
+        const int leftColumnWidth = (totalWidth - columnGap) / 2;
+        const int rightColumnWidth = totalWidth - leftColumnWidth - columnGap;
 
-        // ==================== NETWORK SECTION ====================
-        networkInterfaceLabel.setBounds(x, y, labelWidth, rowHeight);
-        networkInterfaceSelector.setBounds(x + labelWidth, y, 300, rowHeight);
-        y += rowHeight + spacing;
+        const int leftX = margin;
+        rightColumnX = leftX + leftColumnWidth + columnGap;
 
-        currentIPLabel.setBounds(x, y, labelWidth, rowHeight);
-        currentIPEditor.setBounds(x + labelWidth, y, 150, rowHeight);
-        y += rowHeight + spacing;
+        // ==================== LEFT COLUMN ====================
+        int leftY = 35;
 
-        udpPortLabel.setBounds(x, y, labelWidth, rowHeight);
-        udpPortEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
+        // --- Network Section ---
+        // Calculate proportional widths for left column
+        const int leftLabelWidth = juce::jmin(120, leftColumnWidth / 5);
+        const int leftEditorWidth = juce::jmin(80, leftColumnWidth / 8);
 
-        tcpPortLabel.setBounds(x + labelWidth + editorWidth + 20, y, labelWidth, rowHeight);
-        tcpPortEditor.setBounds(x + labelWidth * 2 + editorWidth + 20, y, editorWidth, rowHeight);
+        networkInterfaceLabel.setBounds(leftX, leftY, leftLabelWidth, rowHeight);
+        networkInterfaceSelector.setBounds(leftX + leftLabelWidth, leftY, (leftColumnWidth - leftLabelWidth) * 2 / 5, rowHeight);
+        leftY += rowHeight + spacing;
 
-        // OSC Query on same row as UDP/TCP (aligned to fit within table width)
-        // Table width is 3 * (labelWidth + editorWidth + unitWidth) + 2 * 20 = ~730
-        const int oscQueryLabelX = x + labelWidth * 2 + editorWidth * 2 + 60;  // After TCP port
-        oscQueryLabel.setBounds(oscQueryLabelX, y, 80, rowHeight);  // Shorter label
-        oscQueryPortEditor.setBounds(oscQueryLabelX + 85, y, 55, rowHeight);
-        oscQueryEnableButton.setBounds(oscQueryLabelX + 150, y, 80, rowHeight);
-        y += rowHeight + sectionSpacing;
+        currentIPLabel.setBounds(leftX, leftY, leftLabelWidth, rowHeight);
+        currentIPEditor.setBounds(leftX + leftLabelWidth, leftY, 150, rowHeight);
+        leftY += rowHeight + spacing;
 
-        // ==================== NETWORK CONNECTIONS TABLE ====================
-        networkConnectionsSectionY = y;
+        // UDP, TCP, OSC Query on same row - distribute across column width
+        const int portGroupWidth = (leftColumnWidth - 40) / 3;
+        udpPortLabel.setBounds(leftX, leftY, 70, rowHeight);
+        udpPortEditor.setBounds(leftX + 70, leftY, 60, rowHeight);
 
-        // Calculate total width to match ADM-OSC/Tracking sections
-        // col3 end = x + 3 * (labelWidth + editorWidth + unitWidth) + 2 * 20 = ~700 from x
-        const int totalTableWidth = 3 * (labelWidth + editorWidth + unitWidth) + 2 * 20;
+        tcpPortLabel.setBounds(leftX + portGroupWidth, leftY, 70, rowHeight);
+        tcpPortEditor.setBounds(leftX + portGroupWidth + 70, leftY, 60, rowHeight);
+
+        oscQueryLabel.setBounds(leftX + portGroupWidth * 2, leftY, 70, rowHeight);
+        oscQueryPortEditor.setBounds(leftX + portGroupWidth * 2 + 70, leftY, 50, rowHeight);
+        oscQueryEnableButton.setBounds(leftX + portGroupWidth * 2 + 125, leftY, 70, rowHeight);
+        leftY += rowHeight + sectionSpacing;
+
+        // --- Network Connections Table ---
+        networkConnectionsSectionY = leftY;
+
         const int tableSpacing = 5;
         const int numTableCols = 8;
-        const int totalSpacing = (numTableCols - 1) * tableSpacing;
+        const int totalTableSpacing = (numTableCols - 1) * tableSpacing;
+        const int tableAvailableWidth = leftColumnWidth - totalTableSpacing;
 
         // Distribute width proportionally across columns
-        // Weights: Name=3, Mode=1.5, IP=3, Port=1.5, Rx=1, Tx=1, Protocol=2.5, Remove=1
-        const float totalWeight = 3.0f + 1.5f + 3.0f + 1.5f + 1.0f + 1.0f + 2.5f + 1.0f;
-        const int availableWidth = totalTableWidth - totalSpacing;
+        // Weights: Name=2.5, Mode=1.2, IP=2.5, Port=1.2, Rx=0.8, Tx=0.8, Protocol=2, Remove=0.8
+        const float totalWeight = 2.5f + 1.2f + 2.5f + 1.2f + 0.8f + 0.8f + 2.0f + 0.8f;
 
-        const int nameColWidth = (int)(availableWidth * 3.0f / totalWeight);
-        const int modeColWidth = (int)(availableWidth * 1.5f / totalWeight);
-        const int ipColWidth = (int)(availableWidth * 3.0f / totalWeight);
-        const int portColWidth = (int)(availableWidth * 1.5f / totalWeight);
-        const int rxTxColWidth = (int)(availableWidth * 1.0f / totalWeight);
-        const int protocolColWidth = (int)(availableWidth * 2.5f / totalWeight);
-        const int removeColWidth = (int)(availableWidth * 1.0f / totalWeight);
-
-        int tableX = x;
+        const int nameColWidth = (int)(tableAvailableWidth * 2.5f / totalWeight);
+        const int modeColWidth = (int)(tableAvailableWidth * 1.2f / totalWeight);
+        const int ipColWidth = (int)(tableAvailableWidth * 2.5f / totalWeight);
+        const int portColWidth = (int)(tableAvailableWidth * 1.2f / totalWeight);
+        const int rxTxColWidth = (int)(tableAvailableWidth * 0.8f / totalWeight);
+        const int protocolColWidth = (int)(tableAvailableWidth * 2.0f / totalWeight);
+        const int removeColWidth = (int)(tableAvailableWidth * 0.8f / totalWeight);
 
         // Header row
-        int colX = tableX;
-        headerNameLabel.setBounds(colX, y, nameColWidth, rowHeight);
+        int colX = leftX;
+        headerNameLabel.setBounds(colX, leftY, nameColWidth, rowHeight);
         colX += nameColWidth + tableSpacing;
-        headerDataModeLabel.setBounds(colX, y, modeColWidth, rowHeight);
+        headerDataModeLabel.setBounds(colX, leftY, modeColWidth, rowHeight);
         colX += modeColWidth + tableSpacing;
-        headerIpLabel.setBounds(colX, y, ipColWidth, rowHeight);
+        headerIpLabel.setBounds(colX, leftY, ipColWidth, rowHeight);
         colX += ipColWidth + tableSpacing;
-        headerTxPortLabel.setBounds(colX, y, portColWidth, rowHeight);
+        headerTxPortLabel.setBounds(colX, leftY, portColWidth, rowHeight);
         colX += portColWidth + tableSpacing;
-        headerRxEnableLabel.setBounds(colX, y, rxTxColWidth, rowHeight);
+        headerRxEnableLabel.setBounds(colX, leftY, rxTxColWidth, rowHeight);
         colX += rxTxColWidth + tableSpacing;
-        headerTxEnableLabel.setBounds(colX, y, rxTxColWidth, rowHeight);
+        headerTxEnableLabel.setBounds(colX, leftY, rxTxColWidth, rowHeight);
         colX += rxTxColWidth + tableSpacing;
-        headerProtocolLabel.setBounds(colX, y, protocolColWidth, rowHeight);
+        headerProtocolLabel.setBounds(colX, leftY, protocolColWidth, rowHeight);
         colX += protocolColWidth + tableSpacing;
-        addTargetButton.setBounds(colX, y, removeColWidth, rowHeight);
-        y += rowHeight + spacing;
+        addTargetButton.setBounds(colX, leftY, removeColWidth, rowHeight);
+        leftY += rowHeight + spacing;
 
         // Target rows
         for (int i = 0; i < maxTargets; ++i)
         {
             auto& row = targetRows[i];
-            colX = tableX;
+            colX = leftX;
 
-            row.nameEditor.setBounds(colX, y, nameColWidth, rowHeight);
+            row.nameEditor.setBounds(colX, leftY, nameColWidth, rowHeight);
             colX += nameColWidth + tableSpacing;
-            row.dataModeSelector.setBounds(colX, y, modeColWidth, rowHeight);
+            row.dataModeSelector.setBounds(colX, leftY, modeColWidth, rowHeight);
             colX += modeColWidth + tableSpacing;
-            row.ipEditor.setBounds(colX, y, ipColWidth, rowHeight);
+            row.ipEditor.setBounds(colX, leftY, ipColWidth, rowHeight);
             colX += ipColWidth + tableSpacing;
-            row.txPortEditor.setBounds(colX, y, portColWidth, rowHeight);
+            row.txPortEditor.setBounds(colX, leftY, portColWidth, rowHeight);
             colX += portColWidth + tableSpacing;
-            row.rxEnableButton.setBounds(colX, y, rxTxColWidth, rowHeight);
+            row.rxEnableButton.setBounds(colX, leftY, rxTxColWidth, rowHeight);
             colX += rxTxColWidth + tableSpacing;
-            row.txEnableButton.setBounds(colX, y, rxTxColWidth, rowHeight);
+            row.txEnableButton.setBounds(colX, leftY, rxTxColWidth, rowHeight);
             colX += rxTxColWidth + tableSpacing;
-            row.protocolSelector.setBounds(colX, y, protocolColWidth, rowHeight);
+            row.protocolSelector.setBounds(colX, leftY, protocolColWidth, rowHeight);
             colX += protocolColWidth + tableSpacing;
-            row.removeButton.setBounds(colX, y, removeColWidth, rowHeight);
+            row.removeButton.setBounds(colX, leftY, removeColWidth, rowHeight);
 
-            y += rowHeight + spacing;
+            leftY += rowHeight + spacing;
         }
 
-        // ==================== BUTTONS BENEATH TABLE ====================
-        y += spacing;  // Small gap after table
-        const int tableButtonWidth = 140;
-        const int filterButtonWidth = 180;
-        const int tableButtonSpacing = 15;
-        const int buttonsWidth = filterButtonWidth + tableButtonWidth * 2 + tableButtonSpacing * 2;
-        const int buttonsX = tableX + (totalTableWidth - buttonsWidth) / 2;  // Center the buttons
+        // Buttons beneath table - distribute across column width
+        leftY += 35;  // Padding after table
+        const int tableButtonWidth = (leftColumnWidth - 20) / 3;
+        oscSourceFilterButton.setBounds(leftX, leftY, tableButtonWidth, rowHeight);
+        openLogWindowButton.setBounds(leftX + tableButtonWidth + 10, leftY, tableButtonWidth, rowHeight);
+        findMyRemoteButton.setBounds(leftX + tableButtonWidth * 2 + 20, leftY, tableButtonWidth, rowHeight);
 
-        oscSourceFilterButton.setBounds(buttonsX, y, filterButtonWidth, rowHeight);
-        openLogWindowButton.setBounds(buttonsX + filterButtonWidth + tableButtonSpacing, y, tableButtonWidth, rowHeight);
-        findMyRemoteButton.setBounds(buttonsX + filterButtonWidth + tableButtonWidth + tableButtonSpacing * 2, y, tableButtonWidth, rowHeight);
-        y += rowHeight + sectionSpacing;  // Add section spacing before ADM-OSC
+        // ==================== RIGHT COLUMN: ADM-OSC & TRACKING ====================
+        int rightY = 35;
 
-        // ==================== ADM-OSC SECTION ====================
-        admOscSectionY = y;
+        // Calculate widths for right column (3 sub-columns for X, Y, Z)
+        // Use the full right column width
+        const int rightSubColSpacing = 15;
+        const int rightSubColWidth = (rightColumnWidth - rightSubColSpacing * 2) / 3;
+        const int rightLabelWidth = 75;  // Fixed label width for "Offset X:", "Scale Y:", etc.
+        const int rightUnitWidth = 20;
+        const int rightEditorWidth = rightSubColWidth - rightLabelWidth - rightUnitWidth;
+
+        int rcol1 = rightColumnX;
+        int rcol2 = rcol1 + rightSubColWidth + rightSubColSpacing;
+        int rcol3 = rcol2 + rightSubColWidth + rightSubColSpacing;
+
+        // --- ADM-OSC Section ---
+        admOscSectionY = rightY;
+        const int rightRowSpacing = 10;  // More spacing between rows in right column
 
         // Row 1: Offset X, Y, Z
-        int col1 = x;
-        int col2 = x + labelWidth + editorWidth + unitWidth + 20;
-        int col3 = col2 + labelWidth + editorWidth + unitWidth + 20;
+        admOscOffsetXLabel.setBounds(rcol1, rightY, rightLabelWidth, rowHeight);
+        admOscOffsetXEditor.setBounds(rcol1 + rightLabelWidth, rightY, rightEditorWidth, rowHeight);
+        admOscOffsetXUnitLabel.setBounds(rcol1 + rightLabelWidth + rightEditorWidth, rightY, rightUnitWidth, rowHeight);
 
-        admOscOffsetXLabel.setBounds(col1, y, labelWidth, rowHeight);
-        admOscOffsetXEditor.setBounds(col1 + labelWidth, y, editorWidth, rowHeight);
-        admOscOffsetXUnitLabel.setBounds(col1 + labelWidth + editorWidth, y, unitWidth, rowHeight);
+        admOscOffsetYLabel.setBounds(rcol2, rightY, rightLabelWidth, rowHeight);
+        admOscOffsetYEditor.setBounds(rcol2 + rightLabelWidth, rightY, rightEditorWidth, rowHeight);
+        admOscOffsetYUnitLabel.setBounds(rcol2 + rightLabelWidth + rightEditorWidth, rightY, rightUnitWidth, rowHeight);
 
-        admOscOffsetYLabel.setBounds(col2, y, labelWidth, rowHeight);
-        admOscOffsetYEditor.setBounds(col2 + labelWidth, y, editorWidth, rowHeight);
-        admOscOffsetYUnitLabel.setBounds(col2 + labelWidth + editorWidth, y, unitWidth, rowHeight);
-
-        admOscOffsetZLabel.setBounds(col3, y, labelWidth, rowHeight);
-        admOscOffsetZEditor.setBounds(col3 + labelWidth, y, editorWidth, rowHeight);
-        admOscOffsetZUnitLabel.setBounds(col3 + labelWidth + editorWidth, y, unitWidth, rowHeight);
-        y += rowHeight + spacing;
+        admOscOffsetZLabel.setBounds(rcol3, rightY, rightLabelWidth, rowHeight);
+        admOscOffsetZEditor.setBounds(rcol3 + rightLabelWidth, rightY, rightEditorWidth, rowHeight);
+        admOscOffsetZUnitLabel.setBounds(rcol3 + rightLabelWidth + rightEditorWidth, rightY, rightUnitWidth, rowHeight);
+        rightY += rowHeight + rightRowSpacing;
 
         // Row 2: Scale X, Y, Z
-        admOscScaleXLabel.setBounds(col1, y, labelWidth, rowHeight);
-        admOscScaleXEditor.setBounds(col1 + labelWidth, y, editorWidth, rowHeight);
-        admOscScaleXUnitLabel.setBounds(col1 + labelWidth + editorWidth, y, unitWidth, rowHeight);
+        admOscScaleXLabel.setBounds(rcol1, rightY, rightLabelWidth, rowHeight);
+        admOscScaleXEditor.setBounds(rcol1 + rightLabelWidth, rightY, rightEditorWidth, rowHeight);
+        admOscScaleXUnitLabel.setBounds(rcol1 + rightLabelWidth + rightEditorWidth, rightY, rightUnitWidth, rowHeight);
 
-        admOscScaleYLabel.setBounds(col2, y, labelWidth, rowHeight);
-        admOscScaleYEditor.setBounds(col2 + labelWidth, y, editorWidth, rowHeight);
-        admOscScaleYUnitLabel.setBounds(col2 + labelWidth + editorWidth, y, unitWidth, rowHeight);
+        admOscScaleYLabel.setBounds(rcol2, rightY, rightLabelWidth, rowHeight);
+        admOscScaleYEditor.setBounds(rcol2 + rightLabelWidth, rightY, rightEditorWidth, rowHeight);
+        admOscScaleYUnitLabel.setBounds(rcol2 + rightLabelWidth + rightEditorWidth, rightY, rightUnitWidth, rowHeight);
 
-        admOscScaleZLabel.setBounds(col3, y, labelWidth, rowHeight);
-        admOscScaleZEditor.setBounds(col3 + labelWidth, y, editorWidth, rowHeight);
-        admOscScaleZUnitLabel.setBounds(col3 + labelWidth + editorWidth, y, unitWidth, rowHeight);
-        y += rowHeight + spacing;
+        admOscScaleZLabel.setBounds(rcol3, rightY, rightLabelWidth, rowHeight);
+        admOscScaleZEditor.setBounds(rcol3 + rightLabelWidth, rightY, rightEditorWidth, rowHeight);
+        admOscScaleZUnitLabel.setBounds(rcol3 + rightLabelWidth + rightEditorWidth, rightY, rightUnitWidth, rowHeight);
+        rightY += rowHeight + rightRowSpacing;
 
         // Row 3: Flip X, Y, Z
-        admOscFlipXButton.setBounds(col1, y, labelWidth + editorWidth, rowHeight);
-        admOscFlipYButton.setBounds(col2, y, labelWidth + editorWidth, rowHeight);
-        admOscFlipZButton.setBounds(col3, y, labelWidth + editorWidth, rowHeight);
-        y += rowHeight + sectionSpacing;
+        admOscFlipXButton.setBounds(rcol1, rightY, rightSubColWidth, rowHeight);
+        admOscFlipYButton.setBounds(rcol2, rightY, rightSubColWidth, rowHeight);
+        admOscFlipZButton.setBounds(rcol3, rightY, rightSubColWidth, rowHeight);
+        rightY += rowHeight + sectionSpacing;
 
-        // ==================== TRACKING SECTION ====================
-        trackingSectionY = y;
+        // --- Tracking Section ---
+        trackingSectionY = rightY;
 
-        // Row 1: Enable, Protocol, Port - align port editor with editors below
-        const int shortLabelWidth = 65;
-        const int protocolSelectorWidth = 130;
-        trackingEnabledButton.setBounds(col1, y, labelWidth + editorWidth, rowHeight);
-        trackingProtocolLabel.setBounds(col2, y, shortLabelWidth, rowHeight);
-        trackingProtocolSelector.setBounds(col2 + shortLabelWidth, y, protocolSelectorWidth, rowHeight);
-        // Align Rx Port label and editor with the Z column editors below
-        trackingPortLabel.setBounds(col3, y, labelWidth, rowHeight);
-        trackingPortEditor.setBounds(col3 + labelWidth, y, editorWidth, rowHeight);
-        y += rowHeight + spacing;
+        // Row 1: Enable, Protocol, Port - each gets a full sub-column width
+        const int protocolLabelWidth = 60;
+        const int protocolSelectorWidth = rightSubColWidth - protocolLabelWidth;
+        trackingEnabledButton.setBounds(rcol1, rightY, rightSubColWidth, rowHeight);
+        trackingProtocolLabel.setBounds(rcol2, rightY, protocolLabelWidth, rowHeight);
+        trackingProtocolSelector.setBounds(rcol2 + protocolLabelWidth, rightY, protocolSelectorWidth, rowHeight);
+        trackingPortLabel.setBounds(rcol3, rightY, rightLabelWidth, rowHeight);
+        trackingPortEditor.setBounds(rcol3 + rightLabelWidth, rightY, rightSubColWidth - rightLabelWidth, rowHeight);
+        rightY += rowHeight + rightRowSpacing;
 
         // Row 2: Offset X, Y, Z
-        trackingOffsetXLabel.setBounds(col1, y, labelWidth, rowHeight);
-        trackingOffsetXEditor.setBounds(col1 + labelWidth, y, editorWidth, rowHeight);
-        trackingOffsetXUnitLabel.setBounds(col1 + labelWidth + editorWidth, y, unitWidth, rowHeight);
+        trackingOffsetXLabel.setBounds(rcol1, rightY, rightLabelWidth, rowHeight);
+        trackingOffsetXEditor.setBounds(rcol1 + rightLabelWidth, rightY, rightEditorWidth, rowHeight);
+        trackingOffsetXUnitLabel.setBounds(rcol1 + rightLabelWidth + rightEditorWidth, rightY, rightUnitWidth, rowHeight);
 
-        trackingOffsetYLabel.setBounds(col2, y, labelWidth, rowHeight);
-        trackingOffsetYEditor.setBounds(col2 + labelWidth, y, editorWidth, rowHeight);
-        trackingOffsetYUnitLabel.setBounds(col2 + labelWidth + editorWidth, y, unitWidth, rowHeight);
+        trackingOffsetYLabel.setBounds(rcol2, rightY, rightLabelWidth, rowHeight);
+        trackingOffsetYEditor.setBounds(rcol2 + rightLabelWidth, rightY, rightEditorWidth, rowHeight);
+        trackingOffsetYUnitLabel.setBounds(rcol2 + rightLabelWidth + rightEditorWidth, rightY, rightUnitWidth, rowHeight);
 
-        trackingOffsetZLabel.setBounds(col3, y, labelWidth, rowHeight);
-        trackingOffsetZEditor.setBounds(col3 + labelWidth, y, editorWidth, rowHeight);
-        trackingOffsetZUnitLabel.setBounds(col3 + labelWidth + editorWidth, y, unitWidth, rowHeight);
-        y += rowHeight + spacing;
+        trackingOffsetZLabel.setBounds(rcol3, rightY, rightLabelWidth, rowHeight);
+        trackingOffsetZEditor.setBounds(rcol3 + rightLabelWidth, rightY, rightEditorWidth, rowHeight);
+        trackingOffsetZUnitLabel.setBounds(rcol3 + rightLabelWidth + rightEditorWidth, rightY, rightUnitWidth, rowHeight);
+        rightY += rowHeight + rightRowSpacing;
 
         // Row 3: Scale X, Y, Z
-        trackingScaleXLabel.setBounds(col1, y, labelWidth, rowHeight);
-        trackingScaleXEditor.setBounds(col1 + labelWidth, y, editorWidth, rowHeight);
-        trackingScaleXUnitLabel.setBounds(col1 + labelWidth + editorWidth, y, unitWidth, rowHeight);
+        trackingScaleXLabel.setBounds(rcol1, rightY, rightLabelWidth, rowHeight);
+        trackingScaleXEditor.setBounds(rcol1 + rightLabelWidth, rightY, rightEditorWidth, rowHeight);
+        trackingScaleXUnitLabel.setBounds(rcol1 + rightLabelWidth + rightEditorWidth, rightY, rightUnitWidth, rowHeight);
 
-        trackingScaleYLabel.setBounds(col2, y, labelWidth, rowHeight);
-        trackingScaleYEditor.setBounds(col2 + labelWidth, y, editorWidth, rowHeight);
-        trackingScaleYUnitLabel.setBounds(col2 + labelWidth + editorWidth, y, unitWidth, rowHeight);
+        trackingScaleYLabel.setBounds(rcol2, rightY, rightLabelWidth, rowHeight);
+        trackingScaleYEditor.setBounds(rcol2 + rightLabelWidth, rightY, rightEditorWidth, rowHeight);
+        trackingScaleYUnitLabel.setBounds(rcol2 + rightLabelWidth + rightEditorWidth, rightY, rightUnitWidth, rowHeight);
 
-        trackingScaleZLabel.setBounds(col3, y, labelWidth, rowHeight);
-        trackingScaleZEditor.setBounds(col3 + labelWidth, y, editorWidth, rowHeight);
-        trackingScaleZUnitLabel.setBounds(col3 + labelWidth + editorWidth, y, unitWidth, rowHeight);
-        y += rowHeight + spacing;
+        trackingScaleZLabel.setBounds(rcol3, rightY, rightLabelWidth, rowHeight);
+        trackingScaleZEditor.setBounds(rcol3 + rightLabelWidth, rightY, rightEditorWidth, rowHeight);
+        trackingScaleZUnitLabel.setBounds(rcol3 + rightLabelWidth + rightEditorWidth, rightY, rightUnitWidth, rowHeight);
+        rightY += rowHeight + rightRowSpacing;
 
         // Row 4: Flip X, Y, Z
-        trackingFlipXButton.setBounds(col1, y, labelWidth + editorWidth, rowHeight);
-        trackingFlipYButton.setBounds(col2, y, labelWidth + editorWidth, rowHeight);
-        trackingFlipZButton.setBounds(col3, y, labelWidth + editorWidth, rowHeight);
+        trackingFlipXButton.setBounds(rcol1, rightY, rightSubColWidth, rowHeight);
+        trackingFlipYButton.setBounds(rcol2, rightY, rightSubColWidth, rowHeight);
+        trackingFlipZButton.setBounds(rcol3, rightY, rightSubColWidth, rowHeight);
+        rightY += rowHeight + rightRowSpacing;
+
+        // Row 5: OSC Path (only visible when protocol is OSC)
+        const int oscPathLabelWidth = 75;
+        trackingOscPathLabel.setBounds(rcol1, rightY, oscPathLabelWidth, rowHeight);
+        trackingOscPathEditor.setBounds(rcol1 + oscPathLabelWidth, rightY, rightColumnWidth - oscPathLabelWidth, rowHeight);
 
         // ==================== FOOTER BUTTONS ====================
-        const int footerHeight = 50;
         const int footerPadding = 10;
         auto footerArea = getLocalBounds().removeFromBottom(footerHeight).reduced(footerPadding, footerPadding);
         const int buttonWidth = (footerArea.getWidth() - spacing * 4) / 5;
@@ -554,6 +572,7 @@ private:
     // Section Y positions for painting
     int admOscSectionY = 0;
     int trackingSectionY = 0;
+    int rightColumnX = 0;  // X position for right column (ADM-OSC & Tracking)
 
     // ADM-OSC Section
     juce::Label admOscOffsetXLabel;
@@ -610,6 +629,10 @@ private:
     juce::TextButton trackingFlipXButton;
     juce::TextButton trackingFlipYButton;
     juce::TextButton trackingFlipZButton;
+
+    // OSC Path for tracking (shown when protocol is OSC)
+    juce::Label trackingOscPathLabel;
+    juce::TextEditor trackingOscPathEditor;
 
     void setupAdmOscSection()
     {
@@ -738,6 +761,8 @@ private:
             {
                 parameters.setConfigParam("trackingProtocol", newProtocol);
             }
+            // Update appearance (show/hide OSC path based on protocol)
+            updateTrackingAppearance();
             // TTS: Announce selection change
             TTSManager::getInstance().announceValueChange(LOC("network.labels.protocol"), trackingProtocolSelector.getText());
         };
@@ -820,6 +845,14 @@ private:
             parameters.setConfigParam("trackingFlipZ", trackingFlipZButton.getToggleState() ? 1 : 0);
         };
 
+        // OSC Path (shown when protocol is OSC)
+        addAndMakeVisible(trackingOscPathLabel);
+        trackingOscPathLabel.setText("OSC Path:", juce::dontSendNotification);
+        addAndMakeVisible(trackingOscPathEditor);
+        trackingOscPathEditor.setText("/wfs/tracking <ID> <x> <y> <z>", juce::dontSendNotification);
+        trackingOscPathEditor.setVisible(false);  // Hidden by default
+        trackingOscPathLabel.setVisible(false);
+
         // Add text editor listeners
         trackingPortEditor.addListener(this);
         trackingOffsetXEditor.addListener(this);
@@ -828,6 +861,7 @@ private:
         trackingScaleXEditor.addListener(this);
         trackingScaleYEditor.addListener(this);
         trackingScaleZEditor.addListener(this);
+        trackingOscPathEditor.addListener(this);
     }
 
     // Helper to check if source component is or is a child of target (for ComboBox hover detection)
@@ -915,6 +949,8 @@ private:
         trackingFlipXButton.addMouseListener(this, false);
         trackingFlipYButton.addMouseListener(this, false);
         trackingFlipZButton.addMouseListener(this, false);
+        trackingOscPathLabel.addMouseListener(this, false);
+        trackingOscPathEditor.addMouseListener(this, false);
 
         // ==================== FOOTER BUTTONS ====================
         storeButton.addMouseListener(this, false);
@@ -1385,6 +1421,13 @@ private:
         trackingFlipXButton.setAlpha(alpha);
         trackingFlipYButton.setAlpha(alpha);
         trackingFlipZButton.setAlpha(alpha);
+
+        // OSC Path is only visible when protocol is OSC (ID 2)
+        bool isOscProtocol = (trackingProtocolSelector.getSelectedId() == 2);
+        trackingOscPathLabel.setVisible(isOscProtocol);
+        trackingOscPathEditor.setVisible(isOscProtocol);
+        trackingOscPathLabel.setAlpha(alpha);
+        trackingOscPathEditor.setAlpha(alpha);
     }
 
     void setupNumericEditors()
@@ -1495,6 +1538,12 @@ private:
         trackingFlipYButton.setButtonText(trackFlipY ? "Flip Y: ON" : "Flip Y: OFF");
         trackingFlipZButton.setToggleState(trackFlipZ, juce::dontSendNotification);
         trackingFlipZButton.setButtonText(trackFlipZ ? "Flip Z: ON" : "Flip Z: OFF");
+
+        // Load Tracking OSC Path
+        juce::String oscPath = parameters.getConfigParam("trackingOscPath").toString();
+        if (oscPath.isEmpty())
+            oscPath = "/wfs/tracking <ID> <x> <y> <z>";  // Default
+        trackingOscPathEditor.setText(oscPath, false);
 
         updateTrackingAppearance();
 
@@ -1626,6 +1675,8 @@ private:
             helpText = "Invert Axis of Tracking Y Coordinate.";
         else if (source == &trackingFlipZButton)
             helpText = "Invert Axis of Tracking Z Coordinate.";
+        else if (source == &trackingOscPathLabel || source == &trackingOscPathEditor)
+            helpText = "OSC message path pattern. Use <ID>, <x>, <y>, <z> as placeholders.";
 
         // ==================== FOOTER BUTTONS ====================
         else if (source == &storeButton)
@@ -1793,6 +1844,38 @@ private:
                 saveOscQueryToValueTree();
             }
         }
+        // Tracking OSC Path
+        else if (editor == &trackingOscPathEditor)
+        {
+            juce::String path = text.trim();
+            if (isValidOscPath(path))
+            {
+                parameters.setConfigParam("trackingOscPath", path);
+                editor->setColour(juce::TextEditor::outlineColourId, ColorScheme::get().buttonBorder);
+            }
+            else
+            {
+                // Invalid path - show red outline
+                editor->setColour(juce::TextEditor::outlineColourId, juce::Colours::red);
+            }
+        }
+    }
+
+    /** Validate OSC path format - must start with / and contain valid characters */
+    bool isValidOscPath(const juce::String& path)
+    {
+        if (path.isEmpty() || !path.startsWith("/"))
+            return false;
+
+        // OSC path can contain alphanumeric, /, _, -, <, >, and space (for placeholders)
+        for (int i = 0; i < path.length(); ++i)
+        {
+            juce::juce_wchar c = path[i];
+            if (!juce::CharacterFunctions::isLetterOrDigit(c) &&
+                c != '/' && c != '_' && c != '-' && c != '<' && c != '>' && c != ' ')
+                return false;
+        }
+        return true;
     }
 
     void onNetworkInterfaceChanged()
