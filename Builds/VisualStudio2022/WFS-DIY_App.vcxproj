@@ -176,6 +176,8 @@
     <ClCompile Include="..\..\Source\Network\OSCQueryServer.cpp"/>
     <ClCompile Include="..\..\Source\Network\TrackingOSCReceiver.cpp"/>
     <ClCompile Include="..\..\Source\Network\TrackingPSNReceiver.cpp"/>
+    <ClCompile Include="..\..\Source\Network\RTTrPDecoder.cpp"/>
+    <ClCompile Include="..\..\Source\Network\TrackingRTTrPReceiver.cpp"/>
     <ClCompile Include="..\..\Source\Main.cpp"/>
     <ClCompile Include="..\..\Source\MainComponent.cpp"/>
     <ClCompile Include="..\..\Source\DSP\WFSCalculationEngine.cpp"/>
@@ -3801,6 +3803,8 @@
     <ClInclude Include="..\..\Source\Network\OSCQueryServer.h"/>
     <ClInclude Include="..\..\Source\Network\TrackingOSCReceiver.h"/>
     <ClInclude Include="..\..\Source\Network\TrackingPSNReceiver.h"/>
+    <ClInclude Include="..\..\Source\Network\RTTrPDecoder.h"/>
+    <ClInclude Include="..\..\Source\Network\TrackingRTTrPReceiver.h"/>
     <ClInclude Include="..\..\Source\MainComponent.h"/>
     <ClInclude Include="..\..\Source\WfsParameters.h"/>
     <ClInclude Include="..\..\Source\WFSAlgorithm.h"/>

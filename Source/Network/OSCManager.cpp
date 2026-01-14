@@ -497,6 +497,54 @@ void OSCManager::updatePSNTransformations(float offsetX, float offsetY, float of
 }
 
 //==============================================================================
+// RTTrP Tracking
+//==============================================================================
+
+bool OSCManager::startRTTrPReceiver(int port)
+{
+    stopRTTrPReceiver();
+
+    rttrpReceiver = std::make_unique<TrackingRTTrPReceiver>(state);
+
+    if (!rttrpReceiver->start(port))
+    {
+        logger.logText("RTTrP tracking receiver failed to start on port " + juce::String(port));
+        rttrpReceiver.reset();
+        return false;
+    }
+
+    logger.logText("RTTrP tracking receiver started on port " + juce::String(port));
+    return true;
+}
+
+void OSCManager::stopRTTrPReceiver()
+{
+    if (rttrpReceiver)
+    {
+        rttrpReceiver->stop();
+        rttrpReceiver.reset();
+        logger.logText("RTTrP tracking receiver stopped");
+    }
+}
+
+bool OSCManager::isRTTrPReceiverRunning() const
+{
+    return rttrpReceiver && rttrpReceiver->isActive();
+}
+
+void OSCManager::updateRTTrPTransformations(float offsetX, float offsetY, float offsetZ,
+                                             float scaleX, float scaleY, float scaleZ,
+                                             bool flipX, bool flipY, bool flipZ)
+{
+    if (rttrpReceiver)
+    {
+        rttrpReceiver->setTransformations(offsetX, offsetY, offsetZ,
+                                           scaleX, scaleY, scaleZ,
+                                           flipX, flipY, flipZ);
+    }
+}
+
+//==============================================================================
 // Logging
 //==============================================================================
 

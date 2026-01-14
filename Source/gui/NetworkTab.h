@@ -763,7 +763,7 @@ private:
             int globalEnabled = static_cast<int>(parameters.getConfigParam("trackingEnabled"));
 
             // Auto-fill default port based on protocol selection
-            // OSC (ID 2) = 5000, PSN (ID 3) = 56565
+            // OSC (ID 2) = 5000, PSN (ID 3) = 56565, RTTrP (ID 4) = 24220
             int protocolId = trackingProtocolSelector.getSelectedId();
             if (protocolId == 2)  // OSC
             {
@@ -774,6 +774,11 @@ private:
             {
                 trackingPortEditor.setText("56565", juce::dontSendNotification);
                 parameters.setConfigParam("trackingPort", 56565);
+            }
+            else if (protocolId == 4)  // RTTrP
+            {
+                trackingPortEditor.setText("24220", juce::dontSendNotification);
+                parameters.setConfigParam("trackingPort", 24220);
             }
 
             // If enabling protocol while global tracking is on, check for conflicts
@@ -1501,10 +1506,11 @@ private:
 
         bool trackingEnabled = trackingEnabledButton.getToggleState();
         int protocolId = trackingProtocolSelector.getSelectedId();
-        bool isOscProtocol = (protocolId == 2);  // OSC = ID 2
-        bool isPsnProtocol = (protocolId == 3);  // PSN = ID 3
+        bool isOscProtocol = (protocolId == 2);   // OSC = ID 2
+        bool isPsnProtocol = (protocolId == 3);   // PSN = ID 3
+        bool isRttrpProtocol = (protocolId == 4); // RTTrP = ID 4
 
-        // Get transformation values (shared by both protocols)
+        // Get transformation values (shared by all protocols)
         float offsetX = trackingOffsetXEditor.getText().getFloatValue();
         float offsetY = trackingOffsetYEditor.getText().getFloatValue();
         float offsetZ = trackingOffsetZEditor.getText().getFloatValue();
@@ -1528,6 +1534,10 @@ private:
         if (!trackingEnabled || (!isPsnProtocol && oscManager->isPSNReceiverRunning()))
         {
             oscManager->stopPSNReceiver();
+        }
+        if (!trackingEnabled || (!isRttrpProtocol && oscManager->isRTTrPReceiverRunning()))
+        {
+            oscManager->stopRTTrPReceiver();
         }
 
         if (trackingEnabled && isOscProtocol)
@@ -1623,12 +1633,49 @@ private:
                                                      flipX, flipY, flipZ);
             }
         }
+        else if (trackingEnabled && isRttrpProtocol)
+        {
+            // Get port and validate
+            int port = trackingPortEditor.getText().getIntValue();
+            if (port <= 0 || port > 65535)
+            {
+                oscManager->stopRTTrPReceiver();
+                return;
+            }
+
+            // Start or update the RTTrP receiver
+            bool needsRestart = forceRestart || !oscManager->isRTTrPReceiverRunning();
+
+            if (needsRestart)
+            {
+                // Start (or restart) the RTTrP receiver
+                if (oscManager->startRTTrPReceiver(port))
+                {
+                    // Set initial transformations
+                    oscManager->updateRTTrPTransformations(offsetX, offsetY, offsetZ,
+                                                           scaleX, scaleY, scaleZ,
+                                                           flipX, flipY, flipZ);
+                    DBG("NetworkTab: Started RTTrP receiver on port " << port);
+                }
+                else
+                {
+                    DBG("NetworkTab: Failed to start RTTrP receiver on port " << port);
+                }
+            }
+            else
+            {
+                // Update transformations in place
+                oscManager->updateRTTrPTransformations(offsetX, offsetY, offsetZ,
+                                                       scaleX, scaleY, scaleZ,
+                                                       flipX, flipY, flipZ);
+            }
+        }
     }
 
     /**
      * Update just the tracking transformations without restarting receiver.
      * Called when offset/scale/flip values change while receiver is running.
-     * Updates both OSC and PSN receivers if they are running.
+     * Updates OSC, PSN, and RTTrP receivers if they are running.
      */
     void updateTrackingTransformations()
     {
@@ -1638,7 +1685,8 @@ private:
         // Check if any receiver is running
         bool oscRunning = oscManager->isTrackingReceiverRunning();
         bool psnRunning = oscManager->isPSNReceiverRunning();
-        if (!oscRunning && !psnRunning)
+        bool rttrpRunning = oscManager->isRTTrPReceiverRunning();
+        if (!oscRunning && !psnRunning && !rttrpRunning)
             return;
 
         float offsetX = trackingOffsetXEditor.getText().getFloatValue();
@@ -1667,6 +1715,12 @@ private:
             oscManager->updatePSNTransformations(offsetX, offsetY, offsetZ,
                                                  scaleX, scaleY, scaleZ,
                                                  flipX, flipY, flipZ);
+        }
+        if (rttrpRunning)
+        {
+            oscManager->updateRTTrPTransformations(offsetX, offsetY, offsetZ,
+                                                   scaleX, scaleY, scaleZ,
+                                                   flipX, flipY, flipZ);
         }
     }
 

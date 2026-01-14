@@ -118,6 +118,14 @@
               file="Source/Network/TrackingPSNReceiver.h"/>
         <FILE id="netPsnCpp" name="TrackingPSNReceiver.cpp" compile="1" resource="0"
               file="Source/Network/TrackingPSNReceiver.cpp"/>
+        <FILE id="netRttrpDecoderH" name="RTTrPDecoder.h" compile="0" resource="0"
+              file="Source/Network/RTTrPDecoder.h"/>
+        <FILE id="netRttrpDecoderCpp" name="RTTrPDecoder.cpp" compile="1" resource="0"
+              file="Source/Network/RTTrPDecoder.cpp"/>
+        <FILE id="netRttrpH" name="TrackingRTTrPReceiver.h" compile="0" resource="0"
+              file="Source/Network/TrackingRTTrPReceiver.h"/>
+        <FILE id="netRttrpCpp" name="TrackingRTTrPReceiver.cpp" compile="1" resource="0"
+              file="Source/Network/TrackingRTTrPReceiver.cpp"/>
       </GROUP>
       <FILE id="UJ07Xn" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>
       <FILE id="jPX7jF" name="MainComponent.h" compile="0" resource="0" file="Source/MainComponent.h"/>

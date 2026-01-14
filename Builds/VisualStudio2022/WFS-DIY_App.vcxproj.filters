@@ -1018,6 +1018,12 @@
     <ClCompile Include="..\..\Source\Network\TrackingPSNReceiver.cpp">
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Source\Network\RTTrPDecoder.cpp">
+      <Filter>WFS-DIY\Source\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Network\TrackingRTTrPReceiver.cpp">
+      <Filter>WFS-DIY\Source\Network</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\Source\Main.cpp">
       <Filter>WFS-DIY\Source</Filter>
     </ClCompile>
@@ -4999,6 +5005,12 @@
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Network\TrackingPSNReceiver.h">
+      <Filter>WFS-DIY\Source\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\RTTrPDecoder.h">
+      <Filter>WFS-DIY\Source\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\TrackingRTTrPReceiver.h">
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\MainComponent.h">

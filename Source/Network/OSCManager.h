@@ -12,6 +12,7 @@
 #include "OSCQueryServer.h"
 #include "TrackingOSCReceiver.h"
 #include "TrackingPSNReceiver.h"
+#include "TrackingRTTrPReceiver.h"
 #include "../Parameters/WFSValueTreeState.h"
 
 namespace WFSNetwork
@@ -242,6 +243,34 @@ public:
                                    bool flipX, bool flipY, bool flipZ);
 
     //==========================================================================
+    // RTTrP Tracking
+    //==========================================================================
+
+    /**
+     * Start the RTTrP tracking receiver.
+     * @param port UDP port to listen on (default 24220)
+     * @return true if started successfully
+     */
+    bool startRTTrPReceiver(int port = RTTrP::DEFAULT_PORT);
+
+    /**
+     * Stop the RTTrP tracking receiver.
+     */
+    void stopRTTrPReceiver();
+
+    /**
+     * Check if RTTrP tracking receiver is running.
+     */
+    bool isRTTrPReceiverRunning() const;
+
+    /**
+     * Update RTTrP tracking transformations (offset, scale, flip).
+     */
+    void updateRTTrPTransformations(float offsetX, float offsetY, float offsetZ,
+                                     float scaleX, float scaleY, float scaleZ,
+                                     bool flipX, bool flipY, bool flipZ);
+
+    //==========================================================================
     // Logging
     //==========================================================================
 
@@ -418,6 +447,9 @@ private:
 
     // Tracking PSN receiver
     std::unique_ptr<TrackingPSNReceiver> psnReceiver;
+
+    // Tracking RTTrP receiver
+    std::unique_ptr<TrackingRTTrPReceiver> rttrpReceiver;
 
     // REMOTE protocol state
     int remoteSelectedChannel = 1;
