@@ -860,6 +860,16 @@ void MainComponent::handleProcessingChange(bool enabled)
 {
     processingEnabled = enabled;
 
+    // When starting processing, close the audio interface window and stop test signals
+    if (processingEnabled)
+    {
+        if (audioInterfaceWindow != nullptr && audioInterfaceWindow->isVisible())
+            audioInterfaceWindow->setVisible(false);
+
+        if (testSignalGenerator != nullptr)
+            testSignalGenerator->reset();
+    }
+
     if (processingEnabled && !audioEngineStarted)
     {
         // Start audio engine on first activation
