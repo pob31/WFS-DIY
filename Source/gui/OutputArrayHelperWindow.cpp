@@ -273,9 +273,9 @@ void ArrayPreviewComponent::paint(juce::Graphics& g)
                       speakerRadius * 2, speakerRadius * 2);
 
         // Draw orientation arrow (matching MapTab convention)
-        // 0 degrees = facing back of stage (toward +Y stage, -Y screen = up)
-        // 180 degrees = facing audience (toward -Y stage, +Y screen = down)
-        float angleRad = juce::degreesToRadians(pos.orientation - 90.0f);
+        // 0 degrees = facing audience (toward -Y stage, +Y screen = down)
+        // 180 degrees = facing back of stage (toward +Y stage, -Y screen = up)
+        float angleRad = juce::degreesToRadians(pos.orientation + 90.0f);
         float arrowDx = std::cos(angleRad) * arrowLength;
         float arrowDy = std::sin(angleRad) * arrowLength;
 

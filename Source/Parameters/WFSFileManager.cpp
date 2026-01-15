@@ -2036,7 +2036,22 @@ void WFSFileManager::mergeTreeRecursive (juce::ValueTree& target, const juce::Va
     for (int i = 0; i < source.getNumChildren(); ++i)
     {
         auto sourceChild = source.getChild (i);
-        auto targetChild = target.getChildWithName (sourceChild.getType());
+        juce::ValueTree targetChild;
+
+        // For children with an "id" property (Input, Output, Reverb channels),
+        // match by both type AND id to avoid mixing up channels
+        if (sourceChild.hasProperty (id))
+        {
+            targetChild = target.getChildWithProperty (id, sourceChild.getProperty (id));
+            // Verify type also matches (in case id is used elsewhere)
+            if (targetChild.isValid() && targetChild.getType() != sourceChild.getType())
+                targetChild = juce::ValueTree();
+        }
+        else
+        {
+            // For children without id, match by type name only
+            targetChild = target.getChildWithName (sourceChild.getType());
+        }
 
         if (targetChild.isValid())
         {

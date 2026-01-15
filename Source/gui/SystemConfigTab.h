@@ -707,30 +707,36 @@ public:
         g.setColour(ColorScheme::get().chromeDivider);
         g.drawLine(0.0f, (float)(getHeight() - footerHeight), (float)getWidth(), (float)(getHeight() - footerHeight), 1.0f);
 
+        // Calculate responsive column positions
+        auto layout = calculateLayout();
+
         // Section headers (bold like NetworkTab)
         // Column 1: Show, I/O (channels only), UI
         // Column 2: Stage, Master
         // Column 3: WFS Processor, Binaural Renderer
         g.setColour(ColorScheme::get().textPrimary);
         g.setFont(juce::FontOptions().withHeight(14.0f).withStyle("Bold"));
-        g.drawText(LOC("systemConfig.sections.show"), col1X, 10, 200, 20, juce::Justification::left);
-        g.drawText(LOC("systemConfig.sections.io"), col1X, 130, 200, 20, juce::Justification::left);
-        g.drawText(LOC("systemConfig.sections.ui"), col1X, 290, 200, 20, juce::Justification::left);
-        g.drawText(LOC("systemConfig.sections.stage"), col2X, 10, 200, 20, juce::Justification::left);
-        g.drawText(LOC("systemConfig.sections.master"), col2X, 400, 200, 20, juce::Justification::left);
-        g.drawText(LOC("systemConfig.sections.wfsProcessor"), col3X, 10, 200, 20, juce::Justification::left);
-        g.drawText(LOC("systemConfig.sections.binauralRenderer"), col3X, 200, 200, 20, juce::Justification::left);
+        g.drawText(LOC("systemConfig.sections.show"), layout.col1X, 10, layout.colWidth, 20, juce::Justification::left);
+        g.drawText(LOC("systemConfig.sections.io"), layout.col1X, 130, layout.colWidth, 20, juce::Justification::left);
+        g.drawText(LOC("systemConfig.sections.ui"), layout.col1X, 290, layout.colWidth, 20, juce::Justification::left);
+        g.drawText(LOC("systemConfig.sections.stage"), layout.col2X, 10, layout.colWidth, 20, juce::Justification::left);
+        g.drawText(LOC("systemConfig.sections.master"), layout.col2X, 400, layout.colWidth, 20, juce::Justification::left);
+        g.drawText(LOC("systemConfig.sections.wfsProcessor"), layout.col3X, 10, layout.colWidth, 20, juce::Justification::left);
+        g.drawText(LOC("systemConfig.sections.binauralRenderer"), layout.col3X, 200, layout.colWidth, 20, juce::Justification::left);
     }
 
     void resized() override
     {
-        const int labelWidth = 150;
-        const int editorWidth = 200;
-        const int unitWidth = 40;
-        const int rowHeight = 30;
-        const int spacing = 5;
+        // Calculate responsive layout
+        auto layout = calculateLayout();
+        const int labelWidth = layout.labelWidth;
+        const int editorWidth = layout.editorWidth;
+        const int unitWidth = layout.unitWidth;
+        const int rowHeight = layout.rowHeight;
+        const int spacing = layout.spacing;
+        const int fullWidth = layout.colWidth;
 
-        int x = col1X;
+        int x = layout.col1X;
         int y = 40;
 
         //======================================================================
@@ -771,7 +777,7 @@ public:
         // COLUMN 2: Stage, Master
         //======================================================================
 
-        x = col2X;
+        x = layout.col2X;
         y = 40;
 
         // Stage Section
@@ -854,9 +860,8 @@ public:
         // COLUMN 3: Audio/Processing, Binaural Renderer
         //======================================================================
 
-        x = col3X;
+        x = layout.col3X;
         y = 40;
-        const int fullWidth = labelWidth + editorWidth;
 
         // Audio Interface / Processing Section
         audioPatchingButton.setBounds(x, y, fullWidth, rowHeight);
@@ -2235,12 +2240,36 @@ private:
     }
 
     //==============================================================================
-    // Member variables
+    // Layout calculation helper
 
-    // Column X positions for consistent layout
-    static constexpr int col1X = 20;
-    static constexpr int col2X = 480;
-    static constexpr int col3X = 940;
+    struct LayoutMetrics {
+        int col1X, col2X, col3X;
+        int colWidth;
+        int labelWidth, editorWidth;
+        int unitWidth = 40;
+        int rowHeight = 30;
+        int spacing = 5;
+    };
+
+    LayoutMetrics calculateLayout() const
+    {
+        LayoutMetrics m;
+        const int margin = 20;
+        const int columnGap = 30;
+        const int totalWidth = getWidth() - margin * 2;
+
+        m.colWidth = (totalWidth - columnGap * 2) / 3;
+        m.col1X = margin;
+        m.col2X = m.col1X + m.colWidth + columnGap;
+        m.col3X = m.col2X + m.colWidth + columnGap;
+        m.labelWidth = juce::jmax(100, m.colWidth * 40 / 100);
+        m.editorWidth = m.colWidth - m.labelWidth - 10;
+
+        return m;
+    }
+
+    //==============================================================================
+    // Member variables
 
     WfsParameters& parameters;
     juce::ValueTree configTree;  // Store for safe listener removal in destructor

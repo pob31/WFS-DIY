@@ -22,12 +22,12 @@ float calculateOrientationToward(float speakerX, float speakerY,
     float dx = targetX - speakerX;
     float dy = targetY - speakerY;
 
-    // In our coordinate system (matching MapTab convention):
-    // - 0 degrees = facing back of stage (toward positive Y)
+    // In our coordinate system:
+    // - 0 degrees = facing audience (toward negative Y)
     // - 90 degrees = facing right (toward positive X)
-    // - 180 degrees = facing audience (toward negative Y)
-    // atan2 returns angle from positive X axis, so we need to adjust
-    float angleRad = std::atan2(dx, dy);  // 0° is toward +Y (back of stage)
+    // - 180/-180 degrees = facing back of stage (toward positive Y)
+    // Using atan2(dx, -dy) so that 0° points toward -Y (audience)
+    float angleRad = std::atan2(dx, -dy);  // 0° is toward -Y (audience)
     float angleDeg = juce::radiansToDegrees(angleRad);
 
     return normalizeAngle(angleDeg);
@@ -196,10 +196,10 @@ std::vector<SpeakerPosition> calculateCurvedArray(
             normalY = -normalY;
         }
 
-        // Calculate orientation (matching MapTab convention):
-        // 0° = facing +Y (back of stage), 180° = facing -Y (audience)
-        // atan2(x, y) gives angle where 0 = facing +Y
-        float orientation = juce::radiansToDegrees(std::atan2(normalX, normalY));
+        // Calculate orientation:
+        // 0° = facing audience (toward -Y), 180° = facing back of stage (toward +Y)
+        // Using atan2(x, -y) so that 0° points toward -Y (audience)
+        float orientation = juce::radiansToDegrees(std::atan2(normalX, -normalY));
         orientation = normalizeAngle(orientation);
 
         positions.push_back({ x, y, z, orientation });
@@ -240,7 +240,7 @@ std::vector<SpeakerPosition> calculateCircleArray(
         float y = centerY - radius * std::cos(angleRad);
 
         // Orientation: facing inward means toward center, outward means away
-        // In our system, 0° = facing toward audience (negative Y)
+        // In our system, 0° = facing audience (-Y), 180° = facing back (+Y)
         float orientation;
         if (facingInward)
         {

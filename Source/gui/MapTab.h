@@ -2125,9 +2125,9 @@ private:
             juce::Colour membraneColor = (array == 0) ? juce::Colours::lightgrey : WfsColorUtilities::getArrayColor(array);
 
             // Draw speaker keystone shape showing orientation
-            // Orientation 0° = pointing toward back of stage (up on screen, -Y in screen coords)
-            // Orientation 180° = pointing toward audience (down on screen, +Y in screen coords)
-            float angleRad = juce::degreesToRadians(static_cast<float>(orientation) - 90.0f);
+            // Orientation 0° = pointing toward audience (down on screen, +Y in screen coords)
+            // Orientation 180° = pointing toward back of stage (up on screen, -Y in screen coords)
+            float angleRad = juce::degreesToRadians(static_cast<float>(orientation) + 90.0f);
 
             // Direction vector (where speaker points)
             float dirX = std::cos(angleRad);
