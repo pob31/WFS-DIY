@@ -27,6 +27,9 @@ public:
           reverbsTree(params.getReverbTree()),
           configTree(params.getConfigTree())
     {
+        // Don't capture keyboard focus - let MainComponent handle keyboard shortcuts
+        setWantsKeyboardFocus(false);
+
         // Add ValueTree listeners
         inputsTree.addListener(this);
         outputsTree.addListener(this);
@@ -75,6 +78,9 @@ public:
     {
         statusBar = bar;
     }
+
+    /** Get the currently selected input on the map (-1 if none) */
+    int getSelectedInput() const { return selectedInput; }
 
     void mouseEnter(const juce::MouseEvent& event) override
     {

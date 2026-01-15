@@ -1865,12 +1865,10 @@ void MainComponent::cycleChannel(int delta)
     }
 }
 
-void MainComponent::nudgeInputPosition(int axis, float delta)
+void MainComponent::nudgeInputPosition(int axis, float delta, int inputOverride)
 {
-    if (inputsTab == nullptr)
-        return;
-
-    int channel = inputsTab->getCurrentChannel() - 1;  // Convert to 0-based
+    // Use override if provided, otherwise get from InputsTab
+    int channel = (inputOverride >= 0) ? inputOverride : (inputsTab != nullptr ? inputsTab->getCurrentChannel() - 1 : -1);
     if (channel < 0)
         return;
 
@@ -1887,10 +1885,11 @@ void MainComponent::nudgeInputPosition(int axis, float delta)
     }
     bool constrained = state.getIntParameter(constraintId, channel) != 0;
 
-    // Check if tracking is enabled (globally AND on channel)
+    // Check if tracking is enabled (globally, protocol enabled, AND on channel)
     bool globalTracking = state.getIntParameter(WFSParameterIDs::trackingEnabled) != 0;
+    bool protocolEnabled = state.getIntParameter(WFSParameterIDs::trackingProtocol) != 0;
     bool channelTracking = state.getIntParameter(WFSParameterIDs::inputTrackingActive, channel) != 0;
-    bool useOffset = globalTracking && channelTracking;
+    bool useOffset = globalTracking && protocolEnabled && channelTracking;
 
     // Invert delta when flip is enabled and modifying position (not offset)
     // Offset is added AFTER flip, so offset nudge direction stays normal
@@ -1927,28 +1926,43 @@ void MainComponent::nudgeInputPosition(int axis, float delta)
     float current = state.getFloatParameter(paramId, channel);
     float newValue = current + delta;
 
-    // Apply constraints if enabled
+    // Apply constraints if enabled (matching InputsTab's getStageMin/Max methods)
     if (constrained)
     {
-        // Get stage bounds
-        float stageSize = 0.0f, origin = 0.0f;
+        float minVal = 0.0f, maxVal = 0.0f;
+        int stageShape = static_cast<int>(parameters.getConfigParam("StageShape"));
+
         switch (axis)
         {
-            case 0:  // X
-                stageSize = static_cast<float>(parameters.getConfigParam("StageWidth"));
-                origin = static_cast<float>(parameters.getConfigParam("StageOriginWidth"));
+            case 0:  // X - uses half size (center-referenced)
+            {
+                float halfSize = (stageShape == 0)
+                    ? static_cast<float>(parameters.getConfigParam("StageWidth")) / 2.0f
+                    : static_cast<float>(parameters.getConfigParam("StageDiameter")) / 2.0f;
+                float origin = static_cast<float>(parameters.getConfigParam("StageOriginWidth"));
+                minVal = -halfSize - origin;
+                maxVal = halfSize - origin;
                 break;
-            case 1:  // Y
-                stageSize = static_cast<float>(parameters.getConfigParam("StageDepth"));
-                origin = static_cast<float>(parameters.getConfigParam("StageOriginDepth"));
+            }
+            case 1:  // Y - uses half size (center-referenced)
+            {
+                float halfSize = (stageShape == 0)
+                    ? static_cast<float>(parameters.getConfigParam("StageDepth")) / 2.0f
+                    : static_cast<float>(parameters.getConfigParam("StageDiameter")) / 2.0f;
+                float origin = static_cast<float>(parameters.getConfigParam("StageOriginDepth"));
+                minVal = -halfSize - origin;
+                maxVal = halfSize - origin;
                 break;
-            case 2:  // Z
-                stageSize = static_cast<float>(parameters.getConfigParam("StageHeight"));
-                origin = static_cast<float>(parameters.getConfigParam("StageOriginHeight"));
+            }
+            case 2:  // Z - uses direct size (floor-referenced)
+            {
+                float stageSize = static_cast<float>(parameters.getConfigParam("StageHeight"));
+                float origin = static_cast<float>(parameters.getConfigParam("StageOriginHeight"));
+                minVal = -origin;
+                maxVal = stageSize - origin;
                 break;
+            }
         }
-        float minVal = -origin;
-        float maxVal = stageSize - origin;
         newValue = juce::jlimit(minVal, maxVal, newValue);
     }
 
@@ -2389,6 +2403,52 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
         {
             nudgeReverbPosition(2, -nudgeAmount);  // Z- (height)
             return true;
+        }
+    }
+
+    // Map tab (index 6) - nudge selected input
+    if (currentTabIndex == 6 && mapTab != nullptr)
+    {
+        int selectedInput = mapTab->getSelectedInput();
+        if (selectedInput >= 0)
+        {
+            bool nudged = false;
+            if (key.isKeyCode(juce::KeyPress::leftKey))
+            {
+                nudgeInputPosition(0, -nudgeAmount, selectedInput);  // X-
+                nudged = true;
+            }
+            else if (key.isKeyCode(juce::KeyPress::rightKey))
+            {
+                nudgeInputPosition(0, nudgeAmount, selectedInput);   // X+
+                nudged = true;
+            }
+            else if (key.isKeyCode(juce::KeyPress::upKey))
+            {
+                nudgeInputPosition(1, nudgeAmount, selectedInput);   // Y+ (depth)
+                nudged = true;
+            }
+            else if (key.isKeyCode(juce::KeyPress::downKey))
+            {
+                nudgeInputPosition(1, -nudgeAmount, selectedInput);  // Y- (depth)
+                nudged = true;
+            }
+            else if (key.isKeyCode(juce::KeyPress::pageUpKey))
+            {
+                nudgeInputPosition(2, nudgeAmount, selectedInput);   // Z+ (height)
+                nudged = true;
+            }
+            else if (key.isKeyCode(juce::KeyPress::pageDownKey))
+            {
+                nudgeInputPosition(2, -nudgeAmount, selectedInput);  // Z- (height)
+                nudged = true;
+            }
+
+            if (nudged)
+            {
+                mapTab->repaint();  // Trigger visual update
+                return true;
+            }
         }
     }
 

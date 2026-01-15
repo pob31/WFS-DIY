@@ -247,7 +247,7 @@ private:
     void cancelChannelSelection();
     void confirmChannelSelection();
     void cycleChannel(int delta);
-    void nudgeInputPosition(int axis, float delta);   // axis: 0=X, 1=Y, 2=Z
+    void nudgeInputPosition(int axis, float delta, int inputOverride = -1);  // axis: 0=X, 1=Y, 2=Z
     void nudgeOutputPosition(int axis, float delta);  // axis: 0=X, 1=Y, 2=Z
     void nudgeReverbPosition(int axis, float delta);  // axis: 0=X, 1=Y, 2=Z
 
