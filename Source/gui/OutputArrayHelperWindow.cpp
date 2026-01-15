@@ -272,11 +272,11 @@ void ArrayPreviewComponent::paint(juce::Graphics& g)
         g.fillEllipse(screenPos.x - speakerRadius, screenPos.y - speakerRadius,
                       speakerRadius * 2, speakerRadius * 2);
 
-        // Draw orientation arrow (matching MapTab convention)
+        // Draw orientation arrow
         // 0 degrees = facing audience (toward -Y stage, +Y screen = down)
         // 180 degrees = facing back of stage (toward +Y stage, -Y screen = up)
-        float angleRad = juce::degreesToRadians(pos.orientation + 90.0f);
-        float arrowDx = std::cos(angleRad) * arrowLength;
+        float angleRad = juce::degreesToRadians(90.0f - pos.orientation);
+        float arrowDx = -std::cos(angleRad) * arrowLength;  // Negate X to fix left/right
         float arrowDy = std::sin(angleRad) * arrowLength;
 
         g.setColour(ColorScheme::get().textPrimary);
@@ -1110,7 +1110,7 @@ void OutputArrayHelperContent::loadPresetDefaults(ArrayPresetType preset)
             startYEditor.setText("-0.5");
             endXEditor.setText("4");
             endYEditor.setText("-0.5");
-            orientationEditor.setText("180");  // Face audience (-Y)
+            orientationEditor.setText("0");  // Face audience (0° = toward -Y)
             break;
 
         case ArrayPresetType::NearFieldCurved:
@@ -1131,7 +1131,7 @@ void OutputArrayHelperContent::loadPresetDefaults(ArrayPresetType preset)
             startYEditor.setText("-0.5");
             endXEditor.setText("8");
             endYEditor.setText("-0.5");
-            orientationEditor.setText("180");  // Face audience (-Y)
+            orientationEditor.setText("0");  // Face audience (0° = toward -Y)
             break;
 
         case ArrayPresetType::SubBass:
@@ -1143,7 +1143,7 @@ void OutputArrayHelperContent::loadPresetDefaults(ArrayPresetType preset)
             startYEditor.setText("0");
             endXEditor.setText("8");
             endYEditor.setText("0");
-            orientationEditor.setText("180");  // Face audience (-Y)
+            orientationEditor.setText("0");  // Face audience (0° = toward -Y)
             // Select endpoints method by default for sub bass
             endpointsRadio.setToggleState(true, juce::dontSendNotification);
             break;
@@ -1165,6 +1165,7 @@ void OutputArrayHelperContent::loadPresetDefaults(ArrayPresetType preset)
             startYEditor.setText("-12");
             endXEditor.setText("6");
             endYEditor.setText("-12");
+            orientationEditor.setText("0");  // Face audience (0° = toward -Y)
             break;
 
         case ArrayPresetType::Circle:
@@ -1235,7 +1236,7 @@ void OutputArrayHelperContent::autoCalculatePreview()
 
         case ArrayPresetType::DelayLine:
         {
-            float delayOrientation = frontFacingRadio.getToggleState() ? 180.0f : 0.0f;  // Front=audience, Back=stage
+            float delayOrientation = frontFacingRadio.getToggleState() ? 0.0f : 180.0f;  // Front=audience (0°), Back=stage (180°)
             if (centerSpacingRadio.getToggleState() && config.supportsCenterSpacing)
             {
                 float cx = centerXEditor.getText().getFloatValue();
@@ -1343,7 +1344,7 @@ void OutputArrayHelperContent::calculatePositions()
 
         case ArrayPresetType::DelayLine:
         {
-            float delayOrientation = frontFacingRadio.getToggleState() ? 180.0f : 0.0f;  // Front=audience, Back=stage
+            float delayOrientation = frontFacingRadio.getToggleState() ? 0.0f : 180.0f;  // Front=audience (0°), Back=stage (180°)
             if (centerSpacingRadio.getToggleState() && config.supportsCenterSpacing)
             {
                 float cx = centerXEditor.getText().getFloatValue();

@@ -26,8 +26,8 @@ float calculateOrientationToward(float speakerX, float speakerY,
     // - 0 degrees = facing audience (toward negative Y)
     // - 90 degrees = facing right (toward positive X)
     // - 180/-180 degrees = facing back of stage (toward positive Y)
-    // Using atan2(dx, -dy) so that 0° points toward -Y (audience)
-    float angleRad = std::atan2(dx, -dy);  // 0° is toward -Y (audience)
+    // Using atan2(-dx, -dy) so that 0° points toward -Y, clockwise positive
+    float angleRad = std::atan2(-dx, -dy);  // 0° is toward -Y (audience), clockwise positive
     float angleDeg = juce::radiansToDegrees(angleRad);
 
     return normalizeAngle(angleDeg);
@@ -198,8 +198,8 @@ std::vector<SpeakerPosition> calculateCurvedArray(
 
         // Calculate orientation:
         // 0° = facing audience (toward -Y), 180° = facing back of stage (toward +Y)
-        // Using atan2(x, -y) so that 0° points toward -Y (audience)
-        float orientation = juce::radiansToDegrees(std::atan2(normalX, -normalY));
+        // Using atan2(-x, -y) so that 0° points toward -Y, clockwise positive
+        float orientation = juce::radiansToDegrees(std::atan2(-normalX, -normalY));
         orientation = normalizeAngle(orientation);
 
         positions.push_back({ x, y, z, orientation });
@@ -282,12 +282,12 @@ std::vector<SpeakerPosition> calculateSurroundPairs(
         float y = yStart + t * (yEnd - yStart);
 
         // Left speaker (facing right, toward center)
-        // 90° = facing toward positive X
-        positions.push_back({ centerX - width, y, z, 90.0f });
+        // -90° = facing toward positive X (right)
+        positions.push_back({ centerX - width, y, z, -90.0f });
 
         // Right speaker (facing left, toward center)
-        // -90° or 270° = facing toward negative X
-        positions.push_back({ centerX + width, y, z, -90.0f });
+        // 90° = facing toward negative X (left)
+        positions.push_back({ centerX + width, y, z, 90.0f });
     }
 
     return positions;
