@@ -1609,7 +1609,19 @@ float OSCManager::applyConstraintX(int channelIndex, float value) const
     int constraint = constraintVar.isInt() ? static_cast<int>(constraintVar) : 1;
 
     if (constraint != 0)
+    {
+        // Check if distance constraint should take precedence over rectangular X bound
+        juce::var coordModeVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputCoordinateMode);
+        int coordMode = coordModeVar.isInt() ? static_cast<int>(coordModeVar) : 0;
+        juce::var constraintDistVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputConstraintDistance);
+        int constraintDist = constraintDistVar.isInt() ? static_cast<int>(constraintDistVar) : 0;
+
+        // Skip rectangular X bound in cylindrical/spherical mode when distance constraint is enabled
+        if ((coordMode == 1 || coordMode == 2) && constraintDist != 0)
+            return value;
+
         return juce::jlimit(getStageMinX(), getStageMaxX(), value);
+    }
 
     return value;
 }
@@ -1620,7 +1632,19 @@ float OSCManager::applyConstraintY(int channelIndex, float value) const
     int constraint = constraintVar.isInt() ? static_cast<int>(constraintVar) : 1;
 
     if (constraint != 0)
+    {
+        // Check if distance constraint should take precedence over rectangular Y bound
+        juce::var coordModeVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputCoordinateMode);
+        int coordMode = coordModeVar.isInt() ? static_cast<int>(coordModeVar) : 0;
+        juce::var constraintDistVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputConstraintDistance);
+        int constraintDist = constraintDistVar.isInt() ? static_cast<int>(constraintDistVar) : 0;
+
+        // Skip rectangular Y bound in cylindrical/spherical mode when distance constraint is enabled
+        if ((coordMode == 1 || coordMode == 2) && constraintDist != 0)
+            return value;
+
         return juce::jlimit(getStageMinY(), getStageMaxY(), value);
+    }
 
     return value;
 }
@@ -1631,7 +1655,19 @@ float OSCManager::applyConstraintZ(int channelIndex, float value) const
     int constraint = constraintVar.isInt() ? static_cast<int>(constraintVar) : 1;
 
     if (constraint != 0)
+    {
+        // Check if distance constraint should take precedence over rectangular Z bound
+        juce::var coordModeVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputCoordinateMode);
+        int coordMode = coordModeVar.isInt() ? static_cast<int>(coordModeVar) : 0;
+        juce::var constraintDistVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputConstraintDistance);
+        int constraintDist = constraintDistVar.isInt() ? static_cast<int>(constraintDistVar) : 0;
+
+        // Skip rectangular Z bound in spherical mode when distance constraint is enabled
+        if (coordMode == 2 && constraintDist != 0)
+            return value;
+
         return juce::jlimit(0.0f, getStageMaxZ(), value);
+    }
 
     return value;
 }

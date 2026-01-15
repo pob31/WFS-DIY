@@ -1179,35 +1179,60 @@ private:
             // Check constraint states
             bool constrainX = constraintXButton.getToggleState();
             bool constrainY = constraintYButton.getToggleState();
+            bool constrainDist = constraintDistanceButton.getToggleState();
+            int coordMode = static_cast<int>(parameters.getInputParam(currentChannel - 1, "inputCoordinateMode"));
+            bool useDistanceConstraint = (coordMode == 1 || coordMode == 2) && constrainDist;
 
             if (useOffset)
             {
                 // Update Offset X/Y when tracking is fully active
-                float currentX = offsetXEditor.getText().getFloatValue();
-                float currentY = offsetYEditor.getText().getFloatValue();
-                float newX = currentX + deltaX;
-                float newY = currentY + deltaY;
+                float currentOffsetX = offsetXEditor.getText().getFloatValue();
+                float currentOffsetY = offsetYEditor.getText().getFloatValue();
+                float newOffsetX = currentOffsetX + deltaX;
+                float newOffsetY = currentOffsetY + deltaY;
 
-                // Apply constraints if enabled (position + offset must be within bounds)
-                if (constrainX)
+                // Get base position for constraint calculation
+                float posX = posXEditor.getText().getFloatValue();
+                float posY = posYEditor.getText().getFloatValue();
+                float totalX = posX + newOffsetX;
+                float totalY = posY + newOffsetY;
+
+                if (useDistanceConstraint)
                 {
-                    float posX = posXEditor.getText().getFloatValue();
-                    float totalX = posX + newX;
-                    totalX = juce::jlimit(getStageMinX(), getStageMaxX(), totalX);
-                    newX = totalX - posX;
+                    // Apply distance constraint (circular/spherical bounds)
+                    float minDist = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputConstraintDistanceMin"));
+                    float maxDist = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputConstraintDistanceMax"));
+                    float currentDist = std::sqrt(totalX * totalX + totalY * totalY);
+                    if (currentDist < 0.0001f) currentDist = 0.0001f;
+                    float targetDist = juce::jlimit(minDist, maxDist, currentDist);
+                    if (!juce::approximatelyEqual(currentDist, targetDist))
+                    {
+                        float distScale = targetDist / currentDist;
+                        totalX *= distScale;
+                        totalY *= distScale;
+                    }
+                    newOffsetX = totalX - posX;
+                    newOffsetY = totalY - posY;
                 }
-                if (constrainY)
+                else
                 {
-                    float posY = posYEditor.getText().getFloatValue();
-                    float totalY = posY + newY;
-                    totalY = juce::jlimit(getStageMinY(), getStageMaxY(), totalY);
-                    newY = totalY - posY;
+                    // Apply rectangular constraints if enabled
+                    if (constrainX)
+                    {
+                        totalX = juce::jlimit(getStageMinX(), getStageMaxX(), totalX);
+                        newOffsetX = totalX - posX;
+                    }
+                    if (constrainY)
+                    {
+                        totalY = juce::jlimit(getStageMinY(), getStageMaxY(), totalY);
+                        newOffsetY = totalY - posY;
+                    }
                 }
 
-                offsetXEditor.setText(juce::String(newX, 2), juce::dontSendNotification);
-                offsetYEditor.setText(juce::String(newY, 2), juce::dontSendNotification);
-                saveInputParam(WFSParameterIDs::inputOffsetX, newX);
-                saveInputParam(WFSParameterIDs::inputOffsetY, newY);
+                offsetXEditor.setText(juce::String(newOffsetX, 2), juce::dontSendNotification);
+                offsetYEditor.setText(juce::String(newOffsetY, 2), juce::dontSendNotification);
+                saveInputParam(WFSParameterIDs::inputOffsetX, newOffsetX);
+                saveInputParam(WFSParameterIDs::inputOffsetY, newOffsetY);
             }
             else
             {
@@ -1217,11 +1242,29 @@ private:
                 float newX = currentX + deltaX;
                 float newY = currentY + deltaY;
 
-                // Apply constraints if enabled
-                if (constrainX)
-                    newX = juce::jlimit(getStageMinX(), getStageMaxX(), newX);
-                if (constrainY)
-                    newY = juce::jlimit(getStageMinY(), getStageMaxY(), newY);
+                if (useDistanceConstraint)
+                {
+                    // Apply distance constraint (circular/spherical bounds)
+                    float minDist = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputConstraintDistanceMin"));
+                    float maxDist = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputConstraintDistanceMax"));
+                    float currentDist = std::sqrt(newX * newX + newY * newY);
+                    if (currentDist < 0.0001f) currentDist = 0.0001f;
+                    float targetDist = juce::jlimit(minDist, maxDist, currentDist);
+                    if (!juce::approximatelyEqual(currentDist, targetDist))
+                    {
+                        float distScale = targetDist / currentDist;
+                        newX *= distScale;
+                        newY *= distScale;
+                    }
+                }
+                else
+                {
+                    // Apply rectangular constraints if enabled
+                    if (constrainX)
+                        newX = juce::jlimit(getStageMinX(), getStageMaxX(), newX);
+                    if (constrainY)
+                        newY = juce::jlimit(getStageMinY(), getStageMaxY(), newY);
+                }
 
                 posXEditor.setText(juce::String(newX, 2), juce::dontSendNotification);
                 posYEditor.setText(juce::String(newY, 2), juce::dontSendNotification);
@@ -1257,26 +1300,60 @@ private:
             if (!useOffset && flipZButton.getToggleState())
                 deltaZ = -deltaZ;
 
-            // Check constraint state
+            // Check constraint states
             bool constrainZ = constraintZButton.getToggleState();
+            bool constrainDist = constraintDistanceButton.getToggleState();
+            int coordMode = static_cast<int>(parameters.getInputParam(currentChannel - 1, "inputCoordinateMode"));
+            bool useDistanceConstraint = (coordMode == 2) && constrainDist;  // Only spherical for Z
 
             if (useOffset)
             {
                 // Update Offset Z when tracking is fully active
-                float currentZ = offsetZEditor.getText().getFloatValue();
-                float newZ = currentZ + deltaZ;
+                float currentOffsetZ = offsetZEditor.getText().getFloatValue();
+                float newOffsetZ = currentOffsetZ + deltaZ;
 
-                // Apply constraint if enabled (position + offset must be within bounds)
-                if (constrainZ)
+                if (useDistanceConstraint)
                 {
+                    // Spherical mode: Z affects total distance, so apply distance constraint
+                    float posX = posXEditor.getText().getFloatValue();
+                    float posY = posYEditor.getText().getFloatValue();
                     float posZ = posZEditor.getText().getFloatValue();
-                    float totalZ = posZ + newZ;
+                    float offsetX = offsetXEditor.getText().getFloatValue();
+                    float offsetY = offsetYEditor.getText().getFloatValue();
+                    float totalX = posX + offsetX;
+                    float totalY = posY + offsetY;
+                    float totalZ = posZ + newOffsetZ;
+
+                    float minDist = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputConstraintDistanceMin"));
+                    float maxDist = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputConstraintDistanceMax"));
+                    float currentDist = std::sqrt(totalX * totalX + totalY * totalY + totalZ * totalZ);
+                    if (currentDist < 0.0001f) currentDist = 0.0001f;
+                    float targetDist = juce::jlimit(minDist, maxDist, currentDist);
+                    if (!juce::approximatelyEqual(currentDist, targetDist))
+                    {
+                        float distScale = targetDist / currentDist;
+                        totalX *= distScale;
+                        totalY *= distScale;
+                        totalZ *= distScale;
+                        // Update all offsets
+                        offsetXEditor.setText(juce::String(totalX - posX, 2), juce::dontSendNotification);
+                        offsetYEditor.setText(juce::String(totalY - posY, 2), juce::dontSendNotification);
+                        saveInputParam(WFSParameterIDs::inputOffsetX, totalX - posX);
+                        saveInputParam(WFSParameterIDs::inputOffsetY, totalY - posY);
+                        newOffsetZ = totalZ - posZ;
+                    }
+                }
+                else if (constrainZ)
+                {
+                    // Rectangular Z constraint
+                    float posZ = posZEditor.getText().getFloatValue();
+                    float totalZ = posZ + newOffsetZ;
                     totalZ = juce::jlimit(getStageMinZ(), getStageMaxZ(), totalZ);
-                    newZ = totalZ - posZ;
+                    newOffsetZ = totalZ - posZ;
                 }
 
-                offsetZEditor.setText(juce::String(newZ, 2), juce::dontSendNotification);
-                saveInputParam(WFSParameterIDs::inputOffsetZ, newZ);
+                offsetZEditor.setText(juce::String(newOffsetZ, 2), juce::dontSendNotification);
+                saveInputParam(WFSParameterIDs::inputOffsetZ, newOffsetZ);
             }
             else
             {
@@ -1284,9 +1361,35 @@ private:
                 float currentZ = posZEditor.getText().getFloatValue();
                 float newZ = currentZ + deltaZ;
 
-                // Apply constraint if enabled
-                if (constrainZ)
+                if (useDistanceConstraint)
+                {
+                    // Spherical mode: Z affects total distance, so apply distance constraint
+                    float posX = posXEditor.getText().getFloatValue();
+                    float posY = posYEditor.getText().getFloatValue();
+
+                    float minDist = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputConstraintDistanceMin"));
+                    float maxDist = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputConstraintDistanceMax"));
+                    float currentDist = std::sqrt(posX * posX + posY * posY + newZ * newZ);
+                    if (currentDist < 0.0001f) currentDist = 0.0001f;
+                    float targetDist = juce::jlimit(minDist, maxDist, currentDist);
+                    if (!juce::approximatelyEqual(currentDist, targetDist))
+                    {
+                        float distScale = targetDist / currentDist;
+                        float newX = posX * distScale;
+                        float newY = posY * distScale;
+                        newZ *= distScale;
+                        // Update X and Y positions too
+                        posXEditor.setText(juce::String(newX, 2), juce::dontSendNotification);
+                        posYEditor.setText(juce::String(newY, 2), juce::dontSendNotification);
+                        saveInputParam(WFSParameterIDs::inputPositionX, newX);
+                        saveInputParam(WFSParameterIDs::inputPositionY, newY);
+                    }
+                }
+                else if (constrainZ)
+                {
+                    // Rectangular Z constraint
                     newZ = juce::jlimit(getStageMinZ(), getStageMaxZ(), newZ);
+                }
 
                 posZEditor.setText(juce::String(newZ, 2), juce::dontSendNotification);
                 saveInputParam(WFSParameterIDs::inputPositionZ, newZ);
@@ -4984,13 +5087,42 @@ private:
             auto coordMode = static_cast<WFSCoordinates::Mode>(mode);
             auto cart = WFSCoordinates::displayToCartesian(coordMode, v1, v2, v3);
 
-            // Apply constraints in Cartesian space
-            if (constraintXButton.getToggleState())
-                cart.x = juce::jlimit(getStageMinX(), getStageMaxX(), cart.x);
-            if (constraintYButton.getToggleState())
-                cart.y = juce::jlimit(getStageMinY(), getStageMaxY(), cart.y);
-            if (constraintZButton.getToggleState())
-                cart.z = juce::jlimit(getStageMinZ(), getStageMaxZ(), cart.z);
+            // Check if distance constraint should be used
+            bool constrainDist = constraintDistanceButton.getToggleState();
+            bool useDistanceConstraint = (mode == 1 || mode == 2) && constrainDist;
+
+            if (useDistanceConstraint)
+            {
+                // Apply distance constraint (circular for cylindrical, spherical for spherical)
+                float minDist = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputConstraintDistanceMin"));
+                float maxDist = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputConstraintDistanceMax"));
+                float currentDist = (mode == 1)
+                    ? std::sqrt(cart.x * cart.x + cart.y * cart.y)
+                    : std::sqrt(cart.x * cart.x + cart.y * cart.y + cart.z * cart.z);
+                if (currentDist < 0.0001f) currentDist = 0.0001f;
+                float targetDist = juce::jlimit(minDist, maxDist, currentDist);
+                if (!juce::approximatelyEqual(currentDist, targetDist))
+                {
+                    float distScale = targetDist / currentDist;
+                    cart.x *= distScale;
+                    cart.y *= distScale;
+                    if (mode == 2)  // Spherical: also scale Z
+                        cart.z *= distScale;
+                }
+                // Apply Z rectangular constraint in cylindrical mode (distance only constrains XY)
+                if (mode == 1 && constraintZButton.getToggleState())
+                    cart.z = juce::jlimit(getStageMinZ(), getStageMaxZ(), cart.z);
+            }
+            else
+            {
+                // Apply rectangular constraints in Cartesian space
+                if (constraintXButton.getToggleState())
+                    cart.x = juce::jlimit(getStageMinX(), getStageMaxX(), cart.x);
+                if (constraintYButton.getToggleState())
+                    cart.y = juce::jlimit(getStageMinY(), getStageMaxY(), cart.y);
+                if (constraintZButton.getToggleState())
+                    cart.z = juce::jlimit(getStageMinZ(), getStageMaxZ(), cart.z);
+            }
 
             // Save Cartesian values
             saveInputParam(WFSParameterIDs::inputPositionX, cart.x);
@@ -5001,41 +5133,83 @@ private:
             updatePositionLabelsAndValues();
         }
         // Offset editors - also apply constraints (position + offset must be within bounds)
-        else if (&editor == &offsetXEditor)
+        else if (&editor == &offsetXEditor || &editor == &offsetYEditor || &editor == &offsetZEditor)
         {
-            float value = editor.getText().getFloatValue();
-            if (constraintXButton.getToggleState())
+            // Get all offset values
+            float offsetX = offsetXEditor.getText().getFloatValue();
+            float offsetY = offsetYEditor.getText().getFloatValue();
+            float offsetZ = offsetZEditor.getText().getFloatValue();
+
+            // Get all position values
+            float posX = posXEditor.getText().getFloatValue();
+            float posY = posYEditor.getText().getFloatValue();
+            float posZ = posZEditor.getText().getFloatValue();
+
+            // Calculate total positions
+            float totalX = posX + offsetX;
+            float totalY = posY + offsetY;
+            float totalZ = posZ + offsetZ;
+
+            // Check if distance constraint should be used
+            int mode = static_cast<int>(parameters.getInputParam(currentChannel - 1, "inputCoordinateMode"));
+            bool constrainDist = constraintDistanceButton.getToggleState();
+            bool useDistanceConstraint = (mode == 1 || mode == 2) && constrainDist;
+
+            if (useDistanceConstraint)
             {
-                float posX = posXEditor.getText().getFloatValue();
-                float totalX = juce::jlimit(getStageMinX(), getStageMaxX(), posX + value);
-                value = totalX - posX;
+                // Apply distance constraint (circular for cylindrical, spherical for spherical)
+                float minDist = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputConstraintDistanceMin"));
+                float maxDist = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputConstraintDistanceMax"));
+                float currentDist = (mode == 1)
+                    ? std::sqrt(totalX * totalX + totalY * totalY)
+                    : std::sqrt(totalX * totalX + totalY * totalY + totalZ * totalZ);
+                if (currentDist < 0.0001f) currentDist = 0.0001f;
+                float targetDist = juce::jlimit(minDist, maxDist, currentDist);
+                if (!juce::approximatelyEqual(currentDist, targetDist))
+                {
+                    float distScale = targetDist / currentDist;
+                    totalX *= distScale;
+                    totalY *= distScale;
+                    if (mode == 2)  // Spherical: also scale Z
+                        totalZ *= distScale;
+                    offsetX = totalX - posX;
+                    offsetY = totalY - posY;
+                    offsetZ = totalZ - posZ;
+                }
+                // Apply Z rectangular constraint in cylindrical mode
+                if (mode == 1 && constraintZButton.getToggleState())
+                {
+                    totalZ = juce::jlimit(getStageMinZ(), getStageMaxZ(), totalZ);
+                    offsetZ = totalZ - posZ;
+                }
             }
-            editor.setText(juce::String(value, 2), juce::dontSendNotification);
-            saveInputParam(WFSParameterIDs::inputOffsetX, value);
-        }
-        else if (&editor == &offsetYEditor)
-        {
-            float value = editor.getText().getFloatValue();
-            if (constraintYButton.getToggleState())
+            else
             {
-                float posY = posYEditor.getText().getFloatValue();
-                float totalY = juce::jlimit(getStageMinY(), getStageMaxY(), posY + value);
-                value = totalY - posY;
+                // Apply rectangular constraints
+                if (constraintXButton.getToggleState())
+                {
+                    totalX = juce::jlimit(getStageMinX(), getStageMaxX(), totalX);
+                    offsetX = totalX - posX;
+                }
+                if (constraintYButton.getToggleState())
+                {
+                    totalY = juce::jlimit(getStageMinY(), getStageMaxY(), totalY);
+                    offsetY = totalY - posY;
+                }
+                if (constraintZButton.getToggleState())
+                {
+                    totalZ = juce::jlimit(getStageMinZ(), getStageMaxZ(), totalZ);
+                    offsetZ = totalZ - posZ;
+                }
             }
-            editor.setText(juce::String(value, 2), juce::dontSendNotification);
-            saveInputParam(WFSParameterIDs::inputOffsetY, value);
-        }
-        else if (&editor == &offsetZEditor)
-        {
-            float value = editor.getText().getFloatValue();
-            if (constraintZButton.getToggleState())
-            {
-                float posZ = posZEditor.getText().getFloatValue();
-                float totalZ = juce::jlimit(getStageMinZ(), getStageMaxZ(), posZ + value);
-                value = totalZ - posZ;
-            }
-            editor.setText(juce::String(value, 2), juce::dontSendNotification);
-            saveInputParam(WFSParameterIDs::inputOffsetZ, value);
+
+            // Update displays and save all offset values
+            offsetXEditor.setText(juce::String(offsetX, 2), juce::dontSendNotification);
+            offsetYEditor.setText(juce::String(offsetY, 2), juce::dontSendNotification);
+            offsetZEditor.setText(juce::String(offsetZ, 2), juce::dontSendNotification);
+            saveInputParam(WFSParameterIDs::inputOffsetX, offsetX);
+            saveInputParam(WFSParameterIDs::inputOffsetY, offsetY);
+            saveInputParam(WFSParameterIDs::inputOffsetZ, offsetZ);
         }
         // AutomOtion tab - Destination editors
         else if (&editor == &otomoDestXEditor)
@@ -5940,18 +6114,18 @@ private:
 
         if (!juce::approximatelyEqual(currentDist, targetDist))
         {
-            float scale = targetDist / currentDist;
+            float distScale = targetDist / currentDist;
 
             if (coordMode == 1)  // Cylindrical: scale X/Y only
             {
-                x *= scale;
-                y *= scale;
+                x *= distScale;
+                y *= distScale;
             }
             else if (coordMode == 2)  // Spherical: scale all axes
             {
-                x *= scale;
-                y *= scale;
-                z *= scale;
+                x *= distScale;
+                y *= distScale;
+                z *= distScale;
             }
         }
     }

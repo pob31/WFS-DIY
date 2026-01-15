@@ -1935,41 +1935,56 @@ void MainComponent::nudgeInputPosition(int axis, float delta, int inputOverride)
     // Apply constraints if enabled (matching InputsTab's getStageMin/Max methods)
     if (constrained)
     {
-        float minVal = 0.0f, maxVal = 0.0f;
-        int stageShape = static_cast<int>(parameters.getConfigParam("StageShape"));
+        // Check if we should skip rectangular X/Y constraint in favor of distance constraint
+        int coordMode = state.getIntParameter(WFSParameterIDs::inputCoordinateMode, channel);
+        int constraintDist = state.getIntParameter(WFSParameterIDs::inputConstraintDistance, channel);
+        bool useDistanceConstraint = (coordMode == 1 || coordMode == 2) && (constraintDist != 0);
 
-        switch (axis)
+        // In cylindrical mode with distance constraint, skip X/Y rectangular bounds
+        // In spherical mode with distance constraint, skip X/Y/Z rectangular bounds
+        // (distance constraint below will handle circular/spherical bounds instead)
+        bool skipRectangularBounds = useDistanceConstraint &&
+            ((coordMode == 1 && (axis == 0 || axis == 1)) ||   // Cylindrical: skip X/Y
+             (coordMode == 2));                                  // Spherical: skip X/Y/Z
+
+        if (!skipRectangularBounds)
         {
-            case 0:  // X - uses half size (center-referenced)
+            float minVal = 0.0f, maxVal = 0.0f;
+            int stageShape = static_cast<int>(parameters.getConfigParam("StageShape"));
+
+            switch (axis)
             {
-                float halfSize = (stageShape == 0)
-                    ? static_cast<float>(parameters.getConfigParam("StageWidth")) / 2.0f
-                    : static_cast<float>(parameters.getConfigParam("StageDiameter")) / 2.0f;
-                float origin = static_cast<float>(parameters.getConfigParam("StageOriginWidth"));
-                minVal = -halfSize - origin;
-                maxVal = halfSize - origin;
-                break;
+                case 0:  // X - uses half size (center-referenced)
+                {
+                    float halfSize = (stageShape == 0)
+                        ? static_cast<float>(parameters.getConfigParam("StageWidth")) / 2.0f
+                        : static_cast<float>(parameters.getConfigParam("StageDiameter")) / 2.0f;
+                    float origin = static_cast<float>(parameters.getConfigParam("StageOriginWidth"));
+                    minVal = -halfSize - origin;
+                    maxVal = halfSize - origin;
+                    break;
+                }
+                case 1:  // Y - uses half size (center-referenced)
+                {
+                    float halfSize = (stageShape == 0)
+                        ? static_cast<float>(parameters.getConfigParam("StageDepth")) / 2.0f
+                        : static_cast<float>(parameters.getConfigParam("StageDiameter")) / 2.0f;
+                    float origin = static_cast<float>(parameters.getConfigParam("StageOriginDepth"));
+                    minVal = -halfSize - origin;
+                    maxVal = halfSize - origin;
+                    break;
+                }
+                case 2:  // Z - uses direct size (floor-referenced)
+                {
+                    float stageSize = static_cast<float>(parameters.getConfigParam("StageHeight"));
+                    float origin = static_cast<float>(parameters.getConfigParam("StageOriginHeight"));
+                    minVal = -origin;
+                    maxVal = stageSize - origin;
+                    break;
+                }
             }
-            case 1:  // Y - uses half size (center-referenced)
-            {
-                float halfSize = (stageShape == 0)
-                    ? static_cast<float>(parameters.getConfigParam("StageDepth")) / 2.0f
-                    : static_cast<float>(parameters.getConfigParam("StageDiameter")) / 2.0f;
-                float origin = static_cast<float>(parameters.getConfigParam("StageOriginDepth"));
-                minVal = -halfSize - origin;
-                maxVal = halfSize - origin;
-                break;
-            }
-            case 2:  // Z - uses direct size (floor-referenced)
-            {
-                float stageSize = static_cast<float>(parameters.getConfigParam("StageHeight"));
-                float origin = static_cast<float>(parameters.getConfigParam("StageOriginHeight"));
-                minVal = -origin;
-                maxVal = stageSize - origin;
-                break;
-            }
+            newValue = juce::jlimit(minVal, maxVal, newValue);
         }
-        newValue = juce::jlimit(minVal, maxVal, newValue);
     }
 
     // Apply distance constraint for Cylindrical/Spherical modes
