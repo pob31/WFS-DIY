@@ -158,6 +158,10 @@ private:
     bool isInputPatch;
     TestSignalGenerator* testSignalGenerator;
 
+    // Binaural channel tracking (output patch only)
+    juce::ValueTree binauralTree;    // Reference to Binaural section
+    int binauralFirstChannel = -1;   // First channel of binaural pair (1-based, -1 = disabled)
+
     // Scrolling
     juce::ScrollBar horizontalScroll{false};
     juce::ScrollBar verticalScroll{true};
@@ -204,6 +208,11 @@ private:
     juce::Point<int> getCellAtPosition(juce::Point<float> pos) const;
     bool isCellVisible(int row, int col) const;
     juce::Rectangle<int> getCellBounds(int row, int col) const;
+
+    // Binaural channel helpers (output patch only)
+    void updateBinauralChannels();
+    bool isChannelUsedByBinaural(int hardwareChannel) const;  // 0-based
+    void drawHeadphonesIcon(juce::Graphics& g, juce::Rectangle<float> bounds);
 
     // Drawing methods
     void drawHeader(juce::Graphics& g);

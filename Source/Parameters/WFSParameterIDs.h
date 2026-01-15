@@ -78,6 +78,7 @@ namespace WFSParameterIDs
     //==========================================================================
 
     const juce::Identifier Binaural              ("Binaural");
+    const juce::Identifier binauralEnabled       ("binauralEnabled");       // bool: processing active
     const juce::Identifier binauralSoloMode      ("binauralSoloMode");      // 0=Single, 1=Multi
     const juce::Identifier binauralOutputChannel ("binauralOutputChannel"); // First output channel (-1=disabled)
     const juce::Identifier binauralListenerDistance ("binauralListenerDistance"); // meters

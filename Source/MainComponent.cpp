@@ -1208,7 +1208,8 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
     // Prepare binaural processor
     if (binauralProcessor)
     {
-        binauralProcessor->prepare(sampleRate, samplesPerBlockExpected, numInputChannels);
+        binauralProcessor->prepareToPlay(sampleRate, samplesPerBlockExpected, numInputChannels);
+        binauralProcessor->startProcessing();
     }
 
     // Load audio patch matrices
@@ -1237,25 +1238,23 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
         //     gpuInputAlgorithm.processBlock(bufferToFill, numInputChannels, numOutputChannels);
         // }
 
-        // Process binaural solo output (renders soloed inputs to stereo pair)
-        if (binauralProcessor && binauralCalcEngine)
+        // Process binaural output (all inputs, or only soloed inputs if any are soloed)
+        if (binauralProcessor && binauralProcessor->isEnabled() && binauralCalcEngine)
         {
             int binauralCh = binauralCalcEngine->getBinauralOutputChannel();
-            if (binauralCh >= 0 && binauralCh + 1 < numOutputChannels &&
-                binauralCalcEngine->getNumSoloedInputs() > 0)
+            if (binauralCh >= 0 && binauralCh + 1 < numOutputChannels)
             {
-                // Create a read-only view of input channels for binaural processing
-                // Note: At this point, the buffer contains processed WFS output
-                // We need the original input data, which we can get from the input channels
-                // before they were overwritten by WFS processing
+                // Push input data to binaural processor (thread will process)
+                for (int i = 0; i < numInputChannels; ++i)
+                {
+                    const float* inputData = bufferToFill.buffer->getReadPointer(i, bufferToFill.startSample);
+                    binauralProcessor->pushInput(i, inputData, bufferToFill.numSamples);
+                }
 
-                // For now, use the buffer directly - the binaural processor will
-                // read from input channels (which should contain input data if
-                // input patching preserved them) and write to the binaural outputs
-                binauralProcessor->processBlock(*bufferToFill.buffer,
-                    bufferToFill.buffer->getWritePointer(binauralCh, bufferToFill.startSample),
-                    bufferToFill.buffer->getWritePointer(binauralCh + 1, bufferToFill.startSample),
-                    bufferToFill.numSamples);
+                // Pull processed binaural output
+                float* leftOut = bufferToFill.buffer->getWritePointer(binauralCh, bufferToFill.startSample);
+                float* rightOut = bufferToFill.buffer->getWritePointer(binauralCh + 1, bufferToFill.startSample);
+                binauralProcessor->pullOutput(leftOut, rightOut, bufferToFill.numSamples);
             }
         }
 
@@ -1546,6 +1545,13 @@ void MainComponent::timerCallback()
             // This ensures the ramp-out transition is visible in the visualization
             if (lsTamerEngine->isAnyInputActive())
                 calculationEngine->markAllInputsDirty();
+        }
+
+        // Sync binaural processor enabled state from ValueTree
+        if (binauralProcessor)
+        {
+            bool enabled = parameters.getValueTreeState().getBinauralEnabled();
+            binauralProcessor->setEnabled(enabled);
         }
 
         // Only recalculate if positions have changed (dirty flag set)

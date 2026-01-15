@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include <set>
 #include "../WfsParameters.h"
 #include "../Accessibility/TTSManager.h"
 #include "../Localization/LocalizationManager.h"
@@ -414,14 +415,21 @@ public:
         };
 
         // Binaural Section
+        addAndMakeVisible(binauralEnableButton);
+        binauralEnableButton.setButtonText(LOC("systemConfig.buttons.binauralOff"));
+        binauralEnableButton.onClick = [this]() { toggleBinauralProcessing(); };
+
         addAndMakeVisible(binauralOutputLabel);
         binauralOutputLabel.setText(LOC("systemConfig.labels.binauralOutput"), juce::dontSendNotification);
 
+        // Get output patch tree for listening to patch changes
+        auto audioPatchTree = parameters.getValueTreeState().getState()
+            .getChildWithName(WFSParameterIDs::AudioPatch);
+        outputPatchTree = audioPatchTree.getChildWithName(WFSParameterIDs::OutputPatch);
+        outputPatchTree.addListener(this);
+
         addAndMakeVisible(binauralOutputSelector);
-        binauralOutputSelector.addItem(LOC("systemConfig.binauralOutput.off"), 1);  // -1 = off
-        for (int i = 1; i <= 63; i += 2)
-            binauralOutputSelector.addItem(juce::String(i) + "-" + juce::String(i + 1), (i / 2) + 2);
-        binauralOutputSelector.setSelectedId(1, juce::dontSendNotification);
+        rebuildBinauralOutputSelector();  // Build dynamically based on available channels
         binauralOutputSelector.onChange = [this]() {
             int selectedId = binauralOutputSelector.getSelectedId();
             int channel = (selectedId == 1) ? -1 : ((selectedId - 2) * 2 + 1);  // Map back to channel
@@ -634,6 +642,8 @@ public:
     {
         ColorScheme::Manager::getInstance().removeListener(this);
         configTree.removeListener(this);
+        if (outputPatchTree.isValid())
+            outputPatchTree.removeListener(this);
     }
 
     /** ColorScheme::Manager::Listener callback - refresh colors when theme changes */
@@ -698,14 +708,17 @@ public:
         g.drawLine(0.0f, (float)(getHeight() - footerHeight), (float)getWidth(), (float)(getHeight() - footerHeight), 1.0f);
 
         // Section headers (bold like NetworkTab)
+        // Column 1: Show, I/O (channels only), UI
+        // Column 2: Stage, Master
+        // Column 3: Audio/Processing, Binaural Renderer
         g.setColour(ColorScheme::get().textPrimary);
         g.setFont(juce::FontOptions().withHeight(14.0f).withStyle("Bold"));
         g.drawText(LOC("systemConfig.sections.show"), col1X, 10, 200, 20, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.io"), col1X, 130, 200, 20, juce::Justification::left);
-        g.drawText(LOC("systemConfig.sections.binauralRenderer"), col1X, 395, 200, 20, juce::Justification::left);
+        g.drawText(LOC("systemConfig.sections.ui"), col1X, 290, 200, 20, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.stage"), col2X, 10, 200, 20, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.master"), col2X, 400, 200, 20, juce::Justification::left);
-        g.drawText(LOC("systemConfig.sections.ui"), col3X, 10, 200, 20, juce::Justification::left);
+        g.drawText(LOC("systemConfig.sections.binauralRenderer"), col3X, 200, 200, 20, juce::Justification::left);
     }
 
     void resized() override
@@ -719,6 +732,10 @@ public:
         int x = col1X;
         int y = 40;
 
+        //======================================================================
+        // COLUMN 1: Show, I/O (channels only), UI
+        //======================================================================
+
         // Show Section
         showNameLabel.setBounds(x, y, labelWidth, rowHeight);
         showNameEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
@@ -726,9 +743,8 @@ public:
 
         showLocationLabel.setBounds(x, y, labelWidth, rowHeight);
         showLocationEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
-        y += rowHeight + spacing;
 
-        // I/O Section
+        // I/O Section (channels only)
         y = 160; // Start after "I/O" header
         inputChannelsLabel.setBounds(x, y, labelWidth, rowHeight);
         inputChannelsEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
@@ -740,76 +756,24 @@ public:
 
         reverbChannelsLabel.setBounds(x, y, labelWidth, rowHeight);
         reverbChannelsEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
+
+        // UI Section
+        y = 320; // Start after "UI" header
+        colorSchemeLabel.setBounds(x, y, labelWidth, rowHeight);
+        colorSchemeSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
         y += rowHeight + spacing;
 
-        audioPatchingButton.setBounds(x, y, editorWidth + labelWidth, rowHeight);
-        y += rowHeight + spacing;
+        languageLabel.setBounds(x, y, labelWidth, rowHeight);
+        languageSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
 
-        algorithmLabel.setBounds(x, y, labelWidth, rowHeight);
-        algorithmSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
-        y += rowHeight + spacing;
+        //======================================================================
+        // COLUMN 2: Stage, Master
+        //======================================================================
 
-        processingButton.setBounds(x, y, labelWidth + editorWidth, rowHeight);
-
-        // Binaural Renderer Section (Column 1, after Processing)
-        y = 425;  // Start after "Binaural Renderer" header at y=395
-        const int binauralFullWidth = labelWidth + editorWidth;
-        const int binauralValueWidth = 60;
-        const int binauralUnitWidth = 30;
-        const int sliderHeight = 20;
-
-        // Binaural Output selector
-        binauralOutputLabel.setBounds(x, y, labelWidth, rowHeight);
-        binauralOutputSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
-        y += rowHeight + spacing;
-
-        // Listener Distance (Outputs tab style: label left, value right, slider below)
-        binauralDistanceLabel.setBounds(x, y, labelWidth, rowHeight);
-        binauralDistanceEditor.setBounds(x + binauralFullWidth - binauralValueWidth - binauralUnitWidth, y, binauralValueWidth, rowHeight);
-        binauralDistanceUnitLabel.setBounds(x + binauralFullWidth - binauralUnitWidth, y, binauralUnitWidth, rowHeight);
-        y += rowHeight;
-        binauralDistanceSlider.setBounds(x, y, binauralFullWidth, sliderHeight);
-        y += sliderHeight + spacing;
-
-        // Listener Angle (OutputsTab orientation dial style: label centered above, dial, value+unit centered below)
-        const int dialSize = 80;
-        int dialCenterX = x + binauralFullWidth / 2;
-        binauralAngleLabel.setBounds(x, y, binauralFullWidth, rowHeight);
-        binauralAngleLabel.setJustificationType(juce::Justification::centred);
-        y += rowHeight;
-        binauralAngleDial.setBounds(dialCenterX - dialSize / 2, y, dialSize, dialSize);
-        y += dialSize;
-        // Value and unit centered below dial (like outputOrientation)
-        const int angleValW = 40, angleUnitW = 20, overlap = 5;
-        int angleStartX = dialCenterX - (angleValW + angleUnitW - overlap) / 2;
-        binauralAngleEditor.setBounds(angleStartX, y, angleValW, rowHeight);
-        binauralAngleUnitLabel.setBounds(angleStartX + angleValW - overlap, y, angleUnitW, rowHeight);
-        y += rowHeight + spacing;
-
-        // Binaural Level (Outputs tab style)
-        binauralAttenLabel.setBounds(x, y, labelWidth, rowHeight);
-        binauralAttenEditor.setBounds(x + binauralFullWidth - binauralValueWidth - binauralUnitWidth, y, binauralValueWidth, rowHeight);
-        binauralAttenUnitLabel.setBounds(x + binauralFullWidth - binauralUnitWidth, y, binauralUnitWidth, rowHeight);
-        y += rowHeight;
-        binauralAttenSlider.setBounds(x, y, binauralFullWidth, sliderHeight);
-        y += sliderHeight + spacing;
-
-        // Binaural Delay (Outputs tab style)
-        binauralDelayLabel.setBounds(x, y, labelWidth, rowHeight);
-        binauralDelayEditor.setBounds(x + binauralFullWidth - binauralValueWidth - binauralUnitWidth, y, binauralValueWidth, rowHeight);
-        binauralDelayUnitLabel.setBounds(x + binauralFullWidth - binauralUnitWidth, y, binauralUnitWidth, rowHeight);
-        y += rowHeight;
-        binauralDelaySlider.setBounds(x, y, binauralFullWidth, sliderHeight);
-        y += sliderHeight + spacing;
-
-        // Solo mode toggle at end of binaural section
-        soloModeButton.setBounds(x, y, binauralFullWidth, rowHeight);
-
-        // Stage Section
         x = col2X;
         y = 40;
 
-        // Stage shape selector (same width as number editors)
+        // Stage Section
         stageShapeLabel.setBounds(x, y, labelWidth, rowHeight);
         stageShapeSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
         y += rowHeight + spacing;
@@ -838,8 +802,8 @@ public:
         stageHeightUnitLabel.setBounds(x + labelWidth + editorWidth + spacing, y, unitWidth, rowHeight);
         y += rowHeight + spacing;
 
-        // Origin coordinates with preset buttons to the right of each row
-        const int originButtonSize = 30;  // Square buttons sized to match row height
+        // Origin coordinates with preset buttons
+        const int originButtonSize = 30;
         int buttonX = x + labelWidth + editorWidth + spacing + unitWidth + spacing;
 
         stageOriginWidthLabel.setBounds(x, y, labelWidth, rowHeight);
@@ -870,9 +834,7 @@ public:
         temperatureUnitLabel.setBounds(x + labelWidth + editorWidth + spacing, y, unitWidth, rowHeight);
 
         // Master Section
-        x = col2X;
         y = 430;
-
         masterLevelLabel.setBounds(x, y, labelWidth, rowHeight);
         masterLevelEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
         masterLevelUnitLabel.setBounds(x + labelWidth + editorWidth + spacing, y, unitWidth, rowHeight);
@@ -887,16 +849,78 @@ public:
         haasEffectEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
         haasEffectUnitLabel.setBounds(x + labelWidth + editorWidth + spacing, y, unitWidth, rowHeight);
 
-        // UI Section (third column)
+        //======================================================================
+        // COLUMN 3: Audio/Processing, Binaural Renderer
+        //======================================================================
+
         x = col3X;
         y = 40;
+        const int fullWidth = labelWidth + editorWidth;
 
-        colorSchemeLabel.setBounds(x, y, labelWidth, rowHeight);
-        colorSchemeSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
+        // Audio Interface / Processing Section
+        audioPatchingButton.setBounds(x, y, fullWidth, rowHeight);
         y += rowHeight + spacing;
 
-        languageLabel.setBounds(x, y, labelWidth, rowHeight);
-        languageSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
+        algorithmLabel.setBounds(x, y, labelWidth, rowHeight);
+        algorithmSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
+        y += rowHeight + spacing;
+
+        processingButton.setBounds(x, y, fullWidth, rowHeight);
+
+        // Binaural Renderer Section
+        y = 230; // Start after "Binaural Renderer" header at y=200
+        const int binauralFullWidth = fullWidth;
+        const int binauralValueWidth = 60;
+        const int binauralUnitWidth = 30;
+        const int sliderHeight = 20;
+
+        binauralEnableButton.setBounds(x, y, binauralFullWidth, rowHeight);
+        y += rowHeight + spacing;
+
+        binauralOutputLabel.setBounds(x, y, labelWidth, rowHeight);
+        binauralOutputSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
+        y += rowHeight + spacing;
+
+        // Listener Distance
+        binauralDistanceLabel.setBounds(x, y, labelWidth, rowHeight);
+        binauralDistanceEditor.setBounds(x + binauralFullWidth - binauralValueWidth - binauralUnitWidth, y, binauralValueWidth, rowHeight);
+        binauralDistanceUnitLabel.setBounds(x + binauralFullWidth - binauralUnitWidth, y, binauralUnitWidth, rowHeight);
+        y += rowHeight;
+        binauralDistanceSlider.setBounds(x, y, binauralFullWidth, sliderHeight);
+        y += sliderHeight + spacing;
+
+        // Listener Angle
+        const int dialSize = 80;
+        int dialCenterX = x + binauralFullWidth / 2;
+        binauralAngleLabel.setBounds(x, y, binauralFullWidth, rowHeight);
+        binauralAngleLabel.setJustificationType(juce::Justification::centred);
+        y += rowHeight;
+        binauralAngleDial.setBounds(dialCenterX - dialSize / 2, y, dialSize, dialSize);
+        y += dialSize;
+        const int angleValW = 40, angleUnitW = 20, overlap = 5;
+        int angleStartX = dialCenterX - (angleValW + angleUnitW - overlap) / 2;
+        binauralAngleEditor.setBounds(angleStartX, y, angleValW, rowHeight);
+        binauralAngleUnitLabel.setBounds(angleStartX + angleValW - overlap, y, angleUnitW, rowHeight);
+        y += rowHeight + spacing;
+
+        // Binaural Level
+        binauralAttenLabel.setBounds(x, y, labelWidth, rowHeight);
+        binauralAttenEditor.setBounds(x + binauralFullWidth - binauralValueWidth - binauralUnitWidth, y, binauralValueWidth, rowHeight);
+        binauralAttenUnitLabel.setBounds(x + binauralFullWidth - binauralUnitWidth, y, binauralUnitWidth, rowHeight);
+        y += rowHeight;
+        binauralAttenSlider.setBounds(x, y, binauralFullWidth, sliderHeight);
+        y += sliderHeight + spacing;
+
+        // Binaural Delay
+        binauralDelayLabel.setBounds(x, y, labelWidth, rowHeight);
+        binauralDelayEditor.setBounds(x + binauralFullWidth - binauralValueWidth - binauralUnitWidth, y, binauralValueWidth, rowHeight);
+        binauralDelayUnitLabel.setBounds(x + binauralFullWidth - binauralUnitWidth, y, binauralUnitWidth, rowHeight);
+        y += rowHeight;
+        binauralDelaySlider.setBounds(x, y, binauralFullWidth, sliderHeight);
+        y += sliderHeight + spacing;
+
+        // Solo mode button
+        soloModeButton.setBounds(x, y, binauralFullWidth, rowHeight);
 
         // Footer buttons - full width at bottom (matching Output tab style)
         const int footerHeight = 90;  // Two 30px button rows + 10px spacing + 20px padding
@@ -1124,8 +1148,12 @@ private:
     //==============================================================================
     // ValueTree::Listener callbacks
 
-    void valueTreePropertyChanged(juce::ValueTree&, const juce::Identifier&) override
+    void valueTreePropertyChanged(juce::ValueTree&, const juce::Identifier& property) override
     {
+        // Rebuild binaural selector when output patches change
+        if (property == WFSParameterIDs::patchData)
+            rebuildBinauralOutputSelector();
+
         loadParametersToUI();
     }
 
@@ -1185,6 +1213,12 @@ private:
         // Binaural section
         auto& vts = parameters.getValueTreeState();
         auto binauralState = vts.getBinauralState();
+
+        // Enable button
+        bool binauralEnabled = (bool)binauralState.getProperty(WFSParameterIDs::binauralEnabled,
+                                                                WFSParameterDefaults::binauralEnabledDefault);
+        binauralEnableButton.setButtonText(binauralEnabled ? LOC("systemConfig.buttons.binauralOn")
+                                                            : LOC("systemConfig.buttons.binauralOff"));
 
         int binauralChannel = (int)binauralState.getProperty(WFSParameterIDs::binauralOutputChannel,
                                                               WFSParameterDefaults::binauralOutputChannelDefault);
@@ -1545,6 +1579,16 @@ private:
             onProcessingChanged(processingEnabled);
     }
 
+    void toggleBinauralProcessing()
+    {
+        auto& vts = parameters.getValueTreeState();
+        bool currentState = vts.getBinauralEnabled();
+        bool newState = !currentState;
+        vts.setBinauralEnabled(newState);
+        binauralEnableButton.setButtonText(newState ? LOC("systemConfig.buttons.binauralOn")
+                                                     : LOC("systemConfig.buttons.binauralOff"));
+    }
+
     void updateIOControlsEnabledState()
     {
         // When processing is ON, disable I/O controls to prevent changes
@@ -1563,6 +1607,46 @@ private:
         inputChannelsEditor.setColour(juce::TextEditor::textColourId, enabled ? enabledColour : disabledColour);
         outputChannelsEditor.setColour(juce::TextEditor::textColourId, enabled ? enabledColour : disabledColour);
         reverbChannelsEditor.setColour(juce::TextEditor::textColourId, enabled ? enabledColour : disabledColour);
+    }
+
+    /** Rebuild the binaural output selector ComboBox based on which channels are used by output patches */
+    void rebuildBinauralOutputSelector()
+    {
+        int currentChannel = parameters.getValueTreeState().getBinauralOutputChannel();
+
+        // Parse patchData to find used hardware channels
+        std::set<int> usedChannels;
+        juce::String patchData = outputPatchTree.getProperty(WFSParameterIDs::patchData).toString();
+        auto rows = juce::StringArray::fromTokens(patchData, ";", "");
+        for (int r = 0; r < rows.size(); ++r)
+        {
+            auto cols = juce::StringArray::fromTokens(rows[r], ",", "");
+            for (int c = 0; c < cols.size(); ++c)
+                if (cols[c].getIntValue() == 1)
+                    usedChannels.insert(c);  // 0-based
+        }
+
+        // Rebuild ComboBox
+        binauralOutputSelector.clear(juce::dontSendNotification);
+        binauralOutputSelector.addItem(LOC("systemConfig.binauralOutput.off"), 1);
+
+        for (int i = 1; i <= 63; i += 2)
+        {
+            // Check if either channel in pair (0-based: i-1, i) is used by output patches
+            if (usedChannels.count(i - 1) == 0 && usedChannels.count(i) == 0)
+                binauralOutputSelector.addItem(juce::String(i) + "-" + juce::String(i + 1), (i / 2) + 2);
+        }
+
+        // Restore or reset selection
+        int selectedId = (currentChannel == -1) ? 1 : ((currentChannel - 1) / 2 + 2);
+        if (binauralOutputSelector.indexOfItemId(selectedId) >= 0)
+            binauralOutputSelector.setSelectedId(selectedId, juce::dontSendNotification);
+        else
+        {
+            // Current selection is no longer valid (channel pair now used by patches)
+            binauralOutputSelector.setSelectedId(1, juce::dontSendNotification);
+            parameters.getValueTreeState().setBinauralOutputChannel(-1);
+        }
     }
 
     void updateBinauralControlsEnabledState()
@@ -2084,6 +2168,7 @@ private:
         helpTextMap[&haasEffectEditor] = LOC("systemConfig.help.haasEffect");
         helpTextMap[&colorSchemeSelector] = LOC("systemConfig.help.colorScheme");
         helpTextMap[&languageSelector] = LOC("systemConfig.help.language");
+        helpTextMap[&binauralEnableButton] = LOC("systemConfig.help.binauralEnable");
         helpTextMap[&binauralOutputSelector] = LOC("systemConfig.help.binauralOutput");
         helpTextMap[&binauralDistanceSlider] = LOC("systemConfig.help.binauralDistance");
         helpTextMap[&binauralDistanceEditor] = LOC("systemConfig.help.binauralDistance");
@@ -2239,8 +2324,10 @@ private:
     juce::StringArray availableLanguages;
 
     // Binaural Section
+    juce::TextButton binauralEnableButton;
     juce::Label binauralOutputLabel;
     juce::ComboBox binauralOutputSelector;
+    juce::ValueTree outputPatchTree;  // For listening to patch changes
     juce::Label binauralDistanceLabel;
     WfsStandardSlider binauralDistanceSlider;
     juce::TextEditor binauralDistanceEditor;

@@ -103,6 +103,8 @@
       "audioPatch": "オーディオインターフェースとパッチング",
       "processingOff": "処理: OFF",
       "processingOn": "処理: ON",
+      "binauralOff": "バイノーラル: OFF",
+      "binauralOn": "バイノーラル: ON",
       "selectProjectFolder": "プロジェクトフォルダを選択",
       "storeComplete": "完全な設定を保存",
       "reloadComplete": "完全な設定を再読込",

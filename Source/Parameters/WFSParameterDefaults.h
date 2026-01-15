@@ -45,6 +45,7 @@ namespace WFSParameterDefaults
     // Config > Binaural Section
     //==========================================================================
 
+    constexpr bool binauralEnabledDefault           = false;  // Processing off by default
     constexpr int binauralSoloModeDefault           = 0;      // 0=Single, 1=Multi
     constexpr int binauralOutputChannelDefault      = -1;     // -1=disabled
     constexpr int binauralOutputChannelMin          = -1;

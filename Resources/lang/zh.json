@@ -103,6 +103,8 @@
       "audioPatch": "音频接口和路由窗口",
       "processingOff": "处理: 关",
       "processingOn": "处理: 开",
+      "binauralOff": "双耳: 关",
+      "binauralOn": "双耳: 开",
       "selectProjectFolder": "选择项目文件夹",
       "storeComplete": "保存完整配置",
       "reloadComplete": "重新加载完整配置",

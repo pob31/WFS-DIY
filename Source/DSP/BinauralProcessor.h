@@ -3,126 +3,167 @@
 #include <JuceHeader.h>
 #include "BinauralCalculationEngine.h"
 #include "WFSHighShelfFilter.h"
+#include "../LockFreeRingBuffer.h"
 #include <vector>
+#include <atomic>
 
 /**
  * BinauralProcessor
  *
- * Processes soloed inputs to a stereo binaural output pair.
- * Runs synchronously in the audio callback (no threading).
+ * Thread-based processor for binaural rendering.
+ * Processes inputs to a stereo binaural output pair.
  *
- * For each soloed input:
- * - Applies per-input delay using circular buffer
- * - Applies HF shelf filter for air absorption
+ * Behavior:
+ * - When no inputs are soloed: ALL inputs are processed
+ * - When any input is soloed: only soloed inputs are processed
+ *
+ * For each processed input:
+ * - Applies per-input delay using circular buffer (separate L/R)
+ * - Applies HF shelf filter for air absorption (separate L/R)
  * - Applies level attenuation
  * - Sums to left/right outputs
  */
-class BinauralProcessor
+class BinauralProcessor : public juce::Thread
 {
 public:
     explicit BinauralProcessor (BinauralCalculationEngine& calcEngine)
-        : binauralCalc (calcEngine)
+        : juce::Thread ("BinauralProcessor"),
+          binauralCalc (calcEngine)
     {
+    }
+
+    ~BinauralProcessor() override
+    {
+        stopThread (1000);
     }
 
     /**
      * Prepare the processor for playback.
      */
-    void prepare (double newSampleRate, int maxBlockSize, int numInputs)
+    void prepareToPlay (double newSampleRate, int maxBlockSize, int numInputs)
     {
         sampleRate = newSampleRate;
         numInputChannels = numInputs;
+        currentBlockSize = maxBlockSize;
 
         // Maximum delay = 1 second
-        int maxDelaySamples = (int) (sampleRate * 1.0);
+        delayBufferLength = (int) (sampleRate * 1.0);
 
         // Create per-input delay buffers for left and right
         delayBuffersL.clear();
         delayBuffersR.clear();
-        writePositions.clear();
+        writePositionsL.clear();
+        writePositionsR.clear();
         hfFiltersL.clear();
         hfFiltersR.clear();
+        inputBuffers.clear();
 
         for (int i = 0; i < numInputs; ++i)
         {
-            delayBuffersL.push_back (juce::AudioBuffer<float> (1, maxDelaySamples));
+            // Delay buffers
+            delayBuffersL.push_back (juce::AudioBuffer<float> (1, delayBufferLength));
             delayBuffersL.back().clear();
-            delayBuffersR.push_back (juce::AudioBuffer<float> (1, maxDelaySamples));
+            delayBuffersR.push_back (juce::AudioBuffer<float> (1, delayBufferLength));
             delayBuffersR.back().clear();
-            writePositions.push_back (0);
+            writePositionsL.push_back (0);
+            writePositionsR.push_back (0);
 
+            // HF filters
             WFSHighShelfFilter filterL, filterR;
             filterL.prepare (sampleRate);
             filterR.prepare (sampleRate);
             hfFiltersL.push_back (filterL);
             hfFiltersR.push_back (filterR);
+
+            // Input ring buffers (4x block size for safety margin)
+            inputBuffers.push_back (std::make_unique<LockFreeRingBuffer>());
+            inputBuffers.back()->setSize (maxBlockSize * 4);
         }
 
-        // Temporary buffer for processing
-        tempBuffer.setSize (1, maxBlockSize);
+        // Output ring buffers
+        outputBufferL = std::make_unique<LockFreeRingBuffer>();
+        outputBufferR = std::make_unique<LockFreeRingBuffer>();
+        outputBufferL->setSize (maxBlockSize * 4);
+        outputBufferR->setSize (maxBlockSize * 4);
+
+        // Working buffers
+        inputBlock.setSize (1, maxBlockSize);
+        outputBlockL.setSize (1, maxBlockSize);
+        outputBlockR.setSize (1, maxBlockSize);
     }
 
     /**
-     * Process a block of audio.
-     * Takes input buffer and writes binaural output to leftOutput and rightOutput.
-     *
-     * @param inputBuffer The input audio buffer (all channels)
-     * @param leftOutput Destination for left binaural output
-     * @param rightOutput Destination for right binaural output
-     * @param numSamples Number of samples to process
+     * Release resources when stopping.
      */
-    void processBlock (const juce::AudioBuffer<float>& inputBuffer,
-                       float* leftOutput,
-                       float* rightOutput,
-                       int numSamples)
+    void releaseResources()
     {
-        // Clear outputs
-        juce::FloatVectorOperations::clear (leftOutput, numSamples);
-        juce::FloatVectorOperations::clear (rightOutput, numSamples);
+        stopThread (1000);
+        delayBuffersL.clear();
+        delayBuffersR.clear();
+        hfFiltersL.clear();
+        hfFiltersR.clear();
+        inputBuffers.clear();
+        outputBufferL.reset();
+        outputBufferR.reset();
+    }
 
-        int numInputs = juce::jmin (numInputChannels, inputBuffer.getNumChannels(), (int) delayBuffersL.size());
+    /**
+     * Push input samples from audio callback (producer).
+     * Call this for each input channel.
+     */
+    void pushInput (int inputIndex, const float* data, int numSamples)
+    {
+        if (inputIndex >= 0 && inputIndex < (int) inputBuffers.size())
+            inputBuffers[inputIndex]->write (data, numSamples);
+    }
 
-        // Check if any inputs are soloed
-        bool anySoloed = false;
-        for (int i = 0; i < numInputs; ++i)
-        {
-            if (binauralCalc.isInputSoloed (i))
-            {
-                anySoloed = true;
-                break;
-            }
-        }
+    /**
+     * Pull output samples from audio callback (consumer).
+     * Retrieves processed binaural stereo output.
+     */
+    void pullOutput (float* leftOutput, float* rightOutput, int numSamples)
+    {
+        int samplesReadL = outputBufferL->read (leftOutput, numSamples);
+        int samplesReadR = outputBufferR->read (rightOutput, numSamples);
 
-        // Process each input
-        // If solos exist, only process soloed inputs
-        // If no solos, process all inputs (full spatial mix for binaural preview)
-        for (int inputIdx = 0; inputIdx < numInputs; ++inputIdx)
-        {
-            if (anySoloed && !binauralCalc.isInputSoloed (inputIdx))
-                continue;
+        // If not enough samples available, zero-pad the rest
+        if (samplesReadL < numSamples)
+            juce::FloatVectorOperations::clear (leftOutput + samplesReadL, numSamples - samplesReadL);
+        if (samplesReadR < numSamples)
+            juce::FloatVectorOperations::clear (rightOutput + samplesReadR, numSamples - samplesReadR);
+    }
 
-            // Get binaural parameters for this input
-            auto binauralPair = binauralCalc.calculate (inputIdx);
+    /**
+     * Enable or disable processing.
+     */
+    void setEnabled (bool enabled)
+    {
+        processingEnabled.store (enabled, std::memory_order_release);
+    }
 
-            // Get input data
-            const float* inputData = inputBuffer.getReadPointer (inputIdx);
+    /**
+     * Check if processing is enabled.
+     */
+    bool isEnabled() const
+    {
+        return processingEnabled.load (std::memory_order_acquire);
+    }
 
-            // Process left channel
-            processInputToOutput (inputIdx, inputData, numSamples,
-                                  binauralPair.left,
-                                  delayBuffersL[inputIdx],
-                                  hfFiltersL[inputIdx],
-                                  leftOutput,
-                                  true);
+    /**
+     * Start the processing thread.
+     */
+    void startProcessing()
+    {
+        if (!isThreadRunning())
+            startThread (juce::Thread::Priority::high);
+    }
 
-            // Process right channel
-            processInputToOutput (inputIdx, inputData, numSamples,
-                                  binauralPair.right,
-                                  delayBuffersR[inputIdx],
-                                  hfFiltersR[inputIdx],
-                                  rightOutput,
-                                  false);
-        }
+    /**
+     * Stop the processing thread.
+     */
+    void stopProcessing()
+    {
+        stopThread (1000);
     }
 
     /**
@@ -134,12 +175,18 @@ public:
             buf.clear();
         for (auto& buf : delayBuffersR)
             buf.clear();
-        for (auto& pos : writePositions)
+        for (auto& pos : writePositionsL)
+            pos = 0;
+        for (auto& pos : writePositionsR)
             pos = 0;
         for (auto& filter : hfFiltersL)
             filter.reset();
         for (auto& filter : hfFiltersR)
             filter.reset();
+        for (auto& buf : inputBuffers)
+            buf->reset();
+        if (outputBufferL) outputBufferL->reset();
+        if (outputBufferR) outputBufferR->reset();
     }
 
     /**
@@ -148,29 +195,130 @@ public:
     void setNumInputChannels (int numInputs)
     {
         if (numInputs != numInputChannels && sampleRate > 0)
-            prepare (sampleRate, tempBuffer.getNumSamples(), numInputs);
+        {
+            bool wasRunning = isThreadRunning();
+            if (wasRunning) stopThread (1000);
+            prepareToPlay (sampleRate, currentBlockSize, numInputs);
+            if (wasRunning) startThread (juce::Thread::Priority::high);
+        }
     }
 
 private:
     /**
-     * Process one input to one output (left or right).
+     * Worker thread main loop.
      */
-    void processInputToOutput (int inputIdx,
-                               const float* inputData,
-                               int numSamples,
-                               const BinauralCalculationEngine::BinauralOutput& params,
-                               juce::AudioBuffer<float>& delayBuffer,
-                               WFSHighShelfFilter& hfFilter,
-                               float* output,
-                               bool updateWritePos)
+    void run() override
     {
-        int bufferSize = delayBuffer.getNumSamples();
+        while (!threadShouldExit())
+        {
+            if (processingEnabled.load (std::memory_order_acquire))
+            {
+                // Check if we have enough input data to process a block
+                int minAvailable = currentBlockSize;
+                bool hasData = true;
+
+                for (int i = 0; i < numInputChannels && hasData; ++i)
+                {
+                    if (inputBuffers[i]->getAvailableData() < minAvailable)
+                        hasData = false;
+                }
+
+                if (hasData)
+                {
+                    processBlock();
+                }
+                else
+                {
+                    // Wait a short time for more data
+                    wait (1);
+                }
+            }
+            else
+            {
+                // Not enabled, wait longer
+                wait (10);
+            }
+        }
+    }
+
+    /**
+     * Process one block of audio.
+     */
+    void processBlock()
+    {
+        int numSamples = currentBlockSize;
+
+        // Clear output accumulators
+        outputBlockL.clear();
+        outputBlockR.clear();
+
+        float* outL = outputBlockL.getWritePointer (0);
+        float* outR = outputBlockR.getWritePointer (0);
+
+        // Check if any inputs are soloed
+        bool anySoloed = binauralCalc.getNumSoloedInputs() > 0;
+
+        // Process each input
+        for (int inputIdx = 0; inputIdx < numInputChannels; ++inputIdx)
+        {
+            // Skip if soloed mode and this input isn't soloed
+            if (anySoloed && !binauralCalc.isInputSoloed (inputIdx))
+            {
+                // Still need to consume input data to keep buffers in sync
+                inputBuffers[inputIdx]->read (inputBlock.getWritePointer (0), numSamples);
+                continue;
+            }
+
+            // Read input from ring buffer
+            int samplesRead = inputBuffers[inputIdx]->read (inputBlock.getWritePointer (0), numSamples);
+            if (samplesRead == 0)
+                continue;
+
+            // Get binaural parameters for this input
+            auto binauralPair = binauralCalc.calculate (inputIdx);
+
+            const float* inputData = inputBlock.getReadPointer (0);
+
+            // Process left channel
+            processInputToChannel (inputIdx, inputData, samplesRead,
+                                   binauralPair.left,
+                                   delayBuffersL[inputIdx],
+                                   writePositionsL[inputIdx],
+                                   hfFiltersL[inputIdx],
+                                   outL);
+
+            // Process right channel
+            processInputToChannel (inputIdx, inputData, samplesRead,
+                                   binauralPair.right,
+                                   delayBuffersR[inputIdx],
+                                   writePositionsR[inputIdx],
+                                   hfFiltersR[inputIdx],
+                                   outR);
+        }
+
+        // Write to output ring buffers
+        outputBufferL->write (outL, numSamples);
+        outputBufferR->write (outR, numSamples);
+    }
+
+    /**
+     * Process one input to one output channel (left or right).
+     */
+    void processInputToChannel (int inputIdx,
+                                const float* inputData,
+                                int numSamples,
+                                const BinauralCalculationEngine::BinauralOutput& params,
+                                juce::AudioBuffer<float>& delayBuffer,
+                                int& writePos,
+                                WFSHighShelfFilter& hfFilter,
+                                float* output)
+    {
+        juce::ignoreUnused (inputIdx);
         float* delayData = delayBuffer.getWritePointer (0);
-        int writePos = writePositions[inputIdx];
 
         // Calculate delay in samples
         int delaySamples = (int) (params.delayMs * sampleRate / 1000.0);
-        delaySamples = juce::jlimit (0, bufferSize - 1, delaySamples);
+        delaySamples = juce::jlimit (0, delayBufferLength - 1, delaySamples);
 
         // Set HF filter gain
         hfFilter.setGainDb (params.hfAttenuationDb);
@@ -184,7 +332,7 @@ private:
             // Read from delay buffer
             int readPos = writePos - delaySamples;
             if (readPos < 0)
-                readPos += bufferSize;
+                readPos += delayBufferLength;
 
             float delayedSample = delayData[readPos];
 
@@ -195,28 +343,38 @@ private:
             output[i] += filteredSample * params.level;
 
             // Advance write position
-            writePos = (writePos + 1) % bufferSize;
+            writePos = (writePos + 1) % delayBufferLength;
         }
-
-        // Save write position (only once per input, not per L/R)
-        if (updateWritePos)
-            writePositions[inputIdx] = writePos;
     }
 
     BinauralCalculationEngine& binauralCalc;
 
     double sampleRate = 48000.0;
     int numInputChannels = 0;
+    int currentBlockSize = 512;
+    int delayBufferLength = 0;
+
+    std::atomic<bool> processingEnabled {false};
+
+    // Lock-free ring buffers for input (one per input channel)
+    std::vector<std::unique_ptr<LockFreeRingBuffer>> inputBuffers;
+
+    // Lock-free ring buffers for output (L/R stereo)
+    std::unique_ptr<LockFreeRingBuffer> outputBufferL;
+    std::unique_ptr<LockFreeRingBuffer> outputBufferR;
 
     // Per-input delay buffers (separate for left and right)
     std::vector<juce::AudioBuffer<float>> delayBuffersL;
     std::vector<juce::AudioBuffer<float>> delayBuffersR;
-    std::vector<int> writePositions;
+    std::vector<int> writePositionsL;
+    std::vector<int> writePositionsR;
 
     // Per-input HF shelf filters
     std::vector<WFSHighShelfFilter> hfFiltersL;
     std::vector<WFSHighShelfFilter> hfFiltersR;
 
-    // Temporary buffer
-    juce::AudioBuffer<float> tempBuffer;
+    // Working buffers
+    juce::AudioBuffer<float> inputBlock;
+    juce::AudioBuffer<float> outputBlockL;
+    juce::AudioBuffer<float> outputBlockR;
 };

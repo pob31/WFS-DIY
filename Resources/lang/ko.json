@@ -103,6 +103,8 @@
       "audioPatch": "오디오 인터페이스 및 패치 창",
       "processingOff": "처리: 끄기",
       "processingOn": "처리: 켜기",
+      "binauralOff": "바이노럴: 끄기",
+      "binauralOn": "바이노럴: 켜기",
       "selectProjectFolder": "프로젝트 폴더 선택",
       "storeComplete": "전체 설정 저장",
       "reloadComplete": "전체 설정 다시 불러오기",

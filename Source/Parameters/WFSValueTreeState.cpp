@@ -780,8 +780,23 @@ void WFSValueTreeState::setClusterParameter (int clusterIndex, const juce::Ident
 }
 
 //==============================================================================
-// Binaural Solo Access
+// Binaural Enable/Solo Access
 //==============================================================================
+
+bool WFSValueTreeState::getBinauralEnabled() const
+{
+    auto binaural = getBinauralState();
+    if (binaural.isValid())
+        return (bool) binaural.getProperty (binauralEnabled, binauralEnabledDefault);
+    return binauralEnabledDefault;
+}
+
+void WFSValueTreeState::setBinauralEnabled (bool enabled)
+{
+    auto binaural = getBinauralState();
+    if (binaural.isValid())
+        binaural.setProperty (binauralEnabled, enabled, &undoManager);
+}
 
 int WFSValueTreeState::getBinauralSoloMode() const
 {
@@ -1402,6 +1417,7 @@ void WFSValueTreeState::createClustersSection (juce::ValueTree& config)
 void WFSValueTreeState::createBinauralSection (juce::ValueTree& config)
 {
     juce::ValueTree binaural (Binaural);
+    binaural.setProperty (binauralEnabled, binauralEnabledDefault, nullptr);
     binaural.setProperty (binauralSoloMode, binauralSoloModeDefault, nullptr);
     binaural.setProperty (binauralOutputChannel, binauralOutputChannelDefault, nullptr);
     binaural.setProperty (binauralListenerDistance, binauralListenerDistanceDefault, nullptr);

@@ -103,6 +103,8 @@
       "audioPatch": "Interfaz de audio y enrutamiento",
       "processingOff": "Procesamiento: OFF",
       "processingOn": "Procesamiento: ON",
+      "binauralOff": "Binaural: OFF",
+      "binauralOn": "Binaural: ON",
       "selectProjectFolder": "Seleccionar carpeta del proyecto",
       "storeComplete": "Guardar configuración completa",
       "reloadComplete": "Recargar configuración completa",

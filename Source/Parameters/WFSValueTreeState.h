@@ -180,8 +180,14 @@ public:
     void setClusterParameter (int clusterIndex, const juce::Identifier& id, const juce::var& value);
 
     //==========================================================================
-    // Binaural Solo Access
+    // Binaural Enable/Solo Access
     //==========================================================================
+
+    /** Get binaural processing enabled state */
+    bool getBinauralEnabled() const;
+
+    /** Set binaural processing enabled state */
+    void setBinauralEnabled (bool enabled);
 
     /** Get binaural solo mode (0=Single, 1=Multi) */
     int getBinauralSoloMode() const;

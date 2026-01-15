@@ -29,6 +29,15 @@ PatchMatrixComponent::PatchMatrixComponent(WFSValueTreeState& valueTreeState,
     patchTree.addListener(this);
     channelsTree.addListener(this);  // Listen for input/output additions/removals
 
+    // For output patch, listen to binaural channel changes
+    if (!isInputPatch)
+    {
+        auto configTree = parameters.getState().getChildWithName(WFSParameterIDs::Config);
+        binauralTree = configTree.getChildWithName(WFSParameterIDs::Binaural);
+        binauralTree.addListener(this);
+        updateBinauralChannels();
+    }
+
     // Add scrollbars
     addAndMakeVisible(horizontalScroll);
     addAndMakeVisible(verticalScroll);
@@ -54,6 +63,8 @@ PatchMatrixComponent::~PatchMatrixComponent()
 {
     patchTree.removeListener(this);
     channelsTree.removeListener(this);
+    if (binauralTree.isValid())
+        binauralTree.removeListener(this);
     horizontalScroll.removeListener(this);
     verticalScroll.removeListener(this);
 }
@@ -550,6 +561,13 @@ void PatchMatrixComponent::valueTreePropertyChanged(juce::ValueTree& tree,
         updateScrollBars();
         repaint();
     }
+
+    // Handle binaural channel changes (output patch only)
+    if (property == WFSParameterIDs::binauralOutputChannel)
+    {
+        updateBinauralChannels();
+        repaint();
+    }
 }
 
 void PatchMatrixComponent::valueTreeChildAdded(juce::ValueTree& parent, juce::ValueTree& child)
@@ -712,6 +730,28 @@ void PatchMatrixComponent::drawHeader(juce::Graphics& g)
 
         int x = rowHeaderWidth + c * cellWidth - (scrollOffsetX % cellWidth);
 
+        // Draw binaural indicator (output patch only)
+        if (!isInputPatch && isChannelUsedByBinaural(col))
+        {
+            g.setColour(ColorScheme::get().textDisabled.withAlpha(0.25f));
+            g.fillRect(x, 0, cellWidth, headerHeight);
+
+            // Draw channel number in top half
+            g.setColour(ColorScheme::get().textDisabled);
+            g.drawText(juce::String(col + 1), x, 0, cellWidth, headerHeight / 2,
+                       juce::Justification::centred);
+
+            // Draw headphones icon in bottom half
+            drawHeadphonesIcon(g, juce::Rectangle<float>(
+                static_cast<float>(x), static_cast<float>(headerHeight) * 0.45f,
+                static_cast<float>(cellWidth), static_cast<float>(headerHeight) * 0.5f));
+
+            // Draw grid line
+            g.setColour(ColorScheme::get().chromeDivider);
+            g.drawVerticalLine(x, 0, static_cast<float>(headerHeight));
+            continue;  // Skip normal rendering for this column
+        }
+
         // Highlight if this is the active test channel (output patch only)
         if (!isInputPatch && currentMode == Mode::Testing && col == activeTestHardwareChannel)
         {
@@ -841,6 +881,25 @@ void PatchMatrixComponent::drawCells(juce::Graphics& g)
 void PatchMatrixComponent::drawCell(juce::Graphics& g, int row, int col,
                                     juce::Rectangle<int> bounds)
 {
+    // Grey out binaural-reserved channels (output patch only)
+    if (isChannelUsedByBinaural(col))
+    {
+        // Greyed background
+        g.setColour(ColorScheme::get().textDisabled.withAlpha(0.15f));
+        g.fillRect(bounds);
+
+        // Diagonal stripes
+        g.setColour(ColorScheme::get().textDisabled.withAlpha(0.2f));
+        for (int i = -bounds.getHeight(); i < bounds.getWidth(); i += 8)
+            g.drawLine(static_cast<float>(bounds.getX() + i), static_cast<float>(bounds.getBottom()),
+                       static_cast<float>(bounds.getX() + i + bounds.getHeight()), static_cast<float>(bounds.getY()), 1.0f);
+
+        // Grid border and return
+        g.setColour(ColorScheme::get().chromeDivider);
+        g.drawRect(bounds, 1);
+        return;
+    }
+
     bool isPatched = isPatchActive(row, col);
     bool isPreview = false;
 
@@ -968,10 +1027,58 @@ void PatchMatrixComponent::drawCell(juce::Graphics& g, int row, int col,
 }
 
 //==============================================================================
+// Binaural Channel Helpers
+
+void PatchMatrixComponent::updateBinauralChannels()
+{
+    binauralFirstChannel = binauralTree.isValid()
+        ? (int)binauralTree.getProperty(WFSParameterIDs::binauralOutputChannel, -1)
+        : -1;
+}
+
+bool PatchMatrixComponent::isChannelUsedByBinaural(int hwChannel) const
+{
+    if (isInputPatch || binauralFirstChannel < 0)
+        return false;
+    // binauralFirstChannel is 1-based, hwChannel is 0-based
+    return hwChannel == (binauralFirstChannel - 1) || hwChannel == binauralFirstChannel;
+}
+
+void PatchMatrixComponent::drawHeadphonesIcon(juce::Graphics& g, juce::Rectangle<float> bounds)
+{
+    float size = juce::jmin(bounds.getWidth(), bounds.getHeight()) * 0.7f;
+    float cx = bounds.getCentreX();
+    float cy = bounds.getCentreY();
+
+    juce::Path headphones;
+
+    // Headband arc
+    float r = size * 0.4f;
+    headphones.addCentredArc(cx, cy - size * 0.05f, r, r * 0.7f,
+                             0.0f, -juce::MathConstants<float>::pi, 0.0f, true);
+
+    // Left ear cup
+    float cupW = size * 0.28f, cupH = size * 0.38f;
+    headphones.addRoundedRectangle(cx - r - cupW * 0.5f, cy - cupH * 0.3f,
+                                   cupW, cupH, cupW * 0.35f);
+
+    // Right ear cup
+    headphones.addRoundedRectangle(cx + r - cupW * 0.5f, cy - cupH * 0.3f,
+                                   cupW, cupH, cupW * 0.35f);
+
+    g.setColour(ColorScheme::get().textSecondary);
+    g.strokePath(headphones, juce::PathStrokeType(1.5f));
+}
+
+//==============================================================================
 // Patching Logic
 
 void PatchMatrixComponent::startPatchOperation(juce::Point<int> cell)
 {
+    // Block patching to binaural-reserved channels
+    if (isChannelUsedByBinaural(cell.x))
+        return;
+
     patchDragState.startCell = cell;
     patchDragState.currentCell = cell;
     patchDragState.isActive = true;

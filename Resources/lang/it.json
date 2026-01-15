@@ -103,6 +103,8 @@
       "audioPatch": "Interfaccia Audio e Routing",
       "processingOff": "Elaborazione: OFF",
       "processingOn": "Elaborazione: ON",
+      "binauralOff": "Binaural: OFF",
+      "binauralOn": "Binaural: ON",
       "selectProjectFolder": "Seleziona Cartella Progetto",
       "storeComplete": "Memorizza Configurazione Completa",
       "reloadComplete": "Ricarica Configurazione Completa",

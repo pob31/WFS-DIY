@@ -103,6 +103,8 @@
       "audioPatch": "Interface de Áudio e Patch",
       "processingOff": "Processamento: DESLIGADO",
       "processingOn": "Processamento: LIGADO",
+      "binauralOff": "Binaural: DESLIGADO",
+      "binauralOn": "Binaural: LIGADO",
       "selectProjectFolder": "Selecionar Pasta do Projeto",
       "storeComplete": "Guardar Configuração Completa",
       "reloadComplete": "Recarregar Configuração Completa",

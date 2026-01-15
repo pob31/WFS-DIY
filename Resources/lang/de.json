@@ -103,6 +103,8 @@
       "audioPatch": "Audio-Interface und Patch-Fenster",
       "processingOff": "Verarbeitung: AUS",
       "processingOn": "Verarbeitung: EIN",
+      "binauralOff": "Binaural: AUS",
+      "binauralOn": "Binaural: EIN",
       "selectProjectFolder": "Projektordner auswählen",
       "storeComplete": "Gesamtkonfiguration speichern",
       "reloadComplete": "Gesamtkonfiguration neu laden",
