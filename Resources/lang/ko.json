@@ -69,6 +69,8 @@
       "stage": "무대",
       "master": "마스터 섹션",
       "ui": "인터페이스",
+      "wfsProcessor": "WFS 프로세서",
+      "binauralRenderer": "바이노럴 렌더러",
       "files": "파일"
     },
 

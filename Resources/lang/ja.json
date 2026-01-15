@@ -69,6 +69,8 @@
       "stage": "ステージ",
       "master": "マスターセクション",
       "ui": "UI",
+      "wfsProcessor": "WFSプロセッサー",
+      "binauralRenderer": "バイノーラルレンダラー",
       "files": "ファイル"
     },
 

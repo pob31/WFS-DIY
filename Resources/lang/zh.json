@@ -69,6 +69,8 @@
       "stage": "舞台",
       "master": "主控区",
       "ui": "界面",
+      "wfsProcessor": "WFS处理器",
+      "binauralRenderer": "双耳渲染器",
       "files": "文件"
     },
 

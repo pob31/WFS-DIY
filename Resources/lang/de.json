@@ -69,6 +69,8 @@
       "stage": "Bühne",
       "master": "Masterbereich",
       "ui": "Oberfläche",
+      "wfsProcessor": "WFS-Prozessor",
+      "binauralRenderer": "Binaural-Renderer",
       "files": "Dateien"
     },
 

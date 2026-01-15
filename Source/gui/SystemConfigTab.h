@@ -710,7 +710,7 @@ public:
         // Section headers (bold like NetworkTab)
         // Column 1: Show, I/O (channels only), UI
         // Column 2: Stage, Master
-        // Column 3: Audio/Processing, Binaural Renderer
+        // Column 3: WFS Processor, Binaural Renderer
         g.setColour(ColorScheme::get().textPrimary);
         g.setFont(juce::FontOptions().withHeight(14.0f).withStyle("Bold"));
         g.drawText(LOC("systemConfig.sections.show"), col1X, 10, 200, 20, juce::Justification::left);
@@ -718,6 +718,7 @@ public:
         g.drawText(LOC("systemConfig.sections.ui"), col1X, 290, 200, 20, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.stage"), col2X, 10, 200, 20, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.master"), col2X, 400, 200, 20, juce::Justification::left);
+        g.drawText(LOC("systemConfig.sections.wfsProcessor"), col3X, 10, 200, 20, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.binauralRenderer"), col3X, 200, 200, 20, juce::Justification::left);
     }
 

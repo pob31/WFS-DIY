@@ -69,6 +69,8 @@
       "stage": "Escenario",
       "master": "Sección Master",
       "ui": "Interfaz",
+      "wfsProcessor": "Procesador WFS",
+      "binauralRenderer": "Renderizador Binaural",
       "files": "Archivos"
     },
 

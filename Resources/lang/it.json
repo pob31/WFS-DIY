@@ -69,6 +69,8 @@
       "stage": "Palco",
       "master": "Sezione Master",
       "ui": "Interfaccia",
+      "wfsProcessor": "Processore WFS",
+      "binauralRenderer": "Renderer Binaurale",
       "files": "File"
     },
 
