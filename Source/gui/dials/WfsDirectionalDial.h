@@ -1,0 +1,268 @@
+#pragma once
+
+#include <JuceHeader.h>
+#include <cmath>
+#include "../ColorScheme.h"
+#include "../../Accessibility/TTSManager.h"
+
+/**
+ * WfsDirectionalDial
+ *
+ * A combined dial showing:
+ * - Orientation (white needle)
+ * - Angle On (green sector on opposite side - amplification zone)
+ * - Angle Off (red sector on same side - no-amplification zone)
+ * - Transition zone (orange area between)
+ *
+ * Mouse interaction:
+ * - Drag: Change orientation
+ * - Shift+Drag: Change Angle Off (red sector)
+ * - Alt/Option+Drag: Change Angle On (green sector)
+ * - Mouse wheel: Change orientation (5° increments)
+ */
+class WfsDirectionalDial : public juce::Component
+{
+public:
+    WfsDirectionalDial()
+    {
+        setWantsKeyboardFocus(false);
+        setFocusContainerType(FocusContainerType::none);
+        setOpaque(false);
+        setMouseClickGrabsKeyboardFocus(false);
+    }
+
+    // Setters
+    void setOrientation(float degrees)
+    {
+        // Normalize to -180 to 180 range
+        degrees = std::fmod(degrees + 180.0f, 360.0f);
+        if (degrees < 0.0f) degrees += 360.0f;
+        degrees -= 180.0f;
+
+        if (!juce::approximatelyEqual(degrees, orientationDegrees))
+        {
+            orientationDegrees = degrees;
+            if (onOrientationChanged)
+                onOrientationChanged(orientationDegrees);
+            repaint();
+        }
+    }
+
+    void setAngleOn(int degrees)
+    {
+        degrees = juce::jlimit(1, 180, degrees);
+        if (degrees != angleOnDegrees)
+        {
+            angleOnDegrees = degrees;
+            if (onAngleOnChanged)
+                onAngleOnChanged(angleOnDegrees);
+            repaint();
+        }
+    }
+
+    void setAngleOff(int degrees)
+    {
+        degrees = juce::jlimit(0, 179, degrees);
+        if (degrees != angleOffDegrees)
+        {
+            angleOffDegrees = degrees;
+            if (onAngleOffChanged)
+                onAngleOffChanged(angleOffDegrees);
+            repaint();
+        }
+    }
+
+    // Getters
+    float getOrientation() const noexcept { return orientationDegrees; }
+    int getAngleOn() const noexcept { return angleOnDegrees; }
+    int getAngleOff() const noexcept { return angleOffDegrees; }
+
+    // Callbacks
+    std::function<void(float)> onOrientationChanged;
+    std::function<void(int)> onAngleOnChanged;
+    std::function<void(int)> onAngleOffChanged;
+
+    // TTS accessibility
+    void setTTSParameterName(const juce::String& name) { ttsParameterName = name; }
+
+private:
+    void paint(juce::Graphics& g) override
+    {
+        auto bounds = getLocalBounds().toFloat().reduced(2.0f);
+        auto size = juce::jmin(bounds.getWidth(), bounds.getHeight());
+        auto centre = bounds.getCentre();
+        auto radius = size * 0.5f;
+
+        // Create a square bounds centered in the component
+        auto dialBounds = juce::Rectangle<float>(size, size).withCentre(centre);
+
+        // Convert orientation to radians (0° = down, positive = clockwise)
+        // JUCE uses 0 at 12 o'clock (top) going clockwise
+        // Our 0° is at bottom, so we add 180° (PI) offset
+        float orientationRad = juce::degreesToRadians(orientationDegrees);
+        float angleOnRad = juce::degreesToRadians(static_cast<float>(angleOnDegrees));
+        float angleOffRad = juce::degreesToRadians(static_cast<float>(angleOffDegrees));
+
+        // For JUCE paths: 0 radians = 3 o'clock, goes clockwise
+        // We want 0° = bottom (6 o'clock), so add PI/2
+        float juceOrientationRad = orientationRad + juce::MathConstants<float>::halfPi;
+
+        // 1. Background circle (orange/transition zone)
+        g.setColour(transitionColour);
+        g.fillEllipse(dialBounds.reduced(radius * 0.1f));
+
+        // 2. Angle Off sector (red) - centered on orientation direction (front of speaker)
+        if (angleOffDegrees > 0)
+        {
+            juce::Path offPath;
+            // addPieSegment uses: rectangle, fromRadians, toRadians, innerRadiusProportion
+            // Angles are clockwise from 3 o'clock
+            float offStart = juceOrientationRad - angleOffRad;
+            float offEnd = juceOrientationRad + angleOffRad;
+            offPath.addPieSegment(dialBounds.reduced(radius * 0.1f), offStart, offEnd, 0.0f);
+            g.setColour(angleOffColour);
+            g.fillPath(offPath);
+        }
+
+        // 3. Angle On sector (green) - centered on opposite of orientation (back of speaker)
+        if (angleOnDegrees > 0)
+        {
+            juce::Path onPath;
+            float backDirection = juceOrientationRad + juce::MathConstants<float>::pi;
+            float onStart = backDirection - angleOnRad;
+            float onEnd = backDirection + angleOnRad;
+            onPath.addPieSegment(dialBounds.reduced(radius * 0.1f), onStart, onEnd, 0.0f);
+            g.setColour(angleOnColour);
+            g.fillPath(onPath);
+        }
+
+        // 4. Center circle (dark, to hide pie segment centers)
+        float innerRadius = radius * 0.15f;
+        g.setColour(ColorScheme::get().background);
+        g.fillEllipse(centre.x - innerRadius, centre.y - innerRadius,
+                      innerRadius * 2.0f, innerRadius * 2.0f);
+
+        // 5. Orientation needle (white line) - from center outward
+        float needleLength = radius * 0.85f;
+        // Convert to screen coordinates (Y inverted in screen space)
+        float needleX = centre.x + needleLength * std::sin(orientationRad);
+        float needleY = centre.y - needleLength * std::cos(orientationRad);
+
+        g.setColour(needleColour);
+        g.drawLine(centre.x, centre.y, needleX, needleY, 2.0f);
+
+        // Draw a small circle at the tip of the needle
+        float tipRadius = 3.0f;
+        g.fillEllipse(needleX - tipRadius, needleY - tipRadius,
+                      tipRadius * 2.0f, tipRadius * 2.0f);
+
+        // 6. Outer ring/border
+        g.setColour(ColorScheme::get().buttonBorder);
+        g.drawEllipse(dialBounds.reduced(radius * 0.1f), 1.5f);
+    }
+
+    void mouseDown(const juce::MouseEvent& event) override
+    {
+        auto centre = getLocalBounds().toFloat().getCentre();
+        auto delta = event.position - centre;
+        dragStartMouseAngle = std::atan2(delta.x, -delta.y); // 0 at top, clockwise positive
+
+        // Determine which parameter we're adjusting based on modifiers
+        isAdjustingAngleOff = event.mods.isShiftDown();
+        isAdjustingAngleOn = event.mods.isAltDown();
+
+        if (isAdjustingAngleOff)
+            dragStartValue = static_cast<float>(angleOffDegrees);
+        else if (isAdjustingAngleOn)
+            dragStartValue = static_cast<float>(angleOnDegrees);
+        else
+            dragStartValue = orientationDegrees;
+
+        accumulatedChange = 0.0f;
+    }
+
+    void mouseDrag(const juce::MouseEvent& event) override
+    {
+        auto centre = getLocalBounds().toFloat().getCentre();
+        auto delta = event.position - centre;
+        float currentMouseAngle = std::atan2(delta.x, -delta.y);
+
+        // Calculate angular change (handle wrap-around)
+        float angleDelta = currentMouseAngle - dragStartMouseAngle;
+        if (angleDelta > juce::MathConstants<float>::pi)
+            angleDelta -= 2.0f * juce::MathConstants<float>::pi;
+        else if (angleDelta < -juce::MathConstants<float>::pi)
+            angleDelta += 2.0f * juce::MathConstants<float>::pi;
+
+        accumulatedChange += juce::radiansToDegrees(angleDelta);
+        dragStartMouseAngle = currentMouseAngle;
+
+        if (isAdjustingAngleOff)
+        {
+            // For angle off, we use distance from center to control size
+            float distance = delta.getDistanceFromOrigin();
+            float maxDistance = juce::jmin(getWidth(), getHeight()) * 0.5f;
+            int newAngleOff = static_cast<int>((distance / maxDistance) * 179.0f);
+            setAngleOff(newAngleOff);
+        }
+        else if (isAdjustingAngleOn)
+        {
+            // For angle on, we use distance from center to control size
+            float distance = delta.getDistanceFromOrigin();
+            float maxDistance = juce::jmin(getWidth(), getHeight()) * 0.5f;
+            int newAngleOn = static_cast<int>((distance / maxDistance) * 180.0f);
+            if (newAngleOn < 1) newAngleOn = 1;
+            setAngleOn(newAngleOn);
+        }
+        else
+        {
+            // Normal orientation drag
+            setOrientation(dragStartValue + accumulatedChange);
+        }
+    }
+
+    void mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override
+    {
+        float increment = 5.0f; // 5 degrees per step
+
+        if (event.mods.isShiftDown())
+        {
+            int newAngleOff = angleOffDegrees + static_cast<int>(wheel.deltaY * increment);
+            setAngleOff(newAngleOff);
+        }
+        else if (event.mods.isAltDown())
+        {
+            int newAngleOn = angleOnDegrees + static_cast<int>(wheel.deltaY * increment);
+            setAngleOn(newAngleOn);
+        }
+        else
+        {
+            setOrientation(orientationDegrees + wheel.deltaY * increment);
+        }
+    }
+
+    void mouseEnter(const juce::MouseEvent&) override {}
+    void mouseExit(const juce::MouseEvent&) override {}
+    void paintOverChildren(juce::Graphics&) override {}
+
+    // State
+    float orientationDegrees = 0.0f;   // -180 to +180, 0 = pointing down (toward audience)
+    int angleOnDegrees = 86;           // 1 to 180
+    int angleOffDegrees = 90;          // 0 to 179
+
+    // Drag state
+    float dragStartMouseAngle = 0.0f;
+    float dragStartValue = 0.0f;
+    float accumulatedChange = 0.0f;
+    bool isAdjustingAngleOff = false;
+    bool isAdjustingAngleOn = false;
+
+    // Colors
+    juce::Colour needleColour { juce::Colours::white };
+    juce::Colour angleOnColour { 0xFF4CAF50 };      // Green
+    juce::Colour angleOffColour { 0xFFE53935 };     // Red
+    juce::Colour transitionColour { 0xFFFF9800 };   // Orange
+
+    // TTS
+    juce::String ttsParameterName;
+};

@@ -626,15 +626,45 @@ private:
         addAndMakeVisible(posZUnitLabel);
         posZUnitLabel.setText(LOC("outputs.units.meters"), juce::dontSendNotification);
 
-        // Orientation dial
+        // Directional dial (orientation + angle on/off visualization)
         addAndMakeVisible(orientationLabel);
         orientationLabel.setText(LOC("outputs.labels.orientation"), juce::dontSendNotification);
-        orientationDial.setColours(juce::Colours::black, juce::Colours::white, juce::Colours::grey);
-        orientationDial.onAngleChanged = [this](float angle) {
+
+        directionalDial.onOrientationChanged = [this](float angle) {
             orientationValueLabel.setText(juce::String(static_cast<int>(angle)), juce::dontSendNotification);
             saveOutputParam(WFSParameterIDs::outputOrientation, angle);
         };
-        addAndMakeVisible(orientationDial);
+        directionalDial.onAngleOnChanged = [this](int degrees) {
+            int angleOff = directionalDial.getAngleOff();
+            // Enforce constraint: angleOn + angleOff <= 180
+            if (degrees + angleOff > 180)
+            {
+                angleOff = 180 - degrees;
+                directionalDial.setAngleOff(angleOff);
+                angleOffSlider.setValue(angleOff / 179.0f);
+                angleOffValueLabel.setText(juce::String(angleOff) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+                saveOutputParam(WFSParameterIDs::outputAngleOff, angleOff);
+            }
+            angleOnSlider.setValue((degrees - 1.0f) / 179.0f);
+            angleOnValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+            saveOutputParam(WFSParameterIDs::outputAngleOn, degrees);
+        };
+        directionalDial.onAngleOffChanged = [this](int degrees) {
+            int angleOn = directionalDial.getAngleOn();
+            // Enforce constraint: angleOn + angleOff <= 180
+            if (angleOn + degrees > 180)
+            {
+                angleOn = 180 - degrees;
+                directionalDial.setAngleOn(angleOn);
+                angleOnSlider.setValue((angleOn - 1.0f) / 179.0f);
+                angleOnValueLabel.setText(juce::String(angleOn) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+                saveOutputParam(WFSParameterIDs::outputAngleOn, angleOn);
+            }
+            angleOffSlider.setValue(degrees / 179.0f);
+            angleOffValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+            saveOutputParam(WFSParameterIDs::outputAngleOff, degrees);
+        };
+        addAndMakeVisible(directionalDial);
         addAndMakeVisible(orientationValueLabel);
         orientationValueLabel.setText("0", juce::dontSendNotification);
         orientationValueLabel.setJustificationType(juce::Justification::right);
@@ -648,12 +678,25 @@ private:
         addAndMakeVisible(angleOnLabel);
         angleOnLabel.setText(LOC("outputs.labels.angleOn"), juce::dontSendNotification);
 
-        angleOnSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF00BCD4));
+        angleOnSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF4CAF50));  // Green
         angleOnSlider.setValue(0.47f);  // ~86°
         angleOnSlider.onValueChanged = [this](float v) {
-            int degrees = static_cast<int>(v * 179.0f + 1.0f);
-            angleOnValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
-            saveOutputParam(WFSParameterIDs::outputAngleOn, degrees);
+            int angleOn = static_cast<int>(v * 179.0f + 1.0f);
+            int angleOff = static_cast<int>(angleOffSlider.getValue() * 179.0f);
+
+            // Enforce constraint: angleOn + angleOff <= 180
+            if (angleOn + angleOff > 180)
+            {
+                angleOff = 180 - angleOn;
+                angleOffSlider.setValue(angleOff / 179.0f);
+                angleOffValueLabel.setText(juce::String(angleOff) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+                saveOutputParam(WFSParameterIDs::outputAngleOff, angleOff);
+                directionalDial.setAngleOff(angleOff);
+            }
+
+            angleOnValueLabel.setText(juce::String(angleOn) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+            saveOutputParam(WFSParameterIDs::outputAngleOn, angleOn);
+            directionalDial.setAngleOn(angleOn);
         };
         addAndMakeVisible(angleOnSlider);
         addAndMakeVisible(angleOnValueLabel);
@@ -664,12 +707,25 @@ private:
         addAndMakeVisible(angleOffLabel);
         angleOffLabel.setText(LOC("outputs.labels.angleOff"), juce::dontSendNotification);
 
-        angleOffSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF00BCD4));
+        angleOffSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFFE53935));  // Red
         angleOffSlider.setValue(0.5f);  // ~90°
         angleOffSlider.onValueChanged = [this](float v) {
-            int degrees = static_cast<int>(v * 179.0f);
-            angleOffValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
-            saveOutputParam(WFSParameterIDs::outputAngleOff, degrees);
+            int angleOff = static_cast<int>(v * 179.0f);
+            int angleOn = static_cast<int>(angleOnSlider.getValue() * 179.0f + 1.0f);
+
+            // Enforce constraint: angleOn + angleOff <= 180
+            if (angleOn + angleOff > 180)
+            {
+                angleOn = 180 - angleOff;
+                angleOnSlider.setValue((angleOn - 1.0f) / 179.0f);
+                angleOnValueLabel.setText(juce::String(angleOn) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+                saveOutputParam(WFSParameterIDs::outputAngleOn, angleOn);
+                directionalDial.setAngleOn(angleOn);
+            }
+
+            angleOffValueLabel.setText(juce::String(angleOff) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+            saveOutputParam(WFSParameterIDs::outputAngleOff, angleOff);
+            directionalDial.setAngleOff(angleOff);
         };
         addAndMakeVisible(angleOffSlider);
         addAndMakeVisible(angleOffValueLabel);
@@ -1003,7 +1059,7 @@ private:
         posZEditor.setVisible(visible);
         posZUnitLabel.setVisible(visible);
         orientationLabel.setVisible(visible);
-        orientationDial.setVisible(visible);
+        directionalDial.setVisible(visible);
         orientationValueLabel.setVisible(visible);
         orientationUnitLabel.setVisible(visible);
         angleOnLabel.setVisible(visible);
@@ -1201,7 +1257,7 @@ private:
         }
         auto dialArea = dialColumn.removeFromTop(dialSize);
         int orientDialCenterX = dialArea.getCentreX();
-        orientationDial.setBounds(dialArea.withSizeKeepingCentre(dialSize, dialSize));
+        directionalDial.setBounds(dialArea.withSizeKeepingCentre(dialSize, dialSize));
         auto orientValueRow = dialColumn.removeFromTop(rowHeight);
         // Value and unit adjacent, centered as a pair under dial (with overlap to reduce font padding gap)
         const int orientValW = 40, orientUnitW = 30, overlap = 7;
@@ -1458,16 +1514,18 @@ private:
         updatePositionLabelsAndValues();
 
         float orientation = getFloatParam("outputOrientation", 0.0f);
-        orientationDial.setAngle(orientation);
+        directionalDial.setOrientation(orientation);
         orientationValueLabel.setText(juce::String(static_cast<int>(orientation)), juce::dontSendNotification);
 
         int angleOn = getIntParam("outputAngleOn", 86);  // Default 86°
         angleOnSlider.setValue((angleOn - 1.0f) / 179.0f);
         angleOnValueLabel.setText(juce::String(angleOn) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+        directionalDial.setAngleOn(angleOn);
 
         int angleOff = getIntParam("outputAngleOff", 90);  // Default 90°
         angleOffSlider.setValue(angleOff / 179.0f);
         angleOffValueLabel.setText(juce::String(angleOff) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+        directionalDial.setAngleOff(angleOff);
 
         int pitch = getIntParam("outputPitch", 0);  // Default 0°
         pitchSlider.setValue(pitch / 90.0f);
@@ -1745,11 +1803,11 @@ private:
         }
         else if (label == &orientationValueLabel)
         {
-            // Orientation: -180 to 180 degrees (endless dial normalizes automatically)
+            // Orientation: -180 to 180 degrees (dial normalizes automatically)
             int degrees = static_cast<int>(value);
             while (degrees > 180) degrees -= 360;
             while (degrees < -179) degrees += 360;
-            orientationDial.setAngle(static_cast<float>(degrees));
+            directionalDial.setOrientation(static_cast<float>(degrees));
             // Force label update (unit label is separate)
             orientationValueLabel.setText(juce::String(degrees), juce::dontSendNotification);
         }
@@ -1929,7 +1987,7 @@ private:
         helpTextMap[&posXEditor] = "Output Channel Position in Width.";
         helpTextMap[&posYEditor] = "Output Channel Position in Depth.";
         helpTextMap[&posZEditor] = "Output Channel Position in Height.";
-        helpTextMap[&orientationDial] = "Output Channel Horizontal Orientation (0 degrees means towards the audience in a frontal configuration). (changes may affect the rest of the array)";
+        helpTextMap[&directionalDial] = "Output Channel Directional Control. Drag to change orientation, Shift+drag for Angle Off, Alt+drag for Angle On. (changes may affect the rest of the array)";
         helpTextMap[&angleOnSlider] = "Output Channel Will Amplify Objects in this Angle in its Back. (changes may affect the rest of the array)";
         helpTextMap[&angleOffSlider] = "Output Channel Will Not Amplify Objects in this Angle in Front of it. (changes may affect the rest of the array)";
         helpTextMap[&pitchSlider] = "Output Channel Vertical Orientation used to Determine which Objects get amplified. (changes may affect the rest of the array)";
@@ -1962,7 +2020,7 @@ private:
         oscMethodMap[&posXEditor] = "/wfs/output/positionX <ID> <value>";
         oscMethodMap[&posYEditor] = "/wfs/output/positionY <ID> <value>";
         oscMethodMap[&posZEditor] = "/wfs/output/positionZ <ID> <value>";
-        oscMethodMap[&orientationDial] = "/wfs/output/orientation <ID> <value>";
+        oscMethodMap[&directionalDial] = "/wfs/output/orientation <ID> <value>";
         oscMethodMap[&angleOnSlider] = "/wfs/output/angleOn <ID> <value>";
         oscMethodMap[&angleOffSlider] = "/wfs/output/angleOff <ID> <value>";
         oscMethodMap[&pitchSlider] = "/wfs/output/pitch <ID> <value>";
@@ -2126,7 +2184,7 @@ private:
     juce::TextEditor posZEditor;
     juce::Label posZUnitLabel;
     juce::Label orientationLabel;
-    WfsEndlessDial orientationDial;
+    WfsDirectionalDial directionalDial;
     juce::Label orientationValueLabel;
     juce::Label orientationUnitLabel;
     juce::Label angleOnLabel;
