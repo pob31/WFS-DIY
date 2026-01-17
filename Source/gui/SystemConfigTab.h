@@ -767,7 +767,7 @@ public:
         // UI Section
         y = 320; // Start after "UI" header
         colorSchemeLabel.setBounds(x, y, labelWidth, rowHeight);
-        colorSchemeSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
+        colorSchemeSelector.setBounds(x + labelWidth, y, editorWidth * 2, rowHeight);  // Wider for dropdown text
         y += rowHeight + spacing;
 
         languageLabel.setBounds(x, y, labelWidth, rowHeight);
@@ -868,7 +868,7 @@ public:
         y += rowHeight + spacing;
 
         algorithmLabel.setBounds(x, y, labelWidth, rowHeight);
-        algorithmSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
+        algorithmSelector.setBounds(x + labelWidth, y, editorWidth * 2, rowHeight);  // Wider for dropdown text
         y += rowHeight + spacing;
 
         processingButton.setBounds(x, y, fullWidth, rowHeight);
@@ -1587,6 +1587,10 @@ private:
 
     void toggleBinauralProcessing()
     {
+        // Don't allow enabling if no output is selected
+        if (binauralOutputSelector.getSelectedId() == 1)
+            return;
+
         auto& vts = parameters.getValueTreeState();
         bool currentState = vts.getBinauralEnabled();
         bool newState = !currentState;
@@ -1634,7 +1638,7 @@ private:
 
         // Rebuild ComboBox
         binauralOutputSelector.clear(juce::dontSendNotification);
-        binauralOutputSelector.addItem(LOC("systemConfig.binauralOutput.off"), 1);
+        binauralOutputSelector.addItem("Select...", 1);  // No output selected by default
 
         for (int i = 1; i <= 63; i += 2)
         {
@@ -1657,41 +1661,56 @@ private:
 
     void updateBinauralControlsEnabledState()
     {
-        // When binaural output is Off (selectedId == 1), disable/dim all binaural controls
-        bool enabled = (binauralOutputSelector.getSelectedId() != 1);
+        // When binaural output is not selected (selectedId == 1), disable/dim all binaural controls
+        bool outputSelected = (binauralOutputSelector.getSelectedId() != 1);
 
-        // Enable/disable controls
-        binauralDistanceSlider.setEnabled(enabled);
-        binauralDistanceEditor.setEnabled(enabled);
-        binauralAngleDial.setEnabled(enabled);
-        binauralAngleEditor.setEnabled(enabled);
-        binauralAttenSlider.setEnabled(enabled);
-        binauralAttenEditor.setEnabled(enabled);
-        binauralDelaySlider.setEnabled(enabled);
-        binauralDelayEditor.setEnabled(enabled);
-        // Note: soloModeButton stays enabled even when binaural is Off
-        // so users can pre-configure solo mode before enabling binaural output
+        // If output is deselected, turn off binaural processing
+        if (!outputSelected)
+        {
+            auto& vts = parameters.getValueTreeState();
+            if (vts.getBinauralEnabled())
+            {
+                vts.setBinauralEnabled(false);
+                binauralEnableButton.setButtonText(LOC("systemConfig.buttons.binauralOff"));
+            }
+        }
+
+        // Enable/disable the on/off toggle based on output selection
+        binauralEnableButton.setEnabled(outputSelected);
+        binauralEnableButton.setAlpha(outputSelected ? 1.0f : 0.5f);
+
+        // Enable/disable other controls
+        binauralDistanceSlider.setEnabled(outputSelected);
+        binauralDistanceEditor.setEnabled(outputSelected);
+        binauralAngleDial.setEnabled(outputSelected);
+        binauralAngleEditor.setEnabled(outputSelected);
+        binauralAttenSlider.setEnabled(outputSelected);
+        binauralAttenEditor.setEnabled(outputSelected);
+        binauralDelaySlider.setEnabled(outputSelected);
+        binauralDelayEditor.setEnabled(outputSelected);
+        // Note: soloModeButton stays enabled even when binaural output is not selected
+        // so users can pre-configure solo mode before selecting an output
 
         // Visual feedback - dim disabled controls using theme colors
         auto disabledColour = ColorScheme::get().textDisabled;
         auto enabledColour = ColorScheme::get().textPrimary;
-        float alpha = enabled ? 1.0f : 0.38f;  // Material Design disabled alpha
+        float alpha = outputSelected ? 1.0f : 0.38f;  // Material Design disabled alpha
 
         // Labels
-        binauralDistanceLabel.setColour(juce::Label::textColourId, enabled ? enabledColour : disabledColour);
-        binauralDistanceUnitLabel.setColour(juce::Label::textColourId, enabled ? enabledColour : disabledColour);
-        binauralAngleLabel.setColour(juce::Label::textColourId, enabled ? enabledColour : disabledColour);
-        binauralAngleUnitLabel.setColour(juce::Label::textColourId, enabled ? enabledColour : disabledColour);
-        binauralAttenLabel.setColour(juce::Label::textColourId, enabled ? enabledColour : disabledColour);
-        binauralAttenUnitLabel.setColour(juce::Label::textColourId, enabled ? enabledColour : disabledColour);
-        binauralDelayLabel.setColour(juce::Label::textColourId, enabled ? enabledColour : disabledColour);
-        binauralDelayUnitLabel.setColour(juce::Label::textColourId, enabled ? enabledColour : disabledColour);
+        binauralDistanceLabel.setColour(juce::Label::textColourId, outputSelected ? enabledColour : disabledColour);
+        binauralDistanceUnitLabel.setColour(juce::Label::textColourId, outputSelected ? enabledColour : disabledColour);
+        binauralAngleLabel.setColour(juce::Label::textColourId, outputSelected ? enabledColour : disabledColour);
+        binauralAngleUnitLabel.setColour(juce::Label::textColourId, outputSelected ? enabledColour : disabledColour);
+        binauralAttenLabel.setColour(juce::Label::textColourId, outputSelected ? enabledColour : disabledColour);
+        binauralAttenUnitLabel.setColour(juce::Label::textColourId, outputSelected ? enabledColour : disabledColour);
+        binauralDelayLabel.setColour(juce::Label::textColourId, outputSelected ? enabledColour : disabledColour);
+        binauralDelayUnitLabel.setColour(juce::Label::textColourId, outputSelected ? enabledColour : disabledColour);
 
         // Text editors
-        binauralDistanceEditor.setColour(juce::TextEditor::textColourId, enabled ? enabledColour : disabledColour);
-        binauralAngleEditor.setColour(juce::TextEditor::textColourId, enabled ? enabledColour : disabledColour);
-        binauralAttenEditor.setColour(juce::TextEditor::textColourId, enabled ? enabledColour : disabledColour);
-        binauralDelayEditor.setColour(juce::TextEditor::textColourId, enabled ? enabledColour : disabledColour);
+        binauralDistanceEditor.setColour(juce::TextEditor::textColourId, outputSelected ? enabledColour : disabledColour);
+        binauralAngleEditor.setColour(juce::TextEditor::textColourId, outputSelected ? enabledColour : disabledColour);
+        binauralAttenEditor.setColour(juce::TextEditor::textColourId, outputSelected ? enabledColour : disabledColour);
+        binauralDelayEditor.setColour(juce::TextEditor::textColourId, outputSelected ? enabledColour : disabledColour);
 
         // Sliders - use setDisabledAlpha for WfsSliderBase-derived components
         binauralDistanceSlider.setDisabledAlpha(alpha);
@@ -1706,8 +1725,8 @@ private:
         binauralAngleDial.repaint();
 
         // Solo mode button - visually dim when binaural off, but keep operable
-        soloModeButton.setColour(juce::TextButton::textColourOffId, enabled ? enabledColour : disabledColour);
-        soloModeButton.setColour(juce::TextButton::textColourOnId, enabled ? enabledColour : disabledColour);
+        soloModeButton.setColour(juce::TextButton::textColourOffId, outputSelected ? enabledColour : disabledColour);
+        soloModeButton.setColour(juce::TextButton::textColourOnId, outputSelected ? enabledColour : disabledColour);
     }
 
     //==============================================================================
@@ -2255,7 +2274,7 @@ private:
     {
         LayoutMetrics m;
         const int margin = 20;
-        const int columnGap = 30;
+        const int columnGap = 50;  // Increased gap between columns
         const int totalWidth = getWidth() - margin * 2;
 
         m.colWidth = (totalWidth - columnGap * 2) / 3;
@@ -2263,7 +2282,9 @@ private:
         m.col2X = m.col1X + m.colWidth + columnGap;
         m.col3X = m.col2X + m.colWidth + columnGap;
         m.labelWidth = juce::jmax(100, m.colWidth * 40 / 100);
-        m.editorWidth = m.colWidth - m.labelWidth - 10;
+        // Editor width accounts for: label + editor + spacing + unit label + spacing + button
+        // colWidth = labelWidth + editorWidth + spacing(5) + unitWidth(40) + buffer
+        m.editorWidth = juce::jmin(120, m.colWidth - m.labelWidth - m.unitWidth - m.spacing * 2);
 
         return m;
     }

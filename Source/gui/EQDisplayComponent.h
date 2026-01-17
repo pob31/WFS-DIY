@@ -244,13 +244,9 @@ public:
                 float newQ = pinchStartQ / scaleFactor;
                 newQ = juce::jlimit (config.qMin, config.qMax, newQ);
 
-                auto bandTree = eqTree.getChild (selectedBand);
-                if (bandTree.isValid())
-                {
-                    bandTree.setProperty (config.qId, newQ, nullptr);
-                    updateBandCoefficients (selectedBand);
-                    repaint();
-                }
+                setBandParameter (selectedBand, config.qId, newQ);
+                updateBandCoefficients (selectedBand);
+                repaint();
             }
             return;
         }
@@ -269,7 +265,7 @@ public:
         // Update frequency from X position
         float newFreq = xToFrequency (e.position.x);
         newFreq = juce::jlimit (20.0f, 20000.0f, newFreq);
-        bandTree.setProperty (config.frequencyId, newFreq, nullptr);
+        setBandParameter (selectedBand, config.frequencyId, static_cast<int> (newFreq));
 
         // Update gain from Y position (except for cuts and bandpass)
         if (filterType != EQFilterType::LowCut &&
@@ -278,7 +274,7 @@ public:
         {
             float newGain = yTodB (e.position.y);
             newGain = juce::jlimit (mindB, maxdB, newGain);
-            bandTree.setProperty (config.gainId, newGain, nullptr);
+            setBandParameter (selectedBand, config.gainId, newGain);
         }
 
         updateBandCoefficients (selectedBand);
@@ -342,7 +338,7 @@ public:
         // Multiplicative adjustment for Q
         float newQ = currentQ * (1.0f + delta);
         newQ = juce::jlimit (config.qMin, config.qMax, newQ);
-        bandTree.setProperty (config.qId, newQ, nullptr);
+        setBandParameter (selectedBand, config.qId, newQ);
 
         updateBandCoefficients (selectedBand);
         repaint();
@@ -366,7 +362,7 @@ public:
         float currentQ = bandTree.getProperty (config.qId);
         float newQ = currentQ * scaleFactor;
         newQ = juce::jlimit (config.qMin, config.qMax, newQ);
-        bandTree.setProperty (config.qId, newQ, nullptr);
+        setBandParameter (targetBand, config.qId, newQ);
 
         if (selectedBand != targetBand)
             selectedBand = targetBand;
@@ -385,6 +381,10 @@ public:
         selectedBand = (band >= 0 && band < numBands) ? band : -1;
         repaint();
     }
+
+    // Callback for parameter changes (for array propagation)
+    // Parameters: bandIndex, paramId, newValue
+    std::function<void (int, const juce::Identifier&, const juce::var&)> onParameterChanged;
 
     // Get band colour - static so it can be used by other components
     // Rainbow progression: Red -> Orange -> Yellow -> Green -> Blue -> Purple
@@ -952,6 +952,23 @@ private:
         }
 
         return nearestBand;
+    }
+
+    //==========================================================================
+    // Parameter setting with callback support
+    //==========================================================================
+    void setBandParameter (int bandIndex, const juce::Identifier& paramId, const juce::var& value)
+    {
+        auto bandTree = eqTree.getChild (bandIndex);
+        if (! bandTree.isValid())
+            return;
+
+        // Set locally for immediate visual feedback
+        bandTree.setProperty (paramId, value, nullptr);
+
+        // Notify parent for array propagation
+        if (onParameterChanged)
+            onParameterChanged (bandIndex, paramId, value);
     }
 
     //==========================================================================

@@ -601,16 +601,17 @@ public:
         mapLockButton.setBounds(row1.removeFromLeft(120));
         row1.removeFromLeft(spacing);
         mapVisibilityButton.setBounds(row1.removeFromLeft(160));
-        row1.removeFromLeft(spacing * 2);
-        levelMeterButton.setBounds(row1.removeFromLeft(90));
-        row1.removeFromLeft(spacing);
-        clearSoloButton.setBounds(row1.removeFromLeft(90));
-        row1.removeFromLeft(spacing);
-        soloButton.setBounds(row1.removeFromLeft(50));  // Wider for "Solo" text
-        row1.removeFromLeft(spacing);
-        soloModeButton.setBounds(row1.removeFromLeft(70));  // Single/Multi toggle
-        // Set All Inputs button at far right
+
+        // Right-aligned buttons (from right to left)
         setAllInputsButton.setBounds(row1.removeFromRight(130));
+        row1.removeFromRight(spacing);
+        soloModeButton.setBounds(row1.removeFromRight(70));  // Single/Multi toggle
+        row1.removeFromRight(spacing);
+        soloButton.setBounds(row1.removeFromRight(50));  // Wider for "Solo" text
+        row1.removeFromRight(spacing);
+        clearSoloButton.setBounds(row1.removeFromRight(90));
+        row1.removeFromRight(spacing);
+        levelMeterButton.setBounds(row1.removeFromRight(90));
 
         // ==================== FOOTER ==================== (matching Output tab style)
         auto footerArea = bounds.removeFromBottom(footerHeight).reduced(padding, padding);

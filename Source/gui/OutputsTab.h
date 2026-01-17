@@ -196,14 +196,6 @@ public:
                 onLevelMeterWindowRequested();
         };
 
-        // Clear Solo button
-        addAndMakeVisible(clearSoloButton);
-        clearSoloButton.setButtonText(LOC("systemConfig.buttons.clearSolo"));
-        clearSoloButton.onClick = [this]() {
-            parameters.getValueTreeState().clearAllSoloStates();
-            updateClearSoloButtonState();
-        };
-
         // Wizard of OutZ button (array position helper)
         addAndMakeVisible(arrayPositionHelperButton);
         arrayPositionHelperButton.setButtonText(LOC("outputs.buttons.wizardOfOutZ"));
@@ -407,8 +399,6 @@ public:
         mapVisibilityButton.setBounds(row1.removeFromLeft(180));
         row1.removeFromLeft(spacing);
         levelMeterButton.setBounds(row1.removeFromLeft(90));
-        row1.removeFromLeft(spacing);
-        clearSoloButton.setBounds(row1.removeFromLeft(90));
 
         // Wizard of OutZ button on the right
         arrayPositionHelperButton.setBounds(row1.removeFromRight(130));
@@ -1528,6 +1518,12 @@ private:
                 eqDisplay = std::make_unique<EQDisplayComponent>(eqTree, numEqBands, EQDisplayConfig::forOutputEQ());
                 addAndMakeVisible(*eqDisplay);
                 lastEqDisplayChannel = channel;
+
+                // Set up callback for array propagation when interacting with the EQ graph
+                eqDisplay->onParameterChanged = [this](int bandIndex, const juce::Identifier& paramId, const juce::var& value) {
+                    if (!isLoadingParameters)
+                        saveEqBandParam(bandIndex, paramId, value);
+                };
             }
             // Update EQ display enabled state
             eqDisplay->setEQEnabled(eqEnabled);
@@ -1646,28 +1642,6 @@ private:
             bool visible = val.isVoid() || static_cast<int>(val) != 0;
             mapVisibilityButton.setButtonText(visible ? "Speaker Visible on Map" : "Speaker Hidden on Map");
         }
-    }
-
-    void updateClearSoloButtonState()
-    {
-        // Check if any inputs are soloed
-        auto& vts = parameters.getValueTreeState();
-        int numInputs = parameters.getNumInputChannels();
-        bool anySoloed = false;
-        for (int i = 0; i < numInputs; ++i)
-        {
-            if (vts.isInputSoloed(i))
-            {
-                anySoloed = true;
-                break;
-            }
-        }
-
-        // Dim the button when no solos are engaged
-        auto disabledColour = ColorScheme::get().textDisabled;
-        auto enabledColour = ColorScheme::get().textPrimary;
-        clearSoloButton.setColour(juce::TextButton::textColourOffId, anySoloed ? enabledColour : disabledColour);
-        clearSoloButton.setColour(juce::TextButton::textColourOnId, anySoloed ? enabledColour : disabledColour);
     }
 
     // ==================== TEXT EDITOR LISTENER ====================
@@ -2044,16 +2018,6 @@ private:
 
     void valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property) override
     {
-        // Check if solo states changed (stored in binaural tree)
-        if (tree == binauralTree && property == WFSParameterIDs::inputSoloStates)
-        {
-            juce::MessageManager::callAsync([this]()
-            {
-                updateClearSoloButtonState();
-            });
-            return;
-        }
-
         // Check if output channel count changed (stored in IO tree)
         if (tree == ioTree && property == WFSParameterIDs::outputChannels)
         {
@@ -2125,7 +2089,6 @@ private:
     juce::ComboBox applyToArraySelector;
     juce::TextButton mapVisibilityButton;
     juce::TextButton levelMeterButton;
-    juce::TextButton clearSoloButton;
 
     // Sub-tab bar
     juce::TabbedButtonBar subTabBar { juce::TabbedButtonBar::TabsAtTop };

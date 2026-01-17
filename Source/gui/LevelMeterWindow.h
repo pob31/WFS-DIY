@@ -65,7 +65,7 @@ public:
         if (isContributionMode)
             g.setColour(juce::Colour(0xFF1A1A2E));  // Dark purple-ish background
         else
-            g.setColour(ColorScheme::get().background.darker(0.3f));
+            g.setColour(juce::Colour(0xFF303030));  // Dark grey - visible against black background
         g.fillRoundedRectangle(bounds.toFloat(), 3.0f);
 
         // Calculate meter height (0 dB at top, -60 dB at bottom)
@@ -207,7 +207,7 @@ public:
         auto bounds = getLocalBounds().reduced(1);
 
         // Background
-        g.setColour(ColorScheme::get().background.darker(0.3f));
+        g.setColour(juce::Colour(0xFF303030));  // Dark grey - visible against black background
         g.fillRoundedRectangle(bounds.toFloat(), 2.0f);
 
         // CPU bar

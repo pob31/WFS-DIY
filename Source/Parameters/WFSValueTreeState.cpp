@@ -366,7 +366,7 @@ void WFSValueTreeState::setOutputParameterDirect (int channelIndex, const juce::
 void WFSValueTreeState::setOutputEQBandParameterDirect (int channelIndex, int bandIndex, const juce::Identifier& paramId, const juce::var& value)
 {
     auto band = getOutputEQBand (channelIndex, bandIndex);
-    if (band.isValid() && band.hasProperty (paramId))
+    if (band.isValid())
         band.setProperty (paramId, value, &undoManager);
 }
 
