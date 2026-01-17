@@ -603,15 +603,16 @@ public:
         mapVisibilityButton.setBounds(row1.removeFromLeft(160));
 
         // Right-aligned buttons (from right to left)
+        // Desired order left-to-right: [Solo] [Clear Solo] [Single/Multi] [Level Meters] [Set all Inputs...]
         setAllInputsButton.setBounds(row1.removeFromRight(130));
+        row1.removeFromRight(spacing);
+        levelMeterButton.setBounds(row1.removeFromRight(100));
         row1.removeFromRight(spacing);
         soloModeButton.setBounds(row1.removeFromRight(70));  // Single/Multi toggle
         row1.removeFromRight(spacing);
-        soloButton.setBounds(row1.removeFromRight(50));  // Wider for "Solo" text
-        row1.removeFromRight(spacing);
         clearSoloButton.setBounds(row1.removeFromRight(90));
         row1.removeFromRight(spacing);
-        levelMeterButton.setBounds(row1.removeFromRight(90));
+        soloButton.setBounds(row1.removeFromRight(50));
 
         // ==================== FOOTER ==================== (matching Output tab style)
         auto footerArea = bounds.removeFromBottom(footerHeight).reduced(padding, padding);
