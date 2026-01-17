@@ -97,43 +97,38 @@ private:
         auto dialBounds = juce::Rectangle<float>(size, size).withCentre(centre);
 
         // Convert orientation to radians (0° = down, positive = clockwise)
-        // JUCE uses 0 at 12 o'clock (top) going clockwise
-        // Our 0° is at bottom, so we add 180° (PI) offset
         float orientationRad = juce::degreesToRadians(orientationDegrees);
         float angleOnRad = juce::degreesToRadians(static_cast<float>(angleOnDegrees));
         float angleOffRad = juce::degreesToRadians(static_cast<float>(angleOffDegrees));
 
-        // For JUCE paths: 0 radians = 3 o'clock, goes clockwise
-        // We want 0° = bottom (6 o'clock), so add PI/2
-        float juceOrientationRad = orientationRad + juce::MathConstants<float>::halfPi;
+        // For JUCE paths: 0 radians = 3 o'clock, positive angles go clockwise
+        float juceOrientationRad = orientationRad;
 
         // 1. Background circle (orange/transition zone)
         g.setColour(transitionColour);
         g.fillEllipse(dialBounds.reduced(radius * 0.1f));
 
-        // 2. Angle Off sector (red) - centered on orientation direction (front of speaker)
-        if (angleOffDegrees > 0)
-        {
-            juce::Path offPath;
-            // addPieSegment uses: rectangle, fromRadians, toRadians, innerRadiusProportion
-            // Angles are clockwise from 3 o'clock
-            float offStart = juceOrientationRad - angleOffRad;
-            float offEnd = juceOrientationRad + angleOffRad;
-            offPath.addPieSegment(dialBounds.reduced(radius * 0.1f), offStart, offEnd, 0.0f);
-            g.setColour(angleOffColour);
-            g.fillPath(offPath);
-        }
-
-        // 3. Angle On sector (green) - centered on opposite of orientation (back of speaker)
+        // 2. Angle On sector (green) - centered on orientation direction (front of speaker)
         if (angleOnDegrees > 0)
         {
             juce::Path onPath;
-            float backDirection = juceOrientationRad + juce::MathConstants<float>::pi;
-            float onStart = backDirection - angleOnRad;
-            float onEnd = backDirection + angleOnRad;
+            float onStart = juceOrientationRad - angleOnRad;
+            float onEnd = juceOrientationRad + angleOnRad;
             onPath.addPieSegment(dialBounds.reduced(radius * 0.1f), onStart, onEnd, 0.0f);
             g.setColour(angleOnColour);
             g.fillPath(onPath);
+        }
+
+        // 3. Angle Off sector (red) - centered on opposite of orientation (back of speaker)
+        if (angleOffDegrees > 0)
+        {
+            juce::Path offPath;
+            float backDirection = juceOrientationRad + juce::MathConstants<float>::pi;
+            float offStart = backDirection - angleOffRad;
+            float offEnd = backDirection + angleOffRad;
+            offPath.addPieSegment(dialBounds.reduced(radius * 0.1f), offStart, offEnd, 0.0f);
+            g.setColour(angleOffColour);
+            g.fillPath(offPath);
         }
 
         // 4. Center circle (dark, to hide pie segment centers)
@@ -144,9 +139,11 @@ private:
 
         // 5. Orientation needle (white line) - from center outward
         float needleLength = radius * 0.85f;
-        // Convert to screen coordinates (Y inverted in screen space)
-        float needleX = centre.x + needleLength * std::sin(orientationRad);
-        float needleY = centre.y - needleLength * std::cos(orientationRad);
+        // 0° = down (south), positive = clockwise
+        // Negate orientationRad to match sector rotation direction
+        // sin(-x) = -sin(x), cos(-x) = cos(x)
+        float needleX = centre.x - needleLength * std::sin(orientationRad);
+        float needleY = centre.y + needleLength * std::cos(orientationRad);
 
         g.setColour(needleColour);
         g.drawLine(centre.x, centre.y, needleX, needleY, 2.0f);
