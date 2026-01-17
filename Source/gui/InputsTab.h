@@ -1503,6 +1503,7 @@ private:
             int degrees = static_cast<int>((v * 358.0f) + 2.0f);
             directivityValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
             saveInputParam(WFSParameterIDs::inputDirectivity, degrees);
+            inputDirectivityDial.setDirectivity(static_cast<float>(degrees));
         };
         addAndMakeVisible(directivitySlider);
         addAndMakeVisible(directivityValueLabel);
@@ -1510,16 +1511,15 @@ private:
         directivityValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(directivityValueLabel);
 
-        // Rotation dial
+        // Rotation/Directivity combined dial
         addAndMakeVisible(rotationLabel);
         rotationLabel.setText(LOC("inputs.labels.rotation"), juce::dontSendNotification);
         rotationLabel.setJustificationType(juce::Justification::centred);
-        rotationDial.setColours(juce::Colours::black, juce::Colours::white, juce::Colours::grey);
-        rotationDial.onAngleChanged = [this](float angle) {
+        inputDirectivityDial.onRotationChanged = [this](float angle) {
             rotationValueLabel.setText(juce::String(static_cast<int>(angle)), juce::dontSendNotification);
             saveInputParam(WFSParameterIDs::inputRotation, static_cast<int>(angle));
         };
-        addAndMakeVisible(rotationDial);
+        addAndMakeVisible(inputDirectivityDial);
         addAndMakeVisible(rotationValueLabel);
         rotationValueLabel.setText("0", juce::dontSendNotification);
         rotationValueLabel.setJustificationType(juce::Justification::right);
@@ -1554,6 +1554,7 @@ private:
                        ((1.0f - std::pow(10.0f, -24.0f / 20.0f)) * v * v));
             hfShelfValueLabel.setText(juce::String(dB, 1) + " dB", juce::dontSendNotification);
             saveInputParam(WFSParameterIDs::inputHFshelf, dB);
+            inputDirectivityDial.setHfShelf(dB);
         };
         addAndMakeVisible(hfShelfSlider);
         addAndMakeVisible(hfShelfValueLabel);
@@ -2677,7 +2678,7 @@ private:
         distanceRatioUnitLabel.setVisible(v && is1OverD);
         commonAttenLabel.setVisible(v); commonAttenDial.setVisible(v); commonAttenValueLabel.setVisible(v); commonAttenUnitLabel.setVisible(v);
         directivityLabel.setVisible(v); directivitySlider.setVisible(v); directivityValueLabel.setVisible(v);
-        rotationLabel.setVisible(v); rotationDial.setVisible(v); rotationValueLabel.setVisible(v); rotationUnitLabel.setVisible(v);
+        rotationLabel.setVisible(v); inputDirectivityDial.setVisible(v); rotationValueLabel.setVisible(v); rotationUnitLabel.setVisible(v);
         tiltLabel.setVisible(v); tiltSlider.setVisible(v); tiltValueLabel.setVisible(v);
         hfShelfLabel.setVisible(v); hfShelfSlider.setVisible(v); hfShelfValueLabel.setVisible(v);
     }
@@ -3122,7 +3123,7 @@ private:
 
         rotationLabel.setBounds(rightCol.removeFromTop(rowHeight));
         dialArea = rightCol.removeFromTop(dialSize);
-        rotationDial.setBounds(dialArea.withSizeKeepingCentre(dialSize, dialSize));
+        inputDirectivityDial.setBounds(dialArea.withSizeKeepingCentre(dialSize, dialSize));
         rotationValueLabel.setBounds(rightCol.removeFromTop(rowHeight));
     }
 
@@ -3871,7 +3872,7 @@ private:
         int rotCenterX = rotArea.getX() + rotArea.getWidth() / 2;
         int rotCenterY = rotArea.getY() + rotArea.getHeight() / 2;
         rotationLabel.setBounds(rotCenterX - 50, rotArea.getY(), 100, rowHeight);
-        rotationDial.setBounds(rotCenterX - largeRotationDial / 2, rotCenterY - largeRotationDial / 2, largeRotationDial, largeRotationDial);
+        inputDirectivityDial.setBounds(rotCenterX - largeRotationDial / 2, rotCenterY - largeRotationDial / 2, largeRotationDial, largeRotationDial);
         layoutDialValueUnit(rotationValueLabel, rotationUnitLabel, rotCenterX, rotArea.getBottom() - rowHeight, rowHeight, 40, 25);
 
         // Spacing after HF Shelf
@@ -4648,13 +4649,12 @@ private:
         float directivitySliderVal = (directivityDeg - 2.0f) / 358.0f;
         directivitySlider.setValue(juce::jlimit(0.0f, 1.0f, directivitySliderVal));
         directivityValueLabel.setText(juce::String(static_cast<int>(directivityDeg)) + juce::String::fromUTF8("°"), juce::dontSendNotification);
+        inputDirectivityDial.setDirectivity(directivityDeg);
 
-        // Rotation stored as degrees (from WfsEndlessDial which returns -180 to 180)
+        // Rotation stored as degrees (-180 to 180)
         float rotation = getFloatParam(WFSParameterIDs::inputRotation, 0.0f);
-        rotationDial.setAngle(rotation);  // WfsEndlessDial normalizes to -180/180 automatically
-        int rotDegrees = static_cast<int>(rotation);
-        if (rotDegrees < 0) rotDegrees += 360;
-        rotationValueLabel.setText(juce::String(rotDegrees), juce::dontSendNotification);
+        inputDirectivityDial.setRotation(rotation);
+        rotationValueLabel.setText(juce::String(static_cast<int>(rotation)), juce::dontSendNotification);
 
         // Tilt stored as degrees (-90 to 90), default 0
         // Bidirectional slider: v = degrees / 90 (maps -90..90 to -1..1)
@@ -4674,6 +4674,7 @@ private:
         float hfShelfSliderVal = std::sqrt((hfTargetLinear - hfMinLinear) / (1.0f - hfMinLinear));
         hfShelfSlider.setValue(juce::jlimit(0.0f, 1.0f, hfShelfSliderVal));
         hfShelfValueLabel.setText(juce::String(hfShelfDB, 1) + " dB", juce::dontSendNotification);
+        inputDirectivityDial.setHfShelf(hfShelfDB);
 
         // ==================== LIVE SOURCE TAB ====================
         bool lsActive = getIntParam(WFSParameterIDs::inputLSactive, 0) != 0;
@@ -5310,9 +5311,8 @@ private:
         }
         else if (label == &rotationValueLabel)
         {
-            int degrees = juce::jlimit(-179, 180, static_cast<int>(value));
-            rotationDial.setAngle(static_cast<float>(degrees));
-            // Force label update (unit label is separate)
+            int degrees = juce::jlimit(-180, 180, static_cast<int>(value));
+            inputDirectivityDial.setRotation(static_cast<float>(degrees));
             rotationValueLabel.setText(juce::String(degrees), juce::dontSendNotification);
         }
         else if (label == &tiltValueLabel)
@@ -6204,7 +6204,7 @@ private:
         helpTextMap[&distanceRatioDial] = "Attenuation Ratio for Squared Model.";
         helpTextMap[&commonAttenDial] = "Percentage of the Common Part of the Attenuation for selected Object Relative to All Outputs.";
         helpTextMap[&directivitySlider] = "How Wide is the Brightness of The Object.";
-        helpTextMap[&rotationDial] = "Where is the Object pointing to in the Horizontal Plane.";
+        helpTextMap[&inputDirectivityDial] = "Where is the Object pointing to in the Horizontal Plane.";
         helpTextMap[&tiltSlider] = "Where is the Object pointing to in the Vertical Plane.";
         helpTextMap[&hfShelfSlider] = "How Much Brightness is lost in the Back of the Object, Out of its Brightness Cone.";
         helpTextMap[&lsActiveButton] = "If You Need to Reduce the Level in Speakers Close to the Object. (eg. Loud Source Present on Stage)";
@@ -6315,7 +6315,7 @@ private:
         oscMethodMap[&distanceRatioDial] = "/wfs/input/distanceRatio <ID> <value>";
         oscMethodMap[&commonAttenDial] = "/wfs/input/commonAtten <ID> <value>";
         oscMethodMap[&directivitySlider] = "/wfs/input/directivity <ID> <value>";
-        oscMethodMap[&rotationDial] = "/wfs/input/rotation <ID> <value>";
+        oscMethodMap[&inputDirectivityDial] = "/wfs/input/rotation <ID> <value>";
         oscMethodMap[&tiltSlider] = "/wfs/input/tilt <ID> <value>";
         oscMethodMap[&hfShelfSlider] = "/wfs/input/HFshelf <ID> <value>";
         oscMethodMap[&lsActiveButton] = "/wfs/input/LSactive <ID> <value>";
@@ -6909,7 +6909,7 @@ private:
     WfsWidthExpansionSlider directivitySlider;
     juce::Label directivityValueLabel;
     juce::Label rotationLabel;
-    WfsEndlessDial rotationDial;
+    WfsInputDirectivityDial inputDirectivityDial;
     juce::Label rotationValueLabel;
     juce::Label rotationUnitLabel;
     juce::Label tiltLabel;

@@ -4,3 +4,4 @@
 #include "dials/WfsRotationDial.h"
 #include "dials/WfsEndlessDial.h"
 #include "dials/WfsDirectionalDial.h"
+#include "dials/WfsInputDirectivityDial.h"
