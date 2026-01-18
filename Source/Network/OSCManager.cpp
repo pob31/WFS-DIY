@@ -1128,6 +1128,7 @@ void OSCManager::handleRemoteParameterSet(const OSCMessageRouter::ParsedRemoteIn
                     ? static_cast<float>(static_cast<double>(parsed.value))
                     : static_cast<float>(static_cast<int>(parsed.value));
 
+                // Apply single-axis constraint
                 if (parsed.paramId == WFSParameterIDs::inputPositionX)
                     floatValue = applyConstraintX(channelIndex, floatValue);
                 else if (parsed.paramId == WFSParameterIDs::inputPositionY)
@@ -1135,37 +1136,80 @@ void OSCManager::handleRemoteParameterSet(const OSCMessageRouter::ParsedRemoteIn
                 else if (parsed.paramId == WFSParameterIDs::inputPositionZ)
                     floatValue = applyConstraintZ(channelIndex, floatValue);
 
-                // Get current position values and apply distance constraint
-                juce::var xVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionX);
-                juce::var yVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionY);
-                juce::var zVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionZ);
-                float x = xVar.isDouble() ? static_cast<float>(static_cast<double>(xVar)) : 0.0f;
-                float y = yVar.isDouble() ? static_cast<float>(static_cast<double>(yVar)) : 0.0f;
-                float z = zVar.isDouble() ? static_cast<float>(static_cast<double>(zVar)) : 0.0f;
+                // Check if distance constraint is enabled for this channel
+                juce::var coordModeVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputCoordinateMode);
+                int coordMode = coordModeVar.isInt() ? static_cast<int>(coordModeVar) : 0;
+                juce::var constraintDistVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputConstraintDistance);
+                int constraintDist = constraintDistVar.isInt() ? static_cast<int>(constraintDistVar) : 0;
+                bool distanceConstraintActive = (coordMode == 1 || coordMode == 2) && constraintDist != 0;
 
-                // Update with new value being set
-                if (parsed.paramId == WFSParameterIDs::inputPositionX)
-                    x = floatValue;
-                else if (parsed.paramId == WFSParameterIDs::inputPositionY)
-                    y = floatValue;
-                else if (parsed.paramId == WFSParameterIDs::inputPositionZ)
-                    z = floatValue;
+                if (distanceConstraintActive)
+                {
+                    // Distance constraint is active - read all axes and check if constraint applies
+                    juce::var xVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionX);
+                    juce::var yVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionY);
+                    juce::var zVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionZ);
+                    float x = xVar.isDouble() ? static_cast<float>(static_cast<double>(xVar)) : 0.0f;
+                    float y = yVar.isDouble() ? static_cast<float>(static_cast<double>(yVar)) : 0.0f;
+                    float z = zVar.isDouble() ? static_cast<float>(static_cast<double>(zVar)) : 0.0f;
 
-                // Apply distance constraint (modifies x, y, z in place)
-                applyConstraintDistance(channelIndex, x, y, z);
+                    // Update with new value being set
+                    if (parsed.paramId == WFSParameterIDs::inputPositionX)
+                        x = floatValue;
+                    else if (parsed.paramId == WFSParameterIDs::inputPositionY)
+                        y = floatValue;
+                    else if (parsed.paramId == WFSParameterIDs::inputPositionZ)
+                        z = floatValue;
 
-                // Set all position values
-                state.setInputParameter(channelIndex, WFSParameterIDs::inputPositionX, x);
-                state.setInputParameter(channelIndex, WFSParameterIDs::inputPositionY, y);
-                state.setInputParameter(channelIndex, WFSParameterIDs::inputPositionZ, z);
+                    // Store unconstrained values
+                    float origX = x, origY = y, origZ = z;
+
+                    // Apply distance constraint (modifies x, y, z in place)
+                    applyConstraintDistance(channelIndex, x, y, z);
+
+                    // Only set all 3 values if constraint actually modified position
+                    bool wasConstrained = !juce::approximatelyEqual(x, origX) ||
+                                          !juce::approximatelyEqual(y, origY) ||
+                                          !juce::approximatelyEqual(z, origZ);
+
+                    if (wasConstrained)
+                    {
+                        // Constraint modified position - set all axes
+                        state.setInputParameter(channelIndex, WFSParameterIDs::inputPositionX, x);
+                        state.setInputParameter(channelIndex, WFSParameterIDs::inputPositionY, y);
+                        state.setInputParameter(channelIndex, WFSParameterIDs::inputPositionZ, z);
+                    }
+                    else
+                    {
+                        // No constraint modification - just set single axis (faster)
+                        state.setInputParameter(channelIndex, parsed.paramId, floatValue);
+                    }
+
+                    // Notify for waypoint capture (path mode)
+                    if (onRemoteWaypointCapture)
+                        onRemoteWaypointCapture(channelIndex, x, y, z);
+                }
+                else
+                {
+                    // No distance constraint - just set the single axis
+                    state.setInputParameter(channelIndex, parsed.paramId, floatValue);
+
+                    // Notify for waypoint capture (path mode)
+                    if (onRemoteWaypointCapture)
+                    {
+                        juce::var xVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionX);
+                        juce::var yVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionY);
+                        juce::var zVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionZ);
+                        float x = xVar.isDouble() ? static_cast<float>(static_cast<double>(xVar)) : 0.0f;
+                        float y = yVar.isDouble() ? static_cast<float>(static_cast<double>(yVar)) : 0.0f;
+                        float z = zVar.isDouble() ? static_cast<float>(static_cast<double>(zVar)) : 0.0f;
+                        onRemoteWaypointCapture(channelIndex, x, y, z);
+                    }
+                }
 
                 // Notify UI to repaint map
                 if (onRemotePositionReceived)
                     onRemotePositionReceived();
-
-                // Notify for waypoint capture (path mode)
-                if (onRemoteWaypointCapture)
-                    onRemoteWaypointCapture(channelIndex, x, y, z);
             }
             else
             {
@@ -1215,6 +1259,7 @@ void OSCManager::handleRemoteParameterDelta(const OSCMessageRouter::ParsedRemote
                 parsed.paramId == WFSParameterIDs::inputPositionY ||
                 parsed.paramId == WFSParameterIDs::inputPositionZ)
             {
+                // Apply single-axis constraint
                 if (parsed.paramId == WFSParameterIDs::inputPositionX)
                     newValue = applyConstraintX(channelIndex, newValue);
                 else if (parsed.paramId == WFSParameterIDs::inputPositionY)
@@ -1222,37 +1267,80 @@ void OSCManager::handleRemoteParameterDelta(const OSCMessageRouter::ParsedRemote
                 else if (parsed.paramId == WFSParameterIDs::inputPositionZ)
                     newValue = applyConstraintZ(channelIndex, newValue);
 
-                // Get current position values and apply distance constraint
-                juce::var xVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionX);
-                juce::var yVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionY);
-                juce::var zVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionZ);
-                float x = xVar.isDouble() ? static_cast<float>(static_cast<double>(xVar)) : 0.0f;
-                float y = yVar.isDouble() ? static_cast<float>(static_cast<double>(yVar)) : 0.0f;
-                float z = zVar.isDouble() ? static_cast<float>(static_cast<double>(zVar)) : 0.0f;
+                // Check if distance constraint is enabled for this channel
+                juce::var coordModeVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputCoordinateMode);
+                int coordMode = coordModeVar.isInt() ? static_cast<int>(coordModeVar) : 0;
+                juce::var constraintDistVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputConstraintDistance);
+                int constraintDist = constraintDistVar.isInt() ? static_cast<int>(constraintDistVar) : 0;
+                bool distanceConstraintActive = (coordMode == 1 || coordMode == 2) && constraintDist != 0;
 
-                // Update with new value being set
-                if (parsed.paramId == WFSParameterIDs::inputPositionX)
-                    x = newValue;
-                else if (parsed.paramId == WFSParameterIDs::inputPositionY)
-                    y = newValue;
-                else if (parsed.paramId == WFSParameterIDs::inputPositionZ)
-                    z = newValue;
+                if (distanceConstraintActive)
+                {
+                    // Distance constraint is active - read all axes and check if constraint applies
+                    juce::var xVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionX);
+                    juce::var yVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionY);
+                    juce::var zVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionZ);
+                    float x = xVar.isDouble() ? static_cast<float>(static_cast<double>(xVar)) : 0.0f;
+                    float y = yVar.isDouble() ? static_cast<float>(static_cast<double>(yVar)) : 0.0f;
+                    float z = zVar.isDouble() ? static_cast<float>(static_cast<double>(zVar)) : 0.0f;
 
-                // Apply distance constraint (modifies x, y, z in place)
-                applyConstraintDistance(channelIndex, x, y, z);
+                    // Update with new value being set
+                    if (parsed.paramId == WFSParameterIDs::inputPositionX)
+                        x = newValue;
+                    else if (parsed.paramId == WFSParameterIDs::inputPositionY)
+                        y = newValue;
+                    else if (parsed.paramId == WFSParameterIDs::inputPositionZ)
+                        z = newValue;
 
-                // Set all position values
-                state.setInputParameter(channelIndex, WFSParameterIDs::inputPositionX, x);
-                state.setInputParameter(channelIndex, WFSParameterIDs::inputPositionY, y);
-                state.setInputParameter(channelIndex, WFSParameterIDs::inputPositionZ, z);
+                    // Store unconstrained values
+                    float origX = x, origY = y, origZ = z;
+
+                    // Apply distance constraint (modifies x, y, z in place)
+                    applyConstraintDistance(channelIndex, x, y, z);
+
+                    // Only set all 3 values if constraint actually modified position
+                    bool wasConstrained = !juce::approximatelyEqual(x, origX) ||
+                                          !juce::approximatelyEqual(y, origY) ||
+                                          !juce::approximatelyEqual(z, origZ);
+
+                    if (wasConstrained)
+                    {
+                        // Constraint modified position - set all axes
+                        state.setInputParameter(channelIndex, WFSParameterIDs::inputPositionX, x);
+                        state.setInputParameter(channelIndex, WFSParameterIDs::inputPositionY, y);
+                        state.setInputParameter(channelIndex, WFSParameterIDs::inputPositionZ, z);
+                    }
+                    else
+                    {
+                        // No constraint modification - just set single axis (faster)
+                        state.setInputParameter(channelIndex, parsed.paramId, newValue);
+                    }
+
+                    // Notify for waypoint capture (path mode)
+                    if (onRemoteWaypointCapture)
+                        onRemoteWaypointCapture(channelIndex, x, y, z);
+                }
+                else
+                {
+                    // No distance constraint - just set the single axis
+                    state.setInputParameter(channelIndex, parsed.paramId, newValue);
+
+                    // Notify for waypoint capture (path mode)
+                    if (onRemoteWaypointCapture)
+                    {
+                        juce::var xVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionX);
+                        juce::var yVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionY);
+                        juce::var zVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionZ);
+                        float x = xVar.isDouble() ? static_cast<float>(static_cast<double>(xVar)) : 0.0f;
+                        float y = yVar.isDouble() ? static_cast<float>(static_cast<double>(yVar)) : 0.0f;
+                        float z = zVar.isDouble() ? static_cast<float>(static_cast<double>(zVar)) : 0.0f;
+                        onRemoteWaypointCapture(channelIndex, x, y, z);
+                    }
+                }
 
                 // Notify UI to repaint map
                 if (onRemotePositionReceived)
                     onRemotePositionReceived();
-
-                // Notify for waypoint capture (path mode)
-                if (onRemoteWaypointCapture)
-                    onRemoteWaypointCapture(channelIndex, x, y, z);
             }
             else
             {
@@ -1368,9 +1456,14 @@ void OSCManager::handleClusterMoveMessage(const juce::OSCMessage& message)
 
 void OSCManager::sendRemoteChannelDump(int channelId)
 {
-    // Helper lambda to get a parameter value as float
-    auto getParam = [this, channelId](const juce::Identifier& paramId) -> float {
-        juce::var val = state.getInputParameter(channelId, paramId);
+    // Convert 1-based channelId to 0-based index for internal API
+    int channelIndex = channelId - 1;
+    if (channelIndex < 0)
+        return;
+
+    // Helper lambda to get a parameter value as float (uses 0-based channelIndex)
+    auto getParam = [this, channelIndex](const juce::Identifier& paramId) -> float {
+        juce::var val = state.getInputParameter(channelIndex, paramId);
         if (val.isDouble())
             return static_cast<float>(static_cast<double>(val));
         if (val.isInt())

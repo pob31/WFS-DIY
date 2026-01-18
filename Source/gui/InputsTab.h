@@ -1194,8 +1194,10 @@ private:
                 float newOffsetY = currentOffsetY + deltaY;
 
                 // Get base position for constraint calculation
-                float posX = posXEditor.getText().getFloatValue();
-                float posY = posYEditor.getText().getFloatValue();
+                // IMPORTANT: Read Cartesian from storage, not from display editors
+                // (In cylindrical/spherical modes, editors show radius/theta/phi, not X/Y/Z)
+                float posX = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionX"));
+                float posY = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionY"));
                 float totalX = posX + newOffsetX;
                 float totalY = posY + newOffsetY;
 
@@ -1239,8 +1241,10 @@ private:
             else
             {
                 // Update Position X/Y when tracking is disabled
-                float currentX = posXEditor.getText().getFloatValue();
-                float currentY = posYEditor.getText().getFloatValue();
+                // IMPORTANT: Always read from storage (Cartesian), not from display editors
+                // (In cylindrical/spherical modes, editors show radius/theta/phi, not X/Y/Z)
+                float currentX = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionX"));
+                float currentY = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionY"));
                 float newX = currentX + deltaX;
                 float newY = currentY + deltaY;
 
@@ -1268,10 +1272,16 @@ private:
                         newY = juce::jlimit(getStageMinY(), getStageMaxY(), newY);
                 }
 
-                posXEditor.setText(juce::String(newX, 2), juce::dontSendNotification);
-                posYEditor.setText(juce::String(newY, 2), juce::dontSendNotification);
+                // Save Cartesian coordinates
                 saveInputParam(WFSParameterIDs::inputPositionX, newX);
                 saveInputParam(WFSParameterIDs::inputPositionY, newY);
+
+                // Update display editors with proper coordinate conversion
+                float z = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionZ"));
+                float v1, v2, v3;
+                WFSCoordinates::cartesianToDisplay(static_cast<WFSCoordinates::Mode>(coordMode), newX, newY, z, v1, v2, v3);
+                posXEditor.setText(juce::String(v1, 2), juce::dontSendNotification);
+                posYEditor.setText(juce::String(coordMode == 0 ? v2 : v2, coordMode == 0 ? 2 : 1), juce::dontSendNotification);
             }
         });
         addAndMakeVisible(positionJoystickLabel);
@@ -1317,9 +1327,10 @@ private:
                 if (useDistanceConstraint)
                 {
                     // Spherical mode: Z affects total distance, so apply distance constraint
-                    float posX = posXEditor.getText().getFloatValue();
-                    float posY = posYEditor.getText().getFloatValue();
-                    float posZ = posZEditor.getText().getFloatValue();
+                    // IMPORTANT: Read Cartesian from storage, not from display editors
+                    float posX = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionX"));
+                    float posY = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionY"));
+                    float posZ = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionZ"));
                     float offsetX = offsetXEditor.getText().getFloatValue();
                     float offsetY = offsetYEditor.getText().getFloatValue();
                     float totalX = posX + offsetX;
@@ -1348,7 +1359,7 @@ private:
                 else if (constrainZ)
                 {
                     // Rectangular Z constraint
-                    float posZ = posZEditor.getText().getFloatValue();
+                    float posZ = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionZ"));
                     float totalZ = posZ + newOffsetZ;
                     totalZ = juce::jlimit(getStageMinZ(), getStageMaxZ(), totalZ);
                     newOffsetZ = totalZ - posZ;
@@ -1360,14 +1371,15 @@ private:
             else
             {
                 // Update Position Z when tracking is disabled
-                float currentZ = posZEditor.getText().getFloatValue();
+                // IMPORTANT: Read Cartesian from storage, not from display editors
+                float currentZ = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionZ"));
                 float newZ = currentZ + deltaZ;
 
                 if (useDistanceConstraint)
                 {
                     // Spherical mode: Z affects total distance, so apply distance constraint
-                    float posX = posXEditor.getText().getFloatValue();
-                    float posY = posYEditor.getText().getFloatValue();
+                    float posX = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionX"));
+                    float posY = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionY"));
 
                     float minDist = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputConstraintDistanceMin"));
                     float maxDist = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputConstraintDistanceMax"));
@@ -1380,11 +1392,14 @@ private:
                         float newX = posX * distScale;
                         float newY = posY * distScale;
                         newZ *= distScale;
-                        // Update X and Y positions too
-                        posXEditor.setText(juce::String(newX, 2), juce::dontSendNotification);
-                        posYEditor.setText(juce::String(newY, 2), juce::dontSendNotification);
+                        // Save X and Y positions
                         saveInputParam(WFSParameterIDs::inputPositionX, newX);
                         saveInputParam(WFSParameterIDs::inputPositionY, newY);
+                        // Update display editors with proper coordinate conversion
+                        float v1, v2, v3;
+                        WFSCoordinates::cartesianToDisplay(static_cast<WFSCoordinates::Mode>(coordMode), newX, newY, newZ, v1, v2, v3);
+                        posXEditor.setText(juce::String(v1, 2), juce::dontSendNotification);
+                        posYEditor.setText(juce::String(coordMode == 0 ? v2 : v2, coordMode == 0 ? 2 : 1), juce::dontSendNotification);
                     }
                 }
                 else if (constrainZ)
@@ -1393,8 +1408,14 @@ private:
                     newZ = juce::jlimit(getStageMinZ(), getStageMaxZ(), newZ);
                 }
 
-                posZEditor.setText(juce::String(newZ, 2), juce::dontSendNotification);
+                // Save Z and update display
                 saveInputParam(WFSParameterIDs::inputPositionZ, newZ);
+                // For Z editor: in spherical mode it shows phi (elevation angle), in others it shows Z directly
+                float posX = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionX"));
+                float posY = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionY"));
+                float v1, v2, v3;
+                WFSCoordinates::cartesianToDisplay(static_cast<WFSCoordinates::Mode>(coordMode), posX, posY, newZ, v1, v2, v3);
+                posZEditor.setText(juce::String(coordMode == 2 ? v3 : newZ, coordMode == 2 ? 1 : 2), juce::dontSendNotification);
             }
         };
         addAndMakeVisible(positionZSliderLabel);

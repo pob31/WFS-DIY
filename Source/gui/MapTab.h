@@ -153,7 +153,14 @@ public:
             {
                 touch.type = TouchInfo::Type::Input;
                 touch.targetIndex = hitInput;
-                touch.startStagePos = getInputPosition(hitInput);
+
+                // Get flip-applied position to match visual coordinate system
+                auto rawPos = getInputPosition(hitInput);
+                bool flipX = static_cast<int>(parameters.getInputParam(hitInput, "inputFlipX")) != 0;
+                bool flipY = static_cast<int>(parameters.getInputParam(hitInput, "inputFlipY")) != 0;
+                touch.startStagePos = { flipX ? -rawPos.x : rawPos.x,
+                                        flipY ? -rawPos.y : rawPos.y };
+
                 float offsetX = static_cast<float>(parameters.getInputParam(hitInput, "inputOffsetX"));
                 float offsetY = static_cast<float>(parameters.getInputParam(hitInput, "inputOffsetY"));
                 touch.startOffset = { offsetX, offsetY };
@@ -308,7 +315,14 @@ public:
                 isDraggingBarycenter = false;
                 selectedBarycenter = -1;
                 isInViewGesture = false;
-                inputDragStartStagePos = getInputPosition(hitInput);
+
+                // Get flip-applied position to match visual coordinate system
+                // (getInputPosition returns raw stored position, but drag works in visual coords)
+                auto rawPos = getInputPosition(hitInput);
+                bool flipX = static_cast<int>(parameters.getInputParam(hitInput, "inputFlipX")) != 0;
+                bool flipY = static_cast<int>(parameters.getInputParam(hitInput, "inputFlipY")) != 0;
+                inputDragStartStagePos = { flipX ? -rawPos.x : rawPos.x,
+                                           flipY ? -rawPos.y : rawPos.y };
 
                 float offsetX = static_cast<float>(parameters.getInputParam(hitInput, "inputOffsetX"));
                 float offsetY = static_cast<float>(parameters.getInputParam(hitInput, "inputOffsetY"));
