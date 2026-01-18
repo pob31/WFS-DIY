@@ -2492,11 +2492,18 @@ private:
         float greyDotX = actualPosX + totalOffsetX;
         float greyDotY = actualPosY + totalOffsetY;
 
-        // Check if grey dot differs from main marker position
-        float diffFromTarget = std::abs(greyDotX - posX) + std::abs(greyDotY - posY);
+        // Check if there's a reason to show the grey dot:
+        // - Speed limiting is active
+        // - OR tracking offset is non-zero
+        // - OR LFO offset is non-zero
+        bool maxSpeedActive = static_cast<int>(parameters.getInputParam(inputIndex, "inputMaxSpeedActive")) != 0;
+        bool hasOffset = (std::abs(offsetX) > 0.001f || std::abs(offsetY) > 0.001f);
+        bool hasLFO = (std::abs(lfoOffsetX) > 0.001f || std::abs(lfoOffsetY) > 0.001f);
+        bool hasReasonForDifference = maxSpeedActive || hasOffset || hasLFO;
 
-        // Draw composite position indicator if grey dot is offset from main marker
-        if (diffFromTarget > 0.01f)
+        // Only show grey dot if there's a reason AND actual difference
+        float diffFromTarget = std::abs(greyDotX - posX) + std::abs(greyDotY - posY);
+        if (hasReasonForDifference && diffFromTarget > 0.01f)
         {
             auto compositePos = stageToScreen({ greyDotX, greyDotY });
 
