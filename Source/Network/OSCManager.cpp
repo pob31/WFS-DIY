@@ -253,13 +253,24 @@ bool OSCManager::connectTarget(int targetIndex)
     // For UDP, connect() is synchronous
     if (conn->connect())
     {
-        // For UDP, we're connected immediately
+        // For UDP, we're connected immediately (except Remote which uses handshake)
         if (config.mode == ConnectionMode::UDP)
         {
-            updateTargetStatus(targetIndex, ConnectionStatus::Connected);
-            logger.logText("Connected to target " + juce::String(targetIndex + 1) +
-                           " (" + config.ipAddress + ":" + juce::String(config.port) + ")");
-            DBG("OSCManager::connectTarget - target " << targetIndex << " CONNECTED (UDP)");
+            // For Remote protocol, start in Connecting state - handshake will set Connected
+            if (config.protocol == Protocol::Remote)
+            {
+                updateTargetStatus(targetIndex, ConnectionStatus::Connecting);
+                logger.logText("Connecting to Remote target " + juce::String(targetIndex + 1) +
+                               " (" + config.ipAddress + ":" + juce::String(config.port) + ")");
+                DBG("OSCManager::connectTarget - target " << targetIndex << " CONNECTING (Remote handshake)");
+            }
+            else
+            {
+                updateTargetStatus(targetIndex, ConnectionStatus::Connected);
+                logger.logText("Connected to target " + juce::String(targetIndex + 1) +
+                               " (" + config.ipAddress + ":" + juce::String(config.port) + ")");
+                DBG("OSCManager::connectTarget - target " << targetIndex << " CONNECTED (UDP)");
+            }
         }
         else
         {
@@ -740,16 +751,85 @@ bool OSCManager::isAllowedIP(const juce::String& senderIP) const
 
 void OSCManager::timerCallback()
 {
-    // Poll connection statuses
+    auto now = juce::Time::currentTimeMillis();
+
+    // Poll connection statuses and handle Remote handshake/heartbeat
     for (int i = 0; i < MAX_TARGETS; ++i)
     {
-        if (connections[static_cast<size_t>(i)])
+        const auto& config = targetConfigs[static_cast<size_t>(i)];
+        auto& remoteState = remoteStates[static_cast<size_t>(i)];
+
+        // For non-Remote protocols, poll OSCConnection status
+        if (config.protocol != Protocol::Remote)
         {
-            auto newStatus = connections[static_cast<size_t>(i)]->getStatus();
-            if (newStatus != targetStatuses[static_cast<size_t>(i)])
+            if (connections[static_cast<size_t>(i)])
             {
-                updateTargetStatus(i, newStatus);
+                auto newStatus = connections[static_cast<size_t>(i)]->getStatus();
+                if (newStatus != targetStatuses[static_cast<size_t>(i)])
+                {
+                    updateTargetStatus(i, newStatus);
+                }
             }
+        }
+        // For Remote protocol, use handshake state machine for connection status
+        else if (config.protocol == Protocol::Remote && config.txEnabled)
+        {
+            switch (remoteState.phase)
+            {
+                case RemoteConnectionState::Phase::Disconnected:
+                    // Start connection attempt
+                    sendRemotePing(i);
+                    remoteState.phase = RemoteConnectionState::Phase::Connecting;
+                    remoteState.lastPingSentTime = now;
+                    // Update UI to show connecting
+                    if (targetStatuses[static_cast<size_t>(i)] != ConnectionStatus::Connecting)
+                        updateTargetStatus(i, ConnectionStatus::Connecting);
+                    break;
+
+                case RemoteConnectionState::Phase::Connecting:
+                    // Retry ping every HEARTBEAT_INTERVAL_MS while connecting
+                    if (now - remoteState.lastPingSentTime >= HEARTBEAT_INTERVAL_MS)
+                    {
+                        sendRemotePing(i);
+                        remoteState.lastPingSentTime = now;
+                    }
+                    // Ensure UI shows connecting
+                    if (targetStatuses[static_cast<size_t>(i)] != ConnectionStatus::Connecting)
+                        updateTargetStatus(i, ConnectionStatus::Connecting);
+                    break;
+
+                case RemoteConnectionState::Phase::Connected:
+                    // Check for timeout (no pong received in CONNECTION_TIMEOUT_MS)
+                    if (now - remoteState.lastPongReceivedTime >= CONNECTION_TIMEOUT_MS)
+                    {
+                        // Timeout - disconnect and try to reconnect
+                        onRemoteDisconnected(i);
+                        sendRemotePing(i);
+                        remoteState.phase = RemoteConnectionState::Phase::Connecting;
+                        remoteState.lastPingSentTime = now;
+                    }
+                    // Send heartbeat every HEARTBEAT_INTERVAL_MS
+                    else if (now - remoteState.lastPingSentTime >= HEARTBEAT_INTERVAL_MS)
+                    {
+                        sendRemoteHeartbeat(i);
+                        remoteState.lastPingSentTime = now;
+                    }
+                    // Ensure UI shows connected
+                    if (targetStatuses[static_cast<size_t>(i)] != ConnectionStatus::Connected)
+                        updateTargetStatus(i, ConnectionStatus::Connected);
+                    break;
+            }
+        }
+        else if (config.protocol == Protocol::Remote && !config.txEnabled)
+        {
+            // TX disabled - if we were connected, disconnect
+            if (remoteState.phase != RemoteConnectionState::Phase::Disconnected)
+            {
+                onRemoteDisconnected(i);
+            }
+            // Ensure UI shows disconnected
+            if (targetStatuses[static_cast<size_t>(i)] != ConnectionStatus::Disconnected)
+                updateTargetStatus(i, ConnectionStatus::Disconnected);
         }
     }
 }
@@ -800,6 +880,25 @@ void OSCManager::handleIncomingMessage(const juce::OSCMessage& message,
     else if (OSCMessageRouter::isClusterMoveAddress(address))
     {
         handleClusterMoveMessage(message);
+    }
+    // Handle Remote handshake/heartbeat responses
+    else if (address == "/remote/pong")
+    {
+        int targetIndex = findRemoteTargetByIP(senderIP);
+        if (targetIndex >= 0 && message.size() >= 1 && message[0].isInt32())
+        {
+            int seqNum = message[0].getInt32();
+            handleRemotePong(targetIndex, seqNum);
+        }
+    }
+    else if (address == "/remote/heartbeatAck")
+    {
+        int targetIndex = findRemoteTargetByIP(senderIP);
+        if (targetIndex >= 0 && message.size() >= 1 && message[0].isInt32())
+        {
+            int seqNum = message[0].getInt32();
+            handleRemoteHeartbeatAck(targetIndex, seqNum);
+        }
     }
 }
 
@@ -1648,12 +1747,7 @@ void OSCManager::updateTargetStatus(int targetIndex, ConnectionStatus newStatus)
 
     targetStatuses[static_cast<size_t>(targetIndex)] = newStatus;
 
-    // Send stage config when Remote target connects
-    if (newStatus == ConnectionStatus::Connected &&
-        targetConfigs[static_cast<size_t>(targetIndex)].protocol == Protocol::Remote)
-    {
-        sendStageConfigToRemote();
-    }
+    // Note: For Remote protocol, stage config is sent via onRemoteConnected() after handshake
 
     if (onConnectionStatusChanged)
         onConnectionStatusChanged(targetIndex, newStatus);
@@ -1851,6 +1945,184 @@ void OSCManager::applyConstraintDistance(int channelIndex, float& x, float& y, f
             z *= scale;
         }
     }
+}
+
+//==============================================================================
+// Remote Handshake/Heartbeat Methods
+//==============================================================================
+
+void OSCManager::sendRemotePing(int targetIndex)
+{
+    if (targetIndex < 0 || targetIndex >= MAX_TARGETS)
+        return;
+
+    auto& remoteState = remoteStates[static_cast<size_t>(targetIndex)];
+    int seqNum = remoteState.nextSequenceNumber++;
+    remoteState.pendingSequenceNumber = seqNum;
+
+    juce::OSCMessage msg("/remote/ping");
+    msg.addInt32(seqNum);
+    sendMessage(targetIndex, msg);
+
+    DBG("OSCManager: Sent /remote/ping seq=" << seqNum << " to target " << targetIndex);
+}
+
+void OSCManager::sendRemoteHeartbeat(int targetIndex)
+{
+    if (targetIndex < 0 || targetIndex >= MAX_TARGETS)
+        return;
+
+    auto& remoteState = remoteStates[static_cast<size_t>(targetIndex)];
+    int seqNum = remoteState.nextSequenceNumber++;
+    remoteState.pendingSequenceNumber = seqNum;
+
+    juce::OSCMessage msg("/remote/heartbeat");
+    msg.addInt32(seqNum);
+    sendMessage(targetIndex, msg);
+}
+
+void OSCManager::handleRemotePong(int targetIndex, int sequenceNumber)
+{
+    if (targetIndex < 0 || targetIndex >= MAX_TARGETS)
+        return;
+
+    auto& remoteState = remoteStates[static_cast<size_t>(targetIndex)];
+
+    // Validate sequence number
+    if (sequenceNumber != remoteState.pendingSequenceNumber)
+    {
+        DBG("OSCManager: Received /remote/pong with unexpected seq=" << sequenceNumber
+            << " (expected " << remoteState.pendingSequenceNumber << ")");
+        return;
+    }
+
+    remoteState.lastPongReceivedTime = juce::Time::currentTimeMillis();
+
+    if (remoteState.phase == RemoteConnectionState::Phase::Connecting)
+    {
+        bool isReconnection = remoteState.wasConnectedBefore;
+        remoteState.phase = RemoteConnectionState::Phase::Connected;
+        remoteState.wasConnectedBefore = true;
+        onRemoteConnected(targetIndex, isReconnection);
+    }
+
+    DBG("OSCManager: Received /remote/pong seq=" << sequenceNumber << " from target " << targetIndex);
+}
+
+void OSCManager::handleRemoteHeartbeatAck(int targetIndex, int sequenceNumber)
+{
+    if (targetIndex < 0 || targetIndex >= MAX_TARGETS)
+        return;
+
+    auto& remoteState = remoteStates[static_cast<size_t>(targetIndex)];
+
+    // Validate sequence number
+    if (sequenceNumber != remoteState.pendingSequenceNumber)
+    {
+        DBG("OSCManager: Received /remote/heartbeatAck with unexpected seq=" << sequenceNumber);
+        return;
+    }
+
+    remoteState.lastPongReceivedTime = juce::Time::currentTimeMillis();
+}
+
+void OSCManager::onRemoteConnected(int targetIndex, bool isReconnection)
+{
+    DBG("OSCManager: Remote target " << targetIndex << " connected"
+        << (isReconnection ? " (reconnection)" : " (initial)"));
+
+    // Delay the initial state dump to let the connection stabilize
+    // Use callAfterDelay to send data after 500ms
+    juce::Timer::callAfterDelay(500, [this, targetIndex]()
+    {
+        // Verify the target is still connected before sending
+        auto& remoteState = remoteStates[static_cast<size_t>(targetIndex)];
+        if (remoteState.phase != RemoteConnectionState::Phase::Connected)
+            return;
+
+        DBG("OSCManager: Sending initial state dump to target " << targetIndex);
+
+        // Send stage configuration
+        sendStageConfigToRemote();
+
+        // Send all input positions
+        sendAllInputPositionsToRemote(targetIndex);
+    });
+}
+
+void OSCManager::onRemoteDisconnected(int targetIndex)
+{
+    if (targetIndex < 0 || targetIndex >= MAX_TARGETS)
+        return;
+
+    auto& remoteState = remoteStates[static_cast<size_t>(targetIndex)];
+    remoteState.phase = RemoteConnectionState::Phase::Disconnected;
+
+    DBG("OSCManager: Remote target " << targetIndex << " disconnected");
+
+    // Optionally send disconnect message (best effort, may not arrive)
+    juce::OSCMessage msg("/remote/disconnect");
+    sendMessage(targetIndex, msg);
+}
+
+void OSCManager::sendAllInputPositionsToRemote(int targetIndex)
+{
+    if (targetIndex < 0 || targetIndex >= MAX_TARGETS)
+        return;
+
+    // Get number of input channels
+    auto ioTree = state.getIOState();
+    int numInputs = ioTree.isValid()
+        ? static_cast<int>(ioTree.getProperty(WFSParameterIDs::inputChannels))
+        : 8;
+
+    // Send position for each input channel
+    for (int channelIndex = 0; channelIndex < numInputs; ++channelIndex)
+    {
+        int channelId = channelIndex + 1;  // 1-based for OSC messages
+
+        // Get position values
+        juce::var posXVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionX);
+        juce::var posYVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionY);
+        juce::var posZVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionZ);
+
+        float posX = posXVar.isDouble() ? static_cast<float>(static_cast<double>(posXVar)) : 0.0f;
+        float posY = posYVar.isDouble() ? static_cast<float>(static_cast<double>(posYVar)) : 0.0f;
+        float posZ = posZVar.isDouble() ? static_cast<float>(static_cast<double>(posZVar)) : 0.0f;
+
+        // Build and send position messages
+        juce::OSCMessage msgX("/remoteInput/positionX");
+        msgX.addInt32(channelId);
+        msgX.addFloat32(posX);
+        sendMessage(targetIndex, msgX);
+
+        juce::OSCMessage msgY("/remoteInput/positionY");
+        msgY.addInt32(channelId);
+        msgY.addFloat32(posY);
+        sendMessage(targetIndex, msgY);
+
+        juce::OSCMessage msgZ("/remoteInput/positionZ");
+        msgZ.addInt32(channelId);
+        msgZ.addFloat32(posZ);
+        sendMessage(targetIndex, msgZ);
+    }
+
+    DBG("OSCManager: Sent positions for " << numInputs << " inputs to target " << targetIndex);
+}
+
+int OSCManager::findRemoteTargetByIP(const juce::String& senderIP) const
+{
+    for (int i = 0; i < MAX_TARGETS; ++i)
+    {
+        const auto& config = targetConfigs[static_cast<size_t>(i)];
+        if (config.protocol == Protocol::Remote && config.txEnabled)
+        {
+            // Match against the target's configured IP
+            if (config.ipAddress == senderIP)
+                return i;
+        }
+    }
+    return -1;
 }
 
 } // namespace WFSNetwork

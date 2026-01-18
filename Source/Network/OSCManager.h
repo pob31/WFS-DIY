@@ -423,6 +423,16 @@ private:
 
     void updateTargetStatus(int targetIndex, ConnectionStatus newStatus);
 
+    // Remote handshake/heartbeat methods
+    void sendRemotePing(int targetIndex);
+    void sendRemoteHeartbeat(int targetIndex);
+    void handleRemotePong(int targetIndex, int sequenceNumber);
+    void handleRemoteHeartbeatAck(int targetIndex, int sequenceNumber);
+    void onRemoteConnected(int targetIndex, bool isReconnection);
+    void onRemoteDisconnected(int targetIndex);
+    void sendAllInputPositionsToRemote(int targetIndex);
+    int findRemoteTargetByIP(const juce::String& senderIP) const;
+
     //==========================================================================
     // Members
     //==========================================================================
@@ -468,6 +478,22 @@ private:
     // REMOTE protocol state
     int remoteSelectedChannel = 1;
     std::set<juce::Identifier> remoteModifiedParams;
+
+    // Remote handshake/heartbeat state
+    struct RemoteConnectionState
+    {
+        enum class Phase { Disconnected, Connecting, Connected };
+        Phase phase = Phase::Disconnected;
+        juce::int64 lastPingSentTime = 0;
+        juce::int64 lastPongReceivedTime = 0;
+        int pendingSequenceNumber = 0;
+        int nextSequenceNumber = 1;
+        bool wasConnectedBefore = false;
+    };
+    std::array<RemoteConnectionState, MAX_TARGETS> remoteStates;
+
+    static constexpr int HEARTBEAT_INTERVAL_MS = 2000;
+    static constexpr int CONNECTION_TIMEOUT_MS = 6000;
 
     // Loop prevention: tracks the protocol type of incoming message being processed
     // Set to Protocol::Disabled when not processing an incoming message
