@@ -397,11 +397,11 @@ public:
         applyToArraySelector.setBounds(row1.removeFromLeft(100));
         row1.removeFromLeft(spacing * 2);
         mapVisibilityButton.setBounds(row1.removeFromLeft(180));
-        row1.removeFromLeft(spacing);
-        levelMeterButton.setBounds(row1.removeFromLeft(90));
 
-        // Wizard of OutZ button on the right
+        // Right-aligned buttons (from right to left)
         arrayPositionHelperButton.setBounds(row1.removeFromRight(130));
+        row1.removeFromRight(spacing);
+        levelMeterButton.setBounds(row1.removeFromRight(100));
 
         // ==================== FOOTER ====================
         auto footerArea = bounds.removeFromBottom(footerHeight).reduced(padding, padding);
