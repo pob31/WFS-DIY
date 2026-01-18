@@ -187,7 +187,10 @@ private:
                 whitePath.closeSubPath();
             }
 
-            g.setColour(whiteColour);
+            // Use white in dark mode, light blue in light mode (so it's visible against white background)
+            auto bgLuminance = ColorScheme::get().background.getBrightness();
+            auto sectorColour = (bgLuminance > 0.5f) ? juce::Colour(0xFFE3F2FD) : whiteColour;  // Light blue vs white
+            g.setColour(sectorColour);
             g.fillPath(whitePath);
         }
 

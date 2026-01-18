@@ -104,9 +104,15 @@ private:
         // For JUCE paths: 0 radians = 3 o'clock, positive angles go clockwise
         float juceOrientationRad = orientationRad;
 
+        // Staggered radii for visual distinction:
+        // - Green (angle on): 100% = radius * 0.9
+        // - Orange (transition) & Red (angle off): 90% of green = radius * 0.81
+        auto greenBounds = dialBounds.reduced(radius * 0.1f);    // 100%
+        auto innerBounds = dialBounds.reduced(radius * 0.19f);   // 90% of green (orange & red)
+
         // 1. Background circle (orange/transition zone)
         g.setColour(transitionColour);
-        g.fillEllipse(dialBounds.reduced(radius * 0.1f));
+        g.fillEllipse(innerBounds);
 
         // 2. Angle On sector (green) - centered on orientation direction (front of speaker)
         if (angleOnDegrees > 0)
@@ -114,7 +120,7 @@ private:
             juce::Path onPath;
             float onStart = juceOrientationRad - angleOnRad;
             float onEnd = juceOrientationRad + angleOnRad;
-            onPath.addPieSegment(dialBounds.reduced(radius * 0.1f), onStart, onEnd, 0.0f);
+            onPath.addPieSegment(greenBounds, onStart, onEnd, 0.0f);
             g.setColour(angleOnColour);
             g.fillPath(onPath);
         }
@@ -126,7 +132,7 @@ private:
             float backDirection = juceOrientationRad + juce::MathConstants<float>::pi;
             float offStart = backDirection - angleOffRad;
             float offEnd = backDirection + angleOffRad;
-            offPath.addPieSegment(dialBounds.reduced(radius * 0.1f), offStart, offEnd, 0.0f);
+            offPath.addPieSegment(innerBounds, offStart, offEnd, 0.0f);
             g.setColour(angleOffColour);
             g.fillPath(offPath);
         }
@@ -138,14 +144,14 @@ private:
                       innerRadius * 2.0f, innerRadius * 2.0f);
 
         // 5. Orientation needle (white line) - from center outward
-        float needleLength = radius * 0.85f;
+        float needleLength = radius * 0.78f;
         // 0° = down (south), positive = clockwise
         // Negate orientationRad to match sector rotation direction
         // sin(-x) = -sin(x), cos(-x) = cos(x)
         float needleX = centre.x - needleLength * std::sin(orientationRad);
         float needleY = centre.y + needleLength * std::cos(orientationRad);
 
-        g.setColour(needleColour);
+        g.setColour(ColorScheme::get().textPrimary);  // White in dark mode, black in light mode
         g.drawLine(centre.x, centre.y, needleX, needleY, 2.0f);
 
         // Draw a small circle at the tip of the needle
@@ -255,7 +261,7 @@ private:
     bool isAdjustingAngleOn = false;
 
     // Colors
-    juce::Colour needleColour { juce::Colours::white };
+    juce::Colour needleColour { juce::Colours::white };  // Not used - paint() uses ColorScheme directly
     juce::Colour angleOnColour { 0xFF4CAF50 };      // Green
     juce::Colour angleOffColour { 0xFFE53935 };     // Red
     juce::Colour transitionColour { 0xFFFF9800 };   // Orange
