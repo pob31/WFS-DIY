@@ -443,6 +443,43 @@ MainComponent::MainComponent()
             oscManager->setRemoteSelectedChannel(channelId);
     };
 
+    // Connect remote position updates to map repaint
+    oscManager->onRemotePositionReceived = [this]()
+    {
+        if (mapTab != nullptr)
+            mapTab->repaint();
+    };
+
+    // Connect remote/OSC position updates to path mode waypoint capture
+    oscManager->onRemoteWaypointCapture = [this](int channelIndex, float x, float y, float z)
+    {
+        if (speedLimiter == nullptr)
+            return;
+
+        // Check if max speed AND path mode are enabled for this channel
+        auto& vts = parameters.getValueTreeState();
+        juce::var maxSpeedActiveVar = vts.getInputParameter(channelIndex, WFSParameterIDs::inputMaxSpeedActive);
+        juce::var pathModeActiveVar = vts.getInputParameter(channelIndex, WFSParameterIDs::inputPathModeActive);
+
+        bool maxSpeedActive = maxSpeedActiveVar.isInt() ? (static_cast<int>(maxSpeedActiveVar) != 0) : false;
+        bool pathModeActive = pathModeActiveVar.isInt() ? (static_cast<int>(pathModeActiveVar) != 0) : false;
+
+        if (maxSpeedActive && pathModeActive)
+        {
+            // Auto-start recording if not already recording
+            if (!speedLimiter->isRecording(channelIndex))
+            {
+                speedLimiter->startRecording(channelIndex);
+            }
+
+            // Add waypoint (rate-limited internally by speedLimiter)
+            speedLimiter->addWaypoint(channelIndex, x, y, z);
+
+            // Track timestamp for auto-stop (stored per channel)
+            remoteWaypointTimestamps[channelIndex] = juce::Time::currentTimeMillis();
+        }
+    };
+
     // Configure the visualisation component with user-configured channel counts
     inputsTab->configureVisualisation(parameters.getNumOutputChannels(),
                                       parameters.getNumReverbChannels());
@@ -1412,6 +1449,29 @@ void MainComponent::timerCallback()
             // Keep map repainting while speed limiter is catching up
             if (speedLimiter->isAnyInputMoving() && mapTab != nullptr)
                 mapTab->repaint();
+
+            // Auto-stop recording for channels that haven't received remote positions
+            juce::int64 now = juce::Time::currentTimeMillis();
+            for (auto it = remoteWaypointTimestamps.begin(); it != remoteWaypointTimestamps.end(); )
+            {
+                int channelIndex = it->first;
+                juce::int64 lastTime = it->second;
+
+                if (now - lastTime > remoteWaypointTimeoutMs)
+                {
+                    // Timeout: stop recording for this channel
+                    if (speedLimiter->isRecording(channelIndex))
+                    {
+                        speedLimiter->stopRecording(channelIndex);
+                    }
+                    // Remove from tracking map
+                    it = remoteWaypointTimestamps.erase(it);
+                }
+                else
+                {
+                    ++it;
+                }
+            }
         }
 
         // Process LFO at 50Hz (control rate)

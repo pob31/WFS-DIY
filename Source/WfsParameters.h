@@ -344,7 +344,7 @@ private:
         if (paramName.startsWith ("Show") || id == WFSParameterIDs::showName || id == WFSParameterIDs::showLocation)
             targetSection = config.getChildWithName (WFSParameterIDs::Show);
         else if (paramName.startsWith ("Stage") || paramName.startsWith ("Origin") ||
-                 paramName == "SpeedOfSound" || paramName == "Temperature")
+                 paramName == "DomeElevation" || paramName == "SpeedOfSound" || paramName == "Temperature")
             targetSection = config.getChildWithName (WFSParameterIDs::Stage);
         else if (paramName.startsWith ("Master") || paramName == "SystemLatency" || paramName == "HaasEffect")
             targetSection = config.getChildWithName (WFSParameterIDs::Master);

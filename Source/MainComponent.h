@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include <map>
 #include "DSP/InputBufferAlgorithm.h"
 #include "DSP/OutputBufferAlgorithm.h"
 #include "DSP/WFSCalculationEngine.h"
@@ -178,6 +179,11 @@ private:
 
     // Input speed limiter for smooth position movement
     std::unique_ptr<InputSpeedLimiter> speedLimiter;
+
+    // Track last remote position timestamp per channel for auto-stop recording
+    // Key: channelIndex, Value: timestamp in milliseconds
+    std::map<int, juce::int64> remoteWaypointTimestamps;
+    static constexpr int remoteWaypointTimeoutMs = 500;  // Auto-stop after 500ms of no positions
 
     // Live Source Tamer engine for per-speaker gain reduction
     std::unique_ptr<LiveSourceTamerEngine> lsTamerEngine;

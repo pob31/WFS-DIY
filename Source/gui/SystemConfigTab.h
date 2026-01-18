@@ -598,6 +598,8 @@ public:
         stageWidthEditor.addListener(this);
         stageDepthEditor.addListener(this);
         stageHeightEditor.addListener(this);
+        stageDiameterEditor.addListener(this);
+        domeElevationEditor.addListener(this);
         stageOriginWidthEditor.addListener(this);
         stageOriginDepthEditor.addListener(this);
         stageOriginHeightEditor.addListener(this);
@@ -1759,28 +1761,13 @@ private:
         int shapeId = stageShapeSelector.getSelectedId() - 1;  // Convert to 0-based
         parameters.setConfigParam("StageShape", shapeId);
 
-        // Reset dimensions to defaults when shape changes
-        if (shapeId == 0)  // Box
-        {
-            parameters.setConfigParam("StageWidth", WFSParameterDefaults::stageWidthDefault);
-            parameters.setConfigParam("StageDepth", WFSParameterDefaults::stageDepthDefault);
-            parameters.setConfigParam("StageHeight", WFSParameterDefaults::stageHeightDefault);
-        }
-        else if (shapeId == 1)  // Cylinder
-        {
-            parameters.setConfigParam("StageDiameter", WFSParameterDefaults::stageDiameterDefault);
-            parameters.setConfigParam("StageHeight", WFSParameterDefaults::stageHeightDefault);
-        }
-        else  // Dome
-        {
-            parameters.setConfigParam("StageDiameter", WFSParameterDefaults::stageDiameterDefault);
-            parameters.setConfigParam("DomeElevation", WFSParameterDefaults::domeElevationDefault);
-        }
+        // Don't reset dimensions - preserve user-edited values when switching shapes
+        // The origin is recalculated based on current dimensions for the new shape
 
-        // Reset origin to center
+        // Recalculate origin for the new shape using current dimensions
         setOriginToCenterGround();
 
-        // Update UI
+        // Update UI visibility and refresh values
         loadParametersToUI();
     }
 

@@ -587,6 +587,7 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
         property == WFSParameterIDs::stageHeight ||
         property == WFSParameterIDs::stageDiameter ||
         property == WFSParameterIDs::stageShape ||
+        property == WFSParameterIDs::domeElevation ||
         property == WFSParameterIDs::originWidth ||
         property == WFSParameterIDs::originDepth ||
         property == WFSParameterIDs::originHeight ||
@@ -663,18 +664,27 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
         }
         else if (config.protocol == Protocol::Remote)
         {
-            // REMOTE protocol - only send for selected channel at 50Hz max
-            if (isInput && channelId == remoteSelectedChannel)
+            // REMOTE protocol - send position changes for any input, other params only for selected channel
+            if (isInput)
             {
-                bool isNumeric = value.isDouble() || value.isInt() || value.isInt64();
-                if (isNumeric)
-                {
-                    auto msg = OSCMessageBuilder::buildRemoteOutputMessage(
-                        property, channelId, static_cast<float>(static_cast<double>(value)));
+                // Position parameters should be sent for ANY channel (for map sync)
+                bool isPositionParam = (property == WFSParameterIDs::inputPositionX ||
+                                        property == WFSParameterIDs::inputPositionY ||
+                                        property == WFSParameterIDs::inputPositionZ);
 
-                    if (msg.has_value())
+                // Send if it's a position param (any channel) or if it's the selected channel
+                if (isPositionParam || channelId == remoteSelectedChannel)
+                {
+                    bool isNumeric = value.isDouble() || value.isInt() || value.isInt64();
+                    if (isNumeric)
                     {
-                        sendMessage(i, *msg);
+                        auto msg = OSCMessageBuilder::buildRemoteOutputMessage(
+                            property, channelId, static_cast<float>(static_cast<double>(value)));
+
+                        if (msg.has_value())
+                        {
+                            sendMessage(i, *msg);
+                        }
                     }
                 }
             }
@@ -905,6 +915,10 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
                         state.setInputParameter(channelIndex, WFSParameterIDs::inputPositionX, x);
                         state.setInputParameter(channelIndex, WFSParameterIDs::inputPositionY, y);
                         state.setInputParameter(channelIndex, WFSParameterIDs::inputPositionZ, z);
+
+                        // Notify for waypoint capture (path mode)
+                        if (onRemoteWaypointCapture)
+                            onRemoteWaypointCapture(channelIndex, x, y, z);
                     }
                     else if (parsed.value.isDouble() || parsed.value.isString())
                     {
@@ -1144,6 +1158,14 @@ void OSCManager::handleRemoteParameterSet(const OSCMessageRouter::ParsedRemoteIn
                 state.setInputParameter(channelIndex, WFSParameterIDs::inputPositionX, x);
                 state.setInputParameter(channelIndex, WFSParameterIDs::inputPositionY, y);
                 state.setInputParameter(channelIndex, WFSParameterIDs::inputPositionZ, z);
+
+                // Notify UI to repaint map
+                if (onRemotePositionReceived)
+                    onRemotePositionReceived();
+
+                // Notify for waypoint capture (path mode)
+                if (onRemoteWaypointCapture)
+                    onRemoteWaypointCapture(channelIndex, x, y, z);
             }
             else
             {
@@ -1223,6 +1245,14 @@ void OSCManager::handleRemoteParameterDelta(const OSCMessageRouter::ParsedRemote
                 state.setInputParameter(channelIndex, WFSParameterIDs::inputPositionX, x);
                 state.setInputParameter(channelIndex, WFSParameterIDs::inputPositionY, y);
                 state.setInputParameter(channelIndex, WFSParameterIDs::inputPositionZ, z);
+
+                // Notify UI to repaint map
+                if (onRemotePositionReceived)
+                    onRemotePositionReceived();
+
+                // Notify for waypoint capture (path mode)
+                if (onRemoteWaypointCapture)
+                    onRemoteWaypointCapture(channelIndex, x, y, z);
             }
             else
             {
@@ -1370,6 +1400,10 @@ void OSCManager::sendRemoteChannelDump(int channelId)
     paramValues[WFSParameterIDs::inputMaxSpeed] = getParam(WFSParameterIDs::inputMaxSpeed);
     paramValues[WFSParameterIDs::inputPathModeActive] = getParam(WFSParameterIDs::inputPathModeActive);
     paramValues[WFSParameterIDs::inputHeightFactor] = getParam(WFSParameterIDs::inputHeightFactor);
+    paramValues[WFSParameterIDs::inputCoordinateMode] = getParam(WFSParameterIDs::inputCoordinateMode);
+    paramValues[WFSParameterIDs::inputConstraintDistance] = getParam(WFSParameterIDs::inputConstraintDistance);
+    paramValues[WFSParameterIDs::inputConstraintDistanceMin] = getParam(WFSParameterIDs::inputConstraintDistanceMin);
+    paramValues[WFSParameterIDs::inputConstraintDistanceMax] = getParam(WFSParameterIDs::inputConstraintDistanceMax);
 
     // Attenuation parameters
     paramValues[WFSParameterIDs::inputAttenuationLaw] = getParam(WFSParameterIDs::inputAttenuationLaw);
@@ -1459,6 +1493,7 @@ void OSCManager::sendStageConfigToRemote()
     float height = static_cast<float>(stageTree.getProperty(WFSParameterIDs::stageHeight));
     int shape = static_cast<int>(stageTree.getProperty(WFSParameterIDs::stageShape));
     float diameter = static_cast<float>(stageTree.getProperty(WFSParameterIDs::stageDiameter));
+    float domeElev = static_cast<float>(stageTree.getProperty(WFSParameterIDs::domeElevation));
 
     // Get input count from IO section (can't use getIntParameter as "inputChannels" starts with "input"
     // and would be incorrectly routed to the Input channel scope instead of Config/IO)
@@ -1477,6 +1512,7 @@ void OSCManager::sendStageConfigToRemote()
     messages.push_back(OSCMessageBuilder::buildConfigFloatMessage("/stage/height", height));
     messages.push_back(OSCMessageBuilder::buildConfigIntMessage("/stage/shape", shape));
     messages.push_back(OSCMessageBuilder::buildConfigFloatMessage("/stage/diameter", diameter));
+    messages.push_back(OSCMessageBuilder::buildConfigFloatMessage("/stage/domeElevation", domeElev));
     messages.push_back(OSCMessageBuilder::buildConfigIntMessage("/inputs", inputs));
 
     // Send to all Remote protocol targets that are connected

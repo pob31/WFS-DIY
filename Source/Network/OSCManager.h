@@ -314,6 +314,20 @@ public:
      */
     std::function<void(int targetIndex, ConnectionStatus status)> onConnectionStatusChanged;
 
+    /**
+     * Callback when position data is received from REMOTE protocol.
+     * UI can register to trigger map repaint.
+     */
+    std::function<void()> onRemotePositionReceived;
+
+    /**
+     * Callback when position data is received via OSC or REMOTE protocol.
+     * Used for path mode waypoint capture when max speed + path mode are enabled.
+     * @param channelIndex 0-based channel index
+     * @param x, y, z The new position coordinates (after constraints applied)
+     */
+    std::function<void(int channelIndex, float x, float y, float z)> onRemoteWaypointCapture;
+
 private:
     //==========================================================================
     // ValueTree::Listener
