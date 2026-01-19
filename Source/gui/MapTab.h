@@ -2391,18 +2391,20 @@ private:
         float targetY = static_cast<float>(parameters.getInputParam(inputIndex, "inputPositionY"));
         float targetZ = static_cast<float>(parameters.getInputParam(inputIndex, "inputPositionZ"));
 
-        // Apply flip to target position for main marker display
+        // Main marker shows RAW position (no flip) - this is the control position
+        float posX = targetX;
+        float posY = targetY;
+
+        // Get flip settings (affects DSP position, not display)
         bool flipX = static_cast<int>(parameters.getInputParam(inputIndex, "inputFlipX")) != 0;
         bool flipY = static_cast<int>(parameters.getInputParam(inputIndex, "inputFlipY")) != 0;
-        float posX = flipX ? -targetX : targetX;
-        float posY = flipY ? -targetY : targetY;
 
         // Get speed-limited position for grey dot (actual DSP position)
         float speedLimitedX = targetX, speedLimitedY = targetY, speedLimitedZ = targetZ;
         if (speedLimitedPositionCallback)
             speedLimitedPositionCallback(inputIndex, speedLimitedX, speedLimitedY, speedLimitedZ);
 
-        // Apply flip to speed-limited position for grey dot
+        // Apply flip to speed-limited position for grey dot (DSP position)
         float actualPosX = flipX ? -speedLimitedX : speedLimitedX;
         float actualPosY = flipY ? -speedLimitedY : speedLimitedY;
 
@@ -2493,13 +2495,15 @@ private:
         float greyDotY = actualPosY + totalOffsetY;
 
         // Check if there's a reason to show the grey dot:
+        // - Flip is active (DSP position is mirrored from control position)
         // - Speed limiting is active
         // - OR tracking offset is non-zero
         // - OR LFO offset is non-zero
+        bool hasFlip = flipX || flipY;
         bool maxSpeedActive = static_cast<int>(parameters.getInputParam(inputIndex, "inputMaxSpeedActive")) != 0;
         bool hasOffset = (std::abs(offsetX) > 0.001f || std::abs(offsetY) > 0.001f);
         bool hasLFO = (std::abs(lfoOffsetX) > 0.001f || std::abs(lfoOffsetY) > 0.001f);
-        bool hasReasonForDifference = maxSpeedActive || hasOffset || hasLFO;
+        bool hasReasonForDifference = hasFlip || maxSpeedActive || hasOffset || hasLFO;
 
         // Only show grey dot if there's a reason AND actual difference
         float diffFromTarget = std::abs(greyDotX - posX) + std::abs(greyDotY - posY);
