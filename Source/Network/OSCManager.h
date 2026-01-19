@@ -412,7 +412,7 @@ private:
 
     /**
      * Send stage configuration to all connected Remote targets.
-     * Sends origin, dimensions, shape, and input count.
+     * Sends origin, dimensions, and shape. Input count (/inputs) is sent separately.
      */
     void sendStageConfigToRemote();
 

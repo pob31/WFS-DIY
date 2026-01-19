@@ -601,10 +601,25 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
         property == WFSParameterIDs::domeElevation ||
         property == WFSParameterIDs::originWidth ||
         property == WFSParameterIDs::originDepth ||
-        property == WFSParameterIDs::originHeight ||
-        property == WFSParameterIDs::inputChannels)
+        property == WFSParameterIDs::originHeight)
     {
         sendStageConfigToRemote();
+        return;  // Don't process as channel parameter
+    }
+
+    // Handle input channel count change separately - send /inputs to all connected Remote targets
+    if (property == WFSParameterIDs::inputChannels)
+    {
+        int inputs = static_cast<int>(tree.getProperty(property));
+        juce::OSCMessage inputsMsg = OSCMessageBuilder::buildConfigIntMessage("/inputs", inputs);
+        for (int i = 0; i < MAX_TARGETS; ++i)
+        {
+            if (targetConfigs[static_cast<size_t>(i)].protocol == Protocol::Remote &&
+                remoteStates[static_cast<size_t>(i)].phase == RemoteConnectionState::Phase::Connected)
+            {
+                sendMessage(i, inputsMsg);
+            }
+        }
         return;  // Don't process as channel parameter
     }
 
@@ -1687,14 +1702,7 @@ void OSCManager::sendStageConfigToRemote()
     float diameter = static_cast<float>(stageTree.getProperty(WFSParameterIDs::stageDiameter));
     float domeElev = static_cast<float>(stageTree.getProperty(WFSParameterIDs::domeElevation));
 
-    // Get input count from IO section (can't use getIntParameter as "inputChannels" starts with "input"
-    // and would be incorrectly routed to the Input channel scope instead of Config/IO)
-    auto ioTree = state.getIOState();
-    int inputs = ioTree.isValid()
-        ? static_cast<int>(ioTree.getProperty(WFSParameterIDs::inputChannels))
-        : 8;
-
-    // Build messages
+    // Build messages (note: /inputs is sent separately in onRemoteConnected after positions)
     std::vector<juce::OSCMessage> messages;
     messages.push_back(OSCMessageBuilder::buildConfigFloatMessage("/stage/originX", originX));
     messages.push_back(OSCMessageBuilder::buildConfigFloatMessage("/stage/originY", originY));
@@ -1705,7 +1713,7 @@ void OSCManager::sendStageConfigToRemote()
     messages.push_back(OSCMessageBuilder::buildConfigIntMessage("/stage/shape", shape));
     messages.push_back(OSCMessageBuilder::buildConfigFloatMessage("/stage/diameter", diameter));
     messages.push_back(OSCMessageBuilder::buildConfigFloatMessage("/stage/domeElevation", domeElev));
-    messages.push_back(OSCMessageBuilder::buildConfigIntMessage("/inputs", inputs));
+    // Note: /inputs is now sent separately in onRemoteConnected() after positions
 
     // Send to all Remote protocol targets that are connected
     for (int i = 0; i < MAX_TARGETS; ++i)
@@ -2042,11 +2050,20 @@ void OSCManager::onRemoteConnected(int targetIndex, bool isReconnection)
 
         DBG("OSCManager: Sending initial state dump to target " << targetIndex);
 
-        // Send stage configuration
+        // Send stage configuration (dimensions, shape, etc. - but not /inputs)
         sendStageConfigToRemote();
 
         // Send all input positions
         sendAllInputPositionsToRemote(targetIndex);
+
+        // Send /inputs LAST so Android knows positions are complete
+        // This ensures hasServerPositionData check passes before grid layout is attempted
+        auto ioTree = state.getIOState();
+        int inputs = ioTree.isValid()
+            ? static_cast<int>(ioTree.getProperty(WFSParameterIDs::inputChannels))
+            : 8;
+        juce::OSCMessage inputsMsg = OSCMessageBuilder::buildConfigIntMessage("/inputs", inputs);
+        sendMessage(targetIndex, inputsMsg);
     });
 }
 
