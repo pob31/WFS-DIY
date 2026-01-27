@@ -83,9 +83,13 @@ L.F.O	Phase X	inputLFOphaseX	Direction dial	INT	0	360	0	x*360	�		Greyed out bu
 L.F.O	Phase Y	inputLFOphaseY	Direction dial	INT	0	360	0	x*360	�		Greyed out but editable when LFOactive == 0 or LFOShapeY == 0	/wfs/input/LFOphaseY	y	extra value is transition time in seconds	/remoteInput/LFOphaseY	Phase Offset of the Movement of the Object in Depth.	
 L.F.O	Phase Z	inputLFOphaseZ	Direction dial	INT	0	360	0	x*360	�		Greyed out but editable when LFOactive == 0 or LFOShapeZ == 0	/wfs/input/LFOphaseZ	y	extra value is transition time in seconds	/remoteInput/LFOphaseZ	Phase Offset of the Movement of the Object in Height.	
 L.F.O	Gyrophone	inputLFOgyrophone	Drop down menu	INT	-1	1	0			Anti-Clockwise�; OFF�; Clockwise	Greyed out but editable when LFOactive == 0	/wfs/input/LFOgyrophone			/remoteInput/LFOgyrophone	Rotation of the Brightness Cone of the Object.	
-AutomOtion	Destination X	inputOtomoX	Number box	FLOAT	-50.0	50.0	0.0					/wfs/input/otomoX	y			Relative or Absolute Destination X.	
-AutomOtion	Destination Y	inputOtomoY	Number box	FLOAT	-50.0	50.0	0.0					/wfs/input/otomoY	y			Relative or Absolute Destination Y.	
-AutomOtion	Destination Z	inputOtomoZ	Number box	FLOAT	-50.0	50.0	0.0					/wfs/input/otomoZ	y			Relative or Absolute Destination Z.	
+AutomOtion	Destination X	inputOtomoX	Number box	FLOAT	-50.0	50.0	0.0		m		Cartesian X coordinate of destination	/wfs/input/otomoX	y			Relative or Absolute Destination X.
+AutomOtion	Destination Y	inputOtomoY	Number box	FLOAT	-50.0	50.0	0.0		m		Cartesian Y coordinate of destination	/wfs/input/otomoY	y			Relative or Absolute Destination Y.
+AutomOtion	Destination Z	inputOtomoZ	Number box	FLOAT	-50.0	50.0	0.0		m		Cartesian Z coordinate of destination	/wfs/input/otomoZ	y			Relative or Absolute Destination Z.
+AutomOtion (Cylindrical)	Destination Radius	inputOtomoR	Number box	FLOAT	0.0	50.0	0.0		m	Virtual param - converts to X/Y internally	/wfs/input/otomoR				Distance from Origin in XY Plane (Cylindrical Coordinates).
+AutomOtion (Cylindrical)	Destination Azimuth	inputOtomoTheta	Number box	FLOAT	-720.0	720.0	0.0		°	Virtual param - no angle limit for rotations	/wfs/input/otomoTheta				Angle from Audience Direction. Unrestricted for Path Rotations.
+AutomOtion (Spherical)	Destination Radius 3D	inputOtomoRsph	Number box	FLOAT	0.0	50.0	0.0		m	Virtual param - converts to X/Y/Z internally	/wfs/input/otomoRsph				Distance from Origin in 3D Space (Spherical Coordinates).
+AutomOtion (Spherical)	Destination Elevation	inputOtomoPhi	Number box	FLOAT	-720.0	720.0	0.0		°	Virtual param - no angle limit for rotations	/wfs/input/otomoPhi				Elevation Angle. Unrestricted for Path Rotations.
 AutomOtion	Absolute / Relative	inputOtomoAbsoluteRelative	Text button	INT	0	1	0			Absolute ; Relative		/wfs/input/otomoAbsoluteRelative				Select Relative or Absolute Coordinates of Displacement.	
 AutomOtion	Stay / Return	inputOtomoStayReturn	Text button	INT	0	1	0			Stay ; Return		/wfs/input/otomoStayReturn				At the End of the Movement, should the Source Stay or Return to the Original Position.	
 AutomOtion	Duration	inputOtomoDuration	Dial	FLOAT	0.1	3600.0	5.0	pow(10.0,sqrt(x)*3.556-1.0)	s			/wfs/input/otomoDuration	y			Duration of the Movement in Seconds (0.1s to 1 hour).

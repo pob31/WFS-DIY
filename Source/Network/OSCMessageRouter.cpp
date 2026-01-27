@@ -97,16 +97,18 @@ const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getInputAddres
         { "LFOgyrophone",     WFSParameterIDs::inputLFOgyrophone },
 
         // AutomOtion
-        { "otomoX",              WFSParameterIDs::inputOtomoX },
-        { "otomoY",              WFSParameterIDs::inputOtomoY },
-        { "otomoZ",              WFSParameterIDs::inputOtomoZ },
-        { "otomoAbsRel",         WFSParameterIDs::inputOtomoAbsoluteRelative },
-        { "otomoStayReturn",     WFSParameterIDs::inputOtomoStayReturn },
-        { "otomoSpeedProfile",   WFSParameterIDs::inputOtomoSpeedProfile },
-        { "otomoTrigger",        WFSParameterIDs::inputOtomoTrigger },
-        { "otomoThreshold",      WFSParameterIDs::inputOtomoThreshold },
-        { "otomoReset",          WFSParameterIDs::inputOtomoReset },
-        { "otomoPauseResume",    WFSParameterIDs::inputOtomoPauseResume },
+        { "otomoX",                  WFSParameterIDs::inputOtomoX },
+        { "otomoY",                  WFSParameterIDs::inputOtomoY },
+        { "otomoZ",                  WFSParameterIDs::inputOtomoZ },
+        { "otomoAbsoluteRelative",   WFSParameterIDs::inputOtomoAbsoluteRelative },
+        { "otomoStayReturn",         WFSParameterIDs::inputOtomoStayReturn },
+        { "otomoDuration",           WFSParameterIDs::inputOtomoDuration },
+        { "otomoCurve",              WFSParameterIDs::inputOtomoCurve },
+        { "otomoSpeed",              WFSParameterIDs::inputOtomoSpeedProfile },
+        { "otomoTrigger",            WFSParameterIDs::inputOtomoTrigger },
+        { "otomoTriggerThreshold",   WFSParameterIDs::inputOtomoThreshold },
+        { "otomoTriggerReset",       WFSParameterIDs::inputOtomoReset },
+        { "otomoPauseResume",        WFSParameterIDs::inputOtomoPauseResume },
 
         // Mutes
         { "mutes",           WFSParameterIDs::inputMutes },

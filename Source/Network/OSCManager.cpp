@@ -1097,6 +1097,94 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
         }
     }
 
+    //==========================================================================
+    // AutomOtion cylindrical/spherical coordinate OSC handling
+    // These convert to Cartesian internally before storage
+    //==========================================================================
+    if (address.startsWith("/wfs/input/otomo"))
+    {
+        juce::String paramName = OSCMessageRouter::extractParamName(address);
+        bool isPolarCoord = (paramName == "otomoR" || paramName == "otomoTheta" ||
+                             paramName == "otomoRsph" || paramName == "otomoPhi");
+
+        if (isPolarCoord && message.size() >= 2)
+        {
+            int channelId = OSCMessageRouter::extractInt(message[0]);
+            float newValue = OSCMessageRouter::extractFloat(message[1]);
+            int channelIndex = channelId - 1;
+
+            if (channelIndex >= 0)
+            {
+                juce::MessageManager::callAsync([this, paramName, channelIndex, newValue]()
+                {
+                    incomingProtocol = Protocol::OSC;
+
+                    // Get current Cartesian destination
+                    juce::var xVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputOtomoX);
+                    juce::var yVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputOtomoY);
+                    juce::var zVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputOtomoZ);
+
+                    float x = xVar.isDouble() ? static_cast<float>(static_cast<double>(xVar)) : 0.0f;
+                    float y = yVar.isDouble() ? static_cast<float>(static_cast<double>(yVar)) : 0.0f;
+                    float z = zVar.isDouble() ? static_cast<float>(static_cast<double>(zVar)) : 0.0f;
+
+                    // Handle cylindrical coordinates (R, theta in XY plane, Z unchanged)
+                    if (paramName == "otomoR")
+                    {
+                        // Convert current to cylindrical, update R, convert back
+                        auto cyl = WFSCoordinates::cartesianToCylindrical({x, y, z});
+                        cyl.r = juce::jlimit(0.0f, 50.0f, std::abs(newValue));  // Radius 0-50m
+                        auto cart = WFSCoordinates::cylindricalToCartesian(cyl);
+                        x = cart.x;
+                        y = cart.y;
+                        // z unchanged
+                    }
+                    else if (paramName == "otomoTheta")
+                    {
+                        // Convert current to cylindrical, update theta, convert back
+                        // Note: don't normalize - allow >360 for path rotations
+                        auto cyl = WFSCoordinates::cartesianToCylindrical({x, y, z});
+                        cyl.theta = newValue;  // Allow any angle for path rotations
+                        auto cart = WFSCoordinates::cylindricalToCartesian(cyl);
+                        x = cart.x;
+                        y = cart.y;
+                        // z unchanged
+                    }
+                    // Handle spherical coordinates (R, theta, phi in 3D)
+                    else if (paramName == "otomoRsph")
+                    {
+                        // Convert current to spherical, update R, convert back
+                        auto sph = WFSCoordinates::cartesianToSpherical({x, y, z});
+                        sph.r = juce::jlimit(0.0f, 50.0f, std::abs(newValue));  // Radius 0-50m
+                        auto cart = WFSCoordinates::sphericalToCartesian(sph);
+                        x = cart.x;
+                        y = cart.y;
+                        z = cart.z;
+                    }
+                    else if (paramName == "otomoPhi")
+                    {
+                        // Convert current to spherical, update phi (elevation), convert back
+                        // Note: don't clamp - allow any angle for path rotations
+                        auto sph = WFSCoordinates::cartesianToSpherical({x, y, z});
+                        sph.phi = newValue;  // Allow any angle for path rotations
+                        auto cart = WFSCoordinates::sphericalToCartesian(sph);
+                        x = cart.x;
+                        y = cart.y;
+                        z = cart.z;
+                    }
+
+                    // Save all three values
+                    state.setInputParameter(channelIndex, WFSParameterIDs::inputOtomoX, x);
+                    state.setInputParameter(channelIndex, WFSParameterIDs::inputOtomoY, y);
+                    state.setInputParameter(channelIndex, WFSParameterIDs::inputOtomoZ, z);
+
+                    incomingProtocol = Protocol::Disabled;
+                });
+            }
+            return;  // Handled - don't fall through to normal processing
+        }
+    }
+
     if (OSCMessageRouter::isInputAddress(address))
     {
         auto parsed = OSCMessageRouter::parseInputMessage(message);

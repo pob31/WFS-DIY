@@ -2162,9 +2162,27 @@ private:
 
     void setupAutomotionTab()
     {
-        // Destination X/Y/Z number boxes
+        // AutomOtion title label
+        addAndMakeVisible(otomoTitleLabel);
+        otomoTitleLabel.setText("AutomOtion", juce::dontSendNotification);
+        otomoTitleLabel.setFont(juce::FontOptions(16.0f).withStyle("Bold"));
+        otomoTitleLabel.setJustificationType(juce::Justification::centredLeft);
+
+        // Coordinate mode selector for destinations
+        addAndMakeVisible(otomoCoordModeSelector);
+        otomoCoordModeSelector.addItem(LOC("inputs.coordinates.xyz"), 1);  // Cartesian
+        otomoCoordModeSelector.addItem(juce::String(juce::CharPointer_UTF8("r \xce\xb8 Z")), 2);    // Cylindrical: r θ Z
+        otomoCoordModeSelector.addItem(juce::String(juce::CharPointer_UTF8("r \xce\xb8 \xcf\x86")), 3);  // Spherical: r θ φ
+        otomoCoordModeSelector.setSelectedId(1, juce::dontSendNotification);
+        otomoCoordModeSelector.onChange = [this]() {
+            updateOtomoLabelsAndValues();
+            updateOtomoDestinationEditors();
+            resized();
+        };
+
+        // Destination X/Y/Z number boxes (using short labels)
         addAndMakeVisible(otomoDestXLabel);
-        otomoDestXLabel.setText(LOC("inputs.labels.destX"), juce::dontSendNotification);
+        otomoDestXLabel.setText("X:", juce::dontSendNotification);
         addAndMakeVisible(otomoDestXEditor);
         otomoDestXEditor.setText("0.00", juce::dontSendNotification);
         setupNumericEditor(otomoDestXEditor, true, true);
@@ -2172,7 +2190,7 @@ private:
         otomoDestXUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
 
         addAndMakeVisible(otomoDestYLabel);
-        otomoDestYLabel.setText(LOC("inputs.labels.destY"), juce::dontSendNotification);
+        otomoDestYLabel.setText("Y:", juce::dontSendNotification);
         addAndMakeVisible(otomoDestYEditor);
         otomoDestYEditor.setText("0.00", juce::dontSendNotification);
         setupNumericEditor(otomoDestYEditor, true, true);
@@ -2180,7 +2198,7 @@ private:
         otomoDestYUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
 
         addAndMakeVisible(otomoDestZLabel);
-        otomoDestZLabel.setText(LOC("inputs.labels.destZ"), juce::dontSendNotification);
+        otomoDestZLabel.setText("Z:", juce::dontSendNotification);
         addAndMakeVisible(otomoDestZEditor);
         otomoDestZEditor.setText("0.00", juce::dontSendNotification);
         setupNumericEditor(otomoDestZEditor, true, true);
@@ -4124,8 +4142,6 @@ private:
         const int selectorWidth = 90;
         const int dialSize = 50;
         const int buttonWidth = 95;
-        const int editorWidth = 70;
-        const int unitWidth = 25;
         const int transportButtonSize = 35;
 
         auto col1 = area.removeFromLeft(area.getWidth() / 2).reduced(5, 0);
@@ -4286,27 +4302,38 @@ private:
         jitterSlider.setBounds(col1.removeFromTop(sliderHeight));
 
         // ========== COLUMN 2: AutomOtion ==========
-        // Destination X/Y/Z
-        row = col2.removeFromTop(rowHeight);
-        otomoDestXLabel.setBounds(row.removeFromLeft(labelWidth));
-        otomoDestXEditor.setBounds(row.removeFromLeft(editorWidth));
-        otomoDestXUnitLabel.setBounds(row.removeFromLeft(unitWidth));
-        row.removeFromLeft(spacing);
-        otomoDestYLabel.setBounds(row.removeFromLeft(labelWidth));
-        otomoDestYEditor.setBounds(row.removeFromLeft(editorWidth));
-        otomoDestYUnitLabel.setBounds(row.removeFromLeft(unitWidth));
+        // Title row
+        row = col2.removeFromTop(rowHeight + 4);  // Slightly taller for title
+        otomoTitleLabel.setBounds(row);
         col2.removeFromTop(spacing);
 
+        // Destination X/Y/Z with coordinate mode selector and Absolute button - all on same row
+        // Use compact widths for "X:", "Y:", "Z:" style labels
+        const int compactLabelWidth = 22;
+        const int compactEditorWidth = 55;
+        const int compactUnitWidth = 20;
+        const int absButtonWidth = 75;
+
         row = col2.removeFromTop(rowHeight);
-        otomoDestZLabel.setBounds(row.removeFromLeft(labelWidth));
-        otomoDestZEditor.setBounds(row.removeFromLeft(editorWidth));
-        otomoDestZUnitLabel.setBounds(row.removeFromLeft(unitWidth));
+        otomoCoordModeSelector.setBounds(row.removeFromLeft(selectorWidth));  // Combobox first
+        row.removeFromLeft(spacing);
+        otomoDestXLabel.setBounds(row.removeFromLeft(compactLabelWidth));
+        otomoDestXEditor.setBounds(row.removeFromLeft(compactEditorWidth));
+        otomoDestXUnitLabel.setBounds(row.removeFromLeft(compactUnitWidth));
+        row.removeFromLeft(spacing);
+        otomoDestYLabel.setBounds(row.removeFromLeft(compactLabelWidth));
+        otomoDestYEditor.setBounds(row.removeFromLeft(compactEditorWidth));
+        otomoDestYUnitLabel.setBounds(row.removeFromLeft(compactUnitWidth));
+        row.removeFromLeft(spacing);
+        otomoDestZLabel.setBounds(row.removeFromLeft(compactLabelWidth));
+        otomoDestZEditor.setBounds(row.removeFromLeft(compactEditorWidth));
+        otomoDestZUnitLabel.setBounds(row.removeFromLeft(compactUnitWidth));
+        row.removeFromLeft(spacing * 2);
+        otomoAbsRelButton.setBounds(row.removeFromLeft(absButtonWidth));  // Absolute/Relative at end
         col2.removeFromTop(spacing);
 
-        // Buttons row
+        // Buttons row (Stay/Return and Manual only)
         row = col2.removeFromTop(rowHeight);
-        otomoAbsRelButton.setBounds(row.removeFromLeft(buttonWidth));
-        row.removeFromLeft(spacing);
         otomoStayReturnButton.setBounds(row.removeFromLeft(buttonWidth));
         row.removeFromLeft(spacing);
         otomoTriggerButton.setBounds(row.removeFromLeft(buttonWidth));
@@ -5078,12 +5105,8 @@ private:
             editor.setText(juce::String((float)parameters.getInputParam(currentChannel - 1, "inputOffsetY"), 2), false);
         else if (&editor == &offsetZEditor)
             editor.setText(juce::String((float)parameters.getInputParam(currentChannel - 1, "inputOffsetZ"), 2), false);
-        else if (&editor == &otomoDestXEditor)
-            editor.setText(juce::String((float)parameters.getInputParam(currentChannel - 1, "inputOtomoX"), 2), false);
-        else if (&editor == &otomoDestYEditor)
-            editor.setText(juce::String((float)parameters.getInputParam(currentChannel - 1, "inputOtomoY"), 2), false);
-        else if (&editor == &otomoDestZEditor)
-            editor.setText(juce::String((float)parameters.getInputParam(currentChannel - 1, "inputOtomoZ"), 2), false);
+        else if (&editor == &otomoDestXEditor || &editor == &otomoDestYEditor || &editor == &otomoDestZEditor)
+            updateOtomoDestinationEditors();  // Revert all destination editors to stored values
 
         editor.giveAwayKeyboardFocus();
         grabKeyboardFocus();  // Grab focus back so keyboard shortcuts work
@@ -5235,18 +5258,50 @@ private:
             saveInputParam(WFSParameterIDs::inputOffsetY, offsetY);
             saveInputParam(WFSParameterIDs::inputOffsetZ, offsetZ);
         }
-        // AutomOtion tab - Destination editors
-        else if (&editor == &otomoDestXEditor)
+        // AutomOtion tab - Destination editors with coordinate conversion
+        else if (&editor == &otomoDestXEditor || &editor == &otomoDestYEditor || &editor == &otomoDestZEditor)
         {
-            saveInputParam(WFSParameterIDs::inputOtomoX, editor.getText().getFloatValue());
-        }
-        else if (&editor == &otomoDestYEditor)
-        {
-            saveInputParam(WFSParameterIDs::inputOtomoY, editor.getText().getFloatValue());
-        }
-        else if (&editor == &otomoDestZEditor)
-        {
-            saveInputParam(WFSParameterIDs::inputOtomoZ, editor.getText().getFloatValue());
+            // Get all three values from editors
+            float v1 = otomoDestXEditor.getText().getFloatValue();
+            float v2 = otomoDestYEditor.getText().getFloatValue();
+            float v3 = otomoDestZEditor.getText().getFloatValue();
+
+            // Get coordinate mode from AutomOtion selector
+            int mode = otomoCoordModeSelector.getSelectedId() - 1;  // 0=Cartesian, 1=Cylindrical, 2=Spherical
+            auto coordMode = static_cast<WFSCoordinates::Mode>(mode);
+
+            // Apply bounds based on coordinate mode
+            // Distance values (X, Y, Z, radius, height) clamped to +/- 50m
+            // Angles can exceed -180/+180 for interesting path rotations
+            if (coordMode == WFSCoordinates::Mode::Cartesian)
+            {
+                v1 = juce::jlimit(-50.0f, 50.0f, v1);  // X
+                v2 = juce::jlimit(-50.0f, 50.0f, v2);  // Y
+                v3 = juce::jlimit(-50.0f, 50.0f, v3);  // Z
+            }
+            else if (coordMode == WFSCoordinates::Mode::Cylindrical)
+            {
+                v1 = juce::jlimit(0.0f, 50.0f, v1);    // Radius (0 to 50m)
+                // v2 = theta (azimuth) - no clamping, allow >360 for rotations
+                v3 = juce::jlimit(-50.0f, 50.0f, v3);  // Height
+            }
+            else  // Spherical
+            {
+                v1 = juce::jlimit(0.0f, 50.0f, v1);    // Radius (0 to 50m)
+                // v2 = theta (azimuth) - no clamping, allow >360 for rotations
+                // v3 = phi (elevation) - no clamping, allow for full rotations
+            }
+
+            // Convert to Cartesian for storage
+            auto cart = WFSCoordinates::displayToCartesian(coordMode, v1, v2, v3);
+
+            // Save Cartesian values
+            saveInputParam(WFSParameterIDs::inputOtomoX, cart.x);
+            saveInputParam(WFSParameterIDs::inputOtomoY, cart.y);
+            saveInputParam(WFSParameterIDs::inputOtomoZ, cart.z);
+
+            // Update display with bounded values
+            updateOtomoDestinationEditors();
         }
     }
 
@@ -6085,6 +6140,66 @@ private:
             posXEditor.setText(juce::String(v1, 2), juce::dontSendNotification);  // radius
             posYEditor.setText(juce::String(v2, 1), juce::dontSendNotification);  // theta
             posZEditor.setText(juce::String(v3, 1), juce::dontSendNotification);  // phi
+        }
+    }
+
+    /** Update AutomOtion destination labels and values based on coordinate mode */
+    void updateOtomoLabelsAndValues()
+    {
+        int mode = otomoCoordModeSelector.getSelectedId() - 1;  // 0=Cartesian, 1=Cylindrical, 2=Spherical
+        auto coordMode = static_cast<WFSCoordinates::Mode>(mode);
+
+        // Get short labels (X:, Y:, Z: or r:, θ:, Z: or r:, θ:, φ:)
+        juce::String short1, short2, short3;
+        WFSCoordinates::getShortLabels(coordMode, short1, short2, short3);
+
+        otomoDestXLabel.setText(short1, juce::dontSendNotification);
+        otomoDestYLabel.setText(short2, juce::dontSendNotification);
+        otomoDestZLabel.setText(short3, juce::dontSendNotification);
+
+        // Get units (m, m, m or m, °, m or m, °, °)
+        juce::String label1, label2, label3, unit1, unit2, unit3;
+        WFSCoordinates::getCoordinateLabels(coordMode, label1, label2, label3, unit1, unit2, unit3);
+
+        otomoDestXUnitLabel.setText(unit1, juce::dontSendNotification);
+        otomoDestYUnitLabel.setText(unit2, juce::dontSendNotification);
+        otomoDestZUnitLabel.setText(unit3, juce::dontSendNotification);
+    }
+
+    /** Update AutomOtion destination editor values based on coordinate mode */
+    void updateOtomoDestinationEditors()
+    {
+        int mode = otomoCoordModeSelector.getSelectedId() - 1;  // 0=Cartesian, 1=Cylindrical, 2=Spherical
+        auto coordMode = static_cast<WFSCoordinates::Mode>(mode);
+
+        // Get Cartesian values from storage
+        float x = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputOtomoX"));
+        float y = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputOtomoY"));
+        float z = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputOtomoZ"));
+
+        // Convert to display coordinates
+        float v1, v2, v3;
+        WFSCoordinates::cartesianToDisplay(coordMode, x, y, z, v1, v2, v3);
+
+        // Update editors with appropriate precision
+        // Distance in meters: 2 decimals, angles in degrees: 1 decimal
+        if (coordMode == WFSCoordinates::Mode::Cartesian)
+        {
+            otomoDestXEditor.setText(juce::String(v1, 2), juce::dontSendNotification);
+            otomoDestYEditor.setText(juce::String(v2, 2), juce::dontSendNotification);
+            otomoDestZEditor.setText(juce::String(v3, 2), juce::dontSendNotification);
+        }
+        else if (coordMode == WFSCoordinates::Mode::Cylindrical)
+        {
+            otomoDestXEditor.setText(juce::String(v1, 2), juce::dontSendNotification);  // radius
+            otomoDestYEditor.setText(juce::String(v2, 1), juce::dontSendNotification);  // theta
+            otomoDestZEditor.setText(juce::String(v3, 2), juce::dontSendNotification);  // height
+        }
+        else  // Spherical
+        {
+            otomoDestXEditor.setText(juce::String(v1, 2), juce::dontSendNotification);  // radius
+            otomoDestYEditor.setText(juce::String(v2, 1), juce::dontSendNotification);  // theta
+            otomoDestZEditor.setText(juce::String(v3, 1), juce::dontSendNotification);  // phi
         }
     }
 
@@ -7025,6 +7140,8 @@ private:
     WfsLFOOutputSlider lfoOutputXSlider, lfoOutputYSlider, lfoOutputZSlider;
 
     // AutomOtion tab
+    juce::Label otomoTitleLabel;
+    juce::ComboBox otomoCoordModeSelector;
     juce::Label otomoDestXLabel, otomoDestYLabel, otomoDestZLabel;
     juce::TextEditor otomoDestXEditor, otomoDestYEditor, otomoDestZEditor;
     juce::Label otomoDestXUnitLabel, otomoDestYUnitLabel, otomoDestZUnitLabel;

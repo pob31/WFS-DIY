@@ -97,16 +97,18 @@ const std::map<juce::Identifier, OSCMessageBuilder::ParamMapping>& OSCMessageBui
         { WFSParameterIDs::inputLFOgyrophone,    { "/wfs/input/LFOgyrophone",     "/remoteInput/LFOgyrophone" } },
 
         // AutomOtion
-        { WFSParameterIDs::inputOtomoX,                  { "/wfs/input/otomoX",                  "/remoteInput/otomoX" } },
-        { WFSParameterIDs::inputOtomoY,                  { "/wfs/input/otomoY",                  "/remoteInput/otomoY" } },
-        { WFSParameterIDs::inputOtomoZ,                  { "/wfs/input/otomoZ",                  "/remoteInput/otomoZ" } },
-        { WFSParameterIDs::inputOtomoAbsoluteRelative,   { "/wfs/input/otomoAbsoluteRelative",   "/remoteInput/otomoAbsoluteRelative" } },
-        { WFSParameterIDs::inputOtomoStayReturn,         { "/wfs/input/otomoStayReturn",         "/remoteInput/otomoStayReturn" } },
-        { WFSParameterIDs::inputOtomoSpeedProfile,       { "/wfs/input/otomoSpeed",              "/remoteInput/otomoSpeed" } },
-        { WFSParameterIDs::inputOtomoTrigger,            { "/wfs/input/otomoTrigger",            "/remoteInput/otomoTrigger" } },
-        { WFSParameterIDs::inputOtomoThreshold,          { "/wfs/input/otomoTriggerThreshold",   "/remoteInput/otomoTriggerThreshold" } },
-        { WFSParameterIDs::inputOtomoReset,              { "/wfs/input/otomoTriggerReset",       "/remoteInput/otomoTriggerReset" } },
-        { WFSParameterIDs::inputOtomoPauseResume,        { "/wfs/input/otomoPauseResume",        "/remoteInput/otomoPauseResume" } },
+        { WFSParameterIDs::inputOtomoX,                  { "/wfs/input/otomoX",                  "" } },
+        { WFSParameterIDs::inputOtomoY,                  { "/wfs/input/otomoY",                  "" } },
+        { WFSParameterIDs::inputOtomoZ,                  { "/wfs/input/otomoZ",                  "" } },
+        { WFSParameterIDs::inputOtomoAbsoluteRelative,   { "/wfs/input/otomoAbsoluteRelative",   "" } },
+        { WFSParameterIDs::inputOtomoStayReturn,         { "/wfs/input/otomoStayReturn",         "" } },
+        { WFSParameterIDs::inputOtomoDuration,           { "/wfs/input/otomoDuration",           "" } },
+        { WFSParameterIDs::inputOtomoCurve,              { "/wfs/input/otomoCurve",              "" } },
+        { WFSParameterIDs::inputOtomoSpeedProfile,       { "/wfs/input/otomoSpeed",              "" } },
+        { WFSParameterIDs::inputOtomoTrigger,            { "/wfs/input/otomoTrigger",            "" } },
+        { WFSParameterIDs::inputOtomoThreshold,          { "/wfs/input/otomoTriggerThreshold",   "" } },
+        { WFSParameterIDs::inputOtomoReset,              { "/wfs/input/otomoTriggerReset",       "" } },
+        { WFSParameterIDs::inputOtomoPauseResume,        { "/wfs/input/otomoPauseResume",        "" } },
 
         // Mutes
         { WFSParameterIDs::inputMutes,           { "/wfs/input/mutes",            "/remoteInput/mutes" } },
