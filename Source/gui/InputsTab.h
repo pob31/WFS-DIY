@@ -4329,13 +4329,13 @@ private:
         otomoDestZEditor.setBounds(row.removeFromLeft(compactEditorWidth));
         otomoDestZUnitLabel.setBounds(row.removeFromLeft(compactUnitWidth));
         row.removeFromLeft(spacing * 2);
-        otomoAbsRelButton.setBounds(row.removeFromLeft(absButtonWidth));  // Absolute/Relative at end
+        otomoAbsRelButton.setBounds(row.removeFromLeft(absButtonWidth));  // Absolute/Relative
+        row.removeFromLeft(spacing);
+        otomoStayReturnButton.setBounds(row.removeFromLeft(absButtonWidth));  // Stay/Return after Abs/Rel
         col2.removeFromTop(spacing);
 
-        // Buttons row (Stay/Return and Manual only)
+        // Buttons row (Manual/Trigger only)
         row = col2.removeFromTop(rowHeight);
-        otomoStayReturnButton.setBounds(row.removeFromLeft(buttonWidth));
-        row.removeFromLeft(spacing);
         otomoTriggerButton.setBounds(row.removeFromLeft(buttonWidth));
         col2.removeFromTop(spacing * 2);
 
