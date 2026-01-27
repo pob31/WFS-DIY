@@ -173,6 +173,12 @@ public:
      */
     static juce::String extractString(const juce::OSCArgument& arg);
 
+    /**
+     * Extract the parameter portion from an OSC address.
+     * e.g., "/wfs/input/attenuation" -> "attenuation"
+     */
+    static juce::String extractParamName(const juce::String& address);
+
 private:
     //==========================================================================
     // Internal Lookup Tables
@@ -183,12 +189,6 @@ private:
     static const std::map<juce::String, juce::Identifier>& getReverbAddressMap();
     static const std::map<juce::String, juce::Identifier>& getRemoteAddressMap();
     static const std::map<juce::String, juce::Identifier>& getConfigAddressMap();
-
-    /**
-     * Extract the parameter portion from an OSC address.
-     * e.g., "/wfs/input/attenuation" -> "attenuation"
-     */
-    static juce::String extractParamName(const juce::String& address);
 };
 
 } // namespace WFSNetwork

@@ -1,4 +1,5 @@
 #include "OSCManager.h"
+#include "../Helpers/CoordinateConverter.h"
 
 namespace WFSNetwork
 {
@@ -607,6 +608,14 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
         return;  // Don't process as channel parameter
     }
 
+    // Handle global tracking settings change - broadcast computed tracking state to all inputs
+    if (property == WFSParameterIDs::trackingEnabled ||
+        property == WFSParameterIDs::trackingProtocol)
+    {
+        sendAllTrackingStatesToRemote();
+        return;  // Don't process as channel parameter
+    }
+
     // Handle input channel count change separately - send /inputs to all connected Remote targets
     if (property == WFSParameterIDs::inputChannels)
     {
@@ -715,6 +724,12 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
                 }
             }
         }
+    }
+
+    // If inputTrackingActive changed, also send the computed fully tracked state
+    if (isInput && property == WFSParameterIDs::inputTrackingActive)
+    {
+        sendInputFullyTrackedState(channelId);
     }
 }
 
@@ -974,6 +989,113 @@ void OSCManager::handleIncomingBundle(const juce::OSCBundle& bundle,
 void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
 {
     juce::String address = message.getAddressPattern().toString();
+
+    //==========================================================================
+    // Handle Cylindrical/Spherical coordinate addresses
+    // These convert to Cartesian internally before storage
+    //==========================================================================
+    if (address.startsWith("/wfs/input/position") || address.startsWith("/wfs/input/offset"))
+    {
+        juce::String paramName = OSCMessageRouter::extractParamName(address);
+        bool isPolarCoord = (paramName == "positionR" || paramName == "positionTheta" ||
+                             paramName == "positionRsph" || paramName == "positionPhi" ||
+                             paramName == "offsetR" || paramName == "offsetTheta" ||
+                             paramName == "offsetRsph" || paramName == "offsetPhi");
+
+        if (isPolarCoord && message.size() >= 2)
+        {
+            int channelId = OSCMessageRouter::extractInt(message[0]);
+            float newValue = OSCMessageRouter::extractFloat(message[1]);
+            int channelIndex = channelId - 1;
+
+            if (channelIndex >= 0)
+            {
+                juce::MessageManager::callAsync([this, paramName, channelIndex, newValue]()
+                {
+                    incomingProtocol = Protocol::OSC;
+
+                    bool isOffset = paramName.startsWith("offset");
+
+                    // Get current Cartesian position or offset
+                    auto xId = isOffset ? WFSParameterIDs::inputOffsetX : WFSParameterIDs::inputPositionX;
+                    auto yId = isOffset ? WFSParameterIDs::inputOffsetY : WFSParameterIDs::inputPositionY;
+                    auto zId = isOffset ? WFSParameterIDs::inputOffsetZ : WFSParameterIDs::inputPositionZ;
+
+                    juce::var xVar = state.getInputParameter(channelIndex, xId);
+                    juce::var yVar = state.getInputParameter(channelIndex, yId);
+                    juce::var zVar = state.getInputParameter(channelIndex, zId);
+
+                    float x = xVar.isDouble() ? static_cast<float>(static_cast<double>(xVar)) : 0.0f;
+                    float y = yVar.isDouble() ? static_cast<float>(static_cast<double>(yVar)) : 0.0f;
+                    float z = zVar.isDouble() ? static_cast<float>(static_cast<double>(zVar)) : 0.0f;
+
+                    // Handle cylindrical coordinates (R, theta in XY plane, Z unchanged)
+                    if (paramName == "positionR" || paramName == "offsetR")
+                    {
+                        // Convert current to cylindrical, update R, convert back
+                        auto cyl = WFSCoordinates::cartesianToCylindrical({x, y, z});
+                        cyl.r = std::abs(newValue);  // Radius must be positive
+                        auto cart = WFSCoordinates::cylindricalToCartesian(cyl);
+                        x = cart.x;
+                        y = cart.y;
+                        // z unchanged
+                    }
+                    else if (paramName == "positionTheta" || paramName == "offsetTheta")
+                    {
+                        // Convert current to cylindrical, update theta, convert back
+                        auto cyl = WFSCoordinates::cartesianToCylindrical({x, y, z});
+                        cyl.theta = WFSCoordinates::normalizeAngle(newValue);
+                        auto cart = WFSCoordinates::cylindricalToCartesian(cyl);
+                        x = cart.x;
+                        y = cart.y;
+                        // z unchanged
+                    }
+                    // Handle spherical coordinates (R, theta, phi in 3D)
+                    else if (paramName == "positionRsph" || paramName == "offsetRsph")
+                    {
+                        // Convert current to spherical, update R, convert back
+                        auto sph = WFSCoordinates::cartesianToSpherical({x, y, z});
+                        sph.r = std::abs(newValue);  // Radius must be positive
+                        auto cart = WFSCoordinates::sphericalToCartesian(sph);
+                        x = cart.x;
+                        y = cart.y;
+                        z = cart.z;
+                    }
+                    else if (paramName == "positionPhi" || paramName == "offsetPhi")
+                    {
+                        // Convert current to spherical, update phi (elevation), convert back
+                        auto sph = WFSCoordinates::cartesianToSpherical({x, y, z});
+                        sph.phi = WFSCoordinates::clampElevation(newValue);
+                        auto cart = WFSCoordinates::sphericalToCartesian(sph);
+                        x = cart.x;
+                        y = cart.y;
+                        z = cart.z;
+                    }
+
+                    // Apply constraints (only for position, not offset)
+                    if (!isOffset)
+                    {
+                        x = applyConstraintX(channelIndex, x);
+                        y = applyConstraintY(channelIndex, y);
+                        z = applyConstraintZ(channelIndex, z);
+                        applyConstraintDistance(channelIndex, x, y, z);
+                    }
+
+                    // Save all three values
+                    state.setInputParameter(channelIndex, xId, x);
+                    state.setInputParameter(channelIndex, yId, y);
+                    state.setInputParameter(channelIndex, zId, z);
+
+                    // Notify for waypoint capture (path mode)
+                    if (!isOffset && onRemoteWaypointCapture)
+                        onRemoteWaypointCapture(channelIndex, x, y, z);
+
+                    incomingProtocol = Protocol::Disabled;
+                });
+            }
+            return;  // Handled - don't fall through to normal processing
+        }
+    }
 
     if (OSCMessageRouter::isInputAddress(address))
     {
@@ -1683,6 +1805,55 @@ void OSCManager::sendRemoteChannelDump(int channelId)
             }
         }
     }
+
+    // Also send the computed "fully tracked" state (depends on global settings too)
+    sendInputFullyTrackedState(channelId);
+}
+
+bool OSCManager::isInputFullyTracked(int channelIndex) const
+{
+    // Get global tracking settings
+    bool globalTracking = state.getIntParameter(WFSParameterIDs::trackingEnabled) != 0;
+    bool protocolEnabled = state.getIntParameter(WFSParameterIDs::trackingProtocol) != 0;
+
+    // Get per-input tracking setting
+    bool localTracking = state.getIntParameter(WFSParameterIDs::inputTrackingActive, channelIndex) != 0;
+
+    return globalTracking && protocolEnabled && localTracking;
+}
+
+void OSCManager::sendInputFullyTrackedState(int channelId)
+{
+    int channelIndex = channelId - 1;
+    if (channelIndex < 0)
+        return;
+
+    bool fullyTracked = isInputFullyTracked(channelIndex);
+
+    // Build OSC message: /remoteInput/isFullyTracked <channelId> <0 or 1>
+    juce::OSCMessage msg("/remoteInput/isFullyTracked");
+    msg.addInt32(channelId);
+    msg.addInt32(fullyTracked ? 1 : 0);
+
+    // Send to all connected Remote protocol targets
+    for (int i = 0; i < MAX_TARGETS; ++i)
+    {
+        const auto& config = targetConfigs[static_cast<size_t>(i)];
+        if (config.protocol == Protocol::Remote && config.txEnabled &&
+            remoteStates[static_cast<size_t>(i)].phase == RemoteConnectionState::Phase::Connected)
+        {
+            sendMessage(i, msg);
+        }
+    }
+}
+
+void OSCManager::sendAllTrackingStatesToRemote()
+{
+    int numInputs = state.getIntParameter(WFSParameterIDs::inputChannels);
+    for (int i = 0; i < numInputs; ++i)
+    {
+        sendInputFullyTrackedState(i + 1);  // 1-based channelId
+    }
 }
 
 void OSCManager::sendStageConfigToRemote()
@@ -2064,6 +2235,9 @@ void OSCManager::onRemoteConnected(int targetIndex, bool isReconnection)
             : 8;
         juce::OSCMessage inputsMsg = OSCMessageBuilder::buildConfigIntMessage("/inputs", inputs);
         sendMessage(targetIndex, inputsMsg);
+
+        // Send tracking state for all inputs
+        sendAllTrackingStatesToRemote();
     });
 }
 

@@ -411,6 +411,25 @@ private:
     void sendRemoteChannelDump(int channelId);
 
     /**
+     * Check if tracking is fully active for an input.
+     * Requires global tracking enabled, protocol not disabled, AND per-input tracking active.
+     * @param channelIndex 0-based channel index
+     */
+    bool isInputFullyTracked(int channelIndex) const;
+
+    /**
+     * Send the computed "fully tracked" state to all connected Remote targets.
+     * @param channelId 1-based channel ID
+     */
+    void sendInputFullyTrackedState(int channelId);
+
+    /**
+     * Send tracking state for all inputs to all connected Remote targets.
+     * Called when global tracking settings change.
+     */
+    void sendAllTrackingStatesToRemote();
+
+    /**
      * Send stage configuration to all connected Remote targets.
      * Sends origin, dimensions, and shape. Input count (/inputs) is sent separately.
      */
