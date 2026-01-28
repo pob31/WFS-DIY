@@ -2177,6 +2177,7 @@ private:
         otomoCoordModeSelector.onChange = [this]() {
             updateOtomoLabelsAndValues();
             updateOtomoDestinationEditors();
+            updateOtomoCurveVisibility();
             resized();
         };
 
@@ -2303,6 +2304,7 @@ private:
             bool isTrigger = otomoTriggerButton.getToggleState();
             otomoTriggerButton.setButtonText(isTrigger ? LOC("inputs.toggles.triggered") : LOC("inputs.toggles.manual"));
             saveInputParam(WFSParameterIDs::inputOtomoTrigger, isTrigger ? 1 : 0);
+            updateOtomoTriggerAppearance();
         };
 
         // Trigger Threshold dial (-92 to 0 dB)
@@ -3466,15 +3468,20 @@ private:
 
     void setAutomotionVisible(bool v)
     {
+        otomoTitleLabel.setVisible(v);
+        otomoCoordModeSelector.setVisible(v);
         otomoDestXLabel.setVisible(v); otomoDestXEditor.setVisible(v); otomoDestXUnitLabel.setVisible(v);
         otomoDestYLabel.setVisible(v); otomoDestYEditor.setVisible(v); otomoDestYUnitLabel.setVisible(v);
         otomoDestZLabel.setVisible(v); otomoDestZEditor.setVisible(v); otomoDestZUnitLabel.setVisible(v);
         otomoAbsRelButton.setVisible(v);
         otomoStayReturnButton.setVisible(v);
         otomoDurationLabel.setVisible(v); otomoDurationDial.setVisible(v); otomoDurationValueLabel.setVisible(v);
-        otomoCurveLabel.setVisible(v); otomoCurveDial.setVisible(v); otomoCurveValueLabel.setVisible(v); otomoCurveUnitLabel.setVisible(v);
+        // Curve visibility depends on coordinate mode (hidden in Cylindrical/Spherical)
+        bool showCurve = v && (otomoCoordModeSelector.getSelectedId() == 1);  // 1 = Cartesian
+        otomoCurveLabel.setVisible(showCurve); otomoCurveDial.setVisible(showCurve); otomoCurveValueLabel.setVisible(showCurve); otomoCurveUnitLabel.setVisible(showCurve);
         otomoSpeedProfileLabel.setVisible(v); otomoSpeedProfileDial.setVisible(v); otomoSpeedProfileValueLabel.setVisible(v); otomoSpeedProfileUnitLabel.setVisible(v);
         otomoTriggerButton.setVisible(v);
+        // Threshold and Reset are dimmed (not hidden) in Manual mode - handle alpha separately
         otomoThresholdLabel.setVisible(v); otomoThresholdDial.setVisible(v); otomoThresholdValueLabel.setVisible(v); otomoThresholdUnitLabel.setVisible(v);
         otomoResetLabel.setVisible(v); otomoResetDial.setVisible(v); otomoResetValueLabel.setVisible(v); otomoResetUnitLabel.setVisible(v);
         otomoStartButton.setVisible(v);
@@ -3482,6 +3489,8 @@ private:
         otomoPauseButton.setVisible(v);
         otomoStopAllButton.setVisible(v);
         otomoPauseResumeAllButton.setVisible(v);
+        if (v)
+            updateOtomoTriggerAppearance();
     }
 
     void layoutAutomotionTab()
@@ -4302,51 +4311,60 @@ private:
         jitterSlider.setBounds(col1.removeFromTop(sliderHeight));
 
         // ========== COLUMN 2: AutomOtion ==========
+        const int otomoRowSpacing = spacing * 5;  // Large vertical padding between rows
+
         // Title row
         row = col2.removeFromTop(rowHeight + 4);  // Slightly taller for title
         otomoTitleLabel.setBounds(row);
-        col2.removeFromTop(spacing);
+        col2.removeFromTop(otomoRowSpacing);
 
-        // Destination X/Y/Z with coordinate mode selector and Absolute button - all on same row
-        // Use compact widths for "X:", "Y:", "Z:" style labels
-        const int compactLabelWidth = 22;
-        const int compactEditorWidth = 55;
-        const int compactUnitWidth = 20;
-        const int absButtonWidth = 75;
+        // Row 1: Destination row spread across full column width
+        // [Coord Mode ▼] [X: [__] m] [Y: [__] m] [Z: [__] m] [Absolute] [Stay]
+        const int otomoSelectorWidth = 90;   // Wider combobox
+        const int otomoToggleWidth = 80;     // Wider toggles
+        const int compactLabelWidth = 24;    // Wide enough for Greek letters (θ:, φ:)
+        const int compactEditorWidth = 55;   // Narrower number boxes
+        const int compactUnitWidth = 22;     // Wider for unit display
+
+        // Calculate spacing to spread elements across column
+        int row1FixedWidth = otomoSelectorWidth + (compactLabelWidth + compactEditorWidth + compactUnitWidth) * 3 + otomoToggleWidth * 2;
+        int row1AvailableSpace = col2.getWidth() - row1FixedWidth;
+        int row1ElementSpacing = row1AvailableSpace / 6;  // 6 gaps between elements
 
         row = col2.removeFromTop(rowHeight);
-        otomoCoordModeSelector.setBounds(row.removeFromLeft(selectorWidth));  // Combobox first
-        row.removeFromLeft(spacing);
+        otomoCoordModeSelector.setBounds(row.removeFromLeft(otomoSelectorWidth));
+        row.removeFromLeft(row1ElementSpacing);
         otomoDestXLabel.setBounds(row.removeFromLeft(compactLabelWidth));
         otomoDestXEditor.setBounds(row.removeFromLeft(compactEditorWidth));
         otomoDestXUnitLabel.setBounds(row.removeFromLeft(compactUnitWidth));
-        row.removeFromLeft(spacing);
+        row.removeFromLeft(row1ElementSpacing);
         otomoDestYLabel.setBounds(row.removeFromLeft(compactLabelWidth));
         otomoDestYEditor.setBounds(row.removeFromLeft(compactEditorWidth));
         otomoDestYUnitLabel.setBounds(row.removeFromLeft(compactUnitWidth));
-        row.removeFromLeft(spacing);
+        row.removeFromLeft(row1ElementSpacing);
         otomoDestZLabel.setBounds(row.removeFromLeft(compactLabelWidth));
         otomoDestZEditor.setBounds(row.removeFromLeft(compactEditorWidth));
         otomoDestZUnitLabel.setBounds(row.removeFromLeft(compactUnitWidth));
-        row.removeFromLeft(spacing * 2);
-        otomoAbsRelButton.setBounds(row.removeFromLeft(absButtonWidth));  // Absolute/Relative
-        row.removeFromLeft(spacing);
-        otomoStayReturnButton.setBounds(row.removeFromLeft(absButtonWidth));  // Stay/Return after Abs/Rel
-        col2.removeFromTop(spacing);
+        row.removeFromLeft(row1ElementSpacing);
+        otomoAbsRelButton.setBounds(row.removeFromLeft(otomoToggleWidth));
+        row.removeFromLeft(row1ElementSpacing);
+        otomoStayReturnButton.setBounds(row.removeFromLeft(otomoToggleWidth));
+        col2.removeFromTop(otomoRowSpacing);
 
-        // Buttons row (Manual/Trigger only)
-        row = col2.removeFromTop(rowHeight);
-        otomoTriggerButton.setBounds(row.removeFromLeft(buttonWidth));
-        col2.removeFromTop(spacing * 2);
-
-        // Dials row 1: Duration, Curve, Speed Profile
+        // Row 2: Dials - Duration, Curve (if Cartesian), Speed Profile - spread across column
         const int otomoDialWidth = dialSize + 30;  // Wide enough for "Speed Profile:" label
+        int row2FixedWidth = otomoDialWidth * 3;
+        int row2AvailableSpace = col2.getWidth() - row2FixedWidth;
+        int row2ElementSpacing = row2AvailableSpace / 4;  // Spacing at start, between dials, at end
+
         auto otomoDials1 = col2.removeFromTop(dialSize + rowHeight * 2 - 5);
+        otomoDials1.removeFromLeft(row2ElementSpacing);  // Left padding
+
         auto durDialArea = otomoDials1.removeFromLeft(otomoDialWidth);
         otomoDurationLabel.setBounds(durDialArea.removeFromTop(rowHeight));
         otomoDurationDial.setBounds(durDialArea.removeFromTop(dialSize).withSizeKeepingCentre(dialSize, dialSize));
         otomoDurationValueLabel.setBounds(durDialArea.removeFromTop(rowHeight));
-        otomoDials1.removeFromLeft(spacing);
+        otomoDials1.removeFromLeft(row2ElementSpacing);
 
         auto curveDialArea = otomoDials1.removeFromLeft(otomoDialWidth);
         otomoCurveLabel.setBounds(curveDialArea.removeFromTop(rowHeight));
@@ -4354,7 +4372,7 @@ private:
         otomoCurveDial.setBounds(curveDialBounds.withSizeKeepingCentre(dialSize, dialSize));
         int curveCenterX = curveDialBounds.getX() + curveDialBounds.getWidth() / 2;
         layoutDialValueUnit(otomoCurveValueLabel, otomoCurveUnitLabel, curveCenterX, curveDialArea.getY(), rowHeight, 30, 25);
-        otomoDials1.removeFromLeft(spacing);
+        otomoDials1.removeFromLeft(row2ElementSpacing);
 
         auto speedDialArea = otomoDials1.removeFromLeft(otomoDialWidth);
         otomoSpeedProfileLabel.setBounds(speedDialArea.removeFromTop(rowHeight));
@@ -4362,39 +4380,57 @@ private:
         otomoSpeedProfileDial.setBounds(speedDialBounds.withSizeKeepingCentre(dialSize, dialSize));
         int speedCenterX = speedDialBounds.getX() + speedDialBounds.getWidth() / 2;
         layoutDialValueUnit(otomoSpeedProfileValueLabel, otomoSpeedProfileUnitLabel, speedCenterX, speedDialArea.getY(), rowHeight, 30, 25);
-        col2.removeFromTop(spacing);
+        col2.removeFromTop(otomoRowSpacing);
 
-        // Dials row 2: Threshold, Reset (audio trigger) with split value/unit
-        auto otomoDials2 = col2.removeFromTop(dialSize + rowHeight * 2 - 5);
-        auto threshDialArea = otomoDials2.removeFromLeft(otomoDialWidth);
+        // Row 3: Trigger row - [Manual/Trigger button] [Threshold dial] [Reset dial] - spread across column
+        const int triggerDialSize = 50;
+        const int triggerDialWidth = triggerDialSize + 30;
+        int row3FixedWidth = buttonWidth + triggerDialWidth * 2;
+        int row3AvailableSpace = col2.getWidth() - row3FixedWidth;
+        int row3ElementSpacing = row3AvailableSpace / 4;  // Spacing at start, between elements, at end
+
+        auto triggerRow = col2.removeFromTop(triggerDialSize + rowHeight * 2 - 5);
+        triggerRow.removeFromLeft(row3ElementSpacing);  // Left padding
+
+        // Trigger button, vertically centered
+        auto triggerBtnArea = triggerRow.removeFromLeft(buttonWidth);
+        int triggerBtnY = (triggerRow.getHeight() - rowHeight) / 2;
+        otomoTriggerButton.setBounds(triggerBtnArea.getX(), triggerRow.getY() + triggerBtnY, buttonWidth, rowHeight);
+        triggerRow.removeFromLeft(row3ElementSpacing);
+
+        // Threshold dial
+        auto threshDialArea = triggerRow.removeFromLeft(triggerDialWidth);
         otomoThresholdLabel.setBounds(threshDialArea.removeFromTop(rowHeight));
-        auto threshDialBounds = threshDialArea.removeFromTop(dialSize);
-        otomoThresholdDial.setBounds(threshDialBounds.withSizeKeepingCentre(dialSize, dialSize));
+        auto threshDialBounds = threshDialArea.removeFromTop(triggerDialSize);
+        otomoThresholdDial.setBounds(threshDialBounds.withSizeKeepingCentre(triggerDialSize, triggerDialSize));
         int threshCenterX = threshDialBounds.getX() + threshDialBounds.getWidth() / 2;
         layoutDialValueUnit(otomoThresholdValueLabel, otomoThresholdUnitLabel, threshCenterX, threshDialArea.getY(), rowHeight, 42, 30);
-        otomoDials2.removeFromLeft(spacing);
+        triggerRow.removeFromLeft(row3ElementSpacing);
 
-        auto resetDialArea = otomoDials2.removeFromLeft(otomoDialWidth);
+        // Reset dial
+        auto resetDialArea = triggerRow.removeFromLeft(triggerDialWidth);
         otomoResetLabel.setBounds(resetDialArea.removeFromTop(rowHeight));
-        auto resetDialBounds = resetDialArea.removeFromTop(dialSize);
-        otomoResetDial.setBounds(resetDialBounds.withSizeKeepingCentre(dialSize, dialSize));
+        auto resetDialBounds = resetDialArea.removeFromTop(triggerDialSize);
+        otomoResetDial.setBounds(resetDialBounds.withSizeKeepingCentre(triggerDialSize, triggerDialSize));
         int resetCenterX = resetDialBounds.getX() + resetDialBounds.getWidth() / 2;
         layoutDialValueUnit(otomoResetValueLabel, otomoResetUnitLabel, resetCenterX, resetDialArea.getY(), rowHeight, 42, 30);
-        col2.removeFromTop(spacing * 2);
+        col2.removeFromTop(otomoRowSpacing);
 
-        // Transport buttons (per-input)
+        // Row 4: Transport buttons - spread across column
+        int row4FixedWidth = transportButtonSize * 3 + buttonWidth * 2;
+        int row4AvailableSpace = col2.getWidth() - row4FixedWidth;
+        int row4ElementSpacing = row4AvailableSpace / 6;  // Spacing between elements
+
         row = col2.removeFromTop(transportButtonSize);
+        row.removeFromLeft(row4ElementSpacing);  // Left padding
         otomoStartButton.setBounds(row.removeFromLeft(transportButtonSize));
-        row.removeFromLeft(spacing);
+        row.removeFromLeft(row4ElementSpacing);
         otomoPauseButton.setBounds(row.removeFromLeft(transportButtonSize));
-        row.removeFromLeft(spacing);
+        row.removeFromLeft(row4ElementSpacing);
         otomoStopButton.setBounds(row.removeFromLeft(transportButtonSize));
-        col2.removeFromTop(spacing * 2);
-
-        // Global buttons
-        row = col2.removeFromTop(rowHeight + 5);
+        row.removeFromLeft(row4ElementSpacing);
         otomoStopAllButton.setBounds(row.removeFromLeft(buttonWidth));
-        row.removeFromLeft(spacing);
+        row.removeFromLeft(row4ElementSpacing);
         otomoPauseResumeAllButton.setBounds(row.removeFromLeft(buttonWidth));
     }
 
@@ -6201,6 +6237,32 @@ private:
             otomoDestYEditor.setText(juce::String(v2, 1), juce::dontSendNotification);  // theta
             otomoDestZEditor.setText(juce::String(v3, 1), juce::dontSendNotification);  // phi
         }
+    }
+
+    /** Update AutomOtion trigger controls appearance (dim in Manual mode) */
+    void updateOtomoTriggerAppearance()
+    {
+        bool isTriggerMode = otomoTriggerButton.getToggleState();
+        float alpha = isTriggerMode ? 1.0f : 0.4f;
+
+        otomoThresholdLabel.setAlpha(alpha);
+        otomoThresholdDial.setAlpha(alpha);
+        otomoThresholdValueLabel.setAlpha(alpha);
+        otomoThresholdUnitLabel.setAlpha(alpha);
+        otomoResetLabel.setAlpha(alpha);
+        otomoResetDial.setAlpha(alpha);
+        otomoResetValueLabel.setAlpha(alpha);
+        otomoResetUnitLabel.setAlpha(alpha);
+    }
+
+    /** Update AutomOtion curve visibility based on coordinate mode */
+    void updateOtomoCurveVisibility()
+    {
+        bool isCartesian = (otomoCoordModeSelector.getSelectedId() == 1);  // 1 = Cartesian
+        otomoCurveLabel.setVisible(isCartesian);
+        otomoCurveDial.setVisible(isCartesian);
+        otomoCurveValueLabel.setVisible(isCartesian);
+        otomoCurveUnitLabel.setVisible(isCartesian);
     }
 
     /** Update constraint button visibility based on coordinate mode */
