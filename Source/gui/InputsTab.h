@@ -2175,6 +2175,8 @@ private:
         otomoCoordModeSelector.addItem(juce::String(juce::CharPointer_UTF8("r \xce\xb8 \xcf\x86")), 3);  // Spherical: r θ φ
         otomoCoordModeSelector.setSelectedId(1, juce::dontSendNotification);
         otomoCoordModeSelector.onChange = [this]() {
+            int mode = otomoCoordModeSelector.getSelectedId() - 1;  // 0, 1, or 2
+            saveInputParam(WFSParameterIDs::inputOtomoCoordinateMode, mode);
             updateOtomoLabelsAndValues();
             updateOtomoDestinationEditors();
             updateOtomoCurveVisibility();
@@ -4990,9 +4992,12 @@ private:
         updateLfoAlpha();
 
         // ==================== AUTOMOTION TAB ====================
-        otomoDestXEditor.setText(juce::String(getFloatParam(WFSParameterIDs::inputOtomoX, 0.0f), 2), juce::dontSendNotification);
-        otomoDestYEditor.setText(juce::String(getFloatParam(WFSParameterIDs::inputOtomoY, 0.0f), 2), juce::dontSendNotification);
-        otomoDestZEditor.setText(juce::String(getFloatParam(WFSParameterIDs::inputOtomoZ, 0.0f), 2), juce::dontSendNotification);
+        // Load coordinate mode first
+        int otomoCoordMode = getIntParam(WFSParameterIDs::inputOtomoCoordinateMode, 0);
+        otomoCoordModeSelector.setSelectedId(otomoCoordMode + 1, juce::dontSendNotification);  // 1=Cartesian, 2=Cyl, 3=Sph
+        updateOtomoLabelsAndValues();
+        updateOtomoDestinationEditors();  // Load destination values based on coordinate mode
+        updateOtomoCurveVisibility();
 
         bool absRel = getIntParam(WFSParameterIDs::inputOtomoAbsoluteRelative, 0) != 0;
         otomoAbsRelButton.setToggleState(absRel, juce::dontSendNotification);
@@ -5294,7 +5299,7 @@ private:
             saveInputParam(WFSParameterIDs::inputOffsetY, offsetY);
             saveInputParam(WFSParameterIDs::inputOffsetZ, offsetZ);
         }
-        // AutomOtion tab - Destination editors with coordinate conversion
+        // AutomOtion tab - Destination editors with coordinate mode support
         else if (&editor == &otomoDestXEditor || &editor == &otomoDestYEditor || &editor == &otomoDestZEditor)
         {
             // Get all three values from editors
@@ -5304,37 +5309,50 @@ private:
 
             // Get coordinate mode from AutomOtion selector
             int mode = otomoCoordModeSelector.getSelectedId() - 1;  // 0=Cartesian, 1=Cylindrical, 2=Spherical
-            auto coordMode = static_cast<WFSCoordinates::Mode>(mode);
 
-            // Apply bounds based on coordinate mode
-            // Distance values (X, Y, Z, radius, height) clamped to +/- 50m
-            // Angles can exceed -180/+180 for interesting path rotations
-            if (coordMode == WFSCoordinates::Mode::Cartesian)
+            // Apply bounds and save based on coordinate mode
+            if (mode == 0)  // Cartesian
             {
                 v1 = juce::jlimit(-50.0f, 50.0f, v1);  // X
                 v2 = juce::jlimit(-50.0f, 50.0f, v2);  // Y
                 v3 = juce::jlimit(-50.0f, 50.0f, v3);  // Z
-            }
-            else if (coordMode == WFSCoordinates::Mode::Cylindrical)
-            {
-                v1 = juce::jlimit(0.0f, 50.0f, v1);    // Radius (0 to 50m)
-                // v2 = theta (azimuth) - no clamping, allow >360 for rotations
-                v3 = juce::jlimit(-50.0f, 50.0f, v3);  // Height
-            }
-            else  // Spherical
-            {
-                v1 = juce::jlimit(0.0f, 50.0f, v1);    // Radius (0 to 50m)
-                // v2 = theta (azimuth) - no clamping, allow >360 for rotations
-                // v3 = phi (elevation) - no clamping, allow for full rotations
-            }
 
-            // Convert to Cartesian for storage
-            auto cart = WFSCoordinates::displayToCartesian(coordMode, v1, v2, v3);
+                // Save Cartesian values directly
+                saveInputParam(WFSParameterIDs::inputOtomoX, v1);
+                saveInputParam(WFSParameterIDs::inputOtomoY, v2);
+                saveInputParam(WFSParameterIDs::inputOtomoZ, v3);
 
-            // Save Cartesian values
-            saveInputParam(WFSParameterIDs::inputOtomoX, cart.x);
-            saveInputParam(WFSParameterIDs::inputOtomoY, cart.y);
-            saveInputParam(WFSParameterIDs::inputOtomoZ, cart.z);
+                // Also save coordinate mode
+                saveInputParam(WFSParameterIDs::inputOtomoCoordinateMode, 0);
+            }
+            else if (mode == 1)  // Cylindrical
+            {
+                v1 = juce::jlimit(0.0f, 50.0f, v1);     // Radius (0 to 50m)
+                v2 = juce::jlimit(-3600.0f, 3600.0f, v2);  // Theta (allow 10 full rotations)
+                v3 = juce::jlimit(-50.0f, 50.0f, v3);   // Height
+
+                // Save cylindrical values to polar parameters
+                saveInputParam(WFSParameterIDs::inputOtomoR, v1);
+                saveInputParam(WFSParameterIDs::inputOtomoTheta, v2);
+                saveInputParam(WFSParameterIDs::inputOtomoZ, v3);  // Z is shared with Cartesian
+
+                // Also save coordinate mode
+                saveInputParam(WFSParameterIDs::inputOtomoCoordinateMode, 1);
+            }
+            else  // Spherical (mode == 2)
+            {
+                v1 = juce::jlimit(0.0f, 50.0f, v1);     // Radius (0 to 50m)
+                v2 = juce::jlimit(-3600.0f, 3600.0f, v2);  // Theta (allow 10 full rotations)
+                v3 = juce::jlimit(-3600.0f, 3600.0f, v3);  // Phi (allow 10 full rotations)
+
+                // Save spherical values to polar parameters
+                saveInputParam(WFSParameterIDs::inputOtomoRsph, v1);
+                saveInputParam(WFSParameterIDs::inputOtomoTheta, v2);  // Theta is shared with cylindrical
+                saveInputParam(WFSParameterIDs::inputOtomoPhi, v3);
+
+                // Also save coordinate mode
+                saveInputParam(WFSParameterIDs::inputOtomoCoordinateMode, 2);
+            }
 
             // Update display with bounded values
             updateOtomoDestinationEditors();
@@ -6206,33 +6224,36 @@ private:
     void updateOtomoDestinationEditors()
     {
         int mode = otomoCoordModeSelector.getSelectedId() - 1;  // 0=Cartesian, 1=Cylindrical, 2=Spherical
-        auto coordMode = static_cast<WFSCoordinates::Mode>(mode);
 
-        // Get Cartesian values from storage
-        float x = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputOtomoX"));
-        float y = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputOtomoY"));
-        float z = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputOtomoZ"));
-
-        // Convert to display coordinates
         float v1, v2, v3;
-        WFSCoordinates::cartesianToDisplay(coordMode, x, y, z, v1, v2, v3);
 
-        // Update editors with appropriate precision
-        // Distance in meters: 2 decimals, angles in degrees: 1 decimal
-        if (coordMode == WFSCoordinates::Mode::Cartesian)
+        // Load values based on coordinate mode
+        if (mode == 0)  // Cartesian
         {
+            v1 = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputOtomoX"));
+            v2 = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputOtomoY"));
+            v3 = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputOtomoZ"));
+
             otomoDestXEditor.setText(juce::String(v1, 2), juce::dontSendNotification);
             otomoDestYEditor.setText(juce::String(v2, 2), juce::dontSendNotification);
             otomoDestZEditor.setText(juce::String(v3, 2), juce::dontSendNotification);
         }
-        else if (coordMode == WFSCoordinates::Mode::Cylindrical)
+        else if (mode == 1)  // Cylindrical
         {
+            v1 = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputOtomoR"));
+            v2 = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputOtomoTheta"));
+            v3 = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputOtomoZ"));
+
             otomoDestXEditor.setText(juce::String(v1, 2), juce::dontSendNotification);  // radius
             otomoDestYEditor.setText(juce::String(v2, 1), juce::dontSendNotification);  // theta
             otomoDestZEditor.setText(juce::String(v3, 2), juce::dontSendNotification);  // height
         }
-        else  // Spherical
+        else  // Spherical (mode == 2)
         {
+            v1 = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputOtomoRsph"));
+            v2 = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputOtomoTheta"));
+            v3 = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputOtomoPhi"));
+
             otomoDestXEditor.setText(juce::String(v1, 2), juce::dontSendNotification);  // radius
             otomoDestYEditor.setText(juce::String(v2, 1), juce::dontSendNotification);  // theta
             otomoDestZEditor.setText(juce::String(v3, 1), juce::dontSendNotification);  // phi

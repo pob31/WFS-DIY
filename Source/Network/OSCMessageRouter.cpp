@@ -110,6 +110,13 @@ const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getInputAddres
         { "otomoTriggerReset",       WFSParameterIDs::inputOtomoReset },
         { "otomoPauseResume",        WFSParameterIDs::inputOtomoPauseResume },
 
+        // AutomOtion (Polar coordinates)
+        { "otomoCoordinateMode",     WFSParameterIDs::inputOtomoCoordinateMode },
+        { "otomoR",                  WFSParameterIDs::inputOtomoR },
+        { "otomoTheta",              WFSParameterIDs::inputOtomoTheta },
+        { "otomoRsph",               WFSParameterIDs::inputOtomoRsph },
+        { "otomoPhi",                WFSParameterIDs::inputOtomoPhi },
+
         // Mutes
         { "mutes",           WFSParameterIDs::inputMutes },
         { "muteMacro",       WFSParameterIDs::inputMuteMacro },

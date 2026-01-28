@@ -290,6 +290,13 @@ namespace WFSParameterIDs
     const juce::Identifier inputOtomoReset           ("inputOtomoReset");
     const juce::Identifier inputOtomoPauseResume     ("inputOtomoPauseResume");
 
+    // Input > AutomOtion (Polar coordinates)
+    const juce::Identifier inputOtomoCoordinateMode  ("inputOtomoCoordinateMode");  // 0=Cartesian, 1=Cylindrical, 2=Spherical
+    const juce::Identifier inputOtomoR               ("inputOtomoR");               // Cylindrical radius
+    const juce::Identifier inputOtomoTheta           ("inputOtomoTheta");           // Azimuth angle (shared cyl/sph)
+    const juce::Identifier inputOtomoRsph            ("inputOtomoRsph");            // Spherical radius
+    const juce::Identifier inputOtomoPhi             ("inputOtomoPhi");             // Elevation angle
+
     // Input > Mutes
     const juce::Identifier inputMutes            ("inputMutes");
     const juce::Identifier inputMuteMacro        ("inputMuteMacro");

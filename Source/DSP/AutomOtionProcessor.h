@@ -4,6 +4,7 @@
 #include "../Parameters/WFSValueTreeState.h"
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/WFSParameterDefaults.h"
+#include "../Helpers/CoordinateConverter.h"
 
 /**
  * AutomOtion Processor for WFS Input Position Animation
@@ -82,6 +83,21 @@ public:
         float currentRmsDb = -200.0f;        // Latest RMS level from audio
         bool triggerArmed = true;            // Ready to trigger on audio peak
         bool waitingForRearm = false;        // Movement complete, waiting for RMS to drop
+
+        // Coordinate mode for this movement (captured at start)
+        int coordinateMode = 0;  // 0=Cartesian, 1=Cylindrical, 2=Spherical
+
+        // Polar start position (captured at movement start)
+        float startR = 0.0f;       // Cylindrical radius
+        float startTheta = 0.0f;   // Azimuth (shared cyl/sph)
+        float startRsph = 0.0f;    // Spherical radius
+        float startPhi = 0.0f;     // Elevation
+
+        // Polar target position
+        float targetR = 0.0f;
+        float targetTheta = 0.0f;
+        float targetRsph = 0.0f;
+        float targetPhi = 0.0f;
     };
 
     //==========================================================================
@@ -142,21 +158,19 @@ public:
 
         // Get AutomOtion parameters
         auto otomoSection = valueTreeState.getInputAutoMotionSection (inputIndex);
-        float destX = static_cast<float> (otomoSection.getProperty (WFSParameterIDs::inputOtomoX, 0.0f));
-        float destY = static_cast<float> (otomoSection.getProperty (WFSParameterIDs::inputOtomoY, 0.0f));
-        float destZ = static_cast<float> (otomoSection.getProperty (WFSParameterIDs::inputOtomoZ, 0.0f));
         bool isAbsolute = static_cast<int> (otomoSection.getProperty (WFSParameterIDs::inputOtomoAbsoluteRelative, 0)) == 0;
         bool shouldReturn = static_cast<int> (otomoSection.getProperty (WFSParameterIDs::inputOtomoStayReturn, 0)) != 0;
         int speedProfile = static_cast<int> (otomoSection.getProperty (WFSParameterIDs::inputOtomoSpeedProfile, 0));
         float duration = static_cast<float> (otomoSection.getProperty (WFSParameterIDs::inputOtomoDuration, 5.0f));
         int curve = static_cast<int> (otomoSection.getProperty (WFSParameterIDs::inputOtomoCurve, 0));
+        int coordMode = static_cast<int> (otomoSection.getProperty (WFSParameterIDs::inputOtomoCoordinateMode, 0));
 
         // Clamp duration to valid range
         duration = juce::jlimit (WFSParameterDefaults::inputOtomoDurationMin,
                                  WFSParameterDefaults::inputOtomoDurationMax,
                                  duration);
 
-        // Store starting position
+        // Store starting position (always Cartesian)
         state.startX = baseX;
         state.startY = baseY;
         state.startZ = baseZ;
@@ -164,19 +178,103 @@ public:
         state.originalY = baseY;
         state.originalZ = baseZ;
 
-        // Calculate target position
-        if (isAbsolute)
+        // Store coordinate mode
+        state.coordinateMode = coordMode;
+
+        if (coordMode == 1)  // Cylindrical
         {
-            state.targetX = destX;
-            state.targetY = destY;
-            state.targetZ = destZ;
+            // Convert start position to cylindrical
+            auto startCyl = WFSCoordinates::cartesianToCylindrical ({ baseX, baseY, baseZ });
+            state.startR = startCyl.r;
+            state.startTheta = startCyl.theta;
+            // startZ already set
+
+            // Get target in cylindrical
+            float targetR = static_cast<float> (otomoSection.getProperty (WFSParameterIDs::inputOtomoR, 0.0f));
+            float targetTheta = static_cast<float> (otomoSection.getProperty (WFSParameterIDs::inputOtomoTheta, 0.0f));
+            float targetZ = static_cast<float> (otomoSection.getProperty (WFSParameterIDs::inputOtomoZ, 0.0f));
+
+            if (isAbsolute)
+            {
+                state.targetR = targetR;
+                state.targetTheta = targetTheta;
+                state.targetZ = targetZ;
+            }
+            else
+            {
+                // Relative: add to start (radius clamped to >= 0)
+                state.targetR = std::max (0.0f, state.startR + targetR);
+                state.targetTheta = state.startTheta + targetTheta;  // Additive angle for spirals!
+                state.targetZ = state.startZ + targetZ;
+            }
+
+            // Convert final target to Cartesian (for UI display and offset calculation)
+            auto targetCart = WFSCoordinates::cylindricalToCartesian ({
+                state.targetR, WFSCoordinates::normalizeAngle (state.targetTheta), state.targetZ });
+            state.targetX = targetCart.x;
+            state.targetY = targetCart.y;
+
+            // Force curve to 0 for polar modes
+            curve = 0;
         }
-        else
+        else if (coordMode == 2)  // Spherical
         {
-            // Relative: destination is offset from current position
-            state.targetX = baseX + destX;
-            state.targetY = baseY + destY;
-            state.targetZ = baseZ + destZ;
+            // Convert start position to spherical
+            auto startSph = WFSCoordinates::cartesianToSpherical ({ baseX, baseY, baseZ });
+            state.startRsph = startSph.r;
+            state.startTheta = startSph.theta;
+            state.startPhi = startSph.phi;
+
+            // Get target in spherical
+            float targetR = static_cast<float> (otomoSection.getProperty (WFSParameterIDs::inputOtomoRsph, 0.0f));
+            float targetTheta = static_cast<float> (otomoSection.getProperty (WFSParameterIDs::inputOtomoTheta, 0.0f));
+            float targetPhi = static_cast<float> (otomoSection.getProperty (WFSParameterIDs::inputOtomoPhi, 0.0f));
+
+            if (isAbsolute)
+            {
+                state.targetRsph = targetR;
+                state.targetTheta = targetTheta;
+                state.targetPhi = targetPhi;
+            }
+            else
+            {
+                // Relative: add to start (radius clamped to >= 0)
+                state.targetRsph = std::max (0.0f, state.startRsph + targetR);
+                state.targetTheta = state.startTheta + targetTheta;  // Additive angle for spirals!
+                state.targetPhi = state.startPhi + targetPhi;        // Additive elevation for spirals!
+            }
+
+            // Convert final target to Cartesian (for UI display and offset calculation)
+            auto targetCart = WFSCoordinates::sphericalToCartesian ({
+                state.targetRsph,
+                WFSCoordinates::normalizeAngle (state.targetTheta),
+                WFSCoordinates::clampElevation (state.targetPhi) });
+            state.targetX = targetCart.x;
+            state.targetY = targetCart.y;
+            state.targetZ = targetCart.z;
+
+            // Force curve to 0 for polar modes
+            curve = 0;
+        }
+        else  // Cartesian (mode 0)
+        {
+            float destX = static_cast<float> (otomoSection.getProperty (WFSParameterIDs::inputOtomoX, 0.0f));
+            float destY = static_cast<float> (otomoSection.getProperty (WFSParameterIDs::inputOtomoY, 0.0f));
+            float destZ = static_cast<float> (otomoSection.getProperty (WFSParameterIDs::inputOtomoZ, 0.0f));
+
+            if (isAbsolute)
+            {
+                state.targetX = destX;
+                state.targetY = destY;
+                state.targetZ = destZ;
+            }
+            else
+            {
+                // Relative: destination is offset from current position
+                state.targetX = baseX + destX;
+                state.targetY = baseY + destY;
+                state.targetZ = baseZ + destZ;
+            }
         }
 
         // Store parameters
@@ -441,8 +539,11 @@ private:
         // Apply speed profile
         float adjustedProgress = applySpeedProfile (linearProgress, state.speedProfile);
 
-        // Calculate curved position
-        calculateCurvedPosition (state, adjustedProgress, inputIndex);
+        // Calculate position based on coordinate mode
+        if (state.coordinateMode == 0)  // Cartesian
+            calculateCurvedPosition (state, adjustedProgress, inputIndex);
+        else  // Polar (Cylindrical or Spherical)
+            calculatePolarPosition (state, adjustedProgress, inputIndex);
 
         // Check if movement complete
         if (linearProgress >= 1.0f)
@@ -471,13 +572,20 @@ private:
                 state.inReturnPhase = true;
                 state.state = State::Returning;
 
-                // Swap start and target for return journey
+                // Swap start and target for return journey (Cartesian)
                 std::swap (state.startX, state.targetX);
                 std::swap (state.startY, state.targetY);
                 std::swap (state.startZ, state.targetZ);
 
-                // Invert curve for return path (maintains same arc direction relative to observer)
-                state.curve = -state.curve;
+                // Swap polar values for return journey
+                std::swap (state.startR, state.targetR);
+                std::swap (state.startTheta, state.targetTheta);
+                std::swap (state.startRsph, state.targetRsph);
+                std::swap (state.startPhi, state.targetPhi);
+
+                // Invert curve for return path (Cartesian mode only)
+                if (state.coordinateMode == 0)
+                    state.curve = -state.curve;
 
                 // Reset elapsed time for return
                 state.elapsedTime = 0.0f;
@@ -623,6 +731,71 @@ private:
         state.offsetX = curvedX - baseX;
         state.offsetY = curvedY - baseY;
         state.offsetZ = curvedZ - baseZ;
+    }
+
+    //==========================================================================
+    // Polar Position Algorithm
+    //==========================================================================
+
+    /**
+     * Calculate position along polar path (cylindrical or spherical)
+     * Interpolates directly in polar space for natural spiral movements
+     */
+    void calculatePolarPosition (AutomOtionState& state, float progress, int inputIndex)
+    {
+        // Get base position for offset calculation
+        auto posSection = valueTreeState.getInputPositionSection (inputIndex);
+        float baseX = static_cast<float> (posSection.getProperty (WFSParameterIDs::inputPositionX, 0.0f));
+        float baseY = static_cast<float> (posSection.getProperty (WFSParameterIDs::inputPositionY, 0.0f));
+        float baseZ = static_cast<float> (posSection.getProperty (WFSParameterIDs::inputPositionZ, 0.0f));
+
+        if (state.coordinateMode == 1)  // Cylindrical
+        {
+            // Linear interpolation in cylindrical space
+            float r = state.startR + (state.targetR - state.startR) * progress;
+            float theta = state.startTheta + (state.targetTheta - state.startTheta) * progress;
+            float z = state.startZ + (state.targetZ - state.startZ) * progress;
+
+            // Ensure radius is non-negative
+            r = std::max (0.0f, r);
+
+            // Convert to Cartesian (normalize angle for conversion function)
+            auto cart = WFSCoordinates::cylindricalToCartesian ({ r, WFSCoordinates::normalizeAngle (theta), z });
+
+            state.currentX = cart.x;
+            state.currentY = cart.y;
+            state.currentZ = z;
+            state.offsetX = cart.x - baseX;
+            state.offsetY = cart.y - baseY;
+            state.offsetZ = z - baseZ;
+        }
+        else if (state.coordinateMode == 2)  // Spherical
+        {
+            // Linear interpolation in spherical space
+            float r = state.startRsph + (state.targetRsph - state.startRsph) * progress;
+            float theta = state.startTheta + (state.targetTheta - state.startTheta) * progress;
+            float phi = state.startPhi + (state.targetPhi - state.startPhi) * progress;
+
+            // Ensure radius is non-negative
+            r = std::max (0.0f, r);
+
+            // Convert to Cartesian (normalize angles for conversion function)
+            // Note: For phi, we use a modulo approach to handle multi-rotation elevation
+            float normalizedPhi = std::fmod (phi, 360.0f);
+            if (normalizedPhi > 180.0f) normalizedPhi -= 360.0f;
+            if (normalizedPhi < -180.0f) normalizedPhi += 360.0f;
+            normalizedPhi = WFSCoordinates::clampElevation (normalizedPhi);
+
+            auto cart = WFSCoordinates::sphericalToCartesian ({
+                r, WFSCoordinates::normalizeAngle (theta), normalizedPhi });
+
+            state.currentX = cart.x;
+            state.currentY = cart.y;
+            state.currentZ = cart.z;
+            state.offsetX = cart.x - baseX;
+            state.offsetY = cart.y - baseY;
+            state.offsetZ = cart.z - baseZ;
+        }
     }
 
     //==========================================================================

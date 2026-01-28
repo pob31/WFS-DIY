@@ -1669,6 +1669,14 @@ juce::ValueTree WFSValueTreeState::createInputAutoMotionSection()
     automOtion.setProperty (inputOtomoThreshold, inputOtomoThresholdDefault, nullptr);
     automOtion.setProperty (inputOtomoReset, inputOtomoResetDefault, nullptr);
     automOtion.setProperty (inputOtomoPauseResume, inputOtomoPauseResumeDefault, nullptr);
+
+    // Polar coordinate parameters
+    automOtion.setProperty (inputOtomoCoordinateMode, inputOtomoCoordinateModeDefault, nullptr);
+    automOtion.setProperty (inputOtomoR, inputOtomoRDefault, nullptr);
+    automOtion.setProperty (inputOtomoTheta, inputOtomoThetaDefault, nullptr);
+    automOtion.setProperty (inputOtomoRsph, inputOtomoRsphDefault, nullptr);
+    automOtion.setProperty (inputOtomoPhi, inputOtomoPhiDefault, nullptr);
+
     return automOtion;
 }
 

@@ -408,6 +408,25 @@ namespace WFSParameterDefaults
 
     constexpr int inputOtomoPauseResumeDefault  = 1;  // 0=Paused, 1=Resume
 
+    // Input > AutomOtion (Polar coordinates)
+    constexpr int inputOtomoCoordinateModeDefault = 0;  // 0=Cartesian, 1=Cylindrical, 2=Spherical
+
+    constexpr float inputOtomoRDefault     = 0.0f;
+    constexpr float inputOtomoRMin         = 0.0f;
+    constexpr float inputOtomoRMax         = 50.0f;
+
+    constexpr float inputOtomoThetaDefault = 0.0f;
+    constexpr float inputOtomoThetaMin     = -3600.0f;  // 10 full rotations
+    constexpr float inputOtomoThetaMax     = 3600.0f;
+
+    constexpr float inputOtomoRsphDefault  = 0.0f;
+    constexpr float inputOtomoRsphMin      = 0.0f;
+    constexpr float inputOtomoRsphMax      = 50.0f;
+
+    constexpr float inputOtomoPhiDefault   = 0.0f;
+    constexpr float inputOtomoPhiMin       = -3600.0f;  // 10 full rotations
+    constexpr float inputOtomoPhiMax       = 3600.0f;
+
     // Input > Sidelines (auto-mute at stage edges)
     constexpr int inputSidelinesActiveDefault    = 0;      // OFF by default
     constexpr float inputSidelinesFringeDefault  = 1.0f;   // 1 meter
