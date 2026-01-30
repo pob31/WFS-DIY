@@ -181,6 +181,38 @@ public:
                 return;
             }
 
+            // Check for hidden cluster reference marker hit
+            auto [hitCluster, hitRefInput] = getHiddenClusterRefAtPosition(e.position);
+            if (hitCluster > 0)
+            {
+                touch.type = TouchInfo::Type::Input;
+                touch.targetIndex = hitRefInput;
+
+                auto rawPos = getInputPosition(hitRefInput);
+                bool flipX = static_cast<int>(parameters.getInputParam(hitRefInput, "inputFlipX")) != 0;
+                bool flipY = static_cast<int>(parameters.getInputParam(hitRefInput, "inputFlipY")) != 0;
+                touch.startStagePos = { flipX ? -rawPos.x : rawPos.x,
+                                        flipY ? -rawPos.y : rawPos.y };
+
+                float offsetX = static_cast<float>(parameters.getInputParam(hitRefInput, "inputOffsetX"));
+                float offsetY = static_cast<float>(parameters.getInputParam(hitRefInput, "inputOffsetY"));
+                touch.startOffset = { offsetX, offsetY };
+                activeTouches[sourceIndex] = touch;
+
+                // Set up long-press state for navigation to cluster
+                longPressState.active = true;
+                longPressState.targetType = LongPressState::TargetType::Cluster;
+                longPressState.targetIndex = hitCluster;
+                longPressState.startPos = e.position;
+                longPressState.startTime = juce::Time::getCurrentTime();
+
+                if (onDragStartCallback)
+                    onDragStartCallback(hitRefInput);
+
+                repaint();
+                return;
+            }
+
             // Check for barycenter hit
             int hitBarycenter = getBarycenterAtPosition(e.position);
             if (hitBarycenter > 0)
@@ -338,6 +370,40 @@ public:
                 // Notify path mode waypoint recording
                 if (onDragStartCallback)
                     onDragStartCallback(hitInput);
+
+                repaint();
+                return;
+            }
+
+            // Check for hidden cluster reference marker hit
+            auto [hitCluster, hitRefInput] = getHiddenClusterRefAtPosition(e.position);
+            if (hitCluster > 0)
+            {
+                selectedInput = hitRefInput;
+                isDraggingInput = true;
+                isDraggingBarycenter = false;
+                selectedBarycenter = -1;
+                isInViewGesture = false;
+
+                auto rawPos = getInputPosition(hitRefInput);
+                bool flipX = static_cast<int>(parameters.getInputParam(hitRefInput, "inputFlipX")) != 0;
+                bool flipY = static_cast<int>(parameters.getInputParam(hitRefInput, "inputFlipY")) != 0;
+                inputDragStartStagePos = { flipX ? -rawPos.x : rawPos.x,
+                                           flipY ? -rawPos.y : rawPos.y };
+
+                float offsetX = static_cast<float>(parameters.getInputParam(hitRefInput, "inputOffsetX"));
+                float offsetY = static_cast<float>(parameters.getInputParam(hitRefInput, "inputOffsetY"));
+                inputDragStartOffset = { offsetX, offsetY };
+
+                // Set up long-press state for navigation to cluster
+                longPressState.active = true;
+                longPressState.targetType = LongPressState::TargetType::Cluster;
+                longPressState.targetIndex = hitCluster;
+                longPressState.startPos = e.position;
+                longPressState.startTime = juce::Time::getCurrentTime();
+
+                if (onDragStartCallback)
+                    onDragStartCallback(hitRefInput);
 
                 repaint();
                 return;
@@ -2283,22 +2349,26 @@ private:
         // For each cluster (1-10), draw lines from reference to members
         for (int cluster = 1; cluster <= 10; ++cluster)
         {
-            std::vector<int> clusterMembers;
+            std::vector<int> allClusterMembers;     // For calculations (ALL inputs)
+            std::vector<int> visibleClusterMembers; // For drawing lines (VISIBLE only)
 
-            // Collect visible cluster members
+            // Collect ALL cluster members and track which are visible
             for (int i = 0; i < numInputs; ++i)
             {
-                auto visibleVar = parameters.getInputParam(i, "inputMapVisible");
-                bool visible = visibleVar.isVoid() || static_cast<int>(visibleVar) != 0;
-                if (!visible)
-                    continue;
-
                 int inputCluster = static_cast<int>(parameters.getInputParam(i, "inputCluster"));
                 if (inputCluster == cluster)
-                    clusterMembers.push_back(i);
+                {
+                    allClusterMembers.push_back(i);
+
+                    auto visibleVar = parameters.getInputParam(i, "inputMapVisible");
+                    bool visible = visibleVar.isVoid() || static_cast<int>(visibleVar) != 0;
+                    if (visible)
+                        visibleClusterMembers.push_back(i);
+                }
             }
 
-            if (clusterMembers.size() < 2)
+            // Need at least 2 total members to be a cluster (regardless of visibility)
+            if (allClusterMembers.size() < 2)
                 continue;
 
             // Find reference point
@@ -2311,17 +2381,46 @@ private:
                 float posX = static_cast<float>(parameters.getInputParam(refInput, "inputPositionX"));
                 float posY = static_cast<float>(parameters.getInputParam(refInput, "inputPositionY"));
                 refPos = stageToScreen({ posX, posY });
+
+                // Draw cluster marker if reference input is hidden
+                auto visibleVar = parameters.getInputParam(refInput, "inputMapVisible");
+                bool refVisible = visibleVar.isVoid() || static_cast<int>(visibleVar) != 0;
+                if (!refVisible)
+                {
+                    float clusterMarkerRadius = 10.0f;
+                    bool isSelected = (selectedInput == refInput && isDraggingInput);
+
+                    // Fill with cluster color
+                    g.setColour(WfsColorUtilities::getMarkerColor(cluster, true));
+                    g.fillEllipse(refPos.x - clusterMarkerRadius, refPos.y - clusterMarkerRadius,
+                                  clusterMarkerRadius * 2, clusterMarkerRadius * 2);
+
+                    // Selection highlight when dragging
+                    if (isSelected)
+                    {
+                        g.setColour(juce::Colours::yellow);
+                        g.drawEllipse(refPos.x - clusterMarkerRadius - 2, refPos.y - clusterMarkerRadius - 2,
+                                      (clusterMarkerRadius + 2) * 2, (clusterMarkerRadius + 2) * 2, 2.0f);
+                    }
+
+                    // Draw cluster number in black
+                    g.setColour(juce::Colours::black);
+                    g.setFont(juce::FontOptions().withHeight(11.0f).withStyle("Bold"));
+                    g.drawText(juce::String(cluster),
+                               static_cast<int>(refPos.x) - 8, static_cast<int>(refPos.y) - 5,
+                               16, 11, juce::Justification::centred);
+                }
             }
             else
             {
-                // Barycenter mode - calculate center of mass
+                // Barycenter mode - calculate center of mass using ALL members
                 float sumX = 0, sumY = 0;
-                for (int idx : clusterMembers)
+                for (int idx : allClusterMembers)
                 {
                     sumX += static_cast<float>(parameters.getInputParam(idx, "inputPositionX"));
                     sumY += static_cast<float>(parameters.getInputParam(idx, "inputPositionY"));
                 }
-                float n = static_cast<float>(clusterMembers.size());
+                float n = static_cast<float>(allClusterMembers.size());
                 refPos = stageToScreen({ sumX / n, sumY / n });
 
                 // Draw draggable barycenter marker
@@ -2350,10 +2449,10 @@ private:
                            16, 11, juce::Justification::centred);
             }
 
-            // Draw lines from reference to each member
+            // Draw lines from reference to each VISIBLE member
             g.setColour(WfsColorUtilities::getMarkerColor(cluster, true).withAlpha(0.4f));
 
-            for (int idx : clusterMembers)
+            for (int idx : visibleClusterMembers)
             {
                 if (idx == refInput)
                     continue;  // Don't draw line to itself
@@ -2796,20 +2895,16 @@ private:
             if (refInput >= 0)
                 continue;  // Not barycenter mode
 
-            // Collect visible cluster members
+            // Collect ALL cluster members (regardless of visibility)
             std::vector<int> clusterMembers;
             for (int i = 0; i < numInputs; ++i)
             {
-                auto visibleVar = parameters.getInputParam(i, "inputMapVisible");
-                bool visible = visibleVar.isVoid() || static_cast<int>(visibleVar) != 0;
-                if (!visible)
-                    continue;
-
                 int inputCluster = static_cast<int>(parameters.getInputParam(i, "inputCluster"));
                 if (inputCluster == cluster)
                     clusterMembers.push_back(i);
             }
 
+            // Need at least 2 total members for barycenter hit test
             if (clusterMembers.size() < 2)
                 continue;
 
@@ -2829,6 +2924,50 @@ private:
         }
 
         return -1;
+    }
+
+    // Check if a screen position hits a cluster marker for First Input/Tracked mode
+    // when the reference input is hidden.
+    // Returns {cluster, refInput} or {-1, -1} if none.
+    std::pair<int, int> getHiddenClusterRefAtPosition(juce::Point<float> screenPos) const
+    {
+        int numInputs = parameters.getNumInputChannels();
+        float pickupRadius = 10.0f * 1.5f;  // Cluster marker visual size * 1.5 for easier touch pickup
+
+        for (int cluster = 1; cluster <= 10; ++cluster)
+        {
+            int refInput = getClusterReferenceInput(cluster);
+            if (refInput < 0)
+                continue;  // Barycenter mode - handled by getBarycenterAtPosition()
+
+            // Check if reference input is hidden
+            auto visibleVar = parameters.getInputParam(refInput, "inputMapVisible");
+            bool refVisible = visibleVar.isVoid() || static_cast<int>(visibleVar) != 0;
+            if (refVisible)
+                continue;  // Visible inputs are hit-tested by getInputAtPosition()
+
+            // Count total cluster members to verify it's a valid cluster
+            int memberCount = 0;
+            for (int i = 0; i < numInputs; ++i)
+            {
+                int inputCluster = static_cast<int>(parameters.getInputParam(i, "inputCluster"));
+                if (inputCluster == cluster)
+                    memberCount++;
+            }
+            if (memberCount < 2)
+                continue;
+
+            // Get reference position
+            float posX = static_cast<float>(parameters.getInputParam(refInput, "inputPositionX"));
+            float posY = static_cast<float>(parameters.getInputParam(refInput, "inputPositionY"));
+            auto markerScreen = stageToScreen({ posX, posY });
+
+            float distance = screenPos.getDistanceFrom(markerScreen);
+            if (distance <= pickupRadius)
+                return { cluster, refInput };
+        }
+
+        return { -1, -1 };
     }
 
     // Check if a screen position hits an output marker
