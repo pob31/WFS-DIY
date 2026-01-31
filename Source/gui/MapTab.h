@@ -640,20 +640,15 @@ public:
             }
             else
             {
-                // Normal input: just update position
-                // Apply flip inversion so marker appears at drop location
-                bool flipX = static_cast<int>(parameters.getInputParam(selectedInput, "inputFlipX")) != 0;
-                bool flipY = static_cast<int>(parameters.getInputParam(selectedInput, "inputFlipY")) != 0;
-                float storedX = flipX ? -stagePos.x : stagePos.x;
-                float storedY = flipY ? -stagePos.y : stagePos.y;
-                parameters.setInputParam(selectedInput, "inputPositionX", storedX);
-                parameters.setInputParam(selectedInput, "inputPositionY", storedY);
+                // Normal input: just update position (no flip - marker shows at drag location)
+                parameters.setInputParam(selectedInput, "inputPositionX", stagePos.x);
+                parameters.setInputParam(selectedInput, "inputPositionY", stagePos.y);
 
-                // Capture waypoint for path mode (using flip-adjusted coordinates)
+                // Capture waypoint for path mode
                 if (waypointCaptureCallback)
                 {
                     float storedZ = static_cast<float>(parameters.getInputParam(selectedInput, "inputPositionZ"));
-                    waypointCaptureCallback(selectedInput, storedX, storedY, storedZ);
+                    waypointCaptureCallback(selectedInput, stagePos.x, stagePos.y, storedZ);
                 }
             }
 
@@ -1908,20 +1903,13 @@ private:
     // Move entire cluster when non-tracked reference is dragged
     void moveClusterWithReference(int clusterNum, int referenceInput, juce::Point<float> newRefPos)
     {
-        // Get reference flip state and old position
-        bool refFlipX = static_cast<int>(parameters.getInputParam(referenceInput, "inputFlipX")) != 0;
-        bool refFlipY = static_cast<int>(parameters.getInputParam(referenceInput, "inputFlipY")) != 0;
-
+        // Get old position (no flip - marker displays at raw position)
         float oldPosX = static_cast<float>(parameters.getInputParam(referenceInput, "inputPositionX"));
         float oldPosY = static_cast<float>(parameters.getInputParam(referenceInput, "inputPositionY"));
 
-        // For the reference: calculate what stored position should be so it displays at newRefPos
-        // displayed = flip(stored), so stored = flip(newRefPos) if flip is on
-        float newStoredRefX = refFlipX ? -newRefPos.x : newRefPos.x;
-        float newStoredRefY = refFlipY ? -newRefPos.y : newRefPos.y;
-
-        float deltaX = newStoredRefX - oldPosX;
-        float deltaY = newStoredRefY - oldPosY;
+        // Calculate delta from raw positions (no flip transformation)
+        float deltaX = newRefPos.x - oldPosX;
+        float deltaY = newRefPos.y - oldPosY;
 
         // Move ALL cluster members including reference by the same delta
         int numInputs = parameters.getNumInputChannels();
@@ -2858,12 +2846,7 @@ private:
             float posX = static_cast<float>(parameters.getInputParam(i, "inputPositionX"));
             float posY = static_cast<float>(parameters.getInputParam(i, "inputPositionY"));
 
-            // Apply flip (marker is displayed at flipped target position)
-            bool flipX = static_cast<int>(parameters.getInputParam(i, "inputFlipX")) != 0;
-            bool flipY = static_cast<int>(parameters.getInputParam(i, "inputFlipY")) != 0;
-            if (flipX) posX = -posX;
-            if (flipY) posY = -posY;
-
+            // Hit-test at raw position (no flip) - this is where the marker is drawn
             auto markerScreenPos = stageToScreen({ posX, posY });
             float distance = screenPos.getDistanceFrom(markerScreenPos);
 

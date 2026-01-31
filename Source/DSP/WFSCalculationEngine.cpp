@@ -368,6 +368,72 @@ void WFSCalculationEngine::updateInputPosition (int inputIndex)
     input.z = positionSection.getProperty (inputPositionZ, 0.0f);
 }
 
+void WFSCalculationEngine::applyCompositeConstraints (Position& pos, const juce::ValueTree& posSection) const
+{
+    constexpr float absoluteLimit = 50.0f;  // Maximum ±50m for any axis
+
+    // Get stage bounds from stage state
+    auto stageState = valueTreeState.getStageState();
+    if (! stageState.isValid())
+    {
+        // Fallback: just apply absolute limits
+        pos.x = juce::jlimit (-absoluteLimit, absoluteLimit, pos.x);
+        pos.y = juce::jlimit (-absoluteLimit, absoluteLimit, pos.y);
+        pos.z = juce::jlimit (-absoluteLimit, absoluteLimit, pos.z);
+        return;
+    }
+
+    int currentStageShape = stageState.getProperty (WFSParameterIDs::stageShape, 0);
+    float halfWidth = (currentStageShape == 0)
+        ? static_cast<float> (stageState.getProperty (WFSParameterIDs::stageWidth, 20.0f)) / 2.0f
+        : static_cast<float> (stageState.getProperty (WFSParameterIDs::stageDiameter, 20.0f)) / 2.0f;
+    float halfDepth = (currentStageShape == 0)
+        ? static_cast<float> (stageState.getProperty (WFSParameterIDs::stageDepth, 20.0f)) / 2.0f
+        : static_cast<float> (stageState.getProperty (WFSParameterIDs::stageDiameter, 20.0f)) / 2.0f;
+    float stageHeightVal = static_cast<float> (stageState.getProperty (WFSParameterIDs::stageHeight, 10.0f));
+    float originW = static_cast<float> (stageState.getProperty (WFSParameterIDs::originWidth, 0.0f));
+    float originD = static_cast<float> (stageState.getProperty (WFSParameterIDs::originDepth, 0.0f));
+    float originH = static_cast<float> (stageState.getProperty (WFSParameterIDs::originHeight, 0.0f));
+
+    // Calculate stage bounds
+    float minX = -halfWidth - originW;
+    float maxX = halfWidth - originW;
+    float minY = -halfDepth - originD;
+    float maxY = halfDepth - originD;
+    float minZ = -originH;
+    float maxZ = stageHeightVal - originH;
+
+    // Check constraint toggles from input's position section
+    bool constraintX = static_cast<int> (posSection.getProperty (inputConstraintX, 1)) != 0;
+    bool constraintY = static_cast<int> (posSection.getProperty (inputConstraintY, 1)) != 0;
+    bool constraintZ = static_cast<int> (posSection.getProperty (inputConstraintZ, 1)) != 0;
+
+    // Apply X constraint (stage bounds if enabled, always absolute limit)
+    if (constraintX)
+        pos.x = juce::jlimit (minX, maxX, pos.x);
+    pos.x = juce::jlimit (-absoluteLimit, absoluteLimit, pos.x);
+
+    // Apply Y constraint (stage bounds if enabled, always absolute limit)
+    if (constraintY)
+        pos.y = juce::jlimit (minY, maxY, pos.y);
+    pos.y = juce::jlimit (-absoluteLimit, absoluteLimit, pos.y);
+
+    // Apply Z constraint (stage bounds if enabled, always absolute limit)
+    if (constraintZ)
+        pos.z = juce::jlimit (minZ, maxZ, pos.z);
+    pos.z = juce::jlimit (-absoluteLimit, absoluteLimit, pos.z);
+
+    // Apply radius constraint (always enforce 50m max)
+    float radius = std::sqrt (pos.x * pos.x + pos.y * pos.y + pos.z * pos.z);
+    if (radius > absoluteLimit)
+    {
+        float scale = absoluteLimit / radius;
+        pos.x *= scale;
+        pos.y *= scale;
+        pos.z *= scale;
+    }
+}
+
 //==============================================================================
 // Reverb Position Access and Update
 //==============================================================================
@@ -801,6 +867,14 @@ void WFSCalculationEngine::recalculateMatrix()
             localInputPositions[i].x += lfoOffsets[i].x;
             localInputPositions[i].y += lfoOffsets[i].y;
             localInputPositions[i].z += lfoOffsets[i].z;
+        }
+
+        // Apply composite position constraints (safety layer)
+        // This clamps the final position without affecting raw position or LFO amplitude
+        for (size_t i = 0; i < localInputPositions.size(); ++i)
+        {
+            auto posSection = valueTreeState.getInputPositionSection (static_cast<int> (i));
+            applyCompositeConstraints (localInputPositions[i], posSection);
         }
 
         // Store composite positions for external access (used by LiveSourceTamerEngine)

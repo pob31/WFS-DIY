@@ -233,6 +233,10 @@ private:
     int findOutputIndexFromTree (const juce::ValueTree& tree) const;
     int findInputIndexFromTree (const juce::ValueTree& tree) const;
 
+    /** Apply safety constraints to composite position (after flip + offset + LFO).
+        Clamps to stage bounds if constraint enabled, and always enforces ±50m absolute limit. */
+    void applyCompositeConstraints (Position& pos, const juce::ValueTree& posSection) const;
+
     static float distance3D (const Position& a, const Position& b);
 
     /** Check if input→output routing is muted */
