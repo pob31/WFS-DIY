@@ -1601,10 +1601,14 @@ void MainComponent::timerCallback()
             // Process LS gains
             lsTamerEngine->process(peakGRs, slowGRs);
 
-            // If any LS is active OR ramping out, force all inputs to recalculate
-            // This ensures the ramp-out transition is visible in the visualization
-            if (lsTamerEngine->isAnyInputActive())
-                calculationEngine->markAllInputsDirty();
+            // Mark only inputs that were active at start of LS processing
+            // This is more efficient than marking all inputs, and ensures
+            // the final ramp-out tick triggers visualization update
+            for (int i = 0; i < numInputChannels; ++i)
+            {
+                if (lsTamerEngine->inputNeedsRecalculation(i))
+                    calculationEngine->markInputDirty(i);
+            }
         }
 
         // Sync binaural processor enabled state from ValueTree

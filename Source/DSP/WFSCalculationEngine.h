@@ -118,6 +118,9 @@ public:
     /** Mark all inputs as needing recalculation (e.g., when LS gains change) */
     void markAllInputsDirty();
 
+    /** Mark a single input as needing recalculation */
+    void markInputDirty(int inputIndex);
+
     /** Get matrix dimensions */
     int getNumInputs() const { return numInputs; }
     int getNumOutputs() const { return numOutputs; }

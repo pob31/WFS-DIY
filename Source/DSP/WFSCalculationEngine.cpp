@@ -154,6 +154,16 @@ void WFSCalculationEngine::markAllInputsDirty()
     matrixDirty.store(true);
 }
 
+void WFSCalculationEngine::markInputDirty(int inputIndex)
+{
+    if (inputIndex < 0 || inputIndex >= numInputs)
+        return;
+
+    const juce::ScopedLock sl(positionLock);
+    inputDirtyFlags[static_cast<size_t>(inputIndex)] = true;
+    matrixDirty.store(true);
+}
+
 //==============================================================================
 // LFO Offset Support
 //==============================================================================

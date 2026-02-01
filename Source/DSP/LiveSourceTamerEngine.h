@@ -42,6 +42,9 @@ public:
 
         // Initialize ramp state per input (start at 0 = inactive)
         rampProgress.resize(static_cast<size_t>(numInputs), 0.0f);
+
+        // Initialize per-input tracking for dirty flag optimization
+        wasActiveBeforeProcess.resize(static_cast<size_t>(numInputs), false);
     }
 
     /**
@@ -55,6 +58,11 @@ public:
                  const std::vector<float>& slowGRs)
     {
         using namespace WFSParameterIDs;
+
+        // Capture per-input active state BEFORE modifying ramps
+        // This ensures we trigger recalculation on the final ramp-out tick
+        for (int i = 0; i < numInputs; ++i)
+            wasActiveBeforeProcess[static_cast<size_t>(i)] = (rampProgress[static_cast<size_t>(i)] > 0.0f);
 
         // Ramp increment per process() call: 500ms at 50Hz = 25 ticks
         constexpr float rampIncrement = 1.0f / 25.0f;  // 0.04 per tick
@@ -228,6 +236,18 @@ public:
     }
 
     /**
+     * Check if a specific input needs matrix recalculation.
+     * Returns true if the input was active at the start of the last process() call.
+     * This ensures the final "ramp complete" state triggers a visualization update.
+     */
+    bool inputNeedsRecalculation(int inputIndex) const
+    {
+        if (inputIndex < 0 || inputIndex >= numInputs)
+            return false;
+        return wasActiveBeforeProcess[static_cast<size_t>(inputIndex)];
+    }
+
+    /**
      * Mark positions as dirty (call when input/output positions change).
      * This doesn't affect LS gains directly since we recalculate every frame,
      * but can be used to trigger immediate recalculation if needed.
@@ -278,4 +298,8 @@ private:
     // Ramp state for smooth enable/disable transition (500ms)
     // 0.0 = fully inactive, 1.0 = fully active
     std::vector<float> rampProgress;
+
+    // Track which inputs were active at START of last process() call
+    // Used to ensure correct dirty marking (including final ramp-out tick)
+    std::vector<bool> wasActiveBeforeProcess;
 };

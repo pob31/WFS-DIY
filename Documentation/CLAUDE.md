@@ -1878,7 +1878,21 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 - JUCE 8.x required
 - Project file: WFS-DIY.jucer
 - Builds: Visual Studio 2022, Xcode, Linux Makefile
-- Build command: `MSBuild WFS-DIY.sln -p:Configuration=Debug -p:Platform=x64`
+
+### Build Commands (Windows)
+
+**MSBuild (Visual Studio 2022):**
+```bash
+cd "d:\Dev\WFS_DIY_v1\Builds\VisualStudio2022"
+"C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe" WFS-DIY.sln -p:Configuration=Release -m
+```
+
+For Debug build:
+```bash
+"C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe" WFS-DIY.sln -p:Configuration=Debug -m
+```
+
+**Note:** The `-m` flag enables parallel builds for faster compilation.
 
 ---
 
