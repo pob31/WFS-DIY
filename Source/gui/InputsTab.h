@@ -6276,14 +6276,17 @@ private:
         otomoResetUnitLabel.setAlpha(alpha);
     }
 
-    /** Update AutomOtion curve visibility based on coordinate mode */
+    /** Update AutomOtion curve visibility based on coordinate mode and current tab */
     void updateOtomoCurveVisibility()
     {
+        // Only show curve dial on Movements tab (index 2) when in Cartesian mode
+        bool isMovementsTab = (subTabBar.getCurrentTabIndex() == 2);
         bool isCartesian = (otomoCoordModeSelector.getSelectedId() == 1);  // 1 = Cartesian
-        otomoCurveLabel.setVisible(isCartesian);
-        otomoCurveDial.setVisible(isCartesian);
-        otomoCurveValueLabel.setVisible(isCartesian);
-        otomoCurveUnitLabel.setVisible(isCartesian);
+        bool showCurve = isMovementsTab && isCartesian;
+        otomoCurveLabel.setVisible(showCurve);
+        otomoCurveDial.setVisible(showCurve);
+        otomoCurveValueLabel.setVisible(showCurve);
+        otomoCurveUnitLabel.setVisible(showCurve);
     }
 
     /** Update constraint button visibility based on coordinate mode */
