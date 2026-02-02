@@ -4198,7 +4198,7 @@ private:
         auto phaseDialBounds = phaseArea.removeFromTop(headerDialSize);
         lfoPhaseDial.setBounds(phaseDialBounds.withSizeKeepingCentre(headerDialSize, headerDialSize));
         int phaseCenterX = phaseDialBounds.getX() + phaseDialBounds.getWidth() / 2;
-        layoutDialValueUnit(lfoPhaseValueLabel, lfoPhaseUnitLabel, phaseCenterX, phaseArea.getY(), phaseArea.getHeight(), 25, 25);
+        layoutDialValueUnit(lfoPhaseValueLabel, lfoPhaseUnitLabel, phaseCenterX, phaseArea.getY(), phaseArea.getHeight(), 35, 20);
         headerRow.removeFromLeft(headerSpacing);
 
         // Progress indicator (no label, aligned with dials)
@@ -4273,7 +4273,7 @@ private:
             auto axisPhaseDialBounds = phaseDialArea.removeFromTop(axisDial);
             phaseDial.setBounds(axisPhaseDialBounds.withSizeKeepingCentre(axisDial, axisDial));
             int axisPhaseDialCenterX = axisPhaseDialBounds.getX() + axisPhaseDialBounds.getWidth() / 2;
-            layoutDialValueUnit(phaseValue, phaseUnit, axisPhaseDialCenterX, phaseDialArea.getY(), rowHeight - 2, 25, 25);
+            layoutDialValueUnit(phaseValue, phaseUnit, axisPhaseDialCenterX, phaseDialArea.getY(), rowHeight - 2, 35, 20);
             axisRow.removeFromLeft(spacing);
 
             // Output slider - use remaining space (1/3 of slider space)
