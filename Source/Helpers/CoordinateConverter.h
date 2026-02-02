@@ -12,8 +12,8 @@
  * - Spherical (r, theta, phi) - radius in meters, azimuth and elevation in degrees
  *
  * Angle Conventions (WFS Stage Coordinate System):
- * - Azimuth (theta): 0 deg = toward audience (-Y in Cartesian)
- *                    180/-180 deg = upstage (+Y)
+ * - Azimuth (theta): 0 deg = upstage (+Y in Cartesian, top of screen)
+ *                    180/-180 deg = toward audience (-Y)
  *                    90 deg = stage right (+X)
  *                    -90 deg = stage left (-X)
  * - Elevation (phi): 0 deg = horizontal plane
@@ -47,14 +47,14 @@ namespace WFSCoordinates
     struct CylindricalCoord
     {
         float r;      // radius in meters (>= 0)
-        float theta;  // azimuth in degrees (-180 to 180, 0 = audience)
+        float theta;  // azimuth in degrees (-180 to 180, 0 = upstage)
         float z;      // height in meters
     };
 
     struct SphericalCoord
     {
         float r;      // radius in meters (>= 0)
-        float theta;  // azimuth in degrees (-180 to 180, 0 = audience)
+        float theta;  // azimuth in degrees (-180 to 180, 0 = upstage)
         float phi;    // elevation in degrees (-90 to 90, 0 = horizontal)
     };
 
@@ -84,19 +84,19 @@ namespace WFSCoordinates
 
     /**
      * Convert Cartesian to Cylindrical coordinates.
-     * Uses WFS convention: theta=0 toward audience (-Y), theta=90 stage right (+X)
+     * Uses WFS convention: theta=0 toward upstage (+Y), theta=90 stage right (+X)
      */
     inline CylindricalCoord cartesianToCylindrical(const CartesianCoord& c)
     {
         float r = std::sqrt(c.x * c.x + c.y * c.y);
 
-        // atan2(-y, x) gives angle where 0 = toward -Y (audience)
-        // Then adjust so theta=90 is +X (stage right)
+        // atan2(x, y) gives angle where 0 = toward +Y (upstage)
+        // theta=90 is +X (stage right)
         float theta = 0.0f;
         if (r > 0.0001f)
         {
-            // atan2(x, -y) gives: 0 when pointing to -Y, 90 when pointing to +X
-            theta = juce::radiansToDegrees(std::atan2(c.x, -c.y));
+            // atan2(x, y) gives: 0 when pointing to +Y, 90 when pointing to +X
+            theta = juce::radiansToDegrees(std::atan2(c.x, c.y));
         }
 
         return { r, normalizeAngle(theta), c.z };
@@ -104,16 +104,16 @@ namespace WFSCoordinates
 
     /**
      * Convert Cylindrical to Cartesian coordinates.
-     * Uses WFS convention: theta=0 toward audience (-Y), theta=90 stage right (+X)
+     * Uses WFS convention: theta=0 toward upstage (+Y), theta=90 stage right (+X)
      */
     inline CartesianCoord cylindricalToCartesian(const CylindricalCoord& cyl)
     {
         float thetaRad = juce::degreesToRadians(cyl.theta);
 
-        // theta=0 -> -Y (audience), theta=90 -> +X (stage right)
-        // x = r * sin(theta), y = -r * cos(theta)
+        // theta=0 -> +Y (upstage), theta=90 -> +X (stage right)
+        // x = r * sin(theta), y = r * cos(theta)
         float x = cyl.r * std::sin(thetaRad);
-        float y = -cyl.r * std::cos(thetaRad);
+        float y = cyl.r * std::cos(thetaRad);
 
         return { x, y, cyl.z };
     }
@@ -124,7 +124,7 @@ namespace WFSCoordinates
 
     /**
      * Convert Cartesian to Spherical coordinates.
-     * Uses WFS convention: theta=0 toward audience (-Y), phi=0 horizontal
+     * Uses WFS convention: theta=0 toward upstage (+Y), phi=0 horizontal
      */
     inline SphericalCoord cartesianToSpherical(const CartesianCoord& c)
     {
@@ -142,7 +142,7 @@ namespace WFSCoordinates
             float rHoriz = std::sqrt(c.x * c.x + c.y * c.y);
             if (rHoriz > 0.0001f)
             {
-                theta = juce::radiansToDegrees(std::atan2(c.x, -c.y));
+                theta = juce::radiansToDegrees(std::atan2(c.x, c.y));
             }
         }
 
@@ -151,7 +151,7 @@ namespace WFSCoordinates
 
     /**
      * Convert Spherical to Cartesian coordinates.
-     * Uses WFS convention: theta=0 toward audience (-Y), phi=0 horizontal
+     * Uses WFS convention: theta=0 toward upstage (+Y), phi=0 horizontal
      */
     inline CartesianCoord sphericalToCartesian(const SphericalCoord& sph)
     {
@@ -161,9 +161,9 @@ namespace WFSCoordinates
         // Horizontal radius projection
         float rHoriz = sph.r * std::cos(phiRad);
 
-        // x = rHoriz * sin(theta), y = -rHoriz * cos(theta), z = r * sin(phi)
+        // x = rHoriz * sin(theta), y = rHoriz * cos(theta), z = r * sin(phi)
         float x = rHoriz * std::sin(thetaRad);
-        float y = -rHoriz * std::cos(thetaRad);
+        float y = rHoriz * std::cos(thetaRad);
         float z = sph.r * std::sin(phiRad);
 
         return { x, y, z };

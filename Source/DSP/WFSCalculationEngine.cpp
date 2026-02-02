@@ -697,11 +697,12 @@ float WFSCalculationEngine::calculateAngularAttenuation (int /*inputIndex*/, int
     float sinPitch = std::sin (pitchRad);
 
     // Rear axis direction (opposite of where speaker points)
-    // Front direction for orientation=0, pitch=0 is (0, -1, 0)
+    // Front direction for orientation=0, pitch=0 is (0, -1, 0) pointing toward audience
     // So rear direction is (0, +1, 0)
-    // With orientation rotation: rear = (sin(orientation), cos(orientation), 0) for pitch=0
+    // With orientation rotation: positive angles point right (clockwise from above)
+    // rear = (-sin(orientation), cos(orientation), 0) for pitch=0
     // With pitch: z component from pitch, xy components scaled by cos(pitch)
-    float rearDirX = cosPitch * std::sin (orientationRad);
+    float rearDirX = -cosPitch * std::sin (orientationRad);
     float rearDirY = cosPitch * std::cos (orientationRad);
     float rearDirZ = sinPitch;
 
@@ -770,10 +771,11 @@ float WFSCalculationEngine::calculateReverbFeedAngularAttenuation (int /*inputIn
     float angleOffRad = static_cast<float> (angleOffDeg) * degToRad;
 
     // Calculate rear axis direction vector (same logic as output angular attenuation)
+    // Positive orientation angles point right (clockwise from above)
     float cosPitch = std::cos (pitchRad);
     float sinPitch = std::sin (pitchRad);
 
-    float rearDirX = cosPitch * std::sin (orientationRad);
+    float rearDirX = -cosPitch * std::sin (orientationRad);
     float rearDirY = cosPitch * std::cos (orientationRad);
     float rearDirZ = sinPitch;
 

@@ -23,11 +23,11 @@ float calculateOrientationToward(float speakerX, float speakerY,
     float dy = targetY - speakerY;
 
     // In our coordinate system:
-    // - 0 degrees = facing audience (toward negative Y)
+    // - 0 degrees = facing upstage (toward positive Y)
     // - 90 degrees = facing right (toward positive X)
-    // - 180/-180 degrees = facing back of stage (toward positive Y)
-    // Using atan2(-dx, -dy) so that 0° points toward -Y, clockwise positive
-    float angleRad = std::atan2(-dx, -dy);  // 0° is toward -Y (audience), clockwise positive
+    // - 180/-180 degrees = facing audience (toward negative Y)
+    // Using atan2(-dx, dy) so that 0° points toward +Y, clockwise positive
+    float angleRad = std::atan2(-dx, dy);  // 0° is toward +Y (upstage), clockwise positive
     float angleDeg = juce::radiansToDegrees(angleRad);
 
     return normalizeAngle(angleDeg);

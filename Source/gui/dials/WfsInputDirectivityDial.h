@@ -143,7 +143,8 @@ private:
                     float currentRadius = whiteRadius - (whiteRadius - minGreyRadius) * cosineWeight;
 
                     // Calculate position (using same coordinate system as needle)
-                    float x = centre.x - currentRadius * std::sin(angle);
+                    // Positive angles point right (clockwise from above)
+                    float x = centre.x + currentRadius * std::sin(angle);
                     float y = centre.y + currentRadius * std::cos(angle);
 
                     greyPath.lineTo(x, y);
@@ -179,7 +180,7 @@ private:
                 for (int i = 0; i <= numSegments; ++i)
                 {
                     float angle = startAngle + i * angleStep;
-                    float x = centre.x - whiteRadius * std::sin(angle);
+                    float x = centre.x + whiteRadius * std::sin(angle);
                     float y = centre.y + whiteRadius * std::cos(angle);
                     whitePath.lineTo(x, y);
                 }
@@ -201,8 +202,9 @@ private:
                       innerRadius * 2.0f, innerRadius * 2.0f);
 
         // 5. Rotation needle (red line) - pointing in rotation direction
+        // Positive angles point right (clockwise from above)
         float needleLength = radius * 0.85f;
-        float needleX = centre.x - needleLength * std::sin(rotationRad);
+        float needleX = centre.x + needleLength * std::sin(rotationRad);
         float needleY = centre.y + needleLength * std::cos(rotationRad);
 
         g.setColour(needleColour);
@@ -218,7 +220,7 @@ private:
     {
         auto centre = getLocalBounds().toFloat().getCentre();
         auto delta = event.position - centre;
-        dragStartMouseAngle = std::atan2(delta.x, -delta.y);
+        dragStartMouseAngle = std::atan2(delta.x, delta.y); // 0 at bottom, clockwise positive
         dragStartValue = rotationDegrees;
         accumulatedChange = 0.0f;
     }
@@ -227,7 +229,7 @@ private:
     {
         auto centre = getLocalBounds().toFloat().getCentre();
         auto delta = event.position - centre;
-        float currentMouseAngle = std::atan2(delta.x, -delta.y);
+        float currentMouseAngle = std::atan2(delta.x, delta.y);
 
         float angleDelta = currentMouseAngle - dragStartMouseAngle;
         if (angleDelta > juce::MathConstants<float>::pi)

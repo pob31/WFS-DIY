@@ -101,8 +101,12 @@ private:
         float angleOnRad = juce::degreesToRadians(static_cast<float>(angleOnDegrees));
         float angleOffRad = juce::degreesToRadians(static_cast<float>(angleOffDegrees));
 
-        // For JUCE paths: 0 radians = 3 o'clock, positive angles go clockwise
-        float juceOrientationRad = orientationRad;
+        // For JUCE paths: 0 radians = 3 o'clock, positive angles go clockwise (screen coords)
+        // Our visual: 0° = 6 o'clock (bottom), positive = clockwise
+        // Red sector (off) = where needle points (speaker front)
+        // Green sector (on) = opposite of needle (behind speaker, where sound transmits)
+        // Negate angle to match rotation direction, no offset needed
+        float juceOrientationRad = -orientationRad;
 
         // Staggered radii for visual distinction:
         // - Green (angle on): 100% = radius * 0.9
@@ -145,10 +149,8 @@ private:
 
         // 5. Orientation needle (white line) - from center outward
         float needleLength = radius * 0.78f;
-        // 0° = down (south), positive = clockwise
-        // Negate orientationRad to match sector rotation direction
-        // sin(-x) = -sin(x), cos(-x) = cos(x)
-        float needleX = centre.x - needleLength * std::sin(orientationRad);
+        // 0° = down (south), positive = clockwise (pointing right)
+        float needleX = centre.x + needleLength * std::sin(orientationRad);
         float needleY = centre.y + needleLength * std::cos(orientationRad);
 
         g.setColour(ColorScheme::get().textPrimary);  // White in dark mode, black in light mode
@@ -168,7 +170,7 @@ private:
     {
         auto centre = getLocalBounds().toFloat().getCentre();
         auto delta = event.position - centre;
-        dragStartMouseAngle = std::atan2(delta.x, -delta.y); // 0 at top, clockwise positive
+        dragStartMouseAngle = std::atan2(delta.x, delta.y); // 0 at bottom, clockwise positive
 
         // Determine which parameter we're adjusting based on modifiers
         isAdjustingAngleOff = event.mods.isShiftDown();
@@ -188,7 +190,7 @@ private:
     {
         auto centre = getLocalBounds().toFloat().getCentre();
         auto delta = event.position - centre;
-        float currentMouseAngle = std::atan2(delta.x, -delta.y);
+        float currentMouseAngle = std::atan2(delta.x, delta.y);
 
         // Calculate angular change (handle wrap-around)
         float angleDelta = currentMouseAngle - dragStartMouseAngle;
