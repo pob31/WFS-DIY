@@ -1429,7 +1429,7 @@ public:
                 }
                 parameters.setInputParam(inputIdx, "inputOffsetZ", newOffsetZ);
 
-                float angleDeg = juce::radiansToDegrees(angleDelta);
+                float angleDeg = -juce::radiansToDegrees(angleDelta);
                 float newRotation = secTouch.startRotation + angleDeg;
                 // Wrap to -179 to 180
                 while (newRotation > 180.0f) newRotation -= 360.0f;
@@ -1471,7 +1471,7 @@ public:
                 }
                 parameters.setInputParam(inputIdx, "inputPositionZ", newPosZ);
 
-                float angleDeg = juce::radiansToDegrees(angleDelta);
+                float angleDeg = -juce::radiansToDegrees(angleDelta);
                 float newRotation = secTouch.startRotation + angleDeg;
                 while (newRotation > 180.0f) newRotation -= 360.0f;
                 while (newRotation < -179.0f) newRotation += 360.0f;
