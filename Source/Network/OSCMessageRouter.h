@@ -55,7 +55,8 @@ public:
             ChannelSelect,    // /remoteInput/inputNumber <ID> - request all params
             PositionDelta,    // Legacy: /remoteInput/positionX <ID> <inc/dec> <delta>
             ParameterSet,     // /remoteInput/<param> <ID> <value> - absolute set
-            ParameterDelta    // /remoteInput/<param> <ID> <inc/dec> <delta> - relative change
+            ParameterDelta,   // /remoteInput/<param> <ID> <inc/dec> <delta> - relative change
+            PositionXY        // /remoteInput/positionXY <ID> <x> <y> - atomic XY position
         };
 
         Type type = Type::ChannelSelect;
@@ -65,6 +66,8 @@ public:
         DeltaDirection direction = DeltaDirection::Increment;  // For delta types
         juce::var value;                                       // Value or delta amount
         float deltaValue = 0.0f;                               // Legacy: delta for PositionDelta
+        float posX = 0.0f;                                     // For PositionXY: X coordinate
+        float posY = 0.0f;                                     // For PositionXY: Y coordinate
         bool valid = false;
     };
 

@@ -185,6 +185,10 @@ private:
     std::map<int, juce::int64> remoteWaypointTimestamps;
     static constexpr int remoteWaypointTimeoutMs = 500;  // Auto-stop after 500ms of no positions
 
+    // Track last sent composite deltas to Remote targets
+    // Key: inputIndex (0-based), Value: (deltaX, deltaY)
+    std::map<int, std::pair<float, float>> lastSentCompositeDeltas;
+
     // Live Source Tamer engine for per-speaker gain reduction
     std::unique_ptr<LiveSourceTamerEngine> lsTamerEngine;
 

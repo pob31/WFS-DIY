@@ -142,6 +142,15 @@ public:
      */
     void sendFindDevice(const juce::String& password);
 
+    /**
+     * Send composite position delta to all connected REMOTE targets.
+     * The delta is the difference between the composite (final DSP) position and the target position.
+     * @param inputId 1-based input channel ID
+     * @param deltaX Delta X in meters (composite - target)
+     * @param deltaY Delta Y in meters (composite - target)
+     */
+    void sendCompositeDeltaToRemote(int inputId, float deltaX, float deltaY);
+
     //==========================================================================
     // IP Filtering
     //==========================================================================
@@ -328,6 +337,16 @@ public:
      */
     std::function<void(int channelIndex, float x, float y, float z)> onRemoteWaypointCapture;
 
+    /**
+     * Callback when combined XY position is received via REMOTE protocol.
+     * Used to update composite delta tracking to prevent false "back" movement.
+     * Called AFTER the position is set in the state, so composite delta can be computed.
+     * @param channelIndex 0-based channel index
+     * @param targetX The new target X position
+     * @param targetY The new target Y position
+     */
+    std::function<void(int channelIndex, float targetX, float targetY)> onRemotePositionXYUpdated;
+
 private:
     //==========================================================================
     // ValueTree::Listener
@@ -391,6 +410,7 @@ private:
     void handleRemotePositionDelta(const OSCMessageRouter::ParsedRemoteInput& parsed);
     void handleRemoteParameterSet(const OSCMessageRouter::ParsedRemoteInput& parsed);
     void handleRemoteParameterDelta(const OSCMessageRouter::ParsedRemoteInput& parsed);
+    void handleRemotePositionXY(const OSCMessageRouter::ParsedRemoteInput& parsed);
     void handleArrayAdjustMessage(const juce::OSCMessage& message);
     void handleClusterMoveMessage(const juce::OSCMessage& message);
 
@@ -518,6 +538,9 @@ private:
     // Set to Protocol::Disabled when not processing an incoming message
     // When set, only blocks re-sending to targets of the SAME protocol type
     Protocol incomingProtocol = Protocol::Disabled;
+
+    // Send combined XY position to all connected Remote targets
+    void sendInputPositionXYToRemote(int channelId, float x, float y);
 
     // Statistics
     std::atomic<int> messagesSent { 0 };

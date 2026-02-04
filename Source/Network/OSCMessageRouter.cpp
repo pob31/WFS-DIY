@@ -643,6 +643,21 @@ OSCMessageRouter::ParsedRemoteInput OSCMessageRouter::parseRemoteInputMessage(co
         return result;
     }
 
+    // Handle combined XY position: /remoteInput/positionXY <ID> <posX> <posY>
+    if (paramName == "positionXY")
+    {
+        // Need 3 args: inputId (int), posX (float), posY (float)
+        if (message.size() < 3)
+            return result;
+
+        result.type = ParsedRemoteInput::Type::PositionXY;
+        result.channelId = extractInt(message[0]);
+        result.posX = extractFloat(message[1]);
+        result.posY = extractFloat(message[2]);
+        result.valid = true;
+        return result;
+    }
+
     // Check if this is a known Remote parameter
     const auto& remoteMap = getRemoteAddressMap();
     auto it = remoteMap.find(paramName);

@@ -702,14 +702,20 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
             // REMOTE protocol - send position changes for any input, other params only for selected channel
             if (isInput)
             {
-                // Position parameters should be sent for ANY channel (for map sync)
-                bool isPositionParam = (property == WFSParameterIDs::inputPositionX ||
-                                        property == WFSParameterIDs::inputPositionY ||
-                                        property == WFSParameterIDs::inputPositionZ);
+                // Position X/Y parameters are buffered and sent as combined XY messages for smooth movement
+                bool isPositionXY = (property == WFSParameterIDs::inputPositionX ||
+                                     property == WFSParameterIDs::inputPositionY);
+                bool isPositionZ = (property == WFSParameterIDs::inputPositionZ);
 
-                // Send if it's a position param (any channel) or if it's the selected channel
-                if (isPositionParam || channelId == remoteSelectedChannel)
+                if (isPositionXY)
                 {
+                    // Buffer X/Y for combined sending - handled outside the target loop
+                    // (we only need to buffer once, not per-target)
+                    break;  // Exit target loop - buffering handled below
+                }
+                else if (isPositionZ || channelId == remoteSelectedChannel)
+                {
+                    // Z position or selected channel params: send immediately
                     bool isNumeric = value.isDouble() || value.isInt() || value.isInt64();
                     if (isNumeric)
                     {
@@ -723,6 +729,42 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
                     }
                 }
             }
+        }
+    }
+
+    // Send combined XY position to Remote targets whenever X or Y changes
+    // This ensures atomic position updates for smooth movement on Android
+    if (isInput && (property == WFSParameterIDs::inputPositionX ||
+                    property == WFSParameterIDs::inputPositionY))
+    {
+        // Check if any Remote target is connected and we're not processing incoming Remote message
+        bool hasConnectedRemote = false;
+        for (int i = 0; i < MAX_TARGETS; ++i)
+        {
+            if (targetConfigs[static_cast<size_t>(i)].protocol == Protocol::Remote &&
+                targetConfigs[static_cast<size_t>(i)].txEnabled &&
+                remoteStates[static_cast<size_t>(i)].phase == RemoteConnectionState::Phase::Connected &&
+                incomingProtocol != Protocol::Remote)
+            {
+                hasConnectedRemote = true;
+                break;
+            }
+        }
+
+        if (hasConnectedRemote)
+        {
+            // Get the channel index (0-based)
+            int channelIndex = channelId - 1;
+
+            // Read BOTH current position values from state
+            juce::var posXVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionX);
+            juce::var posYVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionY);
+
+            float posX = posXVar.isDouble() ? static_cast<float>(static_cast<double>(posXVar)) : 0.0f;
+            float posY = posYVar.isDouble() ? static_cast<float>(static_cast<double>(posYVar)) : 0.0f;
+
+            // Send combined XY immediately - no buffering needed since we read both values
+            sendInputPositionXYToRemote(channelId, posX, posY);
         }
     }
 
@@ -1377,6 +1419,11 @@ void OSCManager::handleRemoteInputMessage(const juce::OSCMessage& message)
             // Incremental value change
             handleRemoteParameterDelta(parsed);
             break;
+
+        case Type::PositionXY:
+            // Combined XY position (atomic update)
+            handleRemotePositionXY(parsed);
+            break;
     }
 }
 
@@ -1670,6 +1717,68 @@ void OSCManager::handleRemoteParameterDelta(const OSCMessageRouter::ParsedRemote
             {
                 state.setInputParameter(channelIndex, parsed.paramId, newValue);
             }
+        }
+
+        incomingProtocol = Protocol::Disabled;  // Clear flag
+    });
+}
+
+void OSCManager::handleRemotePositionXY(const OSCMessageRouter::ParsedRemoteInput& parsed)
+{
+    // Set combined XY position atomically
+    // This prevents jagged diagonal movements when speed limiting is enabled
+    juce::MessageManager::callAsync([this, parsed]()
+    {
+        incomingProtocol = Protocol::Remote;  // Flag: processing incoming REMOTE message
+
+        // Remote uses 1-based channel IDs, but internal API uses 0-based
+        int channelIndex = parsed.channelId - 1;
+        if (channelIndex >= 0)
+        {
+            float posX = parsed.posX;
+            float posY = parsed.posY;
+
+            // Apply single-axis constraints
+            posX = applyConstraintX(channelIndex, posX);
+            posY = applyConstraintY(channelIndex, posY);
+
+            // Check if distance constraint is enabled for this channel
+            juce::var coordModeVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputCoordinateMode);
+            int coordMode = coordModeVar.isInt() ? static_cast<int>(coordModeVar) : 0;
+            juce::var constraintDistVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputConstraintDistance);
+            int constraintDist = constraintDistVar.isInt() ? static_cast<int>(constraintDistVar) : 0;
+            bool distanceConstraintActive = (coordMode == 1 || coordMode == 2) && constraintDist != 0;
+
+            // Get current Z value for constraint calculations and waypoint capture
+            juce::var zVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionZ);
+            float z = zVar.isDouble() ? static_cast<float>(static_cast<double>(zVar)) : 0.0f;
+
+            if (distanceConstraintActive)
+            {
+                // Apply distance constraint (modifies x, y, z in place)
+                applyConstraintDistance(channelIndex, posX, posY, z);
+            }
+
+            // Set both X and Y atomically (and Z if modified by distance constraint)
+            state.setInputParameter(channelIndex, WFSParameterIDs::inputPositionX, posX);
+            state.setInputParameter(channelIndex, WFSParameterIDs::inputPositionY, posY);
+            if (distanceConstraintActive)
+            {
+                state.setInputParameter(channelIndex, WFSParameterIDs::inputPositionZ, z);
+            }
+
+            // Notify for waypoint capture (path mode)
+            if (onRemoteWaypointCapture)
+                onRemoteWaypointCapture(channelIndex, posX, posY, z);
+
+            // Notify for composite delta tracking update
+            // This must be called AFTER position is set so MainComponent can compute new delta
+            if (onRemotePositionXYUpdated)
+                onRemotePositionXYUpdated(channelIndex, posX, posY);
+
+            // Notify UI to repaint map
+            if (onRemotePositionReceived)
+                onRemotePositionReceived();
         }
 
         incomingProtocol = Protocol::Disabled;  // Clear flag
@@ -2005,6 +2114,26 @@ void OSCManager::sendFindDevice(const juce::String& password)
     }
 
     DBG("OSCManager::sendFindDevice sent to " << targetsSent << " REMOTE target(s)");
+}
+
+void OSCManager::sendCompositeDeltaToRemote(int inputId, float deltaX, float deltaY)
+{
+    // Build /remoteInput/compositeDelta message: inputId (int), deltaX (float), deltaY (float)
+    // Delta is the difference between composite position and target position
+    juce::OSCMessage msg("/remoteInput/compositeDelta");
+    msg.addInt32(inputId);
+    msg.addFloat32(deltaX);
+    msg.addFloat32(deltaY);
+
+    // Send to all connected REMOTE targets
+    for (int i = 0; i < MAX_TARGETS; ++i)
+    {
+        if (targetConfigs[static_cast<size_t>(i)].protocol == Protocol::Remote &&
+            targetStatuses[static_cast<size_t>(i)] == ConnectionStatus::Connected)
+        {
+            sendMessage(i, msg);
+        }
+    }
 }
 
 void OSCManager::updateTargetStatus(int targetIndex, ConnectionStatus newStatus)
@@ -2402,6 +2531,43 @@ int OSCManager::findRemoteTargetByIP(const juce::String& senderIP) const
         }
     }
     return -1;
+}
+
+void OSCManager::sendInputPositionXYToRemote(int channelId, float x, float y)
+{
+    // Build combined XY message: /remoteInput/positionXY <channelId:i> <x:f> <y:f>
+    juce::OSCMessage msg("/remoteInput/positionXY");
+    msg.addInt32(channelId);
+    msg.addFloat32(x);
+    msg.addFloat32(y);
+
+    // Send directly to all connected Remote targets, bypassing rate limiter
+    // This ensures immediate position updates for smooth movement.
+    // Since we're already batching X+Y into a single message, the message rate
+    // is already reduced by half, making rate limiting unnecessary here.
+    for (int i = 0; i < MAX_TARGETS; ++i)
+    {
+        const auto& config = targetConfigs[static_cast<size_t>(i)];
+        if (config.protocol == Protocol::Remote &&
+            config.txEnabled &&
+            remoteStates[static_cast<size_t>(i)].phase == RemoteConnectionState::Phase::Connected)
+        {
+            // Skip if this message originated from a Remote target (loop prevention)
+            if (incomingProtocol == Protocol::Remote)
+                continue;
+
+            // Send directly through connection, bypassing rate limiter for zero latency
+            if (connections[static_cast<size_t>(i)])
+            {
+                if (connections[static_cast<size_t>(i)]->send(msg))
+                {
+                    ++messagesSent;
+                    logger.logSentWithDetails(i, msg, config.protocol,
+                                              config.ipAddress, config.port, config.mode);
+                }
+            }
+        }
+    }
 }
 
 } // namespace WFSNetwork

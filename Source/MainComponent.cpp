@@ -480,6 +480,25 @@ MainComponent::MainComponent()
         }
     };
 
+    // Connect remote position XY updates to composite delta tracking
+    // This prevents the "back and forth" movement of the grey dot when speed limiting is active
+    oscManager->onRemotePositionXYUpdated = [this](int channelIndex, float targetX, float targetY)
+    {
+        if (calculationEngine == nullptr)
+            return;
+
+        // Get the current composite position (what the DSP is actually using)
+        auto compositePos = calculationEngine->getCompositeInputPosition(channelIndex);
+
+        // Compute the delta that will be calculated on the next timer tick
+        // By pre-storing this, we prevent the delta from appearing to "change"
+        float deltaX = compositePos.x - targetX;
+        float deltaY = compositePos.y - targetY;
+
+        // Store in lastSentCompositeDeltas so the timer tick won't see it as a change
+        lastSentCompositeDeltas[channelIndex] = std::make_pair(deltaX, deltaY);
+    };
+
     // Configure the visualisation component with user-configured channel counts
     inputsTab->configureVisualisation(parameters.getNumOutputChannels(),
                                       parameters.getNumReverbChannels());
@@ -1735,10 +1754,10 @@ void MainComponent::timerCallback()
             }
         }
 
-        // Repaint map if any LFO is producing movement
-        if (mapTab != nullptr && lfoProcessor != nullptr)
+        // Check if any LFO is producing movement (used for map repaint and composite delta rate)
+        bool anyLFOActive = false;
+        if (lfoProcessor != nullptr)
         {
-            bool anyLFOActive = false;
             for (int i = 0; i < numInputChannels && !anyLFOActive; ++i)
             {
                 if (std::abs(lfoProcessor->getOffsetX(i)) > 0.001f ||
@@ -1747,8 +1766,68 @@ void MainComponent::timerCallback()
                     anyLFOActive = true;
                 }
             }
-            if (anyLFOActive)
-                mapTab->repaint();
+        }
+
+        // Repaint map if any LFO is active
+        if (mapTab != nullptr && anyLFOActive)
+            mapTab->repaint();
+
+        // Send composite delta to Remote targets (delta = composite - target position)
+        // Rate-limited: ~50Hz when LFO active (every 4 ticks), ~20Hz otherwise (every 10 ticks)
+        // This enables the Android app to show the offset from transformations (flip, offset, LFO, speed limiting)
+        static int compositeDeltaTickCounter = 0;
+        compositeDeltaTickCounter++;
+        int rateLimit = anyLFOActive ? 4 : 10;  // 4 ticks = 20ms = 50Hz, 10 ticks = 50ms = 20Hz
+        if (compositeDeltaTickCounter >= rateLimit && oscManager != nullptr && calculationEngine != nullptr)
+        {
+            compositeDeltaTickCounter = 0;
+
+            constexpr float deltaThreshold = 0.01f;  // 1cm threshold for considering delta significant
+            constexpr float changeThreshold = 0.005f;  // 5mm threshold for detecting delta change
+
+            for (int i = 0; i < numInputChannels; ++i)
+            {
+                // Get target position (raw user-controlled position)
+                auto posSection = parameters.getValueTreeState().getInputPositionSection(i);
+                float targetX = posSection.getProperty(WFSParameterIDs::inputPositionX, 0.0f);
+                float targetY = posSection.getProperty(WFSParameterIDs::inputPositionY, 0.0f);
+
+                // Get composite position (final DSP position after all transformations)
+                auto compositePos = calculationEngine->getCompositeInputPosition(i);
+
+                // Compute delta (composite - target)
+                float deltaX = compositePos.x - targetX;
+                float deltaY = compositePos.y - targetY;
+
+                // Check if this delta is significant (non-zero)
+                bool deltaIsSignificant = (std::abs(deltaX) > deltaThreshold || std::abs(deltaY) > deltaThreshold);
+
+                // Get last sent delta (or assume zero if never sent)
+                auto lastIt = lastSentCompositeDeltas.find(i);
+                float lastDeltaX = 0.0f;
+                float lastDeltaY = 0.0f;
+                if (lastIt != lastSentCompositeDeltas.end())
+                {
+                    lastDeltaX = lastIt->second.first;
+                    lastDeltaY = lastIt->second.second;
+                }
+
+                // Check if delta changed from what we last sent
+                bool deltaChanged = (std::abs(deltaX - lastDeltaX) > changeThreshold ||
+                                     std::abs(deltaY - lastDeltaY) > changeThreshold);
+
+                // Send if: delta changed AND (it's significant OR it just became zero)
+                if (deltaChanged)
+                {
+                    bool lastWasSignificant = (std::abs(lastDeltaX) > deltaThreshold || std::abs(lastDeltaY) > deltaThreshold);
+                    if (deltaIsSignificant || lastWasSignificant)
+                    {
+                        int inputId = i + 1;  // 1-based for OSC messages
+                        oscManager->sendCompositeDeltaToRemote(inputId, deltaX, deltaY);
+                        lastSentCompositeDeltas[i] = std::make_pair(deltaX, deltaY);
+                    }
+                }
+            }
         }
     }
 
