@@ -383,7 +383,16 @@ MainComponent::MainComponent()
 
         // Set up path mode waypoint capture callbacks
         mapTab->setDragStartCallback([this](int inputIndex) {
-            if (speedLimiter != nullptr)
+            if (speedLimiter == nullptr)
+                return;
+
+            // Only start recording if BOTH speed limiting AND path mode are active
+            auto& vts = parameters.getValueTreeState();
+            auto posSection = vts.getInputPositionSection(inputIndex);
+            bool maxSpeedActive = static_cast<int>(posSection.getProperty(WFSParameterIDs::inputMaxSpeedActive, 0)) != 0;
+            bool pathModeActive = static_cast<int>(posSection.getProperty(WFSParameterIDs::inputPathModeActive, 0)) != 0;
+
+            if (maxSpeedActive && pathModeActive)
                 speedLimiter->startRecording(inputIndex);
         });
 

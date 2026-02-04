@@ -117,10 +117,11 @@ public:
             float moveTargetZ = state.targetZ;
             bool usingWaypoint = false;
 
-            if (state.pathModeEnabled)
+            if (state.pathModeEnabled && !state.pathModeAwaitingFirstInput)
             {
                 // Path mode: check if we have waypoints to follow
                 // Follow waypoints even during recording so movement starts immediately
+                // Only follow after first input post-enable (pathModeAwaitingFirstInput cleared)
                 juce::SpinLock::ScopedLockType lock (*state.waypointLock);
                 if (state.waypointCount > 0)
                 {
@@ -259,6 +260,18 @@ public:
             return;
 
         auto& state = states[static_cast<size_t> (inputIndex)];
+
+        if (enabled && !state.pathModeEnabled)
+        {
+            // Path mode just enabled - clear old waypoints and await first input
+            clearWaypoints (inputIndex);
+            state.pathModeAwaitingFirstInput = true;
+        }
+        else if (!enabled)
+        {
+            state.pathModeAwaitingFirstInput = false;
+        }
+
         state.pathModeEnabled = enabled;
     }
 
@@ -289,6 +302,7 @@ public:
 
         state.isRecording = true;
         state.lastWaypointTime = 0;
+        state.pathModeAwaitingFirstInput = false;  // First input received
     }
 
     /** Stop recording waypoints (call on mouseUp/drag end) */
@@ -404,6 +418,7 @@ private:
         // Path mode state
         bool pathModeEnabled = false;
         bool isRecording = false;
+        bool pathModeAwaitingFirstInput = false;  // True until first input after path mode enabled
         juce::int64 lastWaypointTime = 0;
 
         // Thread safety for waypoint queue
