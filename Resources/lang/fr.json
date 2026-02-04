@@ -462,12 +462,14 @@
 
   "map": {
     "buttons": {
-      "fitView": "Ajuster la vue à l'écran",
+      "fitStage": "Ajuster la scène à l'écran",
+      "fitInputs": "Ajuster toutes les entrées à l'écran",
       "showLevels": "Afficher les niveaux",
       "hideLevels": "Masquer les niveaux"
     },
     "tooltips": {
-      "fitView": "Ajuster le zoom et le panoramique pour adapter la scène à l'écran",
+      "fitStage": "Ajuster le zoom et le panoramique pour afficher la scène",
+      "fitInputs": "Ajuster le zoom et le panoramique pour afficher toutes les entrées visibles",
       "levels": "Afficher les niveaux des entrées et sorties sur la carte"
     },
     "labels": {

@@ -455,12 +455,14 @@
 
   "map": {
     "buttons": {
-      "fitView": "화면에 맞게 보기",
+      "fitStage": "무대를 화면에 맞추기",
+      "fitInputs": "모든 입력을 화면에 맞추기",
       "showLevels": "레벨 표시",
       "hideLevels": "레벨 숨기기"
     },
     "tooltips": {
-      "fitView": "줌과 패닝을 조정하여 무대를 화면에 맞춥니다",
+      "fitStage": "무대가 표시되도록 확대/축소 및 이동 조정",
+      "fitInputs": "모든 보이는 입력이 표시되도록 확대/축소 및 이동 조정",
       "levels": "맵에 입력 및 출력 레벨 표시"
     },
     "labels": {

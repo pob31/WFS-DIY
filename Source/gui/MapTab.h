@@ -36,11 +36,19 @@ public:
         reverbsTree.addListener(this);
         configTree.addListener(this);
 
-        // Home button to reset view
+        // Home button to reset view to stage
         addAndMakeVisible(homeButton);
-        homeButton.setButtonText(LOC("map.buttons.fitView"));
+        homeButton.setButtonText(LOC("map.buttons.fitStage"));
         homeButton.onClick = [this]() {
             resetView();
+            repaint();
+        };
+
+        // Fit all inputs button
+        addAndMakeVisible(fitInputsButton);
+        fitInputsButton.setButtonText(LOC("map.buttons.fitInputs"));
+        fitInputsButton.onClick = [this]() {
+            fitAllInputsToScreen();
             repaint();
         };
 
@@ -120,9 +128,12 @@ public:
 
     void resized() override
     {
-        // Position buttons in top-right corner
-        homeButton.setBounds(getWidth() - 140, 10, 130, 25);
-        levelOverlayButton.setBounds(getWidth() - 280, 10, 130, 25);
+        // Position Show Levels button in top-left corner
+        levelOverlayButton.setBounds(10, 10, 130, 25);
+
+        // Position fit buttons in top-right corner
+        fitInputsButton.setBounds(getWidth() - 300, 10, 150, 25);
+        homeButton.setBounds(getWidth() - 145, 10, 135, 25);
 
         // Reset view offset to center when resized
         if (viewOffset.isOrigin())
@@ -1771,6 +1782,7 @@ private:
 
     // UI Components
     juce::TextButton homeButton;
+    juce::TextButton fitInputsButton;
     juce::TextButton levelOverlayButton;
 
     // Level overlay state
@@ -1787,7 +1799,8 @@ private:
 
     void setupHelpText()
     {
-        helpTextMap[&homeButton] = LOC("map.tooltips.fitView");
+        helpTextMap[&homeButton] = LOC("map.tooltips.fitStage");
+        helpTextMap[&fitInputsButton] = LOC("map.tooltips.fitInputs");
         helpTextMap[&levelOverlayButton] = LOC("map.tooltips.levels");
     }
 
@@ -2064,6 +2077,65 @@ private:
         // To center the stage: offsetX = -stageCenterX * scale = originW * scale
         viewOffset.x = originW * viewScale;
         viewOffset.y = -originD * viewScale;  // Y is inverted in screen coords
+    }
+
+    void fitAllInputsToScreen()
+    {
+        int numInputs = parameters.getNumInputChannels();
+        float minX = std::numeric_limits<float>::max();
+        float maxX = std::numeric_limits<float>::lowest();
+        float minY = std::numeric_limits<float>::max();
+        float maxY = std::numeric_limits<float>::lowest();
+        int visibleCount = 0;
+
+        // Find bounding box of all visible inputs
+        for (int i = 0; i < numInputs; ++i)
+        {
+            auto visibleVar = parameters.getInputParam(i, "inputMapVisible");
+            bool visible = visibleVar.isVoid() || static_cast<int>(visibleVar) != 0;
+            if (!visible)
+                continue;
+
+            float posX = static_cast<float>(parameters.getInputParam(i, "inputPositionX"));
+            float posY = static_cast<float>(parameters.getInputParam(i, "inputPositionY"));
+            minX = juce::jmin(minX, posX);
+            maxX = juce::jmax(maxX, posX);
+            minY = juce::jmin(minY, posY);
+            maxY = juce::jmax(maxY, posY);
+            visibleCount++;
+        }
+
+        if (visibleCount == 0)
+        {
+            resetView();  // Fall back to stage view if no visible inputs
+            return;
+        }
+
+        // Add padding (1 meter around edges)
+        const float padding = 1.0f;
+        minX -= padding;
+        maxX += padding;
+        minY -= padding;
+        maxY += padding;
+
+        float boundsW = maxX - minX;
+        float boundsH = maxY - minY;
+
+        // Ensure minimum size to avoid extreme zoom
+        boundsW = juce::jmax(boundsW, 2.0f);
+        boundsH = juce::jmax(boundsH, 2.0f);
+
+        // Calculate scale to fit bounds with 80% of viewport
+        float scaleW = (getWidth() > 0) ? (getWidth() * 0.8f) / boundsW : 30.0f;
+        float scaleH = (getHeight() > 0) ? (getHeight() * 0.8f) / boundsH : 30.0f;
+        viewScale = juce::jmin(scaleW, scaleH);
+        viewScale = juce::jlimit(5.0f, 500.0f, viewScale);
+
+        // Calculate offset to center the bounding box
+        float centerX = (minX + maxX) / 2.0f;
+        float centerY = (minY + maxY) / 2.0f;
+        viewOffset.x = -centerX * viewScale;
+        viewOffset.y = centerY * viewScale;  // Y inverted in screen coords
     }
 
     //==========================================================================

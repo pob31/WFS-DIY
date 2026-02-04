@@ -455,12 +455,14 @@
 
   "map": {
     "buttons": {
-      "fitView": "适应屏幕显示",
+      "fitStage": "适配舞台到屏幕",
+      "fitInputs": "适配所有输入到屏幕",
       "showLevels": "显示电平",
       "hideLevels": "隐藏电平"
     },
     "tooltips": {
-      "fitView": "调整缩放和平移以使舞台适应屏幕",
+      "fitStage": "调整缩放和平移以显示舞台",
+      "fitInputs": "调整缩放和平移以显示所有可见输入",
       "levels": "在地图上显示输入和输出的电平"
     },
     "labels": {

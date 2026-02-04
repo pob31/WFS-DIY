@@ -455,12 +455,14 @@
 
   "map": {
     "buttons": {
-      "fitView": "Ajustar vista a pantalla",
+      "fitStage": "Ajustar escenario a pantalla",
+      "fitInputs": "Ajustar todas las entradas a pantalla",
       "showLevels": "Mostrar niveles",
       "hideLevels": "Ocultar niveles"
     },
     "tooltips": {
-      "fitView": "Ajustar el zoom y panorámica para adaptar el escenario a la pantalla",
+      "fitStage": "Ajustar el zoom y panorámica para mostrar el escenario",
+      "fitInputs": "Ajustar el zoom y panorámica para mostrar todas las entradas visibles",
       "levels": "Mostrar los niveles de entradas y salidas en el mapa"
     },
     "labels": {

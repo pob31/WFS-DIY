@@ -455,12 +455,14 @@
 
   "map": {
     "buttons": {
-      "fitView": "Ansicht anpassen",
+      "fitStage": "Bühne an Bildschirm anpassen",
+      "fitInputs": "Alle Eingänge an Bildschirm anpassen",
       "showLevels": "Pegel anzeigen",
       "hideLevels": "Pegel ausblenden"
     },
     "tooltips": {
-      "fitView": "Zoom und Position anpassen, um die Bühne auf dem Bildschirm einzupassen",
+      "fitStage": "Zoom und Schwenken anpassen, um die Bühne anzuzeigen",
+      "fitInputs": "Zoom und Schwenken anpassen, um alle sichtbaren Eingänge anzuzeigen",
       "levels": "Pegel für Eingänge und Ausgänge auf der Karte anzeigen"
     },
     "labels": {

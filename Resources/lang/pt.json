@@ -455,12 +455,14 @@
 
   "map": {
     "buttons": {
-      "fitView": "Ajustar Vista ao Ecrã",
+      "fitStage": "Ajustar palco à tela",
+      "fitInputs": "Ajustar todas as entradas à tela",
       "showLevels": "Mostrar Níveis",
       "hideLevels": "Ocultar Níveis"
     },
     "tooltips": {
-      "fitView": "Ajustar o zoom e panorâmica para adaptar o palco ao ecrã",
+      "fitStage": "Ajustar o zoom e panorâmica para exibir o palco",
+      "fitInputs": "Ajustar o zoom e panorâmica para exibir todas as entradas visíveis",
       "levels": "Mostrar os níveis de entradas e saídas no mapa"
     },
     "labels": {

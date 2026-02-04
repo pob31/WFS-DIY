@@ -485,12 +485,14 @@
 
   "map": {
     "buttons": {
-      "fitView": "Fit View to Screen",
+      "fitStage": "Fit Stage to Screen",
+      "fitInputs": "Fit All Inputs to Screen",
       "showLevels": "Show Levels",
       "hideLevels": "Hide Levels"
     },
     "tooltips": {
-      "fitView": "Adjust the zoom and panning to fit the stage on the display",
+      "fitStage": "Adjust the zoom and panning to fit the stage on the display",
+      "fitInputs": "Adjust the zoom and panning to fit all visible inputs on the display",
       "levels": "Display the levels for inputs and outputs on the map"
     },
     "labels": {
