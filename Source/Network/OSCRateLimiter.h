@@ -10,7 +10,14 @@ namespace WFSNetwork
  * OSCRateLimiter - Enforces rate limiting for outgoing OSC messages.
  *
  * Limits messages to MAX_RATE_HZ (50Hz) per target. When rapid parameter changes
- * occur, it coalesces messages to the same address, sending only the most recent value.
+ * occur, it coalesces messages using a key of "address:channelId" (for messages with
+ * an integer first argument) or just "address" (for other messages).
+ *
+ * This means:
+ * - Messages for different channels are NOT coalesced (each channel keeps its latest value)
+ * - Interleaved X/Y/Z updates for the same channel are kept separate but rate-limited together
+ * - Only the most recent value per key is sent at each flush interval
+ *
  * This prevents network flooding while ensuring timely delivery of parameter updates.
  */
 class OSCRateLimiter : private juce::Timer
@@ -141,6 +148,14 @@ private:
     void processTarget(int targetIndex);
     void processBroadcast();
     bool canSendToTarget(int targetIndex) const;
+
+    /**
+     * Build the coalescing key for a message.
+     * For messages with an integer first argument (channel ID), the key is "address:channelId".
+     * This ensures messages for different channels are not coalesced together.
+     * For messages without arguments or non-integer first argument, the key is just the address.
+     */
+    static juce::String buildCoalescingKey(const juce::OSCMessage& message);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OSCRateLimiter)
 };

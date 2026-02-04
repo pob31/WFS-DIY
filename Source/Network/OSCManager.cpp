@@ -727,6 +727,17 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
                             sendMessage(i, *msg);
                         }
                     }
+                    else if (value.isString())
+                    {
+                        // String parameters (e.g., inputName)
+                        auto msg = OSCMessageBuilder::buildRemoteOutputStringMessage(
+                            property, channelId, value.toString());
+
+                        if (msg.has_value())
+                        {
+                            sendMessage(i, *msg);
+                        }
+                    }
                 }
             }
         }
@@ -2003,6 +2014,26 @@ void OSCManager::sendRemoteChannelDump(int channelId)
         }
     }
 
+    // Send input name (string parameter - needs separate handling)
+    juce::var nameVal = state.getInputParameter(channelIndex, WFSParameterIDs::inputName);
+    if (nameVal.isString())
+    {
+        auto nameMsg = OSCMessageBuilder::buildRemoteOutputStringMessage(
+            WFSParameterIDs::inputName, channelId, nameVal.toString());
+
+        if (nameMsg.has_value())
+        {
+            for (int i = 0; i < MAX_TARGETS; ++i)
+            {
+                const auto& config = targetConfigs[static_cast<size_t>(i)];
+                if (config.protocol == Protocol::Remote && config.txEnabled)
+                {
+                    sendMessage(i, *nameMsg);
+                }
+            }
+        }
+    }
+
     // Also send the computed "fully tracked" state (depends on global settings too)
     sendInputFullyTrackedState(channelId);
 }
@@ -2047,9 +2078,44 @@ void OSCManager::sendInputFullyTrackedState(int channelId)
 void OSCManager::sendAllTrackingStatesToRemote()
 {
     int numInputs = state.getIntParameter(WFSParameterIDs::inputChannels);
+
+    // Collect all messages first, then send directly to bypass rate limiter.
+    // The rate limiter coalesces by OSC address, so bulk sends for all channels
+    // would result in only the last channel's data being sent.
+    std::vector<juce::OSCMessage> messages;
+    messages.reserve(static_cast<size_t>(numInputs));
+
     for (int i = 0; i < numInputs; ++i)
     {
-        sendInputFullyTrackedState(i + 1);  // 1-based channelId
+        int channelId = i + 1;  // 1-based
+        bool fullyTracked = isInputFullyTracked(i);
+
+        juce::OSCMessage msg("/remoteInput/isFullyTracked");
+        msg.addInt32(channelId);
+        msg.addInt32(fullyTracked ? 1 : 0);
+        messages.push_back(std::move(msg));
+    }
+
+    // Send directly to all connected Remote targets
+    for (int i = 0; i < MAX_TARGETS; ++i)
+    {
+        const auto& config = targetConfigs[static_cast<size_t>(i)];
+        if (config.protocol == Protocol::Remote && config.txEnabled &&
+            remoteStates[static_cast<size_t>(i)].phase == RemoteConnectionState::Phase::Connected)
+        {
+            if (connections[static_cast<size_t>(i)])
+            {
+                for (const auto& msg : messages)
+                {
+                    if (connections[static_cast<size_t>(i)]->send(msg))
+                    {
+                        ++messagesSent;
+                        logger.logSentWithDetails(i, msg, config.protocol,
+                                                  config.ipAddress, config.port, config.mode);
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -2399,6 +2465,10 @@ void OSCManager::handleRemotePong(int targetIndex, int sequenceNumber)
         bool isReconnection = remoteState.wasConnectedBefore;
         remoteState.phase = RemoteConnectionState::Phase::Connected;
         remoteState.wasConnectedBefore = true;
+
+        // Update target status to trigger onConnectionStatusChanged callback
+        updateTargetStatus(targetIndex, ConnectionStatus::Connected);
+
         onRemoteConnected(targetIndex, isReconnection);
     }
 
@@ -2455,6 +2525,11 @@ void OSCManager::onRemoteConnected(int targetIndex, bool isReconnection)
 
         // Send tracking state for all inputs
         sendAllTrackingStatesToRemote();
+
+        // Notify that connection is ready and initial data has been sent
+        // This allows MainComponent to send composite deltas
+        if (onRemoteConnectionReady)
+            onRemoteConnectionReady(targetIndex);
     });
 }
 
@@ -2478,16 +2553,44 @@ void OSCManager::sendAllInputPositionsToRemote(int targetIndex)
     if (targetIndex < 0 || targetIndex >= MAX_TARGETS)
         return;
 
+    // Verify target is connected
+    const auto& config = targetConfigs[static_cast<size_t>(targetIndex)];
+    if (!connections[static_cast<size_t>(targetIndex)])
+        return;
+
+    // Helper lambda to send directly, bypassing rate limiter
+    // This is critical for bulk sends where multiple channels share the same OSC address.
+    // The rate limiter coalesces by address, so only the last channel would be sent otherwise.
+    auto sendDirect = [this, targetIndex, &config](const juce::OSCMessage& msg)
+    {
+        if (connections[static_cast<size_t>(targetIndex)]->send(msg))
+        {
+            ++messagesSent;
+            logger.logSentWithDetails(targetIndex, msg, config.protocol,
+                                      config.ipAddress, config.port, config.mode);
+        }
+    };
+
     // Get number of input channels
     auto ioTree = state.getIOState();
     int numInputs = ioTree.isValid()
         ? static_cast<int>(ioTree.getProperty(WFSParameterIDs::inputChannels))
         : 8;
 
-    // Send position for each input channel
+    // Send data for each input channel
     for (int channelIndex = 0; channelIndex < numInputs; ++channelIndex)
     {
         int channelId = channelIndex + 1;  // 1-based for OSC messages
+
+        // Get and send input name
+        juce::var nameVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputName);
+        if (nameVar.isString())
+        {
+            juce::OSCMessage msgName("/remoteInput/inputName");
+            msgName.addInt32(channelId);
+            msgName.addString(nameVar.toString());
+            sendDirect(msgName);
+        }
 
         // Get position values
         juce::var posXVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionX);
@@ -2502,20 +2605,44 @@ void OSCManager::sendAllInputPositionsToRemote(int targetIndex)
         juce::OSCMessage msgX("/remoteInput/positionX");
         msgX.addInt32(channelId);
         msgX.addFloat32(posX);
-        sendMessage(targetIndex, msgX);
+        sendDirect(msgX);
 
         juce::OSCMessage msgY("/remoteInput/positionY");
         msgY.addInt32(channelId);
         msgY.addFloat32(posY);
-        sendMessage(targetIndex, msgY);
+        sendDirect(msgY);
 
         juce::OSCMessage msgZ("/remoteInput/positionZ");
         msgZ.addInt32(channelId);
         msgZ.addFloat32(posZ);
-        sendMessage(targetIndex, msgZ);
+        sendDirect(msgZ);
+
+        // Get and send offset values
+        juce::var offXVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputOffsetX);
+        juce::var offYVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputOffsetY);
+        juce::var offZVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputOffsetZ);
+
+        float offX = offXVar.isDouble() ? static_cast<float>(static_cast<double>(offXVar)) : 0.0f;
+        float offY = offYVar.isDouble() ? static_cast<float>(static_cast<double>(offYVar)) : 0.0f;
+        float offZ = offZVar.isDouble() ? static_cast<float>(static_cast<double>(offZVar)) : 0.0f;
+
+        juce::OSCMessage msgOffX("/remoteInput/offsetX");
+        msgOffX.addInt32(channelId);
+        msgOffX.addFloat32(offX);
+        sendDirect(msgOffX);
+
+        juce::OSCMessage msgOffY("/remoteInput/offsetY");
+        msgOffY.addInt32(channelId);
+        msgOffY.addFloat32(offY);
+        sendDirect(msgOffY);
+
+        juce::OSCMessage msgOffZ("/remoteInput/offsetZ");
+        msgOffZ.addInt32(channelId);
+        msgOffZ.addFloat32(offZ);
+        sendDirect(msgOffZ);
     }
 
-    DBG("OSCManager: Sent positions for " << numInputs << " inputs to target " << targetIndex);
+    DBG("OSCManager: Sent names, positions and offsets for " << numInputs << " inputs to target " << targetIndex);
 }
 
 int OSCManager::findRemoteTargetByIP(const juce::String& senderIP) const

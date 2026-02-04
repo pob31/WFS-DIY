@@ -11,7 +11,7 @@ const std::map<juce::Identifier, OSCMessageBuilder::ParamMapping>& OSCMessageBui
 {
     static const std::map<juce::Identifier, ParamMapping> mappings = {
         // Channel
-        { WFSParameterIDs::inputName,             { "/wfs/input/name",             "/remoteInput/name" } },
+        { WFSParameterIDs::inputName,             { "/wfs/input/name",             "/remoteInput/inputName" } },
         { WFSParameterIDs::inputAttenuation,      { "/wfs/input/attenuation",      "/remoteInput/attenuation" } },
         { WFSParameterIDs::inputDelayLatency,     { "/wfs/input/delayLatency",     "/remoteInput/delayLatency" } },
         { WFSParameterIDs::inputMinimalLatency,   { "/wfs/input/minimalLatency",   "/remoteInput/minimalLatency" } },
@@ -366,6 +366,23 @@ std::optional<juce::OSCMessage> OSCMessageBuilder::buildRemoteOutputMessage(
         return std::nullopt;
 
     return buildMessage(it->second.remotePath, channelId, value);
+}
+
+std::optional<juce::OSCMessage> OSCMessageBuilder::buildRemoteOutputStringMessage(
+    const juce::Identifier& paramId,
+    int channelId,
+    const juce::String& value)
+{
+    const auto& mappings = getInputMappings();
+    auto it = mappings.find(paramId);
+
+    if (it == mappings.end())
+        return std::nullopt;
+
+    juce::OSCMessage msg(juce::OSCAddressPattern(it->second.remotePath));
+    msg.addInt32(channelId);
+    msg.addString(value);
+    return msg;
 }
 
 std::vector<juce::OSCMessage> OSCMessageBuilder::buildRemoteChannelDump(

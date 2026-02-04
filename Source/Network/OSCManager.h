@@ -324,6 +324,13 @@ public:
     std::function<void(int targetIndex, ConnectionStatus status)> onConnectionStatusChanged;
 
     /**
+     * Callback when a Remote client has connected and initial data (positions, names, etc.) has been sent.
+     * UI can use this to send additional data like composite deltas.
+     * @param targetIndex The target index that just connected
+     */
+    std::function<void(int targetIndex)> onRemoteConnectionReady;
+
+    /**
      * Callback when position data is received from REMOTE protocol.
      * UI can register to trigger map repaint.
      */

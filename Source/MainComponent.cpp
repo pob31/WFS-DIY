@@ -508,6 +508,47 @@ MainComponent::MainComponent()
         lastSentCompositeDeltas[channelIndex] = std::make_pair(deltaX, deltaY);
     };
 
+    // Send composite deltas for all inputs when a Remote client connects and initial data has been sent
+    oscManager->onRemoteConnectionReady = [this](int targetIndex)
+    {
+        if (calculationEngine == nullptr || oscManager == nullptr)
+            return;
+
+        // Get number of input channels
+        int numInputChannels = parameters.getNumInputChannels();
+
+        constexpr float deltaThreshold = 0.01f;  // 1cm threshold for considering delta significant
+
+        // Send composite delta for each input
+        for (int i = 0; i < numInputChannels; ++i)
+        {
+            int channelId = i + 1;  // 1-based for OSC messages
+
+            // Get target position (raw user-controlled position)
+            auto posSection = parameters.getValueTreeState().getInputPositionSection(i);
+            float targetX = posSection.getProperty(WFSParameterIDs::inputPositionX, 0.0f);
+            float targetY = posSection.getProperty(WFSParameterIDs::inputPositionY, 0.0f);
+
+            // Get composite position (final DSP position after all transformations)
+            auto compositePos = calculationEngine->getCompositeInputPosition(i);
+
+            // Compute delta (composite - target)
+            float deltaX = compositePos.x - targetX;
+            float deltaY = compositePos.y - targetY;
+
+            // Only send if delta is significant
+            bool deltaIsSignificant = std::abs(deltaX) > deltaThreshold || std::abs(deltaY) > deltaThreshold;
+
+            if (deltaIsSignificant)
+            {
+                oscManager->sendCompositeDeltaToRemote(channelId, deltaX, deltaY);
+                lastSentCompositeDeltas[i] = std::make_pair(deltaX, deltaY);
+            }
+        }
+
+        DBG("MainComponent: Sent composite deltas for " << numInputChannels << " inputs to target " << targetIndex);
+    };
+
     // Configure the visualisation component with user-configured channel counts
     inputsTab->configureVisualisation(parameters.getNumOutputChannels(),
                                       parameters.getNumReverbChannels());

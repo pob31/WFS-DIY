@@ -99,6 +99,15 @@ public:
         float value);
 
     /**
+     * Build a REMOTE protocol output message with string value.
+     * Format: /remoteInput/{param} <channelID> <value>
+     */
+    static std::optional<juce::OSCMessage> buildRemoteOutputStringMessage(
+        const juce::Identifier& paramId,
+        int channelId,
+        const juce::String& value);
+
+    /**
      * Build all REMOTE protocol messages for a channel.
      * Used when Android app requests channel data.
      */

@@ -50,7 +50,7 @@ void OSCRateLimiter::queueMessage(int targetIndex, const juce::OSCMessage& messa
 
     const juce::ScopedLock sl(queueLock);
 
-    juce::String address = message.getAddressPattern().toString();
+    juce::String key = buildCoalescingKey(message);
 
     if (targetIndex == -1)
     {
@@ -62,13 +62,13 @@ void OSCRateLimiter::queueMessage(int targetIndex, const juce::OSCMessage& messa
         auto& queue = targetQueues[static_cast<size_t>(targetIndex)];
 
         // Check if we're replacing an existing message (coalescing)
-        if (queue.find(address) != queue.end())
+        if (queue.find(key) != queue.end())
         {
             ++totalCoalesced;
         }
 
         // Store/replace the message (use insert_or_assign to avoid default construction)
-        queue.insert_or_assign(address, message);
+        queue.insert_or_assign(key, message);
     }
 }
 
@@ -76,16 +76,16 @@ void OSCRateLimiter::queueBroadcast(const juce::OSCMessage& message)
 {
     const juce::ScopedLock sl(queueLock);
 
-    juce::String address = message.getAddressPattern().toString();
+    juce::String key = buildCoalescingKey(message);
 
     // Check if we're replacing an existing message
-    if (broadcastQueue.find(address) != broadcastQueue.end())
+    if (broadcastQueue.find(key) != broadcastQueue.end())
     {
         ++totalCoalesced;
     }
 
     // Use insert_or_assign to avoid default construction
-    broadcastQueue.insert_or_assign(address, message);
+    broadcastQueue.insert_or_assign(key, message);
 }
 
 void OSCRateLimiter::flushAll()
@@ -235,6 +235,23 @@ bool OSCRateLimiter::canSendToTarget(int targetIndex) const
     auto lastTime = lastSendTime[static_cast<size_t>(targetIndex)];
 
     return (now - lastTime) >= minIntervalMs;
+}
+
+juce::String OSCRateLimiter::buildCoalescingKey(const juce::OSCMessage& message)
+{
+    juce::String address = message.getAddressPattern().toString();
+
+    // If the message has at least one argument and the first argument is an integer (channel ID),
+    // include it in the key. This ensures messages for different channels are not coalesced.
+    // Example: "/remoteInput/positionX" with channelId=1 becomes "/remoteInput/positionX:1"
+    if (message.size() > 0 && message[0].isInt32())
+    {
+        int channelId = message[0].getInt32();
+        return address + ":" + juce::String(channelId);
+    }
+
+    // For messages without channel ID argument, use just the address
+    return address;
 }
 
 } // namespace WFSNetwork
