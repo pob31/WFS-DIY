@@ -964,6 +964,10 @@ void OSCManager::handleIncomingMessage(const juce::OSCMessage& message,
     {
         handleClusterMoveMessage(message);
     }
+    else if (OSCMessageRouter::isClusterScaleRotationAddress(address))
+    {
+        handleClusterScaleRotationMessage(message);
+    }
     // Handle Remote handshake/heartbeat responses
     else if (address == "/remote/pong")
     {
@@ -1029,6 +1033,10 @@ void OSCManager::handleIncomingBundle(const juce::OSCBundle& bundle,
             else if (OSCMessageRouter::isClusterMoveAddress(address))
             {
                 handleClusterMoveMessage(message);
+            }
+            else if (OSCMessageRouter::isClusterScaleRotationAddress(address))
+            {
+                handleClusterScaleRotationMessage(message);
             }
         }
         else if (element.isBundle())
@@ -1889,6 +1897,115 @@ void OSCManager::handleClusterMoveMessage(const juce::OSCMessage& message)
                 float newY = currentY + parsed.deltaY;
 
                 // Set new position
+                state.setInputParameter(inputIndex, WFSParameterIDs::inputPositionX, newX);
+                state.setInputParameter(inputIndex, WFSParameterIDs::inputPositionY, newY);
+            }
+        }
+
+        incomingProtocol = Protocol::Disabled;  // Clear flag
+    });
+}
+
+void OSCManager::handleClusterScaleRotationMessage(const juce::OSCMessage& message)
+{
+    auto parsed = OSCMessageRouter::parseClusterScaleRotationMessage(message);
+
+    if (!parsed.valid)
+    {
+        ++parseErrors;
+        return;
+    }
+
+    juce::MessageManager::callAsync([this, parsed]()
+    {
+        incomingProtocol = Protocol::Remote;  // Flag: processing incoming remote message
+
+        // Get number of configured input channels
+        int numInputs = state.getIntParameter(WFSParameterIDs::inputChannels);
+
+        // First, find all inputs in this cluster and calculate reference point
+        std::vector<int> clusterInputs;
+        float sumX = 0.0f, sumY = 0.0f;
+
+        for (int inputIndex = 0; inputIndex < numInputs; ++inputIndex)
+        {
+            juce::var clusterVar = state.getInputParameter(inputIndex, WFSParameterIDs::inputCluster);
+            int inputClusterId = clusterVar.isInt() ? static_cast<int>(clusterVar) : 0;
+
+            if (inputClusterId == parsed.clusterId)
+            {
+                clusterInputs.push_back(inputIndex);
+
+                juce::var posXVar = state.getInputParameter(inputIndex, WFSParameterIDs::inputPositionX);
+                juce::var posYVar = state.getInputParameter(inputIndex, WFSParameterIDs::inputPositionY);
+
+                float x = posXVar.isDouble() ? static_cast<float>(static_cast<double>(posXVar)) :
+                         (posXVar.isInt() ? static_cast<float>(static_cast<int>(posXVar)) : 0.0f);
+                float y = posYVar.isDouble() ? static_cast<float>(static_cast<double>(posYVar)) :
+                         (posYVar.isInt() ? static_cast<float>(static_cast<int>(posYVar)) : 0.0f);
+
+                sumX += x;
+                sumY += y;
+            }
+        }
+
+        if (clusterInputs.empty())
+        {
+            incomingProtocol = Protocol::Disabled;
+            return;
+        }
+
+        // Calculate barycenter as reference point
+        float refX = sumX / static_cast<float>(clusterInputs.size());
+        float refY = sumY / static_cast<float>(clusterInputs.size());
+
+        if (parsed.type == OSCMessageRouter::ParsedClusterScaleRotationMessage::Type::Scale)
+        {
+            // Apply uniform scale around reference point
+            float scaleFactor = parsed.value;
+
+            for (int inputIndex : clusterInputs)
+            {
+                juce::var posXVar = state.getInputParameter(inputIndex, WFSParameterIDs::inputPositionX);
+                juce::var posYVar = state.getInputParameter(inputIndex, WFSParameterIDs::inputPositionY);
+
+                float x = posXVar.isDouble() ? static_cast<float>(static_cast<double>(posXVar)) :
+                         (posXVar.isInt() ? static_cast<float>(static_cast<int>(posXVar)) : 0.0f);
+                float y = posYVar.isDouble() ? static_cast<float>(static_cast<double>(posYVar)) :
+                         (posYVar.isInt() ? static_cast<float>(static_cast<int>(posYVar)) : 0.0f);
+
+                // Scale offset from reference point
+                float newX = refX + (x - refX) * scaleFactor;
+                float newY = refY + (y - refY) * scaleFactor;
+
+                state.setInputParameter(inputIndex, WFSParameterIDs::inputPositionX, newX);
+                state.setInputParameter(inputIndex, WFSParameterIDs::inputPositionY, newY);
+            }
+        }
+        else // Rotation
+        {
+            // Apply rotation around reference point
+            float angleDeg = parsed.value;
+            float angleRad = angleDeg * (juce::MathConstants<float>::pi / 180.0f);
+            float cosA = std::cos(angleRad);
+            float sinA = std::sin(angleRad);
+
+            for (int inputIndex : clusterInputs)
+            {
+                juce::var posXVar = state.getInputParameter(inputIndex, WFSParameterIDs::inputPositionX);
+                juce::var posYVar = state.getInputParameter(inputIndex, WFSParameterIDs::inputPositionY);
+
+                float x = posXVar.isDouble() ? static_cast<float>(static_cast<double>(posXVar)) :
+                         (posXVar.isInt() ? static_cast<float>(static_cast<int>(posXVar)) : 0.0f);
+                float y = posYVar.isDouble() ? static_cast<float>(static_cast<double>(posYVar)) :
+                         (posYVar.isInt() ? static_cast<float>(static_cast<int>(posYVar)) : 0.0f);
+
+                // Rotate around reference point (XY plane)
+                float dx = x - refX;
+                float dy = y - refY;
+                float newX = refX + dx * cosA - dy * sinA;
+                float newY = refY + dx * sinA + dy * cosA;
+
                 state.setInputParameter(inputIndex, WFSParameterIDs::inputPositionX, newX);
                 state.setInputParameter(inputIndex, WFSParameterIDs::inputPositionY, newY);
             }

@@ -360,6 +360,11 @@ bool OSCMessageRouter::isClusterMoveAddress(const juce::String& address)
     return address == "/cluster/move" || address == "/cluster/barycenter/move";
 }
 
+bool OSCMessageRouter::isClusterScaleRotationAddress(const juce::String& address)
+{
+    return address == "/cluster/scale" || address == "/cluster/rotation";
+}
+
 juce::String OSCMessageRouter::extractParamName(const juce::String& address)
 {
     // Extract the last part of the path
@@ -775,6 +780,38 @@ OSCMessageRouter::ParsedClusterMoveMessage OSCMessageRouter::parseClusterMoveMes
     result.clusterId = extractInt(message[0]);
     result.deltaX = extractFloat(message[1]);
     result.deltaY = extractFloat(message[2]);
+
+    // Validate cluster ID (1-10)
+    if (result.clusterId < 1 || result.clusterId > 10)
+        return result;
+
+    result.valid = true;
+    return result;
+}
+
+OSCMessageRouter::ParsedClusterScaleRotationMessage OSCMessageRouter::parseClusterScaleRotationMessage(const juce::OSCMessage& message)
+{
+    ParsedClusterScaleRotationMessage result;
+
+    juce::String address = message.getAddressPattern().toString();
+
+    if (!isClusterScaleRotationAddress(address))
+        return result;
+
+    // Both message types require 2 arguments: clusterId (int), value (float)
+    if (message.size() < 2)
+        return result;
+
+    // Determine type from address
+    if (address == "/cluster/scale")
+        result.type = ParsedClusterScaleRotationMessage::Type::Scale;
+    else if (address == "/cluster/rotation")
+        result.type = ParsedClusterScaleRotationMessage::Type::Rotation;
+    else
+        return result;
+
+    result.clusterId = extractInt(message[0]);
+    result.value = extractFloat(message[1]);
 
     // Validate cluster ID (1-10)
     if (result.clusterId < 1 || result.clusterId > 10)

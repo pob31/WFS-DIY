@@ -420,6 +420,7 @@ private:
     void handleRemotePositionXY(const OSCMessageRouter::ParsedRemoteInput& parsed);
     void handleArrayAdjustMessage(const juce::OSCMessage& message);
     void handleClusterMoveMessage(const juce::OSCMessage& message);
+    void handleClusterScaleRotationMessage(const juce::OSCMessage& message);
 
     // Stage bounds for constraint application
     float getStageMinX() const;

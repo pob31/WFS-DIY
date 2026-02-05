@@ -100,6 +100,19 @@ public:
         bool valid = false;
     };
 
+    struct ParsedClusterScaleRotationMessage
+    {
+        enum class Type {
+            Scale,      // /cluster/scale <clusterId> <factor>
+            Rotation    // /cluster/rotation <clusterId> <angleDeg>
+        };
+
+        Type type = Type::Scale;
+        int clusterId = 0;       // Cluster ID (1-10)
+        float value = 0.0f;      // Scale factor or rotation angle (degrees)
+        bool valid = false;
+    };
+
     //==========================================================================
     // Message Routing
     //==========================================================================
@@ -132,6 +145,12 @@ public:
     static ParsedClusterMoveMessage parseClusterMoveMessage(const juce::OSCMessage& message);
 
     /**
+     * Parse a cluster scale/rotation message from remote.
+     * Handles /cluster/scale and /cluster/rotation addresses.
+     */
+    static ParsedClusterScaleRotationMessage parseClusterScaleRotationMessage(const juce::OSCMessage& message);
+
+    /**
      * Check if an address matches input, output, reverb, or config patterns.
      */
     static bool isInputAddress(const juce::String& address);
@@ -141,6 +160,7 @@ public:
     static bool isRemoteInputAddress(const juce::String& address);
     static bool isArrayAdjustAddress(const juce::String& address);
     static bool isClusterMoveAddress(const juce::String& address);
+    static bool isClusterScaleRotationAddress(const juce::String& address);
 
     //==========================================================================
     // Address Pattern Matching
