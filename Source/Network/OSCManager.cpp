@@ -4,6 +4,15 @@
 namespace WFSNetwork
 {
 
+// Helper: convert juce::var to float, handling both int and double types.
+// XML loading may store numeric values as int (e.g. "3" -> var(int)),
+// so var::isDouble() returns false even for valid numeric values.
+static float varToFloat (const juce::var& v, float defaultVal = 0.0f)
+{
+    if (v.isVoid()) return defaultVal;
+    return static_cast<float> (static_cast<double> (v));
+}
+
 //==============================================================================
 // Construction / Destruction
 //==============================================================================
@@ -771,8 +780,8 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
             juce::var posXVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionX);
             juce::var posYVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionY);
 
-            float posX = posXVar.isDouble() ? static_cast<float>(static_cast<double>(posXVar)) : 0.0f;
-            float posY = posYVar.isDouble() ? static_cast<float>(static_cast<double>(posYVar)) : 0.0f;
+            float posX = varToFloat(posXVar);
+            float posY = varToFloat(posYVar);
 
             // Send combined XY immediately - no buffering needed since we read both values
             sendInputPositionXYToRemote(channelId, posX, posY);
@@ -1086,9 +1095,9 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
                     juce::var yVar = state.getInputParameter(channelIndex, yId);
                     juce::var zVar = state.getInputParameter(channelIndex, zId);
 
-                    float x = xVar.isDouble() ? static_cast<float>(static_cast<double>(xVar)) : 0.0f;
-                    float y = yVar.isDouble() ? static_cast<float>(static_cast<double>(yVar)) : 0.0f;
-                    float z = zVar.isDouble() ? static_cast<float>(static_cast<double>(zVar)) : 0.0f;
+                    float x = varToFloat(xVar);
+                    float y = varToFloat(yVar);
+                    float z = varToFloat(zVar);
 
                     // Handle cylindrical coordinates (R, theta in XY plane, Z unchanged)
                     if (paramName == "positionR" || paramName == "offsetR")
@@ -1185,9 +1194,9 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
                     juce::var yVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputOtomoY);
                     juce::var zVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputOtomoZ);
 
-                    float x = xVar.isDouble() ? static_cast<float>(static_cast<double>(xVar)) : 0.0f;
-                    float y = yVar.isDouble() ? static_cast<float>(static_cast<double>(yVar)) : 0.0f;
-                    float z = zVar.isDouble() ? static_cast<float>(static_cast<double>(zVar)) : 0.0f;
+                    float x = varToFloat(xVar);
+                    float y = varToFloat(yVar);
+                    float z = varToFloat(zVar);
 
                     // Handle cylindrical coordinates (R, theta in XY plane, Z unchanged)
                     if (paramName == "otomoR")
@@ -1281,9 +1290,9 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
                         juce::var xVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionX);
                         juce::var yVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionY);
                         juce::var zVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionZ);
-                        float x = xVar.isDouble() ? static_cast<float>(static_cast<double>(xVar)) : 0.0f;
-                        float y = yVar.isDouble() ? static_cast<float>(static_cast<double>(yVar)) : 0.0f;
-                        float z = zVar.isDouble() ? static_cast<float>(static_cast<double>(zVar)) : 0.0f;
+                        float x = varToFloat(xVar);
+                        float y = varToFloat(yVar);
+                        float z = varToFloat(zVar);
 
                         // Update with new value being set
                         if (parsed.paramId == WFSParameterIDs::inputPositionX)
@@ -1514,9 +1523,7 @@ void OSCManager::handleRemoteParameterSet(const OSCMessageRouter::ParsedRemoteIn
                 parsed.paramId == WFSParameterIDs::inputPositionY ||
                 parsed.paramId == WFSParameterIDs::inputPositionZ)
             {
-                float floatValue = parsed.value.isDouble()
-                    ? static_cast<float>(static_cast<double>(parsed.value))
-                    : static_cast<float>(static_cast<int>(parsed.value));
+                float floatValue = varToFloat(parsed.value);
 
                 // Apply single-axis constraint
                 if (parsed.paramId == WFSParameterIDs::inputPositionX)
@@ -1539,9 +1546,9 @@ void OSCManager::handleRemoteParameterSet(const OSCMessageRouter::ParsedRemoteIn
                     juce::var xVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionX);
                     juce::var yVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionY);
                     juce::var zVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionZ);
-                    float x = xVar.isDouble() ? static_cast<float>(static_cast<double>(xVar)) : 0.0f;
-                    float y = yVar.isDouble() ? static_cast<float>(static_cast<double>(yVar)) : 0.0f;
-                    float z = zVar.isDouble() ? static_cast<float>(static_cast<double>(zVar)) : 0.0f;
+                    float x = varToFloat(xVar);
+                    float y = varToFloat(yVar);
+                    float z = varToFloat(zVar);
 
                     // Update with new value being set
                     if (parsed.paramId == WFSParameterIDs::inputPositionX)
@@ -1590,9 +1597,9 @@ void OSCManager::handleRemoteParameterSet(const OSCMessageRouter::ParsedRemoteIn
                         juce::var xVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionX);
                         juce::var yVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionY);
                         juce::var zVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionZ);
-                        float x = xVar.isDouble() ? static_cast<float>(static_cast<double>(xVar)) : 0.0f;
-                        float y = yVar.isDouble() ? static_cast<float>(static_cast<double>(yVar)) : 0.0f;
-                        float z = zVar.isDouble() ? static_cast<float>(static_cast<double>(zVar)) : 0.0f;
+                        float x = varToFloat(xVar);
+                        float y = varToFloat(yVar);
+                        float z = varToFloat(zVar);
                         onRemoteWaypointCapture(channelIndex, x, y, z);
                     }
                 }
@@ -1670,9 +1677,9 @@ void OSCManager::handleRemoteParameterDelta(const OSCMessageRouter::ParsedRemote
                     juce::var xVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionX);
                     juce::var yVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionY);
                     juce::var zVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionZ);
-                    float x = xVar.isDouble() ? static_cast<float>(static_cast<double>(xVar)) : 0.0f;
-                    float y = yVar.isDouble() ? static_cast<float>(static_cast<double>(yVar)) : 0.0f;
-                    float z = zVar.isDouble() ? static_cast<float>(static_cast<double>(zVar)) : 0.0f;
+                    float x = varToFloat(xVar);
+                    float y = varToFloat(yVar);
+                    float z = varToFloat(zVar);
 
                     // Update with new value being set
                     if (parsed.paramId == WFSParameterIDs::inputPositionX)
@@ -1721,9 +1728,9 @@ void OSCManager::handleRemoteParameterDelta(const OSCMessageRouter::ParsedRemote
                         juce::var xVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionX);
                         juce::var yVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionY);
                         juce::var zVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionZ);
-                        float x = xVar.isDouble() ? static_cast<float>(static_cast<double>(xVar)) : 0.0f;
-                        float y = yVar.isDouble() ? static_cast<float>(static_cast<double>(yVar)) : 0.0f;
-                        float z = zVar.isDouble() ? static_cast<float>(static_cast<double>(zVar)) : 0.0f;
+                        float x = varToFloat(xVar);
+                        float y = varToFloat(yVar);
+                        float z = varToFloat(zVar);
                         onRemoteWaypointCapture(channelIndex, x, y, z);
                     }
                 }
@@ -1770,7 +1777,7 @@ void OSCManager::handleRemotePositionXY(const OSCMessageRouter::ParsedRemoteInpu
 
             // Get current Z value for constraint calculations and waypoint capture
             juce::var zVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionZ);
-            float z = zVar.isDouble() ? static_cast<float>(static_cast<double>(zVar)) : 0.0f;
+            float z = varToFloat(zVar);
 
             if (distanceConstraintActive)
             {
@@ -1887,10 +1894,8 @@ void OSCManager::handleClusterMoveMessage(const juce::OSCMessage& message)
                 juce::var posXVar = state.getInputParameter(inputIndex, WFSParameterIDs::inputPositionX);
                 juce::var posYVar = state.getInputParameter(inputIndex, WFSParameterIDs::inputPositionY);
 
-                float currentX = posXVar.isDouble() ? static_cast<float>(static_cast<double>(posXVar)) :
-                                (posXVar.isInt() ? static_cast<float>(static_cast<int>(posXVar)) : 0.0f);
-                float currentY = posYVar.isDouble() ? static_cast<float>(static_cast<double>(posYVar)) :
-                                (posYVar.isInt() ? static_cast<float>(static_cast<int>(posYVar)) : 0.0f);
+                float currentX = varToFloat(posXVar);
+                float currentY = varToFloat(posYVar);
 
                 // Apply delta
                 float newX = currentX + parsed.deltaX;
@@ -1939,10 +1944,8 @@ void OSCManager::handleClusterScaleRotationMessage(const juce::OSCMessage& messa
                 juce::var posXVar = state.getInputParameter(inputIndex, WFSParameterIDs::inputPositionX);
                 juce::var posYVar = state.getInputParameter(inputIndex, WFSParameterIDs::inputPositionY);
 
-                float x = posXVar.isDouble() ? static_cast<float>(static_cast<double>(posXVar)) :
-                         (posXVar.isInt() ? static_cast<float>(static_cast<int>(posXVar)) : 0.0f);
-                float y = posYVar.isDouble() ? static_cast<float>(static_cast<double>(posYVar)) :
-                         (posYVar.isInt() ? static_cast<float>(static_cast<int>(posYVar)) : 0.0f);
+                float x = varToFloat(posXVar);
+                float y = varToFloat(posYVar);
 
                 sumX += x;
                 sumY += y;
@@ -1969,10 +1972,8 @@ void OSCManager::handleClusterScaleRotationMessage(const juce::OSCMessage& messa
                 juce::var posXVar = state.getInputParameter(inputIndex, WFSParameterIDs::inputPositionX);
                 juce::var posYVar = state.getInputParameter(inputIndex, WFSParameterIDs::inputPositionY);
 
-                float x = posXVar.isDouble() ? static_cast<float>(static_cast<double>(posXVar)) :
-                         (posXVar.isInt() ? static_cast<float>(static_cast<int>(posXVar)) : 0.0f);
-                float y = posYVar.isDouble() ? static_cast<float>(static_cast<double>(posYVar)) :
-                         (posYVar.isInt() ? static_cast<float>(static_cast<int>(posYVar)) : 0.0f);
+                float x = varToFloat(posXVar);
+                float y = varToFloat(posYVar);
 
                 // Scale offset from reference point
                 float newX = refX + (x - refX) * scaleFactor;
@@ -1995,10 +1996,8 @@ void OSCManager::handleClusterScaleRotationMessage(const juce::OSCMessage& messa
                 juce::var posXVar = state.getInputParameter(inputIndex, WFSParameterIDs::inputPositionX);
                 juce::var posYVar = state.getInputParameter(inputIndex, WFSParameterIDs::inputPositionY);
 
-                float x = posXVar.isDouble() ? static_cast<float>(static_cast<double>(posXVar)) :
-                         (posXVar.isInt() ? static_cast<float>(static_cast<int>(posXVar)) : 0.0f);
-                float y = posYVar.isDouble() ? static_cast<float>(static_cast<double>(posYVar)) :
-                         (posYVar.isInt() ? static_cast<float>(static_cast<int>(posYVar)) : 0.0f);
+                float x = varToFloat(posXVar);
+                float y = varToFloat(posYVar);
 
                 // Rotate around reference point (XY plane)
                 float dx = x - refX;
@@ -2253,7 +2252,7 @@ void OSCManager::sendStageConfigToRemote()
     float diameter = static_cast<float>(stageTree.getProperty(WFSParameterIDs::stageDiameter));
     float domeElev = static_cast<float>(stageTree.getProperty(WFSParameterIDs::domeElevation));
 
-    // Build messages (note: /inputs is sent separately in onRemoteConnected after positions)
+    // Build messages (note: /inputs is sent separately in onRemoteConnected before positions)
     std::vector<juce::OSCMessage> messages;
     messages.push_back(OSCMessageBuilder::buildConfigFloatMessage("/stage/originX", originX));
     messages.push_back(OSCMessageBuilder::buildConfigFloatMessage("/stage/originY", originY));
@@ -2264,7 +2263,7 @@ void OSCManager::sendStageConfigToRemote()
     messages.push_back(OSCMessageBuilder::buildConfigIntMessage("/stage/shape", shape));
     messages.push_back(OSCMessageBuilder::buildConfigFloatMessage("/stage/diameter", diameter));
     messages.push_back(OSCMessageBuilder::buildConfigFloatMessage("/stage/domeElevation", domeElev));
-    // Note: /inputs is now sent separately in onRemoteConnected() after positions
+    // Note: /inputs is sent separately in onRemoteConnected() before positions
 
     // Send to all Remote protocol targets that are connected
     for (int i = 0; i < MAX_TARGETS; ++i)
@@ -2493,8 +2492,8 @@ void OSCManager::applyConstraintDistance(int channelIndex, float& x, float& y, f
     // Get min/max distance values
     juce::var minDistVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputConstraintDistanceMin);
     juce::var maxDistVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputConstraintDistanceMax);
-    float minDist = minDistVar.isDouble() ? static_cast<float>(static_cast<double>(minDistVar)) : 0.0f;
-    float maxDist = maxDistVar.isDouble() ? static_cast<float>(static_cast<double>(maxDistVar)) : 50.0f;
+    float minDist = varToFloat(minDistVar, 0.0f);
+    float maxDist = varToFloat(maxDistVar, 50.0f);
 
     // Calculate current distance
     float currentDist;
@@ -2625,20 +2624,19 @@ void OSCManager::onRemoteConnected(int targetIndex, bool isReconnection)
 
         DBG("OSCManager: Sending initial state dump to target " << targetIndex);
 
-        // Send stage configuration (dimensions, shape, etc. - but not /inputs)
-        sendStageConfigToRemote();
-
-        // Send all input positions
-        sendAllInputPositionsToRemote(targetIndex);
-
-        // Send /inputs LAST so Android knows positions are complete
-        // This ensures hasServerPositionData check passes before grid layout is attempted
+        // Send /inputs FIRST so Android expands its data structure before receiving positions
         auto ioTree = state.getIOState();
         int inputs = ioTree.isValid()
             ? static_cast<int>(ioTree.getProperty(WFSParameterIDs::inputChannels))
             : 8;
         juce::OSCMessage inputsMsg = OSCMessageBuilder::buildConfigIntMessage("/inputs", inputs);
         sendMessage(targetIndex, inputsMsg);
+
+        // Send stage configuration (dimensions, shape, etc.)
+        sendStageConfigToRemote();
+
+        // Send all input positions
+        sendAllInputPositionsToRemote(targetIndex);
 
         // Send tracking state for all inputs
         sendAllTrackingStatesToRemote();
@@ -2663,6 +2661,29 @@ void OSCManager::onRemoteDisconnected(int targetIndex)
     // Optionally send disconnect message (best effort, may not arrive)
     juce::OSCMessage msg("/remote/disconnect");
     sendMessage(targetIndex, msg);
+}
+
+void OSCManager::resendStateToRemoteTargets()
+{
+    // Send /inputs first, then stage config, then positions to all connected Remote targets
+    auto ioTree = state.getIOState();
+    int inputs = ioTree.isValid()
+        ? static_cast<int>(ioTree.getProperty(WFSParameterIDs::inputChannels))
+        : 8;
+    juce::OSCMessage inputsMsg = OSCMessageBuilder::buildConfigIntMessage("/inputs", inputs);
+
+    for (int i = 0; i < MAX_TARGETS; ++i)
+    {
+        if (targetConfigs[static_cast<size_t>(i)].protocol == Protocol::Remote &&
+            remoteStates[static_cast<size_t>(i)].phase == RemoteConnectionState::Phase::Connected)
+        {
+            sendMessage(i, inputsMsg);
+            sendAllInputPositionsToRemote(i);
+        }
+    }
+
+    sendStageConfigToRemote();
+    sendAllTrackingStatesToRemote();
 }
 
 void OSCManager::sendAllInputPositionsToRemote(int targetIndex)
@@ -2714,9 +2735,11 @@ void OSCManager::sendAllInputPositionsToRemote(int targetIndex)
         juce::var posYVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionY);
         juce::var posZVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionZ);
 
-        float posX = posXVar.isDouble() ? static_cast<float>(static_cast<double>(posXVar)) : 0.0f;
-        float posY = posYVar.isDouble() ? static_cast<float>(static_cast<double>(posYVar)) : 0.0f;
-        float posZ = posZVar.isDouble() ? static_cast<float>(static_cast<double>(posZVar)) : 0.0f;
+        // Use var's built-in conversion which handles both int and double types
+        // (XML loading may store integer values like "3" as int, not double)
+        float posX = varToFloat(posXVar);
+        float posY = varToFloat(posYVar);
+        float posZ = varToFloat(posZVar);
 
         // Build and send position messages
         juce::OSCMessage msgX("/remoteInput/positionX");
@@ -2739,9 +2762,9 @@ void OSCManager::sendAllInputPositionsToRemote(int targetIndex)
         juce::var offYVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputOffsetY);
         juce::var offZVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputOffsetZ);
 
-        float offX = offXVar.isDouble() ? static_cast<float>(static_cast<double>(offXVar)) : 0.0f;
-        float offY = offYVar.isDouble() ? static_cast<float>(static_cast<double>(offYVar)) : 0.0f;
-        float offZ = offZVar.isDouble() ? static_cast<float>(static_cast<double>(offZVar)) : 0.0f;
+        float offX = varToFloat(offXVar);
+        float offY = varToFloat(offYVar);
+        float offZ = varToFloat(offZVar);
 
         juce::OSCMessage msgOffX("/remoteInput/offsetX");
         msgOffX.addInt32(channelId);

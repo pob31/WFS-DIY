@@ -1710,6 +1710,13 @@ bool WFSFileManager::applyInputsSection (const juce::ValueTree& inputsTree)
     if (existingInputs.isValid())
     {
         mergeTreeRecursive (existingInputs, inputsTree, valueTreeState.getUndoManager());
+
+        // Sync inputChannels count with actual number of input children.
+        // The inputs file may have more entries than the system config's inputChannels property,
+        // which was set earlier during loadSystemConfig.
+        int actualCount = existingInputs.getNumChildren();
+        valueTreeState.setNumInputChannels (actualCount);
+
         return true;
     }
     return false;
@@ -1721,6 +1728,11 @@ bool WFSFileManager::applyOutputsSection (const juce::ValueTree& outputsTree)
     if (existingOutputs.isValid())
     {
         mergeTreeRecursive (existingOutputs, outputsTree, valueTreeState.getUndoManager());
+
+        // Sync outputChannels count with actual number of output children
+        int actualCount = existingOutputs.getNumChildren();
+        valueTreeState.setNumOutputChannels (actualCount);
+
         return true;
     }
     return false;

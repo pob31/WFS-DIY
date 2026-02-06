@@ -136,6 +136,12 @@ public:
     int getRemoteSelectedChannel() const { return remoteSelectedChannel; }
 
     /**
+     * Resend full state to all connected REMOTE targets.
+     * Call after config reload to ensure Android clients have current data.
+     */
+    void resendStateToRemoteTargets();
+
+    /**
      * Send /findDevice command to all connected REMOTE targets.
      * Makes the remote device flash/buzz to help locate it.
      * @param password The password string (can be empty)

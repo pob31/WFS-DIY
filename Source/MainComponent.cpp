@@ -1157,7 +1157,13 @@ void MainComponent::handleConfigReloaded()
     // Flush all pending OSC messages immediately after loading
     // This ensures all parameter changes are broadcast to OSC targets
     if (oscManager != nullptr)
+    {
         oscManager->flushMessages();
+
+        // Resend full state to connected Remote (Android) targets
+        // Ensures input count, positions, and stage config are synchronized after reload
+        oscManager->resendStateToRemoteTargets();
+    }
 }
 
 void MainComponent::openAudioInterfaceWindow()
