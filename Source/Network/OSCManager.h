@@ -464,6 +464,12 @@ private:
     void sendAllTrackingStatesToRemote();
 
     /**
+     * Send cluster configurations (referenceMode, trackedInput) to a Remote target.
+     * Called during handshake and on config resend.
+     */
+    void sendAllClusterConfigsToRemote(int targetIndex);
+
+    /**
      * Send stage configuration to all connected Remote targets.
      * Sends origin, dimensions, and shape. Input count (/inputs) is sent separately.
      */

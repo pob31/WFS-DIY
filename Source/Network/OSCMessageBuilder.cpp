@@ -368,6 +368,20 @@ std::optional<juce::OSCMessage> OSCMessageBuilder::buildRemoteOutputMessage(
     return buildMessage(it->second.remotePath, channelId, value);
 }
 
+std::optional<juce::OSCMessage> OSCMessageBuilder::buildRemoteOutputIntMessage(
+    const juce::Identifier& paramId,
+    int channelId,
+    int value)
+{
+    const auto& mappings = getInputMappings();
+    auto it = mappings.find(paramId);
+
+    if (it == mappings.end())
+        return std::nullopt;
+
+    return buildIntMessage(it->second.remotePath, channelId, value);
+}
+
 std::optional<juce::OSCMessage> OSCMessageBuilder::buildRemoteOutputStringMessage(
     const juce::Identifier& paramId,
     int channelId,
@@ -400,6 +414,37 @@ std::vector<juce::OSCMessage> OSCMessageBuilder::buildRemoteChannelDump(
         if (it != mappings.end())
         {
             messages.push_back(buildMessage(it->second.remotePath, channelId, value));
+        }
+    }
+
+    return messages;
+}
+
+std::vector<juce::OSCMessage> OSCMessageBuilder::buildRemoteChannelDump(
+    int channelId,
+    const std::map<juce::Identifier, float>& floatParamValues,
+    const std::map<juce::Identifier, int>& intParamValues)
+{
+    std::vector<juce::OSCMessage> messages;
+    messages.reserve(floatParamValues.size() + intParamValues.size());
+
+    const auto& mappings = getInputMappings();
+
+    for (const auto& [paramId, value] : floatParamValues)
+    {
+        auto it = mappings.find(paramId);
+        if (it != mappings.end())
+        {
+            messages.push_back(buildMessage(it->second.remotePath, channelId, value));
+        }
+    }
+
+    for (const auto& [paramId, value] : intParamValues)
+    {
+        auto it = mappings.find(paramId);
+        if (it != mappings.end())
+        {
+            messages.push_back(buildIntMessage(it->second.remotePath, channelId, value));
         }
     }
 
@@ -486,6 +531,17 @@ juce::OSCMessage OSCMessageBuilder::buildMessage(
     juce::OSCMessage msg(address);
     msg.addInt32(channelId);
     msg.addFloat32(value);
+    return msg;
+}
+
+juce::OSCMessage OSCMessageBuilder::buildIntMessage(
+    const juce::String& address,
+    int channelId,
+    int value)
+{
+    juce::OSCMessage msg(address);
+    msg.addInt32(channelId);
+    msg.addInt32(value);
     return msg;
 }
 

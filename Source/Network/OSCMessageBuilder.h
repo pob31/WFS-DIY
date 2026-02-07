@@ -99,6 +99,15 @@ public:
         float value);
 
     /**
+     * Build a REMOTE protocol output message with integer value.
+     * Format: /remoteInput/{param} <channelID:i> <value:i>
+     */
+    static std::optional<juce::OSCMessage> buildRemoteOutputIntMessage(
+        const juce::Identifier& paramId,
+        int channelId,
+        int value);
+
+    /**
      * Build a REMOTE protocol output message with string value.
      * Format: /remoteInput/{param} <channelID> <value>
      */
@@ -114,6 +123,14 @@ public:
     static std::vector<juce::OSCMessage> buildRemoteChannelDump(
         int channelId,
         const std::map<juce::Identifier, float>& paramValues);
+
+    /**
+     * Build all REMOTE protocol messages for a channel (with separate int params).
+     */
+    static std::vector<juce::OSCMessage> buildRemoteChannelDump(
+        int channelId,
+        const std::map<juce::Identifier, float>& floatParamValues,
+        const std::map<juce::Identifier, int>& intParamValues);
 
     //==========================================================================
     // Path Queries
@@ -199,6 +216,11 @@ private:
         const juce::String& address,
         int channelId,
         float value);
+
+    static juce::OSCMessage buildIntMessage(
+        const juce::String& address,
+        int channelId,
+        int value);
 
     static juce::OSCMessage buildMessage(
         const juce::String& address,

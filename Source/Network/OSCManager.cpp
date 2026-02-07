@@ -641,6 +641,28 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
         return;  // Don't process as channel parameter
     }
 
+    // Handle clusterReferenceMode change - broadcast to all connected Remote targets
+    if (property == WFSParameterIDs::clusterReferenceMode)
+    {
+        // Get cluster index from the parent Cluster tree node's id property
+        int clusterId = static_cast<int>(tree.getProperty(WFSParameterIDs::id));
+        int refMode = static_cast<int>(tree.getProperty(property));
+
+        juce::OSCMessage msg("/cluster/referenceMode");
+        msg.addInt32(clusterId);
+        msg.addInt32(refMode);
+
+        for (int i = 0; i < MAX_TARGETS; ++i)
+        {
+            if (targetConfigs[static_cast<size_t>(i)].protocol == Protocol::Remote &&
+                remoteStates[static_cast<size_t>(i)].phase == RemoteConnectionState::Phase::Connected)
+            {
+                sendMessage(i, msg);
+            }
+        }
+        return;  // Don't process as channel parameter
+    }
+
     // Determine if this is an input or output parameter change
     juce::String typeName = tree.getType().toString();
     juce::var value = tree.getProperty(property);
@@ -715,6 +737,7 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
                 bool isPositionXY = (property == WFSParameterIDs::inputPositionX ||
                                      property == WFSParameterIDs::inputPositionY);
                 bool isPositionZ = (property == WFSParameterIDs::inputPositionZ);
+                bool isCluster = (property == WFSParameterIDs::inputCluster);
 
                 if (isPositionXY)
                 {
@@ -722,14 +745,20 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
                     // (we only need to buffer once, not per-target)
                     break;  // Exit target loop - buffering handled below
                 }
-                else if (isPositionZ || channelId == remoteSelectedChannel)
+                else if (isPositionZ || isCluster || channelId == remoteSelectedChannel)
                 {
                     // Z position or selected channel params: send immediately
                     bool isNumeric = value.isDouble() || value.isInt() || value.isInt64();
                     if (isNumeric)
                     {
-                        auto msg = OSCMessageBuilder::buildRemoteOutputMessage(
-                            property, channelId, static_cast<float>(static_cast<double>(value)));
+                        // Use int message for integer-typed values (e.g., cluster)
+                        std::optional<juce::OSCMessage> msg;
+                        if (value.isInt() || value.isInt64())
+                            msg = OSCMessageBuilder::buildRemoteOutputIntMessage(
+                                property, channelId, static_cast<int>(value));
+                        else
+                            msg = OSCMessageBuilder::buildRemoteOutputMessage(
+                                property, channelId, static_cast<float>(static_cast<double>(value)));
 
                         if (msg.has_value())
                         {
@@ -1876,6 +1905,9 @@ void OSCManager::handleClusterMoveMessage(const juce::OSCMessage& message)
         // Get number of configured input channels
         int numInputs = state.getIntParameter(WFSParameterIDs::inputChannels);
 
+        // Collect updated positions to echo back to Remote after processing
+        std::vector<std::tuple<int, float, float>> updatedPositions;
+
         // Both ClusterMove and BarycenterMove result in moving all cluster members by delta
         // For ClusterMove (First Input mode): all inputs move by delta
         // For BarycenterMove (Barycenter mode): all inputs move by delta (to shift barycenter)
@@ -1904,10 +1936,17 @@ void OSCManager::handleClusterMoveMessage(const juce::OSCMessage& message)
                 // Set new position
                 state.setInputParameter(inputIndex, WFSParameterIDs::inputPositionX, newX);
                 state.setInputParameter(inputIndex, WFSParameterIDs::inputPositionY, newY);
+
+                // 1-based channelId for OSC
+                updatedPositions.emplace_back(inputIndex + 1, newX, newY);
             }
         }
 
         incomingProtocol = Protocol::Disabled;  // Clear flag
+
+        // Echo updated positions back to Remote targets so Android sees all members move
+        for (const auto& [channelId, x, y] : updatedPositions)
+            sendInputPositionXYToRemote(channelId, x, y);
     });
 }
 
@@ -1962,6 +2001,9 @@ void OSCManager::handleClusterScaleRotationMessage(const juce::OSCMessage& messa
         float refX = sumX / static_cast<float>(clusterInputs.size());
         float refY = sumY / static_cast<float>(clusterInputs.size());
 
+        // Collect updated positions to echo back to Remote after processing
+        std::vector<std::tuple<int, float, float>> updatedPositions;
+
         if (parsed.type == OSCMessageRouter::ParsedClusterScaleRotationMessage::Type::Scale)
         {
             // Apply uniform scale around reference point
@@ -1981,6 +2023,8 @@ void OSCManager::handleClusterScaleRotationMessage(const juce::OSCMessage& messa
 
                 state.setInputParameter(inputIndex, WFSParameterIDs::inputPositionX, newX);
                 state.setInputParameter(inputIndex, WFSParameterIDs::inputPositionY, newY);
+
+                updatedPositions.emplace_back(inputIndex + 1, newX, newY);
             }
         }
         else // Rotation
@@ -2007,10 +2051,16 @@ void OSCManager::handleClusterScaleRotationMessage(const juce::OSCMessage& messa
 
                 state.setInputParameter(inputIndex, WFSParameterIDs::inputPositionX, newX);
                 state.setInputParameter(inputIndex, WFSParameterIDs::inputPositionY, newY);
+
+                updatedPositions.emplace_back(inputIndex + 1, newX, newY);
             }
         }
 
         incomingProtocol = Protocol::Disabled;  // Clear flag
+
+        // Echo updated positions back to Remote targets so Android sees all members move
+        for (const auto& [channelId, x, y] : updatedPositions)
+            sendInputPositionXYToRemote(channelId, x, y);
     });
 }
 
@@ -2036,6 +2086,22 @@ void OSCManager::sendRemoteChannelDump(int channelId)
     // Collect all input parameters for this channel
     std::map<juce::Identifier, float> paramValues;
 
+    // Helper lambda to get an integer parameter value (uses 0-based channelIndex)
+    auto getIntParam = [this, channelIndex](const juce::Identifier& paramId) -> int {
+        juce::var val = state.getInputParameter(channelIndex, paramId);
+        if (val.isInt())
+            return static_cast<int>(val);
+        if (val.isDouble())
+            return static_cast<int>(static_cast<double>(val));
+        if (val.isBool())
+            return static_cast<bool>(val) ? 1 : 0;
+        return 0;
+    };
+
+    // Integer parameters - sent with ,ii type tag
+    std::map<juce::Identifier, int> intParamValues;
+    intParamValues[WFSParameterIDs::inputCluster] = getIntParam(WFSParameterIDs::inputCluster);
+
     // Channel parameters
     paramValues[WFSParameterIDs::inputAttenuation] = getParam(WFSParameterIDs::inputAttenuation);
     paramValues[WFSParameterIDs::inputDelayLatency] = getParam(WFSParameterIDs::inputDelayLatency);
@@ -2048,7 +2114,6 @@ void OSCManager::sendRemoteChannelDump(int channelId)
     paramValues[WFSParameterIDs::inputOffsetX] = getParam(WFSParameterIDs::inputOffsetX);
     paramValues[WFSParameterIDs::inputOffsetY] = getParam(WFSParameterIDs::inputOffsetY);
     paramValues[WFSParameterIDs::inputOffsetZ] = getParam(WFSParameterIDs::inputOffsetZ);
-    paramValues[WFSParameterIDs::inputCluster] = getParam(WFSParameterIDs::inputCluster);
     paramValues[WFSParameterIDs::inputMaxSpeedActive] = getParam(WFSParameterIDs::inputMaxSpeedActive);
     paramValues[WFSParameterIDs::inputMaxSpeed] = getParam(WFSParameterIDs::inputMaxSpeed);
     paramValues[WFSParameterIDs::inputPathModeActive] = getParam(WFSParameterIDs::inputPathModeActive);
@@ -2115,8 +2180,8 @@ void OSCManager::sendRemoteChannelDump(int channelId)
     // Tracking (read-only on Remote side)
     paramValues[WFSParameterIDs::inputTrackingActive] = getParam(WFSParameterIDs::inputTrackingActive);
 
-    // Build and send messages
-    auto messages = OSCMessageBuilder::buildRemoteChannelDump(channelId, paramValues);
+    // Build and send messages (float params as ,if, int params as ,ii)
+    auto messages = OSCMessageBuilder::buildRemoteChannelDump(channelId, paramValues, intParamValues);
 
     for (int i = 0; i < MAX_TARGETS; ++i)
     {
@@ -2233,6 +2298,64 @@ void OSCManager::sendAllTrackingStatesToRemote()
             }
         }
     }
+}
+
+void OSCManager::sendAllClusterConfigsToRemote(int targetIndex)
+{
+    using namespace WFSParameterIDs;
+    using namespace WFSParameterDefaults;
+
+    if (targetIndex < 0 || targetIndex >= MAX_TARGETS)
+        return;
+
+    const auto& config = targetConfigs[static_cast<size_t>(targetIndex)];
+    if (!connections[static_cast<size_t>(targetIndex)])
+        return;
+
+    auto sendDirect = [this, targetIndex, &config](const juce::OSCMessage& msg)
+    {
+        if (connections[static_cast<size_t>(targetIndex)]->send(msg))
+        {
+            ++messagesSent;
+            logger.logSentWithDetails(targetIndex, msg, config.protocol,
+                                      config.ipAddress, config.port, config.mode);
+        }
+    };
+
+    int numInputs = state.getIntParameter(inputChannels);
+
+    for (int c = 1; c <= maxClusters; ++c)
+    {
+        // Send reference mode (getClusterParameter takes 1-based cluster ID)
+        juce::var refModeVar = state.getClusterParameter(c, clusterReferenceMode);
+        int refMode = refModeVar.isVoid() ? 0 : static_cast<int>(refModeVar);
+
+        juce::OSCMessage msgRefMode("/cluster/referenceMode");
+        msgRefMode.addInt32(c);
+        msgRefMode.addInt32(refMode);
+        sendDirect(msgRefMode);
+
+        // Find tracked input for this cluster (first fully-tracked input in the cluster)
+        int trackedInputId = 0;
+        for (int i = 0; i < numInputs; ++i)
+        {
+            juce::var clusterVar = state.getInputParameter(i, inputCluster);
+            int inputClusterIdx = clusterVar.isVoid() ? 0 : static_cast<int>(clusterVar);
+
+            if (inputClusterIdx == c && isInputFullyTracked(i))
+            {
+                trackedInputId = i + 1;  // 1-based
+                break;
+            }
+        }
+
+        juce::OSCMessage msgTracked("/cluster/trackedInput");
+        msgTracked.addInt32(c);
+        msgTracked.addInt32(trackedInputId);
+        sendDirect(msgTracked);
+    }
+
+    DBG("OSCManager: Sent cluster configs for " << maxClusters << " clusters to target " << targetIndex);
 }
 
 void OSCManager::sendStageConfigToRemote()
@@ -2635,7 +2758,11 @@ void OSCManager::onRemoteConnected(int targetIndex, bool isReconnection)
         // Send stage configuration (dimensions, shape, etc.)
         sendStageConfigToRemote();
 
-        // Send all input positions
+        // Send cluster configs BEFORE input positions so Android knows
+        // the reference mode before receiving cluster assignments
+        sendAllClusterConfigsToRemote(targetIndex);
+
+        // Send all input positions (includes cluster assignments)
         sendAllInputPositionsToRemote(targetIndex);
 
         // Send tracking state for all inputs
@@ -2678,6 +2805,8 @@ void OSCManager::resendStateToRemoteTargets()
             remoteStates[static_cast<size_t>(i)].phase == RemoteConnectionState::Phase::Connected)
         {
             sendMessage(i, inputsMsg);
+            // Send cluster configs BEFORE positions so Android knows reference modes
+            sendAllClusterConfigsToRemote(i);
             sendAllInputPositionsToRemote(i);
         }
     }
@@ -2780,9 +2909,17 @@ void OSCManager::sendAllInputPositionsToRemote(int targetIndex)
         msgOffZ.addInt32(channelId);
         msgOffZ.addFloat32(offZ);
         sendDirect(msgOffZ);
+
+        // Get and send cluster assignment as int
+        juce::var clusterVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputCluster);
+        int clusterValue = clusterVar.isVoid() ? 0 : static_cast<int>(clusterVar);
+        juce::OSCMessage msgCluster("/remoteInput/cluster");
+        msgCluster.addInt32(channelId);
+        msgCluster.addInt32(clusterValue);
+        sendDirect(msgCluster);
     }
 
-    DBG("OSCManager: Sent names, positions and offsets for " << numInputs << " inputs to target " << targetIndex);
+    DBG("OSCManager: Sent names, positions, offsets and clusters for " << numInputs << " inputs to target " << targetIndex);
 }
 
 int OSCManager::findRemoteTargetByIP(const juce::String& senderIP) const
