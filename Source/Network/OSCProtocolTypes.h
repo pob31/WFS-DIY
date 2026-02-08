@@ -134,6 +134,43 @@ namespace OSCPaths
     constexpr const char* CONFIG_STAGE_ORIGIN_Y = "/wfs/config/stage/originY";
     constexpr const char* CONFIG_STAGE_ORIGIN_Z = "/wfs/config/stage/originZ";
 
+    // Config/Reverb Algorithm paths (global parameters, no channel ID)
+    constexpr const char* CONFIG_REVERB_ALGO_TYPE      = "/wfs/config/reverb/algoType";
+    constexpr const char* CONFIG_REVERB_RT60            = "/wfs/config/reverb/rt60";
+    constexpr const char* CONFIG_REVERB_RT60_LOW_MULT   = "/wfs/config/reverb/rt60LowMult";
+    constexpr const char* CONFIG_REVERB_RT60_HIGH_MULT  = "/wfs/config/reverb/rt60HighMult";
+    constexpr const char* CONFIG_REVERB_CROSSOVER_LOW   = "/wfs/config/reverb/crossoverLow";
+    constexpr const char* CONFIG_REVERB_CROSSOVER_HIGH  = "/wfs/config/reverb/crossoverHigh";
+    constexpr const char* CONFIG_REVERB_DIFFUSION       = "/wfs/config/reverb/diffusion";
+    constexpr const char* CONFIG_REVERB_SDN_SCALE       = "/wfs/config/reverb/sdnScale";
+    constexpr const char* CONFIG_REVERB_FDN_SIZE        = "/wfs/config/reverb/fdnSize";
+    constexpr const char* CONFIG_REVERB_IR_TRIM         = "/wfs/config/reverb/irTrim";
+    constexpr const char* CONFIG_REVERB_IR_LENGTH       = "/wfs/config/reverb/irLength";
+    constexpr const char* CONFIG_REVERB_PER_NODE_IR     = "/wfs/config/reverb/perNodeIR";
+    constexpr const char* CONFIG_REVERB_WET_LEVEL       = "/wfs/config/reverb/wetLevel";
+
+    // Config/Reverb Pre-Compressor paths (global parameters, no channel ID)
+    constexpr const char* CONFIG_REVERB_PRE_COMP_BYPASS    = "/wfs/config/reverb/preCompBypass";
+    constexpr const char* CONFIG_REVERB_PRE_COMP_THRESHOLD = "/wfs/config/reverb/preCompThreshold";
+    constexpr const char* CONFIG_REVERB_PRE_COMP_RATIO     = "/wfs/config/reverb/preCompRatio";
+    constexpr const char* CONFIG_REVERB_PRE_COMP_ATTACK    = "/wfs/config/reverb/preCompAttack";
+    constexpr const char* CONFIG_REVERB_PRE_COMP_RELEASE   = "/wfs/config/reverb/preCompRelease";
+
+    // Config/Reverb Post-Processing EQ paths (global parameters, no channel ID)
+    constexpr const char* CONFIG_REVERB_POST_EQ_ENABLE = "/wfs/config/reverb/postEQenable";
+    constexpr const char* CONFIG_REVERB_POST_EQ_SHAPE  = "/wfs/config/reverb/postEQshape";
+    constexpr const char* CONFIG_REVERB_POST_EQ_FREQ   = "/wfs/config/reverb/postEQfreq";
+    constexpr const char* CONFIG_REVERB_POST_EQ_GAIN   = "/wfs/config/reverb/postEQgain";
+    constexpr const char* CONFIG_REVERB_POST_EQ_Q      = "/wfs/config/reverb/postEQq";
+    constexpr const char* CONFIG_REVERB_POST_EQ_SLOPE  = "/wfs/config/reverb/postEQslope";
+
+    // Config/Reverb Post-Expander paths (global parameters, no channel ID)
+    constexpr const char* CONFIG_REVERB_POST_EXP_BYPASS    = "/wfs/config/reverb/postExpBypass";
+    constexpr const char* CONFIG_REVERB_POST_EXP_THRESHOLD = "/wfs/config/reverb/postExpThreshold";
+    constexpr const char* CONFIG_REVERB_POST_EXP_RATIO     = "/wfs/config/reverb/postExpRatio";
+    constexpr const char* CONFIG_REVERB_POST_EXP_ATTACK    = "/wfs/config/reverb/postExpAttack";
+    constexpr const char* CONFIG_REVERB_POST_EXP_RELEASE   = "/wfs/config/reverb/postExpRelease";
+
     // REMOTE protocol paths
     constexpr const char* REMOTE_INPUT_PREFIX = "/remoteInput/";
     constexpr const char* REMOTE_OUTPUT_PREFIX = "/remoteOutput/";

@@ -413,13 +413,13 @@ namespace WFSParameterIDs
     const juce::Identifier reverbLSenable        ("reverbLSenable");
     const juce::Identifier reverbDistanceAttenEnable ("reverbDistanceAttenEnable");
 
-    // Reverb > EQ (4 bands)
-    const juce::Identifier reverbEQenable        ("reverbEQenable");
-    const juce::Identifier reverbEQshape         ("reverbEQshape");
-    const juce::Identifier reverbEQfreq          ("reverbEQfreq");
-    const juce::Identifier reverbEQgain          ("reverbEQgain");
-    const juce::Identifier reverbEQq             ("reverbEQq");
-    const juce::Identifier reverbEQslope         ("reverbEQslope");
+    // Reverb > Pre-Processing EQ (4 bands, per-channel)
+    const juce::Identifier reverbPreEQenable     ("reverbPreEQenable");
+    const juce::Identifier reverbPreEQshape      ("reverbPreEQshape");
+    const juce::Identifier reverbPreEQfreq       ("reverbPreEQfreq");
+    const juce::Identifier reverbPreEQgain       ("reverbPreEQgain");
+    const juce::Identifier reverbPreEQq          ("reverbPreEQq");
+    const juce::Identifier reverbPreEQslope      ("reverbPreEQslope");
 
     // Reverb > Return
     const juce::Identifier reverbDistanceAttenuation ("reverbDistanceAttenuation");
@@ -429,5 +429,48 @@ namespace WFSParameterIDs
 
     // Reverb > Map Display (global toggle in Config section)
     const juce::Identifier reverbsMapVisible     ("reverbsMapVisible");
+
+    // Reverb > Algorithm (global, stored as child of Reverbs node)
+    const juce::Identifier ReverbAlgorithm       ("ReverbAlgorithm");
+    const juce::Identifier reverbAlgoType        ("reverbAlgoType");       // 0=SDN, 1=FDN, 2=IR
+    const juce::Identifier reverbRT60            ("reverbRT60");           // seconds
+    const juce::Identifier reverbRT60LowMult     ("reverbRT60LowMult");   // multiplier
+    const juce::Identifier reverbRT60HighMult    ("reverbRT60HighMult");  // multiplier
+    const juce::Identifier reverbCrossoverLow    ("reverbCrossoverLow");  // Hz
+    const juce::Identifier reverbCrossoverHigh   ("reverbCrossoverHigh"); // Hz
+    const juce::Identifier reverbDiffusion       ("reverbDiffusion");     // 0.0-1.0
+    const juce::Identifier reverbSDNscale        ("reverbSDNscale");      // SDN inter-node delay multiplier
+    const juce::Identifier reverbFDNsize         ("reverbFDNsize");       // FDN delay line multiplier
+    const juce::Identifier reverbIRfile          ("reverbIRfile");        // file path string
+    const juce::Identifier reverbIRtrim          ("reverbIRtrim");        // ms
+    const juce::Identifier reverbIRlength        ("reverbIRlength");      // seconds
+    const juce::Identifier reverbPerNodeIR       ("reverbPerNodeIR");     // 0/1
+    const juce::Identifier reverbWetLevel        ("reverbWetLevel");      // dB
+
+    // Reverb > Pre-Processing Compressor (global, stored as child of Reverbs node)
+    const juce::Identifier ReverbPreComp         ("ReverbPreComp");
+    const juce::Identifier reverbPreCompBypass   ("reverbPreCompBypass");     // 0=active, 1=bypassed
+    const juce::Identifier reverbPreCompThreshold("reverbPreCompThreshold");  // dB
+    const juce::Identifier reverbPreCompRatio    ("reverbPreCompRatio");      // ratio :1
+    const juce::Identifier reverbPreCompAttack   ("reverbPreCompAttack");     // ms
+    const juce::Identifier reverbPreCompRelease  ("reverbPreCompRelease");    // ms
+
+    // Reverb > Post-Processing EQ (global, stored as child of Reverbs node)
+    const juce::Identifier ReverbPostEQ          ("ReverbPostEQ");
+    const juce::Identifier PostEQBand            ("PostEQBand");
+    const juce::Identifier reverbPostEQenable    ("reverbPostEQenable");
+    const juce::Identifier reverbPostEQshape     ("reverbPostEQshape");
+    const juce::Identifier reverbPostEQfreq      ("reverbPostEQfreq");
+    const juce::Identifier reverbPostEQgain      ("reverbPostEQgain");
+    const juce::Identifier reverbPostEQq         ("reverbPostEQq");
+    const juce::Identifier reverbPostEQslope     ("reverbPostEQslope");
+
+    // Reverb > Post-Processing Expander (global, stored as child of Reverbs node)
+    const juce::Identifier ReverbPostExp         ("ReverbPostExp");
+    const juce::Identifier reverbPostExpBypass   ("reverbPostExpBypass");     // 0=active, 1=bypassed
+    const juce::Identifier reverbPostExpThreshold("reverbPostExpThreshold");  // dB
+    const juce::Identifier reverbPostExpRatio    ("reverbPostExpRatio");      // ratio 1:N
+    const juce::Identifier reverbPostExpAttack   ("reverbPostExpAttack");     // ms
+    const juce::Identifier reverbPostExpRelease  ("reverbPostExpRelease");    // ms
 
 } // namespace WFSParameterIDs

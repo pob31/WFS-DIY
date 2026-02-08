@@ -54,15 +54,28 @@ struct EQDisplayConfig
         return config;
     }
 
-    static EQDisplayConfig forReverbEQ()
+    static EQDisplayConfig forReverbPreEQ()
     {
         EQDisplayConfig config;
-        config.shapeId = WFSParameterIDs::reverbEQshape;
-        config.frequencyId = WFSParameterIDs::reverbEQfreq;
-        config.gainId = WFSParameterIDs::reverbEQgain;
-        config.qId = WFSParameterIDs::reverbEQq;
-        config.qMin = WFSParameterDefaults::reverbEQqMin;
-        config.qMax = WFSParameterDefaults::reverbEQqMax;
+        config.shapeId = WFSParameterIDs::reverbPreEQshape;
+        config.frequencyId = WFSParameterIDs::reverbPreEQfreq;
+        config.gainId = WFSParameterIDs::reverbPreEQgain;
+        config.qId = WFSParameterIDs::reverbPreEQq;
+        config.qMin = WFSParameterDefaults::reverbPreEQqMin;
+        config.qMax = WFSParameterDefaults::reverbPreEQqMax;
+        config.hasBandPass = false;
+        return config;
+    }
+
+    static EQDisplayConfig forReverbPostEQ()
+    {
+        EQDisplayConfig config;
+        config.shapeId = WFSParameterIDs::reverbPostEQshape;
+        config.frequencyId = WFSParameterIDs::reverbPostEQfreq;
+        config.gainId = WFSParameterIDs::reverbPostEQgain;
+        config.qId = WFSParameterIDs::reverbPostEQq;
+        config.qMin = WFSParameterDefaults::reverbPostEQqMin;
+        config.qMax = WFSParameterDefaults::reverbPostEQqMax;
         config.hasBandPass = false;
         return config;
     }

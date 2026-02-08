@@ -20,7 +20,7 @@ namespace WFSParameterDefaults
     constexpr int maxNetworkTargets    = 6;
     constexpr int maxClusters          = 10;
     constexpr int numEQBands           = 6;
-    constexpr int numReverbEQBands     = 4;
+    constexpr int numReverbPreEQBands  = 4;
 
     //==========================================================================
     // Config > Show Section
@@ -638,32 +638,32 @@ namespace WFSParameterDefaults
     constexpr int reverbDistanceAttenEnableMin   = 0;
     constexpr int reverbDistanceAttenEnableMax   = 200;
 
-    // Reverb > EQ (4 bands)
-    constexpr int reverbEQenableDefault          = 1;   // 0=EQ OFF, 1=EQ ON
+    // Reverb > Pre-Processing EQ (4 bands, per-channel)
+    constexpr int reverbPreEQenableDefault       = 1;   // 0=EQ OFF, 1=EQ ON
 
-    constexpr int reverbEQshapeDefault           = 0;   // 0=OFF, 1=LowCut, 2=LowShelf, 3=Peak/Notch, 4=HighShelf, 5=HighCut
-    constexpr int reverbEQshapeMin               = 0;
-    constexpr int reverbEQshapeMax               = 5;
+    constexpr int reverbPreEQshapeDefault        = 0;   // 0=OFF, 1=LowCut, 2=LowShelf, 3=Peak/Notch, 4=HighShelf, 5=HighCut
+    constexpr int reverbPreEQshapeMin            = 0;
+    constexpr int reverbPreEQshapeMax            = 5;
 
-    constexpr int reverbEQfreqDefault            = 1000;
-    constexpr int reverbEQfreqMin                = 20;
-    constexpr int reverbEQfreqMax                = 20000;
+    constexpr int reverbPreEQfreqDefault         = 1000;
+    constexpr int reverbPreEQfreqMin             = 20;
+    constexpr int reverbPreEQfreqMax             = 20000;
 
-    constexpr float reverbEQgainDefault          = 0.0f;
-    constexpr float reverbEQgainMin              = -24.0f;
-    constexpr float reverbEQgainMax              = 24.0f;
+    constexpr float reverbPreEQgainDefault       = 0.0f;
+    constexpr float reverbPreEQgainMin           = -24.0f;
+    constexpr float reverbPreEQgainMax           = 24.0f;
 
-    constexpr float reverbEQqDefault             = 0.7f;
-    constexpr float reverbEQqMin                 = 0.1f;
-    constexpr float reverbEQqMax                 = 20.0f;
+    constexpr float reverbPreEQqDefault          = 0.7f;
+    constexpr float reverbPreEQqMin              = 0.1f;
+    constexpr float reverbPreEQqMax              = 20.0f;
 
-    constexpr float reverbEQslopeDefault         = 0.7f;
-    constexpr float reverbEQslopeMin             = 0.1f;
-    constexpr float reverbEQslopeMax             = 20.0f;
+    constexpr float reverbPreEQslopeDefault      = 0.7f;
+    constexpr float reverbPreEQslopeMin          = 0.1f;
+    constexpr float reverbPreEQslopeMax          = 20.0f;
 
-    // Default EQ band frequencies for reverb (4 bands)
-    inline const int reverbEQBandFrequencies[4] = { 200, 800, 2000, 5000 };
-    inline const int reverbEQBandShapes[4] = { 0, 0, 0, 0 };  // All OFF by default
+    // Default EQ band frequencies for reverb pre-processing (4 bands)
+    inline const int reverbPreEQBandFrequencies[4] = { 200, 800, 2000, 5000 };
+    inline const int reverbPreEQBandShapes[4] = { 0, 0, 0, 0 };  // All OFF by default
 
     // Reverb > Return
     constexpr float reverbDistanceAttenuationDefault = -0.7f;
@@ -675,5 +675,127 @@ namespace WFSParameterDefaults
     constexpr int reverbCommonAttenMax           = 100;
 
     constexpr int reverbMuteMacroDefault         = 0;   // 0=Mute Macro Select (no action)
+
+    //==========================================================================
+    // Reverb Algorithm Defaults (global, not per-channel)
+    //==========================================================================
+
+    constexpr int reverbAlgoTypeDefault            = 0;       // 0=SDN, 1=FDN, 2=IR
+    constexpr int reverbAlgoTypeMin                = 0;
+    constexpr int reverbAlgoTypeMax                = 2;
+
+    constexpr float reverbRT60Default              = 1.5f;    // seconds
+    constexpr float reverbRT60Min                  = 0.2f;
+    constexpr float reverbRT60Max                  = 8.0f;
+
+    constexpr float reverbRT60LowMultDefault       = 1.3f;    // multiplier
+    constexpr float reverbRT60LowMultMin           = 0.1f;
+    constexpr float reverbRT60LowMultMax           = 9.0f;
+
+    constexpr float reverbRT60HighMultDefault      = 0.5f;    // multiplier
+    constexpr float reverbRT60HighMultMin          = 0.1f;
+    constexpr float reverbRT60HighMultMax          = 9.0f;
+
+    constexpr float reverbCrossoverLowDefault      = 200.0f;  // Hz
+    constexpr float reverbCrossoverLowMin          = 50.0f;
+    constexpr float reverbCrossoverLowMax          = 500.0f;
+
+    constexpr float reverbCrossoverHighDefault     = 4000.0f; // Hz
+    constexpr float reverbCrossoverHighMin         = 1000.0f;
+    constexpr float reverbCrossoverHighMax         = 10000.0f;
+
+    constexpr float reverbDiffusionDefault         = 0.5f;
+    constexpr float reverbDiffusionMin             = 0.0f;
+    constexpr float reverbDiffusionMax             = 1.0f;
+
+    constexpr float reverbSDNscaleDefault          = 1.0f;
+    constexpr float reverbSDNscaleMin              = 0.5f;
+    constexpr float reverbSDNscaleMax              = 4.0f;
+
+    constexpr float reverbFDNsizeDefault           = 1.0f;
+    constexpr float reverbFDNsizeMin               = 0.5f;
+    constexpr float reverbFDNsizeMax               = 2.0f;
+
+    constexpr float reverbIRtrimDefault            = 0.0f;    // ms
+    constexpr float reverbIRtrimMin                = 0.0f;
+    constexpr float reverbIRtrimMax                = 100.0f;
+
+    constexpr float reverbIRlengthDefault          = 6.0f;    // seconds (full)
+    constexpr float reverbIRlengthMin              = 0.1f;
+    constexpr float reverbIRlengthMax              = 6.0f;
+
+    constexpr int reverbPerNodeIRDefault           = 0;       // 0=OFF, 1=ON
+
+    constexpr float reverbWetLevelDefault          = 0.0f;    // dB
+    constexpr float reverbWetLevelMin              = -60.0f;  // effectively -inf
+    constexpr float reverbWetLevelMax              = 12.0f;
+
+    //==========================================================================
+    // Reverb Post-Processing EQ Defaults (global, not per-channel)
+    //==========================================================================
+
+    constexpr int numReverbPostEQBands     = 4;
+
+    constexpr int reverbPostEQenableDefault        = 1;       // 0=EQ OFF, 1=EQ ON
+
+    constexpr int reverbPostEQshapeDefault         = 0;       // 0=OFF, 1=LowCut, 2=LowShelf, 3=Peak/Notch, 4=HighShelf, 5=HighCut
+    constexpr int reverbPostEQshapeMin             = 0;
+    constexpr int reverbPostEQshapeMax             = 5;
+
+    constexpr int reverbPostEQfreqDefault          = 1000;
+    constexpr int reverbPostEQfreqMin              = 20;
+    constexpr int reverbPostEQfreqMax              = 20000;
+
+    constexpr float reverbPostEQgainDefault        = 0.0f;
+    constexpr float reverbPostEQgainMin            = -24.0f;
+    constexpr float reverbPostEQgainMax            = 24.0f;
+
+    constexpr float reverbPostEQqDefault           = 0.7f;
+    constexpr float reverbPostEQqMin               = 0.1f;
+    constexpr float reverbPostEQqMax               = 20.0f;
+
+    constexpr float reverbPostEQslopeDefault       = 0.7f;
+    constexpr float reverbPostEQslopeMin           = 0.1f;
+    constexpr float reverbPostEQslopeMax           = 20.0f;
+
+    // Default Post-EQ band frequencies (4 bands)
+    inline const int reverbPostEQBandFrequencies[4] = { 200, 800, 2000, 5000 };
+    inline const int reverbPostEQBandShapes[4] = { 0, 0, 0, 0 };  // All OFF by default
+
+    //==========================================================================
+    // Reverb Pre-Compressor Defaults (global, not per-channel)
+    //==========================================================================
+
+    constexpr int reverbPreCompBypassDefault       = 1;       // 1=bypassed (off), 0=active
+    constexpr float reverbPreCompThresholdDefault   = -12.0f;  // dB
+    constexpr float reverbPreCompThresholdMin       = -60.0f;
+    constexpr float reverbPreCompThresholdMax       = 0.0f;
+    constexpr float reverbPreCompRatioDefault       = 2.0f;    // :1
+    constexpr float reverbPreCompRatioMin           = 1.0f;
+    constexpr float reverbPreCompRatioMax           = 20.0f;
+    constexpr float reverbPreCompAttackDefault      = 10.0f;   // ms
+    constexpr float reverbPreCompAttackMin          = 0.1f;
+    constexpr float reverbPreCompAttackMax          = 100.0f;
+    constexpr float reverbPreCompReleaseDefault     = 100.0f;  // ms
+    constexpr float reverbPreCompReleaseMin         = 10.0f;
+    constexpr float reverbPreCompReleaseMax         = 1000.0f;
+
+    //==========================================================================
+    // Reverb Post-Expander Defaults (global, not per-channel)
+    //==========================================================================
+
+    constexpr int reverbPostExpBypassDefault        = 1;       // 1=bypassed (off), 0=active
+    constexpr float reverbPostExpThresholdDefault    = -40.0f;  // dB
+    constexpr float reverbPostExpThresholdMin        = -80.0f;
+    constexpr float reverbPostExpThresholdMax        = -10.0f;
+    constexpr float reverbPostExpRatioDefault        = 2.0f;    // 1:N
+    constexpr float reverbPostExpRatioMin            = 1.0f;
+    constexpr float reverbPostExpRatioMax            = 8.0f;
+    constexpr float reverbPostExpAttackDefault       = 1.0f;    // ms
+    constexpr float reverbPostExpAttackMin           = 0.1f;
+    constexpr float reverbPostExpAttackMax           = 50.0f;
+    constexpr float reverbPostExpReleaseDefault      = 200.0f;  // ms
+    constexpr float reverbPostExpReleaseMin          = 50.0f;
+    constexpr float reverbPostExpReleaseMax          = 2000.0f;
 
 } // namespace WFSParameterDefaults

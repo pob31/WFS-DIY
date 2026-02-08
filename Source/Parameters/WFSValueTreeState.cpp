@@ -146,8 +146,17 @@ juce::ValueTree WFSValueTreeState::getReverbsState() const
 juce::ValueTree WFSValueTreeState::getReverbState (int channelIndex)
 {
     auto reverbs = getReverbsState();
-    if (channelIndex >= 0 && channelIndex < reverbs.getNumChildren())
-        return reverbs.getChild (channelIndex);
+    int reverbCount = 0;
+    for (int i = 0; i < reverbs.getNumChildren(); ++i)
+    {
+        auto child = reverbs.getChild (i);
+        if (child.hasType (Reverb))
+        {
+            if (reverbCount == channelIndex)
+                return child;
+            ++reverbCount;
+        }
+    }
     return {};
 }
 
@@ -744,6 +753,54 @@ juce::ValueTree WFSValueTreeState::ensureReverbEQSection (int channelIndex)
         eq = createReverbEQSection();
         reverb.appendChild (eq, nullptr);
     }
+    else
+    {
+        // Migrate old property names: reverbEQ* -> reverbPreEQ*
+        using namespace WFSParameterIDs;
+        using namespace WFSParameterDefaults;
+        static const juce::Identifier oldEQenable  ("reverbEQenable");
+        static const juce::Identifier oldEQshape   ("reverbEQshape");
+        static const juce::Identifier oldEQfreq    ("reverbEQfreq");
+        static const juce::Identifier oldEQgain    ("reverbEQgain");
+        static const juce::Identifier oldEQq       ("reverbEQq");
+        static const juce::Identifier oldEQslope   ("reverbEQslope");
+
+        if (eq.hasProperty (oldEQenable))
+        {
+            eq.setProperty (reverbPreEQenable, eq.getProperty (oldEQenable), nullptr);
+            eq.removeProperty (oldEQenable, nullptr);
+        }
+
+        for (int i = 0; i < eq.getNumChildren(); ++i)
+        {
+            auto band = eq.getChild (i);
+            if (band.hasProperty (oldEQshape))
+            {
+                band.setProperty (reverbPreEQshape, band.getProperty (oldEQshape), nullptr);
+                band.removeProperty (oldEQshape, nullptr);
+            }
+            if (band.hasProperty (oldEQfreq))
+            {
+                band.setProperty (reverbPreEQfreq, band.getProperty (oldEQfreq), nullptr);
+                band.removeProperty (oldEQfreq, nullptr);
+            }
+            if (band.hasProperty (oldEQgain))
+            {
+                band.setProperty (reverbPreEQgain, band.getProperty (oldEQgain), nullptr);
+                band.removeProperty (oldEQgain, nullptr);
+            }
+            if (band.hasProperty (oldEQq))
+            {
+                band.setProperty (reverbPreEQq, band.getProperty (oldEQq), nullptr);
+                band.removeProperty (oldEQq, nullptr);
+            }
+            if (band.hasProperty (oldEQslope))
+            {
+                band.setProperty (reverbPreEQslope, band.getProperty (oldEQslope), nullptr);
+                band.removeProperty (oldEQslope, nullptr);
+            }
+        }
+    }
     return eq;
 }
 
@@ -758,6 +815,96 @@ juce::ValueTree WFSValueTreeState::getReverbEQBand (int channelIndex, int bandIn
 juce::ValueTree WFSValueTreeState::getReverbReturnSection (int channelIndex)
 {
     return getReverbState (channelIndex).getChildWithName (ReverbReturn);
+}
+
+juce::ValueTree WFSValueTreeState::getReverbAlgorithmSection()
+{
+    return getReverbsState().getChildWithName (ReverbAlgorithm);
+}
+
+juce::ValueTree WFSValueTreeState::ensureReverbAlgorithmSection()
+{
+    auto reverbs = getReverbsState();
+    if (! reverbs.isValid())
+        return {};
+
+    auto algo = reverbs.getChildWithName (ReverbAlgorithm);
+    if (! algo.isValid())
+    {
+        // Create the algorithm section if it doesn't exist (e.g., loading old config)
+        algo = createReverbAlgorithmSection();
+        reverbs.appendChild (algo, nullptr);
+    }
+    return algo;
+}
+
+juce::ValueTree WFSValueTreeState::getReverbPostEQSection()
+{
+    return getReverbsState().getChildWithName (ReverbPostEQ);
+}
+
+juce::ValueTree WFSValueTreeState::ensureReverbPostEQSection()
+{
+    auto reverbs = getReverbsState();
+    if (! reverbs.isValid())
+        return {};
+
+    auto postEQ = reverbs.getChildWithName (ReverbPostEQ);
+    if (! postEQ.isValid())
+    {
+        // Create the post-EQ section if it doesn't exist (e.g., loading old config)
+        postEQ = createReverbPostEQSection();
+        reverbs.appendChild (postEQ, nullptr);
+    }
+    return postEQ;
+}
+
+juce::ValueTree WFSValueTreeState::getReverbPostEQBand (int bandIndex)
+{
+    auto postEQ = getReverbPostEQSection();
+    if (postEQ.isValid() && bandIndex >= 0 && bandIndex < postEQ.getNumChildren())
+        return postEQ.getChild (bandIndex);
+    return {};
+}
+
+juce::ValueTree WFSValueTreeState::getReverbPreCompSection()
+{
+    return getReverbsState().getChildWithName (ReverbPreComp);
+}
+
+juce::ValueTree WFSValueTreeState::ensureReverbPreCompSection()
+{
+    auto reverbs = getReverbsState();
+    if (! reverbs.isValid())
+        return {};
+
+    auto preComp = reverbs.getChildWithName (ReverbPreComp);
+    if (! preComp.isValid())
+    {
+        preComp = createReverbPreCompSection();
+        reverbs.appendChild (preComp, nullptr);
+    }
+    return preComp;
+}
+
+juce::ValueTree WFSValueTreeState::getReverbPostExpSection()
+{
+    return getReverbsState().getChildWithName (ReverbPostExp);
+}
+
+juce::ValueTree WFSValueTreeState::ensureReverbPostExpSection()
+{
+    auto reverbs = getReverbsState();
+    if (! reverbs.isValid())
+        return {};
+
+    auto postExp = reverbs.getChildWithName (ReverbPostExp);
+    if (! postExp.isValid())
+    {
+        postExp = createReverbPostExpSection();
+        reverbs.appendChild (postExp, nullptr);
+    }
+    return postExp;
 }
 
 //==============================================================================
@@ -1046,7 +1193,11 @@ void WFSValueTreeState::setNumReverbChannels (int numChannels)
         reverbs = getReverbsState();
     }
 
-    int currentCount = reverbs.getNumChildren();
+    // Count only Reverb channel children (not ReverbAlgorithm or other global sections)
+    int currentCount = 0;
+    for (int i = 0; i < reverbs.getNumChildren(); ++i)
+        if (reverbs.getChild (i).hasType (Reverb))
+            ++currentCount;
 
     beginUndoTransaction ("Set Reverb Channel Count");
 
@@ -1058,14 +1209,32 @@ void WFSValueTreeState::setNumReverbChannels (int numChannels)
     }
     else if (numChannels < currentCount)
     {
-        // Remove excess channels
-        while (reverbs.getNumChildren() > numChannels)
-            reverbs.removeChild (reverbs.getNumChildren() - 1, &undoManager);
+        // Remove excess Reverb channels (not global sections like ReverbAlgorithm)
+        for (int i = reverbs.getNumChildren() - 1; i >= 0 && currentCount > numChannels; --i)
+        {
+            if (reverbs.getChild (i).hasType (Reverb))
+            {
+                reverbs.removeChild (i, &undoManager);
+                --currentCount;
+            }
+        }
     }
 
     // Ensure all existing reverb channels have EQ sections (handles old configs without EQ)
     for (int i = 0; i < numChannels; ++i)
         ensureReverbEQSection (i);
+
+    // Ensure global algorithm section exists (handles old configs)
+    ensureReverbAlgorithmSection();
+
+    // Ensure global pre-compressor section exists (handles old configs)
+    ensureReverbPreCompSection();
+
+    // Ensure global post-processing EQ section exists (handles old configs)
+    ensureReverbPostEQSection();
+
+    // Ensure global post-expander section exists (handles old configs)
+    ensureReverbPostExpSection();
 
     // Update the count in config
     setParameter (reverbChannels, numChannels);
@@ -1459,6 +1628,18 @@ void WFSValueTreeState::createReverbsSection()
     for (int i = 0; i < reverbChannelsDefault; ++i)
         reverbs.appendChild (createDefaultReverbChannel (i), nullptr);
 
+    // Create global algorithm section
+    reverbs.appendChild (createReverbAlgorithmSection(), nullptr);
+
+    // Create global pre-compressor section
+    reverbs.appendChild (createReverbPreCompSection(), nullptr);
+
+    // Create global post-processing EQ section
+    reverbs.appendChild (createReverbPostEQSection(), nullptr);
+
+    // Create global post-expander section
+    reverbs.appendChild (createReverbPostExpSection(), nullptr);
+
     state.appendChild (reverbs, nullptr);
 }
 
@@ -1835,17 +2016,17 @@ juce::ValueTree WFSValueTreeState::createReverbFeedSection()
 juce::ValueTree WFSValueTreeState::createReverbEQSection()
 {
     juce::ValueTree eq (EQ);
-    eq.setProperty (reverbEQenable, reverbEQenableDefault, nullptr);
+    eq.setProperty (reverbPreEQenable, reverbPreEQenableDefault, nullptr);
 
-    for (int i = 0; i < numReverbEQBands; ++i)
+    for (int i = 0; i < numReverbPreEQBands; ++i)
     {
         juce::ValueTree band (Band);
         band.setProperty (id, i + 1, nullptr);
-        band.setProperty (reverbEQshape, reverbEQBandShapes[i], nullptr);
-        band.setProperty (reverbEQfreq, reverbEQBandFrequencies[i], nullptr);
-        band.setProperty (reverbEQgain, reverbEQgainDefault, nullptr);
-        band.setProperty (reverbEQq, reverbEQqDefault, nullptr);
-        band.setProperty (reverbEQslope, reverbEQslopeDefault, nullptr);
+        band.setProperty (reverbPreEQshape, reverbPreEQBandShapes[i], nullptr);
+        band.setProperty (reverbPreEQfreq, reverbPreEQBandFrequencies[i], nullptr);
+        band.setProperty (reverbPreEQgain, reverbPreEQgainDefault, nullptr);
+        band.setProperty (reverbPreEQq, reverbPreEQqDefault, nullptr);
+        band.setProperty (reverbPreEQslope, reverbPreEQslopeDefault, nullptr);
         eq.appendChild (band, nullptr);
     }
 
@@ -1867,6 +2048,72 @@ juce::ValueTree WFSValueTreeState::createReverbReturnSection (int numOutputs)
 
     returnSection.setProperty (reverbMuteMacro, reverbMuteMacroDefault, nullptr);
     return returnSection;
+}
+
+juce::ValueTree WFSValueTreeState::createReverbAlgorithmSection()
+{
+    juce::ValueTree algo (ReverbAlgorithm);
+    algo.setProperty (reverbAlgoType,        reverbAlgoTypeDefault, nullptr);
+    algo.setProperty (reverbRT60,            reverbRT60Default, nullptr);
+    algo.setProperty (reverbRT60LowMult,     reverbRT60LowMultDefault, nullptr);
+    algo.setProperty (reverbRT60HighMult,    reverbRT60HighMultDefault, nullptr);
+    algo.setProperty (reverbCrossoverLow,    reverbCrossoverLowDefault, nullptr);
+    algo.setProperty (reverbCrossoverHigh,   reverbCrossoverHighDefault, nullptr);
+    algo.setProperty (reverbDiffusion,       reverbDiffusionDefault, nullptr);
+    algo.setProperty (reverbSDNscale,        reverbSDNscaleDefault, nullptr);
+    algo.setProperty (reverbFDNsize,         reverbFDNsizeDefault, nullptr);
+    algo.setProperty (reverbIRfile,          "", nullptr);
+    algo.setProperty (reverbIRtrim,          reverbIRtrimDefault, nullptr);
+    algo.setProperty (reverbIRlength,        reverbIRlengthDefault, nullptr);
+    algo.setProperty (reverbPerNodeIR,       reverbPerNodeIRDefault, nullptr);
+    algo.setProperty (reverbWetLevel,        reverbWetLevelDefault, nullptr);
+    return algo;
+}
+
+juce::ValueTree WFSValueTreeState::createReverbPostEQSection()
+{
+    juce::ValueTree postEQ (ReverbPostEQ);
+    postEQ.setProperty (reverbPostEQenable, reverbPostEQenableDefault, nullptr);
+
+    for (int i = 0; i < numReverbPostEQBands; ++i)
+    {
+        juce::ValueTree band (PostEQBand);
+        band.setProperty (id, i + 1, nullptr);
+        band.setProperty (reverbPostEQshape, reverbPostEQBandShapes[i], nullptr);
+        band.setProperty (reverbPostEQfreq, reverbPostEQBandFrequencies[i], nullptr);
+        band.setProperty (reverbPostEQgain, reverbPostEQgainDefault, nullptr);
+        band.setProperty (reverbPostEQq, reverbPostEQqDefault, nullptr);
+        band.setProperty (reverbPostEQslope, reverbPostEQslopeDefault, nullptr);
+        postEQ.appendChild (band, nullptr);
+    }
+
+    return postEQ;
+}
+
+juce::ValueTree WFSValueTreeState::createReverbPreCompSection()
+{
+    using namespace WFSParameterIDs;
+    using namespace WFSParameterDefaults;
+    juce::ValueTree preComp (ReverbPreComp);
+    preComp.setProperty (reverbPreCompBypass,    reverbPreCompBypassDefault, nullptr);
+    preComp.setProperty (reverbPreCompThreshold, reverbPreCompThresholdDefault, nullptr);
+    preComp.setProperty (reverbPreCompRatio,     reverbPreCompRatioDefault, nullptr);
+    preComp.setProperty (reverbPreCompAttack,    reverbPreCompAttackDefault, nullptr);
+    preComp.setProperty (reverbPreCompRelease,   reverbPreCompReleaseDefault, nullptr);
+    return preComp;
+}
+
+juce::ValueTree WFSValueTreeState::createReverbPostExpSection()
+{
+    using namespace WFSParameterIDs;
+    using namespace WFSParameterDefaults;
+    juce::ValueTree postExp (ReverbPostExp);
+    postExp.setProperty (reverbPostExpBypass,    reverbPostExpBypassDefault, nullptr);
+    postExp.setProperty (reverbPostExpThreshold, reverbPostExpThresholdDefault, nullptr);
+    postExp.setProperty (reverbPostExpRatio,     reverbPostExpRatioDefault, nullptr);
+    postExp.setProperty (reverbPostExpAttack,    reverbPostExpAttackDefault, nullptr);
+    postExp.setProperty (reverbPostExpRelease,   reverbPostExpReleaseDefault, nullptr);
+    return postExp;
 }
 
 juce::ValueTree WFSValueTreeState::createDefaultNetworkTarget (int index)

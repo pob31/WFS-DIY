@@ -1787,18 +1787,21 @@ Reusable interactive parametric EQ visualization for OutputsTab (6 bands) and Re
 // For Output EQ (6 bands)
 EQDisplayConfig::forOutputEQ()
 
-// For Reverb EQ (4 bands)
-EQDisplayConfig::forReverbEQ()
+// For Reverb Pre-Processing EQ (4 bands)
+EQDisplayConfig::forReverbPreEQ()
+
+// For Reverb Post-Processing EQ (4 bands, global)
+EQDisplayConfig::forReverbPostEQ()
 ```
 
 ### Parameter Mapping
-| Aspect | Output EQ | Reverb EQ |
-|--------|-----------|-----------|
-| Shape ID | `eqShape` | `reverbEQshape` |
-| Frequency ID | `eqFrequency` | `reverbEQfreq` |
-| Gain ID | `eqGain` | `reverbEQgain` |
-| Q ID | `eqQ` | `reverbEQq` |
-| Q Range | 0.1-10.0 | 0.1-20.0 |
+| Aspect | Output EQ | Reverb Pre-EQ | Reverb Post-EQ |
+|--------|-----------|---------------|----------------|
+| Shape ID | `eqShape` | `reverbPreEQshape` | `reverbPostEQshape` |
+| Frequency ID | `eqFrequency` | `reverbPreEQfreq` | `reverbPostEQfreq` |
+| Gain ID | `eqGain` | `reverbPreEQgain` | `reverbPostEQgain` |
+| Q ID | `eqQ` | `reverbPreEQq` | `reverbPostEQq` |
+| Q Range | 0.1-10.0 | 0.1-20.0 | 0.1-20.0 |
 
 ### Band Colors (Rainbow 8-color palette)
 1. Red (#E74C3C), 2. Orange (#E67E22), 3. Yellow (#FFEB3B), 4. Green (#2ECC71),

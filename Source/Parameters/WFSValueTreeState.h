@@ -169,6 +169,23 @@ public:
     juce::ValueTree getReverbEQBand (int channelIndex, int bandIndex);
     juce::ValueTree getReverbReturnSection (int channelIndex);
 
+    /** Get the global reverb algorithm section (child of Reverbs node) */
+    juce::ValueTree getReverbAlgorithmSection();
+    juce::ValueTree ensureReverbAlgorithmSection();  // Creates if missing
+
+    /** Get the global reverb pre-compressor section (child of Reverbs node) */
+    juce::ValueTree getReverbPreCompSection();
+    juce::ValueTree ensureReverbPreCompSection();  // Creates if missing
+
+    /** Get the global reverb post-processing EQ section (child of Reverbs node) */
+    juce::ValueTree getReverbPostEQSection();
+    juce::ValueTree ensureReverbPostEQSection();  // Creates if missing
+    juce::ValueTree getReverbPostEQBand (int bandIndex);
+
+    /** Get the global reverb post-expander section (child of Reverbs node) */
+    juce::ValueTree getReverbPostExpSection();
+    juce::ValueTree ensureReverbPostExpSection();  // Creates if missing
+
     //==========================================================================
     // Cluster Access
     //==========================================================================
@@ -395,6 +412,10 @@ private:
     juce::ValueTree createReverbFeedSection();
     juce::ValueTree createReverbEQSection();
     juce::ValueTree createReverbReturnSection (int numOutputs);
+    juce::ValueTree createReverbAlgorithmSection();
+    juce::ValueTree createReverbPreCompSection();
+    juce::ValueTree createReverbPostEQSection();
+    juce::ValueTree createReverbPostExpSection();
 
     /** Create a default network target */
     juce::ValueTree createDefaultNetworkTarget (int index);

@@ -138,6 +138,43 @@ const std::map<juce::Identifier, juce::String>& OSCMessageBuilder::getConfigMapp
         { WFSParameterIDs::originWidth,       OSCPaths::CONFIG_STAGE_ORIGIN_X },
         { WFSParameterIDs::originDepth,       OSCPaths::CONFIG_STAGE_ORIGIN_Y },
         { WFSParameterIDs::originHeight,      OSCPaths::CONFIG_STAGE_ORIGIN_Z },
+
+        // Reverb Algorithm parameters (global, no channel ID)
+        { WFSParameterIDs::reverbAlgoType,      OSCPaths::CONFIG_REVERB_ALGO_TYPE },
+        { WFSParameterIDs::reverbRT60,           OSCPaths::CONFIG_REVERB_RT60 },
+        { WFSParameterIDs::reverbRT60LowMult,    OSCPaths::CONFIG_REVERB_RT60_LOW_MULT },
+        { WFSParameterIDs::reverbRT60HighMult,   OSCPaths::CONFIG_REVERB_RT60_HIGH_MULT },
+        { WFSParameterIDs::reverbCrossoverLow,   OSCPaths::CONFIG_REVERB_CROSSOVER_LOW },
+        { WFSParameterIDs::reverbCrossoverHigh,  OSCPaths::CONFIG_REVERB_CROSSOVER_HIGH },
+        { WFSParameterIDs::reverbDiffusion,      OSCPaths::CONFIG_REVERB_DIFFUSION },
+        { WFSParameterIDs::reverbSDNscale,       OSCPaths::CONFIG_REVERB_SDN_SCALE },
+        { WFSParameterIDs::reverbFDNsize,        OSCPaths::CONFIG_REVERB_FDN_SIZE },
+        { WFSParameterIDs::reverbIRtrim,         OSCPaths::CONFIG_REVERB_IR_TRIM },
+        { WFSParameterIDs::reverbIRlength,       OSCPaths::CONFIG_REVERB_IR_LENGTH },
+        { WFSParameterIDs::reverbPerNodeIR,      OSCPaths::CONFIG_REVERB_PER_NODE_IR },
+        { WFSParameterIDs::reverbWetLevel,       OSCPaths::CONFIG_REVERB_WET_LEVEL },
+
+        // Reverb Pre-Compressor parameters (global, no channel ID)
+        { WFSParameterIDs::reverbPreCompBypass,    OSCPaths::CONFIG_REVERB_PRE_COMP_BYPASS },
+        { WFSParameterIDs::reverbPreCompThreshold, OSCPaths::CONFIG_REVERB_PRE_COMP_THRESHOLD },
+        { WFSParameterIDs::reverbPreCompRatio,     OSCPaths::CONFIG_REVERB_PRE_COMP_RATIO },
+        { WFSParameterIDs::reverbPreCompAttack,    OSCPaths::CONFIG_REVERB_PRE_COMP_ATTACK },
+        { WFSParameterIDs::reverbPreCompRelease,   OSCPaths::CONFIG_REVERB_PRE_COMP_RELEASE },
+
+        // Reverb Post-Processing EQ parameters (global, no channel ID)
+        { WFSParameterIDs::reverbPostEQenable,   OSCPaths::CONFIG_REVERB_POST_EQ_ENABLE },
+        { WFSParameterIDs::reverbPostEQshape,    OSCPaths::CONFIG_REVERB_POST_EQ_SHAPE },
+        { WFSParameterIDs::reverbPostEQfreq,     OSCPaths::CONFIG_REVERB_POST_EQ_FREQ },
+        { WFSParameterIDs::reverbPostEQgain,     OSCPaths::CONFIG_REVERB_POST_EQ_GAIN },
+        { WFSParameterIDs::reverbPostEQq,        OSCPaths::CONFIG_REVERB_POST_EQ_Q },
+        { WFSParameterIDs::reverbPostEQslope,    OSCPaths::CONFIG_REVERB_POST_EQ_SLOPE },
+
+        // Reverb Post-Expander parameters (global, no channel ID)
+        { WFSParameterIDs::reverbPostExpBypass,    OSCPaths::CONFIG_REVERB_POST_EXP_BYPASS },
+        { WFSParameterIDs::reverbPostExpThreshold, OSCPaths::CONFIG_REVERB_POST_EXP_THRESHOLD },
+        { WFSParameterIDs::reverbPostExpRatio,     OSCPaths::CONFIG_REVERB_POST_EXP_RATIO },
+        { WFSParameterIDs::reverbPostExpAttack,    OSCPaths::CONFIG_REVERB_POST_EXP_ATTACK },
+        { WFSParameterIDs::reverbPostExpRelease,   OSCPaths::CONFIG_REVERB_POST_EXP_RELEASE },
     };
 
     return mappings;
@@ -210,13 +247,13 @@ const std::map<juce::Identifier, OSCMessageBuilder::ParamMapping>& OSCMessageBui
         { WFSParameterIDs::reverbLSenable,           { "/wfs/reverb/LSenable",          "/remoteInput/reverb/LSenable" } },
         { WFSParameterIDs::reverbDistanceAttenEnable, { "/wfs/reverb/DistanceAttenPercent", "/remoteInput/reverb/DistanceAttenPercent" } },
 
-        // EQ
-        { WFSParameterIDs::reverbEQenable,           { "/wfs/reverb/EQenable",          "/remoteInput/reverb/EQenable" } },
-        { WFSParameterIDs::reverbEQshape,            { "/wfs/reverb/EQshape",           "/remoteInput/reverb/EQshape" } },
-        { WFSParameterIDs::reverbEQfreq,             { "/wfs/reverb/EQfreq",            "/remoteInput/reverb/EQfreq" } },
-        { WFSParameterIDs::reverbEQgain,             { "/wfs/reverb/EQgain",            "/remoteInput/reverb/EQgain" } },
-        { WFSParameterIDs::reverbEQq,                { "/wfs/reverb/EQq",               "/remoteInput/reverb/EQq" } },
-        { WFSParameterIDs::reverbEQslope,            { "/wfs/reverb/EQslope",           "/remoteInput/reverb/EQslope" } },
+        // Pre-Processing EQ
+        { WFSParameterIDs::reverbPreEQenable,        { "/wfs/reverb/preEQenable",       "/remoteInput/reverb/preEQenable" } },
+        { WFSParameterIDs::reverbPreEQshape,         { "/wfs/reverb/preEQshape",        "/remoteInput/reverb/preEQshape" } },
+        { WFSParameterIDs::reverbPreEQfreq,          { "/wfs/reverb/preEQfreq",         "/remoteInput/reverb/preEQfreq" } },
+        { WFSParameterIDs::reverbPreEQgain,          { "/wfs/reverb/preEQgain",         "/remoteInput/reverb/preEQgain" } },
+        { WFSParameterIDs::reverbPreEQq,             { "/wfs/reverb/preEQq",            "/remoteInput/reverb/preEQq" } },
+        { WFSParameterIDs::reverbPreEQslope,         { "/wfs/reverb/preEQslope",        "/remoteInput/reverb/preEQslope" } },
 
         // Return
         { WFSParameterIDs::reverbDistanceAttenuation, { "/wfs/reverb/distanceAttenuation", "/remoteInput/reverb/distanceAttenuation" } },

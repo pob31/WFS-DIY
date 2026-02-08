@@ -663,14 +663,58 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
         return;  // Don't process as channel parameter
     }
 
-    // Determine if this is an input or output parameter change
+    // Handle reverb algorithm parameter changes (global, no channel ID)
+    if (tree.getType() == WFSParameterIDs::ReverbAlgorithm)
+    {
+        auto msg = OSCMessageBuilder::buildConfigMessage(property,
+                       static_cast<float>(static_cast<double>(tree.getProperty(property))));
+        if (msg.has_value())
+        {
+            for (int i = 0; i < MAX_TARGETS; ++i)
+            {
+                const auto& config = targetConfigs[static_cast<size_t>(i)];
+                if (config.protocol == Protocol::OSC && config.txEnabled)
+                {
+                    if (incomingProtocol == Protocol::Disabled || config.protocol != incomingProtocol)
+                        sendMessage(i, *msg);
+                }
+            }
+        }
+        return;
+    }
+
+    // Handle reverb pre-compressor / post-EQ / post-expander parameter changes (global, no channel ID)
+    if (tree.getType() == WFSParameterIDs::ReverbPreComp ||
+        tree.getType() == WFSParameterIDs::ReverbPostEQ ||
+        tree.getType() == WFSParameterIDs::PostEQBand ||
+        tree.getType() == WFSParameterIDs::ReverbPostExp)
+    {
+        auto msg = OSCMessageBuilder::buildConfigMessage(property,
+                       static_cast<float>(static_cast<double>(tree.getProperty(property))));
+        if (msg.has_value())
+        {
+            for (int i = 0; i < MAX_TARGETS; ++i)
+            {
+                const auto& config = targetConfigs[static_cast<size_t>(i)];
+                if (config.protocol == Protocol::OSC && config.txEnabled)
+                {
+                    if (incomingProtocol == Protocol::Disabled || config.protocol != incomingProtocol)
+                        sendMessage(i, *msg);
+                }
+            }
+        }
+        return;
+    }
+
+    // Determine if this is an input, output, or reverb parameter change
     juce::String typeName = tree.getType().toString();
     juce::var value = tree.getProperty(property);
 
-    // Find channel index by traversing up to Input or Output parent
+    // Find channel index by traversing up to Input, Output, or Reverb parent
     int channelId = -1;
     bool isInput = false;
     bool isOutput = false;
+    bool isReverb = false;
 
     juce::ValueTree parent = tree;
     while (parent.isValid())
@@ -685,6 +729,12 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
         {
             channelId = parent.getProperty(WFSParameterIDs::id);
             isOutput = true;
+            break;
+        }
+        else if (parent.getType() == WFSParameterIDs::Reverb)
+        {
+            channelId = parent.getProperty(WFSParameterIDs::id);
+            isReverb = true;
             break;
         }
         parent = parent.getParent();
@@ -723,6 +773,11 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
             {
                 msg = OSCMessageBuilder::buildOutputMessage(property, channelId,
                                                             static_cast<float>(static_cast<double>(value)));
+            }
+            else if (isReverb && isNumeric)
+            {
+                msg = OSCMessageBuilder::buildReverbMessage(property, channelId,
+                                                             static_cast<float>(static_cast<double>(value)));
             }
 
             if (msg.has_value())
@@ -986,7 +1041,8 @@ void OSCManager::handleIncomingMessage(const juce::OSCMessage& message,
     logger.logReceivedWithDetails(message, protocol, senderIP, port, transport);
 
     // Route to appropriate handler
-    if (OSCMessageRouter::isInputAddress(address) || OSCMessageRouter::isOutputAddress(address))
+    if (OSCMessageRouter::isInputAddress(address) || OSCMessageRouter::isOutputAddress(address)
+        || OSCMessageRouter::isReverbAddress(address) || OSCMessageRouter::isConfigAddress(address))
     {
         handleStandardOSCMessage(message);
     }
@@ -1056,7 +1112,8 @@ void OSCManager::handleIncomingBundle(const juce::OSCBundle& bundle,
 
             logger.logReceivedWithDetails(message, protocol, senderIP, port, transport);
 
-            if (OSCMessageRouter::isInputAddress(address) || OSCMessageRouter::isOutputAddress(address))
+            if (OSCMessageRouter::isInputAddress(address) || OSCMessageRouter::isOutputAddress(address)
+                || OSCMessageRouter::isReverbAddress(address) || OSCMessageRouter::isConfigAddress(address))
             {
                 handleStandardOSCMessage(message);
             }
@@ -1423,6 +1480,82 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
                     }
                 }
                 incomingProtocol = Protocol::Disabled;  // Clear flag
+            });
+        }
+        else
+        {
+            ++parseErrors;
+        }
+    }
+    else if (OSCMessageRouter::isConfigAddress(address))
+    {
+        auto parsed = OSCMessageRouter::parseConfigMessage(message);
+        if (parsed.valid)
+        {
+            juce::MessageManager::callAsync([this, parsed]()
+            {
+                incomingProtocol = Protocol::OSC;
+
+                // Check if this is a reverb algorithm parameter (stored in ReverbAlgorithm section)
+                auto algoSection = state.ensureReverbAlgorithmSection();
+                if (algoSection.isValid() && algoSection.hasProperty(parsed.paramId))
+                {
+                    algoSection.setProperty(parsed.paramId, parsed.value, state.getUndoManager());
+                }
+                // Check if this is a reverb pre-compressor parameter (stored in ReverbPreComp section)
+                else if (parsed.paramId == WFSParameterIDs::reverbPreCompBypass ||
+                         parsed.paramId == WFSParameterIDs::reverbPreCompThreshold ||
+                         parsed.paramId == WFSParameterIDs::reverbPreCompRatio ||
+                         parsed.paramId == WFSParameterIDs::reverbPreCompAttack ||
+                         parsed.paramId == WFSParameterIDs::reverbPreCompRelease)
+                {
+                    auto preComp = state.ensureReverbPreCompSection();
+                    if (preComp.isValid())
+                        preComp.setProperty(parsed.paramId, parsed.value, state.getUndoManager());
+                }
+                // Check if this is a reverb post-EQ parameter (stored in ReverbPostEQ section)
+                else if (parsed.paramId == WFSParameterIDs::reverbPostEQenable)
+                {
+                    auto postEQ = state.ensureReverbPostEQSection();
+                    if (postEQ.isValid())
+                        postEQ.setProperty(parsed.paramId, parsed.value, state.getUndoManager());
+                }
+                else if (parsed.paramId == WFSParameterIDs::reverbPostEQshape ||
+                         parsed.paramId == WFSParameterIDs::reverbPostEQfreq ||
+                         parsed.paramId == WFSParameterIDs::reverbPostEQgain ||
+                         parsed.paramId == WFSParameterIDs::reverbPostEQq ||
+                         parsed.paramId == WFSParameterIDs::reverbPostEQslope)
+                {
+                    // PostEQ band params — for now apply to all bands (band ID not in OSC message)
+                    auto postEQ = state.ensureReverbPostEQSection();
+                    if (postEQ.isValid())
+                    {
+                        for (int b = 0; b < postEQ.getNumChildren(); ++b)
+                        {
+                            auto band = postEQ.getChild(b);
+                            if (band.isValid())
+                                band.setProperty(parsed.paramId, parsed.value, state.getUndoManager());
+                        }
+                    }
+                }
+                // Check if this is a reverb post-expander parameter (stored in ReverbPostExp section)
+                else if (parsed.paramId == WFSParameterIDs::reverbPostExpBypass ||
+                         parsed.paramId == WFSParameterIDs::reverbPostExpThreshold ||
+                         parsed.paramId == WFSParameterIDs::reverbPostExpRatio ||
+                         parsed.paramId == WFSParameterIDs::reverbPostExpAttack ||
+                         parsed.paramId == WFSParameterIDs::reverbPostExpRelease)
+                {
+                    auto postExp = state.ensureReverbPostExpSection();
+                    if (postExp.isValid())
+                        postExp.setProperty(parsed.paramId, parsed.value, state.getUndoManager());
+                }
+                else
+                {
+                    // Standard config parameter
+                    state.setParameter(parsed.paramId, parsed.value);
+                }
+
+                incomingProtocol = Protocol::Disabled;
             });
         }
         else

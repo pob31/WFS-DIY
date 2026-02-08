@@ -47,7 +47,10 @@ public:
         setupPositionSubTab();
         setupReverbFeedSubTab();
         setupEQSubTab();
+        setupPreCompressorControls();
         setupAlgorithmSubTab();
+        setupPostProcessingSubTab();
+        setupPostExpanderControls();
         setupReverbReturnSubTab();
         setupFooter();
         setupHelpText();
@@ -67,6 +70,10 @@ public:
         if (numReverbs > 0)
             loadChannelParameters (1);
 
+        loadAlgorithmParameters();
+        loadPreCompParameters();
+        loadPostEQParameters();
+        loadPostExpParameters();
         updateVisibility();
     }
 
@@ -147,10 +154,11 @@ public:
                 ioTree.addListener(this);
         }
 
-        // Reset EQ display - it holds a reference to the old ValueTree which is now stale
-        // It will be recreated below with the new tree
+        // Reset EQ displays - they hold references to old ValueTrees which are now stale
+        // They will be recreated below with the new trees
         eqDisplay.reset();
         lastEqDisplayChannel = -1;
+        postEqDisplay.reset();
 
         // Update channel selector count
         int numReverbs = parameters.getNumReverbChannels();
@@ -170,7 +178,7 @@ public:
                 auto eqTree = parameters.getValueTreeState().ensureReverbEQSection (currentChannel - 1);
                 if (eqTree.isValid())
                 {
-                    eqDisplay = std::make_unique<EQDisplayComponent> (eqTree, numEqBands, EQDisplayConfig::forReverbEQ());
+                    eqDisplay = std::make_unique<EQDisplayComponent> (eqTree, numEqBands, EQDisplayConfig::forReverbPreEQ());
                     addAndMakeVisible (*eqDisplay);
                     lastEqDisplayChannel = currentChannel;
                     eqDisplay->setEQEnabled (eqEnableButton.getToggleState());
@@ -288,8 +296,9 @@ private:
     {
         addAndMakeVisible (subTabBar);
         subTabBar.addTab (LOC("reverbs.tabs.channelParams"), juce::Colour (0xFF2A2A2A), -1);
-        subTabBar.addTab (LOC("reverbs.tabs.eq"), juce::Colour (0xFF2A2A2A), -1);
+        subTabBar.addTab (LOC("reverbs.tabs.preProcessing"), juce::Colour (0xFF2A2A2A), -1);
         subTabBar.addTab (LOC("reverbs.tabs.algorithm"), juce::Colour (0xFF2A2A2A), -1);
+        subTabBar.addTab (LOC("reverbs.tabs.postProcessing"), juce::Colour (0xFF2A2A2A), -1);
         subTabBar.addChangeListener (static_cast<juce::ChangeListener*> (this));
     }
 
@@ -567,7 +576,7 @@ private:
             // Update EQ display grey-out state
             if (eqDisplay != nullptr)
                 eqDisplay->setEQEnabled (enabled);
-            saveReverbParam (WFSParameterIDs::reverbEQenable, enabled ? 1 : 0);
+            saveReverbParam (WFSParameterIDs::reverbPreEQenable, enabled ? 1 : 0);
         };
 
         // 4 EQ bands
@@ -591,7 +600,7 @@ private:
             eqBandShapeSelector[i].onChange = [this, i]
             {
                 int shape = eqBandShapeSelector[i].getSelectedId() - 1;
-                saveEQBandParam (i, WFSParameterIDs::reverbEQshape, shape);
+                saveEQBandParam (i, WFSParameterIDs::reverbPreEQshape, shape);
                 // Update gain visibility when shape changes
                 updateEQBandAppearance (i);
                 // TTS: Announce selection change
@@ -609,7 +618,7 @@ private:
             {
                 int freq = static_cast<int> (20.0f * std::pow (10.0f, 3.0f * v));
                 eqBandFreqValueLabel[i].setText (formatFrequency (freq), juce::dontSendNotification);
-                saveEQBandParam (i, WFSParameterIDs::reverbEQfreq, freq);
+                saveEQBandParam (i, WFSParameterIDs::reverbPreEQfreq, freq);
             };
             addAndMakeVisible (eqBandFreqSlider[i]);
 
@@ -627,7 +636,7 @@ private:
             {
                 float gain = v * 48.0f - 24.0f;  // -24 to +24 dB
                 eqBandGainValueLabel[i].setText (juce::String (gain, 1) + " dB", juce::dontSendNotification);
-                saveEQBandParam (i, WFSParameterIDs::reverbEQgain, gain);
+                saveEQBandParam (i, WFSParameterIDs::reverbPreEQgain, gain);
             };
             addAndMakeVisible (eqBandGainDial[i]);
 
@@ -646,7 +655,7 @@ private:
             {
                 float q = 0.1f + 0.21f * (std::pow (100.0f, v) - 1.0f);  // 0.1-20.0
                 eqBandQValueLabel[i].setText (juce::String (q, 2), juce::dontSendNotification);
-                saveEQBandParam (i, WFSParameterIDs::reverbEQq, q);
+                saveEQBandParam (i, WFSParameterIDs::reverbPreEQq, q);
             };
             addAndMakeVisible (eqBandQDial[i]);
 
@@ -656,13 +665,564 @@ private:
         }
     }
 
+    void setupPreCompressorControls()
+    {
+        using namespace WFSParameterIDs;
+        using namespace WFSParameterDefaults;
+
+        // Section label
+        addAndMakeVisible (preCompSectionLabel);
+        preCompSectionLabel.setText (LOC("reverbs.preProcessing.compressor"), juce::dontSendNotification);
+        preCompSectionLabel.setFont (juce::FontOptions().withHeight (16.0f).withStyle ("Bold"));
+        preCompSectionLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+
+        // Bypass button
+        addAndMakeVisible (preCompBypassButton);
+        preCompBypassButton.setButtonText (LOC("reverbs.preProcessing.compressorOff"));
+        preCompBypassButton.setClickingTogglesState (true);
+        preCompBypassButton.setToggleState (true, juce::dontSendNotification);  // Default: bypassed
+        preCompBypassButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF2D2D2D));
+        preCompBypassButton.setColour (juce::TextButton::buttonOnColourId, juce::Colour (0xFF2D2D2D));
+        preCompBypassButton.onClick = [this]
+        {
+            bool bypassed = preCompBypassButton.getToggleState();
+            preCompBypassButton.setButtonText (bypassed ? LOC("reverbs.preProcessing.compressorOff") : LOC("reverbs.preProcessing.compressorOn"));
+            preCompBypassButton.setColour (juce::TextButton::buttonColourId,
+                bypassed ? juce::Colour (0xFF2D2D2D) : juce::Colour (0xFF4CAF50));
+            preCompBypassButton.setColour (juce::TextButton::buttonOnColourId,
+                bypassed ? juce::Colour (0xFF2D2D2D) : juce::Colour (0xFF4CAF50));
+            updatePreCompAppearance();
+            savePreCompParam (reverbPreCompBypass, bypassed ? 1 : 0);
+        };
+
+        // Threshold dial
+        addAndMakeVisible (preCompThresholdLabel);
+        preCompThresholdLabel.setText (LOC("reverbs.preProcessing.threshold"), juce::dontSendNotification);
+        preCompThresholdLabel.setJustificationType (juce::Justification::centred);
+        preCompThresholdDial.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF4CAF50));
+        preCompThresholdDial.onValueChanged = [this] (float v)
+        {
+            float threshold = reverbPreCompThresholdMin + (reverbPreCompThresholdMax - reverbPreCompThresholdMin) * v;
+            preCompThresholdValueLabel.setText (juce::String (threshold, 1) + " dB", juce::dontSendNotification);
+            savePreCompParam (reverbPreCompThreshold, threshold);
+        };
+        addAndMakeVisible (preCompThresholdDial);
+        addAndMakeVisible (preCompThresholdValueLabel);
+        preCompThresholdValueLabel.setJustificationType (juce::Justification::centred);
+        preCompThresholdValueLabel.setText ("-12.0 dB", juce::dontSendNotification);
+
+        // Ratio dial
+        addAndMakeVisible (preCompRatioLabel);
+        preCompRatioLabel.setText (LOC("reverbs.preProcessing.ratio"), juce::dontSendNotification);
+        preCompRatioLabel.setJustificationType (juce::Justification::centred);
+        preCompRatioDial.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF4CAF50));
+        preCompRatioDial.onValueChanged = [this] (float v)
+        {
+            float ratio = reverbPreCompRatioMin + (reverbPreCompRatioMax - reverbPreCompRatioMin) * v;
+            preCompRatioValueLabel.setText (juce::String (ratio, 1) + ":1", juce::dontSendNotification);
+            savePreCompParam (reverbPreCompRatio, ratio);
+        };
+        addAndMakeVisible (preCompRatioDial);
+        addAndMakeVisible (preCompRatioValueLabel);
+        preCompRatioValueLabel.setJustificationType (juce::Justification::centred);
+        preCompRatioValueLabel.setText ("2.0:1", juce::dontSendNotification);
+
+        // Attack dial (logarithmic)
+        addAndMakeVisible (preCompAttackLabel);
+        preCompAttackLabel.setText (LOC("reverbs.preProcessing.attack"), juce::dontSendNotification);
+        preCompAttackLabel.setJustificationType (juce::Justification::centred);
+        preCompAttackDial.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF4CAF50));
+        preCompAttackDial.onValueChanged = [this] (float v)
+        {
+            float attack = reverbPreCompAttackMin * std::pow (reverbPreCompAttackMax / reverbPreCompAttackMin, v);
+            preCompAttackValueLabel.setText (juce::String (attack, 1) + " ms", juce::dontSendNotification);
+            savePreCompParam (reverbPreCompAttack, attack);
+        };
+        addAndMakeVisible (preCompAttackDial);
+        addAndMakeVisible (preCompAttackValueLabel);
+        preCompAttackValueLabel.setJustificationType (juce::Justification::centred);
+        preCompAttackValueLabel.setText ("10.0 ms", juce::dontSendNotification);
+
+        // Release dial (logarithmic)
+        addAndMakeVisible (preCompReleaseLabel);
+        preCompReleaseLabel.setText (LOC("reverbs.preProcessing.release"), juce::dontSendNotification);
+        preCompReleaseLabel.setJustificationType (juce::Justification::centred);
+        preCompReleaseDial.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF4CAF50));
+        preCompReleaseDial.onValueChanged = [this] (float v)
+        {
+            float release = reverbPreCompReleaseMin * std::pow (reverbPreCompReleaseMax / reverbPreCompReleaseMin, v);
+            preCompReleaseValueLabel.setText (juce::String (release, 0) + " ms", juce::dontSendNotification);
+            savePreCompParam (reverbPreCompRelease, release);
+        };
+        addAndMakeVisible (preCompReleaseDial);
+        addAndMakeVisible (preCompReleaseValueLabel);
+        preCompReleaseValueLabel.setJustificationType (juce::Justification::centred);
+        preCompReleaseValueLabel.setText ("100 ms", juce::dontSendNotification);
+    }
+
+    void setupPostExpanderControls()
+    {
+        using namespace WFSParameterIDs;
+        using namespace WFSParameterDefaults;
+
+        // Section label
+        addAndMakeVisible (postExpSectionLabel);
+        postExpSectionLabel.setText (LOC("reverbs.postProcessing.expander"), juce::dontSendNotification);
+        postExpSectionLabel.setFont (juce::FontOptions().withHeight (16.0f).withStyle ("Bold"));
+        postExpSectionLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+
+        // Bypass button
+        addAndMakeVisible (postExpBypassButton);
+        postExpBypassButton.setButtonText (LOC("reverbs.postProcessing.expanderOff"));
+        postExpBypassButton.setClickingTogglesState (true);
+        postExpBypassButton.setToggleState (true, juce::dontSendNotification);  // Default: bypassed
+        postExpBypassButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF2D2D2D));
+        postExpBypassButton.setColour (juce::TextButton::buttonOnColourId, juce::Colour (0xFF2D2D2D));
+        postExpBypassButton.onClick = [this]
+        {
+            bool bypassed = postExpBypassButton.getToggleState();
+            postExpBypassButton.setButtonText (bypassed ? LOC("reverbs.postProcessing.expanderOff") : LOC("reverbs.postProcessing.expanderOn"));
+            postExpBypassButton.setColour (juce::TextButton::buttonColourId,
+                bypassed ? juce::Colour (0xFF2D2D2D) : juce::Colour (0xFF4CAF50));
+            postExpBypassButton.setColour (juce::TextButton::buttonOnColourId,
+                bypassed ? juce::Colour (0xFF2D2D2D) : juce::Colour (0xFF4CAF50));
+            updatePostExpAppearance();
+            savePostExpParam (reverbPostExpBypass, bypassed ? 1 : 0);
+        };
+
+        // Threshold dial
+        addAndMakeVisible (postExpThresholdLabel);
+        postExpThresholdLabel.setText (LOC("reverbs.postProcessing.threshold"), juce::dontSendNotification);
+        postExpThresholdLabel.setJustificationType (juce::Justification::centred);
+        postExpThresholdDial.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFFF9800));
+        postExpThresholdDial.onValueChanged = [this] (float v)
+        {
+            float threshold = reverbPostExpThresholdMin + (reverbPostExpThresholdMax - reverbPostExpThresholdMin) * v;
+            postExpThresholdValueLabel.setText (juce::String (threshold, 1) + " dB", juce::dontSendNotification);
+            savePostExpParam (reverbPostExpThreshold, threshold);
+        };
+        addAndMakeVisible (postExpThresholdDial);
+        addAndMakeVisible (postExpThresholdValueLabel);
+        postExpThresholdValueLabel.setJustificationType (juce::Justification::centred);
+        postExpThresholdValueLabel.setText ("-40.0 dB", juce::dontSendNotification);
+
+        // Ratio dial
+        addAndMakeVisible (postExpRatioLabel);
+        postExpRatioLabel.setText (LOC("reverbs.postProcessing.ratio"), juce::dontSendNotification);
+        postExpRatioLabel.setJustificationType (juce::Justification::centred);
+        postExpRatioDial.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFFF9800));
+        postExpRatioDial.onValueChanged = [this] (float v)
+        {
+            float ratio = reverbPostExpRatioMin + (reverbPostExpRatioMax - reverbPostExpRatioMin) * v;
+            postExpRatioValueLabel.setText ("1:" + juce::String (ratio, 1), juce::dontSendNotification);
+            savePostExpParam (reverbPostExpRatio, ratio);
+        };
+        addAndMakeVisible (postExpRatioDial);
+        addAndMakeVisible (postExpRatioValueLabel);
+        postExpRatioValueLabel.setJustificationType (juce::Justification::centred);
+        postExpRatioValueLabel.setText ("1:2.0", juce::dontSendNotification);
+
+        // Attack dial (logarithmic)
+        addAndMakeVisible (postExpAttackLabel);
+        postExpAttackLabel.setText (LOC("reverbs.postProcessing.attack"), juce::dontSendNotification);
+        postExpAttackLabel.setJustificationType (juce::Justification::centred);
+        postExpAttackDial.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFFF9800));
+        postExpAttackDial.onValueChanged = [this] (float v)
+        {
+            float attack = reverbPostExpAttackMin * std::pow (reverbPostExpAttackMax / reverbPostExpAttackMin, v);
+            postExpAttackValueLabel.setText (juce::String (attack, 1) + " ms", juce::dontSendNotification);
+            savePostExpParam (reverbPostExpAttack, attack);
+        };
+        addAndMakeVisible (postExpAttackDial);
+        addAndMakeVisible (postExpAttackValueLabel);
+        postExpAttackValueLabel.setJustificationType (juce::Justification::centred);
+        postExpAttackValueLabel.setText ("1.0 ms", juce::dontSendNotification);
+
+        // Release dial (logarithmic)
+        addAndMakeVisible (postExpReleaseLabel);
+        postExpReleaseLabel.setText (LOC("reverbs.postProcessing.release"), juce::dontSendNotification);
+        postExpReleaseLabel.setJustificationType (juce::Justification::centred);
+        postExpReleaseDial.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFFF9800));
+        postExpReleaseDial.onValueChanged = [this] (float v)
+        {
+            float release = reverbPostExpReleaseMin * std::pow (reverbPostExpReleaseMax / reverbPostExpReleaseMin, v);
+            postExpReleaseValueLabel.setText (juce::String (release, 0) + " ms", juce::dontSendNotification);
+            savePostExpParam (reverbPostExpRelease, release);
+        };
+        addAndMakeVisible (postExpReleaseDial);
+        addAndMakeVisible (postExpReleaseValueLabel);
+        postExpReleaseValueLabel.setJustificationType (juce::Justification::centred);
+        postExpReleaseValueLabel.setText ("200 ms", juce::dontSendNotification);
+    }
+
     void setupAlgorithmSubTab()
     {
-        addAndMakeVisible (algorithmPlaceholderLabel);
-        algorithmPlaceholderLabel.setText (LOC("reverbs.algorithm.comingSoon"), juce::dontSendNotification);
-        algorithmPlaceholderLabel.setFont (juce::FontOptions().withHeight (32.0f).withStyle ("Bold"));
-        algorithmPlaceholderLabel.setColour (juce::Label::textColourId, juce::Colour (0xFF666666));
-        algorithmPlaceholderLabel.setJustificationType (juce::Justification::centred);
+        // Algorithm type selector buttons (mutually exclusive)
+        addAndMakeVisible (algoSDNButton);
+        algoSDNButton.setButtonText (LOC("reverbs.algorithm.sdn"));
+        algoSDNButton.setClickingTogglesState (true);
+        algoSDNButton.setToggleState (true, juce::dontSendNotification);
+        algoSDNButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF4CAF50));
+        algoSDNButton.setColour (juce::TextButton::buttonOnColourId, juce::Colour (0xFF4CAF50));
+        algoSDNButton.onClick = [this] { selectAlgorithm (0); };
+
+        addAndMakeVisible (algoFDNButton);
+        algoFDNButton.setButtonText (LOC("reverbs.algorithm.fdn"));
+        algoFDNButton.setClickingTogglesState (true);
+        algoFDNButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF2D2D2D));
+        algoFDNButton.setColour (juce::TextButton::buttonOnColourId, juce::Colour (0xFF2D2D2D));
+        algoFDNButton.onClick = [this] { selectAlgorithm (1); };
+
+        addAndMakeVisible (algoIRButton);
+        algoIRButton.setButtonText (LOC("reverbs.algorithm.ir"));
+        algoIRButton.setClickingTogglesState (true);
+        algoIRButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF2D2D2D));
+        algoIRButton.setColour (juce::TextButton::buttonOnColourId, juce::Colour (0xFF2D2D2D));
+        algoIRButton.onClick = [this] { selectAlgorithm (2); };
+
+        // Decay section label
+        addAndMakeVisible (algoDecaySectionLabel);
+        algoDecaySectionLabel.setText (LOC("reverbs.algorithm.decaySection"), juce::dontSendNotification);
+        algoDecaySectionLabel.setFont (juce::FontOptions().withHeight (16.0f).withStyle ("Bold"));
+
+        // RT60
+        addAndMakeVisible (algoRT60Label);
+        algoRT60Label.setText (LOC("reverbs.algorithm.rt60"), juce::dontSendNotification);
+
+        algoRT60Slider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF4CAF50));
+        algoRT60Slider.onValueChanged = [this] (float v)
+        {
+            float rt60 = WFSParameterDefaults::reverbRT60Min
+                * std::pow (WFSParameterDefaults::reverbRT60Max / WFSParameterDefaults::reverbRT60Min, v);
+            algoRT60ValueLabel.setText (juce::String (rt60, 2) + " s", juce::dontSendNotification);
+            saveAlgorithmParam (WFSParameterIDs::reverbRT60, rt60);
+        };
+        addAndMakeVisible (algoRT60Slider);
+
+        addAndMakeVisible (algoRT60ValueLabel);
+        algoRT60ValueLabel.setText (juce::String (WFSParameterDefaults::reverbRT60Default, 2) + " s", juce::dontSendNotification);
+        algoRT60ValueLabel.setJustificationType (juce::Justification::right);
+
+        // RT60 Low Mult
+        addAndMakeVisible (algoRT60LowMultLabel);
+        algoRT60LowMultLabel.setText (LOC("reverbs.algorithm.rt60LowMult"), juce::dontSendNotification);
+
+        algoRT60LowMultSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF2196F3));
+        algoRT60LowMultSlider.onValueChanged = [this] (float v)
+        {
+            float mult = WFSParameterDefaults::reverbRT60LowMultMin
+                * std::pow (WFSParameterDefaults::reverbRT60LowMultMax / WFSParameterDefaults::reverbRT60LowMultMin, v);
+            algoRT60LowMultValueLabel.setText (juce::String (mult, 2) + "x", juce::dontSendNotification);
+            saveAlgorithmParam (WFSParameterIDs::reverbRT60LowMult, mult);
+        };
+        addAndMakeVisible (algoRT60LowMultSlider);
+
+        addAndMakeVisible (algoRT60LowMultValueLabel);
+        algoRT60LowMultValueLabel.setText (juce::String (WFSParameterDefaults::reverbRT60LowMultDefault, 2) + "x", juce::dontSendNotification);
+        algoRT60LowMultValueLabel.setJustificationType (juce::Justification::right);
+
+        // RT60 High Mult
+        addAndMakeVisible (algoRT60HighMultLabel);
+        algoRT60HighMultLabel.setText (LOC("reverbs.algorithm.rt60HighMult"), juce::dontSendNotification);
+
+        algoRT60HighMultSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFFF5722));
+        algoRT60HighMultSlider.onValueChanged = [this] (float v)
+        {
+            float mult = WFSParameterDefaults::reverbRT60HighMultMin
+                * std::pow (WFSParameterDefaults::reverbRT60HighMultMax / WFSParameterDefaults::reverbRT60HighMultMin, v);
+            algoRT60HighMultValueLabel.setText (juce::String (mult, 2) + "x", juce::dontSendNotification);
+            saveAlgorithmParam (WFSParameterIDs::reverbRT60HighMult, mult);
+        };
+        addAndMakeVisible (algoRT60HighMultSlider);
+
+        addAndMakeVisible (algoRT60HighMultValueLabel);
+        algoRT60HighMultValueLabel.setText (juce::String (WFSParameterDefaults::reverbRT60HighMultDefault, 2) + "x", juce::dontSendNotification);
+        algoRT60HighMultValueLabel.setJustificationType (juce::Justification::right);
+
+        // Crossover Low
+        addAndMakeVisible (algoCrossoverLowLabel);
+        algoCrossoverLowLabel.setText (LOC("reverbs.algorithm.crossoverLow"), juce::dontSendNotification);
+
+        algoCrossoverLowSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF9C27B0));
+        algoCrossoverLowSlider.onValueChanged = [this] (float v)
+        {
+            float freq = WFSParameterDefaults::reverbCrossoverLowMin
+                * std::pow (WFSParameterDefaults::reverbCrossoverLowMax / WFSParameterDefaults::reverbCrossoverLowMin, v);
+            algoCrossoverLowValueLabel.setText (formatFrequency (static_cast<int> (freq)), juce::dontSendNotification);
+            saveAlgorithmParam (WFSParameterIDs::reverbCrossoverLow, freq);
+        };
+        addAndMakeVisible (algoCrossoverLowSlider);
+
+        addAndMakeVisible (algoCrossoverLowValueLabel);
+        algoCrossoverLowValueLabel.setText (formatFrequency (static_cast<int> (WFSParameterDefaults::reverbCrossoverLowDefault)), juce::dontSendNotification);
+        algoCrossoverLowValueLabel.setJustificationType (juce::Justification::right);
+
+        // Crossover High
+        addAndMakeVisible (algoCrossoverHighLabel);
+        algoCrossoverHighLabel.setText (LOC("reverbs.algorithm.crossoverHigh"), juce::dontSendNotification);
+
+        algoCrossoverHighSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF9C27B0));
+        algoCrossoverHighSlider.onValueChanged = [this] (float v)
+        {
+            float freq = WFSParameterDefaults::reverbCrossoverHighMin
+                * std::pow (WFSParameterDefaults::reverbCrossoverHighMax / WFSParameterDefaults::reverbCrossoverHighMin, v);
+            algoCrossoverHighValueLabel.setText (formatFrequency (static_cast<int> (freq)), juce::dontSendNotification);
+            saveAlgorithmParam (WFSParameterIDs::reverbCrossoverHigh, freq);
+        };
+        addAndMakeVisible (algoCrossoverHighSlider);
+
+        addAndMakeVisible (algoCrossoverHighValueLabel);
+        algoCrossoverHighValueLabel.setText (formatFrequency (static_cast<int> (WFSParameterDefaults::reverbCrossoverHighDefault)), juce::dontSendNotification);
+        algoCrossoverHighValueLabel.setJustificationType (juce::Justification::right);
+
+        // Diffusion
+        addAndMakeVisible (algoDiffusionLabel);
+        algoDiffusionLabel.setText (LOC("reverbs.algorithm.diffusion"), juce::dontSendNotification);
+
+        algoDiffusionSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF00BCD4));
+        algoDiffusionSlider.onValueChanged = [this] (float v)
+        {
+            algoDiffusionValueLabel.setText (juce::String (static_cast<int> (v * 100)) + "%", juce::dontSendNotification);
+            saveAlgorithmParam (WFSParameterIDs::reverbDiffusion, v);
+        };
+        addAndMakeVisible (algoDiffusionSlider);
+
+        addAndMakeVisible (algoDiffusionValueLabel);
+        algoDiffusionValueLabel.setText (juce::String (static_cast<int> (WFSParameterDefaults::reverbDiffusionDefault * 100)) + "%", juce::dontSendNotification);
+        algoDiffusionValueLabel.setJustificationType (juce::Justification::right);
+
+        // SDN section
+        addAndMakeVisible (algoSDNSectionLabel);
+        algoSDNSectionLabel.setText (LOC("reverbs.algorithm.sdnSection"), juce::dontSendNotification);
+        algoSDNSectionLabel.setFont (juce::FontOptions().withHeight (16.0f).withStyle ("Bold"));
+
+        addAndMakeVisible (algoSDNScaleLabel);
+        algoSDNScaleLabel.setText (LOC("reverbs.algorithm.scale"), juce::dontSendNotification);
+
+        algoSDNScaleSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFFF9800));
+        algoSDNScaleSlider.onValueChanged = [this] (float v)
+        {
+            float scale = WFSParameterDefaults::reverbSDNscaleMin
+                + v * (WFSParameterDefaults::reverbSDNscaleMax - WFSParameterDefaults::reverbSDNscaleMin);
+            algoSDNScaleValueLabel.setText (juce::String (scale, 2) + "x", juce::dontSendNotification);
+            saveAlgorithmParam (WFSParameterIDs::reverbSDNscale, scale);
+        };
+        addAndMakeVisible (algoSDNScaleSlider);
+
+        addAndMakeVisible (algoSDNScaleValueLabel);
+        algoSDNScaleValueLabel.setText (juce::String (WFSParameterDefaults::reverbSDNscaleDefault, 2) + "x", juce::dontSendNotification);
+        algoSDNScaleValueLabel.setJustificationType (juce::Justification::right);
+
+        // FDN section
+        addAndMakeVisible (algoFDNSectionLabel);
+        algoFDNSectionLabel.setText (LOC("reverbs.algorithm.fdnSection"), juce::dontSendNotification);
+        algoFDNSectionLabel.setFont (juce::FontOptions().withHeight (16.0f).withStyle ("Bold"));
+
+        addAndMakeVisible (algoFDNSizeLabel);
+        algoFDNSizeLabel.setText (LOC("reverbs.algorithm.size"), juce::dontSendNotification);
+
+        algoFDNSizeSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFFF9800));
+        algoFDNSizeSlider.onValueChanged = [this] (float v)
+        {
+            float size = WFSParameterDefaults::reverbFDNsizeMin
+                + v * (WFSParameterDefaults::reverbFDNsizeMax - WFSParameterDefaults::reverbFDNsizeMin);
+            algoFDNSizeValueLabel.setText (juce::String (size, 2) + "x", juce::dontSendNotification);
+            saveAlgorithmParam (WFSParameterIDs::reverbFDNsize, size);
+        };
+        addAndMakeVisible (algoFDNSizeSlider);
+
+        addAndMakeVisible (algoFDNSizeValueLabel);
+        algoFDNSizeValueLabel.setText (juce::String (WFSParameterDefaults::reverbFDNsizeDefault, 2) + "x", juce::dontSendNotification);
+        algoFDNSizeValueLabel.setJustificationType (juce::Justification::right);
+
+        // IR section
+        addAndMakeVisible (algoIRSectionLabel);
+        algoIRSectionLabel.setText (LOC("reverbs.algorithm.irSection"), juce::dontSendNotification);
+        algoIRSectionLabel.setFont (juce::FontOptions().withHeight (16.0f).withStyle ("Bold"));
+
+        addAndMakeVisible (algoIRFileLabel);
+        algoIRFileLabel.setText (LOC("reverbs.algorithm.irFile"), juce::dontSendNotification);
+
+        addAndMakeVisible (algoIRLoadButton);
+        algoIRLoadButton.setButtonText (LOC("reverbs.algorithm.irLoad"));
+        algoIRLoadButton.onClick = [this]
+        {
+            // IR file loading will be implemented in Phase 6
+        };
+
+        addAndMakeVisible (algoIRFileNameLabel);
+        algoIRFileNameLabel.setText (LOC("reverbs.algorithm.noFileLoaded"), juce::dontSendNotification);
+        algoIRFileNameLabel.setColour (juce::Label::textColourId, juce::Colours::grey);
+
+        addAndMakeVisible (algoIRTrimLabel);
+        algoIRTrimLabel.setText (LOC("reverbs.algorithm.irTrim"), juce::dontSendNotification);
+
+        algoIRTrimSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFFF9800));
+        algoIRTrimSlider.onValueChanged = [this] (float v)
+        {
+            float trim = v * WFSParameterDefaults::reverbIRtrimMax;
+            algoIRTrimValueLabel.setText (juce::String (trim, 1) + " ms", juce::dontSendNotification);
+            saveAlgorithmParam (WFSParameterIDs::reverbIRtrim, trim);
+        };
+        addAndMakeVisible (algoIRTrimSlider);
+
+        addAndMakeVisible (algoIRTrimValueLabel);
+        algoIRTrimValueLabel.setText (juce::String (WFSParameterDefaults::reverbIRtrimDefault, 1) + " ms", juce::dontSendNotification);
+        algoIRTrimValueLabel.setJustificationType (juce::Justification::right);
+
+        addAndMakeVisible (algoIRLengthLabel);
+        algoIRLengthLabel.setText (LOC("reverbs.algorithm.irLength"), juce::dontSendNotification);
+
+        algoIRLengthSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF4CAF50));
+        algoIRLengthSlider.onValueChanged = [this] (float v)
+        {
+            float length = WFSParameterDefaults::reverbIRlengthMin
+                + v * (WFSParameterDefaults::reverbIRlengthMax - WFSParameterDefaults::reverbIRlengthMin);
+            algoIRLengthValueLabel.setText (juce::String (length, 1) + " s", juce::dontSendNotification);
+            saveAlgorithmParam (WFSParameterIDs::reverbIRlength, length);
+        };
+        addAndMakeVisible (algoIRLengthSlider);
+
+        addAndMakeVisible (algoIRLengthValueLabel);
+        algoIRLengthValueLabel.setText (juce::String (WFSParameterDefaults::reverbIRlengthDefault, 1) + " s", juce::dontSendNotification);
+        algoIRLengthValueLabel.setJustificationType (juce::Justification::right);
+
+        addAndMakeVisible (algoPerNodeButton);
+        algoPerNodeButton.setButtonText (LOC("reverbs.algorithm.perNodeOff"));
+        algoPerNodeButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF2D2D2D));
+        algoPerNodeButton.setColour (juce::TextButton::buttonOnColourId, juce::Colour (0xFF2D2D2D));
+        algoPerNodeButton.onClick = [this]
+        {
+            bool enabled = !algoPerNodeButton.getToggleState();
+            algoPerNodeButton.setToggleState (enabled, juce::dontSendNotification);
+            algoPerNodeButton.setButtonText (enabled ? LOC("reverbs.algorithm.perNodeOn") : LOC("reverbs.algorithm.perNodeOff"));
+            juce::Colour btnColour = enabled ? juce::Colour (0xFF4CAF50) : juce::Colour (0xFF2D2D2D);
+            algoPerNodeButton.setColour (juce::TextButton::buttonColourId, btnColour);
+            algoPerNodeButton.setColour (juce::TextButton::buttonOnColourId, btnColour);
+            saveAlgorithmParam (WFSParameterIDs::reverbPerNodeIR, enabled ? 1 : 0);
+        };
+
+        // Wet Level (always visible)
+        addAndMakeVisible (algoWetLevelLabel);
+        algoWetLevelLabel.setText (LOC("reverbs.algorithm.wetLevel"), juce::dontSendNotification);
+
+        algoWetLevelSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF4CAF50));
+        algoWetLevelSlider.onValueChanged = [this] (float v)
+        {
+            // v in [0, 1] maps to [-60, +12] dB
+            float dB = -60.0f + v * 72.0f;
+            algoWetLevelValueLabel.setText (juce::String (dB, 1) + " dB", juce::dontSendNotification);
+            saveAlgorithmParam (WFSParameterIDs::reverbWetLevel, dB);
+        };
+        addAndMakeVisible (algoWetLevelSlider);
+
+        addAndMakeVisible (algoWetLevelValueLabel);
+        algoWetLevelValueLabel.setText (juce::String (WFSParameterDefaults::reverbWetLevelDefault, 1) + " dB", juce::dontSendNotification);
+        algoWetLevelValueLabel.setJustificationType (juce::Justification::right);
+    }
+
+    void setupPostProcessingSubTab()
+    {
+        // Post-Processing EQ Enable button
+        addAndMakeVisible (postEqEnableButton);
+        postEqEnableButton.setButtonText (LOC("eq.status.on"));
+        postEqEnableButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF4CAF50));
+        postEqEnableButton.onClick = [this]
+        {
+            bool enabled = !postEqEnableButton.getToggleState();
+            postEqEnableButton.setToggleState (enabled, juce::dontSendNotification);
+            postEqEnableButton.setButtonText (enabled ? LOC("eq.status.on") : LOC("eq.status.off"));
+            postEqEnableButton.setColour (juce::TextButton::buttonColourId,
+                                          enabled ? juce::Colour (0xFF4CAF50) : juce::Colour (0xFF2D2D2D));
+            for (int i = 0; i < numPostEqBands; ++i)
+                updatePostEQBandAppearance (i);
+            if (postEqDisplay != nullptr)
+                postEqDisplay->setEQEnabled (enabled);
+            savePostEQParam (WFSParameterIDs::reverbPostEQenable, enabled ? 1 : 0);
+        };
+
+        // 4 Post-EQ bands
+        for (int i = 0; i < numPostEqBands; ++i)
+        {
+            // Band label
+            addAndMakeVisible (postEqBandLabel[i]);
+            postEqBandLabel[i].setText (LOC("eq.labels.band") + " " + juce::String (i + 1), juce::dontSendNotification);
+            postEqBandLabel[i].setColour (juce::Label::textColourId, EQDisplayComponent::getBandColour(i));
+            postEqBandLabel[i].setJustificationType (juce::Justification::centred);
+
+            // Shape selector
+            addAndMakeVisible (postEqBandShapeSelector[i]);
+            postEqBandShapeSelector[i].addItem (LOC("eq.filterTypes.off"), 1);
+            postEqBandShapeSelector[i].addItem (LOC("eq.filterTypes.lowCut"), 2);
+            postEqBandShapeSelector[i].addItem (LOC("eq.filterTypes.lowShelf"), 3);
+            postEqBandShapeSelector[i].addItem (LOC("eq.filterTypes.peakNotch"), 4);
+            postEqBandShapeSelector[i].addItem (LOC("eq.filterTypes.highShelf"), 5);
+            postEqBandShapeSelector[i].addItem (LOC("eq.filterTypes.highCut"), 6);
+            postEqBandShapeSelector[i].setSelectedId (1);
+            postEqBandShapeSelector[i].onChange = [this, i]
+            {
+                int shape = postEqBandShapeSelector[i].getSelectedId() - 1;
+                savePostEQBandParam (i, WFSParameterIDs::reverbPostEQshape, shape);
+                updatePostEQBandAppearance (i);
+                TTSManager::getInstance().announceValueChange("Post-EQ Band " + juce::String(i + 1) + " Shape", postEqBandShapeSelector[i].getText());
+            };
+
+            // Frequency slider
+            addAndMakeVisible (postEqBandFreqLabel[i]);
+            postEqBandFreqLabel[i].setText (LOC("eq.labels.freq"), juce::dontSendNotification);
+            postEqBandFreqLabel[i].setColour (juce::Label::textColourId, juce::Colours::grey);
+
+            juce::Colour bandColour = EQDisplayComponent::getBandColour(i);
+            postEqBandFreqSlider[i].setTrackColours (juce::Colour (0xFF2D2D2D), bandColour);
+            postEqBandFreqSlider[i].onValueChanged = [this, i] (float v)
+            {
+                int freq = static_cast<int> (20.0f * std::pow (10.0f, 3.0f * v));
+                postEqBandFreqValueLabel[i].setText (formatFrequency (freq), juce::dontSendNotification);
+                savePostEQBandParam (i, WFSParameterIDs::reverbPostEQfreq, freq);
+            };
+            addAndMakeVisible (postEqBandFreqSlider[i]);
+
+            addAndMakeVisible (postEqBandFreqValueLabel[i]);
+            postEqBandFreqValueLabel[i].setText ("1000 Hz", juce::dontSendNotification);
+
+            // Gain dial
+            addAndMakeVisible (postEqBandGainLabel[i]);
+            postEqBandGainLabel[i].setText (LOC("eq.labels.gain"), juce::dontSendNotification);
+            postEqBandGainLabel[i].setColour (juce::Label::textColourId, juce::Colours::grey);
+            postEqBandGainLabel[i].setJustificationType (juce::Justification::centred);
+
+            postEqBandGainDial[i].setTrackColours (juce::Colour (0xFF2D2D2D), bandColour);
+            postEqBandGainDial[i].onValueChanged = [this, i] (float v)
+            {
+                float gain = v * 48.0f - 24.0f;
+                postEqBandGainValueLabel[i].setText (juce::String (gain, 1) + " dB", juce::dontSendNotification);
+                savePostEQBandParam (i, WFSParameterIDs::reverbPostEQgain, gain);
+            };
+            addAndMakeVisible (postEqBandGainDial[i]);
+
+            addAndMakeVisible (postEqBandGainValueLabel[i]);
+            postEqBandGainValueLabel[i].setText ("0.0 dB", juce::dontSendNotification);
+            postEqBandGainValueLabel[i].setJustificationType (juce::Justification::centred);
+
+            // Q dial
+            addAndMakeVisible (postEqBandQLabel[i]);
+            postEqBandQLabel[i].setText (LOC("eq.labels.q"), juce::dontSendNotification);
+            postEqBandQLabel[i].setColour (juce::Label::textColourId, juce::Colours::grey);
+            postEqBandQLabel[i].setJustificationType (juce::Justification::centred);
+
+            postEqBandQDial[i].setTrackColours (juce::Colour (0xFF2D2D2D), bandColour);
+            postEqBandQDial[i].onValueChanged = [this, i] (float v)
+            {
+                float q = 0.1f + 0.21f * (std::pow (100.0f, v) - 1.0f);
+                postEqBandQValueLabel[i].setText (juce::String (q, 2), juce::dontSendNotification);
+                savePostEQBandParam (i, WFSParameterIDs::reverbPostEQq, q);
+            };
+            addAndMakeVisible (postEqBandQDial[i]);
+
+            addAndMakeVisible (postEqBandQValueLabel[i]);
+            postEqBandQValueLabel[i].setText ("0.70", juce::dontSendNotification);
+            postEqBandQValueLabel[i].setJustificationType (juce::Justification::centred);
+        }
     }
 
     void setupReverbReturnSubTab()
@@ -814,6 +1374,48 @@ private:
         helpTextMap[&reloadBackupButton] = "Reload Reverb Configuration from backup file.";
         helpTextMap[&importButton] = "Import Reverb Configuration from file (with file explorer window).";
         helpTextMap[&exportButton] = "Export Reverb Configuration to file (with file explorer window).";
+
+        // Algorithm sub-tab help text
+        helpTextMap[&algoSDNButton] = "Select SDN (Scattering Delay Network) reverb algorithm.";
+        helpTextMap[&algoFDNButton] = "Select FDN (Feedback Delay Network) reverb algorithm.";
+        helpTextMap[&algoIRButton] = "Select IR (Impulse Response convolution) reverb algorithm.";
+        helpTextMap[&algoRT60Slider] = "Reverb decay time RT60 (0.2 - 8.0 seconds).";
+        helpTextMap[&algoRT60LowMultSlider] = "Low frequency RT60 multiplier (0.1 - 9.0x).";
+        helpTextMap[&algoRT60HighMultSlider] = "High frequency RT60 multiplier (0.1 - 9.0x).";
+        helpTextMap[&algoCrossoverLowSlider] = "Low crossover frequency for 3-band decay (50 - 500 Hz).";
+        helpTextMap[&algoCrossoverHighSlider] = "High crossover frequency for 3-band decay (1 - 10 kHz).";
+        helpTextMap[&algoDiffusionSlider] = "Diffusion amount controlling echo density (0 - 100%).";
+        helpTextMap[&algoSDNScaleSlider] = "SDN inter-node delay scale factor (0.5 - 4.0x).";
+        helpTextMap[&algoFDNSizeSlider] = "FDN delay line size multiplier (0.5 - 2.0x).";
+        helpTextMap[&algoIRLoadButton] = "Load an impulse response WAV file for convolution.";
+        helpTextMap[&algoIRTrimSlider] = "Trim the start of the impulse response (0 - 100 ms).";
+        helpTextMap[&algoIRLengthSlider] = "Maximum impulse response length (0.1 - 6.0 seconds).";
+        helpTextMap[&algoPerNodeButton] = "Use a separate IR for each reverb node, or share one IR.";
+        helpTextMap[&algoWetLevelSlider] = "Wet/dry mix level for reverb output (-60 to +12 dB).";
+
+        // Pre-Compressor help text
+        helpTextMap[&preCompBypassButton] = "Bypass or enable the pre-compressor on reverb feeds.";
+        helpTextMap[&preCompThresholdDial] = "Pre-compressor threshold (-60 to 0 dB).";
+        helpTextMap[&preCompRatioDial] = "Pre-compressor ratio (1:1 to 20:1).";
+        helpTextMap[&preCompAttackDial] = "Pre-compressor attack time (0.1 - 100 ms).";
+        helpTextMap[&preCompReleaseDial] = "Pre-compressor release time (10 - 1000 ms).";
+
+        // Post-Processing sub-tab help text
+        helpTextMap[&postEqEnableButton] = "Enable or disable post-processing EQ.";
+        for (int i = 0; i < numPostEqBands; ++i)
+        {
+            helpTextMap[&postEqBandShapeSelector[i]] = "Post-EQ Band " + juce::String(i + 1) + " filter shape.";
+            helpTextMap[&postEqBandFreqSlider[i]] = "Post-EQ Band " + juce::String(i + 1) + " frequency (20 Hz - 20 kHz).";
+            helpTextMap[&postEqBandGainDial[i]] = "Post-EQ Band " + juce::String(i + 1) + " gain (-24 to +24 dB).";
+            helpTextMap[&postEqBandQDial[i]] = "Post-EQ Band " + juce::String(i + 1) + " Q factor (0.1 - 20.0).";
+        }
+
+        // Post-Expander help text
+        helpTextMap[&postExpBypassButton] = "Bypass or enable the post-expander on reverb returns.";
+        helpTextMap[&postExpThresholdDial] = "Post-expander threshold (-80 to -10 dB).";
+        helpTextMap[&postExpRatioDial] = "Post-expander ratio (1:1 to 1:8).";
+        helpTextMap[&postExpAttackDial] = "Post-expander attack time (0.1 - 50 ms).";
+        helpTextMap[&postExpReleaseDial] = "Post-expander release time (50 - 2000 ms).";
     }
 
     void setupOscMethods()
@@ -830,6 +1432,46 @@ private:
         oscMethodMap[&coordModeSelector] = "/wfs/reverb/coordinateMode <ID> <value>";
         oscMethodMap[&distanceAttenDial] = "/wfs/reverb/distanceAttenuation <ID> <value>";
         oscMethodMap[&commonAttenDial] = "/wfs/reverb/commonAtten <ID> <value>";
+
+        // Algorithm sub-tab OSC methods (global, no channel ID)
+        oscMethodMap[&algoSDNButton] = "/wfs/config/reverb/algoType <value>";
+        oscMethodMap[&algoFDNButton] = "/wfs/config/reverb/algoType <value>";
+        oscMethodMap[&algoIRButton] = "/wfs/config/reverb/algoType <value>";
+        oscMethodMap[&algoRT60Slider] = "/wfs/config/reverb/rt60 <value>";
+        oscMethodMap[&algoRT60LowMultSlider] = "/wfs/config/reverb/rt60LowMult <value>";
+        oscMethodMap[&algoRT60HighMultSlider] = "/wfs/config/reverb/rt60HighMult <value>";
+        oscMethodMap[&algoCrossoverLowSlider] = "/wfs/config/reverb/crossoverLow <value>";
+        oscMethodMap[&algoCrossoverHighSlider] = "/wfs/config/reverb/crossoverHigh <value>";
+        oscMethodMap[&algoDiffusionSlider] = "/wfs/config/reverb/diffusion <value>";
+        oscMethodMap[&algoSDNScaleSlider] = "/wfs/config/reverb/sdnScale <value>";
+        oscMethodMap[&algoFDNSizeSlider] = "/wfs/config/reverb/fdnSize <value>";
+        oscMethodMap[&algoIRTrimSlider] = "/wfs/config/reverb/irTrim <value>";
+        oscMethodMap[&algoIRLengthSlider] = "/wfs/config/reverb/irLength <value>";
+        oscMethodMap[&algoPerNodeButton] = "/wfs/config/reverb/perNodeIR <value>";
+        oscMethodMap[&algoWetLevelSlider] = "/wfs/config/reverb/wetLevel <value>";
+
+        // Pre-Compressor OSC methods (global, no channel ID)
+        oscMethodMap[&preCompBypassButton] = "/wfs/config/reverb/preCompBypass <value>";
+        oscMethodMap[&preCompThresholdDial] = "/wfs/config/reverb/preCompThreshold <value>";
+        oscMethodMap[&preCompRatioDial] = "/wfs/config/reverb/preCompRatio <value>";
+        oscMethodMap[&preCompAttackDial] = "/wfs/config/reverb/preCompAttack <value>";
+        oscMethodMap[&preCompReleaseDial] = "/wfs/config/reverb/preCompRelease <value>";
+
+        // Post-Processing sub-tab OSC methods (global, no channel ID)
+        oscMethodMap[&postEqEnableButton] = "/wfs/config/reverb/postEQenable <value>";
+        for (int i = 0; i < numPostEqBands; ++i)
+        {
+            oscMethodMap[&postEqBandFreqSlider[i]] = "/wfs/config/reverb/postEQfreq <value>";
+            oscMethodMap[&postEqBandGainDial[i]] = "/wfs/config/reverb/postEQgain <value>";
+            oscMethodMap[&postEqBandQDial[i]] = "/wfs/config/reverb/postEQq <value>";
+        }
+
+        // Post-Expander OSC methods (global, no channel ID)
+        oscMethodMap[&postExpBypassButton] = "/wfs/config/reverb/postExpBypass <value>";
+        oscMethodMap[&postExpThresholdDial] = "/wfs/config/reverb/postExpThreshold <value>";
+        oscMethodMap[&postExpRatioDial] = "/wfs/config/reverb/postExpRatio <value>";
+        oscMethodMap[&postExpAttackDial] = "/wfs/config/reverb/postExpAttack <value>";
+        oscMethodMap[&postExpReleaseDial] = "/wfs/config/reverb/postExpRelease <value>";
     }
 
     void setupMouseListeners()
@@ -887,24 +1529,72 @@ private:
         setChannelParametersVisible (false);
         setEQVisible (false);
         setAlgorithmVisible (false);
+        setPostProcessingVisible (false);
 
         switch (tabIndex)
         {
             case 0: setChannelParametersVisible (true); layoutChannelParametersTab(); break;
             case 1: setEQVisible (true); layoutEQSubTab(); break;
             case 2: setAlgorithmVisible (true); layoutAlgorithmSubTab(); break;
+            case 3: setPostProcessingVisible (true); layoutPostProcessingSubTab(); break;
         }
+    }
+
+    void layoutPreCompressor (juce::Rectangle<int> area)
+    {
+        const int rowHeight = 30;
+        const int dialSize = 60;
+        const int labelHeight = 20;
+        const int spacing = 5;
+
+        area.removeFromTop (spacing * 2);
+
+        // Section label + bypass button row
+        auto headerRow = area.removeFromTop (rowHeight);
+        preCompSectionLabel.setBounds (headerRow.removeFromLeft (120));
+        preCompBypassButton.setBounds (headerRow.removeFromLeft (150));
+        area.removeFromTop (spacing);
+
+        // 4 dials in a horizontal row: label / dial / value
+        auto dialRow = area.removeFromTop (labelHeight + dialSize + labelHeight);
+        int dialColumnWidth = dialRow.getWidth() / 4;
+
+        auto threshArea = dialRow.removeFromLeft (dialColumnWidth);
+        preCompThresholdLabel.setBounds (threshArea.removeFromTop (labelHeight));
+        preCompThresholdValueLabel.setBounds (threshArea.removeFromBottom (labelHeight));
+        preCompThresholdDial.setBounds (threshArea.withSizeKeepingCentre (dialSize, dialSize));
+
+        auto ratioArea = dialRow.removeFromLeft (dialColumnWidth);
+        preCompRatioLabel.setBounds (ratioArea.removeFromTop (labelHeight));
+        preCompRatioValueLabel.setBounds (ratioArea.removeFromBottom (labelHeight));
+        preCompRatioDial.setBounds (ratioArea.withSizeKeepingCentre (dialSize, dialSize));
+
+        auto attackArea = dialRow.removeFromLeft (dialColumnWidth);
+        preCompAttackLabel.setBounds (attackArea.removeFromTop (labelHeight));
+        preCompAttackValueLabel.setBounds (attackArea.removeFromBottom (labelHeight));
+        preCompAttackDial.setBounds (attackArea.withSizeKeepingCentre (dialSize, dialSize));
+
+        auto releaseArea = dialRow;
+        preCompReleaseLabel.setBounds (releaseArea.removeFromTop (labelHeight));
+        preCompReleaseValueLabel.setBounds (releaseArea.removeFromBottom (labelHeight));
+        preCompReleaseDial.setBounds (releaseArea.withSizeKeepingCentre (dialSize, dialSize));
     }
 
     void layoutEQSubTab()
     {
-        auto area = subTabContentArea;
+        auto fullArea = subTabContentArea;
         const int buttonHeight = 30;
-        const int bandWidth = (area.getWidth() - 40) / numEqBands;
         const int dialSize = 60;
         const int sliderHeight = 35;
         const int labelHeight = 20;
         const int spacing = 5;
+
+        // Reserve bottom portion for compressor section
+        const int compressorHeight = 145;
+        auto compArea = fullArea.removeFromBottom (compressorHeight);
+        auto area = fullArea;
+
+        const int bandWidth = (area.getWidth() - 40) / numEqBands;
 
         // EQ Enable button at top
         eqEnableButton.setBounds (area.removeFromTop (buttonHeight).withWidth (100));
@@ -917,7 +1607,7 @@ private:
             auto eqTree = parameters.getValueTreeState().ensureReverbEQSection (currentChannel - 1);
             if (eqTree.isValid())
             {
-                eqDisplay = std::make_unique<EQDisplayComponent> (eqTree, numEqBands, EQDisplayConfig::forReverbEQ());
+                eqDisplay = std::make_unique<EQDisplayComponent> (eqTree, numEqBands, EQDisplayConfig::forReverbPreEQ());
                 addAndMakeVisible (*eqDisplay);
                 lastEqDisplayChannel = currentChannel;
 
@@ -963,11 +1653,262 @@ private:
             eqBandQDial[i].setBounds (qArea.removeFromTop (dialSize).withSizeKeepingCentre (dialSize, dialSize));
             eqBandQValueLabel[i].setBounds (qArea.removeFromTop (labelHeight));
         }
+
+        // Layout pre-compressor section
+        layoutPreCompressor (compArea);
     }
 
     void layoutAlgorithmSubTab()
     {
-        algorithmPlaceholderLabel.setBounds (subTabContentArea);
+        auto area = subTabContentArea.reduced (10, 10);
+        const int rowHeight = 30;
+        const int sliderHeight = 35;
+        const int spacing = 8;
+        const int labelWidth = 120;
+        const int valueWidth = 80;
+        const int buttonWidth = 60;
+        const int titleHeight = 25;
+
+        // Algorithm type selector row
+        auto selectorRow = area.removeFromTop (rowHeight);
+        algoSDNButton.setBounds (selectorRow.removeFromLeft (buttonWidth));
+        selectorRow.removeFromLeft (spacing);
+        algoFDNButton.setBounds (selectorRow.removeFromLeft (buttonWidth));
+        selectorRow.removeFromLeft (spacing);
+        algoIRButton.setBounds (selectorRow.removeFromLeft (buttonWidth));
+        area.removeFromTop (spacing * 2);
+
+        // Two-column layout
+        int colWidth = area.getWidth() / 2;
+        auto col1 = area.removeFromLeft (colWidth);
+        auto col2 = area.reduced (5, 0);
+
+        // === Left Column: Decay + SDN/FDN ===
+        if (algoDecaySectionLabel.isVisible())
+        {
+            algoDecaySectionLabel.setBounds (col1.removeFromTop (titleHeight));
+            col1.removeFromTop (spacing);
+
+            auto row = col1.removeFromTop (rowHeight);
+            algoRT60Label.setBounds (row.removeFromLeft (labelWidth));
+            algoRT60ValueLabel.setBounds (row.removeFromRight (valueWidth));
+            col1.removeFromTop (3);
+            algoRT60Slider.setBounds (col1.removeFromTop (sliderHeight));
+            col1.removeFromTop (spacing);
+
+            row = col1.removeFromTop (rowHeight);
+            algoRT60LowMultLabel.setBounds (row.removeFromLeft (labelWidth));
+            algoRT60LowMultValueLabel.setBounds (row.removeFromRight (valueWidth));
+            col1.removeFromTop (3);
+            algoRT60LowMultSlider.setBounds (col1.removeFromTop (sliderHeight));
+            col1.removeFromTop (spacing);
+
+            row = col1.removeFromTop (rowHeight);
+            algoRT60HighMultLabel.setBounds (row.removeFromLeft (labelWidth));
+            algoRT60HighMultValueLabel.setBounds (row.removeFromRight (valueWidth));
+            col1.removeFromTop (3);
+            algoRT60HighMultSlider.setBounds (col1.removeFromTop (sliderHeight));
+            col1.removeFromTop (spacing);
+
+            row = col1.removeFromTop (rowHeight);
+            algoCrossoverLowLabel.setBounds (row.removeFromLeft (labelWidth));
+            algoCrossoverLowValueLabel.setBounds (row.removeFromRight (valueWidth));
+            col1.removeFromTop (3);
+            algoCrossoverLowSlider.setBounds (col1.removeFromTop (sliderHeight));
+            col1.removeFromTop (spacing);
+
+            row = col1.removeFromTop (rowHeight);
+            algoCrossoverHighLabel.setBounds (row.removeFromLeft (labelWidth));
+            algoCrossoverHighValueLabel.setBounds (row.removeFromRight (valueWidth));
+            col1.removeFromTop (3);
+            algoCrossoverHighSlider.setBounds (col1.removeFromTop (sliderHeight));
+            col1.removeFromTop (spacing);
+
+            row = col1.removeFromTop (rowHeight);
+            algoDiffusionLabel.setBounds (row.removeFromLeft (labelWidth));
+            algoDiffusionValueLabel.setBounds (row.removeFromRight (valueWidth));
+            col1.removeFromTop (3);
+            algoDiffusionSlider.setBounds (col1.removeFromTop (sliderHeight));
+            col1.removeFromTop (spacing * 2);
+        }
+
+        if (algoSDNSectionLabel.isVisible())
+        {
+            algoSDNSectionLabel.setBounds (col1.removeFromTop (titleHeight));
+            col1.removeFromTop (spacing);
+
+            auto row = col1.removeFromTop (rowHeight);
+            algoSDNScaleLabel.setBounds (row.removeFromLeft (labelWidth));
+            algoSDNScaleValueLabel.setBounds (row.removeFromRight (valueWidth));
+            col1.removeFromTop (3);
+            algoSDNScaleSlider.setBounds (col1.removeFromTop (sliderHeight));
+        }
+
+        if (algoFDNSectionLabel.isVisible())
+        {
+            algoFDNSectionLabel.setBounds (col1.removeFromTop (titleHeight));
+            col1.removeFromTop (spacing);
+
+            auto row = col1.removeFromTop (rowHeight);
+            algoFDNSizeLabel.setBounds (row.removeFromLeft (labelWidth));
+            algoFDNSizeValueLabel.setBounds (row.removeFromRight (valueWidth));
+            col1.removeFromTop (3);
+            algoFDNSizeSlider.setBounds (col1.removeFromTop (sliderHeight));
+        }
+
+        // === Right Column: IR + Output ===
+        if (algoIRSectionLabel.isVisible())
+        {
+            algoIRSectionLabel.setBounds (col2.removeFromTop (titleHeight));
+            col2.removeFromTop (spacing);
+
+            auto row = col2.removeFromTop (rowHeight);
+            algoIRFileLabel.setBounds (row.removeFromLeft (labelWidth));
+            algoIRLoadButton.setBounds (row.removeFromLeft (80));
+            row.removeFromLeft (spacing);
+            algoIRFileNameLabel.setBounds (row);
+            col2.removeFromTop (spacing);
+
+            row = col2.removeFromTop (rowHeight);
+            algoIRTrimLabel.setBounds (row.removeFromLeft (labelWidth));
+            algoIRTrimValueLabel.setBounds (row.removeFromRight (valueWidth));
+            col2.removeFromTop (3);
+            algoIRTrimSlider.setBounds (col2.removeFromTop (sliderHeight));
+            col2.removeFromTop (spacing);
+
+            row = col2.removeFromTop (rowHeight);
+            algoIRLengthLabel.setBounds (row.removeFromLeft (labelWidth));
+            algoIRLengthValueLabel.setBounds (row.removeFromRight (valueWidth));
+            col2.removeFromTop (3);
+            algoIRLengthSlider.setBounds (col2.removeFromTop (sliderHeight));
+            col2.removeFromTop (spacing);
+
+            algoPerNodeButton.setBounds (col2.removeFromTop (rowHeight).withWidth (180));
+            col2.removeFromTop (spacing * 2);
+        }
+
+        // Output section (always visible, right column)
+        auto wetRow = col2.removeFromTop (rowHeight);
+        algoWetLevelLabel.setBounds (wetRow.removeFromLeft (labelWidth));
+        algoWetLevelValueLabel.setBounds (wetRow.removeFromRight (valueWidth));
+        col2.removeFromTop (3);
+        algoWetLevelSlider.setBounds (col2.removeFromTop (sliderHeight));
+    }
+
+    void layoutPostExpander (juce::Rectangle<int> area)
+    {
+        const int rowHeight = 30;
+        const int dialSize = 60;
+        const int labelHeight = 20;
+        const int spacing = 5;
+
+        area.removeFromTop (spacing * 2);
+
+        // Section label + bypass button row
+        auto headerRow = area.removeFromTop (rowHeight);
+        postExpSectionLabel.setBounds (headerRow.removeFromLeft (120));
+        postExpBypassButton.setBounds (headerRow.removeFromLeft (150));
+        area.removeFromTop (spacing);
+
+        // 4 dials in a horizontal row: label / dial / value
+        auto dialRow = area.removeFromTop (labelHeight + dialSize + labelHeight);
+        int dialColumnWidth = dialRow.getWidth() / 4;
+
+        auto threshArea = dialRow.removeFromLeft (dialColumnWidth);
+        postExpThresholdLabel.setBounds (threshArea.removeFromTop (labelHeight));
+        postExpThresholdValueLabel.setBounds (threshArea.removeFromBottom (labelHeight));
+        postExpThresholdDial.setBounds (threshArea.withSizeKeepingCentre (dialSize, dialSize));
+
+        auto ratioArea = dialRow.removeFromLeft (dialColumnWidth);
+        postExpRatioLabel.setBounds (ratioArea.removeFromTop (labelHeight));
+        postExpRatioValueLabel.setBounds (ratioArea.removeFromBottom (labelHeight));
+        postExpRatioDial.setBounds (ratioArea.withSizeKeepingCentre (dialSize, dialSize));
+
+        auto attackArea = dialRow.removeFromLeft (dialColumnWidth);
+        postExpAttackLabel.setBounds (attackArea.removeFromTop (labelHeight));
+        postExpAttackValueLabel.setBounds (attackArea.removeFromBottom (labelHeight));
+        postExpAttackDial.setBounds (attackArea.withSizeKeepingCentre (dialSize, dialSize));
+
+        auto releaseArea = dialRow;
+        postExpReleaseLabel.setBounds (releaseArea.removeFromTop (labelHeight));
+        postExpReleaseValueLabel.setBounds (releaseArea.removeFromBottom (labelHeight));
+        postExpReleaseDial.setBounds (releaseArea.withSizeKeepingCentre (dialSize, dialSize));
+    }
+
+    void layoutPostProcessingSubTab()
+    {
+        auto fullArea = subTabContentArea;
+        const int buttonHeight = 30;
+        const int dialSize = 60;
+        const int sliderHeight = 35;
+        const int labelHeight = 20;
+        const int spacing = 5;
+
+        // Reserve bottom portion for expander section
+        const int expanderHeight = 145;
+        auto expArea = fullArea.removeFromBottom (expanderHeight);
+        auto area = fullArea;
+
+        const int bandWidth = (area.getWidth() - 40) / numPostEqBands;
+
+        // Post-EQ Enable button at top
+        postEqEnableButton.setBounds (area.removeFromTop (buttonHeight).withWidth (100));
+        area.removeFromTop (spacing * 2);
+
+        // Create Post-EQ Display if it doesn't exist yet
+        if (postEqDisplay == nullptr)
+        {
+            auto postEqTree = parameters.getValueTreeState().ensureReverbPostEQSection();
+            if (postEqTree.isValid())
+            {
+                postEqDisplay = std::make_unique<EQDisplayComponent> (postEqTree, numPostEqBands, EQDisplayConfig::forReverbPostEQ());
+                addAndMakeVisible (*postEqDisplay);
+
+                bool eqEnabled = postEqEnableButton.getToggleState();
+                postEqDisplay->setEQEnabled (eqEnabled);
+            }
+        }
+
+        // Post-EQ Display component
+        if (postEqDisplay)
+        {
+            int displayHeight = juce::jmax (180, area.getHeight() * 35 / 100);
+            postEqDisplay->setBounds (area.removeFromTop (displayHeight));
+            area.removeFromTop (spacing);
+        }
+
+        // Layout bands horizontally
+        for (int i = 0; i < numPostEqBands; ++i)
+        {
+            auto bandArea = area.removeFromLeft (bandWidth).reduced (5, 0);
+
+            postEqBandLabel[i].setBounds (bandArea.removeFromTop (labelHeight));
+            postEqBandShapeSelector[i].setBounds (bandArea.removeFromTop (buttonHeight));
+            bandArea.removeFromTop (spacing);
+
+            // Frequency slider
+            postEqBandFreqLabel[i].setBounds (bandArea.removeFromTop (labelHeight));
+            postEqBandFreqSlider[i].setBounds (bandArea.removeFromTop (sliderHeight));
+            postEqBandFreqValueLabel[i].setBounds (bandArea.removeFromTop (labelHeight));
+            bandArea.removeFromTop (spacing);
+
+            // Gain and Q dials in a row
+            auto dialRow = bandArea.removeFromTop (dialSize + labelHeight * 2);
+            int dialSpacing = (dialRow.getWidth() - dialSize * 2) / 3;
+
+            auto gainArea = dialRow.removeFromLeft (dialSize + dialSpacing).reduced (dialSpacing / 2, 0);
+            postEqBandGainLabel[i].setBounds (gainArea.removeFromTop (labelHeight));
+            postEqBandGainDial[i].setBounds (gainArea.removeFromTop (dialSize).withSizeKeepingCentre (dialSize, dialSize));
+            postEqBandGainValueLabel[i].setBounds (gainArea.removeFromTop (labelHeight));
+
+            auto qArea = dialRow.removeFromLeft (dialSize + dialSpacing).reduced (dialSpacing / 2, 0);
+            postEqBandQLabel[i].setBounds (qArea.removeFromTop (labelHeight));
+            postEqBandQDial[i].setBounds (qArea.removeFromTop (dialSize).withSizeKeepingCentre (dialSize, dialSize));
+            postEqBandQValueLabel[i].setBounds (qArea.removeFromTop (labelHeight));
+        }
+
+        // Layout post-expander section
+        layoutPostExpander (expArea);
     }
 
     void layoutChannelParametersTab()
@@ -1203,12 +2144,12 @@ private:
             auto eqTree = parameters.getValueTreeState().ensureReverbEQSection (currentChannel - 1);
             if (eqTree.isValid())
             {
-                eqDisplay = std::make_unique<EQDisplayComponent> (eqTree, numEqBands, EQDisplayConfig::forReverbEQ());
+                eqDisplay = std::make_unique<EQDisplayComponent> (eqTree, numEqBands, EQDisplayConfig::forReverbPreEQ());
                 addAndMakeVisible (*eqDisplay);
                 lastEqDisplayChannel = currentChannel;
 
                 int eqEnabled = currentChannel > 0 ?
-                    static_cast<int>(parameters.getValueTreeState().getReverbParameter (currentChannel - 1, WFSParameterIDs::reverbEQenable)) : 1;
+                    static_cast<int>(parameters.getValueTreeState().getReverbParameter (currentChannel - 1, WFSParameterIDs::reverbPreEQenable)) : 1;
                 eqDisplay->setEQEnabled (eqEnabled != 0);
             }
         }
@@ -1236,6 +2177,25 @@ private:
                 eqBandGainValueLabel[i].setVisible (false);
             }
         }
+
+        // Pre-Compressor visibility
+        preCompSectionLabel.setVisible (visible);
+        preCompBypassButton.setVisible (visible);
+        preCompThresholdLabel.setVisible (visible);
+        preCompThresholdDial.setVisible (visible);
+        preCompThresholdValueLabel.setVisible (visible);
+        preCompRatioLabel.setVisible (visible);
+        preCompRatioDial.setVisible (visible);
+        preCompRatioValueLabel.setVisible (visible);
+        preCompAttackLabel.setVisible (visible);
+        preCompAttackDial.setVisible (visible);
+        preCompAttackValueLabel.setVisible (visible);
+        preCompReleaseLabel.setVisible (visible);
+        preCompReleaseDial.setVisible (visible);
+        preCompReleaseValueLabel.setVisible (visible);
+
+        if (visible)
+            updatePreCompAppearance();
     }
 
     void updateEQBandAppearance (int bandIndex)
@@ -1298,7 +2258,125 @@ private:
 
     void setAlgorithmVisible (bool visible)
     {
-        algorithmPlaceholderLabel.setVisible (visible);
+        algoSDNButton.setVisible (visible);
+        algoFDNButton.setVisible (visible);
+        algoIRButton.setVisible (visible);
+
+        // Always-visible controls
+        algoWetLevelLabel.setVisible (visible);
+        algoWetLevelSlider.setVisible (visible);
+        algoWetLevelValueLabel.setVisible (visible);
+
+        if (visible)
+        {
+            updateAlgorithmVisibility();
+        }
+        else
+        {
+            // Hide all algorithm-specific controls
+            algoDecaySectionLabel.setVisible (false);
+            algoRT60Label.setVisible (false);
+            algoRT60Slider.setVisible (false);
+            algoRT60ValueLabel.setVisible (false);
+            algoRT60LowMultLabel.setVisible (false);
+            algoRT60LowMultSlider.setVisible (false);
+            algoRT60LowMultValueLabel.setVisible (false);
+            algoRT60HighMultLabel.setVisible (false);
+            algoRT60HighMultSlider.setVisible (false);
+            algoRT60HighMultValueLabel.setVisible (false);
+            algoCrossoverLowLabel.setVisible (false);
+            algoCrossoverLowSlider.setVisible (false);
+            algoCrossoverLowValueLabel.setVisible (false);
+            algoCrossoverHighLabel.setVisible (false);
+            algoCrossoverHighSlider.setVisible (false);
+            algoCrossoverHighValueLabel.setVisible (false);
+            algoDiffusionLabel.setVisible (false);
+            algoDiffusionSlider.setVisible (false);
+            algoDiffusionValueLabel.setVisible (false);
+
+            algoSDNSectionLabel.setVisible (false);
+            algoSDNScaleLabel.setVisible (false);
+            algoSDNScaleSlider.setVisible (false);
+            algoSDNScaleValueLabel.setVisible (false);
+
+            algoFDNSectionLabel.setVisible (false);
+            algoFDNSizeLabel.setVisible (false);
+            algoFDNSizeSlider.setVisible (false);
+            algoFDNSizeValueLabel.setVisible (false);
+
+            algoIRSectionLabel.setVisible (false);
+            algoIRFileLabel.setVisible (false);
+            algoIRLoadButton.setVisible (false);
+            algoIRFileNameLabel.setVisible (false);
+            algoIRTrimLabel.setVisible (false);
+            algoIRTrimSlider.setVisible (false);
+            algoIRTrimValueLabel.setVisible (false);
+            algoIRLengthLabel.setVisible (false);
+            algoIRLengthSlider.setVisible (false);
+            algoIRLengthValueLabel.setVisible (false);
+            algoPerNodeButton.setVisible (false);
+        }
+    }
+
+    void setPostProcessingVisible (bool visible)
+    {
+        postEqEnableButton.setVisible (visible);
+
+        // Post-EQ Display - create if needed and visible
+        if (visible && postEqDisplay == nullptr)
+        {
+            auto postEqTree = parameters.getValueTreeState().ensureReverbPostEQSection();
+            if (postEqTree.isValid())
+            {
+                postEqDisplay = std::make_unique<EQDisplayComponent> (postEqTree, numPostEqBands, EQDisplayConfig::forReverbPostEQ());
+                addAndMakeVisible (*postEqDisplay);
+
+                int eqEnabled = postEqEnableButton.getToggleState() ? 1 : 0;
+                postEqDisplay->setEQEnabled (eqEnabled != 0);
+            }
+        }
+        if (postEqDisplay)
+            postEqDisplay->setVisible (visible);
+
+        for (int i = 0; i < numPostEqBands; ++i)
+        {
+            postEqBandLabel[i].setVisible (visible);
+            postEqBandShapeSelector[i].setVisible (visible);
+            postEqBandFreqLabel[i].setVisible (visible);
+            postEqBandFreqSlider[i].setVisible (visible);
+            postEqBandFreqValueLabel[i].setVisible (visible);
+            postEqBandQLabel[i].setVisible (visible);
+            postEqBandQDial[i].setVisible (visible);
+            postEqBandQValueLabel[i].setVisible (visible);
+
+            if (visible)
+                updatePostEQBandAppearance (i);
+            else
+            {
+                postEqBandGainLabel[i].setVisible (false);
+                postEqBandGainDial[i].setVisible (false);
+                postEqBandGainValueLabel[i].setVisible (false);
+            }
+        }
+
+        // Post-Expander visibility
+        postExpSectionLabel.setVisible (visible);
+        postExpBypassButton.setVisible (visible);
+        postExpThresholdLabel.setVisible (visible);
+        postExpThresholdDial.setVisible (visible);
+        postExpThresholdValueLabel.setVisible (visible);
+        postExpRatioLabel.setVisible (visible);
+        postExpRatioDial.setVisible (visible);
+        postExpRatioValueLabel.setVisible (visible);
+        postExpAttackLabel.setVisible (visible);
+        postExpAttackDial.setVisible (visible);
+        postExpAttackValueLabel.setVisible (visible);
+        postExpReleaseLabel.setVisible (visible);
+        postExpReleaseDial.setVisible (visible);
+        postExpReleaseValueLabel.setVisible (visible);
+
+        if (visible)
+            updatePostExpAppearance();
     }
 
     void setChannelParametersVisible (bool visible)
@@ -1510,7 +2588,7 @@ private:
         distanceAttenEnableValueLabel.setText (juce::String (distanceAttenEnable) + "%", juce::dontSendNotification);
 
         // EQ
-        int eqEnabled = getIntParam (WFSParameterIDs::reverbEQenable, 1);
+        int eqEnabled = getIntParam (WFSParameterIDs::reverbPreEQenable, 1);
         eqEnableButton.setToggleState (eqEnabled != 0, juce::dontSendNotification);
         eqEnableButton.setButtonText (eqEnabled != 0 ? LOC("eq.status.on") : LOC("eq.status.off"));
         eqEnableButton.setColour (juce::TextButton::buttonColourId,
@@ -1526,7 +2604,7 @@ private:
         {
             if (eqDisplay == nullptr || lastEqDisplayChannel != channel)
             {
-                eqDisplay = std::make_unique<EQDisplayComponent> (eqTree, numEqBands, EQDisplayConfig::forReverbEQ());
+                eqDisplay = std::make_unique<EQDisplayComponent> (eqTree, numEqBands, EQDisplayConfig::forReverbPreEQ());
                 addAndMakeVisible (*eqDisplay);
                 lastEqDisplayChannel = channel;
             }
@@ -1564,19 +2642,19 @@ private:
             if (!band.isValid())
                 continue;
 
-            int shape = band.getProperty (WFSParameterIDs::reverbEQshape, 0);
+            int shape = band.getProperty (WFSParameterIDs::reverbPreEQshape, 0);
             eqBandShapeSelector[i].setSelectedId (shape + 1, juce::dontSendNotification);
 
-            int freq = band.getProperty (WFSParameterIDs::reverbEQfreq, 1000);
+            int freq = band.getProperty (WFSParameterIDs::reverbPreEQfreq, 1000);
             float freqSlider = std::log10 (freq / 20.0f) / 3.0f;
             eqBandFreqSlider[i].setValue (juce::jlimit (0.0f, 1.0f, freqSlider));
             eqBandFreqValueLabel[i].setText (formatFrequency (freq), juce::dontSendNotification);
 
-            float gain = band.getProperty (WFSParameterIDs::reverbEQgain, 0.0f);
+            float gain = band.getProperty (WFSParameterIDs::reverbPreEQgain, 0.0f);
             eqBandGainDial[i].setValue ((gain + 24.0f) / 48.0f);
             eqBandGainValueLabel[i].setText (juce::String (gain, 1) + " dB", juce::dontSendNotification);
 
-            float q = band.getProperty (WFSParameterIDs::reverbEQq, 0.7f);
+            float q = band.getProperty (WFSParameterIDs::reverbPreEQq, 0.7f);
             float qSlider = std::log ((q - 0.1f) / 0.21f + 1.0f) / std::log (100.0f);
             eqBandQDial[i].setValue (juce::jlimit (0.0f, 1.0f, qSlider));
             eqBandQValueLabel[i].setText (juce::String (q, 2), juce::dontSendNotification);
@@ -1640,7 +2718,7 @@ private:
             section = vts.getReverbFeedSection (channelIndex);
         }
         // EQ section parameter (EQ enable toggle)
-        else if (paramId == WFSParameterIDs::reverbEQenable)
+        else if (paramId == WFSParameterIDs::reverbPreEQenable)
         {
             section = vts.getReverbEQSection (channelIndex);
         }
@@ -1665,6 +2743,480 @@ private:
         auto band = vts.getReverbEQBand (currentChannel - 1, bandIndex);
         if (band.isValid())
             band.setProperty (paramId, value, vts.getUndoManager());
+    }
+
+    void saveAlgorithmParam (const juce::Identifier& paramId, const juce::var& value)
+    {
+        if (isLoadingParameters) return;
+
+        auto& vts = parameters.getValueTreeState();
+        auto section = vts.ensureReverbAlgorithmSection();
+        if (section.isValid())
+            section.setProperty (paramId, value, vts.getUndoManager());
+    }
+
+    void savePostEQParam (const juce::Identifier& paramId, const juce::var& value)
+    {
+        if (isLoadingParameters) return;
+
+        auto& vts = parameters.getValueTreeState();
+        auto section = vts.ensureReverbPostEQSection();
+        if (section.isValid())
+            section.setProperty (paramId, value, vts.getUndoManager());
+    }
+
+    void savePostEQBandParam (int bandIndex, const juce::Identifier& paramId, const juce::var& value)
+    {
+        if (isLoadingParameters) return;
+
+        auto& vts = parameters.getValueTreeState();
+        auto band = vts.getReverbPostEQBand (bandIndex);
+        if (band.isValid())
+            band.setProperty (paramId, value, vts.getUndoManager());
+    }
+
+    void updatePostEQBandAppearance (int bandIndex)
+    {
+        bool eqEnabled = postEqEnableButton.getToggleState();
+        int shapeId = postEqBandShapeSelector[bandIndex].getSelectedId();
+        bool bandIsOff = (shapeId == 1);
+
+        bool isCutFilter = (shapeId == 2 || shapeId == 6);
+        bool showGain = !isCutFilter;
+
+        float bandLabelAlpha = eqEnabled ? 1.0f : 0.4f;
+        float shapeAlpha = eqEnabled ? 1.0f : 0.4f;
+        float paramAlpha = (eqEnabled && !bandIsOff) ? 1.0f : 0.4f;
+
+        postEqBandLabel[bandIndex].setAlpha (bandLabelAlpha);
+        postEqBandShapeSelector[bandIndex].setAlpha (shapeAlpha);
+
+        bool postEqTabSelected = (subTabBar.getCurrentTabIndex() == 3);
+
+        if (postEqTabSelected)
+        {
+            postEqBandFreqLabel[bandIndex].setVisible (true);
+            postEqBandFreqSlider[bandIndex].setVisible (true);
+            postEqBandFreqValueLabel[bandIndex].setVisible (true);
+        }
+        postEqBandFreqLabel[bandIndex].setAlpha (paramAlpha);
+        postEqBandFreqSlider[bandIndex].setAlpha (paramAlpha);
+        postEqBandFreqValueLabel[bandIndex].setAlpha (paramAlpha);
+
+        if (postEqTabSelected)
+        {
+            postEqBandQLabel[bandIndex].setVisible (true);
+            postEqBandQDial[bandIndex].setVisible (true);
+            postEqBandQValueLabel[bandIndex].setVisible (true);
+        }
+        postEqBandQLabel[bandIndex].setAlpha (paramAlpha);
+        postEqBandQDial[bandIndex].setAlpha (paramAlpha);
+        postEqBandQValueLabel[bandIndex].setAlpha (paramAlpha);
+
+        bool showGainVisible = showGain && postEqTabSelected;
+        postEqBandGainLabel[bandIndex].setVisible (showGainVisible);
+        postEqBandGainDial[bandIndex].setVisible (showGainVisible);
+        postEqBandGainValueLabel[bandIndex].setVisible (showGainVisible);
+        if (showGain)
+        {
+            postEqBandGainLabel[bandIndex].setAlpha (paramAlpha);
+            postEqBandGainDial[bandIndex].setAlpha (paramAlpha);
+            postEqBandGainValueLabel[bandIndex].setAlpha (paramAlpha);
+        }
+    }
+
+    void loadPostEQParameters()
+    {
+        auto& vts = parameters.getValueTreeState();
+        auto postEQ = vts.ensureReverbPostEQSection();
+        if (!postEQ.isValid())
+            return;
+
+        int eqEnabled = static_cast<int> (postEQ.getProperty (WFSParameterIDs::reverbPostEQenable, 1));
+        postEqEnableButton.setToggleState (eqEnabled != 0, juce::dontSendNotification);
+        postEqEnableButton.setButtonText (eqEnabled != 0 ? LOC("eq.status.on") : LOC("eq.status.off"));
+        postEqEnableButton.setColour (juce::TextButton::buttonColourId,
+                                      eqEnabled != 0 ? juce::Colour (0xFF4CAF50) : juce::Colour (0xFF2D2D2D));
+
+        for (int i = 0; i < numPostEqBands; ++i)
+        {
+            auto band = vts.getReverbPostEQBand (i);
+            if (!band.isValid())
+                continue;
+
+            int shape = band.getProperty (WFSParameterIDs::reverbPostEQshape, 0);
+            postEqBandShapeSelector[i].setSelectedId (shape + 1, juce::dontSendNotification);
+
+            int freq = band.getProperty (WFSParameterIDs::reverbPostEQfreq, 1000);
+            float freqSlider = std::log10 (freq / 20.0f) / 3.0f;
+            postEqBandFreqSlider[i].setValue (juce::jlimit (0.0f, 1.0f, freqSlider));
+            postEqBandFreqValueLabel[i].setText (formatFrequency (freq), juce::dontSendNotification);
+
+            float gain = band.getProperty (WFSParameterIDs::reverbPostEQgain, 0.0f);
+            postEqBandGainDial[i].setValue ((gain + 24.0f) / 48.0f);
+            postEqBandGainValueLabel[i].setText (juce::String (gain, 1) + " dB", juce::dontSendNotification);
+
+            float q = band.getProperty (WFSParameterIDs::reverbPostEQq, 0.7f);
+            float qSlider = std::log ((q - 0.1f) / 0.21f + 1.0f) / std::log (100.0f);
+            postEqBandQDial[i].setValue (juce::jlimit (0.0f, 1.0f, qSlider));
+            postEqBandQValueLabel[i].setText (juce::String (q, 2), juce::dontSendNotification);
+
+            updatePostEQBandAppearance (i);
+        }
+
+        // Update Post-EQ display
+        if (postEqDisplay != nullptr)
+        {
+            postEqDisplay->setEQEnabled (eqEnabled != 0);
+            bool postEqTabVisible = (subTabBar.getCurrentTabIndex() == 3);
+            postEqDisplay->setVisible (postEqTabVisible);
+            if (postEqTabVisible)
+                layoutPostProcessingSubTab();
+        }
+    }
+
+    // =========================================================================
+    // Pre-Compressor save/load/appearance
+    // =========================================================================
+
+    void savePreCompParam (const juce::Identifier& paramId, const juce::var& value)
+    {
+        if (isLoadingParameters) return;
+        auto& vts = parameters.getValueTreeState();
+        auto preComp = vts.ensureReverbPreCompSection();
+        if (preComp.isValid())
+            preComp.setProperty (paramId, value, vts.getUndoManager());
+    }
+
+    void updatePreCompAppearance()
+    {
+        bool bypassed = preCompBypassButton.getToggleState();
+        float alpha = bypassed ? 0.4f : 1.0f;
+        preCompThresholdLabel.setAlpha (alpha);
+        preCompThresholdDial.setAlpha (alpha);
+        preCompThresholdValueLabel.setAlpha (alpha);
+        preCompRatioLabel.setAlpha (alpha);
+        preCompRatioDial.setAlpha (alpha);
+        preCompRatioValueLabel.setAlpha (alpha);
+        preCompAttackLabel.setAlpha (alpha);
+        preCompAttackDial.setAlpha (alpha);
+        preCompAttackValueLabel.setAlpha (alpha);
+        preCompReleaseLabel.setAlpha (alpha);
+        preCompReleaseDial.setAlpha (alpha);
+        preCompReleaseValueLabel.setAlpha (alpha);
+    }
+
+    void loadPreCompParameters()
+    {
+        using namespace WFSParameterIDs;
+        using namespace WFSParameterDefaults;
+        auto& vts = parameters.getValueTreeState();
+        auto preComp = vts.ensureReverbPreCompSection();
+        if (!preComp.isValid()) return;
+
+        int bypassed = static_cast<int> (preComp.getProperty (reverbPreCompBypass, reverbPreCompBypassDefault));
+        preCompBypassButton.setToggleState (bypassed != 0, juce::dontSendNotification);
+        preCompBypassButton.setButtonText (bypassed != 0 ? LOC("reverbs.preProcessing.compressorOff") : LOC("reverbs.preProcessing.compressorOn"));
+        preCompBypassButton.setColour (juce::TextButton::buttonColourId,
+            bypassed != 0 ? juce::Colour (0xFF2D2D2D) : juce::Colour (0xFF4CAF50));
+        preCompBypassButton.setColour (juce::TextButton::buttonOnColourId,
+            bypassed != 0 ? juce::Colour (0xFF2D2D2D) : juce::Colour (0xFF4CAF50));
+
+        float threshold = static_cast<float> (static_cast<double> (preComp.getProperty (reverbPreCompThreshold, reverbPreCompThresholdDefault)));
+        float thresholdNorm = (threshold - reverbPreCompThresholdMin) / (reverbPreCompThresholdMax - reverbPreCompThresholdMin);
+        preCompThresholdDial.setValue (juce::jlimit (0.0f, 1.0f, thresholdNorm));
+        preCompThresholdValueLabel.setText (juce::String (threshold, 1) + " dB", juce::dontSendNotification);
+
+        float ratio = static_cast<float> (static_cast<double> (preComp.getProperty (reverbPreCompRatio, reverbPreCompRatioDefault)));
+        float ratioNorm = (ratio - reverbPreCompRatioMin) / (reverbPreCompRatioMax - reverbPreCompRatioMin);
+        preCompRatioDial.setValue (juce::jlimit (0.0f, 1.0f, ratioNorm));
+        preCompRatioValueLabel.setText (juce::String (ratio, 1) + ":1", juce::dontSendNotification);
+
+        float attack = static_cast<float> (static_cast<double> (preComp.getProperty (reverbPreCompAttack, reverbPreCompAttackDefault)));
+        float attackNorm = std::log (attack / reverbPreCompAttackMin) / std::log (reverbPreCompAttackMax / reverbPreCompAttackMin);
+        preCompAttackDial.setValue (juce::jlimit (0.0f, 1.0f, attackNorm));
+        preCompAttackValueLabel.setText (juce::String (attack, 1) + " ms", juce::dontSendNotification);
+
+        float release = static_cast<float> (static_cast<double> (preComp.getProperty (reverbPreCompRelease, reverbPreCompReleaseDefault)));
+        float releaseNorm = std::log (release / reverbPreCompReleaseMin) / std::log (reverbPreCompReleaseMax / reverbPreCompReleaseMin);
+        preCompReleaseDial.setValue (juce::jlimit (0.0f, 1.0f, releaseNorm));
+        preCompReleaseValueLabel.setText (juce::String (release, 0) + " ms", juce::dontSendNotification);
+
+        updatePreCompAppearance();
+    }
+
+    // =========================================================================
+    // Post-Expander save/load/appearance
+    // =========================================================================
+
+    void savePostExpParam (const juce::Identifier& paramId, const juce::var& value)
+    {
+        if (isLoadingParameters) return;
+        auto& vts = parameters.getValueTreeState();
+        auto postExp = vts.ensureReverbPostExpSection();
+        if (postExp.isValid())
+            postExp.setProperty (paramId, value, vts.getUndoManager());
+    }
+
+    void updatePostExpAppearance()
+    {
+        bool bypassed = postExpBypassButton.getToggleState();
+        float alpha = bypassed ? 0.4f : 1.0f;
+        postExpThresholdLabel.setAlpha (alpha);
+        postExpThresholdDial.setAlpha (alpha);
+        postExpThresholdValueLabel.setAlpha (alpha);
+        postExpRatioLabel.setAlpha (alpha);
+        postExpRatioDial.setAlpha (alpha);
+        postExpRatioValueLabel.setAlpha (alpha);
+        postExpAttackLabel.setAlpha (alpha);
+        postExpAttackDial.setAlpha (alpha);
+        postExpAttackValueLabel.setAlpha (alpha);
+        postExpReleaseLabel.setAlpha (alpha);
+        postExpReleaseDial.setAlpha (alpha);
+        postExpReleaseValueLabel.setAlpha (alpha);
+    }
+
+    void loadPostExpParameters()
+    {
+        using namespace WFSParameterIDs;
+        using namespace WFSParameterDefaults;
+        auto& vts = parameters.getValueTreeState();
+        auto postExp = vts.ensureReverbPostExpSection();
+        if (!postExp.isValid()) return;
+
+        int bypassed = static_cast<int> (postExp.getProperty (reverbPostExpBypass, reverbPostExpBypassDefault));
+        postExpBypassButton.setToggleState (bypassed != 0, juce::dontSendNotification);
+        postExpBypassButton.setButtonText (bypassed != 0 ? LOC("reverbs.postProcessing.expanderOff") : LOC("reverbs.postProcessing.expanderOn"));
+        postExpBypassButton.setColour (juce::TextButton::buttonColourId,
+            bypassed != 0 ? juce::Colour (0xFF2D2D2D) : juce::Colour (0xFF4CAF50));
+        postExpBypassButton.setColour (juce::TextButton::buttonOnColourId,
+            bypassed != 0 ? juce::Colour (0xFF2D2D2D) : juce::Colour (0xFF4CAF50));
+
+        float threshold = static_cast<float> (static_cast<double> (postExp.getProperty (reverbPostExpThreshold, reverbPostExpThresholdDefault)));
+        float thresholdNorm = (threshold - reverbPostExpThresholdMin) / (reverbPostExpThresholdMax - reverbPostExpThresholdMin);
+        postExpThresholdDial.setValue (juce::jlimit (0.0f, 1.0f, thresholdNorm));
+        postExpThresholdValueLabel.setText (juce::String (threshold, 1) + " dB", juce::dontSendNotification);
+
+        float ratio = static_cast<float> (static_cast<double> (postExp.getProperty (reverbPostExpRatio, reverbPostExpRatioDefault)));
+        float ratioNorm = (ratio - reverbPostExpRatioMin) / (reverbPostExpRatioMax - reverbPostExpRatioMin);
+        postExpRatioDial.setValue (juce::jlimit (0.0f, 1.0f, ratioNorm));
+        postExpRatioValueLabel.setText ("1:" + juce::String (ratio, 1), juce::dontSendNotification);
+
+        float attack = static_cast<float> (static_cast<double> (postExp.getProperty (reverbPostExpAttack, reverbPostExpAttackDefault)));
+        float attackNorm = std::log (attack / reverbPostExpAttackMin) / std::log (reverbPostExpAttackMax / reverbPostExpAttackMin);
+        postExpAttackDial.setValue (juce::jlimit (0.0f, 1.0f, attackNorm));
+        postExpAttackValueLabel.setText (juce::String (attack, 1) + " ms", juce::dontSendNotification);
+
+        float release = static_cast<float> (static_cast<double> (postExp.getProperty (reverbPostExpRelease, reverbPostExpReleaseDefault)));
+        float releaseNorm = std::log (release / reverbPostExpReleaseMin) / std::log (reverbPostExpReleaseMax / reverbPostExpReleaseMin);
+        postExpReleaseDial.setValue (juce::jlimit (0.0f, 1.0f, releaseNorm));
+        postExpReleaseValueLabel.setText (juce::String (release, 0) + " ms", juce::dontSendNotification);
+
+        updatePostExpAppearance();
+    }
+
+    void selectAlgorithm (int type)
+    {
+        algoSDNButton.setToggleState (type == 0, juce::dontSendNotification);
+        algoFDNButton.setToggleState (type == 1, juce::dontSendNotification);
+        algoIRButton.setToggleState (type == 2, juce::dontSendNotification);
+        updateAlgorithmButtonColors();
+        saveAlgorithmParam (WFSParameterIDs::reverbAlgoType, type);
+        updateAlgorithmVisibility();
+        resized();
+    }
+
+    void updateAlgorithmButtonColors()
+    {
+        auto updateBtnColor = [] (juce::TextButton& btn)
+        {
+            juce::Colour col = btn.getToggleState() ? juce::Colour (0xFF4CAF50) : juce::Colour (0xFF2D2D2D);
+            btn.setColour (juce::TextButton::buttonColourId, col);
+            btn.setColour (juce::TextButton::buttonOnColourId, col);
+        };
+        updateBtnColor (algoSDNButton);
+        updateBtnColor (algoFDNButton);
+        updateBtnColor (algoIRButton);
+    }
+
+    void updateAlgorithmVisibility()
+    {
+        int algoType = 0;
+        if (algoFDNButton.getToggleState()) algoType = 1;
+        else if (algoIRButton.getToggleState()) algoType = 2;
+
+        bool isSDN = (algoType == 0);
+        bool isFDN = (algoType == 1);
+        bool isIR  = (algoType == 2);
+        bool isSDNorFDN = isSDN || isFDN;
+
+        // Decay section visible for SDN and FDN
+        algoDecaySectionLabel.setVisible (isSDNorFDN);
+        algoRT60Label.setVisible (isSDNorFDN);
+        algoRT60Slider.setVisible (isSDNorFDN);
+        algoRT60ValueLabel.setVisible (isSDNorFDN);
+        algoRT60LowMultLabel.setVisible (isSDNorFDN);
+        algoRT60LowMultSlider.setVisible (isSDNorFDN);
+        algoRT60LowMultValueLabel.setVisible (isSDNorFDN);
+        algoRT60HighMultLabel.setVisible (isSDNorFDN);
+        algoRT60HighMultSlider.setVisible (isSDNorFDN);
+        algoRT60HighMultValueLabel.setVisible (isSDNorFDN);
+        algoCrossoverLowLabel.setVisible (isSDNorFDN);
+        algoCrossoverLowSlider.setVisible (isSDNorFDN);
+        algoCrossoverLowValueLabel.setVisible (isSDNorFDN);
+        algoCrossoverHighLabel.setVisible (isSDNorFDN);
+        algoCrossoverHighSlider.setVisible (isSDNorFDN);
+        algoCrossoverHighValueLabel.setVisible (isSDNorFDN);
+        algoDiffusionLabel.setVisible (isSDNorFDN);
+        algoDiffusionSlider.setVisible (isSDNorFDN);
+        algoDiffusionValueLabel.setVisible (isSDNorFDN);
+
+        // SDN section
+        algoSDNSectionLabel.setVisible (isSDN);
+        algoSDNScaleLabel.setVisible (isSDN);
+        algoSDNScaleSlider.setVisible (isSDN);
+        algoSDNScaleValueLabel.setVisible (isSDN);
+
+        // FDN section
+        algoFDNSectionLabel.setVisible (isFDN);
+        algoFDNSizeLabel.setVisible (isFDN);
+        algoFDNSizeSlider.setVisible (isFDN);
+        algoFDNSizeValueLabel.setVisible (isFDN);
+
+        // IR section
+        algoIRSectionLabel.setVisible (isIR);
+        algoIRFileLabel.setVisible (isIR);
+        algoIRLoadButton.setVisible (isIR);
+        algoIRFileNameLabel.setVisible (isIR);
+        algoIRTrimLabel.setVisible (isIR);
+        algoIRTrimSlider.setVisible (isIR);
+        algoIRTrimValueLabel.setVisible (isIR);
+        algoIRLengthLabel.setVisible (isIR);
+        algoIRLengthSlider.setVisible (isIR);
+        algoIRLengthValueLabel.setVisible (isIR);
+        algoPerNodeButton.setVisible (isIR);
+    }
+
+    void loadAlgorithmParameters()
+    {
+        isLoadingParameters = true;
+
+        auto& vts = parameters.getValueTreeState();
+        auto section = vts.ensureReverbAlgorithmSection();
+
+        if (!section.isValid())
+        {
+            isLoadingParameters = false;
+            return;
+        }
+
+        auto getFloat = [&section] (const juce::Identifier& id, float defaultVal) -> float
+        {
+            auto val = section.getProperty (id);
+            return val.isVoid() ? defaultVal : static_cast<float> (val);
+        };
+
+        auto getInt = [&section] (const juce::Identifier& id, int defaultVal) -> int
+        {
+            auto val = section.getProperty (id);
+            return val.isVoid() ? defaultVal : static_cast<int> (val);
+        };
+
+        // Algorithm type
+        int algoType = getInt (WFSParameterIDs::reverbAlgoType, WFSParameterDefaults::reverbAlgoTypeDefault);
+        algoSDNButton.setToggleState (algoType == 0, juce::dontSendNotification);
+        algoFDNButton.setToggleState (algoType == 1, juce::dontSendNotification);
+        algoIRButton.setToggleState (algoType == 2, juce::dontSendNotification);
+        updateAlgorithmButtonColors();
+
+        // RT60
+        float rt60 = getFloat (WFSParameterIDs::reverbRT60, WFSParameterDefaults::reverbRT60Default);
+        float rt60Slider = std::log (rt60 / WFSParameterDefaults::reverbRT60Min)
+            / std::log (WFSParameterDefaults::reverbRT60Max / WFSParameterDefaults::reverbRT60Min);
+        algoRT60Slider.setValue (juce::jlimit (0.0f, 1.0f, rt60Slider));
+        algoRT60ValueLabel.setText (juce::String (rt60, 2) + " s", juce::dontSendNotification);
+
+        // RT60 Low Mult
+        float rt60Low = getFloat (WFSParameterIDs::reverbRT60LowMult, WFSParameterDefaults::reverbRT60LowMultDefault);
+        float rt60LowSlider = std::log (rt60Low / WFSParameterDefaults::reverbRT60LowMultMin)
+            / std::log (WFSParameterDefaults::reverbRT60LowMultMax / WFSParameterDefaults::reverbRT60LowMultMin);
+        algoRT60LowMultSlider.setValue (juce::jlimit (0.0f, 1.0f, rt60LowSlider));
+        algoRT60LowMultValueLabel.setText (juce::String (rt60Low, 2) + "x", juce::dontSendNotification);
+
+        // RT60 High Mult
+        float rt60High = getFloat (WFSParameterIDs::reverbRT60HighMult, WFSParameterDefaults::reverbRT60HighMultDefault);
+        float rt60HighSlider = std::log (rt60High / WFSParameterDefaults::reverbRT60HighMultMin)
+            / std::log (WFSParameterDefaults::reverbRT60HighMultMax / WFSParameterDefaults::reverbRT60HighMultMin);
+        algoRT60HighMultSlider.setValue (juce::jlimit (0.0f, 1.0f, rt60HighSlider));
+        algoRT60HighMultValueLabel.setText (juce::String (rt60High, 2) + "x", juce::dontSendNotification);
+
+        // Crossover Low
+        float xoverLow = getFloat (WFSParameterIDs::reverbCrossoverLow, WFSParameterDefaults::reverbCrossoverLowDefault);
+        float xoverLowSlider = std::log (xoverLow / WFSParameterDefaults::reverbCrossoverLowMin)
+            / std::log (WFSParameterDefaults::reverbCrossoverLowMax / WFSParameterDefaults::reverbCrossoverLowMin);
+        algoCrossoverLowSlider.setValue (juce::jlimit (0.0f, 1.0f, xoverLowSlider));
+        algoCrossoverLowValueLabel.setText (formatFrequency (static_cast<int> (xoverLow)), juce::dontSendNotification);
+
+        // Crossover High
+        float xoverHigh = getFloat (WFSParameterIDs::reverbCrossoverHigh, WFSParameterDefaults::reverbCrossoverHighDefault);
+        float xoverHighSlider = std::log (xoverHigh / WFSParameterDefaults::reverbCrossoverHighMin)
+            / std::log (WFSParameterDefaults::reverbCrossoverHighMax / WFSParameterDefaults::reverbCrossoverHighMin);
+        algoCrossoverHighSlider.setValue (juce::jlimit (0.0f, 1.0f, xoverHighSlider));
+        algoCrossoverHighValueLabel.setText (formatFrequency (static_cast<int> (xoverHigh)), juce::dontSendNotification);
+
+        // Diffusion
+        float diffusion = getFloat (WFSParameterIDs::reverbDiffusion, WFSParameterDefaults::reverbDiffusionDefault);
+        algoDiffusionSlider.setValue (juce::jlimit (0.0f, 1.0f, diffusion));
+        algoDiffusionValueLabel.setText (juce::String (static_cast<int> (diffusion * 100)) + "%", juce::dontSendNotification);
+
+        // SDN Scale
+        float sdnScale = getFloat (WFSParameterIDs::reverbSDNscale, WFSParameterDefaults::reverbSDNscaleDefault);
+        float sdnScaleSlider = (sdnScale - WFSParameterDefaults::reverbSDNscaleMin)
+            / (WFSParameterDefaults::reverbSDNscaleMax - WFSParameterDefaults::reverbSDNscaleMin);
+        algoSDNScaleSlider.setValue (juce::jlimit (0.0f, 1.0f, sdnScaleSlider));
+        algoSDNScaleValueLabel.setText (juce::String (sdnScale, 2) + "x", juce::dontSendNotification);
+
+        // FDN Size
+        float fdnSize = getFloat (WFSParameterIDs::reverbFDNsize, WFSParameterDefaults::reverbFDNsizeDefault);
+        float fdnSizeSlider = (fdnSize - WFSParameterDefaults::reverbFDNsizeMin)
+            / (WFSParameterDefaults::reverbFDNsizeMax - WFSParameterDefaults::reverbFDNsizeMin);
+        algoFDNSizeSlider.setValue (juce::jlimit (0.0f, 1.0f, fdnSizeSlider));
+        algoFDNSizeValueLabel.setText (juce::String (fdnSize, 2) + "x", juce::dontSendNotification);
+
+        // IR file
+        juce::String irFile = section.getProperty (WFSParameterIDs::reverbIRfile).toString();
+        algoIRFileNameLabel.setText (irFile.isEmpty()
+            ? LOC("reverbs.algorithm.noFileLoaded")
+            : juce::File (irFile).getFileName(), juce::dontSendNotification);
+
+        // IR Trim
+        float irTrim = getFloat (WFSParameterIDs::reverbIRtrim, WFSParameterDefaults::reverbIRtrimDefault);
+        algoIRTrimSlider.setValue (juce::jlimit (0.0f, 1.0f, irTrim / WFSParameterDefaults::reverbIRtrimMax));
+        algoIRTrimValueLabel.setText (juce::String (irTrim, 1) + " ms", juce::dontSendNotification);
+
+        // IR Length
+        float irLength = getFloat (WFSParameterIDs::reverbIRlength, WFSParameterDefaults::reverbIRlengthDefault);
+        float irLengthSlider = (irLength - WFSParameterDefaults::reverbIRlengthMin)
+            / (WFSParameterDefaults::reverbIRlengthMax - WFSParameterDefaults::reverbIRlengthMin);
+        algoIRLengthSlider.setValue (juce::jlimit (0.0f, 1.0f, irLengthSlider));
+        algoIRLengthValueLabel.setText (juce::String (irLength, 1) + " s", juce::dontSendNotification);
+
+        // Per-node IR
+        int perNode = getInt (WFSParameterIDs::reverbPerNodeIR, WFSParameterDefaults::reverbPerNodeIRDefault);
+        algoPerNodeButton.setToggleState (perNode != 0, juce::dontSendNotification);
+        algoPerNodeButton.setButtonText (perNode != 0 ? LOC("reverbs.algorithm.perNodeOn") : LOC("reverbs.algorithm.perNodeOff"));
+        juce::Colour perNodeColour = perNode != 0 ? juce::Colour (0xFF4CAF50) : juce::Colour (0xFF2D2D2D);
+        algoPerNodeButton.setColour (juce::TextButton::buttonColourId, perNodeColour);
+        algoPerNodeButton.setColour (juce::TextButton::buttonOnColourId, perNodeColour);
+
+        // Wet Level
+        float wetLevel = getFloat (WFSParameterIDs::reverbWetLevel, WFSParameterDefaults::reverbWetLevelDefault);
+        float wetSlider = (wetLevel + 60.0f) / 72.0f;
+        algoWetLevelSlider.setValue (juce::jlimit (0.0f, 1.0f, wetSlider));
+        algoWetLevelValueLabel.setText (juce::String (wetLevel, 1) + " dB", juce::dontSendNotification);
+
+        updateAlgorithmVisibility();
+        isLoadingParameters = false;
     }
 
     void saveMuteStates()
@@ -1769,6 +3321,10 @@ private:
         if (fileManager.loadReverbConfig())
         {
             loadChannelParameters (currentChannel);
+            loadAlgorithmParameters();
+            loadPreCompParameters();
+            loadPostEQParameters();
+            loadPostExpParameters();
             showStatusMessage (LOC("reverbs.messages.configLoaded"));
 
             // Trigger DSP recalculation via callback to MainComponent
@@ -1790,6 +3346,10 @@ private:
         if (fileManager.loadReverbConfigBackup (0))
         {
             loadChannelParameters (currentChannel);
+            loadAlgorithmParameters();
+            loadPreCompParameters();
+            loadPostEQParameters();
+            loadPostExpParameters();
             showStatusMessage (LOC("reverbs.messages.backupLoaded"));
 
             // Trigger DSP recalculation via callback to MainComponent
@@ -1814,6 +3374,10 @@ private:
                     if (fileManager.importReverbConfig (result))
                     {
                         loadChannelParameters (currentChannel);
+                        loadAlgorithmParameters();
+                        loadPreCompParameters();
+                        loadPostEQParameters();
+                        loadPostExpParameters();
                         showStatusMessage (LOC("reverbs.messages.configImported"));
 
                         // Trigger DSP recalculation via callback to MainComponent
@@ -2021,6 +3585,47 @@ private:
             resized();  // Re-layout components after visibility change
         }
 
+        // Check if this is a ReverbAlgorithm parameter change (global)
+        if (!isLoadingParameters && tree.getType() == WFSParameterIDs::ReverbAlgorithm)
+        {
+            juce::MessageManager::callAsync ([this]()
+            {
+                loadAlgorithmParameters();
+            });
+            return;
+        }
+
+        // Check if this is a ReverbPreComp parameter change (global)
+        if (!isLoadingParameters && tree.getType() == WFSParameterIDs::ReverbPreComp)
+        {
+            juce::MessageManager::callAsync ([this]()
+            {
+                loadPreCompParameters();
+            });
+            return;
+        }
+
+        // Check if this is a ReverbPostEQ parameter change (global)
+        if (!isLoadingParameters && (tree.getType() == WFSParameterIDs::ReverbPostEQ ||
+                                     tree.getType() == WFSParameterIDs::PostEQBand))
+        {
+            juce::MessageManager::callAsync ([this]()
+            {
+                loadPostEQParameters();
+            });
+            return;
+        }
+
+        // Check if this is a ReverbPostExp parameter change (global)
+        if (!isLoadingParameters && tree.getType() == WFSParameterIDs::ReverbPostExp)
+        {
+            juce::MessageManager::callAsync ([this]()
+            {
+                loadPostExpParameters();
+            });
+            return;
+        }
+
         // Check if this is a parameter change for the current reverb channel
         if (!isLoadingParameters)
         {
@@ -2211,7 +3816,27 @@ private:
         }
 
         // Algorithm sub-tab
-        algorithmPlaceholderLabel.setVisible (hasChannels);
+        if (!hasChannels)
+            setAlgorithmVisible (false);
+
+        // Post-Processing sub-tab
+        if (!hasChannels)
+            setPostProcessingVisible (false);
+        postEqEnableButton.setVisible (hasChannels);
+        for (int i = 0; i < numPostEqBands; ++i)
+        {
+            postEqBandLabel[i].setVisible (hasChannels);
+            postEqBandShapeSelector[i].setVisible (hasChannels);
+            postEqBandFreqLabel[i].setVisible (hasChannels);
+            postEqBandFreqSlider[i].setVisible (hasChannels);
+            postEqBandFreqValueLabel[i].setVisible (hasChannels);
+            postEqBandGainLabel[i].setVisible (hasChannels);
+            postEqBandGainDial[i].setVisible (hasChannels);
+            postEqBandGainValueLabel[i].setVisible (hasChannels);
+            postEqBandQLabel[i].setVisible (hasChannels);
+            postEqBandQDial[i].setVisible (hasChannels);
+            postEqBandQValueLabel[i].setVisible (hasChannels);
+        }
 
         // Reverb Return sub-tab
         distanceAttenLabel.setVisible (hasChannels);
@@ -2326,8 +3951,107 @@ private:
     std::unique_ptr<EQDisplayComponent> eqDisplay;
     int lastEqDisplayChannel = -1;  // Track which channel's EQ display is shown
 
-    // Algorithm sub-tab (placeholder)
-    juce::Label algorithmPlaceholderLabel;
+    // Pre-Compressor controls (below Pre-EQ in Pre-Processing tab)
+    juce::Label preCompSectionLabel;
+    juce::TextButton preCompBypassButton;
+    juce::Label preCompThresholdLabel;
+    WfsBasicDial preCompThresholdDial;
+    juce::Label preCompThresholdValueLabel;
+    juce::Label preCompRatioLabel;
+    WfsBasicDial preCompRatioDial;
+    juce::Label preCompRatioValueLabel;
+    juce::Label preCompAttackLabel;
+    WfsBasicDial preCompAttackDial;
+    juce::Label preCompAttackValueLabel;
+    juce::Label preCompReleaseLabel;
+    WfsBasicDial preCompReleaseDial;
+    juce::Label preCompReleaseValueLabel;
+
+    // Algorithm sub-tab
+    juce::TextButton algoSDNButton, algoFDNButton, algoIRButton;
+
+    // Decay section (SDN & FDN)
+    juce::Label algoDecaySectionLabel;
+    juce::Label algoRT60Label;
+    WfsStandardSlider algoRT60Slider;
+    juce::Label algoRT60ValueLabel;
+    juce::Label algoRT60LowMultLabel;
+    WfsStandardSlider algoRT60LowMultSlider;
+    juce::Label algoRT60LowMultValueLabel;
+    juce::Label algoRT60HighMultLabel;
+    WfsStandardSlider algoRT60HighMultSlider;
+    juce::Label algoRT60HighMultValueLabel;
+    juce::Label algoCrossoverLowLabel;
+    WfsStandardSlider algoCrossoverLowSlider;
+    juce::Label algoCrossoverLowValueLabel;
+    juce::Label algoCrossoverHighLabel;
+    WfsStandardSlider algoCrossoverHighSlider;
+    juce::Label algoCrossoverHighValueLabel;
+    juce::Label algoDiffusionLabel;
+    WfsStandardSlider algoDiffusionSlider;
+    juce::Label algoDiffusionValueLabel;
+
+    // SDN-specific section
+    juce::Label algoSDNSectionLabel;
+    juce::Label algoSDNScaleLabel;
+    WfsStandardSlider algoSDNScaleSlider;
+    juce::Label algoSDNScaleValueLabel;
+
+    // FDN-specific section
+    juce::Label algoFDNSectionLabel;
+    juce::Label algoFDNSizeLabel;
+    WfsStandardSlider algoFDNSizeSlider;
+    juce::Label algoFDNSizeValueLabel;
+
+    // IR-specific section
+    juce::Label algoIRSectionLabel;
+    juce::Label algoIRFileLabel;
+    juce::TextButton algoIRLoadButton;
+    juce::Label algoIRFileNameLabel;
+    juce::Label algoIRTrimLabel;
+    WfsStandardSlider algoIRTrimSlider;
+    juce::Label algoIRTrimValueLabel;
+    juce::Label algoIRLengthLabel;
+    WfsStandardSlider algoIRLengthSlider;
+    juce::Label algoIRLengthValueLabel;
+    juce::TextButton algoPerNodeButton;
+
+    // Output section (always visible)
+    juce::Label algoWetLevelLabel;
+    WfsStandardSlider algoWetLevelSlider;
+    juce::Label algoWetLevelValueLabel;
+
+    // Post-Processing sub-tab
+    static constexpr int numPostEqBands = 4;
+    juce::TextButton postEqEnableButton;
+    juce::Label postEqBandLabel[numPostEqBands];
+    juce::ComboBox postEqBandShapeSelector[numPostEqBands];
+    juce::Label postEqBandFreqLabel[numPostEqBands];
+    WfsStandardSlider postEqBandFreqSlider[numPostEqBands];
+    juce::Label postEqBandFreqValueLabel[numPostEqBands];
+    juce::Label postEqBandGainLabel[numPostEqBands];
+    WfsBasicDial postEqBandGainDial[numPostEqBands];
+    juce::Label postEqBandGainValueLabel[numPostEqBands];
+    juce::Label postEqBandQLabel[numPostEqBands];
+    WfsBasicDial postEqBandQDial[numPostEqBands];
+    juce::Label postEqBandQValueLabel[numPostEqBands];
+    std::unique_ptr<EQDisplayComponent> postEqDisplay;
+
+    // Post-Expander controls (below Post-EQ in Post-Processing tab)
+    juce::Label postExpSectionLabel;
+    juce::TextButton postExpBypassButton;
+    juce::Label postExpThresholdLabel;
+    WfsBasicDial postExpThresholdDial;
+    juce::Label postExpThresholdValueLabel;
+    juce::Label postExpRatioLabel;
+    WfsBasicDial postExpRatioDial;
+    juce::Label postExpRatioValueLabel;
+    juce::Label postExpAttackLabel;
+    WfsBasicDial postExpAttackDial;
+    juce::Label postExpAttackValueLabel;
+    juce::Label postExpReleaseLabel;
+    WfsBasicDial postExpReleaseDial;
+    juce::Label postExpReleaseValueLabel;
 
     // Reverb Return sub-tab
     juce::Label distanceAttenLabel;

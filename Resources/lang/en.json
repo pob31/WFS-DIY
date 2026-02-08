@@ -737,8 +737,9 @@
     "noChannels": "No reverb channels configured.\n\nSet the number of Reverb Channels in System Config.",
     "tabs": {
       "channelParams": "Channel Parameters",
-      "eq": "Reverb EQ",
-      "algorithm": "Algorithm"
+      "preProcessing": "Pre-Processing",
+      "algorithm": "Algorithm",
+      "postProcessing": "Post-Processing"
     },
     "labels": {
       "name": "Name:",
@@ -792,7 +793,48 @@
       "unmuteArray": "UNMUTE ARRAY"
     },
     "algorithm": {
-      "comingSoon": "Coming Soon"
+      "sdn": "SDN",
+      "fdn": "FDN",
+      "ir": "IR",
+      "decaySection": "Decay",
+      "rt60": "RT60:",
+      "rt60LowMult": "RT60 Low \u00d7:",
+      "rt60HighMult": "RT60 High \u00d7:",
+      "crossoverLow": "Crossover Low:",
+      "crossoverHigh": "Crossover High:",
+      "diffusion": "Diffusion:",
+      "sdnSection": "SDN",
+      "scale": "Scale:",
+      "fdnSection": "FDN",
+      "size": "Size:",
+      "irSection": "IR",
+      "irFile": "IR File:",
+      "irLoad": "Load...",
+      "irTrim": "IR Trim:",
+      "irLength": "IR Length:",
+      "perNode": "Per-node:",
+      "perNodeOn": "Per-node IR ON",
+      "perNodeOff": "Per-node IR OFF",
+      "wetLevel": "Wet Level:",
+      "noFileLoaded": "No IR loaded"
+    },
+    "preProcessing": {
+      "compressor": "Compressor",
+      "compressorOff": "Compressor OFF",
+      "compressorOn": "Compressor ON",
+      "threshold": "Threshold:",
+      "ratio": "Ratio:",
+      "attack": "Attack:",
+      "release": "Release:"
+    },
+    "postProcessing": {
+      "expander": "Expander",
+      "expanderOff": "Expander OFF",
+      "expanderOn": "Expander ON",
+      "threshold": "Threshold:",
+      "ratio": "Ratio:",
+      "attack": "Attack:",
+      "release": "Release:"
     },
     "dialogs": {
       "import": "Import Reverb Configuration",
