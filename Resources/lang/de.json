@@ -704,8 +704,9 @@
     "noChannels": "Keine Hallkanäle konfiguriert.\n\nSetzen Sie die Anzahl der Hallkanäle in der Systemkonfiguration.",
     "tabs": {
       "channelParams": "Kanalparameter",
-      "eq": "Hall-EQ",
-      "algorithm": "Algorithmus"
+      "preProcessing": "Vorbearbeitung",
+      "algorithm": "Algorithmus",
+      "postProcessing": "Nachbearbeitung"
     },
     "labels": {
       "name": "Name:",
@@ -759,7 +760,48 @@
       "unmuteArray": "ARRAY LAUT"
     },
     "algorithm": {
-      "comingSoon": "Demnächst verfügbar"
+      "sdn": "SDN",
+      "fdn": "FDN",
+      "ir": "IR",
+      "decaySection": "Abklingen",
+      "rt60": "RT60:",
+      "rt60LowMult": "RT60 Tief \u00d7:",
+      "rt60HighMult": "RT60 Hoch \u00d7:",
+      "crossoverLow": "Trennfrequenz tief:",
+      "crossoverHigh": "Trennfrequenz hoch:",
+      "diffusion": "Diffusion:",
+      "sdnSection": "SDN",
+      "scale": "Skalierung:",
+      "fdnSection": "FDN",
+      "size": "Größe:",
+      "irSection": "IR",
+      "irFile": "IR-Datei:",
+      "irLoad": "Laden...",
+      "irTrim": "IR-Zuschnitt:",
+      "irLength": "IR-Länge:",
+      "perNode": "Pro Knoten:",
+      "perNodeOn": "IR pro Knoten EIN",
+      "perNodeOff": "IR pro Knoten AUS",
+      "wetLevel": "Wet-Pegel:",
+      "noFileLoaded": "Keine IR geladen"
+    },
+    "preProcessing": {
+      "compressor": "Kompressor",
+      "compressorOff": "Kompressor AUS",
+      "compressorOn": "Kompressor EIN",
+      "threshold": "Schwelle:",
+      "ratio": "Verhältnis:",
+      "attack": "Attack:",
+      "release": "Release:"
+    },
+    "postProcessing": {
+      "expander": "Expander",
+      "expanderOff": "Expander AUS",
+      "expanderOn": "Expander EIN",
+      "threshold": "Schwelle:",
+      "ratio": "Verhältnis:",
+      "attack": "Attack:",
+      "release": "Release:"
     },
     "dialogs": {
       "import": "Hallkonfiguration importieren",

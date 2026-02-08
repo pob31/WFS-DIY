@@ -704,8 +704,9 @@
     "noChannels": "未配置混响通道。\n\n请在系统配置中设置混响通道数量。",
     "tabs": {
       "channelParams": "通道参数",
-      "eq": "混响EQ",
-      "algorithm": "算法"
+      "preProcessing": "前处理",
+      "algorithm": "算法",
+      "postProcessing": "后处理"
     },
     "labels": {
       "name": "名称:",
@@ -759,7 +760,48 @@
       "unmuteArray": "解除阵列静音"
     },
     "algorithm": {
-      "comingSoon": "即将推出"
+      "sdn": "SDN",
+      "fdn": "FDN",
+      "ir": "IR",
+      "decaySection": "衰减",
+      "rt60": "RT60:",
+      "rt60LowMult": "RT60 低频 \u00d7:",
+      "rt60HighMult": "RT60 高频 \u00d7:",
+      "crossoverLow": "分频点低:",
+      "crossoverHigh": "分频点高:",
+      "diffusion": "扩散:",
+      "sdnSection": "SDN",
+      "scale": "比例:",
+      "fdnSection": "FDN",
+      "size": "大小:",
+      "irSection": "IR",
+      "irFile": "IR文件:",
+      "irLoad": "加载...",
+      "irTrim": "IR修剪:",
+      "irLength": "IR长度:",
+      "perNode": "逐节点:",
+      "perNodeOn": "逐节点IR 开",
+      "perNodeOff": "逐节点IR 关",
+      "wetLevel": "湿信号电平:",
+      "noFileLoaded": "未加载IR"
+    },
+    "preProcessing": {
+      "compressor": "压缩器",
+      "compressorOff": "压缩器 关",
+      "compressorOn": "压缩器 开",
+      "threshold": "阈值:",
+      "ratio": "比率:",
+      "attack": "起音:",
+      "release": "释放:"
+    },
+    "postProcessing": {
+      "expander": "扩展器",
+      "expanderOff": "扩展器 关",
+      "expanderOn": "扩展器 开",
+      "threshold": "阈值:",
+      "ratio": "比率:",
+      "attack": "起音:",
+      "release": "释放:"
     },
     "dialogs": {
       "import": "导入混响配置",

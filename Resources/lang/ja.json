@@ -704,8 +704,9 @@
     "noChannels": "リバーブチャンネルが設定されていません。\n\nシステム設定でリバーブチャンネル数を設定してください。",
     "tabs": {
       "channelParams": "チャンネルパラメータ",
-      "eq": "リバーブEQ",
-      "algorithm": "アルゴリズム"
+      "preProcessing": "プリプロセッシング",
+      "algorithm": "アルゴリズム",
+      "postProcessing": "ポストプロセッシング"
     },
     "labels": {
       "name": "名前:",
@@ -759,7 +760,48 @@
       "unmuteArray": "アレイのミュート解除"
     },
     "algorithm": {
-      "comingSoon": "近日公開"
+      "sdn": "SDN",
+      "fdn": "FDN",
+      "ir": "IR",
+      "decaySection": "ディケイ",
+      "rt60": "RT60:",
+      "rt60LowMult": "RT60 低域 \u00d7:",
+      "rt60HighMult": "RT60 高域 \u00d7:",
+      "crossoverLow": "クロスオーバー低域:",
+      "crossoverHigh": "クロスオーバー高域:",
+      "diffusion": "拡散:",
+      "sdnSection": "SDN",
+      "scale": "スケール:",
+      "fdnSection": "FDN",
+      "size": "サイズ:",
+      "irSection": "IR",
+      "irFile": "IRファイル:",
+      "irLoad": "読み込み...",
+      "irTrim": "IRトリム:",
+      "irLength": "IR長さ:",
+      "perNode": "ノードごと:",
+      "perNodeOn": "ノードごとIR オン",
+      "perNodeOff": "ノードごとIR オフ",
+      "wetLevel": "ウェットレベル:",
+      "noFileLoaded": "IRが読み込まれていません"
+    },
+    "preProcessing": {
+      "compressor": "コンプレッサー",
+      "compressorOff": "コンプレッサー オフ",
+      "compressorOn": "コンプレッサー オン",
+      "threshold": "スレッショルド:",
+      "ratio": "レシオ:",
+      "attack": "アタック:",
+      "release": "リリース:"
+    },
+    "postProcessing": {
+      "expander": "エキスパンダー",
+      "expanderOff": "エキスパンダー オフ",
+      "expanderOn": "エキスパンダー オン",
+      "threshold": "スレッショルド:",
+      "ratio": "レシオ:",
+      "attack": "アタック:",
+      "release": "リリース:"
     },
     "dialogs": {
       "import": "リバーブ設定をインポート",

@@ -704,8 +704,9 @@
     "noChannels": "리버브 채널이 구성되지 않았습니다.\n\n시스템 설정에서 리버브 채널 수를 설정하세요.",
     "tabs": {
       "channelParams": "채널 매개변수",
-      "eq": "리버브 EQ",
-      "algorithm": "알고리즘"
+      "preProcessing": "전처리",
+      "algorithm": "알고리즘",
+      "postProcessing": "후처리"
     },
     "labels": {
       "name": "이름:",
@@ -759,7 +760,48 @@
       "unmuteArray": "어레이 음소거 해제"
     },
     "algorithm": {
-      "comingSoon": "출시 예정"
+      "sdn": "SDN",
+      "fdn": "FDN",
+      "ir": "IR",
+      "decaySection": "감쇠",
+      "rt60": "RT60:",
+      "rt60LowMult": "RT60 저역 \u00d7:",
+      "rt60HighMult": "RT60 고역 \u00d7:",
+      "crossoverLow": "크로스오버 저역:",
+      "crossoverHigh": "크로스오버 고역:",
+      "diffusion": "확산:",
+      "sdnSection": "SDN",
+      "scale": "스케일:",
+      "fdnSection": "FDN",
+      "size": "크기:",
+      "irSection": "IR",
+      "irFile": "IR 파일:",
+      "irLoad": "불러오기...",
+      "irTrim": "IR 트림:",
+      "irLength": "IR 길이:",
+      "perNode": "노드별:",
+      "perNodeOn": "노드별 IR 켜기",
+      "perNodeOff": "노드별 IR 끄기",
+      "wetLevel": "웻 레벨:",
+      "noFileLoaded": "IR이 로드되지 않음"
+    },
+    "preProcessing": {
+      "compressor": "컴프레서",
+      "compressorOff": "컴프레서 끄기",
+      "compressorOn": "컴프레서 켜기",
+      "threshold": "임계값:",
+      "ratio": "비율:",
+      "attack": "어택:",
+      "release": "릴리스:"
+    },
+    "postProcessing": {
+      "expander": "익스팬더",
+      "expanderOff": "익스팬더 끄기",
+      "expanderOn": "익스팬더 켜기",
+      "threshold": "임계값:",
+      "ratio": "비율:",
+      "attack": "어택:",
+      "release": "릴리스:"
     },
     "dialogs": {
       "import": "리버브 설정 가져오기",

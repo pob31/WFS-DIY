@@ -704,8 +704,9 @@
     "noChannels": "Nessun canale di riverbero configurato.\n\nImposta il numero di Canali di Riverbero in Config Sistema.",
     "tabs": {
       "channelParams": "Parametri Canale",
-      "eq": "EQ Riverbero",
-      "algorithm": "Algoritmo"
+      "preProcessing": "Pre-elaborazione",
+      "algorithm": "Algoritmo",
+      "postProcessing": "Post-elaborazione"
     },
     "labels": {
       "name": "Nome:",
@@ -759,7 +760,48 @@
       "unmuteArray": "SMUTA ARRAY"
     },
     "algorithm": {
-      "comingSoon": "Prossimamente"
+      "sdn": "SDN",
+      "fdn": "FDN",
+      "ir": "IR",
+      "decaySection": "Decadimento",
+      "rt60": "RT60:",
+      "rt60LowMult": "RT60 Basso \u00d7:",
+      "rt60HighMult": "RT60 Alto \u00d7:",
+      "crossoverLow": "Crossover basso:",
+      "crossoverHigh": "Crossover alto:",
+      "diffusion": "Diffusione:",
+      "sdnSection": "SDN",
+      "scale": "Scala:",
+      "fdnSection": "FDN",
+      "size": "Dimensione:",
+      "irSection": "IR",
+      "irFile": "File IR:",
+      "irLoad": "Carica...",
+      "irTrim": "Taglio IR:",
+      "irLength": "Lunghezza IR:",
+      "perNode": "Per nodo:",
+      "perNodeOn": "IR per nodo ON",
+      "perNodeOff": "IR per nodo OFF",
+      "wetLevel": "Livello Wet:",
+      "noFileLoaded": "Nessun IR caricato"
+    },
+    "preProcessing": {
+      "compressor": "Compressore",
+      "compressorOff": "Compressore OFF",
+      "compressorOn": "Compressore ON",
+      "threshold": "Soglia:",
+      "ratio": "Rapporto:",
+      "attack": "Attacco:",
+      "release": "Rilascio:"
+    },
+    "postProcessing": {
+      "expander": "Espansore",
+      "expanderOff": "Espansore OFF",
+      "expanderOn": "Espansore ON",
+      "threshold": "Soglia:",
+      "ratio": "Rapporto:",
+      "attack": "Attacco:",
+      "release": "Rilascio:"
     },
     "dialogs": {
       "import": "Importa Configurazione Riverbero",
