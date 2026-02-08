@@ -49,7 +49,8 @@ The application has established a solid foundation with infrastructure and core 
 - **Binaural Solo Monitoring** (virtual speaker rendering for headphone monitoring)
 
 **Major features still to implement:**
-- Reverb algorithm design (convolution/algorithmic)
+- Reverb DSP engine (FDN, SDN, IR convolution — GUI and parameters complete)
+- Pre/Post processing DSP (compressor, expander, EQ filtering — GUI and parameters complete)
 - Snapshot system UI in InputsTab (scope window complete)
 - ADM-OSC protocol
 - GPU Audio framework port
@@ -73,10 +74,11 @@ The application has established a solid foundation with infrastructure and core 
   - "Output EQ" (6-band parametric EQ with interactive display)
   - "Options" (LS attenuation, FR enable, parallax, HF attenuation)
 - **ClustersTab** - Input cluster management with position/rotation/scale/attenuation controls
-- **ReverbTab** - Reverb processing with 3 condensed sub-tabs:
+- **ReverbTab** - Reverb processing with 4 sub-tabs:
   - "Channel Parameters" (3-column layout: Reverb+Position, Reverb Feed, Reverb Return)
-  - "Reverb EQ" (4-band parametric EQ with interactive display)
-  - "Algorithm" (placeholder for reverb algorithm selection)
+  - "Pre-Processing" (4-band parametric pre-EQ per-channel + global pre-compressor with dials)
+  - "Algorithm" (SDN/FDN/IR selector, decay params, wet level — global, no DSP yet)
+  - "Post-Processing" (4-band parametric post-EQ global + global post-expander with dials)
 - **MapTab** - Spatial visualization
 
 ### Floating Windows
@@ -99,7 +101,7 @@ The application has established a solid foundation with infrastructure and core 
 | Separate Windows | 95% | Log, Patch, Array Helper, Snapshot Scope windows complete |
 | Map View | 90% | Interactive multitouch map complete |
 | Data Processing | 90% | WFS delay/level/HF + reverb matrices implemented |
-| DSP Algorithms | 75% | Delay/gain/HF/FR filters working, reverb TODO |
+| DSP Algorithms | 75% | Delay/gain/HF/FR filters working, reverb DSP TODO (GUI/params done) |
 | Theming | Complete | 3 color schemes with live switching |
 
 ---
@@ -950,6 +952,49 @@ WFSCalculationEngine handles two additional matrix paths for reverb:
 - Per-output mutes via `reverbMutes` array
 
 **Return Position**: `returnPos = feedPos + returnOffset`
+
+### Reverb System (GUI & Parameters — DSP Pending)
+The reverb system GUI and parameter infrastructure is complete across 4 sub-tabs. DSP processing is not yet implemented.
+
+**Signal Flow (planned):**
+```
+Input Audio → Feed Routing → Pre-EQ (per-channel) → Pre-Compressor (global)
+  → Algorithm (SDN/FDN/IR) → Post-EQ (global) → Post-Expander (global)
+  → Return Routing → Output Mix
+```
+
+**Algorithm Sub-Tab (global parameters):**
+- Algorithm selector: SDN (Scattering Delay Network), FDN (Feedback Delay Network), IR (Impulse Response)
+- Decay section (SDN/FDN): RT60, RT60 Low/High multipliers, crossover frequencies, diffusion
+- SDN-specific: inter-node delay scale
+- FDN-specific: delay line size multiplier
+- IR-specific: file load, trim, length, per-node toggle
+- Wet level (always visible)
+
+**Pre-Processing Sub-Tab (per-channel EQ + global compressor):**
+- 4-band parametric EQ per reverb channel (reverbPreEQ* parameters)
+- Pre-compressor (global): bypass, threshold, ratio, attack, release — WfsBasicDial controls
+
+**Post-Processing Sub-Tab (global EQ + global expander):**
+- 4-band parametric EQ global (reverbPostEQ* parameters)
+- Post-expander (global): bypass, threshold, ratio, attack, release — WfsBasicDial controls
+
+**ValueTree Structure:**
+```
+Reverbs
+├── Reverb (id=1)          ← per-channel (Channel, Position, Feed, EQ, Return)
+├── Reverb (id=2)          ← per-channel
+├── ReverbAlgorithm        ← global algorithm params
+├── ReverbPreComp          ← global pre-compressor params
+├── ReverbPostEQ           ← global post-EQ params (with PostEQBand children)
+└── ReverbPostExp          ← global post-expander params
+```
+
+**Important:** `getReverbState(channelIndex)` iterates by type (`Reverb`) to find the correct channel, since global sections are interleaved as siblings.
+
+**OSC Paths:**
+- Per-channel: `/wfs/reverb/<param> <ID> <value>` (e.g., `/wfs/reverb/preEQfreq 1 2 1000`)
+- Global: `/wfs/config/reverb/<param> <value>` (e.g., `/wfs/config/reverb/rt60 1.5`)
 
 ### Input Visualisation Component
 Real-time display of DSP matrix values in InputsTab "Visualisation" sub-tab:
@@ -1865,7 +1910,7 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 - `Source/gui/InputsTab.h` - Input channel controls with joystick
 - `Source/gui/SetAllInputsWindow.h` - Bulk parameter changes for all inputs
 - `Source/gui/InputVisualisationComponent.h` - DSP matrix visualization sliders
-- `Source/gui/ReverbTab.h` - Reverb settings with EQ
+- `Source/gui/ReverbTab.h` - Reverb settings with 4 sub-tabs (Channel Params, Pre-Processing, Algorithm, Post-Processing)
 - `Source/gui/NetworkLogWindow.h/cpp` - Log window UI
 - `Source/gui/OutputArrayHelperWindow.h/cpp` - Wizard of OutZ window
 - `Source/gui/LevelMeterWindow.h` - Level metering floating window with solo buttons
@@ -1902,21 +1947,25 @@ For Debug build:
 ## TODO Summary by Priority
 
 ### High Priority
-1. **Snapshot System UI**: InputsTab snapshot buttons need implementation (scope editing window complete)
+1. **Reverb DSP - FDN Algorithm**: Phase 3 — ReverbEngine + FDN implementation (16 delay lines, Walsh-Hadamard, 3-band decay)
+2. **Reverb DSP - Pre/Post Processing**: Phase 4 — Pre-EQ + compressor, Post-EQ + expander DSP wiring
+3. **Snapshot System UI**: InputsTab snapshot buttons need implementation (scope editing window complete)
 
 ### Medium Priority
-2. **Reverb Algorithm**: Design convolution/algorithmic reverb processing
-3. **Remote handshake**: Initialize and transmit state of all inputs
-4. **Protocol Implementation**: ADM-OSC
+4. **Reverb DSP - SDN Algorithm**: Phase 5 — Scattering Delay Network with geometry-based inter-node delays
+5. **Reverb DSP - IR Algorithm**: Phase 6 — Impulse Response convolution (juce::dsp::Convolution wrapper)
+6. **Remote handshake**: Initialize and transmit state of all inputs
+7. **Protocol Implementation**: ADM-OSC
 
 ### Lower Priority
-5. **Remote Protocol Enhancements**: Secondary touch functions
-6. **GPU Audio Port**: After DSP algorithms are working
-7. **Testing**: Comprehensive protocol and feature testing
+8. **Reverb Polish**: Phase 7 — Algorithm switching crossfade, node count handling, performance profiling
+9. **Remote Protocol Enhancements**: Secondary touch functions
+10. **GPU Audio Port**: After DSP algorithms are working
+11. **Testing**: Comprehensive protocol and feature testing
 
 ---
 
-*Last updated: 2026-01-14*
-*Features added: PSN Tracking, RTTrP Tracking*
+*Last updated: 2026-02-08*
+*Features added: Reverb Algorithm/Pre-Processing/Post-Processing GUI + Parameters (Phases 1-2)*
 *JUCE Version: 8.0.12*
 *Build: Visual Studio 2022 / Xcode, x64 Debug/Release*
