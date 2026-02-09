@@ -17,7 +17,7 @@ Wave Field Synthesis (WFS) audio application built with JUCE framework for real-
 | Module | Files | Lines | Description |
 |--------|-------|-------|-------------|
 | GUI | 44 | 31,100 | Tabs, windows, custom components |
-| DSP | 19 | 7,700 | Audio processing, calculations |
+| DSP | 29 | 12,500 | Audio processing, calculations, reverb engine |
 | Network | 20 | 6,300 | OSC, protocols, logging |
 | Parameters | 6 | 5,900 | ValueTree state, file I/O |
 | Core | 7 | 3,000 | MainComponent, WfsParameters |
@@ -25,9 +25,9 @@ Wave Field Synthesis (WFS) audio application built with JUCE framework for real-
 
 ---
 
-## Current Implementation Status (As of 2026-01-10)
+## Current Implementation Status (As of 2026-02-09)
 
-### Overall Progress: ~70% Complete
+### Overall Progress: ~80% Complete
 
 The application has established a solid foundation with infrastructure and core UI:
 - Complete parameter management system
@@ -49,8 +49,6 @@ The application has established a solid foundation with infrastructure and core 
 - **Binaural Solo Monitoring** (virtual speaker rendering for headphone monitoring)
 
 **Major features still to implement:**
-- Reverb DSP engine (FDN, SDN, IR convolution — GUI and parameters complete)
-- Pre/Post processing DSP (compressor, expander, EQ filtering — GUI and parameters complete)
 - Snapshot system UI in InputsTab (scope window complete)
 - ADM-OSC protocol
 - GPU Audio framework port
@@ -77,7 +75,7 @@ The application has established a solid foundation with infrastructure and core 
 - **ReverbTab** - Reverb processing with 4 sub-tabs:
   - "Channel Parameters" (3-column layout: Reverb+Position, Reverb Feed, Reverb Return)
   - "Pre-Processing" (4-band parametric pre-EQ per-channel + global pre-compressor with dials)
-  - "Algorithm" (SDN/FDN/IR selector, decay params, wet level — global, no DSP yet)
+  - "Algorithm" (SDN/FDN/IR selector, decay params, wet level — global, with full DSP engine)
   - "Post-Processing" (4-band parametric post-EQ global + global post-expander with dials)
 - **MapTab** - Spatial visualization
 
@@ -97,11 +95,11 @@ The application has established a solid foundation with infrastructure and core 
 | GUI Tabs | 90% | All 7 tabs have UI, some features pending |
 | OSC Network | 95% | OSC, Remote, PSN, RTTrP protocols complete; ADM-OSC pending |
 | Save/Load | 85% | Project folder management, snapshot scope editing complete |
-| Audio Engine | 80% | Dual algorithm support with DSP calculation layer + Live Source Tamer + Floor Reflections |
+| Audio Engine | 90% | Dual algorithm support with DSP calculation layer + Live Source Tamer + Floor Reflections + Reverb Engine |
 | Separate Windows | 95% | Log, Patch, Array Helper, Snapshot Scope windows complete |
 | Map View | 90% | Interactive multitouch map complete |
 | Data Processing | 90% | WFS delay/level/HF + reverb matrices implemented |
-| DSP Algorithms | 75% | Delay/gain/HF/FR filters working, reverb DSP TODO (GUI/params done) |
+| DSP Algorithms | 95% | Delay/gain/HF/FR filters + Reverb DSP (FDN/SDN/IR) + Pre/Post processing complete |
 | Theming | Complete | 3 color schemes with live switching |
 
 ---
@@ -127,6 +125,15 @@ The DSP calculation layer transforms human control parameters into real-time DSP
 - **BinauralCalculationEngine.h** - Binaural solo delay/level/HF calculation
 - **BinauralProcessor.h** - Binaural solo rendering with delay lines and HF filters
 - **InputVisualisationComponent.h** - Real-time DSP matrix visualization
+- **ReverbEngine.h** - Multi-channel reverb engine with pre/post processing and algorithm management
+- **ReverbAlgorithm.h** - Abstract base class for reverb algorithms (processBlock, prepare, setParallelFor)
+- **ReverbFDNAlgorithm.h** - Feedback Delay Network: 16 delay lines per node, Walsh-Hadamard mixing, 3-band decay
+- **ReverbSDNAlgorithm.h** - Scattering Delay Network: N*(N-1) inter-node paths, Householder scattering, geometry-based delays
+- **ReverbIRAlgorithm.h** - Impulse Response convolution using juce::dsp::Convolution per node
+- **ReverbBiquadFilter.h** - Biquad filter for reverb EQ bands (low-shelf, peak, high-shelf)
+- **ReverbPreProcessor.h** - Per-channel 4-band parametric EQ + global pre-compressor
+- **ReverbPostProcessor.h** - Global 4-band parametric post-EQ + global post-expander (sidechain-keyed)
+- **AudioParallelFor.h** - Fork-join thread pool for parallel per-node DSP processing
 
 ### Coordinate System
 - **X**: Across stage (left-right, positive = right)
@@ -953,18 +960,44 @@ WFSCalculationEngine handles two additional matrix paths for reverb:
 
 **Return Position**: `returnPos = feedPos + returnOffset`
 
-### Reverb System (GUI & Parameters — DSP Pending)
-The reverb system GUI and parameter infrastructure is complete across 4 sub-tabs. DSP processing is not yet implemented.
+### Reverb System (Complete — GUI, Parameters & DSP)
+The reverb system is fully implemented across 4 sub-tabs with complete DSP processing, including 3 algorithm types, pre/post processing, and parallel per-node computation.
 
-**Signal Flow (planned):**
+**Signal Flow:**
 ```
-Input Audio → Feed Routing → Pre-EQ (per-channel) → Pre-Compressor (global)
-  → Algorithm (SDN/FDN/IR) → Post-EQ (global) → Post-Expander (global)
+Input Audio → Feed Routing (WFSCalculationEngine)
+  → Pre-EQ (per-channel, 4-band parametric)
+  → Pre-Compressor (global, ReverbPreProcessor)
+  → Algorithm (SDN/FDN/IR — parallel per-node via AudioParallelFor)
+  → Post-EQ (global, 4-band parametric)
+  → Post-Expander (global, sidechain-keyed, ReverbPostProcessor)
   → Return Routing → Output Mix
 ```
 
+**ReverbEngine** owns the full chain: PreProcessor → Algorithm → PostProcessor. It runs on the audio thread, called from MainComponent's `getNextAudioBlock()`. Algorithm switching uses a fade-out → swap → fade-in crossfade (~50ms each) to avoid clicks.
+
+**Algorithm Types:**
+- **SDN (type 0)** — Scattering Delay Network: N*(N-1) inter-node delay paths with Householder scattering matrix. Geometry-based delays from node positions. Decay via per-path biquad filters (3-band RT60). Diffusion via allpass chains per node.
+- **FDN (type 1)** — Feedback Delay Network: 16 delay lines per node with Walsh-Hadamard feedback mixing. Co-prime delay lengths scaled by multiplier. 3-band decay filtering (low/mid/high RT60).
+- **IR (type 2)** — Impulse Response convolution via juce::dsp::Convolution per node. Supports file loading, trim, and per-node enable.
+
+**Parallelization (AudioParallelFor):**
+All 3 algorithms support parallel per-node processing via a fork-join thread pool:
+- Worker count: `min(hardware_concurrency() - 2, numNodes - 1)`, max 7
+- FDN/IR: trivially parallel (independent per-node processing)
+- SDN: snapshot-based — `readBasePos` frozen at block start decouples readers from writers; minimum delay ~70 samples provides natural temporal separation. At most ~5ms extra latency on short paths.
+- Calling thread participates in work (no idle main thread)
+
+**Pre-Processing (ReverbPreProcessor):**
+- 4-band parametric EQ per reverb channel (ReverbBiquadFilter: low-shelf, 2× peak, high-shelf)
+- Global pre-compressor: RMS detection, variable knee, configurable attack/release/ratio/threshold
+
+**Post-Processing (ReverbPostProcessor):**
+- 4-band parametric EQ global (same filter topology as pre-EQ)
+- Global post-expander: sidechain-keyed from pre-algorithm signal, variable knee, downward expansion
+
 **Algorithm Sub-Tab (global parameters):**
-- Algorithm selector: SDN (Scattering Delay Network), FDN (Feedback Delay Network), IR (Impulse Response)
+- Algorithm selector: SDN (0), FDN (1), IR (2) — `reverbAlgoType`
 - Decay section (SDN/FDN): RT60, RT60 Low/High multipliers, crossover frequencies, diffusion
 - SDN-specific: inter-node delay scale
 - FDN-specific: delay line size multiplier
@@ -1947,25 +1980,28 @@ For Debug build:
 ## TODO Summary by Priority
 
 ### High Priority
-1. **Reverb DSP - FDN Algorithm**: Phase 3 — ReverbEngine + FDN implementation (16 delay lines, Walsh-Hadamard, 3-band decay)
-2. **Reverb DSP - Pre/Post Processing**: Phase 4 — Pre-EQ + compressor, Post-EQ + expander DSP wiring
-3. **Snapshot System UI**: InputsTab snapshot buttons need implementation (scope editing window complete)
+1. **Snapshot System UI**: InputsTab snapshot buttons need implementation (scope editing window complete)
+2. **Reverb Polish**: Performance profiling, tuning algorithm parameters, edge-case testing
 
 ### Medium Priority
-4. **Reverb DSP - SDN Algorithm**: Phase 5 — Scattering Delay Network with geometry-based inter-node delays
-5. **Reverb DSP - IR Algorithm**: Phase 6 — Impulse Response convolution (juce::dsp::Convolution wrapper)
-6. **Remote handshake**: Initialize and transmit state of all inputs
-7. **Protocol Implementation**: ADM-OSC
+3. **Remote handshake**: Initialize and transmit state of all inputs
+4. **Protocol Implementation**: ADM-OSC
+5. **Remote Protocol Enhancements**: Secondary touch functions
 
 ### Lower Priority
-8. **Reverb Polish**: Phase 7 — Algorithm switching crossfade, node count handling, performance profiling
-9. **Remote Protocol Enhancements**: Secondary touch functions
-10. **GPU Audio Port**: After DSP algorithms are working
-11. **Testing**: Comprehensive protocol and feature testing
+6. **GPU Audio Port**: After DSP algorithms are fully tuned
+7. **Testing**: Comprehensive protocol and feature testing
+
+### Completed (Reverb DSP)
+- ~~Phase 1-2: GUI, parameters, OSC, localization~~
+- ~~Phase 3: ReverbEngine + FDN/SDN/IR algorithms~~
+- ~~Phase 4: Pre/Post processing DSP (EQ, compressor, expander)~~
+- ~~Parallelization: AudioParallelFor thread pool for all 3 algorithms~~
+- ~~Algorithm switching: fade-out → swap → fade-in crossfade~~
 
 ---
 
-*Last updated: 2026-02-08*
-*Features added: Reverb Algorithm/Pre-Processing/Post-Processing GUI + Parameters (Phases 1-2)*
+*Last updated: 2026-02-09*
+*Features added: Complete Reverb DSP (FDN/SDN/IR algorithms, Pre/Post processing, parallel per-node computation)*
 *JUCE Version: 8.0.12*
 *Build: Visual Studio 2022 / Xcode, x64 Debug/Release*
