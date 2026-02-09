@@ -3,6 +3,9 @@
 #include <JuceHeader.h>
 #include "../LockFreeRingBuffer.h"
 #include "ReverbAlgorithm.h"
+#include "ReverbFDNAlgorithm.h"
+#include "ReverbSDNAlgorithm.h"
+#include "ReverbIRAlgorithm.h"
 #include <atomic>
 #include <memory>
 #include <vector>
@@ -20,7 +23,8 @@
     - Timer callback pushes parameters at 50Hz via setter methods
     - Engine runs on its own high-priority thread
 
-    Phase 0: Shell with silence pass-through (no algorithm yet).
+    Supports three algorithms: SDN (0), FDN (1), IR (2).
+    Algorithm switching creates a new instance and replaces the active one.
 */
 class ReverbEngine : public juce::Thread
 {
@@ -186,6 +190,51 @@ public:
             algorithm->prepare (sampleRate, internalBlockSize, numReverbNodes);
     }
 
+    /** Algorithm type constants matching WFSParameterIDs::reverbAlgoType */
+    enum AlgorithmType { SDN = 0, FDN = 1, IR = 2 };
+
+    /**
+        Set algorithm type by ID. Creates a new algorithm instance if the type changed.
+        @param type  0=SDN, 1=FDN, 2=IR
+    */
+    void setAlgorithmType (int type)
+    {
+        if (type == currentAlgorithmType)
+            return;
+
+        currentAlgorithmType = type;
+
+        std::unique_ptr<ReverbAlgorithm> newAlgo;
+        switch (type)
+        {
+            case SDN: newAlgo = std::make_unique<SDNAlgorithm>(); break;
+            case FDN: newAlgo = std::make_unique<FDNAlgorithm>(); break;
+            case IR:  newAlgo = std::make_unique<IRAlgorithm>();  break;
+            default:  newAlgo = std::make_unique<FDNAlgorithm>(); break;
+        }
+
+        setAlgorithm (std::move (newAlgo));
+    }
+
+    /** Get the current algorithm type. */
+    int getAlgorithmType() const { return currentAlgorithmType; }
+
+    /** Load an IR file (only effective when IR algorithm is active). */
+    void loadIRFile (const juce::File& file)
+    {
+        juce::SpinLock::ScopedLockType lock (algorithmLock);
+        if (auto* ir = dynamic_cast<IRAlgorithm*> (algorithm.get()))
+            ir->loadIRFile (file);
+    }
+
+    /** Set IR parameters (trim, length). Only effective for IR algorithm. */
+    void setIRParameters (float trimMs, float lengthSec)
+    {
+        juce::SpinLock::ScopedLockType lock (algorithmLock);
+        if (auto* ir = dynamic_cast<IRAlgorithm*> (algorithm.get()))
+            ir->setIRParameters (trimMs, lengthSec);
+    }
+
     //==========================================================================
     // State Queries
     //==========================================================================
@@ -338,6 +387,7 @@ private:
     // Active algorithm (nullptr = silence pass-through)
     std::unique_ptr<ReverbAlgorithm> algorithm;
     juce::SpinLock algorithmLock;
+    int currentAlgorithmType = -1;  // -1 = none set yet
 
     // Thread-safe parameter passing
     struct AtomicParams

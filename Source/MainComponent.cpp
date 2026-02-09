@@ -1861,6 +1861,23 @@ void MainComponent::timerCallback()
 
                 if (algoSection.isValid())
                 {
+                    // Switch algorithm type if changed (0=SDN, 1=FDN, 2=IR)
+                    int algoType = static_cast<int>(algoSection.getProperty(reverbAlgoType, 0));
+                    reverbEngine->setAlgorithmType(algoType);
+
+                    // Push IR-specific parameters
+                    if (algoType == 2)  // IR
+                    {
+                        juce::String irFilePath = algoSection.getProperty(reverbIRfile, "").toString();
+                        float irTrim = algoSection.getProperty(reverbIRtrim, 0.0f);
+                        float irLength = algoSection.getProperty(reverbIRlength, 6.0f);
+
+                        if (irFilePath.isNotEmpty())
+                            reverbEngine->loadIRFile(juce::File(irFilePath));
+
+                        reverbEngine->setIRParameters(irTrim, irLength);
+                    }
+
                     AlgorithmParameters algoParams;
                     algoParams.rt60         = algoSection.getProperty(reverbRT60, 1.5f);
                     algoParams.rt60LowMult  = algoSection.getProperty(reverbRT60LowMult, 1.3f);
