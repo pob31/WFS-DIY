@@ -334,6 +334,9 @@ MainComponent::MainComponent()
         parameters.getValueTreeState(), *calculationEngine);
     binauralProcessor = std::make_unique<BinauralProcessor>(*binauralCalcEngine);
 
+    // Initialize Reverb Engine
+    reverbEngine = std::make_unique<ReverbEngine>();
+
     // Initialize LFO Processor for input position modulation
     lfoProcessor = std::make_unique<LFOProcessor>(parameters.getValueTreeState(), 64);
 
@@ -835,6 +838,10 @@ void MainComponent::stopProcessingForConfigurationChange()
     //     gpuInputAlgorithm.clear();
     // }
 
+    // Stop reverb engine for reconfiguration
+    if (reverbEngine)
+        reverbEngine->stopProcessing();
+
     audioEngineStarted = false;
 }
 
@@ -1013,6 +1020,10 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
     numOutputChannels = outputs;
     stopProcessingForConfigurationChange();
     resizeRoutingMatrices();
+
+    // Update reverb engine node count
+    if (reverbEngine)
+        reverbEngine->setNumNodes(reverbs);
 
     // Refresh all tabs to update channel selectors
     if (inputsTab != nullptr)
@@ -1324,6 +1335,22 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
         binauralProcessor->startProcessing();
     }
 
+    // Prepare reverb engine
+    if (reverbEngine)
+    {
+        int numReverbs = parameters.getNumReverbChannels();
+        reverbEngine->prepareToPlay(sampleRate, samplesPerBlockExpected, numReverbs);
+
+        // Resize reverb feed/return audio buffers
+        if (numReverbs > 0)
+        {
+            reverbFeedBuffer.setSize(numReverbs, samplesPerBlockExpected);
+            reverbReturnBuffer.setSize(numReverbs, samplesPerBlockExpected);
+        }
+
+        reverbEngine->startProcessing();
+    }
+
     // Load audio patch matrices
     loadAudioPatches();
 }
@@ -1349,6 +1376,67 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
         // {
         //     gpuInputAlgorithm.processBlock(bufferToFill, numInputChannels, numOutputChannels);
         // }
+
+        // Process reverb: compute per-node feed sums, push to engine, pull wet returns, mix into outputs
+        if (reverbEngine && reverbEngine->isActive() && calculationEngine)
+        {
+            int numReverbs = reverbEngine->getNumNodes();
+
+            if (numReverbs > 0)
+            {
+                int numSamples = bufferToFill.numSamples;
+                int startSample = bufferToFill.startSample;
+
+                // Get input→reverb level matrix from calculation engine
+                // Index: [inputIndex * calcReverbStride + reverbIndex]
+                const float* reverbLevelsPtr = calculationEngine->getInputReverbLevels();
+                const int calcReverbStride = calculationEngine->getNumReverbs();
+
+                // Compute per-node feed sums: for each reverb node, sum input contributions
+                reverbFeedBuffer.clear();
+                for (int revIdx = 0; revIdx < numReverbs; ++revIdx)
+                {
+                    float* feedData = reverbFeedBuffer.getWritePointer(revIdx);
+
+                    for (int inIdx = 0; inIdx < numInputChannels; ++inIdx)
+                    {
+                        float feedLevel = reverbLevelsPtr[inIdx * calcReverbStride + revIdx];
+
+                        if (feedLevel > 0.0001f)
+                        {
+                            const float* inputData = bufferToFill.buffer->getReadPointer(inIdx, startSample);
+                            juce::FloatVectorOperations::addWithMultiply(feedData, inputData, feedLevel, numSamples);
+                        }
+                    }
+
+                    // Push feed to reverb engine
+                    reverbEngine->pushNodeInput(revIdx, feedData, numSamples);
+                }
+
+                // Pull wet reverb output and mix into WFS outputs
+                // Index: [reverbIndex * calcOutputStride + outputIndex]
+                const float* reverbOutputLevelsPtr = calculationEngine->getReverbOutputLevels();
+                const int calcOutputStride = calculationEngine->getNumOutputs();
+
+                for (int revIdx = 0; revIdx < numReverbs; ++revIdx)
+                {
+                    float* returnData = reverbReturnBuffer.getWritePointer(revIdx);
+                    reverbEngine->pullNodeOutput(revIdx, returnData, numSamples);
+
+                    // Mix reverb return into WFS outputs using return level matrix
+                    for (int outIdx = 0; outIdx < numOutputChannels; ++outIdx)
+                    {
+                        float returnLevel = reverbOutputLevelsPtr[revIdx * calcOutputStride + outIdx];
+
+                        if (returnLevel > 0.0001f)
+                        {
+                            float* outputData = bufferToFill.buffer->getWritePointer(outIdx, startSample);
+                            juce::FloatVectorOperations::addWithMultiply(outputData, returnData, returnLevel, numSamples);
+                        }
+                    }
+                }
+            }
+        }
 
         // Process binaural output (all inputs, or only soloed inputs if any are soloed)
         if (binauralProcessor && binauralProcessor->isEnabled() && binauralCalcEngine)
@@ -1406,6 +1494,10 @@ void MainComponent::releaseResources()
     // {
     //     gpuInputAlgorithm.releaseResources();
     // }
+
+    // Release reverb engine
+    if (reverbEngine)
+        reverbEngine->releaseResources();
 }
 
 //==============================================================================
@@ -1757,6 +1849,45 @@ void MainComponent::timerCallback()
                         lowCutActive, lowCutFreq,
                         highShelfActive, highShelfFreq, highShelfGain, highShelfSlope);
                     outputAlgorithm.setFRDiffusion(static_cast<size_t>(i), diffusion);
+                }
+            }
+
+            // Update reverb engine parameters at 50Hz
+            if (reverbEngine && reverbEngine->isActive())
+            {
+                using namespace WFSParameterIDs;
+                auto& vts = parameters.getValueTreeState();
+                auto algoSection = vts.getReverbAlgorithmSection();
+
+                if (algoSection.isValid())
+                {
+                    AlgorithmParameters algoParams;
+                    algoParams.rt60         = algoSection.getProperty(reverbRT60, 1.5f);
+                    algoParams.rt60LowMult  = algoSection.getProperty(reverbRT60LowMult, 1.3f);
+                    algoParams.rt60HighMult = algoSection.getProperty(reverbRT60HighMult, 0.5f);
+                    algoParams.crossoverLow  = algoSection.getProperty(reverbCrossoverLow, 200.0f);
+                    algoParams.crossoverHigh = algoSection.getProperty(reverbCrossoverHigh, 4000.0f);
+                    algoParams.diffusion    = algoSection.getProperty(reverbDiffusion, 0.5f);
+                    algoParams.sdnScale     = algoSection.getProperty(reverbSDNscale, 1.0f);
+                    algoParams.fdnSize      = algoSection.getProperty(reverbFDNsize, 1.0f);
+
+                    float wetLevelDb = algoSection.getProperty(reverbWetLevel, 0.0f);
+                    algoParams.wetLevel = juce::Decibels::decibelsToGain(wetLevelDb);
+
+                    reverbEngine->setAlgorithmParameters(algoParams);
+                }
+
+                // Update node geometry (for SDN)
+                int numReverbs = reverbEngine->getNumNodes();
+                if (numReverbs > 0)
+                {
+                    std::vector<NodePosition> positions(static_cast<size_t>(numReverbs));
+                    for (int i = 0; i < numReverbs; ++i)
+                    {
+                        auto pos = calculationEngine->getReverbFeedPosition(i);
+                        positions[static_cast<size_t>(i)] = { pos.x, pos.y, pos.z };
+                    }
+                    reverbEngine->updateGeometry(positions);
                 }
             }
 

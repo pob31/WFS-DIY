@@ -12,6 +12,7 @@
 #include "DSP/TestSignalGenerator.h"
 #include "DSP/BinauralCalculationEngine.h"
 #include "DSP/BinauralProcessor.h"
+#include "DSP/ReverbEngine.h"
 // #include "DSP/GpuInputBufferAlgorithm.h"  // Commented out - GPU Audio SDK not configured
 #include "WfsParameters.h"
 #include "Accessibility/TTSManager.h"
@@ -170,6 +171,12 @@ private:
     // Binaural solo monitoring
     std::unique_ptr<BinauralCalculationEngine> binauralCalcEngine;
     std::unique_ptr<BinauralProcessor> binauralProcessor;
+
+    // Reverb engine (thread-based DSP processing)
+    std::unique_ptr<ReverbEngine> reverbEngine;
+    juce::AudioBuffer<float> reverbFeedBuffer;    // numReverbs channels, accumulates per-node feed sums
+    juce::AudioBuffer<float> reverbReturnBuffer;  // numReverbs channels, receives wet reverb output
+    std::vector<float> reverbFeedTemp;            // Temporary per-sample feed accumulation
 
     // LFO processor for input position modulation
     std::unique_ptr<LFOProcessor> lfoProcessor;
