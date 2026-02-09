@@ -8,8 +8,10 @@
 #include "ReverbIRAlgorithm.h"
 #include "ReverbPreProcessor.h"
 #include "ReverbPostProcessor.h"
+#include "AudioParallelFor.h"
 #include <atomic>
 #include <memory>
+#include <thread>
 #include <vector>
 
 //==============================================================================
@@ -82,9 +84,20 @@ public:
         postProcessor.prepare (sampleRate, internalBlockSize, numNodes);
         sidechainLevels.assign (static_cast<size_t> (numNodes), 0.0f);
 
+        // Prepare thread pool for parallel per-node processing
+        {
+            int hwThreads = static_cast<int> (std::thread::hardware_concurrency());
+            int maxWorkers = juce::jmin (hwThreads - 2, numNodes - 1);
+            maxWorkers = juce::jlimit (0, 7, maxWorkers);
+            parallelPool.prepare (maxWorkers);
+        }
+
         // Prepare the active algorithm if one exists
         if (algorithm)
+        {
             algorithm->prepare (sampleRate, internalBlockSize, numNodes);
+            algorithm->setParallelFor (&parallelPool);
+        }
     }
 
     /**
@@ -93,6 +106,7 @@ public:
     void releaseResources()
     {
         stopThread (1000);
+        parallelPool.shutdown();
         nodeInputBuffers.clear();
         nodeOutputBuffers.clear();
     }
@@ -197,7 +211,10 @@ public:
         algorithm = std::move (newAlgorithm);
 
         if (algorithm && sampleRate > 0)
+        {
             algorithm->prepare (sampleRate, internalBlockSize, numReverbNodes);
+            algorithm->setParallelFor (&parallelPool);
+        }
     }
 
     /** Algorithm type constants matching WFSParameterIDs::reverbAlgoType */
@@ -466,6 +483,7 @@ private:
                     if (algorithm && sampleRate > 0)
                     {
                         algorithm->prepare (sampleRate, internalBlockSize, numReverbNodes);
+                        algorithm->setParallelFor (&parallelPool);
                         algorithm->setParameters (currentParams);
                     }
                 }
@@ -553,6 +571,9 @@ private:
     juce::SpinLock prePostParamsLock;
     std::atomic<bool> preParamsChanged { false };
     std::atomic<bool> postParamsChanged { false };
+
+    // Parallel per-node processing thread pool
+    AudioParallelFor parallelPool;
 
     // Algorithm switching fade state
     static constexpr int FadeNone = 0;

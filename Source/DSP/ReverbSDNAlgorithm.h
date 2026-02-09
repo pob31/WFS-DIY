@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ReverbAlgorithm.h"
+#include "AudioParallelFor.h"
 #include <array>
 #include <cmath>
 
@@ -43,9 +44,13 @@ public:
         for (int n = 0; n < numActiveNodes; ++n)
             prepareNodeDiffusers (nodeDiffusers[static_cast<size_t> (n)]);
 
-        // Allocate working buffers
-        incomingSignals.resize (static_cast<size_t> (juce::jmax (1, numActiveNodes - 1)));
-        scatteredSignals.resize (static_cast<size_t> (juce::jmax (1, numActiveNodes - 1)));
+        // Allocate per-node working buffers
+        int bufSize = juce::jmax (1, numActiveNodes - 1);
+        for (int n = 0; n < numActiveNodes; ++n)
+        {
+            incomingSignals[static_cast<size_t> (n)].resize (static_cast<size_t> (bufSize));
+            scatteredSignals[static_cast<size_t> (n)].resize (static_cast<size_t> (bufSize));
+        }
 
         // Apply current parameters to existing geometry
         if (! nodePositions.empty())
@@ -82,10 +87,104 @@ public:
             return;
         }
 
-        for (int s = 0; s < numSamples; ++s)
+        int N = numActiveNodes;
+
+        // Snapshot all write positions for parallel reads
+        for (auto& path : paths)
+            path.readBasePos = path.writePos;
+
+        // Process all nodes (parallel when pool available, sequential otherwise)
+        auto processNode = [&] (int n)
         {
-            processSample (nodeInputs, nodeOutputs, s);
+            auto sn = static_cast<size_t> (n);
+            auto& incoming  = incomingSignals[sn];
+            auto& scattered = scatteredSignals[sn];
+
+            const float* inputData = nodeInputs.getReadPointer (n);
+            float* outputData = nodeOutputs.getWritePointer (n);
+
+            for (int s = 0; s < numSamples; ++s)
+            {
+                // 1. Read incoming from all paths leading to node n
+                int inCount = 0;
+                for (int i = 0; i < N; ++i)
+                {
+                    if (i == n) continue;
+                    auto& path = paths[static_cast<size_t> (getPathIndex (i, n))];
+                    incoming[static_cast<size_t> (inCount)] = readFromDelayAt (path, s);
+                    inCount++;
+                }
+
+                // 2. Householder scattering: X = (2/(N-1)) * sum(incoming)
+                float sum = 0.0f;
+                for (int i = 0; i < inCount; ++i)
+                    sum += incoming[static_cast<size_t> (i)];
+
+                float X = (2.0f / static_cast<float> (N - 1)) * sum;
+
+                for (int i = 0; i < inCount; ++i)
+                    scattered[static_cast<size_t> (i)] = X - incoming[static_cast<size_t> (i)];
+
+                // 3. Apply diffusion to node input
+                float diffused = inputData[s];
+                if (diffusionCoeff > 0.0001f)
+                {
+                    auto& nd = nodeDiffusers[sn];
+                    for (auto& stage : nd)
+                        diffused = stage.process (diffused, diffusionCoeff);
+                }
+
+                // 4. Write to outgoing delay lines (only this node writes to paths {n→*})
+                float inputDistribution = 1.0f / static_cast<float> (N);
+                int outIdx = 0;
+                for (int i = 0; i < N; ++i)
+                {
+                    if (i == n) continue;
+                    auto& path = paths[static_cast<size_t> (getPathIndex (n, i))];
+                    float signal = scattered[static_cast<size_t> (outIdx)] + diffused * inputDistribution;
+                    signal = path.decayFilter.process (signal);
+                    int writeIdx = (path.readBasePos + s) % MAX_DELAY_SAMPLES;
+                    path.delayLine[static_cast<size_t> (writeIdx)] = signal;
+                    outIdx++;
+                }
+
+                // 5. Output = sum of all scattered signals
+                float output = 0.0f;
+                for (int i = 0; i < inCount; ++i)
+                    output += scattered[static_cast<size_t> (i)];
+
+                outputData[s] = output;
+            }
+        };
+
+        if (parallel)
+            parallel->parallelFor (N, processNode);
+        else
+            for (int n = 0; n < N; ++n)
+                processNode (n);
+
+        // Advance all writePos by numSamples (done once after parallel section)
+        for (auto& path : paths)
+            path.writePos = (path.readBasePos + numSamples) % MAX_DELAY_SAMPLES;
+
+        // Finalize crossfade state for paths that were crossfading
+        for (auto& path : paths)
+        {
+            if (path.crossfadeMix < 1.0f)
+            {
+                path.crossfadeMix += path.crossfadeRate * static_cast<float> (numSamples);
+                if (path.crossfadeMix >= 1.0f)
+                {
+                    path.crossfadeMix = 1.0f;
+                    path.delayLength = path.targetDelayLength;
+                }
+            }
         }
+    }
+
+    void setParallelFor (AudioParallelFor* pool) override
+    {
+        parallel = pool;
     }
 
     void setParameters (const AlgorithmParameters& params) override
@@ -201,6 +300,9 @@ private:
 
         // Decay filter for this path
         DecayFilter decayFilter;
+
+        // Snapshotted at block start for parallel reads
+        int readBasePos = 0;
     };
 
     //==========================================================================
@@ -249,114 +351,32 @@ private:
     }
 
     //==========================================================================
-    // Process one sample across all nodes
+    // Snapshot-based delay read (uses readBasePos, not live writePos)
     //==========================================================================
 
-    void processSample (const juce::AudioBuffer<float>& inputs,
-                        juce::AudioBuffer<float>& outputs, int sampleIdx)
-    {
-        int N = numActiveNodes;
-
-        for (int n = 0; n < N; ++n)
-        {
-            float nodeInput = inputs.getReadPointer (n)[sampleIdx];
-
-            // Read incoming signals from all other nodes
-            int incomingCount = 0;
-            for (int i = 0; i < N; ++i)
-            {
-                if (i == n) continue;
-
-                auto& path = paths[static_cast<size_t> (getPathIndex (i, n))];
-                float sample = readFromDelay (path);
-                incomingSignals[static_cast<size_t> (incomingCount)] = sample;
-                incomingCount++;
-            }
-
-            // Householder scattering: X = (2/(N-1)) * sum(incoming)
-            float sum = 0.0f;
-            for (int i = 0; i < incomingCount; ++i)
-                sum += incomingSignals[static_cast<size_t> (i)];
-
-            float X = (2.0f / static_cast<float> (N - 1)) * sum;
-
-            for (int i = 0; i < incomingCount; ++i)
-                scatteredSignals[static_cast<size_t> (i)] = X - incomingSignals[static_cast<size_t> (i)];
-
-            // Apply diffusion to node input
-            float diffused = nodeInput;
-            if (diffusionCoeff > 0.0001f)
-            {
-                auto& nd = nodeDiffusers[static_cast<size_t> (n)];
-                for (auto& stage : nd)
-                    diffused = stage.process (diffused, diffusionCoeff);
-            }
-
-            // Distribute input to each outgoing path
-            float inputDistribution = 1.0f / static_cast<float> (N);
-            int outIdx = 0;
-            for (int i = 0; i < N; ++i)
-            {
-                if (i == n) continue;
-
-                auto& path = paths[static_cast<size_t> (getPathIndex (n, i))];
-                float signal = scatteredSignals[static_cast<size_t> (outIdx)] + diffused * inputDistribution;
-                signal = path.decayFilter.process (signal);
-                writeToDelay (path, signal);
-                outIdx++;
-            }
-
-            // Output = sum of all scattered signals
-            float output = 0.0f;
-            for (int i = 0; i < incomingCount; ++i)
-                output += scatteredSignals[static_cast<size_t> (i)];
-
-            outputs.getWritePointer (n)[sampleIdx] = output;
-        }
-    }
-
-    //==========================================================================
-    // Delay line read/write with crossfade support
-    //==========================================================================
-
-    float readFromDelay (InterNodePath& path)
+    float readFromDelayAt (const InterNodePath& path, int sampleOffset) const
     {
         if (path.crossfadeMix >= 1.0f)
         {
-            // Normal read from current delay length
-            int readPos = path.writePos - path.delayLength;
-            if (readPos < 0) readPos += MAX_DELAY_SAMPLES;
+            int readPos = (path.readBasePos + sampleOffset - path.delayLength
+                           + MAX_DELAY_SAMPLES) % MAX_DELAY_SAMPLES;
             return path.delayLine[static_cast<size_t> (readPos)];
         }
         else
         {
-            // Crossfading: read from both old and new delay positions
-            int oldReadPos = path.writePos - path.delayLength;
-            if (oldReadPos < 0) oldReadPos += MAX_DELAY_SAMPLES;
-
-            int newReadPos = path.writePos - path.targetDelayLength;
-            if (newReadPos < 0) newReadPos += MAX_DELAY_SAMPLES;
+            int oldReadPos = (path.readBasePos + sampleOffset - path.delayLength
+                              + MAX_DELAY_SAMPLES) % MAX_DELAY_SAMPLES;
+            int newReadPos = (path.readBasePos + sampleOffset - path.targetDelayLength
+                              + MAX_DELAY_SAMPLES) % MAX_DELAY_SAMPLES;
 
             float oldSample = path.delayLine[static_cast<size_t> (oldReadPos)];
             float newSample = path.delayLine[static_cast<size_t> (newReadPos)];
 
-            float result = oldSample * (1.0f - path.crossfadeMix) + newSample * path.crossfadeMix;
-
-            path.crossfadeMix += path.crossfadeRate;
-            if (path.crossfadeMix >= 1.0f)
-            {
-                path.crossfadeMix = 1.0f;
-                path.delayLength = path.targetDelayLength;
-            }
-
-            return result;
+            // Compute crossfade mix for this sample without mutating state
+            float mix = std::min (1.0f, path.crossfadeMix
+                                        + path.crossfadeRate * static_cast<float> (sampleOffset));
+            return oldSample * (1.0f - mix) + newSample * mix;
         }
-    }
-
-    void writeToDelay (InterNodePath& path, float sample)
-    {
-        path.delayLine[static_cast<size_t> (path.writePos)] = sample;
-        path.writePos = (path.writePos + 1) % MAX_DELAY_SAMPLES;
     }
 
     //==========================================================================
@@ -466,7 +486,9 @@ private:
     std::vector<std::array<AllpassStage, NUM_DIFFUSERS_PER_NODE>> nodeDiffusers;
     std::vector<NodePosition> nodePositions;
 
-    // Working buffers (reused each sample)
-    std::vector<float> incomingSignals;
-    std::vector<float> scatteredSignals;
+    // Per-node working buffers (thread-safe for parallel processing)
+    std::array<std::vector<float>, MAX_NODES> incomingSignals;
+    std::array<std::vector<float>, MAX_NODES> scatteredSignals;
+
+    AudioParallelFor* parallel = nullptr;
 };

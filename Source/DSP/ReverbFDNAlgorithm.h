@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ReverbAlgorithm.h"
+#include "AudioParallelFor.h"
 #include <array>
 #include <cmath>
 
@@ -52,17 +53,26 @@ public:
                        juce::AudioBuffer<float>& nodeOutputs,
                        int numSamples) override
     {
-        for (int n = 0; n < numActiveNodes; ++n)
+        auto processNode = [&] (int n)
         {
             const float* input = nodeInputs.getReadPointer (n);
             float* output = nodeOutputs.getWritePointer (n);
             auto& node = nodes[static_cast<size_t> (n)];
 
             for (int s = 0; s < numSamples; ++s)
-            {
                 output[s] = processNodeSample (node, input[s]);
-            }
-        }
+        };
+
+        if (parallel)
+            parallel->parallelFor (numActiveNodes, processNode);
+        else
+            for (int n = 0; n < numActiveNodes; ++n)
+                processNode (n);
+    }
+
+    void setParallelFor (AudioParallelFor* pool) override
+    {
+        parallel = pool;
     }
 
     void setParameters (const AlgorithmParameters& params) override
@@ -402,4 +412,5 @@ private:
     float diffusionCoeff = 0.35f;
     AlgorithmParameters currentParams;
     std::vector<FDNNode> nodes;
+    AudioParallelFor* parallel = nullptr;
 };

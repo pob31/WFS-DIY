@@ -3,6 +3,8 @@
 #include <JuceHeader.h>
 #include <vector>
 
+class AudioParallelFor;
+
 //==============================================================================
 /**
     Parameters shared by all reverb algorithms.
@@ -68,4 +70,8 @@ public:
     /** Update node geometry. Called when node count or positions change.
         SDN uses this for inter-node delay calculation. FDN/IR may ignore it. */
     virtual void updateGeometry (const std::vector<NodePosition>& nodes) = 0;
+
+    /** Set a shared thread pool for parallel per-node processing.
+        FDN and IR override this; SDN ignores it (inter-node coupling). */
+    virtual void setParallelFor (AudioParallelFor*) {}
 };

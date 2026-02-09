@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ReverbAlgorithm.h"
+#include "AudioParallelFor.h"
 
 //==============================================================================
 /**
@@ -52,22 +53,30 @@ public:
                        juce::AudioBuffer<float>& nodeOutputs,
                        int numSamples) override
     {
-        for (int n = 0; n < numActiveNodes; ++n)
+        auto processNode = [&] (int n)
         {
             auto& conv = *convolvers[static_cast<size_t> (n)];
             auto& buf = processBuffers[static_cast<size_t> (n)];
 
-            // Copy input to process buffer
             buf.copyFrom (0, 0, nodeInputs, n, 0, numSamples);
 
-            // Process through convolver
             auto block = juce::dsp::AudioBlock<float> (buf).getSubBlock (0, static_cast<size_t> (numSamples));
             auto context = juce::dsp::ProcessContextReplacing<float> (block);
             conv.process (context);
 
-            // Copy to output
             nodeOutputs.copyFrom (n, 0, buf, 0, 0, numSamples);
-        }
+        };
+
+        if (parallel)
+            parallel->parallelFor (numActiveNodes, processNode);
+        else
+            for (int n = 0; n < numActiveNodes; ++n)
+                processNode (n);
+    }
+
+    void setParallelFor (AudioParallelFor* pool) override
+    {
+        parallel = pool;
     }
 
     void setParameters (const AlgorithmParameters&) override
@@ -123,6 +132,7 @@ private:
     double sr = 48000.0;
     int numActiveNodes = 0;
     int blockSize = 256;
+    AudioParallelFor* parallel = nullptr;
 
     juce::dsp::ProcessSpec spec {};
 
