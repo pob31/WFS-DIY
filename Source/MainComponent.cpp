@@ -1906,6 +1906,83 @@ void MainComponent::timerCallback()
                     }
                     reverbEngine->updateGeometry(positions);
                 }
+
+                // Push pre-processor parameters (per-node EQ + global compressor)
+                {
+                    ReverbPreProcessor::PreProcessorParams preParams;
+
+                    // Per-node EQ bands
+                    for (int n = 0; n < numReverbs; ++n)
+                    {
+                        auto eqSection = vts.getReverbEQSection(n);
+                        preParams.eqEnabled[static_cast<size_t>(n)] =
+                            eqSection.isValid() && static_cast<int>(eqSection.getProperty(reverbPreEQenable, 1)) != 0;
+
+                        for (int b = 0; b < 4; ++b)
+                        {
+                            auto band = vts.getReverbEQBand(n, b);
+                            if (band.isValid())
+                            {
+                                auto& bp = preParams.eqBands[static_cast<size_t>(n)][static_cast<size_t>(b)];
+                                bp.shape = static_cast<int>(band.getProperty(reverbPreEQshape, 0));
+                                bp.freq  = static_cast<float>(static_cast<int>(band.getProperty(reverbPreEQfreq, 1000)));
+                                bp.gain  = static_cast<float>(band.getProperty(reverbPreEQgain, 0.0f));
+                                bp.q     = static_cast<float>(band.getProperty(reverbPreEQq, 0.7f));
+                                bp.slope = static_cast<float>(band.getProperty(reverbPreEQslope, 0.7f));
+                            }
+                        }
+                    }
+
+                    // Global compressor
+                    auto compSection = vts.getReverbPreCompSection();
+                    if (compSection.isValid())
+                    {
+                        preParams.compBypass    = static_cast<int>(compSection.getProperty(reverbPreCompBypass, 1)) != 0;
+                        preParams.compThreshold = static_cast<float>(compSection.getProperty(reverbPreCompThreshold, -12.0f));
+                        preParams.compRatio     = static_cast<float>(compSection.getProperty(reverbPreCompRatio, 2.0f));
+                        preParams.compAttack    = static_cast<float>(compSection.getProperty(reverbPreCompAttack, 10.0f));
+                        preParams.compRelease   = static_cast<float>(compSection.getProperty(reverbPreCompRelease, 100.0f));
+                    }
+
+                    reverbEngine->setPreProcessorParams(preParams);
+                }
+
+                // Push post-processor parameters (global EQ + sidechain-keyed expander)
+                {
+                    ReverbPostProcessor::PostProcessorParams postParams;
+
+                    // Global post-EQ bands
+                    auto postEQSection = vts.getReverbPostEQSection();
+                    postParams.eqEnabled = postEQSection.isValid()
+                        && static_cast<int>(postEQSection.getProperty(reverbPostEQenable, 1)) != 0;
+
+                    for (int b = 0; b < 4; ++b)
+                    {
+                        auto band = vts.getReverbPostEQBand(b);
+                        if (band.isValid())
+                        {
+                            auto& bp = postParams.eqBands[static_cast<size_t>(b)];
+                            bp.shape = static_cast<int>(band.getProperty(reverbPostEQshape, 0));
+                            bp.freq  = static_cast<float>(static_cast<int>(band.getProperty(reverbPostEQfreq, 1000)));
+                            bp.gain  = static_cast<float>(band.getProperty(reverbPostEQgain, 0.0f));
+                            bp.q     = static_cast<float>(band.getProperty(reverbPostEQq, 0.7f));
+                            bp.slope = static_cast<float>(band.getProperty(reverbPostEQslope, 0.7f));
+                        }
+                    }
+
+                    // Global expander
+                    auto expSection = vts.getReverbPostExpSection();
+                    if (expSection.isValid())
+                    {
+                        postParams.expBypass    = static_cast<int>(expSection.getProperty(reverbPostExpBypass, 1)) != 0;
+                        postParams.expThreshold = static_cast<float>(expSection.getProperty(reverbPostExpThreshold, -40.0f));
+                        postParams.expRatio     = static_cast<float>(expSection.getProperty(reverbPostExpRatio, 2.0f));
+                        postParams.expAttack    = static_cast<float>(expSection.getProperty(reverbPostExpAttack, 1.0f));
+                        postParams.expRelease   = static_cast<float>(expSection.getProperty(reverbPostExpRelease, 200.0f));
+                    }
+
+                    reverbEngine->setPostProcessorParams(postParams);
+                }
             }
 
             // Update visualisation with current DSP matrix values

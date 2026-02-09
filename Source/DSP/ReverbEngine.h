@@ -6,6 +6,8 @@
 #include "ReverbFDNAlgorithm.h"
 #include "ReverbSDNAlgorithm.h"
 #include "ReverbIRAlgorithm.h"
+#include "ReverbPreProcessor.h"
+#include "ReverbPostProcessor.h"
 #include <atomic>
 #include <memory>
 #include <vector>
@@ -75,6 +77,11 @@ public:
         nodeInputBlock.setSize (numNodes, internalBlockSize);
         nodeOutputBlock.setSize (numNodes, internalBlockSize);
 
+        // Prepare pre/post processors
+        preProcessor.prepare (sampleRate, internalBlockSize, numNodes);
+        postProcessor.prepare (sampleRate, internalBlockSize, numNodes);
+        sidechainLevels.assign (static_cast<size_t> (numNodes), 0.0f);
+
         // Prepare the active algorithm if one exists
         if (algorithm)
             algorithm->prepare (sampleRate, internalBlockSize, numNodes);
@@ -119,6 +126,9 @@ public:
 
         if (algorithm)
             algorithm->reset();
+
+        preProcessor.reset();
+        postProcessor.reset();
     }
 
     //==========================================================================
@@ -194,7 +204,7 @@ public:
     enum AlgorithmType { SDN = 0, FDN = 1, IR = 2 };
 
     /**
-        Set algorithm type by ID. Creates a new algorithm instance if the type changed.
+        Set algorithm type by ID. Initiates a fade-out → switch → fade-in sequence.
         @param type  0=SDN, 1=FDN, 2=IR
     */
     void setAlgorithmType (int type)
@@ -202,18 +212,10 @@ public:
         if (type == currentAlgorithmType)
             return;
 
-        currentAlgorithmType = type;
-
-        std::unique_ptr<ReverbAlgorithm> newAlgo;
-        switch (type)
-        {
-            case SDN: newAlgo = std::make_unique<SDNAlgorithm>(); break;
-            case FDN: newAlgo = std::make_unique<FDNAlgorithm>(); break;
-            case IR:  newAlgo = std::make_unique<IRAlgorithm>();  break;
-            default:  newAlgo = std::make_unique<FDNAlgorithm>(); break;
-        }
-
-        setAlgorithm (std::move (newAlgo));
+        // Store the pending type and initiate fade-out
+        pendingAlgorithmType.store (type, std::memory_order_release);
+        if (fadeState.load (std::memory_order_acquire) == FadeNone)
+            fadeState.store (FadingOut, std::memory_order_release);
     }
 
     /** Get the current algorithm type. */
@@ -233,6 +235,22 @@ public:
         juce::SpinLock::ScopedLockType lock (algorithmLock);
         if (auto* ir = dynamic_cast<IRAlgorithm*> (algorithm.get()))
             ir->setIRParameters (trimMs, lengthSec);
+    }
+
+    /** Set pre-processor parameters (per-node EQ + global compressor). */
+    void setPreProcessorParams (const ReverbPreProcessor::PreProcessorParams& params)
+    {
+        juce::SpinLock::ScopedLockType lock (prePostParamsLock);
+        pendingPreParams = params;
+        preParamsChanged.store (true, std::memory_order_release);
+    }
+
+    /** Set post-processor parameters (global EQ + sidechain-keyed expander). */
+    void setPostProcessorParams (const ReverbPostProcessor::PostProcessorParams& params)
+    {
+        juce::SpinLock::ScopedLockType lock (prePostParamsLock);
+        pendingPostParams = params;
+        postParamsChanged.store (true, std::memory_order_release);
     }
 
     //==========================================================================
@@ -311,7 +329,7 @@ private:
         // Clear output buffer
         nodeOutputBlock.clear();
 
-        // Apply pending parameter changes
+        // Apply pending algorithm parameter changes
         if (paramsChanged.load (std::memory_order_acquire))
         {
             currentParams = pendingParams.load();
@@ -320,6 +338,29 @@ private:
             juce::SpinLock::ScopedLockType lock (algorithmLock);
             if (algorithm)
                 algorithm->setParameters (currentParams);
+        }
+
+        // Apply pending pre/post processor parameter changes
+        if (preParamsChanged.load (std::memory_order_acquire))
+        {
+            ReverbPreProcessor::PreProcessorParams pp;
+            {
+                juce::SpinLock::ScopedLockType lock (prePostParamsLock);
+                pp = pendingPreParams;
+            }
+            preParamsChanged.store (false, std::memory_order_release);
+            preProcessor.setParameters (pp);
+        }
+
+        if (postParamsChanged.load (std::memory_order_acquire))
+        {
+            ReverbPostProcessor::PostProcessorParams pp;
+            {
+                juce::SpinLock::ScopedLockType lock (prePostParamsLock);
+                pp = pendingPostParams;
+            }
+            postParamsChanged.store (false, std::memory_order_release);
+            postProcessor.setParameters (pp);
         }
 
         // Apply pending geometry changes
@@ -337,7 +378,8 @@ private:
                 algorithm->updateGeometry (geo);
         }
 
-        // --- Pre-processing would go here (Phase 2) ---
+        // --- Pre-processing: per-node EQ + compressor + sidechain tap ---
+        preProcessor.processBlock (nodeInputBlock, sidechainLevels, numSamples);
 
         // --- Algorithm processing ---
         {
@@ -346,10 +388,10 @@ private:
             {
                 algorithm->processBlock (nodeInputBlock, nodeOutputBlock, numSamples);
             }
-            // If no algorithm, output stays silent (pass-through silence)
         }
 
-        // --- Post-processing would go here (Phase 3) ---
+        // --- Post-processing: global EQ + sidechain-keyed expander ---
+        postProcessor.processBlock (nodeOutputBlock, sidechainLevels, numSamples);
 
         // Apply wet level
         float wetLevel = currentParams.wetLevel;
@@ -360,10 +402,104 @@ private:
                                                        wetLevel, numSamples);
         }
 
+        // --- Algorithm switching fade ---
+        int currentFade = fadeState.load (std::memory_order_acquire);
+        if (currentFade != FadeNone)
+        {
+            applyFade (numSamples);
+        }
+
         // Write output to ring buffers
         for (int n = 0; n < numReverbNodes; ++n)
         {
             nodeOutputBuffers[n]->write (nodeOutputBlock.getReadPointer (n), numSamples);
+        }
+    }
+
+    //==========================================================================
+    // Algorithm switching fade
+    //==========================================================================
+
+    void applyFade (int numSamples)
+    {
+        int currentFade = fadeState.load (std::memory_order_acquire);
+
+        if (currentFade == FadingOut)
+        {
+            // Ramp gain down
+            float fadeStep = static_cast<float> (numSamples) / fadeSamples;
+            float startGain = fadeGain;
+            float endGain = std::max (0.0f, fadeGain - fadeStep);
+
+            for (int n = 0; n < numReverbNodes; ++n)
+            {
+                float* data = nodeOutputBlock.getWritePointer (n);
+                float g = startGain;
+                float gStep = (endGain - startGain) / static_cast<float> (numSamples);
+                for (int s = 0; s < numSamples; ++s)
+                {
+                    data[s] *= g;
+                    g += gStep;
+                }
+            }
+
+            fadeGain = endGain;
+
+            if (fadeGain <= 0.0f)
+            {
+                // Fade-out complete: swap algorithm
+                int newType = pendingAlgorithmType.load (std::memory_order_acquire);
+                currentAlgorithmType = newType;
+
+                std::unique_ptr<ReverbAlgorithm> newAlgo;
+                switch (newType)
+                {
+                    case SDN: newAlgo = std::make_unique<SDNAlgorithm>(); break;
+                    case FDN: newAlgo = std::make_unique<FDNAlgorithm>(); break;
+                    case IR:  newAlgo = std::make_unique<IRAlgorithm>();  break;
+                    default:  newAlgo = std::make_unique<FDNAlgorithm>(); break;
+                }
+
+                {
+                    juce::SpinLock::ScopedLockType lock (algorithmLock);
+                    algorithm = std::move (newAlgo);
+                    if (algorithm && sampleRate > 0)
+                    {
+                        algorithm->prepare (sampleRate, internalBlockSize, numReverbNodes);
+                        algorithm->setParameters (currentParams);
+                    }
+                }
+
+                fadeGain = 0.0f;
+                fadeState.store (FadingIn, std::memory_order_release);
+            }
+        }
+        else if (currentFade == FadingIn)
+        {
+            // Ramp gain up
+            float fadeStep = static_cast<float> (numSamples) / fadeSamples;
+            float startGain = fadeGain;
+            float endGain = std::min (1.0f, fadeGain + fadeStep);
+
+            for (int n = 0; n < numReverbNodes; ++n)
+            {
+                float* data = nodeOutputBlock.getWritePointer (n);
+                float g = startGain;
+                float gStep = (endGain - startGain) / static_cast<float> (numSamples);
+                for (int s = 0; s < numSamples; ++s)
+                {
+                    data[s] *= g;
+                    g += gStep;
+                }
+            }
+
+            fadeGain = endGain;
+
+            if (fadeGain >= 1.0f)
+            {
+                fadeGain = 1.0f;
+                fadeState.store (FadeNone, std::memory_order_release);
+            }
         }
     }
 
@@ -405,4 +541,25 @@ private:
     std::vector<NodePosition> pendingGeometry;
     juce::SpinLock geometryLock;
     std::atomic<bool> geometryChanged { false };
+
+    // Pre/post processors
+    ReverbPreProcessor preProcessor;
+    ReverbPostProcessor postProcessor;
+    std::vector<float> sidechainLevels;
+
+    // Thread-safe pre/post parameter passing
+    ReverbPreProcessor::PreProcessorParams pendingPreParams;
+    ReverbPostProcessor::PostProcessorParams pendingPostParams;
+    juce::SpinLock prePostParamsLock;
+    std::atomic<bool> preParamsChanged { false };
+    std::atomic<bool> postParamsChanged { false };
+
+    // Algorithm switching fade state
+    static constexpr int FadeNone = 0;
+    static constexpr int FadingOut = 1;
+    static constexpr int FadingIn = 2;
+    std::atomic<int> fadeState { FadeNone };
+    float fadeGain = 1.0f;
+    float fadeSamples = 2400.0f;  // ~50ms at 48kHz
+    std::atomic<int> pendingAlgorithmType { -1 };
 };
