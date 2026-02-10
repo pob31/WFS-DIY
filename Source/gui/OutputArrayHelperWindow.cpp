@@ -272,12 +272,10 @@ void ArrayPreviewComponent::paint(juce::Graphics& g)
         g.fillEllipse(screenPos.x - speakerRadius, screenPos.y - speakerRadius,
                       speakerRadius * 2, speakerRadius * 2);
 
-        // Draw orientation arrow
-        // 0 degrees = facing audience (toward -Y stage, +Y screen = down)
-        // 180 degrees = facing back of stage (toward +Y stage, -Y screen = up)
-        float angleRad = juce::degreesToRadians(90.0f - pos.orientation);
-        float arrowDx = -std::cos(angleRad) * arrowLength;  // Negate X to fix left/right
-        float arrowDy = std::sin(angleRad) * arrowLength;
+        // Draw orientation arrow: 0°→down(audience), 90°→right, 180°→up(upstage)
+        float angleRad = juce::degreesToRadians(pos.orientation);
+        float arrowDx = std::sin(angleRad) * arrowLength;
+        float arrowDy = std::cos(angleRad) * arrowLength;
 
         g.setColour(ColorScheme::get().textPrimary);
         g.drawArrow(juce::Line<float>(screenPos.x, screenPos.y,

@@ -149,8 +149,8 @@ namespace ArrayGeometry
 
     /**
      * Calculate orientation from speaker position toward a target point.
-     * Returns angle in degrees where 0 = facing audience (toward negative Y),
-     * 90 = facing right (toward positive X), 180 = facing back of stage (toward positive Y).
+     * Returns angle in degrees where 0 = facing audience (toward -Y),
+     * 90 = facing right (toward +X), 180 = facing upstage (toward +Y).
      *
      * @param speakerX Speaker X position
      * @param speakerY Speaker Y position

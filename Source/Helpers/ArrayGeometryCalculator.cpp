@@ -22,12 +22,8 @@ float calculateOrientationToward(float speakerX, float speakerY,
     float dx = targetX - speakerX;
     float dy = targetY - speakerY;
 
-    // In our coordinate system:
-    // - 0 degrees = facing upstage (toward positive Y)
-    // - 90 degrees = facing right (toward positive X)
-    // - 180/-180 degrees = facing audience (toward negative Y)
-    // Using atan2(-dx, dy) so that 0° points toward +Y, clockwise positive
-    float angleRad = std::atan2(-dx, dy);  // 0° is toward +Y (upstage), clockwise positive
+    // Convention: 0° = audience (-Y), 90° = right (+X), 180° = upstage (+Y)
+    float angleRad = std::atan2(dx, -dy);
     float angleDeg = juce::radiansToDegrees(angleRad);
 
     return normalizeAngle(angleDeg);
@@ -96,13 +92,11 @@ std::vector<SpeakerPosition> calculateStraightFromEndpoints(
     float actualOrientation = orientation;
     if (orientation < -180.0f)  // Using -999 or similar as "auto" indicator
     {
-        // Calculate perpendicular orientation (facing away from line direction)
+        // Perpendicular facing audience-side of line
+        // For left-to-right: atan2(0, 1) = 0° = audience
         float dx = endX - startX;
         float dy = endY - startY;
-        // Perpendicular direction (rotate 90 degrees)
-        // For a line going left-to-right, we want speakers facing toward -Y (audience)
-        actualOrientation = juce::radiansToDegrees(std::atan2(-dy, dx));
-        actualOrientation = normalizeAngle(actualOrientation - 90.0f);
+        actualOrientation = juce::radiansToDegrees(std::atan2(dy, dx));
     }
 
     // Distribute speakers evenly between endpoints
@@ -196,10 +190,8 @@ std::vector<SpeakerPosition> calculateCurvedArray(
             normalY = -normalY;
         }
 
-        // Calculate orientation:
-        // 0° = facing audience (toward -Y), 180° = facing back of stage (toward +Y)
-        // Using atan2(-x, -y) so that 0° points toward -Y, clockwise positive
-        float orientation = juce::radiansToDegrees(std::atan2(-normalX, -normalY));
+        // Convention: 0° = audience (-Y), 90° = right (+X), 180° = upstage (+Y)
+        float orientation = juce::radiansToDegrees(std::atan2(normalX, -normalY));
         orientation = normalizeAngle(orientation);
 
         positions.push_back({ x, y, z, orientation });
@@ -240,7 +232,6 @@ std::vector<SpeakerPosition> calculateCircleArray(
         float y = centerY - radius * std::cos(angleRad);
 
         // Orientation: facing inward means toward center, outward means away
-        // In our system, 0° = facing audience (-Y), 180° = facing back (+Y)
         float orientation;
         if (facingInward)
         {
@@ -282,12 +273,12 @@ std::vector<SpeakerPosition> calculateSurroundPairs(
         float y = yStart + t * (yEnd - yStart);
 
         // Left speaker (facing right, toward center)
-        // -90° = facing toward positive X (right)
-        positions.push_back({ centerX - width, y, z, -90.0f });
+        // 90° = facing toward positive X (right)
+        positions.push_back({ centerX - width, y, z, 90.0f });
 
         // Right speaker (facing left, toward center)
-        // 90° = facing toward negative X (left)
-        positions.push_back({ centerX + width, y, z, 90.0f });
+        // -90° = facing toward negative X (left)
+        positions.push_back({ centerX + width, y, z, -90.0f });
     }
 
     return positions;
