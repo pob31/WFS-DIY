@@ -776,13 +776,15 @@
       "size": "크기:",
       "irSection": "IR",
       "irFile": "IR 파일:",
-      "irLoad": "불러오기...",
+      "irImport": "IR 가져오기...",
       "irTrim": "IR 트림:",
       "irLength": "IR 길이:",
       "perNode": "노드별:",
       "perNodeOn": "노드별 IR 켜기",
       "perNodeOff": "노드별 IR 끄기",
       "wetLevel": "웻 레벨:",
+      "irImportSuccess": "IR 가져오기 완료: {file}",
+      "irNoProject": "먼저 프로젝트 폴더를 설정하세요",
       "noFileLoaded": "IR이 로드되지 않음"
     },
     "preProcessing": {

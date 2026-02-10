@@ -1125,16 +1125,8 @@ private:
         addAndMakeVisible (algoIRFileLabel);
         algoIRFileLabel.setText (LOC("reverbs.algorithm.irFile"), juce::dontSendNotification);
 
-        addAndMakeVisible (algoIRLoadButton);
-        algoIRLoadButton.setButtonText (LOC("reverbs.algorithm.irLoad"));
-        algoIRLoadButton.onClick = [this]
-        {
-            // IR file loading will be implemented in Phase 6
-        };
-
-        addAndMakeVisible (algoIRFileNameLabel);
-        algoIRFileNameLabel.setText (LOC("reverbs.algorithm.noFileLoaded"), juce::dontSendNotification);
-        algoIRFileNameLabel.setColour (juce::Label::textColourId, juce::Colours::grey);
+        addAndMakeVisible (algoIRFileSelector);
+        algoIRFileSelector.onChange = [this] { handleIRFileSelection(); };
 
         addAndMakeVisible (algoIRTrimLabel);
         algoIRTrimLabel.setText (LOC("reverbs.algorithm.irTrim"), juce::dontSendNotification);
@@ -1493,7 +1485,7 @@ private:
         helpTextMap[&algoDiffusionSlider] = "Diffusion amount controlling echo density (0 - 100%).";
         helpTextMap[&algoSDNScaleSlider] = "SDN inter-node delay scale factor (0.5 - 4.0x).";
         helpTextMap[&algoFDNSizeSlider] = "FDN delay line size multiplier (0.5 - 2.0x).";
-        helpTextMap[&algoIRLoadButton] = "Load an impulse response WAV file for convolution.";
+        helpTextMap[&algoIRFileSelector] = "Select or import an impulse response file for convolution.";
         helpTextMap[&algoIRTrimSlider] = "Trim the start of the impulse response (0 - 100 ms).";
         helpTextMap[&algoIRLengthSlider] = "Maximum impulse response length (0.1 - 6.0 seconds).";
         helpTextMap[&algoPerNodeButton] = "Use a separate IR for each reverb node, or share one IR.";
@@ -1871,9 +1863,7 @@ private:
 
             auto row = col2.removeFromTop (rowHeight);
             algoIRFileLabel.setBounds (row.removeFromLeft (labelWidth));
-            algoIRLoadButton.setBounds (row.removeFromLeft (80));
-            row.removeFromLeft (spacing);
-            algoIRFileNameLabel.setBounds (row);
+            algoIRFileSelector.setBounds (row);
             col2.removeFromTop (spacing);
 
             row = col2.removeFromTop (rowHeight);
@@ -2415,8 +2405,7 @@ private:
 
             algoIRSectionLabel.setVisible (false);
             algoIRFileLabel.setVisible (false);
-            algoIRLoadButton.setVisible (false);
-            algoIRFileNameLabel.setVisible (false);
+            algoIRFileSelector.setVisible (false);
             algoIRTrimLabel.setVisible (false);
             algoIRTrimSlider.setVisible (false);
             algoIRTrimValueLabel.setVisible (false);
@@ -3197,8 +3186,7 @@ private:
         // IR section
         algoIRSectionLabel.setVisible (isIR);
         algoIRFileLabel.setVisible (isIR);
-        algoIRLoadButton.setVisible (isIR);
-        algoIRFileNameLabel.setVisible (isIR);
+        algoIRFileSelector.setVisible (isIR);
         algoIRTrimLabel.setVisible (isIR);
         algoIRTrimSlider.setVisible (isIR);
         algoIRTrimValueLabel.setVisible (isIR);
@@ -3294,11 +3282,8 @@ private:
         algoFDNSizeSlider.setValue (juce::jlimit (0.0f, 1.0f, fdnSizeSlider));
         algoFDNSizeValueLabel.setText (juce::String (fdnSize, 2) + "x", juce::dontSendNotification);
 
-        // IR file
-        juce::String irFile = section.getProperty (WFSParameterIDs::reverbIRfile).toString();
-        algoIRFileNameLabel.setText (irFile.isEmpty()
-            ? LOC("reverbs.algorithm.noFileLoaded")
-            : juce::File (irFile).getFileName(), juce::dontSendNotification);
+        // IR file selector
+        refreshIRFileList();
 
         // IR Trim
         float irTrim = getFloat (WFSParameterIDs::reverbIRtrim, WFSParameterDefaults::reverbIRtrimDefault);
@@ -3328,6 +3313,126 @@ private:
 
         updateAlgorithmVisibility();
         isLoadingParameters = false;
+    }
+
+    void refreshIRFileList()
+    {
+        auto& fileManager = parameters.getFileManager();
+
+        // Remember current selection from ValueTree
+        auto& vts = parameters.getValueTreeState();
+        auto section = vts.ensureReverbAlgorithmSection();
+        juce::String currentIRFile = section.isValid()
+            ? section.getProperty (WFSParameterIDs::reverbIRfile).toString()
+            : juce::String();
+
+        // Rebuild the ComboBox
+        algoIRFileSelector.clear (juce::dontSendNotification);
+
+        // Item 1: "No IR loaded"
+        algoIRFileSelector.addItem (LOC("reverbs.algorithm.noFileLoaded"), 1);
+
+        // Scan IR folder for audio files (only if project folder is set)
+        int itemId = 2;
+        int selectedId = 1;  // Default to "No IR loaded"
+
+        if (fileManager.hasValidProjectFolder())
+        {
+            auto irFolder = fileManager.getIRFolder();
+            juce::StringArray irFiles;
+
+            if (irFolder.isDirectory())
+            {
+                for (const auto& entry : juce::RangedDirectoryIterator (irFolder, false, "*.wav;*.aif;*.aiff;*.flac", juce::File::findFiles))
+                    irFiles.add (entry.getFile().getFileName());
+
+                irFiles.sort (true);
+
+                for (const auto& fileName : irFiles)
+                {
+                    algoIRFileSelector.addItem (fileName, itemId);
+                    if (fileName == currentIRFile)
+                        selectedId = itemId;
+                    itemId++;
+                }
+            }
+        }
+
+        // Separator + "Import IR..."
+        algoIRFileSelector.addSeparator();
+        algoIRFileSelector.addItem (LOC("reverbs.algorithm.irImport"), itemId);
+
+        algoIRFileSelector.setSelectedId (selectedId, juce::dontSendNotification);
+    }
+
+    void handleIRFileSelection()
+    {
+        if (isLoadingParameters) return;
+
+        int selectedId = algoIRFileSelector.getSelectedId();
+        juce::String selectedText = algoIRFileSelector.getText();
+
+        // Check if "Import IR..." was selected (last item, after separator)
+        int numItems = algoIRFileSelector.getNumItems();
+        if (selectedId == algoIRFileSelector.getItemId (numItems - 1))
+        {
+            importIRFile();
+            return;
+        }
+
+        // "No IR loaded" (id == 1)
+        if (selectedId == 1)
+        {
+            saveAlgorithmParam (WFSParameterIDs::reverbIRfile, juce::String());
+            return;
+        }
+
+        // An existing IR file was selected
+        saveAlgorithmParam (WFSParameterIDs::reverbIRfile, selectedText);
+    }
+
+    void importIRFile()
+    {
+        auto& fileManager = parameters.getFileManager();
+        if (!fileManager.hasValidProjectFolder())
+        {
+            showStatusMessage (LOC("reverbs.algorithm.irNoProject"));
+            refreshIRFileList();  // Reset combobox selection
+            return;
+        }
+
+        irFileChooser = std::make_shared<juce::FileChooser> (
+            LOC("reverbs.algorithm.irImport"),
+            juce::File::getSpecialLocation (juce::File::userHomeDirectory),
+            "*.wav;*.aif;*.aiff;*.flac");
+
+        irFileChooser->launchAsync (
+            juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
+            [this] (const juce::FileChooser& fc)
+            {
+                auto result = fc.getResult();
+                if (!result.existsAsFile())
+                {
+                    refreshIRFileList();  // Reset combobox selection
+                    return;
+                }
+
+                auto& fm = parameters.getFileManager();
+                auto irFolder = fm.getIRFolder();
+                irFolder.createDirectory();
+
+                auto destFile = irFolder.getChildFile (result.getFileName());
+
+                // If file already exists, just select it
+                if (!destFile.existsAsFile())
+                    result.copyFileTo (destFile);
+
+                // Save the filename and refresh
+                saveAlgorithmParam (WFSParameterIDs::reverbIRfile, destFile.getFileName());
+                refreshIRFileList();
+                showStatusMessage (LOC("reverbs.algorithm.irImportSuccess")
+                    .replace ("{file}", destFile.getFileName()));
+            });
     }
 
     void saveMuteStates()
@@ -4117,8 +4222,8 @@ private:
     // IR-specific section
     juce::Label algoIRSectionLabel;
     juce::Label algoIRFileLabel;
-    juce::TextButton algoIRLoadButton;
-    juce::Label algoIRFileNameLabel;
+    juce::ComboBox algoIRFileSelector;
+    std::shared_ptr<juce::FileChooser> irFileChooser;
     juce::Label algoIRTrimLabel;
     WfsStandardSlider algoIRTrimSlider;
     juce::Label algoIRTrimValueLabel;

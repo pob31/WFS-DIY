@@ -809,13 +809,15 @@
       "size": "Size:",
       "irSection": "IR",
       "irFile": "IR File:",
-      "irLoad": "Load...",
+      "irImport": "Import IR...",
       "irTrim": "IR Trim:",
       "irLength": "IR Length:",
       "perNode": "Per-node:",
       "perNodeOn": "Per-node IR ON",
       "perNodeOff": "Per-node IR OFF",
       "wetLevel": "Wet Level:",
+      "irImportSuccess": "IR imported: {file}",
+      "irNoProject": "Set a project folder first",
       "noFileLoaded": "No IR loaded"
     },
     "preProcessing": {

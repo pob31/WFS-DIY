@@ -776,13 +776,15 @@
       "size": "Dimensione:",
       "irSection": "IR",
       "irFile": "File IR:",
-      "irLoad": "Carica...",
+      "irImport": "Importa IR...",
       "irTrim": "Taglio IR:",
       "irLength": "Lunghezza IR:",
       "perNode": "Per nodo:",
       "perNodeOn": "IR per nodo ON",
       "perNodeOff": "IR per nodo OFF",
       "wetLevel": "Livello Wet:",
+      "irImportSuccess": "IR importato: {file}",
+      "irNoProject": "Impostare prima una cartella di progetto",
       "noFileLoaded": "Nessun IR caricato"
     },
     "preProcessing": {

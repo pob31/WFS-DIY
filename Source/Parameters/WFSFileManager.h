@@ -77,6 +77,9 @@ public:
     /** Get output snapshots folder */
     juce::File getOutputSnapshotsFolder() const;
 
+    /** Get IR files folder */
+    juce::File getIRFolder() const;
+
     //==========================================================================
     // Complete Configuration
     //==========================================================================

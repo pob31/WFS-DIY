@@ -776,13 +776,15 @@
       "size": "サイズ:",
       "irSection": "IR",
       "irFile": "IRファイル:",
-      "irLoad": "読み込み...",
+      "irImport": "IRをインポート...",
       "irTrim": "IRトリム:",
       "irLength": "IR長さ:",
       "perNode": "ノードごと:",
       "perNodeOn": "ノードごとIR オン",
       "perNodeOff": "ノードごとIR オフ",
       "wetLevel": "ウェットレベル:",
+      "irImportSuccess": "IRインポート完了: {file}",
+      "irNoProject": "先にプロジェクトフォルダを設定してください",
       "noFileLoaded": "IRが読み込まれていません"
     },
     "preProcessing": {

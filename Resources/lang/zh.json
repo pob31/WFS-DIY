@@ -776,13 +776,15 @@
       "size": "大小:",
       "irSection": "IR",
       "irFile": "IR文件:",
-      "irLoad": "加载...",
+      "irImport": "导入IR...",
       "irTrim": "IR修剪:",
       "irLength": "IR长度:",
       "perNode": "逐节点:",
       "perNodeOn": "逐节点IR 开",
       "perNodeOff": "逐节点IR 关",
       "wetLevel": "湿信号电平:",
+      "irImportSuccess": "IR已导入: {file}",
+      "irNoProject": "请先设置项目文件夹",
       "noFileLoaded": "未加载IR"
     },
     "preProcessing": {
