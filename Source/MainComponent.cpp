@@ -1035,6 +1035,12 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
         outputsTab->refreshFromValueTree();
     if (reverbTab != nullptr)
         reverbTab->refreshFromValueTree();
+
+    // Update level meter channel counts
+    if (levelMeteringManager != nullptr)
+        levelMeteringManager->setChannelCounts(inputs, outputs);
+    if (levelMeterWindow != nullptr)
+        levelMeterWindow->rebuildMeters();
 }
 
 void MainComponent::handleConfigReloaded()
@@ -1047,6 +1053,12 @@ void MainComponent::handleConfigReloaded()
         numInputChannels = newInputChannels;
         numOutputChannels = newOutputChannels;
         resizeRoutingMatrices();
+
+        // Update level meter channel counts
+        if (levelMeteringManager != nullptr)
+            levelMeteringManager->setChannelCounts(newInputChannels, newOutputChannels);
+        if (levelMeterWindow != nullptr)
+            levelMeterWindow->rebuildMeters();
     }
 
     // Reload audio patches from ValueTree (input/output channel routing)
