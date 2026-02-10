@@ -2925,9 +2925,11 @@ private:
     int getInputAtPosition(juce::Point<float> screenPos) const
     {
         int numInputs = parameters.getNumInputChannels();
-        float pickupRadius = markerRadius * 1.5f;  // Larger for easier touch pickup
+        float pickupRadius = markerRadius * 2.5f;  // Generous for touch targeting
 
-        // Check in reverse order (top-most first)
+        int bestIndex = -1;
+        float bestDistance = pickupRadius + 1.0f;
+
         for (int i = 0; i < numInputs; ++i)
         {
             // Skip hidden inputs
@@ -2950,11 +2952,14 @@ private:
             auto markerScreenPos = stageToScreen({ posX, posY });
             float distance = screenPos.getDistanceFrom(markerScreenPos);
 
-            if (distance <= pickupRadius)
-                return i;
+            if (distance <= pickupRadius && distance < bestDistance)
+            {
+                bestDistance = distance;
+                bestIndex = i;
+            }
         }
 
-        return -1;  // No hit
+        return bestIndex;
     }
 
     juce::Point<float> getInputPosition(int inputIndex) const
@@ -2969,7 +2974,10 @@ private:
     int getBarycenterAtPosition(juce::Point<float> screenPos) const
     {
         int numInputs = parameters.getNumInputChannels();
-        float pickupRadius = 10.0f * 1.5f;  // Barycenter visual size * 1.5 for easier touch pickup
+        float pickupRadius = 10.0f * 2.5f;  // Generous for touch targeting
+
+        int bestCluster = -1;
+        float bestDistance = pickupRadius + 1.0f;
 
         for (int cluster = 1; cluster <= 10; ++cluster)
         {
@@ -3002,11 +3010,14 @@ private:
             auto barycenterScreen = stageToScreen({ sumX / n, sumY / n });
 
             float distance = screenPos.getDistanceFrom(barycenterScreen);
-            if (distance <= pickupRadius)
-                return cluster;
+            if (distance <= pickupRadius && distance < bestDistance)
+            {
+                bestDistance = distance;
+                bestCluster = cluster;
+            }
         }
 
-        return -1;
+        return bestCluster;
     }
 
     // Check if a screen position hits a cluster marker for First Input/Tracked mode
@@ -3015,7 +3026,11 @@ private:
     std::pair<int, int> getHiddenClusterRefAtPosition(juce::Point<float> screenPos) const
     {
         int numInputs = parameters.getNumInputChannels();
-        float pickupRadius = 10.0f * 1.5f;  // Cluster marker visual size * 1.5 for easier touch pickup
+        float pickupRadius = 10.0f * 2.5f;  // Generous for touch targeting
+
+        int bestCluster = -1;
+        int bestRefInput = -1;
+        float bestDistance = pickupRadius + 1.0f;
 
         for (int cluster = 1; cluster <= 10; ++cluster)
         {
@@ -3046,11 +3061,15 @@ private:
             auto markerScreen = stageToScreen({ posX, posY });
 
             float distance = screenPos.getDistanceFrom(markerScreen);
-            if (distance <= pickupRadius)
-                return { cluster, refInput };
+            if (distance <= pickupRadius && distance < bestDistance)
+            {
+                bestDistance = distance;
+                bestCluster = cluster;
+                bestRefInput = refInput;
+            }
         }
 
-        return { -1, -1 };
+        return { bestCluster, bestRefInput };
     }
 
     // Check if a screen position hits an output marker
@@ -3058,7 +3077,10 @@ private:
     int getOutputAtPosition(juce::Point<float> screenPos) const
     {
         int numOutputs = parameters.getNumOutputChannels();
-        float pickupRadius = 15.0f;  // Approximate radius for output keystone
+        float pickupRadius = markerRadius * 2.0f;  // Generous for touch targeting
+
+        int bestIndex = -1;
+        float bestDistance = pickupRadius + 1.0f;
 
         for (int i = 0; i < numOutputs; ++i)
         {
@@ -3083,11 +3105,14 @@ private:
             auto markerScreenPos = stageToScreen({ posX, posY });
 
             float distance = screenPos.getDistanceFrom(markerScreenPos);
-            if (distance <= pickupRadius)
-                return i;
+            if (distance <= pickupRadius && distance < bestDistance)
+            {
+                bestDistance = distance;
+                bestIndex = i;
+            }
         }
 
-        return -1;
+        return bestIndex;
     }
 
     // Check if a screen position hits a reverb marker
@@ -3101,7 +3126,10 @@ private:
             return -1;
 
         int numReverbs = parameters.getNumReverbChannels();
-        float pickupRadius = 12.0f;  // Diamond size is 10, slightly larger for touch
+        float pickupRadius = markerRadius * 2.0f;  // Generous for touch targeting
+
+        int bestIndex = -1;
+        float bestDistance = pickupRadius + 1.0f;
 
         for (int i = 0; i < numReverbs; ++i)
         {
@@ -3110,11 +3138,14 @@ private:
             auto markerScreenPos = stageToScreen({ posX, posY });
 
             float distance = screenPos.getDistanceFrom(markerScreenPos);
-            if (distance <= pickupRadius)
-                return i;
+            if (distance <= pickupRadius && distance < bestDistance)
+            {
+                bestDistance = distance;
+                bestIndex = i;
+            }
         }
 
-        return -1;
+        return bestIndex;
     }
 
     // Get barycenter position in stage coordinates for a cluster
