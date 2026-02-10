@@ -2473,6 +2473,7 @@ private:
 
             // Dial with array color
             arrayAttenDials[i].setColours(juce::Colours::black, arrayColor, juce::Colours::grey);
+            arrayAttenDials[i].setTrackColours(ColorScheme::get().buttonBorder, arrayColor);
             arrayAttenDials[i].onValueChanged = [this, i](float v) {
                 // Convert dial value (0-1) to dB (-60 to 0) using sqrt scaling
                 // Forward: linear = minLinear + v^2 * (1 - minLinear), then dB = 20*log10(linear)

@@ -2887,6 +2887,34 @@ private:
 
             // Draw small white circle at current touch position
             g.fillEllipse(currentTouchPos.x - 5, currentTouchPos.y - 5, 10, 10);
+
+            // Show Z and rotation values for input secondary touches
+            if (secTouch.targetType == SecondaryTouchInfo::TargetType::InputZ ||
+                secTouch.targetType == SecondaryTouchInfo::TargetType::InputRotation)
+            {
+                float currentZ;
+                if (secTouch.targetType == SecondaryTouchInfo::TargetType::InputZ)
+                    currentZ = static_cast<float>(parameters.getInputParam(secTouch.targetIndex, "inputOffsetZ"));
+                else
+                    currentZ = static_cast<float>(parameters.getInputParam(secTouch.targetIndex, "inputPositionZ"));
+
+                int currentRotation = static_cast<int>(parameters.getInputParam(secTouch.targetIndex, "inputRotation"));
+
+                juce::String displayText = "Z=" + juce::String(currentZ, 2) + "m  R="
+                                         + juce::String(currentRotation) + juce::String(juce::CharPointer_UTF8("\xC2\xB0"));
+
+                g.setColour(juce::Colours::yellow);
+                g.setFont(10.0f);
+
+                // Position text near the initial contact point (grey circle)
+                // to avoid overlapping with coordinate text shown near the marker
+                if (referenceEndpoint.x < getWidth() / 2)
+                    g.drawText(displayText, static_cast<int>(referenceEndpoint.x + 8),
+                               static_cast<int>(referenceEndpoint.y) - 5, 120, 12, juce::Justification::left);
+                else
+                    g.drawText(displayText, static_cast<int>(referenceEndpoint.x - 128),
+                               static_cast<int>(referenceEndpoint.y) - 5, 120, 12, juce::Justification::right);
+            }
         }
     }
 
