@@ -250,8 +250,14 @@ public:
     WFSFileManager& getFileManager() { return fileManager; }
     const WFSFileManager& getFileManager() const { return fileManager; }
 
-    /** Get undo manager */
+    /** Get undo manager for the active domain */
     juce::UndoManager* getUndoManager() { return valueTreeState.getUndoManager(); }
+
+    /** Get undo manager for a specific domain */
+    juce::UndoManager* getUndoManagerForDomain (UndoDomain domain) { return valueTreeState.getUndoManagerForDomain (domain); }
+
+    /** Get active undo manager (alias) */
+    juce::UndoManager* getActiveUndoManager() { return valueTreeState.getActiveUndoManager(); }
 
 private:
     WFSValueTreeState valueTreeState;

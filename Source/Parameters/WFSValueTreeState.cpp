@@ -205,7 +205,7 @@ void WFSValueTreeState::setParameter (const juce::Identifier& paramId, const juc
 {
     auto tree = getTreeForParameter (paramId, channelIndex);
     if (tree.isValid())
-        tree.setProperty (paramId, value, &undoManager);
+        tree.setProperty (paramId, value, getActiveUndoManager());
 }
 
 void WFSValueTreeState::setParameterWithoutUndo (const juce::Identifier& paramId, const juce::var& value, int channelIndex)
@@ -247,7 +247,7 @@ void WFSValueTreeState::setInputParameter (int channelIndex, const juce::Identif
         auto child = input.getChild (i);
         if (child.hasProperty (paramId))
         {
-            child.setProperty (paramId, value, &undoManager);
+            child.setProperty (paramId, value, getActiveUndoManager());
             return;
         }
     }
@@ -258,7 +258,7 @@ void WFSValueTreeState::setInputParameter (int channelIndex, const juce::Identif
     {
         auto position = getInputPositionSection (channelIndex);
         if (position.isValid())
-            position.setProperty (paramId, value, &undoManager);
+            position.setProperty (paramId, value, getActiveUndoManager());
     }
 }
 
@@ -339,7 +339,7 @@ void WFSValueTreeState::setOutputParameter (int channelIndex, const juce::Identi
         auto child = output.getChild (i);
         if (child.hasProperty (paramId))
         {
-            child.setProperty (paramId, value, &undoManager);
+            child.setProperty (paramId, value, getActiveUndoManager());
             return;
         }
     }
@@ -350,7 +350,7 @@ void WFSValueTreeState::setOutputParameter (int channelIndex, const juce::Identi
     {
         auto position = getOutputPositionSection (channelIndex);
         if (position.isValid())
-            position.setProperty (paramId, value, &undoManager);
+            position.setProperty (paramId, value, getActiveUndoManager());
     }
 }
 
@@ -366,7 +366,7 @@ void WFSValueTreeState::setOutputParameterDirect (int channelIndex, const juce::
         auto child = output.getChild (i);
         if (child.hasProperty (paramId))
         {
-            child.setProperty (paramId, value, &undoManager);
+            child.setProperty (paramId, value, getActiveUndoManager());
             return;
         }
     }
@@ -376,7 +376,7 @@ void WFSValueTreeState::setOutputEQBandParameterDirect (int channelIndex, int ba
 {
     auto band = getOutputEQBand (channelIndex, bandIndex);
     if (band.isValid())
-        band.setProperty (paramId, value, &undoManager);
+        band.setProperty (paramId, value, getActiveUndoManager());
 }
 
 bool WFSValueTreeState::isArrayLinkedParameter (const juce::Identifier& paramId)
@@ -479,9 +479,6 @@ void WFSValueTreeState::setOutputParameterWithArrayPropagation (int channelIndex
         return;
     }
 
-    // Begin undo transaction for the array change
-    beginUndoTransaction ("Array: " + paramId.toString());
-
     // Get old value for RELATIVE mode delta calculation
     auto oldValue = getOutputParameter (channelIndex, paramId);
     float oldFloat = static_cast<float> (oldValue);
@@ -544,7 +541,7 @@ void WFSValueTreeState::setOutputEQBandParameterWithArrayPropagation (int channe
     {
         auto band = getOutputEQBand (channelIndex, bandIndex);
         if (band.isValid())
-            band.setProperty (paramId, value, &undoManager);
+            band.setProperty (paramId, value, getActiveUndoManager());
         return;
     }
 
@@ -554,7 +551,7 @@ void WFSValueTreeState::setOutputEQBandParameterWithArrayPropagation (int channe
     {
         auto band = getOutputEQBand (channelIndex, bandIndex);
         if (band.isValid())
-            band.setProperty (paramId, value, &undoManager);
+            band.setProperty (paramId, value, getActiveUndoManager());
         return;
     }
 
@@ -564,12 +561,9 @@ void WFSValueTreeState::setOutputEQBandParameterWithArrayPropagation (int channe
     {
         auto band = getOutputEQBand (channelIndex, bandIndex);
         if (band.isValid())
-            band.setProperty (paramId, value, &undoManager);
+            band.setProperty (paramId, value, getActiveUndoManager());
         return;
     }
-
-    // Begin undo transaction for the array change
-    beginUndoTransaction ("Array EQ: " + paramId.toString());
 
     // Get old value for RELATIVE mode delta calculation
     auto band = getOutputEQBand (channelIndex, bandIndex);
@@ -581,7 +575,7 @@ void WFSValueTreeState::setOutputEQBandParameterWithArrayPropagation (int channe
     float delta = newFloat - oldFloat;
 
     // Set the originating channel's band
-    band.setProperty (paramId, value, &undoManager);
+    band.setProperty (paramId, value, getActiveUndoManager());
 
     // Propagate to array members
     int numOutputs = getNumOutputChannels();
@@ -691,7 +685,7 @@ void WFSValueTreeState::setReverbParameter (int channelIndex, const juce::Identi
         auto child = reverb.getChild (i);
         if (child.hasProperty (paramId))
         {
-            child.setProperty (paramId, value, &undoManager);
+            child.setProperty (paramId, value, getActiveUndoManager());
             return;
         }
 
@@ -703,7 +697,7 @@ void WFSValueTreeState::setReverbParameter (int channelIndex, const juce::Identi
                 auto band = child.getChild (j);
                 if (band.hasProperty (paramId))
                 {
-                    band.setProperty (paramId, value, &undoManager);
+                    band.setProperty (paramId, value, getActiveUndoManager());
                     return;
                 }
             }
@@ -716,7 +710,7 @@ void WFSValueTreeState::setReverbParameter (int channelIndex, const juce::Identi
     {
         auto position = getReverbPositionSection (channelIndex);
         if (position.isValid())
-            position.setProperty (paramId, value, &undoManager);
+            position.setProperty (paramId, value, getActiveUndoManager());
     }
 }
 
@@ -923,7 +917,7 @@ void WFSValueTreeState::setClusterParameter (int clusterIndex, const juce::Ident
 {
     auto cluster = getClusterState (clusterIndex);
     if (cluster.isValid())
-        cluster.setProperty (paramId, value, &undoManager);
+        cluster.setProperty (paramId, value, getActiveUndoManager());
 }
 
 //==============================================================================
@@ -942,7 +936,7 @@ void WFSValueTreeState::setBinauralEnabled (bool enabled)
 {
     auto binaural = getBinauralState();
     if (binaural.isValid())
-        binaural.setProperty (binauralEnabled, enabled, &undoManager);
+        binaural.setProperty (binauralEnabled, enabled, getActiveUndoManager());
 }
 
 int WFSValueTreeState::getBinauralSoloMode() const
@@ -957,7 +951,7 @@ void WFSValueTreeState::setBinauralSoloMode (int mode)
 {
     auto binaural = getBinauralState();
     if (binaural.isValid())
-        binaural.setProperty (binauralSoloMode, mode, &undoManager);
+        binaural.setProperty (binauralSoloMode, mode, getActiveUndoManager());
 }
 
 bool WFSValueTreeState::isInputSoloed (int inputIndex) const
@@ -1009,14 +1003,14 @@ void WFSValueTreeState::setInputSoloed (int inputIndex, bool soloed)
     states.set (inputIndex, soloed ? "1" : "0");
 
     // Save back
-    binaural.setProperty (inputSoloStates, states.joinIntoString (","), &undoManager);
+    binaural.setProperty (inputSoloStates, states.joinIntoString (","), getActiveUndoManager());
 }
 
 void WFSValueTreeState::clearAllSoloStates()
 {
     auto binaural = getBinauralState();
     if (binaural.isValid())
-        binaural.setProperty (inputSoloStates, "", &undoManager);
+        binaural.setProperty (inputSoloStates, "", getActiveUndoManager());
 }
 
 int WFSValueTreeState::getNumSoloedInputs() const
@@ -1052,7 +1046,7 @@ void WFSValueTreeState::setBinauralOutputChannel (int channel)
 {
     auto binaural = getBinauralState();
     if (binaural.isValid())
-        binaural.setProperty (binauralOutputChannel, channel, &undoManager);
+        binaural.setProperty (binauralOutputChannel, channel, getActiveUndoManager());
 }
 
 //==============================================================================
@@ -1071,7 +1065,7 @@ void WFSValueTreeState::addNetworkTarget()
     if (network.getNumChildren() < maxNetworkTargets)
     {
         auto target = createDefaultNetworkTarget (network.getNumChildren());
-        network.appendChild (target, &undoManager);
+        network.appendChild (target, getActiveUndoManager());
     }
 }
 
@@ -1079,7 +1073,7 @@ void WFSValueTreeState::removeNetworkTarget (int targetIndex)
 {
     auto network = getNetworkState();
     if (targetIndex >= 0 && targetIndex < network.getNumChildren())
-        network.removeChild (targetIndex, &undoManager);
+        network.removeChild (targetIndex, getActiveUndoManager());
 }
 
 juce::ValueTree WFSValueTreeState::getNetworkTargetState (int targetIndex)
@@ -1121,18 +1115,18 @@ void WFSValueTreeState::setNumInputChannels (int numChannels)
     {
         // Add new channels
         for (int i = currentCount; i < numChannels; ++i)
-            inputs.appendChild (createDefaultInputChannel (i), &undoManager);
+            inputs.appendChild (createDefaultInputChannel (i), getActiveUndoManager());
     }
     else if (numChannels < currentCount)
     {
         // Remove excess channels
         while (inputs.getNumChildren() > numChannels)
-            inputs.removeChild (inputs.getNumChildren() - 1, &undoManager);
+            inputs.removeChild (inputs.getNumChildren() - 1, getActiveUndoManager());
     }
 
     // Update the count in config
     setParameter (inputChannels, numChannels);
-    inputs.setProperty (count, numChannels, &undoManager);
+    inputs.setProperty (count, numChannels, getActiveUndoManager());
 }
 
 void WFSValueTreeState::setNumOutputChannels (int numChannels)
@@ -1147,18 +1141,18 @@ void WFSValueTreeState::setNumOutputChannels (int numChannels)
     {
         // Add new channels
         for (int i = currentCount; i < numChannels; ++i)
-            outputs.appendChild (createDefaultOutputChannel (i), &undoManager);
+            outputs.appendChild (createDefaultOutputChannel (i), getActiveUndoManager());
     }
     else if (numChannels < currentCount)
     {
         // Remove excess channels
         while (outputs.getNumChildren() > numChannels)
-            outputs.removeChild (outputs.getNumChildren() - 1, &undoManager);
+            outputs.removeChild (outputs.getNumChildren() - 1, getActiveUndoManager());
     }
 
     // Update the count in config
     setParameter (outputChannels, numChannels);
-    outputs.setProperty (count, numChannels, &undoManager);
+    outputs.setProperty (count, numChannels, getActiveUndoManager());
 
     // Update input mute arrays
     auto inputs = getInputsState();
@@ -1176,7 +1170,7 @@ void WFSValueTreeState::setNumOutputChannels (int numChannels)
             while (mutesArray.size() > numChannels)
                 mutesArray.remove (mutesArray.size() - 1);
 
-            mutesTree.setProperty (inputMutes, mutesArray.joinIntoString (","), &undoManager);
+            mutesTree.setProperty (inputMutes, mutesArray.joinIntoString (","), getActiveUndoManager());
         }
     }
 }
@@ -1205,7 +1199,7 @@ void WFSValueTreeState::setNumReverbChannels (int numChannels)
     {
         // Add new channels
         for (int i = currentCount; i < numChannels; ++i)
-            reverbs.appendChild (createDefaultReverbChannel (i), &undoManager);
+            reverbs.appendChild (createDefaultReverbChannel (i), getActiveUndoManager());
     }
     else if (numChannels < currentCount)
     {
@@ -1214,7 +1208,7 @@ void WFSValueTreeState::setNumReverbChannels (int numChannels)
         {
             if (reverbs.getChild (i).hasType (Reverb))
             {
-                reverbs.removeChild (i, &undoManager);
+                reverbs.removeChild (i, getActiveUndoManager());
                 --currentCount;
             }
         }
@@ -1238,41 +1232,69 @@ void WFSValueTreeState::setNumReverbChannels (int numChannels)
 
     // Update the count in config
     setParameter (reverbChannels, numChannels);
-    reverbs.setProperty (count, numChannels, &undoManager);
+    reverbs.setProperty (count, numChannels, getActiveUndoManager());
 }
 
 //==============================================================================
-// Undo / Redo
+// Undo / Redo  (per-domain)
 //==============================================================================
+
+void WFSValueTreeState::setActiveDomain (UndoDomain domain)
+{
+    activeDomain = domain;
+}
+
+UndoDomain WFSValueTreeState::getActiveDomain() const
+{
+    return activeDomain;
+}
+
+juce::UndoManager* WFSValueTreeState::getUndoManagerForDomain (UndoDomain domain)
+{
+    auto idx = static_cast<int> (domain);
+    jassert (idx >= 0 && idx < static_cast<int> (UndoDomain::COUNT));
+    return &undoManagers[idx];
+}
+
+juce::UndoManager* WFSValueTreeState::getActiveUndoManager()
+{
+    return getUndoManagerForDomain (activeDomain);
+}
 
 bool WFSValueTreeState::undo()
 {
-    return undoManager.undo();
+    return getActiveUndoManager()->undo();
 }
 
 bool WFSValueTreeState::redo()
 {
-    return undoManager.redo();
+    return getActiveUndoManager()->redo();
 }
 
 bool WFSValueTreeState::canUndo() const
 {
-    return undoManager.canUndo();
+    return undoManagers[static_cast<int> (activeDomain)].canUndo();
 }
 
 bool WFSValueTreeState::canRedo() const
 {
-    return undoManager.canRedo();
+    return undoManagers[static_cast<int> (activeDomain)].canRedo();
 }
 
 void WFSValueTreeState::beginUndoTransaction (const juce::String& transactionName)
 {
-    undoManager.beginNewTransaction (transactionName);
+    getActiveUndoManager()->beginNewTransaction (transactionName);
 }
 
 void WFSValueTreeState::clearUndoHistory()
 {
-    undoManager.clearUndoHistory();
+    getActiveUndoManager()->clearUndoHistory();
+}
+
+void WFSValueTreeState::clearAllUndoHistories()
+{
+    for (int i = 0; i < static_cast<int> (UndoDomain::COUNT); ++i)
+        undoManagers[i].clearUndoHistory();
 }
 
 //==============================================================================
@@ -1315,10 +1337,10 @@ void WFSValueTreeState::removeListener (juce::ValueTree::Listener* listener)
 
 void WFSValueTreeState::resetToDefaults()
 {
-    beginUndoTransaction ("Reset to Defaults");
     state.removeListener (this);
     initializeDefaultState();
     state.addListener (this);
+    clearAllUndoHistories();
 }
 
 void WFSValueTreeState::resetInputToDefaults (int channelIndex)
@@ -1328,7 +1350,7 @@ void WFSValueTreeState::resetInputToDefaults (int channelIndex)
     {
         beginUndoTransaction ("Reset Input " + juce::String (channelIndex + 1));
         auto newInput = createDefaultInputChannel (channelIndex);
-        input.copyPropertiesAndChildrenFrom (newInput, &undoManager);
+        input.copyPropertiesAndChildrenFrom (newInput, getActiveUndoManager());
     }
 }
 
@@ -1339,7 +1361,7 @@ void WFSValueTreeState::resetOutputToDefaults (int channelIndex)
     {
         beginUndoTransaction ("Reset Output " + juce::String (channelIndex + 1));
         auto newOutput = createDefaultOutputChannel (channelIndex);
-        output.copyPropertiesAndChildrenFrom (newOutput, &undoManager);
+        output.copyPropertiesAndChildrenFrom (newOutput, getActiveUndoManager());
     }
 }
 
@@ -1350,7 +1372,7 @@ void WFSValueTreeState::resetReverbToDefaults (int channelIndex)
     {
         beginUndoTransaction ("Reset Reverb " + juce::String (channelIndex + 1));
         auto newReverb = createDefaultReverbChannel (channelIndex);
-        reverb.copyPropertiesAndChildrenFrom (newReverb, &undoManager);
+        reverb.copyPropertiesAndChildrenFrom (newReverb, getActiveUndoManager());
     }
 }
 
@@ -1358,8 +1380,8 @@ void WFSValueTreeState::replaceState (const juce::ValueTree& newState)
 {
     if (validateState (newState))
     {
-        beginUndoTransaction ("Load State");
-        state.copyPropertiesAndChildrenFrom (newState, &undoManager);
+        state.copyPropertiesAndChildrenFrom (newState, nullptr);
+        clearAllUndoHistories();
     }
 }
 

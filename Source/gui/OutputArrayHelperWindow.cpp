@@ -1440,9 +1440,9 @@ void OutputArrayHelperContent::applyToOutputs()
     bool enableHighCut = highCutEnableButton.getToggleState();
     int highCutFreq = highCutFreqEditor.getText().getIntValue();
 
-    // Begin undo transaction
-    if (auto* undoManager = parameters.getUndoManager())
-        undoManager->beginNewTransaction("Array Position Helper");
+    // Begin undo transaction on the Output domain
+    auto* um = vts.getUndoManagerForDomain(UndoDomain::Output);
+    um->beginNewTransaction("Array Position Helper");
 
     for (int i = 0; i < N; ++i)
     {
@@ -1455,34 +1455,34 @@ void OutputArrayHelperContent::applyToOutputs()
         auto chanSection = vts.getOutputChannelSection(idx);
 
         // Position (in Position section)
-        posSection.setProperty(WFSParameterIDs::outputPositionX, pos.x, nullptr);
-        posSection.setProperty(WFSParameterIDs::outputPositionY, pos.y, nullptr);
-        posSection.setProperty(WFSParameterIDs::outputPositionZ, pos.z, nullptr);
-        posSection.setProperty(WFSParameterIDs::outputOrientation, static_cast<int>(pos.orientation), nullptr);
-        posSection.setProperty(WFSParameterIDs::outputHFdamping, hfDamping, nullptr);
+        posSection.setProperty(WFSParameterIDs::outputPositionX, pos.x, um);
+        posSection.setProperty(WFSParameterIDs::outputPositionY, pos.y, um);
+        posSection.setProperty(WFSParameterIDs::outputPositionZ, pos.z, um);
+        posSection.setProperty(WFSParameterIDs::outputOrientation, static_cast<int>(pos.orientation), um);
+        posSection.setProperty(WFSParameterIDs::outputHFdamping, hfDamping, um);
 
         // Array assignment (in Channel section)
-        chanSection.setProperty(WFSParameterIDs::outputArray, arrayId, nullptr);
+        chanSection.setProperty(WFSParameterIDs::outputArray, arrayId, um);
 
         // Acoustic defaults (in Options section)
-        optSection.setProperty(WFSParameterIDs::outputLSattenEnable, lsEnabled ? 1 : 0, nullptr);
-        optSection.setProperty(WFSParameterIDs::outputFRenable, frEnabled ? 1 : 0, nullptr);
-        optSection.setProperty(WFSParameterIDs::outputHparallax, hParallax, nullptr);
-        optSection.setProperty(WFSParameterIDs::outputVparallax, vParallax, nullptr);
-        optSection.setProperty(WFSParameterIDs::outputDistanceAttenPercent, distAtten, nullptr);
+        optSection.setProperty(WFSParameterIDs::outputLSattenEnable, lsEnabled ? 1 : 0, um);
+        optSection.setProperty(WFSParameterIDs::outputFRenable, frEnabled ? 1 : 0, um);
+        optSection.setProperty(WFSParameterIDs::outputHparallax, hParallax, um);
+        optSection.setProperty(WFSParameterIDs::outputVparallax, vParallax, um);
+        optSection.setProperty(WFSParameterIDs::outputDistanceAttenPercent, distAtten, um);
 
         // EQ bands if configured (Low Cut = band 0, High Cut = band 5)
         if (enableLowCut)
         {
             auto eqBand0 = vts.getOutputEQBand(idx, 0);
-            eqBand0.setProperty(WFSParameterIDs::eqShape, 2, nullptr);  // LowCut shape
-            eqBand0.setProperty(WFSParameterIDs::eqFrequency, static_cast<float>(lowCutFreq), nullptr);
+            eqBand0.setProperty(WFSParameterIDs::eqShape, 2, um);  // LowCut shape
+            eqBand0.setProperty(WFSParameterIDs::eqFrequency, static_cast<float>(lowCutFreq), um);
         }
         if (enableHighCut)
         {
             auto eqBand5 = vts.getOutputEQBand(idx, 5);
-            eqBand5.setProperty(WFSParameterIDs::eqShape, 4, nullptr);  // HighCut shape
-            eqBand5.setProperty(WFSParameterIDs::eqFrequency, static_cast<float>(highCutFreq), nullptr);
+            eqBand5.setProperty(WFSParameterIDs::eqShape, 4, um);  // HighCut shape
+            eqBand5.setProperty(WFSParameterIDs::eqFrequency, static_cast<float>(highCutFreq), um);
         }
     }
 

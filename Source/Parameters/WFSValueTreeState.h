@@ -5,12 +5,26 @@
 #include "WFSParameterDefaults.h"
 
 /**
+ * Undo domain — each tab has its own undo history.
+ */
+enum class UndoDomain
+{
+    Input,      // InputsTab
+    Output,     // OutputsTab + OutputArrayHelperWindow
+    Reverb,     // ReverbTab
+    Map,        // MapTab (input positions via map drag)
+    Config,     // SystemConfigTab + NetworkTab
+    Clusters,   // ClustersTab
+    COUNT
+};
+
+/**
  * WFS ValueTree State Manager
  *
  * Central management class for all WFS processor parameters using JUCE ValueTree.
  * Provides:
  * - Hierarchical parameter organization
- * - Undo/Redo support
+ * - Per-tab Undo/Redo support (one UndoManager per UndoDomain)
  * - Type-safe parameter access
  * - Listener registration for UI components
  * - Thread-safe parameter updates
@@ -261,29 +275,54 @@ public:
     void setNumReverbChannels (int numChannels);
 
     //==========================================================================
-    // Undo / Redo
+    // Undo / Redo  (per-domain — one UndoManager per tab)
     //==========================================================================
 
-    /** Get the UndoManager for external use */
-    juce::UndoManager* getUndoManager() { return &undoManager; }
+    /** Set the currently active undo domain (called by MainComponent on tab change) */
+    void setActiveDomain (UndoDomain domain);
 
-    /** Perform undo */
+    /** Get the currently active undo domain */
+    UndoDomain getActiveDomain() const;
+
+    /** Get UndoManager for a specific domain */
+    juce::UndoManager* getUndoManagerForDomain (UndoDomain domain);
+
+    /** Get UndoManager for the currently active domain */
+    juce::UndoManager* getActiveUndoManager();
+
+    /** Convenience: get UndoManager (returns active domain's manager) */
+    juce::UndoManager* getUndoManager() { return getActiveUndoManager(); }
+
+    /** Perform undo on the active domain */
     bool undo();
 
-    /** Perform redo */
+    /** Perform redo on the active domain */
     bool redo();
 
-    /** Check if undo is available */
+    /** Check if undo is available on the active domain */
     bool canUndo() const;
 
-    /** Check if redo is available */
+    /** Check if redo is available on the active domain */
     bool canRedo() const;
 
-    /** Begin a new undo transaction with a name */
+    /** Begin a new undo transaction on the active domain */
     void beginUndoTransaction (const juce::String& name);
 
-    /** Clear undo history */
+    /** Clear undo history for the active domain */
     void clearUndoHistory();
+
+    /** Clear undo history for ALL domains */
+    void clearAllUndoHistories();
+
+    /** RAII helper: temporarily switch the active undo domain, restoring on destruction */
+    struct ScopedUndoDomain
+    {
+        ScopedUndoDomain (WFSValueTreeState& s, UndoDomain d)
+            : state (s), previous (s.getActiveDomain()) { state.setActiveDomain (d); }
+        ~ScopedUndoDomain() { state.setActiveDomain (previous); }
+        WFSValueTreeState& state;
+        UndoDomain previous;
+    };
 
     //==========================================================================
     // Listener Management
@@ -348,7 +387,8 @@ private:
     //==========================================================================
 
     juce::ValueTree state;
-    juce::UndoManager undoManager;
+    juce::UndoManager undoManagers[static_cast<int> (UndoDomain::COUNT)];
+    UndoDomain activeDomain = UndoDomain::Input;
 
     // Listener management
     struct ListenerEntry

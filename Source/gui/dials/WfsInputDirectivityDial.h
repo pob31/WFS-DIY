@@ -77,6 +77,10 @@ public:
     // Callbacks
     std::function<void(float)> onRotationChanged;
 
+    // Gesture callbacks for undo transaction boundaries
+    std::function<void()> onGestureStart;
+    std::function<void()> onGestureEnd;
+
 private:
     void paint(juce::Graphics& g) override
     {
@@ -218,6 +222,7 @@ private:
 
     void mouseDown(const juce::MouseEvent& event) override
     {
+        if (onGestureStart) onGestureStart();
         auto centre = getLocalBounds().toFloat().getCentre();
         auto delta = event.position - centre;
         dragStartMouseAngle = std::atan2(delta.x, delta.y); // 0 at bottom, clockwise positive
@@ -245,8 +250,15 @@ private:
 
     void mouseWheelMove(const juce::MouseEvent&, const juce::MouseWheelDetails& wheel) override
     {
+        if (onGestureStart) onGestureStart();
         float increment = 5.0f;
         setRotation(rotationDegrees + wheel.deltaY * increment);
+        if (onGestureEnd) onGestureEnd();
+    }
+
+    void mouseUp(const juce::MouseEvent&) override
+    {
+        if (onGestureEnd) onGestureEnd();
     }
 
     void mouseEnter(const juce::MouseEvent&) override {}

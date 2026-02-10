@@ -180,6 +180,7 @@ public:
                 {
                     eqDisplay = std::make_unique<EQDisplayComponent> (eqTree, numEqBands, EQDisplayConfig::forReverbPreEQ());
                     addAndMakeVisible (*eqDisplay);
+                    eqDisplay->setUndoManager (parameters.getUndoManagerForDomain (UndoDomain::Reverb));
                     lastEqDisplayChannel = currentChannel;
                     eqDisplay->setEQEnabled (eqEnableButton.getToggleState());
                 }
@@ -316,6 +317,9 @@ private:
             attenuationValueLabel.setText (juce::String (dB, 1) + " dB", juce::dontSendNotification);
             saveReverbParam (WFSParameterIDs::reverbAttenuation, dB);
         };
+        attenuationSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Reverb Attenuation");
+        };
         addAndMakeVisible (attenuationSlider);
 
         addAndMakeVisible (attenuationValueLabel);
@@ -333,6 +337,9 @@ private:
             float ms = v * 100.0f;  // -100 to +100 ms (v is -1 to 1)
             delayLatencyValueLabel.setText (juce::String (ms, 1) + " ms", juce::dontSendNotification);
             saveReverbParam (WFSParameterIDs::reverbDelayLatency, ms);
+        };
+        delayLatencySlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Reverb Delay/Latency");
         };
         addAndMakeVisible (delayLatencySlider);
 
@@ -422,6 +429,9 @@ private:
             orientationValueLabel.setText (juce::String (degrees), juce::dontSendNotification);
             saveReverbParam (WFSParameterIDs::reverbOrientation, degrees);
         };
+        orientationDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Reverb Orientation");
+        };
         addAndMakeVisible (orientationDial);
 
         addAndMakeVisible (orientationValueLabel);
@@ -444,6 +454,9 @@ private:
             angleOnValueLabel.setText (juce::String (degrees) + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
             saveReverbParam (WFSParameterIDs::reverbAngleOn, degrees);
         };
+        angleOnSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Reverb Angle On");
+        };
         addAndMakeVisible (angleOnSlider);
 
         addAndMakeVisible (angleOnValueLabel);
@@ -461,6 +474,9 @@ private:
             int degrees = static_cast<int> (v * 179.0f);  // 0-179
             angleOffValueLabel.setText (juce::String (degrees) + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
             saveReverbParam (WFSParameterIDs::reverbAngleOff, degrees);
+        };
+        angleOffSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Reverb Angle Off");
         };
         addAndMakeVisible (angleOffSlider);
 
@@ -480,6 +496,9 @@ private:
             pitchValueLabel.setText (juce::String (degrees) + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
             saveReverbParam (WFSParameterIDs::reverbPitch, degrees);
         };
+        pitchSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Reverb Pitch");
+        };
         addAndMakeVisible (pitchSlider);
 
         addAndMakeVisible (pitchValueLabel);
@@ -497,6 +516,9 @@ private:
             float dB = v * 6.0f - 6.0f;  // -6 to 0 dB/m
             hfDampingValueLabel.setText (juce::String (dB, 1) + " dB/m", juce::dontSendNotification);
             saveReverbParam (WFSParameterIDs::reverbHFdamping, dB);
+        };
+        hfDampingSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Reverb HF Damping");
         };
         addAndMakeVisible (hfDampingSlider);
 
@@ -548,6 +570,9 @@ private:
             int percent = static_cast<int> ((v + 1.0f) * 100.0f);  // 0-200% (v is -1 to 1, center is 100%)
             distanceAttenEnableValueLabel.setText (juce::String (percent) + "%", juce::dontSendNotification);
             saveReverbParam (WFSParameterIDs::reverbDistanceAttenEnable, percent);
+        };
+        distanceAttenEnableSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Reverb Distance Atten Enable");
         };
         addAndMakeVisible (distanceAttenEnableSlider);
 
@@ -620,6 +645,9 @@ private:
                 eqBandFreqValueLabel[i].setText (formatFrequency (freq), juce::dontSendNotification);
                 saveEQBandParam (i, WFSParameterIDs::reverbPreEQfreq, freq);
             };
+            eqBandFreqSlider[i].onGestureStart = [this, i]() {
+                parameters.getValueTreeState().beginUndoTransaction ("Pre-EQ Band " + juce::String (i + 1) + " Freq");
+            };
             addAndMakeVisible (eqBandFreqSlider[i]);
 
             addAndMakeVisible (eqBandFreqValueLabel[i]);
@@ -637,6 +665,9 @@ private:
                 float gain = v * 48.0f - 24.0f;  // -24 to +24 dB
                 eqBandGainValueLabel[i].setText (juce::String (gain, 1) + " dB", juce::dontSendNotification);
                 saveEQBandParam (i, WFSParameterIDs::reverbPreEQgain, gain);
+            };
+            eqBandGainDial[i].onGestureStart = [this, i]() {
+                parameters.getValueTreeState().beginUndoTransaction ("Pre-EQ Band " + juce::String (i + 1) + " Gain");
             };
             addAndMakeVisible (eqBandGainDial[i]);
 
@@ -656,6 +687,9 @@ private:
                 float q = 0.1f + 0.21f * (std::pow (100.0f, v) - 1.0f);  // 0.1-20.0
                 eqBandQValueLabel[i].setText (juce::String (q, 2), juce::dontSendNotification);
                 saveEQBandParam (i, WFSParameterIDs::reverbPreEQq, q);
+            };
+            eqBandQDial[i].onGestureStart = [this, i]() {
+                parameters.getValueTreeState().beginUndoTransaction ("Pre-EQ Band " + juce::String (i + 1) + " Q");
             };
             addAndMakeVisible (eqBandQDial[i]);
 
@@ -706,6 +740,9 @@ private:
             preCompThresholdValueLabel.setText (juce::String (threshold, 1) + " dB", juce::dontSendNotification);
             savePreCompParam (reverbPreCompThreshold, threshold);
         };
+        preCompThresholdDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Pre-Comp Threshold");
+        };
         addAndMakeVisible (preCompThresholdDial);
         addAndMakeVisible (preCompThresholdValueLabel);
         preCompThresholdValueLabel.setJustificationType (juce::Justification::centred);
@@ -721,6 +758,9 @@ private:
             float ratio = reverbPreCompRatioMin + (reverbPreCompRatioMax - reverbPreCompRatioMin) * v;
             preCompRatioValueLabel.setText (juce::String (ratio, 1) + ":1", juce::dontSendNotification);
             savePreCompParam (reverbPreCompRatio, ratio);
+        };
+        preCompRatioDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Pre-Comp Ratio");
         };
         addAndMakeVisible (preCompRatioDial);
         addAndMakeVisible (preCompRatioValueLabel);
@@ -738,6 +778,9 @@ private:
             preCompAttackValueLabel.setText (juce::String (attack, 1) + " ms", juce::dontSendNotification);
             savePreCompParam (reverbPreCompAttack, attack);
         };
+        preCompAttackDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Pre-Comp Attack");
+        };
         addAndMakeVisible (preCompAttackDial);
         addAndMakeVisible (preCompAttackValueLabel);
         preCompAttackValueLabel.setJustificationType (juce::Justification::centred);
@@ -753,6 +796,9 @@ private:
             float release = reverbPreCompReleaseMin * std::pow (reverbPreCompReleaseMax / reverbPreCompReleaseMin, v);
             preCompReleaseValueLabel.setText (juce::String (release, 0) + " ms", juce::dontSendNotification);
             savePreCompParam (reverbPreCompRelease, release);
+        };
+        preCompReleaseDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Pre-Comp Release");
         };
         addAndMakeVisible (preCompReleaseDial);
         addAndMakeVisible (preCompReleaseValueLabel);
@@ -801,6 +847,9 @@ private:
             postExpThresholdValueLabel.setText (juce::String (threshold, 1) + " dB", juce::dontSendNotification);
             savePostExpParam (reverbPostExpThreshold, threshold);
         };
+        postExpThresholdDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Post-Exp Threshold");
+        };
         addAndMakeVisible (postExpThresholdDial);
         addAndMakeVisible (postExpThresholdValueLabel);
         postExpThresholdValueLabel.setJustificationType (juce::Justification::centred);
@@ -816,6 +865,9 @@ private:
             float ratio = reverbPostExpRatioMin + (reverbPostExpRatioMax - reverbPostExpRatioMin) * v;
             postExpRatioValueLabel.setText ("1:" + juce::String (ratio, 1), juce::dontSendNotification);
             savePostExpParam (reverbPostExpRatio, ratio);
+        };
+        postExpRatioDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Post-Exp Ratio");
         };
         addAndMakeVisible (postExpRatioDial);
         addAndMakeVisible (postExpRatioValueLabel);
@@ -833,6 +885,9 @@ private:
             postExpAttackValueLabel.setText (juce::String (attack, 1) + " ms", juce::dontSendNotification);
             savePostExpParam (reverbPostExpAttack, attack);
         };
+        postExpAttackDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Post-Exp Attack");
+        };
         addAndMakeVisible (postExpAttackDial);
         addAndMakeVisible (postExpAttackValueLabel);
         postExpAttackValueLabel.setJustificationType (juce::Justification::centred);
@@ -848,6 +903,9 @@ private:
             float release = reverbPostExpReleaseMin * std::pow (reverbPostExpReleaseMax / reverbPostExpReleaseMin, v);
             postExpReleaseValueLabel.setText (juce::String (release, 0) + " ms", juce::dontSendNotification);
             savePostExpParam (reverbPostExpRelease, release);
+        };
+        postExpReleaseDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Post-Exp Release");
         };
         addAndMakeVisible (postExpReleaseDial);
         addAndMakeVisible (postExpReleaseValueLabel);
@@ -897,6 +955,9 @@ private:
             algoRT60ValueLabel.setText (juce::String (rt60, 2) + " s", juce::dontSendNotification);
             saveAlgorithmParam (WFSParameterIDs::reverbRT60, rt60);
         };
+        algoRT60Slider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Reverb RT60");
+        };
         addAndMakeVisible (algoRT60Slider);
 
         addAndMakeVisible (algoRT60ValueLabel);
@@ -914,6 +975,9 @@ private:
                 * std::pow (WFSParameterDefaults::reverbRT60LowMultMax / WFSParameterDefaults::reverbRT60LowMultMin, v);
             algoRT60LowMultValueLabel.setText (juce::String (mult, 2) + "x", juce::dontSendNotification);
             saveAlgorithmParam (WFSParameterIDs::reverbRT60LowMult, mult);
+        };
+        algoRT60LowMultSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Reverb RT60 Low Mult");
         };
         addAndMakeVisible (algoRT60LowMultSlider);
 
@@ -933,6 +997,9 @@ private:
             algoRT60HighMultValueLabel.setText (juce::String (mult, 2) + "x", juce::dontSendNotification);
             saveAlgorithmParam (WFSParameterIDs::reverbRT60HighMult, mult);
         };
+        algoRT60HighMultSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Reverb RT60 High Mult");
+        };
         addAndMakeVisible (algoRT60HighMultSlider);
 
         addAndMakeVisible (algoRT60HighMultValueLabel);
@@ -950,6 +1017,9 @@ private:
                 * std::pow (WFSParameterDefaults::reverbCrossoverLowMax / WFSParameterDefaults::reverbCrossoverLowMin, v);
             algoCrossoverLowValueLabel.setText (formatFrequency (static_cast<int> (freq)), juce::dontSendNotification);
             saveAlgorithmParam (WFSParameterIDs::reverbCrossoverLow, freq);
+        };
+        algoCrossoverLowSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Reverb Crossover Low");
         };
         addAndMakeVisible (algoCrossoverLowSlider);
 
@@ -969,6 +1039,9 @@ private:
             algoCrossoverHighValueLabel.setText (formatFrequency (static_cast<int> (freq)), juce::dontSendNotification);
             saveAlgorithmParam (WFSParameterIDs::reverbCrossoverHigh, freq);
         };
+        algoCrossoverHighSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Reverb Crossover High");
+        };
         addAndMakeVisible (algoCrossoverHighSlider);
 
         addAndMakeVisible (algoCrossoverHighValueLabel);
@@ -984,6 +1057,9 @@ private:
         {
             algoDiffusionValueLabel.setText (juce::String (static_cast<int> (v * 100)) + "%", juce::dontSendNotification);
             saveAlgorithmParam (WFSParameterIDs::reverbDiffusion, v);
+        };
+        algoDiffusionSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Reverb Diffusion");
         };
         addAndMakeVisible (algoDiffusionSlider);
 
@@ -1007,6 +1083,9 @@ private:
             algoSDNScaleValueLabel.setText (juce::String (scale, 2) + "x", juce::dontSendNotification);
             saveAlgorithmParam (WFSParameterIDs::reverbSDNscale, scale);
         };
+        algoSDNScaleSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Reverb SDN Scale");
+        };
         addAndMakeVisible (algoSDNScaleSlider);
 
         addAndMakeVisible (algoSDNScaleValueLabel);
@@ -1028,6 +1107,9 @@ private:
                 + v * (WFSParameterDefaults::reverbFDNsizeMax - WFSParameterDefaults::reverbFDNsizeMin);
             algoFDNSizeValueLabel.setText (juce::String (size, 2) + "x", juce::dontSendNotification);
             saveAlgorithmParam (WFSParameterIDs::reverbFDNsize, size);
+        };
+        algoFDNSizeSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Reverb FDN Size");
         };
         addAndMakeVisible (algoFDNSizeSlider);
 
@@ -1064,6 +1146,9 @@ private:
             algoIRTrimValueLabel.setText (juce::String (trim, 1) + " ms", juce::dontSendNotification);
             saveAlgorithmParam (WFSParameterIDs::reverbIRtrim, trim);
         };
+        algoIRTrimSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Reverb IR Trim");
+        };
         addAndMakeVisible (algoIRTrimSlider);
 
         addAndMakeVisible (algoIRTrimValueLabel);
@@ -1080,6 +1165,9 @@ private:
                 + v * (WFSParameterDefaults::reverbIRlengthMax - WFSParameterDefaults::reverbIRlengthMin);
             algoIRLengthValueLabel.setText (juce::String (length, 1) + " s", juce::dontSendNotification);
             saveAlgorithmParam (WFSParameterIDs::reverbIRlength, length);
+        };
+        algoIRLengthSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Reverb IR Length");
         };
         addAndMakeVisible (algoIRLengthSlider);
 
@@ -1113,6 +1201,9 @@ private:
             float dB = -60.0f + v * 72.0f;
             algoWetLevelValueLabel.setText (juce::String (dB, 1) + " dB", juce::dontSendNotification);
             saveAlgorithmParam (WFSParameterIDs::reverbWetLevel, dB);
+        };
+        algoWetLevelSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Reverb Wet Level");
         };
         addAndMakeVisible (algoWetLevelSlider);
 
@@ -1180,6 +1271,9 @@ private:
                 postEqBandFreqValueLabel[i].setText (formatFrequency (freq), juce::dontSendNotification);
                 savePostEQBandParam (i, WFSParameterIDs::reverbPostEQfreq, freq);
             };
+            postEqBandFreqSlider[i].onGestureStart = [this, i]() {
+                parameters.getValueTreeState().beginUndoTransaction ("Post-EQ Band " + juce::String (i + 1) + " Freq");
+            };
             addAndMakeVisible (postEqBandFreqSlider[i]);
 
             addAndMakeVisible (postEqBandFreqValueLabel[i]);
@@ -1197,6 +1291,9 @@ private:
                 float gain = v * 48.0f - 24.0f;
                 postEqBandGainValueLabel[i].setText (juce::String (gain, 1) + " dB", juce::dontSendNotification);
                 savePostEQBandParam (i, WFSParameterIDs::reverbPostEQgain, gain);
+            };
+            postEqBandGainDial[i].onGestureStart = [this, i]() {
+                parameters.getValueTreeState().beginUndoTransaction ("Post-EQ Band " + juce::String (i + 1) + " Gain");
             };
             addAndMakeVisible (postEqBandGainDial[i]);
 
@@ -1216,6 +1313,9 @@ private:
                 float q = 0.1f + 0.21f * (std::pow (100.0f, v) - 1.0f);
                 postEqBandQValueLabel[i].setText (juce::String (q, 2), juce::dontSendNotification);
                 savePostEQBandParam (i, WFSParameterIDs::reverbPostEQq, q);
+            };
+            postEqBandQDial[i].onGestureStart = [this, i]() {
+                parameters.getValueTreeState().beginUndoTransaction ("Post-EQ Band " + juce::String (i + 1) + " Q");
             };
             addAndMakeVisible (postEqBandQDial[i]);
 
@@ -1237,6 +1337,9 @@ private:
             distanceAttenValueLabel.setText (juce::String (dB, 1), juce::dontSendNotification);
             saveReverbParam (WFSParameterIDs::reverbDistanceAttenuation, dB);
         };
+        distanceAttenDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Reverb Distance Attenuation");
+        };
         addAndMakeVisible (distanceAttenDial);
 
         addAndMakeVisible (distanceAttenValueLabel);
@@ -1257,6 +1360,9 @@ private:
             int percent = static_cast<int> (v * 100.0f);  // 0-100%
             commonAttenValueLabel.setText (juce::String (percent), juce::dontSendNotification);
             saveReverbParam (WFSParameterIDs::reverbCommonAtten, percent);
+        };
+        commonAttenDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Reverb Common Attenuation");
         };
         addAndMakeVisible (commonAttenDial);
 
@@ -1609,6 +1715,7 @@ private:
             {
                 eqDisplay = std::make_unique<EQDisplayComponent> (eqTree, numEqBands, EQDisplayConfig::forReverbPreEQ());
                 addAndMakeVisible (*eqDisplay);
+                eqDisplay->setUndoManager (parameters.getUndoManagerForDomain (UndoDomain::Reverb));
                 lastEqDisplayChannel = currentChannel;
 
                 bool eqEnabled = eqEnableButton.getToggleState();
@@ -1863,6 +1970,7 @@ private:
             {
                 postEqDisplay = std::make_unique<EQDisplayComponent> (postEqTree, numPostEqBands, EQDisplayConfig::forReverbPostEQ());
                 addAndMakeVisible (*postEqDisplay);
+                postEqDisplay->setUndoManager (parameters.getUndoManagerForDomain (UndoDomain::Reverb));
 
                 bool eqEnabled = postEqEnableButton.getToggleState();
                 postEqDisplay->setEQEnabled (eqEnabled);
@@ -2146,6 +2254,7 @@ private:
             {
                 eqDisplay = std::make_unique<EQDisplayComponent> (eqTree, numEqBands, EQDisplayConfig::forReverbPreEQ());
                 addAndMakeVisible (*eqDisplay);
+                eqDisplay->setUndoManager (parameters.getUndoManagerForDomain (UndoDomain::Reverb));
                 lastEqDisplayChannel = currentChannel;
 
                 int eqEnabled = currentChannel > 0 ?
@@ -2330,6 +2439,7 @@ private:
             {
                 postEqDisplay = std::make_unique<EQDisplayComponent> (postEqTree, numPostEqBands, EQDisplayConfig::forReverbPostEQ());
                 addAndMakeVisible (*postEqDisplay);
+                postEqDisplay->setUndoManager (parameters.getUndoManagerForDomain (UndoDomain::Reverb));
 
                 int eqEnabled = postEqEnableButton.getToggleState() ? 1 : 0;
                 postEqDisplay->setEQEnabled (eqEnabled != 0);
@@ -2606,6 +2716,7 @@ private:
             {
                 eqDisplay = std::make_unique<EQDisplayComponent> (eqTree, numEqBands, EQDisplayConfig::forReverbPreEQ());
                 addAndMakeVisible (*eqDisplay);
+                eqDisplay->setUndoManager (parameters.getUndoManagerForDomain (UndoDomain::Reverb));
                 lastEqDisplayChannel = channel;
             }
             // Update EQ display enabled state

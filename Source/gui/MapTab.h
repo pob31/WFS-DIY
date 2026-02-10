@@ -359,6 +359,9 @@ public:
                 selectedBarycenter = -1;
                 isInViewGesture = false;
 
+                // Begin undo transaction for this map drag gesture
+                parameters.getValueTreeState().beginUndoTransaction ("Map Drag Input " + juce::String (hitInput + 1));
+
                 // Get flip-applied position to match visual coordinate system
                 // (getInputPosition returns raw stored position, but drag works in visual coords)
                 auto rawPos = getInputPosition(hitInput);
@@ -429,6 +432,9 @@ public:
                 selectedInput = -1;
                 isInViewGesture = false;
                 barycenterDragStartStagePos = getClusterBarycenter(hitBarycenter);
+
+                // Begin undo transaction for cluster barycenter drag
+                parameters.getValueTreeState().beginUndoTransaction ("Map Drag Cluster " + juce::String (hitBarycenter));
 
                 // Set up long-press state for navigation
                 longPressState.active = true;

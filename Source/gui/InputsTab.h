@@ -760,6 +760,9 @@ private:
         attenuationLabel.setText(LOC("inputs.labels.attenuation"), juce::dontSendNotification);
 
         attenuationSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFFFF5722));
+        attenuationSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input Attenuation");
+        };
         attenuationSlider.onValueChanged = [this](float v) {
             float dB = 20.0f * std::log10(std::pow(10.0f, -92.0f / 20.0f) +
                        ((1.0f - std::pow(10.0f, -92.0f / 20.0f)) * v * v));
@@ -778,6 +781,9 @@ private:
         delayLatencyLabel.setText(LOC("inputs.labels.delayLatency"), juce::dontSendNotification);
 
         delayLatencySlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF4CAF50));
+        delayLatencySlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input Delay/Latency");
+        };
         delayLatencySlider.onValueChanged = [this](float v) {
             // Slider range is -1 to 1, map to -100ms to 100ms
             float ms = v * 100.0f;
@@ -932,6 +938,9 @@ private:
         // Distance range slider
         addAndMakeVisible(distanceRangeSlider);
         distanceRangeSlider.setTrackColours(juce::Colour(0xFF1C1C1C), juce::Colour(0xFF00BCD4));
+        distanceRangeSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input Distance Range");
+        };
         distanceRangeSlider.onValuesChanged = [this](float minVal, float maxVal) {
             distanceMinEditor.setText(juce::String(minVal, 2), juce::dontSendNotification);
             distanceMaxEditor.setText(juce::String(maxVal, 2), juce::dontSendNotification);
@@ -1075,6 +1084,9 @@ private:
         trackingSmoothLabel.setJustificationType(juce::Justification::centred);
         trackingSmoothDial.setColours(juce::Colours::black, juce::Colour(0xFF00BCD4), juce::Colours::grey);
         trackingSmoothDial.setValue(1.0f);  // Default 100%
+        trackingSmoothDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input Tracking Smoothing");
+        };
         trackingSmoothDial.onValueChanged = [this](float v) {
             int percent = static_cast<int>(v * 100.0f);
             trackingSmoothValueLabel.setText(juce::String(percent), juce::dontSendNotification);
@@ -1105,6 +1117,9 @@ private:
         maxSpeedLabel.setText(LOC("inputs.labels.maxSpeed"), juce::dontSendNotification);
         maxSpeedLabel.setJustificationType(juce::Justification::centred);
         maxSpeedDial.setColours(juce::Colours::black, juce::Colour(0xFFFF9800), juce::Colours::grey);
+        maxSpeedDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input Max Speed");
+        };
         maxSpeedDial.onValueChanged = [this](float v) {
             float speed = v * 19.99f + 0.01f;
             maxSpeedValueLabel.setText(juce::String(speed, 2), juce::dontSendNotification);
@@ -1135,6 +1150,9 @@ private:
         heightFactorLabel.setText(LOC("inputs.labels.heightFactor"), juce::dontSendNotification);
         heightFactorLabel.setJustificationType(juce::Justification::centred);
         heightFactorDial.setColours(juce::Colours::black, juce::Colour(0xFF4CAF50), juce::Colours::grey);
+        heightFactorDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input Height Factor");
+        };
         heightFactorDial.onValueChanged = [this](float v) {
             int percent = static_cast<int>(v * 100.0f);
             heightFactorValueLabel.setText(juce::String(percent), juce::dontSendNotification);
@@ -1453,6 +1471,9 @@ private:
         distanceAttenLabel.setText(LOC("inputs.labels.distanceAtten"), juce::dontSendNotification);
         distanceAttenLabel.setJustificationType(juce::Justification::centred);
         distanceAttenDial.setColours(juce::Colours::black, juce::Colour(0xFF9C27B0), juce::Colours::grey);
+        distanceAttenDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input Distance Attenuation");
+        };
         distanceAttenDial.onValueChanged = [this](float v) {
             float dBm = (v * 6.0f) - 6.0f;
             distanceAttenValueLabel.setText(juce::String(dBm, 1), juce::dontSendNotification);
@@ -1473,6 +1494,9 @@ private:
         distanceRatioLabel.setText(LOC("inputs.labels.distanceRatio"), juce::dontSendNotification);
         distanceRatioLabel.setJustificationType(juce::Justification::centred);
         distanceRatioDial.setColours(juce::Colours::black, juce::Colour(0xFF9C27B0), juce::Colours::grey);
+        distanceRatioDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input Distance Ratio");
+        };
         distanceRatioDial.onValueChanged = [this](float v) {
             // Formula: pow(10.0,(x*2.0)-1.0) maps 0-1 to 0.1-10.0
             float ratio = std::pow(10.0f, (v * 2.0f) - 1.0f);
@@ -1501,6 +1525,9 @@ private:
         commonAttenLabel.setJustificationType(juce::Justification::centred);
         commonAttenDial.setColours(juce::Colours::black, juce::Colour(0xFF2196F3), juce::Colours::grey);
         commonAttenDial.setValue(1.0f);
+        commonAttenDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input Common Attenuation");
+        };
         commonAttenDial.onValueChanged = [this](float v) {
             int percent = static_cast<int>(v * 100.0f);
             commonAttenValueLabel.setText(juce::String(percent), juce::dontSendNotification);
@@ -1521,6 +1548,9 @@ private:
         directivityLabel.setText(LOC("inputs.labels.directivity"), juce::dontSendNotification);
         directivitySlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF00BCD4));
         directivitySlider.setValue(1.0f);
+        directivitySlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input Directivity");
+        };
         directivitySlider.onValueChanged = [this](float v) {
             int degrees = static_cast<int>((v * 358.0f) + 2.0f);
             directivityValueLabel.setText(juce::String(degrees) + juce::String::fromUTF8("°"), juce::dontSendNotification);
@@ -1537,6 +1567,9 @@ private:
         addAndMakeVisible(rotationLabel);
         rotationLabel.setText(LOC("inputs.labels.rotation"), juce::dontSendNotification);
         rotationLabel.setJustificationType(juce::Justification::centred);
+        inputDirectivityDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input Rotation");
+        };
         inputDirectivityDial.onRotationChanged = [this](float angle) {
             rotationValueLabel.setText(juce::String(static_cast<int>(angle)), juce::dontSendNotification);
             saveInputParam(WFSParameterIDs::inputRotation, static_cast<int>(angle));
@@ -1555,6 +1588,9 @@ private:
         addAndMakeVisible(tiltLabel);
         tiltLabel.setText(LOC("inputs.labels.tilt"), juce::dontSendNotification);
         tiltSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF2196F3));
+        tiltSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input Tilt");
+        };
         tiltSlider.onValueChanged = [this](float v) {
             // Slider range is -1 to 1, map to -90° to 90°
             int degrees = static_cast<int>(v * 90.0f);
@@ -1571,6 +1607,9 @@ private:
         addAndMakeVisible(hfShelfLabel);
         hfShelfLabel.setText(LOC("inputs.labels.hfShelf"), juce::dontSendNotification);
         hfShelfSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFFFF9800));
+        hfShelfSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input HF Shelf");
+        };
         hfShelfSlider.onValueChanged = [this](float v) {
             float dB = 20.0f * std::log10(std::pow(10.0f, -24.0f / 20.0f) +
                        ((1.0f - std::pow(10.0f, -24.0f / 20.0f)) * v * v));
@@ -1603,6 +1642,9 @@ private:
         lsRadiusLabel.setText(LOC("inputs.labels.radius"), juce::dontSendNotification);
         lsRadiusSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF00BCD4));
         lsRadiusSlider.setValue(0.06f);  // 3m
+        lsRadiusSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input LS Radius");
+        };
         lsRadiusSlider.onValueChanged = [this](float v) {
             float meters = v * 50.0f;
             lsRadiusValueLabel.setText(juce::String(meters, 1) + " m", juce::dontSendNotification);
@@ -1633,6 +1675,9 @@ private:
         addAndMakeVisible(lsAttenuationLabel);
         lsAttenuationLabel.setText(LOC("inputs.labels.attenuation"), juce::dontSendNotification);
         lsAttenuationSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFFFF5722));
+        lsAttenuationSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input LS Attenuation");
+        };
         lsAttenuationSlider.onValueChanged = [this](float v) {
             float dB = 20.0f * std::log10(std::pow(10.0f, -24.0f / 20.0f) +
                        ((1.0f - std::pow(10.0f, -24.0f / 20.0f)) * v * v));
@@ -1649,6 +1694,9 @@ private:
         addAndMakeVisible(lsPeakThresholdLabel);
         lsPeakThresholdLabel.setText(LOC("inputs.labels.peakThreshold"), juce::dontSendNotification);
         lsPeakThresholdSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFFE91E63));
+        lsPeakThresholdSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input LS Peak Threshold");
+        };
         lsPeakThresholdSlider.onValueChanged = [this](float v) {
             float dB = 20.0f * std::log10(std::pow(10.0f, -48.0f / 20.0f) +
                        ((1.0f - std::pow(10.0f, -48.0f / 20.0f)) * v * v));
@@ -1666,6 +1714,9 @@ private:
         lsPeakRatioLabel.setText(LOC("inputs.labels.peakRatio"), juce::dontSendNotification);
         lsPeakRatioLabel.setJustificationType(juce::Justification::centred);
         lsPeakRatioDial.setColours(juce::Colours::black, juce::Colour(0xFFE91E63), juce::Colours::grey);
+        lsPeakRatioDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input LS Peak Ratio");
+        };
         lsPeakRatioDial.onValueChanged = [this](float v) {
             float ratio = (v * 9.0f) + 1.0f;
             lsPeakRatioValueLabel.setText(juce::String(ratio, 1), juce::dontSendNotification);
@@ -1685,6 +1736,9 @@ private:
         addAndMakeVisible(lsSlowThresholdLabel);
         lsSlowThresholdLabel.setText(LOC("inputs.labels.slowThreshold"), juce::dontSendNotification);
         lsSlowThresholdSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFF9C27B0));
+        lsSlowThresholdSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input LS Slow Threshold");
+        };
         lsSlowThresholdSlider.onValueChanged = [this](float v) {
             float dB = 20.0f * std::log10(std::pow(10.0f, -48.0f / 20.0f) +
                        ((1.0f - std::pow(10.0f, -48.0f / 20.0f)) * v * v));
@@ -1702,6 +1756,9 @@ private:
         lsSlowRatioLabel.setText(LOC("inputs.labels.slowRatio"), juce::dontSendNotification);
         lsSlowRatioLabel.setJustificationType(juce::Justification::centred);
         lsSlowRatioDial.setColours(juce::Colours::black, juce::Colour(0xFF9C27B0), juce::Colours::grey);
+        lsSlowRatioDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input LS Slow Ratio");
+        };
         lsSlowRatioDial.onValueChanged = [this](float v) {
             float ratio = (v * 9.0f) + 1.0f;
             lsSlowRatioValueLabel.setText(juce::String(ratio, 1), juce::dontSendNotification);
@@ -1737,6 +1794,9 @@ private:
         addAndMakeVisible(frAttenuationLabel);
         frAttenuationLabel.setText(LOC("inputs.labels.attenuation"), juce::dontSendNotification);
         frAttenuationSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFF795548));
+        frAttenuationSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input FR Attenuation");
+        };
         frAttenuationSlider.onValueChanged = [this](float v) {
             float dB = 20.0f * std::log10(std::pow(10.0f, -60.0f / 20.0f) +
                        ((1.0f - std::pow(10.0f, -60.0f / 20.0f)) * v * v));
@@ -1755,6 +1815,9 @@ private:
         frDiffusionLabel.setJustificationType(juce::Justification::centred);
         frDiffusionDial.setColours(juce::Colours::black, juce::Colour(0xFF795548), juce::Colours::grey);
         frDiffusionDial.setValue(0.2f);
+        frDiffusionDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input FR Diffusion");
+        };
         frDiffusionDial.onValueChanged = [this](float v) {
             int percent = static_cast<int>(v * 100.0f);
             frDiffusionValueLabel.setText(juce::String(percent), juce::dontSendNotification);
@@ -1786,6 +1849,9 @@ private:
         addAndMakeVisible(frLowCutFreqLabel);
         frLowCutFreqLabel.setText(LOC("inputs.labels.frequency"), juce::dontSendNotification);
         frLowCutFreqSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFF607D8B));
+        frLowCutFreqSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input FR Low Cut Frequency");
+        };
         frLowCutFreqSlider.onValueChanged = [this](float v) {
             // Formula: 20*pow(10,4*x) maps 0-1 to 20-20000 Hz
             int freq = static_cast<int>(20.0f * std::pow(10.0f, 3.0f * v));
@@ -1814,6 +1880,9 @@ private:
         addAndMakeVisible(frHighShelfFreqLabel);
         frHighShelfFreqLabel.setText(LOC("inputs.labels.frequency"), juce::dontSendNotification);
         frHighShelfFreqSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFF607D8B));
+        frHighShelfFreqSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input FR High Shelf Frequency");
+        };
         frHighShelfFreqSlider.onValueChanged = [this](float v) {
             int freq = static_cast<int>(20.0f * std::pow(10.0f, 3.0f * v));
             frHighShelfFreqValueLabel.setText(juce::String(freq) + " Hz", juce::dontSendNotification);
@@ -1829,6 +1898,9 @@ private:
         addAndMakeVisible(frHighShelfGainLabel);
         frHighShelfGainLabel.setText(LOC("inputs.labels.gain"), juce::dontSendNotification);
         frHighShelfGainSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFF607D8B));
+        frHighShelfGainSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input FR High Shelf Gain");
+        };
         frHighShelfGainSlider.onValueChanged = [this](float v) {
             float dB = 20.0f * std::log10(std::pow(10.0f, -24.0f / 20.0f) +
                        ((1.0f - std::pow(10.0f, -24.0f / 20.0f)) * v * v));
@@ -1845,6 +1917,9 @@ private:
         addAndMakeVisible(frHighShelfSlopeLabel);
         frHighShelfSlopeLabel.setText(LOC("inputs.labels.slope"), juce::dontSendNotification);
         frHighShelfSlopeSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFF607D8B));
+        frHighShelfSlopeSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input FR High Shelf Slope");
+        };
         frHighShelfSlopeSlider.onValueChanged = [this](float v) {
             // Formula: (x*0.8)+0.1 maps 0-1 to 0.1-0.9
             float slope = (v * 0.8f) + 0.1f;
@@ -1886,6 +1961,9 @@ private:
         lfoPeriodLabel.setText(LOC("inputs.labels.period"), juce::dontSendNotification);
         lfoPeriodLabel.setJustificationType(juce::Justification::centred);
         lfoPeriodDial.setColours(juce::Colours::black, juce::Colour(0xFF00BCD4), juce::Colours::grey);
+        lfoPeriodDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input LFO Period");
+        };
         lfoPeriodDial.onValueChanged = [this](float v) {
             float period = std::pow(10.0f, std::sqrt(v) * 4.0f - 2.0f);
             lfoPeriodValueLabel.setText(juce::String(period, 2), juce::dontSendNotification);
@@ -1906,6 +1984,9 @@ private:
         lfoPhaseLabel.setText(LOC("inputs.labels.phase"), juce::dontSendNotification);
         lfoPhaseLabel.setJustificationType(juce::Justification::centred);
         lfoPhaseDial.setColours(juce::Colours::black, juce::Colour(0xFF4CAF50), juce::Colours::grey);
+        lfoPhaseDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input LFO Phase");
+        };
         lfoPhaseDial.onAngleChanged = [this](float angle) {
             int degrees = static_cast<int>(angle);
             lfoPhaseValueLabel.setText(juce::String(degrees), juce::dontSendNotification);
@@ -1967,6 +2048,9 @@ private:
         addAndMakeVisible(lfoRateXLabel);
         lfoRateXLabel.setText(LOC("inputs.labels.rateX"), juce::dontSendNotification);
         lfoRateXSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFFE91E63));
+        lfoRateXSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input LFO Rate X");
+        };
         lfoRateXSlider.onValueChanged = [this](float v) {
             float rate = std::pow(10.0f, (v * 4.0f) - 2.0f);
             lfoRateXValueLabel.setText(juce::String(rate, 2) + "x", juce::dontSendNotification);
@@ -1981,6 +2065,9 @@ private:
         addAndMakeVisible(lfoRateYLabel);
         lfoRateYLabel.setText(LOC("inputs.labels.rateY"), juce::dontSendNotification);
         lfoRateYSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFFE91E63));
+        lfoRateYSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input LFO Rate Y");
+        };
         lfoRateYSlider.onValueChanged = [this](float v) {
             float rate = std::pow(10.0f, (v * 4.0f) - 2.0f);
             lfoRateYValueLabel.setText(juce::String(rate, 2) + "x", juce::dontSendNotification);
@@ -1995,6 +2082,9 @@ private:
         addAndMakeVisible(lfoRateZLabel);
         lfoRateZLabel.setText(LOC("inputs.labels.rateZ"), juce::dontSendNotification);
         lfoRateZSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFFE91E63));
+        lfoRateZSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input LFO Rate Z");
+        };
         lfoRateZSlider.onValueChanged = [this](float v) {
             float rate = std::pow(10.0f, (v * 4.0f) - 2.0f);
             lfoRateZValueLabel.setText(juce::String(rate, 2) + "x", juce::dontSendNotification);
@@ -2010,6 +2100,9 @@ private:
         addAndMakeVisible(lfoAmplitudeXLabel);
         lfoAmplitudeXLabel.setText(LOC("inputs.labels.amplitudeX"), juce::dontSendNotification);
         lfoAmplitudeXSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF9C27B0));
+        lfoAmplitudeXSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input LFO Amplitude X");
+        };
         lfoAmplitudeXSlider.onValueChanged = [this](float v) {
             float amp = v * 50.0f;
             lfoAmplitudeXValueLabel.setText(juce::String(amp, 1) + " m", juce::dontSendNotification);
@@ -2024,6 +2117,9 @@ private:
         addAndMakeVisible(lfoAmplitudeYLabel);
         lfoAmplitudeYLabel.setText(LOC("inputs.labels.amplitudeY"), juce::dontSendNotification);
         lfoAmplitudeYSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF9C27B0));
+        lfoAmplitudeYSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input LFO Amplitude Y");
+        };
         lfoAmplitudeYSlider.onValueChanged = [this](float v) {
             float amp = v * 50.0f;
             lfoAmplitudeYValueLabel.setText(juce::String(amp, 1) + " m", juce::dontSendNotification);
@@ -2038,6 +2134,9 @@ private:
         addAndMakeVisible(lfoAmplitudeZLabel);
         lfoAmplitudeZLabel.setText(LOC("inputs.labels.amplitudeZ"), juce::dontSendNotification);
         lfoAmplitudeZSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF9C27B0));
+        lfoAmplitudeZSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input LFO Amplitude Z");
+        };
         lfoAmplitudeZSlider.onValueChanged = [this](float v) {
             float amp = v * 50.0f;
             lfoAmplitudeZValueLabel.setText(juce::String(amp, 1) + " m", juce::dontSendNotification);
@@ -2054,6 +2153,9 @@ private:
         lfoPhaseXLabel.setText(LOC("inputs.labels.phaseX"), juce::dontSendNotification);
         lfoPhaseXLabel.setJustificationType(juce::Justification::centred);
         lfoPhaseXDial.setColours(juce::Colours::black, juce::Colour(0xFFFF9800), juce::Colours::grey);
+        lfoPhaseXDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input LFO Phase X");
+        };
         lfoPhaseXDial.onAngleChanged = [this](float angle) {
             int degrees = static_cast<int>(angle);
             lfoPhaseXValueLabel.setText(juce::String(degrees), juce::dontSendNotification);
@@ -2073,6 +2175,9 @@ private:
         lfoPhaseYLabel.setText(LOC("inputs.labels.phaseY"), juce::dontSendNotification);
         lfoPhaseYLabel.setJustificationType(juce::Justification::centred);
         lfoPhaseYDial.setColours(juce::Colours::black, juce::Colour(0xFFFF9800), juce::Colours::grey);
+        lfoPhaseYDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input LFO Phase Y");
+        };
         lfoPhaseYDial.onAngleChanged = [this](float angle) {
             int degrees = static_cast<int>(angle);
             lfoPhaseYValueLabel.setText(juce::String(degrees), juce::dontSendNotification);
@@ -2092,6 +2197,9 @@ private:
         lfoPhaseZLabel.setText(LOC("inputs.labels.phaseZ"), juce::dontSendNotification);
         lfoPhaseZLabel.setJustificationType(juce::Justification::centred);
         lfoPhaseZDial.setColours(juce::Colours::black, juce::Colour(0xFFFF9800), juce::Colours::grey);
+        lfoPhaseZDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input LFO Phase Z");
+        };
         lfoPhaseZDial.onAngleChanged = [this](float angle) {
             int degrees = static_cast<int>(angle);
             lfoPhaseZValueLabel.setText(juce::String(degrees), juce::dontSendNotification);
@@ -2125,6 +2233,9 @@ private:
         addAndMakeVisible(jitterLabel);
         jitterLabel.setText(LOC("inputs.labels.jitter"), juce::dontSendNotification);
         jitterSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFFCDDC39));
+        jitterSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input Jitter");
+        };
         jitterSlider.onValueChanged = [this](float v) {
             float meters = 10.0f * v * v;
             jitterValueLabel.setText(juce::String(meters, 2) + " m", juce::dontSendNotification);
@@ -2233,6 +2344,9 @@ private:
         otomoDurationLabel.setText(LOC("inputs.labels.duration"), juce::dontSendNotification);
         otomoDurationLabel.setJustificationType(juce::Justification::centred);
         otomoDurationDial.setColours(juce::Colours::black, juce::Colour(0xFF4CAF50), juce::Colours::grey);
+        otomoDurationDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input AutomOtion Duration");
+        };
         otomoDurationDial.onValueChanged = [this](float v) {
             // Logarithmic scale: 0.1s to 3600s
             // Formula: pow(10, sqrt(v) * 3.556 - 1) gives range ~0.1 to ~3600
@@ -2262,6 +2376,9 @@ private:
         otomoCurveLabel.setText(LOC("inputs.labels.curve"), juce::dontSendNotification);
         otomoCurveLabel.setJustificationType(juce::Justification::centred);
         otomoCurveDial.setColours(juce::Colours::black, juce::Colour(0xFFFF9800), juce::Colours::grey);
+        otomoCurveDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input AutomOtion Curve");
+        };
         otomoCurveDial.onValueChanged = [this](float v) {
             // Bipolar: -100 to +100
             int curve = static_cast<int>((v * 200.0f) - 100.0f);
@@ -2283,6 +2400,9 @@ private:
         otomoSpeedProfileLabel.setText(LOC("inputs.labels.speedProfile"), juce::dontSendNotification);
         otomoSpeedProfileLabel.setJustificationType(juce::Justification::centred);
         otomoSpeedProfileDial.setColours(juce::Colours::black, juce::Colour(0xFF2196F3), juce::Colours::grey);
+        otomoSpeedProfileDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input AutomOtion Speed Profile");
+        };
         otomoSpeedProfileDial.onValueChanged = [this](float v) {
             int percent = static_cast<int>(v * 100.0f);
             otomoSpeedProfileValueLabel.setText(juce::String(percent), juce::dontSendNotification);
@@ -2314,6 +2434,9 @@ private:
         otomoThresholdLabel.setText(LOC("inputs.labels.threshold"), juce::dontSendNotification);
         otomoThresholdLabel.setJustificationType(juce::Justification::centred);
         otomoThresholdDial.setColours(juce::Colours::black, juce::Colour(0xFFE91E63), juce::Colours::grey);
+        otomoThresholdDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input AutomOtion Threshold");
+        };
         otomoThresholdDial.onValueChanged = [this](float v) {
             float dB = 20.0f * std::log10(std::pow(10.0f, -92.0f / 20.0f) +
                        ((1.0f - std::pow(10.0f, -92.0f / 20.0f)) * v * v));
@@ -2335,6 +2458,9 @@ private:
         otomoResetLabel.setText(LOC("inputs.labels.reset"), juce::dontSendNotification);
         otomoResetLabel.setJustificationType(juce::Justification::centred);
         otomoResetDial.setColours(juce::Colours::black, juce::Colour(0xFF9C27B0), juce::Colours::grey);
+        otomoResetDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input AutomOtion Reset");
+        };
         otomoResetDial.onValueChanged = [this](float v) {
             float dB = 20.0f * std::log10(std::pow(10.0f, -92.0f / 20.0f) +
                        ((1.0f - std::pow(10.0f, -92.0f / 20.0f)) * v * v));
@@ -2474,6 +2600,9 @@ private:
             // Dial with array color
             arrayAttenDials[i].setColours(juce::Colours::black, arrayColor, juce::Colours::grey);
             arrayAttenDials[i].setTrackColours(ColorScheme::get().buttonBorder, arrayColor);
+            arrayAttenDials[i].onGestureStart = [this, i]() {
+                parameters.getValueTreeState().beginUndoTransaction ("Input Array " + juce::String(i + 1) + " Attenuation");
+            };
             arrayAttenDials[i].onValueChanged = [this, i](float v) {
                 // Convert dial value (0-1) to dB (-60 to 0) using sqrt scaling
                 // Forward: linear = minLinear + v^2 * (1 - minLinear), then dB = 20*log10(linear)
@@ -2520,6 +2649,9 @@ private:
 
         addAndMakeVisible(sidelinesFringeDial);
         sidelinesFringeDial.setColours(juce::Colours::black, juce::Colour(0xFF00C853), juce::Colours::grey);
+        sidelinesFringeDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Input Sidelines Fringe");
+        };
         sidelinesFringeDial.onValueChanged = [this](float v) {
             // Map dial value (0-1) to meters (0.1-10.0) - linear
             float fringe = WFSParameterDefaults::inputSidelinesFringeMin +

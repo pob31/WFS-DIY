@@ -139,6 +139,9 @@ public:
 
         // Z slider
         zSlider.setTrackColours(juce::Colour(0xFF3A3A3A), juce::Colour(0xFF4CAF50));
+        zSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction("Cluster Param");
+        };
         addAndMakeVisible(zSlider);
 
         // Attenuation slider label
@@ -149,6 +152,9 @@ public:
 
         // Attenuation slider
         attenuationSlider.setTrackColours(juce::Colour(0xFF3A3A3A), juce::Colour(0xFFFF5722));
+        attenuationSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction("Cluster Param");
+        };
         addAndMakeVisible(attenuationSlider);
 
         // Rotation dial label
@@ -160,6 +166,9 @@ public:
         // Rotation dial
         addAndMakeVisible(rotationDial);
         rotationDial.setColours(juce::Colour(0xFF3A3A3A), juce::Colour(0xFF2196F3));
+        rotationDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction("Cluster Param");
+        };
 
         // Scale joystick label
         addAndMakeVisible(scaleLabel);

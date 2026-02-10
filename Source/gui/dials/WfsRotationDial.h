@@ -57,6 +57,10 @@ public:
 
     std::function<void(float)> onAngleChanged;
 
+    // Gesture callbacks for undo transaction boundaries
+    std::function<void()> onGestureStart;
+    std::function<void()> onGestureEnd;
+
     /** Set parameter name for TTS announcements (e.g., "Rotation") */
     void setTTSParameterName(const juce::String& name) { ttsParameterName = name; }
 
@@ -98,6 +102,7 @@ private:
 
     void mouseDown(const juce::MouseEvent& event) override
     {
+        if (onGestureStart) onGestureStart();
         dragStartAngleDegrees = angleDegrees;
         auto bounds = getLocalBounds().toFloat();
         auto centre = bounds.getCentre();
@@ -129,10 +134,17 @@ private:
 
     void mouseWheelMove(const juce::MouseEvent&, const juce::MouseWheelDetails& wheel) override
     {
+        if (onGestureStart) onGestureStart();
         auto increment = 5.0f; // 5 degrees per step
         setAngle(angleDegrees + wheel.deltaY * increment);
+        if (onGestureEnd) onGestureEnd();
     }
-    
+
+    void mouseUp(const juce::MouseEvent&) override
+    {
+        if (onGestureEnd) onGestureEnd();
+    }
+
     void paintOverChildren(juce::Graphics&) override
     {
         // Prevent JUCE from drawing default focus indicators

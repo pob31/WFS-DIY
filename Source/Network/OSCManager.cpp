@@ -1169,6 +1169,8 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
                 juce::MessageManager::callAsync([this, paramName, channelIndex, newValue]()
                 {
                     incomingProtocol = Protocol::OSC;
+                    WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
+                    state.beginUndoTransaction ("OSC Input");
 
                     bool isOffset = paramName.startsWith("offset");
 
@@ -1274,6 +1276,8 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
                 juce::MessageManager::callAsync([this, paramName, channelIndex, newValue]()
                 {
                     incomingProtocol = Protocol::OSC;
+                    WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
+                    state.beginUndoTransaction ("OSC Input");
 
                     // Get current Cartesian destination
                     juce::var xVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputOtomoX);
@@ -1351,6 +1355,8 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
             juce::MessageManager::callAsync([this, parsed]()
             {
                 incomingProtocol = Protocol::OSC;  // Flag: processing incoming OSC
+                WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
+                state.beginUndoTransaction ("OSC Input");
                 // OSC uses 1-based channel IDs, but internal API uses 0-based
                 int channelIndex = parsed.channelId - 1;
                 if (channelIndex >= 0)
@@ -1421,6 +1427,8 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
             juce::MessageManager::callAsync([this, parsed]()
             {
                 incomingProtocol = Protocol::OSC;  // Flag: processing incoming OSC
+                WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Output);
+                state.beginUndoTransaction ("OSC Output");
                 // OSC uses 1-based channel IDs, but internal API uses 0-based
                 int channelIndex = parsed.channelId - 1;
                 if (channelIndex >= 0)
@@ -1450,6 +1458,8 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
             juce::MessageManager::callAsync([this, parsed]()
             {
                 incomingProtocol = Protocol::OSC;  // Flag: processing incoming OSC
+                WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Reverb);
+                state.beginUndoTransaction ("OSC Reverb");
                 // OSC uses 1-based channel IDs, but internal API uses 0-based
                 int channelIndex = parsed.channelId - 1;
                 if (channelIndex >= 0)
@@ -1468,7 +1478,7 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
                                     juce::Identifier("Band" + juce::String(parsed.bandIndex)));
                                 if (bandSection.isValid())
                                 {
-                                    bandSection.setProperty(parsed.paramId, parsed.value, state.getUndoManager());
+                                    bandSection.setProperty(parsed.paramId, parsed.value, state.getActiveUndoManager());
                                 }
                             }
                         }
@@ -1495,12 +1505,14 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
             juce::MessageManager::callAsync([this, parsed]()
             {
                 incomingProtocol = Protocol::OSC;
+                WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Reverb);
+                state.beginUndoTransaction ("OSC Reverb Config");
 
                 // Check if this is a reverb algorithm parameter (stored in ReverbAlgorithm section)
                 auto algoSection = state.ensureReverbAlgorithmSection();
                 if (algoSection.isValid() && algoSection.hasProperty(parsed.paramId))
                 {
-                    algoSection.setProperty(parsed.paramId, parsed.value, state.getUndoManager());
+                    algoSection.setProperty(parsed.paramId, parsed.value, state.getActiveUndoManager());
                 }
                 // Check if this is a reverb pre-compressor parameter (stored in ReverbPreComp section)
                 else if (parsed.paramId == WFSParameterIDs::reverbPreCompBypass ||
@@ -1511,14 +1523,14 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
                 {
                     auto preComp = state.ensureReverbPreCompSection();
                     if (preComp.isValid())
-                        preComp.setProperty(parsed.paramId, parsed.value, state.getUndoManager());
+                        preComp.setProperty(parsed.paramId, parsed.value, state.getActiveUndoManager());
                 }
                 // Check if this is a reverb post-EQ parameter (stored in ReverbPostEQ section)
                 else if (parsed.paramId == WFSParameterIDs::reverbPostEQenable)
                 {
                     auto postEQ = state.ensureReverbPostEQSection();
                     if (postEQ.isValid())
-                        postEQ.setProperty(parsed.paramId, parsed.value, state.getUndoManager());
+                        postEQ.setProperty(parsed.paramId, parsed.value, state.getActiveUndoManager());
                 }
                 else if (parsed.paramId == WFSParameterIDs::reverbPostEQshape ||
                          parsed.paramId == WFSParameterIDs::reverbPostEQfreq ||
@@ -1534,7 +1546,7 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
                         {
                             auto band = postEQ.getChild(b);
                             if (band.isValid())
-                                band.setProperty(parsed.paramId, parsed.value, state.getUndoManager());
+                                band.setProperty(parsed.paramId, parsed.value, state.getActiveUndoManager());
                         }
                     }
                 }
@@ -1547,7 +1559,7 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
                 {
                     auto postExp = state.ensureReverbPostExpSection();
                     if (postExp.isValid())
-                        postExp.setProperty(parsed.paramId, parsed.value, state.getUndoManager());
+                        postExp.setProperty(parsed.paramId, parsed.value, state.getActiveUndoManager());
                 }
                 else
                 {
@@ -1623,6 +1635,8 @@ void OSCManager::handleRemotePositionDelta(const OSCMessageRouter::ParsedRemoteI
     juce::MessageManager::callAsync([this, parsed]()
     {
         incomingProtocol = Protocol::Remote;  // Flag: processing incoming REMOTE message
+        WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
+        state.beginUndoTransaction ("OSC Input");
 
         // Check if tracking is active for this channel
         bool trackingActive = state.getInputParameter(parsed.channelId,
@@ -1673,6 +1687,8 @@ void OSCManager::handleRemoteParameterSet(const OSCMessageRouter::ParsedRemoteIn
     juce::MessageManager::callAsync([this, parsed]()
     {
         incomingProtocol = Protocol::Remote;  // Flag: processing incoming REMOTE message
+        WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
+        state.beginUndoTransaction ("OSC Input");
 
         // Remote uses 1-based channel IDs, but internal API uses 0-based
         int channelIndex = parsed.channelId - 1;
@@ -1786,6 +1802,8 @@ void OSCManager::handleRemoteParameterDelta(const OSCMessageRouter::ParsedRemote
     juce::MessageManager::callAsync([this, parsed]()
     {
         incomingProtocol = Protocol::Remote;  // Flag: processing incoming REMOTE message
+        WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
+        state.beginUndoTransaction ("OSC Input");
 
         // Remote uses 1-based channel IDs, but internal API uses 0-based
         int channelIndex = parsed.channelId - 1;
@@ -1918,6 +1936,8 @@ void OSCManager::handleRemotePositionXY(const OSCMessageRouter::ParsedRemoteInpu
     juce::MessageManager::callAsync([this, parsed]()
     {
         incomingProtocol = Protocol::Remote;  // Flag: processing incoming REMOTE message
+        WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
+        state.beginUndoTransaction ("OSC Input");
 
         // Remote uses 1-based channel IDs, but internal API uses 0-based
         int channelIndex = parsed.channelId - 1;
@@ -1987,6 +2007,8 @@ void OSCManager::handleArrayAdjustMessage(const juce::OSCMessage& message)
     juce::MessageManager::callAsync([this, parsed]()
     {
         incomingProtocol = Protocol::Remote;  // Flag: processing incoming remote message
+        WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Output);
+        state.beginUndoTransaction ("OSC Output");
 
         // Get number of configured output channels
         int numOutputs = state.getIntParameter(WFSParameterIDs::outputChannels);
@@ -2034,6 +2056,8 @@ void OSCManager::handleClusterMoveMessage(const juce::OSCMessage& message)
     juce::MessageManager::callAsync([this, parsed]()
     {
         incomingProtocol = Protocol::Remote;  // Flag: processing incoming remote message
+        WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
+        state.beginUndoTransaction ("OSC Input");
 
         // Get number of configured input channels
         int numInputs = state.getIntParameter(WFSParameterIDs::inputChannels);
@@ -2096,6 +2120,8 @@ void OSCManager::handleClusterScaleRotationMessage(const juce::OSCMessage& messa
     juce::MessageManager::callAsync([this, parsed]()
     {
         incomingProtocol = Protocol::Remote;  // Flag: processing incoming remote message
+        WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
+        state.beginUndoTransaction ("OSC Input");
 
         // Get number of configured input channels
         int numInputs = state.getIntParameter(WFSParameterIDs::inputChannels);

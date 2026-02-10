@@ -59,6 +59,10 @@ public:
     // Callback for value changes - provides min and max (auto-swapped)
     std::function<void (float, float)> onValuesChanged;
 
+    // Gesture callbacks for undo transaction boundaries
+    std::function<void()> onGestureStart;
+    std::function<void()> onGestureEnd;
+
     // Track colors
     void setTrackColours (juce::Colour inactive, juce::Colour active)
     {
@@ -110,6 +114,7 @@ protected:
 
     void mouseDown (const juce::MouseEvent& e) override
     {
+        if (onGestureStart) onGestureStart();
         auto usable = getLocalBounds().toFloat().reduced (thumbRadius * 0.75f);
         draggedThumb = getClosestThumb (e.position.x, usable);
         updateThumbValue (e.position.x, usable);
@@ -124,7 +129,11 @@ protected:
         }
     }
 
-    void mouseUp (const juce::MouseEvent&) override { draggedThumb = -1; }
+    void mouseUp (const juce::MouseEvent&) override
+    {
+        draggedThumb = -1;
+        if (onGestureEnd) onGestureEnd();
+    }
 
     void mouseEnter (const juce::MouseEvent&) override
     {
@@ -140,6 +149,7 @@ protected:
 
     void mouseWheelMove (const juce::MouseEvent& e, const juce::MouseWheelDetails& wheel) override
     {
+        if (onGestureStart) onGestureStart();
         auto usable = getLocalBounds().toFloat().reduced (thumbRadius * 0.75f);
         int thumb = getClosestThumb (e.position.x, usable);
         float increment = (rangeMax - rangeMin) * 0.01f;  // 1% of range per step
@@ -156,6 +166,7 @@ protected:
         repaint();
         if (onValuesChanged)
             onValuesChanged (getMinValue(), getMaxValue());
+        if (onGestureEnd) onGestureEnd();
     }
 
 private:

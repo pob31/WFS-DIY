@@ -464,6 +464,9 @@ private:
         attenuationLabel.setText(LOC("outputs.labels.attenuation"), juce::dontSendNotification);
 
         attenuationSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFFFF5722));
+        attenuationSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Output Attenuation");
+        };
         attenuationSlider.onValueChanged = [this](float v) {
             // Convert 0-1 to -92 to 0 dB with logarithmic scaling
             float dB = 20.0f * std::log10(std::pow(10.0f, -92.0f / 20.0f) +
@@ -482,6 +485,9 @@ private:
         delayLatencyLabel.setText(LOC("outputs.labels.delayLatency"), juce::dontSendNotification);
 
         delayLatencySlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF4CAF50));
+        delayLatencySlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Output Delay/Latency");
+        };
         delayLatencySlider.onValueChanged = [this](float v) {
             // Slider range is -1 to 1, map to -100ms to 100ms
             float ms = v * 100.0f;
@@ -535,6 +541,9 @@ private:
 
         distanceAttenSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFF9C27B0));
         // Bidirectional slider: center (0) = 100%, no need to set initial value
+        distanceAttenSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Output Distance Attenuation");
+        };
         distanceAttenSlider.onValueChanged = [this](float v) {
             // Slider range is -1 to 1, map to 0% to 200% (center = 100%)
             int percent = static_cast<int>((v + 1.0f) * 100.0f);
@@ -630,6 +639,9 @@ private:
         addAndMakeVisible(orientationLabel);
         orientationLabel.setText(LOC("outputs.labels.orientation"), juce::dontSendNotification);
 
+        directionalDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Output Orientation");
+        };
         directionalDial.onOrientationChanged = [this](float angle) {
             orientationValueLabel.setText(juce::String(static_cast<int>(angle)), juce::dontSendNotification);
             saveOutputParam(WFSParameterIDs::outputOrientation, angle);
@@ -680,6 +692,9 @@ private:
 
         angleOnSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF4CAF50));  // Green
         angleOnSlider.setValue(0.47f);  // ~86°
+        angleOnSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Output Angle On");
+        };
         angleOnSlider.onValueChanged = [this](float v) {
             int angleOn = static_cast<int>(v * 179.0f + 1.0f);
             int angleOff = static_cast<int>(angleOffSlider.getValue() * 179.0f);
@@ -709,6 +724,9 @@ private:
 
         angleOffSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFFE53935));  // Red
         angleOffSlider.setValue(0.5f);  // ~90°
+        angleOffSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Output Angle Off");
+        };
         angleOffSlider.onValueChanged = [this](float v) {
             int angleOff = static_cast<int>(v * 179.0f);
             int angleOn = static_cast<int>(angleOnSlider.getValue() * 179.0f + 1.0f);
@@ -737,6 +755,9 @@ private:
         pitchLabel.setText(LOC("outputs.labels.pitch"), juce::dontSendNotification);
 
         pitchSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF2196F3));
+        pitchSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Output Pitch");
+        };
         pitchSlider.onValueChanged = [this](float v) {
             // Slider range is -1 to 1, map to -90° to 90°
             int degrees = static_cast<int>(v * 90.0f);
@@ -754,6 +775,9 @@ private:
 
         hfDampingSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFFFF9800));
         hfDampingSlider.setValue(1.0f);  // 0 dB/m
+        hfDampingSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Output HF Damping");
+        };
         hfDampingSlider.onValueChanged = [this](float v) {
             float dBm = v * 6.0f - 6.0f;
             hfDampingValueLabel.setText(juce::String(dBm, 1) + " dB/m", juce::dontSendNotification);
@@ -820,6 +844,9 @@ private:
 
             juce::Colour bandColour = EQDisplayComponent::getBandColour(i);
             eqBandFreqSlider[i].setTrackColours(juce::Colour(0xFF2D2D2D), bandColour);
+            eqBandFreqSlider[i].onGestureStart = [this, i]() {
+                parameters.getValueTreeState().beginUndoTransaction ("Output EQ Freq Band " + juce::String(i + 1));
+            };
             eqBandFreqSlider[i].onValueChanged = [this, i](float v) {
                 int freq = static_cast<int>(20.0f * std::pow(10.0f, 3.0f * v));
                 eqBandFreqValueLabel[i].setText(formatFrequency(freq), juce::dontSendNotification);
@@ -837,6 +864,9 @@ private:
             eqBandGainLabel[i].setJustificationType(juce::Justification::centred);
 
             eqBandGainDial[i].setTrackColours(juce::Colour(0xFF2D2D2D), bandColour);
+            eqBandGainDial[i].onGestureStart = [this, i]() {
+                parameters.getValueTreeState().beginUndoTransaction ("Output EQ Gain Band " + juce::String(i + 1));
+            };
             eqBandGainDial[i].onValueChanged = [this, i](float v) {
                 float gain = v * 48.0f - 24.0f;  // -24 to +24 dB
                 eqBandGainValueLabel[i].setText(juce::String(gain, 1) + " dB", juce::dontSendNotification);
@@ -855,6 +885,9 @@ private:
             eqBandQLabel[i].setJustificationType(juce::Justification::centred);
 
             eqBandQDial[i].setTrackColours(juce::Colour(0xFF2D2D2D), bandColour);
+            eqBandQDial[i].onGestureStart = [this, i]() {
+                parameters.getValueTreeState().beginUndoTransaction ("Output EQ Q Band " + juce::String(i + 1));
+            };
             eqBandQDial[i].onValueChanged = [this, i](float v) {
                 float q = 0.1f + 0.099f * (std::pow(100.0f, v) - 1.0f);  // 0.1-10.0
                 eqBandQValueLabel[i].setText(juce::String(q, 2), juce::dontSendNotification);
@@ -1575,6 +1608,7 @@ private:
             {
                 eqDisplay = std::make_unique<EQDisplayComponent>(eqTree, numEqBands, EQDisplayConfig::forOutputEQ());
                 addAndMakeVisible(*eqDisplay);
+                eqDisplay->setUndoManager(parameters.getUndoManagerForDomain(UndoDomain::Output));
                 lastEqDisplayChannel = channel;
 
                 // Set up callback for array propagation when interacting with the EQ graph

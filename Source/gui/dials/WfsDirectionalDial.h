@@ -82,6 +82,10 @@ public:
     std::function<void(int)> onAngleOnChanged;
     std::function<void(int)> onAngleOffChanged;
 
+    // Gesture callbacks for undo transaction boundaries
+    std::function<void()> onGestureStart;
+    std::function<void()> onGestureEnd;
+
     // TTS accessibility
     void setTTSParameterName(const juce::String& name) { ttsParameterName = name; }
 
@@ -168,6 +172,7 @@ private:
 
     void mouseDown(const juce::MouseEvent& event) override
     {
+        if (onGestureStart) onGestureStart();
         auto centre = getLocalBounds().toFloat().getCentre();
         auto delta = event.position - centre;
         dragStartMouseAngle = std::atan2(delta.x, delta.y); // 0 at bottom, clockwise positive
@@ -228,6 +233,7 @@ private:
 
     void mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override
     {
+        if (onGestureStart) onGestureStart();
         float increment = 5.0f; // 5 degrees per step
 
         if (event.mods.isShiftDown())
@@ -244,6 +250,12 @@ private:
         {
             setOrientation(orientationDegrees + wheel.deltaY * increment);
         }
+        if (onGestureEnd) onGestureEnd();
+    }
+
+    void mouseUp(const juce::MouseEvent&) override
+    {
+        if (onGestureEnd) onGestureEnd();
     }
 
     void mouseEnter(const juce::MouseEvent&) override {}

@@ -42,9 +42,15 @@ public:
     AccessibleTabbedComponent(juce::TabbedButtonBar::Orientation orientation)
         : juce::TabbedComponent(orientation) {}
 
+    /** Optional callback fired when the active tab changes */
+    std::function<void(int)> onTabChanged;
+
     void currentTabChanged(int newCurrentTabIndex, const juce::String& newCurrentTabName) override
     {
         juce::TabbedComponent::currentTabChanged(newCurrentTabIndex, newCurrentTabName);
+
+        if (onTabChanged)
+            onTabChanged(newCurrentTabIndex);
 
         // Announce tab change for screen readers (only if name is valid)
         if (newCurrentTabName.isNotEmpty())

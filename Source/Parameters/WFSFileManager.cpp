@@ -413,6 +413,9 @@ bool WFSFileManager::importSystemConfig (const juce::File& file)
     if (!appliedSomething)
         setError ("No valid system data found in file: " + file.getFullPathName());
 
+    if (appliedSomething)
+        valueTreeState.clearAllUndoHistories();
+
     return appliedSomething;
 }
 
@@ -482,7 +485,12 @@ bool WFSFileManager::importNetworkConfig (const juce::File& file)
     // Look for NetworkSettings container (new format)
     auto networkSettings = loadedState.getChildWithName ("NetworkSettings");
     if (networkSettings.isValid())
-        return applyNetworkSection (networkSettings);
+    {
+        bool result = applyNetworkSection (networkSettings);
+        if (result)
+            valueTreeState.clearAllUndoHistories();
+        return result;
+    }
 
     // Fallback: try loading old format with just Network child
     auto networkTree = loadedState.getChildWithName (Network);
@@ -491,7 +499,10 @@ bool WFSFileManager::importNetworkConfig (const juce::File& file)
         // Wrap in container for applyNetworkSection
         juce::ValueTree container ("NetworkSettings");
         container.appendChild (networkTree.createCopy(), nullptr);
-        return applyNetworkSection (container);
+        bool result = applyNetworkSection (container);
+        if (result)
+            valueTreeState.clearAllUndoHistories();
+        return result;
     }
 
     setError ("No network data found in file");
@@ -565,9 +576,10 @@ bool WFSFileManager::importInputConfig (const juce::File& file)
         return false;
     }
 
-    // Note: Transaction management should be done by caller (e.g., loadCompleteConfig)
-    // to avoid nested transactions. Individual callers should begin their own transaction.
-    return applyInputsSection (inputsTree);
+    bool result = applyInputsSection (inputsTree);
+    if (result)
+        valueTreeState.clearAllUndoHistories();
+    return result;
 }
 
 //==============================================================================
@@ -637,9 +649,10 @@ bool WFSFileManager::importOutputConfig (const juce::File& file)
         return false;
     }
 
-    // Note: Transaction management should be done by caller (e.g., loadCompleteConfig)
-    // to avoid nested transactions. Individual callers should begin their own transaction.
-    return applyOutputsSection (outputsTree);
+    bool result = applyOutputsSection (outputsTree);
+    if (result)
+        valueTreeState.clearAllUndoHistories();
+    return result;
 }
 
 //==============================================================================
@@ -709,9 +722,10 @@ bool WFSFileManager::importReverbConfig (const juce::File& file)
         return false;
     }
 
-    // Note: Transaction management should be done by caller (e.g., loadCompleteConfig)
-    // to avoid nested transactions. Individual callers should begin their own transaction.
-    return applyReverbsSection (reverbsTree);
+    bool result = applyReverbsSection (reverbsTree);
+    if (result)
+        valueTreeState.clearAllUndoHistories();
+    return result;
 }
 
 //==============================================================================

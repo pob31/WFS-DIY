@@ -291,6 +291,21 @@ MainComponent::MainComponent()
     tabbedComponent.addTab(tabClusters, ColorScheme::get().chromeBackground, clustersTab, true);
     tabbedComponent.addTab(tabMap, ColorScheme::get().chromeBackground, mapTab, true);
 
+    // Wire per-tab undo domain: Ctrl+Z only affects the currently focused tab
+    tabbedComponent.onTabChanged = [this](int tabIndex) {
+        static const UndoDomain domainForTab[] = {
+            UndoDomain::Config,   // 0: SystemConfig
+            UndoDomain::Config,   // 1: Network
+            UndoDomain::Output,   // 2: Outputs
+            UndoDomain::Reverb,   // 3: Reverb
+            UndoDomain::Input,    // 4: Inputs
+            UndoDomain::Clusters, // 5: Clusters
+            UndoDomain::Map       // 6: Map
+        };
+        if (tabIndex >= 0 && tabIndex < 7)
+            parameters.getValueTreeState().setActiveDomain (domainForTab[tabIndex]);
+    };
+
     // Load saved color scheme from parameters and apply it
     // This will trigger WfsLookAndFeel::colorSchemeChanged() to update widget colors
     int colorSchemeId = (int)parameters.getConfigParam("ColorScheme");

@@ -71,6 +71,10 @@ public:
     // Public callback for value changes
     std::function<void(float)> onValueChanged;
 
+    // Gesture callbacks for undo transaction boundaries
+    std::function<void()> onGestureStart;
+    std::function<void()> onGestureEnd;
+
     /** Set parameter name for TTS announcements (e.g., "X Position") */
     void setTTSParameterName(const juce::String& name) { ttsParameterName = name; }
 
@@ -265,6 +269,7 @@ private:
 
     void mouseDown(const juce::MouseEvent& e) override
     {
+        if (onGestureStart) onGestureStart();
         handlePointer(e.position);
     }
 
@@ -276,12 +281,15 @@ private:
     void mouseUp(const juce::MouseEvent&) override
     {
         handleMouseUp();
+        if (onGestureEnd) onGestureEnd();
     }
 
     void mouseWheelMove(const juce::MouseEvent&, const juce::MouseWheelDetails& wheel) override
     {
+        if (onGestureStart) onGestureStart();
         auto increment = (maxValue - minValue) * 0.01f; // 1% of range per step
         setValue(value + wheel.deltaY * increment);
+        if (onGestureEnd) onGestureEnd();
     }
 
     virtual void handleMouseUp() {}

@@ -75,6 +75,10 @@ public:
 
     std::function<void(float)> onValueChanged;
 
+    // Gesture callbacks for undo transaction boundaries
+    std::function<void()> onGestureStart;
+    std::function<void()> onGestureEnd;
+
     /** Set parameter name for TTS announcements (e.g., "Master Level") */
     void setTTSParameterName(const juce::String& name) { ttsParameterName = name; }
 
@@ -143,6 +147,7 @@ private:
 
     void mouseDown(const juce::MouseEvent& event) override
     {
+        if (onGestureStart) onGestureStart();
         dragStartValue = value;
         auto bounds = getLocalBounds().toFloat();
         auto centre = bounds.getCentre();
@@ -180,13 +185,16 @@ private:
 
     void mouseWheelMove(const juce::MouseEvent&, const juce::MouseWheelDetails& wheel) override
     {
+        if (onGestureStart) onGestureStart();
         auto increment = (maxValue - minValue) * 0.01f; // 1% of range per step
         setValue(value + wheel.deltaY * increment);
+        if (onGestureEnd) onGestureEnd();
     }
 
     void mouseUp(const juce::MouseEvent&) override
     {
         dragStartValue = value;
+        if (onGestureEnd) onGestureEnd();
     }
     
     void paintOverChildren(juce::Graphics&) override

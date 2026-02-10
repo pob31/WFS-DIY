@@ -198,6 +198,10 @@ public:
             {
                 selectedBand = centeredBand;
                 isDragging = false;  // Cancel any single-finger drag
+
+                // Begin undo transaction for pinch gesture
+                if (undoManagerPtr)
+                    undoManagerPtr->beginNewTransaction ("EQ Pinch Q");
             }
 
             // Get Q of selected band for pinch
@@ -221,6 +225,10 @@ public:
             isDragging = true;
             dragStartPos = e.position;
             setMouseCursor (juce::MouseCursor::DraggingHandCursor);
+
+            // Begin undo transaction for this EQ drag gesture
+            if (undoManagerPtr)
+                undoManagerPtr->beginNewTransaction ("EQ Band " + juce::String (selectedBand + 1));
 
             // Begin drag auto-repeat to ensure we receive continuous drag events
             beginDragAutoRepeat (50);
@@ -344,6 +352,10 @@ public:
         if (! bandTree.isValid())
             return;
 
+        // Begin undo transaction for wheel gesture
+        if (undoManagerPtr)
+            undoManagerPtr->beginNewTransaction ("EQ Wheel Q");
+
         // Adjust Q for all filter types
         float currentQ = bandTree.getProperty (config.qId);
         float delta = wheel.deltaY * 0.5f;
@@ -372,6 +384,10 @@ public:
         if (! bandTree.isValid())
             return;
 
+        // Begin undo transaction for magnify gesture
+        if (undoManagerPtr)
+            undoManagerPtr->beginNewTransaction ("EQ Magnify Q");
+
         float currentQ = bandTree.getProperty (config.qId);
         float newQ = currentQ * scaleFactor;
         newQ = juce::jlimit (config.qMin, config.qMax, newQ);
@@ -398,6 +414,9 @@ public:
     // Callback for parameter changes (for array propagation)
     // Parameters: bandIndex, paramId, newValue
     std::function<void (int, const juce::Identifier&, const juce::var&)> onParameterChanged;
+
+    /** Set the UndoManager used for EQ touch interactions */
+    void setUndoManager (juce::UndoManager* um) { undoManagerPtr = um; }
 
     // Get band colour - static so it can be used by other components
     // Rainbow progression: Red -> Orange -> Yellow -> Green -> Blue -> Purple
@@ -976,8 +995,8 @@ private:
         if (! bandTree.isValid())
             return;
 
-        // Set locally for immediate visual feedback
-        bandTree.setProperty (paramId, value, nullptr);
+        // Set with undo support (nullptr if no manager assigned)
+        bandTree.setProperty (paramId, value, undoManagerPtr);
 
         // Notify parent for array propagation
         if (onParameterChanged)
@@ -1012,6 +1031,9 @@ private:
     bool isPinching = false;
     float pinchStartDistance = 0.0f;
     float pinchStartQ = 0.0f;
+
+    // Undo support
+    juce::UndoManager* undoManagerPtr = nullptr;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EQDisplayComponent)
 };
