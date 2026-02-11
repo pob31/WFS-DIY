@@ -47,10 +47,10 @@ const std::array<ArrayPresetConfig, 7> OutputArrayHelperContent::presetConfigs =
         false,  // hasHighCut
         300     // highCutFreq (unused)
     },
-    // Main Room Array Straight
+    // Main Flown Array Straight
     {
         ArrayPresetType::MainRoomStraight,
-        "Main Room Array Straight",
+        "Main Flown Array Straight",
         true,   // supportsCenterSpacing
         true,   // supportsEndpoints
         false,  // supportsCurve
@@ -765,7 +765,8 @@ void OutputArrayHelperContent::layoutGeometrySection(juce::Rectangle<int>& area)
     zPositionEditor.setBounds(rightCol.removeFromLeft(editorWidth));
 
     // Orientation row (for straight arrays)
-    if (!config.supportsCircle && !config.supportsSurround)
+    if (!config.supportsCircle && !config.supportsSurround
+        && currentPreset != ArrayPresetType::DelayLine)
     {
         row = content.removeFromTop(rowHeight);
         leftCol = row.removeFromLeft(columnWidth);

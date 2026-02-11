@@ -1747,7 +1747,7 @@ A wizard-style dialog for quickly configuring speaker array positions with prese
 |--------|-----|---------|-------|-----|-----|-----|
 | Near Field Straight | ON | -0.4 | 100 | 2 | 0.5 | LC 80Hz |
 | Near Field Curved | ON | -0.4 | 100 | 2 | 0.5 | LC 80Hz |
-| Main Room Straight | OFF | -0.2 | 100 | 10 | -4 | - |
+| Main Flown Straight | OFF | -0.2 | 100 | 10 | -4 | - |
 | Sub Bass | OFF | 0 | 50/100* | 0 | 0 | HC 300Hz |
 | Surround | OFF | -0.3 | 100 | 3 | -2 | - |
 | Delay Line | OFF | -0.15 | 100 | 3 | -2 | - |
