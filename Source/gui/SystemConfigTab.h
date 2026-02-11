@@ -1688,8 +1688,6 @@ private:
         // Visual feedback - dim disabled controls using theme colors
         auto disabledColour = ColorScheme::get().textDisabled;
         auto enabledColour = ColorScheme::get().textPrimary;
-        float alpha = binauralActive ? 1.0f : 0.38f;  // Material Design disabled alpha
-
         // Labels
         binauralDistanceLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
         binauralDistanceUnitLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
@@ -1706,17 +1704,11 @@ private:
         binauralAttenEditor.setColour(juce::TextEditor::textColourId, binauralActive ? enabledColour : disabledColour);
         binauralDelayEditor.setColour(juce::TextEditor::textColourId, binauralActive ? enabledColour : disabledColour);
 
-        // Sliders - use setDisabledAlpha for WfsSliderBase-derived components
-        binauralDistanceSlider.setDisabledAlpha(alpha);
-        binauralAttenSlider.setDisabledAlpha(alpha);
-        binauralDelaySlider.setDisabledAlpha(alpha);
-        binauralAngleDial.setDisabledAlpha(alpha);
-
-        // Force repaint of sliders
-        binauralDistanceSlider.repaint();
-        binauralAttenSlider.repaint();
-        binauralDelaySlider.repaint();
-        binauralAngleDial.repaint();
+        // Sliders - setEnabled drives the isEnabled() check in paintSlider
+        binauralDistanceSlider.setEnabled(binauralActive);
+        binauralAttenSlider.setEnabled(binauralActive);
+        binauralDelaySlider.setEnabled(binauralActive);
+        binauralAngleDial.setEnabled(binauralActive);
 
         // Solo mode button - visually dim when binaural inactive
         soloModeButton.setColour(juce::TextButton::textColourOffId, binauralActive ? enabledColour : disabledColour);
