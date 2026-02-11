@@ -96,6 +96,7 @@ private:
  * Test signal controls appear inline in the button bar when in Testing mode.
  */
 class OutputPatchTab : public juce::Component,
+                       public juce::Label::Listener,
                        private juce::Timer
 {
 public:
@@ -154,6 +155,7 @@ private:
     void updateTestControlsEnabledState();
     void updateFrequencyVisibility();
     void updateFrequencySliderColor();
+    void labelTextChanged(juce::Label* label) override;
     float sliderValueToDb(float sliderValue) const;
     float dbToSliderValue(float dB) const;
     float sliderValueToFrequency(float sliderValue) const;

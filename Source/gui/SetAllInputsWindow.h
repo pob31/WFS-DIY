@@ -19,7 +19,8 @@
 // Content Component
 //==============================================================================
 class SetAllInputsContent : public juce::Component,
-                            public ColorScheme::Manager::Listener
+                            public ColorScheme::Manager::Listener,
+                            public juce::Label::Listener
 {
 public:
     SetAllInputsContent(WfsParameters& params)
@@ -380,6 +381,8 @@ private:
 
         addAndMakeVisible(heightFactorValueLabel);
         heightFactorValueLabel.setText("0", juce::dontSendNotification);
+        heightFactorValueLabel.setEditable(true, false);
+        heightFactorValueLabel.addListener(this);
 
         addAndMakeVisible(heightFactorUnitLabel);
         heightFactorUnitLabel.setText("%", juce::dontSendNotification);
@@ -439,6 +442,8 @@ private:
 
         addAndMakeVisible(dbmValueLabel);
         dbmValueLabel.setText(juce::String(WFSParameterDefaults::inputDistanceAttenuationDefault, 1), juce::dontSendNotification);
+        dbmValueLabel.setEditable(true, false);
+        dbmValueLabel.addListener(this);
 
         addAndMakeVisible(dbmUnitLabel);
         dbmUnitLabel.setText(LOC("units.decibelPerMeter"), juce::dontSendNotification);
@@ -459,6 +464,8 @@ private:
 
         addAndMakeVisible(ratioValueLabel);
         ratioValueLabel.setText("1.00", juce::dontSendNotification);
+        ratioValueLabel.setEditable(true, false);
+        ratioValueLabel.addListener(this);
 
         addAndMakeVisible(ratioUnitLabel);
         ratioUnitLabel.setText("x", juce::dontSendNotification);
@@ -484,6 +491,8 @@ private:
 
         addAndMakeVisible(commonValueLabel);
         commonValueLabel.setText("100", juce::dontSendNotification);
+        commonValueLabel.setEditable(true, false);
+        commonValueLabel.addListener(this);
 
         addAndMakeVisible(commonUnitLabel);
         commonUnitLabel.setText("%", juce::dontSendNotification);
@@ -569,6 +578,8 @@ private:
 
         addAndMakeVisible(sidelinesFringeValueLabel);
         sidelinesFringeValueLabel.setText(juce::String(defaultFringe, 2), juce::dontSendNotification);
+        sidelinesFringeValueLabel.setEditable(true, false);
+        sidelinesFringeValueLabel.addListener(this);
 
         addAndMakeVisible(sidelinesFringeUnitLabel);
         sidelinesFringeUnitLabel.setText("m", juce::dontSendNotification);
@@ -609,6 +620,46 @@ private:
         };
 
         applyTheme();
+    }
+
+    void labelTextChanged(juce::Label* label) override
+    {
+        juce::String text = label->getText();
+        float value = text.retainCharacters("-0123456789.").getFloatValue();
+
+        if (label == &heightFactorValueLabel)
+        {
+            int percent = juce::jlimit(0, 100, static_cast<int>(value));
+            heightFactorDial.setValue(percent / 100.0f);
+            heightFactorValueLabel.setText(juce::String(percent), juce::dontSendNotification);
+        }
+        else if (label == &dbmValueLabel)
+        {
+            float dBm = juce::jlimit(-6.0f, 0.0f, value);
+            dbmDial.setValue((dBm + 6.0f) / 6.0f);
+            dbmValueLabel.setText(juce::String(dBm, 1), juce::dontSendNotification);
+        }
+        else if (label == &ratioValueLabel)
+        {
+            float ratio = juce::jlimit(0.1f, 10.0f, value);
+            float v = (std::log10(ratio) + 1.0f) / 2.0f;
+            ratioDial.setValue(juce::jlimit(0.0f, 1.0f, v));
+            ratioValueLabel.setText(juce::String(ratio, 2), juce::dontSendNotification);
+        }
+        else if (label == &commonValueLabel)
+        {
+            int percent = juce::jlimit(0, 100, static_cast<int>(value));
+            commonDial.setValue(percent / 100.0f);
+            commonValueLabel.setText(juce::String(percent), juce::dontSendNotification);
+        }
+        else if (label == &sidelinesFringeValueLabel)
+        {
+            using namespace WFSParameterDefaults;
+            float fringe = juce::jlimit(inputSidelinesFringeMin, inputSidelinesFringeMax, value);
+            float v = (fringe - inputSidelinesFringeMin) / (inputSidelinesFringeMax - inputSidelinesFringeMin);
+            sidelinesFringeDial.setValue(juce::jlimit(0.0f, 1.0f, v));
+            sidelinesFringeValueLabel.setText(juce::String(fringe, 2), juce::dontSendNotification);
+        }
     }
 
     void updateAttenLawVisibility(bool is1OverD)

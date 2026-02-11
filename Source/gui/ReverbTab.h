@@ -652,6 +652,7 @@ private:
 
             addAndMakeVisible (eqBandFreqValueLabel[i]);
             eqBandFreqValueLabel[i].setText ("1000 Hz", juce::dontSendNotification);
+            setupEditableValueLabel (eqBandFreqValueLabel[i]);
 
             // Gain dial - colored to match band
             addAndMakeVisible (eqBandGainLabel[i]);
@@ -673,6 +674,8 @@ private:
 
             addAndMakeVisible (eqBandGainValueLabel[i]);
             eqBandGainValueLabel[i].setText ("0.0 dB", juce::dontSendNotification);
+            eqBandGainValueLabel[i].setEditable (true, false);
+            eqBandGainValueLabel[i].addListener (this);
             eqBandGainValueLabel[i].setJustificationType (juce::Justification::centred);
 
             // Q dial - colored to match band
@@ -695,6 +698,8 @@ private:
 
             addAndMakeVisible (eqBandQValueLabel[i]);
             eqBandQValueLabel[i].setText ("0.70", juce::dontSendNotification);
+            eqBandQValueLabel[i].setEditable (true, false);
+            eqBandQValueLabel[i].addListener (this);
             eqBandQValueLabel[i].setJustificationType (juce::Justification::centred);
         }
     }
@@ -745,6 +750,8 @@ private:
         };
         addAndMakeVisible (preCompThresholdDial);
         addAndMakeVisible (preCompThresholdValueLabel);
+        preCompThresholdValueLabel.setEditable (true, false);
+        preCompThresholdValueLabel.addListener (this);
         preCompThresholdValueLabel.setJustificationType (juce::Justification::centred);
         preCompThresholdValueLabel.setText ("-12.0 dB", juce::dontSendNotification);
 
@@ -764,6 +771,8 @@ private:
         };
         addAndMakeVisible (preCompRatioDial);
         addAndMakeVisible (preCompRatioValueLabel);
+        preCompRatioValueLabel.setEditable (true, false);
+        preCompRatioValueLabel.addListener (this);
         preCompRatioValueLabel.setJustificationType (juce::Justification::centred);
         preCompRatioValueLabel.setText ("2.0:1", juce::dontSendNotification);
 
@@ -783,6 +792,8 @@ private:
         };
         addAndMakeVisible (preCompAttackDial);
         addAndMakeVisible (preCompAttackValueLabel);
+        preCompAttackValueLabel.setEditable (true, false);
+        preCompAttackValueLabel.addListener (this);
         preCompAttackValueLabel.setJustificationType (juce::Justification::centred);
         preCompAttackValueLabel.setText ("10.0 ms", juce::dontSendNotification);
 
@@ -802,6 +813,8 @@ private:
         };
         addAndMakeVisible (preCompReleaseDial);
         addAndMakeVisible (preCompReleaseValueLabel);
+        preCompReleaseValueLabel.setEditable (true, false);
+        preCompReleaseValueLabel.addListener (this);
         preCompReleaseValueLabel.setJustificationType (juce::Justification::centred);
         preCompReleaseValueLabel.setText ("100 ms", juce::dontSendNotification);
     }
@@ -852,6 +865,8 @@ private:
         };
         addAndMakeVisible (postExpThresholdDial);
         addAndMakeVisible (postExpThresholdValueLabel);
+        postExpThresholdValueLabel.setEditable (true, false);
+        postExpThresholdValueLabel.addListener (this);
         postExpThresholdValueLabel.setJustificationType (juce::Justification::centred);
         postExpThresholdValueLabel.setText ("-40.0 dB", juce::dontSendNotification);
 
@@ -871,6 +886,8 @@ private:
         };
         addAndMakeVisible (postExpRatioDial);
         addAndMakeVisible (postExpRatioValueLabel);
+        postExpRatioValueLabel.setEditable (true, false);
+        postExpRatioValueLabel.addListener (this);
         postExpRatioValueLabel.setJustificationType (juce::Justification::centred);
         postExpRatioValueLabel.setText ("1:2.0", juce::dontSendNotification);
 
@@ -890,6 +907,8 @@ private:
         };
         addAndMakeVisible (postExpAttackDial);
         addAndMakeVisible (postExpAttackValueLabel);
+        postExpAttackValueLabel.setEditable (true, false);
+        postExpAttackValueLabel.addListener (this);
         postExpAttackValueLabel.setJustificationType (juce::Justification::centred);
         postExpAttackValueLabel.setText ("1.0 ms", juce::dontSendNotification);
 
@@ -909,6 +928,8 @@ private:
         };
         addAndMakeVisible (postExpReleaseDial);
         addAndMakeVisible (postExpReleaseValueLabel);
+        postExpReleaseValueLabel.setEditable (true, false);
+        postExpReleaseValueLabel.addListener (this);
         postExpReleaseValueLabel.setJustificationType (juce::Justification::centred);
         postExpReleaseValueLabel.setText ("200 ms", juce::dontSendNotification);
     }
@@ -962,7 +983,7 @@ private:
 
         addAndMakeVisible (algoRT60ValueLabel);
         algoRT60ValueLabel.setText (juce::String (WFSParameterDefaults::reverbRT60Default, 2) + " s", juce::dontSendNotification);
-        algoRT60ValueLabel.setJustificationType (juce::Justification::right);
+        setupEditableValueLabel (algoRT60ValueLabel);
 
         // RT60 Low Mult
         addAndMakeVisible (algoRT60LowMultLabel);
@@ -983,7 +1004,7 @@ private:
 
         addAndMakeVisible (algoRT60LowMultValueLabel);
         algoRT60LowMultValueLabel.setText (juce::String (WFSParameterDefaults::reverbRT60LowMultDefault, 2) + "x", juce::dontSendNotification);
-        algoRT60LowMultValueLabel.setJustificationType (juce::Justification::right);
+        setupEditableValueLabel (algoRT60LowMultValueLabel);
 
         // RT60 High Mult
         addAndMakeVisible (algoRT60HighMultLabel);
@@ -1004,7 +1025,7 @@ private:
 
         addAndMakeVisible (algoRT60HighMultValueLabel);
         algoRT60HighMultValueLabel.setText (juce::String (WFSParameterDefaults::reverbRT60HighMultDefault, 2) + "x", juce::dontSendNotification);
-        algoRT60HighMultValueLabel.setJustificationType (juce::Justification::right);
+        setupEditableValueLabel (algoRT60HighMultValueLabel);
 
         // Crossover Low
         addAndMakeVisible (algoCrossoverLowLabel);
@@ -1025,7 +1046,7 @@ private:
 
         addAndMakeVisible (algoCrossoverLowValueLabel);
         algoCrossoverLowValueLabel.setText (formatFrequency (static_cast<int> (WFSParameterDefaults::reverbCrossoverLowDefault)), juce::dontSendNotification);
-        algoCrossoverLowValueLabel.setJustificationType (juce::Justification::right);
+        setupEditableValueLabel (algoCrossoverLowValueLabel);
 
         // Crossover High
         addAndMakeVisible (algoCrossoverHighLabel);
@@ -1046,7 +1067,7 @@ private:
 
         addAndMakeVisible (algoCrossoverHighValueLabel);
         algoCrossoverHighValueLabel.setText (formatFrequency (static_cast<int> (WFSParameterDefaults::reverbCrossoverHighDefault)), juce::dontSendNotification);
-        algoCrossoverHighValueLabel.setJustificationType (juce::Justification::right);
+        setupEditableValueLabel (algoCrossoverHighValueLabel);
 
         // Diffusion
         addAndMakeVisible (algoDiffusionLabel);
@@ -1065,7 +1086,7 @@ private:
 
         addAndMakeVisible (algoDiffusionValueLabel);
         algoDiffusionValueLabel.setText (juce::String (static_cast<int> (WFSParameterDefaults::reverbDiffusionDefault * 100)) + "%", juce::dontSendNotification);
-        algoDiffusionValueLabel.setJustificationType (juce::Justification::right);
+        setupEditableValueLabel (algoDiffusionValueLabel);
 
         // SDN section
         addAndMakeVisible (algoSDNSectionLabel);
@@ -1090,7 +1111,7 @@ private:
 
         addAndMakeVisible (algoSDNScaleValueLabel);
         algoSDNScaleValueLabel.setText (juce::String (WFSParameterDefaults::reverbSDNscaleDefault, 2) + "x", juce::dontSendNotification);
-        algoSDNScaleValueLabel.setJustificationType (juce::Justification::right);
+        setupEditableValueLabel (algoSDNScaleValueLabel);
 
         // FDN section
         addAndMakeVisible (algoFDNSectionLabel);
@@ -1115,7 +1136,7 @@ private:
 
         addAndMakeVisible (algoFDNSizeValueLabel);
         algoFDNSizeValueLabel.setText (juce::String (WFSParameterDefaults::reverbFDNsizeDefault, 2) + "x", juce::dontSendNotification);
-        algoFDNSizeValueLabel.setJustificationType (juce::Justification::right);
+        setupEditableValueLabel (algoFDNSizeValueLabel);
 
         // IR section
         addAndMakeVisible (algoIRSectionLabel);
@@ -1145,7 +1166,7 @@ private:
 
         addAndMakeVisible (algoIRTrimValueLabel);
         algoIRTrimValueLabel.setText (juce::String (WFSParameterDefaults::reverbIRtrimDefault, 1) + " ms", juce::dontSendNotification);
-        algoIRTrimValueLabel.setJustificationType (juce::Justification::right);
+        setupEditableValueLabel (algoIRTrimValueLabel);
 
         addAndMakeVisible (algoIRLengthLabel);
         algoIRLengthLabel.setText (LOC("reverbs.algorithm.irLength"), juce::dontSendNotification);
@@ -1165,7 +1186,7 @@ private:
 
         addAndMakeVisible (algoIRLengthValueLabel);
         algoIRLengthValueLabel.setText (juce::String (WFSParameterDefaults::reverbIRlengthDefault, 1) + " s", juce::dontSendNotification);
-        algoIRLengthValueLabel.setJustificationType (juce::Justification::right);
+        setupEditableValueLabel (algoIRLengthValueLabel);
 
         addAndMakeVisible (algoPerNodeButton);
         algoPerNodeButton.setButtonText (LOC("reverbs.algorithm.perNodeOff"));
@@ -1201,7 +1222,7 @@ private:
 
         addAndMakeVisible (algoWetLevelValueLabel);
         algoWetLevelValueLabel.setText (juce::String (WFSParameterDefaults::reverbWetLevelDefault, 1) + " dB", juce::dontSendNotification);
-        algoWetLevelValueLabel.setJustificationType (juce::Justification::right);
+        setupEditableValueLabel (algoWetLevelValueLabel);
     }
 
     void setupPostProcessingSubTab()
@@ -1270,6 +1291,7 @@ private:
 
             addAndMakeVisible (postEqBandFreqValueLabel[i]);
             postEqBandFreqValueLabel[i].setText ("1000 Hz", juce::dontSendNotification);
+            setupEditableValueLabel (postEqBandFreqValueLabel[i]);
 
             // Gain dial
             addAndMakeVisible (postEqBandGainLabel[i]);
@@ -1291,6 +1313,8 @@ private:
 
             addAndMakeVisible (postEqBandGainValueLabel[i]);
             postEqBandGainValueLabel[i].setText ("0.0 dB", juce::dontSendNotification);
+            postEqBandGainValueLabel[i].setEditable (true, false);
+            postEqBandGainValueLabel[i].addListener (this);
             postEqBandGainValueLabel[i].setJustificationType (juce::Justification::centred);
 
             // Q dial
@@ -1313,6 +1337,8 @@ private:
 
             addAndMakeVisible (postEqBandQValueLabel[i]);
             postEqBandQValueLabel[i].setText ("0.70", juce::dontSendNotification);
+            postEqBandQValueLabel[i].setEditable (true, false);
+            postEqBandQValueLabel[i].addListener (this);
             postEqBandQValueLabel[i].setJustificationType (juce::Justification::centred);
         }
     }
@@ -1657,24 +1683,26 @@ private:
         auto dialRow = area.removeFromTop (labelHeight + dialSize + labelHeight);
         int dialColumnWidth = dialRow.getWidth() / 4;
 
+        const int valueLabelWidth = dialSize + 16;
+
         auto threshArea = dialRow.removeFromLeft (dialColumnWidth);
         preCompThresholdLabel.setBounds (threshArea.removeFromTop (labelHeight));
-        preCompThresholdValueLabel.setBounds (threshArea.removeFromBottom (labelHeight));
+        preCompThresholdValueLabel.setBounds (threshArea.removeFromBottom (labelHeight).withSizeKeepingCentre (valueLabelWidth, labelHeight));
         preCompThresholdDial.setBounds (threshArea.withSizeKeepingCentre (dialSize, dialSize));
 
         auto ratioArea = dialRow.removeFromLeft (dialColumnWidth);
         preCompRatioLabel.setBounds (ratioArea.removeFromTop (labelHeight));
-        preCompRatioValueLabel.setBounds (ratioArea.removeFromBottom (labelHeight));
+        preCompRatioValueLabel.setBounds (ratioArea.removeFromBottom (labelHeight).withSizeKeepingCentre (valueLabelWidth, labelHeight));
         preCompRatioDial.setBounds (ratioArea.withSizeKeepingCentre (dialSize, dialSize));
 
         auto attackArea = dialRow.removeFromLeft (dialColumnWidth);
         preCompAttackLabel.setBounds (attackArea.removeFromTop (labelHeight));
-        preCompAttackValueLabel.setBounds (attackArea.removeFromBottom (labelHeight));
+        preCompAttackValueLabel.setBounds (attackArea.removeFromBottom (labelHeight).withSizeKeepingCentre (valueLabelWidth, labelHeight));
         preCompAttackDial.setBounds (attackArea.withSizeKeepingCentre (dialSize, dialSize));
 
         auto releaseArea = dialRow;
         preCompReleaseLabel.setBounds (releaseArea.removeFromTop (labelHeight));
-        preCompReleaseValueLabel.setBounds (releaseArea.removeFromBottom (labelHeight));
+        preCompReleaseValueLabel.setBounds (releaseArea.removeFromBottom (labelHeight).withSizeKeepingCentre (valueLabelWidth, labelHeight));
         preCompReleaseDial.setBounds (releaseArea.withSizeKeepingCentre (dialSize, dialSize));
     }
 
@@ -1910,25 +1938,26 @@ private:
         // 4 dials in a horizontal row: label / dial / value
         auto dialRow = area.removeFromTop (labelHeight + dialSize + labelHeight);
         int dialColumnWidth = dialRow.getWidth() / 4;
+        const int valueLabelWidth = dialSize + 16;
 
         auto threshArea = dialRow.removeFromLeft (dialColumnWidth);
         postExpThresholdLabel.setBounds (threshArea.removeFromTop (labelHeight));
-        postExpThresholdValueLabel.setBounds (threshArea.removeFromBottom (labelHeight));
+        postExpThresholdValueLabel.setBounds (threshArea.removeFromBottom (labelHeight).withSizeKeepingCentre (valueLabelWidth, labelHeight));
         postExpThresholdDial.setBounds (threshArea.withSizeKeepingCentre (dialSize, dialSize));
 
         auto ratioArea = dialRow.removeFromLeft (dialColumnWidth);
         postExpRatioLabel.setBounds (ratioArea.removeFromTop (labelHeight));
-        postExpRatioValueLabel.setBounds (ratioArea.removeFromBottom (labelHeight));
+        postExpRatioValueLabel.setBounds (ratioArea.removeFromBottom (labelHeight).withSizeKeepingCentre (valueLabelWidth, labelHeight));
         postExpRatioDial.setBounds (ratioArea.withSizeKeepingCentre (dialSize, dialSize));
 
         auto attackArea = dialRow.removeFromLeft (dialColumnWidth);
         postExpAttackLabel.setBounds (attackArea.removeFromTop (labelHeight));
-        postExpAttackValueLabel.setBounds (attackArea.removeFromBottom (labelHeight));
+        postExpAttackValueLabel.setBounds (attackArea.removeFromBottom (labelHeight).withSizeKeepingCentre (valueLabelWidth, labelHeight));
         postExpAttackDial.setBounds (attackArea.withSizeKeepingCentre (dialSize, dialSize));
 
         auto releaseArea = dialRow;
         postExpReleaseLabel.setBounds (releaseArea.removeFromTop (labelHeight));
-        postExpReleaseValueLabel.setBounds (releaseArea.removeFromBottom (labelHeight));
+        postExpReleaseValueLabel.setBounds (releaseArea.removeFromBottom (labelHeight).withSizeKeepingCentre (valueLabelWidth, labelHeight));
         postExpReleaseDial.setBounds (releaseArea.withSizeKeepingCentre (dialSize, dialSize));
     }
 
@@ -3779,6 +3808,231 @@ private:
             int percent = juce::jlimit (0, 100, static_cast<int> (value));
             commonAttenDial.setValue (percent / 100.0f);
             commonAttenValueLabel.setText (juce::String (percent), juce::dontSendNotification);
+        }
+        // Pre-EQ band labels
+        else
+        {
+            bool handled = false;
+            for (int i = 0; i < numEqBands && !handled; ++i)
+            {
+                if (label == &eqBandFreqValueLabel[i])
+                {
+                    int freq = juce::jlimit (20, 20000, static_cast<int> (value));
+                    float v = std::log10 (freq / 20.0f) / 3.0f;
+                    parameters.getValueTreeState().beginUndoTransaction ("Pre-EQ Band " + juce::String (i + 1) + " Freq");
+                    eqBandFreqSlider[i].setValue (juce::jlimit (0.0f, 1.0f, v));
+                    eqBandFreqValueLabel[i].setText (formatFrequency (freq), juce::dontSendNotification);
+                    handled = true;
+                }
+                else if (label == &eqBandGainValueLabel[i])
+                {
+                    float gain = juce::jlimit (-24.0f, 24.0f, value);
+                    float v = (gain + 24.0f) / 48.0f;
+                    parameters.getValueTreeState().beginUndoTransaction ("Pre-EQ Band " + juce::String (i + 1) + " Gain");
+                    eqBandGainDial[i].setValue (juce::jlimit (0.0f, 1.0f, v));
+                    eqBandGainValueLabel[i].setText (juce::String (gain, 1) + " dB", juce::dontSendNotification);
+                    handled = true;
+                }
+                else if (label == &eqBandQValueLabel[i])
+                {
+                    float q = juce::jlimit (0.1f, 20.0f, value);
+                    float v = std::log ((q - 0.1f) / 0.21f + 1.0f) / std::log (100.0f);
+                    parameters.getValueTreeState().beginUndoTransaction ("Pre-EQ Band " + juce::String (i + 1) + " Q");
+                    eqBandQDial[i].setValue (juce::jlimit (0.0f, 1.0f, v));
+                    eqBandQValueLabel[i].setText (juce::String (q, 2), juce::dontSendNotification);
+                    handled = true;
+                }
+            }
+            // Post-EQ band labels
+            for (int i = 0; i < numPostEqBands && !handled; ++i)
+            {
+                if (label == &postEqBandFreqValueLabel[i])
+                {
+                    int freq = juce::jlimit (20, 20000, static_cast<int> (value));
+                    float v = std::log10 (freq / 20.0f) / 3.0f;
+                    parameters.getValueTreeState().beginUndoTransaction ("Post-EQ Band " + juce::String (i + 1) + " Freq");
+                    postEqBandFreqSlider[i].setValue (juce::jlimit (0.0f, 1.0f, v));
+                    postEqBandFreqValueLabel[i].setText (formatFrequency (freq), juce::dontSendNotification);
+                    handled = true;
+                }
+                else if (label == &postEqBandGainValueLabel[i])
+                {
+                    float gain = juce::jlimit (-24.0f, 24.0f, value);
+                    float v = (gain + 24.0f) / 48.0f;
+                    parameters.getValueTreeState().beginUndoTransaction ("Post-EQ Band " + juce::String (i + 1) + " Gain");
+                    postEqBandGainDial[i].setValue (juce::jlimit (0.0f, 1.0f, v));
+                    postEqBandGainValueLabel[i].setText (juce::String (gain, 1) + " dB", juce::dontSendNotification);
+                    handled = true;
+                }
+                else if (label == &postEqBandQValueLabel[i])
+                {
+                    float q = juce::jlimit (0.1f, 20.0f, value);
+                    float v = std::log ((q - 0.1f) / 0.21f + 1.0f) / std::log (100.0f);
+                    parameters.getValueTreeState().beginUndoTransaction ("Post-EQ Band " + juce::String (i + 1) + " Q");
+                    postEqBandQDial[i].setValue (juce::jlimit (0.0f, 1.0f, v));
+                    postEqBandQValueLabel[i].setText (juce::String (q, 2), juce::dontSendNotification);
+                    handled = true;
+                }
+            }
+            if (!handled)
+            {
+                using namespace WFSParameterDefaults;
+                // Pre-Compressor labels
+                if (label == &preCompThresholdValueLabel)
+                {
+                    float threshold = juce::jlimit (reverbPreCompThresholdMin, reverbPreCompThresholdMax, value);
+                    float v = (threshold - reverbPreCompThresholdMin) / (reverbPreCompThresholdMax - reverbPreCompThresholdMin);
+                    parameters.getValueTreeState().beginUndoTransaction ("Pre-Comp Threshold");
+                    preCompThresholdDial.setValue (juce::jlimit (0.0f, 1.0f, v));
+                    preCompThresholdValueLabel.setText (juce::String (threshold, 1) + " dB", juce::dontSendNotification);
+                }
+                else if (label == &preCompRatioValueLabel)
+                {
+                    float ratio = juce::jlimit (reverbPreCompRatioMin, reverbPreCompRatioMax, value);
+                    float v = (ratio - reverbPreCompRatioMin) / (reverbPreCompRatioMax - reverbPreCompRatioMin);
+                    parameters.getValueTreeState().beginUndoTransaction ("Pre-Comp Ratio");
+                    preCompRatioDial.setValue (juce::jlimit (0.0f, 1.0f, v));
+                    preCompRatioValueLabel.setText (juce::String (ratio, 1) + ":1", juce::dontSendNotification);
+                }
+                else if (label == &preCompAttackValueLabel)
+                {
+                    float attack = juce::jlimit (reverbPreCompAttackMin, reverbPreCompAttackMax, value);
+                    float v = std::log (attack / reverbPreCompAttackMin) / std::log (reverbPreCompAttackMax / reverbPreCompAttackMin);
+                    parameters.getValueTreeState().beginUndoTransaction ("Pre-Comp Attack");
+                    preCompAttackDial.setValue (juce::jlimit (0.0f, 1.0f, v));
+                    preCompAttackValueLabel.setText (juce::String (attack, 1) + " ms", juce::dontSendNotification);
+                }
+                else if (label == &preCompReleaseValueLabel)
+                {
+                    float release = juce::jlimit (reverbPreCompReleaseMin, reverbPreCompReleaseMax, value);
+                    float v = std::log (release / reverbPreCompReleaseMin) / std::log (reverbPreCompReleaseMax / reverbPreCompReleaseMin);
+                    parameters.getValueTreeState().beginUndoTransaction ("Pre-Comp Release");
+                    preCompReleaseDial.setValue (juce::jlimit (0.0f, 1.0f, v));
+                    preCompReleaseValueLabel.setText (juce::String (release, 0) + " ms", juce::dontSendNotification);
+                }
+                // Post-Expander labels
+                else if (label == &postExpThresholdValueLabel)
+                {
+                    float threshold = juce::jlimit (reverbPostExpThresholdMin, reverbPostExpThresholdMax, value);
+                    float v = (threshold - reverbPostExpThresholdMin) / (reverbPostExpThresholdMax - reverbPostExpThresholdMin);
+                    parameters.getValueTreeState().beginUndoTransaction ("Post-Exp Threshold");
+                    postExpThresholdDial.setValue (juce::jlimit (0.0f, 1.0f, v));
+                    postExpThresholdValueLabel.setText (juce::String (threshold, 1) + " dB", juce::dontSendNotification);
+                }
+                else if (label == &postExpRatioValueLabel)
+                {
+                    float ratio = juce::jlimit (reverbPostExpRatioMin, reverbPostExpRatioMax, value);
+                    float v = (ratio - reverbPostExpRatioMin) / (reverbPostExpRatioMax - reverbPostExpRatioMin);
+                    parameters.getValueTreeState().beginUndoTransaction ("Post-Exp Ratio");
+                    postExpRatioDial.setValue (juce::jlimit (0.0f, 1.0f, v));
+                    postExpRatioValueLabel.setText ("1:" + juce::String (ratio, 1), juce::dontSendNotification);
+                }
+                else if (label == &postExpAttackValueLabel)
+                {
+                    float attack = juce::jlimit (reverbPostExpAttackMin, reverbPostExpAttackMax, value);
+                    float v = std::log (attack / reverbPostExpAttackMin) / std::log (reverbPostExpAttackMax / reverbPostExpAttackMin);
+                    parameters.getValueTreeState().beginUndoTransaction ("Post-Exp Attack");
+                    postExpAttackDial.setValue (juce::jlimit (0.0f, 1.0f, v));
+                    postExpAttackValueLabel.setText (juce::String (attack, 1) + " ms", juce::dontSendNotification);
+                }
+                else if (label == &postExpReleaseValueLabel)
+                {
+                    float release = juce::jlimit (reverbPostExpReleaseMin, reverbPostExpReleaseMax, value);
+                    float v = std::log (release / reverbPostExpReleaseMin) / std::log (reverbPostExpReleaseMax / reverbPostExpReleaseMin);
+                    parameters.getValueTreeState().beginUndoTransaction ("Post-Exp Release");
+                    postExpReleaseDial.setValue (juce::jlimit (0.0f, 1.0f, v));
+                    postExpReleaseValueLabel.setText (juce::String (release, 0) + " ms", juce::dontSendNotification);
+                }
+                // Algorithm labels
+                else if (label == &algoRT60ValueLabel)
+                {
+                    float rt60 = juce::jlimit (reverbRT60Min, reverbRT60Max, value);
+                    float v = std::log (rt60 / reverbRT60Min) / std::log (reverbRT60Max / reverbRT60Min);
+                    parameters.getValueTreeState().beginUndoTransaction ("Reverb RT60");
+                    algoRT60Slider.setValue (juce::jlimit (0.0f, 1.0f, v));
+                    algoRT60ValueLabel.setText (juce::String (rt60, 2) + " s", juce::dontSendNotification);
+                }
+                else if (label == &algoRT60LowMultValueLabel)
+                {
+                    float mult = juce::jlimit (reverbRT60LowMultMin, reverbRT60LowMultMax, value);
+                    float v = std::log (mult / reverbRT60LowMultMin) / std::log (reverbRT60LowMultMax / reverbRT60LowMultMin);
+                    parameters.getValueTreeState().beginUndoTransaction ("Reverb RT60 Low Mult");
+                    algoRT60LowMultSlider.setValue (juce::jlimit (0.0f, 1.0f, v));
+                    algoRT60LowMultValueLabel.setText (juce::String (mult, 2) + "x", juce::dontSendNotification);
+                }
+                else if (label == &algoRT60HighMultValueLabel)
+                {
+                    float mult = juce::jlimit (reverbRT60HighMultMin, reverbRT60HighMultMax, value);
+                    float v = std::log (mult / reverbRT60HighMultMin) / std::log (reverbRT60HighMultMax / reverbRT60HighMultMin);
+                    parameters.getValueTreeState().beginUndoTransaction ("Reverb RT60 High Mult");
+                    algoRT60HighMultSlider.setValue (juce::jlimit (0.0f, 1.0f, v));
+                    algoRT60HighMultValueLabel.setText (juce::String (mult, 2) + "x", juce::dontSendNotification);
+                }
+                else if (label == &algoCrossoverLowValueLabel)
+                {
+                    float freq = juce::jlimit (reverbCrossoverLowMin, reverbCrossoverLowMax, value);
+                    float v = std::log (freq / reverbCrossoverLowMin) / std::log (reverbCrossoverLowMax / reverbCrossoverLowMin);
+                    parameters.getValueTreeState().beginUndoTransaction ("Reverb Crossover Low");
+                    algoCrossoverLowSlider.setValue (juce::jlimit (0.0f, 1.0f, v));
+                    algoCrossoverLowValueLabel.setText (formatFrequency (static_cast<int> (freq)), juce::dontSendNotification);
+                }
+                else if (label == &algoCrossoverHighValueLabel)
+                {
+                    float freq = juce::jlimit (reverbCrossoverHighMin, reverbCrossoverHighMax, value);
+                    float v = std::log (freq / reverbCrossoverHighMin) / std::log (reverbCrossoverHighMax / reverbCrossoverHighMin);
+                    parameters.getValueTreeState().beginUndoTransaction ("Reverb Crossover High");
+                    algoCrossoverHighSlider.setValue (juce::jlimit (0.0f, 1.0f, v));
+                    algoCrossoverHighValueLabel.setText (formatFrequency (static_cast<int> (freq)), juce::dontSendNotification);
+                }
+                else if (label == &algoDiffusionValueLabel)
+                {
+                    int percent = juce::jlimit (0, 100, static_cast<int> (value));
+                    float v = percent / 100.0f;
+                    parameters.getValueTreeState().beginUndoTransaction ("Reverb Diffusion");
+                    algoDiffusionSlider.setValue (v);
+                    algoDiffusionValueLabel.setText (juce::String (percent) + "%", juce::dontSendNotification);
+                }
+                else if (label == &algoSDNScaleValueLabel)
+                {
+                    float scale = juce::jlimit (reverbSDNscaleMin, reverbSDNscaleMax, value);
+                    float v = (scale - reverbSDNscaleMin) / (reverbSDNscaleMax - reverbSDNscaleMin);
+                    parameters.getValueTreeState().beginUndoTransaction ("Reverb SDN Scale");
+                    algoSDNScaleSlider.setValue (juce::jlimit (0.0f, 1.0f, v));
+                    algoSDNScaleValueLabel.setText (juce::String (scale, 2) + "x", juce::dontSendNotification);
+                }
+                else if (label == &algoFDNSizeValueLabel)
+                {
+                    float size = juce::jlimit (reverbFDNsizeMin, reverbFDNsizeMax, value);
+                    float v = (size - reverbFDNsizeMin) / (reverbFDNsizeMax - reverbFDNsizeMin);
+                    parameters.getValueTreeState().beginUndoTransaction ("Reverb FDN Size");
+                    algoFDNSizeSlider.setValue (juce::jlimit (0.0f, 1.0f, v));
+                    algoFDNSizeValueLabel.setText (juce::String (size, 2) + "x", juce::dontSendNotification);
+                }
+                else if (label == &algoIRTrimValueLabel)
+                {
+                    float trim = juce::jlimit (reverbIRtrimMin, reverbIRtrimMax, value);
+                    float v = trim / reverbIRtrimMax;
+                    parameters.getValueTreeState().beginUndoTransaction ("Reverb IR Trim");
+                    algoIRTrimSlider.setValue (juce::jlimit (0.0f, 1.0f, v));
+                    algoIRTrimValueLabel.setText (juce::String (trim, 1) + " ms", juce::dontSendNotification);
+                }
+                else if (label == &algoIRLengthValueLabel)
+                {
+                    float length = juce::jlimit (reverbIRlengthMin, reverbIRlengthMax, value);
+                    float v = (length - reverbIRlengthMin) / (reverbIRlengthMax - reverbIRlengthMin);
+                    parameters.getValueTreeState().beginUndoTransaction ("Reverb IR Length");
+                    algoIRLengthSlider.setValue (juce::jlimit (0.0f, 1.0f, v));
+                    algoIRLengthValueLabel.setText (juce::String (length, 1) + " s", juce::dontSendNotification);
+                }
+                else if (label == &algoWetLevelValueLabel)
+                {
+                    float dB = juce::jlimit (-60.0f, 12.0f, value);
+                    float v = (dB + 60.0f) / 72.0f;
+                    parameters.getValueTreeState().beginUndoTransaction ("Reverb Wet Level");
+                    algoWetLevelSlider.setValue (juce::jlimit (0.0f, 1.0f, v));
+                    algoWetLevelValueLabel.setText (juce::String (dB, 1) + " dB", juce::dontSendNotification);
+                }
+            }
         }
     }
 

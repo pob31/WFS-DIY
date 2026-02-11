@@ -1681,17 +1681,8 @@ private:
         binauralEnableButton.setEnabled(outputSelected);
         binauralEnableButton.setAlpha(outputSelected ? 1.0f : 0.5f);
 
-        // Enable/disable other controls
-        binauralDistanceSlider.setEnabled(outputSelected);
-        binauralDistanceEditor.setEnabled(outputSelected);
-        binauralAngleDial.setEnabled(outputSelected);
-        binauralAngleEditor.setEnabled(outputSelected);
-        binauralAttenSlider.setEnabled(outputSelected);
-        binauralAttenEditor.setEnabled(outputSelected);
-        binauralDelaySlider.setEnabled(outputSelected);
-        binauralDelayEditor.setEnabled(outputSelected);
-        // Note: soloModeButton stays enabled even when binaural output is not selected
-        // so users can pre-configure solo mode before selecting an output
+        // Keep controls editable even when output not selected (user can pre-configure)
+        // Visual dimming below provides feedback about inactive state
 
         // Visual feedback - dim disabled controls using theme colors
         auto disabledColour = ColorScheme::get().textDisabled;

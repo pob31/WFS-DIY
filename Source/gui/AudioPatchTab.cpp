@@ -416,6 +416,8 @@ OutputPatchTab::OutputPatchTab(WFSValueTreeState& valueTreeState,
 
     addChildComponent(levelValueLabel);
     levelValueLabel.setText("-40.0 dB", juce::dontSendNotification);
+    levelValueLabel.setEditable(true, false);
+    levelValueLabel.addListener(this);
     levelValueLabel.setJustificationType(juce::Justification::centredLeft);
     levelValueLabel.setFont(juce::FontOptions(14.0f));
 
@@ -436,6 +438,8 @@ OutputPatchTab::OutputPatchTab(WFSValueTreeState& valueTreeState,
 
     addChildComponent(frequencyValueLabel);
     frequencyValueLabel.setText("1.0 kHz", juce::dontSendNotification);
+    frequencyValueLabel.setEditable(true, false);
+    frequencyValueLabel.addListener(this);
     frequencyValueLabel.setJustificationType(juce::Justification::centredLeft);
     frequencyValueLabel.setFont(juce::FontOptions(14.0f));
 
@@ -680,6 +684,31 @@ float OutputPatchTab::frequencyToSliderValue(float freq) const
     // Inverse: x = log10(freq/20) / 3
     freq = juce::jlimit(20.0f, 20000.0f, freq);
     return std::log10(freq / 20.0f) / 3.0f;
+}
+
+void OutputPatchTab::labelTextChanged(juce::Label* label)
+{
+    juce::String text = label->getText();
+    float value = text.retainCharacters("-0123456789.").getFloatValue();
+
+    if (label == &levelValueLabel)
+    {
+        float dB = juce::jlimit(-92.0f, 0.0f, value);
+        levelSlider.setValue(dbToSliderValue(dB));
+        levelValueLabel.setText(juce::String(dB, 1) + " dB", juce::dontSendNotification);
+    }
+    else if (label == &frequencyValueLabel)
+    {
+        // Handle kHz input: if value < 100 and text contains 'k', treat as kHz
+        if (value < 100.0f && text.containsIgnoreCase("k"))
+            value *= 1000.0f;
+        int freq = juce::jlimit(20, 20000, static_cast<int>(value));
+        frequencySlider.setValue(frequencyToSliderValue(static_cast<float>(freq)));
+        if (freq >= 1000)
+            frequencyValueLabel.setText(juce::String(freq / 1000.0f, 1) + " kHz", juce::dontSendNotification);
+        else
+            frequencyValueLabel.setText(juce::String(freq) + " Hz", juce::dontSendNotification);
+    }
 }
 
 void OutputPatchTab::setProcessingStateChanged(bool isProcessing)

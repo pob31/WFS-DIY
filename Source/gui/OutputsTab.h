@@ -856,6 +856,7 @@ private:
 
             addAndMakeVisible(eqBandFreqValueLabel[i]);
             eqBandFreqValueLabel[i].setText("1000 Hz", juce::dontSendNotification);
+            setupEditableValueLabel(eqBandFreqValueLabel[i]);
 
             // Gain dial - colored to match band
             addAndMakeVisible(eqBandGainLabel[i]);
@@ -876,6 +877,8 @@ private:
 
             addAndMakeVisible(eqBandGainValueLabel[i]);
             eqBandGainValueLabel[i].setText("0.0 dB", juce::dontSendNotification);
+            eqBandGainValueLabel[i].setEditable(true, false);
+            eqBandGainValueLabel[i].addListener(this);
             eqBandGainValueLabel[i].setJustificationType(juce::Justification::centred);
 
             // Q dial - colored to match band
@@ -897,6 +900,8 @@ private:
 
             addAndMakeVisible(eqBandQValueLabel[i]);
             eqBandQValueLabel[i].setText("0.70", juce::dontSendNotification);
+            eqBandQValueLabel[i].setEditable(true, false);
+            eqBandQValueLabel[i].addListener(this);
             eqBandQValueLabel[i].setJustificationType(juce::Justification::centred);
 
             // Initialize appearance (greyed out since default is OFF)
@@ -1876,6 +1881,40 @@ private:
             hfDampingSlider.setValue((dBm + 6.0f) / 6.0f);
             // Force label update
             hfDampingValueLabel.setText(juce::String(dBm, 1) + " dB/m", juce::dontSendNotification);
+        }
+        // EQ band labels
+        else
+        {
+            for (int i = 0; i < numEqBands; ++i)
+            {
+                if (label == &eqBandFreqValueLabel[i])
+                {
+                    int freq = juce::jlimit(20, 20000, static_cast<int>(value));
+                    float v = std::log10(freq / 20.0f) / 3.0f;
+                    parameters.getValueTreeState().beginUndoTransaction ("Output EQ Freq Band " + juce::String(i + 1));
+                    eqBandFreqSlider[i].setValue(juce::jlimit(0.0f, 1.0f, v));
+                    eqBandFreqValueLabel[i].setText(formatFrequency(freq), juce::dontSendNotification);
+                    break;
+                }
+                else if (label == &eqBandGainValueLabel[i])
+                {
+                    float gain = juce::jlimit(-24.0f, 24.0f, value);
+                    float v = (gain + 24.0f) / 48.0f;
+                    parameters.getValueTreeState().beginUndoTransaction ("Output EQ Gain Band " + juce::String(i + 1));
+                    eqBandGainDial[i].setValue(juce::jlimit(0.0f, 1.0f, v));
+                    eqBandGainValueLabel[i].setText(juce::String(gain, 1) + " dB", juce::dontSendNotification);
+                    break;
+                }
+                else if (label == &eqBandQValueLabel[i])
+                {
+                    float q = juce::jlimit(0.1f, 10.0f, value);
+                    float v = std::log((q - 0.1f) / 0.099f + 1.0f) / std::log(100.0f);
+                    parameters.getValueTreeState().beginUndoTransaction ("Output EQ Q Band " + juce::String(i + 1));
+                    eqBandQDial[i].setValue(juce::jlimit(0.0f, 1.0f, v));
+                    eqBandQValueLabel[i].setText(juce::String(q, 2), juce::dontSendNotification);
+                    break;
+                }
+            }
         }
     }
 
