@@ -673,6 +673,14 @@ public:
     void setAutoMotionProcessor(AutomOtionProcessor* processor)
     {
         automOtionProcessor = processor;
+
+        if (automOtionProcessor != nullptr)
+        {
+            automOtionProcessor->onMotionBlocked = [this](int, const juce::String& reason) {
+                if (statusBar != nullptr)
+                    statusBar->showTemporaryMessage(reason);
+            };
+        }
     }
 
     /**
@@ -2477,17 +2485,17 @@ private:
         otomoResetUnitLabel.setJustificationType(juce::Justification::left);
         otomoResetUnitLabel.setMinimumHorizontalScale(1.0f);
 
-        // Transport buttons (custom drawn icons)
+        // Transport buttons (custom drawn icons) — cluster-aware
         addAndMakeVisible(otomoStartButton);
         otomoStartButton.onClick = [this]() {
             if (automOtionProcessor != nullptr && currentChannel > 0)
-                automOtionProcessor->startMotion(currentChannel - 1);
+                automOtionProcessor->startClusterMotion(currentChannel - 1);
         };
 
         addAndMakeVisible(otomoStopButton);
         otomoStopButton.onClick = [this]() {
             if (automOtionProcessor != nullptr && currentChannel > 0)
-                automOtionProcessor->stopMotion(currentChannel - 1);
+                automOtionProcessor->stopClusterMotion(currentChannel - 1);
         };
 
         addAndMakeVisible(otomoPauseButton);
@@ -2497,9 +2505,9 @@ private:
             {
                 bool isPaused = otomoPauseButton.getToggleState();
                 if (isPaused)
-                    automOtionProcessor->pauseMotion(currentChannel - 1);
+                    automOtionProcessor->pauseClusterMotion(currentChannel - 1);
                 else
-                    automOtionProcessor->resumeMotion(currentChannel - 1);
+                    automOtionProcessor->resumeClusterMotion(currentChannel - 1);
             }
             saveInputParam(WFSParameterIDs::inputOtomoPauseResume, otomoPauseButton.getToggleState() ? 0 : 1);
         };
@@ -5836,6 +5844,38 @@ private:
             otomoResetDial.setValue(juce::jlimit(0.0f, 1.0f, dialValue));
             // Force label update
             otomoResetValueLabel.setText(juce::String(dB, 1), juce::dontSendNotification);
+        }
+        else if (label == &otomoDurationValueLabel)
+        {
+            // Duration: 0.1 to 3600 seconds, logarithmic
+            // Forward: duration = pow(10, sqrt(v) * 3.556 - 1)
+            // Inverse: v = pow((log10(duration) + 1) / 3.556, 2)
+            // Parse seconds from text (handle "m" and "s" in format like "2m 30s")
+            float duration = juce::jlimit(0.1f, 3600.0f, value);
+            float v = std::pow((std::log10(duration) + 1.0f) / 3.556f, 2.0f);
+            otomoDurationDial.setValue(juce::jlimit(0.0f, 1.0f, v));
+            // Force label update with proper formatting
+            juce::String displayText;
+            if (duration < 10.0f)
+                displayText = juce::String(duration, 2) + " s";
+            else if (duration < 60.0f)
+                displayText = juce::String(duration, 1) + " s";
+            else if (duration < 3600.0f)
+                displayText = juce::String(static_cast<int>(duration / 60)) + "m " + juce::String(static_cast<int>(duration) % 60) + "s";
+            else
+                displayText = "1h";
+            otomoDurationValueLabel.setText(displayText, juce::dontSendNotification);
+        }
+        else if (label == &otomoCurveValueLabel)
+        {
+            // Curve: -100 to +100 (bipolar)
+            // Forward: curve = v * 200 - 100
+            // Inverse: v = (curve + 100) / 200
+            int curve = juce::jlimit(-100, 100, static_cast<int>(value));
+            float v = (static_cast<float>(curve) + 100.0f) / 200.0f;
+            otomoCurveDial.setValue(juce::jlimit(0.0f, 1.0f, v));
+            // Force label update
+            otomoCurveValueLabel.setText(juce::String(curve), juce::dontSendNotification);
         }
         // Sidelines fringe (Mutes tab)
         else if (label == &sidelinesFringeValueLabel)

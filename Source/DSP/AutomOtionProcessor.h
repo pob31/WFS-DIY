@@ -124,8 +124,14 @@ public:
     // Per-Input Control Methods
     //==========================================================================
 
-    /** Start motion for a specific input channel */
-    void startMotion (int inputIndex)
+    /** Callback when motion start is blocked (for UI feedback) */
+    std::function<void (int inputIndex, const juce::String& reason)> onMotionBlocked;
+
+    /** Start motion for a specific input channel.
+     *  @param inputIndex The input channel to animate
+     *  @param autoMotionSourceIndex If >= 0, read AutomOtion parameters from this input
+     *                               instead of inputIndex (used for cluster members) */
+    void startMotion (int inputIndex, int autoMotionSourceIndex = -1)
     {
         if (inputIndex < 0 || inputIndex >= numInputChannels)
             return;
@@ -136,6 +142,8 @@ public:
         if (state.state == State::Playing || state.state == State::Paused || state.state == State::Returning)
         {
             DBG ("AutomOtion: Cannot start motion on input " << (inputIndex + 1) << " - movement in progress");
+            if (onMotionBlocked)
+                onMotionBlocked (inputIndex, "Motion already in progress on input " + juce::String (inputIndex + 1));
             return;
         }
 
@@ -143,6 +151,8 @@ public:
         if (isTrackingActive (inputIndex))
         {
             DBG ("AutomOtion: Cannot start motion on input " << (inputIndex + 1) << " - tracking is active");
+            if (onMotionBlocked)
+                onMotionBlocked (inputIndex, "Tracking is active on input " + juce::String (inputIndex + 1));
             return;
         }
 
@@ -156,8 +166,9 @@ public:
         float baseY = static_cast<float> (posSection.getProperty (WFSParameterIDs::inputPositionY, 0.0f));
         float baseZ = static_cast<float> (posSection.getProperty (WFSParameterIDs::inputPositionZ, 0.0f));
 
-        // Get AutomOtion parameters
-        auto otomoSection = valueTreeState.getInputAutoMotionSection (inputIndex);
+        // Get AutomOtion parameters (from source input if specified, for cluster support)
+        int sourceIndex = (autoMotionSourceIndex >= 0) ? autoMotionSourceIndex : inputIndex;
+        auto otomoSection = valueTreeState.getInputAutoMotionSection (sourceIndex);
         bool isAbsolute = static_cast<int> (otomoSection.getProperty (WFSParameterIDs::inputOtomoAbsoluteRelative, 0)) == 0;
         bool shouldReturn = static_cast<int> (otomoSection.getProperty (WFSParameterIDs::inputOtomoStayReturn, 0)) != 0;
         int speedProfile = static_cast<int> (otomoSection.getProperty (WFSParameterIDs::inputOtomoSpeedProfile, 0));
@@ -277,6 +288,20 @@ public:
             }
         }
 
+        // Check if movement is meaningful (target differs from start)
+        constexpr float epsilon = 0.01f;
+        if (std::abs (state.targetX - baseX) < epsilon &&
+            std::abs (state.targetY - baseY) < epsilon &&
+            std::abs (state.targetZ - baseZ) < epsilon)
+        {
+            DBG ("AutomOtion: No meaningful movement on input " << (inputIndex + 1) << " - already at destination");
+            if (onMotionBlocked)
+                onMotionBlocked (inputIndex, isAbsolute
+                    ? "Input " + juce::String (inputIndex + 1) + " is already at destination"
+                    : "Relative destination is (0, 0, 0)");
+            return;
+        }
+
         // Store parameters
         state.duration = duration;
         state.speedProfile = speedProfile;
@@ -331,6 +356,151 @@ public:
         if (state.state == State::Paused)
         {
             state.state = state.inReturnPhase ? State::Returning : State::Playing;
+        }
+    }
+
+    //==========================================================================
+    // Cluster-Aware Control Methods
+    //==========================================================================
+
+    /** Start motion for an input and all members of its cluster.
+     *  If the input is a cluster reference, all cluster members use the
+     *  reference input's AutomOtion parameters but their own start positions. */
+    void startClusterMotion (int referenceInputIndex)
+    {
+        if (referenceInputIndex < 0 || referenceInputIndex >= numInputChannels)
+            return;
+
+        // Start the reference input itself
+        startMotion (referenceInputIndex);
+
+        // Check if this input belongs to a cluster
+        auto posSection = valueTreeState.getInputPositionSection (referenceInputIndex);
+        int clusterIdx = static_cast<int> (posSection.getProperty (WFSParameterIDs::inputCluster, 0));
+
+        if (clusterIdx < 1)
+            return;  // Not in a cluster, done
+
+        // Start motion for all other inputs in the same cluster,
+        // using the reference input's AutomOtion parameters
+        auto inputs = valueTreeState.getInputsState();
+        int numInputs = inputs.getNumChildren();
+
+        for (int i = 0; i < numInputs; ++i)
+        {
+            if (i == referenceInputIndex)
+                continue;
+
+            auto input = inputs.getChild (i);
+            auto pos = input.getChildWithName (WFSParameterIDs::Position);
+            if (!pos.isValid())
+                continue;
+
+            int otherCluster = static_cast<int> (pos.getProperty (WFSParameterIDs::inputCluster, 0));
+            if (otherCluster == clusterIdx)
+            {
+                // Start this cluster member with the reference input's AutomOtion params
+                startMotion (i, referenceInputIndex);
+            }
+        }
+    }
+
+    /** Stop motion for an input and all members of its cluster */
+    void stopClusterMotion (int referenceInputIndex)
+    {
+        if (referenceInputIndex < 0 || referenceInputIndex >= numInputChannels)
+            return;
+
+        stopMotion (referenceInputIndex);
+
+        auto posSection = valueTreeState.getInputPositionSection (referenceInputIndex);
+        int clusterIdx = static_cast<int> (posSection.getProperty (WFSParameterIDs::inputCluster, 0));
+
+        if (clusterIdx < 1)
+            return;
+
+        auto inputs = valueTreeState.getInputsState();
+        int numInputs = inputs.getNumChildren();
+
+        for (int i = 0; i < numInputs; ++i)
+        {
+            if (i == referenceInputIndex)
+                continue;
+
+            auto input = inputs.getChild (i);
+            auto pos = input.getChildWithName (WFSParameterIDs::Position);
+            if (!pos.isValid())
+                continue;
+
+            int otherCluster = static_cast<int> (pos.getProperty (WFSParameterIDs::inputCluster, 0));
+            if (otherCluster == clusterIdx)
+                stopMotion (i);
+        }
+    }
+
+    /** Pause motion for an input and all members of its cluster */
+    void pauseClusterMotion (int referenceInputIndex)
+    {
+        if (referenceInputIndex < 0 || referenceInputIndex >= numInputChannels)
+            return;
+
+        pauseMotion (referenceInputIndex);
+
+        auto posSection = valueTreeState.getInputPositionSection (referenceInputIndex);
+        int clusterIdx = static_cast<int> (posSection.getProperty (WFSParameterIDs::inputCluster, 0));
+
+        if (clusterIdx < 1)
+            return;
+
+        auto inputs = valueTreeState.getInputsState();
+        int numInputs = inputs.getNumChildren();
+
+        for (int i = 0; i < numInputs; ++i)
+        {
+            if (i == referenceInputIndex)
+                continue;
+
+            auto input = inputs.getChild (i);
+            auto pos = input.getChildWithName (WFSParameterIDs::Position);
+            if (!pos.isValid())
+                continue;
+
+            int otherCluster = static_cast<int> (pos.getProperty (WFSParameterIDs::inputCluster, 0));
+            if (otherCluster == clusterIdx)
+                pauseMotion (i);
+        }
+    }
+
+    /** Resume motion for an input and all members of its cluster */
+    void resumeClusterMotion (int referenceInputIndex)
+    {
+        if (referenceInputIndex < 0 || referenceInputIndex >= numInputChannels)
+            return;
+
+        resumeMotion (referenceInputIndex);
+
+        auto posSection = valueTreeState.getInputPositionSection (referenceInputIndex);
+        int clusterIdx = static_cast<int> (posSection.getProperty (WFSParameterIDs::inputCluster, 0));
+
+        if (clusterIdx < 1)
+            return;
+
+        auto inputs = valueTreeState.getInputsState();
+        int numInputs = inputs.getNumChildren();
+
+        for (int i = 0; i < numInputs; ++i)
+        {
+            if (i == referenceInputIndex)
+                continue;
+
+            auto input = inputs.getChild (i);
+            auto pos = input.getChildWithName (WFSParameterIDs::Position);
+            if (!pos.isValid())
+                continue;
+
+            int otherCluster = static_cast<int> (pos.getProperty (WFSParameterIDs::inputCluster, 0));
+            if (otherCluster == clusterIdx)
+                resumeMotion (i);
         }
     }
 

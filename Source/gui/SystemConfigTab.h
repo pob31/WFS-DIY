@@ -1599,6 +1599,7 @@ private:
         vts.setBinauralEnabled(newState);
         binauralEnableButton.setButtonText(newState ? LOC("systemConfig.buttons.binauralOn")
                                                      : LOC("systemConfig.buttons.binauralOff"));
+        updateBinauralControlsEnabledState();
     }
 
     void updateIOControlsEnabledState()
@@ -1681,29 +1682,29 @@ private:
         binauralEnableButton.setEnabled(outputSelected);
         binauralEnableButton.setAlpha(outputSelected ? 1.0f : 0.5f);
 
-        // Keep controls editable even when output not selected (user can pre-configure)
-        // Visual dimming below provides feedback about inactive state
+        // Parameter controls dim when output unpatched OR toggle is off
+        bool binauralActive = outputSelected && parameters.getValueTreeState().getBinauralEnabled();
 
         // Visual feedback - dim disabled controls using theme colors
         auto disabledColour = ColorScheme::get().textDisabled;
         auto enabledColour = ColorScheme::get().textPrimary;
-        float alpha = outputSelected ? 1.0f : 0.38f;  // Material Design disabled alpha
+        float alpha = binauralActive ? 1.0f : 0.38f;  // Material Design disabled alpha
 
         // Labels
-        binauralDistanceLabel.setColour(juce::Label::textColourId, outputSelected ? enabledColour : disabledColour);
-        binauralDistanceUnitLabel.setColour(juce::Label::textColourId, outputSelected ? enabledColour : disabledColour);
-        binauralAngleLabel.setColour(juce::Label::textColourId, outputSelected ? enabledColour : disabledColour);
-        binauralAngleUnitLabel.setColour(juce::Label::textColourId, outputSelected ? enabledColour : disabledColour);
-        binauralAttenLabel.setColour(juce::Label::textColourId, outputSelected ? enabledColour : disabledColour);
-        binauralAttenUnitLabel.setColour(juce::Label::textColourId, outputSelected ? enabledColour : disabledColour);
-        binauralDelayLabel.setColour(juce::Label::textColourId, outputSelected ? enabledColour : disabledColour);
-        binauralDelayUnitLabel.setColour(juce::Label::textColourId, outputSelected ? enabledColour : disabledColour);
+        binauralDistanceLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
+        binauralDistanceUnitLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
+        binauralAngleLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
+        binauralAngleUnitLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
+        binauralAttenLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
+        binauralAttenUnitLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
+        binauralDelayLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
+        binauralDelayUnitLabel.setColour(juce::Label::textColourId, binauralActive ? enabledColour : disabledColour);
 
         // Text editors
-        binauralDistanceEditor.setColour(juce::TextEditor::textColourId, outputSelected ? enabledColour : disabledColour);
-        binauralAngleEditor.setColour(juce::TextEditor::textColourId, outputSelected ? enabledColour : disabledColour);
-        binauralAttenEditor.setColour(juce::TextEditor::textColourId, outputSelected ? enabledColour : disabledColour);
-        binauralDelayEditor.setColour(juce::TextEditor::textColourId, outputSelected ? enabledColour : disabledColour);
+        binauralDistanceEditor.setColour(juce::TextEditor::textColourId, binauralActive ? enabledColour : disabledColour);
+        binauralAngleEditor.setColour(juce::TextEditor::textColourId, binauralActive ? enabledColour : disabledColour);
+        binauralAttenEditor.setColour(juce::TextEditor::textColourId, binauralActive ? enabledColour : disabledColour);
+        binauralDelayEditor.setColour(juce::TextEditor::textColourId, binauralActive ? enabledColour : disabledColour);
 
         // Sliders - use setDisabledAlpha for WfsSliderBase-derived components
         binauralDistanceSlider.setDisabledAlpha(alpha);
@@ -1717,9 +1718,9 @@ private:
         binauralDelaySlider.repaint();
         binauralAngleDial.repaint();
 
-        // Solo mode button - visually dim when binaural off, but keep operable
-        soloModeButton.setColour(juce::TextButton::textColourOffId, outputSelected ? enabledColour : disabledColour);
-        soloModeButton.setColour(juce::TextButton::textColourOnId, outputSelected ? enabledColour : disabledColour);
+        // Solo mode button - visually dim when binaural inactive
+        soloModeButton.setColour(juce::TextButton::textColourOffId, binauralActive ? enabledColour : disabledColour);
+        soloModeButton.setColour(juce::TextButton::textColourOnId, binauralActive ? enabledColour : disabledColour);
     }
 
     //==============================================================================

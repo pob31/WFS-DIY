@@ -1806,6 +1806,8 @@ private:
 
     void labelTextChanged(juce::Label* label) override
     {
+        if (isLoadingParameters) return;
+
         juce::String text = label->getText();
 
         // Parse numeric value from text (strips units like "dB", "°", "%", "ms", "dB/m")

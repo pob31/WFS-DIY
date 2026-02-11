@@ -1698,6 +1698,10 @@ void MainComponent::timerCallback()
         if (automOtionProcessor != nullptr)
         {
             automOtionProcessor->process(0.02f);  // 20ms delta time (50Hz)
+
+            // Repaint map while AutomOtion is active (shows moving grey dot)
+            if (automOtionProcessor->isAnyActive() && mapTab != nullptr)
+                mapTab->repaint();
         }
 
         // Update level metering at 50Hz (20ms)
