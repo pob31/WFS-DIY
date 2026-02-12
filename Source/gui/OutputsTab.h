@@ -2046,34 +2046,34 @@ private:
     void setupHelpText()
     {
         // Based on WFS-UI_output.csv help text column
-        helpTextMap[&channelSelector] = "Output Channel Number and Selection.";
-        helpTextMap[&nameEditor] = "Displayed Output Channel Name (editable).";
-        helpTextMap[&arraySelector] = "Selected Output Channel is part of Array.";
-        helpTextMap[&applyToArraySelector] = "Apply Changes to the rest of the Array (Absolute value or Relative changes).";
-        helpTextMap[&attenuationSlider] = "Output Channel Attenuation. (changes may affect the rest of the array)";
-        helpTextMap[&delayLatencySlider] = "Output Channel Delay (positive values) or Latency Compensation (negative values). (changes may affect the rest of the array)";
-        helpTextMap[&minLatencyEnableButton] = "Disables Minimal Latency Mode for Selected Output. (changes may affect the rest of the array)";
-        helpTextMap[&liveSourceEnableButton] = "Disables Live Source Attenuation for Selected Output. (changes may affect the rest of the array)";
-        helpTextMap[&floorReflectionsEnableButton] = "Enable or Disable the Floor Reflections for this Speaker.";
-        helpTextMap[&distanceAttenSlider] = "Ratio of Distance Attenuation for Selected Output. (changes may affect the rest of the array)";
-        helpTextMap[&hParallaxEditor] = "Horizontal Distance from Speaker to 'Targeted' Listener. (changes may affect the rest of the array)";
-        helpTextMap[&vParallaxEditor] = "Vertical Distance from Speaker to 'Targeted' Listener. Positive when the Speaker is Below the head of the Listener. (changes may affect the rest of the array)";
-        helpTextMap[&coordModeSelector] = "Coordinate display mode: Cartesian (X/Y/Z), Cylindrical (radius/azimuth/height), or Spherical (radius/azimuth/elevation).";
-        helpTextMap[&posXEditor] = "Output Channel Position in Width.";
-        helpTextMap[&posYEditor] = "Output Channel Position in Depth.";
-        helpTextMap[&posZEditor] = "Output Channel Position in Height.";
-        helpTextMap[&directionalDial] = "Output Channel Directional Control. Drag to change orientation, Shift+drag for Angle Off, Alt+drag for Angle On. (changes may affect the rest of the array)";
-        helpTextMap[&angleOnSlider] = "Output Channel Will Amplify Objects in this Angle in its Back. (changes may affect the rest of the array)";
-        helpTextMap[&angleOffSlider] = "Output Channel Will Not Amplify Objects in this Angle in Front of it. (changes may affect the rest of the array)";
-        helpTextMap[&pitchSlider] = "Output Channel Vertical Orientation used to Determine which Objects get amplified. (changes may affect the rest of the array)";
-        helpTextMap[&hfDampingSlider] = "Loss of High Frequency Depending on Distance from Object to Output. (changes may affect the rest of the array)";
-        helpTextMap[&arrayPositionHelperButton] = "Open Wizard of OutZ to Position Speaker Arrays Conveniently.";
-        helpTextMap[&mapVisibilityButton] = "Make Visible or Hide The Selected Output on the Map";
-        helpTextMap[&storeButton] = "Store Output Configuration to file (with backup).";
-        helpTextMap[&reloadButton] = "Reload Output Configuration from file.";
-        helpTextMap[&reloadBackupButton] = "Reload Output Configuration from backup file.";
-        helpTextMap[&importButton] = "Import Output Configuration from file (with file explorer window).";
-        helpTextMap[&exportButton] = "Export Output Configuration to file (with file explorer window).";
+        helpTextMap[&channelSelector] = LOC("outputs.help.channelSelector");
+        helpTextMap[&nameEditor] = LOC("outputs.help.nameEditor");
+        helpTextMap[&arraySelector] = LOC("outputs.help.arraySelector");
+        helpTextMap[&applyToArraySelector] = LOC("outputs.help.applyToArray");
+        helpTextMap[&attenuationSlider] = LOC("outputs.help.attenuation");
+        helpTextMap[&delayLatencySlider] = LOC("outputs.help.delayLatency");
+        helpTextMap[&minLatencyEnableButton] = LOC("outputs.help.minLatency");
+        helpTextMap[&liveSourceEnableButton] = LOC("outputs.help.liveSource");
+        helpTextMap[&floorReflectionsEnableButton] = LOC("outputs.help.floorReflections");
+        helpTextMap[&distanceAttenSlider] = LOC("outputs.help.distanceAtten");
+        helpTextMap[&hParallaxEditor] = LOC("outputs.help.hParallax");
+        helpTextMap[&vParallaxEditor] = LOC("outputs.help.vParallax");
+        helpTextMap[&coordModeSelector] = LOC("outputs.help.coordMode");
+        helpTextMap[&posXEditor] = LOC("outputs.help.posX");
+        helpTextMap[&posYEditor] = LOC("outputs.help.posY");
+        helpTextMap[&posZEditor] = LOC("outputs.help.posZ");
+        helpTextMap[&directionalDial] = LOC("outputs.help.directional");
+        helpTextMap[&angleOnSlider] = LOC("outputs.help.angleOn");
+        helpTextMap[&angleOffSlider] = LOC("outputs.help.angleOff");
+        helpTextMap[&pitchSlider] = LOC("outputs.help.pitch");
+        helpTextMap[&hfDampingSlider] = LOC("outputs.help.hfDamping");
+        helpTextMap[&arrayPositionHelperButton] = LOC("outputs.help.wizardOfOutZ");
+        helpTextMap[&mapVisibilityButton] = LOC("outputs.help.mapVisibility");
+        helpTextMap[&storeButton] = LOC("outputs.help.storeConfig");
+        helpTextMap[&reloadButton] = LOC("outputs.help.reloadConfig");
+        helpTextMap[&reloadBackupButton] = LOC("outputs.help.reloadBackup");
+        helpTextMap[&importButton] = LOC("outputs.help.importConfig");
+        helpTextMap[&exportButton] = LOC("outputs.help.exportConfig");
     }
 
     void setupOscMethods()

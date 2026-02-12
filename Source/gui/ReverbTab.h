@@ -1477,69 +1477,69 @@ private:
 
     void setupHelpText()
     {
-        helpTextMap[&channelSelector] = "Reverb Channel Number and Selection.";
-        helpTextMap[&nameEditor] = "Displayed Reverb Channel Name (editable).";
-        helpTextMap[&mapVisibilityButton] = "Make Visible or Hide All Reverb Channels on the Map";
-        helpTextMap[&attenuationSlider] = "Reverb channel attenuation (-92 to 0 dB).";
-        helpTextMap[&delayLatencySlider] = "Reverb delay/latency compensation (-100 to +100 ms).";
-        helpTextMap[&orientationDial] = "Reverb orientation angle (-179 to +180 degrees).";
-        helpTextMap[&angleOnSlider] = "Angle at which amplification starts (1-180 degrees).";
-        helpTextMap[&angleOffSlider] = "Angle at which no amplification occurs (0-179 degrees).";
-        helpTextMap[&pitchSlider] = "Vertical orientation of reverb (-90 to +90 degrees).";
-        helpTextMap[&hfDampingSlider] = "High frequency loss per meter (-6.0 to 0.0 dB/m).";
-        helpTextMap[&distanceAttenEnableSlider] = "Distance attenuation percentage (0-200%).";
-        helpTextMap[&coordModeSelector] = "Coordinate display mode: Cartesian (X/Y/Z), Cylindrical (radius/azimuth/height), or Spherical (radius/azimuth/elevation).";
-        helpTextMap[&eqEnableButton] = "Enable or disable EQ processing for this reverb.";
-        helpTextMap[&distanceAttenDial] = "Distance attenuation for reverb return (-6.0 to 0.0 dB/m).";
-        helpTextMap[&commonAttenDial] = "Common attenuation percentage (0-100%).";
-        helpTextMap[&muteMacrosSelector] = "Quick mute operations for output channels.";
-        helpTextMap[&storeButton] = "Store Reverb Configuration to file (with backup).";
-        helpTextMap[&reloadButton] = "Reload Reverb Configuration from file.";
-        helpTextMap[&reloadBackupButton] = "Reload Reverb Configuration from backup file.";
-        helpTextMap[&importButton] = "Import Reverb Configuration from file (with file explorer window).";
-        helpTextMap[&exportButton] = "Export Reverb Configuration to file (with file explorer window).";
+        helpTextMap[&channelSelector] = LOC("reverbs.help.channelSelector");
+        helpTextMap[&nameEditor] = LOC("reverbs.help.nameEditor");
+        helpTextMap[&mapVisibilityButton] = LOC("reverbs.help.mapVisibility");
+        helpTextMap[&attenuationSlider] = LOC("reverbs.help.attenuation");
+        helpTextMap[&delayLatencySlider] = LOC("reverbs.help.delayLatency");
+        helpTextMap[&orientationDial] = LOC("reverbs.help.orientation");
+        helpTextMap[&angleOnSlider] = LOC("reverbs.help.angleOn");
+        helpTextMap[&angleOffSlider] = LOC("reverbs.help.angleOff");
+        helpTextMap[&pitchSlider] = LOC("reverbs.help.pitch");
+        helpTextMap[&hfDampingSlider] = LOC("reverbs.help.hfDamping");
+        helpTextMap[&distanceAttenEnableSlider] = LOC("reverbs.help.distanceAttenEnable");
+        helpTextMap[&coordModeSelector] = LOC("reverbs.help.coordMode");
+        helpTextMap[&eqEnableButton] = LOC("reverbs.help.eqEnable");
+        helpTextMap[&distanceAttenDial] = LOC("reverbs.help.distanceAtten");
+        helpTextMap[&commonAttenDial] = LOC("reverbs.help.commonAtten");
+        helpTextMap[&muteMacrosSelector] = LOC("reverbs.help.muteMacros");
+        helpTextMap[&storeButton] = LOC("reverbs.help.storeConfig");
+        helpTextMap[&reloadButton] = LOC("reverbs.help.reloadConfig");
+        helpTextMap[&reloadBackupButton] = LOC("reverbs.help.reloadBackup");
+        helpTextMap[&importButton] = LOC("reverbs.help.importConfig");
+        helpTextMap[&exportButton] = LOC("reverbs.help.exportConfig");
 
         // Algorithm sub-tab help text
-        helpTextMap[&algoSDNButton] = "Select SDN (Scattering Delay Network) reverb algorithm.";
-        helpTextMap[&algoFDNButton] = "Select FDN (Feedback Delay Network) reverb algorithm.";
-        helpTextMap[&algoIRButton] = "Select IR (Impulse Response convolution) reverb algorithm.";
-        helpTextMap[&algoRT60Slider] = "Reverb decay time RT60 (0.2 - 8.0 seconds).";
-        helpTextMap[&algoRT60LowMultSlider] = "Low frequency RT60 multiplier (0.1 - 9.0x).";
-        helpTextMap[&algoRT60HighMultSlider] = "High frequency RT60 multiplier (0.1 - 9.0x).";
-        helpTextMap[&algoCrossoverLowSlider] = "Low crossover frequency for 3-band decay (50 - 500 Hz).";
-        helpTextMap[&algoCrossoverHighSlider] = "High crossover frequency for 3-band decay (1 - 10 kHz).";
-        helpTextMap[&algoDiffusionSlider] = "Diffusion amount controlling echo density (0 - 100%).";
-        helpTextMap[&algoSDNScaleSlider] = "SDN inter-node delay scale factor (0.5 - 4.0x).";
-        helpTextMap[&algoFDNSizeSlider] = "FDN delay line size multiplier (0.5 - 2.0x).";
-        helpTextMap[&algoIRFileSelector] = "Select or import an impulse response file for convolution.";
-        helpTextMap[&algoIRTrimSlider] = "Trim the start of the impulse response (0 - 100 ms).";
-        helpTextMap[&algoIRLengthSlider] = "Maximum impulse response length (0.1 - 6.0 seconds).";
-        helpTextMap[&algoPerNodeButton] = "Use a separate IR for each reverb node, or share one IR.";
-        helpTextMap[&algoWetLevelSlider] = "Wet/dry mix level for reverb output (-60 to +12 dB).";
+        helpTextMap[&algoSDNButton] = LOC("reverbs.help.algoSDN");
+        helpTextMap[&algoFDNButton] = LOC("reverbs.help.algoFDN");
+        helpTextMap[&algoIRButton] = LOC("reverbs.help.algoIR");
+        helpTextMap[&algoRT60Slider] = LOC("reverbs.help.algoRT60");
+        helpTextMap[&algoRT60LowMultSlider] = LOC("reverbs.help.algoRT60LowMult");
+        helpTextMap[&algoRT60HighMultSlider] = LOC("reverbs.help.algoRT60HighMult");
+        helpTextMap[&algoCrossoverLowSlider] = LOC("reverbs.help.algoCrossoverLow");
+        helpTextMap[&algoCrossoverHighSlider] = LOC("reverbs.help.algoCrossoverHigh");
+        helpTextMap[&algoDiffusionSlider] = LOC("reverbs.help.algoDiffusion");
+        helpTextMap[&algoSDNScaleSlider] = LOC("reverbs.help.algoSDNScale");
+        helpTextMap[&algoFDNSizeSlider] = LOC("reverbs.help.algoFDNSize");
+        helpTextMap[&algoIRFileSelector] = LOC("reverbs.help.algoIRFile");
+        helpTextMap[&algoIRTrimSlider] = LOC("reverbs.help.algoIRTrim");
+        helpTextMap[&algoIRLengthSlider] = LOC("reverbs.help.algoIRLength");
+        helpTextMap[&algoPerNodeButton] = LOC("reverbs.help.algoPerNode");
+        helpTextMap[&algoWetLevelSlider] = LOC("reverbs.help.algoWetLevel");
 
         // Pre-Compressor help text
-        helpTextMap[&preCompBypassButton] = "Bypass or enable the pre-compressor on reverb feeds.";
-        helpTextMap[&preCompThresholdDial] = "Pre-compressor threshold (-60 to 0 dB).";
-        helpTextMap[&preCompRatioDial] = "Pre-compressor ratio (1:1 to 20:1).";
-        helpTextMap[&preCompAttackDial] = "Pre-compressor attack time (0.1 - 100 ms).";
-        helpTextMap[&preCompReleaseDial] = "Pre-compressor release time (10 - 1000 ms).";
+        helpTextMap[&preCompBypassButton] = LOC("reverbs.help.preCompBypass");
+        helpTextMap[&preCompThresholdDial] = LOC("reverbs.help.preCompThreshold");
+        helpTextMap[&preCompRatioDial] = LOC("reverbs.help.preCompRatio");
+        helpTextMap[&preCompAttackDial] = LOC("reverbs.help.preCompAttack");
+        helpTextMap[&preCompReleaseDial] = LOC("reverbs.help.preCompRelease");
 
         // Post-Processing sub-tab help text
-        helpTextMap[&postEqEnableButton] = "Enable or disable post-processing EQ.";
+        helpTextMap[&postEqEnableButton] = LOC("reverbs.help.postEqEnable");
         for (int i = 0; i < numPostEqBands; ++i)
         {
-            helpTextMap[&postEqBandShapeSelector[i]] = "Post-EQ Band " + juce::String(i + 1) + " filter shape.";
-            helpTextMap[&postEqBandFreqSlider[i]] = "Post-EQ Band " + juce::String(i + 1) + " frequency (20 Hz - 20 kHz).";
-            helpTextMap[&postEqBandGainDial[i]] = "Post-EQ Band " + juce::String(i + 1) + " gain (-24 to +24 dB).";
-            helpTextMap[&postEqBandQDial[i]] = "Post-EQ Band " + juce::String(i + 1) + " Q factor (0.1 - 20.0).";
+            helpTextMap[&postEqBandShapeSelector[i]] = LOC("reverbs.help.postEqShape").replace("{band}", juce::String(i + 1));
+            helpTextMap[&postEqBandFreqSlider[i]] = LOC("reverbs.help.postEqFreq").replace("{band}", juce::String(i + 1));
+            helpTextMap[&postEqBandGainDial[i]] = LOC("reverbs.help.postEqGain").replace("{band}", juce::String(i + 1));
+            helpTextMap[&postEqBandQDial[i]] = LOC("reverbs.help.postEqQ").replace("{band}", juce::String(i + 1));
         }
 
         // Post-Expander help text
-        helpTextMap[&postExpBypassButton] = "Bypass or enable the post-expander on reverb returns.";
-        helpTextMap[&postExpThresholdDial] = "Post-expander threshold (-80 to -10 dB).";
-        helpTextMap[&postExpRatioDial] = "Post-expander ratio (1:1 to 1:8).";
-        helpTextMap[&postExpAttackDial] = "Post-expander attack time (0.1 - 50 ms).";
-        helpTextMap[&postExpReleaseDial] = "Post-expander release time (50 - 2000 ms).";
+        helpTextMap[&postExpBypassButton] = LOC("reverbs.help.postExpBypass");
+        helpTextMap[&postExpThresholdDial] = LOC("reverbs.help.postExpThreshold");
+        helpTextMap[&postExpRatioDial] = LOC("reverbs.help.postExpRatio");
+        helpTextMap[&postExpAttackDial] = LOC("reverbs.help.postExpAttack");
+        helpTextMap[&postExpReleaseDial] = LOC("reverbs.help.postExpRelease");
     }
 
     void setupOscMethods()

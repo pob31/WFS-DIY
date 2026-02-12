@@ -428,17 +428,25 @@ public:
 
         addAndMakeVisible(snapshotSelector);
         snapshotSelector.addItem(LOC("inputs.snapshots.selectSnapshot"), 1);
-        // Snapshots would be populated dynamically
+        snapshotSelector.onChange = [this]() { updateSnapshotButtonStates(); };
 
         addAndMakeVisible(reloadSnapshotButton);
         reloadSnapshotButton.setButtonText(LOC("inputs.buttons.reloadSnapshot"));
         reloadSnapshotButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF669933));  // Yellow-green
         reloadSnapshotButton.onClick = [this]() { reloadSnapshot(); };
+        reloadSnapshotButton.setEnabled(false);
+
+        addAndMakeVisible(reloadWithoutScopeButton);
+        reloadWithoutScopeButton.setButtonText(LOC("inputs.buttons.reloadWithoutScope"));
+        reloadWithoutScopeButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF669933));  // Yellow-green
+        reloadWithoutScopeButton.onClick = [this]() { reloadSnapshotWithoutScope(); };
+        reloadWithoutScopeButton.setEnabled(false);
 
         addAndMakeVisible(updateSnapshotButton);
         updateSnapshotButton.setButtonText(LOC("inputs.buttons.updateSnapshot"));
         updateSnapshotButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF996633));  // Yellow-orange
         updateSnapshotButton.onClick = [this]() { updateSnapshot(); };
+        updateSnapshotButton.setEnabled(false);
 
         addAndMakeVisible(editScopeButton);
         editScopeButton.setButtonText(LOC("inputs.buttons.editScope"));
@@ -449,6 +457,7 @@ public:
         deleteSnapshotButton.setButtonText(LOC("inputs.buttons.deleteSnapshot"));
         deleteSnapshotButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF661A33));  // Burgundy
         deleteSnapshotButton.onClick = [this]() { deleteSnapshot(); };
+        deleteSnapshotButton.setEnabled(false);
 
         // Load initial channel parameters
         loadChannelParameters(1);
@@ -618,9 +627,9 @@ public:
         auto footerArea = bounds.removeFromBottom(footerHeight).reduced(padding, padding);
         const int buttonRowHeight = 30;  // Same as Output tab buttons
 
-        // First row - Snapshot buttons (on top) - 6 items with selector being 1.5x width
+        // First row - Snapshot buttons (on top) - 7 buttons + selector (1.5x width) = 8.5 units
         auto footerRow1 = footerArea.removeFromTop(buttonRowHeight);
-        const int snapButtonWidth = (footerRow1.getWidth() - spacing * 5) / 7;  // 6.5 units total
+        const int snapButtonWidth = (footerRow1.getWidth() - spacing * 7) / 8;  // 7 buttons + 1.5x selector ≈ 8 units
         const int selectorWidth = snapButtonWidth * 3 / 2;  // 1.5x width for selector
 
         storeSnapshotButton.setBounds(footerRow1.removeFromLeft(snapButtonWidth));
@@ -628,6 +637,8 @@ public:
         snapshotSelector.setBounds(footerRow1.removeFromLeft(selectorWidth));
         footerRow1.removeFromLeft(spacing);
         reloadSnapshotButton.setBounds(footerRow1.removeFromLeft(snapButtonWidth));
+        footerRow1.removeFromLeft(spacing);
+        reloadWithoutScopeButton.setBounds(footerRow1.removeFromLeft(snapButtonWidth));
         footerRow1.removeFromLeft(spacing);
         updateSnapshotButton.setBounds(footerRow1.removeFromLeft(snapButtonWidth));
         footerRow1.removeFromLeft(spacing);
@@ -6060,6 +6071,7 @@ private:
                         {
                             refreshSnapshotList();
                             snapshotSelector.setText(name, juce::dontSendNotification);
+                            updateSnapshotButtonStates();
                             showStatusMessage("Snapshot '" + name + "' stored.");
                         }
                         else
@@ -6103,6 +6115,58 @@ private:
         {
             showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
         }
+    }
+
+    void reloadSnapshotWithoutScope()
+    {
+        auto selectedSnapshot = snapshotSelector.getText();
+        if (selectedSnapshot.isEmpty() || snapshotSelector.getSelectedId() <= 1)
+        {
+            showStatusMessage(LOC("inputs.messages.noSnapshotSelected"));
+            return;
+        }
+
+        auto& fileManager = parameters.getFileManager();
+
+        // Use a default scope (all included) to bypass any scope filtering
+        WFSFileManager::ExtendedSnapshotScope noScope;
+
+        if (fileManager.loadInputSnapshotWithExtendedScope(selectedSnapshot, noScope))
+        {
+            loadChannelParameters(currentChannel);
+            showStatusMessage("Snapshot '" + selectedSnapshot + "' loaded (without scope).");
+            if (onConfigReloaded)
+                onConfigReloaded();
+        }
+        else
+        {
+            showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
+        }
+    }
+
+    void updateSnapshotButtonStates()
+    {
+        bool hasSelection = snapshotSelector.getSelectedId() > 1;
+
+        reloadSnapshotButton.setEnabled(hasSelection);
+        updateSnapshotButton.setEnabled(hasSelection);
+        deleteSnapshotButton.setEnabled(hasSelection);
+
+        // "Reload Without Scope" only makes sense for snapshots with read-time (OnRecall) scope,
+        // because write-time (OnSave) snapshots already have filtered data in the file
+        bool enableWithoutScope = false;
+        if (hasSelection)
+        {
+            auto selectedSnapshot = snapshotSelector.getText();
+            auto& fileManager = parameters.getFileManager();
+
+            if (snapshotScopes.find(selectedSnapshot) == snapshotScopes.end())
+                snapshotScopes[selectedSnapshot] = fileManager.getExtendedSnapshotScope(selectedSnapshot);
+
+            auto& scope = snapshotScopes[selectedSnapshot];
+            enableWithoutScope = (scope.applyMode == WFSFileManager::ExtendedSnapshotScope::ApplyMode::OnRecall);
+        }
+        reloadWithoutScopeButton.setEnabled(enableWithoutScope);
     }
 
     void updateSnapshot()
@@ -6230,6 +6294,7 @@ private:
                     {
                         snapshotScopes.erase(selectedSnapshot);
                         refreshSnapshotList();
+                        updateSnapshotButtonStates();
                         showStatusMessage("Snapshot '" + selectedSnapshot + "' deleted.");
                     }
                     else
@@ -6666,17 +6731,18 @@ private:
         // Sidelines
         helpTextMap[&sidelinesActiveButton] = "Enable Automatic Muting when Source Approaches Stage Edges. Does Not Apply to Downstage (Front) Edge.";
         helpTextMap[&sidelinesFringeDial] = "Fringe Zone Size in Meters. Outer Half is Full Mute, Inner Half Fades Linearly.";
-        helpTextMap[&storeButton] = "Store Input Configuration to file (with backup).";
-        helpTextMap[&reloadButton] = "Reload Input Configuration from file.";
-        helpTextMap[&reloadBackupButton] = "Reload Input Configuration from backup file.";
-        helpTextMap[&importButton] = "Import Input Configuration from file (with file explorer window).";
-        helpTextMap[&exportButton] = "Export Input Configuration to file (with file explorer window).";
-        helpTextMap[&storeSnapshotButton] = "Store new Input Snapshot for All Objects.";
-        helpTextMap[&snapshotSelector] = "Select Input Snapshot Without Loading.";
-        helpTextMap[&reloadSnapshotButton] = "Reload Selected Input Snapshot for All Objects Taking the Scope into Account.";
-        helpTextMap[&updateSnapshotButton] = "Update Selected Input Snapshot (with backup).";
-        helpTextMap[&editScopeButton] = "Open Selected Input Snapshot Scope Window.";
-        helpTextMap[&deleteSnapshotButton] = "Delete Selected Input Snapshot With Confirmation.";
+        helpTextMap[&storeButton] = LOC("inputs.help.storeConfig");
+        helpTextMap[&reloadButton] = LOC("inputs.help.reloadConfig");
+        helpTextMap[&reloadBackupButton] = LOC("inputs.help.reloadBackup");
+        helpTextMap[&importButton] = LOC("inputs.help.importConfig");
+        helpTextMap[&exportButton] = LOC("inputs.help.exportConfig");
+        helpTextMap[&storeSnapshotButton] = LOC("inputs.help.storeSnapshot");
+        helpTextMap[&snapshotSelector] = LOC("inputs.help.snapshotSelector");
+        helpTextMap[&reloadSnapshotButton] = LOC("inputs.help.reloadSnapshot");
+        helpTextMap[&reloadWithoutScopeButton] = LOC("inputs.help.reloadWithoutScope");
+        helpTextMap[&updateSnapshotButton] = LOC("inputs.help.updateSnapshot");
+        helpTextMap[&editScopeButton] = LOC("inputs.help.editScope");
+        helpTextMap[&deleteSnapshotButton] = LOC("inputs.help.deleteSnapshot");
     }
 
     void setupOscMethods()
@@ -7466,6 +7532,7 @@ private:
     juce::TextButton storeSnapshotButton;
     juce::ComboBox snapshotSelector;
     juce::TextButton reloadSnapshotButton;
+    juce::TextButton reloadWithoutScopeButton;
     juce::TextButton updateSnapshotButton;
     juce::TextButton editScopeButton;
     juce::TextButton deleteSnapshotButton;
