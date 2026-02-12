@@ -228,10 +228,13 @@ InputPatchTab::InputPatchTab(WFSValueTreeState& valueTreeState)
         }
     };
 
-    // Unpatch All button
+    // Unpatch All button (long-press to confirm)
     addAndMakeVisible(unpatchAllButton);
     unpatchAllButton.setButtonText(LOC("audioPatch.buttons.unpatchAll"));
-    unpatchAllButton.onClick = [this]() { handleUnpatchAll(); };
+    unpatchAllButton.onLongPress = [this]() {
+        if (patchMatrix)
+            patchMatrix->clearAllPatches();
+    };
 
     // Create patch matrix
     patchMatrix = std::make_unique<PatchMatrixComponent>(parameters, true, nullptr);
@@ -285,27 +288,6 @@ void InputPatchTab::grabPatchMatrixFocus()
         patchMatrix->grabKeyboardFocus();
 }
 
-void InputPatchTab::handleUnpatchAll()
-{
-    // Use weak reference to avoid dangling pointer if tab is destroyed during dialog
-    juce::WeakReference<InputPatchTab> weakThis(this);
-
-    juce::AlertWindow::showOkCancelBox(
-        juce::MessageBoxIconType::WarningIcon,
-        LOC("audioPatch.dialogs.unpatchInputsTitle"),
-        LOC("audioPatch.dialogs.unpatchInputsMessage"),
-        LOC("audioPatch.buttons.unpatchAll"),
-        LOC("common.cancel"),
-        this,
-        juce::ModalCallbackFunction::create([weakThis](int result) {
-            if (weakThis != nullptr && result == 1)  // 1 = OK button clicked
-            {
-                if (weakThis->patchMatrix)
-                    weakThis->patchMatrix->clearAllPatches();
-            }
-        }));
-}
-
 //==============================================================================
 // OutputPatchTab Implementation
 //==============================================================================
@@ -356,10 +338,13 @@ OutputPatchTab::OutputPatchTab(WFSValueTreeState& valueTreeState,
         }
     };
 
-    // Unpatch All button
+    // Unpatch All button (long-press to confirm)
     addAndMakeVisible(unpatchAllButton);
     unpatchAllButton.setButtonText(LOC("audioPatch.buttons.unpatchAll"));
-    unpatchAllButton.onClick = [this]() { handleUnpatchAll(); };
+    unpatchAllButton.onLongPress = [this]() {
+        if (patchMatrix)
+            patchMatrix->clearAllPatches();
+    };
 
     // Inline test signal controls (initially hidden)
     addChildComponent(signalTypeCombo);
@@ -758,27 +743,6 @@ void OutputPatchTab::stopTestAudio()
 
     if (patchMatrix)
         patchMatrix->clearActiveTestChannel();
-}
-
-void OutputPatchTab::handleUnpatchAll()
-{
-    // Use weak reference to avoid dangling pointer if tab is destroyed during dialog
-    juce::WeakReference<OutputPatchTab> weakThis(this);
-
-    juce::AlertWindow::showOkCancelBox(
-        juce::MessageBoxIconType::WarningIcon,
-        LOC("audioPatch.dialogs.unpatchOutputsTitle"),
-        LOC("audioPatch.dialogs.unpatchOutputsMessage"),
-        LOC("audioPatch.buttons.unpatchAll"),
-        LOC("common.cancel"),
-        this,
-        juce::ModalCallbackFunction::create([weakThis](int result) {
-            if (weakThis != nullptr && result == 1)  // 1 = OK button clicked
-            {
-                if (weakThis->patchMatrix)
-                    weakThis->patchMatrix->clearAllPatches();
-            }
-        }));
 }
 
 void OutputPatchTab::showTemporaryMessage(const juce::String& msg)

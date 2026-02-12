@@ -13,6 +13,7 @@
 #include "StatusBar.h"
 #include "EQDisplayComponent.h"
 #include "../Helpers/CoordinateConverter.h"
+#include "buttons/LongPressButton.h"
 
 /**
  * Reverb Tab Component
@@ -1501,28 +1502,28 @@ private:
     {
         addAndMakeVisible (storeButton);
         storeButton.setButtonText (LOC("reverbs.buttons.storeConfig"));
-        storeButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF8C3333));  // Reddish
-        storeButton.onClick = [this] { storeReverbConfiguration(); };
+        storeButton.setBaseColour (juce::Colour (0xFF8C3333));  // Reddish
+        storeButton.onLongPress = [this] { storeReverbConfiguration(); };
 
         addAndMakeVisible (reloadButton);
         reloadButton.setButtonText (LOC("reverbs.buttons.reloadConfig"));
-        reloadButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF338C33));  // Greenish
-        reloadButton.onClick = [this] { reloadReverbConfiguration(); };
+        reloadButton.setBaseColour (juce::Colour (0xFF338C33));  // Greenish
+        reloadButton.onLongPress = [this] { reloadReverbConfiguration(); };
 
         addAndMakeVisible (reloadBackupButton);
         reloadBackupButton.setButtonText (LOC("reverbs.buttons.reloadBackup"));
-        reloadBackupButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF266626));  // Darker green
-        reloadBackupButton.onClick = [this] { reloadReverbConfigBackup(); };
+        reloadBackupButton.setBaseColour (juce::Colour (0xFF266626));  // Darker green
+        reloadBackupButton.onLongPress = [this] { reloadReverbConfigBackup(); };
 
         addAndMakeVisible (importButton);
         importButton.setButtonText (LOC("reverbs.buttons.import"));
-        importButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF338C33));  // Greenish
-        importButton.onClick = [this] { importReverbConfiguration(); };
+        importButton.setBaseColour (juce::Colour (0xFF338C33));  // Greenish
+        importButton.onLongPress = [this] { importReverbConfiguration(); };
 
         addAndMakeVisible (exportButton);
         exportButton.setButtonText (LOC("reverbs.buttons.export"));
-        exportButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF8C3333));  // Reddish
-        exportButton.onClick = [this] { exportReverbConfiguration(); };
+        exportButton.setBaseColour (juce::Colour (0xFF8C3333));  // Reddish
+        exportButton.onLongPress = [this] { exportReverbConfiguration(); };
     }
 
     void setupEditableValueLabel (juce::Label& label)
@@ -4622,11 +4623,11 @@ private:
     juce::ComboBox muteMacrosSelector;
 
     // Footer buttons
-    juce::TextButton storeButton;
-    juce::TextButton reloadButton;
-    juce::TextButton reloadBackupButton;
-    juce::TextButton importButton;
-    juce::TextButton exportButton;
+    LongPressButton storeButton;
+    LongPressButton reloadButton;
+    LongPressButton reloadBackupButton;
+    LongPressButton importButton;
+    LongPressButton exportButton;
 
     // No channels message
     juce::Label noChannelsLabel;

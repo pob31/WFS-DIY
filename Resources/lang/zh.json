@@ -328,7 +328,12 @@
       "tcp": "TCP"
     },
 
+    "dialogs": {
+      "importConfig": "导入网络配置",
+      "exportConfig": "导出网络配置"
+    },
     "messages": {
+      "selectFolderFirst": "请先在系统配置中选择项目文件夹。",
       "configSaved": "网络配置已保存。",
       "configNotFound": "未找到网络配置文件。",
       "configReloaded": "网络配置已重新加载。",
@@ -336,6 +341,7 @@
       "configLoadedFromBackup": "已从备份加载网络配置。",
       "configImported": "网络配置已导入。",
       "configExported": "网络配置已导出。",
+      "error": "错误: {error}",
       "onlyOneRemote": "只允许一个遥控连接。",
       "findDeviceSent": "查找设备命令已发送。"
     }
@@ -1091,7 +1097,10 @@
     "arrayPrefix": "阵列",
     "dialogs": {
       "importConfig": "导入输入配置",
-      "exportConfig": "导出输入配置"
+      "exportConfig": "导出输入配置",
+      "storeSnapshotTitle": "保存新快照",
+      "storeSnapshotMessage": "请输入新快照的名称：",
+      "snapshotNameLabel": "名称："
     },
     "messages": {
       "selectFolderFirst": "请先在系统配置中选择项目文件夹。",
@@ -1106,6 +1115,7 @@
       "noSnapshotSelected": "未选择快照。",
       "snapshotStored": "快照 '{name}' 已保存。",
       "snapshotLoaded": "快照 '{name}' 已加载。",
+      "snapshotLoadedWithoutScope": "快照 '{name}' 已加载（无范围）。",
       "snapshotUpdated": "快照 '{name}' 已更新。",
       "snapshotDeleted": "快照 '{name}' 已删除。",
       "scopeSaved": "快照范围已保存。",

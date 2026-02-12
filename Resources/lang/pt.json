@@ -328,7 +328,12 @@
       "tcp": "TCP"
     },
 
+    "dialogs": {
+      "importConfig": "Importar Configuração de Rede",
+      "exportConfig": "Exportar Configuração de Rede"
+    },
     "messages": {
+      "selectFolderFirst": "Por favor, selecione primeiro uma pasta de projeto em Config. Sistema.",
       "configSaved": "Configuração de rede guardada.",
       "configNotFound": "Ficheiro de configuração de rede não encontrado.",
       "configReloaded": "Configuração de rede recarregada.",
@@ -336,6 +341,7 @@
       "configLoadedFromBackup": "Configuração de rede carregada do backup.",
       "configImported": "Configuração de rede importada.",
       "configExported": "Configuração de rede exportada.",
+      "error": "Erro: {error}",
       "onlyOneRemote": "Apenas uma ligação REMOTA é permitida.",
       "findDeviceSent": "Comando Encontrar dispositivo enviado."
     }
@@ -1091,7 +1097,10 @@
     "arrayPrefix": "Array",
     "dialogs": {
       "importConfig": "Importar Configuração de Entrada",
-      "exportConfig": "Exportar Configuração de Entrada"
+      "exportConfig": "Exportar Configuração de Entrada",
+      "storeSnapshotTitle": "Guardar novo snapshot",
+      "storeSnapshotMessage": "Introduza um nome para o novo snapshot:",
+      "snapshotNameLabel": "Nome:"
     },
     "messages": {
       "selectFolderFirst": "Por favor, selecione primeiro uma pasta de projeto em Config. Sistema.",
@@ -1106,6 +1115,7 @@
       "noSnapshotSelected": "Nenhum snapshot selecionado.",
       "snapshotStored": "Snapshot '{name}' guardado.",
       "snapshotLoaded": "Snapshot '{name}' carregado.",
+      "snapshotLoadedWithoutScope": "Snapshot '{name}' carregado (sem âmbito).",
       "snapshotUpdated": "Snapshot '{name}' atualizado.",
       "snapshotDeleted": "Snapshot '{name}' eliminado.",
       "scopeSaved": "Âmbito do snapshot guardado.",

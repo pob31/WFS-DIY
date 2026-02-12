@@ -358,7 +358,12 @@
       "tcp": "TCP"
     },
 
+    "dialogs": {
+      "importConfig": "Import Network Configuration",
+      "exportConfig": "Export Network Configuration"
+    },
     "messages": {
+      "selectFolderFirst": "Please select a project folder in System Config first.",
       "configSaved": "Network configuration saved.",
       "configNotFound": "Network config file not found.",
       "configReloaded": "Network configuration reloaded.",
@@ -366,6 +371,7 @@
       "configLoadedFromBackup": "Network configuration loaded from backup.",
       "configImported": "Network configuration imported.",
       "configExported": "Network configuration exported.",
+      "error": "Error: {error}",
       "onlyOneRemote": "Only one REMOTE connection is allowed.",
       "findDeviceSent": "Find Device command sent."
     }
@@ -1126,7 +1132,10 @@
     "arrayPrefix": "Array",
     "dialogs": {
       "importConfig": "Import Input Configuration",
-      "exportConfig": "Export Input Configuration"
+      "exportConfig": "Export Input Configuration",
+      "storeSnapshotTitle": "Store New Snapshot",
+      "storeSnapshotMessage": "Enter a name for the new snapshot:",
+      "snapshotNameLabel": "Name:"
     },
     "messages": {
       "selectFolderFirst": "Please select a project folder in System Config first.",
@@ -1141,6 +1150,7 @@
       "noSnapshotSelected": "No snapshot selected.",
       "snapshotStored": "Snapshot '{name}' stored.",
       "snapshotLoaded": "Snapshot '{name}' loaded.",
+      "snapshotLoadedWithoutScope": "Snapshot '{name}' loaded (without scope).",
       "snapshotUpdated": "Snapshot '{name}' updated.",
       "snapshotDeleted": "Snapshot '{name}' deleted.",
       "scopeSaved": "Snapshot scope saved.",

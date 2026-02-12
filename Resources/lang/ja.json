@@ -328,7 +328,12 @@
       "tcp": "TCP"
     },
 
+    "dialogs": {
+      "importConfig": "ネットワーク設定をインポート",
+      "exportConfig": "ネットワーク設定をエクスポート"
+    },
     "messages": {
+      "selectFolderFirst": "まずシステム設定でプロジェクトフォルダを選択してください。",
       "configSaved": "ネットワーク設定を保存しました。",
       "configNotFound": "ネットワーク設定ファイルが見つかりません。",
       "configReloaded": "ネットワーク設定を再読込しました。",
@@ -336,6 +341,7 @@
       "configLoadedFromBackup": "バックアップからネットワーク設定を読み込みました。",
       "configImported": "ネットワーク設定をインポートしました。",
       "configExported": "ネットワーク設定をエクスポートしました。",
+      "error": "エラー: {error}",
       "onlyOneRemote": "リモート接続は1つのみ許可されています。",
       "findDeviceSent": "デバイス検索コマンドを送信しました。"
     }
@@ -1091,7 +1097,10 @@
     "arrayPrefix": "アレイ",
     "dialogs": {
       "importConfig": "入力設定をインポート",
-      "exportConfig": "入力設定をエクスポート"
+      "exportConfig": "入力設定をエクスポート",
+      "storeSnapshotTitle": "新しいスナップショットを保存",
+      "storeSnapshotMessage": "新しいスナップショットの名前を入力してください：",
+      "snapshotNameLabel": "名前："
     },
     "messages": {
       "selectFolderFirst": "まずシステム設定でプロジェクトフォルダを選択してください。",
@@ -1106,6 +1115,7 @@
       "noSnapshotSelected": "スナップショットが選択されていません。",
       "snapshotStored": "スナップショット '{name}' を保存しました。",
       "snapshotLoaded": "スナップショット '{name}' を読み込みました。",
+      "snapshotLoadedWithoutScope": "スナップショット '{name}' を読み込みました（スコープなし）。",
       "snapshotUpdated": "スナップショット '{name}' を更新しました。",
       "snapshotDeleted": "スナップショット '{name}' を削除しました。",
       "scopeSaved": "スナップショットのスコープを保存しました。",

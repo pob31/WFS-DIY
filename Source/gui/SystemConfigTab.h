@@ -9,6 +9,7 @@
 #include "ColorScheme.h"
 #include "SliderUIComponents.h"
 #include "dials/WfsRotationDial.h"
+#include "buttons/LongPressButton.h"
 
 #if JUCE_WINDOWS
     #include <winsock2.h>
@@ -548,43 +549,43 @@ public:
 
         addAndMakeVisible(storeCompleteConfigButton);
         storeCompleteConfigButton.setButtonText(LOC("systemConfig.buttons.storeComplete"));
-        storeCompleteConfigButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF8C3333));  // Reddish
-        storeCompleteConfigButton.onClick = [this]() { storeCompleteConfiguration(); };
+        storeCompleteConfigButton.setBaseColour(juce::Colour(0xFF8C3333));  // Reddish
+        storeCompleteConfigButton.onLongPress = [this]() { storeCompleteConfiguration(); };
 
         addAndMakeVisible(reloadCompleteConfigButton);
         reloadCompleteConfigButton.setButtonText(LOC("systemConfig.buttons.reloadComplete"));
-        reloadCompleteConfigButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF338C33));  // Greenish
-        reloadCompleteConfigButton.onClick = [this]() { reloadCompleteConfiguration(); };
+        reloadCompleteConfigButton.setBaseColour(juce::Colour(0xFF338C33));  // Greenish
+        reloadCompleteConfigButton.onLongPress = [this]() { reloadCompleteConfiguration(); };
 
         addAndMakeVisible(reloadCompleteConfigBackupButton);
         reloadCompleteConfigBackupButton.setButtonText(LOC("systemConfig.buttons.reloadCompleteBackup"));
-        reloadCompleteConfigBackupButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF266626));  // Darker green
-        reloadCompleteConfigBackupButton.onClick = [this]() { reloadCompleteConfigBackup(); };
+        reloadCompleteConfigBackupButton.setBaseColour(juce::Colour(0xFF266626));  // Darker green
+        reloadCompleteConfigBackupButton.onLongPress = [this]() { reloadCompleteConfigBackup(); };
 
         addAndMakeVisible(storeSystemConfigButton);
         storeSystemConfigButton.setButtonText(LOC("systemConfig.buttons.storeSystem"));
-        storeSystemConfigButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF8C3333));  // Reddish
-        storeSystemConfigButton.onClick = [this]() { storeSystemConfiguration(); };
+        storeSystemConfigButton.setBaseColour(juce::Colour(0xFF8C3333));  // Reddish
+        storeSystemConfigButton.onLongPress = [this]() { storeSystemConfiguration(); };
 
         addAndMakeVisible(reloadSystemConfigButton);
         reloadSystemConfigButton.setButtonText(LOC("systemConfig.buttons.reloadSystem"));
-        reloadSystemConfigButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF338C33));  // Greenish
-        reloadSystemConfigButton.onClick = [this]() { reloadSystemConfiguration(); };
+        reloadSystemConfigButton.setBaseColour(juce::Colour(0xFF338C33));  // Greenish
+        reloadSystemConfigButton.onLongPress = [this]() { reloadSystemConfiguration(); };
 
         addAndMakeVisible(reloadSystemConfigBackupButton);
         reloadSystemConfigBackupButton.setButtonText(LOC("systemConfig.buttons.reloadSystemBackup"));
-        reloadSystemConfigBackupButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF266626));  // Darker green
-        reloadSystemConfigBackupButton.onClick = [this]() { reloadSystemConfigBackup(); };
+        reloadSystemConfigBackupButton.setBaseColour(juce::Colour(0xFF266626));  // Darker green
+        reloadSystemConfigBackupButton.onLongPress = [this]() { reloadSystemConfigBackup(); };
 
         addAndMakeVisible(importSystemConfigButton);
         importSystemConfigButton.setButtonText(LOC("systemConfig.buttons.importSystem"));
-        importSystemConfigButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF338C33));  // Greenish
-        importSystemConfigButton.onClick = [this]() { importSystemConfiguration(); };
+        importSystemConfigButton.setBaseColour(juce::Colour(0xFF338C33));  // Greenish
+        importSystemConfigButton.onLongPress = [this]() { importSystemConfiguration(); };
 
         addAndMakeVisible(exportSystemConfigButton);
         exportSystemConfigButton.setButtonText(LOC("systemConfig.buttons.exportSystem"));
-        exportSystemConfigButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF8C3333));  // Reddish
-        exportSystemConfigButton.onClick = [this]() { exportSystemConfiguration(); };
+        exportSystemConfigButton.setBaseColour(juce::Colour(0xFF8C3333));  // Reddish
+        exportSystemConfigButton.onLongPress = [this]() { exportSystemConfiguration(); };
 
         // Setup numeric input filtering
         setupNumericEditors();
@@ -2369,14 +2370,14 @@ private:
 
     // Store/Reload Section
     juce::TextButton selectProjectFolderButton;
-    juce::TextButton storeCompleteConfigButton;
-    juce::TextButton reloadCompleteConfigButton;
-    juce::TextButton reloadCompleteConfigBackupButton;
-    juce::TextButton storeSystemConfigButton;
-    juce::TextButton reloadSystemConfigButton;
-    juce::TextButton reloadSystemConfigBackupButton;
-    juce::TextButton importSystemConfigButton;
-    juce::TextButton exportSystemConfigButton;
+    LongPressButton storeCompleteConfigButton;
+    LongPressButton reloadCompleteConfigButton;
+    LongPressButton reloadCompleteConfigBackupButton;
+    LongPressButton storeSystemConfigButton;
+    LongPressButton reloadSystemConfigButton;
+    LongPressButton reloadSystemConfigBackupButton;
+    LongPressButton importSystemConfigButton;
+    LongPressButton exportSystemConfigButton;
     juce::File projectFolder;
 
     // Callbacks for notifying MainComponent

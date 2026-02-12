@@ -6,6 +6,7 @@
 #include "../WfsParameters.h"
 #include "../DSP/TestSignalGenerator.h"
 #include "../Localization/LocalizationManager.h"
+#include "buttons/LongPressButton.h"
 
 /**
  * TestSignalControlPanel
@@ -77,13 +78,12 @@ private:
     // Mode buttons
     juce::TextButton scrollingButton;
     juce::TextButton patchingButton;
-    juce::TextButton unpatchAllButton;
+    LongPressButton unpatchAllButton;
 
     // Patch matrix
     std::unique_ptr<PatchMatrixComponent> patchMatrix;
 
     void setMode(PatchMatrixComponent::Mode mode);
-    void handleUnpatchAll();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(InputPatchTab)
     JUCE_DECLARE_WEAK_REFERENCEABLE(InputPatchTab)
@@ -130,7 +130,7 @@ private:
     juce::TextButton scrollingButton;
     juce::TextButton patchingButton;
     juce::TextButton testingButton;
-    juce::TextButton unpatchAllButton;
+    LongPressButton unpatchAllButton;
 
     // Patch matrix
     std::unique_ptr<PatchMatrixComponent> patchMatrix;
@@ -149,7 +149,6 @@ private:
     void timerCallback() override;
 
     void setMode(PatchMatrixComponent::Mode mode);
-    void handleUnpatchAll();
     void applyTestSettings();
     void updateTestControlsVisibility(bool visible);
     void updateTestControlsEnabledState();

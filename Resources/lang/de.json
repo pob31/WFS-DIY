@@ -328,7 +328,12 @@
       "tcp": "TCP"
     },
 
+    "dialogs": {
+      "importConfig": "Netzwerkkonfiguration importieren",
+      "exportConfig": "Netzwerkkonfiguration exportieren"
+    },
     "messages": {
+      "selectFolderFirst": "Bitte wählen Sie zuerst einen Projektordner in der Systemkonfiguration.",
       "configSaved": "Netzwerkkonfiguration gespeichert.",
       "configNotFound": "Netzwerkkonfigurationsdatei nicht gefunden.",
       "configReloaded": "Netzwerkkonfiguration neu geladen.",
@@ -336,6 +341,7 @@
       "configLoadedFromBackup": "Netzwerkkonfiguration aus Backup geladen.",
       "configImported": "Netzwerkkonfiguration importiert.",
       "configExported": "Netzwerkkonfiguration exportiert.",
+      "error": "Fehler: {error}",
       "onlyOneRemote": "Nur eine FERNSTEUERUNG-Verbindung ist erlaubt.",
       "findDeviceSent": "Gerät-Suchen-Befehl gesendet."
     }
@@ -1091,7 +1097,10 @@
     "arrayPrefix": "Array",
     "dialogs": {
       "importConfig": "Eingangskonfiguration importieren",
-      "exportConfig": "Eingangskonfiguration exportieren"
+      "exportConfig": "Eingangskonfiguration exportieren",
+      "storeSnapshotTitle": "Neuen Snapshot speichern",
+      "storeSnapshotMessage": "Geben Sie einen Namen für den neuen Snapshot ein:",
+      "snapshotNameLabel": "Name:"
     },
     "messages": {
       "selectFolderFirst": "Bitte wählen Sie zuerst einen Projektordner in der Systemkonfiguration.",
@@ -1106,6 +1115,7 @@
       "noSnapshotSelected": "Kein Snapshot ausgewählt.",
       "snapshotStored": "Snapshot '{name}' gespeichert.",
       "snapshotLoaded": "Snapshot '{name}' geladen.",
+      "snapshotLoadedWithoutScope": "Snapshot '{name}' geladen (ohne Umfang).",
       "snapshotUpdated": "Snapshot '{name}' aktualisiert.",
       "snapshotDeleted": "Snapshot '{name}' gelöscht.",
       "scopeSaved": "Snapshot-Umfang gespeichert.",

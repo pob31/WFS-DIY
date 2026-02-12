@@ -8,6 +8,7 @@
 #include "../Network/OSCManager.h"
 #include "ColorScheme.h"
 #include "../Localization/LocalizationManager.h"
+#include "buttons/LongPressButton.h"
 
 #if JUCE_WINDOWS
     #include <winsock2.h>
@@ -99,28 +100,28 @@ public:
         // ==================== FOOTER BUTTONS ====================
         addAndMakeVisible(storeButton);
         storeButton.setButtonText(LOC("network.buttons.storeConfig"));
-        storeButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF8C3333));  // Reddish
-        storeButton.onClick = [this]() { storeNetworkConfiguration(); };
+        storeButton.setBaseColour(juce::Colour(0xFF8C3333));  // Reddish
+        storeButton.onLongPress = [this]() { storeNetworkConfiguration(); };
 
         addAndMakeVisible(reloadButton);
         reloadButton.setButtonText(LOC("network.buttons.reloadConfig"));
-        reloadButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF338C33));  // Greenish
-        reloadButton.onClick = [this]() { reloadNetworkConfiguration(); };
+        reloadButton.setBaseColour(juce::Colour(0xFF338C33));  // Greenish
+        reloadButton.onLongPress = [this]() { reloadNetworkConfiguration(); };
 
         addAndMakeVisible(reloadBackupButton);
         reloadBackupButton.setButtonText(LOC("network.buttons.reloadBackup"));
-        reloadBackupButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF266626));  // Darker green
-        reloadBackupButton.onClick = [this]() { reloadNetworkConfigBackup(); };
+        reloadBackupButton.setBaseColour(juce::Colour(0xFF266626));  // Darker green
+        reloadBackupButton.onLongPress = [this]() { reloadNetworkConfigBackup(); };
 
         addAndMakeVisible(importButton);
         importButton.setButtonText(LOC("network.buttons.import"));
-        importButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF338C33));  // Greenish
-        importButton.onClick = [this]() { importNetworkConfiguration(); };
+        importButton.setBaseColour(juce::Colour(0xFF338C33));  // Greenish
+        importButton.onLongPress = [this]() { importNetworkConfiguration(); };
 
         addAndMakeVisible(exportButton);
         exportButton.setButtonText(LOC("network.buttons.export"));
-        exportButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF8C3333));  // Reddish
-        exportButton.onClick = [this]() { exportNetworkConfiguration(); };
+        exportButton.setBaseColour(juce::Colour(0xFF8C3333));  // Reddish
+        exportButton.onLongPress = [this]() { exportNetworkConfiguration(); };
 
         // Setup numeric input filtering
         setupNumericEditors();
@@ -566,11 +567,11 @@ private:
     juce::TextButton oscQueryEnableButton;
 
     // Footer buttons
-    juce::TextButton storeButton;
-    juce::TextButton reloadButton;
-    juce::TextButton reloadBackupButton;
-    juce::TextButton importButton;
-    juce::TextButton exportButton;
+    LongPressButton storeButton;
+    LongPressButton reloadButton;
+    LongPressButton reloadBackupButton;
+    LongPressButton importButton;
+    LongPressButton exportButton;
 
     // Section Y positions for painting
     int admOscSectionY = 0;
@@ -2790,7 +2791,7 @@ private:
 
         if (!fileManager.hasValidProjectFolder())
         {
-            showStatusMessage("Please select a project folder in System Config first.");
+            showStatusMessage(LOC("network.messages.selectFolderFirst"));
             return;
         }
 
@@ -2798,7 +2799,7 @@ private:
         if (fileManager.saveNetworkConfig())
             showStatusMessage(LOC("network.messages.configSaved"));
         else
-            showStatusMessage("Error: " + fileManager.getLastError());
+            showStatusMessage(LOC("network.messages.error").replace("{error}", fileManager.getLastError()));
     }
 
     void reloadNetworkConfiguration()
@@ -2807,7 +2808,7 @@ private:
 
         if (!fileManager.hasValidProjectFolder())
         {
-            showStatusMessage("Please select a project folder in System Config first.");
+            showStatusMessage(LOC("network.messages.selectFolderFirst"));
             return;
         }
 
@@ -2825,7 +2826,7 @@ private:
             showStatusMessage(LOC("network.messages.configReloaded"));
         }
         else
-            showStatusMessage("Error: " + fileManager.getLastError());
+            showStatusMessage(LOC("network.messages.error").replace("{error}", fileManager.getLastError()));
     }
 
     void reloadNetworkConfigBackup()
@@ -2834,7 +2835,7 @@ private:
 
         if (!fileManager.hasValidProjectFolder())
         {
-            showStatusMessage("Please select a project folder in System Config first.");
+            showStatusMessage(LOC("network.messages.selectFolderFirst"));
             return;
         }
 
@@ -2852,12 +2853,12 @@ private:
             showStatusMessage(LOC("network.messages.configLoadedFromBackup"));
         }
         else
-            showStatusMessage("Error: " + fileManager.getLastError());
+            showStatusMessage(LOC("network.messages.error").replace("{error}", fileManager.getLastError()));
     }
 
     void importNetworkConfiguration()
     {
-        auto chooser = std::make_shared<juce::FileChooser>("Import Network Configuration",
+        auto chooser = std::make_shared<juce::FileChooser>(LOC("network.dialogs.importConfig"),
             juce::File::getSpecialLocation(juce::File::userHomeDirectory),
             "*.xml");
         auto chooserFlags = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
@@ -2875,14 +2876,14 @@ private:
                     showStatusMessage(LOC("network.messages.configImported"));
                 }
                 else
-                    showStatusMessage("Error: " + fileManager.getLastError());
+                    showStatusMessage(LOC("network.messages.error").replace("{error}", fileManager.getLastError()));
             }
         });
     }
 
     void exportNetworkConfiguration()
     {
-        auto chooser = std::make_shared<juce::FileChooser>("Export Network Configuration",
+        auto chooser = std::make_shared<juce::FileChooser>(LOC("network.dialogs.exportConfig"),
             juce::File::getSpecialLocation(juce::File::userHomeDirectory),
             "*.xml");
         auto chooserFlags = juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles;
@@ -2899,7 +2900,7 @@ private:
                 if (fileManager.exportNetworkConfig(result))
                     showStatusMessage(LOC("network.messages.configExported"));
                 else
-                    showStatusMessage("Error: " + fileManager.getLastError());
+                    showStatusMessage(LOC("network.messages.error").replace("{error}", fileManager.getLastError()));
             }
         });
     }

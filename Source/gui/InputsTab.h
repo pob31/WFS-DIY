@@ -18,6 +18,7 @@
 #include "../Helpers/CoordinateConverter.h"
 #include "SetAllInputsWindow.h"
 #include "SnapshotScopeWindow.h"
+#include "buttons/LongPressButton.h"
 #include "../Localization/LocalizationManager.h"
 
 //==============================================================================
@@ -118,125 +119,6 @@ public:
         g.fillRect(iconBounds.getX(), iconBounds.getY(), barWidth, iconBounds.getHeight());
         g.fillRect(iconBounds.getX() + barWidth + gap, iconBounds.getY(), barWidth, iconBounds.getHeight());
     }
-};
-
-//==============================================================================
-// Long-Press Button for "Set All Inputs" window
-// Activates on release after holding for 2+ seconds. Cancels if pointer leaves button.
-class SetAllInputsLongPressButton : public juce::TextButton,
-                                     private juce::Timer
-{
-public:
-    SetAllInputsLongPressButton()
-    {
-        setButtonText(LOC("inputs.buttons.setAllInputs"));
-    }
-
-    void mouseDown(const juce::MouseEvent& e) override
-    {
-        if (e.mods.isLeftButtonDown())
-        {
-            pressStartTime = juce::Time::getCurrentTime();
-            isLongPressActive = true;
-            thresholdReached = false;
-            startTimer(50);  // Check every 50ms
-        }
-        TextButton::mouseDown(e);
-    }
-
-    void mouseUp(const juce::MouseEvent& e) override
-    {
-        stopTimer();
-
-        // Trigger action only if threshold was reached and pointer is still over button
-        if (thresholdReached && isLongPressActive && contains(e.getPosition()))
-        {
-            if (onLongPress)
-                onLongPress();
-        }
-
-        isLongPressActive = false;
-        thresholdReached = false;
-        repaint();
-        TextButton::mouseUp(e);
-    }
-
-    void mouseExit(const juce::MouseEvent& e) override
-    {
-        // Cancel long-press if pointer leaves button
-        if (isLongPressActive)
-        {
-            stopTimer();
-            isLongPressActive = false;
-            thresholdReached = false;
-            repaint();
-        }
-        TextButton::mouseExit(e);
-    }
-
-    std::function<void()> onLongPress;
-
-    static constexpr int longPressDurationMs = 2000;  // 2 seconds
-
-private:
-    void timerCallback() override
-    {
-        if (isLongPressActive && !thresholdReached)
-        {
-            auto elapsed = (juce::Time::getCurrentTime() - pressStartTime).inMilliseconds();
-            if (elapsed >= longPressDurationMs)
-            {
-                thresholdReached = true;
-                stopTimer();
-            }
-        }
-        repaint();  // Update progress indicator
-    }
-
-    void paintButton(juce::Graphics& g, bool shouldHighlight, bool shouldBeDown) override
-    {
-        auto bounds = getLocalBounds().toFloat().reduced(1.0f);
-
-        // Background
-        if (shouldBeDown)
-            g.setColour(ColorScheme::get().buttonPressed);
-        else if (shouldHighlight)
-            g.setColour(ColorScheme::get().buttonHover);
-        else
-            g.setColour(ColorScheme::get().buttonNormal);
-
-        g.fillRoundedRectangle(bounds, 4.0f);
-        g.setColour(ColorScheme::get().buttonBorder);
-        g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
-
-        // Progress indicator during long press (fills from left to right)
-        if (isLongPressActive && !thresholdReached)
-        {
-            auto elapsed = (juce::Time::getCurrentTime() - pressStartTime).inMilliseconds();
-            float progress = juce::jlimit(0.0f, 1.0f, static_cast<float>(elapsed) / static_cast<float>(longPressDurationMs));
-
-            g.setColour(ColorScheme::get().accentBlue.withAlpha(0.5f));
-            auto progressBounds = bounds;
-            progressBounds = progressBounds.removeFromLeft(bounds.getWidth() * progress);
-            g.fillRoundedRectangle(progressBounds, 4.0f);
-        }
-
-        // Show green when threshold reached (ready to release)
-        if (thresholdReached && isLongPressActive)
-        {
-            g.setColour(ColorScheme::get().accentGreen.withAlpha(0.5f));
-            g.fillRoundedRectangle(bounds, 4.0f);
-        }
-
-        // Text
-        g.setColour(ColorScheme::get().textPrimary);
-        g.setFont(juce::FontOptions(14.0f));
-        g.drawText(getButtonText(), bounds, juce::Justification::centred);
-    }
-
-    juce::Time pressStartTime;
-    bool isLongPressActive = false;
-    bool thresholdReached = false;
 };
 
 /**
@@ -371,6 +253,7 @@ public:
 
         // Set All Inputs button (long-press to open)
         addAndMakeVisible(setAllInputsButton);
+        setAllInputsButton.setButtonText(LOC("inputs.buttons.setAllInputs"));
         setAllInputsButton.onLongPress = [this]() { openSetAllInputsWindow(); };
 
         // ==================== SUB-TABS ====================
@@ -397,34 +280,34 @@ public:
         // ==================== FOOTER - STORE/RELOAD BUTTONS ====================
         addAndMakeVisible(storeButton);
         storeButton.setButtonText(LOC("inputs.buttons.storeConfig"));
-        storeButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF8C3333));  // Reddish
-        storeButton.onClick = [this]() { storeInputConfiguration(); };
+        storeButton.setBaseColour(juce::Colour(0xFF8C3333));  // Reddish
+        storeButton.onLongPress = [this]() { storeInputConfiguration(); };
 
         addAndMakeVisible(reloadButton);
         reloadButton.setButtonText(LOC("inputs.buttons.reloadConfig"));
-        reloadButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF338C33));  // Greenish
-        reloadButton.onClick = [this]() { reloadInputConfiguration(); };
+        reloadButton.setBaseColour(juce::Colour(0xFF338C33));  // Greenish
+        reloadButton.onLongPress = [this]() { reloadInputConfiguration(); };
 
         addAndMakeVisible(reloadBackupButton);
         reloadBackupButton.setButtonText(LOC("inputs.buttons.reloadBackup"));
-        reloadBackupButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF266626));  // Darker green
-        reloadBackupButton.onClick = [this]() { reloadInputConfigBackup(); };
+        reloadBackupButton.setBaseColour(juce::Colour(0xFF266626));  // Darker green
+        reloadBackupButton.onLongPress = [this]() { reloadInputConfigBackup(); };
 
         addAndMakeVisible(importButton);
         importButton.setButtonText(LOC("inputs.buttons.import"));
-        importButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF338C33));  // Greenish
-        importButton.onClick = [this]() { importInputConfiguration(); };
+        importButton.setBaseColour(juce::Colour(0xFF338C33));  // Greenish
+        importButton.onLongPress = [this]() { importInputConfiguration(); };
 
         addAndMakeVisible(exportButton);
         exportButton.setButtonText(LOC("inputs.buttons.export"));
-        exportButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF8C3333));  // Reddish
-        exportButton.onClick = [this]() { exportInputConfiguration(); };
+        exportButton.setBaseColour(juce::Colour(0xFF8C3333));  // Reddish
+        exportButton.onLongPress = [this]() { exportInputConfiguration(); };
 
         // Snapshot management
         addAndMakeVisible(storeSnapshotButton);
         storeSnapshotButton.setButtonText(LOC("inputs.buttons.storeSnapshot"));
-        storeSnapshotButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF996633));  // Yellow-orange
-        storeSnapshotButton.onClick = [this]() { storeNewSnapshot(); };
+        storeSnapshotButton.setBaseColour(juce::Colour(0xFF996633));  // Yellow-orange
+        storeSnapshotButton.onLongPress = [this]() { storeNewSnapshot(); };
 
         addAndMakeVisible(snapshotSelector);
         snapshotSelector.addItem(LOC("inputs.snapshots.selectSnapshot"), 1);
@@ -432,20 +315,20 @@ public:
 
         addAndMakeVisible(reloadSnapshotButton);
         reloadSnapshotButton.setButtonText(LOC("inputs.buttons.reloadSnapshot"));
-        reloadSnapshotButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF669933));  // Yellow-green
-        reloadSnapshotButton.onClick = [this]() { reloadSnapshot(); };
+        reloadSnapshotButton.setBaseColour(juce::Colour(0xFF669933));  // Yellow-green
+        reloadSnapshotButton.onLongPress = [this]() { reloadSnapshot(); };
         reloadSnapshotButton.setEnabled(false);
 
         addAndMakeVisible(reloadWithoutScopeButton);
         reloadWithoutScopeButton.setButtonText(LOC("inputs.buttons.reloadWithoutScope"));
-        reloadWithoutScopeButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF669933));  // Yellow-green
-        reloadWithoutScopeButton.onClick = [this]() { reloadSnapshotWithoutScope(); };
+        reloadWithoutScopeButton.setBaseColour(juce::Colour(0xFF669933));  // Yellow-green
+        reloadWithoutScopeButton.onLongPress = [this]() { reloadSnapshotWithoutScope(); };
         reloadWithoutScopeButton.setEnabled(false);
 
         addAndMakeVisible(updateSnapshotButton);
         updateSnapshotButton.setButtonText(LOC("inputs.buttons.updateSnapshot"));
-        updateSnapshotButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF996633));  // Yellow-orange
-        updateSnapshotButton.onClick = [this]() { updateSnapshot(); };
+        updateSnapshotButton.setBaseColour(juce::Colour(0xFF996633));  // Yellow-orange
+        updateSnapshotButton.onLongPress = [this]() { updateSnapshot(); };
         updateSnapshotButton.setEnabled(false);
 
         addAndMakeVisible(editScopeButton);
@@ -455,8 +338,8 @@ public:
 
         addAndMakeVisible(deleteSnapshotButton);
         deleteSnapshotButton.setButtonText(LOC("inputs.buttons.deleteSnapshot"));
-        deleteSnapshotButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF661A33));  // Burgundy
-        deleteSnapshotButton.onClick = [this]() { deleteSnapshot(); };
+        deleteSnapshotButton.setBaseColour(juce::Colour(0xFF661A33));  // Burgundy
+        deleteSnapshotButton.onLongPress = [this]() { deleteSnapshot(); };
         deleteSnapshotButton.setEnabled(false);
 
         // Load initial channel parameters
@@ -6038,13 +5921,13 @@ private:
         auto defaultName = WFSFileManager::getDefaultSnapshotName();
 
         auto* dialog = new juce::AlertWindow(
-            "Store New Snapshot",
-            "Enter a name for the new snapshot:",
+            LOC("inputs.dialogs.storeSnapshotTitle"),
+            LOC("inputs.dialogs.storeSnapshotMessage"),
             juce::MessageBoxIconType::NoIcon);
 
-        dialog->addTextEditor("name", defaultName, "Name:");
-        dialog->addButton("OK", 1, juce::KeyPress(juce::KeyPress::returnKey));
-        dialog->addButton("Cancel", 0, juce::KeyPress(juce::KeyPress::escapeKey));
+        dialog->addTextEditor("name", defaultName, LOC("inputs.dialogs.snapshotNameLabel"));
+        dialog->addButton(LOC("common.ok"), 1, juce::KeyPress(juce::KeyPress::returnKey));
+        dialog->addButton(LOC("common.cancel"), 0, juce::KeyPress(juce::KeyPress::escapeKey));
 
         dialog->enterModalState(true, juce::ModalCallbackFunction::create(
             [this, dialog](int result)
@@ -6072,7 +5955,7 @@ private:
                             refreshSnapshotList();
                             snapshotSelector.setText(name, juce::dontSendNotification);
                             updateSnapshotButtonStates();
-                            showStatusMessage("Snapshot '" + name + "' stored.");
+                            showStatusMessage(LOC("inputs.messages.snapshotStored").replace("{name}", name));
                         }
                         else
                         {
@@ -6107,7 +5990,7 @@ private:
         if (fileManager.loadInputSnapshotWithExtendedScope(selectedSnapshot, scope))
         {
             loadChannelParameters(currentChannel);
-            showStatusMessage("Snapshot '" + selectedSnapshot + "' loaded.");
+            showStatusMessage(LOC("inputs.messages.snapshotLoaded").replace("{name}", selectedSnapshot));
             if (onConfigReloaded)
                 onConfigReloaded();
         }
@@ -6134,7 +6017,7 @@ private:
         if (fileManager.loadInputSnapshotWithExtendedScope(selectedSnapshot, noScope))
         {
             loadChannelParameters(currentChannel);
-            showStatusMessage("Snapshot '" + selectedSnapshot + "' loaded (without scope).");
+            showStatusMessage(LOC("inputs.messages.snapshotLoadedWithoutScope").replace("{name}", selectedSnapshot));
             if (onConfigReloaded)
                 onConfigReloaded();
         }
@@ -6178,35 +6061,22 @@ private:
             return;
         }
 
-        juce::AlertWindow::showOkCancelBox(
-            juce::AlertWindow::QuestionIcon,
-            "Update Snapshot",
-            "Update snapshot '" + selectedSnapshot + "' with current settings?\nA backup will be created.",
-            "Update",
-            "Cancel",
-            nullptr,
-            juce::ModalCallbackFunction::create([this, selectedSnapshot](int result) {
-                if (result == 1)
-                {
-                    auto& fileManager = parameters.getFileManager();
+        auto& fileManager = parameters.getFileManager();
 
-                    // Get existing scope or create default
-                    if (snapshotScopes.find(selectedSnapshot) == snapshotScopes.end())
-                        snapshotScopes[selectedSnapshot] = fileManager.getExtendedSnapshotScope(selectedSnapshot);
+        // Get existing scope or create default
+        if (snapshotScopes.find(selectedSnapshot) == snapshotScopes.end())
+            snapshotScopes[selectedSnapshot] = fileManager.getExtendedSnapshotScope(selectedSnapshot);
 
-                    auto& scope = snapshotScopes[selectedSnapshot];
+        auto& scope = snapshotScopes[selectedSnapshot];
 
-                    // Create backup then save
-                    auto file = fileManager.getInputSnapshotsFolder().getChildFile(selectedSnapshot + ".xml");
-                    fileManager.createBackup(file);
+        // Create backup then save
+        auto file = fileManager.getInputSnapshotsFolder().getChildFile(selectedSnapshot + ".xml");
+        fileManager.createBackup(file);
 
-                    if (fileManager.saveInputSnapshotWithExtendedScope(selectedSnapshot, scope))
-                        showStatusMessage("Snapshot '" + selectedSnapshot + "' updated.");
-                    else
-                        showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
-                }
-            })
-        );
+        if (fileManager.saveInputSnapshotWithExtendedScope(selectedSnapshot, scope))
+            showStatusMessage(LOC("inputs.messages.snapshotUpdated").replace("{name}", selectedSnapshot));
+        else
+            showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
     }
 
     void editSnapshotScope()
@@ -6252,13 +6122,13 @@ private:
                     {
                         auto& fileManager = parameters.getFileManager();
                         if (fileManager.setExtendedSnapshotScope(selectedSnapshot, snapshotScopes[selectedSnapshot]))
-                            showStatusMessage("Snapshot scope saved.");
+                            showStatusMessage(LOC("inputs.messages.scopeSaved"));
                         else
                             showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
                     }
                     else
                     {
-                        showStatusMessage("Scope configured for next snapshot.");
+                        showStatusMessage(LOC("inputs.messages.scopeConfigured"));
                     }
                 }
                 snapshotScopeWindow.reset();
@@ -6279,31 +6149,18 @@ private:
             return;
         }
 
-        juce::AlertWindow::showOkCancelBox(
-            juce::AlertWindow::WarningIcon,
-            "Delete Snapshot",
-            "Delete snapshot '" + selectedSnapshot + "'?\nThis cannot be undone.",
-            "Delete",
-            "Cancel",
-            nullptr,
-            juce::ModalCallbackFunction::create([this, selectedSnapshot](int result) {
-                if (result == 1)
-                {
-                    auto& fileManager = parameters.getFileManager();
-                    if (fileManager.deleteInputSnapshot(selectedSnapshot))
-                    {
-                        snapshotScopes.erase(selectedSnapshot);
-                        refreshSnapshotList();
-                        updateSnapshotButtonStates();
-                        showStatusMessage("Snapshot '" + selectedSnapshot + "' deleted.");
-                    }
-                    else
-                    {
-                        showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
-                    }
-                }
-            })
-        );
+        auto& fileManager = parameters.getFileManager();
+        if (fileManager.deleteInputSnapshot(selectedSnapshot))
+        {
+            snapshotScopes.erase(selectedSnapshot);
+            refreshSnapshotList();
+            updateSnapshotButtonStates();
+            showStatusMessage(LOC("inputs.messages.snapshotDeleted").replace("{name}", selectedSnapshot));
+        }
+        else
+        {
+            showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
+        }
     }
 
     void refreshSnapshotList()
@@ -7292,7 +7149,7 @@ private:
     juce::TextButton clearSoloButton;
     juce::TextButton soloButton;
     juce::TextButton soloModeButton;
-    SetAllInputsLongPressButton setAllInputsButton;
+    LongPressButton setAllInputsButton;
     std::unique_ptr<SetAllInputsWindow> setAllInputsWindow;
 
     // Snapshot scope
@@ -7522,20 +7379,20 @@ private:
     juce::Label sidelinesFringeUnitLabel;
 
     // Footer buttons - Config
-    juce::TextButton storeButton;
-    juce::TextButton reloadButton;
-    juce::TextButton reloadBackupButton;
-    juce::TextButton importButton;
-    juce::TextButton exportButton;
+    LongPressButton storeButton;
+    LongPressButton reloadButton;
+    LongPressButton reloadBackupButton;
+    LongPressButton importButton;
+    LongPressButton exportButton;
 
     // Footer buttons - Snapshot
-    juce::TextButton storeSnapshotButton;
+    LongPressButton storeSnapshotButton;
     juce::ComboBox snapshotSelector;
-    juce::TextButton reloadSnapshotButton;
-    juce::TextButton reloadWithoutScopeButton;
-    juce::TextButton updateSnapshotButton;
+    LongPressButton reloadSnapshotButton;
+    LongPressButton reloadWithoutScopeButton;
+    LongPressButton updateSnapshotButton;
     juce::TextButton editScopeButton;
-    juce::TextButton deleteSnapshotButton;
+    LongPressButton deleteSnapshotButton;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(InputsTab)
 };

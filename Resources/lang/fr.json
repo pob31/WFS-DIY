@@ -335,7 +335,12 @@
       "tcp": "TCP"
     },
 
+    "dialogs": {
+      "importConfig": "Importer configuration réseau",
+      "exportConfig": "Exporter configuration réseau"
+    },
     "messages": {
+      "selectFolderFirst": "Veuillez d'abord sélectionner un dossier projet dans Config Système.",
       "configSaved": "Configuration réseau enregistrée.",
       "configNotFound": "Fichier de configuration réseau introuvable.",
       "configReloaded": "Configuration réseau rechargée.",
@@ -343,6 +348,7 @@
       "configLoadedFromBackup": "Configuration réseau chargée depuis la sauvegarde.",
       "configImported": "Configuration réseau importée.",
       "configExported": "Configuration réseau exportée.",
+      "error": "Erreur : {error}",
       "onlyOneRemote": "Une seule connexion TÉLÉCOMMANDE est autorisée.",
       "findDeviceSent": "Commande Trouver l'appareil envoyée."
     }
@@ -1098,7 +1104,10 @@
     "arrayPrefix": "Réseau",
     "dialogs": {
       "importConfig": "Importer configuration entrées",
-      "exportConfig": "Exporter configuration entrées"
+      "exportConfig": "Exporter configuration entrées",
+      "storeSnapshotTitle": "Enregistrer un nouveau snapshot",
+      "storeSnapshotMessage": "Entrez un nom pour le nouveau snapshot :",
+      "snapshotNameLabel": "Nom :"
     },
     "messages": {
       "selectFolderFirst": "Veuillez d'abord sélectionner un dossier projet dans Config Système.",
@@ -1113,6 +1122,7 @@
       "noSnapshotSelected": "Aucun snapshot sélectionné.",
       "snapshotStored": "Snapshot '{name}' enregistré.",
       "snapshotLoaded": "Snapshot '{name}' chargé.",
+      "snapshotLoadedWithoutScope": "Snapshot '{name}' chargé (sans portée).",
       "snapshotUpdated": "Snapshot '{name}' mis à jour.",
       "snapshotDeleted": "Snapshot '{name}' supprimé.",
       "scopeSaved": "Portée du snapshot enregistrée.",

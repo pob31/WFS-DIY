@@ -14,6 +14,7 @@
 #include "EQDisplayComponent.h"
 #include "../Helpers/CoordinateConverter.h"
 #include "../Localization/LocalizationManager.h"
+#include "buttons/LongPressButton.h"
 
 /**
  * Small colored indicator to show that a parameter is linked across an array.
@@ -220,28 +221,28 @@ public:
         // ==================== FOOTER - STORE/RELOAD BUTTONS ====================
         addAndMakeVisible(storeButton);
         storeButton.setButtonText(LOC("outputs.buttons.storeConfig"));
-        storeButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF8C3333));  // Reddish
-        storeButton.onClick = [this]() { storeOutputConfiguration(); };
+        storeButton.setBaseColour(juce::Colour(0xFF8C3333));  // Reddish
+        storeButton.onLongPress = [this]() { storeOutputConfiguration(); };
 
         addAndMakeVisible(reloadButton);
         reloadButton.setButtonText(LOC("outputs.buttons.reloadConfig"));
-        reloadButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF338C33));  // Greenish
-        reloadButton.onClick = [this]() { reloadOutputConfiguration(); };
+        reloadButton.setBaseColour(juce::Colour(0xFF338C33));  // Greenish
+        reloadButton.onLongPress = [this]() { reloadOutputConfiguration(); };
 
         addAndMakeVisible(reloadBackupButton);
         reloadBackupButton.setButtonText(LOC("outputs.buttons.reloadBackup"));
-        reloadBackupButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF266626));  // Darker green
-        reloadBackupButton.onClick = [this]() { reloadOutputConfigBackup(); };
+        reloadBackupButton.setBaseColour(juce::Colour(0xFF266626));  // Darker green
+        reloadBackupButton.onLongPress = [this]() { reloadOutputConfigBackup(); };
 
         addAndMakeVisible(importButton);
         importButton.setButtonText(LOC("outputs.buttons.import"));
-        importButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF338C33));  // Greenish
-        importButton.onClick = [this]() { importOutputConfiguration(); };
+        importButton.setBaseColour(juce::Colour(0xFF338C33));  // Greenish
+        importButton.onLongPress = [this]() { importOutputConfiguration(); };
 
         addAndMakeVisible(exportButton);
         exportButton.setButtonText(LOC("outputs.buttons.export"));
-        exportButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF8C3333));  // Reddish
-        exportButton.onClick = [this]() { exportOutputConfiguration(); };
+        exportButton.setBaseColour(juce::Colour(0xFF8C3333));  // Reddish
+        exportButton.onLongPress = [this]() { exportOutputConfiguration(); };
 
         // Load initial channel parameters
         loadChannelParameters(1);
@@ -2316,11 +2317,11 @@ private:
     ArrayLinkIndicator eqIndicator;  // Single indicator for all EQ parameters
 
     // Footer buttons
-    juce::TextButton storeButton;
-    juce::TextButton reloadButton;
-    juce::TextButton reloadBackupButton;
-    juce::TextButton importButton;
-    juce::TextButton exportButton;
+    LongPressButton storeButton;
+    LongPressButton reloadButton;
+    LongPressButton reloadBackupButton;
+    LongPressButton importButton;
+    LongPressButton exportButton;
 
     // Array Position Helper window
     std::unique_ptr<OutputArrayHelperWindow> arrayHelperWindow;
