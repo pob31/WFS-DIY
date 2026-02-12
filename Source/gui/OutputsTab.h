@@ -1732,13 +1732,13 @@ private:
         {
             auto val = parameters.getOutputParam(currentChannel - 1, "outputArrayMapVisible");
             bool visible = val.isVoid() || static_cast<int>(val) != 0;
-            mapVisibilityButton.setButtonText(visible ? "Array Visible on Map" : "Array Hidden on Map");
+            mapVisibilityButton.setButtonText(visible ? LOC("outputs.buttons.arrayVisible") : LOC("outputs.buttons.arrayHidden"));
         }
         else
         {
             auto val = parameters.getOutputParam(currentChannel - 1, "outputMapVisible");
             bool visible = val.isVoid() || static_cast<int>(val) != 0;
-            mapVisibilityButton.setButtonText(visible ? "Speaker Visible on Map" : "Speaker Hidden on Map");
+            mapVisibilityButton.setButtonText(visible ? LOC("outputs.buttons.speakerVisible") : LOC("outputs.buttons.speakerHidden"));
         }
     }
 

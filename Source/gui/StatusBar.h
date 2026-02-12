@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "ColorScheme.h"
+#include "../Localization/LocalizationManager.h"
 
 /**
  * Status Bar Component
@@ -23,11 +24,11 @@ public:
     {
         // Mode selector
         addAndMakeVisible(modeLabel);
-        modeLabel.setText("Display:", juce::dontSendNotification);
+        modeLabel.setText(LOC("statusBar.displayLabel"), juce::dontSendNotification);
 
         addAndMakeVisible(modeSelector);
-        modeSelector.addItem("Help", 1);
-        modeSelector.addItem("OSC", 2);
+        modeSelector.addItem(LOC("statusBar.helpMode"), 1);
+        modeSelector.addItem(LOC("statusBar.oscMode"), 2);
         modeSelector.setSelectedId(1, juce::dontSendNotification);
         modeSelector.onChange = [this]() {
             currentMode = (modeSelector.getSelectedId() == 1) ? DisplayMode::Help : DisplayMode::OSC;

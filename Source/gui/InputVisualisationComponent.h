@@ -4,6 +4,7 @@
 #include "ColorScheme.h"
 #include "ColorUtilities.h"
 #include "../WfsParameters.h"
+#include "../Localization/LocalizationManager.h"
 
 //==============================================================================
 /**
@@ -140,7 +141,7 @@ public:
 
         // Row labels
         addAndMakeVisible(delayLabel);
-        delayLabel.setText("delay", juce::dontSendNotification);
+        delayLabel.setText(LOC("inputs.visualisation.delay"), juce::dontSendNotification);
         delayLabel.setColour(juce::Label::textColourId, juce::Colour(0xFFD4A017));  // Yellow
         delayLabel.setJustificationType(juce::Justification::centredRight);
 
@@ -150,7 +151,7 @@ public:
         delayUnitLabel.setJustificationType(juce::Justification::centredRight);
 
         addAndMakeVisible(hfLabel);
-        hfLabel.setText("HF\ndamping", juce::dontSendNotification);
+        hfLabel.setText(LOC("inputs.visualisation.hfDamping"), juce::dontSendNotification);
         hfLabel.setColour(juce::Label::textColourId, juce::Colour(0xFFE07878));  // Pink/coral
         hfLabel.setJustificationType(juce::Justification::centredRight);
 
@@ -160,7 +161,7 @@ public:
         hfUnitLabel.setJustificationType(juce::Justification::centredRight);
 
         addAndMakeVisible(levelLabel);
-        levelLabel.setText("level", juce::dontSendNotification);
+        levelLabel.setText(LOC("inputs.visualisation.level"), juce::dontSendNotification);
         levelLabel.setColour(juce::Label::textColourId, juce::Colour(0xFF4A90D9));  // Blue
         levelLabel.setJustificationType(juce::Justification::centredRight);
 

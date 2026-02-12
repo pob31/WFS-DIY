@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "ColorUtilities.h"
 #include "ColorScheme.h"
+#include "../Localization/LocalizationManager.h"
 
 // Forward declaration
 class ChannelSelectorOverlay;
@@ -114,7 +115,7 @@ public:
         // Draw title
         g.setColour(ColorScheme::get().textPrimary);
         g.setFont(juce::FontOptions().withHeight(14.0f).withStyle("Bold"));
-        g.drawText("Select Channel", padding, padding, getWidth() - padding * 2 - 30, titleHeight - padding,
+        g.drawText(LOC("inputs.dialogs.selectChannel"), padding, padding, getWidth() - padding * 2 - 30, titleHeight - padding,
                    juce::Justification::centredLeft);
     }
 

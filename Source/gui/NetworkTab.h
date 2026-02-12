@@ -1246,7 +1246,7 @@ private:
         if (activeTargetCount >= maxTargets)
         {
             if (statusBar != nullptr)
-                statusBar->setHelpText("Maximum Number of Targets/Servers Reached.");
+                statusBar->setHelpText(LOC("network.messages.maxTargetsReached"));
             return;
         }
 
@@ -1269,14 +1269,14 @@ private:
     {
         juce::String targetName = targetRows[index].nameEditor.getText();
         if (targetName.isEmpty())
-            targetName = "Target " + juce::String(index + 1);
+            targetName = LOC("network.table.defaultTarget").replace("{num}", juce::String(index + 1));
 
         juce::AlertWindow::showOkCancelBox(
             juce::AlertWindow::QuestionIcon,
-            "Remove Target",
-            "Delete target '" + targetName + "'?",
-            "OK",
-            "Cancel",
+            LOC("network.dialogs.removeTargetTitle"),
+            LOC("network.dialogs.removeTargetMessage").replace("{name}", targetName),
+            LOC("common.ok"),
+            LOC("common.cancel"),
             nullptr,
             juce::ModalCallbackFunction::create([this, index](int result) {
                 if (result == 1)  // OK clicked
@@ -1297,14 +1297,14 @@ private:
 
         // Reset row to defaults
         auto& row = targetRows[index];
-        row.nameEditor.setText("Target " + juce::String(index + 1), false);
+        row.nameEditor.setText(LOC("network.table.defaultTarget").replace("{num}", juce::String(index + 1)), false);
         row.dataModeSelector.setSelectedId(1, juce::dontSendNotification);
         row.ipEditor.setText("127.0.0.1", false);
         row.txPortEditor.setText("9000", false);
         row.rxEnableButton.setToggleState(false, juce::dontSendNotification);
-        row.rxEnableButton.setButtonText("OFF");
+        row.rxEnableButton.setButtonText(LOC("network.toggles.off"));
         row.txEnableButton.setToggleState(false, juce::dontSendNotification);
-        row.txEnableButton.setButtonText("OFF");
+        row.txEnableButton.setButtonText(LOC("network.toggles.off"));
         row.protocolSelector.setSelectedId(1, juce::dontSendNotification);
         row.isActive = false;
 
@@ -1788,7 +1788,7 @@ private:
         // Load OSC Source Filter setting
         bool filterEnabled = (int)parameters.getConfigParam("networkOscSourceFilter") != 0;
         oscSourceFilterButton.setToggleState(filterEnabled, juce::dontSendNotification);
-        oscSourceFilterButton.setButtonText(filterEnabled ? "OSC Filter: Registered Only" : "OSC Filter: Accept All");
+        oscSourceFilterButton.setButtonText(filterEnabled ? LOC("network.toggles.oscFilterRegisteredOnly") : LOC("network.toggles.oscFilterAcceptAll"));
 
         // Load ADM-OSC parameters
         admOscOffsetXEditor.setText(juce::String((float)parameters.getConfigParam("admOscOffsetX")), false);
@@ -1802,11 +1802,11 @@ private:
         bool flipY = (int)parameters.getConfigParam("admOscFlipY") != 0;
         bool flipZ = (int)parameters.getConfigParam("admOscFlipZ") != 0;
         admOscFlipXButton.setToggleState(flipX, juce::dontSendNotification);
-        admOscFlipXButton.setButtonText(flipX ? "Flip X: ON" : "Flip X: OFF");
+        admOscFlipXButton.setButtonText(flipX ? LOC("network.toggles.flipXOn") : LOC("network.toggles.flipXOff"));
         admOscFlipYButton.setToggleState(flipY, juce::dontSendNotification);
-        admOscFlipYButton.setButtonText(flipY ? "Flip Y: ON" : "Flip Y: OFF");
+        admOscFlipYButton.setButtonText(flipY ? LOC("network.toggles.flipYOn") : LOC("network.toggles.flipYOff"));
         admOscFlipZButton.setToggleState(flipZ, juce::dontSendNotification);
-        admOscFlipZButton.setButtonText(flipZ ? "Flip Z: ON" : "Flip Z: OFF");
+        admOscFlipZButton.setButtonText(flipZ ? LOC("network.toggles.flipZOn") : LOC("network.toggles.flipZOff"));
 
         // Load Tracking parameters
         bool trackingEnabled = (int)parameters.getConfigParam("trackingEnabled") != 0;
@@ -1827,11 +1827,11 @@ private:
         bool trackFlipY = (int)parameters.getConfigParam("trackingFlipY") != 0;
         bool trackFlipZ = (int)parameters.getConfigParam("trackingFlipZ") != 0;
         trackingFlipXButton.setToggleState(trackFlipX, juce::dontSendNotification);
-        trackingFlipXButton.setButtonText(trackFlipX ? "Flip X: ON" : "Flip X: OFF");
+        trackingFlipXButton.setButtonText(trackFlipX ? LOC("network.toggles.flipXOn") : LOC("network.toggles.flipXOff"));
         trackingFlipYButton.setToggleState(trackFlipY, juce::dontSendNotification);
-        trackingFlipYButton.setButtonText(trackFlipY ? "Flip Y: ON" : "Flip Y: OFF");
+        trackingFlipYButton.setButtonText(trackFlipY ? LOC("network.toggles.flipYOn") : LOC("network.toggles.flipYOff"));
         trackingFlipZButton.setToggleState(trackFlipZ, juce::dontSendNotification);
-        trackingFlipZButton.setButtonText(trackFlipZ ? "Flip Z: ON" : "Flip Z: OFF");
+        trackingFlipZButton.setButtonText(trackFlipZ ? LOC("network.toggles.flipZOn") : LOC("network.toggles.flipZOff"));
 
         // Load Tracking OSC Path
         juce::String oscPath = parameters.getConfigParam("trackingOscPath").toString();
@@ -1848,7 +1848,7 @@ private:
 
         bool oscQueryEnabled = (int)parameters.getConfigParam(WFSParameterIDs::networkOscQueryEnabled.toString()) != 0;
         oscQueryEnableButton.setToggleState(oscQueryEnabled, juce::dontSendNotification);
-        oscQueryEnableButton.setButtonText(oscQueryEnabled ? "Enabled" : "Disabled");
+        oscQueryEnableButton.setButtonText(oscQueryEnabled ? LOC("network.toggles.enabled") : LOC("network.toggles.disabled"));
 
         // Start OSC Query server if enabled
         updateOSCQueryServer();
@@ -1888,87 +1888,87 @@ private:
 
         // ==================== NETWORK SECTION ====================
         if (source == &networkInterfaceLabel || isOrIsChildOf(source, &networkInterfaceSelector))
-            helpText = "Select the Network Interface.";
+            helpText = LOC("network.help.networkInterface");
         else if (source == &currentIPLabel || source == &currentIPEditor)
-            helpText = "IP address of the Processor.";
+            helpText = LOC("network.help.currentIP");
         else if (source == &udpPortLabel || source == &udpPortEditor)
-            helpText = "UDP Receive Port of the Processor.";
+            helpText = LOC("network.help.udpPort");
         else if (source == &tcpPortLabel || source == &tcpPortEditor)
-            helpText = "TCP Receive Port of the Processor.";
+            helpText = LOC("network.help.tcpPort");
         else if (source == &oscQueryLabel || source == &oscQueryPortEditor)
-            helpText = "HTTP port for OSC Query discovery. Other apps can browse parameters at http://localhost:<port>/";
+            helpText = LOC("network.help.oscQueryPort");
         else if (source == &oscQueryEnableButton)
-            helpText = "Enable/disable OSC Query server for automatic parameter discovery via HTTP/WebSocket.";
+            helpText = LOC("network.help.oscQueryEnable");
 
         // ==================== NETWORK CONNECTIONS TABLE ====================
         else if (source == &headerNameLabel)
-            helpText = "Network Target Name.";
+            helpText = LOC("network.help.targetName");
         else if (source == &headerDataModeLabel)
-            helpText = "Select UDP or TCP data transmission.";
+            helpText = LOC("network.help.dataMode");
         else if (source == &headerIpLabel)
-            helpText = "IP Address of the Target (use 127.0.0.1 for local host).";
+            helpText = LOC("network.help.targetIP");
         else if (source == &headerTxPortLabel)
-            helpText = "Transmit Port for this Target.";
+            helpText = LOC("network.help.txPort");
         else if (source == &headerRxEnableLabel)
-            helpText = "Enable or Disable Data Reception.";
+            helpText = LOC("network.help.rxEnable");
         else if (source == &headerTxEnableLabel)
-            helpText = "Enable or Disable Data Transmission.";
+            helpText = LOC("network.help.txEnable");
         else if (source == &headerProtocolLabel)
-            helpText = "Select the Protocol: DISABLED, OSC, REMOTE, or ADM-OSC.";
+            helpText = LOC("network.help.protocol");
         else if (source == &addTargetButton)
-            helpText = "Add new network target.";
+            helpText = LOC("network.help.addTarget");
         else if (source == &openLogWindowButton)
-            helpText = "Open Network Logging window.";
+            helpText = LOC("network.help.openLogWindow");
         else if (source == &findMyRemoteButton)
-            helpText = "Make your Remote Flash and Buzz to Find it.";
+            helpText = LOC("network.help.findMyRemote");
         else if (source == &oscSourceFilterButton)
-            helpText = "Filter incoming OSC: Accept All sources or only Registered connections with Rx enabled.";
+            helpText = LOC("network.help.oscSourceFilter");
 
         // ==================== ADM-OSC SECTION ====================
         else if (source == &admOscOffsetXLabel || source == &admOscOffsetXEditor)
-            helpText = "Offset ADM-OSC X Coordinate.";
+            helpText = LOC("network.help.admOscOffsetX");
         else if (source == &admOscOffsetYLabel || source == &admOscOffsetYEditor)
-            helpText = "Offset ADM-OSC Y Coordinate.";
+            helpText = LOC("network.help.admOscOffsetY");
         else if (source == &admOscOffsetZLabel || source == &admOscOffsetZEditor)
-            helpText = "Offset ADM-OSC Z Coordinate.";
+            helpText = LOC("network.help.admOscOffsetZ");
         else if (source == &admOscScaleXLabel || source == &admOscScaleXEditor)
-            helpText = "Scale ADM-OSC X Coordinate.";
+            helpText = LOC("network.help.admOscScaleX");
         else if (source == &admOscScaleYLabel || source == &admOscScaleYEditor)
-            helpText = "Scale ADM-OSC Y Coordinate.";
+            helpText = LOC("network.help.admOscScaleY");
         else if (source == &admOscScaleZLabel || source == &admOscScaleZEditor)
-            helpText = "Scale ADM-OSC Z Coordinate.";
+            helpText = LOC("network.help.admOscScaleZ");
         else if (source == &admOscFlipXButton)
-            helpText = "Invert Axis of ADM-OSC X Coordinate.";
+            helpText = LOC("network.help.admOscFlipX");
         else if (source == &admOscFlipYButton)
-            helpText = "Invert Axis of ADM-OSC Y Coordinate.";
+            helpText = LOC("network.help.admOscFlipY");
         else if (source == &admOscFlipZButton)
-            helpText = "Invert Axis of ADM-OSC Z Coordinate.";
+            helpText = LOC("network.help.admOscFlipZ");
 
         // ==================== TRACKING SECTION ====================
         else if (source == &trackingEnabledButton)
-            helpText = "Enable or Disable Incoming Tracking data processing.";
+            helpText = LOC("network.help.trackingEnabled");
         else if (source == &trackingProtocolLabel || isOrIsChildOf(source, &trackingProtocolSelector))
-            helpText = "Select the type of Tracking Protocol.";
+            helpText = LOC("network.help.trackingProtocol");
         else if (source == &trackingPortLabel || source == &trackingPortEditor)
-            helpText = "Specify the Port to receive Tracking data.";
+            helpText = LOC("network.help.trackingPort");
         else if (source == &trackingOffsetXLabel || source == &trackingOffsetXEditor)
-            helpText = "Offset Tracking X Coordinate.";
+            helpText = LOC("network.help.trackingOffsetX");
         else if (source == &trackingOffsetYLabel || source == &trackingOffsetYEditor)
-            helpText = "Offset Tracking Y Coordinate.";
+            helpText = LOC("network.help.trackingOffsetY");
         else if (source == &trackingOffsetZLabel || source == &trackingOffsetZEditor)
-            helpText = "Offset Tracking Z Coordinate.";
+            helpText = LOC("network.help.trackingOffsetZ");
         else if (source == &trackingScaleXLabel || source == &trackingScaleXEditor)
-            helpText = "Scale Tracking X Coordinate.";
+            helpText = LOC("network.help.trackingScaleX");
         else if (source == &trackingScaleYLabel || source == &trackingScaleYEditor)
-            helpText = "Scale Tracking Y Coordinate.";
+            helpText = LOC("network.help.trackingScaleY");
         else if (source == &trackingScaleZLabel || source == &trackingScaleZEditor)
-            helpText = "Scale Tracking Z Coordinate.";
+            helpText = LOC("network.help.trackingScaleZ");
         else if (source == &trackingFlipXButton)
-            helpText = "Invert Axis of Tracking X Coordinate.";
+            helpText = LOC("network.help.trackingFlipX");
         else if (source == &trackingFlipYButton)
-            helpText = "Invert Axis of Tracking Y Coordinate.";
+            helpText = LOC("network.help.trackingFlipY");
         else if (source == &trackingFlipZButton)
-            helpText = "Invert Axis of Tracking Z Coordinate.";
+            helpText = LOC("network.help.trackingFlipZ");
         else if (source == &trackingOscPathLabel || source == &trackingOscPathEditor)
             helpText = LOC("network.help.trackingOscPath");
         else if (source == &trackingPsnInterfaceLabel || isOrIsChildOf(source, &trackingPsnInterfaceSelector))
@@ -1976,15 +1976,15 @@ private:
 
         // ==================== FOOTER BUTTONS ====================
         else if (source == &storeButton)
-            helpText = "Store Network Configuration to file.";
+            helpText = LOC("network.help.storeConfig");
         else if (source == &reloadButton)
-            helpText = "Reload Network Configuration from file.";
+            helpText = LOC("network.help.reloadConfig");
         else if (source == &reloadBackupButton)
-            helpText = "Reload Network Configuration from backup file.";
+            helpText = LOC("network.help.reloadBackup");
         else if (source == &importButton)
-            helpText = "Import Network Configuration from file.";
+            helpText = LOC("network.help.importConfig");
         else if (source == &exportButton)
-            helpText = "Export Network Configuration to file.";
+            helpText = LOC("network.help.exportConfig");
 
         // ==================== TARGET ROW COMPONENTS ====================
         else
@@ -1993,21 +1993,21 @@ private:
             {
                 auto& row = targetRows[i];
                 if (source == &row.nameEditor)
-                    helpText = "Network Target Name.";
+                    helpText = LOC("network.help.targetName");
                 else if (isOrIsChildOf(source, &row.dataModeSelector))
-                    helpText = "Select UDP or TCP data transmission.";
+                    helpText = LOC("network.help.dataMode");
                 else if (source == &row.ipEditor)
-                    helpText = "IP Address of the Target (use 127.0.0.1 for local host).";
+                    helpText = LOC("network.help.targetIP");
                 else if (source == &row.txPortEditor)
-                    helpText = "Transmit Port for this Target.";
+                    helpText = LOC("network.help.txPort");
                 else if (source == &row.rxEnableButton)
-                    helpText = "Enable or Disable Data Reception.";
+                    helpText = LOC("network.help.rxEnable");
                 else if (source == &row.txEnableButton)
-                    helpText = "Enable or Disable Data Transmission.";
+                    helpText = LOC("network.help.txEnable");
                 else if (isOrIsChildOf(source, &row.protocolSelector))
-                    helpText = "Select the Protocol: DISABLED, OSC, REMOTE, or ADM-OSC.";
+                    helpText = LOC("network.help.protocol");
                 else if (source == &row.removeButton)
-                    helpText = "Delete this Network Target.";
+                    helpText = LOC("network.help.removeTarget");
 
                 if (helpText.isNotEmpty())
                     break;
@@ -2311,7 +2311,7 @@ private:
         // Always add localhost as a fallback option
         {
             int nextIndex = networkInterfaceSelector.getNumItems() + 1;
-            networkInterfaceSelector.addItem("Localhost (127.0.0.1)", nextIndex);
+            networkInterfaceSelector.addItem(LOC("network.labels.localhost"), nextIndex);
             interfaceNames.add("Localhost");
             interfaceIPs.add("127.0.0.1");
         }
@@ -2431,13 +2431,13 @@ private:
         // Always add localhost as a fallback option
         {
             int nextIndex = networkInterfaceSelector.getNumItems() + 1;
-            networkInterfaceSelector.addItem("Localhost (127.0.0.1)", nextIndex);
+            networkInterfaceSelector.addItem(LOC("network.labels.localhost"), nextIndex);
             interfaceNames.add("Localhost");
             interfaceIPs.add("127.0.0.1");
         }
 #else
         // Unsupported platform - just add localhost
-        networkInterfaceSelector.addItem("Localhost (127.0.0.1)", 1);
+        networkInterfaceSelector.addItem(LOC("network.labels.localhost"), 1);
         interfaceNames.add("Localhost");
         interfaceIPs.add("127.0.0.1");
 #endif
@@ -2539,7 +2539,7 @@ private:
         int nextIndex = interfaceIndex;
         if (nextIndex == 1 || trackingPsnInterfaceSelector.getNumItems() == 0)
         {
-            trackingPsnInterfaceSelector.addItem("Localhost (127.0.0.1)", nextIndex);
+            trackingPsnInterfaceSelector.addItem(LOC("network.labels.localhost"), nextIndex);
             psnInterfaceNames.add("Localhost");
             psnInterfaceIPs.add("127.0.0.1");
         }
@@ -2581,13 +2581,13 @@ private:
         int nextIndex = interfaceIndex;
         if (nextIndex == 1 || trackingPsnInterfaceSelector.getNumItems() == 0)
         {
-            trackingPsnInterfaceSelector.addItem("Localhost (127.0.0.1)", nextIndex);
+            trackingPsnInterfaceSelector.addItem(LOC("network.labels.localhost"), nextIndex);
             psnInterfaceNames.add("Localhost");
             psnInterfaceIPs.add("127.0.0.1");
         }
 #else
         // Unsupported platform - just add localhost
-        trackingPsnInterfaceSelector.addItem("Localhost (127.0.0.1)", 1);
+        trackingPsnInterfaceSelector.addItem(LOC("network.labels.localhost"), 1);
         psnInterfaceNames.add("Localhost");
         psnInterfaceIPs.add("127.0.0.1");
 #endif
@@ -2717,7 +2717,7 @@ private:
             freeifaddrs(ifaddrsList);
         }
 #endif
-        currentIPEditor.setText("Not available", false);
+        currentIPEditor.setText(LOC("network.labels.notAvailable"), false);
     }
 
     // ==================== NETWORK LOG WINDOW ====================
@@ -2731,14 +2731,14 @@ private:
     void showFindMyRemoteDialog()
     {
         auto* alertWindow = new juce::AlertWindow(
-            "Find My Remote",
-            "Enter the password for your remote device:",
+            LOC("network.dialogs.findMyRemoteTitle"),
+            LOC("network.dialogs.findMyRemoteMessage"),
             juce::AlertWindow::QuestionIcon
         );
 
-        alertWindow->addTextEditor("password", findDevicePassword, "Password:", true);
-        alertWindow->addButton("OK", 1, juce::KeyPress(juce::KeyPress::returnKey));
-        alertWindow->addButton("Cancel", 0, juce::KeyPress(juce::KeyPress::escapeKey));
+        alertWindow->addTextEditor("password", findDevicePassword, LOC("network.dialogs.findMyRemotePassword"), true);
+        alertWindow->addButton(LOC("common.ok"), 1, juce::KeyPress(juce::KeyPress::returnKey));
+        alertWindow->addButton(LOC("common.cancel"), 0, juce::KeyPress(juce::KeyPress::escapeKey));
 
         alertWindow->enterModalState(true, juce::ModalCallbackFunction::create(
             [this, alertWindow](int result)
@@ -2753,7 +2753,7 @@ private:
                     else
                     {
                         if (statusBar != nullptr)
-                            statusBar->setHelpText("Password cannot be empty.");
+                            statusBar->setHelpText(LOC("network.messages.passwordEmpty"));
                     }
                 }
                 delete alertWindow;
@@ -2773,7 +2773,7 @@ private:
         else
         {
             if (statusBar != nullptr)
-                statusBar->setHelpText("Error: OSC Manager not available");
+                statusBar->setHelpText(LOC("network.messages.oscManagerError"));
         }
     }
 
@@ -3048,14 +3048,14 @@ private:
         for (int i = 0; i < maxTargets; ++i)
         {
             auto& row = targetRows[i];
-            row.nameEditor.setText("Target " + juce::String(i + 1), false);
+            row.nameEditor.setText(LOC("network.table.defaultTarget").replace("{num}", juce::String(i + 1)), false);
             row.dataModeSelector.setSelectedId(1, juce::dontSendNotification);
             row.ipEditor.setText("127.0.0.1", false);
             row.txPortEditor.setText("9000", false);
             row.rxEnableButton.setToggleState(false, juce::dontSendNotification);
-            row.rxEnableButton.setButtonText("OFF");
+            row.rxEnableButton.setButtonText(LOC("network.toggles.off"));
             row.txEnableButton.setToggleState(false, juce::dontSendNotification);
-            row.txEnableButton.setButtonText("OFF");
+            row.txEnableButton.setButtonText(LOC("network.toggles.off"));
             row.protocolSelector.setSelectedId(1, juce::dontSendNotification);
             row.isActive = false;
         }
@@ -3190,15 +3190,14 @@ private:
             }
             conflictMsg += "\n";
         }
-        conflictMsg += "\nOnly one tracked input per cluster is allowed. "
-                       "If you continue, tracking will be kept only for the first input in each cluster.";
+        conflictMsg += LOC("network.dialogs.trackingConflictsMessage");
 
         juce::AlertWindow::showOkCancelBox(
             juce::AlertWindow::WarningIcon,
-            "Tracking Conflicts Detected",
+            LOC("network.dialogs.trackingConflictsTitle"),
             conflictMsg,
-            "Continue",
-            "Cancel",
+            LOC("network.dialogs.trackingConflictsContinue"),
+            LOC("common.cancel"),
             nullptr,
             juce::ModalCallbackFunction::create([this, conflicts, fromProtocolChange](int result) {
                 if (result == 1)  // Continue

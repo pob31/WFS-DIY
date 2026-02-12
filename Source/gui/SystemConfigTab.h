@@ -1642,7 +1642,7 @@ private:
 
         // Rebuild ComboBox
         binauralOutputSelector.clear(juce::dontSendNotification);
-        binauralOutputSelector.addItem("Select...", 1);  // No output selected by default
+        binauralOutputSelector.addItem(LOC("systemConfig.binauralOutput.select"), 1);  // No output selected by default
 
         for (int i = 1; i <= 63; i += 2)
         {

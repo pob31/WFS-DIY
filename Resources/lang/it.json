@@ -5,7 +5,6 @@
     "version": "1.0.0",
     "author": "WFS-DIY Team"
   },
-
   "common": {
     "ok": "OK",
     "cancel": "Annulla",
@@ -32,20 +31,18 @@
     "all": "Tutti",
     "none": "Nessuno"
   },
-
   "units": {
     "meters": "m",
     "decibels": "dB",
     "milliseconds": "ms",
     "seconds": "s",
-    "degrees": "\u00b0",
+    "degrees": "°",
     "hertz": "Hz",
     "percent": "%",
-    "celsius": "\u00b0C",
+    "celsius": "°C",
     "metersPerSecond": "m/s",
     "decibelPerMeter": "dB/m"
   },
-
   "tabs": {
     "systemConfig": "Config Sistema",
     "inputs": "Ingressi",
@@ -55,13 +52,11 @@
     "clusters": "Cluster",
     "map": "Mappa"
   },
-
   "statusBar": {
     "displayLabel": "Display:",
     "helpMode": "Aiuto",
     "oscMode": "OSC"
   },
-
   "systemConfig": {
     "sections": {
       "show": "Spettacolo",
@@ -70,10 +65,10 @@
       "master": "Sezione Master",
       "ui": "Interfaccia",
       "wfsProcessor": "Processore WFS",
+      "binaural": "Binaural Solo",
       "binauralRenderer": "Renderer Binaurale",
       "files": "File"
     },
-
     "labels": {
       "showName": "Nome:",
       "showLocation": "Luogo:",
@@ -98,15 +93,23 @@
       "haasEffect": "Effetto Haas:",
       "colorScheme": "Schema Colori:",
       "screenReader": "Lettore Schermo:",
-      "language": "Lingua:"
+      "language": "Lingua:",
+      "binauralOutput": "Binaural Output:",
+      "binauralDistance": "Listener Distance:",
+      "binauralAngle": "Listener Angle:",
+      "binauralAtten": "Binaural Level:",
+      "binauralDelay": "Binaural Delay:"
     },
-
     "buttons": {
       "audioPatch": "Interfaccia Audio e Routing",
+      "levelMeter": "Level Meters",
+      "clearSolo": "Clear Solo",
       "processingOff": "Elaborazione: OFF",
       "processingOn": "Elaborazione: ON",
       "binauralOff": "Binaural: OFF",
       "binauralOn": "Binaural: ON",
+      "soloModeSingle": "Solo: Single",
+      "soloModeMulti": "Solo: Multi",
       "selectProjectFolder": "Seleziona Cartella Progetto",
       "storeComplete": "Memorizza Configurazione Completa",
       "reloadComplete": "Ricarica Configurazione Completa",
@@ -117,24 +120,24 @@
       "importSystem": "Importa Configurazione Sistema",
       "exportSystem": "Esporta Configurazione Sistema"
     },
-
     "algorithms": {
       "inputBuffer": "InputBuffer (ritardi in lettura)",
       "outputBuffer": "OutputBuffer (ritardi in scrittura)"
     },
-
     "stageShapes": {
       "box": "Scatola",
       "cylinder": "Cilindro",
       "dome": "Cupola"
     },
-
     "colorSchemes": {
       "default": "Predefinito (Grigio Scuro)",
       "black": "Nero",
       "light": "Chiaro"
     },
-
+    "binauralOutput": {
+      "off": "Off",
+      "select": "Select..."
+    },
     "help": {
       "showName": "Nome dello spettacolo corrente.",
       "showLocation": "Luogo dello spettacolo corrente.",
@@ -142,8 +145,11 @@
       "outputChannels": "Numero di canali di uscita.",
       "reverbChannels": "Numero di canali di riverbero.",
       "audioPatch": "Apre la finestra dell'interfaccia audio e routing.",
+      "levelMeter": "Opens the Level Meter Window.",
+      "clearSolo": "Clear all input solo states.",
       "algorithm": "Seleziona l'algoritmo di rendering dal menu.",
       "processing": "Blocca tutti i parametri I/O e avvia il DSP. Tenere premuto per fermare il DSP.",
+      "soloMode": "Single: one input at a time. Multi: multiple inputs simultaneously.",
       "stageShape": "Seleziona la forma del palco (Scatola, Cilindro o Cupola).",
       "stageWidth": "Larghezza del palco in metri (solo forma Scatola).",
       "stageDepth": "Profondità del palco in metri (solo forma Scatola).",
@@ -172,9 +178,14 @@
       "reloadSystemBackup": "Ricarica la configurazione di sistema dal file di backup.",
       "importSystem": "Importa la configurazione di sistema da file (con finestra esplora file).",
       "exportSystem": "Esporta la configurazione di sistema su file (con finestra esplora file).",
-      "language": "Seleziona la lingua dell'interfaccia utente. Le modifiche avranno pieno effetto dopo il riavvio dell'applicazione."
+      "language": "Seleziona la lingua dell'interfaccia utente. Le modifiche avranno pieno effetto dopo il riavvio dell'applicazione.",
+      "binauralEnable": "Enable or disable the binaural renderer processing.",
+      "binauralOutput": "Select output channel pair for binaural monitoring. Off disables binaural output.",
+      "binauralDistance": "Distance of binaural listener from stage origin (meters).",
+      "binauralAngle": "Horizontal rotation of binaural listener view (degrees, 0 = facing stage).",
+      "binauralAtten": "Overall level offset for binaural output (dB).",
+      "binauralDelay": "Additional delay for binaural output (milliseconds)."
     },
-
     "messages": {
       "selectFolderFirst": "Seleziona prima una cartella progetto.",
       "configSaved": "Configurazione completa salvata.",
@@ -192,7 +203,6 @@
       "error": "Errore: {error}",
       "languageChanged": "Lingua cambiata in: {language} (richiede riavvio per effetto completo)"
     },
-
     "dialogs": {
       "reduceInputChannels": {
         "title": "Ridurre i Canali di Ingresso?",
@@ -212,48 +222,6 @@
       "exportSystemConfig": "Esporta Configurazione Sistema"
     }
   },
-
-  "inputs": {
-    "sections": {
-      "channel": "Canale",
-      "position": "Posizione",
-      "attenuation": "Attenuazione",
-      "directivity": "Direttività",
-      "liveSource": "Live Source Tamer",
-      "hackoustics": "Hackoustics",
-      "lfo": "LFO",
-      "automotion": "AutomOtion",
-      "mutes": "Mute"
-    },
-
-    "labels": {
-      "name": "Nome",
-      "cluster": "Cluster",
-      "attenuation": "Attenuazione",
-      "delayLatency": "Ritardo/Latenza",
-      "positionX": "X",
-      "positionY": "Y",
-      "positionZ": "Z"
-    }
-  },
-
-  "outputs": {
-    "sections": {
-      "channel": "Canale",
-      "position": "Posizione",
-      "settings": "Impostazioni"
-    },
-
-    "labels": {
-      "name": "Nome",
-      "positionX": "X",
-      "positionY": "Y",
-      "positionZ": "Z",
-      "attenuation": "Attenuazione",
-      "delay": "Ritardo"
-    }
-  },
-
   "network": {
     "sections": {
       "network": "Rete",
@@ -261,7 +229,6 @@
       "admOsc": "ADM-OSC",
       "tracking": "Tracking"
     },
-
     "labels": {
       "interface": "Interfaccia di Rete:",
       "currentIPv4": "IPv4 Corrente:",
@@ -275,9 +242,60 @@
       "offsetZ": "Offset Z:",
       "scaleX": "Scala X:",
       "scaleY": "Scala Y:",
-      "scaleZ": "Scala Z:"
+      "scaleZ": "Scala Z:",
+      "oscPath": "OSC Path:",
+      "psnInterface": "PSN Interface:",
+      "notAvailable": "Not available",
+      "localhost": "Localhost (127.0.0.1)"
     },
-
+    "help": {
+      "networkInterface": "Select the Network Interface.",
+      "currentIP": "IP address of the Processor.",
+      "udpPort": "UDP Receive Port of the Processor.",
+      "tcpPort": "TCP Receive Port of the Processor.",
+      "oscQueryPort": "HTTP port for OSC Query discovery. Other apps can browse parameters at http://localhost:<port>/",
+      "oscQueryEnable": "Enable/disable OSC Query server for automatic parameter discovery via HTTP/WebSocket.",
+      "targetName": "Network Target Name.",
+      "dataMode": "Select UDP or TCP data transmission.",
+      "targetIP": "IP Address of the Target (use 127.0.0.1 for local host).",
+      "txPort": "Transmit Port for this Target.",
+      "rxEnable": "Enable or Disable Data Reception.",
+      "txEnable": "Enable or Disable Data Transmission.",
+      "protocol": "Select the Protocol: DISABLED, OSC, REMOTE, or ADM-OSC.",
+      "addTarget": "Add new network target.",
+      "openLogWindow": "Open Network Logging window.",
+      "findMyRemote": "Make your Remote Flash and Buzz to Find it.",
+      "oscSourceFilter": "Filter incoming OSC: Accept All sources or only Registered connections with Rx enabled.",
+      "admOscOffsetX": "Offset ADM-OSC X Coordinate.",
+      "admOscOffsetY": "Offset ADM-OSC Y Coordinate.",
+      "admOscOffsetZ": "Offset ADM-OSC Z Coordinate.",
+      "admOscScaleX": "Scale ADM-OSC X Coordinate.",
+      "admOscScaleY": "Scale ADM-OSC Y Coordinate.",
+      "admOscScaleZ": "Scale ADM-OSC Z Coordinate.",
+      "admOscFlipX": "Invert Axis of ADM-OSC X Coordinate.",
+      "admOscFlipY": "Invert Axis of ADM-OSC Y Coordinate.",
+      "admOscFlipZ": "Invert Axis of ADM-OSC Z Coordinate.",
+      "trackingEnabled": "Enable or Disable Incoming Tracking data processing.",
+      "trackingProtocol": "Select the type of Tracking Protocol.",
+      "trackingPort": "Specify the Port to receive Tracking data.",
+      "trackingOffsetX": "Offset Tracking X Coordinate.",
+      "trackingOffsetY": "Offset Tracking Y Coordinate.",
+      "trackingOffsetZ": "Offset Tracking Z Coordinate.",
+      "trackingScaleX": "Scale Tracking X Coordinate.",
+      "trackingScaleY": "Scale Tracking Y Coordinate.",
+      "trackingScaleZ": "Scale Tracking Z Coordinate.",
+      "trackingFlipX": "Invert Axis of Tracking X Coordinate.",
+      "trackingFlipY": "Invert Axis of Tracking Y Coordinate.",
+      "trackingFlipZ": "Invert Axis of Tracking Z Coordinate.",
+      "trackingOscPath": "OSC Path for the Tracking in OSC Mode (starts with a /)",
+      "psnInterface": "Network interface for PSN multicast reception",
+      "storeConfig": "Store Network Configuration to file.",
+      "reloadConfig": "Reload Network Configuration from file.",
+      "reloadBackup": "Reload Network Configuration from backup file.",
+      "importConfig": "Import Network Configuration from file.",
+      "exportConfig": "Export Network Configuration to file.",
+      "removeTarget": "Delete this Network Target."
+    },
     "buttons": {
       "storeConfig": "Memorizza Config Rete",
       "reloadConfig": "Ricarica Config Rete",
@@ -288,7 +306,6 @@
       "findMyRemote": "Trova il Mio Remote",
       "add": "AGGIUNGI"
     },
-
     "toggles": {
       "enabled": "Attivo",
       "disabled": "Disattivo",
@@ -305,7 +322,6 @@
       "oscFilterAcceptAll": "Filtro OSC: Accetta Tutto",
       "oscFilterRegisteredOnly": "Filtro OSC: Solo Registrati"
     },
-
     "table": {
       "name": "Nome",
       "mode": "Modo",
@@ -316,7 +332,6 @@
       "protocol": "Protocollo",
       "defaultTarget": "Target {num}"
     },
-
     "protocols": {
       "disabled": "DISABILITATO",
       "osc": "OSC",
@@ -327,10 +342,17 @@
       "udp": "UDP",
       "tcp": "TCP"
     },
-
     "dialogs": {
       "importConfig": "Importa Configurazione di Rete",
-      "exportConfig": "Esporta Configurazione di Rete"
+      "exportConfig": "Esporta Configurazione di Rete",
+      "removeTargetTitle": "Remove Target",
+      "removeTargetMessage": "Delete target '{name}'?",
+      "findMyRemoteTitle": "Find My Remote",
+      "findMyRemoteMessage": "Enter the password for your remote device:",
+      "findMyRemotePassword": "Password:",
+      "trackingConflictsTitle": "Tracking Conflicts Detected",
+      "trackingConflictsMessage": "\nOnly one tracked input per cluster is allowed. If you continue, tracking will be kept only for the first input in each cluster.",
+      "trackingConflictsContinue": "Continue"
     },
     "messages": {
       "selectFolderFirst": "Seleziona prima una cartella progetto in Config Sistema.",
@@ -343,24 +365,23 @@
       "configExported": "Configurazione di rete esportata.",
       "error": "Errore: {error}",
       "onlyOneRemote": "È consentita una sola connessione REMOTE.",
-      "findDeviceSent": "Comando Trova dispositivo inviato."
+      "findDeviceSent": "Comando Trova dispositivo inviato.",
+      "maxTargetsReached": "Maximum Number of Targets/Servers Reached.",
+      "passwordEmpty": "Password cannot be empty.",
+      "oscManagerError": "Error: OSC Manager not available"
     }
   },
-
   "accessibility": {
     "ttsEnabled": "Lettore di schermo attivato",
     "ttsDisabled": "Lettore di schermo disattivato"
   },
-
   "audioPatch": {
     "windowTitle": "Interfaccia Audio e Routing",
-
     "tabs": {
       "deviceSettings": "Impostazioni Dispositivo",
       "inputPatch": "Patch Ingressi",
       "outputPatch": "Patch Uscite"
     },
-
     "deviceSettings": {
       "labels": {
         "deviceType": "Tipo dispositivo audio:",
@@ -375,18 +396,15 @@
       "noDevice": "Nessun Dispositivo",
       "notConfigured": "Non configurato"
     },
-
     "modes": {
       "scrolling": "Scorrimento",
       "patching": "Patching",
       "testing": "Test"
     },
-
     "buttons": {
       "unpatchAll": "Rimuovi Tutti i Patch",
       "hold": "Mantieni"
     },
-
     "testSignal": {
       "labels": {
         "signal": "Segnale:",
@@ -402,19 +420,16 @@
         "pulse": "Impulso"
       }
     },
-
     "dialogs": {
       "unpatchInputsTitle": "Rimuovi Tutti i Patch Ingressi",
       "unpatchInputsMessage": "Sei sicuro di voler rimuovere tutti i patch degli ingressi?",
       "unpatchOutputsTitle": "Rimuovi Tutti i Patch Uscite",
       "unpatchOutputsMessage": "Sei sicuro di voler rimuovere tutti i patch delle uscite?"
     },
-
     "messages": {
       "chooseTestSignal": "Scegli un Segnale di Test per Abilitare il Test"
     }
   },
-
   "networkLog": {
     "windowTitle": "Log di Rete",
     "controls": {
@@ -458,7 +473,6 @@
       "exportCompleteMessage": "Log esportato in: {path}"
     }
   },
-
   "map": {
     "buttons": {
       "fitStage": "Adatta palco allo schermo",
@@ -475,7 +489,6 @@
       "reverbPrefix": "R"
     }
   },
-
   "levelMeter": {
     "windowTitle": "Indicatori di livello",
     "inputs": "Ingressi",
@@ -483,14 +496,16 @@
     "solo": "Solo visivo:",
     "soloNone": "Nessuno",
     "buttons": {
-      "clearSolo": "Cancella solo"
+      "clearSolo": "Cancella solo",
+      "soloModeSingle": "Single",
+      "soloModeMulti": "Multi"
     },
     "tooltips": {
       "solo": "Mostra il contributo dell'ingresso a tutte le uscite nell'indicatore di livello (in modalità Solo singolo) e riproduce il rendering binaurale degli ingressi in solo",
-      "clearSolo": "Disattiva tutti i solo"
+      "clearSolo": "Disattiva tutti i solo",
+      "soloMode": "Single: one input at a time. Multi: multiple inputs simultaneously."
     }
   },
-
   "clusters": {
     "labels": {
       "assignedInputs": "Ingressi Assegnati",
@@ -522,7 +537,6 @@
       "trackedMarker": "[T]"
     }
   },
-
   "eq": {
     "status": {
       "off": "EQ OFF",
@@ -544,8 +558,12 @@
       "q": "Q"
     }
   },
-
   "outputs": {
+    "sections": {
+      "channel": "Canale",
+      "position": "Posizione",
+      "settings": "Impostazioni"
+    },
     "tabs": {
       "parameters": "Parametri Uscita",
       "eq": "EQ Uscita"
@@ -573,6 +591,9 @@
     },
     "buttons": {
       "speakerVisible": "Altoparlante Visibile sulla Mappa",
+      "speakerHidden": "Speaker Hidden on Map",
+      "arrayVisible": "Array Visible on Map",
+      "arrayHidden": "Array Hidden on Map",
       "wizardOfOutZ": "Wizard of OutZ...",
       "storeConfig": "Memorizza Config Uscite",
       "reloadConfig": "Ricarica Config Uscite",
@@ -655,7 +676,6 @@
       "exportConfig": "Esportare la configurazione delle uscite su file (con finestra esplora risorse)."
     }
   },
-
   "arrayHelper": {
     "window": {
       "title": "Wizard of OutZ",
@@ -735,7 +755,6 @@
       "prefix": "Errore: "
     }
   },
-
   "reverbs": {
     "noChannels": "Nessun canale di riverbero configurato.\n\nImposta il numero di Canali di Riverbero in Config Sistema.",
     "tabs": {
@@ -785,6 +804,9 @@
       "liveSourceOn": "Atten Live Source ON",
       "liveSourceOff": "Atten Live Source OFF"
     },
+    "coordModes": {
+      "xyz": "XYZ"
+    },
     "muteMacros": {
       "select": "Seleziona Macro Mute",
       "muteAll": "MUTA TUTTI",
@@ -801,8 +823,8 @@
       "ir": "IR",
       "decaySection": "Decadimento",
       "rt60": "RT60:",
-      "rt60LowMult": "RT60 Basso \u00d7:",
-      "rt60HighMult": "RT60 Alto \u00d7:",
+      "rt60LowMult": "RT60 Basso ×:",
+      "rt60HighMult": "RT60 Alto ×:",
       "crossoverLow": "Crossover basso:",
       "crossoverHigh": "Crossover alto:",
       "diffusion": "Diffusione:",
@@ -906,13 +928,26 @@
       "postExpThreshold": "Soglia del post-espansore (-80 a -10 dB).",
       "postExpRatio": "Rapporto del post-espansore (1:1 a 1:8).",
       "postExpAttack": "Tempo di attacco del post-espansore (0.1 - 50 ms).",
-      "postExpRelease": "Tempo di rilascio del post-espansore (50 - 2000 ms)."
+      "postExpRelease": "Tempo di rilascio del post-espansore (50 - 2000 ms).",
+      "miniLatencyTooltip": "Enable minimal latency mode for this reverb channel. Reduces processing delay at the cost of higher CPU usage.",
+      "liveSourceTooltip": "Enable Live Source attenuation tamer. Reduces level fluctuations from sources close to the array."
     }
   },
   "inputs": {
+    "sections": {
+      "channel": "Canale",
+      "position": "Posizione",
+      "attenuation": "Attenuazione",
+      "directivity": "Direttività",
+      "liveSource": "Live Source Tamer",
+      "hackoustics": "Hackustica",
+      "lfo": "LFO",
+      "automotion": "AutomOzione",
+      "mutes": "Mute"
+    },
     "tabs": {
       "inputParams": "Parametri Ingresso",
-      "liveSourceHackoustics": "Live Source & Hackoustics",
+      "liveSourceHackoustics": "Sorgente Live & Hackustica",
       "movements": "Movimenti",
       "visualisation": "Visualizzazione"
     },
@@ -986,6 +1021,7 @@
       "fringe": "Frangia:"
     },
     "buttons": {
+      "solo": "Solo",
       "setAllInputs": "Imposta tutti gli Ingressi...",
       "storeConfig": "Memorizza Config Ingressi",
       "reloadConfig": "Ricarica Config Ingressi",
@@ -1003,7 +1039,9 @@
       "lockOnMap": "Blocca sulla Mappa",
       "stopAll": "Ferma Tutti",
       "pauseAll": "Pausa Tutti",
-      "resumeAll": "Riprendi Tutti"
+      "resumeAll": "Riprendi Tutti",
+      "soloModeSingle": "Single",
+      "soloModeMulti": "Multi"
     },
     "toggles": {
       "acousticPrecedence": "Precedenza Acustica",
@@ -1100,7 +1138,13 @@
       "exportConfig": "Esporta Configurazione Ingressi",
       "storeSnapshotTitle": "Memorizza nuovo snapshot",
       "storeSnapshotMessage": "Inserisci un nome per il nuovo snapshot:",
-      "snapshotNameLabel": "Nome:"
+      "snapshotNameLabel": "Nome:",
+      "selectChannel": "Select Channel",
+      "trackingConflictTitle": "Tracking Conflict",
+      "trackingConflictCluster": "Input {current} has tracking enabled, but Input {existing} in Cluster {cluster} is already tracked.\n\nOnly one tracked input per cluster is allowed.",
+      "trackingConflictContinue": "Continue (disable tracking)",
+      "trackingConflictSwitch": "Input {existing} in Cluster {cluster} already has tracking enabled.\n\nOnly one tracked input per cluster is allowed.\n\nDo you want to disable tracking on Input {existing} and enable it on Input {to}?",
+      "trackingConflictYes": "Yes, switch tracking"
     },
     "messages": {
       "selectFolderFirst": "Seleziona prima una cartella progetto in Config Sistema.",
@@ -1124,6 +1168,8 @@
       "trackingSwitched": "Tracking trasferito da Ingresso {from} a Ingresso {to}"
     },
     "help": {
+      "solo": "Listen to Binaural Rendering of this channel.",
+      "soloMode": "Single: one input at a time. Multi: multiple inputs simultaneously.",
       "storeConfig": "Salva la configurazione di ingresso su file (con backup).",
       "reloadConfig": "Ricarica la configurazione di ingresso da file.",
       "reloadBackup": "Ricarica la configurazione di ingresso dal file di backup.",
@@ -1135,7 +1181,110 @@
       "reloadWithoutScope": "Ricarica lo snapshot di ingresso selezionato per tutti gli oggetti senza il filtro.",
       "updateSnapshot": "Aggiorna lo snapshot di ingresso selezionato (con backup).",
       "editScope": "Apri la finestra del filtro dello snapshot di ingresso selezionato.",
-      "deleteSnapshot": "Elimina lo snapshot di ingresso selezionato con conferma."
+      "deleteSnapshot": "Elimina lo snapshot di ingresso selezionato con conferma.",
+      "channelSelector": "Input Channel Number and Selection.",
+      "nameEditor": "Displayed Input Channel Name (editable).",
+      "clusterSelector": "Object is Part of a Cluster.",
+      "mapLockButton": "Prevent Interaction on the Map Tab",
+      "mapVisibilityButton": "Make Visible or Hide The Selected Input on the Map",
+      "attenuationSlider": "Input Channel Attenuation.",
+      "delayLatencySlider": "Input Channel Delay (positive values) or Latency Compensation (negative values).",
+      "minimalLatencyButton": "Select between Acoustic Precedence and Minimal Latency for Amplification Precedence.",
+      "posXEditor": "Object Position in Width. Nudge with Left and Right Arrow Keys.",
+      "posYEditor": "Object Position in Depth. Nudge with Up and Down Arrow Keys.",
+      "posZEditor": "Object Position in Height. Nudge with Page Up and Page Down Keys.",
+      "offsetXEditor": "Object Position Offset in Width. Adjusted when Tracking is Enabled.",
+      "offsetYEditor": "Object Position Offset in Depth. Adjusted when Tracking is Enabled.",
+      "offsetZEditor": "Object Position Offset in Height. Adjusted when Tracking is Enabled.",
+      "constraintXButton": "Limit Position to the Bounds of the Stage in Width.",
+      "constraintYButton": "Limit Position to the Bounds of the Stage in Depth.",
+      "constraintZButton": "Limit Position to the Bounds of the Stage in Height.",
+      "constraintDistanceButton": "Limit Position to Distance Range from Origin (for Cylindrical/Spherical modes).",
+      "distanceRangeSlider": "Set Minimum and Maximum Distance from Origin.",
+      "distanceMinEditor": "Minimum Distance from Origin in Meters.",
+      "distanceMaxEditor": "Maximum Distance from Origin in Meters.",
+      "flipXButton": "X will be Symetrical to the Origin. Keyboard Nudging will be Inverted.",
+      "flipYButton": "Y will be Symetrical to the Origin. Keyboard Nudging will be Inverted.",
+      "flipZButton": "Z will be Symetrical to the Origin. Keyboard Nudging will be Inverted.",
+      "trackingActiveButton": "Enable or Disable Tracking for Object.",
+      "trackingIdSelector": "Tracker ID for Object.",
+      "trackingSmoothDial": "Smoothing of Tracking Data for Object.",
+      "maxSpeedActiveButton": "Enable or Disable Speed Limiting for Object.",
+      "maxSpeedDial": "Maximum Speed Limit for Object.",
+      "pathModeButton": "Enable Path Mode to Follow Drawn Movement Paths Instead of Direct Lines.",
+      "heightFactorDial": "Take Elevation of Object into Account Fully, Partially or Not.",
+      "coordModeSelector": "Coordinate display mode: Cartesian (X/Y/Z), Cylindrical (radius/azimuth/height), or Spherical (radius/azimuth/elevation).",
+      "positionJoystick": "Drag to adjust X/Y position in real-time. Returns to center on release.",
+      "positionZSlider": "Drag to adjust Z (height) position in real-time. Returns to center on release.",
+      "attenuationLawButton": "Attenuation Law Model (Linear Decrease of Volume with Distance Between Object and Speaker or Squared).",
+      "distanceAttenDial": "Attenuation per Meter Between Object and Speaker.",
+      "distanceRatioDial": "Attenuation Ratio for Squared Model.",
+      "commonAttenDial": "Percentage of the Common Part of the Attenuation for selected Object Relative to All Outputs.",
+      "directivitySlider": "How Wide is the Brightness of The Object.",
+      "inputDirectivityDial": "Where is the Object pointing to in the Horizontal Plane.",
+      "tiltSlider": "Where is the Object pointing to in the Vertical Plane.",
+      "hfShelfSlider": "How Much Brightness is lost in the Back of the Object, Out of its Brightness Cone.",
+      "lsActiveButton": "If You Need to Reduce the Level in Speakers Close to the Object. (eg. Loud Source Present on Stage)",
+      "lsRadiusSlider": "How Far does the Attenuation Affect The Speakers.",
+      "lsShapeSelector": "Profile of the Attenuation Around the Object.",
+      "lsAttenuationSlider": "Constant Attenuation of Speakers Around the Object.",
+      "lsPeakThresholdSlider": "Fast Compression Threshold for Speakers Around the Object to Control Transients.",
+      "lsPeakRatioDial": "Ratio to Apply the Fast Compression for Speakers Around the Object.",
+      "lsSlowThresholdSlider": "Slow Compression Threshold for Speakers Around the Object to Control Sustained Level.",
+      "lsSlowRatioDial": "Ratio to Apply the Slow Compression for Speakers Around the Object.",
+      "frActiveButton": "Enable Simulated Floor Reflections for the Object.",
+      "frAttenuationSlider": "Attenuation of the Simulated Floor Reflections for the Object.",
+      "frDiffusionDial": "Diffusion Effect of the Simulated Floor Reflections for the Object.",
+      "frLowCutActiveButton": "Enable Low Cut Filter for Floor Reflections.",
+      "frLowCutFreqSlider": "Low Cut Frequency for Floor Reflections.",
+      "frHighShelfActiveButton": "Enable High Shelf Filter for Floor Reflections.",
+      "frHighShelfFreqSlider": "High Shelf Frequency for Floor Reflections.",
+      "frHighShelfGainSlider": "High Shelf Gain for Floor Reflections.",
+      "frHighShelfSlopeSlider": "High Shelf Slope for Floor Reflections.",
+      "muteReverbSendsButton": "Mute sends from this input to all reverb channels.",
+      "jitterSlider": "Sphere of Rapid Movements of the Object.",
+      "lfoActiveButton": "Enable or Disable the Periodic Movement of the Object (LFO).",
+      "lfoPeriodDial": "Base Period of the Movement of the Object.",
+      "lfoPhaseDial": "Phase Offset of the Movement of the Object.",
+      "lfoShapeXSelector": "Movement Behaviour of the Object in Width.",
+      "lfoShapeYSelector": "Movement Behaviour of the Object in Depth.",
+      "lfoShapeZSelector": "Movement Behaviour of the Object in Height.",
+      "lfoRateXSlider": "Faster or Slower Movement in Relation to Base Period in Width.",
+      "lfoRateYSlider": "Faster or Slower Movement in Relation to Base Period in Depth.",
+      "lfoRateZSlider": "Faster or Slower Movement in Relation to Base Period in Height.",
+      "lfoAmplitudeXSlider": "Width of Movement in Relation to Base Position of the Object.",
+      "lfoAmplitudeYSlider": "Depth of Movement in Relation to Base Position of the Object.",
+      "lfoAmplitudeZSlider": "Height of Movement in Relation to Base Position of the Object.",
+      "lfoPhaseXDial": "Phase Offset of the Movement of the Object in Width.",
+      "lfoPhaseYDial": "Phase Offset of the Movement of the Object in Depth.",
+      "lfoPhaseZDial": "Phase Offset of the Movement of the Object in Height.",
+      "lfoGyrophoneSelector": "Rotation of the Brightness Cone of the Object.",
+      "otomoDestXEditor": "Relative or Absolute Destination X.",
+      "otomoDestYEditor": "Relative or Absolute Destination Y.",
+      "otomoDestZEditor": "Relative or Absolute Destination Z.",
+      "otomoAbsRelButton": "Select Relative or Absolute Coordinates of Displacement.",
+      "otomoStayReturnButton": "At the End of the Movement, should the Source Stay or Return to the Original Position.",
+      "otomoSpeedProfileDial": "Constant Speed or Gradual Acceleration and Slow Down at the Start and the End of the Movement.",
+      "otomoTriggerButton": "Manual Start of Displacement or Automatic Trigger on the Audio Level.",
+      "otomoThresholdDial": "Set the Threshold for the Automatic Trigger of the Movement.",
+      "otomoResetDial": "Set the Reset Level for the Automatic Trigger.",
+      "otomoStartButton": "Start the Movement Manually.",
+      "otomoStopButton": "Stop the Movement.",
+      "otomoPauseButton": "Pause and Resume the Movement.",
+      "otomoDurationDial": "Duration of the Movement in Seconds (0.1s to 1 hour).",
+      "otomoCurveDial": "Bend the Path to the Left (Negative) or Right (Positive) of the Direction of Travel.",
+      "otomoStopAllButton": "Stop All Active Movements Globally.",
+      "otomoPauseResumeAllButton": "Pause or Resume All Active Movements Globally.",
+      "muteButton": "Mute Output {num} for this Object.",
+      "muteMacrosSelector": "Mute Macros for Fast Muting and Unmuting of Arrays.",
+      "arrayAttenDial": "Attenuation for Array {num} (-60 to 0 dB).",
+      "sidelinesActiveButton": "Enable Automatic Muting when Source Approaches Stage Edges. Does Not Apply to Downstage (Front) Edge.",
+      "sidelinesFringeDial": "Fringe Zone Size in Meters. Outer Half is Full Mute, Inner Half Fades Linearly."
+    },
+    "visualisation": {
+      "delay": "delay",
+      "hfDamping": "HF\ndamping",
+      "level": "level"
     },
     "prefixes": {
       "delay": "Ritardo:",
@@ -1143,7 +1292,6 @@
       "ratioPrefix": "1:"
     }
   },
-
   "snapshotScope": {
     "windowTitle": "Ambito Snapshot Ingresso",
     "title": "Ambito Snapshot: {name}",
@@ -1157,9 +1305,9 @@
       "attenuation": "Attenuazione",
       "directivity": "Direttività",
       "liveSource": "Live Source",
-      "hackoustics": "Hackoustics",
+      "hackoustics": "Hackustica",
       "lfo": "LFO",
-      "automOtion": "AutomOtion",
+      "automOtion": "AutomOzione",
       "mutes": "Mute"
     },
     "buttons": {
@@ -1167,7 +1315,6 @@
       "cancel": "Annulla"
     }
   },
-
   "setAllInputs": {
     "windowTitle": "Imposta Tutti gli Ingressi",
     "warning": "Le modifiche verranno applicate a TUTTI gli ingressi",
@@ -1196,8 +1343,42 @@
     },
     "coordinateModes": {
       "xyz": "XYZ",
-      "rThetaZ": "r \u03b8 Z",
-      "rThetaPhi": "r \u03b8 \u03c6"
+      "rThetaZ": "r θ Z",
+      "rThetaPhi": "r θ φ"
+    }
+  },
+  "fileManager": {
+    "dialogs": {
+      "selectProjectFolder": "Select Project Folder"
+    },
+    "errors": {
+      "noProjectFolder": "No project folder specified",
+      "failedCreateFolder": "Failed to create project folder: {path}",
+      "noValidProjectFolder": "No valid project folder",
+      "invalidConfigStructure": "Invalid configuration file structure",
+      "backupNotFound": "Backup not found",
+      "noSystemDataInFile": "No valid system data found in file: {path}",
+      "noNetworkDataInFile": "No network data found in file",
+      "noNetworkSections": "No network sections found in file",
+      "noInputDataInFile": "No input data found in file",
+      "noOutputDataInFile": "No output data found in file",
+      "noReverbDataInFile": "No reverb data found in file",
+      "noInputDataInSnapshot": "No input data in snapshot",
+      "snapshotDoesNotExist": "Snapshot does not exist",
+      "snapshotNotFound": "Snapshot not found",
+      "snapshotNotFoundNamed": "Snapshot not found: {name}",
+      "failedCreateXML": "Failed to create XML from state",
+      "failedWriteFile": "Failed to write file: {path}",
+      "fileNotFound": "File not found: {path}",
+      "failedParseXML": "Failed to parse XML file: {path}",
+      "failedCreateValueTree": "Failed to create ValueTree from XML: {path}",
+      "configStateInvalid": "Config state is invalid",
+      "failedApply": "Failed to apply: {sections}",
+      "prefixSystem": "System: ",
+      "prefixNetwork": "Network: ",
+      "prefixInputs": "Inputs: ",
+      "prefixOutputs": "Outputs: ",
+      "prefixReverbs": "Reverbs: "
     }
   }
 }

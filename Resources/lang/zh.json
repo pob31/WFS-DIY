@@ -5,7 +5,6 @@
     "version": "1.0.0",
     "author": "WFS-DIY Team"
   },
-
   "common": {
     "ok": "确定",
     "cancel": "取消",
@@ -32,20 +31,18 @@
     "all": "全部",
     "none": "无"
   },
-
   "units": {
     "meters": "m",
     "decibels": "dB",
     "milliseconds": "ms",
     "seconds": "s",
-    "degrees": "\u00b0",
+    "degrees": "°",
     "hertz": "Hz",
     "percent": "%",
-    "celsius": "\u00b0C",
+    "celsius": "°C",
     "metersPerSecond": "m/s",
     "decibelPerMeter": "dB/m"
   },
-
   "tabs": {
     "systemConfig": "系统配置",
     "inputs": "输入",
@@ -55,13 +52,11 @@
     "clusters": "集群",
     "map": "地图"
   },
-
   "statusBar": {
     "displayLabel": "显示:",
     "helpMode": "帮助",
     "oscMode": "OSC"
   },
-
   "systemConfig": {
     "sections": {
       "show": "演出",
@@ -70,10 +65,10 @@
       "master": "主控区",
       "ui": "界面",
       "wfsProcessor": "WFS处理器",
+      "binaural": "双耳独听",
       "binauralRenderer": "双耳渲染器",
       "files": "文件"
     },
-
     "labels": {
       "showName": "名称:",
       "showLocation": "地点:",
@@ -98,15 +93,23 @@
       "haasEffect": "哈斯效应:",
       "colorScheme": "配色方案:",
       "screenReader": "屏幕阅读器:",
-      "language": "语言:"
+      "language": "语言:",
+      "binauralOutput": "双耳输出:",
+      "binauralDistance": "听者距离:",
+      "binauralAngle": "听者角度:",
+      "binauralAtten": "双耳电平:",
+      "binauralDelay": "双耳延迟:"
     },
-
     "buttons": {
       "audioPatch": "音频接口和路由窗口",
+      "levelMeter": "电平表",
+      "clearSolo": "清除独听",
       "processingOff": "处理: 关",
       "processingOn": "处理: 开",
       "binauralOff": "双耳: 关",
       "binauralOn": "双耳: 开",
+      "soloModeSingle": "独听: 单选",
+      "soloModeMulti": "独听: 多选",
       "selectProjectFolder": "选择项目文件夹",
       "storeComplete": "保存完整配置",
       "reloadComplete": "重新加载完整配置",
@@ -117,24 +120,24 @@
       "importSystem": "导入系统配置",
       "exportSystem": "导出系统配置"
     },
-
     "algorithms": {
       "inputBuffer": "InputBuffer (读取时延迟)",
       "outputBuffer": "OutputBuffer (写入时延迟)"
     },
-
     "stageShapes": {
       "box": "立方体",
       "cylinder": "圆柱体",
       "dome": "穹顶"
     },
-
     "colorSchemes": {
       "default": "默认 (深灰色)",
       "black": "黑色",
       "light": "浅色"
     },
-
+    "binauralOutput": {
+      "off": "关",
+      "select": "选择..."
+    },
     "help": {
       "showName": "当前演出的名称。",
       "showLocation": "当前演出的地点。",
@@ -142,8 +145,11 @@
       "outputChannels": "输出通道数量。",
       "reverbChannels": "混响通道数量。",
       "audioPatch": "打开音频接口和路由窗口。",
+      "levelMeter": "打开电平表窗口。",
+      "clearSolo": "清除所有输入的独听状态。",
       "algorithm": "从菜单中选择渲染算法。",
       "processing": "锁定所有输入/输出参数并启动DSP。长按停止DSP。",
+      "soloMode": "单选：一次只听一个输入。多选：可同时听多个输入。",
       "stageShape": "选择舞台形状 (立方体、圆柱体或穹顶)。",
       "stageWidth": "舞台宽度 (米) (仅限立方体形状)。",
       "stageDepth": "舞台深度 (米) (仅限立方体形状)。",
@@ -172,9 +178,14 @@
       "reloadSystemBackup": "从备份文件重新加载系统配置。",
       "importSystem": "从文件导入系统配置 (使用文件浏览器)。",
       "exportSystem": "将系统配置导出到文件 (使用文件浏览器)。",
-      "language": "选择用户界面语言。重启应用程序后更改将完全生效。"
+      "language": "选择用户界面语言。重启应用程序后更改将完全生效。",
+      "binauralEnable": "启用或禁用双耳渲染器处理。",
+      "binauralOutput": "选择双耳监听的输出通道对。关闭则禁用双耳输出。",
+      "binauralDistance": "双耳听者与舞台原点的距离（米）。",
+      "binauralAngle": "双耳听者的水平旋转角度（度，0 = 面向舞台）。",
+      "binauralAtten": "双耳输出的整体电平偏移（dB）。",
+      "binauralDelay": "双耳输出的附加延迟（毫秒）。"
     },
-
     "messages": {
       "selectFolderFirst": "请先选择项目文件夹。",
       "configSaved": "完整配置已保存。",
@@ -192,7 +203,6 @@
       "error": "错误: {error}",
       "languageChanged": "语言已更改为: {language} (需要重启才能完全生效)"
     },
-
     "dialogs": {
       "reduceInputChannels": {
         "title": "减少输入通道?",
@@ -212,48 +222,6 @@
       "exportSystemConfig": "导出系统配置"
     }
   },
-
-  "inputs": {
-    "sections": {
-      "channel": "通道",
-      "position": "位置",
-      "attenuation": "衰减",
-      "directivity": "指向性",
-      "liveSource": "现场声源驯服器",
-      "hackoustics": "Hackoustics",
-      "lfo": "LFO",
-      "automotion": "AutomOtion",
-      "mutes": "静音"
-    },
-
-    "labels": {
-      "name": "名称",
-      "cluster": "集群",
-      "attenuation": "衰减",
-      "delayLatency": "延迟/延时",
-      "positionX": "X",
-      "positionY": "Y",
-      "positionZ": "Z"
-    }
-  },
-
-  "outputs": {
-    "sections": {
-      "channel": "通道",
-      "position": "位置",
-      "settings": "设置"
-    },
-
-    "labels": {
-      "name": "名称",
-      "positionX": "X",
-      "positionY": "Y",
-      "positionZ": "Z",
-      "attenuation": "衰减",
-      "delay": "延迟"
-    }
-  },
-
   "network": {
     "sections": {
       "network": "网络",
@@ -261,7 +229,6 @@
       "admOsc": "ADM-OSC",
       "tracking": "追踪"
     },
-
     "labels": {
       "interface": "网络接口:",
       "currentIPv4": "当前IPv4:",
@@ -275,9 +242,60 @@
       "offsetZ": "偏移Z:",
       "scaleX": "缩放X:",
       "scaleY": "缩放Y:",
-      "scaleZ": "缩放Z:"
+      "scaleZ": "缩放Z:",
+      "oscPath": "OSC 路径:",
+      "psnInterface": "PSN 接口:",
+      "notAvailable": "不可用",
+      "localhost": "本机 (127.0.0.1)"
     },
-
+    "help": {
+      "networkInterface": "选择网络接口。",
+      "currentIP": "处理器的 IP 地址。",
+      "udpPort": "处理器的 UDP 接收端口。",
+      "tcpPort": "处理器的 TCP 接收端口。",
+      "oscQueryPort": "OSC Query 发现的 HTTP 端口。其他应用可在 http://localhost:<端口>/ 浏览参数。",
+      "oscQueryEnable": "启用/禁用 OSC Query 服务器，通过 HTTP/WebSocket 自动发现参数。",
+      "targetName": "网络目标名称。",
+      "dataMode": "选择 UDP 或 TCP 数据传输。",
+      "targetIP": "目标 IP 地址（本机使用 127.0.0.1）。",
+      "txPort": "此目标的发送端口。",
+      "rxEnable": "启用或禁用数据接收。",
+      "txEnable": "启用或禁用数据发送。",
+      "protocol": "选择协议：DISABLED、OSC、REMOTE 或 ADM-OSC。",
+      "addTarget": "添加新的网络目标。",
+      "openLogWindow": "打开网络日志窗口。",
+      "findMyRemote": "让遥控器闪烁和振动以便找到它。",
+      "oscSourceFilter": "过滤传入 OSC：接受所有来源或仅接受已注册且启用 Rx 的连接。",
+      "admOscOffsetX": "ADM-OSC X 坐标偏移。",
+      "admOscOffsetY": "ADM-OSC Y 坐标偏移。",
+      "admOscOffsetZ": "ADM-OSC Z 坐标偏移。",
+      "admOscScaleX": "ADM-OSC X 坐标缩放。",
+      "admOscScaleY": "ADM-OSC Y 坐标缩放。",
+      "admOscScaleZ": "ADM-OSC Z 坐标缩放。",
+      "admOscFlipX": "反转 ADM-OSC X 坐标轴。",
+      "admOscFlipY": "反转 ADM-OSC Y 坐标轴。",
+      "admOscFlipZ": "反转 ADM-OSC Z 坐标轴。",
+      "trackingEnabled": "启用或禁用传入追踪数据处理。",
+      "trackingProtocol": "选择追踪协议类型。",
+      "trackingPort": "指定接收追踪数据的端口。",
+      "trackingOffsetX": "追踪 X 坐标偏移。",
+      "trackingOffsetY": "追踪 Y 坐标偏移。",
+      "trackingOffsetZ": "追踪 Z 坐标偏移。",
+      "trackingScaleX": "追踪 X 坐标缩放。",
+      "trackingScaleY": "追踪 Y 坐标缩放。",
+      "trackingScaleZ": "追踪 Z 坐标缩放。",
+      "trackingFlipX": "反转追踪 X 坐标轴。",
+      "trackingFlipY": "反转追踪 Y 坐标轴。",
+      "trackingFlipZ": "反转追踪 Z 坐标轴。",
+      "trackingOscPath": "OSC 模式下追踪的 OSC 路径（以 / 开头）",
+      "psnInterface": "用于 PSN 多播接收的网络接口",
+      "storeConfig": "将网络配置保存到文件。",
+      "reloadConfig": "从文件重新加载网络配置。",
+      "reloadBackup": "从备份文件重新加载网络配置。",
+      "importConfig": "从文件导入网络配置。",
+      "exportConfig": "将网络配置导出到文件。",
+      "removeTarget": "删除此网络目标。"
+    },
     "buttons": {
       "storeConfig": "保存网络配置",
       "reloadConfig": "重新加载网络配置",
@@ -288,7 +306,6 @@
       "findMyRemote": "查找遥控器",
       "add": "添加"
     },
-
     "toggles": {
       "enabled": "已启用",
       "disabled": "已禁用",
@@ -305,7 +322,6 @@
       "oscFilterAcceptAll": "OSC过滤: 接受全部",
       "oscFilterRegisteredOnly": "OSC过滤: 仅已注册"
     },
-
     "table": {
       "name": "名称",
       "mode": "模式",
@@ -316,7 +332,6 @@
       "protocol": "协议",
       "defaultTarget": "目标 {num}"
     },
-
     "protocols": {
       "disabled": "禁用",
       "osc": "OSC",
@@ -327,10 +342,17 @@
       "udp": "UDP",
       "tcp": "TCP"
     },
-
     "dialogs": {
       "importConfig": "导入网络配置",
-      "exportConfig": "导出网络配置"
+      "exportConfig": "导出网络配置",
+      "removeTargetTitle": "移除目标",
+      "removeTargetMessage": "删除目标 '{name}'？",
+      "findMyRemoteTitle": "查找遥控器",
+      "findMyRemoteMessage": "输入遥控设备的密码：",
+      "findMyRemotePassword": "密码：",
+      "trackingConflictsTitle": "检测到追踪冲突",
+      "trackingConflictsMessage": "\n每个集群仅允许一个追踪输入。如果继续，每个集群将仅保留第一个输入的追踪。",
+      "trackingConflictsContinue": "继续"
     },
     "messages": {
       "selectFolderFirst": "请先在系统配置中选择项目文件夹。",
@@ -343,24 +365,23 @@
       "configExported": "网络配置已导出。",
       "error": "错误: {error}",
       "onlyOneRemote": "只允许一个遥控连接。",
-      "findDeviceSent": "查找设备命令已发送。"
+      "findDeviceSent": "查找设备命令已发送。",
+      "maxTargetsReached": "已达到最大目标/服务器数量。",
+      "passwordEmpty": "密码不能为空。",
+      "oscManagerError": "错误：OSC 管理器不可用"
     }
   },
-
   "accessibility": {
     "ttsEnabled": "屏幕阅读器已启用",
     "ttsDisabled": "屏幕阅读器已禁用"
   },
-
   "audioPatch": {
     "windowTitle": "音频接口和路由",
-
     "tabs": {
       "deviceSettings": "设备设置",
       "inputPatch": "输入路由",
       "outputPatch": "输出路由"
     },
-
     "deviceSettings": {
       "labels": {
         "deviceType": "音频设备类型:",
@@ -375,18 +396,15 @@
       "noDevice": "无设备",
       "notConfigured": "未配置"
     },
-
     "modes": {
       "scrolling": "滚动",
       "patching": "路由",
       "testing": "测试"
     },
-
     "buttons": {
       "unpatchAll": "断开全部",
       "hold": "保持"
     },
-
     "testSignal": {
       "labels": {
         "signal": "信号:",
@@ -402,19 +420,16 @@
         "pulse": "脉冲"
       }
     },
-
     "dialogs": {
       "unpatchInputsTitle": "断开所有输入",
       "unpatchInputsMessage": "确定要移除所有输入路由吗?",
       "unpatchOutputsTitle": "断开所有输出",
       "unpatchOutputsMessage": "确定要移除所有输出路由吗?"
     },
-
     "messages": {
       "chooseTestSignal": "选择测试信号以启用测试模式"
     }
   },
-
   "networkLog": {
     "windowTitle": "网络日志",
     "controls": {
@@ -458,7 +473,6 @@
       "exportCompleteMessage": "日志已导出到: {path}"
     }
   },
-
   "map": {
     "buttons": {
       "fitStage": "适配舞台到屏幕",
@@ -475,7 +489,6 @@
       "reverbPrefix": "混"
     }
   },
-
   "levelMeter": {
     "windowTitle": "电平表",
     "inputs": "输入",
@@ -483,14 +496,16 @@
     "solo": "视觉独奏:",
     "soloNone": "无",
     "buttons": {
-      "clearSolo": "清除独奏"
+      "clearSolo": "清除独奏",
+      "soloModeSingle": "单选",
+      "soloModeMulti": "多选"
     },
     "tooltips": {
       "solo": "在电平表显示中显示输入对所有输出的贡献（单独模式下）并播放独奏输入的双耳渲染",
-      "clearSolo": "取消所有独奏"
+      "clearSolo": "取消所有独奏",
+      "soloMode": "单选：一次只听一个输入。多选：可同时听多个输入。"
     }
   },
-
   "clusters": {
     "labels": {
       "assignedInputs": "已分配输入",
@@ -522,7 +537,6 @@
       "trackedMarker": "[T]"
     }
   },
-
   "eq": {
     "status": {
       "off": "EQ 关",
@@ -544,8 +558,12 @@
       "q": "Q值"
     }
   },
-
   "outputs": {
+    "sections": {
+      "channel": "通道",
+      "position": "位置",
+      "settings": "设置"
+    },
     "tabs": {
       "parameters": "输出参数",
       "eq": "输出EQ"
@@ -573,6 +591,9 @@
     },
     "buttons": {
       "speakerVisible": "扬声器在地图上可见",
+      "speakerHidden": "扬声器在地图上隐藏",
+      "arrayVisible": "阵列在地图上可见",
+      "arrayHidden": "阵列在地图上隐藏",
       "wizardOfOutZ": "OutZ向导...",
       "storeConfig": "保存输出配置",
       "reloadConfig": "重新加载输出配置",
@@ -635,8 +656,8 @@
       "liveSource": "禁用所选输出的现场声源衰减。（更改可能影响阵列的其余部分）",
       "floorReflections": "启用或禁用此扬声器的地板反射。",
       "distanceAtten": "所选输出的距离衰减比率。（更改可能影响阵列的其余部分）",
-      "hParallax": "扬声器到\u201C目标\u201D听众的水平距离。（更改可能影响阵列的其余部分）",
-      "vParallax": "扬声器到\u201C目标\u201D听众的垂直距离。当扬声器位于听众头部下方时为正值。（更改可能影响阵列的其余部分）",
+      "hParallax": "扬声器到“目标”听众的水平距离。（更改可能影响阵列的其余部分）",
+      "vParallax": "扬声器到“目标”听众的垂直距离。当扬声器位于听众头部下方时为正值。（更改可能影响阵列的其余部分）",
       "coordMode": "坐标显示模式：笛卡尔坐标（X/Y/Z）、柱面坐标（半径/方位角/高度）或球面坐标（半径/方位角/仰角）。",
       "posX": "输出通道在宽度方向的位置。",
       "posY": "输出通道在深度方向的位置。",
@@ -655,7 +676,6 @@
       "exportConfig": "将输出配置导出到文件（通过文件浏览器窗口）。"
     }
   },
-
   "arrayHelper": {
     "window": {
       "title": "OutZ向导",
@@ -735,7 +755,6 @@
       "prefix": "错误: "
     }
   },
-
   "reverbs": {
     "noChannels": "未配置混响通道。\n\n请在系统配置中设置混响通道数量。",
     "tabs": {
@@ -785,6 +804,9 @@
       "liveSourceOn": "现场声源衰减 开",
       "liveSourceOff": "现场声源衰减 关"
     },
+    "coordModes": {
+      "xyz": "XYZ"
+    },
     "muteMacros": {
       "select": "选择静音宏",
       "muteAll": "全部静音",
@@ -801,8 +823,8 @@
       "ir": "IR",
       "decaySection": "衰减",
       "rt60": "RT60:",
-      "rt60LowMult": "RT60 低频 \u00d7:",
-      "rt60HighMult": "RT60 高频 \u00d7:",
+      "rt60LowMult": "RT60 低频 ×:",
+      "rt60HighMult": "RT60 高频 ×:",
       "crossoverLow": "分频点低:",
       "crossoverHigh": "分频点高:",
       "diffusion": "扩散:",
@@ -906,13 +928,26 @@
       "postExpThreshold": "后扩展器阈值（-80至-10 dB）。",
       "postExpRatio": "后扩展器比率（1:1至1:8）。",
       "postExpAttack": "后扩展器起音时间（0.1 - 50 ms）。",
-      "postExpRelease": "后扩展器释放时间（50 - 2000 ms）。"
+      "postExpRelease": "后扩展器释放时间（50 - 2000 ms）。",
+      "miniLatencyTooltip": "启用此混响通道的最小延迟模式。以更高 CPU 使用为代价减少处理延迟。",
+      "liveSourceTooltip": "启用现场声源衰减调节器。减少靠近阵列的声源的电平波动。"
     }
   },
   "inputs": {
+    "sections": {
+      "channel": "通道",
+      "position": "位置",
+      "attenuation": "衰减",
+      "directivity": "指向性",
+      "liveSource": "现场声源驯服器",
+      "hackoustics": "Hackoustics (虚拟声学)",
+      "lfo": "LFO",
+      "automotion": "AutomOtion (自动移动)",
+      "mutes": "静音"
+    },
     "tabs": {
       "inputParams": "输入参数",
-      "liveSourceHackoustics": "现场声源 & Hackoustics",
+      "liveSourceHackoustics": "现场声源 & Hackoustics (虚拟声学)",
       "movements": "运动",
       "visualisation": "可视化"
     },
@@ -986,6 +1021,7 @@
       "fringe": "边缘:"
     },
     "buttons": {
+      "solo": "独听",
       "setAllInputs": "设置所有输入...",
       "storeConfig": "保存输入配置",
       "reloadConfig": "重新加载输入配置",
@@ -1003,7 +1039,9 @@
       "lockOnMap": "在地图上锁定",
       "stopAll": "全部停止",
       "pauseAll": "全部暂停",
-      "resumeAll": "全部恢复"
+      "resumeAll": "全部恢复",
+      "soloModeSingle": "单选",
+      "soloModeMulti": "多选"
     },
     "toggles": {
       "acousticPrecedence": "声学优先",
@@ -1100,7 +1138,13 @@
       "exportConfig": "导出输入配置",
       "storeSnapshotTitle": "保存新快照",
       "storeSnapshotMessage": "请输入新快照的名称：",
-      "snapshotNameLabel": "名称："
+      "snapshotNameLabel": "名称：",
+      "selectChannel": "选择通道",
+      "trackingConflictTitle": "追踪冲突",
+      "trackingConflictCluster": "输入 {current} 已启用追踪，但集群 {cluster} 中的输入 {existing} 已被追踪。\n\n每个集群仅允许一个追踪输入。",
+      "trackingConflictContinue": "继续（禁用追踪）",
+      "trackingConflictSwitch": "集群 {cluster} 中的输入 {existing} 已启用追踪。\n\n每个集群仅允许一个追踪输入。\n\n是否禁用输入 {existing} 的追踪并启用输入 {to} 的追踪？",
+      "trackingConflictYes": "是，切换追踪"
     },
     "messages": {
       "selectFolderFirst": "请先在系统配置中选择项目文件夹。",
@@ -1124,18 +1168,123 @@
       "trackingSwitched": "追踪已从输入 {from} 切换到输入 {to}"
     },
     "help": {
-      "storeConfig": "将输入配置存储到文件（含备份）。",
+      "solo": "收听此通道的双耳渲染。",
+      "soloMode": "单选：一次只听一个输入。多选：可同时听多个输入。",
+      "storeConfig": "将输入配置保存到文件（含备份）。",
       "reloadConfig": "从文件重新加载输入配置。",
       "reloadBackup": "从备份文件重新加载输入配置。",
-      "importConfig": "从文件导入输入配置（使用文件浏览器）。",
-      "exportConfig": "将输入配置导出到文件（使用文件浏览器）。",
-      "storeSnapshot": "为所有对象存储新的输入快照。",
-      "snapshotSelector": "选择输入快照但不加载。",
-      "reloadSnapshot": "考虑过滤条件，为所有对象重新加载选定的输入快照。",
-      "reloadWithoutScope": "不考虑过滤条件，为所有对象重新加载选定的输入快照。",
-      "updateSnapshot": "更新选定的输入快照（含备份）。",
-      "editScope": "打开选定输入快照的过滤窗口。",
-      "deleteSnapshot": "确认后删除选定的输入快照。"
+      "importConfig": "从文件导入输入配置（打开文件浏览器窗口）。",
+      "exportConfig": "将输入配置导出到文件（打开文件浏览器窗口）。",
+      "storeSnapshot": "将当前输入参数保存为快照。",
+      "snapshotSelector": "选择要加载的快照。",
+      "reloadSnapshot": "重新加载当前选定的快照。",
+      "reloadWithoutScope": "重新加载快照，忽略范围过滤器。",
+      "updateSnapshot": "使用当前参数更新选定的快照。",
+      "editScope": "编辑快照的范围过滤器。",
+      "deleteSnapshot": "删除选定的快照。",
+      "channelSelector": "输入通道编号与选择。",
+      "nameEditor": "显示的输入通道名称（可编辑）。",
+      "clusterSelector": "对象所属集群。",
+      "mapLockButton": "防止在地图标签页上交互。",
+      "mapVisibilityButton": "在地图上显示或隐藏选定的输入。",
+      "attenuationSlider": "输入通道衰减。",
+      "delayLatencySlider": "输入通道延迟（正值）或延迟补偿（负值）。",
+      "minimalLatencyButton": "选择声学优先或最小延迟的放大优先模式。",
+      "posXEditor": "对象宽度方向位置。使用左右方向键微调。",
+      "posYEditor": "对象深度方向位置。使用上下方向键微调。",
+      "posZEditor": "对象高度方向位置。使用 Page Up 和 Page Down 键微调。",
+      "offsetXEditor": "对象宽度方向的位置偏移。启用追踪时调整。",
+      "offsetYEditor": "对象深度方向的位置偏移。启用追踪时调整。",
+      "offsetZEditor": "对象高度方向的位置偏移。启用追踪时调整。",
+      "constraintXButton": "将位置限制在舞台宽度范围内。",
+      "constraintYButton": "将位置限制在舞台深度范围内。",
+      "constraintZButton": "将位置限制在舞台高度范围内。",
+      "constraintDistanceButton": "将位置限制在距原点的距离范围内（用于柱坐标/球坐标模式）。",
+      "distanceRangeSlider": "设置距原点的最小和最大距离。",
+      "distanceMinEditor": "距原点的最小距离（米）。",
+      "distanceMaxEditor": "距原点的最大距离（米）。",
+      "flipXButton": "X 轴相对原点对称。键盘微调将反转。",
+      "flipYButton": "Y 轴相对原点对称。键盘微调将反转。",
+      "flipZButton": "Z 轴相对原点对称。键盘微调将反转。",
+      "trackingActiveButton": "启用或禁用对象的追踪。",
+      "trackingIdSelector": "对象的追踪器 ID。",
+      "trackingSmoothDial": "对象追踪数据的平滑度。",
+      "maxSpeedActiveButton": "启用或禁用对象的速度限制。",
+      "maxSpeedDial": "对象的最大速度限制。",
+      "pathModeButton": "启用路径模式，沿绘制的运动路径而非直线移动。",
+      "heightFactorDial": "是否完全、部分或不考虑对象的高度。",
+      "coordModeSelector": "坐标显示模式：笛卡尔坐标 (X/Y/Z)、柱坐标 (半径/方位角/高度) 或球坐标 (半径/方位角/仰角)。",
+      "positionJoystick": "拖动调整 X/Y 实时位置。松开后回到中心。",
+      "positionZSlider": "拖动调整 Z（高度）实时位置。松开后回到中心。",
+      "attenuationLawButton": "衰减规律模型（对象与扬声器之间随距离线性降低音量）。",
+      "distanceAttenDial": "对象与扬声器之间每米衰减量。",
+      "distanceRatioDial": "平方模型的衰减比率。",
+      "commonAttenDial": "选定对象相对于所有输出的共同衰减百分比。",
+      "directivitySlider": "对象亮度的宽度。",
+      "inputDirectivityDial": "对象在水平面上的指向。",
+      "tiltSlider": "对象在垂直面上的指向。",
+      "hfShelfSlider": "对象背面、亮度锥之外的高频损失程度。",
+      "lsActiveButton": "如需降低靠近对象的扬声器电平（如大功率声源或人声放大的情况）。",
+      "lsRadiusSlider": "衰减影响扬声器的距离范围。",
+      "lsShapeSelector": "对象周围衰减的轮廓。",
+      "lsAttenuationSlider": "对象周围扬声器的恒定衰减。",
+      "lsPeakThresholdSlider": "对象周围扬声器的快速压缩阈值，用于控制瞬态。",
+      "lsPeakRatioDial": "对象周围扬声器快速压缩的比率。",
+      "lsSlowThresholdSlider": "对象周围扬声器的慢速压缩阈值，用于控制持续响度。",
+      "lsSlowRatioDial": "对象周围扬声器慢速压缩的比率。",
+      "frActiveButton": "启用对象的模拟地面反射。",
+      "frAttenuationSlider": "对象模拟地面反射的衰减。",
+      "frDiffusionDial": "对象模拟地面反射的扩散效果。",
+      "frLowCutActiveButton": "启用地面反射的低切滤波器。",
+      "frLowCutFreqSlider": "地面反射的低切频率。",
+      "frHighShelfActiveButton": "启用地面反射的高频搁架滤波器。",
+      "frHighShelfFreqSlider": "地面反射的高频搁架频率。",
+      "frHighShelfGainSlider": "地面反射的高频搁架增益。",
+      "frHighShelfSlopeSlider": "地面反射的高频搁架斜率。",
+      "muteReverbSendsButton": "静音此输入到所有混响通道的发送。",
+      "jitterSlider": "对象快速微动的范围。",
+      "lfoActiveButton": "启用或禁用对象的周期运动 (LFO)。",
+      "lfoPeriodDial": "对象运动的基础周期。",
+      "lfoPhaseDial": "对象运动的相位偏移。",
+      "lfoShapeXSelector": "对象在宽度方向的运动波形。",
+      "lfoShapeYSelector": "对象在深度方向的运动波形。",
+      "lfoShapeZSelector": "对象在高度方向的运动波形。",
+      "lfoRateXSlider": "相对于基础周期的宽度方向运动速率。",
+      "lfoRateYSlider": "相对于基础周期的深度方向运动速率。",
+      "lfoRateZSlider": "相对于基础周期的高度方向运动速率。",
+      "lfoAmplitudeXSlider": "相对于对象基础位置的宽度运动幅度。",
+      "lfoAmplitudeYSlider": "相对于对象基础位置的深度运动幅度。",
+      "lfoAmplitudeZSlider": "相对于对象基础位置的高度运动幅度。",
+      "lfoPhaseXDial": "对象宽度方向运动的相位偏移。",
+      "lfoPhaseYDial": "对象深度方向运动的相位偏移。",
+      "lfoPhaseZDial": "对象高度方向运动的相位偏移。",
+      "lfoGyrophoneSelector": "对象亮度锥的旋转。",
+      "otomoDestXEditor": "相对或绝对目标 X。",
+      "otomoDestYEditor": "相对或绝对目标 Y。",
+      "otomoDestZEditor": "相对或绝对目标 Z。",
+      "otomoAbsRelButton": "选择位移的相对或绝对坐标。",
+      "otomoStayReturnButton": "运动结束时，声源应停留还是返回原始位置。",
+      "otomoSpeedProfileDial": "匀速或在运动开始和结束时逐渐加速和减速。",
+      "otomoTriggerButton": "手动启动位移或根据音频电平自动触发。",
+      "otomoThresholdDial": "设置运动自动触发的阈值。",
+      "otomoResetDial": "设置自动触发的复位电平。",
+      "otomoStartButton": "手动启动运动。",
+      "otomoStopButton": "停止运动。",
+      "otomoPauseButton": "暂停和恢复运动。",
+      "otomoDurationDial": "运动持续时间（秒）（0.1秒到1小时）。",
+      "otomoCurveDial": "将路径向行进方向的左侧（负值）或右侧（正值）弯曲。",
+      "otomoStopAllButton": "全局停止所有活动运动。",
+      "otomoPauseResumeAllButton": "全局暂停或恢复所有活动运动。",
+      "muteButton": "静音此对象的输出 {num}。",
+      "muteMacrosSelector": "用于快速静音和取消静音阵列的静音宏。",
+      "arrayAttenDial": "阵列 {num} 的衰减（-60 到 0 dB）。",
+      "sidelinesActiveButton": "当声源接近舞台边缘时自动静音。不适用于延迟线。",
+      "sidelinesFringeDial": "边缘区域大小（米）。外半部分完全静音，内半部分线性渐变。"
+    },
+    "visualisation": {
+      "delay": "延迟",
+      "hfDamping": "高频\n衰减",
+      "level": "电平"
     },
     "prefixes": {
       "delay": "延迟:",
@@ -1143,7 +1292,6 @@
       "ratioPrefix": "1:"
     }
   },
-
   "snapshotScope": {
     "windowTitle": "输入快照范围",
     "title": "快照范围: {name}",
@@ -1157,9 +1305,9 @@
       "attenuation": "衰减",
       "directivity": "指向性",
       "liveSource": "现场声源",
-      "hackoustics": "Hackoustics",
+      "hackoustics": "Hackoustics (虚拟声学)",
       "lfo": "LFO",
-      "automOtion": "AutomOtion",
+      "automOtion": "AutomOtion (自动移动)",
       "mutes": "静音"
     },
     "buttons": {
@@ -1167,7 +1315,6 @@
       "cancel": "取消"
     }
   },
-
   "setAllInputs": {
     "windowTitle": "设置所有输入",
     "warning": "更改将应用于所有输入",
@@ -1196,8 +1343,42 @@
     },
     "coordinateModes": {
       "xyz": "XYZ",
-      "rThetaZ": "r \u03b8 Z",
-      "rThetaPhi": "r \u03b8 \u03c6"
+      "rThetaZ": "r θ Z",
+      "rThetaPhi": "r θ φ"
+    }
+  },
+  "fileManager": {
+    "dialogs": {
+      "selectProjectFolder": "选择项目文件夹"
+    },
+    "errors": {
+      "noProjectFolder": "未指定项目文件夹",
+      "failedCreateFolder": "创建项目文件夹失败：{path}",
+      "noValidProjectFolder": "没有有效的项目文件夹",
+      "invalidConfigStructure": "配置文件结构无效",
+      "backupNotFound": "未找到备份",
+      "noSystemDataInFile": "文件中未找到有效的系统数据：{path}",
+      "noNetworkDataInFile": "文件中未找到网络数据",
+      "noNetworkSections": "文件中未找到网络部分",
+      "noInputDataInFile": "文件中未找到输入数据",
+      "noOutputDataInFile": "文件中未找到输出数据",
+      "noReverbDataInFile": "文件中未找到混响数据",
+      "noInputDataInSnapshot": "快照中没有输入数据",
+      "snapshotDoesNotExist": "快照不存在",
+      "snapshotNotFound": "未找到快照",
+      "snapshotNotFoundNamed": "未找到快照：{name}",
+      "failedCreateXML": "从状态创建 XML 失败",
+      "failedWriteFile": "写入文件失败：{path}",
+      "fileNotFound": "未找到文件：{path}",
+      "failedParseXML": "解析 XML 文件失败：{path}",
+      "failedCreateValueTree": "从 XML 创建 ValueTree 失败：{path}",
+      "configStateInvalid": "配置状态无效",
+      "failedApply": "应用失败：{sections}",
+      "prefixSystem": "系统：",
+      "prefixNetwork": "网络：",
+      "prefixInputs": "输入：",
+      "prefixOutputs": "输出：",
+      "prefixReverbs": "混响："
     }
   }
 }

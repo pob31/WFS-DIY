@@ -240,7 +240,7 @@ public:
 
         // Solo button for binaural monitoring
         addAndMakeVisible(soloButton);
-        soloButton.setButtonText("Solo");
+        soloButton.setButtonText(LOC("inputs.buttons.solo"));
         soloButton.setClickingTogglesState(true);
         soloButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFFFFD700));  // Yellow when on
         soloButton.setColour(juce::TextButton::textColourOnId, juce::Colours::black);        // Black text when on
@@ -447,9 +447,9 @@ public:
         if (statusBar != nullptr)
         {
             if (cluster == 0)
-                statusBar->showTemporaryMessage("Input " + juce::String(currentChannel) + " set to Single", 2000);
+                statusBar->showTemporaryMessage(LOC("inputs.messages.setSingle").replace("{channel}", juce::String(currentChannel)), 2000);
             else
-                statusBar->showTemporaryMessage("Input " + juce::String(currentChannel) + " assigned to Cluster " + juce::String(cluster), 2000);
+                statusBar->showTemporaryMessage(LOC("inputs.messages.assignedCluster").replace("{channel}", juce::String(currentChannel)).replace("{cluster}", juce::String(cluster)), 2000);
         }
     }
 
@@ -696,7 +696,7 @@ private:
         addAndMakeVisible(delayLatencySlider);
 
         addAndMakeVisible(delayLatencyValueLabel);
-        delayLatencyValueLabel.setText("Delay: 0.0 ms", juce::dontSendNotification);
+        delayLatencyValueLabel.setText(LOC("inputs.prefixes.delay") + " 0.0 ms", juce::dontSendNotification);
         delayLatencyValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(delayLatencyValueLabel);
 
@@ -2177,7 +2177,7 @@ private:
     {
         // AutomOtion title label
         addAndMakeVisible(otomoTitleLabel);
-        otomoTitleLabel.setText("AutomOtion", juce::dontSendNotification);
+        otomoTitleLabel.setText(LOC("inputs.sections.automotion"), juce::dontSendNotification);
         otomoTitleLabel.setFont(juce::FontOptions(16.0f).withStyle("Bold"));
         otomoTitleLabel.setJustificationType(juce::Justification::centredLeft);
 
@@ -2198,7 +2198,7 @@ private:
 
         // Destination X/Y/Z number boxes (using short labels)
         addAndMakeVisible(otomoDestXLabel);
-        otomoDestXLabel.setText("X:", juce::dontSendNotification);
+        otomoDestXLabel.setText(LOC("inputs.labels.destX"), juce::dontSendNotification);
         addAndMakeVisible(otomoDestXEditor);
         otomoDestXEditor.setText("0.00", juce::dontSendNotification);
         setupNumericEditor(otomoDestXEditor, true, true);
@@ -2206,7 +2206,7 @@ private:
         otomoDestXUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
 
         addAndMakeVisible(otomoDestYLabel);
-        otomoDestYLabel.setText("Y:", juce::dontSendNotification);
+        otomoDestYLabel.setText(LOC("inputs.labels.destY"), juce::dontSendNotification);
         addAndMakeVisible(otomoDestYEditor);
         otomoDestYEditor.setText("0.00", juce::dontSendNotification);
         setupNumericEditor(otomoDestYEditor, true, true);
@@ -2214,7 +2214,7 @@ private:
         otomoDestYUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
 
         addAndMakeVisible(otomoDestZLabel);
-        otomoDestZLabel.setText("Z:", juce::dontSendNotification);
+        otomoDestZLabel.setText(LOC("inputs.labels.destZ"), juce::dontSendNotification);
         addAndMakeVisible(otomoDestZEditor);
         otomoDestZEditor.setText("0.00", juce::dontSendNotification);
         setupNumericEditor(otomoDestZEditor, true, true);
@@ -4643,7 +4643,7 @@ private:
 
         bool minLatency = getIntParam(WFSParameterIDs::inputMinimalLatency, 0) != 0;
         minimalLatencyButton.setToggleState(minLatency, juce::dontSendNotification);
-        minimalLatencyButton.setButtonText(minLatency ? "Minimal Latency: ON" : "Minimal Latency: OFF");
+        minimalLatencyButton.setButtonText(minLatency ? LOC("inputs.toggles.minimalLatency") : LOC("inputs.toggles.acousticPrecedence"));
 
         // ==================== POSITION TAB ====================
         // Update coordinate mode selector and position editors (handles coordinate conversion)
@@ -4654,20 +4654,20 @@ private:
 
         bool constX = getIntParam(WFSParameterIDs::inputConstraintX, 0) != 0;
         constraintXButton.setToggleState(constX, juce::dontSendNotification);
-        constraintXButton.setButtonText(constX ? "Constraint X: ON" : "Constraint X: OFF");
+        constraintXButton.setButtonText(constX ? LOC("inputs.toggles.constraintXOn") : LOC("inputs.toggles.constraintXOff"));
 
         bool constY = getIntParam(WFSParameterIDs::inputConstraintY, 0) != 0;
         constraintYButton.setToggleState(constY, juce::dontSendNotification);
-        constraintYButton.setButtonText(constY ? "Constraint Y: ON" : "Constraint Y: OFF");
+        constraintYButton.setButtonText(constY ? LOC("inputs.toggles.constraintYOn") : LOC("inputs.toggles.constraintYOff"));
 
         bool constZ = getIntParam(WFSParameterIDs::inputConstraintZ, 0) != 0;
         constraintZButton.setToggleState(constZ, juce::dontSendNotification);
-        constraintZButton.setButtonText(constZ ? "Constraint Z: ON" : "Constraint Z: OFF");
+        constraintZButton.setButtonText(constZ ? LOC("inputs.toggles.constraintZOn") : LOC("inputs.toggles.constraintZOff"));
 
         // Distance constraint (for Cylindrical/Spherical modes)
         bool constDist = getIntParam(WFSParameterIDs::inputConstraintDistance, 0) != 0;
         constraintDistanceButton.setToggleState(constDist, juce::dontSendNotification);
-        constraintDistanceButton.setButtonText(constDist ? "Constraint R: ON" : "Constraint R: OFF");
+        constraintDistanceButton.setButtonText(constDist ? LOC("inputs.toggles.constraintROn") : LOC("inputs.toggles.constraintROff"));
         float distMin = getFloatParam(WFSParameterIDs::inputConstraintDistanceMin, 0.0f);
         float distMax = getFloatParam(WFSParameterIDs::inputConstraintDistanceMax, 50.0f);
         distanceRangeSlider.setValues(distMin, distMax);
@@ -4682,19 +4682,19 @@ private:
 
         bool flipX = getIntParam(WFSParameterIDs::inputFlipX, 0) != 0;
         flipXButton.setToggleState(flipX, juce::dontSendNotification);
-        flipXButton.setButtonText(flipX ? "Flip X: ON" : "Flip X: OFF");
+        flipXButton.setButtonText(flipX ? LOC("inputs.toggles.flipXOn") : LOC("inputs.toggles.flipXOff"));
 
         bool flipY = getIntParam(WFSParameterIDs::inputFlipY, 0) != 0;
         flipYButton.setToggleState(flipY, juce::dontSendNotification);
-        flipYButton.setButtonText(flipY ? "Flip Y: ON" : "Flip Y: OFF");
+        flipYButton.setButtonText(flipY ? LOC("inputs.toggles.flipYOn") : LOC("inputs.toggles.flipYOff"));
 
         bool flipZ = getIntParam(WFSParameterIDs::inputFlipZ, 0) != 0;
         flipZButton.setToggleState(flipZ, juce::dontSendNotification);
-        flipZButton.setButtonText(flipZ ? "Flip Z: ON" : "Flip Z: OFF");
+        flipZButton.setButtonText(flipZ ? LOC("inputs.toggles.flipZOn") : LOC("inputs.toggles.flipZOff"));
 
         bool trackActive = getIntParam(WFSParameterIDs::inputTrackingActive, 0) != 0;
         trackingActiveButton.setToggleState(trackActive, juce::dontSendNotification);
-        trackingActiveButton.setButtonText(trackActive ? "Tracking: ON" : "Tracking: OFF");
+        trackingActiveButton.setButtonText(trackActive ? LOC("inputs.toggles.trackingOn") : LOC("inputs.toggles.trackingOff"));
 
         trackingIdSelector.setSelectedId(getIntParam(WFSParameterIDs::inputTrackingID, 1), juce::dontSendNotification);
 
@@ -4706,7 +4706,7 @@ private:
 
         bool maxSpeedActive = getIntParam(WFSParameterIDs::inputMaxSpeedActive, 0) != 0;
         maxSpeedActiveButton.setToggleState(maxSpeedActive, juce::dontSendNotification);
-        maxSpeedActiveButton.setButtonText(maxSpeedActive ? "Max Speed: ON" : "Max Speed: OFF");
+        maxSpeedActiveButton.setButtonText(maxSpeedActive ? LOC("inputs.toggles.maxSpeedOn") : LOC("inputs.toggles.maxSpeedOff"));
 
         // Max Speed stored as m/s (0.01-20.0), default ~10 m/s
         // Inverse of: speed = v * 19.99 + 0.01 => v = (speed - 0.01) / 19.99
@@ -4718,7 +4718,7 @@ private:
 
         bool pathModeActive = getIntParam(WFSParameterIDs::inputPathModeActive, 0) != 0;
         pathModeButton.setToggleState(pathModeActive, juce::dontSendNotification);
-        pathModeButton.setButtonText(pathModeActive ? "Path Mode: ON" : "Path Mode: OFF");
+        pathModeButton.setButtonText(pathModeActive ? LOC("inputs.toggles.pathModeOn") : LOC("inputs.toggles.pathModeOff"));
 
         // Height Factor stored as percent (0-100), default 100%
         float heightFactorPct = getFloatParam(WFSParameterIDs::inputHeightFactor, 100.0f);
@@ -4729,7 +4729,7 @@ private:
         // ==================== SOUND TAB ====================
         bool attenLaw = getIntParam(WFSParameterIDs::inputAttenuationLaw, 0) != 0;
         attenuationLawButton.setToggleState(attenLaw, juce::dontSendNotification);
-        attenuationLawButton.setButtonText(attenLaw ? "1/d" : "Log");
+        attenuationLawButton.setButtonText(attenLaw ? "1/d" : LOC("inputs.toggles.attenuationLawLog"));
         // Update dial visibility based on attenuation law (Log shows dB/m, 1/d shows ratio)
         bool showInputParams = subTabBar.getCurrentTabIndex() == 0;
         distanceAttenLabel.setVisible(!attenLaw && showInputParams);
@@ -5036,11 +5036,11 @@ private:
 
         bool absRel = getIntParam(WFSParameterIDs::inputOtomoAbsoluteRelative, 0) != 0;
         otomoAbsRelButton.setToggleState(absRel, juce::dontSendNotification);
-        otomoAbsRelButton.setButtonText(absRel ? "Relative" : "Absolute");
+        otomoAbsRelButton.setButtonText(absRel ? LOC("inputs.toggles.relative") : LOC("inputs.toggles.absolute"));
 
         bool stayReturn = getIntParam(WFSParameterIDs::inputOtomoStayReturn, 0) != 0;
         otomoStayReturnButton.setToggleState(stayReturn, juce::dontSendNotification);
-        otomoStayReturnButton.setButtonText(stayReturn ? "Return" : "Stay");
+        otomoStayReturnButton.setButtonText(stayReturn ? LOC("inputs.toggles.return") : LOC("inputs.toggles.stay"));
 
         // Duration stored as seconds (0.1-3600), default 5.0
         // Inverse of: duration = pow(10, sqrt(v) * 3.556 - 1)
@@ -5077,7 +5077,7 @@ private:
 
         bool trigger = getIntParam(WFSParameterIDs::inputOtomoTrigger, 0) != 0;
         otomoTriggerButton.setToggleState(trigger, juce::dontSendNotification);
-        otomoTriggerButton.setButtonText(trigger ? "Trigger" : "Manual");
+        otomoTriggerButton.setButtonText(trigger ? LOC("inputs.toggles.triggered") : LOC("inputs.toggles.manual"));
 
         // Threshold stored as dB (-92 to 0), default -20 dB
         // Inverse of: dB = 20*log10(minLin + (1-minLin)*v^2)
@@ -6481,113 +6481,113 @@ private:
 
     void setupHelpText()
     {
-        helpTextMap[&channelSelector] = "Input Channel Number and Selection.";
-        helpTextMap[&nameEditor] = "Displayed Input Channel Name (editable).";
-        helpTextMap[&clusterSelector] = "Object is Part of a Cluster.";
-        helpTextMap[&mapLockButton] = "Prevent Interaction on the Map Tab";
-        helpTextMap[&mapVisibilityButton] = "Make Visible or Hide The Selected Input on the Map";
+        helpTextMap[&channelSelector] = LOC("inputs.help.channelSelector");
+        helpTextMap[&nameEditor] = LOC("inputs.help.nameEditor");
+        helpTextMap[&clusterSelector] = LOC("inputs.help.clusterSelector");
+        helpTextMap[&mapLockButton] = LOC("inputs.help.mapLockButton");
+        helpTextMap[&mapVisibilityButton] = LOC("inputs.help.mapVisibilityButton");
         helpTextMap[&soloButton] = LOC("inputs.help.solo");
         helpTextMap[&soloModeButton] = LOC("inputs.help.soloMode");
-        helpTextMap[&attenuationSlider] = "Input Channel Attenuation.";
-        helpTextMap[&delayLatencySlider] = "Input Channel Delay (positive values) or Latency Compensation (negative values).";
-        helpTextMap[&minimalLatencyButton] = "Select between Acoustic Precedence and Minimal Latency for Amplification Precedence.";
-        helpTextMap[&posXEditor] = "Object Position in Width. Nudge with Left and Right Arrow Keys.";
-        helpTextMap[&posYEditor] = "Object Position in Depth. Nudge with Up and Down Arrow Keys.";
-        helpTextMap[&posZEditor] = "Object Position in Height. Nudge with Page Up and Page Down Keys.";
-        helpTextMap[&offsetXEditor] = "Object Position Offset in Width. Adjusted when Tracking is Enabled.";
-        helpTextMap[&offsetYEditor] = "Object Position Offset in Depth. Adjusted when Tracking is Enabled.";
-        helpTextMap[&offsetZEditor] = "Object Position Offset in Height. Adjusted when Tracking is Enabled.";
-        helpTextMap[&constraintXButton] = "Limit Position to the Bounds of the Stage in Width.";
-        helpTextMap[&constraintYButton] = "Limit Position to the Bounds of the Stage in Depth.";
-        helpTextMap[&constraintZButton] = "Limit Position to the Bounds of the Stage in Height.";
-        helpTextMap[&constraintDistanceButton] = "Limit Position to Distance Range from Origin (for Cylindrical/Spherical modes).";
-        helpTextMap[&distanceRangeSlider] = "Set Minimum and Maximum Distance from Origin.";
-        helpTextMap[&distanceMinEditor] = "Minimum Distance from Origin in Meters.";
-        helpTextMap[&distanceMaxEditor] = "Maximum Distance from Origin in Meters.";
-        helpTextMap[&flipXButton] = "X will be Symetrical to the Origin. Keyboard Nudging will be Inverted.";
-        helpTextMap[&flipYButton] = "Y will be Symetrical to the Origin. Keyboard Nudging will be Inverted.";
-        helpTextMap[&flipZButton] = "Z will be Symetrical to the Origin. Keyboard Nudging will be Inverted.";
-        helpTextMap[&trackingActiveButton] = "Enable or Disable Tracking for Object.";
-        helpTextMap[&trackingIdSelector] = "Tracker ID for Object.";
-        helpTextMap[&trackingSmoothDial] = "Smoothing of Tracking Data for Object.";
-        helpTextMap[&maxSpeedActiveButton] = "Enable or Disable Speed Limiting for Object.";
-        helpTextMap[&maxSpeedDial] = "Maximum Speed Limit for Object.";
-        helpTextMap[&pathModeButton] = "Enable Path Mode to Follow Drawn Movement Paths Instead of Direct Lines.";
-        helpTextMap[&heightFactorDial] = "Take Elevation of Object into Account Fully, Partially or Not.";
-        helpTextMap[&coordModeSelector] = "Coordinate display mode: Cartesian (X/Y/Z), Cylindrical (radius/azimuth/height), or Spherical (radius/azimuth/elevation).";
-        helpTextMap[&positionJoystick] = "Drag to adjust X/Y position in real-time. Returns to center on release.";
-        helpTextMap[&positionZSlider] = "Drag to adjust Z (height) position in real-time. Returns to center on release.";
-        helpTextMap[&attenuationLawButton] = "Attenuation Law Model (Linear Decrease of Volume with Distance Between Object and Speaker or Squared).";
-        helpTextMap[&distanceAttenDial] = "Attenuation per Meter Between Object and Speaker.";
-        helpTextMap[&distanceRatioDial] = "Attenuation Ratio for Squared Model.";
-        helpTextMap[&commonAttenDial] = "Percentage of the Common Part of the Attenuation for selected Object Relative to All Outputs.";
-        helpTextMap[&directivitySlider] = "How Wide is the Brightness of The Object.";
-        helpTextMap[&inputDirectivityDial] = "Where is the Object pointing to in the Horizontal Plane.";
-        helpTextMap[&tiltSlider] = "Where is the Object pointing to in the Vertical Plane.";
-        helpTextMap[&hfShelfSlider] = "How Much Brightness is lost in the Back of the Object, Out of its Brightness Cone.";
-        helpTextMap[&lsActiveButton] = "If You Need to Reduce the Level in Speakers Close to the Object. (eg. Loud Source Present on Stage)";
-        helpTextMap[&lsRadiusSlider] = "How Far does the Attenuation Affect The Speakers.";
-        helpTextMap[&lsShapeSelector] = "Profile of the Attenuation Around the Object.";
-        helpTextMap[&lsAttenuationSlider] = "Constant Attenuation of Speakers Around the Object.";
-        helpTextMap[&lsPeakThresholdSlider] = "Fast Compression Threshold for Speakers Around the Object to Control Transients.";
-        helpTextMap[&lsPeakRatioDial] = "Ratio to Apply the Fast Compression for Speakers Around the Object.";
-        helpTextMap[&lsSlowThresholdSlider] = "Slow Compression Threshold for Speakers Around the Object to Control Sustained Level.";
-        helpTextMap[&lsSlowRatioDial] = "Ratio to Apply the Slow Compression for Speakers Around the Object.";
-        helpTextMap[&frActiveButton] = "Enable Simulated Floor Reflections for the Object.";
-        helpTextMap[&frAttenuationSlider] = "Attenuation of the Simulated Floor Reflections for the Object.";
-        helpTextMap[&frDiffusionDial] = "Diffusion Effect of the Simulated Floor Reflections for the Object.";
-        helpTextMap[&frLowCutActiveButton] = "Enable Low Cut Filter for Floor Reflections.";
-        helpTextMap[&frLowCutFreqSlider] = "Low Cut Frequency for Floor Reflections.";
-        helpTextMap[&frHighShelfActiveButton] = "Enable High Shelf Filter for Floor Reflections.";
-        helpTextMap[&frHighShelfFreqSlider] = "High Shelf Frequency for Floor Reflections.";
-        helpTextMap[&frHighShelfGainSlider] = "High Shelf Gain for Floor Reflections.";
-        helpTextMap[&frHighShelfSlopeSlider] = "High Shelf Slope for Floor Reflections.";
-        helpTextMap[&muteReverbSendsButton] = "Mute sends from this input to all reverb channels.";
-        helpTextMap[&jitterSlider] = "Sphere of Rapid Movements of the Object.";
+        helpTextMap[&attenuationSlider] = LOC("inputs.help.attenuationSlider");
+        helpTextMap[&delayLatencySlider] = LOC("inputs.help.delayLatencySlider");
+        helpTextMap[&minimalLatencyButton] = LOC("inputs.help.minimalLatencyButton");
+        helpTextMap[&posXEditor] = LOC("inputs.help.posXEditor");
+        helpTextMap[&posYEditor] = LOC("inputs.help.posYEditor");
+        helpTextMap[&posZEditor] = LOC("inputs.help.posZEditor");
+        helpTextMap[&offsetXEditor] = LOC("inputs.help.offsetXEditor");
+        helpTextMap[&offsetYEditor] = LOC("inputs.help.offsetYEditor");
+        helpTextMap[&offsetZEditor] = LOC("inputs.help.offsetZEditor");
+        helpTextMap[&constraintXButton] = LOC("inputs.help.constraintXButton");
+        helpTextMap[&constraintYButton] = LOC("inputs.help.constraintYButton");
+        helpTextMap[&constraintZButton] = LOC("inputs.help.constraintZButton");
+        helpTextMap[&constraintDistanceButton] = LOC("inputs.help.constraintDistanceButton");
+        helpTextMap[&distanceRangeSlider] = LOC("inputs.help.distanceRangeSlider");
+        helpTextMap[&distanceMinEditor] = LOC("inputs.help.distanceMinEditor");
+        helpTextMap[&distanceMaxEditor] = LOC("inputs.help.distanceMaxEditor");
+        helpTextMap[&flipXButton] = LOC("inputs.help.flipXButton");
+        helpTextMap[&flipYButton] = LOC("inputs.help.flipYButton");
+        helpTextMap[&flipZButton] = LOC("inputs.help.flipZButton");
+        helpTextMap[&trackingActiveButton] = LOC("inputs.help.trackingActiveButton");
+        helpTextMap[&trackingIdSelector] = LOC("inputs.help.trackingIdSelector");
+        helpTextMap[&trackingSmoothDial] = LOC("inputs.help.trackingSmoothDial");
+        helpTextMap[&maxSpeedActiveButton] = LOC("inputs.help.maxSpeedActiveButton");
+        helpTextMap[&maxSpeedDial] = LOC("inputs.help.maxSpeedDial");
+        helpTextMap[&pathModeButton] = LOC("inputs.help.pathModeButton");
+        helpTextMap[&heightFactorDial] = LOC("inputs.help.heightFactorDial");
+        helpTextMap[&coordModeSelector] = LOC("inputs.help.coordModeSelector");
+        helpTextMap[&positionJoystick] = LOC("inputs.help.positionJoystick");
+        helpTextMap[&positionZSlider] = LOC("inputs.help.positionZSlider");
+        helpTextMap[&attenuationLawButton] = LOC("inputs.help.attenuationLawButton");
+        helpTextMap[&distanceAttenDial] = LOC("inputs.help.distanceAttenDial");
+        helpTextMap[&distanceRatioDial] = LOC("inputs.help.distanceRatioDial");
+        helpTextMap[&commonAttenDial] = LOC("inputs.help.commonAttenDial");
+        helpTextMap[&directivitySlider] = LOC("inputs.help.directivitySlider");
+        helpTextMap[&inputDirectivityDial] = LOC("inputs.help.inputDirectivityDial");
+        helpTextMap[&tiltSlider] = LOC("inputs.help.tiltSlider");
+        helpTextMap[&hfShelfSlider] = LOC("inputs.help.hfShelfSlider");
+        helpTextMap[&lsActiveButton] = LOC("inputs.help.lsActiveButton");
+        helpTextMap[&lsRadiusSlider] = LOC("inputs.help.lsRadiusSlider");
+        helpTextMap[&lsShapeSelector] = LOC("inputs.help.lsShapeSelector");
+        helpTextMap[&lsAttenuationSlider] = LOC("inputs.help.lsAttenuationSlider");
+        helpTextMap[&lsPeakThresholdSlider] = LOC("inputs.help.lsPeakThresholdSlider");
+        helpTextMap[&lsPeakRatioDial] = LOC("inputs.help.lsPeakRatioDial");
+        helpTextMap[&lsSlowThresholdSlider] = LOC("inputs.help.lsSlowThresholdSlider");
+        helpTextMap[&lsSlowRatioDial] = LOC("inputs.help.lsSlowRatioDial");
+        helpTextMap[&frActiveButton] = LOC("inputs.help.frActiveButton");
+        helpTextMap[&frAttenuationSlider] = LOC("inputs.help.frAttenuationSlider");
+        helpTextMap[&frDiffusionDial] = LOC("inputs.help.frDiffusionDial");
+        helpTextMap[&frLowCutActiveButton] = LOC("inputs.help.frLowCutActiveButton");
+        helpTextMap[&frLowCutFreqSlider] = LOC("inputs.help.frLowCutFreqSlider");
+        helpTextMap[&frHighShelfActiveButton] = LOC("inputs.help.frHighShelfActiveButton");
+        helpTextMap[&frHighShelfFreqSlider] = LOC("inputs.help.frHighShelfFreqSlider");
+        helpTextMap[&frHighShelfGainSlider] = LOC("inputs.help.frHighShelfGainSlider");
+        helpTextMap[&frHighShelfSlopeSlider] = LOC("inputs.help.frHighShelfSlopeSlider");
+        helpTextMap[&muteReverbSendsButton] = LOC("inputs.help.muteReverbSendsButton");
+        helpTextMap[&jitterSlider] = LOC("inputs.help.jitterSlider");
         // LFO tab
-        helpTextMap[&lfoActiveButton] = "Enable or Disable the Periodic Movement of the Object (LFO).";
-        helpTextMap[&lfoPeriodDial] = "Base Period of the Movement of the Object.";
-        helpTextMap[&lfoPhaseDial] = "Phase Offset of the Movement of the Object.";
-        helpTextMap[&lfoShapeXSelector] = "Movement Behaviour of the Object in Width.";
-        helpTextMap[&lfoShapeYSelector] = "Movement Behaviour of the Object in Depth.";
-        helpTextMap[&lfoShapeZSelector] = "Movement Behaviour of the Object in Height.";
-        helpTextMap[&lfoRateXSlider] = "Faster or Slower Movement in Relation to Base Period in Width.";
-        helpTextMap[&lfoRateYSlider] = "Faster or Slower Movement in Relation to Base Period in Depth.";
-        helpTextMap[&lfoRateZSlider] = "Faster or Slower Movement in Relation to Base Period in Height.";
-        helpTextMap[&lfoAmplitudeXSlider] = "Width of Movement in Relation to Base Position of the Object.";
-        helpTextMap[&lfoAmplitudeYSlider] = "Depth of Movement in Relation to Base Position of the Object.";
-        helpTextMap[&lfoAmplitudeZSlider] = "Height of Movement in Relation to Base Position of the Object.";
-        helpTextMap[&lfoPhaseXDial] = "Phase Offset of the Movement of the Object in Width.";
-        helpTextMap[&lfoPhaseYDial] = "Phase Offset of the Movement of the Object in Depth.";
-        helpTextMap[&lfoPhaseZDial] = "Phase Offset of the Movement of the Object in Height.";
-        helpTextMap[&lfoGyrophoneSelector] = "Rotation of the Brightness Cone of the Object.";
+        helpTextMap[&lfoActiveButton] = LOC("inputs.help.lfoActiveButton");
+        helpTextMap[&lfoPeriodDial] = LOC("inputs.help.lfoPeriodDial");
+        helpTextMap[&lfoPhaseDial] = LOC("inputs.help.lfoPhaseDial");
+        helpTextMap[&lfoShapeXSelector] = LOC("inputs.help.lfoShapeXSelector");
+        helpTextMap[&lfoShapeYSelector] = LOC("inputs.help.lfoShapeYSelector");
+        helpTextMap[&lfoShapeZSelector] = LOC("inputs.help.lfoShapeZSelector");
+        helpTextMap[&lfoRateXSlider] = LOC("inputs.help.lfoRateXSlider");
+        helpTextMap[&lfoRateYSlider] = LOC("inputs.help.lfoRateYSlider");
+        helpTextMap[&lfoRateZSlider] = LOC("inputs.help.lfoRateZSlider");
+        helpTextMap[&lfoAmplitudeXSlider] = LOC("inputs.help.lfoAmplitudeXSlider");
+        helpTextMap[&lfoAmplitudeYSlider] = LOC("inputs.help.lfoAmplitudeYSlider");
+        helpTextMap[&lfoAmplitudeZSlider] = LOC("inputs.help.lfoAmplitudeZSlider");
+        helpTextMap[&lfoPhaseXDial] = LOC("inputs.help.lfoPhaseXDial");
+        helpTextMap[&lfoPhaseYDial] = LOC("inputs.help.lfoPhaseYDial");
+        helpTextMap[&lfoPhaseZDial] = LOC("inputs.help.lfoPhaseZDial");
+        helpTextMap[&lfoGyrophoneSelector] = LOC("inputs.help.lfoGyrophoneSelector");
         // AutomOtion tab
-        helpTextMap[&otomoDestXEditor] = "Relative or Absolute Destination X.";
-        helpTextMap[&otomoDestYEditor] = "Relative or Absolute Destination Y.";
-        helpTextMap[&otomoDestZEditor] = "Relative or Absolute Destination Z.";
-        helpTextMap[&otomoAbsRelButton] = "Select Relative or Absolute Coordinates of Displacement.";
-        helpTextMap[&otomoStayReturnButton] = "At the End of the Movement, should the Source Stay or Return to the Original Position.";
-        helpTextMap[&otomoSpeedProfileDial] = "Constant Speed or Gradual Acceleration and Slow Down at the Start and the End of the Movement.";
-        helpTextMap[&otomoTriggerButton] = "Manual Start of Displacement or Automatic Trigger on the Audio Level.";
-        helpTextMap[&otomoThresholdDial] = "Set the Threshold for the Automatic Trigger of the Movement.";
-        helpTextMap[&otomoResetDial] = "Set the Reset Level for the Automatic Trigger.";
-        helpTextMap[&otomoStartButton] = "Start the Movement Manually.";
-        helpTextMap[&otomoStopButton] = "Stop the Movement.";
-        helpTextMap[&otomoPauseButton] = "Pause and Resume the Movement.";
-        helpTextMap[&otomoDurationDial] = "Duration of the Movement in Seconds (0.1s to 1 hour).";
-        helpTextMap[&otomoCurveDial] = "Bend the Path to the Left (Negative) or Right (Positive) of the Direction of Travel.";
-        helpTextMap[&otomoStopAllButton] = "Stop All Active Movements Globally.";
-        helpTextMap[&otomoPauseResumeAllButton] = "Pause or Resume All Active Movements Globally.";
+        helpTextMap[&otomoDestXEditor] = LOC("inputs.help.otomoDestXEditor");
+        helpTextMap[&otomoDestYEditor] = LOC("inputs.help.otomoDestYEditor");
+        helpTextMap[&otomoDestZEditor] = LOC("inputs.help.otomoDestZEditor");
+        helpTextMap[&otomoAbsRelButton] = LOC("inputs.help.otomoAbsRelButton");
+        helpTextMap[&otomoStayReturnButton] = LOC("inputs.help.otomoStayReturnButton");
+        helpTextMap[&otomoSpeedProfileDial] = LOC("inputs.help.otomoSpeedProfileDial");
+        helpTextMap[&otomoTriggerButton] = LOC("inputs.help.otomoTriggerButton");
+        helpTextMap[&otomoThresholdDial] = LOC("inputs.help.otomoThresholdDial");
+        helpTextMap[&otomoResetDial] = LOC("inputs.help.otomoResetDial");
+        helpTextMap[&otomoStartButton] = LOC("inputs.help.otomoStartButton");
+        helpTextMap[&otomoStopButton] = LOC("inputs.help.otomoStopButton");
+        helpTextMap[&otomoPauseButton] = LOC("inputs.help.otomoPauseButton");
+        helpTextMap[&otomoDurationDial] = LOC("inputs.help.otomoDurationDial");
+        helpTextMap[&otomoCurveDial] = LOC("inputs.help.otomoCurveDial");
+        helpTextMap[&otomoStopAllButton] = LOC("inputs.help.otomoStopAllButton");
+        helpTextMap[&otomoPauseResumeAllButton] = LOC("inputs.help.otomoPauseResumeAllButton");
         // Mutes tab
         for (int i = 0; i < 64; ++i)
-            helpTextMap[&muteButtons[i]] = "Mute Output " + juce::String(i + 1) + " for this Object.";
-        helpTextMap[&muteMacrosSelector] = "Mute Macros for Fast Muting and Unmuting of Arrays.";
+            helpTextMap[&muteButtons[i]] = LOC("inputs.help.muteButton").replace("{num}", juce::String(i + 1));
+        helpTextMap[&muteMacrosSelector] = LOC("inputs.help.muteMacrosSelector");
         // Array attenuation
         for (int i = 0; i < 10; ++i)
-            helpTextMap[&arrayAttenDials[i]] = "Attenuation for Array " + juce::String(i + 1) + " (-60 to 0 dB).";
+            helpTextMap[&arrayAttenDials[i]] = LOC("inputs.help.arrayAttenDial").replace("{num}", juce::String(i + 1));
         // Sidelines
-        helpTextMap[&sidelinesActiveButton] = "Enable Automatic Muting when Source Approaches Stage Edges. Does Not Apply to Downstage (Front) Edge.";
-        helpTextMap[&sidelinesFringeDial] = "Fringe Zone Size in Meters. Outer Half is Full Mute, Inner Half Fades Linearly.";
+        helpTextMap[&sidelinesActiveButton] = LOC("inputs.help.sidelinesActiveButton");
+        helpTextMap[&sidelinesFringeDial] = LOC("inputs.help.sidelinesFringeDial");
         helpTextMap[&storeButton] = LOC("inputs.help.storeConfig");
         helpTextMap[&reloadButton] = LOC("inputs.help.reloadConfig");
         helpTextMap[&reloadBackupButton] = LOC("inputs.help.reloadBackup");
@@ -6994,12 +6994,13 @@ private:
         // Show conflict dialog asynchronously
         juce::AlertWindow::showOkCancelBox(
             juce::AlertWindow::WarningIcon,
-            "Tracking Conflict",
-            "Input " + juce::String(currentChannel) + " has tracking enabled, but Input " +
-            juce::String(existingTrackedInput + 1) + " in Cluster " + juce::String(targetCluster) +
-            " is already tracked.\n\nOnly one tracked input per cluster is allowed.",
-            "Continue (disable tracking)",
-            "Cancel",
+            LOC("inputs.dialogs.trackingConflictTitle"),
+            LOC("inputs.dialogs.trackingConflictCluster")
+                .replace("{current}", juce::String(currentChannel))
+                .replace("{existing}", juce::String(existingTrackedInput + 1))
+                .replace("{cluster}", juce::String(targetCluster)),
+            LOC("inputs.dialogs.trackingConflictContinue"),
+            LOC("common.cancel"),
             nullptr,
             juce::ModalCallbackFunction::create([this, targetCluster, previousCluster](int result) {
                 if (result == 1)  // Continue
@@ -7007,7 +7008,7 @@ private:
                     // Disable tracking on current input
                     saveInputParam(WFSParameterIDs::inputTrackingActive, 0);
                     trackingActiveButton.setToggleState(false, juce::dontSendNotification);
-                    showStatusMessage("Tracking disabled for Input " + juce::String(currentChannel));
+                    showStatusMessage(LOC("inputs.messages.trackingDisabled").replace("{channel}", juce::String(currentChannel)));
                     // Now proceed with cluster assignment
                     saveInputParam(WFSParameterIDs::inputCluster, targetCluster);
                 }
@@ -7081,13 +7082,13 @@ private:
         // Conflict detected - show warning dialog
         juce::AlertWindow::showOkCancelBox(
             juce::AlertWindow::WarningIcon,
-            "Tracking Conflict",
-            "Input " + juce::String(existingTrackedInput + 1) + " in Cluster " + juce::String(inputCluster) +
-            " already has tracking enabled.\n\nOnly one tracked input per cluster is allowed.\n\n"
-            "Do you want to disable tracking on Input " + juce::String(existingTrackedInput + 1) +
-            " and enable it on Input " + juce::String(currentChannel) + "?",
-            "Yes, switch tracking",
-            "Cancel",
+            LOC("inputs.dialogs.trackingConflictTitle"),
+            LOC("inputs.dialogs.trackingConflictSwitch")
+                .replace("{existing}", juce::String(existingTrackedInput + 1))
+                .replace("{cluster}", juce::String(inputCluster))
+                .replace("{to}", juce::String(currentChannel)),
+            LOC("inputs.dialogs.trackingConflictYes"),
+            LOC("common.cancel"),
             nullptr,
             juce::ModalCallbackFunction::create([this, existingTrackedInput](int result) {
                 if (result == 1)  // Yes
@@ -7097,8 +7098,7 @@ private:
                     // Enable tracking on current input
                     trackingActiveButton.setButtonText(LOC("inputs.toggles.trackingOn"));
                     saveInputParam(WFSParameterIDs::inputTrackingActive, 1);
-                    showStatusMessage("Tracking switched from Input " + juce::String(existingTrackedInput + 1) +
-                                      " to Input " + juce::String(currentChannel));
+                    showStatusMessage(LOC("inputs.messages.trackingSwitched").replace("{from}", juce::String(existingTrackedInput + 1)).replace("{to}", juce::String(currentChannel)));
                 }
                 else  // Cancel
                 {

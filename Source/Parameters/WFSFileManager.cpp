@@ -1,5 +1,6 @@
 #include "WFSFileManager.h"
 #include "WFSParameterIDs.h"
+#include "../Localization/LocalizationManager.h"
 
 using namespace WFSParameterIDs;
 
@@ -30,14 +31,14 @@ bool WFSFileManager::createProjectFolderStructure()
 {
     if (projectFolder.getFullPathName().isEmpty())
     {
-        setError ("No project folder specified");
+        setError (LOC ("fileManager.errors.noProjectFolder"));
         return false;
     }
 
     // Create main folder
     if (!projectFolder.createDirectory())
     {
-        setError ("Failed to create project folder: " + projectFolder.getFullPathName());
+        setError (LOC ("fileManager.errors.failedCreateFolder").replace ("{path}", projectFolder.getFullPathName()));
         return false;
     }
 
@@ -53,7 +54,7 @@ bool WFSFileManager::createProjectFolderStructure()
 void WFSFileManager::chooseProjectFolder (std::function<void (bool)> callback)
 {
     auto chooser = std::make_shared<juce::FileChooser> (
-        "Select Project Folder",
+        LOC ("fileManager.dialogs.selectProjectFolder"),
         projectFolder.exists() ? projectFolder : juce::File::getSpecialLocation (juce::File::userDocumentsDirectory),
         "*",
         true);
@@ -142,7 +143,7 @@ bool WFSFileManager::saveCompleteConfig()
 {
     if (!hasValidProjectFolder())
     {
-        setError ("No valid project folder");
+        setError (LOC ("fileManager.errors.noValidProjectFolder"));
         return false;
     }
 
@@ -153,31 +154,31 @@ bool WFSFileManager::saveCompleteConfig()
     if (!saveSystemConfig())
     {
         success = false;
-        errors.add ("System: " + lastError);
+        errors.add (LOC ("fileManager.errors.prefixSystem") + lastError);
     }
 
     if (!saveNetworkConfig())
     {
         success = false;
-        errors.add ("Network: " + lastError);
+        errors.add (LOC ("fileManager.errors.prefixNetwork") + lastError);
     }
 
     if (!saveInputConfig())
     {
         success = false;
-        errors.add ("Inputs: " + lastError);
+        errors.add (LOC ("fileManager.errors.prefixInputs") + lastError);
     }
 
     if (!saveOutputConfig())
     {
         success = false;
-        errors.add ("Outputs: " + lastError);
+        errors.add (LOC ("fileManager.errors.prefixOutputs") + lastError);
     }
 
     if (!saveReverbConfig())
     {
         success = false;
-        errors.add ("Reverbs: " + lastError);
+        errors.add (LOC ("fileManager.errors.prefixReverbs") + lastError);
     }
 
     if (!success)
@@ -193,7 +194,7 @@ bool WFSFileManager::loadCompleteConfig()
 
     if (!hasValidProjectFolder())
     {
-        setError ("No valid project folder");
+        setError (LOC ("fileManager.errors.noValidProjectFolder"));
         DBG ("  ERROR: No valid project folder");
         return false;
     }
@@ -211,7 +212,7 @@ bool WFSFileManager::loadCompleteConfig()
     if (!loadSystemConfig())
     {
         success = false;
-        errors.add ("System: " + lastError);
+        errors.add (LOC ("fileManager.errors.prefixSystem") + lastError);
         DBG ("  FAILED: System - " << lastError);
     }
     else
@@ -221,7 +222,7 @@ bool WFSFileManager::loadCompleteConfig()
     if (!loadNetworkConfig())
     {
         success = false;
-        errors.add ("Network: " + lastError);
+        errors.add (LOC ("fileManager.errors.prefixNetwork") + lastError);
         DBG ("  FAILED: Network - " << lastError);
     }
     else
@@ -231,7 +232,7 @@ bool WFSFileManager::loadCompleteConfig()
     if (!loadInputConfig())
     {
         success = false;
-        errors.add ("Inputs: " + lastError);
+        errors.add (LOC ("fileManager.errors.prefixInputs") + lastError);
         DBG ("  FAILED: Inputs - " << lastError);
     }
     else
@@ -241,7 +242,7 @@ bool WFSFileManager::loadCompleteConfig()
     if (!loadOutputConfig())
     {
         success = false;
-        errors.add ("Outputs: " + lastError);
+        errors.add (LOC ("fileManager.errors.prefixOutputs") + lastError);
         DBG ("  FAILED: Outputs - " << lastError);
     }
     else
@@ -251,7 +252,7 @@ bool WFSFileManager::loadCompleteConfig()
     if (!loadReverbConfig())
     {
         success = false;
-        errors.add ("Reverbs: " + lastError);
+        errors.add (LOC ("fileManager.errors.prefixReverbs") + lastError);
         DBG ("  FAILED: Reverbs - " << lastError);
     }
     else
@@ -278,31 +279,31 @@ bool WFSFileManager::loadCompleteConfigBackup (int backupIndex)
     if (!loadSystemConfigBackup (backupIndex))
     {
         success = false;
-        errors.add ("System: " + lastError);
+        errors.add (LOC ("fileManager.errors.prefixSystem") + lastError);
     }
 
     if (!loadNetworkConfigBackup (backupIndex))
     {
         success = false;
-        errors.add ("Network: " + lastError);
+        errors.add (LOC ("fileManager.errors.prefixNetwork") + lastError);
     }
 
     if (!loadInputConfigBackup (backupIndex))
     {
         success = false;
-        errors.add ("Inputs: " + lastError);
+        errors.add (LOC ("fileManager.errors.prefixInputs") + lastError);
     }
 
     if (!loadOutputConfigBackup (backupIndex))
     {
         success = false;
-        errors.add ("Outputs: " + lastError);
+        errors.add (LOC ("fileManager.errors.prefixOutputs") + lastError);
     }
 
     if (!loadReverbConfigBackup (backupIndex))
     {
         success = false;
-        errors.add ("Reverbs: " + lastError);
+        errors.add (LOC ("fileManager.errors.prefixReverbs") + lastError);
     }
 
     if (!success)
@@ -325,7 +326,7 @@ bool WFSFileManager::importCompleteConfig (const juce::File& file)
 
     if (!valueTreeState.validateState (loadedState))
     {
-        setError ("Invalid configuration file structure");
+        setError (LOC ("fileManager.errors.invalidConfigStructure"));
         return false;
     }
 
@@ -342,7 +343,7 @@ bool WFSFileManager::saveSystemConfig()
 {
     if (!hasValidProjectFolder())
     {
-        setError ("No valid project folder");
+        setError (LOC ("fileManager.errors.noValidProjectFolder"));
         return false;
     }
 
@@ -364,7 +365,7 @@ bool WFSFileManager::loadSystemConfig()
 {
     if (!hasValidProjectFolder())
     {
-        setError ("No valid project folder");
+        setError (LOC ("fileManager.errors.noValidProjectFolder"));
         return false;
     }
 
@@ -377,7 +378,7 @@ bool WFSFileManager::loadSystemConfigBackup (int backupIndex)
     if (backupIndex >= 0 && backupIndex < backups.size())
         return importSystemConfig (backups[backupIndex]);
 
-    setError ("Backup not found");
+    setError (LOC ("fileManager.errors.backupNotFound"));
     return false;
 }
 
@@ -417,7 +418,7 @@ bool WFSFileManager::importSystemConfig (const juce::File& file)
     }
 
     if (!appliedSomething)
-        setError ("No valid system data found in file: " + file.getFullPathName());
+        setError (LOC ("fileManager.errors.noSystemDataInFile").replace ("{path}", file.getFullPathName()));
 
     if (appliedSomething)
         valueTreeState.clearAllUndoHistories();
@@ -433,7 +434,7 @@ bool WFSFileManager::saveNetworkConfig()
 {
     if (!hasValidProjectFolder())
     {
-        setError ("No valid project folder");
+        setError (LOC ("fileManager.errors.noValidProjectFolder"));
         return false;
     }
 
@@ -453,7 +454,7 @@ bool WFSFileManager::loadNetworkConfig()
 {
     if (!hasValidProjectFolder())
     {
-        setError ("No valid project folder");
+        setError (LOC ("fileManager.errors.noValidProjectFolder"));
         return false;
     }
 
@@ -466,7 +467,7 @@ bool WFSFileManager::loadNetworkConfigBackup (int backupIndex)
     if (backupIndex >= 0 && backupIndex < backups.size())
         return importNetworkConfig (backups[backupIndex]);
 
-    setError ("Backup not found");
+    setError (LOC ("fileManager.errors.backupNotFound"));
     return false;
 }
 
@@ -511,7 +512,7 @@ bool WFSFileManager::importNetworkConfig (const juce::File& file)
         return result;
     }
 
-    setError ("No network data found in file");
+    setError (LOC ("fileManager.errors.noNetworkDataInFile"));
     return false;
 }
 
@@ -523,7 +524,7 @@ bool WFSFileManager::saveInputConfig()
 {
     if (!hasValidProjectFolder())
     {
-        setError ("No valid project folder");
+        setError (LOC ("fileManager.errors.noValidProjectFolder"));
         return false;
     }
 
@@ -543,7 +544,7 @@ bool WFSFileManager::loadInputConfig()
 {
     if (!hasValidProjectFolder())
     {
-        setError ("No valid project folder");
+        setError (LOC ("fileManager.errors.noValidProjectFolder"));
         return false;
     }
 
@@ -556,7 +557,7 @@ bool WFSFileManager::loadInputConfigBackup (int backupIndex)
     if (backupIndex >= 0 && backupIndex < backups.size())
         return importInputConfig (backups[backupIndex]);
 
-    setError ("Backup not found");
+    setError (LOC ("fileManager.errors.backupNotFound"));
     return false;
 }
 
@@ -578,7 +579,7 @@ bool WFSFileManager::importInputConfig (const juce::File& file)
     auto inputsTree = loadedState.getChildWithName (Inputs);
     if (!inputsTree.isValid())
     {
-        setError ("No input data found in file");
+        setError (LOC ("fileManager.errors.noInputDataInFile"));
         return false;
     }
 
@@ -596,7 +597,7 @@ bool WFSFileManager::saveOutputConfig()
 {
     if (!hasValidProjectFolder())
     {
-        setError ("No valid project folder");
+        setError (LOC ("fileManager.errors.noValidProjectFolder"));
         return false;
     }
 
@@ -616,7 +617,7 @@ bool WFSFileManager::loadOutputConfig()
 {
     if (!hasValidProjectFolder())
     {
-        setError ("No valid project folder");
+        setError (LOC ("fileManager.errors.noValidProjectFolder"));
         return false;
     }
 
@@ -629,7 +630,7 @@ bool WFSFileManager::loadOutputConfigBackup (int backupIndex)
     if (backupIndex >= 0 && backupIndex < backups.size())
         return importOutputConfig (backups[backupIndex]);
 
-    setError ("Backup not found");
+    setError (LOC ("fileManager.errors.backupNotFound"));
     return false;
 }
 
@@ -651,7 +652,7 @@ bool WFSFileManager::importOutputConfig (const juce::File& file)
     auto outputsTree = loadedState.getChildWithName (Outputs);
     if (!outputsTree.isValid())
     {
-        setError ("No output data found in file");
+        setError (LOC ("fileManager.errors.noOutputDataInFile"));
         return false;
     }
 
@@ -669,7 +670,7 @@ bool WFSFileManager::saveReverbConfig()
 {
     if (!hasValidProjectFolder())
     {
-        setError ("No valid project folder");
+        setError (LOC ("fileManager.errors.noValidProjectFolder"));
         return false;
     }
 
@@ -689,7 +690,7 @@ bool WFSFileManager::loadReverbConfig()
 {
     if (!hasValidProjectFolder())
     {
-        setError ("No valid project folder");
+        setError (LOC ("fileManager.errors.noValidProjectFolder"));
         return false;
     }
 
@@ -702,7 +703,7 @@ bool WFSFileManager::loadReverbConfigBackup (int backupIndex)
     if (backupIndex >= 0 && backupIndex < backups.size())
         return importReverbConfig (backups[backupIndex]);
 
-    setError ("Backup not found");
+    setError (LOC ("fileManager.errors.backupNotFound"));
     return false;
 }
 
@@ -724,7 +725,7 @@ bool WFSFileManager::importReverbConfig (const juce::File& file)
     auto reverbsTree = loadedState.getChildWithName (Reverbs);
     if (!reverbsTree.isValid())
     {
-        setError ("No reverb data found in file");
+        setError (LOC ("fileManager.errors.noReverbDataInFile"));
         return false;
     }
 
@@ -794,7 +795,7 @@ bool WFSFileManager::loadInputSnapshot (const juce::String& snapshotName, const 
     auto inputsData = snapshot.getChildWithName (Inputs);
     if (!inputsData.isValid())
     {
-        setError ("No input data in snapshot");
+        setError (LOC ("fileManager.errors.noInputDataInSnapshot"));
         return false;
     }
 
@@ -817,7 +818,7 @@ bool WFSFileManager::updateInputSnapshot (const juce::String& snapshotName, cons
     auto file = getInputSnapshotsFolder().getChildFile (snapshotName + snapshotExtension);
     if (!file.existsAsFile())
     {
-        setError ("Snapshot does not exist");
+        setError (LOC ("fileManager.errors.snapshotDoesNotExist"));
         return false;
     }
 
@@ -831,7 +832,7 @@ bool WFSFileManager::deleteInputSnapshot (const juce::String& snapshotName)
     if (file.existsAsFile())
         return file.deleteFile();
 
-    setError ("Snapshot not found");
+    setError (LOC ("fileManager.errors.snapshotNotFound"));
     return false;
 }
 
@@ -1204,7 +1205,7 @@ bool WFSFileManager::loadInputSnapshotWithExtendedScope (const juce::String& sna
     auto inputsData = snapshot.getChildWithName (Inputs);
     if (!inputsData.isValid())
     {
-        setError ("No input data in snapshot");
+        setError (LOC ("fileManager.errors.noInputDataInSnapshot"));
         return false;
     }
 
@@ -1250,7 +1251,7 @@ bool WFSFileManager::setExtendedSnapshotScope (const juce::String& snapshotName,
 
     if (!snapshot.isValid())
     {
-        setError ("Snapshot not found: " + snapshotName);
+        setError (LOC ("fileManager.errors.snapshotNotFoundNamed").replace ("{name}", snapshotName));
         return false;
     }
 
@@ -1577,7 +1578,7 @@ bool WFSFileManager::writeToXmlFile (const juce::ValueTree& tree, const juce::Fi
     auto xml = tree.createXml();
     if (xml == nullptr)
     {
-        setError ("Failed to create XML from state");
+        setError (LOC ("fileManager.errors.failedCreateXML"));
         return false;
     }
 
@@ -1588,7 +1589,7 @@ bool WFSFileManager::writeToXmlFile (const juce::ValueTree& tree, const juce::Fi
 
     if (!file.replaceWithText (xmlString))
     {
-        setError ("Failed to write file: " + file.getFullPathName());
+        setError (LOC ("fileManager.errors.failedWriteFile").replace ("{path}", file.getFullPathName()));
         return false;
     }
 
@@ -1599,21 +1600,21 @@ juce::ValueTree WFSFileManager::readFromXmlFile (const juce::File& file)
 {
     if (!file.existsAsFile())
     {
-        setError ("File not found: " + file.getFullPathName());
+        setError (LOC ("fileManager.errors.fileNotFound").replace ("{path}", file.getFullPathName()));
         return {};
     }
 
     auto xml = juce::XmlDocument::parse (file);
     if (xml == nullptr)
     {
-        setError ("Failed to parse XML file: " + file.getFullPathName());
+        setError (LOC ("fileManager.errors.failedParseXML").replace ("{path}", file.getFullPathName()));
         return {};
     }
 
     auto tree = juce::ValueTree::fromXml (*xml);
     if (!tree.isValid())
     {
-        setError ("Failed to create ValueTree from XML: " + file.getFullPathName());
+        setError (LOC ("fileManager.errors.failedCreateValueTree").replace ("{path}", file.getFullPathName()));
         return {};
     }
 
@@ -1785,7 +1786,7 @@ bool WFSFileManager::applyNetworkSection (const juce::ValueTree& networkContaine
     auto config = valueTreeState.getConfigState();
     if (!config.isValid())
     {
-        setError ("Config state is invalid");
+        setError (LOC ("fileManager.errors.configStateInvalid"));
         return false;
     }
 
@@ -1842,9 +1843,9 @@ bool WFSFileManager::applyNetworkSection (const juce::ValueTree& networkContaine
     }
 
     if (!success && failedSections.size() > 0)
-        setError ("Failed to apply: " + failedSections.joinIntoString (", "));
+        setError (LOC ("fileManager.errors.failedApply").replace ("{sections}", failedSections.joinIntoString (", ")));
     else if (!success)
-        setError ("No network sections found in file");
+        setError (LOC ("fileManager.errors.noNetworkSections"));
 
     return success;
 }

@@ -362,7 +362,7 @@ private:
         addAndMakeVisible(coordModeLabel);
         coordModeLabel.setText(LOC("reverbs.labels.coordinates"), juce::dontSendNotification);
         addAndMakeVisible(coordModeSelector);
-        coordModeSelector.addItem("XYZ", 1);
+        coordModeSelector.addItem(LOC("reverbs.coordModes.xyz"), 1);
         coordModeSelector.addItem(juce::String(juce::CharPointer_UTF8("r \xce\xb8 Z")), 2);    // r θ Z
         coordModeSelector.addItem(juce::String(juce::CharPointer_UTF8("r \xce\xb8 \xcf\x86")), 3);  // r θ φ
         coordModeSelector.setSelectedId(1, juce::dontSendNotification);
@@ -375,7 +375,7 @@ private:
         };
 
         // Position X/Y/Z
-        const char* posLabels[] = { "Position X:", "Position Y:", "Position Z:" };
+        juce::String posLabels[] = { LOC("reverbs.labels.positionX"), LOC("reverbs.labels.positionY"), LOC("reverbs.labels.positionZ") };
         juce::Label* posLabelPtrs[] = { &posXLabel, &posYLabel, &posZLabel };
         juce::TextEditor* posEditorPtrs[] = { &posXEditor, &posYEditor, &posZEditor };
         juce::Label* posUnitPtrs[] = { &posXUnitLabel, &posYUnitLabel, &posZUnitLabel };
@@ -395,7 +395,7 @@ private:
         }
 
         // Return Offset X/Y/Z
-        const char* offsetLabels[] = { "Return Offset X:", "Return Offset Y:", "Return Offset Z:" };
+        juce::String offsetLabels[] = { LOC("reverbs.labels.returnOffsetX"), LOC("reverbs.labels.returnOffsetY"), LOC("reverbs.labels.returnOffsetZ") };
         juce::Label* offsetLabelPtrs[] = { &returnOffsetXLabel, &returnOffsetYLabel, &returnOffsetZLabel };
         juce::TextEditor* offsetEditorPtrs[] = { &returnOffsetXEditor, &returnOffsetYEditor, &returnOffsetZEditor };
         juce::Label* offsetUnitPtrs[] = { &returnOffsetXUnitLabel, &returnOffsetYUnitLabel, &returnOffsetZUnitLabel };
@@ -428,7 +428,7 @@ private:
 
         // Directional dial (orientation + angle on + angle off)
         addAndMakeVisible (orientationLabel);
-        orientationLabel.setText ("Orientation:", juce::dontSendNotification);
+        orientationLabel.setText (LOC("reverbs.labels.orientation"), juce::dontSendNotification);
 
         directionalDial.onOrientationChanged = [this] (float angle)
         {
@@ -485,7 +485,7 @@ private:
 
         // Angle On slider
         addAndMakeVisible (angleOnLabel);
-        angleOnLabel.setText ("Angle On:", juce::dontSendNotification);
+        angleOnLabel.setText (LOC("reverbs.labels.angleOn"), juce::dontSendNotification);
 
         angleOnSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF4CAF50));  // Green to match dial
         angleOnSlider.onValueChanged = [this] (float v)
@@ -518,7 +518,7 @@ private:
 
         // Angle Off slider
         addAndMakeVisible (angleOffLabel);
-        angleOffLabel.setText ("Angle Off:", juce::dontSendNotification);
+        angleOffLabel.setText (LOC("reverbs.labels.angleOff"), juce::dontSendNotification);
 
         angleOffSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFE53935));  // Red to match dial
         angleOffSlider.onValueChanged = [this] (float v)
@@ -551,7 +551,7 @@ private:
 
         // Pitch slider
         addAndMakeVisible (pitchLabel);
-        pitchLabel.setText ("Pitch:", juce::dontSendNotification);
+        pitchLabel.setText (LOC("reverbs.labels.pitch"), juce::dontSendNotification);
 
         pitchSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF00BCD4));
         pitchSlider.onValueChanged = [this] (float v)
@@ -572,7 +572,7 @@ private:
 
         // HF Damping slider
         addAndMakeVisible (hfDampingLabel);
-        hfDampingLabel.setText ("HF Damping:", juce::dontSendNotification);
+        hfDampingLabel.setText (LOC("reverbs.labels.hfDamping"), juce::dontSendNotification);
 
         hfDampingSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFFF9800));
         hfDampingSlider.onValueChanged = [this] (float v)
@@ -596,7 +596,7 @@ private:
         miniLatencyEnableButton.setButtonText (LOC("reverbs.toggles.minLatencyOff"));
         miniLatencyEnableButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF2D2D2D));
         miniLatencyEnableButton.setColour (juce::TextButton::buttonOnColourId, juce::Colour (0xFF2D2D2D));
-        miniLatencyEnableButton.setTooltip ("Enables minimal latency mode for the reverb feed");
+        miniLatencyEnableButton.setTooltip (LOC("reverbs.help.miniLatencyTooltip"));
         miniLatencyEnableButton.onClick = [this]
         {
             bool enabled = !miniLatencyEnableButton.getToggleState();
@@ -612,7 +612,7 @@ private:
         lsEnableButton.setButtonText (LOC("reverbs.toggles.liveSourceOff"));
         lsEnableButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF2D2D2D));
         lsEnableButton.setColour (juce::TextButton::buttonOnColourId, juce::Colour (0xFF2D2D2D));
-        lsEnableButton.setTooltip ("Enables live source attenuation for the reverb feed");
+        lsEnableButton.setTooltip (LOC("reverbs.help.liveSourceTooltip"));
         lsEnableButton.onClick = [this]
         {
             bool enabled = !lsEnableButton.getToggleState();

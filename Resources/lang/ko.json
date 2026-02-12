@@ -5,7 +5,6 @@
     "version": "1.0.0",
     "author": "WFS-DIY Team"
   },
-
   "common": {
     "ok": "확인",
     "cancel": "취소",
@@ -32,20 +31,18 @@
     "all": "전체",
     "none": "없음"
   },
-
   "units": {
     "meters": "m",
     "decibels": "dB",
     "milliseconds": "ms",
     "seconds": "s",
-    "degrees": "\u00b0",
+    "degrees": "°",
     "hertz": "Hz",
     "percent": "%",
-    "celsius": "\u00b0C",
+    "celsius": "°C",
     "metersPerSecond": "m/s",
     "decibelPerMeter": "dB/m"
   },
-
   "tabs": {
     "systemConfig": "시스템 설정",
     "inputs": "입력",
@@ -55,13 +52,11 @@
     "clusters": "클러스터",
     "map": "맵"
   },
-
   "statusBar": {
     "displayLabel": "표시:",
     "helpMode": "도움말",
     "oscMode": "OSC"
   },
-
   "systemConfig": {
     "sections": {
       "show": "공연",
@@ -70,10 +65,10 @@
       "master": "마스터 섹션",
       "ui": "인터페이스",
       "wfsProcessor": "WFS 프로세서",
+      "binaural": "Binaural Solo",
       "binauralRenderer": "바이노럴 렌더러",
       "files": "파일"
     },
-
     "labels": {
       "showName": "이름:",
       "showLocation": "장소:",
@@ -98,15 +93,23 @@
       "haasEffect": "하스 효과:",
       "colorScheme": "색상 테마:",
       "screenReader": "화면 판독기:",
-      "language": "언어:"
+      "language": "언어:",
+      "binauralOutput": "Binaural Output:",
+      "binauralDistance": "Listener Distance:",
+      "binauralAngle": "Listener Angle:",
+      "binauralAtten": "Binaural Level:",
+      "binauralDelay": "Binaural Delay:"
     },
-
     "buttons": {
       "audioPatch": "오디오 인터페이스 및 패치 창",
+      "levelMeter": "Level Meters",
+      "clearSolo": "Clear Solo",
       "processingOff": "처리: 끄기",
       "processingOn": "처리: 켜기",
       "binauralOff": "바이노럴: 끄기",
       "binauralOn": "바이노럴: 켜기",
+      "soloModeSingle": "Solo: Single",
+      "soloModeMulti": "Solo: Multi",
       "selectProjectFolder": "프로젝트 폴더 선택",
       "storeComplete": "전체 설정 저장",
       "reloadComplete": "전체 설정 다시 불러오기",
@@ -117,24 +120,24 @@
       "importSystem": "시스템 설정 가져오기",
       "exportSystem": "시스템 설정 내보내기"
     },
-
     "algorithms": {
       "inputBuffer": "InputBuffer (읽기 시간 지연)",
       "outputBuffer": "OutputBuffer (쓰기 시간 지연)"
     },
-
     "stageShapes": {
       "box": "박스",
       "cylinder": "실린더",
       "dome": "돔"
     },
-
     "colorSchemes": {
       "default": "기본 (짙은 회색)",
       "black": "검정",
       "light": "밝은"
     },
-
+    "binauralOutput": {
+      "off": "Off",
+      "select": "Select..."
+    },
     "help": {
       "showName": "현재 공연의 이름.",
       "showLocation": "현재 공연의 장소.",
@@ -142,8 +145,11 @@
       "outputChannels": "출력 채널 수.",
       "reverbChannels": "리버브 채널 수.",
       "audioPatch": "오디오 인터페이스 및 패치 창을 엽니다.",
+      "levelMeter": "Opens the Level Meter Window.",
+      "clearSolo": "Clear all input solo states.",
       "algorithm": "메뉴에서 렌더링 알고리즘을 선택하세요.",
       "processing": "모든 입출력 매개변수를 잠그고 DSP를 시작합니다. 길게 누르면 DSP가 중지됩니다.",
+      "soloMode": "Single: one input at a time. Multi: multiple inputs simultaneously.",
       "stageShape": "무대 형태를 선택하세요 (박스, 실린더 또는 돔).",
       "stageWidth": "무대 너비 (미터) (박스 형태만 해당).",
       "stageDepth": "무대 깊이 (미터) (박스 형태만 해당).",
@@ -172,9 +178,14 @@
       "reloadSystemBackup": "백업 파일에서 시스템 설정을 다시 불러오기.",
       "importSystem": "파일에서 시스템 설정 가져오기 (파일 탐색기 사용).",
       "exportSystem": "시스템 설정을 파일로 내보내기 (파일 탐색기 사용).",
-      "language": "사용자 인터페이스 언어를 선택하세요. 애플리케이션을 재시작하면 변경 사항이 완전히 적용됩니다."
+      "language": "사용자 인터페이스 언어를 선택하세요. 애플리케이션을 재시작하면 변경 사항이 완전히 적용됩니다.",
+      "binauralEnable": "Enable or disable the binaural renderer processing.",
+      "binauralOutput": "Select output channel pair for binaural monitoring. Off disables binaural output.",
+      "binauralDistance": "Distance of binaural listener from stage origin (meters).",
+      "binauralAngle": "Horizontal rotation of binaural listener view (degrees, 0 = facing stage).",
+      "binauralAtten": "Overall level offset for binaural output (dB).",
+      "binauralDelay": "Additional delay for binaural output (milliseconds)."
     },
-
     "messages": {
       "selectFolderFirst": "먼저 프로젝트 폴더를 선택하세요.",
       "configSaved": "전체 설정이 저장되었습니다.",
@@ -192,7 +203,6 @@
       "error": "오류: {error}",
       "languageChanged": "언어가 {language}(으)로 변경되었습니다 (완전히 적용하려면 재시작 필요)"
     },
-
     "dialogs": {
       "reduceInputChannels": {
         "title": "입력 채널을 줄이시겠습니까?",
@@ -212,48 +222,6 @@
       "exportSystemConfig": "시스템 설정 내보내기"
     }
   },
-
-  "inputs": {
-    "sections": {
-      "channel": "채널",
-      "position": "위치",
-      "attenuation": "감쇠",
-      "directivity": "지향성",
-      "liveSource": "라이브 소스 테이머",
-      "hackoustics": "Hackoustics",
-      "lfo": "LFO",
-      "automotion": "AutomOtion",
-      "mutes": "음소거"
-    },
-
-    "labels": {
-      "name": "이름",
-      "cluster": "클러스터",
-      "attenuation": "감쇠",
-      "delayLatency": "지연/레이턴시",
-      "positionX": "X",
-      "positionY": "Y",
-      "positionZ": "Z"
-    }
-  },
-
-  "outputs": {
-    "sections": {
-      "channel": "채널",
-      "position": "위치",
-      "settings": "설정"
-    },
-
-    "labels": {
-      "name": "이름",
-      "positionX": "X",
-      "positionY": "Y",
-      "positionZ": "Z",
-      "attenuation": "감쇠",
-      "delay": "지연"
-    }
-  },
-
   "network": {
     "sections": {
       "network": "네트워크",
@@ -261,7 +229,6 @@
       "admOsc": "ADM-OSC",
       "tracking": "트래킹"
     },
-
     "labels": {
       "interface": "네트워크 인터페이스:",
       "currentIPv4": "현재 IPv4:",
@@ -275,9 +242,60 @@
       "offsetZ": "오프셋 Z:",
       "scaleX": "스케일 X:",
       "scaleY": "스케일 Y:",
-      "scaleZ": "스케일 Z:"
+      "scaleZ": "스케일 Z:",
+      "oscPath": "OSC Path:",
+      "psnInterface": "PSN Interface:",
+      "notAvailable": "Not available",
+      "localhost": "Localhost (127.0.0.1)"
     },
-
+    "help": {
+      "networkInterface": "Select the Network Interface.",
+      "currentIP": "IP address of the Processor.",
+      "udpPort": "UDP Receive Port of the Processor.",
+      "tcpPort": "TCP Receive Port of the Processor.",
+      "oscQueryPort": "HTTP port for OSC Query discovery. Other apps can browse parameters at http://localhost:<port>/",
+      "oscQueryEnable": "Enable/disable OSC Query server for automatic parameter discovery via HTTP/WebSocket.",
+      "targetName": "Network Target Name.",
+      "dataMode": "Select UDP or TCP data transmission.",
+      "targetIP": "IP Address of the Target (use 127.0.0.1 for local host).",
+      "txPort": "Transmit Port for this Target.",
+      "rxEnable": "Enable or Disable Data Reception.",
+      "txEnable": "Enable or Disable Data Transmission.",
+      "protocol": "Select the Protocol: DISABLED, OSC, REMOTE, or ADM-OSC.",
+      "addTarget": "Add new network target.",
+      "openLogWindow": "Open Network Logging window.",
+      "findMyRemote": "Make your Remote Flash and Buzz to Find it.",
+      "oscSourceFilter": "Filter incoming OSC: Accept All sources or only Registered connections with Rx enabled.",
+      "admOscOffsetX": "Offset ADM-OSC X Coordinate.",
+      "admOscOffsetY": "Offset ADM-OSC Y Coordinate.",
+      "admOscOffsetZ": "Offset ADM-OSC Z Coordinate.",
+      "admOscScaleX": "Scale ADM-OSC X Coordinate.",
+      "admOscScaleY": "Scale ADM-OSC Y Coordinate.",
+      "admOscScaleZ": "Scale ADM-OSC Z Coordinate.",
+      "admOscFlipX": "Invert Axis of ADM-OSC X Coordinate.",
+      "admOscFlipY": "Invert Axis of ADM-OSC Y Coordinate.",
+      "admOscFlipZ": "Invert Axis of ADM-OSC Z Coordinate.",
+      "trackingEnabled": "Enable or Disable Incoming Tracking data processing.",
+      "trackingProtocol": "Select the type of Tracking Protocol.",
+      "trackingPort": "Specify the Port to receive Tracking data.",
+      "trackingOffsetX": "Offset Tracking X Coordinate.",
+      "trackingOffsetY": "Offset Tracking Y Coordinate.",
+      "trackingOffsetZ": "Offset Tracking Z Coordinate.",
+      "trackingScaleX": "Scale Tracking X Coordinate.",
+      "trackingScaleY": "Scale Tracking Y Coordinate.",
+      "trackingScaleZ": "Scale Tracking Z Coordinate.",
+      "trackingFlipX": "Invert Axis of Tracking X Coordinate.",
+      "trackingFlipY": "Invert Axis of Tracking Y Coordinate.",
+      "trackingFlipZ": "Invert Axis of Tracking Z Coordinate.",
+      "trackingOscPath": "OSC Path for the Tracking in OSC Mode (starts with a /)",
+      "psnInterface": "Network interface for PSN multicast reception",
+      "storeConfig": "Store Network Configuration to file.",
+      "reloadConfig": "Reload Network Configuration from file.",
+      "reloadBackup": "Reload Network Configuration from backup file.",
+      "importConfig": "Import Network Configuration from file.",
+      "exportConfig": "Export Network Configuration to file.",
+      "removeTarget": "Delete this Network Target."
+    },
     "buttons": {
       "storeConfig": "네트워크 설정 저장",
       "reloadConfig": "네트워크 설정 다시 불러오기",
@@ -288,7 +306,6 @@
       "findMyRemote": "리모컨 찾기",
       "add": "추가"
     },
-
     "toggles": {
       "enabled": "활성화됨",
       "disabled": "비활성화됨",
@@ -305,7 +322,6 @@
       "oscFilterAcceptAll": "OSC 필터: 모두 허용",
       "oscFilterRegisteredOnly": "OSC 필터: 등록된 것만"
     },
-
     "table": {
       "name": "이름",
       "mode": "모드",
@@ -316,7 +332,6 @@
       "protocol": "프로토콜",
       "defaultTarget": "대상 {num}"
     },
-
     "protocols": {
       "disabled": "비활성화",
       "osc": "OSC",
@@ -327,10 +342,17 @@
       "udp": "UDP",
       "tcp": "TCP"
     },
-
     "dialogs": {
       "importConfig": "네트워크 설정 가져오기",
-      "exportConfig": "네트워크 설정 내보내기"
+      "exportConfig": "네트워크 설정 내보내기",
+      "removeTargetTitle": "Remove Target",
+      "removeTargetMessage": "Delete target '{name}'?",
+      "findMyRemoteTitle": "Find My Remote",
+      "findMyRemoteMessage": "Enter the password for your remote device:",
+      "findMyRemotePassword": "Password:",
+      "trackingConflictsTitle": "Tracking Conflicts Detected",
+      "trackingConflictsMessage": "\nOnly one tracked input per cluster is allowed. If you continue, tracking will be kept only for the first input in each cluster.",
+      "trackingConflictsContinue": "Continue"
     },
     "messages": {
       "selectFolderFirst": "시스템 설정에서 먼저 프로젝트 폴더를 선택하세요.",
@@ -343,24 +365,23 @@
       "configExported": "네트워크 설정을 내보냈습니다.",
       "error": "오류: {error}",
       "onlyOneRemote": "리모트 연결은 하나만 허용됩니다.",
-      "findDeviceSent": "장치 찾기 명령이 전송되었습니다."
+      "findDeviceSent": "장치 찾기 명령이 전송되었습니다.",
+      "maxTargetsReached": "Maximum Number of Targets/Servers Reached.",
+      "passwordEmpty": "Password cannot be empty.",
+      "oscManagerError": "Error: OSC Manager not available"
     }
   },
-
   "accessibility": {
     "ttsEnabled": "화면 판독기 활성화됨",
     "ttsDisabled": "화면 판독기 비활성화됨"
   },
-
   "audioPatch": {
     "windowTitle": "오디오 인터페이스 및 패치",
-
     "tabs": {
       "deviceSettings": "장치 설정",
       "inputPatch": "입력 패치",
       "outputPatch": "출력 패치"
     },
-
     "deviceSettings": {
       "labels": {
         "deviceType": "오디오 장치 유형:",
@@ -375,18 +396,15 @@
       "noDevice": "장치 없음",
       "notConfigured": "구성되지 않음"
     },
-
     "modes": {
       "scrolling": "스크롤",
       "patching": "패칭",
       "testing": "테스트"
     },
-
     "buttons": {
       "unpatchAll": "모두 연결 해제",
       "hold": "유지"
     },
-
     "testSignal": {
       "labels": {
         "signal": "신호:",
@@ -402,19 +420,16 @@
         "pulse": "펄스"
       }
     },
-
     "dialogs": {
       "unpatchInputsTitle": "모든 입력 연결 해제",
       "unpatchInputsMessage": "모든 입력 패치를 제거하시겠습니까?",
       "unpatchOutputsTitle": "모든 출력 연결 해제",
       "unpatchOutputsMessage": "모든 출력 패치를 제거하시겠습니까?"
     },
-
     "messages": {
       "chooseTestSignal": "테스트 모드를 활성화하려면 테스트 신호를 선택하세요"
     }
   },
-
   "networkLog": {
     "windowTitle": "네트워크 로그",
     "controls": {
@@ -458,7 +473,6 @@
       "exportCompleteMessage": "로그가 내보내졌습니다: {path}"
     }
   },
-
   "map": {
     "buttons": {
       "fitStage": "무대를 화면에 맞추기",
@@ -475,7 +489,6 @@
       "reverbPrefix": "리"
     }
   },
-
   "levelMeter": {
     "windowTitle": "레벨 미터",
     "inputs": "입력",
@@ -483,14 +496,16 @@
     "solo": "비주얼 솔로:",
     "soloNone": "없음",
     "buttons": {
-      "clearSolo": "솔로 해제"
+      "clearSolo": "솔로 해제",
+      "soloModeSingle": "Single",
+      "soloModeMulti": "Multi"
     },
     "tooltips": {
       "solo": "레벨 미터 디스플레이에서 입력의 모든 출력에 대한 기여도 표시(싱글 모드) 및 솔로 입력의 바이노럴 렌더링 재생",
-      "clearSolo": "모든 솔로 비활성화"
+      "clearSolo": "모든 솔로 비활성화",
+      "soloMode": "Single: one input at a time. Multi: multiple inputs simultaneously."
     }
   },
-
   "clusters": {
     "labels": {
       "assignedInputs": "할당된 입력",
@@ -522,7 +537,6 @@
       "trackedMarker": "[T]"
     }
   },
-
   "eq": {
     "status": {
       "off": "EQ 끄기",
@@ -544,8 +558,12 @@
       "q": "Q"
     }
   },
-
   "outputs": {
+    "sections": {
+      "channel": "채널",
+      "position": "위치",
+      "settings": "설정"
+    },
     "tabs": {
       "parameters": "출력 매개변수",
       "eq": "출력 EQ"
@@ -573,6 +591,9 @@
     },
     "buttons": {
       "speakerVisible": "맵에 스피커 표시",
+      "speakerHidden": "Speaker Hidden on Map",
+      "arrayVisible": "Array Visible on Map",
+      "arrayHidden": "Array Hidden on Map",
       "wizardOfOutZ": "Wizard of OutZ...",
       "storeConfig": "출력 설정 저장",
       "reloadConfig": "출력 설정 다시 불러오기",
@@ -655,7 +676,6 @@
       "exportConfig": "출력 설정을 파일로 내보냅니다 (파일 탐색기 창 포함)."
     }
   },
-
   "arrayHelper": {
     "window": {
       "title": "Wizard of OutZ",
@@ -735,7 +755,6 @@
       "prefix": "오류: "
     }
   },
-
   "reverbs": {
     "noChannels": "리버브 채널이 구성되지 않았습니다.\n\n시스템 설정에서 리버브 채널 수를 설정하세요.",
     "tabs": {
@@ -785,6 +804,9 @@
       "liveSourceOn": "라이브 소스 감쇠 켜기",
       "liveSourceOff": "라이브 소스 감쇠 끄기"
     },
+    "coordModes": {
+      "xyz": "XYZ"
+    },
     "muteMacros": {
       "select": "음소거 매크로 선택",
       "muteAll": "전체 음소거",
@@ -801,8 +823,8 @@
       "ir": "IR",
       "decaySection": "감쇠",
       "rt60": "RT60:",
-      "rt60LowMult": "RT60 저역 \u00d7:",
-      "rt60HighMult": "RT60 고역 \u00d7:",
+      "rt60LowMult": "RT60 저역 ×:",
+      "rt60HighMult": "RT60 고역 ×:",
       "crossoverLow": "크로스오버 저역:",
       "crossoverHigh": "크로스오버 고역:",
       "diffusion": "확산:",
@@ -906,13 +928,26 @@
       "postExpThreshold": "포스트 익스팬더 임계값 (-80 ~ -10 dB).",
       "postExpRatio": "포스트 익스팬더 비율 (1:1 ~ 1:8).",
       "postExpAttack": "포스트 익스팬더 어택 시간 (0.1 - 50 ms).",
-      "postExpRelease": "포스트 익스팬더 릴리스 시간 (50 - 2000 ms)."
+      "postExpRelease": "포스트 익스팬더 릴리스 시간 (50 - 2000 ms).",
+      "miniLatencyTooltip": "Enable minimal latency mode for this reverb channel. Reduces processing delay at the cost of higher CPU usage.",
+      "liveSourceTooltip": "Enable Live Source attenuation tamer. Reduces level fluctuations from sources close to the array."
     }
   },
   "inputs": {
+    "sections": {
+      "channel": "채널",
+      "position": "위치",
+      "attenuation": "감쇠",
+      "directivity": "지향성",
+      "liveSource": "라이브 소스 테이머",
+      "hackoustics": "Hackoustics (가상음향)",
+      "lfo": "LFO",
+      "automotion": "AutomOtion (자동이동)",
+      "mutes": "뮤트"
+    },
     "tabs": {
       "inputParams": "입력 매개변수",
-      "liveSourceHackoustics": "라이브 소스 & Hackoustics",
+      "liveSourceHackoustics": "라이브 소스 & Hackoustics (가상음향)",
       "movements": "움직임",
       "visualisation": "시각화"
     },
@@ -986,6 +1021,7 @@
       "fringe": "프린지:"
     },
     "buttons": {
+      "solo": "Solo",
       "setAllInputs": "모든 입력 설정...",
       "storeConfig": "입력 설정 저장",
       "reloadConfig": "입력 설정 다시 불러오기",
@@ -1003,7 +1039,9 @@
       "lockOnMap": "맵에서 잠금",
       "stopAll": "모두 중지",
       "pauseAll": "모두 일시 정지",
-      "resumeAll": "모두 재개"
+      "resumeAll": "모두 재개",
+      "soloModeSingle": "Single",
+      "soloModeMulti": "Multi"
     },
     "toggles": {
       "acousticPrecedence": "음향 우선",
@@ -1100,7 +1138,13 @@
       "exportConfig": "입력 설정 내보내기",
       "storeSnapshotTitle": "새 스냅샷 저장",
       "storeSnapshotMessage": "새 스냅샷의 이름을 입력하세요:",
-      "snapshotNameLabel": "이름:"
+      "snapshotNameLabel": "이름:",
+      "selectChannel": "Select Channel",
+      "trackingConflictTitle": "Tracking Conflict",
+      "trackingConflictCluster": "Input {current} has tracking enabled, but Input {existing} in Cluster {cluster} is already tracked.\n\nOnly one tracked input per cluster is allowed.",
+      "trackingConflictContinue": "Continue (disable tracking)",
+      "trackingConflictSwitch": "Input {existing} in Cluster {cluster} already has tracking enabled.\n\nOnly one tracked input per cluster is allowed.\n\nDo you want to disable tracking on Input {existing} and enable it on Input {to}?",
+      "trackingConflictYes": "Yes, switch tracking"
     },
     "messages": {
       "selectFolderFirst": "시스템 설정에서 먼저 프로젝트 폴더를 선택하세요.",
@@ -1124,6 +1168,8 @@
       "trackingSwitched": "트래킹이 입력 {from}에서 입력 {to}(으)로 전환됨"
     },
     "help": {
+      "solo": "Listen to Binaural Rendering of this channel.",
+      "soloMode": "Single: one input at a time. Multi: multiple inputs simultaneously.",
       "storeConfig": "입력 구성을 파일에 저장합니다 (백업 포함).",
       "reloadConfig": "파일에서 입력 구성을 다시 불러옵니다.",
       "reloadBackup": "백업 파일에서 입력 구성을 다시 불러옵니다.",
@@ -1135,7 +1181,110 @@
       "reloadWithoutScope": "필터 없이 선택한 입력 스냅샷을 모든 오브젝트에 다시 불러옵니다.",
       "updateSnapshot": "선택한 입력 스냅샷을 업데이트합니다 (백업 포함).",
       "editScope": "선택한 입력 스냅샷의 필터 창을 엽니다.",
-      "deleteSnapshot": "확인 후 선택한 입력 스냅샷을 삭제합니다."
+      "deleteSnapshot": "확인 후 선택한 입력 스냅샷을 삭제합니다.",
+      "channelSelector": "Input Channel Number and Selection.",
+      "nameEditor": "Displayed Input Channel Name (editable).",
+      "clusterSelector": "Object is Part of a Cluster.",
+      "mapLockButton": "Prevent Interaction on the Map Tab",
+      "mapVisibilityButton": "Make Visible or Hide The Selected Input on the Map",
+      "attenuationSlider": "Input Channel Attenuation.",
+      "delayLatencySlider": "Input Channel Delay (positive values) or Latency Compensation (negative values).",
+      "minimalLatencyButton": "Select between Acoustic Precedence and Minimal Latency for Amplification Precedence.",
+      "posXEditor": "Object Position in Width. Nudge with Left and Right Arrow Keys.",
+      "posYEditor": "Object Position in Depth. Nudge with Up and Down Arrow Keys.",
+      "posZEditor": "Object Position in Height. Nudge with Page Up and Page Down Keys.",
+      "offsetXEditor": "Object Position Offset in Width. Adjusted when Tracking is Enabled.",
+      "offsetYEditor": "Object Position Offset in Depth. Adjusted when Tracking is Enabled.",
+      "offsetZEditor": "Object Position Offset in Height. Adjusted when Tracking is Enabled.",
+      "constraintXButton": "Limit Position to the Bounds of the Stage in Width.",
+      "constraintYButton": "Limit Position to the Bounds of the Stage in Depth.",
+      "constraintZButton": "Limit Position to the Bounds of the Stage in Height.",
+      "constraintDistanceButton": "Limit Position to Distance Range from Origin (for Cylindrical/Spherical modes).",
+      "distanceRangeSlider": "Set Minimum and Maximum Distance from Origin.",
+      "distanceMinEditor": "Minimum Distance from Origin in Meters.",
+      "distanceMaxEditor": "Maximum Distance from Origin in Meters.",
+      "flipXButton": "X will be Symetrical to the Origin. Keyboard Nudging will be Inverted.",
+      "flipYButton": "Y will be Symetrical to the Origin. Keyboard Nudging will be Inverted.",
+      "flipZButton": "Z will be Symetrical to the Origin. Keyboard Nudging will be Inverted.",
+      "trackingActiveButton": "Enable or Disable Tracking for Object.",
+      "trackingIdSelector": "Tracker ID for Object.",
+      "trackingSmoothDial": "Smoothing of Tracking Data for Object.",
+      "maxSpeedActiveButton": "Enable or Disable Speed Limiting for Object.",
+      "maxSpeedDial": "Maximum Speed Limit for Object.",
+      "pathModeButton": "Enable Path Mode to Follow Drawn Movement Paths Instead of Direct Lines.",
+      "heightFactorDial": "Take Elevation of Object into Account Fully, Partially or Not.",
+      "coordModeSelector": "Coordinate display mode: Cartesian (X/Y/Z), Cylindrical (radius/azimuth/height), or Spherical (radius/azimuth/elevation).",
+      "positionJoystick": "Drag to adjust X/Y position in real-time. Returns to center on release.",
+      "positionZSlider": "Drag to adjust Z (height) position in real-time. Returns to center on release.",
+      "attenuationLawButton": "Attenuation Law Model (Linear Decrease of Volume with Distance Between Object and Speaker or Squared).",
+      "distanceAttenDial": "Attenuation per Meter Between Object and Speaker.",
+      "distanceRatioDial": "Attenuation Ratio for Squared Model.",
+      "commonAttenDial": "Percentage of the Common Part of the Attenuation for selected Object Relative to All Outputs.",
+      "directivitySlider": "How Wide is the Brightness of The Object.",
+      "inputDirectivityDial": "Where is the Object pointing to in the Horizontal Plane.",
+      "tiltSlider": "Where is the Object pointing to in the Vertical Plane.",
+      "hfShelfSlider": "How Much Brightness is lost in the Back of the Object, Out of its Brightness Cone.",
+      "lsActiveButton": "If You Need to Reduce the Level in Speakers Close to the Object. (eg. Loud Source Present on Stage)",
+      "lsRadiusSlider": "How Far does the Attenuation Affect The Speakers.",
+      "lsShapeSelector": "Profile of the Attenuation Around the Object.",
+      "lsAttenuationSlider": "Constant Attenuation of Speakers Around the Object.",
+      "lsPeakThresholdSlider": "Fast Compression Threshold for Speakers Around the Object to Control Transients.",
+      "lsPeakRatioDial": "Ratio to Apply the Fast Compression for Speakers Around the Object.",
+      "lsSlowThresholdSlider": "Slow Compression Threshold for Speakers Around the Object to Control Sustained Level.",
+      "lsSlowRatioDial": "Ratio to Apply the Slow Compression for Speakers Around the Object.",
+      "frActiveButton": "Enable Simulated Floor Reflections for the Object.",
+      "frAttenuationSlider": "Attenuation of the Simulated Floor Reflections for the Object.",
+      "frDiffusionDial": "Diffusion Effect of the Simulated Floor Reflections for the Object.",
+      "frLowCutActiveButton": "Enable Low Cut Filter for Floor Reflections.",
+      "frLowCutFreqSlider": "Low Cut Frequency for Floor Reflections.",
+      "frHighShelfActiveButton": "Enable High Shelf Filter for Floor Reflections.",
+      "frHighShelfFreqSlider": "High Shelf Frequency for Floor Reflections.",
+      "frHighShelfGainSlider": "High Shelf Gain for Floor Reflections.",
+      "frHighShelfSlopeSlider": "High Shelf Slope for Floor Reflections.",
+      "muteReverbSendsButton": "Mute sends from this input to all reverb channels.",
+      "jitterSlider": "Sphere of Rapid Movements of the Object.",
+      "lfoActiveButton": "Enable or Disable the Periodic Movement of the Object (LFO).",
+      "lfoPeriodDial": "Base Period of the Movement of the Object.",
+      "lfoPhaseDial": "Phase Offset of the Movement of the Object.",
+      "lfoShapeXSelector": "Movement Behaviour of the Object in Width.",
+      "lfoShapeYSelector": "Movement Behaviour of the Object in Depth.",
+      "lfoShapeZSelector": "Movement Behaviour of the Object in Height.",
+      "lfoRateXSlider": "Faster or Slower Movement in Relation to Base Period in Width.",
+      "lfoRateYSlider": "Faster or Slower Movement in Relation to Base Period in Depth.",
+      "lfoRateZSlider": "Faster or Slower Movement in Relation to Base Period in Height.",
+      "lfoAmplitudeXSlider": "Width of Movement in Relation to Base Position of the Object.",
+      "lfoAmplitudeYSlider": "Depth of Movement in Relation to Base Position of the Object.",
+      "lfoAmplitudeZSlider": "Height of Movement in Relation to Base Position of the Object.",
+      "lfoPhaseXDial": "Phase Offset of the Movement of the Object in Width.",
+      "lfoPhaseYDial": "Phase Offset of the Movement of the Object in Depth.",
+      "lfoPhaseZDial": "Phase Offset of the Movement of the Object in Height.",
+      "lfoGyrophoneSelector": "Rotation of the Brightness Cone of the Object.",
+      "otomoDestXEditor": "Relative or Absolute Destination X.",
+      "otomoDestYEditor": "Relative or Absolute Destination Y.",
+      "otomoDestZEditor": "Relative or Absolute Destination Z.",
+      "otomoAbsRelButton": "Select Relative or Absolute Coordinates of Displacement.",
+      "otomoStayReturnButton": "At the End of the Movement, should the Source Stay or Return to the Original Position.",
+      "otomoSpeedProfileDial": "Constant Speed or Gradual Acceleration and Slow Down at the Start and the End of the Movement.",
+      "otomoTriggerButton": "Manual Start of Displacement or Automatic Trigger on the Audio Level.",
+      "otomoThresholdDial": "Set the Threshold for the Automatic Trigger of the Movement.",
+      "otomoResetDial": "Set the Reset Level for the Automatic Trigger.",
+      "otomoStartButton": "Start the Movement Manually.",
+      "otomoStopButton": "Stop the Movement.",
+      "otomoPauseButton": "Pause and Resume the Movement.",
+      "otomoDurationDial": "Duration of the Movement in Seconds (0.1s to 1 hour).",
+      "otomoCurveDial": "Bend the Path to the Left (Negative) or Right (Positive) of the Direction of Travel.",
+      "otomoStopAllButton": "Stop All Active Movements Globally.",
+      "otomoPauseResumeAllButton": "Pause or Resume All Active Movements Globally.",
+      "muteButton": "Mute Output {num} for this Object.",
+      "muteMacrosSelector": "Mute Macros for Fast Muting and Unmuting of Arrays.",
+      "arrayAttenDial": "Attenuation for Array {num} (-60 to 0 dB).",
+      "sidelinesActiveButton": "Enable Automatic Muting when Source Approaches Stage Edges. Does Not Apply to Downstage (Front) Edge.",
+      "sidelinesFringeDial": "Fringe Zone Size in Meters. Outer Half is Full Mute, Inner Half Fades Linearly."
+    },
+    "visualisation": {
+      "delay": "delay",
+      "hfDamping": "HF\ndamping",
+      "level": "level"
     },
     "prefixes": {
       "delay": "지연:",
@@ -1143,7 +1292,6 @@
       "ratioPrefix": "1:"
     }
   },
-
   "snapshotScope": {
     "windowTitle": "입력 스냅샷 범위",
     "title": "스냅샷 범위: {name}",
@@ -1157,9 +1305,9 @@
       "attenuation": "감쇠",
       "directivity": "지향성",
       "liveSource": "라이브 소스",
-      "hackoustics": "Hackoustics",
+      "hackoustics": "Hackoustics (가상음향)",
       "lfo": "LFO",
-      "automOtion": "AutomOtion",
+      "automOtion": "AutomOtion (자동이동)",
       "mutes": "음소거"
     },
     "buttons": {
@@ -1167,7 +1315,6 @@
       "cancel": "취소"
     }
   },
-
   "setAllInputs": {
     "windowTitle": "모든 입력 설정",
     "warning": "변경 사항이 모든 입력에 적용됩니다",
@@ -1196,8 +1343,42 @@
     },
     "coordinateModes": {
       "xyz": "XYZ",
-      "rThetaZ": "r \u03b8 Z",
-      "rThetaPhi": "r \u03b8 \u03c6"
+      "rThetaZ": "r θ Z",
+      "rThetaPhi": "r θ φ"
+    }
+  },
+  "fileManager": {
+    "dialogs": {
+      "selectProjectFolder": "Select Project Folder"
+    },
+    "errors": {
+      "noProjectFolder": "No project folder specified",
+      "failedCreateFolder": "Failed to create project folder: {path}",
+      "noValidProjectFolder": "No valid project folder",
+      "invalidConfigStructure": "Invalid configuration file structure",
+      "backupNotFound": "Backup not found",
+      "noSystemDataInFile": "No valid system data found in file: {path}",
+      "noNetworkDataInFile": "No network data found in file",
+      "noNetworkSections": "No network sections found in file",
+      "noInputDataInFile": "No input data found in file",
+      "noOutputDataInFile": "No output data found in file",
+      "noReverbDataInFile": "No reverb data found in file",
+      "noInputDataInSnapshot": "No input data in snapshot",
+      "snapshotDoesNotExist": "Snapshot does not exist",
+      "snapshotNotFound": "Snapshot not found",
+      "snapshotNotFoundNamed": "Snapshot not found: {name}",
+      "failedCreateXML": "Failed to create XML from state",
+      "failedWriteFile": "Failed to write file: {path}",
+      "fileNotFound": "File not found: {path}",
+      "failedParseXML": "Failed to parse XML file: {path}",
+      "failedCreateValueTree": "Failed to create ValueTree from XML: {path}",
+      "configStateInvalid": "Config state is invalid",
+      "failedApply": "Failed to apply: {sections}",
+      "prefixSystem": "System: ",
+      "prefixNetwork": "Network: ",
+      "prefixInputs": "Inputs: ",
+      "prefixOutputs": "Outputs: ",
+      "prefixReverbs": "Reverbs: "
     }
   }
 }
