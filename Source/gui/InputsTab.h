@@ -4168,9 +4168,9 @@ private:
         frHighShelfSlopeValueLabel.setBounds(row.removeFromRight(valueWidth));
         frHighShelfSlopeSlider.setBounds(col2.removeFromTop(sliderHeight));
 
-        col2.removeFromTop(spacing * 3);  // Extra padding before Sends to Reverbs
-
-        // Mute Sends to Reverbs (centered in column)
+        // Mute Sends to Reverbs (vertically centered in remaining space)
+        int sendsTopPad = (col2.getHeight() - rowHeight) / 2;
+        col2.removeFromTop(sendsTopPad);
         auto reverbSendsRow = col2.removeFromTop(rowHeight);
         int buttonCenterX = reverbSendsRow.getX() + reverbSendsRow.getWidth() / 2;
         muteReverbSendsButton.setBounds(buttonCenterX - 100, reverbSendsRow.getY(), 200, rowHeight);
@@ -4340,8 +4340,10 @@ private:
                       lfoPhaseZLabel, lfoPhaseZDial, lfoPhaseZValueLabel, lfoPhaseZUnitLabel,
                       lfoOutputZLabel, lfoOutputZSlider);
 
-        // --- Jitter slider at bottom (separate effect, more spacing) ---
-        col1.removeFromTop(spacing * 8);  // Much more spacing to separate from LFO
+        // --- Jitter slider centered in remaining space ---
+        int jitterTotalHeight = rowHeight + sliderHeight;
+        int jitterTopPad = (col1.getHeight() - jitterTotalHeight) / 2;
+        col1.removeFromTop(jitterTopPad);
         auto row = col1.removeFromTop(rowHeight);
         jitterLabel.setBounds(row.removeFromLeft(labelWidth));
         jitterValueLabel.setBounds(row.removeFromRight(valueWidth));
