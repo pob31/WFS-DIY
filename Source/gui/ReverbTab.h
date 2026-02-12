@@ -419,20 +419,53 @@ private:
         reverbReturnTitleLabel.setText (LOC("reverbs.sections.reverbReturn"), juce::dontSendNotification);
         reverbReturnTitleLabel.setFont (juce::FontOptions().withHeight (18.0f).withStyle ("Bold"));
 
-        // Orientation dial
+        // Directional dial (orientation + angle on + angle off)
         addAndMakeVisible (orientationLabel);
         orientationLabel.setText ("Orientation:", juce::dontSendNotification);
 
-        orientationDial.onAngleChanged = [this] (float v)
+        directionalDial.onOrientationChanged = [this] (float angle)
         {
-            int degrees = static_cast<int> (v);
-            orientationValueLabel.setText (juce::String (degrees), juce::dontSendNotification);
-            saveReverbParam (WFSParameterIDs::reverbOrientation, degrees);
+            orientationValueLabel.setText (juce::String (static_cast<int> (angle)), juce::dontSendNotification);
+            saveReverbParam (WFSParameterIDs::reverbOrientation, angle);
         };
-        orientationDial.onGestureStart = [this]() {
-            parameters.getValueTreeState().beginUndoTransaction ("Reverb Orientation");
+        directionalDial.onAngleOnChanged = [this] (int degrees)
+        {
+            angleOnSlider.setValue ((degrees - 1.0f) / 179.0f);
+            angleOnValueLabel.setText (juce::String (degrees) + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
+            saveReverbParam (WFSParameterIDs::reverbAngleOn, degrees);
+
+            // Enforce constraint: angleOn + angleOff <= 180
+            int angleOff = directionalDial.getAngleOff();
+            if (degrees + angleOff > 180)
+            {
+                angleOff = 180 - degrees;
+                directionalDial.setAngleOff (angleOff);
+                angleOffSlider.setValue (angleOff / 179.0f);
+                angleOffValueLabel.setText (juce::String (angleOff) + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
+                saveReverbParam (WFSParameterIDs::reverbAngleOff, angleOff);
+            }
         };
-        addAndMakeVisible (orientationDial);
+        directionalDial.onAngleOffChanged = [this] (int degrees)
+        {
+            angleOffSlider.setValue (degrees / 179.0f);
+            angleOffValueLabel.setText (juce::String (degrees) + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
+            saveReverbParam (WFSParameterIDs::reverbAngleOff, degrees);
+
+            // Enforce constraint: angleOn + angleOff <= 180
+            int angleOn = directionalDial.getAngleOn();
+            if (angleOn + degrees > 180)
+            {
+                angleOn = 180 - degrees;
+                directionalDial.setAngleOn (angleOn);
+                angleOnSlider.setValue ((angleOn - 1.0f) / 179.0f);
+                angleOnValueLabel.setText (juce::String (angleOn) + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
+                saveReverbParam (WFSParameterIDs::reverbAngleOn, angleOn);
+            }
+        };
+        directionalDial.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction ("Reverb Directional");
+        };
+        addAndMakeVisible (directionalDial);
 
         addAndMakeVisible (orientationValueLabel);
         orientationValueLabel.setText ("0", juce::dontSendNotification);
@@ -447,12 +480,24 @@ private:
         addAndMakeVisible (angleOnLabel);
         angleOnLabel.setText ("Angle On:", juce::dontSendNotification);
 
-        angleOnSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF2196F3));
+        angleOnSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF4CAF50));  // Green to match dial
         angleOnSlider.onValueChanged = [this] (float v)
         {
             int degrees = static_cast<int> (v * 179.0f + 1.0f);  // 1-180
             angleOnValueLabel.setText (juce::String (degrees) + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
+            directionalDial.setAngleOn (degrees);
             saveReverbParam (WFSParameterIDs::reverbAngleOn, degrees);
+
+            // Enforce constraint: angleOn + angleOff <= 180
+            int angleOff = directionalDial.getAngleOff();
+            if (degrees + angleOff > 180)
+            {
+                angleOff = 180 - degrees;
+                directionalDial.setAngleOff (angleOff);
+                angleOffSlider.setValue (angleOff / 179.0f);
+                angleOffValueLabel.setText (juce::String (angleOff) + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
+                saveReverbParam (WFSParameterIDs::reverbAngleOff, angleOff);
+            }
         };
         angleOnSlider.onGestureStart = [this]() {
             parameters.getValueTreeState().beginUndoTransaction ("Reverb Angle On");
@@ -468,12 +513,24 @@ private:
         addAndMakeVisible (angleOffLabel);
         angleOffLabel.setText ("Angle Off:", juce::dontSendNotification);
 
-        angleOffSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF9C27B0));
+        angleOffSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFE53935));  // Red to match dial
         angleOffSlider.onValueChanged = [this] (float v)
         {
             int degrees = static_cast<int> (v * 179.0f);  // 0-179
             angleOffValueLabel.setText (juce::String (degrees) + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
+            directionalDial.setAngleOff (degrees);
             saveReverbParam (WFSParameterIDs::reverbAngleOff, degrees);
+
+            // Enforce constraint: angleOn + angleOff <= 180
+            int angleOn = directionalDial.getAngleOn();
+            if (angleOn + degrees > 180)
+            {
+                angleOn = 180 - degrees;
+                directionalDial.setAngleOn (angleOn);
+                angleOnSlider.setValue ((angleOn - 1.0f) / 179.0f);
+                angleOnValueLabel.setText (juce::String (angleOn) + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
+                saveReverbParam (WFSParameterIDs::reverbAngleOn, angleOn);
+            }
         };
         angleOffSlider.onGestureStart = [this]() {
             parameters.getValueTreeState().beginUndoTransaction ("Reverb Angle Off");
@@ -1482,7 +1539,7 @@ private:
         helpTextMap[&mapVisibilityButton] = LOC("reverbs.help.mapVisibility");
         helpTextMap[&attenuationSlider] = LOC("reverbs.help.attenuation");
         helpTextMap[&delayLatencySlider] = LOC("reverbs.help.delayLatency");
-        helpTextMap[&orientationDial] = LOC("reverbs.help.orientation");
+        helpTextMap[&directionalDial] = LOC("reverbs.help.orientation");
         helpTextMap[&angleOnSlider] = LOC("reverbs.help.angleOn");
         helpTextMap[&angleOffSlider] = LOC("reverbs.help.angleOff");
         helpTextMap[&pitchSlider] = LOC("reverbs.help.pitch");
@@ -1548,7 +1605,7 @@ private:
         oscMethodMap[&nameEditor] = "/wfs/reverb/name <ID> <value>";
         oscMethodMap[&attenuationSlider] = "/wfs/reverb/attenuation <ID> <value>";
         oscMethodMap[&delayLatencySlider] = "/wfs/reverb/delayLatency <ID> <value>";
-        oscMethodMap[&orientationDial] = "/wfs/reverb/orientation <ID> <value>";
+        oscMethodMap[&directionalDial] = "/wfs/reverb/orientation <ID> <value>";
         oscMethodMap[&angleOnSlider] = "/wfs/reverb/angleOn <ID> <value>";
         oscMethodMap[&angleOffSlider] = "/wfs/reverb/angleOff <ID> <value>";
         oscMethodMap[&pitchSlider] = "/wfs/reverb/pitch <ID> <value>";
@@ -2117,43 +2174,66 @@ private:
         reverbFeedTitleLabel.setBounds (col2.removeFromTop (titleHeight));
         col2.removeFromTop (spacing);
 
-        // Orientation dial - centered with label above, value below
-        orientationLabel.setBounds (col2.removeFromTop (rowHeight).withSizeKeepingCentre (dialSize + 40, rowHeight));
-        orientationLabel.setJustificationType (juce::Justification::centred);
-        auto dialArea = col2.removeFromTop (dialSize);
-        int orientCenterX = dialArea.getCentreX();
-        orientationDial.setBounds (dialArea.withSizeKeepingCentre (dialSize, dialSize));
-        auto orientValueRow = col2.removeFromTop (rowHeight);
-        // Value and unit adjacent, centered as a pair under dial (with overlap to reduce font padding gap)
-        const int orientValW = 40, orientUnitW = 30, orientOverlap = 7;
-        int orientStartX = orientCenterX - (orientValW + orientUnitW - orientOverlap) / 2;
-        orientationValueLabel.setBounds (orientStartX, orientValueRow.getY(), orientValW, rowHeight);
-        orientationUnitLabel.setBounds (orientStartX + orientValW - orientOverlap, orientValueRow.getY(), orientUnitW, rowHeight);
-        col2.removeFromTop (spacing);
+        // Directional dial on the right, sliders on the left
+        {
+            const int ddDialSize = 90;
+            const int ddDialMargin = 20;
+            const int sliderGroupHeight = 3 * (rowHeight + 3 + sliderHeight) + 2 * spacing;  // 3 sliders with spacing
+            const int dialGroupHeight = rowHeight + ddDialSize + rowHeight;  // label + dial + value
+            const int dialTopOffset = (sliderGroupHeight - dialGroupHeight) / 2;
 
-        // Angle On slider
-        row = col2.removeFromTop (rowHeight);
-        angleOnLabel.setBounds (row.removeFromLeft (labelWidth));
-        angleOnValueLabel.setBounds (row.removeFromRight (valueWidth));
-        col2.removeFromTop (3);
-        angleOnSlider.setBounds (col2.removeFromTop (sliderHeight));
-        col2.removeFromTop (spacing);
+            // Save col2 bounds before carving out dial column
+            auto col2Full = col2;
 
-        // Angle Off slider
-        row = col2.removeFromTop (rowHeight);
-        angleOffLabel.setBounds (row.removeFromLeft (labelWidth));
-        angleOffValueLabel.setBounds (row.removeFromRight (valueWidth));
-        col2.removeFromTop (3);
-        angleOffSlider.setBounds (col2.removeFromTop (sliderHeight));
-        col2.removeFromTop (spacing);
+            // Carve out dial column from the right
+            auto dialColumn = col2.removeFromRight (ddDialSize + ddDialMargin);
+            dialColumn.removeFromTop (juce::jmax (0, dialTopOffset));
 
-        // Pitch slider
-        row = col2.removeFromTop (rowHeight);
-        pitchLabel.setBounds (row.removeFromLeft (labelWidth));
-        pitchValueLabel.setBounds (row.removeFromRight (valueWidth));
-        col2.removeFromTop (3);
-        pitchSlider.setBounds (col2.removeFromTop (sliderHeight));
-        col2.removeFromTop (spacing);
+            // Orientation label centered above dial
+            auto orientLabelArea = dialColumn.removeFromTop (rowHeight);
+            orientationLabel.setBounds (orientLabelArea);
+            orientationLabel.setJustificationType (juce::Justification::centred);
+
+            // Directional dial
+            auto dialArea = dialColumn.removeFromTop (ddDialSize);
+            int orientDialCenterX = dialArea.getCentreX();
+            directionalDial.setBounds (dialArea.withSizeKeepingCentre (ddDialSize, ddDialSize));
+
+            // Value + unit centered under dial
+            auto orientValueRow = dialColumn.removeFromTop (rowHeight);
+            const int orientValW = 40, orientUnitW = 30, orientOverlap = 7;
+            int orientStartX = orientDialCenterX - (orientValW + orientUnitW - orientOverlap) / 2;
+            orientationValueLabel.setBounds (orientStartX, orientValueRow.getY(), orientValW, rowHeight);
+            orientationUnitLabel.setBounds (orientStartX + orientValW - orientOverlap, orientValueRow.getY(), orientUnitW, rowHeight);
+
+            // Angle On slider (in remaining col2 width)
+            row = col2.removeFromTop (rowHeight);
+            angleOnLabel.setBounds (row.removeFromLeft (labelWidth));
+            angleOnValueLabel.setBounds (row.removeFromRight (valueWidth));
+            col2.removeFromTop (3);
+            angleOnSlider.setBounds (col2.removeFromTop (sliderHeight));
+            col2.removeFromTop (spacing);
+
+            // Angle Off slider
+            row = col2.removeFromTop (rowHeight);
+            angleOffLabel.setBounds (row.removeFromLeft (labelWidth));
+            angleOffValueLabel.setBounds (row.removeFromRight (valueWidth));
+            col2.removeFromTop (3);
+            angleOffSlider.setBounds (col2.removeFromTop (sliderHeight));
+            col2.removeFromTop (spacing);
+
+            // Pitch slider
+            row = col2.removeFromTop (rowHeight);
+            pitchLabel.setBounds (row.removeFromLeft (labelWidth));
+            pitchValueLabel.setBounds (row.removeFromRight (valueWidth));
+            col2.removeFromTop (3);
+            pitchSlider.setBounds (col2.removeFromTop (sliderHeight));
+            col2.removeFromTop (spacing);
+
+            // Restore col2 to full width for remaining controls
+            col2 = col2Full;
+            col2.removeFromTop (titleHeight + spacing + sliderGroupHeight + spacing);
+        }
 
         // HF Damping slider
         row = col2.removeFromTop (rowHeight);
@@ -2533,7 +2613,7 @@ private:
 
         // Reverb Feed components
         orientationLabel.setVisible (visible);
-        orientationDial.setVisible (visible);
+        directionalDial.setVisible (visible);
         orientationValueLabel.setVisible (visible);
         orientationUnitLabel.setVisible (visible);
         angleOnLabel.setVisible (visible); angleOnSlider.setVisible (visible); angleOnValueLabel.setVisible (visible);
@@ -2674,16 +2754,18 @@ private:
 
         // Reverb Feed
         int orientation = getIntParam (WFSParameterIDs::reverbOrientation, 0);
-        orientationDial.setAngle (static_cast<float> (orientation));
+        directionalDial.setOrientation (static_cast<float> (orientation));
         orientationValueLabel.setText (juce::String (orientation), juce::dontSendNotification);
 
         int angleOn = getIntParam (WFSParameterIDs::reverbAngleOn, 86);
         angleOnSlider.setValue ((angleOn - 1.0f) / 179.0f);
         angleOnValueLabel.setText (juce::String (angleOn) + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
+        directionalDial.setAngleOn (angleOn);
 
         int angleOff = getIntParam (WFSParameterIDs::reverbAngleOff, 90);
         angleOffSlider.setValue (angleOff / 179.0f);
         angleOffValueLabel.setText (juce::String (angleOff) + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
+        directionalDial.setAngleOff (angleOff);
 
         int pitch = getIntParam (WFSParameterIDs::reverbPitch, 0);
         pitchSlider.setValue (pitch / 90.0f);  // v = pitch / 90 (bidirectional -1 to 1)
@@ -3764,19 +3846,21 @@ private:
         else if (label == &orientationValueLabel)
         {
             int degrees = juce::jlimit (-179, 180, static_cast<int> (value));
-            orientationDial.setAngle (static_cast<float> (degrees));
+            directionalDial.setOrientation (static_cast<float> (degrees));
             orientationValueLabel.setText (juce::String (degrees), juce::dontSendNotification);
         }
         else if (label == &angleOnValueLabel)
         {
             int degrees = juce::jlimit (1, 180, static_cast<int> (value));
             angleOnSlider.setValue ((degrees - 1.0f) / 179.0f);
+            directionalDial.setAngleOn (degrees);
             angleOnValueLabel.setText (juce::String (degrees) + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
         }
         else if (label == &angleOffValueLabel)
         {
             int degrees = juce::jlimit (0, 179, static_cast<int> (value));
             angleOffSlider.setValue (degrees / 179.0f);
+            directionalDial.setAngleOff (degrees);
             angleOffValueLabel.setText (juce::String (degrees) + juce::String::fromUTF8 ("\xc2\xb0"), juce::dontSendNotification);
         }
         else if (label == &pitchValueLabel)
@@ -4247,7 +4331,7 @@ private:
 
         // Reverb Feed sub-tab
         orientationLabel.setVisible (hasChannels);
-        orientationDial.setVisible (hasChannels);
+        directionalDial.setVisible (hasChannels);
         orientationValueLabel.setVisible (hasChannels);
         orientationUnitLabel.setVisible (hasChannels);
         angleOnLabel.setVisible (hasChannels);
@@ -4385,7 +4469,7 @@ private:
 
     // Reverb Feed sub-tab
     juce::Label orientationLabel;
-    WfsEndlessDial orientationDial;
+    WfsDirectionalDial directionalDial;
     juce::Label orientationValueLabel;
     juce::Label orientationUnitLabel;
     juce::Label angleOnLabel, angleOffLabel;
