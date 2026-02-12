@@ -227,12 +227,18 @@ public:
     {
         g.fillAll (ColorScheme::get().background);
 
+        // Header background
+        g.setColour (ColorScheme::get().chromeSurface);
+        g.fillRect (0, 0, getWidth(), headerHeight);
+
         // Footer background
         g.setColour (ColorScheme::get().chromeSurface);
         g.fillRect (0, getHeight() - footerHeight, getWidth(), footerHeight);
 
-        // Footer divider line
+        // Section dividers
         g.setColour (ColorScheme::get().chromeDivider);
+        g.drawLine (0.0f, static_cast<float> (headerHeight),
+                    static_cast<float> (getWidth()), static_cast<float> (headerHeight), 1.0f);
         g.drawLine (0.0f, static_cast<float> (getHeight() - footerHeight),
                     static_cast<float> (getWidth()), static_cast<float> (getHeight() - footerHeight), 1.0f);
     }
@@ -258,10 +264,10 @@ public:
             layoutHeader (headerArea);
 
             // Sub-tabs area
-            auto contentArea = bounds.reduced (padding, 0);
-            auto tabBarArea = contentArea.removeFromTop (32);
+            auto tabBarArea = bounds.removeFromTop (32);
             subTabBar.setBounds (tabBarArea);
 
+            auto contentArea = bounds.reduced (padding, 0);
             subTabContentArea = contentArea.reduced (0, padding);
             layoutCurrentSubTab();
         }
@@ -1689,8 +1695,8 @@ private:
 
     void layoutFooter (juce::Rectangle<int> area)
     {
-        const int buttonWidth = (area.getWidth() - 40) / 5;
-        const int spacing = 10;
+        const int spacing = 5;
+        const int buttonWidth = (area.getWidth() - spacing * 4) / 5;
 
         storeButton.setBounds (area.removeFromLeft (buttonWidth));
         area.removeFromLeft (spacing);
