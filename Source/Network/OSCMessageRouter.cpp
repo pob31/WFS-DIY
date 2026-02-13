@@ -264,7 +264,7 @@ const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getRemoteAddre
 
         // Hackoustics (Floor Reflections)
         { "FRactive",             WFSParameterIDs::inputFRactive },
-        { "Frattenuation",        WFSParameterIDs::inputFRattenuation },
+        { "FRattenuation",        WFSParameterIDs::inputFRattenuation },
         { "FRlowCutActive",       WFSParameterIDs::inputFRlowCutActive },
         { "FRlowCutFreq",         WFSParameterIDs::inputFRlowCutFreq },
         { "FRhighShelfActive",    WFSParameterIDs::inputFRhighShelfActive },
