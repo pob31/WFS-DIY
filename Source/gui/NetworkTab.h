@@ -517,7 +517,7 @@ private:
         juce::TextButton rxEnableButton;
         juce::TextButton txEnableButton;
         juce::ComboBox protocolSelector;       // DISABLED / OSC / REMOTE / ADM-OSC
-        juce::TextButton removeButton;
+        LongPressButton removeButton { 800 };
 
         bool isActive = false;  // Whether this row has data
     };
@@ -1198,10 +1198,10 @@ private:
                 TTSManager::getInstance().announceValueChange(LOC("network.table.defaultTarget").replace("{num}", juce::String(i + 1)) + " " + LOC("network.table.protocol"), targetRows[i].protocolSelector.getText());
             };
 
-            // Remove button
+            // Remove button (long press to avoid accidental deletion)
             addAndMakeVisible(row.removeButton);
             row.removeButton.setButtonText("X");
-            row.removeButton.onClick = [this, i]() { confirmRemoveTarget(i); };
+            row.removeButton.onLongPress = [this, i]() { removeTarget(i); };
 
             // Add text change listeners
             row.nameEditor.onTextChange = [this, i]() { saveTargetToValueTree(i); };

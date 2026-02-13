@@ -28,6 +28,11 @@ OSCConnection::~OSCConnection()
 
 void OSCConnection::configure(const TargetConfig& newConfig)
 {
+    // Stop background thread before acquiring lock to avoid deadlock
+    // (run() also acquires sendLock)
+    connectionPending = false;
+    stopThread(3000);
+
     const juce::ScopedLock sl(sendLock);
 
     bool needsReconnect = (config.ipAddress != newConfig.ipAddress
@@ -40,8 +45,11 @@ void OSCConnection::configure(const TargetConfig& newConfig)
 
     if (needsReconnect && hasConnection)
     {
-        // Reconnect with new settings
-        disconnect();
+        // Reconnect with new settings — thread already stopped above
+        destroySender();
+        disconnectTCP();
+        setStatus(ConnectionStatus::Disconnected);
+
         if (config.isActive() && config.txEnabled)
             connect();
     }
@@ -53,7 +61,9 @@ void OSCConnection::configure(const TargetConfig& newConfig)
     else if (!config.isActive() || !config.txEnabled)
     {
         // Disconnect if no longer active
-        disconnect();
+        destroySender();
+        disconnectTCP();
+        setStatus(ConnectionStatus::Disconnected);
     }
 }
 
@@ -63,6 +73,11 @@ void OSCConnection::configure(const TargetConfig& newConfig)
 
 bool OSCConnection::connect()
 {
+    // Stop any existing background thread before acquiring lock to avoid
+    // deadlock (run() also acquires sendLock for TCP connect)
+    connectionPending = false;
+    stopThread(3000);
+
     const juce::ScopedLock sl(sendLock);
 
     if (!config.isValid())
@@ -99,10 +114,7 @@ bool OSCConnection::connect()
     }
     else // TCP - non-blocking connection in background thread
     {
-        // Stop any existing connection attempt
-        stopThread(100);
-
-        // Start async connection
+        // Start async connection (thread already stopped above)
         connectionPending = true;
         startThread();
 
@@ -116,7 +128,7 @@ void OSCConnection::disconnect()
 {
     // Stop any pending connection attempt
     connectionPending = false;
-    stopThread(500);
+    stopThread(3000);
 
     const juce::ScopedLock sl(sendLock);
 
