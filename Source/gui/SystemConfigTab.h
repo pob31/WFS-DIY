@@ -255,7 +255,7 @@ public:
 
         addAndMakeVisible(processingButton);
         processingButton.setButtonText(LOC("systemConfig.buttons.processingOff"));
-        processingButton.onClick = [this]() { toggleProcessing(); };
+        processingButton.onLongPress = [this]() { toggleProcessing(); };
 
         addAndMakeVisible(soloModeButton);
         updateSoloModeButtonText();
@@ -418,7 +418,7 @@ public:
         // Binaural Section
         addAndMakeVisible(binauralEnableButton);
         binauralEnableButton.setButtonText(LOC("systemConfig.buttons.binauralOff"));
-        binauralEnableButton.onClick = [this]() { toggleBinauralProcessing(); };
+        binauralEnableButton.onLongPress = [this]() { toggleBinauralProcessing(); };
 
         addAndMakeVisible(binauralOutputLabel);
         binauralOutputLabel.setText(LOC("systemConfig.labels.binauralOutput"), juce::dontSendNotification);
@@ -2288,7 +2288,7 @@ private:
     juce::TextButton audioPatchingButton;
     juce::Label algorithmLabel;
     juce::ComboBox algorithmSelector;
-    juce::TextButton processingButton;
+    LongPressButton processingButton { 800 };
     juce::TextButton soloModeButton;
 
     // Stage Section
@@ -2347,7 +2347,7 @@ private:
     juce::StringArray availableLanguages;
 
     // Binaural Section
-    juce::TextButton binauralEnableButton;
+    LongPressButton binauralEnableButton { 800 };
     juce::Label binauralOutputLabel;
     juce::ComboBox binauralOutputSelector;
     juce::ValueTree outputPatchTree;  // For listening to patch changes
