@@ -434,6 +434,7 @@
     "windowTitle": "ネットワークログ",
     "controls": {
       "logging": "ログ記録",
+      "hideHeartbeat": "ハートビートを非表示",
       "clear": "クリア",
       "export": "エクスポート"
     },

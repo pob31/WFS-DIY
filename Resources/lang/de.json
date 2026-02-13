@@ -434,6 +434,7 @@
     "windowTitle": "Netzwerk-Log",
     "controls": {
       "logging": "Protokollierung",
+      "hideHeartbeat": "Heartbeat ausblenden",
       "clear": "LÖSCHEN",
       "export": "EXPORTIEREN"
     },

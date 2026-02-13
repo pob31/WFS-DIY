@@ -466,6 +466,7 @@
     "windowTitle": "Network Log",
     "controls": {
       "logging": "Logging",
+      "hideHeartbeat": "Hide Heartbeat",
       "clear": "CLEAR",
       "export": "EXPORT"
     },

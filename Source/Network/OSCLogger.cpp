@@ -260,6 +260,14 @@ std::vector<LogEntry> OSCLogger::getFilteredEntries(const Filter& filter) const
             && !entry.address.containsIgnoreCase(filter.addressFilter))
             continue;
 
+        // Heartbeat/ACK filter
+        if (filter.hideHeartbeat
+            && (entry.address == "/remote/ping"
+                || entry.address == "/remote/pong"
+                || entry.address == "/remote/heartbeat"
+                || entry.address == "/remote/heartbeatAck"))
+            continue;
+
         result.push_back(entry);
     }
 

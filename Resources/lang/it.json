@@ -434,6 +434,7 @@
     "windowTitle": "Log di Rete",
     "controls": {
       "logging": "Registrazione",
+      "hideHeartbeat": "Nascondi Heartbeat",
       "clear": "CANCELLA",
       "export": "ESPORTA"
     },

@@ -434,6 +434,7 @@
     "windowTitle": "Journal réseau",
     "controls": {
       "logging": "Journalisation",
+      "hideHeartbeat": "Masquer Heartbeat",
       "clear": "EFFACER",
       "export": "EXPORTER"
     },

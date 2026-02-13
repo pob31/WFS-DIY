@@ -108,6 +108,7 @@ private:
 
     // Controls - top bar
     juce::ToggleButton loggingSwitch;
+    juce::ToggleButton hideHeartbeatToggle;
     juce::TextButton clearButton;
     juce::TextButton exportButton;
     juce::ComboBox filterModeSelector;

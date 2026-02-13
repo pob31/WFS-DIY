@@ -329,6 +329,12 @@ NetworkLogWindowContent::NetworkLogWindowContent(WFSNetwork::OSCLogger& log,
     };
     addAndMakeVisible(loggingSwitch);
 
+    // Hide heartbeat toggle
+    hideHeartbeatToggle.setButtonText(LOC("networkLog.controls.hideHeartbeat"));
+    hideHeartbeatToggle.setToggleState(true, juce::dontSendNotification);
+    hideHeartbeatToggle.onClick = [this]() { applyFilters(); };
+    addAndMakeVisible(hideHeartbeatToggle);
+
     // Clear button
     clearButton.setButtonText(LOC("networkLog.controls.clear"));
     clearButton.onClick = [this]()
@@ -427,6 +433,9 @@ void NetworkLogWindowContent::resized()
     filterModeSelector.setBounds(x, y, 100, controlHeight);
     x += 100 + spacing;
 
+    hideHeartbeatToggle.setBounds(x, y, 130, controlHeight);
+    x += 130 + spacing;
+
     // Navigation buttons on right
     int navWidth = 30;
     bottomButton.setBounds(bounds.getWidth() - navWidth - 8, y, navWidth, controlHeight);
@@ -493,6 +502,7 @@ void NetworkLogWindowContent::applyFilters()
     filter.showTx = showTx;
     filter.showUDP = showUDP;
     filter.showTCP = showTCP;
+    filter.hideHeartbeat = hideHeartbeatToggle.getToggleState();
 
     // Mode-specific filtering
     if (currentFilterMode == NetworkLogFilterMode::Rejected)

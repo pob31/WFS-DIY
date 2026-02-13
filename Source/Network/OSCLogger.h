@@ -128,6 +128,7 @@ public:
         juce::String addressFilter;    // Empty = no filter
         std::set<Protocol> enabledProtocols;  // Empty = show all, otherwise filter
         std::set<juce::String> enabledIPs;    // Empty = show all, otherwise filter
+        bool hideHeartbeat = false;           // Hide remote heartbeat/ack messages
     };
 
     /** Get filtered entries */

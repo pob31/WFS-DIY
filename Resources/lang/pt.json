@@ -434,6 +434,7 @@
     "windowTitle": "Registo de Rede",
     "controls": {
       "logging": "Registo",
+      "hideHeartbeat": "Ocultar Heartbeat",
       "clear": "LIMPAR",
       "export": "EXPORTAR"
     },

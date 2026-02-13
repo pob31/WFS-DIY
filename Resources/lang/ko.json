@@ -434,6 +434,7 @@
     "windowTitle": "네트워크 로그",
     "controls": {
       "logging": "로깅",
+      "hideHeartbeat": "하트비트 숨기기",
       "clear": "지우기",
       "export": "내보내기"
     },

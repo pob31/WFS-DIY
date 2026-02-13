@@ -434,6 +434,7 @@
     "windowTitle": "网络日志",
     "controls": {
       "logging": "日志记录",
+      "hideHeartbeat": "隐藏心跳",
       "clear": "清除",
       "export": "导出"
     },
