@@ -660,9 +660,6 @@
       "hParallax": "Horizontaler Abstand vom Lautsprecher zum „anvisierten“ Zuhörer. (Änderungen können den Rest des Arrays betreffen)",
       "vParallax": "Vertikaler Abstand vom Lautsprecher zum „anvisierten“ Zuhörer. Positiv, wenn der Lautsprecher unter dem Kopf des Zuhörers ist. (Änderungen können den Rest des Arrays betreffen)",
       "coordMode": "Koordinaten-Anzeigemodus: Kartesisch (X/Y/Z), Zylindrisch (Radius/Azimut/Höhe) oder Sphärisch (Radius/Azimut/Elevation).",
-      "posX": "Position des Ausgangskanals in der Breite.",
-      "posY": "Position des Ausgangskanals in der Tiefe.",
-      "posZ": "Position des Ausgangskanals in der Höhe.",
       "directional": "Richtungssteuerung des Ausgangskanals. Ziehen zum Ändern der Orientierung, Umschalt+Ziehen für Angle Off, Alt+Ziehen für Angle On. (Änderungen können den Rest des Arrays betreffen)",
       "angleOn": "Der Ausgangskanal verstärkt Objekte in diesem Winkel hinter ihm. (Änderungen können den Rest des Arrays betreffen)",
       "angleOff": "Der Ausgangskanal verstärkt keine Objekte in diesem Winkel vor ihm. (Änderungen können den Rest des Arrays betreffen)",
@@ -674,7 +671,10 @@
       "reloadConfig": "Ausgangskonfiguration aus Datei neu laden.",
       "reloadBackup": "Ausgangskonfiguration aus Backup-Datei neu laden.",
       "importConfig": "Ausgangskonfiguration aus Datei importieren (mit Datei-Explorer-Fenster).",
-      "exportConfig": "Ausgangskonfiguration in Datei exportieren (mit Datei-Explorer-Fenster)."
+      "exportConfig": "Ausgangskonfiguration in Datei exportieren (mit Datei-Explorer-Fenster).",
+      "position1": "Ausgangskanal {name} ({unit}).",
+      "position2": "Ausgangskanal {name} ({unit}).",
+      "position3": "Ausgangskanal {name} ({unit})."
     }
   },
   "arrayHelper": {
@@ -931,7 +931,14 @@
       "postExpAttack": "Attack-Zeit des Nachexpanders (0.1 - 50 ms).",
       "postExpRelease": "Release-Zeit des Nachexpanders (50 - 2000 ms).",
       "miniLatencyTooltip": "Enable minimal latency mode for this reverb channel. Reduces processing delay at the cost of higher CPU usage.",
-      "liveSourceTooltip": "Enable Live Source attenuation tamer. Reduces level fluctuations from sources close to the array."
+      "liveSourceTooltip": "Enable Live Source attenuation tamer. Reduces level fluctuations from sources close to the array.",
+      "muteButton": "Mute für den Reverb-Rückkanal dieses Ausgangs umschalten.",
+      "position1": "Reverb-Quellposition {name} ({unit}).",
+      "position2": "Reverb-Quellposition {name} ({unit}).",
+      "position3": "Reverb-Quellposition {name} ({unit}).",
+      "returnOffset1": "Reverb-Rückgabe-Versatz {name} ({unit}).",
+      "returnOffset2": "Reverb-Rückgabe-Versatz {name} ({unit}).",
+      "returnOffset3": "Reverb-Rückgabe-Versatz {name} ({unit})."
     }
   },
   "inputs": {
@@ -1191,12 +1198,6 @@
       "attenuationSlider": "Input Channel Attenuation.",
       "delayLatencySlider": "Input Channel Delay (positive values) or Latency Compensation (negative values).",
       "minimalLatencyButton": "Select between Acoustic Precedence and Minimal Latency for Amplification Precedence.",
-      "posXEditor": "Object Position in Width. Nudge with Left and Right Arrow Keys.",
-      "posYEditor": "Object Position in Depth. Nudge with Up and Down Arrow Keys.",
-      "posZEditor": "Object Position in Height. Nudge with Page Up and Page Down Keys.",
-      "offsetXEditor": "Object Position Offset in Width. Adjusted when Tracking is Enabled.",
-      "offsetYEditor": "Object Position Offset in Depth. Adjusted when Tracking is Enabled.",
-      "offsetZEditor": "Object Position Offset in Height. Adjusted when Tracking is Enabled.",
       "constraintXButton": "Limit Position to the Bounds of the Stage in Width.",
       "constraintYButton": "Limit Position to the Bounds of the Stage in Depth.",
       "constraintZButton": "Limit Position to the Bounds of the Stage in Height.",
@@ -1260,9 +1261,7 @@
       "lfoPhaseYDial": "Phase Offset of the Movement of the Object in Depth.",
       "lfoPhaseZDial": "Phase Offset of the Movement of the Object in Height.",
       "lfoGyrophoneSelector": "Rotation of the Brightness Cone of the Object.",
-      "otomoDestXEditor": "Relative or Absolute Destination X.",
-      "otomoDestYEditor": "Relative or Absolute Destination Y.",
-      "otomoDestZEditor": "Relative or Absolute Destination Z.",
+      "otomoCoordMode": "Koordinatenmodus für AutomOtion-Ziele: Kartesisch (X/Y/Z), Zylindrisch (r/θ/Z) oder Sphärisch (r/θ/φ).",
       "otomoAbsRelButton": "Select Relative or Absolute Coordinates of Displacement.",
       "otomoStayReturnButton": "At the End of the Movement, should the Source Stay or Return to the Original Position.",
       "otomoSpeedProfileDial": "Constant Speed or Gradual Acceleration and Slow Down at the Start and the End of the Movement.",
@@ -1280,7 +1279,19 @@
       "muteMacrosSelector": "Mute Macros for Fast Muting and Unmuting of Arrays.",
       "arrayAttenDial": "Attenuation for Array {num} (-60 to 0 dB).",
       "sidelinesActiveButton": "Enable Automatic Muting when Source Approaches Stage Edges. Does Not Apply to Downstage (Front) Edge.",
-      "sidelinesFringeDial": "Fringe Zone Size in Meters. Outer Half is Full Mute, Inner Half Fades Linearly."
+      "sidelinesFringeDial": "Fringe Zone Size in Meters. Outer Half is Full Mute, Inner Half Fades Linearly.",
+      "position1": "Objekt {name} ({unit}).",
+      "position2": "Objekt {name} ({unit}).",
+      "position3": "Objekt {name} ({unit}).",
+      "offset1": "Objekt-Versatz {name} ({unit}). Wird bei aktiviertem Tracking angepasst.",
+      "offset2": "Objekt-Versatz {name} ({unit}). Wird bei aktiviertem Tracking angepasst.",
+      "offset3": "Objekt-Versatz {name} ({unit}). Wird bei aktiviertem Tracking angepasst.",
+      "otomoDest1": "Relatives oder absolutes Ziel {name} ({unit}).",
+      "otomoDest2": "Relatives oder absolutes Ziel {name} ({unit}).",
+      "otomoDest3": "Relatives oder absolutes Ziel {name} ({unit}).",
+      "nudgeHint1": " Mit Links- und Rechts-Pfeiltasten anpassen.",
+      "nudgeHint2": " Mit Auf- und Ab-Pfeiltasten anpassen.",
+      "nudgeHint3": " Mit Bild-Auf und Bild-Ab anpassen."
     },
     "visualisation": {
       "delay": "delay",

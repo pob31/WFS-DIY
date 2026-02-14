@@ -1443,6 +1443,12 @@ private:
         posYUnitLabel.setText(unit2, juce::dontSendNotification);
         posZUnitLabel.setText(unit3, juce::dontSendNotification);
 
+        // Update help text to match coordinate mode
+        juce::String n1 = label1.trimCharactersAtEnd(":"), n2 = label2.trimCharactersAtEnd(":"), n3 = label3.trimCharactersAtEnd(":");
+        helpTextMap[&posXEditor] = LOC("outputs.help.position1").replace("{name}", n1).replace("{unit}", unit1);
+        helpTextMap[&posYEditor] = LOC("outputs.help.position2").replace("{name}", n2).replace("{unit}", unit2);
+        helpTextMap[&posZEditor] = LOC("outputs.help.position3").replace("{name}", n3).replace("{unit}", unit3);
+
         // Get Cartesian values from storage
         float x = static_cast<float>(parameters.getOutputParam(currentChannel - 1, "outputPositionX"));
         float y = static_cast<float>(parameters.getOutputParam(currentChannel - 1, "outputPositionY"));
@@ -2060,9 +2066,7 @@ private:
         helpTextMap[&hParallaxEditor] = LOC("outputs.help.hParallax");
         helpTextMap[&vParallaxEditor] = LOC("outputs.help.vParallax");
         helpTextMap[&coordModeSelector] = LOC("outputs.help.coordMode");
-        helpTextMap[&posXEditor] = LOC("outputs.help.posX");
-        helpTextMap[&posYEditor] = LOC("outputs.help.posY");
-        helpTextMap[&posZEditor] = LOC("outputs.help.posZ");
+        // Position help text set dynamically in updatePositionLabelsAndValues()
         helpTextMap[&directionalDial] = LOC("outputs.help.directional");
         helpTextMap[&angleOnSlider] = LOC("outputs.help.angleOn");
         helpTextMap[&angleOffSlider] = LOC("outputs.help.angleOff");

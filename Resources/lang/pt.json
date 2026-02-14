@@ -660,9 +660,6 @@
       "hParallax": "Distância horizontal do altifalante ao ouvinte « alvo ». (as alterações podem afetar o resto do array)",
       "vParallax": "Distância vertical do altifalante ao ouvinte « alvo ». Positivo quando o altifalante está abaixo da cabeça do ouvinte. (as alterações podem afetar o resto do array)",
       "coordMode": "Modo de exibição de coordenadas: cartesiano (X/Y/Z), cilíndrico (raio/azimute/altura) ou esférico (raio/azimute/elevação).",
-      "posX": "Posição do canal de saída em largura.",
-      "posY": "Posição do canal de saída em profundidade.",
-      "posZ": "Posição do canal de saída em altura.",
       "directional": "Controlo direcional do canal de saída. Arrastar para alterar orientação, Shift+arrastar para Angle Off, Alt+arrastar para Angle On. (as alterações podem afetar o resto do array)",
       "angleOn": "O canal de saída amplificará objetos neste ângulo atrás dele. (as alterações podem afetar o resto do array)",
       "angleOff": "O canal de saída não amplificará objetos neste ângulo à frente dele. (as alterações podem afetar o resto do array)",
@@ -674,7 +671,10 @@
       "reloadConfig": "Recarregar a configuração de saída a partir do ficheiro.",
       "reloadBackup": "Recarregar a configuração de saída a partir do ficheiro de backup.",
       "importConfig": "Importar a configuração de saída a partir de ficheiro (com janela do explorador).",
-      "exportConfig": "Exportar a configuração de saída para ficheiro (com janela do explorador)."
+      "exportConfig": "Exportar a configuração de saída para ficheiro (com janela do explorador).",
+      "position1": "Canal de saída {name} ({unit}).",
+      "position2": "Canal de saída {name} ({unit}).",
+      "position3": "Canal de saída {name} ({unit})."
     }
   },
   "arrayHelper": {
@@ -931,7 +931,14 @@
       "postExpAttack": "Tempo de ataque do pós-expansor (0.1 - 50 ms).",
       "postExpRelease": "Tempo de libertação do pós-expansor (50 - 2000 ms).",
       "miniLatencyTooltip": "Enable minimal latency mode for this reverb channel. Reduces processing delay at the cost of higher CPU usage.",
-      "liveSourceTooltip": "Enable Live Source attenuation tamer. Reduces level fluctuations from sources close to the array."
+      "liveSourceTooltip": "Enable Live Source attenuation tamer. Reduces level fluctuations from sources close to the array.",
+      "muteButton": "Ativar/desativar mudo do retorno de reverberação para esta saída.",
+      "position1": "Fonte virtual de reverberação {name} ({unit}).",
+      "position2": "Fonte virtual de reverberação {name} ({unit}).",
+      "position3": "Fonte virtual de reverberação {name} ({unit}).",
+      "returnOffset1": "Deslocamento de retorno de reverberação {name} ({unit}).",
+      "returnOffset2": "Deslocamento de retorno de reverberação {name} ({unit}).",
+      "returnOffset3": "Deslocamento de retorno de reverberação {name} ({unit})."
     }
   },
   "inputs": {
@@ -1191,12 +1198,6 @@
       "attenuationSlider": "Input Channel Attenuation.",
       "delayLatencySlider": "Input Channel Delay (positive values) or Latency Compensation (negative values).",
       "minimalLatencyButton": "Select between Acoustic Precedence and Minimal Latency for Amplification Precedence.",
-      "posXEditor": "Object Position in Width. Nudge with Left and Right Arrow Keys.",
-      "posYEditor": "Object Position in Depth. Nudge with Up and Down Arrow Keys.",
-      "posZEditor": "Object Position in Height. Nudge with Page Up and Page Down Keys.",
-      "offsetXEditor": "Object Position Offset in Width. Adjusted when Tracking is Enabled.",
-      "offsetYEditor": "Object Position Offset in Depth. Adjusted when Tracking is Enabled.",
-      "offsetZEditor": "Object Position Offset in Height. Adjusted when Tracking is Enabled.",
       "constraintXButton": "Limit Position to the Bounds of the Stage in Width.",
       "constraintYButton": "Limit Position to the Bounds of the Stage in Depth.",
       "constraintZButton": "Limit Position to the Bounds of the Stage in Height.",
@@ -1260,9 +1261,7 @@
       "lfoPhaseYDial": "Phase Offset of the Movement of the Object in Depth.",
       "lfoPhaseZDial": "Phase Offset of the Movement of the Object in Height.",
       "lfoGyrophoneSelector": "Rotation of the Brightness Cone of the Object.",
-      "otomoDestXEditor": "Relative or Absolute Destination X.",
-      "otomoDestYEditor": "Relative or Absolute Destination Y.",
-      "otomoDestZEditor": "Relative or Absolute Destination Z.",
+      "otomoCoordMode": "Modo de coordenadas para destinos AutomOtion: Cartesiano (X/Y/Z), Cilíndrico (r/θ/Z) ou Esférico (r/θ/φ).",
       "otomoAbsRelButton": "Select Relative or Absolute Coordinates of Displacement.",
       "otomoStayReturnButton": "At the End of the Movement, should the Source Stay or Return to the Original Position.",
       "otomoSpeedProfileDial": "Constant Speed or Gradual Acceleration and Slow Down at the Start and the End of the Movement.",
@@ -1280,7 +1279,19 @@
       "muteMacrosSelector": "Mute Macros for Fast Muting and Unmuting of Arrays.",
       "arrayAttenDial": "Attenuation for Array {num} (-60 to 0 dB).",
       "sidelinesActiveButton": "Enable Automatic Muting when Source Approaches Stage Edges. Does Not Apply to Downstage (Front) Edge.",
-      "sidelinesFringeDial": "Fringe Zone Size in Meters. Outer Half is Full Mute, Inner Half Fades Linearly."
+      "sidelinesFringeDial": "Fringe Zone Size in Meters. Outer Half is Full Mute, Inner Half Fades Linearly.",
+      "position1": "{name} do objeto ({unit}).",
+      "position2": "{name} do objeto ({unit}).",
+      "position3": "{name} do objeto ({unit}).",
+      "offset1": "Deslocamento {name} do objeto ({unit}). Ajustado quando o rastreamento está ativado.",
+      "offset2": "Deslocamento {name} do objeto ({unit}). Ajustado quando o rastreamento está ativado.",
+      "offset3": "Deslocamento {name} do objeto ({unit}). Ajustado quando o rastreamento está ativado.",
+      "otomoDest1": "Destino relativo ou absoluto {name} ({unit}).",
+      "otomoDest2": "Destino relativo ou absoluto {name} ({unit}).",
+      "otomoDest3": "Destino relativo ou absoluto {name} ({unit}).",
+      "nudgeHint1": " Ajustar com as teclas Esquerda e Direita.",
+      "nudgeHint2": " Ajustar com as teclas Cima e Baixo.",
+      "nudgeHint3": " Ajustar com Page Up e Page Down."
     },
     "visualisation": {
       "delay": "delay",

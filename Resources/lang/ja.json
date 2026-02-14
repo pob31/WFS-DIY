@@ -660,9 +660,6 @@
       "hParallax": "スピーカーから「ターゲット」リスナーまでの水平距離。（変更はアレイの残りに影響する場合があります）",
       "vParallax": "スピーカーから「ターゲット」リスナーまでの垂直距離。スピーカーがリスナーの頭より下にある場合は正の値。（変更はアレイの残りに影響する場合があります）",
       "coordMode": "座標表示モード：直交座標（X/Y/Z）、円筒座標（半径/方位角/高さ）、または球面座標（半径/方位角/仰角）。",
-      "posX": "出力チャンネルの幅方向の位置。",
-      "posY": "出力チャンネルの奥行き方向の位置。",
-      "posZ": "出力チャンネルの高さ方向の位置。",
       "directional": "出力チャンネルの指向性制御。ドラッグで向きを変更、Shift+ドラッグでAngle Off、Alt+ドラッグでAngle On。（変更はアレイの残りに影響する場合があります）",
       "angleOn": "出力チャンネルはこの角度内の背後にあるオブジェクトを増幅します。（変更はアレイの残りに影響する場合があります）",
       "angleOff": "出力チャンネルはこの角度内の前方にあるオブジェクトを増幅しません。（変更はアレイの残りに影響する場合があります）",
@@ -674,7 +671,10 @@
       "reloadConfig": "ファイルから出力設定を再読み込みします。",
       "reloadBackup": "バックアップファイルから出力設定を再読み込みします。",
       "importConfig": "ファイルから出力設定をインポートします（ファイルエクスプローラーウィンドウ付き）。",
-      "exportConfig": "出力設定をファイルにエクスポートします（ファイルエクスプローラーウィンドウ付き）。"
+      "exportConfig": "出力設定をファイルにエクスポートします（ファイルエクスプローラーウィンドウ付き）。",
+      "position1": "出力チャンネル{name}（{unit}）。",
+      "position2": "出力チャンネル{name}（{unit}）。",
+      "position3": "出力チャンネル{name}（{unit}）。"
     }
   },
   "arrayHelper": {
@@ -931,7 +931,14 @@
       "postExpAttack": "ポストエキスパンダーのアタック時間（0.1 - 50 ms）。",
       "postExpRelease": "ポストエキスパンダーのリリース時間（50 - 2000 ms）。",
       "miniLatencyTooltip": "Enable minimal latency mode for this reverb channel. Reduces processing delay at the cost of higher CPU usage.",
-      "liveSourceTooltip": "Enable Live Source attenuation tamer. Reduces level fluctuations from sources close to the array."
+      "liveSourceTooltip": "Enable Live Source attenuation tamer. Reduces level fluctuations from sources close to the array.",
+      "muteButton": "この出力チャンネルのリバーブリターンのミュートを切り替えます。",
+      "position1": "リバーブ仮想音源の{name}（{unit}）。",
+      "position2": "リバーブ仮想音源の{name}（{unit}）。",
+      "position3": "リバーブ仮想音源の{name}（{unit}）。",
+      "returnOffset1": "リバーブリターンオフセット{name}（{unit}）。",
+      "returnOffset2": "リバーブリターンオフセット{name}（{unit}）。",
+      "returnOffset3": "リバーブリターンオフセット{name}（{unit}）。"
     }
   },
   "inputs": {
@@ -1191,12 +1198,6 @@
       "attenuationSlider": "Input Channel Attenuation.",
       "delayLatencySlider": "Input Channel Delay (positive values) or Latency Compensation (negative values).",
       "minimalLatencyButton": "Select between Acoustic Precedence and Minimal Latency for Amplification Precedence.",
-      "posXEditor": "Object Position in Width. Nudge with Left and Right Arrow Keys.",
-      "posYEditor": "Object Position in Depth. Nudge with Up and Down Arrow Keys.",
-      "posZEditor": "Object Position in Height. Nudge with Page Up and Page Down Keys.",
-      "offsetXEditor": "Object Position Offset in Width. Adjusted when Tracking is Enabled.",
-      "offsetYEditor": "Object Position Offset in Depth. Adjusted when Tracking is Enabled.",
-      "offsetZEditor": "Object Position Offset in Height. Adjusted when Tracking is Enabled.",
       "constraintXButton": "Limit Position to the Bounds of the Stage in Width.",
       "constraintYButton": "Limit Position to the Bounds of the Stage in Depth.",
       "constraintZButton": "Limit Position to the Bounds of the Stage in Height.",
@@ -1260,9 +1261,7 @@
       "lfoPhaseYDial": "Phase Offset of the Movement of the Object in Depth.",
       "lfoPhaseZDial": "Phase Offset of the Movement of the Object in Height.",
       "lfoGyrophoneSelector": "Rotation of the Brightness Cone of the Object.",
-      "otomoDestXEditor": "Relative or Absolute Destination X.",
-      "otomoDestYEditor": "Relative or Absolute Destination Y.",
-      "otomoDestZEditor": "Relative or Absolute Destination Z.",
+      "otomoCoordMode": "AutomOtion目的地の座標表示モード：デカルト（X/Y/Z）、円筒（r/θ/Z）、球面（r/θ/φ）。",
       "otomoAbsRelButton": "Select Relative or Absolute Coordinates of Displacement.",
       "otomoStayReturnButton": "At the End of the Movement, should the Source Stay or Return to the Original Position.",
       "otomoSpeedProfileDial": "Constant Speed or Gradual Acceleration and Slow Down at the Start and the End of the Movement.",
@@ -1280,7 +1279,19 @@
       "muteMacrosSelector": "Mute Macros for Fast Muting and Unmuting of Arrays.",
       "arrayAttenDial": "Attenuation for Array {num} (-60 to 0 dB).",
       "sidelinesActiveButton": "Enable Automatic Muting when Source Approaches Stage Edges. Does Not Apply to Downstage (Front) Edge.",
-      "sidelinesFringeDial": "Fringe Zone Size in Meters. Outer Half is Full Mute, Inner Half Fades Linearly."
+      "sidelinesFringeDial": "Fringe Zone Size in Meters. Outer Half is Full Mute, Inner Half Fades Linearly.",
+      "position1": "オブジェクトの{name}（{unit}）。",
+      "position2": "オブジェクトの{name}（{unit}）。",
+      "position3": "オブジェクトの{name}（{unit}）。",
+      "offset1": "オブジェクトのオフセット{name}（{unit}）。トラッキング有効時に調整。",
+      "offset2": "オブジェクトのオフセット{name}（{unit}）。トラッキング有効時に調整。",
+      "offset3": "オブジェクトのオフセット{name}（{unit}）。トラッキング有効時に調整。",
+      "otomoDest1": "相対または絶対の目的地 {name}（{unit}）。",
+      "otomoDest2": "相対または絶対の目的地 {name}（{unit}）。",
+      "otomoDest3": "相対または絶対の目的地 {name}（{unit}）。",
+      "nudgeHint1": " 左右キーで調整。",
+      "nudgeHint2": " 上下キーで調整。",
+      "nudgeHint3": " Page Up/Downで調整。"
     },
     "visualisation": {
       "delay": "delay",

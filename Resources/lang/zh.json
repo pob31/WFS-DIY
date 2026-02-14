@@ -660,9 +660,6 @@
       "hParallax": "扬声器到“目标”听众的水平距离。（更改可能影响阵列的其余部分）",
       "vParallax": "扬声器到“目标”听众的垂直距离。当扬声器位于听众头部下方时为正值。（更改可能影响阵列的其余部分）",
       "coordMode": "坐标显示模式：笛卡尔坐标（X/Y/Z）、柱面坐标（半径/方位角/高度）或球面坐标（半径/方位角/仰角）。",
-      "posX": "输出通道在宽度方向的位置。",
-      "posY": "输出通道在深度方向的位置。",
-      "posZ": "输出通道在高度方向的位置。",
       "directional": "输出通道方向控制。拖动改变朝向，Shift+拖动调整 Angle Off，Alt+拖动调整 Angle On。（更改可能影响阵列的其余部分）",
       "angleOn": "输出通道将放大此角度内位于其后方的对象。（更改可能影响阵列的其余部分）",
       "angleOff": "输出通道将不放大此角度内位于其前方的对象。（更改可能影响阵列的其余部分）",
@@ -674,7 +671,10 @@
       "reloadConfig": "从文件重新加载输出配置。",
       "reloadBackup": "从备份文件重新加载输出配置。",
       "importConfig": "从文件导入输出配置（通过文件浏览器窗口）。",
-      "exportConfig": "将输出配置导出到文件（通过文件浏览器窗口）。"
+      "exportConfig": "将输出配置导出到文件（通过文件浏览器窗口）。",
+      "position1": "输出通道{name}（{unit}）。",
+      "position2": "输出通道{name}（{unit}）。",
+      "position3": "输出通道{name}（{unit}）。"
     }
   },
   "arrayHelper": {
@@ -931,7 +931,14 @@
       "postExpAttack": "后扩展器起音时间（0.1 - 50 ms）。",
       "postExpRelease": "后扩展器释放时间（50 - 2000 ms）。",
       "miniLatencyTooltip": "启用此混响通道的最小延迟模式。以更高 CPU 使用为代价减少处理延迟。",
-      "liveSourceTooltip": "启用现场声源衰减调节器。减少靠近阵列的声源的电平波动。"
+      "liveSourceTooltip": "启用现场声源衰减调节器。减少靠近阵列的声源的电平波动。",
+      "muteButton": "切换此输出通道的混响返回静音。",
+      "position1": "混响虚拟声源{name}（{unit}）。",
+      "position2": "混响虚拟声源{name}（{unit}）。",
+      "position3": "混响虚拟声源{name}（{unit}）。",
+      "returnOffset1": "混响返回偏移{name}（{unit}）。",
+      "returnOffset2": "混响返回偏移{name}（{unit}）。",
+      "returnOffset3": "混响返回偏移{name}（{unit}）。"
     }
   },
   "inputs": {
@@ -1191,12 +1198,6 @@
       "attenuationSlider": "输入通道衰减。",
       "delayLatencySlider": "输入通道延迟（正值）或延迟补偿（负值）。",
       "minimalLatencyButton": "选择声学优先或最小延迟的放大优先模式。",
-      "posXEditor": "对象宽度方向位置。使用左右方向键微调。",
-      "posYEditor": "对象深度方向位置。使用上下方向键微调。",
-      "posZEditor": "对象高度方向位置。使用 Page Up 和 Page Down 键微调。",
-      "offsetXEditor": "对象宽度方向的位置偏移。启用追踪时调整。",
-      "offsetYEditor": "对象深度方向的位置偏移。启用追踪时调整。",
-      "offsetZEditor": "对象高度方向的位置偏移。启用追踪时调整。",
       "constraintXButton": "将位置限制在舞台宽度范围内。",
       "constraintYButton": "将位置限制在舞台深度范围内。",
       "constraintZButton": "将位置限制在舞台高度范围内。",
@@ -1260,9 +1261,7 @@
       "lfoPhaseYDial": "对象深度方向运动的相位偏移。",
       "lfoPhaseZDial": "对象高度方向运动的相位偏移。",
       "lfoGyrophoneSelector": "对象亮度锥的旋转。",
-      "otomoDestXEditor": "相对或绝对目标 X。",
-      "otomoDestYEditor": "相对或绝对目标 Y。",
-      "otomoDestZEditor": "相对或绝对目标 Z。",
+      "otomoCoordMode": "AutomOtion目标坐标显示模式：笛卡尔（X/Y/Z）、柱面（r/θ/Z）或球面（r/θ/φ）。",
       "otomoAbsRelButton": "选择位移的相对或绝对坐标。",
       "otomoStayReturnButton": "运动结束时，声源应停留还是返回原始位置。",
       "otomoSpeedProfileDial": "匀速或在运动开始和结束时逐渐加速和减速。",
@@ -1280,7 +1279,19 @@
       "muteMacrosSelector": "用于快速静音和取消静音阵列的静音宏。",
       "arrayAttenDial": "阵列 {num} 的衰减（-60 到 0 dB）。",
       "sidelinesActiveButton": "当声源接近舞台边缘时自动静音。不适用于延迟线。",
-      "sidelinesFringeDial": "边缘区域大小（米）。外半部分完全静音，内半部分线性渐变。"
+      "sidelinesFringeDial": "边缘区域大小（米）。外半部分完全静音，内半部分线性渐变。",
+      "position1": "对象{name}（{unit}）。",
+      "position2": "对象{name}（{unit}）。",
+      "position3": "对象{name}（{unit}）。",
+      "offset1": "对象偏移{name}（{unit}）。启用跟踪时自动调整。",
+      "offset2": "对象偏移{name}（{unit}）。启用跟踪时自动调整。",
+      "offset3": "对象偏移{name}（{unit}）。启用跟踪时自动调整。",
+      "otomoDest1": "相对或绝对目标{name}（{unit}）。",
+      "otomoDest2": "相对或绝对目标{name}（{unit}）。",
+      "otomoDest3": "相对或绝对目标{name}（{unit}）。",
+      "nudgeHint1": " 使用左右箭头键调整。",
+      "nudgeHint2": " 使用上下箭头键调整。",
+      "nudgeHint3": " 使用Page Up/Down调整。"
     },
     "visualisation": {
       "delay": "延迟",

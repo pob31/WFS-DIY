@@ -596,7 +596,6 @@ private:
         miniLatencyEnableButton.setButtonText (LOC("reverbs.toggles.minLatencyOff"));
         miniLatencyEnableButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF2D2D2D));
         miniLatencyEnableButton.setColour (juce::TextButton::buttonOnColourId, juce::Colour (0xFF2D2D2D));
-        miniLatencyEnableButton.setTooltip (LOC("reverbs.help.miniLatencyTooltip"));
         miniLatencyEnableButton.onClick = [this]
         {
             bool enabled = !miniLatencyEnableButton.getToggleState();
@@ -612,7 +611,6 @@ private:
         lsEnableButton.setButtonText (LOC("reverbs.toggles.liveSourceOff"));
         lsEnableButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF2D2D2D));
         lsEnableButton.setColour (juce::TextButton::buttonOnColourId, juce::Colour (0xFF2D2D2D));
-        lsEnableButton.setTooltip (LOC("reverbs.help.liveSourceTooltip"));
         lsEnableButton.onClick = [this]
         {
             bool enabled = !lsEnableButton.getToggleState();
@@ -1552,11 +1550,16 @@ private:
         helpTextMap[&pitchSlider] = LOC("reverbs.help.pitch");
         helpTextMap[&hfDampingSlider] = LOC("reverbs.help.hfDamping");
         helpTextMap[&distanceAttenEnableSlider] = LOC("reverbs.help.distanceAttenEnable");
+        helpTextMap[&miniLatencyEnableButton] = LOC("reverbs.help.miniLatencyTooltip");
+        helpTextMap[&lsEnableButton] = LOC("reverbs.help.liveSourceTooltip");
         helpTextMap[&coordModeSelector] = LOC("reverbs.help.coordMode");
+        // Position/offset help text set dynamically in updatePositionLabelsAndValues()
         helpTextMap[&eqEnableButton] = LOC("reverbs.help.eqEnable");
         helpTextMap[&distanceAttenDial] = LOC("reverbs.help.distanceAtten");
         helpTextMap[&commonAttenDial] = LOC("reverbs.help.commonAtten");
         helpTextMap[&muteMacrosSelector] = LOC("reverbs.help.muteMacros");
+        for (int i = 0; i < maxMuteButtons; ++i)
+            helpTextMap[&muteButtons[i]] = LOC("reverbs.help.muteButton");
         helpTextMap[&storeButton] = LOC("reverbs.help.storeConfig");
         helpTextMap[&reloadButton] = LOC("reverbs.help.reloadConfig");
         helpTextMap[&reloadBackupButton] = LOC("reverbs.help.reloadBackup");
@@ -2674,6 +2677,15 @@ private:
         posYUnitLabel.setText(unit2, juce::dontSendNotification);
         posZUnitLabel.setText(unit3, juce::dontSendNotification);
 
+        // Update help text to match coordinate mode
+        juce::String n1 = label1.trimCharactersAtEnd(":"), n2 = label2.trimCharactersAtEnd(":"), n3 = label3.trimCharactersAtEnd(":");
+        helpTextMap[&posXEditor] = LOC("reverbs.help.position1").replace("{name}", n1).replace("{unit}", unit1);
+        helpTextMap[&posYEditor] = LOC("reverbs.help.position2").replace("{name}", n2).replace("{unit}", unit2);
+        helpTextMap[&posZEditor] = LOC("reverbs.help.position3").replace("{name}", n3).replace("{unit}", unit3);
+        helpTextMap[&returnOffsetXEditor] = LOC("reverbs.help.returnOffset1").replace("{name}", n1).replace("{unit}", unit1);
+        helpTextMap[&returnOffsetYEditor] = LOC("reverbs.help.returnOffset2").replace("{name}", n2).replace("{unit}", unit2);
+        helpTextMap[&returnOffsetZEditor] = LOC("reverbs.help.returnOffset3").replace("{name}", n3).replace("{unit}", unit3);
+
         // Get Cartesian values from storage
         float x = static_cast<float>(parameters.getReverbParam(currentChannel - 1, "reverbPositionX"));
         float y = static_cast<float>(parameters.getReverbParam(currentChannel - 1, "reverbPositionY"));
@@ -2919,7 +2931,8 @@ private:
                  paramId == WFSParameterIDs::reverbPositionZ ||
                  paramId == WFSParameterIDs::reverbReturnOffsetX ||
                  paramId == WFSParameterIDs::reverbReturnOffsetY ||
-                 paramId == WFSParameterIDs::reverbReturnOffsetZ)
+                 paramId == WFSParameterIDs::reverbReturnOffsetZ ||
+                 paramId == WFSParameterIDs::reverbCoordinateMode)
         {
             section = vts.getReverbPositionSection (channelIndex);
         }

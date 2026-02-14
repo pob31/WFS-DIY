@@ -6263,6 +6263,18 @@ private:
         posYUnitLabel.setText(unit2, juce::dontSendNotification);
         posZUnitLabel.setText(unit3, juce::dontSendNotification);
 
+        // Update help text to match coordinate mode
+        juce::String n1 = label1.trimCharactersAtEnd(":"), n2 = label2.trimCharactersAtEnd(":"), n3 = label3.trimCharactersAtEnd(":");
+        helpTextMap[&posXEditor] = LOC("inputs.help.position1").replace("{name}", n1).replace("{unit}", unit1)
+            + (coordMode == WFSCoordinates::Mode::Cartesian ? LOC("inputs.help.nudgeHint1") : "");
+        helpTextMap[&posYEditor] = LOC("inputs.help.position2").replace("{name}", n2).replace("{unit}", unit2)
+            + (coordMode == WFSCoordinates::Mode::Cartesian ? LOC("inputs.help.nudgeHint2") : "");
+        helpTextMap[&posZEditor] = LOC("inputs.help.position3").replace("{name}", n3).replace("{unit}", unit3)
+            + (coordMode == WFSCoordinates::Mode::Cartesian ? LOC("inputs.help.nudgeHint3") : "");
+        helpTextMap[&offsetXEditor] = LOC("inputs.help.offset1").replace("{name}", n1).replace("{unit}", unit1);
+        helpTextMap[&offsetYEditor] = LOC("inputs.help.offset2").replace("{name}", n2).replace("{unit}", unit2);
+        helpTextMap[&offsetZEditor] = LOC("inputs.help.offset3").replace("{name}", n3).replace("{unit}", unit3);
+
         // Get Cartesian values from storage
         float x = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionX"));
         float y = static_cast<float>(parameters.getInputParam(currentChannel - 1, "inputPositionY"));
@@ -6315,6 +6327,12 @@ private:
         otomoDestXUnitLabel.setText(unit1, juce::dontSendNotification);
         otomoDestYUnitLabel.setText(unit2, juce::dontSendNotification);
         otomoDestZUnitLabel.setText(unit3, juce::dontSendNotification);
+
+        // Update help text to match coordinate mode
+        juce::String n1 = label1.trimCharactersAtEnd(":"), n2 = label2.trimCharactersAtEnd(":"), n3 = label3.trimCharactersAtEnd(":");
+        helpTextMap[&otomoDestXEditor] = LOC("inputs.help.otomoDest1").replace("{name}", n1).replace("{unit}", unit1);
+        helpTextMap[&otomoDestYEditor] = LOC("inputs.help.otomoDest2").replace("{name}", n2).replace("{unit}", unit2);
+        helpTextMap[&otomoDestZEditor] = LOC("inputs.help.otomoDest3").replace("{name}", n3).replace("{unit}", unit3);
     }
 
     /** Update AutomOtion destination editor values based on coordinate mode */
@@ -6493,12 +6511,7 @@ private:
         helpTextMap[&attenuationSlider] = LOC("inputs.help.attenuationSlider");
         helpTextMap[&delayLatencySlider] = LOC("inputs.help.delayLatencySlider");
         helpTextMap[&minimalLatencyButton] = LOC("inputs.help.minimalLatencyButton");
-        helpTextMap[&posXEditor] = LOC("inputs.help.posXEditor");
-        helpTextMap[&posYEditor] = LOC("inputs.help.posYEditor");
-        helpTextMap[&posZEditor] = LOC("inputs.help.posZEditor");
-        helpTextMap[&offsetXEditor] = LOC("inputs.help.offsetXEditor");
-        helpTextMap[&offsetYEditor] = LOC("inputs.help.offsetYEditor");
-        helpTextMap[&offsetZEditor] = LOC("inputs.help.offsetZEditor");
+        // Position/offset help text set dynamically in updatePositionLabelsAndValues()
         helpTextMap[&constraintXButton] = LOC("inputs.help.constraintXButton");
         helpTextMap[&constraintYButton] = LOC("inputs.help.constraintYButton");
         helpTextMap[&constraintZButton] = LOC("inputs.help.constraintZButton");
@@ -6564,9 +6577,8 @@ private:
         helpTextMap[&lfoPhaseZDial] = LOC("inputs.help.lfoPhaseZDial");
         helpTextMap[&lfoGyrophoneSelector] = LOC("inputs.help.lfoGyrophoneSelector");
         // AutomOtion tab
-        helpTextMap[&otomoDestXEditor] = LOC("inputs.help.otomoDestXEditor");
-        helpTextMap[&otomoDestYEditor] = LOC("inputs.help.otomoDestYEditor");
-        helpTextMap[&otomoDestZEditor] = LOC("inputs.help.otomoDestZEditor");
+        helpTextMap[&otomoCoordModeSelector] = LOC("inputs.help.otomoCoordMode");
+        // AutomOtion destination help text set dynamically in updateOtomoLabelsAndValues()
         helpTextMap[&otomoAbsRelButton] = LOC("inputs.help.otomoAbsRelButton");
         helpTextMap[&otomoStayReturnButton] = LOC("inputs.help.otomoStayReturnButton");
         helpTextMap[&otomoSpeedProfileDial] = LOC("inputs.help.otomoSpeedProfileDial");
