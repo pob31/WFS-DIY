@@ -586,13 +586,18 @@
       "peakNotch": "Peak/Notch",
       "bandPass": "Band Pass",
       "highShelf": "High Shelf",
-      "highCut": "High Cut"
+      "highCut": "High Cut",
+      "allPass": "All-Pass"
     },
     "labels": {
       "band": "Band",
       "freq": "Freq:",
       "gain": "Gain",
       "q": "Q"
+    },
+    "buttons": {
+      "resetBand": "Reset",
+      "flattenEQ": "Flatten EQ"
     }
   },
 
@@ -711,7 +716,15 @@
       "reloadConfig": "Reload Output Configuration from file.",
       "reloadBackup": "Reload Output Configuration from backup file.",
       "importConfig": "Import Output Configuration from file (with file explorer window).",
-      "exportConfig": "Export Output Configuration to file (with file explorer window)."
+      "exportConfig": "Export Output Configuration to file (with file explorer window).",
+      "eqEnable": "Enable or disable EQ processing for this output.",
+      "eqFlatten": "Long press to reset all EQ bands to their default values.",
+      "eqBandToggle": "Toggle Band {band} on/off. When off the band is bypassed.",
+      "eqShape": "Output EQ Band {band} filter shape.",
+      "eqFreq": "Output EQ Band {band} frequency (20 Hz - 20 kHz).",
+      "eqGain": "Output EQ Band {band} gain (-24 to +24 dB).",
+      "eqQ": "Output EQ Band {band} Q factor (0.1 - 10.0).",
+      "eqResetBand": "Long press to reset Band {band} to its default values."
     }
   },
 
@@ -930,6 +943,13 @@
       "distanceAttenEnable": "Distance attenuation percentage (0-200%).",
       "coordMode": "Coordinate display mode: Cartesian (X/Y/Z), Cylindrical (radius/azimuth/height), or Spherical (radius/azimuth/elevation).",
       "eqEnable": "Enable or disable EQ processing for this reverb.",
+      "eqFlatten": "Long press to reset all pre-EQ bands to their default values.",
+      "eqBandToggle": "Toggle pre-EQ Band {band} on/off. When off the band is bypassed.",
+      "eqShape": "Pre-EQ Band {band} filter shape.",
+      "eqFreq": "Pre-EQ Band {band} frequency (20 Hz - 20 kHz).",
+      "eqGain": "Pre-EQ Band {band} gain (-24 to +24 dB).",
+      "eqQ": "Pre-EQ Band {band} Q factor (0.1 - 20.0).",
+      "eqResetBand": "Long press to reset pre-EQ Band {band} to its default values.",
       "distanceAtten": "Distance attenuation for reverb return (-6.0 to 0.0 dB/m).",
       "commonAtten": "Common attenuation percentage (0-100%).",
       "muteMacros": "Quick mute operations for output channels.",
@@ -964,6 +984,9 @@
       "postEqFreq": "Post-EQ Band {band} frequency (20 Hz - 20 kHz).",
       "postEqGain": "Post-EQ Band {band} gain (-24 to +24 dB).",
       "postEqQ": "Post-EQ Band {band} Q factor (0.1 - 20.0).",
+      "postEqFlatten": "Long press to reset all post-EQ bands to their default values.",
+      "postEqBandToggle": "Toggle post-EQ Band {band} on/off. When off the band is bypassed.",
+      "postEqResetBand": "Long press to reset post-EQ Band {band} to its default values.",
       "postExpBypass": "Bypass or enable the post-expander on reverb returns.",
       "postExpThreshold": "Post-expander threshold (-80 to -10 dB).",
       "postExpRatio": "Post-expander ratio (1:1 to 1:8).",

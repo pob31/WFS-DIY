@@ -14,6 +14,7 @@
 #include "EQDisplayComponent.h"
 #include "../Helpers/CoordinateConverter.h"
 #include "buttons/LongPressButton.h"
+#include "buttons/EQBandToggle.h"
 
 /**
  * Reverb Tab Component
@@ -657,13 +658,19 @@ private:
             eqEnableButton.setButtonText (enabled ? LOC("eq.status.on") : LOC("eq.status.off"));
             eqEnableButton.setColour (juce::TextButton::buttonColourId,
                                       enabled ? juce::Colour (0xFF4CAF50) : juce::Colour (0xFF2D2D2D));
-            // Update all band appearances when global EQ state changes
             for (int i = 0; i < numEqBands; ++i)
                 updateEQBandAppearance (i);
-            // Update EQ display grey-out state
             if (eqDisplay != nullptr)
                 eqDisplay->setEQEnabled (enabled);
             saveReverbParam (WFSParameterIDs::reverbPreEQenable, enabled ? 1 : 0);
+        };
+
+        // Flatten EQ long-press button
+        addAndMakeVisible (eqFlattenButton);
+        eqFlattenButton.setButtonText (LOC("eq.buttons.flattenEQ"));
+        eqFlattenButton.onLongPress = [this]() {
+            for (int i = 0; i < numEqBands; ++i)
+                resetPreEQBand (i);
         };
 
         // 4 EQ bands
@@ -673,24 +680,41 @@ private:
             addAndMakeVisible (eqBandLabel[i]);
             eqBandLabel[i].setText (LOC("eq.labels.band") + " " + juce::String (i + 1), juce::dontSendNotification);
             eqBandLabel[i].setColour (juce::Label::textColourId, EQDisplayComponent::getBandColour(i));
-            eqBandLabel[i].setJustificationType (juce::Justification::centred);
+            eqBandLabel[i].setJustificationType (juce::Justification::centredLeft);
 
-            // Shape selector (no band-pass)
+            // Band on/off toggle indicator
+            addAndMakeVisible (eqBandToggle[i]);
+            eqBandToggle[i].setBandColour (EQDisplayComponent::getBandColour(i));
+            eqBandToggle[i].setToggleState (false, juce::dontSendNotification);
+            eqBandToggle[i].onClick = [this, i]() {
+                bool on = eqBandToggle[i].getToggleState();
+                int shape = on ? eqBandShapeSelector[i].getSelectedId() : 0;
+                saveEQBandParam (i, WFSParameterIDs::reverbPreEQshape, shape);
+                updateEQBandAppearance (i);
+            };
+
+            // Reset band long-press button
+            addAndMakeVisible (eqBandResetButton[i]);
+            eqBandResetButton[i].setButtonText (LOC("eq.buttons.resetBand"));
+            eqBandResetButton[i].onLongPress = [this, i]() { resetPreEQBand (i); };
+
+            // Shape selector (no "Off" - toggle handles on/off)
             addAndMakeVisible (eqBandShapeSelector[i]);
-            eqBandShapeSelector[i].addItem (LOC("eq.filterTypes.off"), 1);
-            eqBandShapeSelector[i].addItem (LOC("eq.filterTypes.lowCut"), 2);
-            eqBandShapeSelector[i].addItem (LOC("eq.filterTypes.lowShelf"), 3);
-            eqBandShapeSelector[i].addItem (LOC("eq.filterTypes.peakNotch"), 4);
-            eqBandShapeSelector[i].addItem (LOC("eq.filterTypes.highShelf"), 5);
-            eqBandShapeSelector[i].addItem (LOC("eq.filterTypes.highCut"), 6);
-            eqBandShapeSelector[i].setSelectedId (1);
+            eqBandShapeSelector[i].addItem (LOC("eq.filterTypes.lowCut"), 1);
+            eqBandShapeSelector[i].addItem (LOC("eq.filterTypes.lowShelf"), 2);
+            eqBandShapeSelector[i].addItem (LOC("eq.filterTypes.peakNotch"), 3);
+            eqBandShapeSelector[i].addItem (LOC("eq.filterTypes.bandPass"), 6);
+            eqBandShapeSelector[i].addItem (LOC("eq.filterTypes.highShelf"), 4);
+            eqBandShapeSelector[i].addItem (LOC("eq.filterTypes.highCut"), 5);
+            eqBandShapeSelector[i].setSelectedId (WFSParameterDefaults::reverbPreEQBandComboDefaults[i], juce::dontSendNotification);
             eqBandShapeSelector[i].onChange = [this, i]
             {
-                int shape = eqBandShapeSelector[i].getSelectedId() - 1;
-                saveEQBandParam (i, WFSParameterIDs::reverbPreEQshape, shape);
-                // Update gain visibility when shape changes
+                if (eqBandToggle[i].getToggleState())
+                {
+                    int shape = eqBandShapeSelector[i].getSelectedId();
+                    saveEQBandParam (i, WFSParameterIDs::reverbPreEQshape, shape);
+                }
                 updateEQBandAppearance (i);
-                // TTS: Announce selection change
                 TTSManager::getInstance().announceValueChange("EQ Band " + juce::String(i + 1) + " Shape", eqBandShapeSelector[i].getText());
             };
 
@@ -1307,6 +1331,14 @@ private:
             savePostEQParam (WFSParameterIDs::reverbPostEQenable, enabled ? 1 : 0);
         };
 
+        // Flatten Post-EQ long-press button
+        addAndMakeVisible (postEqFlattenButton);
+        postEqFlattenButton.setButtonText (LOC("eq.buttons.flattenEQ"));
+        postEqFlattenButton.onLongPress = [this]() {
+            for (int i = 0; i < numPostEqBands; ++i)
+                resetPostEQBand (i);
+        };
+
         // 4 Post-EQ bands
         for (int i = 0; i < numPostEqBands; ++i)
         {
@@ -1314,21 +1346,40 @@ private:
             addAndMakeVisible (postEqBandLabel[i]);
             postEqBandLabel[i].setText (LOC("eq.labels.band") + " " + juce::String (i + 1), juce::dontSendNotification);
             postEqBandLabel[i].setColour (juce::Label::textColourId, EQDisplayComponent::getBandColour(i));
-            postEqBandLabel[i].setJustificationType (juce::Justification::centred);
+            postEqBandLabel[i].setJustificationType (juce::Justification::centredLeft);
 
-            // Shape selector
+            // Band on/off toggle indicator
+            addAndMakeVisible (postEqBandToggle[i]);
+            postEqBandToggle[i].setBandColour (EQDisplayComponent::getBandColour(i));
+            postEqBandToggle[i].setToggleState (false, juce::dontSendNotification);
+            postEqBandToggle[i].onClick = [this, i]() {
+                bool on = postEqBandToggle[i].getToggleState();
+                int shape = on ? postEqBandShapeSelector[i].getSelectedId() : 0;
+                savePostEQBandParam (i, WFSParameterIDs::reverbPostEQshape, shape);
+                updatePostEQBandAppearance (i);
+            };
+
+            // Reset band long-press button
+            addAndMakeVisible (postEqBandResetButton[i]);
+            postEqBandResetButton[i].setButtonText (LOC("eq.buttons.resetBand"));
+            postEqBandResetButton[i].onLongPress = [this, i]() { resetPostEQBand (i); };
+
+            // Shape selector (no "Off" - toggle handles on/off)
             addAndMakeVisible (postEqBandShapeSelector[i]);
-            postEqBandShapeSelector[i].addItem (LOC("eq.filterTypes.off"), 1);
-            postEqBandShapeSelector[i].addItem (LOC("eq.filterTypes.lowCut"), 2);
-            postEqBandShapeSelector[i].addItem (LOC("eq.filterTypes.lowShelf"), 3);
-            postEqBandShapeSelector[i].addItem (LOC("eq.filterTypes.peakNotch"), 4);
-            postEqBandShapeSelector[i].addItem (LOC("eq.filterTypes.highShelf"), 5);
-            postEqBandShapeSelector[i].addItem (LOC("eq.filterTypes.highCut"), 6);
-            postEqBandShapeSelector[i].setSelectedId (1);
+            postEqBandShapeSelector[i].addItem (LOC("eq.filterTypes.lowCut"), 1);
+            postEqBandShapeSelector[i].addItem (LOC("eq.filterTypes.lowShelf"), 2);
+            postEqBandShapeSelector[i].addItem (LOC("eq.filterTypes.peakNotch"), 3);
+            postEqBandShapeSelector[i].addItem (LOC("eq.filterTypes.bandPass"), 6);
+            postEqBandShapeSelector[i].addItem (LOC("eq.filterTypes.highShelf"), 4);
+            postEqBandShapeSelector[i].addItem (LOC("eq.filterTypes.highCut"), 5);
+            postEqBandShapeSelector[i].setSelectedId (WFSParameterDefaults::reverbPostEQBandComboDefaults[i], juce::dontSendNotification);
             postEqBandShapeSelector[i].onChange = [this, i]
             {
-                int shape = postEqBandShapeSelector[i].getSelectedId() - 1;
-                savePostEQBandParam (i, WFSParameterIDs::reverbPostEQshape, shape);
+                if (postEqBandToggle[i].getToggleState())
+                {
+                    int shape = postEqBandShapeSelector[i].getSelectedId();
+                    savePostEQBandParam (i, WFSParameterIDs::reverbPostEQshape, shape);
+                }
                 updatePostEQBandAppearance (i);
                 TTSManager::getInstance().announceValueChange("Post-EQ Band " + juce::String(i + 1) + " Shape", postEqBandShapeSelector[i].getText());
             };
@@ -1555,6 +1606,16 @@ private:
         helpTextMap[&coordModeSelector] = LOC("reverbs.help.coordMode");
         // Position/offset help text set dynamically in updatePositionLabelsAndValues()
         helpTextMap[&eqEnableButton] = LOC("reverbs.help.eqEnable");
+        helpTextMap[&eqFlattenButton] = LOC("reverbs.help.eqFlatten");
+        for (int i = 0; i < numEqBands; ++i)
+        {
+            helpTextMap[&eqBandToggle[i]] = LOC("reverbs.help.eqBandToggle").replace("{band}", juce::String(i + 1));
+            helpTextMap[&eqBandShapeSelector[i]] = LOC("reverbs.help.eqShape").replace("{band}", juce::String(i + 1));
+            helpTextMap[&eqBandFreqSlider[i]] = LOC("reverbs.help.eqFreq").replace("{band}", juce::String(i + 1));
+            helpTextMap[&eqBandGainDial[i]] = LOC("reverbs.help.eqGain").replace("{band}", juce::String(i + 1));
+            helpTextMap[&eqBandQDial[i]] = LOC("reverbs.help.eqQ").replace("{band}", juce::String(i + 1));
+            helpTextMap[&eqBandResetButton[i]] = LOC("reverbs.help.eqResetBand").replace("{band}", juce::String(i + 1));
+        }
         helpTextMap[&distanceAttenDial] = LOC("reverbs.help.distanceAtten");
         helpTextMap[&commonAttenDial] = LOC("reverbs.help.commonAtten");
         helpTextMap[&muteMacrosSelector] = LOC("reverbs.help.muteMacros");
@@ -1593,12 +1654,15 @@ private:
 
         // Post-Processing sub-tab help text
         helpTextMap[&postEqEnableButton] = LOC("reverbs.help.postEqEnable");
+        helpTextMap[&postEqFlattenButton] = LOC("reverbs.help.postEqFlatten");
         for (int i = 0; i < numPostEqBands; ++i)
         {
+            helpTextMap[&postEqBandToggle[i]] = LOC("reverbs.help.postEqBandToggle").replace("{band}", juce::String(i + 1));
             helpTextMap[&postEqBandShapeSelector[i]] = LOC("reverbs.help.postEqShape").replace("{band}", juce::String(i + 1));
             helpTextMap[&postEqBandFreqSlider[i]] = LOC("reverbs.help.postEqFreq").replace("{band}", juce::String(i + 1));
             helpTextMap[&postEqBandGainDial[i]] = LOC("reverbs.help.postEqGain").replace("{band}", juce::String(i + 1));
             helpTextMap[&postEqBandQDial[i]] = LOC("reverbs.help.postEqQ").replace("{band}", juce::String(i + 1));
+            helpTextMap[&postEqBandResetButton[i]] = LOC("reverbs.help.postEqResetBand").replace("{band}", juce::String(i + 1));
         }
 
         // Post-Expander help text
@@ -1781,16 +1845,19 @@ private:
         const int sliderHeight = 35;
         const int labelHeight = 20;
         const int spacing = 5;
+        const int toggleSize = 18;
 
         // Reserve bottom portion for compressor section
         const int compressorHeight = 145;
         auto compArea = fullArea.removeFromBottom (compressorHeight);
         auto area = fullArea;
 
-        const int bandWidth = (area.getWidth() - 40) / numEqBands;
+        const int bandWidth = area.getWidth() / numEqBands;
 
-        // EQ Enable button at top
-        eqEnableButton.setBounds (area.removeFromTop (buttonHeight).withWidth (100));
+        // Top row: EQ Enable button left, Flatten button right
+        auto topRow = area.removeFromTop (buttonHeight);
+        eqEnableButton.setBounds (topRow.removeFromLeft (100));
+        eqFlattenButton.setBounds (topRow.removeFromRight (100));
         area.removeFromTop (spacing * 2);
 
         // Create EQ Display if it doesn't exist yet (fallback creation)
@@ -1823,8 +1890,15 @@ private:
         {
             auto bandArea = area.removeFromLeft (bandWidth).reduced (5, 0);
 
+            // Band label row
             eqBandLabel[i].setBounds (bandArea.removeFromTop (labelHeight));
-            eqBandShapeSelector[i].setBounds (bandArea.removeFromTop (buttonHeight));
+
+            // Shape row: toggle on left, combobox in middle, reset on right
+            auto shapeRow = bandArea.removeFromTop (buttonHeight);
+            eqBandToggle[i].setBounds (shapeRow.removeFromLeft (toggleSize).withSizeKeepingCentre (toggleSize, toggleSize));
+            shapeRow.removeFromLeft (4);
+            eqBandResetButton[i].setBounds (shapeRow.removeFromRight (50));
+            eqBandShapeSelector[i].setBounds (shapeRow);
             bandArea.removeFromTop (spacing);
 
             // Frequency slider
@@ -2036,16 +2110,19 @@ private:
         const int sliderHeight = 35;
         const int labelHeight = 20;
         const int spacing = 5;
+        const int toggleSize = 18;
 
         // Reserve bottom portion for expander section
         const int expanderHeight = 145;
         auto expArea = fullArea.removeFromBottom (expanderHeight);
         auto area = fullArea;
 
-        const int bandWidth = (area.getWidth() - 40) / numPostEqBands;
+        const int bandWidth = area.getWidth() / numPostEqBands;
 
-        // Post-EQ Enable button at top
-        postEqEnableButton.setBounds (area.removeFromTop (buttonHeight).withWidth (100));
+        // Top row: Post-EQ Enable button left, Flatten button right
+        auto topRow = area.removeFromTop (buttonHeight);
+        postEqEnableButton.setBounds (topRow.removeFromLeft (100));
+        postEqFlattenButton.setBounds (topRow.removeFromRight (100));
         area.removeFromTop (spacing * 2);
 
         // Create Post-EQ Display if it doesn't exist yet
@@ -2076,8 +2153,15 @@ private:
         {
             auto bandArea = area.removeFromLeft (bandWidth).reduced (5, 0);
 
+            // Band label row
             postEqBandLabel[i].setBounds (bandArea.removeFromTop (labelHeight));
-            postEqBandShapeSelector[i].setBounds (bandArea.removeFromTop (buttonHeight));
+
+            // Shape row: toggle on left, combobox in middle, reset on right
+            auto shapeRow = bandArea.removeFromTop (buttonHeight);
+            postEqBandToggle[i].setBounds (shapeRow.removeFromLeft (toggleSize).withSizeKeepingCentre (toggleSize, toggleSize));
+            shapeRow.removeFromLeft (4);
+            postEqBandResetButton[i].setBounds (shapeRow.removeFromRight (50));
+            postEqBandShapeSelector[i].setBounds (shapeRow);
             bandArea.removeFromTop (spacing);
 
             // Frequency slider
@@ -2353,6 +2437,7 @@ private:
     void setEQVisible (bool visible)
     {
         eqEnableButton.setVisible (visible);
+        eqFlattenButton.setVisible (visible);
 
         // EQ Display - create if needed and visible
         if (visible && eqDisplay == nullptr && currentChannel > 0)
@@ -2377,7 +2462,9 @@ private:
         for (int i = 0; i < numEqBands; ++i)
         {
             eqBandLabel[i].setVisible (visible);
+            eqBandToggle[i].setVisible (visible);
             eqBandShapeSelector[i].setVisible (visible);
+            eqBandResetButton[i].setVisible (visible);
             eqBandFreqLabel[i].setVisible (visible);
             eqBandFreqSlider[i].setVisible (visible);
             eqBandFreqValueLabel[i].setVisible (visible);
@@ -2420,21 +2507,25 @@ private:
     {
         bool eqEnabled = eqEnableButton.getToggleState();
         int shapeId = eqBandShapeSelector[bandIndex].getSelectedId();
-        bool bandIsOff = (shapeId == 1);  // OFF
+        bool bandIsOff = !eqBandToggle[bandIndex].getToggleState();
 
-        // Determine if this is a cut filter (no gain control)
-        // Reverb EQ shapes: 1=OFF, 2=LowCut, 3=LowShelf, 4=Peak, 5=HighShelf, 6=HighCut
-        bool isCutFilter = (shapeId == 2 || shapeId == 6);
-        bool showGain = !isCutFilter;
+        // Determine if this is a cut or bandpass filter (no gain control)
+        // Reverb EQ shapes: 1=LowCut, 2=LowShelf, 3=Peak, 4=HighShelf, 5=HighCut, 6=BandPass
+        bool isCutOrBandPass = (shapeId == 1 || shapeId == 5 || shapeId == 6);
+        bool showGain = !isCutOrBandPass;
 
         // Grey out entire band if global EQ is off
         // Grey out band parameters (except shape) if band is off but EQ is on
-        float bandLabelAlpha = eqEnabled ? 1.0f : 0.4f;
-        float shapeAlpha = eqEnabled ? 1.0f : 0.4f;
+        float globalAlpha = eqEnabled ? 1.0f : 0.4f;
+        float bandLabelAlpha = globalAlpha;
+        float toggleAlpha = globalAlpha;
+        float shapeAlpha = (eqEnabled && !bandIsOff) ? 1.0f : 0.4f;
         float paramAlpha = (eqEnabled && !bandIsOff) ? 1.0f : 0.4f;
 
-        // Band label and shape dropdown follow global EQ state
+        // Band label, toggle, and reset follow global EQ state
         eqBandLabel[bandIndex].setAlpha (bandLabelAlpha);
+        eqBandToggle[bandIndex].setAlpha (toggleAlpha);
+        eqBandResetButton[bandIndex].setAlpha (globalAlpha);
         eqBandShapeSelector[bandIndex].setAlpha (shapeAlpha);
 
         // Only update visibility if EQ tab is currently selected
@@ -2461,7 +2552,7 @@ private:
         eqBandQDial[bandIndex].setAlpha (paramAlpha);
         eqBandQValueLabel[bandIndex].setAlpha (paramAlpha);
 
-        // Gain controls - hide for cut filters, only show if EQ tab selected
+        // Gain controls - hide for cut/bandpass filters, only show if EQ tab selected
         bool showGainVisible = showGain && eqTabSelected;
         eqBandGainLabel[bandIndex].setVisible (showGainVisible);
         eqBandGainDial[bandIndex].setVisible (showGainVisible);
@@ -2472,6 +2563,30 @@ private:
             eqBandGainDial[bandIndex].setAlpha (paramAlpha);
             eqBandGainValueLabel[bandIndex].setAlpha (paramAlpha);
         }
+    }
+
+    void resetPreEQBand (int i)
+    {
+        using namespace WFSParameterDefaults;
+        isLoadingParameters = true;
+        int defaultShape = reverbPreEQBandShapes[i];
+        int defaultFreq = reverbPreEQBandFrequencies[i];
+        eqBandToggle[i].setToggleState (defaultShape != 0, juce::dontSendNotification);
+        eqBandShapeSelector[i].setSelectedId (reverbPreEQBandComboDefaults[i], juce::dontSendNotification);
+        float freqSlider = std::log10 (defaultFreq / 20.0f) / 3.0f;
+        eqBandFreqSlider[i].setValue (juce::jlimit (0.0f, 1.0f, freqSlider));
+        eqBandFreqValueLabel[i].setText (formatFrequency (defaultFreq), juce::dontSendNotification);
+        eqBandGainDial[i].setValue (0.5f);
+        eqBandGainValueLabel[i].setText ("0.0 dB", juce::dontSendNotification);
+        float qSlider = std::log ((reverbPreEQqDefault - 0.1f) / 0.21f + 1.0f) / std::log (100.0f);
+        eqBandQDial[i].setValue (juce::jlimit (0.0f, 1.0f, qSlider));
+        eqBandQValueLabel[i].setText ("0.70", juce::dontSendNotification);
+        isLoadingParameters = false;
+        saveEQBandParam (i, WFSParameterIDs::reverbPreEQshape, defaultShape);
+        saveEQBandParam (i, WFSParameterIDs::reverbPreEQfreq, defaultFreq);
+        saveEQBandParam (i, WFSParameterIDs::reverbPreEQgain, 0.0f);
+        saveEQBandParam (i, WFSParameterIDs::reverbPreEQq, reverbPreEQqDefault);
+        updateEQBandAppearance (i);
     }
 
     void setAlgorithmVisible (bool visible)
@@ -2538,6 +2653,7 @@ private:
     void setPostProcessingVisible (bool visible)
     {
         postEqEnableButton.setVisible (visible);
+        postEqFlattenButton.setVisible (visible);
 
         // Post-EQ Display - create if needed and visible
         if (visible && postEqDisplay == nullptr)
@@ -2559,7 +2675,9 @@ private:
         for (int i = 0; i < numPostEqBands; ++i)
         {
             postEqBandLabel[i].setVisible (visible);
+            postEqBandToggle[i].setVisible (visible);
             postEqBandShapeSelector[i].setVisible (visible);
+            postEqBandResetButton[i].setVisible (visible);
             postEqBandFreqLabel[i].setVisible (visible);
             postEqBandFreqSlider[i].setVisible (visible);
             postEqBandFreqValueLabel[i].setVisible (visible);
@@ -2873,7 +2991,11 @@ private:
                 continue;
 
             int shape = band.getProperty (WFSParameterIDs::reverbPreEQshape, 0);
-            eqBandShapeSelector[i].setSelectedId (shape + 1, juce::dontSendNotification);
+            bool bandOn = (shape != 0);
+            eqBandToggle[i].setToggleState (bandOn, juce::dontSendNotification);
+            // Only update combobox when band is on (preserve user's selection when off)
+            if (bandOn)
+                eqBandShapeSelector[i].setSelectedId (shape, juce::dontSendNotification);
 
             int freq = band.getProperty (WFSParameterIDs::reverbPreEQfreq, 1000);
             float freqSlider = std::log10 (freq / 20.0f) / 3.0f;
@@ -3010,16 +3132,21 @@ private:
     {
         bool eqEnabled = postEqEnableButton.getToggleState();
         int shapeId = postEqBandShapeSelector[bandIndex].getSelectedId();
-        bool bandIsOff = (shapeId == 1);
+        bool bandIsOff = !postEqBandToggle[bandIndex].getToggleState();
 
-        bool isCutFilter = (shapeId == 2 || shapeId == 6);
-        bool showGain = !isCutFilter;
+        // Reverb Post-EQ shapes: 1=LowCut, 2=LowShelf, 3=Peak, 4=HighShelf, 5=HighCut, 6=BandPass
+        bool isCutOrBandPass = (shapeId == 1 || shapeId == 5 || shapeId == 6);
+        bool showGain = !isCutOrBandPass;
 
-        float bandLabelAlpha = eqEnabled ? 1.0f : 0.4f;
-        float shapeAlpha = eqEnabled ? 1.0f : 0.4f;
+        float globalAlpha = eqEnabled ? 1.0f : 0.4f;
+        float bandLabelAlpha = globalAlpha;
+        float toggleAlpha = globalAlpha;
+        float shapeAlpha = (eqEnabled && !bandIsOff) ? 1.0f : 0.4f;
         float paramAlpha = (eqEnabled && !bandIsOff) ? 1.0f : 0.4f;
 
         postEqBandLabel[bandIndex].setAlpha (bandLabelAlpha);
+        postEqBandToggle[bandIndex].setAlpha (toggleAlpha);
+        postEqBandResetButton[bandIndex].setAlpha (globalAlpha);
         postEqBandShapeSelector[bandIndex].setAlpha (shapeAlpha);
 
         bool postEqTabSelected = (subTabBar.getCurrentTabIndex() == 3);
@@ -3056,6 +3183,30 @@ private:
         }
     }
 
+    void resetPostEQBand (int i)
+    {
+        using namespace WFSParameterDefaults;
+        isLoadingParameters = true;
+        int defaultShape = reverbPostEQBandShapes[i];
+        int defaultFreq = reverbPostEQBandFrequencies[i];
+        postEqBandToggle[i].setToggleState (defaultShape != 0, juce::dontSendNotification);
+        postEqBandShapeSelector[i].setSelectedId (reverbPostEQBandComboDefaults[i], juce::dontSendNotification);
+        float freqSlider = std::log10 (defaultFreq / 20.0f) / 3.0f;
+        postEqBandFreqSlider[i].setValue (juce::jlimit (0.0f, 1.0f, freqSlider));
+        postEqBandFreqValueLabel[i].setText (formatFrequency (defaultFreq), juce::dontSendNotification);
+        postEqBandGainDial[i].setValue (0.5f);
+        postEqBandGainValueLabel[i].setText ("0.0 dB", juce::dontSendNotification);
+        float qSlider = std::log ((reverbPostEQqDefault - 0.1f) / 0.21f + 1.0f) / std::log (100.0f);
+        postEqBandQDial[i].setValue (juce::jlimit (0.0f, 1.0f, qSlider));
+        postEqBandQValueLabel[i].setText ("0.70", juce::dontSendNotification);
+        isLoadingParameters = false;
+        savePostEQBandParam (i, WFSParameterIDs::reverbPostEQshape, defaultShape);
+        savePostEQBandParam (i, WFSParameterIDs::reverbPostEQfreq, defaultFreq);
+        savePostEQBandParam (i, WFSParameterIDs::reverbPostEQgain, 0.0f);
+        savePostEQBandParam (i, WFSParameterIDs::reverbPostEQq, reverbPostEQqDefault);
+        updatePostEQBandAppearance (i);
+    }
+
     void loadPostEQParameters()
     {
         auto& vts = parameters.getValueTreeState();
@@ -3076,7 +3227,11 @@ private:
                 continue;
 
             int shape = band.getProperty (WFSParameterIDs::reverbPostEQshape, 0);
-            postEqBandShapeSelector[i].setSelectedId (shape + 1, juce::dontSendNotification);
+            bool bandOn = (shape != 0);
+            postEqBandToggle[i].setToggleState (bandOn, juce::dontSendNotification);
+            // Only update combobox when band is on (preserve user's selection when off)
+            if (bandOn)
+                postEqBandShapeSelector[i].setSelectedId (shape, juce::dontSendNotification);
 
             int freq = band.getProperty (WFSParameterIDs::reverbPostEQfreq, 1000);
             float freqSlider = std::log10 (freq / 20.0f) / 3.0f;
@@ -4374,10 +4529,13 @@ private:
 
         // EQ sub-tab
         eqEnableButton.setVisible (hasChannels);
+        eqFlattenButton.setVisible (hasChannels);
         for (int i = 0; i < numEqBands; ++i)
         {
             eqBandLabel[i].setVisible (hasChannels);
+            eqBandToggle[i].setVisible (hasChannels);
             eqBandShapeSelector[i].setVisible (hasChannels);
+            eqBandResetButton[i].setVisible (hasChannels);
             eqBandFreqLabel[i].setVisible (hasChannels);
             eqBandFreqSlider[i].setVisible (hasChannels);
             eqBandFreqValueLabel[i].setVisible (hasChannels);
@@ -4397,10 +4555,13 @@ private:
         if (!hasChannels)
             setPostProcessingVisible (false);
         postEqEnableButton.setVisible (hasChannels);
+        postEqFlattenButton.setVisible (hasChannels);
         for (int i = 0; i < numPostEqBands; ++i)
         {
             postEqBandLabel[i].setVisible (hasChannels);
+            postEqBandToggle[i].setVisible (hasChannels);
             postEqBandShapeSelector[i].setVisible (hasChannels);
+            postEqBandResetButton[i].setVisible (hasChannels);
             postEqBandFreqLabel[i].setVisible (hasChannels);
             postEqBandFreqSlider[i].setVisible (hasChannels);
             postEqBandFreqValueLabel[i].setVisible (hasChannels);
@@ -4508,9 +4669,12 @@ private:
     juce::Label distanceAttenEnableValueLabel;
 
     // EQ sub-tab
+    LongPressButton eqFlattenButton;
     juce::TextButton eqEnableButton;
     juce::Label eqBandLabel[numEqBands];
+    EQBandToggle eqBandToggle[numEqBands];
     juce::ComboBox eqBandShapeSelector[numEqBands];
+    LongPressButton eqBandResetButton[numEqBands];
     juce::Label eqBandFreqLabel[numEqBands];
     WfsStandardSlider eqBandFreqSlider[numEqBands];
     juce::Label eqBandFreqValueLabel[numEqBands];
@@ -4597,9 +4761,12 @@ private:
 
     // Post-Processing sub-tab
     static constexpr int numPostEqBands = 4;
+    LongPressButton postEqFlattenButton;
     juce::TextButton postEqEnableButton;
     juce::Label postEqBandLabel[numPostEqBands];
+    EQBandToggle postEqBandToggle[numPostEqBands];
     juce::ComboBox postEqBandShapeSelector[numPostEqBands];
+    LongPressButton postEqBandResetButton[numPostEqBands];
     juce::Label postEqBandFreqLabel[numPostEqBands];
     WfsStandardSlider postEqBandFreqSlider[numPostEqBands];
     juce::Label postEqBandFreqValueLabel[numPostEqBands];

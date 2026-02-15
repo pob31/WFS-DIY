@@ -550,13 +550,18 @@
       "peakNotch": "피크/노치",
       "bandPass": "밴드패스",
       "highShelf": "하이 쉘프",
-      "highCut": "하이 컷"
+      "highCut": "하이 컷",
+      "allPass": "올패스"
     },
     "labels": {
       "band": "밴드",
       "freq": "주파수:",
       "gain": "게인",
       "q": "Q"
+    },
+    "buttons": {
+      "resetBand": "초기화",
+      "flattenEQ": "EQ 초기화"
     }
   },
   "outputs": {
@@ -672,6 +677,14 @@
       "reloadBackup": "백업 파일에서 출력 설정을 다시 로드합니다.",
       "importConfig": "파일에서 출력 설정을 가져옵니다 (파일 탐색기 창 포함).",
       "exportConfig": "출력 설정을 파일로 내보냅니다 (파일 탐색기 창 포함).",
+      "eqEnable": "이 출력의 EQ 처리를 활성화/비활성화합니다.",
+      "eqFlatten": "길게 눌러 모든 EQ 밴드를 기본값으로 초기화합니다.",
+      "eqBandToggle": "밴드 {band} 켜기/끄기. 꺼진 밴드는 바이패스됩니다.",
+      "eqShape": "출력 EQ 밴드 {band} 필터 형태.",
+      "eqFreq": "출력 EQ 밴드 {band} 주파수 (20 Hz - 20 kHz).",
+      "eqGain": "출력 EQ 밴드 {band} 게인 (-24~+24 dB).",
+      "eqQ": "출력 EQ 밴드 {band} Q 팩터 (0.1 - 10.0).",
+      "eqResetBand": "길게 눌러 밴드 {band}를 기본값으로 초기화합니다.",
       "position1": "출력 채널 {name} ({unit}).",
       "position2": "출력 채널 {name} ({unit}).",
       "position3": "출력 채널 {name} ({unit})."
@@ -891,6 +904,13 @@
       "distanceAttenEnable": "거리 감쇠 백분율 (0-200%).",
       "coordMode": "좌표 표시 모드: 직교 좌표 (X/Y/Z), 원통 좌표 (반지름/방위각/높이), 또는 구면 좌표 (반지름/방위각/고도).",
       "eqEnable": "이 리버브에 대한 EQ 처리를 활성화 또는 비활성화.",
+      "eqFlatten": "길게 눌러 모든 프리EQ 밴드를 초기화합니다.",
+      "eqBandToggle": "프리EQ 밴드 {band} 켜기/끄기.",
+      "eqShape": "프리EQ 밴드 {band} 필터 형태.",
+      "eqFreq": "프리EQ 밴드 {band} 주파수 (20 Hz - 20 kHz).",
+      "eqGain": "프리EQ 밴드 {band} 게인 (-24~+24 dB).",
+      "eqQ": "프리EQ 밴드 {band} Q 팩터 (0.1 - 20.0).",
+      "eqResetBand": "길게 눌러 프리EQ 밴드 {band}를 초기화합니다.",
       "distanceAtten": "리버브 리턴에 대한 거리 감쇠 (-6.0 ~ 0.0 dB/m).",
       "commonAtten": "공통 감쇠 백분율 (0-100%).",
       "muteMacros": "출력 채널의 빠른 음소거 작업.",
@@ -925,6 +945,9 @@
       "postEqFreq": "포스트 EQ 밴드 {band} 주파수 (20 Hz - 20 kHz).",
       "postEqGain": "포스트 EQ 밴드 {band} 게인 (-24 ~ +24 dB).",
       "postEqQ": "포스트 EQ 밴드 {band} Q 팩터 (0.1 - 20.0).",
+      "postEqFlatten": "길게 눌러 모든 포스트EQ 밴드를 초기화합니다.",
+      "postEqBandToggle": "포스트EQ 밴드 {band} 켜기/끄기.",
+      "postEqResetBand": "길게 눌러 포스트EQ 밴드 {band}를 초기화합니다.",
       "postExpBypass": "리버브 리턴의 포스트 익스팬더를 바이패스 또는 활성화.",
       "postExpThreshold": "포스트 익스팬더 임계값 (-80 ~ -10 dB).",
       "postExpRatio": "포스트 익스팬더 비율 (1:1 ~ 1:8).",

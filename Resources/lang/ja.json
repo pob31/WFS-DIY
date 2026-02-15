@@ -550,13 +550,18 @@
       "peakNotch": "ピーク/ノッチ",
       "bandPass": "バンドパス",
       "highShelf": "ハイシェルフ",
-      "highCut": "ハイカット"
+      "highCut": "ハイカット",
+      "allPass": "オールパス"
     },
     "labels": {
       "band": "バンド",
       "freq": "周波数:",
       "gain": "ゲイン",
       "q": "Q"
+    },
+    "buttons": {
+      "resetBand": "リセット",
+      "flattenEQ": "EQリセット"
     }
   },
   "outputs": {
@@ -672,6 +677,14 @@
       "reloadBackup": "バックアップファイルから出力設定を再読み込みします。",
       "importConfig": "ファイルから出力設定をインポートします（ファイルエクスプローラーウィンドウ付き）。",
       "exportConfig": "出力設定をファイルにエクスポートします（ファイルエクスプローラーウィンドウ付き）。",
+      "eqEnable": "この出力のEQ処理を有効/無効にします。",
+      "eqFlatten": "長押しで全EQバンドをデフォルトにリセットします。",
+      "eqBandToggle": "バンド{band}のオン/オフ切り替え。オフの場合バイパスされます。",
+      "eqShape": "出力EQバンド{band}のフィルター形状。",
+      "eqFreq": "出力EQバンド{band}の周波数 (20 Hz - 20 kHz)。",
+      "eqGain": "出力EQバンド{band}のゲイン (-24〜+24 dB)。",
+      "eqQ": "出力EQバンド{band}のQ値 (0.1 - 10.0)。",
+      "eqResetBand": "長押しでバンド{band}をデフォルトにリセットします。",
       "position1": "出力チャンネル{name}（{unit}）。",
       "position2": "出力チャンネル{name}（{unit}）。",
       "position3": "出力チャンネル{name}（{unit}）。"
@@ -891,6 +904,13 @@
       "distanceAttenEnable": "距離減衰のパーセンテージ（0-200%）。",
       "coordMode": "座標表示モード：デカルト座標（X/Y/Z）、円筒座標（半径/方位角/高さ）、または球座標（半径/方位角/仰角）。",
       "eqEnable": "このリバーブのEQ処理を有効または無効にする。",
+      "eqFlatten": "長押しで全プリEQバンドをデフォルトにリセットします。",
+      "eqBandToggle": "プリEQバンド{band}のオン/オフ切り替え。",
+      "eqShape": "プリEQバンド{band}のフィルター形状。",
+      "eqFreq": "プリEQバンド{band}の周波数 (20 Hz - 20 kHz)。",
+      "eqGain": "プリEQバンド{band}のゲイン (-24〜+24 dB)。",
+      "eqQ": "プリEQバンド{band}のQ値 (0.1 - 20.0)。",
+      "eqResetBand": "長押しでプリEQバンド{band}をデフォルトにリセットします。",
       "distanceAtten": "リバーブリターンの距離減衰（-6.0～0.0 dB/m）。",
       "commonAtten": "共通減衰のパーセンテージ（0-100%）。",
       "muteMacros": "出力チャンネルのクイックミュート操作。",
@@ -925,6 +945,9 @@
       "postEqFreq": "ポストEQ バンド {band} の周波数（20 Hz - 20 kHz）。",
       "postEqGain": "ポストEQ バンド {band} のゲイン（-24～+24 dB）。",
       "postEqQ": "ポストEQ バンド {band} のQ値（0.1 - 20.0）。",
+      "postEqFlatten": "長押しで全ポストEQバンドをデフォルトにリセットします。",
+      "postEqBandToggle": "ポストEQバンド{band}のオン/オフ切り替え。",
+      "postEqResetBand": "長押しでポストEQバンド{band}をデフォルトにリセットします。",
       "postExpBypass": "リバーブリターンのポストエキスパンダーをバイパスまたは有効にする。",
       "postExpThreshold": "ポストエキスパンダーのスレッショルド（-80～-10 dB）。",
       "postExpRatio": "ポストエキスパンダーのレシオ（1:1～1:8）。",

@@ -550,13 +550,18 @@
       "peakNotch": "峰值/陷波",
       "bandPass": "带通",
       "highShelf": "高频搁架",
-      "highCut": "高切"
+      "highCut": "高切",
+      "allPass": "全通"
     },
     "labels": {
       "band": "频段",
       "freq": "频率:",
       "gain": "增益",
       "q": "Q值"
+    },
+    "buttons": {
+      "resetBand": "重置",
+      "flattenEQ": "重置EQ"
     }
   },
   "outputs": {
@@ -672,6 +677,14 @@
       "reloadBackup": "从备份文件重新加载输出配置。",
       "importConfig": "从文件导入输出配置（通过文件浏览器窗口）。",
       "exportConfig": "将输出配置导出到文件（通过文件浏览器窗口）。",
+      "eqEnable": "启用或禁用此输出的EQ处理。",
+      "eqFlatten": "长按重置所有EQ频段为默认值。",
+      "eqBandToggle": "开启/关闭频段{band}。关闭时频段被旁路。",
+      "eqShape": "输出EQ频段{band}滤波器形状。",
+      "eqFreq": "输出EQ频段{band}频率 (20 Hz - 20 kHz)。",
+      "eqGain": "输出EQ频段{band}增益 (-24至+24 dB)。",
+      "eqQ": "输出EQ频段{band} Q因子 (0.1 - 10.0)。",
+      "eqResetBand": "长按重置频段{band}为默认值。",
       "position1": "输出通道{name}（{unit}）。",
       "position2": "输出通道{name}（{unit}）。",
       "position3": "输出通道{name}（{unit}）。"
@@ -891,6 +904,13 @@
       "distanceAttenEnable": "距离衰减百分比（0-200%）。",
       "coordMode": "坐标显示模式：笛卡尔坐标（X/Y/Z）、圆柱坐标（半径/方位角/高度）或球坐标（半径/方位角/仰角）。",
       "eqEnable": "启用或禁用此混响的EQ处理。",
+      "eqFlatten": "长按重置所有前置EQ频段为默认值。",
+      "eqBandToggle": "开启/关闭前置EQ频段{band}。",
+      "eqShape": "前置EQ频段{band}滤波器形状。",
+      "eqFreq": "前置EQ频段{band}频率 (20 Hz - 20 kHz)。",
+      "eqGain": "前置EQ频段{band}增益 (-24至+24 dB)。",
+      "eqQ": "前置EQ频段{band} Q因子 (0.1 - 20.0)。",
+      "eqResetBand": "长按重置前置EQ频段{band}为默认值。",
       "distanceAtten": "混响返回的距离衰减（-6.0至0.0 dB/m）。",
       "commonAtten": "公共衰减百分比（0-100%）。",
       "muteMacros": "输出通道的快速静音操作。",
@@ -925,6 +945,9 @@
       "postEqFreq": "后处理EQ频段{band}频率（20 Hz - 20 kHz）。",
       "postEqGain": "后处理EQ频段{band}增益（-24至+24 dB）。",
       "postEqQ": "后处理EQ频段{band} Q值（0.1 - 20.0）。",
+      "postEqFlatten": "长按重置所有后置EQ频段为默认值。",
+      "postEqBandToggle": "开启/关闭后置EQ频段{band}。",
+      "postEqResetBand": "长按重置后置EQ频段{band}为默认值。",
       "postExpBypass": "旁通或启用混响返回上的后扩展器。",
       "postExpThreshold": "后扩展器阈值（-80至-10 dB）。",
       "postExpRatio": "后扩展器比率（1:1至1:8）。",

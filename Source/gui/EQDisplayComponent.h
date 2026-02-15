@@ -19,7 +19,8 @@ enum class EQFilterType
     LowCut,      // High-pass with resonance
     LowShelf,
     PeakNotch,
-    BandPass,    // Only for Output EQ
+    BandPass,
+    AllPass,     // Phase shift only, flat magnitude response
     HighShelf,
     HighCut      // Low-pass with resonance
 };
@@ -107,6 +108,7 @@ public:
 
         // Ensure we receive all mouse events
         setInterceptsMouseClicks (true, false);
+        setWantsKeyboardFocus (true);
     }
 
     ~EQDisplayComponent() override
@@ -223,6 +225,7 @@ public:
         {
             selectedBand = clickedBand;
             isDragging = true;
+            dragMode = DragMode::Both;
             dragStartPos = e.position;
             setMouseCursor (juce::MouseCursor::DraggingHandCursor);
 
@@ -232,12 +235,40 @@ public:
 
             // Begin drag auto-repeat to ensure we receive continuous drag events
             beginDragAutoRepeat (50);
+            grabKeyboardFocus();
         }
         else
         {
-            // Clicked on empty space - deselect
-            selectedBand = -1;
-            isDragging = false;
+            // Check if clicked on a crosshair line of the selected band
+            auto crosshairMode = findCrosshairAtPosition (e.position);
+            if (crosshairMode != DragMode::None)
+            {
+                isDragging = true;
+                dragMode = crosshairMode;
+                dragStartPos = e.position;
+
+                // Store original values for relative drag
+                auto bandTree = eqTree.getChild (selectedBand);
+                dragStartFreq = static_cast<float> (static_cast<int> (bandTree.getProperty (config.frequencyId)));
+                dragStartGain = bandTree.getProperty (config.gainId);
+
+                if (crosshairMode == DragMode::GainOnly)
+                    setMouseCursor (juce::MouseCursor::UpDownResizeCursor);
+                else
+                    setMouseCursor (juce::MouseCursor::LeftRightResizeCursor);
+
+                if (undoManagerPtr)
+                    undoManagerPtr->beginNewTransaction ("EQ Band " + juce::String (selectedBand + 1));
+
+                beginDragAutoRepeat (50);
+            }
+            else
+            {
+                // Clicked on empty space - deselect
+                selectedBand = -1;
+                isDragging = false;
+                dragMode = DragMode::None;
+            }
         }
 
         repaint();
@@ -283,17 +314,42 @@ public:
         int shape = bandTree.getProperty (config.shapeId);
         EQFilterType filterType = shapeToFilterType (shape);
 
-        // Update frequency from X position
-        float newFreq = xToFrequency (e.position.x);
-        newFreq = juce::jlimit (20.0f, 20000.0f, newFreq);
-        setBandParameter (selectedBand, config.frequencyId, static_cast<int> (newFreq));
-
-        // Update gain from Y position (except for cuts and bandpass)
-        if (filterType != EQFilterType::LowCut &&
-            filterType != EQFilterType::HighCut &&
-            filterType != EQFilterType::BandPass)
+        // Update frequency (unless gain-only mode)
+        if (dragMode != DragMode::GainOnly)
         {
-            float newGain = yTodB (e.position.y);
+            float newFreq;
+            if (dragMode == DragMode::FrequencyOnly)
+            {
+                // Relative: apply X delta to original frequency
+                float startX = frequencyToX (dragStartFreq);
+                newFreq = xToFrequency (startX + (e.position.x - dragStartPos.x));
+            }
+            else
+            {
+                newFreq = xToFrequency (e.position.x);
+            }
+            newFreq = juce::jlimit (20.0f, 20000.0f, newFreq);
+            setBandParameter (selectedBand, config.frequencyId, static_cast<int> (newFreq));
+        }
+
+        // Update gain (unless freq-only mode, or cut/bandpass/allpass)
+        if (dragMode != DragMode::FrequencyOnly &&
+            filterType != EQFilterType::LowCut &&
+            filterType != EQFilterType::HighCut &&
+            filterType != EQFilterType::BandPass &&
+            filterType != EQFilterType::AllPass)
+        {
+            float newGain;
+            if (dragMode == DragMode::GainOnly)
+            {
+                // Relative: apply Y delta to original gain
+                float startY = dBToY (dragStartGain);
+                newGain = yTodB (startY + (e.position.y - dragStartPos.y));
+            }
+            else
+            {
+                newGain = yTodB (e.position.y);
+            }
             newGain = juce::jlimit (mindB, maxdB, newGain);
             setBandParameter (selectedBand, config.gainId, newGain);
         }
@@ -317,9 +373,10 @@ public:
         if (activeTouches.empty())
         {
             isDragging = false;
+            dragMode = DragMode::None;
             setMouseCursor (juce::MouseCursor::NormalCursor);
         }
-        // Keep selection for wheel adjustment
+        // Keep selection for wheel/keyboard adjustment
     }
 
     void mouseMove (const juce::MouseEvent& e) override
@@ -331,9 +388,20 @@ public:
         // Show pointing hand when hovering over a band marker
         int hoveredBand = findBandAtPosition (e.position);
         if (hoveredBand >= 0)
+        {
             setMouseCursor (juce::MouseCursor::PointingHandCursor);
+        }
         else
-            setMouseCursor (juce::MouseCursor::NormalCursor);
+        {
+            // Check crosshair lines of selected band
+            auto crosshairMode = findCrosshairAtPosition (e.position);
+            if (crosshairMode == DragMode::GainOnly)
+                setMouseCursor (juce::MouseCursor::UpDownResizeCursor);
+            else if (crosshairMode == DragMode::FrequencyOnly)
+                setMouseCursor (juce::MouseCursor::LeftRightResizeCursor);
+            else
+                setMouseCursor (juce::MouseCursor::NormalCursor);
+        }
     }
 
     void mouseExit (const juce::MouseEvent&) override
@@ -398,6 +466,68 @@ public:
 
         updateBandCoefficients (targetBand);
         repaint();
+    }
+
+    //==========================================================================
+    // Keyboard interaction
+    //==========================================================================
+    bool keyPressed (const juce::KeyPress& key) override
+    {
+        if (selectedBand < 0)
+            return false;
+
+        auto bandTree = eqTree.getChild (selectedBand);
+        if (! bandTree.isValid())
+            return false;
+
+        int shape = bandTree.getProperty (config.shapeId);
+        EQFilterType filterType = shapeToFilterType (shape);
+        bool noGainControl = (filterType == EQFilterType::LowCut ||
+                              filterType == EQFilterType::HighCut ||
+                              filterType == EQFilterType::BandPass ||
+                              filterType == EQFilterType::AllPass);
+
+        int keyCode = key.getKeyCode();
+
+        if (keyCode == juce::KeyPress::leftKey || keyCode == juce::KeyPress::rightKey)
+        {
+            // Frequency: logarithmic increment = freq / 20
+            int currentFreq = bandTree.getProperty (config.frequencyId);
+            int increment = juce::jmax (1, currentFreq / 20);
+            int newFreq = (keyCode == juce::KeyPress::rightKey)
+                              ? currentFreq + increment
+                              : currentFreq - increment;
+            newFreq = juce::jlimit (20, 20000, newFreq);
+
+            if (undoManagerPtr)
+                undoManagerPtr->beginNewTransaction ("EQ Arrow Freq");
+
+            setBandParameter (selectedBand, config.frequencyId, newFreq);
+            updateBandCoefficients (selectedBand);
+            repaint();
+            return true;
+        }
+
+        if ((keyCode == juce::KeyPress::upKey || keyCode == juce::KeyPress::downKey)
+            && ! noGainControl)
+        {
+            // Gain: ±0.1 dB
+            float currentGain = bandTree.getProperty (config.gainId);
+            float newGain = (keyCode == juce::KeyPress::upKey)
+                                ? currentGain + 0.1f
+                                : currentGain - 0.1f;
+            newGain = juce::jlimit (mindB, maxdB, newGain);
+
+            if (undoManagerPtr)
+                undoManagerPtr->beginNewTransaction ("EQ Arrow Gain");
+
+            setBandParameter (selectedBand, config.gainId, newGain);
+            updateBandCoefficients (selectedBand);
+            repaint();
+            return true;
+        }
+
+        return false;
     }
 
     //==========================================================================
@@ -586,20 +716,11 @@ private:
             int shape = bandTree.getProperty (config.shapeId);
             bool isOff = (shape == 0);
 
-            float x, y;
-            if (isOff)
-            {
-                // OFF bands: place at their frequency position on the 0dB line
-                float freq = bandTree.getProperty (config.frequencyId);
-                x = frequencyToX (freq);
-                y = dBToY (0.0f);
-            }
-            else
-            {
-                auto markerPos = getBandMarkerPosition (band);
-                x = markerPos.x;
-                y = markerPos.y;
-            }
+            // Position marker at frequency and gain (even when off)
+            float freq = bandTree.getProperty (config.frequencyId);
+            float gain = bandTree.getProperty (config.gainId);
+            float x = frequencyToX (freq);
+            float y = isOff ? dBToY (gain) : getBandMarkerPosition (band).y;
 
             // Band color (darkened if OFF, like inactive slider track)
             juce::Colour bandColour = getBandColour (band);
@@ -613,12 +734,31 @@ private:
             g.setColour (bandColour);
             g.fillEllipse (x - markerSize / 2, y - markerSize / 2, markerSize, markerSize);
 
-            // Selection ring
+            // Selection ring and crosshair lines
             if (isSelected)
             {
                 g.setColour (ColorScheme::get().textPrimary);
                 g.drawEllipse (x - markerSize / 2 - 3, y - markerSize / 2 - 3,
                                markerSize + 6, markerSize + 6, 2.0f);
+
+                // Crosshair lines for selected band (including off bands)
+                {
+                    EQFilterType filterType = shapeToFilterType (shape);
+                    bool noGainControl = (filterType == EQFilterType::LowCut ||
+                                          filterType == EQFilterType::HighCut ||
+                                          filterType == EQFilterType::BandPass ||
+                                          filterType == EQFilterType::AllPass);
+
+                    g.setColour (bandColour.withAlpha (0.35f));
+
+                    // Vertical crosshair (frequency adjustment) — always drawn
+                    g.drawLine (x, 0.0f, x, static_cast<float> (getHeight()), 1.0f);
+
+                    // Horizontal crosshair (gain adjustment) — skip for active cut/bandpass/allpass
+                    // (off bands always show both since we don't know the remembered type)
+                    if (isOff || ! noGainControl)
+                        g.drawLine (0.0f, y, static_cast<float> (getWidth()), y, 1.0f);
+                }
             }
 
             // Band number
@@ -671,7 +811,7 @@ private:
     {
         if (config.hasBandPass)
         {
-            // Output EQ: 0=Off, 1=LowCut, 2=LowShelf, 3=Peak, 4=BandPass, 5=HighShelf, 6=HighCut
+            // Output EQ: 0=Off, 1=LowCut, 2=LowShelf, 3=Peak, 4=BandPass, 5=HighShelf, 6=HighCut, 7=AllPass
             switch (shape)
             {
                 case 0: return EQFilterType::Off;
@@ -681,12 +821,13 @@ private:
                 case 4: return EQFilterType::BandPass;
                 case 5: return EQFilterType::HighShelf;
                 case 6: return EQFilterType::HighCut;
+                case 7: return EQFilterType::AllPass;
                 default: return EQFilterType::Off;
             }
         }
         else
         {
-            // Reverb EQ: 0=Off, 1=LowCut, 2=LowShelf, 3=Peak, 4=HighShelf, 5=HighCut
+            // Reverb EQ: 0=Off, 1=LowCut, 2=LowShelf, 3=Peak, 4=HighShelf, 5=HighCut, 6=BandPass
             switch (shape)
             {
                 case 0: return EQFilterType::Off;
@@ -695,6 +836,7 @@ private:
                 case 3: return EQFilterType::PeakNotch;
                 case 4: return EQFilterType::HighShelf;
                 case 5: return EQFilterType::HighCut;
+                case 6: return EQFilterType::BandPass;
                 default: return EQFilterType::Off;
             }
         }
@@ -759,6 +901,10 @@ private:
 
             case EQFilterType::BandPass:
                 coeffs = juce::dsp::IIR::Coefficients<float>::makeBandPass (sampleRate, freq, Q);
+                break;
+
+            case EQFilterType::AllPass:
+                coeffs = juce::dsp::IIR::Coefficients<float>::makeAllPass (sampleRate, freq, Q);
                 break;
 
             default:
@@ -882,10 +1028,11 @@ private:
 
         EQFilterType filterType = shapeToFilterType (shape);
 
-        // For cuts and bandpass, marker sits at 0dB line
+        // For cuts, bandpass, and allpass, marker sits at 0dB line
         if (filterType == EQFilterType::LowCut ||
             filterType == EQFilterType::HighCut ||
-            filterType == EQFilterType::BandPass)
+            filterType == EQFilterType::BandPass ||
+            filterType == EQFilterType::AllPass)
         {
             y = dBToY (0.0f);
         }
@@ -908,19 +1055,79 @@ private:
             if (! bandTree.isValid())
                 continue;
 
+            // Get marker position (works for both on and off bands)
             int shape = bandTree.getProperty (config.shapeId);
-            if (shape == 0) // Skip if Off
-                continue;
+            float freq = bandTree.getProperty (config.frequencyId);
+            float x = frequencyToX (freq);
+            float y;
 
-            auto markerPos = getBandMarkerPosition (band);
-            float dx = pos.x - markerPos.x;
-            float dy = pos.y - markerPos.y;
+            if (shape == 0)
+            {
+                float gain = bandTree.getProperty (config.gainId);
+                y = dBToY (gain);
+            }
+            else
+            {
+                y = getBandMarkerPosition (band).y;
+            }
+
+            float dx = pos.x - x;
+            float dy = pos.y - y;
 
             if (dx * dx + dy * dy < hitRadiusSq)
                 return band;
         }
 
         return -1;
+    }
+
+    enum class DragMode { None, Both, FrequencyOnly, GainOnly };
+
+    DragMode findCrosshairAtPosition (juce::Point<float> pos) const
+    {
+        if (selectedBand < 0)
+            return DragMode::None;
+
+        auto bandTree = eqTree.getChild (selectedBand);
+        if (! bandTree.isValid())
+            return DragMode::None;
+
+        int shape = bandTree.getProperty (config.shapeId);
+        bool isOff = (shape == 0);
+
+        // Get marker position (same logic as drawBandMarkers)
+        float freq = bandTree.getProperty (config.frequencyId);
+        float markerX = frequencyToX (freq);
+        float markerY;
+
+        if (isOff)
+        {
+            float gain = bandTree.getProperty (config.gainId);
+            markerY = dBToY (gain);
+        }
+        else
+        {
+            markerY = getBandMarkerPosition (selectedBand).y;
+        }
+
+        const float hitTolerance = 8.0f;
+
+        EQFilterType filterType = shapeToFilterType (shape);
+        bool noGainControl = (filterType == EQFilterType::LowCut ||
+                              filterType == EQFilterType::HighCut ||
+                              filterType == EQFilterType::BandPass ||
+                              filterType == EQFilterType::AllPass);
+
+        // Check vertical crosshair (frequency adjustment) — always available
+        if (std::abs (pos.x - markerX) < hitTolerance)
+            return DragMode::FrequencyOnly;
+
+        // Check horizontal crosshair (gain adjustment)
+        // Available for off bands (always) and active bands with gain control
+        if ((isOff || ! noGainControl) && std::abs (pos.y - markerY) < hitTolerance)
+            return DragMode::GainOnly;
+
+        return DragMode::None;
     }
 
     //==========================================================================
@@ -952,8 +1159,8 @@ private:
         return { (pos1.x + pos2.x) * 0.5f, (pos1.y + pos2.y) * 0.5f };
     }
 
-    // Find the active band nearest to a point (for pinch gesture targeting)
-    // Returns -1 if no active band is reasonably close
+    // Find the band nearest to a point (for pinch gesture targeting)
+    // Returns -1 if no band is reasonably close
     int findBandNearestToPoint (juce::Point<float> pos) const
     {
         int nearestBand = -1;
@@ -968,12 +1175,22 @@ private:
                 continue;
 
             int shape = bandTree.getProperty (config.shapeId);
-            if (shape == 0)  // Skip if Off
-                continue;
+            float freq = bandTree.getProperty (config.frequencyId);
+            float x = frequencyToX (freq);
+            float y;
 
-            auto markerPos = getBandMarkerPosition (band);
-            float dx = pos.x - markerPos.x;
-            float dy = pos.y - markerPos.y;
+            if (shape == 0)
+            {
+                float gain = bandTree.getProperty (config.gainId);
+                y = dBToY (gain);
+            }
+            else
+            {
+                y = getBandMarkerPosition (band).y;
+            }
+
+            float dx = pos.x - x;
+            float dy = pos.y - y;
             float distSq = dx * dx + dy * dy;
 
             if (distSq < nearestDistSq && distSq < maxSearchRadiusSq)
@@ -1017,7 +1234,10 @@ private:
 
     int selectedBand = -1;
     bool isDragging = false;
+    DragMode dragMode = DragMode::None;
     juce::Point<float> dragStartPos;
+    float dragStartFreq = 0.0f;  // Original freq at crosshair drag start
+    float dragStartGain = 0.0f;  // Original gain at crosshair drag start
 
     std::vector<juce::dsp::IIR::Coefficients<float>::Ptr> bandCoefficients;
 

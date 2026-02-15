@@ -550,13 +550,18 @@
       "peakNotch": "Pico/Notch",
       "bandPass": "Passa-Banda",
       "highShelf": "Prateleira Agudo",
-      "highCut": "Corte Agudo"
+      "highCut": "Corte Agudo",
+      "allPass": "Passa-tudo"
     },
     "labels": {
       "band": "Banda",
       "freq": "Freq:",
       "gain": "Ganho",
       "q": "Q"
+    },
+    "buttons": {
+      "resetBand": "Reiniciar",
+      "flattenEQ": "Reiniciar EQ"
     }
   },
   "outputs": {
@@ -672,6 +677,14 @@
       "reloadBackup": "Recarregar a configuração de saída a partir do ficheiro de backup.",
       "importConfig": "Importar a configuração de saída a partir de ficheiro (com janela do explorador).",
       "exportConfig": "Exportar a configuração de saída para ficheiro (com janela do explorador).",
+      "eqEnable": "Ativar ou desativar o EQ para esta saída.",
+      "eqFlatten": "Pressão longa para redefinir todas as bandas EQ.",
+      "eqBandToggle": "Ativar/desativar a banda {band}. Desativada, a banda é ignorada.",
+      "eqShape": "Forma do filtro EQ saída banda {band}.",
+      "eqFreq": "Frequência EQ saída banda {band} (20 Hz - 20 kHz).",
+      "eqGain": "Ganho EQ saída banda {band} (-24 a +24 dB).",
+      "eqQ": "Fator Q EQ saída banda {band} (0.1 - 10.0).",
+      "eqResetBand": "Pressão longa para redefinir a banda {band}.",
       "position1": "Canal de saída {name} ({unit}).",
       "position2": "Canal de saída {name} ({unit}).",
       "position3": "Canal de saída {name} ({unit})."
@@ -891,6 +904,13 @@
       "distanceAttenEnable": "Percentagem de atenuação por distância (0-200%).",
       "coordMode": "Modo de exibição de coordenadas: Cartesiano (X/Y/Z), Cilíndrico (raio/azimute/altura), ou Esférico (raio/azimute/elevação).",
       "eqEnable": "Ativar ou desativar o processamento EQ para esta reverberação.",
+      "eqFlatten": "Pressão longa para redefinir todas as bandas pré-EQ.",
+      "eqBandToggle": "Ativar/desativar a banda pré-EQ {band}.",
+      "eqShape": "Forma do filtro pré-EQ banda {band}.",
+      "eqFreq": "Frequência pré-EQ banda {band} (20 Hz - 20 kHz).",
+      "eqGain": "Ganho pré-EQ banda {band} (-24 a +24 dB).",
+      "eqQ": "Fator Q pré-EQ banda {band} (0.1 - 20.0).",
+      "eqResetBand": "Pressão longa para redefinir a banda pré-EQ {band}.",
       "distanceAtten": "Atenuação por distância para o retorno de reverberação (-6.0 a 0.0 dB/m).",
       "commonAtten": "Percentagem de atenuação comum (0-100%).",
       "muteMacros": "Operações rápidas de silenciamento para canais de saída.",
@@ -925,6 +945,9 @@
       "postEqFreq": "Frequência da banda {band} do post-EQ (20 Hz - 20 kHz).",
       "postEqGain": "Ganho da banda {band} do post-EQ (-24 a +24 dB).",
       "postEqQ": "Fator Q da banda {band} do post-EQ (0.1 - 20.0).",
+      "postEqFlatten": "Pressão longa para redefinir todas as bandas pós-EQ.",
+      "postEqBandToggle": "Ativar/desativar a banda pós-EQ {band}.",
+      "postEqResetBand": "Pressão longa para redefinir a banda pós-EQ {band}.",
       "postExpBypass": "Contornar ou ativar o pós-expansor nos retornos de reverberação.",
       "postExpThreshold": "Limiar do pós-expansor (-80 a -10 dB).",
       "postExpRatio": "Rácio do pós-expansor (1:1 a 1:8).",

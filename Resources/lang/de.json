@@ -550,13 +550,18 @@
       "peakNotch": "Glocke/Kerbe",
       "bandPass": "Bandpass",
       "highShelf": "Höhenregler",
-      "highCut": "Hochpassfilter"
+      "highCut": "Hochpassfilter",
+      "allPass": "Allpass"
     },
     "labels": {
       "band": "Band",
       "freq": "Freq:",
       "gain": "Gain",
       "q": "Q"
+    },
+    "buttons": {
+      "resetBand": "Reset",
+      "flattenEQ": "EQ zurücksetzen"
     }
   },
   "outputs": {
@@ -672,6 +677,14 @@
       "reloadBackup": "Ausgangskonfiguration aus Backup-Datei neu laden.",
       "importConfig": "Ausgangskonfiguration aus Datei importieren (mit Datei-Explorer-Fenster).",
       "exportConfig": "Ausgangskonfiguration in Datei exportieren (mit Datei-Explorer-Fenster).",
+      "eqEnable": "EQ-Verarbeitung für diesen Ausgang aktivieren/deaktivieren.",
+      "eqFlatten": "Langer Druck, um alle EQ-Bänder zurückzusetzen.",
+      "eqBandToggle": "Band {band} ein-/ausschalten. Ausgeschaltet wird das Band umgangen.",
+      "eqShape": "Ausgangs-EQ Band {band} Filterform.",
+      "eqFreq": "Ausgangs-EQ Band {band} Frequenz (20 Hz - 20 kHz).",
+      "eqGain": "Ausgangs-EQ Band {band} Gain (-24 bis +24 dB).",
+      "eqQ": "Ausgangs-EQ Band {band} Q-Faktor (0.1 - 10.0).",
+      "eqResetBand": "Langer Druck, um Band {band} zurückzusetzen.",
       "position1": "Ausgangskanal {name} ({unit}).",
       "position2": "Ausgangskanal {name} ({unit}).",
       "position3": "Ausgangskanal {name} ({unit})."
@@ -891,6 +904,13 @@
       "distanceAttenEnable": "Prozentsatz der Entfernungsdämpfung (0-200%).",
       "coordMode": "Koordinaten-Anzeigemodus: Kartesisch (X/Y/Z), Zylindrisch (Radius/Azimut/Höhe) oder Sphärisch (Radius/Azimut/Elevation).",
       "eqEnable": "EQ-Verarbeitung für diesen Hallkanal aktivieren oder deaktivieren.",
+      "eqFlatten": "Langer Druck, um alle Pre-EQ-Bänder zurückzusetzen.",
+      "eqBandToggle": "Pre-EQ Band {band} ein-/ausschalten.",
+      "eqShape": "Pre-EQ Band {band} Filterform.",
+      "eqFreq": "Pre-EQ Band {band} Frequenz (20 Hz - 20 kHz).",
+      "eqGain": "Pre-EQ Band {band} Gain (-24 bis +24 dB).",
+      "eqQ": "Pre-EQ Band {band} Q-Faktor (0.1 - 20.0).",
+      "eqResetBand": "Langer Druck, um Pre-EQ Band {band} zurückzusetzen.",
       "distanceAtten": "Entfernungsdämpfung für den Hallrücklauf (-6.0 bis 0.0 dB/m).",
       "commonAtten": "Gemeinsamer Dämpfungsprozentsatz (0-100%).",
       "muteMacros": "Schnelle Stummschaltungsoperationen für Ausgangskanäle.",
@@ -925,6 +945,9 @@
       "postEqFreq": "Frequenz von Post-EQ Band {band} (20 Hz - 20 kHz).",
       "postEqGain": "Verstärkung von Post-EQ Band {band} (-24 bis +24 dB).",
       "postEqQ": "Q-Faktor von Post-EQ Band {band} (0.1 - 20.0).",
+      "postEqFlatten": "Langer Druck, um alle Post-EQ-Bänder zurückzusetzen.",
+      "postEqBandToggle": "Post-EQ Band {band} ein-/ausschalten.",
+      "postEqResetBand": "Langer Druck, um Post-EQ Band {band} zurückzusetzen.",
       "postExpBypass": "Nachexpander für Hallrückläufe umgehen oder aktivieren.",
       "postExpThreshold": "Schwelle des Nachexpanders (-80 bis -10 dB).",
       "postExpRatio": "Verhältnis des Nachexpanders (1:1 bis 1:8).",

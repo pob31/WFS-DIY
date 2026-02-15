@@ -49,7 +49,7 @@ public:
         newQ    = std::max (0.1f, std::min (newQ, 20.0f));
         newSlope = std::max (0.1f, std::min (newSlope, 20.0f));
         newGainDb = std::max (-24.0f, std::min (newGainDb, 24.0f));
-        newShape = std::max (0, std::min (newShape, 5));
+        newShape = std::max (0, std::min (newShape, 6));
 
         if (shape != newShape || freq != newFreq || gainDb != newGainDb
             || q != newQ || slope != newSlope)
@@ -177,6 +177,18 @@ private:
                 b0 = ((1.0f - cosw0) / 2.0f) * a0_inv;
                 b1 = (1.0f - cosw0) * a0_inv;
                 b2 = ((1.0f - cosw0) / 2.0f) * a0_inv;
+                a1 = (-2.0f * cosw0) * a0_inv;
+                a2 = (1.0f - alpha) * a0_inv;
+                break;
+            }
+
+            case 6: // BandPass
+            {
+                float alpha = sinw0 / (2.0f * q);
+                a0_inv = 1.0f / (1.0f + alpha);
+                b0 = alpha * a0_inv;
+                b1 = 0.0f;
+                b2 = -alpha * a0_inv;
                 a1 = (-2.0f * cosw0) * a0_inv;
                 a2 = (1.0f - alpha) * a0_inv;
                 break;

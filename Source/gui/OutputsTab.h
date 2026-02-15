@@ -15,6 +15,7 @@
 #include "../Helpers/CoordinateConverter.h"
 #include "../Localization/LocalizationManager.h"
 #include "buttons/LongPressButton.h"
+#include "buttons/EQBandToggle.h"
 
 /**
  * Small colored indicator to show that a parameter is linked across an array.
@@ -800,13 +801,19 @@ private:
         eqEnableButton.onClick = [this]() {
             bool enabled = eqEnableButton.getToggleState();
             eqEnableButton.setButtonText(enabled ? LOC("eq.status.on") : LOC("eq.status.off"));
-            // Update all band appearances when global EQ state changes
             for (int i = 0; i < numEqBands; ++i)
                 updateEqBandAppearance(i);
-            // Update EQ display grey-out state
             if (eqDisplay != nullptr)
                 eqDisplay->setEQEnabled(enabled);
             saveOutputParam(WFSParameterIDs::outputEQenabled, enabled ? 1 : 0);
+        };
+
+        // Flatten EQ long-press button
+        addAndMakeVisible(eqFlattenButton);
+        eqFlattenButton.setButtonText(LOC("eq.buttons.flattenEQ"));
+        eqFlattenButton.onLongPress = [this]() {
+            for (int i = 0; i < numEqBands; ++i)
+                resetEqBand(i);
         };
 
         // 6 EQ Bands
@@ -816,25 +823,43 @@ private:
             addAndMakeVisible(eqBandLabel[i]);
             eqBandLabel[i].setText(LOC("eq.labels.band") + " " + juce::String(i + 1), juce::dontSendNotification);
             eqBandLabel[i].setColour(juce::Label::textColourId, EQDisplayComponent::getBandColour(i));
-            eqBandLabel[i].setJustificationType(juce::Justification::centred);
+            eqBandLabel[i].setJustificationType(juce::Justification::centredLeft);
 
-            // Shape dropdown
-            addAndMakeVisible(eqBandShapeSelector[i]);
-            eqBandShapeSelector[i].addItem(LOC("eq.filterTypes.off"), 1);
-            eqBandShapeSelector[i].addItem(LOC("eq.filterTypes.lowCut"), 2);
-            eqBandShapeSelector[i].addItem(LOC("eq.filterTypes.lowShelf"), 3);
-            eqBandShapeSelector[i].addItem(LOC("eq.filterTypes.peakNotch"), 4);
-            eqBandShapeSelector[i].addItem(LOC("eq.filterTypes.bandPass"), 5);
-            eqBandShapeSelector[i].addItem(LOC("eq.filterTypes.highShelf"), 6);
-            eqBandShapeSelector[i].addItem(LOC("eq.filterTypes.highCut"), 7);
-            eqBandShapeSelector[i].setSelectedId(1, juce::dontSendNotification);  // OFF by default
-
-            // Shape change handler - update appearance and save
-            eqBandShapeSelector[i].onChange = [this, i]() {
-                int shape = eqBandShapeSelector[i].getSelectedId() - 1;
+            // Band on/off toggle indicator
+            addAndMakeVisible(eqBandToggle[i]);
+            eqBandToggle[i].setBandColour(EQDisplayComponent::getBandColour(i));
+            eqBandToggle[i].setToggleState(false, juce::dontSendNotification);
+            eqBandToggle[i].onClick = [this, i]() {
+                bool on = eqBandToggle[i].getToggleState();
+                int shape = on ? eqBandShapeSelector[i].getSelectedId() : 0;
                 saveEqBandParam(i, WFSParameterIDs::eqShape, shape);
                 updateEqBandAppearance(i);
-                // TTS: Announce selection change
+            };
+
+            // Reset band long-press button
+            addAndMakeVisible(eqBandResetButton[i]);
+            eqBandResetButton[i].setButtonText(LOC("eq.buttons.resetBand"));
+            eqBandResetButton[i].onLongPress = [this, i]() { resetEqBand(i); };
+
+            // Shape dropdown (no "Off" - toggle handles on/off)
+            addAndMakeVisible(eqBandShapeSelector[i]);
+            eqBandShapeSelector[i].addItem(LOC("eq.filterTypes.lowCut"), 1);
+            eqBandShapeSelector[i].addItem(LOC("eq.filterTypes.lowShelf"), 2);
+            eqBandShapeSelector[i].addItem(LOC("eq.filterTypes.peakNotch"), 3);
+            eqBandShapeSelector[i].addItem(LOC("eq.filterTypes.bandPass"), 4);
+            eqBandShapeSelector[i].addItem(LOC("eq.filterTypes.allPass"), 7);
+            eqBandShapeSelector[i].addItem(LOC("eq.filterTypes.highShelf"), 5);
+            eqBandShapeSelector[i].addItem(LOC("eq.filterTypes.highCut"), 6);
+            eqBandShapeSelector[i].setSelectedId(WFSParameterDefaults::eqBandComboDefaults[i], juce::dontSendNotification);
+
+            // Shape change handler - only save if band is ON
+            eqBandShapeSelector[i].onChange = [this, i]() {
+                if (eqBandToggle[i].getToggleState())
+                {
+                    int shape = eqBandShapeSelector[i].getSelectedId();
+                    saveEqBandParam(i, WFSParameterIDs::eqShape, shape);
+                }
+                updateEqBandAppearance(i);
                 TTSManager::getInstance().announceValueChange("EQ Band " + juce::String(i + 1) + " Shape", eqBandShapeSelector[i].getText());
             };
 
@@ -916,23 +941,26 @@ private:
     void updateEqBandAppearance(int bandIndex)
     {
         bool eqEnabled = eqEnableButton.getToggleState();
-        int shapeId = eqBandShapeSelector[bandIndex].getSelectedId();
-        bool bandIsOff = (shapeId == 1);  // OFF
+        bool bandIsOff = !eqBandToggle[bandIndex].getToggleState();
 
-        // Determine if this is a cut or bandpass filter (no gain control)
-        // Output EQ shapes: 1=OFF, 2=LowCut, 3=LowShelf, 4=Peak, 5=BandPass, 6=HighShelf, 7=HighCut
-        bool isCutOrBandPass = (shapeId == 2 || shapeId == 5 || shapeId == 7);
+        // Determine if this is a cut, bandpass, or allpass filter (no gain control)
+        // Output EQ shapes: 1=LowCut, 2=LowShelf, 3=Peak, 4=BandPass, 5=HighShelf, 6=HighCut, 7=AllPass
+        int shapeId = eqBandShapeSelector[bandIndex].getSelectedId();
+        bool isCutOrBandPass = (shapeId == 1 || shapeId == 4 || shapeId == 6 || shapeId == 7);
         bool showGain = !isCutOrBandPass;
 
         // Grey out entire band if global EQ is off
-        // Grey out band parameters (except shape) if band is off but EQ is on
+        // Grey out band parameters (except shape/toggle) if band is off but EQ is on
         float bandLabelAlpha = eqEnabled ? 1.0f : 0.4f;
+        float toggleAlpha = eqEnabled ? 1.0f : 0.4f;
         float shapeAlpha = eqEnabled ? 1.0f : 0.4f;
         float paramAlpha = (eqEnabled && !bandIsOff) ? 1.0f : 0.4f;
 
-        // Band label and shape dropdown follow global EQ state
+        // Band label, toggle, shape dropdown, and reset button follow global EQ state
         eqBandLabel[bandIndex].setAlpha(bandLabelAlpha);
-        eqBandShapeSelector[bandIndex].setAlpha(shapeAlpha);
+        eqBandToggle[bandIndex].setAlpha(toggleAlpha);
+        eqBandShapeSelector[bandIndex].setAlpha(bandIsOff ? 0.4f : shapeAlpha);
+        eqBandResetButton[bandIndex].setAlpha(bandLabelAlpha);
 
         // Only update visibility if EQ tab is currently selected
         bool eqTabSelected = (subTabBar.getCurrentTabIndex() == 1);
@@ -969,6 +997,45 @@ private:
             eqBandGainDial[bandIndex].setAlpha(paramAlpha);
             eqBandGainValueLabel[bandIndex].setAlpha(paramAlpha);
         }
+    }
+
+    void resetEqBand(int i)
+    {
+        using namespace WFSParameterDefaults;
+        isLoadingParameters = true;
+
+        int defaultShape = eqBandShapes[i];
+        float defaultFreq = eqBandFrequencies[i];
+
+        // Set toggle state based on default shape
+        eqBandToggle[i].setToggleState(defaultShape != 0, juce::dontSendNotification);
+
+        // Combobox: show per-band combo default
+        eqBandShapeSelector[i].setSelectedId(eqBandComboDefaults[i], juce::dontSendNotification);
+
+        // Frequency
+        float freqSlider = std::log10(defaultFreq / 20.0f) / 3.0f;
+        eqBandFreqSlider[i].setValue(juce::jlimit(0.0f, 1.0f, freqSlider));
+        eqBandFreqValueLabel[i].setText(formatFrequency(static_cast<int>(defaultFreq)), juce::dontSendNotification);
+
+        // Gain: 0 dB = 0.5 dial value
+        eqBandGainDial[i].setValue(0.5f);
+        eqBandGainValueLabel[i].setText("0.0 dB", juce::dontSendNotification);
+
+        // Q: 0.7 default - inverse mapping: log((0.7 - 0.1) / 0.099 + 1) / log(100)
+        float qSlider = std::log((eqQDefault - 0.1f) / 0.099f + 1.0f) / std::log(100.0f);
+        eqBandQDial[i].setValue(juce::jlimit(0.0f, 1.0f, qSlider));
+        eqBandQValueLabel[i].setText("0.70", juce::dontSendNotification);
+
+        isLoadingParameters = false;
+
+        // Save all values
+        saveEqBandParam(i, WFSParameterIDs::eqShape, defaultShape);
+        saveEqBandParam(i, WFSParameterIDs::eqFrequency, static_cast<int>(defaultFreq));
+        saveEqBandParam(i, WFSParameterIDs::eqGain, 0.0f);
+        saveEqBandParam(i, WFSParameterIDs::eqQ, eqQDefault);
+
+        updateEqBandAppearance(i);
     }
 
     void setupNumericEditor(juce::TextEditor& editor, bool /*allowNegative*/, bool /*allowDecimal*/)
@@ -1133,8 +1200,9 @@ private:
 
     void setEqVisible(bool visible)
     {
-        // Global EQ Enable button
+        // Global EQ Enable + Flatten buttons
         eqEnableButton.setVisible(visible);
+        eqFlattenButton.setVisible(visible);
 
         // EQ Display
         if (eqDisplay)
@@ -1144,7 +1212,9 @@ private:
         for (int i = 0; i < numEqBands; ++i)
         {
             eqBandLabel[i].setVisible(visible);
+            eqBandToggle[i].setVisible(visible);
             eqBandShapeSelector[i].setVisible(visible);
+            eqBandResetButton[i].setVisible(visible);
             eqBandFreqLabel[i].setVisible(visible);
             eqBandFreqSlider[i].setVisible(visible);
             eqBandFreqValueLabel[i].setVisible(visible);
@@ -1366,19 +1436,22 @@ private:
     {
         auto area = subTabContentArea;
         const int buttonHeight = 30;
-        const int bandWidth = (area.getWidth() - 40) / numEqBands;
+        const int bandWidth = area.getWidth() / numEqBands;
         const int dialSize = 60;
         const int sliderHeight = 35;
         const int labelHeight = 20;
         const int spacing = 5;
         const int indicatorSize = 6;
+        const int toggleSize = 18;
 
-        // EQ Enable button at top with array link indicator in top-right corner
-        eqEnableButton.setBounds(area.removeFromTop(buttonHeight).withWidth(100));
+        // Top row: EQ Enable button (left) + Flatten EQ button (right)
+        auto topRow = area.removeFromTop(buttonHeight);
+        eqEnableButton.setBounds(topRow.removeFromLeft(100));
         auto eqBtnBounds = eqEnableButton.getBounds();
         eqIndicator.setBounds(eqBtnBounds.getRight() - indicatorSize - 6,
                              eqBtnBounds.getY() + 4,
                              indicatorSize, indicatorSize);
+        eqFlattenButton.setBounds(topRow.removeFromRight(100));
         area.removeFromTop(spacing * 2);
 
         // EQ Display component (takes upper portion, min 200px, target ~40% of remaining height)
@@ -1394,8 +1467,15 @@ private:
         {
             auto bandArea = area.removeFromLeft(bandWidth).reduced(5, 0);
 
+            // Row 1: Band label
             eqBandLabel[i].setBounds(bandArea.removeFromTop(labelHeight));
-            eqBandShapeSelector[i].setBounds(bandArea.removeFromTop(buttonHeight));
+
+            // Row 2: Toggle + Shape combobox + Reset button
+            auto shapeRow = bandArea.removeFromTop(buttonHeight);
+            eqBandToggle[i].setBounds(shapeRow.removeFromLeft(toggleSize).withSizeKeepingCentre(toggleSize, toggleSize));
+            shapeRow.removeFromLeft(4);  // gap
+            eqBandResetButton[i].setBounds(shapeRow.removeFromRight(50));
+            eqBandShapeSelector[i].setBounds(shapeRow);
             bandArea.removeFromTop(spacing);
 
             // Frequency slider
@@ -1595,7 +1675,12 @@ private:
                 if (!band.isValid()) continue;
 
                 int shape = band.getProperty(WFSParameterIDs::eqShape, 0);
-                eqBandShapeSelector[i].setSelectedId(shape + 1, juce::dontSendNotification);
+                bool bandOn = (shape != 0);
+                eqBandToggle[i].setToggleState(bandOn, juce::dontSendNotification);
+
+                // Combobox: only update when band is on (preserve user's selection when off)
+                if (bandOn)
+                    eqBandShapeSelector[i].setSelectedId(shape, juce::dontSendNotification);
 
                 int freq = band.getProperty(WFSParameterIDs::eqFrequency, 1000);
                 float freqSlider = std::log10(freq / 20.0f) / 3.0f;
@@ -2074,6 +2159,18 @@ private:
         helpTextMap[&hfDampingSlider] = LOC("outputs.help.hfDamping");
         helpTextMap[&arrayPositionHelperButton] = LOC("outputs.help.wizardOfOutZ");
         helpTextMap[&mapVisibilityButton] = LOC("outputs.help.mapVisibility");
+        // EQ controls
+        helpTextMap[&eqEnableButton] = LOC("outputs.help.eqEnable");
+        helpTextMap[&eqFlattenButton] = LOC("outputs.help.eqFlatten");
+        for (int i = 0; i < numEqBands; ++i)
+        {
+            helpTextMap[&eqBandToggle[i]] = LOC("outputs.help.eqBandToggle").replace("{band}", juce::String(i + 1));
+            helpTextMap[&eqBandShapeSelector[i]] = LOC("outputs.help.eqShape").replace("{band}", juce::String(i + 1));
+            helpTextMap[&eqBandFreqSlider[i]] = LOC("outputs.help.eqFreq").replace("{band}", juce::String(i + 1));
+            helpTextMap[&eqBandGainDial[i]] = LOC("outputs.help.eqGain").replace("{band}", juce::String(i + 1));
+            helpTextMap[&eqBandQDial[i]] = LOC("outputs.help.eqQ").replace("{band}", juce::String(i + 1));
+            helpTextMap[&eqBandResetButton[i]] = LOC("outputs.help.eqResetBand").replace("{band}", juce::String(i + 1));
+        }
         helpTextMap[&storeButton] = LOC("outputs.help.storeConfig");
         helpTextMap[&reloadButton] = LOC("outputs.help.reloadConfig");
         helpTextMap[&reloadBackupButton] = LOC("outputs.help.reloadBackup");
@@ -2284,12 +2381,15 @@ private:
     // EQ tab components
     static constexpr int numEqBands = 6;
 
-    // Global EQ Enable
+    // Global EQ Enable + Flatten
     juce::TextButton eqEnableButton;
+    LongPressButton eqFlattenButton;
 
-    // 6 EQ Bands - each with Shape, Frequency, Gain, Q
+    // 6 EQ Bands - each with Toggle, Shape, Frequency, Gain, Q, Reset
     juce::Label eqBandLabel[numEqBands];
+    EQBandToggle eqBandToggle[numEqBands];
     juce::ComboBox eqBandShapeSelector[numEqBands];
+    LongPressButton eqBandResetButton[numEqBands];
     juce::Label eqBandFreqLabel[numEqBands];
     WfsStandardSlider eqBandFreqSlider[numEqBands];
     juce::Label eqBandFreqValueLabel[numEqBands];

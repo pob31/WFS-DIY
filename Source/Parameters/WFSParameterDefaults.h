@@ -507,7 +507,7 @@ namespace WFSParameterDefaults
 
     constexpr int eqShapeDefault                = 3;  // 0=Off, 1=LowShelf, 2=LowCut, 3=Peak, 4=HighCut, 5=HighShelf
     constexpr int eqShapeMin                    = 0;
-    constexpr int eqShapeMax                    = 5;
+    constexpr int eqShapeMax                    = 7;
 
     constexpr float eqFrequencyDefault          = 1000.0f;
     constexpr float eqFrequencyMin              = 20.0f;
@@ -527,7 +527,8 @@ namespace WFSParameterDefaults
 
     // Default EQ band settings (frequency per band)
     inline const float eqBandFrequencies[6] = { 80.0f, 250.0f, 1000.0f, 4000.0f, 8000.0f, 12000.0f };
-    inline const int eqBandShapes[6] = { 1, 3, 3, 3, 5, 0 };  // LowShelf, Peak, Peak, Peak, HighShelf, Off
+    inline const int eqBandShapes[6] = { 0, 2, 3, 3, 5, 0 };  // Off(LowCut), LowShelf, Peak, Peak, HighShelf, Off(HighCut)
+    inline const int eqBandComboDefaults[6] = { 1, 2, 3, 3, 5, 6 };  // LowCut, LowShelf, Peak, Peak, HighShelf, HighCut
 
     //==========================================================================
     // Audio Patch Defaults
@@ -643,7 +644,7 @@ namespace WFSParameterDefaults
 
     constexpr int reverbPreEQshapeDefault        = 0;   // 0=OFF, 1=LowCut, 2=LowShelf, 3=Peak/Notch, 4=HighShelf, 5=HighCut
     constexpr int reverbPreEQshapeMin            = 0;
-    constexpr int reverbPreEQshapeMax            = 5;
+    constexpr int reverbPreEQshapeMax            = 6;
 
     constexpr int reverbPreEQfreqDefault         = 1000;
     constexpr int reverbPreEQfreqMin             = 20;
@@ -663,7 +664,8 @@ namespace WFSParameterDefaults
 
     // Default EQ band frequencies for reverb pre-processing (4 bands)
     inline const int reverbPreEQBandFrequencies[4] = { 200, 800, 2000, 5000 };
-    inline const int reverbPreEQBandShapes[4] = { 0, 0, 0, 0 };  // All OFF by default
+    inline const int reverbPreEQBandShapes[4] = { 0, 3, 3, 4 };  // Off(BandPass), Peak, Peak, HighShelf
+    inline const int reverbPreEQBandComboDefaults[4] = { 6, 3, 3, 4 };  // BandPass, Peak, Peak, HighShelf
 
     // Reverb > Return
     constexpr float reverbDistanceAttenuationDefault = -0.7f;
@@ -740,7 +742,7 @@ namespace WFSParameterDefaults
 
     constexpr int reverbPostEQshapeDefault         = 0;       // 0=OFF, 1=LowCut, 2=LowShelf, 3=Peak/Notch, 4=HighShelf, 5=HighCut
     constexpr int reverbPostEQshapeMin             = 0;
-    constexpr int reverbPostEQshapeMax             = 5;
+    constexpr int reverbPostEQshapeMax             = 6;
 
     constexpr int reverbPostEQfreqDefault          = 1000;
     constexpr int reverbPostEQfreqMin              = 20;
@@ -760,7 +762,8 @@ namespace WFSParameterDefaults
 
     // Default Post-EQ band frequencies (4 bands)
     inline const int reverbPostEQBandFrequencies[4] = { 200, 800, 2000, 5000 };
-    inline const int reverbPostEQBandShapes[4] = { 0, 0, 0, 0 };  // All OFF by default
+    inline const int reverbPostEQBandShapes[4] = { 0, 3, 3, 4 };  // Off(BandPass), Peak, Peak, HighShelf
+    inline const int reverbPostEQBandComboDefaults[4] = { 6, 3, 3, 4 };  // BandPass, Peak, Peak, HighShelf
 
     //==========================================================================
     // Reverb Pre-Compressor Defaults (global, not per-channel)
