@@ -218,7 +218,7 @@ public:
     bool getBinauralEnabled() const;
 
     /** Set binaural processing enabled state */
-    void setBinauralEnabled (bool enabled);
+    void setBinauralEnabled (bool isEnabled);
 
     /** Get binaural solo mode (0=Single, 1=Multi) */
     int getBinauralSoloMode() const;

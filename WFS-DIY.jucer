@@ -190,75 +190,75 @@
         <CONFIGURATION isDebug="0" name="Release" targetName="WFS-DIY"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
-        <MODULEPATH id="juce_audio_basics" path="C:/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_devices" path="C:/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_formats" path="C:/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_processors" path="C:/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_utils" path="C:/JUCE/modules"/>
-        <MODULEPATH id="juce_core" path="C:/JUCE/modules"/>
-        <MODULEPATH id="juce_data_structures" path="C:/JUCE/modules"/>
-        <MODULEPATH id="juce_dsp" path="C:/JUCE/modules"/>
-        <MODULEPATH id="juce_events" path="C:/JUCE/modules"/>
-        <MODULEPATH id="juce_graphics" path="C:/JUCE/modules"/>
-        <MODULEPATH id="juce_gui_basics" path="C:/JUCE/modules"/>
-        <MODULEPATH id="juce_gui_extra" path="C:/JUCE/modules"/>
-        <MODULEPATH id="juce_opengl" path="C:/JUCE/modules"/>
-        <MODULEPATH id="juce_osc" path="C:/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_processors_headless" path="C:/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_basics" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_dsp" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_opengl" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_osc" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors_headless" path="ThirdParty/JUCE/modules"/>
       </MODULEPATHS>
     </LINUX_MAKE>
     <VS2022 targetFolder="Builds/VisualStudio2022">
       <CONFIGURATIONS>
-        <CONFIGURATION isDebug="1" name="Debug" targetName="WFS-DIY" headerPath="D:\Dev\JUCE_Modules\ASIOSDK\common;ThirdParty\GPUAudioSDK\gpuaudio\include;ThirdParty\GPUAudioSDK\gain_processor\gain_processor\include;ThirdParty\GPUAudioSDK\build\_deps\json-src\single_include;ThirdParty\PSN-CPP"
+        <CONFIGURATION isDebug="1" name="Debug" targetName="WFS-DIY" headerPath="ThirdParty\ASIOSDK\common;ThirdParty\GPUAudioSDK\gpuaudio\include;ThirdParty\GPUAudioSDK\gain_processor\gain_processor\include;ThirdParty\GPUAudioSDK\build\_deps\json-src\single_include;ThirdParty\PSN-CPP"
                        libraryPath="ThirdParty\GPUAudioSDK\build\lib\RelWithDebInfo;ThirdParty\GPUAudioSDK\build\GainLib\gainlib\RelWithDebInfo;ThirdParty\GPUAudioSDK\build\simple_processor_launcher\ProcLaunchLib\RelWithDebInfo"
                        externalLibraries="gain_processor_nvidia.lib;ProcLaunchLib.lib;gainlib.lib;nvidia_resources_gain_processor_gain_processor_device_nvidia.lib"
                        extraCompilerFlags="/bigobj"/>
-        <CONFIGURATION isDebug="0" name="Release" targetName="WFS-DIY" headerPath="D:\Dev\JUCE_Modules\ASIOSDK\common;ThirdParty\GPUAudioSDK\gpuaudio\include;ThirdParty\GPUAudioSDK\gain_processor\gain_processor\include;ThirdParty\GPUAudioSDK\build\_deps\json-src\single_include;ThirdParty\PSN-CPP"
+        <CONFIGURATION isDebug="0" name="Release" targetName="WFS-DIY" headerPath="ThirdParty\ASIOSDK\common;ThirdParty\GPUAudioSDK\gpuaudio\include;ThirdParty\GPUAudioSDK\gain_processor\gain_processor\include;ThirdParty\GPUAudioSDK\build\_deps\json-src\single_include;ThirdParty\PSN-CPP"
                        libraryPath="ThirdParty\GPUAudioSDK\build\lib\RelWithDebInfo;ThirdParty\GPUAudioSDK\build\GainLib\gainlib\RelWithDebInfo;ThirdParty\GPUAudioSDK\build\simple_processor_launcher\ProcLaunchLib\RelWithDebInfo"
                        externalLibraries="gain_processor_nvidia.lib;ProcLaunchLib.lib;gainlib.lib;nvidia_resources_gain_processor_gain_processor_device_nvidia.lib"
                        extraCompilerFlags="/bigobj"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
-        <MODULEPATH id="juce_audio_basics" path="C:/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_devices" path="C:/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_formats" path="C:/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_processors" path="C:/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_utils" path="C:/JUCE/modules"/>
-        <MODULEPATH id="juce_core" path="C:/JUCE/modules"/>
-        <MODULEPATH id="juce_data_structures" path="C:/JUCE/modules"/>
-        <MODULEPATH id="juce_dsp" path="C:/JUCE/modules"/>
-        <MODULEPATH id="juce_events" path="C:/JUCE/modules"/>
-        <MODULEPATH id="juce_graphics" path="C:/JUCE/modules"/>
-        <MODULEPATH id="juce_gui_basics" path="C:/JUCE/modules"/>
-        <MODULEPATH id="juce_gui_extra" path="C:/JUCE/modules"/>
-        <MODULEPATH id="juce_opengl" path="C:/JUCE/modules"/>
-        <MODULEPATH id="juce_osc" path="C:/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_processors_headless" path="C:/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_basics" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_dsp" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_opengl" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_osc" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors_headless" path="ThirdParty/JUCE/modules"/>
       </MODULEPATHS>
     </VS2022>
     <XCODE_MAC targetFolder="Builds/MacOSX">
       <CONFIGURATIONS>
         <CONFIGURATION isDebug="1" name="Debug" targetName="WFS-DIY" extraLinkerFlags="-framework SystemConfiguration -framework CoreFoundation"
-                       headerPath="/Users/pierre-olivierboulant/JUCE/modules"/>
+                       headerPath=""/>
         <CONFIGURATION isDebug="0" name="Release" targetName="WFS-DIY" extraLinkerFlags="-framework SystemConfiguration -framework CoreFoundation"
-                       headerPath="/Users/pierre-olivierboulant/JUCE/modules"/>
+                       headerPath=""/>
       </CONFIGURATIONS>
       <MODULEPATHS>
-        <MODULEPATH id="juce_audio_basics" path="/Users/pierre-olivierboulant/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_devices" path="/Users/pierre-olivierboulant/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_formats" path="/Users/pierre-olivierboulant/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_processors" path="/Users/pierre-olivierboulant/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_utils" path="/Users/pierre-olivierboulant/JUCE/modules"/>
-        <MODULEPATH id="juce_core" path="/Users/pierre-olivierboulant/JUCE/modules"/>
-        <MODULEPATH id="juce_data_structures" path="/Users/pierre-olivierboulant/JUCE/modules"/>
-        <MODULEPATH id="juce_dsp" path="/Users/pierre-olivierboulant/JUCE/modules"/>
-        <MODULEPATH id="juce_events" path="/Users/pierre-olivierboulant/JUCE/modules"/>
-        <MODULEPATH id="juce_graphics" path="/Users/pierre-olivierboulant/JUCE/modules"/>
-        <MODULEPATH id="juce_gui_basics" path="/Users/pierre-olivierboulant/JUCE/modules"/>
-        <MODULEPATH id="juce_gui_extra" path="/Users/pierre-olivierboulant/JUCE/modules"/>
-        <MODULEPATH id="juce_opengl" path="/Users/pierre-olivierboulant/JUCE/modules"/>
-        <MODULEPATH id="juce_osc" path="/Users/pierre-olivierboulant/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_processors_headless" path="/Users/pierre-olivierboulant/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_basics" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_dsp" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_opengl" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_osc" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors_headless" path="ThirdParty/JUCE/modules"/>
       </MODULEPATHS>
     </XCODE_MAC>
   </EXPORTFORMATS>

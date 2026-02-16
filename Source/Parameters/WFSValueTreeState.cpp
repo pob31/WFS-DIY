@@ -932,11 +932,11 @@ bool WFSValueTreeState::getBinauralEnabled() const
     return binauralEnabledDefault;
 }
 
-void WFSValueTreeState::setBinauralEnabled (bool enabled)
+void WFSValueTreeState::setBinauralEnabled (bool isEnabled)
 {
     auto binaural = getBinauralState();
     if (binaural.isValid())
-        binaural.setProperty (binauralEnabled, enabled, getActiveUndoManager());
+        binaural.setProperty (binauralEnabled, isEnabled, getActiveUndoManager());
 }
 
 int WFSValueTreeState::getBinauralSoloMode() const
