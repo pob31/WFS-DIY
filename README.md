@@ -17,21 +17,28 @@ This project is based on the Cycling74's Max8 Prototype found at https://wfs-diy
 
 ### Prerequisites
 
-- JUCE framework installed
 - Platform-specific development tools:
   - **Windows**: Visual Studio 2022 or later
   - **macOS**: Xcode with latest macOS SDK
   - **Linux**: GCC or Clang with development tools
 
+### Cloning
+
+All dependencies (JUCE, ASIO SDK, GPU Audio SDK) are included as git submodules. Clone with:
+
+```bash
+git clone --recurse-submodules https://github.com/pob31/WFS-DIY.git
+```
+
+Or if already cloned:
+```bash
+git submodule update --init --recursive
+```
+
 ### Building
 
-1. Open the project in Projucer:
-   ```
-   Open WFS-DIY.jucer in Projucer
-   ```
-
-2. Configure your modules and export targets as needed
-
+1. Open `WFS-DIY.jucer` in Projucer
+2. Save/export to generate platform build files
 3. Build using your preferred IDE or command line tools
 
 ### Platform-Specific Builds
