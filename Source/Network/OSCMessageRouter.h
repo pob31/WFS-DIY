@@ -202,6 +202,9 @@ public:
      */
     static juce::String extractParamName(const juce::String& address);
 
+    /** Remote address map: paramName -> parameterID, for bulk state dump */
+    static const std::map<juce::String, juce::Identifier>& getRemoteAddressMap();
+
 private:
     //==========================================================================
     // Internal Lookup Tables
@@ -210,7 +213,6 @@ private:
     static const std::map<juce::String, juce::Identifier>& getInputAddressMap();
     static const std::map<juce::String, juce::Identifier>& getOutputAddressMap();
     static const std::map<juce::String, juce::Identifier>& getReverbAddressMap();
-    static const std::map<juce::String, juce::Identifier>& getRemoteAddressMap();
     static const std::map<juce::String, juce::Identifier>& getConfigAddressMap();
 };
 

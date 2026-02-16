@@ -1081,6 +1081,18 @@ void OSCManager::handleIncomingMessage(const juce::OSCMessage& message,
             handleRemoteHeartbeatAck(targetIndex, seqNum);
         }
     }
+    else if (address == "/remote/disconnect")
+    {
+        // Remote client is notifying us it's disconnecting (e.g. app restart)
+        int targetIndex = findRemoteTargetByIP(senderIP);
+        if (targetIndex >= 0)
+        {
+            DBG("OSCManager: Received /remote/disconnect from target " << targetIndex);
+            auto& remoteState = remoteStates[static_cast<size_t>(targetIndex)];
+            remoteState.phase = RemoteConnectionState::Phase::Disconnected;
+            updateTargetStatus(targetIndex, ConnectionStatus::Connecting);
+        }
+    }
 }
 
 void OSCManager::handleIncomingBundle(const juce::OSCBundle& bundle,
@@ -2933,6 +2945,9 @@ void OSCManager::onRemoteConnected(int targetIndex, bool isReconnection)
         // Send tracking state for all inputs
         sendAllTrackingStatesToRemote();
 
+        // Send all per-input parameters (maxSpeed, attenuation, directivity, LFO, etc.)
+        sendAllInputParametersToRemote(targetIndex);
+
         // Notify that connection is ready and initial data has been sent
         // This allows MainComponent to send composite deltas
         if (onRemoteConnectionReady)
@@ -3085,6 +3100,73 @@ void OSCManager::sendAllInputPositionsToRemote(int targetIndex)
     }
 
     DBG("OSCManager: Sent names, positions, offsets and clusters for " << numInputs << " inputs to target " << targetIndex);
+}
+
+void OSCManager::sendAllInputParametersToRemote(int targetIndex)
+{
+    if (targetIndex < 0 || targetIndex >= MAX_TARGETS)
+        return;
+
+    if (!connections[static_cast<size_t>(targetIndex)])
+        return;
+
+    const auto& config = targetConfigs[static_cast<size_t>(targetIndex)];
+    const auto& remoteMap = OSCMessageRouter::getRemoteAddressMap();
+
+    int numInputs = state.getIntParameter(WFSParameterIDs::inputChannels);
+
+    // Parameters already sent by sendAllInputPositionsToRemote — skip to avoid duplication
+    auto isAlreadySent = [](const juce::String& name) {
+        return name == "positionX" || name == "positionY" || name == "positionZ"
+            || name == "offsetX"   || name == "offsetY"   || name == "offsetZ"
+            || name == "cluster"   || name == "inputName";
+    };
+
+    // Collect all messages first, then send directly to bypass rate limiter.
+    // The rate limiter coalesces by OSC address, so bulk sends for all channels
+    // would result in only the last channel's data being sent.
+    std::vector<juce::OSCMessage> messages;
+
+    for (int ch = 0; ch < numInputs; ++ch)
+    {
+        int channelId = ch + 1;  // 1-based for OSC
+
+        for (const auto& [paramName, paramId] : remoteMap)
+        {
+            if (isAlreadySent(paramName))
+                continue;
+
+            juce::var value = state.getInputParameter(ch, paramId);
+            if (value.isVoid())
+                continue;
+
+            juce::OSCMessage msg("/remoteInput/" + paramName);
+            msg.addInt32(channelId);
+
+            if (value.isInt() || value.isBool())
+                msg.addInt32(static_cast<int>(value));
+            else
+                msg.addFloat32(varToFloat(value));
+
+            messages.push_back(std::move(msg));
+        }
+    }
+
+    // Send directly to target, bypassing rate limiter
+    if (connections[static_cast<size_t>(targetIndex)])
+    {
+        for (const auto& msg : messages)
+        {
+            if (connections[static_cast<size_t>(targetIndex)]->send(msg))
+            {
+                ++messagesSent;
+                logger.logSentWithDetails(targetIndex, msg, config.protocol,
+                                          config.ipAddress, config.port, config.mode);
+            }
+        }
+    }
+
+    DBG("OSCManager: Sent " << messages.size() << " input parameters for " << numInputs << " inputs to target " << targetIndex);
 }
 
 int OSCManager::findRemoteTargetByIP(const juce::String& senderIP) const

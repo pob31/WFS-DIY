@@ -490,6 +490,7 @@ private:
     void onRemoteConnected(int targetIndex, bool isReconnection);
     void onRemoteDisconnected(int targetIndex);
     void sendAllInputPositionsToRemote(int targetIndex);
+    void sendAllInputParametersToRemote(int targetIndex);
     int findRemoteTargetByIP(const juce::String& senderIP) const;
 
     //==========================================================================
