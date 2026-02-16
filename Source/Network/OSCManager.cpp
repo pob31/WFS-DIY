@@ -2336,8 +2336,14 @@ void OSCManager::sendRemoteChannelDump(int channelId)
     paramValues[WFSParameterIDs::inputLFOphaseZ] = getParam(WFSParameterIDs::inputLFOphaseZ);
     paramValues[WFSParameterIDs::inputLFOgyrophone] = getParam(WFSParameterIDs::inputLFOgyrophone);
 
-    // Tracking (read-only on Remote side)
+    // Tracking
     paramValues[WFSParameterIDs::inputTrackingActive] = getParam(WFSParameterIDs::inputTrackingActive);
+    paramValues[WFSParameterIDs::inputTrackingSmooth] = getParam(WFSParameterIDs::inputTrackingSmooth);
+    intParamValues[WFSParameterIDs::inputTrackingID] = getIntParam(WFSParameterIDs::inputTrackingID);
+
+    // Sidelines
+    paramValues[WFSParameterIDs::inputSidelinesActive] = getParam(WFSParameterIDs::inputSidelinesActive);
+    paramValues[WFSParameterIDs::inputSidelinesFringe] = getParam(WFSParameterIDs::inputSidelinesFringe);
 
     // Build and send messages (float params as ,if, int params as ,ii)
     auto messages = OSCMessageBuilder::buildRemoteChannelDump(channelId, paramValues, intParamValues);

@@ -294,8 +294,14 @@ const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getRemoteAddre
         { "LFOphaseZ",        WFSParameterIDs::inputLFOphaseZ },
         { "LFOgyrophone",     WFSParameterIDs::inputLFOgyrophone },
 
-        // Tracking (read-only in Remote, but included for channel dump)
+        // Tracking
         { "trackingActive",   WFSParameterIDs::inputTrackingActive },
+        { "trackingID",       WFSParameterIDs::inputTrackingID },
+        { "trackingSmooth",   WFSParameterIDs::inputTrackingSmooth },
+
+        // Sidelines
+        { "sidelinesActive",  WFSParameterIDs::inputSidelinesActive },
+        { "sidelinesFringe",  WFSParameterIDs::inputSidelinesFringe },
     };
 
     return addressMap;

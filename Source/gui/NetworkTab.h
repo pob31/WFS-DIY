@@ -310,7 +310,7 @@ public:
         const int tableAvailableWidth = leftColumnWidth - totalTableSpacing;
 
         // Distribute width proportionally across columns
-        // Weights: Name=2.5, Mode=1.2, IP=2.5, Port=1.2, Rx=0.8, Tx=0.8, Protocol=2, Remove=0.8
+        // Weights: Name=2.5, Protocol=2, Mode=1.2, IP=2.5, Port=1.2, Rx=0.8, Tx=0.8, Remove=0.8
         const float totalWeight = 2.5f + 1.2f + 2.5f + 1.2f + 0.8f + 0.8f + 2.0f + 0.8f;
 
         const int nameColWidth = (int)(tableAvailableWidth * 2.5f / totalWeight);
@@ -325,6 +325,8 @@ public:
         int colX = leftX;
         headerNameLabel.setBounds(colX, leftY, nameColWidth, rowHeight);
         colX += nameColWidth + tableSpacing;
+        headerProtocolLabel.setBounds(colX, leftY, protocolColWidth, rowHeight);
+        colX += protocolColWidth + tableSpacing;
         headerDataModeLabel.setBounds(colX, leftY, modeColWidth, rowHeight);
         colX += modeColWidth + tableSpacing;
         headerIpLabel.setBounds(colX, leftY, ipColWidth, rowHeight);
@@ -335,8 +337,6 @@ public:
         colX += rxTxColWidth + tableSpacing;
         headerTxEnableLabel.setBounds(colX, leftY, rxTxColWidth, rowHeight);
         colX += rxTxColWidth + tableSpacing;
-        headerProtocolLabel.setBounds(colX, leftY, protocolColWidth, rowHeight);
-        colX += protocolColWidth + tableSpacing;
         addTargetButton.setBounds(colX, leftY, removeColWidth, rowHeight);
         leftY += rowHeight + spacing;
 
@@ -348,6 +348,8 @@ public:
 
             row.nameEditor.setBounds(colX, leftY, nameColWidth, rowHeight);
             colX += nameColWidth + tableSpacing;
+            row.protocolSelector.setBounds(colX, leftY, protocolColWidth, rowHeight);
+            colX += protocolColWidth + tableSpacing;
             row.dataModeSelector.setBounds(colX, leftY, modeColWidth, rowHeight);
             colX += modeColWidth + tableSpacing;
             row.ipEditor.setBounds(colX, leftY, ipColWidth, rowHeight);
@@ -358,8 +360,6 @@ public:
             colX += rxTxColWidth + tableSpacing;
             row.txEnableButton.setBounds(colX, leftY, rxTxColWidth, rowHeight);
             colX += rxTxColWidth + tableSpacing;
-            row.protocolSelector.setBounds(colX, leftY, protocolColWidth, rowHeight);
-            colX += protocolColWidth + tableSpacing;
             row.removeButton.setBounds(colX, leftY, removeColWidth, rowHeight);
 
             leftY += rowHeight + spacing;
@@ -1107,12 +1107,12 @@ private:
         };
 
         setupHeaderLabel(headerNameLabel, LOC("network.table.name"));
+        setupHeaderLabel(headerProtocolLabel, LOC("network.table.protocol"));
         setupHeaderLabel(headerDataModeLabel, LOC("network.table.mode"));
         setupHeaderLabel(headerIpLabel, LOC("network.table.ipv4Address"));
         setupHeaderLabel(headerTxPortLabel, LOC("network.table.txPort"));
         setupHeaderLabel(headerRxEnableLabel, LOC("network.table.rx"));
         setupHeaderLabel(headerTxEnableLabel, LOC("network.table.tx"));
-        setupHeaderLabel(headerProtocolLabel, LOC("network.table.protocol"));
 
         // Add button in header
         addAndMakeVisible(addTargetButton);
