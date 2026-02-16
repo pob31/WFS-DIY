@@ -1956,8 +1956,22 @@ Band 1: 200 Hz, Band 2: 800 Hz, Band 3: 2000 Hz, Band 4: 5000 Hz
 ---
 
 ## Build Notes
-- JUCE 8.x required
-- Project file: WFS-DIY.jucer
+
+### Prerequisites & Cloning
+```bash
+git clone --recurse-submodules https://github.com/pob31/WFS-DIY.git
+```
+Or if already cloned:
+```bash
+git submodule update --init --recursive
+```
+
+**Dependencies (via submodules in `ThirdParty/`):**
+- **JUCE 8.0.12** — `ThirdParty/JUCE` (pinned to tag 8.0.12)
+- **ASIO SDK** — `ThirdParty/ASIOSDK` (from github.com/audiosdk/asio)
+- **GPU Audio SDK** — `ThirdParty/GPUAudioSDK`
+
+- Project file: WFS-DIY.jucer (open in Projucer to re-export build files)
 - Builds: Visual Studio 2022, Xcode, Linux Makefile
 
 ### Build Commands (Windows)
