@@ -1455,6 +1455,9 @@ void OutputArrayHelperContent::applyToOutputs()
         auto optSection = vts.getOutputOptionsSection(idx);
         auto chanSection = vts.getOutputChannelSection(idx);
 
+        if (!posSection.isValid() || !optSection.isValid() || !chanSection.isValid())
+            continue;
+
         // Position (in Position section)
         posSection.setProperty(WFSParameterIDs::outputPositionX, pos.x, um);
         posSection.setProperty(WFSParameterIDs::outputPositionY, pos.y, um);
@@ -1473,17 +1476,29 @@ void OutputArrayHelperContent::applyToOutputs()
         optSection.setProperty(WFSParameterIDs::outputDistanceAttenPercent, distAtten, um);
 
         // EQ bands if configured (Low Cut = band 0, High Cut = band 5)
+        if (enableLowCut || enableHighCut)
+        {
+            auto eqSection = vts.getOutputEQSection(idx);
+            if (eqSection.isValid())
+                eqSection.setProperty(WFSParameterIDs::outputEQenabled, 1, um);
+        }
         if (enableLowCut)
         {
             auto eqBand0 = vts.getOutputEQBand(idx, 0);
-            eqBand0.setProperty(WFSParameterIDs::eqShape, 2, um);  // LowCut shape
-            eqBand0.setProperty(WFSParameterIDs::eqFrequency, static_cast<float>(lowCutFreq), um);
+            if (eqBand0.isValid())
+            {
+                eqBand0.setProperty(WFSParameterIDs::eqShape, 1, um);  // LowCut shape
+                eqBand0.setProperty(WFSParameterIDs::eqFrequency, static_cast<float>(lowCutFreq), um);
+            }
         }
         if (enableHighCut)
         {
             auto eqBand5 = vts.getOutputEQBand(idx, 5);
-            eqBand5.setProperty(WFSParameterIDs::eqShape, 4, um);  // HighCut shape
-            eqBand5.setProperty(WFSParameterIDs::eqFrequency, static_cast<float>(highCutFreq), um);
+            if (eqBand5.isValid())
+            {
+                eqBand5.setProperty(WFSParameterIDs::eqShape, 6, um);  // HighCut shape
+                eqBand5.setProperty(WFSParameterIDs::eqFrequency, static_cast<float>(highCutFreq), um);
+            }
         }
     }
 

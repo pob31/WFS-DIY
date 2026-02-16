@@ -505,7 +505,7 @@ namespace WFSParameterDefaults
     // Output > EQ
     constexpr int outputEQenabledDefault        = 0;  // 0=OFF, 1=ON
 
-    constexpr int eqShapeDefault                = 3;  // 0=Off, 1=LowShelf, 2=LowCut, 3=Peak, 4=HighCut, 5=HighShelf
+    constexpr int eqShapeDefault                = 3;  // 0=Off, 1=LowCut, 2=LowShelf, 3=Peak, 4=BandPass, 5=HighShelf, 6=HighCut, 7=AllPass
     constexpr int eqShapeMin                    = 0;
     constexpr int eqShapeMax                    = 7;
 
