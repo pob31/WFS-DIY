@@ -339,6 +339,7 @@
       "admOsc": "ADM-OSC",
       "psn": "PosiStageNet (PSN)",
       "rttrp": "RTTrP",
+      "qlab": "QLab",
       "udp": "UDP",
       "tcp": "TCP"
     },
@@ -1346,10 +1347,19 @@
       "mutes": "음소거"
     },
     "buttons": {
-      "save": "저장",
+      "ok": "OK",
       "cancel": "취소"
-    }
+    },
+    "writeToQLab": "QLab에 쓰기",
+    "writeToQLabTooltip": "파일 저장 대신 스코프를 QLab으로 내보내기"
   },
+
+  "snapshot": {
+    "qlabNoTarget": "QLab 대상이 설정되지 않았습니다",
+    "qlabExportStarted": "QLab에 {count}개 큐 쓰는 중...",
+    "qlabExportDone": "QLab 내보내기 완료: {count}개 큐 생성"
+  },
+
   "setAllInputs": {
     "windowTitle": "모든 입력 설정",
     "warning": "변경 사항이 모든 입력에 적용됩니다",

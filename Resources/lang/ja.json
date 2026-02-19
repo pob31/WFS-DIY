@@ -339,6 +339,7 @@
       "admOsc": "ADM-OSC",
       "psn": "PosiStageNet (PSN)",
       "rttrp": "RTTrP",
+      "qlab": "QLab",
       "udp": "UDP",
       "tcp": "TCP"
     },
@@ -1346,10 +1347,19 @@
       "mutes": "ミュート"
     },
     "buttons": {
-      "save": "保存",
+      "ok": "OK",
       "cancel": "キャンセル"
-    }
+    },
+    "writeToQLab": "QLabに書き出す",
+    "writeToQLabTooltip": "ファイル保存の代わりにスコープをQLabにエクスポート"
   },
+
+  "snapshot": {
+    "qlabNoTarget": "QLab送信先が設定されていません",
+    "qlabExportStarted": "{count}個のキューをQLabに書き込み中...",
+    "qlabExportDone": "QLabエクスポート完了：{count}個のキュー作成"
+  },
+
   "setAllInputs": {
     "windowTitle": "全入力に適用",
     "warning": "変更はすべての入力に適用されます",

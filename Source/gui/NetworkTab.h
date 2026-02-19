@@ -314,6 +314,7 @@ public:
         const float totalWeight = 2.5f + 1.2f + 2.5f + 1.2f + 0.8f + 0.8f + 2.0f + 0.8f;
 
         const int nameColWidth = (int)(tableAvailableWidth * 2.5f / totalWeight);
+        cachedNameColWidth = nameColWidth;
         const int modeColWidth = (int)(tableAvailableWidth * 1.2f / totalWeight);
         const int ipColWidth = (int)(tableAvailableWidth * 2.5f / totalWeight);
         const int portColWidth = (int)(tableAvailableWidth * 1.2f / totalWeight);
@@ -357,9 +358,17 @@ public:
             row.txPortEditor.setBounds(colX, leftY, portColWidth, rowHeight);
             colX += portColWidth + tableSpacing;
             row.rxEnableButton.setBounds(colX, leftY, rxTxColWidth, rowHeight);
-            colX += rxTxColWidth + tableSpacing;
-            row.txEnableButton.setBounds(colX, leftY, rxTxColWidth, rowHeight);
-            colX += rxTxColWidth + tableSpacing;
+            row.txEnableButton.setBounds(colX + rxTxColWidth + tableSpacing, leftY, rxTxColWidth, rowHeight);
+            // QLab patch fields in right portion of name column (positioned here, visibility via updateQLabAppearance)
+            {
+                auto nb = row.nameEditor.getBounds();
+                int patchLabelW = 32;
+                int patchEditorW = 28;
+                int patchX = nb.getRight() - patchLabelW - 3 - patchEditorW;
+                row.qlabPatchLabel.setBounds(patchX, nb.getY(), patchLabelW, nb.getHeight());
+                row.qlabPatchEditor.setBounds(patchX + patchLabelW + 3, nb.getY(), patchEditorW, nb.getHeight());
+            }
+            colX += rxTxColWidth + tableSpacing + rxTxColWidth + tableSpacing;
             row.removeButton.setBounds(colX, leftY, removeColWidth, rowHeight);
 
             leftY += rowHeight + spacing;
@@ -516,8 +525,10 @@ private:
         juce::TextEditor txPortEditor;
         juce::TextButton rxEnableButton;
         juce::TextButton txEnableButton;
-        juce::ComboBox protocolSelector;       // DISABLED / OSC / REMOTE / ADM-OSC
+        juce::ComboBox protocolSelector;       // DISABLED / OSC / REMOTE / ADM-OSC / QLab
         LongPressButton removeButton { 800 };
+        juce::Label qlabPatchLabel;            // "Patch" label for QLab targets
+        juce::TextEditor qlabPatchEditor;      // QLab patch number editor
 
         bool isActive = false;  // Whether this row has data
     };
@@ -546,6 +557,7 @@ private:
 
     // Section Y position
     int networkConnectionsSectionY = 0;
+    int cachedNameColWidth = 0;  // Stored from resized() for updateQLabAppearance()
 
     // Network Interface Section
     juce::Label networkInterfaceLabel;
@@ -1054,6 +1066,7 @@ private:
                 case 2: targetConfig.protocol = WFSNetwork::Protocol::OSC; break;
                 case 3: targetConfig.protocol = WFSNetwork::Protocol::Remote; break;
                 case 4: targetConfig.protocol = WFSNetwork::Protocol::ADMOSC; break;
+                case 8: targetConfig.protocol = WFSNetwork::Protocol::QLab; break;
                 default: targetConfig.protocol = WFSNetwork::Protocol::Disabled; break;
             }
 
@@ -1062,10 +1075,15 @@ private:
             targetConfig.mode = (modeId == 2) ? WFSNetwork::ConnectionMode::TCP
                                                : WFSNetwork::ConnectionMode::UDP;
 
+            // QLab patch number
+            targetConfig.qlabPatchNumber = targetRows[i].qlabPatchEditor.getText().getIntValue();
+
             oscManager->applyTargetConfig(i, targetConfig);
 
             // Connect if protocol is enabled and tx is enabled
-            if (targetConfig.protocol != WFSNetwork::Protocol::Disabled && targetConfig.txEnabled)
+            bool shouldConnect = (targetConfig.protocol != WFSNetwork::Protocol::Disabled)
+                && targetConfig.txEnabled;
+            if (shouldConnect)
             {
                 DBG("NetworkTab: Connecting target " << i << " to " << targetConfig.ipAddress
                     << ":" << targetConfig.port << " protocol=" << static_cast<int>(targetConfig.protocol));
@@ -1177,6 +1195,7 @@ private:
             row.protocolSelector.addItem(LOC("network.protocols.osc"), 2);
             row.protocolSelector.addItem(LOC("network.protocols.remote"), 3);
             row.protocolSelector.addItem(LOC("network.protocols.admOsc"), 4);
+            row.protocolSelector.addItem(LOC("network.protocols.qlab"), 8);  // QLab = Protocol enum 7, ComboBox ID = 7+1
             row.protocolSelector.setSelectedId(1, juce::dontSendNotification);
             row.protocolSelector.onChange = [this, i]() {
                 // Check if trying to select REMOTE when one already exists
@@ -1191,12 +1210,37 @@ private:
                         return;
                     }
                 }
+                // Defaults for QLab targets
+                if (targetRows[i].protocolSelector.getSelectedId() == 8)  // QLab
+                {
+                    if (targetRows[i].txPortEditor.getText() == "9000")
+                        targetRows[i].txPortEditor.setText(juce::String(WFSNetwork::DEFAULT_QLAB_PORT), false);
+                    // Auto-enable Tx and default name
+                    targetRows[i].txEnableButton.setToggleState(true, juce::dontSendNotification);
+                    if (targetRows[i].nameEditor.getText() == LOC("network.table.defaultTarget").replace("{num}", juce::String(i + 1)))
+                        targetRows[i].nameEditor.setText("QLab", false);
+                }
                 // Update ADM-OSC appearance when protocol changes
                 updateAdmOscAppearance();
+                updateQLabAppearance();
                 saveTargetToValueTree(i);
                 // TTS: Announce selection change
                 TTSManager::getInstance().announceValueChange(LOC("network.table.defaultTarget").replace("{num}", juce::String(i + 1)) + " " + LOC("network.table.protocol"), targetRows[i].protocolSelector.getText());
             };
+
+            // QLab patch number editor
+            addAndMakeVisible(row.qlabPatchLabel);
+            row.qlabPatchLabel.setText("Patch", juce::dontSendNotification);
+            row.qlabPatchLabel.setFont(juce::Font(juce::FontOptions(11.0f)));
+            row.qlabPatchLabel.setJustificationType(juce::Justification::centred);
+            row.qlabPatchLabel.setVisible(false);
+
+            addAndMakeVisible(row.qlabPatchEditor);
+            row.qlabPatchEditor.setText("1", false);
+            row.qlabPatchEditor.setInputRestrictions(2, "0123456789");
+            row.qlabPatchEditor.setJustification(juce::Justification::centred);
+            row.qlabPatchEditor.onTextChange = [this, i]() { saveTargetToValueTree(i); };
+            row.qlabPatchEditor.setVisible(false);
 
             // Remove button (long press to avoid accidental deletion)
             addAndMakeVisible(row.removeButton);
@@ -1335,6 +1379,9 @@ private:
             row.txEnableButton.setEnabled(row.isActive);
             row.protocolSelector.setAlpha(alpha);
             row.protocolSelector.setEnabled(row.isActive);
+            row.qlabPatchLabel.setAlpha(alpha);
+            row.qlabPatchEditor.setAlpha(alpha);
+            row.qlabPatchEditor.setEnabled(row.isActive);
             row.removeButton.setAlpha(alpha);
             row.removeButton.setEnabled(row.isActive);
 
@@ -1437,6 +1484,33 @@ private:
         admOscFlipXButton.setAlpha(alpha);
         admOscFlipYButton.setAlpha(alpha);
         admOscFlipZButton.setAlpha(alpha);
+    }
+
+    void updateQLabAppearance()
+    {
+        for (int i = 0; i < maxTargets; ++i)
+        {
+            auto& row = targetRows[i];
+            bool isQLab = (row.protocolSelector.getSelectedId() == 8);  // QLab
+
+            // Rx/Tx always visible
+            row.rxEnableButton.setVisible(row.isActive);
+            row.txEnableButton.setVisible(row.isActive);
+
+            // QLab patch fields in name area
+            row.qlabPatchLabel.setVisible(isQLab && row.isActive);
+            row.qlabPatchEditor.setVisible(isQLab && row.isActive);
+
+            // Shrink/restore name editor to make room for patch
+            if (cachedNameColWidth > 0)
+            {
+                auto nb = row.nameEditor.getBounds();
+                if (isQLab && row.isActive)
+                    row.nameEditor.setBounds(nb.getX(), nb.getY(), cachedNameColWidth / 2, nb.getHeight());
+                else
+                    row.nameEditor.setBounds(nb.getX(), nb.getY(), cachedNameColWidth, nb.getHeight());
+            }
+        }
     }
 
     void updateTrackingAppearance()
@@ -2964,6 +3038,7 @@ private:
         target.setProperty(WFSParameterIDs::networkTSrxEnable, row.rxEnableButton.getToggleState() ? 1 : 0, nullptr);
         target.setProperty(WFSParameterIDs::networkTStxEnable, row.txEnableButton.getToggleState() ? 1 : 0, nullptr);
         target.setProperty(WFSParameterIDs::networkTSProtocol, row.protocolSelector.getSelectedId() - 1, nullptr);
+        target.setProperty(WFSParameterIDs::networkTSqlabPatch, row.qlabPatchEditor.getText().getIntValue(), nullptr);
 
         // Update OSCManager with new configuration
         updateOSCManagerConfig();
@@ -3105,6 +3180,9 @@ private:
                     row.txEnableButton.setButtonText(txEnabled ? "ON" : "OFF");
 
                     row.protocolSelector.setSelectedId((int)child.getProperty(WFSParameterIDs::networkTSProtocol, 0) + 1, juce::dontSendNotification);
+
+                    int qlabPatch = (int)child.getProperty(WFSParameterIDs::networkTSqlabPatch, 1);
+                    row.qlabPatchEditor.setText(juce::String(juce::jlimit(1, 16, qlabPatch)), false);
                 }
             }
         }
@@ -3112,6 +3190,7 @@ private:
         updateTargetRowVisibility();
         updateAddButtonState();
         updateAdmOscAppearance();
+        updateQLabAppearance();
     }
 
     /**

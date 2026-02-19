@@ -136,6 +136,7 @@ namespace WFSParameterIDs
     const juce::Identifier networkTSrxEnable ("networkTSrxEnable");
     const juce::Identifier networkTStxEnable ("networkTStxEnable");
     const juce::Identifier networkTSProtocol ("networkTSProtocol");
+    const juce::Identifier networkTSqlabPatch ("networkTSqlabPatch");
 
     // OSC Source Filtering
     const juce::Identifier networkOscSourceFilter ("networkOscSourceFilter");

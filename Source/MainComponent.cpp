@@ -2,6 +2,7 @@
 #include "Parameters/WFSParameterIDs.h"
 #include "Localization/LocalizationManager.h"
 #include "Accessibility/TTSManager.h"
+#include "Network/QLabCueBuilder.h"
 
 //==============================================================================
 MainComponent::MainComponent()
@@ -251,6 +252,66 @@ MainComponent::MainComponent()
 
     inputsTab->onConfigReloaded = [this]() {
         handleConfigReloaded();
+    };
+
+    inputsTab->isQLabAvailable = [this]() {
+        return oscManager && oscManager->hasQLabTarget();
+    };
+
+    // QLab export callback for InputsTab
+    inputsTab->onQLabExportRequested = [this](const juce::String& snapshotName,
+                                               const WFSFileManager::ExtendedSnapshotScope& scope) {
+        if (!oscManager || !oscManager->hasQLabTarget())
+        {
+            if (inputsTab != nullptr)
+                inputsTab->showStatusMessage (LOC("snapshot.qlabNoTarget"));
+            return;
+        }
+
+        auto& fileManager = parameters.getFileManager();
+        auto snapshotFile = fileManager.getInputSnapshotsFolder().getChildFile (snapshotName + ".xml");
+        auto xml = juce::XmlDocument::parse (snapshotFile);
+
+        if (xml == nullptr)
+        {
+            if (inputsTab != nullptr)
+                inputsTab->showStatusMessage ("QLab export: could not read snapshot file");
+            return;
+        }
+
+        auto snapshot = juce::ValueTree::fromXml (*xml);
+        auto inputsData = snapshot.getChildWithName (WFSParameterIDs::Inputs);
+
+        if (!inputsData.isValid())
+        {
+            if (inputsTab != nullptr)
+                inputsTab->showStatusMessage ("QLab export: no input data in snapshot");
+            return;
+        }
+
+        int numChannels = parameters.getNumInputChannels();
+        int patchNumber = oscManager->getQLabPatchNumber();
+        int cueCount = WFSNetwork::QLabCueBuilder::countCues (inputsData, scope, numChannels);
+
+        if (cueCount == 0)
+        {
+            if (inputsTab != nullptr)
+                inputsTab->showStatusMessage ("QLab export: no parameters in scope");
+            return;
+        }
+
+        auto sequence = WFSNetwork::QLabCueBuilder::buildSnapshotCues (
+            snapshotName, inputsData, scope, numChannels, patchNumber);
+
+        oscManager->sendToQLab (sequence, [this, cueCount](int /*sentCount*/) {
+            if (inputsTab != nullptr)
+                inputsTab->showStatusMessage (
+                    LOC("snapshot.qlabExportDone").replace ("{count}", juce::String (cueCount)));
+        });
+
+        if (inputsTab != nullptr)
+            inputsTab->showStatusMessage (
+                LOC("snapshot.qlabExportStarted").replace ("{count}", juce::String (cueCount)));
     };
 
     // Level Meter window callbacks for InputsTab and OutputsTab

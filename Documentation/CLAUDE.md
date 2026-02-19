@@ -1589,6 +1589,34 @@ auto state = scope.getChannelState(channelIndex);  // AllIncluded/AllExcluded/Pa
 </InputSnapshot>
 ```
 
+### QLab Export
+
+The snapshot scope window offers a **Write to QLab** mode as an exclusive alternative to save/recall. When selected, storing a snapshot exports its in-scope parameters as QLab network cues instead of writing an XML file.
+
+**How it works:**
+- The scope window has three mutually exclusive radio options: *When Saving*, *When Recalling*, and *Write to QLab*
+- *Write to QLab* is only available when a QLab connection is active (configured in Network tab)
+- The OK button triggers the selected mode — either XML save/recall or QLab export, never both
+
+**QLab cue structure:**
+- A **Group cue** named "Snapshot \<name\>" in playlist mode (mode 6)
+- Inside it, one **Network cue** per in-scope parameter/channel
+- Each network cue sends an OSC message back to WFS to recall that parameter value
+- Network cues are named descriptively: "Input \<id\> \<param name\> \<value\>\<unit\>" (e.g., "Input 1 Volume -6.0 dB")
+- Compression ratios display as "1:\<value\>" (e.g., "Input 2 LS Ratio 1:4.0")
+
+**Key files:**
+- `Source/Network/QLabCueBuilder.h` — Builds `QLabCueSequence` (group + network cue messages)
+- `Source/gui/SnapshotScopeWindow.h` — Scope window UI with QLab radio option
+- `Source/gui/InputsTab.h` — `storeNewSnapshot()` and `updateSnapshot()` handle exclusive save/QLab logic
+- `Source/Network/OSCManager.h` — `sendToQLab()` sends the cue sequence with unique-ID-based move commands
+
+**OSC flow (sendToQLab):**
+1. Send group cue messages to QLab
+2. Query `/cue/selected/uniqueID` on reply port 53001 to get the group's UUID
+3. For each network cue: send creation messages, query unique ID, then `/move/<uuid>` into the group
+4. Uses 30ms delays between steps for QLab processing
+
 ---
 
 ## Tracking System

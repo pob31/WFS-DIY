@@ -339,6 +339,7 @@
       "admOsc": "ADM-OSC",
       "psn": "PosiStageNet (PSN)",
       "rttrp": "RTTrP",
+      "qlab": "QLab",
       "udp": "UDP",
       "tcp": "TCP"
     },
@@ -1346,10 +1347,19 @@
       "mutes": "静音"
     },
     "buttons": {
-      "save": "保存",
+      "ok": "OK",
       "cancel": "取消"
-    }
+    },
+    "writeToQLab": "写入 QLab",
+    "writeToQLabTooltip": "将范围导出到 QLab 而非保存到文件"
   },
+
+  "snapshot": {
+    "qlabNoTarget": "未配置QLab目标",
+    "qlabExportStarted": "正在向 QLab 写入 {count} 个 Cue...",
+    "qlabExportDone": "QLab 导出完成：已创建 {count} 个 Cue"
+  },
+
   "setAllInputs": {
     "windowTitle": "设置所有输入",
     "warning": "更改将应用于所有输入",

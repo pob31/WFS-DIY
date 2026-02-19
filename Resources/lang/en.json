@@ -360,6 +360,7 @@
       "admOsc": "ADM-OSC",
       "psn": "PosiStageNet (PSN)",
       "rttrp": "RTTrP",
+      "qlab": "QLab",
       "udp": "UDP",
       "tcp": "TCP"
     },
@@ -1386,9 +1387,17 @@
       "mutes": "Mutes"
     },
     "buttons": {
-      "save": "Save",
+      "ok": "OK",
       "cancel": "Cancel"
-    }
+    },
+    "writeToQLab": "Write to QLab",
+    "writeToQLabTooltip": "Export scope to QLab instead of saving to file"
+  },
+
+  "snapshot": {
+    "qlabNoTarget": "No QLab target configured",
+    "qlabExportStarted": "Writing {count} cues to QLab...",
+    "qlabExportDone": "QLab export complete: {count} cues created"
   },
 
   "setAllInputs": {

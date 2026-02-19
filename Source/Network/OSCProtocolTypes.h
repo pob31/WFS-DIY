@@ -18,7 +18,8 @@ enum class Protocol
     ADMOSC = 3,
     OSCQuery = 4,   // OSC Query protocol
     PSN = 5,        // PosiStageNet tracking protocol
-    RTTrP = 6       // RTTrP tracking protocol
+    RTTrP = 6,      // RTTrP tracking protocol
+    QLab = 7        // QLab cue writing protocol
 };
 
 /** Connection mode (transport layer) */
@@ -66,6 +67,7 @@ struct TargetConfig
     ConnectionMode mode = ConnectionMode::UDP;
     bool rxEnabled = false;
     bool txEnabled = false;
+    int qlabPatchNumber = 1;     // QLab network patch number for created cues
 
     bool isValid() const
     {
@@ -76,6 +78,8 @@ struct TargetConfig
 
     bool isActive() const
     {
+        if (protocol == Protocol::QLab)
+            return true;  // QLab targets are always active (no Rx/Tx concept)
         return protocol != Protocol::Disabled && (rxEnabled || txEnabled);
     }
 };
@@ -111,6 +115,12 @@ constexpr int DEFAULT_TCP_PORT = 8001;
 
 /** Default target transmit port */
 constexpr int DEFAULT_TX_PORT = 9000;
+
+/** Default QLab OSC command port */
+constexpr int DEFAULT_QLAB_PORT = 53000;
+
+/** Default QLab OSC reply port */
+constexpr int DEFAULT_QLAB_REPLY_PORT = 53001;
 
 //==============================================================================
 // OSC Address Patterns
@@ -220,6 +230,7 @@ struct LogEntry
             case Protocol::OSCQuery: return "OSCQuery";
             case Protocol::PSN:      return "PSN";
             case Protocol::RTTrP:    return "RTTrP";
+            case Protocol::QLab:     return "QLab";
             default:                 return "Unknown";
         }
     }

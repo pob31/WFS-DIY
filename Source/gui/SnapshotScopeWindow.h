@@ -518,12 +518,19 @@ public:
         viewport.setViewedComponent (gridComponent.get(), false);
         viewport.setScrollBarsShown (true, true);
 
+        // Write to QLab radio option (exclusive with save/recall)
+        addAndMakeVisible (writeToQLabToggle);
+        writeToQLabToggle.setButtonText (LOC("snapshotScope.writeToQLab"));
+        writeToQLabToggle.setTooltip (LOC("snapshotScope.writeToQLabTooltip"));
+        writeToQLabToggle.setRadioGroupId (1);
+        writeToQLabToggle.setClickingTogglesState (true);
+
         // Action buttons
         addAndMakeVisible (saveButton);
-        saveButton.setButtonText (LOC("snapshotScope.buttons.save"));
+        saveButton.setButtonText (LOC("snapshotScope.buttons.ok"));
         saveButton.onClick = [this]() {
             if (onSaveRequested)
-                onSaveRequested();
+                onSaveRequested (writeToQLabToggle.getToggleState());
         };
 
         addAndMakeVisible (cancelButton);
@@ -574,12 +581,14 @@ public:
         titleLabel.setBounds (bounds.removeFromTop (30));
         bounds.removeFromTop (5);
 
-        // Apply mode row
+        // Apply mode row (save / recall / QLab — mutually exclusive)
         auto modeRow = bounds.removeFromTop (28);
         applyModeLabel.setBounds (modeRow.removeFromLeft (90));
         applySavingButton.setBounds (modeRow.removeFromLeft (120));
         modeRow.removeFromLeft (10);
         applyRecallingButton.setBounds (modeRow.removeFromLeft (140));
+        modeRow.removeFromLeft (10);
+        writeToQLabToggle.setBounds (modeRow.removeFromLeft (140));
         bounds.removeFromTop (10);
 
         // Action buttons at bottom
@@ -604,7 +613,20 @@ public:
     }
 
     std::function<void()> onCloseRequested;
-    std::function<void()> onSaveRequested;
+    std::function<void(bool writeToQLab)> onSaveRequested;
+
+    /** Enable/disable the QLab radio option based on whether a QLab target exists */
+    void setQLabAvailable (bool available)
+    {
+        writeToQLabToggle.setEnabled (available);
+        writeToQLabToggle.setAlpha (available ? 1.0f : 0.4f);
+
+        // If QLab was selected but becomes unavailable, fall back to recall mode
+        if (!available && writeToQLabToggle.getToggleState())
+        {
+            applyRecallingButton.setToggleState (true, juce::sendNotification);
+        }
+    }
 
 private:
     WfsParameters& parameters;
@@ -621,6 +643,7 @@ private:
     std::unique_ptr<ScopeGridComponent> gridComponent;
     juce::Viewport viewport;
 
+    juce::ToggleButton writeToQLabToggle;
     juce::TextButton saveButton;
     juce::TextButton cancelButton;
 
@@ -646,16 +669,18 @@ public:
 
         content = std::make_unique<SnapshotScopeContent> (params, snapshotName, scope);
         content->onCloseRequested = [this]() { closeButtonPressed(); };
-        content->onSaveRequested = [this]() {
+        content->onSaveRequested = [this](bool writeQLab) {
             saved = true;
+            writeToQLab = writeQLab;
             closeButtonPressed();
         };
 
         setContentOwned (content.release(), false);
 
-        // Size based on number of channels
+        // Size based on number of channels, with minimum for mode row
         int numChannels = params.getNumInputChannels();
-        int width = juce::jmin (1200, ScopeGridComponent::paramLabelWidth + numChannels * ScopeGridComponent::cellSize + 50);
+        int gridWidth = ScopeGridComponent::paramLabelWidth + numChannels * ScopeGridComponent::cellSize + 50;
+        int width = juce::jmax (560, juce::jmin (1200, gridWidth));
         int height = 600;
         centreWithSize (width, height);
         setVisible (true);
@@ -673,7 +698,7 @@ public:
     {
         setVisible (false);
         if (onWindowClosed)
-            onWindowClosed (saved);
+            onWindowClosed (saved, writeToQLab);
     }
 
     void colorSchemeChanged() override
@@ -682,11 +707,19 @@ public:
         repaint();
     }
 
-    std::function<void (bool saved)> onWindowClosed;
+    std::function<void (bool saved, bool writeToQLab)> onWindowClosed;
+
+    /** Set whether QLab export is available (pass through to content) */
+    void setQLabAvailable (bool available)
+    {
+        if (auto* c = dynamic_cast<SnapshotScopeContent*> (getContentComponent()))
+            c->setQLabAvailable (available);
+    }
 
 private:
     std::unique_ptr<SnapshotScopeContent> content;
     bool saved = false;
+    bool writeToQLab = false;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SnapshotScopeWindow)
 };

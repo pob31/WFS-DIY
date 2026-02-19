@@ -1,4 +1,5 @@
 #include "OSCManager.h"
+#include "QLabCueBuilder.h"
 #include "../Helpers/CoordinateConverter.h"
 
 namespace WFSNetwork
@@ -241,7 +242,7 @@ bool OSCManager::connectTarget(int targetIndex)
     }
 
     DBG("OSCManager::connectTarget - configuring connection to " << config.ipAddress << ":" << config.port);
-    conn->configure(config);
+    conn->configure (config);
 
     // Set up callback for async TCP connections
     conn->onStatusChanged = [this, targetIndex, ipAddr = config.ipAddress, port = config.port](ConnectionStatus newStatus)
@@ -341,10 +342,41 @@ void OSCManager::sendMessage(int targetIndex, const juce::OSCMessage& message)
     }
 
     const auto& config = targetConfigs[static_cast<size_t>(targetIndex)];
-    if (config.protocol == Protocol::Disabled || !config.txEnabled)
+    if (config.protocol == Protocol::Disabled)
+        return;
+    if (!config.txEnabled)
         return;
 
     rateLimiter.queueMessage(targetIndex, message);
+}
+
+void OSCManager::sendMessageDirect (int targetIndex, const juce::OSCMessage& message)
+{
+    if (targetIndex < 0 || targetIndex >= MAX_TARGETS)
+    {
+        DBG ("OSCManager::sendMessageDirect - invalid target index: " << targetIndex);
+        return;
+    }
+
+    if (connections[static_cast<size_t> (targetIndex)])
+    {
+        if (connections[static_cast<size_t> (targetIndex)]->send (message))
+        {
+            ++messagesSent;
+            const auto& config = targetConfigs[static_cast<size_t> (targetIndex)];
+            logger.logSentWithDetails (targetIndex, message, config.protocol,
+                                       config.ipAddress, config.port, config.mode);
+        }
+        else
+        {
+            DBG ("OSCManager::sendMessageDirect - send() failed for target " << targetIndex
+                 << " address: " << message.getAddressPattern().toString());
+        }
+    }
+    else
+    {
+        DBG ("OSCManager::sendMessageDirect - no connection for target " << targetIndex);
+    }
 }
 
 void OSCManager::broadcastMessage(const juce::OSCMessage& message)
@@ -3219,6 +3251,209 @@ void OSCManager::sendInputPositionXYToRemote(int channelId, float x, float y)
             }
         }
     }
+}
+
+//==============================================================================
+// QLab Integration
+//==============================================================================
+
+bool OSCManager::hasQLabTarget() const
+{
+    for (int i = 0; i < MAX_TARGETS; ++i)
+    {
+        if (targetConfigs[static_cast<size_t>(i)].protocol == Protocol::QLab)
+            return true;
+    }
+    return false;
+}
+
+int OSCManager::getQLabPatchNumber() const
+{
+    for (int i = 0; i < MAX_TARGETS; ++i)
+    {
+        if (targetConfigs[static_cast<size_t>(i)].protocol == Protocol::QLab)
+            return targetConfigs[static_cast<size_t>(i)].qlabPatchNumber;
+    }
+    return 1;
+}
+
+void OSCManager::sendToQLab (const QLabCueSequence& sequence,
+                              std::function<void(int sentCount)> onComplete)
+{
+    if (sequence.groupMessages.empty() && sequence.networkCues.empty())
+    {
+        if (onComplete)
+            juce::MessageManager::callAsync ([onComplete]() { onComplete (0); });
+        return;
+    }
+
+    // Find all QLab target indices
+    std::vector<int> qlabTargets;
+    for (int i = 0; i < MAX_TARGETS; ++i)
+    {
+        if (targetConfigs[static_cast<size_t>(i)].protocol == Protocol::QLab)
+            qlabTargets.push_back (i);
+    }
+
+    if (qlabTargets.empty())
+    {
+        if (onComplete)
+            juce::MessageManager::callAsync ([onComplete]() { onComplete (0); });
+        return;
+    }
+
+    DBG ("OSCManager::sendToQLab - " << (int) sequence.networkCues.size()
+         << " network cues to " << (int) qlabTargets.size() << " QLab target(s)");
+
+    // Copy data for background thread
+    auto seqCopy = std::make_shared<QLabCueSequence> (sequence);
+    auto targetsCopy = std::make_shared<std::vector<int>> (qlabTargets);
+    auto completeCb = std::make_shared<std::function<void(int)>> (std::move (onComplete));
+    auto* manager = this;
+
+    std::thread ([manager, seqCopy, targetsCopy, completeCb]()
+    {
+        constexpr int delayBetweenMs = 30;
+        constexpr int queryTimeoutMs = 2000;
+        int sentCount = 0;
+
+        DBG ("OSCManager::sendToQLab thread started");
+
+        // --- Set up reply listener on port 53001 ---
+        juce::String replyUID;
+        juce::CriticalSection replyLock;
+        juce::WaitableEvent replyEvent;
+
+        // Listener for QLab replies (fires on OSCReceiver's network thread)
+        struct ReplyListener : public juce::OSCReceiver::Listener<juce::OSCReceiver::RealtimeCallback>
+        {
+            juce::String* uid;
+            juce::CriticalSection* lock;
+            juce::WaitableEvent* event;
+
+            void oscMessageReceived (const juce::OSCMessage& msg) override
+            {
+                auto address = msg.getAddressPattern().toString();
+                if (address.contains ("uniqueID") && msg.size() > 0 && msg[0].isString())
+                {
+                    auto json = juce::JSON::parse (msg[0].getString());
+                    if (json.isObject())
+                    {
+                        auto status = json.getProperty (juce::Identifier ("status"), "").toString();
+                        if (status == "ok")
+                        {
+                            const juce::ScopedLock sl (*lock);
+                            *uid = json.getProperty (juce::Identifier ("data"), "").toString();
+                            DBG ("OSCManager::sendToQLab - received uniqueID: " << *uid);
+                        }
+                    }
+                    event->signal();
+                }
+            }
+        };
+
+        ReplyListener listener;
+        listener.uid = &replyUID;
+        listener.lock = &replyLock;
+        listener.event = &replyEvent;
+
+        juce::OSCReceiver replyReceiver;
+        replyReceiver.addListener (&listener);
+
+        if (!replyReceiver.connect (DEFAULT_QLAB_REPLY_PORT))
+        {
+            DBG ("OSCManager::sendToQLab - failed to bind reply listener on port "
+                 << DEFAULT_QLAB_REPLY_PORT);
+        }
+
+        // Helper lambda: send a message to all QLab targets
+        auto sendMsg = [&](const juce::OSCMessage& msg)
+        {
+            for (int targetIdx : *targetsCopy)
+                manager->sendMessageDirect (targetIdx, msg);
+            ++sentCount;
+            juce::Thread::sleep (delayBetweenMs);
+        };
+
+        // Helper lambda: query unique ID from QLab and wait for reply
+        auto queryUniqueID = [&]() -> juce::String
+        {
+            {
+                const juce::ScopedLock sl (replyLock);
+                replyUID = {};
+            }
+            replyEvent.reset();
+
+            sendMsg (juce::OSCMessage ("/cue/selected/uniqueID"));
+
+            if (replyEvent.wait (queryTimeoutMs))
+            {
+                const juce::ScopedLock sl (replyLock);
+                return replyUID;
+            }
+
+            DBG ("OSCManager::sendToQLab - uniqueID query timed out");
+            return {};
+        };
+
+        // --- Phase 1: Create group cue ---
+        DBG ("OSCManager::sendToQLab - creating group cue (" << (int) seqCopy->groupMessages.size() << " msgs)");
+        for (const auto& msg : seqCopy->groupMessages)
+            sendMsg (msg);
+
+        auto groupUID = queryUniqueID();
+        if (groupUID.isEmpty())
+        {
+            DBG ("OSCManager::sendToQLab - failed to get group uniqueID, aborting");
+            replyReceiver.disconnect();
+            if (*completeCb)
+            {
+                auto cb = *completeCb;
+                juce::MessageManager::callAsync ([cb]() { cb (0); });
+            }
+            return;
+        }
+        DBG ("OSCManager::sendToQLab - group uniqueID: " << groupUID);
+
+        // --- Phase 2: Create network cues and move into group ---
+        int cueIndex = 0;
+        for (const auto& cue : seqCopy->networkCues)
+        {
+            DBG ("OSCManager::sendToQLab - creating network cue " << cueIndex);
+            for (const auto& msg : cue.messages)
+                sendMsg (msg);
+
+            auto cueUID = queryUniqueID();
+            if (cueUID.isEmpty())
+            {
+                DBG ("OSCManager::sendToQLab - failed to get cue uniqueID for cue " << cueIndex << ", skipping move");
+                ++cueIndex;
+                continue;
+            }
+
+            // Move cue into group: /move/{cueUID} {position} {groupUID}
+            auto moveMsg = juce::OSCMessage (juce::String ("/move/" + cueUID),
+                                              cue.movePosition, groupUID);
+            DBG ("OSCManager::sendToQLab - moving cue " << cueUID << " to pos "
+                 << cue.movePosition << " in group " << groupUID);
+            sendMsg (moveMsg);
+
+            ++cueIndex;
+        }
+
+        // --- Cleanup ---
+        replyReceiver.disconnect();
+
+        DBG ("OSCManager::sendToQLab thread done - sent " << sentCount << " messages, "
+             << cueIndex << " cues");
+
+        if (*completeCb)
+        {
+            auto cb = *completeCb;
+            auto count = cueIndex;
+            juce::MessageManager::callAsync ([cb, count]() { cb (count); });
+        }
+    }).detach();
 }
 
 } // namespace WFSNetwork

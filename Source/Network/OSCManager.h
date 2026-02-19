@@ -18,6 +18,9 @@
 namespace WFSNetwork
 {
 
+// Forward declaration for sendToQLab parameter
+struct QLabCueSequence;
+
 /**
  * OSCManager
  *
@@ -360,7 +363,36 @@ public:
      */
     std::function<void(int channelIndex, float targetX, float targetY)> onRemotePositionXYUpdated;
 
+    //==========================================================================
+    // QLab Integration
+    //==========================================================================
+
+    /**
+     * Check if any target is configured with QLab protocol.
+     */
+    bool hasQLabTarget() const;
+
+    /**
+     * Get the QLab patch number for the first QLab target found.
+     */
+    int getQLabPatchNumber() const;
+
+    /**
+     * Send a QLab cue sequence with query-response flow.
+     * Creates group cue, queries its unique ID from QLab, then creates
+     * each network cue, queries its unique ID, and moves it into the group.
+     * Runs on a background thread to avoid blocking the UI.
+     * @param sequence The structured cue sequence from QLabCueBuilder
+     * @param onComplete Callback when all messages have been sent (called on message thread)
+     */
+    void sendToQLab (const QLabCueSequence& sequence,
+                     std::function<void(int sentCount)> onComplete = nullptr);
+
 private:
+    /** Send an OSC message directly to a target, bypassing the rate limiter.
+     *  Used for QLab command sequences that must not be coalesced. */
+    void sendMessageDirect (int targetIndex, const juce::OSCMessage& message);
+
     //==========================================================================
     // ValueTree::Listener
     //==========================================================================

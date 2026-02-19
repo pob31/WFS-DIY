@@ -339,6 +339,7 @@
       "admOsc": "ADM-OSC",
       "psn": "PosiStageNet (PSN)",
       "rttrp": "RTTrP",
+      "qlab": "QLab",
       "udp": "UDP",
       "tcp": "TCP"
     },
@@ -1346,10 +1347,19 @@
       "mutes": "Mutes"
     },
     "buttons": {
-      "save": "Guardar",
+      "ok": "OK",
       "cancel": "Cancelar"
-    }
+    },
+    "writeToQLab": "Escribir a QLab",
+    "writeToQLabTooltip": "Exportar scope a QLab en lugar de guardar en archivo"
   },
+
+  "snapshot": {
+    "qlabNoTarget": "No hay destino QLab configurado",
+    "qlabExportStarted": "Escribiendo {count} cues a QLab...",
+    "qlabExportDone": "Exportación QLab completa: {count} cues creados"
+  },
+
   "setAllInputs": {
     "windowTitle": "Aplicar a todas las entradas",
     "warning": "Los cambios se aplicarán a TODAS las entradas",

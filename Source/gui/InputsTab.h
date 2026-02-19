@@ -411,6 +411,13 @@ public:
     /** Callback when Level Meter window is requested */
     std::function<void()> onLevelMeterWindowRequested;
 
+    /** Callback when QLab export is requested after snapshot store/update */
+    std::function<void(const juce::String& snapshotName,
+                       const WFSFileManager::ExtendedSnapshotScope& scope)> onQLabExportRequested;
+
+    /** Query whether a QLab target is configured */
+    std::function<bool()> isQLabAvailable;
+
     /** Select a specific channel (1-based). Triggers onChannelSelected callback.
      *  Uses programmatic selection to prevent keyboard Enter from triggering overlay.
      */
@@ -634,6 +641,13 @@ public:
 
     /** Get a reference to the visualisation component for direct updates */
     InputVisualisationComponent& getVisualisationComponent() { return visualisationComponent; }
+
+    /** Show a temporary status bar message */
+    void showStatusMessage(const juce::String& message)
+    {
+        if (statusBar != nullptr)
+            statusBar->showTemporaryMessage(message, 3000);
+    }
 
 private:
     // ==================== CHANGE LISTENER ====================
@@ -5951,17 +5965,26 @@ private:
                         }
                         snapshotScopes[name] = scope;
 
-                        auto& fileManager = parameters.getFileManager();
-                        if (fileManager.saveInputSnapshotWithExtendedScope(name, scope))
+                        if (writeToQLabEnabled)
                         {
-                            refreshSnapshotList();
-                            snapshotSelector.setText(name, juce::dontSendNotification);
-                            updateSnapshotButtonStates();
-                            showStatusMessage(LOC("inputs.messages.snapshotStored").replace("{name}", name));
+                            // QLab mode: export to QLab only, no XML file
+                            if (onQLabExportRequested)
+                                onQLabExportRequested(name, scope);
                         }
                         else
                         {
-                            showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
+                            auto& fileManager = parameters.getFileManager();
+                            if (fileManager.saveInputSnapshotWithExtendedScope(name, scope))
+                            {
+                                refreshSnapshotList();
+                                snapshotSelector.setText(name, juce::dontSendNotification);
+                                updateSnapshotButtonStates();
+                                showStatusMessage(LOC("inputs.messages.snapshotStored").replace("{name}", name));
+                            }
+                            else
+                            {
+                                showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
+                            }
                         }
                     }
                 }
@@ -6071,14 +6094,23 @@ private:
 
         auto& scope = snapshotScopes[selectedSnapshot];
 
-        // Create backup then save
-        auto file = fileManager.getInputSnapshotsFolder().getChildFile(selectedSnapshot + ".xml");
-        fileManager.createBackup(file);
-
-        if (fileManager.saveInputSnapshotWithExtendedScope(selectedSnapshot, scope))
-            showStatusMessage(LOC("inputs.messages.snapshotUpdated").replace("{name}", selectedSnapshot));
+        if (writeToQLabEnabled)
+        {
+            // QLab mode: export to QLab only, no XML file
+            if (onQLabExportRequested)
+                onQLabExportRequested(selectedSnapshot, scope);
+        }
         else
-            showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
+        {
+            // Create backup then save
+            auto file = fileManager.getInputSnapshotsFolder().getChildFile(selectedSnapshot + ".xml");
+            fileManager.createBackup(file);
+
+            if (fileManager.saveInputSnapshotWithExtendedScope(selectedSnapshot, scope))
+                showStatusMessage(LOC("inputs.messages.snapshotUpdated").replace("{name}", selectedSnapshot));
+            else
+                showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
+        }
     }
 
     void editSnapshotScope()
@@ -6117,7 +6149,9 @@ private:
         if (snapshotScopeWindow == nullptr || !snapshotScopeWindow->isVisible())
         {
             snapshotScopeWindow = std::make_unique<SnapshotScopeWindow>(parameters, windowTitle, *scopePtr);
-            snapshotScopeWindow->onWindowClosed = [this, hasSelectedSnapshot, selectedSnapshot](bool saved) {
+            snapshotScopeWindow->setQLabAvailable (isQLabAvailable ? isQLabAvailable() : false);
+            snapshotScopeWindow->onWindowClosed = [this, hasSelectedSnapshot, selectedSnapshot](bool saved, bool writeToQLab) {
+                writeToQLabEnabled = writeToQLab;
                 if (saved)
                 {
                     if (hasSelectedSnapshot)
@@ -6832,12 +6866,6 @@ private:
 
     // ==================== HELPER METHODS ====================
 
-    void showStatusMessage(const juce::String& message)
-    {
-        if (statusBar != nullptr)
-            statusBar->showTemporaryMessage(message, 3000);
-    }
-
     void saveInputParam(const juce::Identifier& paramId, const juce::var& value)
     {
         if (isLoadingParameters) return;
@@ -7171,6 +7199,7 @@ private:
     std::map<juce::String, WFSFileManager::ExtendedSnapshotScope> snapshotScopes;
     WFSFileManager::ExtendedSnapshotScope currentScope;  // Used when no snapshot selected
     bool currentScopeInitialized = false;
+    bool writeToQLabEnabled = false;  // Set by scope window's QLab toggle
 
     // Sub-tab bar
     juce::TabbedButtonBar subTabBar { juce::TabbedButtonBar::TabsAtTop };

@@ -196,9 +196,8 @@ public:
         const juce::String& address,
         int value);
 
-private:
     //==========================================================================
-    // Internal Mapping
+    // Mapping Tables (public for QLab cue builder access)
     //==========================================================================
 
     struct ParamMapping
@@ -211,6 +210,8 @@ private:
     static const std::map<juce::Identifier, ParamMapping>& getOutputMappings();
     static const std::map<juce::Identifier, ParamMapping>& getReverbMappings();
     static const std::map<juce::Identifier, juce::String>& getConfigMappings();
+
+private:
 
     static juce::OSCMessage buildMessage(
         const juce::String& address,
