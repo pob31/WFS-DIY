@@ -1191,6 +1191,32 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
     juce::String address = message.getAddressPattern().toString();
 
     //==========================================================================
+    // Handle Snapshot commands
+    // Must be intercepted before isInputAddress() routing
+    //==========================================================================
+    if (address.startsWith ("/wfs/input/snapshot/"))
+    {
+        juce::String snapshotName;
+        if (message.size() >= 1 && message[0].isString())
+            snapshotName = message[0].getString();
+
+        if (snapshotName.isNotEmpty())
+        {
+            if (address == "/wfs/input/snapshot/load")
+                juce::MessageManager::callAsync ([this, snapshotName]() {
+                    if (onSnapshotLoadRequested)
+                        onSnapshotLoadRequested (snapshotName);
+                });
+            else if (address == "/wfs/input/snapshot/store")
+                juce::MessageManager::callAsync ([this, snapshotName]() {
+                    if (onSnapshotStoreRequested)
+                        onSnapshotStoreRequested (snapshotName);
+                });
+        }
+        return;
+    }
+
+    //==========================================================================
     // Handle Cylindrical/Spherical coordinate addresses
     // These convert to Cartesian internally before storage
     //==========================================================================
@@ -3396,26 +3422,30 @@ void OSCManager::sendToQLab (const QLabCueSequence& sequence,
             return {};
         };
 
-        // --- Phase 1: Create group cue ---
-        DBG ("OSCManager::sendToQLab - creating group cue (" << (int) seqCopy->groupMessages.size() << " msgs)");
-        for (const auto& msg : seqCopy->groupMessages)
-            sendMsg (msg);
-
-        auto groupUID = queryUniqueID();
-        if (groupUID.isEmpty())
+        // --- Phase 1: Create group cue (if any) ---
+        juce::String groupUID;
+        if (!seqCopy->groupMessages.empty())
         {
-            DBG ("OSCManager::sendToQLab - failed to get group uniqueID, aborting");
-            replyReceiver.disconnect();
-            if (*completeCb)
-            {
-                auto cb = *completeCb;
-                juce::MessageManager::callAsync ([cb]() { cb (0); });
-            }
-            return;
-        }
-        DBG ("OSCManager::sendToQLab - group uniqueID: " << groupUID);
+            DBG ("OSCManager::sendToQLab - creating group cue (" << (int) seqCopy->groupMessages.size() << " msgs)");
+            for (const auto& msg : seqCopy->groupMessages)
+                sendMsg (msg);
 
-        // --- Phase 2: Create network cues and move into group ---
+            groupUID = queryUniqueID();
+            if (groupUID.isEmpty())
+            {
+                DBG ("OSCManager::sendToQLab - failed to get group uniqueID, aborting");
+                replyReceiver.disconnect();
+                if (*completeCb)
+                {
+                    auto cb = *completeCb;
+                    juce::MessageManager::callAsync ([cb]() { cb (0); });
+                }
+                return;
+            }
+            DBG ("OSCManager::sendToQLab - group uniqueID: " << groupUID);
+        }
+
+        // --- Phase 2: Create network cues and move into group (if group exists) ---
         int cueIndex = 0;
         for (const auto& cue : seqCopy->networkCues)
         {
@@ -3423,20 +3453,24 @@ void OSCManager::sendToQLab (const QLabCueSequence& sequence,
             for (const auto& msg : cue.messages)
                 sendMsg (msg);
 
-            auto cueUID = queryUniqueID();
-            if (cueUID.isEmpty())
+            // Only query UID and move if we have a group to move into
+            if (groupUID.isNotEmpty() && cue.movePosition > 0)
             {
-                DBG ("OSCManager::sendToQLab - failed to get cue uniqueID for cue " << cueIndex << ", skipping move");
-                ++cueIndex;
-                continue;
-            }
+                auto cueUID = queryUniqueID();
+                if (cueUID.isEmpty())
+                {
+                    DBG ("OSCManager::sendToQLab - failed to get cue uniqueID for cue " << cueIndex << ", skipping move");
+                    ++cueIndex;
+                    continue;
+                }
 
-            // Move cue into group: /move/{cueUID} {position} {groupUID}
-            auto moveMsg = juce::OSCMessage (juce::String ("/move/" + cueUID),
-                                              cue.movePosition, groupUID);
-            DBG ("OSCManager::sendToQLab - moving cue " << cueUID << " to pos "
-                 << cue.movePosition << " in group " << groupUID);
-            sendMsg (moveMsg);
+                // Move cue into group: /move/{cueUID} {position} {groupUID}
+                auto moveMsg = juce::OSCMessage (juce::String ("/move/" + cueUID),
+                                                  cue.movePosition, groupUID);
+                DBG ("OSCManager::sendToQLab - moving cue " << cueUID << " to pos "
+                     << cue.movePosition << " in group " << groupUID);
+                sendMsg (moveMsg);
+            }
 
             ++cueIndex;
         }

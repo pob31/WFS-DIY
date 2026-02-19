@@ -1351,13 +1351,19 @@
       "cancel": "キャンセル"
     },
     "writeToQLab": "QLabに書き出す",
-    "writeToQLabTooltip": "ファイル保存の代わりにスコープをQLabにエクスポート"
+    "writeToQLabTooltip": "ファイル保存の代わりにスコープをQLabにエクスポート",
+    "writeSnapshotLoadCue": "スナップショット読込キューをQLabに書き出す",
+    "writeSnapshotLoadCueTooltip": "このスナップショットをOSCで読み込むQLab キューも作成する"
   },
 
   "snapshot": {
     "qlabNoTarget": "QLab送信先が設定されていません",
     "qlabExportStarted": "{count}個のキューをQLabに書き込み中...",
-    "qlabExportDone": "QLabエクスポート完了：{count}個のキュー作成"
+    "qlabExportDone": "QLabエクスポート完了：{count}個のキュー作成",
+    "qlabGroupName": "スナップショット \"{name}\"",
+    "qlabMemoText": "以下のいずれかのキューを実行してこのスナップショットを読み込みまたは更新",
+    "qlabReloadName": "読み込み \"{name}\"",
+    "qlabUpdateName": "更新 \"{name}\""
   },
 
   "setAllInputs": {

@@ -335,7 +335,7 @@
     "protocols": {
       "disabled": "DESATIVADO",
       "osc": "OSC",
-      "remote": "REMOTO",
+      "remote": "Remoto",
       "admOsc": "ADM-OSC",
       "psn": "PosiStageNet (PSN)",
       "rttrp": "RTTrP",
@@ -1351,13 +1351,19 @@
       "cancel": "Cancelar"
     },
     "writeToQLab": "Escrever no QLab",
-    "writeToQLabTooltip": "Exportar scope para QLab em vez de guardar em ficheiro"
+    "writeToQLabTooltip": "Exportar scope para QLab em vez de guardar em ficheiro",
+    "writeSnapshotLoadCue": "Escrever cue de carregamento no QLab",
+    "writeSnapshotLoadCueTooltip": "Também criar um cue QLab para carregar este snapshot via OSC"
   },
 
   "snapshot": {
     "qlabNoTarget": "Nenhum destino QLab configurado",
     "qlabExportStarted": "Escrevendo {count} cues no QLab...",
-    "qlabExportDone": "Exportação QLab concluída: {count} cues criados"
+    "qlabExportDone": "Exportação QLab concluída: {count} cues criados",
+    "qlabGroupName": "Snapshot \"{name}\"",
+    "qlabMemoText": "Execute qualquer um dos seguintes cues para recarregar ou atualizar este snapshot",
+    "qlabReloadName": "Recarregar \"{name}\"",
+    "qlabUpdateName": "Atualizar \"{name}\""
   },
 
   "setAllInputs": {

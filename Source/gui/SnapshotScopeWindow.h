@@ -488,6 +488,7 @@ public:
         applySavingButton.setClickingTogglesState (true);
         applySavingButton.onClick = [this]() {
             scope.applyMode = ExtendedScope::ApplyMode::OnSave;
+            updateSnapshotLoadCueVisibility();
         };
 
         addAndMakeVisible (applyRecallingButton);
@@ -496,6 +497,7 @@ public:
         applyRecallingButton.setClickingTogglesState (true);
         applyRecallingButton.onClick = [this]() {
             scope.applyMode = ExtendedScope::ApplyMode::OnRecall;
+            updateSnapshotLoadCueVisibility();
         };
 
         // Set initial state
@@ -524,13 +526,23 @@ public:
         writeToQLabToggle.setTooltip (LOC("snapshotScope.writeToQLabTooltip"));
         writeToQLabToggle.setRadioGroupId (1);
         writeToQLabToggle.setClickingTogglesState (true);
+        writeToQLabToggle.onClick = [this]() {
+            updateSnapshotLoadCueVisibility();
+        };
+
+        // "Write Snapshot Load Cue to QLab" checkbox (additive, not radio)
+        addAndMakeVisible (writeSnapshotLoadCueToggle);
+        writeSnapshotLoadCueToggle.setButtonText (LOC("snapshotScope.writeSnapshotLoadCue"));
+        writeSnapshotLoadCueToggle.setTooltip (LOC("snapshotScope.writeSnapshotLoadCueTooltip"));
+        writeSnapshotLoadCueToggle.setToggleState (false, juce::dontSendNotification);
 
         // Action buttons
         addAndMakeVisible (saveButton);
         saveButton.setButtonText (LOC("snapshotScope.buttons.ok"));
         saveButton.onClick = [this]() {
             if (onSaveRequested)
-                onSaveRequested (writeToQLabToggle.getToggleState());
+                onSaveRequested (writeToQLabToggle.getToggleState(),
+                                 writeSnapshotLoadCueToggle.getToggleState());
         };
 
         addAndMakeVisible (cancelButton);
@@ -589,7 +601,16 @@ public:
         applyRecallingButton.setBounds (modeRow.removeFromLeft (140));
         modeRow.removeFromLeft (10);
         writeToQLabToggle.setBounds (modeRow.removeFromLeft (140));
-        bounds.removeFromTop (10);
+        bounds.removeFromTop (5);
+
+        // Snapshot load cue checkbox (below mode row, indented)
+        if (writeSnapshotLoadCueToggle.isVisible())
+        {
+            auto loadCueRow = bounds.removeFromTop (24);
+            loadCueRow.removeFromLeft (90);  // Align with radio buttons
+            writeSnapshotLoadCueToggle.setBounds (loadCueRow.removeFromLeft (300));
+        }
+        bounds.removeFromTop (5);
 
         // Action buttons at bottom
         auto buttonRow = bounds.removeFromBottom (35);
@@ -613,11 +634,12 @@ public:
     }
 
     std::function<void()> onCloseRequested;
-    std::function<void(bool writeToQLab)> onSaveRequested;
+    std::function<void(bool writeToQLab, bool writeSnapshotLoadCue)> onSaveRequested;
 
     /** Enable/disable the QLab radio option based on whether a QLab target exists */
     void setQLabAvailable (bool available)
     {
+        qlabAvailable = available;
         writeToQLabToggle.setEnabled (available);
         writeToQLabToggle.setAlpha (available ? 1.0f : 0.4f);
 
@@ -626,6 +648,8 @@ public:
         {
             applyRecallingButton.setToggleState (true, juce::sendNotification);
         }
+
+        updateSnapshotLoadCueVisibility();
     }
 
 private:
@@ -644,8 +668,20 @@ private:
     juce::Viewport viewport;
 
     juce::ToggleButton writeToQLabToggle;
+    juce::ToggleButton writeSnapshotLoadCueToggle;
     juce::TextButton saveButton;
     juce::TextButton cancelButton;
+    bool qlabAvailable = false;
+
+    void updateSnapshotLoadCueVisibility()
+    {
+        bool saveOrRecallMode = !writeToQLabToggle.getToggleState();
+        bool shouldShow = qlabAvailable && saveOrRecallMode;
+
+        writeSnapshotLoadCueToggle.setVisible (shouldShow);
+        writeSnapshotLoadCueToggle.setEnabled (shouldShow);
+        resized();
+    }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SnapshotScopeContent)
 };
@@ -669,9 +705,10 @@ public:
 
         content = std::make_unique<SnapshotScopeContent> (params, snapshotName, scope);
         content->onCloseRequested = [this]() { closeButtonPressed(); };
-        content->onSaveRequested = [this](bool writeQLab) {
+        content->onSaveRequested = [this](bool writeQLab, bool writeLoadCue) {
             saved = true;
             writeToQLab = writeQLab;
+            writeSnapshotLoadCue = writeLoadCue;
             closeButtonPressed();
         };
 
@@ -698,7 +735,7 @@ public:
     {
         setVisible (false);
         if (onWindowClosed)
-            onWindowClosed (saved, writeToQLab);
+            onWindowClosed (saved, writeToQLab, writeSnapshotLoadCue);
     }
 
     void colorSchemeChanged() override
@@ -707,7 +744,7 @@ public:
         repaint();
     }
 
-    std::function<void (bool saved, bool writeToQLab)> onWindowClosed;
+    std::function<void (bool saved, bool writeToQLab, bool writeSnapshotLoadCue)> onWindowClosed;
 
     /** Set whether QLab export is available (pass through to content) */
     void setQLabAvailable (bool available)
@@ -720,6 +757,7 @@ private:
     std::unique_ptr<SnapshotScopeContent> content;
     bool saved = false;
     bool writeToQLab = false;
+    bool writeSnapshotLoadCue = false;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SnapshotScopeWindow)
 };

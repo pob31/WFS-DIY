@@ -1351,13 +1351,19 @@
       "cancel": "취소"
     },
     "writeToQLab": "QLab에 쓰기",
-    "writeToQLabTooltip": "파일 저장 대신 스코프를 QLab으로 내보내기"
+    "writeToQLabTooltip": "파일 저장 대신 스코프를 QLab으로 내보내기",
+    "writeSnapshotLoadCue": "스냅샷 로드 큐를 QLab에 쓰기",
+    "writeSnapshotLoadCueTooltip": "OSC로 이 스냅샷을 로드하는 QLab 큐도 생성"
   },
 
   "snapshot": {
     "qlabNoTarget": "QLab 대상이 설정되지 않았습니다",
     "qlabExportStarted": "QLab에 {count}개 큐 쓰는 중...",
-    "qlabExportDone": "QLab 내보내기 완료: {count}개 큐 생성"
+    "qlabExportDone": "QLab 내보내기 완료: {count}개 큐 생성",
+    "qlabGroupName": "스냅샷 \"{name}\"",
+    "qlabMemoText": "다음 큐 중 하나를 실행하여 이 스냅샷을 불러오거나 업데이트하세요",
+    "qlabReloadName": "불러오기 \"{name}\"",
+    "qlabUpdateName": "업데이트 \"{name}\""
   },
 
   "setAllInputs": {

@@ -5,6 +5,7 @@
 #include "OSCMessageBuilder.h"
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/WFSFileManager.h"
+#include "../Localization/LocalizationManager.h"
 
 namespace WFSNetwork
 {
@@ -62,7 +63,7 @@ public:
 
         // 2. Name the group
         sequence.groupMessages.push_back (juce::OSCMessage ("/cue/selected/name",
-            juce::String ("Snapshot " + snapshotName)));
+            LOC("snapshot.qlabGroupName").replace ("{name}", snapshotName)));
 
         // 3. Set playlist mode (mode 6)
         sequence.groupMessages.push_back (juce::OSCMessage ("/cue/selected/mode", (int) 6));
@@ -121,6 +122,73 @@ public:
             }
         }
         return count;
+    }
+
+    /**
+     * Build a QLab group containing a memo and two network cues
+     * for loading and updating a snapshot.
+     *
+     * Structure:
+     *   Group "Snapshot "<name>"" (mode 2 = start first and go to next)
+     *     ├─ Memo: instructions
+     *     ├─ Network: /wfs/input/snapshot/load <name>  ("Reload "<name>"")
+     *     └─ Network: /wfs/input/snapshot/store <name> ("Update "<name>"")
+     *
+     * @param snapshotName     The snapshot name
+     * @param qlabPatchNumber  QLab network patch to assign to network cues
+     * @return QLabCueSequence with group + 3 child cues
+     */
+    static QLabCueSequence buildSnapshotLoadCue (
+        const juce::String& snapshotName,
+        int qlabPatchNumber)
+    {
+        QLabCueSequence sequence;
+
+        // 1. Group cue (mode 2 = start first and go to next cue)
+        sequence.groupMessages.push_back (juce::OSCMessage ("/new", juce::String ("group")));
+        sequence.groupMessages.push_back (juce::OSCMessage ("/cue/selected/name",
+            LOC("snapshot.qlabGroupName").replace ("{name}", snapshotName)));
+        sequence.groupMessages.push_back (juce::OSCMessage ("/cue/selected/mode", (int) 2));
+
+        // 2. Memo cue (child)
+        {
+            QLabCueSequence::NetworkCue memo;
+            memo.movePosition = 1;
+            memo.messages.push_back (juce::OSCMessage ("/new", juce::String ("memo")));
+            memo.messages.push_back (juce::OSCMessage ("/cue/selected/name",
+                LOC("snapshot.qlabMemoText")));
+            memo.messages.push_back (juce::OSCMessage ("/cue/selected/notes",
+                LOC("snapshot.qlabMemoText")));
+            sequence.networkCues.push_back (std::move (memo));
+        }
+
+        // 3. Reload network cue (child)
+        {
+            QLabCueSequence::NetworkCue reload;
+            reload.movePosition = 2;
+            reload.messages.push_back (juce::OSCMessage ("/new", juce::String ("network")));
+            reload.messages.push_back (juce::OSCMessage ("/cue/selected/patch", qlabPatchNumber));
+            reload.messages.push_back (juce::OSCMessage ("/cue/selected/customString",
+                juce::String ("/wfs/input/snapshot/load " + snapshotName)));
+            reload.messages.push_back (juce::OSCMessage ("/cue/selected/name",
+                LOC("snapshot.qlabReloadName").replace ("{name}", snapshotName)));
+            sequence.networkCues.push_back (std::move (reload));
+        }
+
+        // 4. Update network cue (child)
+        {
+            QLabCueSequence::NetworkCue update;
+            update.movePosition = 3;
+            update.messages.push_back (juce::OSCMessage ("/new", juce::String ("network")));
+            update.messages.push_back (juce::OSCMessage ("/cue/selected/patch", qlabPatchNumber));
+            update.messages.push_back (juce::OSCMessage ("/cue/selected/customString",
+                juce::String ("/wfs/input/snapshot/store " + snapshotName)));
+            update.messages.push_back (juce::OSCMessage ("/cue/selected/name",
+                LOC("snapshot.qlabUpdateName").replace ("{name}", snapshotName)));
+            sequence.networkCues.push_back (std::move (update));
+        }
+
+        return sequence;
     }
 
 private:

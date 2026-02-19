@@ -364,6 +364,16 @@ public:
     std::function<void(int channelIndex, float targetX, float targetY)> onRemotePositionXYUpdated;
 
     //==========================================================================
+    // Snapshot OSC Commands
+    //==========================================================================
+
+    /** Callback when a snapshot load is requested via OSC: /wfs/input/snapshot/load <name> */
+    std::function<void(const juce::String& snapshotName)> onSnapshotLoadRequested;
+
+    /** Callback when a snapshot store is requested via OSC: /wfs/input/snapshot/store <name> */
+    std::function<void(const juce::String& snapshotName)> onSnapshotStoreRequested;
+
+    //==========================================================================
     // QLab Integration
     //==========================================================================
 

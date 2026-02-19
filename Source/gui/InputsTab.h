@@ -418,6 +418,15 @@ public:
     /** Query whether a QLab target is configured */
     std::function<bool()> isQLabAvailable;
 
+    /** Callback to create a QLab cue that loads this snapshot via OSC */
+    std::function<void(const juce::String& snapshotName)> onQLabSnapshotLoadCueRequested;
+
+    /** Refresh UI from ValueTree after external state change (e.g., OSC snapshot load) */
+    void refreshFromState() { loadChannelParameters (currentChannel); }
+
+    /** Refresh the snapshot dropdown list (e.g., after OSC snapshot store) */
+    void refreshSnapshotSelector() { refreshSnapshotList(); updateSnapshotButtonStates(); }
+
     /** Select a specific channel (1-based). Triggers onChannelSelected callback.
      *  Uses programmatic selection to prevent keyboard Enter from triggering overlay.
      */
@@ -5980,6 +5989,9 @@ private:
                                 snapshotSelector.setText(name, juce::dontSendNotification);
                                 updateSnapshotButtonStates();
                                 showStatusMessage(LOC("inputs.messages.snapshotStored").replace("{name}", name));
+
+                                if (writeSnapshotLoadCueEnabled && onQLabSnapshotLoadCueRequested)
+                                    onQLabSnapshotLoadCueRequested (name);
                             }
                             else
                             {
@@ -6107,7 +6119,12 @@ private:
             fileManager.createBackup(file);
 
             if (fileManager.saveInputSnapshotWithExtendedScope(selectedSnapshot, scope))
+            {
                 showStatusMessage(LOC("inputs.messages.snapshotUpdated").replace("{name}", selectedSnapshot));
+
+                if (writeSnapshotLoadCueEnabled && onQLabSnapshotLoadCueRequested)
+                    onQLabSnapshotLoadCueRequested (selectedSnapshot);
+            }
             else
                 showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
         }
@@ -6150,8 +6167,9 @@ private:
         {
             snapshotScopeWindow = std::make_unique<SnapshotScopeWindow>(parameters, windowTitle, *scopePtr);
             snapshotScopeWindow->setQLabAvailable (isQLabAvailable ? isQLabAvailable() : false);
-            snapshotScopeWindow->onWindowClosed = [this, hasSelectedSnapshot, selectedSnapshot](bool saved, bool writeToQLab) {
+            snapshotScopeWindow->onWindowClosed = [this, hasSelectedSnapshot, selectedSnapshot](bool saved, bool writeToQLab, bool writeLoadCue) {
                 writeToQLabEnabled = writeToQLab;
+                writeSnapshotLoadCueEnabled = writeLoadCue;
                 if (saved)
                 {
                     if (hasSelectedSnapshot)
@@ -7199,7 +7217,8 @@ private:
     std::map<juce::String, WFSFileManager::ExtendedSnapshotScope> snapshotScopes;
     WFSFileManager::ExtendedSnapshotScope currentScope;  // Used when no snapshot selected
     bool currentScopeInitialized = false;
-    bool writeToQLabEnabled = false;  // Set by scope window's QLab toggle
+    bool writeToQLabEnabled = false;  // Set by scope window's QLab radio
+    bool writeSnapshotLoadCueEnabled = false;  // Set by scope window's QLab load cue checkbox
 
     // Sub-tab bar
     juce::TabbedButtonBar subTabBar { juce::TabbedButtonBar::TabsAtTop };

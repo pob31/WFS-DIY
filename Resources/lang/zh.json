@@ -1351,13 +1351,19 @@
       "cancel": "取消"
     },
     "writeToQLab": "写入 QLab",
-    "writeToQLabTooltip": "将范围导出到 QLab 而非保存到文件"
+    "writeToQLabTooltip": "将范围导出到 QLab 而非保存到文件",
+    "writeSnapshotLoadCue": "将快照加载提示写入 QLab",
+    "writeSnapshotLoadCueTooltip": "同时创建一个通过 OSC 加载此快照的 QLab 提示"
   },
 
   "snapshot": {
     "qlabNoTarget": "未配置QLab目标",
     "qlabExportStarted": "正在向 QLab 写入 {count} 个 Cue...",
-    "qlabExportDone": "QLab 导出完成：已创建 {count} 个 Cue"
+    "qlabExportDone": "QLab 导出完成：已创建 {count} 个 Cue",
+    "qlabGroupName": "快照 \"{name}\"",
+    "qlabMemoText": "运行以下任一 Cue 来加载或更新此快照",
+    "qlabReloadName": "加载 \"{name}\"",
+    "qlabUpdateName": "更新 \"{name}\""
   },
 
   "setAllInputs": {

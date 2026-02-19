@@ -314,6 +314,20 @@ MainComponent::MainComponent()
                 LOC("snapshot.qlabExportStarted").replace ("{count}", juce::String (cueCount)));
     };
 
+    // QLab snapshot load cue callback
+    inputsTab->onQLabSnapshotLoadCueRequested = [this](const juce::String& snapshotName) {
+        if (!oscManager || !oscManager->hasQLabTarget())
+            return;
+
+        int patchNumber = oscManager->getQLabPatchNumber();
+        auto sequence = WFSNetwork::QLabCueBuilder::buildSnapshotLoadCue (snapshotName, patchNumber);
+
+        oscManager->sendToQLab (sequence, [this, snapshotName](int /*sentCount*/) {
+            if (inputsTab != nullptr)
+                inputsTab->showStatusMessage ("QLab load cue created for: " + snapshotName);
+        });
+    };
+
     // Level Meter window callbacks for InputsTab and OutputsTab
     inputsTab->onLevelMeterWindowRequested = [this]() {
         openLevelMeterWindow();
@@ -529,6 +543,67 @@ MainComponent::MainComponent()
     {
         if (oscManager)
             oscManager->setRemoteSelectedChannel(channelId);
+    };
+
+    // Snapshot OSC command callbacks
+    oscManager->onSnapshotLoadRequested = [this](const juce::String& snapshotName) {
+        auto& fileManager = parameters.getFileManager();
+        if (!fileManager.hasValidProjectFolder())
+        {
+            DBG ("OSC snapshot/load: no project folder configured");
+            return;
+        }
+
+        auto names = fileManager.getInputSnapshotNames();
+        if (!names.contains (snapshotName))
+        {
+            DBG ("OSC snapshot/load: snapshot not found: " << snapshotName);
+            if (inputsTab != nullptr)
+                inputsTab->showStatusMessage ("Snapshot not found: " + snapshotName);
+            return;
+        }
+
+        auto scope = fileManager.getExtendedSnapshotScope (snapshotName);
+
+        if (fileManager.loadInputSnapshotWithExtendedScope (snapshotName, scope))
+        {
+            if (inputsTab != nullptr)
+            {
+                inputsTab->refreshFromState();
+                inputsTab->showStatusMessage (
+                    LOC("inputs.messages.snapshotLoaded").replace ("{name}", snapshotName));
+            }
+            handleConfigReloaded();
+        }
+        else
+        {
+            DBG ("OSC snapshot/load: failed to load: " << fileManager.getLastError());
+        }
+    };
+
+    oscManager->onSnapshotStoreRequested = [this](const juce::String& snapshotName) {
+        auto& fileManager = parameters.getFileManager();
+        if (!fileManager.hasValidProjectFolder())
+        {
+            DBG ("OSC snapshot/store: no project folder configured");
+            return;
+        }
+
+        auto scope = fileManager.getExtendedSnapshotScope (snapshotName);
+
+        if (fileManager.saveInputSnapshotWithExtendedScope (snapshotName, scope))
+        {
+            if (inputsTab != nullptr)
+            {
+                inputsTab->refreshSnapshotSelector();
+                inputsTab->showStatusMessage (
+                    LOC("inputs.messages.snapshotUpdated").replace ("{name}", snapshotName));
+            }
+        }
+        else
+        {
+            DBG ("OSC snapshot/store: failed to save: " << fileManager.getLastError());
+        }
     };
 
     // Connect remote position updates to map repaint

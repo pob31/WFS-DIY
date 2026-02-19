@@ -356,7 +356,7 @@
     "protocols": {
       "disabled": "DISABLED",
       "osc": "OSC",
-      "remote": "REMOTE",
+      "remote": "Remote",
       "admOsc": "ADM-OSC",
       "psn": "PosiStageNet (PSN)",
       "rttrp": "RTTrP",
@@ -1391,13 +1391,19 @@
       "cancel": "Cancel"
     },
     "writeToQLab": "Write to QLab",
-    "writeToQLabTooltip": "Export scope to QLab instead of saving to file"
+    "writeToQLabTooltip": "Export scope to QLab instead of saving to file",
+    "writeSnapshotLoadCue": "Write Snapshot Load Cue to QLab",
+    "writeSnapshotLoadCueTooltip": "Also create a QLab cue to load this snapshot via OSC"
   },
 
   "snapshot": {
     "qlabNoTarget": "No QLab target configured",
     "qlabExportStarted": "Writing {count} cues to QLab...",
-    "qlabExportDone": "QLab export complete: {count} cues created"
+    "qlabExportDone": "QLab export complete: {count} cues created",
+    "qlabGroupName": "Snapshot \"{name}\"",
+    "qlabMemoText": "Run either of the following cues to recall or update this snapshot",
+    "qlabReloadName": "Reload \"{name}\"",
+    "qlabUpdateName": "Update \"{name}\""
   },
 
   "setAllInputs": {
