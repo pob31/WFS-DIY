@@ -31,8 +31,8 @@ protected:
         const auto backgroundColour = trackBackgroundColour.withAlpha(alpha);
         const auto foregroundColour = trackForegroundColour.withAlpha(alpha);
 
-        // Track background uses slider color with 0.24 alpha (matching Android app)
-        g.setColour(foregroundColour.withAlpha(alpha * 0.24f));
+        // Track background uses neutral color from theme (black/dark grey/light grey)
+        g.setColour(ColorScheme::get().sliderTrackBg.withAlpha(alpha));
         g.fillRect(track);
 
         juce::Rectangle<float> active(track);

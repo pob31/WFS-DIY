@@ -117,7 +117,7 @@ private:
         juce::Path inactiveTrack;
         inactiveTrack.addCentredArc(centre.x, centre.y, trackRadius, trackRadius,
                                      0.0f, trackStartAngle, trackEndAngle, true);
-        g.setColour(ColorScheme::get().buttonBorder);
+        g.setColour(ColorScheme::get().sliderTrackBg);
         g.strokePath(inactiveTrack, juce::PathStrokeType(trackWidth, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
 
         // Calculate current needle angle

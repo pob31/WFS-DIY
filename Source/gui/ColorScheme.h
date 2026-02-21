@@ -97,7 +97,7 @@ namespace ColorScheme
         juce::Colour(0xFF266626),  // accentGreenDark
 
         // Sliders
-        juce::Colour(0xFF1E1E1E),  // sliderTrackBg
+        juce::Colour(0xFF000000),  // sliderTrackBg - black on dark theme
         juce::Colours::white,      // sliderThumb - white to match text
 
         // List
@@ -144,7 +144,7 @@ namespace ColorScheme
         juce::Colour(0xFF266626),  // accentGreenDark
 
         // Sliders
-        juce::Colour(0xFF000000),  // sliderTrackBg
+        juce::Colour(0xFF2A2A2A),  // sliderTrackBg - dark grey on OLED theme
         juce::Colour(0xFFE8E8E8),  // sliderThumb - near white to match text
 
         // List
@@ -191,7 +191,7 @@ namespace ColorScheme
         juce::Colour(0xFF2E7D32),  // accentGreenDark
 
         // Sliders
-        juce::Colour(0xFFE0E0E0),  // sliderTrackBg
+        juce::Colour(0xFFD0D0D0),  // sliderTrackBg - light grey on light theme
         juce::Colour(0xFF212121),  // sliderThumb - dark to match text
 
         // List

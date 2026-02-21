@@ -39,8 +39,8 @@ protected:
 
         const auto alpha = isEnabled() ? 1.0f : disabledAlpha;
 
-        // Track background uses slider color with 0.24 alpha (matching Android app)
-        g.setColour(trackForegroundColour.withAlpha(alpha * 0.24f));
+        // Track background uses neutral color from theme (black/dark grey/light grey)
+        g.setColour(ColorScheme::get().sliderTrackBg.withAlpha(alpha));
         g.fillRect(track);
 
         const auto widthFraction = getValue();

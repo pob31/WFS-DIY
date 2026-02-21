@@ -98,7 +98,7 @@ protected:
         const float alpha = isEnabled() ? 1.0f : 0.38f;
 
         // Draw inactive track (full length, behind active)
-        g.setColour (trackActiveColour.withAlpha (alpha * 0.24f));
+        g.setColour (ColorScheme::get().sliderTrackBg.withAlpha (alpha));
         g.fillRect (track);
 
         // Draw active track (between thumbs)
