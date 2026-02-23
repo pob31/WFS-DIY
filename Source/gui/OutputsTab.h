@@ -1289,7 +1289,7 @@ private:
         positionIndicatorForLabel(delayLatencyIndicator, delayLatencyLabel);
         delayLatencyValueLabel.setBounds(row.removeFromRight(130));  // Wider for "Latency: 100.0 ms"
         delayLatencySlider.setBounds(leftCol.removeFromTop(sliderHeight));
-        leftCol.removeFromTop(spacing);
+        leftCol.removeFromTop(spacing * 2);
 
         // Distance Attenuation
         row = leftCol.removeFromTop(rowHeight);
@@ -1297,7 +1297,7 @@ private:
         positionIndicatorForLabel(distanceAttenIndicator, distanceAttenLabel);
         distanceAttenValueLabel.setBounds(row.removeFromRight(valueWidth));
         distanceAttenSlider.setBounds(leftCol.removeFromTop(sliderHeight));
-        leftCol.removeFromTop(spacing * 2);  // Extra space before buttons
+        leftCol.removeFromTop(spacing * 4);  // Extra space before buttons
 
         // Enable buttons - all three on a single row, aligned with sliders above
         row = leftCol.removeFromTop(rowHeight);
@@ -1341,12 +1341,12 @@ private:
         posZEditor.setBounds(row.removeFromLeft(posEditorWidth));
         row.removeFromLeft(4);
         posZUnitLabel.setBounds(row.removeFromLeft(posUnitWidth));
-        rightCol.removeFromTop(spacing * 3);  // 3x spacing before directivity group
+        rightCol.removeFromTop(spacing * 6);  // Extra space before directivity group
 
         // Calculate heights for vertical centering of dial with slider group
         const int dialSize = 100;
         const int dialMargin = 40;
-        const int sliderGroupHeight = 4 * (rowHeight + sliderHeight) + 3 * spacing;  // 4 sliders with spacing
+        const int sliderGroupHeight = 3 * (rowHeight + sliderHeight) + 2 * spacing;  // 3 directivity sliders (Angle On/Off, Pitch)
         const int dialGroupHeight = rowHeight + dialSize + rowHeight;  // label + dial + value
         const int dialTopOffset = (sliderGroupHeight - dialGroupHeight) / 2;
 
@@ -1400,7 +1400,7 @@ private:
         positionIndicatorForLabel(pitchIndicator, pitchLabel);
         pitchValueLabel.setBounds(row.removeFromRight(valueWidth));
         pitchSlider.setBounds(rightCol.removeFromTop(sliderHeight));
-        rightCol.removeFromTop(spacing);
+        rightCol.removeFromTop(spacing * 4);
 
         // HF Damping
         row = rightCol.removeFromTop(rowHeight);
@@ -1408,7 +1408,7 @@ private:
         positionIndicatorForLabel(hfDampingIndicator, hfDampingLabel);
         hfDampingValueLabel.setBounds(row.removeFromRight(valueWidth));
         hfDampingSlider.setBounds(rightCol.removeFromTop(sliderHeight));
-        rightCol.removeFromTop(spacing * 3);  // 3x spacing before parallax
+        rightCol.removeFromTop(spacing * 6);  // Extra space before parallax
 
         // Parallax editors (both on same row, V Parallax starts at center)
         row = rightCol.removeFromTop(rowHeight);
