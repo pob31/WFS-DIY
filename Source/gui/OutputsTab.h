@@ -465,7 +465,7 @@ private:
         addAndMakeVisible(attenuationLabel);
         attenuationLabel.setText(LOC("outputs.labels.attenuation"), juce::dontSendNotification);
 
-        attenuationSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFFFF5722));
+        attenuationSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFF4A90D9));
         attenuationSlider.onGestureStart = [this]() {
             parameters.getValueTreeState().beginUndoTransaction ("Output Attenuation");
         };
@@ -486,7 +486,7 @@ private:
         addAndMakeVisible(delayLatencyLabel);
         delayLatencyLabel.setText(LOC("outputs.labels.delayLatency"), juce::dontSendNotification);
 
-        delayLatencySlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF4CAF50));
+        delayLatencySlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFFD4A017));
         delayLatencySlider.onGestureStart = [this]() {
             parameters.getValueTreeState().beginUndoTransaction ("Output Delay/Latency");
         };
@@ -508,6 +508,7 @@ private:
         minLatencyEnableButton.setButtonText(LOC("outputs.toggles.minLatencyOn"));
         minLatencyEnableButton.setClickingTogglesState(true);
         minLatencyEnableButton.setToggleState(true, juce::dontSendNotification);
+        minLatencyEnableButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFFD4A017));  // Yellow (time)
         minLatencyEnableButton.onClick = [this]() {
             bool enabled = minLatencyEnableButton.getToggleState();
             minLatencyEnableButton.setButtonText(enabled ? LOC("outputs.toggles.minLatencyOn") : LOC("outputs.toggles.minLatencyOff"));
@@ -519,6 +520,7 @@ private:
         liveSourceEnableButton.setButtonText(LOC("outputs.toggles.liveSourceOn"));
         liveSourceEnableButton.setClickingTogglesState(true);
         liveSourceEnableButton.setToggleState(true, juce::dontSendNotification);
+        liveSourceEnableButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFF4A90D9));  // Blue (level)
         liveSourceEnableButton.onClick = [this]() {
             bool enabled = liveSourceEnableButton.getToggleState();
             liveSourceEnableButton.setButtonText(enabled ? LOC("outputs.toggles.liveSourceOn") : LOC("outputs.toggles.liveSourceOff"));
@@ -541,7 +543,7 @@ private:
         addAndMakeVisible(distanceAttenLabel);
         distanceAttenLabel.setText(LOC("outputs.labels.distanceAtten"), juce::dontSendNotification);
 
-        distanceAttenSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFF9C27B0));
+        distanceAttenSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFF4A90D9));
         // Bidirectional slider: center (0) = 100%, no need to set initial value
         distanceAttenSlider.onGestureStart = [this]() {
             parameters.getValueTreeState().beginUndoTransaction ("Output Distance Attenuation");
@@ -756,7 +758,7 @@ private:
         addAndMakeVisible(pitchLabel);
         pitchLabel.setText(LOC("outputs.labels.pitch"), juce::dontSendNotification);
 
-        pitchSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF2196F3));
+        pitchSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF26A69A));
         pitchSlider.onGestureStart = [this]() {
             parameters.getValueTreeState().beginUndoTransaction ("Output Pitch");
         };
@@ -775,7 +777,7 @@ private:
         addAndMakeVisible(hfDampingLabel);
         hfDampingLabel.setText(LOC("outputs.labels.hfDamping"), juce::dontSendNotification);
 
-        hfDampingSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFFFF9800));
+        hfDampingSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFFE07878));
         hfDampingSlider.setValue(1.0f);  // 0 dB/m
         hfDampingSlider.onGestureStart = [this]() {
             parameters.getValueTreeState().beginUndoTransaction ("Output HF Damping");

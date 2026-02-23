@@ -317,7 +317,7 @@ private:
         addAndMakeVisible (attenuationLabel);
         attenuationLabel.setText (LOC("reverbs.labels.attenuation"), juce::dontSendNotification);
 
-        attenuationSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFFF5722));
+        attenuationSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF4A90D9));
         attenuationSlider.onValueChanged = [this] (float v)
         {
             float dB = 20.0f * std::log10 (std::pow (10.0f, -92.0f / 20.0f) +
@@ -339,7 +339,7 @@ private:
         addAndMakeVisible (delayLatencyLabel);
         delayLatencyLabel.setText (LOC("reverbs.labels.delayLatency"), juce::dontSendNotification);
 
-        delayLatencySlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF4CAF50));
+        delayLatencySlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFD4A017));
         delayLatencySlider.onValueChanged = [this] (float v)
         {
             float ms = v * 100.0f;  // -100 to +100 ms (v is -1 to 1)
@@ -554,7 +554,7 @@ private:
         addAndMakeVisible (pitchLabel);
         pitchLabel.setText (LOC("reverbs.labels.pitch"), juce::dontSendNotification);
 
-        pitchSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF00BCD4));
+        pitchSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF26A69A));
         pitchSlider.onValueChanged = [this] (float v)
         {
             int degrees = static_cast<int> (v * 90.0f);  // -90 to +90 (v is -1 to 1)
@@ -575,7 +575,7 @@ private:
         addAndMakeVisible (hfDampingLabel);
         hfDampingLabel.setText (LOC("reverbs.labels.hfDamping"), juce::dontSendNotification);
 
-        hfDampingSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFFF9800));
+        hfDampingSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFE07878));
         hfDampingSlider.onValueChanged = [this] (float v)
         {
             float dB = v * 6.0f - 6.0f;  // -6 to 0 dB/m
@@ -602,7 +602,7 @@ private:
             bool enabled = !miniLatencyEnableButton.getToggleState();
             miniLatencyEnableButton.setToggleState (enabled, juce::dontSendNotification);
             miniLatencyEnableButton.setButtonText (enabled ? LOC("reverbs.toggles.minLatencyOn") : LOC("reverbs.toggles.minLatencyOff"));
-            juce::Colour btnColour = enabled ? juce::Colour (0xFF4CAF50) : juce::Colour (0xFF2D2D2D);
+            juce::Colour btnColour = enabled ? juce::Colour (0xFFD4A017) : juce::Colour (0xFF2D2D2D);
             miniLatencyEnableButton.setColour (juce::TextButton::buttonColourId, btnColour);
             miniLatencyEnableButton.setColour (juce::TextButton::buttonOnColourId, btnColour);
             saveReverbParam (WFSParameterIDs::reverbMiniLatencyEnable, enabled ? 1 : 0);
@@ -617,7 +617,7 @@ private:
             bool enabled = !lsEnableButton.getToggleState();
             lsEnableButton.setToggleState (enabled, juce::dontSendNotification);
             lsEnableButton.setButtonText (enabled ? LOC("reverbs.toggles.liveSourceOn") : LOC("reverbs.toggles.liveSourceOff"));
-            juce::Colour btnColour = enabled ? juce::Colour (0xFF4CAF50) : juce::Colour (0xFF2D2D2D);
+            juce::Colour btnColour = enabled ? juce::Colour (0xFF4A90D9) : juce::Colour (0xFF2D2D2D);
             lsEnableButton.setColour (juce::TextButton::buttonColourId, btnColour);
             lsEnableButton.setColour (juce::TextButton::buttonOnColourId, btnColour);
             saveReverbParam (WFSParameterIDs::reverbLSenable, enabled ? 1 : 0);
@@ -627,7 +627,7 @@ private:
         addAndMakeVisible (distanceAttenEnableLabel);
         distanceAttenEnableLabel.setText (LOC("reverbs.labels.distanceAttenPercent"), juce::dontSendNotification);
 
-        distanceAttenEnableSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF4CAF50));
+        distanceAttenEnableSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF4A90D9));
         distanceAttenEnableSlider.onValueChanged = [this] (float v)
         {
             int percent = static_cast<int> ((v + 1.0f) * 100.0f);  // 0-200% (v is -1 to 1, center is 100%)
@@ -1471,6 +1471,7 @@ private:
         distanceAttenDial.onGestureStart = [this]() {
             parameters.getValueTreeState().beginUndoTransaction ("Reverb Distance Attenuation");
         };
+        distanceAttenDial.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF4A90D9));  // Blue (level)
         addAndMakeVisible (distanceAttenDial);
 
         addAndMakeVisible (distanceAttenValueLabel);
@@ -1495,6 +1496,7 @@ private:
         commonAttenDial.onGestureStart = [this]() {
             parameters.getValueTreeState().beginUndoTransaction ("Reverb Common Attenuation");
         };
+        commonAttenDial.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF4A90D9));  // Blue (level)
         addAndMakeVisible (commonAttenDial);
 
         addAndMakeVisible (commonAttenValueLabel);
@@ -2916,7 +2918,7 @@ private:
         miniLatencyEnableButton.setToggleState (miniLatency != 0, juce::dontSendNotification);
         miniLatencyEnableButton.setButtonText (miniLatency != 0 ? LOC("reverbs.toggles.minLatencyOn") : LOC("reverbs.toggles.minLatencyOff"));
         {
-            juce::Colour btnColour = miniLatency != 0 ? juce::Colour (0xFF4CAF50) : juce::Colour (0xFF2D2D2D);
+            juce::Colour btnColour = miniLatency != 0 ? juce::Colour (0xFFD4A017) : juce::Colour (0xFF2D2D2D);
             miniLatencyEnableButton.setColour (juce::TextButton::buttonColourId, btnColour);
             miniLatencyEnableButton.setColour (juce::TextButton::buttonOnColourId, btnColour);
         }
@@ -2925,7 +2927,7 @@ private:
         lsEnableButton.setToggleState (lsEnable != 0, juce::dontSendNotification);
         lsEnableButton.setButtonText (lsEnable != 0 ? LOC("reverbs.toggles.liveSourceOn") : LOC("reverbs.toggles.liveSourceOff"));
         {
-            juce::Colour btnColour = lsEnable != 0 ? juce::Colour (0xFF4CAF50) : juce::Colour (0xFF2D2D2D);
+            juce::Colour btnColour = lsEnable != 0 ? juce::Colour (0xFF4A90D9) : juce::Colour (0xFF2D2D2D);
             lsEnableButton.setColour (juce::TextButton::buttonColourId, btnColour);
             lsEnableButton.setColour (juce::TextButton::buttonOnColourId, btnColour);
         }
