@@ -1785,7 +1785,7 @@ private:
         frLowCutActiveButton.setButtonText(LOC("inputs.toggles.lowCutOn"));
         frLowCutActiveButton.setClickingTogglesState(true);
         frLowCutActiveButton.setToggleState(true, juce::dontSendNotification);
-        frLowCutActiveButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFFCC5858));  // Red-pink (tone/EQ)
+        frLowCutActiveButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFF6A5BAF));  // Dark violet (low cut)
         frLowCutActiveButton.onClick = [this]() {
             bool enabled = frLowCutActiveButton.getToggleState();
             frLowCutActiveButton.setButtonText(enabled ? LOC("inputs.toggles.lowCutOn") : LOC("inputs.toggles.lowCutOff"));
@@ -1796,7 +1796,7 @@ private:
         // Low Cut Frequency slider (20-20000 Hz)
         addAndMakeVisible(frLowCutFreqLabel);
         frLowCutFreqLabel.setText(LOC("inputs.labels.frequency"), juce::dontSendNotification);
-        frLowCutFreqSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFFCC5858));
+        frLowCutFreqSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFF6A5BAF));
         frLowCutFreqSlider.onGestureStart = [this]() {
             parameters.getValueTreeState().beginUndoTransaction ("Input FR Low Cut Frequency");
         };
@@ -1817,7 +1817,7 @@ private:
         frHighShelfActiveButton.setButtonText(LOC("inputs.toggles.highShelfOn"));
         frHighShelfActiveButton.setClickingTogglesState(true);
         frHighShelfActiveButton.setToggleState(true, juce::dontSendNotification);
-        frHighShelfActiveButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFFE07878));  // Pink (tone/EQ)
+        frHighShelfActiveButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFFA67FC4));  // Light violet (high shelf)
         frHighShelfActiveButton.onClick = [this]() {
             bool enabled = frHighShelfActiveButton.getToggleState();
             frHighShelfActiveButton.setButtonText(enabled ? LOC("inputs.toggles.highShelfOn") : LOC("inputs.toggles.highShelfOff"));
@@ -1828,7 +1828,7 @@ private:
         // High Shelf Frequency slider (20-20000 Hz)
         addAndMakeVisible(frHighShelfFreqLabel);
         frHighShelfFreqLabel.setText(LOC("inputs.labels.frequency"), juce::dontSendNotification);
-        frHighShelfFreqSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFFE07878));
+        frHighShelfFreqSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFFA67FC4));
         frHighShelfFreqSlider.onGestureStart = [this]() {
             parameters.getValueTreeState().beginUndoTransaction ("Input FR High Shelf Frequency");
         };
@@ -1846,7 +1846,7 @@ private:
         // High Shelf Gain slider (-24 to 0 dB)
         addAndMakeVisible(frHighShelfGainLabel);
         frHighShelfGainLabel.setText(LOC("inputs.labels.gain"), juce::dontSendNotification);
-        frHighShelfGainSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFFE07878));
+        frHighShelfGainSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFFA67FC4));
         frHighShelfGainSlider.onGestureStart = [this]() {
             parameters.getValueTreeState().beginUndoTransaction ("Input FR High Shelf Gain");
         };
@@ -1865,7 +1865,7 @@ private:
         // High Shelf Slope slider (0.1-0.9)
         addAndMakeVisible(frHighShelfSlopeLabel);
         frHighShelfSlopeLabel.setText(LOC("inputs.labels.slope"), juce::dontSendNotification);
-        frHighShelfSlopeSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFFE07878));
+        frHighShelfSlopeSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFFA67FC4));
         frHighShelfSlopeSlider.onGestureStart = [this]() {
             parameters.getValueTreeState().beginUndoTransaction ("Input FR High Shelf Slope");
         };
@@ -4191,41 +4191,50 @@ private:
 
         col2.removeFromTop(spacing * 2);
 
-        // Low Cut section (toggle on its own line)
-        frLowCutActiveButton.setBounds(col2.removeFromTop(rowHeight).withWidth(buttonWidth));
-        col2.removeFromTop(spacing);
+        // EQ two-column layout: Low Cut (left) | High Shelf (right)
+        const int eqGap = 10;
+        auto eqArea = col2;  // snapshot before consuming
+        auto eqLeft = eqArea.removeFromLeft((eqArea.getWidth() - eqGap) / 2);
+        eqArea.removeFromLeft(eqGap);
+        auto eqRight = eqArea;
+        const int eqLabelW = 80;
+        const int eqValueW = 60;
 
-        // Low Cut Frequency (label + value on its own line)
-        row = col2.removeFromTop(rowHeight);
-        frLowCutFreqLabel.setBounds(row.removeFromLeft(labelWidth));
-        frLowCutFreqValueLabel.setBounds(row.removeFromRight(valueWidth));
-        frLowCutFreqSlider.setBounds(col2.removeFromTop(sliderHeight));
+        // Row 1: Toggles (aligned)
+        frLowCutActiveButton.setBounds(eqLeft.removeFromTop(rowHeight));
+        frHighShelfActiveButton.setBounds(eqRight.removeFromTop(rowHeight));
+        eqLeft.removeFromTop(spacing);
+        eqRight.removeFromTop(spacing);
 
-        col2.removeFromTop(spacing * 2);
+        // Row 2-3: Frequency label+value then slider (aligned)
+        row = eqLeft.removeFromTop(rowHeight);
+        frLowCutFreqLabel.setBounds(row.removeFromLeft(eqLabelW));
+        frLowCutFreqValueLabel.setBounds(row.removeFromRight(eqValueW));
+        frLowCutFreqSlider.setBounds(eqLeft.removeFromTop(sliderHeight));
 
-        // High Shelf section (toggle on its own line)
-        frHighShelfActiveButton.setBounds(col2.removeFromTop(rowHeight).withWidth(buttonWidth + 20));
-        col2.removeFromTop(spacing);
+        row = eqRight.removeFromTop(rowHeight);
+        frHighShelfFreqLabel.setBounds(row.removeFromLeft(eqLabelW));
+        frHighShelfFreqValueLabel.setBounds(row.removeFromRight(eqValueW));
+        frHighShelfFreqSlider.setBounds(eqRight.removeFromTop(sliderHeight));
+        eqRight.removeFromTop(spacing);
 
-        // High Shelf Frequency
-        row = col2.removeFromTop(rowHeight);
-        frHighShelfFreqLabel.setBounds(row.removeFromLeft(labelWidth));
-        frHighShelfFreqValueLabel.setBounds(row.removeFromRight(valueWidth));
-        frHighShelfFreqSlider.setBounds(col2.removeFromTop(sliderHeight));
-        col2.removeFromTop(spacing);
+        // High Shelf Gain (right column only)
+        row = eqRight.removeFromTop(rowHeight);
+        frHighShelfGainLabel.setBounds(row.removeFromLeft(eqLabelW));
+        frHighShelfGainValueLabel.setBounds(row.removeFromRight(eqValueW));
+        frHighShelfGainSlider.setBounds(eqRight.removeFromTop(sliderHeight));
+        eqRight.removeFromTop(spacing);
 
-        // High Shelf Gain
-        row = col2.removeFromTop(rowHeight);
-        frHighShelfGainLabel.setBounds(row.removeFromLeft(labelWidth));
-        frHighShelfGainValueLabel.setBounds(row.removeFromRight(valueWidth));
-        frHighShelfGainSlider.setBounds(col2.removeFromTop(sliderHeight));
-        col2.removeFromTop(spacing);
+        // High Shelf Slope (right column only)
+        row = eqRight.removeFromTop(rowHeight);
+        frHighShelfSlopeLabel.setBounds(row.removeFromLeft(eqLabelW));
+        frHighShelfSlopeValueLabel.setBounds(row.removeFromRight(eqValueW));
+        frHighShelfSlopeSlider.setBounds(eqRight.removeFromTop(sliderHeight));
 
-        // High Shelf Slope
-        row = col2.removeFromTop(rowHeight);
-        frHighShelfSlopeLabel.setBounds(row.removeFromLeft(labelWidth));
-        frHighShelfSlopeValueLabel.setBounds(row.removeFromRight(valueWidth));
-        frHighShelfSlopeSlider.setBounds(col2.removeFromTop(sliderHeight));
+        // Advance col2 past the EQ section
+        int eqHeight = rowHeight + spacing + rowHeight + sliderHeight + spacing
+                      + (rowHeight + sliderHeight + spacing) * 2 + rowHeight + sliderHeight;
+        col2.removeFromTop(eqHeight);
 
         // Mute Sends to Reverbs (vertically centered in remaining space)
         int sendsTopPad = (col2.getHeight() - rowHeight) / 2;
