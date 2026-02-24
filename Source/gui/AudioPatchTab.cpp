@@ -1,5 +1,6 @@
 #include "AudioPatchTab.h"
 #include "ColorScheme.h"
+#include "WfsLookAndFeel.h"
 #include <cmath>
 
 //==============================================================================
@@ -243,14 +244,17 @@ InputPatchTab::InputPatchTab(WFSValueTreeState& valueTreeState)
 
 void InputPatchTab::resized()
 {
+    const float us = WfsLookAndFeel::uiScale;
+    auto sc = [us](int ref) { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * us)); };
+
     auto bounds = getLocalBounds();
 
     // Mode buttons at top
-    auto buttonBar = bounds.removeFromTop(40);
-    buttonBar.reduce(10, 5);
+    auto buttonBar = bounds.removeFromTop(sc(40));
+    buttonBar.reduce(sc(10), sc(5));
 
-    const int buttonWidth = 100;
-    const int buttonSpacing = 10;
+    const int buttonWidth = sc(100);
+    const int buttonSpacing = sc(10);
 
     scrollingButton.setBounds(buttonBar.removeFromLeft(buttonWidth));
     buttonBar.removeFromLeft(buttonSpacing);
@@ -482,14 +486,17 @@ OutputPatchTab::OutputPatchTab(WFSValueTreeState& valueTreeState,
 
 void OutputPatchTab::resized()
 {
+    const float us = WfsLookAndFeel::uiScale;
+    auto sc = [us](int ref) { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * us)); };
+
     auto bounds = getLocalBounds();
 
     // Mode buttons at top
-    auto buttonBar = bounds.removeFromTop(40);
-    buttonBar.reduce(10, 5);
+    auto buttonBar = bounds.removeFromTop(sc(40));
+    buttonBar.reduce(sc(10), sc(5));
 
-    const int buttonWidth = 100;
-    const int buttonSpacing = 10;
+    const int buttonWidth = sc(100);
+    const int buttonSpacing = sc(10);
 
     scrollingButton.setBounds(buttonBar.removeFromLeft(buttonWidth));
     buttonBar.removeFromLeft(buttonSpacing);
@@ -504,22 +511,22 @@ void OutputPatchTab::resized()
     if (signalTypeCombo.isVisible())
     {
         buttonBar.removeFromLeft(buttonSpacing * 2);  // Extra spacing before controls
-        signalTypeCombo.setBounds(buttonBar.removeFromLeft(100));
+        signalTypeCombo.setBounds(buttonBar.removeFromLeft(sc(100)));
 
         buttonBar.removeFromLeft(buttonSpacing);
-        holdButton.setBounds(buttonBar.removeFromLeft(60));
+        holdButton.setBounds(buttonBar.removeFromLeft(sc(60)));
         buttonBar.removeFromLeft(buttonSpacing);
-        levelSlider.setBounds(buttonBar.removeFromLeft(120));
-        buttonBar.removeFromLeft(4);
-        levelValueLabel.setBounds(buttonBar.removeFromLeft(65));
+        levelSlider.setBounds(buttonBar.removeFromLeft(sc(120)));
+        buttonBar.removeFromLeft(sc(4));
+        levelValueLabel.setBounds(buttonBar.removeFromLeft(sc(65)));
 
         // Frequency slider (only for Tone mode) - after level
         if (frequencySlider.isVisible())
         {
             buttonBar.removeFromLeft(buttonSpacing);
-            frequencySlider.setBounds(buttonBar.removeFromLeft(120));
-            buttonBar.removeFromLeft(4);
-            frequencyValueLabel.setBounds(buttonBar.removeFromLeft(55));
+            frequencySlider.setBounds(buttonBar.removeFromLeft(sc(120)));
+            buttonBar.removeFromLeft(sc(4));
+            frequencyValueLabel.setBounds(buttonBar.removeFromLeft(sc(55)));
         }
 
         // Status message in remaining space (right-aligned before Unpatch All)

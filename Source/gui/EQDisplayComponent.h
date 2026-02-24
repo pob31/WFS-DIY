@@ -160,7 +160,7 @@ public:
 
             // Draw "EQ OFF" text
             g.setColour (ColorScheme::get().textSecondary);
-            g.setFont (juce::FontOptions (24.0f));
+            g.setFont (juce::FontOptions (juce::jmax(14.0f, 24.0f * paintScale())));
             g.drawText (LOC("eq.status.off"), getLocalBounds(), juce::Justification::centred);
         }
     }
@@ -566,6 +566,9 @@ public:
     }
 
 private:
+    /** Scale factor for paint operations, based on component height vs 180px reference */
+    float paintScale() const { return juce::jmax(0.65f, static_cast<float>(getHeight()) / 180.0f); }
+
     //==========================================================================
     // ValueTree::Listener
     //==========================================================================
@@ -631,19 +634,23 @@ private:
         }
 
         // Frequency labels
+        float ps = paintScale();
         g.setColour (ColorScheme::get().textSecondary);
-        g.setFont (10.0f);
+        g.setFont (juce::jmax(7.0f, 10.0f * ps));
 
         const float labelFreqs[] = { 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000 };
         const char* labelTexts[] = { "20", "50", "100", "200", "500", "1k", "2k", "5k", "10k", "20k" };
 
+        int freqLabelW = static_cast<int>(30 * ps);
+        int freqLabelH = static_cast<int>(12 * ps);
+        int freqLabelOff = static_cast<int>(15 * ps);
         for (int i = 0; i < 10; ++i)
         {
             float x = frequencyToX (labelFreqs[i]);
             g.drawText (labelTexts[i],
-                        static_cast<int> (x) - 15,
-                        static_cast<int> (bounds.getBottom()) - 15,
-                        30, 12,
+                        static_cast<int> (x) - freqLabelOff,
+                        static_cast<int> (bounds.getBottom()) - freqLabelOff,
+                        freqLabelW, freqLabelH,
                         juce::Justification::centred);
         }
 
@@ -667,7 +674,7 @@ private:
             // dB labels
             g.setColour (ColorScheme::get().textSecondary);
             juce::String label = (dB > 0 ? "+" : "") + juce::String (static_cast<int> (dB));
-            g.drawText (label, 2, static_cast<int> (y) - 6, 25, 12,
+            g.drawText (label, static_cast<int>(2 * ps), static_cast<int> (y) - static_cast<int>(6 * ps), static_cast<int>(25 * ps), static_cast<int>(12 * ps),
                         juce::Justification::left);
         }
     }
@@ -728,7 +735,8 @@ private:
                 bandColour = bandColour.darker (0.6f);
 
             bool isSelected = (selectedBand == band);
-            float markerSize = isSelected ? 28.0f : 20.0f;
+            float ps = paintScale();
+            float markerSize = isSelected ? 28.0f * ps : 20.0f * ps;
 
             // Draw marker circle
             g.setColour (bandColour);
@@ -738,8 +746,9 @@ private:
             if (isSelected)
             {
                 g.setColour (ColorScheme::get().textPrimary);
-                g.drawEllipse (x - markerSize / 2 - 3, y - markerSize / 2 - 3,
-                               markerSize + 6, markerSize + 6, 2.0f);
+                float ringOff = 3.0f * ps;
+                g.drawEllipse (x - markerSize / 2 - ringOff, y - markerSize / 2 - ringOff,
+                               markerSize + ringOff * 2, markerSize + ringOff * 2, 2.0f * ps);
 
                 // Crosshair lines for selected band (including off bands)
                 {
@@ -763,7 +772,7 @@ private:
 
             // Band number
             g.setColour (juce::Colours::black);
-            g.setFont (juce::FontOptions (18.0f, juce::Font::bold));
+            g.setFont (juce::FontOptions (juce::jmax(10.0f, 18.0f * ps), juce::Font::bold));
             g.drawText (juce::String (band + 1),
                         static_cast<int> (x - markerSize / 2), static_cast<int> (y - markerSize / 2),
                         static_cast<int> (markerSize), static_cast<int> (markerSize),
@@ -1046,7 +1055,7 @@ private:
 
     int findBandAtPosition (juce::Point<float> pos)
     {
-        const float hitRadius = 15.0f;
+        const float hitRadius = 15.0f * paintScale();
         const float hitRadiusSq = hitRadius * hitRadius;
 
         for (int band = 0; band < numBands; ++band)
@@ -1110,7 +1119,7 @@ private:
             markerY = getBandMarkerPosition (selectedBand).y;
         }
 
-        const float hitTolerance = 8.0f;
+        const float hitTolerance = 8.0f * paintScale();
 
         EQFilterType filterType = shapeToFilterType (shape);
         bool noGainControl = (filterType == EQFilterType::LowCut ||
@@ -1165,7 +1174,7 @@ private:
     {
         int nearestBand = -1;
         float nearestDistSq = (std::numeric_limits<float>::max)();
-        const float maxSearchRadius = 150.0f;  // Max distance to consider
+        const float maxSearchRadius = 150.0f * paintScale();  // Max distance to consider
         const float maxSearchRadiusSq = maxSearchRadius * maxSearchRadius;
 
         for (int band = 0; band < numBands; ++band)

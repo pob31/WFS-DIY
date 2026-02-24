@@ -1,6 +1,7 @@
 #pragma once
 
 #include "WfsSliderBase.h"
+#include "../WfsLookAndFeel.h"
 
 class WfsStandardSlider : public WfsSliderBase
 {
@@ -56,7 +57,7 @@ protected:
         if (labelText.isNotEmpty())
         {
             g.setColour(juce::Colours::white.withAlpha(alpha));
-            g.setFont(14.0f);
+            g.setFont(juce::jmax(10.0f, 14.0f * WfsLookAndFeel::uiScale));
             g.drawText(labelText,
                        getLocalBounds().withBottom(juce::roundToInt(usable.getY()) - 4),
                        juce::Justification::centredBottom,

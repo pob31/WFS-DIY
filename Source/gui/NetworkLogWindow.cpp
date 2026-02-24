@@ -51,15 +51,17 @@ NetworkLogTableComponent::NetworkLogTableComponent()
 
 void NetworkLogTableComponent::setupColumns()
 {
+    const float us = WfsLookAndFeel::uiScale;
+    auto sc = [us](int ref) { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * us)); };
     columns.clear();
-    columns.push_back({ LOC("networkLog.columns.time"), 85, false });
-    columns.push_back({ LOC("networkLog.columns.direction"), 35, false });
-    columns.push_back({ LOC("networkLog.columns.ip"), 110, false });
-    columns.push_back({ LOC("networkLog.columns.port"), 50, false });
-    columns.push_back({ LOC("networkLog.columns.transport"), 45, false });
-    columns.push_back({ LOC("networkLog.columns.protocol"), 65, false });
-    columns.push_back({ LOC("networkLog.columns.address"), 180, false });
-    columns.push_back({ LOC("networkLog.columns.arguments"), 200, true });  // Flexible column
+    columns.push_back({ LOC("networkLog.columns.time"), sc(85), false });
+    columns.push_back({ LOC("networkLog.columns.direction"), sc(35), false });
+    columns.push_back({ LOC("networkLog.columns.ip"), sc(110), false });
+    columns.push_back({ LOC("networkLog.columns.port"), sc(50), false });
+    columns.push_back({ LOC("networkLog.columns.transport"), sc(45), false });
+    columns.push_back({ LOC("networkLog.columns.protocol"), sc(65), false });
+    columns.push_back({ LOC("networkLog.columns.address"), sc(180), false });
+    columns.push_back({ LOC("networkLog.columns.arguments"), sc(200), true });  // Flexible column
 }
 
 void NetworkLogTableComponent::setEntries(const std::vector<WFSNetwork::LogEntry>& newEntries)
@@ -124,7 +126,7 @@ void NetworkLogTableComponent::paint(juce::Graphics& g)
     int firstVisibleRow = scrollOffset / rowHeight;
     int startY = -(scrollOffset % rowHeight);
 
-    g.reduceClipRegion(0, headerHeight, bounds.getWidth() - 12, viewHeight);
+    g.reduceClipRegion(0, headerHeight, bounds.getWidth() - scrollBarWidth, viewHeight);
 
     for (int i = firstVisibleRow; i < static_cast<int>(entries.size()); ++i)
     {
@@ -144,10 +146,10 @@ void NetworkLogTableComponent::drawHeader(juce::Graphics& g)
     g.fillRect(0, 0, getWidth(), headerHeight);
 
     g.setColour(ColorScheme::get().textPrimary);
-    g.setFont(juce::FontOptions(13.0f).withStyle("Bold"));
+    g.setFont(juce::FontOptions(juce::jmax(9.0f, 13.0f * WfsLookAndFeel::uiScale)).withStyle("Bold"));
 
-    int x = 4;
-    int availableWidth = getWidth() - 12;  // Account for scrollbar
+    int x = textPad;
+    int availableWidth = getWidth() - scrollBarWidth;  // Account for scrollbar
     int fixedWidth = 0;
     int flexCount = 0;
 
@@ -164,7 +166,7 @@ void NetworkLogTableComponent::drawHeader(juce::Graphics& g)
     for (const auto& col : columns)
     {
         int colWidth = col.flexible ? juce::jmax(col.width, flexWidth) : col.width;
-        g.drawText(col.name, x, 0, colWidth - 4, headerHeight, juce::Justification::centredLeft, true);
+        g.drawText(col.name, x, 0, colWidth - textPad, headerHeight, juce::Justification::centredLeft, true);
         x += colWidth;
     }
 
@@ -175,7 +177,7 @@ void NetworkLogTableComponent::drawHeader(juce::Graphics& g)
 
 void NetworkLogTableComponent::drawRow(juce::Graphics& g, int rowIndex, int y, const WFSNetwork::LogEntry& entry)
 {
-    int availableWidth = getWidth() - 12;
+    int availableWidth = getWidth() - scrollBarWidth;
 
     // Alternate row background
     if (rowIndex % 2 == 1)
@@ -201,9 +203,9 @@ void NetworkLogTableComponent::drawRow(juce::Graphics& g, int rowIndex, int y, c
 
     // Text
     g.setColour(entry.isRejected ? juce::Colour(0xFFCC8888) : ColorScheme::get().textPrimary);
-    g.setFont(juce::FontOptions(12.0f));
+    g.setFont(juce::FontOptions(juce::jmax(8.0f, 12.0f * WfsLookAndFeel::uiScale)));
 
-    int x = 4;
+    int x = textPad;
     int fixedWidth = 0;
     int flexCount = 0;
 
@@ -224,7 +226,7 @@ void NetworkLogTableComponent::drawRow(juce::Graphics& g, int rowIndex, int y, c
             : columns[static_cast<size_t>(i)].width;
 
         juce::String value = getColumnValue(entry, i);
-        g.drawText(value, x, y, colWidth - 4, rowHeight, juce::Justification::centredLeft, true);
+        g.drawText(value, x, y, colWidth - textPad, rowHeight, juce::Justification::centredLeft, true);
         x += colWidth;
     }
 }
@@ -257,9 +259,14 @@ juce::String NetworkLogTableComponent::getColumnValue(const WFSNetwork::LogEntry
 
 void NetworkLogTableComponent::resized()
 {
+    rowHeight = juce::jmax(14, static_cast<int>(20.0f * WfsLookAndFeel::uiScale));
+    headerHeight = juce::jmax(16, static_cast<int>(24.0f * WfsLookAndFeel::uiScale));
+    scrollBarWidth = juce::jmax(10, static_cast<int>(12.0f * WfsLookAndFeel::uiScale));
+    textPad = juce::jmax(2, static_cast<int>(4.0f * WfsLookAndFeel::uiScale));
+    setupColumns();  // Re-scale column widths
     auto bounds = getLocalBounds();
-    verticalScrollBar.setBounds(bounds.getWidth() - 12, headerHeight,
-                                 12, bounds.getHeight() - headerHeight);
+    verticalScrollBar.setBounds(bounds.getWidth() - scrollBarWidth, headerHeight,
+                                 scrollBarWidth, bounds.getHeight() - headerHeight);
     updateScrollBar();
 }
 
@@ -413,50 +420,52 @@ void NetworkLogWindowContent::paint(juce::Graphics& g)
 
 void NetworkLogWindowContent::resized()
 {
+    const float us = WfsLookAndFeel::uiScale;
+    auto sc = [us](int ref) { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * us)); };
+
     auto bounds = getLocalBounds();
-    int y = 8;
+    int y = sc(8);
 
     // Top control bar
-    int controlHeight = 28;
-    int x = 8;
-    int spacing = 8;
+    int controlHeight = sc(28);
+    int x = sc(8);
+    int spacing = sc(8);
 
-    loggingSwitch.setBounds(x, y, 80, controlHeight);
-    x += 80 + spacing;
+    loggingSwitch.setBounds(x, y, sc(80), controlHeight);
+    x += sc(80) + spacing;
 
-    clearButton.setBounds(x, y, 60, controlHeight);
-    x += 60 + spacing;
+    clearButton.setBounds(x, y, sc(60), controlHeight);
+    x += sc(60) + spacing;
 
-    exportButton.setBounds(x, y, 70, controlHeight);
-    x += 70 + spacing;
+    exportButton.setBounds(x, y, sc(70), controlHeight);
+    x += sc(70) + spacing;
 
-    filterModeSelector.setBounds(x, y, 100, controlHeight);
-    x += 100 + spacing;
+    filterModeSelector.setBounds(x, y, sc(100), controlHeight);
+    x += sc(100) + spacing;
 
-    hideHeartbeatToggle.setBounds(x, y, 130, controlHeight);
-    x += 130 + spacing;
+    hideHeartbeatToggle.setBounds(x, y, sc(130), controlHeight);
 
     // Navigation buttons on right
-    int navWidth = 30;
-    bottomButton.setBounds(bounds.getWidth() - navWidth - 8, y, navWidth, controlHeight);
-    topButton.setBounds(bounds.getWidth() - navWidth * 2 - 12, y, navWidth, controlHeight);
+    int navWidth = sc(30);
+    bottomButton.setBounds(bounds.getWidth() - navWidth - sc(8), y, navWidth, controlHeight);
+    topButton.setBounds(bounds.getWidth() - navWidth * 2 - sc(12), y, navWidth, controlHeight);
 
-    y += controlHeight + 8;
+    y += controlHeight + sc(8);
 
     // Filter toggles row
-    int toggleHeight = 24;
-    x = 8;
+    int toggleHeight = sc(24);
+    x = sc(8);
     for (auto* toggle : filterToggles)
     {
-        int toggleWidth = toggle->getButtonText().length() * 8 + 24;
+        int toggleWidth = toggle->getButtonText().length() * sc(8) + sc(24);
         toggle->setBounds(x, y, toggleWidth, toggleHeight);
-        x += toggleWidth + 4;
+        x += toggleWidth + sc(4);
     }
 
-    y += toggleHeight + 8;
+    y += toggleHeight + sc(8);
 
     // Table fills remaining space
-    logTable->setBounds(8, y, bounds.getWidth() - 16, bounds.getHeight() - y - 8);
+    logTable->setBounds(sc(8), y, bounds.getWidth() - sc(16), bounds.getHeight() - y - sc(8));
 }
 
 void NetworkLogWindowContent::timerCallback()

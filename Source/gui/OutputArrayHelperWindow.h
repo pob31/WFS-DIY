@@ -247,6 +247,10 @@ private:
     void layoutAcousticSection(juce::Rectangle<int>& area);
     void layoutTargetSection(juce::Rectangle<int>& area);
 
+    // Scaling
+    float layoutScale = 1.0f;
+    int scaled(int ref) const { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * layoutScale)); }
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OutputArrayHelperContent)
 };
 
@@ -273,21 +277,24 @@ public:
         content->setName(LOC("arrayHelper.window.contentName"));  // Accessible name for screen readers
         setContentOwned(content.get(), false);
 
-        // Set size with display awareness
-        const int preferredWidth = 1050;
-        const int preferredHeight = 700;
-
+        // Set size with display awareness — scale with display resolution
         auto& displays = juce::Desktop::getInstance().getDisplays();
         const auto* displayPtr = displays.getPrimaryDisplay();
         juce::Rectangle<int> userArea = (displayPtr != nullptr && !displayPtr->userArea.isEmpty())
             ? displayPtr->userArea
             : displays.getTotalBounds(true);
 
+        float ds = static_cast<float>(userArea.getHeight()) / 1080.0f;
+        auto dsc = [ds](int ref) { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * ds)); };
+
+        const int preferredWidth = dsc(1050);
+        const int preferredHeight = dsc(700);
+
         const int margin = 40;
         const int windowWidth = juce::jmin(preferredWidth, userArea.getWidth() - margin);
         const int windowHeight = juce::jmin(preferredHeight, userArea.getHeight() - margin);
 
-        setResizeLimits(700, 500, userArea.getWidth(), userArea.getHeight());
+        setResizeLimits(dsc(700), dsc(500), userArea.getWidth(), userArea.getHeight());
         centreWithSize(windowWidth, windowHeight);
         setVisible(true);
         WindowUtils::enableDarkTitleBar(this);

@@ -213,32 +213,108 @@ public:
 
     juce::Font getTextButtonFont(juce::TextButton&, int buttonHeight) override
     {
-        return juce::Font(juce::FontOptions(juce::jmin(15.0f, (float)buttonHeight * 0.6f)));
+        return juce::Font(juce::FontOptions(juce::jmin(15.0f * uiScale, (float)buttonHeight * 0.50f)));
     }
 
     juce::Font getLabelFont(juce::Label& label) override
     {
-        return label.getFont();
+        // ComboBox internal labels already have a scaled font set by getComboBoxFont
+        // via positionComboBoxText — don't double-scale them
+        if (dynamic_cast<juce::ComboBox*>(label.getParentComponent()) != nullptr)
+            return label.getFont();
+
+        auto f = label.getFont();
+        return f.withHeight(juce::jmax(10.0f, f.getHeight() * uiScale));
     }
 
     juce::Font getComboBoxFont(juce::ComboBox& box) override
     {
-        return juce::Font(juce::FontOptions(juce::jmin(15.0f, (float)box.getHeight() * 0.85f)));
+        return juce::Font(juce::FontOptions(juce::jmin(15.0f * uiScale, (float)box.getHeight() * 0.55f)));
     }
 
     juce::Font getPopupMenuFont() override
     {
-        return juce::Font(juce::FontOptions(14.0f));
+        return juce::Font(juce::FontOptions(juce::jmax(10.0f, 14.0f * uiScale)));
     }
 
     juce::Font getAlertWindowMessageFont() override
     {
-        return juce::Font(juce::FontOptions(14.0f));
+        return juce::Font(juce::FontOptions(juce::jmax(10.0f, 14.0f * uiScale)));
     }
 
     juce::Font getAlertWindowTitleFont() override
     {
-        return juce::Font(juce::FontOptions(17.0f).withStyle("Bold"));
+        return juce::Font(juce::FontOptions(juce::jmax(12.0f, 17.0f * uiScale)).withStyle("Bold"));
+    }
+
+    //==========================================================================
+    // Tooltip drawing - scale font and bounds for high-DPI
+
+    void drawTooltip(juce::Graphics& g, const juce::String& text, int width, int height) override
+    {
+        auto bounds = juce::Rectangle<int>(width, height);
+        g.setColour(findColour(juce::TooltipWindow::backgroundColourId));
+        g.fillRoundedRectangle(bounds.toFloat(), 4.0f);
+        g.setColour(findColour(juce::TooltipWindow::outlineColourId));
+        g.drawRoundedRectangle(bounds.toFloat().reduced(0.5f), 4.0f, 1.0f);
+        g.setColour(findColour(juce::TooltipWindow::textColourId));
+        g.setFont(juce::FontOptions(juce::jmax(10.0f, 13.0f * uiScale)));
+        g.drawFittedText(text, bounds.reduced(static_cast<int>(4.0f * uiScale)),
+                         juce::Justification::centred, 4);
+    }
+
+    juce::Rectangle<int> getTooltipBounds(const juce::String& tipText,
+                                           juce::Point<int> screenPos,
+                                           juce::Rectangle<int> parentArea) override
+    {
+        auto font = juce::Font(juce::FontOptions(juce::jmax(10.0f, 13.0f * uiScale)));
+        const int maxWidth = static_cast<int>(400.0f * uiScale);
+        const int pad = static_cast<int>(8.0f * uiScale);
+
+        juce::AttributedString s;
+        s.setJustification(juce::Justification::centredLeft);
+        s.append(tipText, font, findColour(juce::TooltipWindow::textColourId));
+
+        juce::TextLayout tl;
+        tl.createLayout(s, static_cast<float>(maxWidth));
+
+        auto w = static_cast<int>(tl.getWidth()) + pad * 2;
+        auto h = static_cast<int>(tl.getHeight()) + pad;
+
+        return juce::Rectangle<int>(screenPos.x > parentArea.getCentreX() ? screenPos.x - (w + 12) : screenPos.x + 24,
+                                     screenPos.y > parentArea.getCentreY() ? screenPos.y - (h + 6) : screenPos.y + 6,
+                                     w, h)
+                .constrainedWithin(parentArea);
+    }
+
+    //==========================================================================
+    // Toggle button drawing - scale tick box size for high-DPI
+
+    void drawToggleButton(juce::Graphics& g, juce::ToggleButton& button,
+                          bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown) override
+    {
+        auto fontSize = juce::jmin(15.0f * uiScale, (float)button.getHeight() * 0.75f);
+        auto tickWidth = fontSize * 1.1f;
+
+        drawTickBox(g, button, 4.0f * uiScale,
+                    ((float)button.getHeight() - tickWidth) * 0.5f,
+                    tickWidth, tickWidth,
+                    button.getToggleState(),
+                    button.isEnabled(),
+                    shouldDrawButtonAsHighlighted,
+                    shouldDrawButtonAsDown);
+
+        g.setColour(button.findColour(juce::ToggleButton::textColourId));
+        g.setFont(juce::FontOptions(fontSize));
+
+        if (!button.isEnabled())
+            g.setOpacity(0.5f);
+
+        g.drawFittedText(button.getButtonText(),
+                         button.getLocalBounds()
+                             .withTrimmedLeft(juce::roundToInt(tickWidth) + static_cast<int>(10.0f * uiScale))
+                             .withTrimmedRight(2),
+                         juce::Justification::centredLeft, 10);
     }
 
     //==========================================================================
@@ -268,8 +344,9 @@ public:
         // Draw bottom border for selected tab (accent color indicator)
         if (isFrontTab)
         {
+            int borderH = juce::jmax(2, static_cast<int>(3.0f * uiScale));
             g.setColour(colors.tabSelected);
-            g.fillRect(area.getX(), area.getBottom() - 3, area.getWidth(), 3);
+            g.fillRect(area.getX(), area.getBottom() - borderH, area.getWidth(), borderH);
         }
 
         // Text color based on state
@@ -277,7 +354,7 @@ public:
         g.setColour(textColor);
 
         // Draw the tab text with larger bold font
-        auto font = juce::Font(juce::FontOptions(15.0f).withStyle("Bold"));
+        auto font = juce::Font(juce::FontOptions(juce::jmax(10.0f, 15.0f * uiScale)).withStyle("Bold"));
         g.setFont(font);
         g.drawText(button.getButtonText(), area, juce::Justification::centred, true);
     }
@@ -286,7 +363,23 @@ public:
     {
         // Return fixed width so all tabs are equal size
         // Width calculated to fit "Live Source & Hackoustics" with generous padding
-        return 220;
+        return juce::jmax(140, static_cast<int>(220.0f * uiScale));
+    }
+
+    /** Global UI scale factor, set by MainComponent in its resized().
+     *  1.0 = 1080p reference height. Used for font/tab scaling.
+     */
+    static inline float uiScale = 1.0f;
+
+    /** Scale TextEditor fonts for all direct TextEditor children of a component.
+     *  Call in each tab's resized() to keep number boxes proportional.
+     */
+    static void scaleTextEditorFonts(juce::Component& parent, float scale)
+    {
+        auto font = juce::Font(juce::FontOptions(juce::jmax(10.0f, 14.0f * scale)));
+        for (int i = 0; i < parent.getNumChildComponents(); ++i)
+            if (auto* te = dynamic_cast<juce::TextEditor*>(parent.getChildComponent(i)))
+                te->applyFontToAllText(font, true);
     }
 
 private:

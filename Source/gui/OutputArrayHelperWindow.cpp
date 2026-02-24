@@ -1,5 +1,6 @@
 #include "OutputArrayHelperWindow.h"
 #include "ColorScheme.h"
+#include "WfsLookAndFeel.h"
 #include "../Localization/LocalizationManager.h"
 
 //==============================================================================
@@ -259,8 +260,9 @@ void ArrayPreviewComponent::paint(juce::Graphics& g)
     g.drawEllipse(origin.x - 5, origin.y - 5, 10, 10, 1.0f);
 
     // Draw calculated speaker positions
-    const float speakerRadius = 8.0f;
-    const float arrowLength = 15.0f;
+    const float ls = static_cast<float>(getHeight()) / 350.0f;  // preview scale factor
+    const float speakerRadius = juce::jmax(4.0f, juce::jmin(10.0f, 8.0f * ls));
+    const float arrowLength = juce::jmax(8.0f, juce::jmin(18.0f, 15.0f * ls));
 
     for (size_t i = 0; i < speakerPositions.size(); ++i)
     {
@@ -284,15 +286,17 @@ void ArrayPreviewComponent::paint(juce::Graphics& g)
 
         // Draw speaker number
         g.setColour(ColorScheme::get().textPrimary);
-        g.setFont(10.0f);
+        g.setFont(juce::jmax(7.0f, 10.0f * ls));
+        float labelW = juce::jmax(20.0f, 30.0f * ls);
+        float labelH = juce::jmax(8.0f, 12.0f * ls);
         g.drawText(juce::String(i + 1),
-                   juce::Rectangle<float>(screenPos.x - 15, screenPos.y - speakerRadius - 15, 30, 12),
+                   juce::Rectangle<float>(screenPos.x - labelW / 2, screenPos.y - speakerRadius - labelH - 3.0f * ls, labelW, labelH),
                    juce::Justification::centred);
     }
 
     // Draw "Audience" label(s) based on stage shape and preset
     g.setColour(ColorScheme::get().textSecondary);
-    g.setFont(12.0f);
+    g.setFont(juce::jmax(8.0f, 12.0f * ls));
 
     // isCircular already defined above
     bool isCirclePreset = (currentPreset == ArrayPresetType::Circle);
@@ -643,20 +647,21 @@ void OutputArrayHelperContent::paint(juce::Graphics& g)
 
 void OutputArrayHelperContent::resized()
 {
+    layoutScale = static_cast<float>(getHeight()) / 700.0f;
     auto bounds = getLocalBounds();
-    const int padding = 10;
-    const int rowHeight = 28;
+    const int padding = scaled(10);
+    const int rowHeight = scaled(28);
 
     // Footer with buttons
-    auto footer = bounds.removeFromBottom(50).reduced(padding, 10);
-    auto buttonWidth = 100;
-    auto buttonSpacing = 10;
+    auto footer = bounds.removeFromBottom(scaled(50)).reduced(padding, scaled(10));
+    auto buttonWidth = scaled(100);
+    auto buttonSpacing = scaled(10);
 
     closeButton.setBounds(footer.removeFromRight(buttonWidth));
     footer.removeFromRight(buttonSpacing);
     applyButton.setBounds(footer.removeFromRight(buttonWidth));
 
-    statusLabel.setBounds(footer.reduced(5, 0));
+    statusLabel.setBounds(footer.reduced(scaled(5), 0));
 
     // Main content area
     auto contentArea = bounds.reduced(padding);
@@ -674,7 +679,7 @@ void OutputArrayHelperContent::resized()
 
     // Preset selector
     auto presetRow = area.removeFromTop(rowHeight);
-    presetLabel.setBounds(presetRow.removeFromLeft(80));
+    presetLabel.setBounds(presetRow.removeFromLeft(scaled(80)));
     presetSelector.setBounds(presetRow);
     area.removeFromTop(padding);
 
@@ -688,20 +693,22 @@ void OutputArrayHelperContent::resized()
 
     // Target section
     layoutTargetSection(area);
+
+    WfsLookAndFeel::scaleTextEditorFonts(*this, layoutScale);
 }
 
 void OutputArrayHelperContent::layoutGeometrySection(juce::Rectangle<int>& area)
 {
-    const int rowHeight = 26;
-    const int editorWidth = 60;
-    const int colSpacing = 10;
-    const int checkboxWidth = 25;
-    const int labelWidth = 130;
+    const int rowHeight = scaled(26);
+    const int editorWidth = scaled(60);
+    const int colSpacing = scaled(10);
+    const int checkboxWidth = scaled(25);
+    const int labelWidth = scaled(130);
 
     auto& config = presetConfigs[static_cast<int>(currentPreset)];
 
     // Calculate height needed
-    int height = 30;  // Header
+    int height = scaled(30);  // Header
     height += rowHeight;  // Radio buttons
     height += rowHeight;  // N Speakers + Z Height
     height += rowHeight;  // Orientation
@@ -723,13 +730,13 @@ void OutputArrayHelperContent::layoutGeometrySection(juce::Rectangle<int>& area)
     if (currentPreset == ArrayPresetType::DelayLine)
         height += rowHeight;
 
-    height += 15;  // Padding
+    height += scaled(15);  // Padding
 
     auto section = area.removeFromTop(height);
     geometryGroup.setBounds(section);
 
-    auto content = section.reduced(10, 20);
-    content.removeFromTop(10);
+    auto content = section.reduced(scaled(10), scaled(20));
+    content.removeFromTop(scaled(10));
 
     // Split into two main columns
     const int columnWidth = content.getWidth() / 2 - colSpacing / 2;
@@ -964,18 +971,18 @@ void OutputArrayHelperContent::layoutGeometrySection(juce::Rectangle<int>& area)
 
 void OutputArrayHelperContent::layoutAcousticSection(juce::Rectangle<int>& area)
 {
-    const int rowHeight = 26;
-    const int editorWidth = 60;
-    const int colSpacing = 10;
-    const int checkboxWidth = 25;
-    const int labelWidth = 130;
+    const int rowHeight = scaled(26);
+    const int editorWidth = scaled(60);
+    const int colSpacing = scaled(10);
+    const int checkboxWidth = scaled(25);
+    const int labelWidth = scaled(130);
 
-    int height = 30 + rowHeight * 4 + 15;
+    int height = scaled(30) + rowHeight * 4 + scaled(15);
     auto section = area.removeFromTop(height);
     acousticGroup.setBounds(section);
 
-    auto content = section.reduced(10, 20);
-    content.removeFromTop(10);
+    auto content = section.reduced(scaled(10), scaled(20));
+    content.removeFromTop(scaled(10));
 
     // Split into two main columns
     const int columnWidth = content.getWidth() / 2 - colSpacing / 2;
@@ -1027,20 +1034,20 @@ void OutputArrayHelperContent::layoutAcousticSection(juce::Rectangle<int>& area)
 
 void OutputArrayHelperContent::layoutTargetSection(juce::Rectangle<int>& area)
 {
-    const int rowHeight = 26;
-    const int colSpacing = 10;
-    const int checkboxWidth = 25;
-    const int labelWidth = 130;
-    const int selectorWidth = 100;
-    const int arrayLabelWidth = 60;       // Shorter label for "Array:"
-    const int arraySelectorWidth = 150;   // Wider to show full "Array 10"
+    const int rowHeight = scaled(26);
+    const int colSpacing = scaled(10);
+    const int checkboxWidth = scaled(25);
+    const int labelWidth = scaled(130);
+    const int selectorWidth = scaled(100);
+    const int arrayLabelWidth = scaled(60);       // Shorter label for "Array:"
+    const int arraySelectorWidth = scaled(150);   // Wider to show full "Array 10"
 
-    int height = 30 + rowHeight + 15;
+    int height = scaled(30) + rowHeight + scaled(15);
     auto section = area.removeFromTop(height);
     targetGroup.setBounds(section);
 
-    auto content = section.reduced(10, 20);
-    content.removeFromTop(10);
+    auto content = section.reduced(scaled(10), scaled(20));
+    content.removeFromTop(scaled(10));
 
     // Split into two main columns
     const int columnWidth = content.getWidth() / 2 - colSpacing / 2;

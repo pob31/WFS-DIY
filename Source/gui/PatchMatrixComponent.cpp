@@ -258,6 +258,7 @@ void PatchMatrixComponent::paint(juce::Graphics& g)
 
 void PatchMatrixComponent::resized()
 {
+    updateScaledSizes();
     updateScrollBars();
 
     // Position scrollbars
@@ -720,7 +721,7 @@ void PatchMatrixComponent::drawHeader(juce::Graphics& g)
     int firstCol = scrollOffsetX / cellWidth;
 
     g.setColour(ColorScheme::get().textPrimary);
-    g.setFont(14.0f);
+    g.setFont(juce::jmax(10.0f, 14.0f * WfsLookAndFeel::uiScale));
 
     for (int c = 0; c < visibleCols; ++c)
     {
@@ -785,7 +786,7 @@ void PatchMatrixComponent::drawRowHeaders(juce::Graphics& g)
     int visibleRows = (getHeight() - headerHeight) / cellHeight + 2;
     int firstRow = scrollOffsetY / cellHeight;
 
-    g.setFont(12.0f);
+    g.setFont(juce::jmax(8.0f, 12.0f * WfsLookAndFeel::uiScale));
 
     for (int r = 0; r < visibleRows; ++r)
     {
@@ -929,7 +930,7 @@ void PatchMatrixComponent::drawCell(juce::Graphics& g, int row, int col,
 
         // Draw hardware channel number
         g.setColour(WfsColorUtilities::getContrastingTextColor(cellColor));
-        g.setFont(14.0f);
+        g.setFont(juce::jmax(10.0f, 14.0f * WfsLookAndFeel::uiScale));
         g.drawText(juce::String(col + 1), bounds, juce::Justification::centred);
     }
     else
@@ -1006,7 +1007,7 @@ void PatchMatrixComponent::drawCell(juce::Graphics& g, int row, int col,
 
         // Draw bold black channel number on top of all test signal colors
         g.setColour(juce::Colours::black);
-        g.setFont(juce::FontOptions(14.0f).withStyle("Bold"));
+        g.setFont(juce::FontOptions(juce::jmax(10.0f, 14.0f * WfsLookAndFeel::uiScale)).withStyle("Bold"));
         g.drawText(juce::String(col + 1), bounds, juce::Justification::centred);
     }
 

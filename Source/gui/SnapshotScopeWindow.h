@@ -6,6 +6,7 @@
 #include "../Parameters/WFSFileManager.h"
 #include "../Localization/LocalizationManager.h"
 #include "ColorScheme.h"
+#include "WfsLookAndFeel.h"
 #include "WindowUtils.h"
 
 /**
@@ -143,7 +144,7 @@ public:
 
         // Section name
         juce::String displayName = getSectionDisplayName (sectionId);
-        g.setFont (juce::Font (juce::FontOptions (14.0f).withStyle ("Bold")));
+        g.setFont (juce::Font (juce::FontOptions (juce::jmax(10.0f, 14.0f * WfsLookAndFeel::uiScale)).withStyle ("Bold")));
         g.drawText (displayName, 22, y, paramLabelWidth - 26, cellSize, juce::Justification::centredLeft);
 
         // Draw section state cells for each channel
@@ -165,7 +166,7 @@ public:
 
         juce::String displayName = getItemDisplayName (itemId);
         g.setColour (colors.textPrimary);
-        g.setFont (juce::Font (juce::FontOptions (12.0f)));
+        g.setFont (juce::Font (juce::FontOptions (juce::jmax(8.0f, 12.0f * WfsLookAndFeel::uiScale))));
         g.drawText (displayName, 22, y, paramLabelWidth - 26, cellSize, juce::Justification::centredLeft);
 
         // Draw cells for each channel
@@ -334,8 +335,15 @@ public:
     std::function<void()> onScopeChanged;
     std::function<void()> onLayoutChanged;
 
-    static constexpr int cellSize = 22;
-    static constexpr int paramLabelWidth = 140;
+    int cellSize = 22;
+    int paramLabelWidth = 140;
+
+    void updateScaledSizes()
+    {
+        const float us = WfsLookAndFeel::uiScale;
+        cellSize = juce::jmax(15, static_cast<int>(22.0f * us));
+        paramLabelWidth = juce::jmax(90, static_cast<int>(140.0f * us));
+    }
 
 private:
     struct RowInfo
@@ -388,7 +396,7 @@ public:
 
         g.fillRoundedRectangle (allBounds, 3.0f);
         g.setColour (colors.textPrimary);
-        g.setFont (juce::Font (juce::FontOptions (11.0f).withStyle ("Bold")));
+        g.setFont (juce::Font (juce::FontOptions (juce::jmax(8.0f, 11.0f * WfsLookAndFeel::uiScale)).withStyle ("Bold")));
         g.drawText (LOC("snapshotScope.all"), allBounds.toNearestInt(), juce::Justification::centred);
 
         // Draw channel numbers
@@ -411,7 +419,7 @@ public:
             g.fillRoundedRectangle (cellBounds, 3.0f);
 
             g.setColour (colors.textPrimary);
-            g.setFont (juce::Font (juce::FontOptions (10.0f)));
+            g.setFont (juce::Font (juce::FontOptions (juce::jmax(7.0f, 10.0f * WfsLookAndFeel::uiScale))));
             g.drawText (juce::String (ch + 1), cellBounds.toNearestInt(), juce::Justification::centred);
         }
     }
@@ -444,9 +452,17 @@ public:
 
     std::function<void()> onScopeChanged;
 
-    static constexpr int cellSize = ScopeGridComponent::cellSize;
-    static constexpr int paramLabelWidth = ScopeGridComponent::paramLabelWidth;
-    static constexpr int headerHeight = 24;
+    int cellSize = 22;
+    int paramLabelWidth = 140;
+    int headerHeight = 24;
+
+    void updateScaledSizes()
+    {
+        const float us = WfsLookAndFeel::uiScale;
+        cellSize = juce::jmax(15, static_cast<int>(22.0f * us));
+        paramLabelWidth = juce::jmax(90, static_cast<int>(140.0f * us));
+        headerHeight = juce::jmax(16, static_cast<int>(24.0f * us));
+    }
 
 private:
     ExtendedScope& scope;
@@ -587,47 +603,54 @@ public:
 
     void resized() override
     {
-        auto bounds = getLocalBounds().reduced (10);
+        float ls = static_cast<float>(getHeight()) / 600.0f;
+        auto sc = [ls](int ref) { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * ls)); };
+
+        auto bounds = getLocalBounds().reduced (sc(10));
 
         // Title
-        titleLabel.setBounds (bounds.removeFromTop (30));
-        bounds.removeFromTop (5);
+        titleLabel.setBounds (bounds.removeFromTop (sc(30)));
+        bounds.removeFromTop (sc(5));
 
         // Apply mode row (save / recall / QLab — mutually exclusive)
-        auto modeRow = bounds.removeFromTop (28);
-        applyModeLabel.setBounds (modeRow.removeFromLeft (90));
-        applySavingButton.setBounds (modeRow.removeFromLeft (120));
-        modeRow.removeFromLeft (10);
-        applyRecallingButton.setBounds (modeRow.removeFromLeft (140));
-        modeRow.removeFromLeft (10);
-        writeToQLabToggle.setBounds (modeRow.removeFromLeft (140));
-        bounds.removeFromTop (5);
+        auto modeRow = bounds.removeFromTop (sc(28));
+        applyModeLabel.setBounds (modeRow.removeFromLeft (sc(90)));
+        applySavingButton.setBounds (modeRow.removeFromLeft (sc(120)));
+        modeRow.removeFromLeft (sc(10));
+        applyRecallingButton.setBounds (modeRow.removeFromLeft (sc(140)));
+        modeRow.removeFromLeft (sc(10));
+        writeToQLabToggle.setBounds (modeRow.removeFromLeft (sc(140)));
+        bounds.removeFromTop (sc(5));
 
         // Snapshot load cue checkbox (below mode row, indented)
         if (writeSnapshotLoadCueToggle.isVisible())
         {
-            auto loadCueRow = bounds.removeFromTop (24);
-            loadCueRow.removeFromLeft (90);  // Align with radio buttons
-            writeSnapshotLoadCueToggle.setBounds (loadCueRow.removeFromLeft (300));
+            auto loadCueRow = bounds.removeFromTop (sc(24));
+            loadCueRow.removeFromLeft (sc(90));  // Align with radio buttons
+            writeSnapshotLoadCueToggle.setBounds (loadCueRow.removeFromLeft (sc(300)));
         }
-        bounds.removeFromTop (5);
+        bounds.removeFromTop (sc(5));
 
         // Action buttons at bottom
-        auto buttonRow = bounds.removeFromBottom (35);
-        bounds.removeFromBottom (5);
+        auto buttonRow = bounds.removeFromBottom (sc(35));
+        bounds.removeFromBottom (sc(5));
 
-        int buttonWidth = 100;
-        int buttonSpacing = 20;
+        int buttonWidth = sc(100);
+        int buttonSpacing = sc(20);
         int totalButtonWidth = buttonWidth * 2 + buttonSpacing;
         int buttonX = (buttonRow.getWidth() - totalButtonWidth) / 2;
 
-        saveButton.setBounds (buttonX, buttonRow.getY(), buttonWidth, 30);
-        cancelButton.setBounds (buttonX + buttonWidth + buttonSpacing, buttonRow.getY(), buttonWidth, 30);
+        saveButton.setBounds (buttonX, buttonRow.getY(), buttonWidth, sc(30));
+        cancelButton.setBounds (buttonX + buttonWidth + buttonSpacing, buttonRow.getY(), buttonWidth, sc(30));
+
+        // Update scaled sizes for grid and header
+        gridComponent->updateScaledSizes();
+        channelHeader->updateScaledSizes();
 
         // Channel header (fixed)
-        int gridWidth = ScopeGridComponent::paramLabelWidth + numChannels * ScopeGridComponent::cellSize;
-        channelHeader->setBounds (bounds.getX(), bounds.getY(), gridWidth, ScopeChannelHeader::headerHeight);
-        bounds.removeFromTop (ScopeChannelHeader::headerHeight);
+        int gridWidth = gridComponent->paramLabelWidth + numChannels * gridComponent->cellSize;
+        channelHeader->setBounds (bounds.getX(), bounds.getY(), gridWidth, channelHeader->headerHeight);
+        bounds.removeFromTop (channelHeader->headerHeight);
 
         // Viewport for grid
         viewport.setBounds (bounds);
@@ -714,11 +737,17 @@ public:
 
         setContentOwned (content.release(), false);
 
-        // Size based on number of channels, with minimum for mode row
+        // Size based on number of channels, scaled with display resolution
+        auto* disp = juce::Desktop::getInstance().getDisplays().getPrimaryDisplay();
+        float ds = (disp && !disp->userArea.isEmpty()) ? static_cast<float>(disp->userArea.getHeight()) / 1080.0f : 1.0f;
+        auto dsc = [ds](int ref) { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * ds)); };
+
         int numChannels = params.getNumInputChannels();
-        int gridWidth = ScopeGridComponent::paramLabelWidth + numChannels * ScopeGridComponent::cellSize + 50;
-        int width = juce::jmax (560, juce::jmin (1200, gridWidth));
-        int height = 600;
+        int scaledCellSize = juce::jmax(15, static_cast<int>(22.0f * ds));
+        int scaledParamLabelWidth = juce::jmax(90, static_cast<int>(140.0f * ds));
+        int gridWidth = scaledParamLabelWidth + numChannels * scaledCellSize + dsc(50);
+        int width = juce::jmax (dsc(560), juce::jmin (dsc(1200), gridWidth));
+        int height = dsc(600);
         centreWithSize (width, height);
         setVisible (true);
         WindowUtils::enableDarkTitleBar (this);

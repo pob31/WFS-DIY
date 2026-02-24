@@ -223,100 +223,103 @@ public:
         auto bounds = getLocalBounds();
         auto leftPanelWidth = bounds.getWidth() / 2;
         g.setColour(ColorScheme::get().chromeDivider);
-        g.drawVerticalLine(leftPanelWidth, 50.0f, bounds.getHeight() - 10.0f);
+        g.drawVerticalLine(leftPanelWidth, 50.0f * layoutScale, bounds.getHeight() - 10.0f * layoutScale);
     }
 
     void resized() override
     {
-        auto bounds = getLocalBounds().reduced(10);
+        layoutScale = static_cast<float>(getHeight()) / 932.0f;
+        auto bounds = getLocalBounds().reduced(scaled(10));
 
         // ==================== CLUSTER SELECTOR BAR ====================
-        auto selectorArea = bounds.removeFromTop(40);
-        int buttonWidth = (selectorArea.getWidth() - 90) / 10;
+        auto selectorArea = bounds.removeFromTop(scaled(40));
+        int buttonWidth = (selectorArea.getWidth() - scaled(90)) / 10;
         for (int i = 0; i < 10; ++i)
         {
-            clusterButtons[i]->setBounds(selectorArea.removeFromLeft(buttonWidth).reduced(2));
+            clusterButtons[i]->setBounds(selectorArea.removeFromLeft(buttonWidth).reduced(scaled(2)));
         }
 
-        bounds.removeFromTop(10);
+        bounds.removeFromTop(scaled(10));
 
         // Split into left and right panels
-        auto leftPanel = bounds.removeFromLeft(bounds.getWidth() / 2).reduced(5, 0);
-        auto rightPanel = bounds.reduced(5, 0);
+        auto leftPanel = bounds.removeFromLeft(bounds.getWidth() / 2).reduced(scaled(5), 0);
+        auto rightPanel = bounds.reduced(scaled(5), 0);
 
         // ==================== LEFT PANEL - ASSIGNED INPUTS ====================
-        assignedInputsLabel.setBounds(leftPanel.removeFromTop(20));
-        leftPanel.removeFromTop(5);
+        assignedInputsLabel.setBounds(leftPanel.removeFromTop(scaled(20)));
+        leftPanel.removeFromTop(scaled(5));
 
         // Inputs list takes most of the space
-        auto listArea = leftPanel.removeFromTop(leftPanel.getHeight() - 100);
+        auto listArea = leftPanel.removeFromTop(leftPanel.getHeight() - scaled(100));
         inputsList.setBounds(listArea);
 
-        leftPanel.removeFromTop(10);
+        leftPanel.removeFromTop(scaled(10));
 
         // Reference mode selector
-        auto refRow = leftPanel.removeFromTop(24);
-        referenceModeLabel.setBounds(refRow.removeFromLeft(70));
-        referenceModeSelector.setBounds(refRow.removeFromLeft(120));
+        auto refRow = leftPanel.removeFromTop(scaled(24));
+        referenceModeLabel.setBounds(refRow.removeFromLeft(scaled(70)));
+        referenceModeSelector.setBounds(refRow.removeFromLeft(scaled(120)));
 
-        leftPanel.removeFromTop(5);
+        leftPanel.removeFromTop(scaled(5));
 
         // Reference position display
-        auto posRow = leftPanel.removeFromTop(20);
-        refPosLabel.setBounds(posRow.removeFromLeft(35));
-        refPosXLabel.setBounds(posRow.removeFromLeft(80));
-        refPosYLabel.setBounds(posRow.removeFromLeft(80));
-        refPosZLabel.setBounds(posRow.removeFromLeft(80));
+        auto posRow = leftPanel.removeFromTop(scaled(20));
+        refPosLabel.setBounds(posRow.removeFromLeft(scaled(35)));
+        refPosXLabel.setBounds(posRow.removeFromLeft(scaled(80)));
+        refPosYLabel.setBounds(posRow.removeFromLeft(scaled(80)));
+        refPosZLabel.setBounds(posRow.removeFromLeft(scaled(80)));
 
-        leftPanel.removeFromTop(5);
+        leftPanel.removeFromTop(scaled(5));
 
         // Status label
-        statusLabel.setBounds(leftPanel.removeFromTop(20));
+        statusLabel.setBounds(leftPanel.removeFromTop(scaled(20)));
 
         // ==================== RIGHT PANEL - CONTROLS ====================
-        controlsLabel.setBounds(rightPanel.removeFromTop(20));
-        rightPanel.removeFromTop(10);
+        controlsLabel.setBounds(rightPanel.removeFromTop(scaled(20)));
+        rightPanel.removeFromTop(scaled(10));
 
         // Position joystick and Z slider
-        auto positionRow = rightPanel.removeFromTop(140);
-        auto joystickArea = positionRow.removeFromLeft(140);
-        positionLabel.setBounds(joystickArea.removeFromTop(16));
-        positionJoystick.setBounds(joystickArea.reduced(5));
+        auto positionRow = rightPanel.removeFromTop(scaled(140));
+        auto joystickArea = positionRow.removeFromLeft(scaled(140));
+        positionLabel.setBounds(joystickArea.removeFromTop(scaled(16)));
+        positionJoystick.setBounds(joystickArea.reduced(scaled(5)));
 
-        positionRow.removeFromLeft(10);
+        positionRow.removeFromLeft(scaled(10));
 
-        auto zArea = positionRow.removeFromLeft(40);
-        zSliderLabel.setBounds(zArea.removeFromTop(16));
-        zSlider.setBounds(zArea.reduced(5));
+        auto zArea = positionRow.removeFromLeft(scaled(40));
+        zSliderLabel.setBounds(zArea.removeFromTop(scaled(16)));
+        zSlider.setBounds(zArea.reduced(scaled(5)));
 
-        positionRow.removeFromLeft(20);
+        positionRow.removeFromLeft(scaled(20));
 
         // Attenuation slider
-        auto attenArea = positionRow.removeFromLeft(40);
-        attenuationLabel.setBounds(attenArea.removeFromTop(16));
-        attenuationSlider.setBounds(attenArea.reduced(5));
+        auto attenArea = positionRow.removeFromLeft(scaled(40));
+        attenuationLabel.setBounds(attenArea.removeFromTop(scaled(16)));
+        attenuationSlider.setBounds(attenArea.reduced(scaled(5)));
 
-        rightPanel.removeFromTop(20);
+        rightPanel.removeFromTop(scaled(20));
 
         // Rotation dial and scale joystick
-        auto transformRow = rightPanel.removeFromTop(140);
+        auto transformRow = rightPanel.removeFromTop(scaled(140));
 
-        auto rotationArea = transformRow.removeFromLeft(100);
-        rotationLabel.setBounds(rotationArea.removeFromTop(16));
-        rotationDial.setBounds(rotationArea.reduced(10));
+        auto rotationArea = transformRow.removeFromLeft(scaled(100));
+        rotationLabel.setBounds(rotationArea.removeFromTop(scaled(16)));
+        rotationDial.setBounds(rotationArea.reduced(scaled(10)));
 
-        transformRow.removeFromLeft(20);
+        transformRow.removeFromLeft(scaled(20));
 
-        auto scaleArea = transformRow.removeFromLeft(120);
-        scaleLabel.setBounds(scaleArea.removeFromTop(16));
-        scaleJoystick.setBounds(scaleArea.reduced(5));
+        auto scaleArea = transformRow.removeFromLeft(scaled(120));
+        scaleLabel.setBounds(scaleArea.removeFromTop(scaled(16)));
+        scaleJoystick.setBounds(scaleArea.reduced(scaled(5)));
 
-        rightPanel.removeFromTop(10);
+        rightPanel.removeFromTop(scaled(10));
 
         // Plane selector
-        auto planeRow = rightPanel.removeFromTop(24);
-        planeLabel.setBounds(planeRow.removeFromLeft(50));
-        planeSelector.setBounds(planeRow.removeFromLeft(80));
+        auto planeRow = rightPanel.removeFromTop(scaled(24));
+        planeLabel.setBounds(planeRow.removeFromLeft(scaled(50)));
+        planeSelector.setBounds(planeRow.removeFromLeft(scaled(80)));
+
+        WfsLookAndFeel::scaleTextEditorFonts(*this, layoutScale);
     }
 
     // ListBoxModel implementation
@@ -394,6 +397,10 @@ private:
     int selectedCluster = 1;
     Plane currentPlane = Plane::XY;
     float previousDialAngle = 0.0f;
+    float layoutScale = 1.0f;
+
+    /** Scale a reference pixel value by layoutScale with a 65% minimum floor */
+    int scaled(int ref) const { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * layoutScale)); }
 
     std::vector<int> assignedInputs;
 

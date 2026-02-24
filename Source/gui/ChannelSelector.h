@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "ColorUtilities.h"
 #include "ColorScheme.h"
+#include "WfsLookAndFeel.h"
 #include "../Localization/LocalizationManager.h"
 
 // Forward declaration
@@ -114,15 +115,15 @@ public:
 
         // Draw title
         g.setColour(ColorScheme::get().textPrimary);
-        g.setFont(juce::FontOptions().withHeight(14.0f).withStyle("Bold"));
-        g.drawText(LOC("inputs.dialogs.selectChannel"), padding, padding, getWidth() - padding * 2 - 30, titleHeight - padding,
+        g.setFont(juce::FontOptions().withHeight(juce::jmax(10.0f, 14.0f * WfsLookAndFeel::uiScale)).withStyle("Bold"));
+        g.drawText(LOC("inputs.dialogs.selectChannel"), padding, padding, getWidth() - padding * 2 - sc(30), titleHeight - padding,
                    juce::Justification::centredLeft);
     }
 
     void resized() override
     {
         // Close button in top-right
-        closeButton.setBounds(getWidth() - padding - 24, padding, 24, 20);
+        closeButton.setBounds(getWidth() - padding - sc(24), padding, sc(24), sc(20));
 
         // Position buttons in grid below title
         const int startX = padding;
@@ -232,12 +233,13 @@ private:
         numRows = (total + numColumns - 1) / numColumns;
     }
 
-    // Layout constants
-    static constexpr int buttonWidth = 90;
-    static constexpr int buttonHeight = 54;
-    static constexpr int spacing = 4;
-    static constexpr int padding = 12;
-    static constexpr int titleHeight = 32;
+    // Layout constants — scaled by global UI scale
+    static int sc(int ref) { float s = WfsLookAndFeel::uiScale; return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * s)); }
+    int buttonWidth = sc(90);
+    int buttonHeight = sc(54);
+    int spacing = sc(4);
+    int padding = sc(12);
+    int titleHeight = sc(32);
 
     int totalChannels;
     int selectedChannel;

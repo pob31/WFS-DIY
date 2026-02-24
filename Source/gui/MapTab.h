@@ -7,6 +7,7 @@
 #include "../Parameters/WFSParameterDefaults.h"
 #include "ColorUtilities.h"
 #include "ColorScheme.h"
+#include "WfsLookAndFeel.h"
 #include "StatusBar.h"
 #include "../Helpers/CoordinateConverter.h"
 #include "../Localization/LocalizationManager.h"
@@ -128,12 +129,20 @@ public:
 
     void resized() override
     {
+        const float us = WfsLookAndFeel::uiScale;
+        markerRadius = juce::jmax(8.0f, 14.0f * us);
+
         // Position Show Levels button in top-left corner
-        levelOverlayButton.setBounds(10, 10, 130, 25);
+        const int btnH = juce::jmax(24, static_cast<int>(30.0f * us));
+        const int margin = juce::jmax(6, static_cast<int>(10.0f * us));
+        levelOverlayButton.setBounds(margin, margin, juce::jmax(90, static_cast<int>(130.0f * us)), btnH);
 
         // Position fit buttons in top-right corner
-        fitInputsButton.setBounds(getWidth() - 300, 10, 150, 25);
-        homeButton.setBounds(getWidth() - 145, 10, 135, 25);
+        const int fitW = juce::jmax(100, static_cast<int>(150.0f * us));
+        const int homeW = juce::jmax(90, static_cast<int>(135.0f * us));
+        const int fitBtnGap = juce::jmax(3, static_cast<int>(5.0f * us));
+        homeButton.setBounds(getWidth() - margin - homeW, margin, homeW, btnH);
+        fitInputsButton.setBounds(getWidth() - margin - homeW - fitBtnGap - fitW, margin, fitW, btnH);
 
         // Reset view offset to center when resized
         if (viewOffset.isOrigin())
@@ -1817,7 +1826,7 @@ private:
     }
 
     // Constants
-    static constexpr float markerRadius = 14.0f;
+    float markerRadius = 14.0f;
     static constexpr float innerRadiusRatio = 0.6f;
 
     /** Convert level in dB to color for metering visualization.
@@ -2338,11 +2347,14 @@ private:
             // Draw channel number at center of membrane triangle (centroid)
             float triangleCenterX = (backLeftX + backRightX + memTipX) / 3.0f;
             float triangleCenterY = (backLeftY + backRightY + memTipY) / 3.0f;
-            g.setFont(juce::FontOptions().withHeight(12.0f).withStyle("Bold"));
+            const float us = WfsLookAndFeel::uiScale;
+            g.setFont(juce::FontOptions().withHeight(juce::jmax(8.0f, 12.0f * us)).withStyle("Bold"));
             g.setColour(juce::Colours::black);
+            const int tw = static_cast<int>(juce::jmax(14.0f, 20.0f * us));
+            const int th = static_cast<int>(juce::jmax(8.0f, 12.0f * us));
             g.drawText(juce::String(i + 1),
-                       static_cast<int>(triangleCenterX) - 10, static_cast<int>(triangleCenterY) - 6,
-                       20, 12, juce::Justification::centred);
+                       static_cast<int>(triangleCenterX) - tw / 2, static_cast<int>(triangleCenterY) - th / 2,
+                       tw, th, juce::Justification::centred);
 
             // Draw level overlay if enabled
             if (levelOverlayEnabled && getOutputLevelDb)
@@ -2400,11 +2412,16 @@ private:
             g.strokePath(diamond, juce::PathStrokeType(1.5f));
 
             // Draw channel number
-            g.setFont(9.0f);
-            g.setColour(ColorScheme::get().textPrimary);
-            g.drawText(LOC("map.labels.reverbPrefix") + juce::String(i + 1),
-                       static_cast<int>(screenPos.x) - 10, static_cast<int>(screenPos.y) - 5,
-                       20, 10, juce::Justification::centred);
+            {
+                const float us = WfsLookAndFeel::uiScale;
+                g.setFont(juce::jmax(7.0f, 9.0f * us));
+                g.setColour(ColorScheme::get().textPrimary);
+                const int tw = static_cast<int>(juce::jmax(14.0f, 20.0f * us));
+                const int th = static_cast<int>(juce::jmax(7.0f, 10.0f * us));
+                g.drawText(LOC("map.labels.reverbPrefix") + juce::String(i + 1),
+                           static_cast<int>(screenPos.x) - tw / 2, static_cast<int>(screenPos.y) - th / 2,
+                           tw, th, juce::Justification::centred);
+            }
         }
     }
 
@@ -2470,11 +2487,16 @@ private:
                     }
 
                     // Draw cluster number in black
-                    g.setColour(juce::Colours::black);
-                    g.setFont(juce::FontOptions().withHeight(11.0f).withStyle("Bold"));
-                    g.drawText(juce::String(cluster),
-                               static_cast<int>(refPos.x) - 8, static_cast<int>(refPos.y) - 5,
-                               16, 11, juce::Justification::centred);
+                    {
+                        const float us = WfsLookAndFeel::uiScale;
+                        g.setColour(juce::Colours::black);
+                        g.setFont(juce::FontOptions().withHeight(juce::jmax(8.0f, 11.0f * us)).withStyle("Bold"));
+                        const int tw = static_cast<int>(juce::jmax(11.0f, 16.0f * us));
+                        const int th = static_cast<int>(juce::jmax(8.0f, 11.0f * us));
+                        g.drawText(juce::String(cluster),
+                                   static_cast<int>(refPos.x) - tw / 2, static_cast<int>(refPos.y) - th / 2,
+                                   tw, th, juce::Justification::centred);
+                    }
                 }
             }
             else
@@ -2507,12 +2529,17 @@ private:
                 }
 
                 // Draw cluster number in black
-                g.setColour(juce::Colours::black);
-                g.setFont(juce::FontOptions().withHeight(11.0f).withStyle("Bold"));
-                g.drawText(juce::String(cluster),
-                           static_cast<int>(refPos.x) - 8,
-                           static_cast<int>(refPos.y) - 5,
-                           16, 11, juce::Justification::centred);
+                {
+                    const float us = WfsLookAndFeel::uiScale;
+                    g.setColour(juce::Colours::black);
+                    g.setFont(juce::FontOptions().withHeight(juce::jmax(8.0f, 11.0f * us)).withStyle("Bold"));
+                    const int tw = static_cast<int>(juce::jmax(11.0f, 16.0f * us));
+                    const int th = static_cast<int>(juce::jmax(8.0f, 11.0f * us));
+                    g.drawText(juce::String(cluster),
+                               static_cast<int>(refPos.x) - tw / 2,
+                               static_cast<int>(refPos.y) - th / 2,
+                               tw, th, juce::Justification::centred);
+                }
             }
 
             // Draw lines from reference to each VISIBLE member
@@ -2687,12 +2714,17 @@ private:
                           compositeRadius * 2, compositeRadius * 2);
 
             // Draw number in the composite circle (white text for better visibility)
-            g.setColour(juce::Colours::white);
-            g.setFont(juce::FontOptions().withHeight(11.0f).withStyle("Bold"));
-            g.drawText(juce::String(inputIndex + 1),
-                       static_cast<int>(compositePos.x) - 10,
-                       static_cast<int>(compositePos.y) - 5,
-                       20, 11, juce::Justification::centred);
+            {
+                const float us = WfsLookAndFeel::uiScale;
+                g.setColour(juce::Colours::white);
+                g.setFont(juce::FontOptions().withHeight(juce::jmax(8.0f, 11.0f * us)).withStyle("Bold"));
+                const int tw = static_cast<int>(juce::jmax(14.0f, 20.0f * us));
+                const int th = static_cast<int>(juce::jmax(8.0f, 11.0f * us));
+                g.drawText(juce::String(inputIndex + 1),
+                           static_cast<int>(compositePos.x) - tw / 2,
+                           static_cast<int>(compositePos.y) - th / 2,
+                           tw, th, juce::Justification::centred);
+            }
         }
 
         // Determine input state for color coding
@@ -2749,13 +2781,17 @@ private:
                       innerRadius * 2, innerRadius * 2);
 
         // Draw channel number
-        g.setColour(labelColor);
-        g.setFont(juce::FontOptions().withHeight(12.0f).withStyle("Bold"));
-        g.drawText(juce::String(inputIndex + 1),
-                   static_cast<int>(screenPos.x) - static_cast<int>(markerRadius),
-                   static_cast<int>(screenPos.y) - 6,
-                   static_cast<int>(markerRadius * 2), 12,
-                   juce::Justification::centred);
+        {
+            const float us = WfsLookAndFeel::uiScale;
+            const int th = static_cast<int>(juce::jmax(8.0f, 12.0f * us));
+            g.setColour(labelColor);
+            g.setFont(juce::FontOptions().withHeight(juce::jmax(8.0f, 12.0f * us)).withStyle("Bold"));
+            g.drawText(juce::String(inputIndex + 1),
+                       static_cast<int>(screenPos.x) - static_cast<int>(markerRadius),
+                       static_cast<int>(screenPos.y) - th / 2,
+                       static_cast<int>(markerRadius * 2), th,
+                       juce::Justification::centred);
+        }
 
         // Draw height indicator triangle if Z != 0
         if (std::abs(targetZ) > 0.01f)
@@ -2833,16 +2869,22 @@ private:
             else
                 coordColor = juce::Colours::yellow;     // Cartesian
 
-            g.setColour(coordColor);
-            g.setFont(10.0f);
+            {
+                const float us = WfsLookAndFeel::uiScale;
+                g.setColour(coordColor);
+                g.setFont(juce::jmax(7.0f, 10.0f * us));
+                const int ctw = static_cast<int>(juce::jmax(80.0f, 120.0f * us));
+                const int cth = static_cast<int>(juce::jmax(8.0f, 12.0f * us));
+                const int gap = static_cast<int>(juce::jmax(3.0f, 5.0f * us));
 
-            // Position text to the right or left depending on screen position
-            if (screenPos.x < getWidth() / 2)
-                g.drawText(coordText, static_cast<int>(screenPos.x + markerRadius + 5),
-                           static_cast<int>(screenPos.y) - 5, 120, 12, juce::Justification::left);
-            else
-                g.drawText(coordText, static_cast<int>(screenPos.x - markerRadius - 125),
-                           static_cast<int>(screenPos.y) - 5, 120, 12, juce::Justification::right);
+                // Position text to the right or left depending on screen position
+                if (screenPos.x < getWidth() / 2)
+                    g.drawText(coordText, static_cast<int>(screenPos.x + markerRadius + gap),
+                               static_cast<int>(screenPos.y) - cth / 2, ctw, cth, juce::Justification::left);
+                else
+                    g.drawText(coordText, static_cast<int>(screenPos.x - markerRadius - gap - ctw),
+                               static_cast<int>(screenPos.y) - cth / 2, ctw, cth, juce::Justification::right);
+            }
         }
 
         // Draw input name beneath marker
@@ -2850,12 +2892,17 @@ private:
         if (inputName.isEmpty())
             inputName = "Input " + juce::String(inputIndex + 1);
 
-        g.setColour(ColorScheme::get().textPrimary.withAlpha(0.8f));
-        g.setFont(9.0f);
-        g.drawText(inputName,
-                   static_cast<int>(screenPos.x) - 40,
-                   static_cast<int>(screenPos.y) + static_cast<int>(markerRadius) + 2,
-                   80, 12, juce::Justification::centred);
+        {
+            const float us = WfsLookAndFeel::uiScale;
+            g.setColour(ColorScheme::get().textPrimary.withAlpha(0.8f));
+            g.setFont(juce::jmax(7.0f, 9.0f * us));
+            const int ntw = static_cast<int>(juce::jmax(55.0f, 80.0f * us));
+            const int nth = static_cast<int>(juce::jmax(8.0f, 12.0f * us));
+            g.drawText(inputName,
+                       static_cast<int>(screenPos.x) - ntw / 2,
+                       static_cast<int>(screenPos.y) + static_cast<int>(markerRadius) + 2,
+                       ntw, nth, juce::Justification::centred);
+        }
     }
 
     void drawSecondaryTouchFeedback(juce::Graphics& g)
@@ -2909,17 +2956,23 @@ private:
                 juce::String displayText = "Z=" + juce::String(currentZ, 2) + "m  R="
                                          + juce::String(currentRotation) + juce::String(juce::CharPointer_UTF8("\xC2\xB0"));
 
-                g.setColour(juce::Colours::yellow);
-                g.setFont(10.0f);
+                {
+                    const float us = WfsLookAndFeel::uiScale;
+                    g.setColour(juce::Colours::yellow);
+                    g.setFont(juce::jmax(7.0f, 10.0f * us));
+                    const int stw = static_cast<int>(juce::jmax(80.0f, 120.0f * us));
+                    const int sth = static_cast<int>(juce::jmax(8.0f, 12.0f * us));
+                    const int sGap = static_cast<int>(juce::jmax(5.0f, 8.0f * us));
 
-                // Position text near the initial contact point (grey circle)
-                // to avoid overlapping with coordinate text shown near the marker
-                if (referenceEndpoint.x < getWidth() / 2)
-                    g.drawText(displayText, static_cast<int>(referenceEndpoint.x + 8),
-                               static_cast<int>(referenceEndpoint.y) - 5, 120, 12, juce::Justification::left);
-                else
-                    g.drawText(displayText, static_cast<int>(referenceEndpoint.x - 128),
-                               static_cast<int>(referenceEndpoint.y) - 5, 120, 12, juce::Justification::right);
+                    // Position text near the initial contact point (grey circle)
+                    // to avoid overlapping with coordinate text shown near the marker
+                    if (referenceEndpoint.x < getWidth() / 2)
+                        g.drawText(displayText, static_cast<int>(referenceEndpoint.x + sGap),
+                                   static_cast<int>(referenceEndpoint.y) - sth / 2, stw, sth, juce::Justification::left);
+                    else
+                        g.drawText(displayText, static_cast<int>(referenceEndpoint.x - sGap - stw),
+                                   static_cast<int>(referenceEndpoint.y) - sth / 2, stw, sth, juce::Justification::right);
+                }
             }
         }
     }

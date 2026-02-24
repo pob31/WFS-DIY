@@ -489,42 +489,45 @@ public:
 
     void resized() override
     {
+        layoutScale = static_cast<float>(getHeight()) / 932.0f;
+        headerHeight = scaled(60);
+        footerHeight = scaled(90);
         auto bounds = getLocalBounds();
-        const int padding = 10;
-        const int rowHeight = 30;
-        const int spacing = 5;
+        const int padding = scaled(10);
+        const int rowHeight = scaled(30);
+        const int spacing = scaled(5);
 
         // ==================== HEADER ====================
         auto headerArea = bounds.removeFromTop(headerHeight).reduced(padding, padding);
 
         auto row1 = headerArea.removeFromTop(rowHeight);
-        channelSelector.setBounds(row1.removeFromLeft(150));
+        channelSelector.setBounds(row1.removeFromLeft(scaled(150)));
         row1.removeFromLeft(spacing * 2);
-        nameLabel.setBounds(row1.removeFromLeft(50));
-        nameEditor.setBounds(row1.removeFromLeft(200));
+        nameLabel.setBounds(row1.removeFromLeft(scaled(50)));
+        nameEditor.setBounds(row1.removeFromLeft(scaled(200)));
         row1.removeFromLeft(spacing * 4);
-        clusterLabel.setBounds(row1.removeFromLeft(60));
-        clusterSelector.setBounds(row1.removeFromLeft(100));
+        clusterLabel.setBounds(row1.removeFromLeft(scaled(60)));
+        clusterSelector.setBounds(row1.removeFromLeft(scaled(100)));
         row1.removeFromLeft(spacing * 2);
-        mapLockButton.setBounds(row1.removeFromLeft(120));
+        mapLockButton.setBounds(row1.removeFromLeft(scaled(120)));
         row1.removeFromLeft(spacing);
-        mapVisibilityButton.setBounds(row1.removeFromLeft(160));
+        mapVisibilityButton.setBounds(row1.removeFromLeft(scaled(160)));
 
         // Right-aligned buttons (from right to left)
         // Desired order left-to-right: [Solo] [Clear Solo] [Single/Multi] [Level Meters] [Set all Inputs...]
-        setAllInputsButton.setBounds(row1.removeFromRight(130));
+        setAllInputsButton.setBounds(row1.removeFromRight(scaled(130)));
         row1.removeFromRight(spacing);
-        levelMeterButton.setBounds(row1.removeFromRight(100));
+        levelMeterButton.setBounds(row1.removeFromRight(scaled(100)));
         row1.removeFromRight(spacing);
-        soloModeButton.setBounds(row1.removeFromRight(70));  // Single/Multi toggle
+        soloModeButton.setBounds(row1.removeFromRight(scaled(70)));  // Single/Multi toggle
         row1.removeFromRight(spacing);
-        clearSoloButton.setBounds(row1.removeFromRight(90));
+        clearSoloButton.setBounds(row1.removeFromRight(scaled(90)));
         row1.removeFromRight(spacing);
-        soloButton.setBounds(row1.removeFromRight(50));
+        soloButton.setBounds(row1.removeFromRight(scaled(50)));
 
         // ==================== FOOTER ==================== (matching Output tab style)
         auto footerArea = bounds.removeFromBottom(footerHeight).reduced(padding, padding);
-        const int buttonRowHeight = 30;  // Same as Output tab buttons
+        const int buttonRowHeight = scaled(30);  // Same as Output tab buttons
 
         // First row - Snapshot buttons (on top) - 7 buttons + selector (1.5x width) = 8.5 units
         auto footerRow1 = footerArea.removeFromTop(buttonRowHeight);
@@ -563,12 +566,13 @@ public:
 
         // ==================== SUB-TABS AREA ====================
         // Use full width for tab bar to fit longer tab names
-        auto tabBarArea = bounds.removeFromTop(32);
+        auto tabBarArea = bounds.removeFromTop(scaled(32));
         subTabBar.setBounds(tabBarArea);
 
         auto contentArea = bounds.reduced(padding, 0);
         subTabContentArea = contentArea.reduced(0, padding);
         layoutCurrentSubTab();
+        WfsLookAndFeel::scaleTextEditorFonts(*this, layoutScale);
     }
 
     void setStatusBar(StatusBar* bar)
@@ -2691,9 +2695,11 @@ private:
     // Uses slight overlap to compensate for JUCE font padding
     void layoutDialValueUnit(juce::Label& valueLabel, juce::Label& unitLabel,
                              int dialCenterX, int y, int height,
-                             int valueWidth = 40, int unitWidth = 40)
+                             int valueWidth = 0, int unitWidth = 0)
     {
-        const int overlap = 7;  // Pixels to overlap to reduce visual gap from font padding
+        if (valueWidth == 0) valueWidth = scaled(40);
+        if (unitWidth == 0) unitWidth = scaled(40);
+        const int overlap = scaled(7);
         int totalWidth = valueWidth + unitWidth - overlap;
         int startX = dialCenterX - totalWidth / 2;
         valueLabel.setBounds(startX, y, valueWidth, height);
@@ -3030,11 +3036,11 @@ private:
     void layoutInputPropertiesTab()
     {
         auto area = subTabContentArea;
-        const int rowHeight = 30;
-        const int sliderHeight = 40;
-        const int spacing = 8;
-        const int labelWidth = 115;
-        const int valueWidth = 60;
+        const int rowHeight = scaled(30);
+        const int sliderHeight = scaled(40);
+        const int spacing = scaled(8);
+        const int labelWidth = scaled(115);
+        const int valueWidth = scaled(60);
 
         auto leftCol = area.removeFromLeft(area.getWidth() / 2).reduced(10, 10);
 
@@ -3048,13 +3054,13 @@ private:
         // Delay/Latency
         row = leftCol.removeFromTop(rowHeight);
         delayLatencyLabel.setBounds(row.removeFromLeft(labelWidth));
-        delayLatencyValueLabel.setBounds(row.removeFromRight(130));  // Wider for "Latency: 100.0 ms"
+        delayLatencyValueLabel.setBounds(row.removeFromRight(scaled(130)));  // Wider for "Latency: 100.0 ms"
         delayLatencySlider.setBounds(leftCol.removeFromTop(sliderHeight));
         leftCol.removeFromTop(spacing * 2);  // Extra padding before toggle
 
         // Minimal Latency - centered beneath slider
         row = leftCol.removeFromTop(rowHeight);
-        const int buttonWidth = 200;
+        const int buttonWidth = scaled(200);
         const int buttonX = (row.getWidth() - buttonWidth) / 2;
         minimalLatencyButton.setBounds(row.getX() + buttonX, row.getY(), buttonWidth, rowHeight);
     }
@@ -3062,20 +3068,20 @@ private:
     void layoutPositionTab()
     {
         auto area = subTabContentArea;
-        const int rowHeight = 30;
-        const int spacing = 8;
-        const int labelWidth = 80;
-        const int editorWidth = 80;
-        const int unitWidth = 25;
-        const int buttonWidth = 130;
+        const int rowHeight = scaled(30);
+        const int spacing = scaled(8);
+        const int labelWidth = scaled(80);
+        const int editorWidth = scaled(80);
+        const int unitWidth = scaled(25);
+        const int buttonWidth = scaled(130);
 
         auto leftCol = area.removeFromLeft(area.getWidth() / 2).reduced(5, 0);
         auto rightCol = area.reduced(5, 0);
 
         // Coordinate mode selector row
         auto row = leftCol.removeFromTop(rowHeight);
-        coordModeLabel.setBounds(row.removeFromLeft(50));
-        coordModeSelector.setBounds(row.removeFromLeft(80));
+        coordModeLabel.setBounds(row.removeFromLeft(scaled(50)));
+        coordModeSelector.setBounds(row.removeFromLeft(scaled(80)));
         leftCol.removeFromTop(spacing);
 
         // Position row
@@ -3125,15 +3131,15 @@ private:
 
         // Distance constraint slider (for Cylindrical/Spherical modes)
         row = leftCol.removeFromTop(rowHeight);
-        distanceMinLabel.setBounds(row.removeFromLeft(35));
-        distanceMinEditor.setBounds(row.removeFromLeft(55));
-        distanceMinUnitLabel.setBounds(row.removeFromLeft(20));
+        distanceMinLabel.setBounds(row.removeFromLeft(scaled(35)));
+        distanceMinEditor.setBounds(row.removeFromLeft(scaled(55)));
+        distanceMinUnitLabel.setBounds(row.removeFromLeft(scaled(20)));
         row.removeFromLeft(spacing);
-        distanceRangeSlider.setBounds(row.removeFromLeft(140));
+        distanceRangeSlider.setBounds(row.removeFromLeft(scaled(140)));
         row.removeFromLeft(spacing);
-        distanceMaxLabel.setBounds(row.removeFromLeft(35));
-        distanceMaxEditor.setBounds(row.removeFromLeft(55));
-        distanceMaxUnitLabel.setBounds(row.removeFromLeft(20));
+        distanceMaxLabel.setBounds(row.removeFromLeft(scaled(35)));
+        distanceMaxEditor.setBounds(row.removeFromLeft(scaled(55)));
+        distanceMaxUnitLabel.setBounds(row.removeFromLeft(scaled(20)));
         leftCol.removeFromTop(spacing);
 
         // Flip buttons
@@ -3146,8 +3152,8 @@ private:
         leftCol.removeFromTop(spacing * 2);
 
         // Position Joystick and Z Slider
-        const int joystickSize = 180;
-        const int zSliderWidth = 40;
+        const int joystickSize = scaled(180);
+        const int zSliderWidth = scaled(40);
         auto joystickArea = leftCol.removeFromTop(joystickSize + rowHeight);  // Include label height
         positionJoystickLabel.setBounds(joystickArea.removeFromTop(rowHeight));
         auto joystickRow = joystickArea;
@@ -3155,21 +3161,21 @@ private:
         joystickRow.removeFromLeft(spacing);
         // Z slider next to joystick
         auto zSliderArea = joystickRow.removeFromLeft(zSliderWidth + spacing);
-        positionZSliderLabel.setBounds(zSliderArea.removeFromTop(20));
+        positionZSliderLabel.setBounds(zSliderArea.removeFromTop(scaled(20)));
         positionZSlider.setBounds(zSliderArea);
 
         // Right column - Tracking section
         row = rightCol.removeFromTop(rowHeight);
-        trackingActiveButton.setBounds(row.removeFromLeft(150));
+        trackingActiveButton.setBounds(row.removeFromLeft(scaled(150)));
         rightCol.removeFromTop(spacing);
 
         row = rightCol.removeFromTop(rowHeight);
-        trackingIdLabel.setBounds(row.removeFromLeft(90));
-        trackingIdSelector.setBounds(row.removeFromLeft(70));
+        trackingIdLabel.setBounds(row.removeFromLeft(scaled(90)));
+        trackingIdSelector.setBounds(row.removeFromLeft(scaled(70)));
         rightCol.removeFromTop(spacing);
 
         // Tracking Smooth dial
-        const int dialSize = 70;
+        const int dialSize = juce::jmax(60, static_cast<int>(100.0f * layoutScale));
         trackingSmoothLabel.setBounds(rightCol.removeFromTop(rowHeight));
         auto dialArea = rightCol.removeFromTop(dialSize);
         trackingSmoothDial.setBounds(dialArea.withSizeKeepingCentre(dialSize, dialSize));
@@ -3178,7 +3184,7 @@ private:
 
         // Max Speed section
         row = rightCol.removeFromTop(rowHeight);
-        maxSpeedActiveButton.setBounds(row.removeFromLeft(150));
+        maxSpeedActiveButton.setBounds(row.removeFromLeft(scaled(150)));
         rightCol.removeFromTop(spacing);
 
         maxSpeedLabel.setBounds(rightCol.removeFromTop(rowHeight));
@@ -3189,7 +3195,7 @@ private:
 
         // Path Mode button
         row = rightCol.removeFromTop(rowHeight);
-        pathModeButton.setBounds(row.removeFromLeft(150));
+        pathModeButton.setBounds(row.removeFromLeft(scaled(150)));
         rightCol.removeFromTop(spacing);
 
         // Height Factor dial
@@ -3202,18 +3208,18 @@ private:
     void layoutSoundTab()
     {
         auto area = subTabContentArea;
-        const int rowHeight = 30;
-        const int sliderHeight = 40;
-        const int spacing = 10;
-        const int labelWidth = 120;
-        const int valueWidth = 80;
-        const int dialSize = 100;
+        const int rowHeight = scaled(30);
+        const int sliderHeight = scaled(40);
+        const int spacing = scaled(10);
+        const int labelWidth = scaled(120);
+        const int valueWidth = scaled(80);
+        const int dialSize = juce::jmax(60, static_cast<int>(100.0f * layoutScale));
 
         auto leftCol = area.removeFromLeft(area.getWidth() * 2 / 3).reduced(5, 0);
         auto rightCol = area.reduced(5, 0);
 
         // Attenuation Law button
-        attenuationLawButton.setBounds(leftCol.removeFromTop(rowHeight).withWidth(100));
+        attenuationLawButton.setBounds(leftCol.removeFromTop(rowHeight).withWidth(scaled(100)));
         leftCol.removeFromTop(spacing);
 
         // Directivity
@@ -3268,12 +3274,12 @@ private:
     void layoutLiveSourceTab()
     {
         auto area = subTabContentArea;
-        const int rowHeight = 30;
-        const int sliderHeight = 40;
-        const int spacing = 10;
-        const int labelWidth = 120;
-        const int valueWidth = 80;
-        const int dialSize = 80;
+        const int rowHeight = scaled(30);
+        const int sliderHeight = scaled(40);
+        const int spacing = scaled(10);
+        const int labelWidth = scaled(120);
+        const int valueWidth = scaled(80);
+        const int dialSize = juce::jmax(60, static_cast<int>(100.0f * layoutScale));
 
         auto leftCol = area.removeFromLeft(area.getWidth() * 2 / 3).reduced(5, 0);
         auto rightCol = area.reduced(5, 0);
@@ -3285,7 +3291,7 @@ private:
         // Shape selector
         auto row = leftCol.removeFromTop(rowHeight);
         lsShapeLabel.setBounds(row.removeFromLeft(labelWidth));
-        lsShapeSelector.setBounds(row.removeFromLeft(100));
+        lsShapeSelector.setBounds(row.removeFromLeft(scaled(100)));
         leftCol.removeFromTop(spacing);
 
         // Radius
@@ -3335,13 +3341,13 @@ private:
     void layoutEffectsTab()
     {
         auto area = subTabContentArea;
-        const int rowHeight = 26;
-        const int sliderHeight = 32;
-        const int spacing = 6;
-        const int labelWidth = 100;
-        const int valueWidth = 70;
-        const int dialSize = 70;
-        const int buttonWidth = 120;
+        const int rowHeight = scaled(26);
+        const int sliderHeight = scaled(32);
+        const int spacing = scaled(6);
+        const int labelWidth = scaled(100);
+        const int valueWidth = scaled(70);
+        const int dialSize = juce::jmax(60, static_cast<int>(100.0f * layoutScale));
+        const int buttonWidth = scaled(120);
 
         auto leftCol = area.removeFromLeft(area.getWidth() / 2).reduced(5, 0);
         auto rightCol = area.reduced(5, 0);
@@ -3424,13 +3430,13 @@ private:
     void layoutLfoTab()
     {
         auto area = subTabContentArea;
-        const int rowHeight = 24;
-        const int sliderHeight = 28;
-        const int spacing = 4;
-        const int labelWidth = 70;
-        const int valueWidth = 60;
-        const int selectorWidth = 100;
-        const int dialSize = 55;
+        const int rowHeight = scaled(24);
+        const int sliderHeight = scaled(28);
+        const int spacing = scaled(4);
+        const int labelWidth = scaled(70);
+        const int valueWidth = scaled(60);
+        const int selectorWidth = scaled(100);
+        const int dialSize = juce::jmax(40, static_cast<int>(65.0f * layoutScale));
 
         // Split into three columns
         auto leftCol = area.removeFromLeft(area.getWidth() / 3).reduced(5, 0);
@@ -3592,14 +3598,14 @@ private:
     void layoutAutomotionTab()
     {
         auto area = subTabContentArea;
-        const int rowHeight = 30;
-        const int spacing = 8;
-        const int labelWidth = 70;
-        const int editorWidth = 80;
-        const int unitWidth = 25;
-        const int buttonWidth = 100;
-        const int dialSize = 60;
-        const int transportButtonSize = 40;
+        const int rowHeight = scaled(30);
+        const int spacing = scaled(8);
+        const int labelWidth = scaled(70);
+        const int editorWidth = scaled(80);
+        const int unitWidth = scaled(25);
+        const int buttonWidth = scaled(100);
+        const int dialSize = juce::jmax(60, static_cast<int>(100.0f * layoutScale));
+        const int transportButtonSize = scaled(40);
 
         // Split into three columns for more dials
         auto leftCol = area.removeFromLeft(area.getWidth() / 3).reduced(5, 0);
@@ -3699,12 +3705,12 @@ private:
     {
         // 2-column layout: Column 1 (Input+Position), Column 2 (Sound+Mutes)
         auto area = subTabContentArea;
-        const int rowHeight = 30;      // Match OutputsTab
-        const int sliderHeight = 40;   // Match OutputsTab
-        const int spacing = 8;         // Match OutputsTab
-        const int labelWidth = 115;    // Match OutputsTab
-        const int valueWidth = 60;     // Match OutputsTab
-        const int dialSize = 55;
+        const int rowHeight = scaled(30);      // Match OutputsTab
+        const int sliderHeight = scaled(40);   // Match OutputsTab
+        const int spacing = scaled(8);         // Match OutputsTab
+        const int labelWidth = scaled(115);    // Match OutputsTab
+        const int valueWidth = scaled(60);     // Match OutputsTab
+        const int dialSize = juce::jmax(40, static_cast<int>(65.0f * layoutScale));
 
         auto col1 = area.removeFromLeft(area.getWidth() / 2).reduced(10, 10);  // Match OutputsTab padding
         auto col2 = area.reduced(5, 0);
@@ -3722,34 +3728,35 @@ private:
         // Delay/Latency
         row = col1.removeFromTop(rowHeight);
         delayLatencyLabel.setBounds(row.removeFromLeft(labelWidth));
-        delayLatencyValueLabel.setBounds(row.removeFromRight(130));  // Wider for "Latency: 100.0 ms"
+        delayLatencyValueLabel.setBounds(row.removeFromRight(scaled(130)));  // Wider for "Latency: 100.0 ms"
         delayLatencySlider.setBounds(col1.removeFromTop(sliderHeight));
         col1.removeFromTop(spacing * 2);  // Extra padding before toggle
 
         // Minimal Latency button - centered beneath slider
         row = col1.removeFromTop(rowHeight);
-        const int buttonWidth = 150;
+        const int buttonWidth = scaled(150);
         const int buttonX = (row.getWidth() - buttonWidth) / 2;
         minimalLatencyButton.setBounds(row.getX() + buttonX, row.getY(), buttonWidth, rowHeight);
         col1.removeFromTop(spacing * 2);
 
         // --- Position section (3-row layout with joystick on right) ---
-        const int joystickSize = 140;
-        const int zSliderWidth = 40;
-        const int posBlockHeight = joystickSize + 20;  // Match joystick height + label
+        const int joystickSize = scaled(140);
+        const int zSliderWidth = scaled(40);
+        const int posBlockHeight = joystickSize + scaled(20);  // Match joystick height + label
 
         // Create position block area with joystick on right
         auto posBlock = col1.removeFromTop(posBlockHeight);
 
         // Right side: Joystick and Z slider
-        const int zLabelWidth = 20;
-        const int joystickPadding = 8;  // Padding to prevent grey disc clipping
+        const int zLabelWidth = scaled(20);
+        const int joystickPadding = scaled(8);  // Padding to prevent grey disc clipping
         auto joystickBlock = posBlock.removeFromRight(joystickSize + joystickPadding * 2 + spacing + zSliderWidth + zLabelWidth);
 
         // X/Y label at top-left of joystick
-        auto labelRow = joystickBlock.removeFromTop(18);
+        const int joyLabelHeight = scaled(18);
+        auto labelRow = joystickBlock.removeFromTop(joyLabelHeight);
         labelRow.removeFromLeft(joystickPadding);  // Align label with joystick
-        positionJoystickLabel.setBounds(labelRow.removeFromLeft(30));
+        positionJoystickLabel.setBounds(labelRow.removeFromLeft(scaled(30)));
 
         // Joystick area with horizontal padding
         auto joystickRow = joystickBlock;
@@ -3763,29 +3770,31 @@ private:
         positionZSlider.setBounds(zSliderArea);
         // Z label positioned at vertical center of slider (middle position indicator)
         auto zLabelArea = joystickRow;
-        int sliderMidY = zSliderArea.getY() + zSliderArea.getHeight() / 2 - 8;
-        positionZSliderLabel.setBounds(zLabelArea.getX(), sliderMidY, zLabelWidth, 16);
+        int sliderMidY = zSliderArea.getY() + zSliderArea.getHeight() / 2 - scaled(8);
+        positionZSliderLabel.setBounds(zLabelArea.getX(), sliderMidY, zLabelWidth, scaled(16));
 
         // Left side: Position/Offset/Constraints/Flips organized by axis
-        const int posLabelWidth = 75;    // "Position X:" fits fully
-        const int posEditorWidth = 55;
-        const int posUnitWidth = 25;     // "m" unit label
-        const int constraintBtnWidth = 100;  // Enlarged constraint buttons
-        const int flipBtnWidth = 80;
-        const int rowGap = 20;  // Increased vertical padding between rows
+        const int posLabelWidth = scaled(75);    // "Position X:" fits fully
+        const int posEditorWidth = scaled(55);
+        const int posUnitWidth = scaled(25);     // "m" unit label
+        const int constraintBtnWidth = scaled(100);  // Enlarged constraint buttons
+        const int flipBtnWidth = scaled(80);
+        const int rowGap = scaled(20);  // Increased vertical padding between rows
 
         // Align Y row (second row) center with joystick center
-        // Joystick center is at: labelRowHeight(18) + joystickSize/2
-        const int joystickCenterY = 18 + joystickSize / 2;  // 88px from posBlock top
+        // Joystick center is at: labelRowHeight + joystickSize/2
+        const int joystickCenterY = joyLabelHeight + joystickSize / 2;
         // Y row center = topPadding + rowHeight + rowGap + rowHeight/2
         // Solve for topPadding: topPadding = joystickCenterY - rowHeight - rowGap - rowHeight/2
         const int topPadding = joystickCenterY - rowHeight - rowGap - rowHeight / 2;
         posBlock.removeFromTop(topPadding);
 
         // Row 1: Coord mode + X axis (Position X, Offset X, Constraint X, Flip X)
+        const int coordModeLabelW = scaled(40);
+        const int coordModeSelectorW = scaled(70);
         row = posBlock.removeFromTop(rowHeight);
-        coordModeLabel.setBounds(row.removeFromLeft(40));
-        coordModeSelector.setBounds(row.removeFromLeft(70));
+        coordModeLabel.setBounds(row.removeFromLeft(coordModeLabelW));
+        coordModeSelector.setBounds(row.removeFromLeft(coordModeSelectorW));
         row.removeFromLeft(spacing);
         posXLabel.setBounds(row.removeFromLeft(posLabelWidth));
         posXEditor.setBounds(row.removeFromLeft(posEditorWidth));
@@ -3804,7 +3813,7 @@ private:
 
         // Row 2: Y axis (Position Y, Offset Y, Constraint Y, Flip Y)
         row = posBlock.removeFromTop(rowHeight);
-        row.removeFromLeft(40 + 70 + spacing);  // Skip coord mode space
+        row.removeFromLeft(coordModeLabelW + coordModeSelectorW + spacing);  // Skip coord mode space
         posYLabel.setBounds(row.removeFromLeft(posLabelWidth));
         posYEditor.setBounds(row.removeFromLeft(posEditorWidth));
         posYUnitLabel.setBounds(row.removeFromLeft(posUnitWidth));
@@ -3820,7 +3829,7 @@ private:
 
         // Row 3: Z axis (Position Z, Offset Z, Constraint Z, Flip Z)
         row = posBlock.removeFromTop(rowHeight);
-        row.removeFromLeft(40 + 70 + spacing);  // Skip coord mode space
+        row.removeFromLeft(coordModeLabelW + coordModeSelectorW + spacing);  // Skip coord mode space
         posZLabel.setBounds(row.removeFromLeft(posLabelWidth));
         posZEditor.setBounds(row.removeFromLeft(posEditorWidth));
         posZUnitLabel.setBounds(row.removeFromLeft(posUnitWidth));
@@ -3838,20 +3847,24 @@ private:
         col1.removeFromTop(spacing);
         row = col1.removeFromTop(rowHeight);
         // Constraint R button starts after pos/offset fields and is centered
-        const int constraintStart = 40 + 70 + spacing + (posLabelWidth + posEditorWidth + posUnitWidth + spacing) * 2;
+        const int distLabelW = scaled(35);
+        const int distEditorW = scaled(55);
+        const int distUnitW = scaled(20);
+        const int distSliderW = scaled(180);
+        const int constraintStart = coordModeLabelW + coordModeSelectorW + spacing + (posLabelWidth + posEditorWidth + posUnitWidth + spacing) * 2;
         const int constraintRCenterX = constraintStart + constraintBtnWidth / 2;  // Center of single button
-        const int sliderRowWidth = 35 + 55 + 20 + spacing + 180 + spacing + 35 + 55 + 20;
+        const int sliderRowWidth = distLabelW + distEditorW + distUnitW + spacing + distSliderW + spacing + distLabelW + distEditorW + distUnitW;
         const int sliderRowStartX = constraintRCenterX - sliderRowWidth / 2;
         row.removeFromLeft(sliderRowStartX);
-        distanceMinLabel.setBounds(row.removeFromLeft(35));
-        distanceMinEditor.setBounds(row.removeFromLeft(55));
-        distanceMinUnitLabel.setBounds(row.removeFromLeft(20));
+        distanceMinLabel.setBounds(row.removeFromLeft(distLabelW));
+        distanceMinEditor.setBounds(row.removeFromLeft(distEditorW));
+        distanceMinUnitLabel.setBounds(row.removeFromLeft(distUnitW));
         row.removeFromLeft(spacing);
-        distanceRangeSlider.setBounds(row.removeFromLeft(180));
+        distanceRangeSlider.setBounds(row.removeFromLeft(distSliderW));
         row.removeFromLeft(spacing);
-        distanceMaxLabel.setBounds(row.removeFromLeft(35));
-        distanceMaxEditor.setBounds(row.removeFromLeft(55));
-        distanceMaxUnitLabel.setBounds(row.removeFromLeft(20));
+        distanceMaxLabel.setBounds(row.removeFromLeft(distLabelW));
+        distanceMaxEditor.setBounds(row.removeFromLeft(distEditorW));
+        distanceMaxUnitLabel.setBounds(row.removeFromLeft(distUnitW));
 
         col1.removeFromTop(spacing);
 
@@ -3860,8 +3873,8 @@ private:
         const int fourColWidth = col1.getWidth() / 4;
         const int controlBlockHeight = rowHeight * 2 + spacing * 2 + dialSize + rowHeight * 2;
         auto controlBlock = col1.removeFromTop(controlBlockHeight);
-        const int uniformButtonWidth = 130;  // Same width for all buttons
-        const int dialLabelWidth = 120;      // Wide enough for "Tracking Smoothing:"
+        const int uniformButtonWidth = scaled(130);  // Same width for all buttons
+        const int dialLabelWidth = scaled(120);      // Wide enough for "Tracking Smoothing:"
 
         // Column 1: Sidelines
         auto sidelinesCol = controlBlock.removeFromLeft(fourColWidth);
@@ -3893,10 +3906,12 @@ private:
 
         // Row 2: Tracking ID (centered)
         row = trackCol.removeFromTop(rowHeight);
-        int idRowWidth = 75 + 50;  // label + selector
+        const int trackIdLabelW = scaled(75);
+        const int trackIdSelectorW = scaled(50);
+        int idRowWidth = trackIdLabelW + trackIdSelectorW;  // label + selector
         int idRowX = colCenterX - idRowWidth / 2;
-        trackingIdLabel.setBounds(idRowX, row.getY(), 75, rowHeight);
-        trackingIdSelector.setBounds(idRowX + 75, row.getY(), 50, rowHeight);
+        trackingIdLabel.setBounds(idRowX, row.getY(), trackIdLabelW, rowHeight);
+        trackingIdSelector.setBounds(idRowX + trackIdLabelW, row.getY(), trackIdSelectorW, rowHeight);
         trackCol.removeFromTop(spacing);
 
         // Dial section: label, dial, value+unit (value right-justified to center, unit left-justified from center)
@@ -3925,7 +3940,7 @@ private:
         speedCol.removeFromTop(rowHeight);
         maxSpeedDial.setBounds(colCenterX - dialSize / 2, speedCol.getY(), dialSize, dialSize);
         speedCol.removeFromTop(dialSize);
-        layoutDialValueUnit(maxSpeedValueLabel, maxSpeedUnitLabel, colCenterX, speedCol.getY(), rowHeight, 40, 35);
+        layoutDialValueUnit(maxSpeedValueLabel, maxSpeedUnitLabel, colCenterX, speedCol.getY(), rowHeight, scaled(40), scaled(35));
 
         // Column 4: Height Factor
         auto heightCol = controlBlock;
@@ -3948,8 +3963,8 @@ private:
         auto topBlock = col2.removeFromTop(topBlockHeight);
 
         // Calculate item widths and total needed width
-        const int attenLawWidth = 140;  // Label/button width
-        const int dialSectionWidth = 110;  // Label width for dial sections
+        const int attenLawWidth = scaled(140);  // Label/button width
+        const int dialSectionWidth = scaled(110);  // Label width for dial sections
         const int itemSpacing = spacing * 4;  // Spacing between items
         const int totalTopRowWidth = attenLawWidth + dialSectionWidth * 2 + itemSpacing * 2;
 
@@ -3959,23 +3974,24 @@ private:
 
         // Column 1: Attenuation Law - label aligned with dial labels, button centered with dials
         int attenLawCenterX = topRowStartX + attenLawWidth / 2;
-        attenuationLawLabel.setBounds(attenLawCenterX - 70, topRowY, 140, rowHeight);
+        attenuationLawLabel.setBounds(attenLawCenterX - attenLawWidth / 2, topRowY, attenLawWidth, rowHeight);
         // Button vertically centered with dials (dials start at topRowY + rowHeight)
         int dialCenterY = topRowY + rowHeight + dialSize / 2;
-        attenuationLawButton.setBounds(attenLawCenterX - 60, dialCenterY - rowHeight / 2, 120, rowHeight);
+        const int attenLawBtnW = scaled(120);
+        attenuationLawButton.setBounds(attenLawCenterX - attenLawBtnW / 2, dialCenterY - rowHeight / 2, attenLawBtnW, rowHeight);
 
         // Column 2: Distance Atten dial
         int distCenterX = topRowStartX + attenLawWidth + itemSpacing + dialSectionWidth / 2;
-        distanceAttenLabel.setBounds(distCenterX - 55, topRowY, 110, rowHeight);
+        distanceAttenLabel.setBounds(distCenterX - dialSectionWidth / 2, topRowY, dialSectionWidth, rowHeight);
         distanceRatioLabel.setBounds(distanceAttenLabel.getBounds());
         distanceAttenDial.setBounds(distCenterX - dialSize / 2, topRowY + rowHeight, dialSize, dialSize);
         distanceRatioDial.setBounds(distanceAttenDial.getBounds());
-        layoutDialValueUnit(distanceAttenValueLabel, distanceAttenUnitLabel, distCenterX, topRowY + rowHeight + dialSize, rowHeight, 35, 50);
-        layoutDialValueUnit(distanceRatioValueLabel, distanceRatioUnitLabel, distCenterX, topRowY + rowHeight + dialSize, rowHeight, 35, 25);
+        layoutDialValueUnit(distanceAttenValueLabel, distanceAttenUnitLabel, distCenterX, topRowY + rowHeight + dialSize, rowHeight, scaled(35), scaled(50));
+        layoutDialValueUnit(distanceRatioValueLabel, distanceRatioUnitLabel, distCenterX, topRowY + rowHeight + dialSize, rowHeight, scaled(35), scaled(25));
 
         // Column 3: Common Atten dial
         int commonCenterX = topRowStartX + attenLawWidth + itemSpacing + dialSectionWidth + itemSpacing + dialSectionWidth / 2;
-        commonAttenLabel.setBounds(commonCenterX - 55, topRowY, 110, rowHeight);
+        commonAttenLabel.setBounds(commonCenterX - dialSectionWidth / 2, topRowY, dialSectionWidth, rowHeight);
         commonAttenDial.setBounds(commonCenterX - dialSize / 2, topRowY + rowHeight, dialSize, dialSize);
         layoutDialValueUnit(commonAttenValueLabel, commonAttenUnitLabel, commonCenterX, topRowY + rowHeight + dialSize, rowHeight);
 
@@ -3992,23 +4008,25 @@ private:
         auto slidersArea = slidersBlock.removeFromLeft(slidersWidth);
 
         // Directivity
+        const int sliderLabelW = scaled(70);
+        const int sliderValueW = scaled(90);
         row = slidersArea.removeFromTop(rowHeight);
-        directivityLabel.setBounds(row.removeFromLeft(70));
-        directivityValueLabel.setBounds(row.removeFromRight(90));
+        directivityLabel.setBounds(row.removeFromLeft(sliderLabelW));
+        directivityValueLabel.setBounds(row.removeFromRight(sliderValueW));
         directivitySlider.setBounds(slidersArea.removeFromTop(sliderHeight));
         slidersArea.removeFromTop(spacing);
 
         // Tilt
         row = slidersArea.removeFromTop(rowHeight);
-        tiltLabel.setBounds(row.removeFromLeft(70));
-        tiltValueLabel.setBounds(row.removeFromRight(90));
+        tiltLabel.setBounds(row.removeFromLeft(sliderLabelW));
+        tiltValueLabel.setBounds(row.removeFromRight(sliderValueW));
         tiltSlider.setBounds(slidersArea.removeFromTop(sliderHeight));
         slidersArea.removeFromTop(spacing);
 
         // HF Shelf
         row = slidersArea.removeFromTop(rowHeight);
-        hfShelfLabel.setBounds(row.removeFromLeft(70));
-        hfShelfValueLabel.setBounds(row.removeFromRight(90));
+        hfShelfLabel.setBounds(row.removeFromLeft(sliderLabelW));
+        hfShelfValueLabel.setBounds(row.removeFromRight(sliderValueW));
         hfShelfSlider.setBounds(slidersArea.removeFromTop(sliderHeight));
 
         // Right side: Large Rotation dial (centered vertically)
@@ -4016,40 +4034,42 @@ private:
         auto rotArea = slidersBlock;
         int rotCenterX = rotArea.getX() + rotArea.getWidth() / 2;
         int rotCenterY = rotArea.getY() + rotArea.getHeight() / 2;
-        rotationLabel.setBounds(rotCenterX - 50, rotArea.getY(), 100, rowHeight);
+        const int rotLabelW = scaled(100);
+        rotationLabel.setBounds(rotCenterX - rotLabelW / 2, rotArea.getY(), rotLabelW, rowHeight);
         inputDirectivityDial.setBounds(rotCenterX - largeRotationDial / 2, rotCenterY - largeRotationDial / 2, largeRotationDial, largeRotationDial);
-        layoutDialValueUnit(rotationValueLabel, rotationUnitLabel, rotCenterX, rotArea.getBottom() - rowHeight, rowHeight, 40, 25);
+        layoutDialValueUnit(rotationValueLabel, rotationUnitLabel, rotCenterX, rotArea.getBottom() - rowHeight, rowHeight, scaled(40), scaled(25));
 
         // Spacing after HF Shelf
         col2.removeFromTop(spacing);
 
         // --- Array Attenuation - all 10 dials on single line ---
-        const int smallDialSize = 36;
+        const int smallDialSize = scaled(36);
         const int arrayDialSpacing = (col2.getWidth() - smallDialSize * 10) / 10;
         const int arrayLabelWidth = smallDialSize + arrayDialSpacing;  // Full width per dial slot
-        arrayAttenLabel.setBounds(col2.removeFromTop(rowHeight).removeFromLeft(150));
+        arrayAttenLabel.setBounds(col2.removeFromTop(rowHeight).removeFromLeft(scaled(150)));
 
-        auto arrayRow = col2.removeFromTop(smallDialSize + 30);
+        auto arrayRow = col2.removeFromTop(smallDialSize + scaled(30));
         for (int i = 0; i < 10; ++i)
         {
             int slotX = arrayRow.getX() + i * (smallDialSize + arrayDialSpacing);
             int dialX = slotX + arrayDialSpacing / 2;
             int labelCenterX = dialX + smallDialSize / 2;  // Center of dial
-            arrayAttenDialLabels[i].setBounds(labelCenterX - arrayLabelWidth / 2, arrayRow.getY(), arrayLabelWidth, 12);
-            arrayAttenDials[i].setBounds(dialX, arrayRow.getY() + 12, smallDialSize, smallDialSize);
-            arrayAttenValueLabels[i].setBounds(labelCenterX - arrayLabelWidth / 2, arrayRow.getY() + 12 + smallDialSize, arrayLabelWidth, 12);
+            const int arrayLblH = scaled(12);
+            arrayAttenDialLabels[i].setBounds(labelCenterX - arrayLabelWidth / 2, arrayRow.getY(), arrayLabelWidth, arrayLblH);
+            arrayAttenDials[i].setBounds(dialX, arrayRow.getY() + arrayLblH, smallDialSize, smallDialSize);
+            arrayAttenValueLabels[i].setBounds(labelCenterX - arrayLabelWidth / 2, arrayRow.getY() + arrayLblH + smallDialSize, arrayLabelWidth, arrayLblH);
         }
         col2.removeFromTop(spacing);
 
         // --- Mute Macros selector ---
         row = col2.removeFromTop(rowHeight);
-        muteMacrosLabel.setBounds(row.removeFromLeft(90));
-        muteMacrosSelector.setBounds(row.removeFromLeft(150));
+        muteMacrosLabel.setBounds(row.removeFromLeft(scaled(90)));
+        muteMacrosSelector.setBounds(row.removeFromLeft(scaled(150)));
         col2.removeFromTop(spacing);
 
         // --- Mutes section (single line, fill width) ---
-        const int muteButtonSize = 36;
-        const int muteSpacing = 4;
+        const int muteButtonSize = scaled(36);
+        const int muteSpacing = scaled(4);
         int numOutputs = parameters.getNumOutputChannels();
         if (numOutputs <= 0) numOutputs = 16;
 
@@ -4081,25 +4101,25 @@ private:
     {
         // 2-column layout: Column 1 (Live Source), Column 2 (Hackoustics)
         auto area = subTabContentArea;
-        const int rowHeight = 26;
-        const int sliderHeight = 32;
-        const int spacing = 6;
-        const int labelWidth = 100;
-        const int valueWidth = 60;  // Tight value width like LFO section
-        const int dialSize = 65;
-        const int buttonWidth = 120;
+        const int rowHeight = scaled(26);
+        const int sliderHeight = scaled(32);
+        const int spacing = scaled(6);
+        const int labelWidth = scaled(100);
+        const int valueWidth = scaled(60);  // Tight value width like LFO section
+        const int dialSize = juce::jmax(60, static_cast<int>(100.0f * layoutScale));
+        const int buttonWidth = scaled(120);
 
         auto col1 = area.removeFromLeft(area.getWidth() / 2).reduced(5, 0);
         auto col2 = area.reduced(5, 0);
 
         // ========== COLUMN 1: Live Source ==========
-        lsActiveButton.setBounds(col1.removeFromTop(rowHeight).withWidth(180));
+        lsActiveButton.setBounds(col1.removeFromTop(rowHeight).withWidth(scaled(180)));
         col1.removeFromTop(spacing * 2);  // Extra padding after toggle
 
         // Shape selector
         auto row = col1.removeFromTop(rowHeight);
         lsShapeLabel.setBounds(row.removeFromLeft(labelWidth));
-        lsShapeSelector.setBounds(row.removeFromLeft(100));
+        lsShapeSelector.setBounds(row.removeFromLeft(scaled(100)));
         col1.removeFromTop(spacing * 2);  // Extra padding after shape
 
         // Radius
@@ -4131,7 +4151,7 @@ private:
         lsPeakRatioDial.setBounds(peakRatioDialBounds.withSizeKeepingCentre(dialSize, dialSize));
         int peakDialCenterX = peakRatioDialBounds.getX() + peakRatioDialBounds.getWidth() / 2;
         // Ratio format: prefix "1:" on left (right-justified), value on right (left-justified), centered as pair with overlap
-        const int peakPrefixW = 28, peakValueW = 35, peakOverlap = 7;
+        const int peakPrefixW = scaled(28), peakValueW = scaled(35), peakOverlap = scaled(7);
         int peakStartX = peakDialCenterX - (peakPrefixW + peakValueW - peakOverlap) / 2;
         lsPeakRatioUnitLabel.setBounds(peakStartX, peakDialArea.getY(), peakPrefixW, rowHeight);
         lsPeakRatioValueLabel.setBounds(peakStartX + peakPrefixW - peakOverlap, peakDialArea.getY(), peakValueW, rowHeight);
@@ -4158,7 +4178,7 @@ private:
         lsSlowRatioDial.setBounds(slowRatioDialBounds.withSizeKeepingCentre(dialSize, dialSize));
         int slowDialCenterX = slowRatioDialBounds.getX() + slowRatioDialBounds.getWidth() / 2;
         // Ratio format: prefix "1:" on left (right-justified), value on right (left-justified), centered as pair with overlap
-        const int slowPrefixW = 28, slowValueW = 35, slowOverlap = 7;
+        const int slowPrefixW = scaled(28), slowValueW = scaled(35), slowOverlap = scaled(7);
         int slowStartX = slowDialCenterX - (slowPrefixW + slowValueW - slowOverlap) / 2;
         lsSlowRatioUnitLabel.setBounds(slowStartX, slowDialArea.getY(), slowPrefixW, rowHeight);
         lsSlowRatioValueLabel.setBounds(slowStartX + slowPrefixW - slowOverlap, slowDialArea.getY(), slowValueW, rowHeight);
@@ -4171,7 +4191,7 @@ private:
         lsSlowThresholdSlider.setBounds(slowSliderArea.removeFromTop(sliderHeight));
 
         // ========== COLUMN 2: Hackoustics (Floor Reflections) ==========
-        frActiveButton.setBounds(col2.removeFromTop(rowHeight).withWidth(180));
+        frActiveButton.setBounds(col2.removeFromTop(rowHeight).withWidth(scaled(180)));
         col2.removeFromTop(spacing);
 
         // Attenuation
@@ -4185,20 +4205,20 @@ private:
         int diffusionBlockHeight = dialSize + rowHeight * 2;
         auto diffBlock = col2.removeFromTop(diffusionBlockHeight);
         int diffCenterX = diffBlock.getX() + diffBlock.getWidth() / 2;
-        frDiffusionLabel.setBounds(diffCenterX - 50, diffBlock.getY(), 100, rowHeight);
+        frDiffusionLabel.setBounds(diffCenterX - scaled(50), diffBlock.getY(), scaled(100), rowHeight);
         frDiffusionDial.setBounds(diffCenterX - dialSize / 2, diffBlock.getY() + rowHeight, dialSize, dialSize);
-        layoutDialValueUnit(frDiffusionValueLabel, frDiffusionUnitLabel, diffCenterX, diffBlock.getY() + rowHeight + dialSize, rowHeight, 30, 25);
+        layoutDialValueUnit(frDiffusionValueLabel, frDiffusionUnitLabel, diffCenterX, diffBlock.getY() + rowHeight + dialSize, rowHeight, scaled(30), scaled(25));
 
         col2.removeFromTop(spacing * 2);
 
         // EQ two-column layout: Low Cut (left) | High Shelf (right)
-        const int eqGap = 10;
+        const int eqGap = scaled(10);
         auto eqArea = col2;  // snapshot before consuming
         auto eqLeft = eqArea.removeFromLeft((eqArea.getWidth() - eqGap) / 2);
         eqArea.removeFromLeft(eqGap);
         auto eqRight = eqArea;
-        const int eqLabelW = 80;
-        const int eqValueW = 60;
+        const int eqLabelW = scaled(80);
+        const int eqValueW = scaled(60);
 
         // Row 1: Toggles (aligned)
         frLowCutActiveButton.setBounds(eqLeft.removeFromTop(rowHeight));
@@ -4241,22 +4261,23 @@ private:
         col2.removeFromTop(sendsTopPad);
         auto reverbSendsRow = col2.removeFromTop(rowHeight);
         int buttonCenterX = reverbSendsRow.getX() + reverbSendsRow.getWidth() / 2;
-        muteReverbSendsButton.setBounds(buttonCenterX - 100, reverbSendsRow.getY(), 200, rowHeight);
+        const int sendsBtnW = scaled(200);
+        muteReverbSendsButton.setBounds(buttonCenterX - sendsBtnW / 2, reverbSendsRow.getY(), sendsBtnW, rowHeight);
     }
 
     void layoutMovementsTab()
     {
         // 2-column layout: Column 1 (LFO), Column 2 (AutomOtion)
         auto area = subTabContentArea;
-        const int rowHeight = 22;
-        const int sliderHeight = 20;
-        const int spacing = 4;
-        const int labelWidth = 65;
-        const int valueWidth = 55;
-        const int selectorWidth = 90;
-        const int dialSize = 50;
-        const int buttonWidth = 95;
-        const int transportButtonSize = 35;
+        const int rowHeight = scaled(28);
+        const int sliderHeight = scaled(24);
+        const int spacing = scaled(4);
+        const int labelWidth = scaled(65);
+        const int valueWidth = scaled(55);
+        const int selectorWidth = scaled(90);
+        const int dialSize = juce::jmax(40, static_cast<int>(65.0f * layoutScale));
+        const int buttonWidth = scaled(95);
+        const int transportButtonSize = scaled(35);
 
         auto col1 = area.removeFromLeft(area.getWidth() / 2).reduced(5, 0);
         auto col2 = area.reduced(5, 0);
@@ -4264,15 +4285,15 @@ private:
         // ========== COLUMN 1: LFO (new compact layout) ==========
 
         // --- Header row: Toggle, Period dial, Phase dial, Progress dial, Gyrophone (full width) ---
-        const int headerDialSize = 40;
-        const int headerLabelHeight = 16;
-        const int headerValueHeight = 16;
+        const int headerDialSize = juce::jmax(30, static_cast<int>(45.0f * layoutScale));
+        const int headerLabelHeight = scaled(16);
+        const int headerValueHeight = scaled(16);
         const int headerRowHeight = headerLabelHeight + headerDialSize + headerValueHeight;
         auto headerRow = col1.removeFromTop(headerRowHeight);
         const int headerWidth = headerRow.getWidth();
 
         // Divide header into 5 sections
-        const int toggleWidth = 70;
+        const int toggleWidth = scaled(70);
         const int dialBlockWidth = headerDialSize + 15;
         const int gyroWidth = selectorWidth + 10;
         const int headerSpacing = (headerWidth - toggleWidth - 3 * dialBlockWidth - gyroWidth) / 4;
@@ -4292,7 +4313,7 @@ private:
         auto periodDialBounds = periodArea.removeFromTop(headerDialSize);
         lfoPeriodDial.setBounds(periodDialBounds.withSizeKeepingCentre(headerDialSize, headerDialSize));
         int periodCenterX = periodDialBounds.getX() + periodDialBounds.getWidth() / 2;
-        layoutDialValueUnit(lfoPeriodValueLabel, lfoPeriodUnitLabel, periodCenterX, periodArea.getY(), periodArea.getHeight(), 32, 25);
+        layoutDialValueUnit(lfoPeriodValueLabel, lfoPeriodUnitLabel, periodCenterX, periodArea.getY(), periodArea.getHeight(), scaled(32), scaled(25));
         headerRow.removeFromLeft(headerSpacing);
 
         // Phase: label at top, dial centered, value+unit at bottom
@@ -4301,7 +4322,7 @@ private:
         auto phaseDialBounds = phaseArea.removeFromTop(headerDialSize);
         lfoPhaseDial.setBounds(phaseDialBounds.withSizeKeepingCentre(headerDialSize, headerDialSize));
         int phaseCenterX = phaseDialBounds.getX() + phaseDialBounds.getWidth() / 2;
-        layoutDialValueUnit(lfoPhaseValueLabel, lfoPhaseUnitLabel, phaseCenterX, phaseArea.getY(), phaseArea.getHeight(), 35, 20);
+        layoutDialValueUnit(lfoPhaseValueLabel, lfoPhaseUnitLabel, phaseCenterX, phaseArea.getY(), phaseArea.getHeight(), scaled(35), scaled(20));
         headerRow.removeFromLeft(headerSpacing);
 
         // Progress indicator (no label, aligned with dials)
@@ -4322,11 +4343,11 @@ private:
         // --- Axis rows: X, Y, Z ---
         // Each row: [Shape selector] [Amp/Rate sliders stacked] [Phase dial] [Output slider]
         // All sliders same width
-        const int axisRowHeight = 92;   // Height for amp/rate stack with increased spacing
-        const int axisRowSpacing = 24;  // Doubled spacing between axis rows
-        const int ampRateSpacing = 8;   // Doubled spacing between amp and rate sliders
-        const int axisDial = 40;
-        const int shapeWidth = 75;
+        const int ampRateSpacing = scaled(8);   // Spacing between amp and rate sliders
+        const int axisRowHeight = rowHeight * 2 + sliderHeight * 2 + ampRateSpacing;  // Fit amp/rate stack
+        const int axisRowSpacing = scaled(16);  // Spacing between axis rows
+        const int axisDial = scaled(40);
+        const int shapeWidth = scaled(75);
         const int phaseDialWidth = axisDial + 25;  // Wider to fit "Phase X:" label
 
         // Calculate uniform slider width: total width minus fixed elements, divided among 3 sliders
@@ -4356,14 +4377,14 @@ private:
             auto sliderArea = axisRow.removeFromLeft(ampRateWidth);
             // Amplitude row
             auto ampRow = sliderArea.removeFromTop(rowHeight);
-            ampLabel.setBounds(ampRow.removeFromLeft(70));  // Wider to fit "Amplitude:"
-            ampValue.setBounds(ampRow.removeFromRight(50));
+            ampLabel.setBounds(ampRow.removeFromLeft(scaled(70)));  // Wider to fit "Amplitude:"
+            ampValue.setBounds(ampRow.removeFromRight(scaled(50)));
             ampSlider.setBounds(sliderArea.removeFromTop(sliderHeight));
             sliderArea.removeFromTop(ampRateSpacing);  // Doubled spacing between amp and rate
             // Rate row
             auto rateRow = sliderArea.removeFromTop(rowHeight);
-            rateLabel.setBounds(rateRow.removeFromLeft(70));  // Match amplitude label width
-            rateValue.setBounds(rateRow.removeFromRight(50));
+            rateLabel.setBounds(rateRow.removeFromLeft(scaled(70)));  // Match amplitude label width
+            rateValue.setBounds(rateRow.removeFromRight(scaled(50)));
             rateSlider.setBounds(sliderArea.removeFromTop(sliderHeight));
             axisRow.removeFromLeft(spacing);
 
@@ -4376,13 +4397,13 @@ private:
             auto axisPhaseDialBounds = phaseDialArea.removeFromTop(axisDial);
             phaseDial.setBounds(axisPhaseDialBounds.withSizeKeepingCentre(axisDial, axisDial));
             int axisPhaseDialCenterX = axisPhaseDialBounds.getX() + axisPhaseDialBounds.getWidth() / 2;
-            layoutDialValueUnit(phaseValue, phaseUnit, axisPhaseDialCenterX, phaseDialArea.getY(), rowHeight - 2, 35, 20);
+            layoutDialValueUnit(phaseValue, phaseUnit, axisPhaseDialCenterX, phaseDialArea.getY(), rowHeight - 2, scaled(35), scaled(20));
             axisRow.removeFromLeft(spacing);
 
             // Output slider - use remaining space (1/3 of slider space)
             auto outArea = axisRow;
             outLabel.setBounds(outArea.removeFromTop(rowHeight));
-            outSlider.setBounds(outArea.removeFromTop(sliderHeight * 2));
+            outSlider.setBounds(outArea.removeFromTop(sliderHeight));
         };
 
         // X axis row
@@ -4427,11 +4448,11 @@ private:
 
         // Row 1: Destination row spread across full column width
         // [Coord Mode ▼] [X: [__] m] [Y: [__] m] [Z: [__] m] [Absolute] [Stay]
-        const int otomoSelectorWidth = 90;   // Wider combobox
-        const int otomoToggleWidth = 80;     // Wider toggles
-        const int compactLabelWidth = 24;    // Wide enough for Greek letters (θ:, φ:)
-        const int compactEditorWidth = 55;   // Narrower number boxes
-        const int compactUnitWidth = 22;     // Wider for unit display
+        const int otomoSelectorWidth = scaled(90);   // Wider combobox
+        const int otomoToggleWidth = scaled(80);     // Wider toggles
+        const int compactLabelWidth = scaled(24);    // Wide enough for Greek letters (θ:, φ:)
+        const int compactEditorWidth = scaled(55);   // Narrower number boxes
+        const int compactUnitWidth = scaled(22);     // Wider for unit display
 
         // Calculate spacing to spread elements across column
         int row1FixedWidth = otomoSelectorWidth + (compactLabelWidth + compactEditorWidth + compactUnitWidth) * 3 + otomoToggleWidth * 2;
@@ -4478,7 +4499,7 @@ private:
         auto curveDialBounds = curveDialArea.removeFromTop(dialSize);
         otomoCurveDial.setBounds(curveDialBounds.withSizeKeepingCentre(dialSize, dialSize));
         int curveCenterX = curveDialBounds.getX() + curveDialBounds.getWidth() / 2;
-        layoutDialValueUnit(otomoCurveValueLabel, otomoCurveUnitLabel, curveCenterX, curveDialArea.getY(), rowHeight, 30, 25);
+        layoutDialValueUnit(otomoCurveValueLabel, otomoCurveUnitLabel, curveCenterX, curveDialArea.getY(), rowHeight, scaled(30), scaled(25));
         otomoDials1.removeFromLeft(row2ElementSpacing);
 
         auto speedDialArea = otomoDials1.removeFromLeft(otomoDialWidth);
@@ -4486,11 +4507,11 @@ private:
         auto speedDialBounds = speedDialArea.removeFromTop(dialSize);
         otomoSpeedProfileDial.setBounds(speedDialBounds.withSizeKeepingCentre(dialSize, dialSize));
         int speedCenterX = speedDialBounds.getX() + speedDialBounds.getWidth() / 2;
-        layoutDialValueUnit(otomoSpeedProfileValueLabel, otomoSpeedProfileUnitLabel, speedCenterX, speedDialArea.getY(), rowHeight, 30, 25);
+        layoutDialValueUnit(otomoSpeedProfileValueLabel, otomoSpeedProfileUnitLabel, speedCenterX, speedDialArea.getY(), rowHeight, scaled(30), scaled(25));
         col2.removeFromTop(otomoRowSpacing);
 
         // Row 3: Trigger row - [Manual/Trigger button] [Threshold dial] [Reset dial] - spread across column
-        const int triggerDialSize = 50;
+        const int triggerDialSize = scaled(50);
         const int triggerDialWidth = triggerDialSize + 30;
         int row3FixedWidth = buttonWidth + triggerDialWidth * 2;
         int row3AvailableSpace = col2.getWidth() - row3FixedWidth;
@@ -4511,7 +4532,7 @@ private:
         auto threshDialBounds = threshDialArea.removeFromTop(triggerDialSize);
         otomoThresholdDial.setBounds(threshDialBounds.withSizeKeepingCentre(triggerDialSize, triggerDialSize));
         int threshCenterX = threshDialBounds.getX() + threshDialBounds.getWidth() / 2;
-        layoutDialValueUnit(otomoThresholdValueLabel, otomoThresholdUnitLabel, threshCenterX, threshDialArea.getY(), rowHeight, 42, 30);
+        layoutDialValueUnit(otomoThresholdValueLabel, otomoThresholdUnitLabel, threshCenterX, threshDialArea.getY(), rowHeight, scaled(42), scaled(30));
         triggerRow.removeFromLeft(row3ElementSpacing);
 
         // Reset dial
@@ -4520,7 +4541,7 @@ private:
         auto resetDialBounds = resetDialArea.removeFromTop(triggerDialSize);
         otomoResetDial.setBounds(resetDialBounds.withSizeKeepingCentre(triggerDialSize, triggerDialSize));
         int resetCenterX = resetDialBounds.getX() + resetDialBounds.getWidth() / 2;
-        layoutDialValueUnit(otomoResetValueLabel, otomoResetUnitLabel, resetCenterX, resetDialArea.getY(), rowHeight, 42, 30);
+        layoutDialValueUnit(otomoResetValueLabel, otomoResetUnitLabel, resetCenterX, resetDialArea.getY(), rowHeight, scaled(42), scaled(30));
         col2.removeFromTop(otomoRowSpacing);
 
         // Row 4: Transport buttons - spread across column
@@ -4586,10 +4607,10 @@ private:
     void layoutMutesTab()
     {
         auto area = subTabContentArea;
-        const int buttonSize = 35;
-        const int gridSpacing = 3;
-        const int rowHeight = 30;
-        const int selectorWidth = 200;
+        const int buttonSize = scaled(35);
+        const int gridSpacing = scaled(3);
+        const int rowHeight = scaled(30);
+        const int selectorWidth = scaled(200);
 
         // Get configured output count
         int numOutputs = parameters.getNumOutputChannels();
@@ -4616,27 +4637,27 @@ private:
             }
         }
 
-        area.removeFromTop(20);
+        area.removeFromTop(scaled(20));
 
         // Mute Macros selector
         auto row = area.removeFromTop(rowHeight);
-        muteMacrosLabel.setBounds(row.removeFromLeft(100));
+        muteMacrosLabel.setBounds(row.removeFromLeft(scaled(100)));
         muteMacrosSelector.setBounds(row.removeFromLeft(selectorWidth));
 
-        area.removeFromTop(20);
+        area.removeFromTop(scaled(20));
 
         // Array Attenuation section
-        const int dialSize = 50;
-        const int dialSpacing = 8;
-        const int labelHeight = 18;
-        const int valueHeight = 18;
+        const int dialSize = juce::jmax(40, static_cast<int>(65.0f * layoutScale));
+        const int dialSpacing = scaled(8);
+        const int labelHeight = scaled(18);
+        const int valueHeight = scaled(18);
         const int dialTotalHeight = labelHeight + dialSize + valueHeight;
 
         // Section label
         auto labelRow = area.removeFromTop(rowHeight);
-        arrayAttenLabel.setBounds(labelRow.removeFromLeft(150));
+        arrayAttenLabel.setBounds(labelRow.removeFromLeft(scaled(150)));
 
-        area.removeFromTop(5);
+        area.removeFromTop(scaled(5));
 
         // Layout 10 dials in a single row
         auto dialsRow = area.removeFromTop(dialTotalHeight);
@@ -4651,16 +4672,16 @@ private:
             arrayAttenValueLabels[i].setBounds(dialArea.removeFromTop(valueHeight));
         }
 
-        area.removeFromTop(20);
+        area.removeFromTop(scaled(20));
 
         // Sidelines section
-        auto sidelinesRow = area.removeFromTop(rowHeight + 10);
-        sidelinesActiveButton.setBounds(sidelinesRow.removeFromLeft(100));
-        sidelinesRow.removeFromLeft(20);
-        sidelinesFringeLabel.setBounds(sidelinesRow.removeFromLeft(50));
-        sidelinesFringeDial.setBounds(sidelinesRow.removeFromLeft(50));
-        sidelinesRow.removeFromLeft(5);
-        sidelinesFringeValueLabel.setBounds(sidelinesRow.removeFromLeft(70));
+        auto sidelinesRow = area.removeFromTop(rowHeight + scaled(10));
+        sidelinesActiveButton.setBounds(sidelinesRow.removeFromLeft(scaled(100)));
+        sidelinesRow.removeFromLeft(scaled(20));
+        sidelinesFringeLabel.setBounds(sidelinesRow.removeFromLeft(scaled(50)));
+        sidelinesFringeDial.setBounds(sidelinesRow.removeFromLeft(scaled(50)));
+        sidelinesRow.removeFromLeft(scaled(5));
+        sidelinesFringeValueLabel.setBounds(sidelinesRow.removeFromLeft(scaled(70)));
     }
 
     // ==================== PARAMETER MANAGEMENT ====================
@@ -7235,9 +7256,13 @@ private:
     std::map<juce::Component*, juce::String> oscMethodMap;
     int currentChannel = 1;
 
-    static constexpr int headerHeight = 60;
-    static constexpr int footerHeight = 90;  // Two 30px button rows + 10px spacing + 20px padding
+    int headerHeight = 60;
+    int footerHeight = 90;
     juce::Rectangle<int> subTabContentArea;
+    float layoutScale = 1.0f;  // Proportional scaling factor (1.0 = 1080p reference)
+
+    /** Scale a reference pixel value by layoutScale with a 65% minimum floor */
+    int scaled(int ref) const { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * layoutScale)); }
 
     // Header components
     ChannelSelectorButton channelSelector { "Input" };

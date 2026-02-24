@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "ColorScheme.h"
+#include "WfsLookAndFeel.h"
 #include "../WfsParameters.h"
 #include "../DSP/TestSignalGenerator.h"
 
@@ -142,12 +143,14 @@ public:
     void valueTreeParentChanged(juce::ValueTree&) override {}
 
 private:
-    // Visual constants
-    static constexpr int cellWidth = 40;
-    static constexpr int cellHeight = 30;
-    static constexpr int headerHeight = 50;
-    static constexpr int rowHeaderWidth = 120;
-    static constexpr int scrollBarThickness = 16;
+    // Visual constants — scaled by global UI scale
+    static int sc(int ref) { float s = WfsLookAndFeel::uiScale; return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * s)); }
+    int cellWidth = 40;
+    int cellHeight = 30;
+    int headerHeight = 50;
+    int rowHeaderWidth = 120;
+    int scrollBarThickness = 16;
+    void updateScaledSizes() { cellWidth = sc(40); cellHeight = sc(30); headerHeight = sc(50); rowHeaderWidth = sc(120); scrollBarThickness = sc(16); }
 
     // Data
     WFSValueTreeState& parameters;

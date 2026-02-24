@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "../ColorScheme.h"
+#include "../WfsLookAndFeel.h"
 
 /**
  * LongPressButton
@@ -128,7 +129,7 @@ private:
 
         // Text
         g.setColour(isEnabled() ? ColorScheme::get().textPrimary : ColorScheme::get().textDisabled);
-        g.setFont(juce::FontOptions(14.0f));
+        g.setFont(juce::FontOptions(juce::jmax(10.0f, 14.0f * WfsLookAndFeel::uiScale)));
         g.drawText(getButtonText(), bounds, juce::Justification::centred);
     }
 

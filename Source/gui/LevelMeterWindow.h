@@ -305,30 +305,33 @@ public:
 
     void resized() override
     {
-        auto bounds = getLocalBounds().reduced(10);
-        int controlHeight = 30;
+        float ls = static_cast<float>(getHeight()) / 500.0f;
+        auto sc = [ls](int ref) { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * ls)); };
+
+        auto bounds = getLocalBounds().reduced(sc(10));
+        int controlHeight = sc(30);
 
         // Bottom controls (clear solo button, solo mode toggle)
         auto controlsArea = bounds.removeFromBottom(controlHeight);
-        clearSoloButton.setBounds(controlsArea.removeFromLeft(100));
-        controlsArea.removeFromLeft(10);  // Spacing
-        soloModeButton.setBounds(controlsArea.removeFromLeft(100));
+        clearSoloButton.setBounds(controlsArea.removeFromLeft(sc(100)));
+        controlsArea.removeFromLeft(sc(10));  // Spacing
+        soloModeButton.setBounds(controlsArea.removeFromLeft(sc(100)));
 
-        bounds.removeFromBottom(10);  // Spacing
+        bounds.removeFromBottom(sc(10));  // Spacing
 
         // Split remaining area for inputs and outputs
         int halfHeight = bounds.getHeight() / 2;
         auto inputsArea = bounds.removeFromTop(halfHeight);
-        bounds.removeFromTop(5);  // Spacing
+        bounds.removeFromTop(sc(5));  // Spacing
         auto outputsArea = bounds;
 
         // Input section
-        inputsLabel.setBounds(inputsArea.removeFromTop(20));
+        inputsLabel.setBounds(inputsArea.removeFromTop(sc(20)));
         layoutInputMeters(inputsArea,
                          levelManager.getCurrentAlgorithm() == LevelMeteringManager::ProcessingAlgorithm::InputBuffer);
 
         // Output section
-        outputsLabel.setBounds(outputsArea.removeFromTop(20));
+        outputsLabel.setBounds(outputsArea.removeFromTop(sc(20)));
         layoutMeters(outputsArea, outputMeters, outputLabels, outputPerfBars,
                     levelManager.getCurrentAlgorithm() == LevelMeteringManager::ProcessingAlgorithm::OutputBuffer);
     }
@@ -507,16 +510,19 @@ private:
         if (inputMeters.isEmpty())
             return;
 
+        float ls = static_cast<float>(getHeight()) / 500.0f;
+        auto sc = [ls](int ref) { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * ls)); };
+
         int numMeters = inputMeters.size();
-        int meterWidth = juce::jmin(30, (area.getWidth() - 20) / numMeters);
+        int meterWidth = juce::jmin(sc(30), (area.getWidth() - 20) / numMeters);
         int spacing = juce::jmax(2, (area.getWidth() - numMeters * meterWidth) / (numMeters + 1));
 
         int x = area.getX() + spacing;
         int baseY = area.getY();
-        int labelHeight = 15;
-        int soloButtonHeight = 18;
-        int perfBarHeight = showPerfBars ? 10 : 0;
-        int meterHeight = area.getHeight() - labelHeight - soloButtonHeight - perfBarHeight - 8;
+        int labelHeight = sc(15);
+        int soloButtonHeight = sc(18);
+        int perfBarHeight = showPerfBars ? sc(10) : 0;
+        int meterHeight = area.getHeight() - labelHeight - soloButtonHeight - perfBarHeight - sc(8);
 
         for (int i = 0; i < numMeters; ++i)
         {
@@ -546,15 +552,18 @@ private:
         if (meters.isEmpty())
             return;
 
+        float ls = static_cast<float>(getHeight()) / 500.0f;
+        auto sc = [ls](int ref) { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * ls)); };
+
         int numMeters = meters.size();
-        int meterWidth = juce::jmin(30, (area.getWidth() - 20) / numMeters);
+        int meterWidth = juce::jmin(sc(30), (area.getWidth() - 20) / numMeters);
         int spacing = juce::jmax(2, (area.getWidth() - numMeters * meterWidth) / (numMeters + 1));
 
         int x = area.getX() + spacing;
         int baseY = area.getY();
-        int labelHeight = 15;
-        int perfBarHeight = showPerfBars ? 10 : 0;
-        int meterHeight = area.getHeight() - labelHeight - perfBarHeight - 5;
+        int labelHeight = sc(15);
+        int perfBarHeight = showPerfBars ? sc(10) : 0;
+        int meterHeight = area.getHeight() - labelHeight - perfBarHeight - sc(5);
 
         for (int i = 0; i < numMeters; ++i)
         {
@@ -662,22 +671,24 @@ public:
         content->setName(LOC("levelMeter.windowTitle"));
         setContentOwned(content.get(), false);
 
-        // Window size
-        const int preferredWidth = 800;
-        const int preferredHeight = 500;
-
-        // Get display bounds
+        // Window size — scale with display resolution
         auto& displays = juce::Desktop::getInstance().getDisplays();
         const auto* displayPtr = displays.getPrimaryDisplay();
         juce::Rectangle<int> userArea = (displayPtr != nullptr && !displayPtr->userArea.isEmpty())
             ? displayPtr->userArea
             : displays.getTotalBounds(true);
 
+        float ds = static_cast<float>(userArea.getHeight()) / 1080.0f;
+        auto dsc = [ds](int ref) { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * ds)); };
+
+        const int preferredWidth = dsc(800);
+        const int preferredHeight = dsc(500);
+
         const int margin = 40;
         const int windowWidth = juce::jmin(preferredWidth, userArea.getWidth() - margin);
         const int windowHeight = juce::jmin(preferredHeight, userArea.getHeight() - margin);
 
-        setResizeLimits(400, 300, userArea.getWidth(), userArea.getHeight());
+        setResizeLimits(dsc(400), dsc(300), userArea.getWidth(), userArea.getHeight());
 
         centreWithSize(windowWidth, windowHeight);
         setVisible(true);

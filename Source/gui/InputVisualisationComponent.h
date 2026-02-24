@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "ColorScheme.h"
 #include "ColorUtilities.h"
+#include "WfsLookAndFeel.h"
 #include "../WfsParameters.h"
 #include "../Localization/LocalizationManager.h"
 
@@ -49,7 +50,7 @@ public:
     void paint(juce::Graphics& g) override
     {
         auto bounds = getLocalBounds().toFloat();
-        constexpr float valueTextHeight = 18.0f;
+        const float valueTextHeight = juce::jmax(12.0f, 18.0f * WfsLookAndFeel::uiScale);
 
         // Background
         g.setColour(juce::Colour(0xFF1A1A1A));
@@ -95,7 +96,7 @@ public:
             ? WfsColorUtilities::getArrayColor(arrayNumber)
             : ColorScheme::get().textPrimary;
         g.setColour(textColour);
-        g.setFont(juce::FontOptions(10.0f).withStyle("Bold"));
+        g.setFont(juce::FontOptions(juce::jmax(7.0f, 10.0f * WfsLookAndFeel::uiScale)).withStyle("Bold"));
         juce::String valueText = juce::String(static_cast<int>(std::round(value)));
         g.drawText(valueText, bounds.removeFromTop(valueTextHeight), juce::Justification::centred, false);
     }
@@ -373,20 +374,23 @@ public:
 
     void resized() override
     {
+        float s = WfsLookAndFeel::uiScale;
+        auto sc = [s](int ref) { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * s)); };
+
         auto bounds = getLocalBounds();
-        const int labelWidth = 80;
-        const int spacing = 2;
-        const int gapBetweenOutputsAndReverbs = 10;  // Double padding between outputs and reverbs
+        const int labelWidth = sc(80);
+        const int spacing = sc(2);
+        const int gapBetweenOutputsAndReverbs = sc(10);  // Double padding between outputs and reverbs
 
         int totalSliders = numOutputs + numReverbs;
         if (totalSliders == 0) totalSliders = 1;
 
         // Calculate slider width accounting for the gap between outputs and reverbs
-        int availableWidth = bounds.getWidth() - labelWidth - 10;
+        int availableWidth = bounds.getWidth() - labelWidth - sc(10);
         if (numOutputs > 0 && numReverbs > 0)
             availableWidth -= gapBetweenOutputsAndReverbs;
-        int sliderWidth = juce::jmax(15, availableWidth / totalSliders);
-        int rowHeight = (bounds.getHeight() - 6) / 3;
+        int sliderWidth = juce::jmax(sc(15), availableWidth / totalSliders);
+        int rowHeight = (bounds.getHeight() - sc(6)) / 3;
 
         // Helper to layout sliders in a row with gap between outputs and reverbs
         auto layoutSlidersInRow = [&](juce::OwnedArray<VisualisationSlider>& sliders,
@@ -407,8 +411,8 @@ public:
         // Delay row
         auto delayRow = bounds.removeFromTop(rowHeight);
         auto delayLabelArea = delayRow.removeFromRight(labelWidth);
-        delayUnitLabel.setBounds(delayLabelArea.removeFromTop(20));
-        delayLabel.setBounds(delayLabelArea.removeFromTop(20));
+        delayUnitLabel.setBounds(delayLabelArea.removeFromTop(sc(20)));
+        delayLabel.setBounds(delayLabelArea.removeFromTop(sc(20)));
         layoutSlidersInRow(delaySliders, delayRow);
 
         bounds.removeFromTop(spacing);
@@ -416,8 +420,8 @@ public:
         // HF row
         auto hfRow = bounds.removeFromTop(rowHeight);
         auto hfLabelArea = hfRow.removeFromRight(labelWidth);
-        hfUnitLabel.setBounds(hfLabelArea.removeFromTop(20));
-        hfLabel.setBounds(hfLabelArea.removeFromTop(35));
+        hfUnitLabel.setBounds(hfLabelArea.removeFromTop(sc(20)));
+        hfLabel.setBounds(hfLabelArea.removeFromTop(sc(35)));
         layoutSlidersInRow(hfSliders, hfRow);
 
         bounds.removeFromTop(spacing);
@@ -425,8 +429,8 @@ public:
         // Level row
         auto levelRow = bounds;
         auto levelLabelArea = levelRow.removeFromRight(labelWidth);
-        levelUnitLabel.setBounds(levelLabelArea.removeFromTop(20));
-        levelLabel.setBounds(levelLabelArea.removeFromTop(20));
+        levelUnitLabel.setBounds(levelLabelArea.removeFromTop(sc(20)));
+        levelLabel.setBounds(levelLabelArea.removeFromTop(sc(20)));
         layoutSlidersInRow(levelSliders, levelRow);
     }
 

@@ -375,35 +375,38 @@ public:
 
     void resized() override
     {
+        layoutScale = static_cast<float>(getHeight()) / 932.0f;
+        headerHeight = scaled(60);
+        footerHeight = scaled(50);
         auto bounds = getLocalBounds();
-        const int padding = 10;
-        const int rowHeight = 30;
-        const int spacing = 5;
+        const int padding = scaled(10);
+        const int rowHeight = scaled(30);
+        const int spacing = scaled(5);
 
         // ==================== HEADER ====================
         auto headerArea = bounds.removeFromTop(headerHeight).reduced(padding, padding);
 
         // First row: Channel selector and Name
         auto row1 = headerArea.removeFromTop(rowHeight);
-        channelSelector.setBounds(row1.removeFromLeft(150));
+        channelSelector.setBounds(row1.removeFromLeft(scaled(150)));
         row1.removeFromLeft(spacing * 2);
-        nameLabel.setBounds(row1.removeFromLeft(50));
-        nameEditor.setBounds(row1.removeFromLeft(200));
+        nameLabel.setBounds(row1.removeFromLeft(scaled(50)));
+        nameEditor.setBounds(row1.removeFromLeft(scaled(200)));
         row1.removeFromLeft(spacing * 4);
 
         // Array and Apply to Array in same row
-        arrayLabel.setBounds(row1.removeFromLeft(50));
-        arraySelector.setBounds(row1.removeFromLeft(100));
+        arrayLabel.setBounds(row1.removeFromLeft(scaled(50)));
+        arraySelector.setBounds(row1.removeFromLeft(scaled(100)));
         row1.removeFromLeft(spacing * 2);
-        applyToArrayLabel.setBounds(row1.removeFromLeft(100));
-        applyToArraySelector.setBounds(row1.removeFromLeft(100));
+        applyToArrayLabel.setBounds(row1.removeFromLeft(scaled(100)));
+        applyToArraySelector.setBounds(row1.removeFromLeft(scaled(100)));
         row1.removeFromLeft(spacing * 2);
-        mapVisibilityButton.setBounds(row1.removeFromLeft(180));
+        mapVisibilityButton.setBounds(row1.removeFromLeft(scaled(180)));
 
         // Right-aligned buttons (from right to left)
-        arrayPositionHelperButton.setBounds(row1.removeFromRight(130));
+        arrayPositionHelperButton.setBounds(row1.removeFromRight(scaled(130)));
         row1.removeFromRight(spacing);
-        levelMeterButton.setBounds(row1.removeFromRight(100));
+        levelMeterButton.setBounds(row1.removeFromRight(scaled(100)));
 
         // ==================== FOOTER ====================
         auto footerArea = bounds.removeFromBottom(footerHeight).reduced(padding, padding);
@@ -420,7 +423,7 @@ public:
         exportButton.setBounds(footerArea.removeFromLeft(buttonWidth));
 
         // ==================== SUB-TABS AREA ====================
-        auto tabBarArea = bounds.removeFromTop(32);  // No left padding for tab bar
+        auto tabBarArea = bounds.removeFromTop(scaled(32));  // No left padding for tab bar
         subTabBar.setBounds(tabBarArea);
 
         // Content area for sub-tabs (with padding)
@@ -429,6 +432,7 @@ public:
 
         // Layout sub-tab content based on current tab
         layoutCurrentSubTab();
+        WfsLookAndFeel::scaleTextEditorFonts(*this, layoutScale);
     }
 
     void setStatusBar(StatusBar* bar)
@@ -1242,12 +1246,12 @@ private:
     void layoutOutputParametersTab()
     {
         auto area = subTabContentArea;
-        const int rowHeight = 30;
-        const int sliderHeight = 40;
-        const int spacing = 8;
-        const int labelWidth = 115;
-        const int valueWidth = 60;  // Tight value width like LFO section
-        const int indicatorSize = 6;
+        const int rowHeight = scaled(30);
+        const int sliderHeight = scaled(40);
+        const int spacing = scaled(8);
+        const int labelWidth = scaled(115);
+        const int valueWidth = scaled(60);  // Tight value width like LFO section
+        const int indicatorSize = scaled(6);
 
         // Helper to position indicator as superscript after label text (like a footnote marker)
         auto positionIndicatorForLabel = [indicatorSize](ArrayLinkIndicator& indicator, const juce::Label& label) {
@@ -1287,7 +1291,7 @@ private:
         row = leftCol.removeFromTop(rowHeight);
         delayLatencyLabel.setBounds(row.removeFromLeft(labelWidth));
         positionIndicatorForLabel(delayLatencyIndicator, delayLatencyLabel);
-        delayLatencyValueLabel.setBounds(row.removeFromRight(130));  // Wider for "Latency: 100.0 ms"
+        delayLatencyValueLabel.setBounds(row.removeFromRight(scaled(130)));  // Wider for "Latency: 100.0 ms"
         delayLatencySlider.setBounds(leftCol.removeFromTop(sliderHeight));
         leftCol.removeFromTop(spacing * 2);
 
@@ -1301,7 +1305,7 @@ private:
 
         // Enable buttons - all three on a single row, aligned with sliders above
         row = leftCol.removeFromTop(rowHeight);
-        const int buttonSpacing = 15;  // Spacing between buttons
+        const int buttonSpacing = scaled(15);  // Spacing between buttons
         const int buttonWidth = (row.getWidth() - buttonSpacing * 2) / 3;
         minLatencyEnableButton.setBounds(row.removeFromLeft(buttonWidth));
         positionIndicatorForButton(minLatencyIndicator, minLatencyEnableButton);
@@ -1317,12 +1321,12 @@ private:
 
         // Coordinate mode and position row - distribute evenly across full width
         row = rightCol.removeFromTop(rowHeight);
-        const int coordLabelWidth = 85;
-        const int coordSelectorWidth = 80;
-        const int posLabelWidth = 75;  // Fits "Position X:", "Azimuth:", "Elevation:"
-        const int posEditorWidth = 65;
-        const int posUnitWidth = 25;
-        const int coordSpacing = 15;  // Spacing between coordinate groups
+        const int coordLabelWidth = scaled(85);
+        const int coordSelectorWidth = scaled(80);
+        const int posLabelWidth = scaled(75);  // Fits "Position X:", "Azimuth:", "Elevation:"
+        const int posEditorWidth = scaled(65);
+        const int posUnitWidth = scaled(25);
+        const int coordSpacing = scaled(15);  // Spacing between coordinate groups
 
         coordModeLabel.setBounds(row.removeFromLeft(coordLabelWidth));
         coordModeSelector.setBounds(row.removeFromLeft(coordSelectorWidth));
@@ -1344,8 +1348,8 @@ private:
         rightCol.removeFromTop(spacing * 6);  // Extra space before directivity group
 
         // Calculate heights for vertical centering of dial with slider group
-        const int dialSize = 100;
-        const int dialMargin = 40;
+        const int dialSize = juce::jmax(60, static_cast<int>(100.0f * layoutScale));
+        const int dialMargin = scaled(40);
         const int sliderGroupHeight = 3 * (rowHeight + sliderHeight) + 2 * spacing;  // 3 directivity sliders (Angle On/Off, Pitch)
         const int dialGroupHeight = rowHeight + dialSize + rowHeight;  // label + dial + value
         const int dialTopOffset = (sliderGroupHeight - dialGroupHeight) / 2;
@@ -1371,7 +1375,7 @@ private:
         directionalDial.setBounds(dialArea.withSizeKeepingCentre(dialSize, dialSize));
         auto orientValueRow = dialColumn.removeFromTop(rowHeight);
         // Value and unit adjacent, centered as a pair under dial (with overlap to reduce font padding gap)
-        const int orientValW = 40, orientUnitW = 30, overlap = 7;
+        const int orientValW = scaled(40), orientUnitW = scaled(30), overlap = scaled(7);
         int orientStartX = orientDialCenterX - (orientValW + orientUnitW - overlap) / 2;
         orientationValueLabel.setBounds(orientStartX, orientValueRow.getY(), orientValW, rowHeight);
         orientationValueLabel.setJustificationType(juce::Justification::right);
@@ -1412,13 +1416,13 @@ private:
 
         // Parallax editors (both on same row, V Parallax starts at center)
         row = rightCol.removeFromTop(rowHeight);
-        const int parallaxEditorWidth = 60;
-        const int parallaxUnitWidth = 20;
-        const int labelToEditorGap = 10;  // Gap between label and editor
+        const int parallaxEditorWidth = scaled(60);
+        const int parallaxUnitWidth = scaled(20);
+        const int labelToEditorGap = scaled(10);  // Gap between label and editor
 
         // Horizontal Parallax - left half
         auto hArea = row.removeFromLeft(row.getWidth() / 2);
-        hParallaxLabel.setBounds(hArea.removeFromLeft(130));
+        hParallaxLabel.setBounds(hArea.removeFromLeft(scaled(130)));
         positionIndicatorForLabel(hParallaxIndicator, hParallaxLabel);
         hArea.removeFromLeft(labelToEditorGap);
         hParallaxEditor.setBounds(hArea.removeFromLeft(parallaxEditorWidth));
@@ -1426,7 +1430,7 @@ private:
         hParallaxUnitLabel.setBounds(hArea.removeFromLeft(parallaxUnitWidth));
 
         // Vertical Parallax - starts at center of column
-        vParallaxLabel.setBounds(row.removeFromLeft(120));
+        vParallaxLabel.setBounds(row.removeFromLeft(scaled(120)));
         positionIndicatorForLabel(vParallaxIndicator, vParallaxLabel);
         row.removeFromLeft(labelToEditorGap);
         vParallaxEditor.setBounds(row.removeFromLeft(parallaxEditorWidth));
@@ -1437,23 +1441,23 @@ private:
     void layoutEqTab()
     {
         auto area = subTabContentArea;
-        const int buttonHeight = 30;
+        const int buttonHeight = scaled(30);
         const int bandWidth = area.getWidth() / numEqBands;
-        const int dialSize = 60;
-        const int sliderHeight = 35;
-        const int labelHeight = 20;
-        const int spacing = 5;
-        const int indicatorSize = 6;
-        const int toggleSize = 18;
+        const int dialSize = juce::jmax(40, static_cast<int>(65.0f * layoutScale));
+        const int sliderHeight = scaled(35);
+        const int labelHeight = scaled(20);
+        const int spacing = scaled(5);
+        const int indicatorSize = scaled(6);
+        const int toggleSize = scaled(18);
 
         // Top row: EQ Enable button (left) + Flatten EQ button (right)
         auto topRow = area.removeFromTop(buttonHeight);
-        eqEnableButton.setBounds(topRow.removeFromLeft(100));
+        eqEnableButton.setBounds(topRow.removeFromLeft(scaled(100)));
         auto eqBtnBounds = eqEnableButton.getBounds();
         eqIndicator.setBounds(eqBtnBounds.getRight() - indicatorSize - 6,
                              eqBtnBounds.getY() + 4,
                              indicatorSize, indicatorSize);
-        eqFlattenButton.setBounds(topRow.removeFromRight(100));
+        eqFlattenButton.setBounds(topRow.removeFromRight(scaled(100)));
         area.removeFromTop(spacing * 2);
 
         // EQ Display component (takes upper portion, min 200px, target ~40% of remaining height)
@@ -1475,8 +1479,8 @@ private:
             // Row 2: Toggle + Shape combobox + Reset button
             auto shapeRow = bandArea.removeFromTop(buttonHeight);
             eqBandToggle[i].setBounds(shapeRow.removeFromLeft(toggleSize).withSizeKeepingCentre(toggleSize, toggleSize));
-            shapeRow.removeFromLeft(4);  // gap
-            eqBandResetButton[i].setBounds(shapeRow.removeFromRight(50));
+            shapeRow.removeFromLeft(scaled(4));  // gap
+            eqBandResetButton[i].setBounds(shapeRow.removeFromRight(scaled(50)));
             eqBandShapeSelector[i].setBounds(shapeRow);
             bandArea.removeFromTop(spacing);
 
@@ -2312,9 +2316,13 @@ private:
     std::map<juce::Component*, juce::String> oscMethodMap;
     int currentChannel = 1;
 
-    static constexpr int headerHeight = 60;
-    static constexpr int footerHeight = 50;
+    int headerHeight = 60;
+    int footerHeight = 50;
     juce::Rectangle<int> subTabContentArea;
+    float layoutScale = 1.0f;  // Proportional scaling factor (1.0 = 1080p reference)
+
+    /** Scale a reference pixel value by layoutScale with a 65% minimum floor */
+    int scaled(int ref) const { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * layoutScale)); }
 
     // Header components
     ChannelSelectorButton channelSelector { "Output" };

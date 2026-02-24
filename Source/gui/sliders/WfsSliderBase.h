@@ -97,6 +97,18 @@ public:
 
     Orientation getOrientation() const noexcept { return orientation; }
 
+    void resized() override
+    {
+        float ref = (orientation == Orientation::horizontal)
+                    ? static_cast<float>(getHeight())
+                    : static_cast<float>(getWidth());
+        if (ref > 0.0f)
+        {
+            trackThickness = ref * 0.5f;   // 20/40 ratio preserved
+            thumbRadius = ref * 0.2f;       // 8/40 ratio preserved
+        }
+    }
+
 protected:
     float getNormalizedValue() const noexcept
     {
@@ -183,8 +195,8 @@ protected:
         auto colour = ColorScheme::get().sliderThumb.withAlpha(alpha);
         g.setColour(colour);
         
-        // Thumb line thickness (stroke width along track) - kept thin for clean look
-        const float lineThickness = 2.0f;
+        // Thumb line thickness (stroke width along track) - scales with track
+        const float lineThickness = juce::jmax(1.0f, trackThickness * 0.1f);
         
         if (orientation == Orientation::horizontal)
         {
@@ -224,8 +236,8 @@ protected:
 
     // Track thickness: dimension perpendicular to slider displacement
     // Thumb width will be 80% of track thickness automatically
-    float trackThickness = 20.0f;  // Track width perpendicular to displacement
-    float thumbRadius = 8.0f;     // Thumb hit test radius (line is drawn separately)
+    float trackThickness = 20.0f;  // Track width perpendicular to displacement (recomputed in resized)
+    float thumbRadius = 8.0f;     // Thumb hit test radius (recomputed in resized)
     bool isHovered = false; // Track hover state for brightening active track
 
     void handlePointer(juce::Point<float> pos)

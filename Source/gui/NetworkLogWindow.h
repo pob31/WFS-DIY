@@ -4,6 +4,7 @@
 #include "../Network/OSCLogger.h"
 #include "../Network/OSCManager.h"
 #include "ColorScheme.h"
+#include "WfsLookAndFeel.h"
 #include "WindowUtils.h"
 #include "../Localization/LocalizationManager.h"
 
@@ -72,6 +73,8 @@ private:
     juce::ScrollBar verticalScrollBar { true };
     int rowHeight = 20;
     int headerHeight = 24;
+    int scrollBarWidth = 12;
+    int textPad = 4;
     int scrollOffset = 0;
     bool userScrolledAway = false;
 
@@ -165,22 +168,24 @@ public:
         content->setName(LOC("networkLog.windowTitle"));  // Accessible name for screen readers
         setContentOwned(content, false);
 
-        // Window size
-        const int preferredWidth = 900;
-        const int preferredHeight = 600;
-
-        // Get display bounds
+        // Window size — scale with display resolution
         auto& displays = juce::Desktop::getInstance().getDisplays();
         const auto* displayPtr = displays.getPrimaryDisplay();
         juce::Rectangle<int> userArea = (displayPtr != nullptr && !displayPtr->userArea.isEmpty())
             ? displayPtr->userArea
             : displays.getTotalBounds(true);
 
-        const int margin = 40;
+        float ds = static_cast<float>(userArea.getHeight()) / 1080.0f;
+        auto dsc = [ds](int ref) { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * ds)); };
+
+        const int preferredWidth = dsc(900);
+        const int preferredHeight = dsc(600);
+
+        const int margin = static_cast<int>(40.0f * ds);
         const int windowWidth = juce::jmin(preferredWidth, userArea.getWidth() - margin);
         const int windowHeight = juce::jmin(preferredHeight, userArea.getHeight() - margin);
 
-        setResizeLimits(600, 400, userArea.getWidth(), userArea.getHeight());
+        setResizeLimits(dsc(600), dsc(400), userArea.getWidth(), userArea.getHeight());
 
         centreWithSize(windowWidth, windowHeight);
         setVisible(true);

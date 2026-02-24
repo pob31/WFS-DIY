@@ -56,15 +56,16 @@ protected:
 
         // zero marker
         auto zeroRect = track;
+        const float markerW = juce::jmax(1.0f, trackThickness * 0.1f);
         if (getOrientation() == Orientation::horizontal)
         {
-            zeroRect.setX(track.getCentreX() - 1.0f);
-            zeroRect.setWidth(2.0f);
+            zeroRect.setX(track.getCentreX() - markerW * 0.5f);
+            zeroRect.setWidth(markerW);
         }
         else
         {
-            zeroRect.setY(track.getCentreY() - 1.0f);
-            zeroRect.setHeight(2.0f);
+            zeroRect.setY(track.getCentreY() - markerW * 0.5f);
+            zeroRect.setHeight(markerW);
         }
         g.setColour(trackForegroundColour.withMultipliedAlpha(0.35f));
         g.fillRect(zeroRect);

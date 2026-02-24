@@ -437,7 +437,7 @@ public:
             parameters.getValueTreeState().setBinauralOutputChannel(channel);
             updateBinauralControlsEnabledState();  // Dim controls when output is Off
         };
-        binauralOutputSelector.setTooltip(LOC("systemConfig.help.binauralOutput"));
+        // binauralOutputSelector.setTooltip(LOC("systemConfig.help.binauralOutput"));
 
         // Listener Distance - WfsStandardSlider with TextEditor
         addAndMakeVisible(binauralDistanceLabel);
@@ -452,7 +452,7 @@ public:
             auto& vts = parameters.getValueTreeState();
             vts.getBinauralState().setProperty(WFSParameterIDs::binauralListenerDistance, distance, nullptr);
         };
-        binauralDistanceSlider.setTooltip(LOC("systemConfig.help.binauralDistance"));
+        // binauralDistanceSlider.setTooltip(LOC("systemConfig.help.binauralDistance"));
 
         addAndMakeVisible(binauralDistanceEditor);
         binauralDistanceEditor.setText(juce::String(WFSParameterDefaults::binauralListenerDistanceDefault, 1), juce::dontSendNotification);
@@ -475,7 +475,7 @@ public:
             auto& vts = parameters.getValueTreeState();
             vts.getBinauralState().setProperty(WFSParameterIDs::binauralListenerAngle, (int)angle, nullptr);
         };
-        binauralAngleDial.setTooltip(LOC("systemConfig.help.binauralAngle"));
+        // binauralAngleDial.setTooltip(LOC("systemConfig.help.binauralAngle"));
 
         addAndMakeVisible(binauralAngleEditor);
         binauralAngleEditor.setText(juce::String(WFSParameterDefaults::binauralListenerAngleDefault), juce::dontSendNotification);
@@ -505,7 +505,7 @@ public:
             auto& vts = parameters.getValueTreeState();
             vts.getBinauralState().setProperty(WFSParameterIDs::binauralAttenuation, dB, nullptr);
         };
-        binauralAttenSlider.setTooltip(LOC("systemConfig.help.binauralAtten"));
+        // binauralAttenSlider.setTooltip(LOC("systemConfig.help.binauralAtten"));
 
         addAndMakeVisible(binauralAttenEditor);
         binauralAttenEditor.setText(juce::String(WFSParameterDefaults::binauralAttenuationDefault, 1), juce::dontSendNotification);
@@ -529,7 +529,7 @@ public:
             auto& vts = parameters.getValueTreeState();
             vts.getBinauralState().setProperty(WFSParameterIDs::binauralDelay, delayMs, nullptr);
         };
-        binauralDelaySlider.setTooltip(LOC("systemConfig.help.binauralDelay"));
+        // binauralDelaySlider.setTooltip(LOC("systemConfig.help.binauralDelay"));
 
         addAndMakeVisible(binauralDelayEditor);
         binauralDelayEditor.setText(juce::String(WFSParameterDefaults::binauralDelayDefault, 1), juce::dontSendNotification);
@@ -694,6 +694,7 @@ public:
         updateBinauralEditor(binauralAttenEditor);
         updateBinauralEditor(binauralDelayEditor);
 
+        WfsLookAndFeel::scaleTextEditorFonts(*this, layoutScale);
         repaint();
     }
 
@@ -702,13 +703,13 @@ public:
         g.fillAll(ColorScheme::get().background);
 
         // Footer background (matching Input/Output tabs)
-        const int footerHeight = 90;  // Two button rows
+        const int footerH = scaled(90);  // Two button rows
         g.setColour(ColorScheme::get().chromeSurface);
-        g.fillRect(0, getHeight() - footerHeight, getWidth(), footerHeight);
+        g.fillRect(0, getHeight() - footerH, getWidth(), footerH);
 
         // Footer divider line
         g.setColour(ColorScheme::get().chromeDivider);
-        g.drawLine(0.0f, (float)(getHeight() - footerHeight), (float)getWidth(), (float)(getHeight() - footerHeight), 1.0f);
+        g.drawLine(0.0f, (float)(getHeight() - footerH), (float)getWidth(), (float)(getHeight() - footerH), 1.0f);
 
         // Calculate responsive column positions
         auto layout = calculateLayout();
@@ -717,19 +718,21 @@ public:
         // Column 1: Show, I/O (channels only), UI
         // Column 2: Stage, Master
         // Column 3: WFS Processor, Binaural Renderer
+        const int headerH = scaled(20);
         g.setColour(ColorScheme::get().textPrimary);
-        g.setFont(juce::FontOptions().withHeight(14.0f).withStyle("Bold"));
-        g.drawText(LOC("systemConfig.sections.show"), layout.col1X, 10, layout.colWidth, 20, juce::Justification::left);
-        g.drawText(LOC("systemConfig.sections.io"), layout.col1X, 130, layout.colWidth, 20, juce::Justification::left);
-        g.drawText(LOC("systemConfig.sections.ui"), layout.col1X, 290, layout.colWidth, 20, juce::Justification::left);
-        g.drawText(LOC("systemConfig.sections.stage"), layout.col2X, 10, layout.colWidth, 20, juce::Justification::left);
-        g.drawText(LOC("systemConfig.sections.master"), layout.col2X, 400, layout.colWidth, 20, juce::Justification::left);
-        g.drawText(LOC("systemConfig.sections.wfsProcessor"), layout.col3X, 10, layout.colWidth, 20, juce::Justification::left);
-        g.drawText(LOC("systemConfig.sections.binauralRenderer"), layout.col3X, 200, layout.colWidth, 20, juce::Justification::left);
+        g.setFont(juce::FontOptions().withHeight(juce::jmax(10.0f, 14.0f * layoutScale)).withStyle("Bold"));
+        g.drawText(LOC("systemConfig.sections.show"), layout.col1X, scaled(10), layout.colWidth, headerH, juce::Justification::left);
+        g.drawText(LOC("systemConfig.sections.io"), layout.col1X, scaled(130), layout.colWidth, headerH, juce::Justification::left);
+        g.drawText(LOC("systemConfig.sections.ui"), layout.col1X, scaled(290), layout.colWidth, headerH, juce::Justification::left);
+        g.drawText(LOC("systemConfig.sections.stage"), layout.col2X, scaled(10), layout.colWidth, headerH, juce::Justification::left);
+        g.drawText(LOC("systemConfig.sections.master"), layout.col2X, scaled(400), layout.colWidth, headerH, juce::Justification::left);
+        g.drawText(LOC("systemConfig.sections.wfsProcessor"), layout.col3X, scaled(10), layout.colWidth, headerH, juce::Justification::left);
+        g.drawText(LOC("systemConfig.sections.binauralRenderer"), layout.col3X, scaled(200), layout.colWidth, headerH, juce::Justification::left);
     }
 
     void resized() override
     {
+        layoutScale = static_cast<float>(getHeight()) / 932.0f;
         // Calculate responsive layout
         auto layout = calculateLayout();
         const int labelWidth = layout.labelWidth;
@@ -740,7 +743,7 @@ public:
         const int fullWidth = layout.colWidth;
 
         int x = layout.col1X;
-        int y = 40;
+        int y = scaled(40);
 
         //======================================================================
         // COLUMN 1: Show, I/O (channels only), UI
@@ -755,7 +758,7 @@ public:
         showLocationEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
 
         // I/O Section (channels only)
-        y = 160; // Start after "I/O" header
+        y = scaled(160); // Start after "I/O" header
         inputChannelsLabel.setBounds(x, y, labelWidth, rowHeight);
         inputChannelsEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
         y += rowHeight + spacing;
@@ -768,7 +771,7 @@ public:
         reverbChannelsEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
 
         // UI Section
-        y = 320; // Start after "UI" header
+        y = scaled(320); // Start after "UI" header
         colorSchemeLabel.setBounds(x, y, labelWidth, rowHeight);
         colorSchemeSelector.setBounds(x + labelWidth, y, editorWidth * 2, rowHeight);  // Wider for dropdown text
         y += rowHeight + spacing;
@@ -781,7 +784,7 @@ public:
         //======================================================================
 
         x = layout.col2X;
-        y = 40;
+        y = scaled(40);
 
         // Stage Section
         stageShapeLabel.setBounds(x, y, labelWidth, rowHeight);
@@ -813,7 +816,7 @@ public:
         y += rowHeight + spacing;
 
         // Origin coordinates with preset buttons
-        const int originButtonSize = 30;
+        const int originButtonSize = scaled(30);
         int buttonX = x + labelWidth + editorWidth + spacing + unitWidth + spacing;
 
         stageOriginWidthLabel.setBounds(x, y, labelWidth, rowHeight);
@@ -844,7 +847,7 @@ public:
         temperatureUnitLabel.setBounds(x + labelWidth + editorWidth + spacing, y, unitWidth, rowHeight);
 
         // Master Section
-        y = 430;
+        y = scaled(430);
         masterLevelLabel.setBounds(x, y, labelWidth, rowHeight);
         masterLevelEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
         masterLevelUnitLabel.setBounds(x + labelWidth + editorWidth + spacing, y, unitWidth, rowHeight);
@@ -864,7 +867,7 @@ public:
         //======================================================================
 
         x = layout.col3X;
-        y = 40;
+        y = scaled(40);
 
         // Audio Interface / Processing Section
         audioPatchingButton.setBounds(x, y, fullWidth, rowHeight);
@@ -877,11 +880,11 @@ public:
         processingButton.setBounds(x, y, fullWidth, rowHeight);
 
         // Binaural Renderer Section
-        y = 230; // Start after "Binaural Renderer" header at y=200
+        y = scaled(230); // Start after "Binaural Renderer" header at y=200
         const int binauralFullWidth = fullWidth;
-        const int binauralValueWidth = 60;
-        const int binauralUnitWidth = 30;
-        const int sliderHeight = 20;
+        const int binauralValueWidth = scaled(60);
+        const int binauralUnitWidth = scaled(30);
+        const int sliderHeight = scaled(32);
 
         binauralEnableButton.setBounds(x, y, binauralFullWidth, rowHeight);
         y += rowHeight + spacing;
@@ -899,14 +902,14 @@ public:
         y += sliderHeight + spacing;
 
         // Listener Angle
-        const int dialSize = 80;
+        const int dialSize = juce::jmax(60, static_cast<int>(100.0f * layoutScale));
         int dialCenterX = x + binauralFullWidth / 2;
         binauralAngleLabel.setBounds(x, y, binauralFullWidth, rowHeight);
         binauralAngleLabel.setJustificationType(juce::Justification::centred);
         y += rowHeight;
         binauralAngleDial.setBounds(dialCenterX - dialSize / 2, y, dialSize, dialSize);
         y += dialSize;
-        const int angleValW = 40, angleUnitW = 20, overlap = 5;
+        const int angleValW = scaled(40), angleUnitW = scaled(20), overlap = scaled(5);
         int angleStartX = dialCenterX - (angleValW + angleUnitW - overlap) / 2;
         binauralAngleEditor.setBounds(angleStartX, y, angleValW, rowHeight);
         binauralAngleUnitLabel.setBounds(angleStartX + angleValW - overlap, y, angleUnitW, rowHeight);
@@ -932,9 +935,9 @@ public:
         soloModeButton.setBounds(x, y, binauralFullWidth, rowHeight);
 
         // Footer buttons - full width at bottom (matching Output tab style)
-        const int footerHeight = 90;  // Two 30px button rows + 10px spacing + 20px padding
-        const int footerPadding = 10;
-        const int buttonRowHeight = 30;  // Same as Output tab buttons
+        const int footerHeight = scaled(90);  // Two 30px button rows + 10px spacing + 20px padding
+        const int footerPadding = scaled(10);
+        const int buttonRowHeight = scaled(30);  // Same as Output tab buttons
         auto footerArea = getLocalBounds().removeFromBottom(footerHeight).reduced(footerPadding, footerPadding);
 
         // Row 1: Project folder + Complete config buttons - 4 items
@@ -964,6 +967,8 @@ public:
         importSystemConfigButton.setBounds(row2.removeFromLeft(sysButtonWidth));
         row2.removeFromLeft(spacing);
         exportSystemConfigButton.setBounds(row2);
+
+        WfsLookAndFeel::scaleTextEditorFonts(*this, layoutScale);
     }
 
     void setStatusBar(StatusBar* bar)
@@ -1010,6 +1015,11 @@ public:
     }
 
 private:
+    float layoutScale = 1.0f;  // Proportional scaling factor (1.0 = 1080p reference)
+
+    /** Scale a reference pixel value by layoutScale with a 65% minimum floor */
+    int scaled(int ref) const { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * layoutScale)); }
+
     //==============================================================================
     // Helper methods
 
@@ -2245,18 +2255,21 @@ private:
     LayoutMetrics calculateLayout() const
     {
         LayoutMetrics m;
-        const int margin = 20;
-        const int columnGap = 50;  // Increased gap between columns
+        const int margin = scaled(20);
+        const int columnGap = scaled(50);  // Increased gap between columns
         const int totalWidth = getWidth() - margin * 2;
 
+        m.unitWidth = scaled(40);
+        m.rowHeight = scaled(30);
+        m.spacing = scaled(5);
         m.colWidth = (totalWidth - columnGap * 2) / 3;
         m.col1X = margin;
         m.col2X = m.col1X + m.colWidth + columnGap;
         m.col3X = m.col2X + m.colWidth + columnGap;
-        m.labelWidth = juce::jmax(100, m.colWidth * 40 / 100);
+        m.labelWidth = juce::jmax(scaled(100), m.colWidth * 40 / 100);
         // Editor width accounts for: label + editor + spacing + unit label + spacing + button
         // colWidth = labelWidth + editorWidth + spacing(5) + unitWidth(40) + buffer
-        m.editorWidth = juce::jmin(120, m.colWidth - m.labelWidth - m.unitWidth - m.spacing * 2);
+        m.editorWidth = juce::jmin(scaled(120), m.colWidth - m.labelWidth - m.unitWidth - m.spacing * 2);
 
         return m;
     }

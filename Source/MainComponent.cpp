@@ -193,7 +193,6 @@ MainComponent::MainComponent()
     */
     // Set up tabbed interface
     addAndMakeVisible(tabbedComponent);
-    tabbedComponent.setTabBarDepth(35);
     tabbedComponent.setOutline(0);
 
     // Create status bar
@@ -1677,8 +1676,10 @@ void MainComponent::resized()
     // This is called when the MainContentComponent is resized.
     // If you add any child components, this is where you should
     // update their positions.
+    WfsLookAndFeel::uiScale = static_cast<float>(getHeight()) / 1080.0f;
+    tabbedComponent.setTabBarDepth(juce::jmax(25, static_cast<int>(35.0f * WfsLookAndFeel::uiScale)));
     auto bounds = getLocalBounds();
-    const int statusBarHeight = 30;
+    const int statusBarHeight = juce::jmax(20, static_cast<int>(30.0f * WfsLookAndFeel::uiScale));
 
     // Status bar at bottom, full width
     statusBar->setBounds(bounds.removeFromBottom(statusBarHeight));

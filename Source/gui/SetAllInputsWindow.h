@@ -47,26 +47,31 @@ public:
 
         // Red warning strip at top
         g.setColour(juce::Colour(0xFFCC3333));  // Red background
-        g.fillRect(0, 0, getWidth(), 40);
+        float ls = static_cast<float>(getHeight()) / 880.0f;
+        g.fillRect(0, 0, getWidth(), juce::jmax(26, static_cast<int>(40 * ls)));
     }
 
     void resized() override
     {
-        const int rowHeight = 28;
-        const int dialSize = 50;
-        const int spacing = 10;
-        const int sectionSpacing = 16;
-        const int buttonWidth = 90;
-        const int labelWidth = 140;
-        const int margin = 20;
-        const int buttonPairWidth = buttonWidth * 2 + spacing;  // 190px - width of ON+OFF buttons
+        layoutSc = static_cast<float>(getHeight()) / 880.0f;
+        float ls = layoutSc;
+        auto sc = [ls](int ref) { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * ls)); };
+
+        const int rowHeight = sc(28);
+        const int dialSize = sc(50);
+        const int spacing = sc(10);
+        const int sectionSpacing = sc(16);
+        const int buttonWidth = sc(90);
+        const int labelWidth = sc(140);
+        const int margin = sc(20);
+        const int buttonPairWidth = buttonWidth * 2 + spacing;  // width of ON+OFF buttons
         const int actionButtonWidth = buttonPairWidth;  // Match button pair width
 
         // Warning label (full width, centered within red strip)
-        warningLabel.setBounds(0, 0, getWidth(), 40);
+        warningLabel.setBounds(0, 0, getWidth(), sc(40));
 
         // Content starts below the red strip
-        auto bounds = getLocalBounds().withTrimmedTop(50).reduced(margin, 0).withTrimmedBottom(15);
+        auto bounds = getLocalBounds().withTrimmedTop(sc(50)).reduced(margin, 0).withTrimmedBottom(sc(15));
 
         // === INPUT PROPERTIES SECTION ===
         // Minimal Latency - ON/OFF button pair
@@ -142,8 +147,8 @@ public:
         auto dialRect = juce::Rectangle<int>(buttonPairCenterX - dialSize / 2, dialBounds.getY(), dialSize, dialSize);
         dbmDial.setBounds(dialRect);
         ratioDial.setBounds(dialRect);
-        layoutDialValueUnit(dbmValueLabel, dbmUnitLabel, buttonPairCenterX, dialBounds.getY() + dialSize, rowHeight, 35, 40);
-        layoutDialValueUnit(ratioValueLabel, ratioUnitLabel, buttonPairCenterX, dialBounds.getY() + dialSize, rowHeight, 35, 20);
+        layoutDialValueUnit(dbmValueLabel, dbmUnitLabel, buttonPairCenterX, dialBounds.getY() + dialSize, rowHeight, sc2(35), sc2(40));
+        layoutDialValueUnit(ratioValueLabel, ratioUnitLabel, buttonPairCenterX, dialBounds.getY() + dialSize, rowHeight, sc2(35), sc2(20));
         bounds.removeFromTop(spacing);
 
         // Reset directivity action (centered)
@@ -190,11 +195,13 @@ public:
         sidelinesFringeLabel.setBounds(row.removeFromLeft(labelWidth).removeFromTop(rowHeight));
         auto fringeDialRect = juce::Rectangle<int>(sidelinesButtonCenterX - dialSize / 2, row.getY(), dialSize, dialSize);
         sidelinesFringeDial.setBounds(fringeDialRect);
-        layoutDialValueUnit(sidelinesFringeValueLabel, sidelinesFringeUnitLabel, sidelinesButtonCenterX, row.getY() + dialSize, rowHeight, 35, 20);
+        layoutDialValueUnit(sidelinesFringeValueLabel, sidelinesFringeUnitLabel, sidelinesButtonCenterX, row.getY() + dialSize, rowHeight, sc2(35), sc2(20));
         bounds.removeFromTop(spacing);
 
         // Close button at bottom (centered)
-        closeButton.setBounds(bounds.removeFromBottom(40).withSizeKeepingCentre(actionButtonWidth, 38));
+        closeButton.setBounds(bounds.removeFromBottom(sc(40)).withSizeKeepingCentre(actionButtonWidth, sc(38)));
+
+        WfsLookAndFeel::scaleTextEditorFonts(*this, layoutSc);
     }
 
     std::function<void()> onCloseRequested;
@@ -280,11 +287,16 @@ private:
 
     // Helper to layout dial value and unit labels (matching InputsTab pattern)
     // Places value and unit adjacent, centered as a pair under dial with overlap to reduce font padding gap
+    float layoutSc = 1.0f;  // Updated in resized()
+    int sc2(int ref) const { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * layoutSc)); }
+
     void layoutDialValueUnit(juce::Label& valueLabel, juce::Label& unitLabel,
                              int dialCenterX, int y, int height,
-                             int valueWidth = 40, int unitWidth = 40)
+                             int valueWidth = 0, int unitWidth = 0)
     {
-        const int overlap = 7;  // Pixels to overlap to reduce visual gap from font padding
+        if (valueWidth == 0) valueWidth = sc2(40);
+        if (unitWidth == 0) unitWidth = sc2(40);
+        const int overlap = sc2(7);
         int totalWidth = valueWidth + unitWidth - overlap;
         int startX = dialCenterX - totalWidth / 2;
         valueLabel.setBounds(startX, y, valueWidth, height);
@@ -882,7 +894,11 @@ public:
         content->setName(LOC("setAllInputs.windowTitle"));  // Accessible name for screen readers
         setContentOwned(content.release(), false);
 
-        centreWithSize(370, 880);
+        // Scale window size with display resolution
+        auto* disp = juce::Desktop::getInstance().getDisplays().getPrimaryDisplay();
+        float ds = (disp && !disp->userArea.isEmpty()) ? static_cast<float>(disp->userArea.getHeight()) / 1080.0f : 1.0f;
+        auto dsc = [ds](int ref) { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * ds)); };
+        centreWithSize(dsc(370), dsc(880));
         setVisible(true);
         WindowUtils::enableDarkTitleBar(this);
 

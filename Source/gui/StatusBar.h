@@ -53,16 +53,19 @@ public:
 
     void resized() override
     {
-        auto area = getLocalBounds().reduced(5, 2);
+        float s = static_cast<float>(getHeight()) / 30.0f;
+        auto sc = [s](int ref) { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * s)); };
+
+        auto area = getLocalBounds().reduced(sc(5), sc(2));
 
         // Mode selector on the right
-        auto selectorArea = area.removeFromRight(200);
-        modeLabel.setBounds(selectorArea.removeFromLeft(60));
-        selectorArea.removeFromLeft(5);
-        modeSelector.setBounds(selectorArea.removeFromLeft(100));
+        auto selectorArea = area.removeFromRight(sc(200));
+        modeLabel.setBounds(selectorArea.removeFromLeft(sc(60)));
+        selectorArea.removeFromLeft(sc(5));
+        modeSelector.setBounds(selectorArea.removeFromLeft(sc(100)));
 
         // Status text on the left
-        area.removeFromRight(10); // spacing
+        area.removeFromRight(sc(10)); // spacing
         statusLabel.setBounds(area);
     }
 

@@ -1,5 +1,6 @@
 #include "AudioInterfaceWindow.h"
 #include "ColorScheme.h"
+#include "WfsLookAndFeel.h"
 #include "WindowUtils.h"
 #include "../Localization/LocalizationManager.h"
 
@@ -31,7 +32,7 @@ void DeviceInfoBar::paint(juce::Graphics& g)
     auto bounds = getLocalBounds().reduced(10);
 
     g.setColour(ColorScheme::get().textPrimary);
-    g.setFont(14.0f);
+    g.setFont(juce::jmax(10.0f, 14.0f * WfsLookAndFeel::uiScale));
 
     // Line 1: Device type and name
     juce::String line1 = deviceType + ": " + deviceName;
@@ -42,7 +43,7 @@ void DeviceInfoBar::paint(juce::Graphics& g)
     // Line 2: Sample rate and buffer size
     juce::String line2 = juce::String(sampleRate, 0) + " Hz, " +
                         juce::String(bufferSize) + " samples";
-    g.setFont(12.0f);
+    g.setFont(juce::jmax(8.0f, 12.0f * WfsLookAndFeel::uiScale));
     g.setColour(juce::Colours::lightgrey);
     g.drawText(line2, bounds.removeFromTop(16), juce::Justification::centredLeft);
 }
