@@ -234,19 +234,48 @@ void PatchMatrixComponent::paint(juce::Graphics& g)
 {
     g.fillAll(ColorScheme::get().background);
 
+    // Draw title label row (Audio Interface Input/Output)
+    {
+        g.setColour(ColorScheme::get().backgroundAlt);
+        g.fillRect(0, 0, getWidth(), titleHeight);
+
+        g.setColour(ColorScheme::get().textSecondary);
+        g.setFont(juce::FontOptions(juce::jmax(9.0f, 12.0f * WfsLookAndFeel::uiScale)).withStyle("Bold"));
+
+        g.drawText(isInputPatch ? LOC("audioPatch.labels.interfaceInput")
+                                : LOC("audioPatch.labels.interfaceOutput"),
+                   rowHeaderWidth + 5, 0,
+                   getWidth() - rowHeaderWidth - scrollBarThickness - 10, titleHeight,
+                   juce::Justification::centredLeft, true);
+
+        g.setColour(ColorScheme::get().chromeDivider);
+        g.drawHorizontalLine(titleHeight - 1, 0.0f, static_cast<float>(getWidth()));
+    }
+
+    // Draw "Processor Inputs/Outputs" label in top-left corner cell (above row headers)
+    {
+        g.setColour(ColorScheme::get().textSecondary);
+        g.setFont(juce::FontOptions(juce::jmax(9.0f, 12.0f * WfsLookAndFeel::uiScale)).withStyle("Bold"));
+
+        g.drawText(isInputPatch ? LOC("audioPatch.labels.processorInputs")
+                                : LOC("audioPatch.labels.processorOutputs"),
+                   5, titleHeight, rowHeaderWidth - 10, headerHeight,
+                   juce::Justification::bottomLeft, true);
+    }
+
     // Draw cells, clipped to the content area to prevent overlap with headers
     {
         juce::Graphics::ScopedSaveState saveState(g);
-        g.reduceClipRegion(rowHeaderWidth, headerHeight,
+        g.reduceClipRegion(rowHeaderWidth, contentTop,
                            getWidth() - rowHeaderWidth - scrollBarThickness,
-                           getHeight() - headerHeight - scrollBarThickness);
+                           getHeight() - contentTop - scrollBarThickness);
         drawCells(g);
     }
 
     // Draw column header, clipped to exclude row header area
     {
         juce::Graphics::ScopedSaveState saveState(g);
-        g.reduceClipRegion(rowHeaderWidth, 0,
+        g.reduceClipRegion(rowHeaderWidth, titleHeight,
                            getWidth() - rowHeaderWidth - scrollBarThickness,
                            headerHeight);
         drawHeader(g);
@@ -611,7 +640,7 @@ void PatchMatrixComponent::valueTreeChildRemoved(juce::ValueTree& parent, juce::
 void PatchMatrixComponent::updateScrollBars()
 {
     int visibleWidth = getWidth() - rowHeaderWidth - scrollBarThickness;
-    int visibleHeight = getHeight() - headerHeight - scrollBarThickness;
+    int visibleHeight = getHeight() - contentTop - scrollBarThickness;
 
     int totalWidth = numHardwareChannels * cellWidth;
     int totalHeight = numWFSChannels * cellHeight;
@@ -659,7 +688,7 @@ juce::Point<int> PatchMatrixComponent::getCellAtPosition(juce::Point<float> pos)
     int row = -1;
 
     // Check if in header area (hardware channels)
-    if (pos.x >= rowHeaderWidth && pos.y < headerHeight)
+    if (pos.x >= rowHeaderWidth && pos.y >= titleHeight && pos.y < contentTop)
     {
         col = static_cast<int>((pos.x - rowHeaderWidth + scrollOffsetX) / cellWidth);
         if (col >= 0 && col < numHardwareChannels)
@@ -667,18 +696,18 @@ juce::Point<int> PatchMatrixComponent::getCellAtPosition(juce::Point<float> pos)
     }
 
     // Check if in row header area (WFS channels)
-    if (pos.x < rowHeaderWidth && pos.y >= headerHeight)
+    if (pos.x < rowHeaderWidth && pos.y >= contentTop)
     {
-        row = static_cast<int>((pos.y - headerHeight + scrollOffsetY) / cellHeight);
+        row = static_cast<int>((pos.y - contentTop + scrollOffsetY) / cellHeight);
         if (row >= 0 && row < numWFSChannels)
             return {-1, row};  // Row header (col=-1, row)
     }
 
     // Check if in cell area
-    if (pos.x >= rowHeaderWidth && pos.y >= headerHeight)
+    if (pos.x >= rowHeaderWidth && pos.y >= contentTop)
     {
         col = static_cast<int>((pos.x - rowHeaderWidth + scrollOffsetX) / cellWidth);
-        row = static_cast<int>((pos.y - headerHeight + scrollOffsetY) / cellHeight);
+        row = static_cast<int>((pos.y - contentTop + scrollOffsetY) / cellHeight);
 
         if (col >= 0 && col < numHardwareChannels && row >= 0 && row < numWFSChannels)
             return {col, row};
@@ -693,7 +722,7 @@ bool PatchMatrixComponent::isCellVisible(int row, int col) const
     int cellY = row * cellHeight - scrollOffsetY;
 
     int visibleWidth = getWidth() - rowHeaderWidth - scrollBarThickness;
-    int visibleHeight = getHeight() - headerHeight - scrollBarThickness;
+    int visibleHeight = getHeight() - contentTop - scrollBarThickness;
 
     return cellX >= -cellWidth && cellX < visibleWidth &&
            cellY >= -cellHeight && cellY < visibleHeight;
@@ -702,7 +731,7 @@ bool PatchMatrixComponent::isCellVisible(int row, int col) const
 juce::Rectangle<int> PatchMatrixComponent::getCellBounds(int row, int col) const
 {
     int x = rowHeaderWidth + col * cellWidth - scrollOffsetX;
-    int y = headerHeight + row * cellHeight - scrollOffsetY;
+    int y = contentTop + row * cellHeight - scrollOffsetY;
 
     return juce::Rectangle<int>(x, y, cellWidth, cellHeight);
 }
@@ -714,7 +743,7 @@ void PatchMatrixComponent::drawHeader(juce::Graphics& g)
 {
     // Draw header background
     g.setColour(ColorScheme::get().backgroundAlt);
-    g.fillRect(rowHeaderWidth, 0, getWidth() - rowHeaderWidth, headerHeight);
+    g.fillRect(rowHeaderWidth, titleHeight, getWidth() - rowHeaderWidth, headerHeight);
 
     // Draw hardware channel numbers
     int visibleCols = (getWidth() - rowHeaderWidth) / cellWidth + 2;
@@ -735,21 +764,21 @@ void PatchMatrixComponent::drawHeader(juce::Graphics& g)
         if (!isInputPatch && isChannelUsedByBinaural(col))
         {
             g.setColour(ColorScheme::get().textDisabled.withAlpha(0.25f));
-            g.fillRect(x, 0, cellWidth, headerHeight);
+            g.fillRect(x, titleHeight, cellWidth, headerHeight);
 
             // Draw channel number in top half
             g.setColour(ColorScheme::get().textDisabled);
-            g.drawText(juce::String(col + 1), x, 0, cellWidth, headerHeight / 2,
+            g.drawText(juce::String(col + 1), x, titleHeight, cellWidth, headerHeight / 2,
                        juce::Justification::centred);
 
             // Draw headphones icon in bottom half
             drawHeadphonesIcon(g, juce::Rectangle<float>(
-                static_cast<float>(x), static_cast<float>(headerHeight) * 0.45f,
+                static_cast<float>(x), static_cast<float>(titleHeight) + static_cast<float>(headerHeight) * 0.45f,
                 static_cast<float>(cellWidth), static_cast<float>(headerHeight) * 0.5f));
 
             // Draw grid line
             g.setColour(ColorScheme::get().chromeDivider);
-            g.drawVerticalLine(x, 0, static_cast<float>(headerHeight));
+            g.drawVerticalLine(x, static_cast<float>(titleHeight), static_cast<float>(contentTop));
             continue;  // Skip normal rendering for this column
         }
 
@@ -757,22 +786,22 @@ void PatchMatrixComponent::drawHeader(juce::Graphics& g)
         if (!isInputPatch && currentMode == Mode::Testing && col == activeTestHardwareChannel)
         {
             g.setColour(juce::Colours::green.withAlpha(0.3f));
-            g.fillRect(x, 0, cellWidth, headerHeight);
+            g.fillRect(x, titleHeight, cellWidth, headerHeight);
         }
         // Highlight if hovered
         else if (hoveredCell.x == col && currentMode == Mode::Testing)
         {
             g.setColour(ColorScheme::get().textPrimary.withAlpha(0.1f));
-            g.fillRect(x, 0, cellWidth, headerHeight);
+            g.fillRect(x, titleHeight, cellWidth, headerHeight);
         }
 
         g.setColour(ColorScheme::get().textPrimary);
-        g.drawText(juce::String(col + 1), x, 0, cellWidth, headerHeight,
+        g.drawText(juce::String(col + 1), x, titleHeight, cellWidth, headerHeight,
                    juce::Justification::centred);
 
         // Draw grid line
         g.setColour(ColorScheme::get().chromeDivider);
-        g.drawVerticalLine(x, 0, static_cast<float>(headerHeight));
+        g.drawVerticalLine(x, static_cast<float>(titleHeight), static_cast<float>(contentTop));
     }
 }
 
@@ -780,10 +809,10 @@ void PatchMatrixComponent::drawRowHeaders(juce::Graphics& g)
 {
     // Draw row header background
     g.setColour(ColorScheme::get().backgroundAlt);
-    g.fillRect(0, headerHeight, rowHeaderWidth, getHeight() - headerHeight);
+    g.fillRect(0, contentTop, rowHeaderWidth, getHeight() - contentTop);
 
     // Draw WFS channel labels
-    int visibleRows = (getHeight() - headerHeight) / cellHeight + 2;
+    int visibleRows = (getHeight() - contentTop) / cellHeight + 2;
     int firstRow = scrollOffsetY / cellHeight;
 
     g.setFont(juce::jmax(8.0f, 12.0f * WfsLookAndFeel::uiScale));
@@ -794,7 +823,7 @@ void PatchMatrixComponent::drawRowHeaders(juce::Graphics& g)
         if (row >= numWFSChannels)
             break;
 
-        int y = headerHeight + r * cellHeight - (scrollOffsetY % cellHeight);
+        int y = contentTop + r * cellHeight - (scrollOffsetY % cellHeight);
 
         // Get channel name
         juce::String channelName;
@@ -859,7 +888,7 @@ void PatchMatrixComponent::drawRowHeaders(juce::Graphics& g)
 void PatchMatrixComponent::drawCells(juce::Graphics& g)
 {
     int visibleCols = (getWidth() - rowHeaderWidth) / cellWidth + 2;
-    int visibleRows = (getHeight() - headerHeight) / cellHeight + 2;
+    int visibleRows = (getHeight() - contentTop) / cellHeight + 2;
     int firstCol = scrollOffsetX / cellWidth;
     int firstRow = scrollOffsetY / cellHeight;
 
@@ -1461,7 +1490,7 @@ void PatchMatrixComponent::scrollToMakeVisible(juce::Point<int> cell)
         return;
 
     auto matrixArea = getLocalBounds();
-    matrixArea.removeFromTop(headerHeight);
+    matrixArea.removeFromTop(contentTop);
     matrixArea.removeFromLeft(rowHeaderWidth);
     matrixArea.removeFromRight(scrollBarThickness);
     matrixArea.removeFromBottom(scrollBarThickness);

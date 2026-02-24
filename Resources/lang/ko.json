@@ -378,6 +378,12 @@
   },
   "audioPatch": {
     "windowTitle": "오디오 인터페이스 및 패치",
+    "labels": {
+      "processorInputs": "프로세서 입력",
+      "processorOutputs": "프로세서 출력",
+      "interfaceInput": "오디오 인터페이스 입력",
+      "interfaceOutput": "오디오 인터페이스 출력"
+    },
     "tabs": {
       "deviceSettings": "장치 설정",
       "inputPatch": "입력 패치",

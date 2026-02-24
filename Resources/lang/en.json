@@ -403,6 +403,13 @@
   "audioPatch": {
     "windowTitle": "Audio Interface and Patching",
 
+    "labels": {
+      "processorInputs": "Processor Inputs",
+      "processorOutputs": "Processor Outputs",
+      "interfaceInput": "Audio Interface Input",
+      "interfaceOutput": "Audio Interface Output"
+    },
+
     "tabs": {
       "deviceSettings": "Device Settings",
       "inputPatch": "Input Patch",

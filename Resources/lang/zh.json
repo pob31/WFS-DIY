@@ -378,6 +378,12 @@
   },
   "audioPatch": {
     "windowTitle": "音频接口和路由",
+    "labels": {
+      "processorInputs": "处理器输入",
+      "processorOutputs": "处理器输出",
+      "interfaceInput": "音频接口输入",
+      "interfaceOutput": "音频接口输出"
+    },
     "tabs": {
       "deviceSettings": "设备设置",
       "inputPatch": "输入路由",

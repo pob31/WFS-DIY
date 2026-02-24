@@ -378,6 +378,12 @@
   },
   "audioPatch": {
     "windowTitle": "Interfaccia Audio e Routing",
+    "labels": {
+      "processorInputs": "Ingressi processore",
+      "processorOutputs": "Uscite processore",
+      "interfaceInput": "Ingresso interfaccia audio",
+      "interfaceOutput": "Uscita interfaccia audio"
+    },
     "tabs": {
       "deviceSettings": "Impostazioni Dispositivo",
       "inputPatch": "Patch Ingressi",

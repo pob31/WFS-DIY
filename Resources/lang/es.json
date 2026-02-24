@@ -378,6 +378,12 @@
   },
   "audioPatch": {
     "windowTitle": "Interfaz de audio y enrutamiento",
+    "labels": {
+      "processorInputs": "Entradas del procesador",
+      "processorOutputs": "Salidas del procesador",
+      "interfaceInput": "Entrada de interfaz de audio",
+      "interfaceOutput": "Salida de interfaz de audio"
+    },
     "tabs": {
       "deviceSettings": "Ajustes de dispositivo",
       "inputPatch": "Patch de entradas",

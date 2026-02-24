@@ -378,6 +378,12 @@
   },
   "audioPatch": {
     "windowTitle": "オーディオインターフェースとパッチング",
+    "labels": {
+      "processorInputs": "プロセッサ入力",
+      "processorOutputs": "プロセッサ出力",
+      "interfaceInput": "オーディオインターフェース入力",
+      "interfaceOutput": "オーディオインターフェース出力"
+    },
     "tabs": {
       "deviceSettings": "デバイス設定",
       "inputPatch": "入力パッチ",

@@ -147,10 +147,16 @@ private:
     static int sc(int ref) { float s = WfsLookAndFeel::uiScale; return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * s)); }
     int cellWidth = 40;
     int cellHeight = 30;
+    int titleHeight = 22;
     int headerHeight = 50;
+    int contentTop = 72;  // titleHeight + headerHeight
     int rowHeaderWidth = 120;
     int scrollBarThickness = 16;
-    void updateScaledSizes() { cellWidth = sc(40); cellHeight = sc(30); headerHeight = sc(50); rowHeaderWidth = sc(120); scrollBarThickness = sc(16); }
+    void updateScaledSizes() {
+        cellWidth = sc(40); cellHeight = sc(30);
+        titleHeight = sc(22); headerHeight = sc(50); contentTop = titleHeight + headerHeight;
+        rowHeaderWidth = sc(120); scrollBarThickness = sc(16);
+    }
 
     // Data
     WFSValueTreeState& parameters;
