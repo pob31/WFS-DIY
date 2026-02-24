@@ -17,6 +17,8 @@
               file="Source/Parameters/WFSFileManager.h"/>
         <FILE id="wfsFMCpp" name="WFSFileManager.cpp" compile="1" resource="0"
               file="Source/Parameters/WFSFileManager.cpp"/>
+        <FILE id="paramDirtyTracker" name="ParameterDirtyTracker.h" compile="0" resource="0"
+              file="Source/Parameters/ParameterDirtyTracker.h"/>
       </GROUP>
       <GROUP id="{GUIGROUP1}" name="gui">
         <FILE id="guiCfgTab" name="ConfigTabComponent.h" compile="0" resource="0"

@@ -1503,6 +1503,7 @@ void WFSValueTreeState::createShowSection (juce::ValueTree& config)
     juce::ValueTree show (Show);
     show.setProperty (showName, showNameDefault, nullptr);
     show.setProperty (showLocation, showLocationDefault, nullptr);
+    show.setProperty (autoPreselectDirty, false, nullptr);
     config.appendChild (show, nullptr);
 }
 

@@ -1354,8 +1354,11 @@
     },
     "buttons": {
       "ok": "OK",
-      "cancel": "취소"
+      "cancel": "취소",
+      "selectModified": "Select Modified",
+      "clearChanges": "Clear Changes"
     },
+    "autoPreselectModified": "Auto-preselect modified parameters",
     "writeToQLab": "QLab에 쓰기",
     "writeToQLabTooltip": "파일 저장 대신 스코프를 QLab으로 내보내기",
     "writeSnapshotLoadCue": "스냅샷 로드 큐를 QLab에 쓰기",

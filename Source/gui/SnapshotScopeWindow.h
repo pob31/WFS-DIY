@@ -4,6 +4,7 @@
 #include "../WfsParameters.h"
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/WFSFileManager.h"
+#include "../Parameters/ParameterDirtyTracker.h"
 #include "../Localization/LocalizationManager.h"
 #include "ColorScheme.h"
 #include "WfsLookAndFeel.h"
@@ -25,8 +26,9 @@ public:
     using ScopeItem = WFSFileManager::ScopeItem;
     using InclusionState = ExtendedScope::InclusionState;
 
-    ScopeGridComponent (ExtendedScope& scopeRef, int numChannelsValue)
-        : scope (scopeRef), numChannels (numChannelsValue)
+    ScopeGridComponent (ExtendedScope& scopeRef, int numChannelsValue,
+                        const ParameterDirtyTracker* dirtyTrackerPtr = nullptr)
+        : scope (scopeRef), numChannels (numChannelsValue), dirtyTracker (dirtyTrackerPtr)
     {
         buildLayout();
     }
@@ -153,6 +155,19 @@ public:
             int x = paramLabelWidth + ch * cellSize;
             auto chState = scope.getSectionStateForChannel (juce::Identifier (sectionId), ch);
             drawStateCell (g, x, y, chState, true);
+
+            // Draw dirty earmark if any item in this section was modified
+            if (dirtyTracker != nullptr)
+            {
+                for (const auto* item : ExtendedScope::getItemsForSection (juce::Identifier (sectionId)))
+                {
+                    if (dirtyTracker->isDirty (item->itemId, ch))
+                    {
+                        drawDirtyEarmark (g, x, y);
+                        break;
+                    }
+                }
+            }
         }
     }
 
@@ -175,6 +190,10 @@ public:
             int x = paramLabelWidth + ch * cellSize;
             bool included = scope.isIncluded (itemId, ch);
             drawStateCell (g, x, y, included ? InclusionState::AllIncluded : InclusionState::AllExcluded, false);
+
+            // Draw dirty earmark if parameter was modified by user
+            if (dirtyTracker != nullptr && dirtyTracker->isDirty (itemId, ch))
+                drawDirtyEarmark (g, x, y);
         }
     }
 
@@ -233,6 +252,19 @@ public:
         }
 
         g.restoreState();
+    }
+
+    void drawDirtyEarmark (juce::Graphics& g, int x, int y)
+    {
+        float sz = static_cast<float> (cellSize) * 0.35f;
+        float cx = static_cast<float> (x) + static_cast<float> (cellSize) - 2.0f;
+        float cy = static_cast<float> (y) + 2.0f;
+
+        juce::Path earmark;
+        earmark.addTriangle (cx - sz, cy, cx, cy, cx, cy + sz);
+
+        g.setColour (juce::Colour (0xFFE6B800));  // Golden yellow
+        g.fillPath (earmark);
     }
 
     void mouseDown (const juce::MouseEvent& e) override
@@ -355,6 +387,7 @@ private:
 
     ExtendedScope& scope;
     int numChannels;
+    const ParameterDirtyTracker* dirtyTracker = nullptr;
     std::vector<RowInfo> visibleRows;
     std::map<juce::String, bool> expandedSections;
     std::map<juce::String, int> sectionStartRows;
@@ -480,11 +513,13 @@ class SnapshotScopeContent : public juce::Component,
 public:
     using ExtendedScope = WFSFileManager::ExtendedSnapshotScope;
 
-    SnapshotScopeContent (WfsParameters& params, const juce::String& snapshotNameValue, ExtendedScope& scopeRef)
+    SnapshotScopeContent (WfsParameters& params, const juce::String& snapshotNameValue, ExtendedScope& scopeRef,
+                          ParameterDirtyTracker* dirtyTrackerPtr = nullptr)
         : parameters (params),
           snapshotName (snapshotNameValue),
           scope (scopeRef),
-          numChannels (params.getNumInputChannels())
+          numChannels (params.getNumInputChannels()),
+          dirtyTracker (dirtyTrackerPtr)
     {
         ColorScheme::Manager::getInstance().addListener (this);
 
@@ -527,8 +562,8 @@ public:
         addAndMakeVisible (channelHeader.get());
         channelHeader->onScopeChanged = [this]() { gridComponent->repaint(); };
 
-        // Scrollable grid
-        gridComponent = std::make_unique<ScopeGridComponent> (scope, numChannels);
+        // Scrollable grid (pass dirty tracker for earmarks)
+        gridComponent = std::make_unique<ScopeGridComponent> (scope, numChannels, dirtyTracker);
         gridComponent->onScopeChanged = [this]() { channelHeader->repaint(); };
         gridComponent->onLayoutChanged = [this]() { resized(); };
 
@@ -552,6 +587,71 @@ public:
         writeSnapshotLoadCueToggle.setTooltip (LOC("snapshotScope.writeSnapshotLoadCueTooltip"));
         writeSnapshotLoadCueToggle.setToggleState (false, juce::dontSendNotification);
 
+        // Dirty tracking controls
+        addAndMakeVisible (autoPreselectToggle);
+        autoPreselectToggle.setButtonText (LOC("snapshotScope.autoPreselectModified"));
+        {
+            // Load persisted toggle state from config
+            auto config = params.getValueTreeState().getConfigState();
+            auto showSection = config.getChildWithName (WFSParameterIDs::Show);
+            bool savedState = showSection.isValid()
+                                  ? static_cast<bool> (showSection.getProperty (WFSParameterIDs::autoPreselectDirty, false))
+                                  : false;
+            autoPreselectToggle.setToggleState (savedState, juce::dontSendNotification);
+        }
+        autoPreselectToggle.onClick = [this]() {
+            // Persist the toggle state
+            auto config = parameters.getValueTreeState().getConfigState();
+            auto showSection = config.getChildWithName (WFSParameterIDs::Show);
+            if (showSection.isValid())
+                showSection.setProperty (WFSParameterIDs::autoPreselectDirty,
+                                         autoPreselectToggle.getToggleState(), nullptr);
+
+            // Apply immediately when toggled ON
+            if (autoPreselectToggle.getToggleState())
+                applyDirtyToScope();
+
+            updateSelectModifiedVisibility();
+        };
+
+        addAndMakeVisible (selectModifiedButton);
+        selectModifiedButton.setButtonText (LOC("snapshotScope.buttons.selectModified"));
+        selectModifiedButton.setEnabled (dirtyTracker != nullptr && dirtyTracker->hasAnyDirty());
+        selectModifiedButton.onClick = [this]() {
+            applyDirtyToScope();
+        };
+
+        addAndMakeVisible (clearChangesButton);
+        clearChangesButton.setButtonText (LOC("snapshotScope.buttons.clearChanges"));
+        clearChangesButton.setEnabled (dirtyTracker != nullptr && dirtyTracker->hasAnyDirty());
+        clearChangesButton.onClick = [this]() {
+            if (dirtyTracker != nullptr)
+                dirtyTracker->clearAll();
+        };
+
+        // Live dirty-state updates: repaint grid + update button when dirty flags change
+        if (dirtyTracker != nullptr)
+        {
+            dirtyTracker->onDirtyStateChanged = [this]() {
+                bool hasDirty = dirtyTracker != nullptr && dirtyTracker->hasAnyDirty();
+                selectModifiedButton.setEnabled (hasDirty);
+                clearChangesButton.setEnabled (hasDirty);
+                gridComponent->repaint();
+                channelHeader->repaint();
+
+                // Continuous auto-apply: update scope selection live when toggle is ON
+                if (autoPreselectToggle.getToggleState())
+                    applyDirtyToScope();
+            };
+        }
+
+        // Hide "Select Modified" button when auto-preselect is ON (redundant)
+        selectModifiedButton.setVisible (!autoPreselectToggle.getToggleState());
+
+        // Auto-preselect on open if toggle is ON and there are dirty params
+        if (autoPreselectToggle.getToggleState() && dirtyTracker != nullptr && dirtyTracker->hasAnyDirty())
+            applyDirtyToScope();
+
         // Action buttons
         addAndMakeVisible (saveButton);
         saveButton.setButtonText (LOC("snapshotScope.buttons.ok"));
@@ -573,6 +673,8 @@ public:
 
     ~SnapshotScopeContent() override
     {
+        if (dirtyTracker != nullptr)
+            dirtyTracker->onDirtyStateChanged = nullptr;
         ColorScheme::Manager::getInstance().removeListener (this);
     }
 
@@ -594,6 +696,12 @@ public:
 
         cancelButton.setColour (juce::TextButton::buttonColourId, colors.buttonNormal);
         cancelButton.setColour (juce::TextButton::textColourOffId, colors.textPrimary);
+
+        selectModifiedButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFFB8960F));
+        selectModifiedButton.setColour (juce::TextButton::textColourOffId, colors.textPrimary);
+
+        clearChangesButton.setColour (juce::TextButton::buttonColourId, colors.buttonNormal);
+        clearChangesButton.setColour (juce::TextButton::textColourOffId, colors.textPrimary);
     }
 
     void paint (juce::Graphics& g) override
@@ -629,6 +737,18 @@ public:
             loadCueRow.removeFromLeft (sc(90));  // Align with radio buttons
             writeSnapshotLoadCueToggle.setBounds (loadCueRow.removeFromLeft (sc(300)));
         }
+        bounds.removeFromTop (sc(5));
+
+        // Dirty tracking row (auto-preselect toggle + select modified + clear changes)
+        auto dirtyRow = bounds.removeFromTop (sc(28));
+        autoPreselectToggle.setBounds (dirtyRow.removeFromLeft (sc(280)));
+        dirtyRow.removeFromLeft (sc(10));
+        if (selectModifiedButton.isVisible())
+        {
+            selectModifiedButton.setBounds (dirtyRow.removeFromLeft (sc(130)));
+            dirtyRow.removeFromLeft (sc(10));
+        }
+        clearChangesButton.setBounds (dirtyRow.removeFromLeft (sc(130)));
         bounds.removeFromTop (sc(5));
 
         // Action buttons at bottom
@@ -692,9 +812,40 @@ private:
 
     juce::ToggleButton writeToQLabToggle;
     juce::ToggleButton writeSnapshotLoadCueToggle;
+    juce::ToggleButton autoPreselectToggle;
+    juce::TextButton selectModifiedButton;
+    juce::TextButton clearChangesButton;
     juce::TextButton saveButton;
     juce::TextButton cancelButton;
     bool qlabAvailable = false;
+    ParameterDirtyTracker* dirtyTracker = nullptr;
+
+    /** Copy dirty flags to scope selection: dirty items included, others excluded */
+    void applyDirtyToScope()
+    {
+        if (dirtyTracker == nullptr || !dirtyTracker->hasAnyDirty())
+            return;
+
+        const auto& dirtyKeys = dirtyTracker->getDirtyKeys();
+
+        for (const auto& item : ExtendedScope::getScopeItems())
+        {
+            for (int ch = 0; ch < numChannels; ++ch)
+            {
+                auto key = ExtendedScope::makeKey (item.itemId, ch);
+                scope.itemChannelStates[key] = (dirtyKeys.find (key) != dirtyKeys.end());
+            }
+        }
+
+        gridComponent->repaint();
+        channelHeader->repaint();
+    }
+
+    void updateSelectModifiedVisibility()
+    {
+        selectModifiedButton.setVisible (!autoPreselectToggle.getToggleState());
+        resized();
+    }
 
     void updateSnapshotLoadCueVisibility()
     {
@@ -718,7 +869,8 @@ class SnapshotScopeWindow : public juce::DocumentWindow,
 public:
     using ExtendedScope = WFSFileManager::ExtendedSnapshotScope;
 
-    SnapshotScopeWindow (WfsParameters& params, const juce::String& snapshotName, ExtendedScope& scope)
+    SnapshotScopeWindow (WfsParameters& params, const juce::String& snapshotName, ExtendedScope& scope,
+                         ParameterDirtyTracker* dirtyTracker = nullptr)
         : DocumentWindow (LOC("snapshotScope.windowTitle"),
                           ColorScheme::get().background,
                           DocumentWindow::closeButton)
@@ -726,7 +878,7 @@ public:
         setUsingNativeTitleBar (true);
         setResizable (true, true);
 
-        content = std::make_unique<SnapshotScopeContent> (params, snapshotName, scope);
+        content = std::make_unique<SnapshotScopeContent> (params, snapshotName, scope, dirtyTracker);
         content->onCloseRequested = [this]() { closeButtonPressed(); };
         content->onSaveRequested = [this](bool writeQLab, bool writeLoadCue) {
             saved = true;
@@ -746,7 +898,7 @@ public:
         int scaledCellSize = juce::jmax(15, static_cast<int>(22.0f * ds));
         int scaledParamLabelWidth = juce::jmax(90, static_cast<int>(140.0f * ds));
         int gridWidth = scaledParamLabelWidth + numChannels * scaledCellSize + dsc(50);
-        int width = juce::jmax (dsc(560), juce::jmin (dsc(1200), gridWidth));
+        int width = juce::jmax (dsc(600), juce::jmin (dsc(1200), gridWidth));
         int height = dsc(600);
         centreWithSize (width, height);
         setVisible (true);

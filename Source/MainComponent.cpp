@@ -564,6 +564,8 @@ MainComponent::MainComponent()
 
         auto scope = fileManager.getExtendedSnapshotScope (snapshotName);
 
+        parameters.getDirtyTracker().beginSuppression();
+
         if (fileManager.loadInputSnapshotWithExtendedScope (snapshotName, scope))
         {
             if (inputsTab != nullptr)
@@ -578,6 +580,8 @@ MainComponent::MainComponent()
         {
             DBG ("OSC snapshot/load: failed to load: " << fileManager.getLastError());
         }
+
+        parameters.getDirtyTracker().endSuppressionAndClear();
     };
 
     oscManager->onSnapshotStoreRequested = [this](const juce::String& snapshotName) {
@@ -592,6 +596,8 @@ MainComponent::MainComponent()
 
         if (fileManager.saveInputSnapshotWithExtendedScope (snapshotName, scope))
         {
+            parameters.getDirtyTracker().clearAll();
+
             if (inputsTab != nullptr)
             {
                 inputsTab->refreshSnapshotSelector();
@@ -603,6 +609,12 @@ MainComponent::MainComponent()
         {
             DBG ("OSC snapshot/store: failed to save: " << fileManager.getLastError());
         }
+    };
+
+    // Wire dirty tracker source detection delegate
+    parameters.getDirtyTracker().getIncomingProtocol = [this]() -> WFSNetwork::Protocol {
+        return oscManager ? oscManager->getIncomingProtocol()
+                          : WFSNetwork::Protocol::Disabled;
     };
 
     // Connect remote position updates to map repaint

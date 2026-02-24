@@ -6042,12 +6042,14 @@ private:
                             // QLab mode: export to QLab only, no XML file
                             if (onQLabExportRequested)
                                 onQLabExportRequested(name, scope);
+                            parameters.getDirtyTracker().clearAll();
                         }
                         else
                         {
                             auto& fileManager = parameters.getFileManager();
                             if (fileManager.saveInputSnapshotWithExtendedScope(name, scope))
                             {
+                                parameters.getDirtyTracker().clearAll();
                                 refreshSnapshotList();
                                 snapshotSelector.setText(name, juce::dontSendNotification);
                                 updateSnapshotButtonStates();
@@ -6087,6 +6089,8 @@ private:
 
         auto& scope = snapshotScopes[selectedSnapshot];
 
+        parameters.getDirtyTracker().beginSuppression();
+
         if (fileManager.loadInputSnapshotWithExtendedScope(selectedSnapshot, scope))
         {
             loadChannelParameters(currentChannel);
@@ -6098,6 +6102,8 @@ private:
         {
             showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
         }
+
+        parameters.getDirtyTracker().endSuppressionAndClear();
     }
 
     void reloadSnapshotWithoutScope()
@@ -6114,6 +6120,8 @@ private:
         // Use a default scope (all included) to bypass any scope filtering
         WFSFileManager::ExtendedSnapshotScope noScope;
 
+        parameters.getDirtyTracker().beginSuppression();
+
         if (fileManager.loadInputSnapshotWithExtendedScope(selectedSnapshot, noScope))
         {
             loadChannelParameters(currentChannel);
@@ -6125,6 +6133,8 @@ private:
         {
             showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
         }
+
+        parameters.getDirtyTracker().endSuppressionAndClear();
     }
 
     void updateSnapshotButtonStates()
@@ -6174,6 +6184,7 @@ private:
             // QLab mode: export to QLab only, no XML file
             if (onQLabExportRequested)
                 onQLabExportRequested(selectedSnapshot, scope);
+            parameters.getDirtyTracker().clearAll();
         }
         else
         {
@@ -6183,6 +6194,7 @@ private:
 
             if (fileManager.saveInputSnapshotWithExtendedScope(selectedSnapshot, scope))
             {
+                parameters.getDirtyTracker().clearAll();
                 showStatusMessage(LOC("inputs.messages.snapshotUpdated").replace("{name}", selectedSnapshot));
 
                 if (writeSnapshotLoadCueEnabled && onQLabSnapshotLoadCueRequested)
@@ -6228,7 +6240,7 @@ private:
 
         if (snapshotScopeWindow == nullptr || !snapshotScopeWindow->isVisible())
         {
-            snapshotScopeWindow = std::make_unique<SnapshotScopeWindow>(parameters, windowTitle, *scopePtr);
+            snapshotScopeWindow = std::make_unique<SnapshotScopeWindow>(parameters, windowTitle, *scopePtr, &parameters.getDirtyTracker());
             snapshotScopeWindow->setQLabAvailable (isQLabAvailable ? isQLabAvailable() : false);
             snapshotScopeWindow->onWindowClosed = [this, hasSelectedSnapshot, selectedSnapshot](bool saved, bool writeToQLab, bool writeLoadCue) {
                 writeToQLabEnabled = writeToQLab;

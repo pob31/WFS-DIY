@@ -5,6 +5,7 @@
 #include "Parameters/WFSParameterDefaults.h"
 #include "Parameters/WFSValueTreeState.h"
 #include "Parameters/WFSFileManager.h"
+#include "Parameters/ParameterDirtyTracker.h"
 
 /**
  * WFS Parameters - Backward Compatible Wrapper
@@ -18,7 +19,8 @@ class WfsParameters
 {
 public:
     WfsParameters()
-        : fileManager (valueTreeState)
+        : fileManager (valueTreeState),
+          dirtyTracker (valueTreeState.getState())
     {
     }
 
@@ -250,6 +252,10 @@ public:
     WFSFileManager& getFileManager() { return fileManager; }
     const WFSFileManager& getFileManager() const { return fileManager; }
 
+    /** Get the parameter dirty tracker */
+    ParameterDirtyTracker& getDirtyTracker() { return dirtyTracker; }
+    const ParameterDirtyTracker& getDirtyTracker() const { return dirtyTracker; }
+
     /** Get undo manager for the active domain */
     juce::UndoManager* getUndoManager() { return valueTreeState.getUndoManager(); }
 
@@ -262,6 +268,7 @@ public:
 private:
     WFSValueTreeState valueTreeState;
     WFSFileManager fileManager;
+    ParameterDirtyTracker dirtyTracker;
 
     //==============================================================================
     // Parameter Name Mapping

@@ -1354,8 +1354,11 @@
     },
     "buttons": {
       "ok": "OK",
-      "cancel": "Cancelar"
+      "cancel": "Cancelar",
+      "selectModified": "Select Modified",
+      "clearChanges": "Clear Changes"
     },
+    "autoPreselectModified": "Auto-preselect modified parameters",
     "writeToQLab": "Escrever no QLab",
     "writeToQLabTooltip": "Exportar scope para QLab em vez de guardar em ficheiro",
     "writeSnapshotLoadCue": "Escrever cue de carregamento no QLab",

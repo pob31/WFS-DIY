@@ -62,6 +62,7 @@ namespace WFSParameterIDs
 
     const juce::Identifier showName          ("showName");
     const juce::Identifier showLocation      ("showLocation");
+    const juce::Identifier autoPreselectDirty ("autoPreselectDirty");
 
     //==========================================================================
     // Config > I/O Section

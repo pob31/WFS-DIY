@@ -1354,8 +1354,11 @@
     },
     "buttons": {
       "ok": "OK",
-      "cancel": "Annuler"
+      "cancel": "Annuler",
+      "selectModified": "Sélectionner modifiés",
+      "clearChanges": "Effacer les changements"
     },
+    "autoPreselectModified": "Présélectionner les paramètres modifiés",
     "writeToQLab": "Exporter vers QLab",
     "writeToQLabTooltip": "Exporter le scope vers QLab au lieu de sauvegarder dans un fichier",
     "writeSnapshotLoadCue": "Ecrire un cue de chargement dans QLab",

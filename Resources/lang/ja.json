@@ -1354,8 +1354,11 @@
     },
     "buttons": {
       "ok": "OK",
-      "cancel": "キャンセル"
+      "cancel": "キャンセル",
+      "selectModified": "Select Modified",
+      "clearChanges": "Clear Changes"
     },
+    "autoPreselectModified": "Auto-preselect modified parameters",
     "writeToQLab": "QLabに書き出す",
     "writeToQLabTooltip": "ファイル保存の代わりにスコープをQLabにエクスポート",
     "writeSnapshotLoadCue": "スナップショット読込キューをQLabに書き出す",

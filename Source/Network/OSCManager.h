@@ -84,6 +84,13 @@ public:
     bool isListening() const { return listening; }
 
     /**
+     * Get the protocol type of the incoming message currently being processed.
+     * Returns Protocol::Disabled when no incoming message is being processed.
+     * Used by ParameterDirtyTracker to determine change source.
+     */
+    Protocol getIncomingProtocol() const { return incomingProtocol; }
+
+    /**
      * Connect a specific target.
      */
     bool connectTarget(int targetIndex);

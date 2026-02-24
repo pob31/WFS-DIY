@@ -1354,8 +1354,11 @@
     },
     "buttons": {
       "ok": "OK",
-      "cancel": "取消"
+      "cancel": "取消",
+      "selectModified": "Select Modified",
+      "clearChanges": "Clear Changes"
     },
+    "autoPreselectModified": "Auto-preselect modified parameters",
     "writeToQLab": "写入 QLab",
     "writeToQLabTooltip": "将范围导出到 QLab 而非保存到文件",
     "writeSnapshotLoadCue": "将快照加载提示写入 QLab",
