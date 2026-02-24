@@ -10,7 +10,6 @@ public:
     WfsJoystickComponent()
     {
         setRepaintsOnMouseActivity(false); // Disable to prevent hover background drawing
-        setReportingIntervalHz(reportingIntervalHz);
         setWantsKeyboardFocus(false);
         setFocusContainerType(FocusContainerType::none);
         setOpaque(false); // Transparent background
@@ -38,8 +37,6 @@ public:
     void setReportingIntervalHz(double intervalHz)
     {
         reportingIntervalHz = juce::jlimit(1.0, 60.0, intervalHz);
-        const auto intervalMs = juce::roundToInt(1000.0 / reportingIntervalHz);
-        startTimer(intervalMs);
     }
 
     void setOnPositionChanged(std::function<void(float, float)> callback)
@@ -93,6 +90,11 @@ private:
     void mouseDown(const juce::MouseEvent& e) override
     {
         updateFromPointer(e.position);
+        if (onPositionChanged != nullptr)
+        {
+            const auto intervalMs = juce::roundToInt(1000.0 / reportingIntervalHz);
+            startTimer(intervalMs);
+        }
     }
 
     void mouseDrag(const juce::MouseEvent& e) override
@@ -102,6 +104,7 @@ private:
 
     void mouseUp(const juce::MouseEvent&) override
     {
+        stopTimer();
         resetToCenter();
     }
 
@@ -150,7 +153,7 @@ private:
         normalizedPosition = { 0.0f, 0.0f };
         repaint();
     }
-    
+
     void paintOverChildren(juce::Graphics&) override
     {
         // Prevent JUCE from drawing default focus indicators

@@ -1121,6 +1121,11 @@ private:
             if (x == 0.0f && y == 0.0f)
                 return;
 
+            // Suppress parameter reload to prevent feedback loop:
+            // save → valueTreePropertyChanged → loadChannelParameters → resized → layoutCurrentSubTab
+            // which would hide/show the joystick, breaking mouse capture and killing the timer
+            suppressParameterReload = true;
+
             // Scale: 2.5m/s max at 50Hz = 0.05m per update at max joystick position
             const float scale = 0.05f;
             float deltaX = x * scale;
@@ -1244,6 +1249,8 @@ private:
                 posXEditor.setText(juce::String(v1, 2), juce::dontSendNotification);
                 posYEditor.setText(juce::String(coordMode == 0 ? v2 : v2, coordMode == 0 ? 2 : 1), juce::dontSendNotification);
             }
+
+            suppressParameterReload = false;
         });
         addAndMakeVisible(positionJoystickLabel);
         positionJoystickLabel.setText(LOC("inputs.labels.xyJoystick"), juce::dontSendNotification);
@@ -1258,6 +1265,9 @@ private:
             // Skip if slider is centered - don't interfere with manual text editing
             if (v == 0.0f)
                 return;
+
+            // Suppress parameter reload to prevent feedback loop (same as joystick)
+            suppressParameterReload = true;
 
             // Scale: 2.5m/s max at 50Hz = 0.05m per update at max slider position
             const float scale = 0.05f;
@@ -1378,6 +1388,8 @@ private:
                 WFSCoordinates::cartesianToDisplay(static_cast<WFSCoordinates::Mode>(coordMode), posX, posY, newZ, v1, v2, v3);
                 posZEditor.setText(juce::String(coordMode == 2 ? v3 : newZ, coordMode == 2 ? 1 : 2), juce::dontSendNotification);
             }
+
+            suppressParameterReload = false;
         };
         addAndMakeVisible(positionZSliderLabel);
         positionZSliderLabel.setText(LOC("inputs.labels.zSlider"), juce::dontSendNotification);
@@ -6927,8 +6939,9 @@ private:
         }
 
         // Check if this is a parameter change for the current channel (e.g., from OSC)
-        // Skip if we're already loading parameters (avoid recursion)
-        if (!isLoadingParameters)
+        // Skip if we're already loading parameters (avoid recursion) or if the change
+        // came from the joystick/Z slider continuous updates (avoid feedback loop)
+        if (!isLoadingParameters && !suppressParameterReload)
         {
             // Find if this tree belongs to the current channel's Input tree
             juce::ValueTree parent = tree;
@@ -7262,6 +7275,7 @@ private:
     juce::ValueTree ioTree;
     juce::ValueTree binauralTree;
     bool isLoadingParameters = false;
+    bool suppressParameterReload = false;  // Prevent feedback loop during joystick/Z slider continuous updates
     StatusBar* statusBar = nullptr;
     AutomOtionProcessor* automOtionProcessor = nullptr;
     std::map<juce::Component*, juce::String> helpTextMap;
