@@ -4270,7 +4270,7 @@ private:
         // 2-column layout: Column 1 (LFO), Column 2 (AutomOtion)
         auto area = subTabContentArea;
         const int rowHeight = scaled(28);
-        const int sliderHeight = scaled(24);
+        const int sliderHeight = scaled(40);
         const int spacing = scaled(4);
         const int labelWidth = scaled(65);
         const int valueWidth = scaled(55);
