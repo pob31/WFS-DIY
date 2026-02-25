@@ -31,6 +31,7 @@
 #include "DSP/LevelMeteringManager.h"
 #include "gui/WfsLookAndFeel.h"
 #include "Network/OSCManager.h"
+#include "StreamDeck/StreamDeckManager.h"
 
 //==============================================================================
 /**
@@ -170,6 +171,9 @@ private:
 
     // Network OSC management
     std::unique_ptr<WFSNetwork::OSCManager> oscManager;
+
+    // Stream Deck+ physical controller
+    std::unique_ptr<StreamDeckManager> streamDeckManager;
 
     // WFS calculation engine (computes delays, levels, HF attenuation)
     std::unique_ptr<WFSCalculationEngine> calculationEngine;

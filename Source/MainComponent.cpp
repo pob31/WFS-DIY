@@ -3,6 +3,7 @@
 #include "Localization/LocalizationManager.h"
 #include "Accessibility/TTSManager.h"
 #include "Network/QLabCueBuilder.h"
+#include "StreamDeck/pages/InputsTabPages.h"
 
 //==============================================================================
 MainComponent::MainComponent()
@@ -378,6 +379,8 @@ MainComponent::MainComponent()
         };
         if (tabIndex >= 0 && tabIndex < 7)
             parameters.getValueTreeState().setActiveDomain (domainForTab[tabIndex]);
+        if (streamDeckManager)
+            streamDeckManager->setMainTab (tabIndex);
     };
 
     // Load saved color scheme from parameters and apply it
@@ -414,6 +417,31 @@ MainComponent::MainComponent()
 
     // Initialize OSC Manager for network communication
     oscManager = std::make_unique<WFSNetwork::OSCManager>(parameters.getValueTreeState());
+
+    // Initialize Stream Deck+ physical controller
+    streamDeckManager = std::make_unique<StreamDeckManager>();
+
+    // Register Inputs tab pages (stub bindings — to be populated later)
+    {
+        auto& vts = parameters.getValueTreeState();
+        for (int subTab = 0; subTab < 4; ++subTab)
+        {
+            streamDeckManager->registerPage (
+                InputsTabPages::INPUTS_MAIN_TAB_INDEX, subTab,
+                InputsTabPages::createPage (subTab, vts, 1));
+        }
+
+        // Set page rebuild callback for channel changes
+        streamDeckManager->onPageNeedsRebuild = [this](int mainTab, int subTab, int channel)
+        {
+            if (mainTab == InputsTabPages::INPUTS_MAIN_TAB_INDEX)
+            {
+                auto& vts = parameters.getValueTreeState();
+                streamDeckManager->registerPage (mainTab, subTab,
+                    InputsTabPages::createPage (subTab, vts, channel));
+            }
+        };
+    }
 
     // Initialize WFS Calculation Engine for DSP parameter generation
     calculationEngine = std::make_unique<WFSCalculationEngine>(parameters.getValueTreeState());
@@ -537,11 +565,13 @@ MainComponent::MainComponent()
         openNetworkLogWindow();
     });
 
-    // Connect InputsTab channel selection to OSCManager for REMOTE protocol
+    // Connect InputsTab channel selection to OSCManager and StreamDeck
     inputsTab->onChannelSelected = [this](int channelId)
     {
         if (oscManager)
             oscManager->setRemoteSelectedChannel(channelId);
+        if (streamDeckManager)
+            streamDeckManager->setChannel(channelId);
     };
 
     // Snapshot OSC command callbacks
