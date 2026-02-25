@@ -621,9 +621,9 @@ public:
             applyDirtyToScope();
         };
 
-        addAndMakeVisible (clearChangesButton);
+        addChildComponent (clearChangesButton);
         clearChangesButton.setButtonText (LOC("snapshotScope.buttons.clearChanges"));
-        clearChangesButton.setEnabled (dirtyTracker != nullptr && dirtyTracker->hasAnyDirty());
+        clearChangesButton.setVisible (dirtyTracker != nullptr && dirtyTracker->hasAnyDirty());
         clearChangesButton.onClick = [this]() {
             if (dirtyTracker != nullptr)
                 dirtyTracker->clearAll();
@@ -635,7 +635,7 @@ public:
             dirtyTracker->onDirtyStateChanged = [this]() {
                 bool hasDirty = dirtyTracker != nullptr && dirtyTracker->hasAnyDirty();
                 selectModifiedButton.setEnabled (hasDirty);
-                clearChangesButton.setEnabled (hasDirty);
+                clearChangesButton.setVisible (hasDirty);
                 gridComponent->repaint();
                 channelHeader->repaint();
 
@@ -744,10 +744,10 @@ public:
         autoPreselectToggle.setBounds (dirtyRow.removeFromLeft (sc(280)));
         dirtyRow.removeFromLeft (sc(10));
         if (selectModifiedButton.isVisible())
-        {
             selectModifiedButton.setBounds (dirtyRow.removeFromLeft (sc(130)));
-            dirtyRow.removeFromLeft (sc(10));
-        }
+        else
+            dirtyRow.removeFromLeft (sc(130));  // reserve space to keep Clear Changes fixed
+        dirtyRow.removeFromLeft (sc(10));
         clearChangesButton.setBounds (dirtyRow.removeFromLeft (sc(130)));
         bounds.removeFromTop (sc(5));
 
