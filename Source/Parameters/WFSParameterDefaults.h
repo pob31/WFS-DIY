@@ -487,7 +487,7 @@ namespace WFSParameterDefaults
     constexpr int outputPitchMax                = 90;
 
     constexpr float outputHFdampingDefault      = 0.0f;
-    constexpr float outputHFdampingMin          = -24.0f;
+    constexpr float outputHFdampingMin          = -6.0f;
     constexpr float outputHFdampingMax          = 0.0f;
 
     // Output > Coordinate Mode (0=Cartesian, 1=Cylindrical, 2=Spherical)
@@ -502,7 +502,7 @@ namespace WFSParameterDefaults
 
     constexpr int outputDistanceAttenPercentDefault = 100;
     constexpr int outputDistanceAttenPercentMin = 0;
-    constexpr int outputDistanceAttenPercentMax = 100;
+    constexpr int outputDistanceAttenPercentMax = 200;
 
     constexpr float outputParallaxDefault       = 0.0f;
     constexpr float outputParallaxMin           = -10.0f;

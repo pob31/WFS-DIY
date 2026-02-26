@@ -1028,6 +1028,19 @@ public:
             grabKeyboardFocus();
     }
 
+    /** Programmatically toggle processing on/off (for Stream Deck sync). */
+    void requestToggleProcessing()       { toggleProcessing(); }
+
+    /** Programmatically toggle binaural renderer on/off (for Stream Deck sync). */
+    void requestToggleBinaural()         { toggleBinauralProcessing(); }
+
+    /** Programmatically open the audio interface window (for Stream Deck). */
+    void requestOpenAudioInterfaceWindow()
+    {
+        if (onAudioInterfaceWindowRequested)
+            onAudioInterfaceWindowRequested();
+    }
+
 private:
     float layoutScale = 1.0f;  // Proportional scaling factor (1.0 = 1080p reference)
 

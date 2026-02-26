@@ -1443,6 +1443,21 @@
     }
   },
   "streamDeck": {
+    "systemConfig": {
+      "buttons": {
+        "audioPatch": "オーディオ\nパッチ",
+        "processingOn": "処理:\nON",
+        "processingOff": "処理:\nOFF",
+        "binauralOn": "バイノーラル:\nON",
+        "binauralOff": "バイノーラル:\nOFF"
+      },
+      "dials": {
+        "listenerDistance": "リスナー\n距離",
+        "listenerAngle": "リスナー\n角度",
+        "binauralLevel": "バイノーラル\nレベル",
+        "binauralDelay": "バイノーラル\nディレイ"
+      }
+    },
     "inputs": {
       "sections": {
         "attenuationAndDelay": "Attenuation\n& Delay",
@@ -1545,6 +1560,49 @@ Gain",
       },
       "comboOptions": {
         "square": "square"
+      }
+    },
+    "outputs": {
+      "sections": {
+        "outputParameters": "Output\nParameters",
+        "outputOrientation": "Output\nOrientation"
+      },
+      "buttons": {
+        "minimalLatency": "Minimal\nLatency",
+        "liveSourceAtten": "Live Source\nAtten.",
+        "floorReflections": "Floor\nReflections"
+      },
+      "dials": {
+        "attenuation": "Attenuation",
+        "delay": "Delay",
+        "latency": "Latency",
+        "distanceAttenuation": "Distance\nAtten.",
+        "hfDamping": "HF Damping",
+        "onAngle": "On Angle",
+        "offAngle": "Off Angle",
+        "orientation": "Orientation",
+        "pitch": "Pitch"
+      },
+      "eq": {
+        "buttons": {
+          "eqOnOff": "EQ",
+          "bandOnOff": "Band\nOn/Off"
+        },
+        "dials": {
+          "shape": "Shape",
+          "frequency": "Frequency",
+          "gain": "Gain",
+          "q": "Q"
+        }
+      }
+    },
+    "network": {
+      "buttons": {
+        "oscFilterAll": "OSCフィルタ:\n全て",
+        "oscFilterRegistered": "OSCフィルタ:\n登録済み",
+        "openLog": "ログを\n開く",
+        "trackingOn": "トラッキング:\nON",
+        "trackingOff": "トラッキング:\nOFF"
       }
     }
   }

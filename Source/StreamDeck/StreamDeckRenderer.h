@@ -138,8 +138,9 @@ public:
         g.drawRect (0, 0, StreamDeckDevice::BUTTON_IMAGE_WIDTH,
                     StreamDeckDevice::BUTTON_IMAGE_HEIGHT, 2);
 
-        // Label text
-        if (binding.label.isNotEmpty())
+        // Label text (supports dynamic labels via getDynamicLabel callback)
+        juce::String displayLabel = binding.getDisplayLabel();
+        if (displayLabel.isNotEmpty())
         {
             g.setColour (textColour);
             g.setFont (juce::Font (buttonFontSize));
@@ -147,7 +148,7 @@ public:
             juce::Rectangle<int> textArea (6, 6,
                                            StreamDeckDevice::BUTTON_IMAGE_WIDTH - 12,
                                            StreamDeckDevice::BUTTON_IMAGE_HEIGHT - 12);
-            g.drawFittedText (binding.label, textArea,
+            g.drawFittedText (displayLabel, textArea,
                               juce::Justification::centred, 3);
         }
 
@@ -360,10 +361,16 @@ public:
     /** Render all 8 button images for a page and send them to the device. */
     void renderAndSendAllButtons (StreamDeckDevice& device, const StreamDeckPage& page) const
     {
-        // Top row: section selectors or navigation buttons (buttons 0-3)
+        // Top row: custom buttons, navigation buttons, or section selectors (buttons 0-3)
         for (int i = 0; i < 4; ++i)
         {
-            if (page.topRowNavigateToTab[i] >= 0)
+            if (page.topRowButtons[i].isValid())
+            {
+                // Custom button binding (e.g., toggles, band selectors)
+                auto img = renderContextButton (page.topRowButtons[i]);
+                device.setButtonImage (i, img);
+            }
+            else if (page.topRowNavigateToTab[i] >= 0)
             {
                 // Navigation button override
                 juce::Colour navColour = page.topRowOverrideColour[i].isTransparent()

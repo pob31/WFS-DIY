@@ -129,6 +129,8 @@ public:
         channelSelector.setNumChannels(numOutputs > 0 ? numOutputs : 16);  // Default to 16 if not set
         channelSelector.onChannelChanged = [this](int channel) {
             loadChannelParameters(channel);
+            if (onChannelSelected)
+                onChannelSelected (channel);
         };
         // Set color provider to match array colors from Map tab
         channelSelector.setChannelColorProvider([this](int channelId) -> juce::Colour {
@@ -328,6 +330,22 @@ public:
     /** Callback when Level Meter window is requested */
     std::function<void()> onLevelMeterWindowRequested;
 
+    /** Callback when output channel selection changes (1-based channel ID). */
+    std::function<void(int)> onChannelSelected;
+
+    /** Callback when the subtab changes (0=Parameters, 1=EQ). */
+    std::function<void(int)> onSubTabChanged;
+
+    /** Programmatically switch the active subtab (for Stream Deck navigation). */
+    void setSubTabIndex (int index) { subTabBar.setCurrentTabIndex (index); }
+
+    /** Programmatically select a band on the EQ display (for Stream Deck sync). */
+    void selectEqBand (int bandIndex)
+    {
+        if (eqDisplay)
+            eqDisplay->setSelectedBand (bandIndex);
+    }
+
     /** Cycle to next/previous channel. delta=1 for next, delta=-1 for previous. Wraps around. */
     void cycleChannel(int delta)
     {
@@ -450,6 +468,9 @@ private:
     {
         layoutCurrentSubTab();
         repaint();
+
+        if (onSubTabChanged)
+            onSubTabChanged (subTabBar.getCurrentTabIndex());
 
         // TTS: Announce subtab change for accessibility
         int tabIndex = subTabBar.getCurrentTabIndex();

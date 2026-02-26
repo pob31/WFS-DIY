@@ -1443,6 +1443,21 @@
     }
   },
   "streamDeck": {
+    "systemConfig": {
+      "buttons": {
+        "audioPatch": "音频\n接线",
+        "processingOn": "处理:\n开",
+        "processingOff": "处理:\n关",
+        "binauralOn": "双耳:\n开",
+        "binauralOff": "双耳:\n关"
+      },
+      "dials": {
+        "listenerDistance": "听者\n距离",
+        "listenerAngle": "听者\n角度",
+        "binauralLevel": "双耳\n电平",
+        "binauralDelay": "双耳\n延迟"
+      }
+    },
     "inputs": {
       "sections": {
         "attenuationAndDelay": "Attenuation\n& Delay",
@@ -1545,6 +1560,49 @@ Gain",
       },
       "comboOptions": {
         "square": "square"
+      }
+    },
+    "outputs": {
+      "sections": {
+        "outputParameters": "Output\nParameters",
+        "outputOrientation": "Output\nOrientation"
+      },
+      "buttons": {
+        "minimalLatency": "Minimal\nLatency",
+        "liveSourceAtten": "Live Source\nAtten.",
+        "floorReflections": "Floor\nReflections"
+      },
+      "dials": {
+        "attenuation": "Attenuation",
+        "delay": "Delay",
+        "latency": "Latency",
+        "distanceAttenuation": "Distance\nAtten.",
+        "hfDamping": "HF Damping",
+        "onAngle": "On Angle",
+        "offAngle": "Off Angle",
+        "orientation": "Orientation",
+        "pitch": "Pitch"
+      },
+      "eq": {
+        "buttons": {
+          "eqOnOff": "EQ",
+          "bandOnOff": "Band\nOn/Off"
+        },
+        "dials": {
+          "shape": "Shape",
+          "frequency": "Frequency",
+          "gain": "Gain",
+          "q": "Q"
+        }
+      }
+    },
+    "network": {
+      "buttons": {
+        "oscFilterAll": "OSC过滤:\n全部",
+        "oscFilterRegistered": "OSC过滤:\n已注册",
+        "openLog": "打开\n日志",
+        "trackingOn": "追踪:\n开",
+        "trackingOff": "追踪:\n关"
       }
     }
   }

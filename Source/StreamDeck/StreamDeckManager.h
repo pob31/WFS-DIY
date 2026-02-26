@@ -136,6 +136,10 @@ public:
         Set by the owner (MainComponent) to call tabbedComponent.setCurrentTabIndex(). */
     std::function<void (int tabIndex)> onRequestMainTabChange;
 
+    /** Callback for top-row navigation buttons that also switch a subtab.
+        Called after onRequestMainTabChange when topRowNavigateToSubTab >= 0. */
+    std::function<void (int subTabIndex)> onRequestSubTabChange;
+
     //==========================================================================
     // Direct Access
     //==========================================================================
@@ -189,11 +193,32 @@ private:
 
         if (buttonIndex < 4)
         {
-            // Top row: check for navigation override first
+            // Top row: check for custom button binding first
+            if (page->topRowButtons[buttonIndex].isValid())
+            {
+                auto& btn = page->topRowButtons[buttonIndex];
+                if (btn.type == ButtonBinding::Toggle && btn.getState)
+                {
+                    btn.onPress();
+                    if (btn.requestsPageRebuild)
+                        refreshCurrentPage();
+                    else
+                        renderer.renderAndSendFullPage (device, *page);
+                }
+                else
+                {
+                    btn.onPress();
+                }
+                return;
+            }
+
+            // Then check for navigation override
             if (page->topRowNavigateToTab[buttonIndex] >= 0)
             {
                 if (onRequestMainTabChange)
                     onRequestMainTabChange (page->topRowNavigateToTab[buttonIndex]);
+                if (page->topRowNavigateToSubTab[buttonIndex] >= 0 && onRequestSubTabChange)
+                    onRequestSubTabChange (page->topRowNavigateToSubTab[buttonIndex]);
                 return;
             }
 
@@ -419,6 +444,22 @@ private:
                 }
             }
         }
+
+        // Refresh custom top-row toggle buttons when their state changes from the UI
+        for (int i = 0; i < 4; ++i)
+        {
+            const auto& btn = page->topRowButtons[i];
+            if (btn.isValid() && btn.type == ButtonBinding::Toggle && btn.getState)
+            {
+                bool current = btn.getState();
+                if (current != cachedTopRowStates[i])
+                {
+                    cachedTopRowStates[i] = current;
+                    auto img = renderer.renderContextButton (btn);
+                    device.setButtonImage (i, img);
+                }
+            }
+        }
     }
 
     //==========================================================================
@@ -468,7 +509,10 @@ private:
     void invalidateButtonCache()
     {
         for (int i = 0; i < 4; ++i)
+        {
             cachedButtonStates[i] = false;
+            cachedTopRowStates[i] = false;
+        }
     }
 
     //==========================================================================
@@ -493,6 +537,9 @@ private:
 
     // Cached toggle button states for detecting UI-originated changes
     bool cachedButtonStates[4] = { false, false, false, false };
+
+    // Cached custom top-row button states for detecting UI-originated changes
+    bool cachedTopRowStates[4] = { false, false, false, false };
 
     // Guard flag to prevent feedback loops during controller→parameter updates
     bool isUpdatingFromController = false;

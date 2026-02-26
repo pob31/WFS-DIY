@@ -222,6 +222,18 @@ struct ButtonBinding
         Use for toggles that change other bindings (e.g., attenuation law swap). */
     bool requestsPageRebuild = false;
 
+    /** Optional dynamic label callback — replaces static label when set.
+        Used for toggles that change their text based on state. */
+    std::function<juce::String()> getDynamicLabel;
+
+    /** Returns the display label, using the dynamic callback if set. */
+    juce::String getDisplayLabel() const
+    {
+        if (getDynamicLabel)
+            return getDynamicLabel();
+        return label;
+    }
+
     /** Returns true if this binding is configured. */
     bool isValid() const { return onPress != nullptr; }
 };
@@ -271,11 +283,20 @@ public:
         selecting a section. -1 = normal section button, >= 0 = target tab index. */
     int topRowNavigateToTab[4] = { -1, -1, -1, -1 };
 
+    /** Top-row button overrides: also navigate to a subtab after switching main tab.
+        -1 = no subtab change, >= 0 = target subtab index.
+        Only effective when topRowNavigateToTab[i] >= 0. */
+    int topRowNavigateToSubTab[4] = { -1, -1, -1, -1 };
+
     /** Custom label for navigation buttons (used when topRowNavigateToTab >= 0). */
     juce::String topRowOverrideLabel[4];
 
     /** Custom colour for navigation buttons. */
     juce::Colour topRowOverrideColour[4];
+
+    /** Optional custom top-row buttons (e.g., toggles, band selectors).
+        Priority: topRowButtons (if valid) > topRowNavigateToTab > section selector. */
+    ButtonBinding topRowButtons[4];
 
     /** Get the currently active section. */
     StreamDeckSection& getActiveSection()

@@ -1443,6 +1443,21 @@
     }
   },
   "streamDeck": {
+    "systemConfig": {
+      "buttons": {
+        "audioPatch": "Audio\nPatch",
+        "processingOn": "Procesamiento:\nON",
+        "processingOff": "Procesamiento:\nOFF",
+        "binauralOn": "Binaural:\nON",
+        "binauralOff": "Binaural:\nOFF"
+      },
+      "dials": {
+        "listenerDistance": "Distancia\nOyente",
+        "listenerAngle": "Ángulo\nOyente",
+        "binauralLevel": "Nivel\nBinaural",
+        "binauralDelay": "Retardo\nBinaural"
+      }
+    },
     "inputs": {
       "sections": {
         "attenuationAndDelay": "Attenuation\n& Delay",
@@ -1545,6 +1560,49 @@ Gain",
       },
       "comboOptions": {
         "square": "square"
+      }
+    },
+    "outputs": {
+      "sections": {
+        "outputParameters": "Output\nParameters",
+        "outputOrientation": "Output\nOrientation"
+      },
+      "buttons": {
+        "minimalLatency": "Minimal\nLatency",
+        "liveSourceAtten": "Live Source\nAtten.",
+        "floorReflections": "Floor\nReflections"
+      },
+      "dials": {
+        "attenuation": "Attenuation",
+        "delay": "Delay",
+        "latency": "Latency",
+        "distanceAttenuation": "Distance\nAtten.",
+        "hfDamping": "HF Damping",
+        "onAngle": "On Angle",
+        "offAngle": "Off Angle",
+        "orientation": "Orientation",
+        "pitch": "Pitch"
+      },
+      "eq": {
+        "buttons": {
+          "eqOnOff": "EQ",
+          "bandOnOff": "Band\nOn/Off"
+        },
+        "dials": {
+          "shape": "Shape",
+          "frequency": "Frequency",
+          "gain": "Gain",
+          "q": "Q"
+        }
+      }
+    },
+    "network": {
+      "buttons": {
+        "oscFilterAll": "Filtro OSC:\nTodos",
+        "oscFilterRegistered": "Filtro OSC:\nRegistrados",
+        "openLog": "Abrir\nLog",
+        "trackingOn": "Tracking:\nON",
+        "trackingOff": "Tracking:\nOFF"
       }
     }
   }

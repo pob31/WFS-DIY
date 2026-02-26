@@ -3147,6 +3147,9 @@
     <ClInclude Include="..\..\Source\StreamDeck\StreamDeckRenderer.h"/>
     <ClInclude Include="..\..\Source\StreamDeck\StreamDeckManager.h"/>
     <ClInclude Include="..\..\Source\StreamDeck\pages\InputsTabPages.h"/>
+    <ClInclude Include="..\..\Source\StreamDeck\pages\NetworkTabPages.h"/>
+    <ClInclude Include="..\..\Source\StreamDeck\pages\OutputsTabPages.h"/>
+    <ClInclude Include="..\..\Source\StreamDeck\pages\SystemConfigTabPages.h"/>
     <ClInclude Include="..\..\Source\WFSAlgorithm.h"/>
     <ClInclude Include="..\..\Source\DSP\WFSCalculationEngine.h"/>
     <ClInclude Include="..\..\Source\DSP\WFSHighShelfFilter.h"/>

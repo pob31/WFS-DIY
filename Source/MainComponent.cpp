@@ -4,6 +4,9 @@
 #include "Accessibility/TTSManager.h"
 #include "Network/QLabCueBuilder.h"
 #include "StreamDeck/pages/InputsTabPages.h"
+#include "StreamDeck/pages/NetworkTabPages.h"
+#include "StreamDeck/pages/OutputsTabPages.h"
+#include "StreamDeck/pages/SystemConfigTabPages.h"
 
 //==============================================================================
 MainComponent::MainComponent()
@@ -385,7 +388,15 @@ MainComponent::MainComponent()
         if (tabIndex >= 0 && tabIndex < 7)
             parameters.getValueTreeState().setActiveDomain (domainForTab[tabIndex]);
         if (streamDeckManager)
+        {
             streamDeckManager->setMainTab (tabIndex);
+
+            // Sync StreamDeck channel to the active tab's current channel
+            if (tabIndex == 2 && outputsTab != nullptr)
+                streamDeckManager->setChannel (outputsTab->getCurrentChannel());
+            else if (tabIndex == 4 && inputsTab != nullptr)
+                streamDeckManager->setChannel (inputsTab->getCurrentChannel());
+        }
     };
 
     // Load saved color scheme from parameters and apply it
@@ -436,6 +447,7 @@ MainComponent::MainComponent()
         auto& vts = parameters.getValueTreeState();
         auto flipModeState    = std::make_shared<bool> (false);
         auto lfoSubModeState  = std::make_shared<int> (0);
+        auto outputEqBandState = std::make_shared<int> (0);
 
         InputsTabPages::MovementCallbacks movCB;
         movCB.startMotion  = [this](int ch) { if (automOtionProcessor) automOtionProcessor->startClusterMotion (ch); };
@@ -451,14 +463,108 @@ MainComponent::MainComponent()
                 InputsTabPages::createPage (subTab, vts, 0, flipModeState, lfoSubModeState, movCB));
         }
 
+        // Callback: sync Stream Deck band selection to the GUI EQ display
+        auto onEqBandSelectedGui = [this](int bandIndex)
+        {
+            juce::MessageManager::callAsync ([this, bandIndex]()
+            {
+                if (outputsTab)
+                    outputsTab->selectEqBand (bandIndex);
+            });
+        };
+
+        // Register Outputs tab pages (subtab 0 = Parameters, 1 = EQ)
+        for (int subTab = 0; subTab < 2; ++subTab)
+        {
+            streamDeckManager->registerPage (
+                OutputsTabPages::OUTPUTS_MAIN_TAB_INDEX, subTab,
+                OutputsTabPages::createPage (subTab, vts, 0, outputEqBandState, onEqBandSelectedGui));
+        }
+
+        // Network tab callbacks (actions go through the GUI for proper logic)
+        NetworkTabPages::NetworkCallbacks netCB;
+        netCB.toggleOscFilter = [this]()
+        {
+            juce::MessageManager::callAsync ([this]()
+            {
+                if (networkTab) networkTab->toggleOscFilter();
+            });
+        };
+        netCB.toggleTracking = [this]()
+        {
+            juce::MessageManager::callAsync ([this]()
+            {
+                if (networkTab) networkTab->toggleTracking();
+            });
+        };
+        netCB.openLogWindow = [this]()
+        {
+            juce::MessageManager::callAsync ([this]()
+            {
+                openNetworkLogWindow();
+            });
+        };
+
+        // Register Network tab page
+        streamDeckManager->registerPage (
+            NetworkTabPages::NETWORK_MAIN_TAB_INDEX, 0,
+            NetworkTabPages::createPage (0, vts, netCB));
+
+        // System Config tab callbacks
+        SystemConfigTabPages::SysConfigCallbacks sysCB;
+        sysCB.openAudioPatchWindow = [this]()
+        {
+            juce::MessageManager::callAsync ([this]()
+            {
+                openAudioInterfaceWindow();
+            });
+        };
+        sysCB.toggleProcessing = [this]()
+        {
+            juce::MessageManager::callAsync ([this]()
+            {
+                if (systemConfigTab) systemConfigTab->requestToggleProcessing();
+            });
+        };
+        sysCB.toggleBinaural = [this]()
+        {
+            juce::MessageManager::callAsync ([this]()
+            {
+                if (systemConfigTab) systemConfigTab->requestToggleBinaural();
+            });
+        };
+
+        // Register System Config tab page
+        streamDeckManager->registerPage (
+            SystemConfigTabPages::SYSCONFIG_MAIN_TAB_INDEX, 0,
+            SystemConfigTabPages::createPage (0, vts, sysCB));
+
         // Set page rebuild callback for channel changes and binding swaps
-        streamDeckManager->onPageNeedsRebuild = [this, flipModeState, lfoSubModeState, movCB](int mainTab, int subTab, int channel)
+        streamDeckManager->onPageNeedsRebuild = [this, flipModeState, lfoSubModeState, movCB, outputEqBandState, onEqBandSelectedGui, netCB, sysCB](int mainTab, int subTab, int channel)
         {
             if (mainTab == InputsTabPages::INPUTS_MAIN_TAB_INDEX)
             {
                 auto& vts = parameters.getValueTreeState();
                 streamDeckManager->registerPage (mainTab, subTab,
                     InputsTabPages::createPage (subTab, vts, channel - 1, flipModeState, lfoSubModeState, movCB));
+            }
+            else if (mainTab == OutputsTabPages::OUTPUTS_MAIN_TAB_INDEX)
+            {
+                auto& vts = parameters.getValueTreeState();
+                streamDeckManager->registerPage (mainTab, subTab,
+                    OutputsTabPages::createPage (subTab, vts, channel - 1, outputEqBandState, onEqBandSelectedGui));
+            }
+            else if (mainTab == NetworkTabPages::NETWORK_MAIN_TAB_INDEX)
+            {
+                auto& vts = parameters.getValueTreeState();
+                streamDeckManager->registerPage (mainTab, subTab,
+                    NetworkTabPages::createPage (subTab, vts, netCB));
+            }
+            else if (mainTab == SystemConfigTabPages::SYSCONFIG_MAIN_TAB_INDEX)
+            {
+                auto& vts = parameters.getValueTreeState();
+                streamDeckManager->registerPage (mainTab, subTab,
+                    SystemConfigTabPages::createPage (subTab, vts, sysCB));
             }
         };
 
@@ -468,6 +574,17 @@ MainComponent::MainComponent()
             juce::MessageManager::callAsync ([this, tabIndex]()
             {
                 tabbedComponent.setCurrentTabIndex (tabIndex);
+            });
+        };
+
+        // Allow Stream Deck buttons to switch subtabs (e.g., → Output EQ)
+        streamDeckManager->onRequestSubTabChange = [this](int subTabIndex)
+        {
+            juce::MessageManager::callAsync ([this, subTabIndex]()
+            {
+                int tab = tabbedComponent.getCurrentTabIndex();
+                if (tab == 2 && outputsTab != nullptr)
+                    outputsTab->setSubTabIndex (subTabIndex);
             });
         };
     }
@@ -613,6 +730,19 @@ MainComponent::MainComponent()
     // Sync StreamDeck to InputsTab's initial channel (1-indexed)
     if (streamDeckManager)
         streamDeckManager->setChannel (1);
+
+    // Connect OutputsTab channel and subtab selection to StreamDeck
+    outputsTab->onChannelSelected = [this](int channelId)
+    {
+        if (streamDeckManager && tabbedComponent.getCurrentTabIndex() == 2)
+            streamDeckManager->setChannel (channelId);
+    };
+
+    outputsTab->onSubTabChanged = [this](int subTabIndex)
+    {
+        if (streamDeckManager && tabbedComponent.getCurrentTabIndex() == 2)
+            streamDeckManager->setSubTab (subTabIndex);
+    };
 
     // Snapshot OSC command callbacks
     oscManager->onSnapshotLoadRequested = [this](const juce::String& snapshotName) {

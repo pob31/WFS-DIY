@@ -212,6 +212,24 @@ public:
     /** Refresh UI from ValueTree - call after config reload */
     void refreshFromValueTree() { loadParametersFromValueTree(); }
 
+    /** Programmatically toggle OSC source filter (for Stream Deck sync). */
+    void toggleOscFilter()
+    {
+        bool newState = ! oscSourceFilterButton.getToggleState();
+        oscSourceFilterButton.setToggleState (newState, juce::dontSendNotification);
+        if (oscSourceFilterButton.onClick)
+            oscSourceFilterButton.onClick();
+    }
+
+    /** Programmatically toggle tracking enabled (for Stream Deck sync). */
+    void toggleTracking()
+    {
+        bool newState = ! trackingEnabledButton.getToggleState();
+        trackingEnabledButton.setToggleState (newState, juce::dontSendNotification);
+        if (trackingEnabledButton.onClick)
+            trackingEnabledButton.onClick();
+    }
+
     void setOSCManager(WFSNetwork::OSCManager* manager)
     {
         oscManager = manager;
