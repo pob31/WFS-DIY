@@ -1447,7 +1447,14 @@
       "sections": {
         "attenuationAndDelay": "Attenuation\n& Delay",
         "positionAndDirectivity": "Position &\nDirectivity",
-        "positionAdvanced": "Position\nAdvanced"
+        "positionAdvanced": "Position\nAdvanced",
+        "liveSourceBasics": "Live Source
+Basics",
+        "liveSourceCompression": "Live Source
+Compress.",
+        "hackoustics": "Hackoustics",
+        "hackousticsContinued": "Hackoustics
+(continued)"
       },
       "buttons": {
         "minimalDelay": "Minimal\nDelay",
@@ -1462,7 +1469,17 @@
         "flipZ": "Flip Z",
         "sideline": "Sideline",
         "tracking": "Tracking",
-        "maxSpeed": "Max Speed"
+        "maxSpeed": "Max Speed",
+        "liveSourceTamer": "Live Source
+Tamer",
+        "floorReflections": "Floor
+Reflections",
+        "lowCutFilter": "Low Cut
+Filter",
+        "highShelfFilter": "High Shelf
+Filter",
+        "sendToReverb": "Send to
+Reverb"
       },
       "dials": {
         "attenuation": "Attenuation",
@@ -1478,7 +1495,31 @@
         "fringe": "Fringe",
         "trackingSmooth": "Tracking\nSmooth",
         "maxSpeed": "Max Speed",
-        "heightFactor": "Height Factor"
+        "heightFactor": "Height Factor",
+        "shape": "Shape",
+        "radius": "Radius",
+        "fixedAttenuation": "Fixed
+Attenuation",
+        "peakThreshold": "Peak
+Threshold",
+        "peakRatio": "Peak Ratio",
+        "slowThreshold": "Slow
+Threshold",
+        "slowRatio": "Slow Ratio",
+        "frAttenuation": "FR
+Attenuation",
+        "frDiffusion": "FR Diffusion",
+        "lowCutFrequency": "Low Cut
+Frequency",
+        "highShelfFrequency": "High Shelf
+Frequency",
+        "highShelfGain": "High Shelf
+Gain",
+        "highShelfSlope": "High Shelf
+Slope"
+      },
+      "comboOptions": {
+        "square": "square"
       }
     }
   }

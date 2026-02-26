@@ -375,6 +375,7 @@ public:
      * MainComponent can use this to notify OSCManager for REMOTE protocol.
      */
     std::function<void(int channelId)> onChannelSelected;
+    std::function<void(int subTabIndex)> onSubTabChanged;
 
     /** Get the currently selected channel (1-based) */
     int getCurrentChannel() const { return currentChannel; }
@@ -670,8 +671,13 @@ private:
         layoutCurrentSubTab();
         repaint();
 
-        // TTS: Announce subtab change for accessibility
         int tabIndex = subTabBar.getCurrentTabIndex();
+
+        // Notify StreamDeck of subtab change
+        if (onSubTabChanged)
+            onSubTabChanged (tabIndex);
+
+        // TTS: Announce subtab change for accessibility
         if (tabIndex >= 0 && tabIndex < subTabBar.getNumTabs())
         {
             juce::String tabName = subTabBar.getTabButton(tabIndex)->getButtonText();

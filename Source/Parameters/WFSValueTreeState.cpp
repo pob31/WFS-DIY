@@ -260,6 +260,12 @@ void WFSValueTreeState::setInputParameter (int channelIndex, const juce::Identif
         if (position.isValid())
             position.setProperty (paramId, value, getActiveUndoManager());
     }
+    else if (paramId == inputMuteReverbSends)
+    {
+        auto mutes = getInputMutesSection (channelIndex);
+        if (mutes.isValid())
+            mutes.setProperty (paramId, value, getActiveUndoManager());
+    }
 }
 
 juce::ValueTree WFSValueTreeState::getInputChannelSection (int channelIndex)
@@ -1905,6 +1911,9 @@ juce::ValueTree WFSValueTreeState::createInputMutesSection (int numOutputs)
     // Sidelines (auto-mute at stage edges)
     mutes.setProperty (inputSidelinesActive, inputSidelinesActiveDefault, nullptr);
     mutes.setProperty (inputSidelinesFringe, inputSidelinesFringeDefault, nullptr);
+
+    // Mute reverb sends (default 0 = sends active)
+    mutes.setProperty (inputMuteReverbSends, 0, nullptr);
 
     // Array attenuation (per-array level control, 0 dB default)
     mutes.setProperty (inputArrayAtten1, inputArrayAttenDefault, nullptr);

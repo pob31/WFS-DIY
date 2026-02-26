@@ -595,6 +595,13 @@ MainComponent::MainComponent()
             streamDeckManager->setChannel(channelId);
     };
 
+    // Connect InputsTab subtab selection to StreamDeck
+    inputsTab->onSubTabChanged = [this](int subTabIndex)
+    {
+        if (streamDeckManager)
+            streamDeckManager->setSubTab (subTabIndex);
+    };
+
     // Sync StreamDeck to InputsTab's initial channel (1-indexed)
     if (streamDeckManager)
         streamDeckManager->setChannel (1);

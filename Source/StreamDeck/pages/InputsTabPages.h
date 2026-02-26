@@ -325,18 +325,256 @@ inline StreamDeckPage createInputParametersPage (WFSValueTreeState& state,
 // Subtab 1: Live Source & Hackoustics
 //==============================================================================
 
-inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& /*state*/,
-                                             int /*channelIndex*/)
+inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
+                                             int channelIndex)
 {
+    using namespace WFSParameterIDs;
+    using namespace WFSParameterDefaults;
+    int ch = channelIndex;
+
     StreamDeckPage page ("Inputs > Live Source");
 
-    page.sections[0].sectionName = "Section 1";
-    page.sections[0].sectionColour = juce::Colour (0xFF4A90D9);
+    const auto offGrey   = juce::Colour (0xFF555555);
+    const auto onGreen   = juce::Colour (0xFF4CAF50);
 
-    page.sections[1].sectionName = "Section 2";
-    page.sections[1].sectionColour = juce::Colour (0xFF9B6FC3);
+    //======================================================================
+    // Section 0: Live Source Basics
+    //======================================================================
+    {
+        auto& sec = page.sections[0];
+        sec.sectionName   = LOC ("streamDeck.inputs.sections.liveSourceBasics");
+        sec.sectionColour = juce::Colour (0xFFE07B39);
 
-    page.numSections = 2;
+        // Button 0 — Toggle Live Source Tamer
+        sec.buttons[0] = makeToggleButton (
+            LOC ("streamDeck.inputs.buttons.liveSourceTamer"),
+            offGrey, onGreen, state, ch, inputLSactive);
+
+        // Dial 0 — Shape (ComboBox)
+        {
+            DialBinding dial;
+            dial.paramName = LOC ("streamDeck.inputs.dials.shape");
+            dial.type = DialBinding::ComboBox;
+            dial.comboOptions = {
+                LOC ("inputs.liveSource.linear"),
+                LOC ("inputs.liveSource.log"),
+                LOC ("streamDeck.inputs.comboOptions.square"),
+                LOC ("inputs.liveSource.sine")
+            };
+            dial.minValue = static_cast<float> (inputLSshapeMin);
+            dial.maxValue = static_cast<float> (inputLSshapeMax);
+
+            dial.getValue = [&state, ch]()
+            {
+                return static_cast<float> (static_cast<int> (state.getInputParameter (ch, inputLSshape)));
+            };
+
+            dial.setValue = [&state, ch] (float v)
+            {
+                state.setInputParameter (ch, inputLSshape, juce::roundToInt (v));
+            };
+
+            sec.dials[0] = dial;
+        }
+
+        // Dial 1 — Radius
+        sec.dials[1] = makeFloatDial (
+            LOC ("streamDeck.inputs.dials.radius"),
+            LOC ("units.meters"),
+            inputLSradiusMin, inputLSradiusMax,
+            1.0f, 0.25f, 1, false,
+            state, ch, inputLSradius);
+
+        // Dial 2 — Fixed Attenuation
+        sec.dials[2] = makeFloatDial (
+            LOC ("streamDeck.inputs.dials.fixedAttenuation"),
+            LOC ("units.decibels"),
+            inputLSattenuationMin, inputLSattenuationMax,
+            1.0f, 0.25f, 1, false,
+            state, ch, inputLSattenuation);
+    }
+
+    //======================================================================
+    // Section 1: Live Source Compression
+    //======================================================================
+    {
+        auto& sec = page.sections[1];
+        sec.sectionName   = LOC ("streamDeck.inputs.sections.liveSourceCompression");
+        sec.sectionColour = juce::Colour (0xFFD94A6B);
+
+        // Dial 0 — Peak Threshold
+        sec.dials[0] = makeFloatDial (
+            LOC ("streamDeck.inputs.dials.peakThreshold"),
+            LOC ("units.decibels"),
+            inputLSpeakThresholdMin, inputLSpeakThresholdMax,
+            1.0f, 0.25f, 1, false,
+            state, ch, inputLSpeakThreshold);
+
+        // Dial 1 — Peak Ratio
+        sec.dials[1] = makeFloatDial (
+            LOC ("streamDeck.inputs.dials.peakRatio"),
+            "",
+            inputLSpeakRatioMin, inputLSpeakRatioMax,
+            0.5f, 0.1f, 1, false,
+            state, ch, inputLSpeakRatio);
+
+        // Dial 2 — Slow Threshold
+        sec.dials[2] = makeFloatDial (
+            LOC ("streamDeck.inputs.dials.slowThreshold"),
+            LOC ("units.decibels"),
+            inputLSslowThresholdMin, inputLSslowThresholdMax,
+            1.0f, 0.25f, 1, false,
+            state, ch, inputLSslowThreshold);
+
+        // Dial 3 — Slow Ratio
+        sec.dials[3] = makeFloatDial (
+            LOC ("streamDeck.inputs.dials.slowRatio"),
+            "",
+            inputLSslowRatioMin, inputLSslowRatioMax,
+            0.5f, 0.1f, 1, false,
+            state, ch, inputLSslowRatio);
+    }
+
+    //======================================================================
+    // Section 2: Hackoustics
+    //======================================================================
+    {
+        auto& sec = page.sections[2];
+        sec.sectionName   = LOC ("streamDeck.inputs.sections.hackoustics");
+        sec.sectionColour = juce::Colour (0xFF5BBF68);
+
+        // Button 0 — Toggle Floor Reflections
+        sec.buttons[0] = makeToggleButton (
+            LOC ("streamDeck.inputs.buttons.floorReflections"),
+            offGrey, onGreen, state, ch, inputFRactive);
+
+        // Button 2 — Toggle Low Cut Filter
+        sec.buttons[2] = makeToggleButton (
+            LOC ("streamDeck.inputs.buttons.lowCutFilter"),
+            offGrey, onGreen, state, ch, inputFRlowCutActive);
+
+        // Dial 0 — FR Attenuation
+        sec.dials[0] = makeFloatDial (
+            LOC ("streamDeck.inputs.dials.frAttenuation"),
+            LOC ("units.decibels"),
+            inputFRattenuationMin, inputFRattenuationMax,
+            1.0f, 0.25f, 1, false,
+            state, ch, inputFRattenuation);
+
+        // Dial 1 — FR Diffusion
+        sec.dials[1] = makeIntDial (
+            LOC ("streamDeck.inputs.dials.frDiffusion"),
+            LOC ("units.percent"),
+            inputFRdiffusionMin, inputFRdiffusionMax,
+            5, 1,
+            state, ch, inputFRdiffusion);
+
+        // Dial 2 — Low Cut Frequency (exponential 20–20000 Hz)
+        {
+            DialBinding dial;
+            dial.paramName = LOC ("streamDeck.inputs.dials.lowCutFrequency");
+            dial.paramUnit = LOC ("units.hertz");
+            dial.minValue = static_cast<float> (inputFRfreqMin);
+            dial.maxValue = static_cast<float> (inputFRfreqMax);
+            dial.step = 0.02f;
+            dial.fineStep = 0.005f;
+            dial.decimalPlaces = 0;
+            dial.isExponential = true;
+            dial.type = DialBinding::Int;
+
+            dial.getValue = [&state, ch]()
+            {
+                return static_cast<float> (static_cast<int> (state.getInputParameter (ch, inputFRlowCutFreq)));
+            };
+
+            dial.setValue = [&state, ch] (float v)
+            {
+                state.setInputParameter (ch, inputFRlowCutFreq, juce::roundToInt (v));
+            };
+
+            sec.dials[2] = dial;
+        }
+    }
+
+    //======================================================================
+    // Section 3: Hackoustics (continued)
+    //======================================================================
+    {
+        auto& sec = page.sections[3];
+        sec.sectionName   = LOC ("streamDeck.inputs.sections.hackousticsContinued");
+        sec.sectionColour = juce::Colour (0xFF4ABFAD);
+
+        // Button 0 — Toggle High Shelf Filter
+        sec.buttons[0] = makeToggleButton (
+            LOC ("streamDeck.inputs.buttons.highShelfFilter"),
+            offGrey, onGreen, state, ch, inputFRhighShelfActive);
+
+        // Button 3 — Toggle Send to Reverb (inverted: ON = value 0 = not muted)
+        {
+            ButtonBinding btn;
+            btn.label = LOC ("streamDeck.inputs.buttons.sendToReverb");
+            btn.colour = offGrey;
+            btn.activeColour = onGreen;
+            btn.type = ButtonBinding::Toggle;
+
+            btn.getState = [&state, ch]()
+            {
+                return static_cast<int> (state.getInputParameter (ch, inputMuteReverbSends)) == 0;
+            };
+
+            btn.onPress = [&state, ch]()
+            {
+                int current = static_cast<int> (state.getInputParameter (ch, inputMuteReverbSends));
+                state.setInputParameter (ch, inputMuteReverbSends, current != 0 ? 0 : 1);
+            };
+
+            sec.buttons[3] = btn;
+        }
+
+        // Dial 0 — High Shelf Frequency (exponential 20–20000 Hz)
+        {
+            DialBinding dial;
+            dial.paramName = LOC ("streamDeck.inputs.dials.highShelfFrequency");
+            dial.paramUnit = LOC ("units.hertz");
+            dial.minValue = static_cast<float> (inputFRfreqMin);
+            dial.maxValue = static_cast<float> (inputFRfreqMax);
+            dial.step = 0.02f;
+            dial.fineStep = 0.005f;
+            dial.decimalPlaces = 0;
+            dial.isExponential = true;
+            dial.type = DialBinding::Int;
+
+            dial.getValue = [&state, ch]()
+            {
+                return static_cast<float> (static_cast<int> (state.getInputParameter (ch, inputFRhighShelfFreq)));
+            };
+
+            dial.setValue = [&state, ch] (float v)
+            {
+                state.setInputParameter (ch, inputFRhighShelfFreq, juce::roundToInt (v));
+            };
+
+            sec.dials[0] = dial;
+        }
+
+        // Dial 1 — High Shelf Gain
+        sec.dials[1] = makeFloatDial (
+            LOC ("streamDeck.inputs.dials.highShelfGain"),
+            LOC ("units.decibels"),
+            inputFRhighShelfGainMin, inputFRhighShelfGainMax,
+            1.0f, 0.25f, 1, false,
+            state, ch, inputFRhighShelfGain);
+
+        // Dial 2 — High Shelf Slope
+        sec.dials[2] = makeFloatDial (
+            LOC ("streamDeck.inputs.dials.highShelfSlope"),
+            "",
+            inputFRhighShelfSlopeMin, inputFRhighShelfSlopeMax,
+            0.1f, 0.01f, 2, false,
+            state, ch, inputFRhighShelfSlope);
+    }
+
+    page.numSections = 4;
     page.activeSectionIndex = 0;
 
     return page;
