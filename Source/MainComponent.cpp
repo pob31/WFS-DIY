@@ -421,25 +421,36 @@ MainComponent::MainComponent()
     // Initialize Stream Deck+ physical controller
     streamDeckManager = std::make_unique<StreamDeckManager>();
 
-    // Register Inputs tab pages (stub bindings — to be populated later)
+    // Register Inputs tab pages with real parameter bindings
     {
         auto& vts = parameters.getValueTreeState();
+        auto flipModeState = std::make_shared<bool> (false);
+
         for (int subTab = 0; subTab < 4; ++subTab)
         {
             streamDeckManager->registerPage (
                 InputsTabPages::INPUTS_MAIN_TAB_INDEX, subTab,
-                InputsTabPages::createPage (subTab, vts, 1));
+                InputsTabPages::createPage (subTab, vts, 0, flipModeState));
         }
 
-        // Set page rebuild callback for channel changes
-        streamDeckManager->onPageNeedsRebuild = [this](int mainTab, int subTab, int channel)
+        // Set page rebuild callback for channel changes and binding swaps
+        streamDeckManager->onPageNeedsRebuild = [this, flipModeState](int mainTab, int subTab, int channel)
         {
             if (mainTab == InputsTabPages::INPUTS_MAIN_TAB_INDEX)
             {
                 auto& vts = parameters.getValueTreeState();
                 streamDeckManager->registerPage (mainTab, subTab,
-                    InputsTabPages::createPage (subTab, vts, channel));
+                    InputsTabPages::createPage (subTab, vts, channel - 1, flipModeState));
             }
+        };
+
+        // Allow Stream Deck buttons to switch the main tab (e.g., → Map)
+        streamDeckManager->onRequestMainTabChange = [this](int tabIndex)
+        {
+            juce::MessageManager::callAsync ([this, tabIndex]()
+            {
+                tabbedComponent.setCurrentTabIndex (tabIndex);
+            });
         };
     }
 
@@ -573,6 +584,10 @@ MainComponent::MainComponent()
         if (streamDeckManager)
             streamDeckManager->setChannel(channelId);
     };
+
+    // Sync StreamDeck to InputsTab's initial channel (1-indexed)
+    if (streamDeckManager)
+        streamDeckManager->setChannel (1);
 
     // Snapshot OSC command callbacks
     oscManager->onSnapshotLoadRequested = [this](const juce::String& snapshotName) {

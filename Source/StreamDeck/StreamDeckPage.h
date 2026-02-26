@@ -32,6 +32,10 @@ struct DialBinding
     /** Increment per dial detent click. */
     float step = 0.01f;
 
+    /** Fine-mode increment (used when dial is pressed while turning).
+        Set to 0 to disable fine mode for this dial. */
+    float fineStep = 0.0f;
+
     /** If true, use exponential mapping: value = min * pow(max/min, normalized).
         Good for frequency, RT60, and other perceptually-scaled parameters. */
     bool isExponential = false;
@@ -57,6 +61,17 @@ struct DialBinding
 
     /** Set a new value (called when dial is rotated). */
     std::function<void (float)> setValue;
+
+    /** Optional dynamic name callback (e.g., "Delay" vs "Latency" based on value). */
+    std::function<juce::String()> getDynamicName;
+
+    /** Returns the display name, using the dynamic callback if set. */
+    juce::String getDisplayName() const
+    {
+        if (getDynamicName)
+            return getDynamicName();
+        return paramName;
+    }
 
     /** Returns true if this binding is configured (has valid callbacks). */
     bool isValid() const { return getValue != nullptr && setValue != nullptr; }
@@ -92,13 +107,18 @@ struct DialBinding
         return val;
     }
 
-    /** Apply one step of rotation (direction: +1 or -1). Returns new value. */
-    float applyStep (int direction) const
+    /** Apply one step of rotation (direction: +1 or -1).
+        @param direction  +1 for clockwise, -1 for counter-clockwise
+        @param fine       If true and fineStep > 0, use fineStep instead of step
+        @return The new value after applying the step
+    */
+    float applyStep (int direction, bool fine = false) const
     {
         if (! isValid())
             return 0.0f;
 
         float current = getValue();
+        float activeStep = (fine && fineStep > 0.0f) ? fineStep : step;
 
         if (type == ComboBox)
         {
@@ -111,11 +131,11 @@ struct DialBinding
         {
             // Convert to normalized 0-1, step in linear space, convert back
             float normalized = std::log (current / minValue) / std::log (maxValue / minValue);
-            normalized = juce::jlimit (0.0f, 1.0f, normalized + step * direction);
+            normalized = juce::jlimit (0.0f, 1.0f, normalized + activeStep * direction);
             return minValue * std::pow (maxValue / minValue, normalized);
         }
 
-        float newVal = current + step * direction;
+        float newVal = current + activeStep * direction;
         return juce::jlimit (minValue, maxValue, newVal);
     }
 };
@@ -151,6 +171,10 @@ struct ButtonBinding
 
     /** Called when the button is released (for Momentary type). */
     std::function<void()> onRelease;
+
+    /** If true, pressing this button triggers a full page rebuild.
+        Use for toggles that change other bindings (e.g., attenuation law swap). */
+    bool requestsPageRebuild = false;
 
     /** Returns true if this binding is configured. */
     bool isValid() const { return onPress != nullptr; }
@@ -196,6 +220,16 @@ public:
 
     /** Index of the currently active section. */
     int activeSectionIndex = 0;
+
+    /** Top-row button overrides: navigate to a different main tab instead of
+        selecting a section. -1 = normal section button, >= 0 = target tab index. */
+    int topRowNavigateToTab[4] = { -1, -1, -1, -1 };
+
+    /** Custom label for navigation buttons (used when topRowNavigateToTab >= 0). */
+    juce::String topRowOverrideLabel[4];
+
+    /** Custom colour for navigation buttons. */
+    juce::Colour topRowOverrideColour[4];
 
     /** Get the currently active section. */
     StreamDeckSection& getActiveSection()

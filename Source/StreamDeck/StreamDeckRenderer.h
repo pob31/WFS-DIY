@@ -20,13 +20,13 @@ public:
     //==========================================================================
 
     /** Font size for section selector (top row) button labels. */
-    float sectionFontSize = 14.0f;
+    float sectionFontSize = 20.0f;
 
     /** Font size for bottom-row button labels. */
-    float buttonFontSize = 13.0f;
+    float buttonFontSize = 20.0f;
 
     /** Font size for parameter name on LCD strip. */
-    float lcdNameFontSize = 13.0f;
+    float lcdNameFontSize = 20.0f;
 
     /** Font size for parameter value on LCD strip. */
     float lcdValueFontSize = 20.0f;
@@ -196,15 +196,15 @@ public:
         // Parameter name (top portion)
         g.setColour (lcdNameColour);
         g.setFont (juce::Font (lcdNameFontSize));
-        g.drawFittedText (binding.paramName,
-                          4, 4, zoneW - 8, 24,
-                          juce::Justification::centred, 1);
+        g.drawFittedText (binding.getDisplayName(),
+                          4, 2, zoneW - 8, 44,
+                          juce::Justification::centred, 2);
 
         // Parameter value (center, larger font)
         g.setColour (lcdValueColour);
         g.setFont (juce::Font (lcdValueFontSize).boldened());
         g.drawFittedText (binding.formatValueWithUnit(),
-                          4, 28, zoneW - 8, 40,
+                          4, 50, zoneW - 8, 30,
                           juce::Justification::centred, 1);
 
         // Value bar (bottom portion) — visual indicator of normalized position
@@ -264,7 +264,7 @@ public:
         // Title
         g.setColour (lcdNameColour);
         g.setFont (juce::Font (lcdNameFontSize));
-        g.drawFittedText (binding.paramName, 4, 2, zoneW - 8, 18,
+        g.drawFittedText (binding.getDisplayName(), 4, 2, zoneW - 8, 18,
                           juce::Justification::centred, 1);
 
         // Show up to 3 options centered on the selected one
@@ -321,15 +321,63 @@ public:
     // Full Page Rendering Helpers
     //==========================================================================
 
+    /** Render a navigation button (top row override that switches tabs).
+        @param label   The button label (e.g., "Map")
+        @param colour  Background colour
+        @return 120x120 JUCE Image
+    */
+    juce::Image renderNavigationButton (const juce::String& label,
+                                         juce::Colour colour) const
+    {
+        juce::Image img (juce::Image::RGB,
+                         StreamDeckDevice::BUTTON_IMAGE_WIDTH,
+                         StreamDeckDevice::BUTTON_IMAGE_HEIGHT, true);
+        juce::Graphics g (img);
+
+        // Dark background with coloured border
+        g.fillAll (juce::Colour (0xFF2A2A2A));
+        g.setColour (colour);
+        g.drawRect (0, 0, StreamDeckDevice::BUTTON_IMAGE_WIDTH,
+                    StreamDeckDevice::BUTTON_IMAGE_HEIGHT, 3);
+
+        // Arrow indicator at top
+        g.setColour (colour);
+        g.setFont (juce::Font (22.0f));
+        g.drawText (juce::CharPointer_UTF8 ("\xe2\x86\x92"),  // →
+                    0, 12, StreamDeckDevice::BUTTON_IMAGE_WIDTH, 24,
+                    juce::Justification::centred);
+
+        // Label text below arrow
+        g.setColour (textColour);
+        g.setFont (juce::Font (sectionFontSize));
+        g.drawFittedText (label,
+                          8, 40, StreamDeckDevice::BUTTON_IMAGE_WIDTH - 16, 60,
+                          juce::Justification::centred, 2);
+
+        return img;
+    }
+
     /** Render all 8 button images for a page and send them to the device. */
     void renderAndSendAllButtons (StreamDeckDevice& device, const StreamDeckPage& page) const
     {
-        // Top row: section selectors (buttons 0-3)
+        // Top row: section selectors or navigation buttons (buttons 0-3)
         for (int i = 0; i < 4; ++i)
         {
-            bool isActive = (i == page.activeSectionIndex);
-            auto img = renderSectionButton (page.sections[i], isActive, i, page.numSections);
-            device.setButtonImage (i, img);
+            if (page.topRowNavigateToTab[i] >= 0)
+            {
+                // Navigation button override
+                juce::Colour navColour = page.topRowOverrideColour[i].isTransparent()
+                                         ? juce::Colour (0xFF4A90D9)
+                                         : page.topRowOverrideColour[i];
+                auto img = renderNavigationButton (page.topRowOverrideLabel[i], navColour);
+                device.setButtonImage (i, img);
+            }
+            else
+            {
+                bool isActive = (i == page.activeSectionIndex);
+                auto img = renderSectionButton (page.sections[i], isActive, i, page.numSections);
+                device.setButtonImage (i, img);
+            }
         }
 
         // Bottom row: context buttons (buttons 4-7)

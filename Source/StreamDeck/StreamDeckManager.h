@@ -114,6 +114,10 @@ public:
         the registered page's getValue/setValue callbacks. */
     std::function<void (int mainTab, int subTab, int channel)> onPageNeedsRebuild;
 
+    /** Callback for top-row navigation buttons that switch the main tab.
+        Set by the owner (MainComponent) to call tabbedComponent.setCurrentTabIndex(). */
+    std::function<void (int tabIndex)> onRequestMainTabChange;
+
     //==========================================================================
     // Direct Access
     //==========================================================================
@@ -135,11 +139,20 @@ public:
     /** Force a full visual refresh of the current page. */
     void refreshCurrentPage()
     {
+        invalidateButtonCache();
+
+        // Preserve the active section across page rebuilds
+        int savedSection = 0;
+        if (auto* page = getCurrentPage())
+            savedSection = page->activeSectionIndex;
+
         if (onPageNeedsRebuild)
             onPageNeedsRebuild (currentMainTab, currentSubTab, currentChannel);
 
         if (auto* page = getCurrentPage())
         {
+            page->activeSectionIndex = juce::jlimit (0, juce::jmax (0, page->numSections - 1), savedSection);
+
             if (device.isConnected())
                 renderer.renderAndSendFullPage (device, *page);
         }
@@ -158,7 +171,15 @@ private:
 
         if (buttonIndex < 4)
         {
-            // Top row: section selector
+            // Top row: check for navigation override first
+            if (page->topRowNavigateToTab[buttonIndex] >= 0)
+            {
+                if (onRequestMainTabChange)
+                    onRequestMainTabChange (page->topRowNavigateToTab[buttonIndex]);
+                return;
+            }
+
+            // Normal section selector
             if (buttonIndex < page->numSections)
             {
                 exitComboMode();
@@ -180,9 +201,18 @@ private:
             if (binding.type == ButtonBinding::Toggle && binding.getState)
             {
                 binding.onPress();
-                // Re-render just this button
-                auto img = renderer.renderContextButton (binding);
-                device.setButtonImage (buttonIndex, img);
+
+                if (binding.requestsPageRebuild)
+                {
+                    // Rebuild page bindings (e.g., attenuation law changed dial 2)
+                    refreshCurrentPage();
+                }
+                else
+                {
+                    // Re-render just this button
+                    auto img = renderer.renderContextButton (binding);
+                    device.setButtonImage (buttonIndex, img);
+                }
             }
             else
             {
@@ -229,9 +259,9 @@ private:
             return;
         }
 
-        // Normal mode: adjust parameter value
+        // Normal mode: adjust parameter value (use fine step if dial is pressed)
         isUpdatingFromController = true;
-        float newVal = binding.applyStep (direction);
+        float newVal = binding.applyStep (direction, dialPressed[dialIndex]);
         binding.setValue (newVal);
         isUpdatingFromController = false;
 
@@ -242,8 +272,14 @@ private:
 
     void handleDialPressed (int dialIndex)
     {
+        if (dialIndex < 0 || dialIndex >= 4)
+            return;
+
+        // Track pressed state for fine-mode (press + turn = finer steps)
+        dialPressed[dialIndex] = true;
+
         auto* page = getCurrentPage();
-        if (page == nullptr || dialIndex < 0 || dialIndex >= 4)
+        if (page == nullptr)
             return;
 
         auto& binding = page->getActiveSection().dials[dialIndex];
@@ -278,9 +314,10 @@ private:
         }
     }
 
-    void handleDialReleased (int /*dialIndex*/)
+    void handleDialReleased (int dialIndex)
     {
-        // Currently unused — could be used for momentary dial press behaviors
+        if (dialIndex >= 0 && dialIndex < 4)
+            dialPressed[dialIndex] = false;
     }
 
     void handleConnectionChanged (bool connected)
@@ -320,6 +357,22 @@ private:
                 device.setLcdZoneImage (i, img);
             }
         }
+
+        // Refresh bottom-row toggle buttons when their state changes from the UI
+        for (int i = 0; i < 4; ++i)
+        {
+            const auto& btn = section.buttons[i];
+            if (btn.isValid() && btn.type == ButtonBinding::Toggle && btn.getState)
+            {
+                bool current = btn.getState();
+                if (current != cachedButtonStates[i])
+                {
+                    cachedButtonStates[i] = current;
+                    auto img = renderer.renderContextButton (btn);
+                    device.setButtonImage (4 + i, img);
+                }
+            }
+        }
     }
 
     //==========================================================================
@@ -328,6 +381,8 @@ private:
 
     void switchToCurrentPage()
     {
+        invalidateButtonCache();
+
         if (onPageNeedsRebuild)
             onPageNeedsRebuild (currentMainTab, currentSubTab, currentChannel);
 
@@ -364,6 +419,12 @@ private:
         return mainTab * 100 + subTab;
     }
 
+    void invalidateButtonCache()
+    {
+        for (int i = 0; i < 4; ++i)
+            cachedButtonStates[i] = false;
+    }
+
     //==========================================================================
     // Member Data
     //==========================================================================
@@ -380,6 +441,12 @@ private:
     bool comboModeActive = false;
     int comboDialIndex = -1;
     int comboSelectedIndex = 0;
+
+    // Dial pressed state for fine-mode (press + turn = finer steps)
+    bool dialPressed[4] = { false, false, false, false };
+
+    // Cached toggle button states for detecting UI-originated changes
+    bool cachedButtonStates[4] = { false, false, false, false };
 
     // Guard flag to prevent feedback loops during controller→parameter updates
     bool isUpdatingFromController = false;

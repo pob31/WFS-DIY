@@ -419,14 +419,14 @@ private:
 
         uint8_t actionType = data[4];  // 0x00 = press/release, 0x01 = rotation
 
-        for (int i = 0; i < NUM_DIALS; ++i)
+        if (actionType == 0x01)  // Rotation
         {
-            int8_t value = static_cast<int8_t> (data[5 + i]);
-            if (value == 0)
-                continue;
-
-            if (actionType == 0x01)  // Rotation
+            for (int i = 0; i < NUM_DIALS; ++i)
             {
+                int8_t value = static_cast<int8_t> (data[5 + i]);
+                if (value == 0)
+                    continue;
+
                 int direction = (value > 0) ? 1 : -1;
                 juce::MessageManager::callAsync ([this, i, direction]()
                 {
@@ -434,9 +434,19 @@ private:
                         onDialRotated (i, direction);
                 });
             }
-            else if (actionType == 0x00)  // Press/release
+        }
+        else if (actionType == 0x00)  // Press/release: compare against previous state
+        {
+            for (int i = 0; i < NUM_DIALS; ++i)
             {
-                bool pressed = (value == 1);
+                uint8_t current = data[5 + i];
+                uint8_t previous = previousDialPressState[i];
+                previousDialPressState[i] = current;
+
+                if (current == previous)
+                    continue;
+
+                bool pressed = (current != 0);
                 juce::MessageManager::callAsync ([this, i, pressed]()
                 {
                     if (pressed)
@@ -570,6 +580,7 @@ private:
     hid_device* deviceHandle = nullptr;
     mutable juce::CriticalSection writeLock;
     bool buttonStates[NUM_BUTTONS] = {};
+    uint8_t previousDialPressState[NUM_DIALS] = {};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (StreamDeckDevice)
 };
