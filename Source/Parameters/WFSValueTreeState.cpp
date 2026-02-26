@@ -1494,6 +1494,7 @@ void WFSValueTreeState::createConfigSection()
     createTrackingSection (config);
     createClustersSection (config);
     createBinauralSection (config);
+    createUISection (config);
 
     state.appendChild (config, nullptr);
 }
@@ -1618,6 +1619,13 @@ void WFSValueTreeState::createBinauralSection (juce::ValueTree& config)
     binaural.setProperty (binauralDelay, binauralDelayDefault, nullptr);
     binaural.setProperty (inputSoloStates, "", nullptr);  // Empty = no solos
     config.appendChild (binaural, nullptr);
+}
+
+void WFSValueTreeState::createUISection (juce::ValueTree& config)
+{
+    juce::ValueTree ui (UI);
+    ui.setProperty (streamDeckEnabled, streamDeckEnabledDefault, nullptr);
+    config.appendChild (ui, nullptr);
 }
 
 void WFSValueTreeState::createInputsSection()

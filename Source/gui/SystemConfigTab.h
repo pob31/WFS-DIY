@@ -201,6 +201,7 @@ public:
     using ChannelCountCallback = std::function<void(int inputs, int outputs, int reverbs)>;
     using AudioInterfaceCallback = std::function<void()>;
     using ConfigReloadedCallback = std::function<void()>;
+    using StreamDeckCallback = std::function<void(bool enabled)>;
 
     SystemConfigTab(WfsParameters& params)
         : parameters(params)
@@ -414,6 +415,11 @@ public:
                 }
             }
         };
+
+        // Stream Deck+ toggle
+        addAndMakeVisible(streamDeckEnableButton);
+        streamDeckEnableButton.setButtonText(LOC("systemConfig.buttons.streamDeckOff"));
+        streamDeckEnableButton.onLongPress = [this]() { toggleStreamDeck(); };
 
         // Binaural Section
         addAndMakeVisible(binauralEnableButton);
@@ -778,6 +784,9 @@ public:
 
         languageLabel.setBounds(x, y, labelWidth, rowHeight);
         languageSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
+        y += rowHeight + spacing;
+
+        streamDeckEnableButton.setBounds(x, y, fullWidth, rowHeight);
 
         //======================================================================
         // COLUMN 2: Stage, Master
@@ -996,6 +1005,11 @@ public:
     void setConfigReloadedCallback(ConfigReloadedCallback callback)
     {
         onConfigReloaded = callback;
+    }
+
+    void setStreamDeckCallback(StreamDeckCallback callback)
+    {
+        onStreamDeckEnabledChanged = callback;
     }
 
     /** Grab focus when this tab becomes visible to prevent auto-focus on first TextEditor */
@@ -1225,6 +1239,11 @@ private:
         // Processing button state
         processingEnabled = (bool)parameters.getConfigParam("ProcessingEnabled");
         processingButton.setButtonText(processingEnabled ? LOC("systemConfig.buttons.processingOn") : LOC("systemConfig.buttons.processingOff"));
+
+        // Stream Deck toggle
+        bool sdEnabled = (bool)parameters.getConfigParam("StreamDeckEnabled");
+        streamDeckEnableButton.setButtonText(sdEnabled ? LOC("systemConfig.buttons.streamDeckOn")
+                                                        : LOC("systemConfig.buttons.streamDeckOff"));
 
         // Solo mode button
         updateSoloModeButtonText();
@@ -1611,6 +1630,17 @@ private:
         binauralEnableButton.setButtonText(newState ? LOC("systemConfig.buttons.binauralOn")
                                                      : LOC("systemConfig.buttons.binauralOff"));
         updateBinauralControlsEnabledState();
+    }
+
+    void toggleStreamDeck()
+    {
+        bool current = (bool)parameters.getConfigParam("StreamDeckEnabled");
+        bool newState = !current;
+        parameters.setConfigParam("StreamDeckEnabled", newState);
+        streamDeckEnableButton.setButtonText(newState ? LOC("systemConfig.buttons.streamDeckOn")
+                                                       : LOC("systemConfig.buttons.streamDeckOff"));
+        if (onStreamDeckEnabledChanged)
+            onStreamDeckEnabledChanged(newState);
     }
 
     void updateIOControlsEnabledState()
@@ -2175,6 +2205,7 @@ private:
         helpTextMap[&haasEffectEditor] = LOC("systemConfig.help.haasEffect");
         helpTextMap[&colorSchemeSelector] = LOC("systemConfig.help.colorScheme");
         helpTextMap[&languageSelector] = LOC("systemConfig.help.language");
+        helpTextMap[&streamDeckEnableButton] = LOC("systemConfig.help.streamDeck");
         helpTextMap[&binauralEnableButton] = LOC("systemConfig.help.binauralEnable");
         helpTextMap[&binauralOutputSelector] = LOC("systemConfig.help.binauralOutput");
         helpTextMap[&binauralDistanceSlider] = LOC("systemConfig.help.binauralDistance");
@@ -2358,6 +2389,7 @@ private:
     juce::Label languageLabel;
     juce::ComboBox languageSelector;
     juce::StringArray availableLanguages;
+    LongPressButton streamDeckEnableButton { 800 };
 
     // Binaural Section
     LongPressButton binauralEnableButton { 800 };
@@ -2398,6 +2430,7 @@ private:
     ChannelCountCallback onChannelCountChanged;
     AudioInterfaceCallback onAudioInterfaceWindowRequested;
     ConfigReloadedCallback onConfigReloaded;
+    StreamDeckCallback onStreamDeckEnabledChanged;
 
     // Helper to notify MainComponent of any channel count change
     void notifyChannelCountChanged()

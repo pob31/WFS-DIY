@@ -16,6 +16,7 @@
 #include "../../Parameters/WFSValueTreeState.h"
 #include "../../Parameters/WFSParameterIDs.h"
 #include "../../Parameters/WFSParameterDefaults.h"
+#include "../../Localization/LocalizationManager.h"
 
 namespace InputsTabPages
 {
@@ -143,25 +144,25 @@ inline StreamDeckPage createInputParametersPage (WFSValueTreeState& state,
     // --- Section 0: Attenuation & Delay ---
     {
         auto& sec = page.sections[0];
-        sec.sectionName = "Attenuation\n& Delay";
+        sec.sectionName = LOC ("streamDeck.inputs.sections.attenuationAndDelay");
         sec.sectionColour = juce::Colour (0xFF4A90D9);  // Blue
 
         // Bottom buttons: [empty] | Minimal Delay | Atten Law | [empty]
-        sec.buttons[1] = makeToggleButton ("Minimal\nDelay",
+        sec.buttons[1] = makeToggleButton (LOC ("streamDeck.inputs.buttons.minimalDelay"),
                                             juce::Colour (0xFF3A3A3A), juce::Colour (0xFF4A90D9),
                                             state, ch, inputMinimalLatency);
 
-        sec.buttons[2] = makeToggleButton ("Attenuation\nLaw",
+        sec.buttons[2] = makeToggleButton (LOC ("streamDeck.inputs.buttons.attenuationLaw"),
                                             juce::Colour (0xFF3A3A3A), juce::Colour (0xFFC9A94E),
                                             state, ch, inputAttenuationLaw, true);  // rebuilds page
 
         // Dials: Attenuation | Delay/Latency | DistAtten or Ratio | Common Atten
-        sec.dials[0] = makeFloatDial ("Attenuation", "dB",
+        sec.dials[0] = makeFloatDial (LOC ("streamDeck.inputs.dials.attenuation"), LOC ("units.decibels"),
                                        inputAttenuationMin, inputAttenuationMax,
                                        1.0f, 0.25f, 1, false,
                                        state, ch, inputAttenuation);
 
-        sec.dials[1] = makeFloatDial ("Delay", "ms",
+        sec.dials[1] = makeFloatDial (LOC ("streamDeck.inputs.dials.delay"), LOC ("units.milliseconds"),
                                        inputDelayLatencyMin, inputDelayLatencyMax,
                                        2.0f, 0.5f, 1, false,
                                        state, ch, inputDelayLatency);
@@ -170,27 +171,27 @@ inline StreamDeckPage createInputParametersPage (WFSValueTreeState& state,
         sec.dials[1].getDynamicName = [&state, ch]()
         {
             float v = static_cast<float> (state.getInputParameter (ch, WFSParameterIDs::inputDelayLatency));
-            return juce::String (v >= 0.0f ? "Delay" : "Latency");
+            return v >= 0.0f ? LOC ("streamDeck.inputs.dials.delay") : LOC ("streamDeck.inputs.dials.latency");
         };
 
         // Dial 2: depends on attenuation law
         bool is1OverD = static_cast<int> (state.getInputParameter (ch, inputAttenuationLaw)) != 0;
         if (is1OverD)
         {
-            sec.dials[2] = makeFloatDial ("Ratio", "x",
+            sec.dials[2] = makeFloatDial (LOC ("streamDeck.inputs.dials.ratio"), "x",
                                            inputDistanceRatioMin, inputDistanceRatioMax,
                                            0.02f, 0.005f, 2, true,
                                            state, ch, inputDistanceRatio);
         }
         else
         {
-            sec.dials[2] = makeFloatDial ("Distance\nAttenuation", "dB/m",
+            sec.dials[2] = makeFloatDial (LOC ("streamDeck.inputs.dials.distanceAttenuation"), LOC ("units.decibelPerMeter"),
                                            inputDistanceAttenuationMin, inputDistanceAttenuationMax,
                                            0.1f, 0.02f, 2, false,
                                            state, ch, inputDistanceAttenuation);
         }
 
-        sec.dials[3] = makeIntDial ("Common\nAttenuation", "%",
+        sec.dials[3] = makeIntDial (LOC ("streamDeck.inputs.dials.commonAttenuation"), LOC ("units.percent"),
                                      inputCommonAttenMin, inputCommonAttenMax,
                                      2, 1,
                                      state, ch, inputCommonAtten);
@@ -199,7 +200,7 @@ inline StreamDeckPage createInputParametersPage (WFSValueTreeState& state,
     // --- Section 1: Position & Directivity ---
     {
         auto& sec = page.sections[1];
-        sec.sectionName = "Position &\nDirectivity";
+        sec.sectionName = LOC ("streamDeck.inputs.sections.positionAndDirectivity");
         sec.sectionColour = juce::Colour (0xFF5BBFBA);  // Teal
 
         bool isFlip = flipMode && *flipMode;
@@ -207,7 +208,7 @@ inline StreamDeckPage createInputParametersPage (WFSValueTreeState& state,
         // Bottom buttons: Constraint/Flip meta | X | Y | Z
         {
             auto& btn = sec.buttons[0];
-            btn.label = isFlip ? "Flip" : "Constraint";
+            btn.label = isFlip ? LOC ("streamDeck.inputs.buttons.flip") : LOC ("streamDeck.inputs.buttons.constraint");
             btn.colour = juce::Colour (0xFF3A3A3A);
             btn.activeColour = juce::Colour (0xFF9B6FC3);  // Violet
             btn.type = ButtonBinding::Toggle;
@@ -223,46 +224,46 @@ inline StreamDeckPage createInputParametersPage (WFSValueTreeState& state,
 
         if (isFlip)
         {
-            sec.buttons[1] = makeToggleButton ("Flip X",
+            sec.buttons[1] = makeToggleButton (LOC ("streamDeck.inputs.buttons.flipX"),
                                                 juce::Colour (0xFF3A3A3A), juce::Colour (0xFF9B6FC3),
                                                 state, ch, inputFlipX);
-            sec.buttons[2] = makeToggleButton ("Flip Y",
+            sec.buttons[2] = makeToggleButton (LOC ("streamDeck.inputs.buttons.flipY"),
                                                 juce::Colour (0xFF3A3A3A), juce::Colour (0xFF9B6FC3),
                                                 state, ch, inputFlipY);
-            sec.buttons[3] = makeToggleButton ("Flip Z",
+            sec.buttons[3] = makeToggleButton (LOC ("streamDeck.inputs.buttons.flipZ"),
                                                 juce::Colour (0xFF3A3A3A), juce::Colour (0xFF9B6FC3),
                                                 state, ch, inputFlipZ);
         }
         else
         {
-            sec.buttons[1] = makeToggleButton ("Constraint X",
+            sec.buttons[1] = makeToggleButton (LOC ("streamDeck.inputs.buttons.constraintX"),
                                                 juce::Colour (0xFF3A3A3A), juce::Colour (0xFF5BBFBA),
                                                 state, ch, inputConstraintX);
-            sec.buttons[2] = makeToggleButton ("Constraint Y",
+            sec.buttons[2] = makeToggleButton (LOC ("streamDeck.inputs.buttons.constraintY"),
                                                 juce::Colour (0xFF3A3A3A), juce::Colour (0xFF5BBFBA),
                                                 state, ch, inputConstraintY);
-            sec.buttons[3] = makeToggleButton ("Constraint Z",
+            sec.buttons[3] = makeToggleButton (LOC ("streamDeck.inputs.buttons.constraintZ"),
                                                 juce::Colour (0xFF3A3A3A), juce::Colour (0xFF5BBFBA),
                                                 state, ch, inputConstraintZ);
         }
 
         // Dials: Directivity | Rotation | Tilt | HF Shelf
-        sec.dials[0] = makeIntDial ("Directivity", "deg",  // °
+        sec.dials[0] = makeIntDial (LOC ("streamDeck.inputs.dials.directivity"), "deg",
                                      inputDirectivityMin, inputDirectivityMax,
                                      5, 1,
                                      state, ch, inputDirectivity);
 
-        sec.dials[1] = makeIntDial ("Rotation", "deg",
+        sec.dials[1] = makeIntDial (LOC ("streamDeck.inputs.dials.rotation"), "deg",
                                      inputRotationMin, inputRotationMax,
                                      5, 1,
                                      state, ch, inputRotation);
 
-        sec.dials[2] = makeIntDial ("Tilt", "deg",
+        sec.dials[2] = makeIntDial (LOC ("streamDeck.inputs.dials.tilt"), "deg",
                                      inputTiltMin, inputTiltMax,
                                      2, 1,
                                      state, ch, inputTilt);
 
-        sec.dials[3] = makeFloatDial ("HF Shelf", "dB",
+        sec.dials[3] = makeFloatDial (LOC ("streamDeck.inputs.dials.hfShelf"), LOC ("units.decibels"),
                                        inputHFshelfMin, inputHFshelfMax,
                                        0.5f, 0.1f, 1, false,
                                        state, ch, inputHFshelf);
@@ -271,39 +272,39 @@ inline StreamDeckPage createInputParametersPage (WFSValueTreeState& state,
     // --- Section 2: Position Advanced ---
     {
         auto& sec = page.sections[2];
-        sec.sectionName = "Position\nAdvanced";
+        sec.sectionName = LOC ("streamDeck.inputs.sections.positionAdvanced");
         sec.sectionColour = juce::Colour (0xFFC9A94E);  // Yellow
 
         // Bottom buttons: Sideline | Tracking | Max Speed | [empty]
-        sec.buttons[0] = makeToggleButton ("Sideline",
+        sec.buttons[0] = makeToggleButton (LOC ("streamDeck.inputs.buttons.sideline"),
                                             juce::Colour (0xFF3A3A3A), juce::Colour (0xFFC9A94E),
                                             state, ch, inputSidelinesActive);
 
-        sec.buttons[1] = makeToggleButton ("Tracking",
+        sec.buttons[1] = makeToggleButton (LOC ("streamDeck.inputs.buttons.tracking"),
                                             juce::Colour (0xFF3A3A3A), juce::Colour (0xFFC9A94E),
                                             state, ch, inputTrackingActive);
 
-        sec.buttons[2] = makeToggleButton ("Max Speed",
+        sec.buttons[2] = makeToggleButton (LOC ("streamDeck.inputs.buttons.maxSpeed"),
                                             juce::Colour (0xFF3A3A3A), juce::Colour (0xFFC9A94E),
                                             state, ch, inputMaxSpeedActive);
 
         // Dials: Fringe | Tracking Smooth | Max Speed | Height Factor
-        sec.dials[0] = makeFloatDial ("Fringe", "m",
+        sec.dials[0] = makeFloatDial (LOC ("streamDeck.inputs.dials.fringe"), LOC ("units.meters"),
                                        inputSidelinesFringeMin, inputSidelinesFringeMax,
                                        0.02f, 0.005f, 2, true,
                                        state, ch, inputSidelinesFringe);
 
-        sec.dials[1] = makeIntDial ("Tracking\nSmooth", "%",
+        sec.dials[1] = makeIntDial (LOC ("streamDeck.inputs.dials.trackingSmooth"), LOC ("units.percent"),
                                      inputTrackingSmoothMin, inputTrackingSmoothMax,
                                      2, 1,
                                      state, ch, inputTrackingSmooth);
 
-        sec.dials[2] = makeFloatDial ("Max Speed", "m/s",
+        sec.dials[2] = makeFloatDial (LOC ("streamDeck.inputs.dials.maxSpeed"), LOC ("units.metersPerSecond"),
                                        inputMaxSpeedMin, inputMaxSpeedMax,
                                        0.02f, 0.005f, 2, true,
                                        state, ch, inputMaxSpeed);
 
-        sec.dials[3] = makeIntDial ("Height Factor", "%",
+        sec.dials[3] = makeIntDial (LOC ("streamDeck.inputs.dials.heightFactor"), LOC ("units.percent"),
                                      inputHeightFactorMin, inputHeightFactorMax,
                                      2, 1,
                                      state, ch, inputHeightFactor);
@@ -314,7 +315,7 @@ inline StreamDeckPage createInputParametersPage (WFSValueTreeState& state,
 
     // Button 3 (top row): navigate to Map tab (index 6)
     page.topRowNavigateToTab[3] = 6;
-    page.topRowOverrideLabel[3] = "Map";
+    page.topRowOverrideLabel[3] = LOC ("tabs.map");
     page.topRowOverrideColour[3] = juce::Colour (0xFF7B68EE);  // Medium slate blue
 
     return page;

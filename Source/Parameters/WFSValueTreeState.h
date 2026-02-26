@@ -415,6 +415,7 @@ private:
     void createTrackingSection (juce::ValueTree& config);
     void createClustersSection (juce::ValueTree& config);
     void createBinauralSection (juce::ValueTree& config);
+    void createUISection (juce::ValueTree& config);
     void createInputsSection();
     void createOutputsSection();
     void createReverbsSection();

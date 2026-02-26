@@ -245,6 +245,11 @@ MainComponent::MainComponent()
         handleConfigReloaded();
     });
 
+    systemConfigTab->setStreamDeckCallback([this](bool enabled) {
+        if (streamDeckManager)
+            streamDeckManager->setEnabled(enabled);
+    });
+
     // Set up callbacks for individual tab config reloads
     outputsTab->onConfigReloaded = [this]() {
         handleConfigReloaded();
@@ -420,6 +425,11 @@ MainComponent::MainComponent()
 
     // Initialize Stream Deck+ physical controller
     streamDeckManager = std::make_unique<StreamDeckManager>();
+
+    // Check if Stream Deck is enabled in config (default: true)
+    bool sdEnabled = (bool)parameters.getConfigParam("StreamDeckEnabled");
+    if (!sdEnabled)
+        streamDeckManager->setEnabled(false);
 
     // Register Inputs tab pages with real parameter bindings
     {

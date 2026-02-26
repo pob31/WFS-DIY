@@ -143,6 +143,12 @@ namespace WFSParameterDefaults
     constexpr float haasEffectMax           = 10.0f;
 
     //==========================================================================
+    // Config > UI Section
+    //==========================================================================
+
+    constexpr bool streamDeckEnabledDefault = true;  // Enabled by default (backward compatible)
+
+    //==========================================================================
     // Config > Network Section
     //==========================================================================
 

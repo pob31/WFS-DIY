@@ -118,7 +118,9 @@
       "reloadSystem": "Recharger configuration système",
       "reloadSystemBackup": "Recharger config. système (backup)",
       "importSystem": "Importer configuration système",
-      "exportSystem": "Exporter configuration système"
+      "exportSystem": "Exporter configuration système",
+      "streamDeckOff": "Stream Deck+: OFF",
+      "streamDeckOn": "Stream Deck+: ON"
     },
     "algorithms": {
       "inputBuffer": "InputBuffer (délais en lecture)",
@@ -179,6 +181,7 @@
       "importSystem": "Importe la configuration système depuis un fichier (avec explorateur de fichiers).",
       "exportSystem": "Exporte la configuration système vers un fichier (avec explorateur de fichiers).",
       "language": "Sélectionnez la langue de l'interface. Les changements prennent plein effet après redémarrage de l'application.",
+      "streamDeck": "Enable or disable the Stream Deck+ hardware controller integration. Long press to toggle.",
       "binauralEnable": "Enable or disable the binaural renderer processing.",
       "binauralOutput": "Select output channel pair for binaural monitoring. Off disables binaural output.",
       "binauralDistance": "Distance of binaural listener from stage origin (meters).",
@@ -1364,7 +1367,6 @@
     "writeSnapshotLoadCue": "Ecrire un cue de chargement dans QLab",
     "writeSnapshotLoadCueTooltip": "Créer aussi un cue QLab pour charger ce snapshot via OSC"
   },
-
   "snapshot": {
     "qlabNoTarget": "Aucune cible QLab configurée",
     "qlabExportStarted": "Écriture de {count} cues vers QLab...",
@@ -1374,7 +1376,6 @@
     "qlabReloadName": "Rappeler \"{name}\"",
     "qlabUpdateName": "Mettre à jour \"{name}\""
   },
-
   "setAllInputs": {
     "windowTitle": "Appliquer à toutes les entrées",
     "warning": "Les modifications s'appliqueront à TOUTES les entrées",
@@ -1439,6 +1440,46 @@
       "prefixInputs": "Inputs: ",
       "prefixOutputs": "Outputs: ",
       "prefixReverbs": "Reverbs: "
+    }
+  },
+  "streamDeck": {
+    "inputs": {
+      "sections": {
+        "attenuationAndDelay": "Attenuation\n& Delay",
+        "positionAndDirectivity": "Position &\nDirectivity",
+        "positionAdvanced": "Position\nAdvanced"
+      },
+      "buttons": {
+        "minimalDelay": "Minimal\nDelay",
+        "attenuationLaw": "Attenuation\nLaw",
+        "constraint": "Constraint",
+        "flip": "Flip",
+        "constraintX": "Constraint X",
+        "constraintY": "Constraint Y",
+        "constraintZ": "Constraint Z",
+        "flipX": "Flip X",
+        "flipY": "Flip Y",
+        "flipZ": "Flip Z",
+        "sideline": "Sideline",
+        "tracking": "Tracking",
+        "maxSpeed": "Max Speed"
+      },
+      "dials": {
+        "attenuation": "Attenuation",
+        "delay": "Delay",
+        "latency": "Latency",
+        "distanceAttenuation": "Distance\nAttenuation",
+        "ratio": "Ratio",
+        "commonAttenuation": "Common\nAttenuation",
+        "directivity": "Directivity",
+        "rotation": "Rotation",
+        "tilt": "Tilt",
+        "hfShelf": "HF Shelf",
+        "fringe": "Fringe",
+        "trackingSmooth": "Tracking\nSmooth",
+        "maxSpeed": "Max Speed",
+        "heightFactor": "Height Factor"
+      }
     }
   }
 }

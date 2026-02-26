@@ -340,6 +340,9 @@ private:
         if (paramName == "TrackingFlipY") return WFSParameterIDs::trackingFlipY;
         if (paramName == "TrackingFlipZ") return WFSParameterIDs::trackingFlipZ;
 
+        // UI section
+        if (paramName == "StreamDeckEnabled") return WFSParameterIDs::streamDeckEnabled;
+
         // Default: use the parameter name directly as identifier
         return juce::Identifier (paramName);
     }

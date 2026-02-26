@@ -118,6 +118,7 @@ namespace WFSParameterIDs
 
     const juce::Identifier UI                ("UI");
     const juce::Identifier colorScheme       ("colorScheme");  // 0=Default, 1=OLED Black, 2=Light
+    const juce::Identifier streamDeckEnabled ("streamDeckEnabled");
 
     //==========================================================================
     // Config > Network Section

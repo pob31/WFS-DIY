@@ -118,7 +118,9 @@
       "reloadSystem": "重新加载系统配置",
       "reloadSystemBackup": "从备份加载系统配置",
       "importSystem": "导入系统配置",
-      "exportSystem": "导出系统配置"
+      "exportSystem": "导出系统配置",
+      "streamDeckOff": "Stream Deck+: OFF",
+      "streamDeckOn": "Stream Deck+: ON"
     },
     "algorithms": {
       "inputBuffer": "InputBuffer (读取时延迟)",
@@ -179,6 +181,7 @@
       "importSystem": "从文件导入系统配置 (使用文件浏览器)。",
       "exportSystem": "将系统配置导出到文件 (使用文件浏览器)。",
       "language": "选择用户界面语言。重启应用程序后更改将完全生效。",
+      "streamDeck": "Enable or disable the Stream Deck+ hardware controller integration. Long press to toggle.",
       "binauralEnable": "启用或禁用双耳渲染器处理。",
       "binauralOutput": "选择双耳监听的输出通道对。关闭则禁用双耳输出。",
       "binauralDistance": "双耳听者与舞台原点的距离（米）。",
@@ -1364,7 +1367,6 @@
     "writeSnapshotLoadCue": "将快照加载提示写入 QLab",
     "writeSnapshotLoadCueTooltip": "同时创建一个通过 OSC 加载此快照的 QLab 提示"
   },
-
   "snapshot": {
     "qlabNoTarget": "未配置QLab目标",
     "qlabExportStarted": "正在向 QLab 写入 {count} 个 Cue...",
@@ -1374,7 +1376,6 @@
     "qlabReloadName": "加载 \"{name}\"",
     "qlabUpdateName": "更新 \"{name}\""
   },
-
   "setAllInputs": {
     "windowTitle": "设置所有输入",
     "warning": "更改将应用于所有输入",
@@ -1439,6 +1440,46 @@
       "prefixInputs": "输入：",
       "prefixOutputs": "输出：",
       "prefixReverbs": "混响："
+    }
+  },
+  "streamDeck": {
+    "inputs": {
+      "sections": {
+        "attenuationAndDelay": "Attenuation\n& Delay",
+        "positionAndDirectivity": "Position &\nDirectivity",
+        "positionAdvanced": "Position\nAdvanced"
+      },
+      "buttons": {
+        "minimalDelay": "Minimal\nDelay",
+        "attenuationLaw": "Attenuation\nLaw",
+        "constraint": "Constraint",
+        "flip": "Flip",
+        "constraintX": "Constraint X",
+        "constraintY": "Constraint Y",
+        "constraintZ": "Constraint Z",
+        "flipX": "Flip X",
+        "flipY": "Flip Y",
+        "flipZ": "Flip Z",
+        "sideline": "Sideline",
+        "tracking": "Tracking",
+        "maxSpeed": "Max Speed"
+      },
+      "dials": {
+        "attenuation": "Attenuation",
+        "delay": "Delay",
+        "latency": "Latency",
+        "distanceAttenuation": "Distance\nAttenuation",
+        "ratio": "Ratio",
+        "commonAttenuation": "Common\nAttenuation",
+        "directivity": "Directivity",
+        "rotation": "Rotation",
+        "tilt": "Tilt",
+        "hfShelf": "HF Shelf",
+        "fringe": "Fringe",
+        "trackingSmooth": "Tracking\nSmooth",
+        "maxSpeed": "Max Speed",
+        "heightFactor": "Height Factor"
+      }
     }
   }
 }
