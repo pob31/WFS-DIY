@@ -584,18 +584,417 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
 // Subtab 2: Movements (LFO + AutomOtion)
 //==============================================================================
 
-inline StreamDeckPage createMovementsPage (WFSValueTreeState& /*state*/,
-                                            int /*channelIndex*/)
+/** Callbacks for AutomOtion transport controls, wired by MainComponent. */
+struct MovementCallbacks
 {
+    std::function<void (int)> startMotion;    // channelIndex (0-based)
+    std::function<void (int)> stopMotion;     // channelIndex (0-based)
+    std::function<void (int)> pauseMotion;    // channelIndex (0-based)
+    std::function<void (int)> resumeMotion;   // channelIndex (0-based)
+    std::function<void()>     stopAll;
+};
+
+inline StreamDeckPage createMovementsPage (WFSValueTreeState& state,
+                                            int ch,
+                                            std::shared_ptr<int> lfoSubMode,
+                                            MovementCallbacks movCB = {})
+{
+    using namespace WFSParameterIDs;
+    using namespace WFSParameterDefaults;
+
     StreamDeckPage page ("Inputs > Movements");
 
-    page.sections[0].sectionName = "Section 1";
-    page.sections[0].sectionColour = juce::Colour (0xFFC9A94E);  // Yellow
+    const auto offGrey = juce::Colour (0xFF3A3A3A);
+    const auto onGreen = juce::Colour (0xFF5BBF68);
 
-    page.sections[1].sectionName = "Section 2";
-    page.sections[1].sectionColour = juce::Colour (0xFFC9A94E);
+    //======================================================================
+    // Section 0: LFO (with sub-mode switching via bottom buttons)
+    //======================================================================
+    {
+        auto& sec = page.sections[0];
+        sec.sectionName   = LOC ("streamDeck.inputs.sections.lfo");
+        sec.sectionColour = juce::Colour (0xFF6A5ACD);
 
-    page.numSections = 2;
+        int currentSubMode = lfoSubMode ? *lfoSubMode : 0;
+
+        // --- Bottom buttons: sub-mode selectors (LFO & Jitter / X / Y / Z) ---
+        const juce::String btnLocKeys[] = {
+            "streamDeck.inputs.buttons.lfoAndJitter",
+            "streamDeck.inputs.buttons.lfoX",
+            "streamDeck.inputs.buttons.lfoY",
+            "streamDeck.inputs.buttons.lfoZ"
+        };
+
+        for (int i = 0; i < 4; ++i)
+        {
+            auto& btn   = sec.buttons[i];
+            btn.label   = LOC (btnLocKeys[i]);
+            btn.type    = ButtonBinding::Toggle;
+            btn.colour  = offGrey;
+            btn.activeColour = juce::Colour (0xFF6A5ACD);
+            btn.requestsPageRebuild = true;
+
+            int idx = i;
+            btn.getState = [lfoSubMode, idx]() { return lfoSubMode && *lfoSubMode == idx; };
+            btn.onPress  = [lfoSubMode, idx]() { if (lfoSubMode) *lfoSubMode = idx; };
+        }
+
+        // --- Dials: depend on the active sub-mode ---
+        if (currentSubMode == 0)
+        {
+            // Sub-mode 0: LFO & Jitter — Period, Phase, Gyrophone, Jitter
+            sec.dials[0] = makeFloatDial (LOC ("streamDeck.inputs.dials.lfoPeriod"),
+                                           LOC ("units.seconds"),
+                                           inputLFOperiodMin, inputLFOperiodMax,
+                                           0.02f, 0.005f, 2, true,
+                                           state, ch, inputLFOperiod);
+
+            sec.dials[1] = makeIntDial (LOC ("streamDeck.inputs.dials.lfoPhase"),
+                                         LOC ("units.degrees"),
+                                         inputLFOphaseMin, inputLFOphaseMax,
+                                         5, 1, state, ch, inputLFOphase);
+
+            // Gyrophone: ComboBox, param values -1/0/1 mapped to index 0/1/2
+            {
+                DialBinding gyroDial;
+                gyroDial.paramName = LOC ("streamDeck.inputs.dials.gyrophone");
+                gyroDial.type      = DialBinding::ComboBox;
+                gyroDial.comboOptions = {
+                    LOC ("inputs.lfo.gyrophone.antiClockwise"),
+                    LOC ("inputs.lfo.gyrophone.off"),
+                    LOC ("inputs.lfo.gyrophone.clockwise")
+                };
+                gyroDial.minValue = 0.0f;
+                gyroDial.maxValue = 2.0f;
+
+                gyroDial.getValue = [&state, ch]()
+                {
+                    int v = static_cast<int> (state.getInputParameter (ch, inputLFOgyrophone));
+                    return static_cast<float> (v + 1);  // -1->0, 0->1, 1->2
+                };
+                gyroDial.setValue = [&state, ch] (float v)
+                {
+                    state.setInputParameter (ch, inputLFOgyrophone, juce::roundToInt (v) - 1);
+                };
+                sec.dials[2] = std::move (gyroDial);
+            }
+
+            sec.dials[3] = makeFloatDial (LOC ("streamDeck.inputs.dials.jitter"),
+                                           LOC ("units.meters"),
+                                           inputJitterMin, inputJitterMax,
+                                           0.1f, 0.02f, 2, false,
+                                           state, ch, inputJitter);
+        }
+        else
+        {
+            // Sub-modes 1/2/3: LFO X / Y / Z — Shape, Amplitude, Rate, Phase
+            const juce::Identifier shapeIds[]     = { inputLFOshapeX,     inputLFOshapeY,     inputLFOshapeZ };
+            const juce::Identifier amplitudeIds[] = { inputLFOamplitudeX, inputLFOamplitudeY, inputLFOamplitudeZ };
+            const juce::Identifier rateIds[]      = { inputLFOrateX,      inputLFOrateY,      inputLFOrateZ };
+            const juce::Identifier phaseIds[]     = { inputLFOphaseX,     inputLFOphaseY,     inputLFOphaseZ };
+            int axis = currentSubMode - 1;  // 0=X, 1=Y, 2=Z
+
+            // Shape ComboBox (9 options, index 0-8)
+            {
+                DialBinding shapeDial;
+                shapeDial.paramName = LOC ("streamDeck.inputs.dials.lfoShape");
+                shapeDial.type      = DialBinding::ComboBox;
+                shapeDial.comboOptions = {
+                    LOC ("inputs.lfo.shapes.off"),      LOC ("inputs.lfo.shapes.sine"),
+                    LOC ("inputs.lfo.shapes.square"),   LOC ("inputs.lfo.shapes.sawtooth"),
+                    LOC ("inputs.lfo.shapes.triangle"), LOC ("inputs.lfo.shapes.keystone"),
+                    LOC ("inputs.lfo.shapes.log"),      LOC ("inputs.lfo.shapes.exp"),
+                    LOC ("inputs.lfo.shapes.random")
+                };
+                shapeDial.minValue = static_cast<float> (inputLFOshapeMin);
+                shapeDial.maxValue = static_cast<float> (inputLFOshapeMax);
+
+                auto shapeId = shapeIds[axis];
+                shapeDial.getValue = [&state, ch, shapeId]()
+                {
+                    return static_cast<float> (static_cast<int> (state.getInputParameter (ch, shapeId)));
+                };
+                shapeDial.setValue = [&state, ch, shapeId] (float v)
+                {
+                    state.setInputParameter (ch, shapeId, juce::roundToInt (v));
+                };
+                sec.dials[0] = std::move (shapeDial);
+            }
+
+            sec.dials[1] = makeFloatDial (LOC ("streamDeck.inputs.dials.lfoAmplitude"),
+                                           LOC ("units.meters"),
+                                           inputLFOamplitudeMin, inputLFOamplitudeMax,
+                                           0.5f, 0.1f, 1, false,
+                                           state, ch, amplitudeIds[axis]);
+
+            sec.dials[2] = makeFloatDial (LOC ("streamDeck.inputs.dials.lfoRate"),
+                                           "x",
+                                           inputLFOrateMin, inputLFOrateMax,
+                                           0.02f, 0.005f, 2, true,
+                                           state, ch, rateIds[axis]);
+
+            sec.dials[3] = makeIntDial (LOC ("streamDeck.inputs.dials.lfoAxisPhase"),
+                                         LOC ("units.degrees"),
+                                         inputLFOphaseMin, inputLFOphaseMax,
+                                         5, 1, state, ch, phaseIds[axis]);
+        }
+    }
+
+    //======================================================================
+    // Section 1: AutomOtion Position
+    //======================================================================
+    {
+        auto& sec = page.sections[1];
+        sec.sectionName   = LOC ("streamDeck.inputs.sections.automOtionPosition");
+        sec.sectionColour = juce::Colour (0xFF26A69A);
+
+        const auto teal = juce::Colour (0xFF26A69A);
+
+        // Button 0: Absolute/Relative toggle
+        {
+            auto& btn = sec.buttons[0];
+            btn.label  = LOC ("streamDeck.inputs.buttons.absRel");
+            btn.colour = offGrey;
+            btn.activeColour = teal;
+            btn.type   = ButtonBinding::Toggle;
+
+            btn.getState = [&state, ch]()
+            {
+                return static_cast<int> (state.getInputParameter (ch, inputOtomoAbsoluteRelative)) != 0;
+            };
+            btn.onPress = [&state, ch]()
+            {
+                int cur = static_cast<int> (state.getInputParameter (ch, inputOtomoAbsoluteRelative));
+                state.setInputParameter (ch, inputOtomoAbsoluteRelative, cur != 0 ? 0 : 1);
+            };
+        }
+
+        // Button 1: Stay/Return toggle
+        {
+            auto& btn = sec.buttons[1];
+            btn.label  = LOC ("streamDeck.inputs.buttons.stayReturn");
+            btn.colour = offGrey;
+            btn.activeColour = teal;
+            btn.type   = ButtonBinding::Toggle;
+
+            btn.getState = [&state, ch]()
+            {
+                return static_cast<int> (state.getInputParameter (ch, inputOtomoStayReturn)) != 0;
+            };
+            btn.onPress = [&state, ch]()
+            {
+                int cur = static_cast<int> (state.getInputParameter (ch, inputOtomoStayReturn));
+                state.setInputParameter (ch, inputOtomoStayReturn, cur != 0 ? 0 : 1);
+            };
+        }
+
+        // Buttons 2-3: unused
+
+        // --- Dials 0-2: coordinate-dependent position ---
+        int coordMode = static_cast<int> (state.getInputParameter (ch, inputOtomoCoordinateMode));
+
+        // Dial 0: X / R(cyl) / R(sph)
+        {
+            const juce::Identifier pids[] = { inputOtomoX, inputOtomoR, inputOtomoRsph };
+            const float mins[] = { inputOtomoMin, inputOtomoRMin, inputOtomoRsphMin };
+            const float maxs[] = { inputOtomoMax, inputOtomoRMax, inputOtomoRsphMax };
+
+            DialBinding dial;
+            dial.type  = DialBinding::Float;
+            dial.minValue = mins[coordMode];
+            dial.maxValue = maxs[coordMode];
+            dial.step      = 0.5f;
+            dial.fineStep  = 0.1f;
+            dial.decimalPlaces = 2;
+            dial.paramUnit = LOC ("units.meters");
+
+            auto pid = pids[coordMode];
+            dial.getValue = [&state, ch, pid]() { return static_cast<float> (state.getInputParameter (ch, pid)); };
+            dial.setValue = [&state, ch, pid] (float v) { state.setInputParameter (ch, pid, v); };
+
+            dial.getDynamicName = [&state, ch]()
+            {
+                int m = static_cast<int> (state.getInputParameter (ch, inputOtomoCoordinateMode));
+                return (m != 0) ? juce::String ("Radius") : juce::String ("Dest X");
+            };
+            sec.dials[0] = std::move (dial);
+        }
+
+        // Dial 1: Y / Theta(cyl+sph)
+        {
+            const juce::Identifier pids[] = { inputOtomoY, inputOtomoTheta, inputOtomoTheta };
+            const float mins[] = { inputOtomoMin, inputOtomoThetaMin, inputOtomoThetaMin };
+            const float maxs[] = { inputOtomoMax, inputOtomoThetaMax, inputOtomoThetaMax };
+
+            DialBinding dial;
+            dial.type  = DialBinding::Float;
+            dial.minValue = mins[coordMode];
+            dial.maxValue = maxs[coordMode];
+            dial.step      = (coordMode == 0) ? 0.5f : 10.0f;
+            dial.fineStep  = (coordMode == 0) ? 0.1f : 1.0f;
+            dial.decimalPlaces = (coordMode == 0) ? 2 : 1;
+            dial.paramUnit = (coordMode == 0) ? LOC ("units.meters") : LOC ("units.degrees");
+
+            auto pid = pids[coordMode];
+            dial.getValue = [&state, ch, pid]() { return static_cast<float> (state.getInputParameter (ch, pid)); };
+            dial.setValue = [&state, ch, pid] (float v) { state.setInputParameter (ch, pid, v); };
+
+            dial.getDynamicName = [&state, ch]()
+            {
+                int m = static_cast<int> (state.getInputParameter (ch, inputOtomoCoordinateMode));
+                return (m != 0) ? juce::String ("Azimuth") : juce::String ("Dest Y");
+            };
+            sec.dials[1] = std::move (dial);
+        }
+
+        // Dial 2: Z(cart+cyl) / Phi(sph)
+        {
+            const juce::Identifier pids[] = { inputOtomoZ, inputOtomoZ, inputOtomoPhi };
+            const float mins[] = { inputOtomoMin, inputOtomoMin, inputOtomoPhiMin };
+            const float maxs[] = { inputOtomoMax, inputOtomoMax, inputOtomoPhiMax };
+
+            DialBinding dial;
+            dial.type  = DialBinding::Float;
+            dial.minValue = mins[coordMode];
+            dial.maxValue = maxs[coordMode];
+            dial.step      = (coordMode == 2) ? 10.0f : 0.5f;
+            dial.fineStep  = (coordMode == 2) ? 1.0f : 0.1f;
+            dial.decimalPlaces = (coordMode == 2) ? 1 : 2;
+            dial.paramUnit = (coordMode == 2) ? LOC ("units.degrees") : LOC ("units.meters");
+
+            auto pid = pids[coordMode];
+            dial.getValue = [&state, ch, pid]() { return static_cast<float> (state.getInputParameter (ch, pid)); };
+            dial.setValue = [&state, ch, pid] (float v) { state.setInputParameter (ch, pid, v); };
+
+            dial.getDynamicName = [&state, ch]()
+            {
+                int m = static_cast<int> (state.getInputParameter (ch, inputOtomoCoordinateMode));
+                return (m == 2) ? juce::String ("Elevation") : juce::String ("Dest Z");
+            };
+            sec.dials[2] = std::move (dial);
+        }
+
+        // Dial 3: unused
+    }
+
+    //======================================================================
+    // Section 2: AutomOtion (continued)
+    //======================================================================
+    {
+        auto& sec = page.sections[2];
+        sec.sectionName   = LOC ("streamDeck.inputs.sections.automOtionContinued");
+        sec.sectionColour = juce::Colour (0xFFD4A843);
+
+        // Button 3: Manual/Triggered toggle
+        sec.buttons[3] = makeToggleButton (
+            LOC ("streamDeck.inputs.buttons.manualTriggered"),
+            offGrey, juce::Colour (0xFFD4A843), state, ch, inputOtomoTrigger);
+
+        // Dial 0: Duration (exponential 0.1–3600 s)
+        sec.dials[0] = makeFloatDial (LOC ("streamDeck.inputs.dials.duration"),
+                                       LOC ("units.seconds"),
+                                       inputOtomoDurationMin, inputOtomoDurationMax,
+                                       0.02f, 0.005f, 1, true,
+                                       state, ch, inputOtomoDuration);
+
+        // Dial 1: Curve (-100 to 100 %)
+        sec.dials[1] = makeIntDial (LOC ("streamDeck.inputs.dials.curve"),
+                                     LOC ("units.percent"),
+                                     inputOtomoCurveMin, inputOtomoCurveMax,
+                                     2, 1, state, ch, inputOtomoCurve);
+
+        // Dial 2: Speed Profile (0–100 %)
+        sec.dials[2] = makeIntDial (LOC ("streamDeck.inputs.dials.speedProfile"),
+                                     LOC ("units.percent"),
+                                     inputOtomoSpeedProfileMin, inputOtomoSpeedProfileMax,
+                                     2, 1, state, ch, inputOtomoSpeedProfile);
+
+        // Dial 3: Trigger Threshold (primary) + Trigger Reset (altBinding on press)
+        sec.dials[3] = makeFloatDial (LOC ("streamDeck.inputs.dials.triggerThreshold"),
+                                       LOC ("units.decibels"),
+                                       inputOtomoThresholdMin, inputOtomoThresholdMax,
+                                       1.0f, 0.25f, 1, false,
+                                       state, ch, inputOtomoThreshold);
+
+        sec.dials[3].altBinding = std::make_unique<DialBinding> (
+            makeFloatDial (LOC ("streamDeck.inputs.dials.triggerReset"),
+                           LOC ("units.decibels"),
+                           inputOtomoResetMin, inputOtomoResetMax,
+                           1.0f, 0.25f, 1, false,
+                           state, ch, inputOtomoReset));
+    }
+
+    //======================================================================
+    // Section 3: AutomOtion Manual (transport controls)
+    //======================================================================
+    {
+        auto& sec = page.sections[3];
+        sec.sectionName   = LOC ("streamDeck.inputs.sections.automOtionManual");
+        sec.sectionColour = juce::Colour (0xFFE05555);
+
+        // Button 0: Play (Action — starts motion)
+        {
+            auto& btn = sec.buttons[0];
+            btn.label  = LOC ("streamDeck.inputs.buttons.play");
+            btn.colour = offGrey;
+            btn.type   = ButtonBinding::Action;
+            btn.onPress = [movCB, ch]() { if (movCB.startMotion) movCB.startMotion (ch); };
+        }
+
+        // Button 1: Pause/Resume (Toggle — reads inputOtomoPauseResume)
+        {
+            auto& btn = sec.buttons[1];
+            btn.label  = LOC ("streamDeck.inputs.buttons.pauseResume");
+            btn.colour = offGrey;
+            btn.activeColour = juce::Colour (0xFFD4A843);  // gold when paused
+            btn.type   = ButtonBinding::Toggle;
+
+            // State: true when PAUSED (param value 0 = paused, 1 = running)
+            btn.getState = [&state, ch]()
+            {
+                return static_cast<int> (state.getInputParameter (ch, inputOtomoPauseResume)) == 0;
+            };
+
+            btn.onPress = [&state, ch, movCB]()
+            {
+                int current = static_cast<int> (state.getInputParameter (ch, inputOtomoPauseResume));
+                if (current == 0)
+                {
+                    // Currently paused -> resume
+                    state.setInputParameter (ch, inputOtomoPauseResume, 1);
+                    if (movCB.resumeMotion) movCB.resumeMotion (ch);
+                }
+                else
+                {
+                    // Currently running -> pause
+                    state.setInputParameter (ch, inputOtomoPauseResume, 0);
+                    if (movCB.pauseMotion) movCB.pauseMotion (ch);
+                }
+            };
+        }
+
+        // Button 2: Stop (Action — stops motion for this channel)
+        {
+            auto& btn = sec.buttons[2];
+            btn.label  = LOC ("streamDeck.inputs.buttons.stop");
+            btn.colour = offGrey;
+            btn.type   = ButtonBinding::Action;
+            btn.onPress = [movCB, ch]() { if (movCB.stopMotion) movCB.stopMotion (ch); };
+        }
+
+        // Button 3: Stop All (Action — stops all motions globally)
+        {
+            auto& btn = sec.buttons[3];
+            btn.label  = LOC ("streamDeck.inputs.buttons.stopAll");
+            btn.colour = juce::Colour (0xFFE05555);  // red background always
+            btn.type   = ButtonBinding::Action;
+            btn.onPress = [movCB]() { if (movCB.stopAll) movCB.stopAll(); };
+        }
+
+        // No dials in this section
+    }
+
+    page.numSections = 4;
     page.activeSectionIndex = 0;
 
     return page;
@@ -629,17 +1028,21 @@ static constexpr int INPUTS_MAIN_TAB_INDEX = 4;
 
 /** Build the page for a given subtab and register it with the manager.
     Call this whenever the channel changes to rebind getValue/setValue callbacks.
-    @param flipMode  Shared state for Constraint/Flip toggle (subtab 0 only) */
+    @param flipMode     Shared state for Constraint/Flip toggle (subtab 0 only)
+    @param lfoSubMode   Shared state for LFO sub-mode selector (subtab 2 only)
+    @param movementCB   Transport callbacks for AutomOtion (subtab 2 only) */
 inline StreamDeckPage createPage (int subTabIndex,
                                    WFSValueTreeState& state,
                                    int channelIndex,
-                                   std::shared_ptr<bool> flipMode = nullptr)
+                                   std::shared_ptr<bool> flipMode = nullptr,
+                                   std::shared_ptr<int> lfoSubMode = nullptr,
+                                   MovementCallbacks movementCB = {})
 {
     switch (subTabIndex)
     {
         case 0:  return createInputParametersPage (state, channelIndex, flipMode);
         case 1:  return createLiveSourcePage (state, channelIndex);
-        case 2:  return createMovementsPage (state, channelIndex);
+        case 2:  return createMovementsPage (state, channelIndex, lfoSubMode, movementCB);
         case 3:  return createVisualisationPage (state, channelIndex);
         default: return StreamDeckPage ("Inputs > Unknown");
     }

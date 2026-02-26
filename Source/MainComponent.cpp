@@ -434,23 +434,31 @@ MainComponent::MainComponent()
     // Register Inputs tab pages with real parameter bindings
     {
         auto& vts = parameters.getValueTreeState();
-        auto flipModeState = std::make_shared<bool> (false);
+        auto flipModeState    = std::make_shared<bool> (false);
+        auto lfoSubModeState  = std::make_shared<int> (0);
+
+        InputsTabPages::MovementCallbacks movCB;
+        movCB.startMotion  = [this](int ch) { if (automOtionProcessor) automOtionProcessor->startClusterMotion (ch); };
+        movCB.stopMotion   = [this](int ch) { if (automOtionProcessor) automOtionProcessor->stopClusterMotion (ch); };
+        movCB.pauseMotion  = [this](int ch) { if (automOtionProcessor) automOtionProcessor->pauseClusterMotion (ch); };
+        movCB.resumeMotion = [this](int ch) { if (automOtionProcessor) automOtionProcessor->resumeClusterMotion (ch); };
+        movCB.stopAll      = [this]()       { if (automOtionProcessor) automOtionProcessor->stopAllMotion(); };
 
         for (int subTab = 0; subTab < 4; ++subTab)
         {
             streamDeckManager->registerPage (
                 InputsTabPages::INPUTS_MAIN_TAB_INDEX, subTab,
-                InputsTabPages::createPage (subTab, vts, 0, flipModeState));
+                InputsTabPages::createPage (subTab, vts, 0, flipModeState, lfoSubModeState, movCB));
         }
 
         // Set page rebuild callback for channel changes and binding swaps
-        streamDeckManager->onPageNeedsRebuild = [this, flipModeState](int mainTab, int subTab, int channel)
+        streamDeckManager->onPageNeedsRebuild = [this, flipModeState, lfoSubModeState, movCB](int mainTab, int subTab, int channel)
         {
             if (mainTab == InputsTabPages::INPUTS_MAIN_TAB_INDEX)
             {
                 auto& vts = parameters.getValueTreeState();
                 streamDeckManager->registerPage (mainTab, subTab,
-                    InputsTabPages::createPage (subTab, vts, channel - 1, flipModeState));
+                    InputsTabPages::createPage (subTab, vts, channel - 1, flipModeState, lfoSubModeState, movCB));
             }
         };
 

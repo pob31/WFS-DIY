@@ -19,6 +19,47 @@
 /** Describes how a rotary dial is bound to a parameter. */
 struct DialBinding
 {
+    DialBinding() = default;
+    ~DialBinding() = default;
+
+    // Move operations (default — unique_ptr is moveable)
+    DialBinding (DialBinding&&) = default;
+    DialBinding& operator= (DialBinding&&) = default;
+
+    // Deep-copy operations (unique_ptr requires explicit deep copy)
+    DialBinding (const DialBinding& other)
+        : paramName (other.paramName), paramUnit (other.paramUnit),
+          minValue (other.minValue), maxValue (other.maxValue),
+          step (other.step), fineStep (other.fineStep),
+          isExponential (other.isExponential), decimalPlaces (other.decimalPlaces),
+          type (other.type), comboOptions (other.comboOptions),
+          getValue (other.getValue), setValue (other.setValue),
+          getDynamicName (other.getDynamicName),
+          altBinding (other.altBinding ? std::make_unique<DialBinding> (*other.altBinding) : nullptr)
+    {}
+
+    DialBinding& operator= (const DialBinding& other)
+    {
+        if (this != &other)
+        {
+            paramName      = other.paramName;
+            paramUnit      = other.paramUnit;
+            minValue       = other.minValue;
+            maxValue       = other.maxValue;
+            step           = other.step;
+            fineStep       = other.fineStep;
+            isExponential  = other.isExponential;
+            decimalPlaces  = other.decimalPlaces;
+            type           = other.type;
+            comboOptions   = other.comboOptions;
+            getValue       = other.getValue;
+            setValue        = other.setValue;
+            getDynamicName = other.getDynamicName;
+            altBinding     = other.altBinding ? std::make_unique<DialBinding> (*other.altBinding) : nullptr;
+        }
+        return *this;
+    }
+
     /** Display name shown on LCD strip (should be localized). */
     juce::String paramName;
 
@@ -64,6 +105,11 @@ struct DialBinding
 
     /** Optional dynamic name callback (e.g., "Delay" vs "Latency" based on value). */
     std::function<juce::String()> getDynamicName;
+
+    /** Optional alternate binding used when dial is pressed while turning.
+        If set, dial-pressed rotation and LCD display use this binding instead of fine-step.
+        Useful for dual-mode dials (e.g., Threshold / Reset on a single encoder). */
+    std::unique_ptr<DialBinding> altBinding;
 
     /** Returns the display name, using the dynamic callback if set. */
     juce::String getDisplayName() const

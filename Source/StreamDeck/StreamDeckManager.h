@@ -277,14 +277,20 @@ private:
             return;
         }
 
-        // Normal mode: adjust parameter value (use fine step if dial is pressed)
+        // Alt-binding mode: if dial is pressed AND an altBinding exists, use it
+        const bool hasAlt = dialPressed[dialIndex] && binding.altBinding && binding.altBinding->isValid();
+        const DialBinding& active = hasAlt ? *binding.altBinding : binding;
+
+        // Use fine mode only when altBinding is NOT active (alt IS the alternate parameter)
+        bool useFine = dialPressed[dialIndex] && ! hasAlt;
+
         isUpdatingFromController = true;
-        float newVal = binding.applyStep (direction, dialPressed[dialIndex]);
-        binding.setValue (newVal);
+        float newVal = active.applyStep (direction, useFine);
+        active.setValue (newVal);
         isUpdatingFromController = false;
 
         // Update LCD display
-        auto img = renderer.renderLcdZone (binding);
+        auto img = renderer.renderLcdZone (active);
         device.setLcdZoneImage (dialIndex, img);
     }
 
@@ -330,12 +336,30 @@ private:
                 device.setLcdZoneImage (dialIndex, img);
             }
         }
+        else if (binding.altBinding && binding.altBinding->isValid())
+        {
+            // Show alternate binding on LCD when dial is pressed
+            auto img = renderer.renderLcdZone (*binding.altBinding);
+            device.setLcdZoneImage (dialIndex, img);
+        }
     }
 
     void handleDialReleased (int dialIndex)
     {
         if (dialIndex >= 0 && dialIndex < 4)
             dialPressed[dialIndex] = false;
+
+        // Restore primary binding LCD if an alt binding was showing
+        auto* page = getCurrentPage();
+        if (page != nullptr && dialIndex >= 0 && dialIndex < 4)
+        {
+            auto& binding = page->getActiveSection().dials[dialIndex];
+            if (binding.altBinding && binding.altBinding->isValid())
+            {
+                auto img = renderer.renderLcdZone (binding);
+                device.setLcdZoneImage (dialIndex, img);
+            }
+        }
     }
 
     void handleConnectionChanged (bool connected)
@@ -368,6 +392,10 @@ private:
         {
             if (comboModeActive && comboDialIndex == i)
                 continue;  // Don't overwrite combo mode display
+
+            // Don't overwrite alt-binding LCD display while dial is pressed
+            if (dialPressed[i] && section.dials[i].altBinding && section.dials[i].altBinding->isValid())
+                continue;
 
             if (section.dials[i].isValid())
             {

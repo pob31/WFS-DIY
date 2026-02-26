@@ -1496,7 +1496,11 @@
         "liveSourceBasics": "Live Source\nBasics",
         "liveSourceCompression": "Live Source\nCompress.",
         "hackoustics": "Hackoustics",
-        "hackousticsContinued": "Hackoustics\n(continued)"
+        "hackousticsContinued": "Hackoustics\n(continued)",
+        "lfo": "LFO",
+        "automOtionPosition": "AutomOtion\nPosition",
+        "automOtionContinued": "AutomOtion\n(cont.)",
+        "automOtionManual": "AutomOtion\nManual"
       },
       "buttons": {
         "minimalDelay": "Minimal\nDelay",
@@ -1516,7 +1520,18 @@
         "floorReflections": "Floor\nReflections",
         "lowCutFilter": "Low Cut\nFilter",
         "highShelfFilter": "High Shelf\nFilter",
-        "sendToReverb": "Send to\nReverb"
+        "sendToReverb": "Send to\nReverb",
+        "lfoAndJitter": "LFO &\nJitter",
+        "lfoX": "LFO X",
+        "lfoY": "LFO Y",
+        "lfoZ": "LFO Z",
+        "absRel": "Abs / Rel",
+        "stayReturn": "Stay /\nReturn",
+        "manualTriggered": "Manual /\nTriggered",
+        "play": "\u25b6",
+        "pauseResume": "\u23f8",
+        "stop": "\u23f9",
+        "stopAll": "Stop All"
       },
       "dials": {
         "attenuation": "Attenuation",
@@ -1545,7 +1560,20 @@
         "lowCutFrequency": "Low Cut\nFrequency",
         "highShelfFrequency": "High Shelf\nFrequency",
         "highShelfGain": "High Shelf\nGain",
-        "highShelfSlope": "High Shelf\nSlope"
+        "highShelfSlope": "High Shelf\nSlope",
+        "lfoPeriod": "Period",
+        "lfoPhase": "Phase",
+        "gyrophone": "Gyrophone",
+        "jitter": "Jitter",
+        "lfoShape": "Shape",
+        "lfoAmplitude": "Amplitude",
+        "lfoRate": "Rate",
+        "lfoAxisPhase": "Phase",
+        "duration": "Duration",
+        "curve": "Curve",
+        "speedProfile": "Speed\nProfile",
+        "triggerThreshold": "Threshold",
+        "triggerReset": "Reset"
       },
       "comboOptions": {
         "square": "square"
