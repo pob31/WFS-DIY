@@ -4366,7 +4366,7 @@ private:
         const int axisRowHeight = rowHeight * 2 + sliderHeight * 2 + ampRateSpacing;  // Fit amp/rate stack
         const int axisRowSpacing = scaled(16);  // Spacing between axis rows
         const int axisDial = scaled(40);
-        const int shapeWidth = scaled(75);
+        const int shapeWidth = scaled(113);
         const int phaseDialWidth = axisDial + 25;  // Wider to fit "Phase X:" label
 
         // Calculate uniform slider width: total width minus fixed elements, divided among 3 sliders
