@@ -455,9 +455,13 @@ void NetworkLogWindowContent::resized()
     // Filter toggles row
     int toggleHeight = sc(24);
     x = sc(8);
+    auto toggleFont = juce::Font(juce::FontOptions(juce::jmax(9.0f, 13.0f * us)));
     for (auto* toggle : filterToggles)
     {
-        int toggleWidth = toggle->getButtonText().length() * sc(8) + sc(24);
+        juce::GlyphArrangement glyphs;
+        glyphs.addLineOfText(toggleFont, toggle->getButtonText(), 0.0f, 0.0f);
+        int textWidth = static_cast<int>(std::ceil(glyphs.getBoundingBox(0, -1, false).getWidth()));
+        int toggleWidth = textWidth + sc(32); // checkbox + padding
         toggle->setBounds(x, y, toggleWidth, toggleHeight);
         x += toggleWidth + sc(4);
     }
