@@ -935,19 +935,21 @@ inline StreamDeckPage createMovementsPage (WFSValueTreeState& state,
         // Button 0: Play (Action — starts motion)
         {
             auto& btn = sec.buttons[0];
-            btn.label  = LOC ("streamDeck.inputs.buttons.play");
-            btn.colour = offGrey;
-            btn.type   = ButtonBinding::Action;
-            btn.onPress = [movCB, ch]() { if (movCB.startMotion) movCB.startMotion (ch); };
+            btn.label    = juce::String::charToString (0x25B6);  // ▶
+            btn.colour   = offGrey;
+            btn.fontSize = 70.0f;
+            btn.type     = ButtonBinding::Action;
+            btn.onPress  = [movCB, ch]() { if (movCB.startMotion) movCB.startMotion (ch); };
         }
 
         // Button 1: Pause/Resume (Toggle — reads inputOtomoPauseResume)
         {
             auto& btn = sec.buttons[1];
-            btn.label  = LOC ("streamDeck.inputs.buttons.pauseResume");
-            btn.colour = offGrey;
+            btn.label    = juce::String::charToString (0x275A) + juce::String::charToString (0x275A);  // ❚❚
+            btn.colour   = offGrey;
+            btn.fontSize = 70.0f;
             btn.activeColour = juce::Colour (0xFFD4A843);  // gold when paused
-            btn.type   = ButtonBinding::Toggle;
+            btn.type     = ButtonBinding::Toggle;
 
             // State: true when PAUSED (param value 0 = paused, 1 = running)
             btn.getState = [&state, ch]()
@@ -976,10 +978,11 @@ inline StreamDeckPage createMovementsPage (WFSValueTreeState& state,
         // Button 2: Stop (Action — stops motion for this channel)
         {
             auto& btn = sec.buttons[2];
-            btn.label  = LOC ("streamDeck.inputs.buttons.stop");
-            btn.colour = offGrey;
-            btn.type   = ButtonBinding::Action;
-            btn.onPress = [movCB, ch]() { if (movCB.stopMotion) movCB.stopMotion (ch); };
+            btn.label    = juce::String::charToString (0x25A0);  // ■
+            btn.colour   = offGrey;
+            btn.fontSize = 70.0f;
+            btn.type     = ButtonBinding::Action;
+            btn.onPress  = [movCB, ch]() { if (movCB.stopMotion) movCB.stopMotion (ch); };
         }
 
         // Button 3: Stop All (Action — stops all motions globally)

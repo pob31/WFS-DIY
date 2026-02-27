@@ -202,6 +202,7 @@ public:
     using AudioInterfaceCallback = std::function<void()>;
     using ConfigReloadedCallback = std::function<void()>;
     using StreamDeckCallback = std::function<void(bool enabled)>;
+    using BinauralCallback = std::function<void(bool enabled)>;
 
     SystemConfigTab(WfsParameters& params)
         : parameters(params)
@@ -1012,6 +1013,11 @@ public:
         onStreamDeckEnabledChanged = callback;
     }
 
+    void setBinauralCallback(BinauralCallback callback)
+    {
+        onBinauralChanged = callback;
+    }
+
     /** Grab focus when this tab becomes visible to prevent auto-focus on first TextEditor */
     void visibilityChanged() override
     {
@@ -1033,6 +1039,12 @@ public:
 
     /** Programmatically toggle binaural renderer on/off (for Stream Deck sync). */
     void requestToggleBinaural()         { toggleBinauralProcessing(); }
+
+    /** Start processing only if currently OFF (for Stream Deck start-only button). */
+    void requestStartProcessing()        { if (! processingEnabled) toggleProcessing(); }
+
+    /** Start binaural only if currently OFF (for Stream Deck start-only button). */
+    void requestStartBinaural()          { if (! parameters.getValueTreeState().getBinauralEnabled()) toggleBinauralProcessing(); }
 
     /** Programmatically open the audio interface window (for Stream Deck). */
     void requestOpenAudioInterfaceWindow()
@@ -1643,6 +1655,9 @@ private:
         binauralEnableButton.setButtonText(newState ? LOC("systemConfig.buttons.binauralOn")
                                                      : LOC("systemConfig.buttons.binauralOff"));
         updateBinauralControlsEnabledState();
+
+        if (onBinauralChanged)
+            onBinauralChanged(newState);
     }
 
     void toggleStreamDeck()
@@ -2444,6 +2459,7 @@ private:
     AudioInterfaceCallback onAudioInterfaceWindowRequested;
     ConfigReloadedCallback onConfigReloaded;
     StreamDeckCallback onStreamDeckEnabledChanged;
+    BinauralCallback onBinauralChanged;
 
     // Helper to notify MainComponent of any channel count change
     void notifyChannelCountChanged()

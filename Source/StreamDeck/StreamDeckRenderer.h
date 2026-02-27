@@ -143,7 +143,7 @@ public:
         if (displayLabel.isNotEmpty())
         {
             g.setColour (textColour);
-            g.setFont (juce::Font (buttonFontSize));
+            g.setFont (juce::Font (binding.fontSize > 0.0f ? binding.fontSize : buttonFontSize));
 
             juce::Rectangle<int> textArea (6, 6,
                                            StreamDeckDevice::BUTTON_IMAGE_WIDTH - 12,

@@ -235,6 +235,9 @@ MainComponent::MainComponent()
     // Set up callbacks from System Config tab
     systemConfigTab->setProcessingCallback([this](bool enabled) {
         handleProcessingChange(enabled);
+        // Refresh Stream Deck page so start button appears/disappears
+        if (streamDeckManager && streamDeckManager->getCurrentMainTab() == SystemConfigTabPages::SYSCONFIG_MAIN_TAB_INDEX)
+            streamDeckManager->refreshCurrentPage();
     });
 
     systemConfigTab->setChannelCountCallback([this](int inputs, int outputs, int reverbs) {
@@ -252,6 +255,12 @@ MainComponent::MainComponent()
     systemConfigTab->setStreamDeckCallback([this](bool enabled) {
         if (streamDeckManager)
             streamDeckManager->setEnabled(enabled);
+    });
+
+    systemConfigTab->setBinauralCallback([this](bool /*enabled*/) {
+        // Refresh Stream Deck page so start button appears/disappears
+        if (streamDeckManager && streamDeckManager->getCurrentMainTab() == SystemConfigTabPages::SYSCONFIG_MAIN_TAB_INDEX)
+            streamDeckManager->refreshCurrentPage();
     });
 
     // Set up callbacks for individual tab config reloads
@@ -520,18 +529,18 @@ MainComponent::MainComponent()
                 openAudioInterfaceWindow();
             });
         };
-        sysCB.toggleProcessing = [this]()
+        sysCB.startProcessing = [this]()
         {
             juce::MessageManager::callAsync ([this]()
             {
-                if (systemConfigTab) systemConfigTab->requestToggleProcessing();
+                if (systemConfigTab) systemConfigTab->requestStartProcessing();
             });
         };
-        sysCB.toggleBinaural = [this]()
+        sysCB.startBinaural = [this]()
         {
             juce::MessageManager::callAsync ([this]()
             {
-                if (systemConfigTab) systemConfigTab->requestToggleBinaural();
+                if (systemConfigTab) systemConfigTab->requestStartBinaural();
             });
         };
 

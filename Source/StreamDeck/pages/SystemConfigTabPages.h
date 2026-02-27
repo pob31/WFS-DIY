@@ -30,8 +30,8 @@ static constexpr int SYSCONFIG_MAIN_TAB_INDEX = 0;
 struct SysConfigCallbacks
 {
     std::function<void()> openAudioPatchWindow;
-    std::function<void()> toggleProcessing;
-    std::function<void()> toggleBinaural;
+    std::function<void()> startProcessing;   // start only — never stop from Stream Deck
+    std::function<void()> startBinaural;     // start only — never stop from Stream Deck
 };
 
 //==============================================================================
@@ -170,59 +170,45 @@ inline StreamDeckPage createSysConfigPage (WFSValueTreeState& state,
         }
 
         //------------------------------------------------------------------
-        // Button 1: Processing toggle (dynamic label)
+        // Button 1: Start Processing (only visible when OFF)
         //------------------------------------------------------------------
         {
-            auto& btn = sec.buttons[1];
-            btn.colour       = grey;
-            btn.activeColour = juce::Colour (0xFF2ECC71);
-            btn.type         = ButtonBinding::Toggle;
-
-            btn.getState = [&state]()
+            bool processingOn = static_cast<int> (NetworkTabPages::getConfigParam (state, runDSP)) != 0;
+            if (! processingOn)
             {
-                return static_cast<int> (NetworkTabPages::getConfigParam (state, runDSP)) != 0;
-            };
+                auto& btn = sec.buttons[1];
+                btn.label  = LOC ("streamDeck.systemConfig.buttons.processingOff");
+                btn.colour = grey;
+                btn.type   = ButtonBinding::Action;
+                btn.requestsPageRebuild = true;
 
-            btn.getDynamicLabel = [&state]()
-            {
-                bool isOn = static_cast<int> (NetworkTabPages::getConfigParam (state, runDSP)) != 0;
-                return isOn ? LOC ("streamDeck.systemConfig.buttons.processingOn")
-                            : LOC ("streamDeck.systemConfig.buttons.processingOff");
-            };
-
-            btn.onPress = [callbacks]()
-            {
-                if (callbacks.toggleProcessing)
-                    callbacks.toggleProcessing();
-            };
+                btn.onPress = [callbacks]()
+                {
+                    if (callbacks.startProcessing)
+                        callbacks.startProcessing();
+                };
+            }
         }
 
         //------------------------------------------------------------------
-        // Button 2: Binaural Renderer toggle (dynamic label)
+        // Button 2: Start Binaural Renderer (only visible when OFF)
         //------------------------------------------------------------------
         {
-            auto& btn = sec.buttons[2];
-            btn.colour       = grey;
-            btn.activeColour = juce::Colour (0xFF4A90D9);
-            btn.type         = ButtonBinding::Toggle;
-
-            btn.getState = [&state]()
+            bool binauralOn = state.getBinauralEnabled();
+            if (! binauralOn)
             {
-                return state.getBinauralEnabled();
-            };
+                auto& btn = sec.buttons[2];
+                btn.label  = LOC ("streamDeck.systemConfig.buttons.binauralOff");
+                btn.colour = grey;
+                btn.type   = ButtonBinding::Action;
+                btn.requestsPageRebuild = true;
 
-            btn.getDynamicLabel = [&state]()
-            {
-                bool isOn = state.getBinauralEnabled();
-                return isOn ? LOC ("streamDeck.systemConfig.buttons.binauralOn")
-                            : LOC ("streamDeck.systemConfig.buttons.binauralOff");
-            };
-
-            btn.onPress = [callbacks]()
-            {
-                if (callbacks.toggleBinaural)
-                    callbacks.toggleBinaural();
-            };
+                btn.onPress = [callbacks]()
+                {
+                    if (callbacks.startBinaural)
+                        callbacks.startBinaural();
+                };
+            }
         }
 
         //------------------------------------------------------------------

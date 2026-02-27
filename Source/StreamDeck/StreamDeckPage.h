@@ -227,6 +227,9 @@ struct ButtonBinding
         Use for toggles that change other bindings (e.g., attenuation law swap). */
     bool requestsPageRebuild = false;
 
+    /** Optional font size override. 0 = use renderer default (20pt). */
+    float fontSize = 0.0f;
+
     /** Optional dynamic label callback — replaces static label when set.
         Used for toggles that change their text based on state. */
     std::function<juce::String()> getDynamicLabel;
