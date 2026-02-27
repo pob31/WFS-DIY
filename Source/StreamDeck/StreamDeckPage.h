@@ -81,6 +81,9 @@ struct DialBinding
         Good for frequency, RT60, and other perceptually-scaled parameters. */
     bool isExponential = false;
 
+    /** If true, invert the rotation direction (clockwise decreases value). */
+    bool invertDirection = false;
+
     /** Number of decimal places for display formatting. */
     int decimalPlaces = 2;
 
@@ -163,12 +166,14 @@ struct DialBinding
         if (! isValid())
             return 0.0f;
 
+        int effectiveDir = invertDirection ? -direction : direction;
+
         float current = getValue();
         float activeStep = (fine && fineStep > 0.0f) ? fineStep : step;
 
         if (type == ComboBox)
         {
-            int index = juce::roundToInt (current) + direction;
+            int index = juce::roundToInt (current) + effectiveDir;
             index = juce::jlimit (0, comboOptions.size() - 1, index);
             return static_cast<float> (index);
         }
@@ -177,11 +182,11 @@ struct DialBinding
         {
             // Convert to normalized 0-1, step in linear space, convert back
             float normalized = std::log (current / minValue) / std::log (maxValue / minValue);
-            normalized = juce::jlimit (0.0f, 1.0f, normalized + activeStep * direction);
+            normalized = juce::jlimit (0.0f, 1.0f, normalized + activeStep * effectiveDir);
             return minValue * std::pow (maxValue / minValue, normalized);
         }
 
-        float newVal = current + activeStep * direction;
+        float newVal = current + activeStep * effectiveDir;
         return juce::jlimit (minValue, maxValue, newVal);
     }
 };
@@ -287,6 +292,11 @@ public:
         -1 = no subtab change, >= 0 = target subtab index.
         Only effective when topRowNavigateToTab[i] >= 0. */
     int topRowNavigateToSubTab[4] = { -1, -1, -1, -1 };
+
+    /** Top-row button overrides: also select an item (channel) after switching tab.
+        -1 = no item selection, >= 0 = 0-based item index.
+        Only effective when topRowNavigateToTab[i] >= 0. */
+    int topRowNavigateToItem[4] = { -1, -1, -1, -1 };
 
     /** Custom label for navigation buttons (used when topRowNavigateToTab >= 0). */
     juce::String topRowOverrideLabel[4];

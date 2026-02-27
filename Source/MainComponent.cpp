@@ -7,6 +7,7 @@
 #include "StreamDeck/pages/NetworkTabPages.h"
 #include "StreamDeck/pages/OutputsTabPages.h"
 #include "StreamDeck/pages/SystemConfigTabPages.h"
+#include "StreamDeck/pages/MapTabPages.h"
 
 //==============================================================================
 MainComponent::MainComponent()
@@ -539,8 +540,76 @@ MainComponent::MainComponent()
             SystemConfigTabPages::SYSCONFIG_MAIN_TAB_INDEX, 0,
             SystemConfigTabPages::createPage (0, vts, sysCB));
 
+        // Map tab callbacks and state queries
+        auto mapPosOffsetMode = std::make_shared<bool> (false);
+
+        MapTabPages::MapCallbacks mapCB;
+        mapCB.toggleLevelOverlay = [this]()
+        {
+            juce::MessageManager::callAsync ([this]() { if (mapTab) mapTab->toggleLevelOverlay(); });
+        };
+        mapCB.fitStageToScreen = [this]()
+        {
+            juce::MessageManager::callAsync ([this]() { if (mapTab) mapTab->requestResetView(); });
+        };
+        mapCB.fitAllInputsToScreen = [this]()
+        {
+            juce::MessageManager::callAsync ([this]() { if (mapTab) mapTab->requestFitAllInputsToScreen(); });
+        };
+        mapCB.selectInput = [this](int idx)
+        {
+            juce::MessageManager::callAsync ([this, idx]() { if (mapTab) mapTab->selectInputProgrammatically (idx); });
+        };
+        mapCB.selectCluster = [this](int num)
+        {
+            juce::MessageManager::callAsync ([this, num]() { if (mapTab) mapTab->selectClusterProgrammatically (num); });
+        };
+        mapCB.moveClusterRef = [this](int c, float x, float y)
+        {
+            juce::MessageManager::callAsync ([this, c, x, y]() { if (mapTab) mapTab->moveClusterRefFromStreamDeck (c, x, y); });
+        };
+        mapCB.scaleCluster = [this](int c, float s)
+        {
+            juce::MessageManager::callAsync ([this, c, s]() { if (mapTab) mapTab->scaleClusterFromStreamDeck (c, s); });
+        };
+        mapCB.rotateCluster = [this](int c, float a)
+        {
+            juce::MessageManager::callAsync ([this, c, a]() { if (mapTab) mapTab->rotateClusterFromStreamDeck (c, a); });
+        };
+        mapCB.repaintMap = [this]()
+        {
+            juce::MessageManager::callAsync ([this]() { if (mapTab) mapTab->repaint(); });
+        };
+        mapCB.deselectAll = [this]()
+        {
+            juce::MessageManager::callAsync ([this]() { if (mapTab) mapTab->deselectAllProgrammatically(); });
+        };
+
+        MapTabPages::MapStateQueries mapQ;
+        mapQ.getSelectedInput       = [this]() { return mapTab ? mapTab->getSelectedInput() : -1; };
+        mapQ.getSelectedCluster     = [this]() { return mapTab ? mapTab->getSelectedBarycenter() : -1; };
+        mapQ.isDragging             = [this]() { return mapTab ? mapTab->getIsDragging() : false; };
+        mapQ.getNumInputs           = [this]() { return parameters.getNumInputChannels(); };
+        mapQ.getLevelOverlayEnabled = [this]() { return mapTab ? mapTab->getLevelOverlayEnabled() : false; };
+        mapQ.getClusterRefPosition  = [this](int c)
+        {
+            return mapTab ? mapTab->getClusterRefPosition (c) : juce::Point<float> (0.0f, 0.0f);
+        };
+
+        // Register Map tab page
+        streamDeckManager->registerPage (
+            MapTabPages::MAP_MAIN_TAB_INDEX, 0,
+            MapTabPages::createPage (0, vts, mapCB, mapQ, mapPosOffsetMode));
+
+        // Wire map selection changes to rebuild Stream Deck page
+        mapTab->setMapSelectionChangedCallback ([this]()
+        {
+            if (streamDeckManager && streamDeckManager->getCurrentMainTab() == MapTabPages::MAP_MAIN_TAB_INDEX)
+                streamDeckManager->refreshCurrentPage();
+        });
+
         // Set page rebuild callback for channel changes and binding swaps
-        streamDeckManager->onPageNeedsRebuild = [this, flipModeState, lfoSubModeState, movCB, outputEqBandState, onEqBandSelectedGui, netCB, sysCB](int mainTab, int subTab, int channel)
+        streamDeckManager->onPageNeedsRebuild = [this, flipModeState, lfoSubModeState, movCB, outputEqBandState, onEqBandSelectedGui, netCB, sysCB, mapCB, mapQ, mapPosOffsetMode](int mainTab, int subTab, int channel)
         {
             if (mainTab == InputsTabPages::INPUTS_MAIN_TAB_INDEX)
             {
@@ -566,6 +635,12 @@ MainComponent::MainComponent()
                 streamDeckManager->registerPage (mainTab, subTab,
                     SystemConfigTabPages::createPage (subTab, vts, sysCB));
             }
+            else if (mainTab == MapTabPages::MAP_MAIN_TAB_INDEX)
+            {
+                auto& vts = parameters.getValueTreeState();
+                streamDeckManager->registerPage (mainTab, subTab,
+                    MapTabPages::createPage (subTab, vts, mapCB, mapQ, mapPosOffsetMode));
+            }
         };
 
         // Allow Stream Deck buttons to switch the main tab (e.g., → Map)
@@ -574,6 +649,22 @@ MainComponent::MainComponent()
             juce::MessageManager::callAsync ([this, tabIndex]()
             {
                 tabbedComponent.setCurrentTabIndex (tabIndex);
+            });
+        };
+
+        // Allow Stream Deck buttons to select an item (channel) after switching tab
+        streamDeckManager->onRequestItemSelect = [this](int tabIndex, int itemIndex)
+        {
+            juce::MessageManager::callAsync ([this, tabIndex, itemIndex]()
+            {
+                int channel = itemIndex + 1;  // Convert 0-based to 1-based
+                switch (tabIndex)
+                {
+                    case 4:  if (inputsTab)   inputsTab->selectChannel (channel);   break;
+                    case 2:  if (outputsTab)  outputsTab->selectChannel (channel);  break;
+                    case 3:  if (reverbTab)   reverbTab->selectChannel (channel);   break;
+                    default: break;
+                }
             });
         };
 

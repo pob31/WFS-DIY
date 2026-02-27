@@ -1,0 +1,622 @@
+#pragma once
+
+/**
+ * MapTabPages — Stream Deck+ page definitions for the Map tab.
+ *
+ * Creates a context-sensitive StreamDeckPage for the Map tab (tab index 6).
+ *
+ * Three modes based on current map selection:
+ *   1. No selection — ComboBox dials to browse/select inputs and clusters.
+ *   2. Input selected — Position/Offset X/Y/Z + Orientation dials.
+ *   3. Cluster selected — Ref position X/Y + relative Scale/Rotation dials.
+ *
+ * Top row: navigation buttons to Outputs, Reverb, Inputs.
+ *          Button 0 overridden with "Input N" or "Cluster N" when selected.
+ * Bottom row: Show Levels toggle, Position/Offset toggle, Fit Stage, Fit All Inputs.
+ * When dragging via touch, all dials are suppressed.
+ */
+
+#include "../StreamDeckPage.h"
+#include "../../Parameters/WFSValueTreeState.h"
+#include "../../Parameters/WFSParameterIDs.h"
+#include "../../Parameters/WFSParameterDefaults.h"
+#include "../../Parameters/WFSConstraints.h"
+#include "../../Localization/LocalizationManager.h"
+
+namespace MapTabPages
+{
+
+static constexpr int MAP_MAIN_TAB_INDEX = 6;
+
+//==============================================================================
+// Callbacks struct — actions that must go through the GUI
+//==============================================================================
+
+struct MapCallbacks
+{
+    std::function<void()>                    toggleLevelOverlay;
+    std::function<void()>                    fitStageToScreen;
+    std::function<void()>                    fitAllInputsToScreen;
+    std::function<void (int)>                selectInput;         // 0-based index
+    std::function<void (int)>                selectCluster;       // 1-based (1-10)
+    std::function<void (int, float, float)>  moveClusterRef;      // (cluster, x, y)
+    std::function<void (int, float)>         scaleCluster;        // (cluster, scaleFactor)
+    std::function<void (int, float)>         rotateCluster;       // (cluster, angleDeg)
+    std::function<void()>                    repaintMap;          // trigger map redraw after param change
+    std::function<void()>                    deselectAll;         // deselect input/cluster on map
+};
+
+//==============================================================================
+// State queries struct — read-only state from the GUI
+//==============================================================================
+
+struct MapStateQueries
+{
+    std::function<int()>                          getSelectedInput;        // -1 or 0-based
+    std::function<int()>                          getSelectedCluster;      // -1 or 1-10
+    std::function<bool()>                         isDragging;
+    std::function<int()>                          getNumInputs;
+    std::function<bool()>                         getLevelOverlayEnabled;
+    std::function<juce::Point<float> (int)>       getClusterRefPosition;   // cluster num → pos
+};
+
+//==============================================================================
+// Page factory
+//==============================================================================
+
+inline StreamDeckPage createMapPage (WFSValueTreeState& state,
+                                      const MapCallbacks& callbacks,
+                                      const MapStateQueries& queries,
+                                      std::shared_ptr<bool> posOffsetMode)
+{
+    using namespace WFSParameterIDs;
+    using namespace WFSParameterDefaults;
+
+    StreamDeckPage page ("Map");
+
+    const auto grey = juce::Colour (0xFF3A3A3A);
+
+    // Query current state
+    const int selInput   = queries.getSelectedInput   ? queries.getSelectedInput()   : -1;
+    const int selCluster = queries.getSelectedCluster ? queries.getSelectedCluster() : -1;
+    const bool dragging  = queries.isDragging         ? queries.isDragging()          : false;
+    const int numInputs  = queries.getNumInputs       ? queries.getNumInputs()        : 0;
+
+    //======================================================================
+    // Top row: navigation buttons
+    //======================================================================
+
+    // Button 0: → Outputs (tab 2) — always present
+    page.topRowNavigateToTab[0]     = 2;
+    page.topRowOverrideLabel[0]     = LOC ("tabs.outputs");
+    page.topRowOverrideColour[0]    = juce::Colour (0xFF4A90D9);
+
+    // Button 1: → Reverb (tab 3)
+    page.topRowNavigateToTab[1]     = 3;
+    page.topRowOverrideLabel[1]     = LOC ("tabs.reverb");
+    page.topRowOverrideColour[1]    = juce::Colour (0xFF9B6FC3);
+
+    // Button 2: → Inputs (tab 4) — show selected channel if any
+    page.topRowNavigateToTab[2]     = 4;
+    if (selInput >= 0)
+    {
+        page.topRowOverrideLabel[2]    = LOC ("tabs.inputs") + "\n(Ch " + juce::String (selInput + 1) + ")";
+        page.topRowNavigateToItem[2]   = selInput;
+    }
+    else
+        page.topRowOverrideLabel[2] = LOC ("tabs.inputs");
+    page.topRowOverrideColour[2]    = juce::Colour (0xFF26A69A);
+
+    // Button 3: Deselect when input/cluster selected, otherwise informational
+    if (selInput >= 0 || selCluster > 0)
+    {
+        auto& btn = page.topRowButtons[3];
+        if (selInput >= 0)
+            btn.label = LOC ("streamDeck.map.labels.inputN").replace ("%d", juce::String (selInput + 1)) + "\n" + LOC ("streamDeck.map.labels.deselect");
+        else
+            btn.label = LOC ("streamDeck.map.labels.clusterN").replace ("%d", juce::String (selCluster)) + "\n" + LOC ("streamDeck.map.labels.deselect");
+        btn.colour = juce::Colour (0xFF666666);
+        btn.type   = ButtonBinding::Action;
+        btn.onPress = [callbacks]() { if (callbacks.deselectAll) callbacks.deselectAll(); };
+    }
+
+    //======================================================================
+    // Single section: Map controls
+    //======================================================================
+    {
+        auto& sec = page.sections[0];
+        sec.sectionName   = LOC ("tabs.map");
+        sec.sectionColour = juce::Colour (0xFF7B68EE);
+
+        //------------------------------------------------------------------
+        // Button 0: Show Levels toggle (dynamic label)
+        //------------------------------------------------------------------
+        {
+            auto& btn = sec.buttons[0];
+            btn.colour       = grey;
+            btn.activeColour = juce::Colour (0xFF2ECC71);
+            btn.type         = ButtonBinding::Toggle;
+
+            btn.getState = [queries]()
+            {
+                return queries.getLevelOverlayEnabled ? queries.getLevelOverlayEnabled() : false;
+            };
+
+            btn.getDynamicLabel = [queries]()
+            {
+                bool isOn = queries.getLevelOverlayEnabled ? queries.getLevelOverlayEnabled() : false;
+                return isOn ? LOC ("streamDeck.map.buttons.showLevelsOn")
+                            : LOC ("streamDeck.map.buttons.showLevelsOff");
+            };
+
+            btn.onPress = [callbacks]()
+            {
+                if (callbacks.toggleLevelOverlay)
+                    callbacks.toggleLevelOverlay();
+            };
+        }
+
+        //------------------------------------------------------------------
+        // Button 1: Position / Offset toggle (dynamic label)
+        //------------------------------------------------------------------
+        {
+            auto& btn = sec.buttons[1];
+            btn.colour       = grey;
+            btn.activeColour = juce::Colour (0xFF4A90D9);
+            btn.type         = ButtonBinding::Toggle;
+            btn.requestsPageRebuild = true;
+
+            btn.getState = [posOffsetMode]()
+            {
+                return posOffsetMode ? *posOffsetMode : false;
+            };
+
+            btn.getDynamicLabel = [posOffsetMode]()
+            {
+                bool isOffset = posOffsetMode ? *posOffsetMode : false;
+                return isOffset ? LOC ("streamDeck.map.buttons.offsetMode")
+                                : LOC ("streamDeck.map.buttons.positionMode");
+            };
+
+            btn.onPress = [posOffsetMode]()
+            {
+                if (posOffsetMode)
+                    *posOffsetMode = ! *posOffsetMode;
+            };
+        }
+
+        //------------------------------------------------------------------
+        // Button 2: Fit All Inputs to Screen
+        //------------------------------------------------------------------
+        {
+            auto& btn = sec.buttons[2];
+            btn.label  = LOC ("streamDeck.map.buttons.fitAllInputs");
+            btn.colour = grey;
+            btn.type   = ButtonBinding::Action;
+
+            btn.onPress = [callbacks]()
+            {
+                if (callbacks.fitAllInputsToScreen)
+                    callbacks.fitAllInputsToScreen();
+            };
+        }
+
+        //------------------------------------------------------------------
+        // Button 3: Fit Stage to Screen
+        //------------------------------------------------------------------
+        {
+            auto& btn = sec.buttons[3];
+            btn.label  = LOC ("streamDeck.map.buttons.fitStage");
+            btn.colour = grey;
+            btn.type   = ButtonBinding::Action;
+
+            btn.onPress = [callbacks]()
+            {
+                if (callbacks.fitStageToScreen)
+                    callbacks.fitStageToScreen();
+            };
+        }
+
+        //==================================================================
+        // Dials — mode-dependent
+        //==================================================================
+
+        if (dragging)
+        {
+            // Dragging mode: all dials unbound (empty LCD zones)
+        }
+        else if (selInput >= 0)
+        {
+            //--------------------------------------------------------------
+            // Mode 2: Input selected — Position/Offset + Orientation
+            //--------------------------------------------------------------
+            const int ch = selInput;
+            const bool offsetMode = posOffsetMode ? *posOffsetMode : false;
+
+            auto bounds = WFSConstraints::getStageBounds (state);
+
+            if (offsetMode)
+            {
+                // Compute approximate offset display range from current position
+                float curPosX = static_cast<float> (state.getInputParameter (ch, inputPositionX));
+                float curPosY = static_cast<float> (state.getInputParameter (ch, inputPositionY));
+                float curPosZ = static_cast<float> (state.getInputParameter (ch, inputPositionZ));
+
+                // Dial 0: Offset X
+                {
+                    auto& d = sec.dials[0];
+                    d.paramName     = LOC ("streamDeck.map.dials.offsetX");
+                    d.paramUnit     = LOC ("units.meters");
+                    d.minValue      = bounds.minX - curPosX;
+                    d.maxValue      = bounds.maxX - curPosX;
+                    d.step          = 0.1f;
+                    d.fineStep      = 0.01f;
+                    d.decimalPlaces = 2;
+                    d.type          = DialBinding::Float;
+
+                    d.getValue = [&state, ch]()
+                    {
+                        return static_cast<float> (state.getInputParameter (ch, inputOffsetX));
+                    };
+                    d.setValue = [&state, ch, callbacks] (float v)
+                    {
+                        float offX = v;
+                        float offY = static_cast<float> (state.getInputParameter (ch, inputOffsetY));
+                        float offZ = static_cast<float> (state.getInputParameter (ch, inputOffsetZ));
+                        WFSConstraints::constrainOffset (state, ch, offX, offY, offZ);
+                        state.setInputParameter (ch, inputOffsetX, offX);
+                        state.setInputParameter (ch, inputOffsetY, offY);
+                        state.setInputParameter (ch, inputOffsetZ, offZ);
+                        if (callbacks.repaintMap) callbacks.repaintMap();
+                    };
+                }
+
+                // Dial 1: Offset Y
+                {
+                    auto& d = sec.dials[1];
+                    d.paramName     = LOC ("streamDeck.map.dials.offsetY");
+                    d.paramUnit     = LOC ("units.meters");
+                    d.minValue      = bounds.minY - curPosY;
+                    d.maxValue      = bounds.maxY - curPosY;
+                    d.step          = 0.1f;
+                    d.fineStep      = 0.01f;
+                    d.decimalPlaces = 2;
+                    d.type          = DialBinding::Float;
+
+                    d.getValue = [&state, ch]()
+                    {
+                        return static_cast<float> (state.getInputParameter (ch, inputOffsetY));
+                    };
+                    d.setValue = [&state, ch, callbacks] (float v)
+                    {
+                        float offX = static_cast<float> (state.getInputParameter (ch, inputOffsetX));
+                        float offY = v;
+                        float offZ = static_cast<float> (state.getInputParameter (ch, inputOffsetZ));
+                        WFSConstraints::constrainOffset (state, ch, offX, offY, offZ);
+                        state.setInputParameter (ch, inputOffsetX, offX);
+                        state.setInputParameter (ch, inputOffsetY, offY);
+                        state.setInputParameter (ch, inputOffsetZ, offZ);
+                        if (callbacks.repaintMap) callbacks.repaintMap();
+                    };
+                }
+
+                // Dial 2: Offset Z
+                {
+                    auto& d = sec.dials[2];
+                    d.paramName     = LOC ("streamDeck.map.dials.offsetZ");
+                    d.paramUnit     = LOC ("units.meters");
+                    d.minValue      = bounds.minZ - curPosZ;
+                    d.maxValue      = bounds.maxZ - curPosZ;
+                    d.step          = 0.1f;
+                    d.fineStep      = 0.01f;
+                    d.decimalPlaces = 2;
+                    d.type          = DialBinding::Float;
+
+                    d.getValue = [&state, ch]()
+                    {
+                        return static_cast<float> (state.getInputParameter (ch, inputOffsetZ));
+                    };
+                    d.setValue = [&state, ch, callbacks] (float v)
+                    {
+                        float offX = static_cast<float> (state.getInputParameter (ch, inputOffsetX));
+                        float offY = static_cast<float> (state.getInputParameter (ch, inputOffsetY));
+                        float offZ = v;
+                        WFSConstraints::constrainOffset (state, ch, offX, offY, offZ);
+                        state.setInputParameter (ch, inputOffsetX, offX);
+                        state.setInputParameter (ch, inputOffsetY, offY);
+                        state.setInputParameter (ch, inputOffsetZ, offZ);
+                        if (callbacks.repaintMap) callbacks.repaintMap();
+                    };
+                }
+            }
+            else
+            {
+                // Dial 0: Position X
+                {
+                    auto& d = sec.dials[0];
+                    d.paramName     = LOC ("streamDeck.map.dials.positionX");
+                    d.paramUnit     = LOC ("units.meters");
+                    d.minValue      = bounds.minX;
+                    d.maxValue      = bounds.maxX;
+                    d.step          = 0.1f;
+                    d.fineStep      = 0.01f;
+                    d.decimalPlaces = 2;
+                    d.type          = DialBinding::Float;
+
+                    d.getValue = [&state, ch]()
+                    {
+                        return static_cast<float> (state.getInputParameter (ch, inputPositionX));
+                    };
+                    d.setValue = [&state, ch, callbacks] (float v)
+                    {
+                        float x = v;
+                        float y = static_cast<float> (state.getInputParameter (ch, inputPositionY));
+                        float z = static_cast<float> (state.getInputParameter (ch, inputPositionZ));
+                        WFSConstraints::constrainPosition (state, ch, x, y, z);
+                        state.setInputParameter (ch, inputPositionX, x);
+                        state.setInputParameter (ch, inputPositionY, y);
+                        state.setInputParameter (ch, inputPositionZ, z);
+                        if (callbacks.repaintMap) callbacks.repaintMap();
+                    };
+                }
+
+                // Dial 1: Position Y
+                {
+                    auto& d = sec.dials[1];
+                    d.paramName     = LOC ("streamDeck.map.dials.positionY");
+                    d.paramUnit     = LOC ("units.meters");
+                    d.minValue      = bounds.minY;
+                    d.maxValue      = bounds.maxY;
+                    d.step          = 0.1f;
+                    d.fineStep      = 0.01f;
+                    d.decimalPlaces = 2;
+                    d.type          = DialBinding::Float;
+
+                    d.getValue = [&state, ch]()
+                    {
+                        return static_cast<float> (state.getInputParameter (ch, inputPositionY));
+                    };
+                    d.setValue = [&state, ch, callbacks] (float v)
+                    {
+                        float x = static_cast<float> (state.getInputParameter (ch, inputPositionX));
+                        float y = v;
+                        float z = static_cast<float> (state.getInputParameter (ch, inputPositionZ));
+                        WFSConstraints::constrainPosition (state, ch, x, y, z);
+                        state.setInputParameter (ch, inputPositionX, x);
+                        state.setInputParameter (ch, inputPositionY, y);
+                        state.setInputParameter (ch, inputPositionZ, z);
+                        if (callbacks.repaintMap) callbacks.repaintMap();
+                    };
+                }
+
+                // Dial 2: Position Z
+                {
+                    auto& d = sec.dials[2];
+                    d.paramName     = LOC ("streamDeck.map.dials.positionZ");
+                    d.paramUnit     = LOC ("units.meters");
+                    d.minValue      = bounds.minZ;
+                    d.maxValue      = bounds.maxZ;
+                    d.step          = 0.1f;
+                    d.fineStep      = 0.01f;
+                    d.decimalPlaces = 2;
+                    d.type          = DialBinding::Float;
+
+                    d.getValue = [&state, ch]()
+                    {
+                        return static_cast<float> (state.getInputParameter (ch, inputPositionZ));
+                    };
+                    d.setValue = [&state, ch, callbacks] (float v)
+                    {
+                        float x = static_cast<float> (state.getInputParameter (ch, inputPositionX));
+                        float y = static_cast<float> (state.getInputParameter (ch, inputPositionY));
+                        float z = v;
+                        WFSConstraints::constrainPosition (state, ch, x, y, z);
+                        state.setInputParameter (ch, inputPositionX, x);
+                        state.setInputParameter (ch, inputPositionY, y);
+                        state.setInputParameter (ch, inputPositionZ, z);
+                        if (callbacks.repaintMap) callbacks.repaintMap();
+                    };
+                }
+            }
+
+            // Dial 3: Orientation (always active in input-selected mode)
+            {
+                auto& d = sec.dials[3];
+                d.paramName        = LOC ("streamDeck.map.dials.orientation");
+                d.paramUnit        = LOC ("units.degrees");
+                d.minValue         = static_cast<float> (inputRotationMin);
+                d.maxValue         = static_cast<float> (inputRotationMax);
+                d.step             = 5.0f;
+                d.fineStep         = 1.0f;
+                d.decimalPlaces    = 0;
+                d.type             = DialBinding::Int;
+                d.invertDirection  = true;
+
+                d.getValue = [&state, ch]()
+                {
+                    return static_cast<float> (static_cast<int> (state.getInputParameter (ch, inputRotation)));
+                };
+                d.setValue = [&state, ch, callbacks] (float v)
+                {
+                    state.setInputParameter (ch, inputRotation, juce::roundToInt (v));
+                    if (callbacks.repaintMap) callbacks.repaintMap();
+                };
+            }
+        }
+        else if (selCluster > 0)
+        {
+            //--------------------------------------------------------------
+            // Mode 3: Cluster selected — Ref position + Scale/Rotation
+            //--------------------------------------------------------------
+            const int cluster = selCluster;
+            auto clusterBounds = WFSConstraints::getStageBounds (state);
+
+            // Dial 0: Cluster Ref X
+            {
+                auto& d = sec.dials[0];
+                d.paramName     = LOC ("streamDeck.map.dials.clusterRefX");
+                d.paramUnit     = LOC ("units.meters");
+                d.minValue      = clusterBounds.minX;
+                d.maxValue      = clusterBounds.maxX;
+                d.step          = 0.1f;
+                d.fineStep      = 0.01f;
+                d.decimalPlaces = 2;
+                d.type          = DialBinding::Float;
+
+                d.getValue = [queries, cluster]()
+                {
+                    return queries.getClusterRefPosition
+                         ? queries.getClusterRefPosition (cluster).x
+                         : 0.0f;
+                };
+                d.setValue = [callbacks, queries, cluster] (float x)
+                {
+                    float currentY = queries.getClusterRefPosition
+                                   ? queries.getClusterRefPosition (cluster).y
+                                   : 0.0f;
+                    if (callbacks.moveClusterRef)
+                        callbacks.moveClusterRef (cluster, x, currentY);
+                };
+            }
+
+            // Dial 1: Cluster Ref Y
+            {
+                auto& d = sec.dials[1];
+                d.paramName     = LOC ("streamDeck.map.dials.clusterRefY");
+                d.paramUnit     = LOC ("units.meters");
+                d.minValue      = clusterBounds.minY;
+                d.maxValue      = clusterBounds.maxY;
+                d.step          = 0.1f;
+                d.fineStep      = 0.01f;
+                d.decimalPlaces = 2;
+                d.type          = DialBinding::Float;
+
+                d.getValue = [queries, cluster]()
+                {
+                    return queries.getClusterRefPosition
+                         ? queries.getClusterRefPosition (cluster).y
+                         : 0.0f;
+                };
+                d.setValue = [callbacks, queries, cluster] (float y)
+                {
+                    float currentX = queries.getClusterRefPosition
+                                   ? queries.getClusterRefPosition (cluster).x
+                                   : 0.0f;
+                    if (callbacks.moveClusterRef)
+                        callbacks.moveClusterRef (cluster, currentX, y);
+                };
+            }
+
+            // Dial 2: Cluster Scale (relative — getValue always returns 1.0)
+            {
+                auto& d = sec.dials[2];
+                d.paramName     = LOC ("streamDeck.map.dials.clusterScale");
+                d.paramUnit     = juce::CharPointer_UTF8 ("\xc3\x97");  // "×"
+                d.minValue      = 0.5f;
+                d.maxValue      = 2.0f;
+                d.step          = 0.05f;
+                d.fineStep      = 0.01f;
+                d.decimalPlaces = 2;
+                d.type          = DialBinding::Float;
+
+                d.getValue = []() { return 1.0f; };
+                d.setValue = [callbacks, cluster] (float v)
+                {
+                    if (callbacks.scaleCluster)
+                        callbacks.scaleCluster (cluster, v);
+                };
+            }
+
+            // Dial 3: Cluster Rotation (relative — getValue always returns 0)
+            {
+                auto& d = sec.dials[3];
+                d.paramName     = LOC ("streamDeck.map.dials.clusterRotation");
+                d.paramUnit     = LOC ("units.degrees");
+                d.minValue      = -180.0f;
+                d.maxValue      = 180.0f;
+                d.step          = 5.0f;
+                d.fineStep      = 1.0f;
+                d.decimalPlaces = 0;
+                d.type          = DialBinding::Float;
+
+                d.getValue = []() { return 0.0f; };
+                d.setValue = [callbacks, cluster] (float v)
+                {
+                    if (callbacks.rotateCluster)
+                        callbacks.rotateCluster (cluster, v);
+                };
+            }
+        }
+        else
+        {
+            //--------------------------------------------------------------
+            // Mode 1: No selection — Input/Cluster selectors
+            //--------------------------------------------------------------
+
+            // Dial 0: Input selector (ComboBox)
+            {
+                auto& d = sec.dials[0];
+                d.paramName = LOC ("streamDeck.map.dials.selectInput");
+                d.type      = DialBinding::ComboBox;
+
+                for (int i = 0; i < numInputs; ++i)
+                {
+                    float px = static_cast<float> (state.getInputParameter (i, inputPositionX));
+                    float py = static_cast<float> (state.getInputParameter (i, inputPositionY));
+                    d.comboOptions.add ("Input " + juce::String (i + 1)
+                                        + " (" + juce::String (px, 1)
+                                        + ", " + juce::String (py, 1) + ")");
+                }
+
+                d.getValue = []() { return 0.0f; };
+                d.setValue = [callbacks] (float v)
+                {
+                    int idx = juce::roundToInt (v);
+                    if (callbacks.selectInput)
+                        callbacks.selectInput (idx);
+                };
+            }
+
+            // Dial 1: Cluster selector (ComboBox)
+            {
+                auto& d = sec.dials[1];
+                d.paramName = LOC ("streamDeck.map.dials.selectCluster");
+                d.type      = DialBinding::ComboBox;
+
+                for (int c = 1; c <= 10; ++c)
+                    d.comboOptions.add ("Cluster " + juce::String (c));
+
+                d.getValue = []() { return 0.0f; };
+                d.setValue = [callbacks] (float v)
+                {
+                    int clusterNum = juce::roundToInt (v) + 1;  // combo index 0 → cluster 1
+                    if (callbacks.selectCluster)
+                        callbacks.selectCluster (clusterNum);
+                };
+            }
+
+            // Dials 2-3: unbound
+        }
+    }
+
+    page.numSections = 1;
+    page.activeSectionIndex = 0;
+
+    return page;
+}
+
+//==============================================================================
+// Factory
+//==============================================================================
+
+inline StreamDeckPage createPage (int subTabIndex,
+                                   WFSValueTreeState& state,
+                                   const MapCallbacks& callbacks,
+                                   const MapStateQueries& queries,
+                                   std::shared_ptr<bool> posOffsetMode)
+{
+    (void) subTabIndex;
+    return createMapPage (state, callbacks, queries, posOffsetMode);
+}
+
+} // namespace MapTabPages

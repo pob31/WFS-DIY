@@ -1458,6 +1458,36 @@
         "binauralDelay": "Binaural\nDelay"
       }
     },
+    "map": {
+      "buttons": {
+        "showLevelsOn": "Pegel:\nEIN",
+        "showLevelsOff": "Pegel:\nAUS",
+        "positionMode": "Modus:\nPosition",
+        "offsetMode": "Modus:\nOffset",
+        "fitStage": "Bühne\neinpassen",
+        "fitAllInputs": "Alle Inputs\neinpassen"
+      },
+      "dials": {
+        "selectInput": "Input\nwählen",
+        "selectCluster": "Cluster\nwählen",
+        "positionX": "Position\nX",
+        "positionY": "Position\nY",
+        "positionZ": "Position\nZ",
+        "offsetX": "Offset\nX",
+        "offsetY": "Offset\nY",
+        "offsetZ": "Offset\nZ",
+        "orientation": "Orientierung",
+        "clusterRefX": "Cluster\nRef X",
+        "clusterRefY": "Cluster\nRef Y",
+        "clusterScale": "Cluster\nSkalierung",
+        "clusterRotation": "Cluster\nRotation"
+      },
+      "labels": {
+        "inputN": "Input %d",
+        "clusterN": "Cluster %d",
+        "deselect": "Abwählen"
+      }
+    },
     "inputs": {
       "sections": {
         "attenuationAndDelay": "Attenuation\n& Delay",

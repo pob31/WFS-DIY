@@ -1458,6 +1458,36 @@
         "binauralDelay": "바이노럴\n딜레이"
       }
     },
+    "map": {
+      "buttons": {
+        "showLevelsOn": "레벨:\nON",
+        "showLevelsOff": "레벨:\nOFF",
+        "positionMode": "모드:\n위치",
+        "offsetMode": "모드:\n오프셋",
+        "fitStage": "무대에\n맞춤",
+        "fitAllInputs": "모든 입력\n맞춤"
+      },
+      "dials": {
+        "selectInput": "입력\n선택",
+        "selectCluster": "클러스터\n선택",
+        "positionX": "위치\nX",
+        "positionY": "위치\nY",
+        "positionZ": "위치\nZ",
+        "offsetX": "오프셋\nX",
+        "offsetY": "오프셋\nY",
+        "offsetZ": "오프셋\nZ",
+        "orientation": "방향",
+        "clusterRefX": "클러스터\n기준X",
+        "clusterRefY": "클러스터\n기준Y",
+        "clusterScale": "클러스터\n스케일",
+        "clusterRotation": "클러스터\n회전"
+      },
+      "labels": {
+        "inputN": "입력 %d",
+        "clusterN": "클러스터 %d",
+        "deselect": "선택 해제"
+      }
+    },
     "inputs": {
       "sections": {
         "attenuationAndDelay": "Attenuation\n& Delay",

@@ -140,6 +140,11 @@ public:
         Called after onRequestMainTabChange when topRowNavigateToSubTab >= 0. */
     std::function<void (int subTabIndex)> onRequestSubTabChange;
 
+    /** Callback for top-row navigation buttons that also select an item (channel).
+        Called after onRequestMainTabChange when topRowNavigateToItem >= 0.
+        The itemIndex is 0-based. */
+    std::function<void (int tabIndex, int itemIndex)> onRequestItemSelect;
+
     //==========================================================================
     // Direct Access
     //==========================================================================
@@ -149,6 +154,9 @@ public:
 
     /** Get the renderer for customization. */
     StreamDeckRenderer& getRenderer() { return renderer; }
+
+    /** Get the current main tab index. */
+    int getCurrentMainTab() const { return currentMainTab; }
 
     /** Get the currently active page (nullptr if none). */
     StreamDeckPage* getCurrentPage()
@@ -219,6 +227,8 @@ private:
                     onRequestMainTabChange (page->topRowNavigateToTab[buttonIndex]);
                 if (page->topRowNavigateToSubTab[buttonIndex] >= 0 && onRequestSubTabChange)
                     onRequestSubTabChange (page->topRowNavigateToSubTab[buttonIndex]);
+                if (page->topRowNavigateToItem[buttonIndex] >= 0 && onRequestItemSelect)
+                    onRequestItemSelect (page->topRowNavigateToTab[buttonIndex], page->topRowNavigateToItem[buttonIndex]);
                 return;
             }
 
@@ -301,6 +311,10 @@ private:
             device.setLcdZoneImage (dialIndex, img);
             return;
         }
+
+        // ComboBox dials only respond to rotation when in combo browse mode
+        if (binding.type == DialBinding::ComboBox)
+            return;
 
         // Alt-binding mode: if dial is pressed AND an altBinding exists, use it
         const bool hasAlt = dialPressed[dialIndex] && binding.altBinding && binding.altBinding->isValid();

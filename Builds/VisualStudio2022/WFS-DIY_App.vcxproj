@@ -3104,6 +3104,7 @@
   <ItemGroup>
     <ClInclude Include="..\..\Source\Parameters\WFSParameterIDs.h"/>
     <ClInclude Include="..\..\Source\Parameters\WFSParameterDefaults.h"/>
+    <ClInclude Include="..\..\Source\Parameters\WFSConstraints.h"/>
     <ClInclude Include="..\..\Source\Parameters\WFSValueTreeState.h"/>
     <ClInclude Include="..\..\Source\Parameters\WFSFileManager.h"/>
     <ClInclude Include="..\..\Source\gui\ConfigTabComponent.h"/>
@@ -3150,6 +3151,7 @@
     <ClInclude Include="..\..\Source\StreamDeck\pages\NetworkTabPages.h"/>
     <ClInclude Include="..\..\Source\StreamDeck\pages\OutputsTabPages.h"/>
     <ClInclude Include="..\..\Source\StreamDeck\pages\SystemConfigTabPages.h"/>
+    <ClInclude Include="..\..\Source\StreamDeck\pages\MapTabPages.h"/>
     <ClInclude Include="..\..\Source\WFSAlgorithm.h"/>
     <ClInclude Include="..\..\Source\DSP\WFSCalculationEngine.h"/>
     <ClInclude Include="..\..\Source\DSP\WFSHighShelfFilter.h"/>

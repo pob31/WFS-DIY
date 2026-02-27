@@ -5,6 +5,7 @@
 #include "../WfsParameters.h"
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/WFSParameterDefaults.h"
+#include "../Parameters/WFSConstraints.h"
 #include "ColorUtilities.h"
 #include "ColorScheme.h"
 #include "WfsLookAndFeel.h"
@@ -91,6 +92,137 @@ public:
     /** Get the currently selected input on the map (-1 if none) */
     int getSelectedInput() const { return selectedInput; }
 
+    /** Get the currently selected cluster/barycenter on the map (-1 if none, 1-10 for cluster) */
+    int getSelectedBarycenter() const { return selectedBarycenter; }
+
+    /** Check if the user is currently dragging an input or barycenter (via touch/mouse) */
+    bool getIsDragging() const { return isDraggingInput || isDraggingBarycenter; }
+
+    /** Check if level overlay is enabled */
+    bool getLevelOverlayEnabled() const { return levelOverlayEnabled; }
+
+    //==========================================================================
+    // Stream Deck programmatic control
+    //==========================================================================
+
+    /** Programmatically select an input on the map (for Stream Deck). */
+    void selectInputProgrammatically (int inputIndex)
+    {
+        selectedInput = inputIndex;
+        selectedBarycenter = -1;
+        isDraggingInput = false;
+        isDraggingBarycenter = false;
+        repaint();
+        if (onMapSelectionChanged) onMapSelectionChanged();
+    }
+
+    /** Programmatically deselect everything on the map (for Stream Deck). */
+    void deselectAllProgrammatically()
+    {
+        selectedInput = -1;
+        selectedBarycenter = -1;
+        isDraggingInput = false;
+        isDraggingBarycenter = false;
+        repaint();
+        if (onMapSelectionChanged) onMapSelectionChanged();
+    }
+
+    /** Programmatically select a cluster/barycenter on the map (for Stream Deck). */
+    void selectClusterProgrammatically (int clusterNum)
+    {
+        selectedBarycenter = clusterNum;  // 1-10
+        selectedInput = -1;
+        isDraggingInput = false;
+        isDraggingBarycenter = false;
+        repaint();
+        if (onMapSelectionChanged) onMapSelectionChanged();
+    }
+
+    /** Programmatically toggle the level overlay (for Stream Deck). */
+    void toggleLevelOverlay()
+    {
+        levelOverlayEnabled = ! levelOverlayEnabled;
+        levelOverlayButton.setButtonText (levelOverlayEnabled
+            ? LOC ("map.buttons.hideLevels")
+            : LOC ("map.buttons.showLevels"));
+        if (onLevelOverlayChanged)
+            onLevelOverlayChanged (levelOverlayEnabled);
+        repaint();
+    }
+
+    /** Move cluster reference point (tracking-aware). For Stream Deck dials. */
+    void moveClusterRefFromStreamDeck (int clusterNum, float newX, float newY)
+    {
+        int refInput = getClusterReferenceInput (clusterNum);
+        if (refInput >= 0 && isInputFullyTracked (refInput))
+            moveClusterRelative (clusterNum, refInput, { newX, newY });
+        else if (refInput >= 0)
+            moveClusterWithReference (clusterNum, refInput, { newX, newY });
+        else
+        {
+            // Barycenter mode: move all members by delta from current barycenter
+            auto bary = getClusterBarycenter (clusterNum);
+            float dx = newX - bary.x;
+            float dy = newY - bary.y;
+            int n = parameters.getNumInputChannels();
+            for (int i = 0; i < n; ++i)
+            {
+                if (static_cast<int> (parameters.getInputParam (i, "inputCluster")) == clusterNum)
+                {
+                    float mx = static_cast<float> (parameters.getInputParam (i, "inputPositionX"));
+                    float my = static_cast<float> (parameters.getInputParam (i, "inputPositionY"));
+                    parameters.setInputParam (i, "inputPositionX", mx + dx);
+                    parameters.setInputParam (i, "inputPositionY", my + dy);
+                }
+            }
+        }
+        repaint();
+    }
+
+    /** Apply relative scale to cluster (for Stream Deck dial). */
+    void scaleClusterFromStreamDeck (int clusterNum, float scale)
+    {
+        applyClusterScale (clusterNum, scale, scale);
+        repaint();
+    }
+
+    /** Apply relative rotation to cluster (for Stream Deck dial). */
+    void rotateClusterFromStreamDeck (int clusterNum, float angleDeg)
+    {
+        applyClusterRotation (clusterNum, angleDeg);
+        repaint();
+    }
+
+    /** Get the effective reference position for a cluster. */
+    juce::Point<float> getClusterRefPosition (int clusterNum) const
+    {
+        int refInput = getClusterReferenceInput (clusterNum);
+        if (refInput >= 0)
+        {
+            float x = static_cast<float> (parameters.getInputParam (refInput, "inputPositionX"));
+            float y = static_cast<float> (parameters.getInputParam (refInput, "inputPositionY"));
+            if (isInputFullyTracked (refInput))
+            {
+                x += static_cast<float> (parameters.getInputParam (refInput, "inputOffsetX"));
+                y += static_cast<float> (parameters.getInputParam (refInput, "inputOffsetY"));
+            }
+            return { x, y };
+        }
+        return getClusterBarycenter (clusterNum);
+    }
+
+    /** Reset the map view to show the entire stage (for Stream Deck). */
+    void requestResetView() { resetView(); repaint(); }
+
+    /** Fit all inputs to the screen (for Stream Deck). */
+    void requestFitAllInputsToScreen() { fitAllInputsToScreen(); repaint(); }
+
+    /** Set callback for map selection changes (for Stream Deck rebuild). */
+    void setMapSelectionChangedCallback (std::function<void()> callback)
+    {
+        onMapSelectionChanged = std::move (callback);
+    }
+
     void mouseEnter(const juce::MouseEvent& event) override
     {
         if (statusBar == nullptr) return;
@@ -162,6 +294,7 @@ public:
         {
             // Clear mouse selection when using touch
             selectedInput = -1;
+            if (onMapSelectionChanged) onMapSelectionChanged();
 
             TouchInfo touch;
             touch.startPos = e.position;
@@ -394,6 +527,7 @@ public:
                 if (onDragStartCallback)
                     onDragStartCallback(hitInput);
 
+                if (onMapSelectionChanged) onMapSelectionChanged();
                 repaint();
                 return;
             }
@@ -428,6 +562,7 @@ public:
                 if (onDragStartCallback)
                     onDragStartCallback(hitRefInput);
 
+                if (onMapSelectionChanged) onMapSelectionChanged();
                 repaint();
                 return;
             }
@@ -452,6 +587,7 @@ public:
                 longPressState.startPos = e.position;
                 longPressState.startTime = juce::Time::getCurrentTime();
 
+                if (onMapSelectionChanged) onMapSelectionChanged();
                 repaint();
                 return;
             }
@@ -491,6 +627,7 @@ public:
             gestureMode = GestureMode::None;
             longPressState.active = false;
             startTimer(50);
+            if (onMapSelectionChanged) onMapSelectionChanged();
             repaint();
         }
     }
@@ -568,49 +705,12 @@ public:
         {
             auto stagePos = screenToStage(e.position);
 
-            // Check constraint parameters - only clamp if constraint is enabled
-            // Note: screenToStage returns origin-relative coordinates (matching InputsTab/ClustersTab)
-            int coordMode = static_cast<int>(parameters.getInputParam(selectedInput, "inputCoordinateMode"));
-            int constraintX = static_cast<int>(parameters.getInputParam(selectedInput, "inputConstraintX"));
-            int constraintY = static_cast<int>(parameters.getInputParam(selectedInput, "inputConstraintY"));
-
-            // Apply X/Y constraints only in Cartesian mode
-            if (coordMode == 0)
+            // Apply position constraints (shared utility reads constraint flags from parameters)
             {
-                if (constraintX != 0)
-                    stagePos.x = juce::jlimit(getStageMinX(), getStageMaxX(), stagePos.x);
-                if (constraintY != 0)
-                    stagePos.y = juce::jlimit(getStageMinY(), getStageMaxY(), stagePos.y);
-            }
-            else
-            {
-                // Cylindrical/Spherical: apply distance constraint if enabled
-                int constraintDist = static_cast<int>(parameters.getInputParam(selectedInput, "inputConstraintDistance"));
-                if (constraintDist != 0)
-                {
-                    float minDist = static_cast<float>(parameters.getInputParam(selectedInput, "inputConstraintDistanceMin"));
-                    float maxDist = static_cast<float>(parameters.getInputParam(selectedInput, "inputConstraintDistanceMax"));
-                    float z = static_cast<float>(parameters.getInputParam(selectedInput, "inputPositionZ"));
-
-                    // Calculate distance based on coordinate mode
-                    float currentDist;
-                    if (coordMode == 1)  // Cylindrical: XY-plane distance
-                        currentDist = std::sqrt(stagePos.x * stagePos.x + stagePos.y * stagePos.y);
-                    else  // Spherical: full 3D distance
-                        currentDist = std::sqrt(stagePos.x * stagePos.x + stagePos.y * stagePos.y + z * z);
-
-                    if (currentDist > 0.0001f)
-                    {
-                        float targetDist = juce::jlimit(minDist, maxDist, currentDist);
-                        if (!juce::approximatelyEqual(currentDist, targetDist))
-                        {
-                            float scale = targetDist / currentDist;
-                            stagePos.x *= scale;
-                            stagePos.y *= scale;
-                            // Note: Z not modified here since map is 2D
-                        }
-                    }
-                }
+                float z = static_cast<float>(parameters.getInputParam(selectedInput, "inputPositionZ"));
+                WFSConstraints::constrainPosition (parameters.getValueTreeState(), selectedInput,
+                                                    stagePos.x, stagePos.y, z);
+                // Note: Z may be modified by spherical distance constraint but not saved here (map is 2D)
             }
 
             // Determine drag behavior based on input state
@@ -781,6 +881,10 @@ public:
         isInViewGesture = false;
         gestureMode = GestureMode::None;
         stopTimer();
+
+        // Notify Stream Deck that drag ended — page can now show dials
+        if (onMapSelectionChanged)
+            onMapSelectionChanged();
 
         // Check for long-press navigation gesture
         if (longPressState.active)
@@ -1075,48 +1179,11 @@ public:
         int inputIdx = touch.targetIndex;
         auto stagePos = screenToStage(touch.currentPos);
 
-        // Check constraint parameters
-        // Note: screenToStage returns origin-relative coordinates (matching InputsTab/ClustersTab)
-        int coordMode = static_cast<int>(parameters.getInputParam(inputIdx, "inputCoordinateMode"));
-        int constraintX = static_cast<int>(parameters.getInputParam(inputIdx, "inputConstraintX"));
-        int constraintY = static_cast<int>(parameters.getInputParam(inputIdx, "inputConstraintY"));
-
-        // Apply X/Y constraints only in Cartesian mode
-        if (coordMode == 0)
+        // Apply position constraints (shared utility reads constraint flags from parameters)
         {
-            if (constraintX != 0)
-                stagePos.x = juce::jlimit(getStageMinX(), getStageMaxX(), stagePos.x);
-            if (constraintY != 0)
-                stagePos.y = juce::jlimit(getStageMinY(), getStageMaxY(), stagePos.y);
-        }
-        else
-        {
-            // Cylindrical/Spherical: apply distance constraint if enabled
-            int constraintDist = static_cast<int>(parameters.getInputParam(inputIdx, "inputConstraintDistance"));
-            if (constraintDist != 0)
-            {
-                float minDist = static_cast<float>(parameters.getInputParam(inputIdx, "inputConstraintDistanceMin"));
-                float maxDist = static_cast<float>(parameters.getInputParam(inputIdx, "inputConstraintDistanceMax"));
-                float z = static_cast<float>(parameters.getInputParam(inputIdx, "inputPositionZ"));
-
-                // Calculate distance based on coordinate mode
-                float currentDist;
-                if (coordMode == 1)  // Cylindrical: XY-plane distance
-                    currentDist = std::sqrt(stagePos.x * stagePos.x + stagePos.y * stagePos.y);
-                else  // Spherical: full 3D distance
-                    currentDist = std::sqrt(stagePos.x * stagePos.x + stagePos.y * stagePos.y + z * z);
-
-                if (currentDist > 0.0001f)
-                {
-                    float targetDist = juce::jlimit(minDist, maxDist, currentDist);
-                    if (!juce::approximatelyEqual(currentDist, targetDist))
-                    {
-                        float scale = targetDist / currentDist;
-                        stagePos.x *= scale;
-                        stagePos.y *= scale;
-                    }
-                }
-            }
+            float z = static_cast<float>(parameters.getInputParam(inputIdx, "inputPositionZ"));
+            WFSConstraints::constrainPosition (parameters.getValueTreeState(), inputIdx,
+                                                stagePos.x, stagePos.y, z);
         }
 
         // Determine drag behavior
@@ -1571,9 +1638,10 @@ public:
             float newPosX = refPos.x + relX * scaleX;
             float newPosY = refPos.y + relY * scaleY;
 
-            // Clamp to origin-relative stage bounds (matching InputsTab/ClustersTab)
-            newPosX = juce::jlimit(getStageMinX(), getStageMaxX(), newPosX);
-            newPosY = juce::jlimit(getStageMinY(), getStageMaxY(), newPosY);
+            // Clamp to stage bounds (shared utility)
+            auto scaleBounds = WFSConstraints::getStageBounds (parameters.getValueTreeState());
+            newPosX = juce::jlimit(scaleBounds.minX, scaleBounds.maxX, newPosX);
+            newPosY = juce::jlimit(scaleBounds.minY, scaleBounds.maxY, newPosY);
 
             parameters.setInputParam(i, "inputPositionX", newPosX);
             parameters.setInputParam(i, "inputPositionY", newPosY);
@@ -1627,9 +1695,10 @@ public:
             float newPosX = refPos.x + newRelX;
             float newPosY = refPos.y + newRelY;
 
-            // Clamp to origin-relative stage bounds (matching InputsTab/ClustersTab)
-            newPosX = juce::jlimit(getStageMinX(), getStageMaxX(), newPosX);
-            newPosY = juce::jlimit(getStageMinY(), getStageMaxY(), newPosY);
+            // Clamp to stage bounds (shared utility)
+            auto rotBounds = WFSConstraints::getStageBounds (parameters.getValueTreeState());
+            newPosX = juce::jlimit(rotBounds.minX, rotBounds.maxX, newPosX);
+            newPosY = juce::jlimit(rotBounds.minY, rotBounds.maxY, newPosY);
 
             parameters.setInputParam(i, "inputPositionX", newPosX);
             parameters.setInputParam(i, "inputPositionY", newPosY);
@@ -1802,6 +1871,9 @@ private:
 
     // Level overlay state
     bool levelOverlayEnabled = false;
+
+    // Map selection change callback (for Stream Deck rebuild)
+    std::function<void()> onMapSelectionChanged;
 
     // Level overlay callbacks
     std::function<void(bool)> onLevelOverlayChanged;
