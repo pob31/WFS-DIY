@@ -41,7 +41,10 @@ public:
     //==========================================================================
     struct LFOState
     {
-        float ramp = 0.0f;              // Main ramp 0→1
+        float ramp = 0.0f;              // Main ramp 0→1 (kept for gyrophone + progress UI)
+        float rampX = 0.0f;             // Independent X-axis ramp 0→1
+        float rampY = 0.0f;             // Independent Y-axis ramp 0→1
+        float rampZ = 0.0f;             // Independent Z-axis ramp 0→1
         float fadeLevel = 0.0f;         // 0→1 for 500ms fade in/out
         bool wasActive = false;         // Previous active state for fade detection
 
@@ -264,20 +267,30 @@ private:
         if (state.fadeLevel > 0.0f || isActive)
         {
             float rampIncrement = deltaTime / juce::jmax (0.01f, period);
-            state.ramp += rampIncrement;
 
-            // Handle main ramp wrap
+            // Main ramp kept for gyrophone + progress UI
+            state.ramp += rampIncrement;
             if (state.ramp >= 1.0f)
                 state.ramp = std::fmod (state.ramp, 1.0f);
 
-            // Calculate phase-adjusted ramps for each axis
+            // Independent per-axis ramps — each advances at its own rate
+            state.rampX += rampIncrement * rateX;
+            if (state.rampX >= 1.0f) state.rampX = std::fmod (state.rampX, 1.0f);
+
+            state.rampY += rampIncrement * rateY;
+            if (state.rampY >= 1.0f) state.rampY = std::fmod (state.rampY, 1.0f);
+
+            state.rampZ += rampIncrement * rateZ;
+            if (state.rampZ >= 1.0f) state.rampZ = std::fmod (state.rampZ, 1.0f);
+
+            // Phase-adjusted ramps for waveform generation
             float totalPhaseX = (globalPhase + phaseX) / 360.0f;
             float totalPhaseY = (globalPhase + phaseY) / 360.0f;
             float totalPhaseZ = (globalPhase + phaseZ) / 360.0f;
 
-            float rampX = std::fmod (state.ramp * rateX + totalPhaseX + 10.0f, 1.0f);
-            float rampY = std::fmod (state.ramp * rateY + totalPhaseY + 10.0f, 1.0f);
-            float rampZ = std::fmod (state.ramp * rateZ + totalPhaseZ + 10.0f, 1.0f);
+            float rampX = std::fmod (state.rampX + totalPhaseX + 10.0f, 1.0f);
+            float rampY = std::fmod (state.rampY + totalPhaseY + 10.0f, 1.0f);
+            float rampZ = std::fmod (state.rampZ + totalPhaseZ + 10.0f, 1.0f);
 
             // Generate new random targets when each axis's ramp wraps independently
             // Wrap detected when current ramp < previous ramp (went from ~1.0 back to ~0.0)
