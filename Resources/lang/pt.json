@@ -1578,6 +1578,11 @@ Gain",
         "lfoPhase": "Phase",
         "gyrophone": "Gyrophone",
         "jitter": "Jitter",
+        "lfoToggle": "LFO",
+        "lfoOn": "LFO
+ON",
+        "lfoOff": "LFO
+OFF",
         "lfoShape": "Shape",
         "lfoAmplitude": "Amplitude",
         "lfoRate": "Rate",

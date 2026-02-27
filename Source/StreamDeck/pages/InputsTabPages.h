@@ -617,9 +617,9 @@ inline StreamDeckPage createMovementsPage (WFSValueTreeState& state,
 
         int currentSubMode = lfoSubMode ? *lfoSubMode : 0;
 
-        // --- Bottom buttons: sub-mode selectors (LFO & Jitter / X / Y / Z) ---
+        // --- Bottom buttons: sub-mode selectors (LFO / X / Y / Z) ---
         const juce::String btnLocKeys[] = {
-            "streamDeck.inputs.buttons.lfoAndJitter",
+            "streamDeck.inputs.buttons.lfo",
             "streamDeck.inputs.buttons.lfoX",
             "streamDeck.inputs.buttons.lfoY",
             "streamDeck.inputs.buttons.lfoZ"
@@ -642,14 +642,40 @@ inline StreamDeckPage createMovementsPage (WFSValueTreeState& state,
         // --- Dials: depend on the active sub-mode ---
         if (currentSubMode == 0)
         {
-            // Sub-mode 0: LFO & Jitter — Period, Phase, Gyrophone, Jitter
-            sec.dials[0] = makeFloatDial (LOC ("streamDeck.inputs.dials.lfoPeriod"),
+            // Sub-mode 0: LFO — Toggle, Period, Phase, Gyrophone
+
+            // Dial 0: LFO On/Off toggle (press to toggle, value shows OFF/ON)
+            {
+                DialBinding d;
+                d.paramName = LOC ("streamDeck.inputs.dials.lfoToggle");
+                d.type      = DialBinding::ComboBox;
+                d.comboOptions = { "OFF", "ON" };
+                d.minValue  = 0.0f;
+                d.maxValue  = 1.0f;
+
+                d.getValue = [&state, ch]()
+                {
+                    return static_cast<float> (static_cast<int> (state.getInputParameter (ch, inputLFOactive)));
+                };
+                d.setValue = [&state, ch] (float v)
+                {
+                    state.setInputParameter (ch, inputLFOactive, juce::roundToInt (v));
+                };
+                d.onPress = [&state, ch]()
+                {
+                    int current = static_cast<int> (state.getInputParameter (ch, inputLFOactive));
+                    state.setInputParameter (ch, inputLFOactive, current != 0 ? 0 : 1);
+                };
+                sec.dials[0] = std::move (d);
+            }
+
+            sec.dials[1] = makeFloatDial (LOC ("streamDeck.inputs.dials.lfoPeriod"),
                                            LOC ("units.seconds"),
                                            inputLFOperiodMin, inputLFOperiodMax,
                                            0.02f, 0.005f, 2, true,
                                            state, ch, inputLFOperiod);
 
-            sec.dials[1] = makeIntDial (LOC ("streamDeck.inputs.dials.lfoPhase"),
+            sec.dials[2] = makeIntDial (LOC ("streamDeck.inputs.dials.lfoPhase"),
                                          LOC ("units.degrees"),
                                          inputLFOphaseMin, inputLFOphaseMax,
                                          5, 1, state, ch, inputLFOphase);
@@ -676,14 +702,8 @@ inline StreamDeckPage createMovementsPage (WFSValueTreeState& state,
                 {
                     state.setInputParameter (ch, inputLFOgyrophone, juce::roundToInt (v) - 1);
                 };
-                sec.dials[2] = std::move (gyroDial);
+                sec.dials[3] = std::move (gyroDial);
             }
-
-            sec.dials[3] = makeFloatDial (LOC ("streamDeck.inputs.dials.jitter"),
-                                           LOC ("units.meters"),
-                                           inputJitterMin, inputJitterMax,
-                                           0.1f, 0.02f, 2, false,
-                                           state, ch, inputJitter);
         }
         else
         {

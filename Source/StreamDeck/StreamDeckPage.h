@@ -114,6 +114,10 @@ struct DialBinding
         Useful for dual-mode dials (e.g., Threshold / Reset on a single encoder). */
     std::unique_ptr<DialBinding> altBinding;
 
+    /** Optional press callback — fired on dial click (e.g., toggle LFO on/off).
+        Takes priority over ComboBox browse and altBinding display. */
+    std::function<void()> onPress;
+
     /** Returns the display name, using the dynamic callback if set. */
     juce::String getDisplayName() const
     {

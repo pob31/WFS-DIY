@@ -349,7 +349,14 @@ private:
         if (! binding.isValid())
             return;
 
-        if (binding.type == DialBinding::ComboBox)
+        if (binding.onPress)
+        {
+            binding.onPress();
+            // Re-render LCD to reflect new state
+            auto img = renderer.renderLcdZone (binding);
+            device.setLcdZoneImage (dialIndex, img);
+        }
+        else if (binding.type == DialBinding::ComboBox)
         {
             if (comboModeActive && comboDialIndex == dialIndex)
             {
