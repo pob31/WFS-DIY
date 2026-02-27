@@ -1470,6 +1470,9 @@
       "dials": {
         "selectInput": "Seleccionar\nInput",
         "selectCluster": "Seleccionar\nCluster",
+        "panX": "Pan X",
+        "panY": "Pan Y",
+        "zoom": "Zoom",
         "positionX": "Posición\nX",
         "positionY": "Posición\nY",
         "positionZ": "Posición\nZ",

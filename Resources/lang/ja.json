@@ -1470,6 +1470,9 @@
       "dials": {
         "selectInput": "入力\n選択",
         "selectCluster": "クラスタ\n選択",
+        "panX": "Pan X",
+        "panY": "Pan Y",
+        "zoom": "Zoom",
         "positionX": "位置\nX",
         "positionY": "位置\nY",
         "positionZ": "位置\nZ",

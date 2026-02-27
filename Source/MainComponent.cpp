@@ -593,6 +593,12 @@ MainComponent::MainComponent()
         {
             juce::MessageManager::callAsync ([this]() { if (mapTab) mapTab->deselectAllProgrammatically(); });
         };
+        mapCB.getViewCenterX = [this]() { return mapTab ? mapTab->getViewCenterX() : 0.0f; };
+        mapCB.getViewCenterY = [this]() { return mapTab ? mapTab->getViewCenterY() : 0.0f; };
+        mapCB.setViewCenterX = [this] (float x) { juce::MessageManager::callAsync ([this, x]() { if (mapTab) mapTab->setViewCenterX (x); }); };
+        mapCB.setViewCenterY = [this] (float y) { juce::MessageManager::callAsync ([this, y]() { if (mapTab) mapTab->setViewCenterY (y); }); };
+        mapCB.getViewScale   = [this]() { return mapTab ? mapTab->getViewScale() : 30.0f; };
+        mapCB.setViewScale   = [this] (float s) { juce::MessageManager::callAsync ([this, s]() { if (mapTab) mapTab->setViewScale (s); }); };
 
         MapTabPages::MapStateQueries mapQ;
         mapQ.getSelectedInput       = [this]() { return mapTab ? mapTab->getSelectedInput() : -1; };

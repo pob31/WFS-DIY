@@ -44,6 +44,12 @@ struct MapCallbacks
     std::function<void (int, float)>         rotateCluster;       // (cluster, angleDeg)
     std::function<void()>                    repaintMap;          // trigger map redraw after param change
     std::function<void()>                    deselectAll;         // deselect input/cluster on map
+    std::function<float()>                   getViewCenterX;      // pan/zoom accessors
+    std::function<float()>                   getViewCenterY;
+    std::function<void (float)>              setViewCenterX;
+    std::function<void (float)>              setViewCenterY;
+    std::function<float()>                   getViewScale;
+    std::function<void (float)>              setViewScale;
 };
 
 //==============================================================================
@@ -595,7 +601,54 @@ inline StreamDeckPage createMapPage (WFSValueTreeState& state,
                 };
             }
 
-            // Dials 2-3: unbound
+            // Dial 2: Pan X (normal) / Pan Y (press+turn altBinding)
+            {
+                auto& d = sec.dials[2];
+                d.paramName     = LOC ("streamDeck.map.dials.panX");
+                d.paramUnit     = LOC ("units.meters");
+                d.minValue      = -100.0f;
+                d.maxValue      = 100.0f;
+                d.step          = 0.5f;
+                d.fineStep      = 0.0f;   // no fine — press+turn switches to Pan Y
+                d.invertDirection = true;  // clockwise = pan right (decrease center X)
+                d.decimalPlaces = 1;
+                d.type          = DialBinding::Float;
+
+                d.getValue = [callbacks]() { return callbacks.getViewCenterX ? callbacks.getViewCenterX() : 0.0f; };
+                d.setValue = [callbacks] (float v) { if (callbacks.setViewCenterX) callbacks.setViewCenterX (v); };
+
+                // Alt binding (press+turn): Pan Y
+                auto alt = std::make_unique<DialBinding>();
+                alt->paramName     = LOC ("streamDeck.map.dials.panY");
+                alt->paramUnit     = LOC ("units.meters");
+                alt->minValue      = -100.0f;
+                alt->maxValue      = 100.0f;
+                alt->step          = 0.5f;
+                alt->fineStep      = 0.0f;   // already in press+turn mode
+                alt->decimalPlaces = 1;
+                alt->type          = DialBinding::Float;
+
+                alt->getValue = [callbacks]() { return callbacks.getViewCenterY ? callbacks.getViewCenterY() : 0.0f; };
+                alt->setValue = [callbacks] (float v) { if (callbacks.setViewCenterY) callbacks.setViewCenterY (v); };
+
+                d.altBinding = std::move (alt);
+            }
+
+            // Dial 3: Zoom
+            {
+                auto& d = sec.dials[3];
+                d.paramName     = LOC ("streamDeck.map.dials.zoom");
+                d.paramUnit     = {};
+                d.minValue      = 5.0f;
+                d.maxValue      = 500.0f;
+                d.step          = 10.0f;
+                d.fineStep      = 2.0f;
+                d.decimalPlaces = 0;
+                d.type          = DialBinding::Float;
+
+                d.getValue = [callbacks]() { return callbacks.getViewScale ? callbacks.getViewScale() : 30.0f; };
+                d.setValue = [callbacks] (float v) { if (callbacks.setViewScale) callbacks.setViewScale (v); };
+            }
         }
     }
 

@@ -1793,6 +1793,17 @@ public:
         getOutputLevelDb = std::move(callback);
     }
 
+    //==========================================================================
+    // View accessors for Stream Deck+ pan/zoom
+    //==========================================================================
+
+    float getViewCenterX() const { return -viewOffset.x / viewScale; }
+    float getViewCenterY() const { return viewOffset.y / viewScale; }
+    void setViewCenterX (float x) { viewOffset.x = -x * viewScale; repaint(); }
+    void setViewCenterY (float y) { viewOffset.y = y * viewScale; repaint(); }
+    float getViewScale() const { return viewScale; }
+    void setViewScale (float s) { viewScale = juce::jlimit (5.0f, 500.0f, s); repaint(); }
+
 private:
     WfsParameters& parameters;
     juce::ValueTree inputsTree;
