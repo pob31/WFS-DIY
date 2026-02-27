@@ -21,6 +21,7 @@
 #include "../../Parameters/WFSParameterIDs.h"
 #include "../../Parameters/WFSParameterDefaults.h"
 #include "../../Parameters/WFSConstraints.h"
+#include "../../Helpers/CoordinateConverter.h"
 #include "../../Localization/LocalizationManager.h"
 
 namespace MapTabPages
@@ -243,183 +244,207 @@ inline StreamDeckPage createMapPage (WFSValueTreeState& state,
 
             if (offsetMode)
             {
-                // Compute approximate offset display range from current position
+                // Offset dials — adapt to input's coordinate mode
+                int coordModeVal = static_cast<int> (state.getInputParameter (ch, inputCoordinateMode));
+                auto coordMode = static_cast<WFSCoordinates::Mode> (coordModeVal);
+
                 float curPosX = static_cast<float> (state.getInputParameter (ch, inputPositionX));
                 float curPosY = static_cast<float> (state.getInputParameter (ch, inputPositionY));
                 float curPosZ = static_cast<float> (state.getInputParameter (ch, inputPositionZ));
 
-                // Dial 0: Offset X
-                {
-                    auto& d = sec.dials[0];
-                    d.paramName     = LOC ("streamDeck.map.dials.offsetX");
-                    d.paramUnit     = LOC ("units.meters");
-                    d.minValue      = bounds.minX - curPosX;
-                    d.maxValue      = bounds.maxX - curPosX;
-                    d.step          = 0.1f;
-                    d.fineStep      = 0.01f;
-                    d.decimalPlaces = 2;
-                    d.type          = DialBinding::Float;
+                juce::String labels[3], unitsArr[3];
+                float mins[3], maxs[3], steps[3], fines[3];
+                int decs[3];
 
-                    d.getValue = [&state, ch]()
-                    {
-                        return static_cast<float> (state.getInputParameter (ch, inputOffsetX));
-                    };
-                    d.setValue = [&state, ch, callbacks] (float v)
-                    {
-                        float offX = v;
-                        float offY = static_cast<float> (state.getInputParameter (ch, inputOffsetY));
-                        float offZ = static_cast<float> (state.getInputParameter (ch, inputOffsetZ));
-                        WFSConstraints::constrainOffset (state, ch, offX, offY, offZ);
-                        state.setInputParameter (ch, inputOffsetX, offX);
-                        state.setInputParameter (ch, inputOffsetY, offY);
-                        state.setInputParameter (ch, inputOffsetZ, offZ);
-                        if (callbacks.repaintMap) callbacks.repaintMap();
-                    };
+                switch (coordMode)
+                {
+                    case WFSCoordinates::Mode::Cylindrical:
+                        labels[0]   = LOC ("streamDeck.map.dials.radius");
+                        labels[1]   = LOC ("streamDeck.map.dials.azimuth");
+                        labels[2]   = LOC ("streamDeck.map.dials.height");
+                        unitsArr[0] = LOC ("units.meters");
+                        unitsArr[1] = LOC ("units.degrees");
+                        unitsArr[2] = LOC ("units.meters");
+                        mins[0]     = -50.0f;        maxs[0] = 50.0f;
+                        mins[1]     = -180.0f;       maxs[1] = 180.0f;
+                        mins[2]     = bounds.minZ - curPosZ;  maxs[2] = bounds.maxZ - curPosZ;
+                        steps[0]    = 0.1f;  fines[0] = 0.01f;  decs[0] = 2;
+                        steps[1]    = 5.0f;  fines[1] = 1.0f;   decs[1] = 0;
+                        steps[2]    = 0.1f;  fines[2] = 0.01f;  decs[2] = 2;
+                        break;
+
+                    case WFSCoordinates::Mode::Spherical:
+                        labels[0]   = LOC ("streamDeck.map.dials.radius");
+                        labels[1]   = LOC ("streamDeck.map.dials.azimuth");
+                        labels[2]   = LOC ("streamDeck.map.dials.elevation");
+                        unitsArr[0] = LOC ("units.meters");
+                        unitsArr[1] = LOC ("units.degrees");
+                        unitsArr[2] = LOC ("units.degrees");
+                        mins[0]     = -50.0f;    maxs[0] = 50.0f;
+                        mins[1]     = -180.0f;   maxs[1] = 180.0f;
+                        mins[2]     = -90.0f;    maxs[2] = 90.0f;
+                        steps[0]    = 0.1f;  fines[0] = 0.01f;  decs[0] = 2;
+                        steps[1]    = 5.0f;  fines[1] = 1.0f;   decs[1] = 0;
+                        steps[2]    = 5.0f;  fines[2] = 1.0f;   decs[2] = 0;
+                        break;
+
+                    default: // Cartesian
+                        labels[0]   = LOC ("streamDeck.map.dials.offsetX");
+                        labels[1]   = LOC ("streamDeck.map.dials.offsetY");
+                        labels[2]   = LOC ("streamDeck.map.dials.offsetZ");
+                        unitsArr[0] = LOC ("units.meters");
+                        unitsArr[1] = LOC ("units.meters");
+                        unitsArr[2] = LOC ("units.meters");
+                        mins[0]     = bounds.minX - curPosX;  maxs[0] = bounds.maxX - curPosX;
+                        mins[1]     = bounds.minY - curPosY;  maxs[1] = bounds.maxY - curPosY;
+                        mins[2]     = bounds.minZ - curPosZ;  maxs[2] = bounds.maxZ - curPosZ;
+                        steps[0]    = 0.1f;  fines[0] = 0.01f;  decs[0] = 2;
+                        steps[1]    = 0.1f;  fines[1] = 0.01f;  decs[1] = 2;
+                        steps[2]    = 0.1f;  fines[2] = 0.01f;  decs[2] = 2;
+                        break;
                 }
 
-                // Dial 1: Offset Y
+                for (int di = 0; di < 3; ++di)
                 {
-                    auto& d = sec.dials[1];
-                    d.paramName     = LOC ("streamDeck.map.dials.offsetY");
-                    d.paramUnit     = LOC ("units.meters");
-                    d.minValue      = bounds.minY - curPosY;
-                    d.maxValue      = bounds.maxY - curPosY;
-                    d.step          = 0.1f;
-                    d.fineStep      = 0.01f;
-                    d.decimalPlaces = 2;
+                    auto& d = sec.dials[di];
+                    d.paramName     = labels[di];
+                    d.paramUnit     = unitsArr[di];
+                    d.minValue      = mins[di];
+                    d.maxValue      = maxs[di];
+                    d.step          = steps[di];
+                    d.fineStep      = fines[di];
+                    d.decimalPlaces = decs[di];
                     d.type          = DialBinding::Float;
 
-                    d.getValue = [&state, ch]()
+                    d.getValue = [&state, ch, coordMode, di]()
                     {
-                        return static_cast<float> (state.getInputParameter (ch, inputOffsetY));
+                        float ox = static_cast<float> (state.getInputParameter (ch, inputOffsetX));
+                        float oy = static_cast<float> (state.getInputParameter (ch, inputOffsetY));
+                        float oz = static_cast<float> (state.getInputParameter (ch, inputOffsetZ));
+                        float v1, v2, v3;
+                        WFSCoordinates::cartesianToDisplay (coordMode, ox, oy, oz, v1, v2, v3);
+                        return (di == 0) ? v1 : (di == 1) ? v2 : v3;
                     };
-                    d.setValue = [&state, ch, callbacks] (float v)
-                    {
-                        float offX = static_cast<float> (state.getInputParameter (ch, inputOffsetX));
-                        float offY = v;
-                        float offZ = static_cast<float> (state.getInputParameter (ch, inputOffsetZ));
-                        WFSConstraints::constrainOffset (state, ch, offX, offY, offZ);
-                        state.setInputParameter (ch, inputOffsetX, offX);
-                        state.setInputParameter (ch, inputOffsetY, offY);
-                        state.setInputParameter (ch, inputOffsetZ, offZ);
-                        if (callbacks.repaintMap) callbacks.repaintMap();
-                    };
-                }
 
-                // Dial 2: Offset Z
-                {
-                    auto& d = sec.dials[2];
-                    d.paramName     = LOC ("streamDeck.map.dials.offsetZ");
-                    d.paramUnit     = LOC ("units.meters");
-                    d.minValue      = bounds.minZ - curPosZ;
-                    d.maxValue      = bounds.maxZ - curPosZ;
-                    d.step          = 0.1f;
-                    d.fineStep      = 0.01f;
-                    d.decimalPlaces = 2;
-                    d.type          = DialBinding::Float;
+                    d.setValue = [&state, ch, coordMode, di, callbacks] (float v)
+                    {
+                        float ox = static_cast<float> (state.getInputParameter (ch, inputOffsetX));
+                        float oy = static_cast<float> (state.getInputParameter (ch, inputOffsetY));
+                        float oz = static_cast<float> (state.getInputParameter (ch, inputOffsetZ));
+                        float v1, v2, v3;
+                        WFSCoordinates::cartesianToDisplay (coordMode, ox, oy, oz, v1, v2, v3);
 
-                    d.getValue = [&state, ch]()
-                    {
-                        return static_cast<float> (state.getInputParameter (ch, inputOffsetZ));
-                    };
-                    d.setValue = [&state, ch, callbacks] (float v)
-                    {
-                        float offX = static_cast<float> (state.getInputParameter (ch, inputOffsetX));
-                        float offY = static_cast<float> (state.getInputParameter (ch, inputOffsetY));
-                        float offZ = v;
-                        WFSConstraints::constrainOffset (state, ch, offX, offY, offZ);
-                        state.setInputParameter (ch, inputOffsetX, offX);
-                        state.setInputParameter (ch, inputOffsetY, offY);
-                        state.setInputParameter (ch, inputOffsetZ, offZ);
+                        if (di == 0) v1 = v;
+                        else if (di == 1) v2 = v;
+                        else v3 = v;
+
+                        auto cart = WFSCoordinates::displayToCartesian (coordMode, v1, v2, v3);
+                        WFSConstraints::constrainOffset (state, ch, cart.x, cart.y, cart.z);
+                        state.setInputParameter (ch, inputOffsetX, cart.x);
+                        state.setInputParameter (ch, inputOffsetY, cart.y);
+                        state.setInputParameter (ch, inputOffsetZ, cart.z);
                         if (callbacks.repaintMap) callbacks.repaintMap();
                     };
                 }
             }
             else
             {
-                // Dial 0: Position X
-                {
-                    auto& d = sec.dials[0];
-                    d.paramName     = LOC ("streamDeck.map.dials.positionX");
-                    d.paramUnit     = LOC ("units.meters");
-                    d.minValue      = bounds.minX;
-                    d.maxValue      = bounds.maxX;
-                    d.step          = 0.1f;
-                    d.fineStep      = 0.01f;
-                    d.decimalPlaces = 2;
-                    d.type          = DialBinding::Float;
+                // Position dials — adapt to input's coordinate mode
+                int coordModeVal = static_cast<int> (state.getInputParameter (ch, inputCoordinateMode));
+                auto coordMode = static_cast<WFSCoordinates::Mode> (coordModeVal);
 
-                    d.getValue = [&state, ch]()
-                    {
-                        return static_cast<float> (state.getInputParameter (ch, inputPositionX));
-                    };
-                    d.setValue = [&state, ch, callbacks] (float v)
-                    {
-                        float x = v;
-                        float y = static_cast<float> (state.getInputParameter (ch, inputPositionY));
-                        float z = static_cast<float> (state.getInputParameter (ch, inputPositionZ));
-                        WFSConstraints::constrainPosition (state, ch, x, y, z);
-                        state.setInputParameter (ch, inputPositionX, x);
-                        state.setInputParameter (ch, inputPositionY, y);
-                        state.setInputParameter (ch, inputPositionZ, z);
-                        if (callbacks.repaintMap) callbacks.repaintMap();
-                    };
+                // Labels/units/ranges per mode
+                juce::String labels[3], units[3];
+                float mins[3], maxs[3], steps[3], fines[3];
+                int decimals[3];
+
+                switch (coordMode)
+                {
+                    case WFSCoordinates::Mode::Cylindrical:
+                        labels[0]   = LOC ("streamDeck.map.dials.radius");
+                        labels[1]   = LOC ("streamDeck.map.dials.azimuth");
+                        labels[2]   = LOC ("streamDeck.map.dials.height");
+                        units[0]    = LOC ("units.meters");
+                        units[1]    = LOC ("units.degrees");
+                        units[2]    = LOC ("units.meters");
+                        mins[0]     = 0.0f;         maxs[0] = 50.0f;
+                        mins[1]     = -180.0f;       maxs[1] = 180.0f;
+                        mins[2]     = bounds.minZ;   maxs[2] = bounds.maxZ;
+                        steps[0]    = 0.1f;  fines[0] = 0.01f;  decimals[0] = 2;
+                        steps[1]    = 5.0f;  fines[1] = 1.0f;   decimals[1] = 0;
+                        steps[2]    = 0.1f;  fines[2] = 0.01f;  decimals[2] = 2;
+                        break;
+
+                    case WFSCoordinates::Mode::Spherical:
+                        labels[0]   = LOC ("streamDeck.map.dials.radius");
+                        labels[1]   = LOC ("streamDeck.map.dials.azimuth");
+                        labels[2]   = LOC ("streamDeck.map.dials.elevation");
+                        units[0]    = LOC ("units.meters");
+                        units[1]    = LOC ("units.degrees");
+                        units[2]    = LOC ("units.degrees");
+                        mins[0]     = 0.0f;     maxs[0] = 50.0f;
+                        mins[1]     = -180.0f;   maxs[1] = 180.0f;
+                        mins[2]     = -90.0f;    maxs[2] = 90.0f;
+                        steps[0]    = 0.1f;  fines[0] = 0.01f;  decimals[0] = 2;
+                        steps[1]    = 5.0f;  fines[1] = 1.0f;   decimals[1] = 0;
+                        steps[2]    = 5.0f;  fines[2] = 1.0f;   decimals[2] = 0;
+                        break;
+
+                    default: // Cartesian
+                        labels[0]   = LOC ("streamDeck.map.dials.positionX");
+                        labels[1]   = LOC ("streamDeck.map.dials.positionY");
+                        labels[2]   = LOC ("streamDeck.map.dials.positionZ");
+                        units[0]    = LOC ("units.meters");
+                        units[1]    = LOC ("units.meters");
+                        units[2]    = LOC ("units.meters");
+                        mins[0]     = bounds.minX;   maxs[0] = bounds.maxX;
+                        mins[1]     = bounds.minY;   maxs[1] = bounds.maxY;
+                        mins[2]     = bounds.minZ;   maxs[2] = bounds.maxZ;
+                        steps[0]    = 0.1f;  fines[0] = 0.01f;  decimals[0] = 2;
+                        steps[1]    = 0.1f;  fines[1] = 0.01f;  decimals[1] = 2;
+                        steps[2]    = 0.1f;  fines[2] = 0.01f;  decimals[2] = 2;
+                        break;
                 }
 
-                // Dial 1: Position Y
+                for (int di = 0; di < 3; ++di)
                 {
-                    auto& d = sec.dials[1];
-                    d.paramName     = LOC ("streamDeck.map.dials.positionY");
-                    d.paramUnit     = LOC ("units.meters");
-                    d.minValue      = bounds.minY;
-                    d.maxValue      = bounds.maxY;
-                    d.step          = 0.1f;
-                    d.fineStep      = 0.01f;
-                    d.decimalPlaces = 2;
+                    auto& d = sec.dials[di];
+                    d.paramName     = labels[di];
+                    d.paramUnit     = units[di];
+                    d.minValue      = mins[di];
+                    d.maxValue      = maxs[di];
+                    d.step          = steps[di];
+                    d.fineStep      = fines[di];
+                    d.decimalPlaces = decimals[di];
                     d.type          = DialBinding::Float;
 
-                    d.getValue = [&state, ch]()
-                    {
-                        return static_cast<float> (state.getInputParameter (ch, inputPositionY));
-                    };
-                    d.setValue = [&state, ch, callbacks] (float v)
-                    {
-                        float x = static_cast<float> (state.getInputParameter (ch, inputPositionX));
-                        float y = v;
-                        float z = static_cast<float> (state.getInputParameter (ch, inputPositionZ));
-                        WFSConstraints::constrainPosition (state, ch, x, y, z);
-                        state.setInputParameter (ch, inputPositionX, x);
-                        state.setInputParameter (ch, inputPositionY, y);
-                        state.setInputParameter (ch, inputPositionZ, z);
-                        if (callbacks.repaintMap) callbacks.repaintMap();
-                    };
-                }
-
-                // Dial 2: Position Z
-                {
-                    auto& d = sec.dials[2];
-                    d.paramName     = LOC ("streamDeck.map.dials.positionZ");
-                    d.paramUnit     = LOC ("units.meters");
-                    d.minValue      = bounds.minZ;
-                    d.maxValue      = bounds.maxZ;
-                    d.step          = 0.1f;
-                    d.fineStep      = 0.01f;
-                    d.decimalPlaces = 2;
-                    d.type          = DialBinding::Float;
-
-                    d.getValue = [&state, ch]()
-                    {
-                        return static_cast<float> (state.getInputParameter (ch, inputPositionZ));
-                    };
-                    d.setValue = [&state, ch, callbacks] (float v)
+                    d.getValue = [&state, ch, coordMode, di]()
                     {
                         float x = static_cast<float> (state.getInputParameter (ch, inputPositionX));
                         float y = static_cast<float> (state.getInputParameter (ch, inputPositionY));
-                        float z = v;
-                        WFSConstraints::constrainPosition (state, ch, x, y, z);
-                        state.setInputParameter (ch, inputPositionX, x);
-                        state.setInputParameter (ch, inputPositionY, y);
-                        state.setInputParameter (ch, inputPositionZ, z);
+                        float z = static_cast<float> (state.getInputParameter (ch, inputPositionZ));
+                        float v1, v2, v3;
+                        WFSCoordinates::cartesianToDisplay (coordMode, x, y, z, v1, v2, v3);
+                        return (di == 0) ? v1 : (di == 1) ? v2 : v3;
+                    };
+
+                    d.setValue = [&state, ch, coordMode, di, callbacks] (float v)
+                    {
+                        float x = static_cast<float> (state.getInputParameter (ch, inputPositionX));
+                        float y = static_cast<float> (state.getInputParameter (ch, inputPositionY));
+                        float z = static_cast<float> (state.getInputParameter (ch, inputPositionZ));
+                        float v1, v2, v3;
+                        WFSCoordinates::cartesianToDisplay (coordMode, x, y, z, v1, v2, v3);
+
+                        if (di == 0) v1 = v;
+                        else if (di == 1) v2 = v;
+                        else v3 = v;
+
+                        auto cart = WFSCoordinates::displayToCartesian (coordMode, v1, v2, v3);
+                        WFSConstraints::constrainPosition (state, ch, cart.x, cart.y, cart.z);
+                        state.setInputParameter (ch, inputPositionX, cart.x);
+                        state.setInputParameter (ch, inputPositionY, cart.y);
+                        state.setInputParameter (ch, inputPositionZ, cart.z);
                         if (callbacks.repaintMap) callbacks.repaintMap();
                     };
                 }
