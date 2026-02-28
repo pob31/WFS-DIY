@@ -1046,8 +1046,8 @@ public:
             { &showNameEditor, &showLocationEditor,
               &inputChannelsEditor, &outputChannelsEditor, &reverbChannelsEditor },
             // Column 2: Stage + Master (invisible fields skipped automatically)
-            { &stageWidthEditor, &stageDepthEditor, &stageHeightEditor,
-              &stageDiameterEditor, &domeElevationEditor,
+            { &stageWidthEditor, &stageDepthEditor,
+              &stageDiameterEditor, &domeElevationEditor, &stageHeightEditor,
               &stageOriginWidthEditor, &stageOriginDepthEditor, &stageOriginHeightEditor,
               &speedOfSoundEditor, &temperatureEditor,
               &masterLevelEditor, &systemLatencyEditor, &haasEffectEditor },

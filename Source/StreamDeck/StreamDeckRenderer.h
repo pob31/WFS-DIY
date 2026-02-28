@@ -92,7 +92,7 @@ public:
         if (sectionIndex < numSections && section.sectionName.isNotEmpty())
         {
             g.setColour (textColour);
-            g.setFont (juce::Font (sectionFontSize));
+            g.setFont (juce::Font (juce::FontOptions (sectionFontSize)));
 
             juce::Rectangle<int> textArea (8, 8,
                                            StreamDeckDevice::BUTTON_IMAGE_WIDTH - 16,
@@ -143,7 +143,7 @@ public:
         if (displayLabel.isNotEmpty())
         {
             g.setColour (textColour);
-            g.setFont (juce::Font (binding.fontSize > 0.0f ? binding.fontSize : buttonFontSize));
+            g.setFont (juce::Font (juce::FontOptions (binding.fontSize > 0.0f ? binding.fontSize : buttonFontSize)));
 
             juce::Rectangle<int> textArea (6, 6,
                                            StreamDeckDevice::BUTTON_IMAGE_WIDTH - 12,
@@ -196,14 +196,14 @@ public:
 
         // Parameter name (top portion)
         g.setColour (lcdNameColour);
-        g.setFont (juce::Font (lcdNameFontSize));
+        g.setFont (juce::Font (juce::FontOptions (lcdNameFontSize)));
         g.drawFittedText (binding.getDisplayName(),
                           4, 2, zoneW - 8, 44,
                           juce::Justification::centred, 2);
 
         // Parameter value (center, larger font)
         g.setColour (lcdValueColour);
-        g.setFont (juce::Font (lcdValueFontSize).boldened());
+        g.setFont (juce::Font (juce::FontOptions (lcdValueFontSize).withStyle ("Bold")));
         g.drawFittedText (binding.formatValueWithUnit(),
                           4, 50, zoneW - 8, 30,
                           juce::Justification::centred, 1);
@@ -264,7 +264,7 @@ public:
 
         // Title
         g.setColour (lcdNameColour);
-        g.setFont (juce::Font (lcdNameFontSize));
+        g.setFont (juce::Font (juce::FontOptions (lcdNameFontSize)));
         g.drawFittedText (binding.getDisplayName(), 4, 2, zoneW - 8, 18,
                           juce::Justification::centred, 1);
 
@@ -293,7 +293,7 @@ public:
                 g.setColour (lcdNameColour);
             }
 
-            g.setFont (juce::Font (14.0f));
+            g.setFont (juce::Font (juce::FontOptions (14.0f)));
             g.drawFittedText (binding.comboOptions[i],
                               10, y + 1, zoneW - 20, lineHeight - 2,
                               juce::Justification::centred, 1);
@@ -343,14 +343,14 @@ public:
 
         // Arrow indicator at top
         g.setColour (colour);
-        g.setFont (juce::Font (22.0f));
+        g.setFont (juce::Font (juce::FontOptions (22.0f)));
         g.drawText (juce::CharPointer_UTF8 ("\xe2\x86\x92"),  // →
                     0, 12, StreamDeckDevice::BUTTON_IMAGE_WIDTH, 24,
                     juce::Justification::centred);
 
         // Label text below arrow
         g.setColour (textColour);
-        g.setFont (juce::Font (sectionFontSize));
+        g.setFont (juce::Font (juce::FontOptions (sectionFontSize)));
         g.drawFittedText (label,
                           8, 40, StreamDeckDevice::BUTTON_IMAGE_WIDTH - 16, 60,
                           juce::Justification::centred, 2);

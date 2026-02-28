@@ -4171,8 +4171,6 @@ private:
         const int labelWidth = scaled(100);
         const int valueWidth = scaled(60);  // Tight value width like LFO section
         const int dialSize = juce::jmax(60, static_cast<int>(100.0f * layoutScale));
-        const int buttonWidth = scaled(120);
-
         auto col1 = area.removeFromLeft(area.getWidth() / 2).reduced(5, 0);
         auto col2 = area.reduced(5, 0);
 
