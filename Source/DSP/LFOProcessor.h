@@ -235,6 +235,15 @@ private:
         // Reset fade when shape transitions from OFF (0) to non-OFF, or when LFO just became active
         bool justActivated = isActive && !state.wasActive;
 
+        // Reset all ramps to phase 0 on enable so clocks start synchronized
+        if (justActivated)
+        {
+            state.ramp  = 0.0f;
+            state.rampX = 0.0f;
+            state.rampY = 0.0f;
+            state.rampZ = 0.0f;
+        }
+
         if ((state.prevShapeX == Off && shapeX != Off) || (justActivated && shapeX != Off && state.fadeX >= 1.0f))
             state.fadeX = 0.0f;
         if ((state.prevShapeY == Off && shapeY != Off) || (justActivated && shapeY != Off && state.fadeY >= 1.0f))
