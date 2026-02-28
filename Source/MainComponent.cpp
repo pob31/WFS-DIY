@@ -8,6 +8,7 @@
 #include "StreamDeck/pages/OutputsTabPages.h"
 #include "StreamDeck/pages/SystemConfigTabPages.h"
 #include "StreamDeck/pages/MapTabPages.h"
+#include "StreamDeck/pages/PatchWindowPages.h"
 
 //==============================================================================
 MainComponent::MainComponent()
@@ -1657,6 +1658,285 @@ void MainComponent::handleConfigReloaded()
     }
 }
 
+void MainComponent::setupPatchWindowStreamDeck (PatchWindowPages::PatchCallbacks& cb,
+                                                PatchWindowPages::PatchStateQueries& q)
+{
+    auto* win = audioInterfaceWindow.get();
+    if (win == nullptr)
+        return;
+
+    auto* content = win->getContent();
+    if (content == nullptr)
+        return;
+
+    InputPatchTab*  inTab  = content->getInputPatchTab();
+    OutputPatchTab* outTab = content->getOutputPatchTab();
+
+    // --- Sub-tab switching ---
+    cb.switchOverrideSubTab = [this] (int subTab)
+    {
+        juce::MessageManager::callAsync ([this, subTab]()
+        {
+            if (streamDeckManager)
+                streamDeckManager->setOverrideSubTab (subTab);
+        });
+    };
+
+    cb.switchPatchTab = [content] (int tab)
+    {
+        juce::MessageManager::callAsync ([content, tab]()
+        {
+            content->getTabbedComponent().setCurrentTabIndex (tab);
+        });
+    };
+
+    // --- Input patch mode ---
+    cb.setInputPatchMode = [inTab] (PatchMatrixComponent::Mode mode)
+    {
+        juce::MessageManager::callAsync ([inTab, mode]()
+        {
+            if (inTab) inTab->setMode (mode);
+        });
+    };
+
+    // --- Output patch mode ---
+    cb.setOutputPatchMode = [outTab] (PatchMatrixComponent::Mode mode)
+    {
+        juce::MessageManager::callAsync ([outTab, mode]()
+        {
+            if (outTab) outTab->setMode (mode);
+        });
+    };
+
+    // --- Input scroll/select ---
+    cb.scrollInputByCell = [inTab] (int dx, int dy)
+    {
+        juce::MessageManager::callAsync ([inTab, dx, dy]()
+        {
+            if (inTab && inTab->getPatchMatrix())
+                inTab->getPatchMatrix()->scrollByCell (dx, dy);
+        });
+    };
+
+    cb.moveInputSelectedCell = [inTab] (int dx, int dy)
+    {
+        juce::MessageManager::callAsync ([inTab, dx, dy]()
+        {
+            if (inTab && inTab->getPatchMatrix())
+            {
+                auto* m = inTab->getPatchMatrix();
+                auto sel = m->getSelectedCell();
+                if (sel.x < 0) sel = { 0, 0 };
+                m->setSelectedCell ({ sel.x + dx, sel.y + dy });
+            }
+        });
+    };
+
+    cb.activateInputSelectedCell = [inTab]()
+    {
+        juce::MessageManager::callAsync ([inTab]()
+        {
+            if (inTab && inTab->getPatchMatrix())
+                inTab->getPatchMatrix()->activateSelectedCell();
+        });
+    };
+
+    // --- Output scroll/select ---
+    cb.scrollOutputByCell = [outTab] (int dx, int dy)
+    {
+        juce::MessageManager::callAsync ([outTab, dx, dy]()
+        {
+            if (outTab && outTab->getPatchMatrix())
+                outTab->getPatchMatrix()->scrollByCell (dx, dy);
+        });
+    };
+
+    cb.moveOutputSelectedCell = [outTab] (int dx, int dy)
+    {
+        juce::MessageManager::callAsync ([outTab, dx, dy]()
+        {
+            if (outTab && outTab->getPatchMatrix())
+            {
+                auto* m = outTab->getPatchMatrix();
+                auto sel = m->getSelectedCell();
+                if (sel.x < 0) sel = { 0, 0 };
+                m->setSelectedCell ({ sel.x + dx, sel.y + dy });
+            }
+        });
+    };
+
+    cb.activateOutputSelectedCell = [outTab]()
+    {
+        juce::MessageManager::callAsync ([outTab]()
+        {
+            if (outTab && outTab->getPatchMatrix())
+                outTab->getPatchMatrix()->activateSelectedCell();
+        });
+    };
+
+    // --- Test signal controls ---
+    cb.toggleHold = [outTab]()
+    {
+        juce::MessageManager::callAsync ([outTab]()
+        {
+            if (outTab)
+                outTab->setHoldEnabled (! outTab->isHoldEnabled());
+        });
+    };
+
+    cb.setTestSignalType = [outTab] (int type)
+    {
+        juce::MessageManager::callAsync ([outTab, type]()
+        {
+            if (outTab && outTab->getTestSignalGenerator())
+            {
+                outTab->getTestSignalGenerator()->setSignalType (static_cast<TestSignalGenerator::SignalType> (type));
+                outTab->syncTestControlsFromGenerator();
+            }
+        });
+    };
+
+    cb.setTestLevel = [outTab] (float dB)
+    {
+        juce::MessageManager::callAsync ([outTab, dB]()
+        {
+            if (outTab && outTab->getTestSignalGenerator())
+            {
+                outTab->getTestSignalGenerator()->setLevel (dB);
+                outTab->syncTestControlsFromGenerator();
+            }
+        });
+    };
+
+    cb.setTestFrequency = [outTab] (float hz)
+    {
+        juce::MessageManager::callAsync ([outTab, hz]()
+        {
+            if (outTab && outTab->getTestSignalGenerator())
+            {
+                outTab->getTestSignalGenerator()->setFrequency (hz);
+                outTab->syncTestControlsFromGenerator();
+            }
+        });
+    };
+
+    // --- State queries ---
+    q.getCurrentPatchTab = [content]()
+    {
+        return content->getTabbedComponent().getCurrentTabIndex();
+    };
+
+    q.getInputPatchMode = [inTab]()
+    {
+        if (inTab && inTab->getPatchMatrix())
+            return static_cast<int> (inTab->getPatchMatrix()->getMode());
+        return 0;
+    };
+
+    q.getOutputPatchMode = [outTab]()
+    {
+        if (outTab && outTab->getPatchMatrix())
+            return static_cast<int> (outTab->getPatchMatrix()->getMode());
+        return 0;
+    };
+
+    // Input matrix state
+    q.getInputNumHardwareChannels = [inTab]()
+    {
+        return (inTab && inTab->getPatchMatrix()) ? inTab->getPatchMatrix()->getNumHardwareChannels() : 0;
+    };
+    q.getInputNumWFSChannels = [inTab]()
+    {
+        return (inTab && inTab->getPatchMatrix()) ? inTab->getPatchMatrix()->getNumWFSChannels() : 0;
+    };
+    q.getInputScrollCol = [inTab]()
+    {
+        if (inTab && inTab->getPatchMatrix())
+        {
+            auto* m = inTab->getPatchMatrix();
+            return (m->getCellWidth() > 0) ? m->getScrollOffsetX() / m->getCellWidth() : 0;
+        }
+        return 0;
+    };
+    q.getInputScrollRow = [inTab]()
+    {
+        if (inTab && inTab->getPatchMatrix())
+        {
+            auto* m = inTab->getPatchMatrix();
+            return (m->getCellHeight() > 0) ? m->getScrollOffsetY() / m->getCellHeight() : 0;
+        }
+        return 0;
+    };
+    q.getInputSelectedCol = [inTab]()
+    {
+        return (inTab && inTab->getPatchMatrix()) ? juce::jmax (0, inTab->getPatchMatrix()->getSelectedCell().x) : 0;
+    };
+    q.getInputSelectedRow = [inTab]()
+    {
+        return (inTab && inTab->getPatchMatrix()) ? juce::jmax (0, inTab->getPatchMatrix()->getSelectedCell().y) : 0;
+    };
+
+    // Output matrix state
+    q.getOutputNumHardwareChannels = [outTab]()
+    {
+        return (outTab && outTab->getPatchMatrix()) ? outTab->getPatchMatrix()->getNumHardwareChannels() : 0;
+    };
+    q.getOutputNumWFSChannels = [outTab]()
+    {
+        return (outTab && outTab->getPatchMatrix()) ? outTab->getPatchMatrix()->getNumWFSChannels() : 0;
+    };
+    q.getOutputScrollCol = [outTab]()
+    {
+        if (outTab && outTab->getPatchMatrix())
+        {
+            auto* m = outTab->getPatchMatrix();
+            return (m->getCellWidth() > 0) ? m->getScrollOffsetX() / m->getCellWidth() : 0;
+        }
+        return 0;
+    };
+    q.getOutputScrollRow = [outTab]()
+    {
+        if (outTab && outTab->getPatchMatrix())
+        {
+            auto* m = outTab->getPatchMatrix();
+            return (m->getCellHeight() > 0) ? m->getScrollOffsetY() / m->getCellHeight() : 0;
+        }
+        return 0;
+    };
+    q.getOutputSelectedCol = [outTab]()
+    {
+        return (outTab && outTab->getPatchMatrix()) ? juce::jmax (0, outTab->getPatchMatrix()->getSelectedCell().x) : 0;
+    };
+    q.getOutputSelectedRow = [outTab]()
+    {
+        return (outTab && outTab->getPatchMatrix()) ? juce::jmax (0, outTab->getPatchMatrix()->getSelectedCell().y) : 0;
+    };
+
+    // Test signal state
+    q.isHoldEnabled = [outTab]()
+    {
+        return outTab ? outTab->isHoldEnabled() : false;
+    };
+    q.getTestSignalType = [outTab]()
+    {
+        if (outTab && outTab->getTestSignalGenerator())
+            return static_cast<int> (outTab->getTestSignalGenerator()->getSignalType());
+        return 0;
+    };
+    q.getTestLevel = [outTab]()
+    {
+        if (outTab && outTab->getTestSignalGenerator())
+            return outTab->getTestSignalGenerator()->getLevelDb();
+        return -40.0f;
+    };
+    q.getTestFrequency = [outTab]()
+    {
+        if (outTab && outTab->getTestSignalGenerator())
+            return outTab->getTestSignalGenerator()->getFrequency();
+        return 1000.0f;
+    };
+}
+
 void MainComponent::openAudioInterfaceWindow()
 {
     if (audioInterfaceWindow == nullptr)
@@ -1666,6 +1946,29 @@ void MainComponent::openAudioInterfaceWindow()
             parameters.getValueTreeState(),
             testSignalGenerator.get()
         );
+
+        // Wire Stream Deck+ focus callbacks
+        audioInterfaceWindow->onWindowFocused = [this]()
+        {
+            if (! streamDeckManager)
+                return;
+
+            // Build the callbacks & state queries, then set the override factory
+            PatchWindowPages::PatchCallbacks patchCB;
+            PatchWindowPages::PatchStateQueries patchQ;
+            setupPatchWindowStreamDeck (patchCB, patchQ);
+
+            streamDeckManager->setOverridePageFactory ([patchCB, patchQ] (int subTab)
+            {
+                return PatchWindowPages::createPage (subTab, patchCB, patchQ);
+            });
+        };
+
+        audioInterfaceWindow->onWindowUnfocused = [this]()
+        {
+            if (streamDeckManager && streamDeckManager->hasOverride())
+                streamDeckManager->clearOverridePageFactory();
+        };
     }
     else
     {

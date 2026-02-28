@@ -1646,6 +1646,29 @@ OFF",
         "trackingOn": "Tracking :\nON",
         "trackingOff": "Tracking :\nOFF"
       }
+    },
+    "patch": {
+      "tabs": {
+        "audioInterface": "Interface\nAudio",
+        "inputPatch": "Patch\nEntrée",
+        "outputPatch": "Patch\nSortie"
+      },
+      "buttons": {
+        "scroll": "Défiler",
+        "patch": "Patcher",
+        "test": "Test",
+        "holdOn": "Maintien:\nON",
+        "holdOff": "Maintien:\nOFF",
+        "patchUnpatch": "Patcher /\nDépatcher",
+        "testChannel": "Tester\nCanal"
+      },
+      "dials": {
+        "columns": "Colonne",
+        "rows": "Ligne",
+        "signalType": "Type de\nSignal",
+        "level": "Niveau",
+        "frequency": "Fréquence"
+      }
     }
   }
 }

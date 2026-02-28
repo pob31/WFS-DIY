@@ -69,6 +69,29 @@ PatchMatrixComponent::~PatchMatrixComponent()
     verticalScroll.removeListener(this);
 }
 
+void PatchMatrixComponent::setSelectedCell(juce::Point<int> cell)
+{
+    selectedCell = { juce::jlimit(0, juce::jmax(0, numHardwareChannels - 1), cell.x),
+                     juce::jlimit(0, juce::jmax(0, numWFSChannels - 1), cell.y) };
+    keyboardNavigationActive = true;
+    scrollToMakeVisible(selectedCell);
+    repaint();
+}
+
+void PatchMatrixComponent::activateSelectedCell()
+{
+    if (selectedCell.x >= 0 && selectedCell.y >= 0)
+        handleCellActivation(selectedCell);
+}
+
+void PatchMatrixComponent::scrollByCell(int dx, int dy)
+{
+    scrollOffsetX = juce::jlimit(0, maxScrollX, scrollOffsetX + dx * cellWidth);
+    scrollOffsetY = juce::jlimit(0, maxScrollY, scrollOffsetY + dy * cellHeight);
+    updateScrollBars();
+    repaint();
+}
+
 void PatchMatrixComponent::setMode(Mode newMode)
 {
     if (currentMode != newMode)

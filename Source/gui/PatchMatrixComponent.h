@@ -112,6 +112,40 @@ public:
      */
     std::function<void(const juce::String&)> onStatusMessage;
 
+    //==========================================================================
+    // Remote navigation / scrolling (for Stream Deck integration)
+    //==========================================================================
+
+    /** Set the selected cell and enable keyboard navigation mode. Auto-scrolls to make visible. */
+    void setSelectedCell(juce::Point<int> cell);
+
+    /** Get the currently selected cell (x=col, y=row). Returns {-1,-1} if none. */
+    juce::Point<int> getSelectedCell() const { return selectedCell; }
+
+    /** Activate (patch/unpatch or test) at the currently selected cell. */
+    void activateSelectedCell();
+
+    /** Scroll the viewport by the given number of cells. */
+    void scrollByCell(int dx, int dy);
+
+    /** Get number of hardware channels (columns). */
+    int getNumHardwareChannels() const { return numHardwareChannels; }
+
+    /** Get number of WFS channels (rows). */
+    int getNumWFSChannels() const { return numWFSChannels; }
+
+    /** Get current horizontal scroll offset in pixels. */
+    int getScrollOffsetX() const { return scrollOffsetX; }
+
+    /** Get current vertical scroll offset in pixels. */
+    int getScrollOffsetY() const { return scrollOffsetY; }
+
+    /** Get cell width in pixels (for converting scroll offsets to cell indices). */
+    int getCellWidth() const { return cellWidth; }
+
+    /** Get cell height in pixels. */
+    int getCellHeight() const { return cellHeight; }
+
     // Component overrides
     void paint(juce::Graphics& g) override;
     void resized() override;

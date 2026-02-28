@@ -146,6 +146,56 @@ public:
     std::function<void (int tabIndex, int itemIndex)> onRequestItemSelect;
 
     //==========================================================================
+    // Override Page (for floating windows like Audio Interface & Patch)
+    //==========================================================================
+
+    /** Set an override page factory that takes precedence over normal tab-based pages.
+        While active, the Stream Deck shows pages produced by this factory instead of
+        the normal tab/subtab pages.  Used when a floating window (e.g. Patch window)
+        has focus.  The factory receives the current override subtab index and should
+        return a fully configured StreamDeckPage. */
+    void setOverridePageFactory (std::function<StreamDeckPage (int subTab)> factory)
+    {
+        overridePageFactory = std::move (factory);
+        overrideSubTab = 0;
+        exitComboMode();
+        rebuildAndRenderOverridePage();
+    }
+
+    /** Clear the override page factory, reverting to normal tab-based pages. */
+    void clearOverridePageFactory()
+    {
+        overridePageFactory = nullptr;
+        // Remove any cached override pages
+        for (auto it = pages.begin(); it != pages.end(); )
+        {
+            if (it->first < 0)
+                it = pages.erase (it);
+            else
+                ++it;
+        }
+        exitComboMode();
+        switchToCurrentPage();
+    }
+
+    /** Switch the sub-tab within the override page (e.g. Input Patch → Output Patch). */
+    void setOverrideSubTab (int subTab)
+    {
+        if (overrideSubTab == subTab || ! overridePageFactory)
+            return;
+
+        overrideSubTab = subTab;
+        exitComboMode();
+        rebuildAndRenderOverridePage();
+    }
+
+    /** Check whether an override page factory is currently active. */
+    bool hasOverride() const { return overridePageFactory != nullptr; }
+
+    /** Get the current override sub-tab index. */
+    int getOverrideSubTab() const { return overrideSubTab; }
+
+    //==========================================================================
     // Direct Access
     //==========================================================================
 
@@ -158,9 +208,17 @@ public:
     /** Get the current main tab index. */
     int getCurrentMainTab() const { return currentMainTab; }
 
-    /** Get the currently active page (nullptr if none). */
+    /** Get the currently active page (nullptr if none).
+        Returns the override page when an override factory is active. */
     StreamDeckPage* getCurrentPage()
     {
+        if (overridePageFactory)
+        {
+            auto key = makePageKey (-1, overrideSubTab);
+            auto it = pages.find (key);
+            return (it != pages.end()) ? &it->second : nullptr;
+        }
+
         auto key = makePageKey (currentMainTab, currentSubTab);
         auto it = pages.find (key);
         return (it != pages.end()) ? &it->second : nullptr;
@@ -170,6 +228,12 @@ public:
     void refreshCurrentPage()
     {
         invalidateButtonCache();
+
+        if (overridePageFactory)
+        {
+            rebuildAndRenderOverridePage();
+            return;
+        }
 
         // Preserve the active section across page rebuilds
         int savedSection = 0;
@@ -519,6 +583,35 @@ private:
     }
 
     //==========================================================================
+    // Override Page Helpers
+    //==========================================================================
+
+    void rebuildAndRenderOverridePage()
+    {
+        if (! overridePageFactory)
+            return;
+
+        invalidateButtonCache();
+
+        // Preserve the active section across page rebuilds
+        auto key = makePageKey (-1, overrideSubTab);
+        int savedSection = 0;
+        {
+            auto it = pages.find (key);
+            if (it != pages.end())
+                savedSection = it->second.activeSectionIndex;
+        }
+
+        pages[key] = overridePageFactory (overrideSubTab);
+
+        auto* page = &pages[key];
+        page->activeSectionIndex = juce::jlimit (0, juce::jmax (0, page->numSections - 1), savedSection);
+
+        if (device.isConnected())
+            renderer.renderAndSendFullPage (device, *page);
+    }
+
+    //==========================================================================
     // Helpers
     //==========================================================================
 
@@ -547,6 +640,10 @@ private:
     int currentMainTab = 0;
     int currentSubTab = 0;
     int currentChannel = 0;
+
+    // Override page factory (for floating windows)
+    std::function<StreamDeckPage (int subTab)> overridePageFactory;
+    int overrideSubTab = 0;
 
     // ComboBox interaction state
     bool comboModeActive = false;

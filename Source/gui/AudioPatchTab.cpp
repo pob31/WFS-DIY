@@ -764,3 +764,52 @@ void OutputPatchTab::timerCallback()
     stopTimer();
     statusMessageLabel.setVisible(false);
 }
+
+void OutputPatchTab::setHoldEnabled(bool enabled)
+{
+    if (testSignalGenerator)
+        testSignalGenerator->setHoldEnabled(enabled);
+
+    holdButton.setToggleState(enabled, juce::dontSendNotification);
+
+    if (! enabled)
+    {
+        // Stop test signal and clear highlighting when hold is disabled
+        if (testSignalGenerator)
+            testSignalGenerator->setOutputChannel(-1);
+        if (patchMatrix)
+            patchMatrix->clearActiveTestChannel();
+    }
+}
+
+void OutputPatchTab::syncTestControlsFromGenerator()
+{
+    if (! testSignalGenerator)
+        return;
+
+    // Sync signal type combo
+    auto type = testSignalGenerator->getSignalType();
+    int comboId = 1;  // Off
+    switch (type)
+    {
+        case TestSignalGenerator::SignalType::Off:        comboId = 1; break;
+        case TestSignalGenerator::SignalType::PinkNoise:  comboId = 2; break;
+        case TestSignalGenerator::SignalType::Tone:       comboId = 3; break;
+        case TestSignalGenerator::SignalType::Sweep:      comboId = 4; break;
+        case TestSignalGenerator::SignalType::DiracPulse: comboId = 5; break;
+    }
+    signalTypeCombo.setSelectedId(comboId, juce::dontSendNotification);
+
+    // Sync level slider
+    levelSlider.setValue(dbToSliderValue(testSignalGenerator->getLevelDb()));
+
+    // Sync frequency slider
+    frequencySlider.setValue(frequencyToSliderValue(testSignalGenerator->getFrequency()));
+
+    // Sync hold button
+    holdButton.setToggleState(testSignalGenerator->isHoldEnabled(), juce::dontSendNotification);
+
+    // Update visibility
+    updateTestControlsEnabledState();
+    updateFrequencyVisibility();
+}

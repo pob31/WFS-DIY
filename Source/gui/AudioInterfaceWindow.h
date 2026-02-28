@@ -140,6 +140,15 @@ public:
     /** Reset all tab modes to scrolling */
     void resetAllModes();
 
+    /** Get the input patch tab (for Stream Deck integration). */
+    InputPatchTab* getInputPatchTab() { return inputPatchTab; }
+
+    /** Get the output patch tab (for Stream Deck integration). */
+    OutputPatchTab* getOutputPatchTab() { return outputPatchTab; }
+
+    /** Get the tabbed component (for Stream Deck tab switching). */
+    PatchTabbedComponent& getTabbedComponent() { return tabbedComponent; }
+
 private:
     juce::AudioDeviceManager& deviceManager;
     WFSValueTreeState& parameters;
@@ -182,6 +191,30 @@ public:
 
     /** Notify that processing state changed */
     void setProcessingStateChanged(bool isProcessing);
+
+    /** Get the content component (for Stream Deck integration). */
+    AudioInterfaceContent* getContent() { return content; }
+
+    /** Called by JUCE when window becomes active/inactive. */
+    void activeWindowStatusChanged() override
+    {
+        if (isActiveWindow())
+        {
+            if (onWindowFocused)
+                onWindowFocused();
+        }
+        else
+        {
+            if (onWindowUnfocused)
+                onWindowUnfocused();
+        }
+    }
+
+    /** Callback when this window gains focus. */
+    std::function<void()> onWindowFocused;
+
+    /** Callback when this window loses focus. */
+    std::function<void()> onWindowUnfocused;
 
 private:
     TestSignalGenerator* testSignalGenerator;

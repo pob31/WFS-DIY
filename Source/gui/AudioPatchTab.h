@@ -72,6 +72,12 @@ public:
     /** Give keyboard focus to the patch matrix for arrow key navigation */
     void grabPatchMatrixFocus();
 
+    /** Set the current mode (public for Stream Deck integration). */
+    void setMode(PatchMatrixComponent::Mode mode);
+
+    /** Get the patch matrix component (for Stream Deck integration). */
+    PatchMatrixComponent* getPatchMatrix() { return patchMatrix.get(); }
+
 private:
     WFSValueTreeState& parameters;
 
@@ -82,8 +88,6 @@ private:
 
     // Patch matrix
     std::unique_ptr<PatchMatrixComponent> patchMatrix;
-
-    void setMode(PatchMatrixComponent::Mode mode);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(InputPatchTab)
     JUCE_DECLARE_WEAK_REFERENCEABLE(InputPatchTab)
@@ -122,6 +126,24 @@ public:
     /** Callback for status bar messages */
     std::function<void(const juce::String&)> onStatusMessage;
 
+    /** Set the current mode (public for Stream Deck integration). */
+    void setMode(PatchMatrixComponent::Mode mode);
+
+    /** Get the patch matrix component (for Stream Deck integration). */
+    PatchMatrixComponent* getPatchMatrix() { return patchMatrix.get(); }
+
+    /** Get the test signal generator (for Stream Deck integration). */
+    TestSignalGenerator* getTestSignalGenerator() { return testSignalGenerator; }
+
+    /** Check if hold mode is enabled. */
+    bool isHoldEnabled() const { return testSignalGenerator ? testSignalGenerator->isHoldEnabled() : false; }
+
+    /** Set hold mode. */
+    void setHoldEnabled(bool enabled);
+
+    /** Sync UI controls with current test signal generator state. */
+    void syncTestControlsFromGenerator();
+
 private:
     WFSValueTreeState& parameters;
     TestSignalGenerator* testSignalGenerator;
@@ -148,7 +170,6 @@ private:
     void showTemporaryMessage(const juce::String& msg);
     void timerCallback() override;
 
-    void setMode(PatchMatrixComponent::Mode mode);
     void applyTestSettings();
     void updateTestControlsVisibility(bool visible);
     void updateTestControlsEnabledState();

@@ -32,6 +32,7 @@
 #include "gui/WfsLookAndFeel.h"
 #include "Network/OSCManager.h"
 #include "StreamDeck/StreamDeckManager.h"
+#include "StreamDeck/pages/PatchWindowPages.h"
 
 //==============================================================================
 /**
@@ -105,6 +106,8 @@ public:
 
     // Audio Interface Window
     void openAudioInterfaceWindow();
+    void setupPatchWindowStreamDeck (PatchWindowPages::PatchCallbacks& cb,
+                                     PatchWindowPages::PatchStateQueries& q);
 
     // Network Log Window
     void openNetworkLogWindow();
