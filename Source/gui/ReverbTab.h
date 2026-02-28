@@ -15,6 +15,7 @@
 #include "../Helpers/CoordinateConverter.h"
 #include "buttons/LongPressButton.h"
 #include "buttons/EQBandToggle.h"
+#include "ColumnFocusTraverser.h"
 
 /**
  * Reverb Tab Component
@@ -25,6 +26,7 @@ class ReverbTab : public juce::Component,
                   private juce::ChangeListener,
                   private juce::Label::Listener,
                   private juce::ValueTree::Listener,
+                  private juce::KeyListener,
                   public ColorScheme::Manager::Listener
 {
 public:
@@ -36,6 +38,7 @@ public:
     {
         // Enable keyboard focus so we can receive focus back after text editing
         setWantsKeyboardFocus(true);
+        setFocusContainerType(FocusContainerType::keyboardFocusContainer);
 
         reverbsTree.addListener (this);
         configTree.addListener (this);
@@ -278,6 +281,43 @@ public:
         }
     }
 
+    //==========================================================================
+    // KeyListener — Tab on nameEditor cycles to next/prev channel
+    //==========================================================================
+
+    bool keyPressed(const juce::KeyPress& key, juce::Component* originatingComponent) override
+    {
+        if (originatingComponent == &nameEditor && key.getKeyCode() == juce::KeyPress::tabKey)
+        {
+            int current = channelSelector.getSelectedChannel();
+            int total = channelSelector.getNumChannels();
+            if (total <= 1) return true;
+
+            textEditorFocusLost(nameEditor);  // Save current name before switching
+
+            int next = key.getModifiers().isShiftDown()
+                ? ((current - 2 + total) % total) + 1
+                : (current % total) + 1;
+            channelSelector.setSelectedChannelProgrammatically(next);
+            nameEditor.grabKeyboardFocus();
+            nameEditor.selectAll();
+            return true;
+        }
+        return false;
+    }
+
+    //==========================================================================
+    // Custom keyboard focus traversal — positions then offsets
+    //==========================================================================
+
+    std::unique_ptr<juce::ComponentTraverser> createKeyboardFocusTraverser() override
+    {
+        return std::make_unique<ColumnCircuitTraverser>(std::vector<std::vector<juce::Component*>>{
+            { &posXEditor, &posYEditor, &posZEditor,
+              &returnOffsetXEditor, &returnOffsetYEditor, &returnOffsetZEditor }
+        });
+    }
+
 private:
     //==========================================================================
     // Setup Methods
@@ -298,6 +338,7 @@ private:
 
         addAndMakeVisible (nameEditor);
         nameEditor.addListener (this);
+        nameEditor.addKeyListener (this);
 
         // Map visibility toggle button
         addAndMakeVisible (mapVisibilityButton);

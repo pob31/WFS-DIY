@@ -10,6 +10,7 @@
 #include "SliderUIComponents.h"
 #include "dials/WfsRotationDial.h"
 #include "buttons/LongPressButton.h"
+#include "ColumnFocusTraverser.h"
 
 #if JUCE_WINDOWS
     #include <winsock2.h>
@@ -1040,76 +1041,6 @@ public:
 
     std::unique_ptr<juce::ComponentTraverser> createKeyboardFocusTraverser() override
     {
-        struct ColumnCircuitTraverser : public juce::ComponentTraverser
-        {
-            std::vector<std::vector<juce::Component*>> columns;
-
-            explicit ColumnCircuitTraverser(std::vector<std::vector<juce::Component*>> cols)
-                : columns(std::move(cols)) {}
-
-            juce::Component* getDefaultComponent(juce::Component*) override
-            {
-                for (auto& col : columns)
-                    for (auto* c : col)
-                        if (c->isVisible() && c->isEnabled())
-                            return c;
-                return nullptr;
-            }
-
-            juce::Component* getNextComponent(juce::Component* current) override
-            {
-                for (auto& col : columns)
-                {
-                    for (size_t i = 0; i < col.size(); ++i)
-                    {
-                        if (col[i] == current)
-                        {
-                            for (size_t j = 1; j <= col.size(); ++j)
-                            {
-                                auto* next = col[(i + j) % col.size()];
-                                if (next->isVisible() && next->isEnabled())
-                                    return next;
-                            }
-                            return current;
-                        }
-                    }
-                }
-                return nullptr;
-            }
-
-            juce::Component* getPreviousComponent(juce::Component* current) override
-            {
-                for (auto& col : columns)
-                {
-                    for (size_t i = 0; i < col.size(); ++i)
-                    {
-                        if (col[i] == current)
-                        {
-                            for (size_t j = 1; j <= col.size(); ++j)
-                            {
-                                size_t prevIdx = (i + col.size() - j) % col.size();
-                                auto* prev = col[prevIdx];
-                                if (prev->isVisible() && prev->isEnabled())
-                                    return prev;
-                            }
-                            return current;
-                        }
-                    }
-                }
-                return nullptr;
-            }
-
-            std::vector<juce::Component*> getAllComponents(juce::Component*) override
-            {
-                std::vector<juce::Component*> all;
-                for (auto& col : columns)
-                    for (auto* c : col)
-                        if (c->isVisible() && c->isEnabled())
-                            all.push_back(c);
-                return all;
-            }
-        };
-
         return std::make_unique<ColumnCircuitTraverser>(std::vector<std::vector<juce::Component*>>{
             // Column 1: Show + I/O
             { &showNameEditor, &showLocationEditor,

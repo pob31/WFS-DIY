@@ -9,6 +9,7 @@
 #include "ColorScheme.h"
 #include "../Localization/LocalizationManager.h"
 #include "buttons/LongPressButton.h"
+#include "ColumnFocusTraverser.h"
 
 #if JUCE_WINDOWS
     #include <winsock2.h>
@@ -47,6 +48,8 @@ public:
         : parameters(params), statusBar(statusBarPtr)
     {
         ColorScheme::Manager::getInstance().addListener(this);
+        setFocusContainerType(FocusContainerType::keyboardFocusContainer);
+
         // ==================== NETWORK SECTION ====================
         addAndMakeVisible(networkInterfaceLabel);
         networkInterfaceLabel.setText(LOC("network.labels.interface"), juce::dontSendNotification);
@@ -531,6 +534,38 @@ public:
         exportButton.setBounds(footerArea.removeFromLeft(buttonWidth));
 
         WfsLookAndFeel::scaleTextEditorFonts(*this, layoutScale);
+    }
+
+    //==========================================================================
+    // Custom keyboard focus traversal — 2 column circuits
+    //==========================================================================
+
+    std::unique_ptr<juce::ComponentTraverser> createKeyboardFocusTraverser() override
+    {
+        std::vector<juce::Component*> leftCol = {
+            &currentIPEditor, &udpPortEditor, &tcpPortEditor, &oscQueryPortEditor
+        };
+        // Add connection table rows (row-major: name → qlabPatch → ip → txPort per row)
+        for (int i = 0; i < maxTargets; ++i)
+        {
+            leftCol.push_back(&targetRows[i].nameEditor);
+            leftCol.push_back(&targetRows[i].qlabPatchEditor);
+            leftCol.push_back(&targetRows[i].ipEditor);
+            leftCol.push_back(&targetRows[i].txPortEditor);
+        }
+
+        std::vector<juce::Component*> rightCol = {
+            &admOscOffsetXEditor, &admOscOffsetYEditor, &admOscOffsetZEditor,
+            &admOscScaleXEditor, &admOscScaleYEditor, &admOscScaleZEditor,
+            &trackingPortEditor,
+            &trackingOffsetXEditor, &trackingOffsetYEditor, &trackingOffsetZEditor,
+            &trackingScaleXEditor, &trackingScaleYEditor, &trackingScaleZEditor,
+            &trackingOscPathEditor
+        };
+
+        return std::make_unique<ColumnCircuitTraverser>(std::vector<std::vector<juce::Component*>>{
+            std::move(leftCol), std::move(rightCol)
+        });
     }
 
 private:

@@ -21,6 +21,7 @@
 #include "SnapshotScopeWindow.h"
 #include "buttons/LongPressButton.h"
 #include "../Localization/LocalizationManager.h"
+#include "ColumnFocusTraverser.h"
 
 //==============================================================================
 // Custom Transport Button - Play (right-pointing triangle)
@@ -136,6 +137,7 @@ class InputsTab : public juce::Component,
                   private juce::ChangeListener,
                   private juce::Label::Listener,
                   private juce::ValueTree::Listener,
+                  private juce::KeyListener,
                   public ColorScheme::Manager::Listener
 {
 public:
@@ -148,6 +150,7 @@ public:
     {
         // Enable keyboard focus so we can receive focus back after text editing
         setWantsKeyboardFocus(true);
+        setFocusContainerType(FocusContainerType::keyboardFocusContainer);
 
         // Add listener to inputs tree, config tree, IO tree, and binaural tree (for solo state changes)
         inputsTree.addListener(this);
@@ -189,6 +192,7 @@ public:
         nameLabel.setText(LOC("inputs.labels.name"), juce::dontSendNotification);
         addAndMakeVisible(nameEditor);
         nameEditor.addListener(this);
+        nameEditor.addKeyListener(this);
 
         // Cluster selector
         addAndMakeVisible(clusterLabel);
@@ -662,6 +666,47 @@ public:
     {
         if (statusBar != nullptr)
             statusBar->showTemporaryMessage(message, 3000);
+    }
+
+    //==========================================================================
+    // KeyListener — Tab on nameEditor cycles to next/prev channel
+    //==========================================================================
+
+    bool keyPressed(const juce::KeyPress& key, juce::Component* originatingComponent) override
+    {
+        if (originatingComponent == &nameEditor && key.getKeyCode() == juce::KeyPress::tabKey)
+        {
+            int current = channelSelector.getSelectedChannel();
+            int total = channelSelector.getNumChannels();
+            if (total <= 1) return true;
+
+            textEditorFocusLost(nameEditor);  // Save current name before switching
+
+            int next = key.getModifiers().isShiftDown()
+                ? ((current - 2 + total) % total) + 1
+                : (current % total) + 1;
+            channelSelector.setSelectedChannelProgrammatically(next);
+            nameEditor.grabKeyboardFocus();
+            nameEditor.selectAll();
+            return true;
+        }
+        return false;
+    }
+
+    //==========================================================================
+    // Custom keyboard focus traversal — position circuits
+    //==========================================================================
+
+    std::unique_ptr<juce::ComponentTraverser> createKeyboardFocusTraverser() override
+    {
+        return std::make_unique<ColumnCircuitTraverser>(std::vector<std::vector<juce::Component*>>{
+            // Position sub-tab: positions → offsets → distance (conditional)
+            { &posXEditor, &posYEditor, &posZEditor,
+              &offsetXEditor, &offsetYEditor, &offsetZEditor,
+              &distanceMinEditor, &distanceMaxEditor },
+            // AutomOtion sub-tab: destination
+            { &otomoDestXEditor, &otomoDestYEditor, &otomoDestZEditor }
+        });
     }
 
 private:
