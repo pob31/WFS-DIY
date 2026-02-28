@@ -473,6 +473,13 @@ public:
     //==========================================================================
     bool keyPressed (const juce::KeyPress& key) override
     {
+        if (key.getKeyCode() == juce::KeyPress::escapeKey && selectedBand >= 0)
+        {
+            selectedBand = -1;
+            repaint();
+            return true;
+        }
+
         if (selectedBand < 0)
             return false;
 
@@ -736,7 +743,7 @@ private:
 
             bool isSelected = (selectedBand == band);
             float ps = paintScale();
-            float markerSize = isSelected ? 28.0f * ps : 20.0f * ps;
+            float markerSize = isSelected ? 20.0f * ps : 14.0f * ps;
 
             // Draw marker circle
             g.setColour (bandColour);
@@ -772,7 +779,7 @@ private:
 
             // Band number
             g.setColour (juce::Colours::black);
-            g.setFont (juce::FontOptions (juce::jmax(10.0f, 18.0f * ps), juce::Font::bold));
+            g.setFont (juce::FontOptions (juce::jmax(8.0f, 13.0f * ps), juce::Font::bold));
             g.drawText (juce::String (band + 1),
                         static_cast<int> (x - markerSize / 2), static_cast<int> (y - markerSize / 2),
                         static_cast<int> (markerSize), static_cast<int> (markerSize),

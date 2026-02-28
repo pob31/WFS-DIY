@@ -29,8 +29,8 @@ public:
           reverbsTree(params.getReverbTree()),
           configTree(params.getConfigTree())
     {
-        // Don't capture keyboard focus - let MainComponent handle keyboard shortcuts
-        setWantsKeyboardFocus(false);
+        setWantsKeyboardFocus(true);
+        setMouseClickGrabsKeyboardFocus(false); // Grab focus explicitly on selection only
 
         // Add ValueTree listeners
         inputsTree.addListener(this);
@@ -282,6 +282,26 @@ public:
     }
 
     //==========================================================================
+    // Keyboard Handling
+    //==========================================================================
+
+    bool keyPressed(const juce::KeyPress& key) override
+    {
+        if (key.getKeyCode() == juce::KeyPress::escapeKey
+            && (selectedInput >= 0 || selectedBarycenter >= 0))
+        {
+            selectedInput = -1;
+            selectedBarycenter = -1;
+            isDraggingInput = false;
+            isDraggingBarycenter = false;
+            if (onMapSelectionChanged) onMapSelectionChanged();
+            repaint();
+            return true;
+        }
+        return false;
+    }
+
+    //==========================================================================
     // Mouse Handling
     //==========================================================================
 
@@ -528,6 +548,7 @@ public:
                     onDragStartCallback(hitInput);
 
                 if (onMapSelectionChanged) onMapSelectionChanged();
+                grabKeyboardFocus();
                 repaint();
                 return;
             }
@@ -563,6 +584,7 @@ public:
                     onDragStartCallback(hitRefInput);
 
                 if (onMapSelectionChanged) onMapSelectionChanged();
+                grabKeyboardFocus();
                 repaint();
                 return;
             }
@@ -588,6 +610,7 @@ public:
                 longPressState.startTime = juce::Time::getCurrentTime();
 
                 if (onMapSelectionChanged) onMapSelectionChanged();
+                grabKeyboardFocus();
                 repaint();
                 return;
             }
