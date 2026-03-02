@@ -42,13 +42,13 @@ inline StageBounds getStageBounds (WFSValueTreeState& state)
     auto config = state.getConfigState();
 
     // Helper to read a config property with a default fallback
-    auto getConfig = [&config] (const juce::Identifier& id, float defaultVal) -> float
+    auto getConfig = [&config] (const juce::Identifier& propId, float defaultVal) -> float
     {
         for (int i = 0; i < config.getNumChildren(); ++i)
         {
             auto child = config.getChild (i);
-            if (child.hasProperty (id))
-                return static_cast<float> (child.getProperty (id));
+            if (child.hasProperty (propId))
+                return static_cast<float> (child.getProperty (propId));
         }
         return defaultVal;
     };

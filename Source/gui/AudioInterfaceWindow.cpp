@@ -611,6 +611,10 @@ AudioInterfaceContent::AudioInterfaceContent(juce::AudioDeviceManager& devManage
             inputPatchTab->grabPatchMatrixFocus();
         else if (tabIndex == 2 && outputPatchTab != nullptr)
             outputPatchTab->grabPatchMatrixFocus();
+
+        // Notify external listener (bidirectional StreamDeck+ sync)
+        if (externalTabChangedCallback)
+            externalTabChangedCallback(tabIndex);
     };
 }
 

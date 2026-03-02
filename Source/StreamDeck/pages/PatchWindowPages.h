@@ -115,13 +115,17 @@ inline StreamDeckPage createPage (int overrideSubTab,
     // Top row: sub-tab selectors (always the same on all sub-tabs)
     //======================================================================
 
-    // Button 0: Audio Interface
+    // Button 0: Audio Interface (Device Settings)
     {
         auto& btn = page.topRowButtons[0];
         btn.label  = LOC ("streamDeck.patch.tabs.audioInterface");
         btn.colour = (overrideSubTab == 0) ? kActiveTabColour : kInactiveTabColour;
         btn.type   = ButtonBinding::Action;
-        btn.onPress = [cb]() { if (cb.switchOverrideSubTab) cb.switchOverrideSubTab (0); };
+        btn.onPress = [cb]()
+        {
+            if (cb.switchPatchTab) cb.switchPatchTab (-1);  // -1 + 1 = 0 (Device Settings tab)
+            if (cb.switchOverrideSubTab) cb.switchOverrideSubTab (0);
+        };
     }
 
     // Button 1: Input Patch

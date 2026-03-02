@@ -274,10 +274,18 @@ void InputPatchTab::paint(juce::Graphics& g)
 
 void InputPatchTab::setMode(PatchMatrixComponent::Mode mode)
 {
+    // Update button toggle states to reflect the mode
+    scrollingButton.setToggleState(mode == PatchMatrixComponent::Mode::Scrolling, juce::dontSendNotification);
+    patchingButton.setToggleState(mode == PatchMatrixComponent::Mode::Patching, juce::dontSendNotification);
+
     if (patchMatrix)
     {
         patchMatrix->setMode(mode);
     }
+
+    // Notify external listener (bidirectional StreamDeck+ sync)
+    if (onModeChanged)
+        onModeChanged(mode);
 }
 
 void InputPatchTab::resetMode()
@@ -545,6 +553,11 @@ void OutputPatchTab::paint(juce::Graphics& g)
 
 void OutputPatchTab::setMode(PatchMatrixComponent::Mode mode)
 {
+    // Update button toggle states to reflect the mode
+    scrollingButton.setToggleState(mode == PatchMatrixComponent::Mode::Scrolling, juce::dontSendNotification);
+    patchingButton.setToggleState(mode == PatchMatrixComponent::Mode::Patching, juce::dontSendNotification);
+    testingButton.setToggleState(mode == PatchMatrixComponent::Mode::Testing, juce::dontSendNotification);
+
     if (patchMatrix)
     {
         patchMatrix->setMode(mode);
@@ -562,6 +575,10 @@ void OutputPatchTab::setMode(PatchMatrixComponent::Mode mode)
     }
 
     resized();  // Update layout
+
+    // Notify external listener (bidirectional StreamDeck+ sync)
+    if (onModeChanged)
+        onModeChanged(mode);
 }
 
 void OutputPatchTab::applyTestSettings()

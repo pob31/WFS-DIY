@@ -149,6 +149,9 @@ public:
     /** Get the tabbed component (for Stream Deck tab switching). */
     PatchTabbedComponent& getTabbedComponent() { return tabbedComponent; }
 
+    /** Set callback for tab changes (bidirectional StreamDeck+ sync). */
+    void setOnTabChanged(std::function<void(int)> callback) { externalTabChangedCallback = std::move(callback); }
+
 private:
     juce::AudioDeviceManager& deviceManager;
     WFSValueTreeState& parameters;
@@ -164,6 +167,9 @@ private:
     // Tabs (owned by TabbedComponent)
     InputPatchTab* inputPatchTab = nullptr;
     OutputPatchTab* outputPatchTab = nullptr;
+
+    // External callback for tab changes (StreamDeck+ sync)
+    std::function<void(int)> externalTabChangedCallback;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioInterfaceContent)
 };

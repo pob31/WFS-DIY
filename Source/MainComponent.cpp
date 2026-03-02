@@ -1701,9 +1701,10 @@ void MainComponent::setupPatchWindowStreamDeck (PatchWindowPages::PatchCallbacks
 
     cb.switchPatchTab = [content] (int tab)
     {
+        // tab: 0=Input, 1=Output, but actual tab indices are 1 and 2 (Device Settings is 0)
         juce::MessageManager::callAsync ([content, tab]()
         {
-            content->getTabbedComponent().setCurrentTabIndex (tab);
+            content->getTabbedComponent().setCurrentTabIndex (tab + 1);
         });
     };
 
@@ -1986,12 +1987,45 @@ void MainComponent::openAudioInterfaceWindow()
             if (streamDeckManager && streamDeckManager->hasOverride())
                 streamDeckManager->clearOverridePageFactory();
         };
+
+        // Bidirectional sync: UI tab changes → StreamDeck+ page changes
+        if (auto* content = audioInterfaceWindow->getContent())
+        {
+            content->setOnTabChanged([this](int tabIndex)
+            {
+                if (streamDeckManager && streamDeckManager->hasOverride())
+                    streamDeckManager->setOverrideSubTab(tabIndex);
+            });
+
+            // Bidirectional sync: UI mode changes → StreamDeck+ page refresh
+            if (auto* inTab = content->getInputPatchTab())
+            {
+                inTab->onModeChanged = [this](PatchMatrixComponent::Mode)
+                {
+                    if (streamDeckManager && streamDeckManager->hasOverride())
+                        streamDeckManager->refreshCurrentPage();
+                };
+            }
+            if (auto* outTab = content->getOutputPatchTab())
+            {
+                outTab->onModeChanged = [this](PatchMatrixComponent::Mode)
+                {
+                    if (streamDeckManager && streamDeckManager->hasOverride())
+                        streamDeckManager->refreshCurrentPage();
+                };
+            }
+        }
     }
     else
     {
         audioInterfaceWindow->setVisible(true);
         audioInterfaceWindow->toFront(true);
     }
+
+    // Always trigger the focus callback to ensure StreamDeck+ page switches
+    // (activeWindowStatusChanged doesn't fire reliably on first show or reshow)
+    if (audioInterfaceWindow->onWindowFocused)
+        audioInterfaceWindow->onWindowFocused();
 }
 
 void MainComponent::openNetworkLogWindow()

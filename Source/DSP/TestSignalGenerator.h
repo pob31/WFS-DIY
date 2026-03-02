@@ -133,9 +133,10 @@ private:
     static constexpr float sweepEndHz = 20000.0f;
 
     // Dirac pulse (with repeat)
-    bool pulsePlayed = false;
-    float pulseGapPosition = 0.0f;  // Gap counter for repeat
+    float pulsePosition = 0.0f;  // Position in pulse cycle
+    static constexpr float pulseDuration = 0.005f;  // 5ms pulse burst
     static constexpr float pulseGap = 1.0f;  // 1 second between pulses
+    static constexpr float pulseAmplitude = 2.0f;  // Louder than unity
 
     // Fade constants
     static constexpr float fadeDuration = 0.5f;  // 500ms fade-in

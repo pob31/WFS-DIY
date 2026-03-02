@@ -78,6 +78,9 @@ public:
     /** Get the patch matrix component (for Stream Deck integration). */
     PatchMatrixComponent* getPatchMatrix() { return patchMatrix.get(); }
 
+    /** Callback when mode changes (for bidirectional StreamDeck+ sync). */
+    std::function<void(PatchMatrixComponent::Mode)> onModeChanged;
+
 private:
     WFSValueTreeState& parameters;
 
@@ -125,6 +128,9 @@ public:
 
     /** Callback for status bar messages */
     std::function<void(const juce::String&)> onStatusMessage;
+
+    /** Callback when mode changes (for bidirectional StreamDeck+ sync). */
+    std::function<void(PatchMatrixComponent::Mode)> onModeChanged;
 
     /** Set the current mode (public for Stream Deck integration). */
     void setMode(PatchMatrixComponent::Mode mode);

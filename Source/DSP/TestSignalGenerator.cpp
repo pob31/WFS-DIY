@@ -19,8 +19,7 @@ void TestSignalGenerator::prepare(double newSampleRate, int maxBlockSize)
     // Reset all state
     phase = 0.0f;
     sweepPosition = 0.0f;
-    pulsePlayed = false;
-    pulseGapPosition = 0.0f;
+    pulsePosition = 0.0f;
     fadePosition.store(0.0f);
 }
 
@@ -34,8 +33,7 @@ void TestSignalGenerator::setSignalType(SignalType type)
         // Reset state when changing signal type
         phase = 0.0f;
         sweepPosition = 0.0f;
-        pulsePlayed = false;
-        pulseGapPosition = 0.0f;
+        pulsePosition = 0.0f;
 
         // Reset fade for pink noise and tone (500ms fade-in)
         if (type == SignalType::PinkNoise || type == SignalType::Tone)
@@ -77,9 +75,16 @@ void TestSignalGenerator::setOutputChannel(int channel)
         }
     }
 
-    // Reset pulse flag when channel changes
-    if (type == SignalType::DiracPulse)
-        pulsePlayed = false;
+    // Reset sweep position when channel changes (so it starts from beginning)
+    if (type == SignalType::Sweep && channel >= 0 && channel != oldChannel)
+    {
+        sweepPosition = 0.0f;
+        phase = 0.0f;
+    }
+
+    // Reset pulse position when channel changes (so pulse starts immediately)
+    if (type == SignalType::DiracPulse && channel >= 0 && channel != oldChannel)
+        pulsePosition = 0.0f;
 }
 
 void TestSignalGenerator::setHoldEnabled(bool hold)
@@ -139,21 +144,21 @@ void TestSignalGenerator::renderNextBlock(juce::AudioBuffer<float>& outputBuffer
                 break;
 
             case SignalType::DiracPulse:
-                if (!pulsePlayed)
+                if (pulsePosition < pulseDuration)
                 {
-                    sample = 1.0f;
-                    pulsePlayed = true;
-                    pulseGapPosition = 0.0f;
+                    // Output pulse burst for pulseDuration (5ms)
+                    sample = pulseAmplitude;
                 }
                 else
                 {
+                    // Silence during gap
                     sample = 0.0f;
-                    // Increment gap counter and reset after pulseGap seconds
-                    pulseGapPosition += 1.0f / static_cast<float>(sampleRate);
-                    if (pulseGapPosition >= pulseGap)
-                    {
-                        pulsePlayed = false;  // Ready for next pulse
-                    }
+                }
+                // Advance position and reset at end of cycle
+                pulsePosition += 1.0f / static_cast<float>(sampleRate);
+                if (pulsePosition >= pulseDuration + pulseGap)
+                {
+                    pulsePosition = 0.0f;  // Ready for next pulse
                 }
                 break;
 
