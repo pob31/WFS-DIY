@@ -574,7 +574,7 @@ inline StreamDeckPage createMapPage (WFSValueTreeState& state,
                 d.setValue = [callbacks, cluster] (float v)
                 {
                     if (callbacks.rotateCluster)
-                        callbacks.rotateCluster (cluster, v);
+                        callbacks.rotateCluster (cluster, -v);
                 };
             }
         }
