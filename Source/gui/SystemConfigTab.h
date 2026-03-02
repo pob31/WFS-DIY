@@ -1608,6 +1608,8 @@ private:
         else if (&editor == &binauralDelayEditor)
             value = juce::jlimit(WFSParameterDefaults::binauralDelayMin,
                                  WFSParameterDefaults::binauralDelayMax, std::abs(value));
+        else if (&editor == &reverbChannelsEditor)
+            value = juce::jlimit(0.0f, (float)WFSParameterDefaults::maxReverbChannels, std::abs(value));
 
         // Update display with clamped value
         if (&editor == &inputChannelsEditor || &editor == &outputChannelsEditor ||

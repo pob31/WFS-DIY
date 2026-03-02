@@ -132,7 +132,25 @@ DeviceSettingsPanel::DeviceSettingsPanel(juce::AudioDeviceManager& devManager)
     resetDeviceButton.setButtonText(LOC("audioPatch.deviceSettings.buttons.resetDevice"));
     resetDeviceButton.onClick = [this]()
     {
-        deviceManager.restartLastAudioDevice();
+        // Save the current setup before closing (closeAudioDevice clears the names)
+        auto savedSetup = deviceManager.getAudioDeviceSetup();
+
+        // Close the device first to release any stuck ASIO connections
+        deviceManager.closeAudioDevice();
+
+        // Small delay to allow the driver to fully release
+        juce::Thread::sleep(100);
+
+        // Try to reopen with the saved configuration
+        if (savedSetup.outputDeviceName.isNotEmpty() || savedSetup.inputDeviceName.isNotEmpty())
+        {
+            auto error = deviceManager.setAudioDeviceSetup(savedSetup, true);
+            if (error.isNotEmpty())
+            {
+                DBG("Reset audio device failed: " + error);
+                // Device couldn't be restarted - user will need to select manually
+            }
+        }
     };
 
     // Listen for device manager changes

@@ -941,11 +941,14 @@ void PatchMatrixComponent::drawCell(juce::Graphics& g, int row, int col,
         g.setColour(ColorScheme::get().textDisabled.withAlpha(0.15f));
         g.fillRect(bounds);
 
-        // Diagonal stripes
+        // Diagonal stripes (clipped to cell bounds to prevent bleeding)
+        g.saveState();
+        g.reduceClipRegion(bounds);
         g.setColour(ColorScheme::get().textDisabled.withAlpha(0.2f));
         for (int i = -bounds.getHeight(); i < bounds.getWidth(); i += 8)
             g.drawLine(static_cast<float>(bounds.getX() + i), static_cast<float>(bounds.getBottom()),
                        static_cast<float>(bounds.getX() + i + bounds.getHeight()), static_cast<float>(bounds.getY()), 1.0f);
+        g.restoreState();
 
         // Grid border and return
         g.setColour(ColorScheme::get().chromeDivider);
@@ -1103,21 +1106,38 @@ void PatchMatrixComponent::drawHeadphonesIcon(juce::Graphics& g, juce::Rectangle
     float cx = bounds.getCentreX();
     float cy = bounds.getCentreY();
 
+    // Dimensions
+    float cupW = size * 0.28f;
+    float cupH = size * 0.45f;
+    float gap = size * 0.35f;  // wider gap between cups
+    float bandHeight = size * 0.5f;  // how high the headband arcs (almost half circle)
+
+    // Cup positions (centered around 0,0, will translate later)
+    float leftCupX = -gap / 2.0f - cupW;
+    float rightCupX = gap / 2.0f;
+    float cupY = 0.0f;
+
     juce::Path headphones;
 
-    // Headband arc
-    float r = size * 0.4f;
-    headphones.addCentredArc(cx, cy - size * 0.05f, r, r * 0.7f,
-                             0.0f, -juce::MathConstants<float>::pi, 0.0f, true);
-
     // Left ear cup
-    float cupW = size * 0.28f, cupH = size * 0.38f;
-    headphones.addRoundedRectangle(cx - r - cupW * 0.5f, cy - cupH * 0.3f,
-                                   cupW, cupH, cupW * 0.35f);
+    headphones.addRoundedRectangle(leftCupX, cupY, cupW, cupH, cupW * 0.3f);
 
     // Right ear cup
-    headphones.addRoundedRectangle(cx + r - cupW * 0.5f, cy - cupH * 0.3f,
-                                   cupW, cupH, cupW * 0.35f);
+    headphones.addRoundedRectangle(rightCupX, cupY, cupW, cupH, cupW * 0.3f);
+
+    // Headband - arc from center-top of left cup to center-top of right cup
+    float bandStartX = leftCupX + cupW / 2.0f;   // center of left cup
+    float bandEndX = rightCupX + cupW / 2.0f;    // center of right cup
+    float bandY = cupY;                           // top of cups
+
+    headphones.startNewSubPath(bandStartX, bandY);
+    headphones.quadraticTo(
+        0.0f, bandY - bandHeight,  // control point (center, above)
+        bandEndX, bandY            // end point
+    );
+
+    // Center the icon in bounds
+    headphones.applyTransform(juce::AffineTransform::translation(cx, cy));
 
     g.setColour(ColorScheme::get().textSecondary);
     g.strokePath(headphones, juce::PathStrokeType(1.5f));

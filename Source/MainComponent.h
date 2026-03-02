@@ -104,6 +104,9 @@ public:
     float getDelay(int inputChannel, int outputChannel) const;
     float getLevel(int inputChannel, int outputChannel) const;
 
+    // Audio device access (for crash handler)
+    juce::AudioDeviceManager& getDeviceManager() { return deviceManager; }
+
     // Audio Interface Window
     void openAudioInterfaceWindow();
     void setupPatchWindowStreamDeck (PatchWindowPages::PatchCallbacks& cb,

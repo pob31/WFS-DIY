@@ -1490,9 +1490,26 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
     stopProcessingForConfigurationChange();
     resizeRoutingMatrices();
 
-    // Update reverb engine node count
+    // Update reverb engine node count and resize MainComponent's reverb buffers
     if (reverbEngine)
+    {
         reverbEngine->setNumNodes(reverbs);
+
+        // Resize MainComponent's reverb buffers to match the new node count
+        auto* device = deviceManager.getCurrentAudioDevice();
+        int blockSize = device ? device->getCurrentBufferSizeSamples() : 512;
+
+        if (reverbs > 0)
+        {
+            reverbFeedBuffer.setSize(reverbs, blockSize);
+            reverbReturnBuffer.setSize(reverbs, blockSize);
+        }
+        else
+        {
+            reverbFeedBuffer.setSize(1, blockSize);
+            reverbReturnBuffer.setSize(1, blockSize);
+        }
+    }
 
     // Refresh all tabs to update channel selectors
     if (inputsTab != nullptr)
@@ -2164,6 +2181,11 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
         if (reverbEngine && reverbEngine->isActive() && calculationEngine)
         {
             int numReverbs = reverbEngine->getNumNodes();
+
+            // Safety: clamp to available buffer channels to prevent out-of-bounds access
+            int bufferChannels = reverbFeedBuffer.getNumChannels();
+            if (numReverbs > bufferChannels)
+                numReverbs = bufferChannels;
 
             if (numReverbs > 0)
             {

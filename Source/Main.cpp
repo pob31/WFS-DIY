@@ -12,6 +12,34 @@
 #include "gui/ColorScheme.h"
 
 //==============================================================================
+// Windows crash handler to release ASIO driver on unhandled exceptions
+//==============================================================================
+#if JUCE_WINDOWS
+#include <Windows.h>
+
+// Global pointer for emergency audio cleanup
+static juce::AudioDeviceManager* g_audioDeviceManager = nullptr;
+
+LONG WINAPI asioCleanupCrashHandler(EXCEPTION_POINTERS* exceptionInfo)
+{
+    juce::ignoreUnused(exceptionInfo);
+
+    // Attempt emergency audio device shutdown to release ASIO driver
+    if (g_audioDeviceManager != nullptr)
+    {
+        try
+        {
+            g_audioDeviceManager->closeAudioDevice();
+        }
+        catch (...) { /* Best effort - ignore any exceptions during cleanup */ }
+    }
+
+    // Let Windows handle the crash (show error dialog, generate dump, etc.)
+    return EXCEPTION_CONTINUE_SEARCH;
+}
+#endif
+
+//==============================================================================
 class WFSDIYApplication  : public juce::JUCEApplication
 {
 public:
@@ -29,11 +57,25 @@ public:
         // This method is where you should put your application's initialisation code..
 
         mainWindow.reset (new MainWindow (getApplicationName()));
+
+#if JUCE_WINDOWS
+        // Register crash handler to release ASIO driver on unhandled exceptions
+        if (auto* mainComp = dynamic_cast<MainComponent*>(mainWindow->getContentComponent()))
+        {
+            g_audioDeviceManager = &mainComp->getDeviceManager();
+            SetUnhandledExceptionFilter(asioCleanupCrashHandler);
+        }
+#endif
     }
 
     void shutdown() override
     {
         // Add your application's shutdown code here..
+
+#if JUCE_WINDOWS
+        // Clear global pointer before window destruction
+        g_audioDeviceManager = nullptr;
+#endif
 
         mainWindow = nullptr; // (deletes our window)
     }
