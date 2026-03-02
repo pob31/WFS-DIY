@@ -258,7 +258,7 @@ public:
         g.fillAll(ColorScheme::get().background);
 
         // Footer background (matching Input/Output tabs)
-        const int footerH = scaled(50);
+        const int footerH = scaled(30) + 2 * scaled(10);
         g.setColour(ColorScheme::get().chromeSurface);
         g.fillRect(0, getHeight() - footerH, getWidth(), footerH);
 
@@ -287,7 +287,7 @@ public:
         const int sectionSpacing = scaled(40);
         const int margin = scaled(20);
         const int columnGap = scaled(30);
-        const int footerHeight = scaled(50);
+        const int footerHeight = scaled(30) + 2 * scaled(10);
 
         // Calculate available width and split into two columns
         const int totalWidth = getWidth() - margin * 2;

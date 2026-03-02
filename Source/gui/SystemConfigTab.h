@@ -553,8 +553,8 @@ public:
         // Store/Reload Section
         addAndMakeVisible(selectProjectFolderButton);
         selectProjectFolderButton.setButtonText(LOC("systemConfig.buttons.selectProjectFolder"));
-        selectProjectFolderButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF33668C));  // Blueish
-        selectProjectFolderButton.onClick = [this]() { selectProjectFolder(); };
+        selectProjectFolderButton.setBaseColour(juce::Colour(0xFF33668C));  // Light blue
+        selectProjectFolderButton.onLongPress = [this]() { selectProjectFolder(); };
 
         addAndMakeVisible(storeCompleteConfigButton);
         storeCompleteConfigButton.setButtonText(LOC("systemConfig.buttons.storeComplete"));
@@ -692,7 +692,7 @@ public:
         g.fillAll(ColorScheme::get().background);
 
         // Footer background (matching Input/Output tabs)
-        const int footerH = scaled(90);  // Two button rows
+        const int footerH = 2 * scaled(30) + 3 * scaled(10);  // Two button rows
         g.setColour(ColorScheme::get().chromeSurface);
         g.fillRect(0, getHeight() - footerH, getWidth(), footerH);
 
@@ -927,7 +927,7 @@ public:
         soloModeButton.setBounds(x, y, binauralFullWidth, rowHeight);
 
         // Footer buttons - full width at bottom (matching Output tab style)
-        const int footerHeight = scaled(90);  // Two 30px button rows + 10px spacing + 20px padding
+        const int footerHeight = 2 * scaled(30) + 3 * scaled(10);  // Two 30px button rows + 10px spacing + 20px padding
         const int footerPadding = scaled(10);
         const int buttonRowHeight = scaled(30);  // Same as Output tab buttons
         auto footerArea = getLocalBounds().removeFromBottom(footerHeight).reduced(footerPadding, footerPadding);
@@ -2448,7 +2448,7 @@ private:
     juce::Label binauralDelayUnitLabel;
 
     // Store/Reload Section
-    juce::TextButton selectProjectFolderButton;
+    LongPressButton selectProjectFolderButton { 1 };
     LongPressButton storeCompleteConfigButton;
     LongPressButton reloadCompleteConfigButton;
     LongPressButton reloadCompleteConfigBackupButton;

@@ -90,18 +90,15 @@ private:
     {
         auto bounds = getLocalBounds().toFloat().reduced(1.0f);
 
-        // Background
+        // Background — always use theme button colors (slightly darker for footer buttons)
         if (!isEnabled())
-        {
-            auto baseCol = hasCustomBaseColour ? customBaseColour : ColorScheme::get().buttonNormal;
-            g.setColour(baseCol.withAlpha(0.4f));
-        }
+            g.setColour(ColorScheme::get().buttonNormal.withAlpha(0.4f));
         else if (shouldBeDown)
-            g.setColour(hasCustomBaseColour ? customBaseColour.darker(0.2f) : ColorScheme::get().buttonPressed);
+            g.setColour(hasCustomBaseColour ? ColorScheme::get().buttonPressed.darker(0.15f) : ColorScheme::get().buttonPressed);
         else if (shouldHighlight)
-            g.setColour(hasCustomBaseColour ? customBaseColour.brighter(0.1f) : ColorScheme::get().buttonHover);
+            g.setColour(hasCustomBaseColour ? ColorScheme::get().buttonHover.darker(0.15f) : ColorScheme::get().buttonHover);
         else
-            g.setColour(hasCustomBaseColour ? customBaseColour : ColorScheme::get().buttonNormal);
+            g.setColour(hasCustomBaseColour ? ColorScheme::get().buttonNormal.darker(0.15f) : ColorScheme::get().buttonNormal);
 
         g.fillRoundedRectangle(bounds, 4.0f);
         g.setColour(ColorScheme::get().buttonBorder);
@@ -127,9 +124,20 @@ private:
             g.fillRoundedRectangle(bounds, 4.0f);
         }
 
-        // Text
-        g.setColour(isEnabled() ? ColorScheme::get().textPrimary : ColorScheme::get().textDisabled);
-        g.setFont(juce::FontOptions(juce::jmax(10.0f, 14.0f * WfsLookAndFeel::uiScale)));
+        // Text — use accent colour when set, brightened/darkened for theme contrast
+        if (!isEnabled())
+            g.setColour(ColorScheme::get().textDisabled);
+        else if (hasCustomBaseColour)
+        {
+            bool isDarkTheme = ColorScheme::get().background.getBrightness() < 0.5f;
+            g.setColour(isDarkTheme ? customBaseColour.brighter(0.5f) : customBaseColour.darker(0.2f));
+        }
+        else
+            g.setColour(ColorScheme::get().textPrimary);
+        auto fontSize = hasCustomBaseColour ? juce::jmax(12.0f, 16.0f * WfsLookAndFeel::uiScale)
+                                            : juce::jmax(10.0f, 14.0f * WfsLookAndFeel::uiScale);
+        auto font = juce::Font(juce::FontOptions(fontSize));
+        g.setFont(hasCustomBaseColour ? font.boldened() : font);
         g.drawText(getButtonText(), bounds, juce::Justification::centred);
     }
 

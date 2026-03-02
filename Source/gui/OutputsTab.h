@@ -399,7 +399,7 @@ public:
     {
         layoutScale = static_cast<float>(getHeight()) / 932.0f;
         headerHeight = scaled(60);
-        footerHeight = scaled(50);
+        footerHeight = scaled(30) + 2 * scaled(10);
         auto bounds = getLocalBounds();
         const int padding = scaled(10);
         const int rowHeight = scaled(30);

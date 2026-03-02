@@ -338,8 +338,8 @@ public:
 
         addAndMakeVisible(editScopeButton);
         editScopeButton.setButtonText(LOC("inputs.buttons.editScope"));
-        editScopeButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF33668C));  // Light blue
-        editScopeButton.onClick = [this]() { editSnapshotScope(); };
+        editScopeButton.setBaseColour(juce::Colour(0xFF33668C));  // Light blue
+        editScopeButton.onLongPress = [this]() { editSnapshotScope(); };
 
         addAndMakeVisible(deleteSnapshotButton);
         deleteSnapshotButton.setButtonText(LOC("inputs.buttons.deleteSnapshot"));
@@ -508,7 +508,7 @@ public:
     {
         layoutScale = static_cast<float>(getHeight()) / 932.0f;
         headerHeight = scaled(60);
-        footerHeight = scaled(90);
+        footerHeight = 2 * scaled(30) + 3 * scaled(10);
         auto bounds = getLocalBounds();
         const int padding = scaled(10);
         const int rowHeight = scaled(30);
@@ -7535,7 +7535,7 @@ private:
     LongPressButton reloadSnapshotButton;
     LongPressButton reloadWithoutScopeButton;
     LongPressButton updateSnapshotButton;
-    juce::TextButton editScopeButton;
+    LongPressButton editScopeButton { 1 };
     LongPressButton deleteSnapshotButton;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(InputsTab)
