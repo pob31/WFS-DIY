@@ -538,6 +538,7 @@ void NetworkLogWindowContent::applyFilters()
                 else if (name == "ADM-OSC") filter.enabledProtocols.insert(WFSNetwork::Protocol::ADMOSC);
                 else if (name == "PSN") filter.enabledProtocols.insert(WFSNetwork::Protocol::PSN);
                 else if (name == "RTTrP") filter.enabledProtocols.insert(WFSNetwork::Protocol::RTTrP);
+                else if (name == "QLab") filter.enabledProtocols.insert(WFSNetwork::Protocol::QLab);
             }
         }
     }

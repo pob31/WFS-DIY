@@ -408,6 +408,17 @@ public:
                 currentChannel = 1;
         }
 
+        // Restore persisted QLab toggle states
+        {
+            auto config = parameters.getValueTreeState().getConfigState();
+            auto showSection = config.getChildWithName (WFSParameterIDs::Show);
+            if (showSection.isValid())
+            {
+                writeToQLabEnabled = static_cast<bool> (showSection.getProperty (WFSParameterIDs::writeToQLab, false));
+                writeSnapshotLoadCueEnabled = static_cast<bool> (showSection.getProperty (WFSParameterIDs::writeSnapshotLoadCue, false));
+            }
+        }
+
         loadChannelParameters(currentChannel);
     }
 
@@ -6009,7 +6020,14 @@ private:
 
                         if (writeToQLabEnabled)
                         {
-                            // QLab mode: export to QLab only, no XML file
+                            // Save snapshot first — onQLabExportRequested reads XML from disk
+                            auto& fileManager = parameters.getFileManager();
+                            if (fileManager.saveInputSnapshotWithExtendedScope(name, scope))
+                            {
+                                refreshSnapshotList();
+                                snapshotSelector.setText(name, juce::dontSendNotification);
+                                updateSnapshotButtonStates();
+                            }
                             if (onQLabExportRequested)
                                 onQLabExportRequested(name, scope);
                             parameters.getDirtyTracker().clearAll();
@@ -6151,7 +6169,10 @@ private:
 
         if (writeToQLabEnabled)
         {
-            // QLab mode: export to QLab only, no XML file
+            // Save snapshot first — onQLabExportRequested reads XML from disk
+            auto file = fileManager.getInputSnapshotsFolder().getChildFile(selectedSnapshot + ".xml");
+            fileManager.createBackup(file);
+            fileManager.saveInputSnapshotWithExtendedScope(selectedSnapshot, scope);
             if (onQLabExportRequested)
                 onQLabExportRequested(selectedSnapshot, scope);
             parameters.getDirtyTracker().clearAll();
@@ -6215,6 +6236,16 @@ private:
             snapshotScopeWindow->onWindowClosed = [this, hasSelectedSnapshot, selectedSnapshot](bool saved, bool writeToQLab, bool writeLoadCue) {
                 writeToQLabEnabled = writeToQLab;
                 writeSnapshotLoadCueEnabled = writeLoadCue;
+
+                // Persist toggle states to config
+                auto config = parameters.getValueTreeState().getConfigState();
+                auto showSection = config.getChildWithName (WFSParameterIDs::Show);
+                if (showSection.isValid())
+                {
+                    showSection.setProperty (WFSParameterIDs::writeToQLab, writeToQLab, nullptr);
+                    showSection.setProperty (WFSParameterIDs::writeSnapshotLoadCue, writeLoadCue, nullptr);
+                }
+
                 if (saved)
                 {
                     if (hasSelectedSnapshot)

@@ -43,6 +43,13 @@ OSCManager::OSCManager(WFSValueTreeState& valueTreeState)
                     logger.logSentWithDetails(targetIndex, message, config.protocol,
                                               config.ipAddress, config.port, config.mode);
                 }
+                else
+                {
+                    const auto& config = targetConfigs[static_cast<size_t>(targetIndex)];
+                    logger.logText("Send failed: target " + juce::String(targetIndex + 1)
+                        + " (" + config.ipAddress + ":" + juce::String(config.port)
+                        + ") " + message.getAddressPattern().toString());
+                }
             }
         }
     });
@@ -371,11 +378,19 @@ void OSCManager::sendMessageDirect (int targetIndex, const juce::OSCMessage& mes
         {
             DBG ("OSCManager::sendMessageDirect - send() failed for target " << targetIndex
                  << " address: " << message.getAddressPattern().toString());
+            const auto& config = targetConfigs[static_cast<size_t> (targetIndex)];
+            logger.logText ("Send failed: target " + juce::String (targetIndex + 1)
+                + " (" + config.ipAddress + ":" + juce::String (config.port)
+                + ") " + message.getAddressPattern().toString());
         }
     }
     else
     {
         DBG ("OSCManager::sendMessageDirect - no connection for target " << targetIndex);
+        const auto& config = targetConfigs[static_cast<size_t> (targetIndex)];
+        logger.logText ("No connection: target " + juce::String (targetIndex + 1)
+            + " (" + config.ipAddress + ":" + juce::String (config.port)
+            + ") " + message.getAddressPattern().toString());
     }
 }
 
@@ -3313,7 +3328,7 @@ void OSCManager::sendToQLab (const QLabCueSequence& sequence,
         return;
     }
 
-    // Find all QLab target indices
+    // Find all QLab target indices — let sendMessageDirect handle connection errors
     std::vector<int> qlabTargets;
     for (int i = 0; i < MAX_TARGETS; ++i)
     {
@@ -3323,6 +3338,7 @@ void OSCManager::sendToQLab (const QLabCueSequence& sequence,
 
     if (qlabTargets.empty())
     {
+        logger.logText ("QLab send failed: no QLab target configured");
         if (onComplete)
             juce::MessageManager::callAsync ([onComplete]() { onComplete (0); });
         return;
@@ -3330,6 +3346,14 @@ void OSCManager::sendToQLab (const QLabCueSequence& sequence,
 
     DBG ("OSCManager::sendToQLab - " << (int) sequence.networkCues.size()
          << " network cues to " << (int) qlabTargets.size() << " QLab target(s)");
+
+    // Log the targets being used
+    for (int idx : qlabTargets)
+    {
+        const auto& cfg = targetConfigs[static_cast<size_t>(idx)];
+        logger.logText ("QLab: sending to target " + juce::String (idx + 1)
+            + " (" + cfg.ipAddress + ":" + juce::String (cfg.port) + ")");
+    }
 
     // Copy data for background thread
     auto seqCopy = std::make_shared<QLabCueSequence> (sequence);
@@ -3390,6 +3414,9 @@ void OSCManager::sendToQLab (const QLabCueSequence& sequence,
         {
             DBG ("OSCManager::sendToQLab - failed to bind reply listener on port "
                  << DEFAULT_QLAB_REPLY_PORT);
+            manager->logger.logText ("QLab: failed to bind reply port "
+                + juce::String (DEFAULT_QLAB_REPLY_PORT)
+                + " - uniqueID queries will time out");
         }
 
         // Helper lambda: send a message to all QLab targets
@@ -3419,6 +3446,8 @@ void OSCManager::sendToQLab (const QLabCueSequence& sequence,
             }
 
             DBG ("OSCManager::sendToQLab - uniqueID query timed out");
+            manager->logger.logText ("QLab: uniqueID query timed out (no reply on port "
+                + juce::String (DEFAULT_QLAB_REPLY_PORT) + ")");
             return {};
         };
 
@@ -3434,6 +3463,7 @@ void OSCManager::sendToQLab (const QLabCueSequence& sequence,
             if (groupUID.isEmpty())
             {
                 DBG ("OSCManager::sendToQLab - failed to get group uniqueID, aborting");
+                manager->logger.logText ("QLab: failed to get group cue uniqueID, aborting send");
                 replyReceiver.disconnect();
                 if (*completeCb)
                 {
@@ -3460,6 +3490,8 @@ void OSCManager::sendToQLab (const QLabCueSequence& sequence,
                 if (cueUID.isEmpty())
                 {
                     DBG ("OSCManager::sendToQLab - failed to get cue uniqueID for cue " << cueIndex << ", skipping move");
+                    manager->logger.logText ("QLab: failed to get uniqueID for network cue "
+                        + juce::String (cueIndex) + ", skipping move");
                     ++cueIndex;
                     continue;
                 }
@@ -3480,6 +3512,9 @@ void OSCManager::sendToQLab (const QLabCueSequence& sequence,
 
         DBG ("OSCManager::sendToQLab thread done - sent " << sentCount << " messages, "
              << cueIndex << " cues");
+
+        manager->logger.logText ("QLab: completed - sent " + juce::String (sentCount)
+            + " messages, " + juce::String (cueIndex) + " cues created");
 
         if (*completeCb)
         {

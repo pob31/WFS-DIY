@@ -580,12 +580,30 @@ public:
         writeToQLabToggle.onClick = [this]() {
             updateSnapshotLoadCueVisibility();
         };
+        // Restore persisted "Write to QLab" state
+        {
+            auto config = params.getValueTreeState().getConfigState();
+            auto showSection = config.getChildWithName (WFSParameterIDs::Show);
+            bool savedWriteToQLab = showSection.isValid()
+                ? static_cast<bool> (showSection.getProperty (WFSParameterIDs::writeToQLab, false))
+                : false;
+            if (savedWriteToQLab)
+                writeToQLabToggle.setToggleState (true, juce::sendNotification);
+        }
 
         // "Write Snapshot Load Cue to QLab" checkbox (additive, not radio)
         addAndMakeVisible (writeSnapshotLoadCueToggle);
         writeSnapshotLoadCueToggle.setButtonText (LOC("snapshotScope.writeSnapshotLoadCue"));
         writeSnapshotLoadCueToggle.setTooltip (LOC("snapshotScope.writeSnapshotLoadCueTooltip"));
-        writeSnapshotLoadCueToggle.setToggleState (false, juce::dontSendNotification);
+        // Restore persisted load cue state
+        {
+            auto config = params.getValueTreeState().getConfigState();
+            auto showSection = config.getChildWithName (WFSParameterIDs::Show);
+            bool savedLoadCue = showSection.isValid()
+                ? static_cast<bool> (showSection.getProperty (WFSParameterIDs::writeSnapshotLoadCue, false))
+                : false;
+            writeSnapshotLoadCueToggle.setToggleState (savedLoadCue, juce::dontSendNotification);
+        }
 
         // Dirty tracking controls
         addAndMakeVisible (autoPreselectToggle);

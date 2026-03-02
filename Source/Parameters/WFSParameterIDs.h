@@ -63,6 +63,8 @@ namespace WFSParameterIDs
     const juce::Identifier showName          ("showName");
     const juce::Identifier showLocation      ("showLocation");
     const juce::Identifier autoPreselectDirty ("autoPreselectDirty");
+    const juce::Identifier writeToQLab         ("writeToQLab");
+    const juce::Identifier writeSnapshotLoadCue("writeSnapshotLoadCue");
 
     //==========================================================================
     // Config > I/O Section
