@@ -5,6 +5,25 @@
 using namespace WFSParameterIDs;
 
 //==============================================================================
+// Transient toggle stripping
+//==============================================================================
+
+static void stripTransientToggles (juce::ValueTree& tree)
+{
+    tree.removeProperty (runDSP, nullptr);
+    tree.removeProperty (binauralEnabled, nullptr);
+    tree.removeProperty (inputLSactive, nullptr);
+    tree.removeProperty (inputLSpeakEnable, nullptr);
+    tree.removeProperty (inputLSslowEnable, nullptr);
+
+    for (int i = 0; i < tree.getNumChildren(); ++i)
+    {
+        auto child = tree.getChild (i);
+        stripTransientToggles (child);
+    }
+}
+
+//==============================================================================
 // Construction
 //==============================================================================
 
@@ -200,9 +219,6 @@ bool WFSFileManager::saveCompleteConfig()
 
 bool WFSFileManager::loadCompleteConfig()
 {
-    DBG ("WFSFileManager::loadCompleteConfig() - starting");
-    DBG ("  Project folder: " << projectFolder.getFullPathName());
-
     if (!hasValidProjectFolder())
     {
         setError (LOC ("fileManager.errors.noValidProjectFolder"));
@@ -219,60 +235,44 @@ bool WFSFileManager::loadCompleteConfig()
 
     // Note: No undo transaction needed for config reload - changes are intentional and don't need undo
 
-    DBG ("  Loading system config from: " << getSystemConfigFile().getFullPathName());
     if (!loadSystemConfig())
     {
         success = false;
         errors.add (LOC ("fileManager.errors.prefixSystem") + lastError);
         DBG ("  FAILED: System - " << lastError);
     }
-    else
-        DBG ("  OK: System config loaded");
 
-    DBG ("  Loading network config from: " << getNetworkConfigFile().getFullPathName());
     if (!loadNetworkConfig())
     {
         success = false;
         errors.add (LOC ("fileManager.errors.prefixNetwork") + lastError);
         DBG ("  FAILED: Network - " << lastError);
     }
-    else
-        DBG ("  OK: Network config loaded");
 
-    DBG ("  Loading input config from: " << getInputConfigFile().getFullPathName());
     if (!loadInputConfig())
     {
         success = false;
         errors.add (LOC ("fileManager.errors.prefixInputs") + lastError);
         DBG ("  FAILED: Inputs - " << lastError);
     }
-    else
-        DBG ("  OK: Input config loaded");
 
-    DBG ("  Loading output config from: " << getOutputConfigFile().getFullPathName());
     if (!loadOutputConfig())
     {
         success = false;
         errors.add (LOC ("fileManager.errors.prefixOutputs") + lastError);
         DBG ("  FAILED: Outputs - " << lastError);
     }
-    else
-        DBG ("  OK: Output config loaded");
 
-    DBG ("  Loading reverb config from: " << getReverbConfigFile().getFullPathName());
     if (!loadReverbConfig())
     {
         success = false;
         errors.add (LOC ("fileManager.errors.prefixReverbs") + lastError);
         DBG ("  FAILED: Reverbs - " << lastError);
     }
-    else
-        DBG ("  OK: Reverb config loaded");
 
     if (!success)
         setError (errors.joinIntoString ("; "));
 
-    DBG ("WFSFileManager::loadCompleteConfig() - " << (success ? "SUCCESS" : "FAILED"));
     return success;
 }
 
@@ -368,6 +368,7 @@ bool WFSFileManager::saveSystemConfig()
     systemState.setProperty (WFSParameterIDs::version, "1.0", nullptr);
     systemState.appendChild (extractConfigSection().createCopy(), nullptr);
     systemState.appendChild (extractAudioPatchSection().createCopy(), nullptr);
+    stripTransientToggles (systemState);
 
     return writeToXmlFile (systemState, file);
 }
@@ -399,6 +400,7 @@ bool WFSFileManager::exportSystemConfig (const juce::File& file)
     systemState.setProperty (WFSParameterIDs::version, "1.0", nullptr);
     systemState.appendChild (extractConfigSection().createCopy(), nullptr);
     systemState.appendChild (extractAudioPatchSection().createCopy(), nullptr);
+    stripTransientToggles (systemState);
 
     return writeToXmlFile (systemState, file);
 }
@@ -413,6 +415,8 @@ bool WFSFileManager::importSystemConfig (const juce::File& file)
     // to avoid nested transactions. Individual callers should begin their own transaction.
 
     bool appliedSomething = false;
+
+    stripTransientToggles (loadedState);
 
     auto configTree = loadedState.getChildWithName (Config);
     if (configTree.isValid())
@@ -547,6 +551,7 @@ bool WFSFileManager::saveInputConfig()
     juce::ValueTree inputState ("InputConfig");
     inputState.setProperty (WFSParameterIDs::version, "1.0", nullptr);
     inputState.appendChild (extractInputsSection().createCopy(), nullptr);
+    stripTransientToggles (inputState);
 
     return writeToXmlFile (inputState, file);
 }
@@ -577,6 +582,7 @@ bool WFSFileManager::exportInputConfig (const juce::File& file)
     juce::ValueTree inputState ("InputConfig");
     inputState.setProperty (WFSParameterIDs::version, "1.0", nullptr);
     inputState.appendChild (extractInputsSection().createCopy(), nullptr);
+    stripTransientToggles (inputState);
 
     return writeToXmlFile (inputState, file);
 }
@@ -586,6 +592,8 @@ bool WFSFileManager::importInputConfig (const juce::File& file)
     auto loadedState = readFromXmlFile (file);
     if (!loadedState.isValid())
         return false;
+
+    stripTransientToggles (loadedState);
 
     auto inputsTree = loadedState.getChildWithName (Inputs);
     if (!inputsTree.isValid())
@@ -791,6 +799,7 @@ bool WFSFileManager::saveInputSnapshot (const juce::String& snapshotName, const 
             inputsData.appendChild (extractInputWithScope (i, scope), nullptr);
     }
     snapshot.appendChild (inputsData, nullptr);
+    stripTransientToggles (snapshot);
 
     return writeToXmlFile (snapshot, file);
 }
@@ -802,6 +811,8 @@ bool WFSFileManager::loadInputSnapshot (const juce::String& snapshotName, const 
 
     if (!snapshot.isValid())
         return false;
+
+    stripTransientToggles (snapshot);
 
     auto inputsData = snapshot.getChildWithName (Inputs);
     if (!inputsData.isValid())
@@ -1201,6 +1212,7 @@ bool WFSFileManager::saveInputSnapshotWithExtendedScope (const juce::String& sna
             inputsData.appendChild (extractInputWithExtendedScope (i, ExtendedSnapshotScope()), nullptr);  // All included
     }
     snapshot.appendChild (inputsData, nullptr);
+    stripTransientToggles (snapshot);
 
     return writeToXmlFile (snapshot, file);
 }
@@ -1212,6 +1224,8 @@ bool WFSFileManager::loadInputSnapshotWithExtendedScope (const juce::String& sna
 
     if (!snapshot.isValid())
         return false;
+
+    stripTransientToggles (snapshot);
 
     auto inputsData = snapshot.getChildWithName (Inputs);
     if (!inputsData.isValid())
