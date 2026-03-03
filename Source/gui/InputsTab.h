@@ -123,6 +123,20 @@ public:
     }
 };
 
+/** ComboBox subclass that rescans content before showing the popup menu. */
+class RefreshableComboBox : public juce::ComboBox
+{
+public:
+    std::function<void()> onPopupAboutToShow;
+
+    void showPopup() override
+    {
+        if (onPopupAboutToShow)
+            onPopupAboutToShow();
+        juce::ComboBox::showPopup();
+    }
+};
+
 /**
  * Inputs Tab Component
  * Configuration for input channels (audio objects) with sub-tabs for different parameter groups.
@@ -317,6 +331,7 @@ public:
         addAndMakeVisible(snapshotSelector);
         snapshotSelector.addItem(LOC("inputs.snapshots.selectSnapshot"), 1);
         snapshotSelector.onChange = [this]() { updateSnapshotButtonStates(); };
+        snapshotSelector.onPopupAboutToShow = [this]() { refreshSnapshotList(); };
 
         addAndMakeVisible(reloadSnapshotButton);
         reloadSnapshotButton.setButtonText(LOC("inputs.buttons.reloadSnapshot"));
@@ -418,6 +433,9 @@ public:
                 writeSnapshotLoadCueEnabled = static_cast<bool> (showSection.getProperty (WFSParameterIDs::writeSnapshotLoadCue, false));
             }
         }
+
+        refreshSnapshotList();
+        updateSnapshotButtonStates();
 
         loadChannelParameters(currentChannel);
     }
@@ -6967,6 +6985,17 @@ private:
 
     void valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property) override
     {
+        // Check if project folder changed — refresh snapshot list
+        if (property == juce::Identifier ("ProjectFolder"))
+        {
+            juce::MessageManager::callAsync([this]()
+            {
+                refreshSnapshotList();
+                updateSnapshotButtonStates();
+            });
+            return;
+        }
+
         // Check if solo states changed (stored in binaural tree)
         if (tree == binauralTree && property == WFSParameterIDs::inputSoloStates)
         {
@@ -7608,7 +7637,7 @@ private:
 
     // Footer buttons - Snapshot
     LongPressButton storeSnapshotButton;
-    juce::ComboBox snapshotSelector;
+    RefreshableComboBox snapshotSelector;
     LongPressButton reloadSnapshotButton;
     LongPressButton reloadWithoutScopeButton;
     LongPressButton updateSnapshotButton;
