@@ -86,9 +86,6 @@ void OSCManager::applyGlobalConfig(const GlobalConfig& config)
     globalConfig = config;
     ipFilteringEnabled = config.ipFilteringEnabled;
 
-    DBG("OSCManager::applyGlobalConfig - IP filtering: " << (ipFilteringEnabled ? "ON" : "OFF")
-        << ", allowed IPs: " << config.allowedIPs.joinIntoString(", "));
-
     if (portChanged && listening)
     {
         stopListening();
@@ -100,11 +97,6 @@ void OSCManager::applyTargetConfig(int targetIndex, const TargetConfig& config)
 {
     if (targetIndex < 0 || targetIndex >= MAX_TARGETS)
         return;
-
-    DBG("OSCManager::applyTargetConfig - target " << targetIndex
-        << " ip=" << config.ipAddress << " port=" << config.port
-        << " protocol=" << static_cast<int>(config.protocol)
-        << " txEnabled=" << (config.txEnabled ? "yes" : "no"));
 
     const juce::ScopedLock sl(configLock);
 
@@ -125,7 +117,6 @@ void OSCManager::applyTargetConfig(int targetIndex, const TargetConfig& config)
     if (!shouldBeConnected && wasConnected)
     {
         // Tx turned off or protocol disabled - disconnect
-        DBG("OSCManager::applyTargetConfig - target " << targetIndex << " disconnecting (tx off or protocol disabled)");
         disconnectTarget(targetIndex);
     }
     else if (shouldBeConnected)
@@ -135,12 +126,7 @@ void OSCManager::applyTargetConfig(int targetIndex, const TargetConfig& config)
             // Need to (re)connect
             if (wasConnected)
             {
-                DBG("OSCManager::applyTargetConfig - target " << targetIndex << " reconnecting (params changed)");
                 disconnectTarget(targetIndex);
-            }
-            else
-            {
-                DBG("OSCManager::applyTargetConfig - target " << targetIndex << " connecting");
             }
             connectTarget(targetIndex);
         }
@@ -235,8 +221,6 @@ bool OSCManager::connectTarget(int targetIndex)
         return false;
     }
 
-    DBG("OSCManager::connectTarget - connecting target " << targetIndex);
-
     const juce::ScopedLock sl(configLock);
 
     auto& conn = connections[static_cast<size_t>(targetIndex)];
@@ -248,7 +232,6 @@ bool OSCManager::connectTarget(int targetIndex)
         return false;
     }
 
-    DBG("OSCManager::connectTarget - configuring connection to " << config.ipAddress << ":" << config.port);
     conn->configure (config);
 
     // Set up callback for async TCP connections
@@ -280,7 +263,6 @@ bool OSCManager::connectTarget(int targetIndex)
                 updateTargetStatus(targetIndex, ConnectionStatus::Connecting);
                 logger.logText("Connecting to Remote target " + juce::String(targetIndex + 1) +
                                " (" + config.ipAddress + ":" + juce::String(config.port) + ")");
-                DBG("OSCManager::connectTarget - target " << targetIndex << " CONNECTING (Remote handshake)");
             }
             else
             {
@@ -294,7 +276,6 @@ bool OSCManager::connectTarget(int targetIndex)
         {
             // TCP - set to Connecting, final status will come via callback
             updateTargetStatus(targetIndex, ConnectionStatus::Connecting);
-            DBG("OSCManager::connectTarget - target " << targetIndex << " CONNECTING (TCP async)");
         }
         return true;
     }
@@ -1134,7 +1115,6 @@ void OSCManager::handleIncomingMessage(const juce::OSCMessage& message,
         int targetIndex = findRemoteTargetByIP(senderIP);
         if (targetIndex >= 0)
         {
-            DBG("OSCManager: Received /remote/disconnect from target " << targetIndex);
             auto& remoteState = remoteStates[static_cast<size_t>(targetIndex)];
             remoteState.phase = RemoteConnectionState::Phase::Disconnected;
             updateTargetStatus(targetIndex, ConnectionStatus::Connecting);
@@ -2605,7 +2585,6 @@ void OSCManager::sendAllClusterConfigsToRemote(int targetIndex)
         sendDirect(msgTracked);
     }
 
-    DBG("OSCManager: Sent cluster configs for " << maxClusters << " clusters to target " << targetIndex);
 }
 
 void OSCManager::sendStageConfigToRemote()
@@ -2668,7 +2647,6 @@ void OSCManager::sendFindDevice(const juce::String& password)
         }
     }
 
-    DBG("OSCManager::sendFindDevice sent to " << targetsSent << " REMOTE target(s)");
 }
 
 void OSCManager::sendCompositeDeltaToRemote(int inputId, float deltaX, float deltaY)
@@ -2915,7 +2893,6 @@ void OSCManager::sendRemotePing(int targetIndex)
     msg.addInt32(seqNum);
     sendMessage(targetIndex, msg);
 
-    DBG("OSCManager: Sent /remote/ping seq=" << seqNum << " to target " << targetIndex);
 }
 
 void OSCManager::sendRemoteHeartbeat(int targetIndex)
@@ -2961,7 +2938,6 @@ void OSCManager::handleRemotePong(int targetIndex, int sequenceNumber)
         onRemoteConnected(targetIndex, isReconnection);
     }
 
-    DBG("OSCManager: Received /remote/pong seq=" << sequenceNumber << " from target " << targetIndex);
 }
 
 void OSCManager::handleRemoteHeartbeatAck(int targetIndex, int sequenceNumber)
@@ -2981,10 +2957,9 @@ void OSCManager::handleRemoteHeartbeatAck(int targetIndex, int sequenceNumber)
     remoteState.lastPongReceivedTime = juce::Time::currentTimeMillis();
 }
 
-void OSCManager::onRemoteConnected(int targetIndex, bool isReconnection)
+void OSCManager::onRemoteConnected(int targetIndex, bool /*isReconnection*/)
 {
-    DBG("OSCManager: Remote target " << targetIndex << " connected"
-        << (isReconnection ? " (reconnection)" : " (initial)"));
+    DBG("OSCManager: Remote target " << targetIndex << " connected");
 
     // Delay the initial state dump to let the connection stabilize
     // Use callAfterDelay to send data after 500ms
@@ -2994,8 +2969,6 @@ void OSCManager::onRemoteConnected(int targetIndex, bool isReconnection)
         auto& remoteState = remoteStates[static_cast<size_t>(targetIndex)];
         if (remoteState.phase != RemoteConnectionState::Phase::Connected)
             return;
-
-        DBG("OSCManager: Sending initial state dump to target " << targetIndex);
 
         // Send /inputs FIRST so Android expands its data structure before receiving positions.
         // Use sendMessageDirect to bypass rate limiter — this must arrive before the
@@ -3174,7 +3147,6 @@ void OSCManager::sendAllInputPositionsToRemote(int targetIndex)
         sendDirect(msgCluster);
     }
 
-    DBG("OSCManager: Sent names, positions, offsets and clusters for " << numInputs << " inputs to target " << targetIndex);
 }
 
 void OSCManager::sendAllInputParametersToRemote(int targetIndex)
@@ -3241,7 +3213,6 @@ void OSCManager::sendAllInputParametersToRemote(int targetIndex)
         }
     }
 
-    DBG("OSCManager: Sent " << messages.size() << " input parameters for " << numInputs << " inputs to target " << targetIndex);
 }
 
 int OSCManager::findRemoteTargetByIP(const juce::String& senderIP) const
@@ -3346,9 +3317,6 @@ void OSCManager::sendToQLab (const QLabCueSequence& sequence,
         return;
     }
 
-    DBG ("OSCManager::sendToQLab - " << (int) sequence.networkCues.size()
-         << " network cues to " << (int) qlabTargets.size() << " QLab target(s)");
-
     // Log the targets being used
     for (int idx : qlabTargets)
     {
@@ -3368,8 +3336,6 @@ void OSCManager::sendToQLab (const QLabCueSequence& sequence,
         constexpr int delayBetweenMs = 30;
         constexpr int queryTimeoutMs = 2000;
         int sentCount = 0;
-
-        DBG ("OSCManager::sendToQLab thread started");
 
         // --- Set up reply listener on port 53001 ---
         juce::String replyUID;
@@ -3396,7 +3362,6 @@ void OSCManager::sendToQLab (const QLabCueSequence& sequence,
                         {
                             const juce::ScopedLock sl (*lock);
                             *uid = json.getProperty (juce::Identifier ("data"), "").toString();
-                            DBG ("OSCManager::sendToQLab - received uniqueID: " << *uid);
                         }
                     }
                     event->signal();
@@ -3457,7 +3422,6 @@ void OSCManager::sendToQLab (const QLabCueSequence& sequence,
         juce::String groupUID;
         if (!seqCopy->groupMessages.empty())
         {
-            DBG ("OSCManager::sendToQLab - creating group cue (" << (int) seqCopy->groupMessages.size() << " msgs)");
             for (const auto& msg : seqCopy->groupMessages)
                 sendMsg (msg);
 
@@ -3474,14 +3438,12 @@ void OSCManager::sendToQLab (const QLabCueSequence& sequence,
                 }
                 return;
             }
-            DBG ("OSCManager::sendToQLab - group uniqueID: " << groupUID);
         }
 
         // --- Phase 2: Create network cues and move into group (if group exists) ---
         int cueIndex = 0;
         for (const auto& cue : seqCopy->networkCues)
         {
-            DBG ("OSCManager::sendToQLab - creating network cue " << cueIndex);
             for (const auto& msg : cue.messages)
                 sendMsg (msg);
 
@@ -3501,8 +3463,6 @@ void OSCManager::sendToQLab (const QLabCueSequence& sequence,
                 // Move cue into group: /move/{cueUID} {position} {groupUID}
                 auto moveMsg = juce::OSCMessage (juce::String ("/move/" + cueUID),
                                                   cue.movePosition, groupUID);
-                DBG ("OSCManager::sendToQLab - moving cue " << cueUID << " to pos "
-                     << cue.movePosition << " in group " << groupUID);
                 sendMsg (moveMsg);
             }
 
@@ -3511,9 +3471,6 @@ void OSCManager::sendToQLab (const QLabCueSequence& sequence,
 
         // --- Cleanup ---
         replyReceiver.disconnect();
-
-        DBG ("OSCManager::sendToQLab thread done - sent " << sentCount << " messages, "
-             << cueIndex << " cues");
 
         manager->logger.logText ("QLab: completed - sent " + juce::String (sentCount)
             + " messages, " + juce::String (cueIndex) + " cues created");

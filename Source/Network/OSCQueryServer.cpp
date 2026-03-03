@@ -37,7 +37,6 @@ bool OSCQueryServer::start(int oscPortParam, int httpPortParam)
     running = true;
     startThread();
 
-    DBG("OSCQueryServer: Started on HTTP port " << httpPort << " (OSC port " << oscPort << ")");
     return true;
 }
 
@@ -54,7 +53,6 @@ void OSCQueryServer::stop()
     stopThread(2000);
     serverSocket.reset();
 
-    DBG("OSCQueryServer: Stopped");
 }
 
 void OSCQueryServer::run()

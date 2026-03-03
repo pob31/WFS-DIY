@@ -43,7 +43,6 @@ bool TrackingOSCReceiver::start(int port, const juce::String& pathPattern)
         return false;
     }
 
-    DBG("TrackingOSCReceiver: Started on port " << port << " with pattern: " << pathPattern);
     return true;
 }
 
@@ -54,7 +53,6 @@ void TrackingOSCReceiver::stop()
         receiver->removeListener(this);
         receiver->disconnect();
         receiver.reset();
-        DBG("TrackingOSCReceiver: Stopped");
     }
 }
 

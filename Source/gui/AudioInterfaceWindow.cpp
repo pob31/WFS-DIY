@@ -551,12 +551,7 @@ void DeviceSettingsPanel::enableAllChannels()
     // Apply the setup
     auto error = deviceManager.setAudioDeviceSetup(setup, true);
 
-    if (error.isEmpty())
-    {
-        DBG("Enabled all channels: " + juce::String(numInputs) + " inputs, " +
-            juce::String(numOutputs) + " outputs");
-    }
-    else
+    if (error.isNotEmpty())
     {
         DBG("Error enabling all channels: " + error);
     }

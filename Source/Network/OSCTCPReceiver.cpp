@@ -37,7 +37,6 @@ bool OSCTCPReceiver::connect(int port)
     connected = true;
     startThread();
 
-    DBG("OSCTCPReceiver: Listening on TCP port " << port);
     return true;
 }
 
@@ -259,7 +258,6 @@ void OSCTCPReceiver::ClientHandler::run()
     }
 
     active = false;
-    DBG("OSCTCPReceiver: Client handler for " << clientIP << " stopped");
 }
 
 bool OSCTCPReceiver::ClientHandler::readExactly(void* buffer, int numBytes)
@@ -313,9 +311,9 @@ void OSCTCPReceiver::ClientHandler::parseOSCData(const juce::MemoryBlock& data)
             owner.notifyMessage(message, clientIP);
         }
     }
-    catch (const juce::OSCFormatError& e)
+    catch (const juce::OSCFormatError&)
     {
-        DBG("OSCTCPReceiver: Parse error from " << clientIP << ": " << e.description);
+        DBG("OSCTCPReceiver: Parse error from " << clientIP);
     }
 }
 

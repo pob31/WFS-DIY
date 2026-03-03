@@ -134,6 +134,7 @@ public:
                 minAvailable = juce::jmin(minAvailable, buf->getAvailableData());
             }
             samplesAvailable.store(minAvailable, std::memory_order_release);
+            notify();  // Wake worker thread immediately (immune to timer coalescing)
         }
     }
 

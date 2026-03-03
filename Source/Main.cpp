@@ -16,6 +16,8 @@
 //==============================================================================
 #if JUCE_WINDOWS
 #include <Windows.h>
+#include <timeapi.h>    // timeBeginPeriod / timeEndPeriod
+#pragma comment(lib, "winmm.lib")
 
 // Global pointer for emergency audio cleanup
 static juce::AudioDeviceManager* g_audioDeviceManager = nullptr;
@@ -59,6 +61,21 @@ public:
         mainWindow.reset (new MainWindow (getApplicationName()));
 
 #if JUCE_WINDOWS
+        // Real-time audio: raise process priority so Windows won't deprioritize
+        // our worker threads when the window is minimized.
+        SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
+
+        // Opt out of EcoQoS / Efficiency Mode power throttling.
+        PROCESS_POWER_THROTTLING_STATE throttlingState = {};
+        throttlingState.Version = PROCESS_POWER_THROTTLING_CURRENT_VERSION;
+        throttlingState.ControlMask = PROCESS_POWER_THROTTLING_EXECUTION_SPEED;
+        throttlingState.StateMask = 0;  // 0 = disable throttling
+        SetProcessInformation(GetCurrentProcess(), ProcessPowerThrottling,
+                              &throttlingState, sizeof(throttlingState));
+
+        // Request 1ms timer/wait resolution for audio worker thread polling.
+        timeBeginPeriod(1);
+
         // Register crash handler to release ASIO driver on unhandled exceptions
         if (auto* mainComp = dynamic_cast<MainComponent*>(mainWindow->getContentComponent()))
         {
@@ -75,6 +92,9 @@ public:
 #if JUCE_WINDOWS
         // Clear global pointer before window destruction
         g_audioDeviceManager = nullptr;
+
+        // Release 1ms timer resolution requested in initialise()
+        timeEndPeriod(1);
 #endif
 
         mainWindow = nullptr; // (deletes our window)

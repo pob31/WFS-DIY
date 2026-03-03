@@ -205,6 +205,13 @@ public:
     /** Callback when reverb config is reloaded - for triggering DSP recalculation */
     std::function<void()> onConfigReloaded;
 
+    /** Callback when Solo Reverbs toggle changes (mutes direct sound, keeps reverb feeds) */
+    std::function<void(bool)> onSoloReverbsChanged;
+    /** Callback when Mute Pre toggle changes (silences reverb feeds, hear tail decay) */
+    std::function<void(bool)> onMutePreChanged;
+    /** Callback when Mute Post toggle changes (skips reverb returns, hear only direct) */
+    std::function<void(bool)> onMutePostChanged;
+
     void cycleChannel (int delta)
     {
         int numChannels = channelSelector.getNumChannels();
@@ -344,6 +351,72 @@ private:
         addAndMakeVisible (mapVisibilityButton);
         updateMapVisibilityButtonState();
         mapVisibilityButton.onClick = [this]() { toggleMapVisibility(); };
+
+        // Solo Reverbs long-press toggle
+        addAndMakeVisible (soloReverbsButton);
+        soloReverbsButton.setButtonText (LOC("reverbs.buttons.soloReverbs"));
+        soloReverbsButton.onLongPress = [this]()
+        {
+            soloReverbsActive = ! soloReverbsActive;
+            if (soloReverbsActive)
+            {
+                resetReverbToggle (mutePreButton, mutePreActive, "reverbs.buttons.mutePre", onMutePreChanged);
+                resetReverbToggle (mutePostButton, mutePostActive, "reverbs.buttons.mutePost", onMutePostChanged);
+            }
+            soloReverbsButton.setButtonText (soloReverbsActive
+                ? LOC("reverbs.buttons.soloReverbsOn")
+                : LOC("reverbs.buttons.soloReverbs"));
+            if (soloReverbsActive)
+                soloReverbsButton.setBaseColour (juce::Colour (0xFFCC8800));
+            else
+                soloReverbsButton.setBaseColour (juce::Colour());
+            if (onSoloReverbsChanged)
+                onSoloReverbsChanged (soloReverbsActive);
+        };
+
+        // Mute Pre long-press toggle (silences reverb feeds, hear tail decay)
+        addAndMakeVisible (mutePreButton);
+        mutePreButton.setButtonText (LOC("reverbs.buttons.mutePre"));
+        mutePreButton.onLongPress = [this]()
+        {
+            mutePreActive = ! mutePreActive;
+            if (mutePreActive)
+            {
+                resetReverbToggle (soloReverbsButton, soloReverbsActive, "reverbs.buttons.soloReverbs", onSoloReverbsChanged);
+                resetReverbToggle (mutePostButton, mutePostActive, "reverbs.buttons.mutePost", onMutePostChanged);
+            }
+            mutePreButton.setButtonText (mutePreActive
+                ? LOC("reverbs.buttons.mutePreOn")
+                : LOC("reverbs.buttons.mutePre"));
+            if (mutePreActive)
+                mutePreButton.setBaseColour (juce::Colour (0xFFCC8800));
+            else
+                mutePreButton.setBaseColour (juce::Colour());
+            if (onMutePreChanged)
+                onMutePreChanged (mutePreActive);
+        };
+
+        // Mute Post long-press toggle (skips reverb returns, hear only direct)
+        addAndMakeVisible (mutePostButton);
+        mutePostButton.setButtonText (LOC("reverbs.buttons.mutePost"));
+        mutePostButton.onLongPress = [this]()
+        {
+            mutePostActive = ! mutePostActive;
+            if (mutePostActive)
+            {
+                resetReverbToggle (soloReverbsButton, soloReverbsActive, "reverbs.buttons.soloReverbs", onSoloReverbsChanged);
+                resetReverbToggle (mutePreButton, mutePreActive, "reverbs.buttons.mutePre", onMutePreChanged);
+            }
+            mutePostButton.setButtonText (mutePostActive
+                ? LOC("reverbs.buttons.mutePostOn")
+                : LOC("reverbs.buttons.mutePost"));
+            if (mutePostActive)
+                mutePostButton.setBaseColour (juce::Colour (0xFFCC8800));
+            else
+                mutePostButton.setBaseColour (juce::Colour());
+            if (onMutePostChanged)
+                onMutePostChanged (mutePostActive);
+        };
     }
 
     void setupSubTabs()
@@ -1805,6 +1878,13 @@ private:
 
         row.removeFromLeft (spacing * 4);
         mapVisibilityButton.setBounds (row.removeFromLeft (scaled(180)));
+
+        row.removeFromLeft (spacing * 2);
+        soloReverbsButton.setBounds (row.removeFromLeft (scaled(130)));
+        row.removeFromLeft (scaled(5));
+        mutePreButton.setBounds (row.removeFromLeft (scaled(110)));
+        row.removeFromLeft (scaled(5));
+        mutePostButton.setBounds (row.removeFromLeft (scaled(110)));
     }
 
     void layoutFooter (juce::Rectangle<int> area)
@@ -3119,10 +3199,17 @@ private:
         {
             section = vts.getReverbFeedSection (channelIndex);
         }
-        // EQ section parameter (EQ enable toggle)
+        // EQ section parameter (EQ enable toggle) — propagate to all channels
         else if (paramId == WFSParameterIDs::reverbPreEQenable)
         {
-            section = vts.getReverbEQSection (channelIndex);
+            int numChannels = parameters.getNumReverbChannels();
+            for (int ch = 0; ch < numChannels; ++ch)
+            {
+                auto eq = vts.getReverbEQSection (ch);
+                if (eq.isValid())
+                    eq.setProperty (paramId, value, vts.getUndoManager());
+            }
+            return;
         }
         // ReverbReturn section parameters
         else if (paramId == WFSParameterIDs::reverbDistanceAttenuation ||
@@ -3142,9 +3229,14 @@ private:
         if (isLoadingParameters) return;
 
         auto& vts = parameters.getValueTreeState();
-        auto band = vts.getReverbEQBand (currentChannel - 1, bandIndex);
-        if (band.isValid())
-            band.setProperty (paramId, value, vts.getUndoManager());
+        // Pre-EQ band changes propagate to all reverb channels
+        int numChannels = parameters.getNumReverbChannels();
+        for (int ch = 0; ch < numChannels; ++ch)
+        {
+            auto band = vts.getReverbEQBand (ch, bandIndex);
+            if (band.isValid())
+                band.setProperty (paramId, value, vts.getUndoManager());
+        }
     }
 
     void saveAlgorithmParam (const juce::Identifier& paramId, const juce::var& value)
@@ -4521,6 +4613,17 @@ private:
         nameLabel.setVisible (hasChannels);
         nameEditor.setVisible (hasChannels);
         mapVisibilityButton.setVisible (hasChannels);
+        soloReverbsButton.setVisible (hasChannels);
+        mutePreButton.setVisible (hasChannels);
+        mutePostButton.setVisible (hasChannels);
+
+        // Auto-reset all reverb toggles when all channels are removed
+        if (! hasChannels)
+        {
+            resetReverbToggle (soloReverbsButton, soloReverbsActive, "reverbs.buttons.soloReverbs", onSoloReverbsChanged);
+            resetReverbToggle (mutePreButton, mutePreActive, "reverbs.buttons.mutePre", onMutePreChanged);
+            resetReverbToggle (mutePostButton, mutePostActive, "reverbs.buttons.mutePost", onMutePostChanged);
+        }
 
         // Show/hide sub-tab bar and all sub-tab content
         subTabBar.setVisible (hasChannels);
@@ -4650,6 +4753,23 @@ private:
     }
 
     //==========================================================================
+    // Reverb toggle helpers
+    //==========================================================================
+
+    void resetReverbToggle (LongPressButton& btn, bool& flag,
+                            const juce::String& offKey,
+                            std::function<void(bool)>& cb)
+    {
+        if (flag)
+        {
+            flag = false;
+            btn.setButtonText (LOC(offKey));
+            btn.setBaseColour (juce::Colour());
+            if (cb) cb (false);
+        }
+    }
+
+    //==========================================================================
     // Member Variables
     //==========================================================================
 
@@ -4678,6 +4798,12 @@ private:
     juce::Label nameLabel;
     juce::TextEditor nameEditor;
     juce::TextButton mapVisibilityButton;
+    LongPressButton soloReverbsButton { 800 };
+    bool soloReverbsActive = false;
+    LongPressButton mutePreButton { 800 };
+    bool mutePreActive = false;
+    LongPressButton mutePostButton { 800 };
+    bool mutePostActive = false;
 
     // Sub-tab bar
     juce::TabbedButtonBar subTabBar { juce::TabbedButtonBar::TabsAtTop };

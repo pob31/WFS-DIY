@@ -37,7 +37,6 @@ bool TrackingRTTrPReceiver::start(int portNumber)
     shouldStop = false;
     startThread();
 
-    DBG("TrackingRTTrPReceiver: Started on port " << port);
     return true;
 }
 
@@ -48,7 +47,6 @@ void TrackingRTTrPReceiver::stop()
         shouldStop = true;
         socket.shutdown();  // Unblock any waiting read
         stopThread(1000);   // Wait up to 1 second
-        DBG("TrackingRTTrPReceiver: Stopped");
     }
 }
 

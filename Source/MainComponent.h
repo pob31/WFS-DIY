@@ -171,6 +171,9 @@ private:
     bool audioCallbacksAttached = false;
     bool processingEnabled = false;
     std::atomic<bool> audioEngineStarted { false };
+    std::atomic<bool> soloReverbs { false };
+    std::atomic<bool> muteReverbPre  { false };
+    std::atomic<bool> muteReverbPost { false };
 
     // Parameter management system
     WfsParameters parameters;

@@ -820,6 +820,12 @@
     "buttons": {
       "visibleOnMap": "Reverbs visibles en mapa",
       "hiddenOnMap": "Reverbs ocultas en mapa",
+      "soloReverbs": "Solo Reverbs",
+      "soloReverbsOn": "Solo Reverbs ON",
+      "mutePre": "Mute Pre",
+      "mutePreOn": "Mute Pre ON",
+      "mutePost": "Mute Post",
+      "mutePostOn": "Mute Post ON",
       "storeConfig": "Guardar config reverb",
       "reloadConfig": "Recargar config reverb",
       "reloadBackup": "Recargar respaldo",

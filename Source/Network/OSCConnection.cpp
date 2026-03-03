@@ -313,8 +313,6 @@ void OSCConnection::run()
         targetPort = config.port;
     }
 
-    DBG("OSCConnection[" << targetIndex << "]: Async TCP connecting to "
-        << targetIP << ":" << targetPort);
 
     // Attempt TCP connection (blocking, but in background thread)
     bool success = false;

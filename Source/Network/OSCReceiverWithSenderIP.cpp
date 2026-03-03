@@ -37,7 +37,6 @@ bool OSCReceiverWithSenderIP::connect(int port)
     connected = true;
     startThread();
 
-    DBG("OSCReceiverWithSenderIP: Listening on UDP port " << port);
     return true;
 }
 
@@ -57,7 +56,6 @@ bool OSCReceiverWithSenderIP::disconnect()
     connected = false;
     portNumber = 0;
 
-    DBG("OSCReceiverWithSenderIP: Disconnected");
     return true;
 }
 
@@ -139,9 +137,9 @@ void OSCReceiverWithSenderIP::parseOSCData(const juce::MemoryBlock& data,
             notifyMessage(message, senderIP);
         }
     }
-    catch (const juce::OSCFormatError& e)
+    catch (const juce::OSCFormatError&)
     {
-        DBG("OSCReceiverWithSenderIP: Parse error from " << senderIP << ": " << e.description);
+        DBG("OSCReceiverWithSenderIP: Parse error from " << senderIP);
     }
 }
 

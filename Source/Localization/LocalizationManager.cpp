@@ -34,7 +34,6 @@ bool LocalizationManager::loadLanguage(const juce::String& locale)
     stringsRoot = json;
     currentLocale = locale;
 
-    DBG("LocalizationManager: Loaded language '" + locale + "' from " + langFile.getFullPathName());
     return true;
 }
 

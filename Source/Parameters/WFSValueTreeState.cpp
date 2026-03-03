@@ -2397,9 +2397,6 @@ void WFSValueTreeState::enforceClusterTrackingConstraint (int changedInputIndex)
             // Found another input in same cluster with tracking enabled
             // Disable tracking on the OTHER input (keep the one that was just changed)
             pos.setProperty (inputTrackingActive, 0, nullptr);
-            DBG ("WFSValueTreeState: Disabled tracking on Input " << (i + 1)
-                 << " due to cluster constraint (Input " << (changedInputIndex + 1)
-                 << " now tracked in cluster " << clusterIdx << ")");
         }
     }
 }

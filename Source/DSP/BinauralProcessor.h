@@ -115,6 +115,7 @@ public:
     {
         if (inputIndex >= 0 && inputIndex < (int) inputBuffers.size())
             inputBuffers[inputIndex]->write (data, numSamples);
+        notify();  // Wake binaural worker thread immediately (immune to timer coalescing)
     }
 
     /**

@@ -206,11 +206,8 @@ void PatchMatrixComponent::savePatchesToValueTree()
 
 void PatchMatrixComponent::clearAllPatches()
 {
-    DBG("PatchMatrixComponent::clearAllPatches() - patches.size() before = " + juce::String(patches.size()));
     patches.clear();
-    DBG("PatchMatrixComponent::clearAllPatches() - patches.size() after = " + juce::String(patches.size()));
     savePatchesToValueTree();
-    DBG("PatchMatrixComponent::clearAllPatches() - saved to ValueTree");
     repaint();
 }
 

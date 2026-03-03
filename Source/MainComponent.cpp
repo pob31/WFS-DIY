@@ -31,7 +31,6 @@ MainComponent::MainComponent()
                                  .getParentDirectory()  // Builds
                                  .getParentDirectory(); // Project root
         resourceDir = projectRoot.getChildFile("Resources");
-        DBG("LocalizationManager: Trying development path: " + resourceDir.getFullPathName());
     }
 
     locMgr.setResourceDirectory(resourceDir);
@@ -50,8 +49,6 @@ MainComponent::MainComponent()
         settingsFolder.createDirectory();
 
     juce::PropertiesFile props(options);
-
-    DBG("Settings file location: " + props.getFile().getFullPathName());
 
     // Load saved language preference from app settings, default to "en"
     juce::String savedLanguage = props.getValue("language", "en");
@@ -244,6 +241,19 @@ MainComponent::MainComponent()
     systemConfigTab->setChannelCountCallback([this](int inputs, int outputs, int reverbs) {
         handleChannelCountChange(inputs, outputs, reverbs);
     });
+
+    // Solo Reverbs: mute direct sound, keep reverb feeds
+    reverbTab->onSoloReverbsChanged = [this](bool active) {
+        soloReverbs.store (active, std::memory_order_relaxed);
+    };
+    // Mute Pre: silence reverb feeds, hear tail decay
+    reverbTab->onMutePreChanged = [this](bool active) {
+        muteReverbPre.store (active, std::memory_order_relaxed);
+    };
+    // Mute Post: skip reverb returns, hear only direct
+    reverbTab->onMutePostChanged = [this](bool active) {
+        muteReverbPost.store (active, std::memory_order_relaxed);
+    };
 
     systemConfigTab->setAudioInterfaceCallback([this]() {
         openAudioInterfaceWindow();
@@ -981,7 +991,7 @@ MainComponent::MainComponent()
     };
 
     // Send composite deltas for all inputs when a Remote client connects and initial data has been sent
-    oscManager->onRemoteConnectionReady = [this](int targetIndex)
+    oscManager->onRemoteConnectionReady = [this](int /*targetIndex*/)
     {
         if (calculationEngine == nullptr || oscManager == nullptr)
             return;
@@ -1018,7 +1028,6 @@ MainComponent::MainComponent()
             }
         }
 
-        DBG("MainComponent: Sent composite deltas for " << numInputChannels << " inputs to target " << targetIndex);
     };
 
     // Configure the visualisation component with user-configured channel counts
@@ -1046,8 +1055,6 @@ MainComponent::MainComponent()
     lastSavedDeviceType = savedDeviceType;
     lastSavedDeviceName = savedDeviceName;
 
-    DBG("Startup: Loaded saved device settings - Type: " + savedDeviceType + ", Name: " + savedDeviceName);
-
     // Restore saved device asynchronously (like DAWs do)
     // This happens after the window is shown for faster perceived startup
     juce::MessageManager::callAsync([this, savedDeviceStateXml, savedDeviceType, savedDeviceName]()
@@ -1057,8 +1064,6 @@ MainComponent::MainComponent()
         // FAST PATH: Try to restore from saved XML state (skips device enumeration)
         if (savedDeviceStateXml.isNotEmpty())
         {
-            DBG("Attempting fast restore from saved device state XML...");
-
             // Parse saved XML state
             auto savedStateXml = juce::XmlDocument::parse(savedDeviceStateXml);
             if (savedStateXml != nullptr)
@@ -1071,10 +1076,6 @@ MainComponent::MainComponent()
                 {
                     deviceRestored = true;
                     auto* device = deviceManager.getCurrentAudioDevice();
-                    DBG("Fast restore successful: " + device->getName() +
-                        " | " + juce::String(device->getInputChannelNames().size()) + " inputs, " +
-                        juce::String(device->getOutputChannelNames().size()) + " outputs");
-
                     lastSavedDeviceType = deviceManager.getCurrentAudioDeviceType();
                     lastSavedDeviceName = device->getName();
                 }
@@ -1088,8 +1089,6 @@ MainComponent::MainComponent()
         // FALLBACK: If no XML state or XML restore failed, try manual setup
         if (!deviceRestored && savedDeviceType.isNotEmpty() && savedDeviceName.isNotEmpty())
         {
-            DBG("Trying fallback restore with type/name: " + savedDeviceType + "/" + savedDeviceName);
-
             // This path is slower as it triggers device enumeration
             deviceManager.setCurrentAudioDeviceType(savedDeviceType, true);
 
@@ -1121,7 +1120,6 @@ MainComponent::MainComponent()
                     setup.outputChannels.setRange(0, outputNames.size(), true);
                     deviceManager.setAudioDeviceSetup(setup, true);
 
-                    DBG("Fallback restore successful: " + savedDeviceName);
                     lastSavedDeviceType = savedDeviceType;
                     lastSavedDeviceName = savedDeviceName;
                 }
@@ -1215,7 +1213,6 @@ void MainComponent::attachAudioCallbacksIfNeeded()
     setAudioChannels(numInputs, numOutputs, state.get());
     audioCallbacksAttached = true;
 
-    DBG("Audio callbacks attached - " + juce::String(numInputs) + " inputs, " + juce::String(numOutputs) + " outputs");
 }
 
 void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
@@ -1227,8 +1224,6 @@ void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
 
         if (device != nullptr)
         {
-            DBG("Device changed to: " + device->getName());
-
             // User has successfully selected a device - allow saving from now on
             // This enables saving when user manually selects ASIO after startup failure
             deviceRestoreComplete = true;
@@ -1478,6 +1473,10 @@ void MainComponent::handleProcessingChange(bool enabled)
         {
             outputAlgorithm.setProcessingEnabled(processingEnabled);
         }
+
+        // Restart reverb engine thread (may have been stopped on disable)
+        if (reverbEngine)
+            reverbEngine->startProcessing();
     }
     else
     {
@@ -1490,6 +1489,10 @@ void MainComponent::handleProcessingChange(bool enabled)
         {
             outputAlgorithm.setProcessingEnabled(processingEnabled);
         }
+
+        // Stop reverb engine thread to save CPU
+        if (reverbEngine)
+            reverbEngine->stopProcessing();
     }
 }
 
@@ -2146,6 +2149,10 @@ void MainComponent::startAudioEngine()
         processingEnabled = false;
         processingToggle.setToggleState(false, juce::dontSendNotification);
     }
+
+    // Start reverb engine thread (may have been stopped by channel count change)
+    if (audioEngineStarted && reverbEngine)
+        reverbEngine->startProcessing();
 }
 
 void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRate)
@@ -2208,6 +2215,11 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
 
     // Load audio patch matrices
     loadAudioPatches();
+
+    // Smoothing now runs per audio callback, not per timer tick.
+    // Maintain ~20ms time constant regardless of buffer size.
+    double callbackIntervalSec = samplesPerBlockExpected / sampleRate;
+    smoothingFactor = static_cast<float>(1.0 - std::exp(-callbackIntervalSec / 0.020));
 }
 
 void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill)
@@ -2218,7 +2230,75 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
         // Apply input patching: hardware channels → WFS channels
         applyInputPatch(bufferToFill);
 
-        // Process WFS audio
+        // Parameter smoothing (runs on ASIO thread, immune to message-pump
+        // throttling when the window is minimized)
+        if (processingEnabled)
+        {
+            int matrixSize = numInputChannels * numOutputChannels;
+            for (int i = 0; i < matrixSize; ++i)
+            {
+                delayTimesMs[i] += (targetDelayTimesMs[i] - delayTimesMs[i]) * smoothingFactor;
+                levels[i] += (targetLevels[i] - levels[i]) * smoothingFactor;
+            }
+        }
+
+        // Compute reverb feeds from RAW INPUT before WFS processing clears the buffer.
+        // Feeds only read from bufferToFill (don't modify it), so this is safe before WFS.
+        int numReverbs = 0;
+        if (reverbEngine && reverbEngine->isActive() && calculationEngine)
+        {
+            numReverbs = reverbEngine->getNumNodes();
+
+            // Safety: clamp to available buffer channels to prevent out-of-bounds access
+            int bufferChannels = reverbFeedBuffer.getNumChannels();
+            if (numReverbs > bufferChannels)
+                numReverbs = bufferChannels;
+
+            if (numReverbs > 0)
+            {
+                int numSamples = bufferToFill.numSamples;
+                int startSample = bufferToFill.startSample;
+                bool isPreMuted = muteReverbPre.load (std::memory_order_relaxed);
+
+                if (isPreMuted)
+                {
+                    // Push silence — existing reverb tail decays naturally
+                    reverbFeedBuffer.clear();
+                    for (int revIdx = 0; revIdx < numReverbs; ++revIdx)
+                        reverbEngine->pushNodeInput (revIdx, reverbFeedBuffer.getReadPointer(revIdx), numSamples);
+                }
+                else
+                {
+                    // Get input→reverb level matrix from calculation engine
+                    // Index: [inputIndex * calcReverbStride + reverbIndex]
+                    const float* reverbLevelsPtr = calculationEngine->getInputReverbLevels();
+                    const int calcReverbStride = calculationEngine->getNumReverbs();
+
+                    // Compute per-node feed sums: for each reverb node, sum input contributions
+                    reverbFeedBuffer.clear();
+                    for (int revIdx = 0; revIdx < numReverbs; ++revIdx)
+                    {
+                        float* feedData = reverbFeedBuffer.getWritePointer(revIdx);
+
+                        for (int inIdx = 0; inIdx < numInputChannels; ++inIdx)
+                        {
+                            float feedLevel = reverbLevelsPtr[inIdx * calcReverbStride + revIdx];
+
+                            if (feedLevel > 0.0001f)
+                            {
+                                const float* inputData = bufferToFill.buffer->getReadPointer(inIdx, startSample);
+                                juce::FloatVectorOperations::addWithMultiply(feedData, inputData, feedLevel, numSamples);
+                            }
+                        }
+
+                        // Push feed to reverb engine
+                        reverbEngine->pushNodeInput(revIdx, feedData, numSamples);
+                    }
+                }
+            }
+        }
+
+        // Process WFS audio (clears buffer, writes speaker output)
         if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
         {
             inputAlgorithm.processBlock(bufferToFill, numInputChannels, numOutputChannels);
@@ -2232,57 +2312,32 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
         //     gpuInputAlgorithm.processBlock(bufferToFill, numInputChannels, numOutputChannels);
         // }
 
-        // Process reverb: compute per-node feed sums, push to engine, pull wet returns, mix into outputs
-        if (reverbEngine && reverbEngine->isActive() && calculationEngine)
+        // Mix reverb returns into WFS output (after WFS processing wrote speaker data)
+        if (numReverbs > 0 && reverbEngine && calculationEngine)
         {
-            int numReverbs = reverbEngine->getNumNodes();
+            int numSamples = bufferToFill.numSamples;
+            int startSample = bufferToFill.startSample;
 
-            // Safety: clamp to available buffer channels to prevent out-of-bounds access
-            int bufferChannels = reverbFeedBuffer.getNumChannels();
-            if (numReverbs > bufferChannels)
-                numReverbs = bufferChannels;
-
-            if (numReverbs > 0)
+            // Solo Reverbs: clear direct sound so only reverb returns are heard
+            if (soloReverbs.load (std::memory_order_relaxed))
             {
-                int numSamples = bufferToFill.numSamples;
-                int startSample = bufferToFill.startSample;
+                for (int outIdx = 0; outIdx < numOutputChannels; ++outIdx)
+                    bufferToFill.buffer->clear (outIdx, startSample, numSamples);
+            }
 
-                // Get input→reverb level matrix from calculation engine
-                // Index: [inputIndex * calcReverbStride + reverbIndex]
-                const float* reverbLevelsPtr = calculationEngine->getInputReverbLevels();
-                const int calcReverbStride = calculationEngine->getNumReverbs();
+            // Pull wet reverb output and mix into WFS outputs
+            // Index: [reverbIndex * calcOutputStride + outputIndex]
+            const float* reverbOutputLevelsPtr = calculationEngine->getReverbOutputLevels();
+            const int calcOutputStride = calculationEngine->getNumOutputs();
+            bool isPostMuted = muteReverbPost.load (std::memory_order_relaxed);
 
-                // Compute per-node feed sums: for each reverb node, sum input contributions
-                reverbFeedBuffer.clear();
-                for (int revIdx = 0; revIdx < numReverbs; ++revIdx)
+            for (int revIdx = 0; revIdx < numReverbs; ++revIdx)
+            {
+                float* returnData = reverbReturnBuffer.getWritePointer(revIdx);
+                reverbEngine->pullNodeOutput(revIdx, returnData, numSamples);
+
+                if (! isPostMuted)
                 {
-                    float* feedData = reverbFeedBuffer.getWritePointer(revIdx);
-
-                    for (int inIdx = 0; inIdx < numInputChannels; ++inIdx)
-                    {
-                        float feedLevel = reverbLevelsPtr[inIdx * calcReverbStride + revIdx];
-
-                        if (feedLevel > 0.0001f)
-                        {
-                            const float* inputData = bufferToFill.buffer->getReadPointer(inIdx, startSample);
-                            juce::FloatVectorOperations::addWithMultiply(feedData, inputData, feedLevel, numSamples);
-                        }
-                    }
-
-                    // Push feed to reverb engine
-                    reverbEngine->pushNodeInput(revIdx, feedData, numSamples);
-                }
-
-                // Pull wet reverb output and mix into WFS outputs
-                // Index: [reverbIndex * calcOutputStride + outputIndex]
-                const float* reverbOutputLevelsPtr = calculationEngine->getReverbOutputLevels();
-                const int calcOutputStride = calculationEngine->getNumOutputs();
-
-                for (int revIdx = 0; revIdx < numReverbs; ++revIdx)
-                {
-                    float* returnData = reverbReturnBuffer.getWritePointer(revIdx);
-                    reverbEngine->pullNodeOutput(revIdx, returnData, numSamples);
-
                     // Mix reverb return into WFS outputs using return level matrix
                     for (int outIdx = 0; outIdx < numOutputChannels; ++outIdx)
                     {
@@ -2408,7 +2463,6 @@ void MainComponent::saveSettings()
     if (auto xml = deviceManager.createStateXml())
     {
         props.setValue("audioDeviceState", xml->toString());
-        DBG("Saved audio device state XML");
     }
 
     // Also save type/name for logging and fallback purposes
@@ -2425,17 +2479,15 @@ void MainComponent::saveSettings()
 
     props.saveIfNeeded();
 
-    // Log saved settings
-    auto setup = deviceManager.getAudioDeviceSetup();
-    DBG("Settings saved - Device: " + currentDeviceType + " / " +
-        (deviceManager.getCurrentAudioDevice() ? deviceManager.getCurrentAudioDevice()->getName() : "none") +
-        " | WFS: " + juce::String(numInputChannels) + "x" + juce::String(numOutputChannels) +
-        " | Hardware I/O: " + juce::String(setup.inputChannels.countNumberOfSetBits()) + " in, " +
-        juce::String(setup.outputChannels.countNumberOfSetBits()) + " out");
 }
 
 void MainComponent::timerCallback()
 {
+    // Check once whether the window is visible — skip all repaints and
+    // visual-only updates when minimized to avoid message-queue congestion
+    // that can starve the audio thread's parameter updates.
+    const bool windowVisible = isShowing();
+
     // Debounced auto-save of audio patch to disk
     if (patchSaveCountdown > 0 && --patchSaveCountdown == 0)
     {
@@ -2484,7 +2536,7 @@ void MainComponent::timerCallback()
             }
 
             // Keep map repainting while speed limiter is catching up
-            if (speedLimiter->isAnyInputMoving() && mapTab != nullptr)
+            if (windowVisible && speedLimiter->isAnyInputMoving() && mapTab != nullptr)
                 mapTab->repaint();
 
             // Auto-stop recording for channels that haven't received remote positions
@@ -2543,7 +2595,7 @@ void MainComponent::timerCallback()
             automOtionProcessor->process(0.02f);  // 20ms delta time (50Hz)
 
             // Repaint map while AutomOtion is active (shows moving grey dot)
-            if (automOtionProcessor->isAnyActive() && mapTab != nullptr)
+            if (windowVisible && automOtionProcessor->isAnyActive() && mapTab != nullptr)
                 mapTab->repaint();
         }
 
@@ -2557,7 +2609,7 @@ void MainComponent::timerCallback()
             levelMeteringManager->updateLevels();
 
             // Repaint map if level overlay is enabled
-            if (levelMeteringManager->isMapOverlayEnabled() && mapTab != nullptr)
+            if (windowVisible && levelMeteringManager->isMapOverlayEnabled() && mapTab != nullptr)
                 mapTab->repaint();
         }
 
@@ -2726,142 +2778,9 @@ void MainComponent::timerCallback()
                 }
             }
 
-            // Update reverb engine parameters at 50Hz
-            if (reverbEngine && reverbEngine->isActive())
-            {
-                using namespace WFSParameterIDs;
-                auto& vts = parameters.getValueTreeState();
-                auto algoSection = vts.getReverbAlgorithmSection();
-
-                if (algoSection.isValid())
-                {
-                    // Switch algorithm type if changed (0=SDN, 1=FDN, 2=IR)
-                    int algoType = static_cast<int>(algoSection.getProperty(reverbAlgoType, 0));
-                    reverbEngine->setAlgorithmType(algoType);
-
-                    // Push IR-specific parameters
-                    if (algoType == 2)  // IR
-                    {
-                        juce::String irFilePath = algoSection.getProperty(reverbIRfile, "").toString();
-                        float irTrim = algoSection.getProperty(reverbIRtrim, 0.0f);
-                        float irLength = algoSection.getProperty(reverbIRlength, 6.0f);
-
-                        if (irFilePath.isNotEmpty())
-                            reverbEngine->loadIRFile(juce::File(irFilePath));
-
-                        reverbEngine->setIRParameters(irTrim, irLength);
-                    }
-
-                    AlgorithmParameters algoParams;
-                    algoParams.rt60         = algoSection.getProperty(reverbRT60, 1.5f);
-                    algoParams.rt60LowMult  = algoSection.getProperty(reverbRT60LowMult, 1.3f);
-                    algoParams.rt60HighMult = algoSection.getProperty(reverbRT60HighMult, 0.5f);
-                    algoParams.crossoverLow  = algoSection.getProperty(reverbCrossoverLow, 200.0f);
-                    algoParams.crossoverHigh = algoSection.getProperty(reverbCrossoverHigh, 4000.0f);
-                    algoParams.diffusion    = algoSection.getProperty(reverbDiffusion, 0.5f);
-                    algoParams.sdnScale     = algoSection.getProperty(reverbSDNscale, 1.0f);
-                    algoParams.fdnSize      = algoSection.getProperty(reverbFDNsize, 1.0f);
-
-                    float wetLevelDb = algoSection.getProperty(reverbWetLevel, 0.0f);
-                    algoParams.wetLevel = juce::Decibels::decibelsToGain(wetLevelDb);
-
-                    reverbEngine->setAlgorithmParameters(algoParams);
-                }
-
-                // Update node geometry (for SDN)
-                int numReverbs = reverbEngine->getNumNodes();
-                if (numReverbs > 0)
-                {
-                    std::vector<NodePosition> positions(static_cast<size_t>(numReverbs));
-                    for (int i = 0; i < numReverbs; ++i)
-                    {
-                        auto pos = calculationEngine->getReverbFeedPosition(i);
-                        positions[static_cast<size_t>(i)] = { pos.x, pos.y, pos.z };
-                    }
-                    reverbEngine->updateGeometry(positions);
-                }
-
-                // Push pre-processor parameters (per-node EQ + global compressor)
-                {
-                    ReverbPreProcessor::PreProcessorParams preParams;
-
-                    // Per-node EQ bands
-                    for (int n = 0; n < numReverbs; ++n)
-                    {
-                        auto eqSection = vts.getReverbEQSection(n);
-                        preParams.eqEnabled[static_cast<size_t>(n)] =
-                            eqSection.isValid() && static_cast<int>(eqSection.getProperty(reverbPreEQenable, 1)) != 0;
-
-                        for (int b = 0; b < 4; ++b)
-                        {
-                            auto band = vts.getReverbEQBand(n, b);
-                            if (band.isValid())
-                            {
-                                auto& bp = preParams.eqBands[static_cast<size_t>(n)][static_cast<size_t>(b)];
-                                bp.shape = static_cast<int>(band.getProperty(reverbPreEQshape, 0));
-                                bp.freq  = static_cast<float>(static_cast<int>(band.getProperty(reverbPreEQfreq, 1000)));
-                                bp.gain  = static_cast<float>(band.getProperty(reverbPreEQgain, 0.0f));
-                                bp.q     = static_cast<float>(band.getProperty(reverbPreEQq, 0.7f));
-                                bp.slope = static_cast<float>(band.getProperty(reverbPreEQslope, 0.7f));
-                            }
-                        }
-                    }
-
-                    // Global compressor
-                    auto compSection = vts.getReverbPreCompSection();
-                    if (compSection.isValid())
-                    {
-                        preParams.compBypass    = static_cast<int>(compSection.getProperty(reverbPreCompBypass, 1)) != 0;
-                        preParams.compThreshold = static_cast<float>(compSection.getProperty(reverbPreCompThreshold, -12.0f));
-                        preParams.compRatio     = static_cast<float>(compSection.getProperty(reverbPreCompRatio, 2.0f));
-                        preParams.compAttack    = static_cast<float>(compSection.getProperty(reverbPreCompAttack, 10.0f));
-                        preParams.compRelease   = static_cast<float>(compSection.getProperty(reverbPreCompRelease, 100.0f));
-                    }
-
-                    reverbEngine->setPreProcessorParams(preParams);
-                }
-
-                // Push post-processor parameters (global EQ + sidechain-keyed expander)
-                {
-                    ReverbPostProcessor::PostProcessorParams postParams;
-
-                    // Global post-EQ bands
-                    auto postEQSection = vts.getReverbPostEQSection();
-                    postParams.eqEnabled = postEQSection.isValid()
-                        && static_cast<int>(postEQSection.getProperty(reverbPostEQenable, 1)) != 0;
-
-                    for (int b = 0; b < 4; ++b)
-                    {
-                        auto band = vts.getReverbPostEQBand(b);
-                        if (band.isValid())
-                        {
-                            auto& bp = postParams.eqBands[static_cast<size_t>(b)];
-                            bp.shape = static_cast<int>(band.getProperty(reverbPostEQshape, 0));
-                            bp.freq  = static_cast<float>(static_cast<int>(band.getProperty(reverbPostEQfreq, 1000)));
-                            bp.gain  = static_cast<float>(band.getProperty(reverbPostEQgain, 0.0f));
-                            bp.q     = static_cast<float>(band.getProperty(reverbPostEQq, 0.7f));
-                            bp.slope = static_cast<float>(band.getProperty(reverbPostEQslope, 0.7f));
-                        }
-                    }
-
-                    // Global expander
-                    auto expSection = vts.getReverbPostExpSection();
-                    if (expSection.isValid())
-                    {
-                        postParams.expBypass    = static_cast<int>(expSection.getProperty(reverbPostExpBypass, 1)) != 0;
-                        postParams.expThreshold = static_cast<float>(expSection.getProperty(reverbPostExpThreshold, -40.0f));
-                        postParams.expRatio     = static_cast<float>(expSection.getProperty(reverbPostExpRatio, 2.0f));
-                        postParams.expAttack    = static_cast<float>(expSection.getProperty(reverbPostExpAttack, 1.0f));
-                        postParams.expRelease   = static_cast<float>(expSection.getProperty(reverbPostExpRelease, 200.0f));
-                    }
-
-                    reverbEngine->setPostProcessorParams(postParams);
-                }
-            }
-
-            // Update visualisation with current DSP matrix values
+            // Update visualisation with current DSP matrix values (skip when minimized)
             // Use our correctly-strided local arrays (targetDelayTimesMs has numOutputChannels stride)
-            if (inputsTab != nullptr)
+            if (windowVisible && inputsTab != nullptr)
             {
                 // Create temporary reverb arrays with correct stride for visualization
                 // Calculation engine uses maxReverbChannels (16) stride, but user may have fewer
@@ -2894,8 +2813,8 @@ void MainComponent::timerCallback()
             }
         }
 
-        // Update LFO indicators in InputsTab for the selected input
-        if (inputsTab != nullptr && lfoProcessor != nullptr)
+        // Update LFO indicators in InputsTab for the selected input (skip when minimized)
+        if (windowVisible && inputsTab != nullptr && lfoProcessor != nullptr)
         {
             int selectedInput = inputsTab->getSelectedInputIndex();
             if (selectedInput >= 0 && selectedInput < numInputChannels)
@@ -2906,6 +2825,139 @@ void MainComponent::timerCallback()
                     lfoProcessor->getNormalizedX(selectedInput),
                     lfoProcessor->getNormalizedY(selectedInput),
                     lfoProcessor->getNormalizedZ(selectedInput));
+            }
+        }
+
+        // Update reverb engine parameters (every timer tick, independent of position changes)
+        if (reverbEngine && reverbEngine->isActive())
+        {
+            using namespace WFSParameterIDs;
+            auto& vts = parameters.getValueTreeState();
+            auto algoSection = vts.getReverbAlgorithmSection();
+
+            if (algoSection.isValid())
+            {
+                // Switch algorithm type if changed (0=SDN, 1=FDN, 2=IR)
+                int algoType = static_cast<int>(algoSection.getProperty(reverbAlgoType, 0));
+                reverbEngine->setAlgorithmType(algoType);
+
+                // Push IR-specific parameters
+                if (algoType == 2)  // IR
+                {
+                    juce::String irFilePath = algoSection.getProperty(reverbIRfile, "").toString();
+                    float irTrim = algoSection.getProperty(reverbIRtrim, 0.0f);
+                    float irLength = algoSection.getProperty(reverbIRlength, 6.0f);
+
+                    if (irFilePath.isNotEmpty())
+                        reverbEngine->loadIRFile(juce::File(irFilePath));
+
+                    reverbEngine->setIRParameters(irTrim, irLength);
+                }
+
+                AlgorithmParameters algoParams;
+                algoParams.rt60         = algoSection.getProperty(reverbRT60, 1.5f);
+                algoParams.rt60LowMult  = algoSection.getProperty(reverbRT60LowMult, 1.3f);
+                algoParams.rt60HighMult = algoSection.getProperty(reverbRT60HighMult, 0.5f);
+                algoParams.crossoverLow  = algoSection.getProperty(reverbCrossoverLow, 200.0f);
+                algoParams.crossoverHigh = algoSection.getProperty(reverbCrossoverHigh, 4000.0f);
+                algoParams.diffusion    = algoSection.getProperty(reverbDiffusion, 0.5f);
+                algoParams.sdnScale     = algoSection.getProperty(reverbSDNscale, 1.0f);
+                algoParams.fdnSize      = algoSection.getProperty(reverbFDNsize, 1.0f);
+
+                float wetLevelDb = algoSection.getProperty(reverbWetLevel, 0.0f);
+                algoParams.wetLevel = juce::Decibels::decibelsToGain(wetLevelDb);
+
+                reverbEngine->setAlgorithmParameters(algoParams);
+            }
+
+            // Update node geometry (for SDN)
+            int numReverbs = reverbEngine->getNumNodes();
+            if (numReverbs > 0)
+            {
+                std::vector<NodePosition> positions(static_cast<size_t>(numReverbs));
+                for (int i = 0; i < numReverbs; ++i)
+                {
+                    auto pos = calculationEngine->getReverbFeedPosition(i);
+                    positions[static_cast<size_t>(i)] = { pos.x, pos.y, pos.z };
+                }
+                reverbEngine->updateGeometry(positions);
+            }
+
+            // Push pre-processor parameters (per-node EQ + global compressor)
+            {
+                ReverbPreProcessor::PreProcessorParams preParams;
+
+                // Per-node EQ bands
+                for (int n = 0; n < numReverbs; ++n)
+                {
+                    auto eqSection = vts.getReverbEQSection(n);
+                    preParams.eqEnabled[static_cast<size_t>(n)] =
+                        eqSection.isValid() && static_cast<int>(eqSection.getProperty(reverbPreEQenable, 1)) != 0;
+
+                    for (int b = 0; b < 4; ++b)
+                    {
+                        auto band = vts.getReverbEQBand(n, b);
+                        if (band.isValid())
+                        {
+                            auto& bp = preParams.eqBands[static_cast<size_t>(n)][static_cast<size_t>(b)];
+                            bp.shape = static_cast<int>(band.getProperty(reverbPreEQshape, 0));
+                            bp.freq  = static_cast<float>(static_cast<int>(band.getProperty(reverbPreEQfreq, 1000)));
+                            bp.gain  = static_cast<float>(band.getProperty(reverbPreEQgain, 0.0f));
+                            bp.q     = static_cast<float>(band.getProperty(reverbPreEQq, 0.7f));
+                            bp.slope = static_cast<float>(band.getProperty(reverbPreEQslope, 0.7f));
+                        }
+                    }
+                }
+
+                // Global compressor
+                auto compSection = vts.getReverbPreCompSection();
+                if (compSection.isValid())
+                {
+                    preParams.compBypass    = static_cast<int>(compSection.getProperty(reverbPreCompBypass, 1)) != 0;
+                    preParams.compThreshold = static_cast<float>(compSection.getProperty(reverbPreCompThreshold, -12.0f));
+                    preParams.compRatio     = static_cast<float>(compSection.getProperty(reverbPreCompRatio, 2.0f));
+                    preParams.compAttack    = static_cast<float>(compSection.getProperty(reverbPreCompAttack, 10.0f));
+                    preParams.compRelease   = static_cast<float>(compSection.getProperty(reverbPreCompRelease, 100.0f));
+                }
+
+                reverbEngine->setPreProcessorParams(preParams);
+            }
+
+            // Push post-processor parameters (global EQ + sidechain-keyed expander)
+            {
+                ReverbPostProcessor::PostProcessorParams postParams;
+
+                // Global post-EQ bands
+                auto postEQSection = vts.getReverbPostEQSection();
+                postParams.eqEnabled = postEQSection.isValid()
+                    && static_cast<int>(postEQSection.getProperty(reverbPostEQenable, 1)) != 0;
+
+                for (int b = 0; b < 4; ++b)
+                {
+                    auto band = vts.getReverbPostEQBand(b);
+                    if (band.isValid())
+                    {
+                        auto& bp = postParams.eqBands[static_cast<size_t>(b)];
+                        bp.shape = static_cast<int>(band.getProperty(reverbPostEQshape, 0));
+                        bp.freq  = static_cast<float>(static_cast<int>(band.getProperty(reverbPostEQfreq, 1000)));
+                        bp.gain  = static_cast<float>(band.getProperty(reverbPostEQgain, 0.0f));
+                        bp.q     = static_cast<float>(band.getProperty(reverbPostEQq, 0.7f));
+                        bp.slope = static_cast<float>(band.getProperty(reverbPostEQslope, 0.7f));
+                    }
+                }
+
+                // Global expander
+                auto expSection = vts.getReverbPostExpSection();
+                if (expSection.isValid())
+                {
+                    postParams.expBypass    = static_cast<int>(expSection.getProperty(reverbPostExpBypass, 1)) != 0;
+                    postParams.expThreshold = static_cast<float>(expSection.getProperty(reverbPostExpThreshold, -40.0f));
+                    postParams.expRatio     = static_cast<float>(expSection.getProperty(reverbPostExpRatio, 2.0f));
+                    postParams.expAttack    = static_cast<float>(expSection.getProperty(reverbPostExpAttack, 1.0f));
+                    postParams.expRelease   = static_cast<float>(expSection.getProperty(reverbPostExpRelease, 200.0f));
+                }
+
+                reverbEngine->setPostProcessorParams(postParams);
             }
         }
 
@@ -2924,7 +2976,7 @@ void MainComponent::timerCallback()
         }
 
         // Repaint map if any LFO is active
-        if (mapTab != nullptr && anyLFOActive)
+        if (windowVisible && mapTab != nullptr && anyLFOActive)
             mapTab->repaint();
 
         // Send composite delta to Remote targets (delta = composite - target position)
@@ -2986,22 +3038,13 @@ void MainComponent::timerCallback()
         }
     }
 
-    // Apply exponential smoothing to delay/level parameters (every tick for smooth movement)
-    if (processingEnabled && audioEngineStarted)
-    {
-        int matrixSize = numInputChannels * numOutputChannels;
+    // Parameter smoothing has moved to getNextAudioBlock() so it runs on the
+    // ASIO thread and is immune to message-pump throttling when minimized.
 
-        // Apply exponential smoothing to actual values: smooth towards targets
-        for (int i = 0; i < matrixSize; ++i)
-        {
-            delayTimesMs[i] += (targetDelayTimesMs[i] - delayTimesMs[i]) * smoothingFactor;
-            levels[i] += (targetLevels[i] - levels[i]) * smoothingFactor;
-        }
-
-        // Repaint to update CPU usage display (every 10 ticks = 50ms)
-        if (timerTicksSinceLastRandom % 10 == 0)
-            repaint();
-    }
+    // Repaint to update CPU usage display (every 10 ticks = 50ms)
+    if (windowVisible && processingEnabled && audioEngineStarted
+        && timerTicksSinceLastRandom % 10 == 0)
+        repaint();
 
     // Check for device changes every 200 ticks (once per second) to avoid overhead
     // Only save after device restoration is complete to avoid saving fallback device

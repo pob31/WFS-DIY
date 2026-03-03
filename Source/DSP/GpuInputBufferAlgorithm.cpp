@@ -324,23 +324,7 @@ bool GpuInputBufferAlgorithm::initialiseLauncher()
         return false;
     }
 
-    // Diagnostics: log environment paths and available devices
-    DBG("GPU Audio: GPUAUDIO_PATH=" + juce::String(::getenv("GPUAUDIO_PATH")));
-    DBG("GPU Audio: GPUAUDIO_PROCESSOR_PATH=" + juce::String(::getenv("GPUAUDIO_PROCESSOR_PATH")));
     const auto& deviceInfoProvider = gpuAudio->GetDeviceInfoProvider();
-    const auto deviceCount = deviceInfoProvider.GetDeviceCount();
-    DBG("GPU Audio: device count = " + juce::String((int) deviceCount));
-    for (uint32_t i = 0; i < deviceCount; ++i)
-    {
-        const GPUA::engine::v2::DeviceInfo* devInfo = nullptr;
-        const auto errDev = deviceInfoProvider.GetDeviceInfo(i, devInfo);
-        if (errDev == GPUA::engine::v2::ErrorCode::eSuccess && devInfo != nullptr && devInfo->name != nullptr)
-            DBG("GPU Audio: device[" + juce::String((int) i) + "] name=" + juce::String(devInfo->name) +
-                " id=" + (devInfo->device_id ? juce::String(devInfo->device_id) : juce::String("<null>")) +
-                " platforms=" + (devInfo->platforms ? juce::String(devInfo->platforms) : juce::String("<null>")));
-        else
-            DBG("GPU Audio: device[" + juce::String((int) i) + "] query failed, code=" + juce::String((int) errDev));
-    }
 
     GPUA::engine::v2::LauncherSpecification launcherSpec {};
     const auto deviceIndex = GpuAudioManager::GetDeviceIndex();
@@ -398,7 +382,6 @@ bool GpuInputBufferAlgorithm::loadWfsModule()
 
     GPUA::engine::v2::ModuleInfo info {};
     bool found = false;
-    DBG("GPU Audio: module count = " + juce::String((int) moduleCount));
     for (uint32_t i = 0; i < moduleCount; ++i)
     {
         if (moduleProvider.GetModuleInfo(i, info) == GPUA::engine::v2::ErrorCode::eSuccess &&
@@ -407,14 +390,6 @@ bool GpuInputBufferAlgorithm::loadWfsModule()
         {
             found = true;
             break;
-        }
-        else if (info.id != nullptr)
-        {
-            DBG("GPU Audio: module[" + juce::String((int) i) + "] id=" + juce::String(info.id));
-        }
-        else
-        {
-            DBG("GPU Audio: module[" + juce::String((int) i) + "] has null id");
         }
     }
 

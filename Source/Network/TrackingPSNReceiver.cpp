@@ -48,9 +48,6 @@ bool TrackingPSNReceiver::start(int portNumber,
     shouldStop = false;
     startThread();
 
-    DBG("TrackingPSNReceiver: Started on port " << port
-        << " multicast " << multicastAddress
-        << (networkInterface.isNotEmpty() ? " interface " + networkInterface : ""));
     return true;
 }
 
@@ -61,7 +58,6 @@ void TrackingPSNReceiver::stop()
         shouldStop = true;
         socket.shutdown();  // Unblock any waiting read
         stopThread(1000);   // Wait up to 1 second
-        DBG("TrackingPSNReceiver: Stopped");
     }
 }
 

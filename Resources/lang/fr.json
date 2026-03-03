@@ -816,6 +816,12 @@
     "buttons": {
       "visibleOnMap": "Réverbs visibles sur la carte",
       "hiddenOnMap": "Réverbs masquées sur la carte",
+      "soloReverbs": "Solo Reverbs",
+      "soloReverbsOn": "Solo Reverbs ON",
+      "mutePre": "Mute Pre",
+      "mutePreOn": "Mute Pre ON",
+      "mutePost": "Mute Post",
+      "mutePostOn": "Mute Post ON",
       "storeConfig": "Enregistrer config réverb",
       "reloadConfig": "Recharger config réverb",
       "reloadBackup": "Recharger sauvegarde",

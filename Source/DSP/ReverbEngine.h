@@ -159,6 +159,7 @@ public:
     {
         if (nodeIndex >= 0 && nodeIndex < (int) nodeInputBuffers.size())
             nodeInputBuffers[nodeIndex]->write (data, numSamples);
+        notify();  // Wake reverb worker thread immediately (immune to timer coalescing)
     }
 
     /**
@@ -389,6 +390,7 @@ private:
                 geo = pendingGeometry;
             }
             geometryChanged.store (false, std::memory_order_release);
+            currentGeometry = geo;
 
             juce::SpinLock::ScopedLockType lock (algorithmLock);
             if (algorithm)
@@ -485,6 +487,7 @@ private:
                         algorithm->prepare (sampleRate, internalBlockSize, numReverbNodes);
                         algorithm->setParallelFor (&parallelPool);
                         algorithm->setParameters (currentParams);
+                        algorithm->updateGeometry (currentGeometry);
                     }
                 }
 
@@ -556,6 +559,7 @@ private:
     AlgorithmParameters currentParams;
 
     // Thread-safe geometry passing
+    std::vector<NodePosition> currentGeometry;
     std::vector<NodePosition> pendingGeometry;
     juce::SpinLock geometryLock;
     std::atomic<bool> geometryChanged { false };

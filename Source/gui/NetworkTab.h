@@ -1151,11 +1151,7 @@ private:
                 && targetConfig.txEnabled;
             if (shouldConnect)
             {
-                DBG("NetworkTab: Connecting target " << i << " to " << targetConfig.ipAddress
-                    << ":" << targetConfig.port << " protocol=" << static_cast<int>(targetConfig.protocol));
-                bool wasConnected = oscManager->connectTarget(i);
-                juce::ignoreUnused(wasConnected);
-                DBG("NetworkTab: Target " << i << " connected=" << (wasConnected ? "yes" : "no"));
+                oscManager->connectTarget(i);
             }
         }
 
@@ -1710,7 +1706,6 @@ private:
                     oscManager->updateTrackingTransformations(offsetX, offsetY, offsetZ,
                                                               scaleX, scaleY, scaleZ,
                                                               flipX, flipY, flipZ);
-                    DBG("NetworkTab: Started tracking OSC receiver on port " << port);
                 }
                 else
                 {
@@ -1757,8 +1752,6 @@ private:
                     oscManager->updatePSNTransformations(offsetX, offsetY, offsetZ,
                                                          scaleX, scaleY, scaleZ,
                                                          flipX, flipY, flipZ);
-                    DBG("NetworkTab: Started PSN receiver on port " << port
-                        << (psnInterface.isNotEmpty() ? " interface " + psnInterface : ""));
                 }
                 else
                 {
@@ -1795,7 +1788,6 @@ private:
                     oscManager->updateRTTrPTransformations(offsetX, offsetY, offsetZ,
                                                            scaleX, scaleY, scaleZ,
                                                            flipX, flipY, flipZ);
-                    DBG("NetworkTab: Started RTTrP receiver on port " << port);
                 }
                 else
                 {

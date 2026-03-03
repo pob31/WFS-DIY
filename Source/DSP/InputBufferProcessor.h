@@ -114,6 +114,7 @@ public:
     {
         inputRingBuffer.write(data, numSamples);
         samplesAvailable.store(inputRingBuffer.getAvailableData(), std::memory_order_release);
+        notify();  // Wake worker thread immediately (immune to timer coalescing)
     }
 
     // Called by audio thread to pull output data for a specific output channel

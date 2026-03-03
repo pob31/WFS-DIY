@@ -23,7 +23,7 @@ public:
     void setBaseColour(juce::Colour colour)
     {
         customBaseColour = colour;
-        hasCustomBaseColour = true;
+        hasCustomBaseColour = colour.getAlpha() > 0;
         repaint();
     }
 
