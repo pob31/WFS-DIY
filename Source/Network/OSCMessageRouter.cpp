@@ -257,8 +257,10 @@ const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getRemoteAddre
         { "liveSourceRadius",         WFSParameterIDs::inputLSradius },
         { "liveSourceShape",          WFSParameterIDs::inputLSshape },
         { "liveSourceAttenuation",    WFSParameterIDs::inputLSattenuation },
+        { "liveSourcePeakEnable",     WFSParameterIDs::inputLSpeakEnable },
         { "liveSourcePeakThreshold",  WFSParameterIDs::inputLSpeakThreshold },
         { "liveSourcePeakRatio",      WFSParameterIDs::inputLSpeakRatio },
+        { "liveSourceSlowEnable",     WFSParameterIDs::inputLSslowEnable },
         { "liveSourceSlowThreshold",  WFSParameterIDs::inputLSslowThreshold },
         { "liveSourceSlowRatio",      WFSParameterIDs::inputLSslowRatio },
 

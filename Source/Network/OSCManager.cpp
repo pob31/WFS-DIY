@@ -1081,7 +1081,7 @@ void OSCManager::handleIncomingMessage(const juce::OSCMessage& message,
 
     // Determine protocol from address
     Protocol protocol = Protocol::OSC;
-    if (address.startsWith("/remoteInput/"))
+    if (address.startsWith("/remoteInput/") || address.startsWith("/remote/"))
         protocol = Protocol::Remote;
 
     // Log incoming message with full details
@@ -2997,13 +2997,15 @@ void OSCManager::onRemoteConnected(int targetIndex, bool isReconnection)
 
         DBG("OSCManager: Sending initial state dump to target " << targetIndex);
 
-        // Send /inputs FIRST so Android expands its data structure before receiving positions
+        // Send /inputs FIRST so Android expands its data structure before receiving positions.
+        // Use sendMessageDirect to bypass rate limiter — this must arrive before the
+        // subsequent sendDirect calls for positions/parameters.
         auto ioTree = state.getIOState();
         int inputs = ioTree.isValid()
             ? static_cast<int>(ioTree.getProperty(WFSParameterIDs::inputChannels))
             : 8;
         juce::OSCMessage inputsMsg = OSCMessageBuilder::buildConfigIntMessage("/inputs", inputs);
-        sendMessage(targetIndex, inputsMsg);
+        sendMessageDirect(targetIndex, inputsMsg);
 
         // Send stage configuration (dimensions, shape, etc.)
         sendStageConfigToRemote();
