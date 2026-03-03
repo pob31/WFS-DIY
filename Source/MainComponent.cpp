@@ -1180,6 +1180,11 @@ MainComponent::~MainComponent()
     // Save settings before shutdown (while device is still available)
     saveSettings();
 
+    // Also save system config (includes audio patch) to project folder
+    auto& fileManager = parameters.getFileManager();
+    if (fileManager.hasValidProjectFolder())
+        fileManager.saveSystemConfig();
+
     // Clean up status bar (owned by this component, not TabbedComponent)
     delete statusBar;
 
@@ -2014,6 +2019,17 @@ void MainComponent::openAudioInterfaceWindow()
                         streamDeckManager->refreshCurrentPage();
                 };
             }
+
+            // Auto-save patch to disk when routing changes (debounced 3s)
+            auto wirePatchAutoSave = [this](PatchMatrixComponent* matrix)
+            {
+                if (matrix)
+                    matrix->onPatchChanged = [this]() { patchSaveCountdown = 600; };
+            };
+            if (auto* inTab = content->getInputPatchTab())
+                wirePatchAutoSave (inTab->getPatchMatrix());
+            if (auto* outTab = content->getOutputPatchTab())
+                wirePatchAutoSave (outTab->getPatchMatrix());
         }
     }
     else
@@ -2415,6 +2431,14 @@ void MainComponent::saveSettings()
 
 void MainComponent::timerCallback()
 {
+    // Debounced auto-save of audio patch to disk
+    if (patchSaveCountdown > 0 && --patchSaveCountdown == 0)
+    {
+        auto& fm = parameters.getFileManager();
+        if (fm.hasValidProjectFolder())
+            fm.saveSystemConfig();
+    }
+
     // Increment tick counter
     timerTicksSinceLastRandom++;
 

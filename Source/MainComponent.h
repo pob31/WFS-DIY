@@ -249,6 +249,7 @@ private:
     float smoothingFactor = 0.22f;              // ~20ms settling time with 5ms updates
     int timerTicksSinceLastRandom = 0;
     const int rampDurationTicks = 200;          // 1 second at 5ms per tick
+    int patchSaveCountdown = 0;                 // Debounce timer for auto-saving patch (0 = idle)
     juce::Random random;
 
     // Track device type and device name changes

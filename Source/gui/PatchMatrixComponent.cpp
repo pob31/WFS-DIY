@@ -199,6 +199,9 @@ void PatchMatrixComponent::savePatchesToValueTree()
 
     juce::String patchDataStr = rowStrings.joinIntoString(";");
     patchTree.setProperty(WFSParameterIDs::patchData, patchDataStr, nullptr);
+
+    if (onPatchChanged)
+        onPatchChanged();
 }
 
 void PatchMatrixComponent::clearAllPatches()

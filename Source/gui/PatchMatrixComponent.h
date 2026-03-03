@@ -112,6 +112,9 @@ public:
      */
     std::function<void(const juce::String&)> onStatusMessage;
 
+    /** Callback when patch data changes (for auto-save to disk). */
+    std::function<void()> onPatchChanged;
+
     //==========================================================================
     // Remote navigation / scrolling (for Stream Deck integration)
     //==========================================================================
