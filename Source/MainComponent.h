@@ -170,7 +170,7 @@ private:
     // GpuInputBufferAlgorithm gpuInputAlgorithm;  // Commented out - GPU Audio SDK not configured
     bool audioCallbacksAttached = false;
     bool processingEnabled = false;
-    bool audioEngineStarted = false;
+    std::atomic<bool> audioEngineStarted { false };
 
     // Parameter management system
     WfsParameters parameters;

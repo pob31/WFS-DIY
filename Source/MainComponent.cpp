@@ -1292,12 +1292,19 @@ void MainComponent::stopProcessingForConfigurationChange()
     if (!audioEngineStarted)
         return;
 
+    // Signal audio callback to stop FIRST — before destroying any processors.
+    // The audio thread checks this flag at the top of getNextAudioBlock().
+    audioEngineStarted = false;
+
     processingEnabled = false;
     // processingToggle removed - now managed in System Config tab
     parameters.setConfigParam("ProcessingEnabled", false);
 
     if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
     {
+        // releaseResources() blocks on stopThread(), giving the audio callback
+        // time to see audioEngineStarted=false and exit processBlock() before
+        // clear() destroys the processor objects.
         inputAlgorithm.releaseResources();
         inputAlgorithm.clear();
     }
@@ -1315,8 +1322,6 @@ void MainComponent::stopProcessingForConfigurationChange()
     // Stop reverb engine for reconfiguration
     if (reverbEngine)
         reverbEngine->stopProcessing();
-
-    audioEngineStarted = false;
 }
 
 void MainComponent::loadAudioPatches()
