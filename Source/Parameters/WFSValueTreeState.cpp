@@ -511,11 +511,13 @@ void WFSValueTreeState::setOutputParameterWithArrayPropagation (int channelIndex
         if (memberApplyMode == 0)  // This member is unlinked (OFF)
             continue;
 
-        if (applyMode == 1)  // ABSOLUTE
+        // Absolute value only when BOTH source and member are ABSOLUTE;
+        // otherwise apply the delta (RELATIVE source, or ABSOLUTE source → RELATIVE member)
+        if (applyMode == 1 && memberApplyMode == 1)
         {
             setOutputParameterDirect (i, paramId, value);
         }
-        else  // RELATIVE (applyMode == 2)
+        else
         {
             float memberCurrent = static_cast<float> (getOutputParameter (i, paramId));
             float memberNew = clampOutputParamToRange (paramId, memberCurrent + delta);
@@ -602,11 +604,13 @@ void WFSValueTreeState::setOutputEQBandParameterWithArrayPropagation (int channe
         if (!memberBand.isValid())
             continue;
 
-        if (applyMode == 1)  // ABSOLUTE
+        // Absolute value only when BOTH source and member are ABSOLUTE;
+        // otherwise apply the delta
+        if (applyMode == 1 && memberApplyMode == 1)
         {
             setOutputEQBandParameterDirect (i, bandIndex, paramId, value);
         }
-        else  // RELATIVE
+        else
         {
             float memberCurrent = static_cast<float> (memberBand.getProperty (paramId));
             float memberNew = clampOutputParamToRange (paramId, memberCurrent + delta);
