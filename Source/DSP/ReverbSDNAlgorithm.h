@@ -242,9 +242,9 @@ private:
         {
             lowState += lowCoeff * (input - lowState);
             highState += highCoeff * (input - highState);
-            float low = lowState;
-            float high = highState;
-            float mid = input - low - high;
+            float low = lowState;                // LPF at crossoverLow = bass
+            float high = input - highState;      // HPF at crossoverHigh = treble
+            float mid = highState - lowState;    // bandpass = midrange
             return low * gainLow + mid * gainMid + high * gainHigh;
         }
     };
