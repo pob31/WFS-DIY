@@ -4526,6 +4526,8 @@ private:
         subTabBar.setVisible (hasChannels);
 
         // Reverb sub-tab
+        reverbFeedTitleLabel.setVisible (hasChannels);
+        reverbReturnTitleLabel.setVisible (hasChannels);
         attenuationLabel.setVisible (hasChannels);
         attenuationSlider.setVisible (hasChannels);
         attenuationValueLabel.setVisible (hasChannels);
@@ -4534,6 +4536,8 @@ private:
         delayLatencyValueLabel.setVisible (hasChannels);
 
         // Position sub-tab
+        coordModeLabel.setVisible (hasChannels);
+        coordModeSelector.setVisible (hasChannels);
         posXLabel.setVisible (hasChannels);
         posYLabel.setVisible (hasChannels);
         posZLabel.setVisible (hasChannels);

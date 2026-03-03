@@ -82,56 +82,67 @@ void WFSFileManager::chooseProjectFolder (std::function<void (bool)> callback)
 
 juce::File WFSFileManager::getCompleteConfigFile() const
 {
+    if (! projectFolder.isDirectory()) return {};
     return projectFolder.getChildFile ("show" + juce::String (completeConfigExtension));
 }
 
 juce::File WFSFileManager::getSystemConfigFile() const
 {
+    if (! projectFolder.isDirectory()) return {};
     return projectFolder.getChildFile ("system" + juce::String (systemConfigExtension));
 }
 
 juce::File WFSFileManager::getInputConfigFile() const
 {
+    if (! projectFolder.isDirectory()) return {};
     return projectFolder.getChildFile ("inputs" + juce::String (inputConfigExtension));
 }
 
 juce::File WFSFileManager::getOutputConfigFile() const
 {
+    if (! projectFolder.isDirectory()) return {};
     return projectFolder.getChildFile ("outputs" + juce::String (outputConfigExtension));
 }
 
 juce::File WFSFileManager::getReverbConfigFile() const
 {
+    if (! projectFolder.isDirectory()) return {};
     return projectFolder.getChildFile ("reverbs" + juce::String (reverbConfigExtension));
 }
 
 juce::File WFSFileManager::getAudioPatchFile() const
 {
+    if (! projectFolder.isDirectory()) return {};
     return projectFolder.getChildFile ("audio_patch" + juce::String (audioPatchExtension));
 }
 
 juce::File WFSFileManager::getNetworkConfigFile() const
 {
+    if (! projectFolder.isDirectory()) return {};
     return projectFolder.getChildFile ("network" + juce::String (networkConfigExtension));
 }
 
 juce::File WFSFileManager::getBackupFolder() const
 {
+    if (! projectFolder.isDirectory()) return {};
     return projectFolder.getChildFile ("backups");
 }
 
 juce::File WFSFileManager::getInputSnapshotsFolder() const
 {
+    if (! projectFolder.isDirectory()) return {};
     return projectFolder.getChildFile ("snapshots").getChildFile ("inputs");
 }
 
 juce::File WFSFileManager::getOutputSnapshotsFolder() const
 {
+    if (! projectFolder.isDirectory()) return {};
     return projectFolder.getChildFile ("snapshots").getChildFile ("outputs");
 }
 
 juce::File WFSFileManager::getIRFolder() const
 {
+    if (! projectFolder.isDirectory()) return {};
     return projectFolder.getChildFile ("ir");
 }
 
