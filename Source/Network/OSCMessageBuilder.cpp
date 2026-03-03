@@ -59,8 +59,10 @@ const std::map<juce::Identifier, OSCMessageBuilder::ParamMapping>& OSCMessageBui
         { WFSParameterIDs::inputLSradius,        { "/wfs/input/LSradius",         "/remoteInput/liveSourceRadius" } },
         { WFSParameterIDs::inputLSshape,         { "/wfs/input/LSshape",          "/remoteInput/liveSourceShape" } },
         { WFSParameterIDs::inputLSattenuation,   { "/wfs/input/LSattenuation",    "/remoteInput/liveSourceAttenuation" } },
+        { WFSParameterIDs::inputLSpeakEnable,    { "/wfs/input/LSpeakEnable",     "/remoteInput/liveSourcePeakEnable" } },
         { WFSParameterIDs::inputLSpeakThreshold, { "/wfs/input/LSpeakThreshold",  "/remoteInput/liveSourcePeakThreshold" } },
         { WFSParameterIDs::inputLSpeakRatio,     { "/wfs/input/LSpeakRatio",      "/remoteInput/liveSourcePeakRatio" } },
+        { WFSParameterIDs::inputLSslowEnable,    { "/wfs/input/LSslowEnable",     "/remoteInput/liveSourceSlowEnable" } },
         { WFSParameterIDs::inputLSslowThreshold, { "/wfs/input/LSslowThreshold",  "/remoteInput/liveSourceSlowThreshold" } },
         { WFSParameterIDs::inputLSslowRatio,     { "/wfs/input/LSslowRatio",      "/remoteInput/liveSourceSlowRatio" } },
 

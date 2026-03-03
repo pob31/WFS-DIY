@@ -1657,6 +1657,11 @@ private:
             bool enabled = lsActiveButton.getToggleState();
             lsActiveButton.setButtonText(enabled ? LOC("inputs.toggles.liveSourceTamerOn") : LOC("inputs.toggles.liveSourceTamerOff"));
             setLiveSourceParametersAlpha(enabled ? 1.0f : 0.5f);
+            if (enabled)
+            {
+                setLsPeakParametersAlpha(lsPeakEnableButton.getToggleState() ? 1.0f : 0.5f);
+                setLsSlowParametersAlpha(lsSlowEnableButton.getToggleState() ? 1.0f : 0.5f);
+            }
             saveInputParam(WFSParameterIDs::inputLSactive, enabled ? 1 : 0);
         };
 
@@ -1713,6 +1718,19 @@ private:
         lsAttenuationValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(lsAttenuationValueLabel);
 
+        // Peak Enable toggle
+        addAndMakeVisible(lsPeakEnableButton);
+        lsPeakEnableButton.setButtonText(LOC("inputs.toggles.lsPeakOff"));
+        lsPeakEnableButton.setClickingTogglesState(true);
+        lsPeakEnableButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFFE67E22));
+        lsPeakEnableButton.onClick = [this]() {
+            bool enabled = lsPeakEnableButton.getToggleState();
+            lsPeakEnableButton.setButtonText(enabled ? LOC("inputs.toggles.lsPeakOn") : LOC("inputs.toggles.lsPeakOff"));
+            bool mainEnabled = lsActiveButton.getToggleState();
+            setLsPeakParametersAlpha((enabled && mainEnabled) ? 1.0f : 0.5f);
+            saveInputParam(WFSParameterIDs::inputLSpeakEnable, enabled ? 1 : 0);
+        };
+
         // Peak Threshold slider
         addAndMakeVisible(lsPeakThresholdLabel);
         lsPeakThresholdLabel.setText(LOC("inputs.labels.peakThreshold"), juce::dontSendNotification);
@@ -1755,6 +1773,19 @@ private:
         lsPeakRatioValueLabel.setText("2.0", juce::dontSendNotification);
         lsPeakRatioValueLabel.setJustificationType(juce::Justification::left);
         setupEditableValueLabel(lsPeakRatioValueLabel);
+
+        // Slow Enable toggle
+        addAndMakeVisible(lsSlowEnableButton);
+        lsSlowEnableButton.setButtonText(LOC("inputs.toggles.lsSlowOff"));
+        lsSlowEnableButton.setClickingTogglesState(true);
+        lsSlowEnableButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFFCC5522));
+        lsSlowEnableButton.onClick = [this]() {
+            bool enabled = lsSlowEnableButton.getToggleState();
+            lsSlowEnableButton.setButtonText(enabled ? LOC("inputs.toggles.lsSlowOn") : LOC("inputs.toggles.lsSlowOff"));
+            bool mainEnabled = lsActiveButton.getToggleState();
+            setLsSlowParametersAlpha((enabled && mainEnabled) ? 1.0f : 0.5f);
+            saveInputParam(WFSParameterIDs::inputLSslowEnable, enabled ? 1 : 0);
+        };
 
         // Slow Threshold slider
         addAndMakeVisible(lsSlowThresholdLabel);
@@ -2908,9 +2939,9 @@ private:
         lsRadiusLabel.setVisible(v); lsRadiusSlider.setVisible(v); lsRadiusValueLabel.setVisible(v);
         lsShapeLabel.setVisible(v); lsShapeSelector.setVisible(v);
         lsAttenuationLabel.setVisible(v); lsAttenuationSlider.setVisible(v); lsAttenuationValueLabel.setVisible(v);
-        lsPeakThresholdLabel.setVisible(v); lsPeakThresholdSlider.setVisible(v); lsPeakThresholdValueLabel.setVisible(v);
+        lsPeakEnableButton.setVisible(v); lsPeakThresholdLabel.setVisible(v); lsPeakThresholdSlider.setVisible(v); lsPeakThresholdValueLabel.setVisible(v);
         lsPeakRatioLabel.setVisible(v); lsPeakRatioDial.setVisible(v); lsPeakRatioValueLabel.setVisible(v); lsPeakRatioUnitLabel.setVisible(v);
-        lsSlowThresholdLabel.setVisible(v); lsSlowThresholdSlider.setVisible(v); lsSlowThresholdValueLabel.setVisible(v);
+        lsSlowEnableButton.setVisible(v); lsSlowThresholdLabel.setVisible(v); lsSlowThresholdSlider.setVisible(v); lsSlowThresholdValueLabel.setVisible(v);
         lsSlowRatioLabel.setVisible(v); lsSlowRatioDial.setVisible(v); lsSlowRatioValueLabel.setVisible(v); lsSlowRatioUnitLabel.setVisible(v);
     }
 
@@ -2939,6 +2970,7 @@ private:
         lsAttenuationLabel.setAlpha(alpha);
         lsAttenuationSlider.setAlpha(alpha);
         lsAttenuationValueLabel.setAlpha(alpha);
+        lsPeakEnableButton.setAlpha(alpha);
         lsPeakThresholdLabel.setAlpha(alpha);
         lsPeakThresholdSlider.setAlpha(alpha);
         lsPeakThresholdValueLabel.setAlpha(alpha);
@@ -2946,6 +2978,29 @@ private:
         lsPeakRatioDial.setAlpha(alpha);
         lsPeakRatioUnitLabel.setAlpha(alpha);
         lsPeakRatioValueLabel.setAlpha(alpha);
+        lsSlowEnableButton.setAlpha(alpha);
+        lsSlowThresholdLabel.setAlpha(alpha);
+        lsSlowThresholdSlider.setAlpha(alpha);
+        lsSlowThresholdValueLabel.setAlpha(alpha);
+        lsSlowRatioLabel.setAlpha(alpha);
+        lsSlowRatioDial.setAlpha(alpha);
+        lsSlowRatioUnitLabel.setAlpha(alpha);
+        lsSlowRatioValueLabel.setAlpha(alpha);
+    }
+
+    void setLsPeakParametersAlpha(float alpha)
+    {
+        lsPeakThresholdLabel.setAlpha(alpha);
+        lsPeakThresholdSlider.setAlpha(alpha);
+        lsPeakThresholdValueLabel.setAlpha(alpha);
+        lsPeakRatioLabel.setAlpha(alpha);
+        lsPeakRatioDial.setAlpha(alpha);
+        lsPeakRatioUnitLabel.setAlpha(alpha);
+        lsPeakRatioValueLabel.setAlpha(alpha);
+    }
+
+    void setLsSlowParametersAlpha(float alpha)
+    {
         lsSlowThresholdLabel.setAlpha(alpha);
         lsSlowThresholdSlider.setAlpha(alpha);
         lsSlowThresholdValueLabel.setAlpha(alpha);
@@ -4229,12 +4284,14 @@ private:
         lsPeakRatioUnitLabel.setBounds(peakStartX, peakDialArea.getY(), peakPrefixW, rowHeight);
         lsPeakRatioValueLabel.setBounds(peakStartX + peakPrefixW - peakOverlap, peakDialArea.getY(), peakValueW, rowHeight);
 
-        // Peak slider section (left) - label + value on same row, slider below
-        row = peakSliderArea.removeFromTop(rowHeight);
-        lsPeakThresholdLabel.setBounds(row.removeFromLeft(labelWidth));
-        lsPeakThresholdValueLabel.setBounds(row.removeFromRight(valueWidth));
-        int sliderVerticalOffset = (dialSize - sliderHeight) / 2;  // Center slider with dial
+        // Peak slider section (left) - offset first so label sits close to slider
+        int sliderVerticalOffset = (dialSize - sliderHeight) / 2;
         peakSliderArea.removeFromTop(sliderVerticalOffset);
+        row = peakSliderArea.removeFromTop(rowHeight);
+        lsPeakEnableButton.setBounds(row.removeFromLeft(scaled(55)));
+        row.removeFromLeft(spacing);
+        lsPeakThresholdValueLabel.setBounds(row.removeFromRight(valueWidth));
+        lsPeakThresholdLabel.setBounds(row);
         lsPeakThresholdSlider.setBounds(peakSliderArea.removeFromTop(sliderHeight));
 
         col1.removeFromTop(spacing * 2);
@@ -4256,11 +4313,13 @@ private:
         lsSlowRatioUnitLabel.setBounds(slowStartX, slowDialArea.getY(), slowPrefixW, rowHeight);
         lsSlowRatioValueLabel.setBounds(slowStartX + slowPrefixW - slowOverlap, slowDialArea.getY(), slowValueW, rowHeight);
 
-        // Slow slider section (left) - label + value on same row, slider below
-        row = slowSliderArea.removeFromTop(rowHeight);
-        lsSlowThresholdLabel.setBounds(row.removeFromLeft(labelWidth));
-        lsSlowThresholdValueLabel.setBounds(row.removeFromRight(valueWidth));
+        // Slow slider section (left) - offset first so label sits close to slider
         slowSliderArea.removeFromTop(sliderVerticalOffset);
+        row = slowSliderArea.removeFromTop(rowHeight);
+        lsSlowEnableButton.setBounds(row.removeFromLeft(scaled(55)));
+        row.removeFromLeft(spacing);
+        lsSlowThresholdValueLabel.setBounds(row.removeFromRight(valueWidth));
+        lsSlowThresholdLabel.setBounds(row);
         lsSlowThresholdSlider.setBounds(slowSliderArea.removeFromTop(sliderHeight));
 
         // ========== COLUMN 2: Hackoustics (Floor Reflections) ==========
@@ -4988,6 +5047,12 @@ private:
         lsAttenuationSlider.setValue(juce::jlimit(0.0f, 1.0f, lsAttenSliderVal));
         lsAttenuationValueLabel.setText(juce::String(lsAttenDB, 1) + " dB", juce::dontSendNotification);
 
+        // Peak Enable
+        bool lsPeakEnabled = getIntParam(WFSParameterIDs::inputLSpeakEnable, 0) != 0;
+        lsPeakEnableButton.setToggleState(lsPeakEnabled, juce::dontSendNotification);
+        lsPeakEnableButton.setButtonText(lsPeakEnabled ? LOC("inputs.toggles.lsPeakOn") : LOC("inputs.toggles.lsPeakOff"));
+        setLsPeakParametersAlpha((lsPeakEnabled && lsActive) ? 1.0f : 0.5f);
+
         // Peak Threshold stored as dB (-48 to 0), default -20
         // Formula: dB = 20*log10(minLin + (1-minLin)*x^2), where minLin = pow(10, -48/20)
         // Inverse: x = sqrt((targetLin - minLin) / (1 - minLin))
@@ -5006,6 +5071,12 @@ private:
         float peakRatioSliderVal = (peakRatioVal - 1.0f) / 9.0f;
         lsPeakRatioDial.setValue(juce::jlimit(0.0f, 1.0f, peakRatioSliderVal));
         lsPeakRatioValueLabel.setText(juce::String(peakRatioVal, 1), juce::dontSendNotification);
+
+        // Slow Enable
+        bool lsSlowEnabled = getIntParam(WFSParameterIDs::inputLSslowEnable, 0) != 0;
+        lsSlowEnableButton.setToggleState(lsSlowEnabled, juce::dontSendNotification);
+        lsSlowEnableButton.setButtonText(lsSlowEnabled ? LOC("inputs.toggles.lsSlowOn") : LOC("inputs.toggles.lsSlowOff"));
+        setLsSlowParametersAlpha((lsSlowEnabled && lsActive) ? 1.0f : 0.5f);
 
         // Slow Threshold stored as dB (-48 to 0), default -20
         // Formula: dB = 20*log10(minLin + (1-minLin)*x^2), where minLin = pow(10, -48/20)
@@ -6672,8 +6743,10 @@ private:
         helpTextMap[&lsRadiusSlider] = LOC("inputs.help.lsRadiusSlider");
         helpTextMap[&lsShapeSelector] = LOC("inputs.help.lsShapeSelector");
         helpTextMap[&lsAttenuationSlider] = LOC("inputs.help.lsAttenuationSlider");
+        helpTextMap[&lsPeakEnableButton] = LOC("inputs.help.lsPeakEnableButton");
         helpTextMap[&lsPeakThresholdSlider] = LOC("inputs.help.lsPeakThresholdSlider");
         helpTextMap[&lsPeakRatioDial] = LOC("inputs.help.lsPeakRatioDial");
+        helpTextMap[&lsSlowEnableButton] = LOC("inputs.help.lsSlowEnableButton");
         helpTextMap[&lsSlowThresholdSlider] = LOC("inputs.help.lsSlowThresholdSlider");
         helpTextMap[&lsSlowRatioDial] = LOC("inputs.help.lsSlowRatioDial");
         helpTextMap[&frActiveButton] = LOC("inputs.help.frActiveButton");
@@ -6783,8 +6856,10 @@ private:
         oscMethodMap[&lsRadiusSlider] = "/wfs/input/LSradius <ID> <value>";
         oscMethodMap[&lsShapeSelector] = "/wfs/input/LSshape <ID> <value>";
         oscMethodMap[&lsAttenuationSlider] = "/wfs/input/LSattenuation <ID> <value>";
+        oscMethodMap[&lsPeakEnableButton] = "/wfs/input/LSpeakEnable <ID> <0|1>";
         oscMethodMap[&lsPeakThresholdSlider] = "/wfs/input/LSpeakThreshold <ID> <value>";
         oscMethodMap[&lsPeakRatioDial] = "/wfs/input/LSpeakRatio <ID> <value>";
+        oscMethodMap[&lsSlowEnableButton] = "/wfs/input/LSslowEnable <ID> <0|1>";
         oscMethodMap[&lsSlowThresholdSlider] = "/wfs/input/LSslowThreshold <ID> <value>";
         oscMethodMap[&lsSlowRatioDial] = "/wfs/input/LSslowRatio <ID> <value>";
         oscMethodMap[&frActiveButton] = "/wfs/input/FRactive <ID> <value>";
@@ -7392,6 +7467,7 @@ private:
     juce::Label lsAttenuationLabel;
     WfsStandardSlider lsAttenuationSlider;
     juce::Label lsAttenuationValueLabel;
+    juce::TextButton lsPeakEnableButton;
     juce::Label lsPeakThresholdLabel;
     WfsStandardSlider lsPeakThresholdSlider;
     juce::Label lsPeakThresholdValueLabel;
@@ -7399,6 +7475,7 @@ private:
     WfsBasicDial lsPeakRatioDial;
     juce::Label lsPeakRatioValueLabel;
     juce::Label lsPeakRatioUnitLabel;
+    juce::TextButton lsSlowEnableButton;
     juce::Label lsSlowThresholdLabel;
     WfsStandardSlider lsSlowThresholdSlider;
     juce::Label lsSlowThresholdValueLabel;

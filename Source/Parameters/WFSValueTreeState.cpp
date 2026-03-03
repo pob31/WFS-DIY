@@ -1832,8 +1832,10 @@ juce::ValueTree WFSValueTreeState::createInputLiveSourceSection()
     liveSource.setProperty (inputLSradius, inputLSradiusDefault, nullptr);
     liveSource.setProperty (inputLSshape, inputLSshapeDefault, nullptr);
     liveSource.setProperty (inputLSattenuation, inputLSattenuationDefault, nullptr);
+    liveSource.setProperty (inputLSpeakEnable, inputLSpeakEnableDefault, nullptr);
     liveSource.setProperty (inputLSpeakThreshold, inputLSpeakThresholdDefault, nullptr);
     liveSource.setProperty (inputLSpeakRatio, inputLSpeakRatioDefault, nullptr);
+    liveSource.setProperty (inputLSslowEnable, inputLSslowEnableDefault, nullptr);
     liveSource.setProperty (inputLSslowThreshold, inputLSslowThresholdDefault, nullptr);
     liveSource.setProperty (inputLSslowRatio, inputLSslowRatioDefault, nullptr);
     return liveSource;

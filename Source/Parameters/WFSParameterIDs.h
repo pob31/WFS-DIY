@@ -243,8 +243,10 @@ namespace WFSParameterIDs
     const juce::Identifier inputLSradius         ("inputLSradius");
     const juce::Identifier inputLSshape          ("inputLSshape");
     const juce::Identifier inputLSattenuation    ("inputLSattenuation");
+    const juce::Identifier inputLSpeakEnable     ("inputLSpeakEnable");
     const juce::Identifier inputLSpeakThreshold  ("inputLSpeakThreshold");
     const juce::Identifier inputLSpeakRatio      ("inputLSpeakRatio");
+    const juce::Identifier inputLSslowEnable     ("inputLSslowEnable");
     const juce::Identifier inputLSslowThreshold  ("inputLSslowThreshold");
     const juce::Identifier inputLSslowRatio      ("inputLSslowRatio");
 

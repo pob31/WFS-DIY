@@ -930,8 +930,8 @@ const std::vector<WFSFileManager::ScopeItem>& WFSFileManager::ExtendedSnapshotSc
         { "lsEnable", "Enable", LiveSourceTamer, { inputLSactive } },
         { "lsRadiusShape", "Radius/Shape", LiveSourceTamer, { inputLSradius, inputLSshape } },
         { "lsFixedAtten", "Fixed Atten", LiveSourceTamer, { inputLSattenuation } },
-        { "lsPeakComp", "Peak Comp", LiveSourceTamer, { inputLSpeakThreshold, inputLSpeakRatio } },
-        { "lsSlowComp", "Slow Comp", LiveSourceTamer, { inputLSslowThreshold, inputLSslowRatio } },
+        { "lsPeakComp", "Peak Comp", LiveSourceTamer, { inputLSpeakEnable, inputLSpeakThreshold, inputLSpeakRatio } },
+        { "lsSlowComp", "Slow Comp", LiveSourceTamer, { inputLSslowEnable, inputLSslowThreshold, inputLSslowRatio } },
 
         // Hackoustics Section
         { "frEnable", "Enable", Hackoustics, { inputFRactive } },

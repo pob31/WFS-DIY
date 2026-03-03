@@ -310,6 +310,8 @@ namespace WFSParameterDefaults
     constexpr float inputLSattenuationMin       = -24.0f;
     constexpr float inputLSattenuationMax       = 0.0f;
 
+    constexpr int inputLSpeakEnableDefault       = 0;  // OFF by default
+
     constexpr float inputLSpeakThresholdDefault = -20.0f;
     constexpr float inputLSpeakThresholdMin     = -48.0f;
     constexpr float inputLSpeakThresholdMax     = 0.0f;
@@ -317,6 +319,8 @@ namespace WFSParameterDefaults
     constexpr float inputLSpeakRatioDefault     = 2.0f;
     constexpr float inputLSpeakRatioMin         = 1.0f;
     constexpr float inputLSpeakRatioMax         = 10.0f;
+
+    constexpr int inputLSslowEnableDefault       = 0;  // OFF by default
 
     constexpr float inputLSslowThresholdDefault = -20.0f;
     constexpr float inputLSslowThresholdMin     = -48.0f;
