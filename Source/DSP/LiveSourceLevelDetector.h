@@ -227,11 +227,10 @@ private:
         // Soft knee region: threshold - 10dB to threshold + 10dB
         else if (levelDb > threshold - 10.0f)
         {
-            // Soft knee formula from Max patch:
-            // gainReduction = pow(10, ((levelDb - threshold + 10) * (threshold + 10 - levelDb * 20) / (ratio * 20)) / 20)
-            // Note: This appears to be a quadratic interpolation through the knee
+            // Standard soft knee: gainDb = (1/ratio - 1) * kneePosition^2 / (2 * kneeWidth)
+            // kneeWidth = 20dB, so denominator = 40
             float kneePosition = levelDb - threshold + 10.0f;  // 0 at knee start, 20 at knee end
-            float kneeGainDb = (kneePosition * (threshold + 10.0f - levelDb * 20.0f)) / (ratio * 20.0f);
+            float kneeGainDb = (1.0f / ratio - 1.0f) * kneePosition * kneePosition / 40.0f;
             return std::pow(10.0f, kneeGainDb / 20.0f);
         }
 

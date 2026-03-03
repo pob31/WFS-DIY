@@ -1580,12 +1580,12 @@ void WFSCalculationEngine::recalculateMatrix()
             // Clamp to reasonable range
             totalFRAttenDb = juce::jlimit(-92.0f, 0.0f, totalFRAttenDb);
 
-            // Convert to linear
-            float frLevelLinear = std::pow(10.0f, totalFRAttenDb / 20.0f);
+            // Convert to linear extra attenuation factor
+            float frExtraAttenLinear = std::pow(10.0f, totalFRAttenDb / 20.0f);
 
-            // Apply angular attenuation (recalculate for FR - same as direct signal)
-            float angularAtten = calculateAngularAttenuation(inIdx, outIdx, inputPos, speakerPos);
-            frLevelLinear *= angularAtten;
+            // FR level is on top of the direct signal's full attenuation
+            // (distance law, common atten, array atten, angular atten, LS gains, sideline)
+            float frLevelLinear = newLevels[matrixIdx] * frExtraAttenLinear;
 
             newFRLevels[matrixIdx] = frLevelLinear;
 
