@@ -935,9 +935,9 @@ private:
             bool bypassed = preCompBypassButton.getToggleState();
             preCompBypassButton.setButtonText (bypassed ? LOC("reverbs.preProcessing.compressorOff") : LOC("reverbs.preProcessing.compressorOn"));
             preCompBypassButton.setColour (juce::TextButton::buttonColourId,
-                bypassed ? juce::Colour (0xFF2D2D2D) : juce::Colour (0xFF4CAF50));
+                bypassed ? juce::Colour (0xFF2D2D2D) : juce::Colour (0xFF3498DB));
             preCompBypassButton.setColour (juce::TextButton::buttonOnColourId,
-                bypassed ? juce::Colour (0xFF2D2D2D) : juce::Colour (0xFF4CAF50));
+                bypassed ? juce::Colour (0xFF2D2D2D) : juce::Colour (0xFF3498DB));
             updatePreCompAppearance();
             savePreCompParam (reverbPreCompBypass, bypassed ? 1 : 0);
         };
@@ -946,7 +946,7 @@ private:
         addAndMakeVisible (preCompThresholdLabel);
         preCompThresholdLabel.setText (LOC("reverbs.preProcessing.threshold"), juce::dontSendNotification);
         preCompThresholdLabel.setJustificationType (juce::Justification::centred);
-        preCompThresholdDial.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF4CAF50));
+        preCompThresholdDial.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF3498DB));
         preCompThresholdDial.onValueChanged = [this] (float v)
         {
             float threshold = reverbPreCompThresholdMin + (reverbPreCompThresholdMax - reverbPreCompThresholdMin) * v;
@@ -967,7 +967,7 @@ private:
         addAndMakeVisible (preCompRatioLabel);
         preCompRatioLabel.setText (LOC("reverbs.preProcessing.ratio"), juce::dontSendNotification);
         preCompRatioLabel.setJustificationType (juce::Justification::centred);
-        preCompRatioDial.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF4CAF50));
+        preCompRatioDial.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF3498DB));
         preCompRatioDial.onValueChanged = [this] (float v)
         {
             float ratio = reverbPreCompRatioMin + (reverbPreCompRatioMax - reverbPreCompRatioMin) * v;
@@ -988,7 +988,7 @@ private:
         addAndMakeVisible (preCompAttackLabel);
         preCompAttackLabel.setText (LOC("reverbs.preProcessing.attack"), juce::dontSendNotification);
         preCompAttackLabel.setJustificationType (juce::Justification::centred);
-        preCompAttackDial.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF4CAF50));
+        preCompAttackDial.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF3498DB));
         preCompAttackDial.onValueChanged = [this] (float v)
         {
             float attack = reverbPreCompAttackMin * std::pow (reverbPreCompAttackMax / reverbPreCompAttackMin, v);
@@ -1009,7 +1009,7 @@ private:
         addAndMakeVisible (preCompReleaseLabel);
         preCompReleaseLabel.setText (LOC("reverbs.preProcessing.release"), juce::dontSendNotification);
         preCompReleaseLabel.setJustificationType (juce::Justification::centred);
-        preCompReleaseDial.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF4CAF50));
+        preCompReleaseDial.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF3498DB));
         preCompReleaseDial.onValueChanged = [this] (float v)
         {
             float release = reverbPreCompReleaseMin * std::pow (reverbPreCompReleaseMax / reverbPreCompReleaseMin, v);
@@ -1050,9 +1050,9 @@ private:
             bool bypassed = postExpBypassButton.getToggleState();
             postExpBypassButton.setButtonText (bypassed ? LOC("reverbs.postProcessing.expanderOff") : LOC("reverbs.postProcessing.expanderOn"));
             postExpBypassButton.setColour (juce::TextButton::buttonColourId,
-                bypassed ? juce::Colour (0xFF2D2D2D) : juce::Colour (0xFF4CAF50));
+                bypassed ? juce::Colour (0xFF2D2D2D) : juce::Colour (0xFF9B59B6));
             postExpBypassButton.setColour (juce::TextButton::buttonOnColourId,
-                bypassed ? juce::Colour (0xFF2D2D2D) : juce::Colour (0xFF4CAF50));
+                bypassed ? juce::Colour (0xFF2D2D2D) : juce::Colour (0xFF9B59B6));
             updatePostExpAppearance();
             savePostExpParam (reverbPostExpBypass, bypassed ? 1 : 0);
         };
@@ -1061,7 +1061,7 @@ private:
         addAndMakeVisible (postExpThresholdLabel);
         postExpThresholdLabel.setText (LOC("reverbs.postProcessing.threshold"), juce::dontSendNotification);
         postExpThresholdLabel.setJustificationType (juce::Justification::centred);
-        postExpThresholdDial.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFFF9800));
+        postExpThresholdDial.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF9B59B6));
         postExpThresholdDial.onValueChanged = [this] (float v)
         {
             float threshold = reverbPostExpThresholdMin + (reverbPostExpThresholdMax - reverbPostExpThresholdMin) * v;
@@ -1082,7 +1082,7 @@ private:
         addAndMakeVisible (postExpRatioLabel);
         postExpRatioLabel.setText (LOC("reverbs.postProcessing.ratio"), juce::dontSendNotification);
         postExpRatioLabel.setJustificationType (juce::Justification::centred);
-        postExpRatioDial.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFFF9800));
+        postExpRatioDial.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF9B59B6));
         postExpRatioDial.onValueChanged = [this] (float v)
         {
             float ratio = reverbPostExpRatioMin + (reverbPostExpRatioMax - reverbPostExpRatioMin) * v;
@@ -1103,7 +1103,7 @@ private:
         addAndMakeVisible (postExpAttackLabel);
         postExpAttackLabel.setText (LOC("reverbs.postProcessing.attack"), juce::dontSendNotification);
         postExpAttackLabel.setJustificationType (juce::Justification::centred);
-        postExpAttackDial.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFFF9800));
+        postExpAttackDial.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF9B59B6));
         postExpAttackDial.onValueChanged = [this] (float v)
         {
             float attack = reverbPostExpAttackMin * std::pow (reverbPostExpAttackMax / reverbPostExpAttackMin, v);
@@ -1124,7 +1124,7 @@ private:
         addAndMakeVisible (postExpReleaseLabel);
         postExpReleaseLabel.setText (LOC("reverbs.postProcessing.release"), juce::dontSendNotification);
         postExpReleaseLabel.setJustificationType (juce::Justification::centred);
-        postExpReleaseDial.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFFF9800));
+        postExpReleaseDial.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF9B59B6));
         postExpReleaseDial.onValueChanged = [this] (float v)
         {
             float release = reverbPostExpReleaseMin * std::pow (reverbPostExpReleaseMax / reverbPostExpReleaseMin, v);
@@ -3461,9 +3461,9 @@ private:
         preCompBypassButton.setToggleState (bypassed != 0, juce::dontSendNotification);
         preCompBypassButton.setButtonText (bypassed != 0 ? LOC("reverbs.preProcessing.compressorOff") : LOC("reverbs.preProcessing.compressorOn"));
         preCompBypassButton.setColour (juce::TextButton::buttonColourId,
-            bypassed != 0 ? juce::Colour (0xFF2D2D2D) : juce::Colour (0xFF4CAF50));
+            bypassed != 0 ? juce::Colour (0xFF2D2D2D) : juce::Colour (0xFF3498DB));
         preCompBypassButton.setColour (juce::TextButton::buttonOnColourId,
-            bypassed != 0 ? juce::Colour (0xFF2D2D2D) : juce::Colour (0xFF4CAF50));
+            bypassed != 0 ? juce::Colour (0xFF2D2D2D) : juce::Colour (0xFF3498DB));
 
         float threshold = static_cast<float> (static_cast<double> (preComp.getProperty (reverbPreCompThreshold, reverbPreCompThresholdDefault)));
         float thresholdNorm = (threshold - reverbPreCompThresholdMin) / (reverbPreCompThresholdMax - reverbPreCompThresholdMin);
@@ -3531,9 +3531,9 @@ private:
         postExpBypassButton.setToggleState (bypassed != 0, juce::dontSendNotification);
         postExpBypassButton.setButtonText (bypassed != 0 ? LOC("reverbs.postProcessing.expanderOff") : LOC("reverbs.postProcessing.expanderOn"));
         postExpBypassButton.setColour (juce::TextButton::buttonColourId,
-            bypassed != 0 ? juce::Colour (0xFF2D2D2D) : juce::Colour (0xFF4CAF50));
+            bypassed != 0 ? juce::Colour (0xFF2D2D2D) : juce::Colour (0xFF9B59B6));
         postExpBypassButton.setColour (juce::TextButton::buttonOnColourId,
-            bypassed != 0 ? juce::Colour (0xFF2D2D2D) : juce::Colour (0xFF4CAF50));
+            bypassed != 0 ? juce::Colour (0xFF2D2D2D) : juce::Colour (0xFF9B59B6));
 
         float threshold = static_cast<float> (static_cast<double> (postExp.getProperty (reverbPostExpThreshold, reverbPostExpThresholdDefault)));
         float thresholdNorm = (threshold - reverbPostExpThresholdMin) / (reverbPostExpThresholdMax - reverbPostExpThresholdMin);
