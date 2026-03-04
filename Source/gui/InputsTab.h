@@ -19,6 +19,7 @@
 #include "../Helpers/CoordinateConverter.h"
 #include "SetAllInputsWindow.h"
 #include "../AppSettings.h"
+#include "GainReductionMeter.h"
 #include "SnapshotScopeWindow.h"
 #include "buttons/LongPressButton.h"
 #include "../Localization/LocalizationManager.h"
@@ -400,6 +401,16 @@ public:
 
     /** Get the currently selected channel (1-based) */
     int getCurrentChannel() const { return currentChannel; }
+
+    /** Update LST gain reduction meters (called from MainComponent timer).
+        Values are linear multipliers (1.0 = no reduction, 0.0 = full mute). */
+    void setLSGainReduction (float peakGRLinear, float slowGRLinear)
+    {
+        float peakDb = (peakGRLinear > 1e-10f) ? 20.0f * std::log10 (peakGRLinear) : -60.0f;
+        float slowDb = (slowGRLinear > 1e-10f) ? 20.0f * std::log10 (slowGRLinear) : -60.0f;
+        lsPeakGRMeter.setGainReductionDb (peakDb);
+        lsSlowGRMeter.setGainReductionDb (slowDb);
+    }
 
     /** Refresh UI from ValueTree - call after config reload */
     void refreshFromValueTree()
@@ -1737,6 +1748,12 @@ private:
         lsAttenuationValueLabel.setJustificationType(juce::Justification::right);
         setupEditableValueLabel(lsAttenuationValueLabel);
 
+        // GR meters
+        addAndMakeVisible (lsPeakGRMeter);
+        lsPeakGRMeter.setMeterColour (juce::Colour (0xFFE67E22));
+        addAndMakeVisible (lsSlowGRMeter);
+        lsSlowGRMeter.setMeterColour (juce::Colour (0xFFCC5522));
+
         // Peak Enable toggle
         addAndMakeVisible(lsPeakEnableButton);
         lsPeakEnableButton.setButtonText(LOC("inputs.toggles.lsPeakOff"));
@@ -2960,8 +2977,10 @@ private:
         lsAttenuationLabel.setVisible(v); lsAttenuationSlider.setVisible(v); lsAttenuationValueLabel.setVisible(v);
         lsPeakEnableButton.setVisible(v); lsPeakThresholdLabel.setVisible(v); lsPeakThresholdSlider.setVisible(v); lsPeakThresholdValueLabel.setVisible(v);
         lsPeakRatioLabel.setVisible(v); lsPeakRatioDial.setVisible(v); lsPeakRatioValueLabel.setVisible(v); lsPeakRatioUnitLabel.setVisible(v);
+        lsPeakGRMeter.setVisible(v);
         lsSlowEnableButton.setVisible(v); lsSlowThresholdLabel.setVisible(v); lsSlowThresholdSlider.setVisible(v); lsSlowThresholdValueLabel.setVisible(v);
         lsSlowRatioLabel.setVisible(v); lsSlowRatioDial.setVisible(v); lsSlowRatioValueLabel.setVisible(v); lsSlowRatioUnitLabel.setVisible(v);
+        lsSlowGRMeter.setVisible(v);
     }
 
     void setEffectsVisible(bool v)
@@ -3474,16 +3493,24 @@ private:
         leftCol.removeFromTop(spacing / 2);
         lsSlowThresholdSlider.setBounds(leftCol.removeFromTop(sliderHeight));
 
-        // Right column - Ratio dials
+        // Right column - Ratio dials + GR meters
+        const int meterWidth = scaled (14);
+
         lsPeakRatioLabel.setBounds(rightCol.removeFromTop(rowHeight));
         auto dialArea = rightCol.removeFromTop(dialSize);
-        lsPeakRatioDial.setBounds(dialArea.withSizeKeepingCentre(dialSize, dialSize));
+        auto peakDialMeter = dialArea;
+        lsPeakRatioDial.setBounds(peakDialMeter.removeFromLeft(peakDialMeter.getWidth() - meterWidth - scaled(4))
+                                    .withSizeKeepingCentre(dialSize, dialSize));
+        lsPeakGRMeter.setBounds(peakDialMeter.reduced(scaled(2), 0));
         lsPeakRatioValueLabel.setBounds(rightCol.removeFromTop(rowHeight));
         rightCol.removeFromTop(spacing * 2);
 
         lsSlowRatioLabel.setBounds(rightCol.removeFromTop(rowHeight));
         dialArea = rightCol.removeFromTop(dialSize);
-        lsSlowRatioDial.setBounds(dialArea.withSizeKeepingCentre(dialSize, dialSize));
+        auto slowDialMeter = dialArea;
+        lsSlowRatioDial.setBounds(slowDialMeter.removeFromLeft(slowDialMeter.getWidth() - meterWidth - scaled(4))
+                                    .withSizeKeepingCentre(dialSize, dialSize));
+        lsSlowGRMeter.setBounds(slowDialMeter.reduced(scaled(2), 0));
         lsSlowRatioValueLabel.setBounds(rightCol.removeFromTop(rowHeight));
     }
 
@@ -4292,6 +4319,11 @@ private:
         peakBlock.removeFromLeft(spacing * 2);
         auto peakDialArea = peakBlock;
 
+        // GR meter strip on right of peak dial
+        const int meterWidth = scaled(14);
+        auto peakMeterArea = peakDialArea.removeFromRight(meterWidth + scaled(4));
+        lsPeakGRMeter.setBounds(peakMeterArea.reduced(scaled(2), rowHeight));
+
         // Peak dial section (right) - label, dial, prefix+value stacked vertically (ratio format "1:2.0")
         lsPeakRatioLabel.setBounds(peakDialArea.removeFromTop(rowHeight));
         auto peakRatioDialBounds = peakDialArea.removeFromTop(dialSize);
@@ -4320,6 +4352,10 @@ private:
         auto slowSliderArea = slowBlock.removeFromLeft(sliderPortion);
         slowBlock.removeFromLeft(spacing * 2);
         auto slowDialArea = slowBlock;
+
+        // GR meter strip on right of slow dial
+        auto slowMeterArea = slowDialArea.removeFromRight(meterWidth + scaled(4));
+        lsSlowGRMeter.setBounds(slowMeterArea.reduced(scaled(2), rowHeight));
 
         // Slow dial section (right) - label, dial, prefix+value stacked vertically (ratio format "1:2.0")
         lsSlowRatioLabel.setBounds(slowDialArea.removeFromTop(rowHeight));
@@ -7521,6 +7557,8 @@ private:
     WfsBasicDial lsSlowRatioDial;
     juce::Label lsSlowRatioValueLabel;
     juce::Label lsSlowRatioUnitLabel;
+    GainReductionMeter lsPeakGRMeter;
+    GainReductionMeter lsSlowGRMeter;
 
     // Effects tab
     juce::TextButton frActiveButton;

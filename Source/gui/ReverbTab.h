@@ -17,6 +17,7 @@
 #include "buttons/EQBandToggle.h"
 #include "ColumnFocusTraverser.h"
 #include "../AppSettings.h"
+#include "GainReductionMeter.h"
 
 /**
  * Reverb Tab Component
@@ -127,6 +128,13 @@ public:
     }
 
     int getNumChannels() const { return channelSelector.getNumChannels(); }
+
+    /** Update gain reduction meters (called from MainComponent timer). */
+    void setGainReduction (float compGRdB, float expGRdB)
+    {
+        preCompGRMeter.setGainReductionDb (compGRdB);
+        postExpGRMeter.setGainReductionDb (expGRdB);
+    }
 
     /** Refresh UI from ValueTree - call after config reload */
     void refreshFromValueTree()
@@ -943,6 +951,10 @@ private:
             savePreCompParam (reverbPreCompBypass, bypassed ? 1 : 0);
         };
 
+        // GR meter
+        addAndMakeVisible (preCompGRMeter);
+        preCompGRMeter.setMeterColour (juce::Colour (0xFF3498DB));
+
         // Threshold dial
         addAndMakeVisible (preCompThresholdLabel);
         preCompThresholdLabel.setText (LOC("reverbs.preProcessing.threshold"), juce::dontSendNotification);
@@ -1059,6 +1071,10 @@ private:
         };
 
         // Threshold dial
+        // GR meter
+        addAndMakeVisible (postExpGRMeter);
+        postExpGRMeter.setMeterColour (juce::Colour (0xFF9B59B6));
+
         addAndMakeVisible (postExpThresholdLabel);
         postExpThresholdLabel.setText (LOC("reverbs.postProcessing.threshold"), juce::dontSendNotification);
         postExpThresholdLabel.setJustificationType (juce::Justification::centred);
@@ -1943,10 +1959,14 @@ private:
         preCompBypassButton.setBounds (headerRow.removeFromLeft (scaled(150)));
         area.removeFromTop (spacing);
 
-        // 4 dials in a horizontal row: label / dial / value
+        // GR meter column on left (with padding like dials), then 4 equal dial columns
         auto dialRow = area.removeFromTop (labelHeight + dialSize + labelHeight);
-        int dialColumnWidth = dialRow.getWidth() / 4;
+        const int meterWidth = scaled (16);
+        const int meterColWidth = meterWidth + scaled (24);  // generous padding like a dial column
+        auto meterCol = dialRow.removeFromLeft (meterColWidth);
+        preCompGRMeter.setBounds (meterCol.withSizeKeepingCentre (meterWidth, dialSize));
 
+        int dialColumnWidth = dialRow.getWidth() / 4;
         const int valueLabelWidth = dialSize + 16;
 
         auto threshArea = dialRow.removeFromLeft (dialColumnWidth);
@@ -2214,8 +2234,13 @@ private:
         postExpBypassButton.setBounds (headerRow.removeFromLeft (scaled(150)));
         area.removeFromTop (spacing);
 
-        // 4 dials in a horizontal row: label / dial / value
+        // GR meter column on left (with padding like dials), then 4 equal dial columns
         auto dialRow = area.removeFromTop (labelHeight + dialSize + labelHeight);
+        const int meterWidth = scaled (16);
+        const int meterColWidth = meterWidth + scaled (24);  // generous padding like a dial column
+        auto meterCol = dialRow.removeFromLeft (meterColWidth);
+        postExpGRMeter.setBounds (meterCol.withSizeKeepingCentre (meterWidth, dialSize));
+
         int dialColumnWidth = dialRow.getWidth() / 4;
         const int valueLabelWidth = dialSize + 16;
 
@@ -2641,6 +2666,7 @@ private:
         preCompReleaseLabel.setVisible (visible);
         preCompReleaseDial.setVisible (visible);
         preCompReleaseValueLabel.setVisible (visible);
+        preCompGRMeter.setVisible (visible);
 
         if (visible)
             updatePreCompAppearance();
@@ -2853,6 +2879,7 @@ private:
         postExpReleaseLabel.setVisible (visible);
         postExpReleaseDial.setVisible (visible);
         postExpReleaseValueLabel.setVisible (visible);
+        postExpGRMeter.setVisible (visible);
 
         if (visible)
             updatePostExpAppearance();
@@ -4951,6 +4978,7 @@ private:
     juce::Label preCompReleaseLabel;
     WfsBasicDial preCompReleaseDial;
     juce::Label preCompReleaseValueLabel;
+    GainReductionMeter preCompGRMeter;
 
     // Algorithm sub-tab
     juce::TextButton algoSDNButton, algoFDNButton, algoIRButton;
@@ -5041,6 +5069,7 @@ private:
     juce::Label postExpReleaseLabel;
     WfsBasicDial postExpReleaseDial;
     juce::Label postExpReleaseValueLabel;
+    GainReductionMeter postExpGRMeter;
 
     // Reverb Return sub-tab
     juce::Label distanceAttenLabel;

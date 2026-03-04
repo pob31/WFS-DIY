@@ -134,7 +134,23 @@ public:
             if (! params.expBypass && static_cast<size_t> (n) < sidechainLevels.size())
                 processExpander (data, numSamples, n, sidechainLevels[static_cast<size_t> (n)]);
         }
+
+        // Update metering: find max GR across active nodes
+        if (! params.expBypass)
+        {
+            float minEnv = 0.0f;
+            for (int n = 0; n < numActiveNodes; ++n)
+                minEnv = std::min (minEnv, expEnvelopes[static_cast<size_t> (n)]);
+            gainReductionDb.store (minEnv, std::memory_order_relaxed);
+        }
+        else
+        {
+            gainReductionDb.store (0.0f, std::memory_order_relaxed);
+        }
     }
+
+    /** Get the current gain reduction in dB (0 = none, negative = reduction). Thread-safe. */
+    float getGainReductionDb() const { return gainReductionDb.load (std::memory_order_relaxed); }
 
 private:
     //==========================================================================
@@ -210,6 +226,9 @@ private:
 
     // Per-node expander envelope (dB domain)
     std::vector<float> expEnvelopes;
+
+    // Metering (thread-safe)
+    std::atomic<float> gainReductionDb { 0.0f };
 
     // Expander cached coefficients
     float expThresholdDb = -40.0f;

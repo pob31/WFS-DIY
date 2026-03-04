@@ -153,7 +153,23 @@ public:
             if (! params.compBypass)
                 processCompressor (data, numSamples, n);
         }
+
+        // Update metering: find max GR across active nodes
+        if (! params.compBypass)
+        {
+            float minEnv = 0.0f;
+            for (int n = 0; n < numActiveNodes; ++n)
+                minEnv = std::min (minEnv, compEnvelopes[static_cast<size_t> (n)]);
+            gainReductionDb.store (minEnv, std::memory_order_relaxed);
+        }
+        else
+        {
+            gainReductionDb.store (0.0f, std::memory_order_relaxed);
+        }
     }
+
+    /** Get the current gain reduction in dB (0 = none, negative = reduction). Thread-safe. */
+    float getGainReductionDb() const { return gainReductionDb.load (std::memory_order_relaxed); }
 
 private:
     //==========================================================================
@@ -224,6 +240,9 @@ private:
 
     // Per-node sidechain levels (post-EQ RMS)
     std::vector<float> sidechainLevels;
+
+    // Metering (thread-safe)
+    std::atomic<float> gainReductionDb { 0.0f };
 
     // Compressor cached coefficients
     float compThresholdDb = -12.0f;

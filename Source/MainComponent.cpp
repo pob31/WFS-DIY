@@ -2694,6 +2694,23 @@ void MainComponent::timerCallback()
             // Process LS gains
             lsTamerEngine->process(peakGRs, slowGRs);
 
+            // Push LS GR to InputsTab meter display (gated on enable flags)
+            if (windowVisible && inputsTab != nullptr)
+            {
+                int ch = inputsTab->getCurrentChannel() - 1;  // Convert 1-based to 0-based
+                if (ch >= 0 && ch < numInputChannels)
+                {
+                    auto lsSection = parameters.getValueTreeState().getInputLiveSourceSection(ch);
+                    bool lsActive = static_cast<int>(lsSection.getProperty(inputLSactive, 0)) != 0;
+                    bool peakOn = lsActive && static_cast<int>(lsSection.getProperty(inputLSpeakEnable, 0)) != 0;
+                    bool slowOn = lsActive && static_cast<int>(lsSection.getProperty(inputLSslowEnable, 0)) != 0;
+
+                    inputsTab->setLSGainReduction(
+                        peakOn ? peakGRs[ch] : 1.0f,
+                        slowOn ? slowGRs[ch] : 1.0f);
+                }
+            }
+
             // Mark only inputs that were active at start of LS processing
             // This is more efficient than marking all inputs, and ensures
             // the final ramp-out tick triggers visualization update
@@ -2972,6 +2989,12 @@ void MainComponent::timerCallback()
 
                 reverbEngine->setPostProcessorParams(postParams);
             }
+
+            // Push reverb GR to ReverbTab meter display
+            if (windowVisible && reverbTab != nullptr)
+                reverbTab->setGainReduction(
+                    reverbEngine->getCompGainReductionDb(),
+                    reverbEngine->getExpGainReductionDb());
         }
 
         // Check if any LFO is producing movement (used for map repaint and composite delta rate)
