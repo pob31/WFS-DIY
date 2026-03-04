@@ -421,7 +421,7 @@ private:
         node.dcX1 = output;
         node.dcY1 = dcOut;
 
-        return dcOut;
+        return dcOut * 4.0f;  // +12dB output level correction
     }
 
     //==========================================================================

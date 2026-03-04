@@ -70,7 +70,7 @@ public:
 
         // Output gain compensation: sparser networks need more boost
         if (numActiveNodes >= 2)
-            sdnOutputGain = 1.0f + 18.0f / static_cast<float> (numActiveNodes);
+            sdnOutputGain = (1.0f + 18.0f / static_cast<float> (numActiveNodes)) * 0.25f;
         else
             sdnOutputGain = 1.0f;
     }
@@ -539,7 +539,7 @@ private:
 
     // Output processing
     float toneCoeff = 0.65f;       // One-pole LPF coefficient (~8kHz at 48kHz)
-    float sdnOutputGain = 4.0f;    // Level compensation vs FDN/IR
+    float sdnOutputGain = 1.0f;    // Level compensation vs FDN/IR (-12dB flat cut)
 
     AudioParallelFor* parallel = nullptr;
 };
