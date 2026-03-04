@@ -42,7 +42,10 @@ public:
 
         // Reload from cached buffer if available
         if (cachedIRBuffer.getNumSamples() > 0)
+        {
             applyIRToConvolvers();
+            flushConvolvers();
+        }
     }
 
     void reset() override
@@ -114,6 +117,7 @@ public:
         irFileDurationSec = static_cast<float> (cachedIRBuffer.getNumSamples())
                           / static_cast<float> (cachedIRSampleRate);
         applyIRToConvolvers();
+        flushConvolvers();
     }
 
     /** Set IR trim time (ms from start) and max length (seconds).
@@ -136,6 +140,19 @@ public:
 
 private:
     //==========================================================================
+    /** Re-prepare each convolver so that JUCE's popAll() synchronously
+        processes the queued loadImpulseResponse command and setProcessSpec()
+        rebuilds the engine with the correct IR + spec.  Call this after
+        applyIRToConvolvers() in contexts where the engine isn't processing
+        concurrently (prepare, loadIRFromBuffer).  Do NOT call from
+        setIRParameters() — that runs on the timer thread while the engine
+        thread is processing. */
+    void flushConvolvers()
+    {
+        for (auto& conv : convolvers)
+            conv->prepare (spec);
+    }
+
     // Apply trim and length to cached buffer, load into all convolvers
     //==========================================================================
     void applyIRToConvolvers()

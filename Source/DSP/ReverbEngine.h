@@ -583,32 +583,8 @@ private:
                 }
 
                 fadeGain = 0.0f;
-
-                // If an IR was loaded (either IR-change or algo-switch-to-IR),
-                // hold silence while JUCE background thread builds engine.
-                if (irChange)
-                {
-                    silentHoldBlocksRemaining = 100;  // ~533ms at 48kHz/256
-                    fadeState.store (SilentHold, std::memory_order_release);
-                }
-                else
-                {
-                    fadeState.store (FadingIn, std::memory_order_release);
-                }
-            }
-        }
-        else if (currentFade == SilentHold)
-        {
-            // Output silence while convolvers warm up — JUCE background
-            // thread is building the partitioned convolution engine.
-            // The algorithm still processes audio each block (driving
-            // postPendingCommand() inside conv.process()), but we zero
-            // the output so the pass-through default IR is never heard.
-            for (int n = 0; n < numReverbNodes; ++n)
-                juce::FloatVectorOperations::clear (nodeOutputBlock.getWritePointer (n), numSamples);
-
-            if (--silentHoldBlocksRemaining <= 0)
                 fadeState.store (FadingIn, std::memory_order_release);
+            }
         }
         else if (currentFade == FadingIn)
         {
@@ -700,14 +676,12 @@ private:
     AudioParallelFor parallelPool;
 
     // Algorithm switching fade state
-    static constexpr int FadeNone   = 0;
-    static constexpr int FadingOut  = 1;
-    static constexpr int SilentHold = 2;  // convolvers warm up, output muted
-    static constexpr int FadingIn   = 3;
+    static constexpr int FadeNone  = 0;
+    static constexpr int FadingOut = 1;
+    static constexpr int FadingIn  = 2;
     std::atomic<int> fadeState { FadeNone };
     float fadeGain = 1.0f;
     float fadeSamples = 2400.0f;  // ~50ms at 48kHz
-    int silentHoldBlocksRemaining = 0;
     std::atomic<int> pendingAlgorithmType { -1 };
 
     // Pending IR change (fade-to-silence transition)
