@@ -529,9 +529,26 @@ private:
                             algorithm->setParameters (currentParams);
                             algorithm->updateGeometry (currentGeometry);
                         }
+
+                        // If switching TO IR and the timer already pushed an IR
+                        // file (same tick), load it now — otherwise the pending
+                        // buffer is orphaned and the empty-IR guard keeps silence.
+                        if (newType == IR && irChange)
+                        {
+                            juce::AudioBuffer<float> buf;
+                            juce::File file;
+                            double fileSR;
+                            {
+                                std::lock_guard<std::mutex> lk (pendingIRMutex);
+                                buf = std::move (pendingIRBuffer);
+                                file = pendingIRFile;
+                                fileSR = pendingIRSampleRate;
+                            }
+                            if (auto* ir = dynamic_cast<IRAlgorithm*> (algorithm.get()))
+                                ir->loadIRFromBuffer (file, std::move (buf), fileSR);
+                        }
                     }
 
-                    // Clear orphaned IR request — timer will re-push for the new algorithm
                     irChangeRequested.store (false, std::memory_order_release);
                 }
                 else if (irChange)
@@ -567,11 +584,11 @@ private:
 
                 fadeGain = 0.0f;
 
-                if (irChange && ! algoChange)
+                // If an IR was loaded (either IR-change or algo-switch-to-IR),
+                // hold silence while JUCE background thread builds engine.
+                if (irChange)
                 {
-                    // IR change: hold silence while JUCE background thread
-                    // builds the partitioned convolution engine (~533ms).
-                    silentHoldBlocksRemaining = 100;
+                    silentHoldBlocksRemaining = 100;  // ~533ms at 48kHz/256
                     fadeState.store (SilentHold, std::memory_order_release);
                 }
                 else
