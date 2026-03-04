@@ -34,7 +34,8 @@ public:
 
         for (int i = 0; i < numNodes; ++i)
         {
-            convolvers.push_back (std::make_unique<juce::dsp::Convolution>());
+            convolvers.push_back (std::make_unique<juce::dsp::Convolution>(
+                juce::dsp::Convolution::NonUniform { 256 }, convolutionQueue));
             convolvers.back()->prepare (spec);
 
             processBuffers.push_back (juce::AudioBuffer<float> (1, maxBlockSize));
@@ -171,6 +172,7 @@ private:
 
     juce::dsp::ProcessSpec spec {};
 
+    juce::dsp::ConvolutionMessageQueue convolutionQueue { 32 };
     std::vector<std::unique_ptr<juce::dsp::Convolution>> convolvers;
     std::vector<juce::AudioBuffer<float>> processBuffers;
 
