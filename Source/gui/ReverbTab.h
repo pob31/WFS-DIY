@@ -186,6 +186,10 @@ public:
                     eqDisplay = std::make_unique<EQDisplayComponent> (eqTree, numEqBands, EQDisplayConfig::forReverbPreEQ());
                     addAndMakeVisible (*eqDisplay);
                     eqDisplay->setUndoManager (parameters.getUndoManagerForDomain (UndoDomain::Reverb));
+                    eqDisplay->onParameterChanged = [this] (int bandIndex, const juce::Identifier& paramId, const juce::var& value)
+                    {
+                        saveEQBandParam (bandIndex, paramId, value);
+                    };
                     lastEqDisplayChannel = currentChannel;
                     eqDisplay->setEQEnabled (eqEnableButton.getToggleState());
                 }
@@ -1998,6 +2002,10 @@ private:
                 eqDisplay = std::make_unique<EQDisplayComponent> (eqTree, numEqBands, EQDisplayConfig::forReverbPreEQ());
                 addAndMakeVisible (*eqDisplay);
                 eqDisplay->setUndoManager (parameters.getUndoManagerForDomain (UndoDomain::Reverb));
+                eqDisplay->onParameterChanged = [this] (int bandIndex, const juce::Identifier& paramId, const juce::var& value)
+                {
+                    saveEQBandParam (bandIndex, paramId, value);
+                };
                 lastEqDisplayChannel = currentChannel;
 
                 bool eqEnabled = eqEnableButton.getToggleState();
@@ -2578,6 +2586,10 @@ private:
                 eqDisplay = std::make_unique<EQDisplayComponent> (eqTree, numEqBands, EQDisplayConfig::forReverbPreEQ());
                 addAndMakeVisible (*eqDisplay);
                 eqDisplay->setUndoManager (parameters.getUndoManagerForDomain (UndoDomain::Reverb));
+                eqDisplay->onParameterChanged = [this] (int bandIndex, const juce::Identifier& paramId, const juce::var& value)
+                {
+                    saveEQBandParam (bandIndex, paramId, value);
+                };
                 lastEqDisplayChannel = currentChannel;
 
                 int eqEnabled = currentChannel > 0 ?
@@ -3083,6 +3095,10 @@ private:
                 eqDisplay = std::make_unique<EQDisplayComponent> (eqTree, numEqBands, EQDisplayConfig::forReverbPreEQ());
                 addAndMakeVisible (*eqDisplay);
                 eqDisplay->setUndoManager (parameters.getUndoManagerForDomain (UndoDomain::Reverb));
+                eqDisplay->onParameterChanged = [this] (int bandIndex, const juce::Identifier& paramId, const juce::var& value)
+                {
+                    saveEQBandParam (bandIndex, paramId, value);
+                };
                 lastEqDisplayChannel = channel;
             }
             // Update EQ display enabled state
