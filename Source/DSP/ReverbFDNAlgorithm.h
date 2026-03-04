@@ -23,7 +23,7 @@ class FDNAlgorithm : public ReverbAlgorithm
 {
 public:
     static constexpr int NUM_DELAY_LINES = 16;
-    static constexpr int MAX_DELAY_SAMPLES = 8192;
+    static constexpr int MAX_DELAY_SAMPLES = 16384;
     static constexpr int NUM_DIFFUSER_STAGES = 4;
     static constexpr float REFERENCE_SAMPLE_RATE = 48000.0f;
 
@@ -37,6 +37,10 @@ public:
         nodes.resize (static_cast<size_t> (numNodes));
         for (int n = 0; n < numNodes; ++n)
             prepareNode (nodes[static_cast<size_t> (n)], n);
+
+        // Output tone filter: one-pole LPF at ~8kHz
+        toneCoeff = 1.0f - std::exp (-juce::MathConstants<float>::twoPi
+                        * 8000.0f / static_cast<float> (sr));
 
         // Apply current parameters
         recalculateDecayGains();
@@ -105,10 +109,10 @@ private:
     // Base delay lengths (primes at 48kHz)
     //==========================================================================
     static constexpr std::array<int, NUM_DELAY_LINES> baseDelays = {
-        509, 571, 631, 701,       // Short (early density)
-        797, 887, 967, 1061,      // Medium
-        1151, 1259, 1373, 1481,   // Long (modal density)
-        1601, 1733, 1867, 1997    // Very long (LF support)
+        337, 389, 449, 521,       // Short  (logarithmic spacing, ratio ~1.155)
+        601, 701, 811, 941,       // Medium
+        1087, 1259, 1453, 1667,   // Long
+        1931, 2221, 2557, 2953    // Very long
     };
 
     // Diffuser base delays at 48kHz
@@ -116,12 +120,12 @@ private:
         142, 107, 379, 277
     };
 
-    // Input gain distribution (slight ±1% variation around 1/16)
+    // Input gain distribution (±12% variation around 1/16 to break modal symmetry)
     static constexpr std::array<float, NUM_DELAY_LINES> inputGains = {
-        0.0638f, 0.0613f, 0.0631f, 0.0619f,
-        0.0625f, 0.0632f, 0.0618f, 0.0637f,
-        0.0612f, 0.0638f, 0.0625f, 0.0619f,
-        0.0631f, 0.0613f, 0.0637f, 0.0612f
+        0.0710f, 0.0555f, 0.0680f, 0.0570f,
+        0.0640f, 0.0590f, 0.0660f, 0.0545f,
+        0.0620f, 0.0700f, 0.0560f, 0.0650f,
+        0.0580f, 0.0690f, 0.0550f, 0.0600f
     };
 
     // Output tap signs: varied magnitudes and irregular sign pattern
@@ -199,6 +203,20 @@ private:
     };
 
     //==========================================================================
+    // Deterministic hash for per-node variation
+    //==========================================================================
+    static uint32_t nodeHash (int nodeIndex, int lineIndex)
+    {
+        uint32_t h = static_cast<uint32_t> (nodeIndex * 16 + lineIndex + 1);
+        h ^= h >> 16;
+        h *= 0x45d9f3bu;
+        h ^= h >> 16;
+        h *= 0x45d9f3bu;
+        h ^= h >> 16;
+        return h;
+    }
+
+    //==========================================================================
     // Per-node FDN state
     //==========================================================================
     struct FDNNode
@@ -213,6 +231,12 @@ private:
 
         // 4-stage allpass diffuser
         std::array<AllpassStage, NUM_DIFFUSER_STAGES> diffusers;
+
+        // Per-node output tap signs (rotated/shuffled per node)
+        std::array<float, NUM_DELAY_LINES> nodeTapSigns {};
+
+        // Output tone filter state (one-pole LPF to soften harshness)
+        float toneState = 0.0f;
 
         // DC blocker state
         float dcX1 = 0.0f;
@@ -230,25 +254,43 @@ private:
     {
         float sizeScale = currentParams.fdnSize * rateScale;
 
+        // Per-node delay line variation: ±6% of base delay using deterministic hash
         for (int i = 0; i < NUM_DELAY_LINES; ++i)
         {
-            int delay = juce::jlimit (1, MAX_DELAY_SAMPLES,
-                static_cast<int> (baseDelays[static_cast<size_t> (i)] * sizeScale)
-                + nodeIndex * 6);
+            auto si = static_cast<size_t> (i);
+            int baseDelay = static_cast<int> (baseDelays[si] * sizeScale);
+            int range = juce::jmax (1, baseDelay / 16);  // ±6.25% variation
+            int offset = static_cast<int> (nodeHash (nodeIndex, i) % static_cast<uint32_t> (range * 2 + 1)) - range;
+            int delay = juce::jlimit (1, MAX_DELAY_SAMPLES, baseDelay + offset);
 
-            node.delayLengths[static_cast<size_t> (i)] = delay;
-            node.delayLines[static_cast<size_t> (i)].assign (static_cast<size_t> (delay), 0.0f);
-            node.writePositions[static_cast<size_t> (i)] = 0;
-            node.decayFilters[static_cast<size_t> (i)].reset();
+            node.delayLengths[si] = delay;
+            node.delayLines[si].assign (static_cast<size_t> (delay), 0.0f);
+            node.writePositions[si] = 0;
+            node.decayFilters[si].reset();
         }
 
+        // Per-node diffuser variation: ±10% of base diffuser delay
         for (int i = 0; i < NUM_DIFFUSER_STAGES; ++i)
         {
-            int delay = juce::jmax (1, static_cast<int> (
-                baseDiffuserDelays[static_cast<size_t> (i)] * rateScale));
-            node.diffusers[static_cast<size_t> (i)].prepare (delay);
+            auto si = static_cast<size_t> (i);
+            int baseDelay = juce::jmax (1, static_cast<int> (baseDiffuserDelays[si] * rateScale));
+            int range = juce::jmax (1, baseDelay / 10);  // ±10% variation
+            int offset = static_cast<int> (nodeHash (nodeIndex, i + NUM_DELAY_LINES) % static_cast<uint32_t> (range * 2 + 1)) - range;
+            int delay = juce::jmax (1, baseDelay + offset);
+            node.diffusers[si].prepare (delay);
         }
 
+        // Per-node output tap signs: rotate the base array by nodeIndex positions
+        // and flip signs based on hash to decorrelate node outputs
+        for (int i = 0; i < NUM_DELAY_LINES; ++i)
+        {
+            auto si = static_cast<size_t> (i);
+            int rotated = (i + nodeIndex) % NUM_DELAY_LINES;
+            float sign = (nodeHash (nodeIndex, i + 32) & 1u) ? 1.0f : -1.0f;
+            node.nodeTapSigns[si] = outputTapSigns[static_cast<size_t> (rotated)] * sign;
+        }
+
+        node.toneState = 0.0f;
         node.dcX1 = 0.0f;
         node.dcY1 = 0.0f;
     }
@@ -266,6 +308,7 @@ private:
         for (auto& d : node.diffusers)
             d.reset();
 
+        node.toneState = 0.0f;
         node.dcX1 = 0.0f;
         node.dcY1 = 0.0f;
     }
@@ -322,16 +365,16 @@ private:
             node.hadamardBuf[si] = node.delayLines[si][static_cast<size_t> (readPos)];
         }
 
-        // 3. Compute output from delay line outputs (before Hadamard)
+        // 3. Hadamard mixing (before output tapping for better diffusion)
+        hadamard16 (node.hadamardBuf);
+
+        // 4. Compute output from post-Hadamard signal (more diffuse)
         float output = 0.0f;
         for (int i = 0; i < NUM_DELAY_LINES; ++i)
         {
             auto si = static_cast<size_t> (i);
-            output += node.hadamardBuf[si] * outputTapSigns[si];
+            output += node.hadamardBuf[si] * node.nodeTapSigns[si];
         }
-
-        // 4. Hadamard mixing
-        hadamard16 (node.hadamardBuf);
 
         // 5. Apply decay and write back to delay lines
         for (int i = 0; i < NUM_DELAY_LINES; ++i)
@@ -344,7 +387,11 @@ private:
             node.writePositions[si] = (node.writePositions[si] + 1) % node.delayLengths[si];
         }
 
-        // 6. DC blocker: y = x - x_prev + 0.9995 * y_prev
+        // 6. Output tone filter (one-pole LPF ~8kHz to soften harshness)
+        node.toneState += toneCoeff * (output - node.toneState);
+        output = node.toneState;
+
+        // 7. DC blocker: y = x - x_prev + 0.9995 * y_prev
         float dcOut = output - node.dcX1 + 0.9995f * node.dcY1;
         node.dcX1 = output;
         node.dcY1 = dcOut;
@@ -375,14 +422,12 @@ private:
         float highCoeff = 1.0f - std::exp (-juce::MathConstants<float>::twoPi
                             * currentParams.crossoverHigh / static_cast<float> (sr));
 
-        float sizeScale = currentParams.fdnSize * rateScale;
-
         for (auto& node : nodes)
         {
             for (int i = 0; i < NUM_DELAY_LINES; ++i)
             {
                 auto si = static_cast<size_t> (i);
-                float delaySec = (baseDelays[si] * sizeScale) / static_cast<float> (sr);
+                float delaySec = static_cast<float> (node.delayLengths[si]) / static_cast<float> (sr);
 
                 auto& f = node.decayFilters[si];
                 f.lowCoeff  = lowCoeff;
@@ -411,6 +456,7 @@ private:
     float rateScale = 1.0f;
     int numActiveNodes = 0;
     float diffusionCoeff = 0.35f;
+    float toneCoeff = 0.65f;  // one-pole LPF coefficient for output tone filter
     AlgorithmParameters currentParams;
     std::vector<FDNNode> nodes;
     AudioParallelFor* parallel = nullptr;
