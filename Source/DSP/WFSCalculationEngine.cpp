@@ -2051,25 +2051,29 @@ void WFSCalculationEngine::recalculateMatrix()
     {
         const juce::ScopedLock sl (matrixLock);
 
+        // Copy into existing vectors rather than std::move — keeps internal
+        // data pointers stable so the audio thread (which holds raw .data()
+        // pointers between lock acquisitions) never sees a dangling pointer.
+
         // Input → Output
-        delayTimesMs = std::move (newDelays);
-        levels = std::move (newLevels);
-        hfAttenuationDb = std::move (newHF);
+        std::copy (newDelays.begin(), newDelays.end(), delayTimesMs.begin());
+        std::copy (newLevels.begin(), newLevels.end(), levels.begin());
+        std::copy (newHF.begin(), newHF.end(), hfAttenuationDb.begin());
 
         // Floor Reflections
-        frDelayTimesMs = std::move (newFRDelays);
-        frLevels = std::move (newFRLevels);
-        frHFAttenuationDb = std::move (newFRHF);
+        std::copy (newFRDelays.begin(), newFRDelays.end(), frDelayTimesMs.begin());
+        std::copy (newFRLevels.begin(), newFRLevels.end(), frLevels.begin());
+        std::copy (newFRHF.begin(), newFRHF.end(), frHFAttenuationDb.begin());
 
         // Input → Reverb Feed
-        inputReverbDelayTimesMs = std::move (newInputReverbDelays);
-        inputReverbLevels = std::move (newInputReverbLevels);
-        inputReverbHFAttenuationDb = std::move (newInputReverbHF);
+        std::copy (newInputReverbDelays.begin(), newInputReverbDelays.end(), inputReverbDelayTimesMs.begin());
+        std::copy (newInputReverbLevels.begin(), newInputReverbLevels.end(), inputReverbLevels.begin());
+        std::copy (newInputReverbHF.begin(), newInputReverbHF.end(), inputReverbHFAttenuationDb.begin());
 
         // Reverb Return → Output
-        reverbOutputDelayTimesMs = std::move (newReverbOutputDelays);
-        reverbOutputLevels = std::move (newReverbOutputLevels);
-        reverbOutputHFAttenuationDb = std::move (newReverbOutputHF);
+        std::copy (newReverbOutputDelays.begin(), newReverbOutputDelays.end(), reverbOutputDelayTimesMs.begin());
+        std::copy (newReverbOutputLevels.begin(), newReverbOutputLevels.end(), reverbOutputLevels.begin());
+        std::copy (newReverbOutputHF.begin(), newReverbOutputHF.end(), reverbOutputHFAttenuationDb.begin());
     }
 
     // Update ramp states under position lock

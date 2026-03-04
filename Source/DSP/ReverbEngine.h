@@ -536,7 +536,8 @@ private:
                 }
                 else if (irChange)
                 {
-                    // IR file change: recreate convolvers with fresh state
+                    // IR file change: create a brand new IRAlgorithm — same
+                    // code path as the algorithm-type switch which always works.
                     juce::AudioBuffer<float> buf;
                     juce::File file;
                     double fileSR;
@@ -548,9 +549,21 @@ private:
                     }
                     irChangeRequested.store (false, std::memory_order_release);
 
-                    juce::SpinLock::ScopedLockType lock (algorithmLock);
-                    if (auto* ir = dynamic_cast<IRAlgorithm*> (algorithm.get()))
-                        ir->recreateConvolversAndLoad (file, std::move (buf), fileSR);
+                    auto newAlgo = std::make_unique<IRAlgorithm>();
+
+                    {
+                        juce::SpinLock::ScopedLockType lock (algorithmLock);
+                        algorithm = std::move (newAlgo);
+                        if (algorithm && sampleRate > 0)
+                        {
+                            algorithm->prepare (sampleRate, internalBlockSize, numReverbNodes);
+                            algorithm->setParallelFor (&parallelPool);
+                            algorithm->setParameters (currentParams);
+                            algorithm->updateGeometry (currentGeometry);
+                        }
+                        if (auto* ir = dynamic_cast<IRAlgorithm*> (algorithm.get()))
+                            ir->loadIRFromBuffer (file, std::move (buf), fileSR);
+                    }
                 }
 
                 fadeGain = 0.0f;

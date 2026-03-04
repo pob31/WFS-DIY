@@ -128,39 +128,6 @@ public:
     /** Get the duration of the currently loaded IR file in seconds. */
     float getIRFileDuration() const { return irFileDurationSec; }
 
-    /** Destroy all convolvers, create fresh ones, and load a new IR.
-        Called from the engine thread during a fade-to-silence transition
-        so that no residual state from the old IR leaks through. */
-    void recreateConvolversAndLoad (const juce::File& file,
-                                     juce::AudioBuffer<float>&& buf,
-                                     double fileSampleRate)
-    {
-        // Cache the new IR
-        currentIRFile = file;
-        cachedIRBuffer = std::move (buf);
-        cachedIRSampleRate = fileSampleRate;
-        irFileDurationSec = static_cast<float> (cachedIRBuffer.getNumSamples())
-                          / static_cast<float> (cachedIRSampleRate);
-
-        // Destroy old convolvers and create fresh ones — prepare FIRST
-        // so that processSpec is correct when loadImpulseResponse is queued.
-        // (JUCE default spec is {44100, 128, 2} — without prepare() first,
-        //  the background thread resamples the IR to 44100 Hz instead of 48000.)
-        convolvers.clear();
-        processBuffers.clear();
-
-        for (int i = 0; i < numActiveNodes; ++i)
-        {
-            convolvers.push_back (std::make_unique<juce::dsp::Convolution>());
-            convolvers.back()->prepare (spec);
-            processBuffers.push_back (juce::AudioBuffer<float> (1, blockSize));
-        }
-
-        // Load IR after prepare — background thread builds engine with correct spec.
-        // Our fade-in from silence masks the async transition.
-        applyIRToConvolvers();
-    }
-
 private:
     //==========================================================================
     // Apply trim and length to cached buffer, load into all convolvers
