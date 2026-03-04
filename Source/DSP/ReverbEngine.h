@@ -11,6 +11,7 @@
 #include "AudioParallelFor.h"
 #include <atomic>
 #include <memory>
+#include <mutex>
 #include <thread>
 #include <vector>
 
@@ -239,15 +240,16 @@ public:
     /** Get the current algorithm type. */
     int getAlgorithmType() const { return currentAlgorithmType; }
 
-    /** Load an IR file (only effective when IR algorithm is active).
-        Reads the file outside the SpinLock so that file I/O never
-        blocks the engine thread. */
+    /** Load an IR file via fade-to-silence transition.
+        Reads the file outside any lock, stores the buffer as pending,
+        and triggers a fade-out. The engine thread picks up the new IR
+        at silence and fades back in — guaranteeing zero residual artifacts. */
     void loadIRFile (const juce::File& file)
     {
         if (! file.existsAsFile())
             return;
 
-        // Read IR file outside the lock (file I/O)
+        // Read IR file (file I/O — outside any lock)
         juce::AudioFormatManager mgr;
         mgr.registerBasicFormats();
         std::unique_ptr<juce::AudioFormatReader> reader (mgr.createReaderFor (file));
@@ -259,9 +261,18 @@ public:
         reader->read (&buffer, 0, numSamples, 0, true, false);
         double fileSR = reader->sampleRate;
 
-        juce::SpinLock::ScopedLockType lock (algorithmLock);
-        if (auto* ir = dynamic_cast<IRAlgorithm*> (algorithm.get()))
-            ir->loadIRFromBuffer (file, std::move (buffer), fileSR);
+        // Store pending IR for the engine thread to pick up during fade
+        {
+            std::lock_guard<std::mutex> lock (pendingIRMutex);
+            pendingIRBuffer = std::move (buffer);
+            pendingIRFile = file;
+            pendingIRSampleRate = fileSR;
+        }
+        irChangeRequested.store (true, std::memory_order_release);
+
+        // Trigger fade-out (only if not already fading)
+        if (fadeState.load (std::memory_order_acquire) == FadeNone)
+            fadeState.store (FadingOut, std::memory_order_release);
     }
 
     /** Set IR parameters (trim, length). Only effective for IR algorithm. */
@@ -483,29 +494,54 @@ private:
 
             if (fadeGain <= 0.0f)
             {
-                // Fade-out complete: swap algorithm
+                // Fade-out complete: determine what triggered the fade
                 int newType = pendingAlgorithmType.load (std::memory_order_acquire);
-                currentAlgorithmType = newType;
+                bool algoChange = (newType != currentAlgorithmType && newType >= 0);
+                bool irChange = irChangeRequested.load (std::memory_order_acquire);
 
-                std::unique_ptr<ReverbAlgorithm> newAlgo;
-                switch (newType)
+                if (algoChange)
                 {
-                    case SDN: newAlgo = std::make_unique<SDNAlgorithm>(); break;
-                    case FDN: newAlgo = std::make_unique<FDNAlgorithm>(); break;
-                    case IR:  newAlgo = std::make_unique<IRAlgorithm>();  break;
-                    default:  newAlgo = std::make_unique<FDNAlgorithm>(); break;
-                }
+                    // Algorithm type change takes priority
+                    currentAlgorithmType = newType;
 
-                {
-                    juce::SpinLock::ScopedLockType lock (algorithmLock);
-                    algorithm = std::move (newAlgo);
-                    if (algorithm && sampleRate > 0)
+                    std::unique_ptr<ReverbAlgorithm> newAlgo;
+                    switch (newType)
                     {
-                        algorithm->prepare (sampleRate, internalBlockSize, numReverbNodes);
-                        algorithm->setParallelFor (&parallelPool);
-                        algorithm->setParameters (currentParams);
-                        algorithm->updateGeometry (currentGeometry);
+                        case SDN: newAlgo = std::make_unique<SDNAlgorithm>(); break;
+                        case FDN: newAlgo = std::make_unique<FDNAlgorithm>(); break;
+                        case IR:  newAlgo = std::make_unique<IRAlgorithm>();  break;
+                        default:  newAlgo = std::make_unique<FDNAlgorithm>(); break;
                     }
+
+                    {
+                        juce::SpinLock::ScopedLockType lock (algorithmLock);
+                        algorithm = std::move (newAlgo);
+                        if (algorithm && sampleRate > 0)
+                        {
+                            algorithm->prepare (sampleRate, internalBlockSize, numReverbNodes);
+                            algorithm->setParallelFor (&parallelPool);
+                            algorithm->setParameters (currentParams);
+                            algorithm->updateGeometry (currentGeometry);
+                        }
+                    }
+                }
+                else if (irChange)
+                {
+                    // IR file change: recreate convolvers with fresh state
+                    juce::AudioBuffer<float> buf;
+                    juce::File file;
+                    double fileSR;
+                    {
+                        std::lock_guard<std::mutex> lock (pendingIRMutex);
+                        buf = std::move (pendingIRBuffer);
+                        file = pendingIRFile;
+                        fileSR = pendingIRSampleRate;
+                    }
+                    irChangeRequested.store (false, std::memory_order_release);
+
+                    juce::SpinLock::ScopedLockType lock (algorithmLock);
+                    if (auto* ir = dynamic_cast<IRAlgorithm*> (algorithm.get()))
+                        ir->recreateConvolversAndLoad (file, std::move (buf), fileSR);
                 }
 
                 fadeGain = 0.0f;
@@ -604,4 +640,11 @@ private:
     float fadeGain = 1.0f;
     float fadeSamples = 2400.0f;  // ~50ms at 48kHz
     std::atomic<int> pendingAlgorithmType { -1 };
+
+    // Pending IR change (fade-to-silence transition)
+    std::mutex pendingIRMutex;
+    juce::AudioBuffer<float> pendingIRBuffer;
+    juce::File pendingIRFile;
+    double pendingIRSampleRate = 0.0;
+    std::atomic<bool> irChangeRequested { false };
 };

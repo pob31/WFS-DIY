@@ -128,6 +128,38 @@ public:
     /** Get the duration of the currently loaded IR file in seconds. */
     float getIRFileDuration() const { return irFileDurationSec; }
 
+    /** Destroy all convolvers, create fresh ones, and load a new IR.
+        Called from the engine thread during a fade-to-silence transition
+        so that no residual state from the old IR leaks through. */
+    void recreateConvolversAndLoad (const juce::File& file,
+                                     juce::AudioBuffer<float>&& buf,
+                                     double fileSampleRate)
+    {
+        // Cache the new IR
+        currentIRFile = file;
+        cachedIRBuffer = std::move (buf);
+        cachedIRSampleRate = fileSampleRate;
+        irFileDurationSec = static_cast<float> (cachedIRBuffer.getNumSamples())
+                          / static_cast<float> (cachedIRSampleRate);
+
+        // Destroy old convolvers and create fresh ones
+        convolvers.clear();
+        processBuffers.clear();
+
+        for (int i = 0; i < numActiveNodes; ++i)
+        {
+            convolvers.push_back (std::make_unique<juce::dsp::Convolution>());
+            processBuffers.push_back (juce::AudioBuffer<float> (1, blockSize));
+        }
+
+        // Load trimmed IR BEFORE prepare() — per JUCE docs this ensures
+        // the IR is synchronously ready on the first process() call
+        applyIRToConvolvers();
+
+        for (auto& conv : convolvers)
+            conv->prepare (spec);
+    }
+
 private:
     //==========================================================================
     // Apply trim and length to cached buffer, load into all convolvers
@@ -153,15 +185,13 @@ private:
 
         for (auto& conv : convolvers)
         {
-            conv->reset();  // Clear old overlap-add state for clean transition
-
             juce::AudioBuffer<float> trimmed (1, numToUse);
             trimmed.copyFrom (0, 0, cachedIRBuffer, 0, startSample, numToUse);
 
             conv->loadImpulseResponse (std::move (trimmed), cachedIRSampleRate,
                 juce::dsp::Convolution::Stereo::no,
                 juce::dsp::Convolution::Trim::no,
-                juce::dsp::Convolution::Normalise::no);
+                juce::dsp::Convolution::Normalise::yes);
         }
     }
 
