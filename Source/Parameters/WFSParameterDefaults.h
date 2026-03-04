@@ -730,11 +730,11 @@ namespace WFSParameterDefaults
 
     constexpr float reverbIRtrimDefault            = 0.0f;    // ms
     constexpr float reverbIRtrimMin                = 0.0f;
-    constexpr float reverbIRtrimMax                = 100.0f;
+    constexpr float reverbIRtrimMax                = 30000.0f; // 30s in ms (actual max is dynamic per file)
 
     constexpr float reverbIRlengthDefault          = 6.0f;    // seconds (full)
     constexpr float reverbIRlengthMin              = 0.1f;
-    constexpr float reverbIRlengthMax              = 6.0f;
+    constexpr float reverbIRlengthMax              = 30.0f;   // 30s (actual max is dynamic per file)
 
     constexpr int reverbPerNodeIRDefault           = 0;       // 0=OFF, 1=ON
 

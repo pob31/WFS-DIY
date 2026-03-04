@@ -11,7 +11,9 @@
     juce::dsp::Convolution (partitioned convolution). Maximum realism
     from captured spaces.
 
-    Supports global IR (all nodes share one file) or per-node IR.
+    The full IR file is cached in memory. Trim (offset from start) and
+    length (max duration) are applied from the cached buffer, so parameter
+    changes don't require re-reading from disk.
 */
 class IRAlgorithm : public ReverbAlgorithm
 {
@@ -38,9 +40,9 @@ public:
             processBuffers.push_back (juce::AudioBuffer<float> (1, maxBlockSize));
         }
 
-        // Reload IR if we have a file path
-        if (currentIRFile.existsAsFile())
-            loadIRFile (currentIRFile);
+        // Reload from cached buffer if available
+        if (cachedIRBuffer.getNumSamples() > 0)
+            applyIRToConvolvers();
     }
 
     void reset() override
@@ -93,39 +95,77 @@ public:
     // IR-specific parameter setters
     //==========================================================================
 
-    /** Load an IR file. Called when the user selects a new file. */
-    void loadIRFile (const juce::File& file)
+    /** Load an IR from a pre-read buffer. The caller reads the file
+        outside any lock so that file I/O never happens under the SpinLock.
+        The buffer is cached so that trim/length changes don't require re-reading. */
+    void loadIRFromBuffer (const juce::File& file,
+                           juce::AudioBuffer<float>&& buf,
+                           double fileSampleRate)
     {
         currentIRFile = file;
-
-        // Calculate trim in samples
-        int trimSamples = static_cast<int> (irTrimMs * 0.001f * sr);
-
-        for (auto& conv : convolvers)
-        {
-            conv->loadImpulseResponse (file,
-                juce::dsp::Convolution::Stereo::no,
-                juce::dsp::Convolution::Trim::yes,
-                trimSamples);
-        }
+        cachedIRBuffer = std::move (buf);
+        cachedIRSampleRate = fileSampleRate;
+        irFileDurationSec = static_cast<float> (cachedIRBuffer.getNumSamples())
+                          / static_cast<float> (cachedIRSampleRate);
+        applyIRToConvolvers();
     }
 
-    /** Set IR trim time (ms) and max length (seconds). */
+    /** Set IR trim time (ms from start) and max length (seconds).
+        Uses the cached buffer — no file I/O. */
     void setIRParameters (float trimMs, float lengthSec)
     {
         bool changed = (trimMs != irTrimMs || lengthSec != irLengthSec);
         irTrimMs = trimMs;
         irLengthSec = lengthSec;
 
-        // Reload if parameters changed and we have a file
-        if (changed && currentIRFile.existsAsFile())
-            loadIRFile (currentIRFile);
+        if (changed && cachedIRBuffer.getNumSamples() > 0)
+            applyIRToConvolvers();
     }
 
     /** Get the currently loaded IR file. */
     const juce::File& getCurrentIRFile() const { return currentIRFile; }
 
+    /** Get the duration of the currently loaded IR file in seconds. */
+    float getIRFileDuration() const { return irFileDurationSec; }
+
 private:
+    //==========================================================================
+    // Apply trim and length to cached buffer, load into all convolvers
+    //==========================================================================
+    void applyIRToConvolvers()
+    {
+        if (cachedIRBuffer.getNumSamples() == 0)
+            return;
+
+        // Trim: skip N ms from start of IR
+        int trimSamples = static_cast<int> (irTrimMs * 0.001f * cachedIRSampleRate);
+        int startSample = juce::jmin (trimSamples, cachedIRBuffer.getNumSamples());
+        int remaining = cachedIRBuffer.getNumSamples() - startSample;
+
+        // Length: limit to N seconds
+        int maxLenSamples = (irLengthSec > 0.0f)
+            ? static_cast<int> (irLengthSec * cachedIRSampleRate)
+            : remaining;
+        int numToUse = juce::jmin (remaining, maxLenSamples);
+
+        if (numToUse <= 0)
+            return;
+
+        for (auto& conv : convolvers)
+        {
+            conv->reset();  // Clear old overlap-add state for clean transition
+
+            juce::AudioBuffer<float> trimmed (1, numToUse);
+            trimmed.copyFrom (0, 0, cachedIRBuffer, 0, startSample, numToUse);
+
+            conv->loadImpulseResponse (std::move (trimmed), cachedIRSampleRate,
+                juce::dsp::Convolution::Stereo::no,
+                juce::dsp::Convolution::Trim::no,
+                juce::dsp::Convolution::Normalise::no);
+        }
+    }
+
+    //==========================================================================
     double sr = 48000.0;
     int numActiveNodes = 0;
     int blockSize = 256;
@@ -139,4 +179,9 @@ private:
     juce::File currentIRFile;
     float irTrimMs = 0.0f;
     float irLengthSec = 6.0f;
+
+    // Cached full IR buffer (read once, reused for trim/length changes)
+    juce::AudioBuffer<float> cachedIRBuffer;
+    double cachedIRSampleRate = 0.0;
+    float irFileDurationSec = 0.0f;
 };

@@ -1363,7 +1363,8 @@ private:
         algoIRTrimSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFFF9800));
         algoIRTrimSlider.onValueChanged = [this] (float v)
         {
-            float trim = v * WFSParameterDefaults::reverbIRtrimMax;
+            float maxTrimMs = currentIRDurationSec * 1000.0f;
+            float trim = v * maxTrimMs;
             algoIRTrimValueLabel.setText (juce::String (trim, 1) + " ms", juce::dontSendNotification);
             saveAlgorithmParam (WFSParameterIDs::reverbIRtrim, trim);
         };
@@ -1383,8 +1384,8 @@ private:
         algoIRLengthSlider.onValueChanged = [this] (float v)
         {
             float length = WFSParameterDefaults::reverbIRlengthMin
-                + v * (WFSParameterDefaults::reverbIRlengthMax - WFSParameterDefaults::reverbIRlengthMin);
-            algoIRLengthValueLabel.setText (juce::String (length, 1) + " s", juce::dontSendNotification);
+                + v * (currentIRDurationSec - WFSParameterDefaults::reverbIRlengthMin);
+            algoIRLengthValueLabel.setText (juce::String (length, 2) + " s", juce::dontSendNotification);
             saveAlgorithmParam (WFSParameterIDs::reverbIRlength, length);
         };
         algoIRLengthSlider.onGestureStart = [this]() {
@@ -3728,17 +3729,30 @@ private:
         // IR file selector
         refreshIRFileList();
 
-        // IR Trim
+        // Update dynamic IR slider ranges based on loaded file
+        {
+            auto& vts2 = parameters.getValueTreeState();
+            auto irSection = vts2.ensureReverbAlgorithmSection();
+            juce::String irFileName = irSection.isValid()
+                ? irSection.getProperty (WFSParameterIDs::reverbIRfile).toString()
+                : juce::String();
+            updateIRSliderRanges (irFileName);
+        }
+
+        // IR Trim (mapped using dynamic duration)
         float irTrim = getFloat (WFSParameterIDs::reverbIRtrim, WFSParameterDefaults::reverbIRtrimDefault);
-        algoIRTrimSlider.setValue (juce::jlimit (0.0f, 1.0f, irTrim / WFSParameterDefaults::reverbIRtrimMax));
+        float maxTrimMs = currentIRDurationSec * 1000.0f;
+        algoIRTrimSlider.setValue (juce::jlimit (0.0f, 1.0f, (maxTrimMs > 0.0f) ? irTrim / maxTrimMs : 0.0f));
         algoIRTrimValueLabel.setText (juce::String (irTrim, 1) + " ms", juce::dontSendNotification);
 
-        // IR Length
+        // IR Length (mapped using dynamic duration)
         float irLength = getFloat (WFSParameterIDs::reverbIRlength, WFSParameterDefaults::reverbIRlengthDefault);
-        float irLengthSlider = (irLength - WFSParameterDefaults::reverbIRlengthMin)
-            / (WFSParameterDefaults::reverbIRlengthMax - WFSParameterDefaults::reverbIRlengthMin);
+        float irLenRange = currentIRDurationSec - WFSParameterDefaults::reverbIRlengthMin;
+        float irLengthSlider = (irLenRange > 0.0f)
+            ? (irLength - WFSParameterDefaults::reverbIRlengthMin) / irLenRange
+            : 1.0f;
         algoIRLengthSlider.setValue (juce::jlimit (0.0f, 1.0f, irLengthSlider));
-        algoIRLengthValueLabel.setText (juce::String (irLength, 1) + " s", juce::dontSendNotification);
+        algoIRLengthValueLabel.setText (juce::String (irLength, 2) + " s", juce::dontSendNotification);
 
         // Per-node IR
         int perNode = getInt (WFSParameterIDs::reverbPerNodeIR, WFSParameterDefaults::reverbPerNodeIRDefault);
@@ -3756,6 +3770,32 @@ private:
 
         updateAlgorithmVisibility();
         isLoadingParameters = false;
+    }
+
+    void updateIRSliderRanges (const juce::String& irFileName)
+    {
+        if (irFileName.isEmpty())
+        {
+            currentIRDurationSec = WFSParameterDefaults::reverbIRlengthDefault;
+            return;
+        }
+
+        auto& fm = parameters.getFileManager();
+        if (! fm.hasValidProjectFolder())
+            return;
+
+        auto irFile = fm.getIRFolder().getChildFile (irFileName);
+        if (! irFile.existsAsFile())
+            return;
+
+        juce::AudioFormatManager mgr;
+        mgr.registerBasicFormats();
+        std::unique_ptr<juce::AudioFormatReader> reader (mgr.createReaderFor (irFile));
+        if (! reader)
+            return;
+
+        currentIRDurationSec = static_cast<float> (reader->lengthInSamples)
+                             / static_cast<float> (reader->sampleRate);
     }
 
     void refreshIRFileList()
@@ -3832,6 +3872,8 @@ private:
 
         // An existing IR file was selected
         saveAlgorithmParam (WFSParameterIDs::reverbIRfile, selectedText);
+        refreshIRFileList();
+        updateIRSliderRanges (selectedText);
     }
 
     void importIRFile()
@@ -3873,6 +3915,7 @@ private:
                 // Save the filename and refresh
                 saveAlgorithmParam (WFSParameterIDs::reverbIRfile, destFile.getFileName());
                 refreshIRFileList();
+                updateIRSliderRanges (destFile.getFileName());
                 showStatusMessage (LOC("reverbs.algorithm.irImportSuccess")
                     .replace ("{file}", destFile.getFileName()));
             });
@@ -4426,19 +4469,21 @@ private:
                 }
                 else if (label == &algoIRTrimValueLabel)
                 {
-                    float trim = juce::jlimit (reverbIRtrimMin, reverbIRtrimMax, value);
-                    float v = trim / reverbIRtrimMax;
+                    float maxTrimMs = currentIRDurationSec * 1000.0f;
+                    float trim = juce::jlimit (0.0f, maxTrimMs, value);
+                    float v = (maxTrimMs > 0.0f) ? trim / maxTrimMs : 0.0f;
                     parameters.getValueTreeState().beginUndoTransaction ("Reverb IR Trim");
                     algoIRTrimSlider.setValue (juce::jlimit (0.0f, 1.0f, v));
                     algoIRTrimValueLabel.setText (juce::String (trim, 1) + " ms", juce::dontSendNotification);
                 }
                 else if (label == &algoIRLengthValueLabel)
                 {
-                    float length = juce::jlimit (reverbIRlengthMin, reverbIRlengthMax, value);
-                    float v = (length - reverbIRlengthMin) / (reverbIRlengthMax - reverbIRlengthMin);
+                    float length = juce::jlimit (reverbIRlengthMin, currentIRDurationSec, value);
+                    float range = currentIRDurationSec - reverbIRlengthMin;
+                    float v = (range > 0.0f) ? (length - reverbIRlengthMin) / range : 1.0f;
                     parameters.getValueTreeState().beginUndoTransaction ("Reverb IR Length");
                     algoIRLengthSlider.setValue (juce::jlimit (0.0f, 1.0f, v));
-                    algoIRLengthValueLabel.setText (juce::String (length, 1) + " s", juce::dontSendNotification);
+                    algoIRLengthValueLabel.setText (juce::String (length, 2) + " s", juce::dontSendNotification);
                 }
                 else if (label == &algoWetLevelValueLabel)
                 {
@@ -4940,6 +4985,7 @@ private:
     juce::Label algoFDNSizeValueLabel;
 
     // IR-specific section
+    float currentIRDurationSec = WFSParameterDefaults::reverbIRlengthDefault;
     juce::Label algoIRSectionLabel;
     juce::Label algoIRFileLabel;
     juce::ComboBox algoIRFileSelector;

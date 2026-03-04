@@ -239,15 +239,29 @@ public:
     /** Get the current algorithm type. */
     int getAlgorithmType() const { return currentAlgorithmType; }
 
-    /** Load an IR file (only effective when IR algorithm is active). */
+    /** Load an IR file (only effective when IR algorithm is active).
+        Reads the file outside the SpinLock so that file I/O never
+        blocks the engine thread. */
     void loadIRFile (const juce::File& file)
     {
         if (! file.existsAsFile())
             return;
 
+        // Read IR file outside the lock (file I/O)
+        juce::AudioFormatManager mgr;
+        mgr.registerBasicFormats();
+        std::unique_ptr<juce::AudioFormatReader> reader (mgr.createReaderFor (file));
+        if (! reader)
+            return;
+
+        auto numSamples = static_cast<int> (reader->lengthInSamples);
+        juce::AudioBuffer<float> buffer (1, numSamples);
+        reader->read (&buffer, 0, numSamples, 0, true, false);
+        double fileSR = reader->sampleRate;
+
         juce::SpinLock::ScopedLockType lock (algorithmLock);
         if (auto* ir = dynamic_cast<IRAlgorithm*> (algorithm.get()))
-            ir->loadIRFile (file);
+            ir->loadIRFromBuffer (file, std::move (buffer), fileSR);
     }
 
     /** Set IR parameters (trim, length). Only effective for IR algorithm. */
