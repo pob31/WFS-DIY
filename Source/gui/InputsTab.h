@@ -18,6 +18,7 @@
 #include "../DSP/AutomOtionProcessor.h"
 #include "../Helpers/CoordinateConverter.h"
 #include "SetAllInputsWindow.h"
+#include "../AppSettings.h"
 #include "SnapshotScopeWindow.h"
 #include "buttons/LongPressButton.h"
 #include "../Localization/LocalizationManager.h"
@@ -6018,7 +6019,7 @@ private:
     void importInputConfiguration()
     {
         auto chooser = std::make_shared<juce::FileChooser>(LOC("inputs.dialogs.importConfig"),
-            juce::File::getSpecialLocation(juce::File::userHomeDirectory),
+            AppSettings::getLastFolder("lastXmlFolder"),
             "*.xml");
         auto chooserFlags = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
 
@@ -6027,6 +6028,7 @@ private:
             auto result = fc.getResult();
             if (result.existsAsFile())
             {
+                AppSettings::setLastFolder("lastXmlFolder", result.getParentDirectory());
                 auto& fileManager = parameters.getFileManager();
                 if (fileManager.importInputConfig(result))
                 {
@@ -6046,7 +6048,7 @@ private:
     void exportInputConfiguration()
     {
         auto chooser = std::make_shared<juce::FileChooser>(LOC("inputs.dialogs.exportConfig"),
-            juce::File::getSpecialLocation(juce::File::userHomeDirectory),
+            AppSettings::getLastFolder("lastXmlFolder"),
             "*.xml");
         auto chooserFlags = juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles;
 
@@ -6058,6 +6060,7 @@ private:
                 if (!result.hasFileExtension(".xml"))
                     result = result.withFileExtension(".xml");
 
+                AppSettings::setLastFolder("lastXmlFolder", result.getParentDirectory());
                 auto& fileManager = parameters.getFileManager();
                 if (fileManager.exportInputConfig(result))
                     showStatusMessage(LOC("inputs.messages.configExported"));

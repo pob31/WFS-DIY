@@ -17,6 +17,7 @@
 #include "buttons/LongPressButton.h"
 #include "buttons/EQBandToggle.h"
 #include "ColumnFocusTraverser.h"
+#include "../AppSettings.h"
 
 /**
  * Small colored indicator to show that a parameter is linked across an array.
@@ -2159,7 +2160,7 @@ private:
     void importOutputConfiguration()
     {
         auto chooser = std::make_shared<juce::FileChooser>(LOC("outputs.dialogs.import"),
-            juce::File::getSpecialLocation(juce::File::userHomeDirectory),
+            AppSettings::getLastFolder("lastXmlFolder"),
             "*.xml");
         auto chooserFlags = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
 
@@ -2168,6 +2169,7 @@ private:
             auto result = fc.getResult();
             if (result.existsAsFile())
             {
+                AppSettings::setLastFolder("lastXmlFolder", result.getParentDirectory());
                 auto& fileManager = parameters.getFileManager();
                 if (fileManager.importOutputConfig(result))
                 {
@@ -2187,7 +2189,7 @@ private:
     void exportOutputConfiguration()
     {
         auto chooser = std::make_shared<juce::FileChooser>(LOC("outputs.dialogs.export"),
-            juce::File::getSpecialLocation(juce::File::userHomeDirectory),
+            AppSettings::getLastFolder("lastXmlFolder"),
             "*.xml");
         auto chooserFlags = juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles;
 
@@ -2199,6 +2201,7 @@ private:
                 if (!result.hasFileExtension(".xml"))
                     result = result.withFileExtension(".xml");
 
+                AppSettings::setLastFolder("lastXmlFolder", result.getParentDirectory());
                 auto& fileManager = parameters.getFileManager();
                 if (fileManager.exportOutputConfig(result))
                     showStatusMessage(LOC("outputs.messages.configExported"));

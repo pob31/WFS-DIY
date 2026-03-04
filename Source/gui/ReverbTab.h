@@ -16,6 +16,7 @@
 #include "buttons/LongPressButton.h"
 #include "buttons/EQBandToggle.h"
 #include "ColumnFocusTraverser.h"
+#include "../AppSettings.h"
 
 /**
  * Reverb Tab Component
@@ -3888,7 +3889,7 @@ private:
 
         irFileChooser = std::make_shared<juce::FileChooser> (
             LOC("reverbs.algorithm.irImport"),
-            juce::File::getSpecialLocation (juce::File::userHomeDirectory),
+            AppSettings::getLastFolder ("lastIrFolder"),
             "*.wav;*.aif;*.aiff;*.flac");
 
         irFileChooser->launchAsync (
@@ -3902,6 +3903,7 @@ private:
                     return;
                 }
 
+                AppSettings::setLastFolder ("lastIrFolder", result.getParentDirectory());
                 auto& fm = parameters.getFileManager();
                 auto irFolder = fm.getIRFolder();
                 irFolder.createDirectory();
@@ -4065,13 +4067,14 @@ private:
     void importReverbConfiguration()
     {
         auto chooser = std::make_shared<juce::FileChooser> (LOC("reverbs.dialogs.import"),
-            juce::File::getSpecialLocation (juce::File::userHomeDirectory), "*.xml");
+            AppSettings::getLastFolder ("lastXmlFolder"), "*.xml");
         chooser->launchAsync (juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
             [this, chooser] (const juce::FileChooser& fc)
             {
                 auto result = fc.getResult();
                 if (result.existsAsFile())
                 {
+                    AppSettings::setLastFolder ("lastXmlFolder", result.getParentDirectory());
                     auto& fileManager = parameters.getFileManager();
                     if (fileManager.importReverbConfig (result))
                     {
@@ -4095,13 +4098,14 @@ private:
     void exportReverbConfiguration()
     {
         auto chooser = std::make_shared<juce::FileChooser> (LOC("reverbs.dialogs.export"),
-            juce::File::getSpecialLocation (juce::File::userHomeDirectory).getChildFile ("reverbs.xml"), "*.xml");
+            AppSettings::getLastFolder ("lastXmlFolder").getChildFile ("reverbs.xml"), "*.xml");
         chooser->launchAsync (juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles,
             [this, chooser] (const juce::FileChooser& fc)
             {
                 auto result = fc.getResult();
                 if (result != juce::File())
                 {
+                    AppSettings::setLastFolder ("lastXmlFolder", result.getParentDirectory());
                     auto& fileManager = parameters.getFileManager();
                     if (fileManager.exportReverbConfig (result))
                         showStatusMessage (LOC("reverbs.messages.configExported"));

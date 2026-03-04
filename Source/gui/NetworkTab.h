@@ -10,6 +10,7 @@
 #include "../Localization/LocalizationManager.h"
 #include "buttons/LongPressButton.h"
 #include "ColumnFocusTraverser.h"
+#include "../AppSettings.h"
 
 #if JUCE_WINDOWS
     #include <winsock2.h>
@@ -2991,7 +2992,7 @@ private:
     void importNetworkConfiguration()
     {
         auto chooser = std::make_shared<juce::FileChooser>(LOC("network.dialogs.importConfig"),
-            juce::File::getSpecialLocation(juce::File::userHomeDirectory),
+            AppSettings::getLastFolder("lastXmlFolder"),
             "*.xml");
         auto chooserFlags = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
 
@@ -3000,6 +3001,7 @@ private:
             auto result = fc.getResult();
             if (result.existsAsFile())
             {
+                AppSettings::setLastFolder("lastXmlFolder", result.getParentDirectory());
                 auto& fileManager = parameters.getFileManager();
                 if (fileManager.importNetworkConfig(result))
                 {
@@ -3016,7 +3018,7 @@ private:
     void exportNetworkConfiguration()
     {
         auto chooser = std::make_shared<juce::FileChooser>(LOC("network.dialogs.exportConfig"),
-            juce::File::getSpecialLocation(juce::File::userHomeDirectory),
+            AppSettings::getLastFolder("lastXmlFolder"),
             "*.xml");
         auto chooserFlags = juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles;
 
@@ -3028,6 +3030,7 @@ private:
                 if (!result.hasFileExtension(".xml"))
                     result = result.withFileExtension(".xml");
 
+                AppSettings::setLastFolder("lastXmlFolder", result.getParentDirectory());
                 auto& fileManager = parameters.getFileManager();
                 if (fileManager.exportNetworkConfig(result))
                     showStatusMessage(LOC("network.messages.configExported"));
