@@ -242,6 +242,9 @@ public:
     /** Load an IR file (only effective when IR algorithm is active). */
     void loadIRFile (const juce::File& file)
     {
+        if (! file.existsAsFile())
+            return;
+
         juce::SpinLock::ScopedLockType lock (algorithmLock);
         if (auto* ir = dynamic_cast<IRAlgorithm*> (algorithm.get()))
             ir->loadIRFile (file);

@@ -2848,10 +2848,23 @@ void MainComponent::timerCallback()
                     float irTrim = algoSection.getProperty(reverbIRtrim, 0.0f);
                     float irLength = algoSection.getProperty(reverbIRlength, 6.0f);
 
-                    if (irFilePath.isNotEmpty())
-                        reverbEngine->loadIRFile(juce::File(irFilePath));
+                    if (irFilePath.isNotEmpty() && irFilePath != lastPushedIRFile)
+                    {
+                        auto irFile = parameters.getFileManager().getIRFolder().getChildFile(irFilePath);
+                        reverbEngine->loadIRFile(irFile);
+                        lastPushedIRFile = irFilePath;
+                    }
 
-                    reverbEngine->setIRParameters(irTrim, irLength);
+                    if (irTrim != lastPushedIRTrim || irLength != lastPushedIRLength)
+                    {
+                        reverbEngine->setIRParameters(irTrim, irLength);
+                        lastPushedIRTrim = irTrim;
+                        lastPushedIRLength = irLength;
+                    }
+                }
+                else
+                {
+                    lastPushedIRFile.clear();  // Reset when not in IR mode
                 }
 
                 AlgorithmParameters algoParams;

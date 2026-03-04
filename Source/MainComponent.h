@@ -258,6 +258,11 @@ private:
     // Track device type and device name changes
     juce::String lastSavedDeviceType;
     juce::String lastSavedDeviceName;
+
+    // IR parameter change tracking (avoid redundant pushes every timer tick)
+    juce::String lastPushedIRFile;
+    float lastPushedIRTrim = -1.0f;
+    float lastPushedIRLength = -1.0f;
     bool deviceRestoreComplete = false;  // Prevents saving fallback device during startup
 
     void attachAudioCallbacksIfNeeded();

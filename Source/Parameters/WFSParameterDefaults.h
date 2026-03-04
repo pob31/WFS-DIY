@@ -704,7 +704,7 @@ namespace WFSParameterDefaults
     constexpr float reverbRT60LowMultMin           = 0.1f;
     constexpr float reverbRT60LowMultMax           = 9.0f;
 
-    constexpr float reverbRT60HighMultDefault      = 0.5f;    // multiplier
+    constexpr float reverbRT60HighMultDefault      = 0.4f;    // multiplier
     constexpr float reverbRT60HighMultMin          = 0.1f;
     constexpr float reverbRT60HighMultMax          = 9.0f;
 
@@ -712,7 +712,7 @@ namespace WFSParameterDefaults
     constexpr float reverbCrossoverLowMin          = 50.0f;
     constexpr float reverbCrossoverLowMax          = 500.0f;
 
-    constexpr float reverbCrossoverHighDefault     = 4000.0f; // Hz
+    constexpr float reverbCrossoverHighDefault     = 2500.0f; // Hz
     constexpr float reverbCrossoverHighMin         = 1000.0f;
     constexpr float reverbCrossoverHighMax         = 10000.0f;
 

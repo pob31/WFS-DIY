@@ -96,9 +96,6 @@ public:
     /** Load an IR file. Called when the user selects a new file. */
     void loadIRFile (const juce::File& file)
     {
-        if (! file.existsAsFile())
-            return;
-
         currentIRFile = file;
 
         // Calculate trim in samples

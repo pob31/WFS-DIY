@@ -124,12 +124,13 @@ private:
         0.0631f, 0.0613f, 0.0637f, 0.0612f
     };
 
-    // Output tap signs: alternating +/- at magnitude 1/4
+    // Output tap signs: varied magnitudes and irregular sign pattern
+    // to break comb-filter regularity (sum-of-squares ≈ 1.0)
     static constexpr std::array<float, NUM_DELAY_LINES> outputTapSigns = {
-        0.25f, -0.25f,  0.25f, -0.25f,
-        0.25f, -0.25f,  0.25f, -0.25f,
-        0.25f, -0.25f,  0.25f, -0.25f,
-        0.25f, -0.25f,  0.25f, -0.25f
+         0.30f, -0.22f,  0.27f, -0.19f,
+        -0.26f,  0.23f, -0.28f,  0.21f,
+         0.24f, -0.29f,  0.20f, -0.25f,
+        -0.22f,  0.26f, -0.21f,  0.27f
     };
 
     //==========================================================================
@@ -399,7 +400,7 @@ private:
 
     void recalculateDiffusionCoeffs()
     {
-        diffusionCoeff = currentParams.diffusion * 0.7f;
+        diffusionCoeff = currentParams.diffusion * 0.85f;
     }
 
     //==========================================================================
