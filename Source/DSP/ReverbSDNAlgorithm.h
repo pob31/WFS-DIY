@@ -58,6 +58,21 @@ public:
 
         recalculateDecayGains();
         recalculateDiffusionCoeffs();
+
+        // Allocate per-node output states (tone filter + DC blocker)
+        nodeOutputStates.resize (static_cast<size_t> (numActiveNodes));
+        for (auto& ns : nodeOutputStates)
+            ns.reset();
+
+        // Output tone filter: one-pole LPF at ~8kHz (same as FDN)
+        toneCoeff = 1.0f - std::exp (-juce::MathConstants<float>::twoPi
+                        * 8000.0f / static_cast<float> (sr));
+
+        // Output gain compensation: sparser networks need more boost
+        if (numActiveNodes >= 2)
+            sdnOutputGain = 1.0f + 18.0f / static_cast<float> (numActiveNodes);
+        else
+            sdnOutputGain = 1.0f;
     }
 
     void reset() override
@@ -68,6 +83,9 @@ public:
         for (auto& nd : nodeDiffusers)
             for (auto& d : nd)
                 d.reset();
+
+        for (auto& ns : nodeOutputStates)
+            ns.reset();
     }
 
     void processBlock (const juce::AudioBuffer<float>& nodeInputs,
@@ -153,7 +171,18 @@ public:
                 for (int i = 0; i < inCount; ++i)
                     output += scattered[static_cast<size_t> (i)];
 
-                outputData[s] = output;
+                // 6. Output tone filter (one-pole LPF ~8kHz to soften harshness)
+                auto& ns = nodeOutputStates[sn];
+                ns.toneState += toneCoeff * (output - ns.toneState);
+                output = ns.toneState;
+
+                // 7. DC blocker: y = x - x_prev + 0.9995 * y_prev
+                float dcOut = output - ns.dcX1 + 0.9995f * ns.dcY1;
+                ns.dcX1 = output;
+                ns.dcY1 = dcOut;
+
+                // 8. Apply output gain compensation
+                outputData[s] = dcOut * sdnOutputGain;
             }
         };
 
@@ -303,6 +332,23 @@ private:
 
         // Snapshotted at block start for parallel reads
         int readBasePos = 0;
+    };
+
+    //==========================================================================
+    // Per-node output processing state (tone filter + DC blocker)
+    //==========================================================================
+    struct NodeOutputState
+    {
+        float toneState = 0.0f;    // One-pole LPF state
+        float dcX1 = 0.0f;        // DC blocker: previous input
+        float dcY1 = 0.0f;        // DC blocker: previous output
+
+        void reset()
+        {
+            toneState = 0.0f;
+            dcX1 = 0.0f;
+            dcY1 = 0.0f;
+        }
     };
 
     //==========================================================================
@@ -485,10 +531,15 @@ private:
     std::vector<InterNodePath> paths;
     std::vector<std::array<AllpassStage, NUM_DIFFUSERS_PER_NODE>> nodeDiffusers;
     std::vector<NodePosition> nodePositions;
+    std::vector<NodeOutputState> nodeOutputStates;
 
     // Per-node working buffers (thread-safe for parallel processing)
     std::array<std::vector<float>, MAX_NODES> incomingSignals;
     std::array<std::vector<float>, MAX_NODES> scatteredSignals;
+
+    // Output processing
+    float toneCoeff = 0.65f;       // One-pole LPF coefficient (~8kHz at 48kHz)
+    float sdnOutputGain = 4.0f;    // Level compensation vs FDN/IR
 
     AudioParallelFor* parallel = nullptr;
 };
