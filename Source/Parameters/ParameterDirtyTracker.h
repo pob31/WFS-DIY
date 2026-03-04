@@ -17,6 +17,7 @@
  *   - Any DAW OSC received (Protocol::OSC / ADMOSC) -> clear all
  *   - Snapshot recall -> clear all (via beginSuppression/endSuppressionAndClear)
  *   - Snapshot store/update -> clear all (via clearAll)
+ *   - Config file load/import -> clear all (via beginSuppression/endSuppressionAndClear)
  */
 class ParameterDirtyTracker : public juce::ValueTree::Listener
 {

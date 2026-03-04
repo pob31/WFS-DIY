@@ -1954,6 +1954,7 @@ private:
         }
 
         // Load complete config from individual files (system.xml, network.xml, inputs.xml, outputs.xml, reverbs.xml)
+        parameters.getDirtyTracker().beginSuppression();
         bool success = fileManager.loadCompleteConfig();
 
         if (success)
@@ -1973,6 +1974,7 @@ private:
         // Notify MainComponent to refresh all tabs
         if (onConfigReloaded)
             onConfigReloaded();
+        parameters.getDirtyTracker().endSuppressionAndClear();
     }
 
     void reloadCompleteConfigBackup()
@@ -1992,6 +1994,7 @@ private:
             return;
         }
 
+        parameters.getDirtyTracker().beginSuppression();
         bool success = fileManager.loadCompleteConfigBackup(0);
 
         if (success)
@@ -2010,6 +2013,7 @@ private:
         // Notify MainComponent to refresh all tabs
         if (onConfigReloaded)
             onConfigReloaded();
+        parameters.getDirtyTracker().endSuppressionAndClear();
     }
 
     void storeSystemConfiguration()

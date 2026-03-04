@@ -5987,6 +5987,7 @@ private:
             showStatusMessage(LOC("inputs.messages.selectFolderFirst"));
             return;
         }
+        parameters.getDirtyTracker().beginSuppression();
         if (fileManager.loadInputConfig())
         {
             loadChannelParameters(currentChannel);
@@ -5998,11 +5999,13 @@ private:
         }
         else
             showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
+        parameters.getDirtyTracker().endSuppressionAndClear();
     }
 
     void reloadInputConfigBackup()
     {
         auto& fileManager = parameters.getFileManager();
+        parameters.getDirtyTracker().beginSuppression();
         if (fileManager.loadInputConfigBackup(0))
         {
             loadChannelParameters(currentChannel);
@@ -6014,6 +6017,7 @@ private:
         }
         else
             showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
+        parameters.getDirtyTracker().endSuppressionAndClear();
     }
 
     void importInputConfiguration()
@@ -6029,6 +6033,7 @@ private:
             if (result.existsAsFile())
             {
                 AppSettings::setLastFolder("lastXmlFolder", result.getParentDirectory());
+                parameters.getDirtyTracker().beginSuppression();
                 auto& fileManager = parameters.getFileManager();
                 if (fileManager.importInputConfig(result))
                 {
@@ -6041,6 +6046,7 @@ private:
                 }
                 else
                     showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
+                parameters.getDirtyTracker().endSuppressionAndClear();
             }
         });
     }
