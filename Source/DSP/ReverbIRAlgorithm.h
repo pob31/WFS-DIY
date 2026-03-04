@@ -55,6 +55,12 @@ public:
                        juce::AudioBuffer<float>& nodeOutputs,
                        int numSamples) override
     {
+        // No IR loaded yet — leave output silent (cleared by caller).
+        // Prevents JUCE Convolution's default 1-sample unit-impulse from
+        // passing the input signal through as audible noise.
+        if (cachedIRBuffer.getNumSamples() == 0)
+            return;
+
         auto processNode = [&] (int n)
         {
             auto& conv = *convolvers[static_cast<size_t> (n)];

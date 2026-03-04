@@ -536,50 +536,62 @@ private:
                 }
                 else if (irChange)
                 {
-                    if (algorithm != nullptr)
+                    // Create fresh IRAlgorithm and load the pending IR.
+                    juce::AudioBuffer<float> buf;
+                    juce::File file;
+                    double fileSR;
                     {
-                        // Phase 1: destroy current algorithm — go silent.
-                        // Don't clear irChangeRequested — it will re-trigger
-                        // via the orphaned-IR check at fade-in completion.
-                        juce::SpinLock::ScopedLockType lock (algorithmLock);
-                        algorithm.reset();
+                        std::lock_guard<std::mutex> lock (pendingIRMutex);
+                        buf = std::move (pendingIRBuffer);
+                        file = pendingIRFile;
+                        fileSR = pendingIRSampleRate;
                     }
-                    else
+                    irChangeRequested.store (false, std::memory_order_release);
+
+                    auto newAlgo = std::make_unique<IRAlgorithm>();
+
                     {
-                        // Phase 2: algorithm is already null (from phase 1).
-                        // Create fresh IRAlgorithm and load the pending IR.
-                        juce::AudioBuffer<float> buf;
-                        juce::File file;
-                        double fileSR;
+                        juce::SpinLock::ScopedLockType lock (algorithmLock);
+                        algorithm = std::move (newAlgo);
+                        if (algorithm && sampleRate > 0)
                         {
-                            std::lock_guard<std::mutex> lock (pendingIRMutex);
-                            buf = std::move (pendingIRBuffer);
-                            file = pendingIRFile;
-                            fileSR = pendingIRSampleRate;
+                            algorithm->prepare (sampleRate, internalBlockSize, numReverbNodes);
+                            algorithm->setParallelFor (&parallelPool);
+                            algorithm->setParameters (currentParams);
+                            algorithm->updateGeometry (currentGeometry);
                         }
-                        irChangeRequested.store (false, std::memory_order_release);
-
-                        auto newAlgo = std::make_unique<IRAlgorithm>();
-
-                        {
-                            juce::SpinLock::ScopedLockType lock (algorithmLock);
-                            algorithm = std::move (newAlgo);
-                            if (algorithm && sampleRate > 0)
-                            {
-                                algorithm->prepare (sampleRate, internalBlockSize, numReverbNodes);
-                                algorithm->setParallelFor (&parallelPool);
-                                algorithm->setParameters (currentParams);
-                                algorithm->updateGeometry (currentGeometry);
-                            }
-                            if (auto* ir = dynamic_cast<IRAlgorithm*> (algorithm.get()))
-                                ir->loadIRFromBuffer (file, std::move (buf), fileSR);
-                        }
+                        if (auto* ir = dynamic_cast<IRAlgorithm*> (algorithm.get()))
+                            ir->loadIRFromBuffer (file, std::move (buf), fileSR);
                     }
                 }
 
                 fadeGain = 0.0f;
-                fadeState.store (FadingIn, std::memory_order_release);
+
+                if (irChange && ! algoChange)
+                {
+                    // IR change: hold silence while JUCE background thread
+                    // builds the partitioned convolution engine (~533ms).
+                    silentHoldBlocksRemaining = 100;
+                    fadeState.store (SilentHold, std::memory_order_release);
+                }
+                else
+                {
+                    fadeState.store (FadingIn, std::memory_order_release);
+                }
             }
+        }
+        else if (currentFade == SilentHold)
+        {
+            // Output silence while convolvers warm up — JUCE background
+            // thread is building the partitioned convolution engine.
+            // The algorithm still processes audio each block (driving
+            // postPendingCommand() inside conv.process()), but we zero
+            // the output so the pass-through default IR is never heard.
+            for (int n = 0; n < numReverbNodes; ++n)
+                juce::FloatVectorOperations::clear (nodeOutputBlock.getWritePointer (n), numSamples);
+
+            if (--silentHoldBlocksRemaining <= 0)
+                fadeState.store (FadingIn, std::memory_order_release);
         }
         else if (currentFade == FadingIn)
         {
@@ -671,12 +683,14 @@ private:
     AudioParallelFor parallelPool;
 
     // Algorithm switching fade state
-    static constexpr int FadeNone = 0;
-    static constexpr int FadingOut = 1;
-    static constexpr int FadingIn = 2;
+    static constexpr int FadeNone   = 0;
+    static constexpr int FadingOut  = 1;
+    static constexpr int SilentHold = 2;  // convolvers warm up, output muted
+    static constexpr int FadingIn   = 3;
     std::atomic<int> fadeState { FadeNone };
     float fadeGain = 1.0f;
     float fadeSamples = 2400.0f;  // ~50ms at 48kHz
+    int silentHoldBlocksRemaining = 0;
     std::atomic<int> pendingAlgorithmType { -1 };
 
     // Pending IR change (fade-to-silence transition)
