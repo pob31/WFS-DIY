@@ -510,75 +510,90 @@ private:
                     // Algorithm type change takes priority
                     currentAlgorithmType = newType;
 
-                    std::unique_ptr<ReverbAlgorithm> newAlgo;
-                    switch (newType)
+                    if (newType == IR && irChange)
                     {
-                        case SDN: newAlgo = std::make_unique<SDNAlgorithm>(); break;
-                        case FDN: newAlgo = std::make_unique<FDNAlgorithm>(); break;
-                        case IR:  newAlgo = std::make_unique<IRAlgorithm>();  break;
-                        default:  newAlgo = std::make_unique<FDNAlgorithm>(); break;
-                    }
-
-                    {
+                        // Switching TO IR with a pending IR file:
+                        // Destroy old algo now, keep irChangeRequested set.
+                        // After a silence cycle the irChange Phase 2 will
+                        // create a brand-new IRAlgorithm and load the IR.
                         juce::SpinLock::ScopedLockType lock (algorithmLock);
-                        algorithm = std::move (newAlgo);
-                        if (algorithm && sampleRate > 0)
+                        algorithm = nullptr;
+                    }
+                    else
+                    {
+                        std::unique_ptr<ReverbAlgorithm> newAlgo;
+                        switch (newType)
                         {
-                            algorithm->prepare (sampleRate, internalBlockSize, numReverbNodes);
-                            algorithm->setParallelFor (&parallelPool);
-                            algorithm->setParameters (currentParams);
-                            algorithm->updateGeometry (currentGeometry);
+                            case SDN: newAlgo = std::make_unique<SDNAlgorithm>(); break;
+                            case FDN: newAlgo = std::make_unique<FDNAlgorithm>(); break;
+                            case IR:  newAlgo = std::make_unique<IRAlgorithm>();  break;
+                            default:  newAlgo = std::make_unique<FDNAlgorithm>(); break;
                         }
 
-                        // If switching TO IR and the timer already pushed an IR
-                        // file (same tick), load it now — otherwise the pending
-                        // buffer is orphaned and the empty-IR guard keeps silence.
-                        if (newType == IR && irChange)
                         {
-                            juce::AudioBuffer<float> buf;
-                            juce::File file;
-                            double fileSR;
+                            juce::SpinLock::ScopedLockType lock (algorithmLock);
+                            algorithm = std::move (newAlgo);
+                            if (algorithm && sampleRate > 0)
                             {
-                                std::lock_guard<std::mutex> lk (pendingIRMutex);
-                                buf = std::move (pendingIRBuffer);
-                                file = pendingIRFile;
-                                fileSR = pendingIRSampleRate;
+                                algorithm->prepare (sampleRate, internalBlockSize, numReverbNodes);
+                                algorithm->setParallelFor (&parallelPool);
+                                algorithm->setParameters (currentParams);
+                                algorithm->updateGeometry (currentGeometry);
+                            }
+                        }
+
+                        irChangeRequested.store (false, std::memory_order_release);
+                    }
+                }
+                else if (irChange)
+                {
+                    // Two-phase IR loading to replicate the clean manual
+                    // mode-switch workaround (IR → SDN → IR).
+                    //
+                    // Phase 1: destroy the old algorithm so all JUCE
+                    //          Convolution background threads are fully
+                    //          stopped.  Keep irChangeRequested set.
+                    //          After a silence fade cycle it re-triggers.
+                    //
+                    // Phase 2: algorithm is already null — create a
+                    //          brand-new IRAlgorithm and load the IR
+                    //          with no residual background activity.
+
+                    if (algorithm != nullptr)
+                    {
+                        // Phase 1 — destroy old, stay silent
+                        juce::SpinLock::ScopedLockType lock (algorithmLock);
+                        algorithm = nullptr;
+                    }
+                    else
+                    {
+                        // Phase 2 — create fresh IRAlgorithm + load IR
+                        juce::AudioBuffer<float> buf;
+                        juce::File file;
+                        double fileSR;
+                        {
+                            std::lock_guard<std::mutex> lock (pendingIRMutex);
+                            buf = std::move (pendingIRBuffer);
+                            file = pendingIRFile;
+                            fileSR = pendingIRSampleRate;
+                        }
+                        irChangeRequested.store (false, std::memory_order_release);
+
+                        auto newAlgo = std::make_unique<IRAlgorithm>();
+
+                        {
+                            juce::SpinLock::ScopedLockType lock (algorithmLock);
+                            algorithm = std::move (newAlgo);
+                            if (algorithm && sampleRate > 0)
+                            {
+                                algorithm->prepare (sampleRate, internalBlockSize, numReverbNodes);
+                                algorithm->setParallelFor (&parallelPool);
+                                algorithm->setParameters (currentParams);
+                                algorithm->updateGeometry (currentGeometry);
                             }
                             if (auto* ir = dynamic_cast<IRAlgorithm*> (algorithm.get()))
                                 ir->loadIRFromBuffer (file, std::move (buf), fileSR);
                         }
-                    }
-
-                    irChangeRequested.store (false, std::memory_order_release);
-                }
-                else if (irChange)
-                {
-                    // Create fresh IRAlgorithm and load the pending IR.
-                    juce::AudioBuffer<float> buf;
-                    juce::File file;
-                    double fileSR;
-                    {
-                        std::lock_guard<std::mutex> lock (pendingIRMutex);
-                        buf = std::move (pendingIRBuffer);
-                        file = pendingIRFile;
-                        fileSR = pendingIRSampleRate;
-                    }
-                    irChangeRequested.store (false, std::memory_order_release);
-
-                    auto newAlgo = std::make_unique<IRAlgorithm>();
-
-                    {
-                        juce::SpinLock::ScopedLockType lock (algorithmLock);
-                        algorithm = std::move (newAlgo);
-                        if (algorithm && sampleRate > 0)
-                        {
-                            algorithm->prepare (sampleRate, internalBlockSize, numReverbNodes);
-                            algorithm->setParallelFor (&parallelPool);
-                            algorithm->setParameters (currentParams);
-                            algorithm->updateGeometry (currentGeometry);
-                        }
-                        if (auto* ir = dynamic_cast<IRAlgorithm*> (algorithm.get()))
-                            ir->loadIRFromBuffer (file, std::move (buf), fileSR);
                     }
                 }
 
