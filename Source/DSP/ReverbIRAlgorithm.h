@@ -142,22 +142,23 @@ public:
         irFileDurationSec = static_cast<float> (cachedIRBuffer.getNumSamples())
                           / static_cast<float> (cachedIRSampleRate);
 
-        // Destroy old convolvers and create fresh ones
+        // Destroy old convolvers and create fresh ones — prepare FIRST
+        // so that processSpec is correct when loadImpulseResponse is queued.
+        // (JUCE default spec is {44100, 128, 2} — without prepare() first,
+        //  the background thread resamples the IR to 44100 Hz instead of 48000.)
         convolvers.clear();
         processBuffers.clear();
 
         for (int i = 0; i < numActiveNodes; ++i)
         {
             convolvers.push_back (std::make_unique<juce::dsp::Convolution>());
+            convolvers.back()->prepare (spec);
             processBuffers.push_back (juce::AudioBuffer<float> (1, blockSize));
         }
 
-        // Load trimmed IR BEFORE prepare() — per JUCE docs this ensures
-        // the IR is synchronously ready on the first process() call
+        // Load IR after prepare — background thread builds engine with correct spec.
+        // Our fade-in from silence masks the async transition.
         applyIRToConvolvers();
-
-        for (auto& conv : convolvers)
-            conv->prepare (spec);
     }
 
 private:

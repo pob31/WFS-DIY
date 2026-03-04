@@ -303,6 +303,12 @@ public:
     // State Queries
     //==========================================================================
 
+    /** Get compressor gain reduction in dB (max across all nodes). Thread-safe. */
+    float getCompGainReductionDb() const { return preProcessor.getGainReductionDb(); }
+
+    /** Get expander gain reduction in dB (max across all nodes). Thread-safe. */
+    float getExpGainReductionDb() const { return postProcessor.getGainReductionDb(); }
+
     /** Check if the engine is actively processing. */
     bool isActive() const { return numReverbNodes > 0 && isThreadRunning(); }
 
@@ -524,6 +530,9 @@ private:
                             algorithm->updateGeometry (currentGeometry);
                         }
                     }
+
+                    // Clear orphaned IR request — timer will re-push for the new algorithm
+                    irChangeRequested.store (false, std::memory_order_release);
                 }
                 else if (irChange)
                 {
@@ -572,7 +581,12 @@ private:
             if (fadeGain >= 1.0f)
             {
                 fadeGain = 1.0f;
-                fadeState.store (FadeNone, std::memory_order_release);
+
+                // If an IR change arrived while we were fading, re-trigger
+                if (irChangeRequested.load (std::memory_order_acquire))
+                    fadeState.store (FadingOut, std::memory_order_release);
+                else
+                    fadeState.store (FadeNone, std::memory_order_release);
             }
         }
     }
