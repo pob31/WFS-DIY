@@ -120,6 +120,13 @@ private:
         142, 107, 379, 277
     };
 
+    // Feedback allpass base delays (small primes at 48kHz, one per delay line)
+    static constexpr std::array<int, NUM_DELAY_LINES> baseFeedbackAPDelays = {
+        23, 29, 31, 37, 41, 43, 47, 53,
+        59, 61, 67, 71, 73, 79, 83, 89
+    };
+    static constexpr float feedbackAPCoeff = 0.55f;
+
     // Input gain distribution (±12% variation around 1/16 to break modal symmetry)
     static constexpr std::array<float, NUM_DELAY_LINES> inputGains = {
         0.0710f, 0.0555f, 0.0680f, 0.0570f,
@@ -229,8 +236,11 @@ private:
         // 3-band decay filter per delay line
         std::array<DecayFilter, NUM_DELAY_LINES> decayFilters;
 
-        // 4-stage allpass diffuser
+        // 4-stage allpass diffuser (input)
         std::array<AllpassStage, NUM_DIFFUSER_STAGES> diffusers;
+
+        // Per-delay-line allpass in feedback path (mode scattering)
+        std::array<AllpassStage, NUM_DELAY_LINES> feedbackAllpass;
 
         // Per-node output tap signs (rotated/shuffled per node)
         std::array<float, NUM_DELAY_LINES> nodeTapSigns {};
@@ -280,6 +290,17 @@ private:
             node.diffusers[si].prepare (delay);
         }
 
+        // Per-node feedback allpass: small primes with per-node variation
+        for (int i = 0; i < NUM_DELAY_LINES; ++i)
+        {
+            auto si = static_cast<size_t> (i);
+            int baseDelay = juce::jmax (1, static_cast<int> (baseFeedbackAPDelays[si] * rateScale));
+            int range = juce::jmax (1, baseDelay / 5);  // ±20% variation
+            int offset = static_cast<int> (nodeHash (nodeIndex, i + 48) % static_cast<uint32_t> (range * 2 + 1)) - range;
+            int delay = juce::jmax (1, baseDelay + offset);
+            node.feedbackAllpass[si].prepare (delay);
+        }
+
         // Per-node output tap signs: rotate the base array by nodeIndex positions
         // and flip signs based on hash to decorrelate node outputs
         for (int i = 0; i < NUM_DELAY_LINES; ++i)
@@ -307,6 +328,9 @@ private:
 
         for (auto& d : node.diffusers)
             d.reset();
+
+        for (auto& ap : node.feedbackAllpass)
+            ap.reset();
 
         node.toneState = 0.0f;
         node.dcX1 = 0.0f;
@@ -376,11 +400,12 @@ private:
             output += node.hadamardBuf[si] * node.nodeTapSigns[si];
         }
 
-        // 5. Apply decay and write back to delay lines
+        // 5. Feedback allpass + decay and write back to delay lines
         for (int i = 0; i < NUM_DELAY_LINES; ++i)
         {
             auto si = static_cast<size_t> (i);
-            float decayed = node.decayFilters[si].process (node.hadamardBuf[si]);
+            float scattered = node.feedbackAllpass[si].process (node.hadamardBuf[si], feedbackAPCoeff);
+            float decayed = node.decayFilters[si].process (scattered);
             float writeVal = decayed + diffused * inputGains[si];
 
             node.delayLines[si][static_cast<size_t> (node.writePositions[si])] = writeVal;

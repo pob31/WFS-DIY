@@ -1014,7 +1014,7 @@ private:
         preCompReleaseDial.onValueChanged = [this] (float v)
         {
             float release = reverbPreCompReleaseMin * std::pow (reverbPreCompReleaseMax / reverbPreCompReleaseMin, v);
-            preCompReleaseValueLabel.setText (juce::String (release, 0) + " ms", juce::dontSendNotification);
+            preCompReleaseValueLabel.setText (juce::String (release, 1) + " ms", juce::dontSendNotification);
             savePreCompParam (reverbPreCompRelease, release);
         };
         preCompReleaseDial.onGestureStart = [this]() {
@@ -1129,7 +1129,7 @@ private:
         postExpReleaseDial.onValueChanged = [this] (float v)
         {
             float release = reverbPostExpReleaseMin * std::pow (reverbPostExpReleaseMax / reverbPostExpReleaseMin, v);
-            postExpReleaseValueLabel.setText (juce::String (release, 0) + " ms", juce::dontSendNotification);
+            postExpReleaseValueLabel.setText (juce::String (release, 1) + " ms", juce::dontSendNotification);
             savePostExpParam (reverbPostExpRelease, release);
         };
         postExpReleaseDial.onGestureStart = [this]() {
@@ -3485,7 +3485,7 @@ private:
         float release = static_cast<float> (static_cast<double> (preComp.getProperty (reverbPreCompRelease, reverbPreCompReleaseDefault)));
         float releaseNorm = std::log (release / reverbPreCompReleaseMin) / std::log (reverbPreCompReleaseMax / reverbPreCompReleaseMin);
         preCompReleaseDial.setValue (juce::jlimit (0.0f, 1.0f, releaseNorm));
-        preCompReleaseValueLabel.setText (juce::String (release, 0) + " ms", juce::dontSendNotification);
+        preCompReleaseValueLabel.setText (juce::String (release, 1) + " ms", juce::dontSendNotification);
 
         updatePreCompAppearance();
     }
@@ -3555,7 +3555,7 @@ private:
         float release = static_cast<float> (static_cast<double> (postExp.getProperty (reverbPostExpRelease, reverbPostExpReleaseDefault)));
         float releaseNorm = std::log (release / reverbPostExpReleaseMin) / std::log (reverbPostExpReleaseMax / reverbPostExpReleaseMin);
         postExpReleaseDial.setValue (juce::jlimit (0.0f, 1.0f, releaseNorm));
-        postExpReleaseValueLabel.setText (juce::String (release, 0) + " ms", juce::dontSendNotification);
+        postExpReleaseValueLabel.setText (juce::String (release, 1) + " ms", juce::dontSendNotification);
 
         updatePostExpAppearance();
     }
@@ -4371,7 +4371,7 @@ private:
                     float v = std::log (release / reverbPreCompReleaseMin) / std::log (reverbPreCompReleaseMax / reverbPreCompReleaseMin);
                     parameters.getValueTreeState().beginUndoTransaction ("Pre-Comp Release");
                     preCompReleaseDial.setValue (juce::jlimit (0.0f, 1.0f, v));
-                    preCompReleaseValueLabel.setText (juce::String (release, 0) + " ms", juce::dontSendNotification);
+                    preCompReleaseValueLabel.setText (juce::String (release, 1) + " ms", juce::dontSendNotification);
                 }
                 // Post-Expander labels
                 else if (label == &postExpThresholdValueLabel)
@@ -4404,7 +4404,7 @@ private:
                     float v = std::log (release / reverbPostExpReleaseMin) / std::log (reverbPostExpReleaseMax / reverbPostExpReleaseMin);
                     parameters.getValueTreeState().beginUndoTransaction ("Post-Exp Release");
                     postExpReleaseDial.setValue (juce::jlimit (0.0f, 1.0f, v));
-                    postExpReleaseValueLabel.setText (juce::String (release, 0) + " ms", juce::dontSendNotification);
+                    postExpReleaseValueLabel.setText (juce::String (release, 1) + " ms", juce::dontSendNotification);
                 }
                 // Algorithm labels
                 else if (label == &algoRT60ValueLabel)
