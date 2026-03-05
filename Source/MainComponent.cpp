@@ -131,8 +131,10 @@ MainComponent::MainComponent()
         currentAlgorithm = ProcessingAlgorithm::InputBuffer;
     else if (algorithmId == 2)
         currentAlgorithm = ProcessingAlgorithm::OutputBuffer;
-    // else if (algorithmId == 3)
-    //     currentAlgorithm = ProcessingAlgorithm::GpuInputBuffer;
+#if GPU_AUDIO_ENABLED
+    else if (algorithmId == 3)
+        currentAlgorithm = ProcessingAlgorithm::GpuInputBuffer;
+#endif
 
     /* Algorithm change handler - no longer needed as UI is in SystemConfigTab
     auto algorithmChangeHandler = [this]() {
@@ -142,8 +144,10 @@ MainComponent::MainComponent()
             newAlgorithm = ProcessingAlgorithm::InputBuffer;
         else if (selectedId == 2)
             newAlgorithm = ProcessingAlgorithm::OutputBuffer;
-        // else if (selectedId == 3)
-        //     newAlgorithm = ProcessingAlgorithm::GpuInputBuffer;
+#if GPU_AUDIO_ENABLED
+        else if (selectedId == 3)
+            newAlgorithm = ProcessingAlgorithm::GpuInputBuffer;
+#endif
 
         // Only act if algorithm actually changed
         if (newAlgorithm != currentAlgorithm)
@@ -166,11 +170,13 @@ MainComponent::MainComponent()
                     outputAlgorithm.releaseResources();
                     outputAlgorithm.clear();
                 }
-                // else  // Commented out - GPU Audio SDK not configured
-                // {
-                //     gpuInputAlgorithm.releaseResources();
-                //     gpuInputAlgorithm.clear();
-                // }
+#if GPU_AUDIO_ENABLED
+                else  // GpuInputBuffer
+                {
+                    gpuInputAlgorithm.releaseResources();
+                    gpuInputAlgorithm.clear();
+                }
+#endif
 
                 // Mark engine as not started (processors cleared)
                 audioEngineStarted = false;
@@ -1192,7 +1198,9 @@ MainComponent::~MainComponent()
     // Now safe to clear processing threads (audio callbacks no longer running)
     inputAlgorithm.clear();
     outputAlgorithm.clear();
-    // gpuInputAlgorithm.clear();  // Commented out - GPU Audio SDK not configured
+#if GPU_AUDIO_ENABLED
+    gpuInputAlgorithm.clear();
+#endif
 }
 
 //==============================================================================
@@ -1308,11 +1316,13 @@ void MainComponent::stopProcessingForConfigurationChange()
         outputAlgorithm.releaseResources();
         outputAlgorithm.clear();
     }
-    // else  // Commented out - GPU Audio SDK not configured
-    // {
-    //     gpuInputAlgorithm.releaseResources();
-    //     gpuInputAlgorithm.clear();
-    // }
+#if GPU_AUDIO_ENABLED
+    else  // GpuInputBuffer
+    {
+        gpuInputAlgorithm.releaseResources();
+        gpuInputAlgorithm.clear();
+    }
+#endif
 
     // Stop reverb engine for reconfiguration
     if (reverbEngine)
@@ -2142,13 +2152,15 @@ void MainComponent::startAudioEngine()
                                frHFAttenuation.data());
         prepared = true;
     }
-    // else // ProcessingAlgorithm::GpuInputBuffer
-    // {
-    //     prepared = gpuInputAlgorithm.prepare(numInputChannels, numOutputChannels,
-    //                                          sampleRate, blockSize,
-    //                                          delayTimesMs.data(), levels.data(),
-    //                                          processingEnabled);
-    // }
+#if GPU_AUDIO_ENABLED
+    else // ProcessingAlgorithm::GpuInputBuffer
+    {
+        prepared = gpuInputAlgorithm.prepare(numInputChannels, numOutputChannels,
+                                             sampleRate, blockSize,
+                                             delayTimesMs.data(), levels.data(),
+                                             processingEnabled);
+    }
+#endif
 
     audioEngineStarted = prepared;
     if (!audioEngineStarted && processingEnabled)
@@ -2178,17 +2190,17 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
         {
             outputAlgorithm.reprepare(sampleRate, samplesPerBlockExpected, processingEnabled);
         }
-        // else // GPU InputBuffer
-        // {
-        //     // Safely tear down GPU processing on device/sample-rate changes.
-        //     // User can re-enable processing after the device change completes.
-        //     gpuInputAlgorithm.releaseResources();
-        //     gpuInputAlgorithm.clear();
-        //     audioEngineStarted = false;
-        //     processingEnabled = false;
-        //     processingToggle.setToggleState(false, juce::dontSendNotification);
-        //     DBG("GPU Audio: Disabled GPU path due to device/sample-rate change. Re-enable processing to reinit.");
-        // }
+#if GPU_AUDIO_ENABLED
+        else // GPU InputBuffer
+        {
+            gpuInputAlgorithm.releaseResources();
+            gpuInputAlgorithm.clear();
+            audioEngineStarted = false;
+            processingEnabled = false;
+            processingToggle.setToggleState(false, juce::dontSendNotification);
+            DBG("GPU Audio: Disabled GPU path due to device/sample-rate change. Re-enable processing to reinit.");
+        }
+#endif
     }
 
     // Prepare test signal generator
@@ -2373,10 +2385,12 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
         {
             outputAlgorithm.processBlock(bufferToFill, numInputChannels, numOutputChannels);
         }
-        // else // ProcessingAlgorithm::GpuInputBuffer
-        // {
-        //     gpuInputAlgorithm.processBlock(bufferToFill, numInputChannels, numOutputChannels);
-        // }
+#if GPU_AUDIO_ENABLED
+        else // ProcessingAlgorithm::GpuInputBuffer
+        {
+            gpuInputAlgorithm.processBlock(bufferToFill, numInputChannels, numOutputChannels);
+        }
+#endif
 
         // Mix reverb returns into WFS output (after WFS processing wrote speaker data)
         if (numReverbs > 0 && reverbEngine && calculationEngine)
@@ -2494,10 +2508,12 @@ void MainComponent::releaseResources()
     {
         outputAlgorithm.releaseResources();
     }
-    // else  // Commented out - GPU Audio SDK not configured
-    // {
-    //     gpuInputAlgorithm.releaseResources();
-    // }
+#if GPU_AUDIO_ENABLED
+    else  // GpuInputBuffer
+    {
+        gpuInputAlgorithm.releaseResources();
+    }
+#endif
 
     // Release reverb engine
 #if REVERB_DIAGNOSTICS

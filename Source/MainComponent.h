@@ -13,7 +13,9 @@
 #include "DSP/BinauralCalculationEngine.h"
 #include "DSP/BinauralProcessor.h"
 #include "DSP/ReverbEngine.h"
-// #include "DSP/GpuInputBufferAlgorithm.h"  // Commented out - GPU Audio SDK not configured
+#if GPU_AUDIO_ENABLED
+#include "DSP/GpuInputBufferAlgorithm.h"
+#endif
 #include "WfsParameters.h"
 #include "Accessibility/TTSManager.h"
 #include "gui/StatusBar.h"
@@ -159,7 +161,9 @@ private:
     {
         InputBuffer,   // Read-time delays (current/original approach)
         OutputBuffer   // Write-time delays (alternative approach)
-        // GpuInputBuffer // GPU Audio-backed input-buffer variant (commented out - GPU Audio SDK not configured)
+#if GPU_AUDIO_ENABLED
+        , GpuInputBuffer // GPU Audio-backed input-buffer variant
+#endif
     };
 
     ProcessingAlgorithm currentAlgorithm = ProcessingAlgorithm::InputBuffer;
@@ -167,7 +171,9 @@ private:
     int numOutputChannels = 4;
     InputBufferAlgorithm inputAlgorithm;
     OutputBufferAlgorithm outputAlgorithm;
-    // GpuInputBufferAlgorithm gpuInputAlgorithm;  // Commented out - GPU Audio SDK not configured
+#if GPU_AUDIO_ENABLED
+    GpuInputBufferAlgorithm gpuInputAlgorithm;
+#endif
     bool audioCallbacksAttached = false;
     bool processingEnabled = false;
     std::atomic<bool> audioEngineStarted { false };

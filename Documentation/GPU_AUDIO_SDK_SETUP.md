@@ -55,7 +55,7 @@ git commit -m "Update GPU-Audio SDK to <version>"
 
 Before building the GPU-Audio SDK, ensure you have:
 
-1. **GPU Audio Platform** installed:
+1. **GPU Audio Platform** (version 2.3.0.219 or later) installed:
    - Download from: https://www.gpu.audio/sdk-binaries
    - Follow the installation instructions for your platform
 
@@ -157,7 +157,7 @@ See `Processors/wfs_input_buffer_processor/BUILD.md` for detailed build instruct
 
 After building, the processor DLL must be in a directory accessible via the `GPUAUDIO_PROCESSOR_PATH` environment variable.
 
-**Note**: The processor currently has a skeleton structure. Full implementation of the source files is still required.
+The processor implements delay+gain routing for N inputs × M outputs, matching the CPU-side `InputBufferAlgorithm`. It uses one CUDA block per input×output pair with `atomicAdd` for output accumulation and linear interpolation for fractional delays.
 
 ## Project Configuration
 
@@ -245,6 +245,23 @@ To update to a newer version of the GPU-Audio SDK:
    git add ThirdParty/GPUAudioSDK
    git commit -m "Update GPU-Audio SDK to <version>"
    ```
+
+## Enabling GPU Audio in the Main Project
+
+The GPU audio path is controlled by the `GPU_AUDIO_ENABLED` preprocessor define. When disabled (default), the project builds and runs using CPU-only audio processing with no GPU dependencies.
+
+To enable:
+1. Open `WFS-DIY.jucer` in Projucer
+2. Add `GPU_AUDIO_ENABLED=1` to the preprocessor definitions for your build configuration
+3. Ensure the GPU Audio SDK has been built (see Build Steps above)
+4. Set `GPUAUDIO_PROCESSOR_PATH` to include the directory containing the built WFS input buffer processor DLL
+5. Re-export and rebuild
+
+When enabled, the `GpuInputBuffer` option appears in the processing algorithm selector. If GPU Audio Platform is not available at runtime, the application falls back to the CPU path automatically.
+
+## SDK Version
+
+This project currently tracks **GPU Audio SDK Preview 2026.1** (commit `4cde620`). The minimum required GPU Audio Platform version is **2.3.0.219**.
 
 ## Additional Resources
 

@@ -1,73 +1,88 @@
 # Building the WFS Input Buffer Processor
 
-This processor is built as an external processor (Option 3) outside the GPU Audio SDK submodule. There are two ways to build it:
+This GPU Audio processor implements delay-and-sum routing for Wave Field Synthesis.
+It accepts routing messages (delay + gain per input-output pair) and processes audio
+on the GPU in parallel across all routing pairs.
 
-## Option A: Standalone Build
+## Prerequisites
 
-Build the processor independently using its own CMakeLists.txt:
+- **GPU Audio Platform** 2.3.0.219+ installed ([download](https://www.gpu.audio/sdk-binaries))
+- **GPU Audio SDK** submodule initialized (`git submodule update --init --recursive ThirdParty/GPUAudioSDK`)
+- **CUDA Toolkit** 12.x (NVIDIA) or ROCm/HIP 6.x (AMD)
+- **CMake** 3.24.0+
+- **Visual Studio 2022** with MSVC v143 toolchain (Windows)
+- Environment variable `GPUAUDIO_PATH` pointing to GPU Audio Platform installation
+
+## Build Steps
+
+### Option A: Standalone Build
 
 ```bash
 cd Processors/wfs_input_buffer_processor
-mkdir build
-cd build
+mkdir build && cd build
 
-# Configure
-cmake .. -G "Visual Studio 17 2022" -A x64
+# Configure (NVIDIA)
+cmake .. -G "Visual Studio 17 2022" -A x64 -DWITH_CUDA=ON
 
 # Build
 cmake --build . --config RelWithDebInfo
 ```
 
-The built DLL will be in `build/bin/RelWithDebInfo/` or `build/bin/Release/` depending on your platform.
+### Option B: Integrate with SDK Build
 
-## Option B: Integrate with SDK Build
+Add this processor to the SDK's `CMakeLists.txt`:
 
-You can also add this processor to the SDK's build system by modifying the SDK's main `CMakeLists.txt`:
-
-1. Edit `ThirdParty/GPUAudioSDK/CMakeLists.txt`
-2. Add to `PROCESSOR_LIST`:
-   ```cmake
-   set(PROCESSOR_LIST
-       "gain_processor"
-       "iir_processor"
-       "fir_processor"
-       "NeuralAmpModeler/nam_processor"
-       "../../Processors/wfs_input_buffer_processor"  # Add this line
-   )
-   ```
-3. Build the SDK as normal - your processor will be included
-
-**Note**: This modifies the SDK submodule. Consider if you want to keep this change or rebuild standalone.
-
-## Prerequisites
-
-- GPU Audio SDK must be built first (provides dependencies)
-- CMake 3.24.0 or later
-- CUDA Toolkit (for NVIDIA GPUs) or ROCm (for AMD GPUs)
-- Visual Studio 2022 (Windows) or appropriate build tools on other platforms
-
-## Output Location
-
-After building, set `GPUAUDIO_PROCESSOR_PATH` environment variable to point to the directory containing the built DLL:
-
-```powershell
-# Windows
-$env:GPUAUDIO_PROCESSOR_PATH = "D:\Documents\WFS-DIY_JUCE\WFS-DIY\Processors\wfs_input_buffer_processor\build\bin\RelWithDebInfo"
+```cmake
+# In ThirdParty/GPUAudioSDK/CMakeLists.txt, add to PROCESSOR_LIST:
+set(PROCESSOR_LIST
+    "gain_processor"
+    "../../Processors/wfs_input_buffer_processor"
+)
 ```
 
-The processor DLL should be named `wfs_input_buffer_processor_nvidia.dll` (or similar for your platform).
+Then build the SDK as normal.
 
-## Implementation Status
+## Deployment
 
-**Note**: This processor currently has a skeleton structure. The actual implementation files (source files in `src/`) still need to be created. This includes:
+After building, the processor DLL (`wfs_input_buffer_processor_nvidia.dll`) must be
+discoverable by the GPU Audio engine. Set the `GPUAUDIO_PROCESSOR_PATH` environment
+variable to include the directory containing the built DLL:
 
-- `WfsInputModule.cpp/h`
-- `WfsInputProcessor.cpp/h`
-- `WfsInputModuleInfoProvider.cpp/h`
-- `WfsInputDeviceCodeProvider.cpp/h`
-- `WfsInputInputPort.cpp/h`
-- `WfsInputModuleLibrary.cpp`
-- CUDA device code in `src/cuda/WfsInputProcessor.cu/cuh`
+```powershell
+# Windows (PowerShell)
+$env:GPUAUDIO_PROCESSOR_PATH = "path\to\build\bin\RelWithDebInfo"
 
-See the GPU Audio SDK documentation and the `gain_processor` example for implementation patterns.
+# Or add to system environment variables for persistence
+```
 
+## Enabling GPU Audio in WFS-DIY
+
+1. Build this processor (see above)
+2. Set `GPUAUDIO_PROCESSOR_PATH` environment variable
+3. In the Projucer project:
+   - Set `GPU_AUDIO_ENABLED=1` in preprocessor definitions
+   - Change `compile="0"` to `compile="1"` for `GpuInputBufferAlgorithm.h/cpp` and `InputBufferAlgorithmGPU.h/cpp`
+4. Rebuild WFS-DIY
+5. Select "GPU Input Buffer" as the processing algorithm
+
+## Architecture
+
+```
+Host (CPU):                          GPU:
+MainComponent                        wfs_input_buffer processor
+  └─ GpuInputBufferAlgorithm         ├─ WfsInputProcessor (host-side)
+       ├─ GPU Audio Engine            │   ├─ SetData() ← RoutingMessage
+       ├─ ProcessExecutor<eSync>      │   └─ PrepareChunk() → ProcessorParameter
+       └─ RoutingMessage builder      └─ WfsInputProcessorDevice (CUDA kernel)
+                                           └─ process(): delay + gain per pair
+```
+
+- **One GPU block per input×output routing pair** (N×M total)
+- **atomicAdd** accumulates multiple inputs into each output channel
+- **Synchronous execution** within the audio callback (no latency added)
+- **SEH/try-catch** guards handle GPU driver faults gracefully
+
+## Module ID
+
+The processor registers as `wfs_input_buffer` and is loaded by `GpuInputBufferAlgorithm`
+at runtime via the GPU Audio module provider.

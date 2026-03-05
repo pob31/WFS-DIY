@@ -1,4 +1,5 @@
 #pragma once
+#if GPU_AUDIO_ENABLED
 
 #if defined(_WIN32) && !defined(NOMINMAX)
 #define NOMINMAX 1
@@ -145,3 +146,4 @@ private:
     std::atomic<bool> lastExecuteFailed {false};
     juce::SpinLock execLock;
 };
+#endif // GPU_AUDIO_ENABLED

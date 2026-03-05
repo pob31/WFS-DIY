@@ -210,6 +210,11 @@ endif()
 
 # List of private header files.
 set(common_private_headers
+    src/WfsInputDeviceCodeProvider.h
+    src/WfsInputInputPort.h
+    src/WfsInputModule.h
+    src/WfsInputModuleInfoProvider.h
+    src/WfsInputProcessor.h
     include/wfs_input_buffer_processor/WfsInputSpecification.h
 )
 
@@ -239,14 +244,14 @@ else()
 endif()
 
 # List of source files.
-# NOTE: These will be created in a future step - placeholders for now
+
 set(common_sources
-    # src/WfsInputDeviceCodeProvider.cpp
-    # src/WfsInputInputPort.cpp
-    # src/WfsInputModule.cpp
-    # src/WfsInputModuleInfoProvider.cpp
-    # src/WfsInputModuleLibrary.cpp
-    # src/WfsInputProcessor.cpp
+    src/WfsInputDeviceCodeProvider.cpp
+    src/WfsInputInputPort.cpp
+    src/WfsInputModule.cpp
+    src/WfsInputModuleInfoProvider.cpp
+    src/WfsInputModuleLibrary.cpp
+    src/WfsInputProcessor.cpp
 )
 
 if(APPLE)
@@ -254,7 +259,7 @@ if(APPLE)
         ${common_sources}
     )
     set(device_metal_sources
-        # src/cuda/WfsInputProcessor.cu
+        src/cuda/WfsInputProcessor.cu
     )
 else()
     set(nvidia_sources
@@ -264,10 +269,10 @@ else()
         ${common_sources}
     )
     set(device_nvidia_sources
-        # src/cuda/WfsInputProcessor.cu
+        src/cuda/WfsInputProcessor.cu
     )
     set(device_amd_sources
-        # src/cuda/WfsInputProcessor.cu
+        src/cuda/WfsInputProcessor.cu
     )
 endif()
 

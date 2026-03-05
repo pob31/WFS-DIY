@@ -1,3 +1,4 @@
+#if GPU_AUDIO_ENABLED
 #include "GpuInputBufferAlgorithm.h"
 
 #include <cwchar>
@@ -508,3 +509,4 @@ void GpuInputBufferAlgorithm::clearOutputs(const juce::AudioSourceChannelInfo& b
     for (int ch = 0; ch < channelsToClear; ++ch)
         bufferToFill.buffer->clear(ch, bufferToFill.startSample, bufferToFill.numSamples);
 }
+#endif // GPU_AUDIO_ENABLED
