@@ -166,8 +166,8 @@ WfsInputProcessor::WfsInputProcessor(ProcessorSpecification& specification, Modu
     m_delays.resize(matrix_size, 0.0f);
     m_gains.resize(matrix_size, 0.0f);
 
-    // Set proc_data_size: struct + delays + gains
-    m_proc_data.proc_data_size = static_cast<uint32_t>(
+    // Set proc_param_size: struct + delays + gains
+    m_proc_data.proc_param_size = static_cast<uint32_t>(
         sizeof(wfs_input::ProcessorParameter) + matrix_size * sizeof(float) * 2);
 
     // Create output port
