@@ -6,6 +6,7 @@
 #include "ReverbFDNAlgorithm.h"
 #include "ReverbSDNAlgorithm.h"
 #include "ReverbIRAlgorithm.h"
+#include "ReverbDiagnostics.h"
 #include "ReverbPreProcessor.h"
 #include "ReverbPostProcessor.h"
 #include "AudioParallelFor.h"
@@ -14,6 +15,9 @@
 #include <mutex>
 #include <thread>
 #include <vector>
+#if REVERB_DIAGNOSTICS
+#include <chrono>
+#endif
 
 //==============================================================================
 /**
@@ -61,8 +65,8 @@ public:
         // Use 256-sample internal blocks (reverb is not latency-critical)
         internalBlockSize = juce::jmin (256, maxBlockSize);
 
-        // Create per-node ring buffers (4x block size for safety)
-        int ringSize = maxBlockSize * 4;
+        // Create per-node ring buffers (32x block size to absorb convolution FFT spikes)
+        int ringSize = maxBlockSize * 32;
 
         nodeInputBuffers.clear();
         nodeOutputBuffers.clear();
@@ -74,6 +78,16 @@ public:
 
             nodeOutputBuffers.push_back (std::make_unique<LockFreeRingBuffer>());
             nodeOutputBuffers.back()->setSize (ringSize);
+        }
+
+        // Pre-fill output ring buffers with silence to provide initial cushion
+        // and absorb processing spikes without underruns
+        {
+            std::vector<float> silence (static_cast<size_t> (internalBlockSize), 0.0f);
+            int prefillBlocks = 12;  // ~32ms at 48kHz with 128-sample blocks
+            for (auto& buf : nodeOutputBuffers)
+                for (int b = 0; b < prefillBlocks; ++b)
+                    buf->write (silence.data(), internalBlockSize);
         }
 
         // Working buffers for internal processing
@@ -178,7 +192,10 @@ public:
 
             // Zero-pad if not enough data (underrun)
             if (samplesRead < numSamples)
+            {
                 juce::FloatVectorOperations::clear (dest + samplesRead, numSamples - samplesRead);
+                dropoutCount.fetch_add (1, std::memory_order_relaxed);
+            }
         }
         else
         {
@@ -216,6 +233,10 @@ public:
         {
             algorithm->prepare (sampleRate, internalBlockSize, numReverbNodes);
             algorithm->setParallelFor (&parallelPool);
+#if REVERB_DIAGNOSTICS
+            if (auto* ir = dynamic_cast<IRAlgorithm*> (algorithm.get()))
+                ir->setDiagnostics (&diagnostics);
+#endif
         }
     }
 
@@ -309,6 +330,15 @@ public:
     /** Get expander gain reduction in dB (max across all nodes). Thread-safe. */
     float getExpGainReductionDb() const { return postProcessor.getGainReductionDb(); }
 
+#if REVERB_DIAGNOSTICS
+    /** Get the shared diagnostics struct for external monitoring. */
+    ReverbDiagnostics& getDiagnostics() { return diagnostics; }
+    const ReverbDiagnostics& getDiagnostics() const { return diagnostics; }
+#endif
+
+    /** Get and reset the dropout counter (for UI warning). Always enabled. */
+    uint64_t getAndResetDropoutCount() { return dropoutCount.exchange (0, std::memory_order_relaxed); }
+
     /** Check if the engine is actively processing. */
     bool isActive() const { return numReverbNodes > 0 && isThreadRunning(); }
 
@@ -370,6 +400,49 @@ private:
 
     void processBlock()
     {
+#if REVERB_DIAGNOSTICS
+        auto blockStart = std::chrono::steady_clock::now();
+
+        // Snapshot buffer levels before reading
+        {
+            int inMin = std::numeric_limits<int>::max(), inMax = 0;
+            int outMin = std::numeric_limits<int>::max(), outMax = 0;
+            for (int n = 0; n < numReverbNodes; ++n)
+            {
+                int inAvail = nodeInputBuffers[n]->getAvailableData();
+                int outAvail = nodeOutputBuffers[n]->getAvailableData();
+                inMin = juce::jmin (inMin, inAvail);
+                inMax = juce::jmax (inMax, inAvail);
+                outMin = juce::jmin (outMin, outAvail);
+                outMax = juce::jmax (outMax, outAvail);
+            }
+            diagnostics.inputBufferMinLevel.store (inMin, std::memory_order_relaxed);
+            diagnostics.inputBufferMaxLevel.store (inMax, std::memory_order_relaxed);
+            diagnostics.outputBufferMinLevel.store (outMin, std::memory_order_relaxed);
+            diagnostics.outputBufferMaxLevel.store (outMax, std::memory_order_relaxed);
+        }
+
+        // Aggregate ring buffer overflow/underrun counters
+        {
+            uint64_t totalOverflow = 0, totalOverflowEvts = 0;
+            uint64_t totalUnderrun = 0, totalUnderrunEvts = 0;
+            for (int n = 0; n < numReverbNodes; ++n)
+            {
+                totalOverflow += nodeInputBuffers[n]->overflowSamples.load (std::memory_order_relaxed);
+                totalOverflowEvts += nodeInputBuffers[n]->overflowEvents.load (std::memory_order_relaxed);
+                totalUnderrun += nodeOutputBuffers[n]->underrunSamples.load (std::memory_order_relaxed);
+                totalUnderrunEvts += nodeOutputBuffers[n]->underrunEvents.load (std::memory_order_relaxed);
+            }
+            diagnostics.inputOverflowSamples.store (totalOverflow, std::memory_order_relaxed);
+            diagnostics.inputOverflowEvents.store (totalOverflowEvts, std::memory_order_relaxed);
+            diagnostics.outputUnderrunSamples.store (totalUnderrun, std::memory_order_relaxed);
+            diagnostics.outputUnderrunEvents.store (totalUnderrunEvts, std::memory_order_relaxed);
+        }
+
+        diagnostics.fadeStateSnapshot.store (fadeState.load (std::memory_order_relaxed), std::memory_order_relaxed);
+        diagnostics.algorithmType.store (currentAlgorithmType, std::memory_order_relaxed);
+#endif
+
         int numSamples = internalBlockSize;
 
         // Read input from ring buffers into working buffer
@@ -455,6 +528,40 @@ private:
                                                        wetLevel, numSamples);
         }
 
+        // --- Signal validation (post-processing, pre-fade) ---
+#if REVERB_DIAGNOSTICS
+        {
+            uint64_t nans = 0, clips = 0;
+            float peak = 0.0f;
+            for (int n = 0; n < numReverbNodes; ++n)
+            {
+                const float* data = nodeOutputBlock.getReadPointer (n);
+                for (int s = 0; s < numSamples; ++s)
+                {
+                    float v = data[s];
+                    float absV = std::abs (v);
+                    if (std::isnan (v) || std::isinf (v))
+                        ++nans;
+                    if (absV > 10.0f)
+                        ++clips;
+                    if (absV > peak)
+                        peak = absV;
+                }
+            }
+            if (nans > 0)
+                diagnostics.nanInfCount.fetch_add (nans, std::memory_order_relaxed);
+            if (clips > 0)
+                diagnostics.clippingCount.fetch_add (clips, std::memory_order_relaxed);
+            float oldPeak = diagnostics.peakOutputLevel.load (std::memory_order_relaxed);
+            while (peak > oldPeak)
+            {
+                if (diagnostics.peakOutputLevel.compare_exchange_weak (
+                        oldPeak, peak, std::memory_order_relaxed))
+                    break;
+            }
+        }
+#endif
+
         // --- Algorithm switching fade ---
         int currentFade = fadeState.load (std::memory_order_acquire);
         if (currentFade != FadeNone)
@@ -467,6 +574,32 @@ private:
         {
             nodeOutputBuffers[n]->write (nodeOutputBlock.getReadPointer (n), numSamples);
         }
+
+#if REVERB_DIAGNOSTICS
+        // Timing measurement
+        auto blockEnd = std::chrono::steady_clock::now();
+        float elapsedUs = std::chrono::duration<float, std::micro> (blockEnd - blockStart).count();
+
+        diagnostics.lastProcessBlockUs.store (elapsedUs, std::memory_order_relaxed);
+
+        float oldMax = diagnostics.maxProcessBlockUs.load (std::memory_order_relaxed);
+        while (elapsedUs > oldMax)
+        {
+            if (diagnostics.maxProcessBlockUs.compare_exchange_weak (
+                    oldMax, elapsedUs, std::memory_order_relaxed))
+                break;
+        }
+
+        float oldAvg = diagnostics.avgProcessBlockUs.load (std::memory_order_relaxed);
+        diagnostics.avgProcessBlockUs.store (oldAvg + 0.01f * (elapsedUs - oldAvg), std::memory_order_relaxed);
+
+        float budget = static_cast<float> (internalBlockSize) / static_cast<float> (sampleRate) * 1e6f;
+        diagnostics.budgetUs.store (budget, std::memory_order_relaxed);
+        if (elapsedUs > budget)
+            diagnostics.overbudgetCount.fetch_add (1, std::memory_order_relaxed);
+
+        diagnostics.blocksProcessed.fetch_add (1, std::memory_order_relaxed);
+#endif
     }
 
     //==========================================================================
@@ -528,6 +661,10 @@ private:
                             algorithm->setParallelFor (&parallelPool);
                             algorithm->setParameters (currentParams);
                             algorithm->updateGeometry (currentGeometry);
+#if REVERB_DIAGNOSTICS
+                            if (auto* ir = dynamic_cast<IRAlgorithm*> (algorithm.get()))
+                                ir->setDiagnostics (&diagnostics);
+#endif
                         }
                     }
 
@@ -562,7 +699,12 @@ private:
                             algorithm->updateGeometry (currentGeometry);
                         }
                         if (auto* ir = dynamic_cast<IRAlgorithm*> (algorithm.get()))
+                        {
+#if REVERB_DIAGNOSTICS
+                            ir->setDiagnostics (&diagnostics);
+#endif
                             ir->loadIRFromBuffer (file, std::move (buf), fileSR);
+                        }
                     }
                 }
 
@@ -674,4 +816,11 @@ private:
     juce::File pendingIRFile;
     double pendingIRSampleRate = 0.0;
     std::atomic<bool> irChangeRequested { false };
+
+    // Always-on dropout counter (lightweight, for UI warning)
+    std::atomic<uint64_t> dropoutCount { 0 };
+
+#if REVERB_DIAGNOSTICS
+    ReverbDiagnostics diagnostics;
+#endif
 };

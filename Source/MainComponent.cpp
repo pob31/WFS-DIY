@@ -1516,6 +1516,13 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
         {
             reverbFeedBuffer.setSize(reverbs, blockSize);
             reverbReturnBuffer.setSize(reverbs, blockSize);
+
+            if (reverbSRRatio > 1)
+            {
+                int dsBlockSize = blockSize / reverbSRRatio;
+                reverbDownsampleBuf.setSize (reverbs, dsBlockSize);
+                reverbUpsampleBuf.setSize (reverbs, dsBlockSize);
+            }
         }
         else
         {
@@ -2201,16 +2208,44 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
     if (reverbEngine)
     {
         int numReverbs = parameters.getNumReverbChannels();
-        reverbEngine->prepareToPlay(sampleRate, samplesPerBlockExpected, numReverbs);
+
+        // Run reverb at 48kHz when system SR is an integer multiple
+        double reverbSR = sampleRate;
+        reverbSRRatio = 1;
+        if (sampleRate > 48000.0)
+        {
+            int ratio = static_cast<int> (sampleRate / 48000.0);
+            if (std::abs (sampleRate - 48000.0 * ratio) < 1.0)
+            {
+                reverbSRRatio = ratio;
+                reverbSR = 48000.0;
+            }
+        }
+
+        int reverbBlockSize = samplesPerBlockExpected / reverbSRRatio;
+        reverbEngine->prepareToPlay (reverbSR, reverbBlockSize, numReverbs);
 
         // Resize reverb feed/return audio buffers
         if (numReverbs > 0)
         {
-            reverbFeedBuffer.setSize(numReverbs, samplesPerBlockExpected);
-            reverbReturnBuffer.setSize(numReverbs, samplesPerBlockExpected);
+            reverbFeedBuffer.setSize (numReverbs, samplesPerBlockExpected);
+            reverbReturnBuffer.setSize (numReverbs, samplesPerBlockExpected);
+
+            if (reverbSRRatio > 1)
+            {
+                int dsBlockSize = samplesPerBlockExpected / reverbSRRatio;
+                reverbDownsampleBuf.setSize (numReverbs, dsBlockSize);
+                reverbUpsampleBuf.setSize (numReverbs, dsBlockSize);
+            }
         }
 
         reverbEngine->startProcessing();
+
+#if REVERB_DIAGNOSTICS
+        reverbDiagReporter = std::make_unique<ReverbDiagnosticReporter> (
+            reverbEngine->getDiagnostics());
+        reverbDiagReporter->startReporting (1000);
+#endif
     }
 
     // Load audio patch matrices
@@ -2251,6 +2286,8 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
 
             // Safety: clamp to available buffer channels to prevent out-of-bounds access
             int bufferChannels = reverbFeedBuffer.getNumChannels();
+            if (reverbSRRatio > 1)
+                bufferChannels = juce::jmin (bufferChannels, reverbDownsampleBuf.getNumChannels());
             if (numReverbs > bufferChannels)
                 numReverbs = bufferChannels;
 
@@ -2260,12 +2297,25 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
                 int startSample = bufferToFill.startSample;
                 bool isPreMuted = muteReverbPre.load (std::memory_order_relaxed);
 
+                // Number of samples to push to reverb (may be decimated)
+                int reverbPushSamples = numSamples / reverbSRRatio;
+
                 if (isPreMuted)
                 {
                     // Push silence — existing reverb tail decays naturally
                     reverbFeedBuffer.clear();
                     for (int revIdx = 0; revIdx < numReverbs; ++revIdx)
-                        reverbEngine->pushNodeInput (revIdx, reverbFeedBuffer.getReadPointer(revIdx), numSamples);
+                    {
+                        if (reverbSRRatio > 1)
+                        {
+                            reverbDownsampleBuf.clear (revIdx, 0, reverbPushSamples);
+                            reverbEngine->pushNodeInput (revIdx, reverbDownsampleBuf.getReadPointer (revIdx), reverbPushSamples);
+                        }
+                        else
+                        {
+                            reverbEngine->pushNodeInput (revIdx, reverbFeedBuffer.getReadPointer (revIdx), numSamples);
+                        }
+                    }
                 }
                 else
                 {
@@ -2291,8 +2341,24 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
                             }
                         }
 
-                        // Push feed to reverb engine
-                        reverbEngine->pushNodeInput(revIdx, feedData, numSamples);
+                        // Decimate and push to reverb engine
+                        if (reverbSRRatio > 1)
+                        {
+                            float* dsData = reverbDownsampleBuf.getWritePointer (revIdx);
+                            float invRatio = 1.0f / static_cast<float> (reverbSRRatio);
+                            for (int i = 0; i < reverbPushSamples; ++i)
+                            {
+                                float sum = 0.0f;
+                                for (int j = 0; j < reverbSRRatio; ++j)
+                                    sum += feedData[i * reverbSRRatio + j];
+                                dsData[i] = sum * invRatio;
+                            }
+                            reverbEngine->pushNodeInput (revIdx, dsData, reverbPushSamples);
+                        }
+                        else
+                        {
+                            reverbEngine->pushNodeInput (revIdx, feedData, numSamples);
+                        }
                     }
                 }
             }
@@ -2331,10 +2397,33 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
             const int calcOutputStride = calculationEngine->getNumOutputs();
             bool isPostMuted = muteReverbPost.load (std::memory_order_relaxed);
 
+            int reverbPullSamples = numSamples / reverbSRRatio;
+
             for (int revIdx = 0; revIdx < numReverbs; ++revIdx)
             {
                 float* returnData = reverbReturnBuffer.getWritePointer(revIdx);
-                reverbEngine->pullNodeOutput(revIdx, returnData, numSamples);
+
+                if (reverbSRRatio > 1)
+                {
+                    // Pull downsampled output and upsample via linear interpolation
+                    float* dsData = reverbUpsampleBuf.getWritePointer (revIdx);
+                    reverbEngine->pullNodeOutput (revIdx, dsData, reverbPullSamples);
+
+                    for (int i = 0; i < reverbPullSamples; ++i)
+                    {
+                        float v0 = dsData[i];
+                        float v1 = (i + 1 < reverbPullSamples) ? dsData[i + 1] : v0;
+                        for (int j = 0; j < reverbSRRatio; ++j)
+                        {
+                            float t = static_cast<float> (j) / static_cast<float> (reverbSRRatio);
+                            returnData[i * reverbSRRatio + j] = v0 + (v1 - v0) * t;
+                        }
+                    }
+                }
+                else
+                {
+                    reverbEngine->pullNodeOutput (revIdx, returnData, numSamples);
+                }
 
                 if (! isPostMuted)
                 {
@@ -2411,6 +2500,13 @@ void MainComponent::releaseResources()
     // }
 
     // Release reverb engine
+#if REVERB_DIAGNOSTICS
+    if (reverbDiagReporter)
+    {
+        reverbDiagReporter->stopReporting();
+        reverbDiagReporter.reset();
+    }
+#endif
     if (reverbEngine)
         reverbEngine->releaseResources();
 }
@@ -2995,6 +3091,16 @@ void MainComponent::timerCallback()
                 reverbTab->setGainReduction(
                     reverbEngine->getCompGainReductionDb(),
                     reverbEngine->getExpGainReductionDb());
+
+            // Check for reverb dropouts every ~1s (200 ticks at 5ms)
+            if ((timerTicksSinceLastRandom % 200) == 100)
+            {
+                uint64_t drops = reverbEngine->getAndResetDropoutCount();
+                if (drops > 0 && statusBar != nullptr)
+                    statusBar->showTemporaryMessage (
+                        "Reverb dropout detected - consider reducing reverb channels, IR length, or switching to SDN/FDN",
+                        5000);
+            }
         }
 
         // Check if any LFO is producing movement (used for map repaint and composite delta rate)

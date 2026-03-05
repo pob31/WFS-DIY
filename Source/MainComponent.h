@@ -196,6 +196,12 @@ private:
     juce::AudioBuffer<float> reverbFeedBuffer;    // numReverbs channels, accumulates per-node feed sums
     juce::AudioBuffer<float> reverbReturnBuffer;  // numReverbs channels, receives wet reverb output
     std::vector<float> reverbFeedTemp;            // Temporary per-sample feed accumulation
+    int reverbSRRatio = 1;                       // systemSR / reverbSR (integer, 1 = no conversion)
+    juce::AudioBuffer<float> reverbDownsampleBuf; // downsampled feed buffer
+    juce::AudioBuffer<float> reverbUpsampleBuf;   // downsampled return buffer
+#if REVERB_DIAGNOSTICS
+    std::unique_ptr<ReverbDiagnosticReporter> reverbDiagReporter;
+#endif
 
     // LFO processor for input position modulation
     std::unique_ptr<LFOProcessor> lfoProcessor;

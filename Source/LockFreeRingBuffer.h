@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include <atomic>
+#include "DSP/ReverbDiagnostics.h"
 
 //==============================================================================
 /**
@@ -31,6 +32,15 @@ public:
         int available = getAvailableSpace(writePos, readPos);
         int toWrite = juce::jmin(numSamples, available);
 
+#if REVERB_DIAGNOSTICS
+        int dropped = numSamples - toWrite;
+        if (dropped > 0)
+        {
+            overflowSamples.fetch_add (static_cast<uint64_t> (dropped), std::memory_order_relaxed);
+            overflowEvents.fetch_add (1, std::memory_order_relaxed);
+        }
+#endif
+
         auto* writePtr = buffer.getWritePointer(0);
 
         for (int i = 0; i < toWrite; ++i)
@@ -51,6 +61,15 @@ public:
 
         int available = getAvailableData(writePos, readPos);
         int toRead = juce::jmin(numSamples, available);
+
+#if REVERB_DIAGNOSTICS
+        int deficit = numSamples - toRead;
+        if (deficit > 0)
+        {
+            underrunSamples.fetch_add (static_cast<uint64_t> (deficit), std::memory_order_relaxed);
+            underrunEvents.fetch_add (1, std::memory_order_relaxed);
+        }
+#endif
 
         auto* readPtr = buffer.getReadPointer(0);
 
@@ -77,7 +96,20 @@ public:
         writePosition.store(0);
         readPosition.store(0);
         buffer.clear();
+#if REVERB_DIAGNOSTICS
+        overflowSamples.store (0);
+        overflowEvents.store (0);
+        underrunSamples.store (0);
+        underrunEvents.store (0);
+#endif
     }
+
+#if REVERB_DIAGNOSTICS
+    std::atomic<uint64_t> overflowSamples { 0 };
+    std::atomic<uint64_t> overflowEvents  { 0 };
+    std::atomic<uint64_t> underrunSamples { 0 };
+    std::atomic<uint64_t> underrunEvents  { 0 };
+#endif
 
 private:
     juce::AudioBuffer<float> buffer;

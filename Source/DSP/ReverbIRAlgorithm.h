@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ReverbAlgorithm.h"
+#include "ReverbDiagnostics.h"
 #include "AudioParallelFor.h"
 
 //==============================================================================
@@ -35,7 +36,7 @@ public:
         for (int i = 0; i < numNodes; ++i)
         {
             convolvers.push_back (std::make_unique<juce::dsp::Convolution>(
-                juce::dsp::Convolution::NonUniform { 256 }, convolutionQueue));
+                juce::dsp::Convolution::NonUniform { 2048 }, convolutionQueue));
             convolvers.back()->prepare (spec);
 
             processBuffers.push_back (juce::AudioBuffer<float> (1, maxBlockSize));
@@ -56,6 +57,33 @@ public:
                        juce::AudioBuffer<float>& nodeOutputs,
                        int numSamples) override
     {
+#if REVERB_DIAGNOSTICS
+        if (diagPtr && ! convolvers.empty())
+        {
+            int currentSize = convolvers[0]->getCurrentIRSize();
+            diagPtr->irCurrentSize.store (currentSize, std::memory_order_relaxed);
+
+            int expectedSize = 0;
+            if (cachedIRBuffer.getNumSamples() > 0)
+            {
+                int trimSamples = static_cast<int> (irTrimMs * 0.001f * cachedIRSampleRate);
+                int startSample = juce::jmin (trimSamples, cachedIRBuffer.getNumSamples());
+                int remaining = cachedIRBuffer.getNumSamples() - startSample;
+                int maxLenSamples = (irLengthSec > 0.0f)
+                    ? static_cast<int> (irLengthSec * cachedIRSampleRate)
+                    : remaining;
+                expectedSize = juce::jmin (remaining, maxLenSamples);
+
+                // Account for JUCE internal resampling (IR file SR → system SR)
+                if (cachedIRSampleRate > 0.0 && sr != cachedIRSampleRate)
+                    expectedSize = static_cast<int> (expectedSize * sr / cachedIRSampleRate);
+            }
+            diagPtr->irExpectedSize.store (expectedSize, std::memory_order_relaxed);
+            diagPtr->irFullyLoaded.store (currentSize > 1 && currentSize == expectedSize,
+                                          std::memory_order_relaxed);
+        }
+#endif
+
         auto processNode = [&] (int n)
         {
             auto& conv = *convolvers[static_cast<size_t> (n)];
@@ -129,6 +157,10 @@ public:
     /** Get the duration of the currently loaded IR file in seconds. */
     float getIRFileDuration() const { return irFileDurationSec; }
 
+#if REVERB_DIAGNOSTICS
+    void setDiagnostics (ReverbDiagnostics* d) { diagPtr = d; }
+#endif
+
 private:
     //==========================================================================
     // Apply trim and length to cached buffer, load into all convolvers
@@ -179,6 +211,10 @@ private:
     juce::File currentIRFile;
     float irTrimMs = 0.0f;
     float irLengthSec = 6.0f;
+
+#if REVERB_DIAGNOSTICS
+    ReverbDiagnostics* diagPtr = nullptr;
+#endif
 
     // Cached full IR buffer (read once, reused for trim/length changes)
     juce::AudioBuffer<float> cachedIRBuffer;
