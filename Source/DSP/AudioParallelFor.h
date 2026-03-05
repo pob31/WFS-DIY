@@ -110,20 +110,21 @@ public:
         // Calling thread participates
         executeItems();
 
-        // Wait for all items to complete
-        while (doneCount.load (std::memory_order_acquire) < count)
+        // Wait for all items to complete (CV-based, no spin)
         {
-            // Spin briefly, then yield
-            for (int spin = 0; spin < 64; ++spin)
-            {
-                if (doneCount.load (std::memory_order_acquire) >= count)
-                    break;
-            }
-            std::this_thread::yield();
+            std::unique_lock<std::mutex> lock (doneMutex);
+            doneCV.wait (lock, [this, count] {
+                return doneCount.load (std::memory_order_acquire) >= count;
+            });
         }
 
         // Reset dispatch flag so workers go back to sleep
-        dispatch.store (false, std::memory_order_release);
+        {
+            std::lock_guard<std::mutex> lock (dispatchMutex);
+            dispatch.store (false, std::memory_order_release);
+        }
+        dispatchCV.notify_all();
+
         currentFunc = nullptr;
     }
 
@@ -150,10 +151,12 @@ private:
             executeItems();
 
             // Wait until dispatch is cleared (main thread has collected results)
-            while (dispatch.load (std::memory_order_acquire)
-                   && running.load (std::memory_order_acquire))
             {
-                std::this_thread::yield();
+                std::unique_lock<std::mutex> lock (dispatchMutex);
+                dispatchCV.wait (lock, [this] {
+                    return ! dispatch.load (std::memory_order_acquire)
+                        || ! running.load (std::memory_order_acquire);
+                });
             }
         }
     }
@@ -171,7 +174,11 @@ private:
             if (currentFunc)
                 currentFunc (idx);
 
-            doneCount.fetch_add (1, std::memory_order_release);
+            if (doneCount.fetch_add (1, std::memory_order_release) + 1 >= total)
+            {
+                std::lock_guard<std::mutex> lock (doneMutex);
+                doneCV.notify_one();
+            }
         }
     }
 
@@ -181,10 +188,14 @@ private:
     int numActiveWorkers = 0;
     std::atomic<bool> running { false };
 
-    // Dispatch signalling
+    // Dispatch signalling (main → workers)
     std::mutex dispatchMutex;
     std::condition_variable dispatchCV;
     std::atomic<bool> dispatch { false };
+
+    // Completion signalling (workers → main)
+    std::mutex doneMutex;
+    std::condition_variable doneCV;
 
     // Work items
     std::function<void (int)> currentFunc;

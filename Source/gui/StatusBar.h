@@ -85,8 +85,7 @@ public:
     {
         currentHelpText = "";
         currentOscMethod = "";
-        temporaryMessage.clear();
-        stopTimer();
+        // Don't clear temporaryMessage — it has its own timer lifecycle
         updateDisplay();
     }
 
