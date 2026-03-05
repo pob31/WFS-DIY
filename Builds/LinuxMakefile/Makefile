@@ -44,7 +44,7 @@ ifeq ($(CONFIG),Debug)
   JUCE_TARGET_APP := WFS-DIY
 
   JUCE_CFLAGS += $(JUCE_CPPFLAGS) $(TARGET_ARCH) -g -ggdb -O0 $(CFLAGS)
-  JUCE_CXXFLAGS += $(JUCE_CFLAGS) -std=c++17 $(CXXFLAGS)
+  JUCE_CXXFLAGS += $(JUCE_CFLAGS) -std=c++20 $(CXXFLAGS)
   JUCE_LDFLAGS += $(TARGET_ARCH) -L$(JUCE_BINDIR) -L$(JUCE_LIBDIR) $(shell $(PKG_CONFIG) --libs alsa freetype2 fontconfig gl libcurl) -fvisibility=hidden -lrt -ldl -lpthread $(LDFLAGS)
 
   CLEANCMD = rm -rf $(JUCE_OUTDIR)/$(JUCE_TARGET_APP) $(JUCE_OBJDIR)
@@ -65,7 +65,7 @@ ifeq ($(CONFIG),Release)
   JUCE_TARGET_APP := WFS-DIY
 
   JUCE_CFLAGS += $(JUCE_CPPFLAGS) $(TARGET_ARCH) -O3 $(CFLAGS)
-  JUCE_CXXFLAGS += $(JUCE_CFLAGS) -std=c++17 $(CXXFLAGS)
+  JUCE_CXXFLAGS += $(JUCE_CFLAGS) -std=c++20 $(CXXFLAGS)
   JUCE_LDFLAGS += $(TARGET_ARCH) -L$(JUCE_BINDIR) -L$(JUCE_LIBDIR) $(shell $(PKG_CONFIG) --libs alsa freetype2 fontconfig gl libcurl) -fvisibility=hidden -lrt -ldl -lpthread $(LDFLAGS)
 
   CLEANCMD = rm -rf $(JUCE_OUTDIR)/$(JUCE_TARGET_APP) $(JUCE_OBJDIR)
@@ -94,9 +94,12 @@ OBJECTS_APP := \
   $(JUCE_OBJDIR)/TrackingPSNReceiver_a269fe83.o \
   $(JUCE_OBJDIR)/RTTrPDecoder_3f4ea27e.o \
   $(JUCE_OBJDIR)/TrackingRTTrPReceiver_b5859348.o \
+  $(JUCE_OBJDIR)/HidApiPlatform_aec62187.o \
   $(JUCE_OBJDIR)/Main_90ebc5c2.o \
   $(JUCE_OBJDIR)/MainComponent_a6ffb4a5.o \
   $(JUCE_OBJDIR)/WFSCalculationEngine_480062fe.o \
+  $(JUCE_OBJDIR)/GpuInputBufferAlgorithm_e2315c24.o \
+  $(JUCE_OBJDIR)/InputBufferAlgorithmGPU_daf482fa.o \
   $(JUCE_OBJDIR)/TestSignalGenerator_c4132b8c.o \
   $(JUCE_OBJDIR)/include_juce_audio_basics_8a4e984a.o \
   $(JUCE_OBJDIR)/include_juce_audio_devices_63111d02.o \
@@ -242,6 +245,11 @@ $(JUCE_OBJDIR)/TrackingRTTrPReceiver_b5859348.o: ../../Source/Network/TrackingRT
 	@echo "Compiling TrackingRTTrPReceiver.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
+$(JUCE_OBJDIR)/HidApiPlatform_aec62187.o: ../../ThirdParty/hidapi/HidApiPlatform.c
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling HidApiPlatform.c"
+	$(V_AT)$(CC) $(JUCE_CFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
 $(JUCE_OBJDIR)/Main_90ebc5c2.o: ../../Source/Main.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling Main.cpp"
@@ -255,6 +263,16 @@ $(JUCE_OBJDIR)/MainComponent_a6ffb4a5.o: ../../Source/MainComponent.cpp
 $(JUCE_OBJDIR)/WFSCalculationEngine_480062fe.o: ../../Source/DSP/WFSCalculationEngine.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling WFSCalculationEngine.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/GpuInputBufferAlgorithm_e2315c24.o: ../../Source/DSP/GpuInputBufferAlgorithm.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling GpuInputBufferAlgorithm.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/InputBufferAlgorithmGPU_daf482fa.o: ../../Source/DSP/InputBufferAlgorithmGPU.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling InputBufferAlgorithmGPU.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/TestSignalGenerator_c4132b8c.o: ../../Source/DSP/TestSignalGenerator.cpp

@@ -11,8 +11,27 @@
 
 #include <algorithm>
 #include <cstring>
+#include <cstdio>
+#if defined(_WIN32)
+#include <windows.h>
+#endif
 
 using namespace GPUA::processor::v2;
+
+namespace {
+void debugLog(const char* fmt, ...) {
+    char buf[512];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(buf, sizeof(buf), fmt, args);
+    va_end(args);
+#if defined(_WIN32)
+    OutputDebugStringA(buf);
+#else
+    fprintf(stderr, "%s", buf);
+#endif
+}
+} // namespace
 
 #if defined(GPU_AUDIO_MAC)
 static constexpr uint32_t g_max_threads_per_block {256u};
@@ -110,6 +129,16 @@ ErrorCode WfsInputProcessor::PrepareChunk(void* proc_data, void** task_data, uin
     params->max_delay_samples = m_max_delay_samples;
     params->delay_buffer_offset = 0; // Reserved for Phase 2 circular delay buffer
 
+    // Diagnostic: log PrepareChunk values
+    static int prepChunkLog = 0;
+    if (prepChunkLog < 10) {
+        debugLog("WFS PrepareChunk: in=%u out=%u cap=%u len=%u maxDelay=%u chCount=%u\n",
+                 params->num_inputs, params->num_outputs,
+                 params->buffer_capacity, params->buffer_length,
+                 params->max_delay_samples, m_input_port->m_channel_count);
+        ++prepChunkLog;
+    }
+
     // Copy routing data after the parameter struct
     const uint32_t matrix_size = m_num_inputs * m_num_outputs;
     float* dest = reinterpret_cast<float*>(params + 1);
@@ -177,7 +206,7 @@ WfsInputProcessor::WfsInputProcessor(ProcessorSpecification& specification, Modu
     m_output_port = m_port_factory.CreateDataPort(0u, output_port_info);
 
     // Create input port
-    m_input_port = std::make_unique<WfsInputInputPort>(m_output_port.get());
+    m_input_port = std::make_unique<WfsInputInputPort>(m_output_port.get(), m_num_outputs);
 
     // GPU task configuration
     m_gpu_task.entry_idx = 0u;

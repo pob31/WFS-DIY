@@ -66,6 +66,7 @@ bool GpuInputBufferAlgorithm::prepare(int numInputs,
 {
     const juce::SpinLock::ScopedLockType lock(execLock);
     ready.store(false, std::memory_order_release);
+    lastError.clear();
     processingEnabledFlag = processingEnabled;
     currentSampleRate = sampleRate;
 
@@ -140,8 +141,12 @@ void GpuInputBufferAlgorithm::processBlock(const juce::AudioSourceChannelInfo& b
                                            int numInputChannels,
                                            int numOutputChannels)
 {
+    static int diagCounter = 0;
+    const bool diagLog = (diagCounter < 30);
+
     if (!ready.load(std::memory_order_acquire))
     {
+        if (diagLog) { DBG("GPU diag: not ready"); ++diagCounter; }
         bufferToFill.clearActiveBufferRegion();
         return;
     }
@@ -149,6 +154,7 @@ void GpuInputBufferAlgorithm::processBlock(const juce::AudioSourceChannelInfo& b
     juce::SpinLock::ScopedTryLockType lock(execLock);
     if (! lock.isLocked())
     {
+        if (diagLog) { DBG("GPU diag: lock failed"); ++diagCounter; }
         bufferToFill.clearActiveBufferRegion();
         return;
     }
@@ -158,18 +164,26 @@ void GpuInputBufferAlgorithm::processBlock(const juce::AudioSourceChannelInfo& b
         inputChannelCount <= 0 || outputChannelCount <= 0 ||
         bufferToFill.numSamples <= 0)
     {
+        if (diagLog) { DBG("GPU diag: null/zero guard (buf=" + juce::String((int)(buffer != nullptr))
+            + " exec=" + juce::String((int)(executorGuard.executor != nullptr))
+            + " in=" + juce::String(inputChannelCount)
+            + " out=" + juce::String(outputChannelCount)
+            + " samples=" + juce::String(bufferToFill.numSamples) + ")"); ++diagCounter; }
         bufferToFill.clearActiveBufferRegion();
         return;
     }
 
     if (!processingEnabledFlag)
     {
+        if (diagLog) { DBG("GPU diag: processingEnabledFlag=false"); ++diagCounter; }
         bufferToFill.clearActiveBufferRegion();
         return;
     }
 
     if (!buildRoutingMessage())
     {
+        if (diagLog) { DBG("GPU diag: buildRoutingMessage failed (matrixSize=" + juce::String((int)routingMatrixSize)
+            + " delays=" + juce::String((int)(delayTimes != nullptr)) + " levels=" + juce::String((int)(levels != nullptr)) + ")"); ++diagCounter; }
         bufferToFill.clearActiveBufferRegion();
         return;
     }
@@ -208,7 +222,9 @@ void GpuInputBufferAlgorithm::processBlock(const juce::AudioSourceChannelInfo& b
             }
         }
 
-        for (int ch = 0; ch < outputChannelCount; ++ch)
+        // Fill outputPtrs for all channels the GPU port may report
+        // (defensively covers max of input/output to prevent out-of-bounds in SDK callback)
+        for (int ch = 0; ch < scratchChannels; ++ch)
         {
             if (ch < availableOutputs)
             {
@@ -216,7 +232,33 @@ void GpuInputBufferAlgorithm::processBlock(const juce::AudioSourceChannelInfo& b
             }
             else
             {
-                outputPtrs[static_cast<size_t>(ch)] = scratchBuffer.getWritePointer(ch);
+                outputPtrs[static_cast<size_t>(ch)] = scratchBuffer.getWritePointer(ch % scratchBuffer.getNumChannels());
+            }
+        }
+
+        // Measure input BEFORE execute (SyncOutputCallback will overwrite the buffer)
+        float preMaxIn = 0.0f;
+        float rawMaxAny = 0.0f;
+        int rawMaxCh = -1;
+        if (diagLog)
+        {
+            for (int ch = 0; ch < juce::jmin(availableInputs, 2); ++ch)
+                for (uint32_t s = 0; s < juce::jmin(launchSamples, 64u); ++s)
+                    preMaxIn = juce::jmax(preMaxIn, std::abs(inputPtrs[ch][s]));
+
+            // Scan ALL buffer channels for any audio (find where audio actually lives)
+            for (int ch = 0; ch < buffer->getNumChannels(); ++ch)
+            {
+                const float* data = buffer->getReadPointer(ch, startSample);
+                for (uint32_t s = 0; s < juce::jmin(launchSamples, 16u); ++s)
+                {
+                    float v = std::abs(data[s]);
+                    if (v > rawMaxAny)
+                    {
+                        rawMaxAny = v;
+                        rawMaxCh = ch;
+                    }
+                }
             }
         }
 
@@ -237,6 +279,44 @@ void GpuInputBufferAlgorithm::processBlock(const juce::AudioSourceChannelInfo& b
         }
         lastGpuExecMs.store((float)(gpuEndMs - gpuStartMs), std::memory_order_release);
         lastGpuLaunchSamples.store((int)launchSamples, std::memory_order_release);
+
+        if (diagLog)
+        {
+            // Check gain and delay values in routing message
+            float maxGain = 0.0f;
+            float maxDelay = 0.0f;
+            float minDelay = 0.0f;
+            if (!routingMessage.empty())
+            {
+                auto* hdr = reinterpret_cast<const WfsInputConfig::RoutingMessage*>(routingMessage.data());
+                const float* payload = reinterpret_cast<const float*>(hdr + 1);
+                const uint32_t mSize = hdr->numInputs * hdr->numOutputs;
+                for (uint32_t g = 0; g < mSize; ++g)
+                    maxGain = juce::jmax(maxGain, std::abs(payload[mSize + g])); // gains after delays
+                for (uint32_t d = 0; d < mSize; ++d)
+                {
+                    maxDelay = juce::jmax(maxDelay, payload[d]);
+                    if (d == 0) minDelay = payload[d];
+                    else minDelay = juce::jmin(minDelay, payload[d]);
+                }
+            }
+
+            // Check output max amplitude (post-execute, buffer may be overwritten by callback)
+            float maxOut = 0.0f;
+            for (int ch = 0; ch < juce::jmin(availableOutputs, 2); ++ch)
+                for (uint32_t s = 0; s < juce::jmin(launchSamples, 64u); ++s)
+                    maxOut = juce::jmax(maxOut, std::abs(outputPtrs[ch][s]));
+
+            DBG("GPU diag: exec OK, launch=" + juce::String(launchSamples)
+                + " maxGain=" + juce::String(maxGain, 6)
+                + " preMaxIn=" + juce::String(preMaxIn, 6)
+                + " maxOut=" + juce::String(maxOut, 6)
+                + " delay=" + juce::String(minDelay, 1) + "-" + juce::String(maxDelay, 1)
+                + " rawMaxAny=" + juce::String(rawMaxAny, 6)
+                + " availIn=" + juce::String(availableInputs)
+                + " availOut=" + juce::String(availableOutputs));
+            ++diagCounter;
+        }
 
         remainingSamples -= launchSamples;
         startSample += static_cast<int>(launchSamples);
@@ -321,7 +401,8 @@ bool GpuInputBufferAlgorithm::initialiseLauncher()
     auto* gpuAudio = GpuAudioManager::GetGpuAudio();
     if (gpuAudio == nullptr)
     {
-        DBG("GPU Audio: No GPU audio engine available. Check GPUAUDIO_PATH and GPU drivers.");
+        lastError = "No GPU Audio engine available. Check GPU Audio Platform installation and GPU drivers.";
+        DBG("GPU Audio: " + lastError);
         return false;
     }
 
@@ -334,7 +415,8 @@ bool GpuInputBufferAlgorithm::initialiseLauncher()
 
     if (errInfo != GPUA::engine::v2::ErrorCode::eSuccess || deviceInfo == nullptr)
     {
-        DBG("GPU Audio: Failed to query device info for launcher.");
+        lastError = "Failed to query GPU device info for launcher.";
+        DBG("GPU Audio: " + lastError);
         deviceName.clear();
         return false;
     }
@@ -346,7 +428,8 @@ bool GpuInputBufferAlgorithm::initialiseLauncher()
     const auto errCreate = gpuAudio->CreateLauncher(launcherSpec, launcher);
     if (errCreate != GPUA::engine::v2::ErrorCode::eSuccess || launcher == nullptr)
     {
-        DBG("GPU Audio: Failed to create launcher.");
+        lastError = "Failed to create GPU Audio launcher.";
+        DBG("GPU Audio: " + lastError);
         launcher = nullptr;
         deviceName.clear();
         return false;
@@ -365,7 +448,8 @@ bool GpuInputBufferAlgorithm::createGraph()
 
     if (launcher->CreateProcessingGraph(graph) != GPUA::engine::v2::ErrorCode::eSuccess || graph == nullptr)
     {
-        DBG("GPU Audio: Failed to create processing graph.");
+        lastError = "Failed to create GPU Audio processing graph.";
+        DBG("GPU Audio: " + lastError);
         graph = nullptr;
         return false;
     }
@@ -396,13 +480,24 @@ bool GpuInputBufferAlgorithm::loadWfsModule()
 
     if (!found)
     {
-        DBG("GPU Audio: WFS input processor module not found. Ensure GPUAUDIO_PROCESSOR_PATH points to the built processors.");
+        juce::String moduleList;
+        for (uint32_t i = 0; i < moduleCount; ++i)
+        {
+            GPUA::engine::v2::ModuleInfo mi {};
+            if (moduleProvider.GetModuleInfo(i, mi) == GPUA::engine::v2::ErrorCode::eSuccess && mi.id != nullptr)
+                moduleList += "\n  - " + juce::String(mi.id);
+        }
+        lastError = "WFS module 'wfs_input' not found (" + juce::String(moduleCount)
+                    + " modules available):" + moduleList
+                    + "\nCheck GPUAUDIO_PROCESSOR_PATH env var.";
+        DBG("GPU Audio: " + lastError);
         return false;
     }
 
     if (moduleProvider.GetModule(info, processorModule) != GPUA::engine::v2::ErrorCode::eSuccess || processorModule == nullptr)
     {
-        DBG("GPU Audio: Failed to load WFS input module.");
+        lastError = "Failed to load WFS input module.";
+        DBG("GPU Audio: " + lastError);
         processorModule = nullptr;
         return false;
     }
@@ -421,7 +516,8 @@ bool GpuInputBufferAlgorithm::armProcessor()
     if (processorModule->CreateProcessor(graph, &wfsSpec, sizeof(wfsSpec), executorGuard.processor) != GPUA::engine::v2::ErrorCode::eSuccess ||
         executorGuard.processor == nullptr)
     {
-        DBG("GPU Audio: Failed to create WFS input processor instance.");
+        lastError = "Failed to create WFS input processor instance.";
+        DBG("GPU Audio: " + lastError);
         executorGuard.processor = nullptr;
         return false;
     }
@@ -439,7 +535,8 @@ bool GpuInputBufferAlgorithm::armProcessor()
     }
     catch (const std::exception& e)
     {
-        DBG("GPU Audio: Executor creation failed: " + juce::String(e.what()));
+        lastError = "Executor creation failed: " + juce::String(e.what());
+        DBG("GPU Audio: " + lastError);
         processorModule->DeleteProcessor(executorGuard.processor);
         executorGuard.processor = nullptr;
         executorGuard.processorList.clear();
@@ -487,6 +584,16 @@ bool GpuInputBufferAlgorithm::buildRoutingMessage()
 
     for (size_t i = 0; i < routingMatrixSize; ++i)
         payload[i] = delayTimes[i] * sampleScale; // convert ms to samples
+
+    // Subtract minimum delay so all delays are relative (keeps them within buffer size)
+    float minDelay = std::numeric_limits<float>::max();
+    for (size_t i = 0; i < routingMatrixSize; ++i)
+        minDelay = std::min(minDelay, payload[i]);
+    if (minDelay > 0.0f)
+    {
+        for (size_t i = 0; i < routingMatrixSize; ++i)
+            payload[i] -= minDelay;
+    }
 
     std::memcpy(payload + routingMatrixSize, levels, matrixBytes);
     return true;

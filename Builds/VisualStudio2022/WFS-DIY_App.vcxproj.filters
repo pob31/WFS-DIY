@@ -20,6 +20,15 @@
     <Filter Include="WFS-DIY\Source\Network">
       <UniqueIdentifier>{F0025758-791F-87C4-6ABD-F1E1A184504B}</UniqueIdentifier>
     </Filter>
+    <Filter Include="WFS-DIY\Source\StreamDeck\pages">
+      <UniqueIdentifier>{BD3A1510-5303-03E6-3E76-D75E71131B20}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="WFS-DIY\Source\StreamDeck">
+      <UniqueIdentifier>{26B04B0E-D357-99B8-CF05-80E63FD0585C}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="WFS-DIY\Source\hidapi">
+      <UniqueIdentifier>{32D100D4-D9F1-9555-30BF-5F6C12E44D29}</UniqueIdentifier>
+    </Filter>
     <Filter Include="WFS-DIY\Source\DSP">
       <UniqueIdentifier>{17A0B288-77FA-A44E-2FD6-CD9A8B53854E}</UniqueIdentifier>
     </Filter>
@@ -807,6 +816,9 @@
     </ClCompile>
     <ClCompile Include="..\..\Source\Network\TrackingRTTrPReceiver.cpp">
       <Filter>WFS-DIY\Source\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\hidapi\HidApiPlatform.c">
+      <Filter>WFS-DIY\Source\hidapi</Filter>
     </ClCompile>
     <ClCompile Include="..\..\Source\Main.cpp">
       <Filter>WFS-DIY\Source</Filter>
@@ -3936,6 +3948,9 @@
     <ClInclude Include="..\..\Source\Parameters\WFSFileManager.h">
       <Filter>WFS-DIY\Source\Parameters</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\Parameters\ParameterDirtyTracker.h">
+      <Filter>WFS-DIY\Source\Parameters</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\gui\ConfigTabComponent.h">
       <Filter>WFS-DIY\Source\gui</Filter>
     </ClInclude>
@@ -4034,6 +4049,24 @@
     </ClInclude>
     <ClInclude Include="..\..\Source\Network\TrackingRTTrPReceiver.h">
       <Filter>WFS-DIY\Source\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\StreamDeck\StreamDeckDevice.h">
+      <Filter>WFS-DIY\Source\StreamDeck</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\StreamDeck\StreamDeckPage.h">
+      <Filter>WFS-DIY\Source\StreamDeck</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\StreamDeck\StreamDeckRenderer.h">
+      <Filter>WFS-DIY\Source\StreamDeck</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\StreamDeck\StreamDeckManager.h">
+      <Filter>WFS-DIY\Source\StreamDeck</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\StreamDeck\pages\InputsTabPages.h">
+      <Filter>WFS-DIY\Source\StreamDeck\pages</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\hidapi\hidapi\hidapi.h">
+      <Filter>WFS-DIY\Source\hidapi</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\MainComponent.h">
       <Filter>WFS-DIY\Source</Filter>

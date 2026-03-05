@@ -1,8 +1,12 @@
 #pragma once
 #if GPU_AUDIO_ENABLED
 
-#if defined(_WIN32) && !defined(NOMINMAX)
-#define NOMINMAX 1
+#if defined(_WIN32)
+  #if !defined(NOMINMAX)
+    #define NOMINMAX 1
+  #endif
+  #include <winsock2.h>
+  #include <windows.h>
 #endif
 
 #include <algorithm>
@@ -80,6 +84,7 @@ public:
 
     bool isReady() const noexcept { return executorGuard.executor != nullptr; }
     juce::String getDeviceName() const noexcept { return deviceName; }
+    juce::String getLastError() const noexcept { return lastError; }
     float getLastGpuExecMs() const noexcept { return lastGpuExecMs.load(); }
     int getLastGpuLaunchSamples() const noexcept { return lastGpuLaunchSamples.load(); }
     bool getLastExecuteFailed() const noexcept { return lastExecuteFailed.load(); }
@@ -131,6 +136,7 @@ private:
     double currentSampleRate {0.0};
     bool processingEnabledFlag {false};
     juce::String deviceName;
+    juce::String lastError;
     std::atomic<bool> ready {false};
 
     const float* delayTimes {nullptr};

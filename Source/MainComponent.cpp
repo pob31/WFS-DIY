@@ -136,70 +136,6 @@ MainComponent::MainComponent()
         currentAlgorithm = ProcessingAlgorithm::GpuInputBuffer;
 #endif
 
-    /* Algorithm change handler - no longer needed as UI is in SystemConfigTab
-    auto algorithmChangeHandler = [this]() {
-        int selectedId = (int)parameters.getConfigParam("ProcessingAlgorithm");
-        ProcessingAlgorithm newAlgorithm = currentAlgorithm;
-        if (selectedId == 1)
-            newAlgorithm = ProcessingAlgorithm::InputBuffer;
-        else if (selectedId == 2)
-            newAlgorithm = ProcessingAlgorithm::OutputBuffer;
-#if GPU_AUDIO_ENABLED
-        else if (selectedId == 3)
-            newAlgorithm = ProcessingAlgorithm::GpuInputBuffer;
-#endif
-
-        // Only act if algorithm actually changed
-        if (newAlgorithm != currentAlgorithm)
-        {
-            // If audio engine is running, clean up old processors
-            if (audioEngineStarted)
-            {
-                // Remember if processing was enabled
-                bool wasEnabled = processingEnabled;
-                processingEnabled = false;
-
-                // Stop and clear old processors based on CURRENT algorithm
-                if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
-                {
-                    inputAlgorithm.releaseResources();
-                    inputAlgorithm.clear();
-                }
-                else if (currentAlgorithm == ProcessingAlgorithm::OutputBuffer)
-                {
-                    outputAlgorithm.releaseResources();
-                    outputAlgorithm.clear();
-                }
-#if GPU_AUDIO_ENABLED
-                else  // GpuInputBuffer
-                {
-                    gpuInputAlgorithm.releaseResources();
-                    gpuInputAlgorithm.clear();
-                }
-#endif
-
-                // Mark engine as not started (processors cleared)
-                audioEngineStarted = false;
-
-                // Update to new algorithm
-                currentAlgorithm = newAlgorithm;
-
-                // Restart with new algorithm if processing was enabled
-                if (wasEnabled)
-                {
-                    startAudioEngine();
-                    processingEnabled = true;
-                    processingToggle.setToggleState(true, juce::dontSendNotification);
-                }
-            }
-            else
-            {
-                // Engine not running, just update the algorithm
-                currentAlgorithm = newAlgorithm;
-            }
-        }
-    }; // End of commented algorithm change handler
-    */
     // Set up tabbed interface
     addAndMakeVisible(tabbedComponent);
     tabbedComponent.setOutline(0);
@@ -246,6 +182,10 @@ MainComponent::MainComponent()
 
     systemConfigTab->setChannelCountCallback([this](int inputs, int outputs, int reverbs) {
         handleChannelCountChange(inputs, outputs, reverbs);
+    });
+
+    systemConfigTab->setAlgorithmCallback([this](int algorithmId) {
+        handleAlgorithmChange(algorithmId);
     });
 
     // Solo Reverbs: mute direct sound, keep reverb feeds
@@ -1483,6 +1423,12 @@ void MainComponent::handleProcessingChange(bool enabled)
         {
             outputAlgorithm.setProcessingEnabled(processingEnabled);
         }
+#if GPU_AUDIO_ENABLED
+        else
+        {
+            gpuInputAlgorithm.setProcessingEnabled(processingEnabled);
+        }
+#endif
 
         // Restart reverb engine thread (may have been stopped on disable)
         if (reverbEngine)
@@ -1499,10 +1445,48 @@ void MainComponent::handleProcessingChange(bool enabled)
         {
             outputAlgorithm.setProcessingEnabled(processingEnabled);
         }
+#if GPU_AUDIO_ENABLED
+        else
+        {
+            gpuInputAlgorithm.setProcessingEnabled(processingEnabled);
+        }
+#endif
 
         // Stop reverb engine thread to save CPU
         if (reverbEngine)
             reverbEngine->stopProcessing();
+    }
+}
+
+void MainComponent::handleAlgorithmChange(int algorithmId)
+{
+    ProcessingAlgorithm newAlgorithm = currentAlgorithm;
+    if (algorithmId == 1)
+        newAlgorithm = ProcessingAlgorithm::InputBuffer;
+    else if (algorithmId == 2)
+        newAlgorithm = ProcessingAlgorithm::OutputBuffer;
+#if GPU_AUDIO_ENABLED
+    else if (algorithmId == 3)
+        newAlgorithm = ProcessingAlgorithm::GpuInputBuffer;
+#endif
+
+    if (newAlgorithm == currentAlgorithm)
+        return;
+
+    bool wasEnabled = processingEnabled;
+
+    // Stop and tear down the current algorithm
+    stopProcessingForConfigurationChange();
+
+    // Switch to new algorithm
+    currentAlgorithm = newAlgorithm;
+
+    // Restart if processing was enabled
+    if (wasEnabled)
+    {
+        processingEnabled = true;
+        startAudioEngine();
+        parameters.setConfigParam("ProcessingEnabled", true);
     }
 }
 
@@ -1564,11 +1548,17 @@ void MainComponent::handleConfigReloaded()
     // Update local channel counts from newly loaded config
     int newInputChannels = parameters.getNumInputChannels();
     int newOutputChannels = parameters.getNumOutputChannels();
+    bool channelCountChanged = false;
+    bool wasEnabled = processingEnabled;
     if (newInputChannels != numInputChannels || newOutputChannels != numOutputChannels)
     {
+        // Must stop GPU engine before changing channel counts to avoid
+        // stale executor / output pointer mismatch crash
+        stopProcessingForConfigurationChange();
         numInputChannels = newInputChannels;
         numOutputChannels = newOutputChannels;
         resizeRoutingMatrices();
+        channelCountChanged = true;
 
         // Update level meter channel counts
         if (levelMeteringManager != nullptr)
@@ -1702,6 +1692,14 @@ void MainComponent::handleConfigReloaded()
         // Resend full state to connected Remote (Android) targets
         // Ensures input count, positions, and stage config are synchronized after reload
         oscManager->resendStateToRemoteTargets();
+    }
+
+    // Restart audio engine if it was stopped due to channel count change
+    if (channelCountChanged && wasEnabled)
+    {
+        processingEnabled = true;
+        startAudioEngine();
+        parameters.setConfigParam("ProcessingEnabled", true);
     }
 }
 
@@ -2165,6 +2163,15 @@ void MainComponent::startAudioEngine()
     audioEngineStarted = prepared;
     if (!audioEngineStarted && processingEnabled)
     {
+#if GPU_AUDIO_ENABLED
+        if (currentAlgorithm == ProcessingAlgorithm::GpuInputBuffer)
+        {
+            auto errorMsg = gpuInputAlgorithm.getLastError();
+            juce::Logger::writeToLog("GPU Audio init failed: " + errorMsg);
+            juce::AlertWindow::showMessageBoxAsync(juce::MessageBoxIconType::WarningIcon,
+                "GPU Audio", "GPU initialization failed:\n" + errorMsg);
+        }
+#endif
         processingEnabled = false;
         processingToggle.setToggleState(false, juce::dontSendNotification);
     }

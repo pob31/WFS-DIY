@@ -6,8 +6,8 @@
 
 #include <processor_api/PortDescription.h>
 
-WfsInputInputPort::WfsInputInputPort(GPUA::processor::v2::OutputPort* output_port) :
-    m_output_port {output_port} {
+WfsInputInputPort::WfsInputInputPort(GPUA::processor::v2::OutputPort* output_port, uint32_t num_outputs) :
+    m_output_port {output_port}, m_num_outputs {num_outputs} {
 }
 
 GPUA::processor::v2::PortId WfsInputInputPort::GetPortId() noexcept {
@@ -30,6 +30,7 @@ GPUA::processor::v2::ErrorCode WfsInputInputPort::Connect(const GPUA::processor:
 
     auto& output_port = m_output_port->GetPortInfo();
     output_port = input_port;
+    output_port.channel_count = m_num_outputs;
     output_port.grain = input_port.capacity_in_bytes;
     output_port.transfer_to_cpu = false;
     output_port.is_produced = true;
@@ -78,12 +79,13 @@ GPUA::processor::v2::ErrorCode WfsInputInputPort::InputPortUpdated(GPUA::process
 
     constexpr PortChangedFlags need_rebuild_flags = PortChangedFlags::eCapacityChanged | PortChangedFlags::eChannelCountChanged;
 
-    if ((flags % need_rebuild_flags)) {
+    if (static_cast<uint32_t>(flags & need_rebuild_flags) != 0) {
         m_changed = true;
     }
 
     auto& output_port = m_output_port->GetPortInfo();
     output_port = input_port;
+    output_port.channel_count = m_num_outputs;
     output_port.grain = input_port.capacity_in_bytes;
     output_port.transfer_to_cpu = false;
     output_port.is_produced = true;

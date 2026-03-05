@@ -205,6 +205,7 @@ public:
     using ConfigReloadedCallback = std::function<void()>;
     using StreamDeckCallback = std::function<void(bool enabled)>;
     using BinauralCallback = std::function<void(bool enabled)>;
+    using AlgorithmCallback = std::function<void(int algorithmId)>;
 
     SystemConfigTab(WfsParameters& params)
         : parameters(params)
@@ -249,11 +250,15 @@ public:
         addAndMakeVisible(algorithmSelector);
         algorithmSelector.addItem(LOC("systemConfig.algorithms.inputBuffer"), 1);
         algorithmSelector.addItem(LOC("systemConfig.algorithms.outputBuffer"), 2);
-        // algorithmSelector.addItem("GPU InputBuffer (GPU Audio)", 3);  // Commented out - GPU Audio SDK not configured
+#if GPU_AUDIO_ENABLED
+        algorithmSelector.addItem(LOC("systemConfig.algorithms.gpuInputBuffer"), 3);
+#endif
         algorithmSelector.setSelectedId(1, juce::dontSendNotification);
         algorithmSelector.onChange = [this]() {
             int selectedId = algorithmSelector.getSelectedId();
             parameters.setConfigParam("ProcessingAlgorithm", selectedId);
+            if (onAlgorithmChanged)
+                onAlgorithmChanged(selectedId);
             // TTS: Announce selection change
             TTSManager::getInstance().announceValueChange("Algorithm", algorithmSelector.getText());
         };
@@ -999,6 +1004,11 @@ public:
     void setBinauralCallback(BinauralCallback callback)
     {
         onBinauralChanged = callback;
+    }
+
+    void setAlgorithmCallback(AlgorithmCallback callback)
+    {
+        onAlgorithmChanged = callback;
     }
 
     /** Grab focus when this tab becomes visible to prevent auto-focus on first TextEditor */
@@ -2473,6 +2483,7 @@ private:
     ConfigReloadedCallback onConfigReloaded;
     StreamDeckCallback onStreamDeckEnabledChanged;
     BinauralCallback onBinauralChanged;
+    AlgorithmCallback onAlgorithmChanged;
 
     // Helper to notify MainComponent of any channel count change
     void notifyChannelCountChanged()

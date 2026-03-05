@@ -124,7 +124,8 @@
     },
     "algorithms": {
       "inputBuffer": "InputBuffer (읽기 시간 지연)",
-      "outputBuffer": "OutputBuffer (쓰기 시간 지연)"
+      "outputBuffer": "OutputBuffer (쓰기 시간 지연)",
+      "gpuInputBuffer": "GPU InputBuffer (GPU Audio)"
     },
     "stageShapes": {
       "box": "박스",

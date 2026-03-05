@@ -132,7 +132,8 @@
 
     "algorithms": {
       "inputBuffer": "InputBuffer (read-time delays)",
-      "outputBuffer": "OutputBuffer (write-time delays)"
+      "outputBuffer": "OutputBuffer (write-time delays)",
+      "gpuInputBuffer": "GPU InputBuffer (GPU Audio)"
     },
 
     "stageShapes": {

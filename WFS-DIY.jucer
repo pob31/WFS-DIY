@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="k6c2zA" name="WFS-DIY" projectType="guiapp" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1">
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1"
+              cppLanguageStandard="20">
   <MAINGROUP id="U6kz3k" name="WFS-DIY">
     <GROUP id="{559A80C2-DA9A-4473-80A2-AE173C8D9D42}" name="Source">
       <GROUP id="{PARAMGROUP}" name="Parameters">
@@ -172,11 +173,11 @@
               file="Source/DSP/OutputBufferAlgorithm.h"/>
         <FILE id="gpuAlgH" name="GpuInputBufferAlgorithm.h" compile="0" resource="0"
               file="Source/DSP/GpuInputBufferAlgorithm.h"/>
-        <FILE id="gpuAlg" name="GpuInputBufferAlgorithm.cpp" compile="0" resource="0"
+        <FILE id="gpuAlg" name="GpuInputBufferAlgorithm.cpp" compile="1" resource="0"
               file="Source/DSP/GpuInputBufferAlgorithm.cpp"/>
         <FILE id="gpuShimH" name="InputBufferAlgorithmGPU.h" compile="0" resource="0"
               file="Source/DSP/InputBufferAlgorithmGPU.h"/>
-        <FILE id="gpuShim" name="InputBufferAlgorithmGPU.cpp" compile="0" resource="0"
+        <FILE id="gpuShim" name="InputBufferAlgorithmGPU.cpp" compile="1" resource="0"
               file="Source/DSP/InputBufferAlgorithmGPU.cpp"/>
         <FILE id="testSigGenH" name="TestSignalGenerator.h" compile="0" resource="0"
               file="Source/DSP/TestSignalGenerator.h"/>
@@ -229,16 +230,17 @@
         <MODULEPATH id="juce_audio_processors_headless" path="ThirdParty/JUCE/modules"/>
       </MODULEPATHS>
     </LINUX_MAKE>
-    <VS2022 targetFolder="Builds/VisualStudio2022">
+    <VS2022 targetFolder="Builds/VisualStudio2022"
+            externalLibraries="gain_processor_nvidia.lib&#10;wfs_input_buffer_processor_nvidia.lib&#10;nvidia_resources_wfs_input_buffer_processor_wfs_input_buffer_processor_device_nvidia.lib&#10;ProcLaunchLib.lib&#10;gainlib.lib&#10;nvidia_resources_gain_processor_gain_processor_device_nvidia.lib&#10;setupapi.lib">
       <CONFIGURATIONS>
-        <CONFIGURATION isDebug="1" name="Debug" targetName="WFS-DIY" headerPath="ThirdParty\ASIOSDK\common;ThirdParty\GPUAudioSDK\gpuaudio\include;ThirdParty\GPUAudioSDK\gain_processor\gain_processor\include;ThirdParty\GPUAudioSDK\GainLib\build\_deps\json-src\single_include;ThirdParty\PSN-CPP;ThirdParty\hidapi;ThirdParty\hidapi\hidapi"
-                       libraryPath="ThirdParty\GPUAudioSDK\build\lib\RelWithDebInfo;ThirdParty\GPUAudioSDK\GainLib\build\gainlib\RelWithDebInfo;ThirdParty\GPUAudioSDK\simple_processor_launcher\build\ProcLaunchLib\RelWithDebInfo"
-                       externalLibraries="gain_processor_nvidia.lib;ProcLaunchLib.lib;gainlib.lib;nvidia_resources_gain_processor_gain_processor_device_nvidia.lib;setupapi.lib"
-                       extraCompilerFlags="/bigobj"/>
-        <CONFIGURATION isDebug="0" name="Release" targetName="WFS-DIY" headerPath="ThirdParty\ASIOSDK\common;ThirdParty\GPUAudioSDK\gpuaudio\include;ThirdParty\GPUAudioSDK\gain_processor\gain_processor\include;ThirdParty\GPUAudioSDK\GainLib\build\_deps\json-src\single_include;ThirdParty\PSN-CPP;ThirdParty\hidapi;ThirdParty\hidapi\hidapi"
-                       libraryPath="ThirdParty\GPUAudioSDK\build\lib\RelWithDebInfo;ThirdParty\GPUAudioSDK\GainLib\build\gainlib\RelWithDebInfo;ThirdParty\GPUAudioSDK\simple_processor_launcher\build\ProcLaunchLib\RelWithDebInfo"
-                       externalLibraries="gain_processor_nvidia.lib;ProcLaunchLib.lib;gainlib.lib;nvidia_resources_gain_processor_gain_processor_device_nvidia.lib;setupapi.lib"
-                       extraCompilerFlags="/bigobj"/>
+        <CONFIGURATION isDebug="1" name="Debug" targetName="WFS-DIY" headerPath="..\..\ThirdParty\ASIOSDK\common;..\..\ThirdParty\GPUAudioSDK\gpuaudio\include;..\..\ThirdParty\GPUAudioSDK\gain_processor\gain_processor\include;..\..\ThirdParty\GPUAudioSDK\GainLib\build\_deps\json-src\single_include;..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi;..\..\Processors\wfs_input_buffer_processor\wfs_input_buffer_processor\include"
+                       libraryPath="..\..\ThirdParty\GPUAudioSDK\build\lib\RelWithDebInfo;..\..\ThirdParty\GPUAudioSDK\GainLib\build\gainlib\RelWithDebInfo;..\..\ThirdParty\GPUAudioSDK\simple_processor_launcher\build\ProcLaunchLib\RelWithDebInfo"
+                       extraCompilerFlags="/bigobj"
+                       defines="GPU_AUDIO_ENABLED=1&#10;NOMINMAX=1"/>
+        <CONFIGURATION isDebug="0" name="Release" targetName="WFS-DIY" headerPath="..\..\ThirdParty\ASIOSDK\common;..\..\ThirdParty\GPUAudioSDK\gpuaudio\include;..\..\ThirdParty\GPUAudioSDK\gain_processor\gain_processor\include;..\..\ThirdParty\GPUAudioSDK\GainLib\build\_deps\json-src\single_include;..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi;..\..\Processors\wfs_input_buffer_processor\wfs_input_buffer_processor\include"
+                       libraryPath="..\..\ThirdParty\GPUAudioSDK\build\lib\RelWithDebInfo;..\..\ThirdParty\GPUAudioSDK\GainLib\build\gainlib\RelWithDebInfo;..\..\ThirdParty\GPUAudioSDK\simple_processor_launcher\build\ProcLaunchLib\RelWithDebInfo"
+                       extraCompilerFlags="/bigobj"
+                       defines="GPU_AUDIO_ENABLED=1&#10;NOMINMAX=1"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_audio_basics" path="ThirdParty/JUCE/modules"/>

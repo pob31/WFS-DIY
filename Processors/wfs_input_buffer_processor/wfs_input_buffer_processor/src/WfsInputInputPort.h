@@ -10,7 +10,7 @@
 
 class WfsInputInputPort : public GPUA::processor::v2::InputPort {
 public:
-    explicit WfsInputInputPort(GPUA::processor::v2::OutputPort* output_port);
+    explicit WfsInputInputPort(GPUA::processor::v2::OutputPort* output_port, uint32_t num_outputs);
     ~WfsInputInputPort() = default;
 
     WfsInputInputPort& operator=(WfsInputInputPort&&) = delete;
@@ -33,6 +33,7 @@ public:
 
 private:
     GPUA::processor::v2::OutputPort* m_output_port;
+    uint32_t m_num_outputs {0};
 };
 
 #endif // WFS_INPUT_WFS_INPUT_INPUT_PORT_H

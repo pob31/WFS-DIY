@@ -288,6 +288,11 @@ private:
     void handleProcessingChange(bool enabled);
     void handleChannelCountChange(int inputs, int outputs, int reverbs);
     void handleConfigReloaded();
+    void handleAlgorithmChange(int algorithmId);
+#if GPU_AUDIO_ENABLED
+    juce::String getGpuDeviceName() const { return gpuInputAlgorithm.getDeviceName(); }
+    bool isGpuReady() const { return gpuInputAlgorithm.isReady(); }
+#endif
 
     // Keyboard handling helpers
     enum class ChannelSelectionMode { None, Input, Output, Reverb };
