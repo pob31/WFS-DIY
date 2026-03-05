@@ -128,13 +128,13 @@ public:
 
     /**
      * Parse a REMOTE protocol input message from Android app.
-     * Handles /remoteInput/* addresses.
+     * Handles /remoteInput/... addresses.
      */
     static ParsedRemoteInput parseRemoteInputMessage(const juce::OSCMessage& message);
 
     /**
      * Parse an array adjustment message from remote.
-     * Handles /arrayAdjust/* addresses for bulk output parameter changes.
+     * Handles /arrayAdjust/... addresses for bulk output parameter changes.
      */
     static ParsedArrayAdjustMessage parseArrayAdjustMessage(const juce::OSCMessage& message);
 

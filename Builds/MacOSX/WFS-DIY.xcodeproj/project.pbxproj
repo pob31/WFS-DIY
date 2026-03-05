@@ -71,6 +71,7 @@
 		F7291D04FD22C7330C3E1864 /* include_juce_graphics_Harfbuzz.cpp */ = {isa = PBXBuildFile; fileRef = 1A10EA3687120F02EC073242; };
 		FDC229349202F898CBA4ACF9 /* TrackingRTTrPReceiver.cpp */ = {isa = PBXBuildFile; fileRef = CDBED1B9FA3F02E13A4435CE; };
 		FEB463E52DD144B58406DA04 /* CoreMIDI.framework */ = {isa = PBXBuildFile; fileRef = A9937509256CBFA14535037B; };
+		1CDF4223A010E7C15700FC09 /* HidApiPlatform.c */ = {isa = PBXBuildFile; fileRef = FCE79ABECEBC71579DD1A3EC; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -206,6 +207,7 @@
 		F5775FB8BB6E2B98B2D6B8DF /* include_juce_audio_devices.mm */ /* include_juce_audio_devices.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_devices.mm; path = ../../JuceLibraryCode/include_juce_audio_devices.mm; sourceTree = SOURCE_ROOT; };
 		F64B4CF71AC3C68B406743A1 /* PatchMatrixComponent.h */ /* PatchMatrixComponent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = PatchMatrixComponent.h; path = ../../Source/gui/PatchMatrixComponent.h; sourceTree = SOURCE_ROOT; };
 		FF19CF83E92F49AE429BA580 /* Security.framework */ /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
+		FCE79ABECEBC71579DD1A3EC /* HidApiPlatform.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = HidApiPlatform.c; path = ../../ThirdParty/hidapi/HidApiPlatform.c; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -618,6 +620,7 @@
 				AA0EE9B55A2E6FF945DED3B3,
 				2B4A8A2646517A3AD78C64FF,
 				E250B84E6CDC377F234A14E3,
+				1CDF4223A010E7C15700FC09,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -729,6 +732,8 @@
 				HEADER_SEARCH_PATHS = (
 					"$(SRCROOT)/../../JuceLibraryCode",
 					"$(SRCROOT)/../../ThirdParty/JUCE/modules",
+					"$(SRCROOT)/../../ThirdParty/hidapi",
+					"$(SRCROOT)/../../ThirdParty/hidapi/hidapi",
 					"$(inherited)",
 				);
 				INFOPLIST_FILE = Info-App.plist;
@@ -801,6 +806,8 @@
 				HEADER_SEARCH_PATHS = (
 					"$(SRCROOT)/../../JuceLibraryCode",
 					"$(SRCROOT)/../../ThirdParty/JUCE/modules",
+					"$(SRCROOT)/../../ThirdParty/hidapi",
+					"$(SRCROOT)/../../ThirdParty/hidapi/hidapi",
 					"$(inherited)",
 				);
 				INFOPLIST_FILE = Info-App.plist;

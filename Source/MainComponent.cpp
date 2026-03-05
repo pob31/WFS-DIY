@@ -19,16 +19,38 @@ MainComponent::MainComponent()
 
     // Try multiple locations for Resources folder:
     // 1. Next to executable (production deployment)
-    // 2. Project root (development from Visual Studio)
+    // 2. macOS bundle: Contents/Resources (standard bundle structure)
+    // 3. Project root (development from Visual Studio - 5 levels up from exe)
+    // 4. Project root (development from macOS - 6 levels up from Contents/MacOS/)
     juce::File resourceDir = exeDir.getChildFile("Resources");
 
     if (!resourceDir.getChildFile("lang/en.json").existsAsFile())
     {
-        // Try development path: go up from Builds/VisualStudio2022/x64/Debug/App to project root
+        // macOS bundle path: exe is at Contents/MacOS/, resources at Contents/Resources/
+        resourceDir = exeDir.getParentDirectory().getChildFile("Resources");
+    }
+
+    if (!resourceDir.getChildFile("lang/en.json").existsAsFile())
+    {
+        // Windows dev path: go up from Builds/VisualStudio2022/x64/Debug/App to project root
         auto projectRoot = exeDir.getParentDirectory()  // x64/Debug
                                  .getParentDirectory()  // x64
                                  .getParentDirectory()  // VisualStudio2022
                                  .getParentDirectory()  // Builds
+                                 .getParentDirectory(); // Project root
+        resourceDir = projectRoot.getChildFile("Resources");
+    }
+
+    if (!resourceDir.getChildFile("lang/en.json").existsAsFile())
+    {
+        // macOS dev path: exe is at Builds/MacOSX/build/Debug/WFS-DIY.app/Contents/MacOS/
+        // Go up 7 levels to reach project root
+        auto projectRoot = exeDir.getParentDirectory()  // Contents/
+                                 .getParentDirectory()  // WFS-DIY.app/
+                                 .getParentDirectory()  // Debug/
+                                 .getParentDirectory()  // build/
+                                 .getParentDirectory()  // MacOSX/
+                                 .getParentDirectory()  // Builds/
                                  .getParentDirectory(); // Project root
         resourceDir = projectRoot.getChildFile("Resources");
     }
@@ -194,6 +216,12 @@ MainComponent::MainComponent()
         }
     }; // End of commented algorithm change handler
     */
+    // Create and apply custom LookAndFeel before any UI components are constructed,
+    // so TextEditors (which cache their text color at construction time) pick up the
+    // correct WfsLookAndFeel colors rather than JUCE's default dark-text LookAndFeel_V4.
+    wfsLookAndFeel = std::make_unique<WfsLookAndFeel>();
+    juce::LookAndFeel::setDefaultLookAndFeel(wfsLookAndFeel.get());
+
     // Set up tabbed interface
     addAndMakeVisible(tabbedComponent);
     tabbedComponent.setOutline(0);
@@ -370,10 +398,6 @@ MainComponent::MainComponent()
         handleConfigReloaded();
     };
 
-    // Create and apply custom LookAndFeel for centralized widget theming
-    wfsLookAndFeel = std::make_unique<WfsLookAndFeel>();
-    juce::LookAndFeel::setDefaultLookAndFeel(wfsLookAndFeel.get());
-
     // Create global tooltip window for hover tooltips
     tooltipWindow = std::make_unique<juce::TooltipWindow>(this, 500);
 
@@ -427,6 +451,11 @@ MainComponent::MainComponent()
 
     // Subscribe to color scheme changes for component repaints
     ColorScheme::Manager::getInstance().addListener(this);
+
+    // Force initial color refresh: setTheme() was called before addListener(this), so
+    // colorSchemeChanged() was never triggered at startup. This ensures TextEditor cached
+    // colors match the active theme from the first frame.
+    colorSchemeChanged();
 
     // Set up navigation callback from Map tab to other tabs via long-press gesture
     // Parameters: (tabType, index) where tabType is: 0=Input, 1=Cluster, 2=Output, 3=Reverb

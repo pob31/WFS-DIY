@@ -605,7 +605,6 @@ inline StreamDeckPage createMovementsPage (WFSValueTreeState& state,
     StreamDeckPage page ("Inputs > Movements");
 
     const auto offGrey = juce::Colour (0xFF3A3A3A);
-    const auto onGreen = juce::Colour (0xFF5BBF68);
 
     //======================================================================
     // Section 0: LFO (with sub-mode switching via bottom buttons)

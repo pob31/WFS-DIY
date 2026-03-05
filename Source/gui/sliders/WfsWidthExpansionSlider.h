@@ -35,7 +35,6 @@ protected:
     {
         auto usable = getUsableBounds(bounds);
         auto track = getTrackBounds(usable);
-        auto thumbPos = getThumbPosition(usable);
 
         const auto alpha = isEnabled() ? 1.0f : disabledAlpha;
 

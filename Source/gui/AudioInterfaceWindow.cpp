@@ -483,7 +483,7 @@ void DeviceSettingsPanel::sampleRateChanged()
     {
         juce::AudioDeviceManager::AudioDeviceSetup setup;
         deviceManager.getAudioDeviceSetup(setup);
-        setup.sampleRate = rates[static_cast<size_t>(index)];
+        setup.sampleRate = rates[index];
 
         auto error = deviceManager.setAudioDeviceSetup(setup, true);
         if (!error.isEmpty())
@@ -513,7 +513,7 @@ void DeviceSettingsPanel::bufferSizeChanged()
     {
         juce::AudioDeviceManager::AudioDeviceSetup setup;
         deviceManager.getAudioDeviceSetup(setup);
-        setup.bufferSize = sizes[static_cast<size_t>(index)];
+        setup.bufferSize = sizes[index];
 
         auto error = deviceManager.setAudioDeviceSetup(setup, true);
         if (!error.isEmpty())

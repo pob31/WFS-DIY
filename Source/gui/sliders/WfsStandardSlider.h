@@ -29,7 +29,6 @@ protected:
         auto thumbPos = getThumbPosition(usable);
 
         const auto alpha = isEnabled() ? 1.0f : disabledAlpha;
-        const auto backgroundColour = trackBackgroundColour.withAlpha(alpha);
         const auto foregroundColour = trackForegroundColour.withAlpha(alpha);
 
         // Track background uses neutral color from theme (black/dark grey/light grey)
