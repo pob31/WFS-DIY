@@ -102,16 +102,16 @@ public:
         // Reference position display
         addAndMakeVisible(refPosLabel);
         refPosLabel.setText(LOC("clusters.labels.posPrefix"), juce::dontSendNotification);
-        refPosLabel.setColour(juce::Label::textColourId, juce::Colours::grey);
+        refPosLabel.setColour(juce::Label::textColourId, ColorScheme::get().textSecondary);
 
         addAndMakeVisible(refPosXLabel);
-        refPosXLabel.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+        refPosXLabel.setColour(juce::Label::textColourId, ColorScheme::get().textSecondary);
 
         addAndMakeVisible(refPosYLabel);
-        refPosYLabel.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+        refPosYLabel.setColour(juce::Label::textColourId, ColorScheme::get().textSecondary);
 
         addAndMakeVisible(refPosZLabel);
-        refPosZLabel.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+        refPosZLabel.setColour(juce::Label::textColourId, ColorScheme::get().textSecondary);
 
         // Status label (tracking info)
         addAndMakeVisible(statusLabel);

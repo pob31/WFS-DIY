@@ -731,7 +731,7 @@ private:
         addAndMakeVisible(admOscOffsetXEditor);
         addAndMakeVisible(admOscOffsetXUnitLabel);
         admOscOffsetXUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
-        admOscOffsetXUnitLabel.setColour(juce::Label::textColourId, juce::Colours::grey);
+        admOscOffsetXUnitLabel.setColour(juce::Label::textColourId, ColorScheme::get().textSecondary);
 
         // Offset Y
         addAndMakeVisible(admOscOffsetYLabel);
@@ -739,7 +739,7 @@ private:
         addAndMakeVisible(admOscOffsetYEditor);
         addAndMakeVisible(admOscOffsetYUnitLabel);
         admOscOffsetYUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
-        admOscOffsetYUnitLabel.setColour(juce::Label::textColourId, juce::Colours::grey);
+        admOscOffsetYUnitLabel.setColour(juce::Label::textColourId, ColorScheme::get().textSecondary);
 
         // Offset Z
         addAndMakeVisible(admOscOffsetZLabel);
@@ -747,7 +747,7 @@ private:
         addAndMakeVisible(admOscOffsetZEditor);
         addAndMakeVisible(admOscOffsetZUnitLabel);
         admOscOffsetZUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
-        admOscOffsetZUnitLabel.setColour(juce::Label::textColourId, juce::Colours::grey);
+        admOscOffsetZUnitLabel.setColour(juce::Label::textColourId, ColorScheme::get().textSecondary);
 
         // Scale X
         addAndMakeVisible(admOscScaleXLabel);
@@ -755,7 +755,7 @@ private:
         addAndMakeVisible(admOscScaleXEditor);
         addAndMakeVisible(admOscScaleXUnitLabel);
         admOscScaleXUnitLabel.setText("x", juce::dontSendNotification);
-        admOscScaleXUnitLabel.setColour(juce::Label::textColourId, juce::Colours::grey);
+        admOscScaleXUnitLabel.setColour(juce::Label::textColourId, ColorScheme::get().textSecondary);
 
         // Scale Y
         addAndMakeVisible(admOscScaleYLabel);
@@ -763,7 +763,7 @@ private:
         addAndMakeVisible(admOscScaleYEditor);
         addAndMakeVisible(admOscScaleYUnitLabel);
         admOscScaleYUnitLabel.setText("x", juce::dontSendNotification);
-        admOscScaleYUnitLabel.setColour(juce::Label::textColourId, juce::Colours::grey);
+        admOscScaleYUnitLabel.setColour(juce::Label::textColourId, ColorScheme::get().textSecondary);
 
         // Scale Z
         addAndMakeVisible(admOscScaleZLabel);
@@ -771,7 +771,7 @@ private:
         addAndMakeVisible(admOscScaleZEditor);
         addAndMakeVisible(admOscScaleZUnitLabel);
         admOscScaleZUnitLabel.setText("x", juce::dontSendNotification);
-        admOscScaleZUnitLabel.setColour(juce::Label::textColourId, juce::Colours::grey);
+        admOscScaleZUnitLabel.setColour(juce::Label::textColourId, ColorScheme::get().textSecondary);
 
         // Flip buttons
         addAndMakeVisible(admOscFlipXButton);
@@ -886,7 +886,7 @@ private:
         addAndMakeVisible(trackingOffsetXEditor);
         addAndMakeVisible(trackingOffsetXUnitLabel);
         trackingOffsetXUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
-        trackingOffsetXUnitLabel.setColour(juce::Label::textColourId, juce::Colours::grey);
+        trackingOffsetXUnitLabel.setColour(juce::Label::textColourId, ColorScheme::get().textSecondary);
 
         // Offset Y
         addAndMakeVisible(trackingOffsetYLabel);
@@ -894,7 +894,7 @@ private:
         addAndMakeVisible(trackingOffsetYEditor);
         addAndMakeVisible(trackingOffsetYUnitLabel);
         trackingOffsetYUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
-        trackingOffsetYUnitLabel.setColour(juce::Label::textColourId, juce::Colours::grey);
+        trackingOffsetYUnitLabel.setColour(juce::Label::textColourId, ColorScheme::get().textSecondary);
 
         // Offset Z
         addAndMakeVisible(trackingOffsetZLabel);
@@ -902,7 +902,7 @@ private:
         addAndMakeVisible(trackingOffsetZEditor);
         addAndMakeVisible(trackingOffsetZUnitLabel);
         trackingOffsetZUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
-        trackingOffsetZUnitLabel.setColour(juce::Label::textColourId, juce::Colours::grey);
+        trackingOffsetZUnitLabel.setColour(juce::Label::textColourId, ColorScheme::get().textSecondary);
 
         // Scale X
         addAndMakeVisible(trackingScaleXLabel);
@@ -910,7 +910,7 @@ private:
         addAndMakeVisible(trackingScaleXEditor);
         addAndMakeVisible(trackingScaleXUnitLabel);
         trackingScaleXUnitLabel.setText("x", juce::dontSendNotification);
-        trackingScaleXUnitLabel.setColour(juce::Label::textColourId, juce::Colours::grey);
+        trackingScaleXUnitLabel.setColour(juce::Label::textColourId, ColorScheme::get().textSecondary);
 
         // Scale Y
         addAndMakeVisible(trackingScaleYLabel);
@@ -918,7 +918,7 @@ private:
         addAndMakeVisible(trackingScaleYEditor);
         addAndMakeVisible(trackingScaleYUnitLabel);
         trackingScaleYUnitLabel.setText("x", juce::dontSendNotification);
-        trackingScaleYUnitLabel.setColour(juce::Label::textColourId, juce::Colours::grey);
+        trackingScaleYUnitLabel.setColour(juce::Label::textColourId, ColorScheme::get().textSecondary);
 
         // Scale Z
         addAndMakeVisible(trackingScaleZLabel);
@@ -926,7 +926,7 @@ private:
         addAndMakeVisible(trackingScaleZEditor);
         addAndMakeVisible(trackingScaleZUnitLabel);
         trackingScaleZUnitLabel.setText("x", juce::dontSendNotification);
-        trackingScaleZUnitLabel.setColour(juce::Label::textColourId, juce::Colours::grey);
+        trackingScaleZUnitLabel.setColour(juce::Label::textColourId, ColorScheme::get().textSecondary);
 
         // Flip buttons
         addAndMakeVisible(trackingFlipXButton);

@@ -85,8 +85,8 @@ namespace ColorScheme
         juce::Colour(0xFF404040),  // buttonPressed
         juce::Colour(0xFF606060),  // buttonBorder
 
-        // Text
-        juce::Colours::white,      // textPrimary
+        // Text (near-white 0xFFFFFFFE avoids macOS findColour issue with pure 0xFFFFFFFF)
+        juce::Colour(0xFFFFFFFE),  // textPrimary
         juce::Colour(0xFFAAAAAA),  // textSecondary
         juce::Colour(0xFF808080),  // textDisabled
 
@@ -98,7 +98,7 @@ namespace ColorScheme
 
         // Sliders
         juce::Colour(0xFF000000),  // sliderTrackBg - black on dark theme
-        juce::Colours::white,      // sliderThumb - white to match text
+        juce::Colour(0xFFFFFFFE),  // sliderThumb
 
         // List
         juce::Colour(0xFF252525),  // listBackground
@@ -111,7 +111,7 @@ namespace ColorScheme
         juce::Colour(0xFF3A3A3A),  // tabButtonNormal - darker, unselected
         juce::Colour(0xFF505050),  // tabButtonSelected - lighter, selected
         juce::Colour(0xFF909090),  // tabTextNormal - dimmed text
-        juce::Colours::white,      // tabTextSelected - bright text
+        juce::Colour(0xFFFFFFFE),  // tabTextSelected
     };
 
     // OLED Black Palette (pure black for power savings)

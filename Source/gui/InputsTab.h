@@ -2351,19 +2351,19 @@ private:
         // LFO Output sliders (read-only feedback)
         addAndMakeVisible(lfoOutputXLabel);
         lfoOutputXLabel.setText(LOC("inputs.labels.outX"), juce::dontSendNotification);
-        lfoOutputXLabel.setColour(juce::Label::textColourId, juce::Colours::grey);
+        lfoOutputXLabel.setColour(juce::Label::textColourId, ColorScheme::get().textSecondary);
         addAndMakeVisible(lfoOutputXSlider);
         lfoOutputXSlider.setTrackColour(juce::Colour(0xFF808080));  // Mid grey (display-only)
 
         addAndMakeVisible(lfoOutputYLabel);
         lfoOutputYLabel.setText(LOC("inputs.labels.outY"), juce::dontSendNotification);
-        lfoOutputYLabel.setColour(juce::Label::textColourId, juce::Colours::grey);
+        lfoOutputYLabel.setColour(juce::Label::textColourId, ColorScheme::get().textSecondary);
         addAndMakeVisible(lfoOutputYSlider);
         lfoOutputYSlider.setTrackColour(juce::Colour(0xFF808080));  // Mid grey (display-only)
 
         addAndMakeVisible(lfoOutputZLabel);
         lfoOutputZLabel.setText(LOC("inputs.labels.outZ"), juce::dontSendNotification);
-        lfoOutputZLabel.setColour(juce::Label::textColourId, juce::Colours::grey);
+        lfoOutputZLabel.setColour(juce::Label::textColourId, ColorScheme::get().textSecondary);
         addAndMakeVisible(lfoOutputZSlider);
         lfoOutputZSlider.setTrackColour(juce::Colour(0xFF808080));  // Mid grey (display-only)
     }

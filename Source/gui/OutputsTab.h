@@ -943,7 +943,7 @@ private:
             // Frequency slider - colored to match band
             addAndMakeVisible(eqBandFreqLabel[i]);
             eqBandFreqLabel[i].setText(LOC("eq.labels.freq"), juce::dontSendNotification);
-            eqBandFreqLabel[i].setColour(juce::Label::textColourId, juce::Colours::grey);
+            eqBandFreqLabel[i].setColour(juce::Label::textColourId, ColorScheme::get().textSecondary);
 
             juce::Colour bandColour = EQDisplayComponent::getBandColour(i);
             eqBandFreqSlider[i].setTrackColours(juce::Colour(0xFF2D2D2D), bandColour);
@@ -964,7 +964,7 @@ private:
             // Gain dial - colored to match band
             addAndMakeVisible(eqBandGainLabel[i]);
             eqBandGainLabel[i].setText(LOC("eq.labels.gain"), juce::dontSendNotification);
-            eqBandGainLabel[i].setColour(juce::Label::textColourId, juce::Colours::grey);
+            eqBandGainLabel[i].setColour(juce::Label::textColourId, ColorScheme::get().textSecondary);
             eqBandGainLabel[i].setJustificationType(juce::Justification::centred);
 
             eqBandGainDial[i].setTrackColours(juce::Colour(0xFF2D2D2D), bandColour);
@@ -987,7 +987,7 @@ private:
             // Q dial - colored to match band
             addAndMakeVisible(eqBandQLabel[i]);
             eqBandQLabel[i].setText(LOC("eq.labels.q"), juce::dontSendNotification);
-            eqBandQLabel[i].setColour(juce::Label::textColourId, juce::Colours::grey);
+            eqBandQLabel[i].setColour(juce::Label::textColourId, ColorScheme::get().textSecondary);
             eqBandQLabel[i].setJustificationType(juce::Justification::centred);
 
             eqBandQDial[i].setTrackColours(juce::Colour(0xFF2D2D2D), bandColour);

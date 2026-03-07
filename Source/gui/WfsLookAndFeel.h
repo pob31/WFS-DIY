@@ -35,6 +35,22 @@ public:
     {
         const auto& colors = ColorScheme::get();
 
+        // Synchronize V4's internal ColourScheme with our palette.
+        // This calls initialiseColours() which resets ALL 60+ component colors,
+        // ensuring no stale V4 defaults remain for components we don't explicitly override.
+        setColourScheme({
+            colors.background.getARGB(),       // windowBackground
+            colors.surfaceCard.getARGB(),      // widgetBackground
+            colors.backgroundAlt.getARGB(),    // menuBackground
+            colors.buttonBorder.getARGB(),     // outline
+            colors.textPrimary.getARGB(),      // defaultText
+            colors.accentBlue.getARGB(),       // defaultFill
+            colors.textPrimary.getARGB(),      // highlightedText
+            colors.listSelection.getARGB(),    // highlightedFill
+            colors.textPrimary.getARGB()       // menuText
+        });
+
+        // Fine-tune specific component colors that differ from V4's automatic mapping
         //======================================================================
         // TextEditor
         setColour(juce::TextEditor::backgroundColourId, colors.surfaceCard);
