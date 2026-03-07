@@ -1547,6 +1547,7 @@ public:
             // Tracked input in cluster - controls cluster scale/rotation
             secTouch.targetType = SecondaryTouchInfo::TargetType::ClusterScaleRotation;
             secTouch.targetIndex = cluster;  // Change to cluster number
+            secTouch.initialMarkerScreenPos = getClusterPivotScreenPos(cluster);
             secTouch.startRotation = 0.0f;  // Rotation is applied incrementally
         }
         else if (isReference && cluster > 0)
@@ -1554,6 +1555,7 @@ public:
             // Reference input (not tracked) - controls cluster scale/rotation
             secTouch.targetType = SecondaryTouchInfo::TargetType::ClusterScaleRotation;
             secTouch.targetIndex = cluster;
+            secTouch.initialMarkerScreenPos = getClusterPivotScreenPos(cluster);
             secTouch.startRotation = 0.0f;
         }
         else if (isTracked)
@@ -1583,9 +1585,8 @@ public:
         secTouch.primaryTouchSourceIndex = primarySourceIdx;
         secTouch.initialTouchScreenPos = touchScreenPos;
 
-        // Get barycenter position
-        auto baryStage = getClusterBarycenter(clusterNum);
-        secTouch.initialMarkerScreenPos = stageToScreen(baryStage);
+        // Get pivot position (reference input if exists, otherwise barycenter)
+        secTouch.initialMarkerScreenPos = getClusterPivotScreenPos(clusterNum);
 
         // Calculate initial distance and angle
         auto delta = touchScreenPos - secTouch.initialMarkerScreenPos;
@@ -1609,8 +1610,7 @@ public:
         juce::Point<float> currentMarkerScreen;
         if (secTouch.targetType == SecondaryTouchInfo::TargetType::ClusterScaleRotation)
         {
-            auto baryStage = getClusterBarycenter(secTouch.targetIndex);
-            currentMarkerScreen = stageToScreen(baryStage);
+            currentMarkerScreen = getClusterPivotScreenPos(secTouch.targetIndex);
         }
         else
         {
@@ -1748,6 +1748,19 @@ public:
         }
     }
 
+    // Get the screen position of the cluster's pivot point (reference input or barycenter)
+    juce::Point<float> getClusterPivotScreenPos(int clusterNum) const
+    {
+        int refInput = getClusterReferenceInput(clusterNum);
+        if (refInput >= 0)
+        {
+            float px = static_cast<float>(parameters.getInputParam(refInput, "inputPositionX"));
+            float py = static_cast<float>(parameters.getInputParam(refInput, "inputPositionY"));
+            return stageToScreen({ px, py });
+        }
+        return stageToScreen(getClusterBarycenter(clusterNum));
+    }
+
     // Apply scale to cluster members around reference point (XY plane)
     void applyClusterScale(int clusterNum, float scaleX, float scaleY)
     {
@@ -1860,8 +1873,7 @@ public:
     {
         if (secTouch.targetType == SecondaryTouchInfo::TargetType::ClusterScaleRotation)
         {
-            auto baryStage = getClusterBarycenter(secTouch.targetIndex);
-            return stageToScreen(baryStage);
+            return getClusterPivotScreenPos(secTouch.targetIndex);
         }
         else
         {
