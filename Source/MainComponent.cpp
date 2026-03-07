@@ -639,6 +639,10 @@ MainComponent::MainComponent()
         mapCB.setViewCenterY = [this] (float y) { juce::MessageManager::callAsync ([this, y]() { if (mapTab) mapTab->setViewCenterY (y); }); };
         mapCB.getViewScale   = [this]() { return mapTab ? mapTab->getViewScale() : 30.0f; };
         mapCB.setViewScale   = [this] (float s) { juce::MessageManager::callAsync ([this, s]() { if (mapTab) mapTab->setViewScale (s); }); };
+        mapCB.moveSelectedDelta = [this] (float dx, float dy, float dz)
+        {
+            juce::MessageManager::callAsync ([this, dx, dy, dz]() { if (mapTab) mapTab->moveSelectedInputsDelta (dx, dy, dz); });
+        };
 
         MapTabPages::MapStateQueries mapQ;
         mapQ.getSelectedInput       = [this]() { return mapTab ? mapTab->getSelectedInput() : -1; };
@@ -650,6 +654,7 @@ MainComponent::MainComponent()
         {
             return mapTab ? mapTab->getClusterRefPosition (c) : juce::Point<float> (0.0f, 0.0f);
         };
+        mapQ.getMultiSelectionCount = [this]() { return mapTab ? mapTab->getMultiSelectionCount() : 0; };
 
         // Register Map tab page
         streamDeckManager->registerPage (

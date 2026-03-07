@@ -1544,12 +1544,16 @@
         "clusterRefX": "Cluster\nRef X",
         "clusterRefY": "Cluster\nRef Y",
         "clusterScale": "Cluster\nScale",
-        "clusterRotation": "Cluster\nRotation"
+        "clusterRotation": "Cluster\nRotation",
+        "moveX": "Move\nX",
+        "moveY": "Move\nY",
+        "moveZ": "Move\nZ"
       },
       "labels": {
         "inputN": "Input %d",
         "clusterN": "Cluster %d",
-        "deselect": "Deselect"
+        "deselect": "Deselect",
+        "inputs": "Inputs"
       }
     },
     "inputs": {

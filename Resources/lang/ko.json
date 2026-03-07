@@ -1499,12 +1499,16 @@
         "clusterRefX": "클러스터\n기준X",
         "clusterRefY": "클러스터\n기준Y",
         "clusterScale": "클러스터\n스케일",
-        "clusterRotation": "클러스터\n회전"
+        "clusterRotation": "클러스터\n회전",
+        "moveX": "Move\nX",
+        "moveY": "Move\nY",
+        "moveZ": "Move\nZ"
       },
       "labels": {
         "inputN": "입력 %d",
         "clusterN": "클러스터 %d",
-        "deselect": "선택 해제"
+        "deselect": "선택 해제",
+        "inputs": "Inputs"
       }
     },
     "inputs": {

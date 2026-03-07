@@ -1499,12 +1499,16 @@
         "clusterRefX": "クラスタ\n基準X",
         "clusterRefY": "クラスタ\n基準Y",
         "clusterScale": "クラスタ\nスケール",
-        "clusterRotation": "クラスタ\n回転"
+        "clusterRotation": "クラスタ\n回転",
+        "moveX": "Move\nX",
+        "moveY": "Move\nY",
+        "moveZ": "Move\nZ"
       },
       "labels": {
         "inputN": "入力 %d",
         "clusterN": "クラスタ %d",
-        "deselect": "選択解除"
+        "deselect": "選択解除",
+        "inputs": "Inputs"
       }
     },
     "inputs": {

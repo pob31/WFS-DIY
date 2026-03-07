@@ -1499,12 +1499,16 @@
         "clusterRefX": "集群\n基准X",
         "clusterRefY": "集群\n基准Y",
         "clusterScale": "集群\n缩放",
-        "clusterRotation": "集群\n旋转"
+        "clusterRotation": "集群\n旋转",
+        "moveX": "Move\nX",
+        "moveY": "Move\nY",
+        "moveZ": "Move\nZ"
       },
       "labels": {
         "inputN": "输入 %d",
         "clusterN": "集群 %d",
-        "deselect": "取消选择"
+        "deselect": "取消选择",
+        "inputs": "Inputs"
       }
     },
     "inputs": {

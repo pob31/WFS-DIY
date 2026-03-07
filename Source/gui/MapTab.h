@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include <map>
+#include <set>
 #include "../WfsParameters.h"
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/WFSParameterDefaults.h"
@@ -98,6 +99,12 @@ public:
     /** Check if the user is currently dragging an input or barycenter (via touch/mouse) */
     bool getIsDragging() const { return isDraggingInput || isDraggingBarycenter; }
 
+    /** Get the number of selected inputs (0, 1, or N for multi-select) */
+    int getMultiSelectionCount() const { return static_cast<int>(selectedInputs.size()); }
+
+    /** Get the set of selected input indices */
+    const std::set<int>& getSelectedInputSet() const { return selectedInputs; }
+
     /** Check if level overlay is enabled */
     bool getLevelOverlayEnabled() const { return levelOverlayEnabled; }
 
@@ -108,8 +115,7 @@ public:
     /** Programmatically select an input on the map (for Stream Deck). */
     void selectInputProgrammatically (int inputIndex)
     {
-        selectedInput = inputIndex;
-        selectedBarycenter = -1;
+        selectSingleInput(inputIndex);
         isDraggingInput = false;
         isDraggingBarycenter = false;
         repaint();
@@ -119,10 +125,7 @@ public:
     /** Programmatically deselect everything on the map (for Stream Deck). */
     void deselectAllProgrammatically()
     {
-        selectedInput = -1;
-        selectedBarycenter = -1;
-        isDraggingInput = false;
-        isDraggingBarycenter = false;
+        clearSelection();
         repaint();
         if (onMapSelectionChanged) onMapSelectionChanged();
     }
@@ -130,10 +133,8 @@ public:
     /** Programmatically select a cluster/barycenter on the map (for Stream Deck). */
     void selectClusterProgrammatically (int clusterNum)
     {
+        clearSelection();
         selectedBarycenter = clusterNum;  // 1-10
-        selectedInput = -1;
-        isDraggingInput = false;
-        isDraggingBarycenter = false;
         repaint();
         if (onMapSelectionChanged) onMapSelectionChanged();
     }
@@ -223,6 +224,13 @@ public:
         onMapSelectionChanged = std::move (callback);
     }
 
+    /** Move all selected inputs by a delta (for Stream Deck multi-select dials). */
+    void moveSelectedInputsDelta(float dx, float dy, float dz)
+    {
+        if (selectedInputs.empty()) return;
+        moveSelectedInputsByDelta(dx, dy, dz);
+    }
+
     void mouseEnter(const juce::MouseEvent& event) override
     {
         if (statusBar == nullptr) return;
@@ -256,6 +264,7 @@ public:
         drawReverbs(g);
         drawClusters(g);
         drawInputs(g);
+        drawRubberBand(g);
         drawSecondaryTouchFeedback(g);
     }
 
@@ -288,16 +297,34 @@ public:
     bool keyPressed(const juce::KeyPress& key) override
     {
         if (key.getKeyCode() == juce::KeyPress::escapeKey
-            && (selectedInput >= 0 || selectedBarycenter >= 0))
+            && (!selectedInputs.empty() || selectedBarycenter >= 0))
         {
-            selectedInput = -1;
-            selectedBarycenter = -1;
-            isDraggingInput = false;
-            isDraggingBarycenter = false;
+            clearSelection();
             if (onMapSelectionChanged) onMapSelectionChanged();
             repaint();
             return true;
         }
+
+        // Arrow keys and Page Up/Down: move selected inputs
+        if (!selectedInputs.empty())
+        {
+            float step = key.getModifiers().isShiftDown() ? 0.01f : 0.1f;
+            float dx = 0.0f, dy = 0.0f, dz = 0.0f;
+            int kc = key.getKeyCode();
+
+            if      (kc == juce::KeyPress::leftKey)     dx = -step;
+            else if (kc == juce::KeyPress::rightKey)    dx =  step;
+            else if (kc == juce::KeyPress::upKey)       dy =  step;
+            else if (kc == juce::KeyPress::downKey)     dy = -step;
+            else if (kc == juce::KeyPress::pageUpKey)   dz =  step;
+            else if (kc == juce::KeyPress::pageDownKey) dz = -step;
+            else return false;
+
+            parameters.getValueTreeState().beginUndoTransaction ("Arrow Key Move");
+            moveSelectedInputsByDelta (dx, dy, dz);
+            return true;
+        }
+
         return false;
     }
 
@@ -313,7 +340,7 @@ public:
         if (e.source.isTouch())
         {
             // Clear mouse selection when using touch
-            selectedInput = -1;
+            clearSelection();
             if (onMapSelectionChanged) onMapSelectionChanged();
 
             TouchInfo touch;
@@ -515,26 +542,52 @@ public:
             int hitInput = getInputAtPosition(e.position);
             if (hitInput >= 0)
             {
-                selectedInput = hitInput;
-                isDraggingInput = true;
-                isDraggingBarycenter = false;
-                selectedBarycenter = -1;
-                isInViewGesture = false;
+                if (e.mods.isShiftDown())
+                {
+                    // Shift+click: toggle input in/out of multi-selection, no drag
+                    toggleInputInSelection(hitInput);
+                    isDraggingInput = false;
+                    isDraggingBarycenter = false;
+                    isInViewGesture = false;
+                }
+                else
+                {
+                    // Normal click: select or keep multi-selection, start drag
+                    if (!isInputSelected(hitInput))
+                        selectSingleInput(hitInput);
+                    // else: already in selection set, keep multi-select
 
-                // Begin undo transaction for this map drag gesture
-                parameters.getValueTreeState().beginUndoTransaction ("Map Drag Input " + juce::String (hitInput + 1));
+                    isDraggingInput = true;
+                    isDraggingBarycenter = false;
+                    isInViewGesture = false;
 
-                // Get flip-applied position to match visual coordinate system
-                // (getInputPosition returns raw stored position, but drag works in visual coords)
-                auto rawPos = getInputPosition(hitInput);
-                bool flipX = static_cast<int>(parameters.getInputParam(hitInput, "inputFlipX")) != 0;
-                bool flipY = static_cast<int>(parameters.getInputParam(hitInput, "inputFlipY")) != 0;
-                inputDragStartStagePos = { flipX ? -rawPos.x : rawPos.x,
-                                           flipY ? -rawPos.y : rawPos.y };
+                    // Begin undo transaction for this map drag gesture
+                    parameters.getValueTreeState().beginUndoTransaction ("Map Drag Input " + juce::String (hitInput + 1));
 
-                float offsetX = static_cast<float>(parameters.getInputParam(hitInput, "inputOffsetX"));
-                float offsetY = static_cast<float>(parameters.getInputParam(hitInput, "inputOffsetY"));
-                inputDragStartOffset = { offsetX, offsetY };
+                    // Snapshot all selected inputs' positions and offsets for multi-drag
+                    multiDragSnapshots.clear();
+                    for (int idx : selectedInputs)
+                    {
+                        InputDragSnapshot snap;
+                        auto rawP = getInputPosition(idx);
+                        bool fX = static_cast<int>(parameters.getInputParam(idx, "inputFlipX")) != 0;
+                        bool fY = static_cast<int>(parameters.getInputParam(idx, "inputFlipY")) != 0;
+                        snap.stagePos = { fX ? -rawP.x : rawP.x, fY ? -rawP.y : rawP.y };
+                        snap.offset = {
+                            static_cast<float>(parameters.getInputParam(idx, "inputOffsetX")),
+                            static_cast<float>(parameters.getInputParam(idx, "inputOffsetY"))
+                        };
+                        multiDragSnapshots[idx] = snap;
+                    }
+
+                    // Use the hit input as the drag anchor
+                    inputDragStartStagePos = multiDragSnapshots[hitInput].stagePos;
+                    inputDragStartOffset = multiDragSnapshots[hitInput].offset;
+
+                    // Notify path mode waypoint recording (single input only)
+                    if (!isMultiSelected() && onDragStartCallback)
+                        onDragStartCallback(hitInput);
+                }
 
                 // Set up long-press state for navigation
                 longPressState.active = true;
@@ -542,10 +595,6 @@ public:
                 longPressState.targetIndex = hitInput;
                 longPressState.startPos = e.position;
                 longPressState.startTime = juce::Time::getCurrentTime();
-
-                // Notify path mode waypoint recording
-                if (onDragStartCallback)
-                    onDragStartCallback(hitInput);
 
                 if (onMapSelectionChanged) onMapSelectionChanged();
                 grabKeyboardFocus();
@@ -557,10 +606,9 @@ public:
             auto [hitCluster, hitRefInput] = getHiddenClusterRefAtPosition(e.position);
             if (hitCluster > 0)
             {
-                selectedInput = hitRefInput;
+                selectSingleInput(hitRefInput);
                 isDraggingInput = true;
                 isDraggingBarycenter = false;
-                selectedBarycenter = -1;
                 isInViewGesture = false;
 
                 auto rawPos = getInputPosition(hitRefInput);
@@ -592,10 +640,9 @@ public:
             int hitBarycenter = getBarycenterAtPosition(e.position);
             if (hitBarycenter > 0)
             {
+                clearSelection();
                 selectedBarycenter = hitBarycenter;
                 isDraggingBarycenter = true;
-                isDraggingInput = false;
-                selectedInput = -1;
                 isInViewGesture = false;
                 barycenterDragStartStagePos = getClusterBarycenter(hitBarycenter);
 
@@ -641,16 +688,21 @@ public:
                 return;
             }
 
-            // Left-click in empty area
-            selectedInput = -1;
+            // Left-click in empty area: start rubber-band selection
+            if (!e.mods.isShiftDown())
+                clearSelection();
+            // With Shift: keep current selection for additive rubber-band
+
+            preRubberBandSelection = selectedInputs;
+            isRubberBanding = true;
+            rubberBandStart = e.position;
+            rubberBandEnd = e.position;
             isDraggingInput = false;
-            selectedBarycenter = -1;
             isDraggingBarycenter = false;
-            isInViewGesture = true;
-            gestureMode = GestureMode::None;
+            isInViewGesture = false;
             longPressState.active = false;
-            startTimer(50);
             if (onMapSelectionChanged) onMapSelectionChanged();
+            grabKeyboardFocus();
             repaint();
         }
     }
@@ -723,81 +775,144 @@ public:
             return;
         }
 
-        // Handle input dragging
-        if (isDraggingInput && selectedInput >= 0)
+        // Handle rubber-band selection
+        if (isRubberBanding)
+        {
+            rubberBandEnd = e.position;
+
+            // Compute selection: all visible, unlocked inputs within rectangle
+            auto rect = juce::Rectangle<float>(rubberBandStart, rubberBandEnd);
+            selectedInputs = preRubberBandSelection;  // Start from pre-existing (for Shift)
+
+            int numInputs = parameters.getNumInputChannels();
+            for (int i = 0; i < numInputs; ++i)
+            {
+                auto visibleVar = parameters.getInputParam(i, "inputMapVisible");
+                bool visible = visibleVar.isVoid() || static_cast<int>(visibleVar) != 0;
+                auto lockedVar = parameters.getInputParam(i, "inputMapLocked");
+                bool isLocked = !lockedVar.isVoid() && static_cast<int>(lockedVar) != 0;
+
+                if (!visible || isLocked) continue;
+
+                float posX = static_cast<float>(parameters.getInputParam(i, "inputPositionX"));
+                float posY = static_cast<float>(parameters.getInputParam(i, "inputPositionY"));
+                auto screenPos = stageToScreen({ posX, posY });
+
+                if (rect.contains(screenPos))
+                    selectedInputs.insert(i);
+            }
+            syncSelectedInputFromSet();
+            repaint();
+            return;
+        }
+
+        // Handle input dragging (single or multi-select)
+        if (isDraggingInput && !selectedInputs.empty())
         {
             auto stagePos = screenToStage(e.position);
 
-            // Apply position constraints (shared utility reads constraint flags from parameters)
+            // Compute total delta from drag anchor
+            float totalDeltaX = stagePos.x - inputDragStartStagePos.x;
+            float totalDeltaY = stagePos.y - inputDragStartStagePos.y;
+
+            // Track which clusters have been moved to avoid double-moves
+            std::set<int> movedClusters;
+
+            for (int idx : selectedInputs)
             {
-                float z = static_cast<float>(parameters.getInputParam(selectedInput, "inputPositionZ"));
-                WFSConstraints::constrainPosition (parameters.getValueTreeState(), selectedInput,
-                                                    stagePos.x, stagePos.y, z);
-                // Note: Z may be modified by spherical distance constraint but not saved here (map is 2D)
-            }
+                auto snapIt = multiDragSnapshots.find(idx);
+                if (snapIt == multiDragSnapshots.end()) continue;
 
-            // Determine drag behavior based on input state
-            bool isTracked = isInputFullyTracked(selectedInput);
-            int cluster = static_cast<int>(parameters.getInputParam(selectedInput, "inputCluster"));
-            bool isReference = (cluster > 0) && (getClusterReferenceInput(cluster) == selectedInput);
+                float targetX = snapIt->second.stagePos.x + totalDeltaX;
+                float targetY = snapIt->second.stagePos.y + totalDeltaY;
 
-            if (isTracked)
-            {
-                // Tracked input: update offset incrementally (delta from drag start)
-                float deltaX = stagePos.x - inputDragStartStagePos.x;
-                float deltaY = stagePos.y - inputDragStartStagePos.y;
+                // Apply position constraints
+                float z = static_cast<float>(parameters.getInputParam(idx, "inputPositionZ"));
+                WFSConstraints::constrainPosition(parameters.getValueTreeState(), idx,
+                                                  targetX, targetY, z);
 
-                // Get current offset BEFORE updating (for cluster member delta calculation)
-                float oldOffsetX = static_cast<float>(parameters.getInputParam(selectedInput, "inputOffsetX"));
-                float oldOffsetY = static_cast<float>(parameters.getInputParam(selectedInput, "inputOffsetY"));
+                bool isTracked = isInputFullyTracked(idx);
+                int cluster = static_cast<int>(parameters.getInputParam(idx, "inputCluster"));
+                bool isReference = (cluster > 0) && (getClusterReferenceInput(cluster) == idx);
 
-                // New offset = initial offset + drag delta
-                float newOffsetX = inputDragStartOffset.x + deltaX;
-                float newOffsetY = inputDragStartOffset.y + deltaY;
-
-                parameters.setInputParam(selectedInput, "inputOffsetX", newOffsetX);
-                parameters.setInputParam(selectedInput, "inputOffsetY", newOffsetY);
-
-                // If tracked AND reference, move cluster members by the same frame delta
-                if (isReference && cluster > 0)
+                if (isTracked)
                 {
-                    // Instantaneous delta = what the offset changed by this frame
-                    float instantDeltaX = newOffsetX - oldOffsetX;
-                    float instantDeltaY = newOffsetY - oldOffsetY;
+                    // Tracked input: compute new offset from snapshot, apply constraints
+                    float newOffsetX = snapIt->second.offset.x + totalDeltaX;
+                    float newOffsetY = snapIt->second.offset.y + totalDeltaY;
+                    float newOffsetZ = static_cast<float>(parameters.getInputParam(idx, "inputOffsetZ"));
+                    WFSConstraints::constrainOffset(parameters.getValueTreeState(), idx,
+                                                    newOffsetX, newOffsetY, newOffsetZ);
 
-                    // Move all other cluster members' positions by the same instantaneous delta
-                    int numInputs = parameters.getNumInputChannels();
-                    for (int i = 0; i < numInputs; ++i)
+                    // Get old offset for cluster member delta
+                    float oldOffsetX = static_cast<float>(parameters.getInputParam(idx, "inputOffsetX"));
+                    float oldOffsetY = static_cast<float>(parameters.getInputParam(idx, "inputOffsetY"));
+
+                    parameters.setInputParam(idx, "inputOffsetX", newOffsetX);
+                    parameters.setInputParam(idx, "inputOffsetY", newOffsetY);
+
+                    // If cluster reference, move non-selected cluster members
+                    if (isReference && cluster > 0 && movedClusters.find(cluster) == movedClusters.end())
                     {
-                        if (i == selectedInput) continue;
+                        movedClusters.insert(cluster);
+                        float instantDX = newOffsetX - oldOffsetX;
+                        float instantDY = newOffsetY - oldOffsetY;
 
-                        int inputCluster = static_cast<int>(parameters.getInputParam(i, "inputCluster"));
-                        if (inputCluster == cluster)
+                        int numInputs = parameters.getNumInputChannels();
+                        for (int i = 0; i < numInputs; ++i)
                         {
-                            float memberX = static_cast<float>(parameters.getInputParam(i, "inputPositionX"));
-                            float memberY = static_cast<float>(parameters.getInputParam(i, "inputPositionY"));
-                            parameters.setInputParam(i, "inputPositionX", memberX + instantDeltaX);
-                            parameters.setInputParam(i, "inputPositionY", memberY + instantDeltaY);
+                            if (i == idx || selectedInputs.count(i)) continue;
+                            if (static_cast<int>(parameters.getInputParam(i, "inputCluster")) == cluster)
+                            {
+                                float mx = static_cast<float>(parameters.getInputParam(i, "inputPositionX")) + instantDX;
+                                float my = static_cast<float>(parameters.getInputParam(i, "inputPositionY")) + instantDY;
+                                float mz = static_cast<float>(parameters.getInputParam(i, "inputPositionZ"));
+                                WFSConstraints::constrainPosition(parameters.getValueTreeState(), i, mx, my, mz);
+                                parameters.setInputParam(i, "inputPositionX", mx);
+                                parameters.setInputParam(i, "inputPositionY", my);
+                            }
                         }
                     }
                 }
-            }
-            else if (isReference && cluster > 0)
-            {
-                // Reference input (not tracked): move entire cluster maintaining geometry
-                moveClusterWithReference(cluster, selectedInput, stagePos);
-            }
-            else
-            {
-                // Normal input: just update position (no flip - marker shows at drag location)
-                parameters.setInputParam(selectedInput, "inputPositionX", stagePos.x);
-                parameters.setInputParam(selectedInput, "inputPositionY", stagePos.y);
-
-                // Capture waypoint for path mode
-                if (waypointCaptureCallback)
+                else if (isReference && cluster > 0 && movedClusters.find(cluster) == movedClusters.end())
                 {
-                    float storedZ = static_cast<float>(parameters.getInputParam(selectedInput, "inputPositionZ"));
-                    waypointCaptureCallback(selectedInput, stagePos.x, stagePos.y, storedZ);
+                    // Non-tracked cluster reference: move all non-selected cluster members
+                    movedClusters.insert(cluster);
+                    float oldPosX = static_cast<float>(parameters.getInputParam(idx, "inputPositionX"));
+                    float oldPosY = static_cast<float>(parameters.getInputParam(idx, "inputPositionY"));
+                    float dx = targetX - oldPosX;
+                    float dy = targetY - oldPosY;
+
+                    parameters.setInputParam(idx, "inputPositionX", targetX);
+                    parameters.setInputParam(idx, "inputPositionY", targetY);
+
+                    int numInputs = parameters.getNumInputChannels();
+                    for (int i = 0; i < numInputs; ++i)
+                    {
+                        if (i == idx || selectedInputs.count(i)) continue;
+                        if (static_cast<int>(parameters.getInputParam(i, "inputCluster")) == cluster)
+                        {
+                            float mx = static_cast<float>(parameters.getInputParam(i, "inputPositionX")) + dx;
+                            float my = static_cast<float>(parameters.getInputParam(i, "inputPositionY")) + dy;
+                            float mz = static_cast<float>(parameters.getInputParam(i, "inputPositionZ"));
+                            WFSConstraints::constrainPosition(parameters.getValueTreeState(), i, mx, my, mz);
+                            parameters.setInputParam(i, "inputPositionX", mx);
+                            parameters.setInputParam(i, "inputPositionY", my);
+                        }
+                    }
+                }
+                else
+                {
+                    // Normal input: update position
+                    parameters.setInputParam(idx, "inputPositionX", targetX);
+                    parameters.setInputParam(idx, "inputPositionY", targetY);
+
+                    // Capture waypoint for path mode (single selection only)
+                    if (!isMultiSelected() && waypointCaptureCallback)
+                    {
+                        float storedZ = static_cast<float>(parameters.getInputParam(idx, "inputPositionZ"));
+                        waypointCaptureCallback(idx, targetX, targetY, storedZ);
+                    }
                 }
             }
 
@@ -894,13 +1009,25 @@ public:
             return;
         }
 
-        // Mouse input (existing behavior)
+        // Mouse input
+        // Handle rubber-band end
+        if (isRubberBanding)
+        {
+            isRubberBanding = false;
+            preRubberBandSelection.clear();
+            // Selection was already updated during mouseDrag
+            if (onMapSelectionChanged) onMapSelectionChanged();
+            repaint();
+            return;
+        }
+
         // Notify path mode that drag ended (before clearing state)
         if (isDraggingInput && selectedInput >= 0 && onDragEndCallback)
             onDragEndCallback(selectedInput);
 
         isDraggingInput = false;
         isDraggingBarycenter = false;
+        multiDragSnapshots.clear();
         isInViewGesture = false;
         gestureMode = GestureMode::None;
         stopTimer();
@@ -1866,8 +1993,18 @@ private:
     juce::Point<float> viewOffset { 0.0f, 0.0f };
 
     // Interaction state
-    int selectedInput = -1;
+    int selectedInput = -1;  // Derived cache: == single element of selectedInputs when size==1, else -1
+    std::set<int> selectedInputs;  // Multi-selection set (0-based input indices)
     bool isDraggingInput = false;
+
+    // Rubber-band selection state
+    bool isRubberBanding = false;
+    juce::Point<float> rubberBandStart, rubberBandEnd;
+    std::set<int> preRubberBandSelection;  // Selection before rubber-band (for Shift+rubber-band)
+
+    // Multi-drag snapshots (per-input positions at drag start)
+    struct InputDragSnapshot { juce::Point<float> stagePos, offset; };
+    std::map<int, InputDragSnapshot> multiDragSnapshots;
     juce::Point<float> dragStartPos;
     juce::Point<float> dragStartOffset;
     float dragStartScale = 30.0f;  // For left+right zoom gesture
@@ -1929,6 +2066,129 @@ private:
     {
         for (auto& pair : helpTextMap)
             pair.first->addMouseListener(this, false);
+    }
+
+    //==========================================================================
+    // Multi-Selection Helpers
+    //==========================================================================
+
+    void syncSelectedInputFromSet()
+    {
+        selectedInput = (selectedInputs.size() == 1) ? *selectedInputs.begin() : -1;
+    }
+
+    void clearSelection()
+    {
+        selectedInputs.clear();
+        selectedInput = -1;
+        selectedBarycenter = -1;
+        isDraggingInput = false;
+        isDraggingBarycenter = false;
+    }
+
+    void selectSingleInput(int idx)
+    {
+        selectedInputs.clear();
+        selectedInputs.insert(idx);
+        selectedBarycenter = -1;
+        syncSelectedInputFromSet();
+    }
+
+    void toggleInputInSelection(int idx)
+    {
+        if (selectedInputs.count(idx))
+            selectedInputs.erase(idx);
+        else
+            selectedInputs.insert(idx);
+        selectedBarycenter = -1;
+        syncSelectedInputFromSet();
+    }
+
+    bool isInputSelected(int idx) const { return selectedInputs.count(idx) > 0; }
+    bool isMultiSelected() const { return selectedInputs.size() > 1; }
+
+    /** Move all selected inputs by a delta. Handles tracking offsets, cluster references,
+        and avoids double-moving cluster members. Used by arrow keys, Stream Deck, etc. */
+    void moveSelectedInputsByDelta(float dx, float dy, float dz = 0.0f)
+    {
+        std::set<int> movedClusters;
+
+        for (int idx : selectedInputs)
+        {
+            bool isTracked = isInputFullyTracked(idx);
+            int cluster = static_cast<int>(parameters.getInputParam(idx, "inputCluster"));
+            bool isReference = (cluster > 0) && (getClusterReferenceInput(cluster) == idx);
+
+            if (isTracked)
+            {
+                // Tracked input: move offset with constraint check
+                float ox = static_cast<float>(parameters.getInputParam(idx, "inputOffsetX")) + dx;
+                float oy = static_cast<float>(parameters.getInputParam(idx, "inputOffsetY")) + dy;
+                float oz = static_cast<float>(parameters.getInputParam(idx, "inputOffsetZ")) + dz;
+                WFSConstraints::constrainOffset(parameters.getValueTreeState(), idx, ox, oy, oz);
+                parameters.setInputParam(idx, "inputOffsetX", ox);
+                parameters.setInputParam(idx, "inputOffsetY", oy);
+                if (std::abs(dz) > 0.001f)
+                    parameters.setInputParam(idx, "inputOffsetZ", oz);
+
+                // If cluster reference, move non-selected cluster members' positions
+                if (isReference && cluster > 0 && movedClusters.find(cluster) == movedClusters.end())
+                {
+                    movedClusters.insert(cluster);
+                    int n = parameters.getNumInputChannels();
+                    for (int i = 0; i < n; ++i)
+                    {
+                        if (i == idx || selectedInputs.count(i)) continue;
+                        if (static_cast<int>(parameters.getInputParam(i, "inputCluster")) == cluster)
+                        {
+                            float mx = static_cast<float>(parameters.getInputParam(i, "inputPositionX")) + dx;
+                            float my = static_cast<float>(parameters.getInputParam(i, "inputPositionY")) + dy;
+                            float mz = static_cast<float>(parameters.getInputParam(i, "inputPositionZ")) + dz;
+                            WFSConstraints::constrainPosition(parameters.getValueTreeState(), i, mx, my, mz);
+                            parameters.setInputParam(i, "inputPositionX", mx);
+                            parameters.setInputParam(i, "inputPositionY", my);
+                            if (std::abs(dz) > 0.001f)
+                                parameters.setInputParam(i, "inputPositionZ", mz);
+                        }
+                    }
+                }
+            }
+            else if (isReference && cluster > 0 && movedClusters.find(cluster) == movedClusters.end())
+            {
+                // Non-tracked cluster reference: move all non-selected cluster members
+                movedClusters.insert(cluster);
+                int n = parameters.getNumInputChannels();
+                for (int i = 0; i < n; ++i)
+                {
+                    if (selectedInputs.count(i) && i != idx) continue;
+                    if (static_cast<int>(parameters.getInputParam(i, "inputCluster")) == cluster)
+                    {
+                        float mx = static_cast<float>(parameters.getInputParam(i, "inputPositionX")) + dx;
+                        float my = static_cast<float>(parameters.getInputParam(i, "inputPositionY")) + dy;
+                        float mz = static_cast<float>(parameters.getInputParam(i, "inputPositionZ")) + dz;
+                        WFSConstraints::constrainPosition(parameters.getValueTreeState(), i, mx, my, mz);
+                        parameters.setInputParam(i, "inputPositionX", mx);
+                        parameters.setInputParam(i, "inputPositionY", my);
+                        if (std::abs(dz) > 0.001f)
+                            parameters.setInputParam(i, "inputPositionZ", mz);
+                    }
+                }
+            }
+            else
+            {
+                // Normal input: move position with constraint check
+                float px = static_cast<float>(parameters.getInputParam(idx, "inputPositionX")) + dx;
+                float py = static_cast<float>(parameters.getInputParam(idx, "inputPositionY")) + dy;
+                float pz = static_cast<float>(parameters.getInputParam(idx, "inputPositionZ")) + dz;
+                WFSConstraints::constrainPosition(parameters.getValueTreeState(), idx, px, py, pz);
+                parameters.setInputParam(idx, "inputPositionX", px);
+                parameters.setInputParam(idx, "inputPositionY", py);
+                if (std::abs(dz) > 0.001f)
+                    parameters.setInputParam(idx, "inputPositionZ", pz);
+            }
+        }
+
+        repaint();
     }
 
     // Constants
@@ -2577,7 +2837,7 @@ private:
                 if (!refVisible)
                 {
                     float clusterMarkerRadius = 10.0f;
-                    bool isSelected = (selectedInput == refInput && isDraggingInput);
+                    bool isSelected = (isInputSelected(refInput) && isDraggingInput);
 
                     // Fill with cluster color
                     g.setColour(WfsColorUtilities::getMarkerColor(cluster, true));
@@ -2678,8 +2938,19 @@ private:
             if (!visible)
                 continue;
 
-            drawInputMarker(g, i, i == selectedInput);
+            drawInputMarker(g, i, isInputSelected(i));
         }
+    }
+
+    void drawRubberBand(juce::Graphics& g)
+    {
+        if (!isRubberBanding) return;
+
+        auto rect = juce::Rectangle<float>(rubberBandStart, rubberBandEnd);
+        g.setColour(juce::Colours::yellow.withAlpha(0.15f));
+        g.fillRect(rect);
+        g.setColour(juce::Colours::yellow.withAlpha(0.6f));
+        g.drawRect(rect, 1.5f);
     }
 
     void drawInputMarker(juce::Graphics& g, int inputIndex, bool isSelected)
@@ -3361,7 +3632,7 @@ private:
     void valueTreeChildRemoved(juce::ValueTree& parentTree, juce::ValueTree& child, int index) override
     {
         juce::ignoreUnused(parentTree, child, index);
-        selectedInput = -1;  // Clear selection if channel removed
+        clearSelection();  // Clear selection if channel removed
         repaint();
     }
 

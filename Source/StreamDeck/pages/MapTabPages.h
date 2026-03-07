@@ -51,6 +51,7 @@ struct MapCallbacks
     std::function<void (float)>              setViewCenterY;
     std::function<float()>                   getViewScale;
     std::function<void (float)>              setViewScale;
+    std::function<void (float, float, float)> moveSelectedDelta;  // (dx, dy, dz) for multi-select
 };
 
 //==============================================================================
@@ -65,6 +66,7 @@ struct MapStateQueries
     std::function<int()>                          getNumInputs;
     std::function<bool()>                         getLevelOverlayEnabled;
     std::function<juce::Point<float> (int)>       getClusterRefPosition;   // cluster num → pos
+    std::function<int()>                          getMultiSelectionCount;  // 0, 1, or N
 };
 
 //==============================================================================
@@ -84,10 +86,11 @@ inline StreamDeckPage createMapPage (WFSValueTreeState& state,
     const auto grey = juce::Colour (0xFF3A3A3A);
 
     // Query current state
-    const int selInput   = queries.getSelectedInput   ? queries.getSelectedInput()   : -1;
-    const int selCluster = queries.getSelectedCluster ? queries.getSelectedCluster() : -1;
-    const bool dragging  = queries.isDragging         ? queries.isDragging()          : false;
-    const int numInputs  = queries.getNumInputs       ? queries.getNumInputs()        : 0;
+    const int selInput      = queries.getSelectedInput      ? queries.getSelectedInput()      : -1;
+    const int selCluster    = queries.getSelectedCluster    ? queries.getSelectedCluster()    : -1;
+    const bool dragging     = queries.isDragging            ? queries.isDragging()             : false;
+    const int numInputs     = queries.getNumInputs          ? queries.getNumInputs()           : 0;
+    const int multiSelCount = queries.getMultiSelectionCount ? queries.getMultiSelectionCount() : 0;
 
     //======================================================================
     // Top row: navigation buttons
@@ -114,11 +117,13 @@ inline StreamDeckPage createMapPage (WFSValueTreeState& state,
         page.topRowOverrideLabel[2] = LOC ("tabs.inputs");
     page.topRowOverrideColour[2]    = juce::Colour (0xFF26A69A);
 
-    // Button 3: Deselect when input/cluster selected, otherwise informational
-    if (selInput >= 0 || selCluster > 0)
+    // Button 3: Deselect when input/cluster/multi-selected, otherwise informational
+    if (selInput >= 0 || multiSelCount > 1 || selCluster > 0)
     {
         auto& btn = page.topRowButtons[3];
-        if (selInput >= 0)
+        if (multiSelCount > 1)
+            btn.label = juce::String (multiSelCount) + " " + LOC ("streamDeck.map.labels.inputs") + "\n" + LOC ("streamDeck.map.labels.deselect");
+        else if (selInput >= 0)
             btn.label = LOC ("streamDeck.map.labels.inputN").replace ("%d", juce::String (selInput + 1)) + "\n" + LOC ("streamDeck.map.labels.deselect");
         else
             btn.label = LOC ("streamDeck.map.labels.clusterN").replace ("%d", juce::String (selCluster)) + "\n" + LOC ("streamDeck.map.labels.deselect");
@@ -472,6 +477,60 @@ inline StreamDeckPage createMapPage (WFSValueTreeState& state,
                     state.setInputParameter (ch, inputRotation, juce::roundToInt (v));
                     if (callbacks.repaintMap) callbacks.repaintMap();
                 };
+            }
+        }
+        else if (multiSelCount > 1)
+        {
+            //--------------------------------------------------------------
+            // Mode 4: Multi-select — Delta X/Y/Z + Zoom
+            //--------------------------------------------------------------
+
+            // Dials 0-2: Move X/Y/Z (delta-based, getValue always returns 0)
+            juce::String moveLabels[3] = {
+                LOC ("streamDeck.map.dials.moveX"),
+                LOC ("streamDeck.map.dials.moveY"),
+                LOC ("streamDeck.map.dials.moveZ")
+            };
+
+            for (int di = 0; di < 3; ++di)
+            {
+                auto& d = sec.dials[di];
+                d.paramName     = moveLabels[di];
+                d.paramUnit     = LOC ("units.meters");
+                d.minValue      = -1.0f;
+                d.maxValue      = 1.0f;
+                d.step          = 0.1f;
+                d.fineStep      = 0.01f;
+                d.decimalPlaces = 2;
+                d.type          = DialBinding::Float;
+
+                d.getValue = []() { return 0.0f; };
+                d.setValue = [callbacks, di] (float v)
+                {
+                    if (callbacks.moveSelectedDelta)
+                    {
+                        float dx = (di == 0) ? v : 0.0f;
+                        float dy = (di == 1) ? v : 0.0f;
+                        float dz = (di == 2) ? v : 0.0f;
+                        callbacks.moveSelectedDelta (dx, dy, dz);
+                    }
+                };
+            }
+
+            // Dial 3: Zoom (same as no-selection mode)
+            {
+                auto& d = sec.dials[3];
+                d.paramName     = LOC ("streamDeck.map.dials.zoom");
+                d.paramUnit     = {};
+                d.minValue      = 5.0f;
+                d.maxValue      = 500.0f;
+                d.step          = 10.0f;
+                d.fineStep      = 2.0f;
+                d.decimalPlaces = 0;
+                d.type          = DialBinding::Float;
+
+                d.getValue = [callbacks]() { return callbacks.getViewScale ? callbacks.getViewScale() : 30.0f; };
+                d.setValue = [callbacks] (float v) { if (callbacks.setViewScale) callbacks.setViewScale (v); };
             }
         }
         else if (selCluster > 0)
