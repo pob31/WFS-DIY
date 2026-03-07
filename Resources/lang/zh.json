@@ -826,6 +826,8 @@
       "mutePreOn": "Mute Pre ON",
       "mutePost": "Mute Post",
       "mutePostOn": "Mute Post ON",
+      "editOnMap": "Edit on Map",
+      "editOnMapOn": "Edit on Map ON",
       "storeConfig": "保存混响配置",
       "reloadConfig": "重新加载混响配置",
       "reloadBackup": "加载备份",

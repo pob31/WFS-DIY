@@ -108,6 +108,16 @@ public:
     /** Check if level overlay is enabled */
     bool getLevelOverlayEnabled() const { return levelOverlayEnabled; }
 
+    /** Enable/disable reverb node editing on the map */
+    void setReverbEditMode (bool enabled)
+    {
+        reverbEditMode = enabled;
+        if (! enabled) { selectedReverbNode = -1; isDraggingReverb = false; }
+        repaint();
+    }
+    bool getReverbEditMode() const { return reverbEditMode; }
+    int getSelectedReverbNode() const { return selectedReverbNode; }
+
     //==========================================================================
     // Stream Deck programmatic control
     //==========================================================================
@@ -297,10 +307,40 @@ public:
     bool keyPressed(const juce::KeyPress& key) override
     {
         if (key.getKeyCode() == juce::KeyPress::escapeKey
-            && (!selectedInputs.empty() || selectedBarycenter >= 0))
+            && (!selectedInputs.empty() || selectedBarycenter >= 0 || selectedReverbNode >= 0))
         {
             clearSelection();
             if (onMapSelectionChanged) onMapSelectionChanged();
+            repaint();
+            return true;
+        }
+
+        // Arrow keys and Page Up/Down: move selected reverb node
+        if (selectedReverbNode >= 0)
+        {
+            float step = key.getModifiers().isShiftDown() ? 0.01f : 0.1f;
+            float dx = 0.0f, dy = 0.0f, dz = 0.0f;
+            int kc = key.getKeyCode();
+
+            if      (kc == juce::KeyPress::leftKey)     dx = -step;
+            else if (kc == juce::KeyPress::rightKey)    dx =  step;
+            else if (kc == juce::KeyPress::upKey)       dy =  step;
+            else if (kc == juce::KeyPress::downKey)     dy = -step;
+            else if (kc == juce::KeyPress::pageUpKey)   dz =  step;
+            else if (kc == juce::KeyPress::pageDownKey) dz = -step;
+            else return false;
+
+            bool mirrorPair = key.getModifiers().isCtrlDown() || key.getModifiers().isCommandDown();
+            parameters.getValueTreeState().beginUndoTransaction ("Arrow Key Move Reverb");
+            moveReverbByDelta (selectedReverbNode, dx, dy, dz, mirrorPair);
+            orientReverbTowardsOrigin (selectedReverbNode);
+            if (mirrorPair)
+            {
+                int numReverbs = parameters.getNumReverbChannels();
+                int pairIdx = (selectedReverbNode % 2 == 0) ? selectedReverbNode + 1 : selectedReverbNode - 1;
+                if (pairIdx >= 0 && pairIdx < numReverbs)
+                    orientReverbTowardsOrigin (pairIdx);
+            }
             repaint();
             return true;
         }
@@ -445,15 +485,34 @@ public:
                 return;
             }
 
-            // Check for reverb marker hit (not draggable, but long-press navigates)
+            // Check for reverb marker hit
             int hitReverb = getReverbAtPosition(e.position);
             if (hitReverb >= 0)
             {
-                longPressState.active = true;
-                longPressState.targetType = LongPressState::TargetType::Reverb;
-                longPressState.targetIndex = hitReverb;
-                longPressState.startPos = e.position;
-                longPressState.startTime = juce::Time::getCurrentTime();
+                if (reverbEditMode)
+                {
+                    touch.type = TouchInfo::Type::Reverb;
+                    touch.targetIndex = hitReverb;
+                    float rx = static_cast<float>(parameters.getReverbParam (hitReverb, "reverbPositionX"));
+                    float ry = static_cast<float>(parameters.getReverbParam (hitReverb, "reverbPositionY"));
+                    touch.startStagePos = { rx, ry };
+                    activeTouches[sourceIndex] = touch;
+
+                    clearSelection();
+                    selectedReverbNode = hitReverb;
+                    isDraggingReverb = true;
+                    reverbDragStartStagePos = { rx, ry };
+                    parameters.getValueTreeState().beginUndoTransaction ("Touch Drag Reverb " + juce::String (hitReverb + 1));
+                    if (onMapSelectionChanged) onMapSelectionChanged();
+                }
+                else
+                {
+                    longPressState.active = true;
+                    longPressState.targetType = LongPressState::TargetType::Reverb;
+                    longPressState.targetIndex = hitReverb;
+                    longPressState.startPos = e.position;
+                    longPressState.startTime = juce::Time::getCurrentTime();
+                }
                 repaint();
                 return;
             }
@@ -476,6 +535,26 @@ public:
             }
             else
             {
+                // Check if any active touch is dragging a reverb — second finger activates pair mirroring
+                int reverbDragIdx = -1;
+                for (const auto& [idx, t] : activeTouches)
+                {
+                    if (t.type == TouchInfo::Type::Reverb)
+                    {
+                        reverbDragIdx = t.targetIndex;
+                        break;
+                    }
+                }
+                if (reverbDragIdx >= 0)
+                {
+                    touch.type = TouchInfo::Type::ViewGesture;
+                    activeTouches[sourceIndex] = touch;
+                    reverbTouchMirrorActive = true;
+                    selectedReverbNode = reverbDragIdx;
+                    repaint();
+                    return;
+                }
+
                 // Items being dragged - this could be a secondary touch
                 auto [closestTarget, isClusterTarget] = findClosestSecondaryTouchTarget(e.position);
 
@@ -542,6 +621,8 @@ public:
             int hitInput = getInputAtPosition(e.position);
             if (hitInput >= 0)
             {
+                selectedReverbNode = -1;
+                isDraggingReverb = false;
                 if (e.mods.isShiftDown())
                 {
                     // Shift+click: toggle input in/out of multi-selection, no drag
@@ -675,15 +756,33 @@ public:
                 return;
             }
 
-            // Check for reverb marker hit (not draggable, but long-press navigates)
+            // Check for reverb marker hit
             int hitReverb = getReverbAtPosition(e.position);
             if (hitReverb >= 0)
             {
-                longPressState.active = true;
-                longPressState.targetType = LongPressState::TargetType::Reverb;
-                longPressState.targetIndex = hitReverb;
-                longPressState.startPos = e.position;
-                longPressState.startTime = juce::Time::getCurrentTime();
+                if (reverbEditMode)
+                {
+                    clearSelection();
+                    selectedReverbNode = hitReverb;
+                    isDraggingReverb = true;
+                    isDraggingInput = false;
+                    isDraggingBarycenter = false;
+                    isInViewGesture = false;
+                    float rx = static_cast<float>(parameters.getReverbParam (hitReverb, "reverbPositionX"));
+                    float ry = static_cast<float>(parameters.getReverbParam (hitReverb, "reverbPositionY"));
+                    reverbDragStartStagePos = { rx, ry };
+                    parameters.getValueTreeState().beginUndoTransaction ("Map Drag Reverb " + juce::String (hitReverb + 1));
+                    if (onMapSelectionChanged) onMapSelectionChanged();
+                    grabKeyboardFocus();
+                }
+                else
+                {
+                    longPressState.active = true;
+                    longPressState.targetType = LongPressState::TargetType::Reverb;
+                    longPressState.targetIndex = hitReverb;
+                    longPressState.startPos = e.position;
+                    longPressState.startTime = juce::Time::getCurrentTime();
+                }
                 repaint();
                 return;
             }
@@ -733,6 +832,26 @@ public:
                     repaint();
                     break;
 
+                case TouchInfo::Type::Reverb:
+                {
+                    auto currentStagePos = screenToStage (touch.currentPos);
+                    parameters.setReverbParam (touch.targetIndex, "reverbPositionX", currentStagePos.x);
+                    parameters.setReverbParam (touch.targetIndex, "reverbPositionY", currentStagePos.y);
+
+                    if (reverbTouchMirrorActive)
+                    {
+                        int numReverbs = parameters.getNumReverbChannels();
+                        int pairIdx = (touch.targetIndex % 2 == 0) ? touch.targetIndex + 1 : touch.targetIndex - 1;
+                        if (pairIdx >= 0 && pairIdx < numReverbs)
+                        {
+                            parameters.setReverbParam (pairIdx, "reverbPositionX", -currentStagePos.x);
+                            parameters.setReverbParam (pairIdx, "reverbPositionY", currentStagePos.y);
+                        }
+                    }
+                    repaint();
+                    break;
+                }
+
                 case TouchInfo::Type::ViewGesture:
                 {
                     int viewTouches = countViewGestureTouches();
@@ -772,6 +891,28 @@ public:
                 viewOffset = dragStartOffset + delta;
                 repaint();
             }
+            return;
+        }
+
+        // Handle reverb node dragging
+        if (isDraggingReverb && selectedReverbNode >= 0)
+        {
+            auto currentStagePos = screenToStage (e.position);
+            parameters.setReverbParam (selectedReverbNode, "reverbPositionX", currentStagePos.x);
+            parameters.setReverbParam (selectedReverbNode, "reverbPositionY", currentStagePos.y);
+
+            bool mirrorPair = e.mods.isCtrlDown() || e.mods.isCommandDown();
+            if (mirrorPair)
+            {
+                int numReverbs = parameters.getNumReverbChannels();
+                int pairIdx = (selectedReverbNode % 2 == 0) ? selectedReverbNode + 1 : selectedReverbNode - 1;
+                if (pairIdx >= 0 && pairIdx < numReverbs)
+                {
+                    parameters.setReverbParam (pairIdx, "reverbPositionX", -currentStagePos.x);
+                    parameters.setReverbParam (pairIdx, "reverbPositionY", currentStagePos.y);
+                }
+            }
+            repaint();
             return;
         }
 
@@ -988,11 +1129,30 @@ public:
                 bool wasViewGesture = (it->second.type == TouchInfo::Type::ViewGesture);
                 bool wasSecondaryTouch = (it->second.type == TouchInfo::Type::SecondaryTouch);
                 bool wasInputDrag = (it->second.type == TouchInfo::Type::Input);
+                bool wasReverbDrag = (it->second.type == TouchInfo::Type::Reverb);
                 int draggedInputIndex = it->second.targetIndex;
 
                 // Notify path mode that drag ended (before erasing touch)
                 if (wasInputDrag && draggedInputIndex >= 0 && onDragEndCallback)
                     onDragEndCallback(draggedInputIndex);
+
+                if (wasReverbDrag)
+                {
+                    isDraggingReverb = false;
+                    reverbTouchMirrorActive = false;
+                    if (draggedInputIndex >= 0)
+                    {
+                        orientReverbTowardsOrigin (draggedInputIndex);
+                        int numReverbs = parameters.getNumReverbChannels();
+                        int pairIdx = (draggedInputIndex % 2 == 0) ? draggedInputIndex + 1 : draggedInputIndex - 1;
+                        if (pairIdx >= 0 && pairIdx < numReverbs)
+                            orientReverbTowardsOrigin (pairIdx);
+                    }
+                }
+
+                // Second finger lifted during reverb mirror — deactivate mirroring
+                if (reverbTouchMirrorActive && !wasReverbDrag)
+                    reverbTouchMirrorActive = false;
 
                 activeTouches.erase(it);
 
@@ -1027,6 +1187,20 @@ public:
 
         isDraggingInput = false;
         isDraggingBarycenter = false;
+
+        if (isDraggingReverb)
+        {
+            isDraggingReverb = false;
+            if (selectedReverbNode >= 0)
+            {
+                orientReverbTowardsOrigin (selectedReverbNode);
+                int numReverbs = parameters.getNumReverbChannels();
+                int pairIdx = (selectedReverbNode % 2 == 0) ? selectedReverbNode + 1 : selectedReverbNode - 1;
+                if (pairIdx >= 0 && pairIdx < numReverbs)
+                    orientReverbTowardsOrigin (pairIdx);
+            }
+        }
+
         multiDragSnapshots.clear();
         isInViewGesture = false;
         gestureMode = GestureMode::None;
@@ -1181,7 +1355,7 @@ public:
     // Per-touch tracking info
     struct TouchInfo
     {
-        enum class Type { None, Input, Barycenter, ViewGesture, SecondaryTouch };
+        enum class Type { None, Input, Barycenter, Reverb, ViewGesture, SecondaryTouch };
         Type type = Type::None;
         int targetIndex = -1;  // Input index or barycenter cluster number
         juce::Point<float> startPos;  // Screen position at touch start
@@ -1218,7 +1392,8 @@ public:
         for (const auto& [idx, touch] : activeTouches)
         {
             if (touch.type == TouchInfo::Type::Input ||
-                touch.type == TouchInfo::Type::Barycenter)
+                touch.type == TouchInfo::Type::Barycenter ||
+                touch.type == TouchInfo::Type::Reverb)
                 ++count;
         }
         return count;
@@ -2047,6 +2222,13 @@ private:
     bool isDraggingBarycenter = false;
     juce::Point<float> barycenterDragStartStagePos;
 
+    // Reverb edit mode
+    bool reverbEditMode = false;
+    int selectedReverbNode = -1;  // 0-based reverb index, -1 = none
+    bool isDraggingReverb = false;
+    bool reverbTouchMirrorActive = false;  // Two-finger touch activates pair mirroring
+    juce::Point<float> reverbDragStartStagePos;
+
     // UI Components
     juce::TextButton homeButton;
     juce::TextButton fitInputsButton;
@@ -2094,8 +2276,11 @@ private:
         selectedInputs.clear();
         selectedInput = -1;
         selectedBarycenter = -1;
+        selectedReverbNode = -1;
         isDraggingInput = false;
         isDraggingBarycenter = false;
+        isDraggingReverb = false;
+        reverbTouchMirrorActive = false;
     }
 
     void selectSingleInput(int idx)
@@ -2118,6 +2303,44 @@ private:
 
     bool isInputSelected(int idx) const { return selectedInputs.count(idx) > 0; }
     bool isMultiSelected() const { return selectedInputs.size() > 1; }
+
+    /** Auto-orient a reverb node's feed direction toward the origin */
+    void orientReverbTowardsOrigin (int reverbIdx)
+    {
+        float px = static_cast<float>(parameters.getReverbParam (reverbIdx, "reverbPositionX"));
+        float py = static_cast<float>(parameters.getReverbParam (reverbIdx, "reverbPositionY"));
+        float dist = std::sqrt (px * px + py * py);
+        if (dist < 0.001f) return;  // At origin, skip
+        float angleDeg = juce::radiansToDegrees (std::atan2 (px, -py));
+        int angleInt = static_cast<int>(std::round (angleDeg));
+        while (angleInt > 180)  angleInt -= 360;
+        while (angleInt < -179) angleInt += 360;
+        parameters.setReverbParam (reverbIdx, "reverbOrientation", angleInt);
+    }
+
+    /** Move a reverb node by delta. If mirrorPair, the paired channel (consecutive pairs)
+        gets mirrored X delta: (-dx, dy, dz). */
+    void moveReverbByDelta (int reverbIdx, float dx, float dy, float dz, bool mirrorPair)
+    {
+        float px = static_cast<float>(parameters.getReverbParam (reverbIdx, "reverbPositionX")) + dx;
+        float py = static_cast<float>(parameters.getReverbParam (reverbIdx, "reverbPositionY")) + dy;
+        float pz = static_cast<float>(parameters.getReverbParam (reverbIdx, "reverbPositionZ")) + dz;
+        parameters.setReverbParam (reverbIdx, "reverbPositionX", px);
+        parameters.setReverbParam (reverbIdx, "reverbPositionY", py);
+        parameters.setReverbParam (reverbIdx, "reverbPositionZ", pz);
+
+        if (mirrorPair)
+        {
+            int numReverbs = parameters.getNumReverbChannels();
+            int pairIdx = (reverbIdx % 2 == 0) ? reverbIdx + 1 : reverbIdx - 1;
+            if (pairIdx >= 0 && pairIdx < numReverbs)
+            {
+                parameters.setReverbParam (pairIdx, "reverbPositionX", -px);
+                parameters.setReverbParam (pairIdx, "reverbPositionY", py);
+                parameters.setReverbParam (pairIdx, "reverbPositionZ", pz);
+            }
+        }
+    }
 
     /** Move all selected inputs by a delta. Handles tracking offsets, cluster references,
         and avoids double-moving cluster members. Used by arrow keys, Stream Deck, etc. */
@@ -2788,6 +3011,33 @@ private:
             g.fillPath(diamond);
             g.setColour(juce::Colour(0xFF9C27B0));
             g.strokePath(diamond, juce::PathStrokeType(1.5f));
+
+            // Highlight selected reverb node with solid circle
+            if (reverbEditMode && i == selectedReverbNode)
+            {
+                float circleRadius = size + 6.0f;
+                g.setColour(juce::Colours::yellow.withAlpha(0.8f));
+                g.drawEllipse(screenPos.x - circleRadius, screenPos.y - circleRadius,
+                              circleRadius * 2, circleRadius * 2, 2.0f);
+            }
+
+            // Highlight paired channel with dashed circle
+            if (reverbEditMode && selectedReverbNode >= 0)
+            {
+                int pairIdx = (selectedReverbNode % 2 == 0) ? selectedReverbNode + 1 : selectedReverbNode - 1;
+                if (i == pairIdx && pairIdx >= 0 && pairIdx < numReverbs)
+                {
+                    float circleRadius = size + 6.0f;
+                    g.setColour(juce::Colours::yellow.withAlpha(0.4f));
+                    juce::Path circle;
+                    circle.addEllipse(screenPos.x - circleRadius, screenPos.y - circleRadius,
+                                      circleRadius * 2, circleRadius * 2);
+                    juce::Path dashedCircle;
+                    float dashLengths[] = { 4.0f, 4.0f };
+                    juce::PathStrokeType(1.5f).createDashedStroke(dashedCircle, circle, dashLengths, 2);
+                    g.fillPath(dashedCircle);
+                }
+            }
 
             // Draw channel number
             {

@@ -282,6 +282,10 @@ MainComponent::MainComponent()
     reverbTab->onMutePostChanged = [this](bool active) {
         muteReverbPost.store (active, std::memory_order_relaxed);
     };
+    // Edit on Map: enable reverb node interaction on map tab
+    reverbTab->onMapEditChanged = [this](bool enabled) {
+        if (mapTab) mapTab->setReverbEditMode (enabled);
+    };
 
     systemConfigTab->setAudioInterfaceCallback([this]() {
         openAudioInterfaceWindow();

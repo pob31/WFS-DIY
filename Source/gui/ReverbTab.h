@@ -224,6 +224,8 @@ public:
     std::function<void(bool)> onMutePreChanged;
     /** Callback when Mute Post toggle changes (skips reverb returns, hear only direct) */
     std::function<void(bool)> onMutePostChanged;
+    /** Callback when Edit on Map toggle changes (enables/disables reverb node interaction on map) */
+    std::function<void(bool)> onMapEditChanged;
 
     void cycleChannel (int delta)
     {
@@ -364,6 +366,22 @@ private:
         addAndMakeVisible (mapVisibilityButton);
         updateMapVisibilityButtonState();
         mapVisibilityButton.onClick = [this]() { toggleMapVisibility(); };
+
+        // Edit on Map toggle button
+        addAndMakeVisible (mapEditButton);
+        mapEditButton.setButtonText (LOC("reverbs.buttons.editOnMap"));
+        mapEditButton.onClick = [this]()
+        {
+            mapEditActive = ! mapEditActive;
+            mapEditButton.setButtonText (mapEditActive
+                ? LOC("reverbs.buttons.editOnMapOn")
+                : LOC("reverbs.buttons.editOnMap"));
+            mapEditButton.setColour (juce::TextButton::buttonColourId,
+                mapEditActive ? juce::Colour (0xFFCC8800)
+                              : getLookAndFeel().findColour (juce::TextButton::buttonColourId));
+            if (onMapEditChanged)
+                onMapEditChanged (mapEditActive);
+        };
 
         // Solo Reverbs long-press toggle
         addAndMakeVisible (soloReverbsButton);
@@ -1907,6 +1925,9 @@ private:
         mutePreButton.setBounds (row.removeFromLeft (scaled(110)));
         row.removeFromLeft (scaled(5));
         mutePostButton.setBounds (row.removeFromLeft (scaled(110)));
+
+        row.removeFromLeft (spacing * 2);
+        mapEditButton.setBounds (row.removeFromLeft (scaled(140)));
     }
 
     void layoutFooter (juce::Rectangle<int> area)
@@ -4591,6 +4612,27 @@ private:
         // Check if this is a parameter change for the current reverb channel
         if (!isLoadingParameters)
         {
+            // Coalesce rapid position/orientation changes (e.g., during map drag)
+            if (property == WFSParameterIDs::reverbPositionX ||
+                property == WFSParameterIDs::reverbPositionY ||
+                property == WFSParameterIDs::reverbPositionZ ||
+                property == WFSParameterIDs::reverbOrientation)
+            {
+                if (!reverbPositionDirty)
+                {
+                    reverbPositionDirty = true;
+                    juce::MessageManager::callAsync ([this]()
+                    {
+                        if (reverbPositionDirty)
+                        {
+                            reverbPositionDirty = false;
+                            loadChannelParameters (currentChannel);
+                        }
+                    });
+                }
+                return;
+            }
+
             juce::ValueTree parent = tree;
             while (parent.isValid())
             {
@@ -4870,6 +4912,7 @@ private:
     juce::ValueTree configTree;
     juce::ValueTree ioTree;
     bool isLoadingParameters = false;
+    bool reverbPositionDirty = false;  // Coalesces rapid position updates from map drag
     StatusBar* statusBar = nullptr;
     int currentChannel = 1;
 
@@ -4896,6 +4939,8 @@ private:
     bool mutePreActive = false;
     LongPressButton mutePostButton { 800 };
     bool mutePostActive = false;
+    juce::TextButton mapEditButton;
+    bool mapEditActive = false;
 
     // Sub-tab bar
     juce::TabbedButtonBar subTabBar { juce::TabbedButtonBar::TabsAtTop };

@@ -826,6 +826,8 @@
       "mutePreOn": "Mute Pre ON",
       "mutePost": "Mute Post",
       "mutePostOn": "Mute Post ON",
+      "editOnMap": "Edit on Map",
+      "editOnMapOn": "Edit on Map ON",
       "storeConfig": "Hallkonf. speichern",
       "reloadConfig": "Hallkonf. neu laden",
       "reloadBackup": "Backup laden",

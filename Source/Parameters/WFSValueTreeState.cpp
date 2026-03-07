@@ -1209,7 +1209,7 @@ void WFSValueTreeState::setNumReverbChannels (int numChannels)
     {
         // Add new channels
         for (int i = currentCount; i < numChannels; ++i)
-            reverbs.appendChild (createDefaultReverbChannel (i), getActiveUndoManager());
+            reverbs.appendChild (createDefaultReverbChannel (i, numChannels), getActiveUndoManager());
     }
     else if (numChannels < currentCount)
     {
@@ -1381,7 +1381,7 @@ void WFSValueTreeState::resetReverbToDefaults (int channelIndex)
     if (reverb.isValid())
     {
         beginUndoTransaction ("Reset Reverb " + juce::String (channelIndex + 1));
-        auto newReverb = createDefaultReverbChannel (channelIndex);
+        auto newReverb = createDefaultReverbChannel (channelIndex, getNumReverbChannels());
         reverb.copyPropertiesAndChildrenFrom (newReverb, getActiveUndoManager());
     }
 }
@@ -1667,7 +1667,7 @@ void WFSValueTreeState::createReverbsSection()
 
     // Create reverb channels based on default count (typically 0)
     for (int i = 0; i < reverbChannelsDefault; ++i)
-        reverbs.appendChild (createDefaultReverbChannel (i), nullptr);
+        reverbs.appendChild (createDefaultReverbChannel (i, reverbChannelsDefault), nullptr);
 
     // Create global algorithm section
     reverbs.appendChild (createReverbAlgorithmSection(), nullptr);
@@ -2009,13 +2009,13 @@ juce::ValueTree WFSValueTreeState::createOutputEQSection()
     return eq;
 }
 
-juce::ValueTree WFSValueTreeState::createDefaultReverbChannel (int index)
+juce::ValueTree WFSValueTreeState::createDefaultReverbChannel (int index, int totalCount)
 {
     juce::ValueTree reverb (Reverb);
     reverb.setProperty (id, index + 1, nullptr);
 
     reverb.appendChild (createReverbChannelSection (index), nullptr);
-    reverb.appendChild (createReverbPositionSection(), nullptr);
+    reverb.appendChild (createReverbPositionSection (index, totalCount), nullptr);
     reverb.appendChild (createReverbFeedSection(), nullptr);
     reverb.appendChild (createReverbEQSection(), nullptr);
     reverb.appendChild (createReverbReturnSection (getNumOutputChannels()), nullptr);
@@ -2032,11 +2032,12 @@ juce::ValueTree WFSValueTreeState::createReverbChannelSection (int index)
     return channel;
 }
 
-juce::ValueTree WFSValueTreeState::createReverbPositionSection()
+juce::ValueTree WFSValueTreeState::createReverbPositionSection (int index, int totalCount)
 {
     juce::ValueTree position (Position);
-    position.setProperty (reverbPositionX, reverbPositionDefault, nullptr);
-    position.setProperty (reverbPositionY, reverbPositionDefault, nullptr);
+    float xPos = (static_cast<float>(index) - (static_cast<float>(totalCount) - 1.0f) / 2.0f) * 1.0f;
+    position.setProperty (reverbPositionX, xPos, nullptr);
+    position.setProperty (reverbPositionY, 2.0f, nullptr);
     position.setProperty (reverbPositionZ, reverbPositionDefault, nullptr);
     position.setProperty (reverbReturnOffsetX, reverbReturnOffsetDefault, nullptr);
     position.setProperty (reverbReturnOffsetY, reverbReturnOffsetDefault, nullptr);

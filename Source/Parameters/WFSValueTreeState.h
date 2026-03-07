@@ -445,11 +445,11 @@ private:
     juce::ValueTree createOutputEQSection();
 
     /** Create a single default reverb channel */
-    juce::ValueTree createDefaultReverbChannel (int index);
+    juce::ValueTree createDefaultReverbChannel (int index, int totalCount);
 
     /** Create reverb channel subsections */
     juce::ValueTree createReverbChannelSection (int index);
-    juce::ValueTree createReverbPositionSection();
+    juce::ValueTree createReverbPositionSection (int index, int totalCount);
     juce::ValueTree createReverbFeedSection();
     juce::ValueTree createReverbEQSection();
     juce::ValueTree createReverbReturnSection (int numOutputs);
