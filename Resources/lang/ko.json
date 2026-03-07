@@ -1656,6 +1656,23 @@ OFF",
         }
       }
     },
+    "reverb": {
+      "sections": {
+        "feedParameters": "Reverb Feed\nParameters",
+        "feedOrientation": "Reverb Feed\nOrientation",
+        "reverbReturn": "Reverb\nReturn",
+        "soloMute": "Solo\nMute"
+      },
+      "buttons": {
+        "editOnMap": "Edit on\nMap",
+        "soloReverb": "Solo\nReverb",
+        "mutePre": "Mute\nPre",
+        "mutePost": "Mute\nPost"
+      },
+      "dials": {
+        "commonAttenuation": "Common\nAtten."
+      }
+    },
     "network": {
       "buttons": {
         "oscFilterAll": "OSC 필터:\n모두",

@@ -121,6 +121,7 @@ public:
     //==========================================================================
 
     int getCurrentChannel() const { return currentChannel; }
+    int getCurrentSubTab() const { return subTabBar.getCurrentTabIndex(); }
 
     void selectChannel (int channel)
     {
@@ -227,6 +228,75 @@ public:
     /** Callback when Edit on Map toggle changes (enables/disables reverb node interaction on map) */
     std::function<void(bool)> onMapEditChanged;
 
+    /** Set solo/mute/editOnMap state from an external source (e.g., Stream Deck).
+        Updates internal GUI state without re-firing the callbacks. */
+    void setSoloReverbsFromExternal (bool active)
+    {
+        soloReverbsActive = active;
+        soloReverbsButton.setButtonText (active ? LOC ("reverbs.buttons.soloReverbsOn")
+                                                : LOC ("reverbs.buttons.soloReverbs"));
+        soloReverbsButton.setBaseColour (active ? juce::Colour (0xFFCC8800) : juce::Colour());
+        if (active)
+        {
+            mutePreActive = false;
+            mutePreButton.setButtonText (LOC ("reverbs.buttons.mutePre"));
+            mutePreButton.setBaseColour (juce::Colour());
+            mutePostActive = false;
+            mutePostButton.setButtonText (LOC ("reverbs.buttons.mutePost"));
+            mutePostButton.setBaseColour (juce::Colour());
+        }
+    }
+
+    void setMutePreFromExternal (bool active)
+    {
+        mutePreActive = active;
+        mutePreButton.setButtonText (active ? LOC ("reverbs.buttons.mutePreOn")
+                                            : LOC ("reverbs.buttons.mutePre"));
+        mutePreButton.setBaseColour (active ? juce::Colour (0xFFCC8800) : juce::Colour());
+        if (active)
+        {
+            soloReverbsActive = false;
+            soloReverbsButton.setButtonText (LOC ("reverbs.buttons.soloReverbs"));
+            soloReverbsButton.setBaseColour (juce::Colour());
+            mutePostActive = false;
+            mutePostButton.setButtonText (LOC ("reverbs.buttons.mutePost"));
+            mutePostButton.setBaseColour (juce::Colour());
+        }
+    }
+
+    void setMutePostFromExternal (bool active)
+    {
+        mutePostActive = active;
+        mutePostButton.setButtonText (active ? LOC ("reverbs.buttons.mutePostOn")
+                                             : LOC ("reverbs.buttons.mutePost"));
+        mutePostButton.setBaseColour (active ? juce::Colour (0xFFCC8800) : juce::Colour());
+        if (active)
+        {
+            soloReverbsActive = false;
+            soloReverbsButton.setButtonText (LOC ("reverbs.buttons.soloReverbs"));
+            soloReverbsButton.setBaseColour (juce::Colour());
+            mutePreActive = false;
+            mutePreButton.setButtonText (LOC ("reverbs.buttons.mutePre"));
+            mutePreButton.setBaseColour (juce::Colour());
+        }
+    }
+
+    void setEditOnMapFromExternal (bool enabled)
+    {
+        mapEditActive = enabled;
+        mapEditButton.setButtonText (enabled ? LOC ("reverbs.buttons.editOnMapOn")
+                                             : LOC ("reverbs.buttons.editOnMap"));
+        mapEditButton.setColour (juce::TextButton::buttonColourId,
+            enabled ? juce::Colour (0xFFCC8800) : juce::Colour (0xFF2D2D2D));
+        if (enabled)
+        {
+            auto val = parameters.getConfigParam ("reverbsMapVisible");
+            bool visible = val.isVoid() || static_cast<int> (val) != 0;
+            if (! visible)
+                toggleMapVisibility();
+        }
+    }
+
     void cycleChannel (int delta)
     {
         int numChannels = channelSelector.getNumChannels();
@@ -244,6 +314,7 @@ public:
     }
 
     std::function<void (int)> onChannelSelected;
+    std::function<void (int)> onSubTabChanged;
 
     //==========================================================================
     // Component Overrides
@@ -379,6 +450,13 @@ private:
             mapEditButton.setColour (juce::TextButton::buttonColourId,
                 mapEditActive ? juce::Colour (0xFFCC8800)
                               : getLookAndFeel().findColour (juce::TextButton::buttonColourId));
+            if (mapEditActive)
+            {
+                auto val = parameters.getConfigParam ("reverbsMapVisible");
+                bool visible = val.isVoid() || static_cast<int> (val) != 0;
+                if (! visible)
+                    toggleMapVisibility();
+            }
             if (onMapEditChanged)
                 onMapEditChanged (mapEditActive);
         };
@@ -1918,16 +1996,15 @@ private:
 
         row.removeFromLeft (spacing * 4);
         mapVisibilityButton.setBounds (row.removeFromLeft (scaled(180)));
-
-        row.removeFromLeft (spacing * 2);
-        soloReverbsButton.setBounds (row.removeFromLeft (scaled(130)));
-        row.removeFromLeft (scaled(5));
-        mutePreButton.setBounds (row.removeFromLeft (scaled(110)));
-        row.removeFromLeft (scaled(5));
-        mutePostButton.setBounds (row.removeFromLeft (scaled(110)));
-
-        row.removeFromLeft (spacing * 2);
+        row.removeFromLeft (spacing);
         mapEditButton.setBounds (row.removeFromLeft (scaled(140)));
+
+        // Solo/Mute group right-aligned (matching InputsTab solo section)
+        mutePostButton.setBounds (row.removeFromRight (scaled(110)));
+        row.removeFromRight (spacing);
+        mutePreButton.setBounds (row.removeFromRight (scaled(110)));
+        row.removeFromRight (spacing);
+        soloReverbsButton.setBounds (row.removeFromRight (scaled(130)));
     }
 
     void layoutFooter (juce::Rectangle<int> area)
@@ -4172,8 +4249,12 @@ private:
         layoutCurrentSubTab();
         repaint();
 
-        // TTS: Announce subtab change for accessibility
         int tabIndex = subTabBar.getCurrentTabIndex();
+
+        if (onSubTabChanged)
+            onSubTabChanged (tabIndex);
+
+        // TTS: Announce subtab change for accessibility
         if (tabIndex >= 0 && tabIndex < subTabBar.getNumTabs())
         {
             juce::String tabName = subTabBar.getTabButton(tabIndex)->getButtonText();
@@ -4725,6 +4806,17 @@ private:
 
         parameters.setConfigParam ("reverbsMapVisible", newVisible ? 1 : 0);
         updateMapVisibilityButtonState();
+
+        // If hiding reverbs while edit mode is active, disable edit mode
+        if (! newVisible && mapEditActive)
+        {
+            mapEditActive = false;
+            mapEditButton.setButtonText (LOC ("reverbs.buttons.editOnMap"));
+            mapEditButton.setColour (juce::TextButton::buttonColourId,
+                getLookAndFeel().findColour (juce::TextButton::buttonColourId));
+            if (onMapEditChanged)
+                onMapEditChanged (false);
+        }
     }
 
     void updateMapVisibilityButtonState()
@@ -4750,6 +4842,7 @@ private:
         soloReverbsButton.setVisible (hasChannels);
         mutePreButton.setVisible (hasChannels);
         mutePostButton.setVisible (hasChannels);
+        mapEditButton.setVisible (hasChannels);
 
         // Auto-reset all reverb toggles when all channels are removed
         if (! hasChannels)
@@ -4757,6 +4850,16 @@ private:
             resetReverbToggle (soloReverbsButton, soloReverbsActive, "reverbs.buttons.soloReverbs", onSoloReverbsChanged);
             resetReverbToggle (mutePreButton, mutePreActive, "reverbs.buttons.mutePre", onMutePreChanged);
             resetReverbToggle (mutePostButton, mutePostActive, "reverbs.buttons.mutePost", onMutePostChanged);
+
+            // Reset map edit toggle
+            if (mapEditActive)
+            {
+                mapEditActive = false;
+                mapEditButton.setButtonText (LOC("reverbs.buttons.editOnMap"));
+                mapEditButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF2D2D2D));
+                mapEditButton.setColour (juce::TextButton::buttonOnColourId, juce::Colour (0xFF2D2D2D));
+                if (onMapEditChanged) onMapEditChanged (false);
+            }
         }
 
         // Show/hide sub-tab bar and all sub-tab content

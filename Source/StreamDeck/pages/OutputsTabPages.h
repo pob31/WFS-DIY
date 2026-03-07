@@ -344,6 +344,12 @@ inline StreamDeckPage createOutputEQPage (WFSValueTreeState& state,
             int current = static_cast<int> (state.getOutputParameter (ch, outputEQenabled));
             state.setOutputParameter (ch, outputEQenabled, current != 0 ? 0 : 1);
         };
+
+        btn.getDynamicLabel = [&state, ch]()
+        {
+            bool on = static_cast<int> (state.getOutputParameter (ch, outputEQenabled)) != 0;
+            return juce::String ("EQ\n") + (on ? "ON" : "OFF");
+        };
     }
 
     // Buttons 1-3: Band 4, 5, 6 selectors
@@ -384,6 +390,13 @@ inline StreamDeckPage createOutputEQPage (WFSValueTreeState& state,
                     state.setOutputEQBandParameterWithArrayPropagation (ch, band, eqShape, 0);
                 else
                     state.setOutputEQBandParameterWithArrayPropagation (ch, band, eqShape, eqBandComboDefaults[band]);
+            };
+
+            btn.getDynamicLabel = [&state, ch, band]()
+            {
+                auto bt = state.getOutputEQBand (ch, band);
+                bool on = static_cast<int> (bt.getProperty (eqShape, 0)) != 0;
+                return LOC ("eq.labels.band") + " " + juce::String (band + 1) + "\n" + (on ? "ON" : "OFF");
             };
         }
 

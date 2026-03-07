@@ -8,6 +8,7 @@
 #include "StreamDeck/pages/OutputsTabPages.h"
 #include "StreamDeck/pages/SystemConfigTabPages.h"
 #include "StreamDeck/pages/MapTabPages.h"
+#include "StreamDeck/pages/ReverbTabPages.h"
 #include "StreamDeck/pages/PatchWindowPages.h"
 
 //==============================================================================
@@ -270,22 +271,7 @@ MainComponent::MainComponent()
         handleChannelCountChange(inputs, outputs, reverbs);
     });
 
-    // Solo Reverbs: mute direct sound, keep reverb feeds
-    reverbTab->onSoloReverbsChanged = [this](bool active) {
-        soloReverbs.store (active, std::memory_order_relaxed);
-    };
-    // Mute Pre: silence reverb feeds, hear tail decay
-    reverbTab->onMutePreChanged = [this](bool active) {
-        muteReverbPre.store (active, std::memory_order_relaxed);
-    };
-    // Mute Post: skip reverb returns, hear only direct
-    reverbTab->onMutePostChanged = [this](bool active) {
-        muteReverbPost.store (active, std::memory_order_relaxed);
-    };
-    // Edit on Map: enable reverb node interaction on map tab
-    reverbTab->onMapEditChanged = [this](bool enabled) {
-        if (mapTab) mapTab->setReverbEditMode (enabled);
-    };
+    // Solo/Mute/EditOnMap callbacks set later (after shared state created for StreamDeck sync)
 
     systemConfigTab->setAudioInterfaceCallback([this]() {
         openAudioInterfaceWindow();
@@ -438,13 +424,15 @@ MainComponent::MainComponent()
             parameters.getValueTreeState().setActiveDomain (domainForTab[tabIndex]);
         if (streamDeckManager)
         {
-            streamDeckManager->setMainTab (tabIndex);
-
-            // Sync StreamDeck channel to the active tab's current channel
-            if (tabIndex == 2 && outputsTab != nullptr)
-                streamDeckManager->setChannel (outputsTab->getCurrentChannel());
+            // Sync subtab + channel state atomically before page render
+            if (tabIndex == 3 && reverbTab != nullptr)
+                streamDeckManager->syncNavigation (tabIndex, reverbTab->getCurrentSubTab(), reverbTab->getCurrentChannel());
+            else if (tabIndex == 2 && outputsTab != nullptr)
+                streamDeckManager->syncNavigation (tabIndex, 0, outputsTab->getCurrentChannel());
             else if (tabIndex == 4 && inputsTab != nullptr)
-                streamDeckManager->setChannel (inputsTab->getCurrentChannel());
+                streamDeckManager->syncNavigation (tabIndex, 0, inputsTab->getCurrentChannel());
+            else
+                streamDeckManager->setMainTab (tabIndex);
         }
     };
 
@@ -534,6 +522,88 @@ MainComponent::MainComponent()
                 OutputsTabPages::OUTPUTS_MAIN_TAB_INDEX, subTab,
                 OutputsTabPages::createPage (subTab, vts, 0, outputEqBandState, onEqBandSelectedGui));
         }
+
+        // Register Reverb tab pages (subtab 0 = Channel Params, 1 = Pre-Processing, 3 = Post-Processing)
+        auto reverbPreEqBandState  = std::make_shared<int> (0);
+        auto reverbPreDynMode      = std::make_shared<bool> (false);
+        auto reverbPostEqBandState = std::make_shared<int> (0);
+        auto reverbPostDynMode     = std::make_shared<bool> (false);
+        auto reverbSoloState       = std::make_shared<bool> (false);
+        auto reverbMutePreState    = std::make_shared<bool> (false);
+        auto reverbMutePostState   = std::make_shared<bool> (false);
+        auto reverbEditOnMapState  = std::make_shared<bool> (false);
+
+        // Solo/Mute/EditOnMap callbacks (Stream Deck → audio engine + GUI sync)
+        auto onSoloReverbSD = [this, reverbSoloState] (bool active)
+        {
+            soloReverbs.store (active, std::memory_order_relaxed);
+            juce::MessageManager::callAsync ([this, active]()
+            {
+                if (reverbTab) reverbTab->setSoloReverbsFromExternal (active);
+            });
+        };
+        auto onMutePreSD = [this, reverbMutePreState] (bool active)
+        {
+            muteReverbPre.store (active, std::memory_order_relaxed);
+            juce::MessageManager::callAsync ([this, active]()
+            {
+                if (reverbTab) reverbTab->setMutePreFromExternal (active);
+            });
+        };
+        auto onMutePostSD = [this, reverbMutePostState] (bool active)
+        {
+            muteReverbPost.store (active, std::memory_order_relaxed);
+            juce::MessageManager::callAsync ([this, active]()
+            {
+                if (reverbTab) reverbTab->setMutePostFromExternal (active);
+            });
+        };
+        auto onEditOnMapSD = [this, reverbEditOnMapState] (bool enabled)
+        {
+            juce::MessageManager::callAsync ([this, enabled]()
+            {
+                if (reverbTab) reverbTab->setEditOnMapFromExternal (enabled);
+                if (mapTab) mapTab->setReverbEditMode (enabled);
+            });
+        };
+
+        for (int subTab : { 0, 1, 3 })
+        {
+            streamDeckManager->registerPage (
+                ReverbTabPages::REVERB_MAIN_TAB_INDEX, subTab,
+                ReverbTabPages::createPage (subTab, vts, 0,
+                    reverbPreEqBandState, reverbPreDynMode,
+                    reverbPostEqBandState, reverbPostDynMode,
+                    reverbSoloState, reverbMutePreState,
+                    reverbMutePostState, reverbEditOnMapState,
+                    nullptr, nullptr,
+                    onSoloReverbSD, onMutePreSD, onMutePostSD, onEditOnMapSD));
+        }
+
+        // Wire ReverbTab GUI callbacks to sync audio engine + shared state for StreamDeck
+        reverbTab->onSoloReverbsChanged = [this, reverbSoloState, reverbMutePreState, reverbMutePostState] (bool active)
+        {
+            soloReverbs.store (active, std::memory_order_relaxed);
+            *reverbSoloState = active;
+            if (active) { *reverbMutePreState = false; *reverbMutePostState = false; }
+        };
+        reverbTab->onMutePreChanged = [this, reverbSoloState, reverbMutePreState, reverbMutePostState] (bool active)
+        {
+            muteReverbPre.store (active, std::memory_order_relaxed);
+            *reverbMutePreState = active;
+            if (active) { *reverbSoloState = false; *reverbMutePostState = false; }
+        };
+        reverbTab->onMutePostChanged = [this, reverbSoloState, reverbMutePreState, reverbMutePostState] (bool active)
+        {
+            muteReverbPost.store (active, std::memory_order_relaxed);
+            *reverbMutePostState = active;
+            if (active) { *reverbSoloState = false; *reverbMutePreState = false; }
+        };
+        reverbTab->onMapEditChanged = [this, reverbEditOnMapState] (bool enabled)
+        {
+            if (mapTab) mapTab->setReverbEditMode (enabled);
+            *reverbEditOnMapState = enabled;
+        };
 
         // Network tab callbacks (actions go through the GUI for proper logic)
         NetworkTabPages::NetworkCallbacks netCB;
@@ -673,7 +743,7 @@ MainComponent::MainComponent()
         });
 
         // Set page rebuild callback for channel changes and binding swaps
-        streamDeckManager->onPageNeedsRebuild = [this, flipModeState, lfoSubModeState, movCB, outputEqBandState, onEqBandSelectedGui, netCB, sysCB, mapCB, mapQ, mapPosOffsetMode](int mainTab, int subTab, int channel)
+        streamDeckManager->onPageNeedsRebuild = [this, flipModeState, lfoSubModeState, movCB, outputEqBandState, onEqBandSelectedGui, netCB, sysCB, mapCB, mapQ, mapPosOffsetMode, reverbPreEqBandState, reverbPreDynMode, reverbPostEqBandState, reverbPostDynMode, reverbSoloState, reverbMutePreState, reverbMutePostState, reverbEditOnMapState, onSoloReverbSD, onMutePreSD, onMutePostSD, onEditOnMapSD](int mainTab, int subTab, int channel)
         {
             if (mainTab == InputsTabPages::INPUTS_MAIN_TAB_INDEX)
             {
@@ -704,6 +774,18 @@ MainComponent::MainComponent()
                 auto& vts = parameters.getValueTreeState();
                 streamDeckManager->registerPage (mainTab, subTab,
                     MapTabPages::createPage (subTab, vts, mapCB, mapQ, mapPosOffsetMode));
+            }
+            else if (mainTab == ReverbTabPages::REVERB_MAIN_TAB_INDEX)
+            {
+                auto& vts = parameters.getValueTreeState();
+                streamDeckManager->registerPage (mainTab, subTab,
+                    ReverbTabPages::createPage (subTab, vts, channel - 1,
+                        reverbPreEqBandState, reverbPreDynMode,
+                        reverbPostEqBandState, reverbPostDynMode,
+                        reverbSoloState, reverbMutePreState,
+                        reverbMutePostState, reverbEditOnMapState,
+                        nullptr, nullptr,
+                        onSoloReverbSD, onMutePreSD, onMutePostSD, onEditOnMapSD));
             }
         };
 
@@ -896,6 +978,19 @@ MainComponent::MainComponent()
     outputsTab->onSubTabChanged = [this](int subTabIndex)
     {
         if (streamDeckManager && tabbedComponent.getCurrentTabIndex() == 2)
+            streamDeckManager->setSubTab (subTabIndex);
+    };
+
+    // Connect ReverbTab channel and subtab selection to StreamDeck
+    reverbTab->onChannelSelected = [this](int channelId)
+    {
+        if (streamDeckManager && tabbedComponent.getCurrentTabIndex() == 3)
+            streamDeckManager->setChannel (channelId);
+    };
+
+    reverbTab->onSubTabChanged = [this](int subTabIndex)
+    {
+        if (streamDeckManager && tabbedComponent.getCurrentTabIndex() == 3)
             streamDeckManager->setSubTab (subTabIndex);
     };
 

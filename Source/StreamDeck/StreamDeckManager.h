@@ -122,6 +122,23 @@ public:
     /** Get the current channel index. */
     int getChannel() const { return currentChannel; }
 
+    /** Sync all navigation state at once (avoids redundant page switches).
+        Use when switching main tabs to set correct subtab/channel before page render. */
+    void syncNavigation (int mainTab, int subTab, int channel)
+    {
+        bool changed = (currentMainTab != mainTab)
+                    || (currentSubTab != subTab)
+                    || (currentChannel != channel);
+        if (! changed)
+            return;
+
+        currentMainTab = mainTab;
+        currentSubTab = subTab;
+        currentChannel = channel;
+        exitComboMode();
+        switchToCurrentPage();
+    }
+
     //==========================================================================
     // Page Rebuilding (call when bindings need to update, e.g., after channel change)
     //==========================================================================
@@ -302,6 +319,7 @@ private:
                 exitComboMode();
                 if (page->setActiveSection (buttonIndex))
                 {
+                    invalidateButtonCache();
                     renderer.renderAndSendFullPage (device, *page);
                 }
             }

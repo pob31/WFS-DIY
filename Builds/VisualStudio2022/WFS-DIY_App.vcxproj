@@ -3152,6 +3152,7 @@
     <ClInclude Include="..\..\Source\StreamDeck\pages\OutputsTabPages.h"/>
     <ClInclude Include="..\..\Source\StreamDeck\pages\SystemConfigTabPages.h"/>
     <ClInclude Include="..\..\Source\StreamDeck\pages\MapTabPages.h"/>
+    <ClInclude Include="..\..\Source\StreamDeck\pages\ReverbTabPages.h"/>
     <ClInclude Include="..\..\Source\WFSAlgorithm.h"/>
     <ClInclude Include="..\..\Source\DSP\WFSCalculationEngine.h"/>
     <ClInclude Include="..\..\Source\DSP\WFSHighShelfFilter.h"/>
