@@ -532,6 +532,8 @@ MainComponent::MainComponent()
         auto reverbMutePreState    = std::make_shared<bool> (false);
         auto reverbMutePostState   = std::make_shared<bool> (false);
         auto reverbEditOnMapState  = std::make_shared<bool> (false);
+        auto reverbAlgoSubMode     = std::make_shared<int> (0);
+        auto reverbIRDuration      = std::make_shared<float> (WFSParameterDefaults::reverbIRlengthDefault);
 
         // Solo/Mute/EditOnMap callbacks (Stream Deck → audio engine + GUI sync)
         auto onSoloReverbSD = [this, reverbSoloState] (bool active)
@@ -567,7 +569,9 @@ MainComponent::MainComponent()
             });
         };
 
-        for (int subTab : { 0, 1, 3 })
+        reverbTab->sharedIRDuration = reverbIRDuration;
+
+        for (int subTab : { 0, 1, 2, 3 })
         {
             streamDeckManager->registerPage (
                 ReverbTabPages::REVERB_MAIN_TAB_INDEX, subTab,
@@ -576,6 +580,7 @@ MainComponent::MainComponent()
                     reverbPostEqBandState, reverbPostDynMode,
                     reverbSoloState, reverbMutePreState,
                     reverbMutePostState, reverbEditOnMapState,
+                    reverbAlgoSubMode, reverbIRDuration,
                     nullptr, nullptr,
                     onSoloReverbSD, onMutePreSD, onMutePostSD, onEditOnMapSD));
         }
@@ -603,6 +608,14 @@ MainComponent::MainComponent()
         {
             if (mapTab) mapTab->setReverbEditMode (enabled);
             *reverbEditOnMapState = enabled;
+        };
+        reverbTab->onAlgorithmChanged = [this, reverbAlgoSubMode]()
+        {
+            if (streamDeckManager && streamDeckManager->getCurrentMainTab() == ReverbTabPages::REVERB_MAIN_TAB_INDEX)
+            {
+                *reverbAlgoSubMode = 0;
+                streamDeckManager->refreshCurrentPage();
+            }
         };
 
         // Network tab callbacks (actions go through the GUI for proper logic)
@@ -743,7 +756,7 @@ MainComponent::MainComponent()
         });
 
         // Set page rebuild callback for channel changes and binding swaps
-        streamDeckManager->onPageNeedsRebuild = [this, flipModeState, lfoSubModeState, movCB, outputEqBandState, onEqBandSelectedGui, netCB, sysCB, mapCB, mapQ, mapPosOffsetMode, reverbPreEqBandState, reverbPreDynMode, reverbPostEqBandState, reverbPostDynMode, reverbSoloState, reverbMutePreState, reverbMutePostState, reverbEditOnMapState, onSoloReverbSD, onMutePreSD, onMutePostSD, onEditOnMapSD](int mainTab, int subTab, int channel)
+        streamDeckManager->onPageNeedsRebuild = [this, flipModeState, lfoSubModeState, movCB, outputEqBandState, onEqBandSelectedGui, netCB, sysCB, mapCB, mapQ, mapPosOffsetMode, reverbPreEqBandState, reverbPreDynMode, reverbPostEqBandState, reverbPostDynMode, reverbSoloState, reverbMutePreState, reverbMutePostState, reverbEditOnMapState, reverbAlgoSubMode, reverbIRDuration, onSoloReverbSD, onMutePreSD, onMutePostSD, onEditOnMapSD](int mainTab, int subTab, int channel)
         {
             if (mainTab == InputsTabPages::INPUTS_MAIN_TAB_INDEX)
             {
@@ -784,6 +797,7 @@ MainComponent::MainComponent()
                         reverbPostEqBandState, reverbPostDynMode,
                         reverbSoloState, reverbMutePreState,
                         reverbMutePostState, reverbEditOnMapState,
+                        reverbAlgoSubMode, reverbIRDuration,
                         nullptr, nullptr,
                         onSoloReverbSD, onMutePreSD, onMutePostSD, onEditOnMapSD));
             }

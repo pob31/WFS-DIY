@@ -70,7 +70,8 @@ public:
     {
         juce::Image img (juce::Image::RGB,
                          StreamDeckDevice::BUTTON_IMAGE_WIDTH,
-                         StreamDeckDevice::BUTTON_IMAGE_HEIGHT, true);
+                         StreamDeckDevice::BUTTON_IMAGE_HEIGHT, true,
+                         juce::SoftwareImageType());
         juce::Graphics g (img);
 
         // Background
@@ -116,7 +117,8 @@ public:
     {
         juce::Image img (juce::Image::RGB,
                          StreamDeckDevice::BUTTON_IMAGE_WIDTH,
-                         StreamDeckDevice::BUTTON_IMAGE_HEIGHT, true);
+                         StreamDeckDevice::BUTTON_IMAGE_HEIGHT, true,
+                         juce::SoftwareImageType());
         juce::Graphics g (img);
 
         if (! binding.isValid())
@@ -177,7 +179,8 @@ public:
     {
         juce::Image img (juce::Image::RGB,
                          StreamDeckDevice::LCD_ZONE_WIDTH,
-                         StreamDeckDevice::LCD_STRIP_HEIGHT, true);
+                         StreamDeckDevice::LCD_STRIP_HEIGHT, true,
+                         juce::SoftwareImageType());
         juce::Graphics g (img);
 
         g.fillAll (lcdBackground);
@@ -252,7 +255,8 @@ public:
     {
         juce::Image img (juce::Image::RGB,
                          StreamDeckDevice::LCD_ZONE_WIDTH,
-                         StreamDeckDevice::LCD_STRIP_HEIGHT, true);
+                         StreamDeckDevice::LCD_STRIP_HEIGHT, true,
+                         juce::SoftwareImageType());
         juce::Graphics g (img);
 
         g.fillAll (lcdBackground);
@@ -332,7 +336,8 @@ public:
     {
         juce::Image img (juce::Image::RGB,
                          StreamDeckDevice::BUTTON_IMAGE_WIDTH,
-                         StreamDeckDevice::BUTTON_IMAGE_HEIGHT, true);
+                         StreamDeckDevice::BUTTON_IMAGE_HEIGHT, true,
+                         juce::SoftwareImageType());
         juce::Graphics g (img);
 
         // Dark background with coloured border
@@ -399,6 +404,32 @@ public:
     /** Render all 4 LCD zones for the active section and send to device. */
     void renderAndSendAllLcdZones (StreamDeckDevice& device, const StreamDeckPage& page) const
     {
+        if (page.lcdMessage.isNotEmpty())
+        {
+            // Render message across 4 zone-sized images (avoids Direct2D
+            // pixel-access crash that occurs with full-strip images)
+            for (int i = 0; i < 4; ++i)
+            {
+                juce::Image img (juce::Image::RGB,
+                                 StreamDeckDevice::LCD_ZONE_WIDTH,
+                                 StreamDeckDevice::LCD_STRIP_HEIGHT, true,
+                                 juce::SoftwareImageType());
+                juce::Graphics g (img);
+                g.fillAll (lcdBackground);
+
+                int totalW = StreamDeckDevice::LCD_STRIP_WIDTH;
+                int xOffset = -i * StreamDeckDevice::LCD_ZONE_WIDTH;
+                g.setColour (lcdNameColour);
+                g.setFont (juce::Font (juce::FontOptions (lcdNameFontSize)));
+                g.drawFittedText (page.lcdMessage,
+                                  xOffset + 8, 0, totalW - 16,
+                                  StreamDeckDevice::LCD_STRIP_HEIGHT,
+                                  juce::Justification::centred, 2);
+                device.setLcdZoneImage (i, img);
+            }
+            return;
+        }
+
         const auto& section = page.getActiveSection();
         for (int i = 0; i < 4; ++i)
         {

@@ -315,6 +315,11 @@ public:
 
     std::function<void (int)> onChannelSelected;
     std::function<void (int)> onSubTabChanged;
+    std::function<void()> onAlgorithmChanged;
+
+    /** Shared IR duration for Stream Deck sync. Set this from MainComponent;
+        ReverbTab will update the value whenever the IR file changes. */
+    std::shared_ptr<float> sharedIRDuration;
 
     //==========================================================================
     // Component Overrides
@@ -1289,7 +1294,7 @@ private:
         addAndMakeVisible (algoRT60Label);
         algoRT60Label.setText (LOC("reverbs.algorithm.rt60"), juce::dontSendNotification);
 
-        algoRT60Slider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF4CAF50));
+        algoRT60Slider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFD4A017));
         algoRT60Slider.onValueChanged = [this] (float v)
         {
             float rt60 = WFSParameterDefaults::reverbRT60Min
@@ -1310,7 +1315,7 @@ private:
         addAndMakeVisible (algoRT60LowMultLabel);
         algoRT60LowMultLabel.setText (LOC("reverbs.algorithm.rt60LowMult"), juce::dontSendNotification);
 
-        algoRT60LowMultSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF2196F3));
+        algoRT60LowMultSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFC0880E));
         algoRT60LowMultSlider.onValueChanged = [this] (float v)
         {
             float mult = WFSParameterDefaults::reverbRT60LowMultMin
@@ -1331,7 +1336,7 @@ private:
         addAndMakeVisible (algoRT60HighMultLabel);
         algoRT60HighMultLabel.setText (LOC("reverbs.algorithm.rt60HighMult"), juce::dontSendNotification);
 
-        algoRT60HighMultSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFFF5722));
+        algoRT60HighMultSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFE8C020));
         algoRT60HighMultSlider.onValueChanged = [this] (float v)
         {
             float mult = WFSParameterDefaults::reverbRT60HighMultMin
@@ -1352,7 +1357,7 @@ private:
         addAndMakeVisible (algoCrossoverLowLabel);
         algoCrossoverLowLabel.setText (LOC("reverbs.algorithm.crossoverLow"), juce::dontSendNotification);
 
-        algoCrossoverLowSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF9C27B0));
+        algoCrossoverLowSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF9B59B6));
         algoCrossoverLowSlider.onValueChanged = [this] (float v)
         {
             float freq = WFSParameterDefaults::reverbCrossoverLowMin
@@ -1373,7 +1378,7 @@ private:
         addAndMakeVisible (algoCrossoverHighLabel);
         algoCrossoverHighLabel.setText (LOC("reverbs.algorithm.crossoverHigh"), juce::dontSendNotification);
 
-        algoCrossoverHighSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF9C27B0));
+        algoCrossoverHighSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF3498DB));
         algoCrossoverHighSlider.onValueChanged = [this] (float v)
         {
             float freq = WFSParameterDefaults::reverbCrossoverHighMin
@@ -1394,7 +1399,7 @@ private:
         addAndMakeVisible (algoDiffusionLabel);
         algoDiffusionLabel.setText (LOC("reverbs.algorithm.diffusion"), juce::dontSendNotification);
 
-        algoDiffusionSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF00BCD4));
+        algoDiffusionSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFE07878));
         algoDiffusionSlider.onValueChanged = [this] (float v)
         {
             algoDiffusionValueLabel.setText (juce::String (static_cast<int> (v * 100)) + "%", juce::dontSendNotification);
@@ -1417,7 +1422,7 @@ private:
         addAndMakeVisible (algoSDNScaleLabel);
         algoSDNScaleLabel.setText (LOC("reverbs.algorithm.scale"), juce::dontSendNotification);
 
-        algoSDNScaleSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFFF9800));
+        algoSDNScaleSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF2ECC71));
         algoSDNScaleSlider.onValueChanged = [this] (float v)
         {
             float scale = WFSParameterDefaults::reverbSDNscaleMin
@@ -1442,7 +1447,7 @@ private:
         addAndMakeVisible (algoFDNSizeLabel);
         algoFDNSizeLabel.setText (LOC("reverbs.algorithm.size"), juce::dontSendNotification);
 
-        algoFDNSizeSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFFF9800));
+        algoFDNSizeSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF2ECC71));
         algoFDNSizeSlider.onValueChanged = [this] (float v)
         {
             float size = WFSParameterDefaults::reverbFDNsizeMin
@@ -1473,7 +1478,7 @@ private:
         addAndMakeVisible (algoIRTrimLabel);
         algoIRTrimLabel.setText (LOC("reverbs.algorithm.irTrim"), juce::dontSendNotification);
 
-        algoIRTrimSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFFF9800));
+        algoIRTrimSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFD4A017));
         algoIRTrimSlider.onValueChanged = [this] (float v)
         {
             float maxTrimMs = currentIRDurationSec * 1000.0f;
@@ -1493,7 +1498,7 @@ private:
         addAndMakeVisible (algoIRLengthLabel);
         algoIRLengthLabel.setText (LOC("reverbs.algorithm.irLength"), juce::dontSendNotification);
 
-        algoIRLengthSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF4CAF50));
+        algoIRLengthSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFD4A017));
         algoIRLengthSlider.onValueChanged = [this] (float v)
         {
             float length = WFSParameterDefaults::reverbIRlengthMin
@@ -1529,7 +1534,7 @@ private:
         addAndMakeVisible (algoWetLevelLabel);
         algoWetLevelLabel.setText (LOC("reverbs.algorithm.wetLevel"), juce::dontSendNotification);
 
-        algoWetLevelSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF4CAF50));
+        algoWetLevelSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF4A90D9));
         algoWetLevelSlider.onValueChanged = [this] (float v)
         {
             // v in [0, 1] maps to [-60, +12] dB
@@ -2190,16 +2195,17 @@ private:
         const int spacing = scaled(8);
         const int labelWidth = scaled(120);
         const int valueWidth = scaled(80);
-        const int buttonWidth = scaled(60);
         const int titleHeight = scaled(25);
 
-        // Algorithm type selector row
+        // Algorithm type selector row (buttons span left column width)
         auto selectorRow = area.removeFromTop (rowHeight);
-        algoSDNButton.setBounds (selectorRow.removeFromLeft (buttonWidth));
+        int algoBtnColWidth = area.getWidth() / 2;
+        int algoBtnWidth = (algoBtnColWidth - spacing * 2) / 3;
+        algoSDNButton.setBounds (selectorRow.removeFromLeft (algoBtnWidth));
         selectorRow.removeFromLeft (spacing);
-        algoFDNButton.setBounds (selectorRow.removeFromLeft (buttonWidth));
+        algoFDNButton.setBounds (selectorRow.removeFromLeft (algoBtnWidth));
         selectorRow.removeFromLeft (spacing);
-        algoIRButton.setBounds (selectorRow.removeFromLeft (buttonWidth));
+        algoIRButton.setBounds (selectorRow.removeFromLeft (algoBtnWidth));
         area.removeFromTop (spacing * 2);
 
         // Two-column layout
@@ -2221,13 +2227,6 @@ private:
             col1.removeFromTop (spacing);
 
             row = col1.removeFromTop (rowHeight);
-            algoRT60LowMultLabel.setBounds (row.removeFromLeft (labelWidth));
-            algoRT60LowMultValueLabel.setBounds (row.removeFromRight (valueWidth));
-            col1.removeFromTop (scaled(3));
-            algoRT60LowMultSlider.setBounds (col1.removeFromTop (sliderHeight));
-            col1.removeFromTop (spacing);
-
-            row = col1.removeFromTop (rowHeight);
             algoRT60HighMultLabel.setBounds (row.removeFromLeft (labelWidth));
             algoRT60HighMultValueLabel.setBounds (row.removeFromRight (valueWidth));
             col1.removeFromTop (scaled(3));
@@ -2235,10 +2234,10 @@ private:
             col1.removeFromTop (spacing);
 
             row = col1.removeFromTop (rowHeight);
-            algoCrossoverLowLabel.setBounds (row.removeFromLeft (labelWidth));
-            algoCrossoverLowValueLabel.setBounds (row.removeFromRight (valueWidth));
+            algoRT60LowMultLabel.setBounds (row.removeFromLeft (labelWidth));
+            algoRT60LowMultValueLabel.setBounds (row.removeFromRight (valueWidth));
             col1.removeFromTop (scaled(3));
-            algoCrossoverLowSlider.setBounds (col1.removeFromTop (sliderHeight));
+            algoRT60LowMultSlider.setBounds (col1.removeFromTop (sliderHeight));
             col1.removeFromTop (spacing);
 
             row = col1.removeFromTop (rowHeight);
@@ -2246,6 +2245,13 @@ private:
             algoCrossoverHighValueLabel.setBounds (row.removeFromRight (valueWidth));
             col1.removeFromTop (scaled(3));
             algoCrossoverHighSlider.setBounds (col1.removeFromTop (sliderHeight));
+            col1.removeFromTop (spacing);
+
+            row = col1.removeFromTop (rowHeight);
+            algoCrossoverLowLabel.setBounds (row.removeFromLeft (labelWidth));
+            algoCrossoverLowValueLabel.setBounds (row.removeFromRight (valueWidth));
+            col1.removeFromTop (scaled(3));
+            algoCrossoverLowSlider.setBounds (col1.removeFromTop (sliderHeight));
             col1.removeFromTop (spacing);
 
             row = col1.removeFromTop (rowHeight);
@@ -2258,9 +2264,6 @@ private:
 
         if (algoSDNSectionLabel.isVisible())
         {
-            algoSDNSectionLabel.setBounds (col1.removeFromTop (titleHeight));
-            col1.removeFromTop (spacing);
-
             auto row = col1.removeFromTop (rowHeight);
             algoSDNScaleLabel.setBounds (row.removeFromLeft (labelWidth));
             algoSDNScaleValueLabel.setBounds (row.removeFromRight (valueWidth));
@@ -2270,9 +2273,6 @@ private:
 
         if (algoFDNSectionLabel.isVisible())
         {
-            algoFDNSectionLabel.setBounds (col1.removeFromTop (titleHeight));
-            col1.removeFromTop (spacing);
-
             auto row = col1.removeFromTop (rowHeight);
             algoFDNSizeLabel.setBounds (row.removeFromLeft (labelWidth));
             algoFDNSizeValueLabel.setBounds (row.removeFromRight (valueWidth));
@@ -2280,41 +2280,41 @@ private:
             algoFDNSizeSlider.setBounds (col1.removeFromTop (sliderHeight));
         }
 
-        // === Right Column: IR + Output ===
+        // IR section (visible for IR) — in col1
         if (algoIRSectionLabel.isVisible())
         {
-            algoIRSectionLabel.setBounds (col2.removeFromTop (titleHeight));
-            col2.removeFromTop (spacing);
+            algoIRSectionLabel.setBounds (col1.removeFromTop (titleHeight));
+            col1.removeFromTop (spacing);
 
-            auto row = col2.removeFromTop (rowHeight);
+            auto row = col1.removeFromTop (rowHeight);
             algoIRFileLabel.setBounds (row.removeFromLeft (labelWidth));
             algoIRFileSelector.setBounds (row);
-            col2.removeFromTop (spacing);
+            col1.removeFromTop (spacing);
 
-            row = col2.removeFromTop (rowHeight);
+            row = col1.removeFromTop (rowHeight);
             algoIRTrimLabel.setBounds (row.removeFromLeft (labelWidth));
             algoIRTrimValueLabel.setBounds (row.removeFromRight (valueWidth));
-            col2.removeFromTop (scaled(3));
-            algoIRTrimSlider.setBounds (col2.removeFromTop (sliderHeight));
-            col2.removeFromTop (spacing);
+            col1.removeFromTop (scaled(3));
+            algoIRTrimSlider.setBounds (col1.removeFromTop (sliderHeight));
+            col1.removeFromTop (spacing);
 
-            row = col2.removeFromTop (rowHeight);
+            row = col1.removeFromTop (rowHeight);
             algoIRLengthLabel.setBounds (row.removeFromLeft (labelWidth));
             algoIRLengthValueLabel.setBounds (row.removeFromRight (valueWidth));
-            col2.removeFromTop (scaled(3));
-            algoIRLengthSlider.setBounds (col2.removeFromTop (sliderHeight));
-            col2.removeFromTop (spacing);
+            col1.removeFromTop (scaled(3));
+            algoIRLengthSlider.setBounds (col1.removeFromTop (sliderHeight));
+            col1.removeFromTop (spacing);
 
-            algoPerNodeButton.setBounds (col2.removeFromTop (rowHeight).withWidth (scaled(180)));
-            col2.removeFromTop (spacing * 2);
+            algoPerNodeButton.setBounds (col1.removeFromTop (rowHeight).withWidth (scaled(180)));
+            col1.removeFromTop (spacing * 2);
         }
 
-        // Output section (always visible, right column)
-        auto wetRow = col2.removeFromTop (rowHeight);
+        // Wet Level — always visible, anchored at bottom of col1
+        algoWetLevelSlider.setBounds (col1.removeFromBottom (sliderHeight));
+        col1.removeFromBottom (scaled(3));
+        auto wetRow = col1.removeFromBottom (rowHeight);
         algoWetLevelLabel.setBounds (wetRow.removeFromLeft (labelWidth));
         algoWetLevelValueLabel.setBounds (wetRow.removeFromRight (valueWidth));
-        col2.removeFromTop (scaled(3));
-        algoWetLevelSlider.setBounds (col2.removeFromTop (sliderHeight));
     }
 
     void layoutPostExpander (juce::Rectangle<int> area)
@@ -3694,6 +3694,8 @@ private:
         saveAlgorithmParam (WFSParameterIDs::reverbAlgoType, type);
         updateAlgorithmVisibility();
         resized();
+        if (onAlgorithmChanged)
+            onAlgorithmChanged();
     }
 
     void updateAlgorithmButtonColors()
@@ -3895,6 +3897,7 @@ private:
         algoWetLevelValueLabel.setText (juce::String (wetLevel, 1) + " dB", juce::dontSendNotification);
 
         updateAlgorithmVisibility();
+        resized();
         isLoadingParameters = false;
     }
 
@@ -3903,6 +3906,8 @@ private:
         if (irFileName.isEmpty())
         {
             currentIRDurationSec = WFSParameterDefaults::reverbIRlengthDefault;
+            if (sharedIRDuration)
+                *sharedIRDuration = currentIRDurationSec;
             return;
         }
 
@@ -3922,6 +3927,8 @@ private:
 
         currentIRDurationSec = static_cast<float> (reader->lengthInSamples)
                              / static_cast<float> (reader->sampleRate);
+        if (sharedIRDuration)
+            *sharedIRDuration = currentIRDurationSec;
     }
 
     void refreshIRFileList()
@@ -3998,8 +4005,11 @@ private:
 
         // An existing IR file was selected
         saveAlgorithmParam (WFSParameterIDs::reverbIRfile, selectedText);
+        saveAlgorithmParam (WFSParameterIDs::reverbIRtrim, 0.0f);
         refreshIRFileList();
         updateIRSliderRanges (selectedText);
+        algoIRTrimSlider.setValue (0.0f);
+        algoIRTrimValueLabel.setText ("0.0 ms", juce::dontSendNotification);
     }
 
     void importIRFile()
@@ -4041,8 +4051,11 @@ private:
 
                 // Save the filename and refresh
                 saveAlgorithmParam (WFSParameterIDs::reverbIRfile, destFile.getFileName());
+                saveAlgorithmParam (WFSParameterIDs::reverbIRtrim, 0.0f);
                 refreshIRFileList();
                 updateIRSliderRanges (destFile.getFileName());
+                algoIRTrimSlider.setValue (0.0f);
+                algoIRTrimValueLabel.setText ("0.0 ms", juce::dontSendNotification);
                 showStatusMessage (LOC("reverbs.algorithm.irImportSuccess")
                     .replace ("{file}", destFile.getFileName()));
             });
@@ -4655,6 +4668,8 @@ private:
             juce::MessageManager::callAsync ([this]()
             {
                 loadAlgorithmParameters();
+                if (onAlgorithmChanged)
+                    onAlgorithmChanged();
             });
             return;
         }
@@ -4981,7 +4996,11 @@ private:
         muteMacrosLabel.setVisible (hasChannels);
         muteMacrosSelector.setVisible (hasChannels);
 
-        // Footer buttons remain visible (for Import functionality)
+        storeButton.setVisible (hasChannels);
+        reloadButton.setVisible (hasChannels);
+        reloadBackupButton.setVisible (hasChannels);
+        importButton.setVisible (hasChannels);
+        exportButton.setVisible (hasChannels);
 
         // After setting base visibility, apply subtab-specific visibility
         // This ensures only the current subtab's components are visible

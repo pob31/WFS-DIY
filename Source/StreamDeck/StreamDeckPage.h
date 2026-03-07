@@ -282,6 +282,10 @@ public:
     /** Human-readable page name (e.g., "Inputs > Parameters"). */
     juce::String pageName;
 
+    /** If non-empty, displayed centered across the full LCD strip
+        instead of rendering individual dial zones. */
+    juce::String lcdMessage;
+
     /** Up to 4 sections (selected by top-row buttons). */
     StreamDeckSection sections[4];
 

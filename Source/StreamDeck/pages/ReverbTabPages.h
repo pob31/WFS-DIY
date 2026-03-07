@@ -1303,11 +1303,420 @@ inline StreamDeckPage createPostProcessingPage (WFSValueTreeState& state,
 }
 
 //==============================================================================
+// Helpers for reverb algorithm (global) parameter dials
+//==============================================================================
+
+inline DialBinding makeAlgoFloatDial (const juce::String& name,
+                                       const juce::String& unit,
+                                       float minVal, float maxVal,
+                                       float stepVal, float fineVal,
+                                       int decimals, bool exponential,
+                                       WFSValueTreeState& state,
+                                       const juce::Identifier& paramId)
+{
+    DialBinding dial;
+    dial.paramName = name;
+    dial.paramUnit = unit;
+    dial.minValue = minVal;
+    dial.maxValue = maxVal;
+    dial.step = stepVal;
+    dial.fineStep = fineVal;
+    dial.decimalPlaces = decimals;
+    dial.isExponential = exponential;
+    dial.type = DialBinding::Float;
+
+    dial.getValue = [&state, paramId]()
+    {
+        auto section = state.getReverbAlgorithmSection();
+        if (section.isValid())
+            return static_cast<float> (section.getProperty (paramId));
+        return 0.0f;
+    };
+
+    dial.setValue = [&state, paramId] (float v)
+    {
+        auto section = state.ensureReverbAlgorithmSection();
+        section.setProperty (paramId, v, state.getUndoManager());
+    };
+
+    return dial;
+}
+
+//==============================================================================
+// Subtab 2: Algorithm (SDN/FDN/IR selection + algorithm-specific params)
+//==============================================================================
+
+inline StreamDeckPage createAlgorithmPage (
+    WFSValueTreeState& state,
+    std::shared_ptr<int> algoSubMode,
+    std::shared_ptr<float> irDuration,
+    std::shared_ptr<bool> soloReverb,
+    std::shared_ptr<bool> mutePre,
+    std::shared_ptr<bool> mutePost,
+    std::function<void (bool)> onSoloReverbChanged = nullptr,
+    std::function<void (bool)> onMutePreChanged = nullptr,
+    std::function<void (bool)> onMutePostChanged = nullptr)
+{
+    using namespace WFSParameterIDs;
+    using namespace WFSParameterDefaults;
+
+    StreamDeckPage page ("Reverb > Algorithm");
+
+    const auto grey = juce::Colour (0xFF3A3A3A);
+
+    // Read current algorithm type
+    auto algoSection = state.getReverbAlgorithmSection();
+    int algoType = algoSection.isValid()
+                       ? static_cast<int> (algoSection.getProperty (reverbAlgoType, reverbAlgoTypeDefault))
+                       : reverbAlgoTypeDefault;
+
+    // For IR mode, force sub-mode to 0 (unless solo/mute)
+    if (algoType == 2 && *algoSubMode == 1)
+        *algoSubMode = 0;
+
+    int subMode = *algoSubMode;
+
+    //======================================================================
+    // Top Row: Algorithm Selectors (buttons 0-2) + Solo/Mute (button 3)
+    //======================================================================
+
+    // Button 0: SDN
+    {
+        auto& btn = page.topRowButtons[0];
+        btn.label = LOC ("streamDeck.reverb.algorithm.sdn");
+        btn.colour = juce::Colour (0xFF00BCD4).withAlpha (0.3f);
+        btn.activeColour = juce::Colour (0xFF00BCD4);
+        btn.type = ButtonBinding::Toggle;
+        btn.requestsPageRebuild = true;
+
+        btn.getState = [&state]()
+        {
+            auto sec = state.getReverbAlgorithmSection();
+            return sec.isValid() && static_cast<int> (sec.getProperty (reverbAlgoType, 0)) == 0;
+        };
+
+        btn.onPress = [&state, algoSubMode]()
+        {
+            auto sec = state.ensureReverbAlgorithmSection();
+            sec.setProperty (reverbAlgoType, 0, state.getUndoManager());
+            // Reset sub-mode when switching algorithm (unless in solo/mute)
+            if (*algoSubMode != 2)
+                *algoSubMode = 0;
+        };
+    }
+
+    // Button 1: FDN
+    {
+        auto& btn = page.topRowButtons[1];
+        btn.label = LOC ("streamDeck.reverb.algorithm.fdn");
+        btn.colour = juce::Colour (0xFFFF9800).withAlpha (0.3f);
+        btn.activeColour = juce::Colour (0xFFFF9800);
+        btn.type = ButtonBinding::Toggle;
+        btn.requestsPageRebuild = true;
+
+        btn.getState = [&state]()
+        {
+            auto sec = state.getReverbAlgorithmSection();
+            return sec.isValid() && static_cast<int> (sec.getProperty (reverbAlgoType, 0)) == 1;
+        };
+
+        btn.onPress = [&state, algoSubMode]()
+        {
+            auto sec = state.ensureReverbAlgorithmSection();
+            sec.setProperty (reverbAlgoType, 1, state.getUndoManager());
+            if (*algoSubMode != 2)
+                *algoSubMode = 0;
+        };
+    }
+
+    // Button 2: IR
+    {
+        auto& btn = page.topRowButtons[2];
+        btn.label = LOC ("streamDeck.reverb.algorithm.ir");
+        btn.colour = juce::Colour (0xFF9C27B0).withAlpha (0.3f);
+        btn.activeColour = juce::Colour (0xFF9C27B0);
+        btn.type = ButtonBinding::Toggle;
+        btn.requestsPageRebuild = true;
+
+        btn.getState = [&state]()
+        {
+            auto sec = state.getReverbAlgorithmSection();
+            return sec.isValid() && static_cast<int> (sec.getProperty (reverbAlgoType, 0)) == 2;
+        };
+
+        btn.onPress = [&state, algoSubMode]()
+        {
+            auto sec = state.ensureReverbAlgorithmSection();
+            sec.setProperty (reverbAlgoType, 2, state.getUndoManager());
+            if (*algoSubMode != 2)
+                *algoSubMode = 0;
+        };
+    }
+
+    // Button 3: Solo/Mute
+    {
+        auto& btn = page.topRowButtons[3];
+        btn.label = LOC ("streamDeck.reverb.algorithm.soloMute");
+        btn.colour = grey;
+        btn.activeColour = juce::Colour (0xFFCC8800);
+        btn.type = ButtonBinding::Toggle;
+        btn.requestsPageRebuild = true;
+
+        btn.getState = [algoSubMode]()
+        {
+            return *algoSubMode == 2;
+        };
+
+        btn.onPress = [algoSubMode]()
+        {
+            *algoSubMode = (*algoSubMode == 2) ? 0 : 2;
+        };
+    }
+
+    //======================================================================
+    // Section 0: The single section (content depends on algoType + subMode)
+    //======================================================================
+    {
+        auto& sec = page.sections[0];
+        sec.sectionName = "Algorithm";
+        sec.sectionColour = juce::Colour (0xFF4A90D9);
+
+        if (subMode == 2)
+        {
+            //--------------------------------------------------------------
+            // Solo/Mute mode — bottom buttons: Solo Reverb, Mute Pre, Mute Post
+            //--------------------------------------------------------------
+            // Button 0: Solo Reverb
+            {
+                auto& btn = sec.buttons[0];
+                btn.label = LOC ("streamDeck.reverb.buttons.soloReverb");
+                btn.colour = grey;
+                btn.activeColour = juce::Colour (0xFFCC8800);
+                btn.type = ButtonBinding::Toggle;
+
+                btn.getState = [soloReverb]() { return *soloReverb; };
+
+                btn.onPress = [soloReverb, mutePre, mutePost,
+                               onSoloReverbChanged, onMutePreChanged, onMutePostChanged]()
+                {
+                    *soloReverb = !(*soloReverb);
+                    if (*soloReverb)
+                    {
+                        if (*mutePre)  { *mutePre = false;  if (onMutePreChanged)  onMutePreChanged (false); }
+                        if (*mutePost) { *mutePost = false; if (onMutePostChanged) onMutePostChanged (false); }
+                    }
+                    if (onSoloReverbChanged)
+                        onSoloReverbChanged (*soloReverb);
+                };
+            }
+
+            // Button 1: Mute Pre
+            {
+                auto& btn = sec.buttons[1];
+                btn.label = LOC ("streamDeck.reverb.buttons.mutePre");
+                btn.colour = grey;
+                btn.activeColour = juce::Colour (0xFFCC8800);
+                btn.type = ButtonBinding::Toggle;
+
+                btn.getState = [mutePre]() { return *mutePre; };
+
+                btn.onPress = [soloReverb, mutePre, mutePost,
+                               onSoloReverbChanged, onMutePreChanged, onMutePostChanged]()
+                {
+                    *mutePre = !(*mutePre);
+                    if (*mutePre)
+                    {
+                        if (*soloReverb) { *soloReverb = false; if (onSoloReverbChanged) onSoloReverbChanged (false); }
+                        if (*mutePost)   { *mutePost = false;   if (onMutePostChanged)   onMutePostChanged (false); }
+                    }
+                    if (onMutePreChanged)
+                        onMutePreChanged (*mutePre);
+                };
+            }
+
+            // Button 2: Mute Post
+            {
+                auto& btn = sec.buttons[2];
+                btn.label = LOC ("streamDeck.reverb.buttons.mutePost");
+                btn.colour = grey;
+                btn.activeColour = juce::Colour (0xFFCC8800);
+                btn.type = ButtonBinding::Toggle;
+
+                btn.getState = [mutePost]() { return *mutePost; };
+
+                btn.onPress = [soloReverb, mutePre, mutePost,
+                               onSoloReverbChanged, onMutePreChanged, onMutePostChanged]()
+                {
+                    *mutePost = !(*mutePost);
+                    if (*mutePost)
+                    {
+                        if (*soloReverb) { *soloReverb = false; if (onSoloReverbChanged) onSoloReverbChanged (false); }
+                        if (*mutePre)    { *mutePre = false;    if (onMutePreChanged)    onMutePreChanged (false); }
+                    }
+                    if (onMutePostChanged)
+                        onMutePostChanged (*mutePost);
+                };
+            }
+
+            // No dials in solo/mute mode
+        }
+        else if (algoType == 2)
+        {
+            //--------------------------------------------------------------
+            // IR mode — no bottom buttons, dials: Trim, Length, empty, Wet Level
+            //--------------------------------------------------------------
+            {
+                float irDur = (irDuration && *irDuration > 0.0f) ? *irDuration : reverbIRlengthDefault;
+                float maxTrimMs = irDur * 1000.0f;
+
+                sec.dials[0] = makeAlgoFloatDial (LOC ("streamDeck.reverb.algorithm.irTrim"),
+                                                   LOC ("units.milliseconds"),
+                                                   reverbIRtrimMin, maxTrimMs,
+                                                   100.0f, 10.0f, 1, false,
+                                                   state, reverbIRtrim);
+
+                sec.dials[1] = makeAlgoFloatDial (LOC ("streamDeck.reverb.algorithm.irLength"),
+                                                   LOC ("units.seconds"),
+                                                   reverbIRlengthMin, irDur,
+                                                   0.1f, 0.01f, 2, false,
+                                                   state, reverbIRlength);
+            }
+
+            // Dial 2: unassigned
+
+            sec.dials[3] = makeAlgoFloatDial (LOC ("streamDeck.reverb.algorithm.wetLevel"),
+                                               LOC ("units.decibels"),
+                                               reverbWetLevelMin, reverbWetLevelMax,
+                                               0.5f, 0.1f, 1, false,
+                                               state, reverbWetLevel);
+        }
+        else
+        {
+            //--------------------------------------------------------------
+            // SDN/FDN mode — bottom buttons: RT60 / Cross Diff Scale(Size)
+            //--------------------------------------------------------------
+            bool isSDN = (algoType == 0);
+
+            // Button 0: RT60 group selector
+            {
+                auto& btn = sec.buttons[0];
+                btn.label = LOC ("streamDeck.reverb.algorithm.rt60Group");
+                btn.colour = (subMode == 0) ? juce::Colour (0xFF4A90D9) : grey;
+                btn.activeColour = juce::Colour (0xFF4A90D9);
+                btn.type = ButtonBinding::Toggle;
+                btn.requestsPageRebuild = true;
+
+                btn.getState = [algoSubMode]() { return *algoSubMode == 0; };
+                btn.onPress = [algoSubMode]() { *algoSubMode = 0; };
+            }
+
+            // Button 1: Crossover/Diffusion/Scale or Size group selector
+            {
+                auto& btn = sec.buttons[1];
+                btn.label = isSDN ? LOC ("streamDeck.reverb.algorithm.crossDiffScale")
+                                  : LOC ("streamDeck.reverb.algorithm.crossDiffSize");
+                btn.colour = (subMode == 1) ? juce::Colour (0xFF4A90D9) : grey;
+                btn.activeColour = juce::Colour (0xFF4A90D9);
+                btn.type = ButtonBinding::Toggle;
+                btn.requestsPageRebuild = true;
+
+                btn.getState = [algoSubMode]() { return *algoSubMode == 1; };
+                btn.onPress = [algoSubMode]() { *algoSubMode = 1; };
+            }
+
+            if (subMode == 0)
+            {
+                // RT60 group dials
+                sec.dials[0] = makeAlgoFloatDial (LOC ("streamDeck.reverb.algorithm.rt60"),
+                                                   LOC ("units.seconds"),
+                                                   reverbRT60Min, reverbRT60Max,
+                                                   0.02f, 0.005f, 2, true,
+                                                   state, reverbRT60);
+
+                sec.dials[1] = makeAlgoFloatDial (LOC ("streamDeck.reverb.algorithm.rt60High"),
+                                                   "x",
+                                                   reverbRT60HighMultMin, reverbRT60HighMultMax,
+                                                   0.02f, 0.005f, 2, true,
+                                                   state, reverbRT60HighMult);
+
+                sec.dials[2] = makeAlgoFloatDial (LOC ("streamDeck.reverb.algorithm.rt60Low"),
+                                                   "x",
+                                                   reverbRT60LowMultMin, reverbRT60LowMultMax,
+                                                   0.02f, 0.005f, 2, true,
+                                                   state, reverbRT60LowMult);
+
+                sec.dials[3] = makeAlgoFloatDial (LOC ("streamDeck.reverb.algorithm.wetLevel"),
+                                                   LOC ("units.decibels"),
+                                                   reverbWetLevelMin, reverbWetLevelMax,
+                                                   0.5f, 0.1f, 1, false,
+                                                   state, reverbWetLevel);
+            }
+            else
+            {
+                // Crossover/Diffusion/Scale(Size) group dials
+                sec.dials[0] = makeAlgoFloatDial (LOC ("streamDeck.reverb.algorithm.crossoverHigh"),
+                                                   LOC ("units.hertz"),
+                                                   reverbCrossoverHighMin, reverbCrossoverHighMax,
+                                                   0.02f, 0.005f, 0, true,
+                                                   state, reverbCrossoverHigh);
+
+                sec.dials[1] = makeAlgoFloatDial (LOC ("streamDeck.reverb.algorithm.crossoverLow"),
+                                                   LOC ("units.hertz"),
+                                                   reverbCrossoverLowMin, reverbCrossoverLowMax,
+                                                   0.02f, 0.005f, 0, true,
+                                                   state, reverbCrossoverLow);
+
+                sec.dials[2] = makeAlgoFloatDial (LOC ("streamDeck.reverb.algorithm.diffusion"),
+                                                   "%",
+                                                   reverbDiffusionMin * 100.0f, reverbDiffusionMax * 100.0f,
+                                                   1.0f, 0.5f, 0, false,
+                                                   state, reverbDiffusion);
+                // Diffusion is stored as 0-1 but displayed as 0-100%
+                sec.dials[2].getValue = [&state]()
+                {
+                    auto section = state.getReverbAlgorithmSection();
+                    if (section.isValid())
+                        return static_cast<float> (section.getProperty (reverbDiffusion)) * 100.0f;
+                    return 50.0f;
+                };
+                sec.dials[2].setValue = [&state] (float v)
+                {
+                    auto section = state.ensureReverbAlgorithmSection();
+                    section.setProperty (reverbDiffusion, v / 100.0f, state.getUndoManager());
+                };
+
+                if (isSDN)
+                {
+                    sec.dials[3] = makeAlgoFloatDial (LOC ("streamDeck.reverb.algorithm.scale"),
+                                                       "x",
+                                                       reverbSDNscaleMin, reverbSDNscaleMax,
+                                                       0.05f, 0.01f, 2, false,
+                                                       state, reverbSDNscale);
+                }
+                else
+                {
+                    sec.dials[3] = makeAlgoFloatDial (LOC ("streamDeck.reverb.algorithm.size"),
+                                                       "x",
+                                                       reverbFDNsizeMin, reverbFDNsizeMax,
+                                                       0.05f, 0.01f, 2, false,
+                                                       state, reverbFDNsize);
+                }
+            }
+        }
+    }
+
+    page.numSections = 1;
+    page.activeSectionIndex = 0;
+
+    return page;
+}
+
+//==============================================================================
 // Factory
 //==============================================================================
 
 /** Create a Stream Deck page for the given Reverb subtab.
-    @param subTabIndex           Subtab index (0 = Channel Params, 1 = Pre-Processing, 3 = Post-Processing)
+    @param subTabIndex           Subtab index (0 = Channel Params, 1 = Pre-Processing, 2 = Algorithm, 3 = Post-Processing)
     @param state                 The shared value tree state
     @param channelIndex          Reverb channel index (0-based)
     @param preEqBand             Shared pre-EQ band selection state (0-3)
@@ -1318,6 +1727,7 @@ inline StreamDeckPage createPostProcessingPage (WFSValueTreeState& state,
     @param mutePre               Shared mute pre state
     @param mutePost              Shared mute post state
     @param editOnMap             Shared edit-on-map state
+    @param algoSubMode           Shared algorithm sub-mode state (0=RT60, 1=CrossDiff, 2=SoloMute)
     @param onPreEqBandSelected   Callback for GUI sync when pre-EQ band selected on Stream Deck
     @param onPostEqBandSelected  Callback for GUI sync when post-EQ band selected on Stream Deck
     @param onSoloReverbChanged   Callback when solo reverb toggled from Stream Deck
@@ -1336,6 +1746,8 @@ inline StreamDeckPage createPage (int subTabIndex,
                                     std::shared_ptr<bool> mutePre = nullptr,
                                     std::shared_ptr<bool> mutePost = nullptr,
                                     std::shared_ptr<bool> editOnMap = nullptr,
+                                    std::shared_ptr<int> algoSubMode = nullptr,
+                                    std::shared_ptr<float> irDuration = nullptr,
                                     std::function<void (int)> onPreEqBandSelected = nullptr,
                                     std::function<void (int)> onPostEqBandSelected = nullptr,
                                     std::function<void (bool)> onSoloReverbChanged = nullptr,
@@ -1343,12 +1755,23 @@ inline StreamDeckPage createPage (int subTabIndex,
                                     std::function<void (bool)> onMutePostChanged = nullptr,
                                     std::function<void (bool)> onEditOnMapChanged = nullptr)
 {
+    if (state.getNumReverbChannels() == 0)
+    {
+        StreamDeckPage page (LOC ("streamDeck.reverb.noChannels"));
+        page.activeSectionIndex = -1;
+        page.lcdMessage = LOC ("streamDeck.reverb.noChannels");
+        return page;
+    }
+
     switch (subTabIndex)
     {
         case 0:  return createChannelParametersPage (state, channelIndex,
                      soloReverb, mutePre, mutePost, editOnMap,
                      onSoloReverbChanged, onMutePreChanged, onMutePostChanged, onEditOnMapChanged);
         case 1:  return createPreProcessingPage (state, channelIndex, preEqBand, preDynMode, onPreEqBandSelected);
+        case 2:  return createAlgorithmPage (state, algoSubMode, irDuration,
+                     soloReverb, mutePre, mutePost,
+                     onSoloReverbChanged, onMutePreChanged, onMutePostChanged);
         case 3:  return createPostProcessingPage (state, postEqBand, postDynMode, onPostEqBandSelected);
         default: return StreamDeckPage ("Reverb > Unknown");
     }

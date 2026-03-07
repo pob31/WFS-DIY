@@ -1671,6 +1671,27 @@ OFF",
       },
       "dials": {
         "commonAttenuation": "Common\nAtten."
+      },
+      "noChannels": "Nessun canale Reverb",
+      "algorithm": {
+        "sdn": "SDN",
+        "fdn": "FDN",
+        "ir": "IR",
+        "soloMute": "Solo\nMute",
+        "rt60Group": "RT60",
+        "crossDiffScale": "Cross\nDiff\nScale",
+        "crossDiffSize": "Cross\nDiff\nSize",
+        "rt60": "RT60",
+        "rt60High": "RT60\nHigh",
+        "rt60Low": "RT60\nLow",
+        "crossoverHigh": "Crossover\nHigh",
+        "crossoverLow": "Crossover\nLow",
+        "diffusion": "Diffusion",
+        "scale": "Scale",
+        "size": "Size",
+        "wetLevel": "Wet\nLevel",
+        "irTrim": "IR Trim",
+        "irLength": "IR\nLength"
       }
     },
     "network": {
