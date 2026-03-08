@@ -362,6 +362,7 @@ namespace WFSParameterIDs
     const juce::Identifier gmShapeLocked         ("gmShapeLocked");         // 0=unlocked, 1=locked
     const juce::Identifier gmShapeOrder          ("gmShapeOrder");          // Z-order for painter's algorithm
     const juce::Identifier gmShapeEnabled        ("gmShapeEnabled");        // 0=disabled, 1=enabled
+    const juce::Identifier gmShapeName           ("gmShapeName");           // Optional display name
 
     //==========================================================================
     // Output Channel Parameters

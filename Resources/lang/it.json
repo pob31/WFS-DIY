@@ -1015,6 +1015,7 @@
         "white": "Bianco:",
         "black": "Nero:",
         "curve": "Curva:",
+        "name": "Nome:",
         "fill": "Riempimento:",
         "blur": "Sfocatura:",
         "start": "Inizio:",
@@ -1024,19 +1025,23 @@
       },
       "tools": {
         "select": "Selezione",
-        "rect": "Rett",
+        "rect": "Rettangolo",
         "ellipse": "Ellisse",
         "polygon": "Poligono",
         "fill": "Riempi",
-        "linGrad": "Grad.Lin",
-        "radGrad": "Grad.Rad"
+        "linGrad": "Grad. Lineare",
+        "radGrad": "Grad. Radiale"
       },
       "buttons": {
         "enable": "On",
         "lock": "Blocca",
         "delete": "Elimina",
         "pivotCenter": "Pivot: Centro",
-        "pivotOrigin": "Pivot: Origine"
+        "pivotOrigin": "Pivot: Origine",
+        "copyShape": "Copia forma",
+        "pasteShape": "Incolla forma",
+        "copyLayer": "Copia livello",
+        "pasteLayer": "Incolla livello"
       },
       "warnings": {
         "heightRatioZero": "Il rapporto altezza è 0% — aumentalo perché l'altezza abbia effetto"
@@ -1047,7 +1052,30 @@
         "darkMaxHF": "Scuro = max shelf HF | Chiaro = nessuno",
         "whiteMaxAtten": "Bianco = max attenuazione | Nero = nessuna",
         "whiteMaxHeight": "Bianco = max altezza | Nero = suolo",
-        "whiteMaxHF": "Bianco = max shelf HF | Nero = nessuno"
+        "whiteMaxHF": "Bianco = max shelf HF | Nero = nessuno",
+        "polygonClose": "Doppio clic per chiudere il poligono"
+      },
+      "help": {
+        "layerSelect": "Seleziona questo livello per la modifica",
+        "layerEnable": "Attiva/disattiva livello (influisce su uscita e OSC)",
+        "layerVisible": "Mostra/nascondi anteprima livello sul canvas",
+        "whiteValue": "Valore del parametro mappato al bianco (0.00–1.00)",
+        "blackValue": "Valore del parametro mappato al nero (0.00–1.00)",
+        "curve": "Curva gamma (-1 a 1, 0 = lineare)",
+        "fillValue": "Luminosità riempimento (0 = nero, 1 = bianco)",
+        "blur": "Sfocatura bordi in metri",
+        "shapeEnable": "Attiva/disattiva forma",
+        "shapeLock": "Blocca posizione della forma",
+        "shapeDelete": "Elimina forma/e selezionata/e",
+        "selectTool": "Seleziona e sposta forme",
+        "rectTool": "Disegna rettangolo",
+        "ellipseTool": "Disegna ellisse",
+        "polygonTool": "Disegna poligono (doppio clic per chiudere)",
+        "fillTool": "Applica riempimento uniforme alla forma",
+        "linGradTool": "Applica gradiente lineare alla forma",
+        "radGradTool": "Applica gradiente radiale alla forma",
+        "copy": "Copia forma o livello selezionato",
+        "paste": "Incolla forma o livello dagli appunti"
       },
       "header": {
         "attenuationLayer": "Livello Attenuazione",

@@ -1015,6 +1015,7 @@
         "white": "白:",
         "black": "黒:",
         "curve": "カーブ:",
+        "name": "名前：",
         "fill": "塗り:",
         "blur": "ぼかし:",
         "start": "開始:",
@@ -1028,15 +1029,19 @@
         "ellipse": "楕円",
         "polygon": "多角形",
         "fill": "塗り",
-        "linGrad": "線形グラデ",
-        "radGrad": "放射グラデ"
+        "linGrad": "線形グラデーション",
+        "radGrad": "放射グラデーション"
       },
       "buttons": {
         "enable": "オン",
         "lock": "ロック",
         "delete": "削除",
         "pivotCenter": "基点: 中心",
-        "pivotOrigin": "基点: 原点"
+        "pivotOrigin": "基点: 原点",
+        "copyShape": "シェイプをコピー",
+        "pasteShape": "シェイプを貼り付け",
+        "copyLayer": "レイヤーをコピー",
+        "pasteLayer": "レイヤーを貼り付け"
       },
       "warnings": {
         "heightRatioZero": "高さ比率が0%です — 高さを有効にするには値を上げてください"
@@ -1047,7 +1052,30 @@
         "darkMaxHF": "暗 = 最大HFシェルフ | 明 = なし",
         "whiteMaxAtten": "白 = 最大減衰 | 黒 = なし",
         "whiteMaxHeight": "白 = 最大高さ | 黒 = 地面",
-        "whiteMaxHF": "白 = 最大HFシェルフ | 黒 = なし"
+        "whiteMaxHF": "白 = 最大HFシェルフ | 黒 = なし",
+        "polygonClose": "ダブルクリックでポリゴンを閉じる"
+      },
+      "help": {
+        "layerSelect": "このレイヤーを編集用に選択",
+        "layerEnable": "レイヤーの有効/無効（出力とOSCに影響）",
+        "layerVisible": "キャンバス上のレイヤープレビューを表示/非表示",
+        "whiteValue": "白にマッピングされるパラメータ値（0.00–1.00）",
+        "blackValue": "黒にマッピングされるパラメータ値（0.00–1.00）",
+        "curve": "ガンマカーブ（-1～1、0 = リニア）",
+        "fillValue": "塗りつぶし明度（0 = 黒、1 = 白）",
+        "blur": "エッジぼかし（メートル単位）",
+        "shapeEnable": "シェイプの有効/無効",
+        "shapeLock": "シェイプの位置をロック",
+        "shapeDelete": "選択したシェイプを削除",
+        "selectTool": "シェイプの選択と移動",
+        "rectTool": "矩形を描画",
+        "ellipseTool": "楕円を描画",
+        "polygonTool": "ポリゴンを描画（ダブルクリックで閉じる）",
+        "fillTool": "シェイプに均一塗りつぶしを適用",
+        "linGradTool": "シェイプに線形グラデーションを適用",
+        "radGradTool": "シェイプに放射グラデーションを適用",
+        "copy": "選択したシェイプまたはレイヤーをコピー",
+        "paste": "クリップボードからシェイプまたはレイヤーを貼り付け"
       },
       "header": {
         "attenuationLayer": "減衰レイヤー",

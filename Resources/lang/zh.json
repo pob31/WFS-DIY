@@ -1015,6 +1015,7 @@
         "white": "白色：",
         "black": "黑色：",
         "curve": "曲线：",
+        "name": "名称：",
         "fill": "填充：",
         "blur": "模糊：",
         "start": "起点：",
@@ -1036,7 +1037,11 @@
         "lock": "锁定",
         "delete": "删除",
         "pivotCenter": "基点：中心",
-        "pivotOrigin": "基点：原点"
+        "pivotOrigin": "基点：原点",
+        "copyShape": "复制形状",
+        "pasteShape": "粘贴形状",
+        "copyLayer": "复制图层",
+        "pasteLayer": "粘贴图层"
       },
       "warnings": {
         "heightRatioZero": "高度比率为0% — 请增大以使高度生效"
@@ -1047,7 +1052,30 @@
         "darkMaxHF": "暗 = 最大高频搁架 | 亮 = 无",
         "whiteMaxAtten": "白 = 最大衰减 | 黑 = 无",
         "whiteMaxHeight": "白 = 最大高度 | 黑 = 地面",
-        "whiteMaxHF": "白 = 最大高频搁架 | 黑 = 无"
+        "whiteMaxHF": "白 = 最大高频搁架 | 黑 = 无",
+        "polygonClose": "双击关闭多边形"
+      },
+      "help": {
+        "layerSelect": "选择此图层进行编辑",
+        "layerEnable": "启用/禁用图层（影响输出和OSC）",
+        "layerVisible": "在画布上显示/隐藏图层预览",
+        "whiteValue": "映射到白色的参数值（0.00–1.00）",
+        "blackValue": "映射到黑色的参数值（0.00–1.00）",
+        "curve": "伽马曲线（-1到1，0 = 线性）",
+        "fillValue": "填充亮度（0 = 黑色，1 = 白色）",
+        "blur": "边缘模糊（米）",
+        "shapeEnable": "启用/禁用形状",
+        "shapeLock": "锁定形状位置",
+        "shapeDelete": "删除选中的形状",
+        "selectTool": "选择和移动形状",
+        "rectTool": "绘制矩形",
+        "ellipseTool": "绘制椭圆",
+        "polygonTool": "绘制多边形（双击关闭）",
+        "fillTool": "对形状应用均匀填充",
+        "linGradTool": "对形状应用线性渐变",
+        "radGradTool": "对形状应用径向渐变",
+        "copy": "复制选中的形状或图层",
+        "paste": "从剪贴板粘贴形状或图层"
       },
       "header": {
         "attenuationLayer": "衰减图层",

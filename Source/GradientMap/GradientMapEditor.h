@@ -6,6 +6,9 @@
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/WFSParameterDefaults.h"
 #include "../gui/ColorScheme.h"
+#include "../gui/StatusBar.h"
+#include "../gui/sliders/WfsStandardSlider.h"
+#include "../gui/sliders/WfsBidirectionalSlider.h"
 #include "../Localization/LocalizationManager.h"
 
 /**
@@ -57,6 +60,7 @@ public:
     GradientMapEditor()
     {
         setOpaque (true);
+        setWantsKeyboardFocus (true);
 
         // Toolbar buttons
         selectToolBtn.setButtonText (LOC ("inputs.gradientMap.tools.select"));
@@ -121,6 +125,7 @@ public:
             layerEnableBtn[i].onClick = [this, i] { setActiveLayer (i); };
             addAndMakeVisible (layerEnableBtn[i]);
 
+            layerVisibleBtn[i].layerColour = getLayerColour (i);
             layerVisibleBtn[i].setClickingTogglesState (true);
             layerVisibleBtn[i].setToggleState (true, juce::dontSendNotification);
             layerVisibleBtn[i].onClick = [this] { repaint(); };
@@ -132,18 +137,23 @@ public:
         // Layer enable (power) toggles
         for (int i = 0; i < 3; ++i)
         {
+            layerEnabledBtn[i].layerColour = getLayerColour (i);
             layerEnabledBtn[i].setClickingTogglesState (true);
             layerEnabledBtn[i].setToggleState (true, juce::dontSendNotification);
             layerEnabledBtn[i].onClick = [this, i] { onLayerEnabledToggle (i); };
             addAndMakeVisible (layerEnabledBtn[i]);
         }
 
+        auto labelFont = juce::FontOptions (juce::jmax (10.0f, 15.0f * WfsLookAndFeel::uiScale));
         whiteValueLabel.setText (LOC ("inputs.gradientMap.labels.white"), juce::dontSendNotification);
         whiteValueLabel.setJustificationType (juce::Justification::centredRight);
+        whiteValueLabel.setFont (labelFont);
         blackValueLabel.setText (LOC ("inputs.gradientMap.labels.black"), juce::dontSendNotification);
         blackValueLabel.setJustificationType (juce::Justification::centredRight);
+        blackValueLabel.setFont (labelFont);
         curveLabel.setText (LOC ("inputs.gradientMap.labels.curve"), juce::dontSendNotification);
         curveLabel.setJustificationType (juce::Justification::centredRight);
+        curveLabel.setFont (labelFont);
 
         whiteValueEditor.setJustification (juce::Justification::centred);
         blackValueEditor.setJustification (juce::Justification::centred);
@@ -152,18 +162,30 @@ public:
         whiteValueEditor.onFocusLost = [this] { onLayerPropertyChanged(); };
         blackValueEditor.onFocusLost = [this] { onLayerPropertyChanged(); };
 
-        curveSlider.setRange (-1.0, 1.0, 0.01);
-        curveSlider.setValue (0.0, juce::dontSendNotification);
-        curveSlider.setSliderStyle (juce::Slider::LinearHorizontal);
-        curveSlider.setTextBoxStyle (juce::Slider::TextBoxRight, false, 50, 20);
-        curveSlider.onValueChange = [this] { onLayerPropertyChanged(); };
+        curveSlider.setTrackColours (juce::Colour::fromRGB (30, 30, 30), getLayerColour (0));
+        curveSlider.onValueChanged = [this] (float)
+        {
+            if (! isLoadingData)
+            {
+                curveValueEditor.setText (juce::String (curveSlider.getValue(), 2), false);
+                onLayerPropertyChanged();
+            }
+        };
+        curveValueEditor.setJustification (juce::Justification::centred);
+        curveValueEditor.onReturnKey = [this]
+        {
+            curveSlider.setValue (curveValueEditor.getText().getFloatValue());
+            onLayerPropertyChanged();
+        };
+        curveValueEditor.onFocusLost = curveValueEditor.onReturnKey;
 
+        auto hintFont = juce::FontOptions (juce::jmax (10.0f, 13.0f * WfsLookAndFeel::uiScale));
         mappingHintLabel.setJustificationType (juce::Justification::centred);
-        mappingHintLabel.setFont (juce::FontOptions (11.0f));
+        mappingHintLabel.setFont (hintFont);
         mappingHintLabel.setColour (juce::Label::textColourId, juce::Colour (0xFF909090));
 
         heightWarningLabel.setJustificationType (juce::Justification::centred);
-        heightWarningLabel.setFont (juce::FontOptions (11.0f));
+        heightWarningLabel.setFont (hintFont);
         heightWarningLabel.setColour (juce::Label::textColourId, juce::Colour (0xFFDD8844));
         heightWarningLabel.setText (LOC ("inputs.gradientMap.warnings.heightRatioZero"), juce::dontSendNotification);
         heightWarningLabel.setVisible (false);
@@ -174,25 +196,81 @@ public:
         addAndMakeVisible (blackValueEditor);
         addAndMakeVisible (curveLabel);
         addAndMakeVisible (curveSlider);
+        addAndMakeVisible (curveValueEditor);
         addAndMakeVisible (mappingHintLabel);
         addAndMakeVisible (heightWarningLabel);
 
         // Shape property controls
+        shapeNameLabel.setText (LOC ("inputs.gradientMap.labels.name"), juce::dontSendNotification);
+        shapeNameLabel.setJustificationType (juce::Justification::centredRight);
+        shapeNameLabel.setFont (labelFont);
+        shapeNameEditor.onReturnKey = [this]
+        {
+            if (! selectedShapeIndices.empty())
+            {
+                auto idx = selectedShapeIndices[0];
+                if (idx >= 0 && idx < static_cast<int> (currentLayerData.shapes.size()))
+                {
+                    currentLayerData.shapes[static_cast<size_t> (idx)].name = shapeNameEditor.getText();
+                    saveCurrentLayerToValueTree();
+                    repaint();
+                }
+            }
+        };
+        shapeNameEditor.onFocusLost = shapeNameEditor.onReturnKey;
+
         shapeFillLabel.setText (LOC ("inputs.gradientMap.labels.fill"), juce::dontSendNotification);
         shapeFillLabel.setJustificationType (juce::Justification::centredRight);
-        shapeFillValueSlider.setRange (0.0, 1.0, 0.01);
-        shapeFillValueSlider.setValue (1.0, juce::dontSendNotification);
-        shapeFillValueSlider.setSliderStyle (juce::Slider::LinearHorizontal);
-        shapeFillValueSlider.setTextBoxStyle (juce::Slider::TextBoxRight, false, 50, 20);
-        shapeFillValueSlider.onValueChange = [this] { onShapePropertyChanged(); };
+        shapeFillLabel.setFont (labelFont);
+        shapeFillValueSlider.setValue (1.0f);
+        shapeFillValueSlider.onValueChanged = [this] (float v)
+        {
+            if (! isLoadingData)
+            {
+                shapeFillValueEditor.setText (juce::String (v, 2), false);
+                onShapePropertyChanged();
+            }
+        };
+        shapeFillValueEditor.setJustification (juce::Justification::centred);
+        shapeFillValueEditor.onReturnKey = [this]
+        {
+            shapeFillValueSlider.setValue (shapeFillValueEditor.getText().getFloatValue());
+            onShapePropertyChanged();
+        };
+        shapeFillValueEditor.onFocusLost = shapeFillValueEditor.onReturnKey;
 
         shapeBlurLabel.setText (LOC ("inputs.gradientMap.labels.blur"), juce::dontSendNotification);
         shapeBlurLabel.setJustificationType (juce::Justification::centredRight);
-        shapeBlurSlider.setRange (0.0, 5.0, 0.01);
-        shapeBlurSlider.setValue (0.0, juce::dontSendNotification);
-        shapeBlurSlider.setSliderStyle (juce::Slider::LinearHorizontal);
-        shapeBlurSlider.setTextBoxStyle (juce::Slider::TextBoxRight, false, 50, 20);
-        shapeBlurSlider.onValueChange = [this] { onShapePropertyChanged(); };
+        shapeBlurLabel.setFont (labelFont);
+        shapeBlurSlider.onGestureStart = [this]
+        {
+            if (! isLoadingData)
+                pushUndo();
+        };
+        shapeBlurSlider.onValueChanged = [this] (float v)
+        {
+            if (! isLoadingData)
+            {
+                shapeBlurEditor.setText (juce::String (v, 2), false);
+                // Update shape data for visual feedback but skip expensive rasterization
+                for (int idx : selectedShapeIndices)
+                    if (idx >= 0 && idx < static_cast<int> (currentLayerData.shapes.size()))
+                        currentLayerData.shapes[static_cast<size_t> (idx)].blur = v;
+                repaint();
+            }
+        };
+        shapeBlurSlider.onGestureEnd = [this]
+        {
+            if (! isLoadingData)
+                saveCurrentLayerToValueTree();  // Single rasterize on release
+        };
+        shapeBlurEditor.setJustification (juce::Justification::centred);
+        shapeBlurEditor.onReturnKey = [this]
+        {
+            shapeBlurSlider.setValue (shapeBlurEditor.getText().getFloatValue());
+            onShapePropertyChanged();
+        };
+        shapeBlurEditor.onFocusLost = shapeBlurEditor.onReturnKey;
 
         shapeEnableBtn.setButtonText (LOC ("inputs.gradientMap.buttons.enable"));
         shapeEnableBtn.setClickingTogglesState (true);
@@ -206,46 +284,81 @@ public:
         shapeDeleteBtn.setButtonText (LOC ("inputs.gradientMap.buttons.delete"));
         shapeDeleteBtn.onClick = [this] { deleteSelectedShapes(); };
 
-        pivotToggleBtn.setButtonText (LOC ("inputs.gradientMap.buttons.pivotCenter"));
-        pivotToggleBtn.onClick = [this]
-        {
-            pivotAtOrigin = ! pivotAtOrigin;
-            pivotToggleBtn.setButtonText (pivotAtOrigin ? LOC ("inputs.gradientMap.buttons.pivotOrigin")
-                                                        : LOC ("inputs.gradientMap.buttons.pivotCenter"));
-            repaint();
-        };
-
+        addAndMakeVisible (shapeNameLabel);
+        addAndMakeVisible (shapeNameEditor);
         addAndMakeVisible (shapeFillLabel);
         addAndMakeVisible (shapeFillValueSlider);
+        addAndMakeVisible (shapeFillValueEditor);
         addAndMakeVisible (shapeBlurLabel);
         addAndMakeVisible (shapeBlurSlider);
+        addAndMakeVisible (shapeBlurEditor);
         addAndMakeVisible (shapeEnableBtn);
         addAndMakeVisible (shapeLockBtn);
         addAndMakeVisible (shapeDeleteBtn);
-        addAndMakeVisible (pivotToggleBtn);
+
+
+        // Copy/paste buttons
+        copyBtn.setButtonText (LOC ("inputs.gradientMap.buttons.copyLayer"));
+        copyBtn.onClick = [this] { onCopy(); };
+        pasteBtn.setButtonText (LOC ("inputs.gradientMap.buttons.pasteLayer"));
+        pasteBtn.onClick = [this] { onPaste(); };
+        pasteBtn.setEnabled (false);
+        addAndMakeVisible (copyBtn);
+        addAndMakeVisible (pasteBtn);
 
         // Gradient value sliders (shown for linear/radial fills)
         gradValue1Label.setText (LOC ("inputs.gradientMap.labels.start"), juce::dontSendNotification);
         gradValue1Label.setJustificationType (juce::Justification::centredRight);
+        gradValue1Label.setFont (labelFont);
         gradValue2Label.setText (LOC ("inputs.gradientMap.labels.end"), juce::dontSendNotification);
         gradValue2Label.setJustificationType (juce::Justification::centredRight);
+        gradValue2Label.setFont (labelFont);
 
-        gradValue1Slider.setRange (0.0, 1.0, 0.01);
-        gradValue1Slider.setValue (1.0, juce::dontSendNotification);
-        gradValue1Slider.setSliderStyle (juce::Slider::LinearHorizontal);
-        gradValue1Slider.setTextBoxStyle (juce::Slider::TextBoxRight, false, 50, 20);
-        gradValue1Slider.onValueChange = [this] { onGradientValueChanged(); };
+        gradValue1Slider.setValue (1.0f);
+        gradValue1Slider.onValueChanged = [this] (float v)
+        {
+            if (! isLoadingData)
+            {
+                gradValue1Editor.setText (juce::String (v, 2), false);
+                onGradientValueChanged();
+            }
+        };
+        gradValue1Editor.setJustification (juce::Justification::centred);
+        gradValue1Editor.onReturnKey = [this]
+        {
+            gradValue1Slider.setValue (gradValue1Editor.getText().getFloatValue());
+            onGradientValueChanged();
+        };
+        gradValue1Editor.onFocusLost = gradValue1Editor.onReturnKey;
 
-        gradValue2Slider.setRange (0.0, 1.0, 0.01);
-        gradValue2Slider.setValue (0.0, juce::dontSendNotification);
-        gradValue2Slider.setSliderStyle (juce::Slider::LinearHorizontal);
-        gradValue2Slider.setTextBoxStyle (juce::Slider::TextBoxRight, false, 50, 20);
-        gradValue2Slider.onValueChange = [this] { onGradientValueChanged(); };
+        gradValue2Slider.onValueChanged = [this] (float v)
+        {
+            if (! isLoadingData)
+            {
+                gradValue2Editor.setText (juce::String (v, 2), false);
+                onGradientValueChanged();
+            }
+        };
+        gradValue2Editor.setJustification (juce::Justification::centred);
+        gradValue2Editor.onReturnKey = [this]
+        {
+            gradValue2Slider.setValue (gradValue2Editor.getText().getFloatValue());
+            onGradientValueChanged();
+        };
+        gradValue2Editor.onFocusLost = gradValue2Editor.onReturnKey;
 
         addAndMakeVisible (gradValue1Label);
         addAndMakeVisible (gradValue1Slider);
+        addAndMakeVisible (gradValue1Editor);
         addAndMakeVisible (gradValue2Label);
         addAndMakeVisible (gradValue2Slider);
+        addAndMakeVisible (gradValue2Editor);
+
+        // Greyscale sliders: invert display in light theme so dark = full effect
+        bool lightTheme = isLightTheme();
+        shapeFillValueSlider.setInvertForLightTheme (lightTheme);
+        gradValue1Slider.setInvertForLightTheme (lightTheme);
+        gradValue2Slider.setInvertForLightTheme (lightTheme);
 
         setShapePropertiesVisible (false);
     }
@@ -286,6 +399,7 @@ public:
         originWidth = originW;
         originDepth = originD;
         recalculateStageBounds();
+        hasInitialView = false;
         resetView();
         repaint();
     }
@@ -295,6 +409,13 @@ public:
     {
         heightRatio = ratio;
         updateHeightWarning();
+    }
+
+    /** Set the status bar for help text display */
+    void setStatusBar (StatusBar* bar)
+    {
+        statusBar = bar;
+        setupHelpText();
     }
 
     /** Callback when gradient maps change (for rasterization trigger) */
@@ -314,10 +435,11 @@ public:
         g.saveState();
         g.reduceClipRegion (canvasBounds);
 
-        drawGrid (g, canvasBounds);
-
         // Fill stage area with "zero effect" color (black in dark themes, white in light)
         drawStageBackground (g, canvasBounds);
+
+        // Grid drawn AFTER background so it's visible on the stage
+        drawGrid (g, canvasBounds);
 
         drawStageBounds (g, canvasBounds);
         drawOriginMarker (g, canvasBounds);
@@ -357,6 +479,37 @@ public:
             g.drawRect (juce::Rectangle<float> (createStartScreen.toFloat(), createCurrentScreen.toFloat()), 1.0f);
         }
 
+        // Draw polygon being built — vertices, edges, and hint text
+        if (isBuildingPolygon && ! polygonVertices.empty())
+        {
+            auto layerCol = getLayerColour (activeLayer);
+            const float dotR = 4.0f;
+
+            // Draw edges between placed vertices
+            g.setColour (layerCol.withAlpha (0.6f));
+            for (size_t vi = 1; vi < polygonVertices.size(); ++vi)
+            {
+                auto a = stageToScreen (polygonVertices[vi - 1], canvasBounds).toFloat();
+                auto b = stageToScreen (polygonVertices[vi], canvasBounds).toFloat();
+                g.drawLine (a.x, a.y, b.x, b.y, 1.5f);
+            }
+
+            // Draw vertex dots
+            g.setColour (layerCol);
+            for (auto& v : polygonVertices)
+            {
+                auto scr = stageToScreen (v, canvasBounds).toFloat();
+                g.fillEllipse (scr.x - dotR, scr.y - dotR, dotR * 2, dotR * 2);
+            }
+
+            // Hint text on canvas
+            g.setColour (juce::Colours::white.withAlpha (0.7f));
+            g.setFont (juce::jmax (10.0f, 13.0f * WfsLookAndFeel::uiScale));
+            g.drawText (LOC ("inputs.gradientMap.hints.polygonClose"),
+                        canvasBounds.reduced (8).removeFromBottom (24),
+                        juce::Justification::centredBottom, false);
+        }
+
         g.restoreState();
 
         // Property panel background
@@ -375,7 +528,6 @@ public:
 
         // Layer header — colored by active layer
         g.setColour (getLayerColour (activeLayer));
-        g.setFont (13.0f);
         {
             const char* headerKeys[3] = {
                 "inputs.gradientMap.header.attenuationLayer",
@@ -387,22 +539,6 @@ public:
                         juce::Justification::centred);
         }
 
-        // Grey preview swatches at the left edge of the label area
-        auto drawSwatch = [&] (const juce::Component& label, float greyVal)
-        {
-            if (! label.isVisible()) return;
-            auto lb = label.getBounds();
-            int swX = lb.getX();
-            int swY = lb.getCentreY() - 7;
-            g.setColour (juce::Colour::greyLevel (displayGrey (greyVal)));
-            g.fillRect (swX, swY, 14, 14);
-            g.setColour (ColorScheme::get().chromeDivider);
-            g.drawRect (swX, swY, 14, 14, 1);
-        };
-
-        drawSwatch (shapeFillLabel, static_cast<float> (shapeFillValueSlider.getValue()));
-        drawSwatch (gradValue1Label, static_cast<float> (gradValue1Slider.getValue()));
-        drawSwatch (gradValue2Label, static_cast<float> (gradValue2Slider.getValue()));
     }
 
     void resized() override
@@ -413,23 +549,24 @@ public:
         int panelWidth = juce::jmax (200, bounds.getWidth() * 21 / 100);
         auto panelBounds = bounds.removeFromRight (panelWidth);
 
-        int rowH = 26, labelW = 60, pad = 4;
+        int rowH = 28, labelW = 60, pad = 4;
         int eyeBtnW = 24;
+        int powerBtnW = 20;
 
-        // Layer selector row (horizontal, spanning full width)
-        auto layerRow = panelBounds.removeFromTop (30);
+        // Layer selector — Row 1: selection buttons, Row 2: power + eye centered
+        auto layerRow1 = panelBounds.removeFromTop (36);
+        auto layerRow2 = panelBounds.removeFromTop (22);
         {
-            int ly = layerRow.getY() + 3;
-            int lBtnH = 24;
-            int powerBtnW = 20;
             int groupW = (panelWidth - 8) / 3;
-
             for (int i = 0; i < 3; ++i)
             {
-                int lx = layerRow.getX() + 4 + i * groupW;
-                layerEnabledBtn[i].setBounds (lx, ly, powerBtnW, lBtnH);
-                layerVisibleBtn[i].setBounds (lx + powerBtnW, ly, eyeBtnW, lBtnH);
-                layerEnableBtn[i].setBounds (lx + powerBtnW + eyeBtnW, ly, groupW - powerBtnW - eyeBtnW - 2, lBtnH);
+                int lx = layerRow1.getX() + 4 + i * groupW;
+                layerEnableBtn[i].setBounds (lx, layerRow1.getY() + 2, groupW - 2, 32);
+
+                int toggleW = powerBtnW + eyeBtnW;
+                int toggleX = lx + (groupW - toggleW) / 2;
+                layerEnabledBtn[i].setBounds (toggleX, layerRow2.getY() + 1, powerBtnW, 20);
+                layerVisibleBtn[i].setBounds (toggleX + powerBtnW, layerRow2.getY() + 1, eyeBtnW, 20);
             }
         }
 
@@ -441,6 +578,8 @@ public:
         panelBounds.removeFromTop (22);  // Colored header text (painted)
         layerHeaderY = panelBounds.getY() - 22;
 
+        int editorW = 50;
+
         auto row = panelBounds.removeFromTop (rowH);
         whiteValueLabel.setBounds (row.removeFromLeft (labelW));
         whiteValueEditor.setBounds (row.reduced (pad, 2));
@@ -451,13 +590,14 @@ public:
 
         row = panelBounds.removeFromTop (rowH);
         curveLabel.setBounds (row.removeFromLeft (labelW));
+        curveValueEditor.setBounds (row.removeFromRight (editorW).reduced (0, 2));
         curveSlider.setBounds (row.reduced (pad, 2));
 
         // Mapping hint label
-        mappingHintLabel.setBounds (panelBounds.removeFromTop (18).reduced (2, 0));
+        mappingHintLabel.setBounds (panelBounds.removeFromTop (20).reduced (2, 0));
 
         // Height ratio warning (only visible on Height layer when ratio is 0%)
-        heightWarningLabel.setBounds (panelBounds.removeFromTop (16).reduced (2, 0));
+        heightWarningLabel.setBounds (panelBounds.removeFromTop (18).reduced (2, 0));
 
         // Separator 2
         separatorY2 = panelBounds.getY() + 2;
@@ -465,36 +605,48 @@ public:
 
         // Shape properties
         row = panelBounds.removeFromTop (rowH);
+        shapeNameLabel.setBounds (row.removeFromLeft (labelW));
+        shapeNameEditor.setBounds (row.reduced (pad, 2));
+
+        row = panelBounds.removeFromTop (rowH);
         shapeFillLabel.setBounds (row.removeFromLeft (labelW));
+        shapeFillValueEditor.setBounds (row.removeFromRight (editorW).reduced (0, 2));
         shapeFillValueSlider.setBounds (row.reduced (pad, 2));
 
         row = panelBounds.removeFromTop (rowH);
         gradValue1Label.setBounds (row.removeFromLeft (labelW));
+        gradValue1Editor.setBounds (row.removeFromRight (editorW).reduced (0, 2));
         gradValue1Slider.setBounds (row.reduced (pad, 2));
 
         row = panelBounds.removeFromTop (rowH);
         gradValue2Label.setBounds (row.removeFromLeft (labelW));
+        gradValue2Editor.setBounds (row.removeFromRight (editorW).reduced (0, 2));
         gradValue2Slider.setBounds (row.reduced (pad, 2));
 
         row = panelBounds.removeFromTop (rowH);
         shapeBlurLabel.setBounds (row.removeFromLeft (labelW));
+        shapeBlurEditor.setBounds (row.removeFromRight (editorW).reduced (0, 2));
         shapeBlurSlider.setBounds (row.reduced (pad, 2));
 
         row = panelBounds.removeFromTop (rowH);
         shapeEnableBtn.setBounds (row.removeFromLeft (42).reduced (pad, 2));
-        pivotToggleBtn.setBounds (row.removeFromLeft (90).reduced (pad, 2));
         shapeLockBtn.setBounds (row.removeFromLeft (50).reduced (pad, 2));
         shapeDeleteBtn.setBounds (row.removeFromLeft (55).reduced (pad, 2));
 
-        // Tool buttons at bottom of panel (3 rows)
-        int toolBtnH = 26, toolPad = 3;
-        auto toolArea = panelBounds.removeFromBottom (toolBtnH * 3 + toolPad * 4);
+        // Tool buttons at bottom of panel (4 rows: copy/paste, select, shapes, fills)
+        int toolBtnH = 32, toolPad = 6;
+        auto toolArea = panelBounds.removeFromBottom (toolBtnH * 4 + toolPad * 5 + 2);
 
         // Separator before tools
         separatorY3 = toolArea.getY();
         toolArea.removeFromTop (toolPad + 2);
 
-        auto toolRow1 = toolArea.removeFromTop (toolBtnH);
+        // Copy/paste row (above select tool)
+        auto toolRow0 = toolArea.removeFromTop (toolBtnH + toolPad).withTrimmedTop (toolPad);
+        copyBtn.setBounds (toolRow0.removeFromLeft (toolRow0.getWidth() / 2).reduced (toolPad, 0));
+        pasteBtn.setBounds (toolRow0.reduced (toolPad, 0));
+
+        auto toolRow1 = toolArea.removeFromTop (toolBtnH + toolPad).withTrimmedTop (toolPad);
         auto toolRow2 = toolArea.removeFromTop (toolBtnH + toolPad).withTrimmedTop (toolPad);
         auto toolRow3 = toolArea.removeFromTop (toolBtnH + toolPad).withTrimmedTop (toolPad);
 
@@ -510,6 +662,12 @@ public:
         fillToolBtn.setBounds (tx, toolRow3.getY(), col3W, toolBtnH);
         linearGradToolBtn.setBounds (tx + col3W + toolPad, toolRow3.getY(), col3W, toolBtnH);
         radialGradToolBtn.setBounds (tx + (col3W + toolPad) * 2, toolRow3.getY(), col3W, toolBtnH);
+
+        if (! hasInitialView)
+        {
+            resetView();
+            hasInitialView = true;
+        }
     }
 
     //==========================================================================
@@ -518,9 +676,23 @@ public:
 
     void mouseDown (const juce::MouseEvent& e) override
     {
+        // Ignore events forwarded from child components (via addMouseListener for help text)
+        if (e.eventComponent != this)
+            return;
+
         auto canvasBounds = getCanvasBounds();
         if (! canvasBounds.contains (e.getPosition()))
+        {
+            isRubberBanding = false;
             return;
+        }
+
+        if (e.mods.isMiddleButtonDown())
+        {
+            resetView();
+            repaint();
+            return;
+        }
 
         if (e.mods.isRightButtonDown())
         {
@@ -533,6 +705,40 @@ public:
 
         if (currentTool == Tool::Select)
         {
+            // Origin handle hit-test (works with multi-selection)
+            juce::Point<float> originHandlePos;
+            if (! selectedShapeIndices.empty()
+                && getOriginHandlePos (canvasBounds, originHandlePos)
+                && e.getPosition().toFloat().getDistanceFrom (originHandlePos) < 10.0f)
+            {
+                pushUndo();
+                isDraggingOriginHandle = true;
+                auto centroid = getSelectionCentroid();
+                originHandleStartAngle = std::atan2 (centroid.x, -centroid.y);
+                originHandleStartDist = std::hypot (centroid.x, centroid.y);
+
+                originDragStarts.clear();
+                for (int idx : selectedShapeIndices)
+                {
+                    if (idx >= 0 && idx < static_cast<int> (currentLayerData.shapes.size()))
+                    {
+                        auto& s = currentLayerData.shapes[static_cast<size_t> (idx)];
+                        OriginDragStart ds;
+                        ds.posX = s.posX;  ds.posY = s.posY;
+                        ds.scaleX = s.scaleX;  ds.scaleY = s.scaleY;
+                        ds.angleFromOrigin = std::atan2 (s.posX, -s.posY);
+                        ds.distFromOrigin = std::hypot (s.posX, s.posY);
+                        originDragStarts.push_back (ds);
+                    }
+                }
+                repaint();
+                return;
+            }
+
+            // Gradient handle drag (works in Select mode too)
+            if (tryStartGradientHandleDrag (e.getPosition(), canvasBounds))
+                return;
+
             // Check scale/rotate handles on already-selected shapes first
             if (selectedShapeIndices.size() == 1)
             {
@@ -541,26 +747,28 @@ public:
                 {
                     auto& shape = currentLayerData.shapes[static_cast<size_t> (selIdx)];
 
-                    // Rotation handle hit-test
+                    // Rotation handle hit-test (skip if locked)
                     juce::Point<float> rotHandlePos;
-                    if (getRotationHandlePos (shape, canvasBounds, rotHandlePos)
+                    if (! shape.locked
+                        && getRotationHandlePos (shape, canvasBounds, rotHandlePos)
                         && e.getPosition().toFloat().getDistanceFrom (rotHandlePos) < 8.0f)
                     {
+                        pushUndo();
                         isRotating = true;
                         rotateShapeIdx = selIdx;
                         shapeStartRotation = shape.rotation;
 
-                        auto pivot = pivotAtOrigin ? juce::Point<float> (0.0f, 0.0f)
-                                                   : juce::Point<float> (shape.posX, shape.posY);
+                        auto pivot = juce::Point<float> (shape.posX, shape.posY);
                         rotateStartAngle = std::atan2 (stagePos.x - pivot.x, -(stagePos.y - pivot.y));
                         repaint();
                         return;
                     }
 
-                    // Scale corner handle hit-test
-                    int cornerIdx = hitTestScaleHandle (e.getPosition().toFloat(), shape, canvasBounds);
+                    // Scale corner handle hit-test (skip if locked)
+                    int cornerIdx = shape.locked ? -1 : hitTestScaleHandle (e.getPosition().toFloat(), shape, canvasBounds);
                     if (cornerIdx >= 0)
                     {
+                        pushUndo();
                         draggingScaleHandle = cornerIdx;
                         scaleHandleShapeIdx = selIdx;
                         shapeStartScaleX = shape.scaleX;
@@ -592,6 +800,7 @@ public:
                     selectedShapeIndices.push_back (hitIdx);
                 }
 
+                pushUndo();
                 isDragging = true;
                 dragStartStage = stagePos;
                 updateShapePropertyPanel();
@@ -610,6 +819,7 @@ public:
             int hitIdx = hitTestShape (stagePos);
             if (hitIdx >= 0)
             {
+                pushUndo();
                 auto& shape = currentLayerData.shapes[static_cast<size_t> (hitIdx)];
                 shape.fillType = GradientMap::FillType::Uniform;
                 shape.fillValue = currentFillValue;
@@ -629,6 +839,7 @@ public:
             int hitIdx = hitTestShape (stagePos);
             if (hitIdx >= 0)
             {
+                pushUndo();
                 auto& shape = currentLayerData.shapes[static_cast<size_t> (hitIdx)];
                 if (shape.fillType != GradientMap::FillType::LinearGradient)
                 {
@@ -652,6 +863,7 @@ public:
             int hitIdx = hitTestShape (stagePos);
             if (hitIdx >= 0)
             {
+                pushUndo();
                 auto& shape = currentLayerData.shapes[static_cast<size_t> (hitIdx)];
                 if (shape.fillType != GradientMap::FillType::RadialGradient)
                 {
@@ -688,6 +900,9 @@ public:
 
     void mouseDrag (const juce::MouseEvent& e) override
     {
+        if (e.eventComponent != this)
+            return;
+
         auto canvasBounds = getCanvasBounds();
 
         if (isPanning)
@@ -698,14 +913,44 @@ public:
             return;
         }
 
+        // Origin handle dragging (rotate position around origin + scale shape size)
+        if (isDraggingOriginHandle)
+        {
+            auto stagePos = screenToStage (e.getPosition(), canvasBounds);
+            float currentAngle = std::atan2 (stagePos.x, -stagePos.y);
+            float currentDist = std::hypot (stagePos.x, stagePos.y);
+
+            float deltaAngle = currentAngle - originHandleStartAngle;
+            float scaleFactor = (originHandleStartDist > 0.01f)
+                                ? currentDist / originHandleStartDist : 1.0f;
+            scaleFactor = juce::jlimit (0.1f, 10.0f, scaleFactor);
+
+            if (e.mods.isShiftDown())
+                deltaAngle = std::round (deltaAngle / juce::degreesToRadians (15.0f))
+                             * juce::degreesToRadians (15.0f);
+
+            for (size_t i = 0; i < originDragStarts.size() && i < selectedShapeIndices.size(); ++i)
+            {
+                auto& shape = currentLayerData.shapes[static_cast<size_t> (selectedShapeIndices[i])];
+                auto& ds = originDragStarts[i];
+
+                float newAngle = ds.angleFromOrigin + deltaAngle;
+                shape.posX = ds.distFromOrigin * std::sin (newAngle);
+                shape.posY = -ds.distFromOrigin * std::cos (newAngle);
+                shape.scaleX = juce::jmax (0.05f, ds.scaleX * scaleFactor);
+                shape.scaleY = juce::jmax (0.05f, ds.scaleY * scaleFactor);
+            }
+            repaint();
+            return;
+        }
+
         // Rotation dragging
         if (isRotating && rotateShapeIdx >= 0
             && rotateShapeIdx < static_cast<int> (currentLayerData.shapes.size()))
         {
             auto stagePos = screenToStage (e.getPosition(), canvasBounds);
             auto& shape = currentLayerData.shapes[static_cast<size_t> (rotateShapeIdx)];
-            auto pivot = pivotAtOrigin ? juce::Point<float> (0.0f, 0.0f)
-                                       : juce::Point<float> (shape.posX, shape.posY);
+            auto pivot = juce::Point<float> (shape.posX, shape.posY);
             float currentAngle = std::atan2 (stagePos.x - pivot.x, -(stagePos.y - pivot.y));
             float deltaAngle = juce::radiansToDegrees (currentAngle - rotateStartAngle);
 
@@ -724,8 +969,7 @@ public:
         {
             auto stagePos = screenToStage (e.getPosition(), canvasBounds);
             auto& shape = currentLayerData.shapes[static_cast<size_t> (scaleHandleShapeIdx)];
-            auto pivot = pivotAtOrigin ? juce::Point<float> (0.0f, 0.0f)
-                                       : juce::Point<float> (shape.posX, shape.posY);
+            auto pivot = juce::Point<float> (shape.posX, shape.posY);
 
             // Convert mouse position to shape-local coords (unscaled, unrotated)
             auto rotInverse = juce::AffineTransform::rotation (juce::degreesToRadians (shape.rotation)).inverted();
@@ -815,11 +1059,22 @@ public:
 
     void mouseUp (const juce::MouseEvent& e) override
     {
+        if (e.eventComponent != this)
+            return;
+
         auto canvasBounds = getCanvasBounds();
 
         if (isPanning)
         {
             isPanning = false;
+            return;
+        }
+
+        if (isDraggingOriginHandle)
+        {
+            isDraggingOriginHandle = false;
+            originDragStarts.clear();
+            saveCurrentLayerToValueTree();
             return;
         }
 
@@ -885,6 +1140,7 @@ public:
 
             if (newShape.scaleX > 0.05f && newShape.scaleY > 0.05f)
             {
+                pushUndo();
                 currentLayerData.shapes.push_back (newShape);
                 selectedShapeIndices.clear();
                 selectedShapeIndices.push_back (static_cast<int> (currentLayerData.shapes.size()) - 1);
@@ -894,10 +1150,16 @@ public:
 
             repaint();
         }
+
+        // Unconditional reset — prevents stale rubber band if mouseUp was missed
+        isRubberBanding = false;
     }
 
     void mouseDoubleClick (const juce::MouseEvent& e) override
     {
+        if (e.eventComponent != this)
+            return;
+
         if (isBuildingPolygon && polygonVertices.size() >= 3)
         {
             GradientMap::Shape newShape;
@@ -921,6 +1183,7 @@ public:
             newShape.fillValue = 1.0f;
             newShape.order = static_cast<int> (currentLayerData.shapes.size());
 
+            pushUndo();
             currentLayerData.shapes.push_back (newShape);
             selectedShapeIndices.clear();
             selectedShapeIndices.push_back (static_cast<int> (currentLayerData.shapes.size()) - 1);
@@ -939,6 +1202,9 @@ public:
 
     void mouseWheelMove (const juce::MouseEvent& e, const juce::MouseWheelDetails& wheel) override
     {
+        if (e.eventComponent != this)
+            return;
+
         if (getCanvasBounds().contains (e.getPosition()))
         {
             float zoomFactor = (wheel.deltaY > 0) ? 1.15f : (1.0f / 1.15f);
@@ -947,11 +1213,51 @@ public:
         }
     }
 
+    void mouseEnter (const juce::MouseEvent& e) override
+    {
+        if (statusBar != nullptr)
+        {
+            auto* comp = e.eventComponent;
+            while (comp != nullptr)
+            {
+                auto it = helpTextMap.find (comp);
+                if (it != helpTextMap.end())
+                {
+                    statusBar->setHelpText (it->second);
+                    return;
+                }
+                comp = comp->getParentComponent();
+            }
+        }
+    }
+
+    void mouseExit (const juce::MouseEvent&) override
+    {
+        if (statusBar != nullptr)
+            statusBar->clearText();
+    }
+
     bool keyPressed (const juce::KeyPress& key) override
     {
         if (key == juce::KeyPress::deleteKey || key == juce::KeyPress::backspaceKey)
         {
             deleteSelectedShapes();
+            return true;
+        }
+        if (key == juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0))
+        {
+            undo();
+            return true;
+        }
+        if (key == juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier
+                                        | juce::ModifierKeys::shiftModifier, 0))
+        {
+            redo();
+            return true;
+        }
+        if (key == juce::KeyPress ('y', juce::ModifierKeys::ctrlModifier, 0))
+        {
+            redo();
             return true;
         }
         return false;
@@ -994,6 +1300,7 @@ private:
     std::vector<juce::Point<float>> polygonVertices;
 
     bool isLoadingData = false;
+    bool hasInitialView = false;
     float heightRatio = 1.0f;
 
     //==========================================================================
@@ -1008,6 +1315,8 @@ private:
     class EyeButton : public juce::ToggleButton
     {
     public:
+        juce::Colour layerColour { juce::Colours::white };
+
         void paintButton (juce::Graphics& g, bool isHighlighted, bool isDown) override
         {
             auto b = getLocalBounds().toFloat().reduced (3.0f, 5.0f);
@@ -1019,7 +1328,7 @@ private:
             if (isHighlighted) alpha = juce::jmin (1.0f, alpha + 0.15f);
             (void) isDown;
 
-            g.setColour (juce::Colours::white.withAlpha (alpha));
+            g.setColour (layerColour.withAlpha (alpha));
 
             // Eye outline (two arcs)
             juce::Path eye;
@@ -1049,6 +1358,8 @@ private:
     class PowerButton : public juce::ToggleButton
     {
     public:
+        juce::Colour layerColour { juce::Colours::white };
+
         void paintButton (juce::Graphics& g, bool isHighlighted, bool isDown) override
         {
             auto b = getLocalBounds().toFloat().reduced (3.0f, 5.0f);
@@ -1060,8 +1371,8 @@ private:
             if (isHighlighted) alpha = juce::jmin (1.0f, alpha + 0.15f);
             (void) isDown;
 
-            auto col = on ? juce::Colours::limegreen.withAlpha (alpha)
-                          : juce::Colours::white.withAlpha (alpha);
+            auto col = on ? layerColour.withAlpha (alpha)
+                          : layerColour.withAlpha (alpha * 0.5f);
             g.setColour (col);
 
             // Arc (open at top)
@@ -1080,22 +1391,28 @@ private:
     // Property panel UI — Layer
     juce::Label whiteValueLabel, blackValueLabel, curveLabel;
     juce::TextEditor whiteValueEditor, blackValueEditor;
-    juce::Slider curveSlider;
+    WfsBidirectionalSlider curveSlider;
+    juce::TextEditor curveValueEditor;
 
     juce::Label mappingHintLabel;
     juce::Label heightWarningLabel;
 
     // Property panel UI — Shape
-    juce::Label shapeFillLabel, shapeBlurLabel;
-    juce::Slider shapeFillValueSlider, shapeBlurSlider;
+    juce::Label shapeNameLabel, shapeFillLabel, shapeBlurLabel;
+    juce::TextEditor shapeNameEditor;
+    WfsGreyscaleSlider shapeFillValueSlider;
+    juce::TextEditor shapeFillValueEditor;
+    WfsStandardSlider shapeBlurSlider { 0.0f, 5.0f };
+    juce::TextEditor shapeBlurEditor;
     juce::TextButton shapeEnableBtn, shapeLockBtn, shapeDeleteBtn;
 
     // Gradient value sliders
     juce::Label gradValue1Label, gradValue2Label;
-    juce::Slider gradValue1Slider, gradValue2Slider;
+    WfsGreyscaleSlider gradValue1Slider, gradValue2Slider;
+    juce::TextEditor gradValue1Editor, gradValue2Editor;
 
-    // Pivot toggle
-    juce::TextButton pivotToggleBtn;
+    // Copy/paste
+    juce::TextButton copyBtn, pasteBtn;
 
     // Separator line Y positions (set in resized, drawn in paint)
     int separatorY1 = 0, separatorY2 = 0, separatorY3 = 0, layerHeaderY = 0;
@@ -1113,7 +1430,69 @@ private:
     float rotateStartAngle = 0.0f;
     float shapeStartRotation = 0.0f;
     float shapeStartScaleX = 0.0f, shapeStartScaleY = 0.0f;
-    bool pivotAtOrigin = false;
+    // Origin-based handle state
+    bool isDraggingOriginHandle = false;
+    float originHandleStartAngle = 0.0f;
+    float originHandleStartDist = 0.0f;
+    struct OriginDragStart {
+        float posX, posY, scaleX, scaleY;
+        float angleFromOrigin, distFromOrigin;
+    };
+    std::vector<OriginDragStart> originDragStarts;
+
+    // Undo/Redo — layer-level snapshots
+    std::vector<GradientMap::Layer> undoStack;
+    std::vector<GradientMap::Layer> redoStack;
+    static constexpr int maxUndoLevels = 50;
+
+    void pushUndo()
+    {
+        undoStack.push_back (currentLayerData);
+        if (static_cast<int> (undoStack.size()) > maxUndoLevels)
+            undoStack.erase (undoStack.begin());
+        redoStack.clear();
+    }
+
+    void undo()
+    {
+        if (undoStack.empty()) return;
+        redoStack.push_back (currentLayerData);
+        currentLayerData = undoStack.back();
+        undoStack.pop_back();
+        selectedShapeIndices.clear();
+        saveCurrentLayerToValueTree();
+        updateShapePropertyPanel();
+        repaint();
+    }
+
+    void redo()
+    {
+        if (redoStack.empty()) return;
+        undoStack.push_back (currentLayerData);
+        currentLayerData = redoStack.back();
+        redoStack.pop_back();
+        selectedShapeIndices.clear();
+        saveCurrentLayerToValueTree();
+        updateShapePropertyPanel();
+        repaint();
+    }
+
+    //==========================================================================
+    // Layer Value Bounds
+    //==========================================================================
+
+    struct LayerValueBounds { float min, max, defaultWhite, defaultBlack; };
+
+    static LayerValueBounds getLayerBounds (int layer)
+    {
+        switch (layer)
+        {
+            case 0:  return { -92.0f,  0.0f, -92.0f,  0.0f };  // Attenuation (dB)
+            case 1:  return { -50.0f, 50.0f,   0.0f,  0.0f };  // Height (m)
+            case 2:  return { -24.0f,  0.0f, -24.0f,  0.0f };  // HF Shelf (dB)
+            default: return { -92.0f,  0.0f,   0.0f,  0.0f };
+        }
+    }
 
     //==========================================================================
     // Theme Helpers
@@ -1264,6 +1643,40 @@ private:
     }
 
     //==========================================================================
+    // Origin Handle Helpers
+    //==========================================================================
+
+    juce::Point<float> getSelectionCentroid() const
+    {
+        juce::Point<float> c { 0.0f, 0.0f };
+        int n = 0;
+        for (int idx : selectedShapeIndices)
+        {
+            if (idx >= 0 && idx < static_cast<int> (currentLayerData.shapes.size()))
+            {
+                const auto& s = currentLayerData.shapes[static_cast<size_t> (idx)];
+                c += { s.posX, s.posY };
+                ++n;
+            }
+        }
+        return n > 0 ? c / static_cast<float> (n) : c;
+    }
+
+    /** Returns the screen position of the origin handle, or nullopt if shapes are too close to origin */
+    bool getOriginHandlePos (const juce::Rectangle<int>& canvas, juce::Point<float>& outPos) const
+    {
+        if (selectedShapeIndices.empty()) return false;
+        auto centroid = getSelectionCentroid();
+        auto originScreen = stageToScreen ({ 0.0f, 0.0f }, canvas).toFloat();
+        auto centroidScreen = stageToScreen (centroid, canvas).toFloat();
+        auto dir = centroidScreen - originScreen;
+        float dirLen = dir.getDistanceFromOrigin();
+        if (dirLen < 5.0f) return false;
+        outPos = centroidScreen + dir * (25.0f / dirLen);
+        return true;
+    }
+
+    //==========================================================================
     // Gradient Handle Hit-Testing & Dragging
     //==========================================================================
 
@@ -1281,9 +1694,9 @@ private:
             auto p2Screen = stageToScreen (shapeLocalToStage ({ shape.linearGradient.x2, shape.linearGradient.y2 }, shape), canvas);
 
             if (screenPos.toFloat().getDistanceFrom (p1Screen.toFloat()) < hitRadius)
-            { draggingGradientHandle = 0; return true; }
+            { pushUndo(); draggingGradientHandle = 0; return true; }
             if (screenPos.toFloat().getDistanceFrom (p2Screen.toFloat()) < hitRadius)
-            { draggingGradientHandle = 1; return true; }
+            { pushUndo(); draggingGradientHandle = 1; return true; }
         }
         else if (shape.fillType == GradientMap::FillType::RadialGradient)
         {
@@ -1292,9 +1705,9 @@ private:
             auto edgeScreen = stageToScreen (shapeLocalToStage (edgeLocal, shape), canvas);
 
             if (screenPos.toFloat().getDistanceFrom (centerScreen.toFloat()) < hitRadius)
-            { draggingGradientHandle = 0; return true; }
+            { pushUndo(); draggingGradientHandle = 0; return true; }
             if (screenPos.toFloat().getDistanceFrom (edgeScreen.toFloat()) < hitRadius)
-            { draggingGradientHandle = 1; return true; }
+            { pushUndo(); draggingGradientHandle = 1; return true; }
         }
 
         return false;
@@ -1306,7 +1719,7 @@ private:
 
     void drawGrid (juce::Graphics& g, const juce::Rectangle<int>& canvas) const
     {
-        g.setColour (juce::Colour (0xFF333333));
+        g.setColour (isLightTheme() ? juce::Colour (0xFFE0E0E0) : juce::Colour (0xFF222222));
 
         float left = screenToStage ({ canvas.getX(), 0 }, canvas).x;
         float right = screenToStage ({ canvas.getRight(), 0 }, canvas).x;
@@ -1396,6 +1809,11 @@ private:
 
             path.applyTransform (stageToScreenTransform);
 
+            // Skip degenerate paths — avoids Direct2D initialiseBitmapData assertion
+            auto pathBounds = path.getBounds();
+            if (pathBounds.isEmpty() || pathBounds.getWidth() < 0.5f || pathBounds.getHeight() < 0.5f)
+                continue;
+
             // Draw fill based on fill type (using displayGrey for theme-correct rendering)
             if (shape.fillType == GradientMap::FillType::LinearGradient)
             {
@@ -1404,12 +1822,19 @@ private:
                 auto p1Scr = stageToScreen (p1Stage, canvas);
                 auto p2Scr = stageToScreen (p2Stage, canvas);
 
-                juce::ColourGradient grad (
-                    juce::Colour::greyLevel (displayGrey (shape.linearGradient.value1)).withAlpha (shapeAlpha),
-                    static_cast<float> (p1Scr.x), static_cast<float> (p1Scr.y),
-                    juce::Colour::greyLevel (displayGrey (shape.linearGradient.value2)).withAlpha (shapeAlpha),
-                    static_cast<float> (p2Scr.x), static_cast<float> (p2Scr.y), false);
-                g.setGradientFill (grad);
+                auto c1Lin = juce::Colour::greyLevel (displayGrey (shape.linearGradient.value1)).withAlpha (shapeAlpha);
+                auto c2Lin = juce::Colour::greyLevel (displayGrey (shape.linearGradient.value2)).withAlpha (shapeAlpha);
+                float linDist = p1Scr.toFloat().getDistanceFrom (p2Scr.toFloat());
+                if (linDist < 1.0f)
+                {
+                    g.setColour (c1Lin.interpolatedWith (c2Lin, 0.5f));
+                }
+                else
+                {
+                    juce::ColourGradient grad (c1Lin, static_cast<float> (p1Scr.x), static_cast<float> (p1Scr.y),
+                                               c2Lin, static_cast<float> (p2Scr.x), static_cast<float> (p2Scr.y), false);
+                    g.setGradientFill (grad);
+                }
             }
             else if (shape.fillType == GradientMap::FillType::RadialGradient)
             {
@@ -1419,12 +1844,18 @@ private:
                 auto eScr = stageToScreen (edgeStage, canvas);
                 float rPx = cScr.toFloat().getDistanceFrom (eScr.toFloat());
 
-                juce::ColourGradient grad (
-                    juce::Colour::greyLevel (displayGrey (shape.radialGradient.centerValue)).withAlpha (shapeAlpha),
-                    static_cast<float> (cScr.x), static_cast<float> (cScr.y),
-                    juce::Colour::greyLevel (displayGrey (shape.radialGradient.edgeValue)).withAlpha (shapeAlpha),
-                    static_cast<float> (cScr.x) + rPx, static_cast<float> (cScr.y), true);
-                g.setGradientFill (grad);
+                auto cCenter = juce::Colour::greyLevel (displayGrey (shape.radialGradient.centerValue)).withAlpha (shapeAlpha);
+                auto cEdge   = juce::Colour::greyLevel (displayGrey (shape.radialGradient.edgeValue)).withAlpha (shapeAlpha);
+                if (rPx < 1.0f)
+                {
+                    g.setColour (cCenter.interpolatedWith (cEdge, 0.5f));
+                }
+                else
+                {
+                    juce::ColourGradient grad (cCenter, static_cast<float> (cScr.x), static_cast<float> (cScr.y),
+                                               cEdge, static_cast<float> (cScr.x) + rPx, static_cast<float> (cScr.y), true);
+                    g.setGradientFill (grad);
+                }
             }
             else
             {
@@ -1437,15 +1868,34 @@ private:
                               std::find (selectedShapeIndices.begin(), selectedShapeIndices.end(), i)
                                   != selectedShapeIndices.end();
 
+            // Outline always visible — boost alpha for non-active layers
+            float outlineAlpha = juce::jmax (0.4f, shapeAlpha);
             if (isSelected)
             {
-                g.setColour (getLayerColour (layerIdx).withAlpha (shapeAlpha));
+                g.setColour (getLayerColour (layerIdx).withAlpha (outlineAlpha));
                 g.strokePath (path, juce::PathStrokeType (2.5f));
             }
             else
             {
-                g.setColour (getLayerColour (layerIdx).withAlpha (shapeAlpha * 0.6f));
+                g.setColour (getLayerColour (layerIdx).withAlpha (outlineAlpha * 0.7f));
                 g.strokePath (path, juce::PathStrokeType (1.0f));
+            }
+        }
+
+        // Draw shape names on active layer
+        if (layerIdx == activeLayer)
+        {
+            g.setColour (getLayerColour (layerIdx).withAlpha (0.9f));
+            g.setFont (12.0f);
+            for (const auto& shape : layerData.shapes)
+            {
+                if (shape.name.isNotEmpty())
+                {
+                    auto center = stageToScreen ({ shape.posX, shape.posY }, canvas);
+                    g.drawText (shape.name,
+                                center.x - 60, center.y - 22, 120, 16,
+                                juce::Justification::centred, true);
+                }
             }
         }
     }
@@ -1485,6 +1935,26 @@ private:
                 g.drawEllipse (rotHandlePos.x - 4.0f, rotHandlePos.y - 4.0f, 8.0f, 8.0f, 1.5f);
             }
         }
+
+        // Origin handle — yellow line from origin to centroid, diamond beyond
+        juce::Point<float> originHandlePos;
+        if (getOriginHandlePos (canvas, originHandlePos))
+        {
+            auto originScreen = stageToScreen ({ 0.0f, 0.0f }, canvas).toFloat();
+            auto centroidScreen = stageToScreen (getSelectionCentroid(), canvas).toFloat();
+
+            g.setColour (getLayerColour (activeLayer).withAlpha (0.5f));
+            g.drawLine (originScreen.x, originScreen.y, centroidScreen.x, centroidScreen.y, 1.0f);
+
+            g.setColour (getLayerColour (activeLayer));
+            juce::Path diamond;
+            diamond.startNewSubPath (originHandlePos.x, originHandlePos.y - 5.0f);
+            diamond.lineTo (originHandlePos.x + 5.0f, originHandlePos.y);
+            diamond.lineTo (originHandlePos.x, originHandlePos.y + 5.0f);
+            diamond.lineTo (originHandlePos.x - 5.0f, originHandlePos.y);
+            diamond.closeSubPath();
+            g.fillPath (diamond);
+        }
     }
 
     void drawGradientHandles (juce::Graphics& g, const juce::Rectangle<int>& canvas) const
@@ -1492,12 +1962,9 @@ private:
         if (gradientEditShapeIdx < 0 || gradientEditShapeIdx >= static_cast<int> (currentLayerData.shapes.size()))
             return;
 
-        bool isGradientTool = (currentTool == Tool::LinearGradient || currentTool == Tool::RadialGradient);
-        if (! isGradientTool)
-            return;
-
         const auto& shape = currentLayerData.shapes[static_cast<size_t> (gradientEditShapeIdx)];
         constexpr float handleR = 6.0f;
+        auto handleCol = getLayerColour (activeLayer);
 
         if (shape.fillType == GradientMap::FillType::LinearGradient)
         {
@@ -1505,18 +1972,18 @@ private:
             auto p2 = stageToScreen (shapeLocalToStage ({ shape.linearGradient.x2, shape.linearGradient.y2 }, shape), canvas).toFloat();
 
             // Connecting line
-            g.setColour (juce::Colours::white.withAlpha (0.6f));
+            g.setColour (handleCol.withAlpha (0.6f));
             float dashLengths[] = { 4.0f, 3.0f };
             g.drawDashedLine (juce::Line<float> (p1, p2), dashLengths, 2, 1.2f);
 
             // Handle 1 (start)
-            g.setColour (juce::Colour::greyLevel (displayGrey (shape.linearGradient.value1)));
+            g.setColour (handleCol);
             g.fillEllipse (p1.x - handleR, p1.y - handleR, handleR * 2, handleR * 2);
             g.setColour (juce::Colours::white);
             g.drawEllipse (p1.x - handleR, p1.y - handleR, handleR * 2, handleR * 2, 1.5f);
 
             // Handle 2 (end)
-            g.setColour (juce::Colour::greyLevel (displayGrey (shape.linearGradient.value2)));
+            g.setColour (handleCol);
             g.fillEllipse (p2.x - handleR, p2.y - handleR, handleR * 2, handleR * 2);
             g.setColour (juce::Colours::white);
             g.drawEllipse (p2.x - handleR, p2.y - handleR, handleR * 2, handleR * 2, 1.5f);
@@ -1527,17 +1994,17 @@ private:
             auto edge = stageToScreen (shapeLocalToStage ({ shape.radialGradient.cx + shape.radialGradient.radius, shape.radialGradient.cy }, shape), canvas).toFloat();
 
             // Connecting line
-            g.setColour (juce::Colours::white.withAlpha (0.6f));
+            g.setColour (handleCol.withAlpha (0.6f));
             g.drawLine (juce::Line<float> (center, edge), 1.2f);
 
             // Center handle
-            g.setColour (juce::Colour::greyLevel (displayGrey (shape.radialGradient.centerValue)));
+            g.setColour (handleCol);
             g.fillEllipse (center.x - handleR, center.y - handleR, handleR * 2, handleR * 2);
             g.setColour (juce::Colours::white);
             g.drawEllipse (center.x - handleR, center.y - handleR, handleR * 2, handleR * 2, 1.5f);
 
             // Edge handle
-            g.setColour (juce::Colour::greyLevel (displayGrey (shape.radialGradient.edgeValue)));
+            g.setColour (handleCol);
             g.fillEllipse (edge.x - handleR, edge.y - handleR, handleR * 2, handleR * 2);
             g.setColour (juce::Colours::white);
             g.drawEllipse (edge.x - handleR, edge.y - handleR, handleR * 2, handleR * 2, 1.5f);
@@ -1574,6 +2041,11 @@ private:
         saveCurrentLayerToValueTree();
 
         activeLayer = layerIdx;
+        undoStack.clear();
+        redoStack.clear();
+
+        // Update curve slider color to match active layer
+        curveSlider.setTrackColours (juce::Colour::fromRGB (30, 30, 30), getLayerColour (activeLayer));
 
         // Highlight active layer button
         for (int i = 0; i < 3; ++i)
@@ -1585,6 +2057,15 @@ private:
 
         selectedShapeIndices.clear();
         loadActiveLayer();
+
+        // Apply default white value for fresh layers
+        auto bounds = getLayerBounds (activeLayer);
+        if (currentLayerData.whiteValue == 0.0f && currentLayerData.blackValue == 0.0f
+            && bounds.defaultWhite != 0.0f)
+        {
+            currentLayerData.whiteValue = bounds.defaultWhite;
+        }
+
         updateLayerPropertyPanel();
         setShapePropertiesVisible (false);
         repaint();
@@ -1696,6 +2177,8 @@ private:
         if (selectedShapeIndices.empty())
             return;
 
+        pushUndo();
+
         // Sort descending to delete from end first
         std::sort (selectedShapeIndices.begin(), selectedShapeIndices.end(), std::greater<int>());
 
@@ -1719,7 +2202,8 @@ private:
     {
         whiteValueEditor.setText (juce::String (currentLayerData.whiteValue, 2), false);
         blackValueEditor.setText (juce::String (currentLayerData.blackValue, 2), false);
-        curveSlider.setValue (currentLayerData.curve, juce::dontSendNotification);
+        curveSlider.setValue (currentLayerData.curve);
+        curveValueEditor.setText (juce::String (currentLayerData.curve, 2), false);
         updateMappingHint();
     }
 
@@ -1752,29 +2236,38 @@ private:
 
     void updateShapePropertyPanel()
     {
+        juce::ScopedValueSetter<bool> loadGuard (isLoadingData, true);
+
         if (selectedShapeIndices.size() == 1)
         {
             int idx = selectedShapeIndices[0];
             if (idx >= 0 && idx < static_cast<int> (currentLayerData.shapes.size()))
             {
                 auto& shape = currentLayerData.shapes[static_cast<size_t> (idx)];
-                shapeFillValueSlider.setValue (shape.fillValue, juce::dontSendNotification);
-                shapeBlurSlider.setValue (shape.blur, juce::dontSendNotification);
+                shapeNameEditor.setText (shape.name, false);
+                shapeFillValueSlider.setValue (shape.fillValue);
+                shapeFillValueEditor.setText (juce::String (shape.fillValue, 2), false);
+                shapeBlurSlider.setValue (shape.blur);
+                shapeBlurEditor.setText (juce::String (shape.blur, 2), false);
                 shapeLockBtn.setToggleState (shape.locked, juce::dontSendNotification);
                 shapeEnableBtn.setToggleState (shape.enabled, juce::dontSendNotification);
 
                 // Populate gradient sliders
                 if (shape.fillType == GradientMap::FillType::LinearGradient)
                 {
-                    gradValue1Slider.setValue (shape.linearGradient.value1, juce::dontSendNotification);
-                    gradValue2Slider.setValue (shape.linearGradient.value2, juce::dontSendNotification);
+                    gradValue1Slider.setValue (shape.linearGradient.value1);
+                    gradValue1Editor.setText (juce::String (shape.linearGradient.value1, 2), false);
+                    gradValue2Slider.setValue (shape.linearGradient.value2);
+                    gradValue2Editor.setText (juce::String (shape.linearGradient.value2, 2), false);
                     gradValue1Label.setText (LOC ("inputs.gradientMap.labels.start"), juce::dontSendNotification);
                     gradValue2Label.setText (LOC ("inputs.gradientMap.labels.end"), juce::dontSendNotification);
                 }
                 else if (shape.fillType == GradientMap::FillType::RadialGradient)
                 {
-                    gradValue1Slider.setValue (shape.radialGradient.centerValue, juce::dontSendNotification);
-                    gradValue2Slider.setValue (shape.radialGradient.edgeValue, juce::dontSendNotification);
+                    gradValue1Slider.setValue (shape.radialGradient.centerValue);
+                    gradValue1Editor.setText (juce::String (shape.radialGradient.centerValue, 2), false);
+                    gradValue2Slider.setValue (shape.radialGradient.edgeValue);
+                    gradValue2Editor.setText (juce::String (shape.radialGradient.edgeValue, 2), false);
                     gradValue1Label.setText (LOC ("inputs.gradientMap.labels.center"), juce::dontSendNotification);
                     gradValue2Label.setText (LOC ("inputs.gradientMap.labels.edge"), juce::dontSendNotification);
                 }
@@ -1794,27 +2287,34 @@ private:
 
     void setShapePropertiesVisible (bool v)
     {
+        shapeNameLabel.setVisible (v);
+        shapeNameEditor.setVisible (v);
         shapeBlurLabel.setVisible (v);
         shapeBlurSlider.setVisible (v);
+        shapeBlurEditor.setVisible (v);
         shapeEnableBtn.setVisible (v);
         shapeLockBtn.setVisible (v);
         shapeDeleteBtn.setVisible (v);
-        pivotToggleBtn.setVisible (v);
 
         // Fill controls are shown/hidden separately by updateShapeFillPanelVisibility
         if (! v)
         {
             shapeFillLabel.setVisible (false);
             shapeFillValueSlider.setVisible (false);
+            shapeFillValueEditor.setVisible (false);
             gradValue1Label.setVisible (false);
             gradValue1Slider.setVisible (false);
+            gradValue1Editor.setVisible (false);
             gradValue2Label.setVisible (false);
             gradValue2Slider.setVisible (false);
+            gradValue2Editor.setVisible (false);
         }
         else
         {
             updateShapeFillPanelVisibility();
         }
+
+        updateCopyPasteButtons();
     }
 
     void updateShapeFillPanelVisibility()
@@ -1833,10 +2333,13 @@ private:
 
         shapeFillLabel.setVisible (isUniform);
         shapeFillValueSlider.setVisible (isUniform);
+        shapeFillValueEditor.setVisible (isUniform);
         gradValue1Label.setVisible (isGradient);
         gradValue1Slider.setVisible (isGradient);
+        gradValue1Editor.setVisible (isGradient);
         gradValue2Label.setVisible (isGradient);
         gradValue2Slider.setVisible (isGradient);
+        gradValue2Editor.setVisible (isGradient);
     }
 
     void onLayerPropertyChanged()
@@ -1844,11 +2347,20 @@ private:
         if (isLoadingData)
             return;
 
+        pushUndo();
+
         // Layer param is fixed: 0=Attenuation, 1=Height, 2=HF Shelf (matches activeLayer)
         currentLayerData.param = static_cast<GradientMap::TargetParam> (activeLayer);
-        currentLayerData.whiteValue = whiteValueEditor.getText().getFloatValue();
-        currentLayerData.blackValue = blackValueEditor.getText().getFloatValue();
-        currentLayerData.curve = static_cast<float> (curveSlider.getValue());
+
+        auto bounds = getLayerBounds (activeLayer);
+        currentLayerData.whiteValue = juce::jlimit (bounds.min, bounds.max,
+                                                     whiteValueEditor.getText().getFloatValue());
+        currentLayerData.blackValue = juce::jlimit (bounds.min, bounds.max,
+                                                     blackValueEditor.getText().getFloatValue());
+        whiteValueEditor.setText (juce::String (currentLayerData.whiteValue, 2), false);
+        blackValueEditor.setText (juce::String (currentLayerData.blackValue, 2), false);
+
+        currentLayerData.curve = curveSlider.getValue();
         currentLayerData.enabled = true;  // Enable layer when properties are edited
 
         saveCurrentLayerToValueTree();
@@ -1860,20 +2372,21 @@ private:
         if (isLoadingData || selectedShapeIndices.empty())
             return;
 
+        pushUndo();
+
         for (int idx : selectedShapeIndices)
         {
             if (idx >= 0 && idx < static_cast<int> (currentLayerData.shapes.size()))
             {
                 auto& shape = currentLayerData.shapes[static_cast<size_t> (idx)];
-                shape.fillValue = static_cast<float> (shapeFillValueSlider.getValue());
-                shape.blur = static_cast<float> (shapeBlurSlider.getValue());
+                shape.fillValue = shapeFillValueSlider.getValue();
                 shape.locked = shapeLockBtn.getToggleState();
                 shape.enabled = shapeEnableBtn.getToggleState();
             }
         }
 
         // Keep fill tool value in sync with panel slider
-        currentFillValue = static_cast<float> (shapeFillValueSlider.getValue());
+        currentFillValue = shapeFillValueSlider.getValue();
 
         saveCurrentLayerToValueTree();
         repaint();
@@ -1884,6 +2397,8 @@ private:
         if (isLoadingData || selectedShapeIndices.size() != 1)
             return;
 
+        pushUndo();
+
         int idx = selectedShapeIndices[0];
         if (idx < 0 || idx >= static_cast<int> (currentLayerData.shapes.size()))
             return;
@@ -1892,13 +2407,13 @@ private:
 
         if (shape.fillType == GradientMap::FillType::LinearGradient)
         {
-            shape.linearGradient.value1 = static_cast<float> (gradValue1Slider.getValue());
-            shape.linearGradient.value2 = static_cast<float> (gradValue2Slider.getValue());
+            shape.linearGradient.value1 = gradValue1Slider.getValue();
+            shape.linearGradient.value2 = gradValue2Slider.getValue();
         }
         else if (shape.fillType == GradientMap::FillType::RadialGradient)
         {
-            shape.radialGradient.centerValue = static_cast<float> (gradValue1Slider.getValue());
-            shape.radialGradient.edgeValue   = static_cast<float> (gradValue2Slider.getValue());
+            shape.radialGradient.centerValue = gradValue1Slider.getValue();
+            shape.radialGradient.edgeValue   = gradValue2Slider.getValue();
         }
 
         saveCurrentLayerToValueTree();
@@ -1939,6 +2454,121 @@ private:
 
     void valueTreeChildOrderChanged (juce::ValueTree&, int, int) override {}
     void valueTreeParentChanged (juce::ValueTree&) override {}
+
+    //==========================================================================
+    // Copy / Paste
+    //==========================================================================
+
+    static inline GradientMap::Shape clipboardShape;
+    static inline GradientMap::Layer clipboardLayer;
+    static inline bool hasClipboardShape = false;
+    static inline bool hasClipboardLayer = false;
+
+    void onCopy()
+    {
+        if (! selectedShapeIndices.empty())
+        {
+            int idx = selectedShapeIndices[0];
+            if (idx >= 0 && idx < static_cast<int> (currentLayerData.shapes.size()))
+            {
+                clipboardShape = currentLayerData.shapes[static_cast<size_t> (idx)];
+                hasClipboardShape = true;
+                hasClipboardLayer = false;
+            }
+        }
+        else
+        {
+            clipboardLayer = currentLayerData;
+            hasClipboardLayer = true;
+            hasClipboardShape = false;
+        }
+        updateCopyPasteButtons();
+    }
+
+    void onPaste()
+    {
+        if (hasClipboardShape)
+        {
+            pushUndo();
+            auto newShape = clipboardShape;
+            newShape.posX += 0.5f;
+            newShape.posY += 0.5f;
+            newShape.order = static_cast<int> (currentLayerData.shapes.size());
+            currentLayerData.shapes.push_back (newShape);
+            selectedShapeIndices.clear();
+            selectedShapeIndices.push_back (static_cast<int> (currentLayerData.shapes.size()) - 1);
+            updateShapePropertyPanel();
+            saveCurrentLayerToValueTree();
+        }
+        else if (hasClipboardLayer)
+        {
+            currentLayerData.shapes = clipboardLayer.shapes;
+            currentLayerData.whiteValue = clipboardLayer.whiteValue;
+            currentLayerData.blackValue = clipboardLayer.blackValue;
+            currentLayerData.curve = clipboardLayer.curve;
+            selectedShapeIndices.clear();
+            updateLayerPropertyPanel();
+            setShapePropertiesVisible (false);
+            saveCurrentLayerToValueTree();
+        }
+        repaint();
+    }
+
+    void updateCopyPasteButtons()
+    {
+        bool shapeMode = ! selectedShapeIndices.empty();
+        copyBtn.setButtonText (shapeMode ? LOC ("inputs.gradientMap.buttons.copyShape")
+                                         : LOC ("inputs.gradientMap.buttons.copyLayer"));
+
+        // Paste always shows what's on clipboard, enabled if anything is copied
+        if (hasClipboardShape)
+            pasteBtn.setButtonText (LOC ("inputs.gradientMap.buttons.pasteShape"));
+        else if (hasClipboardLayer)
+            pasteBtn.setButtonText (LOC ("inputs.gradientMap.buttons.pasteLayer"));
+        else
+            pasteBtn.setButtonText (LOC ("inputs.gradientMap.buttons.pasteShape"));
+        pasteBtn.setEnabled (hasClipboardShape || hasClipboardLayer);
+    }
+
+    //==========================================================================
+    // Status Bar Help Text
+    //==========================================================================
+
+    StatusBar* statusBar = nullptr;
+    std::unordered_map<juce::Component*, juce::String> helpTextMap;
+
+    void setupHelpText()
+    {
+        for (int i = 0; i < 3; ++i)
+        {
+            helpTextMap[&layerEnableBtn[i]]  = LOC ("inputs.gradientMap.help.layerSelect");
+            helpTextMap[&layerEnabledBtn[i]] = LOC ("inputs.gradientMap.help.layerEnable");
+            helpTextMap[&layerVisibleBtn[i]] = LOC ("inputs.gradientMap.help.layerVisible");
+        }
+        helpTextMap[&whiteValueEditor]     = LOC ("inputs.gradientMap.help.whiteValue");
+        helpTextMap[&blackValueEditor]     = LOC ("inputs.gradientMap.help.blackValue");
+        helpTextMap[&curveSlider]          = LOC ("inputs.gradientMap.help.curve");
+        helpTextMap[&curveValueEditor]     = LOC ("inputs.gradientMap.help.curve");
+        helpTextMap[&shapeFillValueSlider] = LOC ("inputs.gradientMap.help.fillValue");
+        helpTextMap[&shapeFillValueEditor] = LOC ("inputs.gradientMap.help.fillValue");
+        helpTextMap[&shapeBlurSlider]      = LOC ("inputs.gradientMap.help.blur");
+        helpTextMap[&shapeEnableBtn]       = LOC ("inputs.gradientMap.help.shapeEnable");
+        helpTextMap[&shapeLockBtn]         = LOC ("inputs.gradientMap.help.shapeLock");
+        helpTextMap[&shapeDeleteBtn]       = LOC ("inputs.gradientMap.help.shapeDelete");
+        helpTextMap[&selectToolBtn]        = LOC ("inputs.gradientMap.help.selectTool");
+        helpTextMap[&rectToolBtn]          = LOC ("inputs.gradientMap.help.rectTool");
+        helpTextMap[&ellipseToolBtn]       = LOC ("inputs.gradientMap.help.ellipseTool");
+        helpTextMap[&polygonToolBtn]       = LOC ("inputs.gradientMap.help.polygonTool");
+        helpTextMap[&fillToolBtn]          = LOC ("inputs.gradientMap.help.fillTool");
+        helpTextMap[&linearGradToolBtn]    = LOC ("inputs.gradientMap.help.linGradTool");
+        helpTextMap[&radialGradToolBtn]    = LOC ("inputs.gradientMap.help.radGradTool");
+        helpTextMap[&copyBtn]              = LOC ("inputs.gradientMap.help.copy");
+        helpTextMap[&pasteBtn]             = LOC ("inputs.gradientMap.help.paste");
+
+
+        for (auto& [comp, text] : helpTextMap)
+            comp->addMouseListener (this, true);
+    }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (GradientMapEditor)
 };

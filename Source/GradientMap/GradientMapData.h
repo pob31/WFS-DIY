@@ -64,6 +64,7 @@ struct Shape
     bool locked = false;
     bool enabled = true;
     int order = 0;                              // Z-order (painter's algorithm)
+    juce::String name;                          // Optional display name
 
     //==========================================================================
     // Geometry
@@ -127,6 +128,9 @@ struct Shape
         tree.setProperty (gmShapeEnabled,   enabled ? 1 : 0, nullptr);
         tree.setProperty (gmShapeOrder,     order, nullptr);
 
+        if (name.isNotEmpty())
+            tree.setProperty (gmShapeName, name, nullptr);
+
         // Serialize vertices for polygons
         if (type == ShapeType::Polygon && ! vertices.empty())
         {
@@ -181,6 +185,7 @@ struct Shape
         s.locked    = static_cast<int> (tree.getProperty (gmShapeLocked, gmShapeLockedDefault)) != 0;
         s.enabled   = static_cast<int> (tree.getProperty (gmShapeEnabled, gmShapeEnabledDefault)) != 0;
         s.order     = tree.getProperty (gmShapeOrder, gmShapeOrderDefault);
+        s.name      = tree.getProperty (gmShapeName, "").toString();
 
         // Parse polygon vertices
         if (s.type == ShapeType::Polygon)

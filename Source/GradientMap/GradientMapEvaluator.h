@@ -277,8 +277,9 @@ private:
                               const juce::AffineTransform& stageToBitmap,
                               int bmpW, int bmpH) const
     {
-        // Create temp image for this shape
-        juce::Image tempImage (juce::Image::ARGB, bmpW, bmpH, true);
+        // Use software image to avoid Direct2D BitmapData assertion in applyToImage
+        juce::Image tempImage (juce::Image::ARGB, bmpW, bmpH, true,
+                               juce::SoftwareImageType());
         {
             juce::Graphics tempG (tempImage);
             applyFill (tempG, shape, bitmapPath, stageToBitmap);

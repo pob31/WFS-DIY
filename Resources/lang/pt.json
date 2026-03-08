@@ -1015,6 +1015,7 @@
         "white": "Branco:",
         "black": "Preto:",
         "curve": "Curva:",
+        "name": "Nome:",
         "fill": "Preench.:",
         "blur": "Desfoque:",
         "start": "Início:",
@@ -1024,19 +1025,23 @@
       },
       "tools": {
         "select": "Seleção",
-        "rect": "Retâng",
+        "rect": "Retângulo",
         "ellipse": "Elipse",
         "polygon": "Polígono",
-        "fill": "Preench",
-        "linGrad": "Grad.Lin",
-        "radGrad": "Grad.Rad"
+        "fill": "Preench.",
+        "linGrad": "Grad. Linear",
+        "radGrad": "Grad. Radial"
       },
       "buttons": {
         "enable": "On",
         "lock": "Bloquear",
         "delete": "Excluir",
         "pivotCenter": "Pivô: Centro",
-        "pivotOrigin": "Pivô: Origem"
+        "pivotOrigin": "Pivô: Origem",
+        "copyShape": "Copiar forma",
+        "pasteShape": "Colar forma",
+        "copyLayer": "Copiar camada",
+        "pasteLayer": "Colar camada"
       },
       "warnings": {
         "heightRatioZero": "A proporção de altura é 0% — aumente-a para que a altura tenha efeito"
@@ -1047,7 +1052,30 @@
         "darkMaxHF": "Escuro = prateleira HF máx. | Claro = nenhuma",
         "whiteMaxAtten": "Branco = atenuação máx. | Preto = nenhuma",
         "whiteMaxHeight": "Branco = altura máx. | Preto = chão",
-        "whiteMaxHF": "Branco = prateleira HF máx. | Preto = nenhuma"
+        "whiteMaxHF": "Branco = prateleira HF máx. | Preto = nenhuma",
+        "polygonClose": "Duplo clique para fechar o polígono"
+      },
+      "help": {
+        "layerSelect": "Selecionar esta camada para edição",
+        "layerEnable": "Ativar/desativar camada (afeta saída e OSC)",
+        "layerVisible": "Mostrar/ocultar pré-visualização da camada no canvas",
+        "whiteValue": "Valor do parâmetro mapeado para branco (0.00–1.00)",
+        "blackValue": "Valor do parâmetro mapeado para preto (0.00–1.00)",
+        "curve": "Curva gamma (-1 a 1, 0 = linear)",
+        "fillValue": "Brilho de preenchimento (0 = preto, 1 = branco)",
+        "blur": "Desfoque de bordas em metros",
+        "shapeEnable": "Ativar/desativar forma",
+        "shapeLock": "Bloquear posição da forma",
+        "shapeDelete": "Excluir forma(s) selecionada(s)",
+        "selectTool": "Selecionar e mover formas",
+        "rectTool": "Desenhar retângulo",
+        "ellipseTool": "Desenhar elipse",
+        "polygonTool": "Desenhar polígono (duplo clique para fechar)",
+        "fillTool": "Aplicar preenchimento uniforme à forma",
+        "linGradTool": "Aplicar gradiente linear à forma",
+        "radGradTool": "Aplicar gradiente radial à forma",
+        "copy": "Copiar forma ou camada selecionada",
+        "paste": "Colar forma ou camada da área de transferência"
       },
       "header": {
         "attenuationLayer": "Camada Atenuação",

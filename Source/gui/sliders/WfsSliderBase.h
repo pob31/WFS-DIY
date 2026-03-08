@@ -258,6 +258,10 @@ protected:
             normalized = juce::jlimit(0.0f, 1.0f, (bounds.getBottom() - pos.y) / bounds.getHeight());
         }
 
+        // Snap to endpoints for easy access to min/max values
+        if (normalized < 0.02f) normalized = 0.0f;
+        else if (normalized > 0.98f) normalized = 1.0f;
+
         setValue(valueFromNormalized(normalized));
     }
 

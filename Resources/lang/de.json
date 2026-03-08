@@ -1015,6 +1015,7 @@
         "white": "Weiß:",
         "black": "Schwarz:",
         "curve": "Kurve:",
+        "name": "Name:",
         "fill": "Füllung:",
         "blur": "Unschärfe:",
         "start": "Start:",
@@ -1028,15 +1029,19 @@
         "ellipse": "Ellipse",
         "polygon": "Polygon",
         "fill": "Füllen",
-        "linGrad": "Lin.Grad",
-        "radGrad": "Rad.Grad"
+        "linGrad": "Lin. Verlauf",
+        "radGrad": "Rad. Verlauf"
       },
       "buttons": {
         "enable": "An",
         "lock": "Sperren",
         "delete": "Löschen",
         "pivotCenter": "Pivot: Mitte",
-        "pivotOrigin": "Pivot: Ursprung"
+        "pivotOrigin": "Pivot: Ursprung",
+        "copyShape": "Form kopieren",
+        "pasteShape": "Form einfügen",
+        "copyLayer": "Ebene kopieren",
+        "pasteLayer": "Ebene einfügen"
       },
       "warnings": {
         "heightRatioZero": "Höhenverhältnis ist 0% — erhöhen Sie es, damit die Höhe wirksam wird"
@@ -1047,7 +1052,30 @@
         "darkMaxHF": "Dunkel = max. HF-Shelf | Hell = keins",
         "whiteMaxAtten": "Weiß = max. Dämpfung | Schwarz = keine",
         "whiteMaxHeight": "Weiß = max. Höhe | Schwarz = Boden",
-        "whiteMaxHF": "Weiß = max. HF-Shelf | Schwarz = keins"
+        "whiteMaxHF": "Weiß = max. HF-Shelf | Schwarz = keins",
+        "polygonClose": "Doppelklick zum Schließen des Polygons"
+      },
+      "help": {
+        "layerSelect": "Diese Ebene zur Bearbeitung auswählen",
+        "layerEnable": "Ebene aktivieren/deaktivieren (beeinflusst Ausgabe und OSC)",
+        "layerVisible": "Ebenenvorschau auf der Leinwand ein-/ausblenden",
+        "whiteValue": "Parameterwert für Weiß (0.00–1.00)",
+        "blackValue": "Parameterwert für Schwarz (0.00–1.00)",
+        "curve": "Gammakurve (-1 bis 1, 0 = linear)",
+        "fillValue": "Füllhelligkeit (0 = Schwarz, 1 = Weiß)",
+        "blur": "Kantenunschärfe in Metern",
+        "shapeEnable": "Form aktivieren/deaktivieren",
+        "shapeLock": "Formposition sperren",
+        "shapeDelete": "Ausgewählte Form(en) löschen",
+        "selectTool": "Formen auswählen und verschieben",
+        "rectTool": "Rechteck zeichnen",
+        "ellipseTool": "Ellipse zeichnen",
+        "polygonTool": "Polygon zeichnen (Doppelklick zum Schließen)",
+        "fillTool": "Gleichmäßige Füllung auf Form anwenden",
+        "linGradTool": "Linearen Verlauf auf Form anwenden",
+        "radGradTool": "Radialen Verlauf auf Form anwenden",
+        "copy": "Ausgewählte Form oder Ebene kopieren",
+        "paste": "Form oder Ebene aus Zwischenablage einfügen"
       },
       "header": {
         "attenuationLayer": "Dämpfungs-Ebene",

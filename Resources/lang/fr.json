@@ -1011,6 +1011,7 @@
         "white": "Blanc :",
         "black": "Noir :",
         "curve": "Courbe :",
+        "name": "Nom :",
         "fill": "Remplir :",
         "blur": "Flou :",
         "start": "Début :",
@@ -1020,19 +1021,23 @@
       },
       "tools": {
         "select": "Sélection",
-        "rect": "Rect",
+        "rect": "Rectangle",
         "ellipse": "Ellipse",
         "polygon": "Polygone",
         "fill": "Remplir",
-        "linGrad": "Grad.Lin",
-        "radGrad": "Grad.Rad"
+        "linGrad": "Grad. Linéaire",
+        "radGrad": "Grad. Radial"
       },
       "buttons": {
         "enable": "On",
         "lock": "Verrouiller",
         "delete": "Supprimer",
         "pivotCenter": "Pivot : Centre",
-        "pivotOrigin": "Pivot : Origine"
+        "pivotOrigin": "Pivot : Origine",
+        "copyShape": "Copier la forme",
+        "pasteShape": "Coller la forme",
+        "copyLayer": "Copier la couche",
+        "pasteLayer": "Coller la couche"
       },
       "warnings": {
         "heightRatioZero": "Le ratio de hauteur est à 0% — augmentez-le pour que la hauteur soit prise en compte"
@@ -1043,7 +1048,30 @@
         "darkMaxHF": "Foncé = plateau HF max | Clair = aucun",
         "whiteMaxAtten": "Blanc = atténuation max | Noir = aucune",
         "whiteMaxHeight": "Blanc = hauteur max | Noir = sol",
-        "whiteMaxHF": "Blanc = plateau HF max | Noir = aucun"
+        "whiteMaxHF": "Blanc = plateau HF max | Noir = aucun",
+        "polygonClose": "Double-cliquez pour fermer le polygone"
+      },
+      "help": {
+        "layerSelect": "Sélectionner cette couche pour l'édition",
+        "layerEnable": "Activer/désactiver la couche (affecte la sortie et OSC)",
+        "layerVisible": "Afficher/masquer l'aperçu de la couche sur le canevas",
+        "whiteValue": "Valeur du paramètre mappée au blanc (0.00–1.00)",
+        "blackValue": "Valeur du paramètre mappée au noir (0.00–1.00)",
+        "curve": "Courbe gamma (-1 à 1, 0 = linéaire)",
+        "fillValue": "Luminosité de remplissage (0 = noir, 1 = blanc)",
+        "blur": "Flou des bords en mètres",
+        "shapeEnable": "Activer/désactiver la forme",
+        "shapeLock": "Verrouiller la position de la forme",
+        "shapeDelete": "Supprimer la ou les formes sélectionnées",
+        "selectTool": "Sélectionner et déplacer les formes",
+        "rectTool": "Dessiner un rectangle",
+        "ellipseTool": "Dessiner une ellipse",
+        "polygonTool": "Dessiner un polygone (double-clic pour fermer)",
+        "fillTool": "Appliquer un remplissage uniforme à la forme",
+        "linGradTool": "Appliquer un dégradé linéaire à la forme",
+        "radGradTool": "Appliquer un dégradé radial à la forme",
+        "copy": "Copier la forme ou la couche sélectionnée",
+        "paste": "Coller la forme ou la couche depuis le presse-papiers"
       },
       "header": {
         "attenuationLayer": "Couche Atténuation",

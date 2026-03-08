@@ -631,6 +631,7 @@ public:
     void setStatusBar(StatusBar* bar)
     {
         statusBar = bar;
+        gradientMapEditor.setStatusBar (bar);
         setupHelpText();
         setupOscMethods();
         setupMouseListeners();

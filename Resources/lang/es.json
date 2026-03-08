@@ -1015,6 +1015,7 @@
         "white": "Blanco:",
         "black": "Negro:",
         "curve": "Curva:",
+        "name": "Nombre:",
         "fill": "Relleno:",
         "blur": "Desenfoque:",
         "start": "Inicio:",
@@ -1024,19 +1025,23 @@
       },
       "tools": {
         "select": "Selección",
-        "rect": "Rect",
+        "rect": "Rectángulo",
         "ellipse": "Elipse",
         "polygon": "Polígono",
         "fill": "Rellenar",
-        "linGrad": "Grad.Lin",
-        "radGrad": "Grad.Rad"
+        "linGrad": "Grad. Lineal",
+        "radGrad": "Grad. Radial"
       },
       "buttons": {
         "enable": "On",
         "lock": "Bloquear",
         "delete": "Eliminar",
         "pivotCenter": "Pivote: Centro",
-        "pivotOrigin": "Pivote: Origen"
+        "pivotOrigin": "Pivote: Origen",
+        "copyShape": "Copiar forma",
+        "pasteShape": "Pegar forma",
+        "copyLayer": "Copiar capa",
+        "pasteLayer": "Pegar capa"
       },
       "warnings": {
         "heightRatioZero": "La proporción de altura es 0% — auméntela para que la altura tenga efecto"
@@ -1047,7 +1052,30 @@
         "darkMaxHF": "Oscuro = estante HF máx. | Claro = ninguno",
         "whiteMaxAtten": "Blanco = atenuación máx. | Negro = ninguna",
         "whiteMaxHeight": "Blanco = altura máx. | Negro = suelo",
-        "whiteMaxHF": "Blanco = estante HF máx. | Negro = ninguno"
+        "whiteMaxHF": "Blanco = estante HF máx. | Negro = ninguno",
+        "polygonClose": "Doble clic para cerrar el polígono"
+      },
+      "help": {
+        "layerSelect": "Seleccionar esta capa para editar",
+        "layerEnable": "Activar/desactivar capa (afecta salida y OSC)",
+        "layerVisible": "Mostrar/ocultar vista previa de la capa en el lienzo",
+        "whiteValue": "Valor del parámetro mapeado al blanco (0.00–1.00)",
+        "blackValue": "Valor del parámetro mapeado al negro (0.00–1.00)",
+        "curve": "Curva gamma (-1 a 1, 0 = lineal)",
+        "fillValue": "Brillo de relleno (0 = negro, 1 = blanco)",
+        "blur": "Desenfoque de bordes en metros",
+        "shapeEnable": "Activar/desactivar forma",
+        "shapeLock": "Bloquear posición de la forma",
+        "shapeDelete": "Eliminar forma(s) seleccionada(s)",
+        "selectTool": "Seleccionar y mover formas",
+        "rectTool": "Dibujar rectángulo",
+        "ellipseTool": "Dibujar elipse",
+        "polygonTool": "Dibujar polígono (doble clic para cerrar)",
+        "fillTool": "Aplicar relleno uniforme a la forma",
+        "linGradTool": "Aplicar degradado lineal a la forma",
+        "radGradTool": "Aplicar degradado radial a la forma",
+        "copy": "Copiar forma o capa seleccionada",
+        "paste": "Pegar forma o capa desde el portapapeles"
       },
       "header": {
         "attenuationLayer": "Capa Atenuación",

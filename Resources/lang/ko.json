@@ -1015,6 +1015,7 @@
         "white": "흰색:",
         "black": "검정:",
         "curve": "커브:",
+        "name": "이름:",
         "fill": "채우기:",
         "blur": "블러:",
         "start": "시작:",
@@ -1028,15 +1029,19 @@
         "ellipse": "타원",
         "polygon": "다각형",
         "fill": "채우기",
-        "linGrad": "선형그라데",
-        "radGrad": "방사그라데"
+        "linGrad": "선형 그라데이션",
+        "radGrad": "방사형 그라데이션"
       },
       "buttons": {
         "enable": "켜기",
         "lock": "잠금",
         "delete": "삭제",
         "pivotCenter": "기준: 중심",
-        "pivotOrigin": "기준: 원점"
+        "pivotOrigin": "기준: 원점",
+        "copyShape": "도형 복사",
+        "pasteShape": "도형 붙여넣기",
+        "copyLayer": "레이어 복사",
+        "pasteLayer": "레이어 붙여넣기"
       },
       "warnings": {
         "heightRatioZero": "높이 비율이 0%입니다 — 높이가 적용되려면 값을 올려주세요"
@@ -1047,7 +1052,30 @@
         "darkMaxHF": "어둡 = 최대 HF 셸프 | 밝음 = 없음",
         "whiteMaxAtten": "흰색 = 최대 감쇠 | 검정 = 없음",
         "whiteMaxHeight": "흰색 = 최대 높이 | 검정 = 바닥",
-        "whiteMaxHF": "흰색 = 최대 HF 셸프 | 검정 = 없음"
+        "whiteMaxHF": "흰색 = 최대 HF 셸프 | 검정 = 없음",
+        "polygonClose": "다각형을 닫으려면 더블클릭"
+      },
+      "help": {
+        "layerSelect": "이 레이어를 편집용으로 선택",
+        "layerEnable": "레이어 활성화/비활성화 (출력 및 OSC에 영향)",
+        "layerVisible": "캔버스에서 레이어 미리보기 표시/숨기기",
+        "whiteValue": "흰색에 매핑되는 파라미터 값 (0.00–1.00)",
+        "blackValue": "검정에 매핑되는 파라미터 값 (0.00–1.00)",
+        "curve": "감마 커브 (-1~1, 0 = 선형)",
+        "fillValue": "채우기 밝기 (0 = 검정, 1 = 흰색)",
+        "blur": "가장자리 블러 (미터 단위)",
+        "shapeEnable": "도형 활성화/비활성화",
+        "shapeLock": "도형 위치 잠금",
+        "shapeDelete": "선택한 도형 삭제",
+        "selectTool": "도형 선택 및 이동",
+        "rectTool": "사각형 그리기",
+        "ellipseTool": "타원 그리기",
+        "polygonTool": "다각형 그리기 (더블클릭으로 닫기)",
+        "fillTool": "도형에 균일 채우기 적용",
+        "linGradTool": "도형에 선형 그라데이션 적용",
+        "radGradTool": "도형에 방사형 그라데이션 적용",
+        "copy": "선택한 도형 또는 레이어 복사",
+        "paste": "클립보드에서 도형 또는 레이어 붙여넣기"
       },
       "header": {
         "attenuationLayer": "감쇠 레이어",

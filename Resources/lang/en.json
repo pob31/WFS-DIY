@@ -1051,6 +1051,7 @@
         "white": "White:",
         "black": "Black:",
         "curve": "Curve:",
+        "name": "Name:",
         "fill": "Fill:",
         "blur": "Blur:",
         "start": "Start:",
@@ -1060,19 +1061,23 @@
       },
       "tools": {
         "select": "Select",
-        "rect": "Rect",
+        "rect": "Rectangle",
         "ellipse": "Ellipse",
         "polygon": "Polygon",
         "fill": "Fill",
-        "linGrad": "Lin.Grad",
-        "radGrad": "Rad.Grad"
+        "linGrad": "Linear Grad.",
+        "radGrad": "Radial Grad."
       },
       "buttons": {
         "enable": "On",
         "lock": "Lock",
         "delete": "Delete",
         "pivotCenter": "Pivot: Center",
-        "pivotOrigin": "Pivot: Origin"
+        "pivotOrigin": "Pivot: Origin",
+        "copyShape": "Copy Shape",
+        "pasteShape": "Paste Shape",
+        "copyLayer": "Copy Layer",
+        "pasteLayer": "Paste Layer"
       },
       "warnings": {
         "heightRatioZero": "Height Ratio is 0% — increase it for height to take effect"
@@ -1083,7 +1088,30 @@
         "darkMaxHF": "Dark = max HF shelf | Light = none",
         "whiteMaxAtten": "White = max attenuation | Black = none",
         "whiteMaxHeight": "White = max height | Black = ground",
-        "whiteMaxHF": "White = max HF shelf | Black = none"
+        "whiteMaxHF": "White = max HF shelf | Black = none",
+        "polygonClose": "Double-click to close polygon"
+      },
+      "help": {
+        "layerSelect": "Select this layer for editing",
+        "layerEnable": "Enable/disable layer (affects output and OSC)",
+        "layerVisible": "Show/hide layer preview on canvas",
+        "whiteValue": "Parameter value mapped to white (0.00–1.00)",
+        "blackValue": "Parameter value mapped to black (0.00–1.00)",
+        "curve": "Gamma curve (-1 to 1, 0 = linear)",
+        "fillValue": "Fill brightness (0 = black, 1 = white)",
+        "blur": "Edge blur in meters",
+        "shapeEnable": "Enable/disable shape",
+        "shapeLock": "Lock shape position",
+        "shapeDelete": "Delete selected shape(s)",
+        "selectTool": "Select and move shapes",
+        "rectTool": "Draw rectangle",
+        "ellipseTool": "Draw ellipse",
+        "polygonTool": "Draw polygon (double-click to close)",
+        "fillTool": "Apply uniform fill to shape",
+        "linGradTool": "Apply linear gradient to shape",
+        "radGradTool": "Apply radial gradient to shape",
+        "copy": "Copy selected shape or layer",
+        "paste": "Paste shape or layer from clipboard"
       },
       "header": {
         "attenuationLayer": "Attenuation Layer",
