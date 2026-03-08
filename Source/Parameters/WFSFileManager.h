@@ -212,6 +212,7 @@ public:
         bool includeLFO = true;
         bool includeAutomOtion = true;
         bool includeMutes = true;
+        bool includeSampler = true;
         juce::Array<int> channelIndices;  // Empty = all channels
     };
 

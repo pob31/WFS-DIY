@@ -17,7 +17,8 @@
  * - Range shift: click/drag between thumbs to shift both values together
  * - Follows existing slider patterns with hover effects and ColorScheme integration
  */
-class WfsRangeSlider : public juce::Component
+class WfsRangeSlider : public juce::Component,
+                       public juce::SettableTooltipClient
 {
 public:
     WfsRangeSlider (float minRangeValue = 0.0f, float maxRangeValue = 50.0f)

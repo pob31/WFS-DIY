@@ -196,6 +196,40 @@ public:
         exportButton.setButtonText (LOC ("sampler.buttons.export"));
         exportButton.onClick = [this] { onExport(); };
         addAndMakeVisible (exportButton);
+
+        // ── Tooltips ──
+        loadCellButton.setTooltip (LOC ("sampler.tooltips.load"));
+        clearCellButton.setTooltip (LOC ("sampler.tooltips.clear"));
+        previewButton.setTooltip (LOC ("sampler.tooltips.preview"));
+        inOutRangeSlider->setTooltip (LOC ("sampler.tooltips.inOut"));
+        for (int i = 0; i < 3; ++i)
+            cellOffsetEditors[i].setTooltip (LOC ("sampler.tooltips.offset"));
+        cellAttenSlider->setTooltip (LOC ("sampler.tooltips.attenuation"));
+
+        addSetButton.setTooltip (LOC ("sampler.tooltips.addSet"));
+        deleteSetButton.setTooltip (LOC ("sampler.tooltips.deleteSet"));
+        renameSetButton.setTooltip (LOC ("sampler.tooltips.renameSet"));
+        playModeButton.setTooltip (LOC ("sampler.tooltips.playMode"));
+        for (int i = 0; i < 3; ++i)
+            setPosEditors[i].setTooltip (LOC ("sampler.tooltips.setPos"));
+        setLevelSlider->setTooltip (LOC ("sampler.tooltips.setLevel"));
+
+        pressLevelEnable.setTooltip (LOC ("sampler.tooltips.pressLevel"));
+        pressLevelDirBtn.setTooltip (LOC ("sampler.tooltips.pressDir"));
+        pressLevelCurveSlider.setTooltip (LOC ("sampler.tooltips.pressCurve"));
+        pressZEnable.setTooltip (LOC ("sampler.tooltips.pressHeight"));
+        pressZDirBtn.setTooltip (LOC ("sampler.tooltips.pressDir"));
+        pressZCurveSlider.setTooltip (LOC ("sampler.tooltips.pressCurve"));
+        pressHFEnable.setTooltip (LOC ("sampler.tooltips.pressHF"));
+        pressHFDirBtn.setTooltip (LOC ("sampler.tooltips.pressDir"));
+        pressHFCurveSlider.setTooltip (LOC ("sampler.tooltips.pressCurve"));
+        pressXYEnable.setTooltip (LOC ("sampler.tooltips.pressXY"));
+        pressXYScaleSlider->setTooltip (LOC ("sampler.tooltips.pressXYScale"));
+
+        copyButton.setTooltip (LOC ("sampler.tooltips.copy"));
+        pasteButton.setTooltip (LOC ("sampler.tooltips.paste"));
+        importButton.setTooltip (LOC ("sampler.tooltips.import"));
+        exportButton.setTooltip (LOC ("sampler.tooltips.export"));
     }
 
     ~SamplerSubTab() override
@@ -260,6 +294,16 @@ public:
         g.setFont (juce::FontOptions (10.0f));
         for (auto& cl : controlLabels)
             g.drawText (cl.text, cl.x, cl.y, cl.w, cl.h, juce::Justification::centredLeft);
+
+        // Guide text when no cell is selected
+        if (selectedCells.empty())
+        {
+            g.setColour (cs.textSecondary.withAlpha (0.4f));
+            g.setFont (juce::FontOptions (juce::jmax (10.0f, 12.0f * WfsLookAndFeel::uiScale)));
+            auto guideArea = panelArea.withTrimmedTop (20).reduced (8);
+            g.drawFittedText (LOC ("sampler.guide"), guideArea,
+                              juce::Justification::centredTop, 4);
+        }
     }
 
     // ==================== MOUSE HANDLING ====================
@@ -505,7 +549,7 @@ private:
                 {
                     // Empty cell number
                     g.setColour (cs.textSecondary.withAlpha (0.55f));
-                    g.setFont (juce::FontOptions (juce::jmin (cellSize * 0.2f, 11.0f)));
+                    g.setFont (juce::FontOptions (juce::jmin (cellSize * 0.4f, 22.0f)));
                     g.drawText (juce::String (cellIdx + 1), cellRect, juce::Justification::centred);
                 }
 

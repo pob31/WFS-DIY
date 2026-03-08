@@ -990,7 +990,10 @@ const std::vector<WFSFileManager::ScopeItem>& WFSFileManager::ExtendedSnapshotSc
         // Gradient Maps Section (subtree-based — parameterIds are layer property IDs for display, actual save/load uses subtree copy)
         { "gmLayer1", "Layer 1", GradientMaps, { gmLayerEnabled, gmLayerParam, gmLayerWhite, gmLayerBlack, gmLayerCurve, gmLayerVisible } },
         { "gmLayer2", "Layer 2", GradientMaps, { gmLayerEnabled, gmLayerParam, gmLayerWhite, gmLayerBlack, gmLayerCurve, gmLayerVisible } },
-        { "gmLayer3", "Layer 3", GradientMaps, { gmLayerEnabled, gmLayerParam, gmLayerWhite, gmLayerBlack, gmLayerCurve, gmLayerVisible } }
+        { "gmLayer3", "Layer 3", GradientMaps, { gmLayerEnabled, gmLayerParam, gmLayerWhite, gmLayerBlack, gmLayerCurve, gmLayerVisible } },
+
+        // Sampler Section (subtree-based — cells and sets are children, not properties)
+        { "sampler", "Sampler", Sampler, { samplerEnabled } }
     };
     return items;
 }
@@ -999,7 +1002,7 @@ const std::vector<juce::Identifier>& WFSFileManager::ExtendedSnapshotScope::getS
 {
     static std::vector<juce::Identifier> sections = {
         Channel, Position, Attenuation, Directivity, LiveSourceTamer,
-        Hackoustics, LFO, AutomOtion, Mutes, GradientMaps
+        Hackoustics, LFO, AutomOtion, Mutes, GradientMaps, Sampler
     };
     return sections;
 }
@@ -1505,6 +1508,16 @@ juce::ValueTree WFSFileManager::extractInputWithExtendedScope (int channelIndex,
         }
     }
 
+    // Sampler — subtree copy (cells + dynamic set children)
+    {
+        if (scope.isIncluded ("sampler", channelIndex))
+        {
+            auto samplerSource = input.getChildWithName (Sampler);
+            if (samplerSource.isValid())
+                filtered.appendChild (samplerSource.createCopy(), nullptr);
+        }
+    }
+
     return filtered;
 }
 
@@ -1597,6 +1610,21 @@ bool WFSFileManager::applyInputWithExtendedScope (int channelIndex, const juce::
                         targetLayer.copyPropertiesAndChildrenFrom (sourceLayer, undoManager);
                     }
                 }
+            }
+        }
+    }
+
+    // Sampler — subtree replacement (cells + dynamic set children)
+    {
+        if (scope.isIncluded ("sampler", channelIndex))
+        {
+            auto samplerSource = inputData.getChildWithName (Sampler);
+            if (samplerSource.isValid())
+            {
+                auto samplerTarget = input.getChildWithName (Sampler);
+                if (!samplerTarget.isValid())
+                    samplerTarget = valueTreeState.ensureInputSamplerSection (channelIndex);
+                samplerTarget.copyPropertiesAndChildrenFrom (samplerSource, undoManager);
             }
         }
     }
@@ -2018,6 +2046,13 @@ juce::ValueTree WFSFileManager::extractInputWithScope (int channelIndex, const S
             filtered.appendChild (mutes.createCopy(), nullptr);
     }
 
+    if (scope.includeSampler)
+    {
+        auto sampler = input.getChildWithName (Sampler);
+        if (sampler.isValid())
+            filtered.appendChild (sampler.createCopy(), nullptr);
+    }
+
     return filtered;
 }
 
@@ -2124,6 +2159,19 @@ bool WFSFileManager::applyInputWithScope (int channelIndex, const juce::ValueTre
             auto existing = input.getChildWithName (Mutes);
             if (existing.isValid())
                 mergeTreeRecursive (existing, loaded, undoManager);
+        }
+    }
+
+    if (scope.includeSampler)
+    {
+        auto loaded = inputData.getChildWithName (Sampler);
+        if (loaded.isValid())
+        {
+            auto existing = input.getChildWithName (Sampler);
+            if (existing.isValid())
+                existing.copyPropertiesAndChildrenFrom (loaded, undoManager);
+            else
+                input.appendChild (loaded.createCopy(), undoManager);
         }
     }
 

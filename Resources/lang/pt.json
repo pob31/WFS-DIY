@@ -1600,7 +1600,33 @@
     "exportTitle": "Exportar configuração do sampler",
     "grid": {
       "help": "Clique=selecionar | Shift=multi | Ctrl=alternar set | DblClique=carregar"
-    }
+    },
+    "tooltips": {
+      "load": "Load a sample file into the selected cell",
+      "clear": "Remove the sample from the selected cell (long press)",
+      "preview": "Preview the loaded sample",
+      "inOut": "Set the In/Out time range in milliseconds. Drag between thumbs to shift both.",
+      "offset": "Offset position in meters (X, Y, Z) relative to the set position",
+      "attenuation": "Cell attenuation in dB (0 = no attenuation, -60 = silent)",
+      "addSet": "Create a new set. If cells are selected they will be assigned to it.",
+      "deleteSet": "Delete the active set (long press)",
+      "renameSet": "Rename the active set",
+      "playMode": "Toggle between Sequential and Round-Robin playback",
+      "setPos": "Set base position in meters (X, Y, Z)",
+      "setLevel": "Set output level in dB (0 = unity, -60 = silent)",
+      "pressLevel": "Map finger pressure to output level",
+      "pressHeight": "Map finger pressure to vertical position (Z)",
+      "pressHF": "Map finger pressure to high-frequency shelf attenuation",
+      "pressDir": "Toggle pressure direction: + = more pressure increases, - = decreases",
+      "pressCurve": "Pressure response curve (0 = concave, 0.5 = linear, 1 = convex)",
+      "pressXY": "Map finger pressure to XY position movement",
+      "pressXYScale": "Sensitivity: how far the source moves per pressure step",
+      "copy": "Copy selected cell or active set to clipboard",
+      "paste": "Paste clipboard data to selected cell or active set",
+      "import": "Import sampler configuration from file",
+      "export": "Export sampler configuration to file"
+    },
+    "guide": "Select a cell on the grid to edit its properties.\nDouble-click to load a sample.\nUse Ctrl+Click to assign cells to the active set."
   },
 
   "streamDeck": {
