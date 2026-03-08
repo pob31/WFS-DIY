@@ -10,6 +10,7 @@
 #include "StreamDeck/pages/MapTabPages.h"
 #include "StreamDeck/pages/ReverbTabPages.h"
 #include "StreamDeck/pages/PatchWindowPages.h"
+#include "Controllers/SpaceMouseDevice.h"
 
 //==============================================================================
 MainComponent::MainComponent()
@@ -863,6 +864,88 @@ MainComponent::MainComponent()
                     outputsTab->setSubTabIndex (subTabIndex);
             });
         };
+    }
+
+    // Initialize Input Controller Manager (SpaceMouse, joystick, gamepad)
+    {
+        controllerManager = std::make_unique<ControllerManager>();
+
+        // Wire callbacks to MapTab and InputsTab
+        controllerManager->callbacks.moveSelectedDelta = [this] (float dx, float dy, float dz)
+        {
+            juce::MessageManager::callAsync ([this, dx, dy, dz]()
+            {
+                if (mapTab)
+                    mapTab->moveSelectedInputsDelta (dx, dy, dz);
+            });
+        };
+
+        controllerManager->callbacks.rotateSelected = [this] (float deltaDeg)
+        {
+            juce::MessageManager::callAsync ([this, deltaDeg]()
+            {
+                if (mapTab == nullptr) return;
+                auto& selected = mapTab->getSelectedInputSet();
+                for (int idx : selected)
+                {
+                    int current = static_cast<int> (parameters.getInputParam (idx, "inputRotation"));
+                    int newRot = current + static_cast<int> (std::round (deltaDeg));
+                    // Wrap to -179..180
+                    while (newRot > 180) newRot -= 360;
+                    while (newRot < -179) newRot += 360;
+                    parameters.setInputParam (idx, "inputRotation", newRot);
+                }
+                mapTab->repaint();
+            });
+        };
+
+        controllerManager->callbacks.cycleInput = [this] (int delta)
+        {
+            juce::MessageManager::callAsync ([this, delta]()
+            {
+                if (mapTab == nullptr) return;
+                int numInputs = parameters.getNumInputChannels();
+                if (numInputs <= 0) return;
+
+                auto& selected = mapTab->getSelectedInputSet();
+                int current = selected.empty() ? 0 : *selected.begin();
+                int next = current + delta;
+                if (next >= numInputs) next = 0;
+                else if (next < 0) next = numInputs - 1;
+
+                mapTab->selectInputProgrammatically (next);
+
+                // Also sync InputsTab channel selector
+                if (inputsTab)
+                    inputsTab->selectChannel (next + 1);  // 1-based
+            });
+        };
+
+        controllerManager->callbacks.getNumInputs = [this]()
+        {
+            return parameters.getNumInputChannels();
+        };
+
+        controllerManager->callbacks.getSelectedInputs = [this]() -> std::set<int>
+        {
+            if (mapTab)
+                return mapTab->getSelectedInputSet();
+            return {};
+        };
+
+        controllerManager->callbacks.repaintMap = [this]()
+        {
+            juce::MessageManager::callAsync ([this]()
+            {
+                if (mapTab) mapTab->repaint();
+            });
+        };
+
+        // Add SpaceMouse device
+        controllerManager->addDevice (std::make_unique<SpaceMouseDevice>());
+
+        // Start velocity integration
+        controllerManager->start();
     }
 
     // Initialize WFS Calculation Engine for DSP parameter generation

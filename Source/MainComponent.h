@@ -33,6 +33,7 @@
 #include "Network/OSCManager.h"
 #include "StreamDeck/StreamDeckManager.h"
 #include "StreamDeck/pages/PatchWindowPages.h"
+#include "Controllers/ControllerManager.h"
 #include "GradientMap/GradientMapEvaluator.h"
 #include "GradientMap/GradientMapData.h"
 #include "Sampler/SamplerManager.h"
@@ -191,6 +192,9 @@ private:
 
     // Stream Deck+ physical controller
     std::unique_ptr<StreamDeckManager> streamDeckManager;
+
+    // Input controllers (SpaceMouse, joystick, gamepad)
+    std::unique_ptr<ControllerManager> controllerManager;
 
     // WFS calculation engine (computes delays, levels, HF attenuation)
     std::unique_ptr<WFSCalculationEngine> calculationEngine;
