@@ -765,96 +765,6 @@ bool WFSFileManager::importReverbConfig (const juce::File& file)
 // Snapshots
 //==============================================================================
 
-bool WFSFileManager::saveInputSnapshot (const juce::String& snapshotName, const SnapshotScope& scope)
-{
-    auto folder = getInputSnapshotsFolder();
-    folder.createDirectory();
-
-    auto file = folder.getChildFile (snapshotName + snapshotExtension);
-
-    juce::ValueTree snapshot ("InputSnapshot");
-    snapshot.setProperty (WFSParameterIDs::version, "1.0", nullptr);
-    snapshot.setProperty (name, snapshotName, nullptr);
-
-    // Store scope settings
-    juce::ValueTree scopeTree ("Scope");
-    scopeTree.setProperty ("includePosition", scope.includePosition, nullptr);
-    scopeTree.setProperty ("includeAttenuation", scope.includeAttenuation, nullptr);
-    scopeTree.setProperty ("includeDirectivity", scope.includeDirectivity, nullptr);
-    scopeTree.setProperty ("includeLiveSource", scope.includeLiveSource, nullptr);
-    scopeTree.setProperty ("includeHackoustics", scope.includeHackoustics, nullptr);
-    scopeTree.setProperty ("includeLFO", scope.includeLFO, nullptr);
-    scopeTree.setProperty ("includeAutomOtion", scope.includeAutomOtion, nullptr);
-    scopeTree.setProperty ("includeMutes", scope.includeMutes, nullptr);
-
-    if (!scope.channelIndices.isEmpty())
-    {
-        juce::StringArray indices;
-        for (auto idx : scope.channelIndices)
-            indices.add (juce::String (idx));
-        scopeTree.setProperty ("channels", indices.joinIntoString (","), nullptr);
-    }
-    snapshot.appendChild (scopeTree, nullptr);
-
-    // Store input data
-    juce::ValueTree inputsData (Inputs);
-    int numInputs = valueTreeState.getNumInputChannels();
-
-    for (int i = 0; i < numInputs; ++i)
-    {
-        if (scope.channelIndices.isEmpty() || scope.channelIndices.contains (i))
-            inputsData.appendChild (extractInputWithScope (i, scope), nullptr);
-    }
-    snapshot.appendChild (inputsData, nullptr);
-    stripTransientToggles (snapshot);
-
-    return writeToXmlFile (snapshot, file);
-}
-
-bool WFSFileManager::loadInputSnapshot (const juce::String& snapshotName, const SnapshotScope& scope)
-{
-    auto file = getInputSnapshotsFolder().getChildFile (snapshotName + snapshotExtension);
-    auto snapshot = readFromXmlFile (file);
-
-    if (!snapshot.isValid())
-        return false;
-
-    stripTransientToggles (snapshot);
-
-    auto inputsData = snapshot.getChildWithName (Inputs);
-    if (!inputsData.isValid())
-    {
-        setError (LOC ("fileManager.errors.noInputDataInSnapshot"));
-        return false;
-    }
-
-    valueTreeState.beginUndoTransaction ("Load Input Snapshot: " + snapshotName);
-
-    for (int i = 0; i < inputsData.getNumChildren(); ++i)
-    {
-        auto inputData = inputsData.getChild (i);
-        int channelIndex = static_cast<int> (inputData.getProperty (id)) - 1;
-
-        if (scope.channelIndices.isEmpty() || scope.channelIndices.contains (channelIndex))
-            applyInputWithScope (channelIndex, inputData, scope);
-    }
-
-    return true;
-}
-
-bool WFSFileManager::updateInputSnapshot (const juce::String& snapshotName, const SnapshotScope& scope)
-{
-    auto file = getInputSnapshotsFolder().getChildFile (snapshotName + snapshotExtension);
-    if (!file.existsAsFile())
-    {
-        setError (LOC ("fileManager.errors.snapshotDoesNotExist"));
-        return false;
-    }
-
-    createBackup (file);
-    return saveInputSnapshot (snapshotName, scope);
-}
-
 bool WFSFileManager::deleteInputSnapshot (const juce::String& snapshotName)
 {
     auto file = getInputSnapshotsFolder().getChildFile (snapshotName + snapshotExtension);
@@ -884,49 +794,8 @@ juce::String WFSFileManager::getDefaultSnapshotName()
     return juce::Time::getCurrentTime().formatted ("%Y%m%d_%H%M%S");
 }
 
-WFSFileManager::SnapshotScope WFSFileManager::getSnapshotScope (const juce::String& snapshotName) const
-{
-    SnapshotScope scope;
-    auto file = getInputSnapshotsFolder().getChildFile (snapshotName + snapshotExtension);
-    auto snapshot = const_cast<WFSFileManager*>(this)->readFromXmlFile (file);
-
-    if (snapshot.isValid())
-    {
-        auto scopeTree = snapshot.getChildWithName ("Scope");
-        if (scopeTree.isValid())
-        {
-            scope.includePosition = scopeTree.getProperty ("includePosition", true);
-            scope.includeAttenuation = scopeTree.getProperty ("includeAttenuation", true);
-            scope.includeDirectivity = scopeTree.getProperty ("includeDirectivity", true);
-            scope.includeLiveSource = scopeTree.getProperty ("includeLiveSource", true);
-            scope.includeHackoustics = scopeTree.getProperty ("includeHackoustics", true);
-            scope.includeLFO = scopeTree.getProperty ("includeLFO", true);
-            scope.includeAutomOtion = scopeTree.getProperty ("includeAutomOtion", true);
-            scope.includeMutes = scopeTree.getProperty ("includeMutes", true);
-
-            juce::String channels = scopeTree.getProperty ("channels").toString();
-            if (channels.isNotEmpty())
-            {
-                juce::StringArray indices;
-                indices.addTokens (channels, ",", "");
-                for (auto& idx : indices)
-                    scope.channelIndices.add (idx.getIntValue());
-            }
-        }
-    }
-
-    return scope;
-}
-
-bool WFSFileManager::setSnapshotScope (const juce::String& snapshotName, const SnapshotScope& scope)
-{
-    // Reload current data and save with new scope
-    auto currentScope = getSnapshotScope (snapshotName);
-    return updateInputSnapshot (snapshotName, scope);
-}
-
 //==============================================================================
-// Extended Snapshot Scope - Static Definitions
+// Snapshot Scope - Static Definitions
 //==============================================================================
 
 const std::vector<WFSFileManager::ScopeItem>& WFSFileManager::ExtendedSnapshotScope::getScopeItems()
@@ -1509,8 +1378,13 @@ juce::ValueTree WFSFileManager::extractInputWithExtendedScope (int channelIndex,
     }
 
     // Sampler — subtree copy (cells + dynamic set children)
+    // Only include if sampler is globally enabled
     {
-        if (scope.isIncluded ("sampler", channelIndex))
+        auto config = valueTreeState.getConfigState();
+        auto ui = config.getChildWithName (UI);
+        bool samplerOn = ui.isValid() && (bool) ui.getProperty (samplerEnabled, false);
+
+        if (samplerOn && scope.isIncluded ("sampler", channelIndex))
         {
             auto samplerSource = input.getChildWithName (Sampler);
             if (samplerSource.isValid())
@@ -1615,8 +1489,13 @@ bool WFSFileManager::applyInputWithExtendedScope (int channelIndex, const juce::
     }
 
     // Sampler — subtree replacement (cells + dynamic set children)
+    // Only apply if sampler is globally enabled
     {
-        if (scope.isIncluded ("sampler", channelIndex))
+        auto config = valueTreeState.getConfigState();
+        auto ui = config.getChildWithName (UI);
+        bool samplerOn = ui.isValid() && (bool) ui.getProperty (samplerEnabled, false);
+
+        if (samplerOn && scope.isIncluded ("sampler", channelIndex))
         {
             auto samplerSource = inputData.getChildWithName (Sampler);
             if (samplerSource.isValid())
@@ -1973,209 +1852,6 @@ bool WFSFileManager::applyNetworkSection (const juce::ValueTree& networkContaine
         setError (LOC ("fileManager.errors.noNetworkSections"));
 
     return success;
-}
-
-juce::ValueTree WFSFileManager::extractInputWithScope (int channelIndex, const SnapshotScope& scope) const
-{
-    auto input = const_cast<WFSValueTreeState&>(valueTreeState).getInputState (channelIndex);
-    if (!input.isValid())
-        return {};
-
-    juce::ValueTree filtered (Input);
-    filtered.setProperty (id, channelIndex + 1, nullptr);
-
-    // Always include channel section (name, etc.)
-    auto channel = input.getChildWithName (Channel);
-    if (channel.isValid())
-        filtered.appendChild (channel.createCopy(), nullptr);
-
-    // Include sections based on scope
-    if (scope.includePosition)
-    {
-        auto pos = input.getChildWithName (Position);
-        if (pos.isValid())
-            filtered.appendChild (pos.createCopy(), nullptr);
-    }
-
-    if (scope.includeAttenuation)
-    {
-        auto atten = input.getChildWithName (Attenuation);
-        if (atten.isValid())
-            filtered.appendChild (atten.createCopy(), nullptr);
-    }
-
-    if (scope.includeDirectivity)
-    {
-        auto dir = input.getChildWithName (Directivity);
-        if (dir.isValid())
-            filtered.appendChild (dir.createCopy(), nullptr);
-    }
-
-    if (scope.includeLiveSource)
-    {
-        auto ls = input.getChildWithName (LiveSourceTamer);
-        if (ls.isValid())
-            filtered.appendChild (ls.createCopy(), nullptr);
-    }
-
-    if (scope.includeHackoustics)
-    {
-        auto hack = input.getChildWithName (Hackoustics);
-        if (hack.isValid())
-            filtered.appendChild (hack.createCopy(), nullptr);
-    }
-
-    if (scope.includeLFO)
-    {
-        auto lfo = input.getChildWithName (LFO);
-        if (lfo.isValid())
-            filtered.appendChild (lfo.createCopy(), nullptr);
-    }
-
-    if (scope.includeAutomOtion)
-    {
-        auto autom = input.getChildWithName (AutomOtion);
-        if (autom.isValid())
-            filtered.appendChild (autom.createCopy(), nullptr);
-    }
-
-    if (scope.includeMutes)
-    {
-        auto mutes = input.getChildWithName (Mutes);
-        if (mutes.isValid())
-            filtered.appendChild (mutes.createCopy(), nullptr);
-    }
-
-    if (scope.includeSampler)
-    {
-        auto sampler = input.getChildWithName (Sampler);
-        if (sampler.isValid())
-            filtered.appendChild (sampler.createCopy(), nullptr);
-    }
-
-    return filtered;
-}
-
-bool WFSFileManager::applyInputWithScope (int channelIndex, const juce::ValueTree& inputData, const SnapshotScope& scope)
-{
-    auto input = valueTreeState.getInputState (channelIndex);
-    if (!input.isValid())
-        return false;
-
-    auto* undoManager = valueTreeState.getUndoManager();
-
-    // Always apply channel section
-    auto loadedChannel = inputData.getChildWithName (Channel);
-    if (loadedChannel.isValid())
-    {
-        auto existingChannel = input.getChildWithName (Channel);
-        if (existingChannel.isValid())
-            mergeTreeRecursive (existingChannel, loadedChannel, undoManager);
-    }
-
-    // Apply sections based on scope
-    if (scope.includePosition)
-    {
-        auto loadedPos = inputData.getChildWithName (Position);
-        if (loadedPos.isValid())
-        {
-            auto existingPos = input.getChildWithName (Position);
-            if (existingPos.isValid())
-                mergeTreeRecursive (existingPos, loadedPos, undoManager);
-        }
-    }
-
-    if (scope.includeAttenuation)
-    {
-        auto loaded = inputData.getChildWithName (Attenuation);
-        if (loaded.isValid())
-        {
-            auto existing = input.getChildWithName (Attenuation);
-            if (existing.isValid())
-                mergeTreeRecursive (existing, loaded, undoManager);
-        }
-    }
-
-    if (scope.includeDirectivity)
-    {
-        auto loaded = inputData.getChildWithName (Directivity);
-        if (loaded.isValid())
-        {
-            auto existing = input.getChildWithName (Directivity);
-            if (existing.isValid())
-                mergeTreeRecursive (existing, loaded, undoManager);
-        }
-    }
-
-    if (scope.includeLiveSource)
-    {
-        auto loaded = inputData.getChildWithName (LiveSourceTamer);
-        if (loaded.isValid())
-        {
-            auto existing = input.getChildWithName (LiveSourceTamer);
-            if (existing.isValid())
-                mergeTreeRecursive (existing, loaded, undoManager);
-        }
-    }
-
-    if (scope.includeHackoustics)
-    {
-        auto loaded = inputData.getChildWithName (Hackoustics);
-        if (loaded.isValid())
-        {
-            auto existing = input.getChildWithName (Hackoustics);
-            if (existing.isValid())
-                mergeTreeRecursive (existing, loaded, undoManager);
-        }
-    }
-
-    if (scope.includeLFO)
-    {
-        auto loaded = inputData.getChildWithName (LFO);
-        if (loaded.isValid())
-        {
-            auto existing = input.getChildWithName (LFO);
-            if (existing.isValid())
-                mergeTreeRecursive (existing, loaded, undoManager);
-        }
-    }
-
-    if (scope.includeAutomOtion)
-    {
-        auto loaded = inputData.getChildWithName (AutomOtion);
-        if (loaded.isValid())
-        {
-            auto existing = input.getChildWithName (AutomOtion);
-            if (existing.isValid())
-                mergeTreeRecursive (existing, loaded, undoManager);
-        }
-    }
-
-    if (scope.includeMutes)
-    {
-        auto loaded = inputData.getChildWithName (Mutes);
-        if (loaded.isValid())
-        {
-            auto existing = input.getChildWithName (Mutes);
-            if (existing.isValid())
-                mergeTreeRecursive (existing, loaded, undoManager);
-        }
-    }
-
-    if (scope.includeSampler)
-    {
-        auto loaded = inputData.getChildWithName (Sampler);
-        if (loaded.isValid())
-        {
-            auto existing = input.getChildWithName (Sampler);
-            if (existing.isValid())
-                existing.copyPropertiesAndChildrenFrom (loaded, undoManager);
-            else
-                input.appendChild (loaded.createCopy(), undoManager);
-        }
-    }
-
-    return true;
 }
 
 juce::String WFSFileManager::createXmlHeader (const juce::String& fileType)

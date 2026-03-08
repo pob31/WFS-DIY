@@ -201,23 +201,8 @@ public:
     // Snapshots
     //==========================================================================
 
-    /** Scope options for snapshots (legacy section-level) */
-    struct SnapshotScope
-    {
-        bool includePosition = true;
-        bool includeAttenuation = true;
-        bool includeDirectivity = true;
-        bool includeLiveSource = true;
-        bool includeHackoustics = true;
-        bool includeLFO = true;
-        bool includeAutomOtion = true;
-        bool includeMutes = true;
-        bool includeSampler = true;
-        juce::Array<int> channelIndices;  // Empty = all channels
-    };
-
     //==========================================================================
-    // Extended Snapshot Scope (parameter-level, per-channel granularity)
+    // Snapshot Scope (parameter-level, per-channel granularity)
     //==========================================================================
 
     /** Scope item definition - groups related parameters */
@@ -316,15 +301,6 @@ public:
         static juce::String makeKey (const juce::String& itemId, int channelIndex);
     };
 
-    /** Save a new input snapshot */
-    bool saveInputSnapshot (const juce::String& snapshotName, const SnapshotScope& scope);
-
-    /** Load an input snapshot */
-    bool loadInputSnapshot (const juce::String& snapshotName, const SnapshotScope& scope);
-
-    /** Update an existing input snapshot */
-    bool updateInputSnapshot (const juce::String& snapshotName, const SnapshotScope& scope);
-
     /** Delete an input snapshot */
     bool deleteInputSnapshot (const juce::String& snapshotName);
 
@@ -334,12 +310,8 @@ public:
     /** Get default snapshot name (timestamp) */
     static juce::String getDefaultSnapshotName();
 
-    /** Get/set snapshot scope for a named snapshot */
-    SnapshotScope getSnapshotScope (const juce::String& snapshotName) const;
-    bool setSnapshotScope (const juce::String& snapshotName, const SnapshotScope& scope);
-
     //==========================================================================
-    // Extended Snapshot Scope Operations
+    // Snapshot Scope Operations
     //==========================================================================
 
     /** Save a new input snapshot with extended scope */
@@ -447,12 +419,6 @@ private:
 
     /** Apply network section to state */
     bool applyNetworkSection (const juce::ValueTree& network);
-
-    /** Extract input data with scope filtering */
-    juce::ValueTree extractInputWithScope (int channelIndex, const SnapshotScope& scope) const;
-
-    /** Apply input data with scope filtering */
-    bool applyInputWithScope (int channelIndex, const juce::ValueTree& inputData, const SnapshotScope& scope);
 
     /** Extract input data with extended scope filtering */
     juce::ValueTree extractInputWithExtendedScope (int channelIndex, const ExtendedSnapshotScope& scope) const;

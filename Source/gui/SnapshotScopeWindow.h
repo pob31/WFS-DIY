@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include <set>
 #include "../WfsParameters.h"
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/WFSFileManager.h"
@@ -43,6 +44,9 @@ public:
 
         for (const auto& sectionId : sections)
         {
+            if (hiddenSections.count (sectionId.toString()) > 0)
+                continue;
+
             // Add section header row
             sectionStartRows[sectionId.toString()] = currentRow;
             visibleRows.push_back ({ sectionId.toString(), true, true });  // isSection = true
@@ -367,6 +371,9 @@ public:
     std::function<void()> onScopeChanged;
     std::function<void()> onLayoutChanged;
 
+    /** Sections to hide from the grid (e.g. "Sampler" when disabled) */
+    std::set<juce::String> hiddenSections;
+
     int cellSize = 22;
     int paramLabelWidth = 140;
 
@@ -564,6 +571,19 @@ public:
 
         // Scrollable grid (pass dirty tracker for earmarks)
         gridComponent = std::make_unique<ScopeGridComponent> (scope, numChannels, dirtyTracker);
+
+        // Hide Sampler section if sampler is globally disabled
+        {
+            auto config = params.getValueTreeState().getConfigState();
+            auto ui = config.getChildWithName (WFSParameterIDs::UI);
+            bool samplerOn = ui.isValid() && (bool) ui.getProperty (WFSParameterIDs::samplerEnabled, false);
+            if (!samplerOn)
+            {
+                gridComponent->hiddenSections.insert ("Sampler");
+                gridComponent->buildLayout();
+            }
+        }
+
         gridComponent->onScopeChanged = [this]() { channelHeader->repaint(); };
         gridComponent->onLayoutChanged = [this]() { resized(); };
 

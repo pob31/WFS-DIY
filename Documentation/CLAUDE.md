@@ -1416,11 +1416,11 @@ LocalizationManager::getInstance().get(
 ## Snapshot and Scope System (Source/Parameters/WFSFileManager.h, Source/gui/SnapshotScopeWindow.h)
 
 ### Overview
-The snapshot system allows saving and recalling input channel configurations with precise control over which parameters and channels are included. Supports two scope modes: legacy section-level filtering and extended parameter-level, per-channel granularity.
+The snapshot system allows saving and recalling input channel configurations with precise control over which parameters and channels are included, using parameter-level, per-channel granularity.
 
 ### Core Files
-- **WFSFileManager.h/cpp** - File I/O and scope data structures (`SnapshotScope`, `ExtendedSnapshotScope`, `ScopeItem`)
-- **SnapshotScopeWindow.h** - UI for editing extended scope (`ScopeGridComponent`, `ScopeChannelHeader`, `SnapshotScopeContent`)
+- **WFSFileManager.h/cpp** - File I/O and scope data structures (`ExtendedSnapshotScope`, `ScopeItem`)
+- **SnapshotScopeWindow.h** - UI for editing scope (`ScopeGridComponent`, `ScopeChannelHeader`, `SnapshotScopeContent`)
 
 ### Snapshot Storage
 Snapshots are stored as XML files in the project folder structure:
@@ -1431,24 +1431,7 @@ project_folder/
 │   └── outputs/        # Output snapshots (*.xml)
 ```
 
-### Legacy SnapshotScope (Section-Level)
-Simple boolean flags for entire parameter sections:
-
-```cpp
-struct SnapshotScope {
-    bool includePosition = true;
-    bool includeAttenuation = true;
-    bool includeDirectivity = true;
-    bool includeLiveSource = true;
-    bool includeHackoustics = true;
-    bool includeLFO = true;
-    bool includeAutomOtion = true;
-    bool includeMutes = true;
-    juce::Array<int> channelIndices;  // Empty = all channels
-};
-```
-
-### Extended SnapshotScope (Parameter-Level, Per-Channel)
+### SnapshotScope (Parameter-Level, Per-Channel)
 Fine-grained control over individual parameters for each channel:
 
 **Apply Modes:**

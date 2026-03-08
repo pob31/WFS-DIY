@@ -206,7 +206,6 @@ public:
 
     bool saveSnapshot (const juce::File& file, bool includeInput, bool includeOutput, bool includeConfig)
     {
-        WFSFileManager::SnapshotScope scope;
         // If includeConfig is false, we just save input/output
         if (!includeInput && !includeOutput && includeConfig)
         {
