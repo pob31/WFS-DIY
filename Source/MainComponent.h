@@ -33,6 +33,8 @@
 #include "Network/OSCManager.h"
 #include "StreamDeck/StreamDeckManager.h"
 #include "StreamDeck/pages/PatchWindowPages.h"
+#include "GradientMap/GradientMapEvaluator.h"
+#include "GradientMap/GradientMapData.h"
 
 //==============================================================================
 /**
@@ -117,6 +119,11 @@ public:
 
     // Level Meter Window
     void openLevelMeterWindow();
+
+    // Gradient Map Support
+    void updateGradientMapStageBounds();
+    void rebuildGradientMapForInput (int channelIndex);
+    void rebuildAllGradientMaps();
 
 private:
     //==============================================================================
@@ -211,6 +218,9 @@ private:
 
     // Input speed limiter for smooth position movement
     std::unique_ptr<InputSpeedLimiter> speedLimiter;
+
+    // Gradient map evaluators (one per input channel, bitmap-based O(1) lookup)
+    std::vector<std::unique_ptr<GradientMapEvaluator>> gradientMapEvaluators;
 
     // Track last remote position timestamp per channel for auto-stop recording
     // Key: channelIndex, Value: timestamp in milliseconds

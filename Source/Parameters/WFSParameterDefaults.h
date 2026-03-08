@@ -449,6 +449,64 @@ namespace WFSParameterDefaults
     constexpr float inputArrayAttenMax          = 0.0f;   // 0 dB
 
     //==========================================================================
+    // Input > Gradient Maps Defaults
+    //==========================================================================
+
+    constexpr int maxGradientLayers             = 3;
+
+    // Layer defaults
+    constexpr int gmLayerEnabledDefault         = 0;       // OFF
+    constexpr int gmLayerParamDefault           = 0;       // 0=Attenuation
+    constexpr int gmLayerParamMin               = 0;
+    constexpr int gmLayerParamMax               = 2;       // 0=Atten, 1=Height, 2=HF
+    constexpr float gmLayerWhiteDefault         = 0.0f;    // No offset at white
+    constexpr float gmLayerBlackDefault         = 0.0f;    // No offset at black
+    constexpr float gmLayerCurveDefault         = 0.0f;    // Linear mapping
+    constexpr float gmLayerCurveMin             = -1.0f;
+    constexpr float gmLayerCurveMax             = 1.0f;
+    constexpr int gmLayerVisibleDefault         = 1;       // Visible by default
+
+    // Layer white/black ranges per parameter type
+    constexpr float gmAttenWhiteMin             = -92.0f;  // dB
+    constexpr float gmAttenWhiteMax             = 0.0f;
+    constexpr float gmAttenBlackMin             = -92.0f;
+    constexpr float gmAttenBlackMax             = 0.0f;
+
+    constexpr float gmHeightWhiteMin            = -20.0f;  // meters
+    constexpr float gmHeightWhiteMax            = 20.0f;
+    constexpr float gmHeightBlackMin            = -20.0f;
+    constexpr float gmHeightBlackMax            = 20.0f;
+
+    constexpr float gmHFShelfWhiteMin           = -24.0f;  // dB
+    constexpr float gmHFShelfWhiteMax           = 0.0f;
+    constexpr float gmHFShelfBlackMin           = -24.0f;
+    constexpr float gmHFShelfBlackMax           = 0.0f;
+
+    // Shape defaults
+    constexpr int gmShapeTypeDefault            = 0;       // Rectangle
+    constexpr int gmShapeTypeMin                = 0;
+    constexpr int gmShapeTypeMax                = 2;       // 0=Rect, 1=Ellipse, 2=Polygon
+    constexpr float gmShapePosDefault           = 0.0f;    // meters
+    constexpr float gmShapeRotationDefault      = 0.0f;    // degrees
+    constexpr float gmShapeScaleXDefault        = 1.0f;    // 1m half-extent
+    constexpr float gmShapeScaleYDefault        = 1.0f;
+    constexpr int gmShapeFillTypeDefault        = 0;       // Uniform
+    constexpr int gmShapeFillTypeMin            = 0;
+    constexpr int gmShapeFillTypeMax            = 2;       // 0=Uniform, 1=Linear, 2=Radial
+    constexpr float gmShapeFillValueDefault     = 1.0f;    // White (no effect)
+    constexpr float gmShapeFillValueMin         = 0.0f;
+    constexpr float gmShapeFillValueMax         = 1.0f;
+    constexpr float gmShapeBlurDefault          = 0.0f;    // Sharp edges
+    constexpr float gmShapeBlurMin              = 0.0f;
+    constexpr float gmShapeBlurMax              = 5.0f;    // 5m max blur
+    constexpr int gmShapeLockedDefault          = 0;       // Unlocked
+    constexpr int gmShapeOrderDefault           = 0;
+    constexpr int gmShapeEnabledDefault         = 1;       // Enabled by default
+
+    // Bitmap rasterization
+    constexpr float gmBitmapPixelsPerMeter      = 10.0f;   // 10 px/m resolution
+
+    //==========================================================================
     // Output Channel Defaults
     //==========================================================================
 

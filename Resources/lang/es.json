@@ -1002,7 +1002,58 @@
       "inputParams": "Parámetros de entrada",
       "liveSourceHackoustics": "Fuente en Vivo & Hackústica",
       "movements": "Movimientos",
+      "gradientMaps": "Mapas de Gradiente",
       "visualisation": "Visualización"
+    },
+    "gradientMap": {
+      "layers": {
+        "attenuation": "Atenuación",
+        "height": "Altura",
+        "hfShelf": "Estante HF"
+      },
+      "labels": {
+        "white": "Blanco:",
+        "black": "Negro:",
+        "curve": "Curva:",
+        "fill": "Relleno:",
+        "blur": "Desenfoque:",
+        "start": "Inicio:",
+        "end": "Fin:",
+        "center": "Centro:",
+        "edge": "Borde:"
+      },
+      "tools": {
+        "select": "Selección",
+        "rect": "Rect",
+        "ellipse": "Elipse",
+        "polygon": "Polígono",
+        "fill": "Rellenar",
+        "linGrad": "Grad.Lin",
+        "radGrad": "Grad.Rad"
+      },
+      "buttons": {
+        "enable": "On",
+        "lock": "Bloquear",
+        "delete": "Eliminar",
+        "pivotCenter": "Pivote: Centro",
+        "pivotOrigin": "Pivote: Origen"
+      },
+      "warnings": {
+        "heightRatioZero": "La proporción de altura es 0% — auméntela para que la altura tenga efecto"
+      },
+      "hints": {
+        "darkMaxAtten": "Oscuro = atenuación máx. | Claro = ninguna",
+        "darkMaxHeight": "Oscuro = altura máx. | Claro = suelo",
+        "darkMaxHF": "Oscuro = estante HF máx. | Claro = ninguno",
+        "whiteMaxAtten": "Blanco = atenuación máx. | Negro = ninguna",
+        "whiteMaxHeight": "Blanco = altura máx. | Negro = suelo",
+        "whiteMaxHF": "Blanco = estante HF máx. | Negro = ninguno"
+      },
+      "header": {
+        "attenuationLayer": "Capa Atenuación",
+        "heightLayer": "Capa Altura",
+        "hfShelfLayer": "Capa Estante HF"
+      }
     },
     "labels": {
       "name": "Nombre:",

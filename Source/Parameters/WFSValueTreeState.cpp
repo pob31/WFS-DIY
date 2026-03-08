@@ -313,6 +313,35 @@ juce::ValueTree WFSValueTreeState::getInputMutesSection (int channelIndex)
     return getInputState (channelIndex).getChildWithName (Mutes);
 }
 
+juce::ValueTree WFSValueTreeState::getInputGradientMapsSection (int channelIndex)
+{
+    return getInputState (channelIndex).getChildWithName (GradientMaps);
+}
+
+juce::ValueTree WFSValueTreeState::getInputGradientLayer (int channelIndex, int layerIndex)
+{
+    auto gm = getInputGradientMapsSection (channelIndex);
+    if (! gm.isValid() || layerIndex < 0 || layerIndex >= gm.getNumChildren())
+        return {};
+
+    return gm.getChild (layerIndex);
+}
+
+juce::ValueTree WFSValueTreeState::ensureInputGradientMapsSection (int channelIndex)
+{
+    auto input = getInputState (channelIndex);
+    if (! input.isValid())
+        return {};
+
+    auto gm = input.getChildWithName (GradientMaps);
+    if (! gm.isValid())
+    {
+        gm = createInputGradientMapsSection();
+        input.appendChild (gm, nullptr);
+    }
+    return gm;
+}
+
 //==============================================================================
 // Output Channel Access
 //==============================================================================
@@ -1134,6 +1163,10 @@ void WFSValueTreeState::setNumInputChannels (int numChannels)
             inputs.removeChild (inputs.getNumChildren() - 1, getActiveUndoManager());
     }
 
+    // Ensure GradientMaps section exists for all inputs (migration for old configs)
+    for (int i = 0; i < numChannels; ++i)
+        ensureInputGradientMapsSection (i);
+
     // Update the count in config
     setParameter (inputChannels, numChannels);
     inputs.setProperty (count, numChannels, getActiveUndoManager());
@@ -1744,6 +1777,7 @@ juce::ValueTree WFSValueTreeState::createDefaultInputChannel (int index)
     input.appendChild (createInputLFOSection(), nullptr);
     input.appendChild (createInputAutoMotionSection(), nullptr);
     input.appendChild (createInputMutesSection (getNumOutputChannels()), nullptr);
+    input.appendChild (createInputGradientMapsSection(), nullptr);
 
     return input;
 }
@@ -1934,6 +1968,32 @@ juce::ValueTree WFSValueTreeState::createInputMutesSection (int numOutputs)
     mutes.setProperty (inputArrayAtten10, inputArrayAttenDefault, nullptr);
 
     return mutes;
+}
+
+juce::ValueTree WFSValueTreeState::createInputGradientMapsSection()
+{
+    using namespace WFSParameterIDs;
+    using namespace WFSParameterDefaults;
+
+    juce::ValueTree gm (GradientMaps);
+
+    // Create 3 layers with default parameter assignments
+    const int defaultParams[3] = { 0, 1, 2 };  // Attenuation, Height, HF Shelf
+
+    for (int i = 0; i < maxGradientLayers; ++i)
+    {
+        juce::ValueTree layer (GradientLayer);
+        layer.setProperty (WFSParameterIDs::id, i, nullptr);
+        layer.setProperty (gmLayerEnabled,  gmLayerEnabledDefault, nullptr);
+        layer.setProperty (gmLayerParam,    defaultParams[i], nullptr);
+        layer.setProperty (gmLayerWhite,    gmLayerWhiteDefault, nullptr);
+        layer.setProperty (gmLayerBlack,    gmLayerBlackDefault, nullptr);
+        layer.setProperty (gmLayerCurve,    gmLayerCurveDefault, nullptr);
+        layer.setProperty (gmLayerVisible,  gmLayerVisibleDefault, nullptr);
+        gm.appendChild (layer, nullptr);
+    }
+
+    return gm;
 }
 
 juce::ValueTree WFSValueTreeState::createDefaultOutputChannel (int index)

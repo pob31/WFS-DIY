@@ -1002,7 +1002,58 @@
       "inputParams": "Parametri Ingresso",
       "liveSourceHackoustics": "Sorgente Live & Hackustica",
       "movements": "Movimenti",
+      "gradientMaps": "Mappe di Gradiente",
       "visualisation": "Visualizzazione"
+    },
+    "gradientMap": {
+      "layers": {
+        "attenuation": "Attenuazione",
+        "height": "Altezza",
+        "hfShelf": "Shelf HF"
+      },
+      "labels": {
+        "white": "Bianco:",
+        "black": "Nero:",
+        "curve": "Curva:",
+        "fill": "Riempimento:",
+        "blur": "Sfocatura:",
+        "start": "Inizio:",
+        "end": "Fine:",
+        "center": "Centro:",
+        "edge": "Bordo:"
+      },
+      "tools": {
+        "select": "Selezione",
+        "rect": "Rett",
+        "ellipse": "Ellisse",
+        "polygon": "Poligono",
+        "fill": "Riempi",
+        "linGrad": "Grad.Lin",
+        "radGrad": "Grad.Rad"
+      },
+      "buttons": {
+        "enable": "On",
+        "lock": "Blocca",
+        "delete": "Elimina",
+        "pivotCenter": "Pivot: Centro",
+        "pivotOrigin": "Pivot: Origine"
+      },
+      "warnings": {
+        "heightRatioZero": "Il rapporto altezza è 0% — aumentalo perché l'altezza abbia effetto"
+      },
+      "hints": {
+        "darkMaxAtten": "Scuro = max attenuazione | Chiaro = nessuna",
+        "darkMaxHeight": "Scuro = max altezza | Chiaro = suolo",
+        "darkMaxHF": "Scuro = max shelf HF | Chiaro = nessuno",
+        "whiteMaxAtten": "Bianco = max attenuazione | Nero = nessuna",
+        "whiteMaxHeight": "Bianco = max altezza | Nero = suolo",
+        "whiteMaxHF": "Bianco = max shelf HF | Nero = nessuno"
+      },
+      "header": {
+        "attenuationLayer": "Livello Attenuazione",
+        "heightLayer": "Livello Altezza",
+        "hfShelfLayer": "Livello Shelf HF"
+      }
     },
     "labels": {
       "name": "Nome:",

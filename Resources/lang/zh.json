@@ -1002,7 +1002,58 @@
       "inputParams": "输入参数",
       "liveSourceHackoustics": "现场声源 & Hackoustics (虚拟声学)",
       "movements": "运动",
+      "gradientMaps": "渐变图",
       "visualisation": "可视化"
+    },
+    "gradientMap": {
+      "layers": {
+        "attenuation": "衰减",
+        "height": "高度",
+        "hfShelf": "高频搁架"
+      },
+      "labels": {
+        "white": "白色：",
+        "black": "黑色：",
+        "curve": "曲线：",
+        "fill": "填充：",
+        "blur": "模糊：",
+        "start": "起点：",
+        "end": "终点：",
+        "center": "中心：",
+        "edge": "边缘："
+      },
+      "tools": {
+        "select": "选择",
+        "rect": "矩形",
+        "ellipse": "椭圆",
+        "polygon": "多边形",
+        "fill": "填充",
+        "linGrad": "线性渐变",
+        "radGrad": "径向渐变"
+      },
+      "buttons": {
+        "enable": "开",
+        "lock": "锁定",
+        "delete": "删除",
+        "pivotCenter": "基点：中心",
+        "pivotOrigin": "基点：原点"
+      },
+      "warnings": {
+        "heightRatioZero": "高度比率为0% — 请增大以使高度生效"
+      },
+      "hints": {
+        "darkMaxAtten": "暗 = 最大衰减 | 亮 = 无",
+        "darkMaxHeight": "暗 = 最大高度 | 亮 = 地面",
+        "darkMaxHF": "暗 = 最大高频搁架 | 亮 = 无",
+        "whiteMaxAtten": "白 = 最大衰减 | 黑 = 无",
+        "whiteMaxHeight": "白 = 最大高度 | 黑 = 地面",
+        "whiteMaxHF": "白 = 最大高频搁架 | 黑 = 无"
+      },
+      "header": {
+        "attenuationLayer": "衰减图层",
+        "heightLayer": "高度图层",
+        "hfShelfLayer": "高频搁架图层"
+      }
     },
     "labels": {
       "name": "名称:",

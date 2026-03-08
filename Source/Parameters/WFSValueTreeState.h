@@ -121,6 +121,11 @@ public:
     juce::ValueTree getInputLFOSection (int channelIndex);
     juce::ValueTree getInputAutoMotionSection (int channelIndex);
     juce::ValueTree getInputMutesSection (int channelIndex);
+    juce::ValueTree getInputGradientMapsSection (int channelIndex);
+    juce::ValueTree getInputGradientLayer (int channelIndex, int layerIndex);
+
+    /** Ensure a GradientMaps section exists for a given input (migration helper) */
+    juce::ValueTree ensureInputGradientMapsSection (int channelIndex);
 
     //==========================================================================
     // Output Channel Access
@@ -434,6 +439,7 @@ private:
     juce::ValueTree createInputLFOSection();
     juce::ValueTree createInputAutoMotionSection();
     juce::ValueTree createInputMutesSection (int numOutputs);
+    juce::ValueTree createInputGradientMapsSection();
 
     /** Create a single default output channel */
     juce::ValueTree createDefaultOutputChannel (int index);

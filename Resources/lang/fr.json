@@ -998,7 +998,58 @@
       "inputParams": "Paramètres d'entrée",
       "liveSourceHackoustics": "Source Live & Hackoustique",
       "movements": "Mouvements",
+      "gradientMaps": "Cartes de Gradient",
       "visualisation": "Visualisation"
+    },
+    "gradientMap": {
+      "layers": {
+        "attenuation": "Atténuation",
+        "height": "Hauteur",
+        "hfShelf": "Plateau HF"
+      },
+      "labels": {
+        "white": "Blanc :",
+        "black": "Noir :",
+        "curve": "Courbe :",
+        "fill": "Remplir :",
+        "blur": "Flou :",
+        "start": "Début :",
+        "end": "Fin :",
+        "center": "Centre :",
+        "edge": "Bord :"
+      },
+      "tools": {
+        "select": "Sélection",
+        "rect": "Rect",
+        "ellipse": "Ellipse",
+        "polygon": "Polygone",
+        "fill": "Remplir",
+        "linGrad": "Grad.Lin",
+        "radGrad": "Grad.Rad"
+      },
+      "buttons": {
+        "enable": "On",
+        "lock": "Verrouiller",
+        "delete": "Supprimer",
+        "pivotCenter": "Pivot : Centre",
+        "pivotOrigin": "Pivot : Origine"
+      },
+      "warnings": {
+        "heightRatioZero": "Le ratio de hauteur est à 0% — augmentez-le pour que la hauteur soit prise en compte"
+      },
+      "hints": {
+        "darkMaxAtten": "Foncé = atténuation max | Clair = aucune",
+        "darkMaxHeight": "Foncé = hauteur max | Clair = sol",
+        "darkMaxHF": "Foncé = plateau HF max | Clair = aucun",
+        "whiteMaxAtten": "Blanc = atténuation max | Noir = aucune",
+        "whiteMaxHeight": "Blanc = hauteur max | Noir = sol",
+        "whiteMaxHF": "Blanc = plateau HF max | Noir = aucun"
+      },
+      "header": {
+        "attenuationLayer": "Couche Atténuation",
+        "heightLayer": "Couche Hauteur",
+        "hfShelfLayer": "Couche Plateau HF"
+      }
     },
     "labels": {
       "name": "Nom :",

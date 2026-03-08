@@ -388,6 +388,12 @@ MainComponent::MainComponent()
         handleConfigReloaded();
     };
 
+    // Gradient map editor change callback — re-rasterize for current channel
+    inputsTab->getGradientMapEditor().onGradientMapsChanged = [this]() {
+        int ch = inputsTab->getCurrentChannel() - 1;  // 1-based → 0-based
+        rebuildGradientMapForInput (ch);
+    };
+
     // Create global tooltip window for hover tooltips
     tooltipWindow = std::make_unique<juce::TooltipWindow>(this, 500);
 
@@ -1427,6 +1433,16 @@ void MainComponent::resizeRoutingMatrices()
 
     // Initialize with zeros - WFSCalculationEngine will provide real values
     // No more random initialization
+
+    // Resize gradient map evaluators to match input channel count
+    {
+        size_t newSize = static_cast<size_t> (numInputChannels);
+        while (gradientMapEvaluators.size() < newSize)
+            gradientMapEvaluators.push_back (std::make_unique<GradientMapEvaluator>());
+        if (gradientMapEvaluators.size() > newSize)
+            gradientMapEvaluators.resize (newSize);
+    }
+    updateGradientMapStageBounds();
 }
 
 void MainComponent::stopProcessingForConfigurationChange()
@@ -1766,6 +1782,9 @@ void MainComponent::handleConfigReloaded()
             juce::Logger::writeToLog("Output " + juce::String(i+1) + ": x=" + juce::String(pos.x, 2)
                 + " y=" + juce::String(pos.y, 2) + " z=" + juce::String(pos.z, 2));
         }
+
+        // Rebuild all gradient map bitmaps after config reload
+        rebuildAllGradientMaps();
 
         // Force immediate recalculation (don't wait for next timer tick)
         calculationEngine->recalculateMatrix();
@@ -2890,6 +2909,22 @@ void MainComponent::timerCallback()
 
         // Update delay mode ramps (decays compensation offset for smooth mode transitions)
         calculationEngine->updateDelayModeRamps(0.02f);  // 20ms delta time (50Hz)
+
+        // Evaluate gradient maps at composite input positions (O(1) bitmap lookup per input)
+        for (int i = 0; i < numInputChannels && i < static_cast<int> (gradientMapEvaluators.size()); ++i)
+        {
+            if (gradientMapEvaluators[static_cast<size_t> (i)]->hasAnyActiveBitmap())
+            {
+                auto pos = calculationEngine->getCompositeInputPosition (i);
+                auto offsets = gradientMapEvaluators[static_cast<size_t> (i)]->evaluate (pos.x, pos.y);
+                calculationEngine->setGradientMapOffsets (i, offsets.attenuationDb,
+                                                          offsets.heightMeters, offsets.hfShelfDb);
+            }
+            else
+            {
+                calculationEngine->setGradientMapOffsets (i, 0.0f, 0.0f, 0.0f);
+            }
+        }
 
         // Process Live Source Tamer at 50Hz
         if (lsTamerEngine != nullptr)
@@ -4104,5 +4139,70 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
     }
 
     return false;
+}
+
+//==============================================================================
+// Gradient Map Support
+//==============================================================================
+
+void MainComponent::updateGradientMapStageBounds()
+{
+    using namespace WFSParameterIDs;
+    using namespace WFSParameterDefaults;
+
+    auto stageTree = parameters.getValueTreeState().getStageState();
+    if (! stageTree.isValid())
+        return;
+
+    int shape = stageTree.getProperty (stageShape, stageShapeDefault);
+    float originW = stageTree.getProperty (originWidth, originWidthDefault);
+    float originD = stageTree.getProperty (originDepth, originDepthDefault);
+
+    float minX, maxX, minY, maxY;
+
+    if (shape == 0)  // Box
+    {
+        float w = stageTree.getProperty (stageWidth, stageWidthDefault);
+        float d = stageTree.getProperty (stageDepth, stageDepthDefault);
+        float halfW = w * 0.5f;
+        float halfD = d * 0.5f;
+        minX = -halfW - originW;
+        maxX =  halfW - originW;
+        minY = -halfD - originD;
+        maxY =  halfD - originD;
+    }
+    else  // Cylinder / Dome
+    {
+        float diam = stageTree.getProperty (stageDiameter, stageDiameterDefault);
+        float halfD = diam * 0.5f;
+        minX = -halfD - originW;
+        maxX =  halfD - originW;
+        minY = -halfD - originD;
+        maxY =  halfD - originD;
+    }
+
+    for (auto& evaluator : gradientMapEvaluators)
+        evaluator->setStageBounds (minX, maxX, minY, maxY);
+}
+
+void MainComponent::rebuildGradientMapForInput (int channelIndex)
+{
+    if (channelIndex < 0 || channelIndex >= static_cast<int> (gradientMapEvaluators.size()))
+        return;
+
+    auto& vts = parameters.getValueTreeState();
+    auto gmTree = vts.getInputGradientMapsSection (channelIndex);
+    if (! gmTree.isValid())
+        return;
+
+    auto map = GradientMap::InputGradientMap::fromValueTree (gmTree);
+    gradientMapEvaluators[static_cast<size_t> (channelIndex)]->rasterizeAll (map);
+}
+
+void MainComponent::rebuildAllGradientMaps()
+{
+    updateGradientMapStageBounds();
+    for (int i = 0; i < static_cast<int> (gradientMapEvaluators.size()); ++i)
+        rebuildGradientMapForInput (i);
 }
 

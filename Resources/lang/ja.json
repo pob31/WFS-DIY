@@ -1002,7 +1002,58 @@
       "inputParams": "入力パラメータ",
       "liveSourceHackoustics": "ライブソース & Hackoustics (仮想音響)",
       "movements": "動き",
+      "gradientMaps": "グラデーションマップ",
       "visualisation": "可視化"
+    },
+    "gradientMap": {
+      "layers": {
+        "attenuation": "減衰",
+        "height": "高さ",
+        "hfShelf": "HFシェルフ"
+      },
+      "labels": {
+        "white": "白:",
+        "black": "黒:",
+        "curve": "カーブ:",
+        "fill": "塗り:",
+        "blur": "ぼかし:",
+        "start": "開始:",
+        "end": "終了:",
+        "center": "中心:",
+        "edge": "端:"
+      },
+      "tools": {
+        "select": "選択",
+        "rect": "矩形",
+        "ellipse": "楕円",
+        "polygon": "多角形",
+        "fill": "塗り",
+        "linGrad": "線形グラデ",
+        "radGrad": "放射グラデ"
+      },
+      "buttons": {
+        "enable": "オン",
+        "lock": "ロック",
+        "delete": "削除",
+        "pivotCenter": "基点: 中心",
+        "pivotOrigin": "基点: 原点"
+      },
+      "warnings": {
+        "heightRatioZero": "高さ比率が0%です — 高さを有効にするには値を上げてください"
+      },
+      "hints": {
+        "darkMaxAtten": "暗 = 最大減衰 | 明 = なし",
+        "darkMaxHeight": "暗 = 最大高さ | 明 = 地面",
+        "darkMaxHF": "暗 = 最大HFシェルフ | 明 = なし",
+        "whiteMaxAtten": "白 = 最大減衰 | 黒 = なし",
+        "whiteMaxHeight": "白 = 最大高さ | 黒 = 地面",
+        "whiteMaxHF": "白 = 最大HFシェルフ | 黒 = なし"
+      },
+      "header": {
+        "attenuationLayer": "減衰レイヤー",
+        "heightLayer": "高さレイヤー",
+        "hfShelfLayer": "HFシェルフ レイヤー"
+      }
     },
     "labels": {
       "name": "名前:",

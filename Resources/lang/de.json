@@ -1002,7 +1002,58 @@
       "inputParams": "Eingangsparameter",
       "liveSourceHackoustics": "Live Source & Hackoustik",
       "movements": "Bewegungen",
+      "gradientMaps": "Gradientenkarten",
       "visualisation": "Visualisierung"
+    },
+    "gradientMap": {
+      "layers": {
+        "attenuation": "Dämpfung",
+        "height": "Höhe",
+        "hfShelf": "HF-Shelf"
+      },
+      "labels": {
+        "white": "Weiß:",
+        "black": "Schwarz:",
+        "curve": "Kurve:",
+        "fill": "Füllung:",
+        "blur": "Unschärfe:",
+        "start": "Start:",
+        "end": "Ende:",
+        "center": "Mitte:",
+        "edge": "Rand:"
+      },
+      "tools": {
+        "select": "Auswahl",
+        "rect": "Rechteck",
+        "ellipse": "Ellipse",
+        "polygon": "Polygon",
+        "fill": "Füllen",
+        "linGrad": "Lin.Grad",
+        "radGrad": "Rad.Grad"
+      },
+      "buttons": {
+        "enable": "An",
+        "lock": "Sperren",
+        "delete": "Löschen",
+        "pivotCenter": "Pivot: Mitte",
+        "pivotOrigin": "Pivot: Ursprung"
+      },
+      "warnings": {
+        "heightRatioZero": "Höhenverhältnis ist 0% — erhöhen Sie es, damit die Höhe wirksam wird"
+      },
+      "hints": {
+        "darkMaxAtten": "Dunkel = max. Dämpfung | Hell = keine",
+        "darkMaxHeight": "Dunkel = max. Höhe | Hell = Boden",
+        "darkMaxHF": "Dunkel = max. HF-Shelf | Hell = keins",
+        "whiteMaxAtten": "Weiß = max. Dämpfung | Schwarz = keine",
+        "whiteMaxHeight": "Weiß = max. Höhe | Schwarz = Boden",
+        "whiteMaxHF": "Weiß = max. HF-Shelf | Schwarz = keins"
+      },
+      "header": {
+        "attenuationLayer": "Dämpfungs-Ebene",
+        "heightLayer": "Höhen-Ebene",
+        "hfShelfLayer": "HF-Shelf-Ebene"
+      }
     },
     "labels": {
       "name": "Name:",

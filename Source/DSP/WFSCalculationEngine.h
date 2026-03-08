@@ -81,6 +81,24 @@ public:
     float getGyrophoneOffset (int inputIndex) const;
 
     //==========================================================================
+    // Gradient Map Offset Support
+    //==========================================================================
+
+    /** Gradient map parameter offsets (runtime-only, not in ValueTree) */
+    struct GradientMapOffsets
+    {
+        float attenuationDb = 0.0f;
+        float heightMeters  = 0.0f;
+        float hfShelfDb     = 0.0f;
+    };
+
+    /** Set gradient map offsets for an input (called from GUI timer at 50Hz) */
+    void setGradientMapOffsets (int inputIndex, float attenDb, float heightM, float hfDb);
+
+    /** Get gradient map offsets for an input */
+    GradientMapOffsets getGradientMapOffsets (int inputIndex) const;
+
+    //==========================================================================
     // Speed-Limited Position Support
     //==========================================================================
 
@@ -297,6 +315,7 @@ private:
     std::vector<Position> reverbReturnPositions;   // [reverbIndex]
     std::vector<Position> lfoOffsets;              // [inputIndex] - LFO position offsets
     std::vector<float> gyrophoneOffsets;           // [inputIndex] - Gyrophone rotation offsets (radians)
+    std::vector<GradientMapOffsets> gradientMapOffsets;  // [inputIndex] - Gradient map parameter offsets
 
     // Delay mode ramp state for smooth transitions when toggling inputMinimalLatency
     std::vector<int> previousMinimalLatencyMode;  // [inputIndex] - Previous mode (0 or 1), -1 = uninitialized

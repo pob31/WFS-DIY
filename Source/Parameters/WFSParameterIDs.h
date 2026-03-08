@@ -329,6 +329,41 @@ namespace WFSParameterIDs
     const juce::Identifier inputMapVisible       ("inputMapVisible");
 
     //==========================================================================
+    // Input > Gradient Maps
+    //==========================================================================
+
+    const juce::Identifier GradientMaps          ("GradientMaps");
+    const juce::Identifier GradientLayer         ("GradientLayer");
+    const juce::Identifier GradientShape         ("GradientShape");
+
+    // Layer properties
+    const juce::Identifier gmLayerEnabled        ("gmLayerEnabled");        // 0=OFF, 1=ON
+    const juce::Identifier gmLayer0Enabled       ("gmLayer0Enabled");       // OSC alias for layer 0
+    const juce::Identifier gmLayer1Enabled       ("gmLayer1Enabled");       // OSC alias for layer 1
+    const juce::Identifier gmLayer2Enabled       ("gmLayer2Enabled");       // OSC alias for layer 2
+    const juce::Identifier gmLayerParam          ("gmLayerParam");          // 0=Attenuation, 1=Height, 2=HF Shelf
+    const juce::Identifier gmLayerWhite          ("gmLayerWhite");          // Value at white (float, unit depends on param)
+    const juce::Identifier gmLayerBlack          ("gmLayerBlack");          // Value at black (float, unit depends on param)
+    const juce::Identifier gmLayerCurve          ("gmLayerCurve");          // -1.0 to +1.0 (midpoint shift)
+    const juce::Identifier gmLayerVisible        ("gmLayerVisible");        // 0=hidden, 1=visible (editor only)
+
+    // Shape properties
+    const juce::Identifier gmShapeType           ("gmShapeType");           // 0=Rectangle, 1=Ellipse, 2=Polygon
+    const juce::Identifier gmShapePosX           ("gmShapePosX");           // Center X in stage coords (meters)
+    const juce::Identifier gmShapePosY           ("gmShapePosY");           // Center Y in stage coords (meters)
+    const juce::Identifier gmShapeRotation       ("gmShapeRotation");       // Degrees
+    const juce::Identifier gmShapeScaleX         ("gmShapeScaleX");         // Width in meters (half-extent)
+    const juce::Identifier gmShapeScaleY         ("gmShapeScaleY");         // Height in meters (half-extent)
+    const juce::Identifier gmShapeVertices       ("gmShapeVertices");       // Semicolon-separated x,y pairs for polygons
+    const juce::Identifier gmShapeFillType       ("gmShapeFillType");       // 0=Uniform, 1=Linear Gradient, 2=Radial Gradient
+    const juce::Identifier gmShapeFillValue      ("gmShapeFillValue");      // Uniform fill greyscale 0.0-1.0
+    const juce::Identifier gmShapeFillParams     ("gmShapeFillParams");     // Gradient control points (string)
+    const juce::Identifier gmShapeBlur           ("gmShapeBlur");           // Edge blur in meters (0=sharp)
+    const juce::Identifier gmShapeLocked         ("gmShapeLocked");         // 0=unlocked, 1=locked
+    const juce::Identifier gmShapeOrder          ("gmShapeOrder");          // Z-order for painter's algorithm
+    const juce::Identifier gmShapeEnabled        ("gmShapeEnabled");        // 0=disabled, 1=enabled
+
+    //==========================================================================
     // Output Channel Parameters
     //==========================================================================
 

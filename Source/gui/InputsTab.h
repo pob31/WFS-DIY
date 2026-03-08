@@ -18,6 +18,7 @@
 #include "../DSP/AutomOtionProcessor.h"
 #include "../Helpers/CoordinateConverter.h"
 #include "SetAllInputsWindow.h"
+#include "../GradientMap/GradientMapEditor.h"
 #include "../AppSettings.h"
 #include "GainReductionMeter.h"
 #include "SnapshotScopeWindow.h"
@@ -282,6 +283,7 @@ public:
         subTabBar.addTab(LOC("inputs.tabs.inputParams"), juce::Colour(0xFF2A2A2A), -1);
         subTabBar.addTab(LOC("inputs.tabs.liveSourceHackoustics"), juce::Colour(0xFF2A2A2A), -1);
         subTabBar.addTab(LOC("inputs.tabs.movements"), juce::Colour(0xFF2A2A2A), -1);
+        subTabBar.addTab(LOC("inputs.tabs.gradientMaps"), juce::Colour(0xFF2A2A2A), -1);
         subTabBar.addTab(LOC("inputs.tabs.visualisation"), juce::Colour(0xFF2A2A2A), -1);
         subTabBar.setMinimumTabScaleFactor(1.0);  // Prevent tab shrinking - maintain full text width
         subTabBar.setCurrentTabIndex(0);
@@ -295,6 +297,7 @@ public:
         setupEffectsTab();
         setupLfoTab();
         setupAutomotionTab();
+        setupGradientMapsTab();
         setupVisualisationTab();
         setupMutesTab();
 
@@ -401,6 +404,9 @@ public:
 
     /** Get the currently selected channel (1-based) */
     int getCurrentChannel() const { return currentChannel; }
+
+    /** Public access to gradient map editor for MainComponent callback wiring */
+    GradientMapEditor& getGradientMapEditor() { return gradientMapEditor; }
 
     /** Update LST gain reduction meters (called from MainComponent timer).
         Values are linear multipliers (1.0 = no reduction, 0.0 = full mute). */
@@ -2637,6 +2643,12 @@ private:
         };
     }
 
+    void setupGradientMapsTab()
+    {
+        addAndMakeVisible(gradientMapEditor);
+        gradientMapEditor.setVisible(false);
+    }
+
     void setupVisualisationTab()
     {
         addAndMakeVisible(visualisationComponent);
@@ -2866,8 +2878,9 @@ private:
         setAutomotionVisible(false);
         setVisualisationVisible(false);
         setMutesVisible(false);
+        setGradientMapsVisible(false);
 
-        // Show current - new 4-tab structure
+        // Show current - new 5-tab structure
         if (tabIndex == 0)
         {
             // Input Parameters: Column 1 (Input+Position), Column 2 (Sound+Mutes)
@@ -2894,7 +2907,13 @@ private:
         }
         else if (tabIndex == 3)
         {
-            // Visualisation - unchanged
+            // Gradient Maps
+            setGradientMapsVisible(true);
+            layoutGradientMapsTab();
+        }
+        else if (tabIndex == 4)
+        {
+            // Visualisation
             setVisualisationVisible(true);
             layoutVisualisationTab();
         }
@@ -3875,7 +3894,17 @@ private:
         visualisationComponent.setBounds(subTabContentArea);
     }
 
-    // ==================== COMBINED LAYOUT METHODS (4-tab structure) ====================
+    void setGradientMapsVisible(bool v)
+    {
+        gradientMapEditor.setVisible(v);
+    }
+
+    void layoutGradientMapsTab()
+    {
+        gradientMapEditor.setBounds(subTabContentArea);
+    }
+
+    // ==================== COMBINED LAYOUT METHODS (5-tab structure) ====================
 
     void layoutInputParametersTab()
     {
@@ -5443,6 +5472,23 @@ private:
 
         // Update visualisation component's selected input
         visualisationComponent.setSelectedInput(currentChannel - 1);
+
+        // Update gradient map editor with current channel's data
+        {
+            auto gmTree = parameters.getValueTreeState().getInputGradientMapsSection(currentChannel - 1);
+            gradientMapEditor.setGradientMapsTree(gmTree);
+
+            int stShape = static_cast<int>(parameters.getConfigParam("StageShape"));
+            float stWidth = static_cast<float>(parameters.getConfigParam("StageWidth"));
+            float stDepth = static_cast<float>(parameters.getConfigParam("StageDepth"));
+            float stDiam = static_cast<float>(parameters.getConfigParam("StageDiameter"));
+            float stOrigW = static_cast<float>(parameters.getConfigParam("StageOriginWidth"));
+            float stOrigD = static_cast<float>(parameters.getConfigParam("StageOriginDepth"));
+            gradientMapEditor.setStageConfig(stShape, stWidth, stDepth, stDiam, stOrigW, stOrigD);
+
+            float heightPct = getFloatParam(WFSParameterIDs::inputHeightFactor, 100.0f);
+            gradientMapEditor.setHeightRatio(heightPct / 100.0f);
+        }
 
         isLoadingParameters = false;
         updateMapButtonStates();
@@ -7652,6 +7698,9 @@ private:
     PauseButton otomoPauseButton;
     juce::TextButton otomoStopAllButton;
     juce::TextButton otomoPauseResumeAllButton;
+
+    // Gradient Maps tab
+    GradientMapEditor gradientMapEditor;
 
     // Visualisation tab
     InputVisualisationComponent visualisationComponent;

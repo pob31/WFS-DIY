@@ -1471,6 +1471,19 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
                         if (onRemoteWaypointCapture)
                             onRemoteWaypointCapture(channelIndex, x, y, z);
                     }
+                    else if (parsed.paramId == WFSParameterIDs::gmLayer0Enabled ||
+                             parsed.paramId == WFSParameterIDs::gmLayer1Enabled ||
+                             parsed.paramId == WFSParameterIDs::gmLayer2Enabled)
+                    {
+                        int layerIdx = (parsed.paramId == WFSParameterIDs::gmLayer0Enabled) ? 0
+                                     : (parsed.paramId == WFSParameterIDs::gmLayer1Enabled) ? 1 : 2;
+                        auto layerTree = state.getInputGradientLayer(channelIndex, layerIdx);
+                        if (layerTree.isValid())
+                        {
+                            int enabled = (parsed.value.isDouble() && static_cast<double>(parsed.value) >= 0.5) ? 1 : 0;
+                            layerTree.setProperty(WFSParameterIDs::gmLayerEnabled, enabled, nullptr);
+                        }
+                    }
                     else if (parsed.value.isDouble() || parsed.value.isString())
                     {
                         state.setInputParameter(channelIndex, parsed.paramId, valueToSet);

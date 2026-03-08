@@ -143,6 +143,14 @@
                 file="Source/StreamDeck/pages/InputsTabPages.h"/>
         </GROUP>
       </GROUP>
+      <GROUP id="{GRADIENTMAPGROUP}" name="GradientMap">
+        <FILE id="gmDataH" name="GradientMapData.h" compile="0" resource="0"
+              file="Source/GradientMap/GradientMapData.h"/>
+        <FILE id="gmEvalH" name="GradientMapEvaluator.h" compile="0" resource="0"
+              file="Source/GradientMap/GradientMapEvaluator.h"/>
+        <FILE id="gmEditH" name="GradientMapEditor.h" compile="0" resource="0"
+              file="Source/GradientMap/GradientMapEditor.h"/>
+      </GROUP>
       <GROUP id="{HIDAPIGROUP}" name="hidapi">
         <FILE id="hidapiH" name="hidapi.h" compile="0" resource="0"
               file="ThirdParty/hidapi/hidapi/hidapi.h"/>

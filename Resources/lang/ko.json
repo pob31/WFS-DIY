@@ -1002,7 +1002,58 @@
       "inputParams": "입력 매개변수",
       "liveSourceHackoustics": "라이브 소스 & Hackoustics (가상음향)",
       "movements": "움직임",
+      "gradientMaps": "그라디언트 맵",
       "visualisation": "시각화"
+    },
+    "gradientMap": {
+      "layers": {
+        "attenuation": "감쇠",
+        "height": "높이",
+        "hfShelf": "HF 셸프"
+      },
+      "labels": {
+        "white": "흰색:",
+        "black": "검정:",
+        "curve": "커브:",
+        "fill": "채우기:",
+        "blur": "블러:",
+        "start": "시작:",
+        "end": "끝:",
+        "center": "중심:",
+        "edge": "가장자리:"
+      },
+      "tools": {
+        "select": "선택",
+        "rect": "사각형",
+        "ellipse": "타원",
+        "polygon": "다각형",
+        "fill": "채우기",
+        "linGrad": "선형그라데",
+        "radGrad": "방사그라데"
+      },
+      "buttons": {
+        "enable": "켜기",
+        "lock": "잠금",
+        "delete": "삭제",
+        "pivotCenter": "기준: 중심",
+        "pivotOrigin": "기준: 원점"
+      },
+      "warnings": {
+        "heightRatioZero": "높이 비율이 0%입니다 — 높이가 적용되려면 값을 올려주세요"
+      },
+      "hints": {
+        "darkMaxAtten": "어둡 = 최대 감쇠 | 밝음 = 없음",
+        "darkMaxHeight": "어둡 = 최대 높이 | 밝음 = 바닥",
+        "darkMaxHF": "어둡 = 최대 HF 셸프 | 밝음 = 없음",
+        "whiteMaxAtten": "흰색 = 최대 감쇠 | 검정 = 없음",
+        "whiteMaxHeight": "흰색 = 최대 높이 | 검정 = 바닥",
+        "whiteMaxHF": "흰색 = 최대 HF 셸프 | 검정 = 없음"
+      },
+      "header": {
+        "attenuationLayer": "감쇠 레이어",
+        "heightLayer": "높이 레이어",
+        "hfShelfLayer": "HF 셸프 레이어"
+      }
     },
     "labels": {
       "name": "이름:",

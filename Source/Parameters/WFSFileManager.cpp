@@ -978,7 +978,12 @@ const std::vector<WFSFileManager::ScopeItem>& WFSFileManager::ExtendedSnapshotSc
         // Mutes Section
         { "mutes", "Mutes", Mutes, { inputMutes, inputMuteMacro } },
         { "sidelines", "Sidelines", Mutes, { inputSidelinesActive, inputSidelinesFringe } },
-        { "arrayAttens", "Array Attens", Mutes, { inputArrayAtten1, inputArrayAtten2, inputArrayAtten3, inputArrayAtten4, inputArrayAtten5, inputArrayAtten6, inputArrayAtten7, inputArrayAtten8, inputArrayAtten9, inputArrayAtten10 } }
+        { "arrayAttens", "Array Attens", Mutes, { inputArrayAtten1, inputArrayAtten2, inputArrayAtten3, inputArrayAtten4, inputArrayAtten5, inputArrayAtten6, inputArrayAtten7, inputArrayAtten8, inputArrayAtten9, inputArrayAtten10 } },
+
+        // Gradient Maps Section (subtree-based — parameterIds are layer property IDs for display, actual save/load uses subtree copy)
+        { "gmLayer1", "Layer 1", GradientMaps, { gmLayerEnabled, gmLayerParam, gmLayerWhite, gmLayerBlack, gmLayerCurve, gmLayerVisible } },
+        { "gmLayer2", "Layer 2", GradientMaps, { gmLayerEnabled, gmLayerParam, gmLayerWhite, gmLayerBlack, gmLayerCurve, gmLayerVisible } },
+        { "gmLayer3", "Layer 3", GradientMaps, { gmLayerEnabled, gmLayerParam, gmLayerWhite, gmLayerBlack, gmLayerCurve, gmLayerVisible } }
     };
     return items;
 }
@@ -987,7 +992,7 @@ const std::vector<juce::Identifier>& WFSFileManager::ExtendedSnapshotScope::getS
 {
     static std::vector<juce::Identifier> sections = {
         Channel, Position, Attenuation, Directivity, LiveSourceTamer,
-        Hackoustics, LFO, AutomOtion, Mutes
+        Hackoustics, LFO, AutomOtion, Mutes, GradientMaps
     };
     return sections;
 }
@@ -1466,6 +1471,33 @@ juce::ValueTree WFSFileManager::extractInputWithExtendedScope (int channelIndex,
     copySection (AutomOtion, input.getChildWithName (AutomOtion));
     copySection (Mutes, input.getChildWithName (Mutes));
 
+    // Gradient Maps — subtree copy (layers include variable-length shape children)
+    {
+        auto gmSource = input.getChildWithName (GradientMaps);
+        if (gmSource.isValid())
+        {
+            juce::ValueTree gmFiltered (GradientMaps);
+            bool hasContent = false;
+            const juce::String layerItemIds[] = { "gmLayer1", "gmLayer2", "gmLayer3" };
+
+            for (int li = 0; li < 3; ++li)
+            {
+                if (scope.isIncluded (layerItemIds[li], channelIndex))
+                {
+                    auto layerChild = gmSource.getChild (li);
+                    if (layerChild.isValid())
+                    {
+                        gmFiltered.appendChild (layerChild.createCopy(), nullptr);
+                        hasContent = true;
+                    }
+                }
+            }
+
+            if (hasContent)
+                filtered.appendChild (gmFiltered, nullptr);
+        }
+    }
+
     return filtered;
 }
 
@@ -1532,6 +1564,35 @@ bool WFSFileManager::applyInputWithExtendedScope (int channelIndex, const juce::
     applySection (LFO, inputData.getChildWithName (LFO));
     applySection (AutomOtion, inputData.getChildWithName (AutomOtion));
     applySection (Mutes, inputData.getChildWithName (Mutes));
+
+    // Gradient Maps — subtree replacement (layers include variable-length shape children)
+    {
+        auto gmSource = inputData.getChildWithName (GradientMaps);
+        if (gmSource.isValid())
+        {
+            auto gmTarget = input.getChildWithName (GradientMaps);
+            if (!gmTarget.isValid())
+            {
+                gmTarget = valueTreeState.ensureInputGradientMapsSection (channelIndex);
+            }
+
+            const juce::String layerItemIds[] = { "gmLayer1", "gmLayer2", "gmLayer3" };
+
+            for (int li = 0; li < gmSource.getNumChildren() && li < 3; ++li)
+            {
+                if (scope.isIncluded (layerItemIds[li], channelIndex))
+                {
+                    auto sourceLayer = gmSource.getChild (li);
+                    if (sourceLayer.isValid() && li < gmTarget.getNumChildren())
+                    {
+                        // Replace entire layer subtree (properties + shape children)
+                        auto targetLayer = gmTarget.getChild (li);
+                        targetLayer.copyPropertiesAndChildrenFrom (sourceLayer, undoManager);
+                    }
+                }
+            }
+        }
+    }
 
     return true;
 }
@@ -1762,6 +1823,10 @@ bool WFSFileManager::applyInputsSection (const juce::ValueTree& inputsTree)
         // which was set earlier during loadSystemConfig.
         int actualCount = existingInputs.getNumChildren();
         valueTreeState.setNumInputChannels (actualCount);
+
+        // Migration: ensure GradientMaps section exists for all inputs (handles old configs)
+        for (int i = 0; i < actualCount; ++i)
+            valueTreeState.ensureInputGradientMapsSection (i);
 
         return true;
     }

@@ -115,7 +115,25 @@ Mutes	Array 7 Attenuation	inputArrayAtten7	Dial	FLOAT	-60.0	0.0	0.0	dB = 20*log1
 Mutes	Array 8 Attenuation	inputArrayAtten8	Dial	FLOAT	-60.0	0.0	0.0	dB = 20*log10(0.001 + x^2 * 0.999)	dB		Dimmed if no outputs assigned to Array 8	/wfs/input/arrayAtten8 <ID> <value>				Per-Array Attenuation for Array 8. Dimmed if Array has No Outputs Assigned.
 Mutes	Array 9 Attenuation	inputArrayAtten9	Dial	FLOAT	-60.0	0.0	0.0	dB = 20*log10(0.001 + x^2 * 0.999)	dB		Dimmed if no outputs assigned to Array 9	/wfs/input/arrayAtten9 <ID> <value>				Per-Array Attenuation for Array 9. Dimmed if Array has No Outputs Assigned.
 Mutes	Array 10 Attenuation	inputArrayAtten10	Dial	FLOAT	-60.0	0.0	0.0	dB = 20*log10(0.001 + x^2 * 0.999)	dB		Dimmed if no outputs assigned to Array 10	/wfs/input/arrayAtten10 <ID> <value>				Per-Array Attenuation for Array 10. Dimmed if Array has No Outputs Assigned.
-Store/Reload	Store Input Configuration		Text button							Store Input Configuration	Store Input Configuration to file (make backup and show confirmation in the status bar)					Store Input Configuration to file (overwrite with confirmation).	
+Gradient Map	Layer 0 Enabled	gmLayer0Enabled	Toggle	INT	0	1	1			On/Off		/wfs/input/gmLayer0Enabled <ID> <0|1>				Enable/disable gradient map layer 0.
+Gradient Map	Layer 1 Enabled	gmLayer1Enabled	Toggle	INT	0	1	1			On/Off		/wfs/input/gmLayer1Enabled <ID> <0|1>				Enable/disable gradient map layer 1 (Height).
+Gradient Map	Layer 2 Enabled	gmLayer2Enabled	Toggle	INT	0	1	1			On/Off		/wfs/input/gmLayer2Enabled <ID> <0|1>				Enable/disable gradient map layer 2.
+Gradient Map	Layer White Value	gmLayerWhite	Slider	FLOAT	0.0	1.0	1.0								White endpoint value for gradient layer.
+Gradient Map	Layer Black Value	gmLayerBlack	Slider	FLOAT	0.0	1.0	0.0								Black endpoint value for gradient layer.
+Gradient Map	Layer Curve	gmLayerCurve	Slider	FLOAT	0.1	10.0	1.0								Gamma curve for gradient layer.
+Gradient Map	Shape Enabled	gmShapeEnabled	Toggle	INT	0	1	1								Enable/disable individual gradient shape (UI only).
+Gradient Map	Shape Type	gmShapeType	ComboBox	INT	0	5	0								Shape type: 0=Rectangle, 1=Ellipse, 2=Diamond, 3=Triangle, 4=Hexagon, 5=Star.
+Gradient Map	Shape Position X	gmShapePosX	Value	FLOAT	-1.0	2.0	0.5								Shape X position (normalised).
+Gradient Map	Shape Position Y	gmShapePosY	Value	FLOAT	-1.0	2.0	0.5								Shape Y position (normalised).
+Gradient Map	Shape Rotation	gmShapeRotation	Value	FLOAT	0.0	360.0	0.0			deg						Shape rotation in degrees.
+Gradient Map	Shape Scale X	gmShapeScaleX	Value	FLOAT	0.01	4.0	1.0								Shape X scale factor.
+Gradient Map	Shape Scale Y	gmShapeScaleY	Value	FLOAT	0.01	4.0	1.0								Shape Y scale factor.
+Gradient Map	Shape Fill Type	gmShapeFillType	ComboBox	INT	0	2	0								Fill type: 0=Solid, 1=LinearGradient, 2=RadialGradient.
+Gradient Map	Shape Fill Value	gmShapeFillValue	Slider	FLOAT	0.0	1.0	1.0								Fill brightness value (0=black, 1=white).
+Gradient Map	Shape Blur	gmShapeBlur	Slider	FLOAT	0.0	1.0	0.0								Shape edge blur amount.
+Gradient Map	Shape Locked	gmShapeLocked	Toggle	INT	0	1	0								Lock shape to prevent accidental edits.
+Gradient Map	Shape Order	gmShapeOrder	Value	INT	0	99	0								Shape draw order within layer.
+Store/Reload	Store Input Configuration		Text button							Store Input Configuration	Store Input Configuration to file (make backup and show confirmation in the status bar)					Store Input Configuration to file (overwrite with confirmation).
 Store/Reload	Reload Input Configuration		Text button							Reload Input Configuration	Reload Input Configuration from file (confirmation in the status bar)					Reload Input Configuration from file (with confirmation).	
 Store/Reload	Reload Input Config. Backup		Text button							Reload Input Config. Backup	Reload Input Configuration from backup file (confirmation in the status bar)					Reload Input Configuration from backup file (with confirmation).	
 Store/Reload	Export Input Configuration		Text button							Export Input Configuration	Store Input Configuration to file (with file explorer window)					Store Input Configuration to file (with file explorer window).	

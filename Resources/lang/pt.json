@@ -1002,7 +1002,58 @@
       "inputParams": "Parâmetros de Entrada",
       "liveSourceHackoustics": "Fonte ao Vivo & Hackústica",
       "movements": "Movimentos",
+      "gradientMaps": "Mapas de Gradiente",
       "visualisation": "Visualização"
+    },
+    "gradientMap": {
+      "layers": {
+        "attenuation": "Atenuação",
+        "height": "Altura",
+        "hfShelf": "Prateleira HF"
+      },
+      "labels": {
+        "white": "Branco:",
+        "black": "Preto:",
+        "curve": "Curva:",
+        "fill": "Preench.:",
+        "blur": "Desfoque:",
+        "start": "Início:",
+        "end": "Fim:",
+        "center": "Centro:",
+        "edge": "Borda:"
+      },
+      "tools": {
+        "select": "Seleção",
+        "rect": "Retâng",
+        "ellipse": "Elipse",
+        "polygon": "Polígono",
+        "fill": "Preench",
+        "linGrad": "Grad.Lin",
+        "radGrad": "Grad.Rad"
+      },
+      "buttons": {
+        "enable": "On",
+        "lock": "Bloquear",
+        "delete": "Excluir",
+        "pivotCenter": "Pivô: Centro",
+        "pivotOrigin": "Pivô: Origem"
+      },
+      "warnings": {
+        "heightRatioZero": "A proporção de altura é 0% — aumente-a para que a altura tenha efeito"
+      },
+      "hints": {
+        "darkMaxAtten": "Escuro = atenuação máx. | Claro = nenhuma",
+        "darkMaxHeight": "Escuro = altura máx. | Claro = chão",
+        "darkMaxHF": "Escuro = prateleira HF máx. | Claro = nenhuma",
+        "whiteMaxAtten": "Branco = atenuação máx. | Preto = nenhuma",
+        "whiteMaxHeight": "Branco = altura máx. | Preto = chão",
+        "whiteMaxHF": "Branco = prateleira HF máx. | Preto = nenhuma"
+      },
+      "header": {
+        "attenuationLayer": "Camada Atenuação",
+        "heightLayer": "Camada Altura",
+        "hfShelfLayer": "Camada Prateleira HF"
+      }
     },
     "labels": {
       "name": "Nome:",

@@ -23,6 +23,7 @@ WFSCalculationEngine::WFSCalculationEngine (WFSValueTreeState& state)
     reverbReturnPositions.resize (static_cast<size_t> (numReverbs));
     lfoOffsets.resize (static_cast<size_t> (numInputs));  // LFO position offsets
     gyrophoneOffsets.resize (static_cast<size_t> (numInputs), 0.0f);  // Gyrophone rotation offsets
+    gradientMapOffsets.resize (static_cast<size_t> (numInputs));        // Gradient map parameter offsets
     previousMinimalLatencyMode.resize (static_cast<size_t> (numInputs), -1);  // -1 = uninitialized
     delayModeRampOffset.resize (static_cast<size_t> (numInputs), 0.0f);  // Start at 0
     previousCommonAttenPercent.resize (static_cast<size_t> (numInputs), -1.0f);  // -1 = uninitialized
@@ -226,6 +227,40 @@ float WFSCalculationEngine::getGyrophoneOffset (int inputIndex) const
 
     const juce::ScopedLock sl (positionLock);
     return gyrophoneOffsets[static_cast<size_t> (inputIndex)];
+}
+
+//==============================================================================
+// Gradient Map Offset Support
+//==============================================================================
+
+void WFSCalculationEngine::setGradientMapOffsets (int inputIndex, float attenDb, float heightM, float hfDb)
+{
+    if (inputIndex < 0 || inputIndex >= numInputs)
+        return;
+
+    const juce::ScopedLock sl (positionLock);
+    auto& offsets = gradientMapOffsets[static_cast<size_t> (inputIndex)];
+
+    constexpr float epsilon = 0.001f;
+    if (std::abs (offsets.attenuationDb - attenDb) > epsilon ||
+        std::abs (offsets.heightMeters - heightM) > epsilon ||
+        std::abs (offsets.hfShelfDb - hfDb) > epsilon)
+    {
+        offsets.attenuationDb = attenDb;
+        offsets.heightMeters  = heightM;
+        offsets.hfShelfDb     = hfDb;
+        inputDirtyFlags[static_cast<size_t> (inputIndex)] = true;
+        matrixDirty.store (true);
+    }
+}
+
+WFSCalculationEngine::GradientMapOffsets WFSCalculationEngine::getGradientMapOffsets (int inputIndex) const
+{
+    if (inputIndex < 0 || inputIndex >= numInputs)
+        return {};
+
+    const juce::ScopedLock sl (positionLock);
+    return gradientMapOffsets[static_cast<size_t> (inputIndex)];
 }
 
 //==============================================================================
@@ -831,6 +866,7 @@ void WFSCalculationEngine::recalculateMatrix()
     std::vector<Position> localReverbFeedPositions;
     std::vector<Position> localReverbReturnPositions;
     std::vector<float> localGyrophoneOffsets;  // Gyrophone rotation offsets per input
+    std::vector<GradientMapOffsets> localGradientMapOffsets;  // Gradient map parameter offsets per input
     std::vector<bool> inputsToRecalc;
 
     // Delay mode ramp state (for smooth transitions when toggling inputMinimalLatency)
@@ -881,6 +917,10 @@ void WFSCalculationEngine::recalculateMatrix()
             localInputPositions[i].z += lfoOffsets[i].z;
         }
 
+        // Apply gradient map height offset
+        for (size_t i = 0; i < localInputPositions.size() && i < localGradientMapOffsets.size(); ++i)
+            localInputPositions[i].z += localGradientMapOffsets[i].heightMeters;
+
         // Apply composite position constraints (safety layer)
         // This clamps the final position without affecting raw position or LFO amplitude
         for (size_t i = 0; i < localInputPositions.size(); ++i)
@@ -894,6 +934,9 @@ void WFSCalculationEngine::recalculateMatrix()
 
         // Copy gyrophone rotation offsets
         localGyrophoneOffsets = gyrophoneOffsets;
+
+        // Copy gradient map offsets
+        localGradientMapOffsets = gradientMapOffsets;
 
         // Copy delay mode ramp state
         localPreviousMode = previousMinimalLatencyMode;
@@ -1001,6 +1044,11 @@ void WFSCalculationEngine::recalculateMatrix()
         // Get input attenuation parameters
         auto inputAttenSection = valueTreeState.getInputAttenuationSection (inIdx);
         float inputAtten = inputAttenSection.getProperty (inputAttenuation, inputAttenuationDefault);
+
+        // Apply gradient map attenuation offset (additive in dB)
+        if (static_cast<size_t> (inIdx) < localGradientMapOffsets.size())
+            inputAtten += localGradientMapOffsets[static_cast<size_t> (inIdx)].attenuationDb;
+
         float inputDistAtten = inputAttenSection.getProperty (inputDistanceAttenuation, inputDistanceAttenuationDefault);
         int attenLaw = inputAttenSection.getProperty (inputAttenuationLaw, inputAttenuationLawDefault);
         float distRatio = inputAttenSection.getProperty (inputDistanceRatio, inputDistanceRatioDefault);
@@ -1245,7 +1293,11 @@ void WFSCalculationEngine::recalculateMatrix()
             }
 
             // Combine both HF attenuations (additive in dB)
-            float hfAtten = hfAttenOutput + hfAttenDirectivity;
+            // Gradient map HF shelf offset applied uniformly to ALL speakers
+            float gmHfOffset = (static_cast<size_t> (inIdx) < localGradientMapOffsets.size())
+                                   ? localGradientMapOffsets[static_cast<size_t> (inIdx)].hfShelfDb
+                                   : 0.0f;
+            float hfAtten = hfAttenOutput + hfAttenDirectivity + gmHfOffset;
 
             // Clamp to reasonable range
             hfAtten = juce::jlimit (-60.0f, 0.0f, hfAtten);
@@ -1641,6 +1693,11 @@ void WFSCalculationEngine::recalculateMatrix()
         // Get input parameters (same as for outputs)
         auto inputAttenSection = valueTreeState.getInputAttenuationSection (inIdx);
         float inputAtten = inputAttenSection.getProperty (inputAttenuation, inputAttenuationDefault);
+
+        // Apply gradient map attenuation offset for reverb feeds too
+        if (static_cast<size_t> (inIdx) < localGradientMapOffsets.size())
+            inputAtten += localGradientMapOffsets[static_cast<size_t> (inIdx)].attenuationDb;
+
         float inputDistAtten = inputAttenSection.getProperty (inputDistanceAttenuation, inputDistanceAttenuationDefault);
         int attenLaw = inputAttenSection.getProperty (inputAttenuationLaw, inputAttenuationLawDefault);
         float distRatio = inputAttenSection.getProperty (inputDistanceRatio, inputDistanceRatioDefault);
@@ -1790,7 +1847,11 @@ void WFSCalculationEngine::recalculateMatrix()
                 }
             }
 
-            float hfAtten = hfAttenReverb + hfAttenDirectivity;
+            // Gradient map HF shelf offset applied uniformly to reverb feeds too
+            float gmHfOffset = (static_cast<size_t> (inIdx) < localGradientMapOffsets.size())
+                                   ? localGradientMapOffsets[static_cast<size_t> (inIdx)].hfShelfDb
+                                   : 0.0f;
+            float hfAtten = hfAttenReverb + hfAttenDirectivity + gmHfOffset;
             newInputReverbHF[matrixIdx] = juce::jlimit (-60.0f, 0.0f, hfAtten);
         }
 

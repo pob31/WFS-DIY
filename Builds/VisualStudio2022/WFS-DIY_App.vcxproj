@@ -3153,6 +3153,9 @@
     <ClInclude Include="..\..\Source\StreamDeck\pages\SystemConfigTabPages.h"/>
     <ClInclude Include="..\..\Source\StreamDeck\pages\MapTabPages.h"/>
     <ClInclude Include="..\..\Source\StreamDeck\pages\ReverbTabPages.h"/>
+    <ClInclude Include="..\..\Source\GradientMap\GradientMapData.h"/>
+    <ClInclude Include="..\..\Source\GradientMap\GradientMapEvaluator.h"/>
+    <ClInclude Include="..\..\Source\GradientMap\GradientMapEditor.h"/>
     <ClInclude Include="..\..\Source\WFSAlgorithm.h"/>
     <ClInclude Include="..\..\Source\DSP\WFSCalculationEngine.h"/>
     <ClInclude Include="..\..\Source\DSP\WFSHighShelfFilter.h"/>

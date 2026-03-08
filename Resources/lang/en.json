@@ -1038,7 +1038,58 @@
       "inputParams": "Input Parameters",
       "liveSourceHackoustics": "Live Source & Hackoustics",
       "movements": "Movements",
+      "gradientMaps": "Gradient Maps",
       "visualisation": "Visualisation"
+    },
+    "gradientMap": {
+      "layers": {
+        "attenuation": "Attenuation",
+        "height": "Height",
+        "hfShelf": "HF Shelf"
+      },
+      "labels": {
+        "white": "White:",
+        "black": "Black:",
+        "curve": "Curve:",
+        "fill": "Fill:",
+        "blur": "Blur:",
+        "start": "Start:",
+        "end": "End:",
+        "center": "Center:",
+        "edge": "Edge:"
+      },
+      "tools": {
+        "select": "Select",
+        "rect": "Rect",
+        "ellipse": "Ellipse",
+        "polygon": "Polygon",
+        "fill": "Fill",
+        "linGrad": "Lin.Grad",
+        "radGrad": "Rad.Grad"
+      },
+      "buttons": {
+        "enable": "On",
+        "lock": "Lock",
+        "delete": "Delete",
+        "pivotCenter": "Pivot: Center",
+        "pivotOrigin": "Pivot: Origin"
+      },
+      "warnings": {
+        "heightRatioZero": "Height Ratio is 0% — increase it for height to take effect"
+      },
+      "hints": {
+        "darkMaxAtten": "Dark = max attenuation | Light = none",
+        "darkMaxHeight": "Dark = max height | Light = ground",
+        "darkMaxHF": "Dark = max HF shelf | Light = none",
+        "whiteMaxAtten": "White = max attenuation | Black = none",
+        "whiteMaxHeight": "White = max height | Black = ground",
+        "whiteMaxHF": "White = max HF shelf | Black = none"
+      },
+      "header": {
+        "attenuationLayer": "Attenuation Layer",
+        "heightLayer": "Height Layer",
+        "hfShelfLayer": "HF Shelf Layer"
+      }
     },
     "labels": {
       "name": "Name:",
