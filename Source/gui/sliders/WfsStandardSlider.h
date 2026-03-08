@@ -28,15 +28,81 @@ public:
         repaint();
     }
 
+    /** Enable inline mode: label left, track centre, value right — all on one row */
+    void setInlineMode (bool enabled) { inlineMode = enabled; repaint(); }
+
+    /** Custom value-to-string formatter (default: 1 decimal place) */
+    void setValueToString (std::function<juce::String (float)> fn) { valueFormatter = std::move (fn); }
+
 protected:
+    juce::Rectangle<float> getPointerBounds() const override
+    {
+        if (inlineMode && labelText.isNotEmpty())
+        {
+            auto b = getLocalBounds().toFloat();
+            float labelW = b.getWidth() * 0.30f;
+            float valueW = b.getWidth() * 0.20f;
+            b.removeFromLeft (labelW);
+            b.removeFromRight (valueW);
+            return b;
+        }
+        return getLocalBounds().toFloat();
+    }
+
     void paintSlider(juce::Graphics& g, juce::Rectangle<float> bounds) override
     {
+        const auto alpha = isEnabled() ? 1.0f : disabledAlpha;
+        const auto foregroundColour = trackForegroundColour.withAlpha(alpha);
+
+        if (inlineMode && labelText.isNotEmpty())
+        {
+            // ── Inline layout: [label 30%] [track 50%] [value 20%] ──
+            float totalW = bounds.getWidth();
+            float labelW = totalW * 0.30f;
+            float valueW = totalW * 0.20f;
+
+            auto labelArea = bounds.removeFromLeft (labelW);
+            auto valueArea = bounds.removeFromRight (valueW);
+            // bounds is now the track zone
+
+            // Draw label
+            g.setColour (juce::Colours::white.withAlpha (alpha));
+            g.setFont (juce::FontOptions (juce::jmax (9.0f, 11.0f * WfsLookAndFeel::uiScale)));
+            g.drawText (labelText, labelArea.toNearestInt(), juce::Justification::centredLeft, false);
+
+            // Draw value
+            juce::String valStr = valueFormatter ? valueFormatter (value) : juce::String (value, 1);
+            g.drawText (valStr, valueArea.toNearestInt(), juce::Justification::centredRight, false);
+
+            // Draw track within the middle zone
+            auto usable = getUsableBounds (bounds);
+            auto track = getTrackBounds (usable);
+            auto thumbPos = getThumbPosition (usable);
+
+            g.setColour (ColorScheme::get().sliderTrackBg.withAlpha (alpha));
+            g.fillRect (track);
+
+            juce::Rectangle<float> active (track);
+            if (getOrientation() == Orientation::horizontal)
+                active.setWidth (juce::jmax (1.0f, thumbPos.x - track.getX()));
+            else
+            {
+                active.setY (thumbPos.y);
+                active.setHeight (juce::jmax (1.0f, track.getBottom() - thumbPos.y));
+            }
+
+            auto activeColour = isHovered ? foregroundColour.brighter (0.3f) : foregroundColour;
+            g.setColour (activeColour);
+            g.fillRect (active);
+
+            drawThumbIndicator (g, track, thumbPos, alpha);
+            return;
+        }
+
+        // ── Default mode: label above track ──
         auto usable = getUsableBounds(bounds);
         auto track = getTrackBounds(usable);
         auto thumbPos = getThumbPosition(usable);
-
-        const auto alpha = isEnabled() ? 1.0f : disabledAlpha;
-        const auto foregroundColour = trackForegroundColour.withAlpha(alpha);
 
         // Track background uses neutral color from theme (black/dark grey/light grey)
         g.setColour(ColorScheme::get().sliderTrackBg.withAlpha(alpha));
@@ -73,6 +139,8 @@ protected:
 
 private:
     juce::String labelText;
+    bool inlineMode = false;
+    std::function<juce::String (float)> valueFormatter;
 };
 
 /**

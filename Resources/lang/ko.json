@@ -120,7 +120,9 @@
       "importSystem": "시스템 설정 가져오기",
       "exportSystem": "시스템 설정 내보내기",
       "streamDeckOff": "Stream Deck+: OFF",
-      "streamDeckOn": "Stream Deck+: ON"
+      "streamDeckOn": "Stream Deck+: ON",
+      "samplerOff": "Sampler: OFF",
+      "samplerOn": "Sampler: ON"
     },
     "algorithms": {
       "inputBuffer": "InputBuffer (읽기 시간 지연)",
@@ -182,6 +184,7 @@
       "exportSystem": "시스템 설정을 파일로 내보내기 (파일 탐색기 사용).",
       "language": "사용자 인터페이스 언어를 선택하세요. 애플리케이션을 재시작하면 변경 사항이 완전히 적용됩니다.",
       "streamDeck": "Enable or disable the Stream Deck+ hardware controller integration. Long press to toggle.",
+      "sampler": "Enable or disable the Sampler feature for input channels. Long press to toggle.",
       "binauralEnable": "Enable or disable the binaural renderer processing.",
       "binauralOutput": "Select output channel pair for binaural monitoring. Off disables binaural output.",
       "binauralDistance": "Distance of binaural listener from stage origin (meters).",
@@ -1003,7 +1006,8 @@
       "liveSourceHackoustics": "라이브 소스 & Hackoustics (가상음향)",
       "movements": "움직임",
       "gradientMaps": "그라디언트 맵",
-      "visualisation": "시각화"
+      "visualisation": "시각화",
+      "sampler": "Sampler"
     },
     "gradientMap": {
       "layers": {
@@ -1173,7 +1177,9 @@
       "pauseAll": "모두 일시 정지",
       "resumeAll": "모두 재개",
       "soloModeSingle": "Single",
-      "soloModeMulti": "Multi"
+      "soloModeMulti": "Multi",
+      "samplerOff": "Sampler: OFF",
+      "samplerOn": "Sampler: ON"
     },
     "toggles": {
       "acousticPrecedence": "음향 우선",
@@ -1539,6 +1545,64 @@
       "prefixReverbs": "Reverbs: "
     }
   },
+  "sampler": {
+    "placeholder": "샘플러 — 곧 출시",
+    "section": {
+      "cell": "셀 속성",
+      "set": "세트 관리",
+      "pressure": "압력 매핑",
+      "actions": "동작"
+    },
+    "cell": {
+      "load": "불러오기",
+      "clear": "지우기",
+      "preview": "미리듣기",
+      "loadTitle": "샘플 불러오기",
+      "inTime": "인 (ms)",
+      "outTime": "아웃 (ms)",
+      "inOut": "인/아웃 (ms)",
+      "offset": "오프셋 (m)",
+      "offsetX": "Offset X",
+      "offsetY": "Offset Y",
+      "offsetZ": "Offset Z",
+      "attenuation": "Atten (dB)"
+    },
+    "set": {
+      "default": "세트",
+      "rename": "이름 변경",
+      "sequential": "순차",
+      "roundRobin": "라운드 로빈",
+      "copy": "(복사)",
+      "pos": "위치 (m)",
+      "posX": "Pos X (m)",
+      "posY": "Pos Y (m)",
+      "posZ": "Pos Z (m)",
+      "level": "레벨 (dB)"
+    },
+    "press": {
+      "level": "레벨",
+      "height": "높이",
+      "hf": "HF Shelf",
+      "xy": "Position XY",
+      "xyScale": "스케일"
+    },
+    "buttons": {
+      "copy": "복사",
+      "paste": "붙여넣기",
+      "copyCell": "셀 복사",
+      "copySet": "세트 복사",
+      "pasteCell": "셀 붙여넣기",
+      "pasteSet": "세트 붙여넣기",
+      "import": "가져오기",
+      "export": "내보내기"
+    },
+    "importTitle": "샘플러 설정 가져오기",
+    "exportTitle": "샘플러 설정 내보내기",
+    "grid": {
+      "help": "클릭=선택 | Shift=다중 | Ctrl=세트 전환 | 더블클릭=로드"
+    }
+  },
+
   "streamDeck": {
     "systemConfig": {
       "buttons": {

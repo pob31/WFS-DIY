@@ -120,7 +120,9 @@
       "importSystem": "导入系统配置",
       "exportSystem": "导出系统配置",
       "streamDeckOff": "Stream Deck+: OFF",
-      "streamDeckOn": "Stream Deck+: ON"
+      "streamDeckOn": "Stream Deck+: ON",
+      "samplerOff": "Sampler: OFF",
+      "samplerOn": "Sampler: ON"
     },
     "algorithms": {
       "inputBuffer": "InputBuffer (读取时延迟)",
@@ -182,6 +184,7 @@
       "exportSystem": "将系统配置导出到文件 (使用文件浏览器)。",
       "language": "选择用户界面语言。重启应用程序后更改将完全生效。",
       "streamDeck": "Enable or disable the Stream Deck+ hardware controller integration. Long press to toggle.",
+      "sampler": "Enable or disable the Sampler feature for input channels. Long press to toggle.",
       "binauralEnable": "启用或禁用双耳渲染器处理。",
       "binauralOutput": "选择双耳监听的输出通道对。关闭则禁用双耳输出。",
       "binauralDistance": "双耳听者与舞台原点的距离（米）。",
@@ -1003,7 +1006,8 @@
       "liveSourceHackoustics": "现场声源 & Hackoustics (虚拟声学)",
       "movements": "运动",
       "gradientMaps": "渐变图",
-      "visualisation": "可视化"
+      "visualisation": "可视化",
+      "sampler": "Sampler"
     },
     "gradientMap": {
       "layers": {
@@ -1173,7 +1177,9 @@
       "pauseAll": "全部暂停",
       "resumeAll": "全部恢复",
       "soloModeSingle": "单选",
-      "soloModeMulti": "多选"
+      "soloModeMulti": "多选",
+      "samplerOff": "Sampler: OFF",
+      "samplerOn": "Sampler: ON"
     },
     "toggles": {
       "acousticPrecedence": "声学优先",
@@ -1539,6 +1545,64 @@
       "prefixReverbs": "混响："
     }
   },
+  "sampler": {
+    "placeholder": "采样器 — 即将推出",
+    "section": {
+      "cell": "单元属性",
+      "set": "集合管理",
+      "pressure": "压力映射",
+      "actions": "操作"
+    },
+    "cell": {
+      "load": "加载",
+      "clear": "清除",
+      "preview": "试听",
+      "loadTitle": "加载采样",
+      "inTime": "淡入 (ms)",
+      "outTime": "淡出 (ms)",
+      "inOut": "淡入/淡出 (ms)",
+      "offset": "偏移 (m)",
+      "offsetX": "Offset X",
+      "offsetY": "Offset Y",
+      "offsetZ": "Offset Z",
+      "attenuation": "Atten (dB)"
+    },
+    "set": {
+      "default": "集合",
+      "rename": "重命名",
+      "sequential": "顺序",
+      "roundRobin": "轮询",
+      "copy": "(副本)",
+      "pos": "位置 (m)",
+      "posX": "Pos X (m)",
+      "posY": "Pos Y (m)",
+      "posZ": "Pos Z (m)",
+      "level": "电平 (dB)"
+    },
+    "press": {
+      "level": "电平",
+      "height": "高度",
+      "hf": "HF Shelf",
+      "xy": "Position XY",
+      "xyScale": "缩放"
+    },
+    "buttons": {
+      "copy": "复制",
+      "paste": "粘贴",
+      "copyCell": "复制单元",
+      "copySet": "复制集合",
+      "pasteCell": "粘贴单元",
+      "pasteSet": "粘贴集合",
+      "import": "导入",
+      "export": "导出"
+    },
+    "importTitle": "导入采样器配置",
+    "exportTitle": "导出采样器配置",
+    "grid": {
+      "help": "单击=选择 | Shift=多选 | Ctrl=切换集合 | 双击=加载"
+    }
+  },
+
   "streamDeck": {
     "systemConfig": {
       "buttons": {

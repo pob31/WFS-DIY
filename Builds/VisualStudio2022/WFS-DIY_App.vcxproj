@@ -3156,6 +3156,11 @@
     <ClInclude Include="..\..\Source\GradientMap\GradientMapData.h"/>
     <ClInclude Include="..\..\Source\GradientMap\GradientMapEvaluator.h"/>
     <ClInclude Include="..\..\Source\GradientMap\GradientMapEditor.h"/>
+    <ClInclude Include="..\..\Source\Sampler\SamplerData.h"/>
+    <ClInclude Include="..\..\Source\Sampler\SamplerEngine.h"/>
+    <ClInclude Include="..\..\Source\Sampler\SamplerFileOps.h"/>
+    <ClInclude Include="..\..\Source\Sampler\SamplerManager.h"/>
+    <ClInclude Include="..\..\Source\gui\SamplerSubTab.h"/>
     <ClInclude Include="..\..\Source\WFSAlgorithm.h"/>
     <ClInclude Include="..\..\Source\DSP\WFSCalculationEngine.h"/>
     <ClInclude Include="..\..\Source\DSP\WFSHighShelfFilter.h"/>

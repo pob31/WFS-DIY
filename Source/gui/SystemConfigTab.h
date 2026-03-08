@@ -204,6 +204,7 @@ public:
     using AudioInterfaceCallback = std::function<void()>;
     using ConfigReloadedCallback = std::function<void()>;
     using StreamDeckCallback = std::function<void(bool enabled)>;
+    using SamplerCallback = std::function<void(bool enabled)>;
     using BinauralCallback = std::function<void(bool enabled)>;
 
     SystemConfigTab(WfsParameters& params)
@@ -424,6 +425,11 @@ public:
         addAndMakeVisible(streamDeckEnableButton);
         streamDeckEnableButton.setButtonText(LOC("systemConfig.buttons.streamDeckOff"));
         streamDeckEnableButton.onLongPress = [this]() { toggleStreamDeck(); };
+
+        // Sampler toggle
+        addAndMakeVisible(samplerEnableButton);
+        samplerEnableButton.setButtonText(LOC("systemConfig.buttons.samplerOff"));
+        samplerEnableButton.onLongPress = [this]() { toggleSampler(); };
 
         // Binaural Section
         addAndMakeVisible(binauralEnableButton);
@@ -771,6 +777,9 @@ public:
         y += rowHeight + spacing;
 
         streamDeckEnableButton.setBounds(x, y, fullWidth, rowHeight);
+        y += rowHeight + spacing;
+
+        samplerEnableButton.setBounds(x, y, fullWidth, rowHeight);
 
         //======================================================================
         // COLUMN 2: Stage, Master
@@ -994,6 +1003,11 @@ public:
     void setStreamDeckCallback(StreamDeckCallback callback)
     {
         onStreamDeckEnabledChanged = callback;
+    }
+
+    void setSamplerCallback(SamplerCallback callback)
+    {
+        onSamplerEnabledChanged = callback;
     }
 
     void setBinauralCallback(BinauralCallback callback)
@@ -1274,6 +1288,11 @@ private:
         bool sdEnabled = (bool)parameters.getConfigParam("StreamDeckEnabled");
         streamDeckEnableButton.setButtonText(sdEnabled ? LOC("systemConfig.buttons.streamDeckOn")
                                                         : LOC("systemConfig.buttons.streamDeckOff"));
+
+        // Sampler toggle
+        bool samplerOn = (bool)parameters.getConfigParam("SamplerEnabled");
+        samplerEnableButton.setButtonText(samplerOn ? LOC("systemConfig.buttons.samplerOn")
+                                                     : LOC("systemConfig.buttons.samplerOff"));
 
         // Solo mode button
         updateSoloModeButtonText();
@@ -1676,6 +1695,17 @@ private:
                                                        : LOC("systemConfig.buttons.streamDeckOff"));
         if (onStreamDeckEnabledChanged)
             onStreamDeckEnabledChanged(newState);
+    }
+
+    void toggleSampler()
+    {
+        bool current = (bool)parameters.getConfigParam("SamplerEnabled");
+        bool newState = !current;
+        parameters.setConfigParam("SamplerEnabled", newState);
+        samplerEnableButton.setButtonText(newState ? LOC("systemConfig.buttons.samplerOn")
+                                                    : LOC("systemConfig.buttons.samplerOff"));
+        if (onSamplerEnabledChanged)
+            onSamplerEnabledChanged(newState);
     }
 
     void updateIOControlsEnabledState()
@@ -2247,6 +2277,7 @@ private:
         helpTextMap[&colorSchemeSelector] = LOC("systemConfig.help.colorScheme");
         helpTextMap[&languageSelector] = LOC("systemConfig.help.language");
         helpTextMap[&streamDeckEnableButton] = LOC("systemConfig.help.streamDeck");
+        helpTextMap[&samplerEnableButton] = LOC("systemConfig.help.sampler");
         helpTextMap[&binauralEnableButton] = LOC("systemConfig.help.binauralEnable");
         helpTextMap[&binauralOutputSelector] = LOC("systemConfig.help.binauralOutput");
         helpTextMap[&binauralDistanceSlider] = LOC("systemConfig.help.binauralDistance");
@@ -2431,6 +2462,7 @@ private:
     juce::ComboBox languageSelector;
     juce::StringArray availableLanguages;
     LongPressButton streamDeckEnableButton { 800 };
+    LongPressButton samplerEnableButton { 800 };
 
     // Binaural Section
     LongPressButton binauralEnableButton { 800 };
@@ -2472,6 +2504,7 @@ private:
     AudioInterfaceCallback onAudioInterfaceWindowRequested;
     ConfigReloadedCallback onConfigReloaded;
     StreamDeckCallback onStreamDeckEnabledChanged;
+    SamplerCallback onSamplerEnabledChanged;
     BinauralCallback onBinauralChanged;
 
     // Helper to notify MainComponent of any channel count change

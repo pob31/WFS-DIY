@@ -120,7 +120,9 @@
       "importSystem": "システム設定をインポート",
       "exportSystem": "システム設定をエクスポート",
       "streamDeckOff": "Stream Deck+: OFF",
-      "streamDeckOn": "Stream Deck+: ON"
+      "streamDeckOn": "Stream Deck+: ON",
+      "samplerOff": "Sampler: OFF",
+      "samplerOn": "Sampler: ON"
     },
     "algorithms": {
       "inputBuffer": "InputBuffer (読み取り時遅延)",
@@ -182,6 +184,7 @@
       "exportSystem": "システム設定をファイルにエクスポートします（ファイルエクスプローラー使用）。",
       "language": "ユーザーインターフェースの言語を選択します。変更はアプリケーションの再起動後に完全に有効になります。",
       "streamDeck": "Enable or disable the Stream Deck+ hardware controller integration. Long press to toggle.",
+      "sampler": "Enable or disable the Sampler feature for input channels. Long press to toggle.",
       "binauralEnable": "Enable or disable the binaural renderer processing.",
       "binauralOutput": "Select output channel pair for binaural monitoring. Off disables binaural output.",
       "binauralDistance": "Distance of binaural listener from stage origin (meters).",
@@ -1003,7 +1006,8 @@
       "liveSourceHackoustics": "ライブソース & Hackoustics (仮想音響)",
       "movements": "動き",
       "gradientMaps": "グラデーションマップ",
-      "visualisation": "可視化"
+      "visualisation": "可視化",
+      "sampler": "Sampler"
     },
     "gradientMap": {
       "layers": {
@@ -1173,7 +1177,9 @@
       "pauseAll": "すべて一時停止",
       "resumeAll": "すべて再開",
       "soloModeSingle": "Single",
-      "soloModeMulti": "Multi"
+      "soloModeMulti": "Multi",
+      "samplerOff": "Sampler: OFF",
+      "samplerOn": "Sampler: ON"
     },
     "toggles": {
       "acousticPrecedence": "音響優先",
@@ -1539,6 +1545,64 @@
       "prefixReverbs": "Reverbs: "
     }
   },
+  "sampler": {
+    "placeholder": "サンプラー — 近日公開",
+    "section": {
+      "cell": "セルプロパティ",
+      "set": "セット管理",
+      "pressure": "プレッシャーマッピング",
+      "actions": "アクション"
+    },
+    "cell": {
+      "load": "読込",
+      "clear": "クリア",
+      "preview": "試聴",
+      "loadTitle": "サンプルを読み込む",
+      "inTime": "イン (ms)",
+      "outTime": "アウト (ms)",
+      "inOut": "イン/アウト (ms)",
+      "offset": "オフセット (m)",
+      "offsetX": "Offset X",
+      "offsetY": "Offset Y",
+      "offsetZ": "Offset Z",
+      "attenuation": "Atten (dB)"
+    },
+    "set": {
+      "default": "セット",
+      "rename": "名前変更",
+      "sequential": "シーケンシャル",
+      "roundRobin": "ラウンドロビン",
+      "copy": "(コピー)",
+      "pos": "位置 (m)",
+      "posX": "Pos X (m)",
+      "posY": "Pos Y (m)",
+      "posZ": "Pos Z (m)",
+      "level": "レベル (dB)"
+    },
+    "press": {
+      "level": "レベル",
+      "height": "高さ",
+      "hf": "HF Shelf",
+      "xy": "Position XY",
+      "xyScale": "スケール"
+    },
+    "buttons": {
+      "copy": "コピー",
+      "paste": "ペースト",
+      "copyCell": "セルをコピー",
+      "copySet": "セットをコピー",
+      "pasteCell": "セルをペースト",
+      "pasteSet": "セットをペースト",
+      "import": "インポート",
+      "export": "エクスポート"
+    },
+    "importTitle": "サンプラー設定をインポート",
+    "exportTitle": "サンプラー設定をエクスポート",
+    "grid": {
+      "help": "クリック=選択 | Shift=複数 | Ctrl=セット切替 | ダブルクリック=読込"
+    }
+  },
+
   "streamDeck": {
     "systemConfig": {
       "buttons": {

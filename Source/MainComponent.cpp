@@ -286,6 +286,11 @@ MainComponent::MainComponent()
             streamDeckManager->setEnabled(enabled);
     });
 
+    systemConfigTab->setSamplerCallback([this](bool enabled) {
+        if (inputsTab)
+            inputsTab->setSamplerMasterEnabled(enabled);
+    });
+
     systemConfigTab->setBinauralCallback([this](bool /*enabled*/) {
         // Refresh Stream Deck page so start button appears/disappears
         if (streamDeckManager && streamDeckManager->getCurrentMainTab() == SystemConfigTabPages::SYSCONFIG_MAIN_TAB_INDEX)
@@ -394,6 +399,15 @@ MainComponent::MainComponent()
         rebuildGradientMapForInput (ch);
     };
 
+    // Sampler subtab change callback — push updated data to SamplerManager
+    inputsTab->getSamplerSubTab().onSamplerDataChanged = [this]() {
+        if (samplerManager == nullptr) return;
+        int ch = inputsTab->getCurrentChannel() - 1;
+        auto samplerTree = parameters.getValueTreeState().getInputSamplerSection (ch);
+        if (samplerTree.isValid())
+            samplerManager->loadChannelCells (ch, samplerTree);
+    };
+
     // Create global tooltip window for hover tooltips
     tooltipWindow = std::make_unique<juce::TooltipWindow>(this, 500);
 
@@ -489,6 +503,11 @@ MainComponent::MainComponent()
     bool sdEnabled = (bool)parameters.getConfigParam("StreamDeckEnabled");
     if (!sdEnabled)
         streamDeckManager->setEnabled(false);
+
+    // Apply initial sampler master enable state
+    bool samplerOn = (bool)parameters.getConfigParam("SamplerEnabled");
+    if (inputsTab)
+        inputsTab->setSamplerMasterEnabled(samplerOn);
 
     // Register Inputs tab pages with real parameter bindings
     {
@@ -1764,6 +1783,10 @@ void MainComponent::handleConfigReloaded()
 
         inputsTab->configureVisualisation(parameters.getNumOutputChannels(),
                                           parameters.getNumReverbChannels());
+
+        // Refresh sampler master enable state from config
+        bool samplerOn = (bool)parameters.getConfigParam("SamplerEnabled");
+        inputsTab->setSamplerMasterEnabled(samplerOn);
     }
 
     // Force full recalculation of DSP matrix after config reload
@@ -2414,6 +2437,11 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
 #endif
     }
 
+    // Prepare sampler manager
+    if (samplerManager == nullptr)
+        samplerManager = std::make_unique<SamplerManager>();
+    samplerManager->prepare (sampleRate, samplesPerBlockExpected, numInputChannels);
+
     // Load audio patch matrices
     loadAudioPatches();
 
@@ -2430,6 +2458,21 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
     {
         // Apply input patching: hardware channels → WFS channels
         applyInputPatch(bufferToFill);
+
+        // Overwrite input channels where sampler is active (replaces patched audio)
+        if (samplerManager != nullptr && samplerManager->hasAnyActiveChannel())
+        {
+            for (int ch = 0; ch < numInputChannels; ++ch)
+            {
+                if (samplerManager->isChannelActive (ch)
+                    && ch < bufferToFill.buffer->getNumChannels())
+                {
+                    samplerManager->processChannel (ch, *bufferToFill.buffer,
+                                                    bufferToFill.startSample,
+                                                    bufferToFill.numSamples);
+                }
+            }
+        }
 
         // Parameter smoothing (runs on ASIO thread, immune to message-pump
         // throttling when the window is minimized)
@@ -2795,6 +2838,17 @@ void MainComponent::timerCallback()
                 float x, y, z;
                 speedLimiter->getPosition(i, x, y, z);
                 calculationEngine->setSpeedLimitedPosition(i, x, y, z);
+            }
+
+            // Override positions for channels with active sampler playback
+            if (samplerManager != nullptr)
+            {
+                for (int i = 0; i < numInputChannels; ++i)
+                {
+                    float sx, sy, sz;
+                    if (samplerManager->getPositionOverride (i, sx, sy, sz))
+                        calculationEngine->setSpeedLimitedPosition (i, sx, sy, sz);
+                }
             }
 
             // Keep map repainting while speed limiter is catching up

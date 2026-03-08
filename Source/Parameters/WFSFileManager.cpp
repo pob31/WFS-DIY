@@ -66,6 +66,7 @@ bool WFSFileManager::createProjectFolderStructure()
     getInputSnapshotsFolder().createDirectory();
     getOutputSnapshotsFolder().createDirectory();
     getIRFolder().createDirectory();
+    getSamplesFolder().createDirectory();
 
     return true;
 }
@@ -163,6 +164,12 @@ juce::File WFSFileManager::getIRFolder() const
 {
     if (! projectFolder.isDirectory()) return {};
     return projectFolder.getChildFile ("ir");
+}
+
+juce::File WFSFileManager::getSamplesFolder() const
+{
+    if (! projectFolder.isDirectory()) return {};
+    return projectFolder.getChildFile ("samples");
 }
 
 //==============================================================================

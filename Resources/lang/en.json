@@ -127,7 +127,9 @@
       "importSystem": "Import System Configuration",
       "exportSystem": "Export System Configuration",
       "streamDeckOff": "Stream Deck+: OFF",
-      "streamDeckOn": "Stream Deck+: ON"
+      "streamDeckOn": "Stream Deck+: ON",
+      "samplerOff": "Sampler: OFF",
+      "samplerOn": "Sampler: ON"
     },
 
     "algorithms": {
@@ -194,6 +196,7 @@
       "exportSystem": "Export System Configuration to file (with file explorer window).",
       "language": "Select the user interface language. Changes take full effect after restarting the application.",
       "streamDeck": "Enable or disable the Stream Deck+ hardware controller integration. Long press to toggle.",
+      "sampler": "Enable or disable the Sampler feature for input channels. Long press to toggle.",
       "binauralEnable": "Enable or disable the binaural renderer processing.",
       "binauralOutput": "Select output channel pair for binaural monitoring. Off disables binaural output.",
       "binauralDistance": "Distance of binaural listener from stage origin (meters).",
@@ -1039,7 +1042,8 @@
       "liveSourceHackoustics": "Live Source & Hackoustics",
       "movements": "Movements",
       "gradientMaps": "Gradient Maps",
-      "visualisation": "Visualisation"
+      "visualisation": "Visualisation",
+      "sampler": "Sampler"
     },
     "gradientMap": {
       "layers": {
@@ -1209,7 +1213,9 @@
       "pauseAll": "Pause All",
       "resumeAll": "Resume All",
       "soloModeSingle": "Single",
-      "soloModeMulti": "Multi"
+      "soloModeMulti": "Multi",
+      "samplerOff": "Sampler: OFF",
+      "samplerOn": "Sampler: ON"
     },
     "toggles": {
       "acousticPrecedence": "Acoustic Precedence",
@@ -1577,6 +1583,64 @@
       "prefixInputs": "Inputs: ",
       "prefixOutputs": "Outputs: ",
       "prefixReverbs": "Reverbs: "
+    }
+  },
+
+  "sampler": {
+    "placeholder": "Sampler — coming soon",
+    "section": {
+      "cell": "CELL PROPERTIES",
+      "set": "SET MANAGEMENT",
+      "pressure": "PRESSURE MAPPINGS",
+      "actions": "ACTIONS"
+    },
+    "cell": {
+      "load": "Load",
+      "clear": "Clear",
+      "preview": "Preview",
+      "loadTitle": "Load Sample",
+      "inTime": "In (ms)",
+      "outTime": "Out (ms)",
+      "inOut": "In/Out (ms)",
+      "offset": "Offset (m)",
+      "offsetX": "Offset X",
+      "offsetY": "Offset Y",
+      "offsetZ": "Offset Z",
+      "attenuation": "Atten (dB)"
+    },
+    "set": {
+      "default": "Set",
+      "rename": "Rename",
+      "sequential": "Sequential",
+      "roundRobin": "Round-Robin",
+      "copy": "(copy)",
+      "pos": "Pos (m)",
+      "posX": "Pos X (m)",
+      "posY": "Pos Y (m)",
+      "posZ": "Pos Z (m)",
+      "level": "Level (dB)"
+    },
+    "press": {
+      "level": "Level",
+      "height": "Height",
+      "hf": "HF Shelf",
+      "xy": "Position XY",
+      "xyScale": "Scale"
+    },
+    "buttons": {
+      "copy": "Copy",
+      "paste": "Paste",
+      "copyCell": "Copy Cell",
+      "copySet": "Copy Set",
+      "pasteCell": "Paste Cell",
+      "pasteSet": "Paste Set",
+      "import": "Import",
+      "export": "Export"
+    },
+    "importTitle": "Import Sampler Config",
+    "exportTitle": "Export Sampler Config",
+    "grid": {
+      "help": "Click=select | Shift=multi | Ctrl=set toggle | DblClick=load"
     }
   },
 

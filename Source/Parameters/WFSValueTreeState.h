@@ -127,6 +127,12 @@ public:
     /** Ensure a GradientMaps section exists for a given input (migration helper) */
     juce::ValueTree ensureInputGradientMapsSection (int channelIndex);
 
+    /** Get the Sampler section for a given input channel */
+    juce::ValueTree getInputSamplerSection (int channelIndex);
+
+    /** Ensure a Sampler section exists for a given input (migration helper) */
+    juce::ValueTree ensureInputSamplerSection (int channelIndex);
+
     //==========================================================================
     // Output Channel Access
     //==========================================================================
@@ -440,6 +446,7 @@ private:
     juce::ValueTree createInputAutoMotionSection();
     juce::ValueTree createInputMutesSection (int numOutputs);
     juce::ValueTree createInputGradientMapsSection();
+    juce::ValueTree createInputSamplerSection();
 
     /** Create a single default output channel */
     juce::ValueTree createDefaultOutputChannel (int index);

@@ -35,6 +35,7 @@
 #include "StreamDeck/pages/PatchWindowPages.h"
 #include "GradientMap/GradientMapEvaluator.h"
 #include "GradientMap/GradientMapData.h"
+#include "Sampler/SamplerManager.h"
 
 //==============================================================================
 /**
@@ -221,6 +222,9 @@ private:
 
     // Gradient map evaluators (one per input channel, bitmap-based O(1) lookup)
     std::vector<std::unique_ptr<GradientMapEvaluator>> gradientMapEvaluators;
+
+    // Per-channel sampler engine manager
+    std::unique_ptr<SamplerManager> samplerManager;
 
     // Track last remote position timestamp per channel for auto-stop recording
     // Key: channelIndex, Value: timestamp in milliseconds

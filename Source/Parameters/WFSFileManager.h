@@ -80,6 +80,9 @@ public:
     /** Get IR files folder */
     juce::File getIRFolder() const;
 
+    /** Get samples folder (for sampler feature) */
+    juce::File getSamplesFolder() const;
+
     //==========================================================================
     // Complete Configuration
     //==========================================================================

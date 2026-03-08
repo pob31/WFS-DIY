@@ -104,7 +104,7 @@ public:
                     : static_cast<float>(getWidth());
         if (ref > 0.0f)
         {
-            trackThickness = ref * 0.5f;   // 20/40 ratio preserved
+            trackThickness = ref * 0.6f;   // More generous track for compact layouts
             thumbRadius = ref * 0.2f;       // 8/40 ratio preserved
         }
     }
@@ -240,9 +240,15 @@ protected:
     float thumbRadius = 8.0f;     // Thumb hit test radius (recomputed in resized)
     bool isHovered = false; // Track hover state for brightening active track
 
+    /** Override to restrict pointer interaction to a sub-region (e.g. inline mode). */
+    virtual juce::Rectangle<float> getPointerBounds() const
+    {
+        return getLocalBounds().toFloat();
+    }
+
     void handlePointer(juce::Point<float> pos)
     {
-        auto bounds = getUsableBounds(getLocalBounds().toFloat());
+        auto bounds = getUsableBounds(getPointerBounds());
         auto normalized = 0.0f;
 
         if (orientation == Orientation::horizontal)

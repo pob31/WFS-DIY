@@ -342,6 +342,26 @@ juce::ValueTree WFSValueTreeState::ensureInputGradientMapsSection (int channelIn
     return gm;
 }
 
+juce::ValueTree WFSValueTreeState::getInputSamplerSection (int channelIndex)
+{
+    return getInputState (channelIndex).getChildWithName (Sampler);
+}
+
+juce::ValueTree WFSValueTreeState::ensureInputSamplerSection (int channelIndex)
+{
+    auto input = getInputState (channelIndex);
+    if (! input.isValid())
+        return {};
+
+    auto sampler = input.getChildWithName (Sampler);
+    if (! sampler.isValid())
+    {
+        sampler = createInputSamplerSection();
+        input.appendChild (sampler, nullptr);
+    }
+    return sampler;
+}
+
 //==============================================================================
 // Output Channel Access
 //==============================================================================
@@ -1163,9 +1183,12 @@ void WFSValueTreeState::setNumInputChannels (int numChannels)
             inputs.removeChild (inputs.getNumChildren() - 1, getActiveUndoManager());
     }
 
-    // Ensure GradientMaps section exists for all inputs (migration for old configs)
+    // Ensure GradientMaps and Sampler sections exist for all inputs (migration for old configs)
     for (int i = 0; i < numChannels; ++i)
+    {
         ensureInputGradientMapsSection (i);
+        ensureInputSamplerSection (i);
+    }
 
     // Update the count in config
     setParameter (inputChannels, numChannels);
@@ -1668,6 +1691,8 @@ void WFSValueTreeState::createUISection (juce::ValueTree& config)
 {
     juce::ValueTree ui (UI);
     ui.setProperty (streamDeckEnabled, streamDeckEnabledDefault, nullptr);
+    ui.setProperty (samplerEnabled, samplerEnabledDefault, nullptr);
+    ui.setProperty (samplerBlockSerial, "", nullptr);
     config.appendChild (ui, nullptr);
 }
 
@@ -1778,6 +1803,7 @@ juce::ValueTree WFSValueTreeState::createDefaultInputChannel (int index)
     input.appendChild (createInputAutoMotionSection(), nullptr);
     input.appendChild (createInputMutesSection (getNumOutputChannels()), nullptr);
     input.appendChild (createInputGradientMapsSection(), nullptr);
+    input.appendChild (createInputSamplerSection(), nullptr);
 
     return input;
 }
@@ -1791,6 +1817,8 @@ juce::ValueTree WFSValueTreeState::createInputChannelSection (int index)
     channel.setProperty (inputMinimalLatency, inputMinimalLatencyDefault, nullptr);
     channel.setProperty (inputMapLocked, 0, nullptr);    // Default: unlocked
     channel.setProperty (inputMapVisible, 1, nullptr);   // Default: visible
+    channel.setProperty (inputSamplerActive, inputSamplerActiveDefault, nullptr);
+    channel.setProperty (samplerMidiZoneQuadrant, samplerMidiZoneQuadrantDefault, nullptr);
     return channel;
 }
 
@@ -1994,6 +2022,34 @@ juce::ValueTree WFSValueTreeState::createInputGradientMapsSection()
     }
 
     return gm;
+}
+
+juce::ValueTree WFSValueTreeState::createInputSamplerSection()
+{
+    using namespace WFSParameterIDs;
+    using namespace WFSParameterDefaults;
+
+    juce::ValueTree sampler (Sampler);
+
+    // Pre-create 36 cells (6x6 grid) with empty defaults
+    for (int i = 0; i < samplerGridCells; ++i)
+    {
+        juce::ValueTree cell (SamplerCell);
+        cell.setProperty (WFSParameterIDs::id, i, nullptr);
+        cell.setProperty (samplerCellName, "", nullptr);
+        cell.setProperty (samplerCellFile, "", nullptr);
+        cell.setProperty (samplerCellInTime, samplerCellInTimeDefault, nullptr);
+        cell.setProperty (samplerCellOutTime, samplerCellOutTimeDefault, nullptr);
+        cell.setProperty (samplerCellOffsetX, samplerCellOffsetDefault, nullptr);
+        cell.setProperty (samplerCellOffsetY, samplerCellOffsetDefault, nullptr);
+        cell.setProperty (samplerCellOffsetZ, samplerCellOffsetDefault, nullptr);
+        cell.setProperty (samplerCellAttenuation, samplerCellAttenuationDefault, nullptr);
+        sampler.appendChild (cell, nullptr);
+    }
+
+    // No sets by default — user creates them dynamically
+
+    return sampler;
 }
 
 juce::ValueTree WFSValueTreeState::createDefaultOutputChannel (int index)

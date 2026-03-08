@@ -23,6 +23,9 @@
     <Filter Include="WFS-DIY\Source\DSP">
       <UniqueIdentifier>{17A0B288-77FA-A44E-2FD6-CD9A8B53854E}</UniqueIdentifier>
     </Filter>
+    <Filter Include="WFS-DIY\Source\Sampler">
+      <UniqueIdentifier>{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}</UniqueIdentifier>
+    </Filter>
     <Filter Include="WFS-DIY\Source">
       <UniqueIdentifier>{302C0974-C160-8B5C-13C8-37F2C9D030F7}</UniqueIdentifier>
     </Filter>
@@ -4043,6 +4046,21 @@
     </ClInclude>
     <ClInclude Include="..\..\Source\WFSAlgorithm.h">
       <Filter>WFS-DIY\Source</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Sampler\SamplerData.h">
+      <Filter>WFS-DIY\Source\Sampler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Sampler\SamplerEngine.h">
+      <Filter>WFS-DIY\Source\Sampler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Sampler\SamplerFileOps.h">
+      <Filter>WFS-DIY\Source\Sampler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Sampler\SamplerManager.h">
+      <Filter>WFS-DIY\Source\Sampler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\gui\SamplerSubTab.h">
+      <Filter>WFS-DIY\Source\gui</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\DSP\WFSCalculationEngine.h">
       <Filter>WFS-DIY\Source\DSP</Filter>

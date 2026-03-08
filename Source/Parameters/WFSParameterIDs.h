@@ -516,4 +516,53 @@ namespace WFSParameterIDs
     const juce::Identifier reverbPostExpAttack   ("reverbPostExpAttack");     // ms
     const juce::Identifier reverbPostExpRelease  ("reverbPostExpRelease");    // ms
 
+    //==========================================================================
+    // Sampler Parameters
+    //==========================================================================
+
+    // ValueTree Type Identifiers
+    const juce::Identifier Sampler               ("Sampler");
+    const juce::Identifier SamplerCell           ("SamplerCell");
+    const juce::Identifier SamplerSet            ("SamplerSet");
+
+    // Config > UI (master toggle)
+    const juce::Identifier samplerEnabled        ("samplerEnabled");          // bool: global enable
+    const juce::Identifier samplerBlockSerial    ("samplerBlockSerial");      // string: BLOCKS device ID
+
+    // Per-channel (stored in Channel section)
+    const juce::Identifier inputSamplerActive    ("inputSamplerActive");      // 0=OFF, 1=ON
+    const juce::Identifier samplerMidiZoneQuadrant ("samplerMidiZoneQuadrant"); // 0=full, 1-4=quadrant
+
+    // SamplerCell properties (per cell in 6x6 grid)
+    const juce::Identifier samplerCellName       ("samplerCellName");         // display name
+    const juce::Identifier samplerCellFile       ("samplerCellFile");         // relative path in samples/
+    const juce::Identifier samplerCellInTime     ("samplerCellInTime");       // ms (fade-in / start offset)
+    const juce::Identifier samplerCellOutTime    ("samplerCellOutTime");      // ms (fade-out)
+    const juce::Identifier samplerCellOffsetX    ("samplerCellOffsetX");      // position offset meters
+    const juce::Identifier samplerCellOffsetY    ("samplerCellOffsetY");
+    const juce::Identifier samplerCellOffsetZ    ("samplerCellOffsetZ");
+    const juce::Identifier samplerCellAttenuation("samplerCellAttenuation");  // dB (0 = no change)
+
+    // SamplerSet properties (dynamic, user creates/deletes)
+    const juce::Identifier samplerSetName        ("samplerSetName");
+    const juce::Identifier samplerSetPlayMode    ("samplerSetPlayMode");      // 0=sequential, 1=round-robin
+    const juce::Identifier samplerSetCells       ("samplerSetCells");         // comma-separated cell indices
+    const juce::Identifier samplerSetPosX        ("samplerSetPosX");          // absolute base position
+    const juce::Identifier samplerSetPosY        ("samplerSetPosY");
+    const juce::Identifier samplerSetPosZ        ("samplerSetPosZ");
+    const juce::Identifier samplerSetLevel       ("samplerSetLevel");         // dB
+
+    // SamplerSet > Pressure mappings (per set)
+    const juce::Identifier samplerSetPressLevelEnabled  ("samplerSetPressLevelEnabled");  // 0/1
+    const juce::Identifier samplerSetPressLevelDir      ("samplerSetPressLevelDir");      // 0=positive, 1=negative
+    const juce::Identifier samplerSetPressLevelCurve    ("samplerSetPressLevelCurve");    // 0.0-1.0
+    const juce::Identifier samplerSetPressZEnabled      ("samplerSetPressZEnabled");
+    const juce::Identifier samplerSetPressZDir          ("samplerSetPressZDir");
+    const juce::Identifier samplerSetPressZCurve        ("samplerSetPressZCurve");
+    const juce::Identifier samplerSetPressHFEnabled     ("samplerSetPressHFEnabled");
+    const juce::Identifier samplerSetPressHFDir         ("samplerSetPressHFDir");
+    const juce::Identifier samplerSetPressHFCurve       ("samplerSetPressHFCurve");
+    const juce::Identifier samplerSetPressXYEnabled     ("samplerSetPressXYEnabled");     // 0/1 (XY joystick)
+    const juce::Identifier samplerSetPressXYScale       ("samplerSetPressXYScale");       // m per update
+
 } // namespace WFSParameterIDs

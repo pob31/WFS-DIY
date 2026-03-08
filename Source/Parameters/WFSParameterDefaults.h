@@ -869,4 +869,54 @@ namespace WFSParameterDefaults
     constexpr float reverbPostExpReleaseMin          = 50.0f;
     constexpr float reverbPostExpReleaseMax          = 2000.0f;
 
+    //==========================================================================
+    // Sampler Defaults
+    //==========================================================================
+
+    constexpr bool samplerEnabledDefault             = false;  // Disabled by default
+
+    // Per-channel
+    constexpr int inputSamplerActiveDefault           = 0;      // OFF
+    constexpr int samplerMidiZoneQuadrantDefault      = 0;      // 0=full pad
+
+    // Grid
+    constexpr int samplerGridRows                     = 6;
+    constexpr int samplerGridCols                     = 6;
+    constexpr int samplerGridCells                    = 36;     // 6x6
+
+    // Cell defaults
+    constexpr float samplerCellInTimeDefault          = 0.0f;   // ms
+    constexpr float samplerCellInTimeMin              = 0.0f;
+    constexpr float samplerCellInTimeMax              = 5000.0f; // 5s
+    constexpr float samplerCellOutTimeDefault         = 20.0f;  // ms (fade-out to avoid clicks)
+    constexpr float samplerCellOutTimeMin             = 1.0f;
+    constexpr float samplerCellOutTimeMax             = 5000.0f;
+    constexpr float samplerCellOffsetDefault          = 0.0f;   // meters
+    constexpr float samplerCellOffsetMin              = -50.0f;
+    constexpr float samplerCellOffsetMax              = 50.0f;
+    constexpr float samplerCellAttenuationDefault     = 0.0f;   // dB
+    constexpr float samplerCellAttenuationMin         = -60.0f;
+    constexpr float samplerCellAttenuationMax         = 0.0f;
+
+    // Set defaults
+    constexpr int samplerSetPlayModeDefault           = 0;      // 0=sequential
+    constexpr float samplerSetPosDefault              = 0.0f;   // meters
+    constexpr float samplerSetPosMin                  = -50.0f;
+    constexpr float samplerSetPosMax                  = 50.0f;
+    constexpr float samplerSetLevelDefault            = 0.0f;   // dB
+    constexpr float samplerSetLevelMin                = -60.0f;
+    constexpr float samplerSetLevelMax                = 0.0f;
+
+    // Pressure mapping defaults
+    constexpr int samplerSetPressEnabledDefault       = 0;      // OFF
+    constexpr int samplerSetPressLevelEnabledDefault = 1;      // Level ON by default
+    constexpr int samplerSetPressDirDefault           = 0;      // 0=positive
+    constexpr float samplerSetPressCurveDefault       = 0.5f;   // linear
+    constexpr float samplerSetPressCurveMin           = 0.0f;
+    constexpr float samplerSetPressCurveMax           = 1.0f;
+    constexpr int samplerSetPressXYEnabledDefault     = 1;      // ON by default
+    constexpr float samplerSetPressXYScaleDefault     = 0.05f;  // m per update (same as joystick)
+    constexpr float samplerSetPressXYScaleMin         = 0.01f;
+    constexpr float samplerSetPressXYScaleMax         = 0.2f;
+
 } // namespace WFSParameterDefaults

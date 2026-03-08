@@ -25,6 +25,7 @@
 #include "buttons/LongPressButton.h"
 #include "../Localization/LocalizationManager.h"
 #include "ColumnFocusTraverser.h"
+#include "SamplerSubTab.h"
 
 //==============================================================================
 // Custom Transport Button - Play (right-pointing triangle)
@@ -163,7 +164,8 @@ public:
           inputsTree(params.getInputTree()),
           configTree(params.getConfigTree()),
           ioTree(params.getConfigTree().getChildWithName(WFSParameterIDs::IO)),
-          binauralTree(params.getValueTreeState().getBinauralState())
+          binauralTree(params.getValueTreeState().getBinauralState()),
+          samplerSubTab(params)
     {
         // Enable keyboard focus so we can receive focus back after text editing
         setWantsKeyboardFocus(true);
@@ -243,6 +245,14 @@ public:
         // Map visibility button
         addAndMakeVisible(mapVisibilityButton);
         mapVisibilityButton.onClick = [this]() { toggleMapVisibility(); };
+
+        // Sampler toggle (long press, hidden by default)
+        addChildComponent(samplerToggleButton);  // Hidden until master enabled
+        samplerToggleButton.setButtonText(LOC("inputs.buttons.samplerOff"));
+        samplerToggleButton.onLongPress = [this]() { toggleSamplerMode(); };
+
+        // Sampler subtab (hidden until activated)
+        addChildComponent(samplerSubTab);
 
         // Level Meter button
         addAndMakeVisible(levelMeterButton);
@@ -408,6 +418,9 @@ public:
     /** Public access to gradient map editor for MainComponent callback wiring */
     GradientMapEditor& getGradientMapEditor() { return gradientMapEditor; }
 
+    /** Public access to sampler subtab for MainComponent callback wiring */
+    SamplerSubTab& getSamplerSubTab() { return samplerSubTab; }
+
     /** Update LST gain reduction meters (called from MainComponent timer).
         Values are linear multipliers (1.0 = no reduction, 0.0 = full mute). */
     void setLSGainReduction (float peakGRLinear, float slowGRLinear)
@@ -565,6 +578,11 @@ public:
         mapLockButton.setBounds(row1.removeFromLeft(scaled(120)));
         row1.removeFromLeft(spacing);
         mapVisibilityButton.setBounds(row1.removeFromLeft(scaled(160)));
+        if (samplerToggleButton.isVisible())
+        {
+            row1.removeFromLeft(spacing * 2);
+            samplerToggleButton.setBounds(row1.removeFromLeft(scaled(120)));
+        }
 
         // Right-aligned buttons (from right to left)
         // Desired order left-to-right: [Solo] [Clear Solo] [Single/Multi] [Level Meters] [Set all Inputs...]
@@ -755,6 +773,19 @@ public:
             // AutomOtion sub-tab: destination
             { &otomoDestXEditor, &otomoDestYEditor, &otomoDestZEditor }
         });
+    }
+
+    /** Show/hide the sampler toggle button based on master switch */
+    void setSamplerMasterEnabled(bool enabled)
+    {
+        samplerMasterEnabled = enabled;
+        samplerToggleButton.setVisible(enabled);
+
+        // If master disabled, remove sampler tab if it exists
+        if (!enabled)
+            removeSamplerTab();
+
+        resized();
     }
 
 private:
@@ -2880,8 +2911,9 @@ private:
         setVisualisationVisible(false);
         setMutesVisible(false);
         setGradientMapsVisible(false);
+        samplerSubTab.setVisible(false);
 
-        // Show current - new 5-tab structure
+        // Show current - new 5-tab structure (tab 5 = Sampler, dynamically added)
         if (tabIndex == 0)
         {
             // Input Parameters: Column 1 (Input+Position), Column 2 (Sound+Mutes)
@@ -2917,6 +2949,12 @@ private:
             // Visualisation
             setVisualisationVisible(true);
             layoutVisualisationTab();
+        }
+        else if (tabIndex == samplerTabIndex && samplerTabIndex >= 0)
+        {
+            // Sampler
+            samplerSubTab.setVisible(true);
+            samplerSubTab.setBounds(subTabContentArea);
         }
     }
 
@@ -5495,6 +5533,9 @@ private:
         updateMapButtonStates();
         updateSoloButtonState();
         updateSoloModeButtonText();
+        updateSamplerButtonState();
+        updateSamplerSubTab();
+        samplerSubTab.setCurrentChannel(currentChannel - 1);
     }
 
     // ==================== TEXT EDITOR LISTENER ====================
@@ -7183,6 +7224,60 @@ private:
         updateMapButtonStates();
     }
 
+    void toggleSamplerMode()
+    {
+        auto currentVal = parameters.getInputParam(currentChannel - 1, "inputSamplerActive");
+        bool isActive = !currentVal.isVoid() && static_cast<int>(currentVal) != 0;
+        bool newState = !isActive;
+
+        saveInputParam(WFSParameterIDs::inputSamplerActive, newState ? 1 : 0);
+        updateSamplerButtonState();
+        updateSamplerSubTab();
+    }
+
+    void updateSamplerButtonState()
+    {
+        auto currentVal = parameters.getInputParam(currentChannel - 1, "inputSamplerActive");
+        bool isActive = !currentVal.isVoid() && static_cast<int>(currentVal) != 0;
+
+        samplerToggleButton.setButtonText(isActive ? LOC("inputs.buttons.samplerOn")
+                                                    : LOC("inputs.buttons.samplerOff"));
+        if (isActive)
+            samplerToggleButton.setBaseColour(juce::Colour(0xFF338C33));  // Green when active
+        else
+            samplerToggleButton.setBaseColour(juce::Colour());  // Default
+    }
+
+    void updateSamplerSubTab()
+    {
+        auto currentVal = parameters.getInputParam(currentChannel - 1, "inputSamplerActive");
+        bool isActive = !currentVal.isVoid() && static_cast<int>(currentVal) != 0;
+
+        if (isActive && samplerMasterEnabled)
+            addSamplerTab();
+        else
+            removeSamplerTab();
+    }
+
+    void addSamplerTab()
+    {
+        if (samplerTabIndex >= 0) return;  // Already added
+        samplerTabIndex = subTabBar.getNumTabs();
+        subTabBar.addTab(LOC("inputs.tabs.sampler"), juce::Colour(0xFF2A2A2A), -1);
+    }
+
+    void removeSamplerTab()
+    {
+        if (samplerTabIndex < 0) return;  // Not present
+
+        // If currently on the sampler tab, switch away first
+        if (subTabBar.getCurrentTabIndex() == samplerTabIndex)
+            subTabBar.setCurrentTabIndex(0);
+
+        subTabBar.removeTab(samplerTabIndex);
+        samplerTabIndex = -1;
+    }
+
     void toggleSolo()
     {
         auto& vts = parameters.getValueTreeState();
@@ -7483,6 +7578,10 @@ private:
     juce::ComboBox clusterSelector;
     juce::TextButton mapLockButton;
     juce::TextButton mapVisibilityButton;
+    LongPressButton samplerToggleButton { 800 };
+    SamplerSubTab samplerSubTab;
+    bool samplerMasterEnabled = false;
+    int samplerTabIndex = -1;  // -1 = not present
     juce::TextButton levelMeterButton;
     juce::TextButton clearSoloButton;
     juce::TextButton soloButton;

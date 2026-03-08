@@ -120,7 +120,9 @@
       "importSystem": "Systemkonfiguration importieren",
       "exportSystem": "Systemkonfiguration exportieren",
       "streamDeckOff": "Stream Deck+: OFF",
-      "streamDeckOn": "Stream Deck+: ON"
+      "streamDeckOn": "Stream Deck+: ON",
+      "samplerOff": "Sampler: OFF",
+      "samplerOn": "Sampler: ON"
     },
     "algorithms": {
       "inputBuffer": "InputBuffer (Lesezeitverzögerungen)",
@@ -182,6 +184,7 @@
       "exportSystem": "Systemkonfiguration in Datei exportieren (mit Datei-Explorer).",
       "language": "Wählen Sie die Sprache der Benutzeroberfläche. Änderungen werden nach Neustart der Anwendung vollständig wirksam.",
       "streamDeck": "Enable or disable the Stream Deck+ hardware controller integration. Long press to toggle.",
+      "sampler": "Enable or disable the Sampler feature for input channels. Long press to toggle.",
       "binauralEnable": "Enable or disable the binaural renderer processing.",
       "binauralOutput": "Select output channel pair for binaural monitoring. Off disables binaural output.",
       "binauralDistance": "Distance of binaural listener from stage origin (meters).",
@@ -1003,7 +1006,8 @@
       "liveSourceHackoustics": "Live Source & Hackoustik",
       "movements": "Bewegungen",
       "gradientMaps": "Gradientenkarten",
-      "visualisation": "Visualisierung"
+      "visualisation": "Visualisierung",
+      "sampler": "Sampler"
     },
     "gradientMap": {
       "layers": {
@@ -1173,7 +1177,9 @@
       "pauseAll": "Alle pausieren",
       "resumeAll": "Alle fortsetzen",
       "soloModeSingle": "Single",
-      "soloModeMulti": "Multi"
+      "soloModeMulti": "Multi",
+      "samplerOff": "Sampler: OFF",
+      "samplerOn": "Sampler: ON"
     },
     "toggles": {
       "acousticPrecedence": "Akustische Präzedenz",
@@ -1539,6 +1545,64 @@
       "prefixReverbs": "Reverbs: "
     }
   },
+  "sampler": {
+    "placeholder": "Sampler — demnächst verfügbar",
+    "section": {
+      "cell": "ZELLENEIGENSCHAFTEN",
+      "set": "SET-VERWALTUNG",
+      "pressure": "DRUCKZUWEISUNGEN",
+      "actions": "AKTIONEN"
+    },
+    "cell": {
+      "load": "Laden",
+      "clear": "Löschen",
+      "preview": "Vorhören",
+      "loadTitle": "Sample laden",
+      "inTime": "Ein (ms)",
+      "outTime": "Aus (ms)",
+      "inOut": "Ein/Aus (ms)",
+      "offset": "Offset (m)",
+      "offsetX": "Offset X",
+      "offsetY": "Offset Y",
+      "offsetZ": "Offset Z",
+      "attenuation": "Atten (dB)"
+    },
+    "set": {
+      "default": "Set",
+      "rename": "Umbenennen",
+      "sequential": "Sequenziell",
+      "roundRobin": "Round-Robin",
+      "copy": "(Kopie)",
+      "pos": "Pos (m)",
+      "posX": "Pos X (m)",
+      "posY": "Pos Y (m)",
+      "posZ": "Pos Z (m)",
+      "level": "Pegel (dB)"
+    },
+    "press": {
+      "level": "Pegel",
+      "height": "Höhe",
+      "hf": "HF Shelf",
+      "xy": "Position XY",
+      "xyScale": "Skalierung"
+    },
+    "buttons": {
+      "copy": "Kopieren",
+      "paste": "Einfügen",
+      "copyCell": "Zelle kopieren",
+      "copySet": "Set kopieren",
+      "pasteCell": "Zelle einfügen",
+      "pasteSet": "Set einfügen",
+      "import": "Importieren",
+      "export": "Exportieren"
+    },
+    "importTitle": "Sampler-Konfiguration importieren",
+    "exportTitle": "Sampler-Konfiguration exportieren",
+    "grid": {
+      "help": "Klick=Auswahl | Shift=Mehrfach | Strg=Set umschalten | Doppelklick=Laden"
+    }
+  },
+
   "streamDeck": {
     "systemConfig": {
       "buttons": {
