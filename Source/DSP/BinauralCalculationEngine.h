@@ -155,26 +155,23 @@ public:
         listenerPosition.y = -distance * std::cos (angleRad);  // Negative = audience side
         listenerPosition.z = 1.5f;  // Ear height
 
-        // Listener's forward direction (toward origin)
-        float forwardAngle = angleRad + juce::MathConstants<float>::pi;  // 180° flip to face origin
-
         // Calculate virtual speaker positions (±10cm from listener center, angled 45°)
         float halfSpacing = binauralSpeakerSpacing / 2.0f;  // 0.10m
         float speakerAngleRad = juce::degreesToRadians (binauralSpeakerAngle);  // 45°
 
-        // Left speaker: 45° left of forward direction
-        float leftAngle = forwardAngle - speakerAngleRad;
-        leftSpeakerPos.x = listenerPosition.x - halfSpacing * std::cos (forwardAngle);
-        leftSpeakerPos.y = listenerPosition.y - halfSpacing * std::sin (forwardAngle);
-        leftSpeakerPos.z = listenerPosition.z;
-        leftSpeakerOrientation = leftAngle;
+        // Speaker orientations: -listenerAngle ± 45° (stereo pair always covers the stage)
+        leftSpeakerOrientation = -angleRad + speakerAngleRad;   // -listenerAngle + 45°
+        rightSpeakerOrientation = -angleRad - speakerAngleRad;  // -listenerAngle - 45°
 
-        // Right speaker: 45° right of forward direction
-        float rightAngle = forwardAngle + speakerAngleRad;
-        rightSpeakerPos.x = listenerPosition.x + halfSpacing * std::cos (forwardAngle);
-        rightSpeakerPos.y = listenerPosition.y + halfSpacing * std::sin (forwardAngle);
+        // Speaker positions: perpendicular to facing direction
+        // Listener's right direction in WFS convention at angle α is (cos(α), sin(α))
+        leftSpeakerPos.x = listenerPosition.x - halfSpacing * std::cos (angleRad);
+        leftSpeakerPos.y = listenerPosition.y - halfSpacing * std::sin (angleRad);
+        leftSpeakerPos.z = listenerPosition.z;
+
+        rightSpeakerPos.x = listenerPosition.x + halfSpacing * std::cos (angleRad);
+        rightSpeakerPos.y = listenerPosition.y + halfSpacing * std::sin (angleRad);
         rightSpeakerPos.z = listenerPosition.z;
-        rightSpeakerOrientation = rightAngle;
     }
 
 private:
@@ -247,8 +244,9 @@ private:
         // Speaker's rear-pointing axis (opposite of speaker direction)
         // Speaker faces toward speakerOrientation, rear is +180°
         float rearAngle = speakerOrientation + juce::MathConstants<float>::pi;
-        float rearDirX = std::cos (rearAngle);
-        float rearDirY = std::sin (rearAngle);
+        // WFS convention: angle θ → direction (sin(θ), -cos(θ))
+        float rearDirX = std::sin (rearAngle);
+        float rearDirY = -std::cos (rearAngle);
         float rearDirZ = 0.0f;
 
         // Normalize input direction

@@ -449,7 +449,7 @@ public:
         rebuildBinauralOutputSelector();  // Build dynamically based on available channels
         binauralOutputSelector.onChange = [this]() {
             int selectedId = binauralOutputSelector.getSelectedId();
-            int channel = (selectedId == 1) ? -1 : ((selectedId - 2) * 2 + 1);  // Map back to channel
+            int channel = (selectedId == 1) ? -1 : ((selectedId - 2) * 2);  // Map back to 0-based channel
             parameters.getValueTreeState().setBinauralOutputChannel(channel);
             updateBinauralControlsEnabledState();  // Dim controls when output is Off
         };
@@ -1309,7 +1309,7 @@ private:
 
         int binauralChannel = (int)binauralState.getProperty(WFSParameterIDs::binauralOutputChannel,
                                                               WFSParameterDefaults::binauralOutputChannelDefault);
-        int selectedId = (binauralChannel == -1) ? 1 : ((binauralChannel - 1) / 2 + 2);
+        int selectedId = (binauralChannel == -1) ? 1 : (binauralChannel / 2 + 2);
         binauralOutputSelector.setSelectedId(selectedId, juce::dontSendNotification);
 
         // Distance
@@ -1757,7 +1757,7 @@ private:
         }
 
         // Restore or reset selection
-        int selectedId = (currentChannel == -1) ? 1 : ((currentChannel - 1) / 2 + 2);
+        int selectedId = (currentChannel == -1) ? 1 : (currentChannel / 2 + 2);
         if (binauralOutputSelector.indexOfItemId(selectedId) >= 0)
             binauralOutputSelector.setSelectedId(selectedId, juce::dontSendNotification);
         else

@@ -2881,17 +2881,14 @@ private:
             juce::Colour membraneColor = (array == 0) ? juce::Colours::lightgrey : WfsColorUtilities::getArrayColor(array);
 
             // Draw speaker keystone shape showing orientation
-            // Orientation 0° = pointing toward audience (down on screen, +Y in screen coords)
-            // Orientation 180° = pointing toward back of stage (up on screen, -Y in screen coords)
-            // Note: keystone uses inverted angle compared to arrow for correct visual
-            float angleRad = juce::degreesToRadians(static_cast<float>(orientation) - 90.0f);
-
-            // Direction vector (where speaker points)
-            float dirX = std::cos(angleRad);
-            float dirY = std::sin(angleRad);
-            // Perpendicular vector (left side when facing direction)
+            // Speaker faces (sin(orient), cos(orient)) in screen coords
+            // dir = narrow tip direction (opposite of facing)
+            float orientRad = juce::degreesToRadians(static_cast<float>(orientation));
+            float dirX = -std::sin(orientRad);
+            float dirY = -std::cos(orientRad);
+            // Perpendicular vector
             float perpX = -dirY;
-            float perpY = dirX;
+            float perpY =  dirX;
 
             // Keystone dimensions - wide base at back, narrow tip at front (1.5x size)
             float height = 24.0f;        // Total height from back to front

@@ -2557,6 +2557,20 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
             }
         }
 
+        // Push input data to binaural processor BEFORE WFS clears the buffer.
+        if (binauralProcessor && binauralProcessor->isEnabled() && binauralCalcEngine)
+        {
+            int binauralCh = binauralCalcEngine->getBinauralOutputChannel();
+            if (binauralCh >= 0 && binauralCh + 1 < numOutputChannels)
+            {
+                for (int i = 0; i < numInputChannels; ++i)
+                {
+                    const float* inputData = bufferToFill.buffer->getReadPointer(i, bufferToFill.startSample);
+                    binauralProcessor->pushInput(i, inputData, bufferToFill.numSamples);
+                }
+            }
+        }
+
         // Parameter smoothing (runs on ASIO thread, immune to message-pump
         // throttling when the window is minimized)
         if (processingEnabled)
@@ -2734,20 +2748,12 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
             }
         }
 
-        // Process binaural output (all inputs, or only soloed inputs if any are soloed)
+        // Pull binaural output (push happened before WFS processing)
         if (binauralProcessor && binauralProcessor->isEnabled() && binauralCalcEngine)
         {
             int binauralCh = binauralCalcEngine->getBinauralOutputChannel();
             if (binauralCh >= 0 && binauralCh + 1 < numOutputChannels)
             {
-                // Push input data to binaural processor (thread will process)
-                for (int i = 0; i < numInputChannels; ++i)
-                {
-                    const float* inputData = bufferToFill.buffer->getReadPointer(i, bufferToFill.startSample);
-                    binauralProcessor->pushInput(i, inputData, bufferToFill.numSamples);
-                }
-
-                // Pull processed binaural output
                 float* leftOut = bufferToFill.buffer->getWritePointer(binauralCh, bufferToFill.startSample);
                 float* rightOut = bufferToFill.buffer->getWritePointer(binauralCh + 1, bufferToFill.startSample);
                 binauralProcessor->pullOutput(leftOut, rightOut, bufferToFill.numSamples);
@@ -2759,8 +2765,56 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
     }
     else
     {
-        // Clear buffer if no processing
-        bufferToFill.clearActiveBufferRegion();
+        // WFS engine not started — but binaural can run independently
+        if (binauralProcessor && binauralProcessor->isEnabled() && binauralCalcEngine)
+        {
+            int binauralCh = binauralCalcEngine->getBinauralOutputChannel();
+            if (binauralCh >= 0 && binauralCh + 1 < numOutputChannels)
+            {
+                // Input patching: hardware → WFS channels
+                applyInputPatch(bufferToFill);
+
+                // Sampler injection (for preproduction with sampler)
+                if (samplerManager != nullptr && samplerManager->hasAnyActiveChannel())
+                {
+                    for (int ch = 0; ch < numInputChannels; ++ch)
+                    {
+                        if (samplerManager->isChannelActive (ch)
+                            && ch < bufferToFill.buffer->getNumChannels())
+                        {
+                            samplerManager->processChannel (ch, *bufferToFill.buffer,
+                                                            bufferToFill.startSample,
+                                                            bufferToFill.numSamples);
+                        }
+                    }
+                }
+
+                // Push input data to binaural processor
+                for (int i = 0; i < numInputChannels; ++i)
+                {
+                    const float* inputData = bufferToFill.buffer->getReadPointer(i, bufferToFill.startSample);
+                    binauralProcessor->pushInput(i, inputData, bufferToFill.numSamples);
+                }
+
+                // Clear buffer, then pull binaural stereo output
+                bufferToFill.clearActiveBufferRegion();
+
+                float* leftOut = bufferToFill.buffer->getWritePointer(binauralCh, bufferToFill.startSample);
+                float* rightOut = bufferToFill.buffer->getWritePointer(binauralCh + 1, bufferToFill.startSample);
+                binauralProcessor->pullOutput(leftOut, rightOut, bufferToFill.numSamples);
+
+                // Output patching: WFS channels → hardware
+                applyOutputPatch(bufferToFill);
+            }
+            else
+            {
+                bufferToFill.clearActiveBufferRegion();
+            }
+        }
+        else
+        {
+            bufferToFill.clearActiveBufferRegion();
+        }
     }
 
     // Inject test signals (works independently of DSP processing for interface testing)
@@ -3143,12 +3197,13 @@ void MainComponent::timerCallback()
             binauralProcessor->setEnabled(enabled);
         }
 
-        // Only recalculate if positions have changed (dirty flag set)
+        // Always recalculate binaural positions (listener params may have changed independently)
+        if (binauralCalcEngine != nullptr)
+            binauralCalcEngine->recalculatePositions();
+
+        // Only recalculate WFS matrix if input positions have changed (dirty flag set)
         if (calculationEngine->recalculateMatrixIfDirty())
         {
-            // Update binaural virtual speaker positions (depends on listener params)
-            if (binauralCalcEngine != nullptr)
-                binauralCalcEngine->recalculatePositions();
 
             // Copy calculated values to target arrays
             // Note: Calculation engine uses maxOutputChannels (64) for stride,
