@@ -56,6 +56,8 @@ public:
         writePositionsR.clear();
         hfFiltersL.clear();
         hfFiltersR.clear();
+        prevParamsL.clear();
+        prevParamsR.clear();
         inputBuffers.clear();
 
         for (int i = 0; i < numInputs; ++i)
@@ -74,6 +76,10 @@ public:
             filterR.prepare (sampleRate);
             hfFiltersL.push_back (filterL);
             hfFiltersR.push_back (filterR);
+
+            // Smoothed parameter state (snap on first block)
+            prevParamsL.push_back (SmoothedParams());
+            prevParamsR.push_back (SmoothedParams());
 
             // Input ring buffers (4x block size for safety margin)
             inputBuffers.push_back (std::make_unique<LockFreeRingBuffer>());
@@ -184,6 +190,10 @@ public:
             filter.reset();
         for (auto& filter : hfFiltersR)
             filter.reset();
+        for (auto& p : prevParamsL)
+            p.initialized = false;
+        for (auto& p : prevParamsR)
+            p.initialized = false;
         for (auto& buf : inputBuffers)
             buf->reset();
         if (outputBufferL) outputBufferL->reset();
@@ -205,6 +215,15 @@ public:
     }
 
 private:
+    // Per-input smoothed parameter state for interpolation between blocks
+    struct SmoothedParams
+    {
+        float delayMs = 0.0f;
+        float level = 0.0f;
+        float hfDb = 0.0f;
+        bool initialized = false;
+    };
+
     /**
      * Worker thread main loop.
      */
@@ -286,7 +305,8 @@ private:
                                    delayBuffersL[inputIdx],
                                    writePositionsL[inputIdx],
                                    hfFiltersL[inputIdx],
-                                   outL);
+                                   outL,
+                                   prevParamsL[inputIdx]);
 
             // Process right channel
             processInputToChannel (inputIdx, inputData, samplesRead,
@@ -294,7 +314,8 @@ private:
                                    delayBuffersR[inputIdx],
                                    writePositionsR[inputIdx],
                                    hfFiltersR[inputIdx],
-                                   outR);
+                                   outR,
+                                   prevParamsR[inputIdx]);
         }
 
         // Write to output ring buffers
@@ -304,6 +325,8 @@ private:
 
     /**
      * Process one input to one output channel (left or right).
+     * Uses fractional delay with linear interpolation and per-sample
+     * parameter interpolation to avoid graininess on fast position changes.
      */
     void processInputToChannel (int inputIdx,
                                 const float* inputData,
@@ -312,36 +335,72 @@ private:
                                 juce::AudioBuffer<float>& delayBuffer,
                                 int& writePos,
                                 WFSHighShelfFilter& hfFilter,
-                                float* output)
+                                float* output,
+                                SmoothedParams& prevParams)
     {
         juce::ignoreUnused (inputIdx);
         float* delayData = delayBuffer.getWritePointer (0);
 
-        // Calculate delay in samples
-        int delaySamples = (int) (params.delayMs * sampleRate / 1000.0);
-        delaySamples = juce::jlimit (0, delayBufferLength - 1, delaySamples);
+        // First block after init: snap to current values (no interpolation from zero)
+        if (!prevParams.initialized)
+        {
+            prevParams.delayMs = params.delayMs;
+            prevParams.level = params.level;
+            prevParams.hfDb = params.hfAttenuationDb;
+            prevParams.initialized = true;
+        }
 
-        // Set HF filter gain
+        // Per-sample interpolation endpoints
+        float startDelayMs = prevParams.delayMs;
+        float startLevel = prevParams.level;
+        float endDelayMs = params.delayMs;
+        float endLevel = params.level;
+        float invNumSamples = 1.0f / (float) numSamples;
+
+        // Update prev for next block
+        prevParams.delayMs = params.delayMs;
+        prevParams.level = params.level;
+        prevParams.hfDb = params.hfAttenuationDb;
+
+        // Set HF filter gain (filter state provides inherent smoothing)
         hfFilter.setGainDb (params.hfAttenuationDb);
 
-        // Process each sample
+        float msToSamples = (float) (sampleRate / 1000.0);
+        float maxDelay = (float) (delayBufferLength - 2);
+
+        // Process each sample with interpolated parameters
         for (int i = 0; i < numSamples; ++i)
         {
             // Write input to delay buffer
             delayData[writePos] = inputData[i];
 
-            // Read from delay buffer
-            int readPos = writePos - delaySamples;
-            if (readPos < 0)
-                readPos += delayBufferLength;
+            // Interpolate delay and level across the block
+            float t = (float) i * invNumSamples;
+            float currentDelayMs = startDelayMs + (endDelayMs - startDelayMs) * t;
+            float currentLevel = startLevel + (endLevel - startLevel) * t;
 
-            float delayedSample = delayData[readPos];
+            // Fractional delay in samples
+            float delaySamples = currentDelayMs * msToSamples;
+            if (delaySamples < 0.0f) delaySamples = 0.0f;
+            if (delaySamples > maxDelay) delaySamples = maxDelay;
+
+            // Fractional read position with linear interpolation
+            float exactReadPos = (float) writePos - delaySamples;
+            if (exactReadPos < 0.0f)
+                exactReadPos += (float) delayBufferLength;
+
+            int readPos1 = (int) exactReadPos;
+            if (readPos1 >= delayBufferLength) readPos1 -= delayBufferLength;
+            int readPos2 = (readPos1 + 1) % delayBufferLength;
+            float fraction = exactReadPos - std::floor (exactReadPos);
+
+            float delayedSample = delayData[readPos1] + fraction * (delayData[readPos2] - delayData[readPos1]);
 
             // Apply HF filter
             float filteredSample = hfFilter.processSample (delayedSample);
 
-            // Apply level and sum to output
-            output[i] += filteredSample * params.level;
+            // Apply interpolated level and sum to output
+            output[i] += filteredSample * currentLevel;
 
             // Advance write position
             writePos = (writePos + 1) % delayBufferLength;
@@ -373,6 +432,9 @@ private:
     // Per-input HF shelf filters
     std::vector<WFSHighShelfFilter> hfFiltersL;
     std::vector<WFSHighShelfFilter> hfFiltersR;
+
+    std::vector<SmoothedParams> prevParamsL;
+    std::vector<SmoothedParams> prevParamsR;
 
     // Working buffers
     juce::AudioBuffer<float> inputBlock;

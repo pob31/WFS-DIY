@@ -46,6 +46,10 @@ public:
             frHFFilters.emplace_back();  // FR HF air absorption per input
         }
 
+        // Initialize per-input delay interpolation state
+        prevDirectDelaySamples.resize(static_cast<size_t>(numInputs), 0.0f);
+        prevFRDelaySamples.resize(static_cast<size_t>(numInputs), 0.0f);
+
         // Initialize diffusion state (one per input)
         frDiffusionState.resize(static_cast<size_t>(numInputs), 0.0f);
         frDiffusionTarget.resize(static_cast<size_t>(numInputs), 0.0f);
@@ -115,6 +119,9 @@ public:
             frHFFilters[i].prepare(sampleRate);
             frHFFilters[i].setGainDb(0.0f);
         }
+
+        // Reset delay interpolation state (snap on first block)
+        delayInterpInitialized = false;
 
         // Initialize diffusion random generator with output-specific seed
         frRandom.seed(static_cast<unsigned int>(outputChannelIndex * 54321 + 98765));
@@ -329,6 +336,43 @@ private:
         // Update diffusion jitter once per block
         updateDiffusionJitter();
 
+        // Precompute current delay values per input for interpolation
+        float invNumSamples = 1.0f / (float)numSamples;
+        float msToSamples = (float)currentSampleRate / 1000.0f;
+        float maxDelay = (float)(delayBufferLength - 1);
+
+        // Temporary arrays for current block's delay values (stack-allocated for small input counts)
+        std::vector<float> curDirectDelay(static_cast<size_t>(numInputChannels));
+        std::vector<float> curFRDelay(static_cast<size_t>(numInputChannels));
+
+        for (int inChannel = 0; inChannel < numInputChannels; ++inChannel)
+        {
+            int routingIndex = inChannel * numOutputChannels + outputChannelIndex;
+            size_t inIdx = static_cast<size_t>(inChannel);
+
+            // Direct delay
+            float directDelayMs = sharedDelayTimes[routingIndex];
+            float directDelay = directDelayMs * msToSamples;
+            if (directDelay >= maxDelay) directDelay = maxDelay;
+            curDirectDelay[inIdx] = directDelay;
+
+            // FR delay
+            float frExtraDelayMs = (sharedFRDelayTimes != nullptr) ? sharedFRDelayTimes[routingIndex] : 0.0f;
+            float frJitterMs = frDiffusionState[inIdx];
+            float totalFRDelayMs = directDelayMs + frExtraDelayMs + frJitterMs;
+            if (totalFRDelayMs < 0.0f) totalFRDelayMs = 0.0f;
+            float frDelay = totalFRDelayMs * msToSamples;
+            if (frDelay >= maxDelay) frDelay = maxDelay;
+            curFRDelay[inIdx] = frDelay;
+
+            // Snap previous values on first block
+            if (!delayInterpInitialized)
+            {
+                prevDirectDelaySamples[inIdx] = curDirectDelay[inIdx];
+                prevFRDelaySamples[inIdx] = curFRDelay[inIdx];
+            }
+        }
+
         // Process each sample
         for (int sample = 0; sample < numSamples; ++sample)
         {
@@ -339,6 +383,8 @@ private:
             delayData[writePosition] = 0.0f;
             frDelayData[writePosition] = 0.0f;
 
+            float t = (float)sample * invNumSamples;
+
             // Now accumulate contributions from all inputs with their respective delays
             for (int inChannel = 0; inChannel < numInputChannels; ++inChannel)
             {
@@ -347,6 +393,7 @@ private:
 
                 // Calculate index into shared arrays: [inputChannel * numOutputChannels + outputChannel]
                 int routingIndex = inChannel * numOutputChannels + outputChannelIndex;
+                size_t inIdx = static_cast<size_t>(inChannel);
 
                 // Get levels for direct and FR
                 float directLevel = sharedLevels[routingIndex];
@@ -371,13 +418,9 @@ private:
                     // Apply HF filter (air absorption) to input sample
                     float filteredSample = hfFilters[inChannel].processSample(inputSample);
 
-                    // Get delay time in milliseconds and convert to samples
-                    float directDelayMs = sharedDelayTimes[routingIndex];
-                    float directDelaySamples = (directDelayMs / 1000.0f) * (float)currentSampleRate;
-
-                    // Ensure delay doesn't exceed buffer length
-                    if (directDelaySamples >= (float)delayBufferLength)
-                        directDelaySamples = (float)(delayBufferLength - 1);
+                    // Interpolate delay across block for smooth movement
+                    float directDelaySamples = prevDirectDelaySamples[inIdx]
+                        + (curDirectDelay[inIdx] - prevDirectDelaySamples[inIdx]) * t;
 
                     // Calculate write position with delay offset
                     float exactWritePos = (float)writePosition + directDelaySamples;
@@ -404,31 +447,24 @@ private:
                 {
                     // Apply FR filters to input sample
                     float frFilteredSample = inputSample;
-                    if (frLowCutActiveFlags[static_cast<size_t>(inChannel)].load(std::memory_order_acquire))
-                        frFilteredSample = frLowCutFilters[static_cast<size_t>(inChannel)].processSample(frFilteredSample);
-                    if (frHighShelfActiveFlags[static_cast<size_t>(inChannel)].load(std::memory_order_acquire))
-                        frFilteredSample = frHighShelfFilters[static_cast<size_t>(inChannel)].processSample(frFilteredSample);
+                    if (frLowCutActiveFlags[inIdx].load(std::memory_order_acquire))
+                        frFilteredSample = frLowCutFilters[inIdx].processSample(frFilteredSample);
+                    if (frHighShelfActiveFlags[inIdx].load(std::memory_order_acquire))
+                        frFilteredSample = frHighShelfFilters[inIdx].processSample(frFilteredSample);
 
                     // Update FR HF filter gain
                     if (sharedFRHFAttenuation != nullptr)
                     {
                         float frHFGainDb = sharedFRHFAttenuation[routingIndex];
-                        frHFFilters[static_cast<size_t>(inChannel)].setGainDb(frHFGainDb);
+                        frHFFilters[inIdx].setGainDb(frHFGainDb);
                     }
 
                     // Apply FR HF filter (air absorption for longer path)
-                    frFilteredSample = frHFFilters[static_cast<size_t>(inChannel)].processSample(frFilteredSample);
+                    frFilteredSample = frHFFilters[inIdx].processSample(frFilteredSample);
 
-                    // Get FR delay: direct delay + extra delay + diffusion jitter
-                    float directDelayMs = sharedDelayTimes[routingIndex];
-                    float frExtraDelayMs = (sharedFRDelayTimes != nullptr) ? sharedFRDelayTimes[routingIndex] : 0.0f;
-                    float frJitterMs = frDiffusionState[static_cast<size_t>(inChannel)];
-                    float totalFRDelayMs = directDelayMs + frExtraDelayMs + frJitterMs;
-                    if (totalFRDelayMs < 0.0f) totalFRDelayMs = 0.0f;
-
-                    float frDelaySamples = (totalFRDelayMs / 1000.0f) * (float)currentSampleRate;
-                    if (frDelaySamples >= (float)delayBufferLength)
-                        frDelaySamples = (float)(delayBufferLength - 1);
+                    // Interpolate FR delay across block for smooth movement
+                    float frDelaySamples = prevFRDelaySamples[inIdx]
+                        + (curFRDelay[inIdx] - prevFRDelaySamples[inIdx]) * t;
 
                     // Calculate write position with FR delay offset
                     float exactWritePos = (float)writePosition + frDelaySamples;
@@ -451,6 +487,15 @@ private:
             // Advance write/read position
             writePosition = (writePosition + 1) % delayBufferLength;
         }
+
+        // Store current delays for next block's interpolation
+        for (int inChannel = 0; inChannel < numInputChannels; ++inChannel)
+        {
+            size_t inIdx = static_cast<size_t>(inChannel);
+            prevDirectDelaySamples[inIdx] = curDirectDelay[inIdx];
+            prevFRDelaySamples[inIdx] = curFRDelay[inIdx];
+        }
+        delayInterpInitialized = true;
     }
 
     /** Update time-varying diffusion jitter (called once per block) */
@@ -522,6 +567,11 @@ private:
     // FR filter enable flags (one per input) - relaxed atomics for thread safety
     std::atomic<bool>* frLowCutActiveFlags = nullptr;
     std::atomic<bool>* frHighShelfActiveFlags = nullptr;
+
+    // Per-input previous delay values for per-sample interpolation
+    std::vector<float> prevDirectDelaySamples;  // Previous block's direct delay per input
+    std::vector<float> prevFRDelaySamples;      // Previous block's FR delay per input
+    bool delayInterpInitialized = false;
 
     // FR diffusion (time-varying jitter per input)
     std::vector<float> frDiffusionState;   // Current jitter value per input

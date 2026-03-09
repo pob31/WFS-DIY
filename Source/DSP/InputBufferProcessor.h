@@ -44,6 +44,10 @@ public:
             frHFFilters.emplace_back();  // FR HF filter per output
         }
 
+        // Initialize per-output delay interpolation state
+        prevDirectDelaySamples.resize(static_cast<size_t>(numOutputs), 0.0f);
+        prevFRDelaySamples.resize(static_cast<size_t>(numOutputs), 0.0f);
+
         // Initialize diffusion state for time-varying jitter (one per output)
         frDiffusionState.resize(static_cast<size_t>(numOutputs), 0.0f);
         frDiffusionTarget.resize(static_cast<size_t>(numOutputs), 0.0f);
@@ -100,6 +104,9 @@ public:
             filter.prepare(sampleRate);
             filter.setGainDb(0.0f);
         }
+
+        // Reset delay interpolation state (snap on first block)
+        delayInterpInitialized = false;
 
         // Initialize diffusion random generator with input-specific seed
         frRandom.seed(static_cast<unsigned int>(inputChannelIndex * 12345 + 67890));
@@ -416,18 +423,36 @@ private:
                 frHFFilters[outChannel].setGainDb(frHFGainDb);
             }
 
-            // Process each sample
+            // Per-sample delay interpolation: smooth from previous block's delay to current
+            float prevDirect = prevDirectDelaySamples[static_cast<size_t>(outChannel)];
+            float prevFR = prevFRDelaySamples[static_cast<size_t>(outChannel)];
+            if (!delayInterpInitialized)
+            {
+                prevDirect = directDelaySamples;
+                prevFR = frDelaySamples;
+            }
+            float invNumSamples = 1.0f / (float)numSamples;
+
+            // Store current for next block
+            prevDirectDelaySamples[static_cast<size_t>(outChannel)] = directDelaySamples;
+            prevFRDelaySamples[static_cast<size_t>(outChannel)] = frDelaySamples;
+
+            // Process each sample with per-sample delay interpolation
             for (int sample = 0; sample < numSamples; ++sample)
             {
                 float outputSample = 0.0f;
+                float t = (float)sample * invNumSamples;
 
                 // ==========================================
                 // Direct signal
                 // ==========================================
                 if (directLevel > 0.0f)
                 {
+                    // Interpolate delay across block
+                    float interpDelay = prevDirect + (directDelaySamples - prevDirect) * t;
+
                     // Calculate fractional read position for direct signal
-                    float exactReadPos = (float)writePosition + (float)sample - directDelaySamples;
+                    float exactReadPos = (float)writePosition + (float)sample - interpDelay;
                     while (exactReadPos < 0.0f)
                         exactReadPos += (float)delayBufferLength;
 
@@ -451,8 +476,11 @@ private:
                 // ==========================================
                 if (frLevel > 0.0f)
                 {
+                    // Interpolate FR delay across block
+                    float interpFRDelay = prevFR + (frDelaySamples - prevFR) * t;
+
                     // Calculate fractional read position for FR signal (from FR-filtered buffer)
-                    float exactReadPos = (float)frWritePosition + (float)sample - frDelaySamples;
+                    float exactReadPos = (float)frWritePosition + (float)sample - interpFRDelay;
                     while (exactReadPos < 0.0f)
                         exactReadPos += (float)delayBufferLength;
 
@@ -474,6 +502,10 @@ private:
                 outputData[sample] = outputSample;
             }
         }
+
+        // Mark delay interpolation as initialized after first full block
+        if (!delayInterpInitialized)
+            delayInterpInitialized = true;
 
         // Advance write positions
         writePosition = (writePosition + numSamples) % delayBufferLength;
@@ -550,6 +582,11 @@ private:
 
     // FR HF filters for air absorption (one per output channel)
     std::vector<WFSHighShelfFilter> frHFFilters;
+
+    // Per-output previous delay values for per-sample interpolation
+    std::vector<float> prevDirectDelaySamples;  // Previous block's direct delay per output
+    std::vector<float> prevFRDelaySamples;      // Previous block's FR delay per output
+    bool delayInterpInitialized = false;
 
     // FR diffusion (time-varying jitter per output)
     std::vector<float> frDiffusionState;   // Current jitter value per output

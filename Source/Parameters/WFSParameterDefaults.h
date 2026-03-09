@@ -70,7 +70,7 @@ namespace WFSParameterDefaults
     // Fixed binaural constants (not user-adjustable)
     constexpr float binauralSpeakerSpacing          = 0.20f;  // 20cm total (+-10cm from center)
     constexpr float binauralSpeakerAngle            = 45.0f;  // degrees from front-facing
-    constexpr int binauralOnAngle                   = 135;    // degrees - full coverage zone
+    constexpr int binauralOnAngle                   = 70;     // degrees - full coverage zone
     constexpr int binauralOffAngle                  = 1;      // degrees - mute zone
     constexpr float binauralHFShelfPerMeter         = -0.3f;  // dB/m
 
