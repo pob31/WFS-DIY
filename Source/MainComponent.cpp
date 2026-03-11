@@ -11,6 +11,7 @@
 #include "StreamDeck/pages/ReverbTabPages.h"
 #include "StreamDeck/pages/PatchWindowPages.h"
 #include "Controllers/SpaceMouseDevice.h"
+#include "Lightpad/LightpadManager.h"
 
 //==============================================================================
 MainComponent::MainComponent()
@@ -290,6 +291,22 @@ MainComponent::MainComponent()
     systemConfigTab->setSamplerCallback([this](bool enabled) {
         if (inputsTab)
             inputsTab->setSamplerMasterEnabled(enabled);
+
+        // Lightpad starts/stops with sampler
+        if (lightpadManager)
+        {
+            if (enabled)
+                lightpadManager->start();
+            else
+                lightpadManager->stop();
+        }
+        if (inputsTab)
+            inputsTab->setLightpadEnabled (enabled);
+    });
+
+    systemConfigTab->setLightpadSplitCallback([this](int padIndex, bool split) {
+        if (lightpadManager)
+            lightpadManager->setPadSplit (padIndex, split);
     });
 
     systemConfigTab->setBinauralCallback([this](bool /*enabled*/) {
@@ -948,6 +965,108 @@ MainComponent::MainComponent()
         controllerManager->start();
     }
 
+    // Initialize Lightpad Manager (ROLI Lightpad Blocks)
+    {
+        lightpadManager = std::make_unique<LightpadManager> (parameters);
+
+        lightpadManager->callbacks.moveInputDelta = [this] (int inputIdx, float dx, float dy)
+        {
+            juce::MessageManager::callAsync ([this, inputIdx, dx, dy]()
+            {
+                if (mapTab)
+                    mapTab->moveInputByDelta (inputIdx, dx, dy);
+            });
+        };
+
+        lightpadManager->callbacks.applyPressure = [this] (int inputIdx, float pressure)
+        {
+            juce::ignoreUnused (inputIdx, pressure);
+            // TODO: Route pressure to sampler pressure mapping
+        };
+
+        // Lightpad starts with sampler (not its own toggle)
+        bool lpSamplerOn = static_cast<bool> (parameters.getConfigParam ("SamplerEnabled"));
+        if (lpSamplerOn)
+            lightpadManager->start();
+
+        // Restore sensitivity from ValueTree
+        {
+            auto config = parameters.getValueTreeState().getConfigState();
+            auto ui = config.getChildWithName (WFSParameterIDs::UI);
+            if (ui.isValid())
+            {
+                float sens = static_cast<float> (ui.getProperty (
+                    WFSParameterIDs::lightpadSensitivity, 0.05f));
+                lightpadManager->setSensitivity (sens);
+
+                // Restore split states (applied when topology is detected)
+                bool splits[3] = {
+                    static_cast<int> (ui.getProperty (WFSParameterIDs::lightpadPad0Split, 0)) != 0,
+                    static_cast<int> (ui.getProperty (WFSParameterIDs::lightpadPad1Split, 0)) != 0,
+                    static_cast<int> (ui.getProperty (WFSParameterIDs::lightpadPad2Split, 0)) != 0
+                };
+                for (int p = 0; p < 3; ++p)
+                    lightpadManager->setPadSplit (p, splits[p]);
+            }
+        }
+
+        // Restore saved zone-to-input assignments from ValueTree
+        {
+            auto inputs = parameters.getValueTreeState().getInputsState();
+            for (int i = 0; i < inputs.getNumChildren(); ++i)
+            {
+                auto ch = inputs.getChild (i);
+                auto channelSection = ch.getChildWithName (WFSParameterIDs::Channel);
+                if (channelSection.isValid())
+                {
+                    int zoneId = static_cast<int> (channelSection.getProperty (
+                        WFSParameterIDs::lightpadZoneId, -1));
+                    if (zoneId >= 0)
+                        lightpadManager->assignZoneToInput (zoneId, i);
+                }
+            }
+        }
+
+        // Wire topology change notification to SystemConfigTab mini-map
+        lightpadManager->onTopologyChanged = [this] (const std::vector<PadLayoutInfo>& pads)
+        {
+            if (systemConfigTab)
+                systemConfigTab->updateLightpadLayout (pads);
+        };
+
+        // Wire LightpadZoneQuery into SamplerSubTab via InputsTab
+        if (inputsTab)
+        {
+            SamplerSubTab::LightpadZoneQuery zoneQuery;
+            zoneQuery.getAllZones = [this]() {
+                return lightpadManager ? lightpadManager->getAllZonesWithNames()
+                                       : std::vector<std::pair<int, juce::String>>();
+            };
+            zoneQuery.getAssignedZoneIds = [this]() {
+                return lightpadManager ? lightpadManager->getAssignedZoneIds()
+                                       : std::set<int>();
+            };
+            zoneQuery.getAssignedZones = [this]() {
+                return lightpadManager ? lightpadManager->getAssignedZonesMap()
+                                       : std::map<int, int>();
+            };
+            zoneQuery.showZoneNumbers = [this](bool show) {
+                if (lightpadManager)
+                    lightpadManager->showZoneNumbersOnLeds (show);
+            };
+            zoneQuery.getPadLayouts = [this]() {
+                return lightpadManager ? lightpadManager->getPadLayouts()
+                                       : std::vector<PadLayoutInfo>();
+            };
+            inputsTab->setLightpadZoneQuery (std::move (zoneQuery));
+            inputsTab->setLightpadZoneChangedCallback ([this](int inputIndex, int zoneId) {
+                if (lightpadManager)
+                    lightpadManager->assignZoneToInput (zoneId, inputIndex);
+            });
+            inputsTab->setLightpadEnabled (lpSamplerOn);
+        }
+    }
+
     // Initialize WFS Calculation Engine for DSP parameter generation
     calculationEngine = std::make_unique<WFSCalculationEngine>(parameters.getValueTreeState());
 
@@ -1409,6 +1528,13 @@ MainComponent::~MainComponent()
 {
     // Stop listening to color scheme changes
     ColorScheme::Manager::getInstance().removeListener(this);
+
+    // Stop and destroy lightpad manager before UI teardown
+    if (lightpadManager)
+    {
+        lightpadManager->stop();
+        lightpadManager.reset();
+    }
 
     // Destroy TTSManager singleton before JUCE timer thread shuts down
     TTSManager::shutdown();

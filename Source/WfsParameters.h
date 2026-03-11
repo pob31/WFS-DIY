@@ -343,6 +343,7 @@ private:
         if (paramName == "StreamDeckEnabled") return WFSParameterIDs::streamDeckEnabled;
         if (paramName == "SamplerEnabled") return WFSParameterIDs::samplerEnabled;
         if (paramName == "SamplerBlockSerial") return WFSParameterIDs::samplerBlockSerial;
+        if (paramName == "LightpadSensitivity") return WFSParameterIDs::lightpadSensitivity;
 
         // Default: use the parameter name directly as identifier
         return juce::Identifier (paramName);

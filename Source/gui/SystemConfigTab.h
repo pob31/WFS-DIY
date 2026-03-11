@@ -12,6 +12,8 @@
 #include "buttons/LongPressButton.h"
 #include "ColumnFocusTraverser.h"
 #include "../AppSettings.h"
+#include "../Lightpad/LightpadTypes.h"
+#include "LightpadArrangementOverlay.h"
 
 #if JUCE_WINDOWS
     #include <winsock2.h>
@@ -205,6 +207,7 @@ public:
     using ConfigReloadedCallback = std::function<void()>;
     using StreamDeckCallback = std::function<void(bool enabled)>;
     using SamplerCallback = std::function<void(bool enabled)>;
+    using LightpadSplitCallback = std::function<void(int padIndex, bool split)>;
     using BinauralCallback = std::function<void(bool enabled)>;
 
     SystemConfigTab(WfsParameters& params)
@@ -430,6 +433,11 @@ public:
         addAndMakeVisible(samplerEnableButton);
         samplerEnableButton.setButtonText(LOC("systemConfig.buttons.samplerOff"));
         samplerEnableButton.onLongPress = [this]() { toggleSampler(); };
+
+        // Lightpad arrangement button
+        lightpadArrangementButton.onClick = [this] { showLightpadArrangementOverlay(); };
+        lightpadArrangementButton.setVisible (false);
+        addChildComponent (lightpadArrangementButton);
 
         // Binaural Section
         addAndMakeVisible(binauralEnableButton);
@@ -724,6 +732,15 @@ public:
         g.drawText(LOC("systemConfig.sections.master"), layout.col2X, scaled(400), layout.colWidth, headerH, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.wfsProcessor"), layout.col3X, scaled(10), layout.colWidth, headerH, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.binauralRenderer"), layout.col3X, scaled(200), layout.colWidth, headerH, juce::Justification::left);
+
+        // Lightpad "no pad" message (when sampler on but no pads)
+        if (! lightpadNoPadBounds.isEmpty())
+        {
+            g.setColour (juce::Colours::white.withAlpha (0.3f));
+            g.setFont (juce::FontOptions (10.0f));
+            g.drawText (LOC ("systemConfig.labels.noLightpad"),
+                        lightpadNoPadBounds, juce::Justification::centred);
+        }
     }
 
     void resized() override
@@ -780,6 +797,29 @@ public:
         y += rowHeight + spacing;
 
         samplerEnableButton.setBounds(x, y, fullWidth, rowHeight);
+        y += rowHeight + spacing;
+
+        // Lightpad button (visible when sampler is on)
+        lightpadNoPadBounds = {};
+        if ((bool) parameters.getConfigParam ("SamplerEnabled") && ! lightpadPadLayouts.empty())
+        {
+            juce::String btnText = LOC ("systemConfig.labels.lightpadArrangement")
+                                   + " (" + juce::String (lightpadPadLayouts.size()) + ")";
+            lightpadArrangementButton.setButtonText (btnText);
+            lightpadArrangementButton.setBounds (x, y, fullWidth, rowHeight);
+            lightpadArrangementButton.setVisible (true);
+            y += rowHeight + spacing;
+        }
+        else if ((bool) parameters.getConfigParam ("SamplerEnabled") && lightpadPadLayouts.empty())
+        {
+            lightpadArrangementButton.setVisible (false);
+            lightpadNoPadBounds = juce::Rectangle<int> (x, y, fullWidth, 24);
+            y += 24 + spacing;
+        }
+        else
+        {
+            lightpadArrangementButton.setVisible (false);
+        }
 
         //======================================================================
         // COLUMN 2: Stage, Master
@@ -1008,6 +1048,11 @@ public:
     void setSamplerCallback(SamplerCallback callback)
     {
         onSamplerEnabledChanged = callback;
+    }
+
+    void setLightpadSplitCallback(LightpadSplitCallback callback)
+    {
+        onLightpadSplitChanged = callback;
     }
 
     void setBinauralCallback(BinauralCallback callback)
@@ -1293,6 +1338,8 @@ private:
         bool samplerOn = (bool)parameters.getConfigParam("SamplerEnabled");
         samplerEnableButton.setButtonText(samplerOn ? LOC("systemConfig.buttons.samplerOn")
                                                      : LOC("systemConfig.buttons.samplerOff"));
+
+        // Lightpad split state restored from ValueTree on topology change
 
         // Solo mode button
         updateSoloModeButtonText();
@@ -1706,7 +1753,132 @@ private:
                                                     : LOC("systemConfig.buttons.samplerOff"));
         if (onSamplerEnabledChanged)
             onSamplerEnabledChanged(newState);
+
+        // Show/hide lightpad mini-map
+        resized();
+        repaint();
     }
+
+public:
+    //==============================================================================
+    // Lightpad mini-map: visual representation of detected Lightpad topology
+    //==============================================================================
+    void updateLightpadLayout (const std::vector<PadLayoutInfo>& pads)
+    {
+        lightpadPadLayouts = pads;
+
+        // Restore split state from ValueTree
+        auto config = parameters.getValueTreeState().getConfigState();
+        auto ui = config.getChildWithName (WFSParameterIDs::UI);
+        if (ui.isValid())
+        {
+            const juce::Identifier splitIds[3] = {
+                WFSParameterIDs::lightpadPad0Split,
+                WFSParameterIDs::lightpadPad1Split,
+                WFSParameterIDs::lightpadPad2Split
+            };
+            for (auto& pl : lightpadPadLayouts)
+                if (pl.padIndex >= 0 && pl.padIndex < 3)
+                    pl.isSplit = static_cast<int> (ui.getProperty (splitIds[pl.padIndex], 0)) != 0;
+        }
+
+        resized();
+        repaint();
+    }
+
+    // (mini-map painting removed — replaced by lightpadArrangementButton)
+
+    void showLightpadArrangementOverlay()
+    {
+        auto* parent = getTopLevelComponent();
+        if (parent == nullptr || lightpadPadLayouts.empty()) return;
+
+        juce::Component::SafePointer<juce::Component> safeParent = parent;
+        juce::Component::SafePointer<SystemConfigTab> safeThis = this;
+
+        auto removeOverlay = [safeParent, safeThis]()
+        {
+            juce::MessageManager::callAsync ([safeParent, safeThis]()
+            {
+                if (safeParent == nullptr) return;
+
+                auto* p = safeParent.getComponent();
+                for (int i = p->getNumChildComponents() - 1; i >= 0; --i)
+                {
+                    auto* child = p->getChildComponent (i);
+                    if (dynamic_cast<LightpadArrangementOverlay*> (child) ||
+                        dynamic_cast<LightpadZoneBackdrop*> (child))
+                    {
+                        p->removeChildComponent (child);
+                        delete child;
+                    }
+                }
+
+                if (safeThis != nullptr)
+                    safeThis->repaint();
+            });
+        };
+
+        // Split toggle callback
+        auto onSplit = [safeThis] (int padIndex, bool split)
+        {
+            if (safeThis == nullptr) return;
+
+            // Update local layout state
+            for (auto& pl : safeThis->lightpadPadLayouts)
+                if (pl.padIndex == padIndex)
+                    pl.isSplit = split;
+
+            // Save to ValueTree
+            const juce::Identifier splitIds[3] = {
+                WFSParameterIDs::lightpadPad0Split,
+                WFSParameterIDs::lightpadPad1Split,
+                WFSParameterIDs::lightpadPad2Split
+            };
+            if (padIndex >= 0 && padIndex < 3)
+            {
+                auto config = safeThis->parameters.getValueTreeState().getConfigState();
+                auto ui = config.getChildWithName (WFSParameterIDs::UI);
+                if (ui.isValid())
+                    ui.setProperty (splitIds[padIndex], split ? 1 : 0, nullptr);
+            }
+
+            // Notify manager
+            if (safeThis->onLightpadSplitChanged)
+                safeThis->onLightpadSplitChanged (padIndex, split);
+        };
+
+        // Backdrop
+        auto backdrop = std::make_unique<LightpadZoneBackdrop> (removeOverlay);
+        backdrop->setBounds (parent->getLocalBounds());
+        parent->addAndMakeVisible (backdrop.release());
+
+        // Overlay
+        auto overlay = std::make_unique<LightpadArrangementOverlay> (
+            lightpadPadLayouts, onSplit, removeOverlay);
+
+        auto requiredSize = overlay->getRequiredSize();
+        auto btnBoundsInParent = parent->getLocalArea (&lightpadArrangementButton,
+                                                        lightpadArrangementButton.getLocalBounds());
+
+        int popupX = btnBoundsInParent.getX();
+        int popupY = btnBoundsInParent.getBottom() + 4;
+
+        auto parentBounds = parent->getLocalBounds();
+        if (popupX + requiredSize.x > parentBounds.getRight())
+            popupX = parentBounds.getRight() - requiredSize.x;
+        if (popupX < 0) popupX = 0;
+        if (popupY + requiredSize.y > parentBounds.getBottom())
+            popupY = btnBoundsInParent.getY() - requiredSize.y - 4;
+        if (popupY < 0) popupY = 0;
+
+        overlay->setBounds (popupX, popupY, requiredSize.x, requiredSize.y);
+        parent->addAndMakeVisible (overlay.release());
+    }
+
+private:
+    // (mini-map compute methods removed — overlay handles its own layout)
+public:
 
     void updateIOControlsEnabledState()
     {
@@ -2464,6 +2636,11 @@ private:
     LongPressButton streamDeckEnableButton { 800 };
     LongPressButton samplerEnableButton { 800 };
 
+    // Lightpad state
+    std::vector<PadLayoutInfo> lightpadPadLayouts;
+    juce::TextButton lightpadArrangementButton;
+    juce::Rectangle<int> lightpadNoPadBounds;  // for "No Lightpad detected" text
+
     // Binaural Section
     LongPressButton binauralEnableButton { 800 };
     juce::Label binauralOutputLabel;
@@ -2505,6 +2682,7 @@ private:
     ConfigReloadedCallback onConfigReloaded;
     StreamDeckCallback onStreamDeckEnabledChanged;
     SamplerCallback onSamplerEnabledChanged;
+    LightpadSplitCallback onLightpadSplitChanged;
     BinauralCallback onBinauralChanged;
 
     // Helper to notify MainComponent of any channel count change

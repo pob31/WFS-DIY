@@ -34,6 +34,7 @@
 #include "StreamDeck/StreamDeckManager.h"
 #include "StreamDeck/pages/PatchWindowPages.h"
 #include "Controllers/ControllerManager.h"
+#include "Lightpad/LightpadManager.h"
 #include "GradientMap/GradientMapEvaluator.h"
 #include "GradientMap/GradientMapData.h"
 #include "Sampler/SamplerManager.h"
@@ -195,6 +196,9 @@ private:
 
     // Input controllers (SpaceMouse, joystick, gamepad)
     std::unique_ptr<ControllerManager> controllerManager;
+
+    // ROLI Lightpad Block controllers
+    std::unique_ptr<LightpadManager> lightpadManager;
 
     // WFS calculation engine (computes delays, levels, HF attenuation)
     std::unique_ptr<WFSCalculationEngine> calculationEngine;

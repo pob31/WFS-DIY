@@ -1693,6 +1693,13 @@ void WFSValueTreeState::createUISection (juce::ValueTree& config)
     ui.setProperty (streamDeckEnabled, streamDeckEnabledDefault, nullptr);
     ui.setProperty (samplerEnabled, samplerEnabledDefault, nullptr);
     ui.setProperty (samplerBlockSerial, "", nullptr);
+    ui.setProperty (lightpadPad0Split, lightpadSplitDefault, nullptr);
+    ui.setProperty (lightpadPad1Split, lightpadSplitDefault, nullptr);
+    ui.setProperty (lightpadPad2Split, lightpadSplitDefault, nullptr);
+    ui.setProperty (lightpadPad0DeviceId, "", nullptr);
+    ui.setProperty (lightpadPad1DeviceId, "", nullptr);
+    ui.setProperty (lightpadPad2DeviceId, "", nullptr);
+    ui.setProperty (lightpadSensitivity, lightpadSensitivityDefault, nullptr);
     config.appendChild (ui, nullptr);
 }
 
@@ -1819,6 +1826,7 @@ juce::ValueTree WFSValueTreeState::createInputChannelSection (int index)
     channel.setProperty (inputMapVisible, 1, nullptr);   // Default: visible
     channel.setProperty (inputSamplerActive, inputSamplerActiveDefault, nullptr);
     channel.setProperty (samplerMidiZoneQuadrant, samplerMidiZoneQuadrantDefault, nullptr);
+    channel.setProperty (lightpadZoneId, lightpadZoneIdDefault, nullptr);
     return channel;
 }
 

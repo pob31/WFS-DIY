@@ -565,4 +565,20 @@ namespace WFSParameterIDs
     const juce::Identifier samplerSetPressXYEnabled     ("samplerSetPressXYEnabled");     // 0/1 (XY joystick)
     const juce::Identifier samplerSetPressXYScale       ("samplerSetPressXYScale");       // m per update
 
+    //==========================================================================
+    // Lightpad Parameters
+    //==========================================================================
+
+    // Config > UI (global settings)
+    const juce::Identifier lightpadPad0Split     ("lightpadPad0Split");       // int: 0=full, 1=split into 4
+    const juce::Identifier lightpadPad1Split     ("lightpadPad1Split");
+    const juce::Identifier lightpadPad2Split     ("lightpadPad2Split");
+    const juce::Identifier lightpadPad0DeviceId  ("lightpadPad0DeviceId");    // string: Block UID
+    const juce::Identifier lightpadPad1DeviceId  ("lightpadPad1DeviceId");
+    const juce::Identifier lightpadPad2DeviceId  ("lightpadPad2DeviceId");
+    const juce::Identifier lightpadSensitivity   ("lightpadSensitivity");     // float: m per unit deflection
+
+    // Per-channel (stored in Channel section)
+    const juce::Identifier lightpadZoneId        ("lightpadZoneId");          // int: -1=unassigned, 0-11=zone
+
 } // namespace WFSParameterIDs

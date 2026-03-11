@@ -919,4 +919,14 @@ namespace WFSParameterDefaults
     constexpr float samplerSetPressXYScaleMin         = 0.01f;
     constexpr float samplerSetPressXYScaleMax         = 0.2f;
 
+    //==========================================================================
+    // Lightpad Defaults
+    //==========================================================================
+
+    constexpr int   lightpadSplitDefault         = 0;     // full (no split)
+    constexpr float lightpadSensitivityDefault   = 0.05f; // meters per unit deflection
+    constexpr float lightpadSensitivityMin       = 0.01f;
+    constexpr float lightpadSensitivityMax       = 0.20f;
+    constexpr int   lightpadZoneIdDefault        = -1;    // unassigned
+
 } // namespace WFSParameterDefaults

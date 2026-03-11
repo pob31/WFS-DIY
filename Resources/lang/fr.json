@@ -98,7 +98,12 @@
       "binauralDistance": "Listener Distance:",
       "binauralAngle": "Listener Angle:",
       "binauralAtten": "Binaural Level:",
-      "binauralDelay": "Binaural Delay:"
+      "binauralDelay": "Binaural Delay:",
+      "lightpadSensitivity": "Sensibilité:",
+      "noLightpad": "Aucun Lightpad détecté",
+      "lightpadArrangement": "Arrangement Lightpad",
+      "split": "Divisé",
+      "clickToSplit": "Cliquer pour diviser"
     },
     "buttons": {
       "audioPatch": "Interface audio et routage",
@@ -122,7 +127,7 @@
       "streamDeckOff": "Stream Deck+: OFF",
       "streamDeckOn": "Stream Deck+: ON",
       "samplerOff": "Sampler: OFF",
-      "samplerOn": "Sampler: ON"
+      "samplerOn": "Sampler: ON",
     },
     "algorithms": {
       "inputBuffer": "InputBuffer (délais en lecture)",
@@ -1581,6 +1586,13 @@
       "hf": "HF Shelf",
       "xy": "Position XY",
       "xyScale": "Échelle"
+    },
+    "labels": {
+      "lightpadZone": "Zone Lightpad",
+      "selectZone": "Sélectionner Zone"
+    },
+    "lightpadZone": {
+      "none": "Aucune"
     },
     "buttons": {
       "copy": "Copier",

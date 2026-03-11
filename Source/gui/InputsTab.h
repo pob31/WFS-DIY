@@ -788,6 +788,21 @@ public:
         resized();
     }
 
+    void setLightpadEnabled (bool enabled)
+    {
+        samplerSubTab.setLightpadEnabled (enabled);
+    }
+
+    void setLightpadZoneQuery (SamplerSubTab::LightpadZoneQuery query)
+    {
+        samplerSubTab.lightpadZoneQuery = std::move (query);
+    }
+
+    void setLightpadZoneChangedCallback (std::function<void (int inputIndex, int zoneId)> cb)
+    {
+        samplerSubTab.onLightpadZoneChanged = std::move (cb);
+    }
+
 private:
     // ==================== CHANGE LISTENER ====================
 

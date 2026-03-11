@@ -20,11 +20,26 @@
     <Filter Include="WFS-DIY\Source\Network">
       <UniqueIdentifier>{F0025758-791F-87C4-6ABD-F1E1A184504B}</UniqueIdentifier>
     </Filter>
+    <Filter Include="WFS-DIY\Source\StreamDeck\pages">
+      <UniqueIdentifier>{BD3A1510-5303-03E6-3E76-D75E71131B20}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="WFS-DIY\Source\StreamDeck">
+      <UniqueIdentifier>{26B04B0E-D357-99B8-CF05-80E63FD0585C}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="WFS-DIY\Source\Controllers">
+      <UniqueIdentifier>{1A7FB084-B2DE-86EC-E7BE-9DAFACDA277C}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="WFS-DIY\Source\Lightpad">
+      <UniqueIdentifier>{BC2A8769-02C5-A56B-E6E6-C6952D2A9BF2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="WFS-DIY\Source\GradientMap">
+      <UniqueIdentifier>{27804724-DBF9-233A-9A25-DDC32F863204}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="WFS-DIY\Source\hidapi">
+      <UniqueIdentifier>{32D100D4-D9F1-9555-30BF-5F6C12E44D29}</UniqueIdentifier>
+    </Filter>
     <Filter Include="WFS-DIY\Source\DSP">
       <UniqueIdentifier>{17A0B288-77FA-A44E-2FD6-CD9A8B53854E}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="WFS-DIY\Source\Sampler">
-      <UniqueIdentifier>{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}</UniqueIdentifier>
     </Filter>
     <Filter Include="WFS-DIY\Source">
       <UniqueIdentifier>{302C0974-C160-8B5C-13C8-37F2C9D030F7}</UniqueIdentifier>
@@ -734,6 +749,42 @@
     <Filter Include="JUCE Modules\juce_osc">
       <UniqueIdentifier>{B1DE8DB1-C00A-12C0-D690-8B3C9504A60A}</UniqueIdentifier>
     </Filter>
+    <Filter Include="JUCE Modules\roli_blocks_basics\blocks">
+      <UniqueIdentifier>{E0582E19-33AA-A720-D88A-526F4A2BA477}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="JUCE Modules\roli_blocks_basics\examples\BlockFinder\Linux">
+      <UniqueIdentifier>{577E3B81-F02E-40F7-6133-D3E532371EAE}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="JUCE Modules\roli_blocks_basics\examples\BlockFinder\MacOS">
+      <UniqueIdentifier>{C98FD7C0-E97C-F24C-6790-83321369E41D}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="JUCE Modules\roli_blocks_basics\examples\BlockFinder\Windows">
+      <UniqueIdentifier>{13B28FFC-4853-867D-F2DA-21A305E8FAED}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="JUCE Modules\roli_blocks_basics\examples\BlockFinder">
+      <UniqueIdentifier>{A7E62AEC-D8FF-9C90-72F8-DD04D5CB3DEB}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="JUCE Modules\roli_blocks_basics\examples">
+      <UniqueIdentifier>{BD07C9BC-C6C1-6282-4B06-6A6C451A6A23}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="JUCE Modules\roli_blocks_basics\littlefoot">
+      <UniqueIdentifier>{395DD06A-BCC3-B066-CCDF-B32B9FE2E7D3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="JUCE Modules\roli_blocks_basics\protocol">
+      <UniqueIdentifier>{1F854308-7FB5-962E-D44D-305F8CD17A8B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="JUCE Modules\roli_blocks_basics\topology\internal">
+      <UniqueIdentifier>{A520DBD5-8753-3686-88C9-56A438391866}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="JUCE Modules\roli_blocks_basics\topology">
+      <UniqueIdentifier>{EE94A17D-1264-B92E-FF05-F3B65DEB0BED}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="JUCE Modules\roli_blocks_basics\visualisers">
+      <UniqueIdentifier>{C74E86E6-3DA1-FB40-0408-1AD082628806}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="JUCE Modules\roli_blocks_basics">
+      <UniqueIdentifier>{632F5D95-2CFD-DBB2-A1DE-66E84595E685}</UniqueIdentifier>
+    </Filter>
     <Filter Include="JUCE Modules">
       <UniqueIdentifier>{FE955B6B-68AC-AA07-70D8-2413F6DB65C8}</UniqueIdentifier>
     </Filter>
@@ -810,6 +861,9 @@
     </ClCompile>
     <ClCompile Include="..\..\Source\Network\TrackingRTTrPReceiver.cpp">
       <Filter>WFS-DIY\Source\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\hidapi\HidApiPlatform.c">
+      <Filter>WFS-DIY\Source\hidapi</Filter>
     </ClCompile>
     <ClCompile Include="..\..\Source\Main.cpp">
       <Filter>WFS-DIY\Source</Filter>
@@ -3865,6 +3919,72 @@
     <ClCompile Include="..\..\ThirdParty\JUCE\modules\juce_osc\juce_osc.cpp">
       <Filter>JUCE Modules\juce_osc</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\roli_blocks_basics\blocks\roli_Block.cpp">
+      <Filter>JUCE Modules\roli_blocks_basics\blocks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\roli_blocks_basics\blocks\roli_BlocksVersion.cpp">
+      <Filter>JUCE Modules\roli_blocks_basics\blocks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\roli_blocks_basics\examples\BlockFinder\Linux\main.cpp">
+      <Filter>JUCE Modules\roli_blocks_basics\examples\BlockFinder\Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\roli_blocks_basics\examples\BlockFinder\MacOS\main.mm">
+      <Filter>JUCE Modules\roli_blocks_basics\examples\BlockFinder\MacOS</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\roli_blocks_basics\examples\BlockFinder\Windows\main.cpp">
+      <Filter>JUCE Modules\roli_blocks_basics\examples\BlockFinder\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\roli_blocks_basics\examples\BlockFinder\BlockFinder.cpp">
+      <Filter>JUCE Modules\roli_blocks_basics\examples\BlockFinder</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\roli_blocks_basics\topology\internal\roli_BandwidthStatsLogger.cpp">
+      <Filter>JUCE Modules\roli_blocks_basics\topology\internal</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\roli_blocks_basics\topology\internal\roli_BlockImplementation.cpp">
+      <Filter>JUCE Modules\roli_blocks_basics\topology\internal</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\roli_blocks_basics\topology\internal\roli_BlockSerialReader.cpp">
+      <Filter>JUCE Modules\roli_blocks_basics\topology\internal</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\roli_blocks_basics\topology\internal\roli_ConnectedDeviceGroup.cpp">
+      <Filter>JUCE Modules\roli_blocks_basics\topology\internal</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\roli_blocks_basics\topology\internal\roli_DepreciatedVersionReader.cpp">
+      <Filter>JUCE Modules\roli_blocks_basics\topology\internal</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\roli_blocks_basics\topology\internal\roli_Detector.cpp">
+      <Filter>JUCE Modules\roli_blocks_basics\topology\internal</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\roli_blocks_basics\topology\internal\roli_DetectorHolder.cpp">
+      <Filter>JUCE Modules\roli_blocks_basics\topology\internal</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\roli_blocks_basics\topology\internal\roli_DeviceInfo.cpp">
+      <Filter>JUCE Modules\roli_blocks_basics\topology\internal</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\roli_blocks_basics\topology\internal\roli_MidiDeviceConnection.cpp">
+      <Filter>JUCE Modules\roli_blocks_basics\topology\internal</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\roli_blocks_basics\topology\internal\roli_MIDIDeviceDetector.cpp">
+      <Filter>JUCE Modules\roli_blocks_basics\topology\internal</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\roli_blocks_basics\topology\roli_BlockGraph.cpp">
+      <Filter>JUCE Modules\roli_blocks_basics\topology</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\roli_blocks_basics\topology\roli_PhysicalTopologySource.cpp">
+      <Filter>JUCE Modules\roli_blocks_basics\topology</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\roli_blocks_basics\topology\roli_RuleBasedTopologySource.cpp">
+      <Filter>JUCE Modules\roli_blocks_basics\topology</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\roli_blocks_basics\visualisers\roli_BitmapLEDProgram.cpp">
+      <Filter>JUCE Modules\roli_blocks_basics\visualisers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\roli_blocks_basics\visualisers\roli_DrumPadLEDProgram.cpp">
+      <Filter>JUCE Modules\roli_blocks_basics\visualisers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\roli_blocks_basics\roli_blocks_basics.cpp">
+      <Filter>JUCE Modules\roli_blocks_basics</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\JuceLibraryCode\include_juce_audio_basics.cpp">
       <Filter>JUCE Library Code</Filter>
     </ClCompile>
@@ -3925,6 +4045,9 @@
     <ClCompile Include="..\..\JuceLibraryCode\include_juce_osc.cpp">
       <Filter>JUCE Library Code</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\JuceLibraryCode\include_roli_blocks_basics.cpp">
+      <Filter>JUCE Library Code</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Source\Parameters\WFSParameterIDs.h">
@@ -3937,6 +4060,9 @@
       <Filter>WFS-DIY\Source\Parameters</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Parameters\WFSFileManager.h">
+      <Filter>WFS-DIY\Source\Parameters</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Parameters\ParameterDirtyTracker.h">
       <Filter>WFS-DIY\Source\Parameters</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\gui\ConfigTabComponent.h">
@@ -4038,6 +4164,57 @@
     <ClInclude Include="..\..\Source\Network\TrackingRTTrPReceiver.h">
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\StreamDeck\StreamDeckDevice.h">
+      <Filter>WFS-DIY\Source\StreamDeck</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\StreamDeck\StreamDeckPage.h">
+      <Filter>WFS-DIY\Source\StreamDeck</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\StreamDeck\StreamDeckRenderer.h">
+      <Filter>WFS-DIY\Source\StreamDeck</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\StreamDeck\StreamDeckManager.h">
+      <Filter>WFS-DIY\Source\StreamDeck</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\StreamDeck\pages\InputsTabPages.h">
+      <Filter>WFS-DIY\Source\StreamDeck\pages</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Controllers\ControllerEvent.h">
+      <Filter>WFS-DIY\Source\Controllers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Controllers\ControllerDevice.h">
+      <Filter>WFS-DIY\Source\Controllers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Controllers\SpaceMouseDevice.h">
+      <Filter>WFS-DIY\Source\Controllers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Controllers\ControllerMapping.h">
+      <Filter>WFS-DIY\Source\Controllers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Controllers\ControllerManager.h">
+      <Filter>WFS-DIY\Source\Controllers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Lightpad\LightpadTypes.h">
+      <Filter>WFS-DIY\Source\Lightpad</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Lightpad\LightpadDevice.h">
+      <Filter>WFS-DIY\Source\Lightpad</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Lightpad\LightpadManager.h">
+      <Filter>WFS-DIY\Source\Lightpad</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\GradientMap\GradientMapData.h">
+      <Filter>WFS-DIY\Source\GradientMap</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\GradientMap\GradientMapEvaluator.h">
+      <Filter>WFS-DIY\Source\GradientMap</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\GradientMap\GradientMapEditor.h">
+      <Filter>WFS-DIY\Source\GradientMap</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\hidapi\hidapi\hidapi.h">
+      <Filter>WFS-DIY\Source\hidapi</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\MainComponent.h">
       <Filter>WFS-DIY\Source</Filter>
     </ClInclude>
@@ -4046,21 +4223,6 @@
     </ClInclude>
     <ClInclude Include="..\..\Source\WFSAlgorithm.h">
       <Filter>WFS-DIY\Source</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Source\Sampler\SamplerData.h">
-      <Filter>WFS-DIY\Source\Sampler</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Source\Sampler\SamplerEngine.h">
-      <Filter>WFS-DIY\Source\Sampler</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Source\Sampler\SamplerFileOps.h">
-      <Filter>WFS-DIY\Source\Sampler</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Source\Sampler\SamplerManager.h">
-      <Filter>WFS-DIY\Source\Sampler</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Source\gui\SamplerSubTab.h">
-      <Filter>WFS-DIY\Source\gui</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\DSP\WFSCalculationEngine.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
@@ -8334,6 +8496,96 @@
     <ClInclude Include="..\..\ThirdParty\JUCE\modules\juce_osc\juce_osc.h">
       <Filter>JUCE Modules\juce_osc</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\roli_blocks_basics\blocks\roli_Block.h">
+      <Filter>JUCE Modules\roli_blocks_basics\blocks</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\roli_blocks_basics\blocks\roli_BlockConfigId.h">
+      <Filter>JUCE Modules\roli_blocks_basics\blocks</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\roli_blocks_basics\blocks\roli_BlockConfigManager.h">
+      <Filter>JUCE Modules\roli_blocks_basics\blocks</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\roli_blocks_basics\blocks\roli_BlocksVersion.h">
+      <Filter>JUCE Modules\roli_blocks_basics\blocks</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\roli_blocks_basics\blocks\roli_ControlButton.h">
+      <Filter>JUCE Modules\roli_blocks_basics\blocks</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\roli_blocks_basics\blocks\roli_LEDGrid.h">
+      <Filter>JUCE Modules\roli_blocks_basics\blocks</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\roli_blocks_basics\blocks\roli_LEDRow.h">
+      <Filter>JUCE Modules\roli_blocks_basics\blocks</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\roli_blocks_basics\blocks\roli_StatusLight.h">
+      <Filter>JUCE Modules\roli_blocks_basics\blocks</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\roli_blocks_basics\blocks\roli_TouchList.h">
+      <Filter>JUCE Modules\roli_blocks_basics\blocks</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\roli_blocks_basics\blocks\roli_TouchSurface.h">
+      <Filter>JUCE Modules\roli_blocks_basics\blocks</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\roli_blocks_basics\examples\BlockFinder\BlockFinder.h">
+      <Filter>JUCE Modules\roli_blocks_basics\examples\BlockFinder</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\roli_blocks_basics\examples\BlocksDrawingDemo.h">
+      <Filter>JUCE Modules\roli_blocks_basics\examples</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\roli_blocks_basics\examples\BlocksMonitorDemo.h">
+      <Filter>JUCE Modules\roli_blocks_basics\examples</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\roli_blocks_basics\examples\BlocksSynthDemo.h">
+      <Filter>JUCE Modules\roli_blocks_basics\examples</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\roli_blocks_basics\littlefoot\roli_LittleFootCompiler.h">
+      <Filter>JUCE Modules\roli_blocks_basics\littlefoot</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\roli_blocks_basics\littlefoot\roli_LittleFootRemoteHeap.h">
+      <Filter>JUCE Modules\roli_blocks_basics\littlefoot</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\roli_blocks_basics\littlefoot\roli_LittleFootRunner.h">
+      <Filter>JUCE Modules\roli_blocks_basics\littlefoot</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\roli_blocks_basics\protocol\roli_BitPackingUtilities.h">
+      <Filter>JUCE Modules\roli_blocks_basics\protocol</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\roli_blocks_basics\protocol\roli_BlockModels.h">
+      <Filter>JUCE Modules\roli_blocks_basics\protocol</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\roli_blocks_basics\protocol\roli_BlocksProtocolDefinitions.h">
+      <Filter>JUCE Modules\roli_blocks_basics\protocol</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\roli_blocks_basics\protocol\roli_HostPacketBuilder.h">
+      <Filter>JUCE Modules\roli_blocks_basics\protocol</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\roli_blocks_basics\protocol\roli_HostPacketDecoder.h">
+      <Filter>JUCE Modules\roli_blocks_basics\protocol</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\roli_blocks_basics\topology\roli_BlockGraph.h">
+      <Filter>JUCE Modules\roli_blocks_basics\topology</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\roli_blocks_basics\topology\roli_PhysicalTopologySource.h">
+      <Filter>JUCE Modules\roli_blocks_basics\topology</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\roli_blocks_basics\topology\roli_RuleBasedTopologySource.h">
+      <Filter>JUCE Modules\roli_blocks_basics\topology</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\roli_blocks_basics\topology\roli_Topology.h">
+      <Filter>JUCE Modules\roli_blocks_basics\topology</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\roli_blocks_basics\topology\roli_TopologySource.h">
+      <Filter>JUCE Modules\roli_blocks_basics\topology</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\roli_blocks_basics\visualisers\roli_BitmapLEDProgram.h">
+      <Filter>JUCE Modules\roli_blocks_basics\visualisers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\roli_blocks_basics\visualisers\roli_DrumPadLEDProgram.h">
+      <Filter>JUCE Modules\roli_blocks_basics\visualisers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\roli_blocks_basics\roli_blocks_basics.h">
+      <Filter>JUCE Modules\roli_blocks_basics</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\JuceLibraryCode\JuceHeader.h">
       <Filter>JUCE Library Code</Filter>
     </ClInclude>
@@ -8410,6 +8662,21 @@
     </None>
     <None Include="..\..\ThirdParty\JUCE\modules\juce_graphics\unicode\sheenbidi\JUCE_CHANGES.txt">
       <Filter>JUCE Modules\juce_graphics\unicode\sheenbidi</Filter>
+    </None>
+    <None Include="..\..\ThirdParty\roli_blocks_basics\examples\CMakeLists.txt">
+      <Filter>JUCE Modules\roli_blocks_basics\examples</Filter>
+    </None>
+    <None Include="..\..\ThirdParty\roli_blocks_basics\littlefoot\LittleFoot Language README.txt">
+      <Filter>JUCE Modules\roli_blocks_basics\littlefoot</Filter>
+    </None>
+    <None Include="..\..\ThirdParty\roli_blocks_basics\protocol\Protocol Format.txt">
+      <Filter>JUCE Modules\roli_blocks_basics\protocol</Filter>
+    </None>
+    <None Include="..\..\ThirdParty\roli_blocks_basics\LICENSE.txt">
+      <Filter>JUCE Modules\roli_blocks_basics</Filter>
+    </None>
+    <None Include="..\..\ThirdParty\roli_blocks_basics\README.md">
+      <Filter>JUCE Modules\roli_blocks_basics</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

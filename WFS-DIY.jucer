@@ -155,6 +155,14 @@
         <FILE id="ctrlMgrH" name="ControllerManager.h" compile="0" resource="0"
               file="Source/Controllers/ControllerManager.h"/>
       </GROUP>
+      <GROUP id="{LIGHTPADGROUP}" name="Lightpad">
+        <FILE id="lpTypesH" name="LightpadTypes.h" compile="0" resource="0"
+              file="Source/Lightpad/LightpadTypes.h"/>
+        <FILE id="lpDeviceH" name="LightpadDevice.h" compile="0" resource="0"
+              file="Source/Lightpad/LightpadDevice.h"/>
+        <FILE id="lpMgrH" name="LightpadManager.h" compile="0" resource="0"
+              file="Source/Lightpad/LightpadManager.h"/>
+      </GROUP>
       <GROUP id="{GRADIENTMAPGROUP}" name="GradientMap">
         <FILE id="gmDataH" name="GradientMapData.h" compile="0" resource="0"
               file="Source/GradientMap/GradientMapData.h"/>
@@ -222,6 +230,7 @@
     <MODULE id="juce_gui_extra" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
     <MODULE id="juce_opengl" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
     <MODULE id="juce_osc" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="roli_blocks_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
   </MODULES>
   <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1" JUCE_USE_ANDROID_OBOE="0" JUCE_JACK="0"
                JUCE_ASIO="1" JUCE_ALSA="0" JUCE_PLUGINHOST_LV2="0" JUCE_PLUGINHOST_ARA="0"/>
@@ -247,15 +256,16 @@
         <MODULEPATH id="juce_opengl" path="ThirdParty/JUCE/modules"/>
         <MODULEPATH id="juce_osc" path="ThirdParty/JUCE/modules"/>
         <MODULEPATH id="juce_audio_processors_headless" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="roli_blocks_basics" path="ThirdParty"/>
       </MODULEPATHS>
     </LINUX_MAKE>
     <VS2022 targetFolder="Builds/VisualStudio2022">
       <CONFIGURATIONS>
-        <CONFIGURATION isDebug="1" name="Debug" targetName="WFS-DIY" headerPath="ThirdParty\ASIOSDK\common;ThirdParty\GPUAudioSDK\gpuaudio\include;ThirdParty\GPUAudioSDK\gain_processor\gain_processor\include;ThirdParty\GPUAudioSDK\build\_deps\json-src\single_include;ThirdParty\PSN-CPP;ThirdParty\hidapi;ThirdParty\hidapi\hidapi"
+        <CONFIGURATION isDebug="1" name="Debug" targetName="WFS-DIY" headerPath="..\..\ThirdParty\ASIOSDK\common;..\..\ThirdParty\GPUAudioSDK\gpuaudio\include;..\..\ThirdParty\GPUAudioSDK\gain_processor\gain_processor\include;..\..\ThirdParty\GPUAudioSDK\build\_deps\json-src\single_include;..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi"
                        libraryPath="ThirdParty\GPUAudioSDK\build\lib\RelWithDebInfo;ThirdParty\GPUAudioSDK\build\GainLib\gainlib\RelWithDebInfo;ThirdParty\GPUAudioSDK\build\simple_processor_launcher\ProcLaunchLib\RelWithDebInfo"
                        externalLibraries="gain_processor_nvidia.lib;ProcLaunchLib.lib;gainlib.lib;nvidia_resources_gain_processor_gain_processor_device_nvidia.lib;setupapi.lib"
                        extraCompilerFlags="/bigobj"/>
-        <CONFIGURATION isDebug="0" name="Release" targetName="WFS-DIY" headerPath="ThirdParty\ASIOSDK\common;ThirdParty\GPUAudioSDK\gpuaudio\include;ThirdParty\GPUAudioSDK\gain_processor\gain_processor\include;ThirdParty\GPUAudioSDK\build\_deps\json-src\single_include;ThirdParty\PSN-CPP;ThirdParty\hidapi;ThirdParty\hidapi\hidapi"
+        <CONFIGURATION isDebug="0" name="Release" targetName="WFS-DIY" headerPath="..\..\ThirdParty\ASIOSDK\common;..\..\ThirdParty\GPUAudioSDK\gpuaudio\include;..\..\ThirdParty\GPUAudioSDK\gain_processor\gain_processor\include;..\..\ThirdParty\GPUAudioSDK\build\_deps\json-src\single_include;..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi"
                        libraryPath="ThirdParty\GPUAudioSDK\build\lib\RelWithDebInfo;ThirdParty\GPUAudioSDK\build\GainLib\gainlib\RelWithDebInfo;ThirdParty\GPUAudioSDK\build\simple_processor_launcher\ProcLaunchLib\RelWithDebInfo"
                        externalLibraries="gain_processor_nvidia.lib;ProcLaunchLib.lib;gainlib.lib;nvidia_resources_gain_processor_gain_processor_device_nvidia.lib;setupapi.lib"
                        extraCompilerFlags="/bigobj"/>
@@ -276,6 +286,7 @@
         <MODULEPATH id="juce_opengl" path="ThirdParty/JUCE/modules"/>
         <MODULEPATH id="juce_osc" path="ThirdParty/JUCE/modules"/>
         <MODULEPATH id="juce_audio_processors_headless" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="roli_blocks_basics" path="ThirdParty"/>
       </MODULEPATHS>
     </VS2022>
     <XCODE_MAC targetFolder="Builds/MacOSX">
@@ -301,6 +312,7 @@
         <MODULEPATH id="juce_opengl" path="ThirdParty/JUCE/modules"/>
         <MODULEPATH id="juce_osc" path="ThirdParty/JUCE/modules"/>
         <MODULEPATH id="juce_audio_processors_headless" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="roli_blocks_basics" path="ThirdParty"/>
       </MODULEPATHS>
     </XCODE_MAC>
   </EXPORTFORMATS>

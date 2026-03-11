@@ -11,6 +11,7 @@
 #include "sliders/WfsStandardSlider.h"
 #include "sliders/WfsRangeSlider.h"
 #include "buttons/LongPressButton.h"
+#include "LightpadZoneOverlay.h"
 
 /**
  * Sampler subtab for InputsTab.
@@ -178,6 +179,12 @@ public:
         };
         addAndMakeVisible (*pressXYScaleSlider);
 
+        // ── Lightpad Zone Selector Button ──
+        lightpadZoneButton.setButtonText (LOC ("sampler.lightpadZone.none"));
+        lightpadZoneButton.onClick = [this] { showLightpadZoneOverlay(); };
+        lightpadZoneButton.setVisible (false);  // Shown when lightpad is enabled
+        addChildComponent (lightpadZoneButton);
+
         // ── Copy / Paste ──
         copyButton.setButtonText (LOC ("sampler.buttons.copy"));
         copyButton.onClick = [this] { onCopy(); };
@@ -300,7 +307,8 @@ public:
         {
             g.setColour (cs.textSecondary.withAlpha (0.4f));
             g.setFont (juce::FontOptions (juce::jmax (10.0f, 12.0f * WfsLookAndFeel::uiScale)));
-            auto guideArea = panelArea.withTrimmedTop (20).reduced (8);
+            int guideTopTrim = lightpadZoneButton.isVisible() ? 60 : 20;
+            auto guideArea = panelArea.withTrimmedTop (guideTopTrim).reduced (8);
             g.drawFittedText (LOC ("sampler.guide"), guideArea,
                               juce::Justification::centredTop, 4);
         }
@@ -456,6 +464,15 @@ public:
         updateSetPropertyPanel();
         updateCellPropertyPanel();
         updateCopyPasteButtons();
+
+        // Load lightpad zone assignment for current channel
+        if (lightpadZoneButton.isVisible())
+        {
+            int zoneId = static_cast<int> (parameters.getInputParam (
+                currentChannel - 1, WFSParameterIDs::lightpadZoneId.toString()));
+            currentLightpadZoneId = zoneId;
+            updateLightpadZoneButtonText();
+        }
 
         isLoadingData = false;
         repaint();
@@ -634,6 +651,17 @@ private:
         controlLabels.clear();
 
         int y = panelArea.getY() + 4;
+
+        // ── Lightpad Zone Selector ──
+        if (lightpadZoneButton.isVisible())
+        {
+            int labelW = contentW * 40 / 100;
+            controlLabels.push_back ({ LOC ("sampler.labels.lightpadZone"), x0, y, labelW, rowH });
+            lightpadZoneButton.setBounds (x0 + labelW + pad, y, contentW - labelW - pad, rowH);
+            y += rowH + pad + sectionGap;
+            sectionSeparatorYs.push_back (y);
+            y += sectionGap;
+        }
 
         // ── Section: Cell Properties ──
         sectionLabels.push_back ({ LOC ("sampler.section.cell"), y });
@@ -1457,8 +1485,154 @@ private:
     juce::TextButton importButton;
     juce::TextButton exportButton;
 
+    // ── Lightpad Zone Selector ──
+    juce::TextButton lightpadZoneButton;
+    int currentLightpadZoneId = -1;  // zone assigned to current input
+
     // File chooser (must persist during async operation)
     std::unique_ptr<juce::FileChooser> fileChooser;
+
+public:
+    // Lightpad zone query/callbacks — wired from MainComponent via InputsTab
+    struct LightpadZoneQuery
+    {
+        std::function<std::vector<std::pair<int, juce::String>>()> getAllZones;
+        std::function<std::set<int>()> getAssignedZoneIds;
+        std::function<std::map<int, int>()> getAssignedZones;  // zoneId → inputIndex
+        std::function<void (bool)> showZoneNumbers;
+        std::function<std::vector<PadLayoutInfo>()> getPadLayouts;
+    };
+
+    LightpadZoneQuery lightpadZoneQuery;
+    std::function<void (int inputIndex, int zoneId)> onLightpadZoneChanged;
+
+    void setLightpadEnabled (bool enabled)
+    {
+        lightpadZoneButton.setVisible (enabled);
+        resized();
+    }
+
+    void updateLightpadZoneButtonText()
+    {
+        if (currentLightpadZoneId < 0)
+        {
+            lightpadZoneButton.setButtonText (LOC ("sampler.lightpadZone.none"));
+            lightpadZoneButton.setColour (juce::TextButton::buttonColourId,
+                                           juce::Colour (0xFF3A3A3A));
+        }
+        else
+        {
+            // Get zone display name and pad colour
+            auto info = decodeZoneId (currentLightpadZoneId);
+            bool split[3] = { false, false, false };
+
+            // Try to get split state from pad layouts
+            if (lightpadZoneQuery.getPadLayouts)
+            {
+                auto pads = lightpadZoneQuery.getPadLayouts();
+                for (auto& pl : pads)
+                    if (pl.padIndex >= 0 && pl.padIndex < 3)
+                        split[pl.padIndex] = pl.isSplit;
+            }
+
+            lightpadZoneButton.setButtonText (
+                getZoneDisplayName (currentLightpadZoneId, split));
+            lightpadZoneButton.setColour (juce::TextButton::buttonColourId,
+                                           LightpadColours::getPadColour (info.padIndex).darker (0.3f));
+        }
+    }
+
+    void showLightpadZoneOverlay()
+    {
+        auto* parent = getTopLevelComponent();
+        if (parent == nullptr) return;
+
+        // Gather data from queries
+        auto allZones = lightpadZoneQuery.getAllZones
+                        ? lightpadZoneQuery.getAllZones()
+                        : std::vector<std::pair<int, juce::String>>{};
+
+        auto padLayouts = lightpadZoneQuery.getPadLayouts
+                          ? lightpadZoneQuery.getPadLayouts()
+                          : std::vector<PadLayoutInfo>{};
+
+        // Build assigned map: zoneId → inputIndex
+        std::map<int, int> assignedMap;
+        if (lightpadZoneQuery.getAssignedZones)
+            assignedMap = lightpadZoneQuery.getAssignedZones();
+
+        int inputIdx = currentChannel - 1;
+
+        juce::Component::SafePointer<juce::Component> safeParent = parent;
+        juce::Component::SafePointer<SamplerSubTab> safeThis = this;
+
+        auto removeOverlay = [safeParent, safeThis] (int selectedZoneId)
+        {
+            juce::MessageManager::callAsync ([safeThis, safeParent, selectedZoneId]()
+            {
+                if (safeParent == nullptr) return;
+
+                auto* p = safeParent.getComponent();
+                for (int i = p->getNumChildComponents() - 1; i >= 0; --i)
+                {
+                    auto* child = p->getChildComponent (i);
+                    if (dynamic_cast<LightpadZoneOverlay*> (child) ||
+                        dynamic_cast<LightpadZoneBackdrop*> (child))
+                    {
+                        p->removeChildComponent (child);
+                        delete child;
+                    }
+                }
+
+                if (safeThis != nullptr)
+                {
+                    safeThis->currentLightpadZoneId = selectedZoneId;
+                    safeThis->updateLightpadZoneButtonText();
+
+                    // Save and notify
+                    safeThis->saveInputParam (WFSParameterIDs::lightpadZoneId, selectedZoneId);
+                    if (safeThis->onLightpadZoneChanged)
+                        safeThis->onLightpadZoneChanged (safeThis->currentChannel - 1, selectedZoneId);
+                }
+            });
+        };
+
+        // Backdrop
+        auto backdrop = std::make_unique<LightpadZoneBackdrop> (
+            [removeOverlay, cur = currentLightpadZoneId]() { removeOverlay (cur); });
+        backdrop->setBounds (parent->getLocalBounds());
+        parent->addAndMakeVisible (backdrop.release());
+
+        // Overlay
+        auto overlay = std::make_unique<LightpadZoneOverlay> (
+            padLayouts, allZones, assignedMap, inputIdx,
+            currentLightpadZoneId, removeOverlay);
+
+        auto requiredSize = overlay->getRequiredSize();
+        auto btnBounds = parent->getLocalArea (&lightpadZoneButton,
+                                                lightpadZoneButton.getLocalBounds());
+
+        int popupX = btnBounds.getX();
+        int popupY = btnBounds.getBottom() + 4;
+
+        auto parentBounds = parent->getLocalBounds();
+        if (popupX + requiredSize.x > parentBounds.getRight())
+            popupX = parentBounds.getRight() - requiredSize.x;
+        if (popupX < 0) popupX = 0;
+        if (popupY + requiredSize.y > parentBounds.getBottom())
+            popupY = btnBounds.getY() - requiredSize.y - 4;
+        if (popupY < 0) popupY = 0;
+
+        overlay->setBounds (popupX, popupY, requiredSize.x, requiredSize.y);
+        parent->addAndMakeVisible (overlay.release());
+    }
+
+private:
+    void saveInputParam (const juce::Identifier& paramId, const juce::var& value)
+    {
+        if (currentChannel < 1) return;
+        parameters.setInputParam (currentChannel - 1, paramId.toString(), value);
+    }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SamplerSubTab)
 };

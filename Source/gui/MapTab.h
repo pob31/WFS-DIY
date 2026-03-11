@@ -241,6 +241,40 @@ public:
         moveSelectedInputsByDelta(dx, dy, dz);
     }
 
+    /** Move a single input by a delta (for Lightpad zone control). */
+    void moveInputByDelta (int inputIndex, float dx, float dy, float dz = 0.0f)
+    {
+        int n = parameters.getNumInputChannels();
+        if (inputIndex < 0 || inputIndex >= n) return;
+
+        bool isTracked = isInputFullyTracked (inputIndex);
+
+        if (isTracked)
+        {
+            float ox = static_cast<float> (parameters.getInputParam (inputIndex, "inputOffsetX")) + dx;
+            float oy = static_cast<float> (parameters.getInputParam (inputIndex, "inputOffsetY")) + dy;
+            float oz = static_cast<float> (parameters.getInputParam (inputIndex, "inputOffsetZ")) + dz;
+            WFSConstraints::constrainOffset (parameters.getValueTreeState(), inputIndex, ox, oy, oz);
+            parameters.setInputParam (inputIndex, "inputOffsetX", ox);
+            parameters.setInputParam (inputIndex, "inputOffsetY", oy);
+            if (std::abs (dz) > 0.001f)
+                parameters.setInputParam (inputIndex, "inputOffsetZ", oz);
+        }
+        else
+        {
+            float px = static_cast<float> (parameters.getInputParam (inputIndex, "inputPositionX")) + dx;
+            float py = static_cast<float> (parameters.getInputParam (inputIndex, "inputPositionY")) + dy;
+            float pz = static_cast<float> (parameters.getInputParam (inputIndex, "inputPositionZ")) + dz;
+            WFSConstraints::constrainPosition (parameters.getValueTreeState(), inputIndex, px, py, pz);
+            parameters.setInputParam (inputIndex, "inputPositionX", px);
+            parameters.setInputParam (inputIndex, "inputPositionY", py);
+            if (std::abs (dz) > 0.001f)
+                parameters.setInputParam (inputIndex, "inputPositionZ", pz);
+        }
+
+        repaint();
+    }
+
     void mouseEnter(const juce::MouseEvent& event) override
     {
         if (statusBar == nullptr) return;
