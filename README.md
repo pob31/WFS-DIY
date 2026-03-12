@@ -82,7 +82,7 @@ When contributing to this project:
 
 This project is licensed under the GNU General Public License v3.0 (GPL-3.0).
 
-Copyright (c) 2025 Pierre-Olivier Boulant
+Copyright (c) 2026 Pierre-Olivier Boulant
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
