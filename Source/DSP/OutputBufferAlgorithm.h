@@ -124,11 +124,11 @@ public:
         // Determine actual available channels
         auto numChannels = juce::jmin(numInputChannels, totalChannels);
 
-        if (numInputChannels > totalChannels)
-            DBG("WARNING: numInputChannels (" + juce::String(numInputChannels) +
-                ") > buffer channels (" + juce::String(totalChannels) +
-                ") - " + juce::String(numInputChannels - totalChannels) + " inputs will not be processed! "
-                "Check ASIO channel count in Audio Interface settings.");
+        if (numChannels < numInputChannels)
+            DBG("WARNING: OutputBufferAlgorithm processing " + juce::String(numChannels) +
+                "/" + juce::String(numInputChannels) + " inputs (bufferCh=" +
+                juce::String(totalChannels) + ", lsDetectors=" +
+                juce::String((int)lsDetectors.size()) + ")");
 
         // Step 1: Run level detection on input data BEFORE distributing to processors
         for (int inChannel = 0; inChannel < numChannels && inChannel < (int)lsDetectors.size(); ++inChannel)

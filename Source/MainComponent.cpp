@@ -2515,6 +2515,10 @@ void MainComponent::startAudioEngine()
     double sampleRate = device->getCurrentSampleRate();
     int blockSize = device->getCurrentBufferSizeSamples();
 
+    DBG("startAudioEngine: numInputChannels=" + juce::String(numInputChannels) +
+        " numOutputChannels=" + juce::String(numOutputChannels) +
+        " sampleRate=" + juce::String(sampleRate) + " blockSize=" + juce::String(blockSize));
+
     bool prepared = false;
     if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
     {
