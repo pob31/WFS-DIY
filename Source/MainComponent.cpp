@@ -1767,7 +1767,7 @@ void MainComponent::loadAudioPatches()
 void MainComponent::applyInputPatch(const juce::AudioSourceChannelInfo& bufferToFill)
 {
     // Apply input patching: remap hardware inputs to WFS inputs
-    int numHardwareInputs = bufferToFill.buffer->getNumChannels();
+    int totalBufferChannels = bufferToFill.buffer->getNumChannels();
 
     // Prepare patched buffer if needed
     if (patchedInputBuffer.getNumChannels() != numInputChannels ||
@@ -1779,7 +1779,7 @@ void MainComponent::applyInputPatch(const juce::AudioSourceChannelInfo& bufferTo
     patchedInputBuffer.clear();
 
     // Copy audio according to input patch map
-    for (int hwChannel = 0; hwChannel < numHardwareInputs && hwChannel < inputPatchMap.size(); ++hwChannel)
+    for (int hwChannel = 0; hwChannel < totalBufferChannels && hwChannel < (int)inputPatchMap.size(); ++hwChannel)
     {
         int wfsChannel = inputPatchMap[hwChannel];
         if (wfsChannel >= 0 && wfsChannel < numInputChannels)
@@ -1791,7 +1791,7 @@ void MainComponent::applyInputPatch(const juce::AudioSourceChannelInfo& bufferTo
     }
 
     // Replace buffer with patched version
-    for (int ch = 0; ch < juce::jmin(numInputChannels, numHardwareInputs); ++ch)
+    for (int ch = 0; ch < juce::jmin(numInputChannels, totalBufferChannels); ++ch)
     {
         bufferToFill.buffer->copyFrom(ch, bufferToFill.startSample,
                                       patchedInputBuffer, ch,
@@ -2689,7 +2689,8 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
             int binauralCh = binauralCalcEngine->getBinauralOutputChannel();
             if (binauralCh >= 0 && binauralCh + 1 < numOutputChannels)
             {
-                for (int i = 0; i < numInputChannels; ++i)
+                int safeInputCount = juce::jmin(numInputChannels, bufferToFill.buffer->getNumChannels());
+                for (int i = 0; i < safeInputCount; ++i)
                 {
                     const float* inputData = bufferToFill.buffer->getReadPointer(i, bufferToFill.startSample);
                     binauralProcessor->pushInput(i, inputData, bufferToFill.numSamples);
@@ -2762,7 +2763,8 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
                     {
                         float* feedData = reverbFeedBuffer.getWritePointer(revIdx);
 
-                        for (int inIdx = 0; inIdx < numInputChannels; ++inIdx)
+                        int safeInputCount = juce::jmin(numInputChannels, bufferToFill.buffer->getNumChannels());
+                        for (int inIdx = 0; inIdx < safeInputCount; ++inIdx)
                         {
                             float feedLevel = reverbLevelsPtr[inIdx * calcReverbStride + revIdx];
 
@@ -2916,7 +2918,8 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
                 }
 
                 // Push input data to binaural processor
-                for (int i = 0; i < numInputChannels; ++i)
+                int safeInputCount = juce::jmin(numInputChannels, bufferToFill.buffer->getNumChannels());
+                for (int i = 0; i < safeInputCount; ++i)
                 {
                     const float* inputData = bufferToFill.buffer->getReadPointer(i, bufferToFill.startSample);
                     binauralProcessor->pushInput(i, inputData, bufferToFill.numSamples);

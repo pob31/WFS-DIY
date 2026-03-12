@@ -629,7 +629,32 @@ void PatchMatrixComponent::valueTreeChildAdded(juce::ValueTree& parent, juce::Va
     // Check if this is an input/output channel being added
     if (parent == channelsTree)
     {
+        int oldWFSCount = numWFSChannels;
         updateChannelCounts();
+
+        // Auto-patch new channels with 1:1 default (WFS ch N -> HW ch N)
+        for (int ch = oldWFSCount; ch < numWFSChannels; ++ch)
+        {
+            if (ch < numHardwareChannels)
+            {
+                // Only add if no existing patch maps to this WFS channel
+                bool alreadyMapped = false;
+                for (const auto& p : patches)
+                {
+                    if (p.wfsChannel == ch)
+                    {
+                        alreadyMapped = true;
+                        break;
+                    }
+                }
+                if (!alreadyMapped)
+                    patches.push_back({ch, ch});
+            }
+        }
+
+        if (oldWFSCount < numWFSChannels)
+            savePatchesToValueTree();
+
         repaint();
     }
 }
