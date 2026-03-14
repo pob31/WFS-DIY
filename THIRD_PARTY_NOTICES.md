@@ -105,3 +105,18 @@ THE SOFTWARE.
 - **Website**: https://github.com/gpuaudio
 - **License**: TBD
 - **Status**: Not yet integrated. License terms will be added when the SDK is included.
+
+---
+
+# Standards & Protocols
+
+## ADM-OSC
+
+- **Website**: https://immersive-audio-live.github.io/ADM-OSC/
+- **Repository**: https://github.com/immersive-audio-live/ADM-OSC
+- **License**: Apache 2.0
+- **Maintainers**: Immersive Audio Live (L-ISA / L-Acoustics initiative)
+
+WFS-DIY implements the ADM-OSC protocol for object-based audio positioning
+over OSC. ADM-OSC is an open specification — no code from the repository is
+redistributed; only the protocol grammar is implemented.
