@@ -232,7 +232,7 @@
     "sections": {
       "network": "Rede",
       "connections": "Ligações de Rede",
-      "admOsc": "ADM-OSC",
+      "admOsc": "Mapeamentos ADM-OSC",
       "tracking": "Rastreamento"
     },
     "labels": {
@@ -252,7 +252,30 @@
       "oscPath": "OSC Path:",
       "psnInterface": "PSN Interface:",
       "notAvailable": "Not available",
-      "localhost": "Localhost (127.0.0.1)"
+      "localhost": "Localhost (127.0.0.1)",
+      "admAxisSwap": "Eixo de origem:",
+      "admAzFlip": "Inverter Az.",
+      "admAzOffset": "Offset Az.:",
+      "admBreakpoint": "Ponto de ruptura:",
+      "admCartMapping": "Cartesiano",
+      "admCenterOffset": "Centro:",
+      "admDistMax": "Dist. Máx:",
+      "admDistMin": "Dist. Mín:",
+      "admElFlip": "Inverter El.",
+      "admInnerWidth": "Largura interna:",
+      "admInputAssign": "Atribuição de entrada",
+      "admLinkAll": "Vincular todos",
+      "admMapping": "Mapeamento:",
+      "admMappingNone": "Nenhum",
+      "admOuterWidth": "Largura externa:",
+      "admPolarMapping": "Polar",
+      "admSideDown": "-Z Baixo",
+      "admSideDownstage": "-Y Proscênio",
+      "admSideLeft": "-X Esquerda",
+      "admSideRight": "+X Direita",
+      "admSideUp": "+Z Cima",
+      "admSideUpstage": "+Y Fundo",
+      "admSignFlip": "Inverter"
     },
     "help": {
       "networkInterface": "Select the Network Interface.",
@@ -272,15 +295,22 @@
       "openLogWindow": "Open Network Logging window.",
       "findMyRemote": "Make your Remote Flash and Buzz to Find it.",
       "oscSourceFilter": "Filter incoming OSC: Accept All sources or only Registered connections with Rx enabled.",
-      "admOscOffsetX": "Offset ADM-OSC X Coordinate.",
-      "admOscOffsetY": "Offset ADM-OSC Y Coordinate.",
-      "admOscOffsetZ": "Offset ADM-OSC Z Coordinate.",
-      "admOscScaleX": "Scale ADM-OSC X Coordinate.",
-      "admOscScaleY": "Scale ADM-OSC Y Coordinate.",
-      "admOscScaleZ": "Scale ADM-OSC Z Coordinate.",
-      "admOscFlipX": "Invert Axis of ADM-OSC X Coordinate.",
-      "admOscFlipY": "Invert Axis of ADM-OSC Y Coordinate.",
-      "admOscFlipZ": "Invert Axis of ADM-OSC Z Coordinate.",
+      "admAxisSwap": "Qual eixo ADM-OSC de entrada é mapeado para este eixo interno.",
+      "admAzFlip": "Inverter a direção do azimute de entrada.",
+      "admAzOffset": "Offset de azimute (graus) aplicado ao azimute ADM-OSC de entrada.",
+      "admBreakpoint": "Ponto de ruptura normalizado (0-1) para alongamento linear por partes.",
+      "admCenterOffset": "Posição física (m) para a qual o valor normalizado 0.0 é mapeado.",
+      "admDistMax": "Distância física máxima (m) em ADM-OSC distance=1.",
+      "admDistMin": "Distância física mínima (m) em ADM-OSC distance=0.",
+      "admElFlip": "Inverter o sinal da elevação de entrada.",
+      "admInputAssign": "Atribuir esta entrada a um mapeamento ADM-OSC para recepção/transmissão.",
+      "admLinkAll": "Selecionar todos os 6 lados de uma vez para edição uniforme.",
+      "admInnerWidth": "Extensão física (m) do centro ao ponto de ruptura.",
+      "admMapping": "Selecionar um mapeamento ADM-OSC para configurar. Cart = Cartesiano (xyz), Polar = esférico (aed).",
+      "admOuterWidth": "Extensão física (m) do ponto de ruptura a \u00b11.",
+      "admMappingPanel": "Drag dots to edit mapping. Click axis title to swap, click Flip to invert. Hold Shift to edit both sides symmetrically.",
+      "admSideSelect": "Selecionar lados para editar. As alterações se aplicam a todos os lados selecionados simultaneamente.",
+      "admSignFlip": "Inverter o sinal do valor do eixo de entrada.",
       "trackingEnabled": "Enable or Disable Incoming Tracking data processing.",
       "trackingProtocol": "Select the type of Tracking Protocol.",
       "trackingPort": "Specify the Port to receive Tracking data.",
@@ -325,6 +355,12 @@
       "flipYOff": "Inverter Y: DESLIGADO",
       "flipZOn": "Inverter Z: LIGADO",
       "flipZOff": "Inverter Z: DESLIGADO",
+      "flipOn": "Inverter: LIGADO",
+      "flipOff": "Inverter: DESLIGADO",
+      "azFlipOn": "Inv. Az.: LIGADO",
+      "azFlipOff": "Inv. Az.: DESLIGADO",
+      "elFlipOn": "Inv. El.: LIGADO",
+      "elFlipOff": "Inv. El.: DESLIGADO",
       "oscFilterAcceptAll": "Filtro OSC: Aceitar Todos",
       "oscFilterRegisteredOnly": "Filtro OSC: Apenas Registados"
     },
@@ -1154,7 +1190,8 @@
       "reset": "Reiniciar:",
       "muteMacros": "Macros de Silenciamento:",
       "arrayAttenuation": "Atenuação de Array:",
-      "fringe": "Margem:"
+      "fringe": "Margem:",
+      "admMapping": "ADM:"
     },
     "buttons": {
       "solo": "Solo",
@@ -1427,7 +1464,8 @@
       "otomoDest3": "Destino relativo ou absoluto {name} ({unit}).",
       "nudgeHint1": " Ajustar com as teclas Esquerda e Direita.",
       "nudgeHint2": " Ajustar com as teclas Cima e Baixo.",
-      "nudgeHint3": " Ajustar com Page Up e Page Down."
+      "nudgeHint3": " Ajustar com Page Up e Page Down.",
+      "admMapping": "Atribuir esta entrada a um mapeamento ADM-OSC para recepção/transmissão de posição."
     },
     "visualisation": {
       "delay": "delay",
@@ -1456,7 +1494,8 @@
       "hackoustics": "Hackústica",
       "lfo": "LFO",
       "automOtion": "AutomOção",
-      "mutes": "Silenciamentos"
+      "mutes": "Silenciamentos",
+      "admMapping": "ADM-OSC"
     },
     "buttons": {
       "ok": "OK",

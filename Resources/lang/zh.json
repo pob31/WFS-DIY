@@ -232,7 +232,7 @@
     "sections": {
       "network": "网络",
       "connections": "网络连接",
-      "admOsc": "ADM-OSC",
+      "admOsc": "ADM-OSC 映射",
       "tracking": "追踪"
     },
     "labels": {
@@ -252,7 +252,30 @@
       "oscPath": "OSC 路径:",
       "psnInterface": "PSN 接口:",
       "notAvailable": "不可用",
-      "localhost": "本机 (127.0.0.1)"
+      "localhost": "本机 (127.0.0.1)",
+      "admAxisSwap": "源轴:",
+      "admAzFlip": "反转方位角",
+      "admAzOffset": "方位角偏移:",
+      "admBreakpoint": "断点:",
+      "admCartMapping": "笛卡尔",
+      "admCenterOffset": "中心:",
+      "admDistMax": "距离最大值:",
+      "admDistMin": "距离最小值:",
+      "admElFlip": "反转仰角",
+      "admInnerWidth": "内宽:",
+      "admInputAssign": "输入分配",
+      "admLinkAll": "全部链接",
+      "admMapping": "映射:",
+      "admMappingNone": "无",
+      "admOuterWidth": "外宽:",
+      "admPolarMapping": "极坐标",
+      "admSideDown": "-Z 下",
+      "admSideDownstage": "-Y 台口",
+      "admSideLeft": "-X 左",
+      "admSideRight": "+X 右",
+      "admSideUp": "+Z 上",
+      "admSideUpstage": "+Y 后台",
+      "admSignFlip": "反转"
     },
     "help": {
       "networkInterface": "选择网络接口。",
@@ -272,15 +295,22 @@
       "openLogWindow": "打开网络日志窗口。",
       "findMyRemote": "让遥控器闪烁和振动以便找到它。",
       "oscSourceFilter": "过滤传入 OSC：接受所有来源或仅接受已注册且启用 Rx 的连接。",
-      "admOscOffsetX": "ADM-OSC X 坐标偏移。",
-      "admOscOffsetY": "ADM-OSC Y 坐标偏移。",
-      "admOscOffsetZ": "ADM-OSC Z 坐标偏移。",
-      "admOscScaleX": "ADM-OSC X 坐标缩放。",
-      "admOscScaleY": "ADM-OSC Y 坐标缩放。",
-      "admOscScaleZ": "ADM-OSC Z 坐标缩放。",
-      "admOscFlipX": "反转 ADM-OSC X 坐标轴。",
-      "admOscFlipY": "反转 ADM-OSC Y 坐标轴。",
-      "admOscFlipZ": "反转 ADM-OSC Z 坐标轴。",
+      "admAxisSwap": "将哪个传入的 ADM-OSC 轴映射到此内部轴。",
+      "admAzFlip": "反转传入方位角的方向。",
+      "admAzOffset": "应用于传入 ADM-OSC 方位角的方位角偏移（度）。",
+      "admBreakpoint": "分段线性拉伸的归一化断点（0-1）。",
+      "admCenterOffset": "归一化值 0.0 映射到的物理位置（m）。",
+      "admDistMax": "ADM-OSC distance=1 时的最大物理距离（m）。",
+      "admDistMin": "ADM-OSC distance=0 时的最小物理距离（m）。",
+      "admElFlip": "反转传入仰角的符号。",
+      "admInputAssign": "将此输入分配给 ADM-OSC 映射以进行接收/发送。",
+      "admLinkAll": "一次选择全部 6 个侧面进行统一编辑。",
+      "admInnerWidth": "从中心到断点的物理范围（m）。",
+      "admMapping": "选择要配置的 ADM-OSC 映射。Cart = 笛卡尔 (xyz)，Polar = 球坐标 (aed)。",
+      "admOuterWidth": "从断点到 \u00b11 的物理范围（m）。",
+      "admMappingPanel": "Drag dots to edit mapping. Click axis title to swap, click Flip to invert. Hold Shift to edit both sides symmetrically.",
+      "admSideSelect": "选择要编辑的侧面。更改同时应用于所有选中的侧面。",
+      "admSignFlip": "反转传入轴值的符号。",
       "trackingEnabled": "启用或禁用传入追踪数据处理。",
       "trackingProtocol": "选择追踪协议类型。",
       "trackingPort": "指定接收追踪数据的端口。",
@@ -325,6 +355,12 @@
       "flipYOff": "翻转Y: 关",
       "flipZOn": "翻转Z: 开",
       "flipZOff": "翻转Z: 关",
+      "flipOn": "翻转: 开",
+      "flipOff": "翻转: 关",
+      "azFlipOn": "方位翻转: 开",
+      "azFlipOff": "方位翻转: 关",
+      "elFlipOn": "仰角翻转: 开",
+      "elFlipOff": "仰角翻转: 关",
       "oscFilterAcceptAll": "OSC过滤: 接受全部",
       "oscFilterRegisteredOnly": "OSC过滤: 仅已注册"
     },
@@ -1154,7 +1190,8 @@
       "reset": "重置:",
       "muteMacros": "静音宏:",
       "arrayAttenuation": "阵列衰减:",
-      "fringe": "边缘:"
+      "fringe": "边缘:",
+      "admMapping": "ADM:"
     },
     "buttons": {
       "solo": "独听",
@@ -1427,7 +1464,8 @@
       "otomoDest3": "相对或绝对目标{name}（{unit}）。",
       "nudgeHint1": " 使用左右箭头键调整。",
       "nudgeHint2": " 使用上下箭头键调整。",
-      "nudgeHint3": " 使用Page Up/Down调整。"
+      "nudgeHint3": " 使用Page Up/Down调整。",
+      "admMapping": "将此输入分配到ADM-OSC映射，用于位置接收/发送。"
     },
     "visualisation": {
       "delay": "延迟",
@@ -1456,7 +1494,8 @@
       "hackoustics": "Hackoustics (虚拟声学)",
       "lfo": "LFO",
       "automOtion": "AutomOtion (自动移动)",
-      "mutes": "静音"
+      "mutes": "静音",
+      "admMapping": "ADM-OSC"
     },
     "buttons": {
       "ok": "OK",

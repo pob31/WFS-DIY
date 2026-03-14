@@ -630,6 +630,14 @@ void OSCManager::resetStatistics()
 
 void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property)
 {
+    // Invalidate ADM-OSC mapping cache if any mapping parameter changes
+    if (tree.getType() == WFSParameterIDs::ADMCartAxis ||
+        tree.getType() == WFSParameterIDs::ADMCartMapping ||
+        tree.getType() == WFSParameterIDs::ADMPolarMapping)
+    {
+        admMappingCacheDirty = true;
+    }
+
     // Check if this is a stage/config parameter that needs broadcasting to Remote
     if (property == WFSParameterIDs::stageWidth ||
         property == WFSParameterIDs::stageDepth ||
@@ -900,6 +908,15 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
         }
     }
 
+    // ADM-OSC transmit: when an input position changes, send to ADM-OSC targets
+    if (isInput && (property == WFSParameterIDs::inputPositionX ||
+                    property == WFSParameterIDs::inputPositionY ||
+                    property == WFSParameterIDs::inputPositionZ))
+    {
+        int channelIndex = channelId - 1;
+        sendADMOSCPosition (channelIndex);
+    }
+
     // If inputTrackingActive changed, also send the computed fully tracked state
     if (isInput && property == WFSParameterIDs::inputTrackingActive)
     {
@@ -1090,6 +1107,10 @@ void OSCManager::handleIncomingMessage(const juce::OSCMessage& message,
     {
         handleClusterScaleRotationMessage(message);
     }
+    else if (OSCMessageRouter::isADMOSCAddress(address))
+    {
+        handleADMOSCMessage(message);
+    }
     // Handle Remote handshake/heartbeat responses
     else if (address == "/remote/pong")
     {
@@ -1171,6 +1192,10 @@ void OSCManager::handleIncomingBundle(const juce::OSCBundle& bundle,
             else if (OSCMessageRouter::isClusterScaleRotationAddress(address))
             {
                 handleClusterScaleRotationMessage(message);
+            }
+            else if (OSCMessageRouter::isADMOSCAddress(address))
+            {
+                handleADMOSCMessage(message);
             }
         }
         else if (element.isBundle())
@@ -3495,6 +3520,218 @@ void OSCManager::sendToQLab (const QLabCueSequence& sequence,
             juce::MessageManager::callAsync ([cb, count]() { cb (count); });
         }
     }).detach();
+}
+
+//==============================================================================
+// ADM-OSC Handling
+//==============================================================================
+
+void OSCManager::rebuildADMOSCMappingCache()
+{
+    auto admosc = state.getADMOSCState();
+    if (!admosc.isValid()) return;
+
+    int cartIdx = 0, polarIdx = 0;
+    for (int c = 0; c < admosc.getNumChildren(); ++c)
+    {
+        auto child = admosc.getChild (c);
+        if (child.getType() == WFSParameterIDs::ADMCartMapping && cartIdx < 4)
+        {
+            admCartConfigs[cartIdx] = ADMOSCMapping::loadCartesianConfig (child);
+            ++cartIdx;
+        }
+        else if (child.getType() == WFSParameterIDs::ADMPolarMapping && polarIdx < 4)
+        {
+            admPolarConfigs[polarIdx] = ADMOSCMapping::loadPolarConfig (child);
+            ++polarIdx;
+        }
+    }
+
+    admMappingCacheDirty = false;
+}
+
+void OSCManager::handleADMOSCMessage (const juce::OSCMessage& message)
+{
+    auto parsed = OSCMessageRouter::parseADMOSCMessage (message);
+    if (!parsed.valid) return;
+
+    int channelIndex = parsed.objectId - 1;  // 1-based to 0-based
+    int numInputs = state.getIntParameter (WFSParameterIDs::inputChannels);
+    if (channelIndex < 0 || channelIndex >= numInputs) return;
+
+    // Get input's ADM mapping assignment
+    juce::var mappingVar = state.getInputParameter (channelIndex, WFSParameterIDs::inputAdmMapping);
+    int mapping = static_cast<int> (mappingVar);
+    if (mapping < 0 || mapping >= 8) return;
+
+    bool isCartMapping = (mapping < 4);
+    bool isPolarMapping = (mapping >= 4);
+
+    // Only process matching coordinate types
+    if (isCartMapping && !parsed.isCartesian()) return;
+    if (isPolarMapping && !parsed.isPolar()) return;
+
+    // Rebuild cache if needed
+    if (admMappingCacheDirty)
+        rebuildADMOSCMappingCache();
+
+    // Compute WFS position
+    float x, y, z;
+
+    if (isCartMapping)
+    {
+        int cartIdx = mapping;
+        const auto& cfg = admCartConfigs[cartIdx];
+
+        if (parsed.type == OSCMessageRouter::ParsedADMOSCMessage::Type::XYZ)
+        {
+            auto pos = ADMOSCMapping::applyCartesianMapping (parsed.v1, parsed.v2, parsed.v3, cfg);
+            x = pos.x; y = pos.y; z = pos.z;
+        }
+        else
+        {
+            // Individual axis: get current position, update one axis
+            juce::var curX = state.getInputParameter (channelIndex, WFSParameterIDs::inputPositionX);
+            juce::var curY = state.getInputParameter (channelIndex, WFSParameterIDs::inputPositionY);
+            juce::var curZ = state.getInputParameter (channelIndex, WFSParameterIDs::inputPositionZ);
+            x = static_cast<float> (curX);
+            y = static_cast<float> (curY);
+            z = static_cast<float> (curZ);
+
+            // Compute inverse to get current normalized values, update one, re-map
+            float admX, admY, admZ;
+            ADMOSCMapping::inverseCartesianMapping (x, y, z, cfg, admX, admY, admZ);
+
+            if (parsed.type == OSCMessageRouter::ParsedADMOSCMessage::Type::X)
+                admX = parsed.v1;
+            else if (parsed.type == OSCMessageRouter::ParsedADMOSCMessage::Type::Y)
+                admY = parsed.v1;
+            else if (parsed.type == OSCMessageRouter::ParsedADMOSCMessage::Type::Z)
+                admZ = parsed.v1;
+            else if (parsed.type == OSCMessageRouter::ParsedADMOSCMessage::Type::XY)
+            {
+                admX = parsed.v1;
+                admY = parsed.v2;
+            }
+
+            auto pos = ADMOSCMapping::applyCartesianMapping (admX, admY, admZ, cfg);
+            x = pos.x; y = pos.y; z = pos.z;
+        }
+    }
+    else // polar mapping
+    {
+        int polarIdx = mapping - 4;
+        const auto& cfg = admPolarConfigs[polarIdx];
+
+        if (parsed.type == OSCMessageRouter::ParsedADMOSCMessage::Type::AED)
+        {
+            auto pos = ADMOSCMapping::applyPolarMapping (parsed.v1, parsed.v2, parsed.v3, cfg);
+            x = pos.x; y = pos.y; z = pos.z;
+        }
+        else
+        {
+            // Individual polar axis: get current position, invert, update, re-map
+            juce::var curX = state.getInputParameter (channelIndex, WFSParameterIDs::inputPositionX);
+            juce::var curY = state.getInputParameter (channelIndex, WFSParameterIDs::inputPositionY);
+            juce::var curZ = state.getInputParameter (channelIndex, WFSParameterIDs::inputPositionZ);
+
+            float admAz, admEl, admDist;
+            ADMOSCMapping::inversePolarMapping (
+                static_cast<float> (curX), static_cast<float> (curY), static_cast<float> (curZ),
+                cfg, admAz, admEl, admDist);
+
+            if (parsed.type == OSCMessageRouter::ParsedADMOSCMessage::Type::Azim)
+                admAz = parsed.v1;
+            else if (parsed.type == OSCMessageRouter::ParsedADMOSCMessage::Type::Elev)
+                admEl = parsed.v1;
+            else if (parsed.type == OSCMessageRouter::ParsedADMOSCMessage::Type::Dist)
+                admDist = parsed.v1;
+
+            auto pos = ADMOSCMapping::applyPolarMapping (admAz, admEl, admDist, cfg);
+            x = pos.x; y = pos.y; z = pos.z;
+        }
+    }
+
+    // Apply position constraints
+    x = applyConstraintX (channelIndex, x);
+    y = applyConstraintY (channelIndex, y);
+    z = applyConstraintZ (channelIndex, z);
+    applyConstraintDistance (channelIndex, x, y, z);
+
+    // Set position (on message thread)
+    juce::MessageManager::callAsync ([this, channelIndex, x, y, z]()
+    {
+        admReceiving = true;
+        incomingProtocol = Protocol::ADMOSC;
+        WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
+        state.beginUndoTransaction ("ADM-OSC Input");
+
+        state.setInputParameter (channelIndex, WFSParameterIDs::inputPositionX, x);
+        state.setInputParameter (channelIndex, WFSParameterIDs::inputPositionY, y);
+        state.setInputParameter (channelIndex, WFSParameterIDs::inputPositionZ, z);
+
+        incomingProtocol = Protocol::Disabled;
+        admReceiving = false;
+    });
+}
+
+void OSCManager::sendADMOSCPosition (int channelIndex)
+{
+    // Guard against echo loops
+    if (admReceiving) return;
+
+    int numInputs = state.getIntParameter (WFSParameterIDs::inputChannels);
+    if (channelIndex < 0 || channelIndex >= numInputs) return;
+
+    juce::var mappingVar = state.getInputParameter (channelIndex, WFSParameterIDs::inputAdmMapping);
+    int mapping = static_cast<int> (mappingVar);
+    if (mapping < 0 || mapping >= 8) return;
+
+    if (admMappingCacheDirty)
+        rebuildADMOSCMappingCache();
+
+    float x = static_cast<float> (state.getInputParameter (channelIndex, WFSParameterIDs::inputPositionX));
+    float y = static_cast<float> (state.getInputParameter (channelIndex, WFSParameterIDs::inputPositionY));
+    float z = static_cast<float> (state.getInputParameter (channelIndex, WFSParameterIDs::inputPositionZ));
+
+    int objId = channelIndex + 1;
+    juce::String oscAddress;
+    juce::OSCMessage msg ("/placeholder");
+
+    if (mapping < 4)
+    {
+        // Cartesian: send /adm/obj/N/xyz
+        float admX, admY, admZ;
+        ADMOSCMapping::inverseCartesianMapping (x, y, z, admCartConfigs[mapping], admX, admY, admZ);
+
+        oscAddress = "/adm/obj/" + juce::String (objId) + "/xyz";
+        msg = juce::OSCMessage (oscAddress);
+        msg.addFloat32 (admX);
+        msg.addFloat32 (admY);
+        msg.addFloat32 (admZ);
+    }
+    else
+    {
+        // Polar: send /adm/obj/N/aed
+        float admAz, admEl, admDist;
+        ADMOSCMapping::inversePolarMapping (x, y, z, admPolarConfigs[mapping - 4], admAz, admEl, admDist);
+
+        oscAddress = "/adm/obj/" + juce::String (objId) + "/aed";
+        msg = juce::OSCMessage (oscAddress);
+        msg.addFloat32 (admAz);
+        msg.addFloat32 (admEl);
+        msg.addFloat32 (admDist);
+    }
+
+    // Send to all ADM-OSC targets with txEnable
+    for (int t = 0; t < MAX_TARGETS; ++t)
+    {
+        if (targetConfigs[static_cast<size_t>(t)].protocol == Protocol::ADMOSC &&
+            targetConfigs[static_cast<size_t>(t)].txEnabled)
+        {
+            sendMessage (t, msg);
+        }
+    }
 }
 
 } // namespace WFSNetwork

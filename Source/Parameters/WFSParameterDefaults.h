@@ -170,15 +170,41 @@ namespace WFSParameterDefaults
     // Config > ADM-OSC Section
     //==========================================================================
 
-    constexpr float admOscOffsetDefault     = 0.0f;
-    constexpr float admOscOffsetMin         = -50.0f;
-    constexpr float admOscOffsetMax         = 50.0f;
+    constexpr int   admCartMappingCount         = 4;
+    constexpr int   admPolarMappingCount        = 4;
+    constexpr int   admMappingCount             = 8;  // 4 cart + 4 polar
 
-    constexpr float admOscScaleDefault      = 1.0f;
-    constexpr float admOscScaleMin          = 0.01f;
-    constexpr float admOscScaleMax          = 100.0f;
+    // Cartesian mapping per-axis defaults
+    constexpr int   admCartSignFlipDefault      = 0;
+    constexpr float admCartCenterOffsetDefault  = 0.0f;
+    constexpr float admCartCenterOffsetMin      = -50.0f;
+    constexpr float admCartCenterOffsetMax      = 50.0f;
+    constexpr float admCartBreakpointDefault    = 0.5f;
+    constexpr float admCartBreakpointMin        = 0.01f;
+    constexpr float admCartBreakpointMax        = 0.99f;
+    constexpr float admCartWidthDefault         = 5.0f;   // meters
+    constexpr float admCartWidthMin             = 0.1f;
+    constexpr float admCartWidthMax             = 50.0f;
 
-    constexpr int admOscFlipDefault         = 0;  // 0=OFF, 1=ON
+    // Polar mapping defaults
+    constexpr float admPolarAzimuthOffsetDefault  = 0.0f;
+    constexpr float admPolarAzimuthOffsetMin      = -180.0f;
+    constexpr float admPolarAzimuthOffsetMax      = 180.0f;
+    constexpr int   admPolarAzimuthFlipDefault    = 0;
+    constexpr int   admPolarElevationFlipDefault  = 0;
+    constexpr float admPolarDistMinDefault        = 0.0f;   // legacy
+    constexpr float admPolarDistMinMin            = 0.0f;
+    constexpr float admPolarDistMinMax            = 50.0f;
+    constexpr float admPolarDistMaxDefault        = 10.0f;  // legacy
+    constexpr float admPolarDistMaxMin            = 0.1f;
+    constexpr float admPolarDistMaxMax            = 100.0f;
+    constexpr float admPolarDistBreakpointDefault = 0.5f;
+    constexpr float admPolarDistInnerDefault      = 5.0f;   // meters
+    constexpr float admPolarDistOuterDefault      = 5.0f;   // meters
+    constexpr float admPolarDistCenterDefault     = 0.0f;   // meters
+
+    // Per-input ADM mapping assignment
+    constexpr int   inputAdmMappingDefault        = -1;  // -1=none, 0-3=Cart, 4-7=Polar
 
     //==========================================================================
     // Config > Tracking Section

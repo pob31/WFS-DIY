@@ -153,15 +153,37 @@ namespace WFSParameterIDs
     // Config > ADM-OSC Section
     //==========================================================================
 
+    // ValueTree node types for ADM-OSC mappings
+    const juce::Identifier ADMCartMapping    ("ADMCartMapping");
+    const juce::Identifier ADMPolarMapping   ("ADMPolarMapping");
+    const juce::Identifier ADMCartAxis       ("ADMCartAxis");
+
+    // Cartesian mapping per-axis params (stored in ADMCartAxis children, 3 per mapping)
+    const juce::Identifier admCartAxisId         ("admCartAxisId");         // int: 0=X, 1=Y, 2=Z (which internal axis)
+    const juce::Identifier admCartAxisSwap       ("admCartAxisSwap");       // int: 0=X, 1=Y, 2=Z (which ADM axis feeds this)
+    const juce::Identifier admCartSignFlip       ("admCartSignFlip");       // int: 0/1
+    const juce::Identifier admCartCenterOffset   ("admCartCenterOffset");   // float: meters, where norm 0.0 maps
+    const juce::Identifier admCartBreakpoint     ("admCartBreakpoint");     // float: 0.01-0.99, piecewise linear break
+    const juce::Identifier admCartPosInnerWidth  ("admCartPosInnerWidth");  // float: meters, center→breakpoint (positive)
+    const juce::Identifier admCartPosOuterWidth  ("admCartPosOuterWidth");  // float: meters, breakpoint→+1 (positive)
+    const juce::Identifier admCartNegInnerWidth  ("admCartNegInnerWidth");  // float: meters, center→breakpoint (negative)
+    const juce::Identifier admCartNegOuterWidth  ("admCartNegOuterWidth");  // float: meters, breakpoint→-1 (negative)
+
+    // Polar mapping params (stored on ADMPolarMapping node)
+    const juce::Identifier admPolarAzimuthOffset ("admPolarAzimuthOffset"); // float: degrees (-180 to 180)
+    const juce::Identifier admPolarAzimuthFlip   ("admPolarAzimuthFlip");   // int: 0/1
+    const juce::Identifier admPolarElevationFlip ("admPolarElevationFlip"); // int: 0/1
+    const juce::Identifier admPolarDistMin       ("admPolarDistMin");       // float: legacy, kept for migration
+    const juce::Identifier admPolarDistMax       ("admPolarDistMax");       // float: legacy, kept for migration
+    const juce::Identifier admPolarDistBreakpoint ("admPolarDistBreakpoint"); // float: 0.01-0.99
+    const juce::Identifier admPolarDistInner      ("admPolarDistInner");     // float: meters (center to breakpoint)
+    const juce::Identifier admPolarDistOuter      ("admPolarDistOuter");     // float: meters (breakpoint to max)
+    const juce::Identifier admPolarDistCenter     ("admPolarDistCenter");    // float: meters (offset)
+
+    // Legacy ADM-OSC params (kept for migration detection only)
     const juce::Identifier admOscOffsetX     ("admOscOffsetX");
-    const juce::Identifier admOscOffsetY     ("admOscOffsetY");
-    const juce::Identifier admOscOffsetZ     ("admOscOffsetZ");
     const juce::Identifier admOscScaleX      ("admOscScaleX");
-    const juce::Identifier admOscScaleY      ("admOscScaleY");
-    const juce::Identifier admOscScaleZ      ("admOscScaleZ");
     const juce::Identifier admOscFlipX       ("admOscFlipX");
-    const juce::Identifier admOscFlipY       ("admOscFlipY");
-    const juce::Identifier admOscFlipZ       ("admOscFlipZ");
 
     //==========================================================================
     // Config > Tracking Section
@@ -225,6 +247,7 @@ namespace WFSParameterIDs
     const juce::Identifier inputPathModeActive   ("inputPathModeActive");   // 0=OFF, 1=ON
     const juce::Identifier inputHeightFactor     ("inputHeightFactor");
     const juce::Identifier inputCoordinateMode   ("inputCoordinateMode");  // 0=Cartesian, 1=Cylindrical, 2=Spherical
+    const juce::Identifier inputAdmMapping       ("inputAdmMapping");      // -1=none, 0-3=Cart mapping, 4-7=Polar mapping
 
     // Input > Attenuation
     const juce::Identifier inputAttenuationLaw       ("inputAttenuationLaw");
@@ -524,6 +547,9 @@ namespace WFSParameterIDs
     const juce::Identifier Sampler               ("Sampler");
     const juce::Identifier SamplerCell           ("SamplerCell");
     const juce::Identifier SamplerSet            ("SamplerSet");
+
+    // Snapshot scope section for ADM-OSC
+    const juce::Identifier ADMMapping            ("ADMMapping");
 
     // Config > UI (master toggle)
     const juce::Identifier samplerEnabled        ("samplerEnabled");          // bool: global enable

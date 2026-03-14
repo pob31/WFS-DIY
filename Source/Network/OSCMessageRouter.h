@@ -113,6 +113,20 @@ public:
         bool valid = false;
     };
 
+    struct ParsedADMOSCMessage
+    {
+        enum class Type { XYZ, AED, X, Y, Z, XY, Azim, Elev, Dist };
+        Type type = Type::XYZ;
+        int objectId = 0;       // 1-based object number
+        float v1 = 0.0f;       // x or azimuth
+        float v2 = 0.0f;       // y or elevation
+        float v3 = 0.0f;       // z or distance
+        bool valid = false;
+
+        bool isCartesian() const { return type == Type::XYZ || type == Type::X || type == Type::Y || type == Type::Z || type == Type::XY; }
+        bool isPolar()     const { return type == Type::AED || type == Type::Azim || type == Type::Elev || type == Type::Dist; }
+    };
+
     //==========================================================================
     // Message Routing
     //==========================================================================
@@ -161,6 +175,10 @@ public:
     static bool isArrayAdjustAddress(const juce::String& address);
     static bool isClusterMoveAddress(const juce::String& address);
     static bool isClusterScaleRotationAddress(const juce::String& address);
+    static bool isADMOSCAddress(const juce::String& address);
+
+    /** Parse an ADM-OSC message (/adm/obj/N/xyz, /adm/obj/N/aed, etc.) */
+    static ParsedADMOSCMessage parseADMOSCMessage(const juce::OSCMessage& message);
 
     //==========================================================================
     // Address Pattern Matching

@@ -379,6 +379,12 @@ public:
     /** Copy state from another WFSValueTreeState */
     void copyStateFrom (const WFSValueTreeState& other);
 
+    /** Migrate old flat ADM-OSC section to new nested mapping structure */
+    void migrateADMOSCSection();
+
+    /** Ensure all inputs have the inputAdmMapping property (migration) */
+    void ensureInputAdmMappingProperty();
+
     //==========================================================================
     // ValueTree::Listener overrides
     //==========================================================================

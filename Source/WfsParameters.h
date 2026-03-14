@@ -314,16 +314,8 @@ private:
         if (paramName == "TcpPort" || paramName == "NetworkRxTCPport") return WFSParameterIDs::networkRxTCPport;
         if (paramName == "NetworkInterface") return WFSParameterIDs::networkInterface;
 
-        // ADM-OSC section
-        if (paramName == "AdmOscOffsetX") return WFSParameterIDs::admOscOffsetX;
-        if (paramName == "AdmOscOffsetY") return WFSParameterIDs::admOscOffsetY;
-        if (paramName == "AdmOscOffsetZ") return WFSParameterIDs::admOscOffsetZ;
-        if (paramName == "AdmOscScaleX") return WFSParameterIDs::admOscScaleX;
-        if (paramName == "AdmOscScaleY") return WFSParameterIDs::admOscScaleY;
-        if (paramName == "AdmOscScaleZ") return WFSParameterIDs::admOscScaleZ;
-        if (paramName == "AdmOscFlipX") return WFSParameterIDs::admOscFlipX;
-        if (paramName == "AdmOscFlipY") return WFSParameterIDs::admOscFlipY;
-        if (paramName == "AdmOscFlipZ") return WFSParameterIDs::admOscFlipZ;
+        // ADM-OSC section — new nested structure, no flat config params
+        // Legacy names kept for migration only (resolved via ValueTree directly)
 
         // Tracking section
         if (paramName == "TrackingEnabled") return WFSParameterIDs::trackingEnabled;

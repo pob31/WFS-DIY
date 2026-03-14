@@ -11,6 +11,7 @@
 #include "buttons/LongPressButton.h"
 #include "ColumnFocusTraverser.h"
 #include "../AppSettings.h"
+#include "../Network/ADMOSCMapping.h"
 
 #if JUCE_WINDOWS
     #include <winsock2.h>
@@ -38,6 +39,1257 @@
  * - ADM-OSC settings (Offset, Scale, Flip)
  * - Tracking settings (Enable, Protocol, Port, Offset, Scale, Flip)
  */
+
+/** Panel showing piecewise-linear ADM-OSC Cartesian mapping curves for all 3 axes,
+    plus an XY rectangle overview.  Supports drag-editing of control points. */
+class AdmMappingPanel : public juce::Component, private juce::Timer
+{
+public:
+    ~AdmMappingPanel() override { stopTimer(); }
+
+    /** Set the full 3-axis config and repaint. */
+    void setConfig (const ADMOSCMapping::CartesianMappingConfig& newCfg)
+    {
+        cfg = newCfg;
+        repaint();
+    }
+
+    /** Callback fired when the user drags a control point.
+        axis: 0=X, 1=Y, 2=Z.  pointIndex: 0-4.
+        Remaining args are the updated parameter values for that axis. */
+    std::function<void (int axis, int pointIndex,
+                        float newBreakpoint, float newInnerWidth, float newOuterWidth,
+                        float newCenterOffset, bool isPositiveDirection)> onParameterDragged;
+
+    /** Callback fired when axis swap is changed via popup menu. */
+    std::function<void (int axis, int newSwapValue)> onSwapChanged;
+
+    /** Callback fired when flip is toggled by clicking the flip indicator. */
+    std::function<void (int axis, bool newFlipState)> onFlipChanged;
+
+    /** Callback fired when reset long-press completes. */
+    std::function<void()> onResetLongPress;
+
+    //==========================================================================
+    void resized() override
+    {
+        const int gap = 4;
+        int totalW = getWidth();
+        int graphW = (totalW - gap * 2) / 3;
+        int halfH  = (getHeight() - gap) / 2;
+
+        graphAreas[0] = { 0,                    0,          graphW, halfH };   // X graph
+        rectArea      = { graphW + gap,         0,          graphW, halfH };   // XY rect
+        graphAreas[2] = { graphW * 2 + gap * 2, 0,          graphW, halfH };   // Z graph
+        graphAreas[1] = { graphW + gap,         halfH + gap, graphW, halfH };  // Y graph
+    }
+
+    //==========================================================================
+    void paint (juce::Graphics& g) override
+    {
+        static const char* axisLabels[3] = { "X", "Y", "Z" };
+        for (int a = 0; a < 3; ++a)
+            paintAxisGraph (g, a, axisLabels[a], graphAreas[a]);
+
+        paintXYRect (g, rectArea);
+    }
+
+    //==========================================================================
+    void mouseDown (const juce::MouseEvent& e) override
+    {
+        dragAxis  = -1;
+        dragPoint = -1;
+
+        auto pos = e.position;
+
+        // Check reset hit area (long press)
+        if (resetHitArea.contains (pos))
+        {
+            resetPressActive = true;
+            resetPressStartMs = juce::Time::currentTimeMillis();
+            startTimer (50);
+            repaint();
+            return;
+        }
+
+        // Check swap/flip hit areas first
+        for (int a = 0; a < 3; ++a)
+        {
+            if (swapHitAreas[a].contains (pos))
+            {
+                showSwapPopupMenu (a);
+                return;
+            }
+            if (flipHitAreas[a].contains (pos))
+            {
+                cfg.axes[a].signFlip = ! cfg.axes[a].signFlip;
+                repaint();
+                if (onFlipChanged)
+                    onFlipChanged (a, cfg.axes[a].signFlip);
+                return;
+            }
+        }
+
+        // Hit-test drag dots
+        constexpr float hitRadius = 10.0f;
+        for (int a = 0; a < 3; ++a)
+        {
+            auto area = graphAreas[a].toFloat();
+            if (! area.contains (pos))
+                continue;
+
+            auto ga = getGraphSubArea (area);
+            float minM, maxM;
+            getAxisYRange (a, minM, maxM);
+
+            for (int p = 0; p < 5; ++p)
+            {
+                float v, m;
+                getPointVM (a, p, v, m);
+                float px = vToX (v, ga);
+                float py = mToY (m, minM, maxM, ga);
+                if (pos.getDistanceFrom ({ px, py }) <= hitRadius)
+                {
+                    dragAxis  = a;
+                    dragPoint = p;
+                    dragStartV = v;
+                    dragStartM = m;
+                    setMouseCursor (juce::MouseCursor::DraggingHandCursor);
+                    return;
+                }
+            }
+        }
+    }
+
+    void mouseDrag (const juce::MouseEvent& e) override
+    {
+        if (dragAxis < 0 || dragPoint < 0)
+            return;
+
+        auto area = graphAreas[dragAxis].toFloat();
+        auto ga   = getGraphSubArea (area);
+        float minM, maxM;
+        getAxisYRange (dragAxis, minM, maxM);
+
+        float rawV = xToV (e.position.x, ga);
+        float rawM = yToM (e.position.y, minM, maxM, ga);
+
+        // Alt+drag: 10x precision (reduce effective movement relative to drag start)
+        float newV = rawV;
+        float newM = rawM;
+        if (e.mods.isAltDown())
+        {
+            newV = dragStartV + (rawV - dragStartV) * 0.1f;
+            newM = dragStartM + (rawM - dragStartM) * 0.1f;
+        }
+
+        auto& ax = cfg.axes[dragAxis];
+
+        constexpr float wMin = WFSParameterDefaults::admCartWidthMin;   // 0.1
+        constexpr float wMax = WFSParameterDefaults::admCartWidthMax;   // 50.0
+        bool shiftHeld = e.mods.isShiftDown();
+
+        bool posDir = true;
+
+        switch (dragPoint)
+        {
+            case 0: // v=-1: vertical drag -> negOuterWidth
+            {
+                float newOuter = (ax.centerOffset - newM) - ax.negInnerWidth;
+                ax.negOuterWidth = juce::jlimit (wMin, wMax, newOuter);
+                if (shiftHeld) ax.posOuterWidth = ax.negOuterWidth;
+                posDir = false;
+                break;
+            }
+            case 1: // v=-bp: horiz->breakpoint, vert->negInnerWidth
+            {
+                float bpVal = std::abs (juce::jlimit (-0.99f, -0.01f, newV));
+                ax.breakpoint = juce::jlimit (0.01f, 0.99f, bpVal);
+                float newInner = ax.centerOffset - newM;
+                ax.negInnerWidth = juce::jlimit (wMin, wMax, newInner);
+                if (shiftHeld) ax.posInnerWidth = ax.negInnerWidth;
+                posDir = false;
+                break;
+            }
+            case 2: // v=0: vertical drag -> centerOffset
+            {
+                ax.centerOffset = juce::jlimit (-50.0f, 50.0f, newM);
+                break;
+            }
+            case 3: // v=+bp: horiz->breakpoint, vert->posInnerWidth
+            {
+                ax.breakpoint = juce::jlimit (0.01f, 0.99f, newV);
+                float newInner = newM - ax.centerOffset;
+                ax.posInnerWidth = juce::jlimit (wMin, wMax, newInner);
+                if (shiftHeld) ax.negInnerWidth = ax.posInnerWidth;
+                posDir = true;
+                break;
+            }
+            case 4: // v=+1: vertical drag -> posOuterWidth
+            {
+                float newOuter = newM - ax.centerOffset - ax.posInnerWidth;
+                ax.posOuterWidth = juce::jlimit (wMin, wMax, newOuter);
+                if (shiftHeld) ax.negOuterWidth = ax.posOuterWidth;
+                posDir = true;
+                break;
+            }
+        }
+
+        repaint();
+
+        if (onParameterDragged)
+        {
+            float innerW = posDir ? ax.posInnerWidth : ax.negInnerWidth;
+            float outerW = posDir ? ax.posOuterWidth : ax.negOuterWidth;
+            onParameterDragged (dragAxis, dragPoint, ax.breakpoint,
+                                innerW, outerW, ax.centerOffset, posDir);
+        }
+
+        // Shift held: also fire callback for the mirror side
+        if (shiftHeld && onParameterDragged && dragPoint != 2)
+        {
+            bool mirrorPos = ! posDir;
+            float mirrorInner = mirrorPos ? ax.posInnerWidth : ax.negInnerWidth;
+            float mirrorOuter = mirrorPos ? ax.posOuterWidth : ax.negOuterWidth;
+            int mirrorPoint = (dragPoint == 0) ? 4 : (dragPoint == 1) ? 3
+                            : (dragPoint == 3) ? 1 : 0;
+            onParameterDragged (dragAxis, mirrorPoint, ax.breakpoint,
+                                mirrorInner, mirrorOuter, ax.centerOffset, mirrorPos);
+        }
+    }
+
+    void mouseUp (const juce::MouseEvent&) override
+    {
+        if (resetPressActive)
+        {
+            resetPressActive = false;
+            stopTimer();
+            repaint();
+        }
+        dragAxis  = -1;
+        dragPoint = -1;
+        setMouseCursor (juce::MouseCursor::NormalCursor);
+    }
+
+    void mouseMove (const juce::MouseEvent& e) override
+    {
+        auto pos = e.position;
+        if (resetHitArea.contains (pos))
+        {
+            setMouseCursor (juce::MouseCursor::PointingHandCursor);
+            return;
+        }
+        for (int a = 0; a < 3; ++a)
+        {
+            if (swapHitAreas[a].contains (pos) || flipHitAreas[a].contains (pos))
+            {
+                setMouseCursor (juce::MouseCursor::PointingHandCursor);
+                return;
+            }
+        }
+        // Check if hovering a drag dot
+        constexpr float hitRadius = 10.0f;
+        for (int a = 0; a < 3; ++a)
+        {
+            auto area = graphAreas[a].toFloat();
+            if (! area.contains (pos)) continue;
+            auto ga = getGraphSubArea (area);
+            float minM, maxM;
+            getAxisYRange (a, minM, maxM);
+            for (int p = 0; p < 5; ++p)
+            {
+                float v, m;
+                getPointVM (a, p, v, m);
+                if (pos.getDistanceFrom ({ vToX (v, ga), mToY (m, minM, maxM, ga) }) <= hitRadius)
+                {
+                    setMouseCursor (juce::MouseCursor::DraggingHandCursor);
+                    return;
+                }
+            }
+        }
+        setMouseCursor (juce::MouseCursor::NormalCursor);
+    }
+
+    //==========================================================================
+    void timerCallback() override
+    {
+        if (! resetPressActive) { stopTimer(); return; }
+        auto elapsed = juce::Time::currentTimeMillis() - resetPressStartMs;
+        if (elapsed >= resetPressDurationMs)
+        {
+            resetPressActive = false;
+            stopTimer();
+            repaint();
+            if (onResetLongPress) onResetLongPress();
+        }
+        else
+        {
+            repaint();  // redraw progress
+        }
+    }
+
+private:
+    ADMOSCMapping::CartesianMappingConfig cfg;
+    juce::Rectangle<int> graphAreas[3];   // [0]=X, [1]=Y, [2]=Z
+    juce::Rectangle<int> rectArea;        // XY overview
+    int dragAxis  = -1;
+    int dragPoint = -1;
+    float dragStartV = 0.0f;   // initial normalized value at drag start (for Alt precision)
+    float dragStartM = 0.0f;   // initial meters value at drag start (for Alt precision)
+
+    // Reset long-press state
+    juce::Rectangle<float> resetHitArea;
+    bool resetPressActive = false;
+    int64_t resetPressStartMs = 0;
+    static constexpr int resetPressDurationMs = 1000;
+
+    // Hit-test areas for clickable swap/flip text (computed in paint, used in mouseDown)
+    juce::Rectangle<float> swapHitAreas[3];
+    juce::Rectangle<float> flipHitAreas[3];
+
+    //==========================================================================
+    // Helpers: coordinate transforms
+    //==========================================================================
+
+    static juce::Rectangle<float> getGraphSubArea (juce::Rectangle<float> panel)
+    {
+        const float padL = 32.0f, padR = 6.0f, padT = 36.0f, padB = 16.0f;
+        return { panel.getX() + padL, panel.getY() + padT,
+                 panel.getWidth() - padL - padR,
+                 panel.getHeight() - padT - padB };
+    }
+
+    static float vToX (float v, const juce::Rectangle<float>& ga)
+    {
+        return ga.getX() + (v + 1.0f) * 0.5f * ga.getWidth();
+    }
+    static float mToY (float m, float minM, float maxM, const juce::Rectangle<float>& ga)
+    {
+        return ga.getBottom() - ((m - minM) / (maxM - minM)) * ga.getHeight();
+    }
+    static float xToV (float px, const juce::Rectangle<float>& ga)
+    {
+        return ((px - ga.getX()) / ga.getWidth()) * 2.0f - 1.0f;
+    }
+    static float yToM (float py, float minM, float maxM, const juce::Rectangle<float>& ga)
+    {
+        return minM + (1.0f - (py - ga.getY()) / ga.getHeight()) * (maxM - minM);
+    }
+
+    //==========================================================================
+    // Point and range helpers
+    //==========================================================================
+
+    void getPointVM (int axis, int pt, float& v, float& m) const
+    {
+        const auto& ax = cfg.axes[axis];
+        float c = ax.centerOffset;
+        switch (pt)
+        {
+            case 0: v = -1.0f;          m = c - (ax.negInnerWidth + ax.negOuterWidth); break;
+            case 1: v = -ax.breakpoint;  m = c - ax.negInnerWidth;                      break;
+            case 2: v =  0.0f;           m = c;                                          break;
+            case 3: v =  ax.breakpoint;  m = c + ax.posInnerWidth;                      break;
+            case 4: v =  1.0f;           m = c + (ax.posInnerWidth + ax.posOuterWidth); break;
+            default: v = 0.0f; m = 0.0f; break;
+        }
+    }
+
+    void getAxisYRange (int axis, float& minM, float& maxM) const
+    {
+        float vals[5];
+        for (int p = 0; p < 5; ++p)
+        {
+            float v;
+            getPointVM (axis, p, v, vals[p]);
+        }
+        minM = vals[0]; maxM = vals[0];
+        for (int i = 1; i < 5; ++i)
+        {
+            minM = juce::jmin (minM, vals[i]);
+            maxM = juce::jmax (maxM, vals[i]);
+        }
+        if (maxM - minM < 0.1f) { minM -= 1.0f; maxM += 1.0f; }
+        float range = maxM - minM;
+        minM -= range * 0.08f;
+        maxM += range * 0.08f;
+    }
+
+    //==========================================================================
+    // Swap popup
+    //==========================================================================
+
+    void showSwapPopupMenu (int axis)
+    {
+        juce::PopupMenu menu;
+        menu.addItem (1, "ADM X", true, cfg.axes[axis].axisSwap == 0);
+        menu.addItem (2, "ADM Y", true, cfg.axes[axis].axisSwap == 1);
+        menu.addItem (3, "ADM Z", true, cfg.axes[axis].axisSwap == 2);
+
+        menu.showMenuAsync (juce::PopupMenu::Options(),
+            [this, axis] (int result)
+            {
+                if (result > 0)
+                {
+                    cfg.axes[axis].axisSwap = result - 1;
+                    repaint();
+                    if (onSwapChanged)
+                        onSwapChanged (axis, result - 1);
+                }
+            });
+    }
+
+    //==========================================================================
+    // Painting
+    //==========================================================================
+
+    void paintAxisGraph (juce::Graphics& g, int axis, const char* title,
+                         const juce::Rectangle<int>& bounds)
+    {
+        auto bf = bounds.toFloat();
+        auto ga = getGraphSubArea (bf);
+        float minM, maxM;
+        getAxisYRange (axis, minM, maxM);
+
+        const auto& ax = cfg.axes[axis];
+
+        // Background
+        g.setColour (juce::Colour (0xff2a2a2a));
+        g.fillRoundedRectangle (bf, 4.0f);
+
+        // --- Header: title + swap + flip ---
+        {
+            float hx = bf.getX() + 4.0f;
+            float hy = bf.getY() + 2.0f;
+            g.setFont (14.0f);
+
+            // Swap text (clickable)
+            static const char* swapNames[3] = { "ADM X", "ADM Y", "ADM Z" };
+            juce::String swapText;
+            if (ax.axisSwap == axis)
+                swapText = juce::String (title) + ":  " + swapNames[ax.axisSwap];
+            else
+                swapText = juce::String (title) + " -> " + swapNames[ax.axisSwap];
+
+            g.setColour (juce::Colour (0xffcccccc));
+            float swapW = swapText.length() * 8.0f + 14.0f;  // approximate at 14pt
+            swapHitAreas[axis] = { hx, hy, swapW, 18.0f };
+            g.drawText (swapText, (int) hx, (int) hy, (int) swapW, 18,
+                        juce::Justification::centredLeft);
+
+            // Small dropdown triangle
+            float triX = hx + swapW - 2.0f;
+            float triY = hy + 6.0f;
+            juce::Path tri;
+            tri.addTriangle (triX, triY, triX + 6.0f, triY, triX + 3.0f, triY + 4.0f);
+            g.setColour (juce::Colour (0xff999999));
+            g.fillPath (tri);
+
+            // Flip indicator (clickable)
+            float flipX = hx + swapW + 10.0f;
+            juce::String flipText = ax.signFlip ? "Flip: ON" : "Flip: OFF";
+            float flipW = flipText.length() * 8.0f + 4.0f;
+            flipHitAreas[axis] = { flipX, hy, flipW, 18.0f };
+
+            if (ax.signFlip)
+                g.setColour (juce::Colour (0xff4fc3f7));  // accent when active
+            else
+                g.setColour (juce::Colour (0xff888888));
+            g.drawText (flipText, (int) flipX, (int) hy, (int) flipW, 18,
+                        juce::Justification::centredLeft);
+
+            // Breakpoint value label (right side of header)
+            juce::String bpText = "bp: " + juce::String (ax.breakpoint, 2);
+            g.setColour (juce::Colour (0xff999999));
+            g.drawText (bpText, (int) bf.getRight() - 64, (int) hy, 60, 18,
+                        juce::Justification::centredRight);
+        }
+
+        // Grid: zero lines
+        g.setColour (juce::Colour (0xff555555));
+        float zeroX = vToX (0.0f, ga);
+        float zeroY = mToY (0.0f, minM, maxM, ga);
+        g.drawVerticalLine ((int) zeroX, ga.getY(), ga.getBottom());
+        if (zeroY >= ga.getY() && zeroY <= ga.getBottom())
+            g.drawHorizontalLine ((int) zeroY, ga.getX(), ga.getRight());
+
+        // Breakpoint dashed lines
+        g.setColour (juce::Colour (0xff666666));
+        float bpXpos = vToX (ax.breakpoint, ga);
+        float bpXneg = vToX (-ax.breakpoint, ga);
+        const float dashLengths[] = { 4.0f, 4.0f };
+        g.drawDashedLine (juce::Line<float> (bpXpos, ga.getY(), bpXpos, ga.getBottom()),
+                          dashLengths, 2, 1.0f);
+        g.drawDashedLine (juce::Line<float> (bpXneg, ga.getY(), bpXneg, ga.getBottom()),
+                          dashLengths, 2, 1.0f);
+
+        // Inner zone shading
+        g.setColour (juce::Colour (0x15ffffff));
+        g.fillRect (bpXneg, ga.getY(), bpXpos - bpXneg, ga.getHeight());
+
+        // 5 control points
+        float ptV[5], ptM[5];
+        for (int p = 0; p < 5; ++p)
+            getPointVM (axis, p, ptV[p], ptM[p]);
+
+        // Curve
+        juce::Path curve;
+        curve.startNewSubPath (vToX (ptV[0], ga), mToY (ptM[0], minM, maxM, ga));
+        for (int p = 1; p < 5; ++p)
+            curve.lineTo (vToX (ptV[p], ga), mToY (ptM[p], minM, maxM, ga));
+        g.setColour (juce::Colour (0xff4fc3f7));
+        g.strokePath (curve, juce::PathStrokeType (2.0f));
+
+        // Dots + value labels
+        g.setFont (12.0f);
+        for (int p = 0; p < 5; ++p)
+        {
+            float dx = vToX (ptV[p], ga);
+            float dy = mToY (ptM[p], minM, maxM, ga);
+
+            // Dot
+            bool isActive = (dragAxis == axis && dragPoint == p);
+            g.setColour (isActive ? juce::Colour (0xff4fc3f7) : juce::Colour (0xffffffff));
+            float dotR = isActive ? 5.0f : 3.5f;
+            g.fillEllipse (dx - dotR, dy - dotR, dotR * 2.0f, dotR * 2.0f);
+
+            // Value label near each dot
+            juce::String valText = juce::String (ptM[p], 2) + "m";
+            g.setColour (juce::Colour (0xffbbbbbb));
+            int labelW = 48;
+            if (p <= 1)  // negative side: label to the left
+                g.drawText (valText, (int) dx - labelW - 4, (int) dy - 7, labelW, 14,
+                            juce::Justification::centredRight);
+            else if (p == 2)  // center: label above
+                g.drawText (valText, (int) dx - labelW / 2, (int) dy - 18, labelW, 14,
+                            juce::Justification::centred);
+            else  // positive side: label to the right
+                g.drawText (valText, (int) dx + 4, (int) dy - 7, labelW, 14,
+                            juce::Justification::centredLeft);
+        }
+
+        // X-axis labels
+        g.setFont (11.0f);
+        g.setColour (juce::Colour (0xffaaaaaa));
+        float labelY = ga.getBottom() + 2.0f;
+        g.drawText ("-1",  (int) vToX (-1.0f, ga) - 10, (int) labelY, 20, 14, juce::Justification::centred);
+        g.drawText ("0",   (int) zeroX - 10,            (int) labelY, 20, 14, juce::Justification::centred);
+        g.drawText ("+1",  (int) vToX (1.0f, ga) - 10,  (int) labelY, 20, 14, juce::Justification::centred);
+    }
+
+    //--------------------------------------------------------------------------
+
+    void paintXYRect (juce::Graphics& g, const juce::Rectangle<int>& bounds)
+    {
+        auto bf = bounds.toFloat();
+
+        // Background
+        g.setColour (juce::Colour (0xff2a2a2a));
+        g.fillRoundedRectangle (bf, 4.0f);
+
+        // Compute extents for X (axis 0) and Y (axis 1)
+        const auto& axX = cfg.axes[0];
+        const auto& axY = cfg.axes[1];
+
+        float xNegFull = axX.negInnerWidth + axX.negOuterWidth;
+        float xPosFull = axX.posInnerWidth + axX.posOuterWidth;
+        float yNegFull = axY.negInnerWidth + axY.negOuterWidth;
+        float yPosFull = axY.posInnerWidth + axY.posOuterWidth;
+
+        float xSpan = xNegFull + xPosFull;
+        float ySpan = yNegFull + yPosFull;
+        if (xSpan < 0.01f) xSpan = 1.0f;
+        if (ySpan < 0.01f) ySpan = 1.0f;
+
+        auto drawArea = bf.reduced (24.0f, 20.0f);
+
+        float scaleX = drawArea.getWidth()  / xSpan;
+        float scaleY = drawArea.getHeight() / ySpan;
+        float scale  = juce::jmin (scaleX, scaleY);
+
+        float drawW = xSpan * scale;
+        float drawH = ySpan * scale;
+        float ox = drawArea.getCentreX() - drawW * 0.5f;
+        float oy = drawArea.getCentreY() - drawH * 0.5f;
+
+        auto mToPixX = [&](float fromNeg) { return ox + fromNeg * scale; };
+        auto mToPixY = [&](float fromNeg) { return oy + drawH - fromNeg * scale; };
+
+        // Outer rectangle
+        float outerL = mToPixX (0.0f);
+        float outerR = mToPixX (xSpan);
+        float outerT = mToPixY (ySpan);
+        float outerB = mToPixY (0.0f);
+        g.setColour (juce::Colour (0x10ffffff));
+        g.fillRect (outerL, outerT, outerR - outerL, outerB - outerT);
+        g.setColour (juce::Colour (0xff888888));
+        g.drawRect (outerL, outerT, outerR - outerL, outerB - outerT, 1.0f);
+
+        // Inner rectangle (breakpoint boundary)
+        float innerL = mToPixX (xNegFull - axX.negInnerWidth);
+        float innerR = mToPixX (xNegFull + axX.posInnerWidth);
+        float innerT = mToPixY (yNegFull + axY.posInnerWidth);
+        float innerB = mToPixY (yNegFull - axY.negInnerWidth);
+        g.setColour (juce::Colour (0x20ffffff));
+        g.fillRect (innerL, innerT, innerR - innerL, innerB - innerT);
+        g.setColour (juce::Colour (0xffaaaaaa));
+        g.drawRect (innerL, innerT, innerR - innerL, innerB - innerT, 1.0f);
+
+        // Center offset crosshair
+        float cx = mToPixX (xNegFull);
+        float cy = mToPixY (yNegFull);
+        g.setColour (juce::Colour (0xff666666));
+        const float chDash[] = { 3.0f, 3.0f };
+        g.drawDashedLine (juce::Line<float> (cx, outerT, cx, outerB), chDash, 2, 1.0f);
+        g.drawDashedLine (juce::Line<float> (outerL, cy, outerR, cy), chDash, 2, 1.0f);
+
+        // Side labels
+        g.setFont (13.0f);
+        g.setColour (juce::Colour (0xffaaaaaa));
+        g.drawText ("+X", (int) outerR + 2, (int) cy - 8, 22, 16, juce::Justification::centredLeft);
+        g.drawText ("-X", (int) outerL - 24, (int) cy - 8, 22, 16, juce::Justification::centredRight);
+        g.drawText ("+Y", (int) cx - 12, (int) outerT - 17, 24, 16, juce::Justification::centred);
+        g.drawText ("-Y", (int) cx - 12, (int) outerB + 2,  24, 16, juce::Justification::centred);
+
+        // Title
+        g.setFont (14.0f);
+        g.setColour (juce::Colour (0xffcccccc));
+        g.drawText ("XY", (int) bf.getX() + 4, (int) bf.getY() + 2, 24, 16,
+                    juce::Justification::centredLeft);
+
+        // Reset text (long press) — top-right of XY rect
+        {
+            float resetW = 48.0f, resetH = 16.0f;
+            float resetX = bf.getRight() - resetW - 4.0f;
+            float resetY = bf.getY() + 2.0f;
+            resetHitArea = { resetX, resetY, resetW, resetH };
+
+            if (resetPressActive)
+            {
+                auto elapsed = juce::Time::currentTimeMillis() - resetPressStartMs;
+                float progress = juce::jlimit (0.0f, 1.0f, (float) elapsed / (float) resetPressDurationMs);
+                bool reached = progress >= 1.0f;
+
+                // Progress bar background
+                g.setColour (reached ? juce::Colour (0x4066bb6a) : juce::Colour (0x404fc3f7));
+                g.fillRoundedRectangle (resetX, resetY, resetW * progress, resetH, 3.0f);
+
+                g.setColour (reached ? juce::Colour (0xff66bb6a) : juce::Colour (0xff4fc3f7));
+            }
+            else
+            {
+                g.setColour (juce::Colour (0xff888888));
+            }
+
+            g.setFont (11.0f);
+            g.drawText ("Reset", (int) resetX, (int) resetY, (int) resetW, (int) resetH,
+                        juce::Justification::centred);
+        }
+    }
+};
+
+/** Panel showing piecewise-linear ADM-OSC Polar distance mapping curve (half-axis, 3 points)
+    plus a top-down circle overview with distance rings and azimuth offset line. */
+class AdmPolarPanel : public juce::Component, private juce::Timer
+{
+public:
+    ~AdmPolarPanel() override { stopTimer(); }
+
+    void setConfig (const ADMOSCMapping::PolarMappingConfig& newCfg)
+    {
+        cfg = newCfg;
+        repaint();
+    }
+
+    /** Callback: distance point dragged. pointIndex: 0=center, 1=breakpoint, 2=max */
+    std::function<void (int pointIndex, float newBreakpoint, float newInner,
+                        float newOuter, float newCenter)> onDistDragged;
+
+    /** Callback: azimuth offset changed (from circle drag) */
+    std::function<void (float newAzOffset)> onAzOffsetChanged;
+
+    /** Callback: flip toggles */
+    std::function<void (bool azFlip)> onAzFlipChanged;
+    std::function<void (bool elFlip)> onElFlipChanged;
+
+    /** Callback: reset long-press completed */
+    std::function<void()> onResetLongPress;
+
+    //==========================================================================
+    void resized() override
+    {
+        int halfW = getWidth() / 2;
+        distGraphArea = { 0, 0, halfW - 2, getHeight() };
+        circleArea    = { halfW + 2, 0, getWidth() - halfW - 2, getHeight() };
+    }
+
+    //==========================================================================
+    void paint (juce::Graphics& g) override
+    {
+        paintDistGraph (g, distGraphArea);
+        paintCircleOverview (g, circleArea);
+    }
+
+    //==========================================================================
+    void mouseDown (const juce::MouseEvent& e) override
+    {
+        dragTarget = DragNone;
+        auto pos = e.position;
+
+        // Check reset hit area (long press)
+        if (resetHitArea.contains (pos))
+        {
+            resetPressActive = true;
+            resetPressStartMs = juce::Time::currentTimeMillis();
+            startTimer (50);
+            repaint();
+            return;
+        }
+
+        // Check flip hit areas
+        if (azFlipHitArea.contains (pos))
+        {
+            cfg.azimuthFlip = ! cfg.azimuthFlip;
+            repaint();
+            if (onAzFlipChanged) onAzFlipChanged (cfg.azimuthFlip);
+            return;
+        }
+        if (elFlipHitArea.contains (pos))
+        {
+            cfg.elevationFlip = ! cfg.elevationFlip;
+            repaint();
+            if (onElFlipChanged) onElFlipChanged (cfg.elevationFlip);
+            return;
+        }
+
+        // Check distance graph dots
+        constexpr float hitRadius = 10.0f;
+        auto ga = getDistGraphSubArea (distGraphArea.toFloat());
+        float minM, maxM;
+        getDistYRange (minM, maxM);
+
+        for (int p = 0; p < 3; ++p)
+        {
+            float v, m;
+            getDistPointVM (p, v, m);
+            float px = dToX (v, ga);
+            float py = dMToY (m, minM, maxM, ga);
+            if (pos.getDistanceFrom ({ px, py }) <= hitRadius)
+            {
+                dragTarget = (DragTarget) (DragDistP0 + p);
+                dragStartV = v;
+                dragStartM = m;
+                setMouseCursor (juce::MouseCursor::DraggingHandCursor);
+                return;
+            }
+        }
+
+        // Check azimuth offset line drag (in circle area)
+        if (circleArea.toFloat().contains (pos))
+        {
+            auto ca = getCircleSubArea (circleArea.toFloat());
+            float cx = ca.getCentreX();
+            float cy = ca.getCentreY();
+            float maxR = juce::jmin (ca.getWidth(), ca.getHeight()) * 0.5f - 8.0f;
+
+            // Check if near the azimuth offset line endpoint
+            float azRad = juce::degreesToRadians (cfg.azimuthOffset);
+            float lineEndX = cx + maxR * std::sin (azRad);
+            float lineEndY = cy - maxR * std::cos (azRad);
+            if (pos.getDistanceFrom ({ lineEndX, lineEndY }) <= hitRadius * 1.5f)
+            {
+                dragTarget = DragAzOffset;
+                setMouseCursor (juce::MouseCursor::DraggingHandCursor);
+                return;
+            }
+
+        }
+    }
+
+    //==========================================================================
+    void mouseDrag (const juce::MouseEvent& e) override
+    {
+        if (dragTarget == DragNone) return;
+
+        if (dragTarget >= DragDistP0 && dragTarget <= DragDistP2)
+        {
+            auto ga = getDistGraphSubArea (distGraphArea.toFloat());
+            float minM, maxM;
+            getDistYRange (minM, maxM);
+
+            float rawV = xToD (e.position.x, ga);
+            float rawM = dYToM (e.position.y, minM, maxM, ga);
+
+            float newV = rawV;
+            float newM = rawM;
+            if (e.mods.isAltDown())
+            {
+                newV = dragStartV + (rawV - dragStartV) * 0.1f;
+                newM = dragStartM + (rawM - dragStartM) * 0.1f;
+            }
+
+            constexpr float wMin = WFSParameterDefaults::admCartWidthMin;  // 0.1
+            constexpr float wMax = WFSParameterDefaults::admCartWidthMax;  // 50.0
+
+            int pt = dragTarget - DragDistP0;
+            switch (pt)
+            {
+                case 0: // center offset (vertical drag only)
+                    cfg.distCenter = juce::jlimit (-50.0f, 50.0f, newM);
+                    break;
+                case 1: // breakpoint dot: horiz -> bp, vert -> inner
+                {
+                    cfg.distBreakpoint = juce::jlimit (0.01f, 0.99f, newV);
+                    float newInner = newM - cfg.distCenter;
+                    cfg.distInner = juce::jlimit (wMin, wMax, newInner);
+                    if (e.mods.isShiftDown())
+                        cfg.distOuter = cfg.distInner;
+                    break;
+                }
+                case 2: // max dot (vertical drag only)
+                {
+                    float newOuter = newM - cfg.distCenter - cfg.distInner;
+                    cfg.distOuter = juce::jlimit (wMin, wMax, newOuter);
+                    if (e.mods.isShiftDown())
+                        cfg.distInner = cfg.distOuter;
+                    break;
+                }
+            }
+
+            repaint();
+            if (onDistDragged)
+                onDistDragged (pt, cfg.distBreakpoint, cfg.distInner,
+                               cfg.distOuter, cfg.distCenter);
+        }
+        else if (dragTarget == DragAzOffset)
+        {
+            auto ca = getCircleSubArea (circleArea.toFloat());
+            float cx = ca.getCentreX();
+            float cy = ca.getCentreY();
+            float dx = e.position.x - cx;
+            float dy = -(e.position.y - cy);  // flip Y for math
+            float angle = juce::radiansToDegrees (std::atan2 (dx, dy));
+            cfg.azimuthOffset = juce::jlimit (-180.0f, 180.0f, angle);
+            repaint();
+            if (onAzOffsetChanged)
+                onAzOffsetChanged (cfg.azimuthOffset);
+        }
+    }
+
+    //==========================================================================
+    void mouseUp (const juce::MouseEvent&) override
+    {
+        if (resetPressActive)
+        {
+            resetPressActive = false;
+            stopTimer();
+            repaint();
+        }
+        dragTarget = DragNone;
+        setMouseCursor (juce::MouseCursor::NormalCursor);
+    }
+
+    //==========================================================================
+    void mouseMove (const juce::MouseEvent& e) override
+    {
+        auto pos = e.position;
+        if (resetHitArea.contains (pos) || azFlipHitArea.contains (pos) || elFlipHitArea.contains (pos))
+        {
+            setMouseCursor (juce::MouseCursor::PointingHandCursor);
+            return;
+        }
+
+        constexpr float hitRadius = 10.0f;
+        // Check distance graph dots
+        if (distGraphArea.toFloat().contains (pos))
+        {
+            auto ga = getDistGraphSubArea (distGraphArea.toFloat());
+            float minM, maxM;
+            getDistYRange (minM, maxM);
+            for (int p = 0; p < 3; ++p)
+            {
+                float v, m;
+                getDistPointVM (p, v, m);
+                float px = dToX (v, ga);
+                float py = dMToY (m, minM, maxM, ga);
+                if (pos.getDistanceFrom ({ px, py }) <= hitRadius)
+                {
+                    setMouseCursor (juce::MouseCursor::DraggingHandCursor);
+                    return;
+                }
+            }
+        }
+        // Check azimuth line endpoint
+        if (circleArea.toFloat().contains (pos))
+        {
+            auto ca = getCircleSubArea (circleArea.toFloat());
+            float cx = ca.getCentreX();
+            float cy = ca.getCentreY();
+            float maxR = juce::jmin (ca.getWidth(), ca.getHeight()) * 0.5f - 8.0f;
+            float azRad = juce::degreesToRadians (cfg.azimuthOffset);
+            float lineEndX = cx + maxR * std::sin (azRad);
+            float lineEndY = cy - maxR * std::cos (azRad);
+            if (pos.getDistanceFrom ({ lineEndX, lineEndY }) <= hitRadius * 1.5f)
+            {
+                setMouseCursor (juce::MouseCursor::DraggingHandCursor);
+                return;
+            }
+        }
+        setMouseCursor (juce::MouseCursor::NormalCursor);
+    }
+
+    //==========================================================================
+    void timerCallback() override
+    {
+        if (! resetPressActive) { stopTimer(); return; }
+        auto elapsed = juce::Time::currentTimeMillis() - resetPressStartMs;
+        if (elapsed >= resetPressDurationMs)
+        {
+            resetPressActive = false;
+            stopTimer();
+            repaint();
+            if (onResetLongPress) onResetLongPress();
+        }
+        else
+        {
+            repaint();
+        }
+    }
+
+private:
+    ADMOSCMapping::PolarMappingConfig cfg;
+    juce::Rectangle<int> distGraphArea;
+    juce::Rectangle<int> circleArea;
+
+    enum DragTarget { DragNone = -1, DragDistP0 = 0, DragDistP1 = 1, DragDistP2 = 2, DragAzOffset = 10 };
+    DragTarget dragTarget = DragNone;
+    float dragStartV = 0.0f;
+    float dragStartM = 0.0f;
+
+    // Reset long-press state
+    juce::Rectangle<float> resetHitArea;
+    bool resetPressActive = false;
+    int64_t resetPressStartMs = 0;
+    static constexpr int resetPressDurationMs = 1000;
+
+    juce::Rectangle<float> azFlipHitArea;
+    juce::Rectangle<float> elFlipHitArea;
+
+    //==========================================================================
+    // Distance graph helpers
+    //==========================================================================
+
+    static juce::Rectangle<float> getDistGraphSubArea (juce::Rectangle<float> panel)
+    {
+        const float padL = 36.0f, padR = 6.0f, padT = 40.0f, padB = 16.0f;
+        return { panel.getX() + padL, panel.getY() + padT,
+                 panel.getWidth() - padL - padR, panel.getHeight() - padT - padB };
+    }
+
+    static juce::Rectangle<float> getCircleSubArea (juce::Rectangle<float> panel)
+    {
+        return panel.reduced (8.0f, 28.0f);
+    }
+
+    // Normalized distance [0, 1] to pixel X
+    static float dToX (float d, const juce::Rectangle<float>& ga)
+    {
+        return ga.getX() + d * ga.getWidth();
+    }
+    static float dMToY (float m, float minM, float maxM, const juce::Rectangle<float>& ga)
+    {
+        return ga.getBottom() - ((m - minM) / (maxM - minM)) * ga.getHeight();
+    }
+    static float xToD (float px, const juce::Rectangle<float>& ga)
+    {
+        return (px - ga.getX()) / ga.getWidth();
+    }
+    static float dYToM (float py, float minM, float maxM, const juce::Rectangle<float>& ga)
+    {
+        return minM + (1.0f - (py - ga.getY()) / ga.getHeight()) * (maxM - minM);
+    }
+
+    void getDistPointVM (int pt, float& v, float& m) const
+    {
+        switch (pt)
+        {
+            case 0: v = 0.0f;               m = cfg.distCenter; break;
+            case 1: v = cfg.distBreakpoint;  m = cfg.distCenter + cfg.distInner; break;
+            case 2: v = 1.0f;               m = cfg.distCenter + cfg.distInner + cfg.distOuter; break;
+            default: v = 0.0f; m = 0.0f; break;
+        }
+    }
+
+    void getDistYRange (float& minM, float& maxM) const
+    {
+        float vals[3];
+        for (int p = 0; p < 3; ++p)
+        {
+            float v;
+            getDistPointVM (p, v, vals[p]);
+        }
+        minM = vals[0]; maxM = vals[0];
+        for (int i = 1; i < 3; ++i)
+        {
+            minM = juce::jmin (minM, vals[i]);
+            maxM = juce::jmax (maxM, vals[i]);
+        }
+        if (maxM - minM < 0.1f) { minM -= 1.0f; maxM += 1.0f; }
+        float range = maxM - minM;
+        minM -= range * 0.1f;
+        maxM += range * 0.1f;
+    }
+
+    //==========================================================================
+    // Painting
+    //==========================================================================
+
+    void paintDistGraph (juce::Graphics& g, const juce::Rectangle<int>& bounds)
+    {
+        auto bf = bounds.toFloat();
+        auto ga = getDistGraphSubArea (bf);
+        float minM, maxM;
+        getDistYRange (minM, maxM);
+
+        // Background
+        g.setColour (juce::Colour (0xff2a2a2a));
+        g.fillRoundedRectangle (bf, 4.0f);
+
+        // Header: flip controls
+        {
+            float hx = bf.getX() + 4.0f;
+            float hy = bf.getY() + 2.0f;
+            g.setFont (14.0f);
+
+            // Title
+            g.setColour (juce::Colour (0xffcccccc));
+            g.drawText ("Distance", (int) hx, (int) hy, 70, 18, juce::Justification::centredLeft);
+
+            // Az flip
+            float flipX = hx + 76.0f;
+            juce::String azText = cfg.azimuthFlip ? "Az Flip: ON" : "Az Flip: OFF";
+            float azW = azText.length() * 8.0f + 4.0f;
+            azFlipHitArea = { flipX, hy, azW, 18.0f };
+            g.setColour (cfg.azimuthFlip ? juce::Colour (0xff4fc3f7) : juce::Colour (0xff888888));
+            g.drawText (azText, (int) flipX, (int) hy, (int) azW, 18, juce::Justification::centredLeft);
+
+            // El flip
+            float elX = flipX + azW + 12.0f;
+            juce::String elText = cfg.elevationFlip ? "El Flip: ON" : "El Flip: OFF";
+            float elW = elText.length() * 8.0f + 4.0f;
+            elFlipHitArea = { elX, hy, elW, 18.0f };
+            g.setColour (cfg.elevationFlip ? juce::Colour (0xff4fc3f7) : juce::Colour (0xff888888));
+            g.drawText (elText, (int) elX, (int) hy, (int) elW, 18, juce::Justification::centredLeft);
+
+            // Breakpoint value (right side)
+            juce::String bpText = "bp: " + juce::String (cfg.distBreakpoint, 2);
+            g.setColour (juce::Colour (0xff999999));
+            g.drawText (bpText, (int) bf.getRight() - 64, (int) hy, 60, 18,
+                        juce::Justification::centredRight);
+
+            // Az offset value (second line)
+            g.setFont (12.0f);
+            juce::String azOffText = "Az Offset: " + juce::String (cfg.azimuthOffset, 1) + juce::String::fromUTF8 ("\xc2\xb0");
+            g.setColour (juce::Colour (0xff999999));
+            g.drawText (azOffText, (int) hx, (int) hy + 18, 140, 16, juce::Justification::centredLeft);
+
+            // Reset text (long press) — right side of second line
+            float resetW = 48.0f, resetH = 16.0f;
+            float resetX = bf.getRight() - resetW - 4.0f;
+            float resetY = hy + 18.0f;
+            resetHitArea = { resetX, resetY, resetW, resetH };
+
+            if (resetPressActive)
+            {
+                auto elapsed = juce::Time::currentTimeMillis() - resetPressStartMs;
+                float progress = juce::jlimit (0.0f, 1.0f, (float) elapsed / (float) resetPressDurationMs);
+                bool reached = progress >= 1.0f;
+                g.setColour (reached ? juce::Colour (0x4066bb6a) : juce::Colour (0x404fc3f7));
+                g.fillRoundedRectangle (resetX, resetY, resetW * progress, resetH, 3.0f);
+                g.setColour (reached ? juce::Colour (0xff66bb6a) : juce::Colour (0xff4fc3f7));
+            }
+            else
+            {
+                g.setColour (juce::Colour (0xff888888));
+            }
+            g.setFont (11.0f);
+            g.drawText ("Reset", (int) resetX, (int) resetY, (int) resetW, (int) resetH,
+                        juce::Justification::centred);
+        }
+
+        // Grid: zero line
+        g.setColour (juce::Colour (0xff555555));
+        float zeroY = dMToY (0.0f, minM, maxM, ga);
+        if (zeroY >= ga.getY() && zeroY <= ga.getBottom())
+            g.drawHorizontalLine ((int) zeroY, ga.getX(), ga.getRight());
+
+        // Breakpoint dashed line
+        float bpX = dToX (cfg.distBreakpoint, ga);
+        g.setColour (juce::Colour (0xff666666));
+        const float dashLengths[] = { 4.0f, 4.0f };
+        g.drawDashedLine (juce::Line<float> (bpX, ga.getY(), bpX, ga.getBottom()),
+                          dashLengths, 2, 1.0f);
+
+        // Inner zone shading
+        g.setColour (juce::Colour (0x15ffffff));
+        g.fillRect (ga.getX(), ga.getY(), bpX - ga.getX(), ga.getHeight());
+
+        // 3 control points
+        float ptV[3], ptM[3];
+        for (int p = 0; p < 3; ++p)
+            getDistPointVM (p, ptV[p], ptM[p]);
+
+        // Curve
+        juce::Path curve;
+        curve.startNewSubPath (dToX (ptV[0], ga), dMToY (ptM[0], minM, maxM, ga));
+        for (int p = 1; p < 3; ++p)
+            curve.lineTo (dToX (ptV[p], ga), dMToY (ptM[p], minM, maxM, ga));
+        g.setColour (juce::Colour (0xff4fc3f7));
+        g.strokePath (curve, juce::PathStrokeType (2.0f));
+
+        // Dots + value labels
+        g.setFont (12.0f);
+        for (int p = 0; p < 3; ++p)
+        {
+            float dx = dToX (ptV[p], ga);
+            float dy = dMToY (ptM[p], minM, maxM, ga);
+
+            bool isActive = (dragTarget == (DragTarget) (DragDistP0 + p));
+            g.setColour (isActive ? juce::Colour (0xff4fc3f7) : juce::Colour (0xffffffff));
+            float dotR = isActive ? 5.0f : 3.5f;
+            g.fillEllipse (dx - dotR, dy - dotR, dotR * 2.0f, dotR * 2.0f);
+
+            juce::String valText = juce::String (ptM[p], 2) + "m";
+            g.setColour (juce::Colour (0xffbbbbbb));
+            int labelW = 52;
+            if (p == 0)
+                g.drawText (valText, (int) dx - labelW / 2, (int) dy - 18, labelW, 14,
+                            juce::Justification::centred);
+            else
+                g.drawText (valText, (int) dx + 4, (int) dy - 7, labelW, 14,
+                            juce::Justification::centredLeft);
+        }
+
+        // X-axis labels
+        g.setFont (11.0f);
+        g.setColour (juce::Colour (0xffaaaaaa));
+        float labelY = ga.getBottom() + 2.0f;
+        g.drawText ("0", (int) dToX (0.0f, ga) - 8, (int) labelY, 16, 14, juce::Justification::centred);
+        g.drawText ("1", (int) dToX (1.0f, ga) - 8, (int) labelY, 16, 14, juce::Justification::centred);
+    }
+
+    //--------------------------------------------------------------------------
+
+    void paintCircleOverview (juce::Graphics& g, const juce::Rectangle<int>& bounds) const
+    {
+        auto bf = bounds.toFloat();
+        auto ca = getCircleSubArea (bf);
+
+        // Background
+        g.setColour (juce::Colour (0xff2a2a2a));
+        g.fillRoundedRectangle (bf, 4.0f);
+
+        // Title
+        g.setFont (14.0f);
+        g.setColour (juce::Colour (0xffcccccc));
+        g.drawText ("Top View", (int) bf.getX() + 4, (int) bf.getY() + 2, 76, 18,
+                    juce::Justification::centredLeft);
+
+        float cx = ca.getCentreX();
+        float cy = ca.getCentreY();
+        float maxR = juce::jmin (ca.getWidth(), ca.getHeight()) * 0.5f - 8.0f;
+
+        float totalDist = cfg.distCenter + cfg.distInner + cfg.distOuter;
+        if (totalDist < 0.01f) totalDist = 1.0f;
+        float pxPerM = maxR / totalDist;
+
+        // Outer circle (max distance)
+        float outerR = totalDist * pxPerM;
+        g.setColour (juce::Colour (0xff888888));
+        g.drawEllipse (cx - outerR, cy - outerR, outerR * 2.0f, outerR * 2.0f, 1.0f);
+
+        // Outer distance label
+        g.setFont (12.0f);
+        g.setColour (juce::Colour (0xffaaaaaa));
+        juce::String outerLabel = juce::String (totalDist, 1) + "m";
+        g.drawText (outerLabel, (int) (cx + outerR * 0.707f + 2), (int) (cy - outerR * 0.707f - 7),
+                    40, 14, juce::Justification::centredLeft);
+
+        // Inner circle (breakpoint boundary = distCenter + distInner)
+        float innerDist = cfg.distCenter + cfg.distInner;
+        float innerR = innerDist * pxPerM;
+        if (innerR > 1.0f)
+        {
+            g.setColour (juce::Colour (0xffaaaaaa));
+            const float dashLens[] = { 4.0f, 4.0f };
+            // Draw dashed circle using path
+            juce::Path innerCircle;
+            innerCircle.addEllipse (cx - innerR, cy - innerR, innerR * 2.0f, innerR * 2.0f);
+            g.strokePath (innerCircle, juce::PathStrokeType (1.0f));
+
+            // Inner distance label
+            juce::String innerLabel = juce::String (innerDist, 1) + "m";
+            g.drawText (innerLabel, (int) (cx + innerR * 0.707f + 2), (int) (cy - innerR * 0.707f - 7),
+                        40, 14, juce::Justification::centredLeft);
+        }
+
+        // Center circle (distCenter offset)
+        if (cfg.distCenter > 0.01f)
+        {
+            float centerR = cfg.distCenter * pxPerM;
+            g.setColour (juce::Colour (0xff666666));
+            g.drawEllipse (cx - centerR, cy - centerR, centerR * 2.0f, centerR * 2.0f, 1.0f);
+
+            juce::String centerLabel = juce::String (cfg.distCenter, 1) + "m";
+            g.setColour (juce::Colour (0xff999999));
+            g.drawText (centerLabel, (int) (cx + centerR + 2), (int) cy - 7,
+                        40, 14, juce::Justification::centredLeft);
+        }
+
+        // Center dot
+        g.setColour (juce::Colour (0xffffffff));
+        g.fillEllipse (cx - 3.0f, cy - 3.0f, 6.0f, 6.0f);
+
+        // Crosshair
+        g.setColour (juce::Colour (0xff444444));
+        g.drawVerticalLine ((int) cx, ca.getY(), ca.getBottom());
+        g.drawHorizontalLine ((int) cy, ca.getX(), ca.getRight());
+
+        // Cardinal labels
+        g.setFont (11.0f);
+        g.setColour (juce::Colour (0xff888888));
+        g.drawText ("Front", (int) cx - 20, (int) ca.getBottom() - 14, 40, 14, juce::Justification::centred);
+        g.drawText ("Back",  (int) cx - 20, (int) ca.getY(), 40, 14, juce::Justification::centred);
+        g.drawText ("L", (int) ca.getX(), (int) cy - 7, 14, 14, juce::Justification::centred);
+        g.drawText ("R", (int) ca.getRight() - 14, (int) cy - 7, 14, 14, juce::Justification::centred);
+
+        // Azimuth offset line
+        float azRad = juce::degreesToRadians (cfg.azimuthOffset);
+        float lineEndX = cx + maxR * std::sin (azRad);
+        float lineEndY = cy - maxR * std::cos (azRad);
+
+        g.setColour (juce::Colour (0xff4fc3f7));
+        g.drawLine (cx, cy, lineEndX, lineEndY, 2.0f);
+
+        // Azimuth endpoint dot (draggable)
+        g.fillEllipse (lineEndX - 4.0f, lineEndY - 4.0f, 8.0f, 8.0f);
+
+        // Azimuth offset label near the dot
+        g.setFont (12.0f);
+        juce::String azLabel = juce::String (cfg.azimuthOffset, 1) + juce::String::fromUTF8 ("\xc2\xb0");
+        g.setColour (juce::Colour (0xffbbbbbb));
+        g.drawText (azLabel, (int) lineEndX + 6, (int) lineEndY - 7, 44, 14,
+                    juce::Justification::centredLeft);
+
+        // Inner zone fill (semi-transparent)
+        if (innerR > 1.0f)
+        {
+            g.setColour (juce::Colour (0x10ffffff));
+            g.fillEllipse (cx - innerR, cy - innerR, innerR * 2.0f, innerR * 2.0f);
+        }
+    }
+};
+
 class NetworkTab : public juce::Component,
                    private juce::ValueTree::Listener,
                    private juce::TextEditor::Listener,
@@ -177,12 +1429,6 @@ public:
         updateTextEditor(udpPortEditor);
         updateTextEditor(tcpPortEditor);
         updateTextEditor(oscQueryPortEditor);
-        updateTextEditor(admOscOffsetXEditor);
-        updateTextEditor(admOscOffsetYEditor);
-        updateTextEditor(admOscOffsetZEditor);
-        updateTextEditor(admOscScaleXEditor);
-        updateTextEditor(admOscScaleYEditor);
-        updateTextEditor(admOscScaleZEditor);
         updateTextEditor(trackingPortEditor);
         updateTextEditor(trackingOffsetXEditor);
         updateTextEditor(trackingOffsetYEditor);
@@ -274,9 +1520,9 @@ public:
         g.setFont(juce::FontOptions().withHeight(juce::jmax(10.0f, 14.0f * layoutScale)).withStyle("Bold"));
         g.drawText(LOC("network.sections.network"), scaled(20), scaled(10), scaled(200), headerH, juce::Justification::left);
         g.drawText(LOC("network.sections.connections"), scaled(20), networkConnectionsSectionY - headerOffset, scaled(200), headerH, juce::Justification::left);
-        // ADM-OSC and Tracking headers are in the right column
-        g.drawText(LOC("network.sections.admOsc"), rightColumnX, admOscSectionY - headerOffset, scaled(200), headerH, juce::Justification::left);
+        // Tracking and ADM-OSC headers are in the right column (Tracking first)
         g.drawText(LOC("network.sections.tracking"), rightColumnX, trackingSectionY - headerOffset, scaled(200), headerH, juce::Justification::left);
+        g.drawText(LOC("network.sections.admOsc"), rightColumnX, admOscSectionY - headerOffset, scaled(200), headerH, juce::Justification::left);
 
     }
 
@@ -410,63 +1656,25 @@ public:
         openLogWindowButton.setBounds(leftX + tableButtonWidth + tableButtonGap, leftY, tableButtonWidth, rowHeight);
         findMyRemoteButton.setBounds(leftX + tableButtonWidth * 2 + tableButtonGap * 2, leftY, tableButtonWidth, rowHeight);
 
-        // ==================== RIGHT COLUMN: ADM-OSC & TRACKING ====================
+        // ==================== RIGHT COLUMN: TRACKING & ADM-OSC ====================
         int rightY = scaled(35);
 
         // Calculate widths for right column (3 sub-columns for X, Y, Z)
-        // Use the full right column width
         const int rightSubColSpacing = scaled(15);
         const int rightSubColWidth = (rightColumnWidth - rightSubColSpacing * 2) / 3;
-        const int rightLabelWidth = scaled(75);  // Fixed label width for "Offset X:", "Scale Y:", etc.
+        const int rightLabelWidth = scaled(75);
         const int rightUnitWidth = scaled(20);
         const int rightEditorWidth = rightSubColWidth - rightLabelWidth - rightUnitWidth;
+        const int rightRowSpacing = scaled(10);
 
         int rcol1 = rightColumnX;
         int rcol2 = rcol1 + rightSubColWidth + rightSubColSpacing;
         int rcol3 = rcol2 + rightSubColWidth + rightSubColSpacing;
 
-        // --- ADM-OSC Section ---
-        admOscSectionY = rightY;
-        const int rightRowSpacing = scaled(10);  // More spacing between rows in right column
-
-        // Row 1: Offset X, Y, Z
-        admOscOffsetXLabel.setBounds(rcol1, rightY, rightLabelWidth, rowHeight);
-        admOscOffsetXEditor.setBounds(rcol1 + rightLabelWidth, rightY, rightEditorWidth, rowHeight);
-        admOscOffsetXUnitLabel.setBounds(rcol1 + rightLabelWidth + rightEditorWidth, rightY, rightUnitWidth, rowHeight);
-
-        admOscOffsetYLabel.setBounds(rcol2, rightY, rightLabelWidth, rowHeight);
-        admOscOffsetYEditor.setBounds(rcol2 + rightLabelWidth, rightY, rightEditorWidth, rowHeight);
-        admOscOffsetYUnitLabel.setBounds(rcol2 + rightLabelWidth + rightEditorWidth, rightY, rightUnitWidth, rowHeight);
-
-        admOscOffsetZLabel.setBounds(rcol3, rightY, rightLabelWidth, rowHeight);
-        admOscOffsetZEditor.setBounds(rcol3 + rightLabelWidth, rightY, rightEditorWidth, rowHeight);
-        admOscOffsetZUnitLabel.setBounds(rcol3 + rightLabelWidth + rightEditorWidth, rightY, rightUnitWidth, rowHeight);
-        rightY += rowHeight + rightRowSpacing;
-
-        // Row 2: Scale X, Y, Z
-        admOscScaleXLabel.setBounds(rcol1, rightY, rightLabelWidth, rowHeight);
-        admOscScaleXEditor.setBounds(rcol1 + rightLabelWidth, rightY, rightEditorWidth, rowHeight);
-        admOscScaleXUnitLabel.setBounds(rcol1 + rightLabelWidth + rightEditorWidth, rightY, rightUnitWidth, rowHeight);
-
-        admOscScaleYLabel.setBounds(rcol2, rightY, rightLabelWidth, rowHeight);
-        admOscScaleYEditor.setBounds(rcol2 + rightLabelWidth, rightY, rightEditorWidth, rowHeight);
-        admOscScaleYUnitLabel.setBounds(rcol2 + rightLabelWidth + rightEditorWidth, rightY, rightUnitWidth, rowHeight);
-
-        admOscScaleZLabel.setBounds(rcol3, rightY, rightLabelWidth, rowHeight);
-        admOscScaleZEditor.setBounds(rcol3 + rightLabelWidth, rightY, rightEditorWidth, rowHeight);
-        admOscScaleZUnitLabel.setBounds(rcol3 + rightLabelWidth + rightEditorWidth, rightY, rightUnitWidth, rowHeight);
-        rightY += rowHeight + rightRowSpacing;
-
-        // Row 3: Flip X, Y, Z
-        admOscFlipXButton.setBounds(rcol1, rightY, rightSubColWidth, rowHeight);
-        admOscFlipYButton.setBounds(rcol2, rightY, rightSubColWidth, rowHeight);
-        admOscFlipZButton.setBounds(rcol3, rightY, rightSubColWidth, rowHeight);
-        rightY += rowHeight + sectionSpacing;
-
-        // --- Tracking Section ---
+        // --- Tracking Section (now first in right column) ---
         trackingSectionY = rightY;
 
-        // Row 1: Enable, Protocol, Port - each gets a full sub-column width
+        // Row 1: Enable, Protocol, Port
         const int protocolLabelWidth = scaled(60);
         const int protocolSelectorWidth = rightSubColWidth - protocolLabelWidth;
         trackingEnabledButton.setBounds(rcol1, rightY, rightSubColWidth, rowHeight);
@@ -510,14 +1718,38 @@ public:
         trackingFlipZButton.setBounds(rcol3, rightY, rightSubColWidth, rowHeight);
         rightY += rowHeight + rightRowSpacing;
 
-        // Row 5: OSC Path (only visible when protocol is OSC) OR PSN Interface (when PSN selected)
+        // Row 5: OSC Path / PSN Interface
         const int oscPathLabelWidth = scaled(75);
         trackingOscPathLabel.setBounds(rcol1, rightY, oscPathLabelWidth, rowHeight);
         trackingOscPathEditor.setBounds(rcol1 + oscPathLabelWidth, rightY, rightColumnWidth - oscPathLabelWidth, rowHeight);
-        // PSN Interface selector shares the same row as OSC Path
         const int psnInterfaceLabelWidth = scaled(95);
         trackingPsnInterfaceLabel.setBounds(rcol1, rightY, psnInterfaceLabelWidth, rowHeight);
         trackingPsnInterfaceSelector.setBounds(rcol1 + psnInterfaceLabelWidth, rightY, rightColumnWidth - psnInterfaceLabelWidth, rowHeight);
+        rightY += rowHeight + sectionSpacing;
+
+        // --- ADM-OSC Section (now second in right column) ---
+        admOscSectionY = rightY;
+
+        // Row 1: Mapping selector
+        const int mappingLabelW = scaled(75);
+        const int mappingSelectorW = scaled(120);
+        admMappingSelectorLabel.setBounds(rcol1, rightY, mappingLabelW, rowHeight);
+        admMappingSelector.setBounds(rcol1 + mappingLabelW, rightY, mappingSelectorW, rowHeight);
+        rightY += rowHeight + rightRowSpacing;
+
+        // --- Cartesian or Polar mapping layout (only layout the visible one) ---
+        if (currentAdmMapping < 4)
+        {
+            // Mapping panel (3 axis graphs + XY rectangle, all controls integrated)
+            admMappingGraph.setBounds(rcol1, rightY, rightColumnWidth, scaled(400));
+            rightY += scaled(400) + rightRowSpacing;
+        }
+        else
+        {
+            // Polar mapping panel (distance graph + circle overview, all controls integrated)
+            admPolarGraph.setBounds(rcol1, rightY, rightColumnWidth, scaled(400));
+            rightY += scaled(400) + rightRowSpacing;
+        }
 
         // ==================== FOOTER BUTTONS ====================
         const int footerPadding = scaled(10);
@@ -556,8 +1788,6 @@ public:
         }
 
         std::vector<juce::Component*> rightCol = {
-            &admOscOffsetXEditor, &admOscOffsetYEditor, &admOscOffsetZEditor,
-            &admOscScaleXEditor, &admOscScaleYEditor, &admOscScaleZEditor,
             &trackingPortEditor,
             &trackingOffsetXEditor, &trackingOffsetYEditor, &trackingOffsetZEditor,
             &trackingScaleXEditor, &trackingScaleYEditor, &trackingScaleZEditor,
@@ -657,30 +1887,16 @@ private:
     /** Scale a reference pixel value by layoutScale with a 65% minimum floor */
     int scaled(int ref) const { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * layoutScale)); }
 
-    // ADM-OSC Section
-    juce::Label admOscOffsetXLabel;
-    juce::TextEditor admOscOffsetXEditor;
-    juce::Label admOscOffsetXUnitLabel;
-    juce::Label admOscOffsetYLabel;
-    juce::TextEditor admOscOffsetYEditor;
-    juce::Label admOscOffsetYUnitLabel;
-    juce::Label admOscOffsetZLabel;
-    juce::TextEditor admOscOffsetZEditor;
-    juce::Label admOscOffsetZUnitLabel;
+    // ==================== ADM-OSC MAPPING SECTION ====================
+    juce::ComboBox admMappingSelector;
+    juce::Label admMappingSelectorLabel;
+    int currentAdmMapping = 0;  // Currently editing: 0-3 = Cart, 4-7 = Polar
 
-    juce::Label admOscScaleXLabel;
-    juce::TextEditor admOscScaleXEditor;
-    juce::Label admOscScaleXUnitLabel;
-    juce::Label admOscScaleYLabel;
-    juce::TextEditor admOscScaleYEditor;
-    juce::Label admOscScaleYUnitLabel;
-    juce::Label admOscScaleZLabel;
-    juce::TextEditor admOscScaleZEditor;
-    juce::Label admOscScaleZUnitLabel;
+    // Cartesian mapping visualization panel (all controls integrated)
+    AdmMappingPanel admMappingGraph;
 
-    juce::TextButton admOscFlipXButton;
-    juce::TextButton admOscFlipYButton;
-    juce::TextButton admOscFlipZButton;
+    // Polar mapping visualization panel (all controls integrated)
+    AdmPolarPanel admPolarGraph;
 
     // Tracking Section
     juce::TextButton trackingEnabledButton;
@@ -725,86 +1941,155 @@ private:
 
     void setupAdmOscSection()
     {
-        // Offset X
-        addAndMakeVisible(admOscOffsetXLabel);
-        admOscOffsetXLabel.setText(LOC("network.labels.offsetX"), juce::dontSendNotification);
-        addAndMakeVisible(admOscOffsetXEditor);
-        addAndMakeVisible(admOscOffsetXUnitLabel);
-        admOscOffsetXUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
-        admOscOffsetXUnitLabel.setColour(juce::Label::textColourId, ColorScheme::get().textSecondary);
-
-        // Offset Y
-        addAndMakeVisible(admOscOffsetYLabel);
-        admOscOffsetYLabel.setText(LOC("network.labels.offsetY"), juce::dontSendNotification);
-        addAndMakeVisible(admOscOffsetYEditor);
-        addAndMakeVisible(admOscOffsetYUnitLabel);
-        admOscOffsetYUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
-        admOscOffsetYUnitLabel.setColour(juce::Label::textColourId, ColorScheme::get().textSecondary);
-
-        // Offset Z
-        addAndMakeVisible(admOscOffsetZLabel);
-        admOscOffsetZLabel.setText(LOC("network.labels.offsetZ"), juce::dontSendNotification);
-        addAndMakeVisible(admOscOffsetZEditor);
-        addAndMakeVisible(admOscOffsetZUnitLabel);
-        admOscOffsetZUnitLabel.setText(LOC("units.meters"), juce::dontSendNotification);
-        admOscOffsetZUnitLabel.setColour(juce::Label::textColourId, ColorScheme::get().textSecondary);
-
-        // Scale X
-        addAndMakeVisible(admOscScaleXLabel);
-        admOscScaleXLabel.setText(LOC("network.labels.scaleX"), juce::dontSendNotification);
-        addAndMakeVisible(admOscScaleXEditor);
-        addAndMakeVisible(admOscScaleXUnitLabel);
-        admOscScaleXUnitLabel.setText("x", juce::dontSendNotification);
-        admOscScaleXUnitLabel.setColour(juce::Label::textColourId, ColorScheme::get().textSecondary);
-
-        // Scale Y
-        addAndMakeVisible(admOscScaleYLabel);
-        admOscScaleYLabel.setText(LOC("network.labels.scaleY"), juce::dontSendNotification);
-        addAndMakeVisible(admOscScaleYEditor);
-        addAndMakeVisible(admOscScaleYUnitLabel);
-        admOscScaleYUnitLabel.setText("x", juce::dontSendNotification);
-        admOscScaleYUnitLabel.setColour(juce::Label::textColourId, ColorScheme::get().textSecondary);
-
-        // Scale Z
-        addAndMakeVisible(admOscScaleZLabel);
-        admOscScaleZLabel.setText(LOC("network.labels.scaleZ"), juce::dontSendNotification);
-        addAndMakeVisible(admOscScaleZEditor);
-        addAndMakeVisible(admOscScaleZUnitLabel);
-        admOscScaleZUnitLabel.setText("x", juce::dontSendNotification);
-        admOscScaleZUnitLabel.setColour(juce::Label::textColourId, ColorScheme::get().textSecondary);
-
-        // Flip buttons
-        addAndMakeVisible(admOscFlipXButton);
-        admOscFlipXButton.setButtonText(LOC("network.toggles.flipXOff"));
-        admOscFlipXButton.setClickingTogglesState(true);
-        admOscFlipXButton.onClick = [this]() {
-            admOscFlipXButton.setButtonText(admOscFlipXButton.getToggleState() ? LOC("network.toggles.flipXOn") : LOC("network.toggles.flipXOff"));
-            parameters.setConfigParam("admOscFlipX", admOscFlipXButton.getToggleState() ? 1 : 0);
+        // --- Mapping selector ---
+        addAndMakeVisible(admMappingSelectorLabel);
+        admMappingSelectorLabel.setText(LOC("network.labels.admMapping"), juce::dontSendNotification);
+        addAndMakeVisible(admMappingSelector);
+        admMappingSelector.addItem("Cartesian 1", 1);
+        admMappingSelector.addItem("Cartesian 2", 2);
+        admMappingSelector.addItem("Cartesian 3", 3);
+        admMappingSelector.addItem("Cartesian 4", 4);
+        admMappingSelector.addItem("Polar 1", 5);
+        admMappingSelector.addItem("Polar 2", 6);
+        admMappingSelector.addItem("Polar 3", 7);
+        admMappingSelector.addItem("Polar 4", 8);
+        admMappingSelector.setSelectedId(1, juce::dontSendNotification);
+        admMappingSelector.onChange = [this]() {
+            currentAdmMapping = admMappingSelector.getSelectedId() - 1;
+            loadAdmMappingToUI();
+            updateAdmMappingVisibility();
         };
 
-        addAndMakeVisible(admOscFlipYButton);
-        admOscFlipYButton.setButtonText(LOC("network.toggles.flipYOff"));
-        admOscFlipYButton.setClickingTogglesState(true);
-        admOscFlipYButton.onClick = [this]() {
-            admOscFlipYButton.setButtonText(admOscFlipYButton.getToggleState() ? LOC("network.toggles.flipYOn") : LOC("network.toggles.flipYOff"));
-            parameters.setConfigParam("admOscFlipY", admOscFlipYButton.getToggleState() ? 1 : 0);
+        // --- Mapping panel (all Cartesian controls integrated) ---
+        addAndMakeVisible(admMappingGraph);
+        admMappingGraph.onParameterDragged = [this](int axis, int pointIndex,
+            float newBp, float newInner, float newOuter, float newCenter, bool /*isPos*/)
+        {
+            auto um = getConfigUndoManager();
+            auto mappingNode = findAdmMappingNode(currentAdmMapping);
+            if (!mappingNode.isValid()) return;
+            auto axisNode = findAxisNode(mappingNode, axis);
+            if (!axisNode.isValid()) return;
+
+            switch (pointIndex)
+            {
+                case 0: axisNode.setProperty(WFSParameterIDs::admCartNegOuterWidth, newOuter, um); break;
+                case 1:
+                    axisNode.setProperty(WFSParameterIDs::admCartBreakpoint, newBp, um);
+                    axisNode.setProperty(WFSParameterIDs::admCartNegInnerWidth, newInner, um);
+                    break;
+                case 2: axisNode.setProperty(WFSParameterIDs::admCartCenterOffset, newCenter, um); break;
+                case 3:
+                    axisNode.setProperty(WFSParameterIDs::admCartBreakpoint, newBp, um);
+                    axisNode.setProperty(WFSParameterIDs::admCartPosInnerWidth, newInner, um);
+                    break;
+                case 4: axisNode.setProperty(WFSParameterIDs::admCartPosOuterWidth, newOuter, um); break;
+            }
         };
 
-        addAndMakeVisible(admOscFlipZButton);
-        admOscFlipZButton.setButtonText(LOC("network.toggles.flipZOff"));
-        admOscFlipZButton.setClickingTogglesState(true);
-        admOscFlipZButton.onClick = [this]() {
-            admOscFlipZButton.setButtonText(admOscFlipZButton.getToggleState() ? LOC("network.toggles.flipZOn") : LOC("network.toggles.flipZOff"));
-            parameters.setConfigParam("admOscFlipZ", admOscFlipZButton.getToggleState() ? 1 : 0);
+        admMappingGraph.onSwapChanged = [this](int axis, int newSwapValue)
+        {
+            auto um = getConfigUndoManager();
+            auto mappingNode = findAdmMappingNode(currentAdmMapping);
+            if (!mappingNode.isValid()) return;
+            auto axisNode = findAxisNode(mappingNode, axis);
+            if (!axisNode.isValid()) return;
+            axisNode.setProperty(WFSParameterIDs::admCartAxisSwap, newSwapValue, um);
         };
 
-        // Add text editor listeners
-        admOscOffsetXEditor.addListener(this);
-        admOscOffsetYEditor.addListener(this);
-        admOscOffsetZEditor.addListener(this);
-        admOscScaleXEditor.addListener(this);
-        admOscScaleYEditor.addListener(this);
-        admOscScaleZEditor.addListener(this);
+        admMappingGraph.onFlipChanged = [this](int axis, bool newFlipState)
+        {
+            auto um = getConfigUndoManager();
+            auto mappingNode = findAdmMappingNode(currentAdmMapping);
+            if (!mappingNode.isValid()) return;
+            auto axisNode = findAxisNode(mappingNode, axis);
+            if (!axisNode.isValid()) return;
+            axisNode.setProperty(WFSParameterIDs::admCartSignFlip, newFlipState ? 1 : 0, um);
+        };
+
+        admMappingGraph.onResetLongPress = [this]()
+        {
+            auto um = getConfigUndoManager();
+            um->beginNewTransaction("Reset Cartesian Mapping");
+            auto mappingNode = findAdmMappingNode(currentAdmMapping);
+            if (!mappingNode.isValid()) return;
+            for (int a = 0; a < 3; ++a)
+            {
+                auto axisNode = findAxisNode(mappingNode, a);
+                if (!axisNode.isValid()) continue;
+                axisNode.setProperty(WFSParameterIDs::admCartAxisSwap, a, um);
+                axisNode.setProperty(WFSParameterIDs::admCartSignFlip, 0, um);
+                axisNode.setProperty(WFSParameterIDs::admCartCenterOffset, 0.0f, um);
+                axisNode.setProperty(WFSParameterIDs::admCartBreakpoint, WFSParameterDefaults::admCartBreakpointDefault, um);
+                axisNode.setProperty(WFSParameterIDs::admCartPosInnerWidth, WFSParameterDefaults::admCartWidthDefault, um);
+                axisNode.setProperty(WFSParameterIDs::admCartPosOuterWidth, WFSParameterDefaults::admCartWidthDefault, um);
+                axisNode.setProperty(WFSParameterIDs::admCartNegInnerWidth, WFSParameterDefaults::admCartWidthDefault, um);
+                axisNode.setProperty(WFSParameterIDs::admCartNegOuterWidth, WFSParameterDefaults::admCartWidthDefault, um);
+            }
+            loadAdmMappingToUI();
+        };
+
+        // --- Polar mapping panel ---
+        addAndMakeVisible(admPolarGraph);
+        admPolarGraph.onDistDragged = [this](int pointIndex, float newBp, float newInner,
+                                              float newOuter, float newCenter)
+        {
+            auto um = getConfigUndoManager();
+            auto mappingNode = findAdmMappingNode(currentAdmMapping);
+            if (!mappingNode.isValid()) return;
+            switch (pointIndex)
+            {
+                case 0:
+                    mappingNode.setProperty(WFSParameterIDs::admPolarDistCenter, newCenter, um);
+                    break;
+                case 1:
+                    mappingNode.setProperty(WFSParameterIDs::admPolarDistBreakpoint, newBp, um);
+                    mappingNode.setProperty(WFSParameterIDs::admPolarDistInner, newInner, um);
+                    break;
+                case 2:
+                    mappingNode.setProperty(WFSParameterIDs::admPolarDistOuter, newOuter, um);
+                    break;
+            }
+        };
+        admPolarGraph.onAzOffsetChanged = [this](float newAzOffset)
+        {
+            auto um = getConfigUndoManager();
+            auto mappingNode = findAdmMappingNode(currentAdmMapping);
+            if (!mappingNode.isValid()) return;
+            mappingNode.setProperty(WFSParameterIDs::admPolarAzimuthOffset, newAzOffset, um);
+        };
+        admPolarGraph.onAzFlipChanged = [this](bool azFlip)
+        {
+            auto um = getConfigUndoManager();
+            auto mappingNode = findAdmMappingNode(currentAdmMapping);
+            if (!mappingNode.isValid()) return;
+            mappingNode.setProperty(WFSParameterIDs::admPolarAzimuthFlip, azFlip ? 1 : 0, um);
+        };
+        admPolarGraph.onElFlipChanged = [this](bool elFlip)
+        {
+            auto um = getConfigUndoManager();
+            auto mappingNode = findAdmMappingNode(currentAdmMapping);
+            if (!mappingNode.isValid()) return;
+            mappingNode.setProperty(WFSParameterIDs::admPolarElevationFlip, elFlip ? 1 : 0, um);
+        };
+        admPolarGraph.onResetLongPress = [this]()
+        {
+            auto um = getConfigUndoManager();
+            um->beginNewTransaction("Reset Polar Mapping");
+            auto mappingNode = findAdmMappingNode(currentAdmMapping);
+            if (!mappingNode.isValid()) return;
+            mappingNode.setProperty(WFSParameterIDs::admPolarAzimuthOffset, WFSParameterDefaults::admPolarAzimuthOffsetDefault, um);
+            mappingNode.setProperty(WFSParameterIDs::admPolarAzimuthFlip, WFSParameterDefaults::admPolarAzimuthFlipDefault, um);
+            mappingNode.setProperty(WFSParameterIDs::admPolarElevationFlip, WFSParameterDefaults::admPolarElevationFlipDefault, um);
+            mappingNode.setProperty(WFSParameterIDs::admPolarDistBreakpoint, WFSParameterDefaults::admPolarDistBreakpointDefault, um);
+            mappingNode.setProperty(WFSParameterIDs::admPolarDistInner, WFSParameterDefaults::admPolarDistInnerDefault, um);
+            mappingNode.setProperty(WFSParameterIDs::admPolarDistOuter, WFSParameterDefaults::admPolarDistOuterDefault, um);
+            mappingNode.setProperty(WFSParameterIDs::admPolarDistCenter, WFSParameterDefaults::admPolarDistCenterDefault, um);
+            loadAdmMappingToUI();
+        };
+
+        // Initial visibility
+        updateAdmMappingVisibility();
     }
 
     void setupTrackingSection()
@@ -1040,21 +2325,10 @@ private:
         }
 
         // ==================== ADM-OSC SECTION ====================
-        admOscOffsetXLabel.addMouseListener(this, false);
-        admOscOffsetXEditor.addMouseListener(this, false);
-        admOscOffsetYLabel.addMouseListener(this, false);
-        admOscOffsetYEditor.addMouseListener(this, false);
-        admOscOffsetZLabel.addMouseListener(this, false);
-        admOscOffsetZEditor.addMouseListener(this, false);
-        admOscScaleXLabel.addMouseListener(this, false);
-        admOscScaleXEditor.addMouseListener(this, false);
-        admOscScaleYLabel.addMouseListener(this, false);
-        admOscScaleYEditor.addMouseListener(this, false);
-        admOscScaleZLabel.addMouseListener(this, false);
-        admOscScaleZEditor.addMouseListener(this, false);
-        admOscFlipXButton.addMouseListener(this, false);
-        admOscFlipYButton.addMouseListener(this, false);
-        admOscFlipZButton.addMouseListener(this, false);
+        admMappingSelectorLabel.addMouseListener(this, false);
+        admMappingSelector.addMouseListener(this, true);
+        admMappingGraph.addMouseListener(this, false);
+        admPolarGraph.addMouseListener(this, false);
 
         // ==================== TRACKING SECTION ====================
         trackingEnabledButton.addMouseListener(this, false);
@@ -1521,32 +2795,103 @@ private:
 
     void updateAdmOscAppearance()
     {
-        // For now, ADM-OSC is always editable (greying out when no ADM-OSC target will be added later)
-        float alpha = 1.0f;  // TODO: check if ADM-OSC target exists
+        bool hasAdmOsc = false;
+        for (int i = 0; i < maxTargets; ++i)
+        {
+            if (targetRows[i].isActive &&
+                targetRows[i].protocolSelector.getSelectedId() == 4)  // ADM-OSC
+            {
+                hasAdmOsc = true;
+                break;
+            }
+        }
 
-        admOscOffsetXLabel.setAlpha(alpha);
-        admOscOffsetXEditor.setAlpha(alpha);
-        admOscOffsetXUnitLabel.setAlpha(alpha);
-        admOscOffsetYLabel.setAlpha(alpha);
-        admOscOffsetYEditor.setAlpha(alpha);
-        admOscOffsetYUnitLabel.setAlpha(alpha);
-        admOscOffsetZLabel.setAlpha(alpha);
-        admOscOffsetZEditor.setAlpha(alpha);
-        admOscOffsetZUnitLabel.setAlpha(alpha);
+        float alpha = hasAdmOsc ? 1.0f : 0.4f;
+        bool enabled = hasAdmOsc;
 
-        admOscScaleXLabel.setAlpha(alpha);
-        admOscScaleXEditor.setAlpha(alpha);
-        admOscScaleXUnitLabel.setAlpha(alpha);
-        admOscScaleYLabel.setAlpha(alpha);
-        admOscScaleYEditor.setAlpha(alpha);
-        admOscScaleYUnitLabel.setAlpha(alpha);
-        admOscScaleZLabel.setAlpha(alpha);
-        admOscScaleZEditor.setAlpha(alpha);
-        admOscScaleZUnitLabel.setAlpha(alpha);
+        admMappingSelectorLabel.setAlpha(alpha);
+        admMappingSelector.setAlpha(alpha);
+        admMappingSelector.setEnabled(enabled);
 
-        admOscFlipXButton.setAlpha(alpha);
-        admOscFlipYButton.setAlpha(alpha);
-        admOscFlipZButton.setAlpha(alpha);
+        admMappingGraph.setAlpha(alpha);
+        admMappingGraph.setEnabled(enabled);
+        admPolarGraph.setAlpha(alpha);
+        admPolarGraph.setEnabled(enabled);
+    }
+
+    /** Show/hide Cartesian vs Polar editors based on currentAdmMapping */
+    void updateAdmMappingVisibility()
+    {
+        bool isCart = currentAdmMapping < 4;
+        bool isPolar = currentAdmMapping >= 4;
+
+        // Cartesian panel
+        admMappingGraph.setVisible(isCart);
+
+        // Polar panel
+        admPolarGraph.setVisible(isPolar);
+
+        // Recalculate layout so only visible controls consume space
+        resized();
+    }
+
+    /** Find a Cart or Polar mapping ValueTree node by index */
+    juce::UndoManager* getConfigUndoManager()
+    {
+        return parameters.getValueTreeState().getUndoManagerForDomain(UndoDomain::Config);
+    }
+
+    juce::ValueTree findAdmMappingNode(int mappingIndex)
+    {
+        auto admosc = parameters.getValueTreeState().getADMOSCState();
+        if (!admosc.isValid()) return {};
+
+        bool isCart = mappingIndex < 4;
+        int subIndex = isCart ? mappingIndex : (mappingIndex - 4);
+        auto targetType = isCart ? WFSParameterIDs::ADMCartMapping : WFSParameterIDs::ADMPolarMapping;
+
+        for (int c = 0; c < admosc.getNumChildren(); ++c)
+        {
+            auto child = admosc.getChild(c);
+            if (child.getType() == targetType && (int)child.getProperty(WFSParameterIDs::id) == subIndex)
+                return child;
+        }
+        return {};
+    }
+
+    /** Load current mapping config from ValueTree into editors */
+    void loadAdmMappingToUI()
+    {
+        auto mappingNode = findAdmMappingNode(currentAdmMapping);
+        if (!mappingNode.isValid()) return;
+
+        if (currentAdmMapping < 4)
+        {
+            // Cartesian mapping — panel handles all display
+            auto cfg = ADMOSCMapping::loadCartesianConfig(mappingNode);
+            admMappingGraph.setConfig(cfg);
+        }
+        else
+        {
+            // Polar mapping — panel handles all display
+            auto cfg = ADMOSCMapping::loadPolarConfig(mappingNode);
+            admPolarGraph.setConfig(cfg);
+        }
+    }
+
+    // Note: saveAdmMappingFromUI() removed — both Cartesian and Polar now save via panel callbacks
+
+    /** Helper to find an axis ValueTree node within a mapping node */
+    juce::ValueTree findAxisNode (const juce::ValueTree& mappingNode, int axis) const
+    {
+        for (int c = 0; c < mappingNode.getNumChildren(); ++c)
+        {
+            auto child = mappingNode.getChild(c);
+            if (child.getType() == WFSParameterIDs::ADMCartAxis &&
+                (int)child.getProperty(WFSParameterIDs::admCartAxisId) == axis)
+                return child;
+        }
+        return {};
     }
 
     void updateQLabAppearance()
@@ -1864,14 +3209,7 @@ private:
         tcpPortEditor.setInputRestrictions(5, "0123456789");
         trackingPortEditor.setInputRestrictions(5, "0123456789");
 
-        // ADM-OSC editors - floats (offset: -50 to 50, scale: 0.01 to 100)
-        admOscOffsetXEditor.setInputRestrictions(8, "-0123456789.");
-        admOscOffsetYEditor.setInputRestrictions(8, "-0123456789.");
-        admOscOffsetZEditor.setInputRestrictions(8, "-0123456789.");
-        admOscScaleXEditor.setInputRestrictions(8, "0123456789.");
-        admOscScaleYEditor.setInputRestrictions(8, "0123456789.");
-        admOscScaleZEditor.setInputRestrictions(8, "0123456789.");
-
+        // ADM-OSC Polar editors
         // Tracking editors - floats (offset: -50 to 50, scale: 0.01 to 100)
         trackingOffsetXEditor.setInputRestrictions(8, "-0123456789.");
         trackingOffsetYEditor.setInputRestrictions(8, "-0123456789.");
@@ -1879,14 +3217,6 @@ private:
         trackingScaleXEditor.setInputRestrictions(8, "0123456789.");
         trackingScaleYEditor.setInputRestrictions(8, "0123456789.");
         trackingScaleZEditor.setInputRestrictions(8, "0123456789.");
-
-        // Set default values
-        admOscOffsetXEditor.setText("0.0", false);
-        admOscOffsetYEditor.setText("0.0", false);
-        admOscOffsetZEditor.setText("0.0", false);
-        admOscScaleXEditor.setText("1.0", false);
-        admOscScaleYEditor.setText("1.0", false);
-        admOscScaleZEditor.setText("1.0", false);
 
         trackingPortEditor.setText("5000", false);
         trackingOffsetXEditor.setText("0.0", false);
@@ -1923,23 +3253,9 @@ private:
         oscSourceFilterButton.setToggleState(filterEnabled, juce::dontSendNotification);
         oscSourceFilterButton.setButtonText(filterEnabled ? LOC("network.toggles.oscFilterRegisteredOnly") : LOC("network.toggles.oscFilterAcceptAll"));
 
-        // Load ADM-OSC parameters
-        admOscOffsetXEditor.setText(juce::String((float)parameters.getConfigParam("admOscOffsetX")), false);
-        admOscOffsetYEditor.setText(juce::String((float)parameters.getConfigParam("admOscOffsetY")), false);
-        admOscOffsetZEditor.setText(juce::String((float)parameters.getConfigParam("admOscOffsetZ")), false);
-        admOscScaleXEditor.setText(juce::String((float)parameters.getConfigParam("admOscScaleX")), false);
-        admOscScaleYEditor.setText(juce::String((float)parameters.getConfigParam("admOscScaleY")), false);
-        admOscScaleZEditor.setText(juce::String((float)parameters.getConfigParam("admOscScaleZ")), false);
-
-        bool flipX = (int)parameters.getConfigParam("admOscFlipX") != 0;
-        bool flipY = (int)parameters.getConfigParam("admOscFlipY") != 0;
-        bool flipZ = (int)parameters.getConfigParam("admOscFlipZ") != 0;
-        admOscFlipXButton.setToggleState(flipX, juce::dontSendNotification);
-        admOscFlipXButton.setButtonText(flipX ? LOC("network.toggles.flipXOn") : LOC("network.toggles.flipXOff"));
-        admOscFlipYButton.setToggleState(flipY, juce::dontSendNotification);
-        admOscFlipYButton.setButtonText(flipY ? LOC("network.toggles.flipYOn") : LOC("network.toggles.flipYOff"));
-        admOscFlipZButton.setToggleState(flipZ, juce::dontSendNotification);
-        admOscFlipZButton.setButtonText(flipZ ? LOC("network.toggles.flipZOn") : LOC("network.toggles.flipZOff"));
+        // Load ADM-OSC mapping parameters
+        loadAdmMappingToUI();
+        updateAdmMappingVisibility();
 
         // Load Tracking parameters
         bool trackingEnabled = (int)parameters.getConfigParam("trackingEnabled") != 0;
@@ -2058,27 +3374,12 @@ private:
             helpText = LOC("network.help.oscSourceFilter");
 
         // ==================== ADM-OSC SECTION ====================
-        else if (source == &admOscOffsetXLabel || source == &admOscOffsetXEditor)
-            helpText = LOC("network.help.admOscOffsetX");
-        else if (source == &admOscOffsetYLabel || source == &admOscOffsetYEditor)
-            helpText = LOC("network.help.admOscOffsetY");
-        else if (source == &admOscOffsetZLabel || source == &admOscOffsetZEditor)
-            helpText = LOC("network.help.admOscOffsetZ");
-        else if (source == &admOscScaleXLabel || source == &admOscScaleXEditor)
-            helpText = LOC("network.help.admOscScaleX");
-        else if (source == &admOscScaleYLabel || source == &admOscScaleYEditor)
-            helpText = LOC("network.help.admOscScaleY");
-        else if (source == &admOscScaleZLabel || source == &admOscScaleZEditor)
-            helpText = LOC("network.help.admOscScaleZ");
-        else if (source == &admOscFlipXButton)
-            helpText = LOC("network.help.admOscFlipX");
-        else if (source == &admOscFlipYButton)
-            helpText = LOC("network.help.admOscFlipY");
-        else if (source == &admOscFlipZButton)
-            helpText = LOC("network.help.admOscFlipZ");
-
+        else if (source == &admMappingSelectorLabel || isOrIsChildOf(source, &admMappingSelector))
+            helpText = LOC("network.help.admMapping");
+        else if (source == &admMappingGraph || source == &admPolarGraph)
+            helpText = LOC("network.help.admMappingPanel");
         // ==================== TRACKING SECTION ====================
-        else if (source == &trackingEnabledButton)
+        if (helpText.isEmpty() && source == &trackingEnabledButton)
             helpText = LOC("network.help.trackingEnabled");
         else if (source == &trackingProtocolLabel || isOrIsChildOf(source, &trackingProtocolSelector))
             helpText = LOC("network.help.trackingProtocol");
@@ -2197,38 +3498,6 @@ private:
             int value = text.getIntValue();
             if (value >= 0 && value <= 65535)
                 parameters.setConfigParam(WFSParameterIDs::networkRxTCPport.toString(), value);
-        }
-        // ADM-OSC Offset parameters
-        else if (editor == &admOscOffsetXEditor)
-        {
-            float value = juce::jlimit(-50.0f, 50.0f, text.getFloatValue());
-            parameters.setConfigParam("admOscOffsetX", value);
-        }
-        else if (editor == &admOscOffsetYEditor)
-        {
-            float value = juce::jlimit(-50.0f, 50.0f, text.getFloatValue());
-            parameters.setConfigParam("admOscOffsetY", value);
-        }
-        else if (editor == &admOscOffsetZEditor)
-        {
-            float value = juce::jlimit(-50.0f, 50.0f, text.getFloatValue());
-            parameters.setConfigParam("admOscOffsetZ", value);
-        }
-        // ADM-OSC Scale parameters
-        else if (editor == &admOscScaleXEditor)
-        {
-            float value = juce::jlimit(0.01f, 100.0f, text.getFloatValue());
-            parameters.setConfigParam("admOscScaleX", value);
-        }
-        else if (editor == &admOscScaleYEditor)
-        {
-            float value = juce::jlimit(0.01f, 100.0f, text.getFloatValue());
-            parameters.setConfigParam("admOscScaleY", value);
-        }
-        else if (editor == &admOscScaleZEditor)
-        {
-            float value = juce::jlimit(0.01f, 100.0f, text.getFloatValue());
-            parameters.setConfigParam("admOscScaleZ", value);
         }
         // Tracking Port
         else if (editor == &trackingPortEditor)

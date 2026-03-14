@@ -871,4 +871,96 @@ OSCMessageRouter::ParsedClusterScaleRotationMessage OSCMessageRouter::parseClust
     return result;
 }
 
+//==============================================================================
+// ADM-OSC Message Parsing
+//==============================================================================
+
+bool OSCMessageRouter::isADMOSCAddress(const juce::String& address)
+{
+    return address.startsWith("/adm/obj/");
+}
+
+OSCMessageRouter::ParsedADMOSCMessage OSCMessageRouter::parseADMOSCMessage(const juce::OSCMessage& message)
+{
+    ParsedADMOSCMessage result;
+    juce::String address = message.getAddressPattern().toString();
+
+    if (!address.startsWith("/adm/obj/"))
+        return result;
+
+    // Extract object ID: /adm/obj/N/...
+    juce::String rest = address.substring(9);  // after "/adm/obj/"
+    int slashPos = rest.indexOf("/");
+    if (slashPos < 0)
+        return result;
+
+    result.objectId = rest.substring(0, slashPos).getIntValue();
+    if (result.objectId <= 0)
+        return result;
+
+    juce::String param = rest.substring(slashPos + 1);  // after the second slash
+
+    if (param == "xyz" && message.size() >= 3)
+    {
+        result.type  = ParsedADMOSCMessage::Type::XYZ;
+        result.v1    = extractFloat(message[0]);
+        result.v2    = extractFloat(message[1]);
+        result.v3    = extractFloat(message[2]);
+        result.valid = true;
+    }
+    else if (param == "aed" && message.size() >= 3)
+    {
+        result.type  = ParsedADMOSCMessage::Type::AED;
+        result.v1    = extractFloat(message[0]);  // azimuth
+        result.v2    = extractFloat(message[1]);  // elevation
+        result.v3    = extractFloat(message[2]);  // distance
+        result.valid = true;
+    }
+    else if (param == "x" && message.size() >= 1)
+    {
+        result.type  = ParsedADMOSCMessage::Type::X;
+        result.v1    = extractFloat(message[0]);
+        result.valid = true;
+    }
+    else if (param == "y" && message.size() >= 1)
+    {
+        result.type  = ParsedADMOSCMessage::Type::Y;
+        result.v1    = extractFloat(message[0]);
+        result.valid = true;
+    }
+    else if (param == "z" && message.size() >= 1)
+    {
+        result.type  = ParsedADMOSCMessage::Type::Z;
+        result.v1    = extractFloat(message[0]);
+        result.valid = true;
+    }
+    else if (param == "xy" && message.size() >= 2)
+    {
+        result.type  = ParsedADMOSCMessage::Type::XY;
+        result.v1    = extractFloat(message[0]);
+        result.v2    = extractFloat(message[1]);
+        result.valid = true;
+    }
+    else if (param == "azim" && message.size() >= 1)
+    {
+        result.type  = ParsedADMOSCMessage::Type::Azim;
+        result.v1    = extractFloat(message[0]);
+        result.valid = true;
+    }
+    else if (param == "elev" && message.size() >= 1)
+    {
+        result.type  = ParsedADMOSCMessage::Type::Elev;
+        result.v1    = extractFloat(message[0]);
+        result.valid = true;
+    }
+    else if (param == "dist" && message.size() >= 1)
+    {
+        result.type  = ParsedADMOSCMessage::Type::Dist;
+        result.v1    = extractFloat(message[0]);
+        result.valid = true;
+    }
+
+    return result;
+}
+
 } // namespace WFSNetwork

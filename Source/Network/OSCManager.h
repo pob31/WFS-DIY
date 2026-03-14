@@ -13,6 +13,7 @@
 #include "TrackingOSCReceiver.h"
 #include "TrackingPSNReceiver.h"
 #include "TrackingRTTrPReceiver.h"
+#include "ADMOSCMapping.h"
 #include "../Parameters/WFSValueTreeState.h"
 
 namespace WFSNetwork
@@ -476,6 +477,13 @@ private:
     void handleArrayAdjustMessage(const juce::OSCMessage& message);
     void handleClusterMoveMessage(const juce::OSCMessage& message);
     void handleClusterScaleRotationMessage(const juce::OSCMessage& message);
+    void handleADMOSCMessage(const juce::OSCMessage& message);
+
+    /** Send ADM-OSC position for an input to all ADM-OSC targets (transmit). */
+    void sendADMOSCPosition(int channelIndex);
+
+    /** Rebuild cached ADM-OSC mapping configs from ValueTree. */
+    void rebuildADMOSCMappingCache();
 
     // Stage bounds for constraint application
     float getStageMinX() const;
@@ -583,6 +591,12 @@ private:
 
     // Tracking RTTrP receiver
     std::unique_ptr<TrackingRTTrPReceiver> rttrpReceiver;
+
+    // ADM-OSC mapping cache
+    ADMOSCMapping::CartesianMappingConfig admCartConfigs[4];
+    ADMOSCMapping::PolarMappingConfig     admPolarConfigs[4];
+    bool admMappingCacheDirty = true;
+    bool admReceiving = false;  // Guard against echo loops during receive
 
     // REMOTE protocol state
     int remoteSelectedChannel = 1;

@@ -1456,7 +1456,8 @@
       "hackoustics": "Hackoustics (仮想音響)",
       "lfo": "LFO",
       "automOtion": "AutomOtion (自動移動)",
-      "mutes": "ミュート"
+      "mutes": "ミュート",
+      "admMapping": "ADM-OSC"
     },
     "buttons": {
       "ok": "OK",

@@ -908,6 +908,41 @@ private:
             TTSManager::getInstance().announceValueChange("Coordinate Mode", coordModeSelector.getText());
         };
 
+        // ADM-OSC Mapping selector
+        addAndMakeVisible(admMappingLabel);
+        admMappingLabel.setText(LOC("inputs.labels.admMapping"), juce::dontSendNotification);
+        addAndMakeVisible(admMappingSelector);
+        // Short names for closed state (fit in narrow ComboBox)
+        admMappingSelector.addItem("None", 1);
+        admMappingSelector.addItem("Cart.1", 2);
+        admMappingSelector.addItem("Cart.2", 3);
+        admMappingSelector.addItem("Cart.3", 4);
+        admMappingSelector.addItem("Cart.4", 5);
+        admMappingSelector.addItem("Polar 1", 6);
+        admMappingSelector.addItem("Polar 2", 7);
+        admMappingSelector.addItem("Polar 3", 8);
+        admMappingSelector.addItem("Polar 4", 9);
+        admMappingSelector.setSelectedId(1, juce::dontSendNotification);
+        // Show full names in dropdown popup
+        admMappingSelector.onPopupAboutToShow = [this]() {
+            static const char* fullNames[] = { "None", "Cartesian 1", "Cartesian 2", "Cartesian 3", "Cartesian 4",
+                                                "Polar 1", "Polar 2", "Polar 3", "Polar 4" };
+            for (int i = 0; i < 9; ++i)
+                admMappingSelector.changeItemText(i + 1, fullNames[i]);
+        };
+        admMappingSelector.onChange = [this]() {
+            // Revert to short names for closed display
+            static const char* shortNames[] = { "None", "Cart.1", "Cart.2", "Cart.3", "Cart.4",
+                                                 "Polar 1", "Polar 2", "Polar 3", "Polar 4" };
+            for (int i = 0; i < 9; ++i)
+                admMappingSelector.changeItemText(i + 1, shortNames[i]);
+            if (isLoadingParameters) return;
+            int selectedId = admMappingSelector.getSelectedId();
+            int newMapping = selectedId - 2;  // 1=None→-1, 2-5=Cart0-3, 6-9=Polar4-7
+            auto posTree = parameters.getValueTreeState().getInputPositionSection(currentChannel - 1);
+            posTree.setProperty(WFSParameterIDs::inputAdmMapping, newMapping, nullptr);
+        };
+
         // Position X
         addAndMakeVisible(posXLabel);
         posXLabel.setText(LOC("inputs.labels.positionX"), juce::dontSendNotification);
@@ -3337,6 +3372,9 @@ private:
         leftCol.removeFromTop(spacing);
 
         row = leftCol.removeFromTop(rowHeight);
+        admMappingLabel.setBounds(row.removeFromLeft(scaled(40)));
+        admMappingSelector.setBounds(row.removeFromLeft(scaled(110)));
+        row.removeFromLeft(spacing);
         posZLabel.setBounds(row.removeFromLeft(labelWidth));
         posZEditor.setBounds(row.removeFromLeft(editorWidth));
         posZUnitLabel.setBounds(row.removeFromLeft(unitWidth));
@@ -4086,9 +4124,11 @@ private:
         flipYButton.setBounds(row.removeFromLeft(flipBtnWidth));
         posBlock.removeFromTop(rowGap);
 
-        // Row 3: Z axis (Position Z, Offset Z, Constraint Z, Flip Z)
+        // Row 3: ADM mapping selector + Z axis (Position Z, Offset Z, Constraint Z, Flip Z)
         row = posBlock.removeFromTop(rowHeight);
-        row.removeFromLeft(coordModeLabelW + coordModeSelectorW + spacing);  // Skip coord mode space
+        admMappingLabel.setBounds(row.removeFromLeft(coordModeLabelW));
+        admMappingSelector.setBounds(row.removeFromLeft(coordModeSelectorW));
+        row.removeFromLeft(spacing);
         posZLabel.setBounds(row.removeFromLeft(posLabelWidth));
         posZEditor.setBounds(row.removeFromLeft(posEditorWidth));
         posZUnitLabel.setBounds(row.removeFromLeft(posUnitWidth));
@@ -5009,6 +5049,14 @@ private:
         // ==================== POSITION TAB ====================
         // Update coordinate mode selector and position editors (handles coordinate conversion)
         updatePositionLabelsAndValues();
+
+        // ADM-OSC mapping selector
+        {
+            auto posTree = parameters.getValueTreeState().getInputPositionSection(currentChannel - 1);
+            int mapping = (int)posTree.getProperty(WFSParameterIDs::inputAdmMapping, -1);
+            admMappingSelector.setSelectedId(mapping + 2, juce::dontSendNotification);
+        }
+
         offsetXEditor.setText(juce::String(getFloatParam(WFSParameterIDs::inputOffsetX, 0.0f), 2), juce::dontSendNotification);
         offsetYEditor.setText(juce::String(getFloatParam(WFSParameterIDs::inputOffsetY, 0.0f), 2), juce::dontSendNotification);
         offsetZEditor.setText(juce::String(getFloatParam(WFSParameterIDs::inputOffsetZ, 0.0f), 2), juce::dontSendNotification);
@@ -6895,6 +6943,7 @@ private:
         helpTextMap[&pathModeButton] = LOC("inputs.help.pathModeButton");
         helpTextMap[&heightFactorDial] = LOC("inputs.help.heightFactorDial");
         helpTextMap[&coordModeSelector] = LOC("inputs.help.coordModeSelector");
+        helpTextMap[&admMappingSelector] = LOC("inputs.help.admMapping");
         helpTextMap[&positionJoystick] = LOC("inputs.help.positionJoystick");
         helpTextMap[&positionZSlider] = LOC("inputs.help.positionZSlider");
         helpTextMap[&attenuationLawButton] = LOC("inputs.help.attenuationLawButton");
@@ -7627,6 +7676,8 @@ private:
     // Position tab
     juce::Label coordModeLabel;
     juce::ComboBox coordModeSelector;
+    juce::Label admMappingLabel;
+    RefreshableComboBox admMappingSelector;
     juce::Label posXLabel, posYLabel, posZLabel;
     juce::TextEditor posXEditor, posYEditor, posZEditor;
     juce::Label posXUnitLabel, posYUnitLabel, posZUnitLabel;

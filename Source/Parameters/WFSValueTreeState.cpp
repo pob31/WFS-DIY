@@ -1447,7 +1447,83 @@ void WFSValueTreeState::replaceState (const juce::ValueTree& newState)
     if (validateState (newState))
     {
         state.copyPropertiesAndChildrenFrom (newState, nullptr);
+        migrateADMOSCSection();
+        ensureInputAdmMappingProperty();
         clearAllUndoHistories();
+    }
+}
+
+void WFSValueTreeState::migrateADMOSCSection()
+{
+    auto config = state.getChildWithName (Config);
+    if (!config.isValid()) return;
+
+    auto admosc = config.getChildWithName (ADMOSC);
+    if (!admosc.isValid())
+    {
+        // No ADMOSC section at all — create fresh
+        createADMOSCSection (config);
+        return;
+    }
+
+    // Detect old-style flat ADMOSC (has admOscOffsetX property)
+    if (!admosc.hasProperty (admOscOffsetX)) return;  // Already new format
+
+    // Read old values
+    float oldOffsetX = static_cast<float> (admosc.getProperty (admOscOffsetX, 0.0f));
+    float oldOffsetY = static_cast<float> (admosc.getProperty (juce::Identifier ("admOscOffsetY"), 0.0f));
+    float oldOffsetZ = static_cast<float> (admosc.getProperty (juce::Identifier ("admOscOffsetZ"), 0.0f));
+    float oldScaleX  = static_cast<float> (admosc.getProperty (admOscScaleX, 1.0f));
+    float oldScaleY  = static_cast<float> (admosc.getProperty (juce::Identifier ("admOscScaleY"), 1.0f));
+    float oldScaleZ  = static_cast<float> (admosc.getProperty (juce::Identifier ("admOscScaleZ"), 1.0f));
+    int oldFlipX     = static_cast<int>   (admosc.getProperty (admOscFlipX, 0));
+    int oldFlipY     = static_cast<int>   (admosc.getProperty (juce::Identifier ("admOscFlipY"), 0));
+    int oldFlipZ     = static_cast<int>   (admosc.getProperty (juce::Identifier ("admOscFlipZ"), 0));
+
+    // Remove old ADMOSC node
+    config.removeChild (admosc, nullptr);
+
+    // Create new structure
+    createADMOSCSection (config);
+
+    // Apply old values to Cart mapping 0
+    auto newAdmosc = config.getChildWithName (ADMOSC);
+    auto cartMapping0 = newAdmosc.getChildWithName (ADMCartMapping);
+    if (!cartMapping0.isValid()) return;
+
+    float oldOffsets[3] = { oldOffsetX, oldOffsetY, oldOffsetZ };
+    float oldScales[3]  = { oldScaleX,  oldScaleY,  oldScaleZ };
+    int   oldFlips[3]   = { oldFlipX,   oldFlipY,   oldFlipZ };
+
+    for (int a = 0; a < 3; ++a)
+    {
+        auto axis = cartMapping0.getChild (a);
+        if (!axis.isValid()) continue;
+
+        axis.setProperty (admCartCenterOffset,  oldOffsets[a], nullptr);
+        axis.setProperty (admCartSignFlip,      oldFlips[a], nullptr);
+        // Convert scale to half-widths: old mapping was offset + v * scale
+        // New piecewise: at breakpoint 0.5, inner = scale*0.5, outer = scale*0.5
+        float hw = std::abs (oldScales[a]) * 0.5f;
+        if (hw < admCartWidthMin) hw = admCartWidthDefault;
+        axis.setProperty (admCartPosInnerWidth, hw, nullptr);
+        axis.setProperty (admCartPosOuterWidth, hw, nullptr);
+        axis.setProperty (admCartNegInnerWidth, hw, nullptr);
+        axis.setProperty (admCartNegOuterWidth, hw, nullptr);
+    }
+}
+
+void WFSValueTreeState::ensureInputAdmMappingProperty()
+{
+    auto inputs = state.getChildWithName (Inputs);
+    if (!inputs.isValid()) return;
+
+    for (int i = 0; i < inputs.getNumChildren(); ++i)
+    {
+        auto input = inputs.getChild (i);
+        auto position = input.getChildWithName (Position);
+        if (position.isValid() && !position.hasProperty (inputAdmMapping))
+            position.setProperty (inputAdmMapping, inputAdmMappingDefault, nullptr);
     }
 }
 
@@ -1626,15 +1702,43 @@ void WFSValueTreeState::createNetworkSection (juce::ValueTree& config)
 void WFSValueTreeState::createADMOSCSection (juce::ValueTree& config)
 {
     juce::ValueTree admosc (ADMOSC);
-    admosc.setProperty (admOscOffsetX, admOscOffsetDefault, nullptr);
-    admosc.setProperty (admOscOffsetY, admOscOffsetDefault, nullptr);
-    admosc.setProperty (admOscOffsetZ, admOscOffsetDefault, nullptr);
-    admosc.setProperty (admOscScaleX, admOscScaleDefault, nullptr);
-    admosc.setProperty (admOscScaleY, admOscScaleDefault, nullptr);
-    admosc.setProperty (admOscScaleZ, admOscScaleDefault, nullptr);
-    admosc.setProperty (admOscFlipX, admOscFlipDefault, nullptr);
-    admosc.setProperty (admOscFlipY, admOscFlipDefault, nullptr);
-    admosc.setProperty (admOscFlipZ, admOscFlipDefault, nullptr);
+
+    // Create 4 Cartesian mappings
+    for (int m = 0; m < admCartMappingCount; ++m)
+    {
+        juce::ValueTree mapping (ADMCartMapping);
+        mapping.setProperty (id, m, nullptr);
+
+        for (int a = 0; a < 3; ++a)
+        {
+            juce::ValueTree axis (ADMCartAxis);
+            axis.setProperty (admCartAxisId,        a, nullptr);
+            axis.setProperty (admCartAxisSwap,      a, nullptr);  // identity: X→X, Y→Y, Z→Z
+            axis.setProperty (admCartSignFlip,      admCartSignFlipDefault, nullptr);
+            axis.setProperty (admCartCenterOffset,  admCartCenterOffsetDefault, nullptr);
+            axis.setProperty (admCartBreakpoint,    admCartBreakpointDefault, nullptr);
+            axis.setProperty (admCartPosInnerWidth, admCartWidthDefault, nullptr);
+            axis.setProperty (admCartPosOuterWidth, admCartWidthDefault, nullptr);
+            axis.setProperty (admCartNegInnerWidth, admCartWidthDefault, nullptr);
+            axis.setProperty (admCartNegOuterWidth, admCartWidthDefault, nullptr);
+            mapping.appendChild (axis, nullptr);
+        }
+        admosc.appendChild (mapping, nullptr);
+    }
+
+    // Create 4 Polar mappings
+    for (int m = 0; m < admPolarMappingCount; ++m)
+    {
+        juce::ValueTree mapping (ADMPolarMapping);
+        mapping.setProperty (id,                    m, nullptr);
+        mapping.setProperty (admPolarAzimuthOffset,  admPolarAzimuthOffsetDefault, nullptr);
+        mapping.setProperty (admPolarAzimuthFlip,    admPolarAzimuthFlipDefault, nullptr);
+        mapping.setProperty (admPolarElevationFlip,  admPolarElevationFlipDefault, nullptr);
+        mapping.setProperty (admPolarDistMin,        admPolarDistMinDefault, nullptr);
+        mapping.setProperty (admPolarDistMax,        admPolarDistMaxDefault, nullptr);
+        admosc.appendChild (mapping, nullptr);
+    }
+
     config.appendChild (admosc, nullptr);
 }
 
@@ -1870,6 +1974,7 @@ juce::ValueTree WFSValueTreeState::createInputPositionSection (int index, int to
     position.setProperty (inputPathModeActive, inputPathModeActiveDefault, nullptr);
     position.setProperty (inputHeightFactor, inputHeightFactorDefault, nullptr);
     position.setProperty (inputCoordinateMode, inputCoordinateModeDefault, nullptr);
+    position.setProperty (inputAdmMapping, inputAdmMappingDefault, nullptr);
     position.setProperty (inputJitter, inputJitterDefault, nullptr);
 
     return position;

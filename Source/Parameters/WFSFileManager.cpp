@@ -862,7 +862,10 @@ const std::vector<WFSFileManager::ScopeItem>& WFSFileManager::ExtendedSnapshotSc
         { "gmLayer3", "Layer 3", GradientMaps, { gmLayerEnabled, gmLayerParam, gmLayerWhite, gmLayerBlack, gmLayerCurve, gmLayerVisible } },
 
         // Sampler Section (subtree-based — cells and sets are children, not properties)
-        { "sampler", "Sampler", Sampler, { samplerEnabled } }
+        { "sampler", "Sampler", Sampler, { samplerEnabled } },
+
+        // ADM-OSC Section
+        { "admMapping", "ADM Mapping", ADMMapping, { inputAdmMapping } }
     };
     return items;
 }
@@ -871,7 +874,7 @@ const std::vector<juce::Identifier>& WFSFileManager::ExtendedSnapshotScope::getS
 {
     static std::vector<juce::Identifier> sections = {
         Channel, Position, Attenuation, Directivity, LiveSourceTamer,
-        Hackoustics, LFO, AutomOtion, Mutes, GradientMaps, Sampler
+        Hackoustics, LFO, AutomOtion, Mutes, GradientMaps, Sampler, ADMMapping
     };
     return sections;
 }
@@ -1060,9 +1063,12 @@ WFSFileManager::ExtendedSnapshotScope::getOverallState (int numChannels) const
 
 void WFSFileManager::ExtendedSnapshotScope::initializeDefaults (int numChannels)
 {
-    (void) numChannels;  // Unused - defaults are "all included" which is empty map
     itemChannelStates.clear();
     applyMode = ApplyMode::OnRecall;
+
+    // ADM Mapping defaults to OFF (excluded)
+    for (int ch = 0; ch < numChannels; ++ch)
+        setIncluded ("admMapping", ch, false);
 }
 
 //==============================================================================

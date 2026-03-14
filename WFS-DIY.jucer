@@ -99,6 +99,8 @@
         <FILE id="netMgrH" name="OSCManager.h" compile="0" resource="0" file="Source/Network/OSCManager.h"/>
         <FILE id="netMgrCpp" name="OSCManager.cpp" compile="1" resource="0"
               file="Source/Network/OSCManager.cpp"/>
+        <FILE id="netAdmH" name="ADMOSCMapping.h" compile="0" resource="0"
+              file="Source/Network/ADMOSCMapping.h"/>
         <FILE id="netUdpRxH" name="OSCReceiverWithSenderIP.h" compile="0" resource="0"
               file="Source/Network/OSCReceiverWithSenderIP.h"/>
         <FILE id="netUdpRxCpp" name="OSCReceiverWithSenderIP.cpp" compile="1"
