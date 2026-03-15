@@ -41,6 +41,108 @@ public:
 };
 
 //==============================================================================
+// Forward declaration for row component
+class ClustersTab;
+
+/**
+ * Custom row component for the cluster input list with a drag handle
+ * for manual reordering.
+ */
+class ClusterInputRowComponent : public juce::Component
+{
+public:
+    ClusterInputRowComponent (ClustersTab& ownerTab) : owner (ownerTab) {}
+
+    void update (int row, int idx, bool tracked, bool first, bool selected, int refMode,
+                 const juce::String& name, bool beingDragged)
+    {
+        rowNumber = row;
+        inputIdx  = idx;
+        isTracked = tracked;
+        isFirst   = first;
+        isSelected = selected;
+        refModeId  = refMode;
+        inputName  = name;
+        isDragged  = beingDragged;
+        repaint();
+    }
+
+    void paint (juce::Graphics& g) override
+    {
+        auto bounds = getLocalBounds();
+        int handleW = 20;
+
+        // Background
+        if (isSelected)
+            g.fillAll (ColorScheme::get().listSelection);
+        else if (isTracked)
+            g.fillAll (ColorScheme::get().listSelection.interpolatedWith (juce::Colour (0xFFFF9800), 0.3f));
+        else if (isFirst && refModeId == 1)
+            g.fillAll (ColorScheme::get().listSelection.interpolatedWith (juce::Colour (0xFF00FF00), 0.2f));
+        else
+            g.fillAll (ColorScheme::get().surfaceCard);
+
+        // Draw drag handle (three horizontal lines) — hidden for locked tracked input at slot 0
+        bool locked = isTracked && rowNumber == 0;
+        if (!locked)
+        {
+            auto handleArea = bounds.removeFromLeft (handleW);
+            g.setColour (ColorScheme::get().textSecondary.withAlpha (0.6f));
+            int cy = handleArea.getCentreY();
+            int cx = handleArea.getCentreX();
+            for (int line = -1; line <= 1; ++line)
+            {
+                float y = static_cast<float> (cy + line * 4);
+                g.drawLine (static_cast<float> (cx - 5), y,
+                            static_cast<float> (cx + 5), y, 1.0f);
+            }
+        }
+        else
+        {
+            bounds.removeFromLeft (handleW);
+        }
+
+        // Text
+        g.setColour (isTracked ? juce::Colour (0xFFFF9800) : ColorScheme::get().textPrimary);
+        juce::String text = LOC ("clusters.labels.inputPrefix") + " " + juce::String (inputIdx + 1);
+        if (inputName.isNotEmpty())
+            text += " - " + inputName;
+        if (isTracked)
+            text += " " + LOC ("clusters.status.trackedMarker");
+        g.drawText (text, bounds.reduced (5, 0), juce::Justification::centredLeft);
+
+        // Highlight border when this row is being dragged
+        if (isDragged)
+        {
+            g.setColour (ColorScheme::get().textPrimary.withAlpha (0.4f));
+            g.drawRect (getLocalBounds(), 1);
+        }
+    }
+
+    // Mouse methods — defined after ClustersTab is complete
+    void mouseDown (const juce::MouseEvent& e) override;
+    void mouseDrag (const juce::MouseEvent& e) override;
+    void mouseUp   (const juce::MouseEvent& e) override;
+    void mouseMove (const juce::MouseEvent& e) override;
+
+    int getRowNumber() const noexcept { return rowNumber; }
+    int getInputIdx()  const noexcept { return inputIdx; }
+
+private:
+    bool isLocked() const { return isTracked && rowNumber == 0; }
+
+    ClustersTab& owner;
+    int rowNumber  = 0;
+    int inputIdx   = 0;
+    bool isTracked = false;
+    bool isFirst   = false;
+    bool isSelected = false;
+    int refModeId  = 1;
+    juce::String inputName;
+    bool isDragged = false;
+};
+
+//==============================================================================
 /**
  * Clusters Tab Component
  * Management of input clusters with position, rotation, scale, attenuation,
@@ -237,14 +339,12 @@ public:
     {
         g.fillAll(ColorScheme::get().background);
 
-        auto bounds = getLocalBounds();
-        int colWidth = bounds.getWidth() / 3;
         float topY = 50.0f * layoutScale;
-        float botY = static_cast<float>(bounds.getHeight()) - 10.0f * layoutScale;
+        float botY = static_cast<float>(getHeight()) - 10.0f * layoutScale;
 
         g.setColour(ColorScheme::get().chromeDivider);
-        g.drawVerticalLine(colWidth, topY, botY);
-        g.drawVerticalLine(colWidth * 2, topY, botY);
+        g.drawVerticalLine(dividerX1, topY, botY);
+        g.drawVerticalLine(dividerX2, topY, botY);
     }
 
     void resized() override
@@ -262,11 +362,15 @@ public:
 
         bounds.removeFromTop(scaled(10));
 
-        // Split into three columns
+        // Split into columns: narrow left (input list), wider center + right
         int totalWidth = bounds.getWidth();
-        auto leftPanel  = bounds.removeFromLeft(totalWidth / 3).reduced(scaled(5), 0);
-        auto centerPanel = bounds.removeFromLeft(totalWidth / 3).reduced(scaled(5), 0);
-        auto rightPanel  = bounds.reduced(scaled(5), 0);
+        int leftW = totalWidth / 5;  // ~20% for the input list (60% of original 1/3)
+        int colPad = scaled(10);
+        auto leftPanel  = bounds.removeFromLeft(leftW).reduced(colPad, 0);
+        dividerX1 = bounds.getX();
+        auto centerPanel = bounds.removeFromLeft((bounds.getWidth()) / 2).reduced(colPad, 0);
+        dividerX2 = bounds.getX();
+        auto rightPanel  = bounds.reduced(colPad, 0);
 
         // ==================== LEFT PANEL - ASSIGNED INPUTS ====================
         assignedInputsLabel.setBounds(leftPanel.removeFromTop(scaled(20)));
@@ -286,7 +390,7 @@ public:
         refPosLabel.setBounds(juce::Rectangle<int>()); // hidden — axis letters in X/Y/Z labels
         controlsLabel.setBounds(juce::Rectangle<int>()); // hidden — controls are self-evident
 
-        centerPanel.removeFromTop(scaled(8));
+        centerPanel.removeFromTop(scaled(16));
 
         // Row 2: All controls packed horizontally
         {
@@ -363,30 +467,35 @@ public:
 
     void paintListBoxItem(int rowNumber, juce::Graphics& g, int width, int height, bool rowIsSelected) override
     {
+        // Handled by ClusterInputRowComponent via refreshComponentForRow
+        juce::ignoreUnused(rowNumber, g, width, height, rowIsSelected);
+    }
+
+    juce::Component* refreshComponentForRow(int rowNumber, bool isRowSelected,
+                                             juce::Component* existingComponentToUpdate) override
+    {
         if (rowNumber < 0 || rowNumber >= static_cast<int>(assignedInputs.size()))
-            return;
+        {
+            delete existingComponentToUpdate;
+            return nullptr;
+        }
 
-        int inputIdx = assignedInputs[static_cast<size_t>(rowNumber)];
-        bool isTracked = isInputFullyTracked(inputIdx);
-        bool isFirst = (rowNumber == 0);
+        auto* row = dynamic_cast<ClusterInputRowComponent*>(existingComponentToUpdate);
+        if (row == nullptr)
+        {
+            delete existingComponentToUpdate;
+            row = new ClusterInputRowComponent(*this);
+        }
 
-        // Background
-        if (rowIsSelected)
-            g.fillAll(ColorScheme::get().listSelection);
-        else if (isTracked)
-            g.fillAll(ColorScheme::get().listSelection.interpolatedWith(juce::Colour(0xFFFF9800), 0.3f));  // Orange tint for tracked
-        else if (isFirst && referenceModeSelector.getSelectedId() == 1)
-            g.fillAll(ColorScheme::get().listSelection.interpolatedWith(juce::Colour(0xFF00FF00), 0.2f));  // Green tint for first input in first-input mode
-        else
-            g.fillAll(ColorScheme::get().surfaceCard);
+        int idx = assignedInputs[static_cast<size_t>(rowNumber)];
+        bool tracked = isInputFullyTracked(idx);
+        bool first   = (rowNumber == 0);
+        int refMode  = referenceModeSelector.getSelectedId();
+        juce::String name = parameters.getInputParam(idx, "inputName").toString();
+        bool beingDragged = (draggingInputIdx == idx);
+        row->update(rowNumber, idx, tracked, first, isRowSelected, refMode, name, beingDragged);
 
-        // Text
-        g.setColour(isTracked ? juce::Colour(0xFFFF9800) : ColorScheme::get().textPrimary);
-        juce::String text = LOC("clusters.labels.inputPrefix") + " " + juce::String(inputIdx + 1);
-        if (isTracked)
-            text += " " + LOC("clusters.status.trackedMarker");
-
-        g.drawText(text, 10, 0, width - 20, height, juce::Justification::centredLeft);
+        return row;
     }
 
     void listBoxItemClicked(int row, const juce::MouseEvent&) override
@@ -436,6 +545,8 @@ private:
     int scaled(int ref) const { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * layoutScale)); }
 
     std::vector<int> assignedInputs;
+    int draggingInputIdx = -1;  // channel index being dragged, -1 = not dragging
+    int dividerX1 = 0, dividerX2 = 0;  // column separator X positions
 
     // Cluster selector buttons
     juce::OwnedArray<ClusterButton> clusterButtons;
@@ -1293,28 +1404,153 @@ private:
 
     void updateAssignedInputsList()
     {
-        assignedInputs.clear();
-
-        int numInputs = parameters.getNumInputChannels();
+        // Collect current cluster members and detect tracked input
+        std::vector<int> currentMembers;
         int trackedInputIdx = -1;
+        int numInputs = parameters.getNumInputChannels();
 
         for (int i = 0; i < numInputs; ++i)
         {
             int cluster = static_cast<int>(parameters.getInputParam(i, "inputCluster"));
             if (cluster == selectedCluster)
             {
+                currentMembers.push_back(i);
                 if (isInputFullyTracked(i))
                     trackedInputIdx = i;
-                else
-                    assignedInputs.push_back(i);
             }
         }
 
+        // Read stored order
+        juce::String storedOrder = parameters.getValueTreeState().getClusterParameter(
+            selectedCluster, WFSParameterIDs::clusterInputOrder).toString();
+
+        assignedInputs.clear();
+
+        if (storedOrder.isNotEmpty())
+        {
+            // Build ordered list from stored order, keeping only current members
+            juce::StringArray tokens;
+            tokens.addTokens(storedOrder, ",", "");
+            for (auto& tok : tokens)
+            {
+                int ch = tok.getIntValue();
+                if (std::find(currentMembers.begin(), currentMembers.end(), ch) != currentMembers.end())
+                    assignedInputs.push_back(ch);
+            }
+
+            // Append any new members not in stored order
+            for (int ch : currentMembers)
+            {
+                if (std::find(assignedInputs.begin(), assignedInputs.end(), ch) == assignedInputs.end())
+                    assignedInputs.push_back(ch);
+            }
+        }
+        else
+        {
+            // No stored order — use numeric order
+            assignedInputs = currentMembers;
+        }
+
+        // Force tracked input to position 0
         if (trackedInputIdx >= 0)
-            assignedInputs.insert(assignedInputs.begin(), trackedInputIdx);
+        {
+            auto it = std::find(assignedInputs.begin(), assignedInputs.end(), trackedInputIdx);
+            if (it != assignedInputs.end() && it != assignedInputs.begin())
+            {
+                assignedInputs.erase(it);
+                assignedInputs.insert(assignedInputs.begin(), trackedInputIdx);
+            }
+        }
+
+        // Save back if order changed vs stored
+        saveInputOrder();
 
         inputsList.updateContent();
         inputsList.repaint();
+    }
+
+    //==========================================================================
+    // Input Order Persistence & Drag Reorder
+    //==========================================================================
+
+    void saveInputOrder()
+    {
+        juce::String order;
+        for (int i = 0; i < static_cast<int>(assignedInputs.size()); ++i)
+        {
+            if (i > 0) order += ",";
+            order += juce::String(assignedInputs[static_cast<size_t>(i)]);
+        }
+        parameters.getValueTreeState().setClusterParameter(
+            selectedCluster, WFSParameterIDs::clusterInputOrder, order);
+    }
+
+    void moveInputRow (int fromRow, int toRow)
+    {
+        int numRows = static_cast<int>(assignedInputs.size());
+        if (fromRow < 0 || fromRow >= numRows || toRow < 0 || toRow >= numRows || fromRow == toRow)
+            return;
+
+        // Prevent moving above a locked tracked input at slot 0
+        bool slot0Locked = !assignedInputs.empty() && isInputFullyTracked(assignedInputs[0]);
+        if (slot0Locked)
+        {
+            if (fromRow == 0) return;        // Can't move the tracked input
+            if (toRow == 0) toRow = 1;        // Can't place above it
+        }
+        if (fromRow == toRow) return;
+
+        // Move the element
+        int inputIdx = assignedInputs[static_cast<size_t>(fromRow)];
+        assignedInputs.erase(assignedInputs.begin() + fromRow);
+        assignedInputs.insert(assignedInputs.begin() + toRow, inputIdx);
+
+        // Update dragging tracking
+        draggingInputIdx = inputIdx;
+
+        inputsList.updateContent();
+        inputsList.repaint();
+        updateReferencePositionDisplay();
+    }
+
+    void startDrag (int inputIdx)
+    {
+        draggingInputIdx = inputIdx;
+    }
+
+    void handleDragMove (float listLocalY)
+    {
+        if (draggingInputIdx < 0) return;
+
+        int rowH = inputsList.getRowHeight();
+        if (rowH <= 0) return;
+
+        // Account for scroll position
+        int targetRow = static_cast<int>(listLocalY + inputsList.getVerticalPosition()) / rowH;
+        targetRow = juce::jlimit(0, static_cast<int>(assignedInputs.size()) - 1, targetRow);
+
+        // Find current row of the dragged input
+        int currentRow = -1;
+        for (int i = 0; i < static_cast<int>(assignedInputs.size()); ++i)
+        {
+            if (assignedInputs[static_cast<size_t>(i)] == draggingInputIdx)
+            {
+                currentRow = i;
+                break;
+            }
+        }
+
+        if (currentRow >= 0 && currentRow != targetRow)
+            moveInputRow(currentRow, targetRow);
+    }
+
+    void endDrag()
+    {
+        if (draggingInputIdx >= 0)
+        {
+            draggingInputIdx = -1;
+            saveInputOrder();
+        }
     }
 
     void updateReferencePositionDisplay()
@@ -1787,6 +2023,13 @@ private:
                 updateStatusLabel();
             });
         }
+        else if (property == WFSParameterIDs::inputName)
+        {
+            juce::MessageManager::callAsync([this]() {
+                inputsList.updateContent();
+                inputsList.repaint();
+            });
+        }
     }
 
     void valueTreeChildAdded(juce::ValueTree&, juce::ValueTree&) override
@@ -1809,4 +2052,41 @@ private:
     void valueTreeParentChanged(juce::ValueTree&) override {}
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ClustersTab)
+
+    friend class ClusterInputRowComponent;
 };
+
+//==============================================================================
+// ClusterInputRowComponent mouse method implementations
+// (deferred because they need ClustersTab to be complete)
+//==============================================================================
+
+inline void ClusterInputRowComponent::mouseDown (const juce::MouseEvent& e)
+{
+    if (e.position.x < 20.0f && !isLocked())
+    {
+        owner.startDrag(inputIdx);
+    }
+}
+
+inline void ClusterInputRowComponent::mouseDrag (const juce::MouseEvent& e)
+{
+    if (owner.draggingInputIdx < 0) return;
+
+    // Convert to list-local coordinates
+    auto posInList = e.getEventRelativeTo(&owner.inputsList).position;
+    owner.handleDragMove(posInList.y);
+}
+
+inline void ClusterInputRowComponent::mouseUp (const juce::MouseEvent&)
+{
+    owner.endDrag();
+}
+
+inline void ClusterInputRowComponent::mouseMove (const juce::MouseEvent& e)
+{
+    if (e.position.x < 20.0f && !isLocked())
+        setMouseCursor(juce::MouseCursor::DraggingHandCursor);
+    else
+        setMouseCursor(juce::MouseCursor::NormalCursor);
+}

@@ -234,6 +234,8 @@ namespace WFSParameterDefaults
     constexpr int clusterReferenceModeMin     = 0;
     constexpr int clusterReferenceModeMax     = 1;
 
+    const juce::String clusterInputOrderDefault = "";  // empty = numeric order fallback
+
     // Cluster > LFO Defaults
     constexpr int   clusterLFOactiveDefault         = 0;
     constexpr float clusterLFOperiodDefault         = 5.0f;

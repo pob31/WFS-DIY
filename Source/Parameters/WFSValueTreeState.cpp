@@ -1810,6 +1810,7 @@ void WFSValueTreeState::createClustersSection (juce::ValueTree& config)
         juce::ValueTree cluster (Cluster);
         cluster.setProperty (id, i + 1, nullptr);
         cluster.setProperty (clusterReferenceMode, clusterReferenceModeDefault, nullptr);
+        cluster.setProperty (clusterInputOrder, clusterInputOrderDefault, nullptr);
 
         // Cluster LFO section
         juce::ValueTree lfo (ClusterLFO);

@@ -211,6 +211,7 @@ namespace WFSParameterIDs
     const juce::Identifier Clusters          ("Clusters");
     const juce::Identifier Cluster           ("Cluster");
     const juce::Identifier clusterReferenceMode ("clusterReferenceMode");
+    const juce::Identifier clusterInputOrder    ("clusterInputOrder");
 
     // Config > Clusters > Cluster > LFO
     const juce::Identifier ClusterLFO              ("ClusterLFO");

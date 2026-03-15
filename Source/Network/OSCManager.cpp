@@ -705,6 +705,27 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
         return;  // Don't process as channel parameter
     }
 
+    // Handle clusterInputOrder change - broadcast to all connected Remote targets
+    if (property == WFSParameterIDs::clusterInputOrder)
+    {
+        int clusterId = static_cast<int>(tree.getProperty(WFSParameterIDs::id));
+        juce::String order = tree.getProperty(property).toString();
+
+        juce::OSCMessage msg("/cluster/inputOrder");
+        msg.addInt32(clusterId);
+        msg.addString(order);
+
+        for (int i = 0; i < MAX_TARGETS; ++i)
+        {
+            if (targetConfigs[static_cast<size_t>(i)].protocol == Protocol::Remote &&
+                remoteStates[static_cast<size_t>(i)].phase == RemoteConnectionState::Phase::Connected)
+            {
+                sendMessage(i, msg);
+            }
+        }
+        return;  // Don't process as channel parameter
+    }
+
     // Handle reverb algorithm parameter changes (global, no channel ID)
     if (tree.getType() == WFSParameterIDs::ReverbAlgorithm)
     {
@@ -2727,6 +2748,16 @@ void OSCManager::sendAllClusterConfigsToRemote(int targetIndex)
         msgTracked.addInt32(c);
         msgTracked.addInt32(trackedInputId);
         sendDirect(msgTracked);
+
+        // Send input order
+        juce::String inputOrder = state.getClusterParameter(c, clusterInputOrder).toString();
+        if (inputOrder.isNotEmpty())
+        {
+            juce::OSCMessage orderMsg("/cluster/inputOrder");
+            orderMsg.addInt32(c);
+            orderMsg.addString(inputOrder);
+            sendDirect(orderMsg);
+        }
     }
 
 }

@@ -2520,7 +2520,18 @@ private:
             clusterNum, WFSParameterIDs::clusterReferenceMode));
 
         if (refMode == 0 && !clusterMembers.empty())
-            return clusterMembers[0];  // First Input mode
+        {
+            // Respect stored input order if available
+            juce::String order = parameters.getValueTreeState().getClusterParameter(
+                clusterNum, WFSParameterIDs::clusterInputOrder).toString();
+            if (order.isNotEmpty())
+            {
+                int firstInOrder = order.upToFirstOccurrenceOf(",", false, false).getIntValue();
+                if (std::find(clusterMembers.begin(), clusterMembers.end(), firstInOrder) != clusterMembers.end())
+                    return firstInOrder;
+            }
+            return clusterMembers[0];  // Fallback to numeric order
+        }
 
         return -1;  // Barycenter mode
     }
