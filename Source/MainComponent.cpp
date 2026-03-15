@@ -462,6 +462,8 @@ MainComponent::MainComponent()
         };
         if (tabIndex >= 0 && tabIndex < 7)
             parameters.getValueTreeState().setActiveDomain (domainForTab[tabIndex]);
+        if (controllerManager)
+            controllerManager->activeTab = tabIndex;
         if (streamDeckManager)
         {
             // Sync subtab + channel state atomically before page render
@@ -1012,6 +1014,37 @@ MainComponent::MainComponent()
             juce::MessageManager::callAsync ([this]()
             {
                 if (mapTab) mapTab->repaint();
+            });
+        };
+
+        // Cluster callbacks (active when Clusters tab is selected)
+        controllerManager->callbacks.moveClusterDelta = [this] (float dx, float dy, float dz)
+        {
+            juce::MessageManager::callAsync ([this, dx, dy, dz]()
+            {
+                int cluster = clustersTab ? clustersTab->getSelectedCluster() : 0;
+                if (cluster > 0 && mapTab)
+                    mapTab->moveClusterDelta (cluster, dx, dy, dz);
+            });
+        };
+
+        controllerManager->callbacks.rotateCluster = [this] (float deltaDeg)
+        {
+            juce::MessageManager::callAsync ([this, deltaDeg]()
+            {
+                int cluster = clustersTab ? clustersTab->getSelectedCluster() : 0;
+                if (cluster > 0 && mapTab)
+                    mapTab->rotateClusterFromStreamDeck (cluster, deltaDeg);
+            });
+        };
+
+        controllerManager->callbacks.scaleCluster = [this] (float scaleFactor)
+        {
+            juce::MessageManager::callAsync ([this, scaleFactor]()
+            {
+                int cluster = clustersTab ? clustersTab->getSelectedCluster() : 0;
+                if (cluster > 0 && mapTab)
+                    mapTab->scaleClusterFromStreamDeck (cluster, scaleFactor);
             });
         };
 

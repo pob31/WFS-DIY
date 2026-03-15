@@ -297,15 +297,15 @@ public:
         scaleLabel.setFont(juce::FontOptions().withHeight(14.0f));
         scaleLabel.setJustificationType(juce::Justification::centred);
 
-        // Scale joystick
-        addAndMakeVisible(scaleJoystick);
-        scaleJoystick.setOuterColour(juce::Colour(0xFF3A3A3A));
-        scaleJoystick.setThumbColour(juce::Colour(0xFF9C27B0));
-        scaleJoystick.setReportingIntervalHz(50.0);
+        // Scale slider (uniform, auto-centers)
+        addAndMakeVisible(scaleSlider);
+        scaleSlider.setTrackColours(juce::Colour(0xFF3A3A3A), juce::Colour(0xFF9C27B0));
+        scaleSlider.onGestureStart = [this]() {
+            parameters.getValueTreeState().beginUndoTransaction("Cluster Param");
+        };
 
-        // Plane selector
-        addAndMakeVisible(planeLabel);
-        planeLabel.setText(LOC("clusters.labels.plane"), juce::dontSendNotification);
+        // Plane selector (placed inside rotation dial center)
+        planeLabel.setVisible(false);
 
         addAndMakeVisible(planeSelector);
         planeSelector.addItem(LOC("clusters.planes.xy"), 1);
@@ -451,54 +451,62 @@ public:
             // Controls row — use remaining height
             auto ctrlRow = centerPanel.removeFromTop(juce::jmin(scaled(160), centerPanel.getHeight()));
 
-            // Size joysticks as squares matching the control row height
-            int planeW = scaled(55);
-            int sliderW = juce::jmin(scaled(30), ctrlWidth * 7 / 100);
-            int padding = scaled(6); // padding between controls
-            int fixedW = sliderW * 2 + planeW + padding * 5; // 2 sliders + plane + gaps
+            // Layout: pos(joy) | gap | Z(slider) | gap | att(slider) | gap | rot(dial) | gap | scale(slider)
+            int sliderW = scaled(43);
+            int sliderPad = scaled(10);
+
+            // Fixed: 3 sliders + 4 gaps
+            int fixedW = sliderW * 3 + sliderPad * 4;
             int flexW = ctrlWidth - fixedW;
-            // Divide flexible space among 3 round controls (pos joy, rot dial, scale joy)
-            int joySize = juce::jmin(ctrlRow.getHeight(), flexW / 3);
+            // 2 round controls (pos + rot)
+            int joySize = juce::jmin(ctrlRow.getHeight(), flexW / 2);
             int rotW = joySize;
+
+            // Distribute leftover into slider gaps
+            int leftover = flexW - joySize * 2;
+            if (leftover > 0)
+                sliderPad += leftover / 4;
 
             // Labels
             auto labelCopy = labelRow;
             positionLabel.setBounds(labelCopy.removeFromLeft(joySize));
-            labelCopy.removeFromLeft(padding);
+            labelCopy.removeFromLeft(sliderPad);
             zSliderLabel.setBounds(labelCopy.removeFromLeft(sliderW));
-            labelCopy.removeFromLeft(padding);
+            labelCopy.removeFromLeft(sliderPad);
             attenuationLabel.setBounds(labelCopy.removeFromLeft(sliderW));
-            labelCopy.removeFromLeft(padding);
+            labelCopy.removeFromLeft(sliderPad);
             rotationLabel.setBounds(labelCopy.removeFromLeft(rotW));
-            labelCopy.removeFromLeft(padding);
-            scaleLabel.setBounds(labelCopy.removeFromLeft(joySize));
-            labelCopy.removeFromLeft(padding);
-            planeLabel.setBounds(labelCopy);
+            labelCopy.removeFromLeft(sliderPad);
+            scaleLabel.setBounds(labelCopy.removeFromLeft(sliderW));
 
             // Controls
             auto joyArea = ctrlRow.removeFromLeft(joySize);
             positionJoystick.setBounds(joyArea.withSizeKeepingCentre(joySize, joySize).reduced(scaled(3)));
-            ctrlRow.removeFromLeft(padding);
+            ctrlRow.removeFromLeft(sliderPad);
 
             auto zArea = ctrlRow.removeFromLeft(sliderW);
             zSlider.setBounds(zArea.reduced(scaled(2)));
-            ctrlRow.removeFromLeft(padding);
+            ctrlRow.removeFromLeft(sliderPad);
 
             auto attenArea = ctrlRow.removeFromLeft(sliderW);
             attenuationSlider.setBounds(attenArea.reduced(scaled(2)));
-            ctrlRow.removeFromLeft(padding);
+            ctrlRow.removeFromLeft(sliderPad);
 
             auto rotArea = ctrlRow.removeFromLeft(rotW);
-            rotationDial.setBounds(rotArea.withSizeKeepingCentre(joySize, joySize).reduced(scaled(3)));
-            ctrlRow.removeFromLeft(padding);
+            auto dialBounds = rotArea.withSizeKeepingCentre(joySize, joySize).reduced(scaled(3));
+            rotationDial.setBounds(dialBounds);
 
-            auto scaleArea = ctrlRow.removeFromLeft(joySize);
-            scaleJoystick.setBounds(scaleArea.withSizeKeepingCentre(joySize, joySize).reduced(scaled(3)));
-            ctrlRow.removeFromLeft(padding);
+            // Plane selector — centered inside the rotation dial ring
+            int comboW = scaled(60);
+            int comboH = scaled(24);
+            planeSelector.setBounds(
+                dialBounds.getCentreX() - comboW / 2,
+                dialBounds.getCentreY() - comboH / 2,
+                comboW, comboH);
+            ctrlRow.removeFromLeft(sliderPad);
 
-            // Plane selector — compact
-            auto planeArea = ctrlRow;
-            planeSelector.setBounds(planeArea.removeFromTop(scaled(26)).reduced(scaled(2), 0));
+            auto scaleArea = ctrlRow.removeFromLeft(sliderW);
+            scaleSlider.setBounds(scaleArea.reduced(scaled(2)));
         }
 
         // ==================== CENTER PANEL - LFO PRESET GRID ====================
@@ -693,7 +701,7 @@ private:
     juce::Label rotationLabel;
     WfsEndlessDial rotationDial;
     juce::Label scaleLabel;
-    WfsJoystickComponent scaleJoystick;
+    WfsAutoCenterSlider scaleSlider { WfsAutoCenterSlider::Orientation::vertical };
     juce::Label planeLabel;
     juce::ComboBox planeSelector;
 
@@ -1821,7 +1829,7 @@ private:
         helpTextMap[&zSlider]               = LOC("clusters.help.zSlider");
         helpTextMap[&attenuationSlider]     = LOC("clusters.help.attenuationSlider");
         helpTextMap[&rotationDial]          = LOC("clusters.help.rotationDial");
-        helpTextMap[&scaleJoystick]         = LOC("clusters.help.scaleJoystick");
+        helpTextMap[&scaleSlider]            = LOC("clusters.help.scaleJoystick");
         helpTextMap[&planeSelector]         = LOC("clusters.help.planeSelector");
 
         // LFO controls
@@ -2536,13 +2544,12 @@ private:
             applyRotationDelta(angleDelta);
         previousDialAngle = currentAngle;
 
-        // Scale joystick (auto-centers, gives -1..1)
-        auto [sx, sy] = scaleJoystick.getCurrentPosition();
-        if (sx != 0.0f || sy != 0.0f)
+        // Scale slider (auto-centers, gives -1..1 → uniform scale)
+        float sv = scaleSlider.getValue();
+        if (sv != 0.0f)
         {
-            float scX = 1.0f + sx * 0.02f;
-            float scY = 1.0f + sy * 0.02f;
-            applyScaleDelta(scX, scY);
+            float sc = 1.0f + sv * 0.02f;
+            applyScaleDelta(sc, sc);
         }
 
         // Update reference position display periodically

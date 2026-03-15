@@ -41,9 +41,18 @@ public:
 
         /** Trigger map repaint after position changes. */
         std::function<void()> repaintMap;
+
+        // Cluster callbacks (used when activeTab == 5)
+        std::function<void (float dx, float dy, float dz)> moveClusterDelta;
+        std::function<void (float deltaDeg)> rotateCluster;
+        std::function<void (float scaleFactor)> scaleCluster;  // multiplicative, 1.0 = no change
     };
 
     Callbacks callbacks;
+
+    /** Active tab index — set by MainComponent on tab change.
+        When 5 (Clusters), SpaceMouse controls the selected cluster. */
+    int activeTab = -1;
 
     //==========================================================================
     // Construction / Destruction
@@ -141,6 +150,7 @@ private:
                 break;
 
             case ControllerEvent::ButtonPressed:
+            case ControllerEvent::ButtonReleased:
                 handleButtonEvent (event);
                 break;
 
@@ -166,6 +176,14 @@ private:
 
     void handleButtonEvent (const ControllerEvent& event)
     {
+        // Track persistent button state (for modifier behavior)
+        buttonStates[{ event.deviceId, event.axisOrButton }] =
+            (event.type == ControllerEvent::ButtonPressed);
+
+        // On Clusters tab, buttons are modifiers only — don't fire actions
+        if (activeTab == 5)
+            return;
+
         const auto* profile = getProfile (event.deviceId);
         if (profile == nullptr)
             return;
@@ -238,21 +256,43 @@ private:
                 totalRotation += delta;
         }
 
-        // Apply position delta
-        // Note: moveSelectedDelta callback triggers MapTab::moveSelectedInputsByDelta
-        // which already calls repaint() internally — no need for separate repaintMap here.
-        if ((std::abs (totalDx) > 0.0001f || std::abs (totalDy) > 0.0001f || std::abs (totalDz) > 0.0001f)
-            && callbacks.moveSelectedDelta)
+        if (activeTab == 5)
         {
-            callbacks.moveSelectedDelta (totalDx, totalDy, totalDz);
-        }
+            // Clusters tab: TransZ switches between height and scale based on button state
+            float moveZ = isAnyButtonPressed() ? 0.0f : totalDz;
+            float scaleDelta = isAnyButtonPressed() ? totalDz : 0.0f;
 
-        // Apply rotation delta
-        if (std::abs (totalRotation) > 0.01f && callbacks.rotateSelected && callbacks.getSelectedInputs)
+            if (callbacks.moveClusterDelta
+                && (std::abs (totalDx) > 0.0001f || std::abs (totalDy) > 0.0001f || std::abs (moveZ) > 0.0001f))
+            {
+                callbacks.moveClusterDelta (totalDx, totalDy, moveZ);
+            }
+
+            if (callbacks.rotateCluster && std::abs (totalRotation) > 0.01f)
+                callbacks.rotateCluster (totalRotation);
+
+            if (callbacks.scaleCluster && std::abs (scaleDelta) > 0.001f)
+            {
+                // Convert Z velocity delta (meters) to multiplicative scale factor
+                float scaleFactor = 1.0f + scaleDelta * 0.5f;
+                callbacks.scaleCluster (juce::jlimit (0.95f, 1.05f, scaleFactor));
+            }
+        }
+        else
         {
-            auto selected = callbacks.getSelectedInputs();
-            if (! selected.empty())
-                callbacks.rotateSelected (totalRotation);
+            // Default: move selected inputs + rotate
+            if ((std::abs (totalDx) > 0.0001f || std::abs (totalDy) > 0.0001f || std::abs (totalDz) > 0.0001f)
+                && callbacks.moveSelectedDelta)
+            {
+                callbacks.moveSelectedDelta (totalDx, totalDy, totalDz);
+            }
+
+            if (std::abs (totalRotation) > 0.01f && callbacks.rotateSelected && callbacks.getSelectedInputs)
+            {
+                auto selected = callbacks.getSelectedInputs();
+                if (! selected.empty())
+                    callbacks.rotateSelected (totalRotation);
+            }
         }
     }
 
@@ -266,6 +306,16 @@ private:
     // Latest axis values keyed by (deviceId, axisIndex), updated from events,
     // consumed by timerCallback for velocity integration.
     std::map<std::pair<int, int>, float> latestAxisValues;
+
+    // Persistent button state for modifier behavior (e.g. held = scale mode)
+    std::map<std::pair<int, int>, bool> buttonStates;
+
+    bool isAnyButtonPressed() const
+    {
+        for (auto& [key, pressed] : buttonStates)
+            if (pressed) return true;
+        return false;
+    }
 
     bool enabled = false;
 

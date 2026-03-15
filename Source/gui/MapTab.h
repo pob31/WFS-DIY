@@ -204,6 +204,18 @@ public:
         repaint();
     }
 
+    /** Move all members of a cluster by a delta in meters (for SpaceMouse). */
+    void moveClusterDelta (int clusterNum, float dx, float dy, float dz)
+    {
+        int numInputs = parameters.getNumInputChannels();
+        for (int i = 0; i < numInputs; ++i)
+        {
+            int inputCluster = static_cast<int> (parameters.getInputParam (i, "inputCluster"));
+            if (inputCluster == clusterNum)
+                moveInputByDelta (i, dx, dy, dz);
+        }
+    }
+
     /** Get the effective reference position for a cluster. */
     juce::Point<float> getClusterRefPosition (int clusterNum) const
     {
