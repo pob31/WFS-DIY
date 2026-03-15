@@ -2379,19 +2379,20 @@ private:
         addAndMakeVisible(lfoPhaseXLabel);
         lfoPhaseXLabel.setText(LOC("inputs.labels.phaseX"), juce::dontSendNotification);
         lfoPhaseXLabel.setJustificationType(juce::Justification::centred);
-        lfoPhaseXDial.setColours(juce::Colours::black, juce::Colour(0xFFE6B422), juce::Colours::grey);
+        lfoPhaseXDial.setColours(juce::Colour(0xFF3A3A3A), juce::Colour(0xFFE6B422), juce::Colours::white);
         lfoPhaseXDial.onGestureStart = [this]() {
             parameters.getValueTreeState().beginUndoTransaction ("Input LFO Phase X");
         };
         lfoPhaseXDial.onAngleChanged = [this](float angle) {
-            int degrees = static_cast<int>(angle);
-            lfoPhaseXValueLabel.setText(juce::String(degrees), juce::dontSendNotification);
+            int degrees = static_cast<int>(std::round(angle));
+            lfoPhaseXValueLabel.setText(juce::String(degrees) + juce::String::charToString(0x00B0), juce::dontSendNotification);
             saveInputParam(WFSParameterIDs::inputLFOphaseX, degrees);  // Save as -180 to 180
         };
         addAndMakeVisible(lfoPhaseXDial);
         addAndMakeVisible(lfoPhaseXValueLabel);
-        lfoPhaseXValueLabel.setText("0", juce::dontSendNotification);
-        lfoPhaseXValueLabel.setJustificationType(juce::Justification::right);
+        lfoPhaseXValueLabel.setText(juce::String("0") + juce::String::charToString(0x00B0), juce::dontSendNotification);
+        lfoPhaseXValueLabel.setFont(juce::FontOptions().withHeight(15.0f));
+        lfoPhaseXValueLabel.setJustificationType(juce::Justification::centred);
         setupEditableValueLabel(lfoPhaseXValueLabel);
         addAndMakeVisible(lfoPhaseXUnitLabel);
         lfoPhaseXUnitLabel.setText(juce::String::fromUTF8("°"), juce::dontSendNotification);
@@ -2401,19 +2402,20 @@ private:
         addAndMakeVisible(lfoPhaseYLabel);
         lfoPhaseYLabel.setText(LOC("inputs.labels.phaseY"), juce::dontSendNotification);
         lfoPhaseYLabel.setJustificationType(juce::Justification::centred);
-        lfoPhaseYDial.setColours(juce::Colours::black, juce::Colour(0xFFE6B422), juce::Colours::grey);
+        lfoPhaseYDial.setColours(juce::Colour(0xFF3A3A3A), juce::Colour(0xFFE6B422), juce::Colours::white);
         lfoPhaseYDial.onGestureStart = [this]() {
             parameters.getValueTreeState().beginUndoTransaction ("Input LFO Phase Y");
         };
         lfoPhaseYDial.onAngleChanged = [this](float angle) {
-            int degrees = static_cast<int>(angle);
-            lfoPhaseYValueLabel.setText(juce::String(degrees), juce::dontSendNotification);
+            int degrees = static_cast<int>(std::round(angle));
+            lfoPhaseYValueLabel.setText(juce::String(degrees) + juce::String::charToString(0x00B0), juce::dontSendNotification);
             saveInputParam(WFSParameterIDs::inputLFOphaseY, degrees);  // Save as -180 to 180
         };
         addAndMakeVisible(lfoPhaseYDial);
         addAndMakeVisible(lfoPhaseYValueLabel);
-        lfoPhaseYValueLabel.setText("0", juce::dontSendNotification);
-        lfoPhaseYValueLabel.setJustificationType(juce::Justification::right);
+        lfoPhaseYValueLabel.setText(juce::String("0") + juce::String::charToString(0x00B0), juce::dontSendNotification);
+        lfoPhaseYValueLabel.setFont(juce::FontOptions().withHeight(15.0f));
+        lfoPhaseYValueLabel.setJustificationType(juce::Justification::centred);
         setupEditableValueLabel(lfoPhaseYValueLabel);
         addAndMakeVisible(lfoPhaseYUnitLabel);
         lfoPhaseYUnitLabel.setText(juce::String::fromUTF8("°"), juce::dontSendNotification);
@@ -2423,19 +2425,20 @@ private:
         addAndMakeVisible(lfoPhaseZLabel);
         lfoPhaseZLabel.setText(LOC("inputs.labels.phaseZ"), juce::dontSendNotification);
         lfoPhaseZLabel.setJustificationType(juce::Justification::centred);
-        lfoPhaseZDial.setColours(juce::Colours::black, juce::Colour(0xFFE6B422), juce::Colours::grey);
+        lfoPhaseZDial.setColours(juce::Colour(0xFF3A3A3A), juce::Colour(0xFFE6B422), juce::Colours::white);
         lfoPhaseZDial.onGestureStart = [this]() {
             parameters.getValueTreeState().beginUndoTransaction ("Input LFO Phase Z");
         };
         lfoPhaseZDial.onAngleChanged = [this](float angle) {
-            int degrees = static_cast<int>(angle);
-            lfoPhaseZValueLabel.setText(juce::String(degrees), juce::dontSendNotification);
+            int degrees = static_cast<int>(std::round(angle));
+            lfoPhaseZValueLabel.setText(juce::String(degrees) + juce::String::charToString(0x00B0), juce::dontSendNotification);
             saveInputParam(WFSParameterIDs::inputLFOphaseZ, degrees);  // Save as -180 to 180
         };
         addAndMakeVisible(lfoPhaseZDial);
         addAndMakeVisible(lfoPhaseZValueLabel);
-        lfoPhaseZValueLabel.setText("0", juce::dontSendNotification);
-        lfoPhaseZValueLabel.setJustificationType(juce::Justification::right);
+        lfoPhaseZValueLabel.setText(juce::String("0") + juce::String::charToString(0x00B0), juce::dontSendNotification);
+        lfoPhaseZValueLabel.setFont(juce::FontOptions().withHeight(15.0f));
+        lfoPhaseZValueLabel.setJustificationType(juce::Justification::centred);
         setupEditableValueLabel(lfoPhaseZValueLabel);
         addAndMakeVisible(lfoPhaseZUnitLabel);
         lfoPhaseZUnitLabel.setText(juce::String::fromUTF8("°"), juce::dontSendNotification);
@@ -3761,18 +3764,21 @@ private:
     void layoutLfoTab()
     {
         auto area = subTabContentArea;
-        const int rowHeight = scaled(24);
-        const int sliderHeight = scaled(28);
-        const int spacing = scaled(4);
-        const int labelWidth = scaled(70);
-        const int valueWidth = scaled(60);
+        const int rowHeight    = scaled(24);
+        const int sliderHeight = scaled(40);
+        const int vizHeight    = scaled(16);
+        const int spacing      = scaled(4);
+        const int vizPad       = scaled(2);
+        const int labelWidth   = scaled(70);
+        const int valueWidth   = scaled(55);
         const int selectorWidth = scaled(100);
+        const int sliderLabelW = scaled(75);
+        const int phaseValueH  = scaled(16);
         const int dialSize = juce::jmax(40, static_cast<int>(65.0f * layoutScale));
 
-        // Split into three columns
+        // Split into left column (controls) and right area (per-axis rows)
         auto leftCol = area.removeFromLeft(area.getWidth() / 3).reduced(5, 0);
-        auto middleCol = area.removeFromLeft(area.getWidth() / 2).reduced(5, 0);
-        auto rightCol = area.reduced(5, 0);
+        auto axisArea = area.reduced(5, 0);
 
         // ========== LEFT COLUMN ==========
         // Active button
@@ -3807,96 +3813,78 @@ private:
         jitterValueLabel.setBounds(row.removeFromRight(valueWidth));
         jitterSlider.setBounds(leftCol.removeFromTop(sliderHeight));
 
-        // ========== MIDDLE COLUMN - X/Y/Z Parameters ==========
-        // Shape selectors
-        row = middleCol.removeFromTop(rowHeight);
-        lfoShapeXLabel.setBounds(row.removeFromLeft(labelWidth));
-        lfoShapeXSelector.setBounds(row.removeFromLeft(selectorWidth));
-        middleCol.removeFromTop(spacing);
+        // ========== PER-AXIS ROWS (X, Y, Z) ==========
+        // Phase dial spans amplitude + viz + rate rows
+        int sliderStackH = sliderHeight * 2 + vizHeight + vizPad * 2;
+        int phaseDialSize = sliderStackH;
 
-        row = middleCol.removeFromTop(rowHeight);
-        lfoShapeYLabel.setBounds(row.removeFromLeft(labelWidth));
-        lfoShapeYSelector.setBounds(row.removeFromLeft(selectorWidth));
-        middleCol.removeFromTop(spacing);
+        // Arrays for per-axis components
+        juce::Label* shapeLabels[]     = { &lfoShapeXLabel, &lfoShapeYLabel, &lfoShapeZLabel };
+        juce::ComboBox* shapeSelectors[] = { &lfoShapeXSelector, &lfoShapeYSelector, &lfoShapeZSelector };
+        juce::Label* ampLabels[]       = { &lfoAmplitudeXLabel, &lfoAmplitudeYLabel, &lfoAmplitudeZLabel };
+        WfsStandardSlider* ampSliders[] = { &lfoAmplitudeXSlider, &lfoAmplitudeYSlider, &lfoAmplitudeZSlider };
+        juce::Label* ampValues[]       = { &lfoAmplitudeXValueLabel, &lfoAmplitudeYValueLabel, &lfoAmplitudeZValueLabel };
+        juce::Label* rateLabels[]      = { &lfoRateXLabel, &lfoRateYLabel, &lfoRateZLabel };
+        WfsBidirectionalSlider* rateSliders[] = { &lfoRateXSlider, &lfoRateYSlider, &lfoRateZSlider };
+        juce::Label* rateValues[]      = { &lfoRateXValueLabel, &lfoRateYValueLabel, &lfoRateZValueLabel };
+        juce::Label* phaseLabels[]     = { &lfoPhaseXLabel, &lfoPhaseYLabel, &lfoPhaseZLabel };
+        WfsRotationDial* phaseDials[]  = { &lfoPhaseXDial, &lfoPhaseYDial, &lfoPhaseZDial };
+        juce::Label* phaseValues[]     = { &lfoPhaseXValueLabel, &lfoPhaseYValueLabel, &lfoPhaseZValueLabel };
+        juce::Label* outputLabels[]    = { &lfoOutputXLabel, &lfoOutputYLabel, &lfoOutputZLabel };
+        WfsLFOOutputSlider* outputSliders[] = { &lfoOutputXSlider, &lfoOutputYSlider, &lfoOutputZSlider };
 
-        row = middleCol.removeFromTop(rowHeight);
-        lfoShapeZLabel.setBounds(row.removeFromLeft(labelWidth));
-        lfoShapeZSelector.setBounds(row.removeFromLeft(selectorWidth));
-        middleCol.removeFromTop(spacing * 2);
+        // Calculate available height per axis
+        int totalAxisHeight = axisArea.getHeight() - spacing * 2; // 2 gaps between 3 axes
+        int axisBlockHeight = totalAxisHeight / 3;
 
-        // Rate sliders
-        row = middleCol.removeFromTop(rowHeight);
-        lfoRateXLabel.setBounds(row.removeFromLeft(labelWidth));
-        lfoRateXValueLabel.setBounds(row.removeFromRight(valueWidth));
-        lfoRateXSlider.setBounds(middleCol.removeFromTop(sliderHeight));
-        middleCol.removeFromTop(spacing);
+        for (int a = 0; a < 3; ++a)
+        {
+            auto block = axisArea.removeFromTop(axisBlockHeight);
 
-        row = middleCol.removeFromTop(rowHeight);
-        lfoRateYLabel.setBounds(row.removeFromLeft(labelWidth));
-        lfoRateYValueLabel.setBounds(row.removeFromRight(valueWidth));
-        lfoRateYSlider.setBounds(middleCol.removeFromTop(sliderHeight));
-        middleCol.removeFromTop(spacing);
+            // Line 1: [Shape Label] [Shape ComboBox] ... [Phase: label on right]
+            auto line1 = block.removeFromTop(rowHeight);
+            shapeLabels[a]->setBounds(line1.removeFromLeft(labelWidth));
+            shapeSelectors[a]->setBounds(line1.removeFromLeft(juce::jmin(selectorWidth, line1.getWidth())));
+            phaseLabels[a]->setBounds(line1.removeFromRight(phaseDialSize + scaled(4)));
 
-        row = middleCol.removeFromTop(rowHeight);
-        lfoRateZLabel.setBounds(row.removeFromLeft(labelWidth));
-        lfoRateZValueLabel.setBounds(row.removeFromRight(valueWidth));
-        lfoRateZSlider.setBounds(middleCol.removeFromTop(sliderHeight));
-        middleCol.removeFromTop(spacing * 2);
+            block.removeFromTop(spacing);
 
-        // Amplitude sliders
-        row = middleCol.removeFromTop(rowHeight);
-        lfoAmplitudeXLabel.setBounds(row.removeFromLeft(labelWidth));
-        lfoAmplitudeXValueLabel.setBounds(row.removeFromRight(valueWidth));
-        lfoAmplitudeXSlider.setBounds(middleCol.removeFromTop(sliderHeight));
-        middleCol.removeFromTop(spacing);
+            // Right column: phase dial + value (spans all 3 slider rows)
+            auto phaseColumn = block.removeFromRight(phaseDialSize + scaled(4));
+            phaseColumn.removeFromLeft(scaled(4));
+            phaseDials[a]->setBounds(phaseColumn.removeFromTop(phaseDialSize)
+                                     .withSizeKeepingCentre(phaseDialSize, phaseDialSize));
+            auto phaseValArea = phaseColumn.removeFromTop(phaseValueH);
+            phaseValues[a]->setBounds(phaseValArea.withSizeKeepingCentre(phaseDialSize / 2, phaseValueH));
 
-        row = middleCol.removeFromTop(rowHeight);
-        lfoAmplitudeYLabel.setBounds(row.removeFromLeft(labelWidth));
-        lfoAmplitudeYValueLabel.setBounds(row.removeFromRight(valueWidth));
-        lfoAmplitudeYSlider.setBounds(middleCol.removeFromTop(sliderHeight));
-        middleCol.removeFromTop(spacing);
+            // Row 2: Amplitude slider
+            auto line2 = block.removeFromTop(sliderHeight);
+            ampLabels[a]->setBounds(line2.removeFromLeft(sliderLabelW));
+            auto ampValArea = line2.removeFromRight(valueWidth);
+            ampValues[a]->setBounds(ampValArea.withSizeKeepingCentre(valueWidth, scaled(24)));
+            ampSliders[a]->setBounds(line2);
 
-        row = middleCol.removeFromTop(rowHeight);
-        lfoAmplitudeZLabel.setBounds(row.removeFromLeft(labelWidth));
-        lfoAmplitudeZValueLabel.setBounds(row.removeFromRight(valueWidth));
-        lfoAmplitudeZSlider.setBounds(middleCol.removeFromTop(sliderHeight));
-        middleCol.removeFromTop(spacing * 2);
+            block.removeFromTop(vizPad);
 
-        // LFO Output sliders (read-only feedback)
-        row = middleCol.removeFromTop(rowHeight);
-        lfoOutputXLabel.setBounds(row.removeFromLeft(labelWidth));
-        lfoOutputXSlider.setBounds(middleCol.removeFromTop(sliderHeight));
-        middleCol.removeFromTop(spacing);
+            // Viz: Output indicator (between amplitude and rate)
+            auto vizLine = block.removeFromTop(vizHeight);
+            vizLine.removeFromLeft(sliderLabelW);
+            vizLine.removeFromRight(valueWidth);
+            outputLabels[a]->setBounds(juce::Rectangle<int>()); // hide output labels
+            outputSliders[a]->setBounds(vizLine);
 
-        row = middleCol.removeFromTop(rowHeight);
-        lfoOutputYLabel.setBounds(row.removeFromLeft(labelWidth));
-        lfoOutputYSlider.setBounds(middleCol.removeFromTop(sliderHeight));
-        middleCol.removeFromTop(spacing);
+            block.removeFromTop(vizPad);
 
-        row = middleCol.removeFromTop(rowHeight);
-        lfoOutputZLabel.setBounds(row.removeFromLeft(labelWidth));
-        lfoOutputZSlider.setBounds(middleCol.removeFromTop(sliderHeight));
+            // Row 3: Rate slider
+            auto line3 = block.removeFromTop(sliderHeight);
+            rateLabels[a]->setBounds(line3.removeFromLeft(sliderLabelW));
+            auto rateValArea = line3.removeFromRight(valueWidth);
+            rateValues[a]->setBounds(rateValArea.withSizeKeepingCentre(valueWidth, scaled(24)));
+            rateSliders[a]->setBounds(line3);
 
-        // ========== RIGHT COLUMN - Phase dials ==========
-        // Phase X dial
-        lfoPhaseXLabel.setBounds(rightCol.removeFromTop(rowHeight));
-        dialArea = rightCol.removeFromTop(dialSize);
-        lfoPhaseXDial.setBounds(dialArea.withSizeKeepingCentre(dialSize, dialSize));
-        lfoPhaseXValueLabel.setBounds(rightCol.removeFromTop(rowHeight));
-        rightCol.removeFromTop(spacing);
-
-        // Phase Y dial
-        lfoPhaseYLabel.setBounds(rightCol.removeFromTop(rowHeight));
-        dialArea = rightCol.removeFromTop(dialSize);
-        lfoPhaseYDial.setBounds(dialArea.withSizeKeepingCentre(dialSize, dialSize));
-        lfoPhaseYValueLabel.setBounds(rightCol.removeFromTop(rowHeight));
-        rightCol.removeFromTop(spacing);
-
-        // Phase Z dial
-        lfoPhaseZLabel.setBounds(rightCol.removeFromTop(rowHeight));
-        dialArea = rightCol.removeFromTop(dialSize);
-        lfoPhaseZDial.setBounds(dialArea.withSizeKeepingCentre(dialSize, dialSize));
-        lfoPhaseZValueLabel.setBounds(rightCol.removeFromTop(rowHeight));
+            if (a < 2)
+                axisArea.removeFromTop(spacing);
+        }
     }
 
     void setAutomotionVisible(bool v)
@@ -4696,19 +4684,21 @@ private:
         col1.removeFromTop(spacing);
 
         // --- Axis rows: X, Y, Z ---
-        // Each row: [Shape selector] [Amp/Rate sliders stacked] [Phase dial] [Output slider]
-        // All sliders same width
-        const int ampRateSpacing = scaled(8);   // Spacing between amp and rate sliders
-        const int axisRowHeight = rowHeight * 2 + sliderHeight * 2 + ampRateSpacing;  // Fit amp/rate stack
-        const int axisRowSpacing = scaled(16);  // Spacing between axis rows
-        const int axisDial = scaled(40);
-        const int shapeWidth = scaled(113);
-        const int phaseDialWidth = axisDial + 25;  // Wider to fit "Phase X:" label
+        // Each row matches Cluster LFO layout:
+        // Line 1: [Shape label] [Shape ComboBox]           [Phase: label]
+        //         [Amp label] [====slider====] [val]   [Phase Dial spanning]
+        //                  [===output viz===]
+        //         [Rate label] [====slider====] [val]
+        const int vizHeight    = scaled(16);
+        const int vizPad       = scaled(2);
+        const int sliderLabelW = scaled(75);
+        const int phaseValueH  = scaled(16);
 
-        // Calculate uniform slider width: total width minus fixed elements, divided among 3 sliders
-        const int fixedWidth = shapeWidth + phaseDialWidth + spacing * 4;
-        const int totalSliderSpace = col1.getWidth() - fixedWidth;
-        const int uniformSliderWidth = totalSliderSpace / 3;  // Amp, Rate (stacked), and Out share space
+        // Phase dial spans amplitude + viz + rate rows
+        const int sliderStackH = sliderHeight * 2 + vizHeight + vizPad * 2;
+        const int phaseDialSize = sliderStackH;
+        const int axisRowHeight = rowHeight + spacing + sliderStackH + phaseValueH;
+        const int axisRowSpacing = scaled(8);
 
         // Helper lambda to layout an axis row
         auto layoutAxisRow = [&](juce::Label& shapeLabel, juce::ComboBox& shapeSelector,
@@ -4716,49 +4706,49 @@ private:
                                   juce::Label& rateLabel, WfsSliderBase& rateSlider, juce::Label& rateValue,
                                   juce::Label& phaseLabel, WfsRotationDial& phaseDial, juce::Label& phaseValue, juce::Label& phaseUnit,
                                   juce::Label& outLabel, WfsLFOOutputSlider& outSlider) {
-            auto axisRow = col1.removeFromTop(axisRowHeight);
+            auto block = col1.removeFromTop(axisRowHeight);
 
-            // Shape selector (left) - vertically centered
-            auto shapeArea = axisRow.removeFromLeft(shapeWidth);
-            const int shapeBlockHeight = rowHeight + rowHeight;  // label + selector
-            const int shapeCenterOffset = (axisRowHeight - shapeBlockHeight) / 2;
-            shapeArea.removeFromTop(shapeCenterOffset);
-            shapeLabel.setBounds(shapeArea.removeFromTop(rowHeight));
-            shapeSelector.setBounds(shapeArea.removeFromTop(rowHeight).withWidth(shapeWidth - 5));
-            axisRow.removeFromLeft(spacing);
+            // Line 1: [Shape Label] [Shape ComboBox] ... [Phase: label on right]
+            auto line1 = block.removeFromTop(rowHeight);
+            shapeLabel.setBounds(line1.removeFromLeft(labelWidth));
+            shapeSelector.setBounds(line1.removeFromLeft(juce::jmin(selectorWidth, line1.getWidth())));
+            phaseLabel.setBounds(line1.removeFromRight(phaseDialSize + scaled(4)));
 
-            // Amplitude + Rate sliders (stacked) - use 2/3 of slider space
-            const int ampRateWidth = uniformSliderWidth * 2;
-            auto sliderArea = axisRow.removeFromLeft(ampRateWidth);
-            // Amplitude row
-            auto ampRow = sliderArea.removeFromTop(rowHeight);
-            ampLabel.setBounds(ampRow.removeFromLeft(scaled(70)));  // Wider to fit "Amplitude:"
-            ampValue.setBounds(ampRow.removeFromRight(scaled(50)));
-            ampSlider.setBounds(sliderArea.removeFromTop(sliderHeight));
-            sliderArea.removeFromTop(ampRateSpacing);  // Doubled spacing between amp and rate
-            // Rate row
-            auto rateRow = sliderArea.removeFromTop(rowHeight);
-            rateLabel.setBounds(rateRow.removeFromLeft(scaled(70)));  // Match amplitude label width
-            rateValue.setBounds(rateRow.removeFromRight(scaled(50)));
-            rateSlider.setBounds(sliderArea.removeFromTop(sliderHeight));
-            axisRow.removeFromLeft(spacing);
+            block.removeFromTop(spacing);
 
-            // Phase dial - vertically centered with split value/unit
-            auto phaseDialArea = axisRow.removeFromLeft(phaseDialWidth);
-            const int phaseBlockHeight = rowHeight + axisDial + rowHeight - 4;  // label + dial + value
-            const int phaseCenterOffset = (axisRowHeight - phaseBlockHeight) / 2;
-            phaseDialArea.removeFromTop(phaseCenterOffset);
-            phaseLabel.setBounds(phaseDialArea.removeFromTop(rowHeight - 2));
-            auto axisPhaseDialBounds = phaseDialArea.removeFromTop(axisDial);
-            phaseDial.setBounds(axisPhaseDialBounds.withSizeKeepingCentre(axisDial, axisDial));
-            int axisPhaseDialCenterX = axisPhaseDialBounds.getX() + axisPhaseDialBounds.getWidth() / 2;
-            layoutDialValueUnit(phaseValue, phaseUnit, axisPhaseDialCenterX, phaseDialArea.getY(), rowHeight - 2, scaled(35), scaled(20));
-            axisRow.removeFromLeft(spacing);
+            // Right column: phase dial + value (spans all 3 slider rows)
+            auto phaseColumn = block.removeFromRight(phaseDialSize + scaled(4));
+            phaseColumn.removeFromLeft(scaled(4));
+            phaseDial.setBounds(phaseColumn.removeFromTop(phaseDialSize)
+                                .withSizeKeepingCentre(phaseDialSize, phaseDialSize));
+            auto phaseValArea = phaseColumn.removeFromTop(phaseValueH);
+            phaseValue.setBounds(phaseValArea.withSizeKeepingCentre(phaseDialSize / 2, phaseValueH));
+            phaseUnit.setBounds(juce::Rectangle<int>()); // hide unit label (value label has degrees)
 
-            // Output slider - use remaining space (1/3 of slider space)
-            auto outArea = axisRow;
-            outLabel.setBounds(outArea.removeFromTop(rowHeight));
-            outSlider.setBounds(outArea.removeFromTop(sliderHeight));
+            // Row 2: Amplitude slider
+            auto line2 = block.removeFromTop(sliderHeight);
+            ampLabel.setBounds(line2.removeFromLeft(sliderLabelW));
+            auto ampValArea = line2.removeFromRight(valueWidth);
+            ampValue.setBounds(ampValArea.withSizeKeepingCentre(valueWidth, scaled(24)));
+            ampSlider.setBounds(line2);
+
+            block.removeFromTop(vizPad);
+
+            // Viz: Output indicator (between amplitude and rate)
+            auto vizLine = block.removeFromTop(vizHeight);
+            vizLine.removeFromLeft(sliderLabelW);
+            vizLine.removeFromRight(valueWidth);
+            outLabel.setBounds(juce::Rectangle<int>()); // hide output label
+            outSlider.setBounds(vizLine);
+
+            block.removeFromTop(vizPad);
+
+            // Row 3: Rate slider
+            auto line3 = block.removeFromTop(sliderHeight);
+            rateLabel.setBounds(line3.removeFromLeft(sliderLabelW));
+            auto rateValArea = line3.removeFromRight(valueWidth);
+            rateValue.setBounds(rateValArea.withSizeKeepingCentre(valueWidth, scaled(24)));
+            rateSlider.setBounds(line3);
         };
 
         // X axis row
@@ -5467,17 +5457,17 @@ private:
         int phaseXDeg = getIntParam(WFSParameterIDs::inputLFOphaseX, 0);
         phaseXDeg = juce::jlimit(-180, 180, phaseXDeg);
         lfoPhaseXDial.setAngle(static_cast<float>(phaseXDeg));
-        lfoPhaseXValueLabel.setText(juce::String(phaseXDeg), juce::dontSendNotification);
+        lfoPhaseXValueLabel.setText(juce::String(phaseXDeg) + juce::String::charToString(0x00B0), juce::dontSendNotification);
 
         int phaseYDeg = getIntParam(WFSParameterIDs::inputLFOphaseY, 0);
         phaseYDeg = juce::jlimit(-180, 180, phaseYDeg);
         lfoPhaseYDial.setAngle(static_cast<float>(phaseYDeg));
-        lfoPhaseYValueLabel.setText(juce::String(phaseYDeg), juce::dontSendNotification);
+        lfoPhaseYValueLabel.setText(juce::String(phaseYDeg) + juce::String::charToString(0x00B0), juce::dontSendNotification);
 
         int phaseZDeg = getIntParam(WFSParameterIDs::inputLFOphaseZ, 0);
         phaseZDeg = juce::jlimit(-180, 180, phaseZDeg);
         lfoPhaseZDial.setAngle(static_cast<float>(phaseZDeg));
-        lfoPhaseZValueLabel.setText(juce::String(phaseZDeg), juce::dontSendNotification);
+        lfoPhaseZValueLabel.setText(juce::String(phaseZDeg) + juce::String::charToString(0x00B0), juce::dontSendNotification);
 
         lfoGyrophoneSelector.setSelectedId(getIntParam(WFSParameterIDs::inputLFOgyrophone, 0) + 2, juce::dontSendNotification);
 
@@ -6093,22 +6083,19 @@ private:
         {
             int degrees = juce::jlimit(0, 360, static_cast<int>(value));
             lfoPhaseXDial.setAngle(static_cast<float>(degrees));
-            // Force label update
-            lfoPhaseXValueLabel.setText(juce::String(degrees), juce::dontSendNotification);
+            lfoPhaseXValueLabel.setText(juce::String(degrees) + juce::String::charToString(0x00B0), juce::dontSendNotification);
         }
         else if (label == &lfoPhaseYValueLabel)
         {
             int degrees = juce::jlimit(0, 360, static_cast<int>(value));
             lfoPhaseYDial.setAngle(static_cast<float>(degrees));
-            // Force label update
-            lfoPhaseYValueLabel.setText(juce::String(degrees), juce::dontSendNotification);
+            lfoPhaseYValueLabel.setText(juce::String(degrees) + juce::String::charToString(0x00B0), juce::dontSendNotification);
         }
         else if (label == &lfoPhaseZValueLabel)
         {
             int degrees = juce::jlimit(0, 360, static_cast<int>(value));
             lfoPhaseZDial.setAngle(static_cast<float>(degrees));
-            // Force label update
-            lfoPhaseZValueLabel.setText(juce::String(degrees), juce::dontSendNotification);
+            lfoPhaseZValueLabel.setText(juce::String(degrees) + juce::String::charToString(0x00B0), juce::dontSendNotification);
         }
         // AutomOtion tab
         else if (label == &otomoSpeedProfileValueLabel)
