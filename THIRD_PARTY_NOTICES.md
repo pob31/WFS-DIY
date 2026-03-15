@@ -120,3 +120,24 @@ THE SOFTWARE.
 WFS-DIY implements the ADM-OSC protocol for object-based audio positioning
 over OSC. ADM-OSC is an open specification — no code from the repository is
 redistributed; only the protocol grammar is implemented.
+
+---
+
+# Academic References
+
+## Reverb Engine
+
+The reverb implementation in WFS-DIY (SDN, FDN, and IR algorithms) is based
+on the work presented in:
+
+> Martin Guesney, *Réverbération artificielle pour la synthèse de champ
+> d'ondes (Wave Field Synthesis)*, Master's thesis, ENS Louis-Lumière, 2020.
+> https://www.ens-louis-lumiere.fr/wp-content/uploads/2023/10/ENSLL_SON_GUESNEY_2020.pdf
+
+Key references from the thesis include:
+
+- De Sena, E., Hacıhabiboğlu, H., & Cvetković, Z. (2015). *Scattering Delay
+  Network: An Interactive Reverberator for Large-Scale Virtual Environments.*
+  IEEE/ACM Transactions on Audio, Speech, and Language Processing.
+- Jot, J.-M., & Chaigne, A. (1991). *Digital Delay Networks for Designing
+  Artificial Reverberators.* AES Convention.
