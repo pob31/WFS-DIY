@@ -482,6 +482,12 @@ private:
     /** Send ADM-OSC position for an input to all ADM-OSC targets (transmit). */
     void sendADMOSCPosition(int channelIndex);
 
+    /** Send ADM-OSC gain for an input to all ADM-OSC targets (transmit). */
+    void sendADMOSCGain(int channelIndex);
+
+    /** Send ADM-OSC name for an input to all ADM-OSC targets (transmit). */
+    void sendADMOSCName(int channelIndex);
+
     /** Rebuild cached ADM-OSC mapping configs from ValueTree. */
     void rebuildADMOSCMappingCache();
 
@@ -597,6 +603,16 @@ private:
     ADMOSCMapping::PolarMappingConfig     admPolarConfigs[4];
     bool admMappingCacheDirty = true;
     bool admReceiving = false;  // Guard against echo loops during receive
+
+    // ADM-OSC secondary UDP listeners (for target-port reception)
+    struct ADMExtraListener
+    {
+        int port = 0;
+        std::unique_ptr<OSCReceiverWithSenderIP> receiver;
+        std::unique_ptr<UDPListener> listener;
+    };
+    std::vector<ADMExtraListener> admExtraListeners;
+    void updateADMOSCListeners();
 
     // REMOTE protocol state
     int remoteSelectedChannel = 1;

@@ -2547,6 +2547,12 @@ private:
                         return;
                     }
                 }
+                // Defaults for ADM-OSC targets
+                if (targetRows[i].protocolSelector.getSelectedId() == 4)  // ADM-OSC
+                {
+                    if (targetRows[i].txPortEditor.getText() == "9000")
+                        targetRows[i].txPortEditor.setText ("4001", false);
+                }
                 // Defaults for QLab targets
                 if (targetRows[i].protocolSelector.getSelectedId() == 8)  // QLab
                 {

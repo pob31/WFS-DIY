@@ -131,6 +131,9 @@ void OSCManager::applyTargetConfig(int targetIndex, const TargetConfig& config)
             connectTarget(targetIndex);
         }
     }
+
+    // Update ADM-OSC secondary listeners when any target config changes
+    updateADMOSCListeners();
 }
 
 TargetConfig OSCManager::getTargetConfig(int targetIndex) const
@@ -208,6 +211,9 @@ void OSCManager::stopListening()
         tcpReceiver->disconnect();
         tcpReceiver.reset();
     }
+
+    // Close ADM-OSC secondary listeners
+    admExtraListeners.clear();
 
     listening = false;
     logger.logText("Stopped listening on UDP and TCP");
@@ -916,6 +922,13 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
         int channelIndex = channelId - 1;
         sendADMOSCPosition (channelIndex);
     }
+
+    // ADM-OSC transmit: gain and name
+    if (isInput && property == WFSParameterIDs::inputAttenuation)
+        sendADMOSCGain (channelId - 1);
+
+    if (isInput && property == WFSParameterIDs::inputName)
+        sendADMOSCName (channelId - 1);
 
     // If inputTrackingActive changed, also send the computed fully tracked state
     if (isInput && property == WFSParameterIDs::inputTrackingActive)
@@ -3559,6 +3572,41 @@ void OSCManager::handleADMOSCMessage (const juce::OSCMessage& message)
     int numInputs = state.getIntParameter (WFSParameterIDs::inputChannels);
     if (channelIndex < 0 || channelIndex >= numInputs) return;
 
+    // Handle gain (no mapping needed)
+    if (parsed.type == OSCMessageRouter::ParsedADMOSCMessage::Type::Gain)
+    {
+        float gainLinear = juce::jlimit (0.0f, 1.0f, parsed.v1);
+        float dB = (gainLinear <= 0.00001f) ? -92.0f
+                   : 20.0f * std::log10 (gainLinear);
+        dB = juce::jlimit (-92.0f, 0.0f, dB);
+
+        juce::MessageManager::callAsync ([this, channelIndex, dB]()
+        {
+            admReceiving = true;
+            incomingProtocol = Protocol::ADMOSC;
+            state.setInputParameter (channelIndex, WFSParameterIDs::inputAttenuation, dB);
+            incomingProtocol = Protocol::Disabled;
+            admReceiving = false;
+        });
+        return;
+    }
+
+    // Handle name (no mapping needed)
+    if (parsed.type == OSCMessageRouter::ParsedADMOSCMessage::Type::Name)
+    {
+        juce::String name = parsed.stringValue.substring (0, 128);
+
+        juce::MessageManager::callAsync ([this, channelIndex, name]()
+        {
+            admReceiving = true;
+            incomingProtocol = Protocol::ADMOSC;
+            state.setInputParameter (channelIndex, WFSParameterIDs::inputName, name);
+            incomingProtocol = Protocol::Disabled;
+            admReceiving = false;
+        });
+        return;
+    }
+
     // Get input's ADM mapping assignment
     juce::var mappingVar = state.getInputParameter (channelIndex, WFSParameterIDs::inputAdmMapping);
     int mapping = static_cast<int> (mappingVar);
@@ -3724,6 +3772,111 @@ void OSCManager::sendADMOSCPosition (int channelIndex)
     }
 
     // Send to all ADM-OSC targets with txEnable
+    for (int t = 0; t < MAX_TARGETS; ++t)
+    {
+        if (targetConfigs[static_cast<size_t>(t)].protocol == Protocol::ADMOSC &&
+            targetConfigs[static_cast<size_t>(t)].txEnabled)
+        {
+            sendMessage (t, msg);
+        }
+    }
+}
+
+void OSCManager::updateADMOSCListeners()
+{
+    if (!listening) return;
+
+    // Collect unique ports needed for ADM-OSC targets with rxEnabled
+    std::set<int> neededPorts;
+    for (int t = 0; t < MAX_TARGETS; ++t)
+    {
+        const auto& tc = targetConfigs[static_cast<size_t>(t)];
+        if (tc.protocol == Protocol::ADMOSC && tc.rxEnabled && tc.port > 0)
+        {
+            // Skip if same as global UDP receive port (already covered)
+            if (tc.port != globalConfig.udpReceivePort)
+                neededPorts.insert (tc.port);
+        }
+    }
+
+    // Remove extra listeners whose ports are no longer needed
+    admExtraListeners.erase (
+        std::remove_if (admExtraListeners.begin(), admExtraListeners.end(),
+            [&neededPorts] (const ADMExtraListener& el)
+            {
+                return neededPorts.find (el.port) == neededPorts.end();
+            }),
+        admExtraListeners.end());
+
+    // Collect currently active ports
+    std::set<int> activePorts;
+    for (const auto& el : admExtraListeners)
+        activePorts.insert (el.port);
+
+    // Open new listeners for ports not yet active
+    for (int port : neededPorts)
+    {
+        if (activePorts.find (port) != activePorts.end())
+            continue;  // already listening
+
+        ADMExtraListener el;
+        el.port     = port;
+        el.receiver = std::make_unique<OSCReceiverWithSenderIP>();
+        el.listener = std::make_unique<UDPListener> (*this);
+
+        if (el.receiver->connect (port))
+        {
+            el.receiver->addListener (el.listener.get());
+            logger.logText ("ADM-OSC: listening on extra port " + juce::String (port));
+            admExtraListeners.push_back (std::move (el));
+        }
+        else
+        {
+            DBG ("ADM-OSC: failed to bind extra listener to port " << port);
+        }
+    }
+}
+
+void OSCManager::sendADMOSCGain (int channelIndex)
+{
+    if (admReceiving) return;
+
+    int numInputs = state.getIntParameter (WFSParameterIDs::inputChannels);
+    if (channelIndex < 0 || channelIndex >= numInputs) return;
+
+    float dB = static_cast<float> (state.getInputParameter (channelIndex, WFSParameterIDs::inputAttenuation));
+    dB = juce::jlimit (-92.0f, 0.0f, dB);
+    float gainLinear = (dB <= -92.0f) ? 0.0f : std::pow (10.0f, dB / 20.0f);
+    gainLinear = juce::jlimit (0.0f, 1.0f, gainLinear);
+
+    int objId = channelIndex + 1;
+    juce::OSCMessage msg ("/adm/obj/" + juce::String (objId) + "/gain");
+    msg.addFloat32 (gainLinear);
+
+    for (int t = 0; t < MAX_TARGETS; ++t)
+    {
+        if (targetConfigs[static_cast<size_t>(t)].protocol == Protocol::ADMOSC &&
+            targetConfigs[static_cast<size_t>(t)].txEnabled)
+        {
+            sendMessage (t, msg);
+        }
+    }
+}
+
+void OSCManager::sendADMOSCName (int channelIndex)
+{
+    if (admReceiving) return;
+
+    int numInputs = state.getIntParameter (WFSParameterIDs::inputChannels);
+    if (channelIndex < 0 || channelIndex >= numInputs) return;
+
+    juce::var nameVar = state.getInputParameter (channelIndex, WFSParameterIDs::inputName);
+    juce::String name = nameVar.toString();
+
+    int objId = channelIndex + 1;
+    juce::OSCMessage msg ("/adm/obj/" + juce::String (objId) + "/name");
+    msg.addString (name);
+
     for (int t = 0; t < MAX_TARGETS; ++t)
     {
         if (targetConfigs[static_cast<size_t>(t)].protocol == Protocol::ADMOSC &&

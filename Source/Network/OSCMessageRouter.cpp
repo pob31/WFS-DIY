@@ -959,6 +959,18 @@ OSCMessageRouter::ParsedADMOSCMessage OSCMessageRouter::parseADMOSCMessage(const
         result.v1    = extractFloat(message[0]);
         result.valid = true;
     }
+    else if (param == "gain" && message.size() >= 1)
+    {
+        result.type  = ParsedADMOSCMessage::Type::Gain;
+        result.v1    = extractFloat(message[0]);
+        result.valid = true;
+    }
+    else if (param == "name" && message.size() >= 1 && message[0].isString())
+    {
+        result.type        = ParsedADMOSCMessage::Type::Name;
+        result.stringValue = message[0].getString();
+        result.valid       = true;
+    }
 
     return result;
 }
