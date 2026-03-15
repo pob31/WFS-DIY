@@ -105,7 +105,8 @@ public:
         // Text
         g.setColour (isTracked ? juce::Colour (0xFFFF9800) : ColorScheme::get().textPrimary);
         juce::String text = LOC ("clusters.labels.inputPrefix") + " " + juce::String (inputIdx + 1);
-        if (inputName.isNotEmpty())
+        juce::String defaultName = LOC ("clusters.labels.inputPrefix") + " " + juce::String (inputIdx + 1);
+        if (inputName.isNotEmpty() && inputName != defaultName)
             text += " - " + inputName;
         if (isTracked)
             text += " " + LOC ("clusters.status.trackedMarker");
@@ -151,7 +152,8 @@ private:
 class ClustersTab : public juce::Component,
                     public juce::ListBoxModel,
                     private juce::Timer,
-                    private juce::ValueTree::Listener
+                    private juce::ValueTree::Listener,
+                    private juce::Label::Listener
 {
 public:
     ClustersTab(WfsParameters& params)
@@ -512,6 +514,25 @@ public:
 
     int getSelectedCluster() const noexcept { return selectedCluster; }
 
+    bool isAnyClusterLFOActive() const
+    {
+        for (int c = 1; c <= 10; ++c)
+            if (clusterLFOProcessor.isActive(c))
+                return true;
+        return false;
+    }
+
+    void getClusterLFOOffset (int inputIdx, float& x, float& y, float& z) const
+    {
+        if (inputIdx >= 0 && inputIdx < static_cast<int> (clusterLFOInputOffsets.size()))
+        {
+            x = clusterLFOInputOffsets[static_cast<size_t> (inputIdx)][0];
+            y = clusterLFOInputOffsets[static_cast<size_t> (inputIdx)][1];
+            z = clusterLFOInputOffsets[static_cast<size_t> (inputIdx)][2];
+        }
+        else { x = y = z = 0.0f; }
+    }
+
     void selectNextCluster()
     {
         int next = selectedCluster + 1;
@@ -583,6 +604,7 @@ private:
 
     // ==================== LFO PANEL ====================
     ClusterLFOProcessor clusterLFOProcessor;
+    std::vector<std::array<float, 3>> clusterLFOInputOffsets;  // per-input [x, y, z] offsets
 
     juce::Label lfoSectionLabel;
     juce::TextButton lfoActiveButton;
@@ -665,6 +687,7 @@ private:
         lfoPeriodValueLabel.setText("5.00 s", juce::dontSendNotification);
         lfoPeriodValueLabel.setFont(juce::FontOptions().withHeight(13.0f));
         lfoPeriodValueLabel.setJustificationType(juce::Justification::centred);
+        setupEditableValueLabel(lfoPeriodValueLabel);
 
         // Phase dial
         addAndMakeVisible(lfoPhaseLabel);
@@ -685,6 +708,7 @@ private:
         lfoPhaseValueLabel.setText(juce::String("0") + juce::String::charToString(0x00B0), juce::dontSendNotification);
         lfoPhaseValueLabel.setFont(juce::FontOptions().withHeight(13.0f));
         lfoPhaseValueLabel.setJustificationType(juce::Justification::centred);
+        setupEditableValueLabel(lfoPhaseValueLabel);
 
         // Progress dial
         addAndMakeVisible(lfoProgressDial);
@@ -796,6 +820,7 @@ private:
             addAndMakeVisible(row.amplitudeValueLabel);
             row.amplitudeValueLabel.setFont(juce::FontOptions().withHeight(13.0f));
             row.amplitudeValueLabel.setJustificationType(juce::Justification::centredRight);
+            setupEditableValueLabel(row.amplitudeValueLabel);
 
             // Rate slider (bidirectional, log scale 0.01..100x)
             addAndMakeVisible(row.rateLabel);
@@ -815,6 +840,7 @@ private:
             row.rateValueLabel.setText("1.00x", juce::dontSendNotification);
             row.rateValueLabel.setFont(juce::FontOptions().withHeight(13.0f));
             row.rateValueLabel.setJustificationType(juce::Justification::centredRight);
+            setupEditableValueLabel(row.rateValueLabel);
 
             // Phase label + dial
             addAndMakeVisible(row.phaseLabel);
@@ -834,6 +860,7 @@ private:
             row.phaseValueLabel.setText(juce::String("0") + juce::String::charToString(0x00B0), juce::dontSendNotification);
             row.phaseValueLabel.setFont(juce::FontOptions().withHeight(13.0f));
             row.phaseValueLabel.setJustificationType(juce::Justification::centred);
+            setupEditableValueLabel(row.phaseValueLabel);
 
             // Output indicator (read-only)
             addAndMakeVisible(row.outputSlider);
@@ -1148,7 +1175,89 @@ private:
     }
 
     //==========================================================================
-    // LFO Delta Application (for all clusters)
+    // Editable Value Labels
+    //==========================================================================
+
+    void setupEditableValueLabel(juce::Label& label)
+    {
+        label.setEditable(true, false);
+        label.addListener(this);
+    }
+
+    void labelTextChanged(juce::Label* label) override
+    {
+        if (isLoadingParameters) return;
+
+        // Extract numeric value from text (strips units)
+        float val = label->getText().retainCharacters("0123456789.-").getFloatValue();
+
+        // Period value label
+        if (label == &lfoPeriodValueLabel)
+        {
+            float period = juce::jlimit(0.01f, 100.0f, val);
+            // Inverse of: period = 0.01 * pow(10000, v) → v = log10(period/0.01) / log10(10000)
+            float v = std::log10(period / 0.01f) / 4.0f;
+            lfoPeriodDial.setValue(juce::jlimit(0.0f, 1.0f, v));
+            return;
+        }
+
+        // Phase value label (global)
+        if (label == &lfoPhaseValueLabel)
+        {
+            int deg = juce::jlimit(0, 360, static_cast<int>(std::round(val)));
+            lfoPhaseDial.setAngle(static_cast<float>(deg));
+            return;
+        }
+
+        // Per-axis value labels
+        for (int a = 0; a < 5; ++a)
+        {
+            auto& row = lfoRows[a];
+
+            if (label == &row.amplitudeValueLabel)
+            {
+                if (a == 3) // Rotation: deg → bidirectional slider -1..1
+                {
+                    float deg = juce::jlimit(-360.0f, 360.0f, val);
+                    auto* slider = dynamic_cast<WfsBidirectionalSlider*>(row.amplitudeSlider.get());
+                    if (slider) slider->setValue(deg / 360.0f);
+                }
+                else if (a == 4) // Scale: ratio → bidirectional slider via log10
+                {
+                    float ratio = juce::jlimit(0.1f, 10.0f, val);
+                    auto* slider = dynamic_cast<WfsBidirectionalSlider*>(row.amplitudeSlider.get());
+                    if (slider) slider->setValue(std::log10(ratio));
+                }
+                else // XYZ: metres → standard slider 0..1
+                {
+                    float meters = juce::jlimit(0.0f, 50.0f, val);
+                    auto* slider = dynamic_cast<WfsStandardSlider*>(row.amplitudeSlider.get());
+                    if (slider) slider->setValue(meters / 50.0f);
+                }
+                return;
+            }
+
+            if (label == &row.rateValueLabel)
+            {
+                float rate = juce::jlimit(0.01f, 100.0f, val);
+                // Inverse of: rate = pow(100, v) → v = log10(rate) / log10(100) = log10(rate) / 2
+                row.rateSlider.setValue(std::log10(rate) / 2.0f);
+                return;
+            }
+
+            if (label == &row.phaseValueLabel)
+            {
+                int deg = juce::jlimit(0, 360, static_cast<int>(std::round(val)));
+                row.phaseDial.setAngle(static_cast<float>(deg));
+                return;
+            }
+        }
+    }
+
+    //==========================================================================
+    // LFO Offset Computation (for all clusters)
+    // Computes per-input offsets without writing to ValueTree.
+    // MainComponent reads these offsets and feeds them to the calculation engine.
     //==========================================================================
 
     void processAllClusterLFOs()
@@ -1157,20 +1266,27 @@ private:
 
         int numInputs = parameters.getNumInputChannels();
 
+        // Resize and zero all offsets
+        if (static_cast<int> (clusterLFOInputOffsets.size()) != numInputs)
+            clusterLFOInputOffsets.resize (static_cast<size_t> (numInputs), { 0.0f, 0.0f, 0.0f });
+        for (auto& o : clusterLFOInputOffsets)
+            o = { 0.0f, 0.0f, 0.0f };
+
         for (int c = 1; c <= 10; ++c)
         {
             if (!clusterLFOProcessor.isActive(c))
                 continue;
 
-            float dx = clusterLFOProcessor.getDeltaX(c);
-            float dy = clusterLFOProcessor.getDeltaY(c);
-            float dz = clusterLFOProcessor.getDeltaZ(c);
-            float dRot = clusterLFOProcessor.getDeltaRotDeg(c);
-            float dScale = clusterLFOProcessor.getDeltaScale(c);
+            // Read absolute offsets (not incremental deltas)
+            float oX = clusterLFOProcessor.getOffsetX(c);
+            float oY = clusterLFOProcessor.getOffsetY(c);
+            float oZ = clusterLFOProcessor.getOffsetZ(c);
+            float oRot = clusterLFOProcessor.getOffsetRotDeg(c);
+            float oScale = clusterLFOProcessor.getOffsetScale(c);
 
-            bool hasTranslation = (dx != 0.0f || dy != 0.0f || dz != 0.0f);
-            bool hasRotation = (dRot != 0.0f);
-            bool hasScale = (dScale != 1.0f);
+            bool hasTranslation = (oX != 0.0f || oY != 0.0f || oZ != 0.0f);
+            bool hasRotation = (oRot != 0.0f);
+            bool hasScale = (oScale != 1.0f);
 
             if (!hasTranslation && !hasRotation && !hasScale)
                 continue;
@@ -1187,11 +1303,10 @@ private:
             if (clusterInputs.empty())
                 continue;
 
-            // Calculate reference point for rotation/scale
+            // Calculate reference point from BASE positions (stable, not LFO-modified)
             float refX = 0.0f, refY = 0.0f, refZ = 0.0f;
             if (hasRotation || hasScale)
             {
-                // Use same reference logic: tracked > first > barycenter
                 bool foundRef = false;
                 for (int idx : clusterInputs)
                 {
@@ -1226,38 +1341,38 @@ private:
                 }
             }
 
-            // Apply transforms to each input
+            // Compute per-input offsets (no ValueTree writes)
             for (int inputIdx : clusterInputs)
             {
-                auto [px, py, pz] = getInputPosition(inputIdx);
-                float newX = px, newY = py, newZ = pz;
+                auto [baseX, baseY, baseZ] = getInputPosition(inputIdx);
+                float px = baseX, py = baseY, pz = baseZ;
 
-                // Translation
-                newX += dx;
-                newY += dy;
-                newZ += dz;
-
-                // Rotation (XY plane only, around reference point)
+                // Rotation around reference (XY plane, absolute angle)
                 if (hasRotation)
                 {
-                    float rad = juce::degreesToRadians(dRot);
+                    float rad = juce::degreesToRadians(oRot);
                     float cosA = std::cos(rad);
                     float sinA = std::sin(rad);
-                    float relX = newX - refX;
-                    float relY = newY - refY;
-                    newX = refX + relX * cosA - relY * sinA;
-                    newY = refY + relX * sinA + relY * cosA;
+                    float relX = px - refX;
+                    float relY = py - refY;
+                    px = refX + relX * cosA - relY * sinA;
+                    py = refY + relX * sinA + relY * cosA;
                 }
 
-                // Scale (uniform, around reference point)
+                // Scale around reference (absolute factor)
                 if (hasScale)
                 {
-                    newX = refX + (newX - refX) * dScale;
-                    newY = refY + (newY - refY) * dScale;
-                    newZ = refZ + (newZ - refZ) * dScale;
+                    px = refX + (px - refX) * oScale;
+                    py = refY + (py - refY) * oScale;
+                    pz = refZ + (pz - refZ) * oScale;
                 }
 
-                setInputPosition(inputIdx, newX, newY, newZ);
+                // Translation (absolute offset)
+                px += oX;
+                py += oY;
+                pz += oZ;
+
+                clusterLFOInputOffsets[static_cast<size_t> (inputIdx)] = { px - baseX, py - baseY, pz - baseZ };
             }
         }
     }
@@ -1461,9 +1576,6 @@ private:
                 assignedInputs.insert(assignedInputs.begin(), trackedInputIdx);
             }
         }
-
-        // Save back if order changed vs stored
-        saveInputOrder();
 
         inputsList.updateContent();
         inputsList.repaint();

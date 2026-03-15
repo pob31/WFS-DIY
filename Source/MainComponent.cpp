@@ -3123,8 +3123,11 @@ void MainComponent::timerCallback()
             }
 
             // Keep map repainting while speed limiter is catching up
-            if (windowVisible && speedLimiter->isAnyInputMoving() && mapTab != nullptr)
-                mapTab->repaint();
+            if (windowVisible && mapTab != nullptr)
+            {
+                if (speedLimiter->isAnyInputMoving())
+                    mapTab->repaint();
+            }
 
             // Auto-stop recording for channels that haven't received remote positions
             juce::int64 now = juce::Time::currentTimeMillis();
@@ -3220,6 +3223,16 @@ void MainComponent::timerCallback()
                 totalOffsetX += automOtionProcessor->getOffsetX(i);
                 totalOffsetY += automOtionProcessor->getOffsetY(i);
                 totalOffsetZ += automOtionProcessor->getOffsetZ(i);
+            }
+
+            // Add cluster LFO offset (offset-based, no ValueTree writes)
+            if (clustersTab != nullptr)
+            {
+                float cx = 0.0f, cy = 0.0f, cz = 0.0f;
+                clustersTab->getClusterLFOOffset(i, cx, cy, cz);
+                totalOffsetX += cx;
+                totalOffsetY += cy;
+                totalOffsetZ += cz;
             }
 
             calculationEngine->setLFOOffset(i, totalOffsetX, totalOffsetY, totalOffsetZ);
@@ -3625,8 +3638,9 @@ void MainComponent::timerCallback()
             }
         }
 
-        // Repaint map if any LFO is active
-        if (windowVisible && mapTab != nullptr && anyLFOActive)
+        // Repaint map if any LFO (per-input or cluster) is active
+        bool anyClusterLFOActive = (clustersTab != nullptr && clustersTab->isAnyClusterLFOActive());
+        if (windowVisible && mapTab != nullptr && (anyLFOActive || anyClusterLFOActive))
             mapTab->repaint();
 
         // Send composite delta to Remote targets (delta = composite - target position)

@@ -145,6 +145,17 @@ public:
     /** Get scale delta this tick (multiplier, 1.0 = no change) */
     float getDeltaScale (int clusterIndex) const { return getState (clusterIndex).deltaScale; }
 
+    /** Get absolute position offset (meters) — for offset-based routing */
+    float getOffsetX (int clusterIndex) const { return getState (clusterIndex).offsetX; }
+    float getOffsetY (int clusterIndex) const { return getState (clusterIndex).offsetY; }
+    float getOffsetZ (int clusterIndex) const { return getState (clusterIndex).offsetZ; }
+
+    /** Get absolute rotation offset (degrees) */
+    float getOffsetRotDeg (int clusterIndex) const { return getState (clusterIndex).offsetRotDeg; }
+
+    /** Get absolute scale factor (1.0 = no change) */
+    float getOffsetScale (int clusterIndex) const { return getState (clusterIndex).offsetScale; }
+
     /** Get normalized output (-1 to +1) for UI indicators */
     float getNormalizedX (int clusterIndex) const { return getState (clusterIndex).normalizedX; }
     float getNormalizedY (int clusterIndex) const { return getState (clusterIndex).normalizedY; }
@@ -321,15 +332,17 @@ private:
             state.offsetY = state.normalizedY * ampY * state.fadeLevel * state.fadeY;
             state.offsetZ = state.normalizedZ * ampZ * state.fadeLevel * state.fadeZ;
 
-            // Rotation: amplitude in degrees * waveform * fades
-            state.offsetRotDeg = state.normalizedRot * ampRot * state.fadeLevel * state.fadeRot;
+            // Rotation: unipolar 0° to ampRot (remap -1..+1 to 0..1)
+            float uniRot = (state.normalizedRot + 1.0f) * 0.5f;
+            state.offsetRotDeg = uniRot * ampRot * state.fadeLevel * state.fadeRot;
 
-            // Scale: log mapping — amplitude is the max scale factor (0.1 to 10.0)
-            // pow(ampScale, normalizedScale * fadeLevel * fadeScale)
+            // Scale: unipolar 1.0x to ampScale (remap -1..+1 to 0..1)
+            // pow(ampScale, uniScale * fadeLevel * fadeScale)
             // When ampScale=1.0 (default), result is always 1.0 (no modulation)
-            // When ampScale=10.0 and normalized=+1, result=10.0x
-            // When ampScale=10.0 and normalized=-1, result=0.1x (=1/10)
-            float scalePower = state.normalizedScale * state.fadeLevel * state.fadeScale;
+            // When ampScale=2.0 and uniScale=1, result=2.0x
+            // When ampScale=2.0 and uniScale=0, result=1.0x (no change)
+            float uniScale = (state.normalizedScale + 1.0f) * 0.5f;
+            float scalePower = uniScale * state.fadeLevel * state.fadeScale;
             state.offsetScale = std::pow (ampScale, scalePower);
         }
         else
