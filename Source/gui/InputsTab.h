@@ -983,6 +983,7 @@ private:
             auto posTree = parameters.getValueTreeState().getInputPositionSection(currentChannel - 1);
             posTree.setProperty(WFSParameterIDs::inputAdmMapping, newMapping, nullptr);
         };
+        updateAdmSelectorAppearance();
 
         // Position X
         addAndMakeVisible(posXLabel);
@@ -3058,6 +3059,8 @@ private:
         delayLatencySlider.setVisible(v);
         delayLatencyValueLabel.setVisible(v);
         minimalLatencyButton.setVisible(v);
+        admMappingLabel.setVisible(v);
+        admMappingSelector.setVisible(v);
     }
 
     void setPositionVisible(bool v)
@@ -7245,6 +7248,14 @@ private:
             return;
         }
 
+        // Check if network target protocol/enable changed — update ADM selector dimming
+        if (property == WFSParameterIDs::networkTSProtocol ||
+            property == WFSParameterIDs::networkTSrxEnable ||
+            property == WFSParameterIDs::networkTStxEnable)
+        {
+            juce::MessageManager::callAsync ([this]() { updateAdmSelectorAppearance(); });
+        }
+
         // Check if solo states changed (stored in binaural tree)
         if (tree == binauralTree && property == WFSParameterIDs::inputSoloStates)
         {
@@ -7313,6 +7324,29 @@ private:
     void valueTreeParentChanged(juce::ValueTree&) override {}
 
     // ==================== HELPER METHODS ====================
+
+    bool hasAdmOscTarget()
+    {
+        auto networkState = parameters.getValueTreeState().getNetworkState();
+        for (int i = 0; i < networkState.getNumChildren(); ++i)
+        {
+            auto target = networkState.getChild (i);
+            if (target.getType() != WFSParameterIDs::NetworkTarget) continue;
+            int protocol = static_cast<int> (target.getProperty (WFSParameterIDs::networkTSProtocol, 0));
+            bool active = static_cast<int> (target.getProperty (WFSParameterIDs::networkTStxEnable, 0)) != 0
+                       || static_cast<int> (target.getProperty (WFSParameterIDs::networkTSrxEnable, 0)) != 0;
+            if (active && protocol == 3)  // 3 = ADMOSC in ValueTree (0-based)
+                return true;
+        }
+        return false;
+    }
+
+    void updateAdmSelectorAppearance()
+    {
+        float alpha = hasAdmOscTarget() ? 1.0f : 0.4f;
+        admMappingLabel.setAlpha (alpha);
+        admMappingSelector.setAlpha (alpha);
+    }
 
     void saveInputParam(const juce::Identifier& paramId, const juce::var& value)
     {
