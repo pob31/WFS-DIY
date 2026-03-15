@@ -136,6 +136,55 @@ juce::ValueTree WFSValueTreeState::getClusterLFOSection (int clusterIndex)
     return lfoSection;
 }
 
+juce::ValueTree WFSValueTreeState::getClusterLFOPresetsSection()
+{
+    auto config = getConfigState();
+    auto presets = config.getChildWithName (ClusterLFOPresets);
+    if (! presets.isValid())
+    {
+        // Migration: create with 16 empty preset slots
+        presets = juce::ValueTree (ClusterLFOPresets);
+        for (int i = 0; i < maxClusterLFOPresets; ++i)
+        {
+            juce::ValueTree preset (ClusterLFOPreset);
+            preset.setProperty (clusterLFOPresetName,      juce::String(),                  nullptr);
+            preset.setProperty (clusterLFOperiod,          clusterLFOperiodDefault,          nullptr);
+            preset.setProperty (clusterLFOphase,           clusterLFOphaseDefault,           nullptr);
+            preset.setProperty (clusterLFOshapeX,          clusterLFOshapeDefault,           nullptr);
+            preset.setProperty (clusterLFOshapeY,          clusterLFOshapeDefault,           nullptr);
+            preset.setProperty (clusterLFOshapeZ,          clusterLFOshapeDefault,           nullptr);
+            preset.setProperty (clusterLFOshapeRot,        clusterLFOshapeDefault,           nullptr);
+            preset.setProperty (clusterLFOshapeScale,      clusterLFOshapeDefault,           nullptr);
+            preset.setProperty (clusterLFOrateX,           clusterLFOrateDefault,            nullptr);
+            preset.setProperty (clusterLFOrateY,           clusterLFOrateDefault,            nullptr);
+            preset.setProperty (clusterLFOrateZ,           clusterLFOrateDefault,            nullptr);
+            preset.setProperty (clusterLFOrateRot,         clusterLFOrateDefault,            nullptr);
+            preset.setProperty (clusterLFOrateScale,       clusterLFOrateDefault,            nullptr);
+            preset.setProperty (clusterLFOamplitudeX,      clusterLFOamplitudeXYZDefault,    nullptr);
+            preset.setProperty (clusterLFOamplitudeY,      clusterLFOamplitudeXYZDefault,    nullptr);
+            preset.setProperty (clusterLFOamplitudeZ,      clusterLFOamplitudeXYZDefault,    nullptr);
+            preset.setProperty (clusterLFOamplitudeRot,    clusterLFOamplitudeRotDefault,    nullptr);
+            preset.setProperty (clusterLFOamplitudeScale,  clusterLFOamplitudeScaleDefault,  nullptr);
+            preset.setProperty (clusterLFOphaseX,          clusterLFOphaseDefault,           nullptr);
+            preset.setProperty (clusterLFOphaseY,          clusterLFOphaseDefault,           nullptr);
+            preset.setProperty (clusterLFOphaseZ,          clusterLFOphaseDefault,           nullptr);
+            preset.setProperty (clusterLFOphaseRot,        clusterLFOphaseDefault,           nullptr);
+            preset.setProperty (clusterLFOphaseScale,      clusterLFOphaseDefault,           nullptr);
+            presets.appendChild (preset, nullptr);
+        }
+        config.appendChild (presets, nullptr);
+    }
+    return presets;
+}
+
+juce::ValueTree WFSValueTreeState::ensureClusterLFOPreset (int presetIndex)
+{
+    auto presets = getClusterLFOPresetsSection();
+    if (presetIndex >= 0 && presetIndex < presets.getNumChildren())
+        return presets.getChild (presetIndex);
+    return {};
+}
+
 juce::ValueTree WFSValueTreeState::getInputsState()
 {
     return state.getChildWithName (Inputs);

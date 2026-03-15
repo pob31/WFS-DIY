@@ -702,7 +702,22 @@
       "lfoPhaseYDial": "Phase Offset of the Cluster Movement in Depth.",
       "lfoPhaseZDial": "Phase Offset of the Cluster Movement in Height.",
       "lfoPhaseRotDial": "Phase Offset of the Cluster Rotation.",
-      "lfoPhaseScaleDial": "Phase Offset of the Cluster Scaling."
+      "lfoPhaseScaleDial": "Phase Offset of the Cluster Scaling.",
+      "presetTile": "Click: recall preset. Double-click: recall + start. Middle/right-click: store current LFO.",
+      "stopAllLFO": "Stop LFO on all 10 clusters.",
+      "exportPresets": "Export all 16 LFO presets to an XML file.",
+      "importPresets": "Import LFO presets from an XML file."
+    },
+    "presets": {
+      "stopAll": "Stop All",
+      "export": "Export",
+      "import": "Import",
+      "exportDialog": "Export LFO Presets",
+      "importDialog": "Import LFO Presets",
+      "stored": "LFO preset stored in tile {n}.",
+      "recalled": "LFO preset recalled from tile {n}.",
+      "exported": "LFO presets exported.",
+      "imported": "LFO presets imported."
     },
     "osc": {
       "lfoActive": "/wfs/cluster/lfoActive <id> <0|1>",
@@ -1713,6 +1728,7 @@
       "noInputDataInFile": "No input data found in file",
       "noOutputDataInFile": "No output data found in file",
       "noReverbDataInFile": "No reverb data found in file",
+      "noLFOPresetDataInFile": "No LFO preset data found in file",
       "noInputDataInSnapshot": "No input data in snapshot",
       "snapshotDoesNotExist": "Snapshot does not exist",
       "snapshotNotFound": "Snapshot not found",
@@ -1973,6 +1989,36 @@
       },
       "comboOptions": {
         "square": "square"
+      }
+    },
+    "clusters": {
+      "buttons": {
+        "lfo": "LFO",
+        "lfoX": "LFO X",
+        "lfoY": "LFO Y",
+        "lfoZ": "LFO Z",
+        "preset": "Preset",
+        "rotation": "Rotation",
+        "scale": "Scale",
+        "lfoOn": "LFO\nON",
+        "lfoOff": "LFO\nOFF"
+      },
+      "dials": {
+        "stopAll": "Stop All\nLFO",
+        "period": "Period",
+        "phase": "Phase",
+        "shape": "Shape",
+        "amplitude": "Amplitude",
+        "angle": "Angle",
+        "ratio": "Ratio",
+        "rate": "Rate",
+        "axisPhase": "Phase",
+        "presetNav": "Preset",
+        "presetN": "Preset\n#%d",
+        "presetRow": "Row",
+        "store": "Store",
+        "recall": "Recall",
+        "recallStart": "Recall\n& Start"
       }
     },
     "outputs": {

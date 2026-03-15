@@ -244,6 +244,13 @@ namespace WFSParameterIDs
     const juce::Identifier clusterLFOphaseScale    ("clusterLFOphaseScale");
 
     //==========================================================================
+    // Config > ClusterLFOPresets (global, shared by all clusters)
+    //==========================================================================
+    const juce::Identifier ClusterLFOPresets    ("ClusterLFOPresets");
+    const juce::Identifier ClusterLFOPreset     ("ClusterLFOPreset");
+    const juce::Identifier clusterLFOPresetName ("clusterLFOPresetName");
+
+    //==========================================================================
     // Input Channel Parameters
     //==========================================================================
 

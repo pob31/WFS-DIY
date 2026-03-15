@@ -762,6 +762,41 @@ bool WFSFileManager::importReverbConfig (const juce::File& file)
 }
 
 //==============================================================================
+// Cluster LFO Presets
+//==============================================================================
+
+bool WFSFileManager::exportClusterLFOPresets (const juce::File& file)
+{
+    juce::ValueTree root ("ClusterLFOPresetsConfig");
+    root.setProperty (WFSParameterIDs::version, "1.0", nullptr);
+    root.appendChild (valueTreeState.getClusterLFOPresetsSection().createCopy(), nullptr);
+
+    return writeToXmlFile (root, file);
+}
+
+bool WFSFileManager::importClusterLFOPresets (const juce::File& file)
+{
+    auto loadedState = readFromXmlFile (file);
+    if (! loadedState.isValid())
+        return false;
+
+    auto presetsTree = loadedState.getChildWithName (WFSParameterIDs::ClusterLFOPresets);
+    if (! presetsTree.isValid())
+    {
+        setError (LOC ("fileManager.errors.noLFOPresetDataInFile"));
+        return false;
+    }
+
+    // Replace existing presets section in Config
+    auto config = valueTreeState.getConfigState();
+    auto existing = config.getChildWithName (WFSParameterIDs::ClusterLFOPresets);
+    if (existing.isValid())
+        config.removeChild (existing, nullptr);
+    config.appendChild (presetsTree.createCopy(), nullptr);
+    return true;
+}
+
+//==============================================================================
 // Snapshots
 //==============================================================================
 

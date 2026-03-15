@@ -198,6 +198,16 @@ public:
     bool importReverbConfig (const juce::File& file);
 
     //==========================================================================
+    // Cluster LFO Presets
+    //==========================================================================
+
+    /** Export cluster LFO presets to specified file */
+    bool exportClusterLFOPresets (const juce::File& file);
+
+    /** Import cluster LFO presets from specified file */
+    bool importClusterLFOPresets (const juce::File& file);
+
+    //==========================================================================
     // Snapshots
     //==========================================================================
 

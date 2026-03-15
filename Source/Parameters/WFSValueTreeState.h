@@ -61,6 +61,8 @@ public:
     juce::ValueTree getClustersState() const;
     juce::ValueTree getClusterState (int clusterIndex);
     juce::ValueTree getClusterLFOSection (int clusterIndex);
+    juce::ValueTree getClusterLFOPresetsSection();
+    juce::ValueTree ensureClusterLFOPreset (int presetIndex);
     juce::ValueTree getBinauralState();
     juce::ValueTree getBinauralState() const;
 

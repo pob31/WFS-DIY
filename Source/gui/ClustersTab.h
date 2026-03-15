@@ -17,6 +17,9 @@
 #include "StatusBar.h"
 #include "../Localization/LocalizationManager.h"
 #include "../DSP/ClusterLFOProcessor.h"
+#include "../AppSettings.h"
+#include "buttons/LongPressButton.h"
+#include "ColumnFocusTraverser.h"
 
 //==============================================================================
 /**
@@ -316,6 +319,44 @@ public:
         // ==================== LFO PANEL ====================
         setupLFOPanel();
 
+        // Initialise LFO tab navigation circuits
+        lfoCircuits = {
+            // Global: Period & Phase
+            { &lfoPeriodValueLabel, &lfoPhaseValueLabel },
+            // X axis: Amplitude → Phase → Rate
+            { &lfoRows[0].amplitudeValueLabel, &lfoRows[0].phaseValueLabel, &lfoRows[0].rateValueLabel },
+            // Y axis: Amplitude → Phase → Rate
+            { &lfoRows[1].amplitudeValueLabel, &lfoRows[1].phaseValueLabel, &lfoRows[1].rateValueLabel },
+            // Z axis: Amplitude → Phase → Rate
+            { &lfoRows[2].amplitudeValueLabel, &lfoRows[2].phaseValueLabel, &lfoRows[2].rateValueLabel },
+            // Rot axis: Amplitude → Phase → Rate
+            { &lfoRows[3].amplitudeValueLabel, &lfoRows[3].phaseValueLabel, &lfoRows[3].rateValueLabel },
+            // Scale axis: Amplitude → Phase → Rate
+            { &lfoRows[4].amplitudeValueLabel, &lfoRows[4].phaseValueLabel, &lfoRows[4].rateValueLabel },
+        };
+        circuitTabHandler.circuits = &lfoCircuits;
+
+        // ==================== LFO PRESET TILES ====================
+        for (int i = 0; i < WFSParameterDefaults::maxClusterLFOPresets; ++i)
+        {
+            auto* tile = new LFOPresetTile (*this, i);
+            addAndMakeVisible (tile);
+            presetTiles.add (tile);
+        }
+
+        addAndMakeVisible (stopAllLFOButton);
+        stopAllLFOButton.setButtonText (LOC ("clusters.presets.stopAll"));
+        stopAllLFOButton.setBaseColour (juce::Colour (0xFFB71C1C));
+        stopAllLFOButton.onLongPress = [this]() { stopAllClusterLFOs(); };
+
+        addAndMakeVisible (exportPresetsButton);
+        exportPresetsButton.setButtonText (LOC ("clusters.presets.export"));
+        exportPresetsButton.onClick = [this]() { exportLFOPresets(); };
+
+        addAndMakeVisible (importPresetsButton);
+        importPresetsButton.setButtonText (LOC ("clusters.presets.import"));
+        importPresetsButton.onClick = [this]() { importLFOPresets(); };
+
         // Start with first cluster selected
         selectCluster(1);
         updateClusterButtonStates();
@@ -335,6 +376,11 @@ public:
     {
         statusBar = bar;
         setupHelpTextMappings();
+    }
+
+    std::unique_ptr<juce::ComponentTraverser> createKeyboardFocusTraverser() override
+    {
+        return std::make_unique<ColumnCircuitTraverser>(lfoCircuits);
     }
 
     void paint(juce::Graphics& g) override
@@ -455,6 +501,45 @@ public:
             planeSelector.setBounds(planeArea.removeFromTop(scaled(26)).reduced(scaled(2), 0));
         }
 
+        // ==================== CENTER PANEL - LFO PRESET GRID ====================
+        centerPanel.removeFromTop (scaled (10));
+
+        // Button row at bottom of center column
+        auto presetButtonRow = centerPanel.removeFromBottom (scaled (28));
+        centerPanel.removeFromBottom (scaled (4));
+
+        // 4x4 grid fills remaining center area
+        if (centerPanel.getHeight() > 0)
+        {
+            int cols = 4;
+            int rows = 4;
+            int tileW = centerPanel.getWidth() / cols;
+            int tileH = centerPanel.getHeight() / rows;
+            int pad = scaled (2);
+
+            for (int r = 0; r < rows; ++r)
+            {
+                for (int c = 0; c < cols; ++c)
+                {
+                    int idx = r * cols + c;
+                    presetTiles[idx]->setBounds (
+                        juce::Rectangle<int> (
+                            centerPanel.getX() + c * tileW,
+                            centerPanel.getY() + r * tileH,
+                            tileW, tileH
+                        ).reduced (pad));
+                }
+            }
+        }
+
+        // Button row: [Stop All] [Export] [Import]
+        {
+            int btnW = presetButtonRow.getWidth() / 3;
+            stopAllLFOButton.setBounds (presetButtonRow.removeFromLeft (btnW).reduced (scaled (2), 0));
+            exportPresetsButton.setBounds (presetButtonRow.removeFromLeft (btnW).reduced (scaled (2), 0));
+            importPresetsButton.setBounds (presetButtonRow.reduced (scaled (2), 0));
+        }
+
         // ==================== RIGHT PANEL - LFO ====================
         layoutLFOPanel(rightPanel);
 
@@ -513,6 +598,21 @@ public:
     }
 
     int getSelectedCluster() const noexcept { return selectedCluster; }
+
+    std::function<void (int)> onClusterSelected;
+
+    void setHighlightedPresetTile (int index)
+    {
+        highlightedPresetTile = index;
+        for (int i = 0; i < presetTiles.size(); ++i)
+            presetTiles[i]->repaint();
+    }
+
+    // Stream Deck access to preset / LFO control methods
+    void sdStorePreset (int idx)             { storePreset (idx); }
+    void sdRecallPreset (int idx)            { recallPreset (idx); }
+    void sdActivateCurrentClusterLFO()       { activateCurrentClusterLFO(); }
+    void sdStopAllClusterLFOs()              { stopAllClusterLFOs(); }
 
     bool isAnyClusterLFOActive() const
     {
@@ -601,6 +701,178 @@ private:
     StatusBar* statusBar = nullptr;
     std::map<juce::Component*, juce::String> helpTextMap;
     std::map<juce::Component*, juce::String> oscMethodMap;
+
+    // ==================== LFO PRESET TILES ====================
+
+    class LFOPresetTile : public juce::Component,
+                          public juce::Label::Listener
+    {
+    public:
+        LFOPresetTile (ClustersTab& o, int index) : owner (o), presetIndex (index)
+        {
+            nameLabel.setFont (juce::FontOptions().withHeight (22.0f));
+            nameLabel.setJustificationType (juce::Justification::centredLeft);
+            nameLabel.setColour (juce::Label::textColourId, juce::Colours::white.withAlpha (0.8f));
+            nameLabel.setColour (juce::Label::backgroundColourId, juce::Colours::transparentBlack);
+            nameLabel.setColour (juce::Label::outlineColourId, juce::Colours::transparentBlack);
+            nameLabel.setColour (juce::TextEditor::backgroundColourId, juce::Colour (0xFF2A2A2A));
+            nameLabel.setColour (juce::TextEditor::textColourId, juce::Colours::white);
+            nameLabel.setEditable (false, true, false); // single-click = no edit, double = no, triple = no; edit on slow click
+            nameLabel.addListener (this);
+            addAndMakeVisible (nameLabel);
+            updateFromValueTree();
+        }
+
+        void paint (juce::Graphics& g) override
+        {
+            auto bounds = getLocalBounds().toFloat();
+            float cornerRadius = 4.0f;
+
+            // Background
+            auto bgColour = populated ? juce::Colour (0xFF2E4A3E) : ColorScheme::get().surfaceCard;
+            if (isMouseOver (false))
+                bgColour = bgColour.brighter (0.15f);
+            g.setColour (bgColour);
+            g.fillRoundedRectangle (bounds, cornerRadius);
+
+            // Border
+            g.setColour (ColorScheme::get().chromeDivider);
+            g.drawRoundedRectangle (bounds.reduced (0.5f), cornerRadius, 1.0f);
+
+            // Stream Deck highlight
+            if (presetIndex == owner.highlightedPresetTile)
+            {
+                g.setColour (juce::Colour (0xFF6A5ACD).withAlpha (0.6f));
+                g.drawRoundedRectangle (bounds.reduced (1.5f), cornerRadius, 2.5f);
+            }
+
+            // Number in top-left
+            float fontSize = juce::jmax (12.0f, bounds.getHeight() * 0.22f);
+            g.setFont (juce::FontOptions (fontSize).withStyle ("Bold"));
+            g.setColour (ColorScheme::get().textSecondary);
+            g.drawText (juce::String (presetIndex + 1), bounds.reduced (4.0f, 2.0f),
+                        juce::Justification::topLeft);
+
+            // Active axes indicators at bottom-right
+            if (populated && activeAxes.isNotEmpty())
+            {
+                float axisFontSize = juce::jmax (8.0f, bounds.getHeight() * 0.16f);
+                g.setFont (juce::FontOptions (axisFontSize));
+
+                // Draw each axis letter with its own colour
+                float xPos = bounds.getRight() - 4.0f;
+                float yPos = bounds.getBottom() - axisFontSize - 2.0f;
+                for (int i = activeAxes.length() - 1; i >= 0; --i)
+                {
+                    auto ch = activeAxes.substring (i, i + 1);
+                    float charW = axisFontSize * 0.7f;
+                    xPos -= charW;
+
+                    if (ch == "R")      g.setColour (juce::Colour (0xFF42A5F5)); // blue
+                    else if (ch == "S") g.setColour (juce::Colour (0xFFAB47BC)); // purple
+                    else                g.setColour (juce::Colour (0xFF66BB6A)); // green for XYZ
+
+                    g.drawText (ch, juce::Rectangle<float> (xPos, yPos, charW, axisFontSize),
+                                juce::Justification::centred);
+                }
+            }
+        }
+
+        void resized() override
+        {
+            auto bounds = getLocalBounds();
+            // Name label at top, same height as the number text
+            int headerH = juce::jmax (16, bounds.getHeight() / 4);
+            int numWidth = juce::jmax (16, bounds.getWidth() / 4);
+            nameLabel.setBounds (bounds.removeFromTop (headerH).withTrimmedLeft (numWidth).reduced (2, 0));
+            nameLabel.setFont (juce::FontOptions().withHeight (juce::jmax (11.0f, headerH * 0.7f)));
+        }
+
+        void mouseDown (const juce::MouseEvent& e) override
+        {
+            // Middle-click or right-click (2-finger tap on trackpad) → STORE
+            if (e.mods.isMiddleButtonDown() || e.mods.isPopupMenu())
+            {
+                owner.storePreset (presetIndex);
+                return;
+            }
+
+            // Left single click
+            if (e.mods.isLeftButtonDown())
+            {
+                if (populated)
+                    owner.recallPreset (presetIndex);
+            }
+        }
+
+        void mouseDoubleClick (const juce::MouseEvent& e) override
+        {
+            if (e.mods.isLeftButtonDown() && populated)
+            {
+                owner.recallPreset (presetIndex);
+                owner.activateCurrentClusterLFO();
+            }
+        }
+
+        void mouseEnter (const juce::MouseEvent&) override { repaint(); }
+        void mouseExit  (const juce::MouseEvent&) override { repaint(); }
+
+        void labelTextChanged (juce::Label* label) override
+        {
+            if (label == &nameLabel)
+            {
+                auto preset = owner.parameters.getValueTreeState().ensureClusterLFOPreset (presetIndex);
+                if (preset.isValid())
+                    preset.setProperty (WFSParameterIDs::clusterLFOPresetName, nameLabel.getText(), nullptr);
+            }
+        }
+
+        void updateFromValueTree()
+        {
+            auto preset = owner.parameters.getValueTreeState().ensureClusterLFOPreset (presetIndex);
+            if (! preset.isValid()) { populated = false; repaint(); return; }
+
+            using namespace WFSParameterIDs;
+            const juce::Identifier shapeIds[] = { clusterLFOshapeX, clusterLFOshapeY, clusterLFOshapeZ,
+                                                  clusterLFOshapeRot, clusterLFOshapeScale };
+            const char axisChars[] = { 'X', 'Y', 'Z', 'R', 'S' };
+
+            populated = false;
+            activeAxes.clear();
+            for (int i = 0; i < 5; ++i)
+            {
+                int shape = static_cast<int> (preset.getProperty (shapeIds[i], 0));
+                if (shape != 0) // 0 = Off
+                {
+                    populated = true;
+                    activeAxes += axisChars[i];
+                }
+            }
+
+            juce::String presetName = preset.getProperty (clusterLFOPresetName, "").toString();
+            nameLabel.setText (presetName.isEmpty() ? "---" : presetName, juce::dontSendNotification);
+            nameLabel.setAlpha (populated ? 1.0f : 0.4f);
+            repaint();
+        }
+
+        bool isPopulated() const { return populated; }
+
+    private:
+        ClustersTab& owner;
+        int presetIndex;
+        juce::Label nameLabel;
+        bool populated = false;
+        juce::String activeAxes;
+
+        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (LFOPresetTile)
+    };
+
+    juce::OwnedArray<LFOPresetTile> presetTiles;
+    LongPressButton stopAllLFOButton { 500 }; // 500ms long press to prevent accidental stop
+    juce::TextButton exportPresetsButton;
+    juce::TextButton importPresetsButton;
+    std::shared_ptr<juce::FileChooser> presetFileChooser;
+    int highlightedPresetTile = -1;
 
     // ==================== LFO PANEL ====================
     ClusterLFOProcessor clusterLFOProcessor;
@@ -1037,6 +1309,153 @@ private:
             lfoSection.setProperty(paramId, value, nullptr);
     }
 
+    //==========================================================================
+    // LFO Preset Tile Operations
+    //==========================================================================
+
+    /** List of LFO properties to copy between presets and cluster LFO sections */
+    static constexpr int numLFOPresetProps = 22;
+
+    const juce::Identifier& getLFOPresetPropId (int i) const
+    {
+        using namespace WFSParameterIDs;
+        static const juce::Identifier ids[] = {
+            clusterLFOperiod, clusterLFOphase,
+            clusterLFOshapeX, clusterLFOshapeY, clusterLFOshapeZ, clusterLFOshapeRot, clusterLFOshapeScale,
+            clusterLFOrateX, clusterLFOrateY, clusterLFOrateZ, clusterLFOrateRot, clusterLFOrateScale,
+            clusterLFOamplitudeX, clusterLFOamplitudeY, clusterLFOamplitudeZ, clusterLFOamplitudeRot, clusterLFOamplitudeScale,
+            clusterLFOphaseX, clusterLFOphaseY, clusterLFOphaseZ, clusterLFOphaseRot, clusterLFOphaseScale
+        };
+        return ids[i];
+    }
+
+    void storePreset (int presetIndex)
+    {
+        if (selectedCluster < 1) return;
+        auto lfoSection = parameters.getValueTreeState().getClusterLFOSection (selectedCluster);
+        if (! lfoSection.isValid()) return;
+
+        auto preset = parameters.getValueTreeState().ensureClusterLFOPreset (presetIndex);
+        if (! preset.isValid()) return;
+
+        for (int i = 0; i < numLFOPresetProps; ++i)
+            preset.setProperty (getLFOPresetPropId (i), lfoSection.getProperty (getLFOPresetPropId (i)), nullptr);
+
+        presetTiles[presetIndex]->updateFromValueTree();
+
+        if (statusBar != nullptr)
+            statusBar->showTemporaryMessage (
+                LOC ("clusters.presets.stored").replace ("{n}", juce::String (presetIndex + 1)), 2000);
+    }
+
+    void recallPreset (int presetIndex)
+    {
+        if (selectedCluster < 1) return;
+        auto preset = parameters.getValueTreeState().ensureClusterLFOPreset (presetIndex);
+        if (! preset.isValid() || ! presetTiles[presetIndex]->isPopulated()) return;
+
+        auto lfoSection = parameters.getValueTreeState().getClusterLFOSection (selectedCluster);
+        if (! lfoSection.isValid()) return;
+
+        isLoadingParameters = true;
+
+        // Apply non-shape properties first (amplitude, rate, phase, period)
+        // so the fade dip on shape change uses the new amplitudes
+        for (int i = 0; i < numLFOPresetProps; ++i)
+        {
+            auto& id = getLFOPresetPropId (i);
+            // Skip shape IDs in first pass
+            if (id == WFSParameterIDs::clusterLFOshapeX || id == WFSParameterIDs::clusterLFOshapeY ||
+                id == WFSParameterIDs::clusterLFOshapeZ || id == WFSParameterIDs::clusterLFOshapeRot ||
+                id == WFSParameterIDs::clusterLFOshapeScale)
+                continue;
+            lfoSection.setProperty (id, preset.getProperty (id), nullptr);
+        }
+
+        // Now apply shapes (triggers fade dip if shape changed)
+        lfoSection.setProperty (WFSParameterIDs::clusterLFOshapeX,     preset.getProperty (WFSParameterIDs::clusterLFOshapeX), nullptr);
+        lfoSection.setProperty (WFSParameterIDs::clusterLFOshapeY,     preset.getProperty (WFSParameterIDs::clusterLFOshapeY), nullptr);
+        lfoSection.setProperty (WFSParameterIDs::clusterLFOshapeZ,     preset.getProperty (WFSParameterIDs::clusterLFOshapeZ), nullptr);
+        lfoSection.setProperty (WFSParameterIDs::clusterLFOshapeRot,   preset.getProperty (WFSParameterIDs::clusterLFOshapeRot), nullptr);
+        lfoSection.setProperty (WFSParameterIDs::clusterLFOshapeScale, preset.getProperty (WFSParameterIDs::clusterLFOshapeScale), nullptr);
+
+        isLoadingParameters = false;
+        loadClusterLFOParameters();
+
+        if (statusBar != nullptr)
+            statusBar->showTemporaryMessage (
+                LOC ("clusters.presets.recalled").replace ("{n}", juce::String (presetIndex + 1)), 2000);
+    }
+
+    void activateCurrentClusterLFO()
+    {
+        if (selectedCluster < 1) return;
+        auto lfoSection = parameters.getValueTreeState().getClusterLFOSection (selectedCluster);
+        if (lfoSection.isValid())
+            lfoSection.setProperty (WFSParameterIDs::clusterLFOactive, 1, nullptr);
+        lfoActiveButton.setToggleState (true, juce::dontSendNotification);
+        lfoActiveButton.setButtonText (LOC ("clusters.toggles.lfoOn"));
+        updateLFOAlpha();
+    }
+
+    void stopAllClusterLFOs()
+    {
+        for (int c = 1; c <= 10; ++c)
+        {
+            auto lfoSection = parameters.getValueTreeState().getClusterLFOSection (c);
+            if (lfoSection.isValid())
+                lfoSection.setProperty (WFSParameterIDs::clusterLFOactive, 0, nullptr);
+        }
+        loadClusterLFOParameters();
+    }
+
+    void exportLFOPresets()
+    {
+        presetFileChooser = std::make_shared<juce::FileChooser> (
+            LOC ("clusters.presets.exportDialog"),
+            AppSettings::getLastFolder ("lastXmlFolder"), "*.xml");
+        int chooserFlags = juce::FileBrowserComponent::saveMode
+                         | juce::FileBrowserComponent::canSelectFiles;
+
+        presetFileChooser->launchAsync (chooserFlags, [this] (const juce::FileChooser& fc) {
+            auto result = fc.getResult();
+            if (result != juce::File{})
+            {
+                auto file = result.hasFileExtension (".xml") ? result : result.withFileExtension (".xml");
+                AppSettings::setLastFolder ("lastXmlFolder", file.getParentDirectory());
+                if (parameters.getFileManager().exportClusterLFOPresets (file))
+                {
+                    if (statusBar != nullptr)
+                        statusBar->showTemporaryMessage (LOC ("clusters.presets.exported"), 2000);
+                }
+            }
+        });
+    }
+
+    void importLFOPresets()
+    {
+        presetFileChooser = std::make_shared<juce::FileChooser> (
+            LOC ("clusters.presets.importDialog"),
+            AppSettings::getLastFolder ("lastXmlFolder"), "*.xml");
+        int chooserFlags = juce::FileBrowserComponent::openMode
+                         | juce::FileBrowserComponent::canSelectFiles;
+
+        presetFileChooser->launchAsync (chooserFlags, [this] (const juce::FileChooser& fc) {
+            auto result = fc.getResult();
+            if (result.existsAsFile())
+            {
+                AppSettings::setLastFolder ("lastXmlFolder", result.getParentDirectory());
+                if (parameters.getFileManager().importClusterLFOPresets (result))
+                {
+                    for (auto* tile : presetTiles)
+                        tile->updateFromValueTree();
+                    if (statusBar != nullptr)
+                        statusBar->showTemporaryMessage (LOC ("clusters.presets.imported"), 2000);
+                }
+            }
+        });
+    }
+
     void loadClusterLFOParameters()
     {
         isLoadingParameters = true;
@@ -1182,6 +1601,16 @@ private:
     {
         label.setEditable(true, false);
         label.addListener(this);
+    }
+
+    void editorShown (juce::Label* label, juce::TextEditor& editor) override
+    {
+        for (auto& col : lfoCircuits)
+            if (std::find (col.begin(), col.end(), static_cast<juce::Component*>(label)) != col.end())
+            {
+                editor.addKeyListener (&circuitTabHandler);
+                break;
+            }
     }
 
     void labelTextChanged(juce::Label* label) override
@@ -1427,6 +1856,13 @@ private:
             oscMethodMap[&lfoRows[a].phaseDial]           = LOC(oscPhaseKeys[a]);
         }
 
+        // Preset tile controls
+        for (int i = 0; i < presetTiles.size(); ++i)
+            helpTextMap[presetTiles[i]] = LOC ("clusters.help.presetTile");
+        helpTextMap[&stopAllLFOButton]    = LOC ("clusters.help.stopAllLFO");
+        helpTextMap[&exportPresetsButton] = LOC ("clusters.help.exportPresets");
+        helpTextMap[&importPresetsButton] = LOC ("clusters.help.importPresets");
+
         // Register mouse listeners
         for (auto& pair : helpTextMap)
         {
@@ -1487,6 +1923,10 @@ private:
 
         // Load LFO parameters for this cluster
         loadClusterLFOParameters();
+
+        // Notify Stream Deck of cluster change
+        if (onClusterSelected)
+            onClusterSelected (selectedCluster);
     }
 
     void updateClusterButtonStates()
@@ -2162,6 +2602,61 @@ private:
 
     void valueTreeChildOrderChanged(juce::ValueTree&, int, int) override {}
     void valueTreeParentChanged(juce::ValueTree&) override {}
+
+    // Tab navigation circuits for LFO controls
+    std::vector<std::vector<juce::Component*>> lfoCircuits;
+
+    struct CircuitTabHandler : public juce::KeyListener
+    {
+        std::vector<std::vector<juce::Component*>>* circuits = nullptr;
+
+        bool keyPressed (const juce::KeyPress& key, juce::Component* originatingComponent) override
+        {
+            if (circuits == nullptr || ! key.isKeyCode (juce::KeyPress::tabKey))
+                return false;
+
+            auto* label = dynamic_cast<juce::Label*> (originatingComponent->getParentComponent());
+            if (label == nullptr)
+                return false;
+
+            std::vector<juce::Component*>* col = nullptr;
+            int idx = -1;
+            for (auto& c : *circuits)
+            {
+                auto it = std::find (c.begin(), c.end(), static_cast<juce::Component*> (label));
+                if (it != c.end())
+                {
+                    col = &c;
+                    idx = (int) std::distance (c.begin(), it);
+                    break;
+                }
+            }
+            if (col == nullptr)
+                return false;
+
+            bool forward = ! key.getModifiers().isShiftDown();
+            int n = (int) col->size();
+            int nextIdx = forward ? (idx + 1) % n : (idx + n - 1) % n;
+
+            for (int j = 0; j < n - 1; ++j)
+            {
+                if ((*col)[(size_t) nextIdx]->isVisible()
+                    && (*col)[(size_t) nextIdx]->isEnabled())
+                    break;
+                nextIdx = forward ? (nextIdx + 1) % n : (nextIdx + n - 1) % n;
+            }
+
+            auto* next = (*col)[(size_t) nextIdx];
+            label->hideEditor (false);
+
+            if (auto* nextLabel = dynamic_cast<juce::Label*> (next))
+                nextLabel->showEditor();
+            else
+                next->grabKeyboardFocus();
+
+            return true;
+        }
+    } circuitTabHandler;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ClustersTab)
 

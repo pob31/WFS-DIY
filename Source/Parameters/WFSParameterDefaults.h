@@ -259,6 +259,11 @@ namespace WFSParameterDefaults
     constexpr float clusterLFOamplitudeScaleMax     = 10.0f;
 
     //==========================================================================
+    // Cluster LFO Preset Defaults
+    //==========================================================================
+    constexpr int maxClusterLFOPresets = 16;
+
+    //==========================================================================
     // Input Channel Defaults
     //==========================================================================
 

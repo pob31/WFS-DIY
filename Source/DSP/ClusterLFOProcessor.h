@@ -257,10 +257,14 @@ private:
             state.rampX = state.rampY = state.rampZ = state.rampRot = state.rampScale = 0.0f;
         }
 
-        // Per-axis fade: reset when shape transitions OFF->ON or on activation
+        // Per-axis fade: reset when shape transitions OFF->ON, on activation, or shape change
         auto updateAxisFade = [&](int prevShape, int curShape, float& fade, bool justAct) {
             if ((prevShape == LFOWaveforms::Off && curShape != LFOWaveforms::Off) ||
                 (justAct && curShape != LFOWaveforms::Off && fade >= 1.0f))
+                fade = 0.0f;
+
+            // Dip fade when switching between two non-Off shapes (smooth crossfade)
+            if (prevShape != LFOWaveforms::Off && curShape != LFOWaveforms::Off && prevShape != curShape)
                 fade = 0.0f;
 
             if (curShape != LFOWaveforms::Off && fade < 1.0f)

@@ -9,6 +9,7 @@
 #include "StreamDeck/pages/SystemConfigTabPages.h"
 #include "StreamDeck/pages/MapTabPages.h"
 #include "StreamDeck/pages/ReverbTabPages.h"
+#include "StreamDeck/pages/ClustersTabPages.h"
 #include "StreamDeck/pages/PatchWindowPages.h"
 #include "Controllers/SpaceMouseDevice.h"
 #include "Lightpad/LightpadManager.h"
@@ -799,8 +800,56 @@ MainComponent::MainComponent()
                 streamDeckManager->refreshCurrentPage();
         });
 
+        // Register Clusters tab page (LFO controls)
+        auto clusterLfoSubMode = std::make_shared<int> (0);
+        auto presetCol         = std::make_shared<int> (0);
+        auto presetRow         = std::make_shared<int> (0);
+
+        ClustersTabPages::ClusterLFOCallbacks clusterCB;
+        clusterCB.stopAllClusterLFOs = [this]()
+        {
+            juce::MessageManager::callAsync ([this]() { if (clustersTab) clustersTab->sdStopAllClusterLFOs(); });
+        };
+        clusterCB.storePreset = [this] (int idx)
+        {
+            juce::MessageManager::callAsync ([this, idx]() { if (clustersTab) clustersTab->sdStorePreset (idx); });
+        };
+        clusterCB.recallPreset = [this] (int idx)
+        {
+            juce::MessageManager::callAsync ([this, idx]() { if (clustersTab) clustersTab->sdRecallPreset (idx); });
+        };
+        clusterCB.recallAndStart = [this] (int idx)
+        {
+            juce::MessageManager::callAsync ([this, idx]()
+            {
+                if (clustersTab)
+                {
+                    clustersTab->sdRecallPreset (idx);
+                    clustersTab->sdActivateCurrentClusterLFO();
+                }
+            });
+        };
+        clusterCB.highlightPreset = [this] (int idx)
+        {
+            juce::MessageManager::callAsync ([this, idx]() { if (clustersTab) clustersTab->setHighlightedPresetTile (idx); });
+        };
+
+        streamDeckManager->registerPage (
+            ClustersTabPages::CLUSTERS_MAIN_TAB_INDEX, 0,
+            ClustersTabPages::createPage (0, vts, 1, clusterLfoSubMode, presetCol, presetRow, clusterCB));
+
+        // Wire cluster selection to Stream Deck channel
+        if (clustersTab)
+        {
+            clustersTab->onClusterSelected = [this] (int clusterNum)
+            {
+                if (streamDeckManager && streamDeckManager->getCurrentMainTab() == ClustersTabPages::CLUSTERS_MAIN_TAB_INDEX)
+                    streamDeckManager->setChannel (clusterNum);
+            };
+        }
+
         // Set page rebuild callback for channel changes and binding swaps
-        streamDeckManager->onPageNeedsRebuild = [this, flipModeState, lfoSubModeState, movCB, outputEqBandState, onEqBandSelectedGui, netCB, sysCB, mapCB, mapQ, mapPosOffsetMode, reverbPreEqBandState, reverbPreDynMode, reverbPostEqBandState, reverbPostDynMode, reverbSoloState, reverbMutePreState, reverbMutePostState, reverbEditOnMapState, reverbAlgoSubMode, reverbIRDuration, onSoloReverbSD, onMutePreSD, onMutePostSD, onEditOnMapSD](int mainTab, int subTab, int channel)
+        streamDeckManager->onPageNeedsRebuild = [this, flipModeState, lfoSubModeState, movCB, outputEqBandState, onEqBandSelectedGui, netCB, sysCB, mapCB, mapQ, mapPosOffsetMode, reverbPreEqBandState, reverbPreDynMode, reverbPostEqBandState, reverbPostDynMode, reverbSoloState, reverbMutePreState, reverbMutePostState, reverbEditOnMapState, reverbAlgoSubMode, reverbIRDuration, onSoloReverbSD, onMutePreSD, onMutePostSD, onEditOnMapSD, clusterLfoSubMode, presetCol, presetRow, clusterCB](int mainTab, int subTab, int channel)
         {
             if (mainTab == InputsTabPages::INPUTS_MAIN_TAB_INDEX)
             {
@@ -844,6 +893,13 @@ MainComponent::MainComponent()
                         reverbAlgoSubMode, reverbIRDuration,
                         nullptr, nullptr,
                         onSoloReverbSD, onMutePreSD, onMutePostSD, onEditOnMapSD));
+            }
+            else if (mainTab == ClustersTabPages::CLUSTERS_MAIN_TAB_INDEX)
+            {
+                auto& vts = parameters.getValueTreeState();
+                streamDeckManager->registerPage (mainTab, subTab,
+                    ClustersTabPages::createPage (subTab, vts, channel,
+                        clusterLfoSubMode, presetCol, presetRow, clusterCB));
             }
         };
 
