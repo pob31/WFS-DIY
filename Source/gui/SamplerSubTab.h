@@ -12,6 +12,9 @@
 #include "sliders/WfsRangeSlider.h"
 #include "buttons/LongPressButton.h"
 #include "LightpadZoneOverlay.h"
+#include "ColumnFocusTraverser.h"
+#include "sliders/WfsBidirectionalSlider.h"
+#include "StatusBar.h"
 
 /**
  * Sampler subtab for InputsTab.
@@ -19,7 +22,8 @@
  * Right 33%: parameter panel (cell props, set management, pressure mappings).
  */
 class SamplerSubTab : public juce::Component,
-                      public ColorScheme::Manager::Listener
+                      public ColorScheme::Manager::Listener,
+                      public juce::Label::Listener
 {
 public:
     /** Callback fired when sampler data changes (wired in MainComponent) */
@@ -38,6 +42,15 @@ public:
         // ── Cell property controls ──
         cellNameEditor.setJustification (juce::Justification::centredLeft);
         cellNameEditor.onReturnKey = [this] { onCellNameChanged(); };
+        cellNameEditor.onFocusLost = [this] { onCellNameChanged(); };
+        cellNameEditor.onEscapeKey = [this] {
+            if (! selectedCells.empty()) {
+                int idx = selectedCells[0];
+                if (idx >= 0 && idx < static_cast<int> (cells.size()))
+                    cellNameEditor.setText (cells[static_cast<size_t> (idx)].name, false);
+            }
+            cellNameEditor.giveAwayKeyboardFocus();
+        };
         addChildComponent (cellNameEditor);
 
         loadCellButton.setButtonText (LOC ("sampler.cell.load"));
@@ -76,6 +89,18 @@ public:
                 cellOffsetEditors[i].setTextToShowWhenEmpty (placeholders[i], juce::Colours::grey);
                 cellOffsetEditors[i].onReturnKey = [this, i] { onOffsetEditorChanged (i); };
                 cellOffsetEditors[i].onFocusLost = [this, i] { onOffsetEditorChanged (i); };
+                cellOffsetEditors[i].onEscapeKey = [this, i] {
+                    if (! selectedCells.empty()) {
+                        int idx = selectedCells[0];
+                        if (idx >= 0 && idx < static_cast<int> (cells.size())) {
+                            const float vals[3] = { cells[static_cast<size_t> (idx)].offsetX,
+                                                     cells[static_cast<size_t> (idx)].offsetY,
+                                                     cells[static_cast<size_t> (idx)].offsetZ };
+                            cellOffsetEditors[i].setText (juce::String (vals[i], 1), false);
+                        }
+                    }
+                    cellOffsetEditors[i].giveAwayKeyboardFocus();
+                };
                 addChildComponent (cellOffsetEditors[i]);
             }
         }
@@ -108,6 +133,12 @@ public:
 
         setNameEditor.setJustification (juce::Justification::centredLeft);
         setNameEditor.onReturnKey = [this] { onSetNameChanged(); };
+        setNameEditor.onFocusLost = [this] { onSetNameChanged(); };
+        setNameEditor.onEscapeKey = [this] {
+            if (activeSetIndex >= 0 && activeSetIndex < static_cast<int> (sets.size()))
+                setNameEditor.setText (sets[static_cast<size_t> (activeSetIndex)].name, false);
+            setNameEditor.giveAwayKeyboardFocus();
+        };
         addChildComponent (setNameEditor);
 
         playModeButton.setButtonText (LOC ("sampler.set.sequential"));
@@ -124,6 +155,14 @@ public:
                 setPosEditors[i].setTextToShowWhenEmpty (placeholders[i], juce::Colours::grey);
                 setPosEditors[i].onReturnKey = [this, i] { onSetPosEditorChanged (i); };
                 setPosEditors[i].onFocusLost = [this, i] { onSetPosEditorChanged (i); };
+                setPosEditors[i].onEscapeKey = [this, i] {
+                    if (activeSetIndex >= 0 && activeSetIndex < static_cast<int> (sets.size())) {
+                        const auto& set = sets[static_cast<size_t> (activeSetIndex)];
+                        const float vals[3] = { set.posX, set.posY, set.posZ };
+                        setPosEditors[i].setText (juce::String (vals[i], 1), false);
+                    }
+                    setPosEditors[i].giveAwayKeyboardFocus();
+                };
                 addAndMakeVisible (setPosEditors[i]);
             }
         }
@@ -139,45 +178,57 @@ public:
         addAndMakeVisible (*setLevelSlider);
 
         // ── Pressure mapping controls ──
-        setupPressureRow (pressLevelEnable, pressLevelDirBtn, pressLevelCurveSlider,
+        setupPressureRow (pressLevelEnable, pressLevelDirBtn, pressLevelCurveSlider, pressLevelCurveValueLabel,
                           WFSParameterIDs::samplerSetPressLevelEnabled,
                           WFSParameterIDs::samplerSetPressLevelDir,
                           WFSParameterIDs::samplerSetPressLevelCurve,
-                          LOC ("sampler.press.level"));
+                          LOC ("sampler.press.level"), true);
 
-        setupPressureRow (pressZEnable, pressZDirBtn, pressZCurveSlider,
+        setupPressureRow (pressZEnable, pressZDirBtn, pressZCurveSlider, pressZCurveValueLabel,
                           WFSParameterIDs::samplerSetPressZEnabled,
                           WFSParameterIDs::samplerSetPressZDir,
                           WFSParameterIDs::samplerSetPressZCurve,
-                          LOC ("sampler.press.height"));
+                          LOC ("sampler.press.height"), false);
 
-        setupPressureRow (pressHFEnable, pressHFDirBtn, pressHFCurveSlider,
+        setupPressureRow (pressHFEnable, pressHFDirBtn, pressHFCurveSlider, pressHFCurveValueLabel,
                           WFSParameterIDs::samplerSetPressHFEnabled,
                           WFSParameterIDs::samplerSetPressHFDir,
                           WFSParameterIDs::samplerSetPressHFCurve,
-                          LOC ("sampler.press.hf"));
+                          LOC ("sampler.press.hf"), false);
 
         pressXYEnable.setButtonText (LOC ("sampler.press.xy"));
+        pressXYEnable.setToggleState (true, juce::dontSendNotification);  // ON by default
         pressXYEnable.onClick = [this]
         {
-            if (isLoadingData) return;
-            saveCurrentSetProperty (WFSParameterIDs::samplerSetPressXYEnabled,
-                                    pressXYEnable.getToggleState() ? 1 : 0);
+            if (! isLoadingData)
+                saveCurrentSetProperty (WFSParameterIDs::samplerSetPressXYEnabled,
+                                        pressXYEnable.getToggleState() ? 1 : 0);
+            float alpha = pressXYEnable.getToggleState() ? 1.0f : 0.4f;
+            if (pressXYScaleSlider) pressXYScaleSlider->setAlpha (alpha);
+            pressXYScaleValueLabel.setAlpha (alpha);
         };
         addAndMakeVisible (pressXYEnable);
 
         pressXYScaleSlider = std::make_unique<WfsStandardSlider> (
             WFSParameterDefaults::samplerSetPressXYScaleMin,
             WFSParameterDefaults::samplerSetPressXYScaleMax);
-        pressXYScaleSlider->setLabel (LOC ("sampler.press.xyScale"));
-        pressXYScaleSlider->setInlineMode (true);
-        pressXYScaleSlider->setValueToString ([] (float v) { return juce::String (v * 100.0f, 0); });
+        pressXYScaleSlider->setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFFFF6D00));
         pressXYScaleSlider->onValueChanged = [this] (float v)
         {
             if (! isLoadingData)
+            {
+                pressXYScaleValueLabel.setText (juce::String (v * 100.0f, 1), juce::dontSendNotification);
                 saveCurrentSetProperty (WFSParameterIDs::samplerSetPressXYScale, v);
+            }
         };
+        pressXYScaleSlider->setValue (WFSParameterDefaults::samplerSetPressXYScaleDefault);
         addAndMakeVisible (*pressXYScaleSlider);
+
+        pressXYScaleValueLabel.setText ("5.0", juce::dontSendNotification);
+        pressXYScaleValueLabel.setJustificationType (juce::Justification::centred);
+        pressXYScaleValueLabel.setEditable (true, false);
+        pressXYScaleValueLabel.addListener (this);
+        addAndMakeVisible (pressXYScaleValueLabel);
 
         // ── Lightpad Zone Selector Button ──
         lightpadZoneButton.setButtonText (LOC ("sampler.lightpadZone.none"));
@@ -204,44 +255,23 @@ public:
         exportButton.onClick = [this] { onExport(); };
         addAndMakeVisible (exportButton);
 
-        // ── Tooltips ──
-        loadCellButton.setTooltip (LOC ("sampler.tooltips.load"));
-        clearCellButton.setTooltip (LOC ("sampler.tooltips.clear"));
-        previewButton.setTooltip (LOC ("sampler.tooltips.preview"));
-        inOutRangeSlider->setTooltip (LOC ("sampler.tooltips.inOut"));
-        for (int i = 0; i < 3; ++i)
-            cellOffsetEditors[i].setTooltip (LOC ("sampler.tooltips.offset"));
-        cellAttenSlider->setTooltip (LOC ("sampler.tooltips.attenuation"));
 
-        addSetButton.setTooltip (LOC ("sampler.tooltips.addSet"));
-        deleteSetButton.setTooltip (LOC ("sampler.tooltips.deleteSet"));
-        renameSetButton.setTooltip (LOC ("sampler.tooltips.renameSet"));
-        playModeButton.setTooltip (LOC ("sampler.tooltips.playMode"));
-        for (int i = 0; i < 3; ++i)
-            setPosEditors[i].setTooltip (LOC ("sampler.tooltips.setPos"));
-        setLevelSlider->setTooltip (LOC ("sampler.tooltips.setLevel"));
-
-        pressLevelEnable.setTooltip (LOC ("sampler.tooltips.pressLevel"));
-        pressLevelDirBtn.setTooltip (LOC ("sampler.tooltips.pressDir"));
-        pressLevelCurveSlider.setTooltip (LOC ("sampler.tooltips.pressCurve"));
-        pressZEnable.setTooltip (LOC ("sampler.tooltips.pressHeight"));
-        pressZDirBtn.setTooltip (LOC ("sampler.tooltips.pressDir"));
-        pressZCurveSlider.setTooltip (LOC ("sampler.tooltips.pressCurve"));
-        pressHFEnable.setTooltip (LOC ("sampler.tooltips.pressHF"));
-        pressHFDirBtn.setTooltip (LOC ("sampler.tooltips.pressDir"));
-        pressHFCurveSlider.setTooltip (LOC ("sampler.tooltips.pressCurve"));
-        pressXYEnable.setTooltip (LOC ("sampler.tooltips.pressXY"));
-        pressXYScaleSlider->setTooltip (LOC ("sampler.tooltips.pressXYScale"));
-
-        copyButton.setTooltip (LOC ("sampler.tooltips.copy"));
-        pasteButton.setTooltip (LOC ("sampler.tooltips.paste"));
-        importButton.setTooltip (LOC ("sampler.tooltips.import"));
-        exportButton.setTooltip (LOC ("sampler.tooltips.export"));
+        setFocusContainerType (FocusContainerType::keyboardFocusContainer);
     }
 
     ~SamplerSubTab() override
     {
         ColorScheme::Manager::getInstance().removeListener (this);
+    }
+
+    std::unique_ptr<juce::ComponentTraverser> createKeyboardFocusTraverser() override
+    {
+        return std::make_unique<ColumnCircuitTraverser> (std::vector<std::vector<juce::Component*>> {
+            // Cell properties: Offset X / Y / Z
+            { &cellOffsetEditors[0], &cellOffsetEditors[1], &cellOffsetEditors[2] },
+            // Set management: Pos X / Y / Z
+            { &setPosEditors[0], &setPosEditors[1], &setPosEditors[2] }
+        });
     }
 
     // ==================== LAYOUT ====================
@@ -389,6 +419,12 @@ public:
     }
 
     // ==================== PUBLIC API ====================
+
+    void setStatusBar (StatusBar* bar)
+    {
+        statusBar = bar;
+        setupHelpText();
+    }
 
     /** Set the current input channel (0-based) */
     void setCurrentChannel (int channel)
@@ -745,13 +781,15 @@ private:
         sectionLabels.push_back ({ LOC ("sampler.section.pressure"), y });
         y += 16;
 
-        layoutPressureRow (y, pressLevelEnable, pressLevelDirBtn, pressLevelCurveSlider, x0, contentW, rowH, pad);
-        layoutPressureRow (y, pressZEnable, pressZDirBtn, pressZCurveSlider, x0, contentW, rowH, pad);
-        layoutPressureRow (y, pressHFEnable, pressHFDirBtn, pressHFCurveSlider, x0, contentW, rowH, pad);
+        layoutPressureRow (y, pressLevelEnable, pressLevelDirBtn, pressLevelCurveSlider, pressLevelCurveValueLabel, x0, contentW, rowH, pad);
+        layoutPressureRow (y, pressZEnable, pressZDirBtn, pressZCurveSlider, pressZCurveValueLabel, x0, contentW, rowH, pad);
+        layoutPressureRow (y, pressHFEnable, pressHFDirBtn, pressHFCurveSlider, pressHFCurveValueLabel, x0, contentW, rowH, pad);
 
         int halfW2 = (contentW - pad) / 2;
+        int xyValueW = 45;
         pressXYEnable.setBounds (x0, y, halfW2, rowH);
-        if (pressXYScaleSlider) pressXYScaleSlider->setBounds (x0 + halfW2 + pad, y, halfW2, rowH);
+        if (pressXYScaleSlider) pressXYScaleSlider->setBounds (x0 + halfW2 + pad, y, halfW2 - xyValueW - pad, rowH);
+        pressXYScaleValueLabel.setBounds (x0 + contentW - xyValueW, y, xyValueW, rowH);
         y += rowH + pad;
 
         // ── Separator ──
@@ -773,15 +811,18 @@ private:
     }
 
     void layoutPressureRow (int& y, juce::ToggleButton& enable,
-                            juce::TextButton& dirBtn, WfsStandardSlider& curveSlider,
+                            juce::TextButton& dirBtn, WfsBidirectionalSlider& curveSlider,
+                            juce::Label& valueLabel,
                             int x0, int contentW, int rowH, int pad)
     {
-        int enableW = contentW * 40 / 100;
+        int enableW = contentW * 35 / 100;
         int dirW = 30;
-        int sliderW = contentW - enableW - dirW - pad * 2;
+        int valueW = 45;
+        int sliderW = contentW - enableW - dirW - valueW - pad * 3;
         enable.setBounds (x0, y, enableW, rowH);
         dirBtn.setBounds (x0 + enableW + pad, y, dirW, rowH);
         curveSlider.setBounds (x0 + enableW + pad + dirW + pad, y, sliderW, rowH);
+        valueLabel.setBounds (x0 + contentW - valueW, y, valueW, rowH);
         y += rowH + pad;
     }
 
@@ -852,18 +893,29 @@ private:
         // Pressure mappings
         pressLevelEnable.setToggleState (set.pressLevel.enabled, juce::dontSendNotification);
         pressLevelDirBtn.setButtonText (set.pressLevel.direction == 0 ? "+" : "-");
-        pressLevelCurveSlider.setValue (set.pressLevel.curve);
+        pressLevelCurveSlider.setValue (set.pressLevel.curve * 2.0f - 1.0f);
+        pressLevelCurveSlider.repaint();
+        pressLevelCurveValueLabel.setText (juce::String (set.pressLevel.curve, 2), juce::dontSendNotification);
+        { float a = set.pressLevel.enabled ? 1.0f : 0.4f; pressLevelDirBtn.setAlpha (a); pressLevelCurveSlider.setAlpha (a); pressLevelCurveValueLabel.setAlpha (a); }
 
         pressZEnable.setToggleState (set.pressZ.enabled, juce::dontSendNotification);
         pressZDirBtn.setButtonText (set.pressZ.direction == 0 ? "+" : "-");
-        pressZCurveSlider.setValue (set.pressZ.curve);
+        pressZCurveSlider.setValue (set.pressZ.curve * 2.0f - 1.0f);
+        pressZCurveSlider.repaint();
+        pressZCurveValueLabel.setText (juce::String (set.pressZ.curve, 2), juce::dontSendNotification);
+        { float a = set.pressZ.enabled ? 1.0f : 0.4f; pressZDirBtn.setAlpha (a); pressZCurveSlider.setAlpha (a); pressZCurveValueLabel.setAlpha (a); }
 
         pressHFEnable.setToggleState (set.pressHF.enabled, juce::dontSendNotification);
         pressHFDirBtn.setButtonText (set.pressHF.direction == 0 ? "+" : "-");
-        pressHFCurveSlider.setValue (set.pressHF.curve);
+        pressHFCurveSlider.setValue (set.pressHF.curve * 2.0f - 1.0f);
+        pressHFCurveSlider.repaint();
+        pressHFCurveValueLabel.setText (juce::String (set.pressHF.curve, 2), juce::dontSendNotification);
+        { float a = set.pressHF.enabled ? 1.0f : 0.4f; pressHFDirBtn.setAlpha (a); pressHFCurveSlider.setAlpha (a); pressHFCurveValueLabel.setAlpha (a); }
 
         pressXYEnable.setToggleState (set.pressXYEnabled, juce::dontSendNotification);
         if (pressXYScaleSlider) pressXYScaleSlider->setValue (set.pressXYScale);
+        pressXYScaleValueLabel.setText (juce::String (set.pressXYScale * 100.0f, 1), juce::dontSendNotification);
+        { float a = set.pressXYEnabled ? 1.0f : 0.4f; if (pressXYScaleSlider) pressXYScaleSlider->setAlpha (a); pressXYScaleValueLabel.setAlpha (a); }
 
         isLoadingData = false;
     }
@@ -1129,20 +1181,62 @@ private:
         saveCurrentSetProperty (paramId, value);
     }
 
+    // ==================== LABEL EDITING ====================
+
+    void labelTextChanged (juce::Label* label) override
+    {
+        if (isLoadingData) return;
+        float value = label->getText().retainCharacters ("-0123456789.").getFloatValue();
+
+        auto handleCurveLabel = [&] (juce::Label& lbl, WfsBidirectionalSlider& slider,
+                                      const juce::Identifier& curveId)
+        {
+            float curve = juce::jlimit (0.0f, 1.0f, value);
+            slider.setValue (curve * 2.0f - 1.0f);
+            lbl.setText (juce::String (curve, 2), juce::dontSendNotification);
+            saveCurrentSetProperty (curveId, curve);
+        };
+
+        if (label == &pressLevelCurveValueLabel)
+            handleCurveLabel (pressLevelCurveValueLabel, pressLevelCurveSlider,
+                              WFSParameterIDs::samplerSetPressLevelCurve);
+        else if (label == &pressZCurveValueLabel)
+            handleCurveLabel (pressZCurveValueLabel, pressZCurveSlider,
+                              WFSParameterIDs::samplerSetPressZCurve);
+        else if (label == &pressHFCurveValueLabel)
+            handleCurveLabel (pressHFCurveValueLabel, pressHFCurveSlider,
+                              WFSParameterIDs::samplerSetPressHFCurve);
+        else if (label == &pressXYScaleValueLabel)
+        {
+            float cm = juce::jlimit (WFSParameterDefaults::samplerSetPressXYScaleMin * 100.0f,
+                                     WFSParameterDefaults::samplerSetPressXYScaleMax * 100.0f, value);
+            float meters = cm / 100.0f;
+            if (pressXYScaleSlider) pressXYScaleSlider->setValue (meters);
+            pressXYScaleValueLabel.setText (juce::String (cm, 1), juce::dontSendNotification);
+            saveCurrentSetProperty (WFSParameterIDs::samplerSetPressXYScale, meters);
+        }
+    }
+
     // ==================== PRESSURE CALLBACKS ====================
 
     void setupPressureRow (juce::ToggleButton& enable, juce::TextButton& dirBtn,
-                           WfsStandardSlider& curveSlider,
+                           WfsBidirectionalSlider& curveSlider, juce::Label& valueLabel,
                            const juce::Identifier& enableId,
                            const juce::Identifier& dirId,
                            const juce::Identifier& curveId,
-                           const juce::String& label)
+                           const juce::String& label,
+                           bool defaultEnabled)
     {
         enable.setButtonText (label);
-        enable.onClick = [this, &enable, enableId]
+        enable.setToggleState (defaultEnabled, juce::dontSendNotification);
+        enable.onClick = [this, &enable, &dirBtn, &curveSlider, &valueLabel, enableId]
         {
             if (! isLoadingData)
                 saveCurrentSetProperty (enableId, enable.getToggleState() ? 1 : 0);
+            float alpha = enable.getToggleState() ? 1.0f : 0.4f;
+            dirBtn.setAlpha (alpha);
+            curveSlider.setAlpha (alpha);
+            valueLabel.setAlpha (alpha);
         };
         addAndMakeVisible (enable);
 
@@ -1156,12 +1250,29 @@ private:
         };
         addAndMakeVisible (dirBtn);
 
-        curveSlider.onValueChanged = [this, curveId] (float v)
+        curveSlider.onValueChanged = [this, &valueLabel, curveId] (float v)
         {
             if (! isLoadingData)
-                saveCurrentSetProperty (curveId, v);
+            {
+                float curve = (v + 1.0f) / 2.0f;
+                valueLabel.setText (juce::String (curve, 2), juce::dontSendNotification);
+                saveCurrentSetProperty (curveId, curve);
+            }
         };
+        curveSlider.setValue (0.0f);  // Center = 0.5 stored = linear default
         addAndMakeVisible (curveSlider);
+
+        valueLabel.setText ("0.50", juce::dontSendNotification);
+        valueLabel.setJustificationType (juce::Justification::centred);
+        valueLabel.setEditable (true, false);
+        valueLabel.addListener (this);
+        addAndMakeVisible (valueLabel);
+
+        // Apply initial dimming based on default enabled state
+        float alpha = defaultEnabled ? 1.0f : 0.4f;
+        dirBtn.setAlpha (alpha);
+        curveSlider.setAlpha (alpha);
+        valueLabel.setAlpha (alpha);
     }
 
     // ==================== COPY / PASTE ====================
@@ -1416,7 +1527,7 @@ private:
     // ==================== MEMBER DATA ====================
 
     WfsParameters& parameters;
-    int currentChannel = 0;
+    int currentChannel = -1;
     bool isLoadingData = false;
 
     // ValueTree reference
@@ -1463,21 +1574,22 @@ private:
     // ── Pressure mapping controls ──
     juce::ToggleButton pressLevelEnable;
     juce::TextButton pressLevelDirBtn;
-    WfsStandardSlider pressLevelCurveSlider { WFSParameterDefaults::samplerSetPressCurveMin,
-                                               WFSParameterDefaults::samplerSetPressCurveMax };
+    WfsBidirectionalSlider pressLevelCurveSlider;
+    juce::Label pressLevelCurveValueLabel;
 
     juce::ToggleButton pressZEnable;
     juce::TextButton pressZDirBtn;
-    WfsStandardSlider pressZCurveSlider { WFSParameterDefaults::samplerSetPressCurveMin,
-                                           WFSParameterDefaults::samplerSetPressCurveMax };
+    WfsBidirectionalSlider pressZCurveSlider;
+    juce::Label pressZCurveValueLabel;
 
     juce::ToggleButton pressHFEnable;
     juce::TextButton pressHFDirBtn;
-    WfsStandardSlider pressHFCurveSlider { WFSParameterDefaults::samplerSetPressCurveMin,
-                                            WFSParameterDefaults::samplerSetPressCurveMax };
+    WfsBidirectionalSlider pressHFCurveSlider;
+    juce::Label pressHFCurveValueLabel;
 
     juce::ToggleButton pressXYEnable;
     std::unique_ptr<WfsStandardSlider> pressXYScaleSlider;
+    juce::Label pressXYScaleValueLabel;
 
     // ── Copy/Paste & Import/Export ──
     juce::TextButton copyButton;
@@ -1632,6 +1744,82 @@ private:
     {
         if (currentChannel < 1) return;
         parameters.setInputParam (currentChannel - 1, paramId.toString(), value);
+    }
+
+    // ==================== STATUS BAR HELP ====================
+
+    StatusBar* statusBar = nullptr;
+    std::unordered_map<juce::Component*, juce::String> helpTextMap;
+
+    void setupHelpText()
+    {
+        helpTextMap.clear();
+
+        helpTextMap[&loadCellButton]         = LOC ("sampler.tooltips.load");
+        helpTextMap[&clearCellButton]        = LOC ("sampler.tooltips.clear");
+        helpTextMap[&previewButton]          = LOC ("sampler.tooltips.preview");
+        if (inOutRangeSlider)
+            helpTextMap[inOutRangeSlider.get()] = LOC ("sampler.tooltips.inOut");
+        for (int i = 0; i < 3; ++i)
+            helpTextMap[&cellOffsetEditors[i]] = LOC ("sampler.tooltips.offset");
+        if (cellAttenSlider)
+            helpTextMap[cellAttenSlider.get()] = LOC ("sampler.tooltips.attenuation");
+
+        helpTextMap[&addSetButton]           = LOC ("sampler.tooltips.addSet");
+        helpTextMap[&deleteSetButton]        = LOC ("sampler.tooltips.deleteSet");
+        helpTextMap[&renameSetButton]        = LOC ("sampler.tooltips.renameSet");
+        helpTextMap[&playModeButton]         = LOC ("sampler.tooltips.playMode");
+        for (int i = 0; i < 3; ++i)
+            helpTextMap[&setPosEditors[i]]   = LOC ("sampler.tooltips.setPos");
+        if (setLevelSlider)
+            helpTextMap[setLevelSlider.get()] = LOC ("sampler.tooltips.setLevel");
+
+        helpTextMap[&pressLevelEnable]           = LOC ("sampler.tooltips.pressLevel");
+        helpTextMap[&pressLevelDirBtn]           = LOC ("sampler.tooltips.pressDir");
+        helpTextMap[&pressLevelCurveSlider]      = LOC ("sampler.tooltips.pressCurve");
+        helpTextMap[&pressLevelCurveValueLabel]  = LOC ("sampler.tooltips.pressCurve");
+        helpTextMap[&pressZEnable]               = LOC ("sampler.tooltips.pressHeight");
+        helpTextMap[&pressZDirBtn]               = LOC ("sampler.tooltips.pressDir");
+        helpTextMap[&pressZCurveSlider]          = LOC ("sampler.tooltips.pressCurve");
+        helpTextMap[&pressZCurveValueLabel]      = LOC ("sampler.tooltips.pressCurve");
+        helpTextMap[&pressHFEnable]              = LOC ("sampler.tooltips.pressHF");
+        helpTextMap[&pressHFDirBtn]              = LOC ("sampler.tooltips.pressDir");
+        helpTextMap[&pressHFCurveSlider]         = LOC ("sampler.tooltips.pressCurve");
+        helpTextMap[&pressHFCurveValueLabel]     = LOC ("sampler.tooltips.pressCurve");
+        helpTextMap[&pressXYEnable]              = LOC ("sampler.tooltips.pressXY");
+        if (pressXYScaleSlider)
+            helpTextMap[pressXYScaleSlider.get()] = LOC ("sampler.tooltips.pressXYScale");
+        helpTextMap[&pressXYScaleValueLabel]     = LOC ("sampler.tooltips.pressXYScale");
+
+        helpTextMap[&copyButton]             = LOC ("sampler.tooltips.copy");
+        helpTextMap[&pasteButton]            = LOC ("sampler.tooltips.paste");
+        helpTextMap[&importButton]           = LOC ("sampler.tooltips.import");
+        helpTextMap[&exportButton]           = LOC ("sampler.tooltips.export");
+
+        for (auto& [comp, text] : helpTextMap)
+            comp->addMouseListener (this, true);
+    }
+
+    void mouseEnter (const juce::MouseEvent& e) override
+    {
+        if (statusBar == nullptr) return;
+        juce::Component* comp = e.eventComponent;
+        while (comp != nullptr)
+        {
+            auto it = helpTextMap.find (comp);
+            if (it != helpTextMap.end())
+            {
+                statusBar->setHelpText (it->second);
+                return;
+            }
+            comp = comp->getParentComponent();
+        }
+    }
+
+    void mouseExit (const juce::MouseEvent&) override
+    {
+        if (statusBar != nullptr)
+            statusBar->clearText();
     }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SamplerSubTab)

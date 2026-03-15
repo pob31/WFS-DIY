@@ -385,6 +385,7 @@ OutputArrayHelperContent::OutputArrayHelperContent(WfsParameters& params)
     : parameters(params)
 {
     setOpaque(true);
+    setFocusContainerType(FocusContainerType::keyboardFocusContainer);
 
     setupPresetSelector();
     setupGeometrySection();
@@ -454,6 +455,10 @@ void OutputArrayHelperContent::setupGeometrySection()
         // Colors handled by WfsLookAndFeel
         // Auto-calculate preview on text change
         editor.onTextChange = [this]() { autoCalculatePreview(); };
+        // Enter: dismiss focus (value already applied via onTextChange)
+        editor.onReturnKey = [&editor]() { editor.giveAwayKeyboardFocus(); };
+        // Escape: dismiss focus without further action
+        editor.onEscapeKey = [&editor]() { editor.giveAwayKeyboardFocus(); };
     };
 
     setupLabel(numSpeakersLabel, LOC("arrayHelper.geometry.nSpeakers"));

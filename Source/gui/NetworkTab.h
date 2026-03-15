@@ -45,6 +45,24 @@
 class AdmMappingPanel : public juce::Component, private juce::Timer
 {
 public:
+    AdmMappingPanel()
+    {
+        addChildComponent (valueEditor);
+        valueEditor.setMultiLine (false);
+        valueEditor.setReturnKeyStartsNewLine (false);
+        valueEditor.setScrollbarsShown (false);
+        valueEditor.setFont (juce::Font (juce::FontOptions (12.0f)));
+        valueEditor.setColour (juce::TextEditor::backgroundColourId, juce::Colour (0xff1a1a1a));
+        valueEditor.setColour (juce::TextEditor::textColourId, juce::Colour (0xffe0e0e0));
+        valueEditor.setColour (juce::TextEditor::outlineColourId, juce::Colour (0xff4fc3f7));
+        valueEditor.setColour (juce::TextEditor::focusedOutlineColourId, juce::Colour (0xff4fc3f7));
+        valueEditor.setJustification (juce::Justification::centred);
+
+        valueEditor.onReturnKey = [this] { commitEdit(); };
+        valueEditor.onEscapeKey = [this] { cancelEdit(); };
+        valueEditor.onFocusLost = [this] { juce::MessageManager::callAsync ([this] { commitEdit(); }); };
+    }
+
     ~AdmMappingPanel() override { stopTimer(); }
 
     /** Set the full 3-axis config and repaint. */
@@ -95,8 +113,50 @@ public:
     }
 
     //==========================================================================
+    void mouseDoubleClick (const juce::MouseEvent& e) override
+    {
+        auto pos = e.position;
+
+        // Check breakpoint labels
+        for (int a = 0; a < 3; ++a)
+        {
+            if (bpLabelRects[a].contains (pos))
+            {
+                editAxis = a;
+                editPoint = -1;
+                editIsBreakpoint = true;
+                showValueEditor (bpLabelRects[a], juce::String (cfg.axes[a].breakpoint, 2));
+                return;
+            }
+        }
+
+        // Check dot value labels
+        for (int a = 0; a < 3; ++a)
+        {
+            for (int p = 0; p < 5; ++p)
+            {
+                if (dotLabelRects[a][p].contains (pos))
+                {
+                    editAxis = a;
+                    editPoint = p;
+                    editIsBreakpoint = false;
+                    float v, m;
+                    getPointVM (a, p, v, m);
+                    showValueEditor (dotLabelRects[a][p], juce::String (m, 2));
+                    return;
+                }
+            }
+        }
+    }
+
     void mouseDown (const juce::MouseEvent& e) override
     {
+        if (isEditingValue)
+        {
+            commitEdit();
+            return;
+        }
+
         dragAxis  = -1;
         dragPoint = -1;
 
@@ -347,6 +407,15 @@ private:
     juce::Rectangle<float> swapHitAreas[3];
     juce::Rectangle<float> flipHitAreas[3];
 
+    // Inline value editing
+    juce::TextEditor valueEditor;
+    bool isEditingValue = false;
+    int editAxis = -1;
+    int editPoint = -1;
+    bool editIsBreakpoint = false;
+    juce::Rectangle<float> dotLabelRects[3][5];  // [axis][point], stored during paint
+    juce::Rectangle<float> bpLabelRects[3];      // breakpoint labels, stored during paint
+
     //==========================================================================
     // Helpers: coordinate transforms
     //==========================================================================
@@ -440,6 +509,106 @@ private:
     }
 
     //==========================================================================
+    // Inline editing helpers
+    //==========================================================================
+
+    void showValueEditor (const juce::Rectangle<float>& labelRect, const juce::String& currentText)
+    {
+        isEditingValue = true;
+        auto editorBounds = labelRect.expanded (4.0f, 2.0f).toNearestInt();
+        editorBounds.setWidth (juce::jmax (editorBounds.getWidth(), 60));
+        editorBounds.setHeight (juce::jmax (editorBounds.getHeight(), 22));
+        valueEditor.setBounds (editorBounds);
+        valueEditor.setText (currentText, juce::dontSendNotification);
+        valueEditor.setVisible (true);
+        valueEditor.selectAll();
+        valueEditor.grabKeyboardFocus();
+    }
+
+    void commitEdit()
+    {
+        if (! isEditingValue) return;
+        isEditingValue = false;
+        valueEditor.setVisible (false);
+
+        float val = valueEditor.getText().getFloatValue();
+
+        if (editIsBreakpoint)
+        {
+            val = juce::jlimit (0.01f, 0.99f, val);
+            cfg.axes[editAxis].breakpoint = val;
+            repaint();
+            if (onParameterDragged)
+            {
+                auto& ax = cfg.axes[editAxis];
+                onParameterDragged (editAxis, 3, ax.breakpoint,
+                                    ax.posInnerWidth, ax.posOuterWidth,
+                                    ax.centerOffset, true);
+                onParameterDragged (editAxis, 1, ax.breakpoint,
+                                    ax.negInnerWidth, ax.negOuterWidth,
+                                    ax.centerOffset, false);
+            }
+            return;
+        }
+
+        auto& ax = cfg.axes[editAxis];
+        constexpr float wMin = WFSParameterDefaults::admCartWidthMin;
+        constexpr float wMax = WFSParameterDefaults::admCartWidthMax;
+        bool posDir = true;
+
+        switch (editPoint)
+        {
+            case 0:
+            {
+                float newOuter = (ax.centerOffset - val) - ax.negInnerWidth;
+                ax.negOuterWidth = juce::jlimit (wMin, wMax, newOuter);
+                posDir = false;
+                break;
+            }
+            case 1:
+            {
+                float newInner = ax.centerOffset - val;
+                ax.negInnerWidth = juce::jlimit (wMin, wMax, newInner);
+                posDir = false;
+                break;
+            }
+            case 2:
+                ax.centerOffset = juce::jlimit (-50.0f, 50.0f, val);
+                break;
+            case 3:
+            {
+                float newInner = val - ax.centerOffset;
+                ax.posInnerWidth = juce::jlimit (wMin, wMax, newInner);
+                posDir = true;
+                break;
+            }
+            case 4:
+            {
+                float newOuter = val - ax.centerOffset - ax.posInnerWidth;
+                ax.posOuterWidth = juce::jlimit (wMin, wMax, newOuter);
+                posDir = true;
+                break;
+            }
+        }
+
+        repaint();
+
+        if (onParameterDragged)
+        {
+            float innerW = posDir ? ax.posInnerWidth : ax.negInnerWidth;
+            float outerW = posDir ? ax.posOuterWidth : ax.negOuterWidth;
+            onParameterDragged (editAxis, editPoint, ax.breakpoint,
+                                innerW, outerW, ax.centerOffset, posDir);
+        }
+    }
+
+    void cancelEdit()
+    {
+        isEditingValue = false;
+        valueEditor.setVisible (false);
+    }
+
+    //==========================================================================
     // Painting
     //==========================================================================
 
@@ -501,6 +670,7 @@ private:
             // Breakpoint value label (right side of header)
             juce::String bpText = "bp: " + juce::String (ax.breakpoint, 2);
             g.setColour (juce::Colour (0xff999999));
+            bpLabelRects[axis] = { bf.getRight() - 64.0f, hy, 60.0f, 18.0f };
             g.drawText (bpText, (int) bf.getRight() - 64, (int) hy, 60, 18,
                         juce::Justification::centredRight);
         }
@@ -557,15 +727,23 @@ private:
             juce::String valText = juce::String (ptM[p], 2) + "m";
             g.setColour (juce::Colour (0xffbbbbbb));
             int labelW = 48;
-            if (p <= 1)  // negative side: label to the left
-                g.drawText (valText, (int) dx - labelW - 4, (int) dy - 7, labelW, 14,
-                            juce::Justification::centredRight);
-            else if (p == 2)  // center: label above
-                g.drawText (valText, (int) dx - labelW / 2, (int) dy - 18, labelW, 14,
-                            juce::Justification::centred);
-            else  // positive side: label to the right
-                g.drawText (valText, (int) dx + 4, (int) dy - 7, labelW, 14,
-                            juce::Justification::centredLeft);
+            juce::Rectangle<float> lr;
+            if (p <= 1)
+            {
+                lr = { dx - labelW - 4.0f, dy - 7.0f, (float) labelW, 14.0f };
+                g.drawText (valText, lr.toNearestInt(), juce::Justification::centredRight);
+            }
+            else if (p == 2)
+            {
+                lr = { dx - labelW / 2.0f, dy - 18.0f, (float) labelW, 14.0f };
+                g.drawText (valText, lr.toNearestInt(), juce::Justification::centred);
+            }
+            else
+            {
+                lr = { dx + 4.0f, dy - 7.0f, (float) labelW, 14.0f };
+                g.drawText (valText, lr.toNearestInt(), juce::Justification::centredLeft);
+            }
+            dotLabelRects[axis][p] = lr;
         }
 
         // X-axis labels
@@ -693,6 +871,24 @@ private:
 class AdmPolarPanel : public juce::Component, private juce::Timer
 {
 public:
+    AdmPolarPanel()
+    {
+        addChildComponent (valueEditor);
+        valueEditor.setMultiLine (false);
+        valueEditor.setReturnKeyStartsNewLine (false);
+        valueEditor.setScrollbarsShown (false);
+        valueEditor.setFont (juce::Font (juce::FontOptions (12.0f)));
+        valueEditor.setColour (juce::TextEditor::backgroundColourId, juce::Colour (0xff1a1a1a));
+        valueEditor.setColour (juce::TextEditor::textColourId, juce::Colour (0xffe0e0e0));
+        valueEditor.setColour (juce::TextEditor::outlineColourId, juce::Colour (0xff4fc3f7));
+        valueEditor.setColour (juce::TextEditor::focusedOutlineColourId, juce::Colour (0xff4fc3f7));
+        valueEditor.setJustification (juce::Justification::centred);
+
+        valueEditor.onReturnKey = [this] { commitEdit(); };
+        valueEditor.onEscapeKey = [this] { cancelEdit(); };
+        valueEditor.onFocusLost = [this] { juce::MessageManager::callAsync ([this] { commitEdit(); }); };
+    }
+
     ~AdmPolarPanel() override { stopTimer(); }
 
     void setConfig (const ADMOSCMapping::PolarMappingConfig& newCfg)
@@ -731,8 +927,60 @@ public:
     }
 
     //==========================================================================
+    void mouseDoubleClick (const juce::MouseEvent& e) override
+    {
+        auto pos = e.position;
+
+        // Breakpoint label
+        if (bpLabelRect.contains (pos))
+        {
+            editTargetType = EditTarget::Breakpoint;
+            editPoint = -1;
+            showValueEditor (bpLabelRect, juce::String (cfg.distBreakpoint, 2));
+            return;
+        }
+
+        // Azimuth offset label (header)
+        if (azOffsetLabelRect.contains (pos))
+        {
+            editTargetType = EditTarget::AzOffset;
+            editPoint = -1;
+            showValueEditor (azOffsetLabelRect, juce::String (cfg.azimuthOffset, 1));
+            return;
+        }
+
+        // Azimuth offset label (circle endpoint)
+        if (azCircleLabelRect.contains (pos))
+        {
+            editTargetType = EditTarget::AzOffset;
+            editPoint = -1;
+            showValueEditor (azCircleLabelRect, juce::String (cfg.azimuthOffset, 1));
+            return;
+        }
+
+        // Distance dot labels
+        for (int p = 0; p < 3; ++p)
+        {
+            if (distDotLabelRects[p].contains (pos))
+            {
+                editTargetType = EditTarget::DistDot;
+                editPoint = p;
+                float v, m;
+                getDistPointVM (p, v, m);
+                showValueEditor (distDotLabelRects[p], juce::String (m, 2));
+                return;
+            }
+        }
+    }
+
     void mouseDown (const juce::MouseEvent& e) override
     {
+        if (isEditingValue)
+        {
+            commitEdit();
+            return;
+        }
+
         dragTarget = DragNone;
         auto pos = e.position;
 
@@ -975,6 +1223,95 @@ private:
     juce::Rectangle<float> azFlipHitArea;
     juce::Rectangle<float> elFlipHitArea;
 
+    // Inline value editing
+    juce::TextEditor valueEditor;
+    bool isEditingValue = false;
+    int editPoint = -1;
+    enum class EditTarget { DistDot, Breakpoint, AzOffset };
+    EditTarget editTargetType = EditTarget::DistDot;
+    juce::Rectangle<float> distDotLabelRects[3];
+    juce::Rectangle<float> bpLabelRect;
+    juce::Rectangle<float> azOffsetLabelRect;
+    juce::Rectangle<float> azCircleLabelRect;
+
+    //==========================================================================
+    // Inline editing helpers
+    //==========================================================================
+
+    void showValueEditor (const juce::Rectangle<float>& labelRect, const juce::String& currentText)
+    {
+        isEditingValue = true;
+        auto editorBounds = labelRect.expanded (4.0f, 2.0f).toNearestInt();
+        editorBounds.setWidth (juce::jmax (editorBounds.getWidth(), 60));
+        editorBounds.setHeight (juce::jmax (editorBounds.getHeight(), 22));
+        valueEditor.setBounds (editorBounds);
+        valueEditor.setText (currentText, juce::dontSendNotification);
+        valueEditor.setVisible (true);
+        valueEditor.selectAll();
+        valueEditor.grabKeyboardFocus();
+    }
+
+    void commitEdit()
+    {
+        if (! isEditingValue) return;
+        isEditingValue = false;
+        valueEditor.setVisible (false);
+
+        float val = valueEditor.getText().getFloatValue();
+
+        constexpr float wMin = WFSParameterDefaults::admCartWidthMin;
+        constexpr float wMax = WFSParameterDefaults::admCartWidthMax;
+
+        switch (editTargetType)
+        {
+            case EditTarget::Breakpoint:
+                cfg.distBreakpoint = juce::jlimit (0.01f, 0.99f, val);
+                repaint();
+                if (onDistDragged)
+                    onDistDragged (1, cfg.distBreakpoint, cfg.distInner,
+                                   cfg.distOuter, cfg.distCenter);
+                break;
+
+            case EditTarget::AzOffset:
+                cfg.azimuthOffset = juce::jlimit (-180.0f, 180.0f, val);
+                repaint();
+                if (onAzOffsetChanged)
+                    onAzOffsetChanged (cfg.azimuthOffset);
+                break;
+
+            case EditTarget::DistDot:
+                switch (editPoint)
+                {
+                    case 0:
+                        cfg.distCenter = juce::jlimit (-50.0f, 50.0f, val);
+                        break;
+                    case 1:
+                    {
+                        float newInner = val - cfg.distCenter;
+                        cfg.distInner = juce::jlimit (wMin, wMax, newInner);
+                        break;
+                    }
+                    case 2:
+                    {
+                        float newOuter = val - cfg.distCenter - cfg.distInner;
+                        cfg.distOuter = juce::jlimit (wMin, wMax, newOuter);
+                        break;
+                    }
+                }
+                repaint();
+                if (onDistDragged)
+                    onDistDragged (editPoint, cfg.distBreakpoint, cfg.distInner,
+                                   cfg.distOuter, cfg.distCenter);
+                break;
+        }
+    }
+
+    void cancelEdit()
+    {
+        isEditingValue = false;
+        valueEditor.setVisible (false);
+    }
+
     //==========================================================================
     // Distance graph helpers
     //==========================================================================
@@ -1084,6 +1421,7 @@ private:
             // Breakpoint value (right side)
             juce::String bpText = "bp: " + juce::String (cfg.distBreakpoint, 2);
             g.setColour (juce::Colour (0xff999999));
+            bpLabelRect = { bf.getRight() - 64.0f, hy, 60.0f, 18.0f };
             g.drawText (bpText, (int) bf.getRight() - 64, (int) hy, 60, 18,
                         juce::Justification::centredRight);
 
@@ -1091,6 +1429,7 @@ private:
             g.setFont (12.0f);
             juce::String azOffText = "Az Offset: " + juce::String (cfg.azimuthOffset, 1) + juce::String::fromUTF8 ("\xc2\xb0");
             g.setColour (juce::Colour (0xff999999));
+            azOffsetLabelRect = { hx, hy + 18.0f, 140.0f, 16.0f };
             g.drawText (azOffText, (int) hx, (int) hy + 18, 140, 16, juce::Justification::centredLeft);
 
             // Reset text (long press) — right side of second line
@@ -1162,12 +1501,18 @@ private:
             juce::String valText = juce::String (ptM[p], 2) + "m";
             g.setColour (juce::Colour (0xffbbbbbb));
             int labelW = 52;
+            juce::Rectangle<float> lr;
             if (p == 0)
-                g.drawText (valText, (int) dx - labelW / 2, (int) dy - 18, labelW, 14,
-                            juce::Justification::centred);
+            {
+                lr = { dx - labelW / 2.0f, dy - 18.0f, (float) labelW, 14.0f };
+                g.drawText (valText, lr.toNearestInt(), juce::Justification::centred);
+            }
             else
-                g.drawText (valText, (int) dx + 4, (int) dy - 7, labelW, 14,
-                            juce::Justification::centredLeft);
+            {
+                lr = { dx + 4.0f, dy - 7.0f, (float) labelW, 14.0f };
+                g.drawText (valText, lr.toNearestInt(), juce::Justification::centredLeft);
+            }
+            distDotLabelRects[p] = lr;
         }
 
         // X-axis labels
@@ -1180,7 +1525,7 @@ private:
 
     //--------------------------------------------------------------------------
 
-    void paintCircleOverview (juce::Graphics& g, const juce::Rectangle<int>& bounds) const
+    void paintCircleOverview (juce::Graphics& g, const juce::Rectangle<int>& bounds)
     {
         auto bf = bounds.toFloat();
         auto ca = getCircleSubArea (bf);
@@ -1278,6 +1623,7 @@ private:
         g.setFont (12.0f);
         juce::String azLabel = juce::String (cfg.azimuthOffset, 1) + juce::String::fromUTF8 ("\xc2\xb0");
         g.setColour (juce::Colour (0xffbbbbbb));
+        azCircleLabelRect = { lineEndX + 6.0f, lineEndY - 7.0f, 44.0f, 14.0f };
         g.drawText (azLabel, (int) lineEndX + 6, (int) lineEndY - 7, 44, 14,
                     juce::Justification::centredLeft);
 

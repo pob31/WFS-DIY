@@ -10,6 +10,7 @@
 #include "../gui/sliders/WfsStandardSlider.h"
 #include "../gui/sliders/WfsBidirectionalSlider.h"
 #include "../Localization/LocalizationManager.h"
+#include "../gui/ColumnFocusTraverser.h"
 
 /**
  * Gradient Map Editor
@@ -161,6 +162,14 @@ public:
         blackValueEditor.onReturnKey = [this] { onLayerPropertyChanged(); };
         whiteValueEditor.onFocusLost = [this] { onLayerPropertyChanged(); };
         blackValueEditor.onFocusLost = [this] { onLayerPropertyChanged(); };
+        whiteValueEditor.onEscapeKey = [this] {
+            whiteValueEditor.setText (juce::String (currentLayerData.whiteValue, 2), false);
+            whiteValueEditor.giveAwayKeyboardFocus();
+        };
+        blackValueEditor.onEscapeKey = [this] {
+            blackValueEditor.setText (juce::String (currentLayerData.blackValue, 2), false);
+            blackValueEditor.giveAwayKeyboardFocus();
+        };
 
         curveSlider.setTrackColours (juce::Colour::fromRGB (30, 30, 30), getLayerColour (0));
         curveSlider.onValueChanged = [this] (float)
@@ -178,6 +187,10 @@ public:
             onLayerPropertyChanged();
         };
         curveValueEditor.onFocusLost = curveValueEditor.onReturnKey;
+        curveValueEditor.onEscapeKey = [this] {
+            curveValueEditor.setText (juce::String (curveSlider.getValue(), 2), false);
+            curveValueEditor.giveAwayKeyboardFocus();
+        };
 
         auto hintFont = juce::FontOptions (juce::jmax (10.0f, 13.0f * WfsLookAndFeel::uiScale));
         mappingHintLabel.setJustificationType (juce::Justification::centred);
@@ -218,6 +231,14 @@ public:
             }
         };
         shapeNameEditor.onFocusLost = shapeNameEditor.onReturnKey;
+        shapeNameEditor.onEscapeKey = [this] {
+            if (! selectedShapeIndices.empty()) {
+                int idx = selectedShapeIndices[0];
+                if (idx >= 0 && idx < static_cast<int> (currentLayerData.shapes.size()))
+                    shapeNameEditor.setText (currentLayerData.shapes[static_cast<size_t> (idx)].name, false);
+            }
+            shapeNameEditor.giveAwayKeyboardFocus();
+        };
 
         shapeFillLabel.setText (LOC ("inputs.gradientMap.labels.fill"), juce::dontSendNotification);
         shapeFillLabel.setJustificationType (juce::Justification::centredRight);
@@ -238,6 +259,10 @@ public:
             onShapePropertyChanged();
         };
         shapeFillValueEditor.onFocusLost = shapeFillValueEditor.onReturnKey;
+        shapeFillValueEditor.onEscapeKey = [this] {
+            shapeFillValueEditor.setText (juce::String (shapeFillValueSlider.getValue(), 2), false);
+            shapeFillValueEditor.giveAwayKeyboardFocus();
+        };
 
         shapeBlurLabel.setText (LOC ("inputs.gradientMap.labels.blur"), juce::dontSendNotification);
         shapeBlurLabel.setJustificationType (juce::Justification::centredRight);
@@ -271,6 +296,10 @@ public:
             onShapePropertyChanged();
         };
         shapeBlurEditor.onFocusLost = shapeBlurEditor.onReturnKey;
+        shapeBlurEditor.onEscapeKey = [this] {
+            shapeBlurEditor.setText (juce::String (shapeBlurSlider.getValue(), 2), false);
+            shapeBlurEditor.giveAwayKeyboardFocus();
+        };
 
         shapeEnableBtn.setButtonText (LOC ("inputs.gradientMap.buttons.enable"));
         shapeEnableBtn.setClickingTogglesState (true);
@@ -330,6 +359,10 @@ public:
             onGradientValueChanged();
         };
         gradValue1Editor.onFocusLost = gradValue1Editor.onReturnKey;
+        gradValue1Editor.onEscapeKey = [this] {
+            gradValue1Editor.setText (juce::String (gradValue1Slider.getValue(), 2), false);
+            gradValue1Editor.giveAwayKeyboardFocus();
+        };
 
         gradValue2Slider.onValueChanged = [this] (float v)
         {
@@ -346,6 +379,10 @@ public:
             onGradientValueChanged();
         };
         gradValue2Editor.onFocusLost = gradValue2Editor.onReturnKey;
+        gradValue2Editor.onEscapeKey = [this] {
+            gradValue2Editor.setText (juce::String (gradValue2Slider.getValue(), 2), false);
+            gradValue2Editor.giveAwayKeyboardFocus();
+        };
 
         addAndMakeVisible (gradValue1Label);
         addAndMakeVisible (gradValue1Slider);
@@ -361,6 +398,7 @@ public:
         gradValue2Slider.setInvertForLightTheme (lightTheme);
 
         setShapePropertiesVisible (false);
+        setFocusContainerType (FocusContainerType::keyboardFocusContainer);
     }
 
     ~GradientMapEditor() override
@@ -539,6 +577,16 @@ public:
                         juce::Justification::centred);
         }
 
+    }
+
+    std::unique_ptr<juce::ComponentTraverser> createKeyboardFocusTraverser() override
+    {
+        return std::make_unique<ColumnCircuitTraverser> (std::vector<std::vector<juce::Component*>> {
+            // Layer properties (White / Black / Curve)
+            { &whiteValueEditor, &blackValueEditor, &curveValueEditor },
+            // Shape properties (Fill or Gradient Start/End + Blur — invisible ones auto-skipped)
+            { &shapeFillValueEditor, &gradValue1Editor, &gradValue2Editor, &shapeBlurEditor }
+        });
     }
 
     void resized() override

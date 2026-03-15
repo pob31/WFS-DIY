@@ -64,6 +64,26 @@ public:
         setupOscMethods();
         setupMouseListeners();
 
+        // Initialise tab navigation circuits (one loop per section)
+        reverbCircuits = {
+            // Channel Params: left column (attenuation + delay)
+            { &attenuationValueLabel, &delayLatencyValueLabel },
+            // Channel Params: position + return offset editors
+            { &posXEditor, &posYEditor, &posZEditor,
+              &returnOffsetXEditor, &returnOffsetYEditor, &returnOffsetZEditor },
+            // Channel Params: reverb feed controls
+            { &angleOnValueLabel, &angleOffValueLabel, &orientationValueLabel,
+              &pitchValueLabel, &hfDampingValueLabel, &distanceAttenEnableValueLabel },
+            // Channel Params: reverb return dials
+            { &distanceAttenValueLabel, &commonAttenValueLabel },
+            // Algorithm: all algo value labels (invisible ones auto-skipped per algorithm)
+            { &algoRT60ValueLabel, &algoRT60HighMultValueLabel, &algoRT60LowMultValueLabel,
+              &algoCrossoverHighValueLabel, &algoCrossoverLowValueLabel,
+              &algoDiffusionValueLabel, &algoSDNScaleValueLabel, &algoFDNSizeValueLabel,
+              &algoIRTrimValueLabel, &algoIRLengthValueLabel, &algoWetLevelValueLabel }
+        };
+        circuitTabHandler.circuits = &reverbCircuits;
+
         // Setup "no channels" message
         noChannelsLabel.setText (LOC("reverbs.noChannels"),
                                  juce::dontSendNotification);
@@ -405,15 +425,12 @@ public:
     }
 
     //==========================================================================
-    // Custom keyboard focus traversal — positions then offsets
+    // Custom keyboard focus traversal — independent loops per section
     //==========================================================================
 
     std::unique_ptr<juce::ComponentTraverser> createKeyboardFocusTraverser() override
     {
-        return std::make_unique<ColumnCircuitTraverser>(std::vector<std::vector<juce::Component*>>{
-            { &posXEditor, &posYEditor, &posZEditor,
-              &returnOffsetXEditor, &returnOffsetYEditor, &returnOffsetZEditor }
-        });
+        return std::make_unique<ColumnCircuitTraverser>(reverbCircuits);
     }
 
 private:
@@ -4288,12 +4305,8 @@ private:
         // Revert to stored value and release focus
         if (&editor == &nameEditor)
             editor.setText(parameters.getReverbParam(currentChannel - 1, "reverbName").toString(), false);
-        else if (&editor == &posXEditor)
-            editor.setText(juce::String((float)parameters.getReverbParam(currentChannel - 1, "reverbPositionX"), 2), false);
-        else if (&editor == &posYEditor)
-            editor.setText(juce::String((float)parameters.getReverbParam(currentChannel - 1, "reverbPositionY"), 2), false);
-        else if (&editor == &posZEditor)
-            editor.setText(juce::String((float)parameters.getReverbParam(currentChannel - 1, "reverbPositionZ"), 2), false);
+        else if (&editor == &posXEditor || &editor == &posYEditor || &editor == &posZEditor)
+            updatePositionLabelsAndValues();  // Restores display-coordinate values for current mode
         else if (&editor == &returnOffsetXEditor)
             editor.setText(juce::String((float)parameters.getReverbParam(currentChannel - 1, "reverbReturnOffsetX"), 2), false);
         else if (&editor == &returnOffsetYEditor)
@@ -4337,6 +4350,16 @@ private:
             saveReverbParam (WFSParameterIDs::reverbReturnOffsetY, editor.getText().getFloatValue());
         else if (&editor == &returnOffsetZEditor)
             saveReverbParam (WFSParameterIDs::reverbReturnOffsetZ, editor.getText().getFloatValue());
+    }
+
+    void editorShown (juce::Label* label, juce::TextEditor& editor) override
+    {
+        for (auto& col : reverbCircuits)
+            if (std::find (col.begin(), col.end(), static_cast<juce::Component*>(label)) != col.end())
+            {
+                editor.addKeyListener (&circuitTabHandler);
+                break;
+            }
     }
 
     void labelTextChanged (juce::Label* label) override
@@ -5261,6 +5284,67 @@ private:
 
     // No channels message
     juce::Label noChannelsLabel;
+
+    // Tab navigation circuits (one loop per section, invisible labels auto-skipped)
+    std::vector<std::vector<juce::Component*>> reverbCircuits;
+
+    // KeyListener that intercepts Tab from Label TextEditors to navigate within
+    // the correct circuit column. Labels override createKeyboardFocusTraverser()
+    // unconditionally, so the normal ColumnCircuitTraverser is never reached
+    // from inside a Label's editor.
+    struct CircuitTabHandler : public juce::KeyListener
+    {
+        std::vector<std::vector<juce::Component*>>* circuits = nullptr;
+
+        bool keyPressed (const juce::KeyPress& key, juce::Component* originatingComponent) override
+        {
+            if (circuits == nullptr || ! key.isKeyCode (juce::KeyPress::tabKey))
+                return false;
+
+            auto* label = dynamic_cast<juce::Label*> (originatingComponent->getParentComponent());
+            if (label == nullptr)
+                return false;
+
+            // Find which column this label belongs to
+            std::vector<juce::Component*>* col = nullptr;
+            int idx = -1;
+            for (auto& c : *circuits)
+            {
+                auto it = std::find (c.begin(), c.end(), static_cast<juce::Component*> (label));
+                if (it != c.end())
+                {
+                    col = &c;
+                    idx = (int) std::distance (c.begin(), it);
+                    break;
+                }
+            }
+            if (col == nullptr)
+                return false;
+
+            bool forward = ! key.getModifiers().isShiftDown();
+            int n = (int) col->size();
+            int nextIdx = forward ? (idx + 1) % n : (idx + n - 1) % n;
+
+            for (int j = 0; j < n - 1; ++j)
+            {
+                if ((*col)[(size_t) nextIdx]->isVisible()
+                    && (*col)[(size_t) nextIdx]->isEnabled())
+                    break;
+                nextIdx = forward ? (nextIdx + 1) % n : (nextIdx + n - 1) % n;
+            }
+
+            auto* next = (*col)[(size_t) nextIdx];
+
+            label->hideEditor (false);
+
+            if (auto* nextLabel = dynamic_cast<juce::Label*> (next))
+                nextLabel->showEditor();
+            else
+                next->grabKeyboardFocus();
+
+            return true;
+        }
+    } circuitTabHandler;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ReverbTab)
 };

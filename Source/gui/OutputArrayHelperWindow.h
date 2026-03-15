@@ -7,6 +7,7 @@
 #include "../Localization/LocalizationManager.h"
 #include "ColorScheme.h"
 #include "WindowUtils.h"
+#include "ColumnFocusTraverser.h"
 
 //==============================================================================
 // Forward declarations
@@ -121,6 +122,22 @@ public:
 
     void paint(juce::Graphics& g) override;
     void resized() override;
+
+    std::unique_ptr<juce::ComponentTraverser> createKeyboardFocusTraverser() override
+    {
+        return std::make_unique<ColumnCircuitTraverser>(std::vector<std::vector<juce::Component*>>{
+            // Geometry fields (invisible ones skipped automatically per preset/mode)
+            { &numSpeakersEditor, &zPositionEditor, &orientationEditor,
+              &centerXEditor, &centerYEditor, &spacingEditor,
+              &startXEditor, &startYEditor, &endXEditor, &endYEditor,
+              &sagEditor, &radiusEditor, &startAngleEditor,
+              &widthEditor, &yStartEditor, &yEndEditor },
+            // Acoustic defaults fields
+            { &hfDampingEditor, &distanceAttenEditor,
+              &hParallaxEditor, &vParallaxEditor,
+              &lowCutFreqEditor, &highCutFreqEditor }
+        });
+    }
 
 private:
     WfsParameters& parameters;

@@ -1102,16 +1102,18 @@ public:
     std::unique_ptr<juce::ComponentTraverser> createKeyboardFocusTraverser() override
     {
         return std::make_unique<ColumnCircuitTraverser>(std::vector<std::vector<juce::Component*>>{
-            // Column 1: Show + I/O
-            { &showNameEditor, &showLocationEditor,
-              &inputChannelsEditor, &outputChannelsEditor, &reverbChannelsEditor },
-            // Column 2: Stage + Master (invisible fields skipped automatically)
+            // Column 1: Show
+            { &showNameEditor, &showLocationEditor },
+            // Column 2: I/O
+            { &inputChannelsEditor, &outputChannelsEditor, &reverbChannelsEditor },
+            // Column 3: Stage (invisible fields skipped automatically per shape)
             { &stageWidthEditor, &stageDepthEditor,
               &stageDiameterEditor, &domeElevationEditor, &stageHeightEditor,
               &stageOriginWidthEditor, &stageOriginDepthEditor, &stageOriginHeightEditor,
-              &speedOfSoundEditor, &temperatureEditor,
-              &masterLevelEditor, &systemLatencyEditor, &haasEffectEditor },
-            // Column 3: Binaural Renderer
+              &speedOfSoundEditor, &temperatureEditor },
+            // Column 4: Master
+            { &masterLevelEditor, &systemLatencyEditor, &haasEffectEditor },
+            // Column 5: Binaural Renderer
             { &binauralDistanceEditor, &binauralAngleEditor,
               &binauralAttenEditor, &binauralDelayEditor }
         });

@@ -497,8 +497,7 @@ public:
 
     std::unique_ptr<juce::ComponentTraverser> createKeyboardFocusTraverser() override
     {
-        return std::make_unique<ColumnCircuitTraverser>(
-            std::vector<std::vector<juce::Component*>>{ outputParamCircuit });
+        return std::make_unique<ColumnCircuitTraverser>(outputParamCircuits);
     }
 
 private:
@@ -857,15 +856,19 @@ private:
         hfDampingValueLabel.setText("0.0 dB/m", juce::dontSendNotification);
         setupEditableValueLabel(hfDampingValueLabel);
 
-        // Initialise output-parameter Tab circuit and wire up the KeyListener
-        outputParamCircuit = {
-            &attenuationValueLabel, &delayLatencyValueLabel, &distanceAttenValueLabel,
-            &posXEditor, &posYEditor, &posZEditor,
-            &angleOnValueLabel, &angleOffValueLabel, &orientationValueLabel,
-            &pitchValueLabel, &hfDampingValueLabel,
-            &hParallaxEditor, &vParallaxEditor
+        // Initialise output-parameter Tab circuits (one loop per column)
+        outputParamCircuits = {
+            // Left column value labels
+            { &attenuationValueLabel, &delayLatencyValueLabel, &distanceAttenValueLabel },
+            // Coordinate position editors
+            { &posXEditor, &posYEditor, &posZEditor },
+            // Right column controls
+            { &angleOnValueLabel, &angleOffValueLabel, &orientationValueLabel,
+              &pitchValueLabel, &hfDampingValueLabel },
+            // Parallax editors
+            { &hParallaxEditor, &vParallaxEditor }
         };
-        circuitTabHandler.circuit = &outputParamCircuit;
+        circuitTabHandler.circuits = &outputParamCircuits;
     }
 
     void setupEqTab()
@@ -1923,12 +1926,8 @@ private:
         // Revert to stored value and release focus
         if (&editor == &nameEditor)
             editor.setText(parameters.getOutputParam(currentChannel - 1, "outputName").toString(), false);
-        else if (&editor == &posXEditor)
-            editor.setText(juce::String((float)parameters.getOutputParam(currentChannel - 1, "outputPositionX"), 2), false);
-        else if (&editor == &posYEditor)
-            editor.setText(juce::String((float)parameters.getOutputParam(currentChannel - 1, "outputPositionY"), 2), false);
-        else if (&editor == &posZEditor)
-            editor.setText(juce::String((float)parameters.getOutputParam(currentChannel - 1, "outputPositionZ"), 2), false);
+        else if (&editor == &posXEditor || &editor == &posYEditor || &editor == &posZEditor)
+            updatePositionLabelsAndValues();  // Restores display-coordinate values for current mode
         else if (&editor == &hParallaxEditor)
             editor.setText(juce::String((float)parameters.getOutputParam(currentChannel - 1, "outputHparallax"), 2), false);
         else if (&editor == &vParallaxEditor)
@@ -1975,11 +1974,12 @@ private:
 
     void editorShown (juce::Label* label, juce::TextEditor& editor) override
     {
-        if (std::find (outputParamCircuit.begin(), outputParamCircuit.end(), label)
-            != outputParamCircuit.end())
-        {
-            editor.addKeyListener (&circuitTabHandler);
-        }
+        for (auto& col : outputParamCircuits)
+            if (std::find (col.begin(), col.end(), label) != col.end())
+            {
+                editor.addKeyListener (&circuitTabHandler);
+                break;
+            }
     }
 
     void labelTextChanged(juce::Label* label) override
@@ -2522,46 +2522,56 @@ private:
     // Array Position Helper window
     std::unique_ptr<OutputArrayHelperWindow> arrayHelperWindow;
 
-    // Output Parameters tab circuit for Tab navigation
-    std::vector<juce::Component*> outputParamCircuit;
+    // Output Parameters tab circuits for Tab navigation (one loop per column)
+    std::vector<std::vector<juce::Component*>> outputParamCircuits;
 
     // KeyListener that intercepts Tab from Label TextEditors to navigate the circuit.
     // Labels override createKeyboardFocusTraverser() unconditionally, so the normal
     // ColumnCircuitTraverser is never reached from inside a Label's editor.  This
     // handler hides the current editor (committing the value and exiting modal state)
-    // and directly shows/focuses the next circuit member.
+    // and directly shows/focuses the next circuit member within the same column.
     struct CircuitTabHandler : public juce::KeyListener
     {
-        std::vector<juce::Component*>* circuit = nullptr;
+        std::vector<std::vector<juce::Component*>>* circuits = nullptr;
 
         bool keyPressed (const juce::KeyPress& key, juce::Component* originatingComponent) override
         {
-            if (circuit == nullptr || ! key.isKeyCode (juce::KeyPress::tabKey))
+            if (circuits == nullptr || ! key.isKeyCode (juce::KeyPress::tabKey))
                 return false;
 
             auto* label = dynamic_cast<juce::Label*> (originatingComponent->getParentComponent());
             if (label == nullptr)
                 return false;
 
-            auto it = std::find (circuit->begin(), circuit->end(),
-                                 static_cast<juce::Component*> (label));
-            if (it == circuit->end())
+            // Find which column this label belongs to
+            std::vector<juce::Component*>* col = nullptr;
+            int idx = -1;
+            for (auto& c : *circuits)
+            {
+                auto it = std::find (c.begin(), c.end(), static_cast<juce::Component*> (label));
+                if (it != c.end())
+                {
+                    col = &c;
+                    idx = (int) std::distance (c.begin(), it);
+                    break;
+                }
+            }
+            if (col == nullptr)
                 return false;
 
             bool forward = ! key.getModifiers().isShiftDown();
-            int idx = (int) std::distance (circuit->begin(), it);
-            int n   = (int) circuit->size();
+            int n = (int) col->size();
             int nextIdx = forward ? (idx + 1) % n : (idx + n - 1) % n;
 
             for (int j = 0; j < n - 1; ++j)
             {
-                if ((*circuit)[(size_t) nextIdx]->isVisible()
-                    && (*circuit)[(size_t) nextIdx]->isEnabled())
+                if ((*col)[(size_t) nextIdx]->isVisible()
+                    && (*col)[(size_t) nextIdx]->isEnabled())
                     break;
                 nextIdx = forward ? (nextIdx + 1) % n : (nextIdx + n - 1) % n;
             }
 
-            auto* next = (*circuit)[(size_t) nextIdx];
+            auto* next = (*col)[(size_t) nextIdx];
 
             // Commit value + exit modal.  Destroys the TextEditor, but JUCE's
             // ComponentPeer uses a WeakReference to detect this safely.

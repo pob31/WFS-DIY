@@ -377,6 +377,53 @@ public:
         deleteSnapshotButton.onLongPress = [this]() { deleteSnapshot(); };
         deleteSnapshotButton.setEnabled(false);
 
+        // Initialise tab navigation circuits (one loop per section)
+        inputCircuits = {
+            // Position editors
+            { &posXEditor, &posYEditor, &posZEditor },
+            // Offset editors
+            { &offsetXEditor, &offsetYEditor, &offsetZEditor },
+            // Distance range editors
+            { &distanceMinEditor, &distanceMaxEditor },
+            // Attenuation + law dials (invisible ones auto-skipped)
+            { &attenuationValueLabel, &delayLatencyValueLabel,
+              &distanceAttenValueLabel, &distanceRatioValueLabel, &commonAttenValueLabel },
+            // Sound controls (right column)
+            { &directivityValueLabel, &tiltValueLabel, &hfShelfValueLabel, &rotationValueLabel },
+            // Array attenuation dials
+            { &arrayAttenValueLabels[0], &arrayAttenValueLabels[1], &arrayAttenValueLabels[2],
+              &arrayAttenValueLabels[3], &arrayAttenValueLabels[4], &arrayAttenValueLabels[5],
+              &arrayAttenValueLabels[6], &arrayAttenValueLabels[7], &arrayAttenValueLabels[8],
+              &arrayAttenValueLabels[9] },
+            // Bottom row dials
+            { &sidelinesFringeValueLabel, &trackingSmoothValueLabel,
+              &maxSpeedValueLabel, &heightFactorValueLabel },
+            // Live Source value labels
+            { &lsRadiusValueLabel, &lsAttenuationValueLabel,
+              &lsPeakThresholdValueLabel, &lsPeakRatioValueLabel,
+              &lsSlowThresholdValueLabel, &lsSlowRatioValueLabel },
+            // Floor Reflections / Hackoustics value labels
+            { &frAttenuationValueLabel, &frDiffusionValueLabel,
+              &frLowCutFreqValueLabel, &frHighShelfFreqValueLabel,
+              &frHighShelfGainValueLabel, &frHighShelfSlopeValueLabel },
+            // LFO: Period & Phase (top row)
+            { &lfoPeriodValueLabel, &lfoPhaseValueLabel },
+            // LFO X axis: Amplitude, Rate, Phase
+            { &lfoAmplitudeXValueLabel, &lfoRateXValueLabel, &lfoPhaseXValueLabel },
+            // LFO Y axis: Amplitude, Rate, Phase
+            { &lfoAmplitudeYValueLabel, &lfoRateYValueLabel, &lfoPhaseYValueLabel },
+            // LFO Z axis: Amplitude, Rate, Phase
+            { &lfoAmplitudeZValueLabel, &lfoRateZValueLabel, &lfoPhaseZValueLabel },
+            // Jitter (standalone)
+            { &jitterValueLabel },
+            // AutomOtion: destination + parameters (Curve auto-skipped when hidden)
+            { &otomoDestXEditor, &otomoDestYEditor, &otomoDestZEditor,
+              &otomoDurationValueLabel, &otomoCurveValueLabel,
+              &otomoSpeedProfileValueLabel, &otomoThresholdValueLabel,
+              &otomoResetValueLabel }
+        };
+        circuitTabHandler.circuits = &inputCircuits;
+
         // Load initial channel parameters
         loadChannelParameters(1);
     }
@@ -650,6 +697,7 @@ public:
     {
         statusBar = bar;
         gradientMapEditor.setStatusBar (bar);
+        samplerSubTab.setStatusBar (bar);
         setupHelpText();
         setupOscMethods();
         setupMouseListeners();
@@ -765,14 +813,7 @@ public:
 
     std::unique_ptr<juce::ComponentTraverser> createKeyboardFocusTraverser() override
     {
-        return std::make_unique<ColumnCircuitTraverser>(std::vector<std::vector<juce::Component*>>{
-            // Position sub-tab: positions → offsets → distance (conditional)
-            { &posXEditor, &posYEditor, &posZEditor,
-              &offsetXEditor, &offsetYEditor, &offsetZEditor,
-              &distanceMinEditor, &distanceMaxEditor },
-            // AutomOtion sub-tab: destination
-            { &otomoDestXEditor, &otomoDestYEditor, &otomoDestZEditor }
-        });
+        return std::make_unique<ColumnCircuitTraverser>(inputCircuits);
     }
 
     /** Show/hide the sampler toggle button based on master switch */
@@ -4347,16 +4388,17 @@ private:
         const int arrayLabelWidth = smallDialSize + arrayDialSpacing;  // Full width per dial slot
         arrayAttenLabel.setBounds(col2.removeFromTop(rowHeight).removeFromLeft(scaled(150)));
 
-        auto arrayRow = col2.removeFromTop(smallDialSize + scaled(30));
+        const int arrayLblH = scaled(14);
+        const int arrayValH = scaled(16);
+        auto arrayRow = col2.removeFromTop(arrayLblH + smallDialSize + arrayValH);
         for (int i = 0; i < 10; ++i)
         {
             int slotX = arrayRow.getX() + i * (smallDialSize + arrayDialSpacing);
             int dialX = slotX + arrayDialSpacing / 2;
             int labelCenterX = dialX + smallDialSize / 2;  // Center of dial
-            const int arrayLblH = scaled(12);
             arrayAttenDialLabels[i].setBounds(labelCenterX - arrayLabelWidth / 2, arrayRow.getY(), arrayLabelWidth, arrayLblH);
             arrayAttenDials[i].setBounds(dialX, arrayRow.getY() + arrayLblH, smallDialSize, smallDialSize);
-            arrayAttenValueLabels[i].setBounds(labelCenterX - arrayLabelWidth / 2, arrayRow.getY() + arrayLblH + smallDialSize, arrayLabelWidth, arrayLblH);
+            arrayAttenValueLabels[i].setBounds(labelCenterX - arrayLabelWidth / 2, arrayRow.getY() + arrayLblH + smallDialSize, arrayLabelWidth, arrayValH);
         }
         col2.removeFromTop(spacing);
 
@@ -5744,6 +5786,16 @@ private:
     }
 
     // ==================== LABEL LISTENER ====================
+
+    void editorShown (juce::Label* label, juce::TextEditor& editor) override
+    {
+        for (auto& col : inputCircuits)
+            if (std::find (col.begin(), col.end(), static_cast<juce::Component*>(label)) != col.end())
+            {
+                editor.addKeyListener (&circuitTabHandler);
+                break;
+            }
+    }
 
     void labelTextChanged(juce::Label* label) override
     {
@@ -7905,6 +7957,67 @@ private:
     LongPressButton updateSnapshotButton;
     LongPressButton editScopeButton { 1 };
     LongPressButton deleteSnapshotButton;
+
+    // Tab navigation circuits (one loop per section, invisible labels auto-skipped)
+    std::vector<std::vector<juce::Component*>> inputCircuits;
+
+    // KeyListener that intercepts Tab from Label TextEditors to navigate within
+    // the correct circuit column. Labels override createKeyboardFocusTraverser()
+    // unconditionally, so the normal ColumnCircuitTraverser is never reached
+    // from inside a Label's editor.
+    struct CircuitTabHandler : public juce::KeyListener
+    {
+        std::vector<std::vector<juce::Component*>>* circuits = nullptr;
+
+        bool keyPressed (const juce::KeyPress& key, juce::Component* originatingComponent) override
+        {
+            if (circuits == nullptr || ! key.isKeyCode (juce::KeyPress::tabKey))
+                return false;
+
+            auto* label = dynamic_cast<juce::Label*> (originatingComponent->getParentComponent());
+            if (label == nullptr)
+                return false;
+
+            // Find which column this label belongs to
+            std::vector<juce::Component*>* col = nullptr;
+            int idx = -1;
+            for (auto& c : *circuits)
+            {
+                auto it = std::find (c.begin(), c.end(), static_cast<juce::Component*> (label));
+                if (it != c.end())
+                {
+                    col = &c;
+                    idx = (int) std::distance (c.begin(), it);
+                    break;
+                }
+            }
+            if (col == nullptr)
+                return false;
+
+            bool forward = ! key.getModifiers().isShiftDown();
+            int n = (int) col->size();
+            int nextIdx = forward ? (idx + 1) % n : (idx + n - 1) % n;
+
+            for (int j = 0; j < n - 1; ++j)
+            {
+                if ((*col)[(size_t) nextIdx]->isVisible()
+                    && (*col)[(size_t) nextIdx]->isEnabled())
+                    break;
+                nextIdx = forward ? (nextIdx + 1) % n : (nextIdx + n - 1) % n;
+            }
+
+            auto* next = (*col)[(size_t) nextIdx];
+
+            label->hideEditor (false);
+
+            if (auto* nextLabel = dynamic_cast<juce::Label*> (next))
+                nextLabel->showEditor();
+            else
+                next->grabKeyboardFocus();
+
+            return true;
+        }
+    } circuitTabHandler;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(InputsTab)
 };
