@@ -234,6 +234,28 @@ namespace WFSParameterDefaults
     constexpr int clusterReferenceModeMin     = 0;
     constexpr int clusterReferenceModeMax     = 1;
 
+    // Cluster > LFO Defaults
+    constexpr int   clusterLFOactiveDefault         = 0;
+    constexpr float clusterLFOperiodDefault         = 5.0f;
+    constexpr float clusterLFOperiodMin             = 0.01f;
+    constexpr float clusterLFOperiodMax             = 100.0f;
+    constexpr int   clusterLFOphaseDefault          = 0;
+    constexpr int   clusterLFOphaseMin              = -180;
+    constexpr int   clusterLFOphaseMax              = 180;
+    constexpr int   clusterLFOshapeDefault          = 0;       // Off
+    constexpr float clusterLFOrateDefault           = 1.0f;
+    constexpr float clusterLFOrateMin               = 0.01f;
+    constexpr float clusterLFOrateMax               = 100.0f;
+    constexpr float clusterLFOamplitudeXYZDefault   = 1.0f;    // meters
+    constexpr float clusterLFOamplitudeXYZMin       = 0.0f;
+    constexpr float clusterLFOamplitudeXYZMax       = 50.0f;
+    constexpr int   clusterLFOamplitudeRotDefault   = 0;       // degrees
+    constexpr int   clusterLFOamplitudeRotMin       = -360;
+    constexpr int   clusterLFOamplitudeRotMax       = 360;
+    constexpr float clusterLFOamplitudeScaleDefault = 1.0f;    // log center (no modulation)
+    constexpr float clusterLFOamplitudeScaleMin     = 0.1f;
+    constexpr float clusterLFOamplitudeScaleMax     = 10.0f;
+
     //==========================================================================
     // Input Channel Defaults
     //==========================================================================

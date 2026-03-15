@@ -1120,6 +1120,10 @@ void OSCManager::handleIncomingMessage(const juce::OSCMessage& message,
     {
         handleClusterScaleRotationMessage(message);
     }
+    else if (OSCMessageRouter::isClusterLFOAddress(address))
+    {
+        handleClusterLFOMessage(message);
+    }
     else if (OSCMessageRouter::isADMOSCAddress(address))
     {
         handleADMOSCMessage(message);
@@ -1205,6 +1209,10 @@ void OSCManager::handleIncomingBundle(const juce::OSCBundle& bundle,
             else if (OSCMessageRouter::isClusterScaleRotationAddress(address))
             {
                 handleClusterScaleRotationMessage(message);
+            }
+            else if (OSCMessageRouter::isClusterLFOAddress(address))
+            {
+                handleClusterLFOMessage(message);
             }
             else if (OSCMessageRouter::isADMOSCAddress(address))
             {
@@ -2336,6 +2344,91 @@ void OSCManager::handleClusterScaleRotationMessage(const juce::OSCMessage& messa
         // Echo updated positions back to Remote targets so Android sees all members move
         for (const auto& [channelId, x, y] : updatedPositions)
             sendInputPositionXYToRemote(channelId, x, y);
+    });
+}
+
+void OSCManager::handleClusterLFOMessage(const juce::OSCMessage& message)
+{
+    // Parse /wfs/cluster/lfo<ParamName> <clusterID> <value>
+    juce::String address = message.getAddressPattern().toString();
+
+    if (message.size() < 2)
+    {
+        ++parseErrors;
+        return;
+    }
+
+    int clusterId = 0;
+    if (message[0].isInt32())
+        clusterId = message[0].getInt32();
+    else if (message[0].isFloat32())
+        clusterId = static_cast<int>(message[0].getFloat32());
+
+    if (clusterId < 1 || clusterId > 10)
+    {
+        ++parseErrors;
+        return;
+    }
+
+    // Extract param name from address: "/wfs/cluster/lfoActive" -> "clusterLFOactive"
+    juce::String suffix = address.fromLastOccurrenceOf("/wfs/cluster/lfo", false, true);
+    if (suffix.isEmpty())
+    {
+        ++parseErrors;
+        return;
+    }
+
+    // Map OSC suffix to parameter ID
+    using namespace WFSParameterIDs;
+    static const std::map<juce::String, juce::Identifier> paramMap = {
+        { "Active",         clusterLFOactive },
+        { "Period",         clusterLFOperiod },
+        { "Phase",          clusterLFOphase },
+        { "ShapeX",         clusterLFOshapeX },
+        { "ShapeY",         clusterLFOshapeY },
+        { "ShapeZ",         clusterLFOshapeZ },
+        { "ShapeRot",       clusterLFOshapeRot },
+        { "ShapeScale",     clusterLFOshapeScale },
+        { "RateX",          clusterLFOrateX },
+        { "RateY",          clusterLFOrateY },
+        { "RateZ",          clusterLFOrateZ },
+        { "RateRot",        clusterLFOrateRot },
+        { "RateScale",      clusterLFOrateScale },
+        { "AmplitudeX",     clusterLFOamplitudeX },
+        { "AmplitudeY",     clusterLFOamplitudeY },
+        { "AmplitudeZ",     clusterLFOamplitudeZ },
+        { "AmplitudeRot",   clusterLFOamplitudeRot },
+        { "AmplitudeScale", clusterLFOamplitudeScale },
+        { "PhaseX",         clusterLFOphaseX },
+        { "PhaseY",         clusterLFOphaseY },
+        { "PhaseZ",         clusterLFOphaseZ },
+        { "PhaseRot",       clusterLFOphaseRot },
+        { "PhaseScale",     clusterLFOphaseScale },
+    };
+
+    auto it = paramMap.find(suffix);
+    if (it == paramMap.end())
+    {
+        ++parseErrors;
+        return;
+    }
+
+    juce::var value;
+    if (message[1].isInt32())
+        value = message[1].getInt32();
+    else if (message[1].isFloat32())
+        value = message[1].getFloat32();
+    else
+    {
+        ++parseErrors;
+        return;
+    }
+
+    juce::MessageManager::callAsync([this, clusterId, paramId = it->second, value]()
+    {
+        auto lfoSection = state.getClusterLFOSection(clusterId);
+        if (lfoSection.isValid())
+            lfoSection.setProperty(paramId, value, nullptr);
     });
 }
 

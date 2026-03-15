@@ -415,6 +415,11 @@ bool OSCMessageRouter::isClusterScaleRotationAddress(const juce::String& address
     return address == "/cluster/scale" || address == "/cluster/rotation";
 }
 
+bool OSCMessageRouter::isClusterLFOAddress(const juce::String& address)
+{
+    return address.startsWith("/wfs/cluster/lfo");
+}
+
 juce::String OSCMessageRouter::extractParamName(const juce::String& address)
 {
     // Extract the last part of the path

@@ -8,8 +8,15 @@
 #include "ColorUtilities.h"
 #include "WfsJoystickComponent.h"
 #include "sliders/WfsAutoCenterSlider.h"
+#include "sliders/WfsStandardSlider.h"
+#include "sliders/WfsBidirectionalSlider.h"
 #include "dials/WfsEndlessDial.h"
+#include "dials/WfsBasicDial.h"
+#include "dials/WfsRotationDial.h"
+#include "dials/WfsLFOIndicators.h"
+#include "StatusBar.h"
 #include "../Localization/LocalizationManager.h"
+#include "../DSP/ClusterLFOProcessor.h"
 
 //==============================================================================
 /**
@@ -27,7 +34,7 @@ public:
                                  shouldDrawButtonAsHighlighted, shouldDrawButtonAsDown);
 
         // Draw text with bold font
-        g.setFont (juce::FontOptions (14.0f).withStyle ("Bold"));
+        g.setFont (juce::FontOptions (15.0f).withStyle ("Bold"));
         g.setColour (findColour (getToggleState() ? textColourOnId : textColourOffId));
         g.drawText (getButtonText(), getLocalBounds(), juce::Justification::centred);
     }
@@ -36,7 +43,8 @@ public:
 //==============================================================================
 /**
  * Clusters Tab Component
- * Management of input clusters with position, rotation, scale, and attenuation controls.
+ * Management of input clusters with position, rotation, scale, attenuation,
+ * and LFO controls for X, Y, Z, Rotation, and Scale modulation.
  */
 class ClustersTab : public juce::Component,
                     public juce::ListBoxModel,
@@ -47,7 +55,8 @@ public:
     ClustersTab(WfsParameters& params)
         : parameters(params),
           inputsTree(params.getInputTree()),
-          configTree(params.getConfigTree())
+          configTree(params.getConfigTree()),
+          clusterLFOProcessor(params.getValueTreeState())
     {
         // Add listeners
         inputsTree.addListener(this);
@@ -75,13 +84,14 @@ public:
         // ==================== ASSIGNED INPUTS PANEL ====================
         addAndMakeVisible(assignedInputsLabel);
         assignedInputsLabel.setText(LOC("clusters.labels.assignedInputs"), juce::dontSendNotification);
-        assignedInputsLabel.setFont(juce::FontOptions().withHeight(14.0f).withStyle("Bold"));
+        assignedInputsLabel.setFont(juce::FontOptions().withHeight(16.0f).withStyle("Bold"));
 
         addAndMakeVisible(inputsList);
         inputsList.setModel(this);
         inputsList.setColour(juce::ListBox::backgroundColourId, ColorScheme::get().backgroundAlt);
         inputsList.setRowHeight(24);
 
+        // ==================== CENTER PANEL - REFERENCE + CONTROLS ====================
         // Reference mode selector
         addAndMakeVisible(referenceModeLabel);
         referenceModeLabel.setText(LOC("clusters.labels.reference"), juce::dontSendNotification);
@@ -116,13 +126,17 @@ public:
         // Status label (tracking info)
         addAndMakeVisible(statusLabel);
         statusLabel.setColour(juce::Label::textColourId, juce::Colour(0xFFFF9800));
-        statusLabel.setFont(juce::FontOptions().withHeight(12.0f));
+        statusLabel.setFont(juce::FontOptions().withHeight(14.0f));
 
-        // ==================== CONTROLS PANEL ====================
+        // Controls label
+        addAndMakeVisible(controlsLabel);
+        controlsLabel.setText(LOC("clusters.labels.controls"), juce::dontSendNotification);
+        controlsLabel.setFont(juce::FontOptions().withHeight(16.0f).withStyle("Bold"));
+
         // Position joystick label
         addAndMakeVisible(positionLabel);
         positionLabel.setText(LOC("clusters.labels.position"), juce::dontSendNotification);
-        positionLabel.setFont(juce::FontOptions().withHeight(12.0f));
+        positionLabel.setFont(juce::FontOptions().withHeight(14.0f));
         positionLabel.setJustificationType(juce::Justification::centred);
 
         // Position joystick
@@ -134,7 +148,7 @@ public:
         // Z slider label
         addAndMakeVisible(zSliderLabel);
         zSliderLabel.setText(LOC("clusters.labels.z"), juce::dontSendNotification);
-        zSliderLabel.setFont(juce::FontOptions().withHeight(12.0f));
+        zSliderLabel.setFont(juce::FontOptions().withHeight(14.0f));
         zSliderLabel.setJustificationType(juce::Justification::centred);
 
         // Z slider
@@ -147,7 +161,7 @@ public:
         // Attenuation slider label
         addAndMakeVisible(attenuationLabel);
         attenuationLabel.setText(LOC("clusters.labels.attenuation"), juce::dontSendNotification);
-        attenuationLabel.setFont(juce::FontOptions().withHeight(12.0f));
+        attenuationLabel.setFont(juce::FontOptions().withHeight(14.0f));
         attenuationLabel.setJustificationType(juce::Justification::centred);
 
         // Attenuation slider
@@ -160,12 +174,12 @@ public:
         // Rotation dial label
         addAndMakeVisible(rotationLabel);
         rotationLabel.setText(LOC("clusters.labels.rotation"), juce::dontSendNotification);
-        rotationLabel.setFont(juce::FontOptions().withHeight(12.0f));
+        rotationLabel.setFont(juce::FontOptions().withHeight(14.0f));
         rotationLabel.setJustificationType(juce::Justification::centred);
 
         // Rotation dial
         addAndMakeVisible(rotationDial);
-        rotationDial.setColours(juce::Colour(0xFF3A3A3A), juce::Colour(0xFF2196F3));
+        rotationDial.setColours(juce::Colour(0xFF3A3A3A), juce::Colour(0xFF2196F3), juce::Colours::white);
         rotationDial.onGestureStart = [this]() {
             parameters.getValueTreeState().beginUndoTransaction("Cluster Param");
         };
@@ -173,7 +187,7 @@ public:
         // Scale joystick label
         addAndMakeVisible(scaleLabel);
         scaleLabel.setText(LOC("clusters.labels.scale"), juce::dontSendNotification);
-        scaleLabel.setFont(juce::FontOptions().withHeight(12.0f));
+        scaleLabel.setFont(juce::FontOptions().withHeight(14.0f));
         scaleLabel.setJustificationType(juce::Justification::centred);
 
         // Scale joystick
@@ -195,10 +209,8 @@ public:
             currentPlane = static_cast<Plane>(planeSelector.getSelectedId() - 1);
         };
 
-        // ==================== CONTROLS LABEL ====================
-        addAndMakeVisible(controlsLabel);
-        controlsLabel.setText(LOC("clusters.labels.controls"), juce::dontSendNotification);
-        controlsLabel.setFont(juce::FontOptions().withHeight(14.0f).withStyle("Bold"));
+        // ==================== LFO PANEL ====================
+        setupLFOPanel();
 
         // Start with first cluster selected
         selectCluster(1);
@@ -215,15 +227,24 @@ public:
         configTree.removeListener(this);
     }
 
+    void setStatusBar(StatusBar* bar)
+    {
+        statusBar = bar;
+        setupHelpTextMappings();
+    }
+
     void paint(juce::Graphics& g) override
     {
         g.fillAll(ColorScheme::get().background);
 
-        // Draw separator between left and right panels
         auto bounds = getLocalBounds();
-        auto leftPanelWidth = bounds.getWidth() / 2;
+        int colWidth = bounds.getWidth() / 3;
+        float topY = 50.0f * layoutScale;
+        float botY = static_cast<float>(bounds.getHeight()) - 10.0f * layoutScale;
+
         g.setColour(ColorScheme::get().chromeDivider);
-        g.drawVerticalLine(leftPanelWidth, 50.0f * layoutScale, bounds.getHeight() - 10.0f * layoutScale);
+        g.drawVerticalLine(colWidth, topY, botY);
+        g.drawVerticalLine(colWidth * 2, topY, botY);
     }
 
     void resized() override
@@ -231,9 +252,9 @@ public:
         layoutScale = static_cast<float>(getHeight()) / 932.0f;
         auto bounds = getLocalBounds().reduced(scaled(10));
 
-        // ==================== CLUSTER SELECTOR BAR ====================
+        // ==================== CLUSTER SELECTOR BAR (full width) ====================
         auto selectorArea = bounds.removeFromTop(scaled(40));
-        int buttonWidth = (selectorArea.getWidth() - scaled(90)) / 10;
+        int buttonWidth = selectorArea.getWidth() / 10;
         for (int i = 0; i < 10; ++i)
         {
             clusterButtons[i]->setBounds(selectorArea.removeFromLeft(buttonWidth).reduced(scaled(2)));
@@ -241,83 +262,95 @@ public:
 
         bounds.removeFromTop(scaled(10));
 
-        // Split into left and right panels
-        auto leftPanel = bounds.removeFromLeft(bounds.getWidth() / 2).reduced(scaled(5), 0);
-        auto rightPanel = bounds.reduced(scaled(5), 0);
+        // Split into three columns
+        int totalWidth = bounds.getWidth();
+        auto leftPanel  = bounds.removeFromLeft(totalWidth / 3).reduced(scaled(5), 0);
+        auto centerPanel = bounds.removeFromLeft(totalWidth / 3).reduced(scaled(5), 0);
+        auto rightPanel  = bounds.reduced(scaled(5), 0);
 
         // ==================== LEFT PANEL - ASSIGNED INPUTS ====================
         assignedInputsLabel.setBounds(leftPanel.removeFromTop(scaled(20)));
         leftPanel.removeFromTop(scaled(5));
+        inputsList.setBounds(leftPanel);
 
-        // Inputs list takes most of the space
-        auto listArea = leftPanel.removeFromTop(leftPanel.getHeight() - scaled(100));
-        inputsList.setBounds(listArea);
+        // ==================== CENTER PANEL - REFERENCE + CONTROLS ====================
+        // Row 1: Reference mode + position display + status (single compact row)
+        auto infoRow = centerPanel.removeFromTop(scaled(24));
+        referenceModeLabel.setBounds(infoRow.removeFromLeft(scaled(70)));
+        referenceModeSelector.setBounds(infoRow.removeFromLeft(scaled(120)));
+        infoRow.removeFromLeft(scaled(8));
+        refPosXLabel.setBounds(infoRow.removeFromLeft(scaled(60)));
+        refPosYLabel.setBounds(infoRow.removeFromLeft(scaled(60)));
+        refPosZLabel.setBounds(infoRow.removeFromLeft(scaled(60)));
+        statusLabel.setBounds(infoRow);
+        refPosLabel.setBounds(juce::Rectangle<int>()); // hidden — axis letters in X/Y/Z labels
+        controlsLabel.setBounds(juce::Rectangle<int>()); // hidden — controls are self-evident
 
-        leftPanel.removeFromTop(scaled(10));
+        centerPanel.removeFromTop(scaled(8));
 
-        // Reference mode selector
-        auto refRow = leftPanel.removeFromTop(scaled(24));
-        referenceModeLabel.setBounds(refRow.removeFromLeft(scaled(70)));
-        referenceModeSelector.setBounds(refRow.removeFromLeft(scaled(120)));
+        // Row 2: All controls packed horizontally
+        {
+            // Labels row
+            auto labelRow = centerPanel.removeFromTop(scaled(18));
+            int ctrlWidth = centerPanel.getWidth();
 
-        leftPanel.removeFromTop(scaled(5));
+            centerPanel.removeFromTop(scaled(2));
 
-        // Reference position display
-        auto posRow = leftPanel.removeFromTop(scaled(20));
-        refPosLabel.setBounds(posRow.removeFromLeft(scaled(35)));
-        refPosXLabel.setBounds(posRow.removeFromLeft(scaled(80)));
-        refPosYLabel.setBounds(posRow.removeFromLeft(scaled(80)));
-        refPosZLabel.setBounds(posRow.removeFromLeft(scaled(80)));
+            // Controls row — use remaining height
+            auto ctrlRow = centerPanel.removeFromTop(juce::jmin(scaled(160), centerPanel.getHeight()));
 
-        leftPanel.removeFromTop(scaled(5));
+            // Size joysticks as squares matching the control row height
+            int planeW = scaled(55);
+            int sliderW = juce::jmin(scaled(30), ctrlWidth * 7 / 100);
+            int padding = scaled(6); // padding between controls
+            int fixedW = sliderW * 2 + planeW + padding * 5; // 2 sliders + plane + gaps
+            int flexW = ctrlWidth - fixedW;
+            // Divide flexible space among 3 round controls (pos joy, rot dial, scale joy)
+            int joySize = juce::jmin(ctrlRow.getHeight(), flexW / 3);
+            int rotW = joySize;
 
-        // Status label
-        statusLabel.setBounds(leftPanel.removeFromTop(scaled(20)));
+            // Labels
+            auto labelCopy = labelRow;
+            positionLabel.setBounds(labelCopy.removeFromLeft(joySize));
+            labelCopy.removeFromLeft(padding);
+            zSliderLabel.setBounds(labelCopy.removeFromLeft(sliderW));
+            labelCopy.removeFromLeft(padding);
+            attenuationLabel.setBounds(labelCopy.removeFromLeft(sliderW));
+            labelCopy.removeFromLeft(padding);
+            rotationLabel.setBounds(labelCopy.removeFromLeft(rotW));
+            labelCopy.removeFromLeft(padding);
+            scaleLabel.setBounds(labelCopy.removeFromLeft(joySize));
+            labelCopy.removeFromLeft(padding);
+            planeLabel.setBounds(labelCopy);
 
-        // ==================== RIGHT PANEL - CONTROLS ====================
-        controlsLabel.setBounds(rightPanel.removeFromTop(scaled(20)));
-        rightPanel.removeFromTop(scaled(10));
+            // Controls
+            auto joyArea = ctrlRow.removeFromLeft(joySize);
+            positionJoystick.setBounds(joyArea.withSizeKeepingCentre(joySize, joySize).reduced(scaled(3)));
+            ctrlRow.removeFromLeft(padding);
 
-        // Position joystick and Z slider
-        auto positionRow = rightPanel.removeFromTop(scaled(140));
-        auto joystickArea = positionRow.removeFromLeft(scaled(140));
-        positionLabel.setBounds(joystickArea.removeFromTop(scaled(16)));
-        positionJoystick.setBounds(joystickArea.reduced(scaled(5)));
+            auto zArea = ctrlRow.removeFromLeft(sliderW);
+            zSlider.setBounds(zArea.reduced(scaled(2)));
+            ctrlRow.removeFromLeft(padding);
 
-        positionRow.removeFromLeft(scaled(10));
+            auto attenArea = ctrlRow.removeFromLeft(sliderW);
+            attenuationSlider.setBounds(attenArea.reduced(scaled(2)));
+            ctrlRow.removeFromLeft(padding);
 
-        auto zArea = positionRow.removeFromLeft(scaled(40));
-        zSliderLabel.setBounds(zArea.removeFromTop(scaled(16)));
-        zSlider.setBounds(zArea.reduced(scaled(5)));
+            auto rotArea = ctrlRow.removeFromLeft(rotW);
+            rotationDial.setBounds(rotArea.withSizeKeepingCentre(joySize, joySize).reduced(scaled(3)));
+            ctrlRow.removeFromLeft(padding);
 
-        positionRow.removeFromLeft(scaled(20));
+            auto scaleArea = ctrlRow.removeFromLeft(joySize);
+            scaleJoystick.setBounds(scaleArea.withSizeKeepingCentre(joySize, joySize).reduced(scaled(3)));
+            ctrlRow.removeFromLeft(padding);
 
-        // Attenuation slider
-        auto attenArea = positionRow.removeFromLeft(scaled(40));
-        attenuationLabel.setBounds(attenArea.removeFromTop(scaled(16)));
-        attenuationSlider.setBounds(attenArea.reduced(scaled(5)));
+            // Plane selector — compact
+            auto planeArea = ctrlRow;
+            planeSelector.setBounds(planeArea.removeFromTop(scaled(26)).reduced(scaled(2), 0));
+        }
 
-        rightPanel.removeFromTop(scaled(20));
-
-        // Rotation dial and scale joystick
-        auto transformRow = rightPanel.removeFromTop(scaled(140));
-
-        auto rotationArea = transformRow.removeFromLeft(scaled(100));
-        rotationLabel.setBounds(rotationArea.removeFromTop(scaled(16)));
-        rotationDial.setBounds(rotationArea.reduced(scaled(10)));
-
-        transformRow.removeFromLeft(scaled(20));
-
-        auto scaleArea = transformRow.removeFromLeft(scaled(120));
-        scaleLabel.setBounds(scaleArea.removeFromTop(scaled(16)));
-        scaleJoystick.setBounds(scaleArea.reduced(scaled(5)));
-
-        rightPanel.removeFromTop(scaled(10));
-
-        // Plane selector
-        auto planeRow = rightPanel.removeFromTop(scaled(24));
-        planeLabel.setBounds(planeRow.removeFromLeft(scaled(50)));
-        planeSelector.setBounds(planeRow.removeFromLeft(scaled(80)));
+        // ==================== RIGHT PANEL - LFO ====================
+        layoutLFOPanel(rightPanel);
 
         WfsLookAndFeel::scaleTextEditorFonts(*this, layoutScale);
     }
@@ -358,7 +391,6 @@ public:
 
     void listBoxItemClicked(int row, const juce::MouseEvent&) override
     {
-        // Could implement input selection here if needed
         juce::ignoreUnused(row);
     }
 
@@ -375,7 +407,7 @@ public:
     {
         int next = selectedCluster + 1;
         if (next > 10)
-            next = 1;  // Wrap to first
+            next = 1;
         selectCluster(next);
     }
 
@@ -383,7 +415,7 @@ public:
     {
         int prev = selectedCluster - 1;
         if (prev < 1)
-            prev = 10;  // Wrap to last
+            prev = 10;
         selectCluster(prev);
     }
 
@@ -398,6 +430,7 @@ private:
     Plane currentPlane = Plane::XY;
     float previousDialAngle = 0.0f;
     float layoutScale = 1.0f;
+    bool isLoadingParameters = false;
 
     /** Scale a reference pixel value by layoutScale with a 65% minimum floor */
     int scaled(int ref) const { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * layoutScale)); }
@@ -410,6 +443,8 @@ private:
     // Assigned inputs panel
     juce::Label assignedInputsLabel;
     juce::ListBox inputsList { {}, this };
+
+    // Reference + status
     juce::Label referenceModeLabel;
     juce::ComboBox referenceModeSelector;
     juce::Label refPosLabel, refPosXLabel, refPosYLabel, refPosZLabel;
@@ -429,6 +464,774 @@ private:
     WfsJoystickComponent scaleJoystick;
     juce::Label planeLabel;
     juce::ComboBox planeSelector;
+
+    // StatusBar
+    StatusBar* statusBar = nullptr;
+    std::map<juce::Component*, juce::String> helpTextMap;
+    std::map<juce::Component*, juce::String> oscMethodMap;
+
+    // ==================== LFO PANEL ====================
+    ClusterLFOProcessor clusterLFOProcessor;
+
+    juce::Label lfoSectionLabel;
+    juce::TextButton lfoActiveButton;
+
+    // LFO global controls
+    juce::Label lfoPeriodLabel;
+    WfsBasicDial lfoPeriodDial;
+    juce::Label lfoPeriodValueLabel;
+
+    juce::Label lfoPhaseLabel;
+    WfsRotationDial lfoPhaseDial;
+    juce::Label lfoPhaseValueLabel;
+
+    WfsLFOProgressDial lfoProgressDial;
+
+    // Per-axis LFO rows: X, Y, Z, Rot, Scale
+    struct LFOAxisRow
+    {
+        juce::Label axisLabel;
+        juce::ComboBox shapeSelector;
+        juce::Label amplitudeLabel;
+        // Amplitude: WfsStandardSlider for XYZ, WfsBidirectionalSlider for Rot/Scale
+        std::unique_ptr<juce::Component> amplitudeSlider;
+        juce::Label amplitudeValueLabel;
+        juce::Label rateLabel;
+        WfsBidirectionalSlider rateSlider;
+        juce::Label rateValueLabel;
+        juce::Label phaseLabel;
+        WfsRotationDial phaseDial;
+        juce::Label phaseValueLabel;
+        WfsLFOOutputSlider outputSlider;
+    };
+    LFOAxisRow lfoRows[5]; // 0=X, 1=Y, 2=Z, 3=Rot, 4=Scale
+
+    //==========================================================================
+    // LFO Panel Setup
+    //==========================================================================
+
+    void setupLFOPanel()
+    {
+        using namespace WFSParameterIDs;
+        using namespace WFSParameterDefaults;
+
+        // Section label
+        addAndMakeVisible(lfoSectionLabel);
+        lfoSectionLabel.setText(LOC("clusters.lfo.labels.section"), juce::dontSendNotification);
+        lfoSectionLabel.setFont(juce::FontOptions().withHeight(16.0f).withStyle("Bold"));
+
+        // Active button
+        addAndMakeVisible(lfoActiveButton);
+        lfoActiveButton.setButtonText(LOC("clusters.toggles.lfoOff"));
+        lfoActiveButton.setClickingTogglesState(true);
+        lfoActiveButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF3A3A3A));
+        lfoActiveButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFF26A69A));
+        lfoActiveButton.onClick = [this]() {
+            if (isLoadingParameters) return;
+            bool active = lfoActiveButton.getToggleState();
+            lfoActiveButton.setButtonText(active ? LOC("clusters.toggles.lfoOn") : LOC("clusters.toggles.lfoOff"));
+            saveClusterLFOParam(clusterLFOactive, active ? 1 : 0);
+            updateLFOAlpha();
+        };
+
+        // Period dial
+        addAndMakeVisible(lfoPeriodLabel);
+        lfoPeriodLabel.setText(LOC("clusters.lfo.labels.period"), juce::dontSendNotification);
+        lfoPeriodLabel.setFont(juce::FontOptions().withHeight(13.0f));
+        lfoPeriodLabel.setJustificationType(juce::Justification::centred);
+
+        addAndMakeVisible(lfoPeriodDial);
+        lfoPeriodDial.setColours(juce::Colour(0xFF3A3A3A), juce::Colour(0xFFD4A017), juce::Colours::white);
+        lfoPeriodDial.onValueChanged = [this](float val) {
+            if (isLoadingParameters) return;
+            // Log scale: 0->1 maps to 0.01->100s
+            float periodSec = 0.01f * std::pow(10000.0f, val);
+            lfoPeriodValueLabel.setText(juce::String(periodSec, 2) + " s", juce::dontSendNotification);
+            saveClusterLFOParam(WFSParameterIDs::clusterLFOperiod, periodSec);
+        };
+
+        addAndMakeVisible(lfoPeriodValueLabel);
+        lfoPeriodValueLabel.setText("5.00 s", juce::dontSendNotification);
+        lfoPeriodValueLabel.setFont(juce::FontOptions().withHeight(13.0f));
+        lfoPeriodValueLabel.setJustificationType(juce::Justification::centred);
+
+        // Phase dial
+        addAndMakeVisible(lfoPhaseLabel);
+        lfoPhaseLabel.setText(LOC("clusters.lfo.labels.phase"), juce::dontSendNotification);
+        lfoPhaseLabel.setFont(juce::FontOptions().withHeight(13.0f));
+        lfoPhaseLabel.setJustificationType(juce::Justification::centred);
+
+        addAndMakeVisible(lfoPhaseDial);
+        lfoPhaseDial.setColours(juce::Colour(0xFF3A3A3A), juce::Colour(0xFFE6B422), juce::Colours::white);
+        lfoPhaseDial.onAngleChanged = [this](float angle) {
+            if (isLoadingParameters) return;
+            int deg = static_cast<int>(std::round(angle));
+            lfoPhaseValueLabel.setText(juce::String(deg) + juce::String::charToString(0x00B0), juce::dontSendNotification);
+            saveClusterLFOParam(WFSParameterIDs::clusterLFOphase, deg);
+        };
+
+        addAndMakeVisible(lfoPhaseValueLabel);
+        lfoPhaseValueLabel.setText(juce::String("0") + juce::String::charToString(0x00B0), juce::dontSendNotification);
+        lfoPhaseValueLabel.setFont(juce::FontOptions().withHeight(13.0f));
+        lfoPhaseValueLabel.setJustificationType(juce::Justification::centred);
+
+        // Progress dial
+        addAndMakeVisible(lfoProgressDial);
+
+        // LFO shape names (reuse from inputs)
+        juce::StringArray shapeNames;
+        shapeNames.add(LOC("inputs.lfo.shapes.off"));
+        shapeNames.add(LOC("inputs.lfo.shapes.sine"));
+        shapeNames.add(LOC("inputs.lfo.shapes.square"));
+        shapeNames.add(LOC("inputs.lfo.shapes.sawtooth"));
+        shapeNames.add(LOC("inputs.lfo.shapes.triangle"));
+        shapeNames.add(LOC("inputs.lfo.shapes.keystone"));
+        shapeNames.add(LOC("inputs.lfo.shapes.log"));
+        shapeNames.add(LOC("inputs.lfo.shapes.exp"));
+        shapeNames.add(LOC("inputs.lfo.shapes.random"));
+
+        // Axis names and parameter IDs
+        struct AxisInfo {
+            const char* locKey;
+            juce::Identifier shapeId, rateId, amplitudeId, phaseId;
+            bool isRotation;
+            bool isScale;
+        };
+
+        const AxisInfo axisInfos[5] = {
+            { "clusters.lfo.labels.x",     clusterLFOshapeX,     clusterLFOrateX,     clusterLFOamplitudeX,     clusterLFOphaseX,     false, false },
+            { "clusters.lfo.labels.y",     clusterLFOshapeY,     clusterLFOrateY,     clusterLFOamplitudeY,     clusterLFOphaseY,     false, false },
+            { "clusters.lfo.labels.z",     clusterLFOshapeZ,     clusterLFOrateZ,     clusterLFOamplitudeZ,     clusterLFOphaseZ,     false, false },
+            { "clusters.lfo.labels.rot",   clusterLFOshapeRot,   clusterLFOrateRot,   clusterLFOamplitudeRot,   clusterLFOphaseRot,   true,  false },
+            { "clusters.lfo.labels.scaleLfo", clusterLFOshapeScale, clusterLFOrateScale, clusterLFOamplitudeScale, clusterLFOphaseScale, false, true  },
+        };
+
+        for (int a = 0; a < 5; ++a)
+        {
+            auto& row = lfoRows[a];
+            auto& info = axisInfos[a];
+
+            // Axis label
+            addAndMakeVisible(row.axisLabel);
+            row.axisLabel.setText(LOC(info.locKey), juce::dontSendNotification);
+            row.axisLabel.setFont(juce::FontOptions().withHeight(14.0f).withStyle("Bold"));
+
+            // Shape selector
+            addAndMakeVisible(row.shapeSelector);
+            for (int s = 0; s < shapeNames.size(); ++s)
+                row.shapeSelector.addItem(shapeNames[s], s + 1);
+            row.shapeSelector.setSelectedId(1, juce::dontSendNotification);
+
+            const int axisIdx = a;
+            row.shapeSelector.onChange = [this, axisIdx]() {
+                if (isLoadingParameters) return;
+                int shape = lfoRows[axisIdx].shapeSelector.getSelectedId() - 1;
+                saveClusterLFOParam(getAxisShapeId(axisIdx), shape);
+                updateLFOAlpha();
+            };
+
+            // Amplitude slider
+            addAndMakeVisible(row.amplitudeLabel);
+            if (info.isRotation)
+                row.amplitudeLabel.setText(LOC("clusters.lfo.labels.angle"), juce::dontSendNotification);
+            else if (info.isScale)
+                row.amplitudeLabel.setText(LOC("clusters.lfo.labels.ratio"), juce::dontSendNotification);
+            else
+                row.amplitudeLabel.setText(LOC("clusters.lfo.labels.amplitude"), juce::dontSendNotification);
+            row.amplitudeLabel.setFont(juce::FontOptions().withHeight(13.0f));
+
+            if (info.isRotation)
+            {
+                // Rotation amplitude: bidirectional -360..+360 degrees
+                auto* slider = new WfsBidirectionalSlider();
+                slider->setTrackColours(ColorScheme::get().sliderTrackBg, juce::Colour(0xFF2196F3));
+                slider->onValueChanged = [this, axisIdx](float val) {
+                    if (isLoadingParameters) return;
+                    int deg = static_cast<int>(std::round(val * 360.0f));
+                    lfoRows[axisIdx].amplitudeValueLabel.setText(juce::String(deg) + juce::String::charToString(0x00B0), juce::dontSendNotification);
+                    saveClusterLFOParam(getAxisAmplitudeId(axisIdx), deg);
+                };
+                row.amplitudeSlider.reset(slider);
+            }
+            else if (info.isScale)
+            {
+                // Scale amplitude: bidirectional, log mapping 0.1x..10x
+                auto* slider = new WfsBidirectionalSlider();
+                slider->setTrackColours(ColorScheme::get().sliderTrackBg, juce::Colour(0xFF9C27B0));
+                slider->onValueChanged = [this, axisIdx](float val) {
+                    if (isLoadingParameters) return;
+                    // slider -1..+1 -> amplitude 0.1..10 via pow(10, val)
+                    float ampScale = std::pow(10.0f, val);
+                    lfoRows[axisIdx].amplitudeValueLabel.setText(juce::String(ampScale, 2) + "x", juce::dontSendNotification);
+                    saveClusterLFOParam(getAxisAmplitudeId(axisIdx), ampScale);
+                };
+                row.amplitudeSlider.reset(slider);
+            }
+            else
+            {
+                // XYZ amplitude: standard slider 0..50m
+                auto* slider = new WfsStandardSlider();
+                slider->setTrackColours(ColorScheme::get().sliderTrackBg, juce::Colour(0xFF00BCD4));
+                slider->onValueChanged = [this, axisIdx](float val) {
+                    if (isLoadingParameters) return;
+                    float meters = val * 50.0f;
+                    lfoRows[axisIdx].amplitudeValueLabel.setText(juce::String(meters, 1) + " m", juce::dontSendNotification);
+                    saveClusterLFOParam(getAxisAmplitudeId(axisIdx), meters);
+                };
+                row.amplitudeSlider.reset(slider);
+            }
+            addAndMakeVisible(row.amplitudeSlider.get());
+
+            addAndMakeVisible(row.amplitudeValueLabel);
+            row.amplitudeValueLabel.setFont(juce::FontOptions().withHeight(13.0f));
+            row.amplitudeValueLabel.setJustificationType(juce::Justification::centredRight);
+
+            // Rate slider (bidirectional, log scale 0.01..100x)
+            addAndMakeVisible(row.rateLabel);
+            row.rateLabel.setText(LOC("clusters.lfo.labels.rate"), juce::dontSendNotification);
+            row.rateLabel.setFont(juce::FontOptions().withHeight(13.0f));
+
+            addAndMakeVisible(row.rateSlider);
+            row.rateSlider.setTrackColours(ColorScheme::get().sliderTrackBg, juce::Colour(0xFFD4A017));
+            row.rateSlider.onValueChanged = [this, axisIdx](float val) {
+                if (isLoadingParameters) return;
+                float rate = std::pow(100.0f, val); // -1->0.01, 0->1, +1->100
+                lfoRows[axisIdx].rateValueLabel.setText(juce::String(rate, 2) + "x", juce::dontSendNotification);
+                saveClusterLFOParam(getAxisRateId(axisIdx), rate);
+            };
+
+            addAndMakeVisible(row.rateValueLabel);
+            row.rateValueLabel.setText("1.00x", juce::dontSendNotification);
+            row.rateValueLabel.setFont(juce::FontOptions().withHeight(13.0f));
+            row.rateValueLabel.setJustificationType(juce::Justification::centredRight);
+
+            // Phase label + dial
+            addAndMakeVisible(row.phaseLabel);
+            row.phaseLabel.setText(LOC("clusters.lfo.labels.phase"), juce::dontSendNotification);
+            row.phaseLabel.setFont(juce::FontOptions().withHeight(13.0f));
+            row.phaseLabel.setJustificationType(juce::Justification::centred);
+            addAndMakeVisible(row.phaseDial);
+            row.phaseDial.setColours(juce::Colour(0xFF3A3A3A), juce::Colour(0xFFE6B422), juce::Colours::white);
+            row.phaseDial.onAngleChanged = [this, axisIdx](float angle) {
+                if (isLoadingParameters) return;
+                int deg = static_cast<int>(std::round(angle));
+                lfoRows[axisIdx].phaseValueLabel.setText(juce::String(deg) + juce::String::charToString(0x00B0), juce::dontSendNotification);
+                saveClusterLFOParam(getAxisPhaseId(axisIdx), deg);
+            };
+
+            addAndMakeVisible(row.phaseValueLabel);
+            row.phaseValueLabel.setText(juce::String("0") + juce::String::charToString(0x00B0), juce::dontSendNotification);
+            row.phaseValueLabel.setFont(juce::FontOptions().withHeight(13.0f));
+            row.phaseValueLabel.setJustificationType(juce::Justification::centred);
+
+            // Output indicator (read-only)
+            addAndMakeVisible(row.outputSlider);
+            row.outputSlider.setTrackColour(juce::Colour(0xFF808080));  // Mid grey (display-only)
+        }
+    }
+
+    //==========================================================================
+    // LFO Panel Layout
+    //==========================================================================
+
+    void layoutLFOPanel(juce::Rectangle<int> area)
+    {
+        // Sizing constants matching InputsTab LFO layout
+        const int rowHeight = scaled(24);
+        const int sliderHeight = scaled(28);
+        const int spacing = scaled(4);
+        const int labelWidth = scaled(50);
+        const int valueWidth = scaled(45);
+        const int selectorWidth = scaled(100);
+        const int dialSize = juce::jmax(40, static_cast<int>(65.0f * layoutScale));
+
+        // ==================== HEADER ====================
+        // [LFO + ON/OFF] gap [progress] gap [Period dial] gap [Phase dial]
+        // Equal gaps between all 4 element groups
+        const int headerLabelH = scaled(16);
+        const int headerValueH = scaled(14);
+        auto headerArea = area.removeFromTop(headerLabelH + dialSize + headerValueH);
+        {
+            int lfoLabelW = scaled(35);
+            int buttonW = scaled(80);
+            int innerGap = scaled(4); // small gap between LFO label and button
+            int leftGroupW = lfoLabelW + innerGap + buttonW;
+
+            // 4 elements, 3 equal gaps
+            int fixedW = leftGroupW + dialSize + dialSize + dialSize; // left group + progress + period + phase
+            int gap = juce::jmax(scaled(6), (headerArea.getWidth() - fixedW) / 3);
+
+            // [LFO label + button] — vertically centered
+            auto leftGroup = headerArea.removeFromLeft(leftGroupW);
+            {
+                auto lblArea = leftGroup.removeFromLeft(lfoLabelW);
+                lfoSectionLabel.setBounds(lblArea.withSizeKeepingCentre(lfoLabelW, rowHeight));
+                leftGroup.removeFromLeft(innerGap);
+                lfoActiveButton.setBounds(leftGroup.withSizeKeepingCentre(buttonW, rowHeight));
+            }
+            headerArea.removeFromLeft(gap);
+
+            // [Progress dial] — vertically centered
+            auto progressArea = headerArea.removeFromLeft(dialSize);
+            lfoProgressDial.setBounds(progressArea.withSizeKeepingCentre(dialSize, dialSize));
+            headerArea.removeFromLeft(gap);
+
+            // [Period dial block] — label on top, dial in middle, value below
+            auto periodBlock = headerArea.removeFromLeft(dialSize);
+            {
+                lfoPeriodLabel.setBounds(periodBlock.removeFromTop(headerLabelH));
+                auto dialArea = periodBlock.removeFromTop(dialSize);
+                lfoPeriodDial.setBounds(dialArea.withSizeKeepingCentre(dialSize, dialSize));
+                lfoPeriodValueLabel.setBounds(periodBlock.removeFromTop(headerValueH));
+            }
+            headerArea.removeFromLeft(gap);
+
+            // [Phase dial block]
+            auto phaseBlock = headerArea.removeFromLeft(dialSize);
+            {
+                lfoPhaseLabel.setBounds(phaseBlock.removeFromTop(headerLabelH));
+                auto dialArea = phaseBlock.removeFromTop(dialSize);
+                lfoPhaseDial.setBounds(dialArea.withSizeKeepingCentre(dialSize, dialSize));
+                lfoPhaseValueLabel.setBounds(phaseBlock.removeFromTop(headerValueH));
+            }
+        }
+
+        area.removeFromTop(spacing * 2);
+
+        // ==================== PER-AXIS ROWS (5 axes) ====================
+        // Calculate available height per axis
+        int totalAxisHeight = area.getHeight() - spacing * 4; // 4 gaps between 5 axes
+        int axisBlockHeight = totalAxisHeight / 5;
+        const int sliderLabelW = scaled(62); // label width before amplitude/rate sliders (fits "Amplitude:")
+        int phaseDialSize = sliderHeight * 2 + spacing; // match height of amplitude + rate rows
+
+        for (int a = 0; a < 5; ++a)
+        {
+            auto& row = lfoRows[a];
+            auto axisArea = area.removeFromTop(axisBlockHeight);
+
+            // Line 1: [Axis label] [Shape ComboBox] ... [Phase label on right]
+            auto line1 = axisArea.removeFromTop(rowHeight);
+            row.axisLabel.setBounds(line1.removeFromLeft(labelWidth));
+            row.shapeSelector.setBounds(line1.removeFromLeft(juce::jmin(selectorWidth, line1.getWidth())));
+            // Phase label right-aligned on same line as shape selector
+            row.phaseLabel.setBounds(line1.removeFromRight(phaseDialSize + scaled(4)));
+
+            axisArea.removeFromTop(spacing);
+
+            // Right column: phase dial + value (spans lines 2-4)
+            auto phaseColumn = axisArea.removeFromRight(phaseDialSize + scaled(4));
+            phaseColumn.removeFromLeft(scaled(4)); // left padding
+            row.phaseDial.setBounds(phaseColumn.removeFromTop(phaseDialSize).withSizeKeepingCentre(phaseDialSize, phaseDialSize));
+            row.phaseValueLabel.setBounds(phaseColumn.removeFromTop(scaled(14)));
+
+            // Line 2: [Amplitude label] [Amplitude slider] [value label]
+            auto line2 = axisArea.removeFromTop(sliderHeight);
+            {
+                row.amplitudeLabel.setBounds(line2.removeFromLeft(sliderLabelW));
+                row.amplitudeValueLabel.setBounds(line2.removeFromRight(valueWidth));
+                row.amplitudeSlider->setBounds(line2);
+            }
+
+            axisArea.removeFromTop(spacing);
+
+            // Line 3: [Rate label] [Rate slider] [value label]
+            auto line3 = axisArea.removeFromTop(sliderHeight);
+            {
+                row.rateLabel.setBounds(line3.removeFromLeft(sliderLabelW));
+                row.rateValueLabel.setBounds(line3.removeFromRight(valueWidth));
+                row.rateSlider.setBounds(line3);
+            }
+
+            axisArea.removeFromTop(spacing);
+
+            // Line 4: [Output indicator slider] — aligned with sliders above
+            if (axisArea.getHeight() >= scaled(14))
+            {
+                auto outLine = axisArea.removeFromTop(juce::jmin(scaled(20), axisArea.getHeight()));
+                outLine.removeFromLeft(sliderLabelW); // align left with sliders
+                outLine.removeFromRight(valueWidth);  // align right with sliders
+                row.outputSlider.setBounds(outLine);
+            }
+
+            if (a < 4)
+                area.removeFromTop(spacing);
+        }
+    }
+
+    //==========================================================================
+    // LFO Parameter Helpers
+    //==========================================================================
+
+    juce::Identifier getAxisShapeId(int axisIdx) const
+    {
+        using namespace WFSParameterIDs;
+        const juce::Identifier ids[] = { clusterLFOshapeX, clusterLFOshapeY, clusterLFOshapeZ, clusterLFOshapeRot, clusterLFOshapeScale };
+        return ids[axisIdx];
+    }
+
+    juce::Identifier getAxisRateId(int axisIdx) const
+    {
+        using namespace WFSParameterIDs;
+        const juce::Identifier ids[] = { clusterLFOrateX, clusterLFOrateY, clusterLFOrateZ, clusterLFOrateRot, clusterLFOrateScale };
+        return ids[axisIdx];
+    }
+
+    juce::Identifier getAxisAmplitudeId(int axisIdx) const
+    {
+        using namespace WFSParameterIDs;
+        const juce::Identifier ids[] = { clusterLFOamplitudeX, clusterLFOamplitudeY, clusterLFOamplitudeZ, clusterLFOamplitudeRot, clusterLFOamplitudeScale };
+        return ids[axisIdx];
+    }
+
+    juce::Identifier getAxisPhaseId(int axisIdx) const
+    {
+        using namespace WFSParameterIDs;
+        const juce::Identifier ids[] = { clusterLFOphaseX, clusterLFOphaseY, clusterLFOphaseZ, clusterLFOphaseRot, clusterLFOphaseScale };
+        return ids[axisIdx];
+    }
+
+    void saveClusterLFOParam(const juce::Identifier& paramId, const juce::var& value)
+    {
+        if (isLoadingParameters || selectedCluster < 1) return;
+        auto lfoSection = parameters.getValueTreeState().getClusterLFOSection(selectedCluster);
+        if (lfoSection.isValid())
+            lfoSection.setProperty(paramId, value, nullptr);
+    }
+
+    void loadClusterLFOParameters()
+    {
+        isLoadingParameters = true;
+
+        auto lfoSection = parameters.getValueTreeState().getClusterLFOSection(selectedCluster);
+        if (!lfoSection.isValid()) { isLoadingParameters = false; return; }
+
+        using namespace WFSParameterIDs;
+        using namespace WFSParameterDefaults;
+
+        // Active button
+        bool active = static_cast<int>(lfoSection.getProperty(clusterLFOactive, 0)) != 0;
+        lfoActiveButton.setToggleState(active, juce::dontSendNotification);
+        lfoActiveButton.setButtonText(active ? LOC("clusters.toggles.lfoOn") : LOC("clusters.toggles.lfoOff"));
+
+        // Period: seconds -> slider 0..1 (log scale)
+        float periodSec = static_cast<float>(lfoSection.getProperty(clusterLFOperiod, clusterLFOperiodDefault));
+        float periodSlider = std::log10(periodSec / 0.01f) / std::log10(10000.0f);
+        lfoPeriodDial.setValue(juce::jlimit(0.0f, 1.0f, periodSlider));
+        lfoPeriodValueLabel.setText(juce::String(periodSec, 2) + " s", juce::dontSendNotification);
+
+        // Global phase
+        int globalPhase = static_cast<int>(lfoSection.getProperty(clusterLFOphase, 0));
+        lfoPhaseDial.setAngle(static_cast<float>(globalPhase));
+        lfoPhaseValueLabel.setText(juce::String(globalPhase) + juce::String::charToString(0x00B0), juce::dontSendNotification);
+
+        // Per-axis parameters
+        const juce::Identifier shapeIds[]  = { clusterLFOshapeX, clusterLFOshapeY, clusterLFOshapeZ, clusterLFOshapeRot, clusterLFOshapeScale };
+        const juce::Identifier rateIds[]   = { clusterLFOrateX, clusterLFOrateY, clusterLFOrateZ, clusterLFOrateRot, clusterLFOrateScale };
+        const juce::Identifier ampIds[]    = { clusterLFOamplitudeX, clusterLFOamplitudeY, clusterLFOamplitudeZ, clusterLFOamplitudeRot, clusterLFOamplitudeScale };
+        const juce::Identifier phaseIds[]  = { clusterLFOphaseX, clusterLFOphaseY, clusterLFOphaseZ, clusterLFOphaseRot, clusterLFOphaseScale };
+
+        for (int a = 0; a < 5; ++a)
+        {
+            auto& row = lfoRows[a];
+
+            // Shape
+            int shape = static_cast<int>(lfoSection.getProperty(shapeIds[a], 0));
+            row.shapeSelector.setSelectedId(shape + 1, juce::dontSendNotification);
+
+            // Rate: real value -> slider (-1..+1, log scale: pow(100, slider) = rate)
+            float rate = static_cast<float>(lfoSection.getProperty(rateIds[a], clusterLFOrateDefault));
+            float rateSlider = std::log10(rate) / 2.0f; // log10(100)=2
+            row.rateSlider.setValue(juce::jlimit(-1.0f, 1.0f, rateSlider));
+            row.rateValueLabel.setText(juce::String(rate, 2) + "x", juce::dontSendNotification);
+
+            // Amplitude
+            if (a < 3) // XYZ
+            {
+                float ampMeters = static_cast<float>(lfoSection.getProperty(ampIds[a], clusterLFOamplitudeXYZDefault));
+                if (auto* slider = dynamic_cast<WfsStandardSlider*>(row.amplitudeSlider.get()))
+                    slider->setValue(ampMeters / 50.0f);
+                row.amplitudeValueLabel.setText(juce::String(ampMeters, 1) + " m", juce::dontSendNotification);
+            }
+            else if (a == 3) // Rotation
+            {
+                int ampDeg = static_cast<int>(lfoSection.getProperty(ampIds[a], clusterLFOamplitudeRotDefault));
+                if (auto* slider = dynamic_cast<WfsBidirectionalSlider*>(row.amplitudeSlider.get()))
+                    slider->setValue(static_cast<float>(ampDeg) / 360.0f);
+                row.amplitudeValueLabel.setText(juce::String(ampDeg) + juce::String::charToString(0x00B0), juce::dontSendNotification);
+            }
+            else // Scale
+            {
+                float ampScale = static_cast<float>(lfoSection.getProperty(ampIds[a], clusterLFOamplitudeScaleDefault));
+                if (auto* slider = dynamic_cast<WfsBidirectionalSlider*>(row.amplitudeSlider.get()))
+                    slider->setValue(std::log10(ampScale)); // 0.1->-1, 1->0, 10->+1
+                row.amplitudeValueLabel.setText(juce::String(ampScale, 2) + "x", juce::dontSendNotification);
+            }
+
+            // Phase
+            int phaseDeg = static_cast<int>(lfoSection.getProperty(phaseIds[a], 0));
+            row.phaseDial.setAngle(static_cast<float>(phaseDeg));
+            row.phaseValueLabel.setText(juce::String(phaseDeg) + juce::String::charToString(0x00B0), juce::dontSendNotification);
+        }
+
+        updateLFOAlpha();
+        isLoadingParameters = false;
+    }
+
+    void updateLFOAlpha()
+    {
+        bool active = lfoActiveButton.getToggleState();
+        float mainAlpha = active ? 1.0f : 0.5f;
+
+        // Top LFO controls
+        lfoSectionLabel.setAlpha(mainAlpha);
+        lfoPeriodLabel.setAlpha(mainAlpha);
+        lfoPeriodDial.setAlpha(mainAlpha);
+        lfoPeriodValueLabel.setAlpha(mainAlpha);
+        lfoPhaseLabel.setAlpha(mainAlpha);
+        lfoPhaseDial.setAlpha(mainAlpha);
+        lfoPhaseValueLabel.setAlpha(mainAlpha);
+        lfoProgressDial.setAlpha(mainAlpha);
+
+        // Per-axis controls
+        for (int a = 0; a < 5; ++a)
+        {
+            bool axisActive = active && (lfoRows[a].shapeSelector.getSelectedId() > 1);
+            float axisAlpha = axisActive ? 1.0f : 0.5f;
+
+            lfoRows[a].axisLabel.setAlpha(mainAlpha);
+            lfoRows[a].shapeSelector.setAlpha(mainAlpha);
+            lfoRows[a].amplitudeLabel.setAlpha(axisAlpha);
+            lfoRows[a].amplitudeSlider->setAlpha(axisAlpha);
+            lfoRows[a].amplitudeValueLabel.setAlpha(axisAlpha);
+            lfoRows[a].rateLabel.setAlpha(axisAlpha);
+            lfoRows[a].rateSlider.setAlpha(axisAlpha);
+            lfoRows[a].rateValueLabel.setAlpha(axisAlpha);
+            lfoRows[a].phaseLabel.setAlpha(axisAlpha);
+            lfoRows[a].phaseDial.setAlpha(axisAlpha);
+            lfoRows[a].phaseValueLabel.setAlpha(axisAlpha);
+            lfoRows[a].outputSlider.setAlpha(axisAlpha);
+        }
+    }
+
+    void updateLFOIndicators()
+    {
+        if (selectedCluster < 1) return;
+
+        float progress = clusterLFOProcessor.getRampProgress(selectedCluster);
+        lfoProgressDial.setProgress(progress);
+
+        for (int a = 0; a < 5; ++a)
+        {
+            float normalized = 0.0f;
+            switch (a)
+            {
+                case 0: normalized = clusterLFOProcessor.getNormalizedX(selectedCluster); break;
+                case 1: normalized = clusterLFOProcessor.getNormalizedY(selectedCluster); break;
+                case 2: normalized = clusterLFOProcessor.getNormalizedZ(selectedCluster); break;
+                case 3: normalized = clusterLFOProcessor.getNormalizedRot(selectedCluster); break;
+                case 4: normalized = clusterLFOProcessor.getNormalizedScale(selectedCluster); break;
+            }
+            lfoRows[a].outputSlider.setValue(normalized);
+        }
+    }
+
+    //==========================================================================
+    // LFO Delta Application (for all clusters)
+    //==========================================================================
+
+    void processAllClusterLFOs()
+    {
+        clusterLFOProcessor.process(0.02f);
+
+        int numInputs = parameters.getNumInputChannels();
+
+        for (int c = 1; c <= 10; ++c)
+        {
+            if (!clusterLFOProcessor.isActive(c))
+                continue;
+
+            float dx = clusterLFOProcessor.getDeltaX(c);
+            float dy = clusterLFOProcessor.getDeltaY(c);
+            float dz = clusterLFOProcessor.getDeltaZ(c);
+            float dRot = clusterLFOProcessor.getDeltaRotDeg(c);
+            float dScale = clusterLFOProcessor.getDeltaScale(c);
+
+            bool hasTranslation = (dx != 0.0f || dy != 0.0f || dz != 0.0f);
+            bool hasRotation = (dRot != 0.0f);
+            bool hasScale = (dScale != 1.0f);
+
+            if (!hasTranslation && !hasRotation && !hasScale)
+                continue;
+
+            // Gather inputs for this cluster
+            std::vector<int> clusterInputs;
+            for (int i = 0; i < numInputs; ++i)
+            {
+                int cl = static_cast<int>(parameters.getInputParam(i, "inputCluster"));
+                if (cl == c)
+                    clusterInputs.push_back(i);
+            }
+
+            if (clusterInputs.empty())
+                continue;
+
+            // Calculate reference point for rotation/scale
+            float refX = 0.0f, refY = 0.0f, refZ = 0.0f;
+            if (hasRotation || hasScale)
+            {
+                // Use same reference logic: tracked > first > barycenter
+                bool foundRef = false;
+                for (int idx : clusterInputs)
+                {
+                    if (isInputFullyTracked(idx))
+                    {
+                        auto [px, py, pz] = getInputPosition(idx);
+                        refX = px; refY = py; refZ = pz;
+                        foundRef = true;
+                        break;
+                    }
+                }
+                if (!foundRef)
+                {
+                    int mode = static_cast<int>(parameters.getValueTreeState().getClusterParameter(
+                        c, WFSParameterIDs::clusterReferenceMode));
+                    if (mode == 0) // First input
+                    {
+                        auto [px, py, pz] = getInputPosition(clusterInputs[0]);
+                        refX = px; refY = py; refZ = pz;
+                    }
+                    else // Barycenter
+                    {
+                        float sx = 0, sy = 0, sz = 0;
+                        for (int idx : clusterInputs)
+                        {
+                            auto [px, py, pz] = getInputPosition(idx);
+                            sx += px; sy += py; sz += pz;
+                        }
+                        float n = static_cast<float>(clusterInputs.size());
+                        refX = sx / n; refY = sy / n; refZ = sz / n;
+                    }
+                }
+            }
+
+            // Apply transforms to each input
+            for (int inputIdx : clusterInputs)
+            {
+                auto [px, py, pz] = getInputPosition(inputIdx);
+                float newX = px, newY = py, newZ = pz;
+
+                // Translation
+                newX += dx;
+                newY += dy;
+                newZ += dz;
+
+                // Rotation (XY plane only, around reference point)
+                if (hasRotation)
+                {
+                    float rad = juce::degreesToRadians(dRot);
+                    float cosA = std::cos(rad);
+                    float sinA = std::sin(rad);
+                    float relX = newX - refX;
+                    float relY = newY - refY;
+                    newX = refX + relX * cosA - relY * sinA;
+                    newY = refY + relX * sinA + relY * cosA;
+                }
+
+                // Scale (uniform, around reference point)
+                if (hasScale)
+                {
+                    newX = refX + (newX - refX) * dScale;
+                    newY = refY + (newY - refY) * dScale;
+                    newZ = refZ + (newZ - refZ) * dScale;
+                }
+
+                setInputPosition(inputIdx, newX, newY, newZ);
+            }
+        }
+    }
+
+    //==========================================================================
+    // StatusBar Help Text
+    //==========================================================================
+
+    void setupHelpTextMappings()
+    {
+        helpTextMap.clear();
+        oscMethodMap.clear();
+
+        // Center column controls
+        helpTextMap[&referenceModeSelector] = LOC("clusters.help.referenceMode");
+        helpTextMap[&positionJoystick]      = LOC("clusters.help.positionJoystick");
+        helpTextMap[&zSlider]               = LOC("clusters.help.zSlider");
+        helpTextMap[&attenuationSlider]     = LOC("clusters.help.attenuationSlider");
+        helpTextMap[&rotationDial]          = LOC("clusters.help.rotationDial");
+        helpTextMap[&scaleJoystick]         = LOC("clusters.help.scaleJoystick");
+        helpTextMap[&planeSelector]         = LOC("clusters.help.planeSelector");
+
+        // LFO controls
+        helpTextMap[&lfoActiveButton]    = LOC("clusters.help.lfoActiveButton");
+        helpTextMap[&lfoPeriodDial]      = LOC("clusters.help.lfoPeriodDial");
+        helpTextMap[&lfoPhaseDial]       = LOC("clusters.help.lfoPhaseDial");
+
+        oscMethodMap[&lfoActiveButton]   = LOC("clusters.osc.lfoActive");
+        oscMethodMap[&lfoPeriodDial]     = LOC("clusters.osc.lfoPeriod");
+        oscMethodMap[&lfoPhaseDial]      = LOC("clusters.osc.lfoPhase");
+
+        const char* helpShapeKeys[]  = { "clusters.help.lfoShapeXSelector", "clusters.help.lfoShapeYSelector", "clusters.help.lfoShapeZSelector", "clusters.help.lfoShapeRotSelector", "clusters.help.lfoShapeScaleSelector" };
+        const char* helpRateKeys[]   = { "clusters.help.lfoRateXSlider", "clusters.help.lfoRateYSlider", "clusters.help.lfoRateZSlider", "clusters.help.lfoRateRotSlider", "clusters.help.lfoRateScaleSlider" };
+        const char* helpAmpKeys[]    = { "clusters.help.lfoAmplitudeXSlider", "clusters.help.lfoAmplitudeYSlider", "clusters.help.lfoAmplitudeZSlider", "clusters.help.lfoAmplitudeRotSlider", "clusters.help.lfoAmplitudeScaleSlider" };
+        const char* helpPhaseKeys[]  = { "clusters.help.lfoPhaseXDial", "clusters.help.lfoPhaseYDial", "clusters.help.lfoPhaseZDial", "clusters.help.lfoPhaseRotDial", "clusters.help.lfoPhaseScaleDial" };
+
+        const char* oscShapeKeys[]   = { "clusters.osc.lfoShapeX", "clusters.osc.lfoShapeY", "clusters.osc.lfoShapeZ", "clusters.osc.lfoShapeRot", "clusters.osc.lfoShapeScale" };
+        const char* oscRateKeys[]    = { "clusters.osc.lfoRateX", "clusters.osc.lfoRateY", "clusters.osc.lfoRateZ", "clusters.osc.lfoRateRot", "clusters.osc.lfoRateScale" };
+        const char* oscAmpKeys[]     = { "clusters.osc.lfoAmplitudeX", "clusters.osc.lfoAmplitudeY", "clusters.osc.lfoAmplitudeZ", "clusters.osc.lfoAmplitudeRot", "clusters.osc.lfoAmplitudeScale" };
+        const char* oscPhaseKeys[]   = { "clusters.osc.lfoPhaseX", "clusters.osc.lfoPhaseY", "clusters.osc.lfoPhaseZ", "clusters.osc.lfoPhaseRot", "clusters.osc.lfoPhaseScale" };
+
+        for (int a = 0; a < 5; ++a)
+        {
+            helpTextMap[&lfoRows[a].shapeSelector]      = LOC(helpShapeKeys[a]);
+            helpTextMap[&lfoRows[a].rateSlider]          = LOC(helpRateKeys[a]);
+            helpTextMap[lfoRows[a].amplitudeSlider.get()] = LOC(helpAmpKeys[a]);
+            helpTextMap[&lfoRows[a].phaseDial]           = LOC(helpPhaseKeys[a]);
+
+            oscMethodMap[&lfoRows[a].shapeSelector]      = LOC(oscShapeKeys[a]);
+            oscMethodMap[&lfoRows[a].rateSlider]          = LOC(oscRateKeys[a]);
+            oscMethodMap[lfoRows[a].amplitudeSlider.get()] = LOC(oscAmpKeys[a]);
+            oscMethodMap[&lfoRows[a].phaseDial]           = LOC(oscPhaseKeys[a]);
+        }
+
+        // Register mouse listeners
+        for (auto& pair : helpTextMap)
+        {
+            bool wantsEventsFromChildren = (dynamic_cast<juce::ComboBox*>(pair.first) != nullptr);
+            pair.first->addMouseListener(this, wantsEventsFromChildren);
+        }
+    }
+
+    void mouseEnter(const juce::MouseEvent& event) override
+    {
+        if (statusBar == nullptr) return;
+
+        juce::Component* component = event.eventComponent;
+        while (component != nullptr)
+        {
+            if (helpTextMap.find(component) != helpTextMap.end())
+            {
+                statusBar->setHelpText(helpTextMap[component]);
+                if (oscMethodMap.find(component) != oscMethodMap.end())
+                    statusBar->setOscMethod(oscMethodMap[component]);
+                return;
+            }
+            component = component->getParentComponent();
+        }
+    }
+
+    void mouseExit(const juce::MouseEvent&) override
+    {
+        if (statusBar != nullptr)
+            statusBar->clearText();
+    }
 
     //==========================================================================
     // Cluster Selection and State
@@ -455,6 +1258,9 @@ private:
         updateAssignedInputsList();
         updateReferencePositionDisplay();
         updateStatusLabel();
+
+        // Load LFO parameters for this cluster
+        loadClusterLFOParameters();
     }
 
     void updateClusterButtonStates()
@@ -480,7 +1286,7 @@ private:
             else
             {
                 btn->setButtonText(juce::String(c));
-                btn->setColour(juce::TextButton::textColourOffId, juce::Colours::black.withAlpha(0.5f));  // Semi-transparent for empty clusters
+                btn->setColour(juce::TextButton::textColourOffId, juce::Colours::black.withAlpha(0.5f));
             }
         }
     }
@@ -492,7 +1298,6 @@ private:
         int numInputs = parameters.getNumInputChannels();
         int trackedInputIdx = -1;
 
-        // First pass: find all inputs in this cluster and identify tracked one
         for (int i = 0; i < numInputs; ++i)
         {
             int cluster = static_cast<int>(parameters.getInputParam(i, "inputCluster"));
@@ -505,7 +1310,6 @@ private:
             }
         }
 
-        // Put tracked input at the front
         if (trackedInputIdx >= 0)
             assignedInputs.insert(assignedInputs.begin(), trackedInputIdx);
 
@@ -523,7 +1327,6 @@ private:
 
     void updateStatusLabel()
     {
-        // Check if there's a tracked input in this cluster
         for (int inputIdx : assignedInputs)
         {
             if (isInputFullyTracked(inputIdx))
@@ -562,21 +1365,19 @@ private:
         if (assignedInputs.empty())
             return { 0.0f, 0.0f, 0.0f };
 
-        // Priority 1: Tracked input position
         for (int inputIdx : assignedInputs)
         {
             if (isInputFullyTracked(inputIdx))
                 return getInputPosition(inputIdx);
         }
 
-        // Priority 2: First input or barycenter per mode
         int mode = referenceModeSelector.getSelectedId() - 1;
 
-        if (mode == 0)  // First Input
+        if (mode == 0)
         {
             return getInputPosition(assignedInputs[0]);
         }
-        else  // Barycenter
+        else
         {
             return calculateBarycenter();
         }
@@ -636,9 +1437,9 @@ private:
 
     float calculateDistanceFromOrigin(float x, float y, float z, int coordMode) const
     {
-        if (coordMode == 1)  // Cylindrical: radial distance in XY plane
+        if (coordMode == 1)
             return std::sqrt(x * x + y * y);
-        else if (coordMode == 2)  // Spherical: full 3D distance
+        else if (coordMode == 2)
             return std::sqrt(x * x + y * y + z * z);
         return 0.0f;
     }
@@ -647,7 +1448,6 @@ private:
     {
         float currentDist = calculateDistanceFromOrigin(x, y, z, coordMode);
 
-        // Avoid division by zero
         if (currentDist < 0.0001f)
             currentDist = 0.0001f;
 
@@ -656,12 +1456,12 @@ private:
         if (!juce::approximatelyEqual(currentDist, targetDist))
         {
             float scale = targetDist / currentDist;
-            if (coordMode == 1)  // Cylindrical: scale X, Y only
+            if (coordMode == 1)
             {
                 x *= scale;
                 y *= scale;
             }
-            else if (coordMode == 2)  // Spherical: scale X, Y, Z
+            else if (coordMode == 2)
             {
                 x *= scale;
                 y *= scale;
@@ -671,11 +1471,9 @@ private:
     }
 
     //==========================================================================
-    // Stage Bounds Helpers (for constraint enforcement)
+    // Stage Bounds Helpers
     //==========================================================================
 
-    // Stage bounds (center-referenced for X/Y, floor-referenced for Z)
-    // For circular shapes (cylinder/dome), use diameter instead of width/depth
     float getStageMinX() const
     {
         int shape = static_cast<int>(parameters.getConfigParam("StageShape"));
@@ -738,7 +1536,6 @@ private:
         if (assignedInputs.empty())
             return;
 
-        // Find tracked input
         int trackedIdx = -1;
         for (int inputIdx : assignedInputs)
         {
@@ -751,14 +1548,12 @@ private:
 
         if (trackedIdx >= 0)
         {
-            // Move tracked input's OFFSET (not position)
             auto [ox, oy, oz] = getInputOffset(trackedIdx);
             auto [px, py, pz] = getInputPosition(trackedIdx);
             float newOx = ox + dx;
             float newOy = oy + dy;
             float newOz = oz + dz;
 
-            // Apply constraints based on input's constraint settings (total position must be within bounds)
             bool constrainX = static_cast<int>(parameters.getInputParam(trackedIdx, "inputConstraintX")) != 0;
             bool constrainY = static_cast<int>(parameters.getInputParam(trackedIdx, "inputConstraintY")) != 0;
             bool constrainZ = static_cast<int>(parameters.getInputParam(trackedIdx, "inputConstraintZ")) != 0;
@@ -779,7 +1574,6 @@ private:
                 newOz = totalZ - pz;
             }
 
-            // Apply distance constraint for Cylindrical/Spherical modes
             int coordMode = static_cast<int>(parameters.getInputParam(trackedIdx, "inputCoordinateMode"));
             if (coordMode == 1 || coordMode == 2)
             {
@@ -788,7 +1582,6 @@ private:
                 {
                     float minDist = static_cast<float>(parameters.getInputParam(trackedIdx, "inputConstraintDistanceMin"));
                     float maxDist = static_cast<float>(parameters.getInputParam(trackedIdx, "inputConstraintDistanceMax"));
-                    // Apply constraint to total position, then recalculate offset
                     float totalX = px + newOx;
                     float totalY = py + newOy;
                     float totalZ = pz + newOz;
@@ -803,7 +1596,6 @@ private:
         }
         else
         {
-            // Move all inputs' positions (apply constraints individually)
             for (int inputIdx : assignedInputs)
             {
                 auto [px, py, pz] = getInputPosition(inputIdx);
@@ -811,7 +1603,6 @@ private:
                 float newY = py + dy;
                 float newZ = pz + dz;
 
-                // Apply constraints based on each input's constraint settings
                 bool constrainX = static_cast<int>(parameters.getInputParam(inputIdx, "inputConstraintX")) != 0;
                 bool constrainY = static_cast<int>(parameters.getInputParam(inputIdx, "inputConstraintY")) != 0;
                 bool constrainZ = static_cast<int>(parameters.getInputParam(inputIdx, "inputConstraintZ")) != 0;
@@ -823,7 +1614,6 @@ private:
                 if (constrainZ)
                     newZ = juce::jlimit(getStageMinZ(), getStageMaxZ(), newZ);
 
-                // Apply distance constraint for Cylindrical/Spherical modes
                 int coordMode = static_cast<int>(parameters.getInputParam(inputIdx, "inputCoordinateMode"));
                 if (coordMode == 1 || coordMode == 2)
                 {
@@ -925,6 +1715,12 @@ private:
 
     void timerCallback() override
     {
+        // Process cluster LFOs for ALL clusters (even when no inputs selected)
+        processAllClusterLFOs();
+
+        // Update LFO UI indicators for the currently selected cluster
+        updateLFOIndicators();
+
         if (selectedCluster < 1 || assignedInputs.empty())
             return;
 
@@ -941,12 +1737,11 @@ private:
         // Attenuation slider (auto-centers)
         float attenVal = attenuationSlider.getValue();
         if (attenVal != 0.0f)
-            applyAttenuationDelta(attenVal * 0.5f);  // 0.5 dB per full deflection per tick
+            applyAttenuationDelta(attenVal * 0.5f);
 
         // Rotation dial (1:1, calculate delta from previous)
         float currentAngle = rotationDial.getAngle();
         float angleDelta = currentAngle - previousDialAngle;
-        // Handle wrap-around at +/-180
         if (angleDelta > 180.0f) angleDelta -= 360.0f;
         if (angleDelta < -180.0f) angleDelta += 360.0f;
         if (angleDelta != 0.0f)
@@ -957,9 +1752,9 @@ private:
         auto [sx, sy] = scaleJoystick.getCurrentPosition();
         if (sx != 0.0f || sy != 0.0f)
         {
-            float scaleX = 1.0f + sx * 0.02f;  // +/-2% per full deflection per tick
-            float scaleY = 1.0f + sy * 0.02f;
-            applyScaleDelta(scaleX, scaleY);
+            float scX = 1.0f + sx * 0.02f;
+            float scY = 1.0f + sy * 0.02f;
+            applyScaleDelta(scX, scY);
         }
 
         // Update reference position display periodically
@@ -975,7 +1770,6 @@ private:
     {
         juce::ignoreUnused(treeWhosePropertyHasChanged);
 
-        // Update when input cluster assignments change
         if (property == WFSParameterIDs::inputCluster)
         {
             juce::MessageManager::callAsync([this]() {
@@ -984,7 +1778,6 @@ private:
                 updateStatusLabel();
             });
         }
-        // Update when tracking state changes
         else if (property == WFSParameterIDs::inputTrackingActive ||
                  property == WFSParameterIDs::trackingEnabled ||
                  property == WFSParameterIDs::trackingProtocol)

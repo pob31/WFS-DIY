@@ -212,6 +212,36 @@ namespace WFSParameterIDs
     const juce::Identifier Cluster           ("Cluster");
     const juce::Identifier clusterReferenceMode ("clusterReferenceMode");
 
+    // Config > Clusters > Cluster > LFO
+    const juce::Identifier ClusterLFO              ("ClusterLFO");
+    const juce::Identifier clusterLFOactive        ("clusterLFOactive");
+    const juce::Identifier clusterLFOperiod        ("clusterLFOperiod");
+    const juce::Identifier clusterLFOphase         ("clusterLFOphase");
+
+    const juce::Identifier clusterLFOshapeX        ("clusterLFOshapeX");
+    const juce::Identifier clusterLFOshapeY        ("clusterLFOshapeY");
+    const juce::Identifier clusterLFOshapeZ        ("clusterLFOshapeZ");
+    const juce::Identifier clusterLFOshapeRot      ("clusterLFOshapeRot");
+    const juce::Identifier clusterLFOshapeScale    ("clusterLFOshapeScale");
+
+    const juce::Identifier clusterLFOrateX         ("clusterLFOrateX");
+    const juce::Identifier clusterLFOrateY         ("clusterLFOrateY");
+    const juce::Identifier clusterLFOrateZ         ("clusterLFOrateZ");
+    const juce::Identifier clusterLFOrateRot       ("clusterLFOrateRot");
+    const juce::Identifier clusterLFOrateScale     ("clusterLFOrateScale");
+
+    const juce::Identifier clusterLFOamplitudeX    ("clusterLFOamplitudeX");
+    const juce::Identifier clusterLFOamplitudeY    ("clusterLFOamplitudeY");
+    const juce::Identifier clusterLFOamplitudeZ    ("clusterLFOamplitudeZ");
+    const juce::Identifier clusterLFOamplitudeRot  ("clusterLFOamplitudeRot");
+    const juce::Identifier clusterLFOamplitudeScale("clusterLFOamplitudeScale");
+
+    const juce::Identifier clusterLFOphaseX        ("clusterLFOphaseX");
+    const juce::Identifier clusterLFOphaseY        ("clusterLFOphaseY");
+    const juce::Identifier clusterLFOphaseZ        ("clusterLFOphaseZ");
+    const juce::Identifier clusterLFOphaseRot      ("clusterLFOphaseRot");
+    const juce::Identifier clusterLFOphaseScale    ("clusterLFOphaseScale");
+
     //==========================================================================
     // Input Channel Parameters
     //==========================================================================

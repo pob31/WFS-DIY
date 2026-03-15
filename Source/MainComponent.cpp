@@ -257,6 +257,7 @@ MainComponent::MainComponent()
     outputsTab->setStatusBar(statusBar);
     inputsTab->setStatusBar(statusBar);
     reverbTab->setStatusBar(statusBar);
+    clustersTab->setStatusBar(statusBar);
     mapTab->setStatusBar(statusBar);
 
     // Note: AutomOtionProcessor is set after it's created (later in constructor)

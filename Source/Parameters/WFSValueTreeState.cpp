@@ -97,6 +97,45 @@ juce::ValueTree WFSValueTreeState::getClusterState (int clusterIndex)
     return {};
 }
 
+juce::ValueTree WFSValueTreeState::getClusterLFOSection (int clusterIndex)
+{
+    auto cluster = getClusterState (clusterIndex);
+    if (! cluster.isValid())
+        return {};
+
+    auto lfoSection = cluster.getChildWithName (ClusterLFO);
+    if (! lfoSection.isValid())
+    {
+        // Migration: create with defaults if missing (old file loaded)
+        lfoSection = juce::ValueTree (ClusterLFO);
+        lfoSection.setProperty (clusterLFOactive,         clusterLFOactiveDefault,          nullptr);
+        lfoSection.setProperty (clusterLFOperiod,         clusterLFOperiodDefault,          nullptr);
+        lfoSection.setProperty (clusterLFOphase,          clusterLFOphaseDefault,           nullptr);
+        lfoSection.setProperty (clusterLFOshapeX,         clusterLFOshapeDefault,           nullptr);
+        lfoSection.setProperty (clusterLFOshapeY,         clusterLFOshapeDefault,           nullptr);
+        lfoSection.setProperty (clusterLFOshapeZ,         clusterLFOshapeDefault,           nullptr);
+        lfoSection.setProperty (clusterLFOshapeRot,       clusterLFOshapeDefault,           nullptr);
+        lfoSection.setProperty (clusterLFOshapeScale,     clusterLFOshapeDefault,           nullptr);
+        lfoSection.setProperty (clusterLFOrateX,          clusterLFOrateDefault,            nullptr);
+        lfoSection.setProperty (clusterLFOrateY,          clusterLFOrateDefault,            nullptr);
+        lfoSection.setProperty (clusterLFOrateZ,          clusterLFOrateDefault,            nullptr);
+        lfoSection.setProperty (clusterLFOrateRot,        clusterLFOrateDefault,            nullptr);
+        lfoSection.setProperty (clusterLFOrateScale,      clusterLFOrateDefault,            nullptr);
+        lfoSection.setProperty (clusterLFOamplitudeX,     clusterLFOamplitudeXYZDefault,    nullptr);
+        lfoSection.setProperty (clusterLFOamplitudeY,     clusterLFOamplitudeXYZDefault,    nullptr);
+        lfoSection.setProperty (clusterLFOamplitudeZ,     clusterLFOamplitudeXYZDefault,    nullptr);
+        lfoSection.setProperty (clusterLFOamplitudeRot,   clusterLFOamplitudeRotDefault,    nullptr);
+        lfoSection.setProperty (clusterLFOamplitudeScale, clusterLFOamplitudeScaleDefault,  nullptr);
+        lfoSection.setProperty (clusterLFOphaseX,         clusterLFOphaseDefault,           nullptr);
+        lfoSection.setProperty (clusterLFOphaseY,         clusterLFOphaseDefault,           nullptr);
+        lfoSection.setProperty (clusterLFOphaseZ,         clusterLFOphaseDefault,           nullptr);
+        lfoSection.setProperty (clusterLFOphaseRot,       clusterLFOphaseDefault,           nullptr);
+        lfoSection.setProperty (clusterLFOphaseScale,     clusterLFOphaseDefault,           nullptr);
+        cluster.appendChild (lfoSection, nullptr);
+    }
+    return lfoSection;
+}
+
 juce::ValueTree WFSValueTreeState::getInputsState()
 {
     return state.getChildWithName (Inputs);
@@ -1771,6 +1810,34 @@ void WFSValueTreeState::createClustersSection (juce::ValueTree& config)
         juce::ValueTree cluster (Cluster);
         cluster.setProperty (id, i + 1, nullptr);
         cluster.setProperty (clusterReferenceMode, clusterReferenceModeDefault, nullptr);
+
+        // Cluster LFO section
+        juce::ValueTree lfo (ClusterLFO);
+        lfo.setProperty (clusterLFOactive,         clusterLFOactiveDefault,          nullptr);
+        lfo.setProperty (clusterLFOperiod,         clusterLFOperiodDefault,          nullptr);
+        lfo.setProperty (clusterLFOphase,          clusterLFOphaseDefault,           nullptr);
+        lfo.setProperty (clusterLFOshapeX,         clusterLFOshapeDefault,           nullptr);
+        lfo.setProperty (clusterLFOshapeY,         clusterLFOshapeDefault,           nullptr);
+        lfo.setProperty (clusterLFOshapeZ,         clusterLFOshapeDefault,           nullptr);
+        lfo.setProperty (clusterLFOshapeRot,       clusterLFOshapeDefault,           nullptr);
+        lfo.setProperty (clusterLFOshapeScale,     clusterLFOshapeDefault,           nullptr);
+        lfo.setProperty (clusterLFOrateX,          clusterLFOrateDefault,            nullptr);
+        lfo.setProperty (clusterLFOrateY,          clusterLFOrateDefault,            nullptr);
+        lfo.setProperty (clusterLFOrateZ,          clusterLFOrateDefault,            nullptr);
+        lfo.setProperty (clusterLFOrateRot,        clusterLFOrateDefault,            nullptr);
+        lfo.setProperty (clusterLFOrateScale,      clusterLFOrateDefault,            nullptr);
+        lfo.setProperty (clusterLFOamplitudeX,     clusterLFOamplitudeXYZDefault,    nullptr);
+        lfo.setProperty (clusterLFOamplitudeY,     clusterLFOamplitudeXYZDefault,    nullptr);
+        lfo.setProperty (clusterLFOamplitudeZ,     clusterLFOamplitudeXYZDefault,    nullptr);
+        lfo.setProperty (clusterLFOamplitudeRot,   clusterLFOamplitudeRotDefault,    nullptr);
+        lfo.setProperty (clusterLFOamplitudeScale, clusterLFOamplitudeScaleDefault,  nullptr);
+        lfo.setProperty (clusterLFOphaseX,         clusterLFOphaseDefault,           nullptr);
+        lfo.setProperty (clusterLFOphaseY,         clusterLFOphaseDefault,           nullptr);
+        lfo.setProperty (clusterLFOphaseZ,         clusterLFOphaseDefault,           nullptr);
+        lfo.setProperty (clusterLFOphaseRot,       clusterLFOphaseDefault,           nullptr);
+        lfo.setProperty (clusterLFOphaseScale,     clusterLFOphaseDefault,           nullptr);
+        cluster.appendChild (lfo, nullptr);
+
         clusters.appendChild (cluster, nullptr);
     }
 

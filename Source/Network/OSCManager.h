@@ -477,6 +477,7 @@ private:
     void handleArrayAdjustMessage(const juce::OSCMessage& message);
     void handleClusterMoveMessage(const juce::OSCMessage& message);
     void handleClusterScaleRotationMessage(const juce::OSCMessage& message);
+    void handleClusterLFOMessage(const juce::OSCMessage& message);
     void handleADMOSCMessage(const juce::OSCMessage& message);
 
     /** Send ADM-OSC position for an input to all ADM-OSC targets (transmit). */

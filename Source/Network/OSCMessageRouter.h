@@ -176,6 +176,7 @@ public:
     static bool isArrayAdjustAddress(const juce::String& address);
     static bool isClusterMoveAddress(const juce::String& address);
     static bool isClusterScaleRotationAddress(const juce::String& address);
+    static bool isClusterLFOAddress(const juce::String& address);
     static bool isADMOSCAddress(const juce::String& address);
 
     /** Parse an ADM-OSC message (/adm/obj/N/xyz, /adm/obj/N/aed, etc.) */
