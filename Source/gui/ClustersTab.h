@@ -950,7 +950,7 @@ private:
         // Period dial
         addAndMakeVisible(lfoPeriodLabel);
         lfoPeriodLabel.setText(LOC("clusters.lfo.labels.period"), juce::dontSendNotification);
-        lfoPeriodLabel.setFont(juce::FontOptions().withHeight(13.0f));
+        lfoPeriodLabel.setFont(juce::FontOptions().withHeight(15.0f));
         lfoPeriodLabel.setJustificationType(juce::Justification::centred);
 
         addAndMakeVisible(lfoPeriodDial);
@@ -965,14 +965,14 @@ private:
 
         addAndMakeVisible(lfoPeriodValueLabel);
         lfoPeriodValueLabel.setText("5.00 s", juce::dontSendNotification);
-        lfoPeriodValueLabel.setFont(juce::FontOptions().withHeight(13.0f));
+        lfoPeriodValueLabel.setFont(juce::FontOptions().withHeight(15.0f));
         lfoPeriodValueLabel.setJustificationType(juce::Justification::centred);
         setupEditableValueLabel(lfoPeriodValueLabel);
 
         // Phase dial
         addAndMakeVisible(lfoPhaseLabel);
         lfoPhaseLabel.setText(LOC("clusters.lfo.labels.phase"), juce::dontSendNotification);
-        lfoPhaseLabel.setFont(juce::FontOptions().withHeight(13.0f));
+        lfoPhaseLabel.setFont(juce::FontOptions().withHeight(15.0f));
         lfoPhaseLabel.setJustificationType(juce::Justification::centred);
 
         addAndMakeVisible(lfoPhaseDial);
@@ -986,7 +986,7 @@ private:
 
         addAndMakeVisible(lfoPhaseValueLabel);
         lfoPhaseValueLabel.setText(juce::String("0") + juce::String::charToString(0x00B0), juce::dontSendNotification);
-        lfoPhaseValueLabel.setFont(juce::FontOptions().withHeight(13.0f));
+        lfoPhaseValueLabel.setFont(juce::FontOptions().withHeight(15.0f));
         lfoPhaseValueLabel.setJustificationType(juce::Justification::centred);
         setupEditableValueLabel(lfoPhaseValueLabel);
 
@@ -1029,7 +1029,7 @@ private:
             // Axis label
             addAndMakeVisible(row.axisLabel);
             row.axisLabel.setText(LOC(info.locKey), juce::dontSendNotification);
-            row.axisLabel.setFont(juce::FontOptions().withHeight(14.0f).withStyle("Bold"));
+            row.axisLabel.setFont(juce::FontOptions().withHeight(16.0f).withStyle("Bold"));
 
             // Shape selector
             addAndMakeVisible(row.shapeSelector);
@@ -1053,7 +1053,7 @@ private:
                 row.amplitudeLabel.setText(LOC("clusters.lfo.labels.ratio"), juce::dontSendNotification);
             else
                 row.amplitudeLabel.setText(LOC("clusters.lfo.labels.amplitude"), juce::dontSendNotification);
-            row.amplitudeLabel.setFont(juce::FontOptions().withHeight(13.0f));
+            row.amplitudeLabel.setFont(juce::FontOptions().withHeight(15.0f));
 
             if (info.isRotation)
             {
@@ -1098,14 +1098,14 @@ private:
             addAndMakeVisible(row.amplitudeSlider.get());
 
             addAndMakeVisible(row.amplitudeValueLabel);
-            row.amplitudeValueLabel.setFont(juce::FontOptions().withHeight(13.0f));
+            row.amplitudeValueLabel.setFont(juce::FontOptions().withHeight(15.0f));
             row.amplitudeValueLabel.setJustificationType(juce::Justification::centredRight);
             setupEditableValueLabel(row.amplitudeValueLabel);
 
             // Rate slider (bidirectional, log scale 0.01..100x)
             addAndMakeVisible(row.rateLabel);
             row.rateLabel.setText(LOC("clusters.lfo.labels.rate"), juce::dontSendNotification);
-            row.rateLabel.setFont(juce::FontOptions().withHeight(13.0f));
+            row.rateLabel.setFont(juce::FontOptions().withHeight(15.0f));
 
             addAndMakeVisible(row.rateSlider);
             row.rateSlider.setTrackColours(ColorScheme::get().sliderTrackBg, juce::Colour(0xFFD4A017));
@@ -1118,14 +1118,14 @@ private:
 
             addAndMakeVisible(row.rateValueLabel);
             row.rateValueLabel.setText("1.00x", juce::dontSendNotification);
-            row.rateValueLabel.setFont(juce::FontOptions().withHeight(13.0f));
+            row.rateValueLabel.setFont(juce::FontOptions().withHeight(15.0f));
             row.rateValueLabel.setJustificationType(juce::Justification::centredRight);
             setupEditableValueLabel(row.rateValueLabel);
 
             // Phase label + dial
             addAndMakeVisible(row.phaseLabel);
             row.phaseLabel.setText(LOC("clusters.lfo.labels.phase"), juce::dontSendNotification);
-            row.phaseLabel.setFont(juce::FontOptions().withHeight(13.0f));
+            row.phaseLabel.setFont(juce::FontOptions().withHeight(15.0f));
             row.phaseLabel.setJustificationType(juce::Justification::centred);
             addAndMakeVisible(row.phaseDial);
             row.phaseDial.setColours(juce::Colour(0xFF3A3A3A), juce::Colour(0xFFE6B422), juce::Colours::white);
@@ -1138,7 +1138,7 @@ private:
 
             addAndMakeVisible(row.phaseValueLabel);
             row.phaseValueLabel.setText(juce::String("0") + juce::String::charToString(0x00B0), juce::dontSendNotification);
-            row.phaseValueLabel.setFont(juce::FontOptions().withHeight(13.0f));
+            row.phaseValueLabel.setFont(juce::FontOptions().withHeight(15.0f));
             row.phaseValueLabel.setJustificationType(juce::Justification::centred);
             setupEditableValueLabel(row.phaseValueLabel);
 
@@ -1154,13 +1154,17 @@ private:
 
     void layoutLFOPanel(juce::Rectangle<int> area)
     {
-        // Sizing constants matching InputsTab LFO layout
-        const int rowHeight = scaled(24);
-        const int sliderHeight = scaled(28);
-        const int spacing = scaled(4);
-        const int labelWidth = scaled(50);
-        const int valueWidth = scaled(45);
-        const int selectorWidth = scaled(100);
+        // Sizing constants
+        const int rowHeight    = scaled(24);     // shape selector row
+        const int sliderHeight = scaled(40);     // amplitude & rate sliders (thicker, matches InputsTab)
+        const int vizHeight    = scaled(16);     // output viz indicator (thin, read-only)
+        const int spacing      = scaled(4);      // inter-axis gap
+        const int vizPad       = scaled(2);      // padding above/below viz
+        const int labelWidth   = scaled(50);     // axis label ("X", "Y", etc.)
+        const int valueWidth   = scaled(55);     // value labels (wider for larger font)
+        const int selectorWidth = scaled(100);   // waveform combobox
+        const int sliderLabelW = scaled(75);     // "Amplitude:", "Rate:" labels (wider for 15pt)
+        const int phaseValueH  = scaled(16);     // phase value label height
         const int dialSize = juce::jmax(40, static_cast<int>(65.0f * layoutScale));
 
         // ==================== HEADER ====================
@@ -1220,8 +1224,10 @@ private:
         // Calculate available height per axis
         int totalAxisHeight = area.getHeight() - spacing * 4; // 4 gaps between 5 axes
         int axisBlockHeight = totalAxisHeight / 5;
-        const int sliderLabelW = scaled(62); // label width before amplitude/rate sliders (fits "Amplitude:")
-        int phaseDialSize = sliderHeight * 2 + spacing; // match height of amplitude + rate rows
+
+        // Phase dial spans all 3 slider rows: amp + vizPad + viz + vizPad + rate
+        int sliderStackH = sliderHeight * 2 + vizHeight + vizPad * 2;
+        int phaseDialSize = sliderStackH;
 
         for (int a = 0; a < 5; ++a)
         {
@@ -1232,45 +1238,41 @@ private:
             auto line1 = axisArea.removeFromTop(rowHeight);
             row.axisLabel.setBounds(line1.removeFromLeft(labelWidth));
             row.shapeSelector.setBounds(line1.removeFromLeft(juce::jmin(selectorWidth, line1.getWidth())));
-            // Phase label right-aligned on same line as shape selector
             row.phaseLabel.setBounds(line1.removeFromRight(phaseDialSize + scaled(4)));
 
             axisArea.removeFromTop(spacing);
 
-            // Right column: phase dial + value (spans lines 2-4)
+            // Right column: phase dial + value (spans all 3 slider rows)
             auto phaseColumn = axisArea.removeFromRight(phaseDialSize + scaled(4));
-            phaseColumn.removeFromLeft(scaled(4)); // left padding
-            row.phaseDial.setBounds(phaseColumn.removeFromTop(phaseDialSize).withSizeKeepingCentre(phaseDialSize, phaseDialSize));
-            row.phaseValueLabel.setBounds(phaseColumn.removeFromTop(scaled(14)));
+            phaseColumn.removeFromLeft(scaled(4));
+            row.phaseDial.setBounds(phaseColumn.removeFromTop(phaseDialSize)
+                                    .withSizeKeepingCentre(phaseDialSize, phaseDialSize));
+            auto phaseValArea = phaseColumn.removeFromTop(phaseValueH);
+            row.phaseValueLabel.setBounds(phaseValArea.withSizeKeepingCentre(phaseDialSize / 2, phaseValueH));
 
-            // Line 2: [Amplitude label] [Amplitude slider] [value label]
+            // Row 2: Amplitude slider
             auto line2 = axisArea.removeFromTop(sliderHeight);
-            {
-                row.amplitudeLabel.setBounds(line2.removeFromLeft(sliderLabelW));
-                row.amplitudeValueLabel.setBounds(line2.removeFromRight(valueWidth));
-                row.amplitudeSlider->setBounds(line2);
-            }
+            row.amplitudeLabel.setBounds(line2.removeFromLeft(sliderLabelW));
+            auto ampValArea = line2.removeFromRight(valueWidth);
+            row.amplitudeValueLabel.setBounds(ampValArea.withSizeKeepingCentre(valueWidth, scaled(24)));
+            row.amplitudeSlider->setBounds(line2);
 
-            axisArea.removeFromTop(spacing);
+            axisArea.removeFromTop(vizPad);
 
-            // Line 3: [Rate label] [Rate slider] [value label]
+            // Viz: Output indicator (between amplitude and rate)
+            auto vizLine = axisArea.removeFromTop(vizHeight);
+            vizLine.removeFromLeft(sliderLabelW);
+            vizLine.removeFromRight(valueWidth);
+            row.outputSlider.setBounds(vizLine);
+
+            axisArea.removeFromTop(vizPad);
+
+            // Row 3: Rate slider
             auto line3 = axisArea.removeFromTop(sliderHeight);
-            {
-                row.rateLabel.setBounds(line3.removeFromLeft(sliderLabelW));
-                row.rateValueLabel.setBounds(line3.removeFromRight(valueWidth));
-                row.rateSlider.setBounds(line3);
-            }
-
-            axisArea.removeFromTop(spacing);
-
-            // Line 4: [Output indicator slider] — aligned with sliders above
-            if (axisArea.getHeight() >= scaled(14))
-            {
-                auto outLine = axisArea.removeFromTop(juce::jmin(scaled(20), axisArea.getHeight()));
-                outLine.removeFromLeft(sliderLabelW); // align left with sliders
-                outLine.removeFromRight(valueWidth);  // align right with sliders
-                row.outputSlider.setBounds(outLine);
-            }
+            row.rateLabel.setBounds(line3.removeFromLeft(sliderLabelW));
+            auto rateValArea = line3.removeFromRight(valueWidth);
+            row.rateValueLabel.setBounds(rateValArea.withSizeKeepingCentre(valueWidth, scaled(24)));
+            row.rateSlider.setBounds(line3);
 
             if (a < 4)
                 area.removeFromTop(spacing);
