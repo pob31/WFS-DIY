@@ -1,5 +1,6 @@
 #include "TrackingRTTrPReceiver.h"
 #include "../DSP/TrackingPositionFilter.h"
+#include "OSCLogger.h"
 #include <cmath>
 
 namespace WFSNetwork
@@ -213,7 +214,22 @@ void TrackingRTTrPReceiver::routePositionToInputs(int trackingId, float x, float
     }
 
     if (anyRouted)
+    {
         ++positionsRouted;
+
+        if (logger != nullptr && logger->getEnabled())
+        {
+            LogEntry entry;
+            entry.timestamp = juce::Time::getCurrentTime();
+            entry.direction = "Rx";
+            entry.protocol = Protocol::RTTrP;
+            entry.transport = ConnectionMode::UDP;
+            entry.port = port;
+            entry.address = "/tracking/rttrp/" + juce::String (trackingId);
+            entry.arguments = "x=" + juce::String (x, 3) + " y=" + juce::String (y, 3) + " z=" + juce::String (z, 3);
+            logger->logEntry (entry);
+        }
+    }
 }
 
 void TrackingRTTrPReceiver::routeOrientationToInputs(int trackingId, float rotation)

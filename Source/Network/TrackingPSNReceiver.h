@@ -6,6 +6,8 @@
 
 class TrackingPositionFilter;
 
+namespace WFSNetwork { class OSCLogger; }
+
 // PSN library - header-only implementation
 // Windows defines min/max macros that conflict with std::min/max used in PSN library
 #ifdef _WIN32
@@ -74,6 +76,9 @@ public:
      */
     void setPositionFilter(TrackingPositionFilter* filter) { positionFilter = filter; }
 
+    /** Set the logger for tracking data visibility. */
+    void setLogger(OSCLogger* l) { logger = l; }
+
     void setTransformations(float offsetX, float offsetY, float offsetZ,
                             float scaleX, float scaleY, float scaleZ,
                             bool flipX, bool flipY, bool flipZ);
@@ -106,6 +111,9 @@ private:
 
     // Position filter (shared, owned by OSCManager)
     TrackingPositionFilter* positionFilter = nullptr;
+
+    // Logger (shared, owned by OSCManager)
+    OSCLogger* logger = nullptr;
 
     WFSValueTreeState& state;
 

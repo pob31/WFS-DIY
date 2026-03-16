@@ -7,6 +7,8 @@
 
 class TrackingPositionFilter;
 
+namespace WFSNetwork { class OSCLogger; }
+
 namespace WFSNetwork
 {
 
@@ -265,6 +267,9 @@ public:
      */
     void setPositionFilter(TrackingPositionFilter* filter) { positionFilter = filter; }
 
+    /** Set the logger for tracking data visibility in the Network Log Window. */
+    void setLogger(OSCLogger* l) { logger = l; }
+
     /**
      * Update just the path pattern (while running).
      * @return true if pattern is valid
@@ -311,6 +316,9 @@ private:
 
     // Position filter (shared, owned by OSCManager)
     TrackingPositionFilter* positionFilter = nullptr;
+
+    // Logger (shared, owned by OSCManager)
+    OSCLogger* logger = nullptr;
 
     // Thread safety for pattern updates
     juce::CriticalSection patternLock;

@@ -1,5 +1,6 @@
 #include "TrackingMQTTReceiver.h"
 #include "../DSP/TrackingPositionFilter.h"
+#include "OSCLogger.h"
 
 namespace WFSNetwork
 {
@@ -130,6 +131,12 @@ void TrackingMQTTReceiver::resetStatistics()
 {
     messagesReceived = 0;
     positionsRouted = 0;
+}
+
+juce::StringArray TrackingMQTTReceiver::getDiscoveredJsonKeys() const
+{
+    juce::ScopedLock sl (jsonKeyLock);
+    return discoveredJsonKeys;
 }
 
 //==============================================================================
@@ -393,10 +400,67 @@ void TrackingMQTTReceiver::processJsonPayload (const juce::String& topic, const 
     if (slot < 0)
         return; // No matching slot configured
 
+    // Log raw MQTT message to Network Log Window
+    if (logger != nullptr && logger->getEnabled())
+    {
+        LogEntry entry;
+        entry.timestamp = juce::Time::getCurrentTime();
+        entry.direction = "Rx";
+        entry.protocol = Protocol::MQTT;
+        entry.transport = ConnectionMode::TCP;
+        entry.ipAddress = brokerHost;
+        entry.port = brokerPort;
+        entry.address = topic;
+        entry.arguments = payload.substring (0, 200);
+        logger->logEntry (entry);
+    }
+
     // Parse JSON
     auto json = juce::JSON::parse (payload);
     if (! json.isObject())
         return;
+
+    // Auto-discover JSON keys from first message
+    if (! jsonKeysDiscovered)
+    {
+        juce::StringArray keys;
+        if (auto* obj = json.getDynamicObject())
+        {
+            for (const auto& prop : obj->getProperties())
+            {
+                auto& val = prop.value;
+                if (val.isObject())
+                {
+                    // Enumerate nested keys with dot notation
+                    if (auto* nested = val.getDynamicObject())
+                    {
+                        for (const auto& nestedProp : nested->getProperties())
+                            keys.add (prop.name.toString() + "." + nestedProp.name.toString());
+                    }
+                }
+                else
+                {
+                    keys.add (prop.name.toString());
+                }
+            }
+        }
+
+        if (keys.size() > 0)
+        {
+            {
+                juce::ScopedLock sl (jsonKeyLock);
+                discoveredJsonKeys = keys;
+                jsonKeysDiscovered = true;
+            }
+
+            if (onJsonKeysDiscovered)
+            {
+                auto keyCopy = keys;
+                auto cb = onJsonKeysDiscovered;
+                juce::MessageManager::callAsync ([cb, keyCopy]() { cb (keyCopy); });
+            }
+        }
+    }
 
     // Read field names (thread-safe)
     juce::String kx, ky, kz, kq;

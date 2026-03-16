@@ -2098,15 +2098,15 @@ public:
             const int jFieldW = scaled(52);
             const int jSpacing = scaled(4);
             int jx = rcol1;
-            auto layoutJsonField = [&](juce::Label& lbl, juce::TextEditor& ed) {
+            auto layoutJsonField = [&](juce::Label& lbl, juce::ComboBox& ed) {
                 lbl.setBounds(jx, rightY, jLabelW, rowHeight);
                 ed.setBounds(jx + jLabelW, rightY, jFieldW, rowHeight);
                 jx += jLabelW + jFieldW + jSpacing;
             };
-            layoutJsonField(trackingMqttJsonXLabel, trackingMqttJsonXEditor);
-            layoutJsonField(trackingMqttJsonYLabel, trackingMqttJsonYEditor);
-            layoutJsonField(trackingMqttJsonZLabel, trackingMqttJsonZEditor);
-            layoutJsonField(trackingMqttJsonQLabel, trackingMqttJsonQEditor);
+            layoutJsonField(trackingMqttJsonXLabel, trackingMqttJsonXCombo);
+            layoutJsonField(trackingMqttJsonYLabel, trackingMqttJsonYCombo);
+            layoutJsonField(trackingMqttJsonZLabel, trackingMqttJsonZCombo);
+            layoutJsonField(trackingMqttJsonQLabel, trackingMqttJsonQCombo);
         }
         rightY += rowHeight + sectionSpacing;
 
@@ -2332,13 +2332,13 @@ private:
     juce::TextEditor trackingMqttTopicEditor;
     juce::TextButton trackingMqttTagIdsButton;
     juce::Label trackingMqttJsonXLabel;
-    juce::TextEditor trackingMqttJsonXEditor;
+    juce::ComboBox trackingMqttJsonXCombo;
     juce::Label trackingMqttJsonYLabel;
-    juce::TextEditor trackingMqttJsonYEditor;
+    juce::ComboBox trackingMqttJsonYCombo;
     juce::Label trackingMqttJsonZLabel;
-    juce::TextEditor trackingMqttJsonZEditor;
+    juce::ComboBox trackingMqttJsonZCombo;
     juce::Label trackingMqttJsonQLabel;
-    juce::TextEditor trackingMqttJsonQEditor;
+    juce::ComboBox trackingMqttJsonQCombo;
 
     void setupAdmOscSection()
     {
@@ -2693,24 +2693,24 @@ private:
         trackingMqttTagIdsButton.setVisible(false);
         trackingMqttTagIdsButton.onClick = [this]() { showMqttTagIdPanel(); };
 
-        // MQTT JSON field labels + editors
-        auto setupJsonField = [this](juce::Label& label, juce::TextEditor& editor,
+        // MQTT JSON field labels + comboboxes (editable, auto-populated from discovered keys)
+        auto setupJsonCombo = [this](juce::Label& label, juce::ComboBox& combo,
                                       const juce::String& labelText, const juce::String& defaultVal) {
             addAndMakeVisible(label);
             label.setText(labelText, juce::dontSendNotification);
-            label.setFont(juce::Font(11.0f));
             label.setColour(juce::Label::textColourId, ColorScheme::get().textSecondary);
-            addAndMakeVisible(editor);
-            editor.setText(defaultVal, juce::dontSendNotification);
-            editor.setFont(juce::Font(11.0f));
+            addAndMakeVisible(combo);
+            combo.setEditableText(true);
+            combo.setText(defaultVal, juce::dontSendNotification);
             label.setVisible(false);
-            editor.setVisible(false);
+            combo.setVisible(false);
+            combo.onChange = [this]() { saveMqttJsonFieldNames(); };
         };
 
-        setupJsonField(trackingMqttJsonXLabel, trackingMqttJsonXEditor, LOC("network.labels.mqttJsonX"), "x");
-        setupJsonField(trackingMqttJsonYLabel, trackingMqttJsonYEditor, LOC("network.labels.mqttJsonY"), "y");
-        setupJsonField(trackingMqttJsonZLabel, trackingMqttJsonZEditor, LOC("network.labels.mqttJsonZ"), "z");
-        setupJsonField(trackingMqttJsonQLabel, trackingMqttJsonQEditor, LOC("network.labels.mqttJsonQ"), "quality");
+        setupJsonCombo(trackingMqttJsonXLabel, trackingMqttJsonXCombo, LOC("network.labels.mqttJsonX"), "x");
+        setupJsonCombo(trackingMqttJsonYLabel, trackingMqttJsonYCombo, LOC("network.labels.mqttJsonY"), "y");
+        setupJsonCombo(trackingMqttJsonZLabel, trackingMqttJsonZCombo, LOC("network.labels.mqttJsonZ"), "z");
+        setupJsonCombo(trackingMqttJsonQLabel, trackingMqttJsonQCombo, LOC("network.labels.mqttJsonQ"), "quality");
 
         // Add text editor listeners
         trackingPortEditor.addListener(this);
@@ -2723,10 +2723,6 @@ private:
         trackingOscPathEditor.addListener(this);
         trackingMqttHostEditor.addListener(this);
         trackingMqttTopicEditor.addListener(this);
-        trackingMqttJsonXEditor.addListener(this);
-        trackingMqttJsonYEditor.addListener(this);
-        trackingMqttJsonZEditor.addListener(this);
-        trackingMqttJsonQEditor.addListener(this);
     }
 
     // Helper to check if source component is or is a child of target (for ComboBox hover detection)
@@ -3435,26 +3431,26 @@ private:
         trackingMqttTopicEditor.setVisible(isMqttProtocol);
         trackingMqttTagIdsButton.setVisible(isMqttProtocol);
         trackingMqttJsonXLabel.setVisible(isMqttProtocol);
-        trackingMqttJsonXEditor.setVisible(isMqttProtocol);
+        trackingMqttJsonXCombo.setVisible(isMqttProtocol);
         trackingMqttJsonYLabel.setVisible(isMqttProtocol);
-        trackingMqttJsonYEditor.setVisible(isMqttProtocol);
+        trackingMqttJsonYCombo.setVisible(isMqttProtocol);
         trackingMqttJsonZLabel.setVisible(isMqttProtocol);
-        trackingMqttJsonZEditor.setVisible(isMqttProtocol);
+        trackingMqttJsonZCombo.setVisible(isMqttProtocol);
         trackingMqttJsonQLabel.setVisible(isMqttProtocol);
-        trackingMqttJsonQEditor.setVisible(isMqttProtocol);
+        trackingMqttJsonQCombo.setVisible(isMqttProtocol);
         trackingMqttHostLabel.setAlpha(alpha);
         trackingMqttHostEditor.setAlpha(alpha);
         trackingMqttTopicLabel.setAlpha(alpha);
         trackingMqttTopicEditor.setAlpha(alpha);
         trackingMqttTagIdsButton.setAlpha(alpha);
         trackingMqttJsonXLabel.setAlpha(alpha);
-        trackingMqttJsonXEditor.setAlpha(alpha);
+        trackingMqttJsonXCombo.setAlpha(alpha);
         trackingMqttJsonYLabel.setAlpha(alpha);
-        trackingMqttJsonYEditor.setAlpha(alpha);
+        trackingMqttJsonYCombo.setAlpha(alpha);
         trackingMqttJsonZLabel.setAlpha(alpha);
-        trackingMqttJsonZEditor.setAlpha(alpha);
+        trackingMqttJsonZCombo.setAlpha(alpha);
         trackingMqttJsonQLabel.setAlpha(alpha);
-        trackingMqttJsonQEditor.setAlpha(alpha);
+        trackingMqttJsonQCombo.setAlpha(alpha);
 
         // Update tracking receiver state
         updateTrackingReceiver();
@@ -3658,16 +3654,23 @@ private:
                 // Save config
                 parameters.setConfigParam("trackingMqttHost", host);
                 parameters.setConfigParam("trackingMqttTopic", topic);
-                parameters.setConfigParam("trackingMqttJsonX", trackingMqttJsonXEditor.getText().trim());
-                parameters.setConfigParam("trackingMqttJsonY", trackingMqttJsonYEditor.getText().trim());
-                parameters.setConfigParam("trackingMqttJsonZ", trackingMqttJsonZEditor.getText().trim());
-                parameters.setConfigParam("trackingMqttJsonQ", trackingMqttJsonQEditor.getText().trim());
+                parameters.setConfigParam("trackingMqttJsonX", trackingMqttJsonXCombo.getText().trim());
+                parameters.setConfigParam("trackingMqttJsonY", trackingMqttJsonYCombo.getText().trim());
+                parameters.setConfigParam("trackingMqttJsonZ", trackingMqttJsonZCombo.getText().trim());
+                parameters.setConfigParam("trackingMqttJsonQ", trackingMqttJsonQCombo.getText().trim());
 
                 if (oscManager->startMQTTReceiver(host, port, topic))
                 {
                     oscManager->updateMQTTTransformations(offsetX, offsetY, offsetZ,
                                                            scaleX, scaleY, scaleZ,
                                                            flipX, flipY, flipZ);
+
+                    // Wire up JSON key auto-discovery callback
+                    if (oscManager->getMQTTReceiver() != nullptr)
+                    {
+                        oscManager->getMQTTReceiver()->onJsonKeysDiscovered =
+                            [this](const juce::StringArray& keys) { populateMqttJsonComboboxes(keys); };
+                    }
                 }
                 else
                 {
@@ -3746,6 +3749,40 @@ private:
      * Show the MQTT Tag ID mapping panel as a dialog.
      * 32 slots, sequential mapping (slot N = input N).
      */
+    /** Save current JSON field name selections to config and update receiver. */
+    void saveMqttJsonFieldNames()
+    {
+        juce::String kx = trackingMqttJsonXCombo.getText().trim();
+        juce::String ky = trackingMqttJsonYCombo.getText().trim();
+        juce::String kz = trackingMqttJsonZCombo.getText().trim();
+        juce::String kq = trackingMqttJsonQCombo.getText().trim();
+
+        parameters.setConfigParam ("trackingMqttJsonX", kx);
+        parameters.setConfigParam ("trackingMqttJsonY", ky);
+        parameters.setConfigParam ("trackingMqttJsonZ", kz);
+        parameters.setConfigParam ("trackingMqttJsonQ", kq);
+
+        if (oscManager != nullptr && oscManager->getMQTTReceiver() != nullptr)
+            oscManager->getMQTTReceiver()->setJsonFieldNames (kx, ky, kz, kq);
+    }
+
+    /** Populate JSON field comboboxes with discovered keys from MQTT receiver. */
+    void populateMqttJsonComboboxes (const juce::StringArray& keys)
+    {
+        auto populateCombo = [&keys] (juce::ComboBox& combo) {
+            juce::String current = combo.getText();
+            combo.clear (juce::dontSendNotification);
+            for (int i = 0; i < keys.size(); ++i)
+                combo.addItem (keys[i], i + 1);
+            combo.setText (current, juce::dontSendNotification);
+        };
+
+        populateCombo (trackingMqttJsonXCombo);
+        populateCombo (trackingMqttJsonYCombo);
+        populateCombo (trackingMqttJsonZCombo);
+        populateCombo (trackingMqttJsonQCombo);
+    }
+
     void showMqttTagIdPanel()
     {
         // Build content panel with OK button
@@ -3917,10 +3954,10 @@ private:
         juce::String mqttJy = parameters.getConfigParam("trackingMqttJsonY").toString();
         juce::String mqttJz = parameters.getConfigParam("trackingMqttJsonZ").toString();
         juce::String mqttJq = parameters.getConfigParam("trackingMqttJsonQ").toString();
-        trackingMqttJsonXEditor.setText(mqttJx.isNotEmpty() ? mqttJx : "x", false);
-        trackingMqttJsonYEditor.setText(mqttJy.isNotEmpty() ? mqttJy : "y", false);
-        trackingMqttJsonZEditor.setText(mqttJz.isNotEmpty() ? mqttJz : "z", false);
-        trackingMqttJsonQEditor.setText(mqttJq.isNotEmpty() ? mqttJq : "quality", false);
+        trackingMqttJsonXCombo.setText(mqttJx.isNotEmpty() ? mqttJx : "x", juce::dontSendNotification);
+        trackingMqttJsonYCombo.setText(mqttJy.isNotEmpty() ? mqttJy : "y", juce::dontSendNotification);
+        trackingMqttJsonZCombo.setText(mqttJz.isNotEmpty() ? mqttJz : "z", juce::dontSendNotification);
+        trackingMqttJsonQCombo.setText(mqttJq.isNotEmpty() ? mqttJq : "quality", juce::dontSendNotification);
 
         updateTrackingAppearance();
 
@@ -4214,23 +4251,6 @@ private:
             else
                 parameters.setConfigParam("trackingMqttTopic", text.trim());
             updateTrackingReceiver(true);  // Force restart with new settings
-        }
-        else if (editor == &trackingMqttJsonXEditor || editor == &trackingMqttJsonYEditor
-              || editor == &trackingMqttJsonZEditor || editor == &trackingMqttJsonQEditor)
-        {
-            parameters.setConfigParam("trackingMqttJsonX", trackingMqttJsonXEditor.getText().trim());
-            parameters.setConfigParam("trackingMqttJsonY", trackingMqttJsonYEditor.getText().trim());
-            parameters.setConfigParam("trackingMqttJsonZ", trackingMqttJsonZEditor.getText().trim());
-            parameters.setConfigParam("trackingMqttJsonQ", trackingMqttJsonQEditor.getText().trim());
-
-            if (oscManager != nullptr && oscManager->getMQTTReceiver() != nullptr)
-            {
-                oscManager->getMQTTReceiver()->setJsonFieldNames(
-                    trackingMqttJsonXEditor.getText().trim(),
-                    trackingMqttJsonYEditor.getText().trim(),
-                    trackingMqttJsonZEditor.getText().trim(),
-                    trackingMqttJsonQEditor.getText().trim());
-            }
         }
     }
 

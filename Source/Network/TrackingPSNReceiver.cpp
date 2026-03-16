@@ -1,5 +1,6 @@
 #include "TrackingPSNReceiver.h"
 #include "../DSP/TrackingPositionFilter.h"
+#include "OSCLogger.h"
 
 namespace WFSNetwork
 {
@@ -212,7 +213,22 @@ void TrackingPSNReceiver::routePositionToInputs(int trackingId, float x, float y
     }
 
     if (anyRouted)
+    {
         ++positionsRouted;
+
+        if (logger != nullptr && logger->getEnabled())
+        {
+            LogEntry entry;
+            entry.timestamp = juce::Time::getCurrentTime();
+            entry.direction = "Rx";
+            entry.protocol = Protocol::PSN;
+            entry.transport = ConnectionMode::UDP;
+            entry.port = port;
+            entry.address = "/tracking/psn/" + juce::String (trackingId);
+            entry.arguments = "x=" + juce::String (x, 3) + " y=" + juce::String (y, 3) + " z=" + juce::String (z, 3);
+            logger->logEntry (entry);
+        }
+    }
 }
 
 void TrackingPSNReceiver::routeOrientationToInputs(int trackingId, float rotation)

@@ -1,5 +1,6 @@
 #include "TrackingOSCReceiver.h"
 #include "../DSP/TrackingPositionFilter.h"
+#include "OSCLogger.h"
 
 namespace WFSNetwork
 {
@@ -225,7 +226,26 @@ void TrackingOSCReceiver::routeToInputs(int trackingId, float x, float y, float 
     }
 
     if (anyRouted)
+    {
         ++messagesRouted;
+
+        // Log to Network Log Window
+        if (logger != nullptr && logger->getEnabled())
+        {
+            LogEntry entry;
+            entry.timestamp = juce::Time::getCurrentTime();
+            entry.direction = "Rx";
+            entry.protocol = Protocol::OSC;
+            entry.transport = ConnectionMode::UDP;
+            entry.address = "/tracking/osc/" + juce::String (trackingId);
+            juce::String args;
+            if (hasX) args += "x=" + juce::String (x, 3);
+            if (hasY) args += (args.isNotEmpty() ? " " : "") + juce::String ("y=") + juce::String (y, 3);
+            if (hasZ) args += (args.isNotEmpty() ? " " : "") + juce::String ("z=") + juce::String (z, 3);
+            entry.arguments = args;
+            logger->logEntry (entry);
+        }
+    }
 }
 
 } // namespace WFSNetwork

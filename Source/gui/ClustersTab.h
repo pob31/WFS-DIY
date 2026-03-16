@@ -497,7 +497,7 @@ public:
             rotationDial.setBounds(dialBounds);
 
             // Plane selector — centered inside the rotation dial ring
-            int comboW = scaled(60);
+            int comboW = scaled(80);
             int comboH = scaled(24);
             planeSelector.setBounds(
                 dialBounds.getCentreX() - comboW / 2,
@@ -1163,7 +1163,6 @@ private:
         const int vizHeight    = scaled(16);     // output viz indicator (thin, read-only)
         const int spacing      = scaled(4);      // inter-axis gap
         const int vizPad       = scaled(2);      // padding above/below viz
-        const int labelWidth   = scaled(50);     // axis label ("X", "Y", etc.)
         const int valueWidth   = scaled(55);     // value labels (wider for larger font)
         const int selectorWidth = scaled(100);   // waveform combobox
         const int sliderLabelW = scaled(75);     // "Amplitude:", "Rate:" labels (wider for 15pt)
@@ -1238,8 +1237,9 @@ private:
             auto axisArea = area.removeFromTop(axisBlockHeight);
 
             // Line 1: [Axis label] [Shape ComboBox] ... [Phase label on right]
+            // Use sliderLabelW so shape selector aligns with amplitude/rate sliders below
             auto line1 = axisArea.removeFromTop(rowHeight);
-            row.axisLabel.setBounds(line1.removeFromLeft(labelWidth));
+            row.axisLabel.setBounds(line1.removeFromLeft(sliderLabelW));
             row.shapeSelector.setBounds(line1.removeFromLeft(juce::jmin(selectorWidth, line1.getWidth())));
             row.phaseLabel.setBounds(line1.removeFromRight(phaseDialSize + scaled(4)));
 

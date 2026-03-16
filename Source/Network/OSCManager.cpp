@@ -453,6 +453,7 @@ bool OSCManager::startTrackingReceiver(int port, const juce::String& pathPattern
     trackingReceiver = std::make_unique<TrackingOSCReceiver>(state);
     trackingFilter.resize(state.getNumInputChannels());
     trackingReceiver->setPositionFilter(&trackingFilter);
+    trackingReceiver->setLogger(&logger);
 
     if (!trackingReceiver->start(port, pathPattern))
     {
@@ -514,6 +515,7 @@ bool OSCManager::startPSNReceiver(int port,
     psnReceiver = std::make_unique<TrackingPSNReceiver>(state);
     trackingFilter.resize(state.getNumInputChannels());
     psnReceiver->setPositionFilter(&trackingFilter);
+    psnReceiver->setLogger(&logger);
 
     if (!psnReceiver->start(port, networkInterface, multicastAddress))
     {
@@ -566,6 +568,7 @@ bool OSCManager::startRTTrPReceiver(int port)
     rttrpReceiver = std::make_unique<TrackingRTTrPReceiver>(state);
     trackingFilter.resize(state.getNumInputChannels());
     rttrpReceiver->setPositionFilter(&trackingFilter);
+    rttrpReceiver->setLogger(&logger);
 
     if (!rttrpReceiver->start(port))
     {
@@ -616,6 +619,7 @@ bool OSCManager::startMQTTReceiver(const juce::String& host, int port, const juc
     mqttReceiver = std::make_unique<TrackingMQTTReceiver>(state);
     trackingFilter.resize(state.getNumInputChannels());
     mqttReceiver->setPositionFilter(&trackingFilter);
+    mqttReceiver->setLogger(&logger);
 
     // Load tag IDs from config
     auto configTree = state.getConfigState();

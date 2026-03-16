@@ -2682,31 +2682,35 @@ private:
         mutesLabel.setBounds (col3.removeFromTop (titleHeight));
         col3.removeFromTop (scaled(5));
 
-        // Layout mute buttons in a grid - use full column width
+        // Layout mute buttons — dynamic sizing to fill column width (matches InputsTab)
+        const int muteSpacing = scaled(2);
         int numOutputs = parameters.getNumOutputChannels();
         if (numOutputs <= 0) numOutputs = 16;
-        const int buttonSize = scaled(35);
-        const int buttonSpacing = scaled(3);
-        // Calculate how many buttons fit in the column width
-        int numColumns = (col3.getWidth() + buttonSpacing) / (buttonSize + buttonSpacing);
-        numColumns = juce::jmax (1, numColumns);  // At least 1 column
 
-        for (int i = 0; i < maxMuteButtons; ++i)
+        int muteButtonSize = (col3.getWidth() - muteSpacing * (numOutputs - 1)) / numOutputs;
+        if (muteButtonSize < scaled(20)) muteButtonSize = scaled(20);
+
+        int muteButtonsPerRow = (col3.getWidth() + muteSpacing) / (muteButtonSize + muteSpacing);
+        if (muteButtonsPerRow <= 0) muteButtonsPerRow = 1;
+        int muteRows = (numOutputs + muteButtonsPerRow - 1) / muteButtonsPerRow;
+
+        auto muteGridArea = col3.removeFromTop (muteRows * (muteButtonSize + muteSpacing));
+        for (int r = 0; r < muteRows; ++r)
         {
-            if (i < numOutputs)
+            auto rowArea = muteGridArea.removeFromTop (muteButtonSize + muteSpacing);
+            for (int c = 0; c < muteButtonsPerRow; ++c)
             {
-                int colIdx = i % numColumns;
-                int rowIdx = i / numColumns;
-                int x = colIdx * (buttonSize + buttonSpacing);
-                int y = rowIdx * (buttonSize + buttonSpacing);
-                muteButtons[i].setBounds (col3.getX() + x, col3.getY() + y, buttonSize, buttonSize);
-                muteButtons[i].setVisible (true);
-            }
-            else
-            {
-                muteButtons[i].setVisible (false);
+                int index = r * muteButtonsPerRow + c;
+                if (index < numOutputs && index < maxMuteButtons)
+                {
+                    muteButtons[index].setBounds (rowArea.removeFromLeft (muteButtonSize));
+                    rowArea.removeFromLeft (muteSpacing);
+                    muteButtons[index].setVisible (true);
+                }
             }
         }
+        for (int i = numOutputs; i < maxMuteButtons; ++i)
+            muteButtons[i].setVisible (false);
     }
 
     //==========================================================================

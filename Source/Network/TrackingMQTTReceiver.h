@@ -7,6 +7,8 @@
 
 class TrackingPositionFilter;
 
+namespace WFSNetwork { class OSCLogger; }
+
 namespace WFSNetwork
 {
 
@@ -209,6 +211,9 @@ public:
     /** Set the position filter for smoothing. */
     void setPositionFilter (TrackingPositionFilter* filter) { positionFilter = filter; }
 
+    /** Set the logger for tracking data visibility. */
+    void setLogger (OSCLogger* l) { logger = l; }
+
     /** Update transformation parameters (offset, scale, flip). */
     void setTransformations (float offsetX, float offsetY, float offsetZ,
                              float scaleX, float scaleY, float scaleZ,
@@ -250,6 +255,16 @@ public:
     Statistics getStatistics() const;
     void resetStatistics();
 
+    //==========================================================================
+    // JSON key auto-discovery
+    //==========================================================================
+
+    /** Get the JSON keys discovered from the first received message. */
+    juce::StringArray getDiscoveredJsonKeys() const;
+
+    /** Callback fired (on message thread) when JSON keys are discovered. */
+    std::function<void (const juce::StringArray&)> onJsonKeysDiscovered;
+
 private:
     // Thread run loop
     void run() override;
@@ -286,6 +301,13 @@ private:
     juce::String jsonKeyZ { "z" };
     juce::String jsonKeyQ { "quality" };
     juce::CriticalSection jsonKeyLock;
+
+    // JSON key auto-discovery
+    juce::StringArray discoveredJsonKeys;
+    bool jsonKeysDiscovered = false;
+
+    // Logger (shared, owned by OSCManager)
+    OSCLogger* logger = nullptr;
 
     // Tag ID table (32 slots)
     std::array<juce::String, MAX_TAG_SLOTS> tagIds;

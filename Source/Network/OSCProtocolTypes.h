@@ -19,7 +19,8 @@ enum class Protocol
     OSCQuery = 4,   // OSC Query protocol
     PSN = 5,        // PosiStageNet tracking protocol
     RTTrP = 6,      // RTTrP tracking protocol
-    QLab = 7        // QLab cue writing protocol
+    QLab = 7,       // QLab cue writing protocol
+    MQTT = 8        // MQTT tracking protocol
 };
 
 /** Connection mode (transport layer) */
@@ -231,6 +232,7 @@ struct LogEntry
             case Protocol::PSN:      return "PSN";
             case Protocol::RTTrP:    return "RTTrP";
             case Protocol::QLab:     return "QLab";
+            case Protocol::MQTT:     return "MQTT";
             default:                 return "Unknown";
         }
     }

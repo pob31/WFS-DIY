@@ -26,6 +26,7 @@ juce::Colour NetworkLogWindowContent::getProtocolColor(WFSNetwork::Protocol prot
         case WFSNetwork::Protocol::ADMOSC:   return juce::Colour(0xFF7744AA);
         case WFSNetwork::Protocol::PSN:      return juce::Colour(0xFFAA4477);
         case WFSNetwork::Protocol::RTTrP:    return juce::Colour(0xFF77AA44);
+        case WFSNetwork::Protocol::MQTT:     return juce::Colour(0xFF44AAAA);
         default:                             return juce::Colour(0xFF888888);
     }
 }
@@ -539,6 +540,7 @@ void NetworkLogWindowContent::applyFilters()
                 else if (name == "PSN") filter.enabledProtocols.insert(WFSNetwork::Protocol::PSN);
                 else if (name == "RTTrP") filter.enabledProtocols.insert(WFSNetwork::Protocol::RTTrP);
                 else if (name == "QLab") filter.enabledProtocols.insert(WFSNetwork::Protocol::QLab);
+                else if (name == "MQTT") filter.enabledProtocols.insert(WFSNetwork::Protocol::MQTT);
             }
         }
     }

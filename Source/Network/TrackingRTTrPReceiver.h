@@ -7,6 +7,8 @@
 
 class TrackingPositionFilter;
 
+namespace WFSNetwork { class OSCLogger; }
+
 namespace WFSNetwork
 {
 
@@ -61,6 +63,9 @@ public:
      */
     void setPositionFilter(TrackingPositionFilter* filter) { positionFilter = filter; }
 
+    /** Set the logger for tracking data visibility. */
+    void setLogger(OSCLogger* l) { logger = l; }
+
     void setTransformations(float offsetX, float offsetY, float offsetZ,
                             float scaleX, float scaleY, float scaleZ,
                             bool flipX, bool flipY, bool flipZ);
@@ -96,6 +101,9 @@ private:
 
     // Position filter (shared, owned by OSCManager)
     TrackingPositionFilter* positionFilter = nullptr;
+
+    // Logger (shared, owned by OSCManager)
+    OSCLogger* logger = nullptr;
 
     WFSValueTreeState& state;
 
