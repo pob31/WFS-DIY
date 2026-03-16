@@ -103,7 +103,15 @@
       "noLightpad": "Aucun Lightpad détecté",
       "lightpadArrangement": "Arrangement Lightpad",
       "split": "Divisé",
-      "clickToSplit": "Cliquer pour diviser"
+      "clickToSplit": "Cliquer pour diviser",
+      "dialsAndButtons": "Dials and Buttons:",
+      "positionControl": "Position Control:",
+      "sampler": "Sampler:"
+    },
+
+    "devices": {
+      "off": "Off",
+      "on": "On"
     },
     "buttons": {
       "audioPatch": "Interface audio et routage",
@@ -188,8 +196,9 @@
       "importSystem": "Importe la configuration système depuis un fichier (avec explorateur de fichiers).",
       "exportSystem": "Exporte la configuration système vers un fichier (avec explorateur de fichiers).",
       "language": "Sélectionnez la langue de l'interface. Les changements prennent plein effet après redémarrage de l'application.",
-      "streamDeck": "Enable or disable the Stream Deck+ hardware controller integration. Long press to toggle.",
-      "sampler": "Enable or disable the Sampler feature for input channels. Long press to toggle.",
+      "dialsAndButtons": "Select the hardware controller for dials and buttons: Stream Deck+ or XenceLabs Quick Keys.",
+      "positionControl": "Select the hardware controller for position control: Space Mouse, Joystick, or Game Pad.",
+      "sampler": "Enable or disable the Sampler feature for input channels.",
       "binauralEnable": "Enable or disable the binaural renderer processing.",
       "binauralOutput": "Select output channel pair for binaural monitoring. Off disables binaural output.",
       "binauralDistance": "Distance of binaural listener from stage origin (meters).",

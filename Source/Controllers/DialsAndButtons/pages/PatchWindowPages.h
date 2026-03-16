@@ -13,9 +13,9 @@
  */
 
 #include "../StreamDeckPage.h"
-#include "../../gui/PatchMatrixComponent.h"
-#include "../../DSP/TestSignalGenerator.h"
-#include "../../Localization/LocalizationManager.h"
+#include "../../../gui/PatchMatrixComponent.h"
+#include "../../../DSP/TestSignalGenerator.h"
+#include "../../../Localization/LocalizationManager.h"
 
 namespace PatchWindowPages
 {

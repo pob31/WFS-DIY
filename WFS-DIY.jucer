@@ -135,39 +135,57 @@
         <FILE id="netMqttCpp" name="TrackingMQTTReceiver.cpp" compile="1" resource="0"
               file="Source/Network/TrackingMQTTReceiver.cpp"/>
       </GROUP>
-      <GROUP id="{STREAMDECKGROUP}" name="StreamDeck">
-        <FILE id="sdDevH" name="StreamDeckDevice.h" compile="0" resource="0"
-              file="Source/StreamDeck/StreamDeckDevice.h"/>
-        <FILE id="sdPageH" name="StreamDeckPage.h" compile="0" resource="0"
-              file="Source/StreamDeck/StreamDeckPage.h"/>
-        <FILE id="sdRendH" name="StreamDeckRenderer.h" compile="0" resource="0"
-              file="Source/StreamDeck/StreamDeckRenderer.h"/>
-        <FILE id="sdMgrH" name="StreamDeckManager.h" compile="0" resource="0"
-              file="Source/StreamDeck/StreamDeckManager.h"/>
-        <GROUP id="{SDPAGESGROUP}" name="pages">
-          <FILE id="sdInpPages" name="InputsTabPages.h" compile="0" resource="0"
-                file="Source/StreamDeck/pages/InputsTabPages.h"/>
-        </GROUP>
-      </GROUP>
       <GROUP id="{CONTROLLERSGROUP}" name="Controllers">
-        <FILE id="ctrlEventH" name="ControllerEvent.h" compile="0" resource="0"
-              file="Source/Controllers/ControllerEvent.h"/>
-        <FILE id="ctrlDeviceH" name="ControllerDevice.h" compile="0" resource="0"
-              file="Source/Controllers/ControllerDevice.h"/>
-        <FILE id="ctrlSpaceH" name="SpaceMouseDevice.h" compile="0" resource="0"
-              file="Source/Controllers/SpaceMouseDevice.h"/>
-        <FILE id="ctrlMapH" name="ControllerMapping.h" compile="0" resource="0"
-              file="Source/Controllers/ControllerMapping.h"/>
-        <FILE id="ctrlMgrH" name="ControllerManager.h" compile="0" resource="0"
-              file="Source/Controllers/ControllerManager.h"/>
-      </GROUP>
-      <GROUP id="{LIGHTPADGROUP}" name="Lightpad">
-        <FILE id="lpTypesH" name="LightpadTypes.h" compile="0" resource="0"
-              file="Source/Lightpad/LightpadTypes.h"/>
-        <FILE id="lpDeviceH" name="LightpadDevice.h" compile="0" resource="0"
-              file="Source/Lightpad/LightpadDevice.h"/>
-        <FILE id="lpMgrH" name="LightpadManager.h" compile="0" resource="0"
-              file="Source/Lightpad/LightpadManager.h"/>
+        <GROUP id="{POSCTRLGROUP}" name="PositionControl">
+          <FILE id="ctrlEventH" name="ControllerEvent.h" compile="0" resource="0"
+                file="Source/Controllers/PositionControl/ControllerEvent.h"/>
+          <FILE id="ctrlDeviceH" name="ControllerDevice.h" compile="0" resource="0"
+                file="Source/Controllers/PositionControl/ControllerDevice.h"/>
+          <FILE id="ctrlSpaceH" name="SpaceMouseDevice.h" compile="0" resource="0"
+                file="Source/Controllers/PositionControl/SpaceMouseDevice.h"/>
+          <FILE id="ctrlMapH" name="ControllerMapping.h" compile="0" resource="0"
+                file="Source/Controllers/PositionControl/ControllerMapping.h"/>
+          <FILE id="ctrlMgrH" name="ControllerManager.h" compile="0" resource="0"
+                file="Source/Controllers/PositionControl/ControllerManager.h"/>
+        </GROUP>
+        <GROUP id="{DIALSBUTTONSGROUP}" name="DialsAndButtons">
+          <FILE id="sdDevH" name="StreamDeckDevice.h" compile="0" resource="0"
+                file="Source/Controllers/DialsAndButtons/StreamDeckDevice.h"/>
+          <FILE id="sdPageH" name="StreamDeckPage.h" compile="0" resource="0"
+                file="Source/Controllers/DialsAndButtons/StreamDeckPage.h"/>
+          <FILE id="sdRendH" name="StreamDeckRenderer.h" compile="0" resource="0"
+                file="Source/Controllers/DialsAndButtons/StreamDeckRenderer.h"/>
+          <FILE id="sdMgrH" name="StreamDeckManager.h" compile="0" resource="0"
+                file="Source/Controllers/DialsAndButtons/StreamDeckManager.h"/>
+          <FILE id="xlDevH" name="XencelabsDevice.h" compile="0" resource="0"
+                file="Source/Controllers/DialsAndButtons/XencelabsDevice.h"/>
+          <GROUP id="{SDPAGESGROUP}" name="pages">
+            <FILE id="sdInpPages" name="InputsTabPages.h" compile="0" resource="0"
+                  file="Source/Controllers/DialsAndButtons/pages/InputsTabPages.h"/>
+            <FILE id="sdNetPages" name="NetworkTabPages.h" compile="0" resource="0"
+                  file="Source/Controllers/DialsAndButtons/pages/NetworkTabPages.h"/>
+            <FILE id="sdOutPages" name="OutputsTabPages.h" compile="0" resource="0"
+                  file="Source/Controllers/DialsAndButtons/pages/OutputsTabPages.h"/>
+            <FILE id="sdSysPages" name="SystemConfigTabPages.h" compile="0" resource="0"
+                  file="Source/Controllers/DialsAndButtons/pages/SystemConfigTabPages.h"/>
+            <FILE id="sdMapPages" name="MapTabPages.h" compile="0" resource="0"
+                  file="Source/Controllers/DialsAndButtons/pages/MapTabPages.h"/>
+            <FILE id="sdRevPages" name="ReverbTabPages.h" compile="0" resource="0"
+                  file="Source/Controllers/DialsAndButtons/pages/ReverbTabPages.h"/>
+            <FILE id="sdCluPages" name="ClustersTabPages.h" compile="0" resource="0"
+                  file="Source/Controllers/DialsAndButtons/pages/ClustersTabPages.h"/>
+            <FILE id="sdPatchPages" name="PatchWindowPages.h" compile="0" resource="0"
+                  file="Source/Controllers/DialsAndButtons/pages/PatchWindowPages.h"/>
+          </GROUP>
+        </GROUP>
+        <GROUP id="{SAMPLERCTRLGROUP}" name="Sampler">
+          <FILE id="lpTypesH" name="LightpadTypes.h" compile="0" resource="0"
+                file="Source/Controllers/Sampler/LightpadTypes.h"/>
+          <FILE id="lpDeviceH" name="LightpadDevice.h" compile="0" resource="0"
+                file="Source/Controllers/Sampler/LightpadDevice.h"/>
+          <FILE id="lpMgrH" name="LightpadManager.h" compile="0" resource="0"
+                file="Source/Controllers/Sampler/LightpadManager.h"/>
+        </GROUP>
       </GROUP>
       <GROUP id="{GRADIENTMAPGROUP}" name="GradientMap">
         <FILE id="gmDataH" name="GradientMapData.h" compile="0" resource="0"

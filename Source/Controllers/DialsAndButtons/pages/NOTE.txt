@@ -1,0 +1,6 @@
+The page definitions in this folder are for the Stream Deck+ layout
+(4+4 buttons, 4 dials, LCD strip).
+
+XenceLabs Quick Keys pages will use a different structure and will be
+added as separate files (prefixed or in a dedicated subfolder) when
+the QK manager is implemented.

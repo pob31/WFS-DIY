@@ -4,16 +4,16 @@
 #include "Localization/LocalizationManager.h"
 #include "Accessibility/TTSManager.h"
 #include "Network/QLabCueBuilder.h"
-#include "StreamDeck/pages/InputsTabPages.h"
-#include "StreamDeck/pages/NetworkTabPages.h"
-#include "StreamDeck/pages/OutputsTabPages.h"
-#include "StreamDeck/pages/SystemConfigTabPages.h"
-#include "StreamDeck/pages/MapTabPages.h"
-#include "StreamDeck/pages/ReverbTabPages.h"
-#include "StreamDeck/pages/ClustersTabPages.h"
-#include "StreamDeck/pages/PatchWindowPages.h"
-#include "Controllers/SpaceMouseDevice.h"
-#include "Lightpad/LightpadManager.h"
+#include "Controllers/DialsAndButtons/pages/InputsTabPages.h"
+#include "Controllers/DialsAndButtons/pages/NetworkTabPages.h"
+#include "Controllers/DialsAndButtons/pages/OutputsTabPages.h"
+#include "Controllers/DialsAndButtons/pages/SystemConfigTabPages.h"
+#include "Controllers/DialsAndButtons/pages/MapTabPages.h"
+#include "Controllers/DialsAndButtons/pages/ReverbTabPages.h"
+#include "Controllers/DialsAndButtons/pages/ClustersTabPages.h"
+#include "Controllers/DialsAndButtons/pages/PatchWindowPages.h"
+#include "Controllers/PositionControl/SpaceMouseDevice.h"
+#include "Controllers/Sampler/LightpadManager.h"
 
 //==============================================================================
 MainComponent::MainComponent()
@@ -286,9 +286,19 @@ MainComponent::MainComponent()
         handleConfigReloaded();
     });
 
-    systemConfigTab->setStreamDeckCallback([this](bool enabled) {
+    systemConfigTab->setDialsAndButtonsCallback ([this] (int deviceIndex)
+    {
+        // 0=Off, 1=Stream Deck+, 2=XenceLabs Quick Keys
         if (streamDeckManager)
-            streamDeckManager->setEnabled(enabled);
+            streamDeckManager->setEnabled (deviceIndex == 1);
+        // TODO: enable/disable XencelabsManager when deviceIndex == 2
+    });
+
+    systemConfigTab->setPositionControlCallback ([this] (int deviceIndex)
+    {
+        // 0=Off, 1=SpaceMouse, 2=Joystick, 3=GamePad
+        if (controllerManager)
+            controllerManager->setEnabled (deviceIndex > 0);
     });
 
     systemConfigTab->setSamplerCallback([this](bool enabled) {
@@ -522,10 +532,23 @@ MainComponent::MainComponent()
     // Initialize Stream Deck+ physical controller
     streamDeckManager = std::make_unique<StreamDeckManager>();
 
-    // Check if Stream Deck is enabled in config (default: true)
-    bool sdEnabled = (bool)parameters.getConfigParam("StreamDeckEnabled");
-    if (!sdEnabled)
-        streamDeckManager->setEnabled(false);
+    // Apply initial Dials & Buttons device selection
+    {
+        int dbDevice = (int) parameters.getConfigParam ("DialsAndButtonsDevice");
+        // Migrate legacy bool param
+        if (dbDevice == 0 && (bool) parameters.getConfigParam ("StreamDeckEnabled"))
+            dbDevice = 1;
+        if (dbDevice != 1)
+            streamDeckManager->setEnabled (false);
+        // TODO: enable XencelabsManager when dbDevice == 2
+    }
+
+    // Apply initial Position Control device selection
+    {
+        int pcDevice = (int) parameters.getConfigParam ("PositionControlDevice");
+        if (controllerManager && pcDevice == 0)
+            controllerManager->setEnabled (false);
+    }
 
     // Apply initial sampler master enable state
     bool samplerOn = (bool)parameters.getConfigParam("SamplerEnabled");

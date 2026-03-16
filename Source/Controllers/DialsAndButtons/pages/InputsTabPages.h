@@ -13,10 +13,10 @@
  */
 
 #include "../StreamDeckPage.h"
-#include "../../Parameters/WFSValueTreeState.h"
-#include "../../Parameters/WFSParameterIDs.h"
-#include "../../Parameters/WFSParameterDefaults.h"
-#include "../../Localization/LocalizationManager.h"
+#include "../../../Parameters/WFSValueTreeState.h"
+#include "../../../Parameters/WFSParameterIDs.h"
+#include "../../../Parameters/WFSParameterDefaults.h"
+#include "../../../Localization/LocalizationManager.h"
 
 namespace InputsTabPages
 {

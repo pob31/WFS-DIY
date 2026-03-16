@@ -10,7 +10,7 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "../Lightpad/LightpadTypes.h"
+#include "../Controllers/Sampler/LightpadTypes.h"
 #include "ColorScheme.h"
 #include "WfsLookAndFeel.h"
 #include "../Localization/LocalizationManager.h"

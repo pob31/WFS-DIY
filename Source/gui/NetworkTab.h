@@ -1859,8 +1859,13 @@ public:
         g.setColour(ColorScheme::get().chromeDivider);
         g.drawLine(0.0f, (float)(getHeight() - footerH), (float)getWidth(), (float)(getHeight() - footerH), 1.0f);
 
-        // Tracking column dividers
+        // Main column divider
         g.setColour(ColorScheme::get().chromeDivider);
+        float topY = (float)scaled(10);
+        float botY = (float)(getHeight() - footerH);
+        g.drawVerticalLine(mainColumnDividerX, topY, botY);
+
+        // Tracking column dividers
         g.drawLine((float)trackingDivX1, (float)trackingSectionY, (float)trackingDivX1, (float)trackingSectionBottom, 1.0f);
         g.drawLine((float)trackingDivX2, (float)trackingSectionY, (float)trackingDivX2, (float)trackingSectionBottom, 1.0f);
 
@@ -1894,6 +1899,7 @@ public:
 
         const int leftX = margin;
         rightColumnX = leftX + leftColumnWidth + columnGap;
+        mainColumnDividerX = leftX + leftColumnWidth + columnGap / 2;
 
         // ==================== LEFT COLUMN ====================
         int leftY = scaled(35);
@@ -2268,6 +2274,7 @@ private:
     int trackingDivX1 = 0;  // divider between sub-col 1 and 2
     int trackingDivX2 = 0;  // divider between sub-col 2 and 3
     int rightColumnX = 0;  // X position for right column (ADM-OSC & Tracking)
+    int mainColumnDividerX = 0;
     float layoutScale = 1.0f;
 
     /** Scale a reference pixel value by layoutScale with a 65% minimum floor */

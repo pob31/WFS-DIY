@@ -10,10 +10,10 @@
  */
 
 #include "../StreamDeckPage.h"
-#include "../../Parameters/WFSValueTreeState.h"
-#include "../../Parameters/WFSParameterIDs.h"
-#include "../../Parameters/WFSParameterDefaults.h"
-#include "../../Localization/LocalizationManager.h"
+#include "../../../Parameters/WFSValueTreeState.h"
+#include "../../../Parameters/WFSParameterIDs.h"
+#include "../../../Parameters/WFSParameterDefaults.h"
+#include "../../../Localization/LocalizationManager.h"
 
 // Reuse config-param helper from NetworkTabPages
 #include "NetworkTabPages.h"

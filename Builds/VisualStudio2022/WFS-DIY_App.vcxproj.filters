@@ -20,17 +20,20 @@
     <Filter Include="WFS-DIY\Source\Network">
       <UniqueIdentifier>{F0025758-791F-87C4-6ABD-F1E1A184504B}</UniqueIdentifier>
     </Filter>
-    <Filter Include="WFS-DIY\Source\StreamDeck\pages">
-      <UniqueIdentifier>{BD3A1510-5303-03E6-3E76-D75E71131B20}</UniqueIdentifier>
+    <Filter Include="WFS-DIY\Source\Controllers\PositionControl">
+      <UniqueIdentifier>{00DD463C-4D12-BBC1-D8A4-B7A83748E863}</UniqueIdentifier>
     </Filter>
-    <Filter Include="WFS-DIY\Source\StreamDeck">
-      <UniqueIdentifier>{26B04B0E-D357-99B8-CF05-80E63FD0585C}</UniqueIdentifier>
+    <Filter Include="WFS-DIY\Source\Controllers\DialsAndButtons\pages">
+      <UniqueIdentifier>{28F710D7-D7BB-F198-3CB2-42527957EB7E}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="WFS-DIY\Source\Controllers\DialsAndButtons">
+      <UniqueIdentifier>{76BEEB87-E6D0-C781-86C3-C113C488E4B6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="WFS-DIY\Source\Controllers\Sampler">
+      <UniqueIdentifier>{66CC4FA7-8297-6BE6-5FCC-095C0B122914}</UniqueIdentifier>
     </Filter>
     <Filter Include="WFS-DIY\Source\Controllers">
       <UniqueIdentifier>{1A7FB084-B2DE-86EC-E7BE-9DAFACDA277C}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="WFS-DIY\Source\Lightpad">
-      <UniqueIdentifier>{BC2A8769-02C5-A56B-E6E6-C6952D2A9BF2}</UniqueIdentifier>
     </Filter>
     <Filter Include="WFS-DIY\Source\GradientMap">
       <UniqueIdentifier>{27804724-DBF9-233A-9A25-DDC32F863204}</UniqueIdentifier>
@@ -4176,44 +4179,68 @@
     <ClInclude Include="..\..\Source\Network\TrackingMQTTReceiver.h">
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\StreamDeck\StreamDeckDevice.h">
-      <Filter>WFS-DIY\Source\StreamDeck</Filter>
+    <ClInclude Include="..\..\Source\Controllers\PositionControl\ControllerEvent.h">
+      <Filter>WFS-DIY\Source\Controllers\PositionControl</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\StreamDeck\StreamDeckPage.h">
-      <Filter>WFS-DIY\Source\StreamDeck</Filter>
+    <ClInclude Include="..\..\Source\Controllers\PositionControl\ControllerDevice.h">
+      <Filter>WFS-DIY\Source\Controllers\PositionControl</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\StreamDeck\StreamDeckRenderer.h">
-      <Filter>WFS-DIY\Source\StreamDeck</Filter>
+    <ClInclude Include="..\..\Source\Controllers\PositionControl\SpaceMouseDevice.h">
+      <Filter>WFS-DIY\Source\Controllers\PositionControl</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\StreamDeck\StreamDeckManager.h">
-      <Filter>WFS-DIY\Source\StreamDeck</Filter>
+    <ClInclude Include="..\..\Source\Controllers\PositionControl\ControllerMapping.h">
+      <Filter>WFS-DIY\Source\Controllers\PositionControl</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\StreamDeck\pages\InputsTabPages.h">
-      <Filter>WFS-DIY\Source\StreamDeck\pages</Filter>
+    <ClInclude Include="..\..\Source\Controllers\PositionControl\ControllerManager.h">
+      <Filter>WFS-DIY\Source\Controllers\PositionControl</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Controllers\ControllerEvent.h">
-      <Filter>WFS-DIY\Source\Controllers</Filter>
+    <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\StreamDeckDevice.h">
+      <Filter>WFS-DIY\Source\Controllers\DialsAndButtons</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Controllers\ControllerDevice.h">
-      <Filter>WFS-DIY\Source\Controllers</Filter>
+    <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\StreamDeckPage.h">
+      <Filter>WFS-DIY\Source\Controllers\DialsAndButtons</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Controllers\SpaceMouseDevice.h">
-      <Filter>WFS-DIY\Source\Controllers</Filter>
+    <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\StreamDeckRenderer.h">
+      <Filter>WFS-DIY\Source\Controllers\DialsAndButtons</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Controllers\ControllerMapping.h">
-      <Filter>WFS-DIY\Source\Controllers</Filter>
+    <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\StreamDeckManager.h">
+      <Filter>WFS-DIY\Source\Controllers\DialsAndButtons</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Controllers\ControllerManager.h">
-      <Filter>WFS-DIY\Source\Controllers</Filter>
+    <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\XencelabsDevice.h">
+      <Filter>WFS-DIY\Source\Controllers\DialsAndButtons</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Lightpad\LightpadTypes.h">
-      <Filter>WFS-DIY\Source\Lightpad</Filter>
+    <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\InputsTabPages.h">
+      <Filter>WFS-DIY\Source\Controllers\DialsAndButtons\pages</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Lightpad\LightpadDevice.h">
-      <Filter>WFS-DIY\Source\Lightpad</Filter>
+    <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\NetworkTabPages.h">
+      <Filter>WFS-DIY\Source\Controllers\DialsAndButtons\pages</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Lightpad\LightpadManager.h">
-      <Filter>WFS-DIY\Source\Lightpad</Filter>
+    <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\OutputsTabPages.h">
+      <Filter>WFS-DIY\Source\Controllers\DialsAndButtons\pages</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\SystemConfigTabPages.h">
+      <Filter>WFS-DIY\Source\Controllers\DialsAndButtons\pages</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\MapTabPages.h">
+      <Filter>WFS-DIY\Source\Controllers\DialsAndButtons\pages</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\ReverbTabPages.h">
+      <Filter>WFS-DIY\Source\Controllers\DialsAndButtons\pages</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\ClustersTabPages.h">
+      <Filter>WFS-DIY\Source\Controllers\DialsAndButtons\pages</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\PatchWindowPages.h">
+      <Filter>WFS-DIY\Source\Controllers\DialsAndButtons\pages</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Controllers\Sampler\LightpadTypes.h">
+      <Filter>WFS-DIY\Source\Controllers\Sampler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Controllers\Sampler\LightpadDevice.h">
+      <Filter>WFS-DIY\Source\Controllers\Sampler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Controllers\Sampler\LightpadManager.h">
+      <Filter>WFS-DIY\Source\Controllers\Sampler</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\GradientMap\GradientMapData.h">
       <Filter>WFS-DIY\Source\GradientMap</Filter>

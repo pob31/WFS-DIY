@@ -12,7 +12,7 @@
 #include "buttons/LongPressButton.h"
 #include "ColumnFocusTraverser.h"
 #include "../AppSettings.h"
-#include "../Lightpad/LightpadTypes.h"
+#include "../Controllers/Sampler/LightpadTypes.h"
 #include "LightpadArrangementOverlay.h"
 
 #if JUCE_WINDOWS
@@ -205,7 +205,8 @@ public:
     using ChannelCountCallback = std::function<void(int inputs, int outputs, int reverbs)>;
     using AudioInterfaceCallback = std::function<void()>;
     using ConfigReloadedCallback = std::function<void()>;
-    using StreamDeckCallback = std::function<void(bool enabled)>;
+    using DialsAndButtonsCallback = std::function<void(int deviceIndex)>;  // 0=Off, 1=SD+, 2=QK
+    using PositionControlCallback = std::function<void(int deviceIndex)>;  // 0=Off, 1=SpaceMouse, 2=Joystick, 3=GamePad
     using SamplerCallback = std::function<void(bool enabled)>;
     using LightpadSplitCallback = std::function<void(int padIndex, bool split)>;
     using BinauralCallback = std::function<void(bool enabled)>;
@@ -424,15 +425,52 @@ public:
             }
         };
 
-        // Stream Deck+ toggle
-        addAndMakeVisible(streamDeckEnableButton);
-        streamDeckEnableButton.setButtonText(LOC("systemConfig.buttons.streamDeckOff"));
-        streamDeckEnableButton.onLongPress = [this]() { toggleStreamDeck(); };
+        // Dials and Buttons device selector
+        addAndMakeVisible (dialsAndButtonsLabel);
+        dialsAndButtonsLabel.setText (LOC ("systemConfig.labels.dialsAndButtons"), juce::dontSendNotification);
+        addAndMakeVisible (dialsAndButtonsSelector);
+        dialsAndButtonsSelector.addItem (LOC ("systemConfig.devices.off"), 1);
+        dialsAndButtonsSelector.addItem ("Stream Deck+", 2);
+        dialsAndButtonsSelector.addItem ("XenceLabs Quick Keys", 3);
+        dialsAndButtonsSelector.onChange = [this]()
+        {
+            int deviceIndex = dialsAndButtonsSelector.getSelectedId() - 1;  // 0=Off, 1=SD+, 2=QK
+            parameters.setConfigParam ("DialsAndButtonsDevice", deviceIndex);
+            if (onDialsAndButtonsChanged)
+                onDialsAndButtonsChanged (deviceIndex);
+        };
+
+        // Position Control device selector
+        addAndMakeVisible (positionControlLabel);
+        positionControlLabel.setText (LOC ("systemConfig.labels.positionControl"), juce::dontSendNotification);
+        addAndMakeVisible (positionControlSelector);
+        positionControlSelector.addItem (LOC ("systemConfig.devices.off"), 1);
+        positionControlSelector.addItem ("Space Mouse", 2);
+        positionControlSelector.addItem ("Joystick", 3);
+        positionControlSelector.addItem ("Game Pad", 4);
+        positionControlSelector.onChange = [this]()
+        {
+            int deviceIndex = positionControlSelector.getSelectedId() - 1;  // 0=Off, 1=SpaceMouse, ...
+            parameters.setConfigParam ("PositionControlDevice", deviceIndex);
+            if (onPositionControlChanged)
+                onPositionControlChanged (deviceIndex);
+        };
 
         // Sampler toggle
-        addAndMakeVisible(samplerEnableButton);
-        samplerEnableButton.setButtonText(LOC("systemConfig.buttons.samplerOff"));
-        samplerEnableButton.onLongPress = [this]() { toggleSampler(); };
+        addAndMakeVisible (samplerLabel);
+        samplerLabel.setText (LOC ("systemConfig.labels.sampler"), juce::dontSendNotification);
+        addAndMakeVisible (samplerSelector);
+        samplerSelector.addItem (LOC ("systemConfig.devices.off"), 1);
+        samplerSelector.addItem (LOC ("systemConfig.devices.on"), 2);
+        samplerSelector.onChange = [this]()
+        {
+            bool enabled = samplerSelector.getSelectedId() == 2;
+            parameters.setConfigParam ("SamplerEnabled", enabled);
+            if (onSamplerEnabledChanged)
+                onSamplerEnabledChanged (enabled);
+            resized();
+            repaint();
+        };
 
         // Lightpad arrangement button
         lightpadArrangementButton.onClick = [this] { showLightpadArrangementOverlay(); };
@@ -715,6 +753,12 @@ public:
         g.setColour(ColorScheme::get().chromeDivider);
         g.drawLine(0.0f, (float)(getHeight() - footerH), (float)getWidth(), (float)(getHeight() - footerH), 1.0f);
 
+        // Column dividers
+        float topY = (float)scaled(10);
+        float botY = (float)(getHeight() - footerH);
+        g.drawVerticalLine(columnDividerX1, topY, botY);
+        g.drawVerticalLine(columnDividerX2, topY, botY);
+
         // Calculate responsive column positions
         auto layout = calculateLayout();
 
@@ -754,6 +798,9 @@ public:
         const int rowHeight = layout.rowHeight;
         const int spacing = layout.spacing;
         const int fullWidth = layout.colWidth;
+        const int columnGap = scaled(50);
+        columnDividerX1 = layout.col1X + layout.colWidth + columnGap / 2;
+        columnDividerX2 = layout.col2X + layout.colWidth + columnGap / 2;
 
         int x = layout.col1X;
         int y = scaled(40);
@@ -793,10 +840,16 @@ public:
         languageSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
         y += rowHeight + spacing;
 
-        streamDeckEnableButton.setBounds(x, y, fullWidth, rowHeight);
+        dialsAndButtonsLabel.setBounds (x, y, labelWidth, rowHeight);
+        dialsAndButtonsSelector.setBounds (x + labelWidth, y, editorWidth * 2, rowHeight);
         y += rowHeight + spacing;
 
-        samplerEnableButton.setBounds(x, y, fullWidth, rowHeight);
+        positionControlLabel.setBounds (x, y, labelWidth, rowHeight);
+        positionControlSelector.setBounds (x + labelWidth, y, editorWidth * 2, rowHeight);
+        y += rowHeight + spacing;
+
+        samplerLabel.setBounds (x, y, labelWidth, rowHeight);
+        samplerSelector.setBounds (x + labelWidth, y, editorWidth * 2, rowHeight);
         y += rowHeight + spacing;
 
         // Lightpad button (visible when sampler is on)
@@ -1040,12 +1093,17 @@ public:
         onConfigReloaded = callback;
     }
 
-    void setStreamDeckCallback(StreamDeckCallback callback)
+    void setDialsAndButtonsCallback (DialsAndButtonsCallback callback)
     {
-        onStreamDeckEnabledChanged = callback;
+        onDialsAndButtonsChanged = callback;
     }
 
-    void setSamplerCallback(SamplerCallback callback)
+    void setPositionControlCallback (PositionControlCallback callback)
+    {
+        onPositionControlChanged = callback;
+    }
+
+    void setSamplerCallback (SamplerCallback callback)
     {
         onSamplerEnabledChanged = callback;
     }
@@ -1121,6 +1179,8 @@ public:
 
 private:
     float layoutScale = 1.0f;  // Proportional scaling factor (1.0 = 1080p reference)
+    int columnDividerX1 = 0;
+    int columnDividerX2 = 0;
 
     /** Scale a reference pixel value by layoutScale with a 65% minimum floor */
     int scaled(int ref) const { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * layoutScale)); }
@@ -1331,15 +1391,26 @@ private:
         processingEnabled = (bool)parameters.getConfigParam("ProcessingEnabled");
         processingButton.setButtonText(processingEnabled ? LOC("systemConfig.buttons.processingOn") : LOC("systemConfig.buttons.processingOff"));
 
-        // Stream Deck toggle
-        bool sdEnabled = (bool)parameters.getConfigParam("StreamDeckEnabled");
-        streamDeckEnableButton.setButtonText(sdEnabled ? LOC("systemConfig.buttons.streamDeckOn")
-                                                        : LOC("systemConfig.buttons.streamDeckOff"));
+        // Dials and Buttons device selector
+        {
+            int dbDevice = (int) parameters.getConfigParam ("DialsAndButtonsDevice");
+            // Migrate legacy "StreamDeckEnabled" bool to new int param
+            if (dbDevice == 0 && (bool) parameters.getConfigParam ("StreamDeckEnabled"))
+                dbDevice = 1;
+            dialsAndButtonsSelector.setSelectedId (dbDevice + 1, juce::dontSendNotification);
+        }
 
-        // Sampler toggle
-        bool samplerOn = (bool)parameters.getConfigParam("SamplerEnabled");
-        samplerEnableButton.setButtonText(samplerOn ? LOC("systemConfig.buttons.samplerOn")
-                                                     : LOC("systemConfig.buttons.samplerOff"));
+        // Position Control device selector
+        {
+            int pcDevice = (int) parameters.getConfigParam ("PositionControlDevice");
+            positionControlSelector.setSelectedId (pcDevice + 1, juce::dontSendNotification);
+        }
+
+        // Sampler selector
+        {
+            bool samplerOn = (bool) parameters.getConfigParam ("SamplerEnabled");
+            samplerSelector.setSelectedId (samplerOn ? 2 : 1, juce::dontSendNotification);
+        }
 
         // Lightpad split state restored from ValueTree on topology change
 
@@ -1735,31 +1806,7 @@ private:
             onBinauralChanged(newState);
     }
 
-    void toggleStreamDeck()
-    {
-        bool current = (bool)parameters.getConfigParam("StreamDeckEnabled");
-        bool newState = !current;
-        parameters.setConfigParam("StreamDeckEnabled", newState);
-        streamDeckEnableButton.setButtonText(newState ? LOC("systemConfig.buttons.streamDeckOn")
-                                                       : LOC("systemConfig.buttons.streamDeckOff"));
-        if (onStreamDeckEnabledChanged)
-            onStreamDeckEnabledChanged(newState);
-    }
-
-    void toggleSampler()
-    {
-        bool current = (bool)parameters.getConfigParam("SamplerEnabled");
-        bool newState = !current;
-        parameters.setConfigParam("SamplerEnabled", newState);
-        samplerEnableButton.setButtonText(newState ? LOC("systemConfig.buttons.samplerOn")
-                                                    : LOC("systemConfig.buttons.samplerOff"));
-        if (onSamplerEnabledChanged)
-            onSamplerEnabledChanged(newState);
-
-        // Show/hide lightpad mini-map
-        resized();
-        repaint();
-    }
+    // Toggle functions removed — combobox onChange callbacks handle state changes directly
 
 public:
     //==============================================================================
@@ -2450,8 +2497,9 @@ public:
         helpTextMap[&haasEffectEditor] = LOC("systemConfig.help.haasEffect");
         helpTextMap[&colorSchemeSelector] = LOC("systemConfig.help.colorScheme");
         helpTextMap[&languageSelector] = LOC("systemConfig.help.language");
-        helpTextMap[&streamDeckEnableButton] = LOC("systemConfig.help.streamDeck");
-        helpTextMap[&samplerEnableButton] = LOC("systemConfig.help.sampler");
+        helpTextMap[&dialsAndButtonsSelector] = LOC("systemConfig.help.dialsAndButtons");
+        helpTextMap[&positionControlSelector] = LOC("systemConfig.help.positionControl");
+        helpTextMap[&samplerSelector] = LOC("systemConfig.help.sampler");
         helpTextMap[&binauralEnableButton] = LOC("systemConfig.help.binauralEnable");
         helpTextMap[&binauralOutputSelector] = LOC("systemConfig.help.binauralOutput");
         helpTextMap[&binauralDistanceSlider] = LOC("systemConfig.help.binauralDistance");
@@ -2635,8 +2683,12 @@ public:
     juce::Label languageLabel;
     juce::ComboBox languageSelector;
     juce::StringArray availableLanguages;
-    LongPressButton streamDeckEnableButton { 800 };
-    LongPressButton samplerEnableButton { 800 };
+    juce::Label dialsAndButtonsLabel;
+    juce::ComboBox dialsAndButtonsSelector;
+    juce::Label positionControlLabel;
+    juce::ComboBox positionControlSelector;
+    juce::Label samplerLabel;
+    juce::ComboBox samplerSelector;
 
     // Lightpad state
     std::vector<PadLayoutInfo> lightpadPadLayouts;
@@ -2682,7 +2734,8 @@ public:
     ChannelCountCallback onChannelCountChanged;
     AudioInterfaceCallback onAudioInterfaceWindowRequested;
     ConfigReloadedCallback onConfigReloaded;
-    StreamDeckCallback onStreamDeckEnabledChanged;
+    DialsAndButtonsCallback onDialsAndButtonsChanged;
+    PositionControlCallback onPositionControlChanged;
     SamplerCallback onSamplerEnabledChanged;
     LightpadSplitCallback onLightpadSplitChanged;
     BinauralCallback onBinauralChanged;
