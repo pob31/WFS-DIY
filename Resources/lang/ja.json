@@ -64,6 +64,7 @@
       "stage": "ステージ",
       "master": "マスターセクション",
       "ui": "UI",
+      "controllers": "Controllers",
       "wfsProcessor": "WFSプロセッサー",
       "binaural": "Binaural Solo",
       "binauralRenderer": "バイノーラルレンダラー",

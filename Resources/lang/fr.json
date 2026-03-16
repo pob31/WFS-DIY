@@ -64,6 +64,7 @@
       "stage": "Scène",
       "master": "Section Master",
       "ui": "Interface",
+      "controllers": "Controllers",
       "wfsProcessor": "Processeur WFS",
       "binaural": "Binaural Solo",
       "binauralRenderer": "Rendu Binaural",

@@ -64,6 +64,7 @@
       "stage": "Palco",
       "master": "Secção Principal",
       "ui": "Interface",
+      "controllers": "Controllers",
       "wfsProcessor": "Processador WFS",
       "binaural": "Binaural Solo",
       "binauralRenderer": "Renderizador Binaural",

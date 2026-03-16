@@ -64,6 +64,7 @@
       "stage": "舞台",
       "master": "主控区",
       "ui": "界面",
+      "controllers": "Controllers",
       "wfsProcessor": "WFS处理器",
       "binaural": "双耳独听",
       "binauralRenderer": "双耳渲染器",

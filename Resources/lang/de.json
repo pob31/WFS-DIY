@@ -64,6 +64,7 @@
       "stage": "Bühne",
       "master": "Masterbereich",
       "ui": "Oberfläche",
+      "controllers": "Controllers",
       "wfsProcessor": "WFS-Prozessor",
       "binaural": "Binaural Solo",
       "binauralRenderer": "Binaural-Renderer",

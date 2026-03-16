@@ -222,23 +222,28 @@ public:
         addAndMakeVisible(showNameLabel);
         showNameLabel.setText(LOC("systemConfig.labels.showName"), juce::dontSendNotification);
         addAndMakeVisible(showNameEditor);
+        // (showNameEditor uses default border)
 
         addAndMakeVisible(showLocationLabel);
         showLocationLabel.setText(LOC("systemConfig.labels.showLocation"), juce::dontSendNotification);
         addAndMakeVisible(showLocationEditor);
+        // (showLocationEditor uses default border)
 
         // I/O Section
         addAndMakeVisible(inputChannelsLabel);
         inputChannelsLabel.setText(LOC("systemConfig.labels.inputChannels"), juce::dontSendNotification);
         addAndMakeVisible(inputChannelsEditor);
+        // (inputChannelsEditor uses default border)
 
         addAndMakeVisible(outputChannelsLabel);
         outputChannelsLabel.setText(LOC("systemConfig.labels.outputChannels"), juce::dontSendNotification);
         addAndMakeVisible(outputChannelsEditor);
+        // (outputChannelsEditor uses default border)
 
         addAndMakeVisible(reverbChannelsLabel);
         reverbChannelsLabel.setText(LOC("systemConfig.labels.reverbChannels"), juce::dontSendNotification);
         addAndMakeVisible(reverbChannelsEditor);
+        // (reverbChannelsEditor uses default border)
 
         addAndMakeVisible(audioPatchingButton);
         audioPatchingButton.setButtonText(LOC("systemConfig.buttons.audioPatch"));
@@ -459,12 +464,14 @@ public:
         // Sampler toggle
         addAndMakeVisible (samplerLabel);
         samplerLabel.setText (LOC ("systemConfig.labels.sampler"), juce::dontSendNotification);
-        addAndMakeVisible (samplerSelector);
-        samplerSelector.addItem (LOC ("systemConfig.devices.off"), 1);
-        samplerSelector.addItem (LOC ("systemConfig.devices.on"), 2);
-        samplerSelector.onChange = [this]()
+        addAndMakeVisible (samplerToggle);
+        samplerToggle.setButtonText (LOC ("systemConfig.devices.off"));
+        samplerToggle.setClickingTogglesState (true);
+        samplerToggle.onClick = [this]()
         {
-            bool enabled = samplerSelector.getSelectedId() == 2;
+            bool enabled = samplerToggle.getToggleState();
+            samplerToggle.setButtonText (enabled ? LOC ("systemConfig.devices.on")
+                                                 : LOC ("systemConfig.devices.off"));
             parameters.setConfigParam ("SamplerEnabled", enabled);
             if (onSamplerEnabledChanged)
                 onSamplerEnabledChanged (enabled);
@@ -772,19 +779,12 @@ public:
         g.drawText(LOC("systemConfig.sections.show"), layout.col1X, scaled(10), layout.colWidth, headerH, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.io"), layout.col1X, scaled(130), layout.colWidth, headerH, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.ui"), layout.col1X, scaled(290), layout.colWidth, headerH, juce::Justification::left);
+        g.drawText(LOC("systemConfig.sections.controllers"), layout.col1X, scaled(400), layout.colWidth, headerH, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.stage"), layout.col2X, scaled(10), layout.colWidth, headerH, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.master"), layout.col2X, scaled(400), layout.colWidth, headerH, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.wfsProcessor"), layout.col3X, scaled(10), layout.colWidth, headerH, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.binauralRenderer"), layout.col3X, scaled(200), layout.colWidth, headerH, juce::Justification::left);
 
-        // Lightpad "no pad" message (when sampler on but no pads)
-        if (! lightpadNoPadBounds.isEmpty())
-        {
-            g.setColour (juce::Colours::white.withAlpha (0.3f));
-            g.setFont (juce::FontOptions (10.0f));
-            g.drawText (LOC ("systemConfig.labels.noLightpad"),
-                        lightpadNoPadBounds, juce::Justification::centred);
-        }
     }
 
     void resized() override
@@ -809,26 +809,30 @@ public:
         // COLUMN 1: Show, I/O (channels only), UI
         //======================================================================
 
-        // Show Section
+        // ComboBox/Button text starts ~6px inside its bounds; TextEditor text is flush.
+        // Shrink editors by 6px on each side so their text aligns with combobox text.
+        const int ei = 6;  // editor inset to match combobox content alignment
+
+        // Show Section — text aligns with wide comboboxes (Color Scheme, Stream Deck+)
         showNameLabel.setBounds(x, y, labelWidth, rowHeight);
-        showNameEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
+        showNameEditor.setBounds(x + labelWidth + ei, y, editorWidth * 2 - ei * 2, rowHeight);
         y += rowHeight + spacing;
 
         showLocationLabel.setBounds(x, y, labelWidth, rowHeight);
-        showLocationEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
+        showLocationEditor.setBounds(x + labelWidth + ei, y, editorWidth * 2 - ei * 2, rowHeight);
 
-        // I/O Section (channels only)
+        // I/O Section — text aligns with Language combobox
         y = scaled(160); // Start after "I/O" header
         inputChannelsLabel.setBounds(x, y, labelWidth, rowHeight);
-        inputChannelsEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
+        inputChannelsEditor.setBounds(x + labelWidth + ei, y, editorWidth - ei * 2, rowHeight);
         y += rowHeight + spacing;
 
         outputChannelsLabel.setBounds(x, y, labelWidth, rowHeight);
-        outputChannelsEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
+        outputChannelsEditor.setBounds(x + labelWidth + ei, y, editorWidth - ei * 2, rowHeight);
         y += rowHeight + spacing;
 
         reverbChannelsLabel.setBounds(x, y, labelWidth, rowHeight);
-        reverbChannelsEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
+        reverbChannelsEditor.setBounds(x + labelWidth + ei, y, editorWidth - ei * 2, rowHeight);
 
         // UI Section
         y = scaled(320); // Start after "UI" header
@@ -838,8 +842,9 @@ public:
 
         languageLabel.setBounds(x, y, labelWidth, rowHeight);
         languageSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
-        y += rowHeight + spacing;
 
+        // Controllers Section
+        y = scaled(430); // Start after "Controllers" header
         dialsAndButtonsLabel.setBounds (x, y, labelWidth, rowHeight);
         dialsAndButtonsSelector.setBounds (x + labelWidth, y, editorWidth * 2, rowHeight);
         y += rowHeight + spacing;
@@ -848,30 +853,19 @@ public:
         positionControlSelector.setBounds (x + labelWidth, y, editorWidth * 2, rowHeight);
         y += rowHeight + spacing;
 
-        samplerLabel.setBounds (x, y, labelWidth, rowHeight);
-        samplerSelector.setBounds (x + labelWidth, y, editorWidth * 2, rowHeight);
-        y += rowHeight + spacing;
+        // Sampler: [label] [toggle] [Lightpad... button]
+        {
+            int toggleW = scaled (40);
+            int rightEdge = x + labelWidth + editorWidth * 2;  // Align with comboboxes above
+            int btnX = x + labelWidth + toggleW + spacing;
+            int btnW = rightEdge - btnX;
 
-        // Lightpad button (visible when sampler is on)
-        lightpadNoPadBounds = {};
-        if ((bool) parameters.getConfigParam ("SamplerEnabled") && ! lightpadPadLayouts.empty())
-        {
-            juce::String btnText = LOC ("systemConfig.labels.lightpadArrangement")
-                                   + " (" + juce::String (lightpadPadLayouts.size()) + ")";
-            lightpadArrangementButton.setButtonText (btnText);
-            lightpadArrangementButton.setBounds (x, y, fullWidth, rowHeight);
+            samplerLabel.setBounds (x, y, labelWidth, rowHeight);
+            samplerToggle.setBounds (x + labelWidth, y, toggleW, rowHeight);
+            lightpadArrangementButton.setButtonText ("Lightpad...");
+            lightpadArrangementButton.setBounds (btnX, y, btnW, rowHeight);
             lightpadArrangementButton.setVisible (true);
-            y += rowHeight + spacing;
-        }
-        else if ((bool) parameters.getConfigParam ("SamplerEnabled") && lightpadPadLayouts.empty())
-        {
-            lightpadArrangementButton.setVisible (false);
-            lightpadNoPadBounds = juce::Rectangle<int> (x, y, fullWidth, 24);
-            y += 24 + spacing;
-        }
-        else
-        {
-            lightpadArrangementButton.setVisible (false);
+            lightpadArrangementButton.setEnabled (samplerToggle.getToggleState() && ! lightpadPadLayouts.empty());
         }
 
         //======================================================================
@@ -1406,10 +1400,12 @@ private:
             positionControlSelector.setSelectedId (pcDevice + 1, juce::dontSendNotification);
         }
 
-        // Sampler selector
+        // Sampler toggle
         {
             bool samplerOn = (bool) parameters.getConfigParam ("SamplerEnabled");
-            samplerSelector.setSelectedId (samplerOn ? 2 : 1, juce::dontSendNotification);
+            samplerToggle.setToggleState (samplerOn, juce::dontSendNotification);
+            samplerToggle.setButtonText (samplerOn ? LOC ("systemConfig.devices.on")
+                                                   : LOC ("systemConfig.devices.off"));
         }
 
         // Lightpad split state restored from ValueTree on topology change
@@ -2499,7 +2495,7 @@ public:
         helpTextMap[&languageSelector] = LOC("systemConfig.help.language");
         helpTextMap[&dialsAndButtonsSelector] = LOC("systemConfig.help.dialsAndButtons");
         helpTextMap[&positionControlSelector] = LOC("systemConfig.help.positionControl");
-        helpTextMap[&samplerSelector] = LOC("systemConfig.help.sampler");
+        helpTextMap[&samplerToggle] = LOC("systemConfig.help.sampler");
         helpTextMap[&binauralEnableButton] = LOC("systemConfig.help.binauralEnable");
         helpTextMap[&binauralOutputSelector] = LOC("systemConfig.help.binauralOutput");
         helpTextMap[&binauralDistanceSlider] = LOC("systemConfig.help.binauralDistance");
@@ -2688,7 +2684,7 @@ public:
     juce::Label positionControlLabel;
     juce::ComboBox positionControlSelector;
     juce::Label samplerLabel;
-    juce::ComboBox samplerSelector;
+    juce::TextButton samplerToggle;
 
     // Lightpad state
     std::vector<PadLayoutInfo> lightpadPadLayouts;

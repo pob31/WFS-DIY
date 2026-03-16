@@ -64,6 +64,7 @@
       "stage": "무대",
       "master": "마스터 섹션",
       "ui": "인터페이스",
+      "controllers": "Controllers",
       "wfsProcessor": "WFS 프로세서",
       "binaural": "Binaural Solo",
       "binauralRenderer": "바이노럴 렌더러",

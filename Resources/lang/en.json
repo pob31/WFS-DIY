@@ -69,6 +69,7 @@
       "stage": "Stage",
       "master": "Master Section",
       "ui": "UI",
+      "controllers": "Controllers",
       "wfsProcessor": "WFS Processor",
       "binaural": "Binaural Solo",
       "binauralRenderer": "Binaural Renderer",
