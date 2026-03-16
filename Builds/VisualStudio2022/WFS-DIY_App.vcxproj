@@ -178,6 +178,7 @@
     <ClCompile Include="..\..\Source\Network\TrackingPSNReceiver.cpp"/>
     <ClCompile Include="..\..\Source\Network\RTTrPDecoder.cpp"/>
     <ClCompile Include="..\..\Source\Network\TrackingRTTrPReceiver.cpp"/>
+    <ClCompile Include="..\..\Source\Network\TrackingMQTTReceiver.cpp"/>
     <ClCompile Include="..\..\ThirdParty\hidapi\HidApiPlatform.c"/>
     <ClCompile Include="..\..\Source\Main.cpp"/>
     <ClCompile Include="..\..\Source\MainComponent.cpp"/>
@@ -3204,6 +3205,7 @@
     <ClInclude Include="..\..\Source\Network\TrackingPSNReceiver.h"/>
     <ClInclude Include="..\..\Source\Network\RTTrPDecoder.h"/>
     <ClInclude Include="..\..\Source\Network\TrackingRTTrPReceiver.h"/>
+    <ClInclude Include="..\..\Source\Network\TrackingMQTTReceiver.h"/>
     <ClInclude Include="..\..\Source\StreamDeck\StreamDeckDevice.h"/>
     <ClInclude Include="..\..\Source\StreamDeck\StreamDeckPage.h"/>
     <ClInclude Include="..\..\Source\StreamDeck\StreamDeckRenderer.h"/>

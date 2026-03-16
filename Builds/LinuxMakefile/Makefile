@@ -94,6 +94,7 @@ OBJECTS_APP := \
   $(JUCE_OBJDIR)/TrackingPSNReceiver_a269fe83.o \
   $(JUCE_OBJDIR)/RTTrPDecoder_3f4ea27e.o \
   $(JUCE_OBJDIR)/TrackingRTTrPReceiver_b5859348.o \
+  $(JUCE_OBJDIR)/TrackingMQTTReceiver_2e949d4.o \
   $(JUCE_OBJDIR)/HidApiPlatform_aec62187.o \
   $(JUCE_OBJDIR)/Main_90ebc5c2.o \
   $(JUCE_OBJDIR)/MainComponent_a6ffb4a5.o \
@@ -242,6 +243,11 @@ $(JUCE_OBJDIR)/RTTrPDecoder_3f4ea27e.o: ../../Source/Network/RTTrPDecoder.cpp
 $(JUCE_OBJDIR)/TrackingRTTrPReceiver_b5859348.o: ../../Source/Network/TrackingRTTrPReceiver.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling TrackingRTTrPReceiver.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/TrackingMQTTReceiver_2e949d4.o: ../../Source/Network/TrackingMQTTReceiver.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling TrackingMQTTReceiver.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/HidApiPlatform_aec62187.o: ../../ThirdParty/hidapi/HidApiPlatform.c

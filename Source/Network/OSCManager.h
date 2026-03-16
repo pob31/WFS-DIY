@@ -13,6 +13,7 @@
 #include "TrackingOSCReceiver.h"
 #include "TrackingPSNReceiver.h"
 #include "TrackingRTTrPReceiver.h"
+#include "TrackingMQTTReceiver.h"
 #include "ADMOSCMapping.h"
 #include "../Parameters/WFSValueTreeState.h"
 #include "../DSP/TrackingPositionFilter.h"
@@ -296,6 +297,27 @@ public:
     void updateRTTrPTransformations(float offsetX, float offsetY, float offsetZ,
                                      float scaleX, float scaleY, float scaleZ,
                                      bool flipX, bool flipY, bool flipZ);
+
+    //==========================================================================
+    // Tracking MQTT
+    //==========================================================================
+
+    /** Start the MQTT tracking receiver. */
+    bool startMQTTReceiver(const juce::String& host, int port, const juce::String& topic);
+
+    /** Stop the MQTT tracking receiver. */
+    void stopMQTTReceiver();
+
+    /** Check if MQTT tracking receiver is running. */
+    bool isMQTTReceiverRunning() const;
+
+    /** Update MQTT tracking transformations. */
+    void updateMQTTTransformations(float offsetX, float offsetY, float offsetZ,
+                                    float scaleX, float scaleY, float scaleZ,
+                                    bool flipX, bool flipY, bool flipZ);
+
+    /** Get the MQTT receiver (for tag ID table access from UI). */
+    TrackingMQTTReceiver* getMQTTReceiver() { return mqttReceiver.get(); }
 
     //==========================================================================
     // Logging
@@ -602,6 +624,9 @@ private:
 
     // Tracking RTTrP receiver
     std::unique_ptr<TrackingRTTrPReceiver> rttrpReceiver;
+
+    // Tracking MQTT receiver
+    std::unique_ptr<TrackingMQTTReceiver> mqttReceiver;
 
     // ADM-OSC mapping cache
     ADMOSCMapping::CartesianMappingConfig admCartConfigs[4];

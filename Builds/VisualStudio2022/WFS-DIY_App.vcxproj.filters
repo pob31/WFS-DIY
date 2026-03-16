@@ -862,6 +862,9 @@
     <ClCompile Include="..\..\Source\Network\TrackingRTTrPReceiver.cpp">
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Source\Network\TrackingMQTTReceiver.cpp">
+      <Filter>WFS-DIY\Source\Network</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\ThirdParty\hidapi\HidApiPlatform.c">
       <Filter>WFS-DIY\Source\hidapi</Filter>
     </ClCompile>
@@ -4165,6 +4168,9 @@
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Network\TrackingRTTrPReceiver.h">
+      <Filter>WFS-DIY\Source\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\TrackingMQTTReceiver.h">
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\StreamDeck\StreamDeckDevice.h">

@@ -145,10 +145,11 @@ void TrackingOSCReceiver::processTrackingMessage(const juce::OSCMessage& message
     }
 
     // Extract coordinates (optional - keep previous if not present)
-    bool hasX, hasY, hasZ;
+    bool hasX, hasY, hasZ, hasQ;
     float x = localPattern.extractX(message, hasX);
     float y = localPattern.extractY(message, hasY);
     float z = localPattern.extractZ(message, hasZ);
+    float q = localPattern.extractQ(message, hasQ);
 
     // Apply transformations: offset -> scale -> flip
     if (hasX)
@@ -171,11 +172,12 @@ void TrackingOSCReceiver::processTrackingMessage(const juce::OSCMessage& message
     }
 
     // Route to matching inputs
-    routeToInputs(trackingId, x, y, z, hasX, hasY, hasZ);
+    routeToInputs(trackingId, x, y, z, hasX, hasY, hasZ, q);
 }
 
 void TrackingOSCReceiver::routeToInputs(int trackingId, float x, float y, float z,
-                                         bool hasX, bool hasY, bool hasZ)
+                                         bool hasX, bool hasY, bool hasZ,
+                                         float qualityFactor)
 {
     // Get the number of input channels
     int numInputs = state.getNumInputChannels();
@@ -206,7 +208,7 @@ void TrackingOSCReceiver::routeToInputs(int trackingId, float x, float y, float 
         if (smooth > 0.0f && positionFilter != nullptr)
         {
             if (! positionFilter->filterPosition (ch, trackingId, fx, fy, fz,
-                                                  hasX, hasY, hasZ, smooth))
+                                                  hasX, hasY, hasZ, smooth, qualityFactor))
                 continue; // sample rejected (jump detected)
         }
 

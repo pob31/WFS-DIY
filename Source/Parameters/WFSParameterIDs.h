@@ -203,6 +203,13 @@ namespace WFSParameterIDs
     const juce::Identifier trackingFlipZ     ("trackingFlipZ");
     const juce::Identifier trackingOscPath      ("trackingOscPath");
     const juce::Identifier trackingPsnInterface ("trackingPsnInterface");
+    const juce::Identifier trackingMqttHost     ("trackingMqttHost");
+    const juce::Identifier trackingMqttTopic    ("trackingMqttTopic");
+    const juce::Identifier trackingMqttJsonX    ("trackingMqttJsonX");
+    const juce::Identifier trackingMqttJsonY    ("trackingMqttJsonY");
+    const juce::Identifier trackingMqttJsonZ    ("trackingMqttJsonZ");
+    const juce::Identifier trackingMqttJsonQ    ("trackingMqttJsonQ");
+    const juce::Identifier trackingMqttTagIds   ("trackingMqttTagIds");
 
     //==========================================================================
     // Config > Clusters Section

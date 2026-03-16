@@ -606,6 +606,73 @@ void OSCManager::updateRTTrPTransformations(float offsetX, float offsetY, float 
 }
 
 //==============================================================================
+// MQTT Tracking
+//==============================================================================
+
+bool OSCManager::startMQTTReceiver(const juce::String& host, int port, const juce::String& topic)
+{
+    stopMQTTReceiver();
+
+    mqttReceiver = std::make_unique<TrackingMQTTReceiver>(state);
+    trackingFilter.resize(state.getNumInputChannels());
+    mqttReceiver->setPositionFilter(&trackingFilter);
+
+    // Load tag IDs from config
+    auto configTree = state.getConfigState();
+    juce::String tagIds = configTree.getProperty(WFSParameterIDs::trackingMqttTagIds, "").toString();
+    if (tagIds.isNotEmpty())
+        mqttReceiver->setTagIdsFromString(tagIds);
+
+    // Load JSON field names from config
+    juce::String jx = configTree.getProperty(WFSParameterIDs::trackingMqttJsonX, "").toString();
+    juce::String jy = configTree.getProperty(WFSParameterIDs::trackingMqttJsonY, "").toString();
+    juce::String jz = configTree.getProperty(WFSParameterIDs::trackingMqttJsonZ, "").toString();
+    juce::String jq = configTree.getProperty(WFSParameterIDs::trackingMqttJsonQ, "").toString();
+    mqttReceiver->setJsonFieldNames(
+        jx.isNotEmpty() ? jx : "x",
+        jy.isNotEmpty() ? jy : "y",
+        jz.isNotEmpty() ? jz : "z",
+        jq.isNotEmpty() ? jq : "quality");
+
+    if (!mqttReceiver->start(host, port, topic))
+    {
+        logger.logText("MQTT tracking receiver failed to start for " + host + ":" + juce::String(port));
+        mqttReceiver.reset();
+        return false;
+    }
+
+    logger.logText("MQTT tracking receiver started: " + host + ":" + juce::String(port) + " topic=" + topic);
+    return true;
+}
+
+void OSCManager::stopMQTTReceiver()
+{
+    if (mqttReceiver)
+    {
+        mqttReceiver->stop();
+        mqttReceiver.reset();
+        logger.logText("MQTT tracking receiver stopped");
+    }
+}
+
+bool OSCManager::isMQTTReceiverRunning() const
+{
+    return mqttReceiver && mqttReceiver->isActive();
+}
+
+void OSCManager::updateMQTTTransformations(float offsetX, float offsetY, float offsetZ,
+                                            float scaleX, float scaleY, float scaleZ,
+                                            bool flipX, bool flipY, bool flipZ)
+{
+    if (mqttReceiver)
+    {
+        mqttReceiver->setTransformations(offsetX, offsetY, offsetZ,
+                                          scaleX, scaleY, scaleZ,
+                                          flipX, flipY, flipZ);
+    }
+}
+
+//==============================================================================
 // Logging
 //==============================================================================
 

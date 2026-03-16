@@ -130,6 +130,10 @@
               file="Source/Network/TrackingRTTrPReceiver.h"/>
         <FILE id="netRttrpCpp" name="TrackingRTTrPReceiver.cpp" compile="1" resource="0"
               file="Source/Network/TrackingRTTrPReceiver.cpp"/>
+        <FILE id="netMqttH" name="TrackingMQTTReceiver.h" compile="0" resource="0"
+              file="Source/Network/TrackingMQTTReceiver.h"/>
+        <FILE id="netMqttCpp" name="TrackingMQTTReceiver.cpp" compile="1" resource="0"
+              file="Source/Network/TrackingMQTTReceiver.cpp"/>
       </GROUP>
       <GROUP id="{STREAMDECKGROUP}" name="StreamDeck">
         <FILE id="sdDevH" name="StreamDeckDevice.h" compile="0" resource="0"

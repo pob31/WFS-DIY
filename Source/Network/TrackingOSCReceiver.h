@@ -14,8 +14,8 @@ namespace WFSNetwork
  * TrackingPathPattern
  *
  * Parses and matches OSC path patterns with placeholders.
- * Supports: <ID>, <x>, <y>, <z> placeholders in any order.
- * Example: "/wfs/tracking <ID> <x> <y> <z>"
+ * Supports: <ID>, <x>, <y>, <z>, <q> placeholders in any order.
+ * Example: "/wfs/tracking <ID> <x> <y> <z> <q>"
  */
 struct TrackingPathPattern
 {
@@ -24,6 +24,7 @@ struct TrackingPathPattern
     int xArgIndex = -1;            // Which argument contains X
     int yArgIndex = -1;            // Which argument contains Y
     int zArgIndex = -1;            // Which argument contains Z
+    int qArgIndex = -1;            // Which argument contains quality factor (optional)
     int minRequiredArgs = 0;       // Minimum args needed (ID is required)
 
     /**
@@ -33,7 +34,7 @@ struct TrackingPathPattern
     bool parse(const juce::String& pattern)
     {
         baseAddress = juce::String();
-        idArgIndex = xArgIndex = yArgIndex = zArgIndex = -1;
+        idArgIndex = xArgIndex = yArgIndex = zArgIndex = qArgIndex = -1;
         minRequiredArgs = 0;
 
         if (pattern.isEmpty() || !pattern.startsWith("/"))
@@ -71,6 +72,10 @@ struct TrackingPathPattern
             else if (token == "<z>")
             {
                 zArgIndex = argIndex;
+            }
+            else if (token == "<q>")
+            {
+                qArgIndex = argIndex;
             }
             // Skip unknown placeholders but still count them as arguments
             ++argIndex;
@@ -182,6 +187,32 @@ struct TrackingPathPattern
         hasValue = false;
         return 0.0f;
     }
+
+    /**
+     * Extract quality factor from message.
+     * Returns 1.0 (full confidence) if not present. Clamped to [0, 1].
+     */
+    float extractQ(const juce::OSCMessage& msg, bool& hasValue) const
+    {
+        hasValue = false;
+        if (qArgIndex < 0 || qArgIndex >= msg.size())
+            return 1.0f;
+
+        const auto& arg = msg[qArgIndex];
+        hasValue = true;
+        float val = 0.0f;
+        if (arg.isFloat32())
+            val = arg.getFloat32();
+        else if (arg.isInt32())
+            val = static_cast<float>(arg.getInt32()) / 100.0f; // treat int as percentage
+        else
+        {
+            hasValue = false;
+            return 1.0f;
+        }
+
+        return juce::jlimit(0.0f, 1.0f, val);
+    }
 };
 
 /**
@@ -261,7 +292,8 @@ private:
 
     void processTrackingMessage(const juce::OSCMessage& message);
     void routeToInputs(int trackingId, float x, float y, float z,
-                       bool hasX, bool hasY, bool hasZ);
+                       bool hasX, bool hasY, bool hasZ,
+                       float qualityFactor);
 
     WFSValueTreeState& state;
     std::unique_ptr<OSCReceiverWithSenderIP> receiver;

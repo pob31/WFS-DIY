@@ -2071,13 +2071,43 @@ public:
         trackingSectionBottom = rightY + rowHeight;
         rightY += rowHeight + rightRowSpacing;
 
-        // Row 5: OSC Path / PSN Interface
+        // Row 5: OSC Path / PSN Interface / MQTT Host+Topic
         const int oscPathLabelWidth = scaled(75);
         trackingOscPathLabel.setBounds(rcol1, rightY, oscPathLabelWidth, rowHeight);
         trackingOscPathEditor.setBounds(rcol1 + oscPathLabelWidth, rightY, rightColumnWidth - oscPathLabelWidth, rowHeight);
         const int psnInterfaceLabelWidth = scaled(95);
         trackingPsnInterfaceLabel.setBounds(rcol1, rightY, psnInterfaceLabelWidth, rowHeight);
         trackingPsnInterfaceSelector.setBounds(rcol1 + psnInterfaceLabelWidth, rightY, rightColumnWidth - psnInterfaceLabelWidth, rowHeight);
+
+        // MQTT row 1: Host
+        const int mqttLabelW = scaled(55);
+        trackingMqttHostLabel.setBounds(rcol1, rightY, mqttLabelW, rowHeight);
+        trackingMqttHostEditor.setBounds(rcol1 + mqttLabelW, rightY, rightColumnWidth - mqttLabelW, rowHeight);
+        rightY += rowHeight + rightRowSpacing;
+
+        // MQTT row 2: Topic + Tag IDs button
+        const int tagBtnW = scaled(65);
+        trackingMqttTopicLabel.setBounds(rcol1, rightY, mqttLabelW, rowHeight);
+        trackingMqttTopicEditor.setBounds(rcol1 + mqttLabelW, rightY, rightColumnWidth - mqttLabelW - tagBtnW - scaled(4), rowHeight);
+        trackingMqttTagIdsButton.setBounds(rcol1 + rightColumnWidth - tagBtnW, rightY, tagBtnW, rowHeight);
+        rightY += rowHeight + rightRowSpacing;
+
+        // MQTT row 3: JSON field names (4 compact fields)
+        {
+            const int jLabelW = scaled(22);
+            const int jFieldW = scaled(52);
+            const int jSpacing = scaled(4);
+            int jx = rcol1;
+            auto layoutJsonField = [&](juce::Label& lbl, juce::TextEditor& ed) {
+                lbl.setBounds(jx, rightY, jLabelW, rowHeight);
+                ed.setBounds(jx + jLabelW, rightY, jFieldW, rowHeight);
+                jx += jLabelW + jFieldW + jSpacing;
+            };
+            layoutJsonField(trackingMqttJsonXLabel, trackingMqttJsonXEditor);
+            layoutJsonField(trackingMqttJsonYLabel, trackingMqttJsonYEditor);
+            layoutJsonField(trackingMqttJsonZLabel, trackingMqttJsonZEditor);
+            layoutJsonField(trackingMqttJsonQLabel, trackingMqttJsonQEditor);
+        }
         rightY += rowHeight + sectionSpacing;
 
         // --- ADM-OSC Section (now second in right column) ---
@@ -2295,6 +2325,21 @@ private:
     juce::StringArray psnInterfaceNames;
     juce::StringArray psnInterfaceIPs;
 
+    // MQTT controls (shown when protocol is MQTT)
+    juce::Label trackingMqttHostLabel;
+    juce::TextEditor trackingMqttHostEditor;
+    juce::Label trackingMqttTopicLabel;
+    juce::TextEditor trackingMqttTopicEditor;
+    juce::TextButton trackingMqttTagIdsButton;
+    juce::Label trackingMqttJsonXLabel;
+    juce::TextEditor trackingMqttJsonXEditor;
+    juce::Label trackingMqttJsonYLabel;
+    juce::TextEditor trackingMqttJsonYEditor;
+    juce::Label trackingMqttJsonZLabel;
+    juce::TextEditor trackingMqttJsonZEditor;
+    juce::Label trackingMqttJsonQLabel;
+    juce::TextEditor trackingMqttJsonQEditor;
+
     void setupAdmOscSection()
     {
         // --- Mapping selector ---
@@ -2477,6 +2522,7 @@ private:
         trackingProtocolSelector.addItem(LOC("network.protocols.osc"), 2);
         trackingProtocolSelector.addItem(LOC("network.protocols.psn"), 3);
         trackingProtocolSelector.addItem(LOC("network.protocols.rttrp"), 4);
+        trackingProtocolSelector.addItem(LOC("network.protocols.mqtt"), 5);
         trackingProtocolSelector.setSelectedId(1, juce::dontSendNotification);
         trackingProtocolSelector.onChange = [this]() {
             int newProtocol = trackingProtocolSelector.getSelectedId() - 1;
@@ -2499,6 +2545,11 @@ private:
             {
                 trackingPortEditor.setText("24220", juce::dontSendNotification);
                 parameters.setConfigParam("trackingPort", 24220);
+            }
+            else if (protocolId == 5)  // MQTT
+            {
+                trackingPortEditor.setText("1883", juce::dontSendNotification);
+                parameters.setConfigParam("trackingPort", 1883);
             }
 
             // If enabling protocol while global tracking is on, check for conflicts
@@ -2622,6 +2673,45 @@ private:
             updateTrackingReceiver();
         };
 
+        // MQTT controls (shown when protocol is MQTT)
+        addAndMakeVisible(trackingMqttHostLabel);
+        trackingMqttHostLabel.setText(LOC("network.labels.mqttHost"), juce::dontSendNotification);
+        addAndMakeVisible(trackingMqttHostEditor);
+        trackingMqttHostEditor.setText("192.168.1.1", juce::dontSendNotification);
+        trackingMqttHostLabel.setVisible(false);
+        trackingMqttHostEditor.setVisible(false);
+
+        addAndMakeVisible(trackingMqttTopicLabel);
+        trackingMqttTopicLabel.setText(LOC("network.labels.mqttTopic"), juce::dontSendNotification);
+        addAndMakeVisible(trackingMqttTopicEditor);
+        trackingMqttTopicEditor.setText("dwm/node/+/uplink/location", juce::dontSendNotification);
+        trackingMqttTopicLabel.setVisible(false);
+        trackingMqttTopicEditor.setVisible(false);
+
+        addAndMakeVisible(trackingMqttTagIdsButton);
+        trackingMqttTagIdsButton.setButtonText(LOC("network.labels.mqttTagIds"));
+        trackingMqttTagIdsButton.setVisible(false);
+        trackingMqttTagIdsButton.onClick = [this]() { showMqttTagIdPanel(); };
+
+        // MQTT JSON field labels + editors
+        auto setupJsonField = [this](juce::Label& label, juce::TextEditor& editor,
+                                      const juce::String& labelText, const juce::String& defaultVal) {
+            addAndMakeVisible(label);
+            label.setText(labelText, juce::dontSendNotification);
+            label.setFont(juce::Font(11.0f));
+            label.setColour(juce::Label::textColourId, ColorScheme::get().textSecondary);
+            addAndMakeVisible(editor);
+            editor.setText(defaultVal, juce::dontSendNotification);
+            editor.setFont(juce::Font(11.0f));
+            label.setVisible(false);
+            editor.setVisible(false);
+        };
+
+        setupJsonField(trackingMqttJsonXLabel, trackingMqttJsonXEditor, LOC("network.labels.mqttJsonX"), "x");
+        setupJsonField(trackingMqttJsonYLabel, trackingMqttJsonYEditor, LOC("network.labels.mqttJsonY"), "y");
+        setupJsonField(trackingMqttJsonZLabel, trackingMqttJsonZEditor, LOC("network.labels.mqttJsonZ"), "z");
+        setupJsonField(trackingMqttJsonQLabel, trackingMqttJsonQEditor, LOC("network.labels.mqttJsonQ"), "quality");
+
         // Add text editor listeners
         trackingPortEditor.addListener(this);
         trackingOffsetXEditor.addListener(this);
@@ -2631,6 +2721,12 @@ private:
         trackingScaleYEditor.addListener(this);
         trackingScaleZEditor.addListener(this);
         trackingOscPathEditor.addListener(this);
+        trackingMqttHostEditor.addListener(this);
+        trackingMqttTopicEditor.addListener(this);
+        trackingMqttJsonXEditor.addListener(this);
+        trackingMqttJsonYEditor.addListener(this);
+        trackingMqttJsonZEditor.addListener(this);
+        trackingMqttJsonQEditor.addListener(this);
     }
 
     // Helper to check if source component is or is a child of target (for ComboBox hover detection)
@@ -3317,11 +3413,11 @@ private:
         trackingFlipYButton.setAlpha(alpha);
         trackingFlipZButton.setAlpha(alpha);
 
-        // OSC Path is only visible when protocol is OSC (ID 2)
-        // PSN Interface is only visible when protocol is PSN (ID 3)
+        // Protocol-specific controls visibility
         int protocolId = trackingProtocolSelector.getSelectedId();
         bool isOscProtocol = (protocolId == 2);
         bool isPsnProtocol = (protocolId == 3);
+        bool isMqttProtocol = (protocolId == 5);
 
         trackingOscPathLabel.setVisible(isOscProtocol);
         trackingOscPathEditor.setVisible(isOscProtocol);
@@ -3332,6 +3428,33 @@ private:
         trackingPsnInterfaceSelector.setVisible(isPsnProtocol);
         trackingPsnInterfaceLabel.setAlpha(alpha);
         trackingPsnInterfaceSelector.setAlpha(alpha);
+
+        trackingMqttHostLabel.setVisible(isMqttProtocol);
+        trackingMqttHostEditor.setVisible(isMqttProtocol);
+        trackingMqttTopicLabel.setVisible(isMqttProtocol);
+        trackingMqttTopicEditor.setVisible(isMqttProtocol);
+        trackingMqttTagIdsButton.setVisible(isMqttProtocol);
+        trackingMqttJsonXLabel.setVisible(isMqttProtocol);
+        trackingMqttJsonXEditor.setVisible(isMqttProtocol);
+        trackingMqttJsonYLabel.setVisible(isMqttProtocol);
+        trackingMqttJsonYEditor.setVisible(isMqttProtocol);
+        trackingMqttJsonZLabel.setVisible(isMqttProtocol);
+        trackingMqttJsonZEditor.setVisible(isMqttProtocol);
+        trackingMqttJsonQLabel.setVisible(isMqttProtocol);
+        trackingMqttJsonQEditor.setVisible(isMqttProtocol);
+        trackingMqttHostLabel.setAlpha(alpha);
+        trackingMqttHostEditor.setAlpha(alpha);
+        trackingMqttTopicLabel.setAlpha(alpha);
+        trackingMqttTopicEditor.setAlpha(alpha);
+        trackingMqttTagIdsButton.setAlpha(alpha);
+        trackingMqttJsonXLabel.setAlpha(alpha);
+        trackingMqttJsonXEditor.setAlpha(alpha);
+        trackingMqttJsonYLabel.setAlpha(alpha);
+        trackingMqttJsonYEditor.setAlpha(alpha);
+        trackingMqttJsonZLabel.setAlpha(alpha);
+        trackingMqttJsonZEditor.setAlpha(alpha);
+        trackingMqttJsonQLabel.setAlpha(alpha);
+        trackingMqttJsonQEditor.setAlpha(alpha);
 
         // Update tracking receiver state
         updateTrackingReceiver();
@@ -3353,6 +3476,7 @@ private:
         bool isOscProtocol = (protocolId == 2);   // OSC = ID 2
         bool isPsnProtocol = (protocolId == 3);   // PSN = ID 3
         bool isRttrpProtocol = (protocolId == 4); // RTTrP = ID 4
+        bool isMqttProtocol = (protocolId == 5);  // MQTT = ID 5
 
         // Get transformation values (shared by all protocols)
         float offsetX = trackingOffsetXEditor.getText().getFloatValue();
@@ -3382,6 +3506,10 @@ private:
         if (!trackingEnabled || (!isRttrpProtocol && oscManager->isRTTrPReceiverRunning()))
         {
             oscManager->stopRTTrPReceiver();
+        }
+        if (!trackingEnabled || (!isMqttProtocol && oscManager->isMQTTReceiverRunning()))
+        {
+            oscManager->stopMQTTReceiver();
         }
 
         if (trackingEnabled && isOscProtocol)
@@ -3510,12 +3638,55 @@ private:
                                                        flipX, flipY, flipZ);
             }
         }
+        else if (trackingEnabled && isMqttProtocol)
+        {
+            // Get host, port, and topic
+            juce::String host = trackingMqttHostEditor.getText().trim();
+            int port = trackingPortEditor.getText().getIntValue();
+            juce::String topic = trackingMqttTopicEditor.getText().trim();
+
+            if (host.isEmpty() || port <= 0 || port > 65535 || topic.isEmpty())
+            {
+                oscManager->stopMQTTReceiver();
+                return;
+            }
+
+            bool needsRestart = forceRestart || !oscManager->isMQTTReceiverRunning();
+
+            if (needsRestart)
+            {
+                // Save config
+                parameters.setConfigParam("trackingMqttHost", host);
+                parameters.setConfigParam("trackingMqttTopic", topic);
+                parameters.setConfigParam("trackingMqttJsonX", trackingMqttJsonXEditor.getText().trim());
+                parameters.setConfigParam("trackingMqttJsonY", trackingMqttJsonYEditor.getText().trim());
+                parameters.setConfigParam("trackingMqttJsonZ", trackingMqttJsonZEditor.getText().trim());
+                parameters.setConfigParam("trackingMqttJsonQ", trackingMqttJsonQEditor.getText().trim());
+
+                if (oscManager->startMQTTReceiver(host, port, topic))
+                {
+                    oscManager->updateMQTTTransformations(offsetX, offsetY, offsetZ,
+                                                           scaleX, scaleY, scaleZ,
+                                                           flipX, flipY, flipZ);
+                }
+                else
+                {
+                    DBG("NetworkTab: Failed to start MQTT receiver for " << host << ":" << port);
+                }
+            }
+            else
+            {
+                oscManager->updateMQTTTransformations(offsetX, offsetY, offsetZ,
+                                                       scaleX, scaleY, scaleZ,
+                                                       flipX, flipY, flipZ);
+            }
+        }
     }
 
     /**
      * Update just the tracking transformations without restarting receiver.
      * Called when offset/scale/flip values change while receiver is running.
-     * Updates OSC, PSN, and RTTrP receivers if they are running.
+     * Updates OSC, PSN, RTTrP, and MQTT receivers if they are running.
      */
     void updateTrackingTransformations()
     {
@@ -3526,7 +3697,8 @@ private:
         bool oscRunning = oscManager->isTrackingReceiverRunning();
         bool psnRunning = oscManager->isPSNReceiverRunning();
         bool rttrpRunning = oscManager->isRTTrPReceiverRunning();
-        if (!oscRunning && !psnRunning && !rttrpRunning)
+        bool mqttRunning = oscManager->isMQTTReceiverRunning();
+        if (!oscRunning && !psnRunning && !rttrpRunning && !mqttRunning)
             return;
 
         float offsetX = trackingOffsetXEditor.getText().getFloatValue();
@@ -3561,6 +3733,88 @@ private:
             oscManager->updateRTTrPTransformations(offsetX, offsetY, offsetZ,
                                                    scaleX, scaleY, scaleZ,
                                                    flipX, flipY, flipZ);
+        }
+        if (mqttRunning)
+        {
+            oscManager->updateMQTTTransformations(offsetX, offsetY, offsetZ,
+                                                   scaleX, scaleY, scaleZ,
+                                                   flipX, flipY, flipZ);
+        }
+    }
+
+    /**
+     * Show the MQTT Tag ID mapping panel as a dialog.
+     * 32 slots, sequential mapping (slot N = input N).
+     */
+    void showMqttTagIdPanel()
+    {
+        // Build content panel with OK button
+        auto* panel = new juce::Component();
+        const int editorH = 21;
+        const int panelH = 32 * editorH + 45; // 32 rows + OK button area
+        panel->setSize (300, panelH);
+
+        auto tagEditors = std::make_shared<juce::OwnedArray<juce::TextEditor>>();
+
+        for (int i = 0; i < 32; ++i)
+        {
+            auto* label = new juce::Label();
+            label->setText (juce::String (i + 1) + ":", juce::dontSendNotification);
+            label->setBounds (10, 5 + i * editorH, 30, 20);
+            panel->addAndMakeVisible (label);
+
+            auto* editor = new juce::TextEditor();
+            editor->setInputRestrictions (8, "0123456789abcdefABCDEF");
+            editor->setBounds (42, 5 + i * editorH, 240, 20);
+            panel->addAndMakeVisible (editor);
+            tagEditors->add (editor);
+
+            // Load current value
+            if (oscManager != nullptr && oscManager->getMQTTReceiver() != nullptr)
+                editor->setText (oscManager->getMQTTReceiver()->getTagId (i), juce::dontSendNotification);
+        }
+
+        // OK button at the bottom
+        auto* okButton = new juce::TextButton ("OK");
+        okButton->setBounds (110, panelH - 35, 80, 28);
+        panel->addAndMakeVisible (okButton);
+
+        juce::DialogWindow::LaunchOptions options;
+        options.content.setOwned (panel);
+        options.dialogTitle = "MQTT Tag ID Mapping";
+        options.dialogBackgroundColour = getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId);
+        options.escapeKeyTriggersCloseButton = true;
+        options.useNativeTitleBar = false;
+        options.resizable = false;
+
+        auto* dialog = options.launchAsync();
+
+        if (dialog != nullptr)
+        {
+            // OK button closes the dialog
+            okButton->onClick = [dialog]() { dialog->exitModalState (1); };
+
+            // Save tag IDs when dialog closes
+            juce::ModalComponentManager::getInstance()->attachCallback (
+                dialog,
+                juce::ModalCallbackFunction::create ([this, tagEditors] (int)
+                {
+                    if (oscManager == nullptr)
+                        return;
+
+                    auto* receiver = oscManager->getMQTTReceiver();
+                    juce::StringArray ids;
+
+                    for (int i = 0; i < 32; ++i)
+                    {
+                        juce::String tagId = (*tagEditors)[i]->getText().trim().toUpperCase();
+                        if (receiver != nullptr)
+                            receiver->setTagId (i, tagId);
+                        ids.add (tagId);
+                    }
+
+                    parameters.setConfigParam ("trackingMqttTagIds", ids.joinIntoString (","));
+                }));
         }
     }
 
@@ -3649,6 +3903,24 @@ private:
         if (oscPath.isEmpty())
             oscPath = "/wfs/tracking <ID> <x> <y> <z>";  // Default
         trackingOscPathEditor.setText(oscPath, false);
+
+        // Load MQTT settings
+        juce::String mqttHost = parameters.getConfigParam("trackingMqttHost").toString();
+        if (mqttHost.isEmpty()) mqttHost = "192.168.1.1";
+        trackingMqttHostEditor.setText(mqttHost, false);
+
+        juce::String mqttTopic = parameters.getConfigParam("trackingMqttTopic").toString();
+        if (mqttTopic.isEmpty()) mqttTopic = "dwm/node/+/uplink/location";
+        trackingMqttTopicEditor.setText(mqttTopic, false);
+
+        juce::String mqttJx = parameters.getConfigParam("trackingMqttJsonX").toString();
+        juce::String mqttJy = parameters.getConfigParam("trackingMqttJsonY").toString();
+        juce::String mqttJz = parameters.getConfigParam("trackingMqttJsonZ").toString();
+        juce::String mqttJq = parameters.getConfigParam("trackingMqttJsonQ").toString();
+        trackingMqttJsonXEditor.setText(mqttJx.isNotEmpty() ? mqttJx : "x", false);
+        trackingMqttJsonYEditor.setText(mqttJy.isNotEmpty() ? mqttJy : "y", false);
+        trackingMqttJsonZEditor.setText(mqttJz.isNotEmpty() ? mqttJz : "z", false);
+        trackingMqttJsonQEditor.setText(mqttJq.isNotEmpty() ? mqttJq : "quality", false);
 
         updateTrackingAppearance();
 
@@ -3932,6 +4204,32 @@ private:
             {
                 // Invalid path - show red outline
                 editor->setColour(juce::TextEditor::outlineColourId, juce::Colours::red);
+            }
+        }
+        // MQTT editors
+        else if (editor == &trackingMqttHostEditor || editor == &trackingMqttTopicEditor)
+        {
+            if (editor == &trackingMqttHostEditor)
+                parameters.setConfigParam("trackingMqttHost", text.trim());
+            else
+                parameters.setConfigParam("trackingMqttTopic", text.trim());
+            updateTrackingReceiver(true);  // Force restart with new settings
+        }
+        else if (editor == &trackingMqttJsonXEditor || editor == &trackingMqttJsonYEditor
+              || editor == &trackingMqttJsonZEditor || editor == &trackingMqttJsonQEditor)
+        {
+            parameters.setConfigParam("trackingMqttJsonX", trackingMqttJsonXEditor.getText().trim());
+            parameters.setConfigParam("trackingMqttJsonY", trackingMqttJsonYEditor.getText().trim());
+            parameters.setConfigParam("trackingMqttJsonZ", trackingMqttJsonZEditor.getText().trim());
+            parameters.setConfigParam("trackingMqttJsonQ", trackingMqttJsonQEditor.getText().trim());
+
+            if (oscManager != nullptr && oscManager->getMQTTReceiver() != nullptr)
+            {
+                oscManager->getMQTTReceiver()->setJsonFieldNames(
+                    trackingMqttJsonXEditor.getText().trim(),
+                    trackingMqttJsonYEditor.getText().trim(),
+                    trackingMqttJsonZEditor.getText().trim(),
+                    trackingMqttJsonQEditor.getText().trim());
             }
         }
     }
