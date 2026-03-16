@@ -537,6 +537,13 @@
     },
     "labels": {
       "reverbPrefix": "H"
+    },
+    "messages": {
+      "assignedCluster": "Eingang {channel} zu Cluster {cluster} zugewiesen",
+      "assignedClusterMulti": "{count} Eingänge zu Cluster {cluster} zugewiesen",
+      "setSingle": "Eingang {channel} aus Cluster entfernt",
+      "setSingleMulti": "{count} Eingänge aus Clustern entfernt",
+      "clusterBrokenUp": "Cluster {cluster} aufgelöst"
     }
   },
   "levelMeter": {

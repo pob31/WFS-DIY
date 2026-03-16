@@ -501,6 +501,13 @@
     },
     "labels": {
       "reverbPrefix": "리"
+    },
+    "messages": {
+      "assignedCluster": "입력 {channel}이(가) 클러스터 {cluster}에 할당되었습니다",
+      "assignedClusterMulti": "{count}개의 입력이 클러스터 {cluster}에 할당되었습니다",
+      "setSingle": "입력 {channel}이(가) 클러스터에서 제거되었습니다",
+      "setSingleMulti": "{count}개의 입력이 클러스터에서 제거되었습니다",
+      "clusterBrokenUp": "클러스터 {cluster}이(가) 해체되었습니다"
     }
   },
   "levelMeter": {

@@ -537,6 +537,13 @@
     },
     "labels": {
       "reverbPrefix": "混"
+    },
+    "messages": {
+      "assignedCluster": "输入 {channel} 已分配到集群 {cluster}",
+      "assignedClusterMulti": "{count} 个输入已分配到集群 {cluster}",
+      "setSingle": "输入 {channel} 已从集群中移除",
+      "setSingleMulti": "{count} 个输入已从集群中移除",
+      "clusterBrokenUp": "集群 {cluster} 已解散"
     }
   },
   "levelMeter": {

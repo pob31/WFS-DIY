@@ -537,6 +537,13 @@
     },
     "labels": {
       "reverbPrefix": "R"
+    },
+    "messages": {
+      "assignedCluster": "Entrada {channel} asignada al Cluster {cluster}",
+      "assignedClusterMulti": "{count} entradas asignadas al Cluster {cluster}",
+      "setSingle": "Entrada {channel} eliminada del cluster",
+      "setSingleMulti": "{count} entradas eliminadas de los clusters",
+      "clusterBrokenUp": "Cluster {cluster} disuelto"
     }
   },
   "levelMeter": {

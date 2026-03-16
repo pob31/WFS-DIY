@@ -501,6 +501,13 @@
     },
     "labels": {
       "reverbPrefix": "R"
+    },
+    "messages": {
+      "assignedCluster": "入力 {channel} をクラスター {cluster} に割り当てました",
+      "assignedClusterMulti": "{count} 個の入力をクラスター {cluster} に割り当てました",
+      "setSingle": "入力 {channel} をクラスターから削除しました",
+      "setSingleMulti": "{count} 個の入力をクラスターから削除しました",
+      "clusterBrokenUp": "クラスター {cluster} を解散しました"
     }
   },
   "levelMeter": {

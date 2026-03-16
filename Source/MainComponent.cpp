@@ -4413,6 +4413,70 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
         }
     }
 
+    // Map tab (index 6): F1-F10 = assign selected inputs to Cluster 1-10
+    //                     F11 = remove from cluster (inputs) or break up cluster (barycenter)
+    if (currentTabIndex == 6 && mapTab != nullptr)
+    {
+        for (int i = 0; i < 10; ++i)
+        {
+            if (key.isKeyCode(juce::KeyPress::F1Key + i))
+            {
+                if (mapTab->assignSelectedInputsToCluster(i + 1))
+                {
+                    if (statusBar != nullptr)
+                    {
+                        int count = mapTab->getMultiSelectionCount();
+                        if (count == 1)
+                            statusBar->showTemporaryMessage(
+                                LOC("map.messages.assignedCluster")
+                                    .replace("{channel}", juce::String(*mapTab->getSelectedInputSet().begin() + 1))
+                                    .replace("{cluster}", juce::String(i + 1)), 2000);
+                        else if (count > 1)
+                            statusBar->showTemporaryMessage(
+                                LOC("map.messages.assignedClusterMulti")
+                                    .replace("{count}", juce::String(count))
+                                    .replace("{cluster}", juce::String(i + 1)), 2000);
+                    }
+                }
+                return true;
+            }
+        }
+
+        if (key.isKeyCode(juce::KeyPress::F11Key))
+        {
+            if (mapTab->getSelectedBarycenter() >= 1)
+            {
+                int cluster = mapTab->getSelectedBarycenter();
+                if (mapTab->breakUpSelectedCluster())
+                {
+                    if (statusBar != nullptr)
+                        statusBar->showTemporaryMessage(
+                            LOC("map.messages.clusterBrokenUp")
+                                .replace("{cluster}", juce::String(cluster)), 2000);
+                }
+            }
+            else if (!mapTab->getSelectedInputSet().empty())
+            {
+                int count = mapTab->getMultiSelectionCount();
+                if (mapTab->removeSelectedInputsFromCluster())
+                {
+                    if (statusBar != nullptr)
+                    {
+                        if (count == 1)
+                            statusBar->showTemporaryMessage(
+                                LOC("map.messages.setSingle")
+                                    .replace("{channel}", juce::String(*mapTab->getSelectedInputSet().begin() + 1)), 2000);
+                        else
+                            statusBar->showTemporaryMessage(
+                                LOC("map.messages.setSingleMulti")
+                                    .replace("{count}", juce::String(count)), 2000);
+                    }
+                }
+            }
+            return true;
+        }
+    }
+
     // Position nudging: Arrow keys, Page Up/Down (Inputs, Outputs, Reverb tabs)
     const float nudgeAmount = 0.1f;
 

@@ -253,6 +253,50 @@ public:
         moveSelectedInputsByDelta(dx, dy, dz);
     }
 
+    /** Assign all selected inputs to a cluster (F-key shortcut from MainComponent).
+        Returns true if at least one input was assigned. */
+    bool assignSelectedInputsToCluster (int cluster)
+    {
+        if (selectedInputs.empty() || selectedBarycenter >= 1) return false;
+        cluster = juce::jlimit (0, 10, cluster);
+        parameters.getValueTreeState().beginUndoTransaction ("Assign Cluster");
+        for (int idx : selectedInputs)
+            parameters.setInputParam (idx, "inputCluster", cluster);
+        repaint();
+        return true;
+    }
+
+    /** Remove all selected inputs from their clusters (set to Single).
+        Returns true if at least one input was changed. */
+    bool removeSelectedInputsFromCluster()
+    {
+        if (selectedInputs.empty()) return false;
+        parameters.getValueTreeState().beginUndoTransaction ("Remove From Cluster");
+        for (int idx : selectedInputs)
+            parameters.setInputParam (idx, "inputCluster", 0);
+        repaint();
+        return true;
+    }
+
+    /** Break up the currently selected cluster: set all its members to Single.
+        Returns true if a cluster was broken up. */
+    bool breakUpSelectedCluster()
+    {
+        if (selectedBarycenter < 1) return false;
+        int clusterToBreak = selectedBarycenter;
+        parameters.getValueTreeState().beginUndoTransaction ("Break Up Cluster");
+        int n = parameters.getNumInputChannels();
+        for (int i = 0; i < n; ++i)
+        {
+            if (static_cast<int> (parameters.getInputParam (i, "inputCluster")) == clusterToBreak)
+                parameters.setInputParam (i, "inputCluster", 0);
+        }
+        selectedBarycenter = -1;
+        repaint();
+        if (onMapSelectionChanged) onMapSelectionChanged();
+        return true;
+    }
+
     /** Move a single input by a delta (for Lightpad zone control). */
     void moveInputByDelta (int inputIndex, float dx, float dy, float dz = 0.0f)
     {
