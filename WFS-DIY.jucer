@@ -188,6 +188,8 @@
       <FILE id="MkNc76" name="MainComponent.cpp" compile="1" resource="0"
             file="Source/MainComponent.cpp"/>
       <FILE id="wfsPar" name="WfsParameters.h" compile="0" resource="0" file="Source/WfsParameters.h"/>
+      <FILE id="wfsLogH" name="WFSLogger.h" compile="0" resource="0" file="Source/WFSLogger.h"/>
+      <FILE id="wfsLogCpp" name="WFSLogger.cpp" compile="1" resource="0" file="Source/WFSLogger.cpp"/>
       <FILE id="wfsAlg" name="WFSAlgorithm.h" compile="0" resource="0" file="Source/WFSAlgorithm.h"/>
       <GROUP id="{DSPGROUP}" name="DSP">
         <FILE id="wfsCalcH" name="WFSCalculationEngine.h" compile="0" resource="0"

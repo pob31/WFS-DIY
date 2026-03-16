@@ -1,4 +1,5 @@
 #include "MainComponent.h"
+#include "WFSLogger.h"
 #include "Parameters/WFSParameterIDs.h"
 #include "Localization/LocalizationManager.h"
 #include "Accessibility/TTSManager.h"
@@ -1607,6 +1608,11 @@ MainComponent::MainComponent()
         attachAudioCallbacksIfNeeded();
     });
 
+    // Log startup configuration
+    WFSLogger::getInstance().logInfo ("Channels: " + juce::String (numInputChannels) + " inputs, "
+                                      + juce::String (numOutputChannels) + " outputs");
+    WFSLogger::getInstance().logInfo ("Language: " + savedLanguage);
+
     // Start timer for device monitoring and parameter smoothing
     startTimer(5); // 5ms timer for smooth parameter updates
 
@@ -1616,6 +1622,8 @@ MainComponent::MainComponent()
 
 MainComponent::~MainComponent()
 {
+    WFSLogger::getInstance().logInfo ("Session ending - saving settings");
+
     // Stop listening to color scheme changes
     ColorScheme::Manager::getInstance().removeListener(this);
 
@@ -1695,6 +1703,10 @@ void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
 
         if (device != nullptr)
         {
+            WFSLogger::getInstance().logInfo ("Audio device changed: " + device->getName()
+                                              + " @ " + juce::String (device->getCurrentSampleRate()) + " Hz"
+                                              + ", buffer " + juce::String (device->getCurrentBufferSizeSamples()));
+
             // User has successfully selected a device - allow saving from now on
             // This enables saving when user manually selects ASIO after startup failure
             deviceRestoreComplete = true;
@@ -1708,6 +1720,7 @@ void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
         }
         else
         {
+            WFSLogger::getInstance().logWarning ("Audio device changed: no device available");
             DBG("Device changed: no device available");
             audioCallbacksAttached = false;
         }
@@ -1926,6 +1939,7 @@ void MainComponent::applyOutputPatch(const juce::AudioSourceChannelInfo& bufferT
 
 void MainComponent::handleProcessingChange(bool enabled)
 {
+    WFSLogger::getInstance().logInfo (juce::String ("Processing ") + (enabled ? "enabled" : "disabled"));
     processingEnabled = enabled;
 
     // When starting processing, close the audio interface window and stop test signals
@@ -1979,6 +1993,9 @@ void MainComponent::handleProcessingChange(bool enabled)
 
 void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverbs)
 {
+    WFSLogger::getInstance().logInfo ("Channel count changed: " + juce::String (inputs) + " inputs, "
+                                      + juce::String (outputs) + " outputs, "
+                                      + juce::String (reverbs) + " reverbs");
     numInputChannels = inputs;
     numOutputChannels = outputs;
     stopProcessingForConfigurationChange();
@@ -2032,6 +2049,8 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
 
 void MainComponent::handleConfigReloaded()
 {
+    WFSLogger::getInstance().logInfo ("Configuration reloaded");
+
     // Update local channel counts from newly loaded config
     int newInputChannels = parameters.getNumInputChannels();
     int newOutputChannels = parameters.getNumOutputChannels();
@@ -2598,12 +2617,19 @@ void MainComponent::startAudioEngine()
     auto* device = deviceManager.getCurrentAudioDevice();
     if (device == nullptr)
     {
+        WFSLogger::getInstance().logWarning ("startAudioEngine: no audio device available");
         DBG("ERROR: No audio device available!");
         return;
     }
 
     double sampleRate = device->getCurrentSampleRate();
     int blockSize = device->getCurrentBufferSizeSamples();
+
+    WFSLogger::getInstance().logInfo ("Starting audio engine: " + device->getName()
+                                      + " @ " + juce::String (sampleRate) + " Hz"
+                                      + ", buffer " + juce::String (blockSize)
+                                      + ", " + juce::String (numInputChannels) + " in / "
+                                      + juce::String (numOutputChannels) + " out");
 
     DBG("startAudioEngine: numInputChannels=" + juce::String(numInputChannels) +
         " numOutputChannels=" + juce::String(numOutputChannels) +
@@ -2656,6 +2682,9 @@ void MainComponent::startAudioEngine()
 
 void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRate)
 {
+    WFSLogger::getInstance().logInfo ("prepareToPlay: sampleRate=" + juce::String (sampleRate)
+                                      + " bufferSize=" + juce::String (samplesPerBlockExpected));
+
     // This function will be called when the audio device is started, or when
     // its settings (i.e. sample rate, block size, etc) are changed.
 
@@ -2756,6 +2785,17 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
 
 void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill)
 {
+    // Xrun detection (lock-free, deferred logging)
+    if (auto* device = deviceManager.getCurrentAudioDevice())
+    {
+        int xruns = device->getXRunCount();
+        if (xruns > lastXRunCount)
+        {
+            WFSLogger::getInstance().logFromAudioThread ("xrun detected (count: " + juce::String (xruns) + ")");
+            lastXRunCount = xruns;
+        }
+    }
+
     // Process WFS audio if engine is started
     if (audioEngineStarted)
     {
@@ -3562,6 +3602,13 @@ void MainComponent::timerCallback()
             {
                 // Switch algorithm type if changed (0=SDN, 1=FDN, 2=IR)
                 int algoType = static_cast<int>(algoSection.getProperty(reverbAlgoType, 0));
+                if (algoType != lastLoggedAlgoType)
+                {
+                    const char* algoNames[] = { "SDN", "FDN", "IR" };
+                    const char* algoName = (algoType >= 0 && algoType <= 2) ? algoNames[algoType] : "Unknown";
+                    WFSLogger::getInstance().logInfo ("Reverb algorithm changed to " + juce::String (algoName));
+                    lastLoggedAlgoType = algoType;
+                }
                 reverbEngine->setAlgorithmType(algoType);
 
                 // Push IR-specific parameters

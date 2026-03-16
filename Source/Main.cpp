@@ -10,6 +10,7 @@
 #include "MainComponent.h"
 #include "gui/WindowUtils.h"
 #include "gui/ColorScheme.h"
+#include "WFSLogger.h"
 
 //==============================================================================
 // Windows crash handler to release ASIO driver on unhandled exceptions
@@ -25,6 +26,14 @@ static juce::AudioDeviceManager* g_audioDeviceManager = nullptr;
 LONG WINAPI asioCleanupCrashHandler(EXCEPTION_POINTERS* exceptionInfo)
 {
     juce::ignoreUnused(exceptionInfo);
+
+    // Best-effort crash logging
+    try
+    {
+        WFSLogger::getInstance().logError ("CRASH: Unhandled exception");
+        WFSLogger::getInstance().logStateSnapshot ("Crash");
+    }
+    catch (...) {}
 
     // Attempt emergency audio device shutdown to release ASIO driver
     if (g_audioDeviceManager != nullptr)
@@ -56,7 +65,14 @@ public:
     void initialise (const juce::String& commandLine) override
     {
         juce::ignoreUnused(commandLine);
-        // This method is where you should put your application's initialisation code..
+
+        // Start session logger before anything else
+        WFSLogger::getInstance().initialise();
+        WFSLogger::getInstance().logInfo ("Session started - " + getApplicationName()
+                                          + " v" + getApplicationVersion());
+        WFSLogger::getInstance().logInfo ("OS: " + juce::SystemStats::getOperatingSystemName());
+        WFSLogger::getInstance().logInfo ("CPU: " + juce::SystemStats::getCpuModel()
+                                          + " (" + juce::String (juce::SystemStats::getNumCpus()) + " cores)");
 
         mainWindow.reset (new MainWindow (getApplicationName()));
 
@@ -87,8 +103,6 @@ public:
 
     void shutdown() override
     {
-        // Add your application's shutdown code here..
-
 #if JUCE_WINDOWS
         // Clear global pointer before window destruction
         g_audioDeviceManager = nullptr;
@@ -98,6 +112,9 @@ public:
 #endif
 
         mainWindow = nullptr; // (deletes our window)
+
+        // Shutdown logger last so all other destructors can still log
+        WFSLogger::shutdown();
     }
 
     //==============================================================================

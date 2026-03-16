@@ -98,6 +98,7 @@ OBJECTS_APP := \
   $(JUCE_OBJDIR)/HidApiPlatform_aec62187.o \
   $(JUCE_OBJDIR)/Main_90ebc5c2.o \
   $(JUCE_OBJDIR)/MainComponent_a6ffb4a5.o \
+  $(JUCE_OBJDIR)/WFSLogger_60115195.o \
   $(JUCE_OBJDIR)/WFSCalculationEngine_480062fe.o \
   $(JUCE_OBJDIR)/TestSignalGenerator_c4132b8c.o \
   $(JUCE_OBJDIR)/include_juce_audio_basics_8a4e984a.o \
@@ -263,6 +264,11 @@ $(JUCE_OBJDIR)/Main_90ebc5c2.o: ../../Source/Main.cpp
 $(JUCE_OBJDIR)/MainComponent_a6ffb4a5.o: ../../Source/MainComponent.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling MainComponent.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/WFSLogger_60115195.o: ../../Source/WFSLogger.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling WFSLogger.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/WFSCalculationEngine_480062fe.o: ../../Source/DSP/WFSCalculationEngine.cpp

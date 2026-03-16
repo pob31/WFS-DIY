@@ -17,6 +17,7 @@
 		2E7BC351A296C0FD63B235EA /* include_juce_audio_processors_headless.mm */ = {isa = PBXBuildFile; fileRef = 86ACB563EE1E39D812C368F8; };
 		30CCDF4AC489042FFC0EA5D2 /* App */ = {isa = PBXBuildFile; fileRef = 27C88BB1744515ABB100AC93; };
 		3201D56E12B692DF589404E8 /* include_juce_audio_utils.mm */ = {isa = PBXBuildFile; fileRef = 0295E8DB0FB28056B5EFD60F; };
+		36F17547828BD0BC27FB25DC /* WFSLogger.cpp */ = {isa = PBXBuildFile; fileRef = 2A3098A01F4897C79C3BDD80; };
 		3E0A0AB3E298FA5F0241DEB0 /* include_juce_audio_formats.mm */ = {isa = PBXBuildFile; fileRef = 88828B243F838905A44A3AE5; };
 		471089E457EAE929D9FBE39A /* DiscRecording.framework */ = {isa = PBXBuildFile; fileRef = BB988ACB6CA5DBAAB5D3F273; };
 		476F09624768D72D4EA72FB2 /* Cocoa.framework */ = {isa = PBXBuildFile; fileRef = 8482C13D6FF8436DFD51EE09; };
@@ -95,6 +96,7 @@
 		175E5DD50F0E71570D6F1B65 /* OSCReceiverWithSenderIP.h */ /* OSCReceiverWithSenderIP.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OSCReceiverWithSenderIP.h; path = ../../Source/Network/OSCReceiverWithSenderIP.h; sourceTree = SOURCE_ROOT; };
 		1852742AC74CE662EF91C229 /* include_juce_core_CompilationTime.cpp */ /* include_juce_core_CompilationTime.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_core_CompilationTime.cpp; path = ../../JuceLibraryCode/include_juce_core_CompilationTime.cpp; sourceTree = SOURCE_ROOT; };
 		1A10EA3687120F02EC073242 /* include_juce_graphics_Harfbuzz.cpp */ /* include_juce_graphics_Harfbuzz.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_graphics_Harfbuzz.cpp; path = ../../JuceLibraryCode/include_juce_graphics_Harfbuzz.cpp; sourceTree = SOURCE_ROOT; };
+		1ABC3B390474FF4A8F755E15 /* WFSLogger.h */ /* WFSLogger.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = WFSLogger.h; path = ../../Source/WFSLogger.h; sourceTree = SOURCE_ROOT; };
 		1BD908F5EE15BCFED1F87F23 /* include_juce_events.mm */ /* include_juce_events.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_events.mm; path = ../../JuceLibraryCode/include_juce_events.mm; sourceTree = SOURCE_ROOT; };
 		1D4034F17218DC090D63347F /* OSCConnection.cpp */ /* OSCConnection.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = OSCConnection.cpp; path = ../../Source/Network/OSCConnection.cpp; sourceTree = SOURCE_ROOT; };
 		2005A065341F1626D8F31859 /* AudioToolbox.framework */ /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
@@ -104,6 +106,7 @@
 		27C38CBA50A052A050BD5462 /* TrackingMQTTReceiver.cpp */ /* TrackingMQTTReceiver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = TrackingMQTTReceiver.cpp; path = ../../Source/Network/TrackingMQTTReceiver.cpp; sourceTree = SOURCE_ROOT; };
 		27C88BB1744515ABB100AC93 /* App */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "WFS-DIY.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		2976DFB15F05C50CF08305D4 /* include_juce_graphics_Sheenbidi.c */ /* include_juce_graphics_Sheenbidi.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = include_juce_graphics_Sheenbidi.c; path = ../../JuceLibraryCode/include_juce_graphics_Sheenbidi.c; sourceTree = SOURCE_ROOT; };
+		2A3098A01F4897C79C3BDD80 /* WFSLogger.cpp */ /* WFSLogger.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = WFSLogger.cpp; path = ../../Source/WFSLogger.cpp; sourceTree = SOURCE_ROOT; };
 		2CB2F36332CB658A8BCDB47B /* InputBufferAlgorithm.h */ /* InputBufferAlgorithm.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = InputBufferAlgorithm.h; path = ../../Source/DSP/InputBufferAlgorithm.h; sourceTree = SOURCE_ROOT; };
 		300E93A1943132FBD96DBD77 /* include_juce_gui_basics.mm */ /* include_juce_gui_basics.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_gui_basics.mm; path = ../../JuceLibraryCode/include_juce_gui_basics.mm; sourceTree = SOURCE_ROOT; };
 		3193B4D9D805D393D760AE17 /* juce_gui_basics */ /* juce_gui_basics */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_gui_basics; path = ../../ThirdParty/JUCE/modules/juce_gui_basics; sourceTree = SOURCE_ROOT; };
@@ -350,6 +353,8 @@
 				AE1207ECC59B747C80031900,
 				A6107472373FC76F35C046C0,
 				08134ACD67020F7944801D62,
+				1ABC3B390474FF4A8F755E15,
+				2A3098A01F4897C79C3BDD80,
 				8C0E916313050AB4DC42868B,
 				C20B0002C1C15F0BCBF6FFE9,
 			);
@@ -701,6 +706,7 @@
 				D7BE7762C078D5CE3CFD2161,
 				8730DF5A397C198A3FB13D60,
 				D1FB0F3B758B9AFC67248620,
+				36F17547828BD0BC27FB25DC,
 				B1102ED88546CAF3585737B7,
 				D85DC6D9890F1B32583491C0,
 				F3E9874CAF23860578708A33,

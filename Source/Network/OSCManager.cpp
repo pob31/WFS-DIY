@@ -1,6 +1,7 @@
 #include "OSCManager.h"
 #include "QLabCueBuilder.h"
 #include "../Helpers/CoordinateConverter.h"
+#include "../WFSLogger.h"
 
 namespace WFSNetwork
 {
@@ -187,6 +188,8 @@ bool OSCManager::startListening()
     listening = true;
     logger.logText("Started listening on UDP port " + juce::String(globalConfig.udpReceivePort) +
                    " and TCP port " + juce::String(globalConfig.tcpReceivePort));
+    WFSLogger::getInstance().logInfo ("OSC listening: UDP " + juce::String(globalConfig.udpReceivePort)
+                                      + ", TCP " + juce::String(globalConfig.tcpReceivePort));
 
     return true;
 }
@@ -217,6 +220,7 @@ void OSCManager::stopListening()
 
     listening = false;
     logger.logText("Stopped listening on UDP and TCP");
+    WFSLogger::getInstance().logInfo ("OSC stopped listening");
 }
 
 bool OSCManager::connectTarget(int targetIndex)
@@ -248,11 +252,20 @@ bool OSCManager::connectTarget(int targetIndex)
         {
             logger.logText("Connected to target " + juce::String(targetIndex + 1) +
                            " (" + ipAddr + ":" + juce::String(port) + ")");
+            WFSLogger::getInstance().logInfo ("OSC target " + juce::String(targetIndex + 1)
+                                              + " connected (" + ipAddr + ":" + juce::String(port) + ")");
         }
         else if (newStatus == ConnectionStatus::Error)
         {
             logger.logText("Failed to connect to target " + juce::String(targetIndex + 1) +
                            " (" + ipAddr + ":" + juce::String(port) + ")");
+            WFSLogger::getInstance().logWarning ("OSC target " + juce::String(targetIndex + 1)
+                                                  + " connection failed (" + ipAddr + ":" + juce::String(port) + ")");
+        }
+        else if (newStatus == ConnectionStatus::Disconnected)
+        {
+            WFSLogger::getInstance().logInfo ("OSC target " + juce::String(targetIndex + 1)
+                                              + " disconnected (" + ipAddr + ":" + juce::String(port) + ")");
         }
     };
 

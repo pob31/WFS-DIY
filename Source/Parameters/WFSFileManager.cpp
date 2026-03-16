@@ -1,6 +1,7 @@
 #include "WFSFileManager.h"
 #include "WFSParameterIDs.h"
 #include "../Localization/LocalizationManager.h"
+#include "../WFSLogger.h"
 
 using namespace WFSParameterIDs;
 
@@ -184,6 +185,8 @@ bool WFSFileManager::saveCompleteConfig()
         return false;
     }
 
+    WFSLogger::getInstance().logInfo ("Saving complete config to " + projectFolder.getFullPathName());
+
     // Save all individual configuration files
     bool success = true;
     juce::StringArray errors;
@@ -232,6 +235,8 @@ bool WFSFileManager::loadCompleteConfig()
         DBG ("  ERROR: No valid project folder");
         return false;
     }
+
+    WFSLogger::getInstance().logInfo ("Loading complete config from " + projectFolder.getFullPathName());
 
     // Clear any previous errors
     lastError = juce::String();
@@ -365,6 +370,7 @@ bool WFSFileManager::saveSystemConfig()
         return false;
     }
 
+    WFSLogger::getInstance().logInfo ("Saving system config");
     auto file = getSystemConfigFile();
 
     if (file.existsAsFile())
@@ -388,6 +394,7 @@ bool WFSFileManager::loadSystemConfig()
         return false;
     }
 
+    WFSLogger::getInstance().logInfo ("Loading system config");
     return importSystemConfig (getSystemConfigFile());
 }
 
@@ -460,6 +467,7 @@ bool WFSFileManager::saveNetworkConfig()
         return false;
     }
 
+    WFSLogger::getInstance().logInfo ("Saving network config");
     auto file = getNetworkConfigFile();
 
     if (file.existsAsFile())
@@ -480,6 +488,7 @@ bool WFSFileManager::loadNetworkConfig()
         return false;
     }
 
+    WFSLogger::getInstance().logInfo ("Loading network config");
     return importNetworkConfig (getNetworkConfigFile());
 }
 
@@ -550,6 +559,7 @@ bool WFSFileManager::saveInputConfig()
         return false;
     }
 
+    WFSLogger::getInstance().logInfo ("Saving input config");
     auto file = getInputConfigFile();
 
     if (file.existsAsFile())
@@ -571,6 +581,7 @@ bool WFSFileManager::loadInputConfig()
         return false;
     }
 
+    WFSLogger::getInstance().logInfo ("Loading input config");
     return importInputConfig (getInputConfigFile());
 }
 
@@ -627,6 +638,7 @@ bool WFSFileManager::saveOutputConfig()
         return false;
     }
 
+    WFSLogger::getInstance().logInfo ("Saving output config");
     auto file = getOutputConfigFile();
 
     if (file.existsAsFile())
@@ -647,6 +659,7 @@ bool WFSFileManager::loadOutputConfig()
         return false;
     }
 
+    WFSLogger::getInstance().logInfo ("Loading output config");
     return importOutputConfig (getOutputConfigFile());
 }
 
@@ -700,6 +713,7 @@ bool WFSFileManager::saveReverbConfig()
         return false;
     }
 
+    WFSLogger::getInstance().logInfo ("Saving reverb config");
     auto file = getReverbConfigFile();
 
     if (file.existsAsFile())
@@ -720,6 +734,7 @@ bool WFSFileManager::loadReverbConfig()
         return false;
     }
 
+    WFSLogger::getInstance().logInfo ("Loading reverb config");
     return importReverbConfig (getReverbConfigFile());
 }
 

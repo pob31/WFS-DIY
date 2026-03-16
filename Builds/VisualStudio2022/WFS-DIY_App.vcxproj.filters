@@ -874,6 +874,9 @@
     <ClCompile Include="..\..\Source\MainComponent.cpp">
       <Filter>WFS-DIY\Source</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Source\WFSLogger.cpp">
+      <Filter>WFS-DIY\Source</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\Source\DSP\WFSCalculationEngine.cpp">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClCompile>
@@ -4228,6 +4231,9 @@
       <Filter>WFS-DIY\Source</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\WfsParameters.h">
+      <Filter>WFS-DIY\Source</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\WFSLogger.h">
       <Filter>WFS-DIY\Source</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\WFSAlgorithm.h">

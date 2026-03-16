@@ -182,6 +182,7 @@
     <ClCompile Include="..\..\ThirdParty\hidapi\HidApiPlatform.c"/>
     <ClCompile Include="..\..\Source\Main.cpp"/>
     <ClCompile Include="..\..\Source\MainComponent.cpp"/>
+    <ClCompile Include="..\..\Source\WFSLogger.cpp"/>
     <ClCompile Include="..\..\Source\DSP\WFSCalculationEngine.cpp"/>
     <ClCompile Include="..\..\Source\DSP\GpuInputBufferAlgorithm.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
@@ -3225,6 +3226,7 @@
     <ClInclude Include="..\..\ThirdParty\hidapi\hidapi\hidapi.h"/>
     <ClInclude Include="..\..\Source\MainComponent.h"/>
     <ClInclude Include="..\..\Source\WfsParameters.h"/>
+    <ClInclude Include="..\..\Source\WFSLogger.h"/>
     <ClInclude Include="..\..\Source\WFSAlgorithm.h"/>
     <ClInclude Include="..\..\Source\DSP\WFSCalculationEngine.h"/>
     <ClInclude Include="..\..\Source\DSP\WFSHighShelfFilter.h"/>

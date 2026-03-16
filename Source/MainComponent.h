@@ -291,6 +291,12 @@ private:
     juce::String lastPushedIRFile;
     float lastPushedIRTrim = -1.0f;
     float lastPushedIRLength = -1.0f;
+
+    // Algorithm type change tracking for session logging
+    int lastLoggedAlgoType = -1;
+
+    // Xrun detection for session logging
+    int lastXRunCount = 0;
     bool deviceRestoreComplete = false;  // Prevents saving fallback device during startup
 
     void attachAudioCallbacksIfNeeded();
