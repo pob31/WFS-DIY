@@ -434,21 +434,21 @@ void NetworkLogWindowContent::resized()
     loggingSwitch.setBounds(x, y, sc(80), controlHeight);
     x += sc(80) + spacing;
 
-    clearButton.setBounds(x, y, sc(60), controlHeight);
-    x += sc(60) + spacing;
+    clearButton.setBounds(x, y, sc(80), controlHeight);
+    x += sc(80) + spacing;
 
-    exportButton.setBounds(x, y, sc(70), controlHeight);
-    x += sc(70) + spacing;
+    exportButton.setBounds(x, y, sc(90), controlHeight);
+    x += sc(90) + spacing;
 
-    filterModeSelector.setBounds(x, y, sc(100), controlHeight);
-    x += sc(100) + spacing;
+    filterModeSelector.setBounds(x, y, sc(130), controlHeight);
+    x += sc(130) + spacing;
 
     hideHeartbeatToggle.setBounds(x, y, sc(130), controlHeight);
 
-    // Navigation buttons on right
-    int navWidth = sc(30);
-    bottomButton.setBounds(bounds.getWidth() - navWidth - sc(8), y, navWidth, controlHeight);
-    topButton.setBounds(bounds.getWidth() - navWidth * 2 - sc(12), y, navWidth, controlHeight);
+    // Navigation buttons on right (visually square — compensate for 6px button inset)
+    int navBoundsW = controlHeight + 12;  // visual width = controlHeight after 6px inset each side
+    bottomButton.setBounds(bounds.getWidth() - navBoundsW - sc(8), y, navBoundsW, controlHeight);
+    topButton.setBounds(bounds.getWidth() - navBoundsW * 2 - sc(12), y, navBoundsW, controlHeight);
 
     y += controlHeight + sc(8);
 

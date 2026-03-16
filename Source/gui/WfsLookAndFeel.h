@@ -312,7 +312,9 @@ public:
                               bool shouldDrawButtonAsDown) override
     {
         auto cornerSize = 6.0f;
-        auto bounds = button.getLocalBounds().toFloat().reduced(cornerSize, 0.5f);
+        auto bounds = button.getLocalBounds().toFloat();
+        bounds.removeFromLeft(cornerSize);
+        bounds.removeFromRight(cornerSize);
 
         auto baseColour = backgroundColour
             .withMultipliedSaturation(button.hasKeyboardFocus(true) ? 1.3f : 0.9f)
@@ -328,6 +330,46 @@ public:
 
         g.setColour(button.findColour(juce::ComboBox::outlineColourId));
         g.drawRoundedRectangle(bounds, cornerSize, 1.0f);
+    }
+
+    //==========================================================================
+    // ComboBox — inset rounded rect horizontally to match slider width
+
+    void drawComboBox(juce::Graphics& g, int width, int height, bool,
+                      int, int, int, int, juce::ComboBox& box) override
+    {
+        auto cornerSize = 3.0f;
+        auto inset = 6.0f;
+        auto boxBounds = juce::Rectangle<float>(inset, 0.0f,
+                                                 static_cast<float>(width) - inset * 2.0f,
+                                                 static_cast<float>(height));
+
+        g.setColour(box.findColour(juce::ComboBox::backgroundColourId));
+        g.fillRoundedRectangle(boxBounds, cornerSize);
+
+        g.setColour(box.findColour(juce::ComboBox::outlineColourId));
+        g.drawRoundedRectangle(boxBounds.reduced(0.5f, 0.5f), cornerSize, 1.0f);
+
+        juce::Rectangle<float> arrowZone(boxBounds.getRight() - 30.0f, 0.0f, 20.0f, static_cast<float>(height));
+        juce::Path path;
+        path.startNewSubPath(arrowZone.getX() + 3.0f, arrowZone.getCentreY() - 2.0f);
+        path.lineTo(arrowZone.getCentreX(), arrowZone.getCentreY() + 3.0f);
+        path.lineTo(arrowZone.getRight() - 3.0f, arrowZone.getCentreY() - 2.0f);
+
+        g.setColour(box.findColour(juce::ComboBox::arrowColourId).withAlpha(box.isEnabled() ? 0.9f : 0.2f));
+        g.strokePath(path, juce::PathStrokeType(2.0f));
+    }
+
+    //==========================================================================
+    // ComboBox text — offset to match the 6px visual inset from drawComboBox
+
+    void positionComboBoxText(juce::ComboBox& box, juce::Label& label) override
+    {
+        constexpr int inset = 6;
+        label.setBounds(inset + 1, 1,
+                        box.getWidth() - inset * 2 - 30,
+                        box.getHeight() - 2);
+        label.setFont(getComboBoxFont(box));
     }
 
     //==========================================================================
@@ -422,7 +464,10 @@ public:
         auto font = juce::Font(juce::FontOptions(juce::jmax(10.0f, 14.0f * scale)));
         for (int i = 0; i < parent.getNumChildComponents(); ++i)
             if (auto* te = dynamic_cast<juce::TextEditor*>(parent.getChildComponent(i)))
+            {
                 te->applyFontToAllText(font, true);
+                te->setJustification(juce::Justification::centredLeft);
+            }
     }
 
 private:

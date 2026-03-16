@@ -11,6 +11,7 @@
 #include "../gui/sliders/WfsBidirectionalSlider.h"
 #include "../Localization/LocalizationManager.h"
 #include "../gui/ColumnFocusTraverser.h"
+#include "../gui/buttons/LongPressButton.h"
 
 /**
  * Gradient Map Editor
@@ -311,7 +312,7 @@ public:
         shapeLockBtn.onClick = [this] { onShapePropertyChanged(); };
 
         shapeDeleteBtn.setButtonText (LOC ("inputs.gradientMap.buttons.delete"));
-        shapeDeleteBtn.onClick = [this] { deleteSelectedShapes(); };
+        shapeDeleteBtn.onLongPress = [this] { deleteSelectedShapes(); };
 
         addAndMakeVisible (shapeNameLabel);
         addAndMakeVisible (shapeNameEditor);
@@ -677,9 +678,13 @@ public:
         shapeBlurSlider.setBounds (row.reduced (pad, 2));
 
         row = panelBounds.removeFromTop (rowH);
-        shapeEnableBtn.setBounds (row.removeFromLeft (42).reduced (pad, 2));
-        shapeLockBtn.setBounds (row.removeFromLeft (50).reduced (pad, 2));
-        shapeDeleteBtn.setBounds (row.removeFromLeft (55).reduced (pad, 2));
+        {
+            int col3W = (row.getWidth() - pad * 4) / 3;
+            int bx = row.getX() + pad;
+            shapeEnableBtn.setBounds (bx, row.getY() + 2, col3W, row.getHeight() - 4);
+            shapeLockBtn.setBounds (bx + col3W + pad, row.getY() + 2, col3W, row.getHeight() - 4);
+            shapeDeleteBtn.setBounds (bx + (col3W + pad) * 2, row.getY() + 2, col3W, row.getHeight() - 4);
+        }
 
         // Tool buttons at bottom of panel (4 rows: copy/paste, select, shapes, fills)
         int toolBtnH = 32, toolPad = 6;
@@ -1452,7 +1457,8 @@ private:
     juce::TextEditor shapeFillValueEditor;
     WfsStandardSlider shapeBlurSlider { 0.0f, 5.0f };
     juce::TextEditor shapeBlurEditor;
-    juce::TextButton shapeEnableBtn, shapeLockBtn, shapeDeleteBtn;
+    juce::TextButton shapeEnableBtn, shapeLockBtn;
+    LongPressButton shapeDeleteBtn;
 
     // Gradient value sliders
     juce::Label gradValue1Label, gradValue2Label;

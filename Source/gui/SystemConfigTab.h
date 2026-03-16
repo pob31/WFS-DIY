@@ -830,7 +830,7 @@ public:
 
         // Stage Section
         stageShapeLabel.setBounds(x, y, labelWidth, rowHeight);
-        stageShapeSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
+        stageShapeSelector.setBounds(x + labelWidth - 6, y, editorWidth + 12, rowHeight);
         y += rowHeight + spacing;
 
         // Dimension row 1: Width (box) or Diameter (cylinder/dome)

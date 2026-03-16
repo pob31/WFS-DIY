@@ -4119,7 +4119,7 @@ private:
         const int posLabelWidth = scaled(75);    // "Position X:" fits fully
         const int posEditorWidth = scaled(55);
         const int posUnitWidth = scaled(25);     // "m" unit label
-        const int constraintBtnWidth = scaled(100);  // Enlarged constraint buttons
+        const int constraintBtnWidth = scaled(115);  // Enlarged constraint buttons
         const int flipBtnWidth = scaled(80);
         const int rowGap = scaled(20);  // Increased vertical padding between rows
 
@@ -4133,7 +4133,7 @@ private:
 
         // Row 1: Coord mode + X axis (Position X, Offset X, Constraint X, Flip X)
         const int coordModeLabelW = scaled(40);
-        const int coordModeSelectorW = scaled(70);
+        const int coordModeSelectorW = scaled(100);
         row = posBlock.removeFromTop(rowHeight);
         coordModeLabel.setBounds(row.removeFromLeft(coordModeLabelW));
         coordModeSelector.setBounds(row.removeFromLeft(coordModeSelectorW));
@@ -4412,15 +4412,18 @@ private:
         muteMacrosSelector.setBounds(row.removeFromLeft(scaled(150)));
         col2.removeFromTop(spacing);
 
-        // --- Mutes section (single line, fill width) ---
-        const int muteButtonSize = scaled(36);
-        const int muteSpacing = scaled(4);
+        // --- Mutes section (square buttons spanning full column width) ---
+        const int muteSpacing = scaled(2);
         int numOutputs = parameters.getNumOutputChannels();
         if (numOutputs <= 0) numOutputs = 16;
 
-        // Calculate how many fit per row
+        // Size buttons to fill the column width in a single row if possible
+        int muteButtonSize = (col2.getWidth() - muteSpacing * (numOutputs - 1)) / numOutputs;
+        if (muteButtonSize < scaled(20)) muteButtonSize = scaled(20);  // Minimum size
+
+        // Calculate how many fit per row with this size
         int muteButtonsPerRow = (col2.getWidth() + muteSpacing) / (muteButtonSize + muteSpacing);
-        if (muteButtonsPerRow <= 0) muteButtonsPerRow = 1;  // Prevent division by zero
+        if (muteButtonsPerRow <= 0) muteButtonsPerRow = 1;
         int muteRows = (numOutputs + muteButtonsPerRow - 1) / muteButtonsPerRow;
 
         auto muteGridArea = col2.removeFromTop(muteRows * (muteButtonSize + muteSpacing));
@@ -4633,7 +4636,6 @@ private:
         const int spacing = scaled(4);
         const int labelWidth = scaled(65);
         const int valueWidth = scaled(55);
-        const int selectorWidth = scaled(90);
         const int dialSize = juce::jmax(40, static_cast<int>(65.0f * layoutScale));
         const int buttonWidth = scaled(95);
         const int transportButtonSize = scaled(35);
@@ -4647,7 +4649,7 @@ private:
         // ========== COLUMN 1: LFO (new compact layout) ==========
 
         // --- Header row: Toggle, Period dial, Phase dial, Progress dial, Gyrophone (full width) ---
-        const int headerDialSize = juce::jmax(30, static_cast<int>(45.0f * layoutScale));
+        const int headerDialSize = juce::jmax(40, static_cast<int>(65.0f * layoutScale));
         const int headerLabelHeight = scaled(16);
         const int headerValueHeight = scaled(16);
         const int headerRowHeight = headerLabelHeight + headerDialSize + headerValueHeight;
@@ -4655,9 +4657,9 @@ private:
         const int headerWidth = headerRow.getWidth();
 
         // Divide header into 5 sections
-        const int toggleWidth = scaled(70);
+        const int toggleWidth = scaled(90);
         const int dialBlockWidth = headerDialSize + 15;
-        const int gyroWidth = selectorWidth + 10;
+        const int gyroWidth = scaled(130);
         const int headerSpacing = (headerWidth - toggleWidth - 3 * dialBlockWidth - gyroWidth) / 4;
 
         // Calculate vertical center for UI elements (below labels)
@@ -4698,7 +4700,7 @@ private:
         lfoGyrophoneLabel.setBounds(gyroArea.removeFromTop(headerLabelHeight));
         int selectorY = (headerDialSize - rowHeight) / 2;  // Center selector vertically in dial area
         auto selectorRect = gyroArea.removeFromTop(headerDialSize);
-        lfoGyrophoneSelector.setBounds(selectorRect.getX(), selectorRect.getY() + selectorY, selectorWidth, rowHeight);
+        lfoGyrophoneSelector.setBounds(selectorRect.getX(), selectorRect.getY() + selectorY, gyroWidth, rowHeight);
 
         col1.removeFromTop(spacing);
 
@@ -4730,7 +4732,7 @@ private:
             // Line 1: [Shape Label] [Shape ComboBox] ... [Phase: label on right]
             auto line1 = block.removeFromTop(rowHeight);
             shapeLabel.setBounds(line1.removeFromLeft(labelWidth));
-            shapeSelector.setBounds(line1.removeFromLeft(juce::jmin(selectorWidth, line1.getWidth())));
+            shapeSelector.setBounds(line1.removeFromLeft(juce::jmin(scaled(120), line1.getWidth())));
             phaseLabel.setBounds(line1.removeFromRight(phaseDialSize + scaled(4)));
 
             block.removeFromTop(spacing);

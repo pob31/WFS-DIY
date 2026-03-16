@@ -704,7 +704,7 @@ void OutputArrayHelperContent::resized()
 
 void OutputArrayHelperContent::layoutGeometrySection(juce::Rectangle<int>& area)
 {
-    const int rowHeight = scaled(26);
+    const int rowHeight = scaled(28);
     const int editorWidth = scaled(60);
     const int colSpacing = scaled(10);
     const int checkboxWidth = scaled(25);
@@ -976,7 +976,7 @@ void OutputArrayHelperContent::layoutGeometrySection(juce::Rectangle<int>& area)
 
 void OutputArrayHelperContent::layoutAcousticSection(juce::Rectangle<int>& area)
 {
-    const int rowHeight = scaled(26);
+    const int rowHeight = scaled(28);
     const int editorWidth = scaled(60);
     const int colSpacing = scaled(10);
     const int checkboxWidth = scaled(25);
@@ -1039,7 +1039,7 @@ void OutputArrayHelperContent::layoutAcousticSection(juce::Rectangle<int>& area)
 
 void OutputArrayHelperContent::layoutTargetSection(juce::Rectangle<int>& area)
 {
-    const int rowHeight = scaled(26);
+    const int rowHeight = scaled(28);
     const int colSpacing = scaled(10);
     const int checkboxWidth = scaled(25);
     const int labelWidth = scaled(130);

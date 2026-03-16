@@ -335,8 +335,8 @@ public:
         levelOverlayButton.setBounds(margin, margin, juce::jmax(90, static_cast<int>(130.0f * us)), btnH);
 
         // Position fit buttons in top-right corner
-        const int fitW = juce::jmax(100, static_cast<int>(150.0f * us));
-        const int homeW = juce::jmax(90, static_cast<int>(135.0f * us));
+        const int fitW = juce::jmax(120, static_cast<int>(170.0f * us));
+        const int homeW = juce::jmax(110, static_cast<int>(155.0f * us));
         const int fitBtnGap = juce::jmax(3, static_cast<int>(5.0f * us));
         homeButton.setBounds(getWidth() - margin - homeW, margin, homeW, btnH);
         fitInputsButton.setBounds(getWidth() - margin - homeW - fitBtnGap - fitW, margin, fitW, btnH);

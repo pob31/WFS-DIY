@@ -88,7 +88,9 @@ private:
 
     void paintButton(juce::Graphics& g, bool shouldHighlight, bool shouldBeDown) override
     {
-        auto bounds = getLocalBounds().toFloat().reduced(1.0f);
+        auto bounds = getLocalBounds().toFloat();
+        bounds.removeFromLeft(6.0f);
+        bounds.removeFromRight(6.0f);
 
         // Background — always use theme button colors (slightly darker for footer buttons)
         if (!isEnabled())

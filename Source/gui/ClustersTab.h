@@ -540,12 +540,15 @@ public:
             }
         }
 
-        // Button row: [Stop All] [Export] [Import]
+        // Button row: [Stop All] [Export] [Import] — aligned to grid width
         {
-            int btnW = presetButtonRow.getWidth() / 3;
-            stopAllLFOButton.setBounds (presetButtonRow.removeFromLeft (btnW).reduced (scaled (2), 0));
-            exportPresetsButton.setBounds (presetButtonRow.removeFromLeft (btnW).reduced (scaled (2), 0));
-            importPresetsButton.setBounds (presetButtonRow.reduced (scaled (2), 0));
+            int gridW = (presetButtonRow.getWidth() / 4) * 4;
+            auto btnRow = presetButtonRow.withWidth (gridW);
+            int pad = scaled (2);
+            int btnW = gridW / 3;
+            stopAllLFOButton.setBounds (btnRow.removeFromLeft (btnW).reduced (pad, 0));
+            exportPresetsButton.setBounds (btnRow.removeFromLeft (btnW).reduced (pad, 0));
+            importPresetsButton.setBounds (btnRow.reduced (pad, 0));
         }
 
         // ==================== RIGHT PANEL - LFO ====================

@@ -1859,6 +1859,11 @@ public:
         g.setColour(ColorScheme::get().chromeDivider);
         g.drawLine(0.0f, (float)(getHeight() - footerH), (float)getWidth(), (float)(getHeight() - footerH), 1.0f);
 
+        // Tracking column dividers
+        g.setColour(ColorScheme::get().chromeDivider);
+        g.drawLine((float)trackingDivX1, (float)trackingSectionY, (float)trackingDivX1, (float)trackingSectionBottom, 1.0f);
+        g.drawLine((float)trackingDivX2, (float)trackingSectionY, (float)trackingDivX2, (float)trackingSectionBottom, 1.0f);
+
         // Draw section headers
         const int headerH = scaled(20);
         const int headerOffset = scaled(25);
@@ -1994,9 +1999,9 @@ public:
             leftY += rowHeight + spacing;
         }
 
-        // Buttons beneath table - distribute across column width
+        // Buttons beneath table - aligned with table, footer-matching gap
         leftY += scaled(35);  // Padding after table
-        const int tableButtonGap = scaled(10);
+        const int tableButtonGap = spacing;  // match footer button spacing
         const int tableButtonWidth = (leftColumnWidth - tableButtonGap * 2) / 3;
         oscSourceFilterButton.setBounds(leftX, leftY, tableButtonWidth, rowHeight);
         openLogWindowButton.setBounds(leftX + tableButtonWidth + tableButtonGap, leftY, tableButtonWidth, rowHeight);
@@ -2016,18 +2021,19 @@ public:
         int rcol1 = rightColumnX;
         int rcol2 = rcol1 + rightSubColWidth + rightSubColSpacing;
         int rcol3 = rcol2 + rightSubColWidth + rightSubColSpacing;
+        trackingDivX1 = rcol2 - rightSubColSpacing / 2;
+        trackingDivX2 = rcol3 - rightSubColSpacing / 2;
 
         // --- Tracking Section (now first in right column) ---
         trackingSectionY = rightY;
 
-        // Row 1: Enable, Protocol, Port
-        const int protocolLabelWidth = scaled(60);
-        const int protocolSelectorWidth = rightSubColWidth - protocolLabelWidth;
+        // Row 1: Enable, Protocol, Port — aligned with offset/scale editor boxes
+        const int btnInset = 6;  // matches WfsLookAndFeel drawButtonBackground/drawComboBox inset
         trackingEnabledButton.setBounds(rcol1, rightY, rightSubColWidth, rowHeight);
-        trackingProtocolLabel.setBounds(rcol2, rightY, protocolLabelWidth, rowHeight);
-        trackingProtocolSelector.setBounds(rcol2 + protocolLabelWidth, rightY, protocolSelectorWidth, rowHeight);
+        trackingProtocolLabel.setBounds(rcol2, rightY, rightLabelWidth, rowHeight);
+        trackingProtocolSelector.setBounds(rcol2 + rightLabelWidth - btnInset, rightY, rightEditorWidth + btnInset * 2, rowHeight);
         trackingPortLabel.setBounds(rcol3, rightY, rightLabelWidth, rowHeight);
-        trackingPortEditor.setBounds(rcol3 + rightLabelWidth, rightY, rightSubColWidth - rightLabelWidth, rowHeight);
+        trackingPortEditor.setBounds(rcol3 + rightLabelWidth, rightY, rightEditorWidth, rowHeight);
         rightY += rowHeight + rightRowSpacing;
 
         // Row 2: Offset X, Y, Z
@@ -2058,10 +2064,11 @@ public:
         trackingScaleZUnitLabel.setBounds(rcol3 + rightLabelWidth + rightEditorWidth, rightY, rightUnitWidth, rowHeight);
         rightY += rowHeight + rightRowSpacing;
 
-        // Row 4: Flip X, Y, Z
-        trackingFlipXButton.setBounds(rcol1, rightY, rightSubColWidth, rowHeight);
-        trackingFlipYButton.setBounds(rcol2, rightY, rightSubColWidth, rowHeight);
-        trackingFlipZButton.setBounds(rcol3, rightY, rightSubColWidth, rowHeight);
+        // Row 4: Flip X, Y, Z — aligned with scale editor boxes (compensate for button inset)
+        trackingFlipXButton.setBounds(rcol1 + rightLabelWidth - btnInset, rightY, rightEditorWidth + btnInset * 2, rowHeight);
+        trackingFlipYButton.setBounds(rcol2 + rightLabelWidth - btnInset, rightY, rightEditorWidth + btnInset * 2, rowHeight);
+        trackingFlipZButton.setBounds(rcol3 + rightLabelWidth - btnInset, rightY, rightEditorWidth + btnInset * 2, rowHeight);
+        trackingSectionBottom = rightY + rowHeight;
         rightY += rowHeight + rightRowSpacing;
 
         // Row 5: OSC Path / PSN Interface
@@ -2227,6 +2234,9 @@ private:
     // Section Y positions for painting
     int admOscSectionY = 0;
     int trackingSectionY = 0;
+    int trackingSectionBottom = 0;
+    int trackingDivX1 = 0;  // divider between sub-col 1 and 2
+    int trackingDivX2 = 0;  // divider between sub-col 2 and 3
     int rightColumnX = 0;  // X position for right column (ADM-OSC & Tracking)
     float layoutScale = 1.0f;
 
