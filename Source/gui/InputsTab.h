@@ -598,6 +598,15 @@ public:
         g.setColour(ColorScheme::get().chromeDivider);
         g.drawLine(0.0f, (float)headerHeight, (float)getWidth(), (float)headerHeight, 1.0f);
         g.drawLine(0.0f, (float)(getHeight() - footerHeight), (float)getWidth(), (float)(getHeight() - footerHeight), 1.0f);
+
+        // Vertical column divider
+        if (showColumnDivider)
+        {
+            g.setColour(ColorScheme::get().chromeDivider);
+            float topY = static_cast<float>(subTabContentArea.getY());
+            float botY = static_cast<float>(subTabContentArea.getBottom());
+            g.drawVerticalLine(columnDividerX, topY, botY);
+        }
     }
 
     void resized() override
@@ -2391,7 +2400,7 @@ private:
         addAndMakeVisible(lfoPhaseXDial);
         addAndMakeVisible(lfoPhaseXValueLabel);
         lfoPhaseXValueLabel.setText(juce::String("0") + juce::String::charToString(0x00B0), juce::dontSendNotification);
-        lfoPhaseXValueLabel.setFont(juce::FontOptions().withHeight(15.0f));
+        lfoPhaseXValueLabel.setFont(juce::FontOptions().withHeight(juce::jmax(11.0f, 15.0f * layoutScale)));
         lfoPhaseXValueLabel.setJustificationType(juce::Justification::centred);
         setupEditableValueLabel(lfoPhaseXValueLabel);
         addAndMakeVisible(lfoPhaseXUnitLabel);
@@ -2414,7 +2423,7 @@ private:
         addAndMakeVisible(lfoPhaseYDial);
         addAndMakeVisible(lfoPhaseYValueLabel);
         lfoPhaseYValueLabel.setText(juce::String("0") + juce::String::charToString(0x00B0), juce::dontSendNotification);
-        lfoPhaseYValueLabel.setFont(juce::FontOptions().withHeight(15.0f));
+        lfoPhaseYValueLabel.setFont(juce::FontOptions().withHeight(juce::jmax(11.0f, 15.0f * layoutScale)));
         lfoPhaseYValueLabel.setJustificationType(juce::Justification::centred);
         setupEditableValueLabel(lfoPhaseYValueLabel);
         addAndMakeVisible(lfoPhaseYUnitLabel);
@@ -2437,7 +2446,7 @@ private:
         addAndMakeVisible(lfoPhaseZDial);
         addAndMakeVisible(lfoPhaseZValueLabel);
         lfoPhaseZValueLabel.setText(juce::String("0") + juce::String::charToString(0x00B0), juce::dontSendNotification);
-        lfoPhaseZValueLabel.setFont(juce::FontOptions().withHeight(15.0f));
+        lfoPhaseZValueLabel.setFont(juce::FontOptions().withHeight(juce::jmax(11.0f, 15.0f * layoutScale)));
         lfoPhaseZValueLabel.setJustificationType(juce::Justification::centred);
         setupEditableValueLabel(lfoPhaseZValueLabel);
         addAndMakeVisible(lfoPhaseZUnitLabel);
@@ -2994,6 +3003,7 @@ private:
     void layoutCurrentSubTab()
     {
         int tabIndex = subTabBar.getCurrentTabIndex();
+        showColumnDivider = false;
 
         // Hide all
         setInputPropertiesVisible(false);
@@ -4040,9 +4050,12 @@ private:
         const int labelWidth = scaled(115);    // Match OutputsTab
         const int valueWidth = scaled(60);     // Match OutputsTab
         const int dialSize = juce::jmax(40, static_cast<int>(65.0f * layoutScale));
+        const int colPad = scaled(10);
 
-        auto col1 = area.removeFromLeft(area.getWidth() / 2).reduced(10, 10);  // Match OutputsTab padding
-        auto col2 = area.reduced(5, 0);
+        auto col1 = area.removeFromLeft(area.getWidth() / 2).reduced(colPad, 0);
+        columnDividerX = area.getX();
+        showColumnDivider = true;
+        auto col2 = area.reduced(colPad, 0);
 
         // ========== COLUMN 1: Input + Position ==========
 
@@ -4439,8 +4452,11 @@ private:
         const int labelWidth = scaled(100);
         const int valueWidth = scaled(60);  // Tight value width like LFO section
         const int dialSize = juce::jmax(60, static_cast<int>(100.0f * layoutScale));
-        auto col1 = area.removeFromLeft(area.getWidth() / 2).reduced(5, 0);
-        auto col2 = area.reduced(5, 0);
+        const int colPad = scaled(10);
+        auto col1 = area.removeFromLeft(area.getWidth() / 2).reduced(colPad, 0);
+        columnDividerX = area.getX();
+        showColumnDivider = true;
+        auto col2 = area.reduced(colPad, 0);
 
         // ========== COLUMN 1: Live Source ==========
         lsActiveButton.setBounds(col1.removeFromTop(rowHeight).withWidth(scaled(180)));
@@ -4622,8 +4638,11 @@ private:
         const int buttonWidth = scaled(95);
         const int transportButtonSize = scaled(35);
 
-        auto col1 = area.removeFromLeft(area.getWidth() / 2).reduced(5, 0);
-        auto col2 = area.reduced(5, 0);
+        const int colPad = scaled(10);
+        auto col1 = area.removeFromLeft(area.getWidth() / 2).reduced(colPad, 0);
+        columnDividerX = area.getX();
+        showColumnDivider = true;
+        auto col2 = area.reduced(colPad, 0);
 
         // ========== COLUMN 1: LFO (new compact layout) ==========
 
@@ -7702,6 +7721,8 @@ private:
     int headerHeight = 60;
     int footerHeight = 90;
     juce::Rectangle<int> subTabContentArea;
+    int columnDividerX = 0;
+    bool showColumnDivider = false;
     float layoutScale = 1.0f;  // Proportional scaling factor (1.0 = 1080p reference)
 
     /** Scale a reference pixel value by layoutScale with a 65% minimum floor */

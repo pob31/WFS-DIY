@@ -1053,7 +1053,7 @@ private:
                 row.amplitudeLabel.setText(LOC("clusters.lfo.labels.ratio"), juce::dontSendNotification);
             else
                 row.amplitudeLabel.setText(LOC("clusters.lfo.labels.amplitude"), juce::dontSendNotification);
-            row.amplitudeLabel.setFont(juce::FontOptions().withHeight(15.0f));
+            row.amplitudeLabel.setFont(juce::FontOptions().withHeight(juce::jmax(11.0f, 15.0f * layoutScale)));
 
             if (info.isRotation)
             {
@@ -1098,14 +1098,14 @@ private:
             addAndMakeVisible(row.amplitudeSlider.get());
 
             addAndMakeVisible(row.amplitudeValueLabel);
-            row.amplitudeValueLabel.setFont(juce::FontOptions().withHeight(15.0f));
+            row.amplitudeValueLabel.setFont(juce::FontOptions().withHeight(juce::jmax(11.0f, 15.0f * layoutScale)));
             row.amplitudeValueLabel.setJustificationType(juce::Justification::centredRight);
             setupEditableValueLabel(row.amplitudeValueLabel);
 
             // Rate slider (bidirectional, log scale 0.01..100x)
             addAndMakeVisible(row.rateLabel);
             row.rateLabel.setText(LOC("clusters.lfo.labels.rate"), juce::dontSendNotification);
-            row.rateLabel.setFont(juce::FontOptions().withHeight(15.0f));
+            row.rateLabel.setFont(juce::FontOptions().withHeight(juce::jmax(11.0f, 15.0f * layoutScale)));
 
             addAndMakeVisible(row.rateSlider);
             row.rateSlider.setTrackColours(ColorScheme::get().sliderTrackBg, juce::Colour(0xFFD4A017));
@@ -1118,14 +1118,14 @@ private:
 
             addAndMakeVisible(row.rateValueLabel);
             row.rateValueLabel.setText("1.00x", juce::dontSendNotification);
-            row.rateValueLabel.setFont(juce::FontOptions().withHeight(15.0f));
+            row.rateValueLabel.setFont(juce::FontOptions().withHeight(juce::jmax(11.0f, 15.0f * layoutScale)));
             row.rateValueLabel.setJustificationType(juce::Justification::centredRight);
             setupEditableValueLabel(row.rateValueLabel);
 
             // Phase label + dial
             addAndMakeVisible(row.phaseLabel);
             row.phaseLabel.setText(LOC("clusters.lfo.labels.phase"), juce::dontSendNotification);
-            row.phaseLabel.setFont(juce::FontOptions().withHeight(15.0f));
+            row.phaseLabel.setFont(juce::FontOptions().withHeight(juce::jmax(11.0f, 15.0f * layoutScale)));
             row.phaseLabel.setJustificationType(juce::Justification::centred);
             addAndMakeVisible(row.phaseDial);
             row.phaseDial.setColours(juce::Colour(0xFF3A3A3A), juce::Colour(0xFFE6B422), juce::Colours::white);
@@ -1138,7 +1138,7 @@ private:
 
             addAndMakeVisible(row.phaseValueLabel);
             row.phaseValueLabel.setText(juce::String("0") + juce::String::charToString(0x00B0), juce::dontSendNotification);
-            row.phaseValueLabel.setFont(juce::FontOptions().withHeight(15.0f));
+            row.phaseValueLabel.setFont(juce::FontOptions().withHeight(juce::jmax(11.0f, 15.0f * layoutScale)));
             row.phaseValueLabel.setJustificationType(juce::Justification::centred);
             setupEditableValueLabel(row.phaseValueLabel);
 
