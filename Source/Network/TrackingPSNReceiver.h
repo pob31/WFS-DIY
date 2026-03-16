@@ -4,6 +4,8 @@
 #include "../Parameters/WFSValueTreeState.h"
 #include "../Parameters/WFSParameterIDs.h"
 
+class TrackingPositionFilter;
+
 // PSN library - header-only implementation
 // Windows defines min/max macros that conflict with std::min/max used in PSN library
 #ifdef _WIN32
@@ -67,6 +69,11 @@ public:
      * Update transformation parameters.
      * Called when offset/scale/flip values change.
      */
+    /**
+     * Set the position filter for smoothing tracking data.
+     */
+    void setPositionFilter(TrackingPositionFilter* filter) { positionFilter = filter; }
+
     void setTransformations(float offsetX, float offsetY, float offsetZ,
                             float scaleX, float scaleY, float scaleZ,
                             bool flipX, bool flipY, bool flipZ);
@@ -96,6 +103,9 @@ private:
 
     // Route orientation to inputs (updates inputRotation in directivity)
     void routeOrientationToInputs(int trackingId, float rotation);
+
+    // Position filter (shared, owned by OSCManager)
+    TrackingPositionFilter* positionFilter = nullptr;
 
     WFSValueTreeState& state;
 

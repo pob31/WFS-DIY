@@ -5,6 +5,8 @@
 #include "../Parameters/WFSParameterIDs.h"
 #include "RTTrPDecoder.h"
 
+class TrackingPositionFilter;
+
 namespace WFSNetwork
 {
 
@@ -54,6 +56,11 @@ public:
      * Update transformation parameters.
      * Called when offset/scale/flip values change.
      */
+    /**
+     * Set the position filter for smoothing tracking data.
+     */
+    void setPositionFilter(TrackingPositionFilter* filter) { positionFilter = filter; }
+
     void setTransformations(float offsetX, float offsetY, float offsetZ,
                             float scaleX, float scaleY, float scaleZ,
                             bool flipX, bool flipY, bool flipZ);
@@ -86,6 +93,9 @@ private:
 
     // Convert quaternion to yaw angle (rotation around Z axis)
     float quaternionToYaw(const RTTrP::Quaternion& q) const;
+
+    // Position filter (shared, owned by OSCManager)
+    TrackingPositionFilter* positionFilter = nullptr;
 
     WFSValueTreeState& state;
 

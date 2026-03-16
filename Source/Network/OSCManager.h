@@ -15,6 +15,7 @@
 #include "TrackingRTTrPReceiver.h"
 #include "ADMOSCMapping.h"
 #include "../Parameters/WFSValueTreeState.h"
+#include "../DSP/TrackingPositionFilter.h"
 
 namespace WFSNetwork
 {
@@ -589,6 +590,9 @@ private:
 
     // OSC Query server
     std::unique_ptr<OSCQueryServer> oscQueryServer;
+
+    // Tracking position filter (shared by all tracking receivers)
+    TrackingPositionFilter trackingFilter;
 
     // Tracking OSC receiver
     std::unique_ptr<TrackingOSCReceiver> trackingReceiver;

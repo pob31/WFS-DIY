@@ -4140,6 +4140,9 @@
     <ClInclude Include="..\..\Source\Network\OSCManager.h">
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\Network\ADMOSCMapping.h">
+      <Filter>WFS-DIY\Source\Network</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\Network\OSCReceiverWithSenderIP.h">
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClInclude>
@@ -4249,6 +4252,12 @@
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\DSP\TestSignalGenerator.h">
+      <Filter>WFS-DIY\Source\DSP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\DSP\TrackingPositionFilter.h">
+      <Filter>WFS-DIY\Source\DSP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\DSP\InputSpeedLimiter.h">
       <Filter>WFS-DIY\Source\DSP</Filter>
     </ClInclude>
     <ClInclude Include="..\..\ThirdParty\JUCE\modules\juce_audio_basics\audio_play_head\juce_AudioPlayHead.h">

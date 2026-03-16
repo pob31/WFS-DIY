@@ -451,6 +451,8 @@ bool OSCManager::startTrackingReceiver(int port, const juce::String& pathPattern
     stopTrackingReceiver();
 
     trackingReceiver = std::make_unique<TrackingOSCReceiver>(state);
+    trackingFilter.resize(state.getNumInputChannels());
+    trackingReceiver->setPositionFilter(&trackingFilter);
 
     if (!trackingReceiver->start(port, pathPattern))
     {
@@ -510,6 +512,8 @@ bool OSCManager::startPSNReceiver(int port,
     stopPSNReceiver();
 
     psnReceiver = std::make_unique<TrackingPSNReceiver>(state);
+    trackingFilter.resize(state.getNumInputChannels());
+    psnReceiver->setPositionFilter(&trackingFilter);
 
     if (!psnReceiver->start(port, networkInterface, multicastAddress))
     {
@@ -560,6 +564,8 @@ bool OSCManager::startRTTrPReceiver(int port)
     stopRTTrPReceiver();
 
     rttrpReceiver = std::make_unique<TrackingRTTrPReceiver>(state);
+    trackingFilter.resize(state.getNumInputChannels());
+    rttrpReceiver->setPositionFilter(&trackingFilter);
 
     if (!rttrpReceiver->start(port))
     {

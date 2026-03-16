@@ -1,4 +1,5 @@
 #include "TrackingOSCReceiver.h"
+#include "../DSP/TrackingPositionFilter.h"
 
 namespace WFSNetwork
 {
@@ -198,14 +199,25 @@ void TrackingOSCReceiver::routeToInputs(int trackingId, float x, float y, float 
         if (!trackingActive)
             continue;
 
+        // Apply position filter (smoothing + jump detection)
+        float fx = x, fy = y, fz = z;
+        float smooth = static_cast<float> (posSection.getProperty (WFSParameterIDs::inputTrackingSmooth, 100));
+
+        if (smooth > 0.0f && positionFilter != nullptr)
+        {
+            if (! positionFilter->filterPosition (ch, trackingId, fx, fy, fz,
+                                                  hasX, hasY, hasZ, smooth))
+                continue; // sample rejected (jump detected)
+        }
+
         // Update offset coordinates (tracking updates offset, not position)
         // Using setProperty triggers ValueTree listeners which updates map and broadcasts to targets
         if (hasX)
-            posSection.setProperty(WFSParameterIDs::inputOffsetX, x, nullptr);
+            posSection.setProperty(WFSParameterIDs::inputOffsetX, fx, nullptr);
         if (hasY)
-            posSection.setProperty(WFSParameterIDs::inputOffsetY, y, nullptr);
+            posSection.setProperty(WFSParameterIDs::inputOffsetY, fy, nullptr);
         if (hasZ)
-            posSection.setProperty(WFSParameterIDs::inputOffsetZ, z, nullptr);
+            posSection.setProperty(WFSParameterIDs::inputOffsetZ, fz, nullptr);
 
         anyRouted = true;
     }

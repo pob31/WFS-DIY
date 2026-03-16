@@ -212,6 +212,10 @@
               file="Source/DSP/TestSignalGenerator.h"/>
         <FILE id="testSigGenCpp" name="TestSignalGenerator.cpp" compile="1"
               resource="0" file="Source/DSP/TestSignalGenerator.cpp"/>
+        <FILE id="trkPosFilter" name="TrackingPositionFilter.h" compile="0"
+              resource="0" file="Source/DSP/TrackingPositionFilter.h"/>
+        <FILE id="inpSpdLimH" name="InputSpeedLimiter.h" compile="0"
+              resource="0" file="Source/DSP/InputSpeedLimiter.h"/>
       </GROUP>
     </GROUP>
   </MAINGROUP>

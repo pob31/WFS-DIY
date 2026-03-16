@@ -5,6 +5,8 @@
 #include "../Parameters/WFSValueTreeState.h"
 #include "../Parameters/WFSParameterIDs.h"
 
+class TrackingPositionFilter;
+
 namespace WFSNetwork
 {
 
@@ -227,6 +229,12 @@ public:
                             bool flipX, bool flipY, bool flipZ);
 
     /**
+     * Set the position filter for smoothing tracking data.
+     * @param filter Pointer to the shared filter (owned by OSCManager)
+     */
+    void setPositionFilter(TrackingPositionFilter* filter) { positionFilter = filter; }
+
+    /**
      * Update just the path pattern (while running).
      * @return true if pattern is valid
      */
@@ -268,6 +276,9 @@ private:
     std::atomic<int> messagesReceived { 0 };
     std::atomic<int> messagesMatched { 0 };
     std::atomic<int> messagesRouted { 0 };
+
+    // Position filter (shared, owned by OSCManager)
+    TrackingPositionFilter* positionFilter = nullptr;
 
     // Thread safety for pattern updates
     juce::CriticalSection patternLock;
