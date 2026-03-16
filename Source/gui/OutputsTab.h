@@ -394,6 +394,14 @@ public:
         g.setColour(ColorScheme::get().chromeDivider);
         g.drawLine(0.0f, (float)headerHeight, (float)getWidth(), (float)headerHeight, 1.0f);
         g.drawLine(0.0f, (float)(getHeight() - footerHeight), (float)getWidth(), (float)(getHeight() - footerHeight), 1.0f);
+
+        // Vertical column divider
+        if (columnDividerX > 0)
+        {
+            float topY = static_cast<float>(subTabContentArea.getY());
+            float botY = static_cast<float>(subTabContentArea.getBottom());
+            g.drawVerticalLine(columnDividerX, topY, botY);
+        }
     }
 
     void resized() override
@@ -1352,6 +1360,7 @@ private:
 
         // ==================== LEFT COLUMN (Level & Timing) ====================
         auto leftCol = area.removeFromLeft(area.getWidth() / 2).reduced(10, 10);
+        columnDividerX = area.getX();
 
         // Attenuation
         auto row = leftCol.removeFromTop(rowHeight);
@@ -2400,6 +2409,7 @@ private:
 
     int headerHeight = 60;
     int footerHeight = 50;
+    int columnDividerX = 0;
     juce::Rectangle<int> subTabContentArea;
     float layoutScale = 1.0f;  // Proportional scaling factor (1.0 = 1080p reference)
 

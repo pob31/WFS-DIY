@@ -4412,30 +4412,27 @@ private:
         muteMacrosSelector.setBounds(row.removeFromLeft(scaled(150)));
         col2.removeFromTop(spacing);
 
-        // --- Mutes section (square buttons spanning full column width) ---
+        // --- Mutes section (fill column width, max 16 per row, visually square) ---
         const int muteSpacing = scaled(2);
+        const int btnInset = 6;  // WfsLookAndFeel button horizontal inset
         int numOutputs = parameters.getNumOutputChannels();
         if (numOutputs <= 0) numOutputs = 16;
 
-        // Size buttons to fill the column width in a single row if possible
-        int muteButtonSize = (col2.getWidth() - muteSpacing * (numOutputs - 1)) / numOutputs;
-        if (muteButtonSize < scaled(20)) muteButtonSize = scaled(20);  // Minimum size
-
-        // Calculate how many fit per row with this size
-        int muteButtonsPerRow = (col2.getWidth() + muteSpacing) / (muteButtonSize + muteSpacing);
-        if (muteButtonsPerRow <= 0) muteButtonsPerRow = 1;
+        int muteButtonsPerRow = juce::jmin(numOutputs, 16);
+        int muteButtonSize = (col2.getWidth() - muteSpacing * (muteButtonsPerRow - 1)) / muteButtonsPerRow;
+        int muteButtonH = muteButtonSize - btnInset * 2;  // visually square after inset
         int muteRows = (numOutputs + muteButtonsPerRow - 1) / muteButtonsPerRow;
 
-        auto muteGridArea = col2.removeFromTop(muteRows * (muteButtonSize + muteSpacing));
+        auto muteGridArea = col2.removeFromTop(muteRows * (muteButtonH + muteSpacing));
         for (int r = 0; r < muteRows; ++r)
         {
-            auto rowArea = muteGridArea.removeFromTop(muteButtonSize + muteSpacing);
+            auto rowArea = muteGridArea.removeFromTop(muteButtonH + muteSpacing);
             for (int c = 0; c < muteButtonsPerRow; ++c)
             {
                 int index = r * muteButtonsPerRow + c;
                 if (index < numOutputs)
                 {
-                    muteButtons[index].setBounds(rowArea.removeFromLeft(muteButtonSize));
+                    muteButtons[index].setBounds(rowArea.removeFromLeft(muteButtonSize).withHeight(muteButtonH));
                     rowArea.removeFromLeft(muteSpacing);
                 }
             }

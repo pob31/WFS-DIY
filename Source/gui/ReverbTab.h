@@ -363,6 +363,15 @@ public:
                     static_cast<float> (getWidth()), static_cast<float> (headerHeight), 1.0f);
         g.drawLine (0.0f, static_cast<float> (getHeight() - footerHeight),
                     static_cast<float> (getWidth()), static_cast<float> (getHeight() - footerHeight), 1.0f);
+
+        // Vertical column dividers
+        if (showColumnDividers)
+        {
+            float topY = static_cast<float> (subTabContentArea.getY());
+            float botY = static_cast<float> (subTabContentArea.getBottom());
+            g.drawVerticalLine (columnDividerX1, topY, botY);
+            g.drawVerticalLine (columnDividerX2, topY, botY);
+        }
     }
 
     void resized() override
@@ -2055,6 +2064,7 @@ private:
         setAlgorithmVisible (false);
         setPostProcessingVisible (false);
 
+        showColumnDividers = false;
         switch (tabIndex)
         {
             case 0: setChannelParametersVisible (true); layoutChannelParametersTab(); break;
@@ -2484,8 +2494,11 @@ private:
         // Divide into 3 columns
         int colWidth = area.getWidth() / 3;
         auto col1 = area.removeFromLeft (colWidth).reduced (scaled(5), 0);
+        columnDividerX1 = area.getX();
         auto col2 = area.removeFromLeft (colWidth).reduced (scaled(5), 0);
+        columnDividerX2 = area.getX();
         auto col3 = area.reduced (scaled(5), 0);
+        showColumnDividers = true;
 
         // =====================================================================
         // Column 1: Reverb + Position
@@ -2682,28 +2695,27 @@ private:
         mutesLabel.setBounds (col3.removeFromTop (titleHeight));
         col3.removeFromTop (scaled(5));
 
-        // Layout mute buttons — dynamic sizing to fill column width (matches InputsTab)
+        // Layout mute buttons — fill column width, max 16 per row, visually square
         const int muteSpacing = scaled(2);
+        const int btnInset = 6;  // WfsLookAndFeel button horizontal inset
         int numOutputs = parameters.getNumOutputChannels();
         if (numOutputs <= 0) numOutputs = 16;
 
-        int muteButtonSize = (col3.getWidth() - muteSpacing * (numOutputs - 1)) / numOutputs;
-        if (muteButtonSize < scaled(20)) muteButtonSize = scaled(20);
-
-        int muteButtonsPerRow = (col3.getWidth() + muteSpacing) / (muteButtonSize + muteSpacing);
-        if (muteButtonsPerRow <= 0) muteButtonsPerRow = 1;
+        int muteButtonsPerRow = juce::jmin(numOutputs, 16);
+        int muteButtonSize = (col3.getWidth() - muteSpacing * (muteButtonsPerRow - 1)) / muteButtonsPerRow;
+        int muteButtonH = muteButtonSize - btnInset * 2;  // visually square after inset
         int muteRows = (numOutputs + muteButtonsPerRow - 1) / muteButtonsPerRow;
 
-        auto muteGridArea = col3.removeFromTop (muteRows * (muteButtonSize + muteSpacing));
+        auto muteGridArea = col3.removeFromTop (muteRows * (muteButtonH + muteSpacing));
         for (int r = 0; r < muteRows; ++r)
         {
-            auto rowArea = muteGridArea.removeFromTop (muteButtonSize + muteSpacing);
+            auto rowArea = muteGridArea.removeFromTop (muteButtonH + muteSpacing);
             for (int c = 0; c < muteButtonsPerRow; ++c)
             {
                 int index = r * muteButtonsPerRow + c;
                 if (index < numOutputs && index < maxMuteButtons)
                 {
-                    muteButtons[index].setBounds (rowArea.removeFromLeft (muteButtonSize));
+                    muteButtons[index].setBounds (rowArea.removeFromLeft (muteButtonSize).withHeight (muteButtonH));
                     rowArea.removeFromLeft (muteSpacing);
                     muteButtons[index].setVisible (true);
                 }
@@ -5070,6 +5082,9 @@ private:
 
     int headerHeight = 60;
     int footerHeight = 50;
+    int columnDividerX1 = 0;
+    int columnDividerX2 = 0;
+    bool showColumnDividers = false;
     static constexpr int numEqBands = 4;
     static constexpr int maxMuteButtons = 64;
     juce::Rectangle<int> subTabContentArea;
