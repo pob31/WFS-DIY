@@ -3786,35 +3786,48 @@ private:
     void showMqttTagIdPanel()
     {
         // Build content panel with OK button
-        auto* panel = new juce::Component();
-        const int editorH = 21;
-        const int panelH = 32 * editorH + 45; // 32 rows + OK button area
-        panel->setSize (300, panelH);
+        // deleteAllChildren() ensures no leaked objects on dialog close
+        struct TagIdPanel : public juce::Component
+        {
+            juce::OwnedArray<juce::Label> labels;
+            juce::OwnedArray<juce::TextEditor> editors;
+            juce::TextButton okButton { "OK" };
 
-        auto tagEditors = std::make_shared<juce::OwnedArray<juce::TextEditor>>();
+            TagIdPanel (int numSlots)
+            {
+                const int editorH = 21;
+                const int panelH = numSlots * editorH + 45;
+                setSize (300, panelH);
 
+                for (int i = 0; i < numSlots; ++i)
+                {
+                    auto* label = labels.add (new juce::Label());
+                    label->setText (juce::String (i + 1) + ":", juce::dontSendNotification);
+                    label->setBounds (10, 5 + i * editorH, 30, 20);
+                    addAndMakeVisible (label);
+
+                    auto* editor = editors.add (new juce::TextEditor());
+                    editor->setInputRestrictions (8, "0123456789abcdefABCDEF");
+                    editor->setBounds (42, 5 + i * editorH, 240, 20);
+                    addAndMakeVisible (editor);
+                }
+
+                okButton.setBounds (110, panelH - 35, 80, 28);
+                addAndMakeVisible (okButton);
+            }
+        };
+
+        auto* panel = new TagIdPanel (32);
+
+        // Load current values
         for (int i = 0; i < 32; ++i)
         {
-            auto* label = new juce::Label();
-            label->setText (juce::String (i + 1) + ":", juce::dontSendNotification);
-            label->setBounds (10, 5 + i * editorH, 30, 20);
-            panel->addAndMakeVisible (label);
-
-            auto* editor = new juce::TextEditor();
-            editor->setInputRestrictions (8, "0123456789abcdefABCDEF");
-            editor->setBounds (42, 5 + i * editorH, 240, 20);
-            panel->addAndMakeVisible (editor);
-            tagEditors->add (editor);
-
-            // Load current value
             if (oscManager != nullptr && oscManager->getMQTTReceiver() != nullptr)
-                editor->setText (oscManager->getMQTTReceiver()->getTagId (i), juce::dontSendNotification);
+                panel->editors[i]->setText (oscManager->getMQTTReceiver()->getTagId (i), juce::dontSendNotification);
         }
 
-        // OK button at the bottom
-        auto* okButton = new juce::TextButton ("OK");
-        okButton->setBounds (110, panelH - 35, 80, 28);
-        panel->addAndMakeVisible (okButton);
+        // Keep a raw pointer to read editors from callback (panel is owned by dialog)
+        auto* panelPtr = panel;
 
         juce::DialogWindow::LaunchOptions options;
         options.content.setOwned (panel);
@@ -3829,12 +3842,12 @@ private:
         if (dialog != nullptr)
         {
             // OK button closes the dialog
-            okButton->onClick = [dialog]() { dialog->exitModalState (1); };
+            panelPtr->okButton.onClick = [dialog]() { dialog->exitModalState (1); };
 
-            // Save tag IDs when dialog closes
+            // Save tag IDs when dialog closes (callback fires before dialog is destroyed)
             juce::ModalComponentManager::getInstance()->attachCallback (
                 dialog,
-                juce::ModalCallbackFunction::create ([this, tagEditors] (int)
+                juce::ModalCallbackFunction::create ([this, panelPtr] (int)
                 {
                     if (oscManager == nullptr)
                         return;
@@ -3844,7 +3857,7 @@ private:
 
                     for (int i = 0; i < 32; ++i)
                     {
-                        juce::String tagId = (*tagEditors)[i]->getText().trim().toUpperCase();
+                        juce::String tagId = panelPtr->editors[i]->getText().trim().toUpperCase();
                         if (receiver != nullptr)
                             receiver->setTagId (i, tagId);
                         ids.add (tagId);
