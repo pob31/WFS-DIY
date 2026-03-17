@@ -159,6 +159,10 @@
                 file="Source/Controllers/DialsAndButtons/StreamDeckManager.h"/>
           <FILE id="xlDevH" name="XencelabsDevice.h" compile="0" resource="0"
                 file="Source/Controllers/DialsAndButtons/XencelabsDevice.h"/>
+          <FILE id="qkPageH" name="QuickKeysPage.h" compile="0" resource="0"
+                file="Source/Controllers/DialsAndButtons/QuickKeysPage.h"/>
+          <FILE id="qkMgrH" name="QuickKeysManager.h" compile="0" resource="0"
+                file="Source/Controllers/DialsAndButtons/QuickKeysManager.h"/>
           <GROUP id="{SDPAGESGROUP}" name="pages">
             <FILE id="sdInpPages" name="InputsTabPages.h" compile="0" resource="0"
                   file="Source/Controllers/DialsAndButtons/pages/InputsTabPages.h"/>

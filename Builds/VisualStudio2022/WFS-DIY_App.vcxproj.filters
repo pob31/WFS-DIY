@@ -4209,6 +4209,12 @@
     <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\XencelabsDevice.h">
       <Filter>WFS-DIY\Source\Controllers\DialsAndButtons</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\QuickKeysPage.h">
+      <Filter>WFS-DIY\Source\Controllers\DialsAndButtons</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\QuickKeysManager.h">
+      <Filter>WFS-DIY\Source\Controllers\DialsAndButtons</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\InputsTabPages.h">
       <Filter>WFS-DIY\Source\Controllers\DialsAndButtons\pages</Filter>
     </ClInclude>

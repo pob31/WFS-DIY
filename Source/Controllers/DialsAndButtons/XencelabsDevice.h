@@ -22,8 +22,7 @@
 
 #include <JuceHeader.h>
 
-class XencelabsDevice : private juce::Thread,
-                        private juce::Timer
+class XencelabsDevice : private juce::Thread
 {
 public:
     //==========================================================================
@@ -34,9 +33,10 @@ public:
     static constexpr unsigned short PID_WIRED       = 0x5202;
     static constexpr unsigned short PID_WIRELESS    = 0x5203;
 
-    static constexpr int NUM_BUTTONS        = 8;
+    static constexpr int NUM_BUTTONS        = 10;   // 8 side keys + wheel press (bit 8) + spare (bit 9)
     static constexpr int MAX_KEY_TEXT_CHARS  = 8;    // Max chars per key OLED label
     static constexpr int MAX_OVERLAY_CHARS  = 32;   // Max chars for overlay text
+    static constexpr unsigned short VENDOR_USAGE_PAGE = 0xFF0A;
     static constexpr int REPORT_SIZE        = 32;
     static constexpr int INPUT_REPORT_SIZE  = 32;
 
@@ -63,7 +63,10 @@ public:
     ~XencelabsDevice() override
     {
         *alive = false;
-        stopMonitoring();
+        signalThreadShouldExit();
+        if (isThreadRunning())
+            waitForThreadToExit (3000);
+        disconnect();
         hid_exit();
     }
 
@@ -82,13 +85,17 @@ public:
 
     void startMonitoring()
     {
-        startTimer (2000);
-        tryConnect();
+        // Start the background thread which handles connection + reading.
+        // No blocking HID calls on the GUI thread.
+        if (! isThreadRunning())
+            startThread (juce::Thread::Priority::normal);
     }
 
     void stopMonitoring()
     {
-        stopTimer();
+        signalThreadShouldExit();
+        if (isThreadRunning())
+            waitForThreadToExit (2000);
         disconnect();
     }
 
@@ -101,7 +108,7 @@ public:
     /** Set the OLED text label for a button (0-7). Max 8 characters. */
     void setKeyText (int keyIndex, const juce::String& text)
     {
-        if (! isConnected() || keyIndex < 0 || keyIndex >= NUM_BUTTONS)
+        if (! isConnected() || keyIndex < 0 || keyIndex >= 8)  // Only 8 side keys have OLED labels
             return;
 
         juce::String truncated = text.substring (0, MAX_KEY_TEXT_CHARS);
@@ -137,11 +144,15 @@ public:
     // Output: Overlay Text (temporary full-screen text)
     //==========================================================================
 
-    /** Show an overlay text on the OLED (max 32 chars, displayed for duration seconds). */
+    /** Show an overlay text on the OLED (max 32 chars, displayed for duration seconds).
+        Duration must be 1-255; 0 is clamped to 1. */
     void showOverlayText (const juce::String& text, int durationSeconds = 2)
     {
         if (! isConnected())
             return;
+
+        // Duration must be at least 1 (0 = not shown)
+        uint8_t duration = static_cast<uint8_t> (juce::jlimit (1, 255, durationSeconds));
 
         juce::String truncated = text.substring (0, MAX_OVERLAY_CHARS);
 
@@ -152,16 +163,19 @@ public:
         for (int pos = 0; pos < totalChars; pos += 8)
         {
             juce::String chunk = truncated.substring (pos, juce::jmin (pos + 8, totalChars));
-            auto utf16 = chunk.toUTF16();
+            int chunkLen = chunk.length();
 
             uint8_t report[REPORT_SIZE] = {};
             report[0] = 0x02;
             report[1] = 0xb1;
-            report[2] = (chunkIndex == 0) ? 0x05 : 0x06;  // First chunk vs continuation
-            report[3] = static_cast<uint8_t> (durationSeconds);
-            report[5] = static_cast<uint8_t> (chunk.length() * 2);
-            report[6] = (pos + 8 < totalChars) ? 0x01 : 0x00;  // More chunks follow?
+            report[2] = (chunkIndex == 0) ? 0x05 : 0x06;
+            report[3] = duration;
+            report[4] = 0x00;
+            report[5] = static_cast<uint8_t> (juce::jmin (chunkLen * 2, 16));
+            report[6] = (pos + 8 < totalChars) ? 0x01 : 0x00;
 
+            // UTF-16LE text at offset 16, padded to 16 bytes
+            auto utf16 = chunk.toUTF16();
             int offset = 16;
             for (auto cp = utf16.getAddress(); *cp != 0 && offset < REPORT_SIZE - 1; ++cp)
             {
@@ -275,31 +289,49 @@ private:
     // Connection Management
     //==========================================================================
 
+    /** Enumerate all HID interfaces for a given PID and open the vendor-specific one.
+        The Quick Keys exposes multiple interfaces (keyboard, consumer, vendor).
+        We need usage_page 0xFF0A for the control/event interface. */
+    hid_device* openByUsagePage (unsigned short pid)
+    {
+        auto* devList = hid_enumerate (VENDOR_ID, pid);
+        if (devList == nullptr)
+            return nullptr;
+
+        hid_device* handle = nullptr;
+
+        for (auto* dev = devList; dev != nullptr; dev = dev->next)
+        {
+            if (dev->usage_page == VENDOR_USAGE_PAGE)
+            {
+                handle = hid_open_path (dev->path);
+                if (handle != nullptr)
+                    break;
+            }
+        }
+
+        hid_free_enumeration (devList);
+        return handle;
+    }
+
     void tryConnect()
     {
         if (isConnected())
             return;
 
-        // Try wired first, then wireless dongle
+        // Try wired first, then wireless dongle.
+        // The device exposes multiple HID interfaces — we need the vendor-specific
+        // one (usage_page 0xFF0A) for control messages and event subscription.
         hid_device* handle = nullptr;
         bool wireless = false;
 
-        auto* devList = hid_enumerate (VENDOR_ID, PID_WIRED);
-        if (devList != nullptr)
-        {
-            handle = hid_open_path (devList->path);
-            hid_free_enumeration (devList);
-        }
+        handle = openByUsagePage (PID_WIRED);
 
         if (handle == nullptr)
         {
-            devList = hid_enumerate (VENDOR_ID, PID_WIRELESS);
-            if (devList != nullptr)
-            {
-                handle = hid_open_path (devList->path);
-                hid_free_enumeration (devList);
+            handle = openByUsagePage (PID_WIRELESS);
+            if (handle != nullptr)
                 wireless = true;
-            }
         }
 
         if (handle == nullptr)
@@ -313,10 +345,8 @@ private:
         if (isWireless)
             discoverWirelessDevice();
 
-        // Subscribe to key/wheel events
+        // Subscribe to key/wheel events (direct write — we're on the background thread)
         subscribeToEvents();
-
-        startThread (juce::Thread::Priority::normal);
 
         DBG ("XencelabsQuickKeys connected (" + juce::String (isWireless ? "wireless" : "wired") + ")");
 
@@ -333,13 +363,6 @@ private:
         if (! isConnected())
             return;
 
-        signalThreadShouldExit();
-        if (isThreadRunning())
-            waitForThreadToExit (1000);
-
-        // Clear display before closing
-        clearAllKeyText();
-
         {
             const juce::ScopedLock sl (writeLock);
             hid_close (deviceHandle);
@@ -348,15 +371,9 @@ private:
 
         memset (deviceIdBytes, 0, sizeof (deviceIdBytes));
         isWireless = false;
+        writeQueueCount = 0;
 
         DBG ("XencelabsQuickKeys disconnected");
-
-        auto aliveFlag = alive;
-        juce::MessageManager::callAsync ([this, aliveFlag]()
-        {
-            if (*aliveFlag && onConnectionChanged)
-                onConnectionChanged (false);
-        });
     }
 
     //==========================================================================
@@ -394,17 +411,7 @@ private:
     }
 
     //==========================================================================
-    // Timer: Hotplug Detection
-    //==========================================================================
-
-    void timerCallback() override
-    {
-        if (! isConnected())
-            tryConnect();
-    }
-
-    //==========================================================================
-    // Thread: HID Input Reader
+    // Thread: Connection + HID Read Loop
     //==========================================================================
 
     void run() override
@@ -413,30 +420,50 @@ private:
 
         while (! threadShouldExit())
         {
+            // --- Connection phase: poll for device ---
+            if (! isConnected())
+            {
+                tryConnect();
+
+                if (! isConnected())
+                {
+                    // Wait 2 seconds before retrying
+                    for (int i = 0; i < 40 && ! threadShouldExit(); ++i)
+                        juce::Thread::sleep (50);
+                    continue;
+                }
+            }
+
+            // --- Read phase: process writes and read events ---
+            processWriteQueue();
+
             int bytesRead = hid_read_timeout (deviceHandle, buffer, INPUT_REPORT_SIZE, 50);
 
             if (bytesRead < 0)
             {
-                // Device disconnected
-                auto aliveFlag = alive;
-                juce::MessageManager::callAsync ([this, aliveFlag]()
-                {
-                    if (! *aliveFlag)
-                        return;
+                const wchar_t* err = hid_error (deviceHandle);
+                juce::String errStr = (err != nullptr) ? juce::String (err) : "unknown";
+                DBG ("XencelabsHID read error: " + errStr);
 
+                // Close handle on this thread, notify GUI
+                {
                     const juce::ScopedLock sl (writeLock);
                     if (deviceHandle != nullptr)
                     {
                         hid_close (deviceHandle);
                         deviceHandle = nullptr;
                     }
+                }
 
-                    if (onConnectionChanged)
+                auto aliveFlag = alive;
+                juce::MessageManager::callAsync ([this, aliveFlag]()
+                {
+                    if (*aliveFlag && onConnectionChanged)
                         onConnectionChanged (false);
-
-                    DBG ("XencelabsQuickKeys disconnected (read error)");
                 });
-                return;
+
+                DBG ("XencelabsQuickKeys disconnected (read error)");
+                continue;  // Loop back to connection phase
             }
 
             if (bytesRead == 0)
@@ -456,7 +483,7 @@ private:
             return;
 
         // Report ID 0x02, command 0xf0 = button/wheel event
-        if (data[0] == 0x02 && data[1] == 0xf0 && length >= 7)
+        if (data[0] == 0x02 && data[1] == 0xf0 && length >= 8)
         {
             parseButtonAndWheelEvent (data, length);
         }
@@ -469,7 +496,9 @@ private:
 
     void parseButtonAndWheelEvent (const uint8_t* data, int /*length*/)
     {
-        // Button states: 16-bit little-endian at offset 2 (10 physical buttons, 8 used)
+        // Button states: 16-bit little-endian at offset 2-3
+        // Byte 2 bits 0-7: side keys 0-7
+        // Byte 3 bit 1 (= bit 9 overall): wheel button press
         uint16_t buttonBits = static_cast<uint16_t> (data[2]) | (static_cast<uint16_t> (data[3]) << 8);
 
         for (int i = 0; i < NUM_BUTTONS; ++i)
@@ -499,9 +528,9 @@ private:
             }
         }
 
-        // Wheel: byte at offset 6
+        // Wheel: byte at offset 7
         // 0x01 = clockwise/right, 0x02 = counter-clockwise/left
-        uint8_t wheelByte = data[6];
+        uint8_t wheelByte = data[7];
         if (wheelByte == 0x01 || wheelByte == 0x02)
         {
             int direction = (wheelByte == 0x01) ? 1 : -1;
@@ -518,11 +547,41 @@ private:
     // Low-level HID Write
     //==========================================================================
 
+    /** Queue a report for writing on the background thread.
+        If called from the background thread itself (e.g., subscribeToEvents during
+        tryConnect), writes directly. Otherwise queues for async processing. */
     void sendReport (const uint8_t* report)
     {
         const juce::ScopedLock sl (writeLock);
-        if (deviceHandle != nullptr)
-            hid_write (deviceHandle, report, REPORT_SIZE);
+
+        if (getCurrentThreadId() == getThreadId())
+        {
+            // Already on the background thread — write directly
+            if (deviceHandle != nullptr)
+                hid_write (deviceHandle, report, REPORT_SIZE);
+            return;
+        }
+
+        // Queue for background thread processing
+        if (writeQueueCount < WRITE_QUEUE_SIZE)
+        {
+            memcpy (writeQueue[writeQueueCount].data, report, REPORT_SIZE);
+            ++writeQueueCount;
+        }
+    }
+
+    /** Process all queued writes — called from the background thread only. */
+    void processWriteQueue()
+    {
+        const juce::ScopedLock sl (writeLock);
+
+        for (int i = 0; i < writeQueueCount; ++i)
+        {
+            if (deviceHandle != nullptr)
+                hid_write (deviceHandle, writeQueue[i].data, REPORT_SIZE);
+        }
+
+        writeQueueCount = 0;
     }
 
     /** Write the cached device ID into report bytes 10-15 (used for wireless routing). */
@@ -539,6 +598,12 @@ private:
     hid_device* deviceHandle = nullptr;
     juce::CriticalSection writeLock;
     std::shared_ptr<bool> alive;
+
+    // Write queue: GUI thread enqueues, background thread dequeues and writes
+    static constexpr int WRITE_QUEUE_SIZE = 16;
+    struct WriteCmd { uint8_t data[REPORT_SIZE] = {}; };
+    WriteCmd writeQueue[WRITE_QUEUE_SIZE];
+    int writeQueueCount = 0;
 
     bool buttonStates[NUM_BUTTONS] = {};
     bool isWireless = false;

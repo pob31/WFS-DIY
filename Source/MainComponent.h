@@ -32,6 +32,7 @@
 #include "gui/WfsLookAndFeel.h"
 #include "Network/OSCManager.h"
 #include "Controllers/DialsAndButtons/StreamDeckManager.h"
+#include "Controllers/DialsAndButtons/QuickKeysManager.h"
 #include "Controllers/DialsAndButtons/pages/PatchWindowPages.h"
 #include "Controllers/PositionControl/ControllerManager.h"
 #include "Controllers/Sampler/LightpadManager.h"
@@ -193,6 +194,7 @@ private:
 
     // Stream Deck+ physical controller
     std::unique_ptr<StreamDeckManager> streamDeckManager;
+    std::unique_ptr<QuickKeysManager> quickKeysManager;
 
     // Input controllers (SpaceMouse, joystick, gamepad)
     std::unique_ptr<ControllerManager> controllerManager;

@@ -3217,6 +3217,8 @@
     <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\StreamDeckRenderer.h"/>
     <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\StreamDeckManager.h"/>
     <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\XencelabsDevice.h"/>
+    <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\QuickKeysPage.h"/>
+    <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\QuickKeysManager.h"/>
     <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\InputsTabPages.h"/>
     <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\NetworkTabPages.h"/>
     <ClInclude Include="..\..\Source\Controllers\DialsAndButtons\pages\OutputsTabPages.h"/>

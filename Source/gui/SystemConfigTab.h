@@ -439,6 +439,7 @@ public:
         dialsAndButtonsSelector.addItem ("XenceLabs Quick Keys", 3);
         dialsAndButtonsSelector.onChange = [this]()
         {
+            if (isLoadingParameters) return;
             int deviceIndex = dialsAndButtonsSelector.getSelectedId() - 1;  // 0=Off, 1=SD+, 2=QK
             parameters.setConfigParam ("DialsAndButtonsDevice", deviceIndex);
             if (onDialsAndButtonsChanged)
@@ -455,6 +456,7 @@ public:
         positionControlSelector.addItem ("Game Pad", 4);
         positionControlSelector.onChange = [this]()
         {
+            if (isLoadingParameters) return;
             int deviceIndex = positionControlSelector.getSelectedId() - 1;  // 0=Off, 1=SpaceMouse, ...
             parameters.setConfigParam ("PositionControlDevice", deviceIndex);
             if (onPositionControlChanged)
@@ -469,6 +471,7 @@ public:
         samplerToggle.setClickingTogglesState (true);
         samplerToggle.onClick = [this]()
         {
+            if (isLoadingParameters) return;
             bool enabled = samplerToggle.getToggleState();
             samplerToggle.setButtonText (enabled ? LOC ("systemConfig.devices.on")
                                                  : LOC ("systemConfig.devices.off"));
@@ -1340,6 +1343,8 @@ private:
 
     void loadParametersToUI()
     {
+        isLoadingParameters = true;
+
         // String values
         showNameEditor.setText(parameters.getConfigParam("ShowName").toString(), false);
         showLocationEditor.setText(parameters.getConfigParam("ShowLocation").toString(), false);
@@ -1388,9 +1393,6 @@ private:
         // Dials and Buttons device selector
         {
             int dbDevice = (int) parameters.getConfigParam ("DialsAndButtonsDevice");
-            // Migrate legacy "StreamDeckEnabled" bool to new int param
-            if (dbDevice == 0 && (bool) parameters.getConfigParam ("StreamDeckEnabled"))
-                dbDevice = 1;
             dialsAndButtonsSelector.setSelectedId (dbDevice + 1, juce::dontSendNotification);
         }
 
@@ -1459,6 +1461,8 @@ private:
 
         // Update binaural controls enabled state based on output selection
         updateBinauralControlsEnabledState();
+
+        isLoadingParameters = false;
     }
 
     void updateParameterFromEditor(juce::TextEditor& editor)
@@ -2603,6 +2607,7 @@ public:
     StatusBar* statusBar = nullptr;
     std::map<juce::Component*, juce::String> helpTextMap;
     bool processingEnabled = false;
+    bool isLoadingParameters = false;
     bool isValidatingFromReturnKey = false;  // Prevents double validation when Enter triggers both ReturnKey and FocusLost
     bool isShowingChannelReductionDialog = false;  // Prevents multiple dialogs from appearing
 

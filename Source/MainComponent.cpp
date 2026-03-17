@@ -291,7 +291,12 @@ MainComponent::MainComponent()
         // 0=Off, 1=Stream Deck+, 2=XenceLabs Quick Keys
         if (streamDeckManager)
             streamDeckManager->setEnabled (deviceIndex == 1);
-        // TODO: enable/disable XencelabsManager when deviceIndex == 2
+        if (quickKeysManager)
+        {
+            quickKeysManager->setEnabled (deviceIndex == 2);
+            if (deviceIndex == 2)
+                quickKeysManager->setActivePage (tabbedComponent.getCurrentTabIndex(), 0);
+        }
     });
 
     systemConfigTab->setPositionControlCallback ([this] (int deviceIndex)
@@ -487,6 +492,8 @@ MainComponent::MainComponent()
             else
                 streamDeckManager->setMainTab (tabIndex);
         }
+        if (quickKeysManager)
+            quickKeysManager->setActivePage (tabIndex, 0);
     };
 
     // Load saved color scheme from parameters and apply it
@@ -532,6 +539,9 @@ MainComponent::MainComponent()
     // Initialize Stream Deck+ physical controller
     streamDeckManager = std::make_unique<StreamDeckManager>();
 
+    // Initialize Xencelabs Quick Keys controller
+    quickKeysManager = std::make_unique<QuickKeysManager>();
+
     // Apply initial Dials & Buttons device selection
     {
         int dbDevice = (int) parameters.getConfigParam ("DialsAndButtonsDevice");
@@ -540,7 +550,8 @@ MainComponent::MainComponent()
             dbDevice = 1;
         if (dbDevice != 1)
             streamDeckManager->setEnabled (false);
-        // TODO: enable XencelabsManager when dbDevice == 2
+        if (dbDevice != 2)
+            quickKeysManager->setEnabled (false);
     }
 
     // Apply initial Position Control device selection
@@ -746,6 +757,60 @@ MainComponent::MainComponent()
         streamDeckManager->registerPage (
             SystemConfigTabPages::SYSCONFIG_MAIN_TAB_INDEX, 0,
             SystemConfigTabPages::createPage (0, vts, sysCB));
+
+        // Register Quick Keys System Config page (binaural traversal)
+        {
+            using namespace WFSParameterIDs;
+            using namespace WFSParameterDefaults;
+
+            QuickKeysPage qkSysPage;
+            qkSysPage.pageName = "System Config";
+            qkSysPage.tabName = "Binaural";
+            qkSysPage.sectionName = "Renderer";
+
+            const auto sliderOrange = juce::Colour (0xFFFF5722);
+            const auto dialGrey     = juce::Colour (0xFF808080);
+
+            // Distance (short name for 8-char OLED)
+            QuickKeysBinding distBinding;
+            distBinding.dial = SystemConfigTabPages::makeBinauralFloatDial (
+                "Distance", LOC ("units.meters"),
+                binauralListenerDistanceMin, binauralListenerDistanceMax,
+                0.1f, 0.01f, 2, vts, binauralListenerDistance);
+            distBinding.ledColour = sliderOrange;
+            qkSysPage.bindings.push_back (std::move (distBinding));
+
+            // Angle
+            QuickKeysBinding angleBinding;
+            angleBinding.dial = SystemConfigTabPages::makeBinauralIntDial (
+                "Angle", LOC ("units.degrees"),
+                binauralListenerAngleMin, binauralListenerAngleMax,
+                5, 1, vts, binauralListenerAngle);
+            angleBinding.ledColour = dialGrey;
+            qkSysPage.bindings.push_back (std::move (angleBinding));
+
+            // Level
+            QuickKeysBinding levelBinding;
+            levelBinding.dial = SystemConfigTabPages::makeBinauralFloatDial (
+                "Level", LOC ("units.decibels"),
+                binauralAttenuationMin, binauralAttenuationMax,
+                0.5f, 0.1f, 1, vts, binauralAttenuation);
+            levelBinding.ledColour = sliderOrange;
+            qkSysPage.bindings.push_back (std::move (levelBinding));
+
+            // Delay
+            QuickKeysBinding delayBinding;
+            delayBinding.dial = SystemConfigTabPages::makeBinauralFloatDial (
+                "Delay", LOC ("units.milliseconds"),
+                binauralDelayMin, binauralDelayMax,
+                1.0f, 0.1f, 1, vts, binauralDelay);
+            delayBinding.ledColour = sliderOrange;
+            qkSysPage.bindings.push_back (std::move (delayBinding));
+
+            quickKeysManager->registerPage (
+                SystemConfigTabPages::SYSCONFIG_MAIN_TAB_INDEX, 0,
+                std::move (qkSysPage));
+        }
 
         // Map tab callbacks and state queries
         auto mapPosOffsetMode = std::make_shared<bool> (false);
