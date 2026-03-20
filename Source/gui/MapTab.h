@@ -214,7 +214,11 @@ public:
             if (inputCluster == clusterNum)
                 moveInputByDelta (i, dx, dy, dz);
         }
+        repaint();
     }
+
+    /** Get the reference input index for a cluster, or -1 if barycenter mode. */
+    int getClusterRef (int clusterNum) const { return getClusterReferenceInput (clusterNum); }
 
     /** Get the effective reference position for a cluster. */
     juce::Point<float> getClusterRefPosition (int clusterNum) const

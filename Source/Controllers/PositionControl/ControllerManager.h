@@ -42,7 +42,23 @@ public:
         /** Trigger map repaint after position changes. */
         std::function<void()> repaintMap;
 
-        // Cluster callbacks (used when activeTab == 5)
+        /** Cycle channel on the active tab (like spacebar): +1 = next, -1 = prev. */
+        std::function<void (int delta)> cycleChannel;
+
+        /** Move the current InputsTab channel by a delta (when no map selection). */
+        std::function<void (float dx, float dy, float dz)> moveCurrentChannel;
+
+        /** Check if the selected input on the map is a cluster reference.
+            Returns the cluster number (>0) if so, or 0 if not. */
+        std::function<int()> getSelectedClusterRef;
+
+        /** Visual feedback: raw axis deflection values (-1..+1), fired every tick. */
+        std::function<void (float x, float y, float z)> axisDeflection;
+
+        /** Cycle cluster selection on Clusters tab: +1 = next, -1 = prev. */
+        std::function<void (int delta)> cycleCluster;
+
+        // Cluster callbacks (used when activeTab == 5 or when cluster ref is selected on Map)
         std::function<void (float dx, float dy, float dz)> moveClusterDelta;
         std::function<void (float deltaDeg)> rotateCluster;
         std::function<void (float scaleFactor)> scaleCluster;  // multiplicative, 1.0 = no change
@@ -140,6 +156,22 @@ private:
 
     void handleEvent (const ControllerEvent& event)
     {
+        // Always process connection events (profile setup must happen even when disabled)
+        switch (event.type)
+        {
+            case ControllerEvent::Connected:
+                handleConnection (event);
+                return;
+
+            case ControllerEvent::Disconnected:
+                DBG ("Controller disconnected: " + event.deviceName);
+                return;
+
+            default:
+                break;
+        }
+
+        // Gate axis/button events on enabled state
         if (! enabled)
             return;
 
@@ -154,14 +186,6 @@ private:
                 handleButtonEvent (event);
                 break;
 
-            case ControllerEvent::Connected:
-                handleConnection (event);
-                break;
-
-            case ControllerEvent::Disconnected:
-                DBG ("Controller disconnected: " + event.deviceName);
-                break;
-
             default:
                 break;
         }
@@ -172,11 +196,6 @@ private:
         // Cache the latest raw axis value — velocity integration happens in timerCallback
         auto key = std::make_pair (event.deviceId, event.axisOrButton);
         latestAxisValues[key] = event.value;
-
-        // Debug: log rotation axes (3-5) when they have significant values
-        if (event.axisOrButton >= 3 && std::abs (event.value) > 0.05f)
-            DBG ("SpaceMouse axis " + juce::String (event.axisOrButton)
-                 + " = " + juce::String (event.value, 3));
     }
 
     void handleButtonEvent (const ControllerEvent& event)
@@ -189,10 +208,6 @@ private:
         if (event.type != ControllerEvent::ButtonPressed)
             return;
 
-        // On Clusters tab, buttons are modifiers only — don't fire actions
-        if (activeTab == 5)
-            return;
-
         const auto* profile = getProfile (event.deviceId);
         if (profile == nullptr)
             return;
@@ -201,10 +216,33 @@ private:
         if (mapping == nullptr)
             return;
 
-        if (mapping->action == ControllerActions::nextInput && callbacks.cycleInput)
-            callbacks.cycleInput (+1);
-        else if (mapping->action == ControllerActions::prevInput && callbacks.cycleInput)
-            callbacks.cycleInput (-1);
+        int delta = 0;
+        if (mapping->action == ControllerActions::nextInput)      delta = +1;
+        else if (mapping->action == ControllerActions::prevInput) delta = -1;
+
+        if (delta == 0)
+            return;
+
+        // Tab-aware routing:
+        // Map tab (6): cycle map input selection
+        // Clusters tab (5): cycle cluster selection
+        // Channel tabs (2=Outputs, 3=Reverb, 4=Inputs): cycle channel like spacebar
+        // Other tabs: no action
+        if (activeTab == 6)
+        {
+            if (callbacks.cycleInput)
+                callbacks.cycleInput (delta);
+        }
+        else if (activeTab == 5)
+        {
+            if (callbacks.cycleCluster)
+                callbacks.cycleCluster (delta);
+        }
+        else if (activeTab >= 2 && activeTab <= 4)
+        {
+            if (callbacks.cycleChannel)
+                callbacks.cycleChannel (delta);
+        }
     }
 
     void handleConnection (const ControllerEvent& event)
@@ -265,6 +303,27 @@ private:
                 totalRotation += delta;
         }
 
+        // Fire visual deflection feedback (raw -1..+1 axis values for joystick display)
+        if (callbacks.axisDeflection)
+        {
+            float defX = 0.0f, defY = 0.0f, defZ = 0.0f;
+            for (auto& [key, rawValue] : latestAxisValues)
+            {
+                auto [deviceId, axisIndex] = key;
+                const auto* profile = getProfile (deviceId);
+                if (profile == nullptr) continue;
+                const auto* mapping = profile->findAxisMapping (axisIndex);
+                if (mapping == nullptr) continue;
+                float v = rawValue;
+                if (mapping->inverted) v = -v;
+                if (std::abs (v) <= mapping->deadZone) v = 0.0f;
+                if (mapping->targetAction == ControllerActions::moveX) defX = v;
+                else if (mapping->targetAction == ControllerActions::moveY) defY = v;
+                else if (mapping->targetAction == ControllerActions::moveZ) defZ = v;
+            }
+            callbacks.axisDeflection (defX, defY, defZ);
+        }
+
         if (activeTab == 5)
         {
             // Clusters tab: TransZ switches between height and scale based on button state
@@ -287,22 +346,59 @@ private:
                 callbacks.scaleCluster (juce::jlimit (0.95f, 1.05f, scaleFactor));
             }
         }
-        else
+        else if (activeTab == 6)
         {
-            // Default: move selected inputs + rotate
-            if ((std::abs (totalDx) > 0.0001f || std::abs (totalDy) > 0.0001f || std::abs (totalDz) > 0.0001f)
-                && callbacks.moveSelectedDelta)
-            {
-                callbacks.moveSelectedDelta (totalDx, totalDy, totalDz);
-            }
+            // Map tab: check if selected input is a cluster reference
+            int clusterRef = callbacks.getSelectedClusterRef ? callbacks.getSelectedClusterRef() : 0;
 
-            if (std::abs (totalRotation) > 0.01f && callbacks.rotateSelected && callbacks.getSelectedInputs)
+            if (clusterRef > 0)
             {
-                auto selected = callbacks.getSelectedInputs();
-                if (! selected.empty())
-                    callbacks.rotateSelected (totalRotation);
+                // Cluster reference or barycenter selected: XY moves cluster, Z scales, twist rotates
+                if ((std::abs (totalDx) > 0.0001f || std::abs (totalDy) > 0.0001f)
+                    && callbacks.moveClusterDelta)
+                {
+                    callbacks.moveClusterDelta (totalDx, totalDy, 0.0f);
+                }
+
+                if (callbacks.scaleCluster && std::abs (totalDz) > 0.001f)
+                {
+                    float scaleFactor = 1.0f + totalDz * 0.5f;
+                    callbacks.scaleCluster (juce::jlimit (0.95f, 1.05f, scaleFactor));
+                }
+
+                if (callbacks.rotateCluster && std::abs (totalRotation) > 0.01f)
+                    callbacks.rotateCluster (totalRotation);
+            }
+            else
+            {
+                // Regular input selected: move + rotate as normal
+                if ((std::abs (totalDx) > 0.0001f || std::abs (totalDy) > 0.0001f || std::abs (totalDz) > 0.0001f)
+                    && callbacks.moveSelectedDelta)
+                {
+                    callbacks.moveSelectedDelta (totalDx, totalDy, totalDz);
+                }
+
+                if (std::abs (totalRotation) > 0.01f && callbacks.rotateSelected && callbacks.getSelectedInputs)
+                {
+                    auto selected = callbacks.getSelectedInputs();
+                    if (! selected.empty())
+                        callbacks.rotateSelected (totalRotation);
+                }
             }
         }
+        else if (activeTab == 4)
+        {
+            // Inputs tab: move the current channel
+            if ((std::abs (totalDx) > 0.0001f || std::abs (totalDy) > 0.0001f || std::abs (totalDz) > 0.0001f)
+                && callbacks.moveCurrentChannel)
+            {
+                callbacks.moveCurrentChannel (totalDx, totalDy, totalDz);
+            }
+
+            if (std::abs (totalRotation) > 0.01f && callbacks.rotateSelected)
+                callbacks.rotateSelected (totalRotation);
+        }
+        // Other tabs (0-3): no movement
     }
 
     //==========================================================================

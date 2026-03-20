@@ -555,6 +555,13 @@ public:
     /** Get the currently selected input channel (0-indexed) */
     int getSelectedInputIndex() const { return channelSelector.getSelectedChannel() - 1; }
 
+    /** Set the joystick/slider positions from an external controller (visual only). */
+    void setControllerDeflection (float x, float y, float z)
+    {
+        positionJoystick.setThumbPosition (x, y);
+        positionZSlider.setThumbDeflection (z);
+    }
+
     /** Cycle to next/previous channel. delta=1 for next, delta=-1 for previous. Wraps around. */
     void cycleChannel(int delta)
     {

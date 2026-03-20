@@ -610,6 +610,12 @@ public:
 
     int getSelectedCluster() const noexcept { return selectedCluster; }
 
+    /** Set the joystick thumb position from an external controller (visual only). */
+    void setControllerDeflection (float x, float y, float /*z*/)
+    {
+        positionJoystick.setThumbPosition (x, y);
+    }
+
     std::function<void (int)> onClusterSelected;
 
     void setHighlightedPresetTile (int index)

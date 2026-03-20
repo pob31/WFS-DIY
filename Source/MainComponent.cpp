@@ -554,12 +554,7 @@ MainComponent::MainComponent()
             quickKeysManager->setEnabled (false);
     }
 
-    // Apply initial Position Control device selection
-    {
-        int pcDevice = (int) parameters.getConfigParam ("PositionControlDevice");
-        if (controllerManager && pcDevice == 0)
-            controllerManager->setEnabled (false);
-    }
+    // Position Control enable state is applied at creation time (see controllerManager init below)
 
     // Apply initial sampler master enable state
     bool samplerOn = (bool)parameters.getConfigParam("SamplerEnabled");
@@ -1049,18 +1044,28 @@ MainComponent::MainComponent()
         {
             juce::MessageManager::callAsync ([this, deltaDeg]()
             {
-                if (mapTab == nullptr) return;
-                auto& selected = mapTab->getSelectedInputSet();
-                for (int idx : selected)
+                // Determine which inputs to rotate
+                std::set<int> targets;
+                if (mapTab)
+                    targets = mapTab->getSelectedInputSet();
+
+                // On Inputs tab with no map selection, rotate the current channel
+                if (targets.empty() && inputsTab)
+                {
+                    int ch = inputsTab->getSelectedInputIndex();
+                    if (ch >= 0 && ch < parameters.getNumInputChannels())
+                        targets.insert (ch);
+                }
+
+                for (int idx : targets)
                 {
                     int current = static_cast<int> (parameters.getInputParam (idx, "inputRotation"));
                     int newRot = current + static_cast<int> (std::round (deltaDeg));
-                    // Wrap to -179..180
                     while (newRot > 180) newRot -= 360;
                     while (newRot < -179) newRot += 360;
                     parameters.setInputParam (idx, "inputRotation", newRot);
                 }
-                mapTab->repaint();
+                if (mapTab) mapTab->repaint();
             });
         };
 
@@ -1086,6 +1091,68 @@ MainComponent::MainComponent()
             });
         };
 
+        controllerManager->callbacks.cycleChannel = [this] (int delta)
+        {
+            juce::MessageManager::callAsync ([this, delta]()
+            {
+                cycleChannel (delta);
+            });
+        };
+
+        controllerManager->callbacks.cycleCluster = [this] (int delta)
+        {
+            juce::MessageManager::callAsync ([this, delta]()
+            {
+                if (clustersTab)
+                {
+                    if (delta > 0)
+                        clustersTab->selectNextCluster();
+                    else
+                        clustersTab->selectPreviousCluster();
+                }
+            });
+        };
+
+        controllerManager->callbacks.moveCurrentChannel = [this] (float dx, float dy, float dz)
+        {
+            juce::MessageManager::callAsync ([this, dx, dy, dz]()
+            {
+                if (inputsTab == nullptr) return;
+                int ch = inputsTab->getSelectedInputIndex();  // 0-based
+                if (ch < 0 || ch >= parameters.getNumInputChannels()) return;
+                mapTab->moveInputByDelta (ch, dx, dy, dz);
+            });
+        };
+
+        controllerManager->callbacks.getSelectedClusterRef = [this]() -> int
+        {
+            if (mapTab == nullptr) return 0;
+
+            // Check for selected barycenter first
+            int bary = mapTab->getSelectedBarycenter();
+            if (bary > 0)
+                return bary;
+
+            // Check for selected cluster reference input
+            auto& selected = mapTab->getSelectedInputSet();
+            if (selected.size() != 1) return 0;
+            int idx = *selected.begin();
+            int cluster = static_cast<int> (parameters.getInputParam (idx, "inputCluster"));
+            if (cluster > 0 && mapTab->getClusterRef (cluster) == idx)
+                return cluster;
+            return 0;
+        };
+
+        controllerManager->callbacks.axisDeflection = [this] (float x, float y, float z)
+        {
+            // Visual-only: show SpaceMouse deflection on the active tab's joystick
+            int tab = tabbedComponent.getCurrentTabIndex();
+            if (tab == 4 && inputsTab)
+                inputsTab->setControllerDeflection (x, y, z);
+            else if (tab == 5 && clustersTab)
+                clustersTab->setControllerDeflection (x, y, z);
+        };
+
         controllerManager->callbacks.getNumInputs = [this]()
         {
             return parameters.getNumInputChannels();
@@ -1106,32 +1173,59 @@ MainComponent::MainComponent()
             });
         };
 
-        // Cluster callbacks (active when Clusters tab is selected)
-        controllerManager->callbacks.moveClusterDelta = [this] (float dx, float dy, float dz)
+        // Cluster callbacks — resolve cluster from Clusters tab or Map tab selection
+        auto getActiveCluster = [this]() -> int
         {
-            juce::MessageManager::callAsync ([this, dx, dy, dz]()
+            int tab = tabbedComponent.getCurrentTabIndex();
+            if (tab == 5)
+                return clustersTab ? clustersTab->getSelectedCluster() : 0;
+
+            // Map tab: check for barycenter or cluster reference input
+            if (tab == 6 && mapTab)
             {
-                int cluster = clustersTab ? clustersTab->getSelectedCluster() : 0;
+                // Barycenter selection
+                int bary = mapTab->getSelectedBarycenter();
+                if (bary > 0)
+                    return bary;
+
+                // Cluster reference input selection
+                auto& selected = mapTab->getSelectedInputSet();
+                if (selected.size() == 1)
+                {
+                    int idx = *selected.begin();
+                    int cluster = static_cast<int> (parameters.getInputParam (idx, "inputCluster"));
+                    if (cluster > 0 && mapTab->getClusterRef (cluster) == idx)
+                        return cluster;
+                }
+            }
+            return 0;
+        };
+
+        controllerManager->callbacks.moveClusterDelta = [this, getActiveCluster] (float dx, float dy, float dz)
+        {
+            juce::MessageManager::callAsync ([this, getActiveCluster, dx, dy, dz]()
+            {
+                int cluster = getActiveCluster();
                 if (cluster > 0 && mapTab)
                     mapTab->moveClusterDelta (cluster, dx, dy, dz);
             });
         };
 
-        controllerManager->callbacks.rotateCluster = [this] (float deltaDeg)
+        controllerManager->callbacks.rotateCluster = [this, getActiveCluster] (float deltaDeg)
         {
-            juce::MessageManager::callAsync ([this, deltaDeg]()
+            juce::MessageManager::callAsync ([this, getActiveCluster, deltaDeg]()
             {
-                int cluster = clustersTab ? clustersTab->getSelectedCluster() : 0;
+                int cluster = getActiveCluster();
                 if (cluster > 0 && mapTab)
                     mapTab->rotateClusterFromStreamDeck (cluster, deltaDeg);
             });
         };
 
-        controllerManager->callbacks.scaleCluster = [this] (float scaleFactor)
+        controllerManager->callbacks.scaleCluster = [this, getActiveCluster] (float scaleFactor)
         {
-            juce::MessageManager::callAsync ([this, scaleFactor]()
+            juce::MessageManager::callAsync ([this, getActiveCluster, scaleFactor]()
             {
-                int cluster = clustersTab ? clustersTab->getSelectedCluster() : 0;
+                int cluster = getActiveCluster();
                 if (cluster > 0 && mapTab)
                     mapTab->scaleClusterFromStreamDeck (cluster, scaleFactor);
             });
@@ -1140,8 +1234,12 @@ MainComponent::MainComponent()
         // Add SpaceMouse device
         controllerManager->addDevice (std::make_unique<SpaceMouseDevice>());
 
-        // Start velocity integration
+        // Start velocity integration, then disable if Position Control is Off
         controllerManager->start();
+        controllerManager->activeTab = tabbedComponent.getCurrentTabIndex();
+        int pcDevice = static_cast<int> (parameters.getConfigParam ("PositionControlDevice"));
+        if (pcDevice == 0)
+            controllerManager->setEnabled (false);
     }
 
     // Initialize Lightpad Manager (ROLI Lightpad Blocks)

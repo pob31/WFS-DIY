@@ -31,6 +31,14 @@ public:
 
     float getCenterValue() const noexcept { return centerValue; }
 
+    /** Set the thumb position from an external controller (visual only).
+        Does not trigger onValueChanged or onPositionPolled callbacks. */
+    void setThumbDeflection (float v)
+    {
+        value = juce::jlimit (minValue, maxValue, v);
+        repaint();
+    }
+
     // Set the reporting interval for continuous polling (like joystick)
     void setReportingIntervalHz(double intervalHz)
     {

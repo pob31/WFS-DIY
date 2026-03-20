@@ -46,6 +46,25 @@ public:
 
     std::pair<float, float> getCurrentPosition() const noexcept { return { normalizedPosition.x, normalizedPosition.y }; }
 
+    /** Set the thumb position externally (visual only, does NOT trigger onPositionChanged).
+        Values are -1..+1 for both axes. Used to show controller deflection. */
+    void setThumbPosition (float x, float y)
+    {
+        auto bounds = getLocalBounds().toFloat();
+        const auto strokeWidth = 2.0f;
+        const auto diameter = juce::jmin (bounds.getWidth(), bounds.getHeight()) - strokeWidth;
+        const auto radius = diameter * 0.5f;
+        static constexpr float thumbRatio = 0.33f;
+        const auto thumbRadius = radius * thumbRatio;
+        const auto maxThumbDistance = juce::jmax (0.0f, radius - thumbRadius);
+
+        normalizedPosition = { juce::jlimit (-1.0f, 1.0f, x),
+                               juce::jlimit (-1.0f, 1.0f, y) };
+        thumbOffset = { normalizedPosition.x * maxThumbDistance,
+                       -normalizedPosition.y * maxThumbDistance };  // Y inverted for screen coords
+        repaint();
+    }
+
 private:
     void paint(juce::Graphics& g) override
     {
