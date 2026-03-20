@@ -106,8 +106,8 @@ struct ControllerProfile
         // SpaceMouse push right = +X → WFS stage right (+X)
         p.axisMappings.add ({ 0, ControllerActions::moveX, 2.0f, 0.05f, 1.0f, false });
 
-        // SpaceMouse push away = +Y → WFS upstage (+Y)
-        p.axisMappings.add ({ 1, ControllerActions::moveY, 2.0f, 0.05f, 1.0f, false });
+        // SpaceMouse push away = -Y raw → WFS upstage (+Y), so invert
+        p.axisMappings.add ({ 1, ControllerActions::moveY, 2.0f, 0.05f, 1.0f, true });
 
         // SpaceMouse push down = +Z → WFS down (-Z), so invert
         p.axisMappings.add ({ 2, ControllerActions::moveZ, 2.0f, 0.05f, 1.0f, true });
@@ -115,7 +115,7 @@ struct ControllerProfile
         // Rotation axes — only twist (RotZ) mapped by default
         p.axisMappings.add ({ 3, ControllerActions::none,   0.0f, 0.05f, 1.0f, false });  // RotX unused
         p.axisMappings.add ({ 4, ControllerActions::none,   0.0f, 0.05f, 1.0f, false });  // RotY unused
-        p.axisMappings.add ({ 5, ControllerActions::rotate, 90.0f, 0.05f, 1.0f, false }); // RotZ → orientation (deg/s)
+        p.axisMappings.add ({ 5, ControllerActions::rotate, 90.0f, 0.05f, 1.0f, true });  // RotZ → orientation (deg/s), inverted
 
         // Buttons: prev/next input
         p.buttonMappings.add ({ 0, ControllerActions::prevInput });

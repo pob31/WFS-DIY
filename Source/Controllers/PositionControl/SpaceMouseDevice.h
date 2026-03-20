@@ -90,34 +90,49 @@ protected:
         // Enumerate all 3DConnexion devices (any product ID)
         auto* devList = hid_enumerate (VENDOR_ID_3DCONNEXION, 0x0000);
         if (devList == nullptr)
-            return false;
-
-        // Take the first available device
-        deviceHandle = hid_open_path (devList->path);
-
-        if (deviceHandle != nullptr)
         {
-            // Store the device name
-            if (devList->product_string != nullptr)
-            {
-                connectedDeviceName = juce::String (devList->product_string);
-            }
-            else
-            {
-                connectedDeviceName = "SpaceMouse";
-            }
-
-            hid_set_nonblocking (deviceHandle, 0);  // Blocking with timeout
-
-            // Reset state
-            std::memset (axisValues, 0, sizeof (axisValues));
-            std::memset (buttonStates, 0, sizeof (buttonStates));
-
-            DBG ("SpaceMouse connected: " + connectedDeviceName);
+            DBG ("SpaceMouseHID: no 3DConnexion devices found");
+            return false;
         }
 
+        // Log all enumerated interfaces
+        for (auto* cur = devList; cur != nullptr; cur = cur->next)
+        {
+            DBG ("SpaceMouseHID enumerate: PID=0x" + juce::String::toHexString (cur->product_id)
+                 + " usage_page=0x" + juce::String::toHexString (cur->usage_page)
+                 + " usage=0x" + juce::String::toHexString (cur->usage)
+                 + " interface=" + juce::String (cur->interface_number)
+                 + " product=" + juce::String (cur->product_string != nullptr ? cur->product_string : L"(null)"));
+        }
+
+        // Try each enumerated path until one opens successfully
+        for (auto* cur = devList; cur != nullptr; cur = cur->next)
+        {
+            deviceHandle = hid_open_path (cur->path);
+            if (deviceHandle != nullptr)
+            {
+                connectedDeviceName = (cur->product_string != nullptr)
+                    ? juce::String (cur->product_string)
+                    : juce::String ("SpaceMouse");
+
+                hid_set_nonblocking (deviceHandle, 0);  // Blocking with timeout
+
+                // Reset state
+                std::memset (axisValues, 0, sizeof (axisValues));
+                std::memset (buttonStates, 0, sizeof (buttonStates));
+
+                DBG ("SpaceMouse connected: " + connectedDeviceName
+                     + " (usage_page=0x" + juce::String::toHexString (cur->usage_page)
+                     + " usage=0x" + juce::String::toHexString (cur->usage) + ")");
+
+                hid_free_enumeration (devList);
+                return true;
+            }
+        }
+
+        DBG ("SpaceMouseHID: found devices but could not open any (driver conflict?)");
         hid_free_enumeration (devList);
-        return deviceHandle != nullptr;
+        return false;
     }
 
     void disconnect() override
@@ -159,16 +174,33 @@ private:
 
         uint8_t reportId = data[0];
 
+        // Log unexpected or first-seen report IDs
+        if (reportId != REPORT_TRANSLATION && reportId != REPORT_BUTTONS)
+        {
+            juce::String hex;
+            for (int i = 0; i < juce::jmin (length, 14); ++i)
+                hex += juce::String::toHexString (data[i]).paddedLeft ('0', 2) + " ";
+            DBG ("SpaceMouseHID report ID=" + juce::String (reportId)
+                 + " len=" + juce::String (length) + " data: " + hex.trim());
+        }
+
         switch (reportId)
         {
             case REPORT_TRANSLATION:
-                if (length >= 7)  // 1 byte ID + 6 bytes (3× int16)
-                    parseAxes (data + 1, 0);  // Axes 0-2
+                if (length >= 13)  // Combined report: 1 ID + 12 bytes (6× int16)
+                {
+                    parseAxes (data + 1, 0);  // Axes 0-2 (translation)
+                    parseAxes (data + 7, 3);  // Axes 3-5 (rotation)
+                }
+                else if (length >= 7)  // Split report: 1 ID + 6 bytes (3× int16)
+                {
+                    parseAxes (data + 1, 0);  // Axes 0-2 only
+                }
                 break;
 
             case REPORT_ROTATION:
                 if (length >= 7)
-                    parseAxes (data + 1, 3);  // Axes 3-5
+                    parseAxes (data + 1, 3);  // Axes 3-5 (split report mode)
                 break;
 
             case REPORT_BUTTONS:

@@ -172,6 +172,11 @@ private:
         // Cache the latest raw axis value — velocity integration happens in timerCallback
         auto key = std::make_pair (event.deviceId, event.axisOrButton);
         latestAxisValues[key] = event.value;
+
+        // Debug: log rotation axes (3-5) when they have significant values
+        if (event.axisOrButton >= 3 && std::abs (event.value) > 0.05f)
+            DBG ("SpaceMouse axis " + juce::String (event.axisOrButton)
+                 + " = " + juce::String (event.value, 3));
     }
 
     void handleButtonEvent (const ControllerEvent& event)
@@ -179,6 +184,10 @@ private:
         // Track persistent button state (for modifier behavior)
         buttonStates[{ event.deviceId, event.axisOrButton }] =
             (event.type == ControllerEvent::ButtonPressed);
+
+        // Only fire actions on press, not release
+        if (event.type != ControllerEvent::ButtonPressed)
+            return;
 
         // On Clusters tab, buttons are modifiers only — don't fire actions
         if (activeTab == 5)

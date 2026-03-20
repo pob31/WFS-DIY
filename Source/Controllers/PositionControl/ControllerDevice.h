@@ -56,7 +56,12 @@ public:
     void startMonitoring()
     {
         startTimer (2000);  // Check for device every 2 seconds
-        tryConnect();
+
+        if (tryConnect())
+        {
+            startThread (juce::Thread::Priority::normal);
+            dispatchEvent ({ ControllerEvent::Connected, getDeviceId(), 0, 0.0f, getDeviceName() });
+        }
     }
 
     /** Stop monitoring and disconnect. Call at app shutdown. */
