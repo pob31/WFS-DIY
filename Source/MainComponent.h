@@ -30,6 +30,7 @@
 #include "gui/ColorScheme.h"
 #include "DSP/LevelMeteringManager.h"
 #include "gui/WfsLookAndFeel.h"
+#include "gui/GettingStartedWizard.h"
 #include "Network/OSCManager.h"
 #include "Controllers/DialsAndButtons/StreamDeckManager.h"
 #include "Controllers/DialsAndButtons/QuickKeysManager.h"
@@ -124,6 +125,10 @@ public:
     // Level Meter Window
     void openLevelMeterWindow();
 
+    // Getting Started Wizard
+    void openGettingStartedWizard();
+    void closeGettingStartedWizard();
+
     // Gradient Map Support
     void updateGradientMapStageBounds();
     void rebuildGradientMapForInput (int channelIndex);
@@ -158,6 +163,8 @@ private:
     std::unique_ptr<NetworkLogWindow> networkLogWindow;
     std::unique_ptr<LevelMeterWindow> levelMeterWindow;
     std::unique_ptr<LevelMeteringManager> levelMeteringManager;
+    std::unique_ptr<GettingStartedWizard> gettingStartedWizard;
+    int lastWizardStepIndex = 0;
 
     // Custom LookAndFeel for centralized widget theming
     std::unique_ptr<WfsLookAndFeel> wfsLookAndFeel;

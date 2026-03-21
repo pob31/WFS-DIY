@@ -1943,5 +1943,67 @@ OFF",
         "frequency": "Frequency"
       }
     }
+  },
+
+  "wizard": {
+    "buttons": {
+      "gettingStarted": "Erste Schritte",
+      "next": "Weiter",
+      "back": "Zurück",
+      "close": "Schließen",
+      "done": "Fertig",
+      "skip": "Überspringen"
+    },
+    "stepIndicator": "Schritt {current} von {total}",
+    "steps": {
+      "projectFolder": {
+        "title": "Projektordner auswählen",
+        "description": "Wählen Sie einen Ordner für Ihre WFS-Projektdateien. Hier werden Konfigurationen, Snapshots, IR-Dateien und Samples gespeichert. Klicken Sie auf die Schaltfläche, um den Ordner auszuwählen."
+      },
+      "inputChannels": {
+        "title": "Eingangskanäle festlegen",
+        "description": "Wie viele Audioquellen werden Sie räumlich darstellen?\nStellen Sie die Anzahl der Eingangskanäle entsprechend ein."
+      },
+      "outputChannels": {
+        "title": "Ausgangskanäle festlegen",
+        "description": "Stellen Sie die Anzahl der Ausgangskanäle passend zu Ihrem Lautsprecher-Array ein.\nJeder Ausgang entspricht einem physischen Lautsprecher."
+      },
+      "reverbChannels": {
+        "title": "Hallkanäle festlegen",
+        "description": "Hallkanäle fügen eine Raumsimulation hinzu. Setzen Sie 0, wenn Sie keinen Hall benötigen."
+      },
+      "stageConfig": {
+        "title": "Bühne definieren",
+        "description": "Legen Sie Form und Abmessungen Ihres Aufführungsraums fest. Wählen Sie Box, Zylinder oder Kuppel und geben Sie die Maße in Metern ein."
+      },
+      "originPoint": {
+        "title": "Ursprungspunkt festlegen",
+        "description": "Der Ursprung ist der Referenzpunkt für alle Koordinaten. Verwenden Sie die Preset-Buttons oder geben Sie eigene Werte ein. 'Front' platziert ihn am Publikumsrand."
+      },
+      "audioInterface": {
+        "title": "Audio-Interface öffnen",
+        "description": "Klicken Sie auf die Schaltfläche oben oder drücken Sie Weiter, um das Audio-Interface-Fenster zu öffnen."
+      },
+      "audioDevice": {
+        "title": "Audio-Interface konfigurieren",
+        "description": "Wählen Sie Ihren Audiotreiber und Ihr Gerät, stellen Sie Abtastrate und Puffergröße ein. Überprüfen Sie das Routing und testen Sie Ihre Ausgänge. Schließen Sie dieses Fenster, wenn Sie fertig sind."
+      },
+      "wizardOfOutZ": {
+        "title": "Ausgänge positionieren",
+        "description": "Klicken Sie auf den Wizard of OutZ Button oder drücken Sie Weiter, um den Positionierungsassistenten zu öffnen."
+      },
+      "configureOutputs": {
+        "title": "Ausgangspositionen konfigurieren",
+        "description": "Verwenden Sie die Array-Presets und Geometrie-Tools, um Lautsprecherpositionen zu berechnen. Schließen Sie dieses Fenster, wenn Sie fertig sind."
+      },
+      "startProcessing": {
+        "title": "WFS-Engine starten",
+        "description": "Alles bereit! Halten Sie den Processing-Button gedrückt, um die WFS-Engine zu starten. Sie können auch den Binaural-Renderer für Kopfhörer-Monitoring starten."
+      },
+      "exploreInputs": {
+        "title": "Loslegen!",
+        "description": "Klicken Sie auf einen Eingang auf der Karte, um ihn auszuwählen, oder verwenden Sie das Lasso für mehrere. Ziehen Sie, um Ihre Quellen zu positionieren. Zoomen Sie mit dem Mausrad oder Pinch-Geste, verschieben Sie die Ansicht mit Rechtsklick oder Zwei-Finger-Geste. Fügen Sie Eingänge hinzu, gruppieren Sie sie in Cluster und gestalten Sie Ihr Klangfeld. Sie können Positionen auch mit Tastatur, SpaceMouse oder anderen Controllern steuern. Viel Spaß!"
+      }
+    }
   }
 }

@@ -192,6 +192,7 @@
 		A355E1801ECBDBE86E2A9382 /* include_juce_data_structures.mm */ /* include_juce_data_structures.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_data_structures.mm; path = ../../JuceLibraryCode/include_juce_data_structures.mm; sourceTree = SOURCE_ROOT; };
 		A39360C75305D0F857DC9FEE /* ClustersTab.h */ /* ClustersTab.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ClustersTab.h; path = ../../Source/gui/ClustersTab.h; sourceTree = SOURCE_ROOT; };
 		A3C78AAE2596180321C3F0F2 /* OSCMessageBuilder.cpp */ /* OSCMessageBuilder.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = OSCMessageBuilder.cpp; path = ../../Source/Network/OSCMessageBuilder.cpp; sourceTree = SOURCE_ROOT; };
+		A400E7223FA1004C445B4EC0 /* GettingStartedWizard.h */ /* GettingStartedWizard.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = GettingStartedWizard.h; path = ../../Source/gui/GettingStartedWizard.h; sourceTree = SOURCE_ROOT; };
 		A4F1E4E76239A3406C508215 /* juce_opengl */ /* juce_opengl */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_opengl; path = ../../ThirdParty/JUCE/modules/juce_opengl; sourceTree = SOURCE_ROOT; };
 		A578604C7C69A5F0AB6D4219 /* include_juce_audio_processors_headless_ara.cpp */ /* include_juce_audio_processors_headless_ara.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_audio_processors_headless_ara.cpp; path = ../../JuceLibraryCode/include_juce_audio_processors_headless_ara.cpp; sourceTree = SOURCE_ROOT; };
 		A6107472373FC76F35C046C0 /* MainComponent.cpp */ /* MainComponent.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MainComponent.cpp; path = ../../Source/MainComponent.cpp; sourceTree = SOURCE_ROOT; };
@@ -451,6 +452,7 @@
 				6756E8867E1756DA0DF2481A,
 				3CB4457FB0C8A8E65B84BAAA,
 				C13194A76B6B84669C156769,
+				A400E7223FA1004C445B4EC0,
 				344E94DE75CE8AD15E5DF4F7,
 				23EC5C0EFA931E9866518795,
 				0724D2EC3F7252162C616AE8,

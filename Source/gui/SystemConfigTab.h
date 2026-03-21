@@ -210,6 +210,7 @@ public:
     using SamplerCallback = std::function<void(bool enabled)>;
     using LightpadSplitCallback = std::function<void(int padIndex, bool split)>;
     using BinauralCallback = std::function<void(bool enabled)>;
+    using GettingStartedCallback = std::function<void()>;
 
     SystemConfigTab(WfsParameters& params)
         : parameters(params)
@@ -244,6 +245,13 @@ public:
         reverbChannelsLabel.setText(LOC("systemConfig.labels.reverbChannels"), juce::dontSendNotification);
         addAndMakeVisible(reverbChannelsEditor);
         // (reverbChannelsEditor uses default border)
+
+        addAndMakeVisible(gettingStartedButton);
+        gettingStartedButton.setButtonText(LOC("wizard.buttons.gettingStarted"));
+        gettingStartedButton.onClick = [this]() {
+            if (onGettingStartedRequested)
+                onGettingStartedRequested();
+        };
 
         addAndMakeVisible(audioPatchingButton);
         audioPatchingButton.setButtonText(LOC("systemConfig.buttons.audioPatch"));
@@ -1026,6 +1034,13 @@ public:
         // Solo mode button
         soloModeButton.setBounds(x, y, binauralFullWidth, rowHeight);
 
+        // Getting Started button — bottom of column 1, just above footer
+        {
+            const int footerH = 2 * scaled(30) + 3 * scaled(10);
+            int gsY = getHeight() - footerH - scaled(10) - rowHeight;
+            gettingStartedButton.setBounds(layout.col1X, gsY, layout.colWidth, rowHeight);
+        }
+
         // Footer buttons - full width at bottom (matching Output tab style)
         const int footerHeight = 2 * scaled(30) + 3 * scaled(10);  // Two 30px button rows + 10px spacing + 20px padding
         const int footerPadding = scaled(10);
@@ -1120,6 +1135,84 @@ public:
     void setBinauralCallback(BinauralCallback callback)
     {
         onBinauralChanged = callback;
+    }
+
+    void setGettingStartedCallback(GettingStartedCallback callback)
+    {
+        onGettingStartedRequested = callback;
+    }
+
+    //==============================================================================
+    // Bounds accessors for GettingStartedWizard spotlight targeting.
+    // Each returns the component bounds in this tab's coordinate space.
+
+    juce::Rectangle<int> getProjectFolderButtonBounds() const
+    {
+        return selectProjectFolderButton.getBounds();
+    }
+
+    juce::Rectangle<int> getInputChannelsBounds() const
+    {
+        return inputChannelsLabel.getBounds().getUnion(inputChannelsEditor.getBounds());
+    }
+
+    juce::Rectangle<int> getOutputChannelsBounds() const
+    {
+        return outputChannelsLabel.getBounds().getUnion(outputChannelsEditor.getBounds());
+    }
+
+    juce::Rectangle<int> getReverbChannelsBounds() const
+    {
+        return reverbChannelsLabel.getBounds().getUnion(reverbChannelsEditor.getBounds());
+    }
+
+    juce::Rectangle<int> getStageSectionBounds() const
+    {
+        // Union of all visible stage fields from shape selector to height
+        auto bounds = stageShapeLabel.getBounds().getUnion(stageShapeSelector.getBounds());
+        if (stageWidthLabel.isVisible())
+            bounds = bounds.getUnion(stageWidthLabel.getBounds()).getUnion(stageWidthEditor.getBounds()).getUnion(stageWidthUnitLabel.getBounds());
+        if (stageDiameterLabel.isVisible())
+            bounds = bounds.getUnion(stageDiameterLabel.getBounds()).getUnion(stageDiameterEditor.getBounds()).getUnion(stageDiameterUnitLabel.getBounds());
+        if (stageDepthLabel.isVisible())
+            bounds = bounds.getUnion(stageDepthLabel.getBounds()).getUnion(stageDepthEditor.getBounds()).getUnion(stageDepthUnitLabel.getBounds());
+        if (domeElevationLabel.isVisible())
+            bounds = bounds.getUnion(domeElevationLabel.getBounds()).getUnion(domeElevationEditor.getBounds()).getUnion(domeElevationUnitLabel.getBounds());
+        if (stageHeightLabel.isVisible())
+            bounds = bounds.getUnion(stageHeightLabel.getBounds()).getUnion(stageHeightEditor.getBounds()).getUnion(stageHeightUnitLabel.getBounds());
+        return bounds;
+    }
+
+    juce::Rectangle<int> getOriginSectionBounds() const
+    {
+        auto bounds = stageOriginWidthLabel.getBounds()
+            .getUnion(stageOriginWidthEditor.getBounds())
+            .getUnion(originFrontButton.getBounds())
+            .getUnion(stageOriginDepthLabel.getBounds())
+            .getUnion(stageOriginDepthEditor.getBounds())
+            .getUnion(originCenterGroundButton.getBounds())
+            .getUnion(stageOriginHeightLabel.getBounds())
+            .getUnion(stageOriginHeightEditor.getBounds())
+            .getUnion(originCenterButton.getBounds());
+        return bounds;
+    }
+
+    juce::Rectangle<int> getAudioPatchingButtonBounds() const
+    {
+        return audioPatchingButton.getBounds();
+    }
+
+    juce::Rectangle<int> getProcessingButtonBounds() const
+    {
+        return processingButton.getBounds();
+    }
+
+    /** Returns the full Column 3 area (processing + binaural) so wizard card positions to the left. */
+    juce::Rectangle<int> getColumn3Bounds() const
+    {
+        return audioPatchingButton.getBounds()
+            .getUnion(processingButton.getBounds())
+            .getUnion(soloModeButton.getBounds());
     }
 
     /** Grab focus when this tab becomes visible to prevent auto-focus on first TextEditor */
@@ -1396,6 +1489,7 @@ private:
         // Processing button state
         processingEnabled = (bool)parameters.getConfigParam("ProcessingEnabled");
         processingButton.setButtonText(processingEnabled ? LOC("systemConfig.buttons.processingOn") : LOC("systemConfig.buttons.processingOff"));
+        gettingStartedButton.setVisible(!processingEnabled);
 
         // Dials and Buttons device selector
         {
@@ -1785,6 +1879,7 @@ private:
     {
         processingEnabled = !processingEnabled;
         processingButton.setButtonText(processingEnabled ? LOC("systemConfig.buttons.processingOn") : LOC("systemConfig.buttons.processingOff"));
+        gettingStartedButton.setVisible(!processingEnabled);
         parameters.setConfigParam("ProcessingEnabled", processingEnabled);
 
         // Lock/unlock I/O controls based on processing state
@@ -2481,6 +2576,7 @@ public:
         helpTextMap[&inputChannelsEditor] = LOC("systemConfig.help.inputChannels");
         helpTextMap[&outputChannelsEditor] = LOC("systemConfig.help.outputChannels");
         helpTextMap[&reverbChannelsEditor] = LOC("systemConfig.help.reverbChannels");
+        helpTextMap[&gettingStartedButton] = LOC("wizard.steps.projectFolder.description");
         helpTextMap[&audioPatchingButton] = LOC("systemConfig.help.audioPatch");
         helpTextMap[&algorithmSelector] = LOC("systemConfig.help.algorithm");
         helpTextMap[&processingButton] = LOC("systemConfig.help.processing");
@@ -2631,6 +2727,7 @@ public:
     juce::TextEditor outputChannelsEditor;
     juce::Label reverbChannelsLabel;
     juce::TextEditor reverbChannelsEditor;
+    juce::TextButton gettingStartedButton;
     juce::TextButton audioPatchingButton;
     juce::Label algorithmLabel;
     juce::ComboBox algorithmSelector;
@@ -2747,6 +2844,7 @@ public:
     SamplerCallback onSamplerEnabledChanged;
     LightpadSplitCallback onLightpadSplitChanged;
     BinauralCallback onBinauralChanged;
+    GettingStartedCallback onGettingStartedRequested;
 
     // Helper to notify MainComponent of any channel count change
     void notifyChannelCountChanged()

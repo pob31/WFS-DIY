@@ -1943,5 +1943,67 @@ OFF",
         "frequency": "Frequency"
       }
     }
+  },
+
+  "wizard": {
+    "buttons": {
+      "gettingStarted": "入门指南",
+      "next": "下一步",
+      "back": "上一步",
+      "close": "关闭",
+      "done": "完成",
+      "skip": "跳过"
+    },
+    "stepIndicator": "步骤 {current} / {total}",
+    "steps": {
+      "projectFolder": {
+        "title": "选择项目文件夹",
+        "description": "选择一个文件夹来存储您的WFS项目文件。它将保存配置、快照、IR文件和采样。点击按钮打开文件夹选择器。"
+      },
+      "inputChannels": {
+        "title": "设置输入通道数",
+        "description": "您将空间化多少个音频源？\n根据源数量设置输入通道数。"
+      },
+      "outputChannels": {
+        "title": "设置输出通道数",
+        "description": "根据您的扬声器阵列设置输出通道数。\n每个输出对应一个物理扬声器。"
+      },
+      "reverbChannels": {
+        "title": "设置混响通道数",
+        "description": "混响通道添加房间模拟。如果不需要混响，请设置为0。"
+      },
+      "stageConfig": {
+        "title": "定义舞台",
+        "description": "设置演出空间的形状和尺寸。选择箱体、圆柱或穹顶，然后以米为单位输入尺寸。"
+      },
+      "originPoint": {
+        "title": "设置原点",
+        "description": "原点是所有坐标的参考点。使用预设按钮或输入自定义值。'Front'将其放置在观众边缘。"
+      },
+      "audioInterface": {
+        "title": "打开音频接口",
+        "description": "点击上方按钮或按下一步打开音频接口窗口。"
+      },
+      "audioDevice": {
+        "title": "配置音频接口",
+        "description": "选择音频驱动程序和设备，设置采样率和缓冲区大小。检查补丁路由并测试输出。完成后关闭此窗口。"
+      },
+      "wizardOfOutZ": {
+        "title": "定位输出",
+        "description": "点击Wizard of OutZ按钮或按下一步打开定位助手。"
+      },
+      "configureOutputs": {
+        "title": "配置输出位置",
+        "description": "使用阵列预设和几何工具计算扬声器位置。完成后关闭此窗口。"
+      },
+      "startProcessing": {
+        "title": "启动WFS引擎",
+        "description": "一切就绪！长按Processing按钮启动WFS引擎。您也可以启动双耳渲染器进行耳机监听。"
+      },
+      "exploreInputs": {
+        "title": "开始创作！",
+        "description": "点击地图上的输入进行选择，或用套索选择多个。拖动定位您的声源。用鼠标滚轮或捏合手势缩放，用右键拖动或双指拖动平移。添加输入，将它们分组为集群，塑造您的声场。您还可以用键盘、SpaceMouse或其他控制器控制位置。尽情享受！"
+      }
+    }
   }
 }

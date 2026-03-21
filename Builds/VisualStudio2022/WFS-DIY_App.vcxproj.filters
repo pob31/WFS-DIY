@@ -4083,6 +4083,9 @@
     <ClInclude Include="..\..\Source\gui\StatusBar.h">
       <Filter>WFS-DIY\Source\gui</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\gui\GettingStartedWizard.h">
+      <Filter>WFS-DIY\Source\gui</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\gui\SystemConfigTab.h">
       <Filter>WFS-DIY\Source\gui</Filter>
     </ClInclude>

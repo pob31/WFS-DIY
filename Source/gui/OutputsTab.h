@@ -335,6 +335,9 @@ public:
     /** Callback when Level Meter window is requested */
     std::function<void()> onLevelMeterWindowRequested;
 
+    /** Callback when the array position helper (Wizard of OutZ) is opened */
+    std::function<void()> onArrayHelperOpened;
+
     /** Callback when output channel selection changes (1-based channel ID). */
     std::function<void(int)> onChannelSelected;
 
@@ -473,6 +476,20 @@ public:
         setupOscMethods();
         setupMouseListeners();
     }
+
+    juce::Rectangle<int> getArrayHelperButtonBounds() const
+    {
+        return arrayPositionHelperButton.getBounds();
+    }
+
+    /** Open the Wizard of OutZ (output array helper window) — public entry point. */
+    void requestOpenArrayHelper()
+    {
+        openArrayPositionHelper();
+    }
+
+    /** Get the array helper window pointer (may be null if not yet opened). */
+    OutputArrayHelperWindow* getArrayHelperWindow() { return arrayHelperWindow.get(); }
 
     //==========================================================================
     // KeyListener — Tab on nameEditor cycles to next/prev channel
@@ -2227,6 +2244,9 @@ private:
 
         arrayHelperWindow->setVisible(true);
         arrayHelperWindow->toFront(true);
+
+        if (onArrayHelperOpened)
+            onArrayHelperOpened();
     }
 
     //==============================================================================

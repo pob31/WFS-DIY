@@ -286,6 +286,10 @@ MainComponent::MainComponent()
         handleConfigReloaded();
     });
 
+    systemConfigTab->setGettingStartedCallback([this]() {
+        openGettingStartedWizard();
+    });
+
     systemConfigTab->setDialsAndButtonsCallback ([this] (int deviceIndex)
     {
         // 0=Off, 1=Stream Deck+, 2=XenceLabs Quick Keys
@@ -464,6 +468,15 @@ MainComponent::MainComponent()
 
     outputsTab->onLevelMeterWindowRequested = [this]() {
         openLevelMeterWindow();
+    };
+
+    outputsTab->onArrayHelperOpened = [this]() {
+        // If wizard is on the "Open Wizard of OutZ" step, auto-advance
+        if (gettingStartedWizard && gettingStartedWizard->isActive()
+            && gettingStartedWizard->getCurrentStepIndex() == 8)
+        {
+            gettingStartedWizard->nextStep();
+        }
     };
 
     reverbTab->onConfigReloaded = [this]() {
@@ -2823,6 +2836,13 @@ void MainComponent::openAudioInterfaceWindow()
     // (activeWindowStatusChanged doesn't fire reliably on first show or reshow)
     if (audioInterfaceWindow->onWindowFocused)
         audioInterfaceWindow->onWindowFocused();
+
+    // If wizard is on the "Open Audio Interface" step, auto-advance
+    if (gettingStartedWizard && gettingStartedWizard->isActive()
+        && gettingStartedWizard->getCurrentStepIndex() == 6)
+    {
+        gettingStartedWizard->nextStep();
+    }
 }
 
 void MainComponent::openNetworkLogWindow()
@@ -2862,6 +2882,233 @@ void MainComponent::openLevelMeterWindow()
         levelMeterWindow->toFront(true);
         levelMeteringManager->setMeterWindowEnabled(true);
     }
+}
+
+//==============================================================================
+void MainComponent::openGettingStartedWizard()
+{
+    // Close any existing wizard first
+    gettingStartedWizard.reset();
+
+    gettingStartedWizard = std::make_unique<GettingStartedWizard>(
+        *this,
+        [this](int tabIndex) { tabbedComponent.setCurrentTabIndex(tabIndex); }
+    );
+
+    gettingStartedWizard->onWizardClosed = [this]() {
+        // Save current step for resume (reset to 0 if wizard was completed)
+        if (gettingStartedWizard)
+        {
+            int step = gettingStartedWizard->getCurrentStepIndex();
+            lastWizardStepIndex = (step >= 11) ? 0 : step; // 11 = last step index (Explore Inputs)
+        }
+        // Clear window-close hooks so they don't fire after wizard is gone
+        if (audioInterfaceWindow)
+            audioInterfaceWindow->onWindowClosed = nullptr;
+        gettingStartedWizard.reset();
+    };
+
+    // Helper: convert bounds from a tab's local coords to MainComponent coords
+    auto tabBoundsToMain = [this](juce::Component* tab, juce::Rectangle<int> localBounds) -> juce::Rectangle<int> {
+        if (tab == nullptr) return {};
+        auto topLeft = tab->localPointToGlobal(localBounds.getTopLeft());
+        auto bottomRight = tab->localPointToGlobal(localBounds.getBottomRight());
+        return juce::Rectangle<int>(getLocalPoint(nullptr, topLeft),
+                                     getLocalPoint(nullptr, bottomRight));
+    };
+
+    // Step indices (0-based) for skip targets:
+    // 0=ProjectFolder, 1=Inputs, 2=Outputs, 3=Reverbs, 4=Stage, 5=Origin,
+    // 6=OpenAudioInterface, 7=ConfigureAudioInterface,
+    // 8=OpenWizardOfOutZ, 9=ConfigureOutputPositions,
+    // 10=StartProcessing
+
+    // Step 0: Select Project Folder
+    gettingStartedWizard->addStep({
+        0, // SystemConfig tab
+        "wizard.steps.projectFolder.title",
+        "wizard.steps.projectFolder.description",
+        [this, tabBoundsToMain]() -> juce::Rectangle<int> {
+            return tabBoundsToMain(systemConfigTab, systemConfigTab->getProjectFolderButtonBounds());
+        },
+        [this]() -> bool {
+            return parameters.getFileManager().hasValidProjectFolder();
+        },
+        nullptr, nullptr, -1
+    });
+
+    // Step 1: Set Input Channels
+    gettingStartedWizard->addStep({
+        0,
+        "wizard.steps.inputChannels.title",
+        "wizard.steps.inputChannels.description",
+        [this, tabBoundsToMain]() -> juce::Rectangle<int> {
+            return tabBoundsToMain(systemConfigTab, systemConfigTab->getInputChannelsBounds());
+        },
+        [this]() -> bool { return parameters.getNumInputChannels() > 0; },
+        nullptr, nullptr, -1
+    });
+
+    // Step 2: Set Output Channels
+    gettingStartedWizard->addStep({
+        0,
+        "wizard.steps.outputChannels.title",
+        "wizard.steps.outputChannels.description",
+        [this, tabBoundsToMain]() -> juce::Rectangle<int> {
+            return tabBoundsToMain(systemConfigTab, systemConfigTab->getOutputChannelsBounds());
+        },
+        [this]() -> bool { return parameters.getNumOutputChannels() > 0; },
+        nullptr, nullptr, -1
+    });
+
+    // Step 3: Set Reverb Channels
+    gettingStartedWizard->addStep({
+        0,
+        "wizard.steps.reverbChannels.title",
+        "wizard.steps.reverbChannels.description",
+        [this, tabBoundsToMain]() -> juce::Rectangle<int> {
+            return tabBoundsToMain(systemConfigTab, systemConfigTab->getReverbChannelsBounds());
+        },
+        nullptr, nullptr, nullptr, -1
+    });
+
+    // Step 4: Set Stage Shape & Size
+    gettingStartedWizard->addStep({
+        0,
+        "wizard.steps.stageConfig.title",
+        "wizard.steps.stageConfig.description",
+        [this, tabBoundsToMain]() -> juce::Rectangle<int> {
+            return tabBoundsToMain(systemConfigTab, systemConfigTab->getStageSectionBounds());
+        },
+        nullptr, nullptr, nullptr, -1
+    });
+
+    // Step 5: Set Origin Point
+    gettingStartedWizard->addStep({
+        0,
+        "wizard.steps.originPoint.title",
+        "wizard.steps.originPoint.description",
+        [this, tabBoundsToMain]() -> juce::Rectangle<int> {
+            return tabBoundsToMain(systemConfigTab, systemConfigTab->getOriginSectionBounds());
+        },
+        nullptr, nullptr, nullptr, -1
+    });
+
+    // Step 6: Open Audio Interface (spotlight on button, Skip to bypass)
+    gettingStartedWizard->addStep({
+        0,
+        "wizard.steps.audioInterface.title",
+        "wizard.steps.audioInterface.description",
+        [this, tabBoundsToMain]() -> juce::Rectangle<int> {
+            return tabBoundsToMain(systemConfigTab, systemConfigTab->getAudioPatchingButtonBounds());
+        },
+        [this]() -> bool { return deviceManager.getCurrentAudioDevice() != nullptr; },
+        nullptr, nullptr, -1
+    });
+
+    // Step 7: Configure Audio Interface (card ON external window, no skip)
+    gettingStartedWizard->addStep({
+        -1, // stay on current tab
+        "wizard.steps.audioDevice.title",
+        "wizard.steps.audioDevice.description",
+        []() -> juce::Rectangle<int> { return {}; }, // no spotlight on main window
+        [this]() -> bool { return deviceManager.getCurrentAudioDevice() != nullptr; },
+        [this]() {
+            // Open the Audio Interface window
+            openAudioInterfaceWindow();
+            // Wire close callback to advance wizard when window is closed
+            if (audioInterfaceWindow)
+            {
+                audioInterfaceWindow->onWindowClosed = [this]() {
+                    if (gettingStartedWizard && gettingStartedWizard->isActive()
+                        && gettingStartedWizard->getCurrentStepIndex() == 7)
+                    {
+                        gettingStartedWizard->nextStep();
+                    }
+                };
+            }
+        },
+        // getExternalWindowContent: return the AudioInterfaceWindow's content
+        [this]() -> juce::Component* {
+            return audioInterfaceWindow ? audioInterfaceWindow->getContentComp() : nullptr;
+        },
+        -1 // no skip — user is already in the window
+    });
+
+    // Step 8: Open Wizard of OutZ (spotlight on button, Skip to bypass)
+    gettingStartedWizard->addStep({
+        2, // Outputs tab
+        "wizard.steps.wizardOfOutZ.title",
+        "wizard.steps.wizardOfOutZ.description",
+        [this, tabBoundsToMain]() -> juce::Rectangle<int> {
+            return tabBoundsToMain(outputsTab, outputsTab->getArrayHelperButtonBounds());
+        },
+        nullptr, nullptr, nullptr, -1
+    });
+
+    // Step 9: Configure Output Positions (card ON Wizard of OutZ window)
+    gettingStartedWizard->addStep({
+        -1,
+        "wizard.steps.configureOutputs.title",
+        "wizard.steps.configureOutputs.description",
+        []() -> juce::Rectangle<int> { return {}; },
+        nullptr,
+        [this]() {
+            // Open the Wizard of OutZ
+            outputsTab->requestOpenArrayHelper();
+            // Wire close callback
+            if (auto* window = outputsTab->getArrayHelperWindow())
+            {
+                window->onWindowClosed = [this]() {
+                    if (gettingStartedWizard && gettingStartedWizard->isActive()
+                        && gettingStartedWizard->getCurrentStepIndex() == 9)
+                    {
+                        gettingStartedWizard->nextStep();
+                    }
+                };
+            }
+        },
+        [this]() -> juce::Component* {
+            auto* window = outputsTab->getArrayHelperWindow();
+            return window ? window->getContentComp() : nullptr;
+        },
+        -1 // no skip — user is already in the window
+    });
+
+    // Step 10: Start Processing — spotlight covers full col3 so the card positions to the left
+    gettingStartedWizard->addStep({
+        0, // SystemConfig tab
+        "wizard.steps.startProcessing.title",
+        "wizard.steps.startProcessing.description",
+        [this, tabBoundsToMain]() -> juce::Rectangle<int> {
+            return tabBoundsToMain(systemConfigTab, systemConfigTab->getColumn3Bounds());
+        },
+        [this]() -> bool { return processingEnabled; },
+        nullptr, nullptr, -1
+    });
+
+    // Step 11: Explore Inputs — final step on the Map tab, free interaction with fade-out
+    {
+        WizardStep exploreStep;
+        exploreStep.tabIndex = 6; // Map tab
+        exploreStep.titleKey = "wizard.steps.exploreInputs.title";
+        exploreStep.descriptionKey = "wizard.steps.exploreInputs.description";
+        exploreStep.getSpotlightBounds = nullptr;
+        exploreStep.isComplete = nullptr;
+        exploreStep.onEnter = nullptr;
+        exploreStep.getExternalWindowContent = nullptr;
+        exploreStep.skipToStepIndex = -1;
+        exploreStep.freeInteraction = true;
+        gettingStartedWizard->addStep(std::move(exploreStep));
+    }
+
+    gettingStartedWizard->startFromStep(lastWizardStepIndex);
+}
+
+void MainComponent::closeGettingStartedWizard()
+{
+    if (gettingStartedWizard)
+        gettingStartedWizard->close();
 }
 
 //==============================================================================
@@ -3403,6 +3650,10 @@ void MainComponent::resized()
 
     // Tabbed component takes remaining space
     tabbedComponent.setBounds(bounds);
+
+    // Update wizard overlay if active
+    if (gettingStartedWizard && gettingStartedWizard->isActive())
+        gettingStartedWizard->updateLayout();
 }
 
 //==============================================================================

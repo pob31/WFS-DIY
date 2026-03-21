@@ -328,6 +328,9 @@ public:
     void closeButtonPressed() override
     {
         setVisible(false);
+
+        if (onWindowClosed)
+            onWindowClosed();
     }
 
     void colorSchemeChanged() override
@@ -337,6 +340,12 @@ public:
         if (content != nullptr)
             content->repaint();
     }
+
+    /** Callback when window is closed via the close button. */
+    std::function<void()> onWindowClosed;
+
+    /** Get the content component for external overlay use. */
+    juce::Component* getContentComp() { return getContentComponent(); }
 
 private:
     std::unique_ptr<OutputArrayHelperContent> content;

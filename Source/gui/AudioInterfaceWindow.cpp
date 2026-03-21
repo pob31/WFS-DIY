@@ -715,6 +715,9 @@ void AudioInterfaceWindow::closeButtonPressed()
     }
 
     setVisible(false);
+
+    if (onWindowClosed)
+        onWindowClosed();
 }
 
 void AudioInterfaceWindow::setProcessingStateChanged(bool isProcessing)

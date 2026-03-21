@@ -222,6 +222,12 @@ public:
     /** Callback when this window loses focus. */
     std::function<void()> onWindowUnfocused;
 
+    /** Callback when window is closed via the close button. */
+    std::function<void()> onWindowClosed;
+
+    /** Get the content component for external overlay use. */
+    juce::Component* getContentComp() { return getContentComponent(); }
+
 private:
     TestSignalGenerator* testSignalGenerator;
     AudioInterfaceContent* content = nullptr;  // Owned by DocumentWindow

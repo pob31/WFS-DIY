@@ -1943,5 +1943,67 @@ OFF",
         "frequency": "Frequency"
       }
     }
+  },
+
+  "wizard": {
+    "buttons": {
+      "gettingStarted": "Inicio",
+      "next": "Siguiente",
+      "back": "Anterior",
+      "close": "Cerrar",
+      "done": "Listo",
+      "skip": "Saltar"
+    },
+    "stepIndicator": "Paso {current} de {total}",
+    "steps": {
+      "projectFolder": {
+        "title": "Seleccionar carpeta de proyecto",
+        "description": "Elija una carpeta para almacenar los archivos de su proyecto WFS. Contendrá configuraciones, snapshots, archivos IR y samples. Haga clic en el botón para abrir el selector de carpetas."
+      },
+      "inputChannels": {
+        "title": "Configurar canales de entrada",
+        "description": "¿Cuántas fuentes de audio va a espacializar?\nEstablezca el número de canales de entrada según sus fuentes."
+      },
+      "outputChannels": {
+        "title": "Configurar canales de salida",
+        "description": "Establezca el número de canales de salida según su arreglo de altavoces.\nCada salida corresponde a un altavoz físico."
+      },
+      "reverbChannels": {
+        "title": "Configurar canales de reverberación",
+        "description": "Los canales de reverberación añaden simulación de sala. Establezca 0 si no necesita reverberación."
+      },
+      "stageConfig": {
+        "title": "Definir el escenario",
+        "description": "Establezca la forma y dimensiones de su espacio de actuación. Elija caja, cilindro o cúpula, luego ingrese las medidas en metros."
+      },
+      "originPoint": {
+        "title": "Establecer el punto de origen",
+        "description": "El origen es el punto de referencia para todas las coordenadas. Use los botones de preselección o ingrese valores personalizados. 'Front' lo coloca en el borde del público."
+      },
+      "audioInterface": {
+        "title": "Abrir la interfaz de audio",
+        "description": "Haga clic en el botón de arriba o presione Siguiente para abrir la ventana de la interfaz de audio."
+      },
+      "audioDevice": {
+        "title": "Configurar la interfaz de audio",
+        "description": "Seleccione su controlador y dispositivo de audio, establezca la frecuencia de muestreo y el tamaño del búfer. Verifique el enrutamiento y pruebe sus salidas. Cierre esta ventana cuando termine."
+      },
+      "wizardOfOutZ": {
+        "title": "Posicionar sus salidas",
+        "description": "Haga clic en el botón Wizard of OutZ o presione Siguiente para abrir el asistente de posicionamiento."
+      },
+      "configureOutputs": {
+        "title": "Configurar posiciones de salida",
+        "description": "Use los presets de arreglos y herramientas de geometría para calcular las posiciones de los altavoces. Cierre esta ventana cuando termine."
+      },
+      "startProcessing": {
+        "title": "Iniciar el motor WFS",
+        "description": "¡Todo listo! Mantenga presionado el botón Processing para iniciar el motor WFS. También puede iniciar el renderizador binaural para monitoreo con auriculares."
+      },
+      "exploreInputs": {
+        "title": "¡Empiece a crear!",
+        "description": "Haga clic en una entrada en el mapa para seleccionarla, o use el lazo para seleccionar varias. Arrastre para posicionar sus fuentes. Zoom con la rueda del ratón o gesto de pellizco, desplace la vista con clic derecho o arrastre con dos dedos. Añada entradas, agrúpelas en clusters y dé forma a su campo sonoro. También puede controlar posiciones con teclado, SpaceMouse u otros controladores. ¡Diviértase!"
+      }
+    }
   }
 }

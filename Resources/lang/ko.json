@@ -1905,5 +1905,67 @@ OFF",
         "frequency": "Frequency"
       }
     }
+  },
+
+  "wizard": {
+    "buttons": {
+      "gettingStarted": "시작하기",
+      "next": "다음",
+      "back": "이전",
+      "close": "닫기",
+      "done": "완료",
+      "skip": "건너뛰기"
+    },
+    "stepIndicator": "{total}단계 중 {current}단계",
+    "steps": {
+      "projectFolder": {
+        "title": "프로젝트 폴더 선택",
+        "description": "WFS 프로젝트 파일을 저장할 폴더를 선택하세요. 구성, 스냅샷, IR 파일, 샘플이 저장됩니다. 버튼을 클릭하여 폴더 선택기를 엽니다."
+      },
+      "inputChannels": {
+        "title": "입력 채널 수 설정",
+        "description": "몇 개의 오디오 소스를 공간화하시겠습니까?\n소스 수에 맞게 입력 채널 수를 설정하세요."
+      },
+      "outputChannels": {
+        "title": "출력 채널 수 설정",
+        "description": "스피커 어레이에 맞게 출력 채널 수를 설정하세요.\n각 출력은 하나의 물리적 스피커에 해당합니다."
+      },
+      "reverbChannels": {
+        "title": "리버브 채널 수 설정",
+        "description": "리버브 채널은 공간 시뮬레이션을 추가합니다. 리버브가 필요하지 않으면 0으로 설정하세요."
+      },
+      "stageConfig": {
+        "title": "무대 정의",
+        "description": "공연 공간의 형태와 크기를 설정합니다. 박스, 실린더, 돔 중 선택하고 미터 단위로 크기를 입력하세요."
+      },
+      "originPoint": {
+        "title": "원점 설정",
+        "description": "원점은 모든 좌표의 기준점입니다. 프리셋 버튼을 사용하거나 사용자 정의 값을 입력하세요. 'Front'는 관객 쪽 가장자리에 배치합니다."
+      },
+      "audioInterface": {
+        "title": "오디오 인터페이스 열기",
+        "description": "위의 버튼을 클릭하거나 다음을 눌러 오디오 인터페이스 창을 엽니다."
+      },
+      "audioDevice": {
+        "title": "오디오 인터페이스 구성",
+        "description": "오디오 드라이버와 장치를 선택하고 샘플레이트와 버퍼 크기를 설정하세요. 패치 라우팅을 확인하고 출력을 테스트하세요. 완료되면 이 창을 닫으세요."
+      },
+      "wizardOfOutZ": {
+        "title": "출력 위치 지정",
+        "description": "Wizard of OutZ 버튼을 클릭하거나 다음을 눌러 위치 지정 도우미를 엽니다."
+      },
+      "configureOutputs": {
+        "title": "출력 위치 구성",
+        "description": "어레이 프리셋과 지오메트리 도구를 사용하여 스피커 위치를 계산하세요. 완료되면 이 창을 닫으세요."
+      },
+      "startProcessing": {
+        "title": "WFS 엔진 시작",
+        "description": "준비 완료! Processing 버튼을 길게 눌러 WFS 엔진을 시작하세요. 헤드폰 모니터링용 바이노럴 렌더러도 시작할 수 있습니다."
+      },
+      "exploreInputs": {
+        "title": "만들기 시작!",
+        "description": "맵에서 입력을 클릭하여 선택하거나 올가미로 여러 개를 선택하세요. 드래그하여 소스를 배치합니다. 마우스 휠이나 핀치로 줌, 우클릭 드래그나 두 손가락 드래그로 팬할 수 있습니다. 입력을 추가하고 클러스터로 그룹화하여 사운드 필드를 만드세요. 키보드, SpaceMouse 또는 기타 컨트롤러로도 위치를 제어할 수 있습니다. 즐기세요!"
+      }
+    }
   }
 }
