@@ -1389,6 +1389,33 @@ void WFSValueTreeState::setNumReverbChannels (int numChannels)
     reverbs.setProperty (count, numChannels, getActiveUndoManager());
 }
 
+void WFSValueTreeState::updateHardwareChannelCount (int hwInputs, int hwOutputs)
+{
+    auto audioPatch = state.getChildWithName (AudioPatch);
+    if (! audioPatch.isValid())
+        return;
+
+    constexpr int maxHW = 64;
+
+    auto inputPatchTree = audioPatch.getChildWithName (InputPatch);
+    if (inputPatchTree.isValid())
+    {
+        int currentCols = inputPatchTree.getProperty (cols, maxHW);
+        int newCols = juce::jmin (juce::jmax (hwInputs, currentCols), maxHW);
+        if (newCols != currentCols)
+            inputPatchTree.setProperty (cols, newCols, nullptr);
+    }
+
+    auto outputPatchTree = audioPatch.getChildWithName (OutputPatch);
+    if (outputPatchTree.isValid())
+    {
+        int currentCols = outputPatchTree.getProperty (cols, maxHW);
+        int newCols = juce::jmin (juce::jmax (hwOutputs, currentCols), maxHW);
+        if (newCols != currentCols)
+            outputPatchTree.setProperty (cols, newCols, nullptr);
+    }
+}
+
 //==============================================================================
 // Undo / Redo  (per-domain)
 //==============================================================================

@@ -170,6 +170,11 @@ public:
     int getNumOutputChannels() const { return valueTreeState.getNumOutputChannels(); }
     int getNumReverbChannels() const { return valueTreeState.getNumReverbChannels(); }
 
+    void updateHardwareChannelCount (int hwInputs, int hwOutputs)
+    {
+        valueTreeState.updateHardwareChannelCount (hwInputs, hwOutputs);
+    }
+
     //==============================================================================
     // ValueTree Access (backward compatible API)
     //==============================================================================

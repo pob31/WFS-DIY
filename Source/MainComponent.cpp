@@ -1934,6 +1934,11 @@ void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
                                               + " @ " + juce::String (device->getCurrentSampleRate()) + " Hz"
                                               + ", buffer " + juce::String (device->getCurrentBufferSizeSamples()));
 
+            // Update patch matrix hardware channel count from actual device
+            auto hwInputs = device->getInputChannelNames().size();
+            auto hwOutputs = device->getOutputChannelNames().size();
+            parameters.updateHardwareChannelCount (hwInputs, hwOutputs);
+
             // User has successfully selected a device - allow saving from now on
             // This enables saving when user manually selects ASIO after startup failure
             deviceRestoreComplete = true;

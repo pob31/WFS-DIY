@@ -288,6 +288,10 @@ public:
     void setNumOutputChannels (int numChannels);
     void setNumReverbChannels (int numChannels);
 
+    /** Update hardware channel count in patch trees based on actual audio device.
+     *  Only grows (never shrinks) to preserve existing patches. Capped at 64. */
+    void updateHardwareChannelCount (int hwInputs, int hwOutputs);
+
     //==========================================================================
     // Undo / Redo  (per-domain — one UndoManager per tab)
     //==========================================================================

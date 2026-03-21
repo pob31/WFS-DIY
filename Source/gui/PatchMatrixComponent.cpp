@@ -4,6 +4,7 @@
 #include "../Accessibility/TTSManager.h"
 #include "../Localization/LocalizationManager.h"
 #include <cmath>
+#include <set>
 
 PatchMatrixComponent::PatchMatrixComponent(WFSValueTreeState& valueTreeState,
                                            bool inputPatch,
@@ -632,23 +633,71 @@ void PatchMatrixComponent::valueTreeChildAdded(juce::ValueTree& parent, juce::Va
         int oldWFSCount = numWFSChannels;
         updateChannelCounts();
 
-        // Auto-patch new channels with 1:1 default (WFS ch N -> HW ch N)
+        // Auto-patch new channels with smart offset detection
+        // Build set of used hardware channels
+        std::set<int> usedHW;
+        for (const auto& p : patches)
+            usedHW.insert(p.hardwareChannel);
+
+        // Detect offset pattern from existing patches (e.g., all shifted by +16)
+        int detectedOffset = 0;
+        bool offsetConsistent = !patches.empty();
+        if (!patches.empty())
+        {
+            detectedOffset = patches[0].hardwareChannel - patches[0].wfsChannel;
+            for (const auto& p : patches)
+            {
+                if (p.hardwareChannel - p.wfsChannel != detectedOffset)
+                {
+                    offsetConsistent = false;
+                    break;
+                }
+            }
+        }
+
+        // Find highest used HW channel for fallback
+        int maxUsedHW = -1;
+        for (const auto& p : patches)
+            maxUsedHW = juce::jmax(maxUsedHW, p.hardwareChannel);
+
         for (int ch = oldWFSCount; ch < numWFSChannels; ++ch)
         {
-            if (ch < numHardwareChannels)
+            // Skip if WFS channel already mapped
+            bool alreadyMapped = false;
+            for (const auto& p : patches)
+                if (p.wfsChannel == ch) { alreadyMapped = true; break; }
+            if (alreadyMapped) continue;
+
+            int targetHW = -1;
+
+            // Strategy 1: Use detected offset pattern
+            if (offsetConsistent)
             {
-                // Only add if no existing patch maps to this WFS channel
-                bool alreadyMapped = false;
-                for (const auto& p : patches)
+                int candidate = ch + detectedOffset;
+                if (candidate >= 0 && candidate < numHardwareChannels
+                    && usedHW.find(candidate) == usedHW.end())
+                    targetHW = candidate;
+            }
+
+            // Strategy 2: Next free HW channel after last used
+            if (targetHW < 0)
+            {
+                for (int i = 1; i <= numHardwareChannels; ++i)
                 {
-                    if (p.wfsChannel == ch)
+                    int candidate = (maxUsedHW + i) % numHardwareChannels;
+                    if (usedHW.find(candidate) == usedHW.end())
                     {
-                        alreadyMapped = true;
+                        targetHW = candidate;
                         break;
                     }
                 }
-                if (!alreadyMapped)
-                    patches.push_back({ch, ch});
+            }
+
+            if (targetHW >= 0)
+            {
+                patches.push_back({ch, targetHW});
+                usedHW.insert(targetHW);
+                maxUsedHW = juce::jmax(maxUsedHW, targetHW);
             }
         }
 
