@@ -1184,12 +1184,24 @@ MainComponent::MainComponent()
             return 0;
         };
 
+        controllerManager->callbacks.fitAllInputs = [this]()
+        {
+            if (mapTab)
+                mapTab->requestFitAllInputsToScreen();
+        };
+
+        controllerManager->callbacks.fitStage = [this]()
+        {
+            if (mapTab)
+                mapTab->requestResetView();
+        };
+
         controllerManager->callbacks.panMap = [this] (float dx, float dy)
         {
             if (mapTab)
             {
-                mapTab->setViewCenterX (mapTab->getViewCenterX() + dx);
-                mapTab->setViewCenterY (mapTab->getViewCenterY() + dy);
+                mapTab->setViewCenterX (mapTab->getViewCenterX() + dx * 3.0f);
+                mapTab->setViewCenterY (mapTab->getViewCenterY() - dy * 3.0f);
             }
         };
 

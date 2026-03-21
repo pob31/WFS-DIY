@@ -52,6 +52,12 @@ public:
             Returns the cluster number (>0) if so, or 0 if not. */
         std::function<int()> getSelectedClusterRef;
 
+        /** Fit all inputs to screen (twist left with no selection). */
+        std::function<void()> fitAllInputs;
+
+        /** Fit stage to screen (twist right with no selection). */
+        std::function<void()> fitStage;
+
         /** Pan the map view by a delta (meters). */
         std::function<void (float dx, float dy)> panMap;
 
@@ -399,14 +405,35 @@ private:
                 }
                 else
                 {
-                    // Nothing selected: pan map (XY) and zoom (Z)
-                    if ((std::abs (totalDx) > 0.0001f || std::abs (totalDy) > 0.0001f) && callbacks.panMap)
-                        callbacks.panMap (totalDx, totalDy);
-
-                    if (std::abs (totalDz) > 0.001f && callbacks.zoomMap)
+                    // Twist: one-shot fit actions (fires once near full rotation, resets at center)
+                    if (std::abs (totalRotation) > 0.9f)
                     {
-                        float zoomFactor = 1.0f + totalDz * 2.0f;
-                        callbacks.zoomMap (juce::jlimit (0.9f, 1.1f, zoomFactor));
+                        if (! twistFitFired)
+                        {
+                            twistFitFired = true;
+                            twistDebounceEnd = juce::Time::getMillisecondCounter() + 300;
+                            if (totalRotation < 0.0f && callbacks.fitAllInputs)
+                                callbacks.fitAllInputs();
+                            else if (totalRotation > 0.0f && callbacks.fitStage)
+                                callbacks.fitStage();
+                        }
+                    }
+                    else
+                    {
+                        twistFitFired = false;
+                    }
+
+                    // Nothing selected: pan map (XY) and zoom (Z) — suppressed briefly after twist fit
+                    if (juce::Time::getMillisecondCounter() > twistDebounceEnd)
+                    {
+                        if ((std::abs (totalDx) > 0.0001f || std::abs (totalDy) > 0.0001f) && callbacks.panMap)
+                            callbacks.panMap (totalDx, totalDy);
+
+                        if (std::abs (totalDz) > 0.001f && callbacks.zoomMap)
+                        {
+                            float zoomFactor = 1.0f + totalDz * 1.0f;
+                            callbacks.zoomMap (juce::jlimit (0.9f, 1.1f, zoomFactor));
+                        }
                     }
                 }
             }
@@ -448,6 +475,8 @@ private:
     }
 
     bool enabled = false;
+    bool twistFitFired = false;       // One-shot guard for twist fit actions
+    uint32_t twistDebounceEnd = 0;   // Suppress pan/zoom for 300ms after twist fit
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ControllerManager)
 };
