@@ -319,6 +319,7 @@ private:
     void handleProcessingChange(bool enabled);
     void handleChannelCountChange(int inputs, int outputs, int reverbs);
     void handleConfigReloaded();
+    void growPatchData(juce::ValueTree& patchTree, int newChannelCount, int numHardwareCols);
 
     // Keyboard handling helpers
     enum class ChannelSelectionMode { None, Input, Output, Reverb };

@@ -2119,6 +2119,42 @@ void MainComponent::stopProcessingForConfigurationChange()
         reverbEngine->stopProcessing();
 }
 
+void MainComponent::growPatchData(juce::ValueTree& patchTree, int newChannelCount, int numHardwareCols)
+{
+    if (! patchTree.isValid())
+        return;
+
+    juce::String patchDataStr = patchTree.getProperty(WFSParameterIDs::patchData).toString();
+    juce::StringArray rows = juce::StringArray::fromTokens(patchDataStr, ";", "");
+    int existingRows = rows.size();
+
+    if (newChannelCount <= existingRows)
+    {
+        // Shrink: truncate rows beyond newChannelCount
+        if (newChannelCount < existingRows)
+        {
+            juce::StringArray trimmed;
+            for (int i = 0; i < newChannelCount; ++i)
+                trimmed.add(rows[i]);
+            patchTree.setProperty(WFSParameterIDs::patchData, trimmed.joinIntoString(";"), nullptr);
+            patchTree.setProperty(WFSParameterIDs::rows, newChannelCount, nullptr);
+        }
+        return;
+    }
+
+    // Grow: append new rows with 1:1 diagonal mapping
+    for (int ch = existingRows; ch < newChannelCount; ++ch)
+    {
+        juce::StringArray cols;
+        for (int c = 0; c < numHardwareCols; ++c)
+            cols.add(c == ch ? "1" : "0");
+        rows.add(cols.joinIntoString(","));
+    }
+
+    patchTree.setProperty(WFSParameterIDs::patchData, rows.joinIntoString(";"), nullptr);
+    patchTree.setProperty(WFSParameterIDs::rows, newChannelCount, nullptr);
+}
+
 void MainComponent::loadAudioPatches()
 {
     // Load input patch matrix from ValueTree
@@ -2126,9 +2162,9 @@ void MainComponent::loadAudioPatches()
     auto inputPatchTree = audioPatchTree.getChildWithName(WFSParameterIDs::InputPatch);
     auto outputPatchTree = audioPatchTree.getChildWithName(WFSParameterIDs::OutputPatch);
 
-    // Initialize patch maps to "unmapped" (-1)
-    inputPatchMap.resize(64, -1);  // Max hardware inputs
-    outputPatchMap.resize(64, -1); // Max WFS outputs
+    // Reset patch maps to "unmapped" (-1)
+    inputPatchMap.assign(64, -1);  // Max hardware inputs
+    outputPatchMap.assign(64, -1); // Max WFS outputs
 
     // Load input patches: hardware channel → WFS channel
     if (inputPatchTree.isValid())
@@ -2143,8 +2179,7 @@ void MainComponent::loadAudioPatches()
             {
                 if (cols[hwChannel].getIntValue() == 1)
                 {
-                    // Patch found: hardware channel hwChannel → WFS channel wfsChannel
-                    if (hwChannel < inputPatchMap.size())
+                    if (hwChannel < (int) inputPatchMap.size())
                         inputPatchMap[hwChannel] = wfsChannel;
                 }
             }
@@ -2164,13 +2199,13 @@ void MainComponent::loadAudioPatches()
             {
                 if (cols[hwChannel].getIntValue() == 1)
                 {
-                    // Patch found: WFS channel wfsChannel → hardware channel hwChannel
-                    if (wfsChannel < outputPatchMap.size())
+                    if (wfsChannel < (int) outputPatchMap.size())
                         outputPatchMap[wfsChannel] = hwChannel;
                 }
             }
         }
     }
+
 }
 
 void MainComponent::applyInputPatch(const juce::AudioSourceChannelInfo& bufferToFill)
@@ -2307,6 +2342,18 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
     stopProcessingForConfigurationChange();
     resizeRoutingMatrices();
 
+    // Grow/shrink patch data in ValueTree so new channels get 1:1 mapping
+    // (PatchMatrixComponent may not exist if Audio Interface window was never opened)
+    {
+        auto audioPatchTree = parameters.getValueTreeState().getState().getChildWithName(WFSParameterIDs::AudioPatch);
+        auto inputPatchTree = audioPatchTree.getChildWithName(WFSParameterIDs::InputPatch);
+        auto outputPatchTree = audioPatchTree.getChildWithName(WFSParameterIDs::OutputPatch);
+        int hwInCols = inputPatchTree.isValid() ? (int) inputPatchTree.getProperty(WFSParameterIDs::cols, 64) : 64;
+        int hwOutCols = outputPatchTree.isValid() ? (int) outputPatchTree.getProperty(WFSParameterIDs::cols, 64) : 64;
+        growPatchData(inputPatchTree, inputs, hwInCols);
+        growPatchData(outputPatchTree, outputs, hwOutCols);
+    }
+
     // Update reverb engine node count and resize MainComponent's reverb buffers
     if (reverbEngine)
     {
@@ -2351,6 +2398,64 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
         levelMeteringManager->setChannelCounts(inputs, outputs);
     if (levelMeterWindow != nullptr)
         levelMeterWindow->rebuildMeters();
+
+    // Recalculate WFS matrices so new channel counts have valid delay/level data
+    if (calculationEngine != nullptr)
+    {
+        calculationEngine->recalculateAllListenerPositions();
+        calculationEngine->recalculateAllInputPositions();
+        calculationEngine->recalculateAllReverbPositions();
+        rebuildAllGradientMaps();
+        calculationEngine->recalculateMatrix();
+
+        const float* calcDelays = calculationEngine->getDelayTimesMs();
+        const float* calcLevels = calculationEngine->getLevels();
+        const float* calcHF = calculationEngine->getHFAttenuationDb();
+        const int calcStride = calculationEngine->getNumOutputs();
+
+        for (int inIdx = 0; inIdx < numInputChannels; ++inIdx)
+        {
+            for (int outIdx = 0; outIdx < numOutputChannels; ++outIdx)
+            {
+                int srcIdx = inIdx * calcStride + outIdx;
+                int dstIdx = inIdx * numOutputChannels + outIdx;
+                targetDelayTimesMs[dstIdx] = calcDelays[srcIdx];
+                targetLevels[dstIdx] = calcLevels[srcIdx];
+                hfAttenuation[dstIdx] = calcHF[srcIdx];
+            }
+        }
+
+        const float* calcReverbDelays = calculationEngine->getInputReverbDelayTimesMs();
+        const float* calcReverbLevels = calculationEngine->getInputReverbLevels();
+        const float* calcReverbHF = calculationEngine->getInputReverbHFAttenuationDb();
+        const int calcReverbStride = calculationEngine->getNumReverbs();
+
+        std::vector<float> reverbDelays(numInputChannels * reverbs);
+        std::vector<float> reverbLevelsVec(numInputChannels * reverbs);
+        std::vector<float> reverbHF(numInputChannels * reverbs);
+
+        for (int inIdx = 0; inIdx < numInputChannels; ++inIdx)
+        {
+            for (int revIdx = 0; revIdx < reverbs; ++revIdx)
+            {
+                int srcIdx = inIdx * calcReverbStride + revIdx;
+                int dstIdx = inIdx * reverbs + revIdx;
+                reverbDelays[dstIdx] = calcReverbDelays[srcIdx];
+                reverbLevelsVec[dstIdx] = calcReverbLevels[srcIdx];
+                reverbHF[dstIdx] = calcReverbHF[srcIdx];
+            }
+        }
+
+        if (inputsTab != nullptr)
+        {
+            inputsTab->updateVisualisation(
+                targetDelayTimesMs.data(), targetLevels.data(), hfAttenuation.data(),
+                reverbDelays.data(), reverbLevelsVec.data(), reverbHF.data());
+        }
+    }
+
+    // Reload patch maps from the (now up-to-date) ValueTree
+    loadAudioPatches();
 }
 
 void MainComponent::handleConfigReloaded()
