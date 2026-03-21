@@ -161,11 +161,13 @@ inline StreamDeckPage createInputParametersPage (WFSValueTreeState& state,
                                        inputAttenuationMin, inputAttenuationMax,
                                        1.0f, 0.25f, 1, false,
                                        state, ch, inputAttenuation);
+        sec.dials[0].barColour = juce::Colour (0xFF4A90D9);  // Blue (level)
 
         sec.dials[1] = makeFloatDial (LOC ("streamDeck.inputs.dials.delay"), LOC ("units.milliseconds"),
                                        inputDelayLatencyMin, inputDelayLatencyMax,
                                        2.0f, 0.5f, 1, false,
                                        state, ch, inputDelayLatency);
+        sec.dials[1].barColour = juce::Colour (0xFFD4A017);  // Gold (time)
 
         // Dynamic label: "Delay" for values >= 0, "Latency" for values < 0
         sec.dials[1].getDynamicName = [&state, ch]()
@@ -182,6 +184,7 @@ inline StreamDeckPage createInputParametersPage (WFSValueTreeState& state,
                                            inputDistanceRatioMin, inputDistanceRatioMax,
                                            0.02f, 0.005f, 2, true,
                                            state, ch, inputDistanceRatio);
+            sec.dials[2].barColour = juce::Colour (0xFF4A90D9);  // Blue (level)
         }
         else
         {
@@ -189,12 +192,14 @@ inline StreamDeckPage createInputParametersPage (WFSValueTreeState& state,
                                            inputDistanceAttenuationMin, inputDistanceAttenuationMax,
                                            0.1f, 0.02f, 2, false,
                                            state, ch, inputDistanceAttenuation);
+            sec.dials[2].barColour = juce::Colour (0xFF4A90D9);  // Blue (level)
         }
 
         sec.dials[3] = makeIntDial (LOC ("streamDeck.inputs.dials.commonAttenuation"), LOC ("units.percent"),
                                      inputCommonAttenMin, inputCommonAttenMax,
                                      2, 1,
                                      state, ch, inputCommonAtten);
+        sec.dials[3].barColour = juce::Colour (0xFF4A90D9);  // Blue (level)
     }
 
     // --- Section 1: Position & Directivity ---
@@ -252,21 +257,25 @@ inline StreamDeckPage createInputParametersPage (WFSValueTreeState& state,
                                      inputDirectivityMin, inputDirectivityMax,
                                      5, 1,
                                      state, ch, inputDirectivity);
+        sec.dials[0].barColour = juce::Colour (0xFF26A69A);  // Teal (spatial)
 
         sec.dials[1] = makeIntDial (LOC ("streamDeck.inputs.dials.rotation"), "deg",
                                      inputRotationMin, inputRotationMax,
                                      5, 1,
                                      state, ch, inputRotation);
+        sec.dials[1].barColour = juce::Colour (0xFF26A69A);  // Teal (spatial)
 
         sec.dials[2] = makeIntDial (LOC ("streamDeck.inputs.dials.tilt"), "deg",
                                      inputTiltMin, inputTiltMax,
                                      2, 1,
                                      state, ch, inputTilt);
+        sec.dials[2].barColour = juce::Colour (0xFF26A69A);  // Teal (spatial)
 
         sec.dials[3] = makeFloatDial (LOC ("streamDeck.inputs.dials.hfShelf"), LOC ("units.decibels"),
                                        inputHFshelfMin, inputHFshelfMax,
                                        0.5f, 0.1f, 1, false,
                                        state, ch, inputHFshelf);
+        sec.dials[3].barColour = juce::Colour (0xFFE07878);  // Rose (HF)
     }
 
     // --- Section 2: Position Advanced ---
@@ -293,21 +302,25 @@ inline StreamDeckPage createInputParametersPage (WFSValueTreeState& state,
                                        inputSidelinesFringeMin, inputSidelinesFringeMax,
                                        0.02f, 0.005f, 2, true,
                                        state, ch, inputSidelinesFringe);
+        sec.dials[0].barColour = juce::Colour (0xFFE07878);  // Rose (fringe/sidelines)
 
         sec.dials[1] = makeIntDial (LOC ("streamDeck.inputs.dials.trackingSmooth"), LOC ("units.percent"),
                                      inputTrackingSmoothMin, inputTrackingSmoothMax,
                                      2, 1,
                                      state, ch, inputTrackingSmooth);
+        sec.dials[1].barColour = juce::Colour (0xFF00ACC1);  // Cyan (smooth)
 
         sec.dials[2] = makeFloatDial (LOC ("streamDeck.inputs.dials.maxSpeed"), LOC ("units.metersPerSecond"),
                                        inputMaxSpeedMin, inputMaxSpeedMax,
                                        0.02f, 0.005f, 2, true,
                                        state, ch, inputMaxSpeed);
+        sec.dials[2].barColour = juce::Colour (0xFF00ACC1);  // Cyan (speed)
 
         sec.dials[3] = makeIntDial (LOC ("streamDeck.inputs.dials.heightFactor"), LOC ("units.percent"),
                                      inputHeightFactorMin, inputHeightFactorMax,
                                      2, 1,
                                      state, ch, inputHeightFactor);
+        sec.dials[3].barColour = juce::Colour (0xFF26A69A);  // Teal (height factor)
     }
 
     page.numSections = 3;
@@ -384,6 +397,7 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
             inputLSradiusMin, inputLSradiusMax,
             1.0f, 0.25f, 1, false,
             state, ch, inputLSradius);
+        sec.dials[1].barColour = juce::Colour (0xFF00ACC1);  // Cyan (distance)
 
         // Dial 2 — Fixed Attenuation
         sec.dials[2] = makeFloatDial (
@@ -392,6 +406,7 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
             inputLSattenuationMin, inputLSattenuationMax,
             1.0f, 0.25f, 1, false,
             state, ch, inputLSattenuation);
+        sec.dials[2].barColour = juce::Colour (0xFF4A90D9);  // Blue (level)
     }
 
     //======================================================================
@@ -409,6 +424,7 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
             inputLSpeakThresholdMin, inputLSpeakThresholdMax,
             1.0f, 0.25f, 1, false,
             state, ch, inputLSpeakThreshold);
+        sec.dials[0].barColour = juce::Colour (0xFF4A90D9);  // Blue (level)
 
         // Dial 1 — Peak Ratio
         sec.dials[1] = makeFloatDial (
@@ -417,6 +433,7 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
             inputLSpeakRatioMin, inputLSpeakRatioMax,
             0.5f, 0.1f, 1, false,
             state, ch, inputLSpeakRatio);
+        sec.dials[1].barColour = juce::Colour (0xFF4A90D9);  // Blue (level)
 
         // Dial 2 — Slow Threshold
         sec.dials[2] = makeFloatDial (
@@ -425,6 +442,7 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
             inputLSslowThresholdMin, inputLSslowThresholdMax,
             1.0f, 0.25f, 1, false,
             state, ch, inputLSslowThreshold);
+        sec.dials[2].barColour = juce::Colour (0xFF4A90D9);  // Blue (level)
 
         // Dial 3 — Slow Ratio
         sec.dials[3] = makeFloatDial (
@@ -433,6 +451,7 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
             inputLSslowRatioMin, inputLSslowRatioMax,
             0.5f, 0.1f, 1, false,
             state, ch, inputLSslowRatio);
+        sec.dials[3].barColour = juce::Colour (0xFF4A90D9);  // Blue (level)
     }
 
     //======================================================================
@@ -460,6 +479,7 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
             inputFRattenuationMin, inputFRattenuationMax,
             1.0f, 0.25f, 1, false,
             state, ch, inputFRattenuation);
+        sec.dials[0].barColour = juce::Colour (0xFF4A90D9);  // Blue (level)
 
         // Dial 1 — FR Diffusion
         sec.dials[1] = makeIntDial (
@@ -468,6 +488,7 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
             inputFRdiffusionMin, inputFRdiffusionMax,
             5, 1,
             state, ch, inputFRdiffusion);
+        sec.dials[1].barColour = juce::Colour (0xFF9B59B6);  // Purple (diffusion)
 
         // Dial 2 — Low Cut Frequency (exponential 20–20000 Hz)
         {
@@ -492,6 +513,7 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
                 state.setInputParameter (ch, inputFRlowCutFreq, juce::roundToInt (v));
             };
 
+            dial.barColour = juce::Colour (0xFFE07878);  // Rose (HF/filter)
             sec.dials[2] = dial;
         }
     }
@@ -554,6 +576,7 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
                 state.setInputParameter (ch, inputFRhighShelfFreq, juce::roundToInt (v));
             };
 
+            dial.barColour = juce::Colour (0xFFE07878);  // Rose (HF/filter)
             sec.dials[0] = dial;
         }
 
@@ -564,6 +587,7 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
             inputFRhighShelfGainMin, inputFRhighShelfGainMax,
             1.0f, 0.25f, 1, false,
             state, ch, inputFRhighShelfGain);
+        sec.dials[1].barColour = juce::Colour (0xFFE07878);  // Rose (HF)
 
         // Dial 2 — High Shelf Slope
         sec.dials[2] = makeFloatDial (
@@ -572,6 +596,7 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
             inputFRhighShelfSlopeMin, inputFRhighShelfSlopeMax,
             0.1f, 0.01f, 2, false,
             state, ch, inputFRhighShelfSlope);
+        sec.dials[2].barColour = juce::Colour (0xFFE07878);  // Rose (HF)
     }
 
     page.numSections = 4;
@@ -673,11 +698,13 @@ inline StreamDeckPage createMovementsPage (WFSValueTreeState& state,
                                            inputLFOperiodMin, inputLFOperiodMax,
                                            0.02f, 0.005f, 2, true,
                                            state, ch, inputLFOperiod);
+            sec.dials[1].barColour = juce::Colour (0xFFD4A017);  // Gold (time/period)
 
             sec.dials[2] = makeIntDial (LOC ("streamDeck.inputs.dials.lfoPhase"),
                                          LOC ("units.degrees"),
                                          inputLFOphaseMin, inputLFOphaseMax,
                                          5, 1, state, ch, inputLFOphase);
+            sec.dials[2].barColour = juce::Colour (0xFF9B59B6);  // Purple (phase)
 
             // Gyrophone: ComboBox, param values -1/0/1 mapped to index 0/1/2
             {
@@ -745,17 +772,20 @@ inline StreamDeckPage createMovementsPage (WFSValueTreeState& state,
                                            inputLFOamplitudeMin, inputLFOamplitudeMax,
                                            0.5f, 0.1f, 1, false,
                                            state, ch, amplitudeIds[axis]);
+            sec.dials[1].barColour = juce::Colour (0xFF26A69A);  // Teal (LFO amplitude)
 
             sec.dials[2] = makeFloatDial (LOC ("streamDeck.inputs.dials.lfoRate"),
                                            "x",
                                            inputLFOrateMin, inputLFOrateMax,
                                            0.02f, 0.005f, 2, true,
                                            state, ch, rateIds[axis]);
+            sec.dials[2].barColour = juce::Colour (0xFFD4A017);  // Gold (LFO rate)
 
             sec.dials[3] = makeIntDial (LOC ("streamDeck.inputs.dials.lfoAxisPhase"),
                                          LOC ("units.degrees"),
                                          inputLFOphaseMin, inputLFOphaseMax,
                                          5, 1, state, ch, phaseIds[axis]);
+            sec.dials[3].barColour = juce::Colour (0xFF9B59B6);  // Purple (LFO phase)
         }
     }
 
@@ -836,6 +866,7 @@ inline StreamDeckPage createMovementsPage (WFSValueTreeState& state,
                 int m = static_cast<int> (state.getInputParameter (ch, inputOtomoCoordinateMode));
                 return (m != 0) ? juce::String ("Radius") : juce::String ("Dest X");
             };
+            dial.barColour = juce::Colour (0xFF4CAF50);  // Green (position)
             sec.dials[0] = std::move (dial);
         }
 
@@ -863,6 +894,7 @@ inline StreamDeckPage createMovementsPage (WFSValueTreeState& state,
                 int m = static_cast<int> (state.getInputParameter (ch, inputOtomoCoordinateMode));
                 return (m != 0) ? juce::String ("Azimuth") : juce::String ("Dest Y");
             };
+            dial.barColour = juce::Colour (0xFF4CAF50);  // Green (position)
             sec.dials[1] = std::move (dial);
         }
 
@@ -890,6 +922,7 @@ inline StreamDeckPage createMovementsPage (WFSValueTreeState& state,
                 int m = static_cast<int> (state.getInputParameter (ch, inputOtomoCoordinateMode));
                 return (m == 2) ? juce::String ("Elevation") : juce::String ("Dest Z");
             };
+            dial.barColour = juce::Colour (0xFF4CAF50);  // Green (position)
             sec.dials[2] = std::move (dial);
         }
 
@@ -915,18 +948,21 @@ inline StreamDeckPage createMovementsPage (WFSValueTreeState& state,
                                        inputOtomoDurationMin, inputOtomoDurationMax,
                                        0.02f, 0.005f, 1, true,
                                        state, ch, inputOtomoDuration);
+        sec.dials[0].barColour = juce::Colour (0xFFD4A017);  // Gold (time/duration)
 
         // Dial 1: Curve (-100 to 100 %)
         sec.dials[1] = makeIntDial (LOC ("streamDeck.inputs.dials.curve"),
                                      LOC ("units.percent"),
                                      inputOtomoCurveMin, inputOtomoCurveMax,
                                      2, 1, state, ch, inputOtomoCurve);
+        sec.dials[1].barColour = juce::Colour (0xFF00ACC1);  // Cyan (speed/smooth)
 
         // Dial 2: Speed Profile (0–100 %)
         sec.dials[2] = makeIntDial (LOC ("streamDeck.inputs.dials.speedProfile"),
                                      LOC ("units.percent"),
                                      inputOtomoSpeedProfileMin, inputOtomoSpeedProfileMax,
                                      2, 1, state, ch, inputOtomoSpeedProfile);
+        sec.dials[2].barColour = juce::Colour (0xFF00ACC1);  // Cyan (speed)
 
         // Dial 3: Trigger Threshold (primary) + Trigger Reset (altBinding on press)
         sec.dials[3] = makeFloatDial (LOC ("streamDeck.inputs.dials.triggerThreshold"),
@@ -934,6 +970,7 @@ inline StreamDeckPage createMovementsPage (WFSValueTreeState& state,
                                        inputOtomoThresholdMin, inputOtomoThresholdMax,
                                        1.0f, 0.25f, 1, false,
                                        state, ch, inputOtomoThreshold);
+        sec.dials[3].barColour = juce::Colour (0xFF4A90D9);  // Blue (level)
 
         sec.dials[3].altBinding = std::make_unique<DialBinding> (
             makeFloatDial (LOC ("streamDeck.inputs.dials.triggerReset"),
@@ -941,6 +978,7 @@ inline StreamDeckPage createMovementsPage (WFSValueTreeState& state,
                            inputOtomoResetMin, inputOtomoResetMax,
                            1.0f, 0.25f, 1, false,
                            state, ch, inputOtomoReset));
+        sec.dials[3].altBinding->barColour = juce::Colour (0xFF4A90D9);  // Blue (level)
     }
 
     //======================================================================

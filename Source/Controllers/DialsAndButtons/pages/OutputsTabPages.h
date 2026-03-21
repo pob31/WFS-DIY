@@ -170,6 +170,7 @@ inline StreamDeckPage createOutputParametersPage (WFSValueTreeState& state,
                                              outputAttenuationMin, outputAttenuationMax,
                                              0.5f, 0.1f, 1, false,
                                              state, ch, outputAttenuation);
+        sec.dials[0].barColour = juce::Colour (0xFF4A90D9);  // Blue (level)
 
         // Dial 1: Delay/Latency (-100 to 100 ms) with dynamic name
         sec.dials[1] = makeOutputFloatDial (LOC ("streamDeck.outputs.dials.delay"),
@@ -177,6 +178,7 @@ inline StreamDeckPage createOutputParametersPage (WFSValueTreeState& state,
                                              outputDelayLatencyMin, outputDelayLatencyMax,
                                              0.5f, 0.1f, 1, false,
                                              state, ch, outputDelayLatency);
+        sec.dials[1].barColour = juce::Colour (0xFFD4A017);  // Gold (time)
 
         sec.dials[1].getDynamicName = [&state, ch]()
         {
@@ -191,6 +193,7 @@ inline StreamDeckPage createOutputParametersPage (WFSValueTreeState& state,
                                            outputDistanceAttenPercentMin, outputDistanceAttenPercentMax,
                                            2, 1,
                                            state, ch, outputDistanceAttenPercent);
+        sec.dials[2].barColour = juce::Colour (0xFF4A90D9);  // Blue (level)
 
         // Dial 3: HF Damping (-24 to 0 dB)
         sec.dials[3] = makeOutputFloatDial (LOC ("streamDeck.outputs.dials.hfDamping"),
@@ -198,6 +201,7 @@ inline StreamDeckPage createOutputParametersPage (WFSValueTreeState& state,
                                              outputHFdampingMin, outputHFdampingMax,
                                              0.5f, 0.1f, 1, false,
                                              state, ch, outputHFdamping);
+        sec.dials[3].barColour = juce::Colour (0xFFE07878);  // Rose (HF)
     }
 
     //======================================================================
@@ -216,6 +220,7 @@ inline StreamDeckPage createOutputParametersPage (WFSValueTreeState& state,
                                            outputAngleOnMin, outputAngleOnMax,
                                            2, 1,
                                            state, ch, outputAngleOn);
+        sec.dials[0].barColour = juce::Colour (0xFF4CAF50);  // Green (angle on)
 
         // Dial 1: Off Angle (0-180 degrees)
         sec.dials[1] = makeOutputIntDial (LOC ("streamDeck.outputs.dials.offAngle"),
@@ -223,6 +228,7 @@ inline StreamDeckPage createOutputParametersPage (WFSValueTreeState& state,
                                            outputAngleOffMin, outputAngleOffMax,
                                            2, 1,
                                            state, ch, outputAngleOff);
+        sec.dials[1].barColour = juce::Colour (0xFFE53935);  // Red (angle off)
 
         // Dial 2: Orientation (-180 to 180 degrees)
         sec.dials[2] = makeOutputIntDial (LOC ("streamDeck.outputs.dials.orientation"),
@@ -230,6 +236,7 @@ inline StreamDeckPage createOutputParametersPage (WFSValueTreeState& state,
                                            outputOrientationMin, outputOrientationMax,
                                            5, 1,
                                            state, ch, outputOrientation);
+        sec.dials[2].barColour = juce::Colour (0xFF26A69A);  // Teal (spatial)
 
         // Dial 3: Pitch (-90 to 90 degrees)
         sec.dials[3] = makeOutputIntDial (LOC ("streamDeck.outputs.dials.pitch"),
@@ -237,6 +244,7 @@ inline StreamDeckPage createOutputParametersPage (WFSValueTreeState& state,
                                            outputPitchMin, outputPitchMax,
                                            2, 1,
                                            state, ch, outputPitch);
+        sec.dials[3].barColour = juce::Colour (0xFF26A69A);  // Teal (spatial)
     }
 
     page.numSections = 2;
@@ -468,6 +476,8 @@ inline StreamDeckPage createOutputEQPage (WFSValueTreeState& state,
             {
                 state.setOutputEQBandParameterWithArrayPropagation (ch, band, eqFrequency, v);
             };
+
+            dial.barColour = bandColour;
         }
 
         //------------------------------------------------------------------
@@ -506,6 +516,8 @@ inline StreamDeckPage createOutputEQPage (WFSValueTreeState& state,
                     return juce::String (juce::CharPointer_UTF8 ("\xe2\x80\x94"));  // em dash
                 return LOC ("streamDeck.outputs.eq.dials.gain");
             };
+
+            dial.barColour = bandColour;
         }
 
         //------------------------------------------------------------------
@@ -532,6 +544,8 @@ inline StreamDeckPage createOutputEQPage (WFSValueTreeState& state,
             {
                 state.setOutputEQBandParameterWithArrayPropagation (ch, band, eqQ, v);
             };
+
+            dial.barColour = bandColour;
         }
     }
 

@@ -236,8 +236,9 @@ public:
                                     static_cast<float> (barWidth), static_cast<float> (barH),
                                     3.0f);
 
-            // Filled portion
-            g.setColour (sectionActiveBackground);
+            // Filled portion — use per-dial color if set, otherwise section color
+            auto fillColour = binding.barColour.getAlpha() > 0 ? binding.barColour : sectionActiveBackground;
+            g.setColour (fillColour);
             g.fillRoundedRectangle (static_cast<float> (barMargin), static_cast<float> (barY),
                                     barWidth * normalized, static_cast<float> (barH),
                                     3.0f);

@@ -28,7 +28,8 @@ struct DialBinding
 
     // Deep-copy operations (unique_ptr requires explicit deep copy)
     DialBinding (const DialBinding& other)
-        : paramName (other.paramName), paramUnit (other.paramUnit),
+        : barColour (other.barColour),
+          paramName (other.paramName), paramUnit (other.paramUnit),
           minValue (other.minValue), maxValue (other.maxValue),
           step (other.step), fineStep (other.fineStep),
           isExponential (other.isExponential), decimalPlaces (other.decimalPlaces),
@@ -42,6 +43,7 @@ struct DialBinding
     {
         if (this != &other)
         {
+            barColour      = other.barColour;
             paramName      = other.paramName;
             paramUnit      = other.paramUnit;
             minValue       = other.minValue;
@@ -59,6 +61,10 @@ struct DialBinding
         }
         return *this;
     }
+
+    /** Color for the value bar on the LCD strip. If transparent (alpha=0),
+        falls back to the section's color. Should match the on-screen slider color. */
+    juce::Colour barColour { 0x00000000 };
 
     /** Display name shown on LCD strip (should be localized). */
     juce::String paramName;

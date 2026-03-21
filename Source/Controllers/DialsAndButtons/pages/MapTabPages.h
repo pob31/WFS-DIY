@@ -350,6 +350,8 @@ inline StreamDeckPage createMapPage (WFSValueTreeState& state,
                         state.setInputParameter (ch, inputOffsetZ, cart.z);
                         if (callbacks.repaintMap) callbacks.repaintMap();
                     };
+
+                    d.barColour = juce::Colour (0xFF4CAF50);  // Green (position)
                 }
             }
             else
@@ -452,6 +454,8 @@ inline StreamDeckPage createMapPage (WFSValueTreeState& state,
                         state.setInputParameter (ch, inputPositionZ, cart.z);
                         if (callbacks.repaintMap) callbacks.repaintMap();
                     };
+
+                    d.barColour = juce::Colour (0xFF4CAF50);  // Green (position)
                 }
             }
 
@@ -477,6 +481,8 @@ inline StreamDeckPage createMapPage (WFSValueTreeState& state,
                     state.setInputParameter (ch, inputRotation, juce::roundToInt (v));
                     if (callbacks.repaintMap) callbacks.repaintMap();
                 };
+
+                d.barColour = juce::Colour (0xFF26A69A);  // Teal (orientation)
             }
         }
         else if (multiSelCount > 1)
@@ -515,6 +521,8 @@ inline StreamDeckPage createMapPage (WFSValueTreeState& state,
                         callbacks.moveSelectedDelta (dx, dy, dz);
                     }
                 };
+
+                d.barColour = juce::Colour (0xFF4CAF50);  // Green (position)
             }
 
             // Dial 3: Zoom (same as no-selection mode)
@@ -531,6 +539,8 @@ inline StreamDeckPage createMapPage (WFSValueTreeState& state,
 
                 d.getValue = [callbacks]() { return callbacks.getViewScale ? callbacks.getViewScale() : 30.0f; };
                 d.setValue = [callbacks] (float v) { if (callbacks.setViewScale) callbacks.setViewScale (v); };
+
+                d.barColour = juce::Colour (0xFF4CAF50);  // Green (map zoom)
             }
         }
         else if (selCluster > 0)
@@ -567,6 +577,8 @@ inline StreamDeckPage createMapPage (WFSValueTreeState& state,
                     if (callbacks.moveClusterRef)
                         callbacks.moveClusterRef (cluster, x, currentY);
                 };
+
+                d.barColour = juce::Colour (0xFF4CAF50);  // Green (position)
             }
 
             // Dial 1: Cluster Ref Y
@@ -595,6 +607,8 @@ inline StreamDeckPage createMapPage (WFSValueTreeState& state,
                     if (callbacks.moveClusterRef)
                         callbacks.moveClusterRef (cluster, currentX, y);
                 };
+
+                d.barColour = juce::Colour (0xFF4CAF50);  // Green (position)
             }
 
             // Dial 2: Cluster Scale (relative — getValue always returns 1.0)
@@ -615,6 +629,8 @@ inline StreamDeckPage createMapPage (WFSValueTreeState& state,
                     if (callbacks.scaleCluster)
                         callbacks.scaleCluster (cluster, v);
                 };
+
+                d.barColour = juce::Colour (0xFF4CAF50);  // Green (scale)
             }
 
             // Dial 3: Cluster Rotation (relative — getValue always returns 0)
@@ -635,6 +651,8 @@ inline StreamDeckPage createMapPage (WFSValueTreeState& state,
                     if (callbacks.rotateCluster)
                         callbacks.rotateCluster (cluster, -v);
                 };
+
+                d.barColour = juce::Colour (0xFF26A69A);  // Teal (rotation)
             }
         }
         else
@@ -701,6 +719,8 @@ inline StreamDeckPage createMapPage (WFSValueTreeState& state,
                 d.getValue = [callbacks]() { return callbacks.getViewCenterX ? callbacks.getViewCenterX() : 0.0f; };
                 d.setValue = [callbacks] (float v) { if (callbacks.setViewCenterX) callbacks.setViewCenterX (v); };
 
+                d.barColour = juce::Colour (0xFF4CAF50);  // Green (map pan)
+
                 // Alt binding (press+turn): Pan Y
                 auto alt = std::make_unique<DialBinding>();
                 alt->paramName     = LOC ("streamDeck.map.dials.panY");
@@ -714,6 +734,8 @@ inline StreamDeckPage createMapPage (WFSValueTreeState& state,
 
                 alt->getValue = [callbacks]() { return callbacks.getViewCenterY ? callbacks.getViewCenterY() : 0.0f; };
                 alt->setValue = [callbacks] (float v) { if (callbacks.setViewCenterY) callbacks.setViewCenterY (v); };
+
+                alt->barColour = juce::Colour (0xFF4CAF50);  // Green (map pan)
 
                 d.altBinding = std::move (alt);
             }
@@ -732,6 +754,8 @@ inline StreamDeckPage createMapPage (WFSValueTreeState& state,
 
                 d.getValue = [callbacks]() { return callbacks.getViewScale ? callbacks.getViewScale() : 30.0f; };
                 d.setValue = [callbacks] (float v) { if (callbacks.setViewScale) callbacks.setViewScale (v); };
+
+                d.barColour = juce::Colour (0xFF4CAF50);  // Green (map zoom)
             }
         }
     }

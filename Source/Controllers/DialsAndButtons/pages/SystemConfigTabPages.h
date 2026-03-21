@@ -224,6 +224,7 @@ inline StreamDeckPage createSysConfigPage (WFSValueTreeState& state,
             binauralListenerDistanceMin, binauralListenerDistanceMax,
             0.1f, 0.01f, 2,
             state, binauralListenerDistance);
+        sec.dials[0].barColour = juce::Colour (0xFF26A69A);  // Teal (binaural distance)
 
         //------------------------------------------------------------------
         // Dial 1: Listener Angle (-180–180 degrees)
@@ -234,6 +235,7 @@ inline StreamDeckPage createSysConfigPage (WFSValueTreeState& state,
             binauralListenerAngleMin, binauralListenerAngleMax,
             5, 1,
             state, binauralListenerAngle);
+        sec.dials[1].barColour = juce::Colour (0xFF26A69A);  // Teal (binaural angle)
 
         //------------------------------------------------------------------
         // Dial 2: Binaural Level (-40–0 dB)
@@ -244,6 +246,7 @@ inline StreamDeckPage createSysConfigPage (WFSValueTreeState& state,
             binauralAttenuationMin, binauralAttenuationMax,
             0.5f, 0.1f, 1,
             state, binauralAttenuation);
+        sec.dials[2].barColour = juce::Colour (0xFF4A90D9);  // Blue (binaural level)
 
         //------------------------------------------------------------------
         // Dial 3: Binaural Delay (0–100 ms)
@@ -254,6 +257,7 @@ inline StreamDeckPage createSysConfigPage (WFSValueTreeState& state,
             binauralDelayMin, binauralDelayMax,
             1.0f, 0.1f, 1,
             state, binauralDelay);
+        sec.dials[3].barColour = juce::Colour (0xFFD4A017);  // Gold (binaural delay)
     }
 
     page.numSections = 1;

@@ -130,6 +130,8 @@ protected:
                      + " (usage_page=0x" + juce::String::toHexString (cur->usage_page)
                      + " usage=0x" + juce::String::toHexString (cur->usage) + ")");
 
+                setLED (true);
+
                 hid_free_enumeration (devList);
                 return true;
             }
@@ -142,7 +144,30 @@ protected:
 
     void disconnect() override
     {
+        setLED (false);
         closeDevice();
+    }
+
+    /** Turn the SpaceMouse LED on or off (Report ID 0x04). */
+    void setLED (bool on)
+    {
+        if (deviceHandle == nullptr)
+            return;
+
+        // Pad to match typical HID output report size (some devices need exact size)
+        uint8_t report[REPORT_BUF_SIZE] = {};
+        report[0] = 0x04;
+        report[1] = on ? 0x01 : 0x00;
+
+        int result = hid_write (deviceHandle, report, 2);
+        if (result < 0)
+        {
+            // Retry with full buffer size — some HID descriptors require exact match
+            result = hid_write (deviceHandle, report, REPORT_BUF_SIZE);
+        }
+
+        DBG ("SpaceMouse LED " + juce::String (on ? "ON" : "OFF")
+             + " (result=" + juce::String (result) + ")");
     }
 
     bool poll() override
@@ -292,7 +317,7 @@ private:
 
 public:
     //==========================================================================
-    // 3DxWare Driver Conflict Utilities (Windows only)
+    // 3DxWare Driver Conflict Utilities (Windows + macOS)
     //==========================================================================
 
 #if JUCE_WINDOWS
@@ -367,6 +392,54 @@ private:
 
         CloseHandle (snapshot);
         return found;
+    }
+#elif JUCE_MAC
+    /** Check if any 3DxWare driver processes are running (macOS). */
+    static bool is3DxWareRunning()
+    {
+        juce::ChildProcess cp;
+        if (cp.start ("pgrep -x 3DconnexionHelper"))
+        {
+            cp.waitForProcessToFinish (2000);
+            auto output = cp.readAllProcessOutput().trim();
+            return output.isNotEmpty();
+        }
+        return false;
+    }
+
+    /** Kill 3DxWare driver processes and unload the launch agent (macOS).
+        Returns true if successfully terminated. */
+    static bool kill3DxWareProcesses()
+    {
+        bool success = true;
+
+        // Unload the launch agent to prevent auto-restart
+        {
+            juce::ChildProcess cp;
+            if (cp.start ("launchctl unload /Library/LaunchAgents/com.3dconnexion.3DconnexionHelper.plist"))
+                cp.waitForProcessToFinish (3000);
+            else
+                success = false;
+        }
+
+        // Also try user-level agent
+        {
+            juce::ChildProcess cp;
+            if (cp.start ("launchctl unload ~/Library/LaunchAgents/com.3dconnexion.3DconnexionHelper.plist"))
+                cp.waitForProcessToFinish (3000);
+        }
+
+        // Kill any remaining processes
+        {
+            juce::ChildProcess cp;
+            if (cp.start ("killall 3DconnexionHelper"))
+            {
+                cp.waitForProcessToFinish (3000);
+                DBG ("Killed 3DconnexionHelper");
+            }
+        }
+
+        return success;
     }
 #else
     static bool is3DxWareRunning()   { return false; }

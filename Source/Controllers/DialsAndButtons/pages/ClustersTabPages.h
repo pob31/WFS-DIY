@@ -312,12 +312,14 @@ inline StreamDeckPage createPage (int /*subTab*/,
                                               clusterLFOperiodMin, clusterLFOperiodMax,
                                               0.02f, 0.005f, 2, true,
                                               state, clusterNum, clusterLFOperiod);
+        sec.dials[2].barColour = juce::Colour (0xFFD4A017);  // Gold (time/period)
 
         // Dial 3: Phase
         sec.dials[3] = makeClusterIntDial (LOC ("streamDeck.clusters.dials.phase"),
                                             LOC ("units.degrees"),
                                             clusterLFOphaseMin, clusterLFOphaseMax,
                                             5, 1, state, clusterNum, clusterLFOphase);
+        sec.dials[3].barColour = juce::Colour (0xFF9B59B6);  // Purple (phase)
     }
     else if (currentSubMode >= 1 && currentSubMode <= 3)
     {
@@ -337,17 +339,20 @@ inline StreamDeckPage createPage (int /*subTab*/,
                                               clusterLFOamplitudeXYZMin, clusterLFOamplitudeXYZMax,
                                               0.5f, 0.1f, 1, false,
                                               state, clusterNum, ampIds[axis]);
+        sec.dials[1].barColour = juce::Colour (0xFF26A69A);  // Teal (LFO amplitude)
 
         sec.dials[2] = makeClusterFloatDial (LOC ("streamDeck.clusters.dials.rate"),
                                               "x",
                                               clusterLFOrateMin, clusterLFOrateMax,
                                               0.02f, 0.005f, 2, true,
                                               state, clusterNum, rateIds[axis]);
+        sec.dials[2].barColour = juce::Colour (0xFFD4A017);  // Gold (LFO rate)
 
         sec.dials[3] = makeClusterIntDial (LOC ("streamDeck.clusters.dials.axisPhase"),
                                             LOC ("units.degrees"),
                                             clusterLFOphaseMin, clusterLFOphaseMax,
                                             5, 1, state, clusterNum, phaseIds[axis]);
+        sec.dials[3].barColour = juce::Colour (0xFF9B59B6);  // Purple (LFO phase)
     }
     else if (currentSubMode == 4)
     {
@@ -360,17 +365,20 @@ inline StreamDeckPage createPage (int /*subTab*/,
                                             LOC ("units.degrees"),
                                             clusterLFOamplitudeRotMin, clusterLFOamplitudeRotMax,
                                             5, 1, state, clusterNum, clusterLFOamplitudeRot);
+        sec.dials[1].barColour = juce::Colour (0xFF26A69A);  // Teal (LFO amplitude/angle)
 
         sec.dials[2] = makeClusterFloatDial (LOC ("streamDeck.clusters.dials.rate"),
                                               "x",
                                               clusterLFOrateMin, clusterLFOrateMax,
                                               0.02f, 0.005f, 2, true,
                                               state, clusterNum, clusterLFOrateRot);
+        sec.dials[2].barColour = juce::Colour (0xFFD4A017);  // Gold (LFO rate)
 
         sec.dials[3] = makeClusterIntDial (LOC ("streamDeck.clusters.dials.axisPhase"),
                                             LOC ("units.degrees"),
                                             clusterLFOphaseMin, clusterLFOphaseMax,
                                             5, 1, state, clusterNum, clusterLFOphaseRot);
+        sec.dials[3].barColour = juce::Colour (0xFF9B59B6);  // Purple (LFO phase)
     }
     else if (currentSubMode == 5)
     {
@@ -384,17 +392,20 @@ inline StreamDeckPage createPage (int /*subTab*/,
                                               clusterLFOamplitudeScaleMin, clusterLFOamplitudeScaleMax,
                                               0.02f, 0.005f, 2, true,
                                               state, clusterNum, clusterLFOamplitudeScale);
+        sec.dials[1].barColour = juce::Colour (0xFF4CAF50);  // Green (scale)
 
         sec.dials[2] = makeClusterFloatDial (LOC ("streamDeck.clusters.dials.rate"),
                                               "x",
                                               clusterLFOrateMin, clusterLFOrateMax,
                                               0.02f, 0.005f, 2, true,
                                               state, clusterNum, clusterLFOrateScale);
+        sec.dials[2].barColour = juce::Colour (0xFFD4A017);  // Gold (LFO rate)
 
         sec.dials[3] = makeClusterIntDial (LOC ("streamDeck.clusters.dials.axisPhase"),
                                             LOC ("units.degrees"),
                                             clusterLFOphaseMin, clusterLFOphaseMax,
                                             5, 1, state, clusterNum, clusterLFOphaseScale);
+        sec.dials[3].barColour = juce::Colour (0xFF9B59B6);  // Purple (LFO phase)
     }
     else if (currentSubMode == 6)
     {
