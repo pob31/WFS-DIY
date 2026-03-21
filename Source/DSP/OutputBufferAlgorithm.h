@@ -1,11 +1,156 @@
 #pragma once
 
 #include "OutputBufferProcessor.h"
+#include "SharedInputRingBuffer.h"
 #include "LiveSourceLevelDetector.h"
 #include "OutputLevelDetector.h"
 #include <vector>
 #include <memory>
 #include <atomic>
+
+//==============================================================================
+/**
+    Dedicated thread for input-side analysis (level detection, Live Source Tamer).
+    Reads from shared input ring buffers independently of the audio callback.
+*/
+class InputAnalysisThread : public juce::Thread
+{
+public:
+    InputAnalysisThread() : juce::Thread("InputAnalysis") {}
+
+    ~InputAnalysisThread() override { stopThread(1000); }
+
+    void prepare(const std::vector<std::unique_ptr<SharedInputRingBuffer>>& sharedBuffers,
+                 const std::vector<std::unique_ptr<LiveSourceLevelDetector>>& detectors,
+                 int blockSize)
+    {
+        sharedInputs.clear();
+        lsDetectors.clear();
+
+        for (auto& buf : sharedBuffers)
+            sharedInputs.push_back(buf.get());
+        for (auto& det : detectors)
+            lsDetectors.push_back(det.get());
+
+        readPositions.assign(sharedInputs.size(), 0);
+        processingBlockSize = blockSize;
+        inputBlock.setSize(1, blockSize);
+    }
+
+    void notifyInputAvailable(int available)
+    {
+        samplesAvailable.store(available, std::memory_order_release);
+        notify();
+    }
+
+private:
+    void run() override
+    {
+        while (!threadShouldExit())
+        {
+            if (samplesAvailable.load(std::memory_order_acquire) < processingBlockSize)
+            {
+                wait(1);
+                continue;
+            }
+
+            int numInputs = juce::jmin((int)sharedInputs.size(), (int)lsDetectors.size());
+
+            for (int ch = 0; ch < numInputs; ++ch)
+            {
+                int read = sharedInputs[ch]->readWithPosition(
+                    readPositions[ch], inputBlock.getWritePointer(0), processingBlockSize);
+
+                if (read > 0 && lsDetectors[ch] != nullptr)
+                {
+                    auto* data = inputBlock.getReadPointer(0);
+                    for (int i = 0; i < read; ++i)
+                        lsDetectors[ch]->processSample(data[i]);
+                }
+            }
+
+            // Update available from our read positions
+            int minAvail = std::numeric_limits<int>::max();
+            for (int i = 0; i < numInputs; ++i)
+                minAvail = juce::jmin(minAvail, sharedInputs[i]->getAvailableAt(readPositions[i]));
+            samplesAvailable.store(minAvail, std::memory_order_release);
+        }
+    }
+
+    std::vector<SharedInputRingBuffer*> sharedInputs;
+    std::vector<LiveSourceLevelDetector*> lsDetectors;
+    std::vector<int> readPositions;
+    std::atomic<int> samplesAvailable{0};
+    int processingBlockSize = 64;
+    juce::AudioBuffer<float> inputBlock;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(InputAnalysisThread)
+};
+
+//==============================================================================
+/**
+    Dedicated thread for output level metering.
+    Reads from each output processor's metering ring buffer and runs detectors.
+*/
+class OutputMeteringThread : public juce::Thread
+{
+public:
+    OutputMeteringThread() : juce::Thread("OutputMetering") {}
+    ~OutputMeteringThread() override { stopThread(1000); }
+
+    void prepare(const std::vector<std::unique_ptr<OutputBufferProcessor>>& processors,
+                 const std::vector<std::unique_ptr<OutputLevelDetector>>& detectors,
+                 int blockSize)
+    {
+        outputProcessors.clear();
+        outputDetectors.clear();
+
+        for (auto& proc : processors)
+            outputProcessors.push_back(proc.get());
+        for (auto& det : detectors)
+            outputDetectors.push_back(det.get());
+
+        processingBlockSize = blockSize;
+        meterBlock.setSize(1, blockSize);
+    }
+
+private:
+    void run() override
+    {
+        while (!threadShouldExit())
+        {
+            bool didWork = false;
+            int numOutputs = juce::jmin((int)outputProcessors.size(), (int)outputDetectors.size());
+
+            for (int ch = 0; ch < numOutputs; ++ch)
+            {
+                if (outputProcessors[ch]->getMeteringAvailable() >= processingBlockSize)
+                {
+                    int read = outputProcessors[ch]->readMeteringOutput(
+                        meterBlock.getWritePointer(0), processingBlockSize);
+
+                    if (read > 0 && outputDetectors[ch] != nullptr)
+                    {
+                        auto* data = meterBlock.getReadPointer(0);
+                        for (int i = 0; i < read; ++i)
+                            outputDetectors[ch]->processSample(data[i]);
+                    }
+                    didWork = true;
+                }
+            }
+
+            if (!didWork)
+                wait(1);
+        }
+    }
+
+    std::vector<OutputBufferProcessor*> outputProcessors;
+    std::vector<OutputLevelDetector*> outputDetectors;
+    int processingBlockSize = 64;
+    juce::AudioBuffer<float> meterBlock;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OutputMeteringThread)
+};
 
 //==============================================================================
 /**
@@ -61,6 +206,15 @@ public:
             outputLevelDetectors.push_back(std::move(detector));
         }
 
+        // Create shared input ring buffers (one per input channel, read by all output threads)
+        sharedInputBuffers.clear();
+        for (int i = 0; i < numInputs; ++i)
+        {
+            auto buf = std::make_unique<SharedInputRingBuffer>();
+            buf->setSize(blockSize * 4);
+            sharedInputBuffers.push_back(std::move(buf));
+        }
+
         // Create output-based processors (one thread per output channel)
         for (int i = 0; i < numOutputs; ++i)
         {
@@ -72,6 +226,7 @@ public:
                                                                       frLevelsPtr,
                                                                       frHFAttenuationPtr);
             processor->prepare(sampleRate, blockSize);
+            processor->setSharedInputBuffers(sharedInputBuffers);
             outputProcessors.push_back(std::move(processor));
         }
 
@@ -81,6 +236,16 @@ public:
             processor->setProcessingEnabled(processingEnabled);
             processor->startThread(juce::Thread::Priority::high);
         }
+
+        // Start input analysis thread (reads shared buffers, runs level detection)
+        inputAnalysisThread = std::make_unique<InputAnalysisThread>();
+        inputAnalysisThread->prepare(sharedInputBuffers, lsDetectors, blockSize);
+        inputAnalysisThread->startThread(juce::Thread::Priority::normal);
+
+        // Start output metering thread
+        outputMeteringThread = std::make_unique<OutputMeteringThread>();
+        outputMeteringThread->prepare(outputProcessors, outputLevelDetectors, blockSize);
+        outputMeteringThread->startThread(juce::Thread::Priority::normal);
     }
 
     void reprepare(double sampleRate, int blockSize, bool processingEnabled)
@@ -88,13 +253,25 @@ public:
         cachedSampleRate = sampleRate;
 
         // Stop threads first
+        if (outputMeteringThread)
+            outputMeteringThread->stopThread(1000);
+        if (inputAnalysisThread)
+            inputAnalysisThread->stopThread(1000);
         for (auto& processor : outputProcessors)
             processor->stopThread(1000);
+
+        // Resize shared input buffers
+        for (auto& buf : sharedInputBuffers)
+        {
+            buf->reset();
+            buf->setSize(blockSize * 4);
+        }
 
         // Re-prepare and restart output processors
         for (auto& processor : outputProcessors)
         {
             processor->prepare(sampleRate, blockSize);
+            processor->setSharedInputBuffers(sharedInputBuffers);
             processor->setProcessingEnabled(processingEnabled);
             processor->startThread(juce::Thread::Priority::high);
         }
@@ -106,6 +283,20 @@ public:
         // Re-prepare output level detectors
         for (auto& detector : outputLevelDetectors)
             detector->prepare(sampleRate);
+
+        // Restart input analysis thread
+        if (inputAnalysisThread)
+        {
+            inputAnalysisThread->prepare(sharedInputBuffers, lsDetectors, blockSize);
+            inputAnalysisThread->startThread(juce::Thread::Priority::normal);
+        }
+
+        // Restart output metering thread
+        if (outputMeteringThread)
+        {
+            outputMeteringThread->prepare(outputProcessors, outputLevelDetectors, blockSize);
+            outputMeteringThread->startThread(juce::Thread::Priority::normal);
+        }
     }
 
     void processBlock(const juce::AudioSourceChannelInfo& bufferToFill,
@@ -130,37 +321,23 @@ public:
                 juce::String(totalChannels) + ", lsDetectors=" +
                 juce::String((int)lsDetectors.size()) + ")");
 
-        // Step 1: Run level detection on input data BEFORE distributing to processors
-        for (int inChannel = 0; inChannel < numChannels && inChannel < (int)lsDetectors.size(); ++inChannel)
+        // Step 1: Write input data once to shared buffers (N writes, not N×M)
+        for (int inChannel = 0; inChannel < numChannels && inChannel < (int)sharedInputBuffers.size(); ++inChannel)
         {
             auto* inputData = bufferToFill.buffer->getReadPointer(inChannel, bufferToFill.startSample);
-
-            // Run Live Source level detection for this input
-            if (lsDetectors[inChannel])
-            {
-                for (int sample = 0; sample < numSamples; ++sample)
-                {
-                    lsDetectors[inChannel]->processSample(inputData[sample]);
-                }
-            }
+            sharedInputBuffers[inChannel]->write(inputData, numSamples);
         }
 
-        // Step 2: Distribute input data to all output processors
-        for (int inChannel = 0; inChannel < numChannels; ++inChannel)
-        {
-            auto* inputData = bufferToFill.buffer->getReadPointer(inChannel, bufferToFill.startSample);
+        // Notify all output processor threads and the analysis thread
+        for (auto& processor : outputProcessors)
+            processor->notifyInputAvailable(numSamples);
+        if (inputAnalysisThread)
+            inputAnalysisThread->notifyInputAvailable(numSamples);
 
-            // Send this input to all output processors
-            for (auto& processor : outputProcessors)
-            {
-                processor->pushInput(inChannel, inputData, numSamples);
-            }
-        }
-
-        // Step 3: Clear output buffer
+        // Clear output buffer
         bufferToFill.clearActiveBufferRegion();
 
-        // Step 4: Pull processed outputs from each output processor
+        // Pull processed outputs from each output processor
         int numOutputs = juce::jmin(numOutputChannels, totalChannels, (int)outputProcessors.size());
         for (int outChannel = 0; outChannel < numOutputs; ++outChannel)
         {
@@ -168,23 +345,7 @@ public:
                 continue;
 
             auto* outputData = bufferToFill.buffer->getWritePointer(outChannel, bufferToFill.startSample);
-
-            // Pull processed data from this output processor
             outputProcessors[outChannel]->pullOutput(outputData, numSamples);
-        }
-
-        // Step 5: Run output level detection if enabled
-        if (outputMeteringEnabled.load(std::memory_order_relaxed))
-        {
-            int numDetectors = juce::jmin(numOutputs, (int)outputLevelDetectors.size());
-            for (int outChannel = 0; outChannel < numDetectors; ++outChannel)
-            {
-                auto* outputData = bufferToFill.buffer->getReadPointer(outChannel, bufferToFill.startSample);
-                for (int i = 0; i < numSamples; ++i)
-                {
-                    outputLevelDetectors[outChannel]->processSample(outputData[i]);
-                }
-            }
         }
     }
 
@@ -196,6 +357,11 @@ public:
 
     void releaseResources()
     {
+        if (outputMeteringThread)
+            outputMeteringThread->stopThread(1000);
+        if (inputAnalysisThread)
+            inputAnalysisThread->stopThread(1000);
+
         for (auto& processor : outputProcessors)
         {
             processor->stopThread(1000);
@@ -205,7 +371,10 @@ public:
 
     void clear()
     {
+        outputMeteringThread.reset();
+        inputAnalysisThread.reset();
         outputProcessors.clear();
+        sharedInputBuffers.clear();
         lsDetectors.clear();
         outputLevelDetectors.clear();
     }
@@ -351,6 +520,15 @@ public:
 
 private:
     std::vector<std::unique_ptr<OutputBufferProcessor>> outputProcessors;
+
+    // Shared input ring buffers (one per input, read by all output threads + analysis thread)
+    std::vector<std::unique_ptr<SharedInputRingBuffer>> sharedInputBuffers;
+
+    // Dedicated thread for input-side analysis (level detection, Live Source Tamer)
+    std::unique_ptr<InputAnalysisThread> inputAnalysisThread;
+
+    // Dedicated thread for output level metering
+    std::unique_ptr<OutputMeteringThread> outputMeteringThread;
 
     // Live Source level detectors (one per input channel)
     std::vector<std::unique_ptr<LiveSourceLevelDetector>> lsDetectors;

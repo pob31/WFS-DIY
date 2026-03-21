@@ -13,6 +13,8 @@
 #include "DSP/BinauralCalculationEngine.h"
 #include "DSP/BinauralProcessor.h"
 #include "DSP/ReverbEngine.h"
+#include "DSP/ReverbFeedThread.h"
+#include "DSP/SharedInputRingBuffer.h"
 // #include "DSP/GpuInputBufferAlgorithm.h"  // Commented out - GPU Audio SDK not configured
 #include "WfsParameters.h"
 #include "Accessibility/TTSManager.h"
@@ -216,6 +218,12 @@ private:
     std::unique_ptr<BinauralCalculationEngine> binauralCalcEngine;
     std::unique_ptr<BinauralProcessor> binauralProcessor;
 
+    // Shared input ring buffers (written by audio callback, read by algorithm + reverb thread)
+    std::vector<std::unique_ptr<SharedInputRingBuffer>> sharedInputBuffers;
+
+    // Reverb feed thread (computes reverb feeds off the audio callback)
+    std::unique_ptr<ReverbFeedThread> reverbFeedThread;
+
     // Reverb engine (thread-based DSP processing)
     std::unique_ptr<ReverbEngine> reverbEngine;
     juce::AudioBuffer<float> reverbFeedBuffer;    // numReverbs channels, accumulates per-node feed sums
@@ -320,6 +328,7 @@ private:
     void handleChannelCountChange(int inputs, int outputs, int reverbs);
     void handleConfigReloaded();
     void growPatchData(juce::ValueTree& patchTree, int newChannelCount, int numHardwareCols);
+    void repaintActiveTab();
 
     // Keyboard handling helpers
     enum class ChannelSelectionMode { None, Input, Output, Reverb };

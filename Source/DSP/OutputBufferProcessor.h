@@ -2,6 +2,8 @@
 
 #include <JuceHeader.h>
 #include "../LockFreeRingBuffer.h"
+#include "SharedInputRingBuffer.h"
+#include "OutputLevelDetector.h"
 #include "WFSHighShelfFilter.h"
 #include "WFSBiquadFilter.h"
 #include <atomic>
@@ -36,15 +38,17 @@ public:
           sharedFRLevels(frLevelsPtr),
           sharedFRHFAttenuation(frHFAttenuationPtr)
     {
-        // Pre-allocate input buffers and HF filters (one per input channel)
+        // Pre-allocate HF filters (one per input channel)
         for (int i = 0; i < numInputs; ++i)
         {
-            inputBuffers.emplace_back(std::make_unique<LockFreeRingBuffer>());
             hfFilters.emplace_back();  // One filter per input for direct signal
             frLowCutFilters.emplace_back();  // FR low-cut filter per input
             frHighShelfFilters.emplace_back();  // FR high-shelf filter per input
             frHFFilters.emplace_back();  // FR HF air absorption per input
         }
+
+        // Per-input read positions for shared input buffers
+        inputReadPositions.resize(static_cast<size_t>(numInputs), 0);
 
         // Initialize per-input delay interpolation state
         prevDirectDelaySamples.resize(static_cast<size_t>(numInputs), 0.0f);
@@ -89,12 +93,9 @@ public:
         frDelayBuffer.setSize(1, delayBufferLength);
         frDelayBuffer.clear();
 
-        // Setup input ring buffers - one for each input channel
-        for (auto& inputBuffer : inputBuffers)
-            inputBuffer->setSize(maxBlockSize * 4);
-
-        // Setup output ring buffer
+        // Setup output ring buffer + metering buffer
         outputRingBuffer.setSize(maxBlockSize * 4);
+        meteringRingBuffer.setSize(maxBlockSize * 4);
 
         // Initialize HF filters
         for (auto& filter : hfFilters)
@@ -127,23 +128,31 @@ public:
         frRandom.seed(static_cast<unsigned int>(outputChannelIndex * 54321 + 98765));
     }
 
-    // Called by audio thread to push input data from a specific input channel
-    void pushInput(int inputChannel, const float* data, int numSamples)
+    /** Set shared input buffer pointers (called once at prepare time). */
+    void setSharedInputBuffers(const std::vector<std::unique_ptr<SharedInputRingBuffer>>& buffers)
     {
-        if (inputChannel >= 0 && inputChannel < inputBuffers.size())
-        {
-            inputBuffers[inputChannel]->write(data, numSamples);
+        sharedInputBuffers.clear();
+        for (auto& buf : buffers)
+            sharedInputBuffers.push_back(buf.get());
 
-            // Update minimum available samples across all inputs
-            int minAvailable = std::numeric_limits<int>::max();
-            for (auto& buf : inputBuffers)
-            {
-                minAvailable = juce::jmin(minAvailable, buf->getAvailableData());
-            }
-            samplesAvailable.store(minAvailable, std::memory_order_release);
-            notify();  // Wake worker thread immediately (immune to timer coalescing)
-        }
+        inputReadPositions.assign(sharedInputBuffers.size(), 0);
     }
+
+    /** Notify this processor that new input data is available. */
+    void notifyInputAvailable(int available)
+    {
+        samplesAvailable.store(available, std::memory_order_release);
+        notify();
+    }
+
+    /** Read metering output data (called by OutputMeteringThread). */
+    int readMeteringOutput(float* destination, int numSamples)
+    {
+        return meteringRingBuffer.read(destination, numSamples);
+    }
+
+    /** Get available metering samples. */
+    int getMeteringAvailable() const { return meteringRingBuffer.getAvailableData(); }
 
     // Called by audio thread to pull output data
     int pullOutput(float* destination, int numSamples)
@@ -153,9 +162,9 @@ public:
 
     void reset()
     {
-        for (auto& inputBuffer : inputBuffers)
-            inputBuffer->reset();
+        std::fill(inputReadPositions.begin(), inputReadPositions.end(), 0);
         outputRingBuffer.reset();
+        meteringRingBuffer.reset();
         delayBuffer.clear();
         frDelayBuffer.clear();
         writePosition = 0;
@@ -254,20 +263,21 @@ private:
                 continue;
             }
 
-            // Read input samples from all input channels
+            // Read input samples from shared input buffers (each processor has own read position)
             int samplesRead = processingBlockSize;
-            for (int inChannel = 0; inChannel < numInputChannels; ++inChannel)
+            for (int inChannel = 0; inChannel < numInputChannels && inChannel < (int)sharedInputBuffers.size(); ++inChannel)
             {
-                int read = inputBuffers[inChannel]->read(inputBlocks[inChannel].getWritePointer(0), processingBlockSize);
+                int read = sharedInputBuffers[inChannel]->readWithPosition(
+                    inputReadPositions[inChannel],
+                    inputBlocks[inChannel].getWritePointer(0),
+                    processingBlockSize);
                 samplesRead = juce::jmin(samplesRead, read);
             }
 
-            // Update available count
+            // Update available count from this processor's read positions
             int minAvailable = std::numeric_limits<int>::max();
-            for (auto& buf : inputBuffers)
-            {
-                minAvailable = juce::jmin(minAvailable, buf->getAvailableData());
-            }
+            for (int i = 0; i < numInputChannels && i < (int)sharedInputBuffers.size(); ++i)
+                minAvailable = juce::jmin(minAvailable, sharedInputBuffers[i]->getAvailableAt(inputReadPositions[i]));
             samplesAvailable.store(minAvailable, std::memory_order_release);
 
             if (samplesRead == 0)
@@ -287,8 +297,10 @@ private:
                 processingTimeMsForAvg += blockProcessTime;
                 processedBlockCount++;
 
-                // Write processed output to output ring buffer
-                outputRingBuffer.write(outputBlock.getReadPointer(0), samplesRead);
+                // Write processed output to output ring buffer + metering buffer
+                auto* outData = outputBlock.getReadPointer(0);
+                outputRingBuffer.write(outData, samplesRead);
+                meteringRingBuffer.write(outData, samplesRead);
             }
             else
             {
@@ -373,6 +385,39 @@ private:
             }
         }
 
+        // Pre-cache per-input filter state and gains outside the sample loop
+        // to avoid repeated atomic loads and filter coefficient updates per sample
+        struct PerInputCache {
+            float directLevel = 0.0f;
+            float frLevel = 0.0f;
+            bool frLowCutActive = false;
+            bool frHighShelfActive = false;
+        };
+        std::vector<PerInputCache> inputCache(static_cast<size_t>(numInputChannels));
+
+        for (int inChannel = 0; inChannel < numInputChannels; ++inChannel)
+        {
+            int routingIndex = inChannel * numOutputChannels + outputChannelIndex;
+            size_t inIdx = static_cast<size_t>(inChannel);
+            auto& ic = inputCache[inIdx];
+
+            ic.directLevel = sharedLevels[routingIndex];
+            ic.frLevel = (sharedFRLevels != nullptr) ? sharedFRLevels[routingIndex] : 0.0f;
+
+            // Update HF filter gains once per block (not per sample)
+            if (ic.directLevel > 0.0f && sharedHFAttenuation != nullptr)
+                hfFilters[inChannel].setGainDb(sharedHFAttenuation[routingIndex]);
+
+            if (ic.frLevel > 0.0f)
+            {
+                ic.frLowCutActive = frLowCutActiveFlags[inIdx].load(std::memory_order_relaxed);
+                ic.frHighShelfActive = frHighShelfActiveFlags[inIdx].load(std::memory_order_relaxed);
+
+                if (sharedFRHFAttenuation != nullptr)
+                    frHFFilters[inIdx].setGainDb(sharedFRHFAttenuation[routingIndex]);
+            }
+        }
+
         // Process each sample
         for (int sample = 0; sample < numSamples; ++sample)
         {
@@ -388,33 +433,21 @@ private:
             // Now accumulate contributions from all inputs with their respective delays
             for (int inChannel = 0; inChannel < numInputChannels; ++inChannel)
             {
-                // Get input sample
-                float inputSample = inputs[inChannel].getReadPointer(0)[sample];
-
-                // Calculate index into shared arrays: [inputChannel * numOutputChannels + outputChannel]
-                int routingIndex = inChannel * numOutputChannels + outputChannelIndex;
                 size_t inIdx = static_cast<size_t>(inChannel);
-
-                // Get levels for direct and FR
-                float directLevel = sharedLevels[routingIndex];
-                float frLevel = (sharedFRLevels != nullptr) ? sharedFRLevels[routingIndex] : 0.0f;
+                auto& ic = inputCache[inIdx];
 
                 // Optimization: skip if both levels are zero
-                if (directLevel == 0.0f && frLevel == 0.0f)
+                if (ic.directLevel == 0.0f && ic.frLevel == 0.0f)
                     continue;
+
+                // Get input sample
+                float inputSample = inputs[inChannel].getReadPointer(0)[sample];
 
                 // ==========================================
                 // Direct signal processing
                 // ==========================================
-                if (directLevel > 0.0f)
+                if (ic.directLevel > 0.0f)
                 {
-                    // Update HF filter gain if pointer is provided
-                    if (sharedHFAttenuation != nullptr)
-                    {
-                        float hfGainDb = sharedHFAttenuation[routingIndex];
-                        hfFilters[inChannel].setGainDb(hfGainDb);
-                    }
-
                     // Apply HF filter (air absorption) to input sample
                     float filteredSample = hfFilters[inChannel].processSample(inputSample);
 
@@ -433,7 +466,7 @@ private:
                     float fraction = exactWritePos - (int)exactWritePos;
 
                     // Apply level to filtered sample
-                    float contribution = filteredSample * directLevel;
+                    float contribution = filteredSample * ic.directLevel;
 
                     // Write with linear interpolation
                     delayData[writePos1] += contribution * (1.0f - fraction);
@@ -443,21 +476,14 @@ private:
                 // ==========================================
                 // Floor Reflection signal processing
                 // ==========================================
-                if (frLevel > 0.0f)
+                if (ic.frLevel > 0.0f)
                 {
-                    // Apply FR filters to input sample
+                    // Apply FR filters to input sample (flags cached outside loop)
                     float frFilteredSample = inputSample;
-                    if (frLowCutActiveFlags[inIdx].load(std::memory_order_acquire))
+                    if (ic.frLowCutActive)
                         frFilteredSample = frLowCutFilters[inIdx].processSample(frFilteredSample);
-                    if (frHighShelfActiveFlags[inIdx].load(std::memory_order_acquire))
+                    if (ic.frHighShelfActive)
                         frFilteredSample = frHighShelfFilters[inIdx].processSample(frFilteredSample);
-
-                    // Update FR HF filter gain
-                    if (sharedFRHFAttenuation != nullptr)
-                    {
-                        float frHFGainDb = sharedFRHFAttenuation[routingIndex];
-                        frHFFilters[inIdx].setGainDb(frHFGainDb);
-                    }
 
                     // Apply FR HF filter (air absorption for longer path)
                     frFilteredSample = frHFFilters[inIdx].processSample(frFilteredSample);
@@ -476,7 +502,7 @@ private:
                     float fraction = exactWritePos - (int)exactWritePos;
 
                     // Apply FR level
-                    float frContribution = frFilteredSample * frLevel;
+                    float frContribution = frFilteredSample * ic.frLevel;
 
                     // Write to FR delay buffer with linear interpolation
                     frDelayData[writePos1] += frContribution * (1.0f - fraction);
@@ -505,7 +531,7 @@ private:
 
         for (size_t inIdx = 0; inIdx < frDiffusionState.size(); ++inIdx)
         {
-            float maxJitter = frMaxJitterMs[inIdx].load(std::memory_order_acquire);
+            float maxJitter = frMaxJitterMs[inIdx].load(std::memory_order_relaxed);
 
             // Occasionally update the target jitter
             if (frDiffusionUpdateCounter >= 3)
@@ -534,10 +560,14 @@ private:
     int writePosition = 0;
 
     // Lock-free communication
-    std::vector<std::unique_ptr<LockFreeRingBuffer>> inputBuffers;  // One per input channel
+    std::vector<SharedInputRingBuffer*> sharedInputBuffers;  // Pointers to algorithm-owned shared buffers
+    std::vector<int> inputReadPositions;                      // Per-consumer read positions
     LockFreeRingBuffer outputRingBuffer;
     std::atomic<int> samplesAvailable {0};
     std::atomic<bool> processingEnabled {false};
+
+    // Metering ring buffer (read by OutputMeteringThread)
+    LockFreeRingBuffer meteringRingBuffer;
 
     // CPU monitoring
     std::atomic<float> cpuUsagePercent {0.0f};

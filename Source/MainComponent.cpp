@@ -1966,10 +1966,20 @@ MainComponent::~MainComponent()
     // Clean up status bar (owned by this component, not TabbedComponent)
     delete statusBar;
 
-    // Shutdown audio device first (this stops the audio callbacks)
+    // Stop all processing threads BEFORE shutting down audio device
+    // (prevents threads from accessing device state during ASIO teardown)
+    if (reverbFeedThread)
+    {
+        reverbFeedThread->stopThread(1000);
+        reverbFeedThread.reset();
+    }
+    inputAlgorithm.releaseResources();
+    outputAlgorithm.releaseResources();
+
+    // Shutdown audio device (stops audio callbacks)
     shutdownAudio();
 
-    // Now safe to clear processing threads (audio callbacks no longer running)
+    // Now safe to destroy processor objects
     inputAlgorithm.clear();
     outputAlgorithm.clear();
     // gpuInputAlgorithm.clear();  // Commented out - GPU Audio SDK not configured
@@ -2114,7 +2124,14 @@ void MainComponent::stopProcessingForConfigurationChange()
     //     gpuInputAlgorithm.clear();
     // }
 
-    // Stop reverb engine for reconfiguration
+    // Stop reverb feed thread and engine for reconfiguration
+    if (reverbFeedThread)
+    {
+        reverbFeedThread->stopThread(1000);
+        reverbFeedThread.reset();
+    }
+    sharedInputBuffers.clear();
+
     if (reverbEngine)
         reverbEngine->stopProcessing();
 }
@@ -2598,6 +2615,23 @@ void MainComponent::handleConfigReloaded()
             inputsTab->updateVisualisation(
                 targetDelayTimesMs.data(), targetLevels.data(), hfAttenuation.data(),
                 reverbDelays.data(), reverbLevels.data(), reverbHF.data());
+        }
+    }
+
+    // Re-apply controller device settings from loaded config
+    {
+        int pcDevice = (int) parameters.getConfigParam ("PositionControlDevice");
+        if (controllerManager)
+            controllerManager->setEnabled (pcDevice > 0);
+
+        int dbDevice = (int) parameters.getConfigParam ("DialsAndButtonsDevice");
+        if (streamDeckManager)
+            streamDeckManager->setEnabled (dbDevice == 1);
+        if (quickKeysManager)
+        {
+            quickKeysManager->setEnabled (dbDevice == 2);
+            if (dbDevice == 2)
+                quickKeysManager->setActivePage (tabbedComponent.getCurrentTabIndex(), 0);
         }
     }
 
@@ -3286,6 +3320,9 @@ void MainComponent::startAudioEngine()
         " sampleRate=" + juce::String(sampleRate) + " blockSize=" + juce::String(blockSize));
 
     bool prepared = false;
+    DBG("startAudioEngine: algorithm=" + juce::String(currentAlgorithm == ProcessingAlgorithm::InputBuffer ? "InputBuffer" :
+        currentAlgorithm == ProcessingAlgorithm::OutputBuffer ? "OutputBuffer" : "GpuInputBuffer"));
+
     if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
     {
         inputAlgorithm.prepare(numInputChannels, numOutputChannels,
@@ -3323,6 +3360,34 @@ void MainComponent::startAudioEngine()
     {
         processingEnabled = false;
         processingToggle.setToggleState(false, juce::dontSendNotification);
+    }
+
+    // Create shared input buffers (used by reverb feed thread)
+    if (audioEngineStarted)
+    {
+        sharedInputBuffers.clear();
+        for (int i = 0; i < numInputChannels; ++i)
+        {
+            auto buf = std::make_unique<SharedInputRingBuffer>();
+            buf->setSize(blockSize * 4);
+            sharedInputBuffers.push_back(std::move(buf));
+        }
+    }
+
+    // Start reverb feed thread (computes reverb feeds off the audio callback)
+    if (audioEngineStarted && reverbEngine && calculationEngine)
+    {
+        int numReverbs = reverbEngine->getNumNodes();
+        if (numReverbs > 0 && !sharedInputBuffers.empty())
+        {
+            reverbFeedThread = std::make_unique<ReverbFeedThread>();
+            reverbFeedThread->prepare(sharedInputBuffers, reverbEngine.get(),
+                                       calculationEngine->getInputReverbLevels(),
+                                       calculationEngine->getNumReverbs(),
+                                       numInputChannels, numReverbs,
+                                       blockSize, reverbSRRatio);
+            reverbFeedThread->startThread(juce::Thread::Priority::high);
+        }
     }
 
     // Start reverb engine thread (may have been stopped by channel count change)
@@ -3482,6 +3547,23 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
             }
         }
 
+        // Write input data to shared buffers (for reverb feed thread)
+        {
+            int safeInputCount = juce::jmin(numInputChannels, bufferToFill.buffer->getNumChannels(), (int)sharedInputBuffers.size());
+            for (int ch = 0; ch < safeInputCount; ++ch)
+            {
+                auto* inputData = bufferToFill.buffer->getReadPointer(ch, bufferToFill.startSample);
+                sharedInputBuffers[ch]->write(inputData, bufferToFill.numSamples);
+            }
+        }
+
+        // Notify reverb feed thread (computes feeds on separate thread)
+        if (reverbFeedThread)
+        {
+            reverbFeedThread->setMuted(muteReverbPre.load(std::memory_order_relaxed));
+            reverbFeedThread->notifyInputAvailable();
+        }
+
         // Parameter smoothing (runs on ASIO thread, immune to message-pump
         // throttling when the window is minimized)
         if (processingEnabled)
@@ -3494,92 +3576,17 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
             }
         }
 
-        // Compute reverb feeds from RAW INPUT before WFS processing clears the buffer.
-        // Feeds only read from bufferToFill (don't modify it), so this is safe before WFS.
+        // Count reverb nodes for return mixing (feed computation now on ReverbFeedThread)
         int numReverbs = 0;
         if (reverbEngine && reverbEngine->isActive() && calculationEngine)
         {
             numReverbs = reverbEngine->getNumNodes();
 
-            // Safety: clamp to available buffer channels to prevent out-of-bounds access
-            int bufferChannels = reverbFeedBuffer.getNumChannels();
+            int bufferChannels = reverbReturnBuffer.getNumChannels();
             if (reverbSRRatio > 1)
-                bufferChannels = juce::jmin (bufferChannels, reverbDownsampleBuf.getNumChannels());
+                bufferChannels = juce::jmin(bufferChannels, reverbUpsampleBuf.getNumChannels());
             if (numReverbs > bufferChannels)
                 numReverbs = bufferChannels;
-
-            if (numReverbs > 0)
-            {
-                int numSamples = bufferToFill.numSamples;
-                int startSample = bufferToFill.startSample;
-                bool isPreMuted = muteReverbPre.load (std::memory_order_relaxed);
-
-                // Number of samples to push to reverb (may be decimated)
-                int reverbPushSamples = numSamples / reverbSRRatio;
-
-                if (isPreMuted)
-                {
-                    // Push silence — existing reverb tail decays naturally
-                    reverbFeedBuffer.clear();
-                    for (int revIdx = 0; revIdx < numReverbs; ++revIdx)
-                    {
-                        if (reverbSRRatio > 1)
-                        {
-                            reverbDownsampleBuf.clear (revIdx, 0, reverbPushSamples);
-                            reverbEngine->pushNodeInput (revIdx, reverbDownsampleBuf.getReadPointer (revIdx), reverbPushSamples);
-                        }
-                        else
-                        {
-                            reverbEngine->pushNodeInput (revIdx, reverbFeedBuffer.getReadPointer (revIdx), numSamples);
-                        }
-                    }
-                }
-                else
-                {
-                    // Get input→reverb level matrix from calculation engine
-                    // Index: [inputIndex * calcReverbStride + reverbIndex]
-                    const float* reverbLevelsPtr = calculationEngine->getInputReverbLevels();
-                    const int calcReverbStride = calculationEngine->getNumReverbs();
-
-                    // Compute per-node feed sums: for each reverb node, sum input contributions
-                    reverbFeedBuffer.clear();
-                    for (int revIdx = 0; revIdx < numReverbs; ++revIdx)
-                    {
-                        float* feedData = reverbFeedBuffer.getWritePointer(revIdx);
-
-                        int safeInputCount = juce::jmin(numInputChannels, bufferToFill.buffer->getNumChannels());
-                        for (int inIdx = 0; inIdx < safeInputCount; ++inIdx)
-                        {
-                            float feedLevel = reverbLevelsPtr[inIdx * calcReverbStride + revIdx];
-
-                            if (feedLevel > 0.0001f)
-                            {
-                                const float* inputData = bufferToFill.buffer->getReadPointer(inIdx, startSample);
-                                juce::FloatVectorOperations::addWithMultiply(feedData, inputData, feedLevel, numSamples);
-                            }
-                        }
-
-                        // Decimate and push to reverb engine
-                        if (reverbSRRatio > 1)
-                        {
-                            float* dsData = reverbDownsampleBuf.getWritePointer (revIdx);
-                            float invRatio = 1.0f / static_cast<float> (reverbSRRatio);
-                            for (int i = 0; i < reverbPushSamples; ++i)
-                            {
-                                float sum = 0.0f;
-                                for (int j = 0; j < reverbSRRatio; ++j)
-                                    sum += feedData[i * reverbSRRatio + j];
-                                dsData[i] = sum * invRatio;
-                            }
-                            reverbEngine->pushNodeInput (revIdx, dsData, reverbPushSamples);
-                        }
-                        else
-                        {
-                            reverbEngine->pushNodeInput (revIdx, feedData, numSamples);
-                        }
-                    }
-                }
-            }
         }
 
         // Process WFS audio (clears buffer, writes speaker output)
@@ -3757,6 +3764,14 @@ void MainComponent::releaseResources()
     // {
     //     gpuInputAlgorithm.releaseResources();
     // }
+
+    // Stop reverb feed thread
+    if (reverbFeedThread)
+    {
+        reverbFeedThread->stopThread(1000);
+        reverbFeedThread.reset();
+    }
+    sharedInputBuffers.clear();
 
     // Release reverb engine
 #if REVERB_DIAGNOSTICS
@@ -4998,6 +5013,7 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
                 if (state.canRedo())
                 {
                     state.redo();
+                    repaintActiveTab();
                     return true;
                 }
             }
@@ -5007,6 +5023,7 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
                 if (state.canUndo())
                 {
                     state.undo();
+                    repaintActiveTab();
                     return true;
                 }
             }
@@ -5017,6 +5034,7 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
             if (state.canRedo())
             {
                 state.redo();
+                repaintActiveTab();
                 return true;
             }
         }
@@ -5391,6 +5409,13 @@ void MainComponent::rebuildGradientMapForInput (int channelIndex)
 
     auto map = GradientMap::InputGradientMap::fromValueTree (gmTree);
     gradientMapEvaluators[static_cast<size_t> (channelIndex)]->rasterizeAll (map);
+}
+
+void MainComponent::repaintActiveTab()
+{
+    int tabIndex = tabbedComponent.getCurrentTabIndex();
+    if (auto* tab = tabbedComponent.getTabContentComponent(tabIndex))
+        tab->repaint();
 }
 
 void MainComponent::rebuildAllGradientMaps()
