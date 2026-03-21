@@ -1,3 +1,6 @@
+# Profiler results
+Builds/**/Intel*VTune*Profiler*Results/
+
 # Build outputs and artifacts
 Builds/*/x64/
 Builds/*/x86/
