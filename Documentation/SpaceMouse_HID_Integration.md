@@ -181,6 +181,77 @@ and inversion. At 50 Hz, `dt = 0.02s`.
    classes must call `stopMonitoring()` in their own destructor. The base
    destructor only handles thread/timer cleanup.
 
+7. **3DxWare driver conflict**: The official 3DConnexion driver (3DxWare) translates
+   SpaceMouse input into scroll/zoom events visible to all applications. When both
+   the driver and direct HID access are active, inputs are doubled — e.g., push
+   forward both moves an input AND zooms the map. The driver must be closed for
+   clean direct HID access.
+
+8. **Enable/disable and profile assignment**: When the ControllerManager is disabled
+   at startup (`setEnabled(false)`), the `handleEvent()` guard blocks ALL events
+   including `Connected`. This means `handleConnection()` never runs and the
+   default SpaceMouse profile is never assigned. When re-enabled, axis events
+   arrive but `getProfile()` returns nullptr. Fix: always process
+   Connected/Disconnected events regardless of enabled state.
+
+9. **activeTab initialization**: `ControllerManager::activeTab` defaults to -1.
+   The tab-change callback only fires on user tab switches, not for the initial
+   tab. If the user enables the SpaceMouse without changing tabs, activeTab stays
+   -1 and all routing branches are skipped. Fix: initialize activeTab from the
+   current tab index at startup.
+
+---
+
+## 3DxWare Driver Conflict Detection
+
+The official 3DConnexion driver suite (3DxWare) runs several background processes
+that intercept SpaceMouse HID data and translate it into scroll/zoom events. These
+interfere with direct HID access by producing duplicate input.
+
+### Known process names
+
+| Process | Role |
+|---|---|
+| `3DxService.exe` | Background service |
+| `3DxWinCore64.exe` | Main driver (64-bit) |
+| `3DxWinCore.exe` | Main driver (32-bit) |
+| `3DxSmartFocus.exe` | Application focus tracking |
+| `3Dconnexion.exe` | Tray/settings app |
+
+### Detection (Windows)
+
+Use `CreateToolhelp32Snapshot` + `Process32First/Next` to enumerate running
+processes. Check each `szExeFile` against the known names (case-insensitive).
+
+```
+HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+PROCESSENTRY32 entry;
+entry.dwSize = sizeof(PROCESSENTRY32);
+// iterate with Process32First/Process32Next
+```
+
+### Termination
+
+Use `taskkill /F /IM <processname>` via `juce::ChildProcess` for each found
+process. The `/F` flag forces termination. Allow 3 seconds for each process
+to exit.
+
+### UX flow
+
+When the user selects SpaceMouse from the Position Control combobox:
+
+1. Check if any 3DxWare processes are running
+2. If found, show a warning dialog:
+   - **"Close Driver"** — kills all found 3DxWare processes, then enables SpaceMouse
+   - **"Cancel"** — reverts the combobox to Off, SpaceMouse stays disabled
+3. If no 3DxWare found, enable SpaceMouse directly (no dialog)
+
+### Platform note
+
+Process detection uses Windows APIs (`tlhelp32.h`). On macOS, 3DxWare uses a
+different architecture — the detection is stubbed out (`is3DxWareRunning()`
+returns false, `kill3DxWareProcesses()` returns true).
+
 ---
 
 ## References

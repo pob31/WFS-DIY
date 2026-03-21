@@ -302,8 +302,49 @@ MainComponent::MainComponent()
     systemConfigTab->setPositionControlCallback ([this] (int deviceIndex)
     {
         // 0=Off, 1=SpaceMouse, 2=Joystick, 3=GamePad
-        if (controllerManager)
-            controllerManager->setEnabled (deviceIndex > 0);
+        if (! controllerManager)
+            return;
+
+        if (deviceIndex == 0)
+        {
+            controllerManager->setEnabled (false);
+            return;
+        }
+
+        // SpaceMouse: check for 3DxWare driver conflict
+        if (deviceIndex == 1 && SpaceMouseDevice::is3DxWareRunning())
+        {
+            auto options = juce::MessageBoxOptions()
+                .withIconType (juce::MessageBoxIconType::WarningIcon)
+                .withTitle ("3DConnexion Driver Conflict")
+                .withMessage ("The 3DxWare driver is running and will send duplicate scroll/zoom "
+                              "events that interfere with the map.\n\n"
+                              "Close the driver to use the SpaceMouse directly?")
+                .withButton ("Close Driver")
+                .withButton ("Cancel")
+                .withAssociatedComponent (this);
+
+            juce::AlertWindow::showAsync (options, [this] (int result)
+            {
+                if (result == 1)  // Close Driver
+                {
+                    SpaceMouseDevice::kill3DxWareProcesses();
+                    if (controllerManager)
+                        controllerManager->setEnabled (true);
+                }
+                else  // Cancel — revert to Off
+                {
+                    parameters.setConfigParam ("PositionControlDevice", 0);
+                    if (systemConfigTab)
+                        systemConfigTab->reloadPositionControlSelector();
+                    if (controllerManager)
+                        controllerManager->setEnabled (false);
+                }
+            });
+            return;
+        }
+
+        controllerManager->setEnabled (true);
     });
 
     systemConfigTab->setSamplerCallback([this](bool enabled) {

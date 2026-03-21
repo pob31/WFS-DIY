@@ -1100,6 +1100,13 @@ public:
         onPositionControlChanged = callback;
     }
 
+    /** Reload the position control combobox from saved parameters (e.g. after cancel). */
+    void reloadPositionControlSelector()
+    {
+        int pcDevice = (int) parameters.getConfigParam ("PositionControlDevice");
+        positionControlSelector.setSelectedId (pcDevice + 1, juce::dontSendNotification);
+    }
+
     void setSamplerCallback (SamplerCallback callback)
     {
         onSamplerEnabledChanged = callback;

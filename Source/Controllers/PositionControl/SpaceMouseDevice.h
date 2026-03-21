@@ -18,6 +18,11 @@
 #define HID_API_NO_EXPORT_DEFINE
 #include "hidapi/hidapi.h"
 
+#if JUCE_WINDOWS
+ #include <windows.h>
+ #include <tlhelp32.h>
+#endif
+
 #include "ControllerDevice.h"
 
 class SpaceMouseDevice : public ControllerDevice
@@ -284,4 +289,87 @@ private:
     bool  buttonStates[MAX_BUTTONS] = {};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SpaceMouseDevice)
+
+public:
+    //==========================================================================
+    // 3DxWare Driver Conflict Utilities (Windows only)
+    //==========================================================================
+
+#if JUCE_WINDOWS
+    /** Check if any 3DxWare driver processes are running. */
+    static bool is3DxWareRunning()
+    {
+        return ! find3DxWareProcesses().isEmpty();
+    }
+
+    /** Kill all running 3DxWare driver processes.
+        Returns true if all were successfully terminated. */
+    static bool kill3DxWareProcesses()
+    {
+        auto processes = find3DxWareProcesses();
+        bool allKilled = true;
+
+        for (auto& name : processes)
+        {
+            juce::ChildProcess cp;
+            if (cp.start ("taskkill /F /IM \"" + name + "\""))
+            {
+                cp.waitForProcessToFinish (3000);
+                DBG ("Killed 3DxWare process: " + name);
+            }
+            else
+            {
+                DBG ("Failed to kill 3DxWare process: " + name);
+                allKilled = false;
+            }
+        }
+
+        return allKilled;
+    }
+
+private:
+    static juce::StringArray find3DxWareProcesses()
+    {
+        juce::StringArray found;
+
+        // Known 3DxWare process names
+        static const char* processNames[] = {
+            "3DxService.exe",
+            "3DxWinCore64.exe",
+            "3DxWinCore.exe",
+            "3DxSmartFocus.exe",
+            "3Dconnexion.exe"
+        };
+
+        HANDLE snapshot = CreateToolhelp32Snapshot (TH32CS_SNAPPROCESS, 0);
+        if (snapshot == INVALID_HANDLE_VALUE)
+            return found;
+
+        PROCESSENTRY32 entry;
+        entry.dwSize = sizeof (PROCESSENTRY32);
+
+        if (Process32First (snapshot, &entry))
+        {
+            do
+            {
+                juce::String exeName (entry.szExeFile);
+                for (auto& target : processNames)
+                {
+                    if (exeName.equalsIgnoreCase (target))
+                    {
+                        found.addIfNotAlreadyThere (exeName);
+                        break;
+                    }
+                }
+            }
+            while (Process32Next (snapshot, &entry));
+        }
+
+        CloseHandle (snapshot);
+        return found;
+    }
+#else
+    static bool is3DxWareRunning()   { return false; }
+    static bool kill3DxWareProcesses() { return true; }
+#endif
 };
