@@ -164,10 +164,10 @@ inline StreamDeckPage createOutputParametersPage (WFSValueTreeState& state,
                                                   grey, juce::Colour (0xFF4A90D9),
                                                   state, ch, outputFRenable);
 
-        // Dial 0: Attenuation (-92 to 12 dB)
+        // Dial 0: Attenuation (-92 to 0 dB) — clamped to 0 dB on Stream Deck+
         sec.dials[0] = makeOutputFloatDial (LOC ("streamDeck.outputs.dials.attenuation"),
                                              LOC ("units.decibels"),
-                                             outputAttenuationMin, outputAttenuationMax,
+                                             outputAttenuationMin, 0.0f,
                                              0.5f, 0.1f, 1, false,
                                              state, ch, outputAttenuation);
         sec.dials[0].barColour = juce::Colour (0xFF4A90D9);  // Blue (level)

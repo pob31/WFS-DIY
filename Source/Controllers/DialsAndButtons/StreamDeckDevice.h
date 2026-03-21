@@ -21,6 +21,11 @@
 
 #include <JuceHeader.h>
 
+#if JUCE_WINDOWS
+ #include <windows.h>
+ #include <tlhelp32.h>
+#endif
+
 class StreamDeckDevice : private juce::Thread,
                          private juce::Timer
 {
@@ -583,4 +588,119 @@ private:
     uint8_t previousDialPressState[NUM_DIALS] = {};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (StreamDeckDevice)
+
+public:
+    //==========================================================================
+    // Elgato Stream Deck App Conflict Utilities (Windows + macOS)
+    //==========================================================================
+
+#if JUCE_WINDOWS
+    /** Check if the Elgato Stream Deck app is running. */
+    static bool isStreamDeckAppRunning()
+    {
+        return ! findStreamDeckAppProcesses().isEmpty();
+    }
+
+    /** Kill all running Elgato Stream Deck app processes.
+        Returns true if all were successfully terminated. */
+    static bool killStreamDeckApp()
+    {
+        auto processes = findStreamDeckAppProcesses();
+        bool allKilled = true;
+
+        for (auto& name : processes)
+        {
+            juce::ChildProcess cp;
+            if (cp.start ("taskkill /F /IM \"" + name + "\""))
+            {
+                cp.waitForProcessToFinish (3000);
+                DBG ("Killed Stream Deck process: " + name);
+            }
+            else
+            {
+                DBG ("Failed to kill Stream Deck process: " + name);
+                allKilled = false;
+            }
+        }
+
+        return allKilled;
+    }
+
+private:
+    static juce::StringArray findStreamDeckAppProcesses()
+    {
+        juce::StringArray found;
+
+        static const char* processNames[] = {
+            "StreamDeck.exe",
+            "Stream Deck.exe"
+        };
+
+        HANDLE snapshot = CreateToolhelp32Snapshot (TH32CS_SNAPPROCESS, 0);
+        if (snapshot == INVALID_HANDLE_VALUE)
+            return found;
+
+        PROCESSENTRY32 entry;
+        entry.dwSize = sizeof (PROCESSENTRY32);
+
+        if (Process32First (snapshot, &entry))
+        {
+            do
+            {
+                juce::String exeName (entry.szExeFile);
+                for (auto& target : processNames)
+                {
+                    if (exeName.equalsIgnoreCase (target))
+                    {
+                        found.addIfNotAlreadyThere (exeName);
+                        break;
+                    }
+                }
+            }
+            while (Process32Next (snapshot, &entry));
+        }
+
+        CloseHandle (snapshot);
+        return found;
+    }
+#elif JUCE_MAC
+    /** Check if the Elgato Stream Deck app is running (macOS). */
+    static bool isStreamDeckAppRunning()
+    {
+        juce::ChildProcess cp;
+        if (cp.start ("pgrep -f \"Stream Deck\""))
+        {
+            cp.waitForProcessToFinish (2000);
+            auto output = cp.readAllProcessOutput().trim();
+            return output.isNotEmpty();
+        }
+        return false;
+    }
+
+    /** Kill the Elgato Stream Deck app (macOS).
+        Returns true if successfully terminated. */
+    static bool killStreamDeckApp()
+    {
+        bool success = true;
+
+        // Kill via pkill (matches "Stream Deck" in process name)
+        {
+            juce::ChildProcess cp;
+            if (cp.start ("pkill -f \"Stream Deck\""))
+            {
+                cp.waitForProcessToFinish (3000);
+                DBG ("Killed Stream Deck app (macOS)");
+            }
+            else
+            {
+                success = false;
+            }
+        }
+
+        return success;
+    }
+#else
+    static bool isStreamDeckAppRunning()   { return false; }
+    static bool killStreamDeckApp()        { return true; }
+#endif
 };

@@ -20,6 +20,7 @@ struct WizardStep
     std::function<juce::Component*()> getExternalWindowContent; // Returns external window content (nullptr = main window)
     int skipToStepIndex = -1;                               // If >= 0, shows Skip button jumping to this step
     bool freeInteraction = false;                           // If true, overlay passes all clicks through and card fades out after interaction
+    std::function<void()> onExit;                           // Optional action when leaving this step (e.g. close external window)
 };
 
 //==============================================================================
@@ -94,6 +95,9 @@ public:
 
     bool hitTest(int x, int y) override
     {
+        // Passthrough mode: let all clicks through
+        if (passthroughMode)
+            return false;
         // Let clicks through inside the spotlight cutout
         if (!spotlightRect.isEmpty() && spotlightRect.contains(x, y))
             return false;
@@ -428,7 +432,7 @@ private:
  * Getting Started Wizard — orchestrates the spotlight tutorial flow.
  * Not a Component itself; manages WizardSpotlightOverlay and WizardInstructionCard.
  */
-class GettingStartedWizard
+class GettingStartedWizard : private juce::KeyListener
 {
 public:
     GettingStartedWizard(juce::Component& parentComponent,
@@ -450,10 +454,13 @@ public:
                     skipToStep(target);
             }
         };
+
+        parent.addKeyListener(this);
     }
 
     ~GettingStartedWizard()
     {
+        parent.removeKeyListener(this);
         returnCardToParent();
         if (overlay)
             parent.removeChildComponent(overlay.get());
@@ -508,6 +515,8 @@ public:
 
     void nextStep()
     {
+        exitCurrentStep();
+
         if (currentStepIndex < (int)steps.size() - 1)
         {
             currentStepIndex++;
@@ -522,6 +531,8 @@ public:
 
     void previousStep()
     {
+        exitCurrentStep();
+
         if (currentStepIndex > 0)
         {
             currentStepIndex--;
@@ -531,6 +542,8 @@ public:
 
     void skipToStep(int index)
     {
+        exitCurrentStep();
+
         if (index >= 0 && index < (int)steps.size())
         {
             currentStepIndex = index;
@@ -584,6 +597,32 @@ private:
     std::vector<WizardStep> steps;
     int currentStepIndex = 0;
     bool cardOnExternalWindow = false;
+
+    bool keyPressed(const juce::KeyPress& key, juce::Component*) override
+    {
+        if (key == juce::KeyPress::escapeKey && isActive())
+        {
+            // Don't close if a TextEditor has focus (user is editing a value)
+            if (auto* focused = juce::Component::getCurrentlyFocusedComponent())
+                if (dynamic_cast<juce::TextEditor*>(focused) != nullptr)
+                    return false;
+
+            close();
+            return true;
+        }
+        return false;
+    }
+
+    /** Fire the onExit callback for the current step (e.g. close an external window). */
+    void exitCurrentStep()
+    {
+        if (currentStepIndex >= 0 && currentStepIndex < (int)steps.size())
+        {
+            auto& step = steps[(size_t)currentStepIndex];
+            if (step.onExit)
+                step.onExit();
+        }
+    }
 
     /** Move the card back to the main parent if it's currently on an external window. */
     void returnCardToParent()

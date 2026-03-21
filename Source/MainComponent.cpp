@@ -293,6 +293,40 @@ MainComponent::MainComponent()
     systemConfigTab->setDialsAndButtonsCallback ([this] (int deviceIndex)
     {
         // 0=Off, 1=Stream Deck+, 2=XenceLabs Quick Keys
+
+        // Stream Deck+: check for Elgato app conflict
+        if (deviceIndex == 1 && StreamDeckDevice::isStreamDeckAppRunning())
+        {
+            auto options = juce::MessageBoxOptions()
+                .withIconType (juce::MessageBoxIconType::WarningIcon)
+                .withTitle ("Stream Deck App Conflict")
+                .withMessage ("The Elgato Stream Deck app is running and will prevent "
+                              "direct HID access to the device.\n\n"
+                              "Close the Stream Deck app to use it with WFS-DIY?")
+                .withButton ("Close App")
+                .withButton ("Cancel")
+                .withAssociatedComponent (this);
+
+            juce::AlertWindow::showAsync (options, [this] (int result)
+            {
+                if (result == 1)  // Close App
+                {
+                    StreamDeckDevice::killStreamDeckApp();
+                    if (streamDeckManager)
+                        streamDeckManager->setEnabled (true);
+                }
+                else  // Cancel — revert to Off
+                {
+                    parameters.setConfigParam ("DialsAndButtonsDevice", 0);
+                    if (systemConfigTab)
+                        systemConfigTab->reloadDialsAndButtonsSelector();
+                    if (streamDeckManager)
+                        streamDeckManager->setEnabled (false);
+                }
+            });
+            return;
+        }
+
         if (streamDeckManager)
             streamDeckManager->setEnabled (deviceIndex == 1);
         if (quickKeysManager)
@@ -3007,16 +3041,15 @@ void MainComponent::openGettingStartedWizard()
     });
 
     // Step 7: Configure Audio Interface (card ON external window, no skip)
-    gettingStartedWizard->addStep({
-        -1, // stay on current tab
-        "wizard.steps.audioDevice.title",
-        "wizard.steps.audioDevice.description",
-        []() -> juce::Rectangle<int> { return {}; }, // no spotlight on main window
-        [this]() -> bool { return deviceManager.getCurrentAudioDevice() != nullptr; },
-        [this]() {
-            // Open the Audio Interface window
+    {
+        WizardStep step;
+        step.tabIndex = -1; // stay on current tab
+        step.titleKey = "wizard.steps.audioDevice.title";
+        step.descriptionKey = "wizard.steps.audioDevice.description";
+        step.getSpotlightBounds = []() -> juce::Rectangle<int> { return {}; };
+        step.isComplete = [this]() -> bool { return deviceManager.getCurrentAudioDevice() != nullptr; };
+        step.onEnter = [this]() {
             openAudioInterfaceWindow();
-            // Wire close callback to advance wizard when window is closed
             if (audioInterfaceWindow)
             {
                 audioInterfaceWindow->onWindowClosed = [this]() {
@@ -3027,13 +3060,16 @@ void MainComponent::openGettingStartedWizard()
                     }
                 };
             }
-        },
-        // getExternalWindowContent: return the AudioInterfaceWindow's content
-        [this]() -> juce::Component* {
+        };
+        step.getExternalWindowContent = [this]() -> juce::Component* {
             return audioInterfaceWindow ? audioInterfaceWindow->getContentComp() : nullptr;
-        },
-        -1 // no skip — user is already in the window
-    });
+        };
+        step.onExit = [this]() {
+            if (audioInterfaceWindow && audioInterfaceWindow->isVisible())
+                audioInterfaceWindow->setVisible(false);
+        };
+        gettingStartedWizard->addStep(std::move(step));
+    }
 
     // Step 8: Open Wizard of OutZ (spotlight on button, Skip to bypass)
     gettingStartedWizard->addStep({
@@ -3047,16 +3083,14 @@ void MainComponent::openGettingStartedWizard()
     });
 
     // Step 9: Configure Output Positions (card ON Wizard of OutZ window)
-    gettingStartedWizard->addStep({
-        -1,
-        "wizard.steps.configureOutputs.title",
-        "wizard.steps.configureOutputs.description",
-        []() -> juce::Rectangle<int> { return {}; },
-        nullptr,
-        [this]() {
-            // Open the Wizard of OutZ
+    {
+        WizardStep step;
+        step.tabIndex = -1;
+        step.titleKey = "wizard.steps.configureOutputs.title";
+        step.descriptionKey = "wizard.steps.configureOutputs.description";
+        step.getSpotlightBounds = []() -> juce::Rectangle<int> { return {}; };
+        step.onEnter = [this]() {
             outputsTab->requestOpenArrayHelper();
-            // Wire close callback
             if (auto* window = outputsTab->getArrayHelperWindow())
             {
                 window->onWindowClosed = [this]() {
@@ -3067,13 +3101,18 @@ void MainComponent::openGettingStartedWizard()
                     }
                 };
             }
-        },
-        [this]() -> juce::Component* {
+        };
+        step.getExternalWindowContent = [this]() -> juce::Component* {
             auto* window = outputsTab->getArrayHelperWindow();
             return window ? window->getContentComp() : nullptr;
-        },
-        -1 // no skip — user is already in the window
-    });
+        };
+        step.onExit = [this]() {
+            if (auto* window = outputsTab->getArrayHelperWindow())
+                if (window->isVisible())
+                    window->setVisible(false);
+        };
+        gettingStartedWizard->addStep(std::move(step));
+    }
 
     // Step 10: Start Processing — spotlight covers full col3 so the card positions to the left
     gettingStartedWizard->addStep({

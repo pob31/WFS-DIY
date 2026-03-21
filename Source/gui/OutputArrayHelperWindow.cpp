@@ -637,7 +637,7 @@ void OutputArrayHelperContent::setupButtons()
     closeButton.setColour(juce::TextButton::buttonColourId, ColorScheme::get().accentRed);
     closeButton.onClick = [this]() {
         if (auto* window = findParentComponentOfClass<OutputArrayHelperWindow>())
-            window->setVisible(false);
+            window->closeButtonPressed();
     };
 
     addAndMakeVisible(statusLabel);

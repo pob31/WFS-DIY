@@ -1115,6 +1115,13 @@ public:
         onPositionControlChanged = callback;
     }
 
+    /** Reload the dials & buttons combobox from saved parameters (e.g. after cancel). */
+    void reloadDialsAndButtonsSelector()
+    {
+        int dbDevice = (int) parameters.getConfigParam ("DialsAndButtonsDevice");
+        dialsAndButtonsSelector.setSelectedId (dbDevice + 1, juce::dontSendNotification);
+    }
+
     /** Reload the position control combobox from saved parameters (e.g. after cancel). */
     void reloadPositionControlSelector()
     {

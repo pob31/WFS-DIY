@@ -321,6 +321,13 @@ inline StreamDeckPage createInputParametersPage (WFSValueTreeState& state,
                                      2, 1,
                                      state, ch, inputHeightFactor);
         sec.dials[3].barColour = juce::Colour (0xFF26A69A);  // Teal (height factor)
+
+        // Push toggles between 0% and 100%
+        sec.dials[3].onPress = [&state, ch]()
+        {
+            int current = static_cast<int> (state.getInputParameter (ch, inputHeightFactor));
+            state.setInputParameter (ch, inputHeightFactor, (current >= 100) ? 0 : 100);
+        };
     }
 
     page.numSections = 3;
