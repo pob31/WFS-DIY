@@ -1184,6 +1184,21 @@ MainComponent::MainComponent()
             return 0;
         };
 
+        controllerManager->callbacks.panMap = [this] (float dx, float dy)
+        {
+            if (mapTab)
+            {
+                mapTab->setViewCenterX (mapTab->getViewCenterX() + dx);
+                mapTab->setViewCenterY (mapTab->getViewCenterY() + dy);
+            }
+        };
+
+        controllerManager->callbacks.zoomMap = [this] (float factor)
+        {
+            if (mapTab)
+                mapTab->setViewScale (mapTab->getViewScale() * factor);
+        };
+
         controllerManager->callbacks.axisDeflection = [this] (float x, float y, float z)
         {
             // Visual-only: show SpaceMouse deflection on the active tab's joystick

@@ -148,26 +148,17 @@ protected:
         closeDevice();
     }
 
-    /** Turn the SpaceMouse LED on or off (Report ID 0x04). */
+    /** Turn the SpaceMouse LED on or off (Report ID 0x04).
+        Note: works on SpaceMouse Compact (USB). SpaceMouse Wireless
+        accepts the command but the firmware ignores it — the ring LED
+        on that model is purely firmware-controlled. */
     void setLED (bool on)
     {
         if (deviceHandle == nullptr)
             return;
 
-        // Pad to match typical HID output report size (some devices need exact size)
-        uint8_t report[REPORT_BUF_SIZE] = {};
-        report[0] = 0x04;
-        report[1] = on ? 0x01 : 0x00;
-
-        int result = hid_write (deviceHandle, report, 2);
-        if (result < 0)
-        {
-            // Retry with full buffer size — some HID descriptors require exact match
-            result = hid_write (deviceHandle, report, REPORT_BUF_SIZE);
-        }
-
-        DBG ("SpaceMouse LED " + juce::String (on ? "ON" : "OFF")
-             + " (result=" + juce::String (result) + ")");
+        uint8_t report[2] = { 0x04, static_cast<uint8_t> (on ? 0x01 : 0x00) };
+        hid_write (deviceHandle, report, 2);
     }
 
     bool poll() override

@@ -52,6 +52,12 @@ public:
             Returns the cluster number (>0) if so, or 0 if not. */
         std::function<int()> getSelectedClusterRef;
 
+        /** Pan the map view by a delta (meters). */
+        std::function<void (float dx, float dy)> panMap;
+
+        /** Zoom the map view (multiplicative factor, >1 = zoom in). */
+        std::function<void (float factor)> zoomMap;
+
         /** Visual feedback: raw axis deflection values (-1..+1), fired every tick. */
         std::function<void (float x, float y, float z)> axisDeflection;
 
@@ -371,18 +377,37 @@ private:
             }
             else
             {
-                // Regular input selected: move + rotate as normal
-                if ((std::abs (totalDx) > 0.0001f || std::abs (totalDy) > 0.0001f || std::abs (totalDz) > 0.0001f)
-                    && callbacks.moveSelectedDelta)
-                {
-                    callbacks.moveSelectedDelta (totalDx, totalDy, totalDz);
-                }
-
-                if (std::abs (totalRotation) > 0.01f && callbacks.rotateSelected && callbacks.getSelectedInputs)
+                // Check if anything is selected
+                bool hasSelection = false;
+                if (callbacks.getSelectedInputs)
                 {
                     auto selected = callbacks.getSelectedInputs();
-                    if (! selected.empty())
+                    hasSelection = ! selected.empty();
+                }
+
+                if (hasSelection)
+                {
+                    // Input selected: move + rotate
+                    if ((std::abs (totalDx) > 0.0001f || std::abs (totalDy) > 0.0001f || std::abs (totalDz) > 0.0001f)
+                        && callbacks.moveSelectedDelta)
+                    {
+                        callbacks.moveSelectedDelta (totalDx, totalDy, totalDz);
+                    }
+
+                    if (std::abs (totalRotation) > 0.01f && callbacks.rotateSelected)
                         callbacks.rotateSelected (totalRotation);
+                }
+                else
+                {
+                    // Nothing selected: pan map (XY) and zoom (Z)
+                    if ((std::abs (totalDx) > 0.0001f || std::abs (totalDy) > 0.0001f) && callbacks.panMap)
+                        callbacks.panMap (totalDx, totalDy);
+
+                    if (std::abs (totalDz) > 0.001f && callbacks.zoomMap)
+                    {
+                        float zoomFactor = 1.0f + totalDz * 2.0f;
+                        callbacks.zoomMap (juce::jlimit (0.9f, 1.1f, zoomFactor));
+                    }
                 }
             }
         }
