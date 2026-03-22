@@ -2306,19 +2306,24 @@ void MainComponent::handleProcessingChange(bool enabled)
     }
     else if (processingEnabled && audioEngineStarted)
     {
-        // Just enable existing processors
-        if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
-        {
-            inputAlgorithm.setProcessingEnabled(processingEnabled);
-        }
-        else if (currentAlgorithm == ProcessingAlgorithm::OutputBuffer)
-        {
-            outputAlgorithm.setProcessingEnabled(processingEnabled);
-        }
+        // Re-attach shared input buffers for binaural BEFORE enabling processors
+        // (audio callback writes to shared buffers when processingEnabled is true)
+        if (binauralProcessor && !sharedInputBuffers.empty())
+            binauralProcessor->setSharedInputBuffers(sharedInputBuffers);
 
         // Restart reverb engine thread (may have been stopped on disable)
         if (reverbEngine)
             reverbEngine->startProcessing();
+
+        // Enable existing processors last (audio callback starts processing)
+        if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
+        {
+            inputAlgorithm.setProcessingEnabled(true);
+        }
+        else if (currentAlgorithm == ProcessingAlgorithm::OutputBuffer)
+        {
+            outputAlgorithm.setProcessingEnabled(true);
+        }
     }
     else
     {
@@ -2335,6 +2340,10 @@ void MainComponent::handleProcessingChange(bool enabled)
         // Stop reverb engine thread to save CPU
         if (reverbEngine)
             reverbEngine->stopProcessing();
+
+        // Switch binaural to private ring buffers so binaural-only path can use pushInput
+        if (binauralProcessor)
+            binauralProcessor->clearSharedInputBuffers();
     }
 }
 
@@ -3548,6 +3557,8 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
                 int safeInputCount = juce::jmin(numInputChannels, patchedInputBuffer.getNumChannels(), (int)sharedInputBuffers.size());
                 for (int ch = 0; ch < safeInputCount; ++ch)
                 {
+                    if (sharedInputBuffers[ch] == nullptr)
+                        continue;
                     auto* inputData = patchedInputBuffer.getReadPointer(ch, bufferToFill.startSample);
                     sharedInputBuffers[ch]->write(inputData, bufferToFill.numSamples);
                 }
@@ -4151,7 +4162,25 @@ void MainComponent::timerCallback()
         if (binauralProcessor)
         {
             bool enabled = parameters.getValueTreeState().getBinauralEnabled();
+            bool wasEnabled = binauralProcessor->isEnabled();
             binauralProcessor->setEnabled(enabled);
+
+            if (enabled && !wasEnabled)
+            {
+                // Ensure processor is prepared and thread is running
+                auto* device = deviceManager.getCurrentAudioDevice();
+                if (device)
+                {
+                    binauralProcessor->prepareToPlay(device->getCurrentSampleRate(),
+                                                     device->getCurrentBufferSizeSamples(),
+                                                     numInputChannels);
+                }
+                binauralProcessor->startProcessing();
+            }
+            else if (!enabled && wasEnabled)
+            {
+                binauralProcessor->stopProcessing();
+            }
         }
 
         // Always recalculate binaural positions (listener params may have changed independently)

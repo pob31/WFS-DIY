@@ -524,6 +524,7 @@ public:
         binauralDistanceLabel.setText(LOC("systemConfig.labels.binauralDistance"), juce::dontSendNotification);
 
         addAndMakeVisible(binauralDistanceSlider);
+        binauralDistanceSlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFF26A69A)); // Teal (matches output pitch)
         binauralDistanceSlider.setValue(WFSParameterDefaults::binauralListenerDistanceDefault /
                                         WFSParameterDefaults::binauralListenerDistanceMax);
         binauralDistanceSlider.onValueChanged = [this](float v) {
@@ -572,6 +573,7 @@ public:
         binauralAttenLabel.setText(LOC("systemConfig.labels.binauralAtten"), juce::dontSendNotification);
 
         addAndMakeVisible(binauralAttenSlider);
+        binauralAttenSlider.setTrackColours(juce::Colour(0xFF2D2D2D), juce::Colour(0xFF4A90D9)); // Blue (matches input attenuation)
         // Convert dB to 0-1 slider value (0 dB = 1.0, -40 dB = 0.0)
         {
             float attenDefault = (WFSParameterDefaults::binauralAttenuationDefault - WFSParameterDefaults::binauralAttenuationMin) /
@@ -602,6 +604,7 @@ public:
         binauralDelayLabel.setText(LOC("systemConfig.labels.binauralDelay"), juce::dontSendNotification);
 
         addAndMakeVisible(binauralDelaySlider);
+        binauralDelaySlider.setTrackColours(juce::Colour(0xFF1E1E1E), juce::Colour(0xFFD4A017)); // Yellow (matches input delay)
         binauralDelaySlider.setValue(WFSParameterDefaults::binauralDelayDefault / WFSParameterDefaults::binauralDelayMax);
         binauralDelaySlider.onValueChanged = [this](float v) {
             float delayMs = v * WFSParameterDefaults::binauralDelayMax;
