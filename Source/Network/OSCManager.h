@@ -578,6 +578,15 @@ private:
     void onRemoteDisconnected(int targetIndex);
     void sendAllInputPositionsToRemote(int targetIndex);
     void sendAllInputParametersToRemote(int targetIndex);
+
+    /** Collect all state dump messages for a Remote target into a vector.
+     *  Must be called on the message thread (reads ValueTree state). */
+    std::vector<juce::OSCMessage> collectStateDumpMessages(int targetIndex);
+
+    /** Send a batch of messages to a target with pacing to avoid overflowing
+     *  the receiver's UDP buffer. Runs on a background thread. */
+    void sendPacedStateDump(int targetIndex, std::vector<juce::OSCMessage> messages);
+
     int findRemoteTargetByIP(const juce::String& senderIP) const;
 
     //==========================================================================

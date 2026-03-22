@@ -2,6 +2,8 @@
 #include "QLabCueBuilder.h"
 #include "../Helpers/CoordinateConverter.h"
 #include "../WFSLogger.h"
+#include <thread>
+#include <chrono>
 
 namespace WFSNetwork
 {
@@ -3227,7 +3229,6 @@ void OSCManager::onRemoteConnected(int targetIndex, bool /*isReconnection*/)
     DBG("OSCManager: Remote target " << targetIndex << " connected");
 
     // Delay the initial state dump to let the connection stabilize
-    // Use callAfterDelay to send data after 500ms
     juce::Timer::callAfterDelay(500, [this, targetIndex]()
     {
         // Verify the target is still connected before sending
@@ -3235,36 +3236,11 @@ void OSCManager::onRemoteConnected(int targetIndex, bool /*isReconnection*/)
         if (remoteState.phase != RemoteConnectionState::Phase::Connected)
             return;
 
-        // Send /inputs FIRST so Android expands its data structure before receiving positions.
-        // Use sendMessageDirect to bypass rate limiter — this must arrive before the
-        // subsequent sendDirect calls for positions/parameters.
-        auto ioTree = state.getIOState();
-        int inputs = ioTree.isValid()
-            ? static_cast<int>(ioTree.getProperty(WFSParameterIDs::inputChannels))
-            : 8;
-        juce::OSCMessage inputsMsg = OSCMessageBuilder::buildConfigIntMessage("/inputs", inputs);
-        sendMessageDirect(targetIndex, inputsMsg);
-
-        // Send stage configuration (dimensions, shape, etc.)
-        sendStageConfigToRemote();
-
-        // Send cluster configs BEFORE input positions so Android knows
-        // the reference mode before receiving cluster assignments
-        sendAllClusterConfigsToRemote(targetIndex);
-
-        // Send all input positions (includes cluster assignments)
-        sendAllInputPositionsToRemote(targetIndex);
-
-        // Send tracking state for all inputs
-        sendAllTrackingStatesToRemote();
-
-        // Send all per-input parameters (maxSpeed, attenuation, directivity, LFO, etc.)
-        sendAllInputParametersToRemote(targetIndex);
-
-        // Notify that connection is ready and initial data has been sent
-        // This allows MainComponent to send composite deltas
-        if (onRemoteConnectionReady)
-            onRemoteConnectionReady(targetIndex);
+        // Collect all state messages on the message thread (safe to read ValueTree),
+        // then send them from a background thread with pacing to avoid overflowing
+        // the remote's UDP receive buffer.
+        auto messages = collectStateDumpMessages(targetIndex);
+        sendPacedStateDump(targetIndex, std::move(messages));
     });
 }
 
@@ -3285,27 +3261,17 @@ void OSCManager::onRemoteDisconnected(int targetIndex)
 
 void OSCManager::resendStateToRemoteTargets()
 {
-    // Send /inputs first, then stage config, then positions to all connected Remote targets
-    auto ioTree = state.getIOState();
-    int inputs = ioTree.isValid()
-        ? static_cast<int>(ioTree.getProperty(WFSParameterIDs::inputChannels))
-        : 8;
-    juce::OSCMessage inputsMsg = OSCMessageBuilder::buildConfigIntMessage("/inputs", inputs);
-
+    // Collect and send paced state dump to all connected Remote targets.
+    // Uses background thread with pacing to avoid overflowing receiver's UDP buffer.
     for (int i = 0; i < MAX_TARGETS; ++i)
     {
         if (targetConfigs[static_cast<size_t>(i)].protocol == Protocol::Remote &&
             remoteStates[static_cast<size_t>(i)].phase == RemoteConnectionState::Phase::Connected)
         {
-            sendMessage(i, inputsMsg);
-            // Send cluster configs BEFORE positions so Android knows reference modes
-            sendAllClusterConfigsToRemote(i);
-            sendAllInputPositionsToRemote(i);
+            auto messages = collectStateDumpMessages(i);
+            sendPacedStateDump(i, std::move(messages));
         }
     }
-
-    sendStageConfigToRemote();
-    sendAllTrackingStatesToRemote();
 }
 
 void OSCManager::sendAllInputPositionsToRemote(int targetIndex)
@@ -3478,6 +3444,218 @@ void OSCManager::sendAllInputParametersToRemote(int targetIndex)
         }
     }
 
+}
+
+std::vector<juce::OSCMessage> OSCManager::collectStateDumpMessages(int targetIndex)
+{
+    std::vector<juce::OSCMessage> messages;
+
+    // --- /inputs ---
+    auto ioTree = state.getIOState();
+    int numInputs = ioTree.isValid()
+        ? static_cast<int>(ioTree.getProperty(WFSParameterIDs::inputChannels))
+        : 8;
+    messages.push_back(OSCMessageBuilder::buildConfigIntMessage("/inputs", numInputs));
+
+    // --- Stage config ---
+    auto stageTree = state.getStageState();
+    if (stageTree.isValid())
+    {
+        messages.push_back(OSCMessageBuilder::buildConfigFloatMessage("/stage/originX",
+            static_cast<float>(stageTree.getProperty(WFSParameterIDs::originWidth))));
+        messages.push_back(OSCMessageBuilder::buildConfigFloatMessage("/stage/originY",
+            static_cast<float>(stageTree.getProperty(WFSParameterIDs::originDepth))));
+        messages.push_back(OSCMessageBuilder::buildConfigFloatMessage("/stage/originZ",
+            static_cast<float>(stageTree.getProperty(WFSParameterIDs::originHeight))));
+        messages.push_back(OSCMessageBuilder::buildConfigFloatMessage("/stage/width",
+            static_cast<float>(stageTree.getProperty(WFSParameterIDs::stageWidth))));
+        messages.push_back(OSCMessageBuilder::buildConfigFloatMessage("/stage/depth",
+            static_cast<float>(stageTree.getProperty(WFSParameterIDs::stageDepth))));
+        messages.push_back(OSCMessageBuilder::buildConfigFloatMessage("/stage/height",
+            static_cast<float>(stageTree.getProperty(WFSParameterIDs::stageHeight))));
+        messages.push_back(OSCMessageBuilder::buildConfigIntMessage("/stage/shape",
+            static_cast<int>(stageTree.getProperty(WFSParameterIDs::stageShape))));
+        messages.push_back(OSCMessageBuilder::buildConfigFloatMessage("/stage/diameter",
+            static_cast<float>(stageTree.getProperty(WFSParameterIDs::stageDiameter))));
+        messages.push_back(OSCMessageBuilder::buildConfigFloatMessage("/stage/domeElevation",
+            static_cast<float>(stageTree.getProperty(WFSParameterIDs::domeElevation))));
+    }
+
+    // --- Cluster configs ---
+    {
+        using namespace WFSParameterIDs;
+        using namespace WFSParameterDefaults;
+
+        for (int c = 1; c <= maxClusters; ++c)
+        {
+            juce::var refModeVar = state.getClusterParameter(c, clusterReferenceMode);
+            int refMode = refModeVar.isVoid() ? 0 : static_cast<int>(refModeVar);
+
+            juce::OSCMessage msgRefMode("/cluster/referenceMode");
+            msgRefMode.addInt32(c);
+            msgRefMode.addInt32(refMode);
+            messages.push_back(std::move(msgRefMode));
+
+            int trackedInputId = 0;
+            for (int i = 0; i < numInputs; ++i)
+            {
+                juce::var clusterVar = state.getInputParameter(i, inputCluster);
+                int inputClusterIdx = clusterVar.isVoid() ? 0 : static_cast<int>(clusterVar);
+                if (inputClusterIdx == c && isInputFullyTracked(i))
+                {
+                    trackedInputId = i + 1;
+                    break;
+                }
+            }
+
+            juce::OSCMessage msgTracked("/cluster/trackedInput");
+            msgTracked.addInt32(c);
+            msgTracked.addInt32(trackedInputId);
+            messages.push_back(std::move(msgTracked));
+
+            juce::String inputOrder = state.getClusterParameter(c, clusterInputOrder).toString();
+            if (inputOrder.isNotEmpty())
+            {
+                juce::OSCMessage orderMsg("/cluster/inputOrder");
+                orderMsg.addInt32(c);
+                orderMsg.addString(inputOrder);
+                messages.push_back(std::move(orderMsg));
+            }
+        }
+    }
+
+    // --- Per-input positions, offsets, cluster, name ---
+    for (int ch = 0; ch < numInputs; ++ch)
+    {
+        int channelId = ch + 1;
+
+        juce::var nameVar = state.getInputParameter(ch, WFSParameterIDs::inputName);
+        if (nameVar.isString())
+        {
+            juce::OSCMessage msg("/remoteInput/inputName");
+            msg.addInt32(channelId);
+            msg.addString(nameVar.toString());
+            messages.push_back(std::move(msg));
+        }
+
+        float posX = varToFloat(state.getInputParameter(ch, WFSParameterIDs::inputPositionX));
+        float posY = varToFloat(state.getInputParameter(ch, WFSParameterIDs::inputPositionY));
+        float posZ = varToFloat(state.getInputParameter(ch, WFSParameterIDs::inputPositionZ));
+
+        auto addPosMsg = [&](const char* addr, float val) {
+            juce::OSCMessage msg(addr);
+            msg.addInt32(channelId);
+            msg.addFloat32(val);
+            messages.push_back(std::move(msg));
+        };
+
+        addPosMsg("/remoteInput/positionX", posX);
+        addPosMsg("/remoteInput/positionY", posY);
+        addPosMsg("/remoteInput/positionZ", posZ);
+
+        float offX = varToFloat(state.getInputParameter(ch, WFSParameterIDs::inputOffsetX));
+        float offY = varToFloat(state.getInputParameter(ch, WFSParameterIDs::inputOffsetY));
+        float offZ = varToFloat(state.getInputParameter(ch, WFSParameterIDs::inputOffsetZ));
+
+        addPosMsg("/remoteInput/offsetX", offX);
+        addPosMsg("/remoteInput/offsetY", offY);
+        addPosMsg("/remoteInput/offsetZ", offZ);
+
+        juce::var clusterVar = state.getInputParameter(ch, WFSParameterIDs::inputCluster);
+        int clusterValue = clusterVar.isVoid() ? 0 : static_cast<int>(clusterVar);
+        juce::OSCMessage msgCluster("/remoteInput/cluster");
+        msgCluster.addInt32(channelId);
+        msgCluster.addInt32(clusterValue);
+        messages.push_back(std::move(msgCluster));
+    }
+
+    // --- Tracking states ---
+    for (int i = 0; i < numInputs; ++i)
+    {
+        juce::OSCMessage msg("/remoteInput/isFullyTracked");
+        msg.addInt32(i + 1);
+        msg.addInt32(isInputFullyTracked(i) ? 1 : 0);
+        messages.push_back(std::move(msg));
+    }
+
+    // --- All other per-input parameters ---
+    {
+        const auto& remoteMap = OSCMessageRouter::getRemoteAddressMap();
+
+        auto isAlreadySent = [](const juce::String& name) {
+            return name == "positionX" || name == "positionY" || name == "positionZ"
+                || name == "offsetX"   || name == "offsetY"   || name == "offsetZ"
+                || name == "cluster"   || name == "inputName";
+        };
+
+        for (int ch = 0; ch < numInputs; ++ch)
+        {
+            int channelId = ch + 1;
+            for (const auto& [paramName, paramId] : remoteMap)
+            {
+                if (isAlreadySent(paramName))
+                    continue;
+
+                juce::var value = state.getInputParameter(ch, paramId);
+                if (value.isVoid())
+                    continue;
+
+                juce::OSCMessage msg("/remoteInput/" + paramName);
+                msg.addInt32(channelId);
+
+                if (value.isInt() || value.isBool())
+                    msg.addInt32(static_cast<int>(value));
+                else
+                    msg.addFloat32(varToFloat(value));
+
+                messages.push_back(std::move(msg));
+            }
+        }
+    }
+
+    return messages;
+}
+
+void OSCManager::sendPacedStateDump(int targetIndex, std::vector<juce::OSCMessage> messages)
+{
+    // Send from a background thread with pacing to avoid overflowing
+    // the receiver's UDP socket buffer.
+    // The Android receive loop processes packets sequentially (receive -> parse -> callback),
+    // so bursts of hundreds of UDP packets cause the OS buffer to overflow and silently
+    // drop packets. We pace by sleeping 2ms every 4 messages to give the receiver time
+    // to drain. For 32 inputs (~1088 messages) this takes ~544ms — fast enough to be
+    // imperceptible but slow enough to avoid drops.
+    std::thread([this, targetIndex, msgs = std::move(messages)]()
+    {
+        const auto& config = targetConfigs[static_cast<size_t>(targetIndex)];
+        int count = 0;
+        const bool loggingEnabled = logger.getEnabled();
+
+        for (const auto& msg : msgs)
+        {
+            // Check connection is still valid
+            if (!connections[static_cast<size_t>(targetIndex)])
+                break;
+
+            if (connections[static_cast<size_t>(targetIndex)]->send(msg))
+            {
+                ++messagesSent;
+                if (loggingEnabled)
+                    logger.logSentWithDetails(targetIndex, msg, config.protocol,
+                                              config.ipAddress, config.port, config.mode);
+            }
+
+            if (++count % 4 == 0)
+                std::this_thread::sleep_for(std::chrono::milliseconds(2));
+        }
+
+        // Notify connection ready on the message thread
+        juce::MessageManager::callAsync([this, targetIndex]()
+        {
+            if (onRemoteConnectionReady)
+                onRemoteConnectionReady(targetIndex);
+        });
+    }).detach();
 }
 
 int OSCManager::findRemoteTargetByIP(const juce::String& senderIP) const
