@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "BinauralCalculationEngine.h"
+#include "SharedInputRingBuffer.h"
 #include "WFSHighShelfFilter.h"
 #include "../LockFreeRingBuffer.h"
 #include <vector>
@@ -173,6 +174,30 @@ public:
         stopThread (1000);
     }
 
+    /** Set shared input buffers (reads from these instead of private ring buffers). */
+    void setSharedInputBuffers(const std::vector<std::unique_ptr<SharedInputRingBuffer>>& buffers)
+    {
+        sharedInputs.clear();
+        for (auto& buf : buffers)
+            sharedInputs.push_back(buf.get());
+        sharedReadPositions.assign(sharedInputs.size(), 0);
+        useSharedInputs = true;
+    }
+
+    /** Clear shared input buffer references (fall back to pushInput mode). */
+    void clearSharedInputBuffers()
+    {
+        sharedInputs.clear();
+        sharedReadPositions.clear();
+        useSharedInputs = false;
+    }
+
+    /** Notify that new input data is available in shared buffers. */
+    void notifyInputAvailable()
+    {
+        notify();
+    }
+
     /**
      * Reset all delay buffers and filters.
      */
@@ -234,13 +259,23 @@ private:
             if (processingEnabled.load (std::memory_order_acquire))
             {
                 // Check if we have enough input data to process a block
-                int minAvailable = currentBlockSize;
                 bool hasData = true;
 
-                for (int i = 0; i < numInputChannels && hasData; ++i)
+                if (useSharedInputs)
                 {
-                    if (inputBuffers[i]->getAvailableData() < minAvailable)
-                        hasData = false;
+                    for (int i = 0; i < numInputChannels && i < (int)sharedInputs.size() && hasData; ++i)
+                    {
+                        if (sharedInputs[i]->getAvailableAt(sharedReadPositions[i]) < currentBlockSize)
+                            hasData = false;
+                    }
+                }
+                else
+                {
+                    for (int i = 0; i < numInputChannels && hasData; ++i)
+                    {
+                        if (inputBuffers[i]->getAvailableData() < currentBlockSize)
+                            hasData = false;
+                    }
                 }
 
                 if (hasData)
@@ -285,12 +320,19 @@ private:
             if (anySoloed && !binauralCalc.isInputSoloed (inputIdx))
             {
                 // Still need to consume input data to keep buffers in sync
-                inputBuffers[inputIdx]->read (inputBlock.getWritePointer (0), numSamples);
+                if (useSharedInputs && inputIdx < (int)sharedInputs.size())
+                    sharedInputs[inputIdx]->readWithPosition(sharedReadPositions[inputIdx], inputBlock.getWritePointer(0), numSamples);
+                else
+                    inputBuffers[inputIdx]->read (inputBlock.getWritePointer (0), numSamples);
                 continue;
             }
 
-            // Read input from ring buffer
-            int samplesRead = inputBuffers[inputIdx]->read (inputBlock.getWritePointer (0), numSamples);
+            // Read input from shared buffers or private ring buffers
+            int samplesRead;
+            if (useSharedInputs && inputIdx < (int)sharedInputs.size())
+                samplesRead = sharedInputs[inputIdx]->readWithPosition(sharedReadPositions[inputIdx], inputBlock.getWritePointer(0), numSamples);
+            else
+                samplesRead = inputBuffers[inputIdx]->read (inputBlock.getWritePointer (0), numSamples);
             if (samplesRead == 0)
                 continue;
 
@@ -416,7 +458,12 @@ private:
 
     std::atomic<bool> processingEnabled {false};
 
-    // Lock-free ring buffers for input (one per input channel)
+    // Shared input buffers (read from these when available, bypasses pushInput)
+    std::vector<SharedInputRingBuffer*> sharedInputs;
+    std::vector<int> sharedReadPositions;
+    bool useSharedInputs = false;
+
+    // Lock-free ring buffers for input (fallback when shared buffers aren't set)
     std::vector<std::unique_ptr<LockFreeRingBuffer>> inputBuffers;
 
     // Lock-free ring buffers for output (L/R stereo)

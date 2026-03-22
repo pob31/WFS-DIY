@@ -2124,6 +2124,10 @@ void MainComponent::stopProcessingForConfigurationChange()
     //     gpuInputAlgorithm.clear();
     // }
 
+    // Clear shared buffer references from consumers before destroying buffers
+    if (binauralProcessor)
+        binauralProcessor->clearSharedInputBuffers();
+
     // Stop reverb feed thread and engine for reconfiguration
     if (reverbFeedThread)
     {
@@ -3390,6 +3394,10 @@ void MainComponent::startAudioEngine()
         }
     }
 
+    // Wire binaural processor to shared input buffers (reads directly, no push needed)
+    if (audioEngineStarted && binauralProcessor && !sharedInputBuffers.empty())
+        binauralProcessor->setSharedInputBuffers(sharedInputBuffers);
+
     // Start reverb engine thread (may have been stopped by channel count change)
     if (audioEngineStarted && reverbEngine)
         reverbEngine->startProcessing();
@@ -3511,57 +3519,50 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
         }
     }
 
-    // Process WFS audio if engine is started
-    if (audioEngineStarted)
+    // Process WFS audio if engine is started AND processing is enabled
+    if (audioEngineStarted && processingEnabled)
     {
-        // Apply input patching: hardware channels → WFS channels
+        // Apply input patching: hardware channels → WFS channels (single copy into patchedInputBuffer)
         applyInputPatch(bufferToFill);
 
-        // Overwrite input channels where sampler is active (replaces patched audio)
+        // Overwrite input channels where sampler is active (writes to patchedInputBuffer)
         if (samplerManager != nullptr && samplerManager->hasAnyActiveChannel())
         {
             for (int ch = 0; ch < numInputChannels; ++ch)
             {
                 if (samplerManager->isChannelActive (ch)
-                    && ch < bufferToFill.buffer->getNumChannels())
+                    && ch < patchedInputBuffer.getNumChannels())
                 {
-                    samplerManager->processChannel (ch, *bufferToFill.buffer,
+                    samplerManager->processChannel (ch, patchedInputBuffer,
                                                     bufferToFill.startSample,
                                                     bufferToFill.numSamples);
                 }
             }
         }
 
-        // Push input data to binaural processor BEFORE WFS clears the buffer.
-        if (binauralProcessor && binauralProcessor->isEnabled() && binauralCalcEngine)
+        // Write patched input to shared buffers + notify consumers (only when needed)
         {
-            int binauralCh = binauralCalcEngine->getBinauralOutputChannel();
-            if (binauralCh >= 0 && binauralCh + 1 < numOutputChannels)
+            bool needSharedBuffers = (reverbFeedThread != nullptr)
+                                  || (binauralProcessor && binauralProcessor->isEnabled());
+
+            if (needSharedBuffers && !sharedInputBuffers.empty())
             {
-                int safeInputCount = juce::jmin(numInputChannels, bufferToFill.buffer->getNumChannels());
-                for (int i = 0; i < safeInputCount; ++i)
+                int safeInputCount = juce::jmin(numInputChannels, patchedInputBuffer.getNumChannels(), (int)sharedInputBuffers.size());
+                for (int ch = 0; ch < safeInputCount; ++ch)
                 {
-                    const float* inputData = bufferToFill.buffer->getReadPointer(i, bufferToFill.startSample);
-                    binauralProcessor->pushInput(i, inputData, bufferToFill.numSamples);
+                    auto* inputData = patchedInputBuffer.getReadPointer(ch, bufferToFill.startSample);
+                    sharedInputBuffers[ch]->write(inputData, bufferToFill.numSamples);
+                }
+
+                if (binauralProcessor && binauralProcessor->isEnabled())
+                    binauralProcessor->notifyInputAvailable();
+
+                if (reverbFeedThread)
+                {
+                    reverbFeedThread->setMuted(muteReverbPre.load(std::memory_order_relaxed));
+                    reverbFeedThread->notifyInputAvailable();
                 }
             }
-        }
-
-        // Write input data to shared buffers (for reverb feed thread)
-        {
-            int safeInputCount = juce::jmin(numInputChannels, bufferToFill.buffer->getNumChannels(), (int)sharedInputBuffers.size());
-            for (int ch = 0; ch < safeInputCount; ++ch)
-            {
-                auto* inputData = bufferToFill.buffer->getReadPointer(ch, bufferToFill.startSample);
-                sharedInputBuffers[ch]->write(inputData, bufferToFill.numSamples);
-            }
-        }
-
-        // Notify reverb feed thread (computes feeds on separate thread)
-        if (reverbFeedThread)
-        {
-            reverbFeedThread->setMuted(muteReverbPre.load(std::memory_order_relaxed));
-            reverbFeedThread->notifyInputAvailable();
         }
 
         // Parameter smoothing (runs on ASIO thread, immune to message-pump

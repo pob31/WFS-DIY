@@ -50,7 +50,7 @@ private:
         {
             if (samplesAvailable.load(std::memory_order_acquire) < processingBlockSize)
             {
-                wait(1);
+                wait(10);  // Sleep longer when idle
                 continue;
             }
 
@@ -140,7 +140,7 @@ private:
             }
 
             if (!didWork)
-                wait(1);
+                wait(10);  // Sleep longer when idle
         }
     }
 

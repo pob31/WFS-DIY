@@ -256,6 +256,13 @@ private:
 
         while (!threadShouldExit())
         {
+            // Sleep when processing is disabled (no work to do)
+            if (!processingEnabled.load(std::memory_order_acquire))
+            {
+                wait(10);
+                continue;
+            }
+
             // Wait for input data from all channels
             if (samplesAvailable.load(std::memory_order_acquire) < processingBlockSize)
             {
@@ -283,8 +290,7 @@ private:
             if (samplesRead == 0)
                 continue;
 
-            // Process if enabled
-            if (processingEnabled.load(std::memory_order_acquire))
+            // Process block (processingEnabled already checked at top of loop)
             {
                 auto processStartTime = juce::Time::getMillisecondCounterHiRes();
 
@@ -301,12 +307,6 @@ private:
                 auto* outData = outputBlock.getReadPointer(0);
                 outputRingBuffer.write(outData, samplesRead);
                 meteringRingBuffer.write(outData, samplesRead);
-            }
-            else
-            {
-                // If processing disabled, write silence
-                float silence[processingBlockSize] = {0};
-                outputRingBuffer.write(silence, samplesRead);
             }
 
             // Update CPU usage every ~200ms of wall-clock time
