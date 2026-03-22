@@ -5650,6 +5650,11 @@ private:
 
             float heightPct = getFloatParam(WFSParameterIDs::inputHeightFactor, 100.0f);
             gradientMapEditor.setHeightRatio(heightPct / 100.0f);
+
+            // Pass input position for marker display
+            float posX = getFloatParam(WFSParameterIDs::inputPositionX, 0.0f);
+            float posY = getFloatParam(WFSParameterIDs::inputPositionY, 0.0f);
+            gradientMapEditor.setInputPosition(posX, posY, currentChannel - 1);
         }
 
         isLoadingParameters = false;
@@ -7249,6 +7254,18 @@ private:
 
     void valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property) override
     {
+        // Update gradient map input marker when position changes
+        if ((property == WFSParameterIDs::inputPositionX || property == WFSParameterIDs::inputPositionY)
+            && currentChannel > 0 && gradientMapEditor.isVisible())
+        {
+            juce::MessageManager::callAsync ([this]()
+            {
+                float posX = static_cast<float> (parameters.getInputParam (currentChannel - 1, "inputPositionX"));
+                float posY = static_cast<float> (parameters.getInputParam (currentChannel - 1, "inputPositionY"));
+                gradientMapEditor.setInputPosition (posX, posY, currentChannel - 1);
+            });
+        }
+
         // Check if project folder changed — refresh snapshot list
         if (property == juce::Identifier ("ProjectFolder"))
         {

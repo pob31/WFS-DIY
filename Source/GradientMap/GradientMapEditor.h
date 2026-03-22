@@ -91,6 +91,39 @@ public:
         addAndMakeVisible (ellipseToolBtn);
         addAndMakeVisible (polygonToolBtn);
 
+        // Edit Points toggle (not in radio group — it's a modifier for Select tool)
+        editPointsBtn.setButtonText (LOC ("inputs.gradientMap.tools.editPoints"));
+        editPointsBtn.setClickingTogglesState (true);
+        editPointsBtn.onClick = [this]
+        {
+            editVerticesMode = editPointsBtn.getToggleState();
+            if (editVerticesMode)
+            {
+                currentTool = Tool::Select;
+                selectToolBtn.setToggleState (true, juce::dontSendNotification);
+
+                // Convert rectangle to polygon if needed
+                if (selectedShapeIndices.size() == 1)
+                {
+                    int selIdx = selectedShapeIndices[0];
+                    if (selIdx >= 0 && selIdx < static_cast<int> (currentLayerData.shapes.size()))
+                    {
+                        auto& shape = currentLayerData.shapes[static_cast<size_t> (selIdx)];
+                        if (shape.type == GradientMap::ShapeType::Rectangle && shape.vertices.empty())
+                        {
+                            pushUndo();
+                            shape.vertices = { {-1,-1}, {1,-1}, {1,1}, {-1,1} };
+                            shape.type = GradientMap::ShapeType::Polygon;
+                            saveCurrentLayerToValueTree();
+                        }
+                    }
+                }
+            }
+            draggedVertexIndex = -1;
+            repaint();
+        };
+        addAndMakeVisible (editPointsBtn);
+
         // Fill tools
         fillToolBtn.setButtonText (LOC ("inputs.gradientMap.tools.fill"));
         linearGradToolBtn.setButtonText (LOC ("inputs.gradientMap.tools.linGrad"));
@@ -450,6 +483,16 @@ public:
         updateHeightWarning();
     }
 
+    /** Set the current input's position for marker display on the gradient map */
+    void setInputPosition (float x, float y, int channelIndex = -1)
+    {
+        inputStageX = x;
+        inputStageY = y;
+        inputChannelIndex = channelIndex;
+        showInputMarker = (channelIndex >= 0);
+        repaint();
+    }
+
     /** Set the status bar for help text display */
     void setStatusBar (StatusBar* bar)
     {
@@ -498,6 +541,9 @@ public:
 
         // Draw selection handles
         drawSelectionHandles (g, canvasBounds);
+
+        // Draw input position marker (after shapes and handles, so it's always visible)
+        drawInputMarker (g, canvasBounds);
 
         // Draw gradient control handles
         drawGradientHandles (g, canvasBounds);
@@ -703,7 +749,13 @@ public:
         auto toolRow2 = toolArea.removeFromTop (toolBtnH + toolPad).withTrimmedTop (toolPad);
         auto toolRow3 = toolArea.removeFromTop (toolBtnH + toolPad).withTrimmedTop (toolPad);
 
-        selectToolBtn.setBounds (toolRow1.reduced (toolPad, 0));
+        {
+            auto selectArea = toolRow1.reduced (toolPad, 0);
+            int halfW = selectArea.getWidth() / 2 - toolPad / 2;
+            selectToolBtn.setBounds (selectArea.removeFromLeft (halfW));
+            selectArea.removeFromLeft (toolPad);
+            editPointsBtn.setBounds (selectArea);
+        }
 
         int col3W = (toolRow2.getWidth() - toolPad * 4) / 3;
         int tx = toolRow2.getX() + toolPad;
@@ -791,6 +843,40 @@ public:
             // Gradient handle drag (works in Select mode too)
             if (tryStartGradientHandleDrag (e.getPosition(), canvasBounds))
                 return;
+
+            // Vertex editing: hit-test individual vertices before anything else
+            if (editVerticesMode && selectedShapeIndices.size() == 1)
+            {
+                int selIdx = selectedShapeIndices[0];
+                if (selIdx >= 0 && selIdx < static_cast<int> (currentLayerData.shapes.size()))
+                {
+                    auto& shape = currentLayerData.shapes[static_cast<size_t> (selIdx)];
+                    if (shape.type == GradientMap::ShapeType::Polygon
+                        || shape.type == GradientMap::ShapeType::Rectangle)
+                    {
+                        // Ensure rectangle has vertices populated
+                        if (shape.type == GradientMap::ShapeType::Rectangle && shape.vertices.empty())
+                        {
+                            shape.vertices = { {-1,-1}, {1,-1}, {1,1}, {-1,1} };
+                            shape.type = GradientMap::ShapeType::Polygon;
+                        }
+
+                        for (int vi = 0; vi < static_cast<int> (shape.vertices.size()); ++vi)
+                        {
+                            auto screenP = stageToScreen (shapeLocalToStage (shape.vertices[static_cast<size_t> (vi)], shape), canvasBounds);
+                            if (e.getPosition().toFloat().getDistanceFrom (screenP.toFloat()) < 8.0f)
+                            {
+                                pushUndo();
+                                draggedVertexIndex = vi;
+                                isDragging = true;
+                                dragStartStage = stagePos;
+                                repaint();
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
 
             // Check scale/rotate handles on already-selected shapes first
             if (selectedShapeIndices.size() == 1)
@@ -997,6 +1083,25 @@ public:
             return;
         }
 
+        // Vertex dragging
+        if (editVerticesMode && draggedVertexIndex >= 0 && selectedShapeIndices.size() == 1)
+        {
+            int selIdx = selectedShapeIndices[0];
+            if (selIdx >= 0 && selIdx < static_cast<int> (currentLayerData.shapes.size()))
+            {
+                auto& shape = currentLayerData.shapes[static_cast<size_t> (selIdx)];
+                auto stagePos = screenToStage (e.getPosition(), canvasBounds);
+                auto localPos = stageToShapeLocal (stagePos, shape);
+
+                if (draggedVertexIndex < static_cast<int> (shape.vertices.size()))
+                {
+                    shape.vertices[static_cast<size_t> (draggedVertexIndex)] = localPos;
+                    repaint();
+                }
+            }
+            return;
+        }
+
         // Rotation dragging
         if (isRotating && rotateShapeIdx >= 0
             && rotateShapeIdx < static_cast<int> (currentLayerData.shapes.size()))
@@ -1131,6 +1236,14 @@ public:
             return;
         }
 
+        if (draggedVertexIndex >= 0)
+        {
+            draggedVertexIndex = -1;
+            isDragging = false;
+            saveCurrentLayerToValueTree();
+            return;
+        }
+
         if (isRotating)
         {
             isRotating = false;
@@ -1247,6 +1360,63 @@ public:
             polygonVertices.clear();
             repaint();
         }
+        else if (editVerticesMode && selectedShapeIndices.size() == 1)
+        {
+            auto canvasBounds = getCanvasBounds();
+            int selIdx = selectedShapeIndices[0];
+            if (selIdx >= 0 && selIdx < static_cast<int> (currentLayerData.shapes.size()))
+            {
+                auto& shape = currentLayerData.shapes[static_cast<size_t> (selIdx)];
+                if (shape.type == GradientMap::ShapeType::Polygon && ! shape.vertices.empty())
+                {
+                    auto mouseScreen = e.getPosition().toFloat();
+
+                    // 1) Hit-test vertices — double-click to delete (min 3)
+                    for (int vi = 0; vi < static_cast<int> (shape.vertices.size()); ++vi)
+                    {
+                        auto screenP = stageToScreen (shapeLocalToStage (shape.vertices[static_cast<size_t> (vi)], shape), canvasBounds).toFloat();
+                        if (mouseScreen.getDistanceFrom (screenP) < 8.0f)
+                        {
+                            if (shape.vertices.size() > 3)
+                            {
+                                pushUndo();
+                                shape.vertices.erase (shape.vertices.begin() + vi);
+                                saveCurrentLayerToValueTree();
+                                repaint();
+                            }
+                            return;
+                        }
+                    }
+
+                    // 2) Hit-test segments — double-click to insert vertex
+                    int numVerts = static_cast<int> (shape.vertices.size());
+                    for (int vi = 0; vi < numVerts; ++vi)
+                    {
+                        int next = (vi + 1) % numVerts;
+                        auto screenA = stageToScreen (shapeLocalToStage (shape.vertices[static_cast<size_t> (vi)], shape), canvasBounds).toFloat();
+                        auto screenB = stageToScreen (shapeLocalToStage (shape.vertices[static_cast<size_t> (next)], shape), canvasBounds).toFloat();
+
+                        // Closest point on segment AB to mouse
+                        auto ab = screenB - screenA;
+                        float abLen2 = ab.x * ab.x + ab.y * ab.y;
+                        if (abLen2 < 1.0f) continue;
+                        float t = juce::jlimit (0.0f, 1.0f, ((mouseScreen - screenA).getDotProduct (ab)) / abLen2);
+                        auto closest = screenA + ab * t;
+
+                        if (mouseScreen.getDistanceFrom (closest) < 8.0f)
+                        {
+                            pushUndo();
+                            auto stagePos = screenToStage (e.getPosition(), canvasBounds);
+                            auto localPos = stageToShapeLocal (stagePos, shape);
+                            shape.vertices.insert (shape.vertices.begin() + next, localPos);
+                            saveCurrentLayerToValueTree();
+                            repaint();
+                            return;
+                        }
+                    }
+                }
+            }
+        }
         else
         {
             juce::ignoreUnused (e);
@@ -1356,11 +1526,21 @@ private:
     bool hasInitialView = false;
     float heightRatio = 1.0f;
 
+    // Input position marker
+    float inputStageX = 0.0f, inputStageY = 0.0f;
+    int inputChannelIndex = -1; // -1 = no marker
+    bool showInputMarker = false;
+
+    // Vertex editing mode
+    bool editVerticesMode = false;
+    int draggedVertexIndex = -1;
+
     //==========================================================================
     // Toolbar UI
     //==========================================================================
 
     juce::TextButton selectToolBtn, rectToolBtn, ellipseToolBtn, polygonToolBtn;
+    juce::TextButton editPointsBtn;
     juce::TextButton fillToolBtn, linearGradToolBtn, radialGradToolBtn;
     juce::TextButton layerEnableBtn[3];
 
@@ -1843,6 +2023,40 @@ private:
         g.drawEllipse (origin.x - 5.0f, origin.y - 5.0f, 10.0f, 10.0f, 1.0f);
     }
 
+    void drawInputMarker (juce::Graphics& g, const juce::Rectangle<int>& canvas) const
+    {
+        if (! showInputMarker || inputChannelIndex < 0)
+            return;
+
+        auto pos = stageToScreen ({ inputStageX, inputStageY }, canvas);
+        float px = static_cast<float> (pos.x);
+        float py = static_cast<float> (pos.y);
+
+        // Only draw if within canvas
+        if (! canvas.contains (pos))
+            return;
+
+        auto markerColour = juce::Colour (0xFFFFCC00); // Gold/yellow
+
+        // Crosshair arms (20px)
+        g.setColour (markerColour.withAlpha (0.8f));
+        g.drawLine (px - 12.0f, py, px - 4.0f, py, 1.5f);
+        g.drawLine (px + 4.0f, py, px + 12.0f, py, 1.5f);
+        g.drawLine (px, py - 12.0f, px, py - 4.0f, 1.5f);
+        g.drawLine (px, py + 4.0f, px, py + 12.0f, 1.5f);
+
+        // Filled circle at center
+        g.setColour (markerColour);
+        g.fillEllipse (px - 3.0f, py - 3.0f, 6.0f, 6.0f);
+
+        // Channel label
+        auto label = "In " + juce::String (inputChannelIndex + 1);
+        g.setFont (11.0f);
+        g.setColour (markerColour);
+        g.drawText (label, juce::Rectangle<float> (px + 10.0f, py - 14.0f, 40.0f, 14.0f),
+                    juce::Justification::centredLeft, false);
+    }
+
     void drawLayerShapes (juce::Graphics& g, const juce::Rectangle<int>& canvas,
                           int layerIdx, float alpha) const
     {
@@ -1969,7 +2183,25 @@ private:
 
             const auto& shape = currentLayerData.shapes[static_cast<size_t> (idx)];
 
-            // Transform 4 unit-square corners through shape's full transform
+            // Vertex editing mode: draw individual vertex handles for polygons
+            if (editVerticesMode && selectedShapeIndices.size() == 1
+                && (shape.type == GradientMap::ShapeType::Polygon
+                    || shape.type == GradientMap::ShapeType::Rectangle))
+            {
+                const auto& verts = shape.vertices;
+                for (int vi = 0; vi < static_cast<int> (verts.size()); ++vi)
+                {
+                    auto screenP = stageToScreen (shapeLocalToStage (verts[static_cast<size_t> (vi)], shape), canvas).toFloat();
+                    float r = (vi == draggedVertexIndex) ? 5.0f : 4.0f;
+                    g.setColour (getLayerColour (activeLayer));
+                    g.fillEllipse (screenP.x - r, screenP.y - r, r * 2.0f, r * 2.0f);
+                    g.setColour (juce::Colours::white);
+                    g.drawEllipse (screenP.x - r, screenP.y - r, r * 2.0f, r * 2.0f, 1.0f);
+                }
+                continue; // Skip normal scale/rotation handles in vertex edit mode
+            }
+
+            // Normal mode: Transform 4 unit-square corners through shape's full transform
             juce::Point<float> localCorners[4] = { {-1,-1}, {1,-1}, {-1,1}, {1,1} };
             for (auto& c : localCorners)
             {

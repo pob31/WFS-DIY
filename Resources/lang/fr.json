@@ -1088,7 +1088,8 @@
         "polygon": "Polygone",
         "fill": "Remplir",
         "linGrad": "Grad. Linéaire",
-        "radGrad": "Grad. Radial"
+        "radGrad": "Grad. Radial",
+        "editPoints": "Édit. Points"
       },
       "buttons": {
         "enable": "On",
