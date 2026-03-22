@@ -47,6 +47,8 @@ public:
         // Initialize per-output delay interpolation state
         prevDirectDelaySamples.resize(static_cast<size_t>(numOutputs), 0.0f);
         prevFRDelaySamples.resize(static_cast<size_t>(numOutputs), 0.0f);
+        smoothedDirectDelay.resize(static_cast<size_t>(numOutputs), 0.0f);
+        smoothedFRDelay.resize(static_cast<size_t>(numOutputs), 0.0f);
 
         // Initialize diffusion state for time-varying jitter (one per output)
         frDiffusionState.resize(static_cast<size_t>(numOutputs), 0.0f);
@@ -422,19 +424,32 @@ private:
                 frHFFilters[outChannel].setGainDb(frHFGainDb);
             }
 
-            // Per-sample delay interpolation: smooth from previous block's delay to current
-            float prevDirect = prevDirectDelaySamples[static_cast<size_t>(outChannel)];
-            float prevFR = prevFRDelaySamples[static_cast<size_t>(outChannel)];
+            // Ramp-rate smoothing: one-pole lowpass on delay target to avoid abrupt slope changes
+            auto outIdx = static_cast<size_t>(outChannel);
             if (!delayInterpInitialized)
             {
-                prevDirect = directDelaySamples;
-                prevFR = frDelaySamples;
+                smoothedDirectDelay[outIdx] = directDelaySamples;
+                smoothedFRDelay[outIdx] = frDelaySamples;
+            }
+            else
+            {
+                smoothedDirectDelay[outIdx] += (directDelaySamples - smoothedDirectDelay[outIdx]) * delaySmoothing;
+                smoothedFRDelay[outIdx] += (frDelaySamples - smoothedFRDelay[outIdx]) * delaySmoothing;
+            }
+
+            // Per-sample delay interpolation: linear ramp from previous to smoothed target
+            float prevDirect = prevDirectDelaySamples[outIdx];
+            float prevFR = prevFRDelaySamples[outIdx];
+            if (!delayInterpInitialized)
+            {
+                prevDirect = smoothedDirectDelay[outIdx];
+                prevFR = smoothedFRDelay[outIdx];
             }
             float invNumSamples = 1.0f / (float)numSamples;
 
-            // Store current for next block
-            prevDirectDelaySamples[static_cast<size_t>(outChannel)] = directDelaySamples;
-            prevFRDelaySamples[static_cast<size_t>(outChannel)] = frDelaySamples;
+            // Store smoothed for next block
+            prevDirectDelaySamples[outIdx] = smoothedDirectDelay[outIdx];
+            prevFRDelaySamples[outIdx] = smoothedFRDelay[outIdx];
 
             // Process each sample with per-sample delay interpolation
             for (int sample = 0; sample < numSamples; ++sample)
@@ -585,7 +600,10 @@ private:
     // Per-output previous delay values for per-sample interpolation
     std::vector<float> prevDirectDelaySamples;  // Previous block's direct delay per output
     std::vector<float> prevFRDelaySamples;      // Previous block's FR delay per output
+    std::vector<float> smoothedDirectDelay;     // One-pole smoothed delay target (ramp-rate averaging)
+    std::vector<float> smoothedFRDelay;         // One-pole smoothed FR delay target
     bool delayInterpInitialized = false;
+    static constexpr float delaySmoothing = 1.0f / 100.0f;  // ~100 sample one-pole (rampsmooth)
 
     // FR diffusion (time-varying jitter per output)
     std::vector<float> frDiffusionState;   // Current jitter value per output

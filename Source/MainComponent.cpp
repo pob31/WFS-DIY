@@ -2270,7 +2270,9 @@ void MainComponent::applyOutputPatch(const juce::AudioSourceChannelInfo& bufferT
     bufferToFill.clearActiveBufferRegion();
 
     // Remap WFS channels to hardware channels using addFrom (supports many-to-one)
-    for (int wfsChannel = 0; wfsChannel < numOutputChannels && wfsChannel < (int)outputPatchMap.size(); ++wfsChannel)
+    // Iterate up to wfsOutput size to include binaural channels beyond WFS output range
+    int patchChannels = juce::jmin(wfsOutput.getNumChannels(), (int)outputPatchMap.size());
+    for (int wfsChannel = 0; wfsChannel < patchChannels; ++wfsChannel)
     {
         int hwChannel = outputPatchMap[wfsChannel];
         if (hwChannel >= 0 && hwChannel < numHardwareOutputs && wfsChannel < wfsOutput.getNumChannels())
@@ -2402,6 +2404,18 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
         levelMeteringManager->setChannelCounts(inputs, outputs);
     if (levelMeterWindow != nullptr)
         levelMeterWindow->rebuildMeters();
+
+    // Re-prepare binaural processor with new input channel count
+    if (binauralProcessor)
+    {
+        binauralProcessor->stopProcessing();
+        auto* device = deviceManager.getCurrentAudioDevice();
+        double sr = device ? device->getCurrentSampleRate() : 48000.0;
+        int bs = device ? device->getCurrentBufferSizeSamples() : 512;
+        binauralProcessor->prepareToPlay(sr, bs, numInputChannels);
+        if (binauralProcessor->isEnabled())
+            binauralProcessor->startProcessing();
+    }
 
     // Recalculate WFS matrices so new channel counts have valid delay/level data
     if (calculationEngine != nullptr)
@@ -3483,10 +3497,11 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
     // Load audio patch matrices
     loadAudioPatches();
 
-    // Smoothing now runs per audio callback, not per timer tick.
-    // Maintain ~20ms time constant regardless of buffer size.
+    // Separate time constants: delays need slower smoothing to avoid Doppler artifacts
+    // on fast position changes; levels can change faster without audible issues.
     double callbackIntervalSec = samplesPerBlockExpected / sampleRate;
-    smoothingFactor = static_cast<float>(1.0 - std::exp(-callbackIntervalSec / 0.020));
+    delaySmoothingFactor = static_cast<float>(1.0 - std::exp(-callbackIntervalSec / 0.100));  // 100ms
+    levelSmoothingFactor = static_cast<float>(1.0 - std::exp(-callbackIntervalSec / 0.050));  // 50ms
 }
 
 void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill)
@@ -3555,8 +3570,8 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
             int matrixSize = numInputChannels * numOutputChannels;
             for (int i = 0; i < matrixSize; ++i)
             {
-                delayTimesMs[i] += (targetDelayTimesMs[i] - delayTimesMs[i]) * smoothingFactor;
-                levels[i] += (targetLevels[i] - levels[i]) * smoothingFactor;
+                delayTimesMs[i] += (targetDelayTimesMs[i] - delayTimesMs[i]) * delaySmoothingFactor;
+                levels[i] += (targetLevels[i] - levels[i]) * levelSmoothingFactor;
             }
         }
 
@@ -3661,20 +3676,21 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
             }
         }
 
-        // Pull binaural output into wfsOutputBuffer
+        // Single-pass output remap: WFS channels → hardware channels (no intermediate copy-back)
+        applyOutputPatch(bufferToFill, wfsOutputBuffer);
+
+        // Pull binaural output directly to hardware buffer (bypasses WFS→HW patch remap)
         if (binauralProcessor && binauralProcessor->isEnabled() && binauralCalcEngine)
         {
             int binauralCh = binauralCalcEngine->getBinauralOutputChannel();
-            if (binauralCh >= 0 && binauralCh + 1 < numOutputChannels)
+            int hwChannels = bufferToFill.buffer->getNumChannels();
+            if (binauralCh >= 0 && binauralCh + 1 < hwChannels)
             {
-                float* leftOut = wfsOutputBuffer.getWritePointer(binauralCh, startSample);
-                float* rightOut = wfsOutputBuffer.getWritePointer(binauralCh + 1, startSample);
+                float* leftOut = bufferToFill.buffer->getWritePointer(binauralCh, startSample);
+                float* rightOut = bufferToFill.buffer->getWritePointer(binauralCh + 1, startSample);
                 binauralProcessor->pullOutput(leftOut, rightOut, numSamples);
             }
         }
-
-        // Single-pass output remap: WFS channels → hardware channels (no intermediate copy-back)
-        applyOutputPatch(bufferToFill, wfsOutputBuffer);
     }
     else
     {
@@ -3682,7 +3698,7 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
         if (binauralProcessor && binauralProcessor->isEnabled() && binauralCalcEngine)
         {
             int binauralCh = binauralCalcEngine->getBinauralOutputChannel();
-            if (binauralCh >= 0 && binauralCh + 1 < numOutputChannels)
+            if (binauralCh >= 0)
             {
                 // Input patching: hardware → WFS channels
                 applyInputPatch(bufferToFill);
@@ -3710,21 +3726,17 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
                     binauralProcessor->pushInput(i, inputData, bufferToFill.numSamples);
                 }
 
-                // Prepare wfsOutputBuffer and pull binaural stereo output into it
+                // Pull binaural directly to hardware buffer (no WFS→HW patch needed)
                 int numSamples = bufferToFill.numSamples;
-                if (wfsOutputBuffer.getNumChannels() < numOutputChannels ||
-                    wfsOutputBuffer.getNumSamples() < numSamples)
+                int hwChannels = bufferToFill.buffer->getNumChannels();
+                bufferToFill.clearActiveBufferRegion();
+
+                if (binauralCh + 1 < hwChannels)
                 {
-                    wfsOutputBuffer.setSize(numOutputChannels, numSamples, false, false, true);
+                    float* leftOut = bufferToFill.buffer->getWritePointer(binauralCh, bufferToFill.startSample);
+                    float* rightOut = bufferToFill.buffer->getWritePointer(binauralCh + 1, bufferToFill.startSample);
+                    binauralProcessor->pullOutput(leftOut, rightOut, numSamples);
                 }
-                wfsOutputBuffer.clear();
-
-                float* leftOut = wfsOutputBuffer.getWritePointer(binauralCh, bufferToFill.startSample);
-                float* rightOut = wfsOutputBuffer.getWritePointer(binauralCh + 1, bufferToFill.startSample);
-                binauralProcessor->pullOutput(leftOut, rightOut, numSamples);
-
-                // Output patching: WFS channels → hardware (single pass)
-                applyOutputPatch(bufferToFill, wfsOutputBuffer);
             }
             else
             {

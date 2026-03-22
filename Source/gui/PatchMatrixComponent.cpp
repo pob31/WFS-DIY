@@ -1170,8 +1170,8 @@ bool PatchMatrixComponent::isChannelUsedByBinaural(int hwChannel) const
 {
     if (isInputPatch || binauralFirstChannel < 0)
         return false;
-    // binauralFirstChannel is 1-based, hwChannel is 0-based
-    return hwChannel == (binauralFirstChannel - 1) || hwChannel == binauralFirstChannel;
+    // Both binauralFirstChannel and hwChannel are 0-based
+    return hwChannel == binauralFirstChannel || hwChannel == (binauralFirstChannel + 1);
 }
 
 void PatchMatrixComponent::drawHeadphonesIcon(juce::Graphics& g, juce::Rectangle<float> bounds)

@@ -295,7 +295,8 @@ private:
     std::vector<float> finalTargetLevels;       // Final destination for 1-second ramp
     std::vector<float> startDelayTimesMs;       // Starting values for 1-second ramp
     std::vector<float> startLevels;             // Starting values for 1-second ramp
-    float smoothingFactor = 0.22f;              // ~20ms settling time with 5ms updates
+    float delaySmoothingFactor = 0.03f;          // ~100ms time constant (slow for Doppler-free delay changes)
+    float levelSmoothingFactor = 0.05f;          // ~50ms time constant (faster for levels, less artifact-prone)
     int timerTicksSinceLastRandom = 0;
     const int rampDurationTicks = 200;          // 1 second at 5ms per tick
     int patchSaveCountdown = 0;                 // Debounce timer for auto-saving patch (0 = idle)

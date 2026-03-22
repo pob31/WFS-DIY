@@ -53,6 +53,8 @@ public:
         // Initialize per-input delay interpolation state
         prevDirectDelaySamples.resize(static_cast<size_t>(numInputs), 0.0f);
         prevFRDelaySamples.resize(static_cast<size_t>(numInputs), 0.0f);
+        smoothedDirectDelay.resize(static_cast<size_t>(numInputs), 0.0f);
+        smoothedFRDelay.resize(static_cast<size_t>(numInputs), 0.0f);
 
         // Initialize diffusion state (one per input)
         frDiffusionState.resize(static_cast<size_t>(numInputs), 0.0f);
@@ -379,12 +381,21 @@ private:
             if (frDelay >= maxDelay) frDelay = maxDelay;
             curFRDelay[inIdx] = frDelay;
 
-            // Snap previous values on first block
+            // Ramp-rate smoothing: one-pole lowpass on delay target
             if (!delayInterpInitialized)
             {
+                smoothedDirectDelay[inIdx] = curDirectDelay[inIdx];
+                smoothedFRDelay[inIdx] = curFRDelay[inIdx];
                 prevDirectDelaySamples[inIdx] = curDirectDelay[inIdx];
                 prevFRDelaySamples[inIdx] = curFRDelay[inIdx];
             }
+            else
+            {
+                smoothedDirectDelay[inIdx] += (curDirectDelay[inIdx] - smoothedDirectDelay[inIdx]) * delaySmoothing;
+                smoothedFRDelay[inIdx] += (curFRDelay[inIdx] - smoothedFRDelay[inIdx]) * delaySmoothing;
+            }
+            curDirectDelay[inIdx] = smoothedDirectDelay[inIdx];
+            curFRDelay[inIdx] = smoothedFRDelay[inIdx];
         }
 
         // Pre-cache per-input filter state and gains outside the sample loop
@@ -603,7 +614,10 @@ private:
     // Per-input previous delay values for per-sample interpolation
     std::vector<float> prevDirectDelaySamples;  // Previous block's direct delay per input
     std::vector<float> prevFRDelaySamples;      // Previous block's FR delay per input
+    std::vector<float> smoothedDirectDelay;     // One-pole smoothed delay target (ramp-rate averaging)
+    std::vector<float> smoothedFRDelay;         // One-pole smoothed FR delay target
     bool delayInterpInitialized = false;
+    static constexpr float delaySmoothing = 1.0f / 100.0f;  // ~100 sample one-pole (rampsmooth)
 
     // FR diffusion (time-varying jitter per input)
     std::vector<float> frDiffusionState;   // Current jitter value per input
