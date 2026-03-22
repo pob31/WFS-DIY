@@ -31,6 +31,8 @@ public:
     {
         std::function<void (int inputIndex, float dx, float dy)> moveInputDelta;
         std::function<void (int inputIndex, float pressure)>     applyPressure;
+        std::function<void (int inputIndex, float pressure)>     onTouchStart;
+        std::function<void (int inputIndex)>                     onTouchEnd;
     };
 
     Callbacks callbacks;
@@ -360,19 +362,26 @@ private:
     void handleZoneTouch (int zoneId, float dx, float dy, float pressure,
                           bool isStart, bool isEnd)
     {
+        // Resolve zone → input channel for start/end callbacks
+        auto it = zoneToInput.find (zoneId);
+        int inputIdx = (it != zoneToInput.end()) ? it->second : -1;
+
         if (isEnd)
         {
             zoneTouchState.erase (zoneId);
+            if (inputIdx >= 0 && callbacks.onTouchEnd)
+                callbacks.onTouchEnd (inputIdx);
             return;
         }
+
+        if (isStart && inputIdx >= 0 && callbacks.onTouchStart)
+            callbacks.onTouchStart (inputIdx, pressure);
 
         auto& state = zoneTouchState[zoneId];
         state.dx = dx;
         state.dy = dy;
         state.pressure = pressure;
         state.active = true;
-
-        juce::ignoreUnused (isStart);
     }
 
     //==============================================================================
@@ -390,7 +399,7 @@ private:
             int inputIdx = it->second;
 
             float scaledDx = state.dx * sensitivity;
-            float scaledDy = state.dy * sensitivity;
+            float scaledDy = -state.dy * sensitivity;  // Negate: Lightpad Y increases downward, WFS Y increases forward
 
             if (callbacks.moveInputDelta)
                 callbacks.moveInputDelta (inputIdx, scaledDx, scaledDy);

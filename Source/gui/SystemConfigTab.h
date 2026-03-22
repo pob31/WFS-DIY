@@ -215,6 +215,9 @@ public:
     SystemConfigTab(WfsParameters& params)
         : parameters(params)
     {
+        // Initialize project folder from saved config
+        projectFolder = parameters.getFileManager().getProjectFolder();
+
         // This tab wants keyboard focus to prevent auto-focus on first TextEditor
         setWantsKeyboardFocus(true);
         setFocusContainerType(FocusContainerType::keyboardFocusContainer);

@@ -458,6 +458,7 @@ public:
      */
     std::function<void(int channelId)> onChannelSelected;
     std::function<void(int subTabIndex)> onSubTabChanged;
+    std::function<void(int channelIndex, bool active)> onSamplerActiveChanged;
 
     /** Get the currently selected channel (1-based) */
     int getCurrentChannel() const { return currentChannel; }
@@ -7323,7 +7324,12 @@ private:
         // Check if this is a parameter change for the current channel (e.g., from OSC)
         // Skip if we're already loading parameters (avoid recursion) or if the change
         // came from the joystick/Z slider continuous updates (avoid feedback loop)
-        if (!isLoadingParameters && !suppressParameterReload)
+        // Also skip sampler subtree changes — these are handled locally by SamplerSubTab
+        // and a full reload would clear the sampler's cell selection state.
+        if (!isLoadingParameters && !suppressParameterReload
+            && !tree.hasType(WFSParameterIDs::SamplerCell)
+            && !tree.hasType(WFSParameterIDs::SamplerSet)
+            && !tree.hasType(WFSParameterIDs::Sampler))
         {
             // Find if this tree belongs to the current channel's Input tree
             juce::ValueTree parent = tree;
@@ -7412,6 +7418,9 @@ private:
         saveInputParam(WFSParameterIDs::inputSamplerActive, newState ? 1 : 0);
         updateSamplerButtonState();
         updateSamplerSubTab();
+
+        if (onSamplerActiveChanged)
+            onSamplerActiveChanged (currentChannel - 1, newState);
     }
 
     void updateSamplerButtonState()

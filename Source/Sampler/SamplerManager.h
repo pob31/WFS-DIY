@@ -89,7 +89,8 @@ public:
 
     //==========================================================================
     /** Load cell data for a channel from ValueTree */
-    void loadChannelCells (int channelIndex, const juce::ValueTree& samplerNode)
+    void loadChannelCells (int channelIndex, const juce::ValueTree& samplerNode,
+                           const juce::File& samplesFolder = {})
     {
         auto idx = static_cast<size_t> (channelIndex);
         if (idx >= engines.size() || engines[idx] == nullptr)
@@ -105,11 +106,47 @@ public:
             {
                 int id = child.getProperty ("id", -1);
                 if (id >= 0 && id < WFSParameterDefaults::samplerGridCells)
-                    cells[static_cast<size_t> (id)].loadFromValueTree (child);
+                {
+                    auto& cell = cells[static_cast<size_t> (id)];
+                    cell.loadFromValueTree (child);
+
+                    // Load audio data if a samples folder is provided
+                    if (samplesFolder.isDirectory() && ! cell.relativeFilePath.isEmpty())
+                    {
+                        cell.audioBuffer = fileOps.loadFromProject (
+                            samplesFolder, cell.relativeFilePath,
+                            cell.sampleRate, cell.numSamples);
+                    }
+                }
             }
         }
 
         engines[idx]->loadCells (cells);
+    }
+
+    /** Load a set by index from the sampler ValueTree for a channel */
+    void loadChannelSetFromTree (int channelIndex, const juce::ValueTree& samplerNode, int setIndex)
+    {
+        auto idx = static_cast<size_t> (channelIndex);
+        if (idx >= engines.size() || engines[idx] == nullptr)
+            return;
+
+        int setCount = 0;
+        for (int i = 0; i < samplerNode.getNumChildren(); ++i)
+        {
+            auto child = samplerNode.getChild (i);
+            if (child.hasType (WFSParameterIDs::SamplerSet))
+            {
+                if (setCount == setIndex)
+                {
+                    SamplerData::SamplerSet set;
+                    set.loadFromValueTree (child);
+                    engines[idx]->loadSet (set);
+                    return;
+                }
+                ++setCount;
+            }
+        }
     }
 
     /** Load a set configuration for a channel */
@@ -170,6 +207,37 @@ public:
     }
 
     //==========================================================================
+    /** Trigger the next cell from the active set for a channel (message thread) */
+    bool triggerNextCell (int channelIndex, float pressure)
+    {
+        auto idx = static_cast<size_t> (channelIndex);
+        if (idx >= engines.size() || engines[idx] == nullptr)
+            return false;
+
+        int cellIdx = engines[idx]->getNextCellFromSet();
+        if (cellIdx < 0) return false;
+
+        SamplerEngine::TouchEvent event;
+        event.type = SamplerEngine::TouchEvent::NoteOn;
+        event.cellIndex = cellIdx;
+        event.pressure = pressure;
+        return engines[idx]->pushEvent (event);
+    }
+
+    /** Send a NoteOff to a channel's engine */
+    bool releaseChannel (int channelIndex)
+    {
+        auto idx = static_cast<size_t> (channelIndex);
+        if (idx >= engines.size() || engines[idx] == nullptr)
+            return false;
+
+        SamplerEngine::TouchEvent event;
+        event.type = SamplerEngine::TouchEvent::NoteOff;
+        bool ok = engines[idx]->pushEvent (event);
+        engines[idx]->releasePositionOverride();
+        return ok;
+    }
+
     /** Push a touch event for a channel (called from BLOCKS/MIDI thread) */
     bool pushTouchEvent (int channelIndex, const SamplerEngine::TouchEvent& event)
     {
@@ -178,6 +246,14 @@ public:
             return false;
 
         return engines[idx]->pushEvent (event);
+    }
+
+    /** Update XY position delta for a channel (from Lightpad/remote movement, pre-scaled) */
+    void updatePosition (int channelIndex, float scaledDx, float scaledDy)
+    {
+        auto idx = static_cast<size_t> (channelIndex);
+        if (idx < engines.size() && engines[idx] != nullptr)
+            engines[idx]->updatePosition (scaledDx, scaledDy);
     }
 
     //==========================================================================
@@ -195,6 +271,24 @@ public:
         outY = engines[idx]->getPositionY();
         outZ = engines[idx]->getPositionZ();
         return true;
+    }
+
+    /** Check if a channel's engine is currently playing audio */
+    bool isChannelPlaying (int channelIndex) const
+    {
+        auto idx = static_cast<size_t> (channelIndex);
+        if (idx >= engines.size() || engines[idx] == nullptr)
+            return false;
+        return engines[idx]->isPlaying();
+    }
+
+    /** Get the cell index currently being played on a channel (-1 if none) */
+    int getPlayingCellIndex (int channelIndex) const
+    {
+        auto idx = static_cast<size_t> (channelIndex);
+        if (idx >= engines.size() || engines[idx] == nullptr)
+            return -1;
+        return engines[idx]->isPlaying() ? engines[idx]->getCurrentCellIndex() : -1;
     }
 
     /** Check if any channel has an active sampler */

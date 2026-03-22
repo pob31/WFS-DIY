@@ -529,7 +529,39 @@ MainComponent::MainComponent()
         int ch = inputsTab->getCurrentChannel() - 1;
         auto samplerTree = parameters.getValueTreeState().getInputSamplerSection (ch);
         if (samplerTree.isValid())
-            samplerManager->loadChannelCells (ch, samplerTree);
+        {
+            auto samplesFolder = parameters.getFileManager().getSamplesFolder();
+            samplerManager->loadChannelCells (ch, samplerTree, samplesFolder);
+            int setIdx = inputsTab->getSamplerSubTab().getActiveSetIndex();
+            samplerManager->loadChannelSetFromTree (ch, samplerTree, setIdx);
+            applySamplerSetPosition (ch, samplerTree, setIdx);
+        }
+    };
+
+    // Sampler preview callback — trigger/stop cell playback
+    inputsTab->getSamplerSubTab().onPreviewCell = [this] (int channelIndex, int cellIndex, bool noteOn)
+    {
+        if (samplerManager == nullptr) return;
+
+        SamplerEngine::TouchEvent event;
+        if (noteOn)
+        {
+            event.type = SamplerEngine::TouchEvent::NoteOn;
+            event.cellIndex = cellIndex;
+            event.pressure = 1.0f;
+        }
+        else
+        {
+            event.type = SamplerEngine::TouchEvent::NoteOff;
+        }
+        samplerManager->pushTouchEvent (channelIndex, event);
+    };
+
+    // Query callback for playing cell visual feedback
+    inputsTab->getSamplerSubTab().getPlayingCellIndex = [this] (int channelIndex) -> int
+    {
+        if (samplerManager == nullptr) return -1;
+        return samplerManager->getPlayingCellIndex (channelIndex);
     };
 
     // Create global tooltip window for hover tooltips
@@ -1363,6 +1395,14 @@ MainComponent::MainComponent()
 
         lightpadManager->callbacks.moveInputDelta = [this] (int inputIdx, float dx, float dy)
         {
+            // When sampler is active on this channel, route to sampler engine (transient cell offset)
+            if (samplerManager && samplerManager->isChannelActive (inputIdx))
+            {
+                samplerManager->updatePosition (inputIdx, dx, dy);
+                return;
+            }
+
+            // Normal mode: move input position
             juce::MessageManager::callAsync ([this, inputIdx, dx, dy]()
             {
                 if (mapTab)
@@ -1372,8 +1412,29 @@ MainComponent::MainComponent()
 
         lightpadManager->callbacks.applyPressure = [this] (int inputIdx, float pressure)
         {
-            juce::ignoreUnused (inputIdx, pressure);
-            // TODO: Route pressure to sampler pressure mapping
+            if (samplerManager == nullptr || ! samplerManager->isChannelActive (inputIdx))
+                return;
+
+            SamplerEngine::TouchEvent event;
+            event.type = SamplerEngine::TouchEvent::Pressure;
+            event.pressure = pressure;
+            samplerManager->pushTouchEvent (inputIdx, event);
+        };
+
+        lightpadManager->callbacks.onTouchStart = [this] (int inputIdx, float pressure)
+        {
+            if (samplerManager == nullptr || ! samplerManager->isChannelActive (inputIdx))
+                return;
+
+            samplerManager->triggerNextCell (inputIdx, pressure);
+        };
+
+        lightpadManager->callbacks.onTouchEnd = [this] (int inputIdx)
+        {
+            if (samplerManager == nullptr || ! samplerManager->isChannelActive (inputIdx))
+                return;
+
+            samplerManager->releaseChannel (inputIdx);
         };
 
         // Lightpad starts with sampler (not its own toggle)
@@ -1588,6 +1649,29 @@ MainComponent::MainComponent()
             oscManager->setRemoteSelectedChannel(channelId);
         if (streamDeckManager)
             streamDeckManager->setChannel(channelId);
+    };
+
+    // Activate/deactivate sampler channel in the audio engine
+    inputsTab->onSamplerActiveChanged = [this] (int channelIndex, bool active)
+    {
+        if (samplerManager != nullptr)
+        {
+            samplerManager->setChannelActive (channelIndex, active);
+
+            // Load cells + set when activating
+            if (active)
+            {
+                auto samplerTree = parameters.getValueTreeState().getInputSamplerSection (channelIndex);
+                if (samplerTree.isValid())
+                {
+                    auto samplesFolder = parameters.getFileManager().getSamplesFolder();
+                    samplerManager->loadChannelCells (channelIndex, samplerTree, samplesFolder);
+                    int setIdx = inputsTab->getSamplerSubTab().getActiveSetIndex();
+                    samplerManager->loadChannelSetFromTree (channelIndex, samplerTree, setIdx);
+                    applySamplerSetPosition (channelIndex, samplerTree, setIdx);
+                }
+            }
+        }
     };
 
     // Connect InputsTab subtab selection to StreamDeck
@@ -2140,6 +2224,32 @@ void MainComponent::stopProcessingForConfigurationChange()
         reverbEngine->stopProcessing();
 }
 
+void MainComponent::applySamplerSetPosition (int channelIndex, const juce::ValueTree& samplerNode, int setIndex)
+{
+    using namespace WFSParameterIDs;
+    using namespace WFSParameterDefaults;
+
+    int setCount = 0;
+    for (int i = 0; i < samplerNode.getNumChildren(); ++i)
+    {
+        auto child = samplerNode.getChild (i);
+        if (child.hasType (SamplerSet))
+        {
+            if (setCount == setIndex)
+            {
+                float px = static_cast<float> (child.getProperty (samplerSetPosX, samplerSetPosDefault));
+                float py = static_cast<float> (child.getProperty (samplerSetPosY, samplerSetPosDefault));
+                float pz = static_cast<float> (child.getProperty (samplerSetPosZ, samplerSetPosDefault));
+                parameters.setInputParam (channelIndex, "inputPositionX", px);
+                parameters.setInputParam (channelIndex, "inputPositionY", py);
+                parameters.setInputParam (channelIndex, "inputPositionZ", pz);
+                return;
+            }
+            ++setCount;
+        }
+    }
+}
+
 void MainComponent::growPatchData(juce::ValueTree& patchTree, int newChannelCount, int numHardwareCols)
 {
     if (! patchTree.isValid())
@@ -2543,6 +2653,52 @@ void MainComponent::handleConfigReloaded()
         // Refresh sampler master enable state from config
         bool samplerOn = (bool)parameters.getConfigParam("SamplerEnabled");
         inputsTab->setSamplerMasterEnabled(samplerOn);
+        inputsTab->setLightpadEnabled(samplerOn);
+
+        // Restart Lightpad and restore zone assignments
+        if (lightpadManager && samplerOn)
+        {
+            lightpadManager->start();
+
+            // Push current topology to SystemConfigTab (won't re-fire if already detected)
+            if (systemConfigTab)
+                systemConfigTab->updateLightpadLayout (lightpadManager->getPadLayouts());
+            auto inputs = parameters.getValueTreeState().getInputsState();
+            for (int i = 0; i < inputs.getNumChildren(); ++i)
+            {
+                auto ch = inputs.getChild (i);
+                auto channelSection = ch.getChildWithName (WFSParameterIDs::Channel);
+                if (channelSection.isValid())
+                {
+                    int zoneId = static_cast<int> (channelSection.getProperty (
+                        WFSParameterIDs::lightpadZoneId, -1));
+                    if (zoneId >= 0)
+                        lightpadManager->assignZoneToInput (zoneId, i);
+                }
+            }
+        }
+
+        // Re-activate sampler engines for channels with sampler enabled
+        if (samplerManager != nullptr)
+        {
+            for (int ch = 0; ch < numInputChannels; ++ch)
+            {
+                auto val = parameters.getInputParam (ch, "inputSamplerActive");
+                bool active = ! val.isVoid() && static_cast<int> (val) != 0;
+                samplerManager->setChannelActive (ch, active);
+                if (active)
+                {
+                    auto samplerTree = parameters.getValueTreeState().getInputSamplerSection (ch);
+                    if (samplerTree.isValid())
+                    {
+                        auto samplesFolder = parameters.getFileManager().getSamplesFolder();
+                        samplerManager->loadChannelCells (ch, samplerTree, samplesFolder);
+                        samplerManager->loadChannelSetFromTree (ch, samplerTree, 0);
+                        applySamplerSetPosition (ch, samplerTree, 0);
+                    }
+                }
+            }
+        }
     }
 
     // Force full recalculation of DSP matrix after config reload
@@ -3503,6 +3659,25 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
         samplerManager = std::make_unique<SamplerManager>();
     samplerManager->prepare (sampleRate, samplesPerBlockExpected, numInputChannels);
 
+    // Activate sampler channels that are already enabled and load their data
+    for (int ch = 0; ch < numInputChannels; ++ch)
+    {
+        auto val = parameters.getInputParam (ch, "inputSamplerActive");
+        bool active = ! val.isVoid() && static_cast<int> (val) != 0;
+        samplerManager->setChannelActive (ch, active);
+        if (active)
+        {
+            auto samplerTree = parameters.getValueTreeState().getInputSamplerSection (ch);
+            if (samplerTree.isValid())
+            {
+                auto samplesFolder = parameters.getFileManager().getSamplesFolder();
+                samplerManager->loadChannelCells (ch, samplerTree, samplesFolder);
+                samplerManager->loadChannelSetFromTree (ch, samplerTree, 0);
+                applySamplerSetPosition (ch, samplerTree, 0);
+            }
+        }
+    }
+
     // Load audio patch matrices
     loadAudioPatches();
 
@@ -3720,9 +3895,9 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
                     for (int ch = 0; ch < numInputChannels; ++ch)
                     {
                         if (samplerManager->isChannelActive (ch)
-                            && ch < bufferToFill.buffer->getNumChannels())
+                            && ch < patchedInputBuffer.getNumChannels())
                         {
-                            samplerManager->processChannel (ch, *bufferToFill.buffer,
+                            samplerManager->processChannel (ch, patchedInputBuffer,
                                                             bufferToFill.startSample,
                                                             bufferToFill.numSamples);
                         }
@@ -3939,7 +4114,9 @@ void MainComponent::timerCallback()
                 {
                     float sx, sy, sz;
                     if (samplerManager->getPositionOverride (i, sx, sy, sz))
-                        calculationEngine->setSpeedLimitedPosition (i, sx, sy, sz);
+                        calculationEngine->setSamplerCellOffset (i, sx, sy, sz);
+                    else
+                        calculationEngine->setSamplerCellOffset (i, 0.0f, 0.0f, 0.0f);
                 }
             }
 

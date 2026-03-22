@@ -330,6 +330,7 @@ private:
     void handleProcessingChange(bool enabled);
     void handleChannelCountChange(int inputs, int outputs, int reverbs);
     void handleConfigReloaded();
+    void applySamplerSetPosition (int channelIndex, const juce::ValueTree& samplerNode, int setIndex);
     void growPatchData(juce::ValueTree& patchTree, int newChannelCount, int numHardwareCols);
     void repaintActiveTab();
 

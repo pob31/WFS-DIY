@@ -1786,6 +1786,7 @@
       "load": "Load",
       "clear": "Clear",
       "preview": "Preview",
+      "previewStop": "Stop",
       "loadTitle": "Load Sample",
       "inTime": "In (ms)",
       "outTime": "Out (ms)",

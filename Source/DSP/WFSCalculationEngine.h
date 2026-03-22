@@ -74,6 +74,9 @@ public:
     /** Get LFO offset for an input (for UI visualization) */
     Position getLFOOffset (int inputIndex) const;
 
+    /** Set transient sampler cell offset for an input (added to composite position) */
+    void setSamplerCellOffset (int inputIndex, float x, float y, float z);
+
     /** Set gyrophone rotation offset for an input (radians, added to rotation for HF directivity) */
     void setGyrophoneOffset (int inputIndex, float offsetRad);
 
@@ -314,6 +317,7 @@ private:
     std::vector<Position> reverbFeedPositions;     // [reverbIndex]
     std::vector<Position> reverbReturnPositions;   // [reverbIndex]
     std::vector<Position> lfoOffsets;              // [inputIndex] - LFO position offsets
+    std::vector<Position> samplerCellOffsets;       // [inputIndex] - Transient sampler cell offsets
     std::vector<float> gyrophoneOffsets;           // [inputIndex] - Gyrophone rotation offsets (radians)
     std::vector<GradientMapOffsets> gradientMapOffsets;  // [inputIndex] - Gradient map parameter offsets
 

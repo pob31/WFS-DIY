@@ -23,11 +23,18 @@
  */
 class SamplerSubTab : public juce::Component,
                       public ColorScheme::Manager::Listener,
-                      public juce::Label::Listener
+                      public juce::Label::Listener,
+                      private juce::Timer
 {
 public:
     /** Callback fired when sampler data changes (wired in MainComponent) */
     std::function<void()> onSamplerDataChanged;
+
+    /** Callback to trigger preview playback: (channelIndex, cellIndex, noteOn) */
+    std::function<void (int, int, bool)> onPreviewCell;
+
+    /** Query callback: returns the cell index currently playing on a channel (-1 if none) */
+    std::function<int (int channelIndex)> getPlayingCellIndex;
 
     SamplerSubTab (WfsParameters& params)
         : parameters (params),
@@ -62,7 +69,7 @@ public:
         addChildComponent (clearCellButton);
 
         previewButton.setButtonText (LOC ("sampler.cell.preview"));
-        previewButton.onClick = [this] { /* Phase 7 */ };
+        previewButton.onClick = [this] { onPreviewToggle(); };
         addChildComponent (previewButton);
 
         inOutRangeSlider = std::make_unique<WfsRangeSlider> (
@@ -261,6 +268,7 @@ public:
 
     ~SamplerSubTab() override
     {
+        stopTimer();
         ColorScheme::Manager::getInstance().removeListener (this);
     }
 
@@ -353,15 +361,9 @@ public:
 
         int cellIdx = hitTestGrid (e.getPosition());
 
-        // Click on grid background → deselect all
+        // Click on grid padding/margin (no cell hit) → ignore
         if (cellIdx < 0)
-        {
-            selectedCells.clear();
-            updateCellPropertyPanel();
-            updateCopyPasteButtons();
-            repaint();
             return;
-        }
 
         // Ctrl+Click → toggle cell in/out of active set
         if (e.mods.isCtrlDown() && activeSetIndex >= 0
@@ -431,6 +433,7 @@ public:
     {
         if (currentChannel != channel)
         {
+            stopPreview();
             currentChannel = channel;
             selectedCells.clear();
             loadFromValueTree();
@@ -438,6 +441,7 @@ public:
     }
 
     int getCurrentChannel() const noexcept { return currentChannel; }
+    int getActiveSetIndex() const noexcept { return activeSetIndex; }
 
     /** Reload data from ValueTree (call when channel changes or external edit occurs) */
     void loadFromValueTree()
@@ -505,7 +509,7 @@ public:
         if (lightpadZoneButton.isVisible())
         {
             int zoneId = static_cast<int> (parameters.getInputParam (
-                currentChannel - 1, WFSParameterIDs::lightpadZoneId.toString()));
+                currentChannel, WFSParameterIDs::lightpadZoneId.toString()));
             currentLightpadZoneId = zoneId;
             updateLightpadZoneButtonText();
         }
@@ -516,6 +520,57 @@ public:
 
     // ColorScheme::Manager::Listener
     void colorSchemeChanged() override { repaint(); }
+
+    void visibilityChanged() override
+    {
+        if (isVisible())
+            startPlaybackMonitor();
+        else
+            stopPlaybackMonitor();
+    }
+
+    // Timer for visual feedback on playing cells and auto-stop preview
+    void timerCallback() override
+    {
+        int playingCell = -1;
+        if (getPlayingCellIndex)
+            playingCell = getPlayingCellIndex (currentChannel);
+
+        // Auto-stop preview when playback ends
+        if (previewingCellIndex >= 0 && playingCell < 0 && playEndTime == 0)
+        {
+            previewingCellIndex = -1;
+            previewButton.setButtonText (LOC ("sampler.cell.preview"));
+        }
+
+        // Update visual feedback with hold timer
+        if (playingCell >= 0)
+        {
+            // Currently playing — show highlight immediately
+            if (lastPlayingCell != playingCell)
+            {
+                lastPlayingCell = playingCell;
+                repaint();
+            }
+            playEndTime = 0;
+        }
+        else if (lastPlayingCell >= 0)
+        {
+            // Playback just stopped — hold highlight briefly
+            if (playEndTime == 0)
+                playEndTime = juce::Time::currentTimeMillis();
+
+            if (juce::Time::currentTimeMillis() - playEndTime > 150)
+            {
+                lastPlayingCell = -1;
+                playEndTime = 0;
+                repaint();
+            }
+        }
+    }
+
+    void startPlaybackMonitor()  { if (! isTimerRunning()) startTimer (50); }
+    void stopPlaybackMonitor()   { stopTimer(); lastPlayingCell = -1; playEndTime = 0; }
 
 private:
     // ==================== GRID PAINTING ====================
@@ -560,9 +615,12 @@ private:
                 bool isSelected = std::find (selectedCells.begin(), selectedCells.end(), cellIdx) != selectedCells.end();
                 bool isInSet = setCellIndices.count (cellIdx) > 0;
                 bool hasAudio = cellIdx < static_cast<int> (cells.size()) && ! cells[static_cast<size_t> (cellIdx)].isEmpty();
+                bool isPlaying = (cellIdx == lastPlayingCell);
 
                 // Cell background
-                if (isSelected)
+                if (isPlaying)
+                    g.setColour (juce::Colour (0xFFFF6D00).withAlpha (0.5f));  // Orange glow
+                else if (isSelected)
                     g.setColour (cs.accentBlue.withAlpha (0.4f));
                 else if (isInSet)
                     g.setColour (cs.accentGreen.withAlpha (0.2f));
@@ -572,14 +630,16 @@ private:
                 g.fillRoundedRectangle (cellRect, 3.0f);
 
                 // Cell border
-                if (isSelected)
+                if (isPlaying)
+                    g.setColour (juce::Colour (0xFFFF6D00));  // Orange border
+                else if (isSelected)
                     g.setColour (cs.accentBlue);
                 else if (isInSet)
                     g.setColour (cs.accentGreen.withAlpha (0.6f));
                 else
                     g.setColour (cs.chromeDivider);
 
-                g.drawRoundedRectangle (cellRect, 3.0f, isSelected ? 2.0f : 1.0f);
+                g.drawRoundedRectangle (cellRect, 3.0f, (isSelected || isPlaying) ? 2.0f : 1.0f);
 
                 // Cell content
                 if (hasAudio)
@@ -989,12 +1049,16 @@ private:
     {
         if (selectedCells.empty()) return;
 
+        // Snapshot selection — an async reload (e.g. from ValueTree listener)
+        // could clear selectedCells before the file-chooser callback runs.
+        auto savedSelection = selectedCells;
+
         auto lastFolder = AppSettings::getLastFolder ("lastSampleFolder");
         fileChooser = std::make_unique<juce::FileChooser> (
             LOC ("sampler.cell.loadTitle"), lastFolder, "*.wav;*.aiff;*.flac;*.ogg");
 
         fileChooser->launchAsync (juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
-            [this] (const juce::FileChooser& fc)
+            [this, savedSelection] (const juce::FileChooser& fc)
             {
                 auto result = fc.getResult();
                 if (! result.existsAsFile()) return;
@@ -1003,6 +1067,28 @@ private:
 
                 // Import to project samples/ folder
                 auto& fm = parameters.getFileManager();
+                if (! fm.hasValidProjectFolder())
+                {
+                    // No project folder — use file in place (store absolute path)
+                    juce::String relPath = result.getFullPathName();
+                    for (int idx : savedSelection)
+                    {
+                        if (idx < 0 || idx >= static_cast<int> (cells.size())) continue;
+                        auto& cell = cells[static_cast<size_t> (idx)];
+                        cell.relativeFilePath = relPath;
+                        if (cell.name.isEmpty())
+                            cell.name = result.getFileNameWithoutExtension();
+                        saveCellProperty (idx, WFSParameterIDs::samplerCellFile, relPath);
+                        saveCellProperty (idx, WFSParameterIDs::samplerCellName, cell.name);
+                    }
+                    if (selectedCells.empty() && ! savedSelection.empty())
+                        selectedCells = savedSelection;
+                    updateCellPropertyPanel();
+                    notifyDataChanged();
+                    repaint();
+                    return;
+                }
+
                 auto samplesFolder = fm.getSamplesFolder();
                 if (! samplesFolder.isDirectory())
                     samplesFolder.createDirectory();
@@ -1028,8 +1114,8 @@ private:
                     }
                 }
 
-                // Apply to all selected cells
-                for (int idx : selectedCells)
+                // Apply to all cells that were selected when Load was clicked
+                for (int idx : savedSelection)
                 {
                     if (idx < 0 || idx >= static_cast<int> (cells.size())) continue;
 
@@ -1042,10 +1128,53 @@ private:
                     saveCellProperty (idx, WFSParameterIDs::samplerCellName, cell.name);
                 }
 
+                // Restore selection if it was cleared during the dialog
+                if (selectedCells.empty() && ! savedSelection.empty())
+                    selectedCells = savedSelection;
+
                 updateCellPropertyPanel();
                 notifyDataChanged();
                 repaint();
             });
+    }
+
+    void onPreviewToggle()
+    {
+        if (selectedCells.empty() || ! onPreviewCell) return;
+
+        int idx = selectedCells[0];
+        if (idx < 0 || idx >= static_cast<int> (cells.size())) return;
+
+        // Toggle preview state
+        if (previewingCellIndex == idx)
+        {
+            // Stop preview
+            onPreviewCell (currentChannel, previewingCellIndex, false);
+            previewingCellIndex = -1;
+            previewButton.setButtonText (LOC ("sampler.cell.preview"));
+        }
+        else
+        {
+            // Stop any previous preview
+            if (previewingCellIndex >= 0)
+                onPreviewCell (currentChannel, previewingCellIndex, false);
+
+            // Start new preview
+            previewingCellIndex = idx;
+            onPreviewCell (currentChannel, idx, true);
+            previewButton.setButtonText (LOC ("sampler.cell.previewStop"));
+            startPlaybackMonitor();
+        }
+    }
+
+    void stopPreview()
+    {
+        if (previewingCellIndex >= 0 && onPreviewCell)
+        {
+            onPreviewCell (currentChannel, previewingCellIndex, false);
+            previewingCellIndex = -1;
+            previewButton.setButtonText (LOC ("sampler.cell.preview"));
+        }
     }
 
     void onClearCell()
@@ -1085,6 +1214,7 @@ private:
         {
             activeSetIndex = newIdx;
             updateSetPropertyPanel();
+            notifyDataChanged();
             repaint();
         }
     }
@@ -1540,6 +1670,9 @@ private:
     // Selection
     std::vector<int> selectedCells;
     int activeSetIndex = 0;
+    int previewingCellIndex = -1;
+    int lastPlayingCell = -1;
+    juce::int64 playEndTime = 0;
 
     // Layout areas
     juce::Rectangle<int> gridArea;
@@ -1673,7 +1806,7 @@ public:
         if (lightpadZoneQuery.getAssignedZones)
             assignedMap = lightpadZoneQuery.getAssignedZones();
 
-        int inputIdx = currentChannel - 1;
+        int inputIdx = currentChannel;
 
         juce::Component::SafePointer<juce::Component> safeParent = parent;
         juce::Component::SafePointer<SamplerSubTab> safeThis = this;
@@ -1704,7 +1837,7 @@ public:
                     // Save and notify
                     safeThis->saveInputParam (WFSParameterIDs::lightpadZoneId, selectedZoneId);
                     if (safeThis->onLightpadZoneChanged)
-                        safeThis->onLightpadZoneChanged (safeThis->currentChannel - 1, selectedZoneId);
+                        safeThis->onLightpadZoneChanged (safeThis->currentChannel, selectedZoneId);
                 }
             });
         };
@@ -1742,8 +1875,8 @@ public:
 private:
     void saveInputParam (const juce::Identifier& paramId, const juce::var& value)
     {
-        if (currentChannel < 1) return;
-        parameters.setInputParam (currentChannel - 1, paramId.toString(), value);
+        if (currentChannel < 0) return;
+        parameters.setInputParam (currentChannel, paramId.toString(), value);
     }
 
     // ==================== STATUS BAR HELP ====================

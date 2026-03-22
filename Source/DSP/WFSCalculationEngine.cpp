@@ -22,6 +22,7 @@ WFSCalculationEngine::WFSCalculationEngine (WFSValueTreeState& state)
     reverbFeedPositions.resize (static_cast<size_t> (numReverbs));
     reverbReturnPositions.resize (static_cast<size_t> (numReverbs));
     lfoOffsets.resize (static_cast<size_t> (numInputs));  // LFO position offsets
+    samplerCellOffsets.resize (static_cast<size_t> (numInputs));  // Transient sampler cell offsets
     gyrophoneOffsets.resize (static_cast<size_t> (numInputs), 0.0f);  // Gyrophone rotation offsets
     gradientMapOffsets.resize (static_cast<size_t> (numInputs));        // Gradient map parameter offsets
     previousMinimalLatencyMode.resize (static_cast<size_t> (numInputs), -1);  // -1 = uninitialized
@@ -199,6 +200,26 @@ WFSCalculationEngine::Position WFSCalculationEngine::getLFOOffset (int inputInde
 
     const juce::ScopedLock sl (positionLock);
     return lfoOffsets[static_cast<size_t> (inputIndex)];
+}
+
+void WFSCalculationEngine::setSamplerCellOffset (int inputIndex, float x, float y, float z)
+{
+    if (inputIndex < 0 || inputIndex >= numInputs)
+        return;
+
+    const juce::ScopedLock sl (positionLock);
+    auto& offset = samplerCellOffsets[static_cast<size_t> (inputIndex)];
+    constexpr float epsilon = 0.0001f;
+    if (std::abs (offset.x - x) > epsilon ||
+        std::abs (offset.y - y) > epsilon ||
+        std::abs (offset.z - z) > epsilon)
+    {
+        offset.x = x;
+        offset.y = y;
+        offset.z = z;
+        inputDirtyFlags[static_cast<size_t> (inputIndex)] = true;
+        matrixDirty.store (true);
+    }
 }
 
 void WFSCalculationEngine::setGyrophoneOffset (int inputIndex, float offsetRad)
@@ -915,6 +936,14 @@ void WFSCalculationEngine::recalculateMatrix()
             localInputPositions[i].x += lfoOffsets[i].x;
             localInputPositions[i].y += lfoOffsets[i].y;
             localInputPositions[i].z += lfoOffsets[i].z;
+        }
+
+        // Apply sampler cell offsets (transient, per-cell position delta)
+        for (size_t i = 0; i < localInputPositions.size() && i < samplerCellOffsets.size(); ++i)
+        {
+            localInputPositions[i].x += samplerCellOffsets[i].x;
+            localInputPositions[i].y += samplerCellOffsets[i].y;
+            localInputPositions[i].z += samplerCellOffsets[i].z;
         }
 
         // Apply gradient map height offset

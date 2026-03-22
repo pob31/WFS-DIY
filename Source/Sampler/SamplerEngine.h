@@ -63,6 +63,13 @@ public:
         currentSet = newSet;
     }
 
+    /** Get the next cell index from the current set (message thread only) */
+    int getNextCellFromSet()
+    {
+        juce::SpinLock::ScopedLockType lock (setLock);
+        return currentSet.getNextCellIndex();
+    }
+
     //==========================================================================
     /** Push a touch event to the lock-free FIFO (called from MIDI/BLOCKS thread) */
     bool pushEvent (const TouchEvent& event)
@@ -173,7 +180,33 @@ public:
     float getPositionY() const noexcept { return posY.load (std::memory_order_relaxed); }
     float getPositionZ() const noexcept { return posZ.load (std::memory_order_relaxed); }
     bool  isPlaying()    const noexcept { return playing; }
+    int   getCurrentCellIndex() const noexcept { return currentCellIndex; }
     bool  hasPositionOverride() const noexcept { return positionOverrideActive.load (std::memory_order_relaxed); }
+
+    /** Release position override (called on touch end / finger lift) */
+    void releasePositionOverride()
+    {
+        positionOverrideActive.store (false, std::memory_order_release);
+        posX.store (0.0f, std::memory_order_relaxed);
+        posY.store (0.0f, std::memory_order_relaxed);
+        posZ.store (0.0f, std::memory_order_relaxed);
+        xyAccumX = 0.0f;
+        xyAccumY = 0.0f;
+    }
+
+    /** Update XY delta from controller movement (Lightpad/remote).
+        Values are pre-scaled by the caller (e.g. LightpadManager applies sensitivity). */
+    void updatePosition (float scaledDeltaX, float scaledDeltaY)
+    {
+        if (! currentSet.pressXYEnabled)
+            return;
+
+        xyAccumX += scaledDeltaX;
+        xyAccumY += scaledDeltaY;
+        posX.store (xyAccumX, std::memory_order_relaxed);
+        posY.store (xyAccumY, std::memory_order_relaxed);
+        positionOverrideActive.store (true, std::memory_order_relaxed);
+    }
 
 private:
     //==========================================================================
@@ -191,11 +224,10 @@ private:
 
             case TouchEvent::Pressure:
                 currentPressure = evt.pressure;
-                updatePosition (evt.deltaX, evt.deltaY, evt.pressure);
                 break;
 
             case TouchEvent::XYMove:
-                updatePosition (evt.deltaX, evt.deltaY, currentPressure);
+                updatePosition (evt.deltaX, evt.deltaY);
                 break;
         }
     }
@@ -227,18 +259,13 @@ private:
         envelopeGain = (fadeInRemaining > 0) ? 0.0f : 1.0f;
         playing = true;
 
-        // Set base position from current set
-        {
-            juce::SpinLock::ScopedLockType slock (setLock);
-            float baseX = currentSet.posX + cell.offsetX;
-            float baseY = currentSet.posY + cell.offsetY;
-            float baseZ = currentSet.posZ + cell.offsetZ;
-            posX.store (baseX, std::memory_order_relaxed);
-            posY.store (baseY, std::memory_order_relaxed);
-            posZ.store (baseZ, std::memory_order_relaxed);
-            xyAccumX = baseX;
-            xyAccumY = baseY;
-        }
+        // Store cell offset as transient delta from current input position
+        // Initialize XY accumulators so updatePosition() accumulates from here
+        xyAccumX = cell.offsetX;
+        xyAccumY = cell.offsetY;
+        posX.store (cell.offsetX, std::memory_order_relaxed);
+        posY.store (cell.offsetY, std::memory_order_relaxed);
+        posZ.store (cell.offsetZ, std::memory_order_relaxed);
         positionOverrideActive.store (true, std::memory_order_release);
     }
 
@@ -248,36 +275,7 @@ private:
         {
             fadeOutRemaining = fadeOutTotal;
             if (fadeOutRemaining <= 0)
-            {
                 playing = false;
-                positionOverrideActive.store (false, std::memory_order_release);
-            }
-        }
-    }
-
-    void updatePosition (float normDeltaX, float normDeltaY, float pressure)
-    {
-        juce::SpinLock::ScopedLockType lock (setLock);
-
-        // XY joystick modulation
-        if (currentSet.pressXYEnabled)
-        {
-            float scale = currentSet.pressXYScale;
-            xyAccumX += normDeltaX * scale;
-            xyAccumY += normDeltaY * scale;
-            posX.store (xyAccumX, std::memory_order_relaxed);
-            posY.store (xyAccumY, std::memory_order_relaxed);
-        }
-
-        // Pressure → Z modulation
-        if (currentSet.pressZ.enabled)
-        {
-            float zMod = currentSet.pressZ.apply (pressure);
-            float baseZ = currentSet.posZ;
-            if (currentCellIndex >= 0 && currentCellIndex < static_cast<int> (cells.size()))
-                baseZ += cells[static_cast<size_t> (currentCellIndex)].offsetZ;
-            // Map pressure to ±2m Z range
-            posZ.store (baseZ + (zMod - 0.5f) * 4.0f, std::memory_order_relaxed);
         }
     }
 
@@ -291,7 +289,6 @@ private:
             if (fadeOutRemaining <= 0)
             {
                 playing = false;
-                positionOverrideActive.store (false, std::memory_order_release);
                 return 0.0f;
             }
             return envelopeGain;

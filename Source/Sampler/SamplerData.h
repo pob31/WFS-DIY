@@ -96,6 +96,7 @@ struct SamplerSet
     // Playback state (not serialized)
     int currentIndex = 0;                // Next cell to play
     std::vector<int> shuffledOrder;      // For round-robin mode
+    juce::Random rng { static_cast<juce::int64> (juce::Time::currentTimeMillis()) };
 
     /** Parse comma-separated cell indices from a string */
     static std::vector<int> parseCellIndices (const juce::String& str)
@@ -174,7 +175,6 @@ struct SamplerSet
             if (shuffledOrder.empty())
             {
                 shuffledOrder = cellIndices;
-                auto rng = juce::Random::getSystemRandom();
                 for (int i = static_cast<int> (shuffledOrder.size()) - 1; i > 0; --i)
                     std::swap (shuffledOrder[static_cast<size_t> (i)],
                                shuffledOrder[static_cast<size_t> (rng.nextInt (i + 1))]);
