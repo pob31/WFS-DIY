@@ -274,6 +274,7 @@ private:
     // Temporary buffers for patch application
     juce::AudioBuffer<float> patchedInputBuffer;
     juce::AudioBuffer<float> patchedOutputBuffer;
+    juce::AudioBuffer<float> wfsOutputBuffer;  // Algorithm writes here, then single remap to HW outputs
 
     // Routing matrix: delays[inputChannel * numOutputChannels + outputChannel]
     std::vector<float> delayTimesMs;
@@ -321,7 +322,8 @@ private:
     void stopProcessingForConfigurationChange();
     void loadAudioPatches();  // Load input/output patch matrices from ValueTree
     void applyInputPatch(const juce::AudioSourceChannelInfo& bufferToFill);  // Apply input patching
-    void applyOutputPatch(const juce::AudioSourceChannelInfo& bufferToFill); // Apply output patching
+    void applyOutputPatch(const juce::AudioSourceChannelInfo& bufferToFill,
+                          const juce::AudioBuffer<float>& wfsOutput); // Single-pass WFS→HW remap
 
     // Handlers for callbacks from System Config tab
     void handleProcessingChange(bool enabled);

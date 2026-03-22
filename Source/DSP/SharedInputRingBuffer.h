@@ -32,12 +32,15 @@ public:
         int toWrite = juce::jmin(numSamples, bufferSize - 1); // leave 1 empty slot
         auto* dst = buffer.getWritePointer(0);
 
-        for (int i = 0; i < toWrite; ++i)
-        {
-            dst[wp] = data[i];
-            wp = (wp + 1) % bufferSize;
-        }
+        // Use memcpy with wrap-around handling (1-2 copies instead of per-sample loop)
+        int firstChunk = juce::jmin(toWrite, bufferSize - wp);
+        std::memcpy(dst + wp, data, static_cast<size_t>(firstChunk) * sizeof(float));
 
+        int secondChunk = toWrite - firstChunk;
+        if (secondChunk > 0)
+            std::memcpy(dst, data + firstChunk, static_cast<size_t>(secondChunk) * sizeof(float));
+
+        wp = (wp + toWrite) % bufferSize;
         writePos.store(wp, std::memory_order_release);
         return toWrite;
     }
@@ -50,12 +53,15 @@ public:
         int toRead = juce::jmin(numSamples, available);
         auto* src = buffer.getReadPointer(0);
 
-        for (int i = 0; i < toRead; ++i)
-        {
-            data[i] = src[readPosition];
-            readPosition = (readPosition + 1) % bufferSize;
-        }
+        // Use memcpy with wrap-around handling (1-2 copies instead of per-sample loop)
+        int firstChunk = juce::jmin(toRead, bufferSize - readPosition);
+        std::memcpy(data, src + readPosition, static_cast<size_t>(firstChunk) * sizeof(float));
 
+        int secondChunk = toRead - firstChunk;
+        if (secondChunk > 0)
+            std::memcpy(data + firstChunk, src, static_cast<size_t>(secondChunk) * sizeof(float));
+
+        readPosition = (readPosition + toRead) % bufferSize;
         return toRead;
     }
 

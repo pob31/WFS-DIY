@@ -43,11 +43,15 @@ public:
 
         auto* writePtr = buffer.getWritePointer(0);
 
-        for (int i = 0; i < toWrite; ++i)
-        {
-            writePtr[writePos] = data[i];
-            writePos = (writePos + 1) % bufferSize;
-        }
+        // Use memcpy with wrap-around handling (1-2 copies instead of per-sample loop)
+        int firstChunk = juce::jmin(toWrite, bufferSize - writePos);
+        std::memcpy(writePtr + writePos, data, static_cast<size_t>(firstChunk) * sizeof(float));
+
+        int secondChunk = toWrite - firstChunk;
+        if (secondChunk > 0)
+            std::memcpy(writePtr, data + firstChunk, static_cast<size_t>(secondChunk) * sizeof(float));
+
+        writePos = (writePos + toWrite) % bufferSize;
 
         writePosition.store(writePos, std::memory_order_release);
         return toWrite;
@@ -73,11 +77,15 @@ public:
 
         auto* readPtr = buffer.getReadPointer(0);
 
-        for (int i = 0; i < toRead; ++i)
-        {
-            data[i] = readPtr[readPos];
-            readPos = (readPos + 1) % bufferSize;
-        }
+        // Use memcpy with wrap-around handling (1-2 copies instead of per-sample loop)
+        int firstChunk = juce::jmin(toRead, bufferSize - readPos);
+        std::memcpy(data, readPtr + readPos, static_cast<size_t>(firstChunk) * sizeof(float));
+
+        int secondChunk = toRead - firstChunk;
+        if (secondChunk > 0)
+            std::memcpy(data + firstChunk, readPtr, static_cast<size_t>(secondChunk) * sizeof(float));
+
+        readPos = (readPos + toRead) % bufferSize;
 
         readPosition.store(readPos, std::memory_order_release);
         return toRead;

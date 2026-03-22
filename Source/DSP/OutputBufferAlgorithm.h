@@ -300,6 +300,7 @@ public:
     }
 
     void processBlock(const juce::AudioSourceChannelInfo& bufferToFill,
+                     const juce::AudioBuffer<float>& inputBuffer,
                      int numInputChannels,
                      int numOutputChannels)
     {
@@ -313,18 +314,12 @@ public:
         }
 
         // Determine actual available channels
-        auto numChannels = juce::jmin(numInputChannels, totalChannels);
-
-        if (numChannels < numInputChannels)
-            DBG("WARNING: OutputBufferAlgorithm processing " + juce::String(numChannels) +
-                "/" + juce::String(numInputChannels) + " inputs (bufferCh=" +
-                juce::String(totalChannels) + ", lsDetectors=" +
-                juce::String((int)lsDetectors.size()) + ")");
+        auto numChannels = juce::jmin(numInputChannels, inputBuffer.getNumChannels());
 
         // Step 1: Write input data once to shared buffers (N writes, not N×M)
         for (int inChannel = 0; inChannel < numChannels && inChannel < (int)sharedInputBuffers.size(); ++inChannel)
         {
-            auto* inputData = bufferToFill.buffer->getReadPointer(inChannel, bufferToFill.startSample);
+            auto* inputData = inputBuffer.getReadPointer(inChannel, bufferToFill.startSample);
             sharedInputBuffers[inChannel]->write(inputData, numSamples);
         }
 

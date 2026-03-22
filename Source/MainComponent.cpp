@@ -2255,47 +2255,30 @@ void MainComponent::applyInputPatch(const juce::AudioSourceChannelInfo& bufferTo
         }
     }
 
-    // Replace buffer with patched version
-    for (int ch = 0; ch < juce::jmin(numInputChannels, totalBufferChannels); ++ch)
-    {
-        bufferToFill.buffer->copyFrom(ch, bufferToFill.startSample,
-                                      patchedInputBuffer, ch,
-                                      bufferToFill.startSample, bufferToFill.numSamples);
-    }
+    // No copy-back: downstream consumers read directly from patchedInputBuffer
 }
 
-void MainComponent::applyOutputPatch(const juce::AudioSourceChannelInfo& bufferToFill)
+void MainComponent::applyOutputPatch(const juce::AudioSourceChannelInfo& bufferToFill,
+                                     const juce::AudioBuffer<float>& wfsOutput)
 {
-    // Apply output patching: remap WFS outputs to hardware outputs
+    // Single-pass output remap: WFS output buffer → hardware output buffer
     int numHardwareOutputs = bufferToFill.buffer->getNumChannels();
+    int numSamples = bufferToFill.numSamples;
+    int startSample = bufferToFill.startSample;
 
-    // Prepare patched buffer if needed
-    if (patchedOutputBuffer.getNumChannels() != numHardwareOutputs ||
-        patchedOutputBuffer.getNumSamples() < bufferToFill.numSamples)
-    {
-        patchedOutputBuffer.setSize(numHardwareOutputs, bufferToFill.numSamples, false, false, true);
-    }
+    // Clear hardware output buffer
+    bufferToFill.clearActiveBufferRegion();
 
-    patchedOutputBuffer.clear();
-
-    // Copy audio according to output patch map
-    for (int wfsChannel = 0; wfsChannel < numOutputChannels && wfsChannel < outputPatchMap.size(); ++wfsChannel)
+    // Remap WFS channels to hardware channels using addFrom (supports many-to-one)
+    for (int wfsChannel = 0; wfsChannel < numOutputChannels && wfsChannel < (int)outputPatchMap.size(); ++wfsChannel)
     {
         int hwChannel = outputPatchMap[wfsChannel];
-        if (hwChannel >= 0 && hwChannel < numHardwareOutputs)
+        if (hwChannel >= 0 && hwChannel < numHardwareOutputs && wfsChannel < wfsOutput.getNumChannels())
         {
-            patchedOutputBuffer.addFrom(hwChannel, bufferToFill.startSample,
-                                        *bufferToFill.buffer, wfsChannel,
-                                        bufferToFill.startSample, bufferToFill.numSamples);
+            bufferToFill.buffer->addFrom(hwChannel, startSample,
+                                         wfsOutput, wfsChannel,
+                                         startSample, numSamples);
         }
-    }
-
-    // Replace buffer with patched version
-    for (int ch = 0; ch < numHardwareOutputs; ++ch)
-    {
-        bufferToFill.buffer->copyFrom(ch, bufferToFill.startSample,
-                                      patchedOutputBuffer, ch,
-                                      bufferToFill.startSample, bufferToFill.numSamples);
     }
 }
 
@@ -3590,31 +3573,41 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
                 numReverbs = bufferChannels;
         }
 
-        // Process WFS audio (clears buffer, writes speaker output)
+        // Prepare WFS output buffer (algorithm writes here, then single remap to HW)
+        int numSamples = bufferToFill.numSamples;
+        int startSample = bufferToFill.startSample;
+
+        if (wfsOutputBuffer.getNumChannels() < numOutputChannels ||
+            wfsOutputBuffer.getNumSamples() < numSamples)
+        {
+            wfsOutputBuffer.setSize(numOutputChannels, numSamples, false, false, true);
+        }
+
+        // Create AudioSourceChannelInfo wrapping wfsOutputBuffer for algorithm use
+        juce::AudioSourceChannelInfo wfsOut(&wfsOutputBuffer, startSample, numSamples);
+
+        // Process WFS audio — algorithms read from patchedInputBuffer, write to wfsOutputBuffer
         if (currentAlgorithm == ProcessingAlgorithm::InputBuffer)
         {
-            inputAlgorithm.processBlock(bufferToFill, numInputChannels, numOutputChannels);
+            inputAlgorithm.processBlock(wfsOut, patchedInputBuffer, numInputChannels, numOutputChannels);
         }
         else if (currentAlgorithm == ProcessingAlgorithm::OutputBuffer)
         {
-            outputAlgorithm.processBlock(bufferToFill, numInputChannels, numOutputChannels);
+            outputAlgorithm.processBlock(wfsOut, patchedInputBuffer, numInputChannels, numOutputChannels);
         }
         // else // ProcessingAlgorithm::GpuInputBuffer
         // {
-        //     gpuInputAlgorithm.processBlock(bufferToFill, numInputChannels, numOutputChannels);
+        //     gpuInputAlgorithm.processBlock(wfsOut, patchedInputBuffer, numInputChannels, numOutputChannels);
         // }
 
         // Mix reverb returns into WFS output (after WFS processing wrote speaker data)
         if (numReverbs > 0 && reverbEngine && calculationEngine)
         {
-            int numSamples = bufferToFill.numSamples;
-            int startSample = bufferToFill.startSample;
-
             // Solo Reverbs: clear direct sound so only reverb returns are heard
             if (soloReverbs.load (std::memory_order_relaxed))
             {
                 for (int outIdx = 0; outIdx < numOutputChannels; ++outIdx)
-                    bufferToFill.buffer->clear (outIdx, startSample, numSamples);
+                    wfsOutputBuffer.clear (outIdx, startSample, numSamples);
             }
 
             // Pull wet reverb output and mix into WFS outputs
@@ -3660,7 +3653,7 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
 
                         if (returnLevel > 0.0001f)
                         {
-                            float* outputData = bufferToFill.buffer->getWritePointer(outIdx, startSample);
+                            float* outputData = wfsOutputBuffer.getWritePointer(outIdx, startSample);
                             juce::FloatVectorOperations::addWithMultiply(outputData, returnData, returnLevel, numSamples);
                         }
                     }
@@ -3668,20 +3661,20 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
             }
         }
 
-        // Pull binaural output (push happened before WFS processing)
+        // Pull binaural output into wfsOutputBuffer
         if (binauralProcessor && binauralProcessor->isEnabled() && binauralCalcEngine)
         {
             int binauralCh = binauralCalcEngine->getBinauralOutputChannel();
             if (binauralCh >= 0 && binauralCh + 1 < numOutputChannels)
             {
-                float* leftOut = bufferToFill.buffer->getWritePointer(binauralCh, bufferToFill.startSample);
-                float* rightOut = bufferToFill.buffer->getWritePointer(binauralCh + 1, bufferToFill.startSample);
-                binauralProcessor->pullOutput(leftOut, rightOut, bufferToFill.numSamples);
+                float* leftOut = wfsOutputBuffer.getWritePointer(binauralCh, startSample);
+                float* rightOut = wfsOutputBuffer.getWritePointer(binauralCh + 1, startSample);
+                binauralProcessor->pullOutput(leftOut, rightOut, numSamples);
             }
         }
 
-        // Apply output patching: WFS channels → hardware channels
-        applyOutputPatch(bufferToFill);
+        // Single-pass output remap: WFS channels → hardware channels (no intermediate copy-back)
+        applyOutputPatch(bufferToFill, wfsOutputBuffer);
     }
     else
     {
@@ -3709,23 +3702,29 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
                     }
                 }
 
-                // Push input data to binaural processor
-                int safeInputCount = juce::jmin(numInputChannels, bufferToFill.buffer->getNumChannels());
+                // Push input data to binaural processor from patchedInputBuffer
+                int safeInputCount = juce::jmin(numInputChannels, patchedInputBuffer.getNumChannels());
                 for (int i = 0; i < safeInputCount; ++i)
                 {
-                    const float* inputData = bufferToFill.buffer->getReadPointer(i, bufferToFill.startSample);
+                    const float* inputData = patchedInputBuffer.getReadPointer(i, bufferToFill.startSample);
                     binauralProcessor->pushInput(i, inputData, bufferToFill.numSamples);
                 }
 
-                // Clear buffer, then pull binaural stereo output
-                bufferToFill.clearActiveBufferRegion();
+                // Prepare wfsOutputBuffer and pull binaural stereo output into it
+                int numSamples = bufferToFill.numSamples;
+                if (wfsOutputBuffer.getNumChannels() < numOutputChannels ||
+                    wfsOutputBuffer.getNumSamples() < numSamples)
+                {
+                    wfsOutputBuffer.setSize(numOutputChannels, numSamples, false, false, true);
+                }
+                wfsOutputBuffer.clear();
 
-                float* leftOut = bufferToFill.buffer->getWritePointer(binauralCh, bufferToFill.startSample);
-                float* rightOut = bufferToFill.buffer->getWritePointer(binauralCh + 1, bufferToFill.startSample);
-                binauralProcessor->pullOutput(leftOut, rightOut, bufferToFill.numSamples);
+                float* leftOut = wfsOutputBuffer.getWritePointer(binauralCh, bufferToFill.startSample);
+                float* rightOut = wfsOutputBuffer.getWritePointer(binauralCh + 1, bufferToFill.startSample);
+                binauralProcessor->pullOutput(leftOut, rightOut, numSamples);
 
-                // Output patching: WFS channels → hardware
-                applyOutputPatch(bufferToFill);
+                // Output patching: WFS channels → hardware (single pass)
+                applyOutputPatch(bufferToFill, wfsOutputBuffer);
             }
             else
             {

@@ -187,6 +187,8 @@ public:
     void setProcessingEnabled(bool enabled)
     {
         processingEnabled.store(enabled, std::memory_order_release);
+        if (enabled)
+            notify(); // Wake thread from infinite sleep
     }
 
     int getOutputChannelIndex() const { return outputChannelIndex; }
@@ -259,7 +261,7 @@ private:
             // Sleep when processing is disabled (no work to do)
             if (!processingEnabled.load(std::memory_order_acquire))
             {
-                wait(10);
+                wait(-1); // Infinite sleep until notify() from setProcessingEnabled
                 continue;
             }
 

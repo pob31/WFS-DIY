@@ -95,6 +95,7 @@ public:
     }
 
     void processBlock(const juce::AudioSourceChannelInfo& bufferToFill,
+                     const juce::AudioBuffer<float>& inputBuffer,
                      int numInputChannels,
                      int numOutputChannels)
     {
@@ -108,20 +109,14 @@ public:
         }
 
         // Determine actual available channels
-        auto numChannels = juce::jmin(numInputChannels, totalChannels, (int)inputProcessors.size());
-
-        if (numChannels < numInputChannels)
-            DBG("WARNING: InputBufferAlgorithm processing " + juce::String(numChannels) +
-                "/" + juce::String(numInputChannels) + " inputs (bufferCh=" +
-                juce::String(totalChannels) + ", processors=" +
-                juce::String((int)inputProcessors.size()) + ")");
+        auto numChannels = juce::jmin(numInputChannels, inputBuffer.getNumChannels(), (int)inputProcessors.size());
 
         // Step 1: Distribute input data to each input processor thread
         for (int inChannel = 0; inChannel < numChannels; ++inChannel)
         {
-            if (inputProcessors[inChannel] != nullptr && inChannel < totalChannels)
+            if (inputProcessors[inChannel] != nullptr)
             {
-                auto* inputData = bufferToFill.buffer->getReadPointer(inChannel, bufferToFill.startSample);
+                auto* inputData = inputBuffer.getReadPointer(inChannel, bufferToFill.startSample);
                 inputProcessors[inChannel]->pushInput(inputData, numSamples);
             }
         }
