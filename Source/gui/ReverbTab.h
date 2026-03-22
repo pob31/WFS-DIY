@@ -3941,6 +3941,11 @@ private:
             currentIRDurationSec = WFSParameterDefaults::reverbIRlengthDefault;
             if (sharedIRDuration)
                 *sharedIRDuration = currentIRDurationSec;
+
+            float v = algoIRLengthSlider.getValue();
+            float length = WFSParameterDefaults::reverbIRlengthMin
+                         + v * (currentIRDurationSec - WFSParameterDefaults::reverbIRlengthMin);
+            algoIRLengthValueLabel.setText (juce::String (length, 2) + " s", juce::dontSendNotification);
             return;
         }
 
@@ -3962,6 +3967,12 @@ private:
                              / static_cast<float> (reader->sampleRate);
         if (sharedIRDuration)
             *sharedIRDuration = currentIRDurationSec;
+
+        // Refresh IR length label to reflect new duration range
+        float v = algoIRLengthSlider.getValue();
+        float length = WFSParameterDefaults::reverbIRlengthMin
+                     + v * (currentIRDurationSec - WFSParameterDefaults::reverbIRlengthMin);
+        algoIRLengthValueLabel.setText (juce::String (length, 2) + " s", juce::dontSendNotification);
     }
 
     void refreshIRFileList()

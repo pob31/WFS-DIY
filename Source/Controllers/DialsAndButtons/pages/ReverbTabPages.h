@@ -1629,7 +1629,7 @@ inline StreamDeckPage createAlgorithmPage (
                                                reverbWetLevelMin, reverbWetLevelMax,
                                                0.5f, 0.1f, 1, false,
                                                state, reverbWetLevel);
-            sec.dials[3].barColour = juce::Colour (0xFF9B59B6);  // Purple (reverb wet)
+            sec.dials[3].barColour = juce::Colour (0xFF4A90D9);  // Blue (matches UI wet level)
         }
         else
         {
@@ -1680,21 +1680,21 @@ inline StreamDeckPage createAlgorithmPage (
                                                    reverbRT60HighMultMin, reverbRT60HighMultMax,
                                                    0.02f, 0.005f, 2, true,
                                                    state, reverbRT60HighMult);
-                sec.dials[1].barColour = juce::Colour (0xFFE07878);  // Rose (HF)
+                sec.dials[1].barColour = juce::Colour (0xFFE8C020);  // Light gold (matches UI RT60 High)
 
                 sec.dials[2] = makeAlgoFloatDial (LOC ("streamDeck.reverb.algorithm.rt60Low"),
                                                    "x",
                                                    reverbRT60LowMultMin, reverbRT60LowMultMax,
                                                    0.02f, 0.005f, 2, true,
                                                    state, reverbRT60LowMult);
-                sec.dials[2].barColour = juce::Colour (0xFFD4A017);  // Gold (time)
+                sec.dials[2].barColour = juce::Colour (0xFFC0880E);  // Dark gold (matches UI RT60 Low)
 
                 sec.dials[3] = makeAlgoFloatDial (LOC ("streamDeck.reverb.algorithm.wetLevel"),
                                                    LOC ("units.decibels"),
                                                    reverbWetLevelMin, reverbWetLevelMax,
                                                    0.5f, 0.1f, 1, false,
                                                    state, reverbWetLevel);
-                sec.dials[3].barColour = juce::Colour (0xFF9B59B6);  // Purple (reverb wet)
+                sec.dials[3].barColour = juce::Colour (0xFF4A90D9);  // Blue (matches UI wet level)
             }
             else
             {
@@ -1704,14 +1704,14 @@ inline StreamDeckPage createAlgorithmPage (
                                                    reverbCrossoverHighMin, reverbCrossoverHighMax,
                                                    0.02f, 0.005f, 0, true,
                                                    state, reverbCrossoverHigh);
-                sec.dials[0].barColour = juce::Colour (0xFFE07878);  // Rose (HF)
+                sec.dials[0].barColour = juce::Colour (0xFF3498DB);  // Blue (matches UI crossover high)
 
                 sec.dials[1] = makeAlgoFloatDial (LOC ("streamDeck.reverb.algorithm.crossoverLow"),
                                                    LOC ("units.hertz"),
                                                    reverbCrossoverLowMin, reverbCrossoverLowMax,
                                                    0.02f, 0.005f, 0, true,
                                                    state, reverbCrossoverLow);
-                sec.dials[1].barColour = juce::Colour (0xFFE07878);  // Rose (HF)
+                sec.dials[1].barColour = juce::Colour (0xFF9B59B6);  // Purple (matches UI crossover low)
 
                 sec.dials[2] = makeAlgoFloatDial (LOC ("streamDeck.reverb.algorithm.diffusion"),
                                                    "%",
@@ -1731,7 +1731,7 @@ inline StreamDeckPage createAlgorithmPage (
                     auto section = state.ensureReverbAlgorithmSection();
                     section.setProperty (reverbDiffusion, v / 100.0f, state.getUndoManager());
                 };
-                sec.dials[2].barColour = juce::Colour (0xFF9B59B6);  // Purple (diffusion)
+                sec.dials[2].barColour = juce::Colour (0xFFE07878);  // Rose (matches UI diffusion)
 
                 if (isSDN)
                 {
@@ -1740,7 +1740,7 @@ inline StreamDeckPage createAlgorithmPage (
                                                        reverbSDNscaleMin, reverbSDNscaleMax,
                                                        0.05f, 0.01f, 2, false,
                                                        state, reverbSDNscale);
-                    sec.dials[3].barColour = juce::Colour (0xFF4CAF50);  // Green (scale)
+                    sec.dials[3].barColour = juce::Colour (0xFF2ECC71);  // Green (matches UI scale)
                 }
                 else
                 {
@@ -1749,7 +1749,7 @@ inline StreamDeckPage createAlgorithmPage (
                                                        reverbFDNsizeMin, reverbFDNsizeMax,
                                                        0.05f, 0.01f, 2, false,
                                                        state, reverbFDNsize);
-                    sec.dials[3].barColour = juce::Colour (0xFF4CAF50);  // Green (scale)
+                    sec.dials[3].barColour = juce::Colour (0xFF2ECC71);  // Green (matches UI size)
                 }
             }
         }

@@ -302,7 +302,7 @@ inline StreamDeckPage createInputParametersPage (WFSValueTreeState& state,
                                        inputSidelinesFringeMin, inputSidelinesFringeMax,
                                        0.02f, 0.005f, 2, true,
                                        state, ch, inputSidelinesFringe);
-        sec.dials[0].barColour = juce::Colour (0xFFE07878);  // Rose (fringe/sidelines)
+        sec.dials[0].barColour = juce::Colour (0xFF26A69A);  // Teal (matches UI sidelines fringe)
 
         sec.dials[1] = makeIntDial (LOC ("streamDeck.inputs.dials.trackingSmooth"), LOC ("units.percent"),
                                      inputTrackingSmoothMin, inputTrackingSmoothMax,
@@ -431,7 +431,7 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
             inputLSpeakThresholdMin, inputLSpeakThresholdMax,
             1.0f, 0.25f, 1, false,
             state, ch, inputLSpeakThreshold);
-        sec.dials[0].barColour = juce::Colour (0xFF4A90D9);  // Blue (level)
+        sec.dials[0].barColour = juce::Colour (0xFFE67E22);  // Orange (matches UI peak threshold)
 
         // Dial 1 — Peak Ratio
         sec.dials[1] = makeFloatDial (
@@ -440,7 +440,7 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
             inputLSpeakRatioMin, inputLSpeakRatioMax,
             0.5f, 0.1f, 1, false,
             state, ch, inputLSpeakRatio);
-        sec.dials[1].barColour = juce::Colour (0xFF4A90D9);  // Blue (level)
+        sec.dials[1].barColour = juce::Colour (0xFFE67E22);  // Orange (matches UI peak ratio)
 
         // Dial 2 — Slow Threshold
         sec.dials[2] = makeFloatDial (
@@ -449,7 +449,7 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
             inputLSslowThresholdMin, inputLSslowThresholdMax,
             1.0f, 0.25f, 1, false,
             state, ch, inputLSslowThreshold);
-        sec.dials[2].barColour = juce::Colour (0xFF4A90D9);  // Blue (level)
+        sec.dials[2].barColour = juce::Colour (0xFFCC5522);  // Burnt orange (matches UI slow threshold)
 
         // Dial 3 — Slow Ratio
         sec.dials[3] = makeFloatDial (
@@ -458,7 +458,7 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
             inputLSslowRatioMin, inputLSslowRatioMax,
             0.5f, 0.1f, 1, false,
             state, ch, inputLSslowRatio);
-        sec.dials[3].barColour = juce::Colour (0xFF4A90D9);  // Blue (level)
+        sec.dials[3].barColour = juce::Colour (0xFFCC5522);  // Burnt orange (matches UI slow ratio)
     }
 
     //======================================================================
@@ -495,7 +495,7 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
             inputFRdiffusionMin, inputFRdiffusionMax,
             5, 1,
             state, ch, inputFRdiffusion);
-        sec.dials[1].barColour = juce::Colour (0xFF9B59B6);  // Purple (diffusion)
+        sec.dials[1].barColour = juce::Colour (0xFF26A69A);  // Teal (matches UI FR diffusion)
 
         // Dial 2 — Low Cut Frequency (exponential 20–20000 Hz)
         {
@@ -520,7 +520,7 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
                 state.setInputParameter (ch, inputFRlowCutFreq, juce::roundToInt (v));
             };
 
-            dial.barColour = juce::Colour (0xFFE07878);  // Rose (HF/filter)
+            dial.barColour = juce::Colour (0xFF6A5BAF);  // Purple (matches UI low cut freq)
             sec.dials[2] = dial;
         }
     }
@@ -583,7 +583,7 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
                 state.setInputParameter (ch, inputFRhighShelfFreq, juce::roundToInt (v));
             };
 
-            dial.barColour = juce::Colour (0xFFE07878);  // Rose (HF/filter)
+            dial.barColour = juce::Colour (0xFFA67FC4);  // Light purple (matches UI high shelf freq)
             sec.dials[0] = dial;
         }
 
@@ -594,7 +594,7 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
             inputFRhighShelfGainMin, inputFRhighShelfGainMax,
             1.0f, 0.25f, 1, false,
             state, ch, inputFRhighShelfGain);
-        sec.dials[1].barColour = juce::Colour (0xFFE07878);  // Rose (HF)
+        sec.dials[1].barColour = juce::Colour (0xFFA67FC4);  // Light purple (matches UI high shelf gain)
 
         // Dial 2 — High Shelf Slope
         sec.dials[2] = makeFloatDial (
@@ -603,7 +603,7 @@ inline StreamDeckPage createLiveSourcePage (WFSValueTreeState& state,
             inputFRhighShelfSlopeMin, inputFRhighShelfSlopeMax,
             0.1f, 0.01f, 2, false,
             state, ch, inputFRhighShelfSlope);
-        sec.dials[2].barColour = juce::Colour (0xFFE07878);  // Rose (HF)
+        sec.dials[2].barColour = juce::Colour (0xFFA67FC4);  // Light purple (matches UI high shelf slope)
     }
 
     page.numSections = 4;
