@@ -649,7 +649,11 @@ namespace WFSParameterIDs
     const juce::Identifier lightpadPad2DeviceId  ("lightpadPad2DeviceId");
     const juce::Identifier lightpadSensitivity   ("lightpadSensitivity");     // float: m per unit deflection
 
+    // Sampler controller mode (stored in Config > UI)
+    const juce::Identifier samplerControllerMode ("SamplerControllerMode");  // int: 0=Off, 1=Lightpad, 2=Remote
+    const juce::Identifier remotePadGridLayout   ("RemotePadGridLayout");   // int: 0=3x2, 1=5x3
+
     // Per-channel (stored in Channel section)
-    const juce::Identifier lightpadZoneId        ("lightpadZoneId");          // int: -1=unassigned, 0-11=zone
+    const juce::Identifier lightpadZoneId        ("lightpadZoneId");          // int: -1=unassigned, 0-14=zone
 
 } // namespace WFSParameterIDs

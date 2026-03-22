@@ -370,6 +370,23 @@ public:
      */
     std::function<void(int targetIndex)> onRemoteConnectionReady;
 
+    /** Callback when a remote pad touch event is received.
+     *  Args: zoneId, touchState (0=UP, 1=DOWN, 2=MOVE), dx, dy, pressure */
+    std::function<void (int, int, float, float, float)> onRemotePadTouch;
+
+    /** Check if any remote target is connected */
+    bool hasConnectedRemote() const
+    {
+        for (auto& rs : remoteStates)
+            if (rs.phase == RemoteConnectionState::Phase::Connected)
+                return true;
+        return false;
+    }
+
+    /** Send pad configuration to all connected remotes */
+    void sendRemotePadConfig (bool enabled, int gridCols, int gridRows,
+                              float sensitivity, const std::map<int, int>& zoneToInput);
+
     /**
      * Callback when position data is received from REMOTE protocol.
      * UI can register to trigger map repaint.
@@ -656,6 +673,15 @@ private:
     // REMOTE protocol state
     int remoteSelectedChannel = 1;
     std::set<juce::Identifier> remoteModifiedParams;
+
+    // Cached pad config for state dump replay
+    struct CachedPadConfig
+    {
+        bool enabled = false;
+        int gridCols = 3, gridRows = 2;
+        float sensitivity = 0.05f;
+        std::map<int, int> zoneToInput;
+    } cachedPadConfig;
 
     // Remote handshake/heartbeat state
     struct RemoteConnectionState

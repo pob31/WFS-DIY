@@ -474,29 +474,38 @@ public:
                 onPositionControlChanged (deviceIndex);
         };
 
-        // Sampler toggle
+        // Sampler controller selector (fused: Off / Lightpad / Remote)
         addAndMakeVisible (samplerLabel);
         samplerLabel.setText (LOC ("systemConfig.labels.sampler"), juce::dontSendNotification);
-        addAndMakeVisible (samplerToggle);
-        samplerToggle.setButtonText (LOC ("systemConfig.devices.off"));
-        samplerToggle.setClickingTogglesState (true);
-        samplerToggle.onClick = [this]()
+        addAndMakeVisible (controllerModeSelector);
+        controllerModeSelector.addItem (LOC ("systemConfig.controller.off"), 1);
+        controllerModeSelector.addItem (LOC ("systemConfig.controller.lightpad"), 2);
+        controllerModeSelector.addItem (LOC ("systemConfig.controller.remote"), 3);
+        controllerModeSelector.setSelectedId (1, juce::dontSendNotification);
+        controllerModeSelector.onChange = [this]()
         {
             if (isLoadingParameters) return;
-            bool enabled = samplerToggle.getToggleState();
-            samplerToggle.setButtonText (enabled ? LOC ("systemConfig.devices.on")
-                                                 : LOC ("systemConfig.devices.off"));
+            int mode = controllerModeSelector.getSelectedId() - 1;  // 0-based
+            bool enabled = (mode > 0);
             parameters.setConfigParam ("SamplerEnabled", enabled);
+            parameters.setConfigParam ("SamplerControllerMode", mode);
+            updateControllerSetupButton();
             if (onSamplerEnabledChanged)
                 onSamplerEnabledChanged (enabled);
+            if (onSamplerControllerModeChanged)
+                onSamplerControllerModeChanged (mode);
             resized();
-            repaint();
         };
 
         // Lightpad arrangement button
         lightpadArrangementButton.onClick = [this] { showLightpadArrangementOverlay(); };
         lightpadArrangementButton.setVisible (false);
         addChildComponent (lightpadArrangementButton);
+
+        // Remote pad setup button
+        remotePadSetupButton.onClick = [this] { showRemotePadSetupOverlay(); };
+        remotePadSetupButton.setVisible (false);
+        addChildComponent (remotePadSetupButton);
 
         // Binaural Section
         addAndMakeVisible(binauralEnableButton);
@@ -870,19 +879,19 @@ public:
         positionControlSelector.setBounds (x + labelWidth, y, editorWidth * 2, rowHeight);
         y += rowHeight + spacing;
 
-        // Sampler: [label] [toggle] [Lightpad... button]
+        // Sampler: [label] [Off/Lightpad/Remote selector] [setup button]
         {
-            int toggleW = scaled (40);
-            int rightEdge = x + labelWidth + editorWidth * 2;  // Align with comboboxes above
-            int btnX = x + labelWidth + toggleW + spacing;
+            int selectorW = scaled (110);
+            int rightEdge = x + labelWidth + editorWidth * 2;
+            int btnX = x + labelWidth + selectorW + spacing;
             int btnW = rightEdge - btnX;
 
             samplerLabel.setBounds (x, y, labelWidth, rowHeight);
-            samplerToggle.setBounds (x + labelWidth, y, toggleW, rowHeight);
-            lightpadArrangementButton.setButtonText ("Lightpad...");
+            controllerModeSelector.setBounds (x + labelWidth, y, selectorW, rowHeight);
+
             lightpadArrangementButton.setBounds (btnX, y, btnW, rowHeight);
-            lightpadArrangementButton.setVisible (true);
-            lightpadArrangementButton.setEnabled (samplerToggle.getToggleState() && ! lightpadPadLayouts.empty());
+            remotePadSetupButton.setBounds (btnX, y, btnW, rowHeight);
+            updateControllerSetupButton();
         }
 
         //======================================================================
@@ -1516,12 +1525,11 @@ private:
             positionControlSelector.setSelectedId (pcDevice + 1, juce::dontSendNotification);
         }
 
-        // Sampler toggle
+        // Sampler controller mode (fused selector)
         {
-            bool samplerOn = (bool) parameters.getConfigParam ("SamplerEnabled");
-            samplerToggle.setToggleState (samplerOn, juce::dontSendNotification);
-            samplerToggle.setButtonText (samplerOn ? LOC ("systemConfig.devices.on")
-                                                   : LOC ("systemConfig.devices.off"));
+            int ctrlMode = static_cast<int> (parameters.getConfigParam ("SamplerControllerMode"));
+            controllerModeSelector.setSelectedId (ctrlMode + 1, juce::dontSendNotification);
+            updateControllerSetupButton();
         }
 
         // Lightpad split state restored from ValueTree on topology change
@@ -1950,7 +1958,159 @@ public:
         repaint();
     }
 
-    // (mini-map painting removed — replaced by lightpadArrangementButton)
+    void updateControllerSetupButton()
+    {
+        int mode = controllerModeSelector.getSelectedId() - 1;
+
+        lightpadArrangementButton.setVisible (mode == 1);
+        lightpadArrangementButton.setEnabled (! lightpadPadLayouts.empty());
+
+        remotePadSetupButton.setVisible (mode == 2);
+        remotePadSetupButton.setButtonText (LOC ("systemConfig.controller.remote") + "...");
+    }
+
+    void showRemotePadSetupOverlay()
+    {
+        auto* parent = getTopLevelComponent();
+        if (parent == nullptr) return;
+
+        int currentLayout = static_cast<int> (parameters.getConfigParam ("RemotePadGridLayout"));
+
+        // Create an overlay component with two visual grid options
+        class RemoteGridOverlay : public juce::Component
+        {
+        public:
+            RemoteGridOverlay (int current, std::function<void (int)> onSelect,
+                               std::function<void()> onDismiss)
+                : selectedLayout (current), selectCallback (std::move (onSelect)),
+                  dismissCallback (std::move (onDismiss))
+            {
+            }
+
+            void paint (juce::Graphics& g) override
+            {
+                g.fillAll (juce::Colour (0xCC000000));
+
+                auto area = getLocalBounds().reduced (40).withSizeKeepingCentre (360, 220);
+                g.setColour (juce::Colour (0xFF2A2A2A));
+                g.fillRoundedRectangle (area.toFloat(), 8.0f);
+                g.setColour (juce::Colour (0xFF555555));
+                g.drawRoundedRectangle (area.toFloat(), 8.0f, 1.0f);
+
+                g.setColour (juce::Colours::white);
+                g.setFont (juce::FontOptions (14.0f));
+                g.drawText (LOC ("sampler.remote.gridLayout"), area.removeFromTop (30),
+                            juce::Justification::centred);
+
+                auto gridsArea = area.reduced (20, 10);
+                int halfW = gridsArea.getWidth() / 2 - 10;
+
+                // Draw 3×2 grid
+                auto grid3x2 = gridsArea.removeFromLeft (halfW);
+                drawGrid (g, grid3x2, 3, 2, selectedLayout == 0);
+
+                gridsArea.removeFromLeft (20);
+
+                // Draw 5×3 grid
+                auto grid5x3 = gridsArea.removeFromLeft (halfW);
+                drawGrid (g, grid5x3, 5, 3, selectedLayout == 1);
+
+                grid3x2Bounds = grid3x2;
+                grid5x3Bounds = grid5x3;
+            }
+
+            void drawGrid (juce::Graphics& g, juce::Rectangle<int> area,
+                           int cols, int rows, bool selected)
+            {
+                if (selected)
+                {
+                    g.setColour (juce::Colour (0xFF338C33).withAlpha (0.3f));
+                    g.fillRoundedRectangle (area.toFloat().expanded (4), 4.0f);
+                    g.setColour (juce::Colour (0xFF338C33));
+                    g.drawRoundedRectangle (area.toFloat().expanded (4), 4.0f, 2.0f);
+                }
+
+                int pad = 2;
+                float cellW = static_cast<float> (area.getWidth() - (cols - 1) * pad) / cols;
+                float cellH = static_cast<float> (area.getHeight() - 20 - (rows - 1) * pad) / rows;
+                float startY = static_cast<float> (area.getY());
+
+                for (int r = 0; r < rows; ++r)
+                {
+                    for (int c = 0; c < cols; ++c)
+                    {
+                        float cx = area.getX() + c * (cellW + pad);
+                        float cy = startY + r * (cellH + pad);
+                        auto cell = juce::Rectangle<float> (cx, cy, cellW, cellH);
+                        g.setColour (juce::Colour (0xFF444444));
+                        g.fillRoundedRectangle (cell, 2.0f);
+                        g.setColour (juce::Colour (0xFF666666));
+                        g.drawRoundedRectangle (cell, 2.0f, 1.0f);
+
+                        g.setColour (juce::Colours::white.withAlpha (0.5f));
+                        g.setFont (juce::FontOptions (juce::jmin (cellW * 0.4f, 10.0f)));
+                        g.drawText (juce::String (r * cols + c + 1), cell,
+                                    juce::Justification::centred);
+                    }
+                }
+
+                // Label below
+                g.setColour (juce::Colours::white);
+                g.setFont (juce::FontOptions (12.0f));
+                g.drawText (juce::String (cols) + "x" + juce::String (rows),
+                            area.getX(), area.getBottom() - 18, area.getWidth(), 18,
+                            juce::Justification::centred);
+            }
+
+            void mouseDown (const juce::MouseEvent& e) override
+            {
+                if (grid3x2Bounds.contains (e.getPosition()))
+                {
+                    if (selectCallback) selectCallback (0);
+                    if (dismissCallback) dismissCallback();
+                }
+                else if (grid5x3Bounds.contains (e.getPosition()))
+                {
+                    if (selectCallback) selectCallback (1);
+                    if (dismissCallback) dismissCallback();
+                }
+                else
+                {
+                    if (dismissCallback) dismissCallback();
+                }
+            }
+
+        private:
+            int selectedLayout;
+            std::function<void (int)> selectCallback;
+            std::function<void()> dismissCallback;
+            juce::Rectangle<int> grid3x2Bounds, grid5x3Bounds;
+        };
+
+        auto* overlay = new RemoteGridOverlay (currentLayout,
+            [this] (int layout)
+            {
+                parameters.setConfigParam ("RemotePadGridLayout", layout);
+                if (onSamplerControllerModeChanged)
+                    onSamplerControllerModeChanged (2);
+            },
+            [parent] ()
+            {
+                for (int i = parent->getNumChildComponents() - 1; i >= 0; --i)
+                {
+                    auto* child = parent->getChildComponent (i);
+                    if (dynamic_cast<RemoteGridOverlay*> (child))
+                    {
+                        parent->removeChildComponent (child);
+                        delete child;
+                        break;
+                    }
+                }
+            });
+
+        overlay->setBounds (parent->getLocalBounds());
+        parent->addAndMakeVisible (overlay);
+    }
 
     void showLightpadArrangementOverlay()
     {
@@ -2615,7 +2775,7 @@ public:
         helpTextMap[&languageSelector] = LOC("systemConfig.help.language");
         helpTextMap[&dialsAndButtonsSelector] = LOC("systemConfig.help.dialsAndButtons");
         helpTextMap[&positionControlSelector] = LOC("systemConfig.help.positionControl");
-        helpTextMap[&samplerToggle] = LOC("systemConfig.help.sampler");
+        helpTextMap[&controllerModeSelector] = LOC("systemConfig.help.sampler");
         helpTextMap[&binauralEnableButton] = LOC("systemConfig.help.binauralEnable");
         helpTextMap[&binauralOutputSelector] = LOC("systemConfig.help.binauralOutput");
         helpTextMap[&binauralDistanceSlider] = LOC("systemConfig.help.binauralDistance");
@@ -2806,11 +2966,12 @@ public:
     juce::Label positionControlLabel;
     juce::ComboBox positionControlSelector;
     juce::Label samplerLabel;
-    juce::TextButton samplerToggle;
+    juce::ComboBox controllerModeSelector;
 
     // Lightpad state
     std::vector<PadLayoutInfo> lightpadPadLayouts;
     juce::TextButton lightpadArrangementButton;
+    juce::TextButton remotePadSetupButton;
     juce::Rectangle<int> lightpadNoPadBounds;  // for "No Lightpad detected" text
 
     // Binaural Section
@@ -2855,6 +3016,7 @@ public:
     DialsAndButtonsCallback onDialsAndButtonsChanged;
     PositionControlCallback onPositionControlChanged;
     SamplerCallback onSamplerEnabledChanged;
+    std::function<void (int mode)> onSamplerControllerModeChanged;
     LightpadSplitCallback onLightpadSplitChanged;
     BinauralCallback onBinauralChanged;
     GettingStartedCallback onGettingStartedRequested;

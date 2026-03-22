@@ -389,17 +389,14 @@ MainComponent::MainComponent()
         if (inputsTab)
             inputsTab->setSamplerMasterEnabled(enabled);
 
-        // Lightpad starts/stops with sampler
-        if (lightpadManager)
-        {
-            if (enabled)
-                lightpadManager->start();
-            else
-                lightpadManager->stop();
-        }
-        if (inputsTab)
-            inputsTab->setLightpadEnabled (enabled);
+        // Apply controller mode when sampler is toggled
+        int ctrlMode = enabled ? static_cast<int> (parameters.getConfigParam ("SamplerControllerMode")) : 0;
+        applySamplerControllerMode (ctrlMode);
     });
+
+    systemConfigTab->onSamplerControllerModeChanged = [this] (int mode) {
+        applySamplerControllerMode (mode);
+    };
 
     systemConfigTab->setLightpadSplitCallback([this](int padIndex, bool split) {
         if (lightpadManager)
@@ -1437,9 +1434,10 @@ MainComponent::MainComponent()
             samplerManager->releaseChannel (inputIdx);
         };
 
-        // Lightpad starts with sampler (not its own toggle)
+        // Start Lightpad only if controller mode is Lightpad
         bool lpSamplerOn = static_cast<bool> (parameters.getConfigParam ("SamplerEnabled"));
-        if (lpSamplerOn)
+        int ctrlMode = static_cast<int> (parameters.getConfigParam ("SamplerControllerMode"));
+        if (lpSamplerOn && ctrlMode == 1)
             lightpadManager->start();
 
         // Restore sensitivity from ValueTree
@@ -1516,7 +1514,11 @@ MainComponent::MainComponent()
                 if (lightpadManager)
                     lightpadManager->assignZoneToInput (zoneId, inputIndex);
             });
-            inputsTab->setLightpadEnabled (lpSamplerOn);
+            // Set controller mode based on saved config
+            if (lpSamplerOn)
+                inputsTab->getSamplerSubTab().setControllerMode (ctrlMode);
+            else
+                inputsTab->getSamplerSubTab().setControllerMode (0);
         }
     }
 
@@ -1838,6 +1840,43 @@ MainComponent::MainComponent()
 
         // Store in lastSentCompositeDeltas so the timer tick won't see it as a change
         lastSentCompositeDeltas[channelIndex] = std::make_pair(deltaX, deltaY);
+    };
+
+    // Handle remote pad touch events from Android app
+    oscManager->onRemotePadTouch = [this] (int zoneId, int touchState, float dx, float dy, float pressure)
+    {
+        // Check controller mode is Remote
+        int ctrlMode = static_cast<int> (parameters.getConfigParam ("SamplerControllerMode"));
+        if (ctrlMode != 2) return;
+
+        // Look up zone → input
+        auto zoneMap = buildZoneToInputMap();
+        auto it = zoneMap.find (zoneId);
+        if (it == zoneMap.end()) return;
+        int inputIdx = it->second;
+
+        if (samplerManager == nullptr || ! samplerManager->isChannelActive (inputIdx))
+            return;
+
+        float sensitivity = static_cast<float> (parameters.getConfigParam ("lightpadSensitivity"));
+        if (sensitivity <= 0.0f) sensitivity = 0.05f;
+
+        if (touchState == 1)  // DOWN
+        {
+            samplerManager->triggerNextCell (inputIdx, pressure);
+        }
+        else if (touchState == 2)  // MOVE
+        {
+            samplerManager->updatePosition (inputIdx, dx * sensitivity, -dy * sensitivity);
+            SamplerEngine::TouchEvent evt;
+            evt.type = SamplerEngine::TouchEvent::Pressure;
+            evt.pressure = pressure;
+            samplerManager->pushTouchEvent (inputIdx, evt);
+        }
+        else if (touchState == 0)  // UP
+        {
+            samplerManager->releaseChannel (inputIdx);
+        }
     };
 
     // Send composite deltas for all inputs when a Remote client connects and initial data has been sent
@@ -2250,6 +2289,69 @@ void MainComponent::applySamplerSetPosition (int channelIndex, const juce::Value
     }
 }
 
+void MainComponent::applySamplerControllerMode (int mode)
+{
+    // Mode 0=Off, 1=Lightpad, 2=Remote
+    if (lightpadManager)
+    {
+        if (mode == 1)
+            lightpadManager->start();
+        else
+            lightpadManager->stop();
+    }
+
+    if (inputsTab)
+    {
+        inputsTab->getSamplerSubTab().setControllerMode (mode);
+
+        if (mode == 2)
+        {
+            int layout = static_cast<int> (parameters.getConfigParam ("RemotePadGridLayout"));
+            int cols = (layout == 1) ? 5 : 3;
+            int rows = (layout == 1) ? 3 : 2;
+            inputsTab->getSamplerSubTab().setRemotePadGridSize (cols, rows);
+        }
+    }
+
+    // Send pad config to remote
+    if (oscManager)
+    {
+        if (mode == 2)
+        {
+            int layout = static_cast<int> (parameters.getConfigParam ("RemotePadGridLayout"));
+            int cols = (layout == 1) ? 5 : 3;
+            int rows = (layout == 1) ? 3 : 2;
+            float sensitivity = static_cast<float> (parameters.getConfigParam ("lightpadSensitivity"));
+            if (sensitivity <= 0.0f) sensitivity = 0.05f;
+            auto zoneMap = buildZoneToInputMap();
+            oscManager->sendRemotePadConfig (true, cols, rows, sensitivity, zoneMap);
+        }
+        else
+        {
+            oscManager->sendRemotePadConfig (false, 3, 2, 0.05f, {});
+        }
+    }
+}
+
+std::map<int, int> MainComponent::buildZoneToInputMap() const
+{
+    std::map<int, int> zoneMap;
+    auto inputs = parameters.getValueTreeState().getInputsState();
+    for (int i = 0; i < inputs.getNumChildren(); ++i)
+    {
+        auto ch = inputs.getChild (i);
+        auto channelSection = ch.getChildWithName (WFSParameterIDs::Channel);
+        if (channelSection.isValid())
+        {
+            int zoneId = static_cast<int> (channelSection.getProperty (
+                WFSParameterIDs::lightpadZoneId, -1));
+            if (zoneId >= 0)
+                zoneMap[zoneId] = i;
+        }
+    }
+    return zoneMap;
+}
+
 void MainComponent::growPatchData(juce::ValueTree& patchTree, int newChannelCount, int numHardwareCols)
 {
     if (! patchTree.isValid())
@@ -2650,10 +2752,11 @@ void MainComponent::handleConfigReloaded()
         inputsTab->configureVisualisation(parameters.getNumOutputChannels(),
                                           parameters.getNumReverbChannels());
 
-        // Refresh sampler master enable state from config
+        // Refresh sampler master enable state and controller mode from config
         bool samplerOn = (bool)parameters.getConfigParam("SamplerEnabled");
         inputsTab->setSamplerMasterEnabled(samplerOn);
-        inputsTab->setLightpadEnabled(samplerOn);
+        int ctrlMode = samplerOn ? static_cast<int> (parameters.getConfigParam ("SamplerControllerMode")) : 0;
+        applySamplerControllerMode (ctrlMode);
 
         // Restart Lightpad and restore zone assignments
         if (lightpadManager && samplerOn)

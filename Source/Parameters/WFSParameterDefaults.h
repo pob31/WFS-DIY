@@ -983,5 +983,7 @@ namespace WFSParameterDefaults
     constexpr float lightpadSensitivityMin       = 0.01f;
     constexpr float lightpadSensitivityMax       = 0.20f;
     constexpr int   lightpadZoneIdDefault        = -1;    // unassigned
+    constexpr int   samplerControllerModeDefault = 0;    // 0=Off, 1=Lightpad, 2=Remote
+    constexpr int   remotePadGridLayoutDefault   = 0;    // 0=3x2, 1=5x3
 
 } // namespace WFSParameterDefaults

@@ -1271,6 +1271,18 @@ void OSCManager::handleIncomingMessage(const juce::OSCMessage& message,
             updateTargetStatus(targetIndex, ConnectionStatus::Connecting);
         }
     }
+    else if (address == "/remote/pad/touch")
+    {
+        // Android remote pad touch: ,iifff zoneId touchState dx dy pressure
+        if (message.size() >= 5 && onRemotePadTouch)
+        {
+            onRemotePadTouch (message[0].getInt32(),
+                              message[1].getInt32(),
+                              message[2].getFloat32(),
+                              message[3].getFloat32(),
+                              message[4].getFloat32());
+        }
+    }
 }
 
 void OSCManager::handleIncomingBundle(const juce::OSCBundle& bundle,
@@ -3613,6 +3625,54 @@ std::vector<juce::OSCMessage> OSCManager::collectStateDumpMessages(int targetInd
         }
     }
 
+    // --- Pad configuration (for remote XY pads) ---
+    {
+        juce::OSCMessage padEnabled ("/remote/pad/enabled");
+        padEnabled.addInt32 (cachedPadConfig.enabled ? 1 : 0);
+        messages.push_back (std::move (padEnabled));
+
+        if (cachedPadConfig.enabled)
+        {
+            juce::OSCMessage grid ("/remote/pad/gridLayout");
+            grid.addInt32 (cachedPadConfig.gridCols);
+            grid.addInt32 (cachedPadConfig.gridRows);
+            messages.push_back (std::move (grid));
+
+            juce::OSCMessage sens ("/remote/pad/sensitivity");
+            sens.addFloat32 (cachedPadConfig.sensitivity);
+            messages.push_back (std::move (sens));
+
+            int totalPads = cachedPadConfig.gridCols * cachedPadConfig.gridRows;
+            for (int z = 0; z < totalPads; ++z)
+            {
+                juce::OSCMessage cfg ("/remote/pad/zoneConfig");
+                cfg.addInt32 (z);
+                auto it = cachedPadConfig.zoneToInput.find (z);
+                if (it != cachedPadConfig.zoneToInput.end())
+                {
+                    float hue = std::fmod (static_cast<float> (it->second) * 0.13f, 1.0f);
+                    auto colour = juce::Colour::fromHSV (hue, 0.7f, 0.9f, 1.0f);
+                    cfg.addInt32 (it->second + 1);
+                    cfg.addInt32 (static_cast<int> (colour.getRed()));
+                    cfg.addInt32 (static_cast<int> (colour.getGreen()));
+                    cfg.addInt32 (static_cast<int> (colour.getBlue()));
+                }
+                else
+                {
+                    cfg.addInt32 (0);
+                    cfg.addInt32 (80);
+                    cfg.addInt32 (80);
+                    cfg.addInt32 (80);
+                }
+                messages.push_back (std::move (cfg));
+            }
+
+            juce::OSCMessage cnt ("/remote/pad/zoneCount");
+            cnt.addInt32 (totalPads);
+            messages.push_back (std::move (cnt));
+        }
+    }
+
     return messages;
 }
 
@@ -4275,6 +4335,86 @@ void OSCManager::sendADMOSCName (int channelIndex)
             targetConfigs[static_cast<size_t>(t)].txEnabled)
         {
             sendMessage (t, msg);
+        }
+    }
+}
+
+void OSCManager::sendRemotePadConfig (bool enabled, int gridCols, int gridRows,
+                                      float sensitivity, const std::map<int, int>& zoneToInput)
+{
+    // Cache for state dump replay on reconnect
+    cachedPadConfig.enabled = enabled;
+    cachedPadConfig.gridCols = gridCols;
+    cachedPadConfig.gridRows = gridRows;
+    cachedPadConfig.sensitivity = sensitivity;
+    cachedPadConfig.zoneToInput = zoneToInput;
+
+    // Build messages
+    std::vector<juce::OSCMessage> messages;
+
+    {
+        juce::OSCMessage msg ("/remote/pad/enabled");
+        msg.addInt32 (enabled ? 1 : 0);
+        messages.push_back (std::move (msg));
+    }
+
+    if (enabled)
+    {
+        {
+            juce::OSCMessage msg ("/remote/pad/gridLayout");
+            msg.addInt32 (gridCols);
+            msg.addInt32 (gridRows);
+            messages.push_back (std::move (msg));
+        }
+        {
+            juce::OSCMessage msg ("/remote/pad/sensitivity");
+            msg.addFloat32 (sensitivity);
+            messages.push_back (std::move (msg));
+        }
+
+        // Send config for ALL zones (assigned get colour, unassigned get grey)
+        int totalPads = gridCols * gridRows;
+        for (int z = 0; z < totalPads; ++z)
+        {
+            juce::OSCMessage msg ("/remote/pad/zoneConfig");
+            msg.addInt32 (z);
+
+            auto it = zoneToInput.find (z);
+            if (it != zoneToInput.end())
+            {
+                int inputChannel = it->second;
+                float hue = std::fmod (static_cast<float> (inputChannel) * 0.13f, 1.0f);
+                auto colour = juce::Colour::fromHSV (hue, 0.7f, 0.9f, 1.0f);
+                msg.addInt32 (inputChannel + 1);  // 1-based for display
+                msg.addInt32 (static_cast<int> (colour.getRed()));
+                msg.addInt32 (static_cast<int> (colour.getGreen()));
+                msg.addInt32 (static_cast<int> (colour.getBlue()));
+            }
+            else
+            {
+                msg.addInt32 (0);  // unassigned
+                msg.addInt32 (80);
+                msg.addInt32 (80);
+                msg.addInt32 (80);
+            }
+            messages.push_back (std::move (msg));
+        }
+
+        {
+            juce::OSCMessage msg ("/remote/pad/zoneCount");
+            msg.addInt32 (totalPads);
+            messages.push_back (std::move (msg));
+        }
+    }
+
+    // Send to all connected Remote targets
+    for (int t = 0; t < MAX_TARGETS; ++t)
+    {
+        if (targetConfigs[static_cast<size_t> (t)].protocol == Protocol::Remote &&
+            remoteStates[static_cast<size_t> (t)].phase == RemoteConnectionState::Phase::Connected)
+        {
+            for (auto& msg : messages)
+                sendMessage (t, msg);
         }
     }
 }

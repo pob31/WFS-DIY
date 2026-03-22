@@ -113,7 +113,14 @@
       "clickToSplit": "Click to split",
       "dialsAndButtons": "Dials and Buttons:",
       "positionControl": "Position Control:",
-      "sampler": "Sampler:"
+      "sampler": "Sampler:",
+      "samplerController": "Controller:"
+    },
+
+    "controller": {
+      "off": "Off",
+      "lightpad": "Lightpad",
+      "remote": "Remote"
     },
 
     "devices": {
@@ -1863,7 +1870,17 @@
       "import": "Import sampler configuration from file",
       "export": "Export sampler configuration to file"
     },
-    "guide": "Select a cell on the grid to edit its properties.\nDouble-click to load a sample.\nUse Ctrl+Click to assign cells to the active set."
+    "guide": "Select a cell on the grid to edit its properties.\nDouble-click to load a sample.\nUse Ctrl+Click to assign cells to the active set.",
+    "zone": {
+      "remotePad": "Pad {num}",
+      "selectRemotePad": "Select Remote Pad",
+      "noRemote": "No remote connected"
+    },
+    "remote": {
+      "grid3x2": "3×2 (6 pads)",
+      "grid5x3": "5×3 (15 pads)",
+      "gridLayout": "Grid Layout"
+    }
   },
 
   "streamDeck": {

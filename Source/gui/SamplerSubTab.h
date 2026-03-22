@@ -239,7 +239,13 @@ public:
 
         // ── Lightpad Zone Selector Button ──
         lightpadZoneButton.setButtonText (LOC ("sampler.lightpadZone.none"));
-        lightpadZoneButton.onClick = [this] { showLightpadZoneOverlay(); };
+        lightpadZoneButton.onClick = [this]
+        {
+            if (controllerMode == 1)
+                showLightpadZoneOverlay();
+            else if (controllerMode == 2)
+                showRemotePadZoneOverlay();
+        };
         lightpadZoneButton.setVisible (false);  // Shown when lightpad is enabled
         addChildComponent (lightpadZoneButton);
 
@@ -1730,9 +1736,12 @@ private:
     juce::TextButton importButton;
     juce::TextButton exportButton;
 
-    // ── Lightpad Zone Selector ──
+    // ── Zone Selector (Lightpad or Remote) ──
     juce::TextButton lightpadZoneButton;
     int currentLightpadZoneId = -1;  // zone assigned to current input
+    int controllerMode = 0;          // 0=Off, 1=Lightpad, 2=Remote
+    int remotePadCols = 3;
+    int remotePadRows = 2;
 
     // File chooser (must persist during async operation)
     std::unique_ptr<juce::FileChooser> fileChooser;
@@ -1753,8 +1762,27 @@ public:
 
     void setLightpadEnabled (bool enabled)
     {
-        lightpadZoneButton.setVisible (enabled);
+        // Legacy method — now use setControllerMode instead
+        setControllerMode (enabled ? 1 : 0);
+    }
+
+    /** Set the active controller mode: 0=Off, 1=Lightpad, 2=Remote */
+    void setControllerMode (int mode)
+    {
+        controllerMode = mode;
+        lightpadZoneButton.setVisible (mode == 1 || mode == 2);
+        if (mode == 2)
+            updateRemoteZoneButtonText();
+        else if (mode == 1)
+            updateLightpadZoneButtonText();
         resized();
+    }
+
+    /** Set remote pad grid size for zone picker */
+    void setRemotePadGridSize (int cols, int rows)
+    {
+        remotePadCols = cols;
+        remotePadRows = rows;
     }
 
     void updateLightpadZoneButtonText()
@@ -1785,6 +1813,188 @@ public:
             lightpadZoneButton.setColour (juce::TextButton::buttonColourId,
                                            LightpadColours::getPadColour (info.padIndex).darker (0.3f));
         }
+    }
+
+    void updateRemoteZoneButtonText()
+    {
+        if (currentLightpadZoneId < 0)
+        {
+            lightpadZoneButton.setButtonText (LOC ("sampler.lightpadZone.none"));
+            lightpadZoneButton.setColour (juce::TextButton::buttonColourId,
+                                           juce::Colour (0xFF3A3A3A));
+        }
+        else
+        {
+            juce::String padName = LOC ("sampler.zone.remotePad")
+                .replace ("{num}", juce::String (currentLightpadZoneId + 1));
+            float hue = std::fmod (static_cast<float> (currentChannel) * 0.13f, 1.0f);
+            auto colour = juce::Colour::fromHSV (hue, 0.7f, 0.9f, 1.0f);
+            lightpadZoneButton.setButtonText (padName);
+            lightpadZoneButton.setColour (juce::TextButton::buttonColourId, colour.darker (0.3f));
+        }
+    }
+
+    void showRemotePadZoneOverlay()
+    {
+        auto* parent = getTopLevelComponent();
+        if (parent == nullptr) return;
+
+        int totalPads = remotePadCols * remotePadRows;
+        int cols = remotePadCols;
+        int rows = remotePadRows;
+
+        // Get assigned zones
+        std::map<int, int> assignedMap;  // zoneId → inputChannel
+        if (lightpadZoneQuery.getAssignedZones)
+            assignedMap = lightpadZoneQuery.getAssignedZones();
+
+        class RemotePadOverlay : public juce::Component
+        {
+        public:
+            RemotePadOverlay (int cols_, int rows_, int currentZone, int currentCh,
+                              const std::map<int, int>& assigned,
+                              std::function<void (int)> onSelect,
+                              std::function<void()> onDismiss)
+                : gridCols (cols_), gridRows (rows_), selectedZone (currentZone),
+                  currentChannel (currentCh), assignedZones (assigned),
+                  selectCallback (std::move (onSelect)), dismissCallback (std::move (onDismiss))
+            {
+            }
+
+            void paint (juce::Graphics& g) override
+            {
+                g.fillAll (juce::Colour (0xCC000000));
+
+                int gridW = gridCols * 60 + (gridCols - 1) * 4 + 40;
+                int gridH = gridRows * 50 + (gridRows - 1) * 4 + 60;
+                gridArea = getLocalBounds().withSizeKeepingCentre (gridW, gridH);
+
+                g.setColour (juce::Colour (0xFF2A2A2A));
+                g.fillRoundedRectangle (gridArea.toFloat(), 8.0f);
+                g.setColour (juce::Colour (0xFF555555));
+                g.drawRoundedRectangle (gridArea.toFloat(), 8.0f, 1.0f);
+
+                g.setColour (juce::Colours::white);
+                g.setFont (juce::FontOptions (13.0f));
+                g.drawText (LOC ("sampler.zone.selectRemotePad"),
+                            gridArea.removeFromTop (24), juce::Justification::centred);
+
+                auto content = gridArea.reduced (16, 8);
+                int pad = 4;
+                float cellW = static_cast<float> (content.getWidth() - (gridCols - 1) * pad) / gridCols;
+                float cellH = static_cast<float> (content.getHeight() - (gridRows - 1) * pad) / gridRows;
+
+                cellBounds.clear();
+                for (int r = 0; r < gridRows; ++r)
+                {
+                    for (int c = 0; c < gridCols; ++c)
+                    {
+                        int zoneId = r * gridCols + c;
+                        float cx = content.getX() + c * (cellW + pad);
+                        float cy = content.getY() + r * (cellH + pad);
+                        auto cell = juce::Rectangle<float> (cx, cy, cellW, cellH);
+                        cellBounds.push_back ({ zoneId, cell });
+
+                        bool isMine = (zoneId == selectedZone);
+                        auto it = assignedZones.find (zoneId);
+                        bool isAssignedOther = (it != assignedZones.end() && ! isMine);
+                        int assignedInput = (it != assignedZones.end()) ? it->second : -1;
+
+                        // Background
+                        if (isMine)
+                        {
+                            float hue = std::fmod (static_cast<float> (currentChannel) * 0.13f, 1.0f);
+                            g.setColour (juce::Colour::fromHSV (hue, 0.7f, 0.9f, 1.0f).withAlpha (0.6f));
+                        }
+                        else if (isAssignedOther)
+                        {
+                            float hue = std::fmod (static_cast<float> (assignedInput) * 0.13f, 1.0f);
+                            g.setColour (juce::Colour::fromHSV (hue, 0.4f, 0.4f, 0.4f));
+                        }
+                        else
+                            g.setColour (juce::Colour (0xFF444444));
+
+                        g.fillRoundedRectangle (cell, 3.0f);
+
+                        // Border
+                        g.setColour (isMine ? juce::Colours::white : juce::Colour (0xFF666666));
+                        g.drawRoundedRectangle (cell, 3.0f, isMine ? 2.0f : 1.0f);
+
+                        // Number
+                        g.setColour (isAssignedOther ? juce::Colours::white.withAlpha (0.3f) : juce::Colours::white);
+                        g.setFont (juce::FontOptions (juce::jmin (cellW * 0.35f, 14.0f)));
+                        g.drawText (juce::String (zoneId + 1), cell.reduced (2),
+                                    juce::Justification::centred);
+
+                        // Input label
+                        if (assignedInput >= 0)
+                        {
+                            g.setFont (juce::FontOptions (juce::jmin (cellW * 0.2f, 9.0f)));
+                            g.drawText ("In " + juce::String (assignedInput + 1),
+                                        cell.reduced (2).removeFromBottom (cellH * 0.3f),
+                                        juce::Justification::centred);
+                        }
+                    }
+                }
+            }
+
+            void mouseDown (const juce::MouseEvent& e) override
+            {
+                for (auto& [zoneId, rect] : cellBounds)
+                {
+                    if (rect.contains (e.getPosition().toFloat()))
+                    {
+                        // Toggle: if already selected, unassign
+                        int newZone = (zoneId == selectedZone) ? -1 : zoneId;
+                        if (selectCallback) selectCallback (newZone);
+                        if (dismissCallback) dismissCallback();
+                        return;
+                    }
+                }
+                // Click outside grid → dismiss
+                if (dismissCallback) dismissCallback();
+            }
+
+        private:
+            int gridCols, gridRows, selectedZone, currentChannel;
+            std::map<int, int> assignedZones;
+            std::function<void (int)> selectCallback;
+            std::function<void()> dismissCallback;
+            juce::Rectangle<int> gridArea;
+            std::vector<std::pair<int, juce::Rectangle<float>>> cellBounds;
+        };
+
+        juce::Component::SafePointer<SamplerSubTab> safeThis (this);
+
+        auto removeOverlay = [parent] ()
+        {
+            for (int i = parent->getNumChildComponents() - 1; i >= 0; --i)
+            {
+                auto* child = parent->getChildComponent (i);
+                if (dynamic_cast<RemotePadOverlay*> (child))
+                {
+                    parent->removeChildComponent (child);
+                    delete child;
+                    break;
+                }
+            }
+        };
+
+        auto* overlay = new RemotePadOverlay (cols, rows, currentLightpadZoneId, currentChannel,
+            assignedMap,
+            [safeThis] (int selectedZoneId)
+            {
+                if (! safeThis) return;
+                safeThis->currentLightpadZoneId = selectedZoneId;
+                safeThis->updateRemoteZoneButtonText();
+                safeThis->saveInputParam (WFSParameterIDs::lightpadZoneId, selectedZoneId);
+                if (safeThis->onLightpadZoneChanged)
+                    safeThis->onLightpadZoneChanged (safeThis->currentChannel, selectedZoneId);
+            },
+            removeOverlay);
+
+        overlay->setBounds (parent->getLocalBounds());
+        parent->addAndMakeVisible (overlay);
     }
 
     void showLightpadZoneOverlay()

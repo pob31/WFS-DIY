@@ -331,6 +331,8 @@ private:
     void handleChannelCountChange(int inputs, int outputs, int reverbs);
     void handleConfigReloaded();
     void applySamplerSetPosition (int channelIndex, const juce::ValueTree& samplerNode, int setIndex);
+    void applySamplerControllerMode (int mode);
+    std::map<int, int> buildZoneToInputMap() const;
     void growPatchData(juce::ValueTree& patchTree, int newChannelCount, int numHardwareCols);
     void repaintActiveTab();
 
