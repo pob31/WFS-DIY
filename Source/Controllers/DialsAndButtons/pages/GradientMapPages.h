@@ -236,13 +236,26 @@ static inline void buildShapeSection (StreamDeckSection& sec,
         auto& btn = sec.buttons[0];
         btn.label = LOC ("inputs.gradientMap.tools.select");
         btn.colour = grey;
-        btn.type = ButtonBinding::Action;
+        btn.activeColour = juce::Colour (0xFFD4A843);
+        btn.type = ButtonBinding::Toggle;
         btn.requestsPageRebuild = true;
+
+        btn.getState = [cb]() -> bool
+        {
+            auto* ed = cb.getEditor ? cb.getEditor() : nullptr;
+            return ed && ed->getCurrentTool() == GradientMapEditor::Tool::Select;
+        };
 
         btn.onPress = [cb]()
         {
             auto* ed = cb.getEditor ? cb.getEditor() : nullptr;
-            if (ed) juce::MessageManager::callAsync ([ed]() { ed->cycleShapeSelection(); });
+            if (ed)
+            {
+                if (ed->getCurrentTool() == GradientMapEditor::Tool::Select)
+                    juce::MessageManager::callAsync ([ed]() { ed->cycleShapeSelection(); });
+                else
+                    juce::MessageManager::callAsync ([ed]() { ed->setCurrentTool (GradientMapEditor::Tool::Select); });
+            }
         };
 
         btn.getDynamicLabel = [cb]() -> juce::String
@@ -281,70 +294,6 @@ static inline void buildShapeSection (StreamDeckSection& sec,
                 bool newState = ! ed->isEditVerticesMode();
                 juce::MessageManager::callAsync ([ed, newState]() { ed->setEditVerticesMode (newState); });
             }
-        };
-    }
-
-    //------------------------------------------------------------------
-    // Button 2: Cycle Shape Type (Rect → Ellipse → Polygon)
-    //------------------------------------------------------------------
-    {
-        auto& btn = sec.buttons[2];
-        btn.label = LOC ("inputs.gradientMap.labels.shape");
-        btn.colour = grey;
-        btn.type = ButtonBinding::Action;
-        btn.requestsPageRebuild = true;
-
-        btn.onPress = [cb]()
-        {
-            auto* ed = cb.getEditor ? cb.getEditor() : nullptr;
-            if (ed) juce::MessageManager::callAsync ([ed]() { ed->cycleShapeType(); });
-        };
-
-        btn.getDynamicLabel = [cb]() -> juce::String
-        {
-            auto* ed = cb.getEditor ? cb.getEditor() : nullptr;
-            if (ed == nullptr) return LOC ("inputs.gradientMap.labels.shape");
-            const auto* shape = ed->getSelectedShape();
-            if (shape == nullptr) return LOC ("inputs.gradientMap.labels.shape");
-            switch (shape->type)
-            {
-                case GradientMap::ShapeType::Rectangle: return LOC ("inputs.gradientMap.tools.rect");
-                case GradientMap::ShapeType::Ellipse:   return LOC ("inputs.gradientMap.tools.ellipse");
-                case GradientMap::ShapeType::Polygon:   return LOC ("inputs.gradientMap.tools.polygon");
-            }
-            return LOC ("inputs.gradientMap.labels.shape");
-        };
-    }
-
-    //------------------------------------------------------------------
-    // Button 3: Cycle Fill Type (Uniform → Linear → Radial)
-    //------------------------------------------------------------------
-    {
-        auto& btn = sec.buttons[3];
-        btn.label = LOC ("inputs.gradientMap.labels.fill");
-        btn.colour = grey;
-        btn.type = ButtonBinding::Action;
-        btn.requestsPageRebuild = true;
-
-        btn.onPress = [cb]()
-        {
-            auto* ed = cb.getEditor ? cb.getEditor() : nullptr;
-            if (ed) juce::MessageManager::callAsync ([ed]() { ed->cycleFillType(); });
-        };
-
-        btn.getDynamicLabel = [cb]() -> juce::String
-        {
-            auto* ed = cb.getEditor ? cb.getEditor() : nullptr;
-            if (ed == nullptr) return LOC ("inputs.gradientMap.labels.fill");
-            const auto* shape = ed->getSelectedShape();
-            if (shape == nullptr) return LOC ("inputs.gradientMap.labels.fill");
-            switch (shape->fillType)
-            {
-                case GradientMap::FillType::Uniform:        return LOC ("inputs.gradientMap.labels.fill");
-                case GradientMap::FillType::LinearGradient:  return LOC ("inputs.gradientMap.tools.linGrad");
-                case GradientMap::FillType::RadialGradient:  return LOC ("inputs.gradientMap.tools.radGrad");
-            }
-            return LOC ("inputs.gradientMap.labels.fill");
         };
     }
 

@@ -622,57 +622,20 @@ public:
         editPointsBtn.setToggleState (enabled, juce::sendNotificationSync);
     }
 
-    /** Cycle shape type on the selected shape */
-    void cycleShapeType()
-    {
-        if (selectedShapeIndices.empty()) return;
-        int idx = selectedShapeIndices[0];
-        if (idx < 0 || idx >= static_cast<int> (currentLayerData.shapes.size())) return;
-        pushUndo();
-        auto& shape = currentLayerData.shapes[static_cast<size_t> (idx)];
-        switch (shape.type)
-        {
-            case GradientMap::ShapeType::Rectangle:
-                shape.type = GradientMap::ShapeType::Ellipse;
-                shape.vertices.clear();
-                break;
-            case GradientMap::ShapeType::Ellipse:
-                shape.type = GradientMap::ShapeType::Polygon;
-                if (shape.vertices.empty())
-                    shape.vertices = { {-1,-1}, {1,-1}, {1,1}, {-1,1} };
-                break;
-            case GradientMap::ShapeType::Polygon:
-                shape.type = GradientMap::ShapeType::Rectangle;
-                shape.vertices.clear();
-                break;
-        }
-        updateShapePropertyPanel();
-        saveCurrentLayerToValueTree();
-        repaint();
-    }
+    /** Get the current drawing tool. */
+    Tool getCurrentTool() const { return currentTool; }
 
-    /** Cycle fill type on the selected shape */
-    void cycleFillType()
+    /** Set the current tool and update the on-screen toolbar buttons. */
+    void setCurrentTool (Tool tool)
     {
-        if (selectedShapeIndices.empty()) return;
-        int idx = selectedShapeIndices[0];
-        if (idx < 0 || idx >= static_cast<int> (currentLayerData.shapes.size())) return;
-        pushUndo();
-        auto& shape = currentLayerData.shapes[static_cast<size_t> (idx)];
-        switch (shape.fillType)
-        {
-            case GradientMap::FillType::Uniform:
-                shape.fillType = GradientMap::FillType::LinearGradient;
-                break;
-            case GradientMap::FillType::LinearGradient:
-                shape.fillType = GradientMap::FillType::RadialGradient;
-                break;
-            case GradientMap::FillType::RadialGradient:
-                shape.fillType = GradientMap::FillType::Uniform;
-                break;
-        }
-        updateShapePropertyPanel();
-        saveCurrentLayerToValueTree();
+        currentTool = tool;
+        selectToolBtn.setToggleState (tool == Tool::Select, juce::dontSendNotification);
+        rectToolBtn.setToggleState (tool == Tool::DrawRect, juce::dontSendNotification);
+        ellipseToolBtn.setToggleState (tool == Tool::DrawEllipse, juce::dontSendNotification);
+        polygonToolBtn.setToggleState (tool == Tool::DrawPolygon, juce::dontSendNotification);
+        fillToolBtn.setToggleState (tool == Tool::Fill, juce::dontSendNotification);
+        linearGradToolBtn.setToggleState (tool == Tool::LinearGradient, juce::dontSendNotification);
+        radialGradToolBtn.setToggleState (tool == Tool::RadialGradient, juce::dontSendNotification);
         repaint();
     }
 
@@ -683,7 +646,7 @@ public:
         for (int idx : selectedShapeIndices)
             if (idx >= 0 && idx < static_cast<int> (currentLayerData.shapes.size()))
                 currentLayerData.shapes[static_cast<size_t> (idx)].fillValue = juce::jlimit (0.0f, 1.0f, v);
-        shapeFillValueSlider.setValue (v);
+        updateShapePropertyPanel();
         saveCurrentLayerToValueTree();
         repaint();
     }
@@ -700,6 +663,7 @@ public:
             shape.linearGradient.value1 = v;
         else if (shape.fillType == GradientMap::FillType::RadialGradient)
             shape.radialGradient.centerValue = v;
+        updateShapePropertyPanel();
         saveCurrentLayerToValueTree();
         repaint();
     }
@@ -715,6 +679,7 @@ public:
             shape.linearGradient.value2 = v;
         else if (shape.fillType == GradientMap::FillType::RadialGradient)
             shape.radialGradient.edgeValue = v;
+        updateShapePropertyPanel();
         saveCurrentLayerToValueTree();
         repaint();
     }
