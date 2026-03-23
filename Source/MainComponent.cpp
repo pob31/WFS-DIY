@@ -235,6 +235,17 @@ MainComponent::MainComponent()
     statusBar = new StatusBar();
     addAndMakeVisible(statusBar);
 
+    // Restore project folder from saved config before tabs are created
+    {
+        auto savedFolder = parameters.getConfigParam ("ProjectFolder");
+        if (! savedFolder.isVoid())
+        {
+            juce::File folder (savedFolder.toString());
+            if (folder.isDirectory())
+                parameters.getFileManager().setProjectFolder (folder);
+        }
+    }
+
     // Create tabs
     systemConfigTab = new SystemConfigTab(parameters);
     networkTab = new NetworkTab(parameters);
@@ -1513,6 +1524,8 @@ MainComponent::MainComponent()
             inputsTab->setLightpadZoneChangedCallback ([this](int inputIndex, int zoneId) {
                 if (lightpadManager)
                     lightpadManager->assignZoneToInput (zoneId, inputIndex);
+                // Re-send pad config to remote with updated zone assignments
+                resendRemotePadConfig();
             });
             // Set controller mode based on saved config
             if (lpSamplerOn)
@@ -2350,6 +2363,21 @@ std::map<int, int> MainComponent::buildZoneToInputMap() const
         }
     }
     return zoneMap;
+}
+
+void MainComponent::resendRemotePadConfig()
+{
+    if (oscManager == nullptr) return;
+    int ctrlMode = static_cast<int> (parameters.getConfigParam ("SamplerControllerMode"));
+    if (ctrlMode != 2) return;  // Only for Remote mode
+
+    int layout = static_cast<int> (parameters.getConfigParam ("RemotePadGridLayout"));
+    int cols = (layout == 1) ? 5 : 3;
+    int rows = (layout == 1) ? 3 : 2;
+    float sensitivity = static_cast<float> (parameters.getConfigParam ("lightpadSensitivity"));
+    if (sensitivity <= 0.0f) sensitivity = 0.05f;
+    auto zoneMap = buildZoneToInputMap();
+    oscManager->sendRemotePadConfig (true, cols, rows, sensitivity, zoneMap);
 }
 
 void MainComponent::growPatchData(juce::ValueTree& patchTree, int newChannelCount, int numHardwareCols)
