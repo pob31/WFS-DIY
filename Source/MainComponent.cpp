@@ -4371,6 +4371,10 @@ void MainComponent::timerCallback()
                     rmsDb = outputAlgorithm.getRmsLevelDb(static_cast<size_t>(i));
                 }
                 automOtionProcessor->setInputLevels(i, shortPeakDb, rmsDb);
+
+                // Update trigger/reset indicators for the currently selected input
+                if (inputsTab && (i == inputsTab->getCurrentChannel() - 1))
+                    inputsTab->updateOtomoLevelIndicators (shortPeakDb, rmsDb);
             }
         }
 

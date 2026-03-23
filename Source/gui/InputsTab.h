@@ -461,6 +461,20 @@ public:
     std::function<void(int channelIndex, bool active)> onSamplerActiveChanged;
     std::function<bool(int channelIndex)> isAutoMotionActive;
 
+    /** Update trigger/reset indicators from audio levels (called at 50Hz from MainComponent) */
+    void updateOtomoLevelIndicators (float shortPeakDb, float rmsDb)
+    {
+        if (! otomoTriggerButton.getToggleState()) return;
+
+        float thresholdDb = static_cast<float> (parameters.getInputParam (currentChannel - 1, "inputOtomoThreshold"));
+        float resetDb = static_cast<float> (parameters.getInputParam (currentChannel - 1, "inputOtomoReset"));
+
+        if (shortPeakDb > thresholdDb)
+            otomoTriggerIndicator.setActive (true);
+        if (rmsDb < resetDb)
+            otomoResetIndicator.setActive (true);
+    }
+
     /** Get the currently selected channel (1-based) */
     int getCurrentChannel() const { return currentChannel; }
 
@@ -2735,6 +2749,10 @@ private:
         otomoResetUnitLabel.setJustificationType(juce::Justification::left);
         otomoResetUnitLabel.setMinimumHorizontalScale(1.0f);
 
+        // Trigger/Reset level indicators
+        addAndMakeVisible (otomoTriggerIndicator);
+        addAndMakeVisible (otomoResetIndicator);
+
         // Transport buttons (custom drawn icons) — cluster-aware
         addAndMakeVisible(otomoStartButton);
         otomoStartButton.onClick = [this]() {
@@ -4019,13 +4037,25 @@ private:
         // Right column: Threshold and Reset dials (audio trigger)
         otomoThresholdLabel.setBounds(rightCol.removeFromTop(rowHeight));
         dialArea = rightCol.removeFromTop(dialSize);
-        otomoThresholdDial.setBounds(dialArea.withSizeKeepingCentre(dialSize, dialSize));
+        {
+            auto threshRect = dialArea.withSizeKeepingCentre(dialSize, dialSize);
+            otomoThresholdDial.setBounds(threshRect);
+            int ts = scaled (12);
+            otomoTriggerIndicator.setBounds (threshRect.getRight() + scaled (2),
+                                              threshRect.getCentreY() - ts / 2, ts, ts);
+        }
         otomoThresholdValueLabel.setBounds(rightCol.removeFromTop(rowHeight));
         rightCol.removeFromTop(spacing);
 
         otomoResetLabel.setBounds(rightCol.removeFromTop(rowHeight));
         dialArea = rightCol.removeFromTop(dialSize);
-        otomoResetDial.setBounds(dialArea.withSizeKeepingCentre(dialSize, dialSize));
+        {
+            auto resetRect = dialArea.withSizeKeepingCentre(dialSize, dialSize);
+            otomoResetDial.setBounds(resetRect);
+            int ts = scaled (12);
+            otomoResetIndicator.setBounds (resetRect.getX() - ts - scaled (2),
+                                            resetRect.getCentreY() - ts / 2, ts, ts);
+        }
         otomoResetValueLabel.setBounds(rightCol.removeFromTop(rowHeight));
     }
 
@@ -4904,18 +4934,31 @@ private:
         auto threshDialArea = triggerRow.removeFromLeft(triggerDialWidth);
         otomoThresholdLabel.setBounds(threshDialArea.removeFromTop(rowHeight));
         auto threshDialBounds = threshDialArea.removeFromTop(triggerDialSize);
-        otomoThresholdDial.setBounds(threshDialBounds.withSizeKeepingCentre(triggerDialSize, triggerDialSize));
+        auto threshDialRect = threshDialBounds.withSizeKeepingCentre(triggerDialSize, triggerDialSize);
+        otomoThresholdDial.setBounds(threshDialRect);
         int threshCenterX = threshDialBounds.getX() + threshDialBounds.getWidth() / 2;
         layoutDialValueUnit(otomoThresholdValueLabel, otomoThresholdUnitLabel, threshCenterX, threshDialArea.getY(), rowHeight, scaled(42), scaled(30));
+
+        // Trigger indicator: right of threshold dial, vertically centered
+        int triSize = scaled (12);
+        otomoTriggerIndicator.setBounds (threshDialRect.getRight() + scaled (2),
+                                          threshDialRect.getCentreY() - triSize / 2,
+                                          triSize, triSize);
         triggerRow.removeFromLeft(row3ElementSpacing);
 
         // Reset dial
         auto resetDialArea = triggerRow.removeFromLeft(triggerDialWidth);
         otomoResetLabel.setBounds(resetDialArea.removeFromTop(rowHeight));
         auto resetDialBounds = resetDialArea.removeFromTop(triggerDialSize);
-        otomoResetDial.setBounds(resetDialBounds.withSizeKeepingCentre(triggerDialSize, triggerDialSize));
+        auto resetDialRect = resetDialBounds.withSizeKeepingCentre(triggerDialSize, triggerDialSize);
+        otomoResetDial.setBounds(resetDialRect);
         int resetCenterX = resetDialBounds.getX() + resetDialBounds.getWidth() / 2;
         layoutDialValueUnit(otomoResetValueLabel, otomoResetUnitLabel, resetCenterX, resetDialArea.getY(), rowHeight, scaled(42), scaled(30));
+
+        // Reset indicator: left of reset dial, vertically centered
+        otomoResetIndicator.setBounds (resetDialRect.getX() - triSize - scaled (2),
+                                        resetDialRect.getCentreY() - triSize / 2,
+                                        triSize, triSize);
         col2.removeFromTop(otomoRowSpacing);
 
         // Row 4: Transport buttons - spread across column
@@ -6878,6 +6921,8 @@ private:
         otomoResetDial.setAlpha(alpha);
         otomoResetValueLabel.setAlpha(alpha);
         otomoResetUnitLabel.setAlpha(alpha);
+        otomoTriggerIndicator.setAlpha(alpha);
+        otomoResetIndicator.setAlpha(alpha);
     }
 
     /** Update AutomOtion curve visibility based on coordinate mode and current tab */
@@ -7988,6 +8033,71 @@ private:
     WfsBasicDial otomoResetDial;
     juce::Label otomoResetValueLabel;
     juce::Label otomoResetUnitLabel;
+
+    //==========================================================================
+    // Triangle level indicators for trigger threshold and reset level
+    //==========================================================================
+    class TriangleIndicator : public juce::Component, private juce::Timer
+    {
+    public:
+        enum Direction { Up, Down };
+
+        TriangleIndicator (Direction dir, juce::Colour activeCol)
+            : direction (dir), activeColour (activeCol) {}
+
+        void setActive (bool shouldBeActive)
+        {
+            if (shouldBeActive)
+            {
+                active = true;
+                lastActiveTime = juce::Time::getMillisecondCounter();
+                if (! isTimerRunning()) startTimer (50);
+                repaint();
+            }
+        }
+
+        void paint (juce::Graphics& g) override
+        {
+            auto bounds = getLocalBounds().toFloat().reduced (1.0f);
+            juce::Path tri;
+            if (direction == Up)
+            {
+                tri.startNewSubPath (bounds.getCentreX(), bounds.getY());
+                tri.lineTo (bounds.getRight(), bounds.getBottom());
+                tri.lineTo (bounds.getX(), bounds.getBottom());
+            }
+            else
+            {
+                tri.startNewSubPath (bounds.getX(), bounds.getY());
+                tri.lineTo (bounds.getRight(), bounds.getY());
+                tri.lineTo (bounds.getCentreX(), bounds.getBottom());
+            }
+            tri.closeSubPath();
+            g.setColour (active ? activeColour : juce::Colour (0xFF1A1A1A));
+            g.fillPath (tri);
+        }
+
+    private:
+        void timerCallback() override
+        {
+            if (! active) { stopTimer(); return; }
+            auto now = juce::Time::getMillisecondCounter();
+            if (now - lastActiveTime >= 250)
+            {
+                active = false;
+                stopTimer();
+                repaint();
+            }
+        }
+
+        Direction direction;
+        juce::Colour activeColour;
+        bool active = false;
+        juce::uint32 lastActiveTime = 0;
+    };
+
+    TriangleIndicator otomoTriggerIndicator { TriangleIndicator::Up, juce::Colour (0xFF4CAF50) };
+    TriangleIndicator otomoResetIndicator { TriangleIndicator::Down, juce::Colour (0xFF42A5F5) };
     PlayButton otomoStartButton;
     StopButton otomoStopButton;
     PauseButton otomoPauseButton;

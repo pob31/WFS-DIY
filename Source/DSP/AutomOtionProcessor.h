@@ -587,6 +587,20 @@ public:
         state.currentRmsDb = rmsDb;
     }
 
+    /** Get current short peak level for an input */
+    float getShortPeakDb (int inputIndex) const
+    {
+        if (inputIndex < 0 || inputIndex >= numInputChannels) return -200.0f;
+        return states[static_cast<size_t> (inputIndex)].currentShortPeakDb;
+    }
+
+    /** Get current RMS level for an input */
+    float getRmsDb (int inputIndex) const
+    {
+        if (inputIndex < 0 || inputIndex >= numInputChannels) return -200.0f;
+        return states[static_cast<size_t> (inputIndex)].currentRmsDb;
+    }
+
     //==========================================================================
     // Output Accessors
     //==========================================================================
