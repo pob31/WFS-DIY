@@ -231,6 +231,22 @@ public:
     /** Get the current main tab index. */
     int getCurrentMainTab() const { return currentMainTab; }
 
+    /** Get the current sub-tab index. */
+    int getCurrentSubTab() const { return currentSubTab; }
+
+    /** Set the active section on the current page (for bidirectional sync). */
+    void setActiveSection (int sectionIndex)
+    {
+        auto* page = getCurrentPage();
+        if (page != nullptr && sectionIndex >= 0 && sectionIndex < page->numSections)
+        {
+            page->activeSectionIndex = sectionIndex;
+            invalidateButtonCache();
+            if (device.isConnected())
+                renderer.renderAndSendFullPage (device, *page);
+        }
+    }
+
     /** Get the currently active page (nullptr if none).
         Returns the override page when an override factory is active. */
     StreamDeckPage* getCurrentPage()

@@ -503,6 +503,234 @@ public:
     /** Callback when gradient maps change (for rasterization trigger) */
     std::function<void()> onGradientMapsChanged;
 
+    /** Callback when active layer or shape selection changes (for StreamDeck sync) */
+    std::function<void()> onActiveLayerChanged;
+    std::function<void()> onSelectionChanged;
+
+    //==========================================================================
+    // Public accessors for StreamDeck integration
+    //==========================================================================
+
+    int  getActiveLayerIndex() const { return activeLayer; }
+    const GradientMap::Layer& getCurrentLayerData() const { return currentLayerData; }
+    const juce::ValueTree& getGradientMapsTree() const { return gradientMapsTree; }
+
+    /** Switch to a layer by index (public wrapper for StreamDeck integration). */
+    void switchToLayer (int layerIdx) { setActiveLayer (layerIdx); }
+    const std::vector<int>& getSelectedShapeIndices() const { return selectedShapeIndices; }
+    bool isEditVerticesMode() const { return editVerticesMode; }
+
+    /** Get the first selected shape, or nullptr if none selected */
+    const GradientMap::Shape* getSelectedShape() const
+    {
+        if (selectedShapeIndices.empty()) return nullptr;
+        int idx = selectedShapeIndices[0];
+        if (idx < 0 || idx >= static_cast<int> (currentLayerData.shapes.size())) return nullptr;
+        return &currentLayerData.shapes[static_cast<size_t> (idx)];
+    }
+
+    /** Set layer enable state */
+    void setLayerEnabled (int layerIdx, bool enabled)
+    {
+        if (layerIdx == activeLayer)
+        {
+            currentLayerData.enabled = enabled;
+            saveCurrentLayerToValueTree();
+        }
+        else
+        {
+            auto tree = gradientMapsTree.getChild (layerIdx);
+            if (tree.isValid())
+                tree.setProperty (WFSParameterIDs::gmLayerEnabled, enabled ? 1 : 0, nullptr);
+        }
+        repaint();
+    }
+
+    /** Set layer visibility */
+    void setLayerVisible (int layerIdx, bool visible)
+    {
+        if (layerIdx < 3)
+            layerVisibleBtn[layerIdx].setToggleState (visible, juce::dontSendNotification);
+        if (layerIdx == activeLayer)
+        {
+            currentLayerData.visible = visible;
+            saveCurrentLayerToValueTree();
+        }
+        else
+        {
+            auto tree = gradientMapsTree.getChild (layerIdx);
+            if (tree.isValid())
+                tree.setProperty (WFSParameterIDs::gmLayerVisible, visible ? 1 : 0, nullptr);
+        }
+        repaint();
+    }
+
+    /** Layer value bounds (exposed for StreamDeck dial ranges). */
+    struct LayerValueBounds { float min, max, defaultWhite, defaultBlack; };
+    static LayerValueBounds getLayerValueBounds (int layer)
+    {
+        switch (layer)
+        {
+            case 0:  return { -92.0f,  0.0f, -92.0f,  0.0f };
+            case 1:  return { -50.0f, 50.0f,   0.0f,  0.0f };
+            case 2:  return { -24.0f,  0.0f, -24.0f,  0.0f };
+            default: return { -92.0f,  0.0f,   0.0f,  0.0f };
+        }
+    }
+
+    /** Set layer white/black/curve values (only for active layer) */
+    void setLayerWhite (float v)
+    {
+        auto bounds = getLayerBounds (activeLayer);
+        currentLayerData.whiteValue = juce::jlimit (bounds.min, bounds.max, v);
+        updateLayerPropertyPanel();
+        saveCurrentLayerToValueTree();
+    }
+
+    void setLayerBlack (float v)
+    {
+        auto bounds = getLayerBounds (activeLayer);
+        currentLayerData.blackValue = juce::jlimit (bounds.min, bounds.max, v);
+        updateLayerPropertyPanel();
+        saveCurrentLayerToValueTree();
+    }
+
+    void setLayerCurve (float v)
+    {
+        currentLayerData.curve = juce::jlimit (-1.0f, 1.0f, v);
+        updateLayerPropertyPanel();
+        saveCurrentLayerToValueTree();
+    }
+
+    /** Cycle to next shape in the current layer */
+    void cycleShapeSelection()
+    {
+        if (currentLayerData.shapes.empty()) return;
+        int nextIdx = 0;
+        if (! selectedShapeIndices.empty())
+            nextIdx = (selectedShapeIndices[0] + 1) % static_cast<int> (currentLayerData.shapes.size());
+        selectedShapeIndices.clear();
+        selectedShapeIndices.push_back (nextIdx);
+        updateShapePropertyPanel();
+        repaint();
+        if (onSelectionChanged) onSelectionChanged();
+    }
+
+    /** Toggle edit vertices mode */
+    void setEditVerticesMode (bool enabled)
+    {
+        editPointsBtn.setToggleState (enabled, juce::sendNotificationSync);
+    }
+
+    /** Cycle shape type on the selected shape */
+    void cycleShapeType()
+    {
+        if (selectedShapeIndices.empty()) return;
+        int idx = selectedShapeIndices[0];
+        if (idx < 0 || idx >= static_cast<int> (currentLayerData.shapes.size())) return;
+        pushUndo();
+        auto& shape = currentLayerData.shapes[static_cast<size_t> (idx)];
+        switch (shape.type)
+        {
+            case GradientMap::ShapeType::Rectangle:
+                shape.type = GradientMap::ShapeType::Ellipse;
+                shape.vertices.clear();
+                break;
+            case GradientMap::ShapeType::Ellipse:
+                shape.type = GradientMap::ShapeType::Polygon;
+                if (shape.vertices.empty())
+                    shape.vertices = { {-1,-1}, {1,-1}, {1,1}, {-1,1} };
+                break;
+            case GradientMap::ShapeType::Polygon:
+                shape.type = GradientMap::ShapeType::Rectangle;
+                shape.vertices.clear();
+                break;
+        }
+        updateShapePropertyPanel();
+        saveCurrentLayerToValueTree();
+        repaint();
+    }
+
+    /** Cycle fill type on the selected shape */
+    void cycleFillType()
+    {
+        if (selectedShapeIndices.empty()) return;
+        int idx = selectedShapeIndices[0];
+        if (idx < 0 || idx >= static_cast<int> (currentLayerData.shapes.size())) return;
+        pushUndo();
+        auto& shape = currentLayerData.shapes[static_cast<size_t> (idx)];
+        switch (shape.fillType)
+        {
+            case GradientMap::FillType::Uniform:
+                shape.fillType = GradientMap::FillType::LinearGradient;
+                break;
+            case GradientMap::FillType::LinearGradient:
+                shape.fillType = GradientMap::FillType::RadialGradient;
+                break;
+            case GradientMap::FillType::RadialGradient:
+                shape.fillType = GradientMap::FillType::Uniform;
+                break;
+        }
+        updateShapePropertyPanel();
+        saveCurrentLayerToValueTree();
+        repaint();
+    }
+
+    /** Set selected shape's fill value (uniform) */
+    void setShapeFillValue (float v)
+    {
+        if (selectedShapeIndices.empty()) return;
+        for (int idx : selectedShapeIndices)
+            if (idx >= 0 && idx < static_cast<int> (currentLayerData.shapes.size()))
+                currentLayerData.shapes[static_cast<size_t> (idx)].fillValue = juce::jlimit (0.0f, 1.0f, v);
+        shapeFillValueSlider.setValue (v);
+        saveCurrentLayerToValueTree();
+        repaint();
+    }
+
+    /** Set gradient start/end values */
+    void setGradientStart (float v)
+    {
+        if (selectedShapeIndices.size() != 1) return;
+        int idx = selectedShapeIndices[0];
+        if (idx < 0 || idx >= static_cast<int> (currentLayerData.shapes.size())) return;
+        auto& shape = currentLayerData.shapes[static_cast<size_t> (idx)];
+        v = juce::jlimit (0.0f, 1.0f, v);
+        if (shape.fillType == GradientMap::FillType::LinearGradient)
+            shape.linearGradient.value1 = v;
+        else if (shape.fillType == GradientMap::FillType::RadialGradient)
+            shape.radialGradient.centerValue = v;
+        saveCurrentLayerToValueTree();
+        repaint();
+    }
+
+    void setGradientEnd (float v)
+    {
+        if (selectedShapeIndices.size() != 1) return;
+        int idx = selectedShapeIndices[0];
+        if (idx < 0 || idx >= static_cast<int> (currentLayerData.shapes.size())) return;
+        auto& shape = currentLayerData.shapes[static_cast<size_t> (idx)];
+        v = juce::jlimit (0.0f, 1.0f, v);
+        if (shape.fillType == GradientMap::FillType::LinearGradient)
+            shape.linearGradient.value2 = v;
+        else if (shape.fillType == GradientMap::FillType::RadialGradient)
+            shape.radialGradient.edgeValue = v;
+        saveCurrentLayerToValueTree();
+        repaint();
+    }
+
+    /** Set shape blur */
+    void setShapeBlur (float v)
+    {
+        if (selectedShapeIndices.empty()) return;
+        for (int idx : selectedShapeIndices)
+            if (idx >= 0 && idx < static_cast<int> (currentLayerData.shapes.size()))
+                currentLayerData.shapes[static_cast<size_t> (idx)].blur = juce::jlimit (0.0f, 2.0f, v);
+        shapeBlurSlider.setValue (v);
+        saveCurrentLayerToValueTree();
+        repaint();
+    }
+
     //==========================================================================
     // Component Overrides
     //==========================================================================
@@ -1725,17 +1953,9 @@ private:
     // Layer Value Bounds
     //==========================================================================
 
-    struct LayerValueBounds { float min, max, defaultWhite, defaultBlack; };
-
     static LayerValueBounds getLayerBounds (int layer)
     {
-        switch (layer)
-        {
-            case 0:  return { -92.0f,  0.0f, -92.0f,  0.0f };  // Attenuation (dB)
-            case 1:  return { -50.0f, 50.0f,   0.0f,  0.0f };  // Height (m)
-            case 2:  return { -24.0f,  0.0f, -24.0f,  0.0f };  // HF Shelf (dB)
-            default: return { -92.0f,  0.0f,   0.0f,  0.0f };
-        }
+        return getLayerValueBounds (layer);
     }
 
     //==========================================================================
@@ -2427,6 +2647,9 @@ private:
         updateLayerPropertyPanel();
         setShapePropertiesVisible (false);
         repaint();
+
+        if (onActiveLayerChanged)
+            onActiveLayerChanged();
     }
 
     void onLayerEnabledToggle (int layerIdx)
@@ -2641,6 +2864,9 @@ private:
             gradientEditShapeIdx = -1;
 
         setShapePropertiesVisible (! selectedShapeIndices.empty());
+
+        if (onSelectionChanged)
+            onSelectionChanged();
     }
 
     void setShapePropertiesVisible (bool v)

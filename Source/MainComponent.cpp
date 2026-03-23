@@ -5,6 +5,7 @@
 #include "Accessibility/TTSManager.h"
 #include "Network/QLabCueBuilder.h"
 #include "Controllers/DialsAndButtons/pages/InputsTabPages.h"
+#include "Controllers/DialsAndButtons/pages/GradientMapPages.h"
 #include "Controllers/DialsAndButtons/pages/NetworkTabPages.h"
 #include "Controllers/DialsAndButtons/pages/OutputsTabPages.h"
 #include "Controllers/DialsAndButtons/pages/SystemConfigTabPages.h"
@@ -527,6 +528,24 @@ MainComponent::MainComponent()
         rebuildGradientMapForInput (ch);
     };
 
+    // Bidirectional sync: editor → StreamDeck
+    inputsTab->getGradientMapEditor().onActiveLayerChanged = [this]()
+    {
+        if (streamDeckManager && streamDeckManager->getCurrentMainTab() == InputsTabPages::INPUTS_MAIN_TAB_INDEX
+            && streamDeckManager->getCurrentSubTab() == 3)
+        {
+            auto* ed = &inputsTab->getGradientMapEditor();
+            streamDeckManager->setActiveSection (ed->getActiveLayerIndex());
+        }
+    };
+
+    inputsTab->getGradientMapEditor().onSelectionChanged = [this]()
+    {
+        if (streamDeckManager && streamDeckManager->getCurrentMainTab() == InputsTabPages::INPUTS_MAIN_TAB_INDEX
+            && streamDeckManager->getCurrentSubTab() == 3)
+            streamDeckManager->refreshCurrentPage();
+    };
+
     // Sampler subtab change callback — push updated data to SamplerManager
     inputsTab->getSamplerSubTab().onSamplerDataChanged = [this]() {
         if (samplerManager == nullptr) return;
@@ -694,11 +713,26 @@ MainComponent::MainComponent()
         movCB.resumeMotion = [this](int ch) { if (automOtionProcessor) automOtionProcessor->resumeClusterMotion (ch); };
         movCB.stopAll      = [this]()       { if (automOtionProcessor) automOtionProcessor->stopAllMotion(); };
 
-        for (int subTab = 0; subTab < 4; ++subTab)
+        for (int subTab = 0; subTab < 5; ++subTab)
         {
-            streamDeckManager->registerPage (
-                InputsTabPages::INPUTS_MAIN_TAB_INDEX, subTab,
-                InputsTabPages::createPage (subTab, vts, 0, flipModeState, lfoSubModeState, movCB));
+            if (subTab == 3)
+            {
+                // Gradient Map subtab — use dedicated page
+                GradientMapPages::GradientMapCallbacks gmCB;
+                gmCB.getEditor = [this]() -> GradientMapEditor*
+                {
+                    return inputsTab ? &inputsTab->getGradientMapEditor() : nullptr;
+                };
+                streamDeckManager->registerPage (
+                    InputsTabPages::INPUTS_MAIN_TAB_INDEX, 3,
+                    GradientMapPages::createGradientMapPage (gmCB));
+            }
+            else
+            {
+                streamDeckManager->registerPage (
+                    InputsTabPages::INPUTS_MAIN_TAB_INDEX, subTab,
+                    InputsTabPages::createPage (subTab, vts, 0, flipModeState, lfoSubModeState, movCB));
+            }
         }
 
         // Callback: sync Stream Deck band selection to the GUI EQ display
@@ -1063,9 +1097,23 @@ MainComponent::MainComponent()
         {
             if (mainTab == InputsTabPages::INPUTS_MAIN_TAB_INDEX)
             {
-                auto& vts = parameters.getValueTreeState();
-                streamDeckManager->registerPage (mainTab, subTab,
-                    InputsTabPages::createPage (subTab, vts, channel - 1, flipModeState, lfoSubModeState, movCB));
+                if (subTab == 3)
+                {
+                    // Gradient Map subtab — use dedicated page
+                    GradientMapPages::GradientMapCallbacks gmCB;
+                    gmCB.getEditor = [this]() -> GradientMapEditor*
+                    {
+                        return inputsTab ? &inputsTab->getGradientMapEditor() : nullptr;
+                    };
+                    streamDeckManager->registerPage (mainTab, 3,
+                        GradientMapPages::createGradientMapPage (gmCB));
+                }
+                else
+                {
+                    auto& vts = parameters.getValueTreeState();
+                    streamDeckManager->registerPage (mainTab, subTab,
+                        InputsTabPages::createPage (subTab, vts, channel - 1, flipModeState, lfoSubModeState, movCB));
+                }
             }
             else if (mainTab == OutputsTabPages::OUTPUTS_MAIN_TAB_INDEX)
             {

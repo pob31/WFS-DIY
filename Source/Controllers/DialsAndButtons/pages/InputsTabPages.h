@@ -1110,7 +1110,8 @@ inline StreamDeckPage createPage (int subTabIndex,
         case 0:  return createInputParametersPage (state, channelIndex, flipMode);
         case 1:  return createLiveSourcePage (state, channelIndex);
         case 2:  return createMovementsPage (state, channelIndex, lfoSubMode, movementCB);
-        case 3:  return createVisualisationPage (state, channelIndex);
+        case 3:  return StreamDeckPage ("Gradient Map");  // Handled separately via GradientMapPages
+        case 4:  return createVisualisationPage (state, channelIndex);
         default: return StreamDeckPage ("Inputs > Unknown");
     }
 }

@@ -343,6 +343,11 @@ public:
         if (clamped == activeSectionIndex)
             return false;
         activeSectionIndex = clamped;
+        if (onSectionChanged)
+            onSectionChanged (activeSectionIndex);
         return true;
     }
+
+    /** Optional callback when section changes (for bidirectional sync). */
+    std::function<void (int sectionIndex)> onSectionChanged;
 };
