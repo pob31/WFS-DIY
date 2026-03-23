@@ -220,7 +220,7 @@ inline StreamDeckPage createSysConfigPage (WFSValueTreeState& state,
             auto& btn = sec.buttons[3];
             int currentBrightness = AppSettings::getStreamDeckBrightness();
             btn.label  = LOC ("streamDeck.systemConfig.buttons.brightness")
-                         + " " + juce::String (currentBrightness) + "%";
+                         + "\n" + juce::String (currentBrightness) + "%";
             btn.colour = grey;
             btn.type   = ButtonBinding::Action;
             btn.requestsPageRebuild = true;

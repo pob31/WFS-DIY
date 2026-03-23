@@ -659,16 +659,11 @@ MainComponent::MainComponent()
     // Initialize Xencelabs Quick Keys controller
     quickKeysManager = std::make_unique<QuickKeysManager>();
 
-    // Apply initial Dials & Buttons device selection
+    // Apply initial Dials & Buttons device selection (default Off)
     {
-        int dbDevice = (int) parameters.getConfigParam ("DialsAndButtonsDevice");
-        // Migrate legacy bool param
-        if (dbDevice == 0 && (bool) parameters.getConfigParam ("StreamDeckEnabled"))
-            dbDevice = 1;
-        if (dbDevice != 1)
-            streamDeckManager->setEnabled (false);
-        if (dbDevice != 2)
-            quickKeysManager->setEnabled (false);
+        int dbDevice = static_cast<int> (parameters.getConfigParam ("DialsAndButtonsDevice"));
+        streamDeckManager->setEnabled (dbDevice == 1);
+        quickKeysManager->setEnabled (dbDevice == 2);
     }
 
     // Position Control enable state is applied at creation time (see controllerManager init below)

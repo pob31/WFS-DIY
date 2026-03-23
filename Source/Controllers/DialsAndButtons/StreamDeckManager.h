@@ -32,10 +32,9 @@ public:
         device.onDialReleased = [this] (int dial) { handleDialReleased (dial); };
         device.onConnectionChanged = [this] (bool connected) { handleConnectionChanged (connected); };
 
-        device.startMonitoring();
-
-        // Start refresh timer for LCD value updates (10Hz)
-        startTimer (100);
+        // Don't start monitoring here — wait for setEnabled(true) after
+        // the selector setting is applied, to avoid a brief flash on startup
+        // when the device is set to Off or another controller.
     }
 
     ~StreamDeckManager() override
@@ -50,6 +49,7 @@ public:
 
     void setEnabled (bool shouldBeEnabled)
     {
+        DBG ("StreamDeckManager::setEnabled(" + juce::String (shouldBeEnabled ? "true" : "false") + ")");
         if (shouldBeEnabled)
         {
             device.startMonitoring();
@@ -358,6 +358,9 @@ private:
             else
             {
                 binding.onPress();
+
+                if (binding.requestsPageRebuild)
+                    refreshCurrentPage();
             }
         }
     }
