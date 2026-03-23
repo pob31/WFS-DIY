@@ -116,6 +116,9 @@ public:
     // Audio device access (for crash handler)
     juce::AudioDeviceManager& getDeviceManager() { return deviceManager; }
 
+    // Processing state query (for quit confirmation)
+    bool isProcessingActive() const { return processingEnabled && audioEngineStarted; }
+
     // Audio Interface Window
     void openAudioInterfaceWindow();
     void setupPatchWindowStreamDeck (PatchWindowPages::PatchCallbacks& cb,

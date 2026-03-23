@@ -25,5 +25,7 @@
     <string></string>
     <key>NSHighResolutionCapable</key>
     <true/>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>WFS-DIY needs audio input access for Wave Field Synthesis processing.</string>
   </dict>
 </plist>

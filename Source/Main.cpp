@@ -120,9 +120,28 @@ public:
     //==============================================================================
     void systemRequestedQuit() override
     {
-        // This is called when the app is being asked to quit: you can ignore this
-        // request and let the app carry on running, or call quit() to allow the app to close.
-        quit();
+        auto* mainComp = dynamic_cast<MainComponent*> (mainWindow->getContentComponent());
+
+        if (mainComp != nullptr && mainComp->isProcessingActive())
+        {
+            auto options = juce::MessageBoxOptions()
+                .withIconType (juce::MessageBoxIconType::WarningIcon)
+                .withTitle ("Audio Processing Active")
+                .withMessage ("Audio processing is currently running.\n\n"
+                              "Are you sure you want to quit?")
+                .withButton ("Quit")
+                .withButton ("Cancel");
+
+            juce::AlertWindow::showAsync (options, [] (int result)
+            {
+                if (result == 1)
+                    JUCEApplication::getInstance()->quit();
+            });
+        }
+        else
+        {
+            quit();
+        }
     }
 
     void anotherInstanceStarted (const juce::String& commandLine) override
