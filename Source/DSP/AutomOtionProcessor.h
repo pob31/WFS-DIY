@@ -78,6 +78,12 @@ public:
         float currentY = 0.0f;
         float currentZ = 0.0f;
 
+        // Return fade state (fade out 50ms → snap → fade in 50ms)
+        enum class ReturnPhase { None, FadeOut, Snap, FadeIn };
+        ReturnPhase returnPhase = ReturnPhase::None;
+        float returnFadeTime = 0.0f;
+        float returnGain = 1.0f;  // Read from audio thread (written at 50Hz, safe for audio)
+
         // Audio trigger state
         float currentShortPeakDb = -200.0f;  // Latest short peak level from audio
         float currentRmsDb = -200.0f;        // Latest RMS level from audio
@@ -153,6 +159,15 @@ public:
             DBG ("AutomOtion: Cannot start motion on input " << (inputIndex + 1) << " - tracking is active");
             if (onMotionBlocked)
                 onMotionBlocked (inputIndex, "Tracking is active on input " + juce::String (inputIndex + 1));
+            return;
+        }
+
+        // Check if sampler is active - reject if so
+        if (isSamplerActive (inputIndex))
+        {
+            DBG ("AutomOtion: Cannot start motion on input " << (inputIndex + 1) << " - sampler is active");
+            if (onMotionBlocked)
+                onMotionBlocked (inputIndex, "Sampler is active on input " + juce::String (inputIndex + 1));
             return;
         }
 
@@ -600,13 +615,30 @@ public:
         return states[static_cast<size_t> (inputIndex)].offsetZ;
     }
 
-    /** Check if motion is active for an input */
+    /** Check if motion is active for an input (Playing, Paused, or Returning) */
     bool isActive (int inputIndex) const
     {
         if (inputIndex < 0 || inputIndex >= numInputChannels)
             return false;
         auto s = states[static_cast<size_t> (inputIndex)].state;
         return s == State::Playing || s == State::Paused || s == State::Returning;
+    }
+
+    /** Check if the input is actively being animated (Playing only, not Paused) */
+    bool isMotionActive (int inputIndex) const
+    {
+        if (inputIndex < 0 || inputIndex >= numInputChannels)
+            return false;
+        auto s = states[static_cast<size_t> (inputIndex)].state;
+        return s == State::Playing || s == State::Returning;
+    }
+
+    /** Get the return fade gain for an input (1.0 normally, ramps during return fade) */
+    float getReturnGain (int inputIndex) const
+    {
+        if (inputIndex < 0 || inputIndex >= numInputChannels)
+            return 1.0f;
+        return states[static_cast<size_t> (inputIndex)].returnGain;
     }
 
     /** Check if motion is paused for an input */
@@ -664,8 +696,9 @@ private:
         auto otomoSection = valueTreeState.getInputAutoMotionSection (inputIndex);
         bool audioTriggerEnabled = static_cast<int> (otomoSection.getProperty (WFSParameterIDs::inputOtomoTrigger, 0)) == 1;
 
-        // Handle audio triggering when stopped
-        if (audioTriggerEnabled && state.state == State::Stopped)
+        // Handle audio triggering when stopped (skip if tracking or sampler active)
+        if (audioTriggerEnabled && state.state == State::Stopped
+            && ! isTrackingActive (inputIndex) && ! isSamplerActive (inputIndex))
         {
             float triggerThresholdDb = static_cast<float> (otomoSection.getProperty (WFSParameterIDs::inputOtomoThreshold, -20.0f));
             float resetThresholdDb = static_cast<float> (otomoSection.getProperty (WFSParameterIDs::inputOtomoReset, -60.0f));
@@ -687,6 +720,13 @@ private:
                 startMotion (inputIndex);
                 // Note: startMotion will set triggerArmed = false
             }
+        }
+
+        // Process return fade sequence (fade out → snap → fade in)
+        if (state.state == State::Returning && state.returnPhase != AutomOtionState::ReturnPhase::None)
+        {
+            processReturnFade (state, deltaTime, inputIndex, audioTriggerEnabled);
+            return;
         }
 
         // Skip movement processing if not playing
@@ -718,73 +758,22 @@ private:
         // Check if movement complete
         if (linearProgress >= 1.0f)
         {
-            // For audio trigger mode with Return: instant snap back (no animated return)
-            if (audioTriggerEnabled && state.shouldReturn && !state.inReturnPhase)
+            if (! state.inReturnPhase && state.shouldReturn)
             {
-                // Snap back instantly to origin
-                state.state = State::Stopped;
-                state.offsetX = 0.0f;
-                state.offsetY = 0.0f;
-                state.offsetZ = 0.0f;
-                state.currentX = state.originalX;
-                state.currentY = state.originalY;
-                state.currentZ = state.originalZ;
-                state.elapsedTime = 0.0f;
-                state.inReturnPhase = false;
-
-                // Set up rearm for audio trigger
-                state.waitingForRearm = true;
-                state.triggerArmed = false;
-            }
-            else if (!state.inReturnPhase && state.shouldReturn)
-            {
-                // Manual mode: Start animated return phase
-                state.inReturnPhase = true;
+                // Start fade-out → snap → fade-in return sequence
                 state.state = State::Returning;
-
-                // Swap start and target for return journey (Cartesian)
-                std::swap (state.startX, state.targetX);
-                std::swap (state.startY, state.targetY);
-                std::swap (state.startZ, state.targetZ);
-
-                // Swap polar values for return journey
-                std::swap (state.startR, state.targetR);
-                std::swap (state.startTheta, state.targetTheta);
-                std::swap (state.startRsph, state.targetRsph);
-                std::swap (state.startPhi, state.targetPhi);
-
-                // Invert curve for return path (Cartesian mode only)
-                if (state.coordinateMode == 0)
-                    state.curve = -state.curve;
-
-                // Reset elapsed time for return
-                state.elapsedTime = 0.0f;
+                state.inReturnPhase = true;
+                state.returnPhase = AutomOtionState::ReturnPhase::FadeOut;
+                state.returnFadeTime = 0.0f;
+                state.returnGain = 1.0f;
             }
-            else
+            else if (! state.inReturnPhase)
             {
-                // Movement complete (either stayed at destination, or finished return phase)
+                // Stay at destination
                 state.state = State::Stopped;
-                state.elapsedTime = 0.0f;
-
-                if (state.inReturnPhase)
-                {
-                    // Returned to origin - clear offsets
-                    state.offsetX = 0.0f;
-                    state.offsetY = 0.0f;
-                    state.offsetZ = 0.0f;
-                    state.currentX = state.originalX;
-                    state.currentY = state.originalY;
-                    state.currentZ = state.originalZ;
-                }
-                else
-                {
-                    // Stayed at destination - keep final offsets
-                    state.currentX = state.targetX;
-                    state.currentY = state.targetY;
-                    state.currentZ = state.targetZ;
-                }
-
-                state.inReturnPhase = false;
+                state.currentX = state.targetX;
+                state.currentY = state.targetY;
+                state.currentZ = state.targetZ;
 
                 // Set up rearm for audio trigger mode
                 if (audioTriggerEnabled)
@@ -793,6 +782,64 @@ private:
                     state.triggerArmed = false;
                 }
             }
+        }
+    }
+
+    /** Process the fade-out → snap → fade-in return sequence */
+    void processReturnFade (AutomOtionState& state, float deltaTime, int inputIndex, bool audioTriggerEnabled)
+    {
+        constexpr float fadeDuration = 0.05f;  // 50ms
+
+        state.returnFadeTime += deltaTime;
+
+        switch (state.returnPhase)
+        {
+            case AutomOtionState::ReturnPhase::FadeOut:
+            {
+                float gain = 1.0f - juce::jmin (1.0f, state.returnFadeTime / fadeDuration);
+                state.returnGain = gain;
+                if (state.returnFadeTime >= fadeDuration)
+                {
+                    state.returnPhase = AutomOtionState::ReturnPhase::Snap;
+                    state.returnFadeTime = 0.0f;
+                    state.returnGain = 0.0f;
+                }
+                break;
+            }
+            case AutomOtionState::ReturnPhase::Snap:
+            {
+                // Instantly move back to original position
+                writePositionToValueTree (inputIndex, state.originalX, state.originalY, state.originalZ);
+                state.currentX = state.originalX;
+                state.currentY = state.originalY;
+                state.currentZ = state.originalZ;
+                state.returnPhase = AutomOtionState::ReturnPhase::FadeIn;
+                state.returnFadeTime = 0.0f;
+                break;
+            }
+            case AutomOtionState::ReturnPhase::FadeIn:
+            {
+                float gain = juce::jmin (1.0f, state.returnFadeTime / fadeDuration);
+                state.returnGain = gain;
+                if (state.returnFadeTime >= fadeDuration)
+                {
+                    // Return complete
+                    state.returnPhase = AutomOtionState::ReturnPhase::None;
+                    state.returnGain = 1.0f;
+                    state.state = State::Stopped;
+                    state.inReturnPhase = false;
+                    state.elapsedTime = 0.0f;
+
+                    if (audioTriggerEnabled)
+                    {
+                        state.waitingForRearm = true;
+                        state.triggerArmed = false;
+                    }
+                }
+                break;
+            }
+            default:
+                break;
         }
     }
 
@@ -830,12 +877,6 @@ private:
      */
     void calculateCurvedPosition (AutomOtionState& state, float progress, int inputIndex)
     {
-        // Get base position for offset calculation
-        auto posSection = valueTreeState.getInputPositionSection (inputIndex);
-        float baseX = static_cast<float> (posSection.getProperty (WFSParameterIDs::inputPositionX, 0.0f));
-        float baseY = static_cast<float> (posSection.getProperty (WFSParameterIDs::inputPositionY, 0.0f));
-        float baseZ = static_cast<float> (posSection.getProperty (WFSParameterIDs::inputPositionZ, 0.0f));
-
         // Direction vector from start to target
         float dx = state.targetX - state.startX;
         float dy = state.targetY - state.startY;
@@ -846,61 +887,30 @@ private:
         float linearY = state.startY + dy * progress;
         float linearZ = state.startZ + dz * progress;
 
-        if (state.curve == 0)
+        float finalX = linearX, finalY = linearY, finalZ = linearZ;
+
+        if (state.curve != 0)
         {
-            // No curve - straight path
-            state.currentX = linearX;
-            state.currentY = linearY;
-            state.currentZ = linearZ;
-            state.offsetX = linearX - baseX;
-            state.offsetY = linearY - baseY;
-            state.offsetZ = linearZ - baseZ;
-            return;
+            float pathLength2D = std::sqrt (dx * dx + dy * dy);
+            if (pathLength2D >= 0.001f)
+            {
+                float perpX = -dy / pathLength2D;
+                float perpY = dx / pathLength2D;
+                float curveAmount = static_cast<float> (state.curve) / 100.0f;
+                float maxDisp = pathLength2D * 0.5f * std::abs (curveAmount);
+                float arcFactor = std::sin (juce::MathConstants<float>::pi * progress);
+                float disp = maxDisp * arcFactor * (curveAmount > 0 ? 1.0f : -1.0f);
+                finalX = linearX + perpX * disp;
+                finalY = linearY + perpY * disp;
+            }
         }
 
-        // Calculate perpendicular vector in XY plane
-        // Perpendicular to (dx, dy) is (-dy, dx) (rotated 90 degrees counter-clockwise)
-        float pathLength2D = std::sqrt (dx * dx + dy * dy);
+        state.currentX = finalX;
+        state.currentY = finalY;
+        state.currentZ = finalZ;
 
-        if (pathLength2D < 0.001f)
-        {
-            // Very short horizontal path - no meaningful curve possible
-            state.currentX = linearX;
-            state.currentY = linearY;
-            state.currentZ = linearZ;
-            state.offsetX = linearX - baseX;
-            state.offsetY = linearY - baseY;
-            state.offsetZ = linearZ - baseZ;
-            return;
-        }
-
-        // Normalized perpendicular vector (points to the "left" of direction)
-        float perpX = -dy / pathLength2D;
-        float perpY = dx / pathLength2D;
-
-        // Curve displacement calculation
-        // curvePercent: negative = left bend, positive = right bend
-        float curveAmount = static_cast<float> (state.curve) / 100.0f;
-
-        // Maximum displacement at midpoint (scaled by path length for proportional curves)
-        float maxCurveDisplacement = pathLength2D * 0.5f * std::abs (curveAmount);
-
-        // Sine arc: sin(π * progress) is 0 at start, 1 at midpoint, 0 at end
-        float arcFactor = std::sin (juce::MathConstants<float>::pi * progress);
-        float curveDisplacement = maxCurveDisplacement * arcFactor * (curveAmount > 0 ? 1.0f : -1.0f);
-
-        // Apply curve displacement perpendicular to direction
-        float curvedX = linearX + perpX * curveDisplacement;
-        float curvedY = linearY + perpY * curveDisplacement;
-        float curvedZ = linearZ;  // Z follows linear interpolation (no horizontal curve in Z)
-
-        // Store results
-        state.currentX = curvedX;
-        state.currentY = curvedY;
-        state.currentZ = curvedZ;
-        state.offsetX = curvedX - baseX;
-        state.offsetY = curvedY - baseY;
-        state.offsetZ = curvedZ - baseZ;
+        // Write directly to input position (not compound offset)
+        writePositionToValueTree (inputIndex, finalX, finalY, finalZ);
     }
 
     //==========================================================================
@@ -913,59 +923,50 @@ private:
      */
     void calculatePolarPosition (AutomOtionState& state, float progress, int inputIndex)
     {
-        // Get base position for offset calculation
-        auto posSection = valueTreeState.getInputPositionSection (inputIndex);
-        float baseX = static_cast<float> (posSection.getProperty (WFSParameterIDs::inputPositionX, 0.0f));
-        float baseY = static_cast<float> (posSection.getProperty (WFSParameterIDs::inputPositionY, 0.0f));
-        float baseZ = static_cast<float> (posSection.getProperty (WFSParameterIDs::inputPositionZ, 0.0f));
-
         if (state.coordinateMode == 1)  // Cylindrical
         {
-            // Linear interpolation in cylindrical space
             float r = state.startR + (state.targetR - state.startR) * progress;
             float theta = state.startTheta + (state.targetTheta - state.startTheta) * progress;
             float z = state.startZ + (state.targetZ - state.startZ) * progress;
-
-            // Ensure radius is non-negative
             r = std::max (0.0f, r);
-
-            // Convert to Cartesian (normalize angle for conversion function)
             auto cart = WFSCoordinates::cylindricalToCartesian ({ r, WFSCoordinates::normalizeAngle (theta), z });
 
             state.currentX = cart.x;
             state.currentY = cart.y;
             state.currentZ = z;
-            state.offsetX = cart.x - baseX;
-            state.offsetY = cart.y - baseY;
-            state.offsetZ = z - baseZ;
+            writePositionToValueTree (inputIndex, cart.x, cart.y, z);
         }
         else if (state.coordinateMode == 2)  // Spherical
         {
-            // Linear interpolation in spherical space
             float r = state.startRsph + (state.targetRsph - state.startRsph) * progress;
             float theta = state.startTheta + (state.targetTheta - state.startTheta) * progress;
             float phi = state.startPhi + (state.targetPhi - state.startPhi) * progress;
-
-            // Ensure radius is non-negative
             r = std::max (0.0f, r);
-
-            // Convert to Cartesian (normalize angles for conversion function)
-            // Note: For phi, we use a modulo approach to handle multi-rotation elevation
             float normalizedPhi = std::fmod (phi, 360.0f);
             if (normalizedPhi > 180.0f) normalizedPhi -= 360.0f;
             if (normalizedPhi < -180.0f) normalizedPhi += 360.0f;
             normalizedPhi = WFSCoordinates::clampElevation (normalizedPhi);
-
             auto cart = WFSCoordinates::sphericalToCartesian ({
                 r, WFSCoordinates::normalizeAngle (theta), normalizedPhi });
 
             state.currentX = cart.x;
             state.currentY = cart.y;
             state.currentZ = cart.z;
-            state.offsetX = cart.x - baseX;
-            state.offsetY = cart.y - baseY;
-            state.offsetZ = cart.z - baseZ;
+            writePositionToValueTree (inputIndex, cart.x, cart.y, cart.z);
         }
+    }
+
+    //==========================================================================
+    // Position Writing
+    //==========================================================================
+
+    /** Write animated position directly to input ValueTree */
+    void writePositionToValueTree (int inputIndex, float x, float y, float z)
+    {
+        auto posSection = valueTreeState.getInputPositionSection (inputIndex);
+        posSection.setProperty (WFSParameterIDs::inputPositionX, x, nullptr);
+        posSection.setProperty (WFSParameterIDs::inputPositionY, y, nullptr);
+        posSection.setProperty (WFSParameterIDs::inputPositionZ, z, nullptr);
     }
 
     //==========================================================================
@@ -977,6 +978,14 @@ private:
     {
         auto posSection = valueTreeState.getInputPositionSection (inputIndex);
         return static_cast<int> (posSection.getProperty (WFSParameterIDs::inputTrackingActive, 0)) != 0;
+    }
+
+    /** Check if sampler is active for an input */
+    bool isSamplerActive (int inputIndex) const
+    {
+        auto channelSection = valueTreeState.getInputChannelSection (inputIndex);
+        if (! channelSection.isValid()) return false;
+        return static_cast<int> (channelSection.getProperty (WFSParameterIDs::inputSamplerActive, 0)) != 0;
     }
 
     //==========================================================================

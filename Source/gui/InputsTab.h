@@ -459,6 +459,7 @@ public:
     std::function<void(int channelId)> onChannelSelected;
     std::function<void(int subTabIndex)> onSubTabChanged;
     std::function<void(int channelIndex, bool active)> onSamplerActiveChanged;
+    std::function<bool(int channelIndex)> isAutoMotionActive;
 
     /** Get the currently selected channel (1-based) */
     int getCurrentChannel() const { return currentChannel; }
@@ -1371,11 +1372,12 @@ private:
             float deltaX = x * scale;
             float deltaY = y * scale;
 
-            // Check if tracking is active (global toggle, protocol not disabled, and local toggle)
+            // Check if tracking or AutomOtion is active → redirect to offset
             bool globalTrackingOn = (int)parameters.getConfigParam("trackingEnabled") != 0;
             bool protocolEnabled = (int)parameters.getConfigParam("trackingProtocol") != 0;
             bool localTracking = trackingActiveButton.getToggleState();
-            bool useOffset = globalTrackingOn && protocolEnabled && localTracking;
+            bool motionActive = isAutoMotionActive && isAutoMotionActive (currentChannel - 1);
+            bool useOffset = (globalTrackingOn && protocolEnabled && localTracking) || motionActive;
 
             // Apply flip inversion when modifying position directly (not offset)
             if (!useOffset)
@@ -1513,11 +1515,12 @@ private:
             const float scale = 0.05f;
             float deltaZ = v * scale;
 
-            // Check if tracking is active (global toggle, protocol not disabled, and local toggle)
+            // Check if tracking or AutomOtion is active → redirect to offset
             bool globalTrackingOn = (int)parameters.getConfigParam("trackingEnabled") != 0;
             bool protocolEnabled = (int)parameters.getConfigParam("trackingProtocol") != 0;
             bool localTracking = trackingActiveButton.getToggleState();
-            bool useOffset = globalTrackingOn && protocolEnabled && localTracking;
+            bool motionActive = isAutoMotionActive && isAutoMotionActive (currentChannel - 1);
+            bool useOffset = (globalTrackingOn && protocolEnabled && localTracking) || motionActive;
 
             // Apply flip inversion when modifying position directly (not offset)
             if (!useOffset && flipZButton.getToggleState())

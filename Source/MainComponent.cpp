@@ -1701,6 +1701,16 @@ MainComponent::MainComponent()
         openNetworkLogWindow();
     });
 
+    // Query callback: check if AutomOtion is actively moving an input
+    inputsTab->isAutoMotionActive = [this] (int inputIndex) -> bool
+    {
+        return automOtionProcessor && automOtionProcessor->isMotionActive (inputIndex);
+    };
+    mapTab->isAutoMotionActive = [this] (int inputIndex) -> bool
+    {
+        return automOtionProcessor && automOtionProcessor->isMotionActive (inputIndex);
+    };
+
     // Connect InputsTab channel selection to OSCManager and StreamDeck
     inputsTab->onChannelSelected = [this](int channelId)
     {
@@ -3897,6 +3907,18 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
             }
         }
 
+        // Apply AutomOtion return fade gain (50ms fade out/in during position snap-back)
+        if (automOtionProcessor != nullptr)
+        {
+            for (int ch = 0; ch < numInputChannels && ch < patchedInputBuffer.getNumChannels(); ++ch)
+            {
+                float gain = automOtionProcessor->getReturnGain (ch);
+                if (gain < 1.0f)
+                    patchedInputBuffer.applyGain (ch, bufferToFill.startSample,
+                                                   bufferToFill.numSamples, gain);
+            }
+        }
+
         // Write patched input to shared buffers + notify consumers (only when needed)
         {
             bool needSharedBuffers = (reverbFeedThread != nullptr)
@@ -4391,12 +4413,7 @@ void MainComponent::timerCallback()
                 totalOffsetZ += lfoProcessor->getOffsetZ(i);
             }
 
-            if (automOtionProcessor != nullptr)
-            {
-                totalOffsetX += automOtionProcessor->getOffsetX(i);
-                totalOffsetY += automOtionProcessor->getOffsetY(i);
-                totalOffsetZ += automOtionProcessor->getOffsetZ(i);
-            }
+            // AutomOtion writes directly to inputPositionX/Y/Z — no offset needed
 
             // Add cluster LFO offset (offset-based, no ValueTree writes)
             if (clustersTab != nullptr)
@@ -5098,7 +5115,8 @@ void MainComponent::nudgeInputPosition(int axis, float delta, int inputOverride)
     bool globalTracking = state.getIntParameter(WFSParameterIDs::trackingEnabled) != 0;
     bool protocolEnabled = state.getIntParameter(WFSParameterIDs::trackingProtocol) != 0;
     bool channelTracking = state.getIntParameter(WFSParameterIDs::inputTrackingActive, channel) != 0;
-    bool useOffset = globalTracking && protocolEnabled && channelTracking;
+    bool autoMotionActive = automOtionProcessor && automOtionProcessor->isMotionActive (channel);
+    bool useOffset = (globalTracking && protocolEnabled && channelTracking) || autoMotionActive;
 
     // Invert delta when flip is enabled and modifying position (not offset)
     // Offset is added AFTER flip, so offset nudge direction stays normal

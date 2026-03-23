@@ -1067,10 +1067,11 @@ public:
                                                   targetX, targetY, z);
 
                 bool isTracked = isInputFullyTracked(idx);
+                bool motionActive = isAutoMotionActive && isAutoMotionActive (idx);
                 int cluster = static_cast<int>(parameters.getInputParam(idx, "inputCluster"));
                 bool isReference = (cluster > 0) && (getClusterReferenceInput(cluster) == idx);
 
-                if (isTracked)
+                if (isTracked || motionActive)
                 {
                     // Tracked input: compute new offset from snapshot, apply constraints
                     float newOffsetX = snapIt->second.offset.x + totalDeltaX;
@@ -2194,6 +2195,9 @@ public:
     {
         onDragEndCallback = std::move(callback);
     }
+
+    /** Query callback: check if AutomOtion is actively moving an input */
+    std::function<bool(int inputIndex)> isAutoMotionActive;
 
     /** Set callback for capturing waypoints during drag (for path mode).
         Parameters: (inputIndex, x, y, z) - flip-adjusted coordinates */
