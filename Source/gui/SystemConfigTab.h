@@ -2448,6 +2448,7 @@ public:
                 projectFolder = result;
                 parameters.setConfigParam("ProjectFolder", projectFolder.getFullPathName());
                 parameters.getFileManager().setProjectFolder(projectFolder);
+                AppSettings::setLastFolder ("lastProjectFolder", projectFolder);
             }
         });
     }

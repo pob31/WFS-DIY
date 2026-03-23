@@ -235,15 +235,11 @@ MainComponent::MainComponent()
     statusBar = new StatusBar();
     addAndMakeVisible(statusBar);
 
-    // Restore project folder from saved config before tabs are created
+    // Restore project folder from AppSettings (persists across sessions)
     {
-        auto savedFolder = parameters.getConfigParam ("ProjectFolder");
-        if (! savedFolder.isVoid())
-        {
-            juce::File folder (savedFolder.toString());
-            if (folder.isDirectory())
-                parameters.getFileManager().setProjectFolder (folder);
-        }
+        auto folder = AppSettings::getLastFolder ("lastProjectFolder", juce::File());
+        if (folder.isDirectory())
+            parameters.getFileManager().setProjectFolder (folder);
     }
 
     // Create tabs

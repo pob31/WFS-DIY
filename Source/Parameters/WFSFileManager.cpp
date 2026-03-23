@@ -1,5 +1,6 @@
 #include "WFSFileManager.h"
 #include "WFSParameterIDs.h"
+#include "../AppSettings.h"
 #include "../Localization/LocalizationManager.h"
 #include "../WFSLogger.h"
 
@@ -87,6 +88,7 @@ void WFSFileManager::chooseProjectFolder (std::function<void (bool)> callback)
             if (result.exists())
             {
                 setProjectFolder (result);
+                AppSettings::setLastFolder ("lastProjectFolder", result);
                 createProjectFolderStructure();
                 callback (true);
             }
