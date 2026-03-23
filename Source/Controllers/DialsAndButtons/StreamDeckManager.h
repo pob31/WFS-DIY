@@ -10,6 +10,7 @@
  */
 
 #include <JuceHeader.h>
+#include "../../AppSettings.h"
 #include "StreamDeckDevice.h"
 #include "StreamDeckPage.h"
 #include "StreamDeckRenderer.h"
@@ -117,6 +118,11 @@ public:
         currentChannel = channelIndex;
         exitComboMode();
         refreshCurrentPage();
+    }
+
+    void setBrightness (int percent)
+    {
+        device.setBrightness (percent);
     }
 
     /** Get the current channel index. */
@@ -496,7 +502,7 @@ private:
 
         if (connected)
         {
-            device.setBrightness (80);
+            device.setBrightness (AppSettings::getStreamDeckBrightness());
             refreshCurrentPage();
         }
     }

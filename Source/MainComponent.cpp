@@ -864,6 +864,11 @@ MainComponent::MainComponent()
                 if (systemConfigTab) systemConfigTab->requestStartBinaural();
             });
         };
+        sysCB.setBrightness = [this] (int percent)
+        {
+            if (streamDeckManager)
+                streamDeckManager->setBrightness (percent);
+        };
 
         // Register System Config tab page
         streamDeckManager->registerPage (

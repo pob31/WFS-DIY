@@ -14,6 +14,7 @@
 #include "../../../Parameters/WFSParameterIDs.h"
 #include "../../../Parameters/WFSParameterDefaults.h"
 #include "../../../Localization/LocalizationManager.h"
+#include "../../../AppSettings.h"
 
 // Reuse config-param helper from NetworkTabPages
 #include "NetworkTabPages.h"
@@ -32,6 +33,7 @@ struct SysConfigCallbacks
     std::function<void()> openAudioPatchWindow;
     std::function<void()> startProcessing;   // start only — never stop from Stream Deck
     std::function<void()> startBinaural;     // start only — never stop from Stream Deck
+    std::function<void (int percent)> setBrightness;   // set hardware backlight 0-100
 };
 
 //==============================================================================
@@ -212,8 +214,30 @@ inline StreamDeckPage createSysConfigPage (WFSValueTreeState& state,
         }
 
         //------------------------------------------------------------------
-        // Button 3: unassigned
+        // Button 3: Brightness cycling (100% → 75% → 50% → 25%)
         //------------------------------------------------------------------
+        {
+            auto& btn = sec.buttons[3];
+            int currentBrightness = AppSettings::getStreamDeckBrightness();
+            btn.label  = LOC ("streamDeck.systemConfig.buttons.brightness")
+                         + " " + juce::String (currentBrightness) + "%";
+            btn.colour = grey;
+            btn.type   = ButtonBinding::Action;
+            btn.requestsPageRebuild = true;
+
+            btn.onPress = [callbacks]()
+            {
+                int current = AppSettings::getStreamDeckBrightness();
+                // Cycle: 100 → 75 → 50 → 25 → 100
+                int next = (current <= 25) ? 100
+                         : (current <= 50) ? 25
+                         : (current <= 75) ? 50
+                         : 75;
+                AppSettings::setStreamDeckBrightness (next);
+                if (callbacks.setBrightness)
+                    callbacks.setBrightness (next);
+            };
+        }
 
         //------------------------------------------------------------------
         // Dial 0: Listener Distance (0–10 m)

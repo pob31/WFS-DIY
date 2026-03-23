@@ -24,6 +24,19 @@ struct AppSettings
         props.saveIfNeeded();
     }
 
+    static int getStreamDeckBrightness()
+    {
+        juce::PropertiesFile props (getOptions());
+        return props.getIntValue ("streamDeckBrightness", 100);
+    }
+
+    static void setStreamDeckBrightness (int percent)
+    {
+        juce::PropertiesFile props (getOptions());
+        props.setValue ("streamDeckBrightness", percent);
+        props.saveIfNeeded();
+    }
+
 private:
     static juce::PropertiesFile::Options getOptions()
     {

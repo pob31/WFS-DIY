@@ -1890,7 +1890,8 @@
         "processingOn": "Processing:\nON",
         "processingOff": "Processing:\nOFF",
         "binauralOn": "Binaural:\nON",
-        "binauralOff": "Binaural:\nOFF"
+        "binauralOff": "Binaural:\nOFF",
+        "brightness": "Brightness"
       },
       "dials": {
         "listenerDistance": "Listener\nDistance",
