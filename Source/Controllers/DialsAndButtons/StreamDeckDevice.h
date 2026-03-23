@@ -664,36 +664,53 @@ private:
         return found;
     }
 #elif JUCE_MAC
-    /** Check if the Elgato Stream Deck app is running (macOS). */
+    /** Check if the Elgato Stream Deck app is running (macOS).
+        Uses launchctl to query the launch agent status. */
     static bool isStreamDeckAppRunning()
     {
         juce::ChildProcess cp;
-        if (cp.start ("pgrep -f \"Stream Deck\""))
+        if (cp.start ("launchctl list com.elgato.StreamDeck"))
         {
             cp.waitForProcessToFinish (2000);
-            auto output = cp.readAllProcessOutput().trim();
-            return output.isNotEmpty();
+            auto output = cp.readAllProcessOutput();
+            // launchctl outputs "PID\tStatus\tLabel" — PID is "-" when not running
+            return output.isNotEmpty() && ! output.startsWith ("-");
         }
         return false;
     }
 
-    /** Kill the Elgato Stream Deck app (macOS).
+    /** Kill the Elgato Stream Deck app and unload its launch agent (macOS).
         Returns true if successfully terminated. */
     static bool killStreamDeckApp()
     {
         bool success = true;
 
-        // Kill via pkill (matches "Stream Deck" in process name)
+        // Build full path (~ doesn't expand without a shell)
+        auto plistPath = juce::File::getSpecialLocation (juce::File::userHomeDirectory)
+                             .getChildFile ("Library/LaunchAgents/com.elgato.StreamDeck.plist")
+                             .getFullPathName();
+
+        // Unload the launch agent to prevent auto-restart (KeepAlive respawns)
         {
             juce::ChildProcess cp;
-            if (cp.start ("pkill -f \"Stream Deck\""))
+            if (cp.start (juce::StringArray { "launchctl", "unload", plistPath }))
             {
                 cp.waitForProcessToFinish (3000);
-                DBG ("Killed Stream Deck app (macOS)");
+                DBG ("Unloaded Elgato Stream Deck launch agent");
             }
             else
             {
                 success = false;
+            }
+        }
+
+        // Kill any remaining process
+        {
+            juce::ChildProcess cp;
+            if (cp.start (juce::StringArray { "killall", "Stream Deck" }))
+            {
+                cp.waitForProcessToFinish (3000);
+                DBG ("Killed Stream Deck app (macOS)");
             }
         }
 

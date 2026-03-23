@@ -404,26 +404,30 @@ private:
     {
         bool success = true;
 
-        // Unload the launch agent to prevent auto-restart
+        // Unload the system-level launch agent to prevent auto-restart
         {
             juce::ChildProcess cp;
-            if (cp.start ("launchctl unload /Library/LaunchAgents/com.3dconnexion.3DconnexionHelper.plist"))
+            if (cp.start (juce::StringArray { "launchctl", "unload",
+                    "/Library/LaunchAgents/com.3dconnexion.3DconnexionHelper.plist" }))
                 cp.waitForProcessToFinish (3000);
             else
                 success = false;
         }
 
-        // Also try user-level agent
+        // Also try user-level agent (~ doesn't expand without a shell)
         {
+            auto plistPath = juce::File::getSpecialLocation (juce::File::userHomeDirectory)
+                                 .getChildFile ("Library/LaunchAgents/com.3dconnexion.3DconnexionHelper.plist")
+                                 .getFullPathName();
             juce::ChildProcess cp;
-            if (cp.start ("launchctl unload ~/Library/LaunchAgents/com.3dconnexion.3DconnexionHelper.plist"))
+            if (cp.start (juce::StringArray { "launchctl", "unload", plistPath }))
                 cp.waitForProcessToFinish (3000);
         }
 
         // Kill any remaining processes
         {
             juce::ChildProcess cp;
-            if (cp.start ("killall 3DconnexionHelper"))
+            if (cp.start (juce::StringArray { "killall", "3DconnexionHelper" }))
             {
                 cp.waitForProcessToFinish (3000);
                 DBG ("Killed 3DconnexionHelper");
