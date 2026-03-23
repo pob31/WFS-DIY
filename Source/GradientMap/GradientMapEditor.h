@@ -1127,9 +1127,19 @@ public:
         {
             auto stagePos = screenToStage (e.getPosition(), canvasBounds);
             auto& shape = currentLayerData.shapes[static_cast<size_t> (scaleHandleShapeIdx)];
-            auto pivot = juce::Point<float> (shape.posX, shape.posY);
 
-            // Convert mouse position to shape-local coords (unscaled, unrotated)
+            // For polygons, drag vertex directly (like vertex edit mode)
+            if (shape.type == GradientMap::ShapeType::Polygon
+                && draggingScaleHandle < static_cast<int> (shape.vertices.size()))
+            {
+                auto localPos = stageToShapeLocal (stagePos, shape);
+                shape.vertices[static_cast<size_t> (draggingScaleHandle)] = localPos;
+                repaint();
+                return;
+            }
+
+            // Rectangle/Ellipse: scale from center
+            auto pivot = juce::Point<float> (shape.posX, shape.posY);
             auto rotInverse = juce::AffineTransform::rotation (juce::degreesToRadians (shape.rotation)).inverted();
             auto relStage = stagePos - pivot;
             auto rotatedRel = relStage.transformedBy (rotInverse);
@@ -1855,7 +1865,15 @@ private:
     bool getRotationHandlePos (const GradientMap::Shape& shape, const juce::Rectangle<int>& canvas,
                                juce::Point<float>& outPos) const
     {
-        auto topCenter = stageToScreen (shapeLocalToStage ({ 0.0f, -1.0f }, shape), canvas).toFloat();
+        juce::Point<float> topLocal = { 0.0f, -1.0f };
+        if (shape.type == GradientMap::ShapeType::Polygon && shape.vertices.size() >= 3)
+        {
+            topLocal = shape.vertices[0];
+            for (size_t vi = 1; vi < shape.vertices.size(); ++vi)
+                if (shape.vertices[vi].y < topLocal.y)
+                    topLocal = shape.vertices[vi];
+        }
+        auto topCenter = stageToScreen (shapeLocalToStage (topLocal, shape), canvas).toFloat();
         auto shapeCenter = stageToScreen ({ shape.posX, shape.posY }, canvas).toFloat();
         auto dir = topCenter - shapeCenter;
         float dirLen = dir.getDistanceFromOrigin();
@@ -1864,10 +1882,23 @@ private:
         return true;
     }
 
-    /** Hit-test scale corner handles. Returns corner index 0-3 or -1. */
+    /** Hit-test scale/vertex handles. Returns handle index or -1. */
     int hitTestScaleHandle (juce::Point<float> screenPos, const GradientMap::Shape& shape,
                             const juce::Rectangle<int>& canvas) const
     {
+        if (shape.type == GradientMap::ShapeType::Polygon && shape.vertices.size() >= 3)
+        {
+            // Hit-test polygon vertices
+            for (int i = 0; i < static_cast<int> (shape.vertices.size()); ++i)
+            {
+                auto screenP = stageToScreen (shapeLocalToStage (shape.vertices[static_cast<size_t> (i)], shape), canvas).toFloat();
+                if (screenPos.getDistanceFrom (screenP) < 8.0f)
+                    return i;
+            }
+            return -1;
+        }
+
+        // Rectangle/Ellipse: 4 unit-square corners
         juce::Point<float> corners[4];
         getCornerScreenPositions (shape, canvas, corners);
         for (int i = 0; i < 4; ++i)
@@ -2201,16 +2232,57 @@ private:
                 continue; // Skip normal scale/rotation handles in vertex edit mode
             }
 
-            // Normal mode: Transform 4 unit-square corners through shape's full transform
-            juce::Point<float> localCorners[4] = { {-1,-1}, {1,-1}, {-1,1}, {1,1} };
-            for (auto& c : localCorners)
+            // Normal mode: draw handles matching the actual shape outline
+            if (shape.type == GradientMap::ShapeType::Polygon && shape.vertices.size() >= 3)
             {
-                auto screenP = stageToScreen (shapeLocalToStage (c, shape), canvas).toFloat();
-                g.fillRect (screenP.x - handleSize * 0.5f, screenP.y - handleSize * 0.5f, handleSize, handleSize);
+                // Draw dashed outline connecting actual polygon vertices
+                juce::Path outlinePath;
+                auto firstScreen = stageToScreen (shapeLocalToStage (shape.vertices[0], shape), canvas).toFloat();
+                outlinePath.startNewSubPath (firstScreen);
+                for (size_t vi = 1; vi < shape.vertices.size(); ++vi)
+                {
+                    auto vScreen = stageToScreen (shapeLocalToStage (shape.vertices[vi], shape), canvas).toFloat();
+                    outlinePath.lineTo (vScreen);
+                }
+                outlinePath.closeSubPath();
+
+                g.setColour (getLayerColour (activeLayer).withAlpha (0.6f));
+                float dashLengths[] = { 4.0f, 3.0f };
+                juce::PathStrokeType dashStroke (1.5f);
+                juce::Path dashedPath;
+                dashStroke.createDashedStroke (dashedPath, outlinePath, dashLengths, 2);
+                g.strokePath (dashedPath, juce::PathStrokeType (1.5f));
+
+                // Draw handles at each vertex
+                g.setColour (getLayerColour (activeLayer));
+                for (size_t vi = 0; vi < shape.vertices.size(); ++vi)
+                {
+                    auto screenP = stageToScreen (shapeLocalToStage (shape.vertices[vi], shape), canvas).toFloat();
+                    g.fillRect (screenP.x - handleSize * 0.5f, screenP.y - handleSize * 0.5f, handleSize, handleSize);
+                }
+            }
+            else
+            {
+                // Rectangle/Ellipse: Transform 4 unit-square corners through shape's full transform
+                juce::Point<float> localCorners[4] = { {-1,-1}, {1,-1}, {-1,1}, {1,1} };
+                for (auto& c : localCorners)
+                {
+                    auto screenP = stageToScreen (shapeLocalToStage (c, shape), canvas).toFloat();
+                    g.fillRect (screenP.x - handleSize * 0.5f, screenP.y - handleSize * 0.5f, handleSize, handleSize);
+                }
             }
 
             // Rotation handle: above top-center of shape
-            auto topCenter = stageToScreen (shapeLocalToStage ({ 0.0f, -1.0f }, shape), canvas).toFloat();
+            juce::Point<float> topLocal = { 0.0f, -1.0f };
+            if (shape.type == GradientMap::ShapeType::Polygon && shape.vertices.size() >= 3)
+            {
+                // Use the topmost vertex (smallest Y in local coords)
+                topLocal = shape.vertices[0];
+                for (size_t vi = 1; vi < shape.vertices.size(); ++vi)
+                    if (shape.vertices[vi].y < topLocal.y)
+                        topLocal = shape.vertices[vi];
+            }
+            auto topCenter = stageToScreen (shapeLocalToStage (topLocal, shape), canvas).toFloat();
             auto shapeCenter = stageToScreen ({ shape.posX, shape.posY }, canvas).toFloat();
             auto dir = topCenter - shapeCenter;
             float dirLen = dir.getDistanceFromOrigin();

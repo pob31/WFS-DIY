@@ -1839,7 +1839,6 @@ public:
         auto* parent = getTopLevelComponent();
         if (parent == nullptr) return;
 
-        int totalPads = remotePadCols * remotePadRows;
         int cols = remotePadCols;
         int rows = remotePadRows;
 
