@@ -177,10 +177,9 @@ private:
     //==========================================================================
     // State Access
     //==========================================================================
-    static constexpr ClusterLFOState emptyState {};
-
     const ClusterLFOState& getState (int clusterIndex) const
     {
+        static const ClusterLFOState emptyState {};
         int idx = clusterIndex - 1;
         if (idx >= 0 && idx < maxClusters)
             return states[static_cast<size_t> (idx)];
