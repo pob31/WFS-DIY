@@ -1950,6 +1950,14 @@ OFF",
       "title": "Renderizador Binaural",
       "body": "O renderizador binaural é usado para:\n- ouvir uma mixagem espacial aproximada em fones de ouvido,\n- criar uma mixagem para saída estéreo,\n- ouvir uma faixa solo através do processamento espacial.\nPode substituir sua mixagem master se alimentar apenas fones e mixagem de mídia.\nA posição de escuta pode ser ajustada em profundidade a partir do ponto de origem e em orientação. As configurações de atraso e nível permitem igualar o som na posição FOH."
     },
+    "liveSource": {
+      "title": "Atenuador de Fonte Ao Vivo",
+      "body": "Uma fonte potente no palco pode não precisar de reforço através dos alto-falantes próximos. Imagine um cantor de ópera perto da borda do palco. Normalmente a distribuição de nível tornaria o som mais alto perto da posição de entrada. Mas se já estiver alto o suficiente, não devemos sobre-amplificar. Esta função gerencia isso.\nO raio e a forma descrevem como atenuar o nível para os alto-falantes dentro do raio de influência desta fonte. Há várias formas: um efeito linear em V; um U para diminuição rápida; um V apertado ou uma mistura dos anteriores (seno).\nA atenuação pode ser constante ou dependente de nível, como uma compressão local que reage a transientes e ao nível RMS médio."
+    },
+    "floorReflections": {
+      "title": "Reflexões do Chão",
+      "body": "Simular as reflexões do chão melhora a naturalidade do som. Não esperamos que sons sejam reproduzidos em uma câmara anecoica à prova de som. Esta configuração ajuda a recriar as reflexões do chão esperadas.\nO nível das reflexões do chão pode ser ajustado, assim como os filtros de corte baixo e shelf de altas frequências. A difusão adiciona um pouco de caos para simular as irregularidades do chão."
+    },
     "reverbAlgo": {
       "title": "Algoritmos de Reverberação",
       "body": "A reverberação ajuda a difundir as reflexões reais dos alto-falantes no espaço acústico. Sem reverberação, o ouvinte pode perceber falta de profundidade porque as reflexões dos alto-falantes na acústica da sala revelam suas posições e todos os sons parecem vir do plano dos alto-falantes.\nTrês tipos de reverberação estão integrados neste processador de som espacial:\n- SDN (Scattered Delay Network): O som reflete entre cada nó de reverberação que atua como superfícies refletoras. Este algoritmo favorece um número ímpar de nós sem muita simetria, para reduzir artefatos ou ressonâncias metálicas.\n- FDN (Feedback Delay Network): Cada nó funciona como um processador de reverberação separado com um algoritmo clássico. Posicione nós ao redor do palco e eventualmente ao redor do público.\n- IR (Resposta ao Impulso): Reverberação por convolução clássica. Você pode carregar amostras de áudio como respostas ao impulso. Cada nó pode compartilhar a mesma IR ou usar diferentes.\nAs posições dos nós podem ser ajustadas diretamente no mapa. A tecla Ctrl/Cmd move um par de nós em simetria."

@@ -26,6 +26,7 @@
 #include "../Localization/LocalizationManager.h"
 #include "ColumnFocusTraverser.h"
 #include "SamplerSubTab.h"
+#include "HelpCard.h"
 
 //==============================================================================
 // Custom Transport Button - Play (right-pointing triangle)
@@ -305,6 +306,18 @@ public:
         setupSoundTab();
         setupLiveSourceTab();
         setupEffectsTab();
+
+        // Live Source & Floor Reflections help cards
+        addAndMakeVisible(lsHelpButton);
+        addChildComponent(lsHelpCard);
+        lsHelpCard.setContent(LOC("help.liveSource.title"), LOC("help.liveSource.body"));
+        lsHelpButton.setCard(&lsHelpCard);
+
+        addAndMakeVisible(frHelpButton);
+        addChildComponent(frHelpCard);
+        frHelpCard.setContent(LOC("help.floorReflections.title"), LOC("help.floorReflections.body"));
+        frHelpButton.setCard(&frHelpCard);
+
         setupLfoTab();
         setupAutomotionTab();
         setupGradientMapsTab();
@@ -4500,7 +4513,12 @@ private:
         auto col2 = area.reduced(colPad, 0);
 
         // ========== COLUMN 1: Live Source ==========
-        lsActiveButton.setBounds(col1.removeFromTop(rowHeight).withWidth(scaled(180)));
+        {
+            auto activeRow = col1.removeFromTop(rowHeight);
+            lsActiveButton.setBounds(activeRow.withWidth(scaled(180)));
+            const int btnSize = scaled(20);
+            lsHelpButton.setBounds(activeRow.getRight() - btnSize, activeRow.getY(), btnSize, btnSize);
+        }
         col1.removeFromTop(spacing * 2);  // Extra padding after toggle
 
         // Shape selector
@@ -4591,7 +4609,12 @@ private:
         lsSlowThresholdSlider.setBounds(slowSliderArea.removeFromTop(sliderHeight));
 
         // ========== COLUMN 2: Hackoustics (Floor Reflections) ==========
-        frActiveButton.setBounds(col2.removeFromTop(rowHeight).withWidth(scaled(180)));
+        {
+            auto activeRow = col2.removeFromTop(rowHeight);
+            frActiveButton.setBounds(activeRow.withWidth(scaled(180)));
+            const int btnSize = scaled(20);
+            frHelpButton.setBounds(activeRow.getRight() - btnSize, activeRow.getY(), btnSize, btnSize);
+        }
         col2.removeFromTop(spacing);
 
         // Attenuation
@@ -4663,6 +4686,18 @@ private:
         int buttonCenterX = reverbSendsRow.getX() + reverbSendsRow.getWidth() / 2;
         const int sendsBtnW = scaled(200);
         muteReverbSendsButton.setBounds(buttonCenterX - sendsBtnW / 2, reverbSendsRow.getY(), sendsBtnW, rowHeight);
+
+        // Help cards — bottom of left column
+        {
+            int cardX = subTabContentArea.getX() + colPad;
+            int cardW = subTabContentArea.getWidth() / 2 - colPad * 2;
+            // Stack both cards: floor reflections at very bottom, live source above it
+            int frCardH = frHelpCard.getIdealHeight(cardW);
+            int lsCardH = lsHelpCard.getIdealHeight(cardW);
+            int bottomY = subTabContentArea.getBottom() - colPad;
+            frHelpCard.setBounds(cardX, bottomY - frCardH, cardW, frCardH);
+            lsHelpCard.setBounds(cardX, bottomY - frCardH - spacing - lsCardH, cardW, lsCardH);
+        }
     }
 
     void layoutMovementsTab()
@@ -7970,6 +8005,10 @@ private:
     WfsStandardSlider frHighShelfSlopeSlider;
     juce::Label frHighShelfSlopeValueLabel;
     juce::TextButton muteReverbSendsButton;
+    HelpCardButton lsHelpButton;
+    HelpCard lsHelpCard;
+    HelpCardButton frHelpButton;
+    HelpCard frHelpCard;
 
     // L.F.O tab
     juce::TextButton lfoActiveButton;
