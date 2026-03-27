@@ -2174,9 +2174,17 @@
     }
   },
 
+  "help": {
+    "binaural": {
+      "title": "Binaural Renderer",
+      "body": "The Binaural renderer is used for:\n- listening to a rough spatial mix on headphones,\n- creating a mix for stereo output,\n- listening to a single soloed track through the spatial processing.\nThis may take the place of your master mix if it's only feeding headphones and media mix.\nThe position of the listening position may be adjusted in depth from the origin point and in orientation. Delay and level settings allow you to eventually match the sound at the FOH position."
+    }
+  },
+
   "wizard": {
     "buttons": {
       "gettingStarted": "Getting Started",
+      "gettingStartedHelp": "Help cards guiding you through the first parameters to adjust when starting a new project",
       "next": "Next",
       "back": "Back",
       "close": "Close",

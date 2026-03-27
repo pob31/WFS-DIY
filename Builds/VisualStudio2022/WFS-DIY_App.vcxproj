@@ -3176,6 +3176,7 @@
     <ClInclude Include="..\..\Source\gui\ConfigTabPreviewWindow.h"/>
     <ClInclude Include="..\..\Source\gui\StatusBar.h"/>
     <ClInclude Include="..\..\Source\gui\GettingStartedWizard.h"/>
+    <ClInclude Include="..\..\Source\gui\HelpCard.h"/>
     <ClInclude Include="..\..\Source\gui\SystemConfigTab.h"/>
     <ClInclude Include="..\..\Source\gui\OutputsTab.h"/>
     <ClInclude Include="..\..\Source\gui\InputsTab.h"/>

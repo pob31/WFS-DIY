@@ -1945,9 +1945,17 @@ OFF",
     }
   },
 
+  "help": {
+    "binaural": {
+      "title": "Renderer Binaurale",
+      "body": "Il renderer binaurale è utilizzato per:\n- ascoltare un mix spaziale approssimativo in cuffia,\n- creare un mix per uscita stereo,\n- ascoltare una traccia solista attraverso l'elaborazione spaziale.\nPuò sostituire il mix master se alimenta solo cuffie e mix media.\nLa posizione di ascolto può essere regolata in profondità dal punto di origine e in orientamento. Le impostazioni di ritardo e livello permettono di allineare il suono alla posizione FOH."
+    }
+  },
+
   "wizard": {
     "buttons": {
       "gettingStarted": "Iniziamo",
+      "gettingStartedHelp": "Schede di aiuto che guidano attraverso i primi parametri da regolare all'avvio di un nuovo progetto",
       "next": "Avanti",
       "back": "Indietro",
       "close": "Chiudi",

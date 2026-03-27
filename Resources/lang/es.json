@@ -1945,9 +1945,17 @@ OFF",
     }
   },
 
+  "help": {
+    "binaural": {
+      "title": "Renderizador Binaural",
+      "body": "El renderizador binaural se utiliza para:\n- escuchar una mezcla espacial aproximada con auriculares,\n- crear una mezcla para salida estéreo,\n- escuchar una pista en solo a través del procesamiento espacial.\nPuede sustituir su mezcla master si solo alimenta auriculares y mezcla de medios.\nLa posición de escucha puede ajustarse en profundidad desde el punto de origen y en orientación. Los ajustes de retardo y nivel permiten igualar el sonido en la posición FOH."
+    }
+  },
+
   "wizard": {
     "buttons": {
       "gettingStarted": "Inicio",
+      "gettingStartedHelp": "Tarjetas de ayuda que le guían a través de los primeros parámetros a ajustar al iniciar un nuevo proyecto",
       "next": "Siguiente",
       "back": "Anterior",
       "close": "Cerrar",

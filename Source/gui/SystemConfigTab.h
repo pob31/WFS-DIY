@@ -13,6 +13,7 @@
 #include "ColumnFocusTraverser.h"
 #include "../AppSettings.h"
 #include "../Controllers/Sampler/LightpadTypes.h"
+#include "HelpCard.h"
 #include "LightpadArrangementOverlay.h"
 
 #if JUCE_WINDOWS
@@ -636,6 +637,12 @@ public:
         addAndMakeVisible(binauralDelayUnitLabel);
         binauralDelayUnitLabel.setText("ms", juce::dontSendNotification);
 
+        // Binaural Help Card
+        addAndMakeVisible(binauralHelpButton);
+        addChildComponent(binauralHelpCard);
+        binauralHelpCard.setContent(LOC("help.binaural.title"), LOC("help.binaural.body"));
+        binauralHelpButton.setCard(&binauralHelpCard);
+
         // Store/Reload Section
         addAndMakeVisible(selectProjectFolderButton);
         selectProjectFolderButton.setButtonText(LOC("systemConfig.buttons.selectProjectFolder"));
@@ -1048,6 +1055,19 @@ public:
 
         // Solo mode button
         soloModeButton.setBounds(x, y, binauralFullWidth, rowHeight);
+
+        // Binaural help button — right end of "Binaural Renderer" header line
+        {
+            const int btnSize = scaled(20);
+            binauralHelpButton.setBounds(layout.col3X + layout.colWidth - btnSize - scaled(2),
+                                          scaled(200), btnSize, btnSize);
+            // Help card — bottom of column 2 where there's free space
+            int cardW = layout.colWidth;
+            int cardH = binauralHelpCard.getIdealHeight(cardW);
+            const int footerH = 2 * scaled(30) + 3 * scaled(10);
+            int cardY = getHeight() - footerH - scaled(10) - cardH;
+            binauralHelpCard.setBounds(layout.col2X, cardY, cardW, cardH);
+        }
 
         // Getting Started button — bottom of column 1, just above footer
         {
@@ -2750,7 +2770,7 @@ public:
         helpTextMap[&inputChannelsEditor] = LOC("systemConfig.help.inputChannels");
         helpTextMap[&outputChannelsEditor] = LOC("systemConfig.help.outputChannels");
         helpTextMap[&reverbChannelsEditor] = LOC("systemConfig.help.reverbChannels");
-        helpTextMap[&gettingStartedButton] = LOC("wizard.steps.projectFolder.description");
+        helpTextMap[&gettingStartedButton] = LOC("wizard.buttons.gettingStartedHelp");
         helpTextMap[&audioPatchingButton] = LOC("systemConfig.help.audioPatch");
         helpTextMap[&algorithmSelector] = LOC("systemConfig.help.algorithm");
         helpTextMap[&processingButton] = LOC("systemConfig.help.processing");
@@ -2996,6 +3016,8 @@ public:
     WfsStandardSlider binauralDelaySlider;
     juce::TextEditor binauralDelayEditor;
     juce::Label binauralDelayUnitLabel;
+    HelpCardButton binauralHelpButton;
+    HelpCard binauralHelpCard;
 
     // Store/Reload Section
     LongPressButton selectProjectFolderButton { 1 };

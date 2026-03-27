@@ -1966,9 +1966,17 @@ OFF",
     }
   },
 
+  "help": {
+    "binaural": {
+      "title": "Rendu Binaural",
+      "body": "Le rendu binaural est utilisé pour :\n- écouter un mix spatial approximatif au casque,\n- créer un mix pour une sortie stéréo,\n- écouter une piste solotée à travers le traitement spatial.\nIl peut remplacer votre mix master s'il n'alimente que le casque et le mix média.\nLa position d'écoute peut être ajustée en profondeur depuis le point d'origine et en orientation. Les réglages de délai et de niveau permettent de faire correspondre le son à la position FOH."
+    }
+  },
+
   "wizard": {
     "buttons": {
       "gettingStarted": "Démarrage",
+      "gettingStartedHelp": "Fiches d'aide vous guidant à travers les premiers paramètres à ajuster lors du démarrage d'un nouveau projet",
       "next": "Suivant",
       "back": "Précédent",
       "close": "Fermer",

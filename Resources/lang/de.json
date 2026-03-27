@@ -1945,9 +1945,17 @@ OFF",
     }
   },
 
+  "help": {
+    "binaural": {
+      "title": "Binaural-Renderer",
+      "body": "Der Binaural-Renderer wird verwendet für:\n- das Abhören eines groben räumlichen Mixes über Kopfhörer,\n- das Erstellen eines Mixes für Stereoausgabe,\n- das Abhören einer einzelnen Solo-Spur durch die räumliche Verarbeitung.\nEr kann Ihren Master-Mix ersetzen, wenn dieser nur Kopfhörer und Medienmix versorgt.\nDie Hörposition kann in der Tiefe vom Ursprungspunkt und in der Orientierung angepasst werden. Delay- und Pegeleinstellungen ermöglichen die Anpassung an die FOH-Position."
+    }
+  },
+
   "wizard": {
     "buttons": {
       "gettingStarted": "Erste Schritte",
+      "gettingStartedHelp": "Hilfekarten, die Sie durch die ersten Parameter führen, die beim Start eines neuen Projekts eingestellt werden müssen",
       "next": "Weiter",
       "back": "Zurück",
       "close": "Schließen",
