@@ -17,6 +17,7 @@
 #include "buttons/EQBandToggle.h"
 #include "ColumnFocusTraverser.h"
 #include "../AppSettings.h"
+#include "HelpCard.h"
 #include "GainReductionMeter.h"
 
 /**
@@ -1311,6 +1312,12 @@ private:
         algoIRButton.setColour (juce::TextButton::buttonOnColourId, juce::Colour (0xFF2D2D2D));
         algoIRButton.onClick = [this] { selectAlgorithm (2); };
 
+        // Algorithm help card
+        addAndMakeVisible(algoHelpButton);
+        addChildComponent(algoHelpCard);
+        algoHelpCard.setContent(LOC("help.reverbAlgo.title"), LOC("help.reverbAlgo.body"));
+        algoHelpButton.setCard(&algoHelpCard);
+
         // Decay section label
         addAndMakeVisible (algoDecaySectionLabel);
         algoDecaySectionLabel.setText (LOC("reverbs.algorithm.decaySection"), juce::dontSendNotification);
@@ -2239,6 +2246,16 @@ private:
         int colWidth = area.getWidth() / 2;
         auto col1 = area.removeFromLeft (colWidth);
         auto col2 = area.reduced (scaled(5), 0);
+
+        // Help button — beneath the algorithm selector, right-aligned in col1 selector area
+        {
+            const int btnSize = scaled(20);
+            algoHelpButton.setBounds(algoIRButton.getRight() + spacing, algoIRButton.getY(), btnSize, btnSize);
+            // Help card — fills right column
+            int cardW = col2.getWidth();
+            int cardH = algoHelpCard.getIdealHeight(cardW);
+            algoHelpCard.setBounds(col2.getX(), col2.getY(), cardW, cardH);
+        }
 
         // === Left Column: Decay + SDN/FDN ===
         if (algoDecaySectionLabel.isVisible())
@@ -5202,6 +5219,8 @@ private:
 
     // Algorithm sub-tab
     juce::TextButton algoSDNButton, algoFDNButton, algoIRButton;
+    HelpCardButton algoHelpButton;
+    HelpCard algoHelpCard;
 
     // Decay section (SDN & FDN)
     juce::Label algoDecaySectionLabel;
