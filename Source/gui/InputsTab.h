@@ -4687,16 +4687,17 @@ private:
         const int sendsBtnW = scaled(200);
         muteReverbSendsButton.setBounds(buttonCenterX - sendsBtnW / 2, reverbSendsRow.getY(), sendsBtnW, rowHeight);
 
-        // Help cards — bottom of left column
+        // Help cards — bottom of left column, same top Y for both
         {
             int cardX = subTabContentArea.getX() + colPad;
             int cardW = subTabContentArea.getWidth() / 2 - colPad * 2;
-            // Stack both cards: floor reflections at very bottom, live source above it
             int frCardH = frHelpCard.getIdealHeight(cardW);
             int lsCardH = lsHelpCard.getIdealHeight(cardW);
             int bottomY = subTabContentArea.getBottom() - colPad;
-            frHelpCard.setBounds(cardX, bottomY - frCardH, cardW, frCardH);
-            lsHelpCard.setBounds(cardX, bottomY - frCardH - spacing - lsCardH, cardW, lsCardH);
+            int cardH = juce::jmax(frCardH, lsCardH);
+            int cardY = bottomY - cardH;
+            lsHelpCard.setBounds(cardX, cardY, cardW, lsCardH);
+            frHelpCard.setBounds(cardX, cardY, cardW, frCardH);
         }
     }
 
