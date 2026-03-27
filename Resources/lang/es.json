@@ -1949,6 +1949,10 @@ OFF",
     "binaural": {
       "title": "Renderizador Binaural",
       "body": "El renderizador binaural se utiliza para:\n- escuchar una mezcla espacial aproximada con auriculares,\n- crear una mezcla para salida estéreo,\n- escuchar una pista en solo a través del procesamiento espacial.\nPuede sustituir su mezcla master si solo alimenta auriculares y mezcla de medios.\nLa posición de escucha puede ajustarse en profundidad desde el punto de origen y en orientación. Los ajustes de retardo y nivel permiten igualar el sonido en la posición FOH."
+    },
+    "admOsc": {
+      "title": "Mapeos ADM-OSC",
+      "body": "ADM-OSC es un protocolo que busca mejorar la interoperabilidad del sonido espacial. Envía posiciones cartesianas (X, Y, Z) o valores polares (AED para Azimut, Elevación, Distancia) desde la consola o las curvas de automatización de un DAW.\nLos datos se envían normalizados:\n- entre -1.0 y 1.0 para X, Y y Z;\n- entre 0.0 y 1.0 para distancia,\n- entre -180° y 180° para Azimut\n- entre -90° y 90° para elevación.\nEl punto de origen puede moverse y el mapeo también puede ajustarse en diferentes segmentos para las partes interior y exterior del escenario.\nAl arrastrar los controles en los gráficos, mantener la tecla Mayús aplica ajustes simétricos en el lado opuesto."
     }
   },
 

@@ -12,6 +12,7 @@
 #include "ColumnFocusTraverser.h"
 #include "../AppSettings.h"
 #include "../Network/ADMOSCMapping.h"
+#include "HelpCard.h"
 
 #if JUCE_WINDOWS
     #include <winsock2.h>
@@ -1696,6 +1697,12 @@ public:
         // ==================== ADM-OSC SECTION ====================
         setupAdmOscSection();
 
+        // ADM-OSC Help Card
+        addAndMakeVisible(admOscHelpButton);
+        addChildComponent(admOscHelpCard);
+        admOscHelpCard.setContent(LOC("help.admOsc.title"), LOC("help.admOsc.body"));
+        admOscHelpButton.setCard(&admOscHelpCard);
+
         // ==================== TRACKING SECTION ====================
         setupTrackingSection();
 
@@ -2012,6 +2019,15 @@ public:
         oscSourceFilterButton.setBounds(leftX, leftY, tableButtonWidth, rowHeight);
         openLogWindowButton.setBounds(leftX + tableButtonWidth + tableButtonGap, leftY, tableButtonWidth, rowHeight);
         findMyRemoteButton.setBounds(leftX + tableButtonWidth * 2 + tableButtonGap * 2, leftY, tableButtonWidth, rowHeight);
+        leftY += rowHeight + spacing;
+
+        // ADM-OSC help card — bottom of left column, below connection buttons
+        {
+            int cardW = leftColumnWidth;
+            int cardH = admOscHelpCard.getIdealHeight(cardW);
+            int cardY = getHeight() - footerHeight - scaled(10) - cardH;
+            admOscHelpCard.setBounds(leftX, cardY, cardW, cardH);
+        }
 
         // ==================== RIGHT COLUMN: TRACKING & ADM-OSC ====================
         int rightY = scaled(35);
@@ -2118,6 +2134,14 @@ public:
 
         // --- ADM-OSC Section (now second in right column) ---
         admOscSectionY = rightY;
+
+        // ADM-OSC help button — right end of ADM-OSC header line
+        {
+            const int btnSize = scaled(20);
+            const int hdrOffset = scaled(25);
+            admOscHelpButton.setBounds(rightColumnX + rightColumnWidth - btnSize,
+                                        admOscSectionY - hdrOffset, btnSize, btnSize);
+        }
 
         // Row 1: Mapping selector
         const int mappingLabelW = scaled(75);
@@ -2284,6 +2308,9 @@ private:
     juce::ComboBox admMappingSelector;
     juce::Label admMappingSelectorLabel;
     int currentAdmMapping = 0;  // Currently editing: 0-3 = Cart, 4-7 = Polar
+
+    HelpCardButton admOscHelpButton;
+    HelpCard admOscHelpCard;
 
     // Cartesian mapping visualization panel (all controls integrated)
     AdmMappingPanel admMappingGraph;

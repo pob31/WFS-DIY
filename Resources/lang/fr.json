@@ -1970,6 +1970,10 @@ OFF",
     "binaural": {
       "title": "Rendu Binaural",
       "body": "Le rendu binaural est utilisé pour :\n- écouter un mix spatial approximatif au casque,\n- créer un mix pour une sortie stéréo,\n- écouter une piste solotée à travers le traitement spatial.\nIl peut remplacer votre mix master s'il n'alimente que le casque et le mix média.\nLa position d'écoute peut être ajustée en profondeur depuis le point d'origine et en orientation. Les réglages de délai et de niveau permettent de faire correspondre le son à la position FOH."
+    },
+    "admOsc": {
+      "title": "Mappings ADM-OSC",
+      "body": "ADM-OSC est un protocole visant à améliorer l'interopérabilité du son spatialisé. Il envoie des positions cartésiennes (X, Y, Z) ou des valeurs polaires (AED pour Azimut, Élévation, Distance) depuis la console ou les courbes d'automation d'un DAW.\nLes données sont envoyées normalisées :\n- entre -1.0 et 1.0 pour X, Y et Z ;\n- entre 0.0 et 1.0 pour la distance,\n- entre -180° et 180° pour l'azimut\n- entre -90° et 90° pour l'élévation.\nLe point d'origine peut être déplacé et le mapping peut aussi être ajusté en différents segments pour les parties intérieure et extérieure de la scène.\nEn glissant les poignées sur les graphiques, maintenir la touche Maj applique des ajustements symétriques du côté opposé."
     }
   },
 

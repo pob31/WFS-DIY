@@ -1949,6 +1949,10 @@ OFF",
     "binaural": {
       "title": "Binaural-Renderer",
       "body": "Der Binaural-Renderer wird verwendet für:\n- das Abhören eines groben räumlichen Mixes über Kopfhörer,\n- das Erstellen eines Mixes für Stereoausgabe,\n- das Abhören einer einzelnen Solo-Spur durch die räumliche Verarbeitung.\nEr kann Ihren Master-Mix ersetzen, wenn dieser nur Kopfhörer und Medienmix versorgt.\nDie Hörposition kann in der Tiefe vom Ursprungspunkt und in der Orientierung angepasst werden. Delay- und Pegeleinstellungen ermöglichen die Anpassung an die FOH-Position."
+    },
+    "admOsc": {
+      "title": "ADM-OSC-Zuordnungen",
+      "body": "ADM-OSC ist ein Protokoll zur Verbesserung der Interoperabilität für räumlichen Klang. Es sendet kartesische Positionen (X, Y, Z) oder polare Werte (AED für Azimut, Elevation, Distanz) von der Konsole oder den Automationskurven einer DAW.\nDie Daten werden normalisiert gesendet:\n- zwischen -1,0 und 1,0 für X, Y und Z;\n- zwischen 0,0 und 1,0 für Distanz,\n- zwischen -180° und 180° für Azimut\n- zwischen -90° und 90° für Elevation.\nDer Ursprungspunkt kann verschoben und das Mapping in verschiedenen Segmenten für den inneren und äußeren Bühnenbereich angepasst werden.\nBeim Ziehen der Griffe in den Diagrammen werden mit gedrückter Umschalttaste symmetrische Anpassungen auf der gegenüberliegenden Seite vorgenommen."
     }
   },
 
