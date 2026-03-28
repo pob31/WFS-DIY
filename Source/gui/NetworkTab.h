@@ -1703,6 +1703,12 @@ public:
         admOscHelpCard.setContent(LOC("help.admOsc.title"), LOC("help.admOsc.body"));
         admOscHelpButton.setCard(&admOscHelpCard);
 
+        // Tracking Help Card
+        addAndMakeVisible(trackingHelpButton);
+        addChildComponent(trackingHelpCard);
+        trackingHelpCard.setContent(LOC("help.tracking.title"), LOC("help.tracking.body"));
+        trackingHelpButton.setCard(&trackingHelpCard);
+
         // ==================== TRACKING SECTION ====================
         setupTrackingSection();
 
@@ -2021,12 +2027,14 @@ public:
         findMyRemoteButton.setBounds(leftX + tableButtonWidth * 2 + tableButtonGap * 2, leftY, tableButtonWidth, rowHeight);
         leftY += rowHeight + spacing;
 
-        // ADM-OSC help card — bottom of left column, below connection buttons
+        // Help cards — bottom of left column, below connection buttons
         {
             int cardW = leftColumnWidth;
-            int cardH = admOscHelpCard.getIdealHeight(cardW);
-            int cardY = getHeight() - footerHeight - scaled(10) - cardH;
-            admOscHelpCard.setBounds(leftX, cardY, cardW, cardH);
+            int admCardH = admOscHelpCard.getIdealHeight(cardW);
+            int trkCardH = trackingHelpCard.getIdealHeight(cardW);
+            int bottomY = getHeight() - footerHeight - scaled(10);
+            admOscHelpCard.setBounds(leftX, bottomY - admCardH, cardW, admCardH);
+            trackingHelpCard.setBounds(leftX, bottomY - trkCardH, cardW, trkCardH);
         }
 
         // ==================== RIGHT COLUMN: TRACKING & ADM-OSC ====================
@@ -2048,6 +2056,14 @@ public:
 
         // --- Tracking Section (now first in right column) ---
         trackingSectionY = rightY;
+
+        // Tracking help button — right end of Tracking header line
+        {
+            const int btnSize = scaled(20);
+            const int hdrOffset = scaled(25);
+            trackingHelpButton.setBounds(rightColumnX + rightColumnWidth - btnSize,
+                                          trackingSectionY - hdrOffset, btnSize, btnSize);
+        }
 
         // Row 1: Enable, Protocol, Port — aligned with offset/scale editor boxes
         const int btnInset = 6;  // matches WfsLookAndFeel drawButtonBackground/drawComboBox inset
@@ -2317,6 +2333,9 @@ private:
 
     // Polar mapping visualization panel (all controls integrated)
     AdmPolarPanel admPolarGraph;
+
+    HelpCardButton trackingHelpButton;
+    HelpCard trackingHelpCard;
 
     // Tracking Section
     juce::TextButton trackingEnabledButton;
