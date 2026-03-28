@@ -1703,6 +1703,12 @@ public:
         admOscHelpCard.setContent(LOC("help.admOsc.title"), LOC("help.admOsc.body"));
         admOscHelpButton.setCard(&admOscHelpCard);
 
+        // Network Help Card
+        addAndMakeVisible(networkHelpButton);
+        addChildComponent(networkHelpCard);
+        networkHelpCard.setContent(LOC("help.network.title"), LOC("help.network.body"));
+        networkHelpButton.setCard(&networkHelpCard);
+
         // Tracking Help Card
         addAndMakeVisible(trackingHelpButton);
         addChildComponent(trackingHelpCard);
@@ -1914,6 +1920,12 @@ public:
         rightColumnX = leftX + leftColumnWidth + columnGap;
         mainColumnDividerX = leftX + leftColumnWidth + columnGap / 2;
 
+        // Network help button — right end of Network header line (left column)
+        {
+            const int btnSize = scaled(20);
+            networkHelpButton.setBounds(leftX + leftColumnWidth - btnSize, scaled(10), btnSize, btnSize);
+        }
+
         // ==================== LEFT COLUMN ====================
         int leftY = scaled(35);
 
@@ -2030,9 +2042,11 @@ public:
         // Help cards — bottom of left column, below connection buttons
         {
             int cardW = leftColumnWidth;
+            int bottomY = getHeight() - footerHeight - scaled(10);
+            int netCardH = networkHelpCard.getIdealHeight(cardW);
             int admCardH = admOscHelpCard.getIdealHeight(cardW);
             int trkCardH = trackingHelpCard.getIdealHeight(cardW);
-            int bottomY = getHeight() - footerHeight - scaled(10);
+            networkHelpCard.setBounds(leftX, bottomY - netCardH, cardW, netCardH);
             admOscHelpCard.setBounds(leftX, bottomY - admCardH, cardW, admCardH);
             trackingHelpCard.setBounds(leftX, bottomY - trkCardH, cardW, trkCardH);
         }
@@ -2334,6 +2348,8 @@ private:
     // Polar mapping visualization panel (all controls integrated)
     AdmPolarPanel admPolarGraph;
 
+    HelpCardButton networkHelpButton;
+    HelpCard networkHelpCard;
     HelpCardButton trackingHelpButton;
     HelpCard trackingHelpCard;
 
