@@ -1217,6 +1217,7 @@ private:
     void layoutCurrentSubTab()
     {
         int tabIndex = subTabBar.getCurrentTabIndex();
+        columnDividerX = 0;  // Reset — only set by tabs that need it
 
         // Hide all components first
         setOutputParametersVisible(false);
