@@ -1616,7 +1616,7 @@
       "offsetX": "Offset X",
       "offsetY": "Offset Y",
       "offsetZ": "Offset Z",
-      "attenuation": "Atten (dB)"
+      "attenuation": "衰减 (dB)"
     },
     "set": {
       "default": "集合",

@@ -2936,7 +2936,7 @@ private:
         {
             addAndMakeVisible(label);
             label.setText(text, juce::dontSendNotification);
-            label.setFont(juce::FontOptions().withHeight(12.0f).withStyle("Bold"));
+            label.setFont(juce::FontOptions().withHeight(juce::jmax(10.0f, 12.0f * layoutScale)).withStyle("Bold"));
             label.setJustificationType(juce::Justification::centred);
 
             // Add mouse listener for hover help

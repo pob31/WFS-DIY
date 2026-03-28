@@ -38,7 +38,7 @@ public:
                                  shouldDrawButtonAsHighlighted, shouldDrawButtonAsDown);
 
         // Draw text with bold font
-        g.setFont (juce::FontOptions (15.0f).withStyle ("Bold"));
+        g.setFont (juce::FontOptions (juce::jmax (10.0f, 15.0f * WfsLookAndFeel::uiScale)).withStyle ("Bold"));
         g.setColour (findColour (getToggleState() ? textColourOnId : textColourOffId));
         g.drawText (getButtonText(), getLocalBounds(), juce::Justification::centred);
     }
@@ -574,6 +574,21 @@ public:
         // ==================== RIGHT PANEL - LFO ====================
         layoutLFOPanel(rightPanel);
 
+        // Scale label fonts with window size
+        auto scaledFont = [this](float ref) { return juce::jmax(10.0f, ref * layoutScale); };
+        assignedInputsLabel.setFont(juce::FontOptions().withHeight(scaledFont(16.0f)).withStyle("Bold"));
+        statusLabel.setFont(juce::FontOptions().withHeight(scaledFont(14.0f)));
+        positionLabel.setFont(juce::FontOptions().withHeight(scaledFont(14.0f)));
+        zSliderLabel.setFont(juce::FontOptions().withHeight(scaledFont(14.0f)));
+        attenuationLabel.setFont(juce::FontOptions().withHeight(scaledFont(14.0f)));
+        rotationLabel.setFont(juce::FontOptions().withHeight(scaledFont(14.0f)));
+        scaleLabel.setFont(juce::FontOptions().withHeight(scaledFont(14.0f)));
+        lfoSectionLabel.setFont(juce::FontOptions().withHeight(scaledFont(16.0f)).withStyle("Bold"));
+        lfoPeriodLabel.setFont(juce::FontOptions().withHeight(scaledFont(15.0f)));
+        lfoPeriodValueLabel.setFont(juce::FontOptions().withHeight(scaledFont(15.0f)));
+        lfoPhaseLabel.setFont(juce::FontOptions().withHeight(scaledFont(15.0f)));
+        lfoPhaseValueLabel.setFont(juce::FontOptions().withHeight(scaledFont(15.0f)));
+
         WfsLookAndFeel::scaleTextEditorFonts(*this, layoutScale);
     }
 
@@ -747,7 +762,7 @@ private:
     public:
         LFOPresetTile (ClustersTab& o, int index) : owner (o), presetIndex (index)
         {
-            nameLabel.setFont (juce::FontOptions().withHeight (22.0f));
+            nameLabel.setFont (juce::FontOptions().withHeight (juce::jmax (14.0f, 22.0f * WfsLookAndFeel::uiScale)));
             nameLabel.setJustificationType (juce::Justification::centredLeft);
             nameLabel.setColour (juce::Label::textColourId, juce::Colours::white.withAlpha (0.8f));
             nameLabel.setColour (juce::Label::backgroundColourId, juce::Colours::transparentBlack);
@@ -1183,6 +1198,11 @@ private:
 
     void layoutLFOPanel(juce::Rectangle<int> area)
     {
+        // Scale axis label fonts
+        auto scaledFont = [this](float ref) { return juce::jmax(10.0f, ref * layoutScale); };
+        for (auto& row : lfoRows)
+            row.axisLabel.setFont(juce::FontOptions().withHeight(scaledFont(16.0f)).withStyle("Bold"));
+
         // Sizing constants
         const int rowHeight    = scaled(24);     // shape selector row
         const int sliderHeight = scaled(40);     // amplitude & rate sliders (thicker, matches InputsTab)

@@ -404,6 +404,18 @@ public:
 
             auto contentArea = bounds.reduced (padding, 0);
             subTabContentArea = contentArea.reduced (0, padding);
+
+            // Scale section title fonts
+            auto sf = [this](float ref) { return juce::jmax(10.0f, ref * layoutScale); };
+            reverbFeedTitleLabel.setFont (juce::FontOptions().withHeight (sf(18.0f)).withStyle ("Bold"));
+            reverbReturnTitleLabel.setFont (juce::FontOptions().withHeight (sf(18.0f)).withStyle ("Bold"));
+            preCompSectionLabel.setFont (juce::FontOptions().withHeight (sf(16.0f)).withStyle ("Bold"));
+            postExpSectionLabel.setFont (juce::FontOptions().withHeight (sf(16.0f)).withStyle ("Bold"));
+            algoDecaySectionLabel.setFont (juce::FontOptions().withHeight (sf(16.0f)).withStyle ("Bold"));
+            algoSDNSectionLabel.setFont (juce::FontOptions().withHeight (sf(16.0f)).withStyle ("Bold"));
+            algoFDNSectionLabel.setFont (juce::FontOptions().withHeight (sf(16.0f)).withStyle ("Bold"));
+            algoIRSectionLabel.setFont (juce::FontOptions().withHeight (sf(16.0f)).withStyle ("Bold"));
+
             layoutCurrentSubTab();
             WfsLookAndFeel::scaleTextEditorFonts(*this, layoutScale);
         }

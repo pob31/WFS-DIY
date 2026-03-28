@@ -299,6 +299,8 @@ public:
 
     void resized() override
     {
+        // Use 760 as reference (sub-tab content area height at 1080p)
+        layoutScale = static_cast<float> (getHeight()) / 760.0f;
         auto bounds = getLocalBounds();
 
         // Right panel: 33%
@@ -310,8 +312,8 @@ public:
 
         // Help button — top-right of grid area
         {
-            const int btnSize = 22;
-            samplerHelpButton.setBounds(gridArea.getRight() - btnSize - 8, gridArea.getY() + 8, btnSize, btnSize);
+            const int btnSize = scaled (22);
+            samplerHelpButton.setBounds(gridArea.getRight() - btnSize - scaled (8), gridArea.getY() + scaled (8), btnSize, btnSize);
             // Help card — centered over the grid tiles
             int cardW = juce::jmin(gridArea.getWidth() - 40, 500);
             int cardH = samplerHelpCard.getIdealHeight(cardW);
@@ -321,6 +323,7 @@ public:
         }
 
         layoutPanel();
+        WfsLookAndFeel::scaleTextEditorFonts (*this, layoutScale);
     }
 
     // ==================== PAINT ====================
@@ -354,14 +357,14 @@ public:
 
         // Section labels
         g.setColour (cs.textSecondary);
-        g.setFont (juce::FontOptions (11.0f));
+        g.setFont (juce::FontOptions (juce::jmax (10.0f, 14.0f * layoutScale)));
         for (auto& [label, yPos] : sectionLabels)
-            g.drawText (label, panelArea.getX() + 8, yPos, panelArea.getWidth() - 16, 16,
+            g.drawText (label, panelArea.getX() + 8, yPos, panelArea.getWidth() - 16, scaled (20),
                         juce::Justification::centredLeft);
 
-        // Control inline labels (e.g. "In/Out (ms)", "Offset (m)", "Pos (m)")
+        // Control inline labels (e.g. "In/Out (ms)", "Offset (m)", "Position (m)")
         g.setColour (juce::Colours::white.withAlpha (0.85f));
-        g.setFont (juce::FontOptions (10.0f));
+        g.setFont (juce::FontOptions (juce::jmax (10.0f, 14.0f * layoutScale)));
         for (auto& cl : controlLabels)
             g.drawText (cl.text, cl.x, cl.y, cl.w, cl.h, juce::Justification::centredLeft);
 
@@ -761,9 +764,9 @@ private:
 
     void layoutPanel()
     {
-        const int rowH = 26;
-        const int pad = 3;
-        const int sectionGap = 5;
+        const int rowH = scaled (30);
+        const int pad = scaled (5);
+        const int sectionGap = scaled (8);
         int x0 = panelArea.getX() + 6;
         int contentW = panelArea.getWidth() - 12;
 
@@ -786,7 +789,7 @@ private:
 
         // ── Section: Cell Properties ──
         sectionLabels.push_back ({ LOC ("sampler.section.cell"), y });
-        y += 16;
+        y += scaled (20);
 
         cellNameEditor.setBounds (x0, y, contentW, rowH);
         y += rowH + pad;
@@ -826,7 +829,7 @@ private:
 
         // ── Section: Set Management ──
         sectionLabels.push_back ({ LOC ("sampler.section.set"), y });
-        y += 16;
+        y += scaled (20);
 
         // Row 1: [selector] [+] [-]
         int selectorW = contentW - 2 * (24 + pad);
@@ -864,7 +867,7 @@ private:
 
         // ── Section: Pressure Mappings ──
         sectionLabels.push_back ({ LOC ("sampler.section.pressure"), y });
-        y += 16;
+        y += scaled (20);
 
         layoutPressureRow (y, pressLevelEnable, pressLevelDirBtn, pressLevelCurveSlider, pressLevelCurveValueLabel, x0, contentW, rowH, pad);
         layoutPressureRow (y, pressZEnable, pressZDirBtn, pressZCurveSlider, pressZCurveValueLabel, x0, contentW, rowH, pad);
@@ -877,22 +880,20 @@ private:
         pressXYScaleValueLabel.setBounds (x0 + contentW - xyValueW, y, xyValueW, rowH);
         y += rowH + pad;
 
-        // ── Separator ──
-        y += sectionGap;
-        sectionSeparatorYs.push_back (y);
-        y += sectionGap;
-
-        // ── Section: Copy/Paste & Import/Export ──
-        sectionLabels.push_back ({ LOC ("sampler.section.actions"), y });
-        y += 16;
-
-        int halfW = (contentW - pad) / 2;
-        copyButton.setBounds (x0, y, halfW, rowH);
-        pasteButton.setBounds (x0 + halfW + pad, y, halfW, rowH);
-        y += rowH + pad;
-
-        importButton.setBounds (x0, y, halfW, rowH);
-        exportButton.setBounds (x0 + halfW + pad, y, halfW, rowH);
+        // ── Section: Copy/Paste & Import/Export — anchored at bottom ──
+        {
+            int halfW = (contentW - pad) / 2;
+            int ay = panelArea.getBottom() - pad - rowH;
+            importButton.setBounds (x0, ay, halfW, rowH);
+            exportButton.setBounds (x0 + halfW + pad, ay, halfW, rowH);
+            ay -= rowH + pad;
+            copyButton.setBounds (x0, ay, halfW, rowH);
+            pasteButton.setBounds (x0 + halfW + pad, ay, halfW, rowH);
+            ay -= scaled (16);
+            sectionLabels.push_back ({ LOC ("sampler.section.actions"), ay });
+            ay -= sectionGap;
+            sectionSeparatorYs.push_back (ay);
+        }
     }
 
     void layoutPressureRow (int& y, juce::ToggleButton& enable,
@@ -1701,6 +1702,10 @@ private:
 
     HelpCardButton samplerHelpButton;
     HelpCard samplerHelpCard;
+
+    // Layout scaling
+    float layoutScale = 1.0f;
+    int scaled (int ref) const { return juce::jmax (static_cast<int> (ref * 0.65f), static_cast<int> (ref * layoutScale)); }
 
     // Layout areas
     juce::Rectangle<int> gridArea;

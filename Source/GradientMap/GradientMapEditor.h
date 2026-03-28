@@ -191,8 +191,14 @@ public:
         curveLabel.setJustificationType (juce::Justification::centredRight);
         curveLabel.setFont (labelFont);
 
+        auto clearEditorFrame = [] (juce::TextEditor& ed) {
+            ed.setColour (juce::TextEditor::backgroundColourId, juce::Colours::transparentBlack);
+            ed.setColour (juce::TextEditor::outlineColourId, juce::Colours::transparentBlack);
+        };
         whiteValueEditor.setJustification (juce::Justification::centred);
         blackValueEditor.setJustification (juce::Justification::centred);
+        clearEditorFrame (whiteValueEditor);
+        clearEditorFrame (blackValueEditor);
         whiteValueEditor.onReturnKey = [this] { onLayerPropertyChanged(); };
         blackValueEditor.onReturnKey = [this] { onLayerPropertyChanged(); };
         whiteValueEditor.onFocusLost = [this] { onLayerPropertyChanged(); };
@@ -216,6 +222,7 @@ public:
             }
         };
         curveValueEditor.setJustification (juce::Justification::centred);
+        clearEditorFrame (curveValueEditor);
         curveValueEditor.onReturnKey = [this]
         {
             curveSlider.setValue (curveValueEditor.getText().getFloatValue());
@@ -435,6 +442,12 @@ public:
         setShapePropertiesVisible (false);
 
         // Gradient map help card
+        clearEditorFrame (shapeNameEditor);
+        clearEditorFrame (shapeFillValueEditor);
+        clearEditorFrame (gradValue1Editor);
+        clearEditorFrame (gradValue2Editor);
+        clearEditorFrame (shapeBlurEditor);
+
         addAndMakeVisible(gradMapHelpButton);
         addChildComponent(gradMapHelpCard);
         gradMapHelpCard.setContent(LOC("help.gradientMap.title"), LOC("help.gradientMap.body"));
@@ -839,6 +852,9 @@ public:
 
     void resized() override
     {
+        // Use 760 as reference (sub-tab content area height at 1080p)
+        // so that scaled() values match the parent InputsTab at the same window size
+        layoutScale = static_cast<float> (getHeight()) / 760.0f;
         auto bounds = getLocalBounds();
 
         // Property panel (right 21%)
@@ -847,10 +863,10 @@ public:
 
         // Help button — top-right of canvas area (left of panel)
         {
-            const int btnSize = 22;
+            const int btnSize = scaled (22);
             int canvasW = bounds.getWidth();
             int canvasH = bounds.getHeight();
-            gradMapHelpButton.setBounds(bounds.getRight() - btnSize - 8, bounds.getY() + 8, btnSize, btnSize);
+            gradMapHelpButton.setBounds(bounds.getRight() - btnSize - scaled (8), bounds.getY() + scaled (8), btnSize, btnSize);
             // Help card — centered on canvas
             int cardW = juce::jmin(canvasW - 40, 520);
             int cardH = gradMapHelpCard.getIdealHeight(cardW);
@@ -859,36 +875,37 @@ public:
             gradMapHelpCard.setBounds(cardX, cardY, cardW, cardH);
         }
 
-        int rowH = 28, labelW = 60, pad = 4;
-        int eyeBtnW = 24;
-        int powerBtnW = 20;
+        int rowH = scaled (30), labelW = scaled (60), pad = scaled (10);
+        int eyeBtnW = scaled (24);
+        int powerBtnW = scaled (20);
 
         // Layer selector — Row 1: selection buttons, Row 2: power + eye centered
-        auto layerRow1 = panelBounds.removeFromTop (36);
-        auto layerRow2 = panelBounds.removeFromTop (22);
+        auto layerRow1 = panelBounds.removeFromTop (scaled (40));
+        auto layerRow2 = panelBounds.removeFromTop (scaled (28));
         {
-            int groupW = (panelWidth - 8) / 3;
+            int groupW = (panelWidth - scaled (8)) / 3;
             for (int i = 0; i < 3; ++i)
             {
-                int lx = layerRow1.getX() + 4 + i * groupW;
-                layerEnableBtn[i].setBounds (lx, layerRow1.getY() + 2, groupW - 2, 32);
+                int lx = layerRow1.getX() + scaled (4) + i * groupW;
+                layerEnableBtn[i].setBounds (lx, layerRow1.getY() + 2, groupW - 2, scaled (36));
 
                 int toggleW = powerBtnW + eyeBtnW;
                 int toggleX = lx + (groupW - toggleW) / 2;
-                layerEnabledBtn[i].setBounds (toggleX, layerRow2.getY() + 1, powerBtnW, 20);
-                layerVisibleBtn[i].setBounds (toggleX + powerBtnW, layerRow2.getY() + 1, eyeBtnW, 20);
+                layerEnabledBtn[i].setBounds (toggleX, layerRow2.getY() + 1, powerBtnW, scaled (24));
+                layerVisibleBtn[i].setBounds (toggleX + powerBtnW, layerRow2.getY() + 1, eyeBtnW, scaled (24));
             }
         }
 
         // Separator 1
         separatorY1 = panelBounds.getY();
-        panelBounds.removeFromTop (6);
+        panelBounds.removeFromTop (scaled (10));
 
         // Layer header + params
-        panelBounds.removeFromTop (22);  // Colored header text (painted)
-        layerHeaderY = panelBounds.getY() - 22;
+        int headerH = scaled (24);
+        panelBounds.removeFromTop (headerH);  // Colored header text (painted)
+        layerHeaderY = panelBounds.getY() - headerH;
 
-        int editorW = 50;
+        int editorW = scaled (50);
 
         auto row = panelBounds.removeFromTop (rowH);
         whiteValueLabel.setBounds (row.removeFromLeft (labelW));
@@ -904,14 +921,14 @@ public:
         curveSlider.setBounds (row.reduced (pad, 2));
 
         // Mapping hint label
-        mappingHintLabel.setBounds (panelBounds.removeFromTop (20).reduced (2, 0));
+        mappingHintLabel.setBounds (panelBounds.removeFromTop (scaled (22)).reduced (2, 0));
 
         // Height ratio warning (only visible on Height layer when ratio is 0%)
-        heightWarningLabel.setBounds (panelBounds.removeFromTop (18).reduced (2, 0));
+        heightWarningLabel.setBounds (panelBounds.removeFromTop (scaled (20)).reduced (2, 0));
 
         // Separator 2
         separatorY2 = panelBounds.getY() + 2;
-        panelBounds.removeFromTop (8);
+        panelBounds.removeFromTop (scaled (10));
 
         // Shape properties
         row = panelBounds.removeFromTop (rowH);
@@ -948,17 +965,22 @@ public:
         }
 
         // Tool buttons at bottom of panel (4 rows: copy/paste, select, shapes, fills)
-        int toolBtnH = 32, toolPad = 6;
+        int toolBtnH = scaled (36), toolPad = scaled (8);
         auto toolArea = panelBounds.removeFromBottom (toolBtnH * 4 + toolPad * 5 + 2);
 
         // Separator before tools
         separatorY3 = toolArea.getY();
         toolArea.removeFromTop (toolPad + 2);
 
-        // Copy/paste row (above select tool)
+        // Copy/paste row (above select tool) — same layout as select row
         auto toolRow0 = toolArea.removeFromTop (toolBtnH + toolPad).withTrimmedTop (toolPad);
-        copyBtn.setBounds (toolRow0.removeFromLeft (toolRow0.getWidth() / 2).reduced (toolPad, 0));
-        pasteBtn.setBounds (toolRow0.reduced (toolPad, 0));
+        {
+            auto copyArea = toolRow0.reduced (toolPad, 0);
+            int halfW = copyArea.getWidth() / 2 - toolPad / 2;
+            copyBtn.setBounds (copyArea.removeFromLeft (halfW));
+            copyArea.removeFromLeft (toolPad);
+            pasteBtn.setBounds (copyArea);
+        }
 
         auto toolRow1 = toolArea.removeFromTop (toolBtnH + toolPad).withTrimmedTop (toolPad);
         auto toolRow2 = toolArea.removeFromTop (toolBtnH + toolPad).withTrimmedTop (toolPad);
@@ -1749,6 +1771,10 @@ private:
 
     bool isLoadingData = false;
     bool hasInitialView = false;
+
+    // Layout scaling
+    float layoutScale = 1.0f;
+    int scaled (int ref) const { return juce::jmax (static_cast<int> (ref * 0.65f), static_cast<int> (ref * layoutScale)); }
     float heightRatio = 1.0f;
 
     // Input position marker

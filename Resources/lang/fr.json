@@ -1626,7 +1626,7 @@
       "offsetX": "Offset X",
       "offsetY": "Offset Y",
       "offsetZ": "Offset Z",
-      "attenuation": "Atten (dB)"
+      "attenuation": "Atténuation (dB)"
     },
     "set": {
       "default": "Set",
@@ -1634,7 +1634,7 @@
       "sequential": "Séquentiel",
       "roundRobin": "Round-Robin",
       "copy": "(copie)",
-      "pos": "Pos (m)",
+      "pos": "Position (m)",
       "posX": "Pos X (m)",
       "posY": "Pos Y (m)",
       "posZ": "Pos Z (m)",

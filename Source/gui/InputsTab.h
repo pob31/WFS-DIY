@@ -2564,7 +2564,7 @@ private:
         // AutomOtion title label
         addAndMakeVisible(otomoTitleLabel);
         otomoTitleLabel.setText(LOC("inputs.sections.automotion"), juce::dontSendNotification);
-        otomoTitleLabel.setFont(juce::FontOptions(16.0f).withStyle("Bold"));
+        otomoTitleLabel.setFont(juce::FontOptions(juce::jmax(11.0f, 16.0f * WfsLookAndFeel::uiScale)).withStyle("Bold"));
         otomoTitleLabel.setJustificationType(juce::Justification::centredLeft);
 
         // Coordinate mode selector for destinations
@@ -4908,6 +4908,7 @@ private:
         row = col2.removeFromTop(rowHeight + 4);  // Slightly taller for title
         {
             const int btnSize = scaled(20);
+            otomoTitleLabel.setFont(juce::FontOptions(juce::jmax(11.0f, 16.0f * layoutScale)).withStyle("Bold"));
             otomoTitleLabel.setBounds(row.withTrimmedRight(btnSize + spacing));
             otomoHelpButton.setBounds(row.getRight() - btnSize, row.getY(), btnSize, btnSize);
         }
