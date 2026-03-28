@@ -10,6 +10,7 @@
 #include "ColorScheme.h"
 #include "WfsLookAndFeel.h"
 #include "WindowUtils.h"
+#include "HelpCard.h"
 
 /**
  * Snapshot Scope Window
@@ -706,6 +707,12 @@ public:
                 onCloseRequested();
         };
 
+        // Help card
+        addAndMakeVisible(scopeHelpButton);
+        addChildComponent(scopeHelpCard);
+        scopeHelpCard.setContent(LOC("help.snapshotScope.title"), LOC("help.snapshotScope.body"));
+        scopeHelpButton.setCard(&scopeHelpCard);
+
         applyTheme();
     }
 
@@ -753,6 +760,18 @@ public:
         auto sc = [ls](int ref) { return juce::jmax(static_cast<int>(ref * 0.65f), static_cast<int>(ref * ls)); };
 
         auto bounds = getLocalBounds().reduced (sc(10));
+
+        // Help button — top-right corner
+        {
+            const int btnSize = sc(22);
+            scopeHelpButton.setBounds(getWidth() - sc(10) - btnSize, sc(6), btnSize, btnSize);
+            // Help card — over the matrix area, offset right to not hide parameter names
+            int cardW = juce::jmin(getWidth() - sc(180), 520);
+            int cardH = scopeHelpCard.getIdealHeight(cardW);
+            int cardX = getWidth() - sc(10) - cardW;
+            int cardY = sc(40);
+            scopeHelpCard.setBounds(cardX, cardY, cardW, cardH);
+        }
 
         // Title
         titleLabel.setBounds (bounds.removeFromTop (sc(30)));
@@ -857,6 +876,8 @@ private:
     juce::TextButton cancelButton;
     bool qlabAvailable = false;
     ParameterDirtyTracker* dirtyTracker = nullptr;
+    HelpCardButton scopeHelpButton;
+    HelpCard scopeHelpCard;
 
     /** Copy dirty flags to scope selection: dirty items included, others excluded */
     void applyDirtyToScope()
