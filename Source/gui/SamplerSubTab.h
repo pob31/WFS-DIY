@@ -15,6 +15,7 @@
 #include "ColumnFocusTraverser.h"
 #include "sliders/WfsBidirectionalSlider.h"
 #include "StatusBar.h"
+#include "HelpCard.h"
 
 /**
  * Sampler subtab for InputsTab.
@@ -269,6 +270,12 @@ public:
         addAndMakeVisible (exportButton);
 
 
+        // Sampler help card
+        addAndMakeVisible(samplerHelpButton);
+        addChildComponent(samplerHelpCard);
+        samplerHelpCard.setContent(LOC("help.sampler.title"), LOC("help.sampler.body"));
+        samplerHelpButton.setCard(&samplerHelpCard);
+
         setFocusContainerType (FocusContainerType::keyboardFocusContainer);
     }
 
@@ -300,6 +307,18 @@ public:
 
         // Grid area: remaining 67%
         gridArea = bounds;
+
+        // Help button — top-right of grid area
+        {
+            const int btnSize = 22;
+            samplerHelpButton.setBounds(gridArea.getRight() - btnSize - 8, gridArea.getY() + 8, btnSize, btnSize);
+            // Help card — centered over the grid tiles
+            int cardW = juce::jmin(gridArea.getWidth() - 40, 500);
+            int cardH = samplerHelpCard.getIdealHeight(cardW);
+            int cardX = gridArea.getX() + (gridArea.getWidth() - cardW) / 2;
+            int cardY = gridArea.getY() + 40;
+            samplerHelpCard.setBounds(cardX, cardY, cardW, cardH);
+        }
 
         layoutPanel();
     }
@@ -1679,6 +1698,9 @@ private:
     int previewingCellIndex = -1;
     int lastPlayingCell = -1;
     juce::int64 playEndTime = 0;
+
+    HelpCardButton samplerHelpButton;
+    HelpCard samplerHelpCard;
 
     // Layout areas
     juce::Rectangle<int> gridArea;
