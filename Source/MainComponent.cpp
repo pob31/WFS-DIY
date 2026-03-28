@@ -2112,6 +2112,14 @@ MainComponent::MainComponent()
                                       + juce::String (numOutputChannels) + " outputs");
     WFSLogger::getInstance().logInfo ("Language: " + savedLanguage);
 
+    // Initialize master level gain from saved config
+    {
+        float masterLevelDb = (float)parameters.getConfigParam("MasterLevel");
+        masterLevelGainTarget.store(
+            juce::Decibels::decibelsToGain(masterLevelDb, -92.0f),
+            std::memory_order_relaxed);
+    }
+
     // Start timer for device monitoring and parameter smoothing
     startTimer(5); // 5ms timer for smooth parameter updates
 
@@ -3879,6 +3887,10 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
     double callbackIntervalSec = samplesPerBlockExpected / sampleRate;
     delaySmoothingFactor = static_cast<float>(1.0 - std::exp(-callbackIntervalSec / 0.100));  // 100ms
     levelSmoothingFactor = static_cast<float>(1.0 - std::exp(-callbackIntervalSec / 0.050));  // 50ms
+
+    // Initialize master level smoother
+    masterLevelGain.reset(sampleRate, 0.05);  // 50ms ramp
+    masterLevelGain.setCurrentAndTargetValue(masterLevelGainTarget.load(std::memory_order_relaxed));
 }
 
 void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill)
@@ -4063,6 +4075,32 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
                             juce::FloatVectorOperations::addWithMultiply(outputData, returnData, returnLevel, numSamples);
                         }
                     }
+                }
+            }
+        }
+
+        // Apply master level gain to WFS output (before hardware remap)
+        {
+            masterLevelGain.setTargetValue(masterLevelGainTarget.load(std::memory_order_relaxed));
+
+            if (masterLevelGain.isSmoothing())
+            {
+                int numCh = wfsOutputBuffer.getNumChannels();
+                for (int sample = 0; sample < numSamples; ++sample)
+                {
+                    float gain = masterLevelGain.getNextValue();
+                    for (int ch = 0; ch < numCh; ++ch)
+                        wfsOutputBuffer.getWritePointer(ch)[startSample + sample] *= gain;
+                }
+            }
+            else
+            {
+                float gain = masterLevelGain.getCurrentValue();
+                if (gain < 1.0f)
+                {
+                    int numCh = wfsOutputBuffer.getNumChannels();
+                    for (int ch = 0; ch < numCh; ++ch)
+                        wfsOutputBuffer.applyGain(ch, startSample, numSamples, gain);
                 }
             }
         }
@@ -4264,6 +4302,14 @@ void MainComponent::timerCallback()
     // visual-only updates when minimized to avoid message-queue congestion
     // that can starve the audio thread's parameter updates.
     const bool windowVisible = isShowing();
+
+    // Update master level gain target (message thread → audio thread via atomic)
+    {
+        float masterLevelDb = (float)parameters.getConfigParam("MasterLevel");
+        masterLevelGainTarget.store(
+            juce::Decibels::decibelsToGain(masterLevelDb, -92.0f),
+            std::memory_order_relaxed);
+    }
 
     // Debounced auto-save of audio patch to disk
     if (patchSaveCountdown > 0 && --patchSaveCountdown == 0)

@@ -305,6 +305,10 @@ private:
     int patchSaveCountdown = 0;                 // Debounce timer for auto-saving patch (0 = idle)
     juce::Random random;
 
+    // Master level gain (smoothed for click-free operation)
+    std::atomic<float> masterLevelGainTarget { 1.0f };
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Multiplicative> masterLevelGain;
+
     // Track device type and device name changes
     juce::String lastSavedDeviceType;
     juce::String lastSavedDeviceName;
