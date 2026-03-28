@@ -12,6 +12,7 @@
 #include "../Localization/LocalizationManager.h"
 #include "../gui/ColumnFocusTraverser.h"
 #include "../gui/buttons/LongPressButton.h"
+#include "../gui/HelpCard.h"
 
 /**
  * Gradient Map Editor
@@ -432,6 +433,13 @@ public:
         gradValue2Slider.setInvertForLightTheme (lightTheme);
 
         setShapePropertiesVisible (false);
+
+        // Gradient map help card
+        addAndMakeVisible(gradMapHelpButton);
+        addChildComponent(gradMapHelpCard);
+        gradMapHelpCard.setContent(LOC("help.gradientMap.title"), LOC("help.gradientMap.body"));
+        gradMapHelpButton.setCard(&gradMapHelpCard);
+
         setFocusContainerType (FocusContainerType::keyboardFocusContainer);
     }
 
@@ -836,6 +844,20 @@ public:
         // Property panel (right 21%)
         int panelWidth = juce::jmax (200, bounds.getWidth() * 21 / 100);
         auto panelBounds = bounds.removeFromRight (panelWidth);
+
+        // Help button — top-right of canvas area (left of panel)
+        {
+            const int btnSize = 22;
+            int canvasW = bounds.getWidth();
+            int canvasH = bounds.getHeight();
+            gradMapHelpButton.setBounds(bounds.getRight() - btnSize - 8, bounds.getY() + 8, btnSize, btnSize);
+            // Help card — centered on canvas
+            int cardW = juce::jmin(canvasW - 40, 520);
+            int cardH = gradMapHelpCard.getIdealHeight(cardW);
+            int cardX = bounds.getX() + (canvasW - cardW) / 2;
+            int cardY = bounds.getY() + (canvasH - cardH) / 2;
+            gradMapHelpCard.setBounds(cardX, cardY, cardW, cardH);
+        }
 
         int rowH = 28, labelW = 60, pad = 4;
         int eyeBtnW = 24;
@@ -1741,6 +1763,9 @@ private:
     //==========================================================================
     // Toolbar UI
     //==========================================================================
+
+    HelpCardButton gradMapHelpButton;
+    HelpCard gradMapHelpCard;
 
     juce::TextButton selectToolBtn, rectToolBtn, ellipseToolBtn, polygonToolBtn;
     juce::TextButton editPointsBtn;
