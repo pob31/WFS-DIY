@@ -74,7 +74,7 @@ public:
         int numLines = glyphs.getNumGlyphs() > 0
             ? (int)((glyphs.getBoundingBox(glyphs.getNumGlyphs() - 1, 1, true).getBottom()) / lineH) + 1
             : 1;
-        int bodyHeight = juce::jlimit((int)(30 * scale), (int)(300 * scale), (int)(numLines * lineH + lineH));
+        int bodyHeight = juce::jmax((int)(30 * scale), (int)(numLines * lineH + lineH));
 
         return padding + titleH + 8 + illustrationH + bodyHeight + padding / 2;
     }
@@ -91,9 +91,11 @@ public:
     /** Hide the card and unregister click-outside listener. */
     void hide()
     {
+        if (!isVisible()) return;
         setVisible(false);
         if (auto* p = getParentComponent())
             p->removeMouseListener(this);
+        if (onDismissed) onDismissed();
     }
 
     /** The button that toggles this card, set so we can ignore clicks on it. */
@@ -164,7 +166,6 @@ public:
                     return;
             }
             hide();
-            if (onDismissed) onDismissed();
         }
     }
 
@@ -209,6 +210,8 @@ public:
     HelpCardButton()
     {
         setOpaque(false);
+        setWantsKeyboardFocus(true);
+        setMouseClickGrabsKeyboardFocus(true);
         ColorScheme::Manager::getInstance().addListener(this);
     }
 
@@ -232,25 +235,35 @@ public:
         auto bounds = getLocalBounds().toFloat().reduced(1.0f);
         auto& palette = ColorScheme::get();
 
-        // Circle background
-        float alpha = isActive ? 0.8f : (isHovered ? 0.5f : 0.25f);
-        auto circleColour = isActive ? palette.accentBlue : palette.textSecondary;
-        g.setColour(circleColour.withAlpha(alpha * 0.3f));
+        // Circle fill — solid contrasting background
+        if (isActive)
+            g.setColour(palette.accentBlue.withAlpha(0.3f));
+        else if (isHovered)
+            g.setColour(palette.surfaceCard.brighter(0.15f));
+        else
+            g.setColour(palette.surfaceCard);
         g.fillEllipse(bounds);
 
-        // Circle border
-        g.setColour(circleColour.withAlpha(alpha));
-        g.drawEllipse(bounds, 1.2f);
+        // Circle border — visible even at idle
+        auto borderColour = isActive ? palette.accentBlue : palette.textSecondary;
+        g.setColour(borderColour.withAlpha(isActive ? 1.0f : (isHovered ? 0.8f : 0.6f)));
+        g.drawEllipse(bounds, 1.5f);
 
-        // "?" glyph
+        // "?" glyph — readable at idle
         float fontSize = bounds.getHeight() * 0.6f;
-        g.setColour(circleColour.withAlpha(isActive ? 1.0f : (isHovered ? 0.8f : 0.5f)));
+        g.setColour(borderColour.withAlpha(isActive ? 1.0f : (isHovered ? 0.9f : 0.75f)));
         g.setFont(juce::FontOptions().withHeight(fontSize).withStyle("Bold"));
         g.drawText("?", bounds.toNearestInt(), juce::Justification::centred);
     }
 
     void mouseEnter(const juce::MouseEvent&) override  { isHovered = true;  repaint(); }
     void mouseExit(const juce::MouseEvent&) override   { isHovered = false; repaint(); }
+
+    void mouseDown(const juce::MouseEvent&) override
+    {
+        // Grab focus away from any text editor to prevent focus stealing
+        grabKeyboardFocus();
+    }
 
     void mouseUp(const juce::MouseEvent& e) override
     {
@@ -265,6 +278,24 @@ public:
         else
             associatedCard->hide();
         repaint();
+    }
+
+    /** Dismiss the card programmatically (e.g. when leaving a tab). */
+    void dismiss()
+    {
+        if (isActive && associatedCard != nullptr)
+        {
+            associatedCard->hide();
+            isActive = false;
+            repaint();
+        }
+    }
+
+    void visibilityChanged() override
+    {
+        // Auto-dismiss when the button becomes invisible (tab switch)
+        if (!isVisible())
+            dismiss();
     }
 
 private:

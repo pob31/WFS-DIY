@@ -4906,9 +4906,9 @@ private:
 
         // Title row
         row = col2.removeFromTop(rowHeight + 4);  // Slightly taller for title
-        otomoTitleLabel.setBounds(row);
         {
             const int btnSize = scaled(20);
+            otomoTitleLabel.setBounds(row.withTrimmedRight(btnSize + spacing));
             otomoHelpButton.setBounds(row.getRight() - btnSize, row.getY(), btnSize, btnSize);
         }
         col2.removeFromTop(otomoRowSpacing);
