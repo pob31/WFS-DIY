@@ -1950,6 +1950,14 @@ OFF",
       "title": "Binaural-Renderer",
       "body": "Der Binaural-Renderer wird verwendet für:\n- das Abhören eines groben räumlichen Mixes über Kopfhörer,\n- das Erstellen eines Mixes für Stereoausgabe,\n- das Abhören einer einzelnen Solo-Spur durch die räumliche Verarbeitung.\nEr kann Ihren Master-Mix ersetzen, wenn dieser nur Kopfhörer und Medienmix versorgt.\nDie Hörposition kann in der Tiefe vom Ursprungspunkt und in der Orientierung angepasst werden. Delay- und Pegeleinstellungen ermöglichen die Anpassung an die FOH-Position."
     },
+    "lfo": {
+      "title": "Eingangs-LFO",
+      "body": "Die Eingangsposition kann automatisiert werden. Der LFO kann X-, Y- und Z-Koordinaten einzeln steuern sowie die Rotation der HF-Direktionalität (Gyrophon).\nPassen Sie Periode und Phase des LFO global an.\nFür X, Y und Z wählen Sie Form, Amplitude, Rate und Phase. Ein Kreis in der XY-Ebene verwendet Sinusform für X und Y mit ±90° Versatz. Ein Quadrat wäre gleich aber mit Trapezformen.\nDie Eingangsposition kann während des LFO-Betriebs verschoben werden."
+    },
+    "automOtion": {
+      "title": "AutomOtion",
+      "body": "Einmalige Bewegungen können programmiert und manuell oder durch Schallpegel ausgelöst werden.\nDie Koordinaten sind entweder relativ zur Startposition oder absolut zum Ursprungspunkt.\nDer Eingang kann an der Endposition bleiben oder zur Startposition zurückkehren.\nDie Position kann während der Bewegung nicht geändert werden, aber Interaktion ändert den Positionsversatz.\nFür Pegelauslösung wählen Sie den Schwellwert. Wenn der Pegel unter den Rücksetzpegel fällt, wird die Bewegung wieder bereitgestellt."
+    },
     "gradientMap": {
       "title": "Gradientenkarten",
       "body": "Gradientenkarten ermöglichen die Steuerung von Dämpfung, Höhe und Hochfrequenzfilterung (Shelf mit sanfter Flanke bei 1kHz) abhängig von der X, Y Position. Zum Beispiel können Sie einen Klang beim Betreten einer Zone ausblenden, Höhenabfall beim Entfernen von der Bühnenvorderkante anwenden oder die Höhe eines Schauspielers auf erhöhten Plattformen automatisch anpassen.\nDrei Ebenen stehen zur Verfügung: Dämpfung, Höhe und HF-Shelf. Sie können ein-/ausgeschaltet und ausgeblendet werden.\nJede Ebene hat Mapping-Regler für Weiß und Schwarz zur Bereichsanpassung. Die Kurveneinstellung steuert den Übergang.\nJede Ebene kann editierbare Formen haben (Rechteck, Ellipse oder Polygon) mit einheitlichem Grau, linearem oder radialem Gradient.\nBeim Erstellen eines Polygons klicken Sie für jede Ecke. Doppelklick schließt die Form.\nDoppelklick auf einen Punkt entfernt ihn. Doppelklick auf eine Seite fügt einen neuen Punkt hinzu.\nSkalierung und Rotation können vom Zentrum oder Ursprung aus bearbeitet werden.\nFormen und Ebenen können kopiert werden.\nEinstellungen werden in den Eingangsdateien gespeichert."

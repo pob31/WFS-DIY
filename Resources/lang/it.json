@@ -1950,6 +1950,14 @@ OFF",
       "title": "Renderer Binaurale",
       "body": "Il renderer binaurale è utilizzato per:\n- ascoltare un mix spaziale approssimativo in cuffia,\n- creare un mix per uscita stereo,\n- ascoltare una traccia solista attraverso l'elaborazione spaziale.\nPuò sostituire il mix master se alimenta solo cuffie e mix media.\nLa posizione di ascolto può essere regolata in profondità dal punto di origine e in orientamento. Le impostazioni di ritardo e livello permettono di allineare il suono alla posizione FOH."
     },
+    "lfo": {
+      "title": "LFO Ingresso",
+      "body": "La posizione dell'ingresso può essere automatizzata. Il LFO può controllare le coordinate X, Y e Z individualmente e la rotazione della direttività HF (girofono).\nRegolare il periodo e la fase globali del LFO.\nPer X, Y e Z selezionare forma, ampiezza, tasso e fase. Un cerchio nel piano XY userebbe forma sinusoidale per X e Y con ±90° di sfasamento. Un quadrato sarebbe uguale ma con forme trapezoidali.\nLa posizione può essere spostata mentre il LFO è attivo."
+    },
+    "automOtion": {
+      "title": "AutomOtion",
+      "body": "Movimenti singoli possono essere programmati e attivati manualmente o dal livello sonoro.\nLe coordinate sono relative dalla posizione iniziale o assolute rispetto al punto di origine.\nL'ingresso può rimanere alla posizione finale o tornare alla posizione iniziale.\nLa posizione non può essere modificata durante il movimento, ma l'interazione cambierà l'offset di posizione.\nPer l'attivazione per livello audio, selezionare la soglia. Quando il suono scende sotto il livello di ripristino, il movimento verrà riarmato."
+    },
     "gradientMap": {
       "title": "Mappe Gradiente",
       "body": "Le mappe gradiente permettono di controllare attenuazione, altezza e filtraggio alte frequenze (shelf con pendenza morbida centrata a 1kHz) in funzione della posizione X, Y. Ad esempio, è possibile attenuare un suono entrando in una zona, applicare roll-off delle alte frequenze allontanandosi dal fronte del palco o regolare automaticamente l'altezza di un attore su piattaforme rialzate.\nCi sono tre livelli: attenuazione, altezza e shelf HF. Possono essere attivati/disattivati e nascosti.\nOgni livello ha controlli di mappatura bianco e nero per regolare il range dell'effetto. L'impostazione della curva regola la transizione.\nOgni livello può avere forme modificabili (rettangolo, ellisse o poligono) con grigio uniforme, gradiente lineare o radiale.\nPer creare un poligono, cliccare per ogni angolo. Doppio clic chiude la forma.\nDoppio clic su un punto lo rimuove. Doppio clic su un lato aggiunge un punto.\nScala e rotazione possono essere modificate dal centro o dall'origine.\nForme e livelli possono essere copiati.\nLe impostazioni sono salvate nei file di ingresso."

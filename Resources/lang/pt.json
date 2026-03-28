@@ -1950,6 +1950,14 @@ OFF",
       "title": "Renderizador Binaural",
       "body": "O renderizador binaural é usado para:\n- ouvir uma mixagem espacial aproximada em fones de ouvido,\n- criar uma mixagem para saída estéreo,\n- ouvir uma faixa solo através do processamento espacial.\nPode substituir sua mixagem master se alimentar apenas fones e mixagem de mídia.\nA posição de escuta pode ser ajustada em profundidade a partir do ponto de origem e em orientação. As configurações de atraso e nível permitem igualar o som na posição FOH."
     },
+    "lfo": {
+      "title": "LFO de Entrada",
+      "body": "A posição de entrada pode ser automatizada. O LFO pode controlar as coordenadas X, Y e Z individualmente e a rotação da diretividade HF (girofone).\nAjuste o período e a fase globais do LFO.\nPara X, Y e Z selecione forma, amplitude, taxa e fase. Um círculo no plano XY usaria forma senoidal para X e Y com ±90° de defasagem.\nA posição pode ser movida enquanto o LFO está funcionando."
+    },
+    "automOtion": {
+      "title": "AutomOtion",
+      "body": "Movimentos únicos podem ser programados e disparados manualmente ou por nível de som.\nAs coordenadas são relativas da posição inicial ou absolutas em relação ao ponto de origem.\nA entrada pode ficar na posição final ou voltar à posição inicial.\nA posição não pode ser alterada durante o movimento, mas a interação mudará o deslocamento de posição.\nPara disparo por nível de áudio, selecione o limiar. Quando o som cair abaixo do nível de reinício, o movimento será rearmado."
+    },
     "gradientMap": {
       "title": "Mapas de Gradiente",
       "body": "Os mapas de gradiente permitem controlar atenuação, altura e filtragem de alta frequência (shelf com inclinação suave centrada em 1kHz) dependendo da posição X, Y. Por exemplo, você pode atenuar um som ao entrar em uma zona, aplicar roll-off de altas frequências ao se afastar da frente do palco ou ajustar automaticamente a altura de um ator em plataformas elevadas.\nHá três camadas: atenuação, altura e shelf HF. Podem ser ativadas/desativadas e ocultadas.\nCada camada tem controles de mapeamento branco e preto para ajustar o alcance do efeito. A configuração de curva ajusta a transição.\nCada camada pode ter formas editáveis (retângulo, elipse ou polígono) com cinza uniforme, gradiente linear ou radial.\nAo criar um polígono, clique para cada vértice. Duplo clique fecha a forma.\nDuplo clique em um ponto o remove. Duplo clique em um lado adiciona um ponto.\nFormas e camadas podem ser copiadas.\nAs configurações são armazenadas nos arquivos de entrada."

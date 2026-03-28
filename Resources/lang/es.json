@@ -1950,6 +1950,14 @@ OFF",
       "title": "Renderizador Binaural",
       "body": "El renderizador binaural se utiliza para:\n- escuchar una mezcla espacial aproximada con auriculares,\n- crear una mezcla para salida estéreo,\n- escuchar una pista en solo a través del procesamiento espacial.\nPuede sustituir su mezcla master si solo alimenta auriculares y mezcla de medios.\nLa posición de escucha puede ajustarse en profundidad desde el punto de origen y en orientación. Los ajustes de retardo y nivel permiten igualar el sonido en la posición FOH."
     },
+    "lfo": {
+      "title": "LFO de Entrada",
+      "body": "La posición de entrada puede automatizarse. El LFO puede controlar las coordenadas X, Y y Z individualmente así como la rotación de la directividad HF (girófono).\nAjuste el período y la fase globales del LFO.\nPara X, Y y Z seleccione forma, amplitud, tasa y fase. Un círculo en el plano XY usaría forma sinusoidal para X e Y con ±90° de desfase. Un cuadrado sería igual pero con formas trapezoidales.\nLa posición puede moverse mientras el LFO está funcionando."
+    },
+    "automOtion": {
+      "title": "AutomOtion",
+      "body": "Movimientos únicos pueden programarse y dispararse manualmente o por nivel de sonido.\nLas coordenadas son relativas desde la posición inicial o absolutas respecto al punto de origen.\nLa entrada puede quedarse en la posición final o volver a la posición inicial.\nLa posición no puede cambiarse durante el movimiento, pero la interacción cambiará el desplazamiento de posición.\nPara disparo por nivel de audio, seleccione el umbral. Cuando el sonido baje del nivel de reinicio, el movimiento se rearmará."
+    },
     "gradientMap": {
       "title": "Mapas de Gradiente",
       "body": "Los mapas de gradiente permiten controlar la atenuación, la altura y el filtrado de alta frecuencia (shelf con pendiente suave centrada en 1kHz) según la posición X, Y. Por ejemplo, puede atenuar un sonido al entrar en una zona, aplicar roll-off de altas frecuencias al alejarse del frente del escenario o ajustar automáticamente la altura de un actor en plataformas elevadas.\nHay tres capas: atenuación, altura y shelf HF. Pueden activarse/desactivarse y ocultarse.\nCada capa tiene controles de mapeo blanco y negro para ajustar el rango del efecto. El ajuste de curva controla la transición.\nCada capa puede tener formas editables (rectángulo, elipse o polígono) con gris uniforme, gradiente lineal o radial.\nAl crear un polígono, haga clic para cada esquina. Doble clic cierra la forma.\nDoble clic en un punto lo elimina. Doble clic en un lado añade un punto.\nLa escala y rotación pueden editarse desde el centro o desde el origen.\nFormas y capas pueden copiarse a otra capa.\nLos ajustes se almacenan en los archivos de entrada."

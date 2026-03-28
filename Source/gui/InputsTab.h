@@ -318,6 +318,17 @@ public:
         frHelpCard.setContent(LOC("help.floorReflections.title"), LOC("help.floorReflections.body"));
         frHelpButton.setCard(&frHelpCard);
 
+        // LFO & AutomOtion help cards
+        addAndMakeVisible(lfoHelpButton);
+        addChildComponent(lfoHelpCard);
+        lfoHelpCard.setContent(LOC("help.lfo.title"), LOC("help.lfo.body"));
+        lfoHelpButton.setCard(&lfoHelpCard);
+
+        addAndMakeVisible(otomoHelpButton);
+        addChildComponent(otomoHelpCard);
+        otomoHelpCard.setContent(LOC("help.automOtion.title"), LOC("help.automOtion.body"));
+        otomoHelpButton.setCard(&otomoHelpCard);
+
         setupLfoTab();
         setupAutomotionTab();
         setupGradientMapsTab();
@@ -3188,6 +3199,8 @@ private:
         lsSlowEnableButton.setVisible(v); lsSlowThresholdLabel.setVisible(v); lsSlowThresholdSlider.setVisible(v); lsSlowThresholdValueLabel.setVisible(v);
         lsSlowRatioLabel.setVisible(v); lsSlowRatioDial.setVisible(v); lsSlowRatioValueLabel.setVisible(v); lsSlowRatioUnitLabel.setVisible(v);
         lsSlowGRMeter.setVisible(v);
+        lsHelpButton.setVisible(v);
+        if (!v) lsHelpCard.hide();
     }
 
     void setEffectsVisible(bool v)
@@ -3202,6 +3215,8 @@ private:
         frHighShelfGainLabel.setVisible(v); frHighShelfGainSlider.setVisible(v); frHighShelfGainValueLabel.setVisible(v);
         frHighShelfSlopeLabel.setVisible(v); frHighShelfSlopeSlider.setVisible(v); frHighShelfSlopeValueLabel.setVisible(v);
         muteReverbSendsButton.setVisible(v);
+        frHelpButton.setVisible(v);
+        if (!v) frHelpCard.hide();
     }
 
     void setLiveSourceParametersAlpha(float alpha)
@@ -3811,6 +3826,8 @@ private:
         lfoOutputXLabel.setVisible(v); lfoOutputXSlider.setVisible(v);
         lfoOutputYLabel.setVisible(v); lfoOutputYSlider.setVisible(v);
         lfoOutputZLabel.setVisible(v); lfoOutputZSlider.setVisible(v);
+        lfoHelpButton.setVisible(v);
+        if (!v) lfoHelpCard.hide();
     }
 
     void layoutLfoTab()
@@ -3962,6 +3979,8 @@ private:
         otomoPauseButton.setVisible(v);
         otomoStopAllButton.setVisible(v);
         otomoPauseResumeAllButton.setVisible(v);
+        otomoHelpButton.setVisible(v);
+        if (!v) otomoHelpCard.hide();
         if (v)
             updateOtomoTriggerAppearance();
     }
@@ -4743,6 +4762,10 @@ private:
         auto toggleArea = headerRow.removeFromLeft(toggleWidth);
         int toggleY = uiCenterY - rowHeight / 2;
         lfoActiveButton.setBounds(toggleArea.getX(), headerRow.getY() + toggleY, toggleWidth, rowHeight);
+        {
+            const int btnSize = scaled(20);
+            lfoHelpButton.setBounds(toggleArea.getX() + toggleWidth + spacing, headerRow.getY() + toggleY, btnSize, btnSize);
+        }
         headerRow.removeFromLeft(headerSpacing);
 
         // Period: label at top, dial centered, value+unit at bottom
@@ -4884,6 +4907,10 @@ private:
         // Title row
         row = col2.removeFromTop(rowHeight + 4);  // Slightly taller for title
         otomoTitleLabel.setBounds(row);
+        {
+            const int btnSize = scaled(20);
+            otomoHelpButton.setBounds(row.getRight() - btnSize, row.getY(), btnSize, btnSize);
+        }
         col2.removeFromTop(otomoRowSpacing);
 
         // Row 1: Destination row spread across full column width
@@ -5013,6 +5040,18 @@ private:
         otomoStopAllButton.setBounds(row.removeFromLeft(buttonWidth));
         row.removeFromLeft(row4ElementSpacing);
         otomoPauseResumeAllButton.setBounds(row.removeFromLeft(buttonWidth));
+
+        // Help cards — bottom of right column
+        {
+            int cardW = col2.getWidth();
+            int lfoCardH = lfoHelpCard.getIdealHeight(cardW);
+            int otomoCardH = otomoHelpCard.getIdealHeight(cardW);
+            int bottomY = subTabContentArea.getBottom() - colPad;
+            int cardH = juce::jmax(lfoCardH, otomoCardH);
+            int cardY = bottomY - cardH;
+            lfoHelpCard.setBounds(col2.getX(), cardY, cardW, lfoCardH);
+            otomoHelpCard.setBounds(col2.getX(), cardY, cardW, otomoCardH);
+        }
     }
 
     void setMutesVisible(bool v)
@@ -8010,6 +8049,11 @@ private:
     HelpCard lsHelpCard;
     HelpCardButton frHelpButton;
     HelpCard frHelpCard;
+
+    HelpCardButton lfoHelpButton;
+    HelpCard lfoHelpCard;
+    HelpCardButton otomoHelpButton;
+    HelpCard otomoHelpCard;
 
     // L.F.O tab
     juce::TextButton lfoActiveButton;
