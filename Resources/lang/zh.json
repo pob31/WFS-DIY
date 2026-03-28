@@ -123,7 +123,8 @@
       "streamDeckOff": "Stream Deck+: OFF",
       "streamDeckOn": "Stream Deck+: ON",
       "samplerOff": "Sampler: OFF",
-      "samplerOn": "Sampler: ON"
+      "samplerOn": "Sampler: ON",
+      "setup": "设置"
     },
     "algorithms": {
       "inputBuffer": "InputBuffer (读取时延迟)",
@@ -187,6 +188,8 @@
       "dialsAndButtons": "Select the hardware controller for dials and buttons: Stream Deck+ or XenceLabs Quick Keys.",
       "positionControl": "Select the hardware controller for position control: Space Mouse, Joystick, or Game Pad.",
       "sampler": "Enable or disable the Sampler feature for input channels.",
+      "lightpadSetup": "显示已连接的Roli Lightpad并允许将其分成4个较小的触控板。",
+      "remoteSetup": "选择Remote XY Pads选项卡中的触控板数量。",
       "binauralEnable": "启用或禁用双耳渲染器处理。",
       "binauralOutput": "选择双耳监听的输出通道对。关闭则禁用双耳输出。",
       "binauralDistance": "双耳听者与舞台原点的距离（米）。",

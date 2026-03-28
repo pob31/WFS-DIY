@@ -137,6 +137,7 @@
       "streamDeckOn": "Stream Deck+: ON",
       "samplerOff": "Sampler: OFF",
       "samplerOn": "Sampler: ON",
+      "setup": "Config."
     },
     "algorithms": {
       "inputBuffer": "InputBuffer (délais en lecture)",
@@ -200,6 +201,8 @@
       "dialsAndButtons": "Select the hardware controller for dials and buttons: Stream Deck+ or XenceLabs Quick Keys.",
       "positionControl": "Select the hardware controller for position control: Space Mouse, Joystick, or Game Pad.",
       "sampler": "Enable or disable the Sampler feature for input channels.",
+      "lightpadSetup": "Affiche les Roli Lightpads connectés et permet de les diviser en 4 pads plus petits.",
+      "remoteSetup": "Sélectionner le nombre de pads dans l'onglet XY Pads du Remote.",
       "binauralEnable": "Enable or disable the binaural renderer processing.",
       "binauralOutput": "Select output channel pair for binaural monitoring. Off disables binaural output.",
       "binauralDistance": "Distance of binaural listener from stage origin (meters).",

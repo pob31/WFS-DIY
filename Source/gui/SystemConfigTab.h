@@ -499,11 +499,13 @@ public:
         };
 
         // Lightpad arrangement button
+        lightpadArrangementButton.setButtonText(LOC("systemConfig.buttons.setup"));
         lightpadArrangementButton.onClick = [this] { showLightpadArrangementOverlay(); };
         lightpadArrangementButton.setVisible (false);
         addChildComponent (lightpadArrangementButton);
 
         // Remote pad setup button
+        remotePadSetupButton.setButtonText(LOC("systemConfig.buttons.setup"));
         remotePadSetupButton.onClick = [this] { showRemotePadSetupOverlay(); };
         remotePadSetupButton.setVisible (false);
         addChildComponent (remotePadSetupButton);
@@ -1986,7 +1988,6 @@ public:
         lightpadArrangementButton.setEnabled (! lightpadPadLayouts.empty());
 
         remotePadSetupButton.setVisible (mode == 2);
-        remotePadSetupButton.setButtonText (LOC ("systemConfig.controller.remote") + "...");
     }
 
     void showRemotePadSetupOverlay()
@@ -2807,6 +2808,8 @@ public:
         helpTextMap[&binauralAttenEditor] = LOC("systemConfig.help.binauralAtten");
         helpTextMap[&binauralDelaySlider] = LOC("systemConfig.help.binauralDelay");
         helpTextMap[&binauralDelayEditor] = LOC("systemConfig.help.binauralDelay");
+        helpTextMap[&lightpadArrangementButton] = LOC("systemConfig.help.lightpadSetup");
+        helpTextMap[&remotePadSetupButton] = LOC("systemConfig.help.remoteSetup");
         helpTextMap[&selectProjectFolderButton] = LOC("systemConfig.help.selectProjectFolder");
         helpTextMap[&storeCompleteConfigButton] = LOC("systemConfig.help.storeComplete");
         helpTextMap[&reloadCompleteConfigButton] = LOC("systemConfig.help.reloadComplete");
