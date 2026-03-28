@@ -124,7 +124,8 @@
       "streamDeckOn": "Stream Deck+: ON",
       "samplerOff": "Sampler: OFF",
       "samplerOn": "Sampler: ON",
-      "setup": "设置"
+      "setup": "设置",
+      "quickLongPress": "快速长按"
     },
     "algorithms": {
       "inputBuffer": "InputBuffer (读取时延迟)",
@@ -174,6 +175,7 @@
       "systemLatency": "系统总延迟 (调音台和计算机) / 特定输入和输出延迟可在各自设置中设定。",
       "haasEffect": "应用于系统的哈斯效应。将考虑延迟补偿 (系统、输入和输出)。",
       "colorScheme": "选择配色方案: 默认 (深灰色)、黑色 (适用于OLED显示屏) 或浅色 (日间使用)。",
+      "quickLongPress": "长按持续时间。此软件使用长按代替确认窗口。",
       "screenReader": "启用或禁用屏幕阅读器播报。启用后, 悬停时会播报参数名称和值, 几秒后会朗读帮助文本。",
       "selectProjectFolder": "选择当前项目文件夹的存储位置。",
       "storeComplete": "将完整配置保存到文件 (含备份)。",

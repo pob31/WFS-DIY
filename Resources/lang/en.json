@@ -151,7 +151,8 @@
       "streamDeckOn": "Stream Deck+: ON",
       "samplerOff": "Sampler: OFF",
       "samplerOn": "Sampler: ON",
-      "setup": "Setup"
+      "setup": "Setup",
+      "quickLongPress": "Quick Long Press"
     },
 
     "algorithms": {
@@ -206,6 +207,7 @@
       "systemLatency": "Total latency of the system (Mixing board & Computer) / Specific Input and Output Latency/Delay can be set in the respective Input and Output settings.",
       "haasEffect": "Hass Effect to apply to the system. Will take into account the Latency Compensations (System, Input and Output).",
       "colorScheme": "Select the color scheme: Default (dark gray), Black (pure black for OLED displays), or Light (daytime use).",
+      "quickLongPress": "Long press duration. Instead of confirmation windows this software uses long presses.",
       "screenReader": "Enable or disable screen reader announcements. When enabled, parameter names and values are announced on hover, and help text is read after a few seconds.",
       "selectProjectFolder": "Select the Location of the Current Project Folder where to store files.",
       "storeComplete": "Store Complete Configuration to files (with backup).",

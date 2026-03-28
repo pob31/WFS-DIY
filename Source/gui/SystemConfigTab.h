@@ -408,6 +408,16 @@ public:
             TTSManager::getInstance().announceValueChange("Color Scheme", colorSchemeSelector.getText());
         };
 
+        // Quick Long Press toggle
+        addAndMakeVisible(quickLongPressToggle);
+        quickLongPressToggle.setButtonText(LOC("systemConfig.buttons.quickLongPress"));
+        quickLongPressToggle.setToggleState(LongPressButton::isShortMode(), juce::dontSendNotification);
+        quickLongPressToggle.onClick = [this]() {
+            LongPressButton::setShortMode(quickLongPressToggle.getToggleState());
+            if (onQuickLongPressChanged)
+                onQuickLongPressChanged(quickLongPressToggle.getToggleState());
+        };
+
         // Language selector
         addAndMakeVisible(languageLabel);
         languageLabel.setText(LOC("systemConfig.labels.language"), juce::dontSendNotification);
@@ -879,6 +889,9 @@ public:
         y = scaled(320); // Start after "UI" header
         colorSchemeLabel.setBounds(x, y, labelWidth, rowHeight);
         colorSchemeSelector.setBounds(x + labelWidth, y, editorWidth * 2, rowHeight);  // Wider for dropdown text
+        y += rowHeight + spacing;
+
+        quickLongPressToggle.setBounds(x, y, fullWidth, rowHeight);
         y += rowHeight + spacing;
 
         languageLabel.setBounds(x, y, labelWidth, rowHeight);
@@ -2814,6 +2827,7 @@ public:
         helpTextMap[&systemLatencyEditor] = LOC("systemConfig.help.systemLatency");
         helpTextMap[&haasEffectEditor] = LOC("systemConfig.help.haasEffect");
         helpTextMap[&colorSchemeSelector] = LOC("systemConfig.help.colorScheme");
+        helpTextMap[&quickLongPressToggle] = LOC("systemConfig.help.quickLongPress");
         helpTextMap[&languageSelector] = LOC("systemConfig.help.language");
         helpTextMap[&dialsAndButtonsSelector] = LOC("systemConfig.help.dialsAndButtons");
         helpTextMap[&positionControlSelector] = LOC("systemConfig.help.positionControl");
@@ -3002,6 +3016,7 @@ public:
     // UI Section
     juce::Label colorSchemeLabel;
     juce::ComboBox colorSchemeSelector;
+    juce::ToggleButton quickLongPressToggle;
     juce::Label languageLabel;
     juce::ComboBox languageSelector;
     juce::StringArray availableLanguages;
@@ -3068,6 +3083,7 @@ public:
     LightpadSplitCallback onLightpadSplitChanged;
     BinauralCallback onBinauralChanged;
     GettingStartedCallback onGettingStartedRequested;
+    std::function<void(bool)> onQuickLongPressChanged;
 
     // Helper to notify MainComponent of any channel count change
     void notifyChannelCountChanged()

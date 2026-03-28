@@ -72,12 +72,17 @@ public:
     std::function<void()> onLongPress;
 
 private:
+    int getEffectiveDuration() const
+    {
+        return juce::jmax(1, static_cast<int>(longPressDurationMs * durationMultiplier));
+    }
+
     void timerCallback() override
     {
         if (isLongPressActive && !thresholdReached)
         {
             auto elapsed = (juce::Time::getCurrentTime() - pressStartTime).inMilliseconds();
-            if (elapsed >= longPressDurationMs)
+            if (elapsed >= getEffectiveDuration())
             {
                 thresholdReached = true;
                 stopTimer();
@@ -111,7 +116,7 @@ private:
         {
             auto elapsed = (juce::Time::getCurrentTime() - pressStartTime).inMilliseconds();
             float progress = juce::jlimit(0.0f, 1.0f,
-                static_cast<float>(elapsed) / static_cast<float>(longPressDurationMs));
+                static_cast<float>(elapsed) / static_cast<float>(getEffectiveDuration()));
 
             g.setColour(ColorScheme::get().accentBlue.withAlpha(0.5f));
             auto progressBounds = bounds;
@@ -143,10 +148,16 @@ private:
         g.drawText(getButtonText(), bounds, juce::Justification::centred);
     }
 
-    const int longPressDurationMs;
+    int longPressDurationMs;
     juce::Time pressStartTime;
     bool isLongPressActive = false;
     bool thresholdReached = false;
     juce::Colour customBaseColour;
     bool hasCustomBaseColour = false;
+
+    static inline float durationMultiplier = 1.0f;
+
+public:
+    static void setShortMode(bool enabled) { durationMultiplier = enabled ? 0.5f : 1.0f; }
+    static bool isShortMode() { return durationMultiplier < 1.0f; }
 };

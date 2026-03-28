@@ -124,7 +124,8 @@
       "streamDeckOn": "Stream Deck+: ON",
       "samplerOff": "Sampler: OFF",
       "samplerOn": "Sampler: ON",
-      "setup": "설정"
+      "setup": "설정",
+      "quickLongPress": "빠른 길게 누르기"
     },
     "algorithms": {
       "inputBuffer": "InputBuffer (읽기 시간 지연)",
@@ -174,6 +175,7 @@
       "systemLatency": "시스템 총 지연 (믹싱 보드 및 컴퓨터) / 특정 입력 및 출력 지연은 각 설정에서 설정할 수 있습니다.",
       "haasEffect": "시스템에 적용할 하스 효과. 지연 보상 (시스템, 입력 및 출력)을 고려합니다.",
       "colorScheme": "색상 테마 선택: 기본 (짙은 회색), 검정 (OLED 디스플레이용) 또는 밝은 (주간 사용).",
+      "quickLongPress": "길게 누르기 시간. 확인 창 대신 이 소프트웨어는 길게 누르기를 사용합니다.",
       "screenReader": "화면 판독기 알림을 활성화하거나 비활성화합니다. 활성화하면 마우스를 올릴 때 매개변수 이름과 값이 알려지고, 몇 초 후 도움말 텍스트가 읽힙니다.",
       "selectProjectFolder": "파일을 저장할 현재 프로젝트 폴더의 위치를 선택하세요.",
       "storeComplete": "전체 설정을 파일에 저장 (백업 포함).",

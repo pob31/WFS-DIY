@@ -124,7 +124,8 @@
       "streamDeckOn": "Stream Deck+: ON",
       "samplerOff": "Sampler: OFF",
       "samplerOn": "Sampler: ON",
-      "setup": "設定"
+      "setup": "設定",
+      "quickLongPress": "クイック長押し"
     },
     "algorithms": {
       "inputBuffer": "InputBuffer (読み取り時遅延)",
@@ -174,6 +175,7 @@
       "systemLatency": "システムの総遅延（ミキシングボードとコンピュータ）/ 特定の入出力遅延はそれぞれの設定で設定できます。",
       "haasEffect": "システムに適用するハース効果。遅延補正（システム、入力、出力）を考慮します。",
       "colorScheme": "カラースキームを選択：デフォルト（ダークグレー）、ブラック（OLEDディスプレイ用の純粋な黒）、またはライト（日中使用）。",
+      "quickLongPress": "長押しの持続時間。確認ウィンドウの代わりにこのソフトウェアは長押しを使用します。",
       "screenReader": "スクリーンリーダーのアナウンスを有効または無効にします。有効にすると、パラメータ名と値がホバー時にアナウンスされ、数秒後にヘルプテキストが読み上げられます。",
       "selectProjectFolder": "ファイルを保存する現在のプロジェクトフォルダの場所を選択します。",
       "storeComplete": "完全な設定をファイルに保存します（バックアップ付き）。",

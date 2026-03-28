@@ -124,7 +124,8 @@
       "streamDeckOn": "Stream Deck+: ON",
       "samplerOff": "Sampler: OFF",
       "samplerOn": "Sampler: ON",
-      "setup": "Config."
+      "setup": "Config.",
+      "quickLongPress": "Pressione rapida"
     },
     "algorithms": {
       "inputBuffer": "InputBuffer (ritardi in lettura)",
@@ -174,6 +175,7 @@
       "systemLatency": "Latenza totale del sistema (Mixer e Computer) / La latenza/ritardo specifico di ingresso e uscita può essere impostata nelle rispettive impostazioni.",
       "haasEffect": "Effetto Haas da applicare al sistema. Terrà conto delle compensazioni di latenza (Sistema, Ingresso e Uscita).",
       "colorScheme": "Seleziona lo schema colori: Predefinito (grigio scuro), Nero (nero puro per display OLED) o Chiaro (uso diurno).",
+      "quickLongPress": "Durata della pressione lunga. Invece di finestre di conferma, questo software usa pressioni lunghe.",
       "screenReader": "Attiva o disattiva gli annunci del lettore di schermo. Quando attivo, i nomi e i valori dei parametri vengono annunciati al passaggio del mouse, e il testo di aiuto viene letto dopo alcuni secondi.",
       "selectProjectFolder": "Seleziona la posizione della cartella del progetto corrente dove memorizzare i file.",
       "storeComplete": "Memorizza la configurazione completa nei file (con backup).",

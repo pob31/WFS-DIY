@@ -417,6 +417,10 @@ MainComponent::MainComponent()
             streamDeckManager->refreshCurrentPage();
     });
 
+    systemConfigTab->onQuickLongPressChanged = [this](bool enabled) {
+        parameters.setConfigParam("QuickLongPress", enabled ? 1 : 0);
+    };
+
     // Set up callbacks for individual tab config reloads
     outputsTab->onConfigReloaded = [this]() {
         handleConfigReloaded();
@@ -643,6 +647,10 @@ MainComponent::MainComponent()
     // This will trigger WfsLookAndFeel::colorSchemeChanged() to update widget colors
     int colorSchemeId = (int)parameters.getConfigParam("ColorScheme");
     ColorScheme::Manager::getInstance().setTheme(colorSchemeId);
+
+    // Load quick long press mode
+    bool quickLP = (int)parameters.getConfigParam("QuickLongPress") != 0;
+    LongPressButton::setShortMode(quickLP);
 
     // Subscribe to color scheme changes for component repaints
     ColorScheme::Manager::getInstance().addListener(this);
