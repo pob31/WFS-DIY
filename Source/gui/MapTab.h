@@ -13,6 +13,7 @@
 #include "StatusBar.h"
 #include "../Helpers/CoordinateConverter.h"
 #include "../Localization/LocalizationManager.h"
+#include "HelpCard.h"
 
 /**
  * Map Tab Component
@@ -67,6 +68,12 @@ public:
                 onLevelOverlayChanged(levelOverlayEnabled);
             repaint();
         };
+
+        // Map help card
+        addAndMakeVisible(mapHelpButton);
+        addChildComponent(mapHelpCard);
+        mapHelpCard.setContent(LOC("help.map.title"), LOC("help.map.body"));
+        mapHelpButton.setCard(&mapHelpCard);
 
         // Initialize view to center on stage
         resetView();
@@ -388,6 +395,16 @@ public:
         const int fitBtnGap = juce::jmax(3, static_cast<int>(5.0f * us));
         homeButton.setBounds(getWidth() - margin - homeW, margin, homeW, btnH);
         fitInputsButton.setBounds(getWidth() - margin - homeW - fitBtnGap - fitW, margin, fitW, btnH);
+
+        // Help button — below the fit buttons, top-right
+        {
+            const int btnSize = juce::jmax(20, static_cast<int>(24.0f * us));
+            mapHelpButton.setBounds(getWidth() - margin - btnSize, margin + btnH + margin / 2, btnSize, btnSize);
+            // Help card — centered on map
+            int cardW = juce::jmin(getWidth() - 80, 580);
+            int cardH = mapHelpCard.getIdealHeight(cardW);
+            mapHelpCard.setBounds(getWidth() / 2 - cardW / 2, getHeight() / 2 - cardH / 2, cardW, cardH);
+        }
 
         // Reset view offset to center when resized
         if (viewOffset.isOrigin())
@@ -4013,6 +4030,9 @@ private:
     {
         juce::ignoreUnused(tree);
     }
+
+    HelpCardButton mapHelpButton;
+    HelpCard mapHelpCard;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MapTab)
 };
