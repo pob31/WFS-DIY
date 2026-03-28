@@ -1950,6 +1950,10 @@ OFF",
       "title": "Renderizador Binaural",
       "body": "El renderizador binaural se utiliza para:\n- escuchar una mezcla espacial aproximada con auriculares,\n- crear una mezcla para salida estéreo,\n- escuchar una pista en solo a través del procesamiento espacial.\nPuede sustituir su mezcla master si solo alimenta auriculares y mezcla de medios.\nLa posición de escucha puede ajustarse en profundidad desde el punto de origen y en orientación. Los ajustes de retardo y nivel permiten igualar el sonido en la posición FOH."
     },
+    "clusters": {
+      "title": "Clusters",
+      "body": "Los clusters son grupos de entradas que pueden manipularse y animarse como un conjunto.\nCada entrada solo puede pertenecer a un cluster.\nCada cluster solo puede tener una entrada con tracking completamente habilitado, que se convierte en el punto de referencia.\nSi no hay entrada con tracking, hay dos modos de referencia: la primera entrada asignada o el baricentro de las entradas asignadas. El orden puede cambiarse manualmente.\nTodas las entradas pueden moverse arrastrando el punto de referencia. Las entradas individuales pueden ajustarse por separado.\nTodas las entradas de un cluster pueden rotarse o escalarse alrededor del punto de referencia.\nTodos los clusters pueden recibir una animación via LFO. Las posiciones X, Y, Z, la rotación y la escala pueden controlarse. Los ajustes LFO pueden asignarse a pads. Los presets pueden exportarse e importarse.\nTodos los movimientos LFO pueden detenerse simultáneamente."
+    },
     "lfo": {
       "title": "LFO de Entrada",
       "body": "La posición de entrada puede automatizarse. El LFO puede controlar las coordenadas X, Y y Z individualmente así como la rotación de la directividad HF (girófono).\nAjuste el período y la fase globales del LFO.\nPara X, Y y Z seleccione forma, amplitud, tasa y fase. Un círculo en el plano XY usaría forma sinusoidal para X e Y con ±90° de desfase. Un cuadrado sería igual pero con formas trapezoidales.\nLa posición puede moverse mientras el LFO está funcionando."

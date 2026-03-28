@@ -1950,6 +1950,10 @@ OFF",
       "title": "Renderizador Binaural",
       "body": "O renderizador binaural é usado para:\n- ouvir uma mixagem espacial aproximada em fones de ouvido,\n- criar uma mixagem para saída estéreo,\n- ouvir uma faixa solo através do processamento espacial.\nPode substituir sua mixagem master se alimentar apenas fones e mixagem de mídia.\nA posição de escuta pode ser ajustada em profundidade a partir do ponto de origem e em orientação. As configurações de atraso e nível permitem igualar o som na posição FOH."
     },
+    "clusters": {
+      "title": "Clusters",
+      "body": "Clusters são grupos de entradas que podem ser manipulados e animados como um conjunto.\nCada entrada só pode pertencer a um cluster.\nCada cluster pode ter apenas uma entrada com tracking totalmente habilitado, que se torna o ponto de referência.\nSe não houver entrada com tracking, há dois modos de referência: a primeira entrada atribuída ou o baricentro das entradas. A ordem pode ser alterada manualmente.\nTodas as entradas podem ser movidas arrastando o ponto de referência. Entradas individuais podem ser ajustadas separadamente.\nTodas as entradas de um cluster podem ser rotacionadas ou escaladas ao redor do ponto de referência.\nTodos os clusters podem receber animação via LFO. Posições X, Y, Z, rotação e escala podem ser controladas. Configurações LFO podem ser atribuídas a pads. Presets podem ser exportados e importados.\nTodos os movimentos LFO podem ser parados simultaneamente."
+    },
     "lfo": {
       "title": "LFO de Entrada",
       "body": "A posição de entrada pode ser automatizada. O LFO pode controlar as coordenadas X, Y e Z individualmente e a rotação da diretividade HF (girofone).\nAjuste o período e a fase globais do LFO.\nPara X, Y e Z selecione forma, amplitude, taxa e fase. Um círculo no plano XY usaria forma senoidal para X e Y com ±90° de defasagem.\nA posição pode ser movida enquanto o LFO está funcionando."

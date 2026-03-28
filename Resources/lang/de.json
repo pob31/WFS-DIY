@@ -1950,6 +1950,10 @@ OFF",
       "title": "Binaural-Renderer",
       "body": "Der Binaural-Renderer wird verwendet für:\n- das Abhören eines groben räumlichen Mixes über Kopfhörer,\n- das Erstellen eines Mixes für Stereoausgabe,\n- das Abhören einer einzelnen Solo-Spur durch die räumliche Verarbeitung.\nEr kann Ihren Master-Mix ersetzen, wenn dieser nur Kopfhörer und Medienmix versorgt.\nDie Hörposition kann in der Tiefe vom Ursprungspunkt und in der Orientierung angepasst werden. Delay- und Pegeleinstellungen ermöglichen die Anpassung an die FOH-Position."
     },
+    "clusters": {
+      "title": "Cluster",
+      "body": "Cluster sind Gruppen von Eingängen, die als Ganzes manipuliert und animiert werden können.\nJeder Eingang kann nur Teil eines Clusters sein.\nJeder Cluster kann nur einen Eingang mit vollständig aktiviertem Tracking haben. Dieser wird zum Referenzpunkt des Clusters.\nWenn kein Eingang mit Tracking vorhanden ist, gibt es zwei Modi: entweder der erste zugewiesene Eingang oder der Schwerpunkt der zugewiesenen Eingänge. Die Reihenfolge kann manuell geändert werden.\nAlle Eingänge können durch Ziehen des Referenzpunkts verschoben werden. Einzelne Eingänge können weiterhin individuell angepasst werden.\nAlle Eingänge eines Clusters können um den Referenzpunkt rotiert oder skaliert werden.\nAllen Clustern kann eine Animation über einen LFO zugewiesen werden. Positionen X, Y, Z, Rotation und Skalierung können gesteuert werden. LFO-Einstellungen können Pads zugewiesen werden. Presets können exportiert und importiert werden.\nAlle Cluster-LFO-Bewegungen können gleichzeitig gestoppt werden."
+    },
     "lfo": {
       "title": "Eingangs-LFO",
       "body": "Die Eingangsposition kann automatisiert werden. Der LFO kann X-, Y- und Z-Koordinaten einzeln steuern sowie die Rotation der HF-Direktionalität (Gyrophon).\nPassen Sie Periode und Phase des LFO global an.\nFür X, Y und Z wählen Sie Form, Amplitude, Rate und Phase. Ein Kreis in der XY-Ebene verwendet Sinusform für X und Y mit ±90° Versatz. Ein Quadrat wäre gleich aber mit Trapezformen.\nDie Eingangsposition kann während des LFO-Betriebs verschoben werden."

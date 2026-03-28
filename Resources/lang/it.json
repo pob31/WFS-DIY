@@ -1950,6 +1950,10 @@ OFF",
       "title": "Renderer Binaurale",
       "body": "Il renderer binaurale è utilizzato per:\n- ascoltare un mix spaziale approssimativo in cuffia,\n- creare un mix per uscita stereo,\n- ascoltare una traccia solista attraverso l'elaborazione spaziale.\nPuò sostituire il mix master se alimenta solo cuffie e mix media.\nLa posizione di ascolto può essere regolata in profondità dal punto di origine e in orientamento. Le impostazioni di ritardo e livello permettono di allineare il suono alla posizione FOH."
     },
+    "clusters": {
+      "title": "Cluster",
+      "body": "I cluster sono gruppi di ingressi che possono essere manipolati e animati come un insieme.\nOgni ingresso può far parte di un solo cluster.\nOgni cluster può avere un solo ingresso con tracking completamente abilitato, che diventa il punto di riferimento.\nSe nessun ingresso con tracking è presente, ci sono due modi: il primo ingresso assegnato o il baricentro degli ingressi assegnati. L'ordine può essere cambiato manualmente.\nTutti gli ingressi possono essere spostati trascinando il punto di riferimento. Gli ingressi individuali possono essere regolati separatamente.\nTutti gli ingressi di un cluster possono essere ruotati o scalati attorno al punto di riferimento.\nTutti i cluster possono ricevere un'animazione via LFO. Le posizioni X, Y, Z, la rotazione e la scala possono essere controllate. Le impostazioni LFO possono essere assegnate ai pad. I preset possono essere esportati e importati.\nTutti i movimenti LFO possono essere fermati simultaneamente."
+    },
     "lfo": {
       "title": "LFO Ingresso",
       "body": "La posizione dell'ingresso può essere automatizzata. Il LFO può controllare le coordinate X, Y e Z individualmente e la rotazione della direttività HF (girofono).\nRegolare il periodo e la fase globali del LFO.\nPer X, Y e Z selezionare forma, ampiezza, tasso e fase. Un cerchio nel piano XY userebbe forma sinusoidale per X e Y con ±90° di sfasamento. Un quadrato sarebbe uguale ma con forme trapezoidali.\nLa posizione può essere spostata mentre il LFO è attivo."

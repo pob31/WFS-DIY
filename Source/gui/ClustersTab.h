@@ -20,6 +20,7 @@
 #include "../AppSettings.h"
 #include "buttons/LongPressButton.h"
 #include "ColumnFocusTraverser.h"
+#include "HelpCard.h"
 
 //==============================================================================
 /**
@@ -357,6 +358,12 @@ public:
         importPresetsButton.setButtonText (LOC ("clusters.presets.import"));
         importPresetsButton.onClick = [this]() { importLFOPresets(); };
 
+        // Cluster help card
+        addAndMakeVisible(clusterHelpButton);
+        addChildComponent(clusterHelpCard);
+        clusterHelpCard.setContent(LOC("help.clusters.title"), LOC("help.clusters.body"));
+        clusterHelpButton.setCard(&clusterHelpCard);
+
         // Start with first cluster selected
         selectCluster(1);
         updateClusterButtonStates();
@@ -424,6 +431,19 @@ public:
         assignedInputsLabel.setBounds(leftPanel.removeFromTop(scaled(20)));
         leftPanel.removeFromTop(scaled(5));
         inputsList.setBounds(leftPanel);
+
+        // Help button — top-right of center panel
+        {
+            const int btnSize = scaled(20);
+            clusterHelpButton.setBounds(centerPanel.getRight() - btnSize, centerPanel.getY(), btnSize, btnSize);
+            // Help card — centered over the full bounds (tiles area)
+            auto fullArea = getLocalBounds();
+            int cardW = juce::jmin(fullArea.getWidth() - 80, 560);
+            int cardH = clusterHelpCard.getIdealHeight(cardW);
+            int cardX = fullArea.getCentreX() - cardW / 2;
+            int cardY = fullArea.getCentreY() - cardH / 2;
+            clusterHelpCard.setBounds(cardX, cardY, cardW, cardH);
+        }
 
         // ==================== CENTER PANEL - REFERENCE + CONTROLS ====================
         // Row 1: Reference mode + position display + status (single compact row)
@@ -2675,6 +2695,9 @@ private:
             return true;
         }
     } circuitTabHandler;
+
+    HelpCardButton clusterHelpButton;
+    HelpCard clusterHelpCard;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ClustersTab)
 
