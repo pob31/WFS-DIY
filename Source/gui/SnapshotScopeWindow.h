@@ -769,7 +769,7 @@ public:
             int cardW = juce::jmin(getWidth() - sc(180), 520);
             int cardH = scopeHelpCard.getIdealHeight(cardW);
             int cardX = getWidth() - sc(10) - cardW;
-            int cardY = sc(40);
+            int cardY = sc(140);
             scopeHelpCard.setBounds(cardX, cardY, cardW, cardH);
         }
 

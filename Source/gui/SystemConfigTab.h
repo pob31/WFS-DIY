@@ -645,6 +645,12 @@ public:
         binauralHelpCard.setContent(LOC("help.binaural.title"), LOC("help.binaural.body"));
         binauralHelpButton.setCard(&binauralHelpCard);
 
+        // Session Data help card
+        addAndMakeVisible(sessionDataHelpButton);
+        addChildComponent(sessionDataHelpCard);
+        sessionDataHelpCard.setContent(LOC("help.sessionData.title"), LOC("help.sessionData.body"));
+        sessionDataHelpButton.setCard(&sessionDataHelpCard);
+
         // Store/Reload Section
         addAndMakeVisible(selectProjectFolderButton);
         selectProjectFolderButton.setButtonText(LOC("systemConfig.buttons.selectProjectFolder"));
@@ -1076,6 +1082,20 @@ public:
             const int footerH = 2 * scaled(30) + 3 * scaled(10);
             int gsY = getHeight() - footerH - scaled(10) - rowHeight;
             gettingStartedButton.setBounds(layout.col1X, gsY, layout.colWidth, rowHeight);
+        }
+
+        // Session Data help button — above footer, aligned with binaural "?"
+        {
+            const int btnSize = scaled(20);
+            const int footerH = 2 * scaled(30) + 3 * scaled(10);
+            sessionDataHelpButton.setBounds(layout.col3X + layout.colWidth - btnSize - scaled(2),
+                                             getHeight() - footerH - scaled(10) - btnSize,
+                                             btnSize, btnSize);
+            // Help card — bottom of column 2
+            int cardW = layout.colWidth;
+            int cardH = sessionDataHelpCard.getIdealHeight(cardW);
+            int cardY = getHeight() - footerH - scaled(10) - cardH;
+            sessionDataHelpCard.setBounds(layout.col2X, cardY, cardW, cardH);
         }
 
         // Footer buttons - full width at bottom (matching Output tab style)
@@ -3021,6 +3041,8 @@ public:
     juce::Label binauralDelayUnitLabel;
     HelpCardButton binauralHelpButton;
     HelpCard binauralHelpCard;
+    HelpCardButton sessionDataHelpButton;
+    HelpCard sessionDataHelpCard;
 
     // Store/Reload Section
     LongPressButton selectProjectFolderButton { 1 };
