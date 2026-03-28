@@ -99,6 +99,7 @@
       "systemLatency": "System Latency:",
       "haasEffect": "Haas Effect:",
       "colorScheme": "Color Scheme:",
+      "quickLongPress": "Long Press:",
       "screenReader": "Screen Reader:",
       "language": "Language:",
       "binauralOutput": "Binaural Output:",
@@ -152,7 +153,8 @@
       "samplerOff": "Sampler: OFF",
       "samplerOn": "Sampler: ON",
       "setup": "Setup",
-      "quickLongPress": "Quick Long Press"
+      "quickLongPressOff": "Normal",
+      "quickLongPressOn": "Quick"
     },
 
     "algorithms": {

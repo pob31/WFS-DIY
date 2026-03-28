@@ -93,6 +93,7 @@
       "systemLatency": "Latencia del sistema:",
       "haasEffect": "Efecto Haas:",
       "colorScheme": "Esquema de color:",
+      "quickLongPress": "Pulsación larga:",
       "screenReader": "Lector de pantalla:",
       "language": "Idioma:",
       "binauralOutput": "Binaural Output:",
@@ -125,7 +126,8 @@
       "samplerOff": "Sampler: OFF",
       "samplerOn": "Sampler: ON",
       "setup": "Config.",
-      "quickLongPress": "Pulsación rápida"
+      "quickLongPressOff": "Normal",
+      "quickLongPressOn": "Rápido"
     },
     "algorithms": {
       "inputBuffer": "InputBuffer (retardos en lectura)",

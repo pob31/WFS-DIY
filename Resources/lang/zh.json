@@ -93,6 +93,7 @@
       "systemLatency": "系统延迟:",
       "haasEffect": "哈斯效应:",
       "colorScheme": "配色方案:",
+      "quickLongPress": "长按:",
       "screenReader": "屏幕阅读器:",
       "language": "语言:",
       "binauralOutput": "双耳输出:",
@@ -125,7 +126,8 @@
       "samplerOff": "Sampler: OFF",
       "samplerOn": "Sampler: ON",
       "setup": "设置",
-      "quickLongPress": "快速长按"
+      "quickLongPressOff": "正常",
+      "quickLongPressOn": "快速"
     },
     "algorithms": {
       "inputBuffer": "InputBuffer (读取时延迟)",

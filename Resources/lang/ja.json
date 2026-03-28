@@ -93,6 +93,7 @@
       "systemLatency": "システム遅延:",
       "haasEffect": "ハース効果:",
       "colorScheme": "カラースキーム:",
+      "quickLongPress": "長押し:",
       "screenReader": "スクリーンリーダー:",
       "language": "言語:",
       "binauralOutput": "Binaural Output:",
@@ -125,7 +126,8 @@
       "samplerOff": "Sampler: OFF",
       "samplerOn": "Sampler: ON",
       "setup": "設定",
-      "quickLongPress": "クイック長押し"
+      "quickLongPressOff": "通常",
+      "quickLongPressOn": "クイック"
     },
     "algorithms": {
       "inputBuffer": "InputBuffer (読み取り時遅延)",

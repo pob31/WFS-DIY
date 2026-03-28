@@ -409,13 +409,18 @@ public:
         };
 
         // Quick Long Press toggle
+        addAndMakeVisible(quickLongPressLabel);
+        quickLongPressLabel.setText(LOC("systemConfig.labels.quickLongPress"), juce::dontSendNotification);
         addAndMakeVisible(quickLongPressToggle);
-        quickLongPressToggle.setButtonText(LOC("systemConfig.buttons.quickLongPress"));
+        quickLongPressToggle.setClickingTogglesState(true);
         quickLongPressToggle.setToggleState(LongPressButton::isShortMode(), juce::dontSendNotification);
+        updateQuickLongPressText();
         quickLongPressToggle.onClick = [this]() {
-            LongPressButton::setShortMode(quickLongPressToggle.getToggleState());
+            bool enabled = quickLongPressToggle.getToggleState();
+            LongPressButton::setShortMode(enabled);
+            updateQuickLongPressText();
             if (onQuickLongPressChanged)
-                onQuickLongPressChanged(quickLongPressToggle.getToggleState());
+                onQuickLongPressChanged(enabled);
         };
 
         // Language selector
@@ -830,7 +835,7 @@ public:
         g.drawText(LOC("systemConfig.sections.show"), layout.col1X, scaled(10), layout.colWidth, headerH, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.io"), layout.col1X, scaled(130), layout.colWidth, headerH, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.ui"), layout.col1X, scaled(290), layout.colWidth, headerH, juce::Justification::left);
-        g.drawText(LOC("systemConfig.sections.controllers"), layout.col1X, scaled(400), layout.colWidth, headerH, juce::Justification::left);
+        g.drawText(LOC("systemConfig.sections.controllers"), layout.col1X, scaled(430), layout.colWidth, headerH, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.stage"), layout.col2X, scaled(10), layout.colWidth, headerH, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.master"), layout.col2X, scaled(400), layout.colWidth, headerH, juce::Justification::left);
         g.drawText(LOC("systemConfig.sections.wfsProcessor"), layout.col3X, scaled(10), layout.colWidth, headerH, juce::Justification::left);
@@ -891,14 +896,15 @@ public:
         colorSchemeSelector.setBounds(x + labelWidth, y, editorWidth * 2, rowHeight);  // Wider for dropdown text
         y += rowHeight + spacing;
 
-        quickLongPressToggle.setBounds(x, y, fullWidth, rowHeight);
+        quickLongPressLabel.setBounds(x, y, labelWidth, rowHeight);
+        quickLongPressToggle.setBounds(x + labelWidth, y, editorWidth, rowHeight);
         y += rowHeight + spacing;
 
         languageLabel.setBounds(x, y, labelWidth, rowHeight);
         languageSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
 
         // Controllers Section
-        y = scaled(430); // Start after "Controllers" header
+        y = scaled(460); // Start after "Controllers" header (shifted down for extra row)
         dialsAndButtonsLabel.setBounds (x, y, labelWidth, rowHeight);
         dialsAndButtonsSelector.setBounds (x + labelWidth, y, editorWidth * 2, rowHeight);
         y += rowHeight + spacing;
@@ -2827,6 +2833,7 @@ public:
         helpTextMap[&systemLatencyEditor] = LOC("systemConfig.help.systemLatency");
         helpTextMap[&haasEffectEditor] = LOC("systemConfig.help.haasEffect");
         helpTextMap[&colorSchemeSelector] = LOC("systemConfig.help.colorScheme");
+        helpTextMap[&quickLongPressLabel] = LOC("systemConfig.help.quickLongPress");
         helpTextMap[&quickLongPressToggle] = LOC("systemConfig.help.quickLongPress");
         helpTextMap[&languageSelector] = LOC("systemConfig.help.language");
         helpTextMap[&dialsAndButtonsSelector] = LOC("systemConfig.help.dialsAndButtons");
@@ -3016,7 +3023,8 @@ public:
     // UI Section
     juce::Label colorSchemeLabel;
     juce::ComboBox colorSchemeSelector;
-    juce::ToggleButton quickLongPressToggle;
+    juce::Label quickLongPressLabel;
+    juce::TextButton quickLongPressToggle;
     juce::Label languageLabel;
     juce::ComboBox languageSelector;
     juce::StringArray availableLanguages;
@@ -3084,6 +3092,13 @@ public:
     BinauralCallback onBinauralChanged;
     GettingStartedCallback onGettingStartedRequested;
     std::function<void(bool)> onQuickLongPressChanged;
+
+    void updateQuickLongPressText()
+    {
+        bool on = quickLongPressToggle.getToggleState();
+        quickLongPressToggle.setButtonText(on ? LOC("systemConfig.buttons.quickLongPressOn")
+                                               : LOC("systemConfig.buttons.quickLongPressOff"));
+    }
 
     // Helper to notify MainComponent of any channel count change
     void notifyChannelCountChanged()
