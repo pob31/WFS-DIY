@@ -1,101 +1,87 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 950 619">
+<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 1615.75 1052.79">
   <!-- Generator: Adobe Illustrator 29.5.0, SVG Export Plug-In . SVG Version: 2.1.0 Build 137)  -->
   <defs>
     <style>
       .st0 {
         fill: #fff;
-        stroke-width: 3px;
+        stroke-width: 6.75px;
       }
 
-      .st0, .st1, .st2, .st3, .st4, .st5, .st6, .st7, .st8, .st9, .st10 {
+      .st0, .st1, .st2, .st3, .st4, .st5, .st6, .st7 {
         stroke-miterlimit: 10;
       }
 
-      .st0, .st2, .st7, .st9 {
+      .st0, .st3, .st4, .st7 {
         stroke: #000;
       }
 
-      .st1, .st2, .st3, .st4, .st5, .st6, .st8, .st9, .st10 {
+      .st1 {
+        stroke: #009245;
+        stroke-dasharray: 12;
+      }
+
+      .st1, .st2, .st3, .st4, .st5, .st6 {
         fill: none;
       }
 
-      .st1, .st3, .st4 {
-        stroke-width: 4px;
+      .st1, .st2, .st5 {
+        stroke-width: 6px;
       }
 
-      .st1, .st3, .st6, .st8, .st10 {
+      .st2 {
+        stroke-dasharray: 11.87 11.87;
+      }
+
+      .st2, .st5 {
         stroke: blue;
       }
 
       .st3 {
-        stroke-dasharray: 7.92 7.92;
+        stroke-width: 15px;
+      }
+
+      .st8 {
+        fill: blue;
       }
 
       .st4 {
-        stroke: #009245;
-        stroke-dasharray: 8;
+        stroke-width: 2.25px;
       }
 
-      .st5 {
+      .st6 {
         stroke: #666;
-        stroke-width: 8px;
-      }
-
-      .st11 {
-        fill: url(#radial-gradient);
+        stroke-width: 12px;
       }
 
       .st7 {
         fill: #ccc;
-      }
-
-      .st8 {
-        stroke-width: .75px;
-      }
-
-      .st9 {
-        stroke-width: 10px;
-      }
-
-      .st10 {
-        stroke-width: .5px;
+        stroke-width: 5px;
       }
     </style>
-    <radialGradient id="radial-gradient" cx="72.59" cy="470.59" fx="72.59" fy="470.59" r="14.17" gradientUnits="userSpaceOnUse">
-      <stop offset=".47" stop-color="#fff"/>
-      <stop offset="1" stop-color="blue"/>
-    </radialGradient>
   </defs>
   <g>
-    <rect class="st7" x="240.58" y="580.79" width="20.36" height="20.36" transform="translate(-340.21 841.72) rotate(-90)"/>
-    <polygon class="st7" points="260.87 582.55 252.45 590.96 260.87 599.38 260.87 582.55"/>
+    <rect class="st7" x="451.74" y="894.67" width="30.54" height="30.54" transform="translate(-442.93 1376.95) rotate(-90)"/>
+    <polygon class="st7" points="482.17 897.32 469.56 909.94 482.17 922.56 482.17 897.32"/>
+  </g>
+  <line class="st1" x1="486.87" y1="902.49" x2="678.87" y2="825.99"/>
+  <circle class="st8" cx="199.75" cy="732.37" r="21.26"/>
+  <polyline class="st3" points="1488.87 533.49 660.87 938.49 144.87 938.49"/>
+  <g>
+    <line class="st5" x1="669.12" y1="817.74" x2="663.21" y2="816.71"/>
+    <line class="st2" x1="651.52" y1="814.66" x2="236.33" y2="741.87"/>
+    <line class="st5" x1="230.48" y1="740.85" x2="224.57" y2="739.81"/>
   </g>
   <g>
-    <path class="st0" d="M392.39,530.5c0,8.62,4.84,10.8,10.8,10.8s9.56-3.35,10.8-12c1.2-8.4-4.84-15.6-10.8-15.6-4.1,0-7.66,3.3-9.49,8.16-.42,1.11-3.48,6.19-3.71,7.44s2.4-.15,2.4,1.2Z"/>
-    <path class="st2" d="M404.72,523.19c.13.53,2.17,2.3.42,4.9"/>
-  </g>
-  <line class="st4" x1="264" y1="584" x2="392" y2="533"/>
-  <g>
-    <circle class="st11" cx="72.59" cy="470.59" r="14.17"/>
-    <g>
-      <circle class="st6" cx="72.59" cy="470.59" r="19.32"/>
-      <circle class="st8" cx="72.59" cy="470.59" r="24.53"/>
-      <circle class="st10" cx="72.59" cy="470.59" r="27"/>
-    </g>
-  </g>
-  <polyline class="st9" points="932 338 380 608 36 608"/>
-  <g>
-    <line class="st1" x1="385.5" y1="527.5" x2="381.56" y2="526.81"/>
-    <line class="st3" x1="373.76" y1="525.44" x2="96.97" y2="476.92"/>
-    <line class="st1" x1="93.07" y1="476.24" x2="89.13" y2="475.54"/>
+    <rect class="st7" x="474.24" y="261.67" width="30.54" height="30.54" transform="translate(41.98 617.58) rotate(-66.78)"/>
+    <polygon class="st7" points="508.42 271.33 491.85 277.94 498.47 294.52 508.42 271.33"/>
   </g>
   <g>
-    <rect class="st7" x="255.58" y="156.79" width="20.36" height="20.36" transform="translate(7.53 345.35) rotate(-66.78)"/>
-    <polygon class="st7" points="278.36 163.22 267.32 167.63 271.73 178.68 278.36 163.22"/>
+    <line class="st6" x1="548.53" y1="259.15" x2="575.22" y2="365.34"/>
+    <line class="st6" x1="508.77" y1="325.59" x2="614.97" y2="298.9"/>
   </g>
   <g>
-    <line class="st5" x1="305.1" y1="155.1" x2="322.9" y2="225.9"/>
-    <line class="st5" x1="278.6" y1="199.4" x2="349.4" y2="181.6"/>
+    <path class="st0" d="M672.2,824.49c0,19.39,10.88,24.3,24.3,24.3s21.52-7.54,24.3-27c2.7-18.9-10.88-35.1-24.3-35.1-9.22,0-17.25,7.42-21.36,18.36-.94,2.49-7.84,13.94-8.34,16.74-.5,2.81,5.4-.33,5.4,2.7Z"/>
+    <path class="st4" d="M699.95,808.04c.3,1.19,4.88,5.17.95,11.02"/>
   </g>
 </svg>
