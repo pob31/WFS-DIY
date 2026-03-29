@@ -2806,23 +2806,12 @@ private:
         // Tuning text
         tuningHelpCard.addTextSection(LOC("help.tuning.body"));
 
-        // Three tuning SVG illustrations side by side
-        auto t1 = std::shared_ptr<juce::Drawable>(HelpCardSVG::parse(HelpCardSVG::tuning1SVG).release());
-        auto t2 = std::shared_ptr<juce::Drawable>(HelpCardSVG::parse(HelpCardSVG::tuning2SVG).release());
-        auto t3 = std::shared_ptr<juce::Drawable>(HelpCardSVG::parse(HelpCardSVG::tuning3SVG).release());
+        // Combined tuning SVG (all 3 steps in one drawing)
+        auto tuningDrawable = std::shared_ptr<juce::Drawable>(HelpCardSVG::parse(HelpCardSVG::get_tuning123SVG()).release());
 
-        tuningHelpCard.addIllustration(180, [t1, t2, t3](juce::Graphics& g, juce::Rectangle<int> area) {
-            float w = (float)area.getWidth();
-            float h = (float)area.getHeight();
-            float gap = 4.0f;
-            float panelW = (w - gap * 2) / 3.0f;
-            for (int i = 0; i < 3; ++i)
-            {
-                auto panelArea = juce::Rectangle<float>((float)area.getX() + i * (panelW + gap),
-                                                          (float)area.getY(), panelW, h);
-                auto& d = (i == 0) ? t1 : (i == 1) ? t2 : t3;
-                if (d) d->drawWithin(g, panelArea, juce::RectanglePlacement::centred, 1.0f);
-            }
+        tuningHelpCard.addIllustration(140, [tuningDrawable](juce::Graphics& g, juce::Rectangle<int> area) {
+            if (tuningDrawable)
+                tuningDrawable->drawWithin(g, area.toFloat(), juce::RectanglePlacement::centred, 1.0f);
         });
     }
 
