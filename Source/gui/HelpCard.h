@@ -200,6 +200,160 @@ private:
 
 //==============================================================================
 /**
+ * Scrollable help card for long content. Title stays fixed at top,
+ * body text scrolls in a viewport. Same toggle/dismiss pattern as HelpCard.
+ */
+class ScrollableHelpCard : public juce::Component,
+                            private ColorScheme::Manager::Listener
+{
+public:
+    ScrollableHelpCard()
+    {
+        setOpaque(false);
+        setAlwaysOnTop(true);
+
+        addAndMakeVisible(titleLabel);
+        titleLabel.setJustificationType(juce::Justification::centredLeft);
+
+        viewport.setViewedComponent(&bodyContent, false);
+        viewport.setScrollBarsShown(true, false);
+        addAndMakeVisible(viewport);
+
+        updateColors();
+        ColorScheme::Manager::getInstance().addListener(this);
+    }
+
+    ~ScrollableHelpCard() override
+    {
+        ColorScheme::Manager::getInstance().removeListener(this);
+        if (auto* p = getParentComponent())
+            p->removeMouseListener(this);
+    }
+
+    void setContent(const juce::String& newTitle, const juce::String& newBody)
+    {
+        title = newTitle;
+        body = newBody;
+        titleLabel.setText(newTitle, juce::dontSendNotification);
+        bodyContent.bodyText = newBody;
+    }
+
+    void setToggleButton(juce::Component* btn) { toggleButton = btn; }
+
+    void show()
+    {
+        setVisible(true);
+        toFront(false);
+        if (auto* p = getParentComponent())
+            p->addMouseListener(this, true);
+    }
+
+    void hide()
+    {
+        if (!isVisible()) return;
+        setVisible(false);
+        if (auto* p = getParentComponent())
+            p->removeMouseListener(this);
+        if (onDismissed) onDismissed();
+    }
+
+    void paint(juce::Graphics& g) override
+    {
+        auto bounds = getLocalBounds().toFloat();
+
+        juce::DropShadow shadow(juce::Colours::black.withAlpha(0.35f), 10, {0, 3});
+        shadow.drawForRectangle(g, getLocalBounds());
+
+        g.setColour(ColorScheme::get().surfaceCard);
+        g.fillRoundedRectangle(bounds, 8.0f);
+
+        g.setColour(ColorScheme::get().buttonBorder);
+        g.drawRoundedRectangle(bounds, 8.0f, 1.0f);
+    }
+
+    void resized() override
+    {
+        auto area = getLocalBounds().reduced(20);
+        float scale = WfsLookAndFeel::uiScale;
+
+        int titleH = (int)(28 * scale);
+        titleLabel.setBounds(area.removeFromTop(titleH));
+        area.removeFromTop(8);
+
+        viewport.setBounds(area);
+
+        // Size body content to fit all text
+        int contentW = area.getWidth() - 14; // scrollbar width
+        auto bodyFont = juce::Font(juce::FontOptions().withHeight(juce::jmax(13.0f, 16.0f * scale)));
+        float lineH = bodyFont.getHeight() * 1.4f;
+
+        juce::GlyphArrangement glyphs;
+        glyphs.addJustifiedText(bodyFont, body, 0.0f, 0.0f, (float)contentW, juce::Justification::left);
+        int numLines = glyphs.getNumGlyphs() > 0
+            ? (int)((glyphs.getBoundingBox(glyphs.getNumGlyphs() - 1, 1, true).getBottom()) / lineH) + 1
+            : 1;
+        int bodyHeight = (int)(numLines * lineH + lineH);
+
+        bodyContent.setSize(contentW, bodyHeight);
+    }
+
+    void mouseUp(const juce::MouseEvent& e) override
+    {
+        if (!isVisible()) return;
+        auto clickPos = e.getEventRelativeTo(this).getPosition();
+        if (!getLocalBounds().contains(clickPos))
+        {
+            if (toggleButton != nullptr)
+            {
+                auto btnClick = e.getEventRelativeTo(toggleButton).getPosition();
+                if (toggleButton->getLocalBounds().contains(btnClick))
+                    return;
+            }
+            hide();
+        }
+    }
+
+    std::function<void()> onDismissed;
+
+private:
+    juce::String title, body;
+    juce::Label titleLabel;
+    juce::Component* toggleButton = nullptr;
+
+    class BodyComponent : public juce::Component
+    {
+    public:
+        void paint(juce::Graphics& g) override
+        {
+            float scale = WfsLookAndFeel::uiScale;
+            auto font = juce::Font(juce::FontOptions().withHeight(juce::jmax(13.0f, 16.0f * scale)));
+            g.setColour(ColorScheme::get().textSecondary);
+            g.setFont(font);
+            g.drawFittedText(bodyText, getLocalBounds(), juce::Justification::topLeft, 1000);
+        }
+        juce::String bodyText;
+    };
+
+    BodyComponent bodyContent;
+    juce::Viewport viewport;
+
+    void colorSchemeChanged() override
+    {
+        auto& palette = ColorScheme::get();
+        float scale = WfsLookAndFeel::uiScale;
+        titleLabel.setColour(juce::Label::textColourId, palette.textPrimary);
+        titleLabel.setFont(juce::FontOptions().withHeight(juce::jmax(14.0f, 20.0f * scale)).withStyle("Bold"));
+        repaint();
+        bodyContent.repaint();
+    }
+
+    void updateColors() { colorSchemeChanged(); }
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ScrollableHelpCard)
+};
+
+//==============================================================================
+/**
  * Small round "?" button that toggles a HelpCard's visibility.
  * Subdued appearance that brightens on hover and when active.
  */
@@ -223,6 +377,18 @@ public:
     void setCard(HelpCard* card)
     {
         associatedCard = card;
+        scrollableCard = nullptr;
+        if (card != nullptr)
+        {
+            card->setToggleButton(this);
+            card->onDismissed = [this]() { isActive = false; repaint(); };
+        }
+    }
+
+    void setCard(ScrollableHelpCard* card)
+    {
+        scrollableCard = card;
+        associatedCard = nullptr;
         if (card != nullptr)
         {
             card->setToggleButton(this);
@@ -270,22 +436,27 @@ public:
         if (!e.mouseWasClicked() || !getLocalBounds().contains(e.getPosition()))
             return;
 
-        if (associatedCard == nullptr) return;
+        if (associatedCard == nullptr && scrollableCard == nullptr) return;
 
         isActive = !isActive;
-        if (isActive)
-            associatedCard->show();
-        else
-            associatedCard->hide();
+        if (associatedCard != nullptr)
+        {
+            if (isActive) associatedCard->show(); else associatedCard->hide();
+        }
+        else if (scrollableCard != nullptr)
+        {
+            if (isActive) scrollableCard->show(); else scrollableCard->hide();
+        }
         repaint();
     }
 
     /** Dismiss the card programmatically (e.g. when leaving a tab). */
     void dismiss()
     {
-        if (isActive && associatedCard != nullptr)
+        if (isActive)
         {
-            associatedCard->hide();
+            if (associatedCard != nullptr) associatedCard->hide();
+            if (scrollableCard != nullptr) scrollableCard->hide();
             isActive = false;
             repaint();
         }
@@ -300,6 +471,7 @@ public:
 
 private:
     HelpCard* associatedCard = nullptr;
+    ScrollableHelpCard* scrollableCard = nullptr;
     bool isActive = false;
     bool isHovered = false;
 

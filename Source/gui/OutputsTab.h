@@ -18,6 +18,7 @@
 #include "buttons/EQBandToggle.h"
 #include "ColumnFocusTraverser.h"
 #include "../AppSettings.h"
+#include "HelpCard.h"
 
 /**
  * Small colored indicator to show that a parameter is linked across an array.
@@ -251,6 +252,12 @@ public:
         exportButton.setButtonText(LOC("outputs.buttons.export"));
         exportButton.setBaseColour(juce::Colour(0xFF8C3333));  // Reddish
         exportButton.onLongPress = [this]() { exportOutputConfiguration(); };
+
+        // Output help card (scrollable for long content)
+        addAndMakeVisible(outputHelpButton);
+        addChildComponent(outputHelpCard);
+        outputHelpCard.setContent(LOC("help.outputs.title"), LOC("help.outputs.body"));
+        outputHelpButton.setCard(&outputHelpCard);
 
         // Load initial channel parameters
         loadChannelParameters(1);
@@ -1222,11 +1229,14 @@ private:
         // Hide all components first
         setOutputParametersVisible(false);
         setEqVisible(false);
+        outputHelpButton.setVisible(false);
+        outputHelpCard.hide();
 
         // Show and layout current tab
         if (tabIndex == 0)
         {
             setOutputParametersVisible(true);
+            outputHelpButton.setVisible(true);
             layoutOutputParametersTab();
         }
         else if (tabIndex == 1)
@@ -1419,6 +1429,14 @@ private:
 
         // ==================== RIGHT COLUMN (Position & Directivity) ====================
         auto rightCol = area.reduced(10, 10);
+
+        // Help button — top-right of right column
+        {
+            const int btnSize = scaled(20);
+            outputHelpButton.setBounds(rightCol.getRight() - btnSize, rightCol.getY(), btnSize, btnSize);
+            // Scrollable help card fills the right column
+            outputHelpCard.setBounds(rightCol);
+        }
 
         // Coordinate mode and position row - distribute evenly across full width
         row = rightCol.removeFromTop(rowHeight);
@@ -2616,6 +2634,9 @@ private:
             return true;
         }
     } circuitTabHandler;
+
+    HelpCardButton outputHelpButton;
+    ScrollableHelpCard outputHelpCard;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OutputsTab)
 };
