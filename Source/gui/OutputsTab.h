@@ -1395,37 +1395,40 @@ private:
                                indicatorSize, indicatorSize);
         };
 
-        // ==================== LEFT COLUMN (Level & Timing) ====================
+        // ==================== LEFT COLUMN (Position & Directivity) ====================
         auto leftCol = area.removeFromLeft(area.getWidth() / 2).reduced(10, 10);
-        auto leftColBounds = leftCol; // save for parallax card positioning
         columnDividerX = area.getX();
 
+        // ==================== RIGHT COLUMN (Level & Timing) ====================
+        auto rightCol = area.reduced(10, 10);
+        auto rightColBounds = rightCol; // save for parallax card positioning
+
         // Attenuation
-        auto row = leftCol.removeFromTop(rowHeight);
+        auto row = rightCol.removeFromTop(rowHeight);
         attenuationLabel.setBounds(row.removeFromLeft(labelWidth));
         positionIndicatorForLabel(attenuationIndicator, attenuationLabel);
         attenuationValueLabel.setBounds(row.removeFromRight(valueWidth));
-        attenuationSlider.setBounds(leftCol.removeFromTop(sliderHeight));
-        leftCol.removeFromTop(spacing);
+        attenuationSlider.setBounds(rightCol.removeFromTop(sliderHeight));
+        rightCol.removeFromTop(spacing);
 
         // Delay/Latency
-        row = leftCol.removeFromTop(rowHeight);
+        row = rightCol.removeFromTop(rowHeight);
         delayLatencyLabel.setBounds(row.removeFromLeft(labelWidth));
         positionIndicatorForLabel(delayLatencyIndicator, delayLatencyLabel);
         delayLatencyValueLabel.setBounds(row.removeFromRight(scaled(130)));  // Wider for "Latency: 100.0 ms"
-        delayLatencySlider.setBounds(leftCol.removeFromTop(sliderHeight));
-        leftCol.removeFromTop(spacing * 2);
+        delayLatencySlider.setBounds(rightCol.removeFromTop(sliderHeight));
+        rightCol.removeFromTop(spacing * 2);
 
         // Distance Attenuation
-        row = leftCol.removeFromTop(rowHeight);
+        row = rightCol.removeFromTop(rowHeight);
         distanceAttenLabel.setBounds(row.removeFromLeft(labelWidth));
         positionIndicatorForLabel(distanceAttenIndicator, distanceAttenLabel);
         distanceAttenValueLabel.setBounds(row.removeFromRight(valueWidth));
-        distanceAttenSlider.setBounds(leftCol.removeFromTop(sliderHeight));
-        leftCol.removeFromTop(spacing * 4);  // Extra space before buttons
+        distanceAttenSlider.setBounds(rightCol.removeFromTop(sliderHeight));
+        rightCol.removeFromTop(spacing * 4);  // Extra space before buttons
 
         // Enable buttons - all three on a single row, aligned with sliders above
-        row = leftCol.removeFromTop(rowHeight);
+        row = rightCol.removeFromTop(rowHeight);
         const int buttonSpacing = scaled(15);  // Spacing between buttons
         const int buttonWidth = (row.getWidth() - buttonSpacing * 2) / 3;
         minLatencyEnableButton.setBounds(row.removeFromLeft(buttonWidth));
@@ -1437,19 +1440,18 @@ private:
         floorReflectionsEnableButton.setBounds(row);  // Use remaining space to align with slider right edge
         positionIndicatorForButton(floorReflectionsIndicator, floorReflectionsEnableButton);
 
-        // ==================== RIGHT COLUMN (Position & Directivity) ====================
-        auto rightCol = area.reduced(10, 10);
+        // Position & Directivity now in the LEFT column
 
-        // Help button — top-right of right column
+        // Help button — top-right of left column
         {
             const int btnSize = scaled(20);
-            outputHelpButton.setBounds(rightCol.getRight() - btnSize, rightCol.getY(), btnSize, btnSize);
-            // Scrollable help card fills the right column
-            outputHelpCard.setBounds(rightCol);
+            outputHelpButton.setBounds(leftCol.getRight() - btnSize, leftCol.getY(), btnSize, btnSize);
+            // Scrollable help card fills the left column
+            outputHelpCard.setBounds(leftCol);
         }
 
         // Coordinate mode and position row - distribute evenly across full width
-        row = rightCol.removeFromTop(rowHeight);
+        row = leftCol.removeFromTop(rowHeight);
         const int coordLabelWidth = scaled(85);
         const int coordSelectorWidth = scaled(80);
         const int posLabelWidth = scaled(75);  // Fits "Position X:", "Azimuth:", "Elevation:"
@@ -1474,7 +1476,7 @@ private:
         posZEditor.setBounds(row.removeFromLeft(posEditorWidth));
         row.removeFromLeft(4);
         posZUnitLabel.setBounds(row.removeFromLeft(posUnitWidth));
-        rightCol.removeFromTop(spacing * 6);  // Extra space before directivity group
+        leftCol.removeFromTop(spacing * 6);  // Extra space before directivity group
 
         // Calculate heights for vertical centering of dial with slider group
         const int dialSize = juce::jmax(60, static_cast<int>(100.0f * layoutScale));
@@ -1484,7 +1486,7 @@ private:
         const int dialTopOffset = (sliderGroupHeight - dialGroupHeight) / 2;
 
         // Orientation dial on the right side, vertically centered with slider group
-        auto dialColumn = rightCol.removeFromRight(dialSize + dialMargin);
+        auto dialColumn = leftCol.removeFromRight(dialSize + dialMargin);
         dialColumn.removeFromTop(dialTopOffset);  // Center dial with slider group
         auto orientLabelArea = dialColumn.removeFromTop(rowHeight);
         orientationLabel.setBounds(orientLabelArea);
@@ -1512,39 +1514,39 @@ private:
         orientationUnitLabel.setJustificationType(juce::Justification::left);
 
         // Angle On
-        row = rightCol.removeFromTop(rowHeight);
+        row = leftCol.removeFromTop(rowHeight);
         angleOnLabel.setBounds(row.removeFromLeft(labelWidth));
         positionIndicatorForLabel(angleOnIndicator, angleOnLabel);
         angleOnValueLabel.setBounds(row.removeFromRight(valueWidth));
-        angleOnSlider.setBounds(rightCol.removeFromTop(sliderHeight));
-        rightCol.removeFromTop(spacing);
+        angleOnSlider.setBounds(leftCol.removeFromTop(sliderHeight));
+        leftCol.removeFromTop(spacing);
 
         // Angle Off
-        row = rightCol.removeFromTop(rowHeight);
+        row = leftCol.removeFromTop(rowHeight);
         angleOffLabel.setBounds(row.removeFromLeft(labelWidth));
         positionIndicatorForLabel(angleOffIndicator, angleOffLabel);
         angleOffValueLabel.setBounds(row.removeFromRight(valueWidth));
-        angleOffSlider.setBounds(rightCol.removeFromTop(sliderHeight));
-        rightCol.removeFromTop(spacing);
+        angleOffSlider.setBounds(leftCol.removeFromTop(sliderHeight));
+        leftCol.removeFromTop(spacing);
 
         // Pitch
-        row = rightCol.removeFromTop(rowHeight);
+        row = leftCol.removeFromTop(rowHeight);
         pitchLabel.setBounds(row.removeFromLeft(labelWidth));
         positionIndicatorForLabel(pitchIndicator, pitchLabel);
         pitchValueLabel.setBounds(row.removeFromRight(valueWidth));
-        pitchSlider.setBounds(rightCol.removeFromTop(sliderHeight));
-        rightCol.removeFromTop(spacing * 4);
+        pitchSlider.setBounds(leftCol.removeFromTop(sliderHeight));
+        leftCol.removeFromTop(spacing * 4);
 
         // HF Damping
-        row = rightCol.removeFromTop(rowHeight);
+        row = leftCol.removeFromTop(rowHeight);
         hfDampingLabel.setBounds(row.removeFromLeft(labelWidth));
         positionIndicatorForLabel(hfDampingIndicator, hfDampingLabel);
         hfDampingValueLabel.setBounds(row.removeFromRight(valueWidth));
-        hfDampingSlider.setBounds(rightCol.removeFromTop(sliderHeight));
-        rightCol.removeFromTop(spacing * 6);  // Extra space before parallax
+        hfDampingSlider.setBounds(leftCol.removeFromTop(sliderHeight));
+        leftCol.removeFromTop(spacing * 6);  // Extra space before parallax
 
         // Parallax editors (both on same row, V Parallax starts at center)
-        row = rightCol.removeFromTop(rowHeight);
+        row = leftCol.removeFromTop(rowHeight);
         const int parallaxEditorWidth = scaled(60);
         const int parallaxUnitWidth = scaled(20);
         const int labelToEditorGap = scaled(10);  // Gap between label and editor
@@ -1569,10 +1571,12 @@ private:
         // Parallax help button — right end of parallax row
         {
             const int btnSize = scaled(20);
-            parallaxHelpButton.setBounds(rightCol.getRight() - btnSize,
+            parallaxHelpButton.setBounds(leftCol.getRight() - btnSize,
                                           vParallaxLabel.getY(), btnSize, btnSize);
-            // Parallax help card — over the left column
-            parallaxHelpCard.setBounds(leftColBounds);
+            // Parallax help card — bottom of right column, reduced height
+            int cardH = rightColBounds.getHeight() * 3 / 5;
+            parallaxHelpCard.setBounds(rightColBounds.getX(), rightColBounds.getBottom() - cardH,
+                                        rightColBounds.getWidth(), cardH);
         }
     }
 
@@ -2730,7 +2734,7 @@ private:
         parallaxHelpCard.addTextSection(LOC("help.parallax.body"));
 
         // Side-by-side illustration: top view (left) + cross section (right)
-        parallaxHelpCard.addIllustration(300, [](juce::Graphics& g, juce::Rectangle<int> area) {
+        parallaxHelpCard.addIllustration(180, [](juce::Graphics& g, juce::Rectangle<int> area) {
             g.saveState();
             g.reduceClipRegion(area);
             auto& cs = ColorScheme::get();
@@ -2758,7 +2762,7 @@ private:
                 g.setColour(c); g.strokePath(d, juce::PathStrokeType(sw * s));
             };
 
-            auto drawSpk = [&](float px, float s, float rx, float ry, float rot,
+            auto drawSpk = [&](float /*px*/, float s, float rx, float ry, float rot,
                                float t1x, float t1y, float t2x, float t2y, float t3x, float t3y,
                                std::function<float(float)> sx, std::function<float(float)> sy) {
                 juce::Colour f(0xFFCCCCCC);
@@ -2809,26 +2813,31 @@ private:
                 drawDashed(sx(473.6f), sy(239.6f), sx(360.5f), sy(48.5f), 6, 2, juce::Colours::red, s);
                 drawDashed(sx(178.5f), sy(263.3f), sx(360.5f), sy(48.5f), 6, 2, juce::Colours::red, s);
 
-                // Blue dashed: listeners → speakers
-                drawDashed(sx(309.5f), sy(442.5f), sx(335), sy(243.5f), 6, 2, juce::Colours::blue, s);
-                drawDashed(sx(387.5f), sy(442.5f), sx(374), sy(245), 6, 2, juce::Colours::blue, s);
-                drawDashed(sx(231.5f), sy(444.5f), sx(294), sy(252.6f), 6, 2, juce::Colours::blue, s);
-                drawDashed(sx(582.5f), sy(423.5f), sx(473.6f), sy(239.6f), 6, 2, juce::Colours::blue, s);
-                drawDashed(sx(49.5f), sy(415.5f), sx(178.5f), sy(263.3f), 6, 2, juce::Colours::blue, s);
+                // White dashed: speakers → listener positions (the correct endpoints)
+                // These define where blue/red lines should meet
+                struct ListenerPt { float x, y; };
+                ListenerPt lpts[] = { {57.2f, 398.9f}, {228.5f, 424.0f}, {308.5f, 424.6f}, {388.5f, 425.0f}, {565.6f, 397.7f} };
+                float spkEndX[] = { 134.9f, 228.5f, 308.5f, 388.5f, 483.8f };
+                float spkEndY[] = { 265.7f, 269.9f, 270.4f, 270.9f, 267.0f };
 
                 // Black dashed: speakers → listeners
-                drawDashed(sx(134.9f), sy(265.7f), sx(57.2f), sy(398.9f), 6, 2, cs.textPrimary, s);
-                drawDashed(sx(228.5f), sy(269.9f), sx(228.5f), sy(424), 6, 2, cs.textPrimary, s);
-                drawDashed(sx(308.5f), sy(270.4f), sx(308.5f), sy(424.6f), 6, 2, cs.textPrimary, s);
-                drawDashed(sx(388.5f), sy(270.9f), sx(388.5f), sy(425), 6, 2, cs.textPrimary, s);
-                drawDashed(sx(483.8f), sy(267), sx(565.6f), sy(397.7f), 6, 2, cs.textPrimary, s);
+                for (int i = 0; i < 5; ++i)
+                    drawDashed(sx(spkEndX[i]), sy(spkEndY[i]), sx(lpts[i].x), sy(lpts[i].y), 6, 2, cs.textPrimary, s);
 
-                drawList(s, 41.1f, 425, sx, sy); drawList(s, 228.5f, 456, sx, sy); drawList(s, 308.5f, 456.5f, sx, sy);
-                drawList(s, 388.5f, 457, sx, sy); drawList(s, 573, 420, sx, sy);
+                // Blue dashed: from listener endpoints → speaker midpoints (same start as white line end)
+                float spkMidX[] = { 178.5f, 294.0f, 335.0f, 374.0f, 473.6f };
+                float spkMidY[] = { 263.3f, 252.6f, 243.5f, 245.0f, 239.6f };
+                for (int i = 0; i < 5; ++i)
+                    drawDashed(sx(lpts[i].x), sy(lpts[i].y), sx(spkMidX[i]), sy(spkMidY[i]), 6, 2, juce::Colours::blue, s);
 
+                // Head icons at the intersection points (where white meets blue/red)
+                for (int i = 0; i < 5; ++i)
+                    drawList(s, lpts[i].x, lpts[i].y, sx, sy);
+
+                // Label: top-left
                 g.setColour(cs.textSecondary);
-                g.setFont(juce::FontOptions(juce::jmax(7.0f, 9.0f)));
-                g.drawText("Top View", (int)x0, (int)(y0 + h - 14), (int)halfW, 12, juce::Justification::centred);
+                g.setFont(juce::FontOptions(juce::jmax(8.0f, 10.0f)).withStyle("Bold"));
+                g.drawText("Top View", (int)(x0 + 4), (int)(y0 + 2), (int)(halfW / 2), 14, juce::Justification::centredLeft);
             }
 
             // Divider
@@ -2870,7 +2879,8 @@ private:
 
                 g.setColour(cs.textSecondary);
                 g.setFont(juce::FontOptions(juce::jmax(7.0f, 9.0f)));
-                g.drawText("Cross Section", (int)rx, (int)(y0 + h - 14), (int)halfW, 12, juce::Justification::centred);
+                g.setFont(juce::FontOptions(juce::jmax(8.0f, 10.0f)).withStyle("Bold"));
+                g.drawText("Cross Section", (int)(rx + 4), (int)(y0 + 2), (int)(halfW / 2), 14, juce::Justification::centredLeft);
             }
 
             g.restoreState();
