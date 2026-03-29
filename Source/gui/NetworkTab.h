@@ -2807,6 +2807,11 @@ private:
 
     void setupMouseListeners()
     {
+        // Help card buttons
+        networkHelpButton.addMouseListener(this, false);
+        trackingHelpButton.addMouseListener(this, false);
+        admOscHelpButton.addMouseListener(this, false);
+
         // ==================== NETWORK SECTION ====================
         networkInterfaceLabel.addMouseListener(this, false);
         networkInterfaceSelector.addMouseListener(this, true);  // true for ComboBox children

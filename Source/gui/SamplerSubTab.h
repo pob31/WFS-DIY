@@ -2164,6 +2164,7 @@ private:
         helpTextMap[&pasteButton]            = LOC ("sampler.tooltips.paste");
         helpTextMap[&importButton]           = LOC ("sampler.tooltips.import");
         helpTextMap[&exportButton]           = LOC ("sampler.tooltips.export");
+        helpTextMap[&samplerHelpButton]     = LOC ("help.sampler.title");
 
         for (auto& [comp, text] : helpTextMap)
             comp->addMouseListener (this, true);

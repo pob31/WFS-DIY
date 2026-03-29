@@ -3164,6 +3164,7 @@ private:
         helpTextMap[&radialGradToolBtn]    = LOC ("inputs.gradientMap.help.radGradTool");
         helpTextMap[&copyBtn]              = LOC ("inputs.gradientMap.help.copy");
         helpTextMap[&pasteBtn]             = LOC ("inputs.gradientMap.help.paste");
+        helpTextMap[&gradMapHelpButton]    = LOC ("help.gradientMap.title");
 
 
         for (auto& [comp, text] : helpTextMap)
