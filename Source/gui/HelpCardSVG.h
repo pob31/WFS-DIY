@@ -67,6 +67,68 @@ inline std::unique_ptr<juce::Drawable> parseSignalFlow(const juce::String& svg)
 {
     auto localized = localizeSignalFlow(svg);
     auto adapted = adaptForTheme(localized);
+
+    // Center-axis texts: add text-anchor middle, center on middle arrow x=446
+    // Direct outs + post fader (multiline — center both tspans)
+    adapted = adapted.replace("translate(395.56 399)\"><tspan x=\"0\"",
+                               "translate(446 399)\"><tspan x=\"0\" text-anchor=\"middle\"");
+    adapted = adapted.replace("x=\"3.52\" y=\"28.8\">post fader",
+                               "x=\"0\" y=\"28.8\" text-anchor=\"middle\">post fader");
+    // Outputs
+    adapted = adapted.replace("translate(406.41 635)\"><tspan x=\"0\"",
+                               "translate(446 635)\"><tspan x=\"0\" text-anchor=\"middle\"");
+    // Inputs
+    adapted = adapted.replace("translate(415.35 542)\"><tspan x=\"0\"",
+                               "translate(446 542)\"><tspan x=\"0\" text-anchor=\"middle\"");
+    // Speaker arrays
+    adapted = adapted.replace("translate(372.24 921.07)\"><tspan x=\"0\"",
+                               "translate(446 921.07)\"><tspan x=\"0\" text-anchor=\"middle\"");
+
+    // Font size: shrink from 24px to 20px so Console fits
+    adapted = adapted.replace("font-size: 24px", "font-size: 20px");
+
+    // WFS processor: larger (26px) and centered in box (center x=445, center y=588)
+    adapted = adapted.replace("translate(373.07 592)\"><tspan x=\"0\"",
+                               "translate(445 590)\"><tspan x=\"0\" text-anchor=\"middle\" font-size=\"26\"");
+
+    // Theme-specific color adjustments
+    bool isDark = ColorScheme::get().background.getBrightness() < 0.5f;
+    if (isDark)
+    {
+        // Lighten blue text/strokes for dark backgrounds
+        adapted = adapted.replace("fill: blue", "fill: #6699ff");
+        adapted = adapted.replace("stroke: blue", "stroke: #6699ff");
+
+        // Black strokes/fills → light
+        adapted = adapted.replace("stroke: #000", "stroke: #ddd");
+        adapted = adapted.replace("fill: #000", "fill: #ddd");
+
+        // st16 texts: add explicit light fill (Console stays dark — on white rect)
+        adapted = adapted.replace("translate(60.24 131.6)\">",  "translate(60.24 131.6)\" fill=\"#ddd\">")   // QLab/Ableton
+                         .replace("translate(169.23 738.6)\">", "translate(169.23 738.6)\" fill=\"#ddd\">")  // Remote
+                         .replace("translate(446 921.07)\">", "translate(446 921.07)\" fill=\"#ddd\">");     // Speaker arrays
+
+        // Classless polygons (arrowheads) → light
+        adapted = adapted.replace("<polygon points=", "<polygon fill=\"#ddd\" points=");
+
+        // Dark boxes (#333) → slightly lighter for contrast
+        adapted = adapted.replace("fill: #333", "fill: #444");
+    }
+    else
+    {
+        // Light mode: explicit colors for visibility on light background
+        // st16 texts (no fill defined) → force black
+        adapted = adapted.replace("translate(60.24 131.6)\">",  "translate(60.24 131.6)\" fill=\"#000\">")   // QLab/Ableton
+                         .replace("translate(169.23 738.6)\">", "translate(169.23 738.6)\" fill=\"#000\">")  // Remote
+                         .replace("translate(446 921.07)\">", "translate(446 921.07)\" fill=\"#000\">");     // Speaker arrays
+
+        // Ensure lines and strokes are dark
+        adapted = adapted.replace("stroke: #000", "stroke: #222");
+
+        // Keep blue as-is (visible on light), keep red as-is
+        // WFS processor white text on dark box — keep as designed
+    }
+
     auto xml = juce::XmlDocument::parse(adapted);
     if (xml == nullptr) return nullptr;
     return juce::Drawable::createFromSVG(*xml);
