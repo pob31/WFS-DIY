@@ -19,6 +19,7 @@
 #include "ColumnFocusTraverser.h"
 #include "../AppSettings.h"
 #include "HelpCard.h"
+#include "HelpCardSVG.h"
 
 /**
  * Small colored indicator to show that a parameter is linked across an array.
@@ -2733,10 +2734,25 @@ private:
         // Parallax text
         parallaxHelpCard.addTextSection(LOC("help.parallax.body"));
 
-        // Side-by-side illustration: top view (left) + cross section (right)
-        parallaxHelpCard.addIllustration(180, [](juce::Graphics& g, juce::Rectangle<int> area) {
-            g.saveState();
-            g.reduceClipRegion(area);
+        // Side-by-side SVG illustrations: top view + cross section
+        // Parse SVGs once; shared_ptr so the lambda capture is copyable
+        auto topDrawable = std::shared_ptr<juce::Drawable>(HelpCardSVG::parse(HelpCardSVG::parallax1SVG).release());
+        auto crossDrawable = std::shared_ptr<juce::Drawable>(HelpCardSVG::parse(HelpCardSVG::parallax2SVG).release());
+
+        parallaxHelpCard.addIllustration(200, [topDrawable, crossDrawable](juce::Graphics& g, juce::Rectangle<int> area) {
+            float halfW = (float)(area.getWidth() - 8) / 2.0f;
+            auto leftArea = juce::Rectangle<float>((float)area.getX(), (float)area.getY(), halfW, (float)area.getHeight());
+            auto rightArea = juce::Rectangle<float>((float)area.getX() + halfW + 8, (float)area.getY(), halfW, (float)area.getHeight());
+
+            if (topDrawable)
+                topDrawable->drawWithin(g, leftArea, juce::RectanglePlacement::centred, 1.0f);
+            if (crossDrawable)
+                crossDrawable->drawWithin(g, rightArea, juce::RectanglePlacement::centred, 1.0f);
+        });
+    }
+
+    #if 0 // Dead code — old manual parallax drawing replaced by SVG Drawable
+        [[maybe_unused]] auto dummy = [](juce::Graphics&, juce::Rectangle<int>) {
             auto& cs = ColorScheme::get();
             float w = (float)area.getWidth(), h = (float)area.getHeight();
             float x0 = (float)area.getX(), y0 = (float)area.getY();
@@ -2885,7 +2901,7 @@ private:
 
             g.restoreState();
         });
-    }
+    #endif // Dead code end
 
     void buildOutputHelpContent()
     {
@@ -2896,10 +2912,27 @@ private:
         outputHelpCard.addTextSection(
             LOC("help.outputs.body.arrays"));
 
-        // Illustration: 3 tuning steps side by side (SVG-faithful from WFS_tuning1-3.svg, viewBox 950x619)
+        // Illustration: 3 tuning steps side by side (SVG Drawables)
+        {
+            auto t1 = std::shared_ptr<juce::Drawable>(HelpCardSVG::parse(HelpCardSVG::tuning1SVG).release());
+            auto t2 = std::shared_ptr<juce::Drawable>(HelpCardSVG::parse(HelpCardSVG::tuning2SVG).release());
+            auto t3 = std::shared_ptr<juce::Drawable>(HelpCardSVG::parse(HelpCardSVG::tuning3SVG).release());
+            outputHelpCard.addIllustration(180, [t1, t2, t3](juce::Graphics& g, juce::Rectangle<int> area) {
+                float w = (float)area.getWidth(), h = (float)area.getHeight();
+                float gap = 4.0f;
+                float panelW = (w - gap * 2) / 3.0f;
+                for (int i = 0; i < 3; ++i)
+                {
+                    auto panelArea = juce::Rectangle<float>((float)area.getX() + i * (panelW + gap),
+                                                              (float)area.getY(), panelW, h);
+                    auto& d = (i == 0) ? t1 : (i == 1) ? t2 : t3;
+                    if (d) d->drawWithin(g, panelArea, juce::RectanglePlacement::centred, 1.0f);
+                }
+            });
+        }
+
+        #if 0 // Old manual tuning drawing code — replaced by SVG Drawables
         outputHelpCard.addIllustration(220, [](juce::Graphics& g, juce::Rectangle<int> area) {
-            g.saveState();
-            g.reduceClipRegion(area);
             auto& cs = ColorScheme::get();
             float totalW = (float)area.getWidth();
             float totalH = (float)area.getHeight() - 16; // room for labels
@@ -2989,6 +3022,7 @@ private:
             }
             g.restoreState();
         });
+        #endif // Old tuning code end
 
         // Section 3: Tuning instructions
         outputHelpCard.addTextSection(
