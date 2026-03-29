@@ -1878,6 +1878,7 @@ private:
 
     void setupHelpText()
     {
+        helpTextMap[&algoHelpButton] = LOC("help.reverbAlgo.title");
         helpTextMap[&channelSelector] = LOC("reverbs.help.channelSelector");
         helpTextMap[&nameEditor] = LOC("reverbs.help.nameEditor");
         helpTextMap[&mapVisibilityButton] = LOC("reverbs.help.mapVisibility");

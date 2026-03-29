@@ -550,6 +550,13 @@ public:
             dismiss();
     }
 
+    void parentHierarchyChanged() override
+    {
+        // Also dismiss when parent hierarchy changes (main tab switch)
+        if (!isShowing())
+            dismiss();
+    }
+
 private:
     HelpCard* associatedCard = nullptr;
     ScrollableHelpCard* scrollableCard = nullptr;

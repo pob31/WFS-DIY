@@ -1873,6 +1873,7 @@ private:
     {
         helpTextMap.clear();
         oscMethodMap.clear();
+        helpTextMap[&clusterHelpButton] = LOC("help.clusters.title");
 
         // Center column controls
         helpTextMap[&referenceModeSelector] = LOC("clusters.help.referenceMode");

@@ -2851,6 +2851,8 @@ public:
         helpTextMap[&binauralDelayEditor] = LOC("systemConfig.help.binauralDelay");
         helpTextMap[&lightpadArrangementButton] = LOC("systemConfig.help.lightpadSetup");
         helpTextMap[&remotePadSetupButton] = LOC("systemConfig.help.remoteSetup");
+        helpTextMap[&binauralHelpButton] = LOC("help.binaural.title");
+        helpTextMap[&sessionDataHelpButton] = LOC("help.sessionData.title");
         helpTextMap[&selectProjectFolderButton] = LOC("systemConfig.help.selectProjectFolder");
         helpTextMap[&storeCompleteConfigButton] = LOC("systemConfig.help.storeComplete");
         helpTextMap[&reloadCompleteConfigButton] = LOC("systemConfig.help.reloadComplete");

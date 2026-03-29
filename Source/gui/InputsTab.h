@@ -7215,6 +7215,10 @@ private:
         // Sidelines
         helpTextMap[&sidelinesActiveButton] = LOC("inputs.help.sidelinesActiveButton");
         helpTextMap[&sidelinesFringeDial] = LOC("inputs.help.sidelinesFringeDial");
+        helpTextMap[&lsHelpButton] = LOC("help.liveSource.title");
+        helpTextMap[&frHelpButton] = LOC("help.floorReflections.title");
+        helpTextMap[&lfoHelpButton] = LOC("help.lfo.title");
+        helpTextMap[&otomoHelpButton] = LOC("help.automOtion.title");
         helpTextMap[&storeButton] = LOC("inputs.help.storeConfig");
         helpTextMap[&reloadButton] = LOC("inputs.help.reloadConfig");
         helpTextMap[&reloadBackupButton] = LOC("inputs.help.reloadBackup");

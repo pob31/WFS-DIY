@@ -4201,6 +4201,11 @@ private:
             }
         }
 
+        // Help card buttons
+        if (source == &networkHelpButton) helpText = LOC("help.network.title");
+        else if (source == &trackingHelpButton) helpText = LOC("help.tracking.title");
+        else if (source == &admOscHelpButton) helpText = LOC("help.admOsc.title");
+
         // Update status bar and TTS
         if (helpText.isNotEmpty())
         {

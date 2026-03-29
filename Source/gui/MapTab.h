@@ -2366,6 +2366,7 @@ private:
 
     void setupHelpText()
     {
+        helpTextMap[&mapHelpButton] = LOC("help.map.title");
         helpTextMap[&homeButton] = LOC("map.tooltips.fitStage");
         helpTextMap[&fitInputsButton] = LOC("map.tooltips.fitInputs");
         helpTextMap[&levelOverlayButton] = LOC("map.tooltips.levels");
