@@ -266,6 +266,12 @@ public:
         buildParallaxHelpContent();
         parallaxHelpButton.setCard(&parallaxHelpCard);
 
+        // System Tuning help card
+        addAndMakeVisible(tuningHelpButton);
+        addChildComponent(tuningHelpCard);
+        buildTuningHelpContent();
+        tuningHelpButton.setCard(&tuningHelpCard);
+
         // Load initial channel parameters
         loadChannelParameters(1);
     }
@@ -1240,6 +1246,8 @@ private:
         outputHelpCard.hide();
         parallaxHelpButton.setVisible(false);
         parallaxHelpCard.hide();
+        tuningHelpButton.setVisible(false);
+        tuningHelpCard.hide();
 
         // Show and layout current tab
         if (tabIndex == 0)
@@ -1247,6 +1255,7 @@ private:
             setOutputParametersVisible(true);
             outputHelpButton.setVisible(true);
             parallaxHelpButton.setVisible(true);
+            tuningHelpButton.setVisible(true);
             layoutOutputParametersTab();
         }
         else if (tabIndex == 1)
@@ -1404,8 +1413,15 @@ private:
         auto rightCol = area.reduced(10, 10);
         auto rightColBounds = rightCol; // save for parallax card positioning
 
-        // Attenuation
+        // Attenuation + tuning help button
         auto row = rightCol.removeFromTop(rowHeight);
+        {
+            const int btnSize = scaled(20);
+            tuningHelpButton.setBounds(row.getRight() - btnSize, row.getY(), btnSize, btnSize);
+            int cardH = rightColBounds.getHeight() * 3 / 5;
+            tuningHelpCard.setBounds(rightColBounds.getX(), rightColBounds.getBottom() - cardH,
+                                      rightColBounds.getWidth(), cardH);
+        }
         attenuationLabel.setBounds(row.removeFromLeft(labelWidth));
         positionIndicatorForLabel(attenuationIndicator, attenuationLabel);
         attenuationValueLabel.setBounds(row.removeFromRight(valueWidth));
@@ -2665,6 +2681,8 @@ private:
     HelpCard outputHelpCard;
     HelpCardButton parallaxHelpButton;
     ScrollableHelpCard parallaxHelpCard;
+    HelpCardButton tuningHelpButton;
+    ScrollableHelpCard tuningHelpCard;
 
     /** Helper: draw a speaker icon at given position with orientation in degrees */
     static void drawSpeakerIcon(juce::Graphics& g, float cx, float cy, float orientDeg, float size,
@@ -2750,6 +2768,34 @@ private:
                 topDrawable->drawWithin(g, leftArea, juce::RectanglePlacement::centred, 1.0f);
             if (crossDrawable)
                 crossDrawable->drawWithin(g, rightArea, juce::RectanglePlacement::centred, 1.0f);
+        });
+    }
+
+    void buildTuningHelpContent()
+    {
+        tuningHelpCard.setContent(LOC("help.tuning.title"), "");
+        tuningHelpCard.clearSections();
+
+        // Tuning text
+        tuningHelpCard.addTextSection(LOC("help.tuning.body"));
+
+        // Three tuning SVG illustrations side by side
+        auto t1 = std::shared_ptr<juce::Drawable>(HelpCardSVG::parse(HelpCardSVG::tuning1SVG).release());
+        auto t2 = std::shared_ptr<juce::Drawable>(HelpCardSVG::parse(HelpCardSVG::tuning2SVG).release());
+        auto t3 = std::shared_ptr<juce::Drawable>(HelpCardSVG::parse(HelpCardSVG::tuning3SVG).release());
+
+        tuningHelpCard.addIllustration(180, [t1, t2, t3](juce::Graphics& g, juce::Rectangle<int> area) {
+            float w = (float)area.getWidth();
+            float h = (float)area.getHeight();
+            float gap = 4.0f;
+            float panelW = (w - gap * 2) / 3.0f;
+            for (int i = 0; i < 3; ++i)
+            {
+                auto panelArea = juce::Rectangle<float>((float)area.getX() + i * (panelW + gap),
+                                                          (float)area.getY(), panelW, h);
+                auto& d = (i == 0) ? t1 : (i == 1) ? t2 : t3;
+                if (d) d->drawWithin(g, panelArea, juce::RectanglePlacement::centred, 1.0f);
+            }
         });
     }
 
