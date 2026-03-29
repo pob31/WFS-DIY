@@ -11,20 +11,27 @@
 namespace HelpCardSVG
 {
 
-/** Adapt SVG colors for the current theme (dark/light) */
+/** Adapt SVG colors for the current theme and thicken strokes for visibility */
 inline juce::String adaptForTheme(const juce::String& svg)
 {
+    auto result = svg;
+
+    // Theme color adaptation
     bool isDark = ColorScheme::get().background.getBrightness() < 0.5f;
     if (isDark)
-        return svg.replace("stroke: #000", "stroke: #ddd")
-                   .replace("stroke:#000", "stroke:#ddd");
-    return svg;
+        result = result.replace("stroke: #000", "stroke: #ddd")
+                       .replace("stroke:#000", "stroke:#ddd");
+
+    // Stroke widths are pre-thickened in the embedded SVG strings
+
+    return result;
 }
 
 /** Parse an SVG string into a Drawable, with theme color adaptation */
 inline std::unique_ptr<juce::Drawable> parse(const juce::String& svg)
 {
     auto adapted = adaptForTheme(svg);
+    // Debug removed
     auto xml = juce::XmlDocument::parse(adapted);
     if (xml == nullptr) return nullptr;
     return juce::Drawable::createFromSVG(*xml);
@@ -49,7 +56,7 @@ inline const char* parallax1SVG = R"SVG(
       }
 
       .st0, .st1, .st2, .st3, .st5, .st6, .st9, .st10, .st11, .st12, .st14, .st15, .st16, .st18, .st19 {
-        stroke-width: 3px;
+        stroke-width: 20px;
       }
 
       .st0, .st1, .st2, .st12, .st15, .st18 {
@@ -97,7 +104,7 @@ inline const char* parallax1SVG = R"SVG(
       }
 
       .st8 {
-        stroke-width: 2px;
+        stroke-width: 16px;
       }
 
       .st9 {
@@ -117,7 +124,7 @@ inline const char* parallax1SVG = R"SVG(
       }
 
       .st13 {
-        stroke-width: .75px;
+        stroke-width: 48px;
       }
 
       .st15 {
@@ -125,7 +132,7 @@ inline const char* parallax1SVG = R"SVG(
       }
 
       .st17 {
-        stroke-width: .5px;
+        stroke-width: 40px;
       }
 
       .st19 {
@@ -320,15 +327,15 @@ inline const char* parallax2SVG = R"SVG(
 
       .st4, .st6, .st8 {
         stroke-dasharray: 8;
-        stroke-width: 3px;
+        stroke-width: 20px;
       }
 
       .st1, .st5 {
-        stroke-width: 2px;
+        stroke-width: 16px;
       }
 
       .st7 {
-        stroke-width: 4px;
+        stroke-width: 24px;
       }
 
       .st8 {
@@ -336,11 +343,11 @@ inline const char* parallax2SVG = R"SVG(
       }
 
       .st9 {
-        stroke-width: .75px;
+        stroke-width: 48px;
       }
 
       .st10 {
-        stroke-width: .5px;
+        stroke-width: 40px;
       }
     </style>
     <radialGradient id="radial-gradient" cx="722.55" cy="575.88" fx="722.55" fy="575.88" r="14.17" gradientUnits="userSpaceOnUse">
@@ -402,7 +409,7 @@ inline const char* tuning1SVG = R"SVG(
     <style>
       .st0 {
         fill: #fff;
-        stroke-width: 3px;
+        stroke-width: 20px;
       }
 
       .st0, .st1, .st2, .st3, .st4, .st5, .st6, .st7, .st8, .st9, .st10 {
@@ -418,7 +425,7 @@ inline const char* tuning1SVG = R"SVG(
       }
 
       .st1, .st3, .st4 {
-        stroke-width: 4px;
+        stroke-width: 24px;
       }
 
       .st1, .st3, .st6, .st8, .st10 {
@@ -436,7 +443,7 @@ inline const char* tuning1SVG = R"SVG(
 
       .st5 {
         stroke: #666;
-        stroke-width: 8px;
+        stroke-width: 40px;
       }
 
       .st11 {
@@ -448,15 +455,15 @@ inline const char* tuning1SVG = R"SVG(
       }
 
       .st8 {
-        stroke-width: .75px;
+        stroke-width: 48px;
       }
 
       .st9 {
-        stroke-width: 10px;
+        stroke-width: 48px;
       }
 
       .st10 {
-        stroke-width: .5px;
+        stroke-width: 40px;
       }
     </style>
     <radialGradient id="radial-gradient" cx="72.59" cy="470.59" fx="72.59" fy="470.59" r="14.17" gradientUnits="userSpaceOnUse">
@@ -512,7 +519,7 @@ inline const char* tuning2SVG = R"SVG(
       }
 
       .st0, .st2, .st8 {
-        stroke-width: 4px;
+        stroke-width: 24px;
       }
 
       .st0, .st4, .st6, .st8, .st9 {
@@ -530,7 +537,7 @@ inline const char* tuning2SVG = R"SVG(
 
       .st3 {
         stroke: #666;
-        stroke-width: 8px;
+        stroke-width: 40px;
       }
 
       .st10 {
@@ -546,11 +553,11 @@ inline const char* tuning2SVG = R"SVG(
       }
 
       .st6 {
-        stroke-width: .75px;
+        stroke-width: 48px;
       }
 
       .st7 {
-        stroke-width: 10px;
+        stroke-width: 48px;
       }
 
       .st8 {
@@ -558,7 +565,7 @@ inline const char* tuning2SVG = R"SVG(
       }
 
       .st9 {
-        stroke-width: .5px;
+        stroke-width: 40px;
       }
     </style>
     <radialGradient id="radial-gradient" cx="72.59" cy="470.59" fx="72.59" fy="470.59" r="14.17" gradientUnits="userSpaceOnUse">
@@ -617,7 +624,7 @@ inline const char* tuning3SVG = R"SVG(
       }
 
       .st0, .st2, .st3, .st11 {
-        stroke-width: 4px;
+        stroke-width: 24px;
       }
 
       .st0, .st4, .st8, .st10, .st11 {
@@ -661,7 +668,7 @@ inline const char* tuning3SVG = R"SVG(
       }
 
       .st6, .st7, .st9 {
-        stroke-width: 10px;
+        stroke-width: 48px;
       }
 
       .st7 {
@@ -669,11 +676,11 @@ inline const char* tuning3SVG = R"SVG(
       }
 
       .st8 {
-        stroke-width: .75px;
+        stroke-width: 48px;
       }
 
       .st10 {
-        stroke-width: .5px;
+        stroke-width: 40px;
       }
 
       .st11 {

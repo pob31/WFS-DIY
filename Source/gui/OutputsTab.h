@@ -266,10 +266,17 @@ public:
         buildParallaxHelpContent();
         parallaxHelpButton.setCard(&parallaxHelpCard);
 
+        // Advanced Parameters help card
+        addAndMakeVisible(advancedHelpButton);
+        addChildComponent(advancedHelpCard);
+        advancedHelpCard.setContent(LOC("help.outputAdvanced.title"), LOC("help.outputAdvanced.body"));
+        advancedHelpButton.setCard(&advancedHelpCard);
+
         // System Tuning help card
         addAndMakeVisible(tuningHelpButton);
         addChildComponent(tuningHelpCard);
         buildTuningHelpContent();
+        tuningHelpCard.setScrollBarVisible(false);
         tuningHelpButton.setCard(&tuningHelpCard);
 
         // Load initial channel parameters
@@ -1248,6 +1255,8 @@ private:
         parallaxHelpCard.hide();
         tuningHelpButton.setVisible(false);
         tuningHelpCard.hide();
+        advancedHelpButton.setVisible(false);
+        advancedHelpCard.hide();
 
         // Show and layout current tab
         if (tabIndex == 0)
@@ -1256,6 +1265,7 @@ private:
             outputHelpButton.setVisible(true);
             parallaxHelpButton.setVisible(true);
             tuningHelpButton.setVisible(true);
+            advancedHelpButton.setVisible(true);
             layoutOutputParametersTab();
         }
         else if (tabIndex == 1)
@@ -1417,7 +1427,8 @@ private:
         auto row = rightCol.removeFromTop(rowHeight);
         {
             const int btnSize = scaled(20);
-            tuningHelpButton.setBounds(row.getRight() - btnSize, row.getY(), btnSize, btnSize);
+            tuningHelpButton.setBounds(row.removeFromRight(btnSize).withHeight(btnSize));
+            row.removeFromRight(spacing);
             int cardH = rightColBounds.getHeight() * 3 / 5;
             tuningHelpCard.setBounds(rightColBounds.getX(), rightColBounds.getBottom() - cardH,
                                       rightColBounds.getWidth(), cardH);
@@ -1506,6 +1517,16 @@ private:
 
         // Orientation dial on the right side, vertically centered with slider group
         auto dialColumn = leftCol.removeFromRight(dialSize + dialMargin);
+
+        // Advanced help button — top-right of dial column
+        {
+            const int btnSize = scaled(20);
+            advancedHelpButton.setBounds(dialColumn.getRight() - btnSize, dialColumn.getY(), btnSize, btnSize);
+            int cardH = rightColBounds.getHeight() * 3 / 5;
+            advancedHelpCard.setBounds(rightColBounds.getX(), rightColBounds.getBottom() - cardH,
+                                        rightColBounds.getWidth(), cardH);
+        }
+
         dialColumn.removeFromTop(dialTopOffset);  // Center dial with slider group
         auto orientLabelArea = dialColumn.removeFromTop(rowHeight);
         orientationLabel.setBounds(orientLabelArea);
@@ -2683,6 +2704,8 @@ private:
     ScrollableHelpCard parallaxHelpCard;
     HelpCardButton tuningHelpButton;
     ScrollableHelpCard tuningHelpCard;
+    HelpCardButton advancedHelpButton;
+    HelpCard advancedHelpCard;
 
     /** Helper: draw a speaker icon at given position with orientation in degrees */
     static void drawSpeakerIcon(juce::Graphics& g, float cx, float cy, float orientDeg, float size,

@@ -253,6 +253,12 @@ public:
         bodyContent.sections.push_back({ {}, std::move(drawFunc), height });
     }
 
+    /** Hide the scrollbar (for cards that fit without scrolling) */
+    void setScrollBarVisible(bool visible)
+    {
+        viewport.setScrollBarsShown(visible, false);
+    }
+
     /** Clear all sections (for building content incrementally) */
     void clearSections()
     {
