@@ -134,6 +134,31 @@ public:
         updateTextEditor(returnOffsetYEditor);
         updateTextEditor(returnOffsetZEditor);
 
+        // Update algorithm button off-state colors
+        updateAlgorithmButtonColors();
+
+        // Update compressor/expander label colors
+        preCompSectionLabel.setColour (juce::Label::textColourId, colors.textPrimary);
+        postExpSectionLabel.setColour (juce::Label::textColourId, colors.textPrimary);
+
+        // Update compressor/expander bypass button colors
+        {
+            auto offCol = colors.sliderTrackBg;
+            auto compCol = preCompBypassButton.getToggleState() ? offCol : juce::Colour(0xFF4CAF50);
+            preCompBypassButton.setColour (juce::TextButton::buttonColourId, compCol);
+            preCompBypassButton.setColour (juce::TextButton::buttonOnColourId, compCol);
+            auto expCol = postExpBypassButton.getToggleState() ? offCol : juce::Colour(0xFF9C27B0);
+            postExpBypassButton.setColour (juce::TextButton::buttonColourId, expCol);
+            postExpBypassButton.setColour (juce::TextButton::buttonOnColourId, expCol);
+        }
+
+        // Update per-node IR button
+        {
+            auto btnCol = algoPerNodeButton.getToggleState() ? juce::Colour(0xFF4CAF50) : colors.sliderTrackBg;
+            algoPerNodeButton.setColour (juce::TextButton::buttonColourId, btnCol);
+            algoPerNodeButton.setColour (juce::TextButton::buttonOnColourId, btnCol);
+        }
+
         repaint();
     }
 
@@ -308,7 +333,7 @@ public:
         mapEditButton.setButtonText (enabled ? LOC ("reverbs.buttons.editOnMapOn")
                                              : LOC ("reverbs.buttons.editOnMap"));
         mapEditButton.setColour (juce::TextButton::buttonColourId,
-            enabled ? juce::Colour (0xFFCC8800) : juce::Colour (0xFF2D2D2D));
+            enabled ? juce::Colour (0xFFCC8800) : ColorScheme::get().sliderTrackBg);
         if (enabled)
         {
             auto val = parameters.getConfigParam ("reverbsMapVisible");
@@ -588,7 +613,7 @@ private:
         addAndMakeVisible (attenuationLabel);
         attenuationLabel.setText (LOC("reverbs.labels.attenuation"), juce::dontSendNotification);
 
-        attenuationSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF4A90D9));
+        attenuationSlider.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFF4A90D9));
         attenuationSlider.onValueChanged = [this] (float v)
         {
             float dB = 20.0f * std::log10 (std::pow (10.0f, -92.0f / 20.0f) +
@@ -610,7 +635,7 @@ private:
         addAndMakeVisible (delayLatencyLabel);
         delayLatencyLabel.setText (LOC("reverbs.labels.delayLatency"), juce::dontSendNotification);
 
-        delayLatencySlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFD4A017));
+        delayLatencySlider.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFFD4A017));
         delayLatencySlider.onValueChanged = [this] (float v)
         {
             float ms = v * 100.0f;  // -100 to +100 ms (v is -1 to 1)
@@ -759,7 +784,7 @@ private:
         addAndMakeVisible (angleOnLabel);
         angleOnLabel.setText (LOC("reverbs.labels.angleOn"), juce::dontSendNotification);
 
-        angleOnSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF4CAF50));  // Green to match dial
+        angleOnSlider.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFF4CAF50));  // Green to match dial
         angleOnSlider.onValueChanged = [this] (float v)
         {
             int degrees = static_cast<int> (v * 179.0f + 1.0f);  // 1-180
@@ -792,7 +817,7 @@ private:
         addAndMakeVisible (angleOffLabel);
         angleOffLabel.setText (LOC("reverbs.labels.angleOff"), juce::dontSendNotification);
 
-        angleOffSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFE53935));  // Red to match dial
+        angleOffSlider.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFFE53935));  // Red to match dial
         angleOffSlider.onValueChanged = [this] (float v)
         {
             int degrees = static_cast<int> (v * 179.0f);  // 0-179
@@ -825,7 +850,7 @@ private:
         addAndMakeVisible (pitchLabel);
         pitchLabel.setText (LOC("reverbs.labels.pitch"), juce::dontSendNotification);
 
-        pitchSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF26A69A));
+        pitchSlider.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFF26A69A));
         pitchSlider.onValueChanged = [this] (float v)
         {
             int degrees = static_cast<int> (v * 90.0f);  // -90 to +90 (v is -1 to 1)
@@ -846,7 +871,7 @@ private:
         addAndMakeVisible (hfDampingLabel);
         hfDampingLabel.setText (LOC("reverbs.labels.hfDamping"), juce::dontSendNotification);
 
-        hfDampingSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFE07878));
+        hfDampingSlider.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFFE07878));
         hfDampingSlider.onValueChanged = [this] (float v)
         {
             float dB = v * 6.0f - 6.0f;  // -6 to 0 dB/m
@@ -866,14 +891,14 @@ private:
         // Toggle buttons
         addAndMakeVisible (miniLatencyEnableButton);
         miniLatencyEnableButton.setButtonText (LOC("reverbs.toggles.minLatencyOff"));
-        miniLatencyEnableButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF2D2D2D));
-        miniLatencyEnableButton.setColour (juce::TextButton::buttonOnColourId, juce::Colour (0xFF2D2D2D));
+        miniLatencyEnableButton.setColour (juce::TextButton::buttonColourId, ColorScheme::get().sliderTrackBg);
+        miniLatencyEnableButton.setColour (juce::TextButton::buttonOnColourId, ColorScheme::get().sliderTrackBg);
         miniLatencyEnableButton.onClick = [this]
         {
             bool enabled = !miniLatencyEnableButton.getToggleState();
             miniLatencyEnableButton.setToggleState (enabled, juce::dontSendNotification);
             miniLatencyEnableButton.setButtonText (enabled ? LOC("reverbs.toggles.minLatencyOn") : LOC("reverbs.toggles.minLatencyOff"));
-            juce::Colour btnColour = enabled ? juce::Colour (0xFFD4A017) : juce::Colour (0xFF2D2D2D);
+            juce::Colour btnColour = enabled ? juce::Colour (0xFFD4A017) : ColorScheme::get().sliderTrackBg;
             miniLatencyEnableButton.setColour (juce::TextButton::buttonColourId, btnColour);
             miniLatencyEnableButton.setColour (juce::TextButton::buttonOnColourId, btnColour);
             saveReverbParam (WFSParameterIDs::reverbMiniLatencyEnable, enabled ? 1 : 0);
@@ -881,14 +906,14 @@ private:
 
         addAndMakeVisible (lsEnableButton);
         lsEnableButton.setButtonText (LOC("reverbs.toggles.liveSourceOff"));
-        lsEnableButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF2D2D2D));
-        lsEnableButton.setColour (juce::TextButton::buttonOnColourId, juce::Colour (0xFF2D2D2D));
+        lsEnableButton.setColour (juce::TextButton::buttonColourId, ColorScheme::get().sliderTrackBg);
+        lsEnableButton.setColour (juce::TextButton::buttonOnColourId, ColorScheme::get().sliderTrackBg);
         lsEnableButton.onClick = [this]
         {
             bool enabled = !lsEnableButton.getToggleState();
             lsEnableButton.setToggleState (enabled, juce::dontSendNotification);
             lsEnableButton.setButtonText (enabled ? LOC("reverbs.toggles.liveSourceOn") : LOC("reverbs.toggles.liveSourceOff"));
-            juce::Colour btnColour = enabled ? juce::Colour (0xFF4A90D9) : juce::Colour (0xFF2D2D2D);
+            juce::Colour btnColour = enabled ? juce::Colour (0xFF4A90D9) : ColorScheme::get().sliderTrackBg;
             lsEnableButton.setColour (juce::TextButton::buttonColourId, btnColour);
             lsEnableButton.setColour (juce::TextButton::buttonOnColourId, btnColour);
             saveReverbParam (WFSParameterIDs::reverbLSenable, enabled ? 1 : 0);
@@ -898,7 +923,7 @@ private:
         addAndMakeVisible (distanceAttenEnableLabel);
         distanceAttenEnableLabel.setText (LOC("reverbs.labels.distanceAttenPercent"), juce::dontSendNotification);
 
-        distanceAttenEnableSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF4A90D9));
+        distanceAttenEnableSlider.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFF4A90D9));
         distanceAttenEnableSlider.onValueChanged = [this] (float v)
         {
             int percent = static_cast<int> ((v + 1.0f) * 100.0f);  // 0-200% (v is -1 to 1, center is 100%)
@@ -928,7 +953,7 @@ private:
             eqEnableButton.setToggleState (enabled, juce::dontSendNotification);
             eqEnableButton.setButtonText (enabled ? LOC("eq.status.on") : LOC("eq.status.off"));
             eqEnableButton.setColour (juce::TextButton::buttonColourId,
-                                      enabled ? juce::Colour (0xFF4CAF50) : juce::Colour (0xFF2D2D2D));
+                                      enabled ? juce::Colour (0xFF4CAF50) : ColorScheme::get().sliderTrackBg);
             for (int i = 0; i < numEqBands; ++i)
                 updateEQBandAppearance (i);
             if (eqDisplay != nullptr)
@@ -995,7 +1020,7 @@ private:
             eqBandFreqLabel[i].setColour (juce::Label::textColourId, ColorScheme::get().textSecondary);
 
             juce::Colour bandColour = EQDisplayComponent::getBandColour(i);
-            eqBandFreqSlider[i].setTrackColours (juce::Colour (0xFF2D2D2D), bandColour);
+            eqBandFreqSlider[i].setTrackColours (ColorScheme::get().sliderTrackBg, bandColour);
             eqBandFreqSlider[i].onValueChanged = [this, i] (float v)
             {
                 int freq = static_cast<int> (20.0f * std::pow (10.0f, 3.0f * v));
@@ -1017,7 +1042,7 @@ private:
             eqBandGainLabel[i].setColour (juce::Label::textColourId, ColorScheme::get().textSecondary);
             eqBandGainLabel[i].setJustificationType (juce::Justification::centred);
 
-            eqBandGainDial[i].setTrackColours (juce::Colour (0xFF2D2D2D), bandColour);
+            eqBandGainDial[i].setTrackColours (ColorScheme::get().sliderTrackBg, bandColour);
             eqBandGainDial[i].onValueChanged = [this, i] (float v)
             {
                 float gain = v * 48.0f - 24.0f;  // -24 to +24 dB
@@ -1041,7 +1066,7 @@ private:
             eqBandQLabel[i].setColour (juce::Label::textColourId, ColorScheme::get().textSecondary);
             eqBandQLabel[i].setJustificationType (juce::Justification::centred);
 
-            eqBandQDial[i].setTrackColours (juce::Colour (0xFF2D2D2D), bandColour);
+            eqBandQDial[i].setTrackColours (ColorScheme::get().sliderTrackBg, bandColour);
             eqBandQDial[i].onValueChanged = [this, i] (float v)
             {
                 float q = 0.1f + 0.21f * (std::pow (100.0f, v) - 1.0f);  // 0.1-20.0
@@ -1070,23 +1095,23 @@ private:
         addAndMakeVisible (preCompSectionLabel);
         preCompSectionLabel.setText (LOC("reverbs.preProcessing.compressor"), juce::dontSendNotification);
         preCompSectionLabel.setFont (juce::FontOptions().withHeight (16.0f).withStyle ("Bold"));
-        preCompSectionLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+        preCompSectionLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
         // Bypass button
         addAndMakeVisible (preCompBypassButton);
         preCompBypassButton.setButtonText (LOC("reverbs.preProcessing.compressorOff"));
         preCompBypassButton.setClickingTogglesState (true);
         preCompBypassButton.setToggleState (true, juce::dontSendNotification);  // Default: bypassed
-        preCompBypassButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF2D2D2D));
-        preCompBypassButton.setColour (juce::TextButton::buttonOnColourId, juce::Colour (0xFF2D2D2D));
+        preCompBypassButton.setColour (juce::TextButton::buttonColourId, ColorScheme::get().sliderTrackBg);
+        preCompBypassButton.setColour (juce::TextButton::buttonOnColourId, ColorScheme::get().sliderTrackBg);
         preCompBypassButton.onClick = [this]
         {
             bool bypassed = preCompBypassButton.getToggleState();
             preCompBypassButton.setButtonText (bypassed ? LOC("reverbs.preProcessing.compressorOff") : LOC("reverbs.preProcessing.compressorOn"));
             preCompBypassButton.setColour (juce::TextButton::buttonColourId,
-                bypassed ? juce::Colour (0xFF2D2D2D) : juce::Colour (0xFF3498DB));
+                bypassed ? ColorScheme::get().sliderTrackBg : juce::Colour (0xFF3498DB));
             preCompBypassButton.setColour (juce::TextButton::buttonOnColourId,
-                bypassed ? juce::Colour (0xFF2D2D2D) : juce::Colour (0xFF3498DB));
+                bypassed ? ColorScheme::get().sliderTrackBg : juce::Colour (0xFF3498DB));
             updatePreCompAppearance();
             savePreCompParam (reverbPreCompBypass, bypassed ? 1 : 0);
         };
@@ -1099,7 +1124,7 @@ private:
         addAndMakeVisible (preCompThresholdLabel);
         preCompThresholdLabel.setText (LOC("reverbs.preProcessing.threshold"), juce::dontSendNotification);
         preCompThresholdLabel.setJustificationType (juce::Justification::centred);
-        preCompThresholdDial.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF3498DB));
+        preCompThresholdDial.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFF3498DB));
         preCompThresholdDial.onValueChanged = [this] (float v)
         {
             float threshold = reverbPreCompThresholdMin + (reverbPreCompThresholdMax - reverbPreCompThresholdMin) * v;
@@ -1120,7 +1145,7 @@ private:
         addAndMakeVisible (preCompRatioLabel);
         preCompRatioLabel.setText (LOC("reverbs.preProcessing.ratio"), juce::dontSendNotification);
         preCompRatioLabel.setJustificationType (juce::Justification::centred);
-        preCompRatioDial.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF3498DB));
+        preCompRatioDial.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFF3498DB));
         preCompRatioDial.onValueChanged = [this] (float v)
         {
             float ratio = reverbPreCompRatioMin + (reverbPreCompRatioMax - reverbPreCompRatioMin) * v;
@@ -1141,7 +1166,7 @@ private:
         addAndMakeVisible (preCompAttackLabel);
         preCompAttackLabel.setText (LOC("reverbs.preProcessing.attack"), juce::dontSendNotification);
         preCompAttackLabel.setJustificationType (juce::Justification::centred);
-        preCompAttackDial.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF3498DB));
+        preCompAttackDial.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFF3498DB));
         preCompAttackDial.onValueChanged = [this] (float v)
         {
             float attack = reverbPreCompAttackMin * std::pow (reverbPreCompAttackMax / reverbPreCompAttackMin, v);
@@ -1162,7 +1187,7 @@ private:
         addAndMakeVisible (preCompReleaseLabel);
         preCompReleaseLabel.setText (LOC("reverbs.preProcessing.release"), juce::dontSendNotification);
         preCompReleaseLabel.setJustificationType (juce::Justification::centred);
-        preCompReleaseDial.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF3498DB));
+        preCompReleaseDial.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFF3498DB));
         preCompReleaseDial.onValueChanged = [this] (float v)
         {
             float release = reverbPreCompReleaseMin * std::pow (reverbPreCompReleaseMax / reverbPreCompReleaseMin, v);
@@ -1189,23 +1214,23 @@ private:
         addAndMakeVisible (postExpSectionLabel);
         postExpSectionLabel.setText (LOC("reverbs.postProcessing.expander"), juce::dontSendNotification);
         postExpSectionLabel.setFont (juce::FontOptions().withHeight (16.0f).withStyle ("Bold"));
-        postExpSectionLabel.setColour (juce::Label::textColourId, juce::Colours::white);
+        postExpSectionLabel.setColour (juce::Label::textColourId, ColorScheme::get().textPrimary);
 
         // Bypass button
         addAndMakeVisible (postExpBypassButton);
         postExpBypassButton.setButtonText (LOC("reverbs.postProcessing.expanderOff"));
         postExpBypassButton.setClickingTogglesState (true);
         postExpBypassButton.setToggleState (true, juce::dontSendNotification);  // Default: bypassed
-        postExpBypassButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF2D2D2D));
-        postExpBypassButton.setColour (juce::TextButton::buttonOnColourId, juce::Colour (0xFF2D2D2D));
+        postExpBypassButton.setColour (juce::TextButton::buttonColourId, ColorScheme::get().sliderTrackBg);
+        postExpBypassButton.setColour (juce::TextButton::buttonOnColourId, ColorScheme::get().sliderTrackBg);
         postExpBypassButton.onClick = [this]
         {
             bool bypassed = postExpBypassButton.getToggleState();
             postExpBypassButton.setButtonText (bypassed ? LOC("reverbs.postProcessing.expanderOff") : LOC("reverbs.postProcessing.expanderOn"));
             postExpBypassButton.setColour (juce::TextButton::buttonColourId,
-                bypassed ? juce::Colour (0xFF2D2D2D) : juce::Colour (0xFF9B59B6));
+                bypassed ? ColorScheme::get().sliderTrackBg : juce::Colour (0xFF9B59B6));
             postExpBypassButton.setColour (juce::TextButton::buttonOnColourId,
-                bypassed ? juce::Colour (0xFF2D2D2D) : juce::Colour (0xFF9B59B6));
+                bypassed ? ColorScheme::get().sliderTrackBg : juce::Colour (0xFF9B59B6));
             updatePostExpAppearance();
             savePostExpParam (reverbPostExpBypass, bypassed ? 1 : 0);
         };
@@ -1218,7 +1243,7 @@ private:
         addAndMakeVisible (postExpThresholdLabel);
         postExpThresholdLabel.setText (LOC("reverbs.postProcessing.threshold"), juce::dontSendNotification);
         postExpThresholdLabel.setJustificationType (juce::Justification::centred);
-        postExpThresholdDial.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF9B59B6));
+        postExpThresholdDial.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFF9B59B6));
         postExpThresholdDial.onValueChanged = [this] (float v)
         {
             float threshold = reverbPostExpThresholdMin + (reverbPostExpThresholdMax - reverbPostExpThresholdMin) * v;
@@ -1239,7 +1264,7 @@ private:
         addAndMakeVisible (postExpRatioLabel);
         postExpRatioLabel.setText (LOC("reverbs.postProcessing.ratio"), juce::dontSendNotification);
         postExpRatioLabel.setJustificationType (juce::Justification::centred);
-        postExpRatioDial.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF9B59B6));
+        postExpRatioDial.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFF9B59B6));
         postExpRatioDial.onValueChanged = [this] (float v)
         {
             float ratio = reverbPostExpRatioMin + (reverbPostExpRatioMax - reverbPostExpRatioMin) * v;
@@ -1260,7 +1285,7 @@ private:
         addAndMakeVisible (postExpAttackLabel);
         postExpAttackLabel.setText (LOC("reverbs.postProcessing.attack"), juce::dontSendNotification);
         postExpAttackLabel.setJustificationType (juce::Justification::centred);
-        postExpAttackDial.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF9B59B6));
+        postExpAttackDial.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFF9B59B6));
         postExpAttackDial.onValueChanged = [this] (float v)
         {
             float attack = reverbPostExpAttackMin * std::pow (reverbPostExpAttackMax / reverbPostExpAttackMin, v);
@@ -1281,7 +1306,7 @@ private:
         addAndMakeVisible (postExpReleaseLabel);
         postExpReleaseLabel.setText (LOC("reverbs.postProcessing.release"), juce::dontSendNotification);
         postExpReleaseLabel.setJustificationType (juce::Justification::centred);
-        postExpReleaseDial.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF9B59B6));
+        postExpReleaseDial.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFF9B59B6));
         postExpReleaseDial.onValueChanged = [this] (float v)
         {
             float release = reverbPostExpReleaseMin * std::pow (reverbPostExpReleaseMax / reverbPostExpReleaseMin, v);
@@ -1313,15 +1338,15 @@ private:
         addAndMakeVisible (algoFDNButton);
         algoFDNButton.setButtonText (LOC("reverbs.algorithm.fdn"));
         algoFDNButton.setClickingTogglesState (true);
-        algoFDNButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF2D2D2D));
-        algoFDNButton.setColour (juce::TextButton::buttonOnColourId, juce::Colour (0xFF2D2D2D));
+        algoFDNButton.setColour (juce::TextButton::buttonColourId, ColorScheme::get().sliderTrackBg);
+        algoFDNButton.setColour (juce::TextButton::buttonOnColourId, ColorScheme::get().sliderTrackBg);
         algoFDNButton.onClick = [this] { selectAlgorithm (1); };
 
         addAndMakeVisible (algoIRButton);
         algoIRButton.setButtonText (LOC("reverbs.algorithm.ir"));
         algoIRButton.setClickingTogglesState (true);
-        algoIRButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF2D2D2D));
-        algoIRButton.setColour (juce::TextButton::buttonOnColourId, juce::Colour (0xFF2D2D2D));
+        algoIRButton.setColour (juce::TextButton::buttonColourId, ColorScheme::get().sliderTrackBg);
+        algoIRButton.setColour (juce::TextButton::buttonOnColourId, ColorScheme::get().sliderTrackBg);
         algoIRButton.onClick = [this] { selectAlgorithm (2); };
 
         // Algorithm help card
@@ -1339,7 +1364,7 @@ private:
         addAndMakeVisible (algoRT60Label);
         algoRT60Label.setText (LOC("reverbs.algorithm.rt60"), juce::dontSendNotification);
 
-        algoRT60Slider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFD4A017));
+        algoRT60Slider.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFFD4A017));
         algoRT60Slider.onValueChanged = [this] (float v)
         {
             float rt60 = WFSParameterDefaults::reverbRT60Min
@@ -1360,7 +1385,7 @@ private:
         addAndMakeVisible (algoRT60LowMultLabel);
         algoRT60LowMultLabel.setText (LOC("reverbs.algorithm.rt60LowMult"), juce::dontSendNotification);
 
-        algoRT60LowMultSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFC0880E));
+        algoRT60LowMultSlider.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFFC0880E));
         algoRT60LowMultSlider.onValueChanged = [this] (float v)
         {
             float mult = WFSParameterDefaults::reverbRT60LowMultMin
@@ -1381,7 +1406,7 @@ private:
         addAndMakeVisible (algoRT60HighMultLabel);
         algoRT60HighMultLabel.setText (LOC("reverbs.algorithm.rt60HighMult"), juce::dontSendNotification);
 
-        algoRT60HighMultSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFE8C020));
+        algoRT60HighMultSlider.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFFE8C020));
         algoRT60HighMultSlider.onValueChanged = [this] (float v)
         {
             float mult = WFSParameterDefaults::reverbRT60HighMultMin
@@ -1402,7 +1427,7 @@ private:
         addAndMakeVisible (algoCrossoverLowLabel);
         algoCrossoverLowLabel.setText (LOC("reverbs.algorithm.crossoverLow"), juce::dontSendNotification);
 
-        algoCrossoverLowSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF9B59B6));
+        algoCrossoverLowSlider.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFF9B59B6));
         algoCrossoverLowSlider.onValueChanged = [this] (float v)
         {
             float freq = WFSParameterDefaults::reverbCrossoverLowMin
@@ -1423,7 +1448,7 @@ private:
         addAndMakeVisible (algoCrossoverHighLabel);
         algoCrossoverHighLabel.setText (LOC("reverbs.algorithm.crossoverHigh"), juce::dontSendNotification);
 
-        algoCrossoverHighSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF3498DB));
+        algoCrossoverHighSlider.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFF3498DB));
         algoCrossoverHighSlider.onValueChanged = [this] (float v)
         {
             float freq = WFSParameterDefaults::reverbCrossoverHighMin
@@ -1444,7 +1469,7 @@ private:
         addAndMakeVisible (algoDiffusionLabel);
         algoDiffusionLabel.setText (LOC("reverbs.algorithm.diffusion"), juce::dontSendNotification);
 
-        algoDiffusionSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFE07878));
+        algoDiffusionSlider.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFFE07878));
         algoDiffusionSlider.onValueChanged = [this] (float v)
         {
             algoDiffusionValueLabel.setText (juce::String (static_cast<int> (v * 100)) + "%", juce::dontSendNotification);
@@ -1467,7 +1492,7 @@ private:
         addAndMakeVisible (algoSDNScaleLabel);
         algoSDNScaleLabel.setText (LOC("reverbs.algorithm.scale"), juce::dontSendNotification);
 
-        algoSDNScaleSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF2ECC71));
+        algoSDNScaleSlider.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFF2ECC71));
         algoSDNScaleSlider.onValueChanged = [this] (float v)
         {
             float scale = WFSParameterDefaults::reverbSDNscaleMin
@@ -1492,7 +1517,7 @@ private:
         addAndMakeVisible (algoFDNSizeLabel);
         algoFDNSizeLabel.setText (LOC("reverbs.algorithm.size"), juce::dontSendNotification);
 
-        algoFDNSizeSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF2ECC71));
+        algoFDNSizeSlider.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFF2ECC71));
         algoFDNSizeSlider.onValueChanged = [this] (float v)
         {
             float size = WFSParameterDefaults::reverbFDNsizeMin
@@ -1523,7 +1548,7 @@ private:
         addAndMakeVisible (algoIRTrimLabel);
         algoIRTrimLabel.setText (LOC("reverbs.algorithm.irTrim"), juce::dontSendNotification);
 
-        algoIRTrimSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFD4A017));
+        algoIRTrimSlider.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFFD4A017));
         algoIRTrimSlider.onValueChanged = [this] (float v)
         {
             float maxTrimMs = currentIRDurationSec * 1000.0f;
@@ -1543,7 +1568,7 @@ private:
         addAndMakeVisible (algoIRLengthLabel);
         algoIRLengthLabel.setText (LOC("reverbs.algorithm.irLength"), juce::dontSendNotification);
 
-        algoIRLengthSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFFD4A017));
+        algoIRLengthSlider.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFFD4A017));
         algoIRLengthSlider.onValueChanged = [this] (float v)
         {
             float length = WFSParameterDefaults::reverbIRlengthMin
@@ -1562,14 +1587,14 @@ private:
 
         addAndMakeVisible (algoPerNodeButton);
         algoPerNodeButton.setButtonText (LOC("reverbs.algorithm.perNodeOff"));
-        algoPerNodeButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF2D2D2D));
-        algoPerNodeButton.setColour (juce::TextButton::buttonOnColourId, juce::Colour (0xFF2D2D2D));
+        algoPerNodeButton.setColour (juce::TextButton::buttonColourId, ColorScheme::get().sliderTrackBg);
+        algoPerNodeButton.setColour (juce::TextButton::buttonOnColourId, ColorScheme::get().sliderTrackBg);
         algoPerNodeButton.onClick = [this]
         {
             bool enabled = !algoPerNodeButton.getToggleState();
             algoPerNodeButton.setToggleState (enabled, juce::dontSendNotification);
             algoPerNodeButton.setButtonText (enabled ? LOC("reverbs.algorithm.perNodeOn") : LOC("reverbs.algorithm.perNodeOff"));
-            juce::Colour btnColour = enabled ? juce::Colour (0xFF4CAF50) : juce::Colour (0xFF2D2D2D);
+            juce::Colour btnColour = enabled ? juce::Colour (0xFF4CAF50) : ColorScheme::get().sliderTrackBg;
             algoPerNodeButton.setColour (juce::TextButton::buttonColourId, btnColour);
             algoPerNodeButton.setColour (juce::TextButton::buttonOnColourId, btnColour);
             saveAlgorithmParam (WFSParameterIDs::reverbPerNodeIR, enabled ? 1 : 0);
@@ -1579,7 +1604,7 @@ private:
         addAndMakeVisible (algoWetLevelLabel);
         algoWetLevelLabel.setText (LOC("reverbs.algorithm.wetLevel"), juce::dontSendNotification);
 
-        algoWetLevelSlider.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF4A90D9));
+        algoWetLevelSlider.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFF4A90D9));
         algoWetLevelSlider.onValueChanged = [this] (float v)
         {
             // v in [0, 1] maps to [-60, +12] dB
@@ -1609,7 +1634,7 @@ private:
             postEqEnableButton.setToggleState (enabled, juce::dontSendNotification);
             postEqEnableButton.setButtonText (enabled ? LOC("eq.status.on") : LOC("eq.status.off"));
             postEqEnableButton.setColour (juce::TextButton::buttonColourId,
-                                          enabled ? juce::Colour (0xFF4CAF50) : juce::Colour (0xFF2D2D2D));
+                                          enabled ? juce::Colour (0xFF4CAF50) : ColorScheme::get().sliderTrackBg);
             for (int i = 0; i < numPostEqBands; ++i)
                 updatePostEQBandAppearance (i);
             if (postEqDisplay != nullptr)
@@ -1676,7 +1701,7 @@ private:
             postEqBandFreqLabel[i].setColour (juce::Label::textColourId, ColorScheme::get().textSecondary);
 
             juce::Colour bandColour = EQDisplayComponent::getBandColour(i);
-            postEqBandFreqSlider[i].setTrackColours (juce::Colour (0xFF2D2D2D), bandColour);
+            postEqBandFreqSlider[i].setTrackColours (ColorScheme::get().sliderTrackBg, bandColour);
             postEqBandFreqSlider[i].onValueChanged = [this, i] (float v)
             {
                 int freq = static_cast<int> (20.0f * std::pow (10.0f, 3.0f * v));
@@ -1698,7 +1723,7 @@ private:
             postEqBandGainLabel[i].setColour (juce::Label::textColourId, ColorScheme::get().textSecondary);
             postEqBandGainLabel[i].setJustificationType (juce::Justification::centred);
 
-            postEqBandGainDial[i].setTrackColours (juce::Colour (0xFF2D2D2D), bandColour);
+            postEqBandGainDial[i].setTrackColours (ColorScheme::get().sliderTrackBg, bandColour);
             postEqBandGainDial[i].onValueChanged = [this, i] (float v)
             {
                 float gain = v * 48.0f - 24.0f;
@@ -1722,7 +1747,7 @@ private:
             postEqBandQLabel[i].setColour (juce::Label::textColourId, ColorScheme::get().textSecondary);
             postEqBandQLabel[i].setJustificationType (juce::Justification::centred);
 
-            postEqBandQDial[i].setTrackColours (juce::Colour (0xFF2D2D2D), bandColour);
+            postEqBandQDial[i].setTrackColours (ColorScheme::get().sliderTrackBg, bandColour);
             postEqBandQDial[i].onValueChanged = [this, i] (float v)
             {
                 float q = 0.1f + 0.21f * (std::pow (100.0f, v) - 1.0f);
@@ -1757,7 +1782,7 @@ private:
         distanceAttenDial.onGestureStart = [this]() {
             parameters.getValueTreeState().beginUndoTransaction ("Reverb Distance Attenuation");
         };
-        distanceAttenDial.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF4A90D9));  // Blue (level)
+        distanceAttenDial.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFF4A90D9));  // Blue (level)
         addAndMakeVisible (distanceAttenDial);
 
         addAndMakeVisible (distanceAttenValueLabel);
@@ -1782,7 +1807,7 @@ private:
         commonAttenDial.onGestureStart = [this]() {
             parameters.getValueTreeState().beginUndoTransaction ("Reverb Common Attenuation");
         };
-        commonAttenDial.setTrackColours (juce::Colour (0xFF2D2D2D), juce::Colour (0xFF4A90D9));  // Blue (level)
+        commonAttenDial.setTrackColours (ColorScheme::get().sliderTrackBg, juce::Colour (0xFF4A90D9));  // Blue (level)
         addAndMakeVisible (commonAttenDial);
 
         addAndMakeVisible (commonAttenValueLabel);
@@ -3249,7 +3274,7 @@ private:
         miniLatencyEnableButton.setToggleState (miniLatency != 0, juce::dontSendNotification);
         miniLatencyEnableButton.setButtonText (miniLatency != 0 ? LOC("reverbs.toggles.minLatencyOn") : LOC("reverbs.toggles.minLatencyOff"));
         {
-            juce::Colour btnColour = miniLatency != 0 ? juce::Colour (0xFFD4A017) : juce::Colour (0xFF2D2D2D);
+            juce::Colour btnColour = miniLatency != 0 ? juce::Colour (0xFFD4A017) : ColorScheme::get().sliderTrackBg;
             miniLatencyEnableButton.setColour (juce::TextButton::buttonColourId, btnColour);
             miniLatencyEnableButton.setColour (juce::TextButton::buttonOnColourId, btnColour);
         }
@@ -3258,7 +3283,7 @@ private:
         lsEnableButton.setToggleState (lsEnable != 0, juce::dontSendNotification);
         lsEnableButton.setButtonText (lsEnable != 0 ? LOC("reverbs.toggles.liveSourceOn") : LOC("reverbs.toggles.liveSourceOff"));
         {
-            juce::Colour btnColour = lsEnable != 0 ? juce::Colour (0xFF4A90D9) : juce::Colour (0xFF2D2D2D);
+            juce::Colour btnColour = lsEnable != 0 ? juce::Colour (0xFF4A90D9) : ColorScheme::get().sliderTrackBg;
             lsEnableButton.setColour (juce::TextButton::buttonColourId, btnColour);
             lsEnableButton.setColour (juce::TextButton::buttonOnColourId, btnColour);
         }
@@ -3272,7 +3297,7 @@ private:
         eqEnableButton.setToggleState (eqEnabled != 0, juce::dontSendNotification);
         eqEnableButton.setButtonText (eqEnabled != 0 ? LOC("eq.status.on") : LOC("eq.status.off"));
         eqEnableButton.setColour (juce::TextButton::buttonColourId,
-                                  eqEnabled != 0 ? juce::Colour (0xFF4CAF50) : juce::Colour (0xFF2D2D2D));
+                                  eqEnabled != 0 ? juce::Colour (0xFF4CAF50) : ColorScheme::get().sliderTrackBg);
 
         loadEQBandParameters();
 
@@ -3567,7 +3592,7 @@ private:
         postEqEnableButton.setToggleState (eqEnabled != 0, juce::dontSendNotification);
         postEqEnableButton.setButtonText (eqEnabled != 0 ? LOC("eq.status.on") : LOC("eq.status.off"));
         postEqEnableButton.setColour (juce::TextButton::buttonColourId,
-                                      eqEnabled != 0 ? juce::Colour (0xFF4CAF50) : juce::Colour (0xFF2D2D2D));
+                                      eqEnabled != 0 ? juce::Colour (0xFF4CAF50) : ColorScheme::get().sliderTrackBg);
 
         for (int i = 0; i < numPostEqBands; ++i)
         {
@@ -3653,9 +3678,9 @@ private:
         preCompBypassButton.setToggleState (bypassed != 0, juce::dontSendNotification);
         preCompBypassButton.setButtonText (bypassed != 0 ? LOC("reverbs.preProcessing.compressorOff") : LOC("reverbs.preProcessing.compressorOn"));
         preCompBypassButton.setColour (juce::TextButton::buttonColourId,
-            bypassed != 0 ? juce::Colour (0xFF2D2D2D) : juce::Colour (0xFF3498DB));
+            bypassed != 0 ? ColorScheme::get().sliderTrackBg : juce::Colour (0xFF3498DB));
         preCompBypassButton.setColour (juce::TextButton::buttonOnColourId,
-            bypassed != 0 ? juce::Colour (0xFF2D2D2D) : juce::Colour (0xFF3498DB));
+            bypassed != 0 ? ColorScheme::get().sliderTrackBg : juce::Colour (0xFF3498DB));
 
         float threshold = static_cast<float> (static_cast<double> (preComp.getProperty (reverbPreCompThreshold, reverbPreCompThresholdDefault)));
         float thresholdNorm = (threshold - reverbPreCompThresholdMin) / (reverbPreCompThresholdMax - reverbPreCompThresholdMin);
@@ -3723,9 +3748,9 @@ private:
         postExpBypassButton.setToggleState (bypassed != 0, juce::dontSendNotification);
         postExpBypassButton.setButtonText (bypassed != 0 ? LOC("reverbs.postProcessing.expanderOff") : LOC("reverbs.postProcessing.expanderOn"));
         postExpBypassButton.setColour (juce::TextButton::buttonColourId,
-            bypassed != 0 ? juce::Colour (0xFF2D2D2D) : juce::Colour (0xFF9B59B6));
+            bypassed != 0 ? ColorScheme::get().sliderTrackBg : juce::Colour (0xFF9B59B6));
         postExpBypassButton.setColour (juce::TextButton::buttonOnColourId,
-            bypassed != 0 ? juce::Colour (0xFF2D2D2D) : juce::Colour (0xFF9B59B6));
+            bypassed != 0 ? ColorScheme::get().sliderTrackBg : juce::Colour (0xFF9B59B6));
 
         float threshold = static_cast<float> (static_cast<double> (postExp.getProperty (reverbPostExpThreshold, reverbPostExpThresholdDefault)));
         float thresholdNorm = (threshold - reverbPostExpThresholdMin) / (reverbPostExpThresholdMax - reverbPostExpThresholdMin);
@@ -3767,7 +3792,7 @@ private:
     {
         auto updateBtnColor = [] (juce::TextButton& btn)
         {
-            juce::Colour col = btn.getToggleState() ? juce::Colour (0xFF4CAF50) : juce::Colour (0xFF2D2D2D);
+            juce::Colour col = btn.getToggleState() ? juce::Colour (0xFF4CAF50) : ColorScheme::get().sliderTrackBg;
             btn.setColour (juce::TextButton::buttonColourId, col);
             btn.setColour (juce::TextButton::buttonOnColourId, col);
         };
@@ -3951,7 +3976,7 @@ private:
         int perNode = getInt (WFSParameterIDs::reverbPerNodeIR, WFSParameterDefaults::reverbPerNodeIRDefault);
         algoPerNodeButton.setToggleState (perNode != 0, juce::dontSendNotification);
         algoPerNodeButton.setButtonText (perNode != 0 ? LOC("reverbs.algorithm.perNodeOn") : LOC("reverbs.algorithm.perNodeOff"));
-        juce::Colour perNodeColour = perNode != 0 ? juce::Colour (0xFF4CAF50) : juce::Colour (0xFF2D2D2D);
+        juce::Colour perNodeColour = perNode != 0 ? juce::Colour (0xFF4CAF50) : ColorScheme::get().sliderTrackBg;
         algoPerNodeButton.setColour (juce::TextButton::buttonColourId, perNodeColour);
         algoPerNodeButton.setColour (juce::TextButton::buttonOnColourId, perNodeColour);
 
@@ -4953,8 +4978,8 @@ private:
             {
                 mapEditActive = false;
                 mapEditButton.setButtonText (LOC("reverbs.buttons.editOnMap"));
-                mapEditButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xFF2D2D2D));
-                mapEditButton.setColour (juce::TextButton::buttonOnColourId, juce::Colour (0xFF2D2D2D));
+                mapEditButton.setColour (juce::TextButton::buttonColourId, ColorScheme::get().sliderTrackBg);
+                mapEditButton.setColour (juce::TextButton::buttonOnColourId, ColorScheme::get().sliderTrackBg);
                 if (onMapEditChanged) onMapEditChanged (false);
             }
         }

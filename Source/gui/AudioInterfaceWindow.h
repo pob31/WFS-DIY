@@ -46,7 +46,8 @@ private:
  * automatically enabled when a device is selected.
  */
 class DeviceSettingsPanel : public juce::Component,
-                            private juce::ChangeListener
+                            private juce::ChangeListener,
+                            private ColorScheme::Manager::Listener
 {
 public:
     DeviceSettingsPanel(juce::AudioDeviceManager& deviceManager);
@@ -95,8 +96,11 @@ private:
     // Track current state to avoid recursive updates
     bool isUpdating = false;
 
+    void colorSchemeChanged() override;
+
     // Signal flow diagram
     std::unique_ptr<juce::Drawable> signalFlowDrawable;
+    std::unique_ptr<juce::Drawable> mapPinDrawable;
     juce::Rectangle<int> signalFlowArea;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DeviceSettingsPanel)

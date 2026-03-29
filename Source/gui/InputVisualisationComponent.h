@@ -52,8 +52,9 @@ public:
         auto bounds = getLocalBounds().toFloat();
         const float valueTextHeight = juce::jmax(12.0f, 18.0f * WfsLookAndFeel::uiScale);
 
-        // Background
-        g.setColour(juce::Colour(0xFF1A1A1A));
+        // Background — adapt to theme
+        bool isDark = ColorScheme::get().background.getBrightness() < 0.5f;
+        g.setColour(isDark ? juce::Colour(0xFF1A1A1A) : juce::Colour(0xFF808080));
         g.fillRect(bounds);
 
         // Calculate fill height

@@ -981,8 +981,6 @@ private:
         addAndMakeVisible(lfoActiveButton);
         lfoActiveButton.setButtonText(LOC("clusters.toggles.lfoOff"));
         lfoActiveButton.setClickingTogglesState(true);
-        lfoActiveButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xFF3A3A3A));
-        lfoActiveButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFF26A69A));
         lfoActiveButton.onClick = [this]() {
             if (isLoadingParameters) return;
             bool active = lfoActiveButton.getToggleState();

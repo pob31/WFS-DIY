@@ -44,7 +44,7 @@ void DeviceInfoBar::paint(juce::Graphics& g)
     juce::String line2 = juce::String(sampleRate, 0) + " Hz, " +
                         juce::String(bufferSize) + " samples";
     g.setFont(juce::jmax(8.0f, 12.0f * WfsLookAndFeel::uiScale));
-    g.setColour(juce::Colours::lightgrey);
+    g.setColour(ColorScheme::get().textSecondary);
     g.drawText(line2, bounds.removeFromTop(16), juce::Justification::centredLeft);
 }
 
@@ -161,11 +161,22 @@ DeviceSettingsPanel::DeviceSettingsPanel(juce::AudioDeviceManager& devManager)
 
     // Signal flow diagram
     signalFlowDrawable = HelpCardSVG::parseSignalFlow(HelpCardSVG::get_signalFlowSVG());
+
+    ColorScheme::Manager::getInstance().addListener(this);
 }
 
 DeviceSettingsPanel::~DeviceSettingsPanel()
 {
+    ColorScheme::Manager::getInstance().removeListener(this);
     deviceManager.removeChangeListener(this);
+}
+
+void DeviceSettingsPanel::colorSchemeChanged()
+{
+    // Re-parse SVGs with new theme colors
+    signalFlowDrawable = HelpCardSVG::parseSignalFlow(HelpCardSVG::get_signalFlowSVG());
+    mapPinDrawable = HelpCardSVG::parseMapPin();
+    repaint();
 }
 
 void DeviceSettingsPanel::resized()
@@ -227,8 +238,31 @@ void DeviceSettingsPanel::paint(juce::Graphics& g)
 
     // Signal flow diagram
     if (signalFlowDrawable && !signalFlowArea.isEmpty())
+    {
         signalFlowDrawable->drawWithin(g, signalFlowArea.toFloat(),
                                         juce::RectanglePlacement::centred, 1.0f);
+
+        // "You are here" map pin on the WFS processor box
+        float svgW = 613.0f, svgH = 928.0f;
+        float areaW = (float)signalFlowArea.getWidth();
+        float areaH = (float)signalFlowArea.getHeight();
+        float scale = juce::jmin(areaW / svgW, areaH / svgH);
+        float renderedW = svgW * scale, renderedH = svgH * scale;
+        float offsetX = (float)signalFlowArea.getX() + (areaW - renderedW) / 2.0f;
+        float offsetY = (float)signalFlowArea.getY() + (areaH - renderedH) / 2.0f;
+
+        // Pin position: top-right of WFS processor box, tip on the box
+        float pinX = offsetX + 500.0f * scale;
+        float pinY = offsetY + 570.0f * scale;
+        float pinSize = 72.0f * scale;  // pin icon size — big for fun
+
+        if (!mapPinDrawable)
+            mapPinDrawable = HelpCardSVG::parseMapPin();
+        if (mapPinDrawable)
+            mapPinDrawable->drawWithin(g,
+                juce::Rectangle<float>(pinX - pinSize * 0.5f, pinY - pinSize, pinSize, pinSize),
+                juce::RectanglePlacement::centred, 1.0f);
+    }
 }
 
 void DeviceSettingsPanel::setEnabled(bool shouldBeEnabled)

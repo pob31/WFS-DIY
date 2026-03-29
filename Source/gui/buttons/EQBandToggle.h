@@ -24,7 +24,7 @@ private:
     {
         auto bounds = getLocalBounds().toFloat().reduced (1.0f);
         bool on = getToggleState();
-        g.setColour (on ? bandColour : juce::Colour (0xFF2D2D2D));
+        g.setColour (on ? bandColour : ColorScheme::get().sliderTrackBg);
         g.fillRoundedRectangle (bounds, 3.0f);
         g.setColour (ColorScheme::get().buttonBorder);
         g.drawRoundedRectangle (bounds, 3.0f, 1.0f);
