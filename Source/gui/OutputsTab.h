@@ -2709,105 +2709,181 @@ private:
         outputHelpCard.addTextSection(
             LOC("help.outputs.body.arrays"));
 
-        // Illustration: Parallax diagram
-        outputHelpCard.addIllustration(200, [](juce::Graphics& g, juce::Rectangle<int> area) {
+        // Illustration: Parallax diagram (based on parallax.svg layout)
+        // SVG viewBox 619x550 (top half): source at top, speakers mid, listeners bottom
+        outputHelpCard.addIllustration(280, [](juce::Graphics& g, juce::Rectangle<int> area) {
             auto& cs = ColorScheme::get();
-            int w = area.getWidth(), h = area.getHeight();
-            int x0 = area.getX(), y0 = area.getY();
+            float w = (float)area.getWidth();
+            float x0 = (float)area.getX(), y0 = (float)area.getY();
+            float scale = w / 619.0f; // scale SVG coords to card width
 
-            // Stage line (thick)
-            g.setColour(cs.textSecondary.withAlpha(0.4f));
-            g.drawLine((float)(x0 + 20), (float)(y0 + h / 2), (float)(x0 + w - 20), (float)(y0 + h / 2), 3.0f);
+            // Input source at top center (SVG: 360, 48)
+            float srcX = x0 + 360 * scale, srcY = y0 + 48 * scale;
+            drawInputSource(g, srcX, srcY, 14.0f * scale, juce::Colour(0xFF3388CC));
 
-            // 5 speakers at top
-            juce::Colour spkColour(0xFF4A90D9);
-            float spkY = (float)(y0 + 30);
-            int numSpk = 5;
-            float spacing = (float)(w - 80) / (float)(numSpk - 1);
-            for (int i = 0; i < numSpk; ++i)
+            // Stage double line (SVG: y=537-541)
+            float stageY = y0 + 490 * scale;
+            g.setColour(cs.textSecondary.withAlpha(0.3f));
+            g.drawLine(x0 + 57 * scale, stageY, x0 + 556 * scale, stageY, 2.0f);
+            g.drawLine(x0 + 57 * scale, stageY + 4, x0 + 556 * scale, stageY + 4, 2.0f);
+
+            // 5 speakers in a row (SVG: y~242, x from 148 to 468, outer ones angled)
+            float spkY = y0 + 242 * scale;
+            float spkXs[] = { 148, 228, 308, 388, 468 };
+            float spkAngles[] = { 150.0f, 180.0f, 180.0f, 180.0f, 210.0f }; // outer ones angled inward
+            juce::Colour spkFill(0xFFCCCCCC);
+            for (int i = 0; i < 5; ++i)
             {
-                float sx = (float)(x0 + 40) + i * spacing;
-                drawSpeakerIcon(g, sx, spkY, 180.0f, 16.0f, spkColour, cs.textPrimary);
+                float sx = x0 + spkXs[i] * scale;
+                drawSpeakerIcon(g, sx, spkY, spkAngles[i], 18.0f * scale, spkFill, cs.textPrimary);
             }
 
-            // Input source (blue circle) on stage
-            float srcX = (float)(x0 + w / 2 - 30), srcY = (float)(y0 + h / 2 - 20);
-            drawInputSource(g, srcX, srcY, 14.0f, juce::Colour(0xFF3388CC));
+            // 5 listeners below stage (SVG: y~420-470, x from ~41 to ~583)
+            float listXs[] = { 41, 228, 308, 388, 583 };
+            float listYs[] = { 420, 456, 456, 457, 420 };
+            for (int i = 0; i < 5; ++i)
+            {
+                float lx = x0 + listXs[i] * scale;
+                float ly = y0 + listYs[i] * scale;
+                drawListener(g, lx, ly, 16.0f * scale, cs.textSecondary);
+            }
 
-            // Listener below stage
-            float listY = (float)(y0 + h - 30);
-            float listX = (float)(x0 + w / 2);
-            drawListener(g, listX, listY, 18.0f, cs.textSecondary);
+            // Blue dashed lines: source to each speaker position (via speaker to its listener)
+            auto drawDashed = [&](float x1, float y1, float x2, float y2, juce::Colour col, float dashLen) {
+                g.setColour(col);
+                float dx = x2 - x1, dy = y2 - y1;
+                float len = std::sqrt(dx * dx + dy * dy);
+                float nx = dx / len, ny = dy / len;
+                float pos = 0;
+                while (pos < len)
+                {
+                    float end = juce::jmin(pos + dashLen, len);
+                    g.drawLine(x1 + nx * pos, y1 + ny * pos, x1 + nx * end, y1 + ny * end, 1.5f);
+                    pos += dashLen * 2;
+                }
+            };
 
-            // Lines: source to listener (red, direct)
-            g.setColour(juce::Colours::red.withAlpha(0.6f));
-            g.drawLine(srcX, srcY, listX, listY, 1.5f);
+            // Lines from source through each speaker to listener (blue dashed)
+            juce::Colour blueCol(0xFF4488CC);
+            for (int i = 0; i < 5; ++i)
+            {
+                float sx = x0 + spkXs[i] * scale;
+                float lx = x0 + listXs[i] * scale;
+                float ly = y0 + listYs[i] * scale;
+                // Source to speaker midpoint
+                drawDashed(srcX, srcY, sx, spkY - 8 * scale, blueCol.withAlpha(0.5f), 6.0f);
+                // Speaker to listener
+                drawDashed(sx, spkY + 12 * scale, lx, ly - 12 * scale, cs.textPrimary.withAlpha(0.4f), 6.0f);
+            }
 
-            // Lines: middle speaker to listener (blue, speaker path)
-            g.setColour(juce::Colour(0xFF3388CC).withAlpha(0.6f));
-            float midSpkX = (float)(x0 + 40) + 2 * spacing;
-            g.drawLine(midSpkX, spkY + 12, listX, listY - 20, 1.5f);
+            // Red dashed lines: direct source to middle listener (shows parallax difference)
+            juce::Colour redCol(0xFFCC4444);
+            drawDashed(srcX, srcY + 10 * scale, x0 + 308 * scale, y0 + 456 * scale - 12 * scale, redCol.withAlpha(0.6f), 6.0f);
 
             // Labels
             g.setColour(cs.textSecondary);
-            g.setFont(juce::FontOptions(10.0f));
-            g.drawText("Source", (int)srcX - 30, (int)srcY + 8, 60, 14, juce::Justification::centred);
-            g.drawText("Listener", (int)listX - 30, (int)listY + 14, 60, 14, juce::Justification::centred);
-            g.drawText("Speakers", x0 + w / 2 - 35, y0 + 4, 70, 14, juce::Justification::centred);
+            g.setFont(juce::FontOptions(juce::jmax(9.0f, 11.0f * scale)));
+            g.drawText("Source", (int)(srcX - 25 * scale), (int)(srcY - 22 * scale), (int)(50 * scale), 14, juce::Justification::centred);
 
-            // Dimension arrows
-            g.setColour(juce::Colours::red.withAlpha(0.5f));
-            g.drawText("d1", (int)((srcX + listX) / 2) + 5, (int)((srcY + listY) / 2) - 7, 20, 14, juce::Justification::centredLeft);
-            g.setColour(juce::Colour(0xFF3388CC).withAlpha(0.7f));
-            g.drawText("d2", (int)((midSpkX + listX) / 2) - 25, (int)((spkY + listY) / 2), 20, 14, juce::Justification::centredLeft);
+            // d1 and d2 labels
+            g.setColour(redCol);
+            g.setFont(juce::FontOptions(juce::jmax(9.0f, 12.0f * scale)).withStyle("Bold"));
+            g.drawText("d1", (int)(srcX + 8 * scale), (int)(y0 + 280 * scale), 20, 14, juce::Justification::centredLeft);
+            g.setColour(blueCol);
+            g.drawText("d2", (int)(x0 + 318 * scale), (int)(y0 + 340 * scale), 20, 14, juce::Justification::centredLeft);
         });
 
         // Section 2: Parallax text
         outputHelpCard.addTextSection(
             LOC("help.outputs.body.parallax"));
 
-        // Illustration: Tuning steps
-        outputHelpCard.addIllustration(160, [](juce::Graphics& g, juce::Rectangle<int> area) {
+        // Illustration: Tuning steps (based on WFS_tuning1-3.svg side view)
+        // SVG viewBox 950x619: stage is angled line, speakers at edge and flown, listener far left
+        outputHelpCard.addIllustration(180, [](juce::Graphics& g, juce::Rectangle<int> area) {
             auto& cs = ColorScheme::get();
-            int w = area.getWidth(), h = area.getHeight();
-            int x0 = area.getX(), y0 = area.getY();
+            float w = (float)area.getWidth(), h = (float)area.getHeight();
+            float x0 = (float)area.getX(), y0 = (float)area.getY();
 
             // Three panels side by side
-            int panelW = (w - 20) / 3;
+            float panelW = (w - 16) / 3.0f;
+            float gap = 8.0f;
 
             for (int step = 0; step < 3; ++step)
             {
-                int px = x0 + step * (panelW + 10);
+                float px = x0 + step * (panelW + gap);
+                float py = y0;
+                float ph = h - 20; // leave room for label
 
-                // Stage floor line
-                g.setColour(cs.textSecondary.withAlpha(0.3f));
-                g.drawLine((float)(px + 5), (float)(y0 + h * 2 / 3), (float)(px + panelW - 5), (float)(y0 + h * 2 / 3), 2.0f);
+                // Stage: angled line from upper-right to lower-left (side view of raked stage)
+                float stageX1 = px + panelW * 0.95f, stageY1 = py + ph * 0.45f;
+                float stageX2 = px + panelW * 0.35f, stageY2 = py + ph * 0.85f;
+                float stageX3 = px + panelW * 0.03f, stageY3 = py + ph * 0.85f;
+                g.setColour(cs.textPrimary.withAlpha(0.6f));
+                g.drawLine(stageX1, stageY1, stageX2, stageY2, 3.0f);
+                g.drawLine(stageX2, stageY2, stageX3, stageY3, 3.0f);
 
-                // Near-field speakers (3 at stage edge)
-                juce::Colour nfColour = (step == 0 || step == 2)
-                    ? juce::Colour(0xFF4CAF50) : juce::Colour(0xFF4CAF50).withAlpha(0.2f);
-                for (int i = 0; i < 3; ++i)
+                // Near-field speaker at stage edge (angled down-left, SVG ~x=266,y=166)
+                float nfAlpha = (step == 1) ? 0.2f : 0.9f;
+                juce::Colour nfCol = juce::Colour(0xFFCCCCCC).withAlpha(nfAlpha);
+                float nfX = px + panelW * 0.28f, nfY = py + ph * 0.22f;
+                drawSpeakerIcon(g, nfX, nfY, 240.0f, 12.0f, nfCol, cs.textPrimary.withAlpha(nfAlpha));
+
+                // Cross mark if muted (step 2)
+                if (step == 1)
                 {
-                    float sx = (float)(px + 10 + i * (panelW - 20) / 2);
-                    drawSpeakerIcon(g, sx, (float)(y0 + h * 2 / 3 - 10), 180.0f, 10.0f, nfColour, cs.textPrimary.withAlpha(step == 1 ? 0.2f : 0.8f));
+                    g.setColour(cs.textSecondary.withAlpha(0.4f));
+                    g.drawLine(nfX - 8, nfY - 8, nfX + 8, nfY + 8, 2.0f);
+                    g.drawLine(nfX + 8, nfY - 8, nfX - 8, nfY + 8, 2.0f);
                 }
 
-                // Flown speaker (1 above)
-                juce::Colour flColour = (step == 1 || step == 2)
-                    ? juce::Colour(0xFF4A90D9) : juce::Colour(0xFF4A90D9).withAlpha(0.2f);
-                float flyX = (float)(px + panelW / 2);
-                drawSpeakerIcon(g, flyX, (float)(y0 + 20), 200.0f, 10.0f, flColour, cs.textPrimary.withAlpha(step == 0 ? 0.2f : 0.8f));
+                // Flown speaker at top-right (angled steeply down, SVG ~x=848,y=310)
+                float flAlpha = (step == 0) ? 0.2f : 0.9f;
+                juce::Colour flCol = juce::Colour(0xFFCCCCCC).withAlpha(flAlpha);
+                float flX = px + panelW * 0.85f, flY = py + ph * 0.35f;
+                drawSpeakerIcon(g, flX, flY, 240.0f, 12.0f, flCol, cs.textPrimary.withAlpha(flAlpha));
 
-                // Listener
-                float lx = (float)(px + panelW / 2);
-                float ly = (float)(y0 + h - 15);
-                drawListener(g, lx, ly, 12.0f, cs.textSecondary);
+                if (step == 0)
+                {
+                    g.setColour(cs.textSecondary.withAlpha(0.4f));
+                    g.drawLine(flX - 8, flY - 8, flX + 8, flY + 8, 2.0f);
+                    g.drawLine(flX + 8, flY - 8, flX - 8, flY + 8, 2.0f);
+                }
+
+                // Input source on stage
+                float srcX = px + panelW * 0.08f, srcY = py + ph * 0.65f;
+                drawInputSource(g, srcX, srcY, 10.0f, juce::Colour(0xFF3388CC).withAlpha(0.7f));
+
+                // Listener/seat figure (lower left, SVG ~x=393,y=531)
+                float lsX = px + panelW * 0.42f, lsY = py + ph * 0.78f;
+                drawListener(g, lsX, lsY, 10.0f, cs.textSecondary);
+
+                // Dashed lines: active speaker(s) to listener
+                auto drawDash = [&](float x1, float y1, float x2, float y2, juce::Colour col) {
+                    g.setColour(col);
+                    float dx = x2 - x1, dy = y2 - y1;
+                    float len = std::sqrt(dx * dx + dy * dy);
+                    float nx = dx / len, ny = dy / len;
+                    for (float p = 0; p < len; p += 8.0f)
+                        g.drawLine(x1 + nx * p, y1 + ny * p,
+                                   x1 + nx * juce::jmin(p + 4.0f, len), y1 + ny * juce::jmin(p + 4.0f, len), 1.5f);
+                };
+
+                // Near-field path (green dashed)
+                if (step != 1)
+                    drawDash(nfX, nfY + 8, lsX, lsY - 8, juce::Colour(0xFF009245).withAlpha(0.6f));
+
+                // Flown path (blue dashed)
+                if (step != 0)
+                    drawDash(flX, flY + 8, lsX, lsY - 8, juce::Colour(0xFF4488CC).withAlpha(0.6f));
+
+                // Source to listener (red dashed, shows direct sound)
+                drawDash(srcX, srcY - 6, lsX, lsY - 8, juce::Colour(0xFFCC4444).withAlpha(step == 2 ? 0.5f : 0.25f));
 
                 // Step label
                 g.setColour(cs.textSecondary);
-                g.setFont(juce::FontOptions(9.0f).withStyle("Bold"));
+                g.setFont(juce::FontOptions(juce::jmax(8.0f, 10.0f)).withStyle("Bold"));
                 juce::String label = juce::String("Step ") + juce::String(step + 1);
-                g.drawText(label, px, y0 + h - 4, panelW, 12, juce::Justification::centredTop);
+                g.drawText(label, (int)px, (int)(y0 + h - 16), (int)panelW, 14, juce::Justification::centredTop);
             }
         });
 
