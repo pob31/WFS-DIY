@@ -254,10 +254,10 @@ public:
         exportButton.setBaseColour(juce::Colour(0xFF8C3333));  // Reddish
         exportButton.onLongPress = [this]() { exportOutputConfiguration(); };
 
-        // Output help card (scrollable with illustrations)
+        // Output help card (WFS Array Design)
         addAndMakeVisible(outputHelpButton);
         addChildComponent(outputHelpCard);
-        buildOutputHelpContent();
+        outputHelpCard.setContent(LOC("help.outputs.title"), LOC("help.outputs.body"));
         outputHelpButton.setCard(&outputHelpCard);
 
         // Parallax help card
@@ -1447,8 +1447,10 @@ private:
         {
             const int btnSize = scaled(20);
             outputHelpButton.setBounds(leftCol.getRight() - btnSize, leftCol.getY(), btnSize, btnSize);
-            // Scrollable help card fills the left column
-            outputHelpCard.setBounds(leftCol);
+            // Help card over the right column, bottom-aligned
+            int cardH = rightColBounds.getHeight() * 3 / 5;
+            outputHelpCard.setBounds(rightColBounds.getX(), rightColBounds.getBottom() - cardH,
+                                      rightColBounds.getWidth(), cardH);
         }
 
         // Coordinate mode and position row - distribute evenly across full width
@@ -2660,7 +2662,7 @@ private:
     } circuitTabHandler;
 
     HelpCardButton outputHelpButton;
-    ScrollableHelpCard outputHelpCard;
+    HelpCard outputHelpCard;
     HelpCardButton parallaxHelpButton;
     ScrollableHelpCard parallaxHelpCard;
 
@@ -2903,6 +2905,7 @@ private:
         });
     #endif // Dead code end
 
+    #if 0 // Old scrollable output help content — replaced by simple HelpCard
     void buildOutputHelpContent()
     {
         outputHelpCard.setContent(LOC("help.outputs.title"), "");
@@ -3028,6 +3031,7 @@ private:
         outputHelpCard.addTextSection(
             LOC("help.outputs.body.tuning"));
     }
+    #endif // Old scrollable output help content end
 
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OutputsTab)
