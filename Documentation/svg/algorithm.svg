@@ -1,0 +1,378 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 1280 1024">
+  <!-- Generator: Adobe Illustrator 29.5.0, SVG Export Plug-In . SVG Version: 2.1.0 Build 137)  -->
+  <defs>
+    <style>
+      .st0, .st1 {
+        fill: aqua;
+      }
+
+      .st2 {
+        stroke: aqua;
+      }
+
+      .st2, .st3, .st4, .st1, .st5, .st6, .st7, .st8, .st9, .st10 {
+        stroke-miterlimit: 10;
+      }
+
+      .st2, .st4, .st7, .st10 {
+        fill: none;
+      }
+
+      .st2, .st4, .st10 {
+        stroke-width: 6px;
+      }
+
+      .st11 {
+        fill: #fff;
+      }
+
+      .st3 {
+        fill: #f15a24;
+      }
+
+      .st3, .st1, .st5, .st6, .st7, .st8, .st9 {
+        stroke: #000;
+      }
+
+      .st4 {
+        stroke: #ff0;
+      }
+
+      .st12 {
+        font-family: Calibri-Bold, Calibri;
+        font-size: 18px;
+        font-weight: 700;
+      }
+
+      .st5 {
+        fill: #29abe2;
+      }
+
+      .st6 {
+        fill: #39b54a;
+      }
+
+      .st7 {
+        stroke-width: 10px;
+      }
+
+      .st13 {
+        fill: lime;
+      }
+
+      .st8 {
+        fill: #ff7bac;
+      }
+
+      .st9, .st14 {
+        fill: #ff0;
+      }
+
+      .st10 {
+        stroke: lime;
+      }
+    </style>
+  </defs>
+  <g id="guides">
+    <rect class="st11" x="112.5" y="272.5" width="1009" height="625"/>
+  </g>
+  <g id="arrows">
+    <g>
+      <line class="st7" x1="162.49" y1="423.49" x2="206" y2="467"/>
+      <polygon points="194.61 473.24 218.69 479.69 212.24 455.61 194.61 473.24"/>
+    </g>
+    <g>
+      <line class="st7" x1="306.56" y1="423.55" x2="263.06" y2="467.06"/>
+      <polygon points="256.82 455.66 250.37 479.74 274.45 473.29 256.82 455.66"/>
+    </g>
+    <g>
+      <line class="st7" x1="306.49" y1="423.49" x2="350" y2="467"/>
+      <polygon points="338.61 473.24 362.69 479.69 356.24 455.61 338.61 473.24"/>
+    </g>
+    <g>
+      <line class="st7" x1="450.17" y1="423.17" x2="405.67" y2="467.67"/>
+      <polygon points="399.44 456.28 392.98 480.36 417.06 473.91 399.44 456.28"/>
+    </g>
+    <g>
+      <line class="st7" x1="199" y1="848" x2="239.06" y2="848"/>
+      <polygon points="235.41 860.47 257 848 235.41 835.53 235.41 860.47"/>
+    </g>
+    <g>
+      <line class="st7" x1="976" y1="848" x2="1016.06" y2="848"/>
+      <polygon points="1012.41 860.47 1034 848 1012.41 835.53 1012.41 860.47"/>
+    </g>
+    <g>
+      <line class="st7" x1="665" y1="847" x2="857.06" y2="847"/>
+      <polygon points="853.41 859.47 875 847 853.41 834.53 853.41 859.47"/>
+    </g>
+    <g>
+      <line class="st7" x1="356" y1="848" x2="548.06" y2="848"/>
+      <polygon points="544.41 860.47 566 848 544.41 835.53 544.41 860.47"/>
+    </g>
+    <g>
+      <line class="st4" x1="162.49" y1="423.49" x2="206" y2="467"/>
+      <polygon class="st14" points="199.16 470.74 213.61 474.61 209.74 460.16 199.16 470.74"/>
+    </g>
+    <g>
+      <line class="st2" x1="306.56" y1="423.55" x2="263.06" y2="467.06"/>
+      <polygon class="st0" points="259.31 460.22 255.44 474.67 269.89 470.8 259.31 460.22"/>
+    </g>
+    <g>
+      <line class="st2" x1="306.49" y1="423.49" x2="350" y2="467"/>
+      <polygon class="st0" points="343.16 470.74 357.61 474.61 353.74 460.16 343.16 470.74"/>
+    </g>
+    <g>
+      <line class="st2" x1="450.17" y1="423.17" x2="405.67" y2="467.67"/>
+      <polygon class="st0" points="401.93 460.83 398.06 475.28 412.51 471.41 401.93 460.83"/>
+    </g>
+    <g>
+      <line class="st7" x1="472.49" y1="423.49" x2="516" y2="467"/>
+      <polygon points="504.61 473.24 528.69 479.69 522.24 455.61 504.61 473.24"/>
+    </g>
+    <g>
+      <line class="st2" x1="472.49" y1="423.49" x2="516" y2="467"/>
+      <polygon class="st0" points="509.16 470.74 523.61 474.61 519.74 460.16 509.16 470.74"/>
+    </g>
+    <g>
+      <line class="st7" x1="997.25" y1="608" x2="997.25" y2="632.01"/>
+      <polygon points="984.78 628.36 997.25 649.95 1009.71 628.36 984.78 628.36"/>
+    </g>
+    <g>
+      <line class="st10" x1="997.25" y1="608" x2="997.25" y2="632.01"/>
+      <polygon class="st13" points="989.77 629.82 997.25 642.77 1004.73 629.82 989.77 629.82"/>
+    </g>
+    <g>
+      <line class="st7" x1="307" y1="576" x2="307" y2="668"/>
+      <polygon points="294.53 664.35 307 685.94 319.47 664.35 294.53 664.35"/>
+    </g>
+    <g>
+      <line class="st10" x1="307" y1="576" x2="307" y2="668"/>
+      <polygon class="st13" points="299.52 665.81 307 678.76 314.48 665.81 299.52 665.81"/>
+    </g>
+    <g>
+      <line class="st7" x1="306.25" y1="722" x2="306.25" y2="776"/>
+      <polygon points="293.78 772.35 306.25 793.94 318.71 772.35 293.78 772.35"/>
+    </g>
+    <g>
+      <line class="st10" x1="306.25" y1="722" x2="306.25" y2="776"/>
+      <polygon class="st13" points="298.77 773.81 306.25 786.76 313.73 773.81 298.77 773.81"/>
+    </g>
+    <g>
+      <line class="st7" x1="472.49" y1="423.49" x2="656" y2="467"/>
+      <polygon points="649.58 478.29 673.46 471.14 655.33 454.03 649.58 478.29"/>
+    </g>
+    <g>
+      <line class="st2" x1="472.49" y1="423.49" x2="656" y2="467"/>
+      <polygon class="st0" points="652.15 473.77 666.47 469.48 655.6 459.22 652.15 473.77"/>
+    </g>
+    <g>
+      <line class="st7" x1="472.49" y1="423.49" x2="960" y2="478"/>
+      <polygon points="954.99 489.98 977.83 479.99 957.76 465.21 954.99 489.98"/>
+    </g>
+    <g>
+      <line class="st2" x1="472.49" y1="423.49" x2="960" y2="478"/>
+      <polygon class="st0" points="956.99 485.19 970.7 479.2 958.66 470.32 956.99 485.19"/>
+    </g>
+    <g>
+      <polyline class="st7" points="966 461.01 731 283 162 283 162 321"/>
+      <polygon points="970.62 448.87 980.3 471.84 955.57 468.74 970.62 448.87"/>
+    </g>
+    <g>
+      <polyline class="st7" points="544.25 450.01 544.25 283 162 283 162 321"/>
+      <polygon points="556.71 446.36 544.25 467.95 531.78 446.36 556.71 446.36"/>
+    </g>
+    <g>
+      <polyline class="st4" points="544.25 450.01 544.25 283 162 283 162 321"/>
+      <polygon class="st14" points="551.73 447.82 544.25 460.77 536.77 447.82 551.73 447.82"/>
+    </g>
+    <g>
+      <polyline class="st4" points="966 461.01 731 283 162 283 162 321"/>
+      <polygon class="st14" points="968.77 453.73 974.58 467.51 959.74 465.65 968.77 453.73"/>
+    </g>
+    <g>
+      <line class="st7" x1="686.25" y1="420" x2="686.25" y2="450.01"/>
+      <polygon points="673.78 446.36 686.25 467.95 698.71 446.36 673.78 446.36"/>
+    </g>
+    <g>
+      <line class="st4" x1="686.25" y1="420" x2="686.25" y2="450.01"/>
+      <polygon class="st14" points="678.77 447.82 686.25 460.77 693.73 447.82 678.77 447.82"/>
+    </g>
+    <g>
+      <line class="st7" x1="687" y1="502" x2="687" y2="632.01"/>
+      <polygon points="674.53 628.36 687 649.95 699.47 628.36 674.53 628.36"/>
+    </g>
+    <g>
+      <line class="st10" x1="687" y1="502" x2="687" y2="632.01"/>
+      <polygon class="st13" points="679.52 629.82 687 642.77 694.48 629.82 679.52 629.82"/>
+    </g>
+    <g>
+      <line class="st7" x1="616.25" y1="722" x2="616.25" y2="776"/>
+      <polygon points="603.78 772.35 616.25 793.94 628.71 772.35 603.78 772.35"/>
+    </g>
+    <g>
+      <line class="st10" x1="616.25" y1="722" x2="616.25" y2="776"/>
+      <polygon class="st13" points="608.77 773.81 616.25 786.76 623.73 773.81 608.77 773.81"/>
+    </g>
+    <g>
+      <line class="st7" x1="600" y1="558" x2="748" y2="558"/>
+      <polygon points="744.35 570.47 765.94 558 744.35 545.53 744.35 570.47"/>
+    </g>
+    <g>
+      <line class="st10" x1="600" y1="558" x2="748" y2="558"/>
+      <polygon class="st13" points="745.81 565.48 758.76 558 745.81 550.52 745.81 565.48"/>
+    </g>
+    <g>
+      <line class="st7" x1="926.25" y1="722" x2="926.25" y2="776"/>
+      <polygon points="913.78 772.35 926.25 793.94 938.71 772.35 913.78 772.35"/>
+    </g>
+    <g>
+      <line class="st10" x1="926.25" y1="722" x2="926.25" y2="776"/>
+      <polygon class="st13" points="918.77 773.81 926.25 786.76 933.73 773.81 918.77 773.81"/>
+    </g>
+    <g>
+      <polyline class="st7" points="784 576 784 703 890 703"/>
+      <polygon points="886.35 715.47 907.94 703 886.35 690.53 886.35 715.47"/>
+    </g>
+    <g>
+      <polyline class="st10" points="784 576 784 703 890 703"/>
+      <polygon class="st13" points="887.81 710.48 900.76 703 887.81 695.52 887.81 710.48"/>
+    </g>
+  </g>
+  <g id="boxes">
+    <g>
+      <rect class="st9" x="112.5" y="320.5" width="100" height="100"/>
+      <text class="st12" transform="translate(137.08 364.98)"><tspan x="0" y="0">Source</tspan><tspan x="-4.99" y="21.6">position</tspan></text>
+    </g>
+    <g>
+      <rect class="st1" x="400.5" y="320.5" width="100" height="100"/>
+      <text class="st12" transform="translate(420.39 364.98)"><tspan x="0" y="0">Speaker</tspan><tspan x="-.3" y="21.6">position</tspan></text>
+    </g>
+    <g>
+      <rect class="st1" x="256.5" y="320.5" width="100" height="100"/>
+      <text class="st12" transform="translate(276.68 364.98)"><tspan x="0" y="0">Listener</tspan><tspan x="-.59" y="21.6">position</tspan></text>
+    </g>
+    <g>
+      <rect class="st1" x="328.5" y="507.5" width="100" height="100"/>
+      <text class="st12" transform="translate(348.39 541.18)"><tspan x="0" y="0">Speaker</tspan><tspan x=".29" y="21.6">Listener</tspan><tspan x="-1.21" y="43.2">distance</tspan></text>
+    </g>
+    <g>
+      <rect class="st6" x="184.5" y="508.5" width="100" height="100"/>
+      <text class="st12" transform="translate(209.08 542.18)"><tspan x="0" y="0">Source</tspan><tspan x="-4.4" y="21.6">Listener</tspan><tspan x="-5.9" y="43.2">distance</tspan></text>
+    </g>
+    <g>
+      <rect class="st1" x="328.5" y="652.5" width="100" height="100"/>
+      <text class="st12" transform="translate(345.8 696.98)"><tspan x="0" y="0">Speed of</tspan><tspan x="9.11" y="21.6">Sound</tspan></text>
+    </g>
+    <g>
+      <rect class="st9" x="803.5" y="509.5" width="100" height="100"/>
+      <text class="st12" transform="translate(821.34 553.98)"><tspan x="0" y="0">Distance</tspan><tspan x="-11.76" y="21.6">attenuation</tspan></text>
+    </g>
+    <g>
+      <rect class="st1" x="947.5" y="510.5" width="100" height="100"/>
+      <text class="st12" transform="translate(967.39 544.18)"><tspan x="0" y="0">Speaker</tspan><tspan x="-12" y="21.6">orientation</tspan><tspan x="-15.93" y="43.2">&amp; directivity</tspan></text>
+    </g>
+    <g>
+      <rect class="st9" x="636.5" y="320.5" width="100" height="100"/>
+      <text class="st12" transform="translate(661.08 363.9)"><tspan x="0" y="0">Source</tspan><tspan x="-16.69" y="21.6">orientation</tspan></text>
+    </g>
+    <g>
+      <rect class="st3" x="256.5" y="797.1" width="100" height="100"/>
+      <text class="st12" transform="translate(285.38 852.38)"><tspan x="0" y="0">Delay</tspan></text>
+    </g>
+    <g>
+      <rect class="st8" x="565.5" y="797.5" width="100" height="100"/>
+      <text class="st12" transform="translate(585.65 841.98)"><tspan x="0" y="0">HF shelf</tspan><tspan x="6.91" y="21.6">800Hz</tspan></text>
+    </g>
+    <g>
+      <rect class="st5" x="875.5" y="797.5" width="100" height="100"/>
+      <text class="st12" transform="translate(880.57 852.78)"><tspan x="0" y="0">Attenuation</tspan></text>
+    </g>
+    <g>
+      <rect class="st6" x="947.5" y="652.5" width="100" height="100"/>
+      <text class="st12" transform="translate(968.27 696.98)"><tspan x="0" y="0">Angular</tspan><tspan x="-14.69" y="21.6">attenuation</tspan></text>
+    </g>
+    <text class="st12" transform="translate(142.22 852.67)"><tspan x="0" y="0">INPUT</tspan></text>
+    <text class="st12" transform="translate(1054.13 852.67)"><tspan x="0" y="0">OUTPUT</tspan></text>
+    <g>
+      <rect class="st6" x="493.5" y="507.5" width="100" height="100"/>
+      <text class="st12" transform="translate(518.08 541.18)"><tspan x="0" y="0">Source</tspan><tspan x="-4.69" y="21.6">Speaker</tspan><tspan x="-5.9" y="43.2">distance</tspan></text>
+    </g>
+    <g>
+      <rect class="st6" x="637.5" y="652.5" width="100" height="100"/>
+      <text class="st12" transform="translate(662.08 695.9)"><tspan x="0" y="0">Source</tspan><tspan x="-12.24" y="21.6">directivity</tspan></text>
+    </g>
+    <g>
+      <rect class="st1" x="493.5" y="651.5" width="100" height="100"/>
+      <text class="st12" transform="translate(513.39 685.18)"><tspan x="0" y="0">Speaker</tspan><tspan x="20.3" y="21.6">HF</tspan><tspan x="-2.62" y="43.2">damping</tspan></text>
+    </g>
+    <rect class="st9" x="925.5" y="323.5" width="21" height="21"/>
+    <rect class="st1" x="925.5" y="353.5" width="21" height="21"/>
+    <rect class="st6" x="925.5" y="383.5" width="21" height="21"/>
+    <text class="st12" transform="translate(952 339)"><tspan x="0" y="0">input parameter</tspan></text>
+    <text class="st12" transform="translate(952 369)"><tspan x="0" y="0">output/system param.</tspan></text>
+    <text class="st12" transform="translate(952 399)"><tspan x="0" y="0">processed data</tspan></text>
+    <text class="st12" transform="translate(959 297)"><tspan x="0" y="0">distance</tspan></text>
+    <text class="st12" transform="translate(1081 296)"><tspan x="0" y="0">angle</tspan></text>
+  </g>
+  <g id="signs">
+    <g>
+      <circle cx="378" cy="485" r="14"/>
+      <path class="st11" d="M377.5,477s7,0,7,8-7,8-7,8h-4v-16h4Z"/>
+    </g>
+    <g>
+      <circle cx="544" cy="485" r="14"/>
+      <path class="st11" d="M543.5,477s7,0,7,8-7,8-7,8h-4v-16h4Z"/>
+    </g>
+    <g>
+      <circle cx="686" cy="485" r="14"/>
+      <polygon class="st11" points="686 492 678 481 694 481 686 492"/>
+    </g>
+    <g>
+      <circle cx="307" cy="558.5" r="14"/>
+      <rect class="st11" x="299" y="556.5" width="16" height="4"/>
+    </g>
+    <g>
+      <circle cx="926" cy="702.5" r="14"/>
+      <rect class="st11" x="918" y="700.5" width="16" height="4"/>
+      <rect class="st11" x="924" y="694.5" width="4" height="16"/>
+    </g>
+    <g>
+      <circle cx="616" cy="702.5" r="14"/>
+      <rect class="st11" x="608" y="700.5" width="16" height="4"/>
+      <rect class="st11" x="614" y="694.5" width="4" height="16"/>
+    </g>
+    <g>
+      <circle cx="544" cy="630" r="14"/>
+      <rect class="st11" x="542" y="622" width="4" height="16" transform="translate(-286.14 569.19) rotate(-45)"/>
+      <rect class="st11" x="536" y="628" width="16" height="4" transform="translate(-286.14 569.19) rotate(-45)"/>
+    </g>
+    <g>
+      <circle cx="306.5" cy="702.5" r="14"/>
+      <rect class="st11" x="298.5" y="700.5" width="16" height="4"/>
+      <circle class="st11" cx="306.5" cy="696.5" r="2"/>
+      <circle class="st11" cx="306.5" cy="708.5" r="2"/>
+    </g>
+    <g>
+      <circle cx="235" cy="487" r="14"/>
+      <path class="st11" d="M234.5,479s7,0,7,8-7,8-7,8h-4v-16h4Z"/>
+    </g>
+    <g>
+      <circle cx="997" cy="485" r="14"/>
+      <polygon class="st11" points="997 492 989 481 1005 481 997 492"/>
+    </g>
+    <g>
+      <circle cx="784" cy="558" r="14"/>
+      <rect class="st11" x="782" y="550" width="4" height="16" transform="translate(-164.94 717.81) rotate(-45)"/>
+      <rect class="st11" x="776" y="556" width="16" height="4" transform="translate(-164.94 717.81) rotate(-45)"/>
+    </g>
+    <g>
+      <circle cx="940" cy="290" r="14"/>
+      <path class="st11" d="M939.5,282s7,0,7,8-7,8-7,8h-4v-16h4Z"/>
+    </g>
+    <g>
+      <circle cx="1062" cy="290" r="14"/>
+      <polygon class="st11" points="1062 297 1054 286 1070 286 1062 297"/>
+    </g>
+  </g>
+</svg>

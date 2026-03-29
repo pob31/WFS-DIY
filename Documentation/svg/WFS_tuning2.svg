@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 950 619">
+  <!-- Generator: Adobe Illustrator 29.5.0, SVG Export Plug-In . SVG Version: 2.1.0 Build 137)  -->
+  <defs>
+    <style>
+      .st0, .st1, .st2, .st3, .st4, .st5, .st6, .st7, .st8, .st9 {
+        stroke-miterlimit: 10;
+      }
+
+      .st0, .st1, .st2, .st3, .st4, .st6, .st7, .st8, .st9 {
+        fill: none;
+      }
+
+      .st0, .st2, .st8 {
+        stroke-width: 4px;
+      }
+
+      .st0, .st4, .st6, .st8, .st9 {
+        stroke: blue;
+      }
+
+      .st1, .st5, .st7 {
+        stroke: #000;
+      }
+
+      .st2 {
+        stroke: red;
+        stroke-dasharray: 8;
+      }
+
+      .st3 {
+        stroke: #666;
+        stroke-width: 8px;
+      }
+
+      .st10 {
+        fill: #fff;
+      }
+
+      .st11 {
+        fill: url(#radial-gradient);
+      }
+
+      .st5 {
+        fill: #ccc;
+      }
+
+      .st6 {
+        stroke-width: .75px;
+      }
+
+      .st7 {
+        stroke-width: 10px;
+      }
+
+      .st8 {
+        stroke-dasharray: 7.96 7.96;
+      }
+
+      .st9 {
+        stroke-width: .5px;
+      }
+    </style>
+    <radialGradient id="radial-gradient" cx="72.59" cy="470.59" fx="72.59" fy="470.59" r="14.17" gradientUnits="userSpaceOnUse">
+      <stop offset=".47" stop-color="#fff"/>
+      <stop offset="1" stop-color="blue"/>
+    </radialGradient>
+  </defs>
+  <g>
+    <rect class="st5" x="240.58" y="580.79" width="20.36" height="20.36" transform="translate(-340.21 841.72) rotate(-90)"/>
+    <polygon class="st5" points="260.87 582.55 252.45 590.96 260.87 599.38 260.87 582.55"/>
+  </g>
+  <g>
+    <g>
+      <path class="st10" d="M848.19,319.8c-6.52,0-9.3-2.78-9.3-9.3,0-.2-.06-1.84-1.92-2.11.49-.99,1.21-2.32,1.68-3.17.8-1.47,1.26-2.33,1.45-2.83,1.67-4.43,4.77-7.19,8.09-7.19,2.18,0,4.47,1.2,6.28,3.29,2.48,2.86,3.59,6.72,3.04,10.6-1.35,9.44-5.46,10.71-9.31,10.71Z"/>
+      <path d="M848.19,296.7c1.72,0,3.64,1.04,5.15,2.77,2.16,2.5,3.17,6.01,2.68,9.4-1.24,8.7-4.69,9.42-7.83,9.42-5.69,0-7.8-2.11-7.8-7.8,0-1.04-.44-2.13-1.36-2.84.33-.62.67-1.25.93-1.72.86-1.58,1.32-2.43,1.54-3.02,1.44-3.83,4.01-6.22,6.69-6.22M848.19,293.7c-4.1,0-7.66,3.3-9.49,8.16-.42,1.11-3.48,6.19-3.71,7.44-.09.49.27.57.73.57.22,0,.47-.02.71-.02.51,0,.96.09.96.65,0,8.62,4.84,10.8,10.8,10.8s9.56-3.35,10.8-12c1.2-8.4-4.84-15.6-10.8-15.6h0Z"/>
+    </g>
+    <path class="st1" d="M850.14,308.09c1.74-2.6-.29-4.37-.42-4.9"/>
+  </g>
+  <line class="st2" x1="276" y1="172" x2="837" y2="303"/>
+  <g>
+    <circle class="st11" cx="72.59" cy="470.59" r="14.17"/>
+    <g>
+      <circle class="st4" cx="72.59" cy="470.59" r="19.32"/>
+      <circle class="st6" cx="72.59" cy="470.59" r="24.53"/>
+      <circle class="st9" cx="72.59" cy="470.59" r="27"/>
+    </g>
+  </g>
+  <polyline class="st7" points="932 338 380 608 36 608"/>
+  <g>
+    <line class="st0" x1="821" y1="310" x2="817.09" y2="310.83"/>
+    <line class="st8" x1="809.3" y1="312.48" x2="96.9" y2="463.8"/>
+    <line class="st0" x1="93.01" y1="464.63" x2="89.1" y2="465.46"/>
+  </g>
+  <g>
+    <rect class="st5" x="255.58" y="156.79" width="20.36" height="20.36" transform="translate(7.53 345.35) rotate(-66.78)"/>
+    <polygon class="st5" points="278.36 163.22 267.32 167.63 271.73 178.68 278.36 163.22"/>
+  </g>
+  <g>
+    <line class="st3" x1="326.02" y1="537.76" x2="289.98" y2="601.24"/>
+    <line class="st3" x1="276.26" y1="551.48" x2="339.74" y2="587.52"/>
+  </g>
+</svg>
