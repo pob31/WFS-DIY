@@ -3458,7 +3458,7 @@ void OSCManager::sendAllInputParametersToRemote(int targetIndex)
 
 }
 
-std::vector<juce::OSCMessage> OSCManager::collectStateDumpMessages(int targetIndex)
+std::vector<juce::OSCMessage> OSCManager::collectStateDumpMessages(int /*targetIndex*/)
 {
     std::vector<juce::OSCMessage> messages;
 
