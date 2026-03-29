@@ -2357,6 +2357,10 @@ private:
         helpTextMap[&pitchSlider] = LOC("outputs.help.pitch");
         helpTextMap[&hfDampingSlider] = LOC("outputs.help.hfDamping");
         helpTextMap[&arrayPositionHelperButton] = LOC("outputs.help.wizardOfOutZ");
+        helpTextMap[&outputHelpButton] = LOC("help.outputs.title");
+        helpTextMap[&parallaxHelpButton] = LOC("help.parallax.title");
+        helpTextMap[&tuningHelpButton] = LOC("help.tuning.title");
+        helpTextMap[&advancedHelpButton] = LOC("help.outputAdvanced.title");
         helpTextMap[&mapVisibilityButton] = LOC("outputs.help.mapVisibility");
         // EQ controls
         helpTextMap[&eqEnableButton] = LOC("outputs.help.eqEnable");

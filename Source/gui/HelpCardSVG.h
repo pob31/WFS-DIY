@@ -6,7 +6,7 @@
 /**
  * SVG illustration strings for help cards.
  * Parsed at runtime with juce::Drawable::createFromSVG().
- * Colors adapted for current theme (black strokes -> white on dark themes).
+ * Colors adapted for current theme.
  */
 namespace HelpCardSVG
 {
@@ -22,7 +22,7 @@ inline juce::String adaptForTheme(const juce::String& svg)
                        .replace("stroke:#000", "stroke:#ddd")
                        .replace("fill: #000", "fill: #ddd")
                        .replace("fill:#000", "fill:#ddd");
-        // Classless polygons (arrowheads) default to black fill — inject white fill
+        // Classless polygons (arrowheads) default to black fill
         result = result.replace("<polygon points=", "<polygon fill=\"#ddd\" points=");
     }
     return result;
