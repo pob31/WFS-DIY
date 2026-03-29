@@ -393,12 +393,13 @@ private:
                 }
                 else
                 {
+                    // Match paint() logic: text starts at y + lineH baseline
                     juce::GlyphArrangement glyphs;
-                    glyphs.addJustifiedText(font, section.text, 0.0f, 0.0f, (float)width, juce::Justification::left);
-                    int numLines = glyphs.getNumGlyphs() > 0
-                        ? (int)(glyphs.getBoundingBox(glyphs.getNumGlyphs() - 1, 1, true).getBottom() / lineH) + 1
-                        : 1;
-                    totalH += (int)(numLines * lineH + lineH * 0.5f);
+                    glyphs.addJustifiedText(font, section.text, 0.0f, lineH, (float)width, juce::Justification::left);
+                    float textBottom = lineH; // minimum one line
+                    if (glyphs.getNumGlyphs() > 0)
+                        textBottom = glyphs.getBoundingBox(glyphs.getNumGlyphs() - 1, 1, true).getBottom();
+                    totalH += (int)(textBottom + lineH);
                 }
             }
             return totalH + (int)lineH;

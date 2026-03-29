@@ -2709,182 +2709,267 @@ private:
         outputHelpCard.addTextSection(
             LOC("help.outputs.body.arrays"));
 
-        // Illustration: Parallax diagram (based on parallax.svg layout)
-        // SVG viewBox 619x550 (top half): source at top, speakers mid, listeners bottom
-        outputHelpCard.addIllustration(280, [](juce::Graphics& g, juce::Rectangle<int> area) {
+        // Illustration: Parallax top view (SVG-faithful from parallax.svg, top 550px of viewBox 619x950)
+        outputHelpCard.addIllustration(300, [](juce::Graphics& g, juce::Rectangle<int> area) {
+            g.saveState();
+            g.reduceClipRegion(area);
             auto& cs = ColorScheme::get();
-            float w = (float)area.getWidth();
-            float x0 = (float)area.getX(), y0 = (float)area.getY();
-            float scale = w / 619.0f; // scale SVG coords to card width
-
-            // Input source at top center (SVG: 360, 48)
-            float srcX = x0 + 360 * scale, srcY = y0 + 48 * scale;
-            drawInputSource(g, srcX, srcY, 14.0f * scale, juce::Colour(0xFF3388CC));
-
-            // Stage double line (SVG: y=537-541)
-            float stageY = y0 + 490 * scale;
-            g.setColour(cs.textSecondary.withAlpha(0.3f));
-            g.drawLine(x0 + 57 * scale, stageY, x0 + 556 * scale, stageY, 2.0f);
-            g.drawLine(x0 + 57 * scale, stageY + 4, x0 + 556 * scale, stageY + 4, 2.0f);
-
-            // 5 speakers in a row (SVG: y~242, x from 148 to 468, outer ones angled)
-            float spkY = y0 + 242 * scale;
-            float spkXs[] = { 148, 228, 308, 388, 468 };
-            float spkAngles[] = { 150.0f, 180.0f, 180.0f, 180.0f, 210.0f }; // outer ones angled inward
-            juce::Colour spkFill(0xFFCCCCCC);
-            for (int i = 0; i < 5; ++i)
-            {
-                float sx = x0 + spkXs[i] * scale;
-                drawSpeakerIcon(g, sx, spkY, spkAngles[i], 18.0f * scale, spkFill, cs.textPrimary);
-            }
-
-            // 5 listeners below stage (SVG: y~420-470, x from ~41 to ~583)
-            float listXs[] = { 41, 228, 308, 388, 583 };
-            float listYs[] = { 420, 456, 456, 457, 420 };
-            for (int i = 0; i < 5; ++i)
-            {
-                float lx = x0 + listXs[i] * scale;
-                float ly = y0 + listYs[i] * scale;
-                drawListener(g, lx, ly, 16.0f * scale, cs.textSecondary);
-            }
-
-            // Blue dashed lines: source to each speaker position (via speaker to its listener)
-            auto drawDashed = [&](float x1, float y1, float x2, float y2, juce::Colour col, float dashLen) {
-                g.setColour(col);
-                float dx = x2 - x1, dy = y2 - y1;
-                float len = std::sqrt(dx * dx + dy * dy);
-                float nx = dx / len, ny = dy / len;
-                float pos = 0;
-                while (pos < len)
-                {
-                    float end = juce::jmin(pos + dashLen, len);
-                    g.drawLine(x1 + nx * pos, y1 + ny * pos, x1 + nx * end, y1 + ny * end, 1.5f);
-                    pos += dashLen * 2;
-                }
+            const float s = (float)area.getWidth() / 619.0f;
+            const float x0 = (float)area.getX(), y0 = (float)area.getY();
+            auto sx = [&](float v) { return x0 + v * s; };
+            auto sy = [&](float v) { return y0 + v * s; };
+            auto drawDashed = [&](float x1, float y1, float x2, float y2, float dashLen, float sw, juce::Colour c) {
+                juce::Path p; p.startNewSubPath(sx(x1), sy(y1)); p.lineTo(sx(x2), sy(y2));
+                juce::Path d; float ds[] = { dashLen * s, dashLen * s };
+                juce::PathStrokeType(sw * s).createDashedStroke(d, p, ds, 2);
+                g.setColour(c); g.strokePath(d, juce::PathStrokeType(sw * s));
+            };
+            auto drawSolid = [&](float x1, float y1, float x2, float y2, float sw, juce::Colour c) {
+                g.setColour(c); g.drawLine(sx(x1), sy(y1), sx(x2), sy(y2), sw * s);
+            };
+            auto drawSpk = [&](float rx, float ry, float rot, float t1x, float t1y, float t2x, float t2y, float t3x, float t3y) {
+                juce::Colour f(0xFFCCCCCC);
+                float cx = rx + 10.18f, cy = ry + 10.18f;
+                juce::AffineTransform tr = juce::AffineTransform::rotation(rot * juce::MathConstants<float>::pi / 180.0f, sx(cx), sy(cy));
+                juce::Path r; r.addRectangle(sx(rx), sy(ry), 20.36f * s, 20.36f * s);
+                g.setColour(f); g.fillPath(r, tr); g.setColour(cs.textPrimary); g.strokePath(r, juce::PathStrokeType(s), tr);
+                juce::Path t; t.startNewSubPath(sx(t1x), sy(t1y)); t.lineTo(sx(t2x), sy(t2y)); t.lineTo(sx(t3x), sy(t3y)); t.closeSubPath();
+                g.setColour(f); g.fillPath(t); g.setColour(cs.textPrimary); g.strokePath(t, juce::PathStrokeType(s));
+            };
+            auto drawSrc = [&](float cx, float cy) {
+                g.setColour(juce::Colours::blue.withAlpha(0.15f)); g.fillEllipse(sx(cx)-27*s, sy(cy)-27*s, 54*s, 54*s);
+                g.setColour(juce::Colours::blue); g.drawEllipse(sx(cx)-19.32f*s, sy(cy)-19.32f*s, 38.64f*s, 38.64f*s, 3*s);
+                g.setColour(juce::Colours::blue); g.fillEllipse(sx(cx)-14.17f*s, sy(cy)-14.17f*s, 28.34f*s, 28.34f*s);
+                g.setColour(juce::Colours::white); g.fillEllipse(sx(cx)-7*s, sy(cy)-7*s, 14*s, 14*s);
+            };
+            auto drawList = [&](float cx, float cy) {
+                g.setColour(juce::Colours::white); g.fillEllipse(sx(cx)-8*s, sy(cy)-8*s, 16*s, 16*s);
+                g.setColour(cs.textPrimary); g.drawEllipse(sx(cx)-8*s, sy(cy)-8*s, 16*s, 16*s, 1.5f*s);
+                juce::Path a; a.addArc(sx(cx)-12*s, sy(cy)+2*s, 24*s, 16*s, 0, juce::MathConstants<float>::pi, true);
+                g.strokePath(a, juce::PathStrokeType(1.5f*s));
             };
 
-            // Lines from source through each speaker to listener (blue dashed)
-            juce::Colour blueCol(0xFF4488CC);
-            for (int i = 0; i < 5; ++i)
-            {
-                float sx = x0 + spkXs[i] * scale;
-                float lx = x0 + listXs[i] * scale;
-                float ly = y0 + listYs[i] * scale;
-                // Source to speaker midpoint
-                drawDashed(srcX, srcY, sx, spkY - 8 * scale, blueCol.withAlpha(0.5f), 6.0f);
-                // Speaker to listener
-                drawDashed(sx, spkY + 12 * scale, lx, ly - 12 * scale, cs.textPrimary.withAlpha(0.4f), 6.0f);
-            }
+            // Stage double line
+            drawSolid(57.5f, 537.5f, 556.5f, 537.5f, 2, juce::Colour(0xFF666666));
+            drawSolid(57.5f, 541.5f, 556.5f, 541.5f, 2, juce::Colour(0xFF666666));
 
-            // Red dashed lines: direct source to middle listener (shows parallax difference)
-            juce::Colour redCol(0xFFCC4444);
-            drawDashed(srcX, srcY + 10 * scale, x0 + 308 * scale, y0 + 456 * scale - 12 * scale, redCol.withAlpha(0.6f), 6.0f);
+            // 5 Speakers
+            drawSpk(138.13f, 232.17f, 30.28f, 150.48f, 255.32f, 147.45f, 243.81f, 135.95f, 246.84f);
+            drawSpk(218.08f, 232.29f, 0, 236.67f, 252.57f, 228.26f, 244.16f, 219.85f, 252.57f);
+            drawSpk(298.08f, 232.29f, 0, 316.67f, 252.57f, 308.26f, 244.16f, 299.85f, 252.57f);
+            drawSpk(378.08f, 232.29f, 0, 396.67f, 252.57f, 388.26f, 244.16f, 379.85f, 252.57f);
+            drawSpk(458.1f, 232.42f, -32.04f, 480.77f, 246.71f, 469.18f, 244.04f, 466.51f, 255.63f);
 
-            // Labels
-            g.setColour(cs.textSecondary);
-            g.setFont(juce::FontOptions(juce::jmax(9.0f, 11.0f * scale)));
-            g.drawText("Source", (int)(srcX - 25 * scale), (int)(srcY - 22 * scale), (int)(50 * scale), 14, juce::Justification::centred);
+            // Source at top
+            drawSrc(360.29f, 48.29f);
 
-            // d1 and d2 labels
-            g.setColour(redCol);
-            g.setFont(juce::FontOptions(juce::jmax(9.0f, 12.0f * scale)).withStyle("Bold"));
-            g.drawText("d1", (int)(srcX + 8 * scale), (int)(y0 + 280 * scale), 20, 14, juce::Justification::centredLeft);
-            g.setColour(blueCol);
-            g.drawText("d2", (int)(x0 + 318 * scale), (int)(y0 + 340 * scale), 20, 14, juce::Justification::centredLeft);
+            // Red dashed: source → speakers
+            drawDashed(335, 243.5f, 360.5f, 48.5f, 8, 2.5f, juce::Colours::red);
+            drawDashed(374, 245, 360.5f, 48.5f, 8, 2.5f, juce::Colours::red);
+            drawDashed(294, 252.6f, 360.5f, 48.5f, 8, 2.5f, juce::Colours::red);
+            drawDashed(473.6f, 239.6f, 360.5f, 48.5f, 8, 2.5f, juce::Colours::red);
+            drawDashed(178.5f, 263.3f, 360.5f, 48.5f, 8, 2.5f, juce::Colours::red);
+
+            // Blue dashed: speakers → listeners (via intermediate)
+            drawDashed(309.5f, 442.5f, 335, 243.5f, 8, 2.5f, juce::Colours::blue);
+            drawDashed(387.5f, 442.5f, 374, 245, 8, 2.5f, juce::Colours::blue);
+            drawDashed(231.5f, 444.5f, 294, 252.6f, 8, 2.5f, juce::Colours::blue);
+            drawDashed(582.5f, 423.5f, 473.6f, 239.6f, 8, 2.5f, juce::Colours::blue);
+            drawDashed(49.5f, 415.5f, 178.5f, 263.3f, 8, 2.5f, juce::Colours::blue);
+
+            // Black dashed: speakers → listeners (direct lines)
+            drawDashed(134.9f, 265.7f, 57.2f, 398.9f, 8, 2.5f, cs.textPrimary);
+            drawDashed(228.5f, 269.9f, 228.5f, 424, 8, 2.5f, cs.textPrimary);
+            drawDashed(308.5f, 270.4f, 308.5f, 424.6f, 8, 2.5f, cs.textPrimary);
+            drawDashed(388.5f, 270.9f, 388.5f, 425, 8, 2.5f, cs.textPrimary);
+            drawDashed(483.8f, 267, 565.6f, 397.7f, 8, 2.5f, cs.textPrimary);
+
+            // 5 Listeners
+            drawList(41.1f, 425); drawList(228.5f, 456); drawList(308.5f, 456.5f);
+            drawList(388.5f, 457); drawList(573, 420);
+
+            g.restoreState();
         });
 
         // Section 2: Parallax text
         outputHelpCard.addTextSection(
             LOC("help.outputs.body.parallax"));
 
-        // Illustration: Tuning steps (based on WFS_tuning1-3.svg side view)
-        // SVG viewBox 950x619: stage is angled line, speakers at edge and flown, listener far left
-        outputHelpCard.addIllustration(180, [](juce::Graphics& g, juce::Rectangle<int> area) {
+        // Illustration: Parallax cross section (from parallax.svg, y: 590-950, viewBox 619x950)
+        outputHelpCard.addIllustration(220, [](juce::Graphics& g, juce::Rectangle<int> area) {
+            g.saveState();
+            g.reduceClipRegion(area);
             auto& cs = ColorScheme::get();
-            float w = (float)area.getWidth(), h = (float)area.getHeight();
-            float x0 = (float)area.getX(), y0 = (float)area.getY();
+            // Scale to fit the cross section (SVG y range 590-950 = 360 units, x range 0-619)
+            const float svgW = 619.0f, svgYoff = 590.0f;
+            const float s = (float)area.getWidth() / svgW;
+            const float x0 = (float)area.getX(), y0 = (float)area.getY();
+            auto sx = [&](float v) { return x0 + v * s; };
+            auto sy = [&](float v) { return y0 + (v - svgYoff) * s; }; // offset to start from y=590
+            auto drawDashed = [&](float x1, float y1, float x2, float y2, float dashLen, float sw, juce::Colour c) {
+                juce::Path p; p.startNewSubPath(sx(x1), sy(y1)); p.lineTo(sx(x2), sy(y2));
+                juce::Path d; float ds[] = { dashLen * s, dashLen * s };
+                juce::PathStrokeType(sw * s).createDashedStroke(d, p, ds, 2);
+                g.setColour(c); g.strokePath(d, juce::PathStrokeType(sw * s));
+            };
+            auto drawSolid = [&](float x1, float y1, float x2, float y2, float sw, juce::Colour c) {
+                g.setColour(c); g.drawLine(sx(x1), sy(y1), sx(x2), sy(y2), sw * s);
+            };
+            auto drawSpk = [&](float rx, float ry, float rot, float t1x, float t1y, float t2x, float t2y, float t3x, float t3y) {
+                juce::Colour f(0xFFCCCCCC);
+                float cx = rx + 10.18f, cy = ry + 10.18f;
+                juce::AffineTransform tr = juce::AffineTransform::rotation(rot * juce::MathConstants<float>::pi / 180.0f, sx(cx), sy(cy));
+                juce::Path r; r.addRectangle(sx(rx), sy(ry), 20.36f * s, 20.36f * s);
+                g.setColour(f); g.fillPath(r, tr); g.setColour(cs.textPrimary); g.strokePath(r, juce::PathStrokeType(s), tr);
+                juce::Path t; t.startNewSubPath(sx(t1x), sy(t1y)); t.lineTo(sx(t2x), sy(t2y)); t.lineTo(sx(t3x), sy(t3y)); t.closeSubPath();
+                g.setColour(f); g.fillPath(t); g.setColour(cs.textPrimary); g.strokePath(t, juce::PathStrokeType(s));
+            };
+            auto drawSrc = [&](float cx, float cy) {
+                g.setColour(juce::Colours::blue.withAlpha(0.15f)); g.fillEllipse(sx(cx)-20*s, sy(cy)-20*s, 40*s, 40*s);
+                g.setColour(juce::Colours::blue); g.fillEllipse(sx(cx)-10*s, sy(cy)-10*s, 20*s, 20*s);
+                g.setColour(juce::Colours::white); g.fillEllipse(sx(cx)-5*s, sy(cy)-5*s, 10*s, 10*s);
+            };
+            auto drawList = [&](float cx, float cy) {
+                g.setColour(juce::Colours::white); g.fillEllipse(sx(cx)-8*s, sy(cy)-8*s, 16*s, 16*s);
+                g.setColour(cs.textPrimary); g.drawEllipse(sx(cx)-8*s, sy(cy)-8*s, 16*s, 16*s, 1.5f*s);
+            };
 
-            // Three panels side by side
-            float panelW = (w - 16) / 3.0f;
-            float gap = 8.0f;
+            // Speaker at (275, 608) rotated -64.69° — angled down
+            drawSpk(275.13f, 608.17f, -64.69f, 298.04f, 615.06f, 286.84f, 619.07f, 290.85f, 630.27f);
+            // Speaker at (275, 896) rotated -90° — horizontal
+            drawSpk(275.08f, 896.29f, -90, 295.37f, 898.05f, 286.95f, 906.46f, 295.37f, 914.88f);
+
+            // Source at (77, 796)
+            drawSrc(77.09f, 796.09f);
+
+            // Listener at ~(407, 846) — seated
+            drawList(407, 846);
+            // Listener at ~(554, 764) — far
+            drawList(554, 764);
+
+            // Black dashed: speaker to listeners (st9: stroke #000, dashed 8, 3px)
+            drawDashed(295.5f, 622.5f, 542.5f, 756.5f, 8, 2.5f, cs.textPrimary);
+            drawDashed(298.5f, 899.5f, 396.5f, 848.5f, 8, 2.5f, cs.textPrimary);
+
+            // Blue dashed: parallax paths
+            drawDashed(270.48f, 823.04f, 391.5f, 841.5f, 8, 2.5f, juce::Colours::blue);
+            drawDashed(540.5f, 760.5f, 250.01f, 781.78f, 8, 2.5f, juce::Colours::blue);
+
+            // Red solid: source → edges
+            drawSolid(250.01f, 781.78f, 77.5f, 795.5f, 2.5f, juce::Colours::red);
+            drawSolid(77.5f, 795.5f, 270.48f, 823.04f, 2.5f, juce::Colours::red);
+
+            // Reference lines (st9: dashed, horizontal)
+            drawDashed(298.5f, 622.92f, 577, 622.92f, 8, 2, cs.textPrimary);
+            drawDashed(298.5f, 906.5f, 430.5f, 906.5f, 8, 2, cs.textPrimary);
+
+            // Vertical arrows
+            drawSolid(569.5f, 622.92f, 569.5f, 745.15f, 3, cs.textPrimary);
+            { juce::Path a; a.startNewSubPath(sx(579.47f), sy(742.23f)); a.lineTo(sx(569.5f), sy(759.5f)); a.lineTo(sx(559.53f), sy(742.23f)); a.closeSubPath();
+              g.setColour(cs.textPrimary); g.fillPath(a); }
+            drawSolid(427.5f, 906.5f, 427.5f, 857.35f, 3, cs.textPrimary);
+            { juce::Path a; a.startNewSubPath(sx(437.47f), sy(860.27f)); a.lineTo(sx(427.5f), sy(843)); a.lineTo(sx(417.53f), sy(860.27f)); a.closeSubPath();
+              g.setColour(cs.textPrimary); g.fillPath(a); }
+
+            // Blue arcs (distance curves, approximated as dashed lines)
+            drawDashed(272.11f, 822.5f, 280.46f, 894.69f, 8, 2, juce::Colours::blue);
+            drawDashed(251.13f, 782.29f, 280.47f, 630.73f, 8, 2, juce::Colours::blue);
+
+            g.restoreState();
+        });
+
+        // Illustration: 3 tuning steps side by side (SVG-faithful from WFS_tuning1-3.svg, viewBox 950x619)
+        outputHelpCard.addIllustration(220, [](juce::Graphics& g, juce::Rectangle<int> area) {
+            g.saveState();
+            g.reduceClipRegion(area);
+            auto& cs = ColorScheme::get();
+            float totalW = (float)area.getWidth();
+            float totalH = (float)area.getHeight() - 16; // room for labels
+            float gap = 6.0f;
+            float panelW = (totalW - gap * 2) / 3.0f;
 
             for (int step = 0; step < 3; ++step)
             {
-                float px = x0 + step * (panelW + gap);
-                float py = y0;
-                float ph = h - 20; // leave room for label
+                float px = (float)area.getX() + step * (panelW + gap);
+                float py = (float)area.getY();
+                const float s = panelW / 950.0f;
+                auto sx = [&](float v) { return px + v * s; };
+                auto sy = [&](float v) { return py + v * s; };
+                auto drawDashed = [&](float x1, float y1, float x2, float y2, float dashLen, float sw, juce::Colour c) {
+                    juce::Path p; p.startNewSubPath(sx(x1), sy(y1)); p.lineTo(sx(x2), sy(y2));
+                    juce::Path d; float ds[] = { dashLen * s, dashLen * s };
+                    juce::PathStrokeType(sw * s).createDashedStroke(d, p, ds, 2);
+                    g.setColour(c); g.strokePath(d, juce::PathStrokeType(sw * s));
+                };
+                auto drawSolid = [&](float x1, float y1, float x2, float y2, float sw, juce::Colour c) {
+                    g.setColour(c); g.drawLine(sx(x1), sy(y1), sx(x2), sy(y2), sw * s);
+                };
+                auto drawSpk = [&](float rx, float ry, float rot, float t1x, float t1y, float t2x, float t2y, float t3x, float t3y) {
+                    juce::Colour f(0xFFCCCCCC);
+                    float cx = rx + 10.18f, cy = ry + 10.18f;
+                    juce::AffineTransform tr = juce::AffineTransform::rotation(rot * juce::MathConstants<float>::pi / 180.0f, sx(cx), sy(cy));
+                    juce::Path r; r.addRectangle(sx(rx), sy(ry), 20.36f * s, 20.36f * s);
+                    g.setColour(f); g.fillPath(r, tr); g.setColour(cs.textPrimary); g.strokePath(r, juce::PathStrokeType(s), tr);
+                    juce::Path t; t.startNewSubPath(sx(t1x), sy(t1y)); t.lineTo(sx(t2x), sy(t2y)); t.lineTo(sx(t3x), sy(t3y)); t.closeSubPath();
+                    g.setColour(f); g.fillPath(t); g.setColour(cs.textPrimary); g.strokePath(t, juce::PathStrokeType(s));
+                };
+                auto drawSrc = [&](float cx, float cy) {
+                    g.setColour(juce::Colours::blue.withAlpha(0.15f)); g.fillEllipse(sx(cx)-20*s, sy(cy)-20*s, 40*s, 40*s);
+                    g.setColour(juce::Colours::blue); g.fillEllipse(sx(cx)-10*s, sy(cy)-10*s, 20*s, 20*s);
+                    g.setColour(juce::Colours::white); g.fillEllipse(sx(cx)-5*s, sy(cy)-5*s, 10*s, 10*s);
+                };
+                auto drawList = [&](float cx, float cy) {
+                    g.setColour(juce::Colours::white); g.fillEllipse(sx(cx)-8*s, sy(cy)-8*s, 16*s, 16*s);
+                    g.setColour(cs.textPrimary); g.drawEllipse(sx(cx)-8*s, sy(cy)-8*s, 16*s, 16*s, 2*s);
+                };
 
-                // Stage: angled line from upper-right to lower-left (side view of raked stage)
-                float stageX1 = px + panelW * 0.95f, stageY1 = py + ph * 0.45f;
-                float stageX2 = px + panelW * 0.35f, stageY2 = py + ph * 0.85f;
-                float stageX3 = px + panelW * 0.03f, stageY3 = py + ph * 0.85f;
-                g.setColour(cs.textPrimary.withAlpha(0.6f));
-                g.drawLine(stageX1, stageY1, stageX2, stageY2, 3.0f);
-                g.drawLine(stageX2, stageY2, stageX3, stageY3, 3.0f);
+                // Stage polyline (thick black angled line)
+                { juce::Path stg; stg.startNewSubPath(sx(932), sy(338)); stg.lineTo(sx(380), sy(608)); stg.lineTo(sx(36), sy(608));
+                  g.setColour(cs.textPrimary); g.strokePath(stg, juce::PathStrokeType(8 * s)); }
 
-                // Near-field speaker at stage edge (angled down-left, SVG ~x=266,y=166)
-                float nfAlpha = (step == 1) ? 0.2f : 0.9f;
-                juce::Colour nfCol = juce::Colour(0xFFCCCCCC).withAlpha(nfAlpha);
-                float nfX = px + panelW * 0.28f, nfY = py + ph * 0.22f;
-                drawSpeakerIcon(g, nfX, nfY, 240.0f, 12.0f, nfCol, cs.textPrimary.withAlpha(nfAlpha));
-
-                // Cross mark if muted (step 2)
-                if (step == 1)
-                {
-                    g.setColour(cs.textSecondary.withAlpha(0.4f));
-                    g.drawLine(nfX - 8, nfY - 8, nfX + 8, nfY + 8, 2.0f);
-                    g.drawLine(nfX + 8, nfY - 8, nfX - 8, nfY + 8, 2.0f);
-                }
-
-                // Flown speaker at top-right (angled steeply down, SVG ~x=848,y=310)
-                float flAlpha = (step == 0) ? 0.2f : 0.9f;
-                juce::Colour flCol = juce::Colour(0xFFCCCCCC).withAlpha(flAlpha);
-                float flX = px + panelW * 0.85f, flY = py + ph * 0.35f;
-                drawSpeakerIcon(g, flX, flY, 240.0f, 12.0f, flCol, cs.textPrimary.withAlpha(flAlpha));
+                // Top speaker (near-field, rotated -66.78)
+                drawSpk(255.58f, 156.79f, -66.78f, 278.36f, 163.22f, 267.32f, 167.63f, 271.73f, 178.68f);
+                // Bottom speaker (at stage edge, rotated -90)
+                drawSpk(240.58f, 580.79f, -90, 260.87f, 582.55f, 252.45f, 590.96f, 260.87f, 599.38f);
+                // Source
+                drawSrc(72.59f, 470.59f);
 
                 if (step == 0)
                 {
-                    g.setColour(cs.textSecondary.withAlpha(0.4f));
-                    g.drawLine(flX - 8, flY - 8, flX + 8, flY + 8, 2.0f);
-                    g.drawLine(flX + 8, flY - 8, flX - 8, flY + 8, 2.0f);
+                    // Tuning 1: green dashed near-field→listener, blue source→listener, X on top speaker
+                    drawList(403.19f, 530);
+                    drawDashed(264, 584, 392, 533, 8, 4, juce::Colour(0xFF009245));
+                    drawDashed(385.5f, 527.5f, 89.13f, 475.54f, 8, 4, juce::Colours::blue);
+                    // Cross on top speaker
+                    drawSolid(305.1f, 155.1f, 322.9f, 225.9f, 8, juce::Colour(0xFF666666));
+                    drawSolid(278.6f, 199.4f, 349.4f, 181.6f, 8, juce::Colour(0xFF666666));
                 }
-
-                // Input source on stage
-                float srcX = px + panelW * 0.08f, srcY = py + ph * 0.65f;
-                drawInputSource(g, srcX, srcY, 10.0f, juce::Colour(0xFF3388CC).withAlpha(0.7f));
-
-                // Listener/seat figure (lower left, SVG ~x=393,y=531)
-                float lsX = px + panelW * 0.42f, lsY = py + ph * 0.78f;
-                drawListener(g, lsX, lsY, 10.0f, cs.textSecondary);
-
-                // Dashed lines: active speaker(s) to listener
-                auto drawDash = [&](float x1, float y1, float x2, float y2, juce::Colour col) {
-                    g.setColour(col);
-                    float dx = x2 - x1, dy = y2 - y1;
-                    float len = std::sqrt(dx * dx + dy * dy);
-                    float nx = dx / len, ny = dy / len;
-                    for (float p = 0; p < len; p += 8.0f)
-                        g.drawLine(x1 + nx * p, y1 + ny * p,
-                                   x1 + nx * juce::jmin(p + 4.0f, len), y1 + ny * juce::jmin(p + 4.0f, len), 1.5f);
-                };
-
-                // Near-field path (green dashed)
-                if (step != 1)
-                    drawDash(nfX, nfY + 8, lsX, lsY - 8, juce::Colour(0xFF009245).withAlpha(0.6f));
-
-                // Flown path (blue dashed)
-                if (step != 0)
-                    drawDash(flX, flY + 8, lsX, lsY - 8, juce::Colour(0xFF4488CC).withAlpha(0.6f));
-
-                // Source to listener (red dashed, shows direct sound)
-                drawDash(srcX, srcY - 6, lsX, lsY - 8, juce::Colour(0xFFCC4444).withAlpha(step == 2 ? 0.5f : 0.25f));
+                else if (step == 1)
+                {
+                    // Tuning 2: red dashed top→listener(far), blue source→listener, X on bottom speaker
+                    drawList(848.19f, 306);
+                    drawDashed(276, 172, 837, 303, 8, 4, juce::Colours::red);
+                    drawDashed(821, 310, 89.1f, 465.46f, 8, 4, juce::Colours::blue);
+                    // Cross on bottom speaker
+                    drawSolid(326.02f, 537.76f, 289.98f, 601.24f, 8, juce::Colour(0xFF666666));
+                    drawSolid(276.26f, 551.48f, 339.74f, 587.52f, 8, juce::Colour(0xFF666666));
+                }
+                else
+                {
+                    // Tuning 3: both speakers active, red+green→listener, blue source→listener
+                    drawList(568.19f, 436);
+                    drawDashed(276, 172, 557, 433, 8, 4, juce::Colours::red);
+                    drawDashed(264, 588, 553, 444, 8, 4, juce::Colour(0xFF009245));
+                    drawDashed(89.54f, 469.08f, 548, 436, 8, 4, juce::Colours::blue);
+                }
 
                 // Step label
                 g.setColour(cs.textSecondary);
-                g.setFont(juce::FontOptions(juce::jmax(8.0f, 10.0f)).withStyle("Bold"));
-                juce::String label = juce::String("Step ") + juce::String(step + 1);
-                g.drawText(label, (int)px, (int)(y0 + h - 16), (int)panelW, 14, juce::Justification::centredTop);
+                g.setFont(juce::FontOptions(juce::jmax(8.0f, 10.0f * s * 950.0f / panelW)).withStyle("Bold"));
+                g.drawText(juce::String("Step ") + juce::String(step + 1),
+                           (int)px, (int)((float)area.getY() + totalH), (int)panelW, 14, juce::Justification::centredTop);
             }
+            g.restoreState();
         });
 
         // Section 3: Tuning instructions
