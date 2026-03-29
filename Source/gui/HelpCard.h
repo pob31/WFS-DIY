@@ -236,6 +236,27 @@ public:
         body = newBody;
         titleLabel.setText(newTitle, juce::dontSendNotification);
         bodyContent.bodyText = newBody;
+        // Simple mode: single text section
+        bodyContent.sections.clear();
+        bodyContent.sections.push_back({ newBody, nullptr, 0 });
+    }
+
+    /** Add a text section */
+    void addTextSection(const juce::String& text)
+    {
+        bodyContent.sections.push_back({ text, nullptr, 0 });
+    }
+
+    /** Add an illustration section with a custom draw callback and fixed height */
+    void addIllustration(int height, std::function<void(juce::Graphics&, juce::Rectangle<int>)> drawFunc)
+    {
+        bodyContent.sections.push_back({ {}, std::move(drawFunc), height });
+    }
+
+    /** Clear all sections (for building content incrementally) */
+    void clearSections()
+    {
+        bodyContent.sections.clear();
     }
 
     void setToggleButton(juce::Component* btn) { toggleButton = btn; }
@@ -282,18 +303,11 @@ public:
 
         viewport.setBounds(area);
 
-        // Size body content to fit all text
+        // Size body content to fit all sections
         int contentW = area.getWidth() - 14; // scrollbar width
-        auto bodyFont = juce::Font(juce::FontOptions().withHeight(juce::jmax(13.0f, 16.0f * scale)));
-        float lineH = bodyFont.getHeight() * 1.4f;
-
-        juce::GlyphArrangement glyphs;
-        glyphs.addJustifiedText(bodyFont, body, 0.0f, 0.0f, (float)contentW, juce::Justification::left);
-        int numLines = glyphs.getNumGlyphs() > 0
-            ? (int)((glyphs.getBoundingBox(glyphs.getNumGlyphs() - 1, 1, true).getBottom()) / lineH) + 1
-            : 1;
-        int bodyHeight = (int)(numLines * lineH + lineH);
-
+        int bodyHeight = bodyContent.sections.empty()
+            ? bodyContent.calculateHeight(contentW) // fallback if no sections set
+            : bodyContent.calculateHeight(contentW);
         bodyContent.setSize(contentW, bodyHeight);
     }
 
@@ -320,6 +334,14 @@ private:
     juce::Label titleLabel;
     juce::Component* toggleButton = nullptr;
 
+    /** A section is either text or an illustration callback */
+    struct Section
+    {
+        juce::String text;                                           // non-empty for text sections
+        std::function<void(juce::Graphics&, juce::Rectangle<int>)> drawIllustration; // for illustrations
+        int illustrationHeight = 0;                                  // pixel height for illustration sections
+    };
+
     class BodyComponent : public juce::Component
     {
     public:
@@ -327,11 +349,63 @@ private:
         {
             float scale = WfsLookAndFeel::uiScale;
             auto font = juce::Font(juce::FontOptions().withHeight(juce::jmax(13.0f, 16.0f * scale)));
-            g.setColour(ColorScheme::get().textSecondary);
-            g.setFont(font);
-            g.drawFittedText(bodyText, getLocalBounds(), juce::Justification::topLeft, 1000);
+            int w = getWidth();
+            int y = 0;
+
+            for (auto& section : sections)
+            {
+                if (section.drawIllustration)
+                {
+                    // Draw illustration
+                    section.drawIllustration(g, { 0, y, w, section.illustrationHeight });
+                    y += section.illustrationHeight;
+                }
+                else
+                {
+                    // Draw text
+                    g.setColour(ColorScheme::get().textSecondary);
+                    g.setFont(font);
+                    float lineH = font.getHeight() * 1.4f;
+                    juce::GlyphArrangement glyphs;
+                    glyphs.addJustifiedText(font, section.text, 0.0f, (float)y + lineH,
+                                            (float)w, juce::Justification::left);
+                    glyphs.draw(g);
+                    int numLines = glyphs.getNumGlyphs() > 0
+                        ? (int)((glyphs.getBoundingBox(glyphs.getNumGlyphs() - 1, 1, true).getBottom() - (float)y) / lineH) + 1
+                        : 1;
+                    y += (int)(numLines * lineH + lineH * 0.5f);
+                }
+            }
         }
-        juce::String bodyText;
+
+        int calculateHeight(int width) const
+        {
+            float scale = WfsLookAndFeel::uiScale;
+            auto font = juce::Font(juce::FontOptions().withHeight(juce::jmax(13.0f, 16.0f * scale)));
+            float lineH = font.getHeight() * 1.4f;
+            int totalH = 0;
+
+            for (auto& section : sections)
+            {
+                if (section.drawIllustration)
+                {
+                    totalH += section.illustrationHeight;
+                }
+                else
+                {
+                    juce::GlyphArrangement glyphs;
+                    glyphs.addJustifiedText(font, section.text, 0.0f, 0.0f, (float)width, juce::Justification::left);
+                    int numLines = glyphs.getNumGlyphs() > 0
+                        ? (int)(glyphs.getBoundingBox(glyphs.getNumGlyphs() - 1, 1, true).getBottom() / lineH) + 1
+                        : 1;
+                    totalH += (int)(numLines * lineH + lineH * 0.5f);
+                }
+            }
+            return totalH + (int)lineH;
+        }
+
+        std::vector<Section> sections;
+        juce::String bodyText; // kept for simple text-only mode
     };
 
     BodyComponent bodyContent;
