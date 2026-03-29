@@ -5,6 +5,7 @@
 #include "../WfsParameters.h"
 #include "../DSP/TestSignalGenerator.h"
 #include "../Localization/LocalizationManager.h"
+#include "HelpCardSVG.h"
 
 /**
  * DeviceInfoBar
@@ -93,6 +94,10 @@ private:
 
     // Track current state to avoid recursive updates
     bool isUpdating = false;
+
+    // Signal flow diagram
+    std::unique_ptr<juce::Drawable> signalFlowDrawable;
+    juce::Rectangle<int> signalFlowArea;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DeviceSettingsPanel)
 };

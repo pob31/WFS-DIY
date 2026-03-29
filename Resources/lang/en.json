@@ -549,6 +549,27 @@
     }
   },
 
+  "signalFlow": {
+    "microphones": "Microphones",
+    "soundtracks": "Soundtracks",
+    "oscCommands": "OSC commands",
+    "console": "Console",
+    "directOuts": "Direct outs",
+    "postFader": "post fader",
+    "wfsProcessor": "WFS processor",
+    "inputs": "Inputs",
+    "outputs": "Outputs",
+    "qlabAbleton": "QLab / Ableton Live",
+    "positions": "positions and",
+    "otherParams": "other parameters",
+    "scenes": "scenes",
+    "recall": "recall",
+    "remote": "Remote",
+    "remoteLC": "remote",
+    "control": "control",
+    "speakerArrays": "Speaker arrays"
+  },
+
   "networkLog": {
     "windowTitle": "Network Log",
     "controls": {

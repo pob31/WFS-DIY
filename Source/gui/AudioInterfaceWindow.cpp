@@ -158,6 +158,9 @@ DeviceSettingsPanel::DeviceSettingsPanel(juce::AudioDeviceManager& devManager)
 
     // Initialize all controls
     updateAllControls();
+
+    // Signal flow diagram
+    signalFlowDrawable = HelpCardSVG::parseSignalFlow(HelpCardSVG::get_signalFlowSVG());
 }
 
 DeviceSettingsPanel::~DeviceSettingsPanel()
@@ -212,11 +215,20 @@ void DeviceSettingsPanel::resized()
     controlPanelButton.setBounds(row.removeFromLeft(120));
     row.removeFromLeft(spacing);
     resetDeviceButton.setBounds(row.removeFromLeft(120));
+
+    // Signal flow diagram — right side of panel
+    int diagramLeft = labelWidth + spacing + comboWidth + 40;
+    signalFlowArea = getLocalBounds().withLeft(diagramLeft).reduced(10);
 }
 
 void DeviceSettingsPanel::paint(juce::Graphics& g)
 {
     g.fillAll(ColorScheme::get().background);
+
+    // Signal flow diagram
+    if (signalFlowDrawable && !signalFlowArea.isEmpty())
+        signalFlowDrawable->drawWithin(g, signalFlowArea.toFloat(),
+                                        juce::RectanglePlacement::centred, 1.0f);
 }
 
 void DeviceSettingsPanel::setEnabled(bool shouldBeEnabled)
