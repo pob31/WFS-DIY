@@ -2924,6 +2924,8 @@ private:
         algoSDNButton.setVisible (visible);
         algoFDNButton.setVisible (visible);
         algoIRButton.setVisible (visible);
+        algoHelpButton.setVisible (visible);
+        if (!visible) algoHelpCard.hide();
 
         // Always-visible controls
         algoWetLevelLabel.setVisible (visible);

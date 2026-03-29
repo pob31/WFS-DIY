@@ -4712,11 +4712,10 @@ private:
             int cardW = subTabContentArea.getWidth() / 2 - colPad * 2;
             int frCardH = frHelpCard.getIdealHeight(cardW);
             int lsCardH = lsHelpCard.getIdealHeight(cardW);
-            int bottomY = subTabContentArea.getBottom() - colPad;
-            int cardH = juce::jmax(frCardH, lsCardH);
-            int cardY = bottomY - cardH;
-            lsHelpCard.setBounds(cardX, cardY, cardW, lsCardH);
-            frHelpCard.setBounds(cardX, cardY, cardW, frCardH);
+            // Position cards at the very bottom of the content area
+            int bottomY = subTabContentArea.getBottom();
+            lsHelpCard.setBounds(cardX, bottomY - lsCardH, cardW, lsCardH);
+            frHelpCard.setBounds(cardX, bottomY - frCardH, cardW, frCardH);
         }
     }
 
