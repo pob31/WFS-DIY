@@ -4169,9 +4169,10 @@ private:
         // ========== COLUMN 1: Input + Position ==========
 
         // --- Input section ---
-        // Attenuation
+        // Attenuation (leave room for help button on right)
         auto row = col1.removeFromTop(rowHeight);
         attenuationLabel.setBounds(row.removeFromLeft(labelWidth));
+        row.removeFromRight(scaled(24)); // space for (?) button
         attenuationValueLabel.setBounds(row.removeFromRight(valueWidth));
         attenuationSlider.setBounds(col1.removeFromTop(sliderHeight));
         col1.removeFromTop(spacing);
@@ -4553,11 +4554,13 @@ private:
         // ========== HELP BUTTONS AND CARDS ==========
         {
             const int btnSize = scaled(20);
-            int col1BtnX = subTabContentArea.getWidth() / 2 - colPad - btnSize; // right edge of col1
+            int centerX = subTabContentArea.getX() + subTabContentArea.getWidth() / 2;
+            int col1BtnX = centerX - colPad - btnSize;                          // right edge of col1
             int col2BtnX = subTabContentArea.getRight() - colPad - btnSize;     // right edge of col2
-            int col1Left = subTabContentArea.getX() + colPad;
-            int col2Left = subTabContentArea.getWidth() / 2 + colPad;
-            int colW = subTabContentArea.getWidth() / 2 - colPad * 2;
+            int cardInset = colPad * 2;  // inset from column edge for card placement
+            int colW = subTabContentArea.getWidth() / 2 - cardInset * 2;
+            int col1Left = subTabContentArea.getX() + cardInset;                // left-column card X
+            int col2Left = centerX + cardInset;                                 // right-column card X
             int midY = subTabContentArea.getY() + subTabContentArea.getHeight() / 2;
 
             // Button 1: Input Basic — right of attenuation value (col1, top)
