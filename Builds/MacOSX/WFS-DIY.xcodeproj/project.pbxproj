@@ -78,6 +78,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		00959BF07328BFC4DAE09086 /* HelpCard.h */ /* HelpCard.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = HelpCard.h; path = ../../Source/gui/HelpCard.h; sourceTree = SOURCE_ROOT; };
 		015EA0280AE439D59E4A3D5E /* include_juce_core.mm */ /* include_juce_core.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_core.mm; path = ../../JuceLibraryCode/include_juce_core.mm; sourceTree = SOURCE_ROOT; };
 		0286C27EEF7FF41861AEADED /* WFSFileManager.h */ /* WFSFileManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = WFSFileManager.h; path = ../../Source/Parameters/WFSFileManager.h; sourceTree = SOURCE_ROOT; };
 		0295E8DB0FB28056B5EFD60F /* include_juce_audio_utils.mm */ /* include_juce_audio_utils.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_utils.mm; path = ../../JuceLibraryCode/include_juce_audio_utils.mm; sourceTree = SOURCE_ROOT; };
@@ -453,6 +454,7 @@
 				3CB4457FB0C8A8E65B84BAAA,
 				C13194A76B6B84669C156769,
 				A400E7223FA1004C445B4EC0,
+				00959BF07328BFC4DAE09086,
 				344E94DE75CE8AD15E5DF4F7,
 				23EC5C0EFA931E9866518795,
 				0724D2EC3F7252162C616AE8,
@@ -873,15 +875,15 @@
 					"$(SRCROOT)/../../JuceLibraryCode",
 					"$(SRCROOT)/../../ThirdParty/JUCE/modules",
 					"$(SRCROOT)/../../ThirdParty",
-					"$(SRCROOT)/../../ThirdParty/hidapi",
-					"$(SRCROOT)/../../ThirdParty/hidapi/hidapi",
+					"$(SRCROOT)/ThirdParty/hidapi",
+					"$(SRCROOT)/ThirdParty/hidapi/hidapi",
 					"$(inherited)",
 				);
 				INFOPLIST_FILE = Info-App.plist;
 				INFOPLIST_PREPROCESS = NO;
 				INSTALL_PATH = "$(HOME)/Applications";
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../JuceLibraryCode $(SRCROOT)/../../ThirdParty/JUCE/modules $(SRCROOT)/../../ThirdParty $(SRCROOT)/../../ThirdParty/hidapi $(SRCROOT)/../../ThirdParty/hidapi/hidapi";
+				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../JuceLibraryCode $(SRCROOT)/../../ThirdParty/JUCE/modules $(SRCROOT)/../../ThirdParty $(SRCROOT)/ThirdParty/hidapi $(SRCROOT)/ThirdParty/hidapi/hidapi";
 				OTHER_LDFLAGS = "-framework SystemConfiguration -framework CoreFoundation -framework IOKit";
 				PRODUCT_BUNDLE_IDENTIFIER = com.yourcompany.WFSDIY;
 				PRODUCT_NAME = "WFS-DIY";
@@ -949,8 +951,8 @@
 					"$(SRCROOT)/../../JuceLibraryCode",
 					"$(SRCROOT)/../../ThirdParty/JUCE/modules",
 					"$(SRCROOT)/../../ThirdParty",
-					"$(SRCROOT)/../../ThirdParty/hidapi",
-					"$(SRCROOT)/../../ThirdParty/hidapi/hidapi",
+					"$(SRCROOT)/ThirdParty/hidapi",
+					"$(SRCROOT)/ThirdParty/hidapi/hidapi",
 					"$(inherited)",
 				);
 				INFOPLIST_FILE = Info-App.plist;
@@ -958,7 +960,7 @@
 				INSTALL_PATH = "$(HOME)/Applications";
 				LLVM_LTO = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../JuceLibraryCode $(SRCROOT)/../../ThirdParty/JUCE/modules $(SRCROOT)/../../ThirdParty $(SRCROOT)/../../ThirdParty/hidapi $(SRCROOT)/../../ThirdParty/hidapi/hidapi";
+				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../JuceLibraryCode $(SRCROOT)/../../ThirdParty/JUCE/modules $(SRCROOT)/../../ThirdParty $(SRCROOT)/ThirdParty/hidapi $(SRCROOT)/ThirdParty/hidapi/hidapi";
 				OTHER_LDFLAGS = "-framework SystemConfiguration -framework CoreFoundation -framework IOKit";
 				PRODUCT_BUNDLE_IDENTIFIER = com.yourcompany.WFSDIY;
 				PRODUCT_NAME = "WFS-DIY";

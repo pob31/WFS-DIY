@@ -42,6 +42,9 @@ public:
         bodyLabel.setText(newBody, juce::dontSendNotification);
     }
 
+    /** Set a custom font scale multiplier (default 1.0) */
+    void setFontScale(float scale) { fontScale = scale; updateColors(); }
+
     void setIllustration(const juce::Image& img)
     {
         illustration = img;
@@ -53,7 +56,7 @@ public:
     {
         float scale = WfsLookAndFeel::uiScale;
         int padding = 40; // 20px each side
-        int titleH = (int)(28 * scale);
+        int titleH = (int)(28 * scale * fontScale);
         int textWidth = width - padding;
 
         // Illustration height
@@ -66,7 +69,7 @@ public:
 
         // Estimate body height from text wrapping
         auto bodyText = bodyLabel.getText();
-        auto bodyFont = juce::Font(juce::FontOptions().withHeight(juce::jmax(13.0f, 16.0f * scale)));
+        auto bodyFont = juce::Font(juce::FontOptions().withHeight(juce::jmax(13.0f, 16.0f * scale * fontScale)));
         float lineH = bodyFont.getHeight() * 1.4f;
 
         juce::GlyphArrangement glyphs;
@@ -172,6 +175,7 @@ public:
     std::function<void()> onDismissed;
 
 private:
+    float fontScale = 1.0f;
     juce::Label titleLabel;
     juce::Label bodyLabel;
     juce::Image illustration;
@@ -189,10 +193,10 @@ private:
         float scale = WfsLookAndFeel::uiScale;
 
         titleLabel.setColour(juce::Label::textColourId, palette.textPrimary);
-        titleLabel.setFont(juce::FontOptions().withHeight(juce::jmax(14.0f, 18.0f * scale)).withStyle("Bold"));
+        titleLabel.setFont(juce::FontOptions().withHeight(juce::jmax(14.0f, 18.0f * scale * fontScale)).withStyle("Bold"));
 
         bodyLabel.setColour(juce::Label::textColourId, palette.textSecondary);
-        bodyLabel.setFont(juce::FontOptions().withHeight(juce::jmax(13.0f, 16.0f * scale)));
+        bodyLabel.setFont(juce::FontOptions().withHeight(juce::jmax(13.0f, 16.0f * scale * fontScale)));
     }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(HelpCard)

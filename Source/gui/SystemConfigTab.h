@@ -664,6 +664,7 @@ public:
         addAndMakeVisible(overviewHelpButton);
         addChildComponent(overviewHelpCard);
         overviewHelpCard.setContent(LOC("help.overview.title"), LOC("help.overview.body"));
+        overviewHelpCard.setFontScale(2.0f);
         overviewHelpButton.setCard(&overviewHelpCard);
 
         addChildComponent(overviewDontShowToggle);
@@ -1127,7 +1128,7 @@ public:
             overviewHelpButton.setBounds(layout.col1X + layout.colWidth + scaled(10), gsY, btnSize, btnSize);
 
             // Overview help card — large, centered on screen
-            int cardW = juce::jmin(getWidth() - scaled(80), scaled(600));
+            int cardW = juce::jmin(getWidth() - scaled(60), scaled(900));
             int cardH = overviewHelpCard.getIdealHeight(cardW);
             int cardX = getWidth() / 2 - cardW / 2;
             int cardY = getHeight() / 2 - cardH / 2 - scaled(20);
