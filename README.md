@@ -17,35 +17,51 @@ This project is based on the Cycling74's Max8 Prototype found at https://wfs-diy
 
 ### Prerequisites
 
-- Platform-specific development tools:
-  - **Windows**: Visual Studio 2022 or later
-  - **macOS**: Xcode with latest macOS SDK
-  - **Linux**: GCC or Clang with development tools
+**Windows:**
+1. Install [Git for Windows](https://git-scm.com/download/win)
+2. Install [Visual Studio 2022 Community](https://visualstudio.microsoft.com/) (free) — during install, select the **"Desktop development with C++"** workload
 
-### Cloning
+**macOS:**
+1. Install [Xcode](https://apps.apple.com/app/xcode/id497799835) from the App Store (free)
+2. Git is included with Xcode. If you need it before opening Xcode, run: `xcode-select --install`
 
-All dependencies (JUCE, ASIO SDK, GPU Audio SDK) are included as git submodules. Clone with:
+**Linux:**
+- GCC or Clang with development tools
+
+### Step-by-step build
+
+**1. Clone the repository**
+
+Open a terminal and run:
 
 ```bash
 git clone --recurse-submodules https://github.com/pob31/WFS-DIY.git
 ```
 
-Or if already cloned:
-```bash
-git submodule update --init --recursive
-```
+> **Important:** The `--recurse-submodules` flag is required. Without it, dependencies (JUCE, ASIO SDK) will be missing and the build will fail. If you already cloned without it, run:
+> ```bash
+> cd WFS-DIY
+> git submodule update --init --recursive
+> ```
 
-### Building
+**2. Open the project and build**
 
-1. Open `WFS-DIY.jucer` in Projucer
-2. Save/export to generate platform build files
-3. Build using your preferred IDE or command line tools
+**Windows:**
+1. Open `Builds/VisualStudio2022/WFS-DIY.sln` in Visual Studio
+2. In the toolbar, set the platform to **x64** (not x86)
+3. Select **Debug** or **Release** configuration
+4. Build > Build Solution (or press Ctrl+Shift+B)
+5. Debug > Start Debugging (or press F5) to run
 
-### Platform-Specific Builds
+**macOS:**
+1. Open `Builds/MacOSX/WFS-DIY.xcodeproj` in Xcode
+2. Select the **WFS-DIY** target and **My Mac** as destination
+3. Product > Build (or press Cmd+B)
+4. Product > Run (or press Cmd+R) to run
+5. macOS will ask for microphone permission on first run — click Allow (required for audio input)
 
-- **Windows**: Open `Builds/VisualStudio2022/WFS-DIY.sln` in Visual Studio
-- **macOS**: Open `Builds/MacOSX/WFS-DIY.xcodeproj` in Xcode
-- **Linux**: Use the generated Makefile in `Builds/LinuxMakefile/`
+**Linux:**
+- Use the Makefile in `Builds/LinuxMakefile/`
 
 ### GPU Audio (experimental)
 
