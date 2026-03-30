@@ -2237,9 +2237,10 @@ private:
             preProcHelpCard.setBounds(area.getCentreX() - cardW / 2, area.getY() + scaled(10), cardW, cardH);
         }
 
-        // Top row: EQ Enable button left, Flatten button right
+        // Top row: EQ Enable button left, Flatten button right (leave room for ? button)
         auto topRow = area.removeFromTop (buttonHeight);
         eqEnableButton.setBounds (topRow.removeFromLeft (scaled(100)));
+        topRow.removeFromRight (scaled(24)); // space for (?) button
         eqFlattenButton.setBounds (topRow.removeFromRight (scaled(100)));
         area.removeFromTop (spacing * 2);
 
@@ -2526,9 +2527,10 @@ private:
 
         const int bandWidth = area.getWidth() / numPostEqBands;
 
-        // Top row: Post-EQ Enable button left, Flatten button right
+        // Top row: Post-EQ Enable button left, Flatten button right (leave room for ? button)
         auto topRow = area.removeFromTop (buttonHeight);
         postEqEnableButton.setBounds (topRow.removeFromLeft (scaled(100)));
+        topRow.removeFromRight (scaled(24)); // space for (?) button
         postEqFlattenButton.setBounds (topRow.removeFromRight (scaled(100)));
         area.removeFromTop (spacing * 2);
 
@@ -2640,9 +2642,10 @@ private:
         // Column 1: Reverb + Position
         // =====================================================================
 
-        // Attenuation
+        // Attenuation (leave room for help button on right)
         auto row = col1.removeFromTop (rowHeight);
         attenuationLabel.setBounds (row.removeFromLeft (labelWidth));
+        row.removeFromRight (scaled(24)); // space for (?) button
         attenuationValueLabel.setBounds (row.removeFromRight (valueWidth));
         col1.removeFromTop (scaled(3));
         attenuationSlider.setBounds (col1.removeFromTop (sliderHeight));

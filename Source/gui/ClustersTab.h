@@ -436,13 +436,7 @@ public:
         {
             const int btnSize = scaled(20);
             clusterHelpButton.setBounds(centerPanel.getRight() - btnSize, centerPanel.getY(), btnSize, btnSize);
-            // Help card — centered over the full bounds (tiles area)
-            auto fullArea = getLocalBounds();
-            int cardW = juce::jmin(fullArea.getWidth() - 80, 560);
-            int cardH = clusterHelpCard.getIdealHeight(cardW);
-            int cardX = fullArea.getCentreX() - cardW / 2;
-            int cardY = fullArea.getCentreY() - cardH / 2;
-            clusterHelpCard.setBounds(cardX, cardY, cardW, cardH);
+            // Help card position calculated after tile layout (see below)
         }
 
         // ==================== CENTER PANEL - REFERENCE + CONTROLS ====================
@@ -537,6 +531,7 @@ public:
         centerPanel.removeFromBottom (scaled (4));
 
         // 4x4 grid fills remaining center area
+        auto tileArea = centerPanel; // save for help card positioning
         if (centerPanel.getHeight() > 0)
         {
             int cols = 4;
@@ -569,6 +564,16 @@ public:
             stopAllLFOButton.setBounds (btnRow.removeFromLeft (btnW).reduced (pad, 0));
             exportPresetsButton.setBounds (btnRow.removeFromLeft (btnW).reduced (pad, 0));
             importPresetsButton.setBounds (btnRow.reduced (pad, 0));
+        }
+
+        // Help card — centered on tile area, top at vertical center of first tile row
+        {
+            int tileH = tileArea.getHeight() / 4; // height of one tile row
+            int cardW = juce::jmin(tileArea.getWidth() - 20, 520);
+            int cardH = clusterHelpCard.getIdealHeight(cardW);
+            int cardX = tileArea.getX() + (tileArea.getWidth() - cardW) / 2;
+            int cardY = tileArea.getY() + tileH / 2; // top at vertical center of first row
+            clusterHelpCard.setBounds(cardX, cardY, cardW, cardH);
         }
 
         // ==================== RIGHT PANEL - LFO ====================

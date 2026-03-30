@@ -1471,9 +1471,10 @@ private:
         // Position & Directivity now in the LEFT column
 
         // Help button — top-right of left column
+        const int helpBtnX = leftCol.getRight() - scaled(20); // save X for all left-column buttons
         {
             const int btnSize = scaled(20);
-            outputHelpButton.setBounds(leftCol.getRight() - btnSize, leftCol.getY(), btnSize, btnSize);
+            outputHelpButton.setBounds(helpBtnX, leftCol.getY(), btnSize, btnSize);
             // Help card over the right column, bottom-aligned
             int cardH = rightColBounds.getHeight() * 3 / 5;
             outputHelpCard.setBounds(rightColBounds.getX(), rightColBounds.getBottom() - cardH,
@@ -1518,10 +1519,10 @@ private:
         // Orientation dial on the right side, vertically centered with slider group
         auto dialColumn = leftCol.removeFromRight(dialSize + dialMargin);
 
-        // Advanced help button — top-right of dial column
+        // Advanced help button — aligned with other left-column buttons
         {
             const int btnSize = scaled(20);
-            advancedHelpButton.setBounds(dialColumn.getRight() - btnSize, dialColumn.getY(), btnSize, btnSize);
+            advancedHelpButton.setBounds(helpBtnX, dialColumn.getY(), btnSize, btnSize);
             int cardH = rightColBounds.getHeight() * 3 / 5;
             advancedHelpCard.setBounds(rightColBounds.getX(), rightColBounds.getBottom() - cardH,
                                         rightColBounds.getWidth(), cardH);
@@ -1611,7 +1612,7 @@ private:
         // Parallax help button — right end of parallax row
         {
             const int btnSize = scaled(20);
-            parallaxHelpButton.setBounds(leftCol.getRight() - btnSize,
+            parallaxHelpButton.setBounds(helpBtnX,
                                           vParallaxLabel.getY(), btnSize, btnSize);
             // Parallax help card — bottom of right column, reduced height
             int cardH = rightColBounds.getHeight() * 3 / 5;
