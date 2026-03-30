@@ -319,6 +319,32 @@ public:
         frHelpButton.setCard(&frHelpCard);
 
         // LFO & AutomOtion help cards
+        // Input Parameters help cards
+        addAndMakeVisible(inputBasicHelpButton);
+        addChildComponent(inputBasicHelpCard);
+        inputBasicHelpCard.setContent(LOC("help.inputBasic.title"), LOC("help.inputBasic.body"));
+        inputBasicHelpButton.setCard(&inputBasicHelpCard);
+
+        addAndMakeVisible(inputAdvancedHelpButton);
+        addChildComponent(inputAdvancedHelpCard);
+        inputAdvancedHelpCard.setContent(LOC("help.inputAdvanced.title"), LOC("help.inputAdvanced.body"));
+        inputAdvancedHelpButton.setCard(&inputAdvancedHelpCard);
+
+        addAndMakeVisible(inputLevelHelpButton);
+        addChildComponent(inputLevelHelpCard);
+        inputLevelHelpCard.setContent(LOC("help.inputLevel.title"), LOC("help.inputLevel.body"));
+        inputLevelHelpButton.setCard(&inputLevelHelpCard);
+
+        addAndMakeVisible(inputHFHelpButton);
+        addChildComponent(inputHFHelpCard);
+        inputHFHelpCard.setContent(LOC("help.inputHF.title"), LOC("help.inputHF.body"));
+        inputHFHelpButton.setCard(&inputHFHelpCard);
+
+        addAndMakeVisible(inputMutesHelpButton);
+        addChildComponent(inputMutesHelpCard);
+        inputMutesHelpCard.setContent(LOC("help.inputMutes.title"), LOC("help.inputMutes.body"));
+        inputMutesHelpButton.setCard(&inputMutesHelpCard);
+
         addAndMakeVisible(lfoHelpButton);
         addChildComponent(lfoHelpCard);
         lfoHelpCard.setContent(LOC("help.lfo.title"), LOC("help.lfo.body"));
@@ -3070,6 +3096,11 @@ private:
         setMutesVisible(false);
         setGradientMapsVisible(false);
         samplerSubTab.setVisible(false);
+        inputBasicHelpButton.setVisible(false); inputBasicHelpCard.hide();
+        inputAdvancedHelpButton.setVisible(false); inputAdvancedHelpCard.hide();
+        inputLevelHelpButton.setVisible(false); inputLevelHelpCard.hide();
+        inputHFHelpButton.setVisible(false); inputHFHelpCard.hide();
+        inputMutesHelpButton.setVisible(false); inputMutesHelpCard.hide();
 
         // Show current - new 5-tab structure (tab 5 = Sampler, dynamically added)
         if (tabIndex == 0)
@@ -3077,9 +3108,14 @@ private:
             // Input Parameters: Column 1 (Input+Position), Column 2 (Sound+Mutes)
             setInputPropertiesVisible(true);
             setPositionVisible(true);
-            updateConstraintVisibility();  // Set constraint button visibility based on coord mode
+            updateConstraintVisibility();
             setSoundVisible(true);
             setMutesVisible(true);
+            inputBasicHelpButton.setVisible(true);
+            inputAdvancedHelpButton.setVisible(true);
+            inputLevelHelpButton.setVisible(true);
+            inputHFHelpButton.setVisible(true);
+            inputMutesHelpButton.setVisible(true);
             layoutInputParametersTab();
         }
         else if (tabIndex == 1)
@@ -4513,6 +4549,42 @@ private:
 
         // Extra padding after mutes
         col2.removeFromTop(spacing * 2);
+
+        // ========== HELP BUTTONS AND CARDS ==========
+        {
+            const int btnSize = scaled(20);
+            int col1BtnX = subTabContentArea.getWidth() / 2 - colPad - btnSize; // right edge of col1
+            int col2BtnX = subTabContentArea.getRight() - colPad - btnSize;     // right edge of col2
+            int col1Left = subTabContentArea.getX() + colPad;
+            int col2Left = subTabContentArea.getWidth() / 2 + colPad;
+            int colW = subTabContentArea.getWidth() / 2 - colPad * 2;
+            int midY = subTabContentArea.getY() + subTabContentArea.getHeight() / 2;
+
+            // Button 1: Input Basic — right of attenuation value (col1, top)
+            inputBasicHelpButton.setBounds(col1BtnX, attenuationLabel.getY(), btnSize, btnSize);
+            int card1H = inputBasicHelpCard.getIdealHeight(colW);
+            inputBasicHelpCard.setBounds(col2Left, midY - card1H / 2, colW, card1H);
+
+            // Button 2: Advanced — right of sidelines row (col1, aligned with Button 1)
+            inputAdvancedHelpButton.setBounds(col1BtnX, sidelinesActiveButton.getY(), btnSize, btnSize);
+            int card2H = inputAdvancedHelpCard.getIdealHeight(colW);
+            inputAdvancedHelpCard.setBounds(col2Left, midY - card2H / 2, colW, card2H);
+
+            // Button 3: Level — right of common atten (col2, same Y as Button 1)
+            inputLevelHelpButton.setBounds(col2BtnX, attenuationLabel.getY(), btnSize, btnSize);
+            int card3H = inputLevelHelpCard.getIdealHeight(colW);
+            inputLevelHelpCard.setBounds(col1Left, midY - card3H / 2, colW, card3H);
+
+            // Button 4: HF Directivity — right of rotation label (col2, aligned with Button 3)
+            inputHFHelpButton.setBounds(col2BtnX, rotationLabel.getY(), btnSize, btnSize);
+            int card4H = inputHFHelpCard.getIdealHeight(colW);
+            inputHFHelpCard.setBounds(col1Left, midY - card4H / 2, colW, card4H);
+
+            // Button 5: Array Atten/Mutes — right of array atten label (col2, aligned)
+            inputMutesHelpButton.setBounds(col2BtnX, arrayAttenLabel.getY(), btnSize, btnSize);
+            int card5H = inputMutesHelpCard.getIdealHeight(colW);
+            inputMutesHelpCard.setBounds(col1Left, midY - card5H / 2, colW, card5H);
+        }
     }
 
     void layoutLiveSourceHackousticsTab()
@@ -7214,6 +7286,11 @@ private:
         // Sidelines
         helpTextMap[&sidelinesActiveButton] = LOC("inputs.help.sidelinesActiveButton");
         helpTextMap[&sidelinesFringeDial] = LOC("inputs.help.sidelinesFringeDial");
+        helpTextMap[&inputBasicHelpButton] = LOC("help.inputBasic.title");
+        helpTextMap[&inputAdvancedHelpButton] = LOC("help.inputAdvanced.title");
+        helpTextMap[&inputLevelHelpButton] = LOC("help.inputLevel.title");
+        helpTextMap[&inputHFHelpButton] = LOC("help.inputHF.title");
+        helpTextMap[&inputMutesHelpButton] = LOC("help.inputMutes.title");
         helpTextMap[&lsHelpButton] = LOC("help.liveSource.title");
         helpTextMap[&frHelpButton] = LOC("help.floorReflections.title");
         helpTextMap[&lfoHelpButton] = LOC("help.lfo.title");
@@ -8058,6 +8135,18 @@ private:
     HelpCard lfoHelpCard;
     HelpCardButton otomoHelpButton;
     HelpCard otomoHelpCard;
+
+    // Input Parameters sub-tab help cards
+    HelpCardButton inputBasicHelpButton;
+    HelpCard inputBasicHelpCard;
+    HelpCardButton inputAdvancedHelpButton;
+    HelpCard inputAdvancedHelpCard;
+    HelpCardButton inputLevelHelpButton;
+    HelpCard inputLevelHelpCard;
+    HelpCardButton inputHFHelpButton;
+    HelpCard inputHFHelpCard;
+    HelpCardButton inputMutesHelpButton;
+    HelpCard inputMutesHelpCard;
 
     // L.F.O tab
     juce::TextButton lfoActiveButton;
