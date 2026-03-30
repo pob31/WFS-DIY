@@ -660,6 +660,26 @@ public:
         binauralHelpCard.setContent(LOC("help.binaural.title"), LOC("help.binaural.body"));
         binauralHelpButton.setCard(&binauralHelpCard);
 
+        // System Overview help card
+        addAndMakeVisible(overviewHelpButton);
+        addChildComponent(overviewHelpCard);
+        overviewHelpCard.setContent(LOC("help.overview.title"), LOC("help.overview.body"));
+        overviewHelpButton.setCard(&overviewHelpCard);
+
+        addChildComponent(overviewDontShowToggle);
+        overviewDontShowToggle.setButtonText(LOC("help.overview.dontShow"));
+        overviewDontShowToggle.onClick = [this]() {
+            parameters.setConfigParam("OverviewDontShow", overviewDontShowToggle.getToggleState() ? 1 : 0);
+        };
+
+        // Wire card dismiss to hide the checkbox
+        overviewHelpCard.onDismissed = [this]() {
+            overviewDontShowToggle.setVisible(false);
+        };
+
+        // Note: the "Don't show again" checkbox only appears on auto-launch
+        // (via showOverviewIfNeeded), not when toggled via the (?) button.
+
         // Session Data help card
         addAndMakeVisible(sessionDataHelpButton);
         addChildComponent(sessionDataHelpCard);
@@ -1101,6 +1121,20 @@ public:
             const int footerH = 2 * scaled(30) + 3 * scaled(10);
             int gsY = getHeight() - footerH - scaled(10) - rowHeight;
             gettingStartedButton.setBounds(layout.col1X, gsY, layout.colWidth, rowHeight);
+
+            // Overview help button — to the right of Getting Started
+            const int btnSize = scaled(24);
+            overviewHelpButton.setBounds(layout.col1X + layout.colWidth + scaled(10), gsY, btnSize, btnSize);
+
+            // Overview help card — large, centered on screen
+            int cardW = juce::jmin(getWidth() - scaled(80), scaled(600));
+            int cardH = overviewHelpCard.getIdealHeight(cardW);
+            int cardX = getWidth() / 2 - cardW / 2;
+            int cardY = getHeight() / 2 - cardH / 2 - scaled(20);
+            overviewHelpCard.setBounds(cardX, cardY, cardW, cardH);
+
+            // "Don't show again" checkbox below the card
+            overviewDontShowToggle.setBounds(cardX, cardY + cardH + scaled(5), cardW, scaled(24));
         }
 
         // Session Data help button — above footer, aligned with binaural "?"
@@ -1223,6 +1257,18 @@ public:
     void setGettingStartedCallback(GettingStartedCallback callback)
     {
         onGettingStartedRequested = callback;
+    }
+
+    /** Show the system overview card if the user hasn't dismissed it permanently */
+    void showOverviewIfNeeded()
+    {
+        bool dontShow = (int)parameters.getConfigParam("OverviewDontShow") != 0;
+        if (!dontShow)
+        {
+            overviewHelpCard.show();
+            overviewDontShowToggle.setVisible(true);
+            overviewDontShowToggle.toFront(false);
+        }
     }
 
     //==============================================================================
@@ -2851,6 +2897,7 @@ public:
         helpTextMap[&binauralDelayEditor] = LOC("systemConfig.help.binauralDelay");
         helpTextMap[&lightpadArrangementButton] = LOC("systemConfig.help.lightpadSetup");
         helpTextMap[&remotePadSetupButton] = LOC("systemConfig.help.remoteSetup");
+        helpTextMap[&overviewHelpButton] = LOC("help.overview.title");
         helpTextMap[&binauralHelpButton] = LOC("help.binaural.title");
         helpTextMap[&sessionDataHelpButton] = LOC("help.sessionData.title");
         helpTextMap[&selectProjectFolderButton] = LOC("systemConfig.help.selectProjectFolder");
@@ -3068,6 +3115,9 @@ public:
     HelpCard binauralHelpCard;
     HelpCardButton sessionDataHelpButton;
     HelpCard sessionDataHelpCard;
+    HelpCardButton overviewHelpButton;
+    HelpCard overviewHelpCard;
+    juce::ToggleButton overviewDontShowToggle;
 
     // Store/Reload Section
     LongPressButton selectProjectFolderButton { 1 };

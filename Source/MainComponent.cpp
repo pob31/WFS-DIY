@@ -652,6 +652,11 @@ MainComponent::MainComponent()
     bool quickLP = (int)parameters.getConfigParam("QuickLongPress") != 0;
     LongPressButton::setShortMode(quickLP);
 
+    // Show system overview on launch (unless user dismissed it permanently)
+    juce::Timer::callAfterDelay(500, [this]() {
+        if (systemConfigTab) systemConfigTab->showOverviewIfNeeded();
+    });
+
     // Subscribe to color scheme changes for component repaints
     ColorScheme::Manager::getInstance().addListener(this);
 
