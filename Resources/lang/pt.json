@@ -1989,9 +1989,39 @@ OFF",
       "title": "Reflexões do Chão",
       "body": "Simular as reflexões do chão melhora a naturalidade do som. Não esperamos que sons sejam reproduzidos em uma câmara anecoica à prova de som. Esta configuração ajuda a recriar as reflexões do chão esperadas.\nO nível das reflexões do chão pode ser ajustado, assim como os filtros de corte baixo e shelf de altas frequências. A difusão adiciona um pouco de caos para simular as irregularidades do chão."
     },
+    "reverb": {
+      "title": "Reverberação",
+      "body": "A reverberação ajuda a difundir as reflexões dos alto-falantes.
+Posicione os nós de acordo com a geometria do palco.
+Outros parâmetros são semelhantes aos de Saídas e Entradas."
+    },
+    "reverbFeed": {
+      "title": "Alimentação de Reverberação",
+      "body": "Envio de pré-processamento dos canais de entrada para os nós.
+- Orientação e ângulos On/Off definem quais entradas cada nó recebe.
+- Amortecimento HF simula a perda de alta frequência.
+- Percentagem de atenuação de distância define a atenuação aplicada.
+- Latência mínima determina se o menor atraso é usado.
+- Atenuação de fonte ao vivo reduz o nível de entradas próximas."
+    },
+    "reverbReturn": {
+      "title": "Retorno de Reverberação",
+      "body": "Pós-processamento enviado aos alto-falantes.
+- Atenuação de Distância define a queda de nível por metro.
+- Atenuação Comum mantém uma percentagem da menor atenuação.
+- Mutes impedem um canal de reverberação de alimentar uma saída."
+    },
     "reverbAlgo": {
       "title": "Algoritmos de Reverberação",
-      "body": "A reverberação ajuda a difundir as reflexões reais dos alto-falantes no espaço acústico. Sem reverberação, o ouvinte pode perceber falta de profundidade porque as reflexões dos alto-falantes na acústica da sala revelam suas posições e todos os sons parecem vir do plano dos alto-falantes.\nTrês tipos de reverberação estão integrados neste processador de som espacial:\n- SDN (Scattered Delay Network): O som reflete entre cada nó de reverberação que atua como superfícies refletoras. Este algoritmo favorece um número ímpar de nós sem muita simetria, para reduzir artefatos ou ressonâncias metálicas.\n- FDN (Feedback Delay Network): Cada nó funciona como um processador de reverberação separado com um algoritmo clássico. Posicione nós ao redor do palco e eventualmente ao redor do público.\n- IR (Resposta ao Impulso): Reverberação por convolução clássica. Você pode carregar amostras de áudio como respostas ao impulso. Cada nó pode compartilhar a mesma IR ou usar diferentes.\nAs posições dos nós podem ser ajustadas diretamente no mapa. A tecla Ctrl/Cmd move um par de nós em simetria."
+      "body": "Três tipos de reverberação estão integrados neste processador de som espacial:\n- SDN (Scattered Delay Network): O som reflete entre cada nó de reverberação que atua como superfícies refletoras. Este algoritmo favorece um número ímpar de nós sem muita simetria, para reduzir artefatos ou ressonâncias metálicas.\n- FDN (Feedback Delay Network): Cada nó funciona como um processador de reverberação separado com um algoritmo clássico. Posicione nós ao redor do palco e eventualmente ao redor do público.\n- IR (Resposta ao Impulso): Reverberação por convolução clássica. Você pode carregar amostras de áudio como respostas ao impulso. Cada nó pode compartilhar a mesma IR ou usar diferentes.\nAs posições dos nós podem ser ajustadas diretamente no mapa. A tecla Ctrl/Cmd move um par de nós em simetria."
+    },
+    "reverbPreProc": {
+      "title": "Pré-Processamento de Reverberação",
+      "body": "Inclui um EQ de 4 bandas e um Compressor para remover transientes que poderiam excitar demais o processador de reverberação."
+    },
+    "reverbPostProc": {
+      "title": "Pós-Processamento de Reverberação",
+      "body": "Inclui um EQ de 4 bandas e um Expansor que observa o sinal entrando no processador de reverberação para reduzir caudas longas de reverberação quando as entradas estão em silêncio."
     },
     "sessionData": {
       "title": "Dados da Sessão",

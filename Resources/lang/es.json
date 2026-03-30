@@ -1989,9 +1989,39 @@ OFF",
       "title": "Reflexiones del Suelo",
       "body": "Simular las reflexiones del suelo mejora la naturalidad del sonido. No esperamos que los sonidos se reproduzcan en una cámara anecoica insonorizada. Este ajuste ayuda a recrear las reflexiones del suelo esperadas.\nEl nivel de las reflexiones del suelo puede ajustarse, así como los filtros de corte bajo y de estante de altas frecuencias. La difusión añade un poco de caos para simular las irregularidades del suelo."
     },
+    "reverb": {
+      "title": "Reverberación",
+      "body": "La reverberación ayuda a difuminar las reflexiones de los altavoces.
+Coloque los nodos según la geometría del escenario.
+Otros parámetros son similares a los de Salidas y Entradas."
+    },
+    "reverbFeed": {
+      "title": "Alimentación de Reverberación",
+      "body": "Envío de pre-procesamiento de los canales de entrada a los nodos.
+- Orientación y ángulos On/Off definen qué entradas recibe cada nodo.
+- Amortiguación HF simula la pérdida de alta frecuencia.
+- Porcentaje de atenuación de distancia define la atenuación aplicada.
+- Latencia mínima determina si se usa el menor retardo calculado.
+- Atenuación de fuente viva reduce el nivel de entradas cercanas."
+    },
+    "reverbReturn": {
+      "title": "Retorno de Reverberación",
+      "body": "Post-procesamiento enviado a los altavoces.
+- Atenuación de Distancia define la caída de nivel por metro.
+- Atenuación Común mantiene un porcentaje de la atenuación más baja.
+- Mutes impiden que un canal de reverberación alimente una salida."
+    },
     "reverbAlgo": {
       "title": "Algoritmos de Reverberación",
-      "body": "La reverberación ayuda a difuminar las reflexiones reales de los altavoces en el espacio acústico. Sin reverberación, el oyente podría percibir falta de profundidad porque las reflexiones de los altavoces delatan sus posiciones y todos los sonidos parecen provenir del plano de los altavoces.\nTres tipos de reverberación están integrados en este procesador de sonido espacial:\n- SDN (Scattered Delay Network): El sonido rebota entre cada nodo de reverberación que actúa como superficies reflectantes. Este algoritmo favorece un número impar de nodos sin demasiada simetría, para reducir artefactos o resonancias metálicas.\n- FDN (Feedback Delay Network): Cada nodo funciona como un procesador de reverberación separado con un algoritmo clásico. Coloque nodos alrededor del escenario y eventualmente alrededor del público.\n- IR (Respuesta al Impulso): Reverberación por convolución clásica. Puede cargar muestras de audio como respuestas al impulso. Cada nodo puede compartir la misma IR o usar diferentes.\nLas posiciones de los nodos pueden ajustarse directamente en el mapa. La tecla Ctrl/Cmd mueve un par de nodos en simetría."
+      "body": "Tres tipos de reverberación están integrados en este procesador de sonido espacial:\n- SDN (Scattered Delay Network): El sonido rebota entre cada nodo de reverberación que actúa como superficies reflectantes. Este algoritmo favorece un número impar de nodos sin demasiada simetría, para reducir artefactos o resonancias metálicas.\n- FDN (Feedback Delay Network): Cada nodo funciona como un procesador de reverberación separado con un algoritmo clásico. Coloque nodos alrededor del escenario y eventualmente alrededor del público.\n- IR (Respuesta al Impulso): Reverberación por convolución clásica. Puede cargar muestras de audio como respuestas al impulso. Cada nodo puede compartir la misma IR o usar diferentes.\nLas posiciones de los nodos pueden ajustarse directamente en el mapa. La tecla Ctrl/Cmd mueve un par de nodos en simetría."
+    },
+    "reverbPreProc": {
+      "title": "Pre-Procesamiento de Reverberación",
+      "body": "Incluye un EQ de 4 bandas y un Compresor para eliminar transitorios que podrían excitar demasiado el procesador de reverberación."
+    },
+    "reverbPostProc": {
+      "title": "Post-Procesamiento de Reverberación",
+      "body": "Incluye un EQ de 4 bandas y un Expansor que observa la señal que entra al procesador de reverberación para reducir las colas largas de reverberación cuando las entradas están en silencio."
     },
     "sessionData": {
       "title": "Datos de Sesión",

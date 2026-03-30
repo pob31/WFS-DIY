@@ -1989,9 +1989,39 @@ OFF",
       "title": "Riflessioni del Pavimento",
       "body": "Simulare le riflessioni del pavimento migliora la naturalezza del suono. Non ci aspettiamo che i suoni vengano riprodotti in una camera anecoica insonorizzata. Questa impostazione aiuta a ricreare le riflessioni del pavimento attese.\nIl livello delle riflessioni del pavimento può essere regolato così come i filtri taglia basso e shelf alte frequenze. La diffusione aggiunge un po' di caos per simulare le irregolarità del pavimento."
     },
+    "reverb": {
+      "title": "Riverbero",
+      "body": "Il riverbero aiuta a sfumare le riflessioni degli altoparlanti.
+Posizionare i nodi secondo la geometria del palco.
+Altri parametri sono simili a quelli di Uscite e Ingressi."
+    },
+    "reverbFeed": {
+      "title": "Alimentazione Riverbero",
+      "body": "Invio pre-elaborazione dei canali di ingresso ai nodi.
+- Orientamento e angoli On/Off definiscono quali ingressi riceve ogni nodo.
+- Smorzamento HF simula la perdita di alta frequenza.
+- Percentuale di attenuazione distanza definisce l'attenuazione applicata.
+- Latenza minima determina se viene utilizzato il ritardo minimo.
+- Attenuazione sorgente live riduce il livello degli ingressi vicini."
+    },
+    "reverbReturn": {
+      "title": "Ritorno Riverbero",
+      "body": "Post-elaborazione inviata agli altoparlanti.
+- Attenuazione Distanza definisce il calo di livello per metro.
+- Attenuazione Comune mantiene una percentuale dell'attenuazione più bassa.
+- Mute impediscono a un canale di riverbero di alimentare un'uscita."
+    },
     "reverbAlgo": {
       "title": "Algoritmi di Riverbero",
-      "body": "Il riverbero aiuta a sfumare le riflessioni reali degli altoparlanti nello spazio acustico. Senza riverbero l'ascoltatore potrebbe percepire una mancanza di profondità perché le riflessioni degli altoparlanti nell'acustica della stanza rivelano le loro posizioni e tutti i suoni sembrano provenire dal piano degli altoparlanti.\nTre tipi di riverbero sono integrati in questo processore di suono spaziale:\n- SDN (Scattered Delay Network): Il suono rimbalza tra ogni nodo di riverbero che agisce come superficie riflettente. Questo algoritmo favorisce un numero dispari di nodi senza troppa simmetria, per ridurre artefatti o risonanze metalliche.\n- FDN (Feedback Delay Network): Ogni nodo funziona come un processore di riverbero separato con un algoritmo classico. Posizionare i nodi intorno al palco e eventualmente intorno al pubblico.\n- IR (Risposta all'Impulso): Riverbero a convoluzione classico. È possibile caricare campioni audio come risposte all'impulso. Ogni nodo può condividere la stessa IR o usarne diverse.\nLe posizioni dei nodi possono essere regolate direttamente sulla mappa. Il tasto Ctrl/Cmd sposta una coppia di nodi in simmetria."
+      "body": "Tre tipi di riverbero sono integrati in questo processore di suono spaziale:\n- SDN (Scattered Delay Network): Il suono rimbalza tra ogni nodo di riverbero che agisce come superficie riflettente. Questo algoritmo favorisce un numero dispari di nodi senza troppa simmetria, per ridurre artefatti o risonanze metalliche.\n- FDN (Feedback Delay Network): Ogni nodo funziona come un processore di riverbero separato con un algoritmo classico. Posizionare i nodi intorno al palco e eventualmente intorno al pubblico.\n- IR (Risposta all'Impulso): Riverbero a convoluzione classico. È possibile caricare campioni audio come risposte all'impulso. Ogni nodo può condividere la stessa IR o usarne diverse.\nLe posizioni dei nodi possono essere regolate direttamente sulla mappa. Il tasto Ctrl/Cmd sposta una coppia di nodi in simmetria."
+    },
+    "reverbPreProc": {
+      "title": "Pre-Elaborazione Riverbero",
+      "body": "Include un EQ a 4 bande e un Compressore per rimuovere i transienti che potrebbero eccitare troppo il processore di riverbero."
+    },
+    "reverbPostProc": {
+      "title": "Post-Elaborazione Riverbero",
+      "body": "Include un EQ a 4 bande e un Espansore che monitora il segnale in ingresso al processore di riverbero per ridurre le code lunghe di riverbero quando gli ingressi sono silenziosi."
     },
     "sessionData": {
       "title": "Dati di Sessione",

@@ -61,6 +61,35 @@ public:
         setupPostExpanderControls();
         setupReverbReturnSubTab();
         setupFooter();
+
+        // Pre-Processing help card
+        addAndMakeVisible(preProcHelpButton);
+        addChildComponent(preProcHelpCard);
+        preProcHelpCard.setContent(LOC("help.reverbPreProc.title"), LOC("help.reverbPreProc.body"));
+        preProcHelpButton.setCard(&preProcHelpCard);
+
+        // Post-Processing help card
+        addAndMakeVisible(postProcHelpButton);
+        addChildComponent(postProcHelpCard);
+        postProcHelpCard.setContent(LOC("help.reverbPostProc.title"), LOC("help.reverbPostProc.body"));
+        postProcHelpButton.setCard(&postProcHelpCard);
+
+        // Channel Parameters help cards (3 columns)
+        addAndMakeVisible(reverbHelpButton);
+        addChildComponent(reverbHelpCard);
+        reverbHelpCard.setContent(LOC("help.reverb.title"), LOC("help.reverb.body"));
+        reverbHelpButton.setCard(&reverbHelpCard);
+
+        addAndMakeVisible(reverbFeedHelpButton);
+        addChildComponent(reverbFeedHelpCard);
+        reverbFeedHelpCard.setContent(LOC("help.reverbFeed.title"), LOC("help.reverbFeed.body"));
+        reverbFeedHelpButton.setCard(&reverbFeedHelpCard);
+
+        addAndMakeVisible(reverbReturnHelpButton);
+        addChildComponent(reverbReturnHelpCard);
+        reverbReturnHelpCard.setContent(LOC("help.reverbReturn.title"), LOC("help.reverbReturn.body"));
+        reverbReturnHelpButton.setCard(&reverbReturnHelpCard);
+
         setupHelpText();
         setupOscMethods();
         setupMouseListeners();
@@ -1904,6 +1933,11 @@ private:
     void setupHelpText()
     {
         helpTextMap[&algoHelpButton] = LOC("help.reverbAlgo.title");
+        helpTextMap[&preProcHelpButton] = LOC("help.reverbPreProc.title");
+        helpTextMap[&postProcHelpButton] = LOC("help.reverbPostProc.title");
+        helpTextMap[&reverbHelpButton] = LOC("help.reverb.title");
+        helpTextMap[&reverbFeedHelpButton] = LOC("help.reverbFeed.title");
+        helpTextMap[&reverbReturnHelpButton] = LOC("help.reverbReturn.title");
         helpTextMap[&channelSelector] = LOC("reverbs.help.channelSelector");
         helpTextMap[&nameEditor] = LOC("reverbs.help.nameEditor");
         helpTextMap[&mapVisibilityButton] = LOC("reverbs.help.mapVisibility");
@@ -2108,14 +2142,25 @@ private:
         setEQVisible (false);
         setAlgorithmVisible (false);
         setPostProcessingVisible (false);
+        preProcHelpButton.setVisible(false); preProcHelpCard.hide();
+        postProcHelpButton.setVisible(false); postProcHelpCard.hide();
+        reverbHelpButton.setVisible(false); reverbHelpCard.hide();
+        reverbFeedHelpButton.setVisible(false); reverbFeedHelpCard.hide();
+        reverbReturnHelpButton.setVisible(false); reverbReturnHelpCard.hide();
 
         showColumnDividers = false;
         switch (tabIndex)
         {
-            case 0: setChannelParametersVisible (true); layoutChannelParametersTab(); break;
-            case 1: setEQVisible (true); layoutEQSubTab(); break;
+            case 0:
+                setChannelParametersVisible (true);
+                reverbHelpButton.setVisible(true);
+                reverbFeedHelpButton.setVisible(true);
+                reverbReturnHelpButton.setVisible(true);
+                layoutChannelParametersTab();
+                break;
+            case 1: setEQVisible (true); preProcHelpButton.setVisible(true); layoutEQSubTab(); break;
             case 2: setAlgorithmVisible (true); layoutAlgorithmSubTab(); break;
-            case 3: setPostProcessingVisible (true); layoutPostProcessingSubTab(); break;
+            case 3: setPostProcessingVisible (true); postProcHelpButton.setVisible(true); layoutPostProcessingSubTab(); break;
         }
     }
 
@@ -2182,6 +2227,15 @@ private:
         auto area = fullArea;
 
         const int bandWidth = area.getWidth() / numEqBands;
+
+        // Pre-Processing help button — top-right corner
+        {
+            const int btnSize = scaled(20);
+            preProcHelpButton.setBounds(area.getRight() - btnSize, area.getY(), btnSize, btnSize);
+            int cardW = juce::jmin(area.getWidth() - 40, 500);
+            int cardH = preProcHelpCard.getIdealHeight(cardW);
+            preProcHelpCard.setBounds(area.getCentreX() - cardW / 2, area.getY() + scaled(10), cardW, cardH);
+        }
 
         // Top row: EQ Enable button left, Flatten button right
         auto topRow = area.removeFromTop (buttonHeight);
@@ -2461,6 +2515,15 @@ private:
         auto expArea = fullArea.removeFromBottom (expanderHeight);
         auto area = fullArea;
 
+        // Post-Processing help button — top-right corner
+        {
+            const int btnSize = scaled(20);
+            postProcHelpButton.setBounds(area.getRight() - btnSize, area.getY(), btnSize, btnSize);
+            int cardW = juce::jmin(area.getWidth() - 40, 500);
+            int cardH = postProcHelpCard.getIdealHeight(cardW);
+            postProcHelpCard.setBounds(area.getCentreX() - cardW / 2, area.getY() + scaled(10), cardW, cardH);
+        }
+
         const int bandWidth = area.getWidth() / numPostEqBands;
 
         // Top row: Post-EQ Enable button left, Flatten button right
@@ -2554,6 +2617,24 @@ private:
         columnDividerX2 = area.getX();
         auto col3 = area.reduced (scaled(5), 0);
         showColumnDividers = true;
+
+        // Help buttons — top-right of each column
+        {
+            const int btnSize = scaled(20);
+            reverbHelpButton.setBounds(col1.getRight() - btnSize, col1.getY(), btnSize, btnSize);
+            reverbFeedHelpButton.setBounds(col2.getRight() - btnSize, col2.getY(), btnSize, btnSize);
+            reverbReturnHelpButton.setBounds(col3.getRight() - btnSize, col3.getY(), btnSize, btnSize);
+
+            // All three help cards positioned at bottom of col1
+            int cardW = colWidth - scaled(10);
+            int reverbCardH = reverbHelpCard.getIdealHeight(cardW);
+            int feedCardH = reverbFeedHelpCard.getIdealHeight(cardW);
+            int returnCardH = reverbReturnHelpCard.getIdealHeight(cardW);
+            int bottomY = col1.getBottom();
+            reverbHelpCard.setBounds(col1.getX(), bottomY - reverbCardH, cardW, reverbCardH);
+            reverbFeedHelpCard.setBounds(col1.getX(), bottomY - feedCardH, cardW, feedCardH);
+            reverbReturnHelpCard.setBounds(col1.getX(), bottomY - returnCardH, cardW, returnCardH);
+        }
 
         // =====================================================================
         // Column 1: Reverb + Position
@@ -5261,6 +5342,16 @@ private:
     juce::TextButton algoSDNButton, algoFDNButton, algoIRButton;
     HelpCardButton algoHelpButton;
     HelpCard algoHelpCard;
+    HelpCardButton preProcHelpButton;
+    HelpCard preProcHelpCard;
+    HelpCardButton postProcHelpButton;
+    HelpCard postProcHelpCard;
+    HelpCardButton reverbHelpButton;
+    HelpCard reverbHelpCard;
+    HelpCardButton reverbFeedHelpButton;
+    HelpCard reverbFeedHelpCard;
+    HelpCardButton reverbReturnHelpButton;
+    HelpCard reverbReturnHelpCard;
 
     // Decay section (SDN & FDN)
     juce::Label algoDecaySectionLabel;
