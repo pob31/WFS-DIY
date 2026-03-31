@@ -277,12 +277,12 @@ public:
 
     void resized() override
     {
-        auto area = getLocalBounds().reduced(20);
+        auto area = getLocalBounds().reduced(14);
         float scale = WfsLookAndFeel::uiScale;
 
-        int labelH = (int)(28 * scale);
-        int titleH = (int)(36 * scale);
-        int buttonH = (int)(36 * scale);
+        int labelH = (int)(34 * scale);
+        int titleH = (int)(43 * scale);
+        int buttonH = (int)(40 * scale);
 
         stepIndicatorLabel.setBounds(area.removeFromTop(labelH));
         area.removeFromTop(4);
@@ -394,20 +394,20 @@ private:
         completionLabel.setColour(juce::Label::textColourId, palette.accentGreen);
 
         float scale = WfsLookAndFeel::uiScale;
-        stepIndicatorLabel.setFont(juce::FontOptions().withHeight(juce::jmax(14.0f, 18.0f * scale)));
-        titleLabel.setFont(juce::FontOptions().withHeight(juce::jmax(18.0f, 24.0f * scale)).withStyle("Bold"));
-        descriptionLabel.setFont(juce::FontOptions().withHeight(juce::jmax(16.0f, 20.0f * scale)));
-        completionLabel.setFont(juce::FontOptions().withHeight(juce::jmax(16.0f, 20.0f * scale)).withStyle("Bold"));
+        stepIndicatorLabel.setFont(juce::FontOptions().withHeight(juce::jmax(17.0f, 22.0f * scale)));
+        titleLabel.setFont(juce::FontOptions().withHeight(juce::jmax(22.0f, 29.0f * scale)).withStyle("Bold"));
+        descriptionLabel.setFont(juce::FontOptions().withHeight(juce::jmax(19.0f, 24.0f * scale)));
+        completionLabel.setFont(juce::FontOptions().withHeight(juce::jmax(19.0f, 24.0f * scale)).withStyle("Bold"));
     }
 
     void updateSize(int width = 400)
     {
         float scale = WfsLookAndFeel::uiScale;
-        int padding = 40; // 20px on each side
+        int padding = 28; // 14px on each side
 
-        int labelH = (int)(28 * scale);
-        int titleH = (int)(36 * scale);
-        int buttonH = (int)(36 * scale);
+        int labelH = (int)(34 * scale);
+        int titleH = (int)(43 * scale);
+        int buttonH = (int)(40 * scale);
         int descTextWidth = width - padding;
 
         // Estimate description height from text content

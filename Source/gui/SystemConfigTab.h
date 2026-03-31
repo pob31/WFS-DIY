@@ -664,22 +664,26 @@ public:
         addAndMakeVisible(overviewHelpButton);
         addChildComponent(overviewHelpCard);
         overviewHelpCard.setContent(LOC("help.overview.title"), LOC("help.overview.body"));
-        overviewHelpCard.setFontScale(2.0f);
+        overviewHelpCard.setFontScale(1.65f);
         overviewHelpButton.setCard(&overviewHelpCard);
 
-        addChildComponent(overviewDontShowToggle);
+        // Add checkbox as child of the help card (so clicks don't dismiss it)
+        overviewHelpCard.addAndMakeVisible(overviewDontShowToggle);
         overviewDontShowToggle.setButtonText(LOC("help.overview.dontShow"));
+        overviewDontShowToggle.setVisible(false);
         overviewDontShowToggle.onClick = [this]() {
-            parameters.setConfigParam("OverviewDontShow", overviewDontShowToggle.getToggleState() ? 1 : 0);
+            // Save to PropertiesFile for persistence across restarts
+            juce::PropertiesFile::Options options;
+            options.applicationName = "WFS-DIY";
+            options.filenameSuffix = ".settings";
+            juce::ApplicationProperties appProps;
+            appProps.setStorageParameters(options);
+            if (auto* props = appProps.getUserSettings())
+            {
+                props->setValue("OverviewDontShow", overviewDontShowToggle.getToggleState());
+                props->saveIfNeeded();
+            }
         };
-
-        // Wire card dismiss to hide the checkbox
-        overviewHelpCard.onDismissed = [this]() {
-            overviewDontShowToggle.setVisible(false);
-        };
-
-        // Note: the "Don't show again" checkbox only appears on auto-launch
-        // (via showOverviewIfNeeded), not when toggled via the (?) button.
 
         // Session Data help card
         addAndMakeVisible(sessionDataHelpButton);
@@ -1132,10 +1136,12 @@ public:
             int cardH = overviewHelpCard.getIdealHeight(cardW);
             int cardX = getWidth() / 2 - cardW / 2;
             int cardY = getHeight() / 2 - cardH / 2 - scaled(20);
-            overviewHelpCard.setBounds(cardX, cardY, cardW, cardH);
+            // Add extra height for the checkbox inside the card
+            int checkboxH = scaled(28);
+            overviewHelpCard.setBounds(cardX, cardY, cardW, cardH + checkboxH);
 
-            // "Don't show again" checkbox below the card
-            overviewDontShowToggle.setBounds(cardX, cardY + cardH + scaled(5), cardW, scaled(24));
+            // Checkbox at the bottom of the card (in card-local coordinates)
+            overviewDontShowToggle.setBounds(20, cardH, cardW - 40, checkboxH);
         }
 
         // Session Data help button — above footer, aligned with binaural "?"
@@ -1263,12 +1269,19 @@ public:
     /** Show the system overview card if the user hasn't dismissed it permanently */
     void showOverviewIfNeeded()
     {
-        bool dontShow = (int)parameters.getConfigParam("OverviewDontShow") != 0;
+        juce::PropertiesFile::Options options;
+        options.applicationName = "WFS-DIY";
+        options.filenameSuffix = ".settings";
+        juce::ApplicationProperties appProps;
+        appProps.setStorageParameters(options);
+        bool dontShow = false;
+        if (auto* props = appProps.getUserSettings())
+            dontShow = props->getBoolValue("OverviewDontShow", false);
+
         if (!dontShow)
         {
             overviewHelpCard.show();
             overviewDontShowToggle.setVisible(true);
-            overviewDontShowToggle.toFront(false);
         }
     }
 

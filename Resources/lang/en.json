@@ -1873,7 +1873,7 @@
     "importTitle": "Import Sampler Config",
     "exportTitle": "Export Sampler Config",
     "grid": {
-      "help": "Click=select | Shift=multi | Ctrl=set toggle | DblClick=load"
+      "help": "Click = select\nShift = multi\nCtrl = set toggle\nDblClick = load"
     },
     "tooltips": {
       "load": "Load a sample file into the selected cell",

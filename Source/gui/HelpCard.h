@@ -55,8 +55,8 @@ public:
     int getIdealHeight(int width) const
     {
         float scale = WfsLookAndFeel::uiScale;
-        int padding = 40; // 20px each side
-        int titleH = (int)(28 * scale * fontScale);
+        int padding = 28; // 14px each side
+        int titleH = (int)(34 * scale * fontScale);
         int textWidth = width - padding;
 
         // Illustration height
@@ -69,7 +69,7 @@ public:
 
         // Estimate body height from text wrapping
         auto bodyText = bodyLabel.getText();
-        auto bodyFont = juce::Font(juce::FontOptions().withHeight(juce::jmax(13.0f, 16.0f * scale * fontScale)));
+        auto bodyFont = juce::Font(juce::FontOptions().withHeight(juce::jmax(15.0f, 19.0f * scale * fontScale)));
         float lineH = bodyFont.getHeight() * 1.4f;
 
         juce::GlyphArrangement glyphs;
@@ -123,7 +123,7 @@ public:
         // Illustration (if any)
         if (illustration.isValid())
         {
-            auto area = getLocalBounds().reduced(20);
+            auto area = getLocalBounds().reduced(14);
             area.removeFromTop((int)(28 * WfsLookAndFeel::uiScale) + 8); // skip title
             float aspect = (float)illustration.getWidth() / (float)illustration.getHeight();
             int imgH = (int)((float)area.getWidth() / aspect);
@@ -134,10 +134,10 @@ public:
 
     void resized() override
     {
-        auto area = getLocalBounds().reduced(20);
+        auto area = getLocalBounds().reduced(14);
         float scale = WfsLookAndFeel::uiScale;
 
-        int titleH = (int)(28 * scale);
+        int titleH = (int)(34 * scale);
         titleLabel.setBounds(area.removeFromTop(titleH));
         area.removeFromTop(8);
 
@@ -193,10 +193,10 @@ private:
         float scale = WfsLookAndFeel::uiScale;
 
         titleLabel.setColour(juce::Label::textColourId, palette.textPrimary);
-        titleLabel.setFont(juce::FontOptions().withHeight(juce::jmax(14.0f, 18.0f * scale * fontScale)).withStyle("Bold"));
+        titleLabel.setFont(juce::FontOptions().withHeight(juce::jmax(16.0f, 22.0f * scale * fontScale)).withStyle("Bold"));
 
         bodyLabel.setColour(juce::Label::textColourId, palette.textSecondary);
-        bodyLabel.setFont(juce::FontOptions().withHeight(juce::jmax(13.0f, 16.0f * scale * fontScale)));
+        bodyLabel.setFont(juce::FontOptions().withHeight(juce::jmax(15.0f, 19.0f * scale * fontScale)));
     }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(HelpCard)
@@ -304,10 +304,10 @@ public:
 
     void resized() override
     {
-        auto area = getLocalBounds().reduced(20);
+        auto area = getLocalBounds().reduced(14);
         float scale = WfsLookAndFeel::uiScale;
 
-        int titleH = (int)(28 * scale);
+        int titleH = (int)(34 * scale);
         titleLabel.setBounds(area.removeFromTop(titleH));
         area.removeFromTop(8);
 
@@ -358,7 +358,7 @@ private:
         void paint(juce::Graphics& g) override
         {
             float scale = WfsLookAndFeel::uiScale;
-            auto font = juce::Font(juce::FontOptions().withHeight(juce::jmax(13.0f, 16.0f * scale)));
+            auto font = juce::Font(juce::FontOptions().withHeight(juce::jmax(15.0f, 19.0f * scale)));
             int w = getWidth();
             int y = 0;
 
@@ -391,7 +391,7 @@ private:
         int calculateHeight(int width) const
         {
             float scale = WfsLookAndFeel::uiScale;
-            auto font = juce::Font(juce::FontOptions().withHeight(juce::jmax(13.0f, 16.0f * scale)));
+            auto font = juce::Font(juce::FontOptions().withHeight(juce::jmax(15.0f, 19.0f * scale)));
             float lineH = font.getHeight() * 1.4f;
             int totalH = 0;
 
@@ -427,7 +427,7 @@ private:
         auto& palette = ColorScheme::get();
         float scale = WfsLookAndFeel::uiScale;
         titleLabel.setColour(juce::Label::textColourId, palette.textPrimary);
-        titleLabel.setFont(juce::FontOptions().withHeight(juce::jmax(14.0f, 20.0f * scale)).withStyle("Bold"));
+        titleLabel.setFont(juce::FontOptions().withHeight(juce::jmax(16.0f, 24.0f * scale)).withStyle("Bold"));
         repaint();
         bodyContent.repaint();
     }

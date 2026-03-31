@@ -4781,16 +4781,18 @@ private:
         const int sendsBtnW = scaled(200);
         muteReverbSendsButton.setBounds(buttonCenterX - sendsBtnW / 2, reverbSendsRow.getY(), sendsBtnW, rowHeight);
 
-        // Help cards — bottom of left column, same top Y for both
+        // Help cards — Live Source at bottom of left column, Floor Reflections at bottom of right column
         {
-            int cardX = subTabContentArea.getX() + colPad;
             int cardW = subTabContentArea.getWidth() / 2 - colPad * 2;
-            int frCardH = frHelpCard.getIdealHeight(cardW);
-            int lsCardH = lsHelpCard.getIdealHeight(cardW);
-            // Position cards at the very bottom of the content area
             int bottomY = subTabContentArea.getBottom();
-            lsHelpCard.setBounds(cardX, bottomY - lsCardH, cardW, lsCardH);
-            frHelpCard.setBounds(cardX, bottomY - frCardH, cardW, frCardH);
+
+            int lsCardX = subTabContentArea.getX() + colPad;
+            int lsCardH = lsHelpCard.getIdealHeight(cardW);
+            lsHelpCard.setBounds(lsCardX, bottomY - lsCardH, cardW, lsCardH);
+
+            int frCardX = subTabContentArea.getX() + subTabContentArea.getWidth() / 2 + colPad;
+            int frCardH = frHelpCard.getIdealHeight(cardW);
+            frHelpCard.setBounds(frCardX, bottomY - frCardH, cardW, frCardH);
         }
     }
 

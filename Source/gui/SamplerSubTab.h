@@ -315,7 +315,7 @@ public:
             const int btnSize = scaled (22);
             samplerHelpButton.setBounds(gridArea.getRight() - btnSize - scaled (8), gridArea.getY() + scaled (8), btnSize, btnSize);
             // Help card — centered over the grid tiles
-            int cardW = juce::jmin(gridArea.getWidth() - 40, 500);
+            int cardW = juce::jmin(gridArea.getWidth() - 40, 700);
             int cardH = samplerHelpCard.getIdealHeight(cardW);
             int cardX = gridArea.getX() + (gridArea.getWidth() - cardW) / 2;
             int cardY = gridArea.getY() + 40;
@@ -717,13 +717,17 @@ private:
             }
         }
 
-        // Help hint text at bottom of grid
+        // Help hint text at bottom-left of grid (multi-line, larger font)
         g.setColour (cs.textSecondary.withAlpha (0.35f));
-        g.setFont (juce::FontOptions (10.0f));
-        g.drawText (LOC ("sampler.grid.help"),
-                    gridArea.getX() + 8, gridArea.getBottom() - 16,
-                    gridArea.getWidth() - 16, 14,
-                    juce::Justification::centredLeft);
+        g.setFont (juce::FontOptions (juce::jmax (14.0f, 20.0f * layoutScale)));
+        auto hintText = LOC ("sampler.grid.help");
+        float lineH = g.getCurrentFont().getHeight() * 1.3f;
+        int numHintLines = 4;
+        int hintH = (int)(numHintLines * lineH);
+        g.drawFittedText (hintText,
+                          gridArea.getX() + 8, gridArea.getBottom() - hintH - 8,
+                          gridArea.getWidth() / 3, hintH,
+                          juce::Justification::bottomLeft, numHintLines);
     }
 
     int hitTestGrid (juce::Point<int> pos) const

@@ -569,7 +569,7 @@ public:
         // Help card — centered on tile area, top at vertical center of first tile row
         {
             int tileH = tileArea.getHeight() / 4; // height of one tile row
-            int cardW = juce::jmin(tileArea.getWidth() - 20, 520);
+            int cardW = juce::jmin(tileArea.getWidth() - 20, 700);
             int cardH = clusterHelpCard.getIdealHeight(cardW);
             int cardX = tileArea.getX() + (tileArea.getWidth() - cardW) / 2;
             int cardY = tileArea.getY() + tileH / 2; // top at vertical center of first row
