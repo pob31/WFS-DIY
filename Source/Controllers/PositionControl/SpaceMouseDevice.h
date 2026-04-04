@@ -100,16 +100,6 @@ protected:
             return false;
         }
 
-        // Log all enumerated interfaces
-        for (auto* cur = devList; cur != nullptr; cur = cur->next)
-        {
-            DBG ("SpaceMouseHID enumerate: PID=0x" + juce::String::toHexString (cur->product_id)
-                 + " usage_page=0x" + juce::String::toHexString (cur->usage_page)
-                 + " usage=0x" + juce::String::toHexString (cur->usage)
-                 + " interface=" + juce::String (cur->interface_number)
-                 + " product=" + juce::String (cur->product_string != nullptr ? cur->product_string : L"(null)"));
-        }
-
         // Try each enumerated path until one opens successfully
         for (auto* cur = devList; cur != nullptr; cur = cur->next)
         {
@@ -126,9 +116,7 @@ protected:
                 std::memset (axisValues, 0, sizeof (axisValues));
                 std::memset (buttonStates, 0, sizeof (buttonStates));
 
-                DBG ("SpaceMouse connected: " + connectedDeviceName
-                     + " (usage_page=0x" + juce::String::toHexString (cur->usage_page)
-                     + " usage=0x" + juce::String::toHexString (cur->usage) + ")");
+                DBG ("SpaceMouse connected: " + connectedDeviceName);
 
                 setLED (true);
 
@@ -194,16 +182,6 @@ private:
             return;
 
         uint8_t reportId = data[0];
-
-        // Log unexpected or first-seen report IDs
-        if (reportId != REPORT_TRANSLATION && reportId != REPORT_BUTTONS)
-        {
-            juce::String hex;
-            for (int i = 0; i < juce::jmin (length, 14); ++i)
-                hex += juce::String::toHexString (data[i]).paddedLeft ('0', 2) + " ";
-            DBG ("SpaceMouseHID report ID=" + juce::String (reportId)
-                 + " len=" + juce::String (length) + " data: " + hex.trim());
-        }
 
         switch (reportId)
         {
