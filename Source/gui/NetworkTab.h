@@ -1567,7 +1567,6 @@ private:
         if (innerR > 1.0f)
         {
             g.setColour (juce::Colour (0xffaaaaaa));
-            const float dashLens[] = { 4.0f, 4.0f };
             // Draw dashed circle using path
             juce::Path innerCircle;
             innerCircle.addEllipse (cx - innerR, cy - innerR, innerR * 2.0f, innerR * 2.0f);
