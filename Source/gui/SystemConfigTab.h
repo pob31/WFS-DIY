@@ -676,6 +676,7 @@ public:
             juce::PropertiesFile::Options options;
             options.applicationName = "WFS-DIY";
             options.filenameSuffix = ".settings";
+            options.osxLibrarySubFolder = "Application Support";
             juce::ApplicationProperties appProps;
             appProps.setStorageParameters(options);
             if (auto* props = appProps.getUserSettings())
@@ -1272,6 +1273,7 @@ public:
         juce::PropertiesFile::Options options;
         options.applicationName = "WFS-DIY";
         options.filenameSuffix = ".settings";
+        options.osxLibrarySubFolder = "Application Support";
         juce::ApplicationProperties appProps;
         appProps.setStorageParameters(options);
         bool dontShow = false;
