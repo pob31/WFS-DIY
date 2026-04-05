@@ -77,6 +77,17 @@ Quick start:
 
 **Note**: The GPU Audio feature requires the [GPU Audio Platform](https://www.gpu.audio/sdk-binaries) to be installed separately.
 
+## Running the Application
+
+### Windows
+- **Required**: [Microsoft Visual C++ Redistributable 2022 (x64)](https://aka.ms/vs/17/release/vc_redist.x64.exe) — may already be installed on your system
+- **Recommended**: ASIO drivers for your audio interface (WASAPI is available as fallback)
+
+### macOS
+- No additional runtime dependencies — all required frameworks ship with macOS 10.13+
+- On first launch, macOS may ask you to confirm opening an unnotarized app (right-click > Open)
+- Grant microphone permission when prompted (required for audio input)
+
 ## Development
 
 This project uses Git for version control and is designed for cross-platform development. Make sure to:
