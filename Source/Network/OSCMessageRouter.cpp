@@ -420,6 +420,11 @@ bool OSCMessageRouter::isClusterScaleRotationAddress(const juce::String& address
     return address == "/cluster/scale" || address == "/cluster/rotation";
 }
 
+bool OSCMessageRouter::isClusterCumulativeScaleRotationAddress(const juce::String& address)
+{
+    return address == "/cluster/scaleRotation";
+}
+
 bool OSCMessageRouter::isClusterLFOAddress(const juce::String& address)
 {
     return address.startsWith("/wfs/cluster/lfo");
@@ -876,6 +881,30 @@ OSCMessageRouter::ParsedClusterScaleRotationMessage OSCMessageRouter::parseClust
     result.value = extractFloat(message[1]);
 
     // Validate cluster ID (1-10)
+    if (result.clusterId < 1 || result.clusterId > 10)
+        return result;
+
+    result.valid = true;
+    return result;
+}
+
+OSCMessageRouter::ParsedClusterCumulativeScaleRotationMessage
+OSCMessageRouter::parseClusterCumulativeScaleRotationMessage(const juce::OSCMessage& message)
+{
+    ParsedClusterCumulativeScaleRotationMessage result;
+
+    juce::String address = message.getAddressPattern().toString();
+    if (!isClusterCumulativeScaleRotationAddress(address))
+        return result;
+
+    // Requires 3 arguments: clusterId (int), cumulativeScale (float), cumulativeRotation (float)
+    if (message.size() < 3)
+        return result;
+
+    result.clusterId = extractInt(message[0]);
+    result.cumulativeScale = extractFloat(message[1]);
+    result.cumulativeRotation = extractFloat(message[2]);
+
     if (result.clusterId < 1 || result.clusterId > 10)
         return result;
 

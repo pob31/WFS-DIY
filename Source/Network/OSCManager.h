@@ -517,6 +517,8 @@ private:
     void handleArrayAdjustMessage(const juce::OSCMessage& message);
     void handleClusterMoveMessage(const juce::OSCMessage& message);
     void handleClusterScaleRotationMessage(const juce::OSCMessage& message);
+    void handleClusterCumulativeScaleRotationMessage(const juce::OSCMessage& message);
+    void applyPendingClusterGesture();
     void handleClusterLFOMessage(const juce::OSCMessage& message);
     void handleADMOSCMessage(const juce::OSCMessage& message);
 
@@ -711,6 +713,14 @@ private:
     std::atomic<int> messagesSent { 0 };
     std::atomic<int> messagesReceived { 0 };
     std::atomic<int> parseErrors { 0 };
+
+    // Cumulative scale+rotation gesture: snapshot + coalesced pending state
+    std::map<int, std::vector<std::tuple<int, float, float>>> clusterGestureSnapshots;
+    std::atomic<bool> clusterGestureActive { false };
+    std::atomic<bool> clusterGestureAsyncPending { false };
+    std::atomic<int>  clusterGestureClusterId { 0 };
+    std::atomic<float> clusterGestureScale { 1.0f };
+    std::atomic<float> clusterGestureRotation { 0.0f };
 
     // Thread safety
     juce::CriticalSection configLock;

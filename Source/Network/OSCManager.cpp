@@ -1233,6 +1233,10 @@ void OSCManager::handleIncomingMessage(const juce::OSCMessage& message,
     {
         handleClusterScaleRotationMessage(message);
     }
+    else if (OSCMessageRouter::isClusterCumulativeScaleRotationAddress(address))
+    {
+        handleClusterCumulativeScaleRotationMessage(message);
+    }
     else if (OSCMessageRouter::isClusterLFOAddress(address))
     {
         handleClusterLFOMessage(message);
@@ -1334,6 +1338,10 @@ void OSCManager::handleIncomingBundle(const juce::OSCBundle& bundle,
             else if (OSCMessageRouter::isClusterScaleRotationAddress(address))
             {
                 handleClusterScaleRotationMessage(message);
+            }
+            else if (OSCMessageRouter::isClusterCumulativeScaleRotationAddress(address))
+            {
+                handleClusterCumulativeScaleRotationMessage(message);
             }
             else if (OSCMessageRouter::isClusterLFOAddress(address))
             {
@@ -2320,23 +2328,62 @@ void OSCManager::handleClusterMoveMessage(const juce::OSCMessage& message)
         float dx = parsed.deltaX;
         float dy = parsed.deltaY;
 
-        // For PositionXY: absolute stage coordinates — compute delta from current barycenter
+        // For PositionXY: absolute stage coordinates — compute delta from reference (mode 0) or barycenter (mode 1)
         if (parsed.type == OSCMessageRouter::ParsedClusterMoveMessage::Type::PositionXY)
         {
             using namespace WFSParameterIDs;
+
+            juce::var refModeVar = state.getClusterParameter (parsed.clusterId, clusterReferenceMode);
+            int refMode = refModeVar.isInt() ? static_cast<int> (refModeVar) : 0;
+
+            std::vector<int> members;
             float sumX = 0.0f, sumY = 0.0f;
-            int memberCount = 0;
+            int trackedMember = -1;
+
             for (int i = 0; i < numInputs; ++i)
             {
                 juce::var cv = state.getInputParameter (i, inputCluster);
                 if ((cv.isInt() ? static_cast<int> (cv) : 0) != parsed.clusterId) continue;
-                sumX += varToFloat (state.getInputParameter (i, inputPositionX));
-                sumY += varToFloat (state.getInputParameter (i, inputPositionY));
-                ++memberCount;
+                members.push_back (i);
+                float px = varToFloat (state.getInputParameter (i, inputPositionX));
+                float py = varToFloat (state.getInputParameter (i, inputPositionY));
+                sumX += px;
+                sumY += py;
+                if (trackedMember < 0 && isInputFullyTracked (i))
+                    trackedMember = i;
             }
-            if (memberCount == 0) { incomingProtocol = Protocol::Disabled; return; }
-            dx = parsed.deltaX - sumX / static_cast<float> (memberCount);
-            dy = parsed.deltaY - sumY / static_cast<float> (memberCount);
+
+            if (members.empty()) { incomingProtocol = Protocol::Disabled; return; }
+
+            if (refMode == 0)
+            {
+                // Mode 0: compute delta from reference input position
+                int refInput = trackedMember;
+                if (refInput < 0)
+                {
+                    juce::String order = state.getClusterParameter (
+                        parsed.clusterId, clusterInputOrder).toString();
+                    if (order.isNotEmpty())
+                    {
+                        int firstInOrder = order.upToFirstOccurrenceOf (",", false, false).getIntValue();
+                        for (int m : members)
+                            if (m == firstInOrder) { refInput = m; break; }
+                    }
+                    if (refInput < 0)
+                        refInput = members[0];
+                }
+                float refX = varToFloat (state.getInputParameter (refInput, inputPositionX));
+                float refY = varToFloat (state.getInputParameter (refInput, inputPositionY));
+                dx = parsed.deltaX - refX;
+                dy = parsed.deltaY - refY;
+            }
+            else
+            {
+                // Mode 1: compute delta from barycenter
+                int memberCount = static_cast<int> (members.size());
+                dx = parsed.deltaX - sumX / static_cast<float> (memberCount);
+                dy = parsed.deltaY - sumY / static_cast<float> (memberCount);
+            }
         }
 
         std::vector<std::tuple<int, float, float>> updatedPositions;
@@ -2484,6 +2531,101 @@ void OSCManager::handleClusterScaleRotationMessage(const juce::OSCMessage& messa
         for (const auto& [channelId, x, y] : updatedPositions)
             sendInputPositionXYToRemote(channelId, x, y);
     });
+}
+
+void OSCManager::handleClusterCumulativeScaleRotationMessage(const juce::OSCMessage& message)
+{
+    auto parsed = OSCMessageRouter::parseClusterCumulativeScaleRotationMessage(message);
+    if (!parsed.valid) { ++parseErrors; return; }
+
+    // Gesture end: scale=0 clears snapshot
+    if (parsed.cumulativeScale == 0.0f)
+    {
+        clusterGestureActive.store(false);
+        juce::MessageManager::callAsync([this, cid = parsed.clusterId]()
+        {
+            clusterGestureSnapshots.erase(cid);
+        });
+        return;
+    }
+
+    // Store latest values atomically
+    clusterGestureClusterId.store(parsed.clusterId);
+    clusterGestureScale.store(parsed.cumulativeScale);
+    clusterGestureRotation.store(parsed.cumulativeRotation);
+    clusterGestureActive.store(true);
+
+    // Coalesce: only one callAsync in flight at a time
+    bool expected = false;
+    if (clusterGestureAsyncPending.compare_exchange_strong(expected, true))
+    {
+        juce::MessageManager::callAsync([this]() { applyPendingClusterGesture(); });
+    }
+}
+
+void OSCManager::applyPendingClusterGesture()
+{
+    clusterGestureAsyncPending.store(false);
+
+    if (!clusterGestureActive.load())
+        return;
+
+    int clusterId   = clusterGestureClusterId.load();
+    float scale     = clusterGestureScale.load();
+    float rotation  = clusterGestureRotation.load();
+
+    incomingProtocol = Protocol::Remote;
+    WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
+    state.beginUndoTransaction ("OSC Input");
+
+    int numInputs = state.getIntParameter(WFSParameterIDs::inputChannels);
+
+    // Snapshot initial positions on first message for this cluster
+    auto it = clusterGestureSnapshots.find(clusterId);
+    if (it == clusterGestureSnapshots.end())
+    {
+        std::vector<std::tuple<int, float, float>> snap;
+        for (int i = 0; i < numInputs; ++i)
+        {
+            juce::var cv = state.getInputParameter(i, WFSParameterIDs::inputCluster);
+            if ((cv.isInt() ? static_cast<int>(cv) : 0) == clusterId)
+            {
+                float x = varToFloat(state.getInputParameter(i, WFSParameterIDs::inputPositionX));
+                float y = varToFloat(state.getInputParameter(i, WFSParameterIDs::inputPositionY));
+                snap.emplace_back(i, x, y);
+            }
+        }
+        if (snap.empty()) { incomingProtocol = Protocol::Disabled; return; }
+        it = clusterGestureSnapshots.emplace(clusterId, std::move(snap)).first;
+    }
+
+    const auto& snap = it->second;
+
+    // Barycenter of initial positions
+    float refX = 0.0f, refY = 0.0f;
+    for (const auto& [idx, ix, iy] : snap) { refX += ix; refY += iy; }
+    refX /= static_cast<float>(snap.size());
+    refY /= static_cast<float>(snap.size());
+
+    // Apply cumulative rotation + scale from initial positions
+    float angleRad = rotation * (juce::MathConstants<float>::pi / 180.0f);
+    float cosA = std::cos(angleRad);
+    float sinA = std::sin(angleRad);
+
+    for (const auto& [inputIndex, initX, initY] : snap)
+    {
+        float dx = initX - refX;
+        float dy = initY - refY;
+        float newX = refX + (dx * cosA - dy * sinA) * scale;
+        float newY = refY + (dx * sinA + dy * cosA) * scale;
+        state.setInputParameter(inputIndex, WFSParameterIDs::inputPositionX, newX);
+        state.setInputParameter(inputIndex, WFSParameterIDs::inputPositionY, newY);
+    }
+
+    incomingProtocol = Protocol::Disabled;
+
+    if (onRemotePositionReceived)
+        onRemotePositionReceived();
 }
 
 void OSCManager::handleClusterLFOMessage(const juce::OSCMessage& message)

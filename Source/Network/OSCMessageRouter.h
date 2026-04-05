@@ -114,6 +114,14 @@ public:
         bool valid = false;
     };
 
+    struct ParsedClusterCumulativeScaleRotationMessage
+    {
+        int clusterId = 0;           // Cluster ID (1-10)
+        float cumulativeScale = 1.0f;    // Total scale from gesture start
+        float cumulativeRotation = 0.0f; // Total rotation in degrees from gesture start
+        bool valid = false;
+    };
+
     struct ParsedADMOSCMessage
     {
         enum class Type { XYZ, AED, X, Y, Z, XY, Azim, Elev, Dist, Gain, Name };
@@ -167,6 +175,12 @@ public:
     static ParsedClusterScaleRotationMessage parseClusterScaleRotationMessage(const juce::OSCMessage& message);
 
     /**
+     * Parse a combined cumulative scale+rotation message from remote.
+     * Handles /cluster/scaleRotation address.
+     */
+    static ParsedClusterCumulativeScaleRotationMessage parseClusterCumulativeScaleRotationMessage(const juce::OSCMessage& message);
+
+    /**
      * Check if an address matches input, output, reverb, or config patterns.
      */
     static bool isInputAddress(const juce::String& address);
@@ -177,6 +191,7 @@ public:
     static bool isArrayAdjustAddress(const juce::String& address);
     static bool isClusterMoveAddress(const juce::String& address);
     static bool isClusterScaleRotationAddress(const juce::String& address);
+    static bool isClusterCumulativeScaleRotationAddress(const juce::String& address);
     static bool isClusterLFOAddress(const juce::String& address);
     static bool isADMOSCAddress(const juce::String& address);
 
