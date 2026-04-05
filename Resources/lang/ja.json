@@ -574,7 +574,9 @@
       "tracking": "トラッキング: 入力 {num} (リファレンスを上書き)",
       "noInputs": "入力が割り当てられていません",
       "trackedMarker": "[T]"
-    }
+    },
+    "qlabPresetCueName": "クラスター {cluster} LFOプリセット: {name}",
+    "qlabPresetCueCreated": "QLabキュー作成: クラスター {cluster} プリセット \"{name}\""
   },
   "eq": {
     "status": {

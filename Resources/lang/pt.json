@@ -610,7 +610,9 @@
       "tracking": "Rastreamento: Entrada {num} (sobrepõe referência)",
       "noInputs": "Sem entradas atribuídas",
       "trackedMarker": "[T]"
-    }
+    },
+    "qlabPresetCueName": "Cluster {cluster} Preset LFO: {name}",
+    "qlabPresetCueCreated": "Cue QLab criado: Cluster {cluster} preset \"{name}\""
   },
   "eq": {
     "status": {

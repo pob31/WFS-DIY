@@ -1126,6 +1126,24 @@ MainComponent::MainComponent()
             };
         }
 
+        // QLab cluster preset cue creation
+        clustersTab->isQLabAvailable = [this]() {
+            return oscManager && oscManager->hasQLabTarget();
+        };
+
+        clustersTab->onQLabPresetCueRequested = [this] (int clusterId, int presetNumber, const juce::String& presetName) {
+            if (! oscManager || ! oscManager->hasQLabTarget()) return;
+            int patchNumber = oscManager->getQLabPatchNumber();
+            auto sequence = WFSNetwork::QLabCueBuilder::buildClusterLFOPresetCue (clusterId, presetNumber, presetName, patchNumber);
+            oscManager->sendToQLab (sequence, [this, clusterId, presetName] (int) {
+                if (clustersTab != nullptr && clustersTab->getStatusBar() != nullptr)
+                    clustersTab->getStatusBar()->showTemporaryMessage (
+                        LOC ("clusters.qlabPresetCueCreated")
+                            .replace ("{cluster}", juce::String (clusterId))
+                            .replace ("{name}", presetName), 3000);
+            });
+        };
+
         // Set page rebuild callback for channel changes and binding swaps
         streamDeckManager->onPageNeedsRebuild = [this, flipModeState, lfoSubModeState, movCB, outputEqBandState, onEqBandSelectedGui, netCB, sysCB, mapCB, mapQ, mapPosOffsetMode, reverbPreEqBandState, reverbPreDynMode, reverbPostEqBandState, reverbPostDynMode, reverbSoloState, reverbMutePreState, reverbMutePostState, reverbEditOnMapState, reverbAlgoSubMode, reverbIRDuration, onSoloReverbSD, onMutePreSD, onMutePostSD, onEditOnMapSD, clusterLfoSubMode, presetCol, presetRow, clusterCB](int mainTab, int subTab, int channel)
         {

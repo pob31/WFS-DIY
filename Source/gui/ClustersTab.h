@@ -358,6 +358,20 @@ public:
         importPresetsButton.setButtonText (LOC ("clusters.presets.import"));
         importPresetsButton.onClick = [this]() { importLFOPresets(); };
 
+        qlabPresetButton.setButtonText ("Q");
+        qlabPresetButton.onClick = [this]() {
+            if (onQLabPresetCueRequested && selectedCluster >= 1 && lastRecalledPreset >= 0
+                && lastRecalledPreset < presetTiles.size() && presetTiles[lastRecalledPreset]->isPopulated())
+            {
+                auto preset = parameters.getValueTreeState().ensureClusterLFOPreset (lastRecalledPreset);
+                juce::String name = preset.getProperty (WFSParameterIDs::clusterLFOPresetName, "").toString();
+                if (name.isEmpty())
+                    name = juce::String (lastRecalledPreset + 1);
+                onQLabPresetCueRequested (selectedCluster, lastRecalledPreset + 1, name);
+            }
+        };
+        addChildComponent (qlabPresetButton);
+
         // Cluster help card
         addAndMakeVisible(clusterHelpButton);
         addChildComponent(clusterHelpCard);
@@ -384,6 +398,8 @@ public:
         statusBar = bar;
         setupHelpTextMappings();
     }
+
+    StatusBar* getStatusBar() const { return statusBar; }
 
     std::unique_ptr<juce::ComponentTraverser> createKeyboardFocusTraverser() override
     {
@@ -560,10 +576,15 @@ public:
             int gridW = (presetButtonRow.getWidth() / 4) * 4;
             auto btnRow = presetButtonRow.withWidth (gridW);
             int pad = scaled (2);
-            int btnW = gridW / 3;
+            bool showQLab = isQLabAvailable && isQLabAvailable();
+            qlabPresetButton.setVisible (showQLab);
+            int numBtns = showQLab ? 4 : 3;
+            int btnW = gridW / numBtns;
             stopAllLFOButton.setBounds (btnRow.removeFromLeft (btnW).reduced (pad, 0));
             exportPresetsButton.setBounds (btnRow.removeFromLeft (btnW).reduced (pad, 0));
-            importPresetsButton.setBounds (btnRow.reduced (pad, 0));
+            importPresetsButton.setBounds (btnRow.removeFromLeft (btnW).reduced (pad, 0));
+            if (showQLab)
+                qlabPresetButton.setBounds (btnRow.reduced (pad, 0));
         }
 
         // Help card — centered on tile area, top at vertical center of first tile row
@@ -657,6 +678,8 @@ public:
     }
 
     std::function<void (int)> onClusterSelected;
+    std::function<bool()> isQLabAvailable;
+    std::function<void(int clusterId, int presetNumber, const juce::String& presetName)> onQLabPresetCueRequested;
 
     void setHighlightedPresetTile (int index)
     {
@@ -928,8 +951,10 @@ private:
     LongPressButton stopAllLFOButton { 500 }; // 500ms long press to prevent accidental stop
     juce::TextButton exportPresetsButton;
     juce::TextButton importPresetsButton;
+    juce::TextButton qlabPresetButton;
     std::shared_ptr<juce::FileChooser> presetFileChooser;
     int highlightedPresetTile = -1;
+    int lastRecalledPreset = -1;
 
     // ==================== LFO PANEL ====================
     ClusterLFOProcessor clusterLFOProcessor;
@@ -1443,6 +1468,7 @@ private:
 
         isLoadingParameters = false;
         loadClusterLFOParameters();
+        lastRecalledPreset = presetIndex;
 
         if (statusBar != nullptr)
             statusBar->showTemporaryMessage (
@@ -1921,10 +1947,15 @@ private:
 
         // Preset tile controls
         for (int i = 0; i < presetTiles.size(); ++i)
+        {
             helpTextMap[presetTiles[i]] = LOC ("clusters.help.presetTile");
+            oscMethodMap[presetTiles[i]] = LOC ("clusters.osc.lfoPresetRecall");
+        }
         helpTextMap[&stopAllLFOButton]    = LOC ("clusters.help.stopAllLFO");
+        oscMethodMap[&stopAllLFOButton]  = LOC ("clusters.osc.lfoStopAll");
         helpTextMap[&exportPresetsButton] = LOC ("clusters.help.exportPresets");
         helpTextMap[&importPresetsButton] = LOC ("clusters.help.importPresets");
+        helpTextMap[&qlabPresetButton]   = LOC ("clusters.help.qlabPreset");
 
         // Register mouse listeners
         for (auto& pair : helpTextMap)

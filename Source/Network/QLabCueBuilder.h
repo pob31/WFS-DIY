@@ -223,6 +223,32 @@ public:
         return sequence;
     }
 
+    /**
+     * Build a single QLab network cue to recall a cluster LFO preset.
+     */
+    static QLabCueSequence buildClusterLFOPresetCue (
+        int clusterId,
+        int presetNumber,
+        const juce::String& presetName,
+        int qlabPatchNumber)
+    {
+        QLabCueSequence sequence;
+
+        QLabCueSequence::NetworkCue cue;
+        cue.movePosition = 0;
+        cue.messages.push_back (juce::OSCMessage ("/new", juce::String ("network")));
+        cue.messages.push_back (juce::OSCMessage ("/cue/selected/patch", qlabPatchNumber));
+        cue.messages.push_back (juce::OSCMessage ("/cue/selected/customString",
+            juce::String ("/wfs/cluster/lfoPresetRecall " + juce::String (clusterId) + " " + juce::String (presetNumber))));
+        cue.messages.push_back (juce::OSCMessage ("/cue/selected/name",
+            LOC ("clusters.qlabPresetCueName")
+                .replace ("{cluster}", juce::String (clusterId))
+                .replace ("{name}", presetName)));
+        sequence.networkCues.push_back (std::move (cue));
+
+        return sequence;
+    }
+
 private:
     /** Append QLab network cue entries for all in-scope parameters of one channel */
     static void appendChannelCues (

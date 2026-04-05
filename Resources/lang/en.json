@@ -775,7 +775,8 @@
       "presetTile": "Click: recall preset. Double-click: recall + start. Middle/right-click: store current LFO.",
       "stopAllLFO": "Stop LFO on all 10 clusters.",
       "exportPresets": "Export all 16 LFO presets to an XML file.",
-      "importPresets": "Import LFO presets from an XML file."
+      "importPresets": "Import LFO presets from an XML file.",
+      "qlabPreset": "Create a QLab network cue to recall the last selected LFO preset for the current cluster."
     },
     "presets": {
       "stopAll": "Stop All",
@@ -811,8 +812,12 @@
       "lfoPhaseY": "/wfs/cluster/lfoPhaseY <id> <degrees>",
       "lfoPhaseZ": "/wfs/cluster/lfoPhaseZ <id> <degrees>",
       "lfoPhaseRot": "/wfs/cluster/lfoPhaseRot <id> <degrees>",
-      "lfoPhaseScale": "/wfs/cluster/lfoPhaseScale <id> <degrees>"
-    }
+      "lfoPhaseScale": "/wfs/cluster/lfoPhaseScale <id> <degrees>",
+      "lfoPresetRecall": "/wfs/cluster/lfoPresetRecall <clusterId> <presetNumber>",
+      "lfoStopAll": "/wfs/cluster/lfoStopAll"
+    },
+    "qlabPresetCueName": "Cluster {cluster} LFO Preset: {name}",
+    "qlabPresetCueCreated": "QLab cue created: Cluster {cluster} preset \"{name}\""
   },
 
   "eq": {

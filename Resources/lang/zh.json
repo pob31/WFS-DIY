@@ -610,7 +610,9 @@
       "tracking": "追踪: 输入 {num} (覆盖参考)",
       "noInputs": "未分配输入",
       "trackedMarker": "[T]"
-    }
+    },
+    "qlabPresetCueName": "集群 {cluster} LFO预设: {name}",
+    "qlabPresetCueCreated": "QLab提示已创建: 集群 {cluster} 预设 \"{name}\""
   },
   "eq": {
     "status": {

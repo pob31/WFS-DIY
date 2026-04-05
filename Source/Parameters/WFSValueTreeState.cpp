@@ -185,6 +185,41 @@ juce::ValueTree WFSValueTreeState::ensureClusterLFOPreset (int presetIndex)
     return {};
 }
 
+void WFSValueTreeState::recallClusterLFOPreset (int clusterId, int presetIndex)
+{
+    auto preset = ensureClusterLFOPreset (presetIndex);
+    if (! preset.isValid()) return;
+
+    auto lfoSection = getClusterLFOSection (clusterId);
+    if (! lfoSection.isValid()) return;
+
+    // The 22 preset properties (same order as ClustersTab::getLFOPresetPropId)
+    static const juce::Identifier ids[] = {
+        clusterLFOperiod, clusterLFOphase,
+        clusterLFOshapeX, clusterLFOshapeY, clusterLFOshapeZ, clusterLFOshapeRot, clusterLFOshapeScale,
+        clusterLFOrateX, clusterLFOrateY, clusterLFOrateZ, clusterLFOrateRot, clusterLFOrateScale,
+        clusterLFOamplitudeX, clusterLFOamplitudeY, clusterLFOamplitudeZ, clusterLFOamplitudeRot, clusterLFOamplitudeScale,
+        clusterLFOphaseX, clusterLFOphaseY, clusterLFOphaseZ, clusterLFOphaseRot, clusterLFOphaseScale
+    };
+
+    // Apply non-shape properties first (amplitude, rate, phase, period)
+    for (const auto& propId : ids)
+    {
+        if (propId == clusterLFOshapeX || propId == clusterLFOshapeY || propId == clusterLFOshapeZ ||
+            propId == clusterLFOshapeRot || propId == clusterLFOshapeScale)
+            continue;
+        if (preset.hasProperty (propId))
+            lfoSection.setProperty (propId, preset.getProperty (propId), nullptr);
+    }
+
+    // Then apply shapes (triggers fade dip if shape changed)
+    lfoSection.setProperty (clusterLFOshapeX,     preset.getProperty (clusterLFOshapeX), nullptr);
+    lfoSection.setProperty (clusterLFOshapeY,     preset.getProperty (clusterLFOshapeY), nullptr);
+    lfoSection.setProperty (clusterLFOshapeZ,     preset.getProperty (clusterLFOshapeZ), nullptr);
+    lfoSection.setProperty (clusterLFOshapeRot,   preset.getProperty (clusterLFOshapeRot), nullptr);
+    lfoSection.setProperty (clusterLFOshapeScale, preset.getProperty (clusterLFOshapeScale), nullptr);
+}
+
 juce::ValueTree WFSValueTreeState::getInputsState()
 {
     return state.getChildWithName (Inputs);

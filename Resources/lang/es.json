@@ -610,7 +610,9 @@
       "tracking": "Seguimiento: Entrada {num} (anula referencia)",
       "noInputs": "Sin entradas asignadas",
       "trackedMarker": "[S]"
-    }
+    },
+    "qlabPresetCueName": "Cluster {cluster} Preset LFO: {name}",
+    "qlabPresetCueCreated": "Cue QLab creado: Cluster {cluster} preset \"{name}\""
   },
   "eq": {
     "status": {

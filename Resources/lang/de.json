@@ -610,7 +610,9 @@
       "tracking": "Tracking: Eingang {num} (überschreibt Referenz)",
       "noInputs": "Keine Eingänge zugewiesen",
       "trackedMarker": "[T]"
-    }
+    },
+    "qlabPresetCueName": "Cluster {cluster} LFO-Preset: {name}",
+    "qlabPresetCueCreated": "QLab-Cue erstellt: Cluster {cluster} Preset \"{name}\""
   },
   "eq": {
     "status": {

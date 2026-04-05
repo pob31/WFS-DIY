@@ -2484,6 +2484,21 @@ void OSCManager::handleClusterLFOMessage(const juce::OSCMessage& message)
     // Parse /wfs/cluster/lfo<ParamName> <clusterID> <value>
     juce::String address = message.getAddressPattern().toString();
 
+    // Handle stop all first (no arguments required)
+    if (address.endsWith ("lfoStopAll"))
+    {
+        juce::MessageManager::callAsync([this]()
+        {
+            for (int c = 1; c <= 10; ++c)
+            {
+                auto lfoSection = state.getClusterLFOSection(c);
+                if (lfoSection.isValid())
+                    lfoSection.setProperty(WFSParameterIDs::clusterLFOactive, 0, nullptr);
+            }
+        });
+        return;
+    }
+
     if (message.size() < 2)
     {
         ++parseErrors;
@@ -2507,6 +2522,25 @@ void OSCManager::handleClusterLFOMessage(const juce::OSCMessage& message)
     if (suffix.isEmpty())
     {
         ++parseErrors;
+        return;
+    }
+
+    // Handle preset recall specially: /wfs/cluster/lfoPresetRecall <clusterId> <presetNumber>
+    if (suffix == "PresetRecall")
+    {
+        int presetNumber = 0;
+        if (message[1].isInt32())
+            presetNumber = message[1].getInt32();
+        else if (message[1].isFloat32())
+            presetNumber = static_cast<int>(message[1].getFloat32());
+
+        if (presetNumber >= 1 && presetNumber <= 16)
+        {
+            juce::MessageManager::callAsync([this, clusterId, presetIndex = presetNumber - 1]()
+            {
+                state.recallClusterLFOPreset(clusterId, presetIndex);
+            });
+        }
         return;
     }
 

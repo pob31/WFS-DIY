@@ -574,7 +574,9 @@
       "tracking": "트래킹: 입력 {num} (참조 무시)",
       "noInputs": "할당된 입력 없음",
       "trackedMarker": "[T]"
-    }
+    },
+    "qlabPresetCueName": "클러스터 {cluster} LFO 프리셋: {name}",
+    "qlabPresetCueCreated": "QLab 큐 생성: 클러스터 {cluster} 프리셋 \"{name}\""
   },
   "eq": {
     "status": {

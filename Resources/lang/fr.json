@@ -623,7 +623,9 @@
       "tracking": "Suivi : Entrée {num} (remplace la référence)",
       "noInputs": "Aucune entrée assignée",
       "trackedMarker": "[S]"
-    }
+    },
+    "qlabPresetCueName": "Cluster {cluster} Preset LFO : {name}",
+    "qlabPresetCueCreated": "Cue QLab créé : Cluster {cluster} preset \"{name}\""
   },
   "eq": {
     "status": {

@@ -63,6 +63,10 @@ public:
     juce::ValueTree getClusterLFOSection (int clusterIndex);
     juce::ValueTree getClusterLFOPresetsSection();
     juce::ValueTree ensureClusterLFOPreset (int presetIndex);
+
+    /** Recall a cluster LFO preset into a cluster (applies non-shape props first, then shapes) */
+    void recallClusterLFOPreset (int clusterId, int presetIndex);
+
     juce::ValueTree getBinauralState();
     juce::ValueTree getBinauralState() const;
 
