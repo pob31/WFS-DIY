@@ -90,7 +90,8 @@ public:
     {
         enum class Type {
             ClusterMove,      // /cluster/move <clusterId> <deltaX> <deltaY>
-            BarycenterMove    // /cluster/barycenter/move <clusterId> <deltaX> <deltaY>
+            BarycenterMove,   // /cluster/barycenter/move <clusterId> <deltaX> <deltaY>
+            PositionXY        // /cluster/positionXY <clusterId> <stageX> <stageY>
         };
 
         Type type = Type::ClusterMove;

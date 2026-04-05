@@ -411,7 +411,8 @@ bool OSCMessageRouter::isArrayAdjustAddress(const juce::String& address)
 
 bool OSCMessageRouter::isClusterMoveAddress(const juce::String& address)
 {
-    return address == "/cluster/move" || address == "/cluster/barycenter/move";
+    return address == "/cluster/move" || address == "/cluster/barycenter/move"
+        || address == "/cluster/positionXY";
 }
 
 bool OSCMessageRouter::isClusterScaleRotationAddress(const juce::String& address)
@@ -833,6 +834,8 @@ OSCMessageRouter::ParsedClusterMoveMessage OSCMessageRouter::parseClusterMoveMes
         result.type = ParsedClusterMoveMessage::Type::ClusterMove;
     else if (address == "/cluster/barycenter/move")
         result.type = ParsedClusterMoveMessage::Type::BarycenterMove;
+    else if (address == "/cluster/positionXY")
+        result.type = ParsedClusterMoveMessage::Type::PositionXY;
     else
         return result;
 

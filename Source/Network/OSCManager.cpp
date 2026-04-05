@@ -2311,55 +2311,62 @@ void OSCManager::handleClusterMoveMessage(const juce::OSCMessage& message)
     // Move inputs in the specified cluster by delta
     juce::MessageManager::callAsync([this, parsed]()
     {
-        incomingProtocol = Protocol::Remote;  // Flag: processing incoming remote message
+        incomingProtocol = Protocol::Remote;
         WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
         state.beginUndoTransaction ("OSC Input");
 
-        // Get number of configured input channels
         int numInputs = state.getIntParameter(WFSParameterIDs::inputChannels);
 
-        // Collect updated positions to echo back to Remote after processing
+        float dx = parsed.deltaX;
+        float dy = parsed.deltaY;
+
+        // For PositionXY: absolute stage coordinates — compute delta from current barycenter
+        if (parsed.type == OSCMessageRouter::ParsedClusterMoveMessage::Type::PositionXY)
+        {
+            using namespace WFSParameterIDs;
+            float sumX = 0.0f, sumY = 0.0f;
+            int memberCount = 0;
+            for (int i = 0; i < numInputs; ++i)
+            {
+                juce::var cv = state.getInputParameter (i, inputCluster);
+                if ((cv.isInt() ? static_cast<int> (cv) : 0) != parsed.clusterId) continue;
+                sumX += varToFloat (state.getInputParameter (i, inputPositionX));
+                sumY += varToFloat (state.getInputParameter (i, inputPositionY));
+                ++memberCount;
+            }
+            if (memberCount == 0) { incomingProtocol = Protocol::Disabled; return; }
+            dx = parsed.deltaX - sumX / static_cast<float> (memberCount);
+            dy = parsed.deltaY - sumY / static_cast<float> (memberCount);
+        }
+
         std::vector<std::tuple<int, float, float>> updatedPositions;
 
-        // Both ClusterMove and BarycenterMove result in moving all cluster members by delta
-        // For ClusterMove (First Input mode): all inputs move by delta
-        // For BarycenterMove (Barycenter mode): all inputs move by delta (to shift barycenter)
-
-        // Iterate through all inputs and adjust those in the target cluster
         for (int inputIndex = 0; inputIndex < numInputs; ++inputIndex)
         {
-            // Get the cluster assignment for this input
             juce::var clusterVar = state.getInputParameter(inputIndex, WFSParameterIDs::inputCluster);
             int inputClusterId = clusterVar.isInt() ? static_cast<int>(clusterVar) : 0;
 
-            // Check if this input belongs to the target cluster
             if (inputClusterId == parsed.clusterId)
             {
-                // Get current position
-                juce::var posXVar = state.getInputParameter(inputIndex, WFSParameterIDs::inputPositionX);
-                juce::var posYVar = state.getInputParameter(inputIndex, WFSParameterIDs::inputPositionY);
+                float newX = varToFloat(state.getInputParameter(inputIndex, WFSParameterIDs::inputPositionX)) + dx;
+                float newY = varToFloat(state.getInputParameter(inputIndex, WFSParameterIDs::inputPositionY)) + dy;
 
-                float currentX = varToFloat(posXVar);
-                float currentY = varToFloat(posYVar);
-
-                // Apply delta
-                float newX = currentX + parsed.deltaX;
-                float newY = currentY + parsed.deltaY;
-
-                // Set new position
                 state.setInputParameter(inputIndex, WFSParameterIDs::inputPositionX, newX);
                 state.setInputParameter(inputIndex, WFSParameterIDs::inputPositionY, newY);
 
-                // 1-based channelId for OSC
                 updatedPositions.emplace_back(inputIndex + 1, newX, newY);
             }
         }
 
-        incomingProtocol = Protocol::Disabled;  // Clear flag
+        incomingProtocol = Protocol::Disabled;
 
         // Echo updated positions back to Remote targets so Android sees all members move
         for (const auto& [channelId, x, y] : updatedPositions)
             sendInputPositionXYToRemote(channelId, x, y);
+
+        // Trigger map repaint
+        if (onRemotePositionReceived)
+            onRemotePositionReceived();
     });
 }
 

@@ -7535,6 +7535,14 @@ private:
         // came from the joystick/Z slider continuous updates (avoid feedback loop)
         // Also skip sampler subtree changes — these are handled locally by SamplerSubTab
         // and a full reload would clear the sampler's cell selection state.
+        // Skip high-frequency position/offset changes — these happen during drag and
+        // don't need a full parameter reload (the map handles rendering directly)
+        if (property == WFSParameterIDs::inputPositionX || property == WFSParameterIDs::inputPositionY ||
+            property == WFSParameterIDs::inputPositionZ ||
+            property == WFSParameterIDs::inputOffsetX || property == WFSParameterIDs::inputOffsetY ||
+            property == WFSParameterIDs::inputOffsetZ)
+            return;
+
         if (!isLoadingParameters && !suppressParameterReload
             && !tree.hasType(WFSParameterIDs::SamplerCell)
             && !tree.hasType(WFSParameterIDs::SamplerSet)
