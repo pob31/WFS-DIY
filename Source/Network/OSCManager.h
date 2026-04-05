@@ -714,6 +714,14 @@ private:
     std::atomic<int> messagesReceived { 0 };
     std::atomic<int> parseErrors { 0 };
 
+    // Coalesced cluster position drag: store latest absolute position, one callAsync in flight
+    std::atomic<bool> clusterMoveAsyncPending { false };
+    std::atomic<int>  clusterMoveClusterId { 0 };
+    std::atomic<float> clusterMoveTargetX { 0.0f };
+    std::atomic<float> clusterMoveTargetY { 0.0f };
+    std::atomic<int>  clusterMoveType { 0 };  // ParsedClusterMoveMessage::Type as int
+    void applyPendingClusterMove();
+
     // Cumulative scale+rotation gesture: snapshot + coalesced pending state
     std::map<int, std::vector<std::tuple<int, float, float>>> clusterGestureSnapshots;
     std::atomic<bool> clusterGestureActive { false };
