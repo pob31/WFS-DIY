@@ -71,12 +71,13 @@ public:
 
     std::function<void()> onLongPress;
 
-private:
+protected:
     int getEffectiveDuration() const
     {
         return juce::jmax(1, static_cast<int>(longPressDurationMs * durationMultiplier));
     }
 
+private:
     void timerCallback() override
     {
         if (isLongPressActive && !thresholdReached)
@@ -148,14 +149,16 @@ private:
         g.drawText(getButtonText(), bounds, juce::Justification::centred);
     }
 
-    int longPressDurationMs;
-    juce::Time pressStartTime;
-    bool isLongPressActive = false;
-    bool thresholdReached = false;
     juce::Colour customBaseColour;
     bool hasCustomBaseColour = false;
 
     static inline float durationMultiplier = 1.0f;
+
+protected:
+    int longPressDurationMs;
+    juce::Time pressStartTime;
+    bool isLongPressActive = false;
+    bool thresholdReached = false;
 
 public:
     static void setShortMode(bool enabled) { durationMultiplier = enabled ? 0.5f : 1.0f; }

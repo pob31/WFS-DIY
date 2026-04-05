@@ -1557,6 +1557,129 @@ void WFSValueTreeState::resetReverbToDefaults (int channelIndex)
     }
 }
 
+void WFSValueTreeState::redistributeAllInputPositions()
+{
+    auto inputs = getInputsState();
+    int numInputs = inputs.getNumChildren();
+    if (numInputs == 0) return;
+
+    auto stageTree = getStageState();
+    float sw = stageTree.isValid() ? static_cast<float> (stageTree.getProperty (stageWidth))  : stageWidthDefault;
+    float sd = stageTree.isValid() ? static_cast<float> (stageTree.getProperty (stageDepth))  : stageDepthDefault;
+    float sh = stageTree.isValid() ? static_cast<float> (stageTree.getProperty (stageHeight)) : stageHeightDefault;
+    float ow = stageTree.isValid() ? static_cast<float> (stageTree.getProperty (originWidth)) : originWidthDefault;
+    float od = stageTree.isValid() ? static_cast<float> (stageTree.getProperty (originDepth)) : originDepthDefault;
+    float oh = stageTree.isValid() ? static_cast<float> (stageTree.getProperty (originHeight)) : originHeightDefault;
+
+    beginUndoTransaction ("Redistribute Input Positions");
+
+    for (int i = 0; i < numInputs; ++i)
+    {
+        auto input = inputs.getChild (i);
+        auto pos = input.getChildWithName (Position);
+        if (! pos.isValid()) continue;
+
+        float x, y, z;
+        getDefaultInputPosition (i, numInputs, sw, sd, sh, ow, od, oh, x, y, z);
+        pos.setProperty (inputPositionX, x, getActiveUndoManager());
+        pos.setProperty (inputPositionY, y, getActiveUndoManager());
+        pos.setProperty (inputPositionZ, z, getActiveUndoManager());
+    }
+}
+
+void WFSValueTreeState::scaleAllInputPositions (float oldW, float oldD, float oldH,
+                                                 float oldOW, float oldOD, float oldOH)
+{
+    auto inputs = getInputsState();
+    int numInputs = inputs.getNumChildren();
+    if (numInputs == 0) return;
+
+    auto stageTree = getStageState();
+    float newW  = stageTree.isValid() ? static_cast<float> (stageTree.getProperty (stageWidth))  : stageWidthDefault;
+    float newD  = stageTree.isValid() ? static_cast<float> (stageTree.getProperty (stageDepth))  : stageDepthDefault;
+    float newH  = stageTree.isValid() ? static_cast<float> (stageTree.getProperty (stageHeight)) : stageHeightDefault;
+    float newOW = stageTree.isValid() ? static_cast<float> (stageTree.getProperty (originWidth)) : originWidthDefault;
+    float newOD = stageTree.isValid() ? static_cast<float> (stageTree.getProperty (originDepth)) : originDepthDefault;
+    float newOH = stageTree.isValid() ? static_cast<float> (stageTree.getProperty (originHeight)) : originHeightDefault;
+
+    // Old and new stage bounds (origin-relative)
+    float oldMinX = -oldW / 2.0f - oldOW;
+    float oldMinY = -oldD / 2.0f - oldOD;
+    float oldMinZ = -oldOH;
+    float newMinX = -newW / 2.0f - newOW;
+    float newMinY = -newD / 2.0f - newOD;
+    float newMinZ = -newOH;
+
+    beginUndoTransaction ("Scale Input Positions");
+
+    for (int i = 0; i < numInputs; ++i)
+    {
+        auto input = inputs.getChild (i);
+        auto pos = input.getChildWithName (Position);
+        if (! pos.isValid()) continue;
+
+        float x = static_cast<float> (pos.getProperty (inputPositionX));
+        float y = static_cast<float> (pos.getProperty (inputPositionY));
+        float z = static_cast<float> (pos.getProperty (inputPositionZ));
+
+        // Map from old bounds to normalized [0..1], then to new bounds
+        if (oldW > 0.0f)
+            x = newMinX + ((x - oldMinX) / oldW) * newW;
+        if (oldD > 0.0f)
+            y = newMinY + ((y - oldMinY) / oldD) * newD;
+        if (oldH > 0.0f)
+            z = newMinZ + ((z - oldMinZ) / oldH) * newH;
+
+        pos.setProperty (inputPositionX, x, getActiveUndoManager());
+        pos.setProperty (inputPositionY, y, getActiveUndoManager());
+        pos.setProperty (inputPositionZ, z, getActiveUndoManager());
+    }
+}
+
+void WFSValueTreeState::fitAllInputPositionsToStage()
+{
+    auto inputs = getInputsState();
+    int numInputs = inputs.getNumChildren();
+    if (numInputs == 0) return;
+
+    auto stageTree = getStageState();
+    float sw = stageTree.isValid() ? static_cast<float> (stageTree.getProperty (stageWidth))  : stageWidthDefault;
+    float sd = stageTree.isValid() ? static_cast<float> (stageTree.getProperty (stageDepth))  : stageDepthDefault;
+    float sh = stageTree.isValid() ? static_cast<float> (stageTree.getProperty (stageHeight)) : stageHeightDefault;
+    float ow = stageTree.isValid() ? static_cast<float> (stageTree.getProperty (originWidth)) : originWidthDefault;
+    float od = stageTree.isValid() ? static_cast<float> (stageTree.getProperty (originDepth)) : originDepthDefault;
+    float oh = stageTree.isValid() ? static_cast<float> (stageTree.getProperty (originHeight)) : originHeightDefault;
+
+    float minX = -sw / 2.0f - ow;
+    float maxX =  sw / 2.0f - ow;
+    float minY = -sd / 2.0f - od;
+    float maxY =  sd / 2.0f - od;
+    float minZ = -oh;
+    float maxZ =  sh - oh;
+
+    beginUndoTransaction ("Fit Input Positions to Stage");
+
+    for (int i = 0; i < numInputs; ++i)
+    {
+        auto input = inputs.getChild (i);
+        auto pos = input.getChildWithName (Position);
+        if (! pos.isValid()) continue;
+
+        float x = static_cast<float> (pos.getProperty (inputPositionX));
+        float y = static_cast<float> (pos.getProperty (inputPositionY));
+        float z = static_cast<float> (pos.getProperty (inputPositionZ));
+
+        float cx = juce::jlimit (minX, maxX, x);
+        float cy = juce::jlimit (minY, maxY, y);
+        float cz = juce::jlimit (minZ, maxZ, z);
+
+        // Only write if changed (avoid unnecessary undo entries)
+        if (cx != x) pos.setProperty (inputPositionX, cx, getActiveUndoManager());
+        if (cy != y) pos.setProperty (inputPositionY, cy, getActiveUndoManager());
+        if (cz != z) pos.setProperty (inputPositionZ, cz, getActiveUndoManager());
+    }
+}
+
 void WFSValueTreeState::replaceState (const juce::ValueTree& newState)
 {
     if (validateState (newState))

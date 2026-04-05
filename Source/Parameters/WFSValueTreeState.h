@@ -377,6 +377,16 @@ public:
     /** Reset reverb channel to defaults */
     void resetReverbToDefaults (int channelIndex);
 
+    /** Redistribute all input positions evenly within the current stage bounds */
+    void redistributeAllInputPositions();
+
+    /** Scale all input positions proportionally from old stage bounds to current bounds */
+    void scaleAllInputPositions (float oldW, float oldD, float oldH,
+                                 float oldOW, float oldOD, float oldOH);
+
+    /** Clamp all input positions to within the current stage bounds */
+    void fitAllInputPositionsToStage();
+
     /** Replace entire state (e.g., when loading) */
     void replaceState (const juce::ValueTree& newState);
 

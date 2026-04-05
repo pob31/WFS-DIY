@@ -183,6 +183,202 @@ public:
     }
 };
 
+//==============================================================================
+// Stage Reposition Button — Scale (arrows pointing outward from center)
+class StageScaleButton : public LongPressButton
+{
+public:
+    StageScaleButton() : LongPressButton(1000) {}
+
+    void paintButton(juce::Graphics& g, bool shouldHighlight, bool shouldBeDown) override
+    {
+        auto bounds = getLocalBounds().toFloat().reduced(2.0f);
+
+        if (!isEnabled())
+            g.setColour(ColorScheme::get().buttonNormal.withAlpha(0.4f));
+        else if (shouldBeDown)
+            g.setColour(ColorScheme::get().buttonPressed);
+        else if (shouldHighlight)
+            g.setColour(ColorScheme::get().buttonHover);
+        else
+            g.setColour(ColorScheme::get().buttonNormal);
+
+        g.fillRoundedRectangle(bounds, 4.0f);
+        g.setColour(ColorScheme::get().buttonBorder);
+        g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
+
+        // Draw long-press progress if active
+        drawLongPressOverlay(g, bounds);
+
+        // Draw scale icon: 4 arrows pointing outward from center
+        auto icon = bounds.reduced(6.0f);
+        float cx = icon.getCentreX(), cy = icon.getCentreY();
+        float len = icon.getWidth() * 0.35f;
+        float arrow = 3.0f;
+        float t = 1.5f;
+
+        g.setColour(ColorScheme::get().textPrimary);
+
+        // Draw 4 diagonal arrows from center
+        for (int i = 0; i < 4; ++i)
+        {
+            float dx = (i % 2 == 0) ? -1.0f : 1.0f;
+            float dy = (i < 2) ? -1.0f : 1.0f;
+            float ex = cx + dx * len, ey = cy + dy * len;
+            g.drawLine(cx + dx * 2.0f, cy + dy * 2.0f, ex, ey, t);
+            // Arrowhead
+            g.drawLine(ex, ey, ex - dx * arrow, ey, t);
+            g.drawLine(ex, ey, ex, ey - dy * arrow, t);
+        }
+    }
+
+private:
+    void drawLongPressOverlay(juce::Graphics& g, juce::Rectangle<float> bounds)
+    {
+        if (isLongPressActive && !thresholdReached)
+        {
+            auto elapsed = (juce::Time::getCurrentTime() - pressStartTime).inMilliseconds();
+            float progress = juce::jlimit(0.0f, 1.0f,
+                static_cast<float>(elapsed) / static_cast<float>(getEffectiveDuration()));
+            g.setColour(ColorScheme::get().accentBlue.withAlpha(0.5f));
+            g.fillRoundedRectangle(bounds.removeFromLeft(bounds.getWidth() * progress), 4.0f);
+        }
+        if (thresholdReached && isLongPressActive)
+        {
+            g.setColour(ColorScheme::get().accentGreen.withAlpha(0.5f));
+            g.fillRoundedRectangle(bounds, 4.0f);
+        }
+    }
+};
+
+//==============================================================================
+// Stage Reposition Button — Fit (box with inward arrows)
+class StageFitButton : public LongPressButton
+{
+public:
+    StageFitButton() : LongPressButton(1000) {}
+
+    void paintButton(juce::Graphics& g, bool shouldHighlight, bool shouldBeDown) override
+    {
+        auto bounds = getLocalBounds().toFloat().reduced(2.0f);
+
+        if (!isEnabled())
+            g.setColour(ColorScheme::get().buttonNormal.withAlpha(0.4f));
+        else if (shouldBeDown)
+            g.setColour(ColorScheme::get().buttonPressed);
+        else if (shouldHighlight)
+            g.setColour(ColorScheme::get().buttonHover);
+        else
+            g.setColour(ColorScheme::get().buttonNormal);
+
+        g.fillRoundedRectangle(bounds, 4.0f);
+        g.setColour(ColorScheme::get().buttonBorder);
+        g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
+
+        drawLongPressOverlay(g, bounds);
+
+        // Draw fit icon: rectangle with 4 inward arrows
+        auto icon = bounds.reduced(5.0f);
+        float t = 1.5f;
+        float arrow = 3.0f;
+
+        g.setColour(ColorScheme::get().textPrimary);
+        g.drawRect(icon, t);
+
+        // Inward arrows from corners toward center
+        float len = icon.getWidth() * 0.25f;
+
+        for (int i = 0; i < 4; ++i)
+        {
+            float dx = (i % 2 == 0) ? -1.0f : 1.0f;
+            float dy = (i < 2) ? -1.0f : 1.0f;
+            float sx = (dx < 0) ? icon.getX() : icon.getRight();
+            float sy = (dy < 0) ? icon.getY() : icon.getBottom();
+            float ex = sx + dx * (-len);  // Toward center
+            float ey = sy + dy * (-len);
+            // Use center-pointing direction
+            ex = sx - dx * len;
+            ey = sy - dy * len;
+            g.drawLine(sx, sy, ex, ey, t);
+            // Arrowhead at the inward end
+            g.drawLine(ex, ey, ex + dx * arrow, ey, t);
+            g.drawLine(ex, ey, ex, ey + dy * arrow, t);
+        }
+    }
+
+private:
+    void drawLongPressOverlay(juce::Graphics& g, juce::Rectangle<float> bounds)
+    {
+        if (isLongPressActive && !thresholdReached)
+        {
+            auto elapsed = (juce::Time::getCurrentTime() - pressStartTime).inMilliseconds();
+            float progress = juce::jlimit(0.0f, 1.0f,
+                static_cast<float>(elapsed) / static_cast<float>(getEffectiveDuration()));
+            g.setColour(ColorScheme::get().accentBlue.withAlpha(0.5f));
+            g.fillRoundedRectangle(bounds.removeFromLeft(bounds.getWidth() * progress), 4.0f);
+        }
+        if (thresholdReached && isLongPressActive)
+        {
+            g.setColour(ColorScheme::get().accentGreen.withAlpha(0.5f));
+            g.fillRoundedRectangle(bounds, 4.0f);
+        }
+    }
+};
+
+//==============================================================================
+// Stage Reposition Button — Dismiss (X icon)
+class StageDismissButton : public LongPressButton
+{
+public:
+    StageDismissButton() : LongPressButton(1000) {}
+
+    void paintButton(juce::Graphics& g, bool shouldHighlight, bool shouldBeDown) override
+    {
+        auto bounds = getLocalBounds().toFloat().reduced(2.0f);
+
+        if (!isEnabled())
+            g.setColour(ColorScheme::get().buttonNormal.withAlpha(0.4f));
+        else if (shouldBeDown)
+            g.setColour(ColorScheme::get().buttonPressed);
+        else if (shouldHighlight)
+            g.setColour(ColorScheme::get().buttonHover);
+        else
+            g.setColour(ColorScheme::get().buttonNormal);
+
+        g.fillRoundedRectangle(bounds, 4.0f);
+        g.setColour(ColorScheme::get().buttonBorder);
+        g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
+
+        drawLongPressOverlay(g, bounds);
+
+        // Draw X icon
+        auto icon = bounds.reduced(8.0f);
+        float t = 2.0f;
+
+        g.setColour(ColorScheme::get().textPrimary);
+        g.drawLine(icon.getX(), icon.getY(), icon.getRight(), icon.getBottom(), t);
+        g.drawLine(icon.getRight(), icon.getY(), icon.getX(), icon.getBottom(), t);
+    }
+
+private:
+    void drawLongPressOverlay(juce::Graphics& g, juce::Rectangle<float> bounds)
+    {
+        if (isLongPressActive && !thresholdReached)
+        {
+            auto elapsed = (juce::Time::getCurrentTime() - pressStartTime).inMilliseconds();
+            float progress = juce::jlimit(0.0f, 1.0f,
+                static_cast<float>(elapsed) / static_cast<float>(getEffectiveDuration()));
+            g.setColour(ColorScheme::get().accentBlue.withAlpha(0.5f));
+            g.fillRoundedRectangle(bounds.removeFromLeft(bounds.getWidth() * progress), 4.0f);
+        }
+        if (thresholdReached && isLongPressActive)
+        {
+            g.setColour(ColorScheme::get().accentGreen.withAlpha(0.5f));
+            g.fillRoundedRectangle(bounds, 4.0f);
+        }
+    }
+};
+
 /**
  * System Configuration Tab Component
  * Contains all system-level configuration:
@@ -359,6 +555,29 @@ public:
 
         addAndMakeVisible(originCenterButton);
         originCenterButton.onClick = [this]() { setOriginToCenter(); };
+
+        // Stage reposition buttons (hidden until stage geometry changes after Inputs/Map tab visited)
+        addChildComponent(stageScaleButton);
+        stageScaleButton.onLongPress = [this]() {
+            parameters.getValueTreeState().scaleAllInputPositions(
+                prevStageWidth, prevStageDepth, prevStageHeight,
+                prevOriginW, prevOriginD, prevOriginH);
+            hideStageRepositionButtons();
+        };
+
+        addChildComponent(stageFitButton);
+        stageFitButton.onLongPress = [this]() {
+            parameters.getValueTreeState().fitAllInputPositionsToStage();
+            hideStageRepositionButtons();
+        };
+
+        addChildComponent(stageDismissButton);
+        stageDismissButton.onLongPress = [this]() {
+            hideStageRepositionButtons();
+        };
+
+        // Snapshot initial stage dimensions
+        snapshotStageDimensions();
 
         addAndMakeVisible(speedOfSoundLabel);
         speedOfSoundLabel.setText(LOC("systemConfig.labels.speedOfSound"), juce::dontSendNotification);
@@ -966,6 +1185,10 @@ public:
         stageShapeSelector.setBounds(x + labelWidth - 6, y, editorWidth + 12, rowHeight);
         y += rowHeight + spacing;
 
+        // Origin / reposition button column X
+        const int originButtonSize = scaled(30);
+        int buttonX = x + labelWidth + editorWidth + spacing + unitWidth + spacing;
+
         // Dimension row 1: Width (box) or Diameter (cylinder/dome)
         stageWidthLabel.setBounds(x, y, labelWidth, rowHeight);
         stageWidthEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
@@ -973,6 +1196,7 @@ public:
         stageDiameterLabel.setBounds(x, y, labelWidth, rowHeight);
         stageDiameterEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
         stageDiameterUnitLabel.setBounds(x + labelWidth + editorWidth + spacing, y, unitWidth, rowHeight);
+        stageScaleButton.setBounds(buttonX, y, originButtonSize, rowHeight);
         y += rowHeight + spacing;
 
         // Dimension row 2: Depth (box) or Height (cylinder) or Elevation (dome)
@@ -982,18 +1206,17 @@ public:
         domeElevationLabel.setBounds(x, y, labelWidth, rowHeight);
         domeElevationEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
         domeElevationUnitLabel.setBounds(x + labelWidth + editorWidth + spacing, y, unitWidth, rowHeight);
+        stageFitButton.setBounds(buttonX, y, originButtonSize, rowHeight);
         y += rowHeight + spacing;
 
         // Dimension row 3: Height (box/cylinder only)
         stageHeightLabel.setBounds(x, y, labelWidth, rowHeight);
         stageHeightEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
         stageHeightUnitLabel.setBounds(x + labelWidth + editorWidth + spacing, y, unitWidth, rowHeight);
+        stageDismissButton.setBounds(buttonX, y, originButtonSize, rowHeight);
         y += rowHeight + spacing;
 
         // Origin coordinates with preset buttons
-        const int originButtonSize = scaled(30);
-        int buttonX = x + labelWidth + editorWidth + spacing + unitWidth + spacing;
-
         stageOriginWidthLabel.setBounds(x, y, labelWidth, rowHeight);
         stageOriginWidthEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
         stageOriginWidthUnitLabel.setBounds(x + labelWidth + editorWidth + spacing, y, unitWidth, rowHeight);
@@ -1194,6 +1417,18 @@ public:
         exportSystemConfigButton.setBounds(row2);
 
         WfsLookAndFeel::scaleTextEditorFonts(*this, layoutScale);
+    }
+
+    void setInputsOrMapTabVisited()
+    {
+        inputsOrMapTabVisited = true;
+    }
+
+    void resetInputsOrMapTabVisited()
+    {
+        inputsOrMapTabVisited = false;
+        hideStageRepositionButtons();
+        snapshotStageDimensions();
     }
 
     void setStatusBar(StatusBar* bar)
@@ -1860,21 +2095,42 @@ private:
             }
         }
         else if (&editor == &stageWidthEditor)
+        {
             parameters.setConfigParam("StageWidth", text.getFloatValue());
+            onStageGeometryChanged();
+        }
         else if (&editor == &stageDepthEditor)
+        {
             parameters.setConfigParam("StageDepth", text.getFloatValue());
+            onStageGeometryChanged();
+        }
         else if (&editor == &stageHeightEditor)
+        {
             parameters.setConfigParam("StageHeight", text.getFloatValue());
+            onStageGeometryChanged();
+        }
         else if (&editor == &stageDiameterEditor)
+        {
             parameters.setConfigParam("StageDiameter", text.getFloatValue());
+            onStageGeometryChanged();
+        }
         else if (&editor == &domeElevationEditor)
             parameters.setConfigParam("DomeElevation", text.getFloatValue());
         else if (&editor == &stageOriginWidthEditor)
+        {
             parameters.setConfigParam("StageOriginWidth", text.getFloatValue());
+            onStageGeometryChanged();
+        }
         else if (&editor == &stageOriginDepthEditor)
+        {
             parameters.setConfigParam("StageOriginDepth", text.getFloatValue());
+            onStageGeometryChanged();
+        }
         else if (&editor == &stageOriginHeightEditor)
+        {
             parameters.setConfigParam("StageOriginHeight", text.getFloatValue());
+            onStageGeometryChanged();
+        }
         else if (&editor == &speedOfSoundEditor)
         {
             float speedOfSound = text.getFloatValue();
@@ -2528,6 +2784,7 @@ public:
         parameters.setConfigParam("StageOriginWidth", 0.0f);
         parameters.setConfigParam("StageOriginDepth", frontOffset);
         parameters.setConfigParam("StageOriginHeight", 0.0f);
+        onStageGeometryChanged();
     }
 
     void setOriginToCenterGround()
@@ -2536,6 +2793,7 @@ public:
         parameters.setConfigParam("StageOriginWidth", 0.0f);
         parameters.setConfigParam("StageOriginDepth", 0.0f);
         parameters.setConfigParam("StageOriginHeight", 0.0f);
+        onStageGeometryChanged();
     }
 
     void setOriginToCenter()
@@ -2552,6 +2810,53 @@ public:
         parameters.setConfigParam("StageOriginWidth", 0.0f);
         parameters.setConfigParam("StageOriginDepth", 0.0f);
         parameters.setConfigParam("StageOriginHeight", halfHeight);
+        onStageGeometryChanged();
+    }
+
+    //==============================================================================
+    // Stage reposition helpers
+
+    void snapshotStageDimensions()
+    {
+        prevStageWidth  = (float) parameters.getConfigParam ("StageWidth");
+        prevStageDepth  = (float) parameters.getConfigParam ("StageDepth");
+        prevStageHeight = (float) parameters.getConfigParam ("StageHeight");
+        prevOriginW     = (float) parameters.getConfigParam ("StageOriginWidth");
+        prevOriginD     = (float) parameters.getConfigParam ("StageOriginDepth");
+        prevOriginH     = (float) parameters.getConfigParam ("StageOriginHeight");
+    }
+
+    void showStageRepositionButtons()
+    {
+        stageRepositionButtonsVisible = true;
+        stageScaleButton.setVisible (true);
+        stageFitButton.setVisible (true);
+        stageDismissButton.setVisible (true);
+    }
+
+    void hideStageRepositionButtons()
+    {
+        stageRepositionButtonsVisible = false;
+        stageScaleButton.setVisible (false);
+        stageFitButton.setVisible (false);
+        stageDismissButton.setVisible (false);
+        // Update snapshot to current values for next change
+        snapshotStageDimensions();
+    }
+
+    void onStageGeometryChanged()
+    {
+        if (! inputsOrMapTabVisited)
+        {
+            // Silently redistribute before user has seen the inputs
+            parameters.getValueTreeState().redistributeAllInputPositions();
+            snapshotStageDimensions();
+        }
+        else if (! stageRepositionButtonsVisible)
+        {
+            // Show buttons for user to choose
+            showStageRepositionButtons();
+        }
     }
 
     //==============================================================================
@@ -2889,6 +3194,9 @@ public:
         helpTextMap[&originFrontButton] = LOC("systemConfig.help.originFront");
         helpTextMap[&originCenterGroundButton] = LOC("systemConfig.help.originCenterGround");
         helpTextMap[&originCenterButton] = LOC("systemConfig.help.originCenter");
+        helpTextMap[&stageScaleButton] = LOC("systemConfig.help.stageScale");
+        helpTextMap[&stageFitButton] = LOC("systemConfig.help.stageFit");
+        helpTextMap[&stageDismissButton] = LOC("systemConfig.help.stageDismiss");
         helpTextMap[&speedOfSoundEditor] = LOC("systemConfig.help.speedOfSound");
         helpTextMap[&temperatureEditor] = LOC("systemConfig.help.temperature");
         helpTextMap[&masterLevelEditor] = LOC("systemConfig.help.masterLevel");
@@ -3067,6 +3375,13 @@ public:
     OriginFrontButton originFrontButton;
     OriginCenterGroundButton originCenterGroundButton;
     OriginCenterButton originCenterButton;
+    StageScaleButton stageScaleButton;
+    StageFitButton stageFitButton;
+    StageDismissButton stageDismissButton;
+    bool inputsOrMapTabVisited = false;
+    bool stageRepositionButtonsVisible = false;
+    float prevStageWidth = 0.0f, prevStageDepth = 0.0f, prevStageHeight = 0.0f;
+    float prevOriginW = 0.0f, prevOriginD = 0.0f, prevOriginH = 0.0f;
     juce::Label speedOfSoundLabel;
     juce::TextEditor speedOfSoundEditor;
     juce::Label speedOfSoundUnitLabel;

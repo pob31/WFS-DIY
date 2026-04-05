@@ -641,6 +641,8 @@ MainComponent::MainComponent()
         }
         if (quickKeysManager)
             quickKeysManager->setActivePage (tabIndex, 0);
+        if ((tabIndex == 4 || tabIndex == 6) && systemConfigTab != nullptr)
+            systemConfigTab->setInputsOrMapTabVisited();
     };
 
     // Load saved color scheme from parameters and apply it
@@ -2822,6 +2824,10 @@ void MainComponent::handleConfigReloaded()
 
     // Reload audio patches from ValueTree (input/output channel routing)
     loadAudioPatches();
+
+    // Reset the inputs-visited flag so stage changes auto-redistribute until user visits Inputs/Map
+    if (systemConfigTab != nullptr)
+        systemConfigTab->resetInputsOrMapTabVisited();
 
     // Refresh all tabs to show newly loaded config data
     if (networkTab != nullptr)
