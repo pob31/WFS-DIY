@@ -553,8 +553,11 @@
     "tooltips": {
       "fitStage": "Ajustar el zoom y panorámica para mostrar el escenario",
       "fitInputs": "Ajustar el zoom y panorámica para mostrar todas las entradas visibles",
-      "levels": "Mostrar los niveles de entradas y salidas en el mapa"
+      "levels": "Mostrar los niveles de entradas y salidas en el mapa",
+      "detach": "Separar el mapa en una ventana independiente para configuraciones de doble pantalla"
     },
+    "reattach": "Reinsertar mapa",
+    "detachedMessage": "El mapa se muestra en una ventana separada.",
     "labels": {
       "reverbPrefix": "R"
     },

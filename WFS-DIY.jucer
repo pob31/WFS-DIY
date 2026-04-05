@@ -39,6 +39,10 @@
               file="Source/gui/ClustersTab.h"/>
         <FILE id="guiRevTab" name="ReverbTab.h" compile="0" resource="0" file="Source/gui/ReverbTab.h"/>
         <FILE id="guiMapTab" name="MapTab.h" compile="0" resource="0" file="Source/gui/MapTab.h"/>
+        <FILE id="guiMapTabWin" name="MapTabWindow.h" compile="0" resource="0"
+              file="Source/gui/MapTabWindow.h"/>
+        <FILE id="guiMapTabPH" name="MapTabPlaceholder.h" compile="0" resource="0"
+              file="Source/gui/MapTabPlaceholder.h"/>
         <FILE id="guiNetTab" name="NetworkTab.h" compile="0" resource="0" file="Source/gui/NetworkTab.h"/>
         <FILE id="guiNetLogH" name="NetworkLogWindow.h" compile="0" resource="0"
               file="Source/gui/NetworkLogWindow.h"/>

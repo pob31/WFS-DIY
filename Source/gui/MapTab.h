@@ -69,6 +69,16 @@ public:
             repaint();
         };
 
+        // Detach button — pop out map into its own window
+        addAndMakeVisible(detachButton);
+        detachButton.setButtonText(juce::String::charToString(0x21F1));  // ⇱ (NW arrow to corner)
+        detachButton.setTooltip(LOC("map.tooltips.detach"));
+        detachButton.onClick = [this]()
+        {
+            if (onDetachRequested)
+                onDetachRequested();
+        };
+
         // Map help card
         addAndMakeVisible(mapHelpButton);
         addChildComponent(mapHelpCard);
@@ -245,6 +255,17 @@ public:
         return getClusterBarycenter (clusterNum);
     }
 
+    /** Set whether the map is currently detached into its own window.
+        Hides the detach button when detached (window close button serves that purpose). */
+    void setDetached(bool detached)
+    {
+        isDetached = detached;
+        detachButton.setVisible(!detached);
+    }
+
+    /** Callback when the user clicks the detach button. */
+    std::function<void()> onDetachRequested;
+
     /** Reset the map view to show the entire stage (for Stream Deck). */
     void requestResetView() { resetView(); repaint(); }
 
@@ -395,6 +416,12 @@ public:
         const int fitBtnGap = juce::jmax(3, static_cast<int>(5.0f * us));
         homeButton.setBounds(getWidth() - margin - homeW, margin, homeW, btnH);
         fitInputsButton.setBounds(getWidth() - margin - homeW - fitBtnGap - fitW, margin, fitW, btnH);
+
+        // Detach button — square, to the left of fitInputsButton
+        {
+            const int detachW = btnH;  // Square button
+            detachButton.setBounds(fitInputsButton.getX() - fitBtnGap - detachW, margin, detachW, btnH);
+        }
 
         // Help button — below the fit buttons, top-right
         {
@@ -2337,6 +2364,9 @@ private:
     bool isDraggingBarycenter = false;
     juce::Point<float> barycenterDragStartStagePos;
 
+    // Detached state
+    bool isDetached = false;
+
     // Reverb edit mode
     bool reverbEditMode = false;
     int selectedReverbNode = -1;  // 0-based reverb index, -1 = none
@@ -2348,6 +2378,7 @@ private:
     juce::TextButton homeButton;
     juce::TextButton fitInputsButton;
     juce::TextButton levelOverlayButton;
+    juce::TextButton detachButton;
 
     // Level overlay state
     bool levelOverlayEnabled = false;
@@ -2370,6 +2401,7 @@ private:
         helpTextMap[&homeButton] = LOC("map.tooltips.fitStage");
         helpTextMap[&fitInputsButton] = LOC("map.tooltips.fitInputs");
         helpTextMap[&levelOverlayButton] = LOC("map.tooltips.levels");
+        helpTextMap[&detachButton] = LOC("map.tooltips.detach");
     }
 
     void setupMouseListeners()

@@ -553,8 +553,11 @@
     "tooltips": {
       "fitStage": "Zoom und Schwenken anpassen, um die Bühne anzuzeigen",
       "fitInputs": "Zoom und Schwenken anpassen, um alle sichtbaren Eingänge anzuzeigen",
-      "levels": "Pegel für Eingänge und Ausgänge auf der Karte anzeigen"
+      "levels": "Pegel für Eingänge und Ausgänge auf der Karte anzeigen",
+      "detach": "Karte in ein separates Fenster lösen für Dual-Screen-Setups"
     },
+    "reattach": "Karte wieder anheften",
+    "detachedMessage": "Die Karte wird in einem separaten Fenster angezeigt.",
     "labels": {
       "reverbPrefix": "H"
     },

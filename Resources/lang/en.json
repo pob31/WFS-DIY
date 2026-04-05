@@ -636,8 +636,11 @@
     "tooltips": {
       "fitStage": "Adjust the zoom and panning to fit the stage on the display",
       "fitInputs": "Adjust the zoom and panning to fit all visible inputs on the display",
-      "levels": "Display the levels for inputs and outputs on the map"
+      "levels": "Display the levels for inputs and outputs on the map",
+      "detach": "Detach the map into a separate window for dual-screen setups"
     },
+    "reattach": "Re-attach Map",
+    "detachedMessage": "The map is displayed in a separate window.",
     "labels": {
       "reverbPrefix": "R"
     },

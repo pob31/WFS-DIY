@@ -27,6 +27,8 @@
 #include "gui/ReverbTab.h"
 #include "gui/MapTab.h"
 #include "gui/AudioInterfaceWindow.h"
+#include "gui/MapTabWindow.h"
+#include "gui/MapTabPlaceholder.h"
 #include "gui/NetworkLogWindow.h"
 #include "gui/LevelMeterWindow.h"
 #include "gui/ColorScheme.h"
@@ -124,6 +126,10 @@ public:
     void setupPatchWindowStreamDeck (PatchWindowPages::PatchCallbacks& cb,
                                      PatchWindowPages::PatchStateQueries& q);
 
+    // Detachable Map Window
+    void detachMapTab();
+    void attachMapTab();
+
     // Network Log Window
     void openNetworkLogWindow();
 
@@ -162,7 +168,9 @@ private:
     InputsTab* inputsTab = nullptr;
     ClustersTab* clustersTab = nullptr;
     ReverbTab* reverbTab = nullptr;
-    MapTab* mapTab = nullptr;
+    std::unique_ptr<MapTab> mapTab;                          // Owned here, not by TabbedComponent
+    std::unique_ptr<MapTabWindow> mapTabWindow;              // Non-null when map is detached
+    std::unique_ptr<MapTabPlaceholder> mapTabPlaceholder;    // Shown in tab 6 when map is detached
 
     std::unique_ptr<AudioInterfaceWindow> audioInterfaceWindow;
     std::unique_ptr<NetworkLogWindow> networkLogWindow;

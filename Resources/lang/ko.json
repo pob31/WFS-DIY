@@ -517,8 +517,11 @@
     "tooltips": {
       "fitStage": "무대가 표시되도록 확대/축소 및 이동 조정",
       "fitInputs": "모든 보이는 입력이 표시되도록 확대/축소 및 이동 조정",
-      "levels": "맵에 입력 및 출력 레벨 표시"
+      "levels": "맵에 입력 및 출력 레벨 표시",
+      "detach": "듀얼 스크린 설정을 위해 맵을 별도 창으로 분리"
     },
+    "reattach": "맵 다시 붙이기",
+    "detachedMessage": "맵이 별도의 창에 표시되고 있습니다.",
     "labels": {
       "reverbPrefix": "리"
     },

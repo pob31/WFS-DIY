@@ -250,7 +250,7 @@ MainComponent::MainComponent()
     inputsTab = new InputsTab(parameters);
     clustersTab = new ClustersTab(parameters);
     reverbTab = new ReverbTab(parameters);
-    mapTab = new MapTab(parameters);
+    mapTab = std::make_unique<MapTab>(parameters);
 
     // Set accessible names for screen readers (prevents "Custom" announcement)
     systemConfigTab->setName("System Configuration");
@@ -627,7 +627,7 @@ MainComponent::MainComponent()
     tabbedComponent.addTab(tabReverb, ColorScheme::get().chromeBackground, reverbTab, true);
     tabbedComponent.addTab(tabInputs, ColorScheme::get().chromeBackground, inputsTab, true);
     tabbedComponent.addTab(tabClusters, ColorScheme::get().chromeBackground, clustersTab, true);
-    tabbedComponent.addTab(tabMap, ColorScheme::get().chromeBackground, mapTab, true);
+    tabbedComponent.addTab(tabMap, ColorScheme::get().chromeBackground, mapTab.get(), false);
 
     // Wire per-tab undo domain: Ctrl+Z only affects the currently focused tab
     tabbedComponent.onTabChanged = [this](int tabIndex) {
@@ -685,6 +685,9 @@ MainComponent::MainComponent()
     // colorSchemeChanged() was never triggered at startup. This ensures TextEditor cached
     // colors match the active theme from the first frame.
     colorSchemeChanged();
+
+    // Wire detach button on Map tab
+    mapTab->onDetachRequested = [this]() { detachMapTab(); };
 
     // Set up navigation callback from Map tab to other tabs via long-press gesture
     // Parameters: (tabType, index) where tabType is: 0=Input, 1=Cluster, 2=Output, 3=Reverb
@@ -2191,6 +2194,10 @@ MainComponent::~MainComponent()
     // Clear LocalizationManager resources before JUCE leak detector runs
     LocalizationManager::getInstance().shutdown();
 
+    // Destroy detached map window before tearing down UI
+    mapTabWindow.reset();
+    mapTabPlaceholder.reset();
+
     // Remove all child components before destroying LookAndFeel
     // This ensures Windows UI Automation providers are properly released
     removeAllChildren();
@@ -3342,6 +3349,78 @@ void MainComponent::setupPatchWindowStreamDeck (PatchWindowPages::PatchCallbacks
     };
 }
 
+//==============================================================================
+// Detachable Map Window
+//==============================================================================
+
+void MainComponent::detachMapTab()
+{
+    if (mapTabWindow != nullptr)
+    {
+        // Already detached — bring to front
+        mapTabWindow->toFront(true);
+        return;
+    }
+
+    // Remove MapTab from TabbedComponent (ownership=false, so it won't be deleted)
+    tabbedComponent.removeTab(6);
+
+    // Insert placeholder at tab 6
+    mapTabPlaceholder = std::make_unique<MapTabPlaceholder>();
+    mapTabPlaceholder->onReattachRequested = [this]() { attachMapTab(); };
+    juce::String tabMap = LOC("tabs.map");
+    tabbedComponent.addTab(tabMap, ColorScheme::get().chromeBackground, mapTabPlaceholder.get(), false);
+
+    // Create the detached window (displays MapTab without owning it)
+    mapTabWindow = std::make_unique<MapTabWindow>(mapTab.get());
+    mapTab->setDetached(true);
+
+    // Stream Deck: show map pages when detached window is focused
+    mapTabWindow->onWindowFocused = [this]()
+    {
+        if (streamDeckManager)
+            streamDeckManager->setMainTab(MapTabPages::MAP_MAIN_TAB_INDEX);
+    };
+
+    mapTabWindow->onWindowUnfocused = [this]()
+    {
+        if (streamDeckManager)
+            streamDeckManager->setMainTab(tabbedComponent.getCurrentTabIndex());
+    };
+
+    mapTabWindow->onWindowClosed = [this]()
+    {
+        // Re-attach on next message loop iteration to avoid destroying
+        // the window from within its own callback
+        juce::MessageManager::callAsync([this]() { attachMapTab(); });
+    };
+}
+
+void MainComponent::attachMapTab()
+{
+    if (mapTabWindow == nullptr)
+        return;
+
+    // Destroy the detached window (setContentNonOwned — MapTab is NOT deleted)
+    mapTabWindow.reset();
+    mapTab->setDetached(false);
+
+    // Remove placeholder from tab 6
+    tabbedComponent.removeTab(6);
+    mapTabPlaceholder.reset();
+
+    // Re-add MapTab at tab 6
+    juce::String tabMap = LOC("tabs.map");
+    tabbedComponent.addTab(tabMap, ColorScheme::get().chromeBackground, mapTab.get(), false);
+
+    // Show the re-attached map tab
+    tabbedComponent.setCurrentTabIndex(6);
+
+    // Restore Stream Deck to current tab
+    if (streamDeckManager)
+        streamDeckManager->setMainTab(6);
+}
+
 void MainComponent::openAudioInterfaceWindow()
 {
     if (audioInterfaceWindow == nullptr)
@@ -4350,6 +4429,8 @@ void MainComponent::timerCallback()
     // visual-only updates when minimized to avoid message-queue congestion
     // that can starve the audio thread's parameter updates.
     const bool windowVisible = isShowing();
+    const bool mapVisible = (mapTabWindow != nullptr) ? mapTabWindow->isVisible()
+                          : (windowVisible && tabbedComponent.getCurrentTabIndex() == 6);
 
     // Update master level gain target (message thread → audio thread via atomic)
     {
@@ -4420,7 +4501,7 @@ void MainComponent::timerCallback()
             }
 
             // Keep map repainting while speed limiter is catching up
-            if (windowVisible && mapTab != nullptr)
+            if (mapVisible && mapTab != nullptr)
             {
                 if (speedLimiter->isAnyInputMoving())
                     mapTab->repaint();
@@ -4486,7 +4567,7 @@ void MainComponent::timerCallback()
             automOtionProcessor->process(0.02f);  // 20ms delta time (50Hz)
 
             // Repaint map while AutomOtion is active (shows moving grey dot)
-            if (windowVisible && automOtionProcessor->isAnyActive() && mapTab != nullptr)
+            if (mapVisible && automOtionProcessor->isAnyActive() && mapTab != nullptr)
                 mapTab->repaint();
         }
 
@@ -4500,7 +4581,7 @@ void MainComponent::timerCallback()
             levelMeteringManager->updateLevels();
 
             // Repaint map if level overlay is enabled
-            if (windowVisible && levelMeteringManager->isMapOverlayEnabled() && mapTab != nullptr)
+            if (mapVisible && levelMeteringManager->isMapOverlayEnabled() && mapTab != nullptr)
                 mapTab->repaint();
         }
 
@@ -4961,7 +5042,7 @@ void MainComponent::timerCallback()
 
         // Repaint map if any LFO (per-input or cluster) is active
         bool anyClusterLFOActive = (clustersTab != nullptr && clustersTab->isAnyClusterLFOActive());
-        if (windowVisible && mapTab != nullptr && (anyLFOActive || anyClusterLFOActive))
+        if (mapVisible && mapTab != nullptr && (anyLFOActive || anyClusterLFOActive))
             mapTab->repaint();
 
         // Send composite delta to Remote targets (delta = composite - target position)

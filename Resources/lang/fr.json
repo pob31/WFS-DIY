@@ -566,8 +566,11 @@
     "tooltips": {
       "fitStage": "Ajuster le zoom et le panoramique pour afficher la scène",
       "fitInputs": "Ajuster le zoom et le panoramique pour afficher toutes les entrées visibles",
-      "levels": "Afficher les niveaux des entrées et sorties sur la carte"
+      "levels": "Afficher les niveaux des entrées et sorties sur la carte",
+      "detach": "Détacher la carte dans une fenêtre séparée pour les configurations double écran"
     },
+    "reattach": "Rattacher la carte",
+    "detachedMessage": "La carte est affichée dans une fenêtre séparée.",
     "labels": {
       "reverbPrefix": "R"
     },

@@ -553,8 +553,11 @@
     "tooltips": {
       "fitStage": "调整缩放和平移以显示舞台",
       "fitInputs": "调整缩放和平移以显示所有可见输入",
-      "levels": "在地图上显示输入和输出的电平"
+      "levels": "在地图上显示输入和输出的电平",
+      "detach": "将地图分离到单独窗口以适配双屏设置"
     },
+    "reattach": "重新附加地图",
+    "detachedMessage": "地图正在单独的窗口中显示。",
     "labels": {
       "reverbPrefix": "混"
     },
