@@ -191,6 +191,38 @@ public:
         return sequence;
     }
 
+    /**
+     * Build a single QLab network cue to select a sampler set on a channel.
+     *
+     * @param channelId        1-based input channel number
+     * @param setNumber        1-based set number
+     * @param setName          Display name of the set
+     * @param qlabPatchNumber  QLab network patch to assign
+     * @return QLabCueSequence with a single network cue
+     */
+    static QLabCueSequence buildSamplerSetCue (
+        int channelId,
+        int setNumber,
+        const juce::String& setName,
+        int qlabPatchNumber)
+    {
+        QLabCueSequence sequence;
+
+        QLabCueSequence::NetworkCue cue;
+        cue.movePosition = 0;  // No group — standalone cue
+        cue.messages.push_back (juce::OSCMessage ("/new", juce::String ("network")));
+        cue.messages.push_back (juce::OSCMessage ("/cue/selected/patch", qlabPatchNumber));
+        cue.messages.push_back (juce::OSCMessage ("/cue/selected/customString",
+            juce::String ("/wfs/input/samplerSet " + juce::String (channelId) + " " + juce::String (setNumber))));
+        cue.messages.push_back (juce::OSCMessage ("/cue/selected/name",
+            LOC ("sampler.qlabSetCueName")
+                .replace ("{channel}", juce::String (channelId))
+                .replace ("{name}", setName)));
+        sequence.networkCues.push_back (std::move (cue));
+
+        return sequence;
+    }
+
 private:
     /** Append QLab network cue entries for all in-scope parameters of one channel */
     static void appendChannelCues (

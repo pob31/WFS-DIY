@@ -1684,6 +1684,8 @@
       "import": "Import sampler configuration from file",
       "export": "Export sampler configuration to file"
     },
+    "qlabSetCueName": "Ingresso {channel} Set Sampler: {name}",
+    "qlabSetCueCreated": "Cue QLab creato: Ingresso {channel} set \"{name}\"",
     "guide": "Select a cell on the grid to edit its properties.\nDouble-click to load a sample.\nUse Ctrl+Click to assign cells to the active set."
   },
 

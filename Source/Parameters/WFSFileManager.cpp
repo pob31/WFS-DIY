@@ -1115,12 +1115,10 @@ WFSFileManager::ExtendedSnapshotScope::getOverallState (int numChannels) const
 
 void WFSFileManager::ExtendedSnapshotScope::initializeDefaults (int numChannels)
 {
+    juce::ignoreUnused (numChannels);
     itemChannelStates.clear();
     applyMode = ApplyMode::OnRecall;
-
-    // ADM Mapping defaults to OFF (excluded)
-    for (int ch = 0; ch < numChannels; ++ch)
-        setIncluded ("admMapping", ch, false);
+    // All scope items default to included (missing = included convention)
 }
 
 //==============================================================================
@@ -1367,6 +1365,8 @@ juce::ValueTree WFSFileManager::extractInputWithExtendedScope (int channelIndex,
             filteredChannel.setProperty (inputDelayLatency, channelTree.getProperty (inputDelayLatency), nullptr);
             filteredChannel.setProperty (inputMinimalLatency, channelTree.getProperty (inputMinimalLatency), nullptr);
         }
+        if (scope.isIncluded ("sampler", channelIndex) && channelTree.hasProperty (inputSamplerActive))
+            filteredChannel.setProperty (inputSamplerActive, channelTree.getProperty (inputSamplerActive), nullptr);
 
         filtered.appendChild (filteredChannel, nullptr);
     }
@@ -1505,6 +1505,8 @@ bool WFSFileManager::applyInputWithExtendedScope (int channelIndex, const juce::
                 if (loadedChannel.hasProperty (inputMinimalLatency))
                     existingChannel.setProperty (inputMinimalLatency, loadedChannel.getProperty (inputMinimalLatency), undoManager);
             }
+            if (scope.isIncluded ("sampler", channelIndex) && loadedChannel.hasProperty (inputSamplerActive))
+                existingChannel.setProperty (inputSamplerActive, loadedChannel.getProperty (inputSamplerActive), undoManager);
         }
     }
 

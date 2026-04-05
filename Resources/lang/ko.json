@@ -1646,6 +1646,8 @@
       "import": "Import sampler configuration from file",
       "export": "Export sampler configuration to file"
     },
+    "qlabSetCueName": "입력 {channel} 샘플러 세트: {name}",
+    "qlabSetCueCreated": "QLab 큐 생성: 입력 {channel} 세트 \"{name}\"",
     "guide": "Select a cell on the grid to edit its properties.\nDouble-click to load a sample.\nUse Ctrl+Click to assign cells to the active set."
   },
 

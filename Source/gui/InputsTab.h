@@ -7577,9 +7577,7 @@ private:
             auto target = networkState.getChild (i);
             if (target.getType() != WFSParameterIDs::NetworkTarget) continue;
             int protocol = static_cast<int> (target.getProperty (WFSParameterIDs::networkTSProtocol, 0));
-            bool active = static_cast<int> (target.getProperty (WFSParameterIDs::networkTStxEnable, 0)) != 0
-                       || static_cast<int> (target.getProperty (WFSParameterIDs::networkTSrxEnable, 0)) != 0;
-            if (active && protocol == 3)  // 3 = ADMOSC in ValueTree (0-based)
+            if (protocol == 3)  // 3 = ADM-OSC — target line exists, regardless of tx/rx enable
                 return true;
         }
         return false;

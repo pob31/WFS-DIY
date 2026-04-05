@@ -2428,6 +2428,7 @@ juce::ValueTree WFSValueTreeState::createInputSamplerSection()
     }
 
     // No sets by default — user creates them dynamically
+    sampler.setProperty (inputSamplerActiveSet, inputSamplerActiveSetDefault, nullptr);
 
     return sampler;
 }

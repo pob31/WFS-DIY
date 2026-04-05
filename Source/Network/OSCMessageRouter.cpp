@@ -128,6 +128,10 @@ const std::map<juce::String, juce::Identifier>& OSCMessageRouter::getInputAddres
         // Reverb
         { "reverbSend",      WFSParameterIDs::inputReverbSend },
 
+        // Sampler
+        { "samplerActive",   WFSParameterIDs::inputSamplerActive },
+        { "samplerSet",      WFSParameterIDs::inputSamplerActiveSet },
+
         // Gradient Map layer enable — per-layer addresses: <channelID> <0|1>
         { "gmLayer0Enabled", WFSParameterIDs::gmLayer0Enabled },
         { "gmLayer1Enabled", WFSParameterIDs::gmLayer1Enabled },

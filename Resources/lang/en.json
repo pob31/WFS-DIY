@@ -1903,6 +1903,8 @@
       "import": "Import sampler configuration from file",
       "export": "Export sampler configuration to file"
     },
+    "qlabSetCueName": "Input {channel} Sampler Set: {name}",
+    "qlabSetCueCreated": "QLab cue created: Input {channel} set \"{name}\"",
     "guide": "Select a cell on the grid to edit its properties.\nDouble-click to load a sample.\nUse Ctrl+Click to assign cells to the active set.",
     "zone": {
       "remotePad": "Pad {num}",

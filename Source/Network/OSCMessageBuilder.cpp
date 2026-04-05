@@ -122,6 +122,10 @@ const std::map<juce::Identifier, OSCMessageBuilder::ParamMapping>& OSCMessageBui
 
         // Reverb Sends
         { WFSParameterIDs::inputReverbSend,      { "/wfs/input/reverbSend",       "/remoteInput/reverbSend" } },
+
+        // Sampler
+        { WFSParameterIDs::inputSamplerActive,    { "/wfs/input/samplerActive",   "" } },
+        { WFSParameterIDs::inputSamplerActiveSet, { "/wfs/input/samplerSet",      "" } },
     };
 
     return mappings;

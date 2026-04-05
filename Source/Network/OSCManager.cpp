@@ -1655,6 +1655,13 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
                             layerTree.setProperty(WFSParameterIDs::gmLayerEnabled, enabled, nullptr);
                         }
                     }
+                    else if (parsed.paramId == WFSParameterIDs::inputSamplerActiveSet)
+                    {
+                        // OSC uses 1-based set numbers, internal storage is 0-based
+                        int setIdx = static_cast<int> (static_cast<double> (parsed.value)) - 1;
+                        if (setIdx >= 0)
+                            state.setInputParameter(channelIndex, parsed.paramId, setIdx);
+                    }
                     else if (parsed.value.isDouble() || parsed.value.isString())
                     {
                         state.setInputParameter(channelIndex, parsed.paramId, valueToSet);

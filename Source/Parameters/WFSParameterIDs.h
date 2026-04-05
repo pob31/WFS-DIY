@@ -603,6 +603,7 @@ namespace WFSParameterIDs
     // Per-channel (stored in Channel section)
     const juce::Identifier inputSamplerActive    ("inputSamplerActive");      // 0=OFF, 1=ON
     const juce::Identifier samplerMidiZoneQuadrant ("samplerMidiZoneQuadrant"); // 0=full, 1-4=quadrant
+    const juce::Identifier inputSamplerActiveSet ("inputSamplerActiveSet");    // 0-based index of active set
 
     // SamplerCell properties (per cell in 6x6 grid)
     const juce::Identifier samplerCellName       ("samplerCellName");         // display name

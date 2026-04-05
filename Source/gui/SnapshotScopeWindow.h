@@ -579,11 +579,30 @@ public:
             auto ui = config.getChildWithName (WFSParameterIDs::UI);
             bool samplerOn = ui.isValid() && (bool) ui.getProperty (WFSParameterIDs::samplerEnabled, false);
             if (!samplerOn)
-            {
                 gridComponent->hiddenSections.insert ("Sampler");
-                gridComponent->buildLayout();
-            }
         }
+
+        // Hide ADM Mapping section if no ADM-OSC target is configured
+        {
+            bool hasAdm = false;
+            auto networkState = params.getValueTreeState().getNetworkState();
+            for (int i = 0; i < networkState.getNumChildren(); ++i)
+            {
+                auto target = networkState.getChild (i);
+                if (target.getType() != WFSParameterIDs::NetworkTarget) continue;
+                int protocol = static_cast<int> (target.getProperty (WFSParameterIDs::networkTSProtocol, 0));
+                if (protocol == 3)  // 3 = ADM-OSC — target line exists, regardless of tx/rx enable
+                {
+                    hasAdm = true;
+                    break;
+                }
+            }
+            if (!hasAdm)
+                gridComponent->hiddenSections.insert ("ADMMapping");
+        }
+
+        if (!gridComponent->hiddenSections.empty())
+            gridComponent->buildLayout();
 
         gridComponent->onScopeChanged = [this]() { channelHeader->repaint(); };
         gridComponent->onLayoutChanged = [this]() { resized(); };

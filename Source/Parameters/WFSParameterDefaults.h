@@ -933,6 +933,7 @@ namespace WFSParameterDefaults
     // Per-channel
     constexpr int inputSamplerActiveDefault           = 0;      // OFF
     constexpr int samplerMidiZoneQuadrantDefault      = 0;      // 0=full pad
+    constexpr int inputSamplerActiveSetDefault       = 0;      // First set (0-based)
 
     // Grid
     constexpr int samplerGridRows                     = 6;

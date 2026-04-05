@@ -591,6 +591,23 @@ MainComponent::MainComponent()
         return samplerManager->getPlayingCellIndex (channelIndex);
     };
 
+    // QLab sampler set cue creation
+    inputsTab->getSamplerSubTab().isQLabAvailable = [this]() {
+        return oscManager && oscManager->hasQLabTarget();
+    };
+
+    inputsTab->getSamplerSubTab().onQLabSetCueRequested = [this] (int channelId, int setNumber, const juce::String& setName) {
+        if (! oscManager || ! oscManager->hasQLabTarget()) return;
+        int patchNumber = oscManager->getQLabPatchNumber();
+        auto sequence = WFSNetwork::QLabCueBuilder::buildSamplerSetCue (channelId, setNumber, setName, patchNumber);
+        oscManager->sendToQLab (sequence, [this, channelId, setName] (int) {
+            if (inputsTab != nullptr)
+                inputsTab->showStatusMessage (LOC ("sampler.qlabSetCueCreated")
+                    .replace ("{channel}", juce::String (channelId))
+                    .replace ("{name}", setName));
+        });
+    };
+
     // Create global tooltip window for hover tooltips
     tooltipWindow = std::make_unique<juce::TooltipWindow>(this, 500);
 

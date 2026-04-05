@@ -25,11 +25,14 @@
 class SamplerSubTab : public juce::Component,
                       public ColorScheme::Manager::Listener,
                       public juce::Label::Listener,
+                      public juce::ValueTree::Listener,
                       private juce::Timer
 {
 public:
     /** Callback fired when sampler data changes (wired in MainComponent) */
     std::function<void()> onSamplerDataChanged;
+    std::function<bool()> isQLabAvailable;
+    std::function<void(int channelId, int setNumber, const juce::String& setName)> onQLabSetCueRequested;
 
     /** Callback to trigger preview playback: (channelIndex, cellIndex, noteOn) */
     std::function<void (int, int, bool)> onPreviewCell;
@@ -138,6 +141,18 @@ public:
         renameSetButton.setButtonText (LOC ("sampler.set.rename"));
         renameSetButton.onClick = [this] { onRenameSet(); };
         addAndMakeVisible (renameSetButton);
+
+        qlabSetButton.setButtonText ("Q");
+        qlabSetButton.onClick = [this] {
+            if (onQLabSetCueRequested && activeSetIndex >= 0 && activeSetIndex < static_cast<int> (sets.size()))
+            {
+                juce::String name = sets[static_cast<size_t> (activeSetIndex)].name;
+                if (name.isEmpty())
+                    name = LOC ("sampler.set.default") + " " + juce::String (activeSetIndex + 1);
+                onQLabSetCueRequested (currentChannel + 1, activeSetIndex + 1, name);
+            }
+        };
+        addChildComponent (qlabSetButton);
 
         setNameEditor.setJustification (juce::Justification::centredLeft);
         setNameEditor.onReturnKey = [this] { onSetNameChanged(); };
@@ -282,6 +297,8 @@ public:
     ~SamplerSubTab() override
     {
         stopTimer();
+        if (samplerTree.isValid())
+            samplerTree.removeListener (this);
         ColorScheme::Manager::getInstance().removeListener (this);
     }
 
@@ -476,7 +493,13 @@ public:
     {
         isLoadingData = true;
 
+        if (samplerTree.isValid())
+            samplerTree.removeListener (this);
+
         samplerTree = parameters.getValueTreeState().getInputSamplerSection (currentChannel);
+
+        if (samplerTree.isValid())
+            samplerTree.addListener (this);
 
         // Load cells
         cells.clear();
@@ -516,12 +539,16 @@ public:
             juce::String name = sets[static_cast<size_t> (i)].name;
             if (name.isEmpty())
                 name = LOC ("sampler.set.default") + " " + juce::String (i + 1);
-            setSelector.addItem (name, i + 1);
+            setSelector.addItem (juce::String (i + 1) + ". " + name, i + 1);
         }
 
         if (! sets.empty())
         {
-            activeSetIndex = juce::jlimit (0, static_cast<int> (sets.size()) - 1, activeSetIndex);
+            // Read persisted active set from ValueTree
+            int storedSet = samplerTree.isValid()
+                ? static_cast<int> (samplerTree.getProperty (WFSParameterIDs::inputSamplerActiveSet, 0))
+                : 0;
+            activeSetIndex = juce::jlimit (0, static_cast<int> (sets.size()) - 1, storedSet);
             setSelector.setSelectedId (activeSetIndex + 1, juce::dontSendNotification);
         }
         else
@@ -548,6 +575,23 @@ public:
 
     // ColorScheme::Manager::Listener
     void colorSchemeChanged() override { repaint(); }
+
+    // ValueTree::Listener — react to external changes (e.g. OSC set selection)
+    void valueTreePropertyChanged (juce::ValueTree& tree, const juce::Identifier& property) override
+    {
+        if (isLoadingData) return;
+        if (tree == samplerTree && property == WFSParameterIDs::inputSamplerActiveSet)
+        {
+            int newIdx = static_cast<int> (tree.getProperty (property));
+            if (newIdx >= 0 && newIdx < static_cast<int> (sets.size()) && newIdx != activeSetIndex)
+            {
+                activeSetIndex = newIdx;
+                setSelector.setSelectedId (activeSetIndex + 1, juce::dontSendNotification);
+                updateSetPropertyPanel();
+                repaint();
+            }
+        }
+    }
 
     void visibilityChanged() override
     {
@@ -835,11 +879,18 @@ private:
         sectionLabels.push_back ({ LOC ("sampler.section.set"), y });
         y += scaled (20);
 
-        // Row 1: [selector] [+] [-]
-        int selectorW = contentW - 2 * (24 + pad);
+        // Row 1: [selector] [+] [-] [Q]
+        int sqBtn = rowH;  // Square buttons
+        int qlabBtnW = (isQLabAvailable && isQLabAvailable()) ? sqBtn + pad : 0;
+        int selectorW = contentW - 2 * (sqBtn + pad) - qlabBtnW;
         setSelector.setBounds (x0, y, juce::jmax (60, selectorW), rowH);
-        addSetButton.setBounds (x0 + juce::jmax (60, selectorW) + pad, y, 24, rowH);
-        deleteSetButton.setBounds (x0 + juce::jmax (60, selectorW) + pad + 24 + pad, y, 24, rowH);
+        int btnX = x0 + juce::jmax (60, selectorW) + pad;
+        addSetButton.setBounds (btnX, y, sqBtn, rowH);
+        btnX += sqBtn + pad;
+        deleteSetButton.setBounds (btnX, y, sqBtn, rowH);
+        btnX += sqBtn + pad;
+        qlabSetButton.setBounds (btnX, y, sqBtn, rowH);
+        qlabSetButton.setVisible (isQLabAvailable && isQLabAvailable());
         y += rowH + pad;
 
         // Row 2: [Rename 50%] [Sequential 50%]
@@ -1243,6 +1294,8 @@ private:
         if (newIdx >= 0 && newIdx < static_cast<int> (sets.size()))
         {
             activeSetIndex = newIdx;
+            if (samplerTree.isValid())
+                samplerTree.setProperty (WFSParameterIDs::inputSamplerActiveSet, newIdx, nullptr);
             updateSetPropertyPanel();
             notifyDataChanged();
             repaint();
@@ -1736,6 +1789,7 @@ private:
     juce::TextButton renameSetButton;
     juce::TextEditor setNameEditor;
     juce::TextButton playModeButton;
+    juce::TextButton qlabSetButton;
 
     // ── Set position/level ──
     juce::TextEditor setPosEditors[3];  // X, Y, Z
