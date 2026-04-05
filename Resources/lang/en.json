@@ -258,7 +258,9 @@
       "partialLoad": "Partial load: {error}",
       "partialLoadFromBackup": "Partial load from backup: {error}",
       "error": "Error: {error}",
-      "languageChanged": "Language changed to: {language} (requires restart for full effect)"
+      "languageChanged": "Language changed to: {language} (requires restart for full effect)",
+      "restartTitle": "Restart Required",
+      "restartBody": "Please restart the application for the language change to take full effect."
     },
 
     "dialogs": {

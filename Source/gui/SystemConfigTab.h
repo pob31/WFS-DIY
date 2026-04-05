@@ -744,6 +744,7 @@ public:
         languageLabel.setText(LOC("systemConfig.labels.language"), juce::dontSendNotification);
 
         addAndMakeVisible(languageSelector);
+        addChildComponent(languageRestartCard);
         populateLanguageSelector();
         languageSelector.onChange = [this]() {
             int selectedIdx = languageSelector.getSelectedId() - 1;
@@ -767,6 +768,14 @@ public:
                         statusBar->showTemporaryMessage(
                             LocalizationManager::getInstance().get("systemConfig.messages.languageChanged",
                                 {{"language", languageSelector.getText()}}), 3000);
+
+                    // Show restart popup in the newly selected language
+                    languageRestartCard.setContent(
+                        LOC("systemConfig.messages.restartTitle"),
+                        LOC("systemConfig.messages.restartBody"));
+                    resized();
+                    languageRestartCard.show();
+
                     // TTS: Announce selection change
                     TTSManager::getInstance().announceValueChange("Language", languageSelector.getText());
                 }
@@ -1255,6 +1264,13 @@ public:
 
         languageLabel.setBounds(x, y, labelWidth, rowHeight);
         languageSelector.setBounds(x + labelWidth, y, editorWidth, rowHeight);
+
+        // Language restart card — positioned below the language selector
+        {
+            int cardW = labelWidth + editorWidth;
+            int cardH = languageRestartCard.getIdealHeight(cardW);
+            languageRestartCard.setBounds(x, y + rowHeight + spacing, cardW, cardH);
+        }
 
         // Controllers Section
         y = scaled(460); // Start after "Controllers" header (shifted down for extra row)
@@ -3590,6 +3606,7 @@ public:
     juce::Label languageLabel;
     juce::ComboBox languageSelector;
     juce::StringArray availableLanguages;
+    HelpCard languageRestartCard;
     juce::Label dialsAndButtonsLabel;
     juce::ComboBox dialsAndButtonsSelector;
     juce::Label positionControlLabel;

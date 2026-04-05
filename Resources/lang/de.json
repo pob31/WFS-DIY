@@ -225,7 +225,9 @@
       "partialLoad": "Teilweise geladen: {error}",
       "partialLoadFromBackup": "Teilweise aus Backup geladen: {error}",
       "error": "Fehler: {error}",
-      "languageChanged": "Sprache geändert zu: {language} (Neustart für volle Wirkung erforderlich)"
+      "languageChanged": "Sprache geändert zu: {language} (Neustart für volle Wirkung erforderlich)",
+      "restartTitle": "Neustart erforderlich",
+      "restartBody": "Bitte starten Sie die Anwendung neu, damit die Sprachänderung vollständig wirksam wird."
     },
     "dialogs": {
       "reduceInputChannels": {
@@ -2055,6 +2057,47 @@ Andere Parameter sind ähnlich wie bei Ausgängen und Eingängen."
     "admOsc": {
       "title": "ADM-OSC-Zuordnungen",
       "body": "ADM-OSC ist ein Protokoll zur Verbesserung der Interoperabilität für räumlichen Klang. Es sendet kartesische Positionen (X, Y, Z) oder polare Werte (AED für Azimut, Elevation, Distanz) von der Konsole oder den Automationskurven einer DAW.\nDie Daten werden normalisiert gesendet:\n- zwischen -1,0 und 1,0 für X, Y und Z;\n- zwischen 0,0 und 1,0 für Distanz,\n- zwischen -180° und 180° für Azimut\n- zwischen -90° und 90° für Elevation.\nDer Ursprungspunkt kann verschoben und das Mapping in verschiedenen Segmenten für den inneren und äußeren Bühnenbereich angepasst werden.\nBeim Ziehen der Griffe in den Diagrammen werden mit gedrückter Umschalttaste symmetrische Anpassungen auf der gegenüberliegenden Seite vorgenommen."
+    },
+    "overview": {
+      "title": "Systemübersicht",
+      "body": "Dieser räumliche WFS-Klangprozessor soll ein Werkzeug für natürliche Beschallung und zugleich ein kreatives Werkzeug sein, das neue Wege eröffnet, Klang im Raum zu gestalten.\nEinige Parameter sind unkompliziert: Klang platzieren (Karte, Tracking, Geschwindigkeitsbegrenzung, Gradientenkarten...), seine Form bearbeiten (Attenuation-Profil) und seine akustische Präsenz (Directivity, Bodenreflexionen), ihm eine einmalige Bewegung (AutomOtion) oder eine repetitive Bewegung (L.F.O) geben. In manchen Fällen sollte die Verstärkung um laute Quellen auf der Bühne begrenzt werden (Live Source Tamer). Alle diese Funktionen können intern oder mit Hilfe von QLab gespeichert und abgerufen werden. Darüber hinaus ermöglicht das System Echtzeit-Interaktion zum Auslösen und Bewegen von Samples, zum Bewegen großer Eingabe-Cluster manuell oder dank einfach abrufbarer LFO-Presets.",
+      "dontShow": "Nicht mehr anzeigen"
+    },
+    "inputBasic": {
+      "title": "Grundlegende Eingangsparameter",
+      "body": "Eingänge verfügen über eine Vielzahl von Einstellungen für verschiedene Situationen, die realistische Beschallung oder kreative Werkzeuge für Sounddesign erfordern.\n- Der Eingangspegel kann angepasst werden.\n- Eingänge können verzögert werden oder versuchen, spezifische Latenz (digitale Verarbeitung von Funkübertragung oder digitalen Effekten) zu berücksichtigen und zu kompensieren, um Verstärkung und akustischen Klang besser auszurichten.\n- Minimale Latenz kann anstelle von Acoustic Precedence aktiviert werden. Dies versucht den Klang so schnell wie möglich durch das System zu bringen. Das System scannt die Sends dieses Eingangs zu den Ausgängen auf die niedrigste Verzögerung und zieht sie von allen Verzögerungen ab, wobei der zusätzliche Haas-Effekt umgangen wird.\n- Die Position (Position und Offset) kann in Kartesischen, Zylindrischen oder Sphärischen Koordinaten unabhängig von der Bühnenform oder anderen Kanälen angegeben werden.\n- Die Position kann auf die Bühnendimensionen in Kartesischen Koordinaten oder auf einen bestimmten Entfernungsbereich in Polarkoordinaten beschränkt werden.\n- Flip nimmt die symmetrische Position für die gegebene Koordinate um den Ursprungspunkt.\n- Der Joystick und der vertikale Schieberegler ermöglichen relative Positionssteuerung.\n- Eingänge können einem Cluster zugewiesen werden, um sie für koordinierte Bewegungen zu gruppieren."
+    },
+    "inputAdvanced": {
+      "title": "Erweiterte Steuerung",
+      "body": "- Sidelines und Fringe ermöglichen das Stummschalten, wenn ein Eingang sich den Grenzen einer rechteckigen Bühne nähert (außer vorne).\n- Tracking kann aktiviert und die Tracker-ID ausgewählt werden. Die Glättung der Position kann ebenfalls angepasst werden.\n- Die Maximalgeschwindigkeit kann aktiviert und das Limit angepasst werden. Das System wendet eine allmähliche Beschleunigung und Verzögerung an. Wenn Path aktiviert ist, folgt das System dem Pfad des Eingangs und geht nicht direkt zur Endposition. Dies ist besonders nützlich bei manueller Steuerung.\n- Der Höhenfaktor ermöglicht 2D-Arbeit bei 0%, volles 3D bei 100% und alles dazwischen. Er bestimmt den Anteil der Höhe in Level- und Delay-Berechnungen. Für Bodenreflexionen auf 100% setzen und die Parallaxenkorrektur der Ausgangsparameter verwenden."
+    },
+    "inputLevel": {
+      "title": "Pegelanpassungen",
+      "body": "Es gibt zwei Pegelabschwächungsmodelle. Eines, bei dem der Pegel mit der Entfernung um ein bestimmtes Verhältnis in dB/m abnimmt. Alternativ halbiert sich der Pegel jedes Mal wenn sich die Entfernung verdoppelt. Letzteres mag realistischer sein, kann aber in der Nähe der Quelle zu laut sein oder nicht genug Fokus bieten. Ersteres mag physikalisch weniger genau sein, bietet aber in der Regel bessere Kontrolle für einen gleichmäßigeren und stabileren Mix."
+    },
+    "inputHF": {
+      "title": "Hochfrequenz-Directivity",
+      "body": "Wenn man sich abwendet, klingt das Timbre einer Stimme weniger brillant. Dies zu reproduzieren war das ursprüngliche Ziel, auch wenn wir normalerweise Unterstützung für Stimmen wünschen, die nicht zum Publikum sprechen oder in bi-frontalen Konfigurationen. Dies kann für kreative Effekte genutzt werden, wie eine brillantere Nachhall auf einem gedämpften Direktsignal.\nDie Orientierung des Eingangs in Azimut und Neigung kann eingestellt werden sowie der Winkel, in dem die Hochfrequenzen nicht gefiltert werden.\nDas HF Shelf bestimmt die maximale Dämpfung hinter dem Eingang. Es gibt einen sanften Übergang (wie eine Kosinuskurve) von voller Brillanz vorne zu gedämpft hinten."
+    },
+    "inputMutes": {
+      "title": "Array-Abschwächung und Ausgangs-Mutes",
+      "body": "Sie können für jedes Ausgangs-Array eine spezifische Abschwächung für den ausgewählten Eingang festlegen.\nSie können jeden Send zu jedem Ausgang einzeln stummschalten. Makros stehen zur Verfügung, um den Prozess zu beschleunigen."
+    },
+    "parallax": {
+      "title": "Parallaxenkorrektur",
+      "body": "Jeder Lautsprecher zeigt mehr oder weniger deutlich auf einen Zuhörer. Um die Verzögerung für einen Eingang für jeden Lautsprecher zu berechnen, betrachten wir die Entfernung vom Eingang zu diesem Zuhörer, wir können auch die Entfernung des Schalls vom Lautsprecher zu diesem Zuhörer berechnen. Um die Ankunftszeit beider abzugleichen, müssen wir die Differenz der genannten Entfernungen als Verzögerung anwenden. Dies gibt größere Stabilität wenn Eingänge auf der Bühne bewegt werden und besonders wenn sie sich vom Bühnenrand entfernen. Dies kann auch die Synthese von Bodenreflexionen ermöglichen. Diese Einstellung kann fein abgestimmt werden, anstatt nur gemessen zu werden. Vertrauen Sie Ihren Ohren!"
+    },
+    "outputAdvanced": {
+      "title": "Erweiterte Parameter",
+      "body": "Es gibt einige Parameter zur Anpassung an den akustischen Klang.\nDie meisten dieser Parameter gelten für ganze Arrays, es sei denn, der Ausbreitungsmodus ist für diesen Ausgang im Array deaktiviert. Relative Änderung kann auch nach einer bestimmten Einstellung gewählt werden.\n- Orientierung und On/Off-Winkel definieren, welche Eingänge jeder Lautsprecher verstärkt. Standardmäßig zeigen die Lautsprecher zum Publikum, weg von der Bühne. Eingänge im grünen Sektor werden verstärkt, nicht aber die vor dem Lautsprecher im roten Sektor. Es gibt einen Übergang zwischen beiden Sektoren. Für Subbass-Lautsprecher kann das vollständige Öffnen alle Eingänge einbeziehen.\n- HF-Dämpfung simuliert den Hochfrequenzverlust mit der Entfernung.\n- Der Prozentsatz der Entfernungsdämpfung definiert, wie viel der berechneten Dämpfung angewendet wird. Für Subbass kann es sinnvoll sein, auf 50% zu senken.\n- Minimale Latenz aktiviert das Scannen nach der kleinsten berechneten Verzögerung.\n- Live-Source-Attenuation aktiviert die Pegelreduzierung naher Eingänge.\n- Bodenreflexionen aktiviert ob Reflexionen für diesen Ausgang angewendet werden, wie Subbass und geflogene Arrays..."
+    },
+    "tuning": {
+      "title": "Systemabstimmung",
+      "body": "Die Systemabstimmung für WFS unterscheidet sich von der Standard-PA-Abstimmung. Sie kann wie folgt vorgehen:\n- Beginnen Sie mit stummgeschaltetem Hänge-Array. Stellen Sie die gewünschten Pegel für die Nahfeld-Lautsprecher ein, wenn Sie sie in der ersten Reihe hören. Passen Sie die HF-Shelf-Dämpfung an, damit die Nahfeld-Lautsprecher nicht zu brilliant sind.\n- Schalten Sie das Nahfeld-Array stumm und das Hänge-Array ein, finden Sie einen geeigneten Pegel zum Ende des Saals hin.\n- Aktivieren Sie beide Arrays, passen Sie die Verzögerung des Hänge-Arrays an. Passen Sie Pegel, HF-Shelf/Entfernungsverhältnis und vertikale und horizontale Parallaxe für jedes Array an, um einen konsistenten Pegel zu erreichen, wo auch immer Ihre Eingänge auf der Bühne sind.\nSie können einen anderen Workflow für die Abstimmung verfolgen oder für verschiedene Situationen unterschiedliche Einstellungen wählen."
+    },
+    "outputs": {
+      "title": "WFS-Array-Design",
+      "body": "Das Design des WFS-Systems betrifft die richtige Auswahl der Ausrüstung und deren Positionierung. Hier ist ein Leitfaden für das Design und die Abstimmung Ihrer Arrays.\nEin Array ist eine Linie (gerade oder gekrümmt) von Lautsprechern. Dies ist eines der wichtigsten Konzepte in WFS, angepasst an Beschallung und kreatives Sounddesign.\nAls Faustregel sollte jeder Zuhörer drei Lautsprecher eines Arrays hören, um genügend psychoakustische Hinweise für die Richtungswahrnehmung zu haben. Es gibt einen Sweet Spot zwischen dem Abstand der Lautsprecher zu den Zuhörern, ihrem Abstand zueinander und ihrem Abstrahlwinkel. Lautsprecher mit 120° Abstrahlwinkel können im gleichen Abstand wie zwischen Array und erster Reihe platziert werden. Die Anzahl hängt auch vom Schalldruckpegel ab. Als Hänge-Array bieten trapezförmige/asymmetrische Hörner mit breitem Abstrahlwinkel (120°) unter der Achse und schmalem (60°) in der Achse gute Abdeckung und Reichweite bis 20-30m, während Wandreflexionen vermieden werden. Koaxiale Lautsprecher haben meist nicht genug Reichweite für große Räume und benötigen Delay-Lines.\nDie Positionierung kann über den 'Wizard of OutZ' und seine editierbaren Presets erfolgen."
     }
   },
 

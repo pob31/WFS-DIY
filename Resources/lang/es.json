@@ -225,7 +225,9 @@
       "partialLoad": "Carga parcial: {error}",
       "partialLoadFromBackup": "Carga parcial desde respaldo: {error}",
       "error": "Error: {error}",
-      "languageChanged": "Idioma cambiado a: {language} (requiere reinicio para efecto completo)"
+      "languageChanged": "Idioma cambiado a: {language} (requiere reinicio para efecto completo)",
+      "restartTitle": "Reinicio necesario",
+      "restartBody": "Por favor, reinicie la aplicación para que el cambio de idioma surta pleno efecto."
     },
     "dialogs": {
       "reduceInputChannels": {
@@ -2055,6 +2057,47 @@ Otros parámetros son similares a los de Salidas y Entradas."
     "admOsc": {
       "title": "Mapeos ADM-OSC",
       "body": "ADM-OSC es un protocolo que busca mejorar la interoperabilidad del sonido espacial. Envía posiciones cartesianas (X, Y, Z) o valores polares (AED para Azimut, Elevación, Distancia) desde la consola o las curvas de automatización de un DAW.\nLos datos se envían normalizados:\n- entre -1.0 y 1.0 para X, Y y Z;\n- entre 0.0 y 1.0 para distancia,\n- entre -180° y 180° para Azimut\n- entre -90° y 90° para elevación.\nEl punto de origen puede moverse y el mapeo también puede ajustarse en diferentes segmentos para las partes interior y exterior del escenario.\nAl arrastrar los controles en los gráficos, mantener la tecla Mayús aplica ajustes simétricos en el lado opuesto."
+    },
+    "overview": {
+      "title": "Vista general del sistema",
+      "body": "Este procesador espacial WFS pretende ser una herramienta para la sonorización natural y también una herramienta creativa que abre nuevas vías para escribir sonido en el espacio.\nAlgunos parámetros son sencillos: colocar sonido (Mapa, Tracking, Limitación de velocidad, Mapas de gradiente...), trabajar su forma (Perfil de atenuación) y su presencia acústica (Directividad, Reflexiones de suelo), darle un movimiento puntual (AutomOtion) o repetitivo (L.F.O). En algunos casos la amplificación debería limitarse alrededor de fuentes potentes en el escenario (Live Source Tamer). Todas estas funcionalidades pueden almacenarse y recuperarse internamente o con ayuda de QLab. Por otro lado el sistema permite la interacción en tiempo real para disparar y mover samples, mover grandes clusters de entradas manualmente o gracias a presets LFO fácilmente recuperables.",
+      "dontShow": "No mostrar de nuevo"
+    },
+    "inputBasic": {
+      "title": "Parámetros básicos de entradas",
+      "body": "Las entradas disponen de una gran variedad de ajustes para adaptarse a diferentes situaciones que requieren sonorización realista o herramientas creativas para diseño sonoro.\n- El nivel de entrada puede ajustarse.\n- Las entradas pueden retrasarse o intentar tener en cuenta una latencia específica (procesamiento digital de transmisión inalámbrica o efectos digitales) y compensarla para alinear mejor la amplificación y el sonido acústico.\n- La Latencia Mínima puede activarse en lugar de la Precedencia Acústica. Esto intenta sacar el sonido a través del sistema lo más rápido posible. El sistema escanea los envíos de esta entrada a las salidas buscando el menor retardo y lo sustrae de todos los retardos, evitando el efecto Haas adicional.\n- La posición (posición y offset) puede darse en coordenadas Cartesianas, Cilíndricas o Esféricas independientemente de la forma del escenario u otros canales.\n- La posición puede restringirse a las dimensiones del escenario en coordenadas Cartesianas o a un rango de distancia específico en coordenadas polares.\n- Flip tomará la posición simétrica para la coordenada dada alrededor del punto de origen.\n- El joystick y el deslizador vertical permiten control relativo de la posición.\n- Las entradas pueden asignarse a un cluster para agruparlas en movimientos coordinados."
+    },
+    "inputAdvanced": {
+      "title": "Controles avanzados",
+      "body": "- Sidelines y Fringe permiten silenciar cuando una entrada se acerca a los límites de un escenario rectangular (excepto el frente).\n- El Tracking puede activarse y seleccionar el ID del tracker. El suavizado de la posición también puede ajustarse.\n- La Velocidad Máxima puede activarse y ajustar el límite. El sistema aplicará una aceleración y deceleración gradual. Cuando Path está activado, el sistema seguirá la trayectoria de la entrada y no irá en línea recta a la posición final. Esto es especialmente útil si los movimientos se operan manualmente.\n- El Factor de Altura permite trabajar en 2D al 0%, 3D completo al 100% y cualquier valor intermedio. Es la proporción de la altura en los cálculos de nivel y retardo. Para usar reflexiones de suelo, ajústelo al 100% y use la corrección de paralaje de los parámetros de salida."
+    },
+    "inputLevel": {
+      "title": "Ajustes de nivel",
+      "body": "Existen dos modelos de atenuación de nivel. Uno donde el nivel disminuye con la distancia según una relación dada en dB/m. Alternativamente el nivel se reduce a la mitad cada vez que la distancia se duplica. Este último puede ser más realista, pero puede ser demasiado fuerte cerca de la fuente o no dar suficiente enfoque. El primero puede ser menos preciso físicamente, pero generalmente ofrece mejor control para una mezcla más uniforme y estable."
+    },
+    "inputHF": {
+      "title": "Directividad de alta frecuencia",
+      "body": "Al hablar girándose, el timbre de una voz suena menos brillante. Reproducir esto era el objetivo inicial aquí, aunque generalmente queremos tener soporte para voces que no se dirigen al público o en configuraciones bi-frontales. Esto puede usarse para efectos creativos como tener una reverberación más brillante sobre un sonido directo atenuado.\nLa orientación de la entrada en azimut y en elevación puede ajustarse así como el ángulo donde las altas frecuencias no se filtrarán.\nEl HF Shelf establecerá la atenuación máxima en la parte trasera de la entrada. Hay un fundido suave (como una curva coseno) desde brillo pleno delante hasta atenuado detrás."
+    },
+    "inputMutes": {
+      "title": "Atenuación por array y mutes de salida",
+      "body": "Puede establecer para cada array de salida una atenuación específica para la entrada seleccionada.\nPuede silenciar cada envío a cualquier salida individualmente. Hay macros disponibles para acelerar el proceso."
+    },
+    "parallax": {
+      "title": "Corrección de paralaje",
+      "body": "Cada altavoz apunta más o menos claramente a un oyente. Para calcular el retardo para una entrada para cada altavoz, consideramos la distancia de la entrada a este oyente, también podemos calcular la distancia del sonido del altavoz a este oyente. Para igualar el tiempo de llegada de ambos debemos aplicar la diferencia de las distancias mencionadas como retardo. Esto da mayor estabilidad cuando las entradas se mueven en el escenario y especialmente cuando se alejan del borde. Esto también puede permitir la síntesis de reflexiones de suelo. Este ajuste puede afinarse, en lugar de simplemente medirse. ¡Confíe en sus oídos!"
+    },
+    "outputAdvanced": {
+      "title": "Parámetros avanzados",
+      "body": "Hay algunos parámetros para ayudarle a ajustar al sonido acústico.\nLa mayoría de estos parámetros se establecen para arrays completos a menos que el modo de propagación esté desactivado para esta salida. También puede seleccionarse un cambio relativo después de un ajuste específico.\n- Orientación y Ángulos On/Off definen qué entradas amplificará cada altavoz. Por defecto los altavoces apuntan al público, de espaldas al escenario. Las entradas en el sector verde se amplificarán, pero no las que están frente al altavoz, en el sector rojo. Hay un fundido entre ambos sectores. Para subgraves, abrir completamente al máximo permitirá que todas las entradas sean captadas.\n- La Atenuación HF simula la pérdida de altas frecuencias con la distancia.\n- El porcentaje de Atenuación por Distancia define cuánta de la atenuación calculada se aplica. Para subgraves puede ser conveniente reducir al 50%.\n- La Latencia Mínima activa el escaneo del menor retardo calculado.\n- La Atenuación Live Source activa la reducción de nivel de entradas cercanas.\n- Las Reflexiones de Suelo activan si las reflexiones se aplican a la señal para esta salida como subgraves y arrays colgados..."
+    },
+    "tuning": {
+      "title": "Afinación del sistema",
+      "body": "La afinación del sistema WFS es diferente de la afinación PA estándar. Puede proceder así:\n- Comience con el array colgado silenciado. Ajuste los niveles deseados para los altavoces de campo cercano escuchándolos desde la primera fila. Ajuste la atenuación del shelf de alta frecuencia para que no sean demasiado brillantes.\n- Silencie el array de campo cercano y active el array colgado, encuentre un nivel adecuado hacia el fondo de la sala.\n- Active ambos arrays, ajuste el retardo del array colgado para bajar el sonido a la altura correcta en las filas inferiores. Ajuste niveles, shelf HF/ratio de distancia y paralaje vertical y horizontal para cada array para un nivel consistente dondequiera que estén sus entradas en el escenario.\nPuede seguir un flujo de trabajo diferente para la afinación o buscar diferentes ajustes según las situaciones."
+    },
+    "outputs": {
+      "title": "Diseño de arrays WFS",
+      "body": "El diseño del sistema WFS tiene que ver con la elección correcta del equipamiento y su posicionamiento. Aquí hay una guía para ayudarle con el diseño y la afinación de sus arrays.\nUn array es una línea (recta o curva) de altavoces. Este es uno de los conceptos más importantes en WFS adaptado a la sonorización y al diseño sonoro creativo.\nComo regla general, cada oyente debería escuchar tres altavoces de un array para tener suficientes pistas psicoacústicas para sentir la dirección de cada sonido. Habrá un punto óptimo entre la distancia entre los altavoces y los oyentes, su espaciado y ángulo de cobertura. Los altavoces con ángulo de cobertura de 120° pueden espaciarse la misma distancia entre el array y la primera fila. El número también depende del nivel de presión sonora. Como array colgado, bocinas trapezoidales/asimétricas con ángulo ancho (120°) bajo eje y estrecho (60°) en eje darán buena cobertura y alcance de 20-30m evitando reflexiones en las paredes. Los altavoces coaxiales generalmente no tienen suficiente alcance para grandes recintos y requieren líneas de retardo.\nEl posicionamiento puede hacerse a través del 'Wizard of OutZ' y sus presets editables."
     }
   },
 

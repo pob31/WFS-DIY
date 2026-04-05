@@ -225,7 +225,9 @@
       "partialLoad": "Caricamento parziale: {error}",
       "partialLoadFromBackup": "Caricamento parziale dal backup: {error}",
       "error": "Errore: {error}",
-      "languageChanged": "Lingua cambiata in: {language} (richiede riavvio per effetto completo)"
+      "languageChanged": "Lingua cambiata in: {language} (richiede riavvio per effetto completo)",
+      "restartTitle": "Riavvio necessario",
+      "restartBody": "Riavviare l'applicazione affinché il cambio di lingua abbia pieno effetto."
     },
     "dialogs": {
       "reduceInputChannels": {
@@ -2055,6 +2057,47 @@ Altri parametri sono simili a quelli di Uscite e Ingressi."
     "admOsc": {
       "title": "Mappature ADM-OSC",
       "body": "ADM-OSC è un protocollo che mira a migliorare l'interoperabilità del suono spaziale. Invia posizioni cartesiane (X, Y, Z) o valori polari (AED per Azimut, Elevazione, Distanza) dalla console o dalle curve di automazione di una DAW.\nI dati vengono inviati normalizzati:\n- tra -1.0 e 1.0 per X, Y e Z;\n- tra 0.0 e 1.0 per la distanza,\n- tra -180° e 180° per l'azimut\n- tra -90° e 90° per l'elevazione.\nIl punto di origine può essere spostato e la mappatura può essere regolata in segmenti diversi per le parti interne ed esterne del palcoscenico.\nTrascinando le maniglie sui grafici, tenendo premuto il tasto Maiusc si applicano regolazioni simmetriche sul lato opposto."
+    },
+    "overview": {
+      "title": "Panoramica del sistema",
+      "body": "Questo processore spaziale WFS vuole essere uno strumento per la sonorizzazione naturale e anche uno strumento creativo che apre nuove strade per scrivere il suono nello spazio.\nAlcuni parametri sono semplici: posizionare il suono (Mappa, Tracking, Limitazione velocità, Mappe gradiente...), lavorare la sua forma (Profilo di attenuazione) e la sua presenza acustica (Direttività, Riflessioni del pavimento), dargli un movimento singolo (AutomOtion) o ripetitivo (L.F.O). In alcuni casi l'amplificazione dovrebbe essere limitata attorno a sorgenti potenti sul palco (Live Source Tamer). Tutte queste funzionalità possono essere memorizzate e richiamate internamente o con l'aiuto di QLab. D'altra parte il sistema permette l'interazione in tempo reale per attivare e spostare campioni, spostare grandi cluster di ingressi manualmente o grazie a preset LFO facilmente richiamabili.",
+      "dontShow": "Non mostrare più"
+    },
+    "inputBasic": {
+      "title": "Parametri di base degli ingressi",
+      "body": "Gli ingressi dispongono di un'ampia varietà di impostazioni per adattarsi a diverse situazioni che richiedono sonorizzazione realistica o strumenti creativi per il sound design.\n- Il livello d'ingresso può essere regolato.\n- Gli ingressi possono essere ritardati o possono tentare di tenere conto di una latenza specifica (elaborazione digitale di trasmissione wireless o effetti digitali) e compensarla per allineare meglio l'amplificazione e il suono acustico.\n- La Latenza Minima può essere attivata al posto dell'Acoustic Precedence. Questo cerca di far uscire il suono attraverso il sistema il più velocemente possibile. Il sistema scansiona gli invii di questo ingresso alle uscite per il ritardo più basso e lo sottrae da tutti i ritardi, bypassando l'effetto Haas aggiuntivo.\n- La posizione (posizione e offset) può essere data in coordinate Cartesiane, Cilindriche o Sferiche indipendentemente dalla forma del palco o dagli altri canali.\n- La posizione può essere vincolata alle dimensioni del palco in coordinate Cartesiane o a un intervallo di distanza specifico in coordinate polari.\n- Flip prenderà la posizione simmetrica per la coordinata data attorno al punto di origine.\n- Il joystick e il cursore verticale permettono il controllo relativo della posizione.\n- Gli ingressi possono essere assegnati a un cluster per raggrupparli in movimenti coordinati."
+    },
+    "inputAdvanced": {
+      "title": "Controlli avanzati",
+      "body": "- Sidelines e Fringe permettono il mute quando un ingresso si avvicina ai limiti di un palco rettangolare (eccetto il fronte).\n- Il Tracking può essere attivato e l'ID del tracker selezionato. Lo smoothing della posizione può anche essere regolato.\n- La Velocità Massima può essere attivata e il limite regolato. Il sistema applicherà un'accelerazione e decelerazione graduale. Quando Path è attivato, il sistema seguirà il percorso dell'ingresso e non andrà in linea retta alla posizione finale. Questo è particolarmente utile se i movimenti devono essere operati manualmente.\n- Il Fattore Altezza permette di lavorare in 2D al 0%, 3D completo al 100% e qualsiasi valore intermedio. È il rapporto dell'altezza nei calcoli di livello e ritardo. Per le riflessioni del pavimento, impostare al 100% e usare la correzione di parallasse dei parametri di uscita."
+    },
+    "inputLevel": {
+      "title": "Regolazioni di livello",
+      "body": "Esistono due modelli di attenuazione del livello. Uno in cui il livello diminuisce con la distanza secondo un rapporto dato in dB/m. Altrimenti il livello si dimezza ogni volta che la distanza raddoppia. Quest'ultimo può essere più realistico, ma può essere troppo forte vicino alla sorgente o non dare abbastanza focalizzazione. Il primo può essere meno accurato fisicamente, ma offre generalmente un migliore controllo per un mix più uniforme e stabile."
+    },
+    "inputHF": {
+      "title": "Direttività alta frequenza",
+      "body": "Quando si parla girandosi, il timbro di una voce suona meno brillante. Riprodurre questo era l'obiettivo iniziale qui, anche se generalmente si desidera avere supporto per le voci quando non si rivolgono al pubblico o in configurazioni bi-frontali. Questo può essere usato per effetti creativi come avere un riverbero più brillante su un suono diretto attenuato.\nL'orientamento dell'ingresso in azimut e in elevazione può essere impostato così come l'angolo dove le alte frequenze non saranno filtrate.\nL'HF Shelf imposterà l'attenuazione massima sul retro dell'ingresso. C'è una dissolvenza graduale (come una curva coseno) dalla piena brillantezza davanti all'attenuazione dietro."
+    },
+    "inputMutes": {
+      "title": "Attenuazione per array e mute di uscita",
+      "body": "Puoi impostare per ogni array di uscita un'attenuazione specifica per l'ingresso selezionato.\nPuoi silenziare ogni invio a qualsiasi uscita individualmente. Sono disponibili macro per velocizzare il processo."
+    },
+    "parallax": {
+      "title": "Correzione di parallasse",
+      "body": "Ogni altoparlante punta più o meno chiaramente verso un ascoltatore. Per calcolare il ritardo per un ingresso per ogni altoparlante, consideriamo la distanza dall'ingresso a questo ascoltatore, possiamo anche calcolare la distanza del suono dall'altoparlante a questo ascoltatore. Per far coincidere il tempo di arrivo di entrambi dobbiamo applicare la differenza delle distanze menzionate come ritardo. Questo dà maggiore stabilità quando gli ingressi vengono spostati sul palco e specialmente quando si allontanano dal bordo del palco. Questo può anche permettere la sintesi delle riflessioni del pavimento. Questa impostazione può essere regolata finemente, piuttosto che semplicemente misurata. Fidatevi delle vostre orecchie!"
+    },
+    "outputAdvanced": {
+      "title": "Parametri avanzati",
+      "body": "Ci sono alcuni parametri per aiutarvi ad adattarvi al suono acustico.\nLa maggior parte di questi parametri è impostata per interi array a meno che la modalità di propagazione sia disattivata per questa uscita nell'array. Può anche essere selezionata una modifica relativa dopo un'impostazione specifica.\n- Orientamento e Angoli On/Off definiscono quali ingressi ogni altoparlante amplificherà. Di default gli altoparlanti puntano al pubblico, lontano dal palco. Gli ingressi nel settore verde saranno amplificati, ma non quelli davanti all'altoparlante, nel settore rosso. C'è una dissolvenza tra i due settori. Per gli altoparlanti sub-bass, aprire completamente al massimo permetterà di avere tutti gli ingressi potenzialmente captati dai subwoofer.\n- L'Attenuazione HF simula la perdita di alte frequenze con la distanza.\n- La percentuale di Attenuazione per Distanza definisce quanta dell'attenuazione calcolata viene applicata. Per i Sub-bass può essere saggio abbassare al 50%.\n- La Latenza Minima attiva la scansione del ritardo calcolato più piccolo.\n- L'Attenuazione Live Source attiva la riduzione di livello degli ingressi vicini.\n- Le Riflessioni del Pavimento attivano se le riflessioni vengono applicate al segnale per questa uscita come sub-bass e array sospesi..."
+    },
+    "tuning": {
+      "title": "Accordatura del sistema",
+      "body": "L'accordatura del sistema WFS è diversa dall'accordatura PA standard. Può procedere come segue:\n- Iniziate con l'array sospeso silenziato. Impostate i livelli desiderati per gli altoparlanti di prossimità ascoltandoli dalla prima fila. Regolate l'attenuazione dello shelf di alta frequenza affinché gli altoparlanti di prossimità non siano troppo brillanti.\n- Silenziate l'array di prossimità e attivate l'array sospeso, trovate un livello adeguato verso il fondo della sala.\n- Attivate entrambi gli array, regolate il ritardo dell'array sospeso per portare il suono all'altezza corretta nelle file inferiori. Regolate livelli, shelf HF/rapporto di distanza e parallasse verticale e orizzontale per ogni array per un livello coerente ovunque siano i vostri ingressi sul palco.\nPotete seguire un flusso di lavoro diverso per l'accordatura o mirare a impostazioni diverse per diverse situazioni."
+    },
+    "outputs": {
+      "title": "Design degli array WFS",
+      "body": "Il design del sistema WFS riguarda la giusta scelta dell'attrezzatura e il suo posizionamento. Ecco una guida per aiutarvi con il design e l'accordatura dei vostri array.\nUn array è una linea (dritta o curva) di altoparlanti. Questo è uno dei concetti più importanti in WFS adattato alla sonorizzazione e al design sonoro creativo.\nCome regola generale, ogni ascoltatore dovrebbe sentire tre altoparlanti di un array per avere sufficienti indizi psicoacustici per percepire la direzione di ogni suono. Ci sarà un punto ottimale tra la distanza tra gli altoparlanti e gli ascoltatori, la loro spaziatura e l'angolo di copertura. Altoparlanti con angolo di copertura di 120° possono essere spaziati della stessa distanza tra l'array e la prima fila. Il numero dipende anche dal livello di pressione sonora. Come array sospeso, trombe trapezoidali/asimmetriche con ampio angolo di copertura (120°) sotto asse e stretto (60°) in asse daranno buona copertura e portata di 20-30m evitando riflessioni sulle pareti. Gli altoparlanti coassiali generalmente non hanno abbastanza portata per grandi ambienti e richiedono linee di ritardo.\nIl posizionamento può essere fatto tramite il 'Wizard of OutZ' e i suoi preset modificabili."
     }
   },
 

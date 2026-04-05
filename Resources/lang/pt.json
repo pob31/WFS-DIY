@@ -225,7 +225,9 @@
       "partialLoad": "Carregamento parcial: {error}",
       "partialLoadFromBackup": "Carregamento parcial do backup: {error}",
       "error": "Erro: {error}",
-      "languageChanged": "Idioma alterado para: {language} (requer reinício para efeito completo)"
+      "languageChanged": "Idioma alterado para: {language} (requer reinício para efeito completo)",
+      "restartTitle": "Reinício necessário",
+      "restartBody": "Por favor, reinicie o aplicativo para que a alteração de idioma tenha efeito completo."
     },
     "dialogs": {
       "reduceInputChannels": {
@@ -1966,6 +1968,11 @@ OFF",
   },
 
   "help": {
+    "overview": {
+      "title": "Visão geral do sistema",
+      "body": "Este processador espacial WFS pretende ser uma ferramenta para reforço sonoro natural e também uma ferramenta criativa abrindo novos caminhos para escrever som no espaço.\nAlguns parâmetros são diretos: posicionar som (Mapa, Tracking, Limitação de velocidade, Mapas de gradiente...), trabalhar sua forma (Perfil de atenuação) e sua presença acústica (Diretividade, Reflexões do piso), dar-lhe um movimento pontual (AutomOtion) ou repetitivo (L.F.O). Em alguns casos a amplificação deve ser limitada ao redor de fontes potentes no palco (Live Source Tamer). Todas essas funcionalidades podem ser armazenadas e recuperadas internamente ou com a ajuda do QLab. Por outro lado o sistema permite interação em tempo real para disparar e mover amostras, mover grandes clusters de entradas manualmente ou graças a presets LFO facilmente recuperáveis.",
+      "dontShow": "Não mostrar novamente"
+    },
     "binaural": {
       "title": "Renderizador Binaural",
       "body": "O renderizador binaural é usado para:\n- ouvir uma mixagem espacial aproximada em fones de ouvido,\n- criar uma mixagem para saída estéreo,\n- ouvir uma faixa solo através do processamento espacial.\nPode substituir sua mixagem master se alimentar apenas fones e mixagem de mídia.\nA posição de escuta pode ser ajustada em profundidade a partir do ponto de origem e em orientação. As configurações de atraso e nível permitem igualar o som na posição FOH."
@@ -1993,6 +2000,26 @@ OFF",
     "sampler": {
       "title": "Sampler",
       "body": "O sampler permite disparar amostras e interagir com elas em tempo real.\nQuando habilitado em uma faixa, o sampler substitui a entrada ao vivo em todos os momentos.\nVários samplers podem ser atribuídos a diferentes entradas e disparados individualmente.\nPara usar o sampler:\n- Selecione um Roli Lightpad ou um pad no app Android Remote conectado.\n- Adicione amostras aos diferentes blocos na grade. Ajuste a posição inicial relativa, o nível e os pontos de entrada e saída. Várias amostras podem ser selecionadas segurando Shift enquanto clica.\n- Crie conjuntos de amostras: as amostras selecionadas serão adicionadas a novos conjuntos. Podem ser adicionadas ou removidas segurando Ctrl/Cmd enquanto clica nos blocos. Cada conjunto pode ser renomeado e ter uma sequência fixa ou aleatória. Cada conjunto tem uma configuração de atenuação e uma posição base.\n- Pressione um Lightpad ou pad para disparar uma amostra. A pressão pode ser mapeada para nível, altura e filtragem de altas frequências. O movimento do dedo move o som como um joystick.\nSoltar o pad para a amostra.\nAs configurações do sampler são armazenadas nos arquivos de entrada.\nBlocos e conjuntos podem ser copiados, exportados e importados."
+    },
+    "inputBasic": {
+      "title": "Parâmetros básicos de entradas",
+      "body": "As entradas dispõem de uma grande variedade de configurações para se adaptar a diferentes situações que requerem reforço sonoro realista ou ferramentas criativas para design sonoro.\n- O nível de entrada pode ser ajustado.\n- As entradas podem ser atrasadas ou tentar considerar uma latência específica (processamento digital de transmissão sem fio ou efeitos digitais) e compensá-la para alinhar melhor a amplificação e o som acústico.\n- A Latência Mínima pode ser ativada em vez da Precedência Acústica. Isso tenta enviar o som através do sistema o mais rápido possível. O sistema analisa os envios desta entrada para as saídas buscando o menor atraso e o subtrai de todos os atrasos, contornando o efeito Haas adicional.\n- A posição (posição e offset) pode ser dada em coordenadas Cartesianas, Cilíndricas ou Esféricas independentemente da forma do palco ou outros canais.\n- A posição pode ser restringida às dimensões do palco em coordenadas Cartesianas ou a uma faixa de distância específica em coordenadas polares.\n- Flip tomará a posição simétrica para a coordenada dada ao redor do ponto de origem.\n- O joystick e o controle deslizante vertical permitem controle relativo da posição.\n- As entradas podem ser atribuídas a um cluster para agrupá-las em movimentos coordenados."
+    },
+    "inputAdvanced": {
+      "title": "Controles avançados",
+      "body": "- Sidelines e Fringe permitem mutar quando uma entrada se aproxima dos limites de um palco retangular (exceto a frente).\n- O Tracking pode ser ativado e o ID do tracker selecionado. A suavização da posição também pode ser ajustada.\n- A Velocidade Máxima pode ser ativada e o limite ajustado. O sistema aplicará aceleração e desaceleração graduais. Quando Path está ativado, o sistema seguirá o caminho da entrada e não irá em linha reta para a posição final. Isto é especialmente útil se os movimentos forem operados manualmente.\n- O Fator de Altura permite trabalhar em 2D a 0%, 3D completo a 100% e qualquer valor intermediário. É a proporção da altura nos cálculos de nível e atraso. Para reflexões de piso, defina como 100% e use a correção de paralaxe dos parâmetros de saída."
+    },
+    "inputLevel": {
+      "title": "Ajustes de nível",
+      "body": "Existem dois modelos de atenuação de nível. Um onde o nível diminui com a distância por uma proporção dada em dB/m. Alternativamente o nível é reduzido pela metade cada vez que a distância dobra. Este último pode ser mais realista, mas pode ser muito alto perto da fonte ou não dar foco suficiente. O primeiro pode ser menos preciso fisicamente, mas geralmente oferece melhor controle para uma mixagem mais uniforme e estável."
+    },
+    "inputHF": {
+      "title": "Diretividade de alta frequência",
+      "body": "Ao falar virando-se, o timbre de uma voz soa menos brilhante. Reproduzir isso era o objetivo inicial aqui, embora geralmente queiramos ter suporte para vozes quando não se dirigem ao público ou em configurações bi-frontais. Isso pode ser usado para efeitos criativos como ter uma reverberação mais brilhante sobre um som direto atenuado.\nA orientação da entrada em azimute e em elevação pode ser definida assim como o ângulo onde as altas frequências não serão filtradas.\nO HF Shelf definirá a atenuação máxima na parte traseira da entrada. Há um fade suave (como uma curva cosseno) do brilho total na frente à atenuação atrás."
+    },
+    "inputMutes": {
+      "title": "Atenuação por array e mutes de saída",
+      "body": "Você pode definir para cada array de saída uma atenuação específica para a entrada selecionada.\nVocê pode mutar cada envio para qualquer saída individualmente. Há macros disponíveis para acelerar o processo."
     },
     "liveSource": {
       "title": "Atenuador de Fonte Ao Vivo",
@@ -2035,6 +2062,22 @@ Outros parâmetros são semelhantes aos de Saídas e Entradas."
     "reverbPostProc": {
       "title": "Pós-Processamento de Reverberação",
       "body": "Inclui um EQ de 4 bandas e um Expansor que observa o sinal entrando no processador de reverberação para reduzir caudas longas de reverberação quando as entradas estão em silêncio."
+    },
+    "parallax": {
+      "title": "Correção de paralaxe",
+      "body": "Cada alto-falante aponta mais ou menos claramente para um ouvinte. Para calcular o atraso para uma entrada para cada alto-falante, consideramos a distância da entrada a este ouvinte, também podemos calcular a distância do som do alto-falante a este ouvinte. Para igualar o tempo de chegada de ambos devemos aplicar a diferença das distâncias mencionadas como atraso. Isso dá maior estabilidade quando as entradas são movidas no palco e especialmente quando se afastam da borda. Isso também pode permitir a síntese de reflexões de piso. Esta configuração pode ser ajustada finamente, em vez de simplesmente medida. Confie nos seus ouvidos!"
+    },
+    "outputAdvanced": {
+      "title": "Parâmetros avançados",
+      "body": "Existem alguns parâmetros para ajudá-lo a se ajustar ao som acústico.\nA maioria destes parâmetros é definida para arrays inteiros a menos que o modo de propagação esteja desativado para esta saída. Mudança relativa também pode ser selecionada após uma configuração específica.\n- Orientação e Ângulos On/Off definem quais entradas cada alto-falante amplificará. Por padrão os alto-falantes apontam para o público, de costas para o palco. Entradas no setor verde serão amplificadas, mas não as que estão na frente do alto-falante, no setor vermelho. Há um fade entre os dois setores. Para sub-graves, abrir completamente ao máximo permitirá incluir todas as entradas.\n- A Atenuação HF simula a perda de altas frequências com a distância.\n- A porcentagem de Atenuação por Distância define quanta da atenuação calculada é aplicada. Para sub-graves pode ser prudente reduzir para 50%.\n- A Latência Mínima ativa a varredura do menor atraso calculado.\n- A Atenuação Live Source ativa a redução de nível de entradas próximas.\n- As Reflexões de Piso ativam se as reflexões são aplicadas ao sinal para esta saída como sub-graves e arrays suspensos..."
+    },
+    "tuning": {
+      "title": "Afinação do sistema",
+      "body": "A afinação do sistema WFS é diferente da afinação PA padrão. Pode proceder assim:\n- Comece com o array suspenso mutado. Defina os níveis desejados para os alto-falantes de campo próximo ouvindo-os na primeira fila. Ajuste a atenuação do shelf de alta frequência para que não sejam muito brilhantes.\n- Mute o array de campo próximo e ative o array suspenso, encontre um nível adequado em direção ao fundo da sala.\n- Ative ambos os arrays, ajuste o atraso do array suspenso para trazer o som à altura correta nas filas inferiores. Ajuste níveis, shelf HF/proporção de distância e paralaxe vertical e horizontal para cada array para um nível consistente onde quer que estejam suas entradas no palco.\nVocê pode seguir um fluxo de trabalho diferente para afinação ou buscar configurações diferentes para diferentes situações."
+    },
+    "outputs": {
+      "title": "Design de arrays WFS",
+      "body": "O design do sistema WFS tem a ver com a escolha certa de equipamentos e seu posicionamento. Aqui está um guia para ajudá-lo com o design e afinação dos seus arrays.\nUm array é uma linha (reta ou curva) de alto-falantes. Este é um dos conceitos mais importantes em WFS adaptado ao reforço sonoro e design sonoro criativo.\nComo regra geral, cada ouvinte deve ouvir três alto-falantes de um array para ter pistas psicoacústicas suficientes para sentir a direção de cada som. Haverá um ponto ótimo entre a distância entre os alto-falantes e os ouvintes, seu espaçamento e ângulo de cobertura. Alto-falantes com ângulo de cobertura de 120° podem ser espaçados pela mesma distância entre o array e a primeira fila. O número também depende do nível de pressão sonora. Como array suspenso, cornetas trapezoidais/assimétricas com ângulo amplo (120°) abaixo do eixo e estreito (60°) no eixo darão boa cobertura e alcance de 20-30m evitando reflexões nas paredes. Alto-falantes coaxiais geralmente não têm alcance suficiente para grandes locais e requerem linhas de atraso.\nO posicionamento pode ser feito através do 'Wizard of OutZ' e seus presets editáveis."
     },
     "sessionData": {
       "title": "Dados da Sessão",
