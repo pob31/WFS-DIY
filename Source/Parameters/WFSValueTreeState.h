@@ -387,6 +387,15 @@ public:
     /** Clamp all input positions to within the current stage bounds */
     void fitAllInputPositionsToStage();
 
+    /** Shift all input positions by a 3D delta */
+    void shiftAllInputPositions (float dx, float dy, float dz);
+
+    /** Shift all output positions by a 3D delta */
+    void shiftAllOutputPositions (float dx, float dy, float dz);
+
+    /** Shift all reverb positions by a 3D delta */
+    void shiftAllReverbPositions (float dx, float dy, float dz);
+
     /** Replace entire state (e.g., when loading) */
     void replaceState (const juce::ValueTree& newState);
 

@@ -188,7 +188,7 @@ public:
 class StageScaleButton : public LongPressButton
 {
 public:
-    StageScaleButton() : LongPressButton(1000) {}
+    StageScaleButton() : LongPressButton(500) {}
 
     void paintButton(juce::Graphics& g, bool shouldHighlight, bool shouldBeDown) override
     {
@@ -256,7 +256,7 @@ private:
 class StageFitButton : public LongPressButton
 {
 public:
-    StageFitButton() : LongPressButton(1000) {}
+    StageFitButton() : LongPressButton(500) {}
 
     void paintButton(juce::Graphics& g, bool shouldHighlight, bool shouldBeDown) override
     {
@@ -330,7 +330,7 @@ private:
 class StageDismissButton : public LongPressButton
 {
 public:
-    StageDismissButton() : LongPressButton(1000) {}
+    StageDismissButton() : LongPressButton(500) {}
 
     void paintButton(juce::Graphics& g, bool shouldHighlight, bool shouldBeDown) override
     {
@@ -358,6 +358,69 @@ public:
         g.setColour(ColorScheme::get().textPrimary);
         g.drawLine(icon.getX(), icon.getY(), icon.getRight(), icon.getBottom(), t);
         g.drawLine(icon.getRight(), icon.getY(), icon.getX(), icon.getBottom(), t);
+    }
+
+private:
+    void drawLongPressOverlay(juce::Graphics& g, juce::Rectangle<float> bounds)
+    {
+        if (isLongPressActive && !thresholdReached)
+        {
+            auto elapsed = (juce::Time::getCurrentTime() - pressStartTime).inMilliseconds();
+            float progress = juce::jlimit(0.0f, 1.0f,
+                static_cast<float>(elapsed) / static_cast<float>(getEffectiveDuration()));
+            g.setColour(ColorScheme::get().accentBlue.withAlpha(0.5f));
+            g.fillRoundedRectangle(bounds.removeFromLeft(bounds.getWidth() * progress), 4.0f);
+        }
+        if (thresholdReached && isLongPressActive)
+        {
+            g.setColour(ColorScheme::get().accentGreen.withAlpha(0.5f));
+            g.fillRoundedRectangle(bounds, 4.0f);
+        }
+    }
+};
+
+//==============================================================================
+// Origin Shift Button (horizontal arrows icon — shift/translate)
+class OriginShiftButton : public LongPressButton
+{
+public:
+    OriginShiftButton() : LongPressButton(500) {}
+
+    void paintButton(juce::Graphics& g, bool shouldHighlight, bool shouldBeDown) override
+    {
+        auto bounds = getLocalBounds().toFloat().reduced(2.0f);
+
+        if (!isEnabled())
+            g.setColour(ColorScheme::get().buttonNormal.withAlpha(0.4f));
+        else if (shouldBeDown)
+            g.setColour(ColorScheme::get().buttonPressed);
+        else if (shouldHighlight)
+            g.setColour(ColorScheme::get().buttonHover);
+        else
+            g.setColour(ColorScheme::get().buttonNormal);
+
+        g.fillRoundedRectangle(bounds, 4.0f);
+        g.setColour(ColorScheme::get().buttonBorder);
+        g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
+
+        drawLongPressOverlay(g, bounds);
+
+        // Draw shift icon: horizontal double arrow (⇔)
+        auto icon = bounds.reduced(6.0f);
+        float cy = icon.getCentreY();
+        float t = 1.5f;
+        float arrow = 3.0f;
+
+        g.setColour(ColorScheme::get().textPrimary);
+
+        // Horizontal line
+        g.drawLine(icon.getX(), cy, icon.getRight(), cy, t);
+        // Left arrowhead
+        g.drawLine(icon.getX(), cy, icon.getX() + arrow, cy - arrow, t);
+        g.drawLine(icon.getX(), cy, icon.getX() + arrow, cy + arrow, t);
+        // Right arrowhead
+        g.drawLine(icon.getRight(), cy, icon.getRight() - arrow, cy - arrow, t);
+        g.drawLine(icon.getRight(), cy, icon.getRight() - arrow, cy + arrow, t);
     }
 
 private:
@@ -575,6 +638,40 @@ public:
         stageDismissButton.onLongPress = [this]() {
             hideStageRepositionButtons();
         };
+
+        // Origin shift buttons (next to I/O channel counts)
+        addChildComponent(inputShiftButton);
+        inputShiftButton.onLongPress = [this]() {
+            float dw = (float) parameters.getConfigParam ("StageOriginWidth")  - prevOriginW;
+            float dd = (float) parameters.getConfigParam ("StageOriginDepth")  - prevOriginD;
+            float dh = (float) parameters.getConfigParam ("StageOriginHeight") - prevOriginH;
+            parameters.getValueTreeState().shiftAllInputPositions (-dw, -dd, -dh);
+            hideOriginShiftButtons (0);
+        };
+        addChildComponent(inputShiftDismissButton);
+        inputShiftDismissButton.onLongPress = [this]() { hideOriginShiftButtons (0); };
+
+        addChildComponent(outputShiftButton);
+        outputShiftButton.onLongPress = [this]() {
+            float dw = (float) parameters.getConfigParam ("StageOriginWidth")  - prevOriginW;
+            float dd = (float) parameters.getConfigParam ("StageOriginDepth")  - prevOriginD;
+            float dh = (float) parameters.getConfigParam ("StageOriginHeight") - prevOriginH;
+            parameters.getValueTreeState().shiftAllOutputPositions (-dw, -dd, -dh);
+            hideOriginShiftButtons (1);
+        };
+        addChildComponent(outputShiftDismissButton);
+        outputShiftDismissButton.onLongPress = [this]() { hideOriginShiftButtons (1); };
+
+        addChildComponent(reverbShiftButton);
+        reverbShiftButton.onLongPress = [this]() {
+            float dw = (float) parameters.getConfigParam ("StageOriginWidth")  - prevOriginW;
+            float dd = (float) parameters.getConfigParam ("StageOriginDepth")  - prevOriginD;
+            float dh = (float) parameters.getConfigParam ("StageOriginHeight") - prevOriginH;
+            parameters.getValueTreeState().shiftAllReverbPositions (-dw, -dd, -dh);
+            hideOriginShiftButtons (2);
+        };
+        addChildComponent(reverbShiftDismissButton);
+        reverbShiftDismissButton.onLongPress = [this]() { hideOriginShiftButtons (2); };
 
         // Snapshot initial stage dimensions
         snapshotStageDimensions();
@@ -1124,16 +1221,27 @@ public:
 
         // I/O Section — text aligns with Language combobox
         y = scaled(160); // Start after "I/O" header
-        inputChannelsLabel.setBounds(x, y, labelWidth, rowHeight);
-        inputChannelsEditor.setBounds(x + labelWidth + ei, y, editorWidth - ei * 2, rowHeight);
-        y += rowHeight + spacing;
+        {
+            int shiftBtnSize = rowHeight;  // Square buttons
+            int shiftBtnX = x + labelWidth + editorWidth + spacing;
 
-        outputChannelsLabel.setBounds(x, y, labelWidth, rowHeight);
-        outputChannelsEditor.setBounds(x + labelWidth + ei, y, editorWidth - ei * 2, rowHeight);
-        y += rowHeight + spacing;
+            inputChannelsLabel.setBounds(x, y, labelWidth, rowHeight);
+            inputChannelsEditor.setBounds(x + labelWidth + ei, y, editorWidth - ei * 2, rowHeight);
+            inputShiftButton.setBounds(shiftBtnX, y, shiftBtnSize, rowHeight);
+            inputShiftDismissButton.setBounds(shiftBtnX + shiftBtnSize + spacing, y, shiftBtnSize, rowHeight);
+            y += rowHeight + spacing;
 
-        reverbChannelsLabel.setBounds(x, y, labelWidth, rowHeight);
-        reverbChannelsEditor.setBounds(x + labelWidth + ei, y, editorWidth - ei * 2, rowHeight);
+            outputChannelsLabel.setBounds(x, y, labelWidth, rowHeight);
+            outputChannelsEditor.setBounds(x + labelWidth + ei, y, editorWidth - ei * 2, rowHeight);
+            outputShiftButton.setBounds(shiftBtnX, y, shiftBtnSize, rowHeight);
+            outputShiftDismissButton.setBounds(shiftBtnX + shiftBtnSize + spacing, y, shiftBtnSize, rowHeight);
+            y += rowHeight + spacing;
+
+            reverbChannelsLabel.setBounds(x, y, labelWidth, rowHeight);
+            reverbChannelsEditor.setBounds(x + labelWidth + ei, y, editorWidth - ei * 2, rowHeight);
+            reverbShiftButton.setBounds(shiftBtnX, y, shiftBtnSize, rowHeight);
+            reverbShiftDismissButton.setBounds(shiftBtnX + shiftBtnSize + spacing, y, shiftBtnSize, rowHeight);
+        }
 
         // UI Section
         y = scaled(320); // Start after "UI" header
@@ -1424,11 +1532,17 @@ public:
         inputsOrMapTabVisited = true;
     }
 
+    void setChannelTabsVisited()
+    {
+        channelTabsVisited = true;
+    }
+
     void resetInputsOrMapTabVisited()
     {
         inputsOrMapTabVisited = false;
+        channelTabsVisited = false;
         hideStageRepositionButtons();
-        snapshotStageDimensions();
+        hideAllOriginShiftButtons();
     }
 
     void setStatusBar(StatusBar* bar)
@@ -2097,39 +2211,39 @@ private:
         else if (&editor == &stageWidthEditor)
         {
             parameters.setConfigParam("StageWidth", text.getFloatValue());
-            onStageGeometryChanged();
+            onStageDimensionsChanged();
         }
         else if (&editor == &stageDepthEditor)
         {
             parameters.setConfigParam("StageDepth", text.getFloatValue());
-            onStageGeometryChanged();
+            onStageDimensionsChanged();
         }
         else if (&editor == &stageHeightEditor)
         {
             parameters.setConfigParam("StageHeight", text.getFloatValue());
-            onStageGeometryChanged();
+            onStageDimensionsChanged();
         }
         else if (&editor == &stageDiameterEditor)
         {
             parameters.setConfigParam("StageDiameter", text.getFloatValue());
-            onStageGeometryChanged();
+            onStageDimensionsChanged();
         }
         else if (&editor == &domeElevationEditor)
             parameters.setConfigParam("DomeElevation", text.getFloatValue());
         else if (&editor == &stageOriginWidthEditor)
         {
             parameters.setConfigParam("StageOriginWidth", text.getFloatValue());
-            onStageGeometryChanged();
+            onOriginChanged();
         }
         else if (&editor == &stageOriginDepthEditor)
         {
             parameters.setConfigParam("StageOriginDepth", text.getFloatValue());
-            onStageGeometryChanged();
+            onOriginChanged();
         }
         else if (&editor == &stageOriginHeightEditor)
         {
             parameters.setConfigParam("StageOriginHeight", text.getFloatValue());
-            onStageGeometryChanged();
+            onOriginChanged();
         }
         else if (&editor == &speedOfSoundEditor)
         {
@@ -2784,7 +2898,7 @@ public:
         parameters.setConfigParam("StageOriginWidth", 0.0f);
         parameters.setConfigParam("StageOriginDepth", frontOffset);
         parameters.setConfigParam("StageOriginHeight", 0.0f);
-        onStageGeometryChanged();
+        onOriginChanged();
     }
 
     void setOriginToCenterGround()
@@ -2793,7 +2907,7 @@ public:
         parameters.setConfigParam("StageOriginWidth", 0.0f);
         parameters.setConfigParam("StageOriginDepth", 0.0f);
         parameters.setConfigParam("StageOriginHeight", 0.0f);
-        onStageGeometryChanged();
+        onOriginChanged();
     }
 
     void setOriginToCenter()
@@ -2810,7 +2924,7 @@ public:
         parameters.setConfigParam("StageOriginWidth", 0.0f);
         parameters.setConfigParam("StageOriginDepth", 0.0f);
         parameters.setConfigParam("StageOriginHeight", halfHeight);
-        onStageGeometryChanged();
+        onOriginChanged();
     }
 
     //==============================================================================
@@ -2844,7 +2958,38 @@ public:
         snapshotStageDimensions();
     }
 
-    void onStageGeometryChanged()
+    // type: 0=inputs, 1=outputs, 2=reverbs
+    void showOriginShiftButtons (int type)
+    {
+        auto& shiftBtn   = (type == 0) ? inputShiftButton   : (type == 1) ? outputShiftButton   : reverbShiftButton;
+        auto& dismissBtn = (type == 0) ? inputShiftDismissButton : (type == 1) ? outputShiftDismissButton : reverbShiftDismissButton;
+        auto& flag       = (type == 0) ? inputShiftVisible  : (type == 1) ? outputShiftVisible  : reverbShiftVisible;
+        flag = true;
+        shiftBtn.setVisible (true);
+        dismissBtn.setVisible (true);
+    }
+
+    void hideOriginShiftButtons (int type)
+    {
+        auto& shiftBtn   = (type == 0) ? inputShiftButton   : (type == 1) ? outputShiftButton   : reverbShiftButton;
+        auto& dismissBtn = (type == 0) ? inputShiftDismissButton : (type == 1) ? outputShiftDismissButton : reverbShiftDismissButton;
+        auto& flag       = (type == 0) ? inputShiftVisible  : (type == 1) ? outputShiftVisible  : reverbShiftVisible;
+        flag = false;
+        shiftBtn.setVisible (false);
+        dismissBtn.setVisible (false);
+        // If all hidden, update snapshot for next origin change
+        if (! inputShiftVisible && ! outputShiftVisible && ! reverbShiftVisible)
+            snapshotStageDimensions();
+    }
+
+    void hideAllOriginShiftButtons()
+    {
+        for (int i = 0; i < 3; ++i)
+            hideOriginShiftButtons (i);
+        snapshotStageDimensions();
+    }
+
+    void onStageDimensionsChanged()
     {
         if (! inputsOrMapTabVisited)
         {
@@ -2854,8 +2999,34 @@ public:
         }
         else if (! stageRepositionButtonsVisible)
         {
-            // Show buttons for user to choose
             showStageRepositionButtons();
+        }
+    }
+
+    void onOriginChanged()
+    {
+        float dw = (float) parameters.getConfigParam ("StageOriginWidth")  - prevOriginW;
+        float dd = (float) parameters.getConfigParam ("StageOriginDepth")  - prevOriginD;
+        float dh = (float) parameters.getConfigParam ("StageOriginHeight") - prevOriginH;
+
+        if (std::abs (dw) < 0.0001f && std::abs (dd) < 0.0001f && std::abs (dh) < 0.0001f)
+            return;  // No meaningful change
+
+        if (! channelTabsVisited)
+        {
+            // Silently shift all channel types
+            parameters.getValueTreeState().shiftAllInputPositions (-dw, -dd, -dh);
+            parameters.getValueTreeState().shiftAllOutputPositions (-dw, -dd, -dh);
+            parameters.getValueTreeState().shiftAllReverbPositions (-dw, -dd, -dh);
+            snapshotStageDimensions();
+        }
+        else
+        {
+            // Show shift+dismiss buttons for each type
+            if (! inputShiftVisible)  showOriginShiftButtons (0);
+            if (! outputShiftVisible) showOriginShiftButtons (1);
+            if (! reverbShiftVisible && parameters.getNumReverbChannels() > 0)
+                showOriginShiftButtons (2);
         }
     }
 
@@ -3197,6 +3368,12 @@ public:
         helpTextMap[&stageScaleButton] = LOC("systemConfig.help.stageScale");
         helpTextMap[&stageFitButton] = LOC("systemConfig.help.stageFit");
         helpTextMap[&stageDismissButton] = LOC("systemConfig.help.stageDismiss");
+        helpTextMap[&inputShiftButton] = LOC("systemConfig.help.originShiftInputs");
+        helpTextMap[&inputShiftDismissButton] = LOC("systemConfig.help.originDismissInputs");
+        helpTextMap[&outputShiftButton] = LOC("systemConfig.help.originShiftOutputs");
+        helpTextMap[&outputShiftDismissButton] = LOC("systemConfig.help.originDismissOutputs");
+        helpTextMap[&reverbShiftButton] = LOC("systemConfig.help.originShiftReverbs");
+        helpTextMap[&reverbShiftDismissButton] = LOC("systemConfig.help.originDismissReverbs");
         helpTextMap[&speedOfSoundEditor] = LOC("systemConfig.help.speedOfSound");
         helpTextMap[&temperatureEditor] = LOC("systemConfig.help.temperature");
         helpTextMap[&masterLevelEditor] = LOC("systemConfig.help.masterLevel");
@@ -3382,6 +3559,11 @@ public:
     bool stageRepositionButtonsVisible = false;
     float prevStageWidth = 0.0f, prevStageDepth = 0.0f, prevStageHeight = 0.0f;
     float prevOriginW = 0.0f, prevOriginD = 0.0f, prevOriginH = 0.0f;
+    // Origin shift buttons (next to I/O channel counts)
+    OriginShiftButton inputShiftButton, outputShiftButton, reverbShiftButton;
+    StageDismissButton inputShiftDismissButton, outputShiftDismissButton, reverbShiftDismissButton;
+    bool channelTabsVisited = false;
+    bool inputShiftVisible = false, outputShiftVisible = false, reverbShiftVisible = false;
     juce::Label speedOfSoundLabel;
     juce::TextEditor speedOfSoundEditor;
     juce::Label speedOfSoundUnitLabel;

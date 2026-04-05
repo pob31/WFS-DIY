@@ -660,6 +660,8 @@ MainComponent::MainComponent()
             quickKeysManager->setActivePage (tabIndex, 0);
         if ((tabIndex == 4 || tabIndex == 6) && systemConfigTab != nullptr)
             systemConfigTab->setInputsOrMapTabVisited();
+        if ((tabIndex == 2 || tabIndex == 3 || tabIndex == 4 || tabIndex == 6) && systemConfigTab != nullptr)
+            systemConfigTab->setChannelTabsVisited();
     };
 
     // Load saved color scheme from parameters and apply it

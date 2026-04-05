@@ -1680,6 +1680,59 @@ void WFSValueTreeState::fitAllInputPositionsToStage()
     }
 }
 
+void WFSValueTreeState::shiftAllInputPositions (float dx, float dy, float dz)
+{
+    auto inputs = getInputsState();
+    int n = inputs.getNumChildren();
+    if (n == 0) return;
+
+    beginUndoTransaction ("Shift Input Positions");
+    for (int i = 0; i < n; ++i)
+    {
+        auto pos = inputs.getChild (i).getChildWithName (Position);
+        if (! pos.isValid()) continue;
+        pos.setProperty (inputPositionX, static_cast<float> (pos.getProperty (inputPositionX)) + dx, getActiveUndoManager());
+        pos.setProperty (inputPositionY, static_cast<float> (pos.getProperty (inputPositionY)) + dy, getActiveUndoManager());
+        pos.setProperty (inputPositionZ, static_cast<float> (pos.getProperty (inputPositionZ)) + dz, getActiveUndoManager());
+    }
+}
+
+void WFSValueTreeState::shiftAllOutputPositions (float dx, float dy, float dz)
+{
+    auto outputs = getOutputsState();
+    int n = outputs.getNumChildren();
+    if (n == 0) return;
+
+    beginUndoTransaction ("Shift Output Positions");
+    for (int i = 0; i < n; ++i)
+    {
+        auto pos = outputs.getChild (i).getChildWithName (Position);
+        if (! pos.isValid()) continue;
+        pos.setProperty (outputPositionX, static_cast<float> (pos.getProperty (outputPositionX)) + dx, getActiveUndoManager());
+        pos.setProperty (outputPositionY, static_cast<float> (pos.getProperty (outputPositionY)) + dy, getActiveUndoManager());
+        pos.setProperty (outputPositionZ, static_cast<float> (pos.getProperty (outputPositionZ)) + dz, getActiveUndoManager());
+    }
+}
+
+void WFSValueTreeState::shiftAllReverbPositions (float dx, float dy, float dz)
+{
+    auto reverbs = getReverbsState();
+    int n = reverbs.getNumChildren();
+    if (n == 0) return;
+
+    beginUndoTransaction ("Shift Reverb Positions");
+    for (int i = 0; i < n; ++i)
+    {
+        auto child = reverbs.getChild (i);
+        if (child.getType() != Reverb) continue;  // Skip ReverbAlgorithm
+        auto pos = child.getChildWithName (Position);
+        if (! pos.isValid()) continue;
+        pos.setProperty (reverbPositionX, static_cast<float> (pos.getProperty (reverbPositionX)) + dx, getActiveUndoManager());
+        pos.setProperty (reverbPositionY, static_cast<float> (pos.getProperty (reverbPositionY)) + dy, getActiveUndoManager());
+        pos.setProperty (reverbPositionZ, static_cast<float> (pos.getProperty (reverbPositionZ)) + dz, getActiveUndoManager());
+    }
+}
+
 void WFSValueTreeState::replaceState (const juce::ValueTree& newState)
 {
     if (validateState (newState))
