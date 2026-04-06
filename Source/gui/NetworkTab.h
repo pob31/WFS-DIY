@@ -1971,7 +1971,7 @@ public:
         cachedNameColWidth = nameColWidth;
         const int modeColWidth = (int)(tableAvailableWidth * 1.2f / totalWeight);
         const int ipColWidth = (int)(tableAvailableWidth * 2.5f / totalWeight);
-        const int portColWidth = (int)(tableAvailableWidth * 1.2f / totalWeight);
+        const int portColWidth = (int)(tableAvailableWidth * 1.2f / totalWeight) - 7;
         const int rxTxColWidth = (int)(tableAvailableWidth * 0.8f / totalWeight);
         const int protocolColWidth = (int)(tableAvailableWidth * 2.0f / totalWeight);
         const int removeColWidth = (int)(tableAvailableWidth * 0.8f / totalWeight);
@@ -1987,7 +1987,7 @@ public:
         headerIpLabel.setBounds(colX - 7, leftY, ipColWidth, rowHeight);
         colX += ipColWidth + tableSpacing;
         headerTxPortLabel.setBounds(colX, leftY, portColWidth, rowHeight);
-        colX += portColWidth + tableSpacing;
+        colX += portColWidth + tableSpacing + 7;
         headerRxEnableLabel.setBounds(colX, leftY, rxTxColWidth, rowHeight);
         colX += rxTxColWidth + tableSpacing;
         headerTxEnableLabel.setBounds(colX, leftY, rxTxColWidth, rowHeight);
@@ -2010,7 +2010,7 @@ public:
             row.ipEditor.setBounds(colX - 7, leftY, ipColWidth, rowHeight);
             colX += ipColWidth + tableSpacing;
             row.txPortEditor.setBounds(colX, leftY, portColWidth, rowHeight);
-            colX += portColWidth + tableSpacing;
+            colX += portColWidth + tableSpacing + 7;
             row.rxEnableButton.setBounds(colX, leftY, rxTxColWidth, rowHeight);
             row.txEnableButton.setBounds(colX + rxTxColWidth + tableSpacing, leftY, rxTxColWidth, rowHeight);
             // QLab patch fields in right portion of name column (positioned here, visibility via updateQLabAppearance)
