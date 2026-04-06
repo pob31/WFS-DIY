@@ -2148,7 +2148,7 @@ void WFSValueTreeState::createBinauralSection (juce::ValueTree& config)
 
 void WFSValueTreeState::createUISection (juce::ValueTree& config)
 {
-    juce::ValueTree ui (UI);
+    juce::ValueTree ui (WFSParameterIDs::UI);
     ui.setProperty (streamDeckEnabled, streamDeckEnabledDefault, nullptr);
     ui.setProperty (samplerEnabled, samplerEnabledDefault, nullptr);
     ui.setProperty (samplerBlockSerial, "", nullptr);

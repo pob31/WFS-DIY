@@ -1439,7 +1439,7 @@ juce::ValueTree WFSFileManager::extractInputWithExtendedScope (int channelIndex,
     // Only include if sampler is globally enabled
     {
         auto config = valueTreeState.getConfigState();
-        auto ui = config.getChildWithName (UI);
+        auto ui = config.getChildWithName (WFSParameterIDs::UI);
         bool samplerOn = ui.isValid() && (bool) ui.getProperty (samplerEnabled, false);
 
         if (samplerOn && scope.isIncluded ("sampler", channelIndex))
@@ -1552,7 +1552,7 @@ bool WFSFileManager::applyInputWithExtendedScope (int channelIndex, const juce::
     // Only apply if sampler is globally enabled
     {
         auto config = valueTreeState.getConfigState();
-        auto ui = config.getChildWithName (UI);
+        auto ui = config.getChildWithName (WFSParameterIDs::UI);
         bool samplerOn = ui.isValid() && (bool) ui.getProperty (samplerEnabled, false);
 
         if (samplerOn && scope.isIncluded ("sampler", channelIndex))
