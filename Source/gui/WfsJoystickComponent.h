@@ -50,6 +50,9 @@ public:
         Values are -1..+1 for both axes. Used to show controller deflection. */
     void setThumbPosition (float x, float y)
     {
+        if (dragging)
+            return;
+
         auto bounds = getLocalBounds().toFloat();
         const auto strokeWidth = 2.0f;
         const auto diameter = juce::jmin (bounds.getWidth(), bounds.getHeight()) - strokeWidth;
@@ -108,6 +111,7 @@ private:
 
     void mouseDown(const juce::MouseEvent& e) override
     {
+        dragging = true;
         updateFromPointer(e.position);
         if (onPositionChanged != nullptr)
         {
@@ -123,6 +127,7 @@ private:
 
     void mouseUp(const juce::MouseEvent&) override
     {
+        dragging = false;
         stopTimer();
         resetToCenter();
     }
@@ -184,4 +189,5 @@ private:
     juce::Point<float> normalizedPosition { 0.0f, 0.0f };
     std::function<void(float, float)> onPositionChanged;
     double reportingIntervalHz = 10.0; // ~100ms
+    bool dragging = false;
 };

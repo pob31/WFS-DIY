@@ -7579,13 +7579,44 @@ private:
         // came from the joystick/Z slider continuous updates (avoid feedback loop)
         // Also skip sampler subtree changes — these are handled locally by SamplerSubTab
         // and a full reload would clear the sampler's cell selection state.
-        // Skip high-frequency position/offset changes — these happen during drag and
-        // don't need a full parameter reload (the map handles rendering directly)
+        // Position/offset changes: lightweight editor-only update (no full reload).
+        // A full loadChannelParameters() here caused severe lag during map drag.
         if (property == WFSParameterIDs::inputPositionX || property == WFSParameterIDs::inputPositionY ||
             property == WFSParameterIDs::inputPositionZ ||
             property == WFSParameterIDs::inputOffsetX || property == WFSParameterIDs::inputOffsetY ||
             property == WFSParameterIDs::inputOffsetZ)
+        {
+            if (!isLoadingParameters && !suppressParameterReload && currentChannel > 0)
+            {
+                // Check if this change is for the current channel
+                juce::ValueTree parent = tree;
+                while (parent.isValid())
+                {
+                    if (parent.getType() == WFSParameterIDs::Input)
+                    {
+                        if ((int) parent.getProperty(WFSParameterIDs::id, -1) == currentChannel)
+                        {
+                            juce::MessageManager::callAsync ([this]()
+                            {
+                                if (currentChannel <= 0) return;
+                                int idx = currentChannel - 1;
+
+                                // Update position editors (with coordinate conversion)
+                                updatePositionLabelsAndValues();
+
+                                // Update offset editors
+                                offsetXEditor.setText (juce::String (static_cast<float> (parameters.getInputParam (idx, "inputOffsetX")), 2), juce::dontSendNotification);
+                                offsetYEditor.setText (juce::String (static_cast<float> (parameters.getInputParam (idx, "inputOffsetY")), 2), juce::dontSendNotification);
+                                offsetZEditor.setText (juce::String (static_cast<float> (parameters.getInputParam (idx, "inputOffsetZ")), 2), juce::dontSendNotification);
+                            });
+                        }
+                        break;
+                    }
+                    parent = parent.getParent();
+                }
+            }
             return;
+        }
 
         if (!isLoadingParameters && !suppressParameterReload
             && !tree.hasType(WFSParameterIDs::SamplerCell)
