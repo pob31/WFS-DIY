@@ -21,7 +21,8 @@
  */
 class MapTab : public juce::Component,
                private juce::ValueTree::Listener,
-               private juce::Timer
+               private juce::Timer,
+               public HelpCardProvider
 {
 public:
     MapTab(WfsParameters& params)
@@ -2281,6 +2282,11 @@ public:
     void setViewCenterY (float y) { viewOffset.y = y * viewScale; repaint(); }
     float getViewScale() const { return viewScale; }
     void setViewScale (float s) { viewScale = juce::jlimit (5.0f, 500.0f, s); repaint(); }
+
+    std::vector<HelpCardButton*> getVisibleHelpButtons() override
+    {
+        return { &mapHelpButton };
+    }
 
 private:
     WfsParameters& parameters;

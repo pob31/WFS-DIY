@@ -106,7 +106,8 @@ class OutputsTab : public juce::Component,
                    private juce::Label::Listener,
                    private juce::ValueTree::Listener,
                    private juce::KeyListener,
-                   public ColorScheme::Manager::Listener
+                   public ColorScheme::Manager::Listener,
+                   public HelpCardProvider
 {
 public:
     OutputsTab(WfsParameters& params)
@@ -550,6 +551,13 @@ public:
     std::unique_ptr<juce::ComponentTraverser> createKeyboardFocusTraverser() override
     {
         return std::make_unique<ColumnCircuitTraverser>(outputParamCircuits);
+    }
+
+    std::vector<HelpCardButton*> getVisibleHelpButtons() override
+    {
+        if (subTabBar.getCurrentTabIndex() == 0)
+            return { &outputHelpButton, &advancedHelpButton, &parallaxHelpButton, &tuningHelpButton };
+        return {};
     }
 
 private:

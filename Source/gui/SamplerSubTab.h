@@ -52,7 +52,7 @@ public:
 
         // ── Cell property controls ──
         cellNameEditor.setJustification (juce::Justification::centredLeft);
-        cellNameEditor.onReturnKey = [this] { onCellNameChanged(); };
+        cellNameEditor.onReturnKey = [this] { onCellNameChanged(); cellNameEditor.giveAwayKeyboardFocus(); };
         cellNameEditor.onFocusLost = [this] { onCellNameChanged(); };
         cellNameEditor.onEscapeKey = [this] {
             if (! selectedCells.empty()) {
@@ -98,7 +98,7 @@ public:
                 cellOffsetEditors[i].setJustification (juce::Justification::centred);
                 cellOffsetEditors[i].setInputRestrictions (8, "-.0123456789");
                 cellOffsetEditors[i].setTextToShowWhenEmpty (placeholders[i], juce::Colours::grey);
-                cellOffsetEditors[i].onReturnKey = [this, i] { onOffsetEditorChanged (i); };
+                cellOffsetEditors[i].onReturnKey = [this, i] { onOffsetEditorChanged (i); cellOffsetEditors[i].giveAwayKeyboardFocus(); };
                 cellOffsetEditors[i].onFocusLost = [this, i] { onOffsetEditorChanged (i); };
                 cellOffsetEditors[i].onEscapeKey = [this, i] {
                     if (! selectedCells.empty()) {
@@ -155,7 +155,7 @@ public:
         addChildComponent (qlabSetButton);
 
         setNameEditor.setJustification (juce::Justification::centredLeft);
-        setNameEditor.onReturnKey = [this] { onSetNameChanged(); };
+        setNameEditor.onReturnKey = [this] { onSetNameChanged(); setNameEditor.giveAwayKeyboardFocus(); };
         setNameEditor.onFocusLost = [this] { onSetNameChanged(); };
         setNameEditor.onEscapeKey = [this] {
             if (activeSetIndex >= 0 && activeSetIndex < static_cast<int> (sets.size()))
@@ -176,7 +176,7 @@ public:
                 setPosEditors[i].setJustification (juce::Justification::centred);
                 setPosEditors[i].setInputRestrictions (8, "-.0123456789");
                 setPosEditors[i].setTextToShowWhenEmpty (placeholders[i], juce::Colours::grey);
-                setPosEditors[i].onReturnKey = [this, i] { onSetPosEditorChanged (i); };
+                setPosEditors[i].onReturnKey = [this, i] { onSetPosEditorChanged (i); setPosEditors[i].giveAwayKeyboardFocus(); };
                 setPosEditors[i].onFocusLost = [this, i] { onSetPosEditorChanged (i); };
                 setPosEditors[i].onEscapeKey = [this, i] {
                     if (activeSetIndex >= 0 && activeSetIndex < static_cast<int> (sets.size())) {

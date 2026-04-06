@@ -662,6 +662,7 @@ MainComponent::MainComponent()
             systemConfigTab->setInputsOrMapTabVisited();
         if ((tabIndex == 2 || tabIndex == 3 || tabIndex == 4 || tabIndex == 6) && systemConfigTab != nullptr)
             systemConfigTab->setChannelTabsVisited();
+        resetHelpCycle();
     };
 
     // Load saved color scheme from parameters and apply it
@@ -5260,6 +5261,89 @@ void MainComponent::confirmChannelSelection()
     cancelChannelSelection();
 }
 
+void MainComponent::resetHelpCycle()
+{
+    if (helpCycleIndex >= 0 && helpCycleIndex < (int)helpCycleButtons.size())
+        helpCycleButtons[helpCycleIndex]->dismiss();
+    helpCycleIndex = -1;
+    helpCycleButtons.clear();
+}
+
+void MainComponent::cycleHelpCards()
+{
+    // Get the active tab's help card provider
+    HelpCardProvider* provider = nullptr;
+    switch (tabbedComponent.getCurrentTabIndex())
+    {
+        case 0: provider = systemConfigTab; break;
+        case 1: provider = networkTab; break;
+        case 2: provider = outputsTab; break;
+        case 3: provider = reverbTab; break;
+        case 4: provider = inputsTab; break;
+        case 5: provider = clustersTab; break;
+        case 6: provider = dynamic_cast<HelpCardProvider*>(mapTab.get()); break;
+    }
+    if (provider == nullptr) return;
+
+    auto buttons = provider->getVisibleHelpButtons();
+    if (buttons.empty()) return;
+
+    // If cycle is active and buttons haven't changed, advance to next
+    if (helpCycleIndex >= 0 && helpCycleButtons == buttons)
+    {
+        // Dismiss current
+        helpCycleButtons[helpCycleIndex]->dismiss();
+
+        // Advance — after last card, close and reset
+        helpCycleIndex++;
+        if (helpCycleIndex >= (int)helpCycleButtons.size())
+        {
+            helpCycleIndex = -1;
+            helpCycleButtons.clear();
+            return;
+        }
+
+        helpCycleButtons[helpCycleIndex]->activate();
+        return;
+    }
+
+    // Starting a new cycle — dismiss any previous
+    resetHelpCycle();
+
+    // Sort buttons: column-first (X), then top-down (Y)
+    // Group by X into columns (within 50px = same column)
+    helpCycleButtons = buttons;
+    std::sort(helpCycleButtons.begin(), helpCycleButtons.end(),
+        [](const HelpCardButton* a, const HelpCardButton* b)
+        {
+            int ax = a->getScreenX(), bx = b->getScreenX();
+            // Same column if within 50px horizontally
+            if (std::abs(ax - bx) <= 50)
+                return a->getScreenY() < b->getScreenY();
+            return ax < bx;
+        });
+
+    // Find the button closest to the mouse pointer
+    auto mousePos = juce::Desktop::getInstance().getMainMouseSource().getScreenPosition().toInt();
+    int closestIdx = 0;
+    int closestDist = std::numeric_limits<int>::max();
+    for (int i = 0; i < (int)helpCycleButtons.size(); ++i)
+    {
+        auto btnCentre = helpCycleButtons[i]->getScreenBounds().getCentre();
+        int dx = btnCentre.x - mousePos.x;
+        int dy = btnCentre.y - mousePos.y;
+        int dist = dx * dx + dy * dy;
+        if (dist < closestDist)
+        {
+            closestDist = dist;
+            closestIdx = i;
+        }
+    }
+
+    helpCycleIndex = closestIdx;
+    helpCycleButtons[helpCycleIndex]->activate();
+}
+
 void MainComponent::cycleChannel(int delta)
 {
     int currentTabIndex = tabbedComponent.getCurrentTabIndex();
@@ -5595,6 +5679,17 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
         return false;
     }
 
+    // Help card cycling: H key — works even when a text editor has focus
+    // (unfocuses the editor so H isn't typed into it)
+    if (key.isKeyCode('H') && !key.getModifiers().isCommandDown())
+    {
+        if (auto* focused = juce::Component::getCurrentlyFocusedComponent())
+            if (dynamic_cast<juce::TextEditor*>(focused) != nullptr)
+                focused->giveAwayKeyboardFocus();
+        cycleHelpCards();
+        return true;
+    }
+
     // Skip shortcuts if text editor has focus (user is typing in a field)
     if (isTextEditorFocused())
         return false;
@@ -5660,6 +5755,7 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
         return true;
     }
 
+    // Help card cycling: H key
     // Get current tab index for tab-specific shortcuts
     int currentTabIndex = tabbedComponent.getCurrentTabIndex();
 

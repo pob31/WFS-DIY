@@ -199,8 +199,8 @@ public:
         blackValueEditor.setJustification (juce::Justification::centred);
         clearEditorFrame (whiteValueEditor);
         clearEditorFrame (blackValueEditor);
-        whiteValueEditor.onReturnKey = [this] { onLayerPropertyChanged(); };
-        blackValueEditor.onReturnKey = [this] { onLayerPropertyChanged(); };
+        whiteValueEditor.onReturnKey = [this] { onLayerPropertyChanged(); whiteValueEditor.giveAwayKeyboardFocus(); };
+        blackValueEditor.onReturnKey = [this] { onLayerPropertyChanged(); blackValueEditor.giveAwayKeyboardFocus(); };
         whiteValueEditor.onFocusLost = [this] { onLayerPropertyChanged(); };
         blackValueEditor.onFocusLost = [this] { onLayerPropertyChanged(); };
         whiteValueEditor.onEscapeKey = [this] {
@@ -227,6 +227,7 @@ public:
         {
             curveSlider.setValue (curveValueEditor.getText().getFloatValue());
             onLayerPropertyChanged();
+            curveValueEditor.giveAwayKeyboardFocus();
         };
         curveValueEditor.onFocusLost = curveValueEditor.onReturnKey;
         curveValueEditor.onEscapeKey = [this] {
@@ -271,6 +272,7 @@ public:
                     repaint();
                 }
             }
+            shapeNameEditor.giveAwayKeyboardFocus();
         };
         shapeNameEditor.onFocusLost = shapeNameEditor.onReturnKey;
         shapeNameEditor.onEscapeKey = [this] {
@@ -299,6 +301,7 @@ public:
         {
             shapeFillValueSlider.setValue (shapeFillValueEditor.getText().getFloatValue());
             onShapePropertyChanged();
+            shapeFillValueEditor.giveAwayKeyboardFocus();
         };
         shapeFillValueEditor.onFocusLost = shapeFillValueEditor.onReturnKey;
         shapeFillValueEditor.onEscapeKey = [this] {
@@ -336,6 +339,7 @@ public:
         {
             shapeBlurSlider.setValue (shapeBlurEditor.getText().getFloatValue());
             onShapePropertyChanged();
+            shapeBlurEditor.giveAwayKeyboardFocus();
         };
         shapeBlurEditor.onFocusLost = shapeBlurEditor.onReturnKey;
         shapeBlurEditor.onEscapeKey = [this] {
@@ -399,6 +403,7 @@ public:
         {
             gradValue1Slider.setValue (gradValue1Editor.getText().getFloatValue());
             onGradientValueChanged();
+            gradValue1Editor.giveAwayKeyboardFocus();
         };
         gradValue1Editor.onFocusLost = gradValue1Editor.onReturnKey;
         gradValue1Editor.onEscapeKey = [this] {
@@ -419,6 +424,7 @@ public:
         {
             gradValue2Slider.setValue (gradValue2Editor.getText().getFloatValue());
             onGradientValueChanged();
+            gradValue2Editor.giveAwayKeyboardFocus();
         };
         gradValue2Editor.onFocusLost = gradValue2Editor.onReturnKey;
         gradValue2Editor.onEscapeKey = [this] {

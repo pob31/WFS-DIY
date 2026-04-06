@@ -157,7 +157,8 @@ class InputsTab : public juce::Component,
                   private juce::Label::Listener,
                   private juce::ValueTree::Listener,
                   private juce::KeyListener,
-                  public ColorScheme::Manager::Listener
+                  public ColorScheme::Manager::Listener,
+                  public HelpCardProvider
 {
 public:
     InputsTab(WfsParameters& params)
@@ -354,6 +355,16 @@ public:
         addChildComponent(otomoHelpCard);
         otomoHelpCard.setContent(LOC("help.automOtion.title"), LOC("help.automOtion.body"));
         otomoHelpButton.setCard(&otomoHelpCard);
+
+        addAndMakeVisible(gradientMapHelpButton);
+        addChildComponent(gradientMapHelpCard);
+        gradientMapHelpCard.setContent(LOC("help.gradientMap.title"), LOC("help.gradientMap.body"));
+        gradientMapHelpButton.setCard(&gradientMapHelpCard);
+
+        addAndMakeVisible(samplerHelpButton);
+        addChildComponent(samplerHelpCard);
+        samplerHelpCard.setContent(LOC("help.sampler.title"), LOC("help.sampler.body"));
+        samplerHelpButton.setCard(&samplerHelpCard);
 
         setupLfoTab();
         setupAutomotionTab();
@@ -924,6 +935,17 @@ public:
     void setLightpadZoneChangedCallback (std::function<void (int inputIndex, int zoneId)> cb)
     {
         samplerSubTab.onLightpadZoneChanged = std::move (cb);
+    }
+
+    std::vector<HelpCardButton*> getVisibleHelpButtons() override
+    {
+        int tab = subTabBar.getCurrentTabIndex();
+        if (tab == 0) return { &inputBasicHelpButton, &inputAdvancedHelpButton, &inputLevelHelpButton, &inputHFHelpButton, &inputMutesHelpButton };
+        if (tab == 1) return { &lsHelpButton, &frHelpButton };
+        if (tab == 2) return { &lfoHelpButton, &otomoHelpButton };
+        if (tab == 3) return { &gradientMapHelpButton };
+        if (tab == samplerTabIndex && samplerTabIndex >= 0) return { &samplerHelpButton };
+        return {};
     }
 
 private:
@@ -3096,6 +3118,8 @@ private:
         setMutesVisible(false);
         setGradientMapsVisible(false);
         samplerSubTab.setVisible(false);
+        gradientMapHelpButton.setVisible(false); gradientMapHelpCard.hide();
+        samplerHelpButton.setVisible(false); samplerHelpCard.hide();
         inputBasicHelpButton.setVisible(false); inputBasicHelpCard.hide();
         inputAdvancedHelpButton.setVisible(false); inputAdvancedHelpCard.hide();
         inputLevelHelpButton.setVisible(false); inputLevelHelpCard.hide();
@@ -3136,6 +3160,7 @@ private:
         {
             // Gradient Maps
             setGradientMapsVisible(true);
+            gradientMapHelpButton.setVisible(true);
             layoutGradientMapsTab();
         }
         else if (tabIndex == 4)
@@ -3149,6 +3174,12 @@ private:
             // Sampler
             samplerSubTab.setVisible(true);
             samplerSubTab.setBounds(subTabContentArea);
+            samplerHelpButton.setVisible(true);
+            const int btnSize = scaled(20);
+            samplerHelpButton.setBounds(subTabContentArea.getRight() - btnSize, subTabContentArea.getY(), btnSize, btnSize);
+            int cardW = juce::jmin(350, subTabContentArea.getWidth() / 2);
+            int cardH = samplerHelpCard.getIdealHeight(cardW);
+            samplerHelpCard.setBounds(subTabContentArea.getRight() - cardW, subTabContentArea.getY() + btnSize + scaled(5), cardW, cardH);
         }
     }
 
@@ -4145,6 +4176,19 @@ private:
     void layoutGradientMapsTab()
     {
         gradientMapEditor.setBounds(subTabContentArea);
+
+        // The map canvas is the subTabContentArea minus 21% panel on the right (matches GradientMapEditor::getCanvasBounds)
+        int panelWidth = juce::jmax(200, subTabContentArea.getWidth() * 21 / 100);
+        auto mapArea = subTabContentArea.withTrimmedRight(panelWidth);
+
+        const int btnSize = scaled(20);
+        gradientMapHelpButton.setBounds(mapArea.getRight() - btnSize, mapArea.getY(), btnSize, btnSize);
+
+        int cardW = juce::jmin(mapArea.getWidth() - 80, 580);
+        int cardH = gradientMapHelpCard.getIdealHeight(cardW);
+        int cardX = mapArea.getCentreX() - cardW / 2;
+        int cardY = mapArea.getCentreY() - cardH / 2;
+        gradientMapHelpCard.setBounds(cardX, cardY, cardW, cardH);
     }
 
     // ==================== COMBINED LAYOUT METHODS (5-tab structure) ====================
@@ -4840,7 +4884,7 @@ private:
         lfoActiveButton.setBounds(toggleArea.getX(), headerRow.getY() + toggleY, toggleWidth, rowHeight);
         {
             const int btnSize = scaled(20);
-            lfoHelpButton.setBounds(toggleArea.getX() + toggleWidth + spacing, headerRow.getY() + toggleY, btnSize, btnSize);
+            lfoHelpButton.setBounds(headerRow.getRight() - btnSize, headerRow.getY(), btnSize, btnSize);
         }
         headerRow.removeFromLeft(headerSpacing);
 
@@ -8158,6 +8202,12 @@ private:
     HelpCard inputHFHelpCard;
     HelpCardButton inputMutesHelpButton;
     HelpCard inputMutesHelpCard;
+
+    // Gradient Maps & Sampler help cards
+    HelpCardButton gradientMapHelpButton;
+    HelpCard gradientMapHelpCard;
+    HelpCardButton samplerHelpButton;
+    HelpCard samplerHelpCard;
 
     // L.F.O tab
     juce::TextButton lfoActiveButton;

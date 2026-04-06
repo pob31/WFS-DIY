@@ -1639,7 +1639,8 @@ private:
 class NetworkTab : public juce::Component,
                    private juce::ValueTree::Listener,
                    private juce::TextEditor::Listener,
-                   public ColorScheme::Manager::Listener
+                   public ColorScheme::Manager::Listener,
+                   public HelpCardProvider
 {
 public:
     using NetworkLogWindowCallback = std::function<void()>;
@@ -1647,6 +1648,7 @@ public:
         : parameters(params), statusBar(statusBarPtr)
     {
         ColorScheme::Manager::getInstance().addListener(this);
+        setWantsKeyboardFocus(true);
         setFocusContainerType(FocusContainerType::keyboardFocusContainer);
 
         // ==================== NETWORK SECTION ====================
@@ -2239,6 +2241,11 @@ public:
         return std::make_unique<ColumnCircuitTraverser>(std::vector<std::vector<juce::Component*>>{
             std::move(leftCol), std::move(rightCol)
         });
+    }
+
+    std::vector<HelpCardButton*> getVisibleHelpButtons() override
+    {
+        return { &networkHelpButton, &trackingHelpButton, &admOscHelpButton };
     }
 
 private:
@@ -3004,6 +3011,7 @@ private:
             addAndMakeVisible(row.nameEditor);
             row.nameEditor.setText(LOC("network.table.defaultTarget").replace("{num}", juce::String(i + 1)), false);
             row.nameEditor.setJustification(juce::Justification::centred);
+            row.nameEditor.addListener(this);
 
             // Data Mode selector (UDP/TCP)
             addAndMakeVisible(row.dataModeSelector);
@@ -3020,12 +3028,14 @@ private:
             addAndMakeVisible(row.ipEditor);
             row.ipEditor.setText("127.0.0.1", false);
             row.ipEditor.setJustification(juce::Justification::centred);
+            row.ipEditor.addListener(this);
 
             // Tx Port editor
             addAndMakeVisible(row.txPortEditor);
             row.txPortEditor.setText("9000", false);
             row.txPortEditor.setInputRestrictions(5, "0123456789");
             row.txPortEditor.setJustification(juce::Justification::centred);
+            row.txPortEditor.addListener(this);
 
             // Rx Enable button
             addAndMakeVisible(row.rxEnableButton);
@@ -3105,6 +3115,7 @@ private:
             row.qlabPatchEditor.setInputRestrictions(2, "0123456789");
             row.qlabPatchEditor.setJustification(juce::Justification::centred);
             row.qlabPatchEditor.onTextChange = [this, i]() { saveTargetToValueTree(i); };
+            row.qlabPatchEditor.addListener(this);
             row.qlabPatchEditor.setVisible(false);
 
             // Remove button (long press to avoid accidental deletion)
@@ -4086,8 +4097,18 @@ private:
         updateParameterFromEditor(&editor);
     }
 
-    void textEditorReturnKeyPressed(juce::TextEditor&) override {}
-    void textEditorEscapeKeyPressed(juce::TextEditor&) override {}
+    void textEditorReturnKeyPressed(juce::TextEditor& editor) override
+    {
+        editor.giveAwayKeyboardFocus();
+        grabKeyboardFocus();
+    }
+
+    void textEditorEscapeKeyPressed(juce::TextEditor& editor) override
+    {
+        editor.giveAwayKeyboardFocus();
+        grabKeyboardFocus();
+    }
+
     void textEditorFocusLost(juce::TextEditor&) override {}
 
     void mouseEnter(const juce::MouseEvent& e) override

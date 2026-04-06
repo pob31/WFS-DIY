@@ -157,7 +157,8 @@ class ClustersTab : public juce::Component,
                     public juce::ListBoxModel,
                     private juce::Timer,
                     private juce::ValueTree::Listener,
-                    private juce::Label::Listener
+                    private juce::Label::Listener,
+                    public HelpCardProvider
 {
 public:
     ClustersTab(WfsParameters& params)
@@ -727,6 +728,11 @@ public:
         if (prev < 1)
             prev = 10;
         selectCluster(prev);
+    }
+
+    std::vector<HelpCardButton*> getVisibleHelpButtons() override
+    {
+        return { &clusterHelpButton };
     }
 
 private:

@@ -30,7 +30,8 @@ class ReverbTab : public juce::Component,
                   private juce::Label::Listener,
                   private juce::ValueTree::Listener,
                   private juce::KeyListener,
-                  public ColorScheme::Manager::Listener
+                  public ColorScheme::Manager::Listener,
+                  public HelpCardProvider
 {
 public:
     ReverbTab (WfsParameters& params)
@@ -507,6 +508,16 @@ public:
     std::unique_ptr<juce::ComponentTraverser> createKeyboardFocusTraverser() override
     {
         return std::make_unique<ColumnCircuitTraverser>(reverbCircuits);
+    }
+
+    std::vector<HelpCardButton*> getVisibleHelpButtons() override
+    {
+        int tab = subTabBar.getCurrentTabIndex();
+        if (tab == 0) return { &reverbHelpButton, &reverbFeedHelpButton, &reverbReturnHelpButton };
+        if (tab == 1) return { &preProcHelpButton };
+        if (tab == 2) return { &algoHelpButton };
+        if (tab == 3) return { &postProcHelpButton };
+        return {};
     }
 
 private:

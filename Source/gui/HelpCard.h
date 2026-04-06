@@ -547,6 +547,21 @@ public:
         }
     }
 
+    /** Activate the card programmatically (e.g. from H key cycling). */
+    void activate()
+    {
+        if (!isActive)
+        {
+            isActive = true;
+            if (associatedCard != nullptr) associatedCard->show();
+            else if (scrollableCard != nullptr) scrollableCard->show();
+            repaint();
+        }
+    }
+
+    /** Check if the card is currently active/visible. */
+    bool getIsActive() const { return isActive; }
+
     void visibilityChanged() override
     {
         // Auto-dismiss when the button becomes invisible (tab switch)
@@ -570,4 +585,16 @@ private:
     void colorSchemeChanged() override { repaint(); }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(HelpCardButton)
+};
+
+//==============================================================================
+/**
+ * Interface for components that provide help cards accessible via H key cycling.
+ * Implement in tabs/windows to return the help buttons relevant to the current view.
+ */
+class HelpCardProvider
+{
+public:
+    virtual ~HelpCardProvider() = default;
+    virtual std::vector<HelpCardButton*> getVisibleHelpButtons() = 0;
 };

@@ -17,6 +17,7 @@
 #include "DSP/SharedInputRingBuffer.h"
 // #include "DSP/GpuInputBufferAlgorithm.h"  // Commented out - GPU Audio SDK not configured
 #include "WfsParameters.h"
+#include "gui/HelpCard.h"
 #include "Accessibility/TTSManager.h"
 #include "gui/StatusBar.h"
 #include "gui/SystemConfigTab.h"
@@ -358,6 +359,12 @@ private:
     juce::String channelNumberBuffer;
     juce::int64 channelSelectionStartTime = 0;
     static constexpr int channelSelectionTimeoutMs = 5000;
+
+    // Help card cycling (H key)
+    int helpCycleIndex = -1;
+    std::vector<HelpCardButton*> helpCycleButtons;
+    void resetHelpCycle();
+    void cycleHelpCards();
 
     bool isTextEditorFocused() const;
     void startChannelSelection(ChannelSelectionMode mode);

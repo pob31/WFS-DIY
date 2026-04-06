@@ -457,7 +457,8 @@ private:
 class SystemConfigTab : public juce::Component,
                         private juce::ValueTree::Listener,
                         private juce::TextEditor::Listener,
-                        public ColorScheme::Manager::Listener
+                        public ColorScheme::Manager::Listener,
+                        public HelpCardProvider
 {
 public:
     // Callback types for notifying MainComponent of changes
@@ -1785,6 +1786,11 @@ public:
             { &binauralDistanceEditor, &binauralAngleEditor,
               &binauralAttenEditor, &binauralDelayEditor }
         });
+    }
+
+    std::vector<HelpCardButton*> getVisibleHelpButtons() override
+    {
+        return { &overviewHelpButton, &binauralHelpButton, &sessionDataHelpButton };
     }
 
 private:
