@@ -43,8 +43,15 @@
 
 
 #define USE_STANDALONE_ASIO 1
-#define NOGDI
+// Note: NOGDI intentionally NOT defined — JUCE GUI modules need GDI types (LOGFONTW, RGBQUAD)
 #define ASIO_DISABLE_SERIAL_PORT 1
+
+#ifdef _WIN32
+  #ifndef _WIN32_WINNT
+    #define _WIN32_WINNT 0x0A00
+  #endif
+  #define _WINSOCK_DEPRECATED_NO_WARNINGS
+#endif
 
 #include <juce_core/juce_core.h>
 #include <juce_cryptography/juce_cryptography.h>
@@ -54,8 +61,6 @@
 #endif
 
 #if SIMPLEWEB_SECURE_SUPPORTED
-#define _WIN32_WINDOWS 0x601
-#define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include "common/crypto.hpp"
 #endif
 
