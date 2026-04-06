@@ -72,7 +72,6 @@ public:
         // Detach button — pop out map into its own window
         addAndMakeVisible(detachButton);
         detachButton.setButtonText(juce::String::charToString(0x21F1));  // ⇱ (NW arrow to corner)
-        detachButton.setTooltip(LOC("map.tooltips.detach"));
         detachButton.onClick = [this]()
         {
             if (onDetachRequested)
@@ -417,9 +416,9 @@ public:
         homeButton.setBounds(getWidth() - margin - homeW, margin, homeW, btnH);
         fitInputsButton.setBounds(getWidth() - margin - homeW - fitBtnGap - fitW, margin, fitW, btnH);
 
-        // Detach button — square, to the left of fitInputsButton
+        // Detach button — to the left of fitInputsButton
         {
-            const int detachW = btnH;  // Square button
+            const int detachW = static_cast<int>(btnH * 1.4f);
             detachButton.setBounds(fitInputsButton.getX() - fitBtnGap - detachW, margin, detachW, btnH);
         }
 

@@ -1964,7 +1964,7 @@ public:
         const int tableAvailableWidth = leftColumnWidth - totalTableSpacing;
 
         // Distribute width proportionally across columns
-        // Weights: Name=2.5, Protocol=2, Mode=1.2, IP=2.5, Port=1.2, Rx=0.8, Tx=0.8, Remove=0.8
+        // Weights: Name=2.5, Protocol=2.0, Mode=1.2, IP=2.5, Port=1.2, Rx=0.8, Tx=0.8, Remove=0.8
         const float totalWeight = 2.5f + 1.2f + 2.5f + 1.2f + 0.8f + 0.8f + 2.0f + 0.8f;
 
         const int nameColWidth = (int)(tableAvailableWidth * 2.5f / totalWeight);
@@ -1982,9 +1982,9 @@ public:
         colX += nameColWidth + tableSpacing;
         headerProtocolLabel.setBounds(colX, leftY, protocolColWidth, rowHeight);
         colX += protocolColWidth + tableSpacing;
-        headerDataModeLabel.setBounds(colX, leftY, modeColWidth, rowHeight);
+        headerDataModeLabel.setBounds(colX - 7, leftY, modeColWidth, rowHeight);
         colX += modeColWidth + tableSpacing;
-        headerIpLabel.setBounds(colX, leftY, ipColWidth, rowHeight);
+        headerIpLabel.setBounds(colX - 7, leftY, ipColWidth, rowHeight);
         colX += ipColWidth + tableSpacing;
         headerTxPortLabel.setBounds(colX, leftY, portColWidth, rowHeight);
         colX += portColWidth + tableSpacing;
@@ -2005,9 +2005,9 @@ public:
             colX += nameColWidth + tableSpacing;
             row.protocolSelector.setBounds(colX, leftY, protocolColWidth, rowHeight);
             colX += protocolColWidth + tableSpacing;
-            row.dataModeSelector.setBounds(colX, leftY, modeColWidth, rowHeight);
+            row.dataModeSelector.setBounds(colX - 7, leftY, modeColWidth, rowHeight);
             colX += modeColWidth + tableSpacing;
-            row.ipEditor.setBounds(colX, leftY, ipColWidth, rowHeight);
+            row.ipEditor.setBounds(colX - 7, leftY, ipColWidth, rowHeight);
             colX += ipColWidth + tableSpacing;
             row.txPortEditor.setBounds(colX, leftY, portColWidth, rowHeight);
             colX += portColWidth + tableSpacing;
@@ -2016,7 +2016,7 @@ public:
             // QLab patch fields in right portion of name column (positioned here, visibility via updateQLabAppearance)
             {
                 auto nb = row.nameEditor.getBounds();
-                int patchLabelW = scaled(32);
+                int patchLabelW = scaled(40);
                 int patchEditorW = scaled(28);
                 int patchGap = scaled(3);
                 int patchX = nb.getRight() - patchLabelW - patchGap - patchEditorW;
@@ -3084,9 +3084,10 @@ private:
                     if (targetRows[i].nameEditor.getText() == LOC("network.table.defaultTarget").replace("{num}", juce::String(i + 1)))
                         targetRows[i].nameEditor.setText("QLab", false);
                 }
-                // Update ADM-OSC appearance when protocol changes
+                // Update appearance when protocol changes
                 updateAdmOscAppearance();
                 updateQLabAppearance();
+                updateTargetRowVisibility();
                 saveTargetToValueTree(i);
                 // TTS: Announce selection change
                 TTSManager::getInstance().announceValueChange(LOC("network.table.defaultTarget").replace("{num}", juce::String(i + 1)) + " " + LOC("network.table.protocol"), targetRows[i].protocolSelector.getText());
@@ -3095,7 +3096,7 @@ private:
             // QLab patch number editor
             addAndMakeVisible(row.qlabPatchLabel);
             row.qlabPatchLabel.setText("Patch", juce::dontSendNotification);
-            row.qlabPatchLabel.setFont(juce::Font(juce::FontOptions(11.0f)));
+            row.qlabPatchLabel.setFont(juce::Font(juce::FontOptions()));
             row.qlabPatchLabel.setJustificationType(juce::Justification::centred);
             row.qlabPatchLabel.setVisible(false);
 
@@ -3237,8 +3238,11 @@ private:
             row.ipEditor.setEnabled(row.isActive);
             row.txPortEditor.setAlpha(alpha);
             row.txPortEditor.setEnabled(row.isActive);
+            bool hasProtocol = row.isActive && row.protocolSelector.getSelectedId() > 1;
+            row.rxEnableButton.setVisible(hasProtocol);
             row.rxEnableButton.setAlpha(alpha);
             row.rxEnableButton.setEnabled(row.isActive);
+            row.txEnableButton.setVisible(hasProtocol);
             row.txEnableButton.setAlpha(alpha);
             row.txEnableButton.setEnabled(row.isActive);
             row.protocolSelector.setAlpha(alpha);
@@ -3428,9 +3432,10 @@ private:
             auto& row = targetRows[i];
             bool isQLab = (row.protocolSelector.getSelectedId() == 8);  // QLab
 
-            // Rx/Tx always visible
-            row.rxEnableButton.setVisible(row.isActive);
-            row.txEnableButton.setVisible(row.isActive);
+            // Rx/Tx only visible when a protocol is selected
+            bool hasProtocol = row.isActive && row.protocolSelector.getSelectedId() > 1;
+            row.rxEnableButton.setVisible(hasProtocol);
+            row.txEnableButton.setVisible(hasProtocol);
 
             // QLab patch fields in name area
             row.qlabPatchLabel.setVisible(isQLab && row.isActive);
