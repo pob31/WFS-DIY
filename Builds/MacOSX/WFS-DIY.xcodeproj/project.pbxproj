@@ -647,6 +647,7 @@
 				1B6C3431D7BF356639EFC704,
 				819D56535DE30EF947D5F4D4,
 				8BC7CC955FF9EA18E7BEFFCE,
+				AABB0011LANGCOPY00000001,
 			);
 			buildRules = (
 			);
@@ -658,6 +659,23 @@
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		AABB0011LANGCOPY00000001 = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Copy Localisation Resources";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Copy lang files into app bundle Resources folder\nmkdir -p \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources/lang\"\ncp -R \"${SRCROOT}/../../Resources/lang/\" \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources/lang/\"\necho \"Copied localisation files to bundle\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXProject section */
 		D71F4B342D929AF1300FE7D7 = {
