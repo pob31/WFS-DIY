@@ -273,6 +273,7 @@
     <MODULE id="juce_gui_extra" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
     <MODULE id="juce_opengl" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
     <MODULE id="juce_osc" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_simpleweb" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
     <MODULE id="roli_blocks_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
   </MODULES>
   <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1" JUCE_USE_ANDROID_OBOE="0" JUCE_JACK="0"
@@ -299,6 +300,7 @@
         <MODULEPATH id="juce_opengl" path="ThirdParty/JUCE/modules"/>
         <MODULEPATH id="juce_osc" path="ThirdParty/JUCE/modules"/>
         <MODULEPATH id="juce_audio_processors_headless" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_simpleweb" path="ThirdParty"/>
         <MODULEPATH id="roli_blocks_basics" path="ThirdParty"/>
       </MODULEPATHS>
     </LINUX_MAKE>
@@ -329,6 +331,7 @@
         <MODULEPATH id="juce_opengl" path="ThirdParty/JUCE/modules"/>
         <MODULEPATH id="juce_osc" path="ThirdParty/JUCE/modules"/>
         <MODULEPATH id="juce_audio_processors_headless" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_simpleweb" path="ThirdParty"/>
         <MODULEPATH id="roli_blocks_basics" path="ThirdParty"/>
       </MODULEPATHS>
     </VS2022>
@@ -355,6 +358,7 @@
         <MODULEPATH id="juce_opengl" path="ThirdParty/JUCE/modules"/>
         <MODULEPATH id="juce_osc" path="ThirdParty/JUCE/modules"/>
         <MODULEPATH id="juce_audio_processors_headless" path="ThirdParty/JUCE/modules"/>
+        <MODULEPATH id="juce_simpleweb" path="ThirdParty"/>
         <MODULEPATH id="roli_blocks_basics" path="ThirdParty"/>
       </MODULEPATHS>
     </XCODE_MAC>

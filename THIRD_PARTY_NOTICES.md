@@ -100,6 +100,21 @@ THE SOFTWARE.
 
 ---
 
+## juce_simpleweb
+
+- **Website**: https://github.com/benkuper/juce_simpleweb
+- **License**: GPLv3
+- **Author**: Ben Kuperberg
+
+JUCE module providing HTTP and WebSocket server functionality using
+SimpleWeb and standalone ASIO. Used for the OSCQuery protocol's WebSocket
+transport (LISTEN/IGNORE subscriptions and real-time parameter streaming).
+
+Includes standalone ASIO (https://github.com/chriskohlhoff/asio) under the
+Boost Software License 1.0.
+
+---
+
 ## GPU Audio SDK
 
 - **Website**: https://github.com/gpuaudio

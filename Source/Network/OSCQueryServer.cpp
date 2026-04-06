@@ -12,16 +12,16 @@ namespace WFSNetwork
 //==============================================================================
 
 OSCQueryServer::OSCQueryServer(WFSValueTreeState& stateRef)
-    : Thread("OSCQueryServer")
-    , state(stateRef)
+    : state(stateRef)
+    , stateTree(stateRef.getState())
 {
-    state.getState().addListener(this);
+    stateTree.addListener(static_cast<juce::ValueTree::Listener*>(this));
 }
 
 OSCQueryServer::~OSCQueryServer()
 {
     stop();
-    state.getState().removeListener(this);
+    stateTree.removeListener(static_cast<juce::ValueTree::Listener*>(this));
 }
 
 //==============================================================================
@@ -36,17 +36,17 @@ bool OSCQueryServer::start(int oscPortParam, int httpPortParam)
     oscPort = oscPortParam;
     httpPort = httpPortParam;
 
-    serverSocket = std::make_unique<juce::StreamingSocket>();
-
-    if (!serverSocket->createListener(httpPort))
-    {
-        DBG("OSCQueryServer: Failed to create listener on port " << httpPort);
-        serverSocket.reset();
-        return false;
-    }
+    wsServer = std::make_unique<SimpleWebSocketServer>();
+    wsServer->addHTTPRequestHandler(this);
+    wsServer->addWebSocketListener(this);
+    wsServer->start(httpPort);
 
     running = true;
-    startThread();
+    DBG("OSCQueryServer: Started on port " << httpPort << " (OSC port " << oscPort << ")");
+
+    DBG("OSCQueryServer: ValueTree type='" << stateTree.getType().toString()
+        << "' children=" << stateTree.getNumChildren());
+
     return true;
 }
 
@@ -57,112 +57,53 @@ void OSCQueryServer::stop()
 
     running = false;
 
-    if (serverSocket)
-        serverSocket->close();
+    if (wsServer)
+    {
+        wsServer->removeWebSocketListener(this);
+        wsServer->removeHTTPRequestHandler(this);
+        wsServer->stop();
+        wsServer.reset();
+    }
 
-    stopThread(2000);
-    serverSocket.reset();
+    // Clear subscriptions
+    {
+        const juce::ScopedLock sl(subscriptionLock);
+        subscriptions.clear();
+    }
+
+    DBG("OSCQueryServer: Stopped");
 }
 
 //==============================================================================
-// Thread
+// HTTP Request Handler
 //==============================================================================
 
-void OSCQueryServer::run()
+bool OSCQueryServer::handleHTTPRequest(std::shared_ptr<HttpServer::Response> response,
+                                        std::shared_ptr<HttpServer::Request> request)
 {
-    while (!threadShouldExit() && running.load())
+    juce::String path = juce::String(request->path);
+    juce::String query = juce::String(request->query_string);
+
+    // Normalize path
+    if (path.isEmpty())
+        path = "/";
+    if (path.length() > 1 && path.endsWithChar('/'))
+        path = path.dropLastCharacters(1);
+
+    // HOST_INFO query
+    if (query == "HOST_INFO")
     {
-        if (serverSocket->waitUntilReady(true, 100) == 1)
-        {
-            auto* clientSocket = serverSocket->waitForNextConnection();
-            if (clientSocket != nullptr)
-            {
-                std::unique_ptr<juce::StreamingSocket> client(clientSocket);
-                handleHttpRequest(*client);
-            }
-        }
-    }
-}
-
-//==============================================================================
-// HTTP Request Handling
-//==============================================================================
-
-OSCQueryServer::ParsedRequest OSCQueryServer::parseHttpRequest(const juce::String& request)
-{
-    ParsedRequest result;
-    result.path = "/";
-
-    if (!request.startsWith("GET "))
-        return result;
-
-    int pathStart = 4;
-    int pathEnd = request.indexOf(pathStart, " ");
-    if (pathEnd < 0)
-        pathEnd = request.indexOf(pathStart, "\r");
-    if (pathEnd < 0)
-        return result;
-
-    juce::String uri = request.substring(pathStart, pathEnd);
-
-    // Strip fragment
-    int fragIdx = uri.indexOf("#");
-    if (fragIdx >= 0)
-        uri = uri.substring(0, fragIdx);
-
-    // Split path and query
-    int queryIdx = uri.indexOf("?");
-    if (queryIdx >= 0)
-    {
-        result.path = uri.substring(0, queryIdx);
-        result.query = uri.substring(queryIdx + 1);
-    }
-    else
-    {
-        result.path = uri;
+        sendJsonResponse(response, 200, buildHostInfoJson());
+        return true;
     }
 
-    if (result.path.isEmpty())
-        result.path = "/";
-
-    // Remove trailing slash (except for root)
-    if (result.path.length() > 1 && result.path.endsWithChar('/'))
-        result.path = result.path.dropLastCharacters(1);
-
-    return result;
-}
-
-void OSCQueryServer::handleHttpRequest(juce::StreamingSocket& client)
-{
-    // Wait up to 1 second for data to arrive
-    if (client.waitUntilReady(true, 1000) != 1)
-        return;
-
-    char buffer[4096];
-    int bytesRead = client.read(buffer, sizeof(buffer) - 1, false);
-
-    if (bytesRead <= 0)
-        return;
-
-    buffer[bytesRead] = '\0';
-    juce::String request(buffer);
-
-    auto parsed = parseHttpRequest(request);
-
-    // HOST_INFO query (path is irrelevant per spec)
-    if (parsed.query == "HOST_INFO")
-    {
-        sendHttpResponse(client, 200, "OK", buildHostInfoJson());
-        return;
-    }
-
-    // Build full tree
+    // Build full tree and walk to requested path
     juce::DynamicObject::Ptr rootPtr(buildFullTree());
     juce::DynamicObject::Ptr targetPtr = rootPtr;
 
-    if (parsed.path != "/" && parsed.path.isNotEmpty())
+    if (path != "/" && path.isNotEmpty())
     {
-        auto segments = juce::StringArray::fromTokens(parsed.path.substring(1), "/", "");
+        auto segments = juce::StringArray::fromTokens(path.substring(1), "/", "");
 
         for (const auto& seg : segments)
         {
@@ -170,18 +111,18 @@ void OSCQueryServer::handleHttpRequest(juce::StreamingSocket& client)
             auto* contentsObj = contentsVar.getDynamicObject();
             if (contentsObj == nullptr)
             {
-                sendHttpResponse(client, 404, "Not Found",
-                    "{\"ERROR\": \"Path not found: " + parsed.path + "\"}");
-                return;
+                sendJsonResponse(response, 404,
+                    "{\"ERROR\": \"Path not found: " + path + "\"}");
+                return true;
             }
 
             const auto& childVar = contentsObj->getProperty(juce::Identifier(seg));
             auto* childObj = childVar.getDynamicObject();
             if (childObj == nullptr)
             {
-                sendHttpResponse(client, 404, "Not Found",
-                    "{\"ERROR\": \"Path not found: " + parsed.path + "\"}");
-                return;
+                sendJsonResponse(response, 404,
+                    "{\"ERROR\": \"Path not found: " + path + "\"}");
+                return true;
             }
 
             targetPtr = childObj;
@@ -189,46 +130,349 @@ void OSCQueryServer::handleHttpRequest(juce::StreamingSocket& client)
     }
 
     // Attribute query (?VALUE, ?RANGE, ?TYPE, ?ACCESS, ?DESCRIPTION, ?CLIPMODE)
-    if (parsed.query.isNotEmpty())
+    if (query.isNotEmpty())
     {
-        juce::String attr = parsed.query.toUpperCase();
+        juce::String attr = query.toUpperCase();
 
-        // Recognized attributes
         if (attr == "VALUE" || attr == "TYPE" || attr == "RANGE" ||
             attr == "ACCESS" || attr == "DESCRIPTION" || attr == "CLIPMODE")
         {
             juce::String result = extractAttribute(targetPtr.get(), attr);
             if (result.isNotEmpty())
-                sendHttpResponse(client, 200, "OK", result);
+                sendJsonResponse(response, 200, result);
             else
-                sendHttpResponse(client, 204, "No Content", "");
-            return;
+                sendJsonResponse(response, 204, "");
+            return true;
         }
 
-        // Unrecognized attribute
-        sendHttpResponse(client, 400, "Bad Request",
-            "{\"ERROR\": \"Unrecognized attribute: " + parsed.query + "\"}");
-        return;
+        sendJsonResponse(response, 400,
+            "{\"ERROR\": \"Unrecognized attribute: " + query + "\"}");
+        return true;
     }
 
     // Full node response
     juce::var targetVar(targetPtr.get());
-    sendHttpResponse(client, 200, "OK", juce::JSON::toString(targetVar, false));
+    sendJsonResponse(response, 200, juce::JSON::toString(targetVar, false));
+    return true;
 }
 
-void OSCQueryServer::sendHttpResponse(juce::StreamingSocket& client, int statusCode,
-                                       const juce::String& statusText, const juce::String& body)
+void OSCQueryServer::sendJsonResponse(std::shared_ptr<HttpServer::Response> response,
+                                       int statusCode, const juce::String& body)
 {
-    juce::String response;
-    response << "HTTP/1.1 " << statusCode << " " << statusText << "\r\n";
-    response << "Content-Type: application/json\r\n";
-    response << "Access-Control-Allow-Origin: *\r\n";
-    response << "Content-Length: " << (int)body.getNumBytesAsUTF8() << "\r\n";
-    response << "Connection: close\r\n";
-    response << "\r\n";
-    response << body;
+    SimpleWeb::StatusCode code;
+    switch (statusCode)
+    {
+        case 200: code = SimpleWeb::StatusCode::success_ok; break;
+        case 204: code = SimpleWeb::StatusCode::success_no_content; break;
+        case 400: code = SimpleWeb::StatusCode::client_error_bad_request; break;
+        case 404: code = SimpleWeb::StatusCode::client_error_not_found; break;
+        default:  code = SimpleWeb::StatusCode::server_error_internal_server_error; break;
+    }
 
-    client.write(response.toRawUTF8(), (int)response.getNumBytesAsUTF8());
+    SimpleWeb::CaseInsensitiveMultimap header;
+    header.emplace("Content-Type", "application/json");
+    header.emplace("Access-Control-Allow-Origin", "*");
+
+    response->write(code, body.toStdString(), header);
+}
+
+//==============================================================================
+// WebSocket Listener — LISTEN/IGNORE
+//==============================================================================
+
+void OSCQueryServer::connectionOpened(const juce::String& id)
+{
+    DBG("OSCQueryServer: WebSocket connection opened: " << id);
+}
+
+void OSCQueryServer::messageReceived(const juce::String& id, const juce::String& message)
+{
+    // Parse JSON command: {"COMMAND":"LISTEN","DATA":"/wfs/input/1/positionX"}
+    auto json = juce::JSON::parse(message);
+
+    if (auto* obj = json.getDynamicObject())
+    {
+        juce::String command = obj->getProperty("COMMAND").toString();
+        juce::String data = obj->getProperty("DATA").toString();
+
+        if (command == "LISTEN" && data.isNotEmpty())
+            handleListenCommand(id, data);
+        else if (command == "IGNORE" && data.isNotEmpty())
+            handleIgnoreCommand(id, data);
+        else
+            DBG("OSCQueryServer: Unknown WS command: " << command);
+    }
+    else
+    {
+        DBG("OSCQueryServer: Failed to parse WS message as JSON");
+    }
+}
+
+void OSCQueryServer::connectionClosed(const juce::String& id, int /*status*/, const juce::String& /*reason*/)
+{
+    DBG("OSCQueryServer: WebSocket connection closed: " << id);
+    removeAllSubscriptions(id);
+}
+
+void OSCQueryServer::connectionError(const juce::String& id, const juce::String& errorMsg)
+{
+    DBG("OSCQueryServer: WebSocket error for " << id << ": " << errorMsg);
+    removeAllSubscriptions(id);
+}
+
+//==============================================================================
+// Subscription Management
+//==============================================================================
+
+void OSCQueryServer::handleListenCommand(const juce::String& connectionId, const juce::String& path)
+{
+    const juce::ScopedLock sl(subscriptionLock);
+
+    auto& listeners = subscriptions[path];
+    if (!listeners.contains(connectionId))
+    {
+        listeners.add(connectionId);
+        DBG("OSCQueryServer: LISTEN " << path << " from " << connectionId);
+    }
+}
+
+void OSCQueryServer::handleIgnoreCommand(const juce::String& connectionId, const juce::String& path)
+{
+    const juce::ScopedLock sl(subscriptionLock);
+
+    auto it = subscriptions.find(path);
+    if (it != subscriptions.end())
+    {
+        it->second.removeString(connectionId);
+        if (it->second.isEmpty())
+            subscriptions.erase(it);
+        DBG("OSCQueryServer: IGNORE " << path << " from " << connectionId);
+    }
+}
+
+void OSCQueryServer::removeAllSubscriptions(const juce::String& connectionId)
+{
+    const juce::ScopedLock sl(subscriptionLock);
+
+    for (auto it = subscriptions.begin(); it != subscriptions.end(); )
+    {
+        it->second.removeString(connectionId);
+        if (it->second.isEmpty())
+            it = subscriptions.erase(it);
+        else
+            ++it;
+    }
+}
+
+//==============================================================================
+// Value Change Push (binary OSC via WebSocket)
+//==============================================================================
+
+void OSCQueryServer::pushValueChange(const juce::String& oscPath, const juce::var& value)
+{
+    if (!wsServer || !running.load())
+        return;
+
+    // Build raw OSC packet manually (address + type tag + argument, all 4-byte aligned)
+    juce::MemoryOutputStream stream;
+
+    // Address
+    auto addressStr = oscPath.toStdString();
+    stream.write(addressStr.c_str(), addressStr.size() + 1);
+    // Pad to 4-byte boundary
+    while (stream.getDataSize() % 4 != 0)
+        stream.writeByte(0);
+
+    // Type tag
+    if (value.isInt() || value.isInt64())
+    {
+        stream.write(",i\0\0", 4);
+        // Write int32 big-endian
+        int32_t v = (int32_t)(int)value;
+        uint8_t bytes[4] = {
+            (uint8_t)((v >> 24) & 0xFF), (uint8_t)((v >> 16) & 0xFF),
+            (uint8_t)((v >> 8) & 0xFF),  (uint8_t)(v & 0xFF)
+        };
+        stream.write(bytes, 4);
+    }
+    else if (value.isString())
+    {
+        stream.write(",s\0\0", 4);
+        auto str = value.toString().toStdString();
+        stream.write(str.c_str(), str.size() + 1);
+        while (stream.getDataSize() % 4 != 0)
+            stream.writeByte(0);
+    }
+    else
+    {
+        // Float
+        stream.write(",f\0\0", 4);
+        float fv = (float)value;
+        uint32_t bits;
+        std::memcpy(&bits, &fv, 4);
+        uint8_t bytes[4] = {
+            (uint8_t)((bits >> 24) & 0xFF), (uint8_t)((bits >> 16) & 0xFF),
+            (uint8_t)((bits >> 8) & 0xFF),  (uint8_t)(bits & 0xFF)
+        };
+        stream.write(bytes, 4);
+    }
+
+    juce::MemoryBlock oscData(stream.getData(), stream.getDataSize());
+
+    // Send to all subscribed connections
+    juce::StringArray listeners;
+    {
+        const juce::ScopedLock sl(subscriptionLock);
+        auto it = subscriptions.find(oscPath);
+        if (it != subscriptions.end())
+            listeners = it->second;
+    }
+
+    for (const auto& connId : listeners)
+        wsServer->sendTo(oscData, connId);
+}
+
+//==============================================================================
+// Reverse Lookup: paramId -> OSC address name
+//==============================================================================
+
+const std::map<juce::Identifier, OSCQueryServer::ReverseEntry>& OSCQueryServer::getReverseMap()
+{
+    static std::map<juce::Identifier, ReverseEntry> reverseMap;
+    static bool built = false;
+
+    if (!built)
+    {
+        for (const auto& [name, id] : OSCMessageRouter::getInputAddressMap())
+            reverseMap[id] = { name, "input" };
+        for (const auto& [name, id] : OSCMessageRouter::getOutputAddressMap())
+            reverseMap[id] = { name, "output" };
+        for (const auto& [name, id] : OSCMessageRouter::getReverbAddressMap())
+            reverseMap[id] = { name, "reverb" };
+        // Config params use full paths — store differently
+        for (const auto& [fullPath, id] : OSCMessageRouter::getConfigAddressMap())
+            reverseMap[id] = { fullPath, "config" };
+        built = true;
+    }
+
+    return reverseMap;
+}
+
+juce::String OSCQueryServer::resolveOSCPath(const juce::ValueTree& tree,
+                                             const juce::Identifier& property) const
+{
+    const auto& reverseMap = getReverseMap();
+    auto it = reverseMap.find(property);
+    if (it == reverseMap.end())
+        return {};
+
+    const auto& entry = it->second;
+
+    if (entry.category == "config")
+    {
+        // Config params use the full OSC path directly
+        return entry.oscName;
+    }
+
+    // The tree hierarchy is: Root > Inputs/Outputs/Reverbs > Channel_N > SubSection > property
+    // The `tree` parameter is the SubSection where the property lives.
+    // Walk up to find the category container and channel index.
+    auto current = tree;
+
+
+    while (current.isValid())
+    {
+        auto parent = current.getParent();
+        if (!parent.isValid())
+            break;
+
+        juce::String parentType = parent.getType().toString();
+        if (parentType == "Inputs" || parentType == "Outputs" || parentType == "Reverbs")
+        {
+            int channelIndex = parent.indexOf(current);
+            return "/wfs/" + entry.category + "/" + juce::String(channelIndex + 1) + "/" + entry.oscName;
+        }
+
+        current = parent;
+    }
+
+    return {};
+}
+
+//==============================================================================
+// ValueTree::Listener — Push Changes
+//==============================================================================
+
+void OSCQueryServer::valueTreePropertyChanged(juce::ValueTree& tree,
+                                              const juce::Identifier& property)
+{
+    if (!running.load() || !wsServer)
+        return;
+
+
+    // Quick check: any subscriptions at all?
+    {
+        const juce::ScopedLock sl(subscriptionLock);
+        if (subscriptions.empty())
+            return;
+    }
+
+    // Resolve to OSC path
+    juce::String oscPath = resolveOSCPath(tree, property);
+    if (oscPath.isEmpty())
+        return;
+
+    // Check if anyone is subscribed to this path
+    {
+        const juce::ScopedLock sl(subscriptionLock);
+        if (subscriptions.find(oscPath) == subscriptions.end())
+            return;
+    }
+
+    // Get current value and push
+    juce::var value = tree.getProperty(property);
+    pushValueChange(oscPath, value);
+}
+
+void OSCQueryServer::valueTreeChildAdded(juce::ValueTree& parent, juce::ValueTree& /*child*/)
+{
+    if (!running.load() || !wsServer)
+        return;
+
+    // Notify all WebSocket clients of structure change
+    juce::String parentType = parent.getType().toString();
+    juce::String pathChanged;
+    if (parentType == "Inputs")       pathChanged = "/wfs/input";
+    else if (parentType == "Outputs") pathChanged = "/wfs/output";
+    else if (parentType == "Reverbs") pathChanged = "/wfs/reverb";
+
+    if (pathChanged.isNotEmpty())
+    {
+        auto* cmd = new juce::DynamicObject();
+        cmd->setProperty("COMMAND", "PATH_CHANGED");
+        cmd->setProperty("DATA", pathChanged);
+        wsServer->send(juce::JSON::toString(juce::var(cmd), false));
+    }
+}
+
+void OSCQueryServer::valueTreeChildRemoved(juce::ValueTree& parent, juce::ValueTree& /*child*/, int /*index*/)
+{
+    if (!running.load() || !wsServer)
+        return;
+
+    juce::String parentType = parent.getType().toString();
+    juce::String pathChanged;
+    if (parentType == "Inputs")       pathChanged = "/wfs/input";
+    else if (parentType == "Outputs") pathChanged = "/wfs/output";
+    else if (parentType == "Reverbs") pathChanged = "/wfs/reverb";
+
+    if (pathChanged.isNotEmpty())
+    {
+        auto* cmd = new juce::DynamicObject();
+        cmd->setProperty("COMMAND", "PATH_CHANGED");
+        cmd->setProperty("DATA", pathChanged);
+        wsServer->send(juce::JSON::toString(juce::var(cmd), false));
+    }
 }
 
 //==============================================================================
@@ -241,6 +485,7 @@ juce::String OSCQueryServer::buildHostInfoJson()
     obj->setProperty("NAME", "WFS-DIY");
     obj->setProperty("OSC_PORT", oscPort);
     obj->setProperty("OSC_TRANSPORT", "UDP");
+    obj->setProperty("WS_PORT", httpPort);  // Same port for HTTP and WS
 
     auto* ext = new juce::DynamicObject();
     ext->setProperty("ACCESS", true);
@@ -249,6 +494,7 @@ juce::String OSCQueryServer::buildHostInfoJson()
     ext->setProperty("DESCRIPTION", true);
     ext->setProperty("TYPE", true);
     ext->setProperty("CLIPMODE", true);
+    ext->setProperty("LISTEN", true);
     obj->setProperty("EXTENSIONS", juce::var(ext));
 
     return juce::JSON::toString(juce::var(obj), false);
@@ -293,7 +539,6 @@ juce::DynamicObject* OSCQueryServer::makeParamNode(const juce::String& fullPath,
         rangeArr.add(juce::var(rangeObj));
         node->setProperty("RANGE", rangeArr);
 
-        // All parameters are clamped to their range
         juce::Array<juce::var> clipArr;
         clipArr.add("both");
         node->setProperty("CLIPMODE", clipArr);
@@ -351,19 +596,16 @@ OSCQueryServer::ParamRange OSCQueryServer::getParamRange(const juce::Identifier&
     if (paramId == inputPathModeActive)      return { 0, 1, true };
     if (paramId == inputHeightFactor)        return { (float)inputHeightFactorMin, (float)inputHeightFactorMax, true };
 
-    // Attenuation law
     if (paramId == inputAttenuationLaw)      return { 0, 1, true };
     if (paramId == inputDistanceAttenuation) return { inputDistanceAttenuationMin, inputDistanceAttenuationMax, true };
     if (paramId == inputDistanceRatio)       return { inputDistanceRatioMin, inputDistanceRatioMax, true };
     if (paramId == inputCommonAtten)         return { (float)inputCommonAttenMin, (float)inputCommonAttenMax, true };
 
-    // Directivity
     if (paramId == inputDirectivity)         return { (float)inputDirectivityMin, (float)inputDirectivityMax, true };
     if (paramId == inputRotation)            return { (float)inputRotationMin, (float)inputRotationMax, true };
     if (paramId == inputTilt)                return { (float)inputTiltMin, (float)inputTiltMax, true };
     if (paramId == inputHFshelf)             return { inputHFshelfMin, inputHFshelfMax, true };
 
-    // Live Source Tamer
     if (paramId == inputLSactive)            return { 0, 1, true };
     if (paramId == inputLSradius)            return { inputLSradiusMin, inputLSradiusMax, true };
     if (paramId == inputLSshape)             return { (float)inputLSshapeMin, (float)inputLSshapeMax, true };
@@ -373,7 +615,6 @@ OSCQueryServer::ParamRange OSCQueryServer::getParamRange(const juce::Identifier&
     if (paramId == inputLSslowThreshold)     return { inputLSslowThresholdMin, inputLSslowThresholdMax, true };
     if (paramId == inputLSslowRatio)         return { inputLSslowRatioMin, inputLSslowRatioMax, true };
 
-    // Floor Reflections
     if (paramId == inputFRactive)            return { 0, 1, true };
     if (paramId == inputFRattenuation)       return { inputFRattenuationMin, inputFRattenuationMax, true };
     if (paramId == inputFRlowCutActive)      return { 0, 1, true };
@@ -385,10 +626,8 @@ OSCQueryServer::ParamRange OSCQueryServer::getParamRange(const juce::Identifier&
     if (paramId == inputFRdiffusion)         return { (float)inputFRdiffusionMin, (float)inputFRdiffusionMax, true };
     if (paramId == inputMuteReverbSends)     return { 0, 1, true };
 
-    // Jitter
     if (paramId == inputJitter)              return { inputJitterMin, inputJitterMax, true };
 
-    // LFO
     if (paramId == inputLFOactive)           return { 0, 1, true };
     if (paramId == inputLFOperiod)           return { inputLFOperiodMin, inputLFOperiodMax, true };
     if (paramId == inputLFOphase)            return { (float)inputLFOphaseMin, (float)inputLFOphaseMax, true };
@@ -402,7 +641,6 @@ OSCQueryServer::ParamRange OSCQueryServer::getParamRange(const juce::Identifier&
         return { (float)inputLFOphaseMin, (float)inputLFOphaseMax, true };
     if (paramId == inputLFOgyrophone)        return { (float)inputLFOgyrophoneMin, (float)inputLFOgyrophoneMax, true };
 
-    // AutomOtion
     if (paramId == inputOtomoX || paramId == inputOtomoY || paramId == inputOtomoZ)
         return { inputOtomoMin, inputOtomoMax, true };
     if (paramId == inputOtomoAbsoluteRelative) return { 0, 1, true };
@@ -420,22 +658,12 @@ OSCQueryServer::ParamRange OSCQueryServer::getParamRange(const juce::Identifier&
     if (paramId == inputOtomoRsph)           return { inputOtomoRsphMin, inputOtomoRsphMax, true };
     if (paramId == inputOtomoPhi)            return { inputOtomoPhiMin, inputOtomoPhiMax, true };
 
-    // Mutes
     if (paramId == inputMuteMacro)           return { 0, 4, true };
-    // inputMutes is a string -> no range
-
-    // Sidelines
     if (paramId == inputSidelinesActive)     return { 0, 1, true };
     if (paramId == inputSidelinesFringe)     return { inputSidelinesFringeMin, inputSidelinesFringeMax, true };
-
-    // Reverb send
     if (paramId == inputReverbSend)          return { -92.0f, 0.0f, true };
-
-    // Sampler
     if (paramId == inputSamplerActive)       return { 0, 1, true };
     if (paramId == inputSamplerActiveSet)    return { 0, 16, true };
-
-    // Gradient Map layers
     if (paramId == gmLayer0Enabled || paramId == gmLayer1Enabled || paramId == gmLayer2Enabled)
         return { 0, 1, true };
 
@@ -458,8 +686,6 @@ OSCQueryServer::ParamRange OSCQueryServer::getParamRange(const juce::Identifier&
     if (paramId == outputHparallax || paramId == outputVparallax)
         return { outputParallaxMin, outputParallaxMax, true };
     if (paramId == outputEQenabled)          return { 0, 1, true };
-
-    // Output EQ band params
     if (paramId == eqShape)                  return { (float)eqShapeMin, (float)eqShapeMax, true };
     if (paramId == eqFrequency)              return { eqFrequencyMin, eqFrequencyMax, true };
     if (paramId == eqGain)                   return { eqGainMin, eqGainMax, true };
@@ -481,20 +707,15 @@ OSCQueryServer::ParamRange OSCQueryServer::getParamRange(const juce::Identifier&
     if (paramId == reverbMiniLatencyEnable)  return { 0, 1, true };
     if (paramId == reverbLSenable)           return { 0, 1, true };
     if (paramId == reverbDistanceAttenEnable) return { (float)reverbDistanceAttenEnableMin, (float)reverbDistanceAttenEnableMax, true };
-
-    // Reverb Pre-EQ
     if (paramId == reverbPreEQenable)        return { 0, 1, true };
     if (paramId == reverbPreEQshape)         return { (float)reverbPreEQshapeMin, (float)reverbPreEQshapeMax, true };
     if (paramId == reverbPreEQfreq)          return { (float)reverbPreEQfreqMin, (float)reverbPreEQfreqMax, true };
     if (paramId == reverbPreEQgain)          return { reverbPreEQgainMin, reverbPreEQgainMax, true };
     if (paramId == reverbPreEQq)             return { reverbPreEQqMin, reverbPreEQqMax, true };
     if (paramId == reverbPreEQslope)         return { reverbPreEQslopeMin, reverbPreEQslopeMax, true };
-
-    // Reverb Return
     if (paramId == reverbDistanceAttenuation) return { reverbDistanceAttenuationMin, reverbDistanceAttenuationMax, true };
     if (paramId == reverbCommonAtten)        return { (float)reverbCommonAttenMin, (float)reverbCommonAttenMax, true };
     if (paramId == reverbMuteMacro)          return { 0, 4, true };
-    // reverbMutes is a string -> no range
 
     // --- Config: Stage ---
     if (paramId == stageShape)               return { (float)stageShapeMin, (float)stageShapeMax, true };
@@ -521,30 +742,23 @@ OSCQueryServer::ParamRange OSCQueryServer::getParamRange(const juce::Identifier&
     if (paramId == reverbIRlength)           return { reverbIRlengthMin, reverbIRlengthMax, true };
     if (paramId == reverbPerNodeIR)          return { 0, 1, true };
     if (paramId == reverbWetLevel)           return { reverbWetLevelMin, reverbWetLevelMax, true };
-
-    // Config: Reverb Pre-Compressor
     if (paramId == reverbPreCompBypass)      return { 0, 1, true };
     if (paramId == reverbPreCompThreshold)   return { reverbPreCompThresholdMin, reverbPreCompThresholdMax, true };
     if (paramId == reverbPreCompRatio)       return { reverbPreCompRatioMin, reverbPreCompRatioMax, true };
     if (paramId == reverbPreCompAttack)      return { reverbPreCompAttackMin, reverbPreCompAttackMax, true };
     if (paramId == reverbPreCompRelease)     return { reverbPreCompReleaseMin, reverbPreCompReleaseMax, true };
-
-    // Config: Reverb Post-EQ
     if (paramId == reverbPostEQenable)       return { 0, 1, true };
     if (paramId == reverbPostEQshape)        return { (float)reverbPostEQshapeMin, (float)reverbPostEQshapeMax, true };
     if (paramId == reverbPostEQfreq)         return { (float)reverbPostEQfreqMin, (float)reverbPostEQfreqMax, true };
     if (paramId == reverbPostEQgain)         return { reverbPostEQgainMin, reverbPostEQgainMax, true };
     if (paramId == reverbPostEQq)            return { reverbPostEQqMin, reverbPostEQqMax, true };
     if (paramId == reverbPostEQslope)        return { reverbPostEQslopeMin, reverbPostEQslopeMax, true };
-
-    // Config: Reverb Post-Expander
     if (paramId == reverbPostExpBypass)      return { 0, 1, true };
     if (paramId == reverbPostExpThreshold)   return { reverbPostExpThresholdMin, reverbPostExpThresholdMax, true };
     if (paramId == reverbPostExpRatio)       return { reverbPostExpRatioMin, reverbPostExpRatioMax, true };
     if (paramId == reverbPostExpAttack)      return { reverbPostExpAttackMin, reverbPostExpAttackMax, true };
     if (paramId == reverbPostExpRelease)     return { reverbPostExpReleaseMin, reverbPostExpReleaseMax, true };
 
-    // No range known
     return { 0.0f, 0.0f, false };
 }
 
@@ -559,7 +773,6 @@ juce::String OSCQueryServer::extractAttribute(juce::DynamicObject* node, const j
 
     auto* result = new juce::DynamicObject();
 
-    // Always include FULL_PATH for context
     if (node->hasProperty("FULL_PATH"))
         result->setProperty("FULL_PATH", node->getProperty("FULL_PATH"));
 
@@ -578,7 +791,7 @@ juce::String OSCQueryServer::extractAttribute(juce::DynamicObject* node, const j
     else
     {
         delete result;
-        return {};  // Attribute not present -> caller sends 204
+        return {};
     }
 
     return juce::JSON::toString(juce::var(result), false);
@@ -603,13 +816,13 @@ juce::DynamicObject* OSCQueryServer::buildFullTree()
 
     auto* wfsContents = new juce::DynamicObject();
 
-    // /wfs/input
+    // /wfs/input (1-based channel numbers, matching standard OSC convention)
     {
         auto* container = makeContainerNode("/wfs/input", "Input Channels");
         auto* contents = container->getProperties()["CONTENTS"].getDynamicObject();
         int count = state.getNumInputChannels();
         for (int i = 0; i < count; ++i)
-            contents->setProperty(juce::String(i), juce::var(buildInputChannelJson(i)));
+            contents->setProperty(juce::String(i + 1), juce::var(buildInputChannelJson(i)));
         wfsContents->setProperty("input", juce::var(container));
     }
 
@@ -619,7 +832,7 @@ juce::DynamicObject* OSCQueryServer::buildFullTree()
         auto* contents = container->getProperties()["CONTENTS"].getDynamicObject();
         int count = state.getNumOutputChannels();
         for (int i = 0; i < count; ++i)
-            contents->setProperty(juce::String(i), juce::var(buildOutputChannelJson(i)));
+            contents->setProperty(juce::String(i + 1), juce::var(buildOutputChannelJson(i)));
         wfsContents->setProperty("output", juce::var(container));
     }
 
@@ -629,7 +842,7 @@ juce::DynamicObject* OSCQueryServer::buildFullTree()
         auto* contents = container->getProperties()["CONTENTS"].getDynamicObject();
         int count = state.getNumReverbChannels();
         for (int i = 0; i < count; ++i)
-            contents->setProperty(juce::String(i), juce::var(buildReverbChannelJson(i)));
+            contents->setProperty(juce::String(i + 1), juce::var(buildReverbChannelJson(i)));
         wfsContents->setProperty("reverb", juce::var(container));
     }
 
@@ -647,8 +860,8 @@ juce::DynamicObject* OSCQueryServer::buildFullTree()
 
 juce::DynamicObject* OSCQueryServer::buildInputChannelJson(int channelIndex)
 {
-    juce::String basePath = "/wfs/input/" + juce::String(channelIndex);
-    auto* channel = makeContainerNode(basePath, "Input " + juce::String(channelIndex));
+    juce::String basePath = "/wfs/input/" + juce::String(channelIndex + 1);
+    auto* channel = makeContainerNode(basePath, "Input " + juce::String(channelIndex + 1));
     auto* contents = channel->getProperties()["CONTENTS"].getDynamicObject();
 
     const auto& addrMap = OSCMessageRouter::getInputAddressMap();
@@ -671,8 +884,8 @@ juce::DynamicObject* OSCQueryServer::buildInputChannelJson(int channelIndex)
 
 juce::DynamicObject* OSCQueryServer::buildOutputChannelJson(int channelIndex)
 {
-    juce::String basePath = "/wfs/output/" + juce::String(channelIndex);
-    auto* channel = makeContainerNode(basePath, "Output " + juce::String(channelIndex));
+    juce::String basePath = "/wfs/output/" + juce::String(channelIndex + 1);
+    auto* channel = makeContainerNode(basePath, "Output " + juce::String(channelIndex + 1));
     auto* contents = channel->getProperties()["CONTENTS"].getDynamicObject();
 
     const auto& addrMap = OSCMessageRouter::getOutputAddressMap();
@@ -681,10 +894,8 @@ juce::DynamicObject* OSCQueryServer::buildOutputChannelJson(int channelIndex)
     {
         juce::String fullPath = basePath + "/" + oscName;
 
-        // EQ band params take bandIndex as first OSC arg
         if (isEQParam(oscName))
         {
-            // Expose as TYPE "if" (int band index + float value)
             auto range = getParamRange(paramId);
             auto* node = new juce::DynamicObject();
             node->setProperty("FULL_PATH", fullPath);
@@ -693,7 +904,6 @@ juce::DynamicObject* OSCQueryServer::buildOutputChannelJson(int channelIndex)
             node->setProperty("DESCRIPTION", oscName + " (first arg: band index 0-5)");
             if (range.hasRange)
             {
-                // Range for the second argument (value)
                 auto* rangeObj0 = new juce::DynamicObject();
                 rangeObj0->setProperty("MIN", 0);
                 rangeObj0->setProperty("MAX", WFSParameterDefaults::numEQBands - 1);
@@ -725,8 +935,8 @@ juce::DynamicObject* OSCQueryServer::buildOutputChannelJson(int channelIndex)
 
 juce::DynamicObject* OSCQueryServer::buildReverbChannelJson(int channelIndex)
 {
-    juce::String basePath = "/wfs/reverb/" + juce::String(channelIndex);
-    auto* channel = makeContainerNode(basePath, "Reverb " + juce::String(channelIndex));
+    juce::String basePath = "/wfs/reverb/" + juce::String(channelIndex + 1);
+    auto* channel = makeContainerNode(basePath, "Reverb " + juce::String(channelIndex + 1));
     auto* contents = channel->getProperties()["CONTENTS"].getDynamicObject();
 
     const auto& addrMap = OSCMessageRouter::getReverbAddressMap();
@@ -735,7 +945,6 @@ juce::DynamicObject* OSCQueryServer::buildReverbChannelJson(int channelIndex)
     {
         juce::String fullPath = basePath + "/" + oscName;
 
-        // Pre-EQ band params take bandIndex as first OSC arg
         if (oscName.startsWith("preEQ") && oscName != "preEQenable")
         {
             auto range = getParamRange(paramId);
@@ -782,19 +991,14 @@ juce::DynamicObject* OSCQueryServer::buildConfigJson()
 
     const auto& addrMap = OSCMessageRouter::getConfigAddressMap();
 
-    // Config address map keys are full paths like "/wfs/config/stage/width"
-    // Group into sub-containers by the part after "/wfs/config/"
-    // Use juce::var for ownership to keep ref counts correct
     std::map<juce::String, juce::var> subContainers;
 
     for (const auto& [fullOscPath, paramId] : addrMap)
     {
-        // Extract sub-path: "/wfs/config/stage/width" -> "stage/width"
         juce::String subPath = fullOscPath.fromFirstOccurrenceOf("/wfs/config/", false, true);
         if (subPath.isEmpty())
             continue;
 
-        // Split into group/param: "stage/width" -> group="stage", param="width"
         int slashIdx = subPath.indexOf("/");
         if (slashIdx < 0)
             continue;
@@ -802,19 +1006,16 @@ juce::DynamicObject* OSCQueryServer::buildConfigJson()
         juce::String group = subPath.substring(0, slashIdx);
         juce::String paramName = subPath.substring(slashIdx + 1);
 
-        // Create sub-container if needed
         if (subContainers.find(group) == subContainers.end())
             subContainers[group] = juce::var(makeContainerNode("/wfs/config/" + group, group + " parameters"));
 
         auto* subObj = subContainers[group].getDynamicObject();
         auto* subContents = subObj->getProperties()["CONTENTS"].getDynamicObject();
 
-        // Config params are global (no channel index)
         juce::var value = state.getParameter(paramId, -1);
         juce::String typeTag = getOSCTypeTag(value);
         auto range = getParamRange(paramId);
 
-        // Post-EQ params take band index as first arg
         bool isBandParam = paramName.startsWith("postEQ") && paramName != "postEQenable";
         if (isBandParam)
         {
@@ -847,22 +1048,10 @@ juce::DynamicObject* OSCQueryServer::buildConfigJson()
         }
     }
 
-    // Add sub-containers to config
     for (auto& [group, subVar] : subContainers)
         configContents->setProperty(group, subVar);
 
     return configContainer;
-}
-
-//==============================================================================
-// ValueTree::Listener
-//==============================================================================
-
-void OSCQueryServer::valueTreePropertyChanged(juce::ValueTree& /*tree*/,
-                                              const juce::Identifier& /*property*/)
-{
-    // JSON is regenerated on each request, so no cache invalidation needed.
-    // When WebSocket/LISTEN is added, this will push PATH_CHANGED notifications.
 }
 
 } // namespace WFSNetwork

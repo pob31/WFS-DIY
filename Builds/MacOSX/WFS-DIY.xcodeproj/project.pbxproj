@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0147BD859A2D7D55D6755381 /* TrackingMQTTReceiver.cpp */ = {isa = PBXBuildFile; fileRef = 27C38CBA50A052A050BD5462; };
+		125CEE99CBC2BE54E4254E38 /* include_juce_simpleweb.cpp */ = {isa = PBXBuildFile; fileRef = 76E1F8BC2E9C470188DD178D; };
 		1355A2294306B482B16BCA07 /* include_juce_graphics.mm */ = {isa = PBXBuildFile; fileRef = A0B89D22E0764DB96C3EA998; };
 		178AAAFBA10B6850F5EAB0CB /* OSCMessageRouter.cpp */ = {isa = PBXBuildFile; fileRef = 7487EFE20AF4642E34D9A9BB; };
 		231970F32BADB567EB15F753 /* include_juce_data_structures.mm */ = {isa = PBXBuildFile; fileRef = A355E1801ECBDBE86E2A9382; };
@@ -73,6 +74,7 @@
 		F43ABAF1DAF97DA45A1AC7C0 /* NetworkLogWindow.cpp */ = {isa = PBXBuildFile; fileRef = 7F18FF6B90FC3250D411E692; };
 		F4AA488127D811825687FFDC /* include_juce_gui_basics.mm */ = {isa = PBXBuildFile; fileRef = 300E93A1943132FBD96DBD77; };
 		F7291D04FD22C7330C3E1864 /* include_juce_graphics_Harfbuzz.cpp */ = {isa = PBXBuildFile; fileRef = 1A10EA3687120F02EC073242; };
+		FD2FC5D2F99B3A1B75B972FC /* include_juce_simpleweb2.cpp */ = {isa = PBXBuildFile; fileRef = A70FA3BA6E2E60FAE3C0A5E4; };
 		FDC229349202F898CBA4ACF9 /* TrackingRTTrPReceiver.cpp */ = {isa = PBXBuildFile; fileRef = CDBED1B9FA3F02E13A4435CE; };
 		FEB463E52DD144B58406DA04 /* CoreMIDI.framework */ = {isa = PBXBuildFile; fileRef = A9937509256CBFA14535037B; };
 /* End PBXBuildFile section */
@@ -134,6 +136,7 @@
 		52706EBD8973DFD0F1366FCF /* OSCReceiverWithSenderIP.cpp */ /* OSCReceiverWithSenderIP.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = OSCReceiverWithSenderIP.cpp; path = ../../Source/Network/OSCReceiverWithSenderIP.cpp; sourceTree = SOURCE_ROOT; };
 		527DE6F349B1DF165D7D2BF1 /* ClustersTabPages.h */ /* ClustersTabPages.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ClustersTabPages.h; path = ../../Source/Controllers/DialsAndButtons/pages/ClustersTabPages.h; sourceTree = SOURCE_ROOT; };
 		54B2A0562D44FAFD14948BD4 /* Accelerate.framework */ /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
+		561908FA927ABC8DC0BB0A10 /* juce_simpleweb */ /* juce_simpleweb */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_simpleweb; path = ../../ThirdParty/juce_simpleweb; sourceTree = SOURCE_ROOT; };
 		571D549FDC58EA8A421E3329 /* juce_audio_processors_headless */ /* juce_audio_processors_headless */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_audio_processors_headless; path = ../../ThirdParty/JUCE/modules/juce_audio_processors_headless; sourceTree = SOURCE_ROOT; };
 		573C45192697FB567520101F /* StreamDeckManager.h */ /* StreamDeckManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StreamDeckManager.h; path = ../../Source/Controllers/DialsAndButtons/StreamDeckManager.h; sourceTree = SOURCE_ROOT; };
 		5810F8314E4B23B3F2FB167F /* OSCMessageBuilder.h */ /* OSCMessageBuilder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OSCMessageBuilder.h; path = ../../Source/Network/OSCMessageBuilder.h; sourceTree = SOURCE_ROOT; };
@@ -157,6 +160,7 @@
 		7487EFE20AF4642E34D9A9BB /* OSCMessageRouter.cpp */ /* OSCMessageRouter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = OSCMessageRouter.cpp; path = ../../Source/Network/OSCMessageRouter.cpp; sourceTree = SOURCE_ROOT; };
 		756A3795254D03A12B70C536 /* ADMOSCMapping.h */ /* ADMOSCMapping.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ADMOSCMapping.h; path = ../../Source/Network/ADMOSCMapping.h; sourceTree = SOURCE_ROOT; };
 		7574FA77B1174E11D00A732D /* WFSFileManager.cpp */ /* WFSFileManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = WFSFileManager.cpp; path = ../../Source/Parameters/WFSFileManager.cpp; sourceTree = SOURCE_ROOT; };
+		76E1F8BC2E9C470188DD178D /* include_juce_simpleweb.cpp */ /* include_juce_simpleweb.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_simpleweb.cpp; path = ../../JuceLibraryCode/include_juce_simpleweb.cpp; sourceTree = SOURCE_ROOT; };
 		77380EEA09673557990C6B7D /* WebKit.framework */ /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
 		77B64F99F47F0FA1391D99D4 /* include_roli_blocks_basics.cpp */ /* include_roli_blocks_basics.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_roli_blocks_basics.cpp; path = ../../JuceLibraryCode/include_roli_blocks_basics.cpp; sourceTree = SOURCE_ROOT; };
 		77BC43148C440708053B17E3 /* ControllerDevice.h */ /* ControllerDevice.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ControllerDevice.h; path = ../../Source/Controllers/PositionControl/ControllerDevice.h; sourceTree = SOURCE_ROOT; };
@@ -198,6 +202,7 @@
 		A4F1E4E76239A3406C508215 /* juce_opengl */ /* juce_opengl */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_opengl; path = ../../ThirdParty/JUCE/modules/juce_opengl; sourceTree = SOURCE_ROOT; };
 		A578604C7C69A5F0AB6D4219 /* include_juce_audio_processors_headless_ara.cpp */ /* include_juce_audio_processors_headless_ara.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_audio_processors_headless_ara.cpp; path = ../../JuceLibraryCode/include_juce_audio_processors_headless_ara.cpp; sourceTree = SOURCE_ROOT; };
 		A6107472373FC76F35C046C0 /* MainComponent.cpp */ /* MainComponent.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MainComponent.cpp; path = ../../Source/MainComponent.cpp; sourceTree = SOURCE_ROOT; };
+		A70FA3BA6E2E60FAE3C0A5E4 /* include_juce_simpleweb2.cpp */ /* include_juce_simpleweb2.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_simpleweb2.cpp; path = ../../JuceLibraryCode/include_juce_simpleweb2.cpp; sourceTree = SOURCE_ROOT; };
 		A859E542011BA2B197343E8B /* OSCTCPReceiver.h */ /* OSCTCPReceiver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OSCTCPReceiver.h; path = ../../Source/Network/OSCTCPReceiver.h; sourceTree = SOURCE_ROOT; };
 		A96E05E0B144008AE500DBAE /* WFSParameterDefaults.h */ /* WFSParameterDefaults.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = WFSParameterDefaults.h; path = ../../Source/Parameters/WFSParameterDefaults.h; sourceTree = SOURCE_ROOT; };
 		A9937509256CBFA14535037B /* CoreMIDI.framework */ /* CoreMIDI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMIDI.framework; path = System/Library/Frameworks/CoreMIDI.framework; sourceTree = SDKROOT; };
@@ -551,6 +556,7 @@
 				C94811DE622E6FFD11FA1C8B,
 				A4F1E4E76239A3406C508215,
 				66551D52C0A4830C24A57285,
+				561908FA927ABC8DC0BB0A10,
 				F2B42823EF4F0DD61B685289,
 			);
 			name = "JUCE Modules";
@@ -601,6 +607,8 @@
 				D142B9C18D9A93EA669B6723,
 				6C77960FDA0FEB61B0F2A30A,
 				D477110C8373179499E19443,
+				76E1F8BC2E9C470188DD178D,
+				A70FA3BA6E2E60FAE3C0A5E4,
 				77B64F99F47F0FA1391D99D4,
 				C7C47F0656977414C3A87685,
 			);
@@ -765,6 +773,8 @@
 				AA0EE9B55A2E6FF945DED3B3,
 				2B4A8A2646517A3AD78C64FF,
 				E250B84E6CDC377F234A14E3,
+				125CEE99CBC2BE54E4254E38,
+				FD2FC5D2F99B3A1B75B972FC,
 				B392D46CBBFBD04B39FCA45A,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -852,6 +862,7 @@
 					"JUCE_MODULE_AVAILABLE_juce_gui_extra=1",
 					"JUCE_MODULE_AVAILABLE_juce_opengl=1",
 					"JUCE_MODULE_AVAILABLE_juce_osc=1",
+					"JUCE_MODULE_AVAILABLE_juce_simpleweb=1",
 					"JUCE_MODULE_AVAILABLE_roli_blocks_basics=1",
 					"JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1",
 					"JUCE_ASIO=1",
@@ -886,6 +897,11 @@
 				INFOPLIST_FILE = Info-App.plist;
 				INFOPLIST_PREPROCESS = NO;
 				INSTALL_PATH = "$(HOME)/Applications";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"../../ThirdParty/juce_simpleweb/libs/MacOSX\"",
+					"\"../../ThirdParty/juce_simpleweb/libs/MacOSX/${CURRENT_ARCH}\"",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../JuceLibraryCode $(SRCROOT)/../../ThirdParty/JUCE/modules $(SRCROOT)/../../ThirdParty $(SRCROOT)/../../ThirdParty/hidapi $(SRCROOT)/../../ThirdParty/hidapi/hidapi";
 				OTHER_LDFLAGS = "-framework SystemConfiguration -framework CoreFoundation -framework IOKit";
@@ -928,6 +944,7 @@
 					"JUCE_MODULE_AVAILABLE_juce_gui_extra=1",
 					"JUCE_MODULE_AVAILABLE_juce_opengl=1",
 					"JUCE_MODULE_AVAILABLE_juce_osc=1",
+					"JUCE_MODULE_AVAILABLE_juce_simpleweb=1",
 					"JUCE_MODULE_AVAILABLE_roli_blocks_basics=1",
 					"JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1",
 					"JUCE_ASIO=1",
@@ -962,6 +979,11 @@
 				INFOPLIST_FILE = Info-App.plist;
 				INFOPLIST_PREPROCESS = NO;
 				INSTALL_PATH = "$(HOME)/Applications";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"../../ThirdParty/juce_simpleweb/libs/MacOSX\"",
+					"\"../../ThirdParty/juce_simpleweb/libs/MacOSX/${CURRENT_ARCH}\"",
+				);
 				LLVM_LTO = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../JuceLibraryCode $(SRCROOT)/../../ThirdParty/JUCE/modules $(SRCROOT)/../../ThirdParty $(SRCROOT)/../../ThirdParty/hidapi $(SRCROOT)/../../ThirdParty/hidapi/hidapi";
