@@ -241,15 +241,13 @@ public:
     /** Remote address map: paramName -> parameterID, for bulk state dump */
     static const std::map<juce::String, juce::Identifier>& getRemoteAddressMap();
 
-private:
-    //==========================================================================
-    // Internal Lookup Tables
-    //==========================================================================
-
+    /** Address maps: oscParamName -> parameterID (used by OSCQuery for namespace discovery) */
     static const std::map<juce::String, juce::Identifier>& getInputAddressMap();
     static const std::map<juce::String, juce::Identifier>& getOutputAddressMap();
     static const std::map<juce::String, juce::Identifier>& getReverbAddressMap();
     static const std::map<juce::String, juce::Identifier>& getConfigAddressMap();
+
+private:
 };
 
 } // namespace WFSNetwork
