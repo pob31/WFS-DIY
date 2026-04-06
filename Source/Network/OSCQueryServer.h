@@ -29,7 +29,8 @@ namespace WFSNetwork
  */
 class OSCQueryServer : public SimpleWebSocketServerBase::RequestHandler,
                        public SimpleWebSocketServerBase::Listener,
-                       private juce::ValueTree::Listener
+                       private juce::ValueTree::Listener,
+                       private juce::Timer
 {
 public:
     OSCQueryServer(WFSValueTreeState& state);
@@ -41,6 +42,12 @@ public:
     bool isRunning() const { return running.load(); }
     int getHttpPort() const { return httpPort; }
     int getOscPort() const { return oscPort; }
+
+    /** Call before processing incoming OSC to suppress push-back to the sender's IP */
+    void beginIncomingOSC(const juce::String& senderIP);
+    /** Call after processing incoming OSC */
+    void endIncomingOSC();
+
 
 private:
     // --- HTTP Request Handler (SimpleWebSocketServerBase::RequestHandler) ---
@@ -87,6 +94,18 @@ private:
     // subscriptions: OSC path -> set of connection IDs
     std::map<juce::String, juce::StringArray> subscriptions;
     juce::CriticalSection subscriptionLock;
+
+    // IP of the last OSC sender — used to suppress WebSocket push-back to the same host
+    juce::String lastOSCSenderIP;
+    std::atomic<bool> suppressIP { false };
+    juce::CriticalSection senderIPLock;
+
+    // --- Throttled Push ---
+    // Accumulate dirty paths, flush every ~30ms to avoid flooding the message queue
+    struct PendingPush { juce::String oscPath; juce::var value; };
+    std::map<juce::String, PendingPush> pendingPushes;  // key = oscPath, latest value wins
+    juce::CriticalSection pendingPushLock;
+    void timerCallback() override;
 
     // --- Value Change Push ---
     void pushValueChange(const juce::String& oscPath, const juce::var& value);

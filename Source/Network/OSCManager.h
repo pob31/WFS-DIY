@@ -641,6 +641,14 @@ private:
     // OSC Query server
     std::unique_ptr<OSCQueryServer> oscQueryServer;
 
+    // Coalescing: pending incoming standard OSC updates (latest value per param+channel wins)
+    struct PendingParamUpdate { juce::Identifier paramId; int channelId; juce::var value; };
+    std::map<juce::String, PendingParamUpdate> pendingParamUpdates;  // key = "paramId:channelId"
+    juce::CriticalSection pendingParamLock;
+    std::atomic<bool> paramDrainScheduled { false };
+    void drainPendingParamUpdates();
+
+
     // Tracking position filter (shared by all tracking receivers)
     TrackingPositionFilter trackingFilter;
 

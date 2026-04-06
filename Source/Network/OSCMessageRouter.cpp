@@ -530,14 +530,39 @@ OSCMessageRouter::ParsedInputMessage OSCMessageRouter::parseInputMessage(const j
     if (!isInputAddress(address))
         return result;
 
-    result.paramId = getInputParamId(address);
-
-    if (result.paramId.isValid())
+    // Check for OSCQuery format first: /wfs/input/{channelID}/{param} <value>
+    // e.g. /wfs/input/1/attenuation -5.0
+    juce::String suffix = address.fromFirstOccurrenceOf("/wfs/input/", false, true);
+    int slashIdx = suffix.indexOf("/");
+    if (slashIdx > 0)
     {
-        // Standard format: /wfs/input/{param} <channelID> <value>
-        if (message.size() < 2)
-            return result;
+        juce::String firstSeg = suffix.substring(0, slashIdx);
+        juce::String paramName = suffix.substring(slashIdx + 1);
 
+        if (firstSeg.containsOnly("0123456789") && paramName.isNotEmpty())
+        {
+            const auto& addrMap = getInputAddressMap();
+            auto it = addrMap.find(paramName);
+            if (it != addrMap.end() && message.size() >= 1)
+            {
+                result.paramId = it->second;
+                result.channelId = firstSeg.getIntValue();
+
+                if (message[0].isString())
+                    result.value = extractString(message[0]);
+                else
+                    result.value = extractFloat(message[0]);
+
+                result.valid = true;
+                return result;
+            }
+        }
+    }
+
+    // Standard format: /wfs/input/{param} <channelID> <value>
+    result.paramId = getInputParamId(address);
+    if (result.paramId.isValid() && message.size() >= 2)
+    {
         result.channelId = extractInt(message[0]);
 
         if (message[1].isString())
@@ -546,39 +571,6 @@ OSCMessageRouter::ParsedInputMessage OSCMessageRouter::parseInputMessage(const j
             result.value = extractFloat(message[1]);
 
         result.valid = true;
-    }
-    else
-    {
-        // Try OSCQuery format: /wfs/input/{channelID}/{param} <value>
-        // e.g. /wfs/input/1/attenuation -5.0
-        juce::String suffix = address.fromFirstOccurrenceOf("/wfs/input/", false, true);
-        int slashIdx = suffix.indexOf("/");
-        if (slashIdx > 0)
-        {
-            juce::String channelStr = suffix.substring(0, slashIdx);
-            juce::String paramName = suffix.substring(slashIdx + 1);
-
-            if (channelStr.containsOnly("0123456789") && paramName.isNotEmpty())
-            {
-                const auto& addrMap = getInputAddressMap();
-                auto it = addrMap.find(paramName);
-                if (it != addrMap.end())
-                {
-                    result.paramId = it->second;
-                    result.channelId = channelStr.getIntValue();
-
-                    if (message.size() >= 1)
-                    {
-                        if (message[0].isString())
-                            result.value = extractString(message[0]);
-                        else
-                            result.value = extractFloat(message[0]);
-
-                        result.valid = true;
-                    }
-                }
-            }
-        }
     }
 
     return result;
@@ -593,12 +585,52 @@ OSCMessageRouter::ParsedOutputMessage OSCMessageRouter::parseOutputMessage(const
     if (!isOutputAddress(address))
         return result;
 
-    result.paramId = getOutputParamId(address);
+    // Check OSCQuery format first: /wfs/output/{channelID}/{param} <value>
+    juce::String suffix = address.fromFirstOccurrenceOf("/wfs/output/", false, true);
+    int slashIdx = suffix.indexOf("/");
+    if (slashIdx > 0)
+    {
+        juce::String firstSeg = suffix.substring(0, slashIdx);
+        juce::String paramName = suffix.substring(slashIdx + 1);
 
+        if (firstSeg.containsOnly("0123456789") && paramName.isNotEmpty())
+        {
+            const auto& addrMap = getOutputAddressMap();
+            auto it = addrMap.find(paramName);
+            if (it != addrMap.end())
+            {
+                result.paramId = it->second;
+                result.channelId = firstSeg.getIntValue();
+
+                bool isEQ = paramName.startsWith("EQ") && paramName != "EQenable";
+                if (isEQ && message.size() >= 2)
+                {
+                    result.isEQparam = true;
+                    result.bandIndex = extractInt(message[0]);
+                    if (message[1].isString())
+                        result.value = extractString(message[1]);
+                    else
+                        result.value = extractFloat(message[1]);
+                    result.valid = true;
+                }
+                else if (!isEQ && message.size() >= 1)
+                {
+                    if (message[0].isString())
+                        result.value = extractString(message[0]);
+                    else
+                        result.value = extractFloat(message[0]);
+                    result.valid = true;
+                }
+                return result;
+            }
+        }
+    }
+
+    // Standard format: /wfs/output/{param} <channelID> <value>
+    result.paramId = getOutputParamId(address);
     if (result.paramId.isValid())
     {
         juce::String paramName = extractParamName(address);
-
         bool isEQParam = paramName.startsWith("EQ") && paramName != "EQenable";
 
         if (isEQParam)
@@ -629,55 +661,6 @@ OSCMessageRouter::ParsedOutputMessage OSCMessageRouter::parseOutputMessage(const
         }
 
         result.valid = true;
-    }
-    else
-    {
-        // Try OSCQuery format: /wfs/output/{channelID}/{param} <value>
-        juce::String suffix = address.fromFirstOccurrenceOf("/wfs/output/", false, true);
-        int slashIdx = suffix.indexOf("/");
-        if (slashIdx > 0)
-        {
-            juce::String channelStr = suffix.substring(0, slashIdx);
-            juce::String paramName = suffix.substring(slashIdx + 1);
-
-            if (channelStr.containsOnly("0123456789") && paramName.isNotEmpty())
-            {
-                const auto& addrMap = getOutputAddressMap();
-                auto it = addrMap.find(paramName);
-                if (it != addrMap.end())
-                {
-                    result.paramId = it->second;
-                    result.channelId = channelStr.getIntValue();
-
-                    bool isEQParam = paramName.startsWith("EQ") && paramName != "EQenable";
-                    if (isEQParam)
-                    {
-                        // OSCQuery EQ format: /wfs/output/N/EQfreq <bandIndex> <value>
-                        if (message.size() >= 2)
-                        {
-                            result.isEQparam = true;
-                            result.bandIndex = extractInt(message[0]);
-                            if (message[1].isString())
-                                result.value = extractString(message[1]);
-                            else
-                                result.value = extractFloat(message[1]);
-                            result.valid = true;
-                        }
-                    }
-                    else
-                    {
-                        if (message.size() >= 1)
-                        {
-                            if (message[0].isString())
-                                result.value = extractString(message[0]);
-                            else
-                                result.value = extractFloat(message[0]);
-                            result.valid = true;
-                        }
-                    }
-                }
-            }
-        }
     }
 
     return result;
@@ -692,12 +675,52 @@ OSCMessageRouter::ParsedReverbMessage OSCMessageRouter::parseReverbMessage(const
     if (!isReverbAddress(address))
         return result;
 
-    result.paramId = getReverbParamId(address);
+    // Check OSCQuery format first: /wfs/reverb/{channelID}/{param} <value>
+    juce::String suffix = address.fromFirstOccurrenceOf("/wfs/reverb/", false, true);
+    int slashIdx = suffix.indexOf("/");
+    if (slashIdx > 0)
+    {
+        juce::String firstSeg = suffix.substring(0, slashIdx);
+        juce::String paramName = suffix.substring(slashIdx + 1);
 
+        if (firstSeg.containsOnly("0123456789") && paramName.isNotEmpty())
+        {
+            const auto& addrMap = getReverbAddressMap();
+            auto it = addrMap.find(paramName);
+            if (it != addrMap.end())
+            {
+                result.paramId = it->second;
+                result.channelId = firstSeg.getIntValue();
+
+                bool isEQ = paramName.startsWith("preEQ") && paramName != "preEQenable";
+                if (isEQ && message.size() >= 2)
+                {
+                    result.isEQparam = true;
+                    result.bandIndex = extractInt(message[0]);
+                    if (message[1].isString())
+                        result.value = extractString(message[1]);
+                    else
+                        result.value = extractFloat(message[1]);
+                    result.valid = true;
+                }
+                else if (!isEQ && message.size() >= 1)
+                {
+                    if (message[0].isString())
+                        result.value = extractString(message[0]);
+                    else
+                        result.value = extractFloat(message[0]);
+                    result.valid = true;
+                }
+                return result;
+            }
+        }
+    }
+
+    // Standard format: /wfs/reverb/{param} <channelID> <value>
+    result.paramId = getReverbParamId(address);
     if (result.paramId.isValid())
     {
         juce::String paramName = extractParamName(address);
-
         bool isEQParam = paramName.startsWith("EQ") && paramName != "EQenable";
 
         if (isEQParam)
@@ -728,54 +751,6 @@ OSCMessageRouter::ParsedReverbMessage OSCMessageRouter::parseReverbMessage(const
         }
 
         result.valid = true;
-    }
-    else
-    {
-        // Try OSCQuery format: /wfs/reverb/{channelID}/{param} <value>
-        juce::String suffix = address.fromFirstOccurrenceOf("/wfs/reverb/", false, true);
-        int slashIdx = suffix.indexOf("/");
-        if (slashIdx > 0)
-        {
-            juce::String channelStr = suffix.substring(0, slashIdx);
-            juce::String paramName = suffix.substring(slashIdx + 1);
-
-            if (channelStr.containsOnly("0123456789") && paramName.isNotEmpty())
-            {
-                const auto& addrMap = getReverbAddressMap();
-                auto it = addrMap.find(paramName);
-                if (it != addrMap.end())
-                {
-                    result.paramId = it->second;
-                    result.channelId = channelStr.getIntValue();
-
-                    bool isEQParam = paramName.startsWith("preEQ") && paramName != "preEQenable";
-                    if (isEQParam)
-                    {
-                        if (message.size() >= 2)
-                        {
-                            result.isEQparam = true;
-                            result.bandIndex = extractInt(message[0]);
-                            if (message[1].isString())
-                                result.value = extractString(message[1]);
-                            else
-                                result.value = extractFloat(message[1]);
-                            result.valid = true;
-                        }
-                    }
-                    else
-                    {
-                        if (message.size() >= 1)
-                        {
-                            if (message[0].isString())
-                                result.value = extractString(message[0]);
-                            else
-                                result.value = extractFloat(message[0]);
-                            result.valid = true;
-                        }
-                    }
-                }
-            }
-        }
     }
 
     return result;

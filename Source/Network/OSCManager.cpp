@@ -1216,7 +1216,15 @@ void OSCManager::handleIncomingMessage(const juce::OSCMessage& message,
     if (OSCMessageRouter::isInputAddress(address) || OSCMessageRouter::isOutputAddress(address)
         || OSCMessageRouter::isReverbAddress(address) || OSCMessageRouter::isConfigAddress(address))
     {
+        if (oscQueryServer)
+            oscQueryServer->beginIncomingOSC(senderIP);
         handleStandardOSCMessage(message);
+        // Clear the suppress flag after the async ValueTree update completes
+        if (oscQueryServer)
+        {
+            auto* oqPtr = oscQueryServer.get();
+            juce::MessageManager::callAsync([oqPtr]() { oqPtr->endIncomingOSC(); });
+        }
     }
     else if (OSCMessageRouter::isRemoteInputAddress(address))
     {
@@ -1360,6 +1368,29 @@ void OSCManager::handleIncomingBundle(const juce::OSCBundle& bundle,
             handleIncomingBundle(element.getBundle(), senderIP, port, transport);
         }
     }
+}
+
+void OSCManager::drainPendingParamUpdates()
+{
+    std::map<juce::String, PendingParamUpdate> updates;
+    {
+        const juce::ScopedLock sl(pendingParamLock);
+        updates.swap(pendingParamUpdates);
+        paramDrainScheduled = false;
+    }
+
+    if (updates.empty())
+        return;
+
+    incomingProtocol = Protocol::OSC;
+    if (oscQueryServer) oscQueryServer->beginIncomingOSC("coalesced");
+
+    // Apply all updates — use setParameter which auto-routes to the correct scope
+    for (const auto& [key, upd] : updates)
+        state.setParameter(upd.paramId, upd.value, upd.channelId);
+
+    incomingProtocol = Protocol::Disabled;
+    if (oscQueryServer) oscQueryServer->endIncomingOSC();
 }
 
 void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
@@ -1596,89 +1627,96 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
         auto parsed = OSCMessageRouter::parseInputMessage(message);
         if (parsed.valid)
         {
-            // Update parameter in ValueTree (will be on message thread)
-            // Set flag to prevent loop (don't re-send what we just received)
-            juce::MessageManager::callAsync([this, parsed]()
+            int channelIndex = parsed.channelId - 1;
+
+            // Special cases that need immediate processing (position constraints, etc.)
+            bool needsSpecialHandling =
+                (parsed.paramId == WFSParameterIDs::inputPositionX ||
+                 parsed.paramId == WFSParameterIDs::inputPositionY ||
+                 parsed.paramId == WFSParameterIDs::inputPositionZ ||
+                 parsed.paramId == WFSParameterIDs::gmLayer0Enabled ||
+                 parsed.paramId == WFSParameterIDs::gmLayer1Enabled ||
+                 parsed.paramId == WFSParameterIDs::gmLayer2Enabled ||
+                 parsed.paramId == WFSParameterIDs::inputSamplerActiveSet);
+
+            if (needsSpecialHandling)
             {
-                incomingProtocol = Protocol::OSC;  // Flag: processing incoming OSC
-                WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
-                state.beginUndoTransaction ("OSC Input");
-                // OSC uses 1-based channel IDs, but internal API uses 0-based
-                int channelIndex = parsed.channelId - 1;
-                if (channelIndex >= 0)
+                juce::MessageManager::callAsync([this, parsed, channelIndex]()
                 {
-                    juce::var valueToSet = parsed.value;
+                    incomingProtocol = Protocol::OSC;
+                    if (oscQueryServer) oscQueryServer->beginIncomingOSC("special");
+                    WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
+                    state.beginUndoTransaction ("OSC Input");
 
-                    // Apply constraints to position parameters
-                    if (parsed.value.isDouble() &&
-                        (parsed.paramId == WFSParameterIDs::inputPositionX ||
-                         parsed.paramId == WFSParameterIDs::inputPositionY ||
-                         parsed.paramId == WFSParameterIDs::inputPositionZ))
+                    if (channelIndex >= 0)
                     {
-                        float floatValue = static_cast<float>(static_cast<double>(parsed.value));
-
-                        if (parsed.paramId == WFSParameterIDs::inputPositionX)
-                            floatValue = applyConstraintX(channelIndex, floatValue);
-                        else if (parsed.paramId == WFSParameterIDs::inputPositionY)
-                            floatValue = applyConstraintY(channelIndex, floatValue);
-                        else if (parsed.paramId == WFSParameterIDs::inputPositionZ)
-                            floatValue = applyConstraintZ(channelIndex, floatValue);
-
-                        // Get current position values and apply distance constraint
-                        juce::var xVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionX);
-                        juce::var yVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionY);
-                        juce::var zVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionZ);
-                        float x = varToFloat(xVar);
-                        float y = varToFloat(yVar);
-                        float z = varToFloat(zVar);
-
-                        // Update with new value being set
-                        if (parsed.paramId == WFSParameterIDs::inputPositionX)
-                            x = floatValue;
-                        else if (parsed.paramId == WFSParameterIDs::inputPositionY)
-                            y = floatValue;
-                        else if (parsed.paramId == WFSParameterIDs::inputPositionZ)
-                            z = floatValue;
-
-                        // Apply distance constraint (modifies x, y, z in place)
-                        applyConstraintDistance(channelIndex, x, y, z);
-
-                        // Set all position values
-                        state.setInputParameter(channelIndex, WFSParameterIDs::inputPositionX, x);
-                        state.setInputParameter(channelIndex, WFSParameterIDs::inputPositionY, y);
-                        state.setInputParameter(channelIndex, WFSParameterIDs::inputPositionZ, z);
-
-                        // Notify for waypoint capture (path mode)
-                        if (onRemoteWaypointCapture)
-                            onRemoteWaypointCapture(channelIndex, x, y, z);
-                    }
-                    else if (parsed.paramId == WFSParameterIDs::gmLayer0Enabled ||
-                             parsed.paramId == WFSParameterIDs::gmLayer1Enabled ||
-                             parsed.paramId == WFSParameterIDs::gmLayer2Enabled)
-                    {
-                        int layerIdx = (parsed.paramId == WFSParameterIDs::gmLayer0Enabled) ? 0
-                                     : (parsed.paramId == WFSParameterIDs::gmLayer1Enabled) ? 1 : 2;
-                        auto layerTree = state.getInputGradientLayer(channelIndex, layerIdx);
-                        if (layerTree.isValid())
+                        if (parsed.paramId == WFSParameterIDs::inputPositionX ||
+                            parsed.paramId == WFSParameterIDs::inputPositionY ||
+                            parsed.paramId == WFSParameterIDs::inputPositionZ)
                         {
-                            int enabled = (parsed.value.isDouble() && static_cast<double>(parsed.value) >= 0.5) ? 1 : 0;
-                            layerTree.setProperty(WFSParameterIDs::gmLayerEnabled, enabled, nullptr);
+                            float floatValue = static_cast<float>(static_cast<double>(parsed.value));
+
+                            if (parsed.paramId == WFSParameterIDs::inputPositionX)
+                                floatValue = applyConstraintX(channelIndex, floatValue);
+                            else if (parsed.paramId == WFSParameterIDs::inputPositionY)
+                                floatValue = applyConstraintY(channelIndex, floatValue);
+                            else if (parsed.paramId == WFSParameterIDs::inputPositionZ)
+                                floatValue = applyConstraintZ(channelIndex, floatValue);
+
+                            juce::var xVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionX);
+                            juce::var yVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionY);
+                            juce::var zVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputPositionZ);
+                            float x = varToFloat(xVar), y = varToFloat(yVar), z = varToFloat(zVar);
+
+                            if (parsed.paramId == WFSParameterIDs::inputPositionX) x = floatValue;
+                            else if (parsed.paramId == WFSParameterIDs::inputPositionY) y = floatValue;
+                            else if (parsed.paramId == WFSParameterIDs::inputPositionZ) z = floatValue;
+
+                            applyConstraintDistance(channelIndex, x, y, z);
+                            state.setInputParameter(channelIndex, WFSParameterIDs::inputPositionX, x);
+                            state.setInputParameter(channelIndex, WFSParameterIDs::inputPositionY, y);
+                            state.setInputParameter(channelIndex, WFSParameterIDs::inputPositionZ, z);
+
+                            if (onRemoteWaypointCapture)
+                                onRemoteWaypointCapture(channelIndex, x, y, z);
+                        }
+                        else if (parsed.paramId == WFSParameterIDs::gmLayer0Enabled ||
+                                 parsed.paramId == WFSParameterIDs::gmLayer1Enabled ||
+                                 parsed.paramId == WFSParameterIDs::gmLayer2Enabled)
+                        {
+                            int layerIdx = (parsed.paramId == WFSParameterIDs::gmLayer0Enabled) ? 0
+                                         : (parsed.paramId == WFSParameterIDs::gmLayer1Enabled) ? 1 : 2;
+                            auto layerTree = state.getInputGradientLayer(channelIndex, layerIdx);
+                            if (layerTree.isValid())
+                            {
+                                int enabled = (parsed.value.isDouble() && static_cast<double>(parsed.value) >= 0.5) ? 1 : 0;
+                                layerTree.setProperty(WFSParameterIDs::gmLayerEnabled, enabled, nullptr);
+                            }
+                        }
+                        else if (parsed.paramId == WFSParameterIDs::inputSamplerActiveSet)
+                        {
+                            int setIdx = static_cast<int> (static_cast<double> (parsed.value)) - 1;
+                            if (setIdx >= 0)
+                                state.setInputParameter(channelIndex, parsed.paramId, setIdx);
                         }
                     }
-                    else if (parsed.paramId == WFSParameterIDs::inputSamplerActiveSet)
-                    {
-                        // OSC uses 1-based set numbers, internal storage is 0-based
-                        int setIdx = static_cast<int> (static_cast<double> (parsed.value)) - 1;
-                        if (setIdx >= 0)
-                            state.setInputParameter(channelIndex, parsed.paramId, setIdx);
-                    }
-                    else if (parsed.value.isDouble() || parsed.value.isString())
-                    {
-                        state.setInputParameter(channelIndex, parsed.paramId, valueToSet);
-                    }
+                    incomingProtocol = Protocol::Disabled;
+                    if (oscQueryServer) oscQueryServer->endIncomingOSC();
+                });
+            }
+            else if (channelIndex >= 0 && (parsed.value.isDouble() || parsed.value.isString()))
+            {
+                // Generic parameters: coalesce — only the latest value per param+channel is applied
+                juce::String key = parsed.paramId.toString() + ":" + juce::String(channelIndex);
+                {
+                    const juce::ScopedLock sl(pendingParamLock);
+                    pendingParamUpdates[key] = { parsed.paramId, channelIndex, parsed.value };
                 }
-                incomingProtocol = Protocol::Disabled;  // Clear flag
-            });
+                if (!paramDrainScheduled.exchange(true))
+                {
+                    juce::MessageManager::callAsync([this]() { drainPendingParamUpdates(); });
+                }
+            }
         }
         else
         {
@@ -1690,26 +1728,17 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
         auto parsed = OSCMessageRouter::parseOutputMessage(message);
         if (parsed.valid)
         {
-            juce::MessageManager::callAsync([this, parsed]()
+            int channelIndex = parsed.channelId - 1;
+            if (channelIndex >= 0 && (parsed.value.isDouble() || parsed.value.isString()))
             {
-                incomingProtocol = Protocol::OSC;  // Flag: processing incoming OSC
-                WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Output);
-                state.beginUndoTransaction ("OSC Output");
-                // OSC uses 1-based channel IDs, but internal API uses 0-based
-                int channelIndex = parsed.channelId - 1;
-                if (channelIndex >= 0)
+                juce::String key = parsed.paramId.toString() + ":" + juce::String(channelIndex);
                 {
-                    if (parsed.value.isDouble())
-                    {
-                        state.setOutputParameter(channelIndex, parsed.paramId, parsed.value);
-                    }
-                    else if (parsed.value.isString())
-                    {
-                        state.setOutputParameter(channelIndex, parsed.paramId, parsed.value);
-                    }
+                    const juce::ScopedLock sl(pendingParamLock);
+                    pendingParamUpdates[key] = { parsed.paramId, channelIndex, parsed.value };
                 }
-                incomingProtocol = Protocol::Disabled;  // Clear flag
-            });
+                if (!paramDrainScheduled.exchange(true))
+                    juce::MessageManager::callAsync([this]() { drainPendingParamUpdates(); });
+            }
         }
         else
         {
@@ -1721,19 +1750,27 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
         auto parsed = OSCMessageRouter::parseReverbMessage(message);
         if (parsed.valid)
         {
-            juce::MessageManager::callAsync([this, parsed]()
+            int channelIndex = parsed.channelId - 1;
+            if (channelIndex >= 0 && !parsed.isEQparam)
             {
-                incomingProtocol = Protocol::OSC;  // Flag: processing incoming OSC
-                WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Reverb);
-                state.beginUndoTransaction ("OSC Reverb");
-                // OSC uses 1-based channel IDs, but internal API uses 0-based
-                int channelIndex = parsed.channelId - 1;
-                if (channelIndex >= 0)
+                // Coalesce generic reverb params
+                juce::String key = parsed.paramId.toString() + ":" + juce::String(channelIndex);
                 {
-                    if (parsed.isEQparam)
+                    const juce::ScopedLock sl(pendingParamLock);
+                    pendingParamUpdates[key] = { parsed.paramId, channelIndex, parsed.value };
+                }
+                if (!paramDrainScheduled.exchange(true))
+                    juce::MessageManager::callAsync([this]() { drainPendingParamUpdates(); });
+            }
+            else if (parsed.isEQparam)
+            {
+                // EQ params need special handling — keep direct callAsync
+                juce::MessageManager::callAsync([this, parsed, channelIndex]()
+                {
+                    incomingProtocol = Protocol::OSC;
+                    WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Reverb);
+                    if (channelIndex >= 0)
                     {
-                        // EQ parameters need band index handling
-                        // Get EQ band section and set the property there
                         auto reverbState = state.getReverbState(channelIndex);
                         if (reverbState.isValid())
                         {
@@ -1743,20 +1780,13 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
                                 auto bandSection = eqSection.getChildWithName(
                                     juce::Identifier("Band" + juce::String(parsed.bandIndex)));
                                 if (bandSection.isValid())
-                                {
                                     bandSection.setProperty(parsed.paramId, parsed.value, state.getActiveUndoManager());
-                                }
                             }
                         }
                     }
-                    else
-                    {
-                        // Standard reverb parameters
-                        state.setReverbParameter(channelIndex, parsed.paramId, parsed.value);
-                    }
-                }
-                incomingProtocol = Protocol::Disabled;  // Clear flag
-            });
+                    incomingProtocol = Protocol::Disabled;
+                });
+            }
         }
         else
         {

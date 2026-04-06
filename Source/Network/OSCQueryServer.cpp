@@ -42,6 +42,7 @@ bool OSCQueryServer::start(int oscPortParam, int httpPortParam)
     wsServer->start(httpPort);
 
     running = true;
+    startTimer(30);  // Flush pending WebSocket pushes every 30ms
     DBG("OSCQueryServer: Started on port " << httpPort << " (OSC port " << oscPort << ")");
 
     DBG("OSCQueryServer: ValueTree type='" << stateTree.getType().toString()
@@ -50,12 +51,27 @@ bool OSCQueryServer::start(int oscPortParam, int httpPortParam)
     return true;
 }
 
+void OSCQueryServer::beginIncomingOSC(const juce::String& senderIP)
+{
+    const juce::ScopedLock sl(senderIPLock);
+    lastOSCSenderIP = senderIP;
+    if (lastOSCSenderIP.startsWith("::ffff:"))
+        lastOSCSenderIP = lastOSCSenderIP.substring(7);
+    suppressIP = true;
+}
+
+void OSCQueryServer::endIncomingOSC()
+{
+    suppressIP = false;
+}
+
 void OSCQueryServer::stop()
 {
     if (!running.load())
         return;
 
     running = false;
+    stopTimer();
 
     if (wsServer)
     {
@@ -319,7 +335,7 @@ void OSCQueryServer::pushValueChange(const juce::String& oscPath, const juce::va
 
     juce::MemoryBlock oscData(stream.getData(), stream.getDataSize());
 
-    // Send to all subscribed connections
+    // Send to all subscribed connections, skipping the IP that sent the OSC
     juce::StringArray listeners;
     {
         const juce::ScopedLock sl(subscriptionLock);
@@ -328,8 +344,26 @@ void OSCQueryServer::pushValueChange(const juce::String& oscPath, const juce::va
             listeners = it->second;
     }
 
+    juce::String skipIP;
+    if (suppressIP.load())
+    {
+        const juce::ScopedLock sl(senderIPLock);
+        skipIP = lastOSCSenderIP;
+    }
+
     for (const auto& connId : listeners)
+    {
+        // connId is "IP:port" — extract IP part and compare
+        if (skipIP.isNotEmpty())
+        {
+            juce::String connIP = connId.upToLastOccurrenceOf(":", false, true);
+            if (connIP.startsWith("::ffff:"))
+                connIP = connIP.substring(7);
+            if (connIP == skipIP)
+                continue;  // Skip — this client sent the OSC that caused this change
+        }
         wsServer->sendTo(oscData, connId);
+    }
 }
 
 //==============================================================================
@@ -403,12 +437,29 @@ juce::String OSCQueryServer::resolveOSCPath(const juce::ValueTree& tree,
 // ValueTree::Listener — Push Changes
 //==============================================================================
 
+void OSCQueryServer::timerCallback()
+{
+    if (!running.load() || !wsServer)
+        return;
+
+    // Drain all pending pushes
+    std::map<juce::String, PendingPush> toDrain;
+    {
+        const juce::ScopedLock sl(pendingPushLock);
+        if (pendingPushes.empty())
+            return;
+        toDrain.swap(pendingPushes);
+    }
+
+    for (const auto& [path, pending] : toDrain)
+        pushValueChange(pending.oscPath, pending.value);
+}
+
 void OSCQueryServer::valueTreePropertyChanged(juce::ValueTree& tree,
                                               const juce::Identifier& property)
 {
     if (!running.load() || !wsServer)
         return;
-
 
     // Quick check: any subscriptions at all?
     {
@@ -429,9 +480,12 @@ void OSCQueryServer::valueTreePropertyChanged(juce::ValueTree& tree,
             return;
     }
 
-    // Get current value and push
+    // Accumulate for throttled push — latest value per path wins
     juce::var value = tree.getProperty(property);
-    pushValueChange(oscPath, value);
+    {
+        const juce::ScopedLock sl(pendingPushLock);
+        pendingPushes[oscPath] = { oscPath, value };
+    }
 }
 
 void OSCQueryServer::valueTreeChildAdded(juce::ValueTree& parent, juce::ValueTree& /*child*/)
