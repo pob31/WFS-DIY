@@ -7,3 +7,6 @@
 [submodule "ThirdParty/ASIOSDK"]
 	path = ThirdParty/ASIOSDK
 	url = https://github.com/audiosdk/asio.git
+[submodule "ThirdParty/juce_simpleweb"]
+	path = ThirdParty/juce_simpleweb
+	url = https://github.com/benkuper/juce_simpleweb.git
