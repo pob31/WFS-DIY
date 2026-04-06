@@ -2,7 +2,7 @@
 
 <JUCERPROJECT id="k6c2zA" name="WFS-DIY" projectType="guiapp" useAppConfig="0"
               addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1"
-              version="0.1.0" bundleIdentifier="com.wfsdiy.app">
+              version="1.0.0" bundleIdentifier="com.wfsdiy.app">
   <MAINGROUP id="U6kz3k" name="WFS-DIY">
     <GROUP id="{559A80C2-DA9A-4473-80A2-AE173C8D9D42}" name="Source">
       <GROUP id="{PARAMGROUP}" name="Parameters">
