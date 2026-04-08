@@ -86,6 +86,7 @@
 		015EA0280AE439D59E4A3D5E /* include_juce_core.mm */ /* include_juce_core.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_core.mm; path = ../../JuceLibraryCode/include_juce_core.mm; sourceTree = SOURCE_ROOT; };
 		0286C27EEF7FF41861AEADED /* WFSFileManager.h */ /* WFSFileManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = WFSFileManager.h; path = ../../Source/Parameters/WFSFileManager.h; sourceTree = SOURCE_ROOT; };
 		0295E8DB0FB28056B5EFD60F /* include_juce_audio_utils.mm */ /* include_juce_audio_utils.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_utils.mm; path = ../../JuceLibraryCode/include_juce_audio_utils.mm; sourceTree = SOURCE_ROOT; };
+		0336BAD5994A5DD29FEB2B02 /* UpdateChecker.h */ /* UpdateChecker.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = UpdateChecker.h; path = ../../Source/UpdateChecker.h; sourceTree = SOURCE_ROOT; };
 		05D2B5A53FEB53CA24CFD91E /* LocalizationManager.cpp */ /* LocalizationManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = LocalizationManager.cpp; path = ../../Source/Localization/LocalizationManager.cpp; sourceTree = SOURCE_ROOT; };
 		0724D2EC3F7252162C616AE8 /* InputsTab.h */ /* InputsTab.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = InputsTab.h; path = ../../Source/gui/InputsTab.h; sourceTree = SOURCE_ROOT; };
 		08134ACD67020F7944801D62 /* WfsParameters.h */ /* WfsParameters.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = WfsParameters.h; path = ../../Source/WfsParameters.h; sourceTree = SOURCE_ROOT; };
@@ -121,6 +122,7 @@
 		35A75BE8F742B3CF106ACE1B /* WFSValueTreeState.h */ /* WFSValueTreeState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = WFSValueTreeState.h; path = ../../Source/Parameters/WFSValueTreeState.h; sourceTree = SOURCE_ROOT; };
 		366967657B27DF70D955B956 /* PatchWindowPages.h */ /* PatchWindowPages.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = PatchWindowPages.h; path = ../../Source/Controllers/DialsAndButtons/pages/PatchWindowPages.h; sourceTree = SOURCE_ROOT; };
 		3686FA549875B11C3A90C790 /* ControllerManager.h */ /* ControllerManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ControllerManager.h; path = ../../Source/Controllers/PositionControl/ControllerManager.h; sourceTree = SOURCE_ROOT; };
+		37A64E364B5651AEABDA9662 /* UpdateBanner.h */ /* UpdateBanner.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = UpdateBanner.h; path = ../../Source/gui/UpdateBanner.h; sourceTree = SOURCE_ROOT; };
 		388303C536A2A156D54D0EDD /* TrackingPositionFilter.h */ /* TrackingPositionFilter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TrackingPositionFilter.h; path = ../../Source/DSP/TrackingPositionFilter.h; sourceTree = SOURCE_ROOT; };
 		397E48E69531DACFDCC4C03E /* juce_events */ /* juce_events */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_events; path = ../../ThirdParty/JUCE/modules/juce_events; sourceTree = SOURCE_ROOT; };
 		3B762799D2662B552253B03C /* juce_core */ /* juce_core */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_core; path = ../../ThirdParty/JUCE/modules/juce_core; sourceTree = SOURCE_ROOT; };
@@ -384,6 +386,7 @@
 				A6107472373FC76F35C046C0,
 				08134ACD67020F7944801D62,
 				1ABC3B390474FF4A8F755E15,
+				0336BAD5994A5DD29FEB2B02,
 				2A3098A01F4897C79C3BDD80,
 				C20B0002C1C15F0BCBF6FFE9,
 			);
@@ -470,6 +473,7 @@
 			isa = PBXGroup;
 			children = (
 				C13194A76B6B84669C156769,
+				37A64E364B5651AEABDA9662,
 				A400E7223FA1004C445B4EC0,
 				00959BF07328BFC4DAE09086,
 				344E94DE75CE8AD15E5DF4F7,

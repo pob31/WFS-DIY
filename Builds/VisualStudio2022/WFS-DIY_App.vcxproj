@@ -3215,6 +3215,7 @@
     <ClInclude Include="..\..\Source\Parameters\WFSFileManager.h"/>
     <ClInclude Include="..\..\Source\Parameters\ParameterDirtyTracker.h"/>
     <ClInclude Include="..\..\Source\gui\StatusBar.h"/>
+    <ClInclude Include="..\..\Source\gui\UpdateBanner.h"/>
     <ClInclude Include="..\..\Source\gui\GettingStartedWizard.h"/>
     <ClInclude Include="..\..\Source\gui\HelpCard.h"/>
     <ClInclude Include="..\..\Source\gui\SystemConfigTab.h"/>
@@ -3281,6 +3282,7 @@
     <ClInclude Include="..\..\Source\MainComponent.h"/>
     <ClInclude Include="..\..\Source\WfsParameters.h"/>
     <ClInclude Include="..\..\Source\WFSLogger.h"/>
+    <ClInclude Include="..\..\Source\UpdateChecker.h"/>
     <ClInclude Include="..\..\Source\DSP\WFSCalculationEngine.h"/>
     <ClInclude Include="..\..\Source\DSP\WFSHighShelfFilter.h"/>
     <ClInclude Include="..\..\Source\DSP\InputBufferProcessor.h"/>

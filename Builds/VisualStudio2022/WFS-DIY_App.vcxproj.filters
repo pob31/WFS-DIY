@@ -4239,6 +4239,9 @@
     <ClInclude Include="..\..\Source\gui\StatusBar.h">
       <Filter>WFS-DIY\Source\gui</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\gui\UpdateBanner.h">
+      <Filter>WFS-DIY\Source\gui</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\gui\GettingStartedWizard.h">
       <Filter>WFS-DIY\Source\gui</Filter>
     </ClInclude>
@@ -4435,6 +4438,9 @@
       <Filter>WFS-DIY\Source</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\WFSLogger.h">
+      <Filter>WFS-DIY\Source</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\UpdateChecker.h">
       <Filter>WFS-DIY\Source</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\DSP\WFSCalculationEngine.h">

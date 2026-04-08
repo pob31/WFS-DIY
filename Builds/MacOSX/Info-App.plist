@@ -5,6 +5,47 @@
   <dict>
     <key>NSMicrophoneUsageDescription</key>
     <string>WFS-DIY needs audio input access for Wave Field Synthesis processing.</string>
+    <key>CFBundleDocumentTypes</key>
+    <array>
+      <dict>
+        <key>CFBundleTypeExtensions</key>
+        <array>
+          <string>wfs</string>
+        </array>
+        <key>CFBundleTypeName</key>
+        <string>WFS-DIY Project</string>
+        <key>CFBundleTypeRole</key>
+        <string>Editor</string>
+        <key>CFBundleTypeIconFile</key>
+        <string>Icon.icns</string>
+        <key>LSHandlerRank</key>
+        <string>Owner</string>
+        <key>LSItemContentTypes</key>
+        <array>
+          <string>com.wfsdiy.project</string>
+        </array>
+      </dict>
+    </array>
+    <key>UTExportedTypeDeclarations</key>
+    <array>
+      <dict>
+        <key>UTTypeIdentifier</key>
+        <string>com.wfsdiy.project</string>
+        <key>UTTypeDescription</key>
+        <string>WFS-DIY Project File</string>
+        <key>UTTypeConformsTo</key>
+        <array>
+          <string>public.xml</string>
+        </array>
+        <key>UTTypeTagSpecification</key>
+        <dict>
+          <key>public.filename-extension</key>
+          <array>
+            <string>wfs</string>
+          </array>
+        </dict>
+      </dict>
+    </array>
     <key>CFBundleExecutable</key>
     <string>${EXECUTABLE_NAME}</string>
     <key>CFBundleIconFile</key>

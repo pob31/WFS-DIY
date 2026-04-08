@@ -37,6 +37,19 @@ struct AppSettings
         props.saveIfNeeded();
     }
 
+    static juce::String getUpdateDismissedVersion()
+    {
+        juce::PropertiesFile props (getOptions());
+        return props.getValue ("updateDismissedVersion", "");
+    }
+
+    static void setUpdateDismissedVersion (const juce::String& version)
+    {
+        juce::PropertiesFile props (getOptions());
+        props.setValue ("updateDismissedVersion", version);
+        props.saveIfNeeded();
+    }
+
 private:
     static juce::PropertiesFile::Options getOptions()
     {

@@ -20,6 +20,7 @@
 #include "gui/HelpCard.h"
 #include "Accessibility/TTSManager.h"
 #include "gui/StatusBar.h"
+#include "gui/UpdateBanner.h"
 #include "gui/SystemConfigTab.h"
 #include "gui/NetworkTab.h"
 #include "gui/OutputsTab.h"
@@ -144,6 +145,9 @@ public:
     void openGettingStartedWizard();
     void closeGettingStartedWizard();
 
+    // Update notification
+    void showUpdateBanner (const juce::String& version, const juce::String& url);
+
     // Gradient Map Support
     void updateGradientMapStageBounds();
     void rebuildGradientMapForInput (int channelIndex);
@@ -181,6 +185,7 @@ private:
     std::unique_ptr<LevelMeterWindow> levelMeterWindow;
     std::unique_ptr<LevelMeteringManager> levelMeteringManager;
     std::unique_ptr<GettingStartedWizard> gettingStartedWizard;
+    std::unique_ptr<UpdateBanner> updateBanner;
     int lastWizardStepIndex = 0;
 
     // Custom LookAndFeel for centralized widget theming

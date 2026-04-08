@@ -243,6 +243,11 @@ MainComponent::MainComponent()
     statusBar = new StatusBar();
     addAndMakeVisible(statusBar);
 
+    // Create update banner (hidden by default)
+    updateBanner = std::make_unique<UpdateBanner>();
+    updateBanner->onDismiss = [this]() { resized(); };
+    addChildComponent (updateBanner.get());
+
     // Restore project folder from AppSettings (persists across sessions)
     {
         auto folder = AppSettings::getLastFolder ("lastProjectFolder", juce::File());
@@ -3823,6 +3828,15 @@ void MainComponent::closeGettingStartedWizard()
         gettingStartedWizard->close();
 }
 
+void MainComponent::showUpdateBanner (const juce::String& version, const juce::String& url)
+{
+    if (updateBanner != nullptr)
+    {
+        updateBanner->showUpdate (version, url);
+        resized();
+    }
+}
+
 //==============================================================================
 void MainComponent::startAudioEngine()
 {
@@ -4414,6 +4428,10 @@ void MainComponent::resized()
 
     // Status bar at bottom, full width
     statusBar->setBounds(bounds.removeFromBottom(statusBarHeight));
+
+    // Update banner at top (if visible)
+    if (updateBanner != nullptr && updateBanner->isVisible())
+        updateBanner->setBounds (bounds.removeFromTop (30));
 
     // Tabbed component takes remaining space
     tabbedComponent.setBounds(bounds);

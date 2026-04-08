@@ -28,6 +28,7 @@
       </GROUP>
       <GROUP id="{GUIGROUP1}" name="gui">
         <FILE id="guiStatus" name="StatusBar.h" compile="0" resource="0" file="Source/gui/StatusBar.h"/>
+        <FILE id="guiUpdateBanner" name="UpdateBanner.h" compile="0" resource="0" file="Source/gui/UpdateBanner.h"/>
         <FILE id="guiWizard" name="GettingStartedWizard.h" compile="0" resource="0"
               file="Source/gui/GettingStartedWizard.h"/>
         <FILE id="guiHelpCard" name="HelpCard.h" compile="0" resource="0" file="Source/gui/HelpCard.h"/>
@@ -218,6 +219,7 @@
             file="Source/MainComponent.cpp"/>
       <FILE id="wfsPar" name="WfsParameters.h" compile="0" resource="0" file="Source/WfsParameters.h"/>
       <FILE id="wfsLogH" name="WFSLogger.h" compile="0" resource="0" file="Source/WFSLogger.h"/>
+      <FILE id="updateChkH" name="UpdateChecker.h" compile="0" resource="0" file="Source/UpdateChecker.h"/>
       <FILE id="wfsLogCpp" name="WFSLogger.cpp" compile="1" resource="0"
             file="Source/WFSLogger.cpp"/>
       <GROUP id="{DSPGROUP}" name="DSP">

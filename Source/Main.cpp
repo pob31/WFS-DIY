@@ -12,6 +12,7 @@
 #include "gui/WindowUtils.h"
 #include "gui/ColorScheme.h"
 #include "WFSLogger.h"
+#include "UpdateChecker.h"
 
 //==============================================================================
 // Windows crash handler to release ASIO driver on unhandled exceptions
@@ -113,6 +114,15 @@ public:
                     mainComp->openProjectFromFile (folder);
             });
         }
+
+        // Check for updates on GitHub (non-blocking background thread)
+        updateChecker = std::make_unique<UpdateChecker> (
+            [this] (const juce::String& version, const juce::String& url)
+            {
+                if (auto* mainComp = dynamic_cast<MainComponent*> (mainWindow->getContentComponent()))
+                    mainComp->showUpdateBanner (version, url);
+            });
+        updateChecker->checkNow();
     }
 
     void shutdown() override
@@ -125,6 +135,7 @@ public:
         timeEndPeriod(1);
 #endif
 
+        updateChecker.reset();
         mainWindow = nullptr; // (deletes our window)
 
         // Shutdown logger last so all other destructors can still log
@@ -218,6 +229,7 @@ public:
 
 private:
     std::unique_ptr<MainWindow> mainWindow;
+    std::unique_ptr<UpdateChecker> updateChecker;
 
     /** Parse a .wfs file path from command-line arguments and resolve to project folder */
     static juce::File parseWfsCommandLine (const juce::String& commandLine)
