@@ -122,6 +122,9 @@ public:
     // Processing state query (for quit confirmation)
     bool isProcessingActive() const { return processingEnabled && audioEngineStarted; }
 
+    // Open a project from a .wfs manifest file (auto-loads config)
+    void openProjectFromFile (const juce::File& projectFolder);
+
     // Audio Interface Window
     void openAudioInterfaceWindow();
     void setupPatchWindowStreamDeck (PatchWindowPages::PatchCallbacks& cb,

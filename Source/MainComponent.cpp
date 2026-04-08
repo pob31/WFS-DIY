@@ -24,11 +24,18 @@ MainComponent::MainComponent()
     auto exeDir = juce::File::getSpecialLocation(juce::File::currentExecutableFile).getParentDirectory();
 
     // Try multiple locations for Resources folder:
-    // 1. Next to executable (production deployment)
-    // 2. macOS bundle: Contents/Resources (standard bundle structure)
-    // 3. Project root (development from Visual Studio - 5 levels up from exe)
-    // 4. Project root (development from macOS - 6 levels up from Contents/MacOS/)
-    juce::File resourceDir = exeDir.getChildFile("Resources");
+    // 1. Next to executable (production: lang/ sits beside the .exe)
+    // 2. Next to executable under Resources/ subfolder
+    // 3. macOS bundle: Contents/Resources (standard bundle structure)
+    // 4. Project root (development from Visual Studio - 5 levels up from exe)
+    // 5. Project root (development from macOS - 6 levels up from Contents/MacOS/)
+    juce::File resourceDir = exeDir;
+
+    if (!resourceDir.getChildFile("lang/en.json").existsAsFile())
+    {
+        // Resources subfolder next to exe
+        resourceDir = exeDir.getChildFile("Resources");
+    }
 
     if (!resourceDir.getChildFile("lang/en.json").existsAsFile())
     {
@@ -2845,6 +2852,38 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
 
     // Reload patch maps from the (now up-to-date) ValueTree
     loadAudioPatches();
+}
+
+void MainComponent::openProjectFromFile (const juce::File& folder)
+{
+    if (!folder.isDirectory())
+    {
+        WFSLogger::getInstance().logError ("openProjectFromFile: folder does not exist: " + folder.getFullPathName());
+        return;
+    }
+
+    WFSLogger::getInstance().logInfo ("Opening project from: " + folder.getFullPathName());
+
+    auto& fileManager = parameters.getFileManager();
+
+    // Set folder (also auto-creates .wfs manifest if missing)
+    fileManager.setProjectFolder (folder);
+    fileManager.createProjectFolderStructure();
+    AppSettings::setLastFolder ("lastProjectFolder", folder);
+
+    // Load all configuration files
+    if (fileManager.loadCompleteConfig())
+    {
+        handleConfigReloaded();
+
+        // Update window title with project name
+        if (auto* window = findParentComponentOfClass<juce::DocumentWindow>())
+            window->setName (ProjectInfo::projectName + juce::String (" - ") + folder.getFileName());
+    }
+    else
+    {
+        WFSLogger::getInstance().logWarning ("openProjectFromFile: no config files found in " + folder.getFullPathName());
+    }
 }
 
 void MainComponent::handleConfigReloaded()

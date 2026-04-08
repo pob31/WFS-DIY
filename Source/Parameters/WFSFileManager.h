@@ -3,6 +3,10 @@
 #include <JuceHeader.h>
 #include "WFSValueTreeState.h"
 
+#if JUCE_MAC
+void setFolderIconMac (const char* folderPath);
+#endif
+
 /**
  * WFS File Manager
  *
@@ -42,6 +46,25 @@ public:
 
     /** Show folder chooser dialog to select project folder */
     void chooseProjectFolder (std::function<void (bool)> callback);
+
+    //==========================================================================
+    // Project Manifest (.wfs)
+    //==========================================================================
+
+    /** Create the .wfs manifest file inside the project folder */
+    bool createProjectManifest();
+
+    /** Get the manifest file for a given project folder (FolderName/FolderName.wfs) */
+    static juce::File getManifestFile (const juce::File& folder);
+
+    /** Get the manifest file for the current project folder */
+    juce::File getManifestFile() const { return getManifestFile (projectFolder); }
+
+    /** Resolve a .wfs file to its parent project folder (with validation) */
+    static juce::File getProjectFolderFromManifest (const juce::File& wfsFile);
+
+    /** Project manifest extension */
+    static constexpr const char* projectManifestExtension = ".wfs";
 
     //==========================================================================
     // File Paths
@@ -447,6 +470,9 @@ private:
 
     /** Set error message */
     void setError (const juce::String& error);
+
+    /** Brand the project folder with a custom icon (platform-specific) */
+    void brandProjectFolder();
 
     /** Merge properties from source to target (only set properties that exist in source) */
     void mergeProperties (juce::ValueTree& target, const juce::ValueTree& source,

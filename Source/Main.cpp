@@ -8,6 +8,7 @@
 
 #include <JuceHeader.h>
 #include "MainComponent.h"
+#include "Parameters/WFSFileManager.h"
 #include "gui/WindowUtils.h"
 #include "gui/ColorScheme.h"
 #include "WFSLogger.h"
@@ -59,13 +60,11 @@ public:
 
     const juce::String getApplicationName() override       { return ProjectInfo::projectName; }
     const juce::String getApplicationVersion() override    { return ProjectInfo::versionString; }
-    bool moreThanOneInstanceAllowed() override             { return true; }
+    bool moreThanOneInstanceAllowed() override             { return false; }
 
     //==============================================================================
     void initialise (const juce::String& commandLine) override
     {
-        juce::ignoreUnused(commandLine);
-
         // Start session logger before anything else
         WFSLogger::getInstance().initialise();
         WFSLogger::getInstance().logInfo ("Session started - " + getApplicationName()
@@ -73,6 +72,9 @@ public:
         WFSLogger::getInstance().logInfo ("OS: " + juce::SystemStats::getOperatingSystemName());
         WFSLogger::getInstance().logInfo ("CPU: " + juce::SystemStats::getCpuModel()
                                           + " (" + juce::String (juce::SystemStats::getNumCpus()) + " cores)");
+
+        // Parse command-line for .wfs project file
+        auto pendingProjectFolder = parseWfsCommandLine (commandLine);
 
         mainWindow.reset (new MainWindow (getApplicationName()));
 
@@ -99,6 +101,18 @@ public:
             SetUnhandledExceptionFilter(asioCleanupCrashHandler);
         }
 #endif
+
+        // Deferred project open: MainComponent constructor has finished but we need
+        // the message loop running before loading configs
+        if (pendingProjectFolder.isDirectory())
+        {
+            auto folder = pendingProjectFolder;
+            juce::MessageManager::callAsync ([this, folder]()
+            {
+                if (auto* mainComp = dynamic_cast<MainComponent*> (mainWindow->getContentComponent()))
+                    mainComp->openProjectFromFile (folder);
+            });
+        }
     }
 
     void shutdown() override
@@ -146,10 +160,14 @@ public:
 
     void anotherInstanceStarted (const juce::String& commandLine) override
     {
-        juce::ignoreUnused(commandLine);
-        // When another instance of the app is launched while this one is running,
-        // this method is invoked, and the commandLine parameter tells you what
-        // the other instance's command-line arguments were.
+        auto folder = parseWfsCommandLine (commandLine);
+        if (folder.isDirectory())
+        {
+            if (auto* mainComp = dynamic_cast<MainComponent*> (mainWindow->getContentComponent()))
+                mainComp->openProjectFromFile (folder);
+
+            mainWindow->toFront (true);
+        }
     }
 
     //==============================================================================
@@ -200,6 +218,17 @@ public:
 
 private:
     std::unique_ptr<MainWindow> mainWindow;
+
+    /** Parse a .wfs file path from command-line arguments and resolve to project folder */
+    static juce::File parseWfsCommandLine (const juce::String& commandLine)
+    {
+        auto path = commandLine.trim().unquoted().trim();
+        if (path.isEmpty())
+            return {};
+
+        juce::File wfsFile (path);
+        return WFSFileManager::getProjectFolderFromManifest (wfsFile);
+    }
 };
 
 //==============================================================================

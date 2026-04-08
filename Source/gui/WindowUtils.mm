@@ -16,4 +16,20 @@ void enableDarkTitleBarMac(void* nsWindow)
         window.appearance = [NSAppearance appearanceNamed:NSAppearanceNameDarkAqua];
     }
 }
+
+void setFolderIconMac (const char* folderPath)
+{
+    if (folderPath == nullptr)
+        return;
+
+    NSString* path = [NSString stringWithUTF8String:folderPath];
+
+    // Get the app's icon
+    NSImage* appIcon = [NSApp applicationIconImage];
+    if (appIcon == nil)
+        return;
+
+    // Apply the icon to the folder
+    [[NSWorkspace sharedWorkspace] setIcon:appIcon forFile:path options:0];
+}
 #endif

@@ -4,6 +4,10 @@
 #include "../Localization/LocalizationManager.h"
 #include "../WFSLogger.h"
 
+#if JUCE_WINDOWS
+#include <Windows.h>
+#endif
+
 using namespace WFSParameterIDs;
 
 //==============================================================================
@@ -70,6 +74,10 @@ bool WFSFileManager::createProjectFolderStructure()
     getIRFolder().createDirectory();
     getSamplesFolder().createDirectory();
 
+    // Create .wfs manifest if missing
+    if (!getManifestFile().existsAsFile())
+        createProjectManifest();
+
     return true;
 }
 
@@ -97,6 +105,88 @@ void WFSFileManager::chooseProjectFolder (std::function<void (bool)> callback)
                 callback (false);
             }
         });
+}
+
+//==============================================================================
+// Project Manifest (.wfs)
+//==============================================================================
+
+bool WFSFileManager::createProjectManifest()
+{
+    if (!projectFolder.isDirectory())
+        return false;
+
+    auto manifestFile = getManifestFile();
+
+    juce::XmlElement root ("WFSProject");
+    root.setAttribute ("projectName", projectFolder.getFileName());
+    root.setAttribute ("appVersion", ProjectInfo::versionString);
+    root.setAttribute ("createdDate", juce::Time::getCurrentTime().toISO8601 (true));
+
+    if (!root.writeTo (manifestFile))
+        return false;
+
+    // Brand the project folder with a custom icon
+    brandProjectFolder();
+
+    return true;
+}
+
+void WFSFileManager::brandProjectFolder()
+{
+#if JUCE_WINDOWS
+    // Copy app icon into project folder as hidden file
+    auto appDir = juce::File::getSpecialLocation (juce::File::currentExecutableFile).getParentDirectory();
+    auto sourceIcon = appDir.getChildFile ("WFS-DIY.ico");
+
+    // Fall back to the build directory icon if not installed
+    if (!sourceIcon.existsAsFile())
+        sourceIcon = appDir.getChildFile ("icon.ico");
+
+    if (!sourceIcon.existsAsFile())
+        return;
+
+    auto destIcon = projectFolder.getChildFile (".wfs-icon.ico");
+    if (!destIcon.existsAsFile())
+        sourceIcon.copyFileTo (destIcon);
+
+    // Hide the icon file
+    SetFileAttributesW (destIcon.getFullPathName().toWideCharPointer(),
+                        FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM);
+
+    // Create desktop.ini for folder icon
+    auto desktopIni = projectFolder.getChildFile ("desktop.ini");
+    if (!desktopIni.existsAsFile())
+    {
+        desktopIni.replaceWithText ("[.ShellClassInfo]\r\n"
+                                    "IconResource=.wfs-icon.ico,0\r\n"
+                                    "InfoTip=WFS-DIY Project\r\n");
+
+        SetFileAttributesW (desktopIni.getFullPathName().toWideCharPointer(),
+                            FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM);
+    }
+
+    // Set folder as system folder so Explorer reads desktop.ini
+    auto folderAttrs = GetFileAttributesW (projectFolder.getFullPathName().toWideCharPointer());
+    if (folderAttrs != INVALID_FILE_ATTRIBUTES)
+        SetFileAttributesW (projectFolder.getFullPathName().toWideCharPointer(),
+                            folderAttrs | FILE_ATTRIBUTE_SYSTEM);
+#elif JUCE_MAC
+    setFolderIconMac (projectFolder.getFullPathName().toRawUTF8());
+#endif
+}
+
+juce::File WFSFileManager::getManifestFile (const juce::File& folder)
+{
+    return folder.getChildFile (folder.getFileName() + projectManifestExtension);
+}
+
+juce::File WFSFileManager::getProjectFolderFromManifest (const juce::File& wfsFile)
+{
+    if (!wfsFile.existsAsFile() || !wfsFile.hasFileExtension ("wfs"))
+        return {};
+
+    return wfsFile.getParentDirectory();
 }
 
 //==============================================================================
