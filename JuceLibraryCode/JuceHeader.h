@@ -31,6 +31,7 @@
 #include <juce_simpleweb/juce_simpleweb.h>
 #include <roli_blocks_basics/roli_blocks_basics.h>
 
+#include "BinaryData.h"
 
 #if defined (JUCE_PROJUCER_VERSION) && JUCE_PROJUCER_VERSION < JUCE_VERSION
  /** If you've hit this error then the version of the Projucer that was used to generate this project is
@@ -46,8 +47,8 @@
 namespace ProjectInfo
 {
     const char* const  projectName    = "WFS-DIY";
-    const char* const  companyName    = "";
-    const char* const  versionString  = "0.1.0";
-    const int          versionNumber  = 0x100;
+    const char* const  companyName    = "Pix et Bel";
+    const char* const  versionString  = "1.0.0";
+    const int          versionNumber  = 0x10000;
 }
 #endif

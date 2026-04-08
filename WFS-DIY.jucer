@@ -1,9 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="k6c2zA" name="WFS-DIY" projectType="guiapp" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1"
-              version="1.0.0" bundleIdentifier="com.wfsdiy.app">
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" version="1.0.0"
+              bundleIdentifier="com.wfsdiy.app" companyEmail="contact@pixetbel.org"
+              companyName="Pix et Bel" companyWebsite="wfs-diy.net">
   <MAINGROUP id="U6kz3k" name="WFS-DIY">
+    <GROUP id="{538962A7-151C-A49B-F334-B4176E90CD0A}" name="Resources">
+      <FILE id="SCj321" name="WFS-DIY_logo.png" compile="0" resource="1"
+            file="Resources/WFS-DIY_logo.png"/>
+    </GROUP>
     <GROUP id="{559A80C2-DA9A-4473-80A2-AE173C8D9D42}" name="Source">
       <GROUP id="{PARAMGROUP}" name="Parameters">
         <FILE id="wfsParamIDs" name="WFSParameterIDs.h" compile="0" resource="0"
@@ -18,8 +23,8 @@
               file="Source/Parameters/WFSFileManager.h"/>
         <FILE id="wfsFMCpp" name="WFSFileManager.cpp" compile="1" resource="0"
               file="Source/Parameters/WFSFileManager.cpp"/>
-        <FILE id="paramDirtyTracker" name="ParameterDirtyTracker.h" compile="0" resource="0"
-              file="Source/Parameters/ParameterDirtyTracker.h"/>
+        <FILE id="paramDirtyTracker" name="ParameterDirtyTracker.h" compile="0"
+              resource="0" file="Source/Parameters/ParameterDirtyTracker.h"/>
       </GROUP>
       <GROUP id="{GUIGROUP1}" name="gui">
         <FILE id="guiCfgTab" name="ConfigTabComponent.h" compile="0" resource="0"
@@ -29,8 +34,7 @@
         <FILE id="guiStatus" name="StatusBar.h" compile="0" resource="0" file="Source/gui/StatusBar.h"/>
         <FILE id="guiWizard" name="GettingStartedWizard.h" compile="0" resource="0"
               file="Source/gui/GettingStartedWizard.h"/>
-        <FILE id="guiHelpCard" name="HelpCard.h" compile="0" resource="0"
-              file="Source/gui/HelpCard.h"/>
+        <FILE id="guiHelpCard" name="HelpCard.h" compile="0" resource="0" file="Source/gui/HelpCard.h"/>
         <FILE id="guiSysCfg" name="SystemConfigTab.h" compile="0" resource="0"
               file="Source/gui/SystemConfigTab.h"/>
         <FILE id="guiOutTab" name="OutputsTab.h" compile="0" resource="0" file="Source/gui/OutputsTab.h"/>
@@ -74,8 +78,7 @@
               resource="0" file="Source/Helpers/ArrayGeometryCalculator.cpp"/>
       </GROUP>
       <GROUP id="{ACCESSGROUP}" name="Accessibility">
-        <FILE id="accTTSMgr" name="TTSManager.h" compile="0" resource="0"
-              file="Source/Accessibility/TTSManager.h"/>
+        <FILE id="accTTSMgr" name="TTSManager.h" compile="0" resource="0" file="Source/Accessibility/TTSManager.h"/>
       </GROUP>
       <GROUP id="{LOCALGROUP}" name="Localization">
         <FILE id="locMgr" name="LocalizationManager.h" compile="0" resource="0"
@@ -137,8 +140,8 @@
               file="Source/Network/RTTrPDecoder.cpp"/>
         <FILE id="netRttrpH" name="TrackingRTTrPReceiver.h" compile="0" resource="0"
               file="Source/Network/TrackingRTTrPReceiver.h"/>
-        <FILE id="netRttrpCpp" name="TrackingRTTrPReceiver.cpp" compile="1" resource="0"
-              file="Source/Network/TrackingRTTrPReceiver.cpp"/>
+        <FILE id="netRttrpCpp" name="TrackingRTTrPReceiver.cpp" compile="1"
+              resource="0" file="Source/Network/TrackingRTTrPReceiver.cpp"/>
         <FILE id="netMqttH" name="TrackingMQTTReceiver.h" compile="0" resource="0"
               file="Source/Network/TrackingMQTTReceiver.h"/>
         <FILE id="netMqttCpp" name="TrackingMQTTReceiver.cpp" compile="1" resource="0"
@@ -209,8 +212,7 @@
               file="Source/GradientMap/GradientMapEditor.h"/>
       </GROUP>
       <GROUP id="{HIDAPIGROUP}" name="hidapi">
-        <FILE id="hidapiH" name="hidapi.h" compile="0" resource="0"
-              file="ThirdParty/hidapi/hidapi/hidapi.h"/>
+        <FILE id="hidapiH" name="hidapi.h" compile="0" resource="0" file="ThirdParty/hidapi/hidapi/hidapi.h"/>
         <FILE id="hidapiPlatC" name="HidApiPlatform.c" compile="1" resource="0"
               file="ThirdParty/hidapi/HidApiPlatform.c"/>
       </GROUP>
@@ -220,7 +222,8 @@
             file="Source/MainComponent.cpp"/>
       <FILE id="wfsPar" name="WfsParameters.h" compile="0" resource="0" file="Source/WfsParameters.h"/>
       <FILE id="wfsLogH" name="WFSLogger.h" compile="0" resource="0" file="Source/WFSLogger.h"/>
-      <FILE id="wfsLogCpp" name="WFSLogger.cpp" compile="1" resource="0" file="Source/WFSLogger.cpp"/>
+      <FILE id="wfsLogCpp" name="WFSLogger.cpp" compile="1" resource="0"
+            file="Source/WFSLogger.cpp"/>
       <FILE id="wfsAlg" name="WFSAlgorithm.h" compile="0" resource="0" file="Source/WFSAlgorithm.h"/>
       <GROUP id="{DSPGROUP}" name="DSP">
         <FILE id="wfsCalcH" name="WFSCalculationEngine.h" compile="0" resource="0"
@@ -251,8 +254,8 @@
               resource="0" file="Source/DSP/TestSignalGenerator.cpp"/>
         <FILE id="trkPosFilter" name="TrackingPositionFilter.h" compile="0"
               resource="0" file="Source/DSP/TrackingPositionFilter.h"/>
-        <FILE id="inpSpdLimH" name="InputSpeedLimiter.h" compile="0"
-              resource="0" file="Source/DSP/InputSpeedLimiter.h"/>
+        <FILE id="inpSpdLimH" name="InputSpeedLimiter.h" compile="0" resource="0"
+              file="Source/DSP/InputSpeedLimiter.h"/>
       </GROUP>
     </GROUP>
   </MAINGROUP>
@@ -279,7 +282,7 @@
   <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1" JUCE_USE_ANDROID_OBOE="0" JUCE_JACK="0"
                JUCE_ASIO="1" JUCE_ALSA="0" JUCE_PLUGINHOST_LV2="0" JUCE_PLUGINHOST_ARA="0"/>
   <EXPORTFORMATS>
-    <LINUX_MAKE targetFolder="Builds/LinuxMakefile">
+    <LINUX_MAKE targetFolder="Builds/LinuxMakefile" smallIcon="SCj321" bigIcon="SCj321">
       <CONFIGURATIONS>
         <CONFIGURATION isDebug="1" name="Debug" targetName="WFS-DIY"/>
         <CONFIGURATION isDebug="0" name="Release" targetName="WFS-DIY"/>
@@ -304,19 +307,17 @@
         <MODULEPATH id="roli_blocks_basics" path="ThirdParty"/>
       </MODULEPATHS>
     </LINUX_MAKE>
-    <VS2022 targetFolder="Builds/VisualStudio2022">
+    <VS2022 targetFolder="Builds/VisualStudio2022" smallIcon="SCj321" bigIcon="SCj321">
       <CONFIGURATIONS>
         <CONFIGURATION isDebug="1" name="Debug" targetName="WFS-DIY" headerPath="..\..\ThirdParty\ASIOSDK\common;..\..\ThirdParty\GPUAudioSDK\gpuaudio\include;..\..\ThirdParty\GPUAudioSDK\gain_processor\gain_processor\include;..\..\ThirdParty\GPUAudioSDK\build\_deps\json-src\single_include;..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi"
                        libraryPath="ThirdParty\GPUAudioSDK\build\lib\RelWithDebInfo;ThirdParty\GPUAudioSDK\build\GainLib\gainlib\RelWithDebInfo;ThirdParty\GPUAudioSDK\build\simple_processor_launcher\ProcLaunchLib\RelWithDebInfo"
                        externalLibraries="gain_processor_nvidia.lib;ProcLaunchLib.lib;gainlib.lib;nvidia_resources_gain_processor_gain_processor_device_nvidia.lib;setupapi.lib"
-                       extraCompilerFlags="/bigobj"
-                       defines="SIMPLEWEB_SECURE_SUPPORTED=0"
+                       extraCompilerFlags="/bigobj" defines="SIMPLEWEB_SECURE_SUPPORTED=0"
                        postbuildCommand="xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot;"/>
         <CONFIGURATION isDebug="0" name="Release" targetName="WFS-DIY" headerPath="..\..\ThirdParty\ASIOSDK\common;..\..\ThirdParty\GPUAudioSDK\gpuaudio\include;..\..\ThirdParty\GPUAudioSDK\gain_processor\gain_processor\include;..\..\ThirdParty\GPUAudioSDK\build\_deps\json-src\single_include;..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi"
                        libraryPath="ThirdParty\GPUAudioSDK\build\lib\RelWithDebInfo;ThirdParty\GPUAudioSDK\build\GainLib\gainlib\RelWithDebInfo;ThirdParty\GPUAudioSDK\build\simple_processor_launcher\ProcLaunchLib\RelWithDebInfo"
                        externalLibraries="gain_processor_nvidia.lib;ProcLaunchLib.lib;gainlib.lib;nvidia_resources_gain_processor_gain_processor_device_nvidia.lib;setupapi.lib"
-                       extraCompilerFlags="/bigobj"
-                       defines="SIMPLEWEB_SECURE_SUPPORTED=0"
+                       extraCompilerFlags="/bigobj" defines="SIMPLEWEB_SECURE_SUPPORTED=0"
                        postbuildCommand="xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot;"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
@@ -340,7 +341,8 @@
       </MODULEPATHS>
     </VS2022>
     <XCODE_MAC targetFolder="Builds/MacOSX" customPList="&lt;plist&gt;&lt;dict&gt;&#10;  &lt;key&gt;NSMicrophoneUsageDescription&lt;/key&gt;&#10;  &lt;string&gt;WFS-DIY needs audio input access for Wave Field Synthesis processing.&lt;/string&gt;&#10;&lt;/dict&gt;&lt;/plist&gt;"
-              postbuildCommand="mkdir -p &quot;${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources/lang&quot;&#10;cp -R &quot;${SRCROOT}/../../Resources/lang/&quot; &quot;${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources/lang/&quot;&#10;echo &quot;Copied localisation files to bundle&quot;">
+               postbuildCommand="mkdir -p &quot;${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources/lang&quot;&#10;cp -R &quot;${SRCROOT}/../../Resources/lang/&quot; &quot;${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources/lang/&quot;&#10;echo &quot;Copied localisation files to bundle&quot;"
+               smallIcon="SCj321" bigIcon="SCj321">
       <CONFIGURATIONS>
         <CONFIGURATION isDebug="1" name="Debug" targetName="WFS-DIY" extraLinkerFlags="-framework SystemConfiguration -framework CoreFoundation -framework IOKit"
                        headerPath="../../ThirdParty/hidapi;../../ThirdParty/hidapi/hidapi"

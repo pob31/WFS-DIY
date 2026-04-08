@@ -2,6 +2,9 @@
 
 <Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <Filter Include="WFS-DIY\Resources">
+      <UniqueIdentifier>{F48483E4-CBED-5442-25F9-705662A9CFDE}</UniqueIdentifier>
+    </Filter>
     <Filter Include="WFS-DIY\Source\Parameters">
       <UniqueIdentifier>{C58F2054-E3F5-AD0A-420D-2C2375F6AFD0}</UniqueIdentifier>
     </Filter>
@@ -4143,6 +4146,9 @@
     </ClCompile>
     <ClCompile Include="..\..\ThirdParty\roli_blocks_basics\roli_blocks_basics.cpp">
       <Filter>JUCE Modules\roli_blocks_basics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\JuceLibraryCode\BinaryData.cpp">
+      <Filter>JUCE Library Code</Filter>
     </ClCompile>
     <ClCompile Include="..\..\JuceLibraryCode\include_juce_audio_basics.cpp">
       <Filter>JUCE Library Code</Filter>
@@ -11661,11 +11667,17 @@
     <ClInclude Include="..\..\ThirdParty\roli_blocks_basics\roli_blocks_basics.h">
       <Filter>JUCE Modules\roli_blocks_basics</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\JuceLibraryCode\BinaryData.h">
+      <Filter>JUCE Library Code</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\JuceLibraryCode\JuceHeader.h">
       <Filter>JUCE Library Code</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\Resources\WFS-DIY_logo.png">
+      <Filter>WFS-DIY\Resources</Filter>
+    </None>
     <None Include="..\..\ThirdParty\JUCE\modules\juce_audio_devices\native\asio\LICENSE.txt">
       <Filter>JUCE Modules\juce_audio_devices\native\asio</Filter>
     </None>
@@ -11758,6 +11770,9 @@
     </None>
     <None Include="..\..\ThirdParty\roli_blocks_basics\README.md">
       <Filter>JUCE Modules\roli_blocks_basics</Filter>
+    </None>
+    <None Include=".\icon.ico">
+      <Filter>JUCE Library Code</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
