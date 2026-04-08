@@ -127,7 +127,13 @@
       "samplerOn": "Sampler: ON",
       "setup": "Einr.",
       "quickLongPressOff": "Normal",
-      "quickLongPressOn": "Schnell"
+      "quickLongPressOn": "Schnell",
+      "diagnosticsExpanded": "Diagnostics  [-]",
+      "diagnosticsCollapsed": "Diagnostics  [+]",
+      "exportLogs": "Protokolle exportieren",
+      "openLogFolder": "Protokollordner öffnen",
+      "copySystemInfo": "Systeminfo kopieren",
+      "reportIssue": "Problem melden"
     },
     "algorithms": {
       "inputBuffer": "InputBuffer (Lesezeitverzögerungen)",
@@ -227,7 +233,12 @@
       "error": "Fehler: {error}",
       "languageChanged": "Sprache geändert zu: {language} (Neustart für volle Wirkung erforderlich)",
       "restartTitle": "Neustart erforderlich",
-      "restartBody": "Bitte starten Sie die Anwendung neu, damit die Sprachänderung vollständig wirksam wird."
+      "restartBody": "Bitte starten Sie die Anwendung neu, damit die Sprachänderung vollständig wirksam wird.",
+      "logsExported": "Protokolle exportiert nach {path}",
+      "logsExportFailed": "Protokollexport fehlgeschlagen",
+      "logDirNotFound": "Protokollverzeichnis nicht gefunden",
+      "systemInfoCopied": "Systeminfo in die Zwischenablage kopiert",
+      "selectLogExportFolder": "Zielordner für den Protokollexport auswählen"
     },
     "dialogs": {
       "reduceInputChannels": {
@@ -2165,5 +2176,10 @@ Andere Parameter sind ähnlich wie bei Ausgängen und Eingängen."
         "description": "Klicken Sie auf einen Eingang auf der Karte, um ihn auszuwählen, oder verwenden Sie das Lasso für mehrere. Ziehen Sie, um Ihre Quellen zu positionieren. Zoomen Sie mit dem Mausrad oder Pinch-Geste, verschieben Sie die Ansicht mit Rechtsklick oder Zwei-Finger-Geste. Fügen Sie Eingänge hinzu, gruppieren Sie sie in Cluster und gestalten Sie Ihr Klangfeld. Sie können Positionen auch mit Tastatur, SpaceMouse oder anderen Controllern steuern. Viel Spaß!"
       }
     }
+  },
+
+  "updateBanner": {
+    "available": "WFS-DIY v{version} ist verfügbar!",
+    "download": "Herunterladen"
   }
 }

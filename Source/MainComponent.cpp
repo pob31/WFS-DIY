@@ -4432,7 +4432,7 @@ void MainComponent::resized()
 
     // Update banner at top (if visible)
     if (updateBanner != nullptr && updateBanner->isVisible())
-        updateBanner->setBounds (bounds.removeFromTop (30));
+        updateBanner->setBounds (bounds.removeFromTop (juce::jmax (20, static_cast<int> (30.0f * WfsLookAndFeel::uiScale))));
 
     // Tabbed component takes remaining space
     tabbedComponent.setBounds(bounds);

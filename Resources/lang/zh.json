@@ -127,7 +127,13 @@
       "samplerOn": "Sampler: ON",
       "setup": "设置",
       "quickLongPressOff": "正常",
-      "quickLongPressOn": "快速"
+      "quickLongPressOn": "快速",
+      "diagnosticsExpanded": "Diagnostics  [-]",
+      "diagnosticsCollapsed": "Diagnostics  [+]",
+      "exportLogs": "导出日志",
+      "openLogFolder": "打开日志文件夹",
+      "copySystemInfo": "复制系统信息",
+      "reportIssue": "报告问题"
     },
     "algorithms": {
       "inputBuffer": "InputBuffer (读取时延迟)",
@@ -227,7 +233,12 @@
       "error": "错误: {error}",
       "languageChanged": "语言已更改为: {language} (需要重启才能完全生效)",
       "restartTitle": "需要重启",
-      "restartBody": "请重启应用程序以使语言更改完全生效。"
+      "restartBody": "请重启应用程序以使语言更改完全生效。",
+      "logsExported": "日志已导出到 {path}",
+      "logsExportFailed": "导出日志失败",
+      "logDirNotFound": "未找到日志目录",
+      "systemInfoCopied": "系统信息已复制到剪贴板",
+      "selectLogExportFolder": "选择日志导出目标文件夹"
     },
     "dialogs": {
       "reduceInputChannels": {
@@ -2165,5 +2176,10 @@ OFF",
         "description": "点击地图上的输入进行选择，或用套索选择多个。拖动定位您的声源。用鼠标滚轮或捏合手势缩放，用右键拖动或双指拖动平移。添加输入，将它们分组为集群，塑造您的声场。您还可以用键盘、SpaceMouse或其他控制器控制位置。尽情享受！"
       }
     }
+  },
+
+  "updateBanner": {
+    "available": "WFS-DIY v{version} 现已可用！",
+    "download": "下载"
   }
 }

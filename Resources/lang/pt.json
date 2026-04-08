@@ -127,7 +127,13 @@
       "samplerOn": "Sampler: ON",
       "setup": "Config.",
       "quickLongPressOff": "Normal",
-      "quickLongPressOn": "Rápido"
+      "quickLongPressOn": "Rápido",
+      "diagnosticsExpanded": "Diagnostics  [-]",
+      "diagnosticsCollapsed": "Diagnostics  [+]",
+      "exportLogs": "Exportar logs",
+      "openLogFolder": "Abrir pasta de logs",
+      "copySystemInfo": "Copiar info do sistema",
+      "reportIssue": "Reportar problema"
     },
     "algorithms": {
       "inputBuffer": "InputBuffer (atrasos de leitura)",
@@ -227,7 +233,12 @@
       "error": "Erro: {error}",
       "languageChanged": "Idioma alterado para: {language} (requer reinício para efeito completo)",
       "restartTitle": "Reinício necessário",
-      "restartBody": "Por favor, reinicie o aplicativo para que a alteração de idioma tenha efeito completo."
+      "restartBody": "Por favor, reinicie o aplicativo para que a alteração de idioma tenha efeito completo.",
+      "logsExported": "Logs exportados para {path}",
+      "logsExportFailed": "Falha ao exportar logs",
+      "logDirNotFound": "Pasta de logs não encontrada",
+      "systemInfoCopied": "Informações do sistema copiadas para a área de transferência",
+      "selectLogExportFolder": "Selecionar destino para exportação de logs"
     },
     "dialogs": {
       "reduceInputChannels": {
@@ -2165,5 +2176,10 @@ Outros parâmetros são semelhantes aos de Saídas e Entradas."
         "description": "Clique em uma entrada no mapa para selecioná-la, ou use o laço para selecionar várias. Arraste para posicionar suas fontes. Zoom com a roda do mouse ou gesto de pinça, desloque a vista com clique direito ou arraste com dois dedos. Adicione entradas, agrupe-as em clusters e molde seu campo sonoro. Você também pode controlar posições com teclado, SpaceMouse ou outros controladores. Divirta-se!"
       }
     }
+  },
+
+  "updateBanner": {
+    "available": "WFS-DIY v{version} está disponível!",
+    "download": "Baixar"
   }
 }

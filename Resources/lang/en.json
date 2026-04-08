@@ -154,7 +154,13 @@
       "samplerOn": "Sampler: ON",
       "setup": "Setup",
       "quickLongPressOff": "Normal",
-      "quickLongPressOn": "Quick"
+      "quickLongPressOn": "Quick",
+      "diagnosticsExpanded": "Diagnostics  [-]",
+      "diagnosticsCollapsed": "Diagnostics  [+]",
+      "exportLogs": "Export Logs",
+      "openLogFolder": "Open Log Folder",
+      "copySystemInfo": "Copy System Info",
+      "reportIssue": "Report Issue"
     },
 
     "algorithms": {
@@ -260,7 +266,12 @@
       "error": "Error: {error}",
       "languageChanged": "Language changed to: {language} (requires restart for full effect)",
       "restartTitle": "Restart Required",
-      "restartBody": "Please restart the application for the language change to take full effect."
+      "restartBody": "Please restart the application for the language change to take full effect.",
+      "logsExported": "Logs exported to {path}",
+      "logsExportFailed": "Failed to export logs",
+      "logDirNotFound": "Log directory not found",
+      "systemInfoCopied": "System info copied to clipboard",
+      "selectLogExportFolder": "Select destination for log export"
     },
 
     "dialogs": {
@@ -2408,5 +2419,10 @@
         "description": "Click an input on the map to select it, or lasso several to move them together. Drag to position your sources. Zoom with the mouse wheel or pinch gesture, pan with right-drag or two-finger drag. Add inputs, group them into clusters, and shape your sound field. You can also control positions with a keyboard, SpaceMouse, or other external controllers. Have fun!"
       }
     }
+  },
+
+  "updateBanner": {
+    "available": "WFS-DIY v{version} is available!",
+    "download": "Download"
   }
 }

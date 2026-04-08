@@ -127,7 +127,13 @@
       "samplerOn": "Sampler: ON",
       "setup": "Config.",
       "quickLongPressOff": "Normal",
-      "quickLongPressOn": "Rápido"
+      "quickLongPressOn": "Rápido",
+      "diagnosticsExpanded": "Diagnostics  [-]",
+      "diagnosticsCollapsed": "Diagnostics  [+]",
+      "exportLogs": "Exportar registros",
+      "openLogFolder": "Abrir carpeta de registros",
+      "copySystemInfo": "Copiar info del sistema",
+      "reportIssue": "Reportar problema"
     },
     "algorithms": {
       "inputBuffer": "InputBuffer (retardos en lectura)",
@@ -227,7 +233,12 @@
       "error": "Error: {error}",
       "languageChanged": "Idioma cambiado a: {language} (requiere reinicio para efecto completo)",
       "restartTitle": "Reinicio necesario",
-      "restartBody": "Por favor, reinicie la aplicación para que el cambio de idioma surta pleno efecto."
+      "restartBody": "Por favor, reinicie la aplicación para que el cambio de idioma surta pleno efecto.",
+      "logsExported": "Registros exportados a {path}",
+      "logsExportFailed": "Error al exportar los registros",
+      "logDirNotFound": "Carpeta de registros no encontrada",
+      "systemInfoCopied": "Información del sistema copiada al portapapeles",
+      "selectLogExportFolder": "Seleccionar destino para la exportación de registros"
     },
     "dialogs": {
       "reduceInputChannels": {
@@ -2165,5 +2176,10 @@ Otros parámetros son similares a los de Salidas y Entradas."
         "description": "Haga clic en una entrada en el mapa para seleccionarla, o use el lazo para seleccionar varias. Arrastre para posicionar sus fuentes. Zoom con la rueda del ratón o gesto de pellizco, desplace la vista con clic derecho o arrastre con dos dedos. Añada entradas, agrúpelas en clusters y dé forma a su campo sonoro. También puede controlar posiciones con teclado, SpaceMouse u otros controladores. ¡Diviértase!"
       }
     }
+  },
+
+  "updateBanner": {
+    "available": "¡WFS-DIY v{version} está disponible!",
+    "download": "Descargar"
   }
 }

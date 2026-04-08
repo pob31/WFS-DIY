@@ -140,7 +140,13 @@
       "samplerOn": "Sampler: ON",
       "setup": "Config.",
       "quickLongPressOff": "Normal",
-      "quickLongPressOn": "Rapide"
+      "quickLongPressOn": "Rapide",
+      "diagnosticsExpanded": "Diagnostics  [-]",
+      "diagnosticsCollapsed": "Diagnostics  [+]",
+      "exportLogs": "Exporter les journaux",
+      "openLogFolder": "Ouvrir le dossier des journaux",
+      "copySystemInfo": "Copier les infos système",
+      "reportIssue": "Signaler un problème"
     },
     "algorithms": {
       "inputBuffer": "InputBuffer (délais en lecture)",
@@ -240,7 +246,12 @@
       "error": "Erreur : {error}",
       "languageChanged": "Langue changée en : {language} (nécessite un redémarrage pour prendre plein effet)",
       "restartTitle": "Redémarrage nécessaire",
-      "restartBody": "Veuillez redémarrer l'application pour que le changement de langue prenne pleinement effet."
+      "restartBody": "Veuillez redémarrer l'application pour que le changement de langue prenne pleinement effet.",
+      "logsExported": "Journaux exportés vers {path}",
+      "logsExportFailed": "Échec de l'exportation des journaux",
+      "logDirNotFound": "Dossier des journaux introuvable",
+      "systemInfoCopied": "Informations système copiées dans le presse-papiers",
+      "selectLogExportFolder": "Sélectionner la destination pour l'exportation des journaux"
     },
     "dialogs": {
       "reduceInputChannels": {
@@ -2186,5 +2197,10 @@ Les autres paramètres sont similaires à ceux des Sorties et Entrées."
         "description": "Cliquez sur une entrée sur la carte pour la sélectionner, ou utilisez le lasso pour en sélectionner plusieurs. Faites glisser pour positionner vos sources. Zoomez avec la molette ou le pincement, déplacez la vue avec un clic droit ou deux doigts. Ajoutez des entrées, regroupez-les en clusters et façonnez votre champ sonore. Vous pouvez aussi contrôler les positions avec un clavier, SpaceMouse ou d'autres contrôleurs. Amusez-vous !"
       }
     }
+  },
+
+  "updateBanner": {
+    "available": "WFS-DIY v{version} est disponible !",
+    "download": "Télécharger"
   }
 }

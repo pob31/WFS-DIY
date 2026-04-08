@@ -1081,26 +1081,26 @@ public:
         };
 
         addChildComponent (exportLogsButton);
-        exportLogsButton.setButtonText ("Export Logs");
+        exportLogsButton.setButtonText (LOC ("systemConfig.buttons.exportLogs"));
         exportLogsButton.onClick = [this]() { exportDiagnosticLogs(); };
 
         addChildComponent (openLogFolderButton);
-        openLogFolderButton.setButtonText ("Open Log Folder");
+        openLogFolderButton.setButtonText (LOC ("systemConfig.buttons.openLogFolder"));
         openLogFolderButton.onClick = [this]()
         {
             auto logDir = WFSLogger::getInstance().getLogDirectory();
             if (logDir.isDirectory())
                 logDir.revealToUser();
             else
-                showStatusMessage ("Log directory not found");
+                showStatusMessage (LOC ("systemConfig.messages.logDirNotFound"));
         };
 
         addChildComponent (copySystemInfoButton);
-        copySystemInfoButton.setButtonText ("Copy System Info");
+        copySystemInfoButton.setButtonText (LOC ("systemConfig.buttons.copySystemInfo"));
         copySystemInfoButton.onClick = [this]() { copySystemInfo(); };
 
         addChildComponent (githubIssueButton);
-        githubIssueButton.setButtonText ("Report Issue");
+        githubIssueButton.setButtonText (LOC ("systemConfig.buttons.reportIssue"));
         githubIssueButton.onClick = [this]()
         {
             juce::URL ("https://github.com/pob31/WFS-DIY/issues").launchInDefaultBrowser();
@@ -3444,13 +3444,14 @@ public:
         githubIssueButton.setVisible (diagnosticsExpanded);
 
         diagnosticsToggleButton.setButtonText (
-            diagnosticsExpanded ? "Diagnostics  [-]" : "Diagnostics  [+]");
+            LOC (diagnosticsExpanded ? "systemConfig.buttons.diagnosticsExpanded"
+                                     : "systemConfig.buttons.diagnosticsCollapsed"));
     }
 
     void exportDiagnosticLogs()
     {
         auto chooser = std::make_shared<juce::FileChooser> (
-            "Select destination for log export",
+            LOC ("systemConfig.messages.selectLogExportFolder"),
             AppSettings::getLastFolder ("lastLogExportFolder"));
 
         auto flags = juce::FileBrowserComponent::openMode
@@ -3465,9 +3466,10 @@ public:
             AppSettings::setLastFolder ("lastLogExportFolder", result);
 
             if (WFSLogger::getInstance().exportLogs (result))
-                showStatusMessage ("Logs exported to " + result.getFullPathName());
+                showStatusMessage (LocalizationManager::getInstance().get (
+                    "systemConfig.messages.logsExported", {{"path", result.getFullPathName()}}));
             else
-                showStatusMessage ("Failed to export logs");
+                showStatusMessage (LOC ("systemConfig.messages.logsExportFailed"));
         });
     }
 
@@ -3498,7 +3500,7 @@ public:
         }
 
         juce::SystemClipboard::copyTextToClipboard (info.joinIntoString ("\n"));
-        showStatusMessage ("System info copied to clipboard");
+        showStatusMessage (LOC ("systemConfig.messages.systemInfoCopied"));
     }
 
     //==============================================================================

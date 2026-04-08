@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "ColorScheme.h"
 #include "../AppSettings.h"
+#include "../Localization/LocalizationManager.h"
 
 class UpdateBanner : public juce::Component
 {
@@ -15,16 +16,12 @@ public:
         messageLabel.setJustificationType (juce::Justification::centredLeft);
 
         addAndMakeVisible (downloadButton);
-        downloadButton.setColour (juce::TextButton::buttonColourId, ColorScheme::get().accentBlue);
-        downloadButton.setColour (juce::TextButton::textColourOnId, juce::Colours::white);
         downloadButton.onClick = [this]()
         {
             juce::URL (releaseUrl).launchInDefaultBrowser();
         };
 
         addAndMakeVisible (dismissButton);
-        dismissButton.setColour (juce::TextButton::buttonColourId, juce::Colours::transparentBlack);
-        dismissButton.setColour (juce::TextButton::textColourOnId, ColorScheme::get().textSecondary);
         dismissButton.onClick = [this]() { dismiss(); };
 
         setVisible (false);
@@ -35,14 +32,15 @@ public:
         newVersion = version;
         releaseUrl = url;
 
-        messageLabel.setText ("WFS-DIY v" + version + " is available!",
-                              juce::dontSendNotification);
-        downloadButton.setButtonText ("Download");
+        messageLabel.setText (LocalizationManager::getInstance().get (
+            "updateBanner.available", {{"version", version}}),
+            juce::dontSendNotification);
+        downloadButton.setButtonText (LOC ("updateBanner.download"));
 
         setVisible (true);
 
         if (onDismiss)
-            onDismiss();  // triggers re-layout in parent
+            onDismiss();
     }
 
     void dismiss()
@@ -56,27 +54,38 @@ public:
 
     void paint (juce::Graphics& g) override
     {
-        g.fillAll (ColorScheme::get().accentBlue.withAlpha (0.15f));
+        auto& cs = ColorScheme::get();
+        g.fillAll (cs.accentBlue.withAlpha (0.15f));
 
-        g.setColour (ColorScheme::get().accentBlue.withAlpha (0.4f));
+        g.setColour (cs.accentBlue.withAlpha (0.4f));
         g.drawLine (0.0f, (float) getHeight(), (float) getWidth(), (float) getHeight(), 1.0f);
     }
 
     void resized() override
     {
-        auto bounds = getLocalBounds().reduced (8, 0);
+        auto& cs = ColorScheme::get();
+        float s = WfsLookAndFeel::uiScale;
 
-        dismissButton.setBounds (bounds.removeFromRight (24));
-        bounds.removeFromRight (6);
-        downloadButton.setBounds (bounds.removeFromRight (90));
-        bounds.removeFromRight (10);
+        // Update colors dynamically on each layout pass
+        downloadButton.setColour (juce::TextButton::buttonColourId, cs.accentBlue);
+        downloadButton.setColour (juce::TextButton::textColourOnId, juce::Colours::white);
+        dismissButton.setColour (juce::TextButton::buttonColourId, juce::Colours::transparentBlack);
+        dismissButton.setColour (juce::TextButton::textColourOnId, cs.textSecondary);
+        messageLabel.setColour (juce::Label::textColourId, cs.textPrimary);
+
+        auto bounds = getLocalBounds().reduced (juce::roundToInt (8 * s), 0);
+
+        dismissButton.setBounds (bounds.removeFromRight (juce::roundToInt (24 * s)));
+        bounds.removeFromRight (juce::roundToInt (6 * s));
+        downloadButton.setBounds (bounds.removeFromRight (juce::roundToInt (90 * s)));
+        bounds.removeFromRight (juce::roundToInt (10 * s));
         messageLabel.setBounds (bounds);
     }
 
 private:
     juce::Label      messageLabel;
     juce::TextButton downloadButton;
-    juce::TextButton dismissButton { juce::CharPointer_UTF8 ("\xc3\x97") }; // multiplication sign as X
+    juce::TextButton dismissButton { "x" };
     juce::String     newVersion;
     juce::String     releaseUrl;
 

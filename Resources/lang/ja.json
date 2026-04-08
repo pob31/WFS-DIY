@@ -127,7 +127,13 @@
       "samplerOn": "Sampler: ON",
       "setup": "設定",
       "quickLongPressOff": "通常",
-      "quickLongPressOn": "クイック"
+      "quickLongPressOn": "クイック",
+      "diagnosticsExpanded": "Diagnostics  [-]",
+      "diagnosticsCollapsed": "Diagnostics  [+]",
+      "exportLogs": "ログをエクスポート",
+      "openLogFolder": "ログフォルダーを開く",
+      "copySystemInfo": "システム情報をコピー",
+      "reportIssue": "問題を報告"
     },
     "algorithms": {
       "inputBuffer": "InputBuffer (読み取り時遅延)",
@@ -227,7 +233,12 @@
       "error": "エラー: {error}",
       "languageChanged": "言語を変更しました: {language}（完全に有効にするには再起動が必要です）",
       "restartTitle": "再起動が必要です",
-      "restartBody": "言語の変更を完全に反映するには、アプリケーションを再起動してください。"
+      "restartBody": "言語の変更を完全に反映するには、アプリケーションを再起動してください。",
+      "logsExported": "ログを {path} にエクスポートしました",
+      "logsExportFailed": "ログのエクスポートに失敗しました",
+      "logDirNotFound": "ログディレクトリが見つかりません",
+      "systemInfoCopied": "システム情報をクリップボードにコピーしました",
+      "selectLogExportFolder": "ログのエクスポート先を選択してください"
     },
     "dialogs": {
       "reduceInputChannels": {
@@ -2127,5 +2138,10 @@ OFF",
         "description": "マップ上の入力をクリックして選択、またはラッソで複数選択できます。ドラッグでソースを配置します。マウスホイールやピンチでズーム、右ドラッグや2本指ドラッグでパンできます。入力を追加し、クラスターにグループ化して、サウンドフィールドを形作りましょう。キーボード、SpaceMouse、その他のコントローラーでも操作できます。楽しんでください！"
       }
     }
+  },
+
+  "updateBanner": {
+    "available": "WFS-DIY v{version} が利用可能です！",
+    "download": "ダウンロード"
   }
 }

@@ -127,7 +127,13 @@
       "samplerOn": "Sampler: ON",
       "setup": "Config.",
       "quickLongPressOff": "Normale",
-      "quickLongPressOn": "Rapido"
+      "quickLongPressOn": "Rapido",
+      "diagnosticsExpanded": "Diagnostics  [-]",
+      "diagnosticsCollapsed": "Diagnostics  [+]",
+      "exportLogs": "Esporta log",
+      "openLogFolder": "Apri cartella log",
+      "copySystemInfo": "Copia info di sistema",
+      "reportIssue": "Segnala problema"
     },
     "algorithms": {
       "inputBuffer": "InputBuffer (ritardi in lettura)",
@@ -227,7 +233,12 @@
       "error": "Errore: {error}",
       "languageChanged": "Lingua cambiata in: {language} (richiede riavvio per effetto completo)",
       "restartTitle": "Riavvio necessario",
-      "restartBody": "Riavviare l'applicazione affinché il cambio di lingua abbia pieno effetto."
+      "restartBody": "Riavviare l'applicazione affinché il cambio di lingua abbia pieno effetto.",
+      "logsExported": "Log esportati in {path}",
+      "logsExportFailed": "Esportazione dei log fallita",
+      "logDirNotFound": "Cartella dei log non trovata",
+      "systemInfoCopied": "Informazioni di sistema copiate negli appunti",
+      "selectLogExportFolder": "Seleziona la destinazione per l'esportazione dei log"
     },
     "dialogs": {
       "reduceInputChannels": {
@@ -2165,5 +2176,10 @@ Altri parametri sono simili a quelli di Uscite e Ingressi."
         "description": "Clicca un ingresso sulla mappa per selezionarlo, o usa il lazo per selezionarne più di uno. Trascina per posizionare le sorgenti. Zoom con la rotella del mouse o il gesto di pizzico, sposta la vista con il tasto destro o il trascinamento a due dita. Aggiungi ingressi, raggruppali in cluster e modella il tuo campo sonoro. Puoi anche controllare le posizioni con tastiera, SpaceMouse o altri controller. Buon divertimento!"
       }
     }
+  },
+
+  "updateBanner": {
+    "available": "WFS-DIY v{version} è disponibile!",
+    "download": "Scarica"
   }
 }
