@@ -12,6 +12,7 @@
 #include "buttons/LongPressButton.h"
 #include "ColumnFocusTraverser.h"
 #include "../AppSettings.h"
+#include "../WFSLogger.h"
 #include "../Controllers/Sampler/LightpadTypes.h"
 #include "HelpCard.h"
 #include "LightpadArrangementOverlay.h"
@@ -1067,6 +1068,52 @@ public:
         exportSystemConfigButton.setBaseColour(juce::Colour(0xFF8C3333));  // Reddish
         exportSystemConfigButton.onLongPress = [this]() { exportSystemConfiguration(); };
 
+        // Diagnostics Section
+        addAndMakeVisible (diagnosticsToggleButton);
+        diagnosticsToggleButton.setBaseColour (juce::Colours::grey);
+        diagnosticsToggleButton.onLongPress = [this]()
+        {
+            diagnosticsExpanded = ! diagnosticsExpanded;
+            AppSettings::setDiagnosticsExpanded (diagnosticsExpanded);
+            updateDiagnosticsVisibility();
+            resized();
+            repaint();
+        };
+
+        addChildComponent (exportLogsButton);
+        exportLogsButton.setButtonText ("Export Logs");
+        exportLogsButton.onClick = [this]() { exportDiagnosticLogs(); };
+
+        addChildComponent (openLogFolderButton);
+        openLogFolderButton.setButtonText ("Open Log Folder");
+        openLogFolderButton.onClick = [this]()
+        {
+            auto logDir = WFSLogger::getInstance().getLogDirectory();
+            if (logDir.isDirectory())
+                logDir.revealToUser();
+            else
+                showStatusMessage ("Log directory not found");
+        };
+
+        addChildComponent (copySystemInfoButton);
+        copySystemInfoButton.setButtonText ("Copy System Info");
+        copySystemInfoButton.onClick = [this]() { copySystemInfo(); };
+
+        addChildComponent (githubIssueButton);
+        githubIssueButton.setButtonText ("Report Issue");
+        githubIssueButton.onClick = [this]()
+        {
+            juce::URL ("https://github.com/pob31/WFS-DIY/issues").launchInDefaultBrowser();
+        };
+
+        diagnosticsExpanded = AppSettings::getDiagnosticsExpanded();
+        if (! AppSettings::getCleanShutdown())
+        {
+            diagnosticsExpanded = true;
+            AppSettings::setDiagnosticsExpanded (true);
+        }
+        updateDiagnosticsVisibility();
+
         // Setup numeric input filtering
         setupNumericEditors();
 
@@ -1388,6 +1435,28 @@ public:
         haasEffectEditor.setBounds(x + labelWidth, y, editorWidth, rowHeight);
         haasEffectUnitLabel.setBounds(x + labelWidth + editorWidth + spacing, y, unitWidth, rowHeight);
 
+        // Diagnostics Section — anchored from bottom, aligned with Getting Started button
+        {
+            const int footerH = 2 * scaled(30) + 3 * scaled(10);
+            int diagBottomY = getHeight() - footerH - scaled(10);  // same as Getting Started bottom
+            int diagY = diagBottomY - rowHeight;  // toggle button top
+
+            diagnosticsToggleButton.setBounds (x, diagY, fullWidth, rowHeight);
+
+            if (diagnosticsExpanded)
+            {
+                int halfWidth = (fullWidth - spacing) / 2;
+
+                diagY -= (rowHeight + spacing);
+                copySystemInfoButton.setBounds (x, diagY, halfWidth, rowHeight);
+                githubIssueButton.setBounds (x + halfWidth + spacing, diagY, halfWidth, rowHeight);
+
+                diagY -= (rowHeight + spacing);
+                exportLogsButton.setBounds (x, diagY, halfWidth, rowHeight);
+                openLogFolderButton.setBounds (x + halfWidth + spacing, diagY, halfWidth, rowHeight);
+            }
+        }
+
         //======================================================================
         // COLUMN 3: Audio/Processing, Binaural Renderer
         //======================================================================
@@ -1479,9 +1548,11 @@ public:
             int gsY = getHeight() - footerH - scaled(10) - rowHeight;
             gettingStartedButton.setBounds(layout.col1X, gsY, layout.colWidth, rowHeight);
 
-            // Overview help button — to the right of Getting Started
+            // Overview help button — above Getting Started, right-aligned
             const int btnSize = scaled(24);
-            overviewHelpButton.setBounds(layout.col1X + layout.colWidth + scaled(10), gsY, btnSize, btnSize);
+            overviewHelpButton.setBounds (layout.col1X + layout.colWidth - btnSize,
+                                          gsY - btnSize - spacing,
+                                          btnSize, btnSize);
 
             // Overview help card — large, centered on screen
             int cardW = juce::jmin(getWidth() - scaled(60), scaled(900));
@@ -3358,6 +3429,79 @@ public:
     }
 
     //==============================================================================
+    // Diagnostics helper methods
+
+    void setAudioDeviceManager (juce::AudioDeviceManager* mgr)
+    {
+        audioDeviceManagerPtr = mgr;
+    }
+
+    void updateDiagnosticsVisibility()
+    {
+        exportLogsButton.setVisible (diagnosticsExpanded);
+        openLogFolderButton.setVisible (diagnosticsExpanded);
+        copySystemInfoButton.setVisible (diagnosticsExpanded);
+        githubIssueButton.setVisible (diagnosticsExpanded);
+
+        diagnosticsToggleButton.setButtonText (
+            diagnosticsExpanded ? "Diagnostics  [-]" : "Diagnostics  [+]");
+    }
+
+    void exportDiagnosticLogs()
+    {
+        auto chooser = std::make_shared<juce::FileChooser> (
+            "Select destination for log export",
+            AppSettings::getLastFolder ("lastLogExportFolder"));
+
+        auto flags = juce::FileBrowserComponent::openMode
+                   | juce::FileBrowserComponent::canSelectDirectories;
+
+        chooser->launchAsync (flags, [this, chooser] (const juce::FileChooser& fc)
+        {
+            auto result = fc.getResult();
+            if (result == juce::File())
+                return;
+
+            AppSettings::setLastFolder ("lastLogExportFolder", result);
+
+            if (WFSLogger::getInstance().exportLogs (result))
+                showStatusMessage ("Logs exported to " + result.getFullPathName());
+            else
+                showStatusMessage ("Failed to export logs");
+        });
+    }
+
+    void copySystemInfo()
+    {
+        juce::StringArray info;
+        info.add (juce::String ("App: ") + ProjectInfo::projectName
+                  + " v" + ProjectInfo::versionString);
+        info.add ("OS: " + juce::SystemStats::getOperatingSystemName());
+        info.add (juce::String ("CPU: ") + juce::SystemStats::getCpuModel()
+                  + " (" + juce::String (juce::SystemStats::getNumCpus()) + " cores)");
+
+        if (audioDeviceManagerPtr != nullptr)
+        {
+            if (auto* device = audioDeviceManagerPtr->getCurrentAudioDevice())
+            {
+                info.add ("Audio Device: " + device->getName());
+                info.add ("Audio Type: " + device->getTypeName());
+                info.add ("Sample Rate: " + juce::String (device->getCurrentSampleRate()) + " Hz");
+                info.add ("Buffer Size: " + juce::String (device->getCurrentBufferSizeSamples()) + " samples");
+                info.add ("Input Channels: " + juce::String (device->getActiveInputChannels().countNumberOfSetBits()));
+                info.add ("Output Channels: " + juce::String (device->getActiveOutputChannels().countNumberOfSetBits()));
+            }
+            else
+            {
+                info.add ("Audio Device: None");
+            }
+        }
+
+        juce::SystemClipboard::copyTextToClipboard (info.joinIntoString ("\n"));
+        showStatusMessage ("System info copied to clipboard");
+    }
+
+    //==============================================================================
     // Status bar helper methods
 
     void showStatusMessage(const juce::String& message, int durationMs = 3000)
@@ -3607,6 +3751,15 @@ public:
     juce::Label haasEffectLabel;
     juce::TextEditor haasEffectEditor;
     juce::Label haasEffectUnitLabel;
+
+    // Diagnostics Section
+    LongPressButton diagnosticsToggleButton { 500 };
+    juce::TextButton exportLogsButton;
+    juce::TextButton openLogFolderButton;
+    juce::TextButton copySystemInfoButton;
+    juce::TextButton githubIssueButton;
+    bool diagnosticsExpanded = false;
+    juce::AudioDeviceManager* audioDeviceManagerPtr = nullptr;
 
     // UI Section
     juce::Label colorSchemeLabel;

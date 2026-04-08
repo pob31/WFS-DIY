@@ -13,6 +13,7 @@
 #include "gui/ColorScheme.h"
 #include "WFSLogger.h"
 #include "UpdateChecker.h"
+#include "AppSettings.h"
 
 //==============================================================================
 // Windows crash handler to release ASIO driver on unhandled exceptions
@@ -68,6 +69,9 @@ public:
     {
         // Start session logger before anything else
         WFSLogger::getInstance().initialise();
+
+        // Mark session as dirty until clean shutdown (crash detection)
+        AppSettings::setCleanShutdown (false);
         WFSLogger::getInstance().logInfo ("Session started - " + getApplicationName()
                                           + " v" + getApplicationVersion());
         WFSLogger::getInstance().logInfo ("OS: " + juce::SystemStats::getOperatingSystemName());
@@ -127,6 +131,8 @@ public:
 
     void shutdown() override
     {
+        AppSettings::setCleanShutdown (true);
+
 #if JUCE_WINDOWS
         // Clear global pointer before window destruction
         g_audioDeviceManager = nullptr;

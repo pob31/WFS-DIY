@@ -275,6 +275,7 @@ MainComponent::MainComponent()
 
     // Pass status bar to tabs that support it
     systemConfigTab->setStatusBar(statusBar);
+    systemConfigTab->setAudioDeviceManager(&deviceManager);
     networkTab->setStatusBar(statusBar);
     outputsTab->setStatusBar(statusBar);
     inputsTab->setStatusBar(statusBar);
