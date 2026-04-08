@@ -27,10 +27,6 @@
               resource="0" file="Source/Parameters/ParameterDirtyTracker.h"/>
       </GROUP>
       <GROUP id="{GUIGROUP1}" name="gui">
-        <FILE id="guiCfgTab" name="ConfigTabComponent.h" compile="0" resource="0"
-              file="Source/gui/ConfigTabComponent.h"/>
-        <FILE id="guiCfgPrv" name="ConfigTabPreviewWindow.h" compile="0" resource="0"
-              file="Source/gui/ConfigTabPreviewWindow.h"/>
         <FILE id="guiStatus" name="StatusBar.h" compile="0" resource="0" file="Source/gui/StatusBar.h"/>
         <FILE id="guiWizard" name="GettingStartedWizard.h" compile="0" resource="0"
               file="Source/gui/GettingStartedWizard.h"/>
@@ -224,7 +220,6 @@
       <FILE id="wfsLogH" name="WFSLogger.h" compile="0" resource="0" file="Source/WFSLogger.h"/>
       <FILE id="wfsLogCpp" name="WFSLogger.cpp" compile="1" resource="0"
             file="Source/WFSLogger.cpp"/>
-      <FILE id="wfsAlg" name="WFSAlgorithm.h" compile="0" resource="0" file="Source/WFSAlgorithm.h"/>
       <GROUP id="{DSPGROUP}" name="DSP">
         <FILE id="wfsCalcH" name="WFSCalculationEngine.h" compile="0" resource="0"
               file="Source/DSP/WFSCalculationEngine.h"/>

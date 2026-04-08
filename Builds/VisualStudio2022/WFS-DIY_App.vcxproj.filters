@@ -4236,12 +4236,6 @@
     <ClInclude Include="..\..\Source\Parameters\ParameterDirtyTracker.h">
       <Filter>WFS-DIY\Source\Parameters</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\gui\ConfigTabComponent.h">
-      <Filter>WFS-DIY\Source\gui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Source\gui\ConfigTabPreviewWindow.h">
-      <Filter>WFS-DIY\Source\gui</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\Source\gui\StatusBar.h">
       <Filter>WFS-DIY\Source\gui</Filter>
     </ClInclude>
@@ -4441,9 +4435,6 @@
       <Filter>WFS-DIY\Source</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\WFSLogger.h">
-      <Filter>WFS-DIY\Source</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Source\WFSAlgorithm.h">
       <Filter>WFS-DIY\Source</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\DSP\WFSCalculationEngine.h">
