@@ -13,6 +13,8 @@
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
+# pragma warning (push)
+# pragma warning (disable: 4459)  // declaration of 'count' hides global declaration
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
 #include "../detail/config.hpp"
@@ -291,5 +293,9 @@ private:
 } // namespace asio
 
 #include "../detail/pop_options.hpp"
+
+#if defined(_MSC_VER) && (_MSC_VER >= 1200)
+# pragma warning (pop)
+#endif
 
 #endif // ASIO_DETAIL_DEADLINE_TIMER_SERVICE_HPP
