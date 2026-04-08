@@ -63,19 +63,6 @@ struct AppSettings
         props.saveIfNeeded();
     }
 
-    static bool getDiagnosticsExpanded()
-    {
-        juce::PropertiesFile props (getOptions());
-        return props.getBoolValue ("diagnosticsExpanded", false);
-    }
-
-    static void setDiagnosticsExpanded (bool expanded)
-    {
-        juce::PropertiesFile props (getOptions());
-        props.setValue ("diagnosticsExpanded", expanded);
-        props.saveIfNeeded();
-    }
-
 private:
     static juce::PropertiesFile::Options getOptions()
     {

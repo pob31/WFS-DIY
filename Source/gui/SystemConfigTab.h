@@ -1074,7 +1074,8 @@ public:
         diagnosticsToggleButton.onLongPress = [this]()
         {
             diagnosticsExpanded = ! diagnosticsExpanded;
-            AppSettings::setDiagnosticsExpanded (diagnosticsExpanded);
+            if (! diagnosticsExpanded)
+                AppSettings::setCleanShutdown (true);  // clear crash flag on dismiss
             updateDiagnosticsVisibility();
             resized();
             repaint();
@@ -1106,12 +1107,7 @@ public:
             juce::URL ("https://github.com/pob31/WFS-DIY/issues").launchInDefaultBrowser();
         };
 
-        diagnosticsExpanded = AppSettings::getDiagnosticsExpanded();
-        if (! AppSettings::getCleanShutdown())
-        {
-            diagnosticsExpanded = true;
-            AppSettings::setDiagnosticsExpanded (true);
-        }
+        diagnosticsExpanded = ! AppSettings::getCleanShutdown();
         updateDiagnosticsVisibility();
 
         // Setup numeric input filtering
@@ -1551,7 +1547,7 @@ public:
             // Overview help button — above Getting Started, right-aligned
             const int btnSize = scaled(24);
             overviewHelpButton.setBounds (layout.col1X + layout.colWidth - btnSize,
-                                          gsY - btnSize - spacing,
+                                          gsY - btnSize - spacing * 4,
                                           btnSize, btnSize);
 
             // Overview help card — large, centered on screen

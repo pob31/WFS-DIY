@@ -70,8 +70,6 @@ public:
         // Start session logger before anything else
         WFSLogger::getInstance().initialise();
 
-        // Mark session as dirty until clean shutdown (crash detection)
-        AppSettings::setCleanShutdown (false);
         WFSLogger::getInstance().logInfo ("Session started - " + getApplicationName()
                                           + " v" + getApplicationVersion());
         WFSLogger::getInstance().logInfo ("OS: " + juce::SystemStats::getOperatingSystemName());
@@ -82,6 +80,10 @@ public:
         auto pendingProjectFolder = parseWfsCommandLine (commandLine);
 
         mainWindow.reset (new MainWindow (getApplicationName()));
+
+        // Mark session as dirty until clean shutdown (crash detection).
+        // Must be AFTER MainWindow creation so SystemConfigTab can read the previous state.
+        AppSettings::setCleanShutdown (false);
 
 #if JUCE_WINDOWS
         // Real-time audio: raise process priority so Windows won't deprioritize
