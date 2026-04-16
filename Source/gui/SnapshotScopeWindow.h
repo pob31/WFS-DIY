@@ -738,7 +738,10 @@ public:
     ~SnapshotScopeContent() override
     {
         if (dirtyTracker != nullptr)
+        {
+            dirtyTracker->cancelPendingUpdate();
             dirtyTracker->onDirtyStateChanged = nullptr;
+        }
         ColorScheme::Manager::getInstance().removeListener (this);
     }
 

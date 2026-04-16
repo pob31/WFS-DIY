@@ -19,7 +19,8 @@
  *   - Snapshot store/update -> clear all (via clearAll)
  *   - Config file load/import -> clear all (via beginSuppression/endSuppressionAndClear)
  */
-class ParameterDirtyTracker : public juce::ValueTree::Listener
+class ParameterDirtyTracker : public juce::ValueTree::Listener,
+                               public juce::AsyncUpdater
 {
 public:
     using ExtendedScope = WFSFileManager::ExtendedSnapshotScope;
@@ -83,8 +84,7 @@ public:
         if (!dirtyKeys.empty())
         {
             dirtyKeys.clear();
-            if (onDirtyStateChanged)
-                onDirtyStateChanged();
+            notifyDirtyStateChanged();
         }
     }
 
@@ -110,6 +110,16 @@ public:
     std::function<void()> onDirtyStateChanged;
 
     //==========================================================================
+    // AsyncUpdater — marshal notifications to the message thread
+    //==========================================================================
+
+    void handleAsyncUpdate() override
+    {
+        if (onDirtyStateChanged)
+            onDirtyStateChanged();
+    }
+
+    //==========================================================================
     // ValueTree::Listener
     //==========================================================================
 
@@ -120,10 +130,21 @@ public:
         if (!isInputParameterTree (tree))
             return;
 
-        // Check if this property is a tracked scope parameter
+        // Resolve the scope item ID for this property change
+        juce::String itemId;
         auto it = paramToItemMap.find (property.toString());
-        if (it == paramToItemMap.end())
+        if (it != paramToItemMap.end())
+        {
+            itemId = it->second;
+        }
+        else if (isSamplerSubtree (tree))
+        {
+            itemId = "sampler";
+        }
+        else
+        {
             return;
+        }
 
         // Skip during snapshot loading
         if (suppressTracking)
@@ -145,19 +166,20 @@ public:
         if (protocol == WFSNetwork::Protocol::Disabled ||
             protocol == WFSNetwork::Protocol::Remote)
         {
-            int channelIndex = extractChannelIndex (tree);
-            if (channelIndex >= 0)
-            {
-                auto key = ExtendedScope::makeKey (it->second, channelIndex);
-                auto [pos, inserted] = dirtyKeys.insert (key);
-                if (inserted && onDirtyStateChanged)
-                    onDirtyStateChanged();
-            }
+            markDirty (itemId, tree);
         }
     }
 
-    void valueTreeChildAdded (juce::ValueTree&, juce::ValueTree&) override {}
-    void valueTreeChildRemoved (juce::ValueTree&, juce::ValueTree&, int) override {}
+    void valueTreeChildAdded (juce::ValueTree& parent, juce::ValueTree& child) override
+    {
+        handleSamplerChildChange (parent, child);
+    }
+
+    void valueTreeChildRemoved (juce::ValueTree& parent, juce::ValueTree& child, int) override
+    {
+        handleSamplerChildChange (parent, child);
+    }
+
     void valueTreeChildOrderChanged (juce::ValueTree&, int, int) override {}
     void valueTreeParentChanged (juce::ValueTree&) override {}
 
@@ -194,6 +216,60 @@ private:
             node = node.getParent();
         }
         return false;
+    }
+
+    /** Check if a tree node is part of the Sampler subtree (Sampler, SamplerCell, or SamplerSet) */
+    bool isSamplerSubtree (const juce::ValueTree& tree) const
+    {
+        auto type = tree.getType();
+        return type == WFSParameterIDs::Sampler
+            || type == WFSParameterIDs::SamplerCell
+            || type == WFSParameterIDs::SamplerSet;
+    }
+
+    /** Thread-safe notification: posts to message thread via AsyncUpdater */
+    void notifyDirtyStateChanged()
+    {
+        triggerAsyncUpdate();
+    }
+
+    /** Mark a scope item as dirty for the channel that owns the given tree node */
+    void markDirty (const juce::String& itemId, const juce::ValueTree& tree)
+    {
+        int channelIndex = extractChannelIndex (tree);
+        if (channelIndex >= 0)
+        {
+            auto key = ExtendedScope::makeKey (itemId, channelIndex);
+            auto [pos, inserted] = dirtyKeys.insert (key);
+            if (inserted)
+                notifyDirtyStateChanged();
+        }
+    }
+
+    /** Handle sampler child add/remove — mark sampler dirty for that channel */
+    void handleSamplerChildChange (juce::ValueTree& parent, juce::ValueTree& child)
+    {
+        if (!isInputParameterTree (parent))
+            return;
+        if (!isSamplerSubtree (parent) && !isSamplerSubtree (child))
+            return;
+        if (suppressTracking)
+            return;
+
+        auto protocol = getIncomingProtocol ? getIncomingProtocol()
+                                            : WFSNetwork::Protocol::Disabled;
+        if (protocol == WFSNetwork::Protocol::OSC ||
+            protocol == WFSNetwork::Protocol::ADMOSC)
+        {
+            clearAll();
+            return;
+        }
+
+        if (protocol == WFSNetwork::Protocol::Disabled ||
+            protocol == WFSNetwork::Protocol::Remote)
+        {
+            markDirty ("sampler", parent);
+        }
     }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ParameterDirtyTracker)
