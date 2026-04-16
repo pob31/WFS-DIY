@@ -819,6 +819,94 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
         return;  // Don't process as channel parameter
     }
 
+    // Handle clusterLFOactive change - broadcast to all connected Remote targets
+    if (property == WFSParameterIDs::clusterLFOactive &&
+        tree.getType() == WFSParameterIDs::ClusterLFO)
+    {
+        // ClusterLFO is child of Cluster node; get cluster ID from parent
+        auto clusterNode = tree.getParent();
+        if (clusterNode.isValid())
+        {
+            int clusterId = static_cast<int> (clusterNode.getProperty (WFSParameterIDs::id));
+            int active = static_cast<int> (tree.getProperty (property));
+
+            juce::OSCMessage msg ("/remote/cluster/lfoActive");
+            msg.addInt32 (clusterId);
+            msg.addInt32 (active);
+
+            for (int i = 0; i < MAX_TARGETS; ++i)
+            {
+                if (targetConfigs[static_cast<size_t>(i)].protocol == Protocol::Remote &&
+                    remoteStates[static_cast<size_t>(i)].phase == RemoteConnectionState::Phase::Connected)
+                {
+                    sendMessage (i, msg);
+                }
+            }
+        }
+        return;
+    }
+
+    // Handle cluster LFO preset changes - broadcast name/populated to all connected Remote targets
+    if (tree.getType() == WFSParameterIDs::ClusterLFOPreset)
+    {
+        auto presetsNode = tree.getParent();
+        if (presetsNode.isValid())
+        {
+            int presetIndex = presetsNode.indexOf (tree);
+            int presetNumber = presetIndex + 1;
+
+            if (property == WFSParameterIDs::clusterLFOPresetName)
+            {
+                juce::OSCMessage msg ("/remote/cluster/presetName");
+                msg.addInt32 (presetNumber);
+                msg.addString (tree.getProperty (property).toString());
+
+                for (int i = 0; i < MAX_TARGETS; ++i)
+                {
+                    if (targetConfigs[static_cast<size_t>(i)].protocol == Protocol::Remote &&
+                        remoteStates[static_cast<size_t>(i)].phase == RemoteConnectionState::Phase::Connected)
+                    {
+                        sendMessage (i, msg);
+                    }
+                }
+            }
+
+            // Recompute populated state when any shape property changes
+            if (property == WFSParameterIDs::clusterLFOshapeX ||
+                property == WFSParameterIDs::clusterLFOshapeY ||
+                property == WFSParameterIDs::clusterLFOshapeZ ||
+                property == WFSParameterIDs::clusterLFOshapeRot ||
+                property == WFSParameterIDs::clusterLFOshapeScale)
+            {
+                const juce::Identifier shapeIds[] = {
+                    WFSParameterIDs::clusterLFOshapeX, WFSParameterIDs::clusterLFOshapeY,
+                    WFSParameterIDs::clusterLFOshapeZ, WFSParameterIDs::clusterLFOshapeRot,
+                    WFSParameterIDs::clusterLFOshapeScale
+                };
+                bool populated = false;
+                for (const auto& shapeId : shapeIds)
+                {
+                    if (static_cast<int> (tree.getProperty (shapeId, 0)) != 0)
+                    { populated = true; break; }
+                }
+
+                juce::OSCMessage msg ("/remote/cluster/presetPopulated");
+                msg.addInt32 (presetNumber);
+                msg.addInt32 (populated ? 1 : 0);
+
+                for (int i = 0; i < MAX_TARGETS; ++i)
+                {
+                    if (targetConfigs[static_cast<size_t>(i)].protocol == Protocol::Remote &&
+                        remoteStates[static_cast<size_t>(i)].phase == RemoteConnectionState::Phase::Connected)
+                    {
+                        sendMessage (i, msg);
+                    }
+                }
+            }
+        }
+        return;
+    }
+
     // Handle reverb algorithm parameter changes (global, no channel ID)
     if (tree.getType() == WFSParameterIDs::ReverbAlgorithm)
     {
@@ -3834,6 +3922,69 @@ std::vector<juce::OSCMessage> OSCManager::collectStateDumpMessages(int /*targetI
                 orderMsg.addInt32(c);
                 orderMsg.addString(inputOrder);
                 messages.push_back(std::move(orderMsg));
+            }
+        }
+    }
+
+    // --- Cluster LFO active states ---
+    {
+        using namespace WFSParameterIDs;
+
+        for (int c = 1; c <= WFSParameterDefaults::maxClusters; ++c)
+        {
+            auto lfoSection = state.getClusterLFOSection (c);
+            int active = lfoSection.isValid()
+                ? static_cast<int> (lfoSection.getProperty (clusterLFOactive, 0)) : 0;
+
+            juce::OSCMessage msg ("/remote/cluster/lfoActive");
+            msg.addInt32 (c);
+            msg.addInt32 (active);
+            messages.push_back (std::move (msg));
+        }
+    }
+
+    // --- Cluster LFO presets ---
+    {
+        using namespace WFSParameterIDs;
+
+        auto presets = state.getClusterLFOPresetsSection();
+        int numPresets = presets.getNumChildren();
+
+        juce::OSCMessage cntMsg ("/remote/cluster/presetCount");
+        cntMsg.addInt32 (numPresets);
+        messages.push_back (std::move (cntMsg));
+
+        const juce::Identifier shapeIds[] = {
+            clusterLFOshapeX, clusterLFOshapeY, clusterLFOshapeZ,
+            clusterLFOshapeRot, clusterLFOshapeScale
+        };
+
+        for (int p = 0; p < numPresets; ++p)
+        {
+            auto preset = presets.getChild (p);
+            int presetNumber = p + 1;
+
+            // Name
+            juce::String presetName = preset.getProperty (clusterLFOPresetName, "").toString();
+            {
+                juce::OSCMessage msg ("/remote/cluster/presetName");
+                msg.addInt32 (presetNumber);
+                msg.addString (presetName);
+                messages.push_back (std::move (msg));
+            }
+
+            // Populated: at least one shape axis is non-zero (not Off)
+            bool populated = false;
+            for (const auto& shapeId : shapeIds)
+            {
+                if (static_cast<int> (preset.getProperty (shapeId, 0)) != 0)
+                { populated = true; break; }
+            }
+            {
+                juce::OSCMessage msg ("/remote/cluster/presetPopulated");
+                msg.addInt32 (presetNumber);
+                msg.addInt32 (populated ? 1 : 0);
+                messages.push_back (std::move (msg));
             }
         }
     }
