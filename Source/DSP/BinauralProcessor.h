@@ -177,19 +177,23 @@ public:
     /** Set shared input buffers (reads from these instead of private ring buffers). */
     void setSharedInputBuffers(const std::vector<std::unique_ptr<SharedInputRingBuffer>>& buffers)
     {
+        const juce::SpinLock::ScopedLockType lock (sharedInputsLock);
         sharedInputs.clear();
         for (auto& buf : buffers)
             sharedInputs.push_back(buf.get());
         sharedReadPositions.assign(sharedInputs.size(), 0);
         useSharedInputs = true;
+        ++sharedInputsGeneration;
     }
 
     /** Clear shared input buffer references (fall back to pushInput mode). */
     void clearSharedInputBuffers()
     {
+        const juce::SpinLock::ScopedLockType lock (sharedInputsLock);
         sharedInputs.clear();
         sharedReadPositions.clear();
         useSharedInputs = false;
+        ++sharedInputsGeneration;
     }
 
     /** Notify that new input data is available in shared buffers. */
@@ -254,18 +258,36 @@ private:
      */
     void run() override
     {
+        // Reusable snapshot storage — allocated once, then just refilled each
+        // batch under sharedInputsLock so we never allocate in the hot path
+        // after the first few iterations.
+        std::vector<SharedInputRingBuffer*> sharedInputsSnap;
+        std::vector<int> readPositionsSnap;
+
         while (!threadShouldExit())
         {
             if (processingEnabled.load (std::memory_order_acquire))
             {
+                // Snapshot the shared-input triplet under the lock so we never
+                // read a vector mid-reallocation.
+                bool useSharedSnap;
+                uint32_t snapshotGeneration;
+                {
+                    const juce::SpinLock::ScopedLockType lock (sharedInputsLock);
+                    useSharedSnap = useSharedInputs;
+                    sharedInputsSnap = sharedInputs;
+                    readPositionsSnap = sharedReadPositions;
+                    snapshotGeneration = sharedInputsGeneration;
+                }
+
                 // Check if we have enough input data to process a block
                 bool hasData = true;
 
-                if (useSharedInputs)
+                if (useSharedSnap)
                 {
-                    for (int i = 0; i < numInputChannels && i < (int)sharedInputs.size() && hasData; ++i)
+                    for (int i = 0; i < numInputChannels && i < (int)sharedInputsSnap.size() && hasData; ++i)
                     {
-                        if (sharedInputs[i]->getAvailableAt(sharedReadPositions[i]) < currentBlockSize)
+                        if (sharedInputsSnap[i]->getAvailableAt(readPositionsSnap[i]) < currentBlockSize)
                             hasData = false;
                     }
                 }
@@ -280,7 +302,18 @@ private:
 
                 if (hasData)
                 {
-                    processBlock();
+                    processBlock (useSharedSnap, sharedInputsSnap, readPositionsSnap);
+
+                    // Write back advanced read positions — but only if the
+                    // writer didn't reconfigure us mid-batch. Reconfigure
+                    // already reset positions to 0, so discarding our local
+                    // updates is correct in that case.
+                    if (useSharedSnap)
+                    {
+                        const juce::SpinLock::ScopedLockType lock (sharedInputsLock);
+                        if (sharedInputsGeneration == snapshotGeneration)
+                            sharedReadPositions = readPositionsSnap;
+                    }
                 }
                 else
                 {
@@ -298,8 +331,12 @@ private:
 
     /**
      * Process one block of audio.
+     * The shared-input state is passed in as a local snapshot so the hot path
+     * never touches the (racy-to-mutate) member vectors directly.
      */
-    void processBlock()
+    void processBlock (bool useSharedSnap,
+                       const std::vector<SharedInputRingBuffer*>& sharedInputsSnap,
+                       std::vector<int>& readPositionsSnap)
     {
         int numSamples = currentBlockSize;
 
@@ -320,8 +357,8 @@ private:
             if (anySoloed && !binauralCalc.isInputSoloed (inputIdx))
             {
                 // Still need to consume input data to keep buffers in sync
-                if (useSharedInputs && inputIdx < (int)sharedInputs.size())
-                    sharedInputs[inputIdx]->readWithPosition(sharedReadPositions[inputIdx], inputBlock.getWritePointer(0), numSamples);
+                if (useSharedSnap && inputIdx < (int)sharedInputsSnap.size())
+                    sharedInputsSnap[inputIdx]->readWithPosition(readPositionsSnap[inputIdx], inputBlock.getWritePointer(0), numSamples);
                 else
                     inputBuffers[inputIdx]->read (inputBlock.getWritePointer (0), numSamples);
                 continue;
@@ -329,8 +366,8 @@ private:
 
             // Read input from shared buffers or private ring buffers
             int samplesRead;
-            if (useSharedInputs && inputIdx < (int)sharedInputs.size())
-                samplesRead = sharedInputs[inputIdx]->readWithPosition(sharedReadPositions[inputIdx], inputBlock.getWritePointer(0), numSamples);
+            if (useSharedSnap && inputIdx < (int)sharedInputsSnap.size())
+                samplesRead = sharedInputsSnap[inputIdx]->readWithPosition(readPositionsSnap[inputIdx], inputBlock.getWritePointer(0), numSamples);
             else
                 samplesRead = inputBuffers[inputIdx]->read (inputBlock.getWritePointer (0), numSamples);
             if (samplesRead == 0)
@@ -458,10 +495,20 @@ private:
 
     std::atomic<bool> processingEnabled {false};
 
-    // Shared input buffers (read from these when available, bypasses pushInput)
+    // Shared input buffers (read from these when available, bypasses pushInput).
+    // The (sharedInputs, sharedReadPositions, useSharedInputs) triplet is published
+    // by setSharedInputBuffers() / clearSharedInputBuffers() from the message
+    // thread and consumed by run() on the worker thread. sharedInputsLock
+    // serialises publication so the worker never observes the vectors mid-mutation
+    // (clear() + push_back() can reallocate the backing pointer array). The
+    // worker snapshots the triplet once per batch and writes back advanced
+    // positions under the lock only if sharedInputsGeneration hasn't changed
+    // (i.e. no reconfigure happened during the batch).
     std::vector<SharedInputRingBuffer*> sharedInputs;
     std::vector<int> sharedReadPositions;
     bool useSharedInputs = false;
+    juce::SpinLock sharedInputsLock;
+    uint32_t sharedInputsGeneration = 0;
 
     // Lock-free ring buffers for input (fallback when shared buffers aren't set)
     std::vector<std::unique_ptr<LockFreeRingBuffer>> inputBuffers;
