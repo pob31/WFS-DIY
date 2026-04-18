@@ -6,7 +6,9 @@
 #include "OutputLevelDetector.h"
 #include "WFSHighShelfFilter.h"
 #include "WFSBiquadFilter.h"
+#include "DelayTargetSmoother.h"
 #include <atomic>
+#include <cstdint>
 #include <random>
 
 //==============================================================================
@@ -50,11 +52,10 @@ public:
         // Per-input read positions for shared input buffers
         inputReadPositions.resize(static_cast<size_t>(numInputs), 0);
 
-        // Initialize per-input delay interpolation state
-        prevDirectDelaySamples.resize(static_cast<size_t>(numInputs), 0.0f);
-        prevFRDelaySamples.resize(static_cast<size_t>(numInputs), 0.0f);
-        smoothedDirectDelay.resize(static_cast<size_t>(numInputs), 0.0f);
-        smoothedFRDelay.resize(static_cast<size_t>(numInputs), 0.0f);
+        // Per-input delay smoothers (direct + FR). Window is set in prepare() once
+        // we know the sample rate.
+        smootherDirect.resize(static_cast<size_t>(numInputs));
+        smootherFR.resize(static_cast<size_t>(numInputs));
 
         // Initialize diffusion state (one per input)
         frDiffusionState.resize(static_cast<size_t>(numInputs), 0.0f);
@@ -123,8 +124,12 @@ public:
             frHFFilters[i].setGainDb(0.0f);
         }
 
-        // Reset delay interpolation state (snap on first block)
-        delayInterpInitialized = false;
+        // Configure the per-input delay smoothers for a ~10 ms box window at
+        // the current sample rate.
+        const int windowSamples = juce::jmax(2, static_cast<int>(sampleRate * 0.010));
+        for (auto& s : smootherDirect) s.prepare(windowSamples);
+        for (auto& s : smootherFR)     s.prepare(windowSamples);
+        sampleCounter = 0;
 
         // Initialize diffusion random generator with output-specific seed
         frRandom.seed(static_cast<unsigned int>(outputChannelIndex * 54321 + 98765));
@@ -353,49 +358,35 @@ private:
         updateDiffusionJitter();
 
         // Precompute current delay values per input for interpolation
-        float invNumSamples = 1.0f / (float)numSamples;
         float msToSamples = (float)currentSampleRate / 1000.0f;
         float maxDelay = (float)(delayBufferLength - 1);
 
-        // Temporary arrays for current block's delay values (stack-allocated for small input counts)
-        std::vector<float> curDirectDelay(static_cast<size_t>(numInputChannels));
-        std::vector<float> curFRDelay(static_cast<size_t>(numInputChannels));
-
+        // Feed raw delay targets to the per-input smoothers once per block.
+        // The smoothers build a box-filtered piecewise-linear approximation of
+        // the 50 Hz target trajectory; the per-sample loop below queries them.
         for (int inChannel = 0; inChannel < numInputChannels; ++inChannel)
         {
             int routingIndex = inChannel * numOutputChannels + outputChannelIndex;
             size_t inIdx = static_cast<size_t>(inChannel);
 
-            // Direct delay
+            // Direct delay (clamped to buffer length)
             float directDelayMs = sharedDelayTimes[routingIndex];
             float directDelay = directDelayMs * msToSamples;
             if (directDelay >= maxDelay) directDelay = maxDelay;
-            curDirectDelay[inIdx] = directDelay;
 
-            // FR delay
+            // FR delay includes the diffusion jitter. Jitter is slowly-varying
+            // (updated every 3 blocks, smoothingFactor=0.05) so feeding it in
+            // pre-smoother preserves its intended diffusion character while
+            // still removing block-to-block slope jumps.
             float frExtraDelayMs = (sharedFRDelayTimes != nullptr) ? sharedFRDelayTimes[routingIndex] : 0.0f;
             float frJitterMs = frDiffusionState[inIdx];
             float totalFRDelayMs = directDelayMs + frExtraDelayMs + frJitterMs;
             if (totalFRDelayMs < 0.0f) totalFRDelayMs = 0.0f;
             float frDelay = totalFRDelayMs * msToSamples;
             if (frDelay >= maxDelay) frDelay = maxDelay;
-            curFRDelay[inIdx] = frDelay;
 
-            // Ramp-rate smoothing: one-pole lowpass on delay target
-            if (!delayInterpInitialized)
-            {
-                smoothedDirectDelay[inIdx] = curDirectDelay[inIdx];
-                smoothedFRDelay[inIdx] = curFRDelay[inIdx];
-                prevDirectDelaySamples[inIdx] = curDirectDelay[inIdx];
-                prevFRDelaySamples[inIdx] = curFRDelay[inIdx];
-            }
-            else
-            {
-                smoothedDirectDelay[inIdx] += (curDirectDelay[inIdx] - smoothedDirectDelay[inIdx]) * delaySmoothing;
-                smoothedFRDelay[inIdx] += (curFRDelay[inIdx] - smoothedFRDelay[inIdx]) * delaySmoothing;
-            }
-            curDirectDelay[inIdx] = smoothedDirectDelay[inIdx];
-            curFRDelay[inIdx] = smoothedFRDelay[inIdx];
+            smootherDirect[inIdx].observe (directDelay, sampleCounter);
+            smootherFR[inIdx].observe     (frDelay,     sampleCounter);
         }
 
         // Pre-cache per-input filter state and gains outside the sample loop
@@ -441,7 +432,7 @@ private:
             delayData[writePosition] = 0.0f;
             frDelayData[writePosition] = 0.0f;
 
-            float t = (float)sample * invNumSamples;
+            const std::int64_t currentSample = sampleCounter + sample;
 
             // Now accumulate contributions from all inputs with their respective delays
             for (int inChannel = 0; inChannel < numInputChannels; ++inChannel)
@@ -464,9 +455,9 @@ private:
                     // Apply HF filter (air absorption) to input sample
                     float filteredSample = hfFilters[inChannel].processSample(inputSample);
 
-                    // Interpolate delay across block for smooth movement
-                    float directDelaySamples = prevDirectDelaySamples[inIdx]
-                        + (curDirectDelay[inIdx] - prevDirectDelaySamples[inIdx]) * t;
+                    // Smoothed delay + teleport gain envelope
+                    auto smoothed = smootherDirect[inIdx].smoothedAt (currentSample);
+                    float directDelaySamples = smoothed.delay;
 
                     // Calculate write position with delay offset
                     float exactWritePos = (float)writePosition + directDelaySamples;
@@ -478,8 +469,8 @@ private:
                     int writePos2 = (writePos1 + 1) % delayBufferLength;
                     float fraction = exactWritePos - (int)exactWritePos;
 
-                    // Apply level to filtered sample
-                    float contribution = filteredSample * ic.directLevel;
+                    // Apply level (multiplied by the teleport gain, = 1.0 outside a teleport)
+                    float contribution = filteredSample * ic.directLevel * smoothed.gain;
 
                     // Write with linear interpolation
                     delayData[writePos1] += contribution * (1.0f - fraction);
@@ -501,9 +492,9 @@ private:
                     // Apply FR HF filter (air absorption for longer path)
                     frFilteredSample = frHFFilters[inIdx].processSample(frFilteredSample);
 
-                    // Interpolate FR delay across block for smooth movement
-                    float frDelaySamples = prevFRDelaySamples[inIdx]
-                        + (curFRDelay[inIdx] - prevFRDelaySamples[inIdx]) * t;
+                    // Smoothed FR delay + teleport gain envelope (independent smoother)
+                    auto smoothedFr = smootherFR[inIdx].smoothedAt (currentSample);
+                    float frDelaySamples = smoothedFr.delay;
 
                     // Calculate write position with FR delay offset
                     float exactWritePos = (float)writePosition + frDelaySamples;
@@ -514,8 +505,8 @@ private:
                     int writePos2 = (writePos1 + 1) % delayBufferLength;
                     float fraction = exactWritePos - (int)exactWritePos;
 
-                    // Apply FR level
-                    float frContribution = frFilteredSample * ic.frLevel;
+                    // Apply FR level (multiplied by the teleport gain)
+                    float frContribution = frFilteredSample * ic.frLevel * smoothedFr.gain;
 
                     // Write to FR delay buffer with linear interpolation
                     frDelayData[writePos1] += frContribution * (1.0f - fraction);
@@ -527,14 +518,8 @@ private:
             writePosition = (writePosition + 1) % delayBufferLength;
         }
 
-        // Store current delays for next block's interpolation
-        for (int inChannel = 0; inChannel < numInputChannels; ++inChannel)
-        {
-            size_t inIdx = static_cast<size_t>(inChannel);
-            prevDirectDelaySamples[inIdx] = curDirectDelay[inIdx];
-            prevFRDelaySamples[inIdx] = curFRDelay[inIdx];
-        }
-        delayInterpInitialized = true;
+        // Advance the monotonic sample counter for the next block's smoother queries.
+        sampleCounter += numSamples;
     }
 
     /** Update time-varying diffusion jitter (called once per block) */
@@ -611,13 +596,14 @@ private:
     std::atomic<bool>* frLowCutActiveFlags = nullptr;
     std::atomic<bool>* frHighShelfActiveFlags = nullptr;
 
-    // Per-input previous delay values for per-sample interpolation
-    std::vector<float> prevDirectDelaySamples;  // Previous block's direct delay per input
-    std::vector<float> prevFRDelaySamples;      // Previous block's FR delay per input
-    std::vector<float> smoothedDirectDelay;     // One-pole smoothed delay target (ramp-rate averaging)
-    std::vector<float> smoothedFRDelay;         // One-pole smoothed FR delay target
-    bool delayInterpInitialized = false;
-    static constexpr float delaySmoothing = 1.0f / 100.0f;  // ~100 sample one-pole (rampsmooth)
+    // Per-input delay smoothers (one direct + one FR per input channel).
+    // Replaces the previous inert one-pole on delay targets.
+    std::vector<DelayTargetSmoother> smootherDirect;
+    std::vector<DelayTargetSmoother> smootherFR;
+
+    // Monotonic sample counter, advanced once per block. Used as the time
+    // axis for DelayTargetSmoother::observe() / smoothedAt().
+    std::int64_t sampleCounter = 0;
 
     // FR diffusion (time-varying jitter per input)
     std::vector<float> frDiffusionState;   // Current jitter value per input
