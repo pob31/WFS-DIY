@@ -198,6 +198,13 @@ public:
 
 private:
     juce::ValueTree state;
+
+    // Threading invariant: dirtyKeys is mutated only from the message thread.
+    // ValueTree listeners fire on whichever thread calls setProperty; the
+    // only background-thread writers (AutomOtion playback, tracking receivers)
+    // wrap their writes in ScopedInternalWrite, which short-circuits before
+    // reaching markDirty(). If a future contributor adds a background writer
+    // that is NOT suppressed, this set must be guarded (juce::CriticalSection).
     std::set<juce::String> dirtyKeys;
     bool suppressTracking = false;
     std::atomic<int> nonUserWriteDepth {0};
@@ -273,6 +280,11 @@ private:
         // Gradient layer params are shared across gmLayer1/2/3 — disambiguate via layer id
         if (auto gm = getGradientLayerItemId (tree); gm.isNotEmpty())
             return gm;
+
+        // Per-channel sampler on/off lives on the Channel subtree, not the Sampler
+        // subtree, and isn't in paramToItemMap — handle it explicitly.
+        if (property == WFSParameterIDs::inputSamplerActive)
+            return "sampler";
 
         if (auto it = paramToItemMap.find (property.toString()); it != paramToItemMap.end())
             return it->second;

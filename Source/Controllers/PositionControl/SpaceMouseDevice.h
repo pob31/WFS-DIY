@@ -142,11 +142,10 @@ protected:
         on that model is purely firmware-controlled. */
     void setLED (bool on)
     {
-        if (deviceHandle == nullptr)
-            return;
-
         uint8_t report[2] = { 0x04, static_cast<uint8_t> (on ? 0x01 : 0x00) };
-        hid_write (deviceHandle, report, 2);
+        const juce::ScopedLock sl (writeLock);
+        if (deviceHandle != nullptr)
+            hid_write (deviceHandle, report, 2);
     }
 
     bool poll() override
@@ -265,6 +264,7 @@ private:
 
     void closeDevice()
     {
+        const juce::ScopedLock sl (writeLock);
         if (deviceHandle != nullptr)
         {
             hid_close (deviceHandle);
@@ -281,6 +281,12 @@ private:
     juce::String connectedDeviceName;
     float axisValues[NUM_AXES] = {};
     bool  buttonStates[MAX_BUTTONS] = {};
+
+    // Protects hid_write / hid_close against concurrent access from setLED()
+    // (message thread) and the poll thread's error-path closeDevice(). Reads
+    // (hid_read_timeout in poll()) stay unsynchronised, matching the pattern
+    // used by StreamDeckDevice.
+    juce::CriticalSection writeLock;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SpaceMouseDevice)
 

@@ -1474,14 +1474,14 @@ void OSCManager::drainPendingParamUpdates()
     if (updates.empty())
         return;
 
-    incomingProtocol = Protocol::OSC;
+    ScopedIncomingProtocol incomingGuard (*this, Protocol::OSC);
     if (oscQueryServer) oscQueryServer->beginIncomingOSC("coalesced");
 
     // Apply all updates — use setParameter which auto-routes to the correct scope
     for (const auto& [key, upd] : updates)
         state.setParameter(upd.paramId, upd.value, upd.channelId);
 
-    incomingProtocol = Protocol::Disabled;
+    incomingGuard.release();
     if (oscQueryServer) oscQueryServer->endIncomingOSC();
 }
 
@@ -1537,7 +1537,7 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
             {
                 juce::MessageManager::callAsync([this, paramName, channelIndex, newValue]()
                 {
-                    incomingProtocol = Protocol::OSC;
+                    ScopedIncomingProtocol incomingGuard (*this, Protocol::OSC);
                     WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
                     state.beginUndoTransaction ("OSC Input");
 
@@ -1616,8 +1616,6 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
                     // Notify for waypoint capture (path mode)
                     if (!isOffset && onRemoteWaypointCapture)
                         onRemoteWaypointCapture(channelIndex, x, y, z);
-
-                    incomingProtocol = Protocol::Disabled;
                 });
             }
             return;  // Handled - don't fall through to normal processing
@@ -1644,7 +1642,7 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
             {
                 juce::MessageManager::callAsync([this, paramName, channelIndex, newValue]()
                 {
-                    incomingProtocol = Protocol::OSC;
+                    ScopedIncomingProtocol incomingGuard (*this, Protocol::OSC);
                     WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
                     state.beginUndoTransaction ("OSC Input");
 
@@ -1706,8 +1704,6 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
                     state.setInputParameter(channelIndex, WFSParameterIDs::inputOtomoX, x);
                     state.setInputParameter(channelIndex, WFSParameterIDs::inputOtomoY, y);
                     state.setInputParameter(channelIndex, WFSParameterIDs::inputOtomoZ, z);
-
-                    incomingProtocol = Protocol::Disabled;
                 });
             }
             return;  // Handled - don't fall through to normal processing
@@ -1735,7 +1731,7 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
             {
                 juce::MessageManager::callAsync([this, parsed, channelIndex]()
                 {
-                    incomingProtocol = Protocol::OSC;
+                    ScopedIncomingProtocol incomingGuard (*this, Protocol::OSC);
                     if (oscQueryServer) oscQueryServer->beginIncomingOSC("special");
                     WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
                     state.beginUndoTransaction ("OSC Input");
@@ -1792,7 +1788,7 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
                                 state.setInputParameter(channelIndex, parsed.paramId, setIdx);
                         }
                     }
-                    incomingProtocol = Protocol::Disabled;
+                    incomingGuard.release();
                     if (oscQueryServer) oscQueryServer->endIncomingOSC();
                 });
             }
@@ -1859,7 +1855,7 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
                 // EQ params need special handling — keep direct callAsync
                 juce::MessageManager::callAsync([this, parsed, channelIndex]()
                 {
-                    incomingProtocol = Protocol::OSC;
+                    ScopedIncomingProtocol incomingGuard (*this, Protocol::OSC);
                     WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Reverb);
                     if (channelIndex >= 0)
                     {
@@ -1876,7 +1872,6 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
                             }
                         }
                     }
-                    incomingProtocol = Protocol::Disabled;
                 });
             }
         }
@@ -1892,7 +1887,7 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
         {
             juce::MessageManager::callAsync([this, parsed]()
             {
-                incomingProtocol = Protocol::OSC;
+                ScopedIncomingProtocol incomingGuard (*this, Protocol::OSC);
                 WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Reverb);
                 state.beginUndoTransaction ("OSC Reverb Config");
 
@@ -1954,8 +1949,6 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
                     // Standard config parameter
                     state.setParameter(parsed.paramId, parsed.value);
                 }
-
-                incomingProtocol = Protocol::Disabled;
             });
         }
         else
@@ -2022,7 +2015,7 @@ void OSCManager::handleRemotePositionDelta(const OSCMessageRouter::ParsedRemoteI
     // Apply delta to position or offset based on tracking state
     juce::MessageManager::callAsync([this, parsed]()
     {
-        incomingProtocol = Protocol::Remote;  // Flag: processing incoming REMOTE message
+        ScopedIncomingProtocol incomingGuard (*this, Protocol::Remote);
         WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
         state.beginUndoTransaction ("OSC Input");
 
@@ -2064,8 +2057,6 @@ void OSCManager::handleRemotePositionDelta(const OSCMessageRouter::ParsedRemoteI
 
         // Set the new value
         state.setInputParameter(parsed.channelId, paramId, newValue);
-
-        incomingProtocol = Protocol::Disabled;  // Clear flag
     });
 }
 
@@ -2074,7 +2065,7 @@ void OSCManager::handleRemoteParameterSet(const OSCMessageRouter::ParsedRemoteIn
     // Set parameter to absolute value
     juce::MessageManager::callAsync([this, parsed]()
     {
-        incomingProtocol = Protocol::Remote;  // Flag: processing incoming REMOTE message
+        ScopedIncomingProtocol incomingGuard (*this, Protocol::Remote);
         WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
         state.beginUndoTransaction ("OSC Input");
 
@@ -2179,8 +2170,6 @@ void OSCManager::handleRemoteParameterSet(const OSCMessageRouter::ParsedRemoteIn
                 state.setInputParameter(channelIndex, parsed.paramId, valueToSet);
             }
         }
-
-        incomingProtocol = Protocol::Disabled;  // Clear flag
     });
 }
 
@@ -2189,7 +2178,7 @@ void OSCManager::handleRemoteParameterDelta(const OSCMessageRouter::ParsedRemote
     // Apply delta to current parameter value
     juce::MessageManager::callAsync([this, parsed]()
     {
-        incomingProtocol = Protocol::Remote;  // Flag: processing incoming REMOTE message
+        ScopedIncomingProtocol incomingGuard (*this, Protocol::Remote);
         WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
         state.beginUndoTransaction ("OSC Input");
 
@@ -2312,8 +2301,6 @@ void OSCManager::handleRemoteParameterDelta(const OSCMessageRouter::ParsedRemote
                 state.setInputParameter(channelIndex, parsed.paramId, newValue);
             }
         }
-
-        incomingProtocol = Protocol::Disabled;  // Clear flag
     });
 }
 
@@ -2323,7 +2310,7 @@ void OSCManager::handleRemotePositionXY(const OSCMessageRouter::ParsedRemoteInpu
     // This prevents jagged diagonal movements when speed limiting is enabled
     juce::MessageManager::callAsync([this, parsed]()
     {
-        incomingProtocol = Protocol::Remote;  // Flag: processing incoming REMOTE message
+        ScopedIncomingProtocol incomingGuard (*this, Protocol::Remote);
         WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
         state.beginUndoTransaction ("OSC Input");
 
@@ -2376,8 +2363,6 @@ void OSCManager::handleRemotePositionXY(const OSCMessageRouter::ParsedRemoteInpu
             if (onRemotePositionReceived)
                 onRemotePositionReceived();
         }
-
-        incomingProtocol = Protocol::Disabled;  // Clear flag
     });
 }
 
@@ -2394,7 +2379,7 @@ void OSCManager::handleArrayAdjustMessage(const juce::OSCMessage& message)
     // Apply value change to all outputs in the specified array
     juce::MessageManager::callAsync([this, parsed]()
     {
-        incomingProtocol = Protocol::Remote;  // Flag: processing incoming remote message
+        ScopedIncomingProtocol incomingGuard (*this, Protocol::Remote);
         WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Output);
         state.beginUndoTransaction ("OSC Output");
 
@@ -2425,8 +2410,6 @@ void OSCManager::handleArrayAdjustMessage(const juce::OSCMessage& message)
                 state.setOutputParameter(outputIndex, parsed.paramId, newValue);
             }
         }
-
-        incomingProtocol = Protocol::Disabled;  // Clear flag
     });
 }
 
@@ -2461,7 +2444,7 @@ void OSCManager::applyPendingClusterMove()
     float targetY = clusterMoveTargetY.load();
     auto type = static_cast<OSCMessageRouter::ParsedClusterMoveMessage::Type>(clusterMoveType.load());
 
-    incomingProtocol = Protocol::Remote;
+    ScopedIncomingProtocol incomingGuard (*this, Protocol::Remote);
     WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
     state.beginUndoTransaction ("OSC Input");
 
@@ -2494,7 +2477,7 @@ void OSCManager::applyPendingClusterMove()
                 trackedMember = i;
         }
 
-        if (members.empty()) { incomingProtocol = Protocol::Disabled; clusterMoveAsyncPending.store(false); return; }
+        if (members.empty()) { clusterMoveAsyncPending.store(false); return; }
 
         if (refMode == 0)
         {
@@ -2543,7 +2526,7 @@ void OSCManager::applyPendingClusterMove()
         }
     }
 
-    incomingProtocol = Protocol::Disabled;
+    incomingGuard.release();
 
     // Echo updated positions back to Remote — throttled to avoid flooding
     static juce::int64 lastEchoTime = 0;
@@ -2574,7 +2557,7 @@ void OSCManager::handleClusterScaleRotationMessage(const juce::OSCMessage& messa
 
     juce::MessageManager::callAsync([this, parsed]()
     {
-        incomingProtocol = Protocol::Remote;  // Flag: processing incoming remote message
+        ScopedIncomingProtocol incomingGuard (*this, Protocol::Remote);
         WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
         state.beginUndoTransaction ("OSC Input");
 
@@ -2606,10 +2589,7 @@ void OSCManager::handleClusterScaleRotationMessage(const juce::OSCMessage& messa
         }
 
         if (clusterInputs.empty())
-        {
-            incomingProtocol = Protocol::Disabled;
             return;
-        }
 
         // Calculate barycenter as reference point
         float refX = sumX / static_cast<float>(clusterInputs.size());
@@ -2670,7 +2650,7 @@ void OSCManager::handleClusterScaleRotationMessage(const juce::OSCMessage& messa
             }
         }
 
-        incomingProtocol = Protocol::Disabled;  // Clear flag
+        incomingGuard.release();
 
         // Echo updated positions back to Remote targets so Android sees all members move
         for (const auto& [channelId, x, y] : updatedPositions)
@@ -2731,7 +2711,7 @@ void OSCManager::applyPendingClusterGesture()
         + " rot=" + juce::String(rotation, 1)
         + " cluster=" + juce::String(clusterId));
 
-    incomingProtocol = Protocol::Remote;
+    ScopedIncomingProtocol incomingGuard (*this, Protocol::Remote);
     WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
     state.beginUndoTransaction ("OSC Input");
 
@@ -2749,7 +2729,7 @@ void OSCManager::applyPendingClusterGesture()
         if (refInput < 0 && isInputFullyTracked(i))
             refInput = i;
     }
-    if (members.empty()) { incomingProtocol = Protocol::Disabled; clusterGestureAsyncPending.store(false); return; }
+    if (members.empty()) { clusterGestureAsyncPending.store(false); return; }
 
     // Check reference mode
     juce::var refModeVar = state.getClusterParameter(clusterId, clusterReferenceMode);
@@ -2799,7 +2779,7 @@ void OSCManager::applyPendingClusterGesture()
             float y = varToFloat(state.getInputParameter(m, inputPositionY));
             snap.emplace_back(m, x - pivotX, y - pivotY);
         }
-        if (snap.empty()) { incomingProtocol = Protocol::Disabled; clusterGestureAsyncPending.store(false); return; }
+        if (snap.empty()) { clusterGestureAsyncPending.store(false); return; }
         it = clusterGestureSnapshots.emplace(clusterId, std::move(snap)).first;
     }
 
@@ -2822,7 +2802,7 @@ void OSCManager::applyPendingClusterGesture()
         state.setInputParameter(inputIndex, inputPositionY, newY);
     }
 
-    incomingProtocol = Protocol::Disabled;
+    incomingGuard.release();
 
     if (onRemotePositionReceived)
         onRemotePositionReceived();
@@ -4492,9 +4472,8 @@ void OSCManager::handleADMOSCMessage (const juce::OSCMessage& message)
         juce::MessageManager::callAsync ([this, channelIndex, dB]()
         {
             admReceiving = true;
-            incomingProtocol = Protocol::ADMOSC;
+            ScopedIncomingProtocol incomingGuard (*this, Protocol::ADMOSC);
             state.setInputParameter (channelIndex, WFSParameterIDs::inputAttenuation, dB);
-            incomingProtocol = Protocol::Disabled;
             admReceiving = false;
         });
         return;
@@ -4508,9 +4487,8 @@ void OSCManager::handleADMOSCMessage (const juce::OSCMessage& message)
         juce::MessageManager::callAsync ([this, channelIndex, name]()
         {
             admReceiving = true;
-            incomingProtocol = Protocol::ADMOSC;
+            ScopedIncomingProtocol incomingGuard (*this, Protocol::ADMOSC);
             state.setInputParameter (channelIndex, WFSParameterIDs::inputName, name);
-            incomingProtocol = Protocol::Disabled;
             admReceiving = false;
         });
         return;
@@ -4619,7 +4597,7 @@ void OSCManager::handleADMOSCMessage (const juce::OSCMessage& message)
     juce::MessageManager::callAsync ([this, channelIndex, x, y, z]()
     {
         admReceiving = true;
-        incomingProtocol = Protocol::ADMOSC;
+        ScopedIncomingProtocol incomingGuard (*this, Protocol::ADMOSC);
         WFSValueTreeState::ScopedUndoDomain scope (state, UndoDomain::Input);
         state.beginUndoTransaction ("ADM-OSC Input");
 
@@ -4627,7 +4605,6 @@ void OSCManager::handleADMOSCMessage (const juce::OSCMessage& message)
         state.setInputParameter (channelIndex, WFSParameterIDs::inputPositionY, y);
         state.setInputParameter (channelIndex, WFSParameterIDs::inputPositionZ, z);
 
-        incomingProtocol = Protocol::Disabled;
         admReceiving = false;
     });
 }

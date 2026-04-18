@@ -211,7 +211,10 @@ public:
     void setAlgorithmParameters (const AlgorithmParameters& params)
     {
         // Store locally for thread-safe access
-        pendingParams.store (params);
+        {
+            juce::SpinLock::ScopedLockType lock (pendingParamsLock);
+            pendingParams = params;
+        }
         paramsChanged.store (true, std::memory_order_release);
     }
 
@@ -457,8 +460,13 @@ private:
         // Apply pending algorithm parameter changes
         if (paramsChanged.load (std::memory_order_acquire))
         {
-            currentParams = pendingParams.load();
+            AlgorithmParameters cp;
+            {
+                juce::SpinLock::ScopedLockType lock (pendingParamsLock);
+                cp = pendingParams;
+            }
             paramsChanged.store (false, std::memory_order_release);
+            currentParams = cp;
 
             juce::SpinLock::ScopedLockType lock (algorithmLock);
             if (algorithm)
@@ -769,14 +777,8 @@ private:
     int currentAlgorithmType = -1;  // -1 = none set yet
 
     // Thread-safe parameter passing
-    struct AtomicParams
-    {
-        AlgorithmParameters params;
-        void store (const AlgorithmParameters& p) { params = p; }
-        AlgorithmParameters load() const { return params; }
-    };
-
-    AtomicParams pendingParams;
+    AlgorithmParameters pendingParams;
+    juce::SpinLock pendingParamsLock;
     std::atomic<bool> paramsChanged { false };
     AlgorithmParameters currentParams;
 

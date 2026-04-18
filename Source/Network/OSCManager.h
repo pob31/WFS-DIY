@@ -720,6 +720,37 @@ private:
     // When set, only blocks re-sending to targets of the SAME protocol type
     Protocol incomingProtocol = Protocol::Disabled;
 
+    // RAII guard for incomingProtocol. Set on construction, cleared to
+    // Protocol::Disabled on scope exit (unless release() was called first).
+    // Use release() before an outbound send that must run with the flag cleared.
+    struct ScopedIncomingProtocol
+    {
+        ScopedIncomingProtocol (OSCManager& owner, Protocol proto) noexcept
+            : manager (owner)
+        {
+            manager.incomingProtocol = proto;
+        }
+
+        ~ScopedIncomingProtocol() noexcept
+        {
+            if (! released)
+                manager.incomingProtocol = Protocol::Disabled;
+        }
+
+        void release() noexcept
+        {
+            manager.incomingProtocol = Protocol::Disabled;
+            released = true;
+        }
+
+        ScopedIncomingProtocol (const ScopedIncomingProtocol&) = delete;
+        ScopedIncomingProtocol& operator= (const ScopedIncomingProtocol&) = delete;
+
+    private:
+        OSCManager& manager;
+        bool released = false;
+    };
+
     // Snapshot-scope dirty tracker (owned by WfsParameters, wired in by MainComponent)
     ParameterDirtyTracker* dirtyTracker = nullptr;
 

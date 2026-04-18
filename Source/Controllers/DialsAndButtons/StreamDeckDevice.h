@@ -294,9 +294,13 @@ private:
         if (isThreadRunning())
             waitForThreadToExit (1000);
 
-        // Clear display before closing
-        clearAllButtons();
-        clearLcdStrip();
+        // Blank display before closing. We intentionally do NOT call
+        // clearAllButtons() / clearLcdStrip() here: those would issue ~40 HID
+        // writes (one per image chunk) on the message thread, each capable of
+        // blocking for up to a second on a wedged device. setBrightness(0) is a
+        // single feature report that achieves the same visual result; the
+        // manager re-applies the saved brightness on reconnect.
+        setBrightness (0);
 
         {
             const juce::ScopedLock sl (writeLock);

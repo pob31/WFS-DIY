@@ -1086,6 +1086,13 @@ void WFSCalculationEngine::recalculateMatrix()
 
         // Get per-array attenuation values from the Mutes section (dB, 0 = no attenuation)
         auto inputMutesSection = valueTreeState.getInputMutesSection (inIdx);
+
+        // Parse the per-output routing-mute bitmask once per input (was tokenised
+        // per inIdx × outIdx call in isRoutingMuted() — O(N×M) → O(N)).
+        juce::StringArray inputMutesPerOutput;
+        if (inputMutesSection.isValid())
+            inputMutesPerOutput.addTokens (inputMutesSection.getProperty (inputMutes).toString(), ",", "");
+
         std::array<float, 10> arrayAttenDb = {0.0f};
         arrayAttenDb[0] = inputMutesSection.getProperty (inputArrayAtten1, inputArrayAttenDefault);
         arrayAttenDb[1] = inputMutesSection.getProperty (inputArrayAtten2, inputArrayAttenDefault);
@@ -1150,7 +1157,10 @@ void WFSCalculationEngine::recalculateMatrix()
             // MUTING CHECK
             // ==========================================
             // Skip calculations if this input→output routing is muted
-            if (isRoutingMuted (inIdx, outIdx))
+            const bool routingMuted = outIdx >= 0
+                                   && outIdx < inputMutesPerOutput.size()
+                                   && inputMutesPerOutput[outIdx].getIntValue() != 0;
+            if (routingMuted)
             {
                 newDelays[matrixIdx] = 0.0f;
                 newLevels[matrixIdx] = 0.0f;
