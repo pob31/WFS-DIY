@@ -4,6 +4,7 @@
 #include "../Parameters/WFSValueTreeState.h"
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/WFSParameterDefaults.h"
+#include "../Parameters/ParameterDirtyTracker.h"
 #include "../Helpers/CoordinateConverter.h"
 
 /**
@@ -114,6 +115,9 @@ public:
     {
         states.resize (static_cast<size_t> (numInputs));
     }
+
+    /** Wire up the dirty tracker so playback writes don't flag position as dirty. */
+    void setDirtyTracker (ParameterDirtyTracker* tracker) { dirtyTracker = tracker; }
 
     //==========================================================================
     // Processing - Called at 50Hz
@@ -974,9 +978,11 @@ private:
     // Position Writing
     //==========================================================================
 
-    /** Write animated position directly to input ValueTree */
+    /** Write animated position directly to input ValueTree.
+     *  Suppresses snapshot-scope dirty marking — playback is not a user edit. */
     void writePositionToValueTree (int inputIndex, float x, float y, float z)
     {
+        ParameterDirtyTracker::ScopedInternalWrite guard (dirtyTracker);
         auto posSection = valueTreeState.getInputPositionSection (inputIndex);
         posSection.setProperty (WFSParameterIDs::inputPositionX, x, nullptr);
         posSection.setProperty (WFSParameterIDs::inputPositionY, y, nullptr);
@@ -1008,4 +1014,5 @@ private:
     WFSValueTreeState& valueTreeState;
     int numInputChannels;
     std::vector<AutomOtionState> states;
+    ParameterDirtyTracker* dirtyTracker = nullptr;
 };

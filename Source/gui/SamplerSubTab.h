@@ -1845,6 +1845,8 @@ public:
     LightpadZoneQuery lightpadZoneQuery;
     std::function<void (int inputIndex, int zoneId)> onLightpadZoneChanged;
 
+    HelpCardButton& getHelpButton() { return samplerHelpButton; }
+
     void setLightpadEnabled (bool enabled)
     {
         // Legacy method — now use setControllerMode instead

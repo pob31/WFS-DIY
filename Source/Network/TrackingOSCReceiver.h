@@ -4,6 +4,7 @@
 #include "OSCReceiverWithSenderIP.h"
 #include "../Parameters/WFSValueTreeState.h"
 #include "../Parameters/WFSParameterIDs.h"
+#include "../Parameters/ParameterDirtyTracker.h"
 
 class TrackingPositionFilter;
 
@@ -270,6 +271,9 @@ public:
     /** Set the logger for tracking data visibility in the Network Log Window. */
     void setLogger(OSCLogger* l) { logger = l; }
 
+    /** Wire up the dirty tracker so tracking writes don't flag offset as dirty. */
+    void setDirtyTracker (ParameterDirtyTracker* tracker) { dirtyTracker = tracker; }
+
     /**
      * Update just the path pattern (while running).
      * @return true if pattern is valid
@@ -319,6 +323,10 @@ private:
 
     // Logger (shared, owned by OSCManager)
     OSCLogger* logger = nullptr;
+
+    // Snapshot-scope dirty tracker — wired up by OSCManager so live tracking
+    // doesn't flag offset parameters as user-edited.
+    ParameterDirtyTracker* dirtyTracker = nullptr;
 
     // Thread safety for pattern updates
     juce::CriticalSection patternLock;

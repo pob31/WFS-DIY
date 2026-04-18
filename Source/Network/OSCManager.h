@@ -94,6 +94,12 @@ public:
     Protocol getIncomingProtocol() const { return incomingProtocol; }
 
     /**
+     * Provide the snapshot-scope dirty tracker so tracking receivers can suppress
+     * dirty flagging while writing live (transient) position/rotation updates.
+     */
+    void setDirtyTracker(ParameterDirtyTracker* tracker) { dirtyTracker = tracker; }
+
+    /**
      * Connect a specific target.
      */
     bool connectTarget(int targetIndex);
@@ -713,6 +719,9 @@ private:
     // Set to Protocol::Disabled when not processing an incoming message
     // When set, only blocks re-sending to targets of the SAME protocol type
     Protocol incomingProtocol = Protocol::Disabled;
+
+    // Snapshot-scope dirty tracker (owned by WfsParameters, wired in by MainComponent)
+    ParameterDirtyTracker* dirtyTracker = nullptr;
 
     // Send combined XY position to all connected Remote targets
     void sendInputPositionXYToRemote(int channelId, float x, float y);

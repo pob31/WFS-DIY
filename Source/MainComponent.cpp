@@ -729,6 +729,7 @@ MainComponent::MainComponent()
 
     // Initialize OSC Manager for network communication
     oscManager = std::make_unique<WFSNetwork::OSCManager>(parameters.getValueTreeState());
+    oscManager->setDirtyTracker(&parameters.getDirtyTracker());
 
     // Initialize Stream Deck+ physical controller
     streamDeckManager = std::make_unique<StreamDeckManager>();
@@ -1664,6 +1665,7 @@ MainComponent::MainComponent()
 
     // Initialize AutomOtion Processor for programmed input position movement
     automOtionProcessor = std::make_unique<AutomOtionProcessor>(parameters.getValueTreeState(), 64);
+    automOtionProcessor->setDirtyTracker(&parameters.getDirtyTracker());
 
     // Initialize Input Speed Limiter for smooth position movement
     speedLimiter = std::make_unique<InputSpeedLimiter>();
@@ -5346,48 +5348,50 @@ void MainComponent::cycleHelpCards()
     auto buttons = provider->getVisibleHelpButtons();
     if (buttons.empty()) return;
 
-    // If cycle is active and buttons haven't changed, advance to next
-    if (helpCycleIndex >= 0 && helpCycleButtons == buttons)
-    {
-        // Dismiss current
-        helpCycleButtons[helpCycleIndex]->dismiss();
-
-        // Advance — after last card, close and reset
-        helpCycleIndex++;
-        if (helpCycleIndex >= (int)helpCycleButtons.size())
-        {
-            helpCycleIndex = -1;
-            helpCycleButtons.clear();
-            return;
-        }
-
-        helpCycleButtons[helpCycleIndex]->activate();
-        return;
-    }
-
-    // Starting a new cycle — dismiss any previous
-    resetHelpCycle();
-
     // Sort buttons: column-first (X), then top-down (Y)
-    // Group by X into columns (within 50px = same column)
-    helpCycleButtons = buttons;
-    std::sort(helpCycleButtons.begin(), helpCycleButtons.end(),
+    std::sort(buttons.begin(), buttons.end(),
         [](const HelpCardButton* a, const HelpCardButton* b)
         {
             int ax = a->getScreenX(), bx = b->getScreenX();
-            // Same column if within 50px horizontally
             if (std::abs(ax - bx) <= 50)
                 return a->getScreenY() < b->getScreenY();
             return ax < bx;
         });
 
-    // Find the button closest to the mouse pointer
+    helpCycleButtons = buttons;
+
+    // If any card is already open (manually clicked or previous cycle step), advance from it
+    int activeIdx = -1;
+    for (int i = 0; i < (int)buttons.size(); ++i)
+    {
+        if (buttons[i]->getIsActive())
+        {
+            activeIdx = i;
+            break;
+        }
+    }
+    if (activeIdx >= 0)
+    {
+        buttons[activeIdx]->dismiss();
+        int nextIdx = activeIdx + 1;
+        if (nextIdx >= (int)buttons.size())
+        {
+            helpCycleIndex = -1;
+            helpCycleButtons.clear();
+            return;
+        }
+        helpCycleIndex = nextIdx;
+        buttons[nextIdx]->activate();
+        return;
+    }
+
+    // Fresh cycle: start from button closest to mouse
     auto mousePos = juce::Desktop::getInstance().getMainMouseSource().getScreenPosition().toInt();
     int closestIdx = 0;
     int closestDist = std::numeric_limits<int>::max();
-    for (int i = 0; i < (int)helpCycleButtons.size(); ++i)
+    for (int i = 0; i < (int)buttons.size(); ++i)
     {
-        auto btnCentre = helpCycleButtons[i]->getScreenBounds().getCentre();
+        auto btnCentre = buttons[i]->getScreenBounds().getCentre();
         int dx = btnCentre.x - mousePos.x;
         int dy = btnCentre.y - mousePos.y;
         int dist = dx * dx + dy * dy;
@@ -5399,7 +5403,7 @@ void MainComponent::cycleHelpCards()
     }
 
     helpCycleIndex = closestIdx;
-    helpCycleButtons[helpCycleIndex]->activate();
+    buttons[closestIdx]->activate();
 }
 
 void MainComponent::cycleChannel(int delta)

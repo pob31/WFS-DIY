@@ -1739,6 +1739,8 @@ public:
         return false;
     }
 
+    HelpCardButton& getHelpButton() { return gradMapHelpButton; }
+
 private:
     //==========================================================================
     // Data

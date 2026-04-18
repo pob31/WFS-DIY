@@ -1,7 +1,9 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include <atomic>
 #include "WFSFileManager.h"
+#include "../Parameters/WFSParameterIDs.h"
 #include "../Network/OSCProtocolTypes.h"
 
 /**
@@ -103,6 +105,29 @@ public:
     }
 
     //==========================================================================
+    // Non-user write suppression (AutomOtion playback, tracking receivers, …)
+    //==========================================================================
+
+    /** RAII guard: suppresses dirty marking for writes performed inside its scope.
+     *  Unlike beginSuppression(), this does NOT clear existing dirty state —
+     *  it only prevents new writes from being flagged. Safe to use across threads. */
+    struct ScopedInternalWrite
+    {
+        explicit ScopedInternalWrite (ParameterDirtyTracker* t) noexcept : tracker (t)
+        {
+            if (tracker != nullptr)
+                tracker->nonUserWriteDepth.fetch_add (1, std::memory_order_relaxed);
+        }
+        ~ScopedInternalWrite() noexcept
+        {
+            if (tracker != nullptr)
+                tracker->nonUserWriteDepth.fetch_sub (1, std::memory_order_relaxed);
+        }
+        ParameterDirtyTracker* tracker;
+        JUCE_DECLARE_NON_COPYABLE (ScopedInternalWrite)
+    };
+
+    //==========================================================================
     // Listener notification
     //==========================================================================
 
@@ -126,28 +151,16 @@ public:
     void valueTreePropertyChanged (juce::ValueTree& tree,
                                     const juce::Identifier& property) override
     {
-        // Only track input parameters
         if (!isInputParameterTree (tree))
             return;
 
         // Resolve the scope item ID for this property change
-        juce::String itemId;
-        auto it = paramToItemMap.find (property.toString());
-        if (it != paramToItemMap.end())
-        {
-            itemId = it->second;
-        }
-        else if (isSamplerSubtree (tree))
-        {
-            itemId = "sampler";
-        }
-        else
-        {
+        juce::String itemId = resolveItemId (tree, property);
+        if (itemId.isEmpty())
             return;
-        }
 
-        // Skip during snapshot loading
-        if (suppressTracking)
+        // Skip during snapshot loading or non-user writes (AutomOtion, tracking, …)
+        if (suppressTracking || nonUserWriteDepth.load (std::memory_order_relaxed) > 0)
             return;
 
         // Determine the source of this change
@@ -172,12 +185,12 @@ public:
 
     void valueTreeChildAdded (juce::ValueTree& parent, juce::ValueTree& child) override
     {
-        handleSamplerChildChange (parent, child);
+        handleSubtreeChildChange (parent, child);
     }
 
     void valueTreeChildRemoved (juce::ValueTree& parent, juce::ValueTree& child, int) override
     {
-        handleSamplerChildChange (parent, child);
+        handleSubtreeChildChange (parent, child);
     }
 
     void valueTreeChildOrderChanged (juce::ValueTree&, int, int) override {}
@@ -187,6 +200,7 @@ private:
     juce::ValueTree state;
     std::set<juce::String> dirtyKeys;
     bool suppressTracking = false;
+    std::atomic<int> nonUserWriteDepth {0};
 
     /** Reverse lookup: paramId string -> scope itemId */
     std::unordered_map<juce::String, juce::String> paramToItemMap;
@@ -227,6 +241,48 @@ private:
             || type == WFSParameterIDs::SamplerSet;
     }
 
+    /** Walk up from the given tree until a GradientLayer ancestor is found. */
+    juce::ValueTree findEnclosingGradientLayer (juce::ValueTree tree) const
+    {
+        while (tree.isValid())
+        {
+            if (tree.getType() == WFSParameterIDs::GradientLayer)
+                return tree;
+            tree = tree.getParent();
+        }
+        return {};
+    }
+
+    /** Produce the gmLayer{1,2,3} scope itemId for a tree inside a GradientLayer.
+     *  Returns empty string if not inside a layer or the layer id is invalid. */
+    juce::String getGradientLayerItemId (const juce::ValueTree& tree) const
+    {
+        auto layer = findEnclosingGradientLayer (tree);
+        if (!layer.isValid())
+            return {};
+        int idx = static_cast<int> (layer.getProperty (WFSParameterIDs::id, -1));
+        if (idx < 0 || idx > 2)
+            return {};
+        return "gmLayer" + juce::String (idx + 1);
+    }
+
+    /** Resolve which scope item a property change on `tree` belongs to. */
+    juce::String resolveItemId (const juce::ValueTree& tree,
+                                 const juce::Identifier& property) const
+    {
+        // Gradient layer params are shared across gmLayer1/2/3 — disambiguate via layer id
+        if (auto gm = getGradientLayerItemId (tree); gm.isNotEmpty())
+            return gm;
+
+        if (auto it = paramToItemMap.find (property.toString()); it != paramToItemMap.end())
+            return it->second;
+
+        if (isSamplerSubtree (tree))
+            return "sampler";
+
+        return {};
+    }
+
     /** Thread-safe notification: posts to message thread via AsyncUpdater */
     void notifyDirtyStateChanged()
     {
@@ -246,14 +302,24 @@ private:
         }
     }
 
-    /** Handle sampler child add/remove — mark sampler dirty for that channel */
-    void handleSamplerChildChange (juce::ValueTree& parent, juce::ValueTree& child)
+    /** Handle subtree-based scope items (sampler cells/sets, gradient layer shapes). */
+    void handleSubtreeChildChange (juce::ValueTree& parent, juce::ValueTree& child)
     {
         if (!isInputParameterTree (parent))
             return;
-        if (!isSamplerSubtree (parent) && !isSamplerSubtree (child))
+
+        // Resolve itemId based on which subtree the change belongs to
+        juce::String itemId;
+        if (isSamplerSubtree (parent) || isSamplerSubtree (child))
+            itemId = "sampler";
+        else if (auto gm = getGradientLayerItemId (child); gm.isNotEmpty())
+            itemId = gm;
+        else if (auto gm = getGradientLayerItemId (parent); gm.isNotEmpty())
+            itemId = gm;
+        else
             return;
-        if (suppressTracking)
+
+        if (suppressTracking || nonUserWriteDepth.load (std::memory_order_relaxed) > 0)
             return;
 
         auto protocol = getIncomingProtocol ? getIncomingProtocol()
@@ -268,7 +334,7 @@ private:
         if (protocol == WFSNetwork::Protocol::Disabled ||
             protocol == WFSNetwork::Protocol::Remote)
         {
-            markDirty ("sampler", parent);
+            markDirty (itemId, parent);
         }
     }
 

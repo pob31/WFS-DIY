@@ -214,7 +214,9 @@ void TrackingOSCReceiver::routeToInputs(int trackingId, float x, float y, float 
         }
 
         // Update offset coordinates (tracking updates offset, not position)
-        // Using setProperty triggers ValueTree listeners which updates map and broadcasts to targets
+        // Using setProperty triggers ValueTree listeners which updates map and broadcasts to targets.
+        // Live tracking is transient — suppress dirty flagging in the snapshot scope.
+        ParameterDirtyTracker::ScopedInternalWrite guard (dirtyTracker);
         if (hasX)
             posSection.setProperty(WFSParameterIDs::inputOffsetX, fx, nullptr);
         if (hasY)

@@ -582,7 +582,9 @@ void TrackingMQTTReceiver::routePositionToInput (int inputIndex, float x, float 
             return; // sample rejected
     }
 
-    // Write filtered position to ValueTree
+    // Write filtered position to ValueTree.
+    // Live tracking is transient — suppress dirty flagging in the snapshot scope.
+    ParameterDirtyTracker::ScopedInternalWrite guard (dirtyTracker);
     posSection.setProperty (WFSParameterIDs::inputOffsetX, fx, nullptr);
     posSection.setProperty (WFSParameterIDs::inputOffsetY, fy, nullptr);
     posSection.setProperty (WFSParameterIDs::inputOffsetZ, fz, nullptr);

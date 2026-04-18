@@ -470,6 +470,7 @@ bool OSCManager::startTrackingReceiver(int port, const juce::String& pathPattern
     trackingFilter.resize(state.getNumInputChannels());
     trackingReceiver->setPositionFilter(&trackingFilter);
     trackingReceiver->setLogger(&logger);
+    trackingReceiver->setDirtyTracker(dirtyTracker);
 
     if (!trackingReceiver->start(port, pathPattern))
     {
@@ -532,6 +533,7 @@ bool OSCManager::startPSNReceiver(int port,
     trackingFilter.resize(state.getNumInputChannels());
     psnReceiver->setPositionFilter(&trackingFilter);
     psnReceiver->setLogger(&logger);
+    psnReceiver->setDirtyTracker(dirtyTracker);
 
     if (!psnReceiver->start(port, networkInterface, multicastAddress))
     {
@@ -585,6 +587,7 @@ bool OSCManager::startRTTrPReceiver(int port)
     trackingFilter.resize(state.getNumInputChannels());
     rttrpReceiver->setPositionFilter(&trackingFilter);
     rttrpReceiver->setLogger(&logger);
+    rttrpReceiver->setDirtyTracker(dirtyTracker);
 
     if (!rttrpReceiver->start(port))
     {
@@ -636,6 +639,7 @@ bool OSCManager::startMQTTReceiver(const juce::String& host, int port, const juc
     trackingFilter.resize(state.getNumInputChannels());
     mqttReceiver->setPositionFilter(&trackingFilter);
     mqttReceiver->setLogger(&logger);
+    mqttReceiver->setDirtyTracker(dirtyTracker);
 
     // Load tag IDs from config
     auto configTree = state.getConfigState();

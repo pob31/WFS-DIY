@@ -204,7 +204,9 @@ void TrackingPSNReceiver::routePositionToInputs(int trackingId, float x, float y
         }
 
         // Update offset coordinates (tracking updates offset, not base position)
-        // Using setProperty triggers ValueTree listeners which updates map and broadcasts to targets
+        // Using setProperty triggers ValueTree listeners which updates map and broadcasts to targets.
+        // Live tracking is transient — suppress dirty flagging in the snapshot scope.
+        ParameterDirtyTracker::ScopedInternalWrite guard (dirtyTracker);
         posSection.setProperty(WFSParameterIDs::inputOffsetX, fx, nullptr);
         posSection.setProperty(WFSParameterIDs::inputOffsetY, fy, nullptr);
         posSection.setProperty(WFSParameterIDs::inputOffsetZ, fz, nullptr);
@@ -254,7 +256,8 @@ void TrackingPSNReceiver::routeOrientationToInputs(int trackingId, float rotatio
         if (!trackingActive)
             continue;
 
-        // Update inputRotation in directivity section
+        // Update inputRotation in directivity section — live tracking, not a user edit.
+        ParameterDirtyTracker::ScopedInternalWrite guard (dirtyTracker);
         directivitySection.setProperty(WFSParameterIDs::inputRotation, rotation, nullptr);
 
         anyRouted = true;

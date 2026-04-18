@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "../Parameters/WFSValueTreeState.h"
 #include "../Parameters/WFSParameterIDs.h"
+#include "../Parameters/ParameterDirtyTracker.h"
 #include <array>
 
 class TrackingPositionFilter;
@@ -214,6 +215,9 @@ public:
     /** Set the logger for tracking data visibility. */
     void setLogger (OSCLogger* l) { logger = l; }
 
+    /** Wire up the dirty tracker so tracking writes don't flag offset as dirty. */
+    void setDirtyTracker (ParameterDirtyTracker* tracker) { dirtyTracker = tracker; }
+
     /** Update transformation parameters (offset, scale, flip). */
     void setTransformations (float offsetX, float offsetY, float offsetZ,
                              float scaleX, float scaleY, float scaleZ,
@@ -315,6 +319,9 @@ private:
 
     // Position filter (shared, owned by OSCManager)
     TrackingPositionFilter* positionFilter = nullptr;
+
+    // Snapshot-scope dirty tracker — wired up by OSCManager
+    ParameterDirtyTracker* dirtyTracker = nullptr;
 
     // Thread control
     std::atomic<bool> shouldStop { false };
