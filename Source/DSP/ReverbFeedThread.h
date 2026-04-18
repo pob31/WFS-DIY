@@ -64,6 +64,12 @@ public:
 
     void updateReverbLevels(const float* newLevelsPtr, int newStride, int newNumReverbs)
     {
+        // Publish the triplet under a brief SpinLock so the worker thread
+        // can never observe a torn (pointer, stride, count) update. Matches
+        // the pattern used for pendingPreParams / pendingPostParams in
+        // ReverbEngine. The worker snapshots once per batch in run(); the
+        // hot inner loop never touches this lock.
+        juce::SpinLock::ScopedLockType lock (matrixLock);
         reverbLevels = newLevelsPtr;
         reverbStride = newStride;
         numRevs = newNumReverbs;
@@ -81,7 +87,24 @@ private:
             }
             dataReady.store(false, std::memory_order_relaxed);
 
-            if (reverbEngine == nullptr || numRevs <= 0 || numInputs <= 0)
+            // Snapshot the (levels, stride, numRevs) triplet once per batch under
+            // the matrix lock. The rest of this batch uses only the locals, so
+            // the inner per-sample / per-input / per-node loop runs with zero
+            // synchronisation. A matrix update via updateReverbLevels() becomes
+            // visible on the *next* batch — one block of stale levels is
+            // inaudible for reverb send routing (matrix updates happen at
+            // user-interaction cadence, not per block).
+            const float* levelsSnap;
+            int strideSnap;
+            int numRevsSnap;
+            {
+                juce::SpinLock::ScopedLockType lock (matrixLock);
+                levelsSnap  = reverbLevels;
+                strideSnap  = reverbStride;
+                numRevsSnap = numRevs;
+            }
+
+            if (reverbEngine == nullptr || numRevsSnap <= 0 || numInputs <= 0)
                 continue;
 
             int numSamples = processingBlockSize;
@@ -103,7 +126,7 @@ private:
             if (isMuted.load(std::memory_order_relaxed))
             {
                 // Push silence — reverb tail decays naturally
-                for (int revIdx = 0; revIdx < numRevs; ++revIdx)
+                for (int revIdx = 0; revIdx < numRevsSnap; ++revIdx)
                 {
                     downsampleBuffer.clear(revIdx, 0, pushSamples);
                     reverbEngine->pushNodeInput(revIdx, downsampleBuffer.getReadPointer(revIdx), pushSamples);
@@ -114,13 +137,13 @@ private:
             // Compute reverb feeds: for each node, sum weighted input contributions
             feedBuffer.clear();
 
-            for (int revIdx = 0; revIdx < numRevs; ++revIdx)
+            for (int revIdx = 0; revIdx < numRevsSnap; ++revIdx)
             {
                 float* feedData = feedBuffer.getWritePointer(revIdx);
 
                 for (int inIdx = 0; inIdx < numInputs; ++inIdx)
                 {
-                    float feedLevel = reverbLevels[inIdx * reverbStride + revIdx];
+                    float feedLevel = levelsSnap[inIdx * strideSnap + revIdx];
 
                     if (feedLevel > 0.0001f)
                     {
@@ -154,10 +177,18 @@ private:
     std::vector<SharedInputRingBuffer*> inputBuffers;
     std::vector<int> readPositions;
     ReverbEngine* reverbEngine = nullptr;
+
+    // (reverbLevels, reverbStride, numRevs) form a triplet published by
+    // updateReverbLevels() from the message thread and consumed by run() on
+    // the worker thread. matrixLock serialises publication so the worker
+    // never observes a torn triplet. See updateReverbLevels() and run() for
+    // the read-snapshot pattern.
     const float* reverbLevels = nullptr;
     int reverbStride = 0;
-    int numInputs = 0;
     int numRevs = 0;
+    juce::SpinLock matrixLock;
+
+    int numInputs = 0;
     int processingBlockSize = 256;
     int reverbSRRatio = 1;
     std::atomic<bool> dataReady{false};
