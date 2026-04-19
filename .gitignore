@@ -59,6 +59,7 @@ Builds/*/Release/
 *.perspectivev3
 *.xcuserstate
 project.xcworkspace/
+xcuserdata/
 
 # CMake build files
 CMakeCache.txt
