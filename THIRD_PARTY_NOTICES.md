@@ -125,6 +125,20 @@ Boost Software License 1.0.
 
 # Standards & Protocols
 
+## OSCQuery
+
+* **Website**: <https://github.com/Vidvox/OSCQueryProposal>
+* **Original Proposal**: Vidvox / VDMX
+* **License**: Specification is freely available; no code redistributed
+
+WFS-DIY implements the OSCQuery protocol for parameter discovery, value
+requests, and subscription-based change notifications (HTTP + WebSocket
+transport over an OSC namespace). Our implementation follows the spec
+directly; no code from reference implementations (OSSIA, etc.) is included.
+
+The OSCQuery WebSocket transport in WFS-DIY is provided by the
+juce_simpleweb module (see above).
+
 ## ADM-OSC
 
 - **Website**: https://immersive-audio-live.github.io/ADM-OSC/
