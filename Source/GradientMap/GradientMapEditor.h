@@ -1988,7 +1988,9 @@ private:
 
     bool isLightTheme() const
     {
-        return ColorScheme::Manager::getInstance().getCurrentTheme() == ColorScheme::Theme::Light;
+        // Gradient map is rendered in dark-theme colors regardless of global theme,
+        // so gradient values display consistently in all color schemes.
+        return false;
     }
 
     /** Map a greyscale value for display: inverted in light theme so dark = full effect */
@@ -2290,7 +2292,8 @@ private:
     void drawOriginMarker (juce::Graphics& g, const juce::Rectangle<int>& canvas) const
     {
         auto origin = stageToScreen ({ 0.0f, 0.0f }, canvas);
-        g.setColour (ColorScheme::get().textPrimary.withAlpha (0.7f));
+        // Origin marker sits on the dark canvas — use dark-theme text color for visibility.
+        g.setColour (ColorScheme::DefaultPalette.textPrimary.withAlpha (0.7f));
         g.drawLine (origin.x - 20.0f, static_cast<float> (origin.y),
                     origin.x + 20.0f, static_cast<float> (origin.y), 1.0f);
         g.drawLine (static_cast<float> (origin.x), origin.y - 20.0f,

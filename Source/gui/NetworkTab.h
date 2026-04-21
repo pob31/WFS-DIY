@@ -1826,7 +1826,7 @@ public:
     }
 
     /** Refresh UI from ValueTree - call after config reload */
-    void refreshFromValueTree() { loadParametersFromValueTree(); }
+    void refreshFromValueTree() { loadParametersFromValueTree(); updateOSCManagerConfig(); }
 
     /** Programmatically toggle OSC source filter (for Stream Deck sync). */
     void toggleOscFilter()

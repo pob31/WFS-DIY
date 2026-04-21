@@ -106,7 +106,7 @@ public:
         shadow.drawForRectangle(g, getLocalBounds());
 
         // Solid background with rounded corners
-        g.setColour(juce::Colour(0xFF2A2A2A));
+        g.setColour(ColorScheme::get().surfaceCard);
         g.fillRoundedRectangle(bounds, 8.0f);
 
         // Border

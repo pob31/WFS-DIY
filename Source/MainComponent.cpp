@@ -2898,13 +2898,17 @@ void MainComponent::handleConfigReloaded()
 {
     WFSLogger::getInstance().logInfo ("Configuration reloaded");
 
-    // Update local channel counts from newly loaded config
+    // Update local channel counts from newly loaded config.
+    // Always assign — the cached member must track the ValueTree children count so every
+    // per-input loop in timerCallback (speed limiter, LFO offsets, gradient maps, etc.)
+    // covers all inputs. Resize matrices only when the counts actually change.
     int newInputChannels = parameters.getNumInputChannels();
     int newOutputChannels = parameters.getNumOutputChannels();
-    if (newInputChannels != numInputChannels || newOutputChannels != numOutputChannels)
+    bool countsChanged = (newInputChannels != numInputChannels || newOutputChannels != numOutputChannels);
+    numInputChannels = newInputChannels;
+    numOutputChannels = newOutputChannels;
+    if (countsChanged)
     {
-        numInputChannels = newInputChannels;
-        numOutputChannels = newOutputChannels;
         resizeRoutingMatrices();
 
         // Update level meter channel counts

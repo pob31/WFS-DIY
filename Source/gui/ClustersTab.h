@@ -791,14 +791,14 @@ private:
     // ==================== LFO PRESET TILES ====================
 
     class LFOPresetTile : public juce::Component,
-                          public juce::Label::Listener
+                          public juce::Label::Listener,
+                          public ColorScheme::Manager::Listener
     {
     public:
         LFOPresetTile (ClustersTab& o, int index) : owner (o), presetIndex (index)
         {
             nameLabel.setFont (juce::FontOptions().withHeight (juce::jmax (14.0f, 22.0f * WfsLookAndFeel::uiScale)));
             nameLabel.setJustificationType (juce::Justification::centredLeft);
-            nameLabel.setColour (juce::Label::textColourId, juce::Colours::white.withAlpha (0.8f));
             nameLabel.setColour (juce::Label::backgroundColourId, juce::Colours::transparentBlack);
             nameLabel.setColour (juce::Label::outlineColourId, juce::Colours::transparentBlack);
             nameLabel.setColour (juce::TextEditor::backgroundColourId, juce::Colour (0xFF2A2A2A));
@@ -806,7 +806,19 @@ private:
             nameLabel.setEditable (false, true, false); // single-click = no edit, double = no, triple = no; edit on slow click
             nameLabel.addListener (this);
             addAndMakeVisible (nameLabel);
+            ColorScheme::Manager::getInstance().addListener (this);
             updateFromValueTree();
+        }
+
+        ~LFOPresetTile() override
+        {
+            ColorScheme::Manager::getInstance().removeListener (this);
+        }
+
+        void colorSchemeChanged() override
+        {
+            applyLabelTextColour();
+            repaint();
         }
 
         void paint (juce::Graphics& g) override
@@ -938,12 +950,22 @@ private:
             juce::String presetName = preset.getProperty (clusterLFOPresetName, "").toString();
             nameLabel.setText (presetName.isEmpty() ? "---" : presetName, juce::dontSendNotification);
             nameLabel.setAlpha (populated ? 1.0f : 0.4f);
+            applyLabelTextColour();
             repaint();
         }
 
         bool isPopulated() const { return populated; }
 
     private:
+        void applyLabelTextColour()
+        {
+            // Populated tiles have a fixed dark-green background, so keep white text.
+            // Empty tiles sit on the theme's surfaceCard — follow the theme text colour.
+            nameLabel.setColour (juce::Label::textColourId,
+                populated ? juce::Colours::white.withAlpha (0.8f)
+                          : ColorScheme::get().textPrimary);
+        }
+
         ClustersTab& owner;
         int presetIndex;
         juce::Label nameLabel;
