@@ -71,6 +71,8 @@
       "files": "文件"
     },
     "labels": {
+      "version": "版本 {version}",
+      "updateAvailable": "更新 {version} 可用",
       "showName": "名称:",
       "showLocation": "地点:",
       "inputChannels": "输入通道:",

@@ -3241,6 +3241,7 @@
     <ClInclude Include="..\..\Source\Network\OSCLogger.h"/>
     <ClInclude Include="..\..\Source\Network\OSCMessageBuilder.h"/>
     <ClInclude Include="..\..\Source\Network\OSCMessageRouter.h"/>
+    <ClInclude Include="..\..\Source\Network\OSCParameterRamper.h"/>
     <ClInclude Include="..\..\Source\Network\OSCManager.h"/>
     <ClInclude Include="..\..\Source\Network\ADMOSCMapping.h"/>
     <ClInclude Include="..\..\Source\Network\OSCReceiverWithSenderIP.h"/>

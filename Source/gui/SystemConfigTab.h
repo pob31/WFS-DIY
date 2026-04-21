@@ -1110,6 +1110,17 @@ public:
         diagnosticsExpanded = ! AppSettings::getCleanShutdown();
         updateDiagnosticsVisibility();
 
+        // Version label — always visible, small text above the diagnostics toggle.
+        addAndMakeVisible (versionLabel);
+        versionLabel.setJustificationType (juce::Justification::centredLeft);
+        versionLabel.setText (LocalizationManager::getInstance().get (
+            "systemConfig.labels.version", {{"version", juce::String (ProjectInfo::versionString)}}),
+            juce::dontSendNotification);
+
+        // Update-available hyperlink — hidden until UpdateChecker reports a newer release.
+        addChildComponent (updateAvailableLink);
+        updateAvailableLink.setJustificationType (juce::Justification::centredLeft);
+
         // Setup numeric input filtering
         setupNumericEditors();
 
@@ -1451,6 +1462,29 @@ public:
                 exportLogsButton.setBounds (x, diagY, halfWidth, rowHeight);
                 openLogFolderButton.setBounds (x + halfWidth + spacing, diagY, halfWidth, rowHeight);
             }
+
+            // Version label (and optional update-available link) directly above the
+            // diagnostics section, always visible, scaled with the window.
+            diagY -= (rowHeight + spacing);
+            const float fontH = juce::jmax (9.0f, 12.0f * layoutScale);
+            versionLabel.setFont (juce::FontOptions().withHeight (fontH));
+            versionLabel.setColour (juce::Label::textColourId, ColorScheme::get().textSecondary);
+
+            updateAvailableLink.setFont (juce::FontOptions().withHeight (fontH), false,
+                                         juce::Justification::centredLeft);
+            updateAvailableLink.setColour (juce::HyperlinkButton::textColourId,
+                                           ColorScheme::get().accentBlue);
+
+            if (updateAvailableLink.isVisible())
+            {
+                int halfWidth = (fullWidth - spacing) / 2;
+                versionLabel.setBounds (x, diagY, halfWidth, rowHeight);
+                updateAvailableLink.setBounds (x + halfWidth + spacing, diagY, halfWidth, rowHeight);
+            }
+            else
+            {
+                versionLabel.setBounds (x, diagY, fullWidth, rowHeight);
+            }
         }
 
         //======================================================================
@@ -1657,6 +1691,25 @@ public:
     void setConfigReloadedCallback(ConfigReloadedCallback callback)
     {
         onConfigReloaded = callback;
+    }
+
+    /** Shown next to the version label when UpdateChecker reports a newer release.
+        The link opens the release URL in the default browser. Calling with an empty
+        version string hides the link again. */
+    void setUpdateAvailable (const juce::String& newVersion, const juce::String& releaseUrl)
+    {
+        if (newVersion.isEmpty() || releaseUrl.isEmpty())
+        {
+            updateAvailableLink.setVisible (false);
+        }
+        else
+        {
+            updateAvailableLink.setButtonText (LocalizationManager::getInstance().get (
+                "systemConfig.labels.updateAvailable", {{"version", newVersion}}));
+            updateAvailableLink.setURL (juce::URL (releaseUrl));
+            updateAvailableLink.setVisible (true);
+        }
+        resized();
     }
 
     void setDialsAndButtonsCallback (DialsAndButtonsCallback callback)
@@ -3758,6 +3811,10 @@ public:
     juce::TextButton githubIssueButton;
     bool diagnosticsExpanded = false;
     juce::AudioDeviceManager* audioDeviceManagerPtr = nullptr;
+
+    // Version display + optional update-available link (shown when a newer release is detected)
+    juce::Label versionLabel;
+    juce::HyperlinkButton updateAvailableLink { {}, juce::URL() };
 
     // UI Section
     juce::Label colorSchemeLabel;

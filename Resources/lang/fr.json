@@ -71,6 +71,8 @@
       "files": "Fichiers"
     },
     "labels": {
+      "version": "Version {version}",
+      "updateAvailable": "Mise à jour {version} disponible",
       "showName": "Nom :",
       "showLocation": "Lieu :",
       "inputChannels": "Canaux d'entrée :",

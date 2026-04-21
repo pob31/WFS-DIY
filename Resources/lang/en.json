@@ -77,6 +77,8 @@
     },
 
     "labels": {
+      "version": "Version {version}",
+      "updateAvailable": "Update {version} available",
       "showName": "Name:",
       "showLocation": "Location:",
       "inputChannels": "Input Channels:",

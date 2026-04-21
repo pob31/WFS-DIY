@@ -10,6 +10,7 @@
 #include "OSCReceiverWithSenderIP.h"
 #include "OSCTCPReceiver.h"
 #include "OSCQueryServer.h"
+#include "OSCParameterRamper.h"
 #include "TrackingOSCReceiver.h"
 #include "TrackingPSNReceiver.h"
 #include "TrackingRTTrPReceiver.h"
@@ -452,6 +453,17 @@ public:
     void sendToQLab (const QLabCueSequence& sequence,
                      std::function<void(int sentCount)> onComplete = nullptr);
 
+    /**
+     * Step all active input-parameter ramps. Call at 50 Hz from the main timer.
+     * Ramps are started when an incoming OSC message carries a non-zero
+     * "transition time in seconds" third argument on a ramp-capable input
+     * parameter (see OSCMessageRouter::isInputParamRampCapable).
+     */
+    void processParameterRamps (float deltaTimeSeconds) { parameterRamper.process (deltaTimeSeconds); }
+
+    /** Cancel all in-flight input parameter ramps. */
+    void cancelAllParameterRamps() { parameterRamper.cancelAll(); }
+
 private:
     /** Send an OSC message directly to a target, bypassing the rate limiter.
      *  Used for QLab command sequences that must not be coalesced. */
@@ -652,6 +664,10 @@ private:
     std::map<juce::String, PendingParamUpdate> pendingParamUpdates;  // key = "paramId:channelId"
     juce::CriticalSection pendingParamLock;
     std::atomic<bool> paramDrainScheduled { false };
+
+    // Smooth ramps for input parameters that accept an optional 3rd OSC float
+    // argument ("transition time in seconds"). Stepped at 50 Hz by MainComponent.
+    OSCParameterRamper parameterRamper { state };
     void drainPendingParamUpdates();
 
 

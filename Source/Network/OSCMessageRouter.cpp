@@ -1,5 +1,7 @@
 #include "OSCMessageRouter.h"
 
+#include <set>
+
 namespace WFSNetwork
 {
 
@@ -530,7 +532,7 @@ OSCMessageRouter::ParsedInputMessage OSCMessageRouter::parseInputMessage(const j
     if (!isInputAddress(address))
         return result;
 
-    // Check for OSCQuery format first: /wfs/input/{channelID}/{param} <value>
+    // Check for OSCQuery format first: /wfs/input/{channelID}/{param} <value> [rampTimeSec]
     // e.g. /wfs/input/1/attenuation -5.0
     juce::String suffix = address.fromFirstOccurrenceOf("/wfs/input/", false, true);
     int slashIdx = suffix.indexOf("/");
@@ -553,13 +555,17 @@ OSCMessageRouter::ParsedInputMessage OSCMessageRouter::parseInputMessage(const j
                 else
                     result.value = extractFloat(message[0]);
 
+                // Optional ramp time: /wfs/input/{channelID}/{param} <value> <rampTimeSec>
+                if (message.size() >= 2 && isInputParamRampCapable(result.paramId))
+                    result.rampTimeSec = juce::jmax (0.0f, extractFloat(message[1]));
+
                 result.valid = true;
                 return result;
             }
         }
     }
 
-    // Standard format: /wfs/input/{param} <channelID> <value>
+    // Standard format: /wfs/input/{param} <channelID> <value> [rampTimeSec]
     result.paramId = getInputParamId(address);
     if (result.paramId.isValid() && message.size() >= 2)
     {
@@ -570,10 +576,65 @@ OSCMessageRouter::ParsedInputMessage OSCMessageRouter::parseInputMessage(const j
         else
             result.value = extractFloat(message[1]);
 
+        // Optional ramp time argument — only accepted for parameters listed as
+        // ramp-capable in Documentation/WFS-UI_input.csv.
+        if (message.size() >= 3 && isInputParamRampCapable(result.paramId))
+            result.rampTimeSec = juce::jmax (0.0f, extractFloat(message[2]));
+
         result.valid = true;
     }
 
     return result;
+}
+
+bool OSCMessageRouter::isInputParamRampCapable(const juce::Identifier& paramId)
+{
+    // Whitelist mirrors the "OSC path optional value" column in
+    // Documentation/WFS-UI_input.csv: every row with
+    // "extra value is transition time in seconds".
+    static const std::set<juce::Identifier> rampCapable = {
+        WFSParameterIDs::inputDelayLatency,
+        WFSParameterIDs::inputPositionX,
+        WFSParameterIDs::inputPositionY,
+        WFSParameterIDs::inputPositionZ,
+        WFSParameterIDs::inputOffsetX,
+        WFSParameterIDs::inputOffsetY,
+        WFSParameterIDs::inputOffsetZ,
+        WFSParameterIDs::inputMaxSpeed,
+        WFSParameterIDs::inputHeightFactor,
+        WFSParameterIDs::inputDistanceAttenuation,
+        WFSParameterIDs::inputDistanceRatio,
+        WFSParameterIDs::inputDirectivity,
+        WFSParameterIDs::inputRotation,
+        WFSParameterIDs::inputTilt,
+        WFSParameterIDs::inputHFshelf,
+        WFSParameterIDs::inputLSradius,
+        WFSParameterIDs::inputLSattenuation,
+        WFSParameterIDs::inputLSpeakThreshold,
+        WFSParameterIDs::inputLSpeakRatio,
+        WFSParameterIDs::inputLSslowThreshold,
+        WFSParameterIDs::inputLSslowRatio,
+        WFSParameterIDs::inputFRattenuation,
+        WFSParameterIDs::inputFRlowCutFreq,
+        WFSParameterIDs::inputFRhighShelfFreq,
+        WFSParameterIDs::inputFRhighShelfGain,
+        WFSParameterIDs::inputFRhighShelfSlope,
+        WFSParameterIDs::inputFRdiffusion,
+        WFSParameterIDs::inputJitter,
+        WFSParameterIDs::inputLFOperiod,
+        WFSParameterIDs::inputLFOphase,
+        WFSParameterIDs::inputLFOrateX,
+        WFSParameterIDs::inputLFOrateY,
+        WFSParameterIDs::inputLFOrateZ,
+        WFSParameterIDs::inputLFOamplitudeX,
+        WFSParameterIDs::inputLFOamplitudeY,
+        WFSParameterIDs::inputLFOamplitudeZ,
+        WFSParameterIDs::inputLFOphaseX,
+        WFSParameterIDs::inputLFOphaseY,
+        WFSParameterIDs::inputLFOphaseZ,
+    };
+
+    return rampCapable.find (paramId) != rampCapable.end();
 }
 
 OSCMessageRouter::ParsedOutputMessage OSCMessageRouter::parseOutputMessage(const juce::OSCMessage& message)

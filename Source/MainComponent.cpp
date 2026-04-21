@@ -3842,6 +3842,11 @@ void MainComponent::showUpdateBanner (const juce::String& version, const juce::S
         updateBanner->showUpdate (version, url);
         resized();
     }
+
+    // Also surface the update on the System Config tab next to the version label,
+    // because the top banner is easy to miss.
+    if (systemConfigTab != nullptr)
+        systemConfigTab->setUpdateAvailable (version, url);
 }
 
 //==============================================================================
@@ -4520,6 +4525,11 @@ void MainComponent::timerCallback()
     // Recalculate matrix from input/output positions and update target values
     if (calculationEngine != nullptr && (timerTicksSinceLastRandom % 4) == 0)
     {
+        // Step OSC-driven parameter ramps (3rd-float "transition time in seconds")
+        // BEFORE everything else so the 50 Hz recalculation below sees the latest values.
+        if (oscManager != nullptr)
+            oscManager->processParameterRamps (0.02f);
+
         // Process Input Speed Limiter at 50Hz (BEFORE flip/offset/LFO)
         if (speedLimiter != nullptr)
         {

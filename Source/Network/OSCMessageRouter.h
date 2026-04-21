@@ -26,6 +26,7 @@ public:
         juce::Identifier paramId;
         int channelId = 0;
         juce::var value;
+        float rampTimeSec = 0.0f;  // Optional 3rd OSC arg: transition time in seconds (0 = apply immediately)
         bool valid = false;
     };
 
@@ -211,6 +212,13 @@ public:
     static juce::Identifier getOutputParamId(const juce::String& address);
     static juce::Identifier getReverbParamId(const juce::String& address);
     static juce::Identifier getConfigParamId(const juce::String& address);
+
+    /**
+     * True if the given input parameter accepts an optional 3rd OSC argument
+     * specifying a transition time in seconds. See
+     * Documentation/WFS-UI_input.csv, column "OSC path optional value".
+     */
+    static bool isInputParamRampCapable(const juce::Identifier& paramId);
 
     //==========================================================================
     // Value Extraction

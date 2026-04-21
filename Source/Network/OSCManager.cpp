@@ -1717,6 +1717,19 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
         {
             int channelIndex = parsed.channelId - 1;
 
+            // Ramp path: parsed.rampTimeSec is only non-zero when the param is in
+            // OSCMessageRouter::isInputParamRampCapable() and the caller sent a 3rd
+            // float argument. Interpolates current -> target over the duration at 50 Hz.
+            if (parsed.rampTimeSec > 0.0f
+                && channelIndex >= 0
+                && parsed.value.isDouble())
+            {
+                parameterRamper.startRamp (channelIndex, parsed.paramId,
+                                           static_cast<double> (parsed.value),
+                                           parsed.rampTimeSec);
+                return;
+            }
+
             // Special cases that need immediate processing (position constraints, etc.)
             bool needsSpecialHandling =
                 (parsed.paramId == WFSParameterIDs::inputPositionX ||

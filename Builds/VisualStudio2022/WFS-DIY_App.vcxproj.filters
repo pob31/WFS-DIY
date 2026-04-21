@@ -4317,6 +4317,9 @@
     <ClInclude Include="..\..\Source\Network\OSCMessageRouter.h">
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\Network\OSCParameterRamper.h">
+      <Filter>WFS-DIY\Source\Network</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\Network\OSCManager.h">
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClInclude>

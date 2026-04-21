@@ -71,6 +71,8 @@
       "files": "ファイル"
     },
     "labels": {
+      "version": "バージョン {version}",
+      "updateAvailable": "アップデート {version} 利用可能",
       "showName": "名前:",
       "showLocation": "場所:",
       "inputChannels": "入力チャンネル:",
