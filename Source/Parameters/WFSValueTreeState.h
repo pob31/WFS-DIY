@@ -293,8 +293,17 @@ public:
     void setNumReverbChannels (int numChannels);
 
     /** Update hardware channel count in patch trees based on actual audio device.
-     *  Only grows (never shrinks) to preserve existing patches. Capped at 64. */
+     *  Pass 0 for either count when no device is connected to trigger the
+     *  "default to 64 or highest patched channel" policy. */
     void updateHardwareChannelCount (int hwInputs, int hwOutputs);
+
+    /** Recompute patch-matrix column counts using the most recent device
+     *  channel counts stored on the patch trees. Call after any patch edit
+     *  so cols can shrink once overflow routes are removed. */
+    void recomputePatchCols();
+
+    /** Max hardware channels the patch matrix can address. */
+    static constexpr int maxHardwarePatchChannels = 512;
 
     //==========================================================================
     // Undo / Redo  (per-domain — one UndoManager per tab)

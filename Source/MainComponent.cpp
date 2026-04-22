@@ -2332,6 +2332,10 @@ void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source)
             WFSLogger::getInstance().logWarning ("Audio device changed: no device available");
             DBG("Device changed: no device available");
             audioCallbacksAttached = false;
+
+            // Let the patch trees fall back to the no-device policy
+            // (cols = max(64, highest patched channel)).
+            parameters.updateHardwareChannelCount (0, 0);
         }
     }
 }
@@ -2581,7 +2585,7 @@ void MainComponent::loadAudioPatches()
     auto outputPatchTree = audioPatchTree.getChildWithName(WFSParameterIDs::OutputPatch);
 
     // Reset patch maps to "unmapped" (-1)
-    inputPatchMap.assign(64, -1);  // Max hardware inputs
+    inputPatchMap.assign(LevelMeteringManager::MaxHardwareInputs, -1);  // Max hardware inputs
     outputPatchMap.assign(64, -1); // Max WFS outputs
 
     // Load input patches: hardware channel → WFS channel
@@ -2624,6 +2628,16 @@ void MainComponent::loadAudioPatches()
         }
     }
 
+    // Apply cols policy using current device counts (0/0 when no device).
+    // This keeps cols bounded to the device size or to the highest patched
+    // channel (whichever is larger), without needing a device-change event.
+    int hwIn = 0, hwOut = 0;
+    if (auto* device = deviceManager.getCurrentAudioDevice())
+    {
+        hwIn = device->getInputChannelNames().size();
+        hwOut = device->getOutputChannelNames().size();
+    }
+    parameters.updateHardwareChannelCount (hwIn, hwOut);
 }
 
 void MainComponent::applyInputPatch(const juce::AudioSourceChannelInfo& bufferToFill)
@@ -4136,7 +4150,7 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
     if (levelMeteringManager != nullptr && bufferToFill.buffer != nullptr)
     {
         const int hwChannels = bufferToFill.buffer->getNumChannels();
-        const int activeInputs = juce::jmin (hwChannels, numInputChannels,
+        const int activeInputs = juce::jmin (hwChannels,
                                              LevelMeteringManager::MaxHardwareInputs);
         const double sr = currentDeviceSampleRate.load (std::memory_order_relaxed);
         for (int ch = 0; ch < activeInputs; ++ch)

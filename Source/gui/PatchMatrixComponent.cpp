@@ -201,6 +201,11 @@ void PatchMatrixComponent::savePatchesToValueTree()
     juce::String patchDataStr = rowStrings.joinIntoString(";");
     patchTree.setProperty(WFSParameterIDs::patchData, patchDataStr, nullptr);
 
+    // Keep cols tracking the real device (or 64 default) plus the highest
+    // patched channel, so unpatching an overflow route shrinks the matrix
+    // back down.
+    parameters.recomputePatchCols();
+
     if (onPatchChanged)
         onPatchChanged();
 }
@@ -597,22 +602,38 @@ void PatchMatrixComponent::valueTreePropertyChanged(juce::ValueTree& tree,
                                                     const juce::Identifier& property)
 {
     juce::ignoreUnused(tree);
-    if (property == WFSParameterIDs::rows || property == WFSParameterIDs::cols)
+    if (property == WFSParameterIDs::rows)
     {
         updateChannelCounts();
 
-        // Remove invalid patches (beyond new bounds)
+        // Row (WFS) shrink is user-driven (they removed a WFS channel).
+        // Drop patches that reference the now-missing row. Cols cannot
+        // shrink past the highest patched hardware channel under the current
+        // policy, so we never drop by column here.
+        auto before = patches.size();
         patches.erase(
             std::remove_if(patches.begin(), patches.end(),
                 [this](const PatchPoint& p) {
-                    return p.wfsChannel >= numWFSChannels ||
-                           p.hardwareChannel >= numHardwareChannels;
+                    return p.wfsChannel >= numWFSChannels;
                 }),
             patches.end()
         );
 
-        savePatchesToValueTree();
+        if (patches.size() != before)
+            savePatchesToValueTree();
         updateScrollBars();
+        repaint();
+    }
+    else if (property == WFSParameterIDs::cols)
+    {
+        updateChannelCounts();
+        updateScrollBars();
+        repaint();
+    }
+    else if (property == WFSParameterIDs::activeHardwareInputs
+             || property == WFSParameterIDs::activeHardwareOutputs)
+    {
+        updateChannelCounts();
         repaint();
     }
 
@@ -675,6 +696,7 @@ void PatchMatrixComponent::valueTreeChildAdded(juce::ValueTree& parent, juce::Va
             {
                 int candidate = ch + detectedOffset;
                 if (candidate >= 0 && candidate < numHardwareChannels
+                    && isHardwareChannelActive(candidate)
                     && usedHW.find(candidate) == usedHW.end())
                     targetHW = candidate;
             }
@@ -685,7 +707,8 @@ void PatchMatrixComponent::valueTreeChildAdded(juce::ValueTree& parent, juce::Va
                 for (int i = 1; i <= numHardwareChannels; ++i)
                 {
                     int candidate = (maxUsedHW + i) % numHardwareChannels;
-                    if (usedHW.find(candidate) == usedHW.end())
+                    if (isHardwareChannelActive(candidate)
+                        && usedHW.find(candidate) == usedHW.end())
                     {
                         targetHW = candidate;
                         break;
@@ -769,10 +792,15 @@ void PatchMatrixComponent::updateChannelCounts()
     if (patchTree.isValid())
     {
         numHardwareChannels = patchTree.getProperty(WFSParameterIDs::cols, 64);
+
+        auto activeId = isInputPatch ? WFSParameterIDs::activeHardwareInputs
+                                     : WFSParameterIDs::activeHardwareOutputs;
+        activeHardwareChannels = patchTree.getProperty(activeId, 0);
     }
     else
     {
         numHardwareChannels = 64;  // Maximum hardware channels
+        activeHardwareChannels = 0;
     }
 
     // Update scrollbars for new dimensions
@@ -906,13 +934,23 @@ void PatchMatrixComponent::drawHeader(juce::Graphics& g)
             g.fillRect(x, titleHeight, cellWidth, headerHeight);
         }
 
-        g.setColour(ColorScheme::get().textPrimary);
+        bool isActive = isHardwareChannelActive(col);
+
+        g.setColour(isActive ? ColorScheme::get().textPrimary
+                             : ColorScheme::get().textDisabled);
         g.drawText(juce::String(col + 1), x, titleHeight, cellWidth, headerHeight,
                    juce::Justification::centred);
 
         // Draw grid line
         g.setColour(ColorScheme::get().chromeDivider);
         g.drawVerticalLine(x, static_cast<float>(titleHeight), static_cast<float>(contentTop));
+
+        // Dim columns that exceed the connected device's channel count.
+        if (!isActive)
+        {
+            g.setColour(ColorScheme::get().background.withAlpha(0.55f));
+            g.fillRect(x, titleHeight, cellWidth, headerHeight);
+        }
     }
 }
 
@@ -1168,6 +1206,15 @@ void PatchMatrixComponent::drawCell(juce::Graphics& g, int row, int col,
     // Draw grid lines
     g.setColour(ColorScheme::get().chromeDivider);
     g.drawRect(bounds, 1);
+
+    // Overflow columns (hardware channel beyond the connected device's count)
+    // render dimmed. Existing patch dots remain visible (and clickable to
+    // unpatch) but new patches/tests are blocked by the mouse handlers.
+    if (!isHardwareChannelActive(col))
+    {
+        g.setColour(ColorScheme::get().background.withAlpha(0.55f));
+        g.fillRect(bounds);
+    }
 }
 
 //==============================================================================
@@ -1240,12 +1287,19 @@ void PatchMatrixComponent::startPatchOperation(juce::Point<int> cell)
     if (isChannelUsedByBinaural(cell.x))
         return;
 
+    bool existingPatch = isPatchActive(cell.y, cell.x);
+
+    // Overflow columns (beyond the connected device's channel count): allow
+    // unpatch of existing routes, block new patches.
+    if (!isHardwareChannelActive(cell.x) && !existingPatch)
+        return;
+
     patchDragState.startCell = cell;
     patchDragState.currentCell = cell;
     patchDragState.isActive = true;
 
     // Check if clicking on existing patch to remove it
-    if (isPatchActive(cell.y, cell.x))
+    if (existingPatch)
     {
         // Single click to remove
         patches.erase(
@@ -1299,6 +1353,7 @@ void PatchMatrixComponent::updatePatchDrag(juce::Point<int> currentCell)
 
         if (row >= 0 && row < numWFSChannels &&
             col >= 0 && col < numHardwareChannels &&
+            isHardwareChannelActive(col) &&
             isValidPatch(row, col))
         {
             patchDragState.previewPatches.push_back({row, col});
@@ -1391,6 +1446,10 @@ juce::Colour PatchMatrixComponent::getCellColor(int wfsChannel) const
 void PatchMatrixComponent::handleTestClick(int hardwareChannel)
 {
     if (!testSignalGenerator || hardwareChannel < 0 || hardwareChannel >= numHardwareChannels)
+        return;
+
+    // Testing a channel the device can't play would be silent and misleading.
+    if (!isHardwareChannelActive(hardwareChannel))
         return;
 
     // Block testing when signal type is Off - no visual feedback, just status message

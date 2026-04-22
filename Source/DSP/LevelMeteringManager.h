@@ -250,7 +250,10 @@ public:
     // WFS and binaural are both stopped. Read from the GUI thread for the
     // Input Patch header tint.
 
-    static constexpr int MaxHardwareInputs = 64;
+    // Upper bound for hardware input metering. Kept well above the WFS logical
+    // input count (max 64) so large interfaces like the RME AoX-D (up to 512
+    // channels) can meter and patch beyond 64 hardware inputs.
+    static constexpr int MaxHardwareInputs = 512;
 
     /** Audio-thread writer. Pushes one block's peak for a single hardware
      *  input. Instantaneous rise, ~150 ms exponential release. Lock-free. */

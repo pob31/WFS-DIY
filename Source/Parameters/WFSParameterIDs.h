@@ -486,6 +486,8 @@ namespace WFSParameterIDs
     const juce::Identifier sineFrequency         ("sineFrequency");
     const juce::Identifier testToneLevel         ("testToneLevel");
     const juce::Identifier patchData             ("patchData");
+    const juce::Identifier activeHardwareInputs  ("activeHardwareInputs");
+    const juce::Identifier activeHardwareOutputs ("activeHardwareOutputs");
 
     //==========================================================================
     // Reverb Parameters

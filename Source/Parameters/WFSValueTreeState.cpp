@@ -1424,30 +1424,81 @@ void WFSValueTreeState::setNumReverbChannels (int numChannels)
     reverbs.setProperty (count, numChannels, getActiveUndoManager());
 }
 
+namespace
+{
+    int computeHighestPatchedHardwareChannel (const juce::String& patchDataStr)
+    {
+        int highest = -1;
+        auto rowTokens = juce::StringArray::fromTokens (patchDataStr, ";", "");
+        for (auto& rowStr : rowTokens)
+        {
+            auto colTokens = juce::StringArray::fromTokens (rowStr, ",", "");
+            for (int c = 0; c < colTokens.size(); ++c)
+                if (colTokens[c].getIntValue() == 1 && c > highest)
+                    highest = c;
+        }
+        return highest;
+    }
+
+    void applyColsPolicy (juce::ValueTree& patchTree, int deviceChannels)
+    {
+        if (! patchTree.isValid())
+            return;
+
+        constexpr int minCols = 64;
+        constexpr int maxCols = WFSValueTreeState::maxHardwarePatchChannels;
+
+        auto patchDataStr = patchTree.getProperty (WFSParameterIDs::patchData).toString();
+        int highestPatched = computeHighestPatchedHardwareChannel (patchDataStr);
+
+        int target = juce::jmax (minCols, deviceChannels, highestPatched + 1);
+        int newCols = juce::jlimit (minCols, maxCols, target);
+
+        int currentCols = patchTree.getProperty (WFSParameterIDs::cols, minCols);
+        if (newCols != currentCols)
+            patchTree.setProperty (WFSParameterIDs::cols, newCols, nullptr);
+    }
+}
+
 void WFSValueTreeState::updateHardwareChannelCount (int hwInputs, int hwOutputs)
 {
     auto audioPatch = state.getChildWithName (AudioPatch);
     if (! audioPatch.isValid())
         return;
 
-    constexpr int maxHW = 64;
-
     auto inputPatchTree = audioPatch.getChildWithName (InputPatch);
     if (inputPatchTree.isValid())
     {
-        int currentCols = inputPatchTree.getProperty (cols, maxHW);
-        int newCols = juce::jmin (juce::jmax (hwInputs, currentCols), maxHW);
-        if (newCols != currentCols)
-            inputPatchTree.setProperty (cols, newCols, nullptr);
+        inputPatchTree.setProperty (WFSParameterIDs::activeHardwareInputs, hwInputs, nullptr);
+        applyColsPolicy (inputPatchTree, hwInputs);
     }
 
     auto outputPatchTree = audioPatch.getChildWithName (OutputPatch);
     if (outputPatchTree.isValid())
     {
-        int currentCols = outputPatchTree.getProperty (cols, maxHW);
-        int newCols = juce::jmin (juce::jmax (hwOutputs, currentCols), maxHW);
-        if (newCols != currentCols)
-            outputPatchTree.setProperty (cols, newCols, nullptr);
+        outputPatchTree.setProperty (WFSParameterIDs::activeHardwareOutputs, hwOutputs, nullptr);
+        applyColsPolicy (outputPatchTree, hwOutputs);
+    }
+}
+
+void WFSValueTreeState::recomputePatchCols()
+{
+    auto audioPatch = state.getChildWithName (AudioPatch);
+    if (! audioPatch.isValid())
+        return;
+
+    auto inputPatchTree = audioPatch.getChildWithName (InputPatch);
+    if (inputPatchTree.isValid())
+    {
+        int stored = inputPatchTree.getProperty (WFSParameterIDs::activeHardwareInputs, 0);
+        applyColsPolicy (inputPatchTree, stored);
+    }
+
+    auto outputPatchTree = audioPatch.getChildWithName (OutputPatch);
+    if (outputPatchTree.isValid())
+    {
+        int stored = outputPatchTree.getProperty (WFSParameterIDs::activeHardwareOutputs, 0);
+        applyColsPolicy (outputPatchTree, stored);
     }
 }
 

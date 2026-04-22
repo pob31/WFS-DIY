@@ -266,6 +266,16 @@ private:
     // Channel dimensions
     int numWFSChannels = 0;
     int numHardwareChannels = 0;
+    // Number of hardware channels the currently connected audio device
+    // exposes. Columns in [activeHardwareChannels, numHardwareChannels) are
+    // "overflow" — drawn dimmed, blocked from new patches/tests, but still
+    // unpatchable. Value <= 0 means no gating (no device / unknown).
+    int activeHardwareChannels = 0;
+
+    bool isHardwareChannelActive (int col) const
+    {
+        return activeHardwareChannels <= 0 || col < activeHardwareChannels;
+    }
 
     // Helper methods
     void updateScrollBars();
