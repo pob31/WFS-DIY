@@ -6,8 +6,6 @@
 
 WFS-DIY is getting an embedded Model Context Protocol (MCP) server so that AI clients (Claude Desktop, Claude Code, ChatGPT, Mistral, self-hosted models) can control the application — reading its state, modifying parameters, loading snapshots, assisting with session setup and tuning workflows, and eventually supporting voice-operated hands-free use during rehearsals and demos.
 
-This is a post-beta iteration. Not urgent. It should be built only after beta feedback has settled and the CI/notarization work (GitHub Actions) is done. It is NOT an Avignon deliverable.
-
 ## Why embedded C++, not a separate process
 
 Pierre-Olivier chose option 3 from the design conversation: the MCP server lives inside WFS-DIY, not as a separate Python or Node process. Reasons:

@@ -1,0 +1,9 @@
+Builds/
+Installer/Output/
+*.user
+.vs/
+.vscode/
+.idea/
+CMakeCache.txt
+CMakeFiles/
+cmake-build-*/
