@@ -480,7 +480,12 @@ MainComponent::MainComponent()
 
         int numChannels = parameters.getNumInputChannels();
         int patchNumber = oscManager->getQLabPatchNumber();
-        int cueCount = WFSNetwork::QLabCueBuilder::countCues (inputsData, scope, numChannels);
+
+        // Fold the global sampler master into the scope so QLab applies the
+        // same rule as the file-manager save/recall paths.
+        const auto effScope = scope.withGlobals (fileManager.isSamplerMasterOn(), numChannels);
+
+        int cueCount = WFSNetwork::QLabCueBuilder::countCues (inputsData, effScope, numChannels);
 
         if (cueCount == 0)
         {
@@ -490,7 +495,7 @@ MainComponent::MainComponent()
         }
 
         auto sequence = WFSNetwork::QLabCueBuilder::buildSnapshotCues (
-            snapshotName, inputsData, scope, numChannels, patchNumber);
+            snapshotName, inputsData, effScope, numChannels, patchNumber);
 
         oscManager->sendToQLab (sequence, [this, cueCount](int /*sentCount*/) {
             if (inputsTab != nullptr)

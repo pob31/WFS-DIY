@@ -1004,7 +1004,7 @@ const std::vector<WFSFileManager::ScopeItem>& WFSFileManager::ExtendedSnapshotSc
         { "gmLayer3", "Layer 3", GradientMaps, { gmLayerEnabled, gmLayerParam, gmLayerWhite, gmLayerBlack, gmLayerCurve, gmLayerVisible } },
 
         // Sampler Section (subtree-based — cells and sets are children, not properties)
-        { "sampler", "Sampler", Sampler, { samplerEnabled } },
+        { "sampler", "Sampler", Sampler, { inputSamplerActive, inputSamplerActiveSet } },
 
         // ADM-OSC Section
         { "admMapping", "ADM Mapping", ADMMapping, { inputAdmMapping } }
@@ -1209,6 +1209,18 @@ void WFSFileManager::ExtendedSnapshotScope::initializeDefaults (int numChannels)
     itemChannelStates.clear();
     applyMode = ApplyMode::OnRecall;
     // All scope items default to included (missing = included convention)
+}
+
+WFSFileManager::ExtendedSnapshotScope
+WFSFileManager::ExtendedSnapshotScope::withGlobals (bool samplerMasterOn, int numChannels) const
+{
+    ExtendedSnapshotScope eff = *this;
+    if (!samplerMasterOn)
+    {
+        for (int ch = 0; ch < numChannels; ++ch)
+            eff.setIncluded ("sampler", ch, false);
+    }
+    return eff;
 }
 
 //==============================================================================
@@ -1431,11 +1443,23 @@ WFSFileManager::ExtendedSnapshotScope WFSFileManager::deserializeExtendedScope (
     return scope;
 }
 
-juce::ValueTree WFSFileManager::extractInputWithExtendedScope (int channelIndex, const ExtendedSnapshotScope& scope) const
+bool WFSFileManager::isSamplerMasterOn() const
+{
+    auto config = valueTreeState.getConfigState();
+    auto ui = config.getChildWithName (WFSParameterIDs::UI);
+    return ui.isValid() && (bool) ui.getProperty (samplerEnabled, false);
+}
+
+juce::ValueTree WFSFileManager::extractInputWithExtendedScope (int channelIndex, const ExtendedSnapshotScope& scopeIn) const
 {
     auto input = const_cast<WFSValueTreeState&>(valueTreeState).getInputState (channelIndex);
     if (!input.isValid())
         return {};
+
+    // Fold the global sampler master into an effective scope so the sampler
+    // inclusion decision is the same everywhere in this file.
+    const bool samplerMasterOn = isSamplerMasterOn();
+    const auto scope = scopeIn.withGlobals (samplerMasterOn, valueTreeState.getNumInputChannels());
 
     juce::ValueTree filtered (Input);
     filtered.setProperty (id, channelIndex + 1, nullptr);
@@ -1526,28 +1550,27 @@ juce::ValueTree WFSFileManager::extractInputWithExtendedScope (int channelIndex,
     }
 
     // Sampler — subtree copy (cells + dynamic set children)
-    // Only include if sampler is globally enabled
+    // Effective scope already folds in the global master, so this single check
+    // enforces both "master on" and "sampler in scope".
+    if (scope.isIncluded ("sampler", channelIndex))
     {
-        auto config = valueTreeState.getConfigState();
-        auto ui = config.getChildWithName (WFSParameterIDs::UI);
-        bool samplerOn = ui.isValid() && (bool) ui.getProperty (samplerEnabled, false);
-
-        if (samplerOn && scope.isIncluded ("sampler", channelIndex))
-        {
-            auto samplerSource = input.getChildWithName (Sampler);
-            if (samplerSource.isValid())
-                filtered.appendChild (samplerSource.createCopy(), nullptr);
-        }
+        auto samplerSource = input.getChildWithName (Sampler);
+        if (samplerSource.isValid())
+            filtered.appendChild (samplerSource.createCopy(), nullptr);
     }
 
     return filtered;
 }
 
-bool WFSFileManager::applyInputWithExtendedScope (int channelIndex, const juce::ValueTree& inputData, const ExtendedSnapshotScope& scope)
+bool WFSFileManager::applyInputWithExtendedScope (int channelIndex, const juce::ValueTree& inputData, const ExtendedSnapshotScope& scopeIn)
 {
     auto input = valueTreeState.getInputState (channelIndex);
     if (!input.isValid())
         return false;
+
+    // Fold the global sampler master into an effective scope — same rule as extract.
+    const bool samplerMasterOn = isSamplerMasterOn();
+    const auto scope = scopeIn.withGlobals (samplerMasterOn, valueTreeState.getNumInputChannels());
 
     auto* undoManager = valueTreeState.getUndoManager();
 
@@ -1639,22 +1662,16 @@ bool WFSFileManager::applyInputWithExtendedScope (int channelIndex, const juce::
     }
 
     // Sampler — subtree replacement (cells + dynamic set children)
-    // Only apply if sampler is globally enabled
+    // Effective scope already folds in the global master.
+    if (scope.isIncluded ("sampler", channelIndex))
     {
-        auto config = valueTreeState.getConfigState();
-        auto ui = config.getChildWithName (WFSParameterIDs::UI);
-        bool samplerOn = ui.isValid() && (bool) ui.getProperty (samplerEnabled, false);
-
-        if (samplerOn && scope.isIncluded ("sampler", channelIndex))
+        auto samplerSource = inputData.getChildWithName (Sampler);
+        if (samplerSource.isValid())
         {
-            auto samplerSource = inputData.getChildWithName (Sampler);
-            if (samplerSource.isValid())
-            {
-                auto samplerTarget = input.getChildWithName (Sampler);
-                if (!samplerTarget.isValid())
-                    samplerTarget = valueTreeState.ensureInputSamplerSection (channelIndex);
-                samplerTarget.copyPropertiesAndChildrenFrom (samplerSource, undoManager);
-            }
+            auto samplerTarget = input.getChildWithName (Sampler);
+            if (!samplerTarget.isValid())
+                samplerTarget = valueTreeState.ensureInputSamplerSection (channelIndex);
+            samplerTarget.copyPropertiesAndChildrenFrom (samplerSource, undoManager);
         }
     }
 

@@ -330,6 +330,11 @@ public:
         /** Initialize with all items included for all channels */
         void initializeDefaults (int numChannels);
 
+        /** Return a copy of this scope with global-master gates folded in.
+            When samplerMasterOn is false, every `sampler_<ch>` key is forced
+            to excluded so callers cannot accidentally include sampler data. */
+        ExtendedSnapshotScope withGlobals (bool samplerMasterOn, int numChannels) const;
+
         /** Create key string for itemId and channel */
         static juce::String makeKey (const juce::String& itemId, int channelIndex);
     };
@@ -358,6 +363,9 @@ public:
 
     /** Save extended scope to snapshot file (updates scope only, not parameters) */
     bool setExtendedSnapshotScope (const juce::String& snapshotName, const ExtendedSnapshotScope& scope);
+
+    /** Current value of the global sampler master switch (Config > UI > samplerEnabled). */
+    bool isSamplerMasterOn() const;
 
     //==========================================================================
     // Backup Management

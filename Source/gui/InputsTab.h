@@ -6568,9 +6568,17 @@ private:
 
         if (snapshotScopeWindow == nullptr || !snapshotScopeWindow->isVisible())
         {
-            snapshotScopeWindow = std::make_unique<SnapshotScopeWindow>(parameters, windowTitle, *scopePtr, &parameters.getDirtyTracker());
+            // OK commits, Cancel/X discards: the window edits a working copy.
+            // The real scope is only overwritten when the user clicks OK.
+            // shared_ptr so the lambda remains copy-constructible for std::function.
+            auto working = std::make_shared<WFSFileManager::ExtendedSnapshotScope>(*scopePtr);
+
+            snapshotScopeWindow = std::make_unique<SnapshotScopeWindow>(parameters, windowTitle, *working, &parameters.getDirtyTracker());
             snapshotScopeWindow->setQLabAvailable (isQLabAvailable ? isQLabAvailable() : false);
-            snapshotScopeWindow->onWindowClosed = [this, hasSelectedSnapshot, selectedSnapshot](bool saved, bool writeToQLab, bool writeLoadCue) {
+            snapshotScopeWindow->onWindowClosed =
+                [this, hasSelectedSnapshot, selectedSnapshot, scopePtr, working]
+                (bool saved, bool writeToQLab, bool writeLoadCue)
+            {
                 writeToQLabEnabled = writeToQLab;
                 writeSnapshotLoadCueEnabled = writeLoadCue;
 
@@ -6585,10 +6593,19 @@ private:
 
                 if (saved)
                 {
+                    // Single atomic commit — OK is the only path that mutates the real scope.
+                    *scopePtr = *working;
+
+                    // Also mirror into currentScope so the next "Create Snapshot" starts from
+                    // whatever the user last edited, regardless of whether they were editing a
+                    // selected snapshot's scope or the new-snapshot default.
+                    currentScope = *working;
+                    currentScopeInitialized = true;
+
                     if (hasSelectedSnapshot)
                     {
                         auto& fileManager = parameters.getFileManager();
-                        if (fileManager.setExtendedSnapshotScope(selectedSnapshot, snapshotScopes[selectedSnapshot]))
+                        if (fileManager.setExtendedSnapshotScope(selectedSnapshot, *scopePtr))
                             showStatusMessage(LOC("inputs.messages.scopeSaved"));
                         else
                             showStatusMessage(LOC("inputs.messages.error").replace("{error}", fileManager.getLastError()));
@@ -6598,7 +6615,17 @@ private:
                         showStatusMessage(LOC("inputs.messages.scopeConfigured"));
                     }
                 }
-                snapshotScopeWindow.reset();
+                // Cancel / X / any other close: do nothing — working copy is discarded
+                // together with this lambda when the window is destroyed.
+                //
+                // Defer the window destruction: onWindowClosed is called from deep inside
+                // the OK button's click handler stack. Destroying the window synchronously
+                // here tears down the button while its click handler is still executing,
+                // which corrupts subsequent scope-window sessions.
+                juce::MessageManager::callAsync ([this]()
+                {
+                    snapshotScopeWindow.reset();
+                });
             };
         }
         else

@@ -687,7 +687,10 @@ public:
                 dirtyTracker->clearAll();
         };
 
-        // Live dirty-state updates: repaint grid + update button when dirty flags change
+        // Live dirty-state updates: repaint grid + update button when dirty flags change.
+        // Deliberately does NOT rerun applyDirtyToScope here: auto-preselect applies on
+        // window open and on OFF->ON transitions, not continuously — otherwise a later
+        // dirty event would clobber any manual tick/untick the user just made.
         if (dirtyTracker != nullptr)
         {
             dirtyTracker->onDirtyStateChanged = [this]() {
@@ -696,10 +699,6 @@ public:
                 clearChangesButton.setVisible (hasDirty);
                 gridComponent->repaint();
                 channelHeader->repaint();
-
-                // Continuous auto-apply: update scope selection live when toggle is ON
-                if (autoPreselectToggle.getToggleState())
-                    applyDirtyToScope();
             };
         }
 

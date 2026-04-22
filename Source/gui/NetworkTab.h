@@ -3089,8 +3089,11 @@ private:
                 {
                     if (targetRows[i].txPortEditor.getText() == "9000")
                         targetRows[i].txPortEditor.setText(juce::String(WFSNetwork::DEFAULT_QLAB_PORT), false);
-                    // Auto-enable Tx and default name
+                    // Auto-enable Tx and default name. setToggleState with dontSendNotification
+                    // flips the internal state but skips the onClick handler that syncs the
+                    // button label — do both explicitly so the UI matches the state.
                     targetRows[i].txEnableButton.setToggleState(true, juce::dontSendNotification);
+                    targetRows[i].txEnableButton.setButtonText(LOC("network.toggles.on"));
                     if (targetRows[i].nameEditor.getText() == LOC("network.table.defaultTarget").replace("{num}", juce::String(i + 1)))
                         targetRows[i].nameEditor.setText("QLab", false);
                 }
