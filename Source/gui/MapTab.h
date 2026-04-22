@@ -503,6 +503,26 @@ public:
             return true;
         }
 
+        // Arrow keys and Page Up/Down: move the selected cluster as a whole
+        if (selectedBarycenter >= 1)
+        {
+            float step = key.getModifiers().isShiftDown() ? 0.01f : 0.1f;
+            float dx = 0.0f, dy = 0.0f, dz = 0.0f;
+            int kc = key.getKeyCode();
+
+            if      (kc == juce::KeyPress::leftKey)     dx = -step;
+            else if (kc == juce::KeyPress::rightKey)    dx =  step;
+            else if (kc == juce::KeyPress::upKey)       dy =  step;
+            else if (kc == juce::KeyPress::downKey)     dy = -step;
+            else if (kc == juce::KeyPress::pageUpKey)   dz =  step;
+            else if (kc == juce::KeyPress::pageDownKey) dz = -step;
+            else return false;
+
+            parameters.getValueTreeState().beginUndoTransaction ("Arrow Key Cluster Move");
+            moveClusterDelta (selectedBarycenter, dx, dy, dz);
+            return true;
+        }
+
         return false;
     }
 
@@ -3324,8 +3344,9 @@ private:
                 g.fillEllipse(refPos.x - barycenterRadius, refPos.y - barycenterRadius,
                               barycenterRadius * 2, barycenterRadius * 2);
 
-                // Selection highlight when dragging
-                if (isSelected && isDraggingBarycenter)
+                // Selection highlight — persistent while the barycenter is
+                // selected, so SpaceMouse/arrow-key moves keep the yellow ring.
+                if (isSelected)
                 {
                     g.setColour(juce::Colours::yellow);
                     g.drawEllipse(refPos.x - barycenterRadius - 2, refPos.y - barycenterRadius - 2,
