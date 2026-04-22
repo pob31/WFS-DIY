@@ -57,11 +57,12 @@ private:
  *
  * Tab for input patch matrix with Scrolling and Patching modes.
  */
-class InputPatchTab : public juce::Component
+class InputPatchTab : public juce::Component,
+                      private juce::Timer
 {
 public:
     InputPatchTab(WFSValueTreeState& valueTreeState);
-    ~InputPatchTab() override = default;
+    ~InputPatchTab() override { stopTimer(); }
 
     void resized() override;
     void paint(juce::Graphics& g) override;
@@ -78,10 +79,23 @@ public:
     /** Get the patch matrix component (for Stream Deck integration). */
     PatchMatrixComponent* getPatchMatrix() { return patchMatrix.get(); }
 
+    /** Install a per-hardware-input peak provider for the header tint. */
+    void setHardwareInputPeakProvider(std::function<float(int)> provider)
+    {
+        if (patchMatrix)
+            patchMatrix->setHardwareInputPeakProvider(std::move(provider));
+    }
+
     /** Callback when mode changes (for bidirectional StreamDeck+ sync). */
     std::function<void(PatchMatrixComponent::Mode)> onModeChanged;
 
 private:
+    void timerCallback() override
+    {
+        if (patchMatrix)
+            patchMatrix->repaintHeaderBand();
+    }
+
     WFSValueTreeState& parameters;
 
     // Mode buttons

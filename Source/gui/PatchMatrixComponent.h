@@ -149,6 +149,22 @@ public:
     /** Get cell height in pixels. */
     int getCellHeight() const { return cellHeight; }
 
+    /** Provide per-hardware-input peak dB for the Input Patch header tint.
+     *  Set once at setup. Ignored when not an input patch. */
+    void setHardwareInputPeakProvider(std::function<float(int)> provider)
+    {
+        hardwareInputPeakProvider = std::move(provider);
+    }
+
+    /** Repaint only the top header band (column headers strip). Used by the
+     *  Input Patch timer to drive signal-presence tint updates without
+     *  repainting the full matrix. */
+    void repaintHeaderBand()
+    {
+        repaint(rowHeaderWidth, titleHeight,
+                juce::jmax(0, getWidth() - rowHeaderWidth), headerHeight);
+    }
+
     // Component overrides
     void paint(juce::Graphics& g) override;
     void resized() override;
@@ -207,6 +223,9 @@ private:
     // Binaural channel tracking (output patch only)
     juce::ValueTree binauralTree;    // Reference to Binaural section
     int binauralFirstChannel = -1;   // First channel of binaural pair (1-based, -1 = disabled)
+
+    // Input-patch signal-presence tint provider (peak dB per hardware input)
+    std::function<float(int)> hardwareInputPeakProvider;
 
     // Scrolling
     juce::ScrollBar horizontalScroll{false};

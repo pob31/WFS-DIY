@@ -879,6 +879,20 @@ void PatchMatrixComponent::drawHeader(juce::Graphics& g)
             continue;  // Skip normal rendering for this column
         }
 
+        // Signal-presence tint on hardware-input column (input patch only).
+        // Alpha scales with peak dB, floor -60 dB → 0, 0 dB → full. Fall
+        // through so the channel number still draws on top.
+        if (isInputPatch && hardwareInputPeakProvider)
+        {
+            const float peakDb = hardwareInputPeakProvider(col);
+            if (peakDb > -60.0f)
+            {
+                const float alpha = juce::jlimit(0.0f, 1.0f, (peakDb + 60.0f) / 60.0f);
+                g.setColour(juce::Colours::green.withAlpha(alpha * 0.5f));
+                g.fillRect(x, titleHeight, cellWidth, headerHeight);
+            }
+        }
+
         // Highlight if this is the active test channel (output patch only)
         if (!isInputPatch && currentMode == Mode::Testing && col == activeTestHardwareChannel)
         {

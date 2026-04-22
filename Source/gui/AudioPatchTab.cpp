@@ -240,6 +240,9 @@ InputPatchTab::InputPatchTab(WFSValueTreeState& valueTreeState)
     // Create patch matrix
     patchMatrix = std::make_unique<PatchMatrixComponent>(parameters, true, nullptr);
     addAndMakeVisible(patchMatrix.get());
+
+    // 20 Hz timer drives the signal-presence tint on the header band.
+    startTimerHz(20);
 }
 
 void InputPatchTab::resized()

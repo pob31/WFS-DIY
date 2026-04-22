@@ -211,6 +211,7 @@ private:
     bool audioCallbacksAttached = false;
     bool processingEnabled = false;
     std::atomic<bool> audioEngineStarted { false };
+    std::atomic<double> currentDeviceSampleRate { 48000.0 };
     std::atomic<bool> soloReverbs { false };
     std::atomic<bool> muteReverbPre  { false };
     std::atomic<bool> muteReverbPost { false };

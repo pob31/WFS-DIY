@@ -4,6 +4,7 @@
 #include "InputBufferAlgorithm.h"
 #include "OutputBufferAlgorithm.h"
 #include <vector>
+#include <array>
 #include <atomic>
 #include <cmath>
 
@@ -48,6 +49,9 @@ public:
         inputLevels.resize(numInputs);
         outputLevels.resize(numOutputs);
         threadPerformance.resize(juce::jmax(numInputs, numOutputs));
+
+        for (auto& a : hardwareInputPeakDb)
+            a.store(-200.0f, std::memory_order_relaxed);
     }
 
     // === Enable/Disable Control ===
@@ -241,6 +245,49 @@ public:
         threadPerformance.resize(juce::jmax(inputs, outputs));
     }
 
+    // === Hardware Input Signal-Presence Meter ===
+    // Fed from the audio thread before the DSP gate so it works even when
+    // WFS and binaural are both stopped. Read from the GUI thread for the
+    // Input Patch header tint.
+
+    static constexpr int MaxHardwareInputs = 64;
+
+    /** Audio-thread writer. Pushes one block's peak for a single hardware
+     *  input. Instantaneous rise, ~150 ms exponential release. Lock-free. */
+    void pushHardwareInputBlockPeak(int ch, float blockMaxAbs,
+                                    int numSamples, double sampleRate) noexcept
+    {
+        if (ch < 0 || ch >= MaxHardwareInputs || numSamples <= 0 || sampleRate <= 0.0)
+            return;
+
+        const float newDb = (blockMaxAbs > 1.0e-10f)
+                                ? 20.0f * std::log10(blockMaxAbs)
+                                : -200.0f;
+
+        const float cur = hardwareInputPeakDb[ch].load(std::memory_order_relaxed);
+        float out;
+        if (newDb >= cur)
+        {
+            out = newDb;
+        }
+        else
+        {
+            const double releaseSeconds = 0.150;
+            const float coef = (float) std::exp(-(double) numSamples / (sampleRate * releaseSeconds));
+            out = newDb + (cur - newDb) * coef;
+        }
+
+        hardwareInputPeakDb[ch].store(out, std::memory_order_relaxed);
+    }
+
+    /** GUI-thread reader. Returns -200 dB when channel is out of range. */
+    float getHardwareInputPeakDb(int ch) const noexcept
+    {
+        if (ch < 0 || ch >= MaxHardwareInputs)
+            return -200.0f;
+        return hardwareInputPeakDb[ch].load(std::memory_order_relaxed);
+    }
+
 private:
     void updateAlgorithmMeteringFlags()
     {
@@ -273,4 +320,9 @@ private:
 
     // Visual solo
     std::atomic<int> visualSoloInput{-1};
+
+    // Per-hardware-input peak dB, written by audio thread pre-DSP-gate,
+    // read by Input Patch header paint. Fixed capacity avoids any resize
+    // (std::atomic is not movable).
+    std::array<std::atomic<float>, MaxHardwareInputs> hardwareInputPeakDb;
 };

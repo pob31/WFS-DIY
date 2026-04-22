@@ -3523,6 +3523,14 @@ void MainComponent::openAudioInterfaceWindow()
                     if (streamDeckManager && streamDeckManager->hasOverride())
                         streamDeckManager->refreshCurrentPage();
                 };
+
+                // Signal-presence tint on hardware-input header cells.
+                inTab->setHardwareInputPeakProvider([this](int ch) -> float
+                {
+                    return levelMeteringManager
+                               ? levelMeteringManager->getHardwareInputPeakDb(ch)
+                               : -200.0f;
+                });
             }
             if (auto* outTab = content->getOutputPatchTab())
             {
@@ -3964,6 +3972,9 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
     WFSLogger::getInstance().logInfo ("prepareToPlay: sampleRate=" + juce::String (sampleRate)
                                       + " bufferSize=" + juce::String (samplesPerBlockExpected));
 
+    currentDeviceSampleRate.store (sampleRate > 0.0 ? sampleRate : 48000.0,
+                                   std::memory_order_relaxed);
+
     // This function will be called when the audio device is started, or when
     // its settings (i.e. sample rate, block size, etc) are changed.
 
@@ -4096,6 +4107,25 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
         {
             WFSLogger::getInstance().logFromAudioThread ("xrun detected (count: " + juce::String (xruns) + ")");
             lastXRunCount = xruns;
+        }
+    }
+
+    // Hardware-input signal-presence meter for the Input Patch header tint.
+    // Runs unconditionally (before the DSP gate) so users can verify input
+    // wiring even when WFS and the binaural renderer are both stopped.
+    if (levelMeteringManager != nullptr && bufferToFill.buffer != nullptr)
+    {
+        const int hwChannels = bufferToFill.buffer->getNumChannels();
+        const int activeInputs = juce::jmin (hwChannels, numInputChannels,
+                                             LevelMeteringManager::MaxHardwareInputs);
+        const double sr = currentDeviceSampleRate.load (std::memory_order_relaxed);
+        for (int ch = 0; ch < activeInputs; ++ch)
+        {
+            const float mag = bufferToFill.buffer->getMagnitude (ch,
+                                                                 bufferToFill.startSample,
+                                                                 bufferToFill.numSamples);
+            levelMeteringManager->pushHardwareInputBlockPeak (ch, mag,
+                                                              bufferToFill.numSamples, sr);
         }
     }
 
