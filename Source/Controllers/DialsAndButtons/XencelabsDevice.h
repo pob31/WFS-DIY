@@ -67,7 +67,9 @@ public:
         if (isThreadRunning())
             waitForThreadToExit (3000);
         disconnect();
-        hid_exit();
+        // Do NOT call hid_exit() here — see StreamDeckDevice::~StreamDeckDevice for
+        // the rationale. hidapi's hid_exit is not reference-counted and tearing it
+        // down from one device invalidates every other HID client still alive.
     }
 
     //==========================================================================

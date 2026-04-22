@@ -69,7 +69,11 @@ public:
     ~StreamDeckDevice() override
     {
         stopMonitoring();
-        hid_exit();
+        // Do NOT call hid_exit() here. hidapi's hid_exit is NOT reference-counted:
+        // it unconditionally FreeLibrary's hid.dll / cfgmgr32.dll. Any other HID
+        // client (XencelabsDevice, LightpadDevice, SpaceMouseDevice) still alive
+        // would then crash on its next HID call because the static HidD_* function
+        // pointers point into unloaded DLLs. Let the OS reclaim on process exit.
     }
 
     //==========================================================================
@@ -341,8 +345,12 @@ private:
 
             if (bytesRead < 0)
             {
-                // Device disconnected
-                juce::MessageManager::callAsync ([this]()
+                // Device disconnected — close the HID handle SYNCHRONOUSLY here so
+                // that any subsequent write on the message thread (e.g. setBrightness
+                // during the destructor chain) short-circuits at isConnected() instead
+                // of calling into hidapi on a handle whose underlying device state is
+                // already dead. The UI notification is still posted async because
+                // onConnectionChanged may touch message-thread-only state.
                 {
                     const juce::ScopedLock sl (writeLock);
                     if (deviceHandle != nullptr)
@@ -350,7 +358,10 @@ private:
                         hid_close (deviceHandle);
                         deviceHandle = nullptr;
                     }
+                }
 
+                juce::MessageManager::callAsync ([this]()
+                {
                     if (onConnectionChanged)
                         onConnectionChanged (false);
 
