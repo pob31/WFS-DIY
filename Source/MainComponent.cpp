@@ -5340,6 +5340,7 @@ void MainComponent::resetHelpCycle()
     if (helpCycleIndex >= 0 && helpCycleIndex < (int)helpCycleButtons.size())
         helpCycleButtons[helpCycleIndex]->dismiss();
     helpCycleIndex = -1;
+    helpCycleStartIndex = -1;
     helpCycleButtons.clear();
 }
 
@@ -5374,7 +5375,9 @@ void MainComponent::cycleHelpCards()
 
     helpCycleButtons = buttons;
 
-    // If any card is already open (manually clicked or previous cycle step), advance from it
+    // If any card is already open (manually clicked or previous cycle step), advance from it.
+    // The cycle wraps around and closes only after every card has been shown once — we stop
+    // when advancing would return to helpCycleStartIndex (the anchor for this cycle).
     int activeIdx = -1;
     for (int i = 0; i < (int)buttons.size(); ++i)
     {
@@ -5386,14 +5389,23 @@ void MainComponent::cycleHelpCards()
     }
     if (activeIdx >= 0)
     {
+        // If the user manually clicked a card before pressing H, adopt that card as the
+        // cycle's anchor so we visit the remaining cards and stop after returning to it.
+        if (helpCycleStartIndex < 0)
+            helpCycleStartIndex = activeIdx;
+
         buttons[activeIdx]->dismiss();
-        int nextIdx = activeIdx + 1;
-        if (nextIdx >= (int)buttons.size())
+        int nextIdx = (activeIdx + 1) % (int)buttons.size();
+
+        if (nextIdx == helpCycleStartIndex)
         {
+            // Full cycle completed — close the help panel.
             helpCycleIndex = -1;
+            helpCycleStartIndex = -1;
             helpCycleButtons.clear();
             return;
         }
+
         helpCycleIndex = nextIdx;
         buttons[nextIdx]->activate();
         return;
@@ -5417,6 +5429,7 @@ void MainComponent::cycleHelpCards()
     }
 
     helpCycleIndex = closestIdx;
+    helpCycleStartIndex = closestIdx;
     buttons[closestIdx]->activate();
 }
 

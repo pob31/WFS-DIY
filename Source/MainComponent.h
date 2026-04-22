@@ -370,6 +370,7 @@ private:
 
     // Help card cycling (H key)
     int helpCycleIndex = -1;
+    int helpCycleStartIndex = -1;  // Anchor where the current cycle began — cycle closes when advancing would return here
     std::vector<HelpCardButton*> helpCycleButtons;
     void resetHelpCycle();
     void cycleHelpCards();
