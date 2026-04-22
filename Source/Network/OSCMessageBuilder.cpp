@@ -419,7 +419,7 @@ std::optional<juce::OSCMessage> OSCMessageBuilder::buildRemoteOutputIntMessage(
     const auto& mappings = getInputMappings();
     auto it = mappings.find(paramId);
 
-    if (it == mappings.end())
+    if (it == mappings.end() || it->second.remotePath.isEmpty())
         return std::nullopt;
 
     return buildIntMessage(it->second.remotePath, channelId, value);
