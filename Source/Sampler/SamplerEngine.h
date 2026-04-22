@@ -118,11 +118,13 @@ public:
         // Compute gains
         float setLevelLin;
         float pressLevelMod;
+        bool  pressLevelEnabled;
         float pressHFGain;
         {
             juce::SpinLock::ScopedLockType lock (setLock);
-            setLevelLin = juce::Decibels::decibelsToGain (currentSet.level);
-            pressLevelMod = currentSet.pressLevel.apply (currentPressure);
+            setLevelLin       = juce::Decibels::decibelsToGain (currentSet.level);
+            pressLevelMod     = currentSet.pressLevel.apply (currentPressure);
+            pressLevelEnabled = currentSet.pressLevel.enabled;
             pressHFGain = currentSet.pressHF.enabled
                               ? -12.0f * currentSet.pressHF.apply (currentPressure)  // Up to -12dB HF cut
                               : 0.0f;
@@ -131,12 +133,14 @@ public:
         float cellAttenLin = juce::Decibels::decibelsToGain (cellAtten);
         float baseLevelLin = setLevelLin * cellAttenLin;
 
-        // Pressure level modulation: scale between base level and 0
-        float levelGain = baseLevelLin * (1.0f - pressLevelMod + pressLevelMod);
-        // Actually: if pressLevel maps to 0..1, modulate gain between baseLevelLin*0 and baseLevelLin*1
-        // direction=0 (positive): more pressure → more level → pressLevelMod goes 0→1 → gain = base * mod
-        // direction=1 (negative): more pressure → less level → mod inverted
-        levelGain = baseLevelLin * juce::jlimit (0.0f, 1.0f, pressLevelMod > 0.0f ? pressLevelMod : 1.0f);
+        // When pressLevel is enabled, pressLevelMod ranges 0..1 over finger
+        // pressure (direction 0 = more pressure → more level, direction 1 =
+        // inverted). Branch on .enabled rather than on the value so the
+        // legitimate zero-pressure case stays at silence instead of snapping
+        // back to full level.
+        float levelGain = baseLevelLin;
+        if (pressLevelEnabled)
+            levelGain *= juce::jlimit (0.0f, 1.0f, pressLevelMod);
 
         // Update HF shelf with pressure
         hfFilter.setGainDb (pressHFGain);
