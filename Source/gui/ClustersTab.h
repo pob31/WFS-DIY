@@ -166,11 +166,14 @@ public:
         : parameters(params),
           inputsTree(params.getInputTree()),
           configTree(params.getConfigTree()),
+          clustersTree(params.getValueTreeState().getClustersState()),
           clusterLFOProcessor(params.getValueTreeState())
     {
         // Add listeners
         inputsTree.addListener(this);
         configTree.addListener(this);
+        if (clustersTree.isValid())
+            clustersTree.addListener(this);
         ColorScheme::Manager::getInstance().addListener(this);
 
         // ==================== CLUSTER SELECTOR BAR ====================
@@ -394,6 +397,8 @@ public:
         stopTimer();
         inputsTree.removeListener(this);
         configTree.removeListener(this);
+        if (clustersTree.isValid())
+            clustersTree.removeListener(this);
         ColorScheme::Manager::getInstance().removeListener(this);
     }
 
@@ -752,6 +757,7 @@ private:
     WfsParameters& parameters;
     juce::ValueTree inputsTree;
     juce::ValueTree configTree;
+    juce::ValueTree clustersTree;
 
     int selectedCluster = 1;
     Plane currentPlane = Plane::XY;
@@ -2713,6 +2719,31 @@ private:
                 inputsList.updateContent();
                 inputsList.repaint();
             });
+        }
+        else if (property == WFSParameterIDs::clusterLFOactive
+                 && ! isLoadingParameters)
+        {
+            // Remote (or any external) mutation of the selected cluster's LFO
+            // active flag must refresh the toggle button here.
+            auto selectedLFO = parameters.getValueTreeState()
+                                   .getClusterLFOSection(selectedCluster);
+            if (treeWhosePropertyHasChanged == selectedLFO)
+            {
+                juce::Component::SafePointer<ClustersTab> safeThis(this);
+                juce::MessageManager::callAsync([safeThis]() {
+                    if (auto* self = safeThis.getComponent())
+                    {
+                        bool active = static_cast<int>(
+                            self->parameters.getValueTreeState()
+                                 .getClusterLFOSection(self->selectedCluster)
+                                 .getProperty(WFSParameterIDs::clusterLFOactive, 0)) != 0;
+                        self->lfoActiveButton.setToggleState(active, juce::dontSendNotification);
+                        self->lfoActiveButton.setButtonText(active
+                            ? LOC("clusters.toggles.lfoOn")
+                            : LOC("clusters.toggles.lfoOff"));
+                    }
+                });
+            }
         }
     }
 

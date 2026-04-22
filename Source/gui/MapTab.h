@@ -2210,6 +2210,18 @@ public:
     }
 
     //==========================================================================
+    // Sampler State Callback
+    //==========================================================================
+
+    /** Set callback reporting whether a sampler is playing for the given input
+        and, if so, its current pad XY offset in stage meters. Returns true
+        when the sampler engine is playing, false otherwise. */
+    void setSamplerStateCallback(std::function<bool(int, float&, float&)> callback)
+    {
+        samplerStateCallback = std::move(callback);
+    }
+
+    //==========================================================================
     // Speed-Limited Position Callback
     //==========================================================================
 
@@ -2297,6 +2309,9 @@ private:
 
     // LFO offset callback for visualization
     std::function<void(int, float&, float&, float&)> lfoOffsetCallback;
+
+    // Sampler-playing state + pad XY offset (meters) for compound marker
+    std::function<bool(int, float&, float&)> samplerStateCallback;
 
     // Speed-limited position callback for visualization
     std::function<void(int, float&, float&, float&)> speedLimitedPositionCallback;
@@ -3477,11 +3492,17 @@ private:
         if (lfoOffsetCallback)
             lfoOffsetCallback(inputIndex, lfoOffsetX, lfoOffsetY, lfoOffsetZ);
 
-        // Calculate total offset (tracking offset + LFO offset)
-        float totalOffsetX = offsetX + lfoOffsetX;
-        float totalOffsetY = offsetY + lfoOffsetY;
+        // Query sampler state (playing + pad XY offset in stage meters)
+        float samplerOffsetX = 0.0f, samplerOffsetY = 0.0f;
+        bool samplerPlaying = false;
+        if (samplerStateCallback)
+            samplerPlaying = samplerStateCallback(inputIndex, samplerOffsetX, samplerOffsetY);
 
-        // Calculate grey dot position: speed-limited position + flip + offset + LFO
+        // Calculate total offset (tracking offset + LFO offset + sampler pad offset)
+        float totalOffsetX = offsetX + lfoOffsetX + samplerOffsetX;
+        float totalOffsetY = offsetY + lfoOffsetY + samplerOffsetY;
+
+        // Calculate grey dot position: speed-limited position + flip + offset + LFO + sampler
         // This shows the ACTUAL DSP position (where the sound is)
         float greyDotX = actualPosX + totalOffsetX;
         float greyDotY = actualPosY + totalOffsetY;
@@ -3491,15 +3512,17 @@ private:
         // - Speed limiting is active
         // - OR tracking offset is non-zero
         // - OR LFO offset is non-zero
+        // - OR a sampler is actively playing (always visible when playing)
         bool hasFlip = flipX || flipY;
         bool maxSpeedActive = static_cast<int>(parameters.getInputParam(inputIndex, "inputMaxSpeedActive")) != 0;
         bool hasOffset = (std::abs(offsetX) > 0.001f || std::abs(offsetY) > 0.001f);
         bool hasLFO = (std::abs(lfoOffsetX) > 0.001f || std::abs(lfoOffsetY) > 0.001f);
-        bool hasReasonForDifference = hasFlip || maxSpeedActive || hasOffset || hasLFO;
+        bool hasReasonForDifference = hasFlip || maxSpeedActive || hasOffset || hasLFO || samplerPlaying;
 
-        // Only show grey dot if there's a reason AND actual difference
+        // Show grey dot if there's a reason AND actual difference,
+        // OR unconditionally while a sampler is playing (mark sample activity at base pos too).
         float diffFromTarget = std::abs(greyDotX - posX) + std::abs(greyDotY - posY);
-        if (hasReasonForDifference && diffFromTarget > 0.01f)
+        if (hasReasonForDifference && (diffFromTarget > 0.01f || samplerPlaying))
         {
             auto compositePos = stageToScreen({ greyDotX, greyDotY });
 
@@ -3512,6 +3535,17 @@ private:
             g.setColour(juce::Colours::grey);
             g.fillEllipse(compositePos.x - compositeRadius, compositePos.y - compositeRadius,
                           compositeRadius * 2, compositeRadius * 2);
+
+            // Orange ring when a sampler is playing on this channel
+            if (samplerPlaying)
+            {
+                const float us = WfsLookAndFeel::uiScale;
+                const float ringRadius = compositeRadius * 1.6f;
+                const float ringThickness = juce::jmax(1.2f, 1.5f * us);
+                g.setColour(juce::Colours::orange);
+                g.drawEllipse(compositePos.x - ringRadius, compositePos.y - ringRadius,
+                              ringRadius * 2.0f, ringRadius * 2.0f, ringThickness);
+            }
 
             // Draw number in the composite circle (white text for better visibility)
             {

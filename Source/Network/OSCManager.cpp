@@ -888,15 +888,23 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
                     WFSParameterIDs::clusterLFOshapeScale
                 };
                 bool populated = false;
-                for (const auto& shapeId : shapeIds)
+                int axesBitmask = 0;
+                for (int axis = 0; axis < 5; ++axis)
                 {
-                    if (static_cast<int> (tree.getProperty (shapeId, 0)) != 0)
-                    { populated = true; break; }
+                    if (static_cast<int> (tree.getProperty (shapeIds[axis], 0)) != 0)
+                    {
+                        populated = true;
+                        axesBitmask |= (1 << axis);
+                    }
                 }
 
                 juce::OSCMessage msg ("/remote/cluster/presetPopulated");
                 msg.addInt32 (presetNumber);
                 msg.addInt32 (populated ? 1 : 0);
+
+                juce::OSCMessage axesMsg ("/remote/cluster/presetAxes");
+                axesMsg.addInt32 (presetNumber);
+                axesMsg.addInt32 (axesBitmask);
 
                 for (int i = 0; i < MAX_TARGETS; ++i)
                 {
@@ -904,6 +912,7 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
                         remoteStates[static_cast<size_t>(i)].phase == RemoteConnectionState::Phase::Connected)
                     {
                         sendMessage (i, msg);
+                        sendMessage (i, axesMsg);
                     }
                 }
             }
@@ -3315,6 +3324,27 @@ void OSCManager::sendFindDevice(const juce::String& password)
 
 }
 
+void OSCManager::sendInputSamplerPlayingState(int channelId, bool playing)
+{
+    if (channelId < 1)
+        return;
+
+    // /remoteInput/samplerPlaying <channelId> <0|1>
+    juce::OSCMessage msg("/remoteInput/samplerPlaying");
+    msg.addInt32(channelId);
+    msg.addInt32(playing ? 1 : 0);
+
+    for (int i = 0; i < MAX_TARGETS; ++i)
+    {
+        const auto& config = targetConfigs[static_cast<size_t>(i)];
+        if (config.protocol == Protocol::Remote && config.txEnabled &&
+            remoteStates[static_cast<size_t>(i)].phase == RemoteConnectionState::Phase::Connected)
+        {
+            sendMessage(i, msg);
+        }
+    }
+}
+
 void OSCManager::sendCompositeDeltaToRemote(int inputId, float deltaX, float deltaY)
 {
     // Build /remoteInput/compositeDelta message: inputId (int), deltaX (float), deltaY (float)
@@ -3970,17 +4000,27 @@ std::vector<juce::OSCMessage> OSCManager::collectStateDumpMessages(int /*targetI
                 messages.push_back (std::move (msg));
             }
 
-            // Populated: at least one shape axis is non-zero (not Off)
+            // Populated + per-axis automation bitmask (X=1 Y=2 Z=4 R=8 S=16)
             bool populated = false;
-            for (const auto& shapeId : shapeIds)
+            int axesBitmask = 0;
+            for (int axis = 0; axis < 5; ++axis)
             {
-                if (static_cast<int> (preset.getProperty (shapeId, 0)) != 0)
-                { populated = true; break; }
+                if (static_cast<int> (preset.getProperty (shapeIds[axis], 0)) != 0)
+                {
+                    populated = true;
+                    axesBitmask |= (1 << axis);
+                }
             }
             {
                 juce::OSCMessage msg ("/remote/cluster/presetPopulated");
                 msg.addInt32 (presetNumber);
                 msg.addInt32 (populated ? 1 : 0);
+                messages.push_back (std::move (msg));
+            }
+            {
+                juce::OSCMessage msg ("/remote/cluster/presetAxes");
+                msg.addInt32 (presetNumber);
+                msg.addInt32 (axesBitmask);
                 messages.push_back (std::move (msg));
             }
         }

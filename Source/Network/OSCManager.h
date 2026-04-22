@@ -464,6 +464,14 @@ public:
     /** Cancel all in-flight input parameter ramps. */
     void cancelAllParameterRamps() { parameterRamper.cancelAll(); }
 
+    /**
+     * Send "sampler playing" state to all connected Remote targets for a single input.
+     * Used to drive the orange playing-ring around the compound marker on the remote.
+     * @param channelId 1-based channel ID
+     * @param playing   true while a sampler cell is actively playing on this channel
+     */
+    void sendInputSamplerPlayingState(int channelId, bool playing);
+
 private:
     /** Send an OSC message directly to a target, bypassing the rate limiter.
      *  Used for QLab command sequences that must not be coalesced. */

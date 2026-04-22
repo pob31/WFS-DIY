@@ -1708,6 +1708,21 @@ MainComponent::MainComponent()
             }
         });
 
+        // Sampler-playing state + pad XY offset for the compound marker.
+        mapTab->setSamplerStateCallback([this](int inputIndex, float& offX, float& offY) -> bool {
+            offX = 0.0f;
+            offY = 0.0f;
+            if (samplerManager == nullptr)
+                return false;
+            if (! samplerManager->isChannelPlaying(inputIndex))
+                return false;
+            float sx = 0.0f, sy = 0.0f, sz = 0.0f;
+            samplerManager->getPositionOverride(inputIndex, sx, sy, sz);
+            offX = sx;
+            offY = sy;
+            return true;
+        });
+
         // Set up path mode waypoint capture callbacks
         mapTab->setDragStartCallback([this](int inputIndex) {
             if (speedLimiter == nullptr)
@@ -5162,6 +5177,20 @@ void MainComponent::timerCallback()
 
             constexpr float deltaThreshold = 0.01f;  // 1cm threshold for considering delta significant
             constexpr float changeThreshold = 0.005f;  // 5mm threshold for detecting delta change
+
+            // Sampler playing-state transitions (for the orange ring on the remote).
+            if ((int) prevSamplerPlaying.size() < numInputChannels)
+                prevSamplerPlaying.resize((size_t) numInputChannels, 0u);
+            for (int i = 0; i < numInputChannels; ++i)
+            {
+                bool playingNow = (samplerManager != nullptr && samplerManager->isChannelPlaying(i));
+                bool playingPrev = prevSamplerPlaying[(size_t) i] != 0u;
+                if (playingNow != playingPrev)
+                {
+                    oscManager->sendInputSamplerPlayingState(i + 1, playingNow);
+                    prevSamplerPlaying[(size_t) i] = playingNow ? 1u : 0u;
+                }
+            }
 
             for (int i = 0; i < numInputChannels; ++i)
             {

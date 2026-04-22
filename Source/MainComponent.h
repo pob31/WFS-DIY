@@ -212,6 +212,10 @@ private:
     bool processingEnabled = false;
     std::atomic<bool> audioEngineStarted { false };
     std::atomic<double> currentDeviceSampleRate { 48000.0 };
+
+    // Tracks previous sampler-playing state per input for transition detection
+    // in the 50Hz remote-sender timer (message thread only).
+    std::vector<uint8_t> prevSamplerPlaying;
     std::atomic<bool> soloReverbs { false };
     std::atomic<bool> muteReverbPre  { false };
     std::atomic<bool> muteReverbPost { false };
