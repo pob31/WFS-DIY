@@ -574,7 +574,16 @@ public:
     }
 
     // ColorScheme::Manager::Listener
-    void colorSchemeChanged() override { repaint(); }
+    void colorSchemeChanged() override
+    {
+        // The lightpad/remote zone button's "no zone" colour is set explicitly
+        // via setColour; re-run the updater so it picks up the new theme value.
+        if (controllerMode == 1)
+            updateLightpadZoneButtonText();
+        else if (controllerMode == 2)
+            updateRemoteZoneButtonText();
+        repaint();
+    }
 
     // ValueTree::Listener — react to external changes (e.g. OSC set selection)
     void valueTreePropertyChanged (juce::ValueTree& tree, const juce::Identifier& property) override
@@ -1878,7 +1887,7 @@ public:
         {
             lightpadZoneButton.setButtonText (LOC ("sampler.lightpadZone.none"));
             lightpadZoneButton.setColour (juce::TextButton::buttonColourId,
-                                           juce::Colour (0xFF3A3A3A));
+                                           ColorScheme::get().buttonNormal);
         }
         else
         {
@@ -1908,7 +1917,7 @@ public:
         {
             lightpadZoneButton.setButtonText (LOC ("sampler.lightpadZone.none"));
             lightpadZoneButton.setColour (juce::TextButton::buttonColourId,
-                                           juce::Colour (0xFF3A3A3A));
+                                           ColorScheme::get().buttonNormal);
         }
         else
         {

@@ -158,6 +158,7 @@ class ClustersTab : public juce::Component,
                     private juce::Timer,
                     private juce::ValueTree::Listener,
                     private juce::Label::Listener,
+                    public ColorScheme::Manager::Listener,
                     public HelpCardProvider
 {
 public:
@@ -170,6 +171,7 @@ public:
         // Add listeners
         inputsTree.addListener(this);
         configTree.addListener(this);
+        ColorScheme::Manager::getInstance().addListener(this);
 
         // ==================== CLUSTER SELECTOR BAR ====================
         for (int i = 0; i < 10; ++i)
@@ -392,6 +394,15 @@ public:
         stopTimer();
         inputsTree.removeListener(this);
         configTree.removeListener(this);
+        ColorScheme::Manager::getInstance().removeListener(this);
+    }
+
+    // ColorScheme::Manager::Listener — refresh theme-dependent widget colours
+    // whose state isn't purely driven from paint() (setColour-cached bits).
+    void colorSchemeChanged() override
+    {
+        inputsList.setColour(juce::ListBox::backgroundColourId, ColorScheme::get().backgroundAlt);
+        repaint();
     }
 
     void setStatusBar(StatusBar* bar)

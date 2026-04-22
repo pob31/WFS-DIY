@@ -51,9 +51,9 @@ public:
         shadow.drawForRectangle (g, getLocalBounds());
 
         // Background
-        g.setColour (juce::Colour (0xFF2A2A2A));
+        g.setColour (ColorScheme::get().surfaceCard);
         g.fillRoundedRectangle (bounds, 8.0f);
-        g.setColour (juce::Colour (0xFF505050));
+        g.setColour (ColorScheme::get().buttonBorder);
         g.drawRoundedRectangle (bounds.reduced (0.5f), 8.0f, 1.0f);
 
         // Title
@@ -65,9 +65,9 @@ public:
 
         // Close button
         closeButtonBounds = juce::Rectangle<int> (getWidth() - padding - 24, padding, 24, 20);
-        g.setColour (juce::Colour (0xFF555555));
+        g.setColour (ColorScheme::get().buttonNormal);
         g.fillRoundedRectangle (closeButtonBounds.toFloat(), 4.0f);
-        g.setColour (juce::Colours::white.withAlpha (0.8f));
+        g.setColour (ColorScheme::get().textPrimary.withAlpha (0.8f));
         g.setFont (juce::FontOptions().withHeight (12.0f).withStyle ("Bold"));
         g.drawText ("X", closeButtonBounds, juce::Justification::centred);
 

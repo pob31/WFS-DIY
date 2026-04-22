@@ -30,7 +30,8 @@
  * - Stage map with grid, bounds, and origin marker
  */
 class GradientMapEditor : public juce::Component,
-                          private juce::ValueTree::Listener
+                          private juce::ValueTree::Listener,
+                          public ColorScheme::Manager::Listener
 {
 public:
     //==========================================================================
@@ -64,6 +65,7 @@ public:
     {
         setOpaque (true);
         setWantsKeyboardFocus (true);
+        ColorScheme::Manager::getInstance().addListener (this);
 
         // Toolbar buttons
         selectToolBtn.setButtonText (LOC ("inputs.gradientMap.tools.select"));
@@ -466,7 +468,32 @@ public:
     {
         if (gradientMapsTree.isValid())
             gradientMapsTree.removeListener (this);
+        ColorScheme::Manager::getInstance().removeListener (this);
     }
+
+    // ColorScheme::Manager::Listener — JUCE TextEditors cache their text colour
+    // internally so a theme change doesn't visually update existing content.
+    // Force a re-query via applyFontToAllText so the White/Black value fields
+    // (and every other TextEditor under this component) stay readable.
+    void colorSchemeChanged() override
+    {
+        refreshTextEditorColours (*this);
+        repaint();
+    }
+
+private:
+    static void refreshTextEditorColours (juce::Component& parent)
+    {
+        for (int i = 0; i < parent.getNumChildComponents(); ++i)
+        {
+            auto* child = parent.getChildComponent (i);
+            if (auto* te = dynamic_cast<juce::TextEditor*> (child))
+                te->applyFontToAllText (te->getFont(), true);
+            refreshTextEditorColours (*child);
+        }
+    }
+
+public:
 
     //==========================================================================
     // Configuration
@@ -1819,11 +1846,15 @@ private:
             float hw = b.getWidth() * 0.48f, hh = b.getHeight() * 0.38f;
 
             bool open = getToggleState();
-            float alpha = open ? 1.0f : 0.35f;
-            if (isHighlighted) alpha = juce::jmin (1.0f, alpha + 0.15f);
+            float alpha = 1.0f;
+            if (isHighlighted) alpha = 1.0f;
             (void) isDown;
 
-            g.setColour (layerColour.withAlpha (alpha));
+            // ON: layer colour.  OFF: a theme-aware mid-grey so the icon stays
+            // readable on both the dark and the light property panel.
+            auto col = open ? layerColour.withAlpha (alpha)
+                            : ColorScheme::get().textSecondary.withAlpha (alpha);
+            g.setColour (col);
 
             // Eye outline (two arcs)
             juce::Path eye;
@@ -1862,12 +1893,13 @@ private:
             float r = juce::jmin (b.getWidth(), b.getHeight()) * 0.4f;
 
             bool on = getToggleState();
-            float alpha = on ? 1.0f : 0.3f;
-            if (isHighlighted) alpha = juce::jmin (1.0f, alpha + 0.15f);
+            (void) isHighlighted;
             (void) isDown;
 
-            auto col = on ? layerColour.withAlpha (alpha)
-                          : layerColour.withAlpha (alpha * 0.5f);
+            // ON: layer colour.  OFF: a theme-aware mid-grey so the icon stays
+            // readable on both the dark and the light property panel.
+            auto col = on ? layerColour
+                          : ColorScheme::get().textSecondary;
             g.setColour (col);
 
             // Arc (open at top)

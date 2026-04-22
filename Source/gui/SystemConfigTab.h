@@ -2626,15 +2626,17 @@ public:
 
             void paint (juce::Graphics& g) override
             {
+                // Scrim behind the dialog stays a translucent black regardless of theme,
+                // so the modal focus is clear on both light and dark backgrounds.
                 g.fillAll (juce::Colour (0xCC000000));
 
                 auto area = getLocalBounds().reduced (40).withSizeKeepingCentre (360, 220);
-                g.setColour (juce::Colour (0xFF2A2A2A));
+                g.setColour (ColorScheme::get().surfaceCard);
                 g.fillRoundedRectangle (area.toFloat(), 8.0f);
-                g.setColour (juce::Colour (0xFF555555));
+                g.setColour (ColorScheme::get().buttonBorder);
                 g.drawRoundedRectangle (area.toFloat(), 8.0f, 1.0f);
 
-                g.setColour (juce::Colours::white);
+                g.setColour (ColorScheme::get().textPrimary);
                 g.setFont (juce::FontOptions (14.0f));
                 g.drawText (LOC ("sampler.remote.gridLayout"), area.removeFromTop (30),
                             juce::Justification::centred);
@@ -2679,12 +2681,12 @@ public:
                         float cx = area.getX() + c * (cellW + pad);
                         float cy = startY + r * (cellH + pad);
                         auto cell = juce::Rectangle<float> (cx, cy, cellW, cellH);
-                        g.setColour (juce::Colour (0xFF444444));
+                        g.setColour (ColorScheme::get().buttonNormal);
                         g.fillRoundedRectangle (cell, 2.0f);
-                        g.setColour (juce::Colour (0xFF666666));
+                        g.setColour (ColorScheme::get().buttonBorder);
                         g.drawRoundedRectangle (cell, 2.0f, 1.0f);
 
-                        g.setColour (juce::Colours::white.withAlpha (0.5f));
+                        g.setColour (ColorScheme::get().textSecondary);
                         g.setFont (juce::FontOptions (juce::jmin (cellW * 0.4f, 10.0f)));
                         g.drawText (juce::String (r * cols + c + 1), cell,
                                     juce::Justification::centred);
@@ -2692,7 +2694,7 @@ public:
                 }
 
                 // Label below
-                g.setColour (juce::Colours::white);
+                g.setColour (ColorScheme::get().textPrimary);
                 g.setFont (juce::FontOptions (12.0f));
                 g.drawText (juce::String (cols) + "x" + juce::String (rows),
                             area.getX(), area.getBottom() - 18, area.getWidth(), 18,
