@@ -11,11 +11,15 @@ namespace
             "adm-polar",
             AddressingScheme::AdmOsc,
             {{
-                { "admDistance",  "ADM Distance",  "/adm/obj/1/distance",  0.0f, 1.0f, 0.0f, "", false },
-                { "admAzimuth",   "ADM Azimuth",   "/adm/obj/1/azimuth",  -1.0f, 1.0f, 0.0f, "", false },
-                { "admElevation", "ADM Elevation", "/adm/obj/1/elevation", -1.0f, 1.0f, 0.0f, "", false }
+                // ADM-OSC polar: azimuth (-180..+180°), elevation (-90..+90°),
+                // distance (0..1 normalised). Sent combined via /aed.
+                { "admAzimuth",   "Azimuth",   "", -180.0f, 180.0f, 0.0f,
+                  juce::CharPointer_UTF8 ("\xc2\xb0"), true },
+                { "admElevation", "Elevation", "",  -90.0f,  90.0f, 0.0f,
+                  juce::CharPointer_UTF8 ("\xc2\xb0"), true },
+                { "admDistance",  "Distance",  "",    0.0f,   1.0f, 0.0f, "", true }
             }},
-            false
+            true
         };
     }
 }

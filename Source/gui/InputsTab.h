@@ -1043,34 +1043,25 @@ private:
             TTSManager::getInstance().announceValueChange("Coordinate Mode", coordModeSelector.getText());
         };
 
-        // ADM-OSC Mapping selector
+        // ADM-OSC Mapping selector. Use full names everywhere — swapping the
+        // display text between short/full via changeItemText in
+        // onPopupAboutToShow/onChange was making the current selection's
+        // displayed text go stale (ComboBox doesn't always refresh the
+        // collapsed label when the selected item's text mutates).
         addAndMakeVisible(admMappingLabel);
         admMappingLabel.setText(LOC("inputs.labels.admMapping"), juce::dontSendNotification);
         addAndMakeVisible(admMappingSelector);
-        // Short names for closed state (fit in narrow ComboBox)
-        admMappingSelector.addItem("None", 1);
-        admMappingSelector.addItem("Cart.1", 2);
-        admMappingSelector.addItem("Cart.2", 3);
-        admMappingSelector.addItem("Cart.3", 4);
-        admMappingSelector.addItem("Cart.4", 5);
-        admMappingSelector.addItem("Polar 1", 6);
-        admMappingSelector.addItem("Polar 2", 7);
-        admMappingSelector.addItem("Polar 3", 8);
-        admMappingSelector.addItem("Polar 4", 9);
+        admMappingSelector.addItem("None",        1);
+        admMappingSelector.addItem("Cartesian 1", 2);
+        admMappingSelector.addItem("Cartesian 2", 3);
+        admMappingSelector.addItem("Cartesian 3", 4);
+        admMappingSelector.addItem("Cartesian 4", 5);
+        admMappingSelector.addItem("Polar 1",     6);
+        admMappingSelector.addItem("Polar 2",     7);
+        admMappingSelector.addItem("Polar 3",     8);
+        admMappingSelector.addItem("Polar 4",     9);
         admMappingSelector.setSelectedId(1, juce::dontSendNotification);
-        // Show full names in dropdown popup
-        admMappingSelector.onPopupAboutToShow = [this]() {
-            static const char* fullNames[] = { "None", "Cartesian 1", "Cartesian 2", "Cartesian 3", "Cartesian 4",
-                                                "Polar 1", "Polar 2", "Polar 3", "Polar 4" };
-            for (int i = 0; i < 9; ++i)
-                admMappingSelector.changeItemText(i + 1, fullNames[i]);
-        };
         admMappingSelector.onChange = [this]() {
-            // Revert to short names for closed display
-            static const char* shortNames[] = { "None", "Cart.1", "Cart.2", "Cart.3", "Cart.4",
-                                                 "Polar 1", "Polar 2", "Polar 3", "Polar 4" };
-            for (int i = 0; i < 9; ++i)
-                admMappingSelector.changeItemText(i + 1, shortNames[i]);
             if (isLoadingParameters) return;
             int selectedId = admMappingSelector.getSelectedId();
             int newMapping = selectedId - 2;  // 1=None→-1, 2-5=Cart0-3, 6-9=Polar4-7

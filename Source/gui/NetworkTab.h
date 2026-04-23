@@ -3083,6 +3083,13 @@ private:
                 {
                     if (targetRows[i].txPortEditor.getText() == "9000")
                         targetRows[i].txPortEditor.setText ("4001", false);
+
+                    // Auto-enable Tx so positions start flowing out immediately.
+                    // setToggleState with dontSendNotification flips the internal
+                    // state but skips the onClick handler that syncs the button
+                    // label — do both explicitly so the UI matches the state.
+                    targetRows[i].txEnableButton.setToggleState (true, juce::dontSendNotification);
+                    targetRows[i].txEnableButton.setButtonText (LOC("network.toggles.on"));
                 }
                 // Defaults for QLab targets
                 if (targetRows[i].protocolSelector.getSelectedId() == 8)  // QLab

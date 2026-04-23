@@ -3,6 +3,7 @@
 #include <juce_audio_utils/juce_audio_utils.h>
 #include "MasterProcessor.h"
 #include "../Shared/PluginLookAndFeel.h"
+#include "../Shared/StatusLogView.h"
 
 namespace wfs::plugin
 {
@@ -30,9 +31,13 @@ namespace wfs::plugin
         juce::TextEditor  udpEditor;
         juce::Label       httpLabel        { {}, "OSCQuery HTTP port:" };
         juce::TextEditor  httpEditor;
+        juce::Label       admLabel         { {}, "ADM-OSC Rx port:" };
+        juce::TextEditor  admEditor;
         juce::TextButton  connectButton    { "Connect" };
         juce::Label       statusLabel      { {}, "Disconnected" };
         juce::Label       tracksLabel      { {}, "Registered Tracks: 0" };
+        juce::Label       buildLabel;
+        std::unique_ptr<StatusLogView> statusLog;
 
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MasterEditor)
     };

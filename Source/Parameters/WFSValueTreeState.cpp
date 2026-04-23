@@ -2091,7 +2091,12 @@ void WFSValueTreeState::createADMOSCSection (juce::ValueTree& config)
             juce::ValueTree axis (ADMCartAxis);
             axis.setProperty (admCartAxisId,        a, nullptr);
             axis.setProperty (admCartAxisSwap,      a, nullptr);  // identity: X→X, Y→Y, Z→Z
-            axis.setProperty (admCartSignFlip,      admCartSignFlipDefault, nullptr);
+
+            // ADM-OSC y=forward vs WFS y=upstage are opposite conventions,
+            // so the Y axis needs a sign flip by default to get audience-side
+            // sources to land on the audience side of the stage.
+            const int signFlip = (a == 1) ? 1 : admCartSignFlipDefault;
+            axis.setProperty (admCartSignFlip,      signFlip, nullptr);
             axis.setProperty (admCartCenterOffset,  admCartCenterOffsetDefault, nullptr);
             axis.setProperty (admCartBreakpoint,    admCartBreakpointDefault, nullptr);
             axis.setProperty (admCartPosInnerWidth, admCartWidthDefault, nullptr);

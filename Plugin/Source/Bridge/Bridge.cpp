@@ -15,14 +15,16 @@ namespace
         int inputId = 0;
         std::string variantTag;
         void* user = nullptr;
-        WfsBridgeInboundFn onInbound = nullptr;
+        WfsBridgeInboundFn   onInbound   = nullptr;
+        WfsBridgeInbound3fFn onInbound3f = nullptr;
     };
 
     struct MasterEntry
     {
         void* user = nullptr;
-        WfsBridgeOutboundFn       onOutbound  = nullptr;
-        WfsBridgeTrackLifecycleFn onLifecycle = nullptr;
+        WfsBridgeOutboundFn       onOutbound    = nullptr;
+        WfsBridgeOutbound3fFn     onOutbound3f  = nullptr;
+        WfsBridgeTrackLifecycleFn onLifecycle   = nullptr;
     };
 
     struct Registry
@@ -233,6 +235,59 @@ int wfs_bridge_has_master()
     auto& r = getRegistry();
     std::lock_guard<std::mutex> sl (r.lock);
     return r.master != nullptr ? 1 : 0;
+}
+
+// ── Three-float variants (ADM-OSC) ──
+
+void wfs_bridge_master_set_outbound_3f (WfsBridgeMasterHandle* /*handle*/,
+                                        WfsBridgeOutbound3fFn onOutbound3f)
+{
+    auto& r = getRegistry();
+    std::lock_guard<std::mutex> sl (r.lock);
+    if (r.master != nullptr)
+        r.master->onOutbound3f = onOutbound3f;
+}
+
+void wfs_bridge_master_dispatch_inbound_3f (WfsBridgeMasterHandle* /*handle*/,
+                                            int inputId,
+                                            const char* oscPath,
+                                            double v1, double v2, double v3)
+{
+    auto& r = getRegistry();
+    std::vector<TrackEntry> targets;
+    {
+        std::lock_guard<std::mutex> sl (r.lock);
+        for (auto& [id, entry] : r.tracks)
+            if (entry.inputId == inputId)
+                targets.push_back (entry);
+    }
+    for (auto& entry : targets)
+        if (entry.onInbound3f)
+            entry.onInbound3f (entry.user, oscPath, inputId, v1, v2, v3);
+}
+
+void wfs_bridge_track_set_inbound_3f (WfsBridgeTrackHandle* handle,
+                                      WfsBridgeInbound3fFn onInbound3f)
+{
+    if (handle == nullptr)
+        return;
+    auto& r = getRegistry();
+    std::lock_guard<std::mutex> sl (r.lock);
+    auto it = r.tracks.find (handle->id);
+    if (it != r.tracks.end())
+        it->second.onInbound3f = onInbound3f;
+}
+
+void wfs_bridge_track_send_outbound_3f (WfsBridgeTrackHandle* handle,
+                                        const char* oscPath,
+                                        double v1, double v2, double v3)
+{
+    if (handle == nullptr)
+        return;
+    auto& r = getRegistry();
+    auto masterCopy = snapshotMaster (r);
+    if (masterCopy.onOutbound3f)
+        masterCopy.onOutbound3f (masterCopy.user, oscPath, v1, v2, v3);
 }
 
 }

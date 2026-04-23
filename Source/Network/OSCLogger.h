@@ -84,6 +84,9 @@ public:
     /** Log a text message (for errors, status, etc.) */
     void logText(const juce::String& text);
 
+    /** Log a text message tagged with a protocol for clearer filtering. */
+    void logText(const juce::String& text, Protocol protocol);
+
     //==========================================================================
     // Reading
     //==========================================================================

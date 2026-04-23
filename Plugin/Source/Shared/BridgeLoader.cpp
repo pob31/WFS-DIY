@@ -100,6 +100,12 @@ namespace wfs::plugin
             field = reinterpret_cast<decltype(field)> (dll->getFunction (name)); \
             if (field == nullptr) return false;
 
+       // Optional resolves — missing symbols leave the pointer null but
+       // don't fail the whole load. Lets older bridge DLLs keep working
+       // for plugins that don't use the newer features (e.g. ADM 3f).
+       #define WFS_RESOLVE_OPTIONAL(name, field) \
+            field = reinterpret_cast<decltype(field)> (dll->getFunction (name));
+
         WFS_RESOLVE ("wfs_bridge_abi_version",                abiVersion)
         WFS_RESOLVE ("wfs_bridge_master_register",            masterRegister)
         WFS_RESOLVE ("wfs_bridge_master_unregister",          masterUnregister)
@@ -110,7 +116,12 @@ namespace wfs::plugin
         WFS_RESOLVE ("wfs_bridge_track_send_outbound",        trackSendOutbound)
         WFS_RESOLVE ("wfs_bridge_track_count",                trackCount)
         WFS_RESOLVE ("wfs_bridge_has_master",                 hasMaster)
+        WFS_RESOLVE_OPTIONAL ("wfs_bridge_master_set_outbound_3f",     masterSetOutbound3f)
+        WFS_RESOLVE_OPTIONAL ("wfs_bridge_master_dispatch_inbound_3f", masterDispatch3f)
+        WFS_RESOLVE_OPTIONAL ("wfs_bridge_track_set_inbound_3f",       trackSetInbound3f)
+        WFS_RESOLVE_OPTIONAL ("wfs_bridge_track_send_outbound_3f",     trackSendOutbound3f)
        #undef WFS_RESOLVE
+       #undef WFS_RESOLVE_OPTIONAL
 
         return abiVersion() == kBridgeAbiVersion;
     }

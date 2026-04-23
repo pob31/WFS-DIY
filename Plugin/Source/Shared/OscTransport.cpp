@@ -53,4 +53,12 @@ namespace wfs::plugin
             return false;
         return sender.send (juce::OSCAddressPattern (oscPath), channelId, value, rampSeconds);
     }
+
+    bool OscTransport::sendFloats3 (const juce::String& oscPath, float v1, float v2, float v3)
+    {
+        std::lock_guard<std::mutex> sl (lock);
+        if (! connected.load())
+            return false;
+        return sender.send (juce::OSCAddressPattern (oscPath), v1, v2, v3);
+    }
 }

@@ -148,6 +148,11 @@ void OSCLogger::logEntry(const LogEntry& entry)
 
 void OSCLogger::logText(const juce::String& text)
 {
+    logText (text, Protocol::Disabled);
+}
+
+void OSCLogger::logText(const juce::String& text, Protocol protocol)
+{
     if (!isEnabled)
         return;
 
@@ -157,7 +162,7 @@ void OSCLogger::logText(const juce::String& text)
     entry.targetIndex = -1;
     entry.address = text;
     entry.arguments = "";
-    entry.protocol = Protocol::Disabled;
+    entry.protocol = protocol;
 
     addEntry(std::move(entry));
 }

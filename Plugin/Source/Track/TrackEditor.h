@@ -8,6 +8,7 @@
 #include "../Shared/widgets/WfsWidthExpansionSlider.h"
 #include "../Shared/widgets/WfsRotationDial.h"
 #include "../Shared/widgets/WfsParameterAttachments.h"
+#include "../Shared/StatusLogView.h"
 
 namespace wfs::plugin
 {
@@ -104,6 +105,9 @@ namespace wfs::plugin
 
         // Parameter listeners that only update value-display labels.
         juce::OwnedArray<juce::ParameterAttachment> valueLabelAttachments;
+
+        juce::Label                     buildLabel;
+        std::unique_ptr<StatusLogView>  statusLog;
 
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TrackEditor)
     };

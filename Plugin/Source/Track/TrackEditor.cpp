@@ -46,7 +46,7 @@ namespace wfs::plugin
         setLookAndFeel (&lookAndFeel);
         logoImage = juce::ImageCache::getFromMemory (BinaryData::WFSDIY_logo_png,
                                                      BinaryData::WFSDIY_logo_pngSize);
-        setSize (500, 640);
+        setSize (500, 740);
 
         // Title
         titleLabel.setText ("WFS-DIY Track", juce::dontSendNotification);
@@ -254,6 +254,14 @@ namespace wfs::plugin
         wireEditable (hfShelfValueLabel,             "hfShelf");
         wireEditable (distanceAttenuationValueLabel, "distanceAttenuation");
         wireEditable (distanceRatioValueLabel,       "distanceRatio");
+
+        buildLabel.setText ("Build: " + TrackProcessor::getBuildStamp(), juce::dontSendNotification);
+        buildLabel.setFont (juce::FontOptions (11.0f));
+        buildLabel.setColour (juce::Label::textColourId, juce::Colour (DarkPalette::textSecondary));
+        addAndMakeVisible (buildLabel);
+
+        statusLog = std::make_unique<StatusLogView> (p.getDiagnosticLog());
+        addAndMakeVisible (*statusLog);
     }
 
     TrackEditor::~TrackEditor()
@@ -391,5 +399,11 @@ namespace wfs::plugin
         // ── LFO ───────────────────────────────────
         layoutSectionHeader (lfoHeader, area);
         layoutLabelControl (lfoActiveLabel, lfoActiveButton);
+        area.removeFromTop (8);
+
+        if (statusLog != nullptr)
+            statusLog->setBounds (area.removeFromTop (72));
+        area.removeFromTop (4);
+        buildLabel.setBounds (area.removeFromTop (16));
     }
 }

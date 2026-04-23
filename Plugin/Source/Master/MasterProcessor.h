@@ -3,14 +3,17 @@
 #include <map>
 #include <mutex>
 #include <juce_audio_processors/juce_audio_processors.h>
+#include <juce_osc/juce_osc.h>
 #include "../Shared/BridgeLoader.h"
 #include "../Shared/OscTransport.h"
 #include "../Shared/OscQueryClient.h"
 #include "../Shared/RateLimiter.h"
+#include "../Shared/DiagnosticLog.h"
 
 namespace wfs::plugin
 {
-    class MasterProcessor  : public juce::AudioProcessor
+    class MasterProcessor  : public juce::AudioProcessor,
+                             private juce::OSCReceiver::Listener<juce::OSCReceiver::MessageLoopCallback>
     {
     public:
         MasterProcessor();
@@ -40,15 +43,22 @@ namespace wfs::plugin
 
         juce::AudioProcessorValueTreeState& getState() noexcept { return state; }
 
-        bool connectToApp (const juce::String& host, int udpPort, int httpPort);
+        bool connectToApp (const juce::String& host, int udpPort, int httpPort, int admRxPort);
         void disconnectFromApp();
         bool isConnected() const;
         int  getRegisteredTrackCount() const;
         juce::String getConnectionStatus() const;
 
+        const DiagnosticLog& getDiagnosticLog() const noexcept { return diagLog; }
+        static juce::String  getBuildStamp();
+
     private:
-        static void bridgeOutboundCallback (void* user, const char* oscPath, int channelId, double value);
-        static void bridgeLifecycleCallback (void* user, int inputId, const char* variantTag, int isRegister);
+        static void bridgeOutboundCallback   (void* user, const char* oscPath, int channelId, double value);
+        static void bridgeOutbound3fCallback (void* user, const char* oscPath, double v1, double v2, double v3);
+        static void bridgeLifecycleCallback  (void* user, int inputId, const char* variantTag, int isRegister);
+
+        void oscMessageReceived (const juce::OSCMessage& message) override;
+        void dispatchAdmInbound (const juce::OSCMessage& msg);
 
         void onQueryOscPush (const juce::String& oscPath, float value);
         void onTrackRegistered (int inputId, const juce::String& variantTag);
@@ -64,10 +74,13 @@ namespace wfs::plugin
         OscTransport    transport;
         OscQueryClient  query;
         RateLimiter     rateLimiter;
+        juce::OSCReceiver admReceiver;
+        bool              admReceiverOpen = false;
         WfsBridgeMasterHandle* bridgeHandle = nullptr;
 
         std::mutex  lock;
         std::map<int, juce::String> subscribedInputs;
+        DiagnosticLog diagLog;
 
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MasterProcessor)
     };

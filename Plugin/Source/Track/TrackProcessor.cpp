@@ -3,6 +3,11 @@
 
 namespace wfs::plugin
 {
+    juce::String TrackProcessor::getBuildStamp()
+    {
+        return juce::String (__DATE__) + " " + juce::String (__TIME__);
+    }
+
     const std::array<NonPositionParamSpec, 9>& getSharedTrackParams()
     {
         static const std::array<NonPositionParamSpec, 9> params = {{
@@ -127,6 +132,8 @@ namespace wfs::plugin
                                                  variant.coordinateTag.toRawUTF8(),
                                                  this,
                                                  &inboundCallback);
+            if (bridgeHandle != nullptr && loader.trackSetInbound3f != nullptr)
+                loader.trackSetInbound3f (bridgeHandle, &inbound3fCallback);
         }
     }
 
@@ -263,16 +270,18 @@ namespace wfs::plugin
         cartesianToDisplay (cachedX.load(), cachedY.load(), cachedZ.load(),
                             d[0], d[1], d[2]);
 
+        // Batch the in-flight guard around the whole set so async listener
+        // callbacks can't slip through in the gap between axis updates.
+        isApplyingRemoteChange.store (true);
         for (int i = 0; i < 3; ++i)
         {
             auto* param = state.getParameter (variant.positions[(size_t) i].paramID);
             if (param == nullptr)
                 continue;
-            isApplyingRemoteChange.store (true);
             param->setValueNotifyingHost (
                 juce::jlimit (0.0f, 1.0f, param->convertTo0to1 (d[i])));
-            isApplyingRemoteChange.store (false);
         }
+        isApplyingRemoteChange.store (false);
     }
 
     void TrackProcessor::sendCartesianPositionsToApp()
@@ -289,6 +298,110 @@ namespace wfs::plugin
                                   static_cast<double> (cachedY.load()));
         loader.trackSendOutbound (bridgeHandle, "/wfs/input/positionZ", id,
                                   static_cast<double> (cachedZ.load()));
+    }
+
+    juce::String TrackProcessor::admCombinedPath() const
+    {
+        const char* suffix = variant.coordinateTag == "adm-polar" ? "/aed" : "/xyz";
+        return "/adm/obj/" + juce::String (getInputId()) + suffix;
+    }
+
+    void TrackProcessor::sendAdmPositionsToApp()
+    {
+        if (bridgeHandle == nullptr)
+            return;
+        auto& loader = BridgeLoader::getInstance();
+        if (! loader.isLoaded() || loader.trackSendOutbound3f == nullptr)
+            return;
+
+        // Read all three ADM display params directly — no conversion, the
+        // plugin's native ADM values go on the wire as-is.
+        float v[3] = { 0.0f, 0.0f, 0.0f };
+        for (int i = 0; i < 3; ++i)
+            if (auto* p = state.getRawParameterValue (variant.positions[(size_t) i].paramID))
+                v[i] = p->load();
+
+        // Echo suppression: if the values about to be sent match the last
+        // triple we received from the app (within an epsilon), this is the
+        // plugin reacting to its own earlier outbound that the app bounced
+        // back. Skip, otherwise we'd feedback-loop forever with both sides
+        // drifting slightly on each round-trip.
+        const float rx0 = lastRxAdmV1.load();
+        const float rx1 = lastRxAdmV2.load();
+        const float rx2 = lastRxAdmV3.load();
+        const float eps = 1.0e-3f;
+        if (std::isfinite (rx0) && std::isfinite (rx1) && std::isfinite (rx2)
+            && std::abs (v[0] - rx0) < eps
+            && std::abs (v[1] - rx1) < eps
+            && std::abs (v[2] - rx2) < eps)
+            return;
+
+        loader.trackSendOutbound3f (bridgeHandle,
+                                    admCombinedPath().toRawUTF8(),
+                                    static_cast<double> (v[0]),
+                                    static_cast<double> (v[1]),
+                                    static_cast<double> (v[2]));
+        diagLog.add ("Tx " + admCombinedPath()
+                     + " (" + juce::String (v[0], 3)
+                     + ", " + juce::String (v[1], 3)
+                     + ", " + juce::String (v[2], 3) + ")");
+    }
+
+    void TrackProcessor::inbound3fCallback (void* user, const char* oscPath,
+                                            int /*channelId*/,
+                                            double v1, double v2, double v3)
+    {
+        if (user == nullptr)
+            return;
+        auto* self = static_cast<TrackProcessor*> (user);
+        if (! self->isAdmVariant() || ! self->variant.positionsWired)
+            return;
+
+        const juce::String path = juce::String::fromUTF8 (oscPath);
+        // Accept both exact /xyz|aed and any /adm/obj/<id>/(xyz|aed) — the
+        // bridge only routes by inputId, so the suffix is what matters.
+        const bool isCartCombined = path.endsWith ("/xyz") || path.endsWith ("/xy");
+        const bool isPolarCombined = path.endsWith ("/aed");
+        const bool expectCart = self->variant.coordinateTag == "adm-cartesian";
+        const bool expectPolar = self->variant.coordinateTag == "adm-polar";
+
+        if ((expectCart && ! isCartCombined) || (expectPolar && ! isPolarCombined))
+            return;
+
+        self->diagLog.add ("Rx " + path
+                           + " (" + juce::String (v1, 3)
+                           + ", " + juce::String (v2, 3)
+                           + ", " + juce::String (v3, 3) + ")");
+
+        // Apply to the params, then record the *post-quantization* stored
+        // values so sendAdmPositionsToApp can recognise the inevitable echo
+        // when parameterChanged fires asynchronously. The APVTS range has a
+        // 0.01 interval, so storing the raw received value here would leave
+        // lastRx out of sync with what the param reads back on echo.
+        const double values[3] = { v1, v2, v3 };
+        self->isApplyingRemoteChange.store (true);
+        for (int i = 0; i < 3; ++i)
+        {
+            auto* param = self->state.getParameter (self->variant.positions[(size_t) i].paramID);
+            if (param == nullptr)
+                continue;
+            param->setValueNotifyingHost (
+                juce::jlimit (0.0f, 1.0f,
+                              param->convertTo0to1 (static_cast<float> (values[i]))));
+        }
+        self->isApplyingRemoteChange.store (false);
+
+        // Read back what actually got stored (after step quantization) so
+        // the echo-suppression compare in sendAdmPositionsToApp matches.
+        auto storedAxis = [self] (int i) -> float
+        {
+            if (auto* raw = self->state.getRawParameterValue (self->variant.positions[(size_t) i].paramID))
+                return raw->load();
+            return 0.0f;
+        };
+        self->lastRxAdmV1.store (storedAxis (0));
+        self->lastRxAdmV2.store (storedAxis (1));
+        self->lastRxAdmV3.store (storedAxis (2));
     }
 
     void TrackProcessor::parameterChanged (const juce::String& paramID, float newValue)
@@ -312,6 +425,8 @@ namespace wfs::plugin
                                                  variant.coordinateTag.toRawUTF8(),
                                                  this,
                                                  &inboundCallback);
+            if (bridgeHandle != nullptr && loader.trackSetInbound3f != nullptr)
+                loader.trackSetInbound3f (bridgeHandle, &inbound3fCallback);
             return;
         }
 
@@ -368,11 +483,22 @@ namespace wfs::plugin
             {
                 if (paramID == pos.paramID)
                 {
-                    // Variant param changed; recompute the cached Cartesian
-                    // and push all three X/Y/Z. The app only accepts Cartesian
-                    // at its OSC router, so we convert at the boundary.
-                    recomputeCartesianFromDisplay();
-                    sendCartesianPositionsToApp();
+                    if (isAdmVariant())
+                    {
+                        // Send /adm/obj/<id>/xyz or /aed with the three
+                        // current ADM display values. No coord conversion —
+                        // the app applies its per-input mapping preset.
+                        sendAdmPositionsToApp();
+                    }
+                    else
+                    {
+                        // Native variants: recompute the cached Cartesian
+                        // and push all three X/Y/Z. The app only accepts
+                        // Cartesian at its OSC router; we convert at the
+                        // boundary.
+                        recomputeCartesianFromDisplay();
+                        sendCartesianPositionsToApp();
+                    }
                     return;
                 }
             }

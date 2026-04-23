@@ -11,11 +11,13 @@ namespace
             "adm-cartesian",
             AddressingScheme::AdmOsc,
             {{
-                { "admX", "ADM X", "/adm/obj/1/x", -1.0f, 1.0f, 0.0f, "", false },
-                { "admY", "ADM Y", "/adm/obj/1/y", -1.0f, 1.0f, 0.0f, "", false },
-                { "admZ", "ADM Z", "/adm/obj/1/z", -1.0f, 1.0f, 0.0f, "", false }
+                // ADM-OSC Cartesian: normalised -1..+1 per axis. The
+                // plugin sends the combined /adm/obj/<id>/xyz path.
+                { "admX", "X", "",  -1.0f, 1.0f, 0.0f, "", true },
+                { "admY", "Y", "",  -1.0f, 1.0f, 0.0f, "", true },
+                { "admZ", "Z", "",  -1.0f, 1.0f, 0.0f, "", true }
             }},
-            false
+            true
         };
     }
 }

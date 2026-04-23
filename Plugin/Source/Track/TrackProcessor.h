@@ -4,6 +4,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "../Shared/BridgeLoader.h"
 #include "../Shared/VariantConfig.h"
+#include "../Shared/DiagnosticLog.h"
 
 namespace wfs::plugin
 {
@@ -68,6 +69,9 @@ namespace wfs::plugin
         int  getInputId() const;
         int  getAttenuationLaw() const;
 
+        const DiagnosticLog& getDiagnosticLog() const noexcept { return diagLog; }
+        static juce::String  getBuildStamp();
+
     private:
         // All variants exchange positions with the app in Cartesian X/Y/Z
         // (that's the only coordinate system the app's OSC router accepts
@@ -85,6 +89,28 @@ namespace wfs::plugin
         std::atomic<float> cachedX { 0.0f };
         std::atomic<float> cachedY { 0.0f };
         std::atomic<float> cachedZ { 0.0f };
+
+        // Last ADM position triple received from the app. Used to break
+        // feedback loops: when the app echoes our outbound message back
+        // (with small drift due to mapping rounding / constraints), the
+        // plugin records those values, updates its display params, and
+        // then parameterChanged fires a new outbound — which we must
+        // suppress if it would just be an echo of what we just received.
+        // NaN sentinel == "nothing received yet, never suppress".
+        std::atomic<float> lastRxAdmV1 { std::numeric_limits<float>::quiet_NaN() };
+        std::atomic<float> lastRxAdmV2 { std::numeric_limits<float>::quiet_NaN() };
+        std::atomic<float> lastRxAdmV3 { std::numeric_limits<float>::quiet_NaN() };
+
+        bool isAdmVariant() const noexcept
+        {
+            return variant.coordinateTag == "adm-cartesian"
+                || variant.coordinateTag == "adm-polar";
+        }
+
+        juce::String admCombinedPath() const;  // "/adm/obj/<id>/xyz" or "/adm/obj/<id>/aed"
+        void sendAdmPositionsToApp();
+        static void inbound3fCallback (void* user, const char* oscPath,
+                                       int channelId, double v1, double v2, double v3);
         void parameterChanged (const juce::String& paramID, float newValue) override;
 
         static void inboundCallback (void* user, const char* oscPath, int channelId, double value);
@@ -94,6 +120,7 @@ namespace wfs::plugin
         juce::AudioProcessorValueTreeState state;
         WfsBridgeTrackHandle* bridgeHandle = nullptr;
         std::atomic<bool> isApplyingRemoteChange { false };
+        DiagnosticLog diagLog;
 
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TrackProcessor)
     };

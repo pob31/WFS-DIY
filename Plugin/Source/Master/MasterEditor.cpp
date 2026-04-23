@@ -9,15 +9,16 @@ namespace wfs::plugin
         setLookAndFeel (&lookAndFeel);
         logoImage = juce::ImageCache::getFromMemory (BinaryData::WFSDIY_logo_png,
                                                      BinaryData::WFSDIY_logo_pngSize);
-        setSize (460, 290);
+        setSize (460, 440);
 
-        for (auto* label : { &hostLabel, &udpLabel, &httpLabel, &statusLabel, &tracksLabel })
+        for (auto* label : { &hostLabel, &udpLabel, &httpLabel, &admLabel, &statusLabel, &tracksLabel })
             addAndMakeVisible (*label);
 
         hostEditor.setText ("127.0.0.1");
         udpEditor.setText ("8000");
         httpEditor.setText ("5005");
-        for (auto* ed : { &hostEditor, &udpEditor, &httpEditor })
+        admEditor.setText ("4001");
+        for (auto* ed : { &hostEditor, &udpEditor, &httpEditor, &admEditor })
         {
             ed->setIndents (6, 4);
             addAndMakeVisible (*ed);
@@ -26,7 +27,7 @@ namespace wfs::plugin
         connectButton.onClick = [this] { onConnectClicked(); };
         addAndMakeVisible (connectButton);
 
-        for (auto* lbl : { &hostLabel, &udpLabel, &httpLabel })
+        for (auto* lbl : { &hostLabel, &udpLabel, &httpLabel, &admLabel })
         {
             lbl->setFont (juce::FontOptions (14.0f));
             lbl->setColour (juce::Label::textColourId, juce::Colour (DarkPalette::textSecondary));
@@ -36,6 +37,14 @@ namespace wfs::plugin
         tracksLabel.setFont (juce::FontOptions (14.0f));
         statusLabel.setColour (juce::Label::textColourId, juce::Colour (DarkPalette::textSecondary));
         tracksLabel.setColour (juce::Label::textColourId, juce::Colour (DarkPalette::textSecondary));
+
+        buildLabel.setText ("Build: " + MasterProcessor::getBuildStamp(), juce::dontSendNotification);
+        buildLabel.setFont (juce::FontOptions (11.0f));
+        buildLabel.setColour (juce::Label::textColourId, juce::Colour (DarkPalette::textSecondary));
+        addAndMakeVisible (buildLabel);
+
+        statusLog = std::make_unique<StatusLogView> (processor.getDiagnosticLog());
+        addAndMakeVisible (*statusLog);
 
         startTimerHz (5);
     }
@@ -93,11 +102,17 @@ namespace wfs::plugin
         row (hostLabel, hostEditor);
         row (udpLabel,  udpEditor);
         row (httpLabel, httpEditor);
+        row (admLabel,  admEditor);
 
         connectButton.setBounds (area.removeFromTop (32).reduced (60, 2));
         area.removeFromTop (10);
         statusLabel.setBounds (area.removeFromTop (22));
         tracksLabel.setBounds (area.removeFromTop (22));
+        area.removeFromTop (6);
+        if (statusLog != nullptr)
+            statusLog->setBounds (area.removeFromTop (72));
+        area.removeFromTop (4);
+        buildLabel.setBounds (area.removeFromTop (16));
     }
 
     void MasterEditor::timerCallback()
@@ -120,7 +135,8 @@ namespace wfs::plugin
             const auto host = hostEditor.getText();
             const auto udp  = udpEditor.getText().getIntValue();
             const auto http = httpEditor.getText().getIntValue();
-            processor.connectToApp (host, udp, http);
+            const auto adm  = admEditor.getText().getIntValue();
+            processor.connectToApp (host, udp, http, adm);
         }
     }
 }

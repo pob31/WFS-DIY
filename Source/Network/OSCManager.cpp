@@ -1136,6 +1136,14 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
     {
         int channelIndex = channelId - 1;
         sendADMOSCPosition (channelIndex);
+
+        // MapTab deliberately doesn't auto-repaint on ValueTree property
+        // changes to avoid CPU load with many channels. When the change came
+        // from an external protocol (OSC, ADM-OSC, Remote, etc.) tickle the
+        // already-wired map-repaint callback so the map reflects inbound
+        // position moves without needing a tab-switch refresh.
+        if (incomingProtocol != Protocol::Disabled && onRemotePositionReceived)
+            onRemotePositionReceived();
     }
 
     // ADM-OSC transmit: gain and name
@@ -1309,6 +1317,8 @@ void OSCManager::handleIncomingMessage(const juce::OSCMessage& message,
     Protocol protocol = Protocol::OSC;
     if (address.startsWith("/remoteInput/") || address.startsWith("/remote/"))
         protocol = Protocol::Remote;
+    else if (address.startsWith("/adm/"))
+        protocol = Protocol::ADMOSC;
 
     // Log incoming message with full details
     logger.logReceivedWithDetails(message, protocol, senderIP, port, transport);
@@ -4508,11 +4518,13 @@ void OSCManager::rebuildADMOSCMappingCache()
 void OSCManager::handleADMOSCMessage (const juce::OSCMessage& message)
 {
     auto parsed = OSCMessageRouter::parseADMOSCMessage (message);
-    if (!parsed.valid) return;
+    if (!parsed.valid)
+        return;
 
     int channelIndex = parsed.objectId - 1;  // 1-based to 0-based
     int numInputs = state.getIntParameter (WFSParameterIDs::inputChannels);
-    if (channelIndex < 0 || channelIndex >= numInputs) return;
+    if (channelIndex < 0 || channelIndex >= numInputs)
+        return;
 
     // Handle gain (no mapping needed)
     if (parsed.type == OSCMessageRouter::ParsedADMOSCMessage::Type::Gain)
@@ -4550,14 +4562,17 @@ void OSCManager::handleADMOSCMessage (const juce::OSCMessage& message)
     // Get input's ADM mapping assignment
     juce::var mappingVar = state.getInputParameter (channelIndex, WFSParameterIDs::inputAdmMapping);
     int mapping = static_cast<int> (mappingVar);
-    if (mapping < 0 || mapping >= 8) return;
+    if (mapping < 0 || mapping >= 8)
+        return;
 
     bool isCartMapping = (mapping < 4);
     bool isPolarMapping = (mapping >= 4);
 
     // Only process matching coordinate types
-    if (isCartMapping && !parsed.isCartesian()) return;
-    if (isPolarMapping && !parsed.isPolar()) return;
+    if (isCartMapping && !parsed.isCartesian())
+        return;
+    if (isPolarMapping && !parsed.isPolar())
+        return;
 
     // Rebuild cache if needed
     if (admMappingCacheDirty)

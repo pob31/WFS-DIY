@@ -21,6 +21,10 @@ namespace wfs::plugin
         bool sendFloat  (const juce::String& oscPath, int channelId, float value);
         bool sendFloat  (const juce::String& oscPath, int channelId, float value, float rampSeconds);
 
+        /** Three-float payload with no leading channel-ID arg (for ADM-OSC, where
+            the channel is embedded in the address path). */
+        bool sendFloats3 (const juce::String& oscPath, float v1, float v2, float v3);
+
     private:
         std::mutex lock;
         juce::OSCSender sender;

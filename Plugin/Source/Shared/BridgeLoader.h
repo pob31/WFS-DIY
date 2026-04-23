@@ -24,6 +24,11 @@ namespace wfs::plugin
         decltype(&wfs_bridge_track_count)                trackCount          = nullptr;
         decltype(&wfs_bridge_has_master)                 hasMaster           = nullptr;
 
+        decltype(&wfs_bridge_master_set_outbound_3f)       masterSetOutbound3f = nullptr;
+        decltype(&wfs_bridge_master_dispatch_inbound_3f)   masterDispatch3f    = nullptr;
+        decltype(&wfs_bridge_track_set_inbound_3f)         trackSetInbound3f   = nullptr;
+        decltype(&wfs_bridge_track_send_outbound_3f)       trackSendOutbound3f = nullptr;
+
     private:
         BridgeLoader() = default;
         ~BridgeLoader();

@@ -3,6 +3,10 @@
 
 namespace wfs::plugin
 {
+    juce::String MasterProcessor::getBuildStamp()
+    {
+        return juce::String (__DATE__) + " " + juce::String (__TIME__);
+    }
     const std::vector<juce::String>& MasterProcessor::sharedNonPositionPaths()
     {
         static const std::vector<juce::String> paths = {
@@ -48,6 +52,24 @@ namespace wfs::plugin
         const auto path    = juce::String::fromUTF8 (oscPath);
         const auto epsilon = 0.0001f;
         self->rateLimiter.post (path, channelId, static_cast<float> (value), epsilon);
+    }
+
+    void MasterProcessor::bridgeOutbound3fCallback (void* user, const char* oscPath,
+                                                    double v1, double v2, double v3)
+    {
+        // ADM-OSC triples (/adm/obj/N/xyz, /aed) are low-frequency messages —
+        // bypass the rate limiter and send immediately. The app's OSC router
+        // dispatches by address prefix so these go to the same UDP Rx port
+        // as the native /wfs/input/ messages.
+        if (user == nullptr)
+            return;
+        auto* self = static_cast<MasterProcessor*> (user);
+        if (! self->isConnected())
+            return;
+        self->transport.sendFloats3 (juce::String::fromUTF8 (oscPath),
+                                     static_cast<float> (v1),
+                                     static_cast<float> (v2),
+                                     static_cast<float> (v3));
     }
 
     void MasterProcessor::bridgeLifecycleCallback (void* user, int inputId,
@@ -96,9 +118,13 @@ namespace wfs::plugin
     {
         auto& loader = BridgeLoader::getInstance();
         if (loader.ensureLoaded() && bridgeHandle == nullptr)
+        {
             bridgeHandle = loader.masterRegister (this,
                                                   &bridgeOutboundCallback,
                                                   &bridgeLifecycleCallback);
+            if (bridgeHandle != nullptr && loader.masterSetOutbound3f != nullptr)
+                loader.masterSetOutbound3f (bridgeHandle, &bridgeOutbound3fCallback);
+        }
     }
 
     void MasterProcessor::releaseResources()
@@ -141,7 +167,7 @@ namespace wfs::plugin
             state.replaceState (juce::ValueTree::fromXml (*xml));
     }
 
-    bool MasterProcessor::connectToApp (const juce::String& host, int udpPort, int httpPort)
+    bool MasterProcessor::connectToApp (const juce::String& host, int udpPort, int httpPort, int admRxPort)
     {
         if (! transport.connect (host, udpPort))
             return false;
@@ -149,6 +175,28 @@ namespace wfs::plugin
         {
             transport.disconnect();
             return false;
+        }
+
+        // ADM-OSC isn't exposed over OSCQuery, so we need a dedicated UDP
+        // receiver for inbound /adm/obj/N/... messages from the app.
+        if (admRxPort > 0)
+        {
+            if (admReceiverOpen)
+            {
+                admReceiver.removeListener (this);
+                admReceiver.disconnect();
+                admReceiverOpen = false;
+            }
+            if (admReceiver.connect (admRxPort))
+            {
+                admReceiver.addListener (this);
+                admReceiverOpen = true;
+                diagLog.add ("ADM-OSC listening on port " + juce::String (admRxPort));
+            }
+            else
+            {
+                diagLog.add ("ADM-OSC bind FAILED on port " + juce::String (admRxPort));
+            }
         }
 
         // Re-subscribe for any Tracks that registered before we connected.
@@ -167,6 +215,12 @@ namespace wfs::plugin
 
     void MasterProcessor::disconnectFromApp()
     {
+        if (admReceiverOpen)
+        {
+            admReceiver.removeListener (this);
+            admReceiver.disconnect();
+            admReceiverOpen = false;
+        }
         query.disconnect();
         transport.disconnect();
     }
@@ -259,6 +313,71 @@ namespace wfs::plugin
     void MasterProcessor::onTrackUnregistered (int inputId)
     {
         unsubscribeInput (inputId);
+    }
+
+    void MasterProcessor::oscMessageReceived (const juce::OSCMessage& message)
+    {
+        dispatchAdmInbound (message);
+    }
+
+    void MasterProcessor::dispatchAdmInbound (const juce::OSCMessage& msg)
+    {
+        const juce::String addr = msg.getAddressPattern().toString();
+        if (! addr.startsWith ("/adm/obj/"))
+            return;
+
+        // /adm/obj/<id>/<param>
+        const auto tail = addr.fromFirstOccurrenceOf ("/adm/obj/", false, false);
+        const int slashIdx = tail.indexOf ("/");
+        if (slashIdx <= 0)
+            return;
+        const juce::String idStr = tail.substring (0, slashIdx);
+        if (! idStr.containsOnly ("0123456789"))
+            return;
+        const int inputId = idStr.getIntValue();
+        const juce::String param = tail.substring (slashIdx + 1);
+
+        auto argFloat = [] (const juce::OSCArgument& a) -> float
+        {
+            if (a.isFloat32())  return a.getFloat32();
+            if (a.isInt32())    return static_cast<float> (a.getInt32());
+            return 0.0f;
+        };
+
+        auto& loader = BridgeLoader::getInstance();
+        if (! loader.isLoaded() || bridgeHandle == nullptr)
+            return;
+
+        // Combined triples first.
+        if ((param == "xyz" || param == "aed") && msg.size() >= 3 && loader.masterDispatch3f != nullptr)
+        {
+            diagLog.add ("Rx /adm/obj/" + juce::String (inputId) + "/" + param
+                         + " (" + juce::String (argFloat (msg[0]), 3)
+                         + ", " + juce::String (argFloat (msg[1]), 3)
+                         + ", " + juce::String (argFloat (msg[2]), 3) + ")");
+            loader.masterDispatch3f (bridgeHandle, inputId, addr.toRawUTF8(),
+                                     argFloat (msg[0]),
+                                     argFloat (msg[1]),
+                                     argFloat (msg[2]));
+            return;
+        }
+
+        if (param == "xy" && msg.size() >= 2 && loader.masterDispatch3f != nullptr)
+        {
+            loader.masterDispatch3f (bridgeHandle, inputId, addr.toRawUTF8(),
+                                     argFloat (msg[0]),
+                                     argFloat (msg[1]),
+                                     0.0f);
+            return;
+        }
+
+        // Per-axis individual messages fall through to the 1f dispatcher so
+        // tracks can update single axes piecemeal.
+        if (msg.size() >= 1 && loader.masterDispatch != nullptr)
+        {
+            loader.masterDispatch (bridgeHandle, inputId, addr.toRawUTF8(),
+                                   static_cast<double> (argFloat (msg[0])));
+        }
     }
 
     void MasterProcessor::onQueryOscPush (const juce::String& oscPath, float value)
