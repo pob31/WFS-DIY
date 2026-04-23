@@ -50,6 +50,22 @@ namespace wfs::plugin
         WfsStandardSlider   attenuationSlider { WfsSliderBase::Orientation::horizontal };
         std::unique_ptr<WfsSliderNormalisedAttachment> attenuationAttachment;
 
+        juce::Label         attenuationLawLabel;
+        juce::ComboBox      attenuationLawCombo;
+        std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> attenuationLawAttachment;
+
+        juce::Label         distanceAttenuationLabel;
+        juce::Label         distanceAttenuationValueLabel;
+        WfsStandardSlider   distanceAttenuationSlider { WfsSliderBase::Orientation::horizontal };
+        std::unique_ptr<WfsSliderNormalisedAttachment> distanceAttenuationAttachment;
+
+        juce::Label         distanceRatioLabel;
+        juce::Label         distanceRatioValueLabel;
+        WfsStandardSlider   distanceRatioSlider { WfsSliderBase::Orientation::horizontal };
+        std::unique_ptr<WfsSliderNormalisedAttachment> distanceRatioAttachment;
+
+        std::unique_ptr<juce::ParameterAttachment> lawVisibilityAttachment;
+
         // Position: X/Y/Z number boxes
         struct NumberBoxRow
         {

@@ -7,6 +7,9 @@ namespace wfs::plugin
     {
         static const std::vector<juce::String> paths = {
             "/wfs/input/attenuation",
+            "/wfs/input/attenuationLaw",
+            "/wfs/input/distanceAttenuation",
+            "/wfs/input/distanceRatio",
             "/wfs/input/directivity",
             "/wfs/input/rotation",
             "/wfs/input/tilt",

@@ -85,7 +85,7 @@ namespace wfs::plugin
         auto row = [&] (juce::Label& l, juce::TextEditor& e)
         {
             auto r = area.removeFromTop (28);
-            l.setBounds (r.removeFromLeft (140));
+            l.setBounds (r.removeFromLeft (180));
             e.setBounds (r.reduced (2));
             area.removeFromTop (6);
         };

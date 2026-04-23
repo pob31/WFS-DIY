@@ -13,7 +13,8 @@ namespace wfs::plugin
         LinearSlider,     // horizontal slider, linear, unit suffix
         RotaryDial,       // rotary knob
         BidirectionalBar, // horizontal slider with centre-zero visual
-        Toggle            // ON/OFF button
+        Toggle,           // ON/OFF button
+        TwoStateCombo     // ComboBox with two mutually-exclusive choices
     };
 
     struct NonPositionParamSpec
@@ -30,7 +31,7 @@ namespace wfs::plugin
         float skewMidpoint;   // 0 = linear; only applied for float params
     };
 
-    const std::array<NonPositionParamSpec, 6>& getSharedTrackParams();
+    const std::array<NonPositionParamSpec, 9>& getSharedTrackParams();
 
     class TrackProcessor  : public juce::AudioProcessor,
                             private juce::AudioProcessorValueTreeState::Listener
@@ -65,6 +66,7 @@ namespace wfs::plugin
         const VariantConfig& getVariant() const noexcept        { return variant; }
 
         int  getInputId() const;
+        int  getAttenuationLaw() const;
 
     private:
         void parameterChanged (const juce::String& paramID, float newValue) override;

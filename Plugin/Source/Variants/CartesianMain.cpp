@@ -11,9 +11,9 @@ namespace
             "cartesian",
             AddressingScheme::NativeWFS,
             {{
-                { "positionX", "Position X", "/wfs/input/positionX", 0.0f, 50.0f, 0.0f, "m", true },
-                { "positionY", "Position Y", "/wfs/input/positionY", 0.0f, 50.0f, 0.0f, "m", true },
-                { "positionZ", "Position Z", "/wfs/input/positionZ", 0.0f, 50.0f, 0.0f, "m", true }
+                { "positionX", "Position X", "/wfs/input/positionX", -50.0f, 50.0f, 0.0f, "m", true },
+                { "positionY", "Position Y", "/wfs/input/positionY", -50.0f, 50.0f, 0.0f, "m", true },
+                { "positionZ", "Position Z", "/wfs/input/positionZ", -50.0f, 50.0f, 0.0f, "m", true }
             }},
             true
         };

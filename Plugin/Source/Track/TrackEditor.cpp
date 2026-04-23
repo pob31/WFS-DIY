@@ -46,7 +46,7 @@ namespace wfs::plugin
         setLookAndFeel (&lookAndFeel);
         logoImage = juce::ImageCache::getFromMemory (BinaryData::WFSDIY_logo_png,
                                                      BinaryData::WFSDIY_logo_pngSize);
-        setSize (500, 560);
+        setSize (500, 640);
 
         // Title
         titleLabel.setText ("WFS-DIY Track", juce::dontSendNotification);
@@ -84,6 +84,51 @@ namespace wfs::plugin
         addAndMakeVisible (attenuationSlider);
         if (auto* param = p.getState().getParameter ("attenuation"))
             attenuationAttachment = std::make_unique<WfsSliderNormalisedAttachment> (*param, attenuationSlider);
+
+        // Attenuation Law — ComboBox (Log / 1/d) driving the two distance dials.
+        setupRowLabel (attenuationLawLabel, "Attenuation Law");
+        attenuationLawCombo.addItem ("Log",  1);
+        attenuationLawCombo.addItem ("1/d",  2);
+        addAndMakeVisible (attenuationLawCombo);
+        attenuationLawAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment> (
+            p.getState(), "attenuationLaw", attenuationLawCombo);
+
+        setupRowLabel   (distanceAttenuationLabel, "Distance Atten.");
+        setupValueLabel (distanceAttenuationValueLabel);
+        distanceAttenuationSlider.setTrackColours (juce::Colour (DarkPalette::sliderTrackBg),
+                                                   juce::Colour (DarkPalette::accentBlueBright));
+        addAndMakeVisible (distanceAttenuationSlider);
+        if (auto* param = p.getState().getParameter ("distanceAttenuation"))
+            distanceAttenuationAttachment = std::make_unique<WfsSliderNormalisedAttachment> (
+                *param, distanceAttenuationSlider);
+
+        setupRowLabel   (distanceRatioLabel, "Distance Ratio");
+        setupValueLabel (distanceRatioValueLabel);
+        distanceRatioSlider.setTrackColours (juce::Colour (DarkPalette::sliderTrackBg),
+                                             juce::Colour (DarkPalette::accentBlueBright));
+        addAndMakeVisible (distanceRatioSlider);
+        if (auto* param = p.getState().getParameter ("distanceRatio"))
+            distanceRatioAttachment = std::make_unique<WfsSliderNormalisedAttachment> (
+                *param, distanceRatioSlider);
+
+        // Listen on the law parameter to toggle visibility of the two dials.
+        if (auto* law = p.getState().getParameter ("attenuationLaw"))
+        {
+            lawVisibilityAttachment = std::make_unique<juce::ParameterAttachment> (
+                *law,
+                [this] (float value)
+                {
+                    const bool isLog = value < 0.5f;
+                    distanceAttenuationLabel.setVisible       (isLog);
+                    distanceAttenuationSlider.setVisible      (isLog);
+                    distanceAttenuationValueLabel.setVisible  (isLog);
+                    distanceRatioLabel.setVisible             (! isLog);
+                    distanceRatioSlider.setVisible            (! isLog);
+                    distanceRatioValueLabel.setVisible        (! isLog);
+                    resized();
+                });
+            lawVisibilityAttachment->sendInitialUpdate();
+        }
 
         // ── Position ───────────────────────────────────────────────────
         if (p.getVariant().positionsWired)
@@ -165,11 +210,15 @@ namespace wfs::plugin
             }
         };
 
-        wireValueLabel ("attenuation", attenuationValueLabel, formatDecibels);
-        wireValueLabel ("directivity", directivityValueLabel, formatDegreesInt);
-        wireValueLabel ("rotation",    rotationValueLabel,    formatDegreesInt);
-        wireValueLabel ("tilt",        tiltValueLabel,        formatDegreesInt);
-        wireValueLabel ("hfShelf",     hfShelfValueLabel,     formatDecibels);
+        wireValueLabel ("attenuation",         attenuationValueLabel,         formatDecibels);
+        wireValueLabel ("directivity",         directivityValueLabel,         formatDegreesInt);
+        wireValueLabel ("rotation",            rotationValueLabel,            formatDegreesInt);
+        wireValueLabel ("tilt",                tiltValueLabel,                formatDegreesInt);
+        wireValueLabel ("hfShelf",             hfShelfValueLabel,             formatDecibels);
+        wireValueLabel ("distanceAttenuation", distanceAttenuationValueLabel,
+                        [] (float v) { return juce::String (v, 2) + " dB/m"; });
+        wireValueLabel ("distanceRatio",       distanceRatioValueLabel,
+                        [] (float v) { return juce::String (v, 2) + " x"; });
     }
 
     TrackEditor::~TrackEditor()
@@ -265,6 +314,15 @@ namespace wfs::plugin
         layoutSectionHeader (channelHeader, area);
         layoutLabelControl        (inputIdLabel, inputIdSlider);
         layoutLabelSliderValue    (attenuationLabel, attenuationSlider, attenuationValueLabel);
+        layoutLabelControl        (attenuationLawLabel, attenuationLawCombo);
+        if (distanceAttenuationSlider.isVisible())
+            layoutLabelSliderValue (distanceAttenuationLabel,
+                                    distanceAttenuationSlider,
+                                    distanceAttenuationValueLabel);
+        else
+            layoutLabelSliderValue (distanceRatioLabel,
+                                    distanceRatioSlider,
+                                    distanceRatioValueLabel);
         area.removeFromTop (6);
 
         // ── Position ──────────────────────────────

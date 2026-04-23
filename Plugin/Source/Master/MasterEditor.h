@@ -26,9 +26,9 @@ namespace wfs::plugin
 
         juce::Label       hostLabel        { {}, "Host:" };
         juce::TextEditor  hostEditor;
-        juce::Label       udpLabel         { {}, "OSC UDP port:" };
+        juce::Label       udpLabel         { {}, "OSC send port (Tx):" };
         juce::TextEditor  udpEditor;
-        juce::Label       httpLabel        { {}, "OSCQuery port:" };
+        juce::Label       httpLabel        { {}, "OSCQuery HTTP port:" };
         juce::TextEditor  httpEditor;
         juce::TextButton  connectButton    { "Connect" };
         juce::Label       statusLabel      { {}, "Disconnected" };
