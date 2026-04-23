@@ -850,6 +850,8 @@ public:
                 isDraggingBarycenter = false;
                 isInViewGesture = false;
 
+                parameters.getValueTreeState().beginUndoTransaction ("Map Drag Input " + juce::String (hitRefInput + 1));
+
                 auto rawPos = getInputPosition(hitRefInput);
                 bool flipX = static_cast<int>(parameters.getInputParam(hitRefInput, "inputFlipX")) != 0;
                 bool flipY = static_cast<int>(parameters.getInputParam(hitRefInput, "inputFlipY")) != 0;
@@ -859,6 +861,13 @@ public:
                 float offsetX = static_cast<float>(parameters.getInputParam(hitRefInput, "inputOffsetX"));
                 float offsetY = static_cast<float>(parameters.getInputParam(hitRefInput, "inputOffsetY"));
                 inputDragStartOffset = { offsetX, offsetY };
+
+                // Seed the multi-drag snapshot for the hit ref input so mouseDrag moves it.
+                multiDragSnapshots.clear();
+                InputDragSnapshot snap;
+                snap.stagePos = inputDragStartStagePos;
+                snap.offset = inputDragStartOffset;
+                multiDragSnapshots[hitRefInput] = snap;
 
                 // Set up long-press state for navigation to cluster
                 longPressState.active = true;
@@ -3299,14 +3308,15 @@ private:
                 if (!refVisible)
                 {
                     float clusterMarkerRadius = 10.0f;
-                    bool isSelected = (isInputSelected(refInput) && isDraggingInput);
+                    bool isSelected = isInputSelected(refInput);
 
                     // Fill with cluster color
                     g.setColour(WfsColorUtilities::getMarkerColor(cluster, true));
                     g.fillEllipse(refPos.x - clusterMarkerRadius, refPos.y - clusterMarkerRadius,
                                   clusterMarkerRadius * 2, clusterMarkerRadius * 2);
 
-                    // Selection highlight when dragging
+                    // Selection highlight — persistent while the ref input is
+                    // selected, so SpaceMouse/arrow-key moves keep the yellow ring.
                     if (isSelected)
                     {
                         g.setColour(juce::Colours::yellow);
