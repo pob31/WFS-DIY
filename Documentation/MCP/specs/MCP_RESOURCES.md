@@ -49,7 +49,7 @@ The following resources are provided as markdown files in the `resources/` direc
 | `wfs://knowledge/level_maps` | Gradient maps and level maps | How image-based maps drive level, height, and HF damping as a function of source position. Application examples: off-stage muting, height matching for stairs and platforms, creative distance effects. |
 | `wfs://knowledge/source_movements` | Movement automation — LFOs, trajectories, jitter | The available movement modes: offset with rotate/scale, one-shot Move with time and curve, jitter (random micro-movement), LFO (periodic movement with per-axis shape/rate/amplitude/phase). Gyrophone for directivity rotation. Global speed control. When to use constant-speed (line) vs. smooth (sine) acceleration. |
 | `wfs://knowledge/signal_flow` | Signal flow in a typical session | Console direct-outs post-fader feeding the WFS processor inputs, speaker outputs going back to the console or direct to amps, reverb sends and returns, the object-oriented mixing paradigm (per-source parameters, not per-speaker mixing). |
-| `wfs://knowledge/session_concepts` | Sessions, snapshots, and scope | How a session is organized (configuration + snapshots + samples + IRs), what's in each saved file, the snapshot scope system (parameter-level, per-channel granularity), backup/autosave, locking, OSC-driven snapshot operations. |
+| `wfs://knowledge/session_concepts` | Sessions, snapshots, and scope | How a session is organized (configuration + snapshots + samples + IRs), what's in each saved file, the snapshot scope system (parameter-level, per-channel granularity), backup/autosave, OSC-driven snapshot operations. |
 | `wfs://knowledge/tracking` | Position tracking | Tracking technologies (UWB, computer vision, LiDAR, IR-LED), supported protocols (OSC, PSN, RTTrP, MQTT), the OSC message format, coordinate mapping (offset/scale/flip), smoothing trade-offs, per-input tag assignment, hand-off between tracked and static states. Useful when setting up tracking, calibrating, or troubleshooting positional issues. |
 
 ## When to add or change resources
@@ -67,10 +67,10 @@ Things that do NOT belong as resources:
 - Specific version numbers, release notes — those belong elsewhere.
 - Per-parameter details — that's what the CSVs and generated tool schemas are for.
 
-## Bilingual resources (optional, post-v1)
+## Multilingual resources (optional, post-v1)
 
 For French-speaking users, consider providing French versions of the highest-value resources (psychoacoustics, WFS theory, system tuning). Pattern: `wfs://knowledge/fr/psychoacoustique`. Client can fetch either based on operator language preference. Modern LLMs handle either, but a well-written French original reads better than on-the-fly translation.
-
+There are also Spanish, Italian, Portugese, German, Japanese, Korean and Chinese translations. These need proofreading by native or bilingual speakers before integration in the MCP server.
 Not a v1 deliverable. Flag as future work.
 
 ## Delivery format

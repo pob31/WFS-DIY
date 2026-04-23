@@ -34,7 +34,7 @@ These conventions matter more than they seem. The tool description is what the L
 
 - **Start with the action, not the object.** "Sets the position of an audio source in the listening space" — not "Position of an audio source."
 - **Specify units and coordinate frames explicitly.** "x, y, z in meters, origin at stage reference point, +x right (stage-right), +y upstage, +z up."
-- **State constraints the AI should respect.** "input_id must be between 1 and the current number of configured inputs (default 24)."
+- **State constraints the AI should respect.** "input_id must be between 1 and the current number of configured inputs (default 8)."
 - **Mention related tools when the AI might need them.** "Use `get_session_state()` first if unsure which inputs exist."
 - **Use the CSV 'Hover help text' as the starting point** but expand with context the AI needs. The hover text is optimized for a human pointing at a UI element; the tool description is optimized for an LLM deciding whether this tool matches the user's request.
 
@@ -49,8 +49,8 @@ These are NOT auto-generated. The implementer writes them by hand because they c
 | `session.get_state` | 1 | Returns a summary of the current session: running/stopped, input/output/reverb counts, master level, currently selected input, active snapshot name, stage dimensions. |
 | `session.get_inputs_summary` | 1 | Returns array of inputs with id, name, position, attenuation, mute state, control mode (manual/tracking/matrix), cluster assignment. |
 | `session.get_outputs_summary` | 1 | Returns array of outputs with id, name, position, orientation, group assignment, mute state. |
-| `session.get_reverbs_summary` | 1 | Returns array of reverb channels with feed position, return position, mute state. |
-| `session.get_array_geometry` | 1 | Returns the speaker array structure: outputs grouped by array assignment, with positions and orientations. Useful for Claude to reason about the spatial configuration. |
+| `session.get_reverbs_summary` | 1 | Returns array of reverb channels with feed position, return position, mute state, selected algorithm. |
+| `session.get_array_geometry` | 1 | Returns the speaker array structure: outputs grouped by array assignment, with positions and orientations. Useful for AI to reason about the spatial configuration. |
 | `session.get_running_state` | 1 | Whether the DSP is running, with audio interface info and current thread performance if available. |
 
 ### High-level actions
@@ -60,7 +60,7 @@ These are NOT auto-generated. The implementer writes them by hand because they c
 | `session.start_dsp` | 2 | Starts audio rendering. Confirmation required because it produces sound. |
 | `session.stop_dsp` | 2 | Stops audio rendering. Confirmation required because it silences the show. |
 | `input.move_relative` | 1 | Nudges a source by dx, dy, dz relative to current position. Useful for "move source 3 a bit to the left." |
-| `input.place_by_description` | 1 | Accepts x, y, z AND a free-form description. The description goes in the input's name if the name hasn't been set manually. Lets Claude place and label in one step. |
+| `input.place_by_description` | 1 | Accepts x, y, z AND a free-form description. The description goes in the input's name if the name hasn't been set manually. Lets AI place and label in one step. |
 | `input.mute` / `input.unmute` | 1 | Shortcut for toggling input attenuation to -inf. |
 | `cluster.assign` | 1 | Assigns an input to a cluster (1-10) or removes from cluster (0). |
 | `snapshot.list` | 1 | Lists saved input snapshots with names and timestamps. |
@@ -75,7 +75,7 @@ These wrap common multi-parameter operations that are tedious to do one paramete
 
 | Tool | Tier | Purpose |
 |---|---|---|
-| `input.configure_lfo` | 1 | Sets all LFO parameters for an input in one call: active, period, phase, shape/amplitude/phase for each axis, gyroscope. |
+| `input.configure_lfo` | 1 | Sets all LFO parameters for an input in one call: active, period, phase, shape/amplitude/phase for each axis, gyrophone. |
 | `input.configure_live_source_tamer` | 1 | Sets all live-source-damping parameters. |
 | `input.configure_floor_reflections` | 1 | Sets all floor-reflection parameters (Hackoustics section). |
 | `input.configure_directivity` | 1 | Sets directivity, rotation, tilt, HF shelf in one call. |
@@ -150,8 +150,9 @@ The CSV and the old manual use "width / depth / height" for input positions. Thi
 - **z (height)**: vertical, +z = up.
 
 The stage origin default is at the downstage center at floor level, but this is configurable in the Stage tab and the `session.get_state` response includes the current origin.
+When the origin is set to (0,0,0) it is in the middle of the stage (in width and depth) whether rectangular (box) or circular (cylinder/dome) at ground level.
 
-Polar coordinates (cylindrical/spherical) use "azimuth" with 0° = toward audience, 90° = stage-right, per the CSV comments on `inputPositionTheta`.
+Polar coordinates (cylindrical/spherical) use "azimuth" with 0° = toward audience, 90° = stage-left, per the CSV comments on `inputPositionTheta`.
 
 ## Localization
 
