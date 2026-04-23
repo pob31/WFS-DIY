@@ -29,6 +29,11 @@ namespace wfs::plugin
         bool listen (const juce::String& oscPath);
         bool ignore (const juce::String& oscPath);
 
+        /** HTTP-GET `<oscPath>?VALUE` and if the server returns a numeric
+            current value, fire the regular oscCallback with it. Useful to
+            populate fresh state immediately after subscribe. */
+        bool fetchCurrentValue (const juce::String& oscPath);
+
         State         getState() const        { return state.load(); }
         juce::String  getLastHostInfo() const;
 

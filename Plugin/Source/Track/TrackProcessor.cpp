@@ -96,6 +96,8 @@ namespace wfs::plugin
           variant (std::move (cfg)),
           state (*this, nullptr, "TrackState", buildLayout())
     {
+        state.addParameterListener ("inputId", this);
+
         for (const auto& spec : getSharedTrackParams())
             state.addParameterListener (spec.paramID, this);
 
@@ -106,6 +108,8 @@ namespace wfs::plugin
 
     TrackProcessor::~TrackProcessor()
     {
+        state.removeParameterListener ("inputId", this);
+
         for (const auto& spec : getSharedTrackParams())
             state.removeParameterListener (spec.paramID, this);
 
@@ -169,7 +173,7 @@ namespace wfs::plugin
     int TrackProcessor::getInputId() const
     {
         if (auto* p = state.getRawParameterValue ("inputId"))
-            return static_cast<int> (p->load());
+            return static_cast<int> (std::round (p->load()));
         return 1;
     }
 
@@ -180,8 +184,137 @@ namespace wfs::plugin
         return 0;
     }
 
+    // ── Coordinate conversions ─────────────────────────────────────────
+    // Azimuth convention (matches the main app's CLAUDE.md):
+    //   θ = atan2(x, -y). 0° = audience (-Y), 90° = right (+X),
+    //   ±180° = upstage (+Y), -90° = left (-X).
+    //   So for cylindrical: x = r·sin(θ), y = -r·cos(θ).
+
+    void TrackProcessor::displayToCartesian (float d0, float d1, float d2,
+                                             float& x, float& y, float& z) const
+    {
+        const auto& tag = variant.coordinateTag;
+        if (tag == "cylindrical")
+        {
+            const float thetaRad = juce::degreesToRadians (d1);
+            x =  d0 * std::sin (thetaRad);
+            y = -d0 * std::cos (thetaRad);
+            z =  d2;
+        }
+        else if (tag == "spherical")
+        {
+            const float thetaRad = juce::degreesToRadians (d1);
+            const float phiRad   = juce::degreesToRadians (d2);
+            const float rCosPhi  = d0 * std::cos (phiRad);
+            x =  rCosPhi * std::sin (thetaRad);
+            y = -rCosPhi * std::cos (thetaRad);
+            z =  d0 * std::sin (phiRad);
+        }
+        else // cartesian (or unknown — treat as identity)
+        {
+            x = d0; y = d1; z = d2;
+        }
+    }
+
+    void TrackProcessor::cartesianToDisplay (float x, float y, float z,
+                                             float& d0, float& d1, float& d2) const
+    {
+        const auto& tag = variant.coordinateTag;
+        if (tag == "cylindrical")
+        {
+            d0 = std::sqrt (x * x + y * y);
+            d1 = juce::radiansToDegrees (std::atan2 (x, -y));
+            d2 = z;
+        }
+        else if (tag == "spherical")
+        {
+            d0 = std::sqrt (x * x + y * y + z * z);
+            d1 = juce::radiansToDegrees (std::atan2 (x, -y));
+            d2 = (d0 > 1.0e-4f)
+                   ? juce::radiansToDegrees (std::asin (juce::jlimit (-1.0f, 1.0f, z / d0)))
+                   : 0.0f;
+        }
+        else // cartesian
+        {
+            d0 = x; d1 = y; d2 = z;
+        }
+    }
+
+    void TrackProcessor::recomputeCartesianFromDisplay()
+    {
+        if (! variant.positionsWired)
+            return;
+        float d[3] = { 0.0f, 0.0f, 0.0f };
+        for (int i = 0; i < 3; ++i)
+            if (auto* p = state.getRawParameterValue (variant.positions[(size_t) i].paramID))
+                d[i] = p->load();
+        float x = 0.0f, y = 0.0f, z = 0.0f;
+        displayToCartesian (d[0], d[1], d[2], x, y, z);
+        cachedX.store (x);
+        cachedY.store (y);
+        cachedZ.store (z);
+    }
+
+    void TrackProcessor::updateDisplayFromCartesian()
+    {
+        if (! variant.positionsWired)
+            return;
+        float d[3] = { 0.0f, 0.0f, 0.0f };
+        cartesianToDisplay (cachedX.load(), cachedY.load(), cachedZ.load(),
+                            d[0], d[1], d[2]);
+
+        for (int i = 0; i < 3; ++i)
+        {
+            auto* param = state.getParameter (variant.positions[(size_t) i].paramID);
+            if (param == nullptr)
+                continue;
+            isApplyingRemoteChange.store (true);
+            param->setValueNotifyingHost (
+                juce::jlimit (0.0f, 1.0f, param->convertTo0to1 (d[i])));
+            isApplyingRemoteChange.store (false);
+        }
+    }
+
+    void TrackProcessor::sendCartesianPositionsToApp()
+    {
+        if (bridgeHandle == nullptr)
+            return;
+        auto& loader = BridgeLoader::getInstance();
+        if (! loader.isLoaded() || loader.trackSendOutbound == nullptr)
+            return;
+        const int id = getInputId();
+        loader.trackSendOutbound (bridgeHandle, "/wfs/input/positionX", id,
+                                  static_cast<double> (cachedX.load()));
+        loader.trackSendOutbound (bridgeHandle, "/wfs/input/positionY", id,
+                                  static_cast<double> (cachedY.load()));
+        loader.trackSendOutbound (bridgeHandle, "/wfs/input/positionZ", id,
+                                  static_cast<double> (cachedZ.load()));
+    }
+
     void TrackProcessor::parameterChanged (const juce::String& paramID, float newValue)
     {
+        // Input ID change: re-register with the bridge under the new channel
+        // so Master's subscription list and dispatch routing both follow.
+        // This happens regardless of isApplyingRemoteChange — the ID is local
+        // plugin state, never pushed from the app.
+        if (paramID == "inputId")
+        {
+            auto& loader = BridgeLoader::getInstance();
+            if (! loader.isLoaded())
+                return;
+            if (bridgeHandle != nullptr)
+            {
+                loader.trackUnregister (bridgeHandle);
+                bridgeHandle = nullptr;
+            }
+            const int newId = static_cast<int> (std::round (newValue));
+            bridgeHandle = loader.trackRegister (newId,
+                                                 variant.coordinateTag.toRawUTF8(),
+                                                 this,
+                                                 &inboundCallback);
+            return;
+        }
+
         if (isApplyingRemoteChange.load())
             return;
         if (bridgeHandle == nullptr)
@@ -235,7 +368,11 @@ namespace wfs::plugin
             {
                 if (paramID == pos.paramID)
                 {
-                    sendParam (pos.oscPath, static_cast<double> (newValue));
+                    // Variant param changed; recompute the cached Cartesian
+                    // and push all three X/Y/Z. The app only accepts Cartesian
+                    // at its OSC router, so we convert at the boundary.
+                    recomputeCartesianFromDisplay();
+                    sendCartesianPositionsToApp();
                     return;
                 }
             }
@@ -269,16 +406,20 @@ namespace wfs::plugin
             }
         }
 
+        // Incoming positions always arrive as Cartesian (only paths the
+        // app's OSC router + OSCQuery tree expose). Update the cache and
+        // re-derive the variant's display params.
         if (self->variant.positionsWired)
         {
-            for (const auto& pos : self->variant.positions)
+            auto updateAxis = [self] (std::atomic<float>& axis, double v)
             {
-                if (path == pos.oscPath)
-                {
-                    applyParam (pos.paramID, value);
-                    return;
-                }
-            }
+                axis.store (static_cast<float> (v));
+                self->updateDisplayFromCartesian();
+            };
+
+            if (path == "/wfs/input/positionX") { updateAxis (self->cachedX, value); return; }
+            if (path == "/wfs/input/positionY") { updateAxis (self->cachedY, value); return; }
+            if (path == "/wfs/input/positionZ") { updateAxis (self->cachedZ, value); return; }
         }
     }
 }

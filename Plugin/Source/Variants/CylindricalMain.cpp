@@ -12,10 +12,10 @@ namespace
             AddressingScheme::NativeWFS,
             {{
                 { "positionR",     "Position R",     "/wfs/input/positionR",      0.0f,   50.0f,   0.0f, "m",   true },
-                { "positionTheta", "Position Theta", "/wfs/input/positionTheta", -180.0f, 180.0f,  0.0f, "deg", true },
+                { "positionTheta", "Position Theta", "/wfs/input/positionTheta", -180.0f, 180.0f,  0.0f, juce::CharPointer_UTF8 ("\xc2\xb0"), true },
                 { "positionZ",     "Position Z",     "/wfs/input/positionZ",     -50.0f,  50.0f,   0.0f, "m",   true }
             }},
-            false
+            true
         };
     }
 }

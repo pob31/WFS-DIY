@@ -174,6 +174,35 @@ namespace wfs::plugin
         return true;
     }
 
+    bool OscQueryClient::fetchCurrentValue (const juce::String& oscPath)
+    {
+        // The WFS-DIY OSCQuery server responds to `GET /path?VALUE` with a
+        // JSON body of the form { "VALUE": [ <number> ], ... }. Parse the
+        // first element and hand it to the usual OSC callback so the rest
+        // of the plugin treats it like a subscription push.
+        juce::String body;
+        if (! httpGet (oscPath + "?VALUE", body))
+            return false;
+
+        const auto parsed = juce::JSON::parse (body);
+        if (! parsed.isObject())
+            return false;
+
+        const auto valueNode = parsed.getProperty ("VALUE", juce::var());
+        if (! valueNode.isArray() || valueNode.getArray()->isEmpty())
+            return false;
+
+        const auto& first = valueNode.getArray()->getReference (0);
+        if (! (first.isDouble() || first.isInt() || first.isInt64()
+               || first.isBool()))
+            return false;
+
+        const auto floatVal = static_cast<float> (static_cast<double> (first));
+        if (oscCallback)
+            oscCallback (oscPath, floatVal);
+        return true;
+    }
+
     void OscQueryClient::connectionOpened()
     {
         setState (State::Ready);
@@ -185,6 +214,11 @@ namespace wfs::plugin
         }
         for (auto& path : toResubscribe)
             sendCommand ("LISTEN", path);
+
+        // The server doesn't push current values on LISTEN, so poll each
+        // subscribed path once to populate fresh state.
+        for (auto& path : toResubscribe)
+            fetchCurrentValue (path);
     }
 
     void OscQueryClient::messageReceived (const juce::String& /*message*/)

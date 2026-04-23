@@ -144,6 +144,8 @@ namespace wfs::plugin
                 addAndMakeVisible (row.slider);
                 // Text formatting lives on the parameter (see TrackProcessor::buildLayout),
                 // because SliderParameterAttachment overrides slider-level text callbacks.
+                // Likewise, the slider's NormalisableRange (including step interval)
+                // is driven by the attachment from the parameter's own range.
                 row.attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (
                     p.getState(), pos.paramID, row.slider);
             }
@@ -219,6 +221,39 @@ namespace wfs::plugin
                         [] (float v) { return juce::String (v, 2) + " dB/m"; });
         wireValueLabel ("distanceRatio",       distanceRatioValueLabel,
                         [] (float v) { return juce::String (v, 2) + " x"; });
+
+        // Make the value labels editable: double-click to type a value,
+        // Enter to commit. Parses out any unit suffix (" dB", "°", etc.).
+        auto wireEditable = [this] (juce::Label& label, const juce::String& paramID)
+        {
+            label.setEditable (false, true, false);
+            label.setColour (juce::Label::backgroundWhenEditingColourId,
+                             juce::Colour (DarkPalette::surfaceCard));
+            label.setColour (juce::Label::textWhenEditingColourId,
+                             juce::Colour (DarkPalette::textPrimary));
+            label.setColour (juce::Label::outlineWhenEditingColourId,
+                             juce::Colour (DarkPalette::accentBlueBright));
+            label.onTextChange = [this, &label, paramID]
+            {
+                if (auto* param = processor.getState().getParameter (paramID))
+                {
+                    const auto numeric = label.getText().retainCharacters ("-0123456789.");
+                    const float parsed = numeric.getFloatValue();
+                    const float norm   = juce::jlimit (0.0f, 1.0f,
+                                                       param->convertTo0to1 (parsed));
+                    param->beginChangeGesture();
+                    param->setValueNotifyingHost (norm);
+                    param->endChangeGesture();
+                }
+            };
+        };
+        wireEditable (attenuationValueLabel,         "attenuation");
+        wireEditable (directivityValueLabel,         "directivity");
+        wireEditable (rotationValueLabel,            "rotation");
+        wireEditable (tiltValueLabel,                "tilt");
+        wireEditable (hfShelfValueLabel,             "hfShelf");
+        wireEditable (distanceAttenuationValueLabel, "distanceAttenuation");
+        wireEditable (distanceRatioValueLabel,       "distanceRatio");
     }
 
     TrackEditor::~TrackEditor()

@@ -69,6 +69,22 @@ namespace wfs::plugin
         int  getAttenuationLaw() const;
 
     private:
+        // All variants exchange positions with the app in Cartesian X/Y/Z
+        // (that's the only coordinate system the app's OSC router accepts
+        // and the only one exposed by OSCQuery). The plugin's DAW-facing
+        // parameters stay in the variant's native system (R/Theta/Z for
+        // Cyl, R/Theta/Phi for Sph); conversion happens at the app boundary.
+        void displayToCartesian (float d0, float d1, float d2,
+                                 float& x, float& y, float& z) const;
+        void cartesianToDisplay (float x, float y, float z,
+                                 float& d0, float& d1, float& d2) const;
+        void recomputeCartesianFromDisplay();
+        void updateDisplayFromCartesian();
+        void sendCartesianPositionsToApp();
+
+        std::atomic<float> cachedX { 0.0f };
+        std::atomic<float> cachedY { 0.0f };
+        std::atomic<float> cachedZ { 0.0f };
         void parameterChanged (const juce::String& paramID, float newValue) override;
 
         static void inboundCallback (void* user, const char* oscPath, int channelId, double value);

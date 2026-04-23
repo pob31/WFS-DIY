@@ -21,14 +21,20 @@ namespace wfs::plugin
 
     const std::vector<juce::String>& MasterProcessor::positionPathsFor (const juce::String& variantTag)
     {
+        // All native variants exchange positions with the app in Cartesian
+        // X/Y/Z — the app's OSC router only accepts those, and its OSCQuery
+        // tree only publishes those. Tracks convert to/from their native
+        // coordinate system locally before/after sending.
         static const std::vector<juce::String> none;
-        static const std::vector<juce::String> cartesian = {
+        static const std::vector<juce::String> nativeXYZ = {
             "/wfs/input/positionX",
             "/wfs/input/positionY",
             "/wfs/input/positionZ"
         };
-        if (variantTag == "cartesian")
-            return cartesian;
+        if (variantTag == "cartesian"
+            || variantTag == "cylindrical"
+            || variantTag == "spherical")
+            return nativeXYZ;
         return none;
     }
 
@@ -200,12 +206,18 @@ namespace wfs::plugin
 
         // OscQueryClient::listen() records the path and sends the LISTEN
         // command lazily once the WebSocket is ready, so we can safely call
-        // it regardless of current connection state.
+        // it regardless of current connection state. After subscribing, also
+        // fetch the current value over HTTP so the plugin shows fresh state
+        // immediately — the app's OSCQuery server doesn't push on LISTEN.
+        const bool wsReady = (query.getState() == OscQueryClient::State::Ready);
+
         auto subscribe = [&] (const juce::String& base)
         {
             const auto tail = base.fromFirstOccurrenceOf ("/wfs/input", false, false);
             const auto fullPath = "/wfs/input/" + juce::String (inputId) + tail;
             query.listen (fullPath);
+            if (wsReady)
+                query.fetchCurrentValue (fullPath);
         };
 
         for (const auto& base : sharedNonPositionPaths())
