@@ -630,7 +630,14 @@
       "trackedMarker": "[S]"
     },
     "qlabPresetCueName": "Cluster {cluster} Preset LFO: {name}",
-    "qlabPresetCueCreated": "Cue QLab creado: Cluster {cluster} preset \"{name}\""
+    "qlabPresetCueCreated": "Cue QLab creado: Cluster {cluster} preset \"{name}\"",
+    "toggles": {
+      "inputsVisible": "Entradas: Visibles",
+      "inputsHidden": "Entradas: Ocultas"
+    },
+    "help": {
+      "inputsVisibility": "Mostrar u ocultar las entradas de este cluster en el Mapa. Ocultar se propaga a nuevos miembros; retirar una entrada restaura su visibilidad."
+    }
   },
   "eq": {
     "status": {

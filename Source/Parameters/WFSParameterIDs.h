@@ -219,6 +219,7 @@ namespace WFSParameterIDs
     const juce::Identifier Cluster           ("Cluster");
     const juce::Identifier clusterReferenceMode ("clusterReferenceMode");
     const juce::Identifier clusterInputOrder    ("clusterInputOrder");
+    const juce::Identifier clusterInputsVisible ("clusterInputsVisible");
 
     // Config > Clusters > Cluster > LFO
     const juce::Identifier ClusterLFO              ("ClusterLFO");
@@ -395,6 +396,7 @@ namespace WFSParameterIDs
     // Input > Map Display
     const juce::Identifier inputMapLocked        ("inputMapLocked");
     const juce::Identifier inputMapVisible       ("inputMapVisible");
+    const juce::Identifier inputHiddenByCluster  ("inputHiddenByCluster");
 
     //==========================================================================
     // Input > Gradient Maps

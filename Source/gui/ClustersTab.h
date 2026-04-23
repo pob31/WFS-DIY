@@ -200,6 +200,19 @@ public:
         assignedInputsLabel.setText(LOC("clusters.labels.assignedInputs"), juce::dontSendNotification);
         assignedInputsLabel.setFont(juce::FontOptions().withHeight(16.0f).withStyle("Bold"));
 
+        addAndMakeVisible(inputsVisibilityButton);
+        inputsVisibilityButton.setClickingTogglesState(true);
+        inputsVisibilityButton.onClick = [this]() {
+            if (selectedCluster < 1) return;
+            bool isNowVisible = inputsVisibilityButton.getToggleState();
+            parameters.getValueTreeState().setClusterParameter(
+                selectedCluster, WFSParameterIDs::clusterInputsVisible, isNowVisible ? 1 : 0);
+            int hiddenVal = isNowVisible ? 0 : 1;
+            for (int ch : assignedInputs)
+                parameters.setInputParam(ch, "inputHiddenByCluster", hiddenVal);
+            updateInputsVisibilityButtonState();
+        };
+
         addAndMakeVisible(inputsList);
         inputsList.setModel(this);
         inputsList.setColour(juce::ListBox::backgroundColourId, ColorScheme::get().backgroundAlt);
@@ -462,6 +475,8 @@ public:
 
         // ==================== LEFT PANEL - ASSIGNED INPUTS ====================
         assignedInputsLabel.setBounds(leftPanel.removeFromTop(scaled(20)));
+        leftPanel.removeFromTop(scaled(4));
+        inputsVisibilityButton.setBounds(leftPanel.removeFromTop(scaled(22)));
         leftPanel.removeFromTop(scaled(5));
         inputsList.setBounds(leftPanel);
 
@@ -777,6 +792,7 @@ private:
 
     // Assigned inputs panel
     juce::Label assignedInputsLabel;
+    juce::TextButton inputsVisibilityButton;
     juce::ListBox inputsList { {}, this };
 
     // Reference + status
@@ -1949,6 +1965,9 @@ private:
         oscMethodMap.clear();
         helpTextMap[&clusterHelpButton] = LOC("help.clusters.title");
 
+        // Left column
+        helpTextMap[&inputsVisibilityButton] = LOC("clusters.help.inputsVisibility");
+
         // Center column controls
         helpTextMap[&referenceModeSelector] = LOC("clusters.help.referenceMode");
         helpTextMap[&positionJoystick]      = LOC("clusters.help.positionJoystick");
@@ -2057,6 +2076,7 @@ private:
 
         // Update assigned inputs list
         updateAssignedInputsList();
+        updateInputsVisibilityButtonState();
         updateReferencePositionDisplay();
         updateStatusLabel();
 
@@ -2066,6 +2086,68 @@ private:
         // Notify Stream Deck of cluster change
         if (onClusterSelected)
             onClusterSelected (selectedCluster);
+    }
+
+    void updateInputsVisibilityButtonState()
+    {
+        if (selectedCluster < 1)
+            return;
+
+        auto val = parameters.getValueTreeState().getClusterParameter(
+            selectedCluster, WFSParameterIDs::clusterInputsVisible);
+        bool isVisible = val.isVoid() || static_cast<int>(val) != 0;
+
+        inputsVisibilityButton.setToggleState(isVisible, juce::dontSendNotification);
+        inputsVisibilityButton.setButtonText(LOC(isVisible
+                                                  ? "clusters.toggles.inputsVisible"
+                                                  : "clusters.toggles.inputsHidden"));
+    }
+
+    void applyClusterPolicyAfterInputClusterChange()
+    {
+        int numInputs = parameters.getNumInputChannels();
+
+        // Rules 2 & 3: each input's inputHiddenByCluster follows its current cluster's policy.
+        for (int i = 0; i < numInputs; ++i)
+        {
+            int c = static_cast<int>(parameters.getInputParam(i, "inputCluster"));
+            int desired = 0;
+            if (c >= 1)
+            {
+                auto vis = parameters.getValueTreeState().getClusterParameter(
+                    c, WFSParameterIDs::clusterInputsVisible);
+                bool clusterVisible = vis.isVoid() || static_cast<int>(vis) != 0;
+                desired = clusterVisible ? 0 : 1;
+            }
+
+            auto cur = parameters.getInputParam(i, "inputHiddenByCluster");
+            int curInt = cur.isVoid() ? 0 : static_cast<int>(cur);
+            if (curInt != desired)
+                parameters.setInputParam(i, "inputHiddenByCluster", desired);
+        }
+
+        // Rule 4: any Hidden cluster that is now empty snaps back to Show.
+        for (int c = 1; c <= WFSParameterDefaults::maxClusters; ++c)
+        {
+            int count = 0;
+            for (int i = 0; i < numInputs; ++i)
+                if (static_cast<int>(parameters.getInputParam(i, "inputCluster")) == c)
+                    ++count;
+
+            if (count == 0)
+            {
+                auto vis = parameters.getValueTreeState().getClusterParameter(
+                    c, WFSParameterIDs::clusterInputsVisible);
+                bool clusterVisible = vis.isVoid() || static_cast<int>(vis) != 0;
+                if (! clusterVisible)
+                {
+                    parameters.getValueTreeState().setClusterParameter(
+                        c, WFSParameterIDs::clusterInputsVisible, 1);
+                    if (c == selectedCluster)
+                        updateInputsVisibilityButtonState();
+                }
+            }
+        }
     }
 
     void updateClusterButtonStates()
@@ -2702,6 +2784,7 @@ private:
                 updateClusterButtonStates();
                 updateAssignedInputsList();
                 updateStatusLabel();
+                applyClusterPolicyAfterInputClusterChange();
             });
         }
         else if (property == WFSParameterIDs::inputTrackingActive ||

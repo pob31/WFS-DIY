@@ -2149,6 +2149,7 @@ void WFSValueTreeState::createClustersSection (juce::ValueTree& config)
         cluster.setProperty (id, i + 1, nullptr);
         cluster.setProperty (clusterReferenceMode, clusterReferenceModeDefault, nullptr);
         cluster.setProperty (clusterInputOrder, clusterInputOrderDefault, nullptr);
+        cluster.setProperty (clusterInputsVisible, clusterInputsVisibleDefault, nullptr);
 
         // Cluster LFO section
         juce::ValueTree lfo (ClusterLFO);
@@ -2334,6 +2335,7 @@ juce::ValueTree WFSValueTreeState::createInputChannelSection (int index)
     channel.setProperty (inputMinimalLatency, inputMinimalLatencyDefault, nullptr);
     channel.setProperty (inputMapLocked, 0, nullptr);    // Default: unlocked
     channel.setProperty (inputMapVisible, 1, nullptr);   // Default: visible
+    channel.setProperty (inputHiddenByCluster, 0, nullptr);  // Default: not hidden by a cluster toggle
     channel.setProperty (inputSamplerActive, inputSamplerActiveDefault, nullptr);
     channel.setProperty (samplerMidiZoneQuadrant, samplerMidiZoneQuadrantDefault, nullptr);
     channel.setProperty (lightpadZoneId, lightpadZoneIdDefault, nullptr);

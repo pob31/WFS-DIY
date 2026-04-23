@@ -1087,7 +1087,8 @@ public:
             for (int i = 0; i < numInputs; ++i)
             {
                 auto visibleVar = parameters.getInputParam(i, "inputMapVisible");
-                bool visible = visibleVar.isVoid() || static_cast<int>(visibleVar) != 0;
+                bool visible = (visibleVar.isVoid() || static_cast<int>(visibleVar) != 0)
+                             && static_cast<int>(parameters.getInputParam(i, "inputHiddenByCluster")) == 0;
                 auto lockedVar = parameters.getInputParam(i, "inputMapLocked");
                 bool isLocked = !lockedVar.isVoid() && static_cast<int>(lockedVar) != 0;
 
@@ -2907,7 +2908,8 @@ private:
         for (int i = 0; i < numInputs; ++i)
         {
             auto visibleVar = parameters.getInputParam(i, "inputMapVisible");
-            bool visible = visibleVar.isVoid() || static_cast<int>(visibleVar) != 0;
+            bool visible = (visibleVar.isVoid() || static_cast<int>(visibleVar) != 0)
+                         && static_cast<int>(parameters.getInputParam(i, "inputHiddenByCluster")) == 0;
             if (!visible)
                 continue;
 
@@ -3268,7 +3270,8 @@ private:
                     allClusterMembers.push_back(i);
 
                     auto visibleVar = parameters.getInputParam(i, "inputMapVisible");
-                    bool visible = visibleVar.isVoid() || static_cast<int>(visibleVar) != 0;
+                    bool visible = (visibleVar.isVoid() || static_cast<int>(visibleVar) != 0)
+                                 && static_cast<int>(parameters.getInputParam(i, "inputHiddenByCluster")) == 0;
                     if (visible)
                         visibleClusterMembers.push_back(i);
                 }
@@ -3291,7 +3294,8 @@ private:
 
                 // Draw cluster marker if reference input is hidden
                 auto visibleVar = parameters.getInputParam(refInput, "inputMapVisible");
-                bool refVisible = visibleVar.isVoid() || static_cast<int>(visibleVar) != 0;
+                bool refVisible = (visibleVar.isVoid() || static_cast<int>(visibleVar) != 0)
+                                && static_cast<int>(parameters.getInputParam(refInput, "inputHiddenByCluster")) == 0;
                 if (!refVisible)
                 {
                     float clusterMarkerRadius = 10.0f;
@@ -3393,7 +3397,8 @@ private:
         {
             // Check visibility
             auto visibleVar = parameters.getInputParam(i, "inputMapVisible");
-            bool visible = visibleVar.isVoid() || static_cast<int>(visibleVar) != 0;
+            bool visible = (visibleVar.isVoid() || static_cast<int>(visibleVar) != 0)
+                         && static_cast<int>(parameters.getInputParam(i, "inputHiddenByCluster")) == 0;
             if (!visible)
                 continue;
 
@@ -3848,7 +3853,8 @@ private:
         {
             // Skip hidden inputs
             auto visibleVar = parameters.getInputParam(i, "inputMapVisible");
-            bool visible = visibleVar.isVoid() || static_cast<int>(visibleVar) != 0;
+            bool visible = (visibleVar.isVoid() || static_cast<int>(visibleVar) != 0)
+                         && static_cast<int>(parameters.getInputParam(i, "inputHiddenByCluster")) == 0;
             if (!visible)
                 continue;
 
@@ -3954,7 +3960,8 @@ private:
 
             // Check if reference input is hidden
             auto visibleVar = parameters.getInputParam(refInput, "inputMapVisible");
-            bool refVisible = visibleVar.isVoid() || static_cast<int>(visibleVar) != 0;
+            bool refVisible = (visibleVar.isVoid() || static_cast<int>(visibleVar) != 0)
+                            && static_cast<int>(parameters.getInputParam(refInput, "inputHiddenByCluster")) == 0;
             if (refVisible)
                 continue;  // Visible inputs are hit-tested by getInputAtPosition()
 

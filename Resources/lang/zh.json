@@ -630,7 +630,14 @@
       "trackedMarker": "[T]"
     },
     "qlabPresetCueName": "集群 {cluster} LFO预设: {name}",
-    "qlabPresetCueCreated": "QLab提示已创建: 集群 {cluster} 预设 \"{name}\""
+    "qlabPresetCueCreated": "QLab提示已创建: 集群 {cluster} 预设 \"{name}\"",
+    "toggles": {
+      "inputsVisible": "输入：可见",
+      "inputsHidden": "输入：隐藏"
+    },
+    "help": {
+      "inputsVisibility": "在地图选项卡中显示或隐藏此集群的输入。隐藏会应用于新成员；移除输入将恢复其可见性。"
+    }
   },
   "eq": {
     "status": {

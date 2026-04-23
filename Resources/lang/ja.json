@@ -594,7 +594,14 @@
       "trackedMarker": "[T]"
     },
     "qlabPresetCueName": "クラスター {cluster} LFOプリセット: {name}",
-    "qlabPresetCueCreated": "QLabキュー作成: クラスター {cluster} プリセット \"{name}\""
+    "qlabPresetCueCreated": "QLabキュー作成: クラスター {cluster} プリセット \"{name}\"",
+    "toggles": {
+      "inputsVisible": "入力: 表示",
+      "inputsHidden": "入力: 非表示"
+    },
+    "help": {
+      "inputsVisibility": "このクラスターの入力をマップタブで表示/非表示にします。非表示は新しいメンバーにも適用され、入力を削除すると再び表示されます。"
+    }
   },
   "eq": {
     "status": {

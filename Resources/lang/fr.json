@@ -643,7 +643,14 @@
       "trackedMarker": "[S]"
     },
     "qlabPresetCueName": "Cluster {cluster} Preset LFO : {name}",
-    "qlabPresetCueCreated": "Cue QLab créé : Cluster {cluster} preset \"{name}\""
+    "qlabPresetCueCreated": "Cue QLab créé : Cluster {cluster} preset \"{name}\"",
+    "toggles": {
+      "inputsVisible": "Entrées : Visibles",
+      "inputsHidden": "Entrées : Masquées"
+    },
+    "help": {
+      "inputsVisibility": "Afficher ou masquer les entrées de ce cluster sur la carte. Le masquage s'applique aussi aux nouvelles entrées ; retirer une entrée la rend à nouveau visible."
+    }
   },
   "eq": {
     "status": {

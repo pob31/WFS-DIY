@@ -716,7 +716,9 @@
     },
     "toggles": {
       "lfoOn": "L.F.O: ON",
-      "lfoOff": "L.F.O: OFF"
+      "lfoOff": "L.F.O: OFF",
+      "inputsVisible": "Inputs: Visible",
+      "inputsHidden": "Inputs: Hidden"
     },
     "lfo": {
       "labels": {
@@ -760,6 +762,7 @@
       }
     },
     "help": {
+      "inputsVisibility": "Show or hide this cluster's inputs on the Map tab. Hide propagates to new members; removing an input restores its visibility.",
       "referenceMode": "Select the reference point for cluster transforms: First Input or Barycenter.",
       "positionJoystick": "Move all cluster inputs in X/Y. Hold and drag to translate.",
       "zSlider": "Move all cluster inputs along the Z axis (height).",

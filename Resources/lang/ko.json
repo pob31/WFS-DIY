@@ -594,7 +594,14 @@
       "trackedMarker": "[T]"
     },
     "qlabPresetCueName": "클러스터 {cluster} LFO 프리셋: {name}",
-    "qlabPresetCueCreated": "QLab 큐 생성: 클러스터 {cluster} 프리셋 \"{name}\""
+    "qlabPresetCueCreated": "QLab 큐 생성: 클러스터 {cluster} 프리셋 \"{name}\"",
+    "toggles": {
+      "inputsVisible": "입력: 표시",
+      "inputsHidden": "입력: 숨김"
+    },
+    "help": {
+      "inputsVisibility": "이 클러스터의 입력을 맵 탭에서 표시하거나 숨깁니다. 숨김은 새 멤버에도 적용되며, 입력을 제거하면 다시 표시됩니다."
+    }
   },
   "eq": {
     "status": {

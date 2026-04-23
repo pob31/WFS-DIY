@@ -236,6 +236,8 @@ namespace WFSParameterDefaults
 
     const juce::String clusterInputOrderDefault = "";  // empty = numeric order fallback
 
+    constexpr int clusterInputsVisibleDefault = 1;  // 1=Show, 0=Hide (assigned inputs on Map)
+
     // Cluster > LFO Defaults
     constexpr int   clusterLFOactiveDefault         = 0;
     constexpr float clusterLFOperiodDefault         = 5.0f;
