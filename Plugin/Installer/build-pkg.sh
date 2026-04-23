@@ -37,11 +37,11 @@ copy_artefact() {
 }
 
 copy_artefact "WFSPluginMaster"    "WFS-DIY Master"
-copy_artefact "WFSPluginTrackCart" "WFS-DIY Track (Cartesian)"
-copy_artefact "WFSPluginTrackCyl"  "WFS-DIY Track (Cylindrical)"
-copy_artefact "WFSPluginTrackSph"  "WFS-DIY Track (Spherical)"
-copy_artefact "WFSPluginTrackAdmC" "WFS-DIY Track (ADM Cartesian)"
-copy_artefact "WFSPluginTrackAdmP" "WFS-DIY Track (ADM Polar)"
+copy_artefact "WFSPluginTrackCart" "WFS-DIY Track - Cartesian"
+copy_artefact "WFSPluginTrackCyl"  "WFS-DIY Track - Cylindrical"
+copy_artefact "WFSPluginTrackSph"  "WFS-DIY Track - Spherical"
+copy_artefact "WFSPluginTrackAdmC" "WFS-DIY Track - ADM Cartesian"
+copy_artefact "WFSPluginTrackAdmP" "WFS-DIY Track - ADM Polar"
 
 # Bridge library - drop into both staging areas so Master/Tracks find it.
 BRIDGE_SRC="$BUILD_DIR/libWFS-DIY-PluginBridge.dylib"
@@ -60,7 +60,7 @@ fi
 if [ -n "${CODESIGN_IDENTITY_APP:-}" ]; then
     echo "Codesigning with: $CODESIGN_IDENTITY_APP"
     find "$STAGE_VST3" "$STAGE_AU" -name "*.vst3" -or -name "*.component" -or -name "*.dylib" 2>/dev/null | while read -r bundle; do
-        codesign --force --deep --options runtime --sign "$CODESIGN_IDENTITY_APP" "$bundle"
+        codesign --force --deep --options runtime --timestamp --sign "$CODESIGN_IDENTITY_APP" "$bundle"
     done
 fi
 

@@ -22,6 +22,18 @@ set(JUCE_SIMPLEWEB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../ThirdParty/juce_simpleweb
 add_subdirectory(${JUCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/juce EXCLUDE_FROM_ALL)
 juce_add_module(${JUCE_SIMPLEWEB_DIR})
 
+# juce_simpleweb's module header declares `OSXLibs: libssl,libcrypto,z`
+# unconditionally. We build with SIMPLEWEB_SECURE_SUPPORTED=0 (see below), so
+# the TLS code paths are compiled out and we don't want a runtime dep on
+# libssl/libcrypto. Strip them from the target's interface link libs.
+if(APPLE AND TARGET juce_simpleweb)
+    get_target_property(_sw_libs juce_simpleweb INTERFACE_LINK_LIBRARIES)
+    if(_sw_libs)
+        list(REMOVE_ITEM _sw_libs libssl libcrypto)
+        set_target_properties(juce_simpleweb PROPERTIES INTERFACE_LINK_LIBRARIES "${_sw_libs}")
+    endif()
+endif()
+
 if(APPLE)
     set(WFS_PLUGIN_FORMATS VST3 AU Standalone)
 elseif(WIN32)
@@ -149,23 +161,23 @@ function(wfs_add_track_variant TARGET_NAME PLUGIN_NAME PLUGIN_CODE VARIANT_MAIN)
 endfunction()
 
 wfs_add_track_variant(WFSPluginTrackCart
-    "WFS-DIY Track (Cartesian)"    "WfTC"
+    "WFS-DIY Track - Cartesian"    "WfTC"
     Source/Variants/CartesianMain.cpp)
 
 wfs_add_track_variant(WFSPluginTrackCyl
-    "WFS-DIY Track (Cylindrical)"  "WfTY"
+    "WFS-DIY Track - Cylindrical"  "WfTY"
     Source/Variants/CylindricalMain.cpp)
 
 wfs_add_track_variant(WFSPluginTrackSph
-    "WFS-DIY Track (Spherical)"    "WfTS"
+    "WFS-DIY Track - Spherical"    "WfTS"
     Source/Variants/SphericalMain.cpp)
 
 wfs_add_track_variant(WFSPluginTrackAdmC
-    "WFS-DIY Track (ADM Cartesian)" "WfAC"
+    "WFS-DIY Track - ADM Cartesian" "WfAC"
     Source/Variants/AdmCartesianMain.cpp)
 
 wfs_add_track_variant(WFSPluginTrackAdmP
-    "WFS-DIY Track (ADM Polar)"    "WfAP"
+    "WFS-DIY Track - ADM Polar"    "WfAP"
     Source/Variants/AdmPolarMain.cpp)
 
 # ---------------------------------------------------------------------------

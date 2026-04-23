@@ -51,11 +51,11 @@ Source: "{#BuildRoot}\{#BridgeSuffix}\WFS-DIY-PluginBridge.dll"; DestDir: "{comm
 ; All six live under one WFS-DIY\ subfolder for clean organisation, following
 ; the Izotope / iZotope / FabFilter convention.
 Source: "{#BuildRoot}\WFSPluginMaster{#VstSuffix}\WFS-DIY Master.vst3\*";                 DestDir: "{commoncf64}\VST3\WFS-DIY\WFS-DIY Master.vst3";                 Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "{#BuildRoot}\WFSPluginTrackCart{#VstSuffix}\WFS-DIY Track (Cartesian).vst3\*";    DestDir: "{commoncf64}\VST3\WFS-DIY\WFS-DIY Track (Cartesian).vst3";      Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "{#BuildRoot}\WFSPluginTrackCyl{#VstSuffix}\WFS-DIY Track (Cylindrical).vst3\*";   DestDir: "{commoncf64}\VST3\WFS-DIY\WFS-DIY Track (Cylindrical).vst3";    Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "{#BuildRoot}\WFSPluginTrackSph{#VstSuffix}\WFS-DIY Track (Spherical).vst3\*";     DestDir: "{commoncf64}\VST3\WFS-DIY\WFS-DIY Track (Spherical).vst3";      Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "{#BuildRoot}\WFSPluginTrackAdmC{#VstSuffix}\WFS-DIY Track (ADM Cartesian).vst3\*"; DestDir: "{commoncf64}\VST3\WFS-DIY\WFS-DIY Track (ADM Cartesian).vst3";  Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "{#BuildRoot}\WFSPluginTrackAdmP{#VstSuffix}\WFS-DIY Track (ADM Polar).vst3\*";     DestDir: "{commoncf64}\VST3\WFS-DIY\WFS-DIY Track (ADM Polar).vst3";      Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#BuildRoot}\WFSPluginTrackCart{#VstSuffix}\WFS-DIY Track - Cartesian.vst3\*";    DestDir: "{commoncf64}\VST3\WFS-DIY\WFS-DIY Track - Cartesian.vst3";      Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#BuildRoot}\WFSPluginTrackCyl{#VstSuffix}\WFS-DIY Track - Cylindrical.vst3\*";   DestDir: "{commoncf64}\VST3\WFS-DIY\WFS-DIY Track - Cylindrical.vst3";    Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#BuildRoot}\WFSPluginTrackSph{#VstSuffix}\WFS-DIY Track - Spherical.vst3\*";     DestDir: "{commoncf64}\VST3\WFS-DIY\WFS-DIY Track - Spherical.vst3";      Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#BuildRoot}\WFSPluginTrackAdmC{#VstSuffix}\WFS-DIY Track - ADM Cartesian.vst3\*"; DestDir: "{commoncf64}\VST3\WFS-DIY\WFS-DIY Track - ADM Cartesian.vst3";  Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#BuildRoot}\WFSPluginTrackAdmP{#VstSuffix}\WFS-DIY Track - ADM Polar.vst3\*";     DestDir: "{commoncf64}\VST3\WFS-DIY\WFS-DIY Track - ADM Polar.vst3";      Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 ; No Start Menu icons - plugins are scanned by host applications.
