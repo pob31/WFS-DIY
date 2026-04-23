@@ -48,7 +48,7 @@ namespace ProjectInfo
 {
     const char* const  projectName    = "WFS-DIY";
     const char* const  companyName    = "Pix et Bel";
-    const char* const  versionString  = "1.0.0beta5";
+    const char* const  versionString  = "1.0.0beta6";
     const int          versionNumber  = 0x10000;
 }
 #endif
