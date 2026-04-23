@@ -67,6 +67,88 @@ Every tool is tagged with a tier. Enforcement is in the server (C++ code), NOT i
 
 A global "dry run" flag promotes all Tier 1 tools to Tier 2 behavior for rehearsal and training scenarios.
 
+### Action history and undo architecture
+
+WFS-DIY's user-side undo is organized as per-section stacks (inputs, outputs, reverbs, stage/network, etc.) so that Ctrl-Z behaves locally to what the operator is currently editing. The AI is treated as a separate actor with its own history. The two systems do NOT share stacks — operator Ctrl-Z never touches AI actions, and the AI's undo tools never touch operator history.
+
+**Why separate stacks.** Overloading Ctrl-Z to sometimes reverse AI work would break the operator's muscle memory at the exact moment it's most important (live performance). The AI is a separate actor, its actions live in their own history, and the operator has distinct affordances to inspect or reverse them.
+
+**Change record format.** Every MCP tool invocation that modifies state produces a structured change record:
+
+```
+{
+  timestamp,
+  tool_name,
+  arguments,                  // what the AI passed in
+  operator_description,       // short human-readable, e.g. "Moved input 3 (Marie) to x=4.2"
+  affected_parameters,        // list of parameter variables touched
+  affected_groups,            // list of (channel_id, group_name) tuples derived from CSV Section
+  before_state,               // snapshot of affected parameters before the change
+  after_state,                // snapshot of affected parameters after the change
+  origin: "MCP"               // origin tag, always "MCP" for these records
+}
+```
+
+Read-only tool calls (get_session_state, get_inputs_summary, etc.) do NOT produce change records — there's nothing to undo.
+
+**Parameter groups.** The `affected_groups` field comes from the CSV Section column, normalized to strip coordinate-system suffixes (`Position`, `Position (Cylindrical)`, `Position (Spherical)` all resolve to the same group). Groups are scoped per channel at runtime, so "input 3's Position" and "input 4's Position" are distinct entries. Groups drive dependency chasing in undo (see "AI Undo UI" below). See `GENERATION_SCRIPT_SPEC.md` for how the generator emits group metadata per tool.
+
+**Origin tags on all parameter changes.** This is architectural and cannot be retrofitted cheaply. Every write to the parameter system — from the UI, OSC, tracking, snapshot recall, LFO, Move, automation, or MCP — carries an origin tag on the change notification. Value set: `UI`, `MCP`, `OSC`, `Tracking`, `Snapshot`, `LFO`, `Move`, `Automation`. The parameter system's existing change-notification infrastructure must be extended to propagate this tag to all listeners (including the Network Log, the AI's undo stack, and any future observers).
+
+**Ring buffer.** The AI's undo stack is a ring buffer of 100 entries. Oldest entries drop off silently when the buffer fills. A separate ring buffer of the same depth holds undone entries for redo.
+
+**Staleness detection.** Before executing an undo, the server checks whether any of the target record's `affected_parameters` have been modified since the AI's change by a non-MCP origin (UI, OSC, tracking, snapshot recall, etc.). If so, the undo refuses with a structured response containing:
+- What the AI's last value was.
+- What the current value is.
+- Which origin changed it.
+The AI surfaces this to the operator ("Input 3's x was changed after my action — current value is 5.2, I had set it to 4.0. Should I restore 4.0?"). The operator decides.
+
+**Cross-actor notification.** When a non-MCP change touches a parameter the AI has modified within the active ring-buffer window, the next AI tool-call response includes a notification field:
+
+```
+{
+  "result": {...},
+  "notifications": [
+    "Operator reversed your change at 20:14:32: input 3 position (you set x=4.0, current x=2.5)."
+  ]
+}
+```
+
+This keeps the AI's conversational mental model synced with reality. Works for operator Ctrl-Z on their own history, for explicit AI-undo via the overlay, and for external OSC/tracking writes landing on AI-touched parameters.
+
+### AI undo UI
+
+The operator-facing surface for reversing AI actions is a growing toast overlay that appears on the main window when the AI modifies state.
+
+**Visual structure.**
+- Non-modal, stacks in a fixed screen corner (top-right suggested, to avoid conflicting with tab navigation).
+- Newest row at the top; rows accumulate downward as more AI actions arrive.
+- Each row shows: actor identifier ("Claude" or "AI"), a one-line operator-friendly description of the change (uses input/output/reverb names where available), elapsed time since the action, and a × button on the right for per-row undo.
+- Close button in the top-left of the toast container dismisses the whole toast without undoing anything. A new AI action spawns a fresh toast.
+
+**Row lifetime.**
+- Each row has its own 15-second timer from the action's timestamp.
+- When a row's timer expires, it fades out and is removed.
+- When all rows have expired, the toast closes.
+- Maximum 10 visible rows; older rows beyond the cap are collapsed into an expandable "… and N more" summary.
+
+**Per-row undo semantics.**
+- Clicking × on a row performs **targeted undo**: the action for that row is reversed, AND all later rows whose `affected_groups` intersect with this row's `affected_groups` are also reversed.
+- Rationale: when an earlier change and a later change act on the same parameter group, they form a coherent dependency chain (a later position tweak built on the earlier position). Undoing the earlier step rolls back the full trajectory for that group. Changes to unrelated groups are independent and are left alone.
+- **Hover preview**: when the operator hovers over a × button, all rows that would be reversed together are highlighted, so the outcome is visible before the click.
+
+**Self-correction rule.**
+- If a user-origin parameter write lands on a parameter the AI has touched within the toast window, AND the new value differs from the AI's most recent write to that parameter, the corresponding AI row is removed from the toast.
+- Rationale: the operator has already overridden the AI's effect. Offering undo would reverse the operator's own correction. The change record stays in the queryable history; it just loses its undo affordance.
+- If the user-origin value happens to match the AI's write (coincidental, rare), the row is not removed.
+
+**Keyboard shortcuts.**
+- `Cmd/Ctrl-Alt-Z`: undo the most recent AI action (equivalent to clicking × on the top row of the toast, with the same targeted-undo semantics).
+- `Cmd/Ctrl-Alt-Y`: redo the most recently undone AI action.
+- Shortcuts work regardless of whether the toast is visible or has been dismissed — they operate on the ring buffer directly. The toast is a visual convenience, not the only path.
+
+**StreamDeck integration.** Not in Phase 1. The existing StreamDeck+ mapping is already dense, and keyboard shortcuts plus the overlay cover the common cases. Can be revisited if usage patterns justify a dedicated control.
+
 ### Logging
 
 All MCP protocol messages (request in, response out, notifications) are logged to the existing Network Log window under a new protocol filter: `MCP`. This gives operators visibility into what the AI is doing and matches the existing pattern for OSC/ADM-OSC/PSN/RTTrP logging.
@@ -98,6 +180,8 @@ Source/Network/MCP/
   MCPResourceRegistry.h / .cpp resource loading and serving
   MCPPromptRegistry.h / .cpp   prompt templates
   MCPTierEnforcement.h / .cpp  confirmation tokens and safety gate
+  MCPChangeRecords.h / .cpp    change-record capture, ring buffer, undo stack
+  MCPUndoOverlay.h / .cpp      growing-toast UI component
   MCPLogger.h / .cpp           integration with Network Log
   generated_tools.json         built artifact from generation script
   resources/                   bundled markdown files

@@ -1,67 +1,65 @@
 Section	Label	Variable	UI	Type	Min	Max	Default	Unit	enum	Notes	Hover help text in the status bar
-Show	Name	showName	Editable Text box	STRING						locked if DSP is running	Name of the current show.
-Show	Location	showLocation	Editable Text box	STRING						locked if DSP is running	Location of the current show.
-I/O	Input Channels	inputChannels	number box	INT						locked if DSP is running	Number of Input Channels.
-I/O	Output Channels	outputChannels	number box	INT						locked if DSP is running	Number of Output Channels.
-I/O	Reverb Channels	reverbChannels	number box	INT						locked if DSP is running	Number of Reverb Channels.
-I/O	Audio Interface and Patching Window		text button							locked if DSP is running. Open Audio Patching window	Open patching window to route Input and Output channels to the Audio Interface.
-I/O	Processing	runDSP	text button	INT	0	1	0		Click to start DSP ; DSP running	locks all parameters of the I/O section and starts the DSP when on. 2 second press to turn off	Lock all I/O parameters and start the DSP. Long press to stop the DSP.
-Stage	Stage Shape	stageShape	drop down menu	INT	0	2	0		Box ; Cylinder ; Dome	Defines stage geometry	Stage shape: Box (rectangular), Cylinder (circular footprint), or Dome (partial sphere).
-Stage	Stage Width	stageWidth	number box	FLOAT	0.0	100.0	20.0	m		Visible when Shape=Box	Width of the stage in meters (Box shape only).
-Stage	Stage Depth	stageDepth	number box	FLOAT	0.0	100.0	10.0	m		Visible when Shape=Box	Depth of the stage in meters (Box shape only).
-Stage	Stage Height	stageHeight	number box	FLOAT	0.0	100.0	8.0	m		Visible when Shape=Box or Cylinder	Height of the stage in meters (Box and Cylinder shapes).
-Stage	Stage Diameter	stageDiameter	number box	FLOAT	0.1	100.0	20.0	m		Visible when Shape=Cylinder or Dome	Diameter of the stage in meters (Cylinder and Dome shapes).
-Stage	Dome Elevation	domeElevation	number box	FLOAT	1.0	360.0	180.0	°		Visible when Shape=Dome	Dome elevation angle: 180° = hemisphere, 360° = full sphere.
-Stage	Origin Width	originWidth	number box	FLOAT	-100.0	200.0	0.0	m		Center-referenced coordinate system	Origin X offset from stage center (0 = centered, negative = left).
-Stage	Origin Depth	originDepth	number box	FLOAT	-100.0	200.0	0.0	m		Center-referenced coordinate system	Origin Y offset from stage center (0 = centered, negative = front/downstage).
-Stage	Origin Height	originHeight	number box	FLOAT	-100.0	200.0	0.0	m		Center-referenced coordinate system	Origin Z offset from floor (0 = floor level, positive = above floor).
-Stage	Speed of Sound	speedOfSound	number box	FLOAT	319.2	367.7	343.0	m/s		<Speed of sound> = 331.3 + 0.606 � <Temperature> update if Temperature is updated	Speed of Sound (related to the temperature).
-Stage	Temperature	temperature	number box	FLOAT	-20.0	60.0	20.0	�C		<Temperature> = (<Speed of sound> - 331.3) / 0.606) update if Speed of Sound is updated	Temperature (gives the Speed of Sound).
-Master Section	Master Level	masterLevel	number box	FLOAT	-92.0	0.0	0.0	dB			Master Level (affects all outputs).
-Master Section	System Latency	systemLatency	number box	FLOAT	0.0	10.0	0.0	ms			Total latency of the system (Mixing board & Computer) / Specific Input and Output Latency/Delay can be set in the respective Input and Output settings.
-Master Section	Haas Effect	haasEffect	number box	FLOAT	0.0	10.0	0.1	ms			Hass Effect to apply to the system. Will take into account the Latency Compensations (System, Input and Output).
-Network	Current IPv4	networkCurrentIP	IP number box	IP (4x INT)						not editable	IP address of the Processor.
-Network	UDP Port	networkRxUDPport	number box	INT							UDP Recieve Port of the Processor.
-Network	TCP Port	networkRxTCPport	number box	INT							TCP Recieve Port of the Processor.
-Network	Open Log Window		text button						NETWORK LOG	open Network Logging window	Open Network Logging window.
-Network	Add Target/Server		text button						ADD	At the end of the empty row after all targets (max 6 targets) Add a row for a new target.	Add new network target.
-Network	Target/Server Name	networkTSname	number box	STRING						For each target/server (up to 6 targets/servers)	Network Target Name.
-Network	Target/Server Data Mode	networkTSdataMode	drop down menu	INT	0	1	0		UDP ; TCP	For each target/server (up to 6 targets/servers)	Select UDP or TCP data transmission (OSC is UDP by default).
-Network	Target/Server IPv4	networkTSip	IP number box	IP (4x INT)						For each target/server (up to 6 targets/servers)	IP Address of the Target (use 127.0.0.1 for local host).
-Network	Target/Server Port	networkTSport	number box	INT						For each target/server (up to 6 targets/servers)	Transmit Port for this Target.
-Network	Target/Server Rx Enable	networkTSrxEnable	text button	INT	0	1	0		OFF / ON	For each target/server (up to 6 targets/servers)	Enable or Disable Data Reception.
-Network	Target/Server Tx Enable	networkTStxEnable	text button	INT	0	1	0		OFF / ON	For each target/server (up to 6 targets/servers)	Enable or Disable Data Transmission.
-Network	Target/Server Protocol	networkTSProtocol	drop down menu	INT					DISABLED�; OSC�; REMOTE�; ADM-OSC	For each target/server (up to 6 targets/servers)	Select the Protocol for this Target (OSC; REMOTE for the Remote Control application; ADM-OSC)
-Network	Remove Target/Server		text button						REMOVE	For each target/server (up to 6 targets/servers). At the end of the row in the same column as the �Add target/server� of the last row	Delete this Network Target.
-Network	Find My Remote		text button						FIND MY REMOTE	Send OSC /findDevice with findDevicePassword	Make your Remote Flash and Buzz to Find it.
-Network	Password	findDevicePassword	editable text box	STRING							Password for Find My Remote
-ADM-OSC	ADM-OSC Offset X	admOscOffsetX	number box	FLOAT	-50.0	50.0	0.0	m		Greyed out but editable if no ADM-OSC target/server present	Offset Tracking X Coordinate
-ADM-OSC	ADM-OSC Offset Y	admOscOffsetY	number box	FLOAT	-50.0	50.0	0.0	m		Greyed out but editable if no ADM-OSC target/server present	Offset Tracking Y Coordinate
-ADM-OSC	ADM-OSC Offset Z	admOscOffsetZ	number box	FLOAT	-50.0	50.0	0.0	m		Greyed out but editable if no ADM-OSC target/server present	Offset Tracking Z Coordinate
-ADM-OSC	ADM-OSC Scale X	admOscScaleX	number box	FLOAT	0.01	100.0	1.0	x		Greyed out but editable if no ADM-OSC target/server present	Scale Tracking X Coordinate
-ADM-OSC	ADM-OSC Scale Y	admOscScaleY	number box	FLOAT	0.01	100.0	1.0	x		Greyed out but editable if no ADM-OSC target/server present	Scale Tracking Y Coordinate
-ADM-OSC	ADM-OSC Scale Z	admOscScaleZ	number box	FLOAT	0.01	100.0	1.0	x		Greyed out but editable if no ADM-OSC target/server present	Scale Tracking Z Coordinate
-ADM-OSC	ADM-OSC Flip X	admOscFlipX	text button	INT	0	1	0		OFF / ON	Greyed out but editable if no ADM-OSC target/server present	Invert Axis of Tracking X Coordinate
-ADM-OSC	ADM-OSC Flip Y	admOscFlipY	text button	INT	0	1	0		OFF / ON	Greyed out but editable if no ADM-OSC target/server present	Invert Axis of Tracking Y Coordinate
-ADM-OSC	ADM-OSC Flip Z	admOscFlipZ	text button	INT	0	1	0		OFF / ON	Greyed out but editable if no ADM-OSC target/server present	Invert Axis of Tracking Z Coordinate
-Tracking	Tracking Enabled	trackingEnabled	text button	INT	0	1	0		OFF / ON		Enable or Disable Incoming Tracking data processing.
-Tracking	Tracking Protocol	trackingProtocol	drop down menu	INT	0	3	0		DISABLED�; OSC�; PosiStageNet (PSN)�; RTTrP	Greyed out but editable if trackingEnabled == 0	Select the type of Tracking Protocol.
-Tracking	Tracking Rx Port	trackingPort	number box	INT						Greyed out but editable if trackingEnabled == 0	Specify the Port to receive Tracking data.
-Tracking	Tracking Offset X	trackingOffsetX	number box	FLOAT	-50.0	50.0	0.0	m		Greyed out but editable if trackingEnabled == 0	Offset Tracking X Coordinate
-Tracking	Tracking Offset Y	trackingOffsetY	number box	FLOAT	-50.0	50.0	0.0	m		Greyed out but editable if trackingEnabled == 0	Offset Tracking Y Coordinate
-Tracking	Tracking Offset Z	trackingOffsetZ	number box	FLOAT	-50.0	50.0	0.0	m		Greyed out but editable if trackingEnabled == 0	Offset Tracking Z Coordinate
-Tracking	Tracking Scale X	trackingScaleX	number box	FLOAT	0.01	100.0	1.0	x		Greyed out but editable if trackingEnabled == 0	Scale Tracking X Coordinate
-Tracking	Tracking Scale Y	trackingScaleY	number box	FLOAT	0.01	100.0	1.0	x		Greyed out but editable if trackingEnabled == 0	Scale Tracking Y Coordinate
-Tracking	Tracking Scale Z	trackingScaleZ	number box	FLOAT	0.01	100.0	1.0	x		Greyed out but editable if trackingEnabled == 0	Scale Tracking Z Coordinate
-Tracking	Tracking Flip X	trackingFlipX	text button	INT	0	1	0		OFF / ON	Greyed out but editable if trackingEnabled == 0	Invert Axis of Tracking X Coordinate
-Tracking	Tracking Flip Y	trackingFlipY	text button	INT	0	1	0		OFF / ON	Greyed out but editable if trackingEnabled == 0	Invert Axis of Tracking Y Coordinate
-Tracking	Tracking Flip Z	trackingFlipZ	text button	INT	0	1	0		OFF / ON	Greyed out but editable if trackingEnabled == 0	Invert Axis of Tracking Z Coordinate
-Store/Reload	Select Project Folder		Text button						Select Project Folder	Open project folder selector where to store files	Select the Location of the Current Project Folder where to store files.
-Store/Reload	Store Complete Configuration		Text button						Store Complete Configuration	Store Complete Configuration to files (overwrite confirmation)	Store Complete Configuration to files (overwrite with confirmation)
-Store/Reload	Reload Complete Configuration		Text button						Reload Complete Configuration	Reload Complete Configuration from files (confirmation)	Reload Complete Configuration from files (with confirmation)
-Store/Reload	Reload Complete Config. Backup		Text button						Reload Complete Config. Backup	Reload Complete Configuration from backup files (confirmation)	Reload Complete Configuration from backup files (with confirmation)
-Store/Reload	Store System Configuration		Text button						Store System Configuration	Store System Configuration to file (overwrite confirmation) including audio interface and patch	Store System Configuration to file (overwrite with confirmation)
-Store/Reload	Reload System Configuration		Text button						Reload System Configuration	Reload System Configuration from file (confirmation) including audio interface and patch	Reload System Configuration from file (with confirmation)
-Store/Reload	Reload System Config. Backup		Text button						Reload System Config. Backup	Reload System Configuration from backup file (confirmation) including audio interface and patch	Reload System Configuration from backup file (with confirmation)
-Store/Reload	Import System Configuration		Text button						Import System Configuration	Store System Configuration to file (with file explorer window)	Store System Configuration to file (with file explorer window)
-Store/Reload	Export System Configuration		Text button						Export System Configuration	Reload System Configuration from file (with file explorer window)	Reload System Configuration from file (with file explorer window)
+Show	Name	ShowName	editable text box	STRING			My Show			Locked when DSP is running.	Name of the current show.
+Show	Location	ShowLocation	editable text box	STRING						Locked when DSP is running.	Location of the current show.
+I/O	Input Channels	InputChannels	number box	INT	0		8			Locked when DSP is running. Reducing the count prompts a confirmation before removing channel settings.	Number of Input Channels.
+I/O	Output Channels	OutputChannels	number box	INT	0		16			Locked when DSP is running. Reducing the count prompts a confirmation before removing channel settings.	Number of Output Channels.
+I/O	Reverb Channels	ReverbChannels	number box	INT	0		0			Locked when DSP is running. Reducing the count prompts a confirmation before removing channel settings.	Number of Reverb Channels.
+I/O	Getting Started		text button				Getting Started			Visible only when DSP is not running. Opens the Getting Started wizard.	Open the Getting Started wizard.
+I/O	Audio Interface and Patching Window		text button				Audio Interface and Patching Window			Locked when DSP is running.	Opens the Audio Interface and Patching Window.
+WFS Processor	Processing Algorithm	ProcessingAlgorithm	drop down menu	INT	0	1	0		InputBuffer (read-time delays) ; OutputBuffer (write-time delays)	Locked when DSP is running.	Select the rendering algorithm from the menu.
+WFS Processor	Processing	ProcessingEnabled	text button	INT	0	1	0		Processing: OFF ; Processing: ON	Long-press to start. Long-press again (~2s) to stop. Locks all I/O parameters while running.	Lock all I/O parameters and start the DSP. Long press to stop the DSP.
+Stage	Stage Shape	StageShape	drop down menu	INT	0	2	0		Box ; Cylinder ; Dome	Defines stage geometry.	Select the shape of the stage (Box, Cylinder, or Dome).
+Stage	Stage Width	StageWidth	number box	FLOAT	0.0	100.0	20.0	m		Visible when Shape = Box.	Width of the stage in meters (Box shape only).
+Stage	Stage Depth	StageDepth	number box	FLOAT	0.0	100.0	10.0	m		Visible when Shape = Box.	Depth of the stage in meters (Box shape only).
+Stage	Stage Height	StageHeight	number box	FLOAT	0.0	100.0	8.0	m		Visible when Shape = Box or Cylinder.	Height of the stage in meters (Box and Cylinder shapes).
+Stage	Stage Diameter	StageDiameter	number box	FLOAT	0.1	100.0	20.0	m		Visible when Shape = Cylinder or Dome.	Diameter of the stage in meters (Cylinder and Dome shapes).
+Stage	Dome Elevation	DomeElevation	number box	FLOAT	1.0	360.0	180.0	degrees		Visible when Shape = Dome. 180 deg = hemisphere, 360 deg = full sphere.	Dome elevation angle: 180 = hemisphere, 360 = full sphere.
+Stage	Origin Width	StageOriginWidth	number box	FLOAT	-100.0	200.0	0.0	m		Center-referenced coordinate system.	Origin X offset from stage center (0 = centered, negative = left).
+Stage	Origin Depth	StageOriginDepth	number box	FLOAT	-100.0	200.0	-5.0	m		Center-referenced coordinate system.	Origin Y offset from stage center (0 = centered, negative = front/downstage).
+Stage	Origin Height	StageOriginHeight	number box	FLOAT	-100.0	200.0	0.0	m		Center-referenced coordinate system.	Origin Z offset from floor (0 = floor level, positive = above floor).
+Stage	Origin Preset: Front		icon button							Sets origin to front-center of stage at floor level. Typical for frontal setups.	Set origin to front center of stage. Typical for frontal stages.
+Stage	Origin Preset: Center Ground		icon button							Sets origin to stage center at floor level (all offsets = 0). Typical for Surround or Cylindrical setups.	Set origin to center of stage at ground level. Typical for Surround or Cylindrical setups.
+Stage	Origin Preset: Center		icon button							Sets origin to volumetric center of stage. Typical for Spherical Dome setups.	Set origin to center of stage volume. Typical for Spherical Dome setups.
+Stage	Stage Scale		text button (long-press)							Conditional: shown after stage dimensions change. Long-press scales all input positions proportionally to the new stage.	Long press to scale all input positions proportionally to the new stage dimensions.
+Stage	Stage Fit		text button (long-press)							Conditional: shown after stage dimensions change. Long-press moves outlier inputs back within the new stage bounds.	Long press to move outlier inputs back within the new stage bounds.
+Stage	Stage Dismiss		text button (long-press)							Conditional: shown after stage dimensions change. Long-press dismisses the prompt and keeps current positions.	Long press to dismiss and keep current input positions.
+Stage	Origin Shift Inputs		text button (long-press)							Conditional: shown after origin change. Long-press shifts all input positions by the origin delta.	Long press to shift all input positions by the origin change.
+Stage	Origin Shift Outputs		text button (long-press)							Conditional: shown after origin change. Long-press shifts all output positions by the origin delta.	Long press to shift all output positions by the origin change.
+Stage	Origin Shift Reverbs		text button (long-press)							Conditional: shown after origin change. Long-press shifts all reverb positions by the origin delta.	Long press to shift all reverb positions by the origin change.
+Stage	Origin Dismiss (Inputs / Outputs / Reverbs)		text button (long-press)							Conditional: paired with each Origin Shift button. Long-press dismisses the prompt and keeps current positions.	Long press to dismiss and keep current positions.
+Stage	Speed of Sound	SpeedOfSound	number box	FLOAT	319.2	367.7	343.0	m/s		speedOfSound = 331.3 + 0.606 * temperature. Updates automatically when Temperature changes.	Speed of Sound (related to the temperature).
+Stage	Temperature	Temperature	number box	FLOAT	-20.0	60.0	20.0	C		temperature = (speedOfSound - 331.3) / 0.606. Updates automatically when Speed of Sound changes.	Temperature (gives the Speed of Sound).
+Master Section	Master Level	MasterLevel	number box	FLOAT	-92.0	0.0	0.0	dB		Affects all outputs.	Master Level (affects all outputs).
+Master Section	System Latency	SystemLatency	number box	FLOAT	0.0	10.0	0.0	ms		Total latency of mixing board and computer. Per-input/output latency is set in the Inputs/Outputs tabs.	Total latency of the system (Mixing board & Computer). Specific Input and Output Latency/Delay can be set in the respective Input and Output settings.
+Master Section	Haas Effect	HaasEffect	number box	FLOAT	0.0	10.0	0.0	ms		Takes System Latency and per-input/output latency compensation into account.	Haas Effect to apply to the system. Will take into account the Latency Compensations (System, Input and Output).
+UI	Color Scheme	ColorScheme	drop down menu	INT	0	2	0		Default (Dark Gray) ; Black ; Light	Black theme targets OLED displays. Light theme targets daytime use.	Select the color scheme: Default (dark gray), Black (pure black for OLED displays), or Light (daytime use).
+UI	Long Press		toggle button	INT	0	1	0		Normal ; Quick	Application-level setting. Stored in AppSettings, not in the project config. Toggles the long-press duration globally.	Long press duration. Instead of confirmation windows this software uses long presses.
+UI	Language		drop down menu	STRING			English		English ; Francais ; Deutsch ; Espanol ; Italiano ; Portugues ; Japanese ; Chinese ; Korean	Application-level setting. Enum populated dynamically from Resources/lang/*.json. Full effect requires an application restart.	Select the user interface language. Changes take full effect after restarting the application.
+Controllers	Dials and Buttons	DialsAndButtonsDevice	drop down menu	INT	0	2	0		Off ; Stream Deck+ ; XenceLabs Quick Keys	Either/or selection. Only one dials-and-buttons device can be active at a time.	Select the hardware controller for dials and buttons: Stream Deck+ or XenceLabs Quick Keys.
+Controllers	Position Control	PositionControlDevice	drop down menu	INT	0	3	0		Off ; Space Mouse ; Joystick ; Game Pad	Either/or selection. Only one position-control device can be active at a time.	Select the hardware controller for position control: Space Mouse, Joystick, or Game Pad.
+Controllers	Sampler Controller	SamplerControllerMode	drop down menu	INT	0	2	0		Off ; Lightpad ; Remote	Also writes SamplerEnabled (true when mode != Off, false when mode == Off). The Lightpad Arrangement and Remote Pad Setup buttons swap in next to this selector depending on mode.	Enable or disable the Sampler feature for input channels.
+Controllers	Lightpad Arrangement Setup		text button				Setup			Visible only when Sampler Controller = Lightpad. Disabled when no Lightpads are detected. Opens the Lightpad arrangement overlay.	Display the connected Roli Lightpads and allow for splitting them in 4 smaller pads.
+Controllers	Remote Pad Setup		text button				Setup			Visible only when Sampler Controller = Remote. Opens an overlay to choose the Remote XY-pad layout (3x2 or 5x3).	Select the number of pads in the Remote's XY Pads tab.
+Binaural Renderer	Binaural Enable	binauralEnabled	text button (long-press)	INT	0	1	0		Binaural: OFF ; Binaural: ON	Long-press to toggle. Disabled (50% alpha) when no Binaural Output channel is selected.	Enable or disable the binaural renderer processing.
+Binaural Renderer	Binaural Output	binauralOutputChannel	drop down menu	INT	-1	62	-1		Select... ; 1-2 ; 3-4 ; 5-6 ; ... ; 63-64	First output channel of the stereo pair. -1 = disabled. Enum rebuilt dynamically from output patch state.	Select output channel pair for binaural monitoring. Off disables binaural output.
+Binaural Renderer	Listener Distance	binauralListenerDistance	H slider + number box	FLOAT	0.0	10.0	5.0	m		Distance from stage origin along the listener's facing direction.	Distance of binaural listener from stage origin (meters).
+Binaural Renderer	Listener Angle	binauralListenerAngle	rotation dial + number box	INT	-180	180	0	degrees		0 degrees = facing stage origin. Integer degrees only.	Horizontal rotation of binaural listener view (degrees, 0 = facing stage).
+Binaural Renderer	Binaural Level	binauralAttenuation	H slider + number box	FLOAT	-40.0	0.0	0.0	dB		Overall level offset for the binaural output.	Overall level offset for binaural output (dB).
+Binaural Renderer	Binaural Delay	binauralDelay	H slider + number box	FLOAT	0.0	100.0	0.0	ms		Additional delay applied to the binaural output.	Additional delay for binaural output (milliseconds).
+Binaural Renderer	Solo Mode	binauralSoloMode	text button	INT	0	1	0		Solo: Single ; Solo: Multi	Single = only one input soloed at a time (clicking S clears others). Multi = multiple simultaneous solos.	Single: one input at a time. Multi: multiple inputs simultaneously.
+Files	Select Project Folder	ProjectFolder	text button (long-press)				Select Project Folder			Long-press. Opens a folder picker. Required before Store / Reload.	Select the Location of the Current Project Folder where to store files.
+Files	Store Complete Configuration		text button (long-press)				Store Complete Configuration			Long-press. Writes all configs (system, inputs, outputs, reverbs, clusters, map, network, audio patch) with a backup.	Store Complete Configuration to files (with backup).
+Files	Reload Complete Configuration		text button (long-press)				Reload Complete Configuration			Long-press. Reloads all configs from files in the project folder.	Reload Complete Configuration from files.
+Files	Reload Complete Config Backup		text button (long-press)				Reload Complete Config. Backup			Long-press. Reloads all configs from backup files in the project folder.	Reload Complete Configuration from backup files.
+Files	Store System Configuration		text button (long-press)				Store System Configuration			Long-press. Writes only the system configuration (Show, I/O, Stage, Master, UI, Controllers, Binaural) with a backup.	Store System Configuration to file (with backup).
+Files	Reload System Configuration		text button (long-press)				Reload System Configuration			Long-press. Reloads the system configuration from file.	Reload System Configuration from file.
+Files	Reload System Config Backup		text button (long-press)				Reload System Config. Backup			Long-press. Reloads the system configuration from the backup file.	Reload System Configuration from backup file.
+Files	Import System Configuration		text button (long-press)				Import System Configuration			Long-press. Opens a file picker to import a system configuration from any location.	Import System Configuration from file (with file explorer window).
+Files	Export System Configuration		text button (long-press)				Export System Configuration			Long-press. Opens a file picker to export the current system configuration to any location.	Export System Configuration to file (with file explorer window).
+Diagnostics	Version		read-only text	STRING						Read-only. Displays the running application version.	Current application version.
+Diagnostics	Update Available		hyperlink button							Visible only when a newer release is detected on GitHub. Clicking opens the release page in the browser.	A new version of WFS-DIY is available on GitHub.
+Diagnostics	Diagnostics Expand/Collapse		text button (long-press)	INT	0	1	0		Diagnostics [+] ; Diagnostics [-]	Long-press to expand or collapse the diagnostics sub-buttons below. State is not persisted across restarts.	Expand or collapse the diagnostics controls.
+Diagnostics	Export Logs		text button				Export Logs			Visible only when Diagnostics is expanded. Exports WFS-DIY log files to a chosen folder.	Export WFS-DIY log files.
+Diagnostics	Open Log Folder		text button				Open Log Folder			Visible only when Diagnostics is expanded. Opens the log directory in the OS file explorer.	Open the WFS-DIY log folder in the OS file explorer.
+Diagnostics	Copy System Info		text button				Copy System Info			Visible only when Diagnostics is expanded. Copies OS / audio device / WFS version info to the clipboard.	Copy system information to the clipboard.
+Diagnostics	Report Issue		text button				Report Issue			Visible only when Diagnostics is expanded. Opens the GitHub issue tracker in the browser.	Report an issue on GitHub.

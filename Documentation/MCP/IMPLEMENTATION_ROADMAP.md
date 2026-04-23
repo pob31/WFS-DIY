@@ -50,9 +50,13 @@ Scope:
   - `set_input_position(input_id, x, y, z)` — moves a source.
   - `set_input_attenuation(input_id, db)` — sets input level.
   - `list_snapshots()` — lists saved input snapshots.
+- **Origin tagging on all parameter changes.** The parameter system's change-notification path is extended to carry an origin tag (`UI`, `MCP`, `OSC`, `Tracking`, `Snapshot`, `LFO`, `Move`, `Automation`) alongside every value change. This is architectural — listeners (Network Log, future undo stack, future observers) receive the tag and can filter or route on it. Retrofitting this later is significantly more painful than baking it in now.
+- **Change-record pipeline in the tool dispatcher.** Every MCP tool invocation goes through a pipeline: validate → capture before-state → execute on message thread → capture after-state → emit structured change record → return. Read-only tools skip the before/after capture. The record format is the one specified in `MCP_SERVER_DESIGN.md` § "Action history and undo architecture", including `affected_parameters` and (once the generator runs in Phase 2) `affected_groups`.
+- **Change-record ring buffer.** 100-entry ring buffer of AI-origin change records, in memory. Queryable from within the app (used by Phase 4's undo UI) but not yet exposed through tools.
+- **Undo tool stubs.** `mcp.undo_last_ai_change`, `mcp.redo_last_undone_ai_change`, and `mcp.get_ai_change_history` are registered in `tools/list` but return a structured "not yet implemented, pending Phase 4" response. Clients can depend on their existence from day one.
 - Logging of MCP traffic into the existing Network Log window, filterable as a new protocol.
 
-Success criteria: Claude Desktop connects to `http://localhost:7400/mcp`, lists the 5 tools, and can successfully move a source by saying "move input 3 to position 4, 2, 1.5".
+Success criteria: Claude Desktop connects to `http://localhost:7400/mcp`, lists the tools, and can successfully move a source by saying "move input 3 to position 4, 2, 1.5". The Network Log shows the tool call with full before/after state captured. Origin tags are visible on all parameter changes regardless of source.
 
 Explicit non-goals in this phase:
 - No resources.
@@ -60,6 +64,7 @@ Explicit non-goals in this phase:
 - No auto-generation from CSVs.
 - No tiered confirmation (everything is effectively Tier 1).
 - No OSCQuery cross-check.
+- No undo UI or keyboard shortcuts yet — the infrastructure is in place but the surfacing lands in Phase 4.
 
 ### Phase 2 — Auto-generated tool surface
 
@@ -102,7 +107,26 @@ Scope:
 
 Success criteria: invoking the `system_tuning_workflow` prompt in Claude Desktop walks the operator through the four-step WFS tuning procedure with appropriate tool calls at each step.
 
-### Phase 5 — Tier enforcement and safety
+### Phase 5 — AI undo/redo surfacing
+
+Phase 1 built the change-record infrastructure and the ring buffer; Phase 2's generator output supplied the group_key per tool; this phase wires it all up into something operators and the AI can actually use. See `MCP_SERVER_DESIGN.md` § "Action history and undo architecture" and § "AI undo UI" for the full spec.
+
+Scope:
+- **Replace the Phase 1 stubs** in `mcp.undo_last_ai_change`, `mcp.redo_last_undone_ai_change`, and `mcp.get_ai_change_history` with real implementations operating on the ring buffer.
+- **Targeted undo with group-based dependency chasing.** When undoing a record, find all later records in the ring buffer whose `(channel_id, group_key)` entries intersect with the target's, and include them in the undo operation as a group.
+- **Staleness detection.** Before executing an undo, compare the target record's `affected_parameters` current values against its `after_state`. If any parameter has been modified by a non-MCP origin since the record was created, refuse with a structured response explaining the drift; leave the decision to the operator via the AI.
+- **Cross-actor notification.** When a non-MCP change lands on a parameter an AI record in the active buffer touched, the next AI tool-call response includes a notification field describing the external change. Implement this via a side-channel on the ring buffer that accumulates pending notifications per-client and drains on the next response.
+- **Self-correction rule.** When a user-origin write to an AI-touched parameter produces a value different from the AI's last write to that parameter, remove the corresponding record from the toast's active-row list. The record stays in the queryable history; it just loses its overlay presence.
+- **Growing-toast overlay UI.** Non-modal, top-right-corner default position. Newest row on top. Per-row × button, top-left close button. 15-second per-row lifetime (independent timers). 10-row visible cap with expand affordance. Read-only tool calls do NOT produce overlay rows. On hover over any × button, highlight all rows that would be reversed together.
+- **Keyboard shortcuts.** `Cmd/Ctrl-Alt-Z` for undo AI, `Cmd/Ctrl-Alt-Y` for redo AI. Work regardless of whether the toast is visible. Documented in the application's keyboard shortcut reference.
+
+Success criteria: AI makes three sequential changes (move input 3, change its directivity, set its attenuation); overlay shows three rows; operator presses Cmd/Ctrl-Alt-Z once, only the attenuation change is reversed (independent group); operator clicks × on the first row, input 3's position AND directivity are both reversed if they share a group, or only position if not. An operator-initiated manual change to input 3's directivity while the overlay is live removes that specific row. The AI, on its next tool call, receives a notification describing the operator's correction.
+
+Explicit non-goals in this phase:
+- No StreamDeck integration for AI undo (existing controls are dense; keyboard + overlay is sufficient). Defer until usage justifies it.
+- No integration with the operator's per-section user undo stacks. AI undo and user undo remain separate.
+
+### Phase 6 — Tier enforcement and safety
 
 Add the confirmation model. This is placed late deliberately: by this point the tool surface is stable and real usage has revealed which tools are actually dangerous in practice.
 
@@ -114,7 +138,7 @@ Scope:
 
 Success criteria: attempting a snapshot overwrite from Claude returns "confirm?" and does not execute until confirmed. Attempting a mid-show array reconfiguration refuses with "safety gate closed" unless the operator has opened it.
 
-### Phase 6 — OSCQuery cross-check (polish)
+### Phase 7 — OSCQuery cross-check (polish)
 
 At server startup, query the local OSCQuery endpoint and verify that every auto-generated tool's OSC path actually exists. Log warnings for drift. This catches the case where the CSVs and the live OSC implementation diverge.
 
@@ -154,6 +178,8 @@ prompts/
 **Resist the temptation to add "helpful" high-level tools early.** They are genuinely useful but they're also opinionated about workflows. Build the raw parameter surface first, let usage show what workflows actually matter, then compose the high-level tools in Phase 4.
 
 **The CSVs are the source of truth, not the generated JSON or the C++.** If a parameter needs to change, the CSV changes, the generator reruns, the C++ picks up the new schema. Manual edits to generated code will be lost.
+
+**Origin tagging on parameter changes is mandatory from Phase 1.** Every write to the parameter system must carry an origin tag so that the change-notification infrastructure can distinguish MCP, UI, OSC, tracking, snapshot, LFO, Move, and automation origins. This is cheap to add now while listeners are few; expensive to retrofit later. The AI's undo system, the cross-actor notification mechanism, and the Network Log all depend on this tag being present on every change.
 
 **Voice control is not something to implement here.** It is an emergent capability of the client, not a server feature. The server's job is to have a tool surface that reads naturally when spoken. Good descriptions = natural voice control, automatically.
 

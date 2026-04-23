@@ -98,6 +98,13 @@ These wrap common multi-parameter operations that are tedious to do one paramete
 | `mcp.describe_parameter` | 1 | Given a parameter name, returns its full schema: type, range, default, unit, enum values, hover help, current value. Useful when the AI wants to explain a parameter to the user. |
 | `mcp.get_dry_run_state` | 1 | Returns whether dry-run mode is active. |
 | `mcp.set_dry_run_state` | 2 | Enables or disables dry-run mode globally. |
+| `mcp.undo_last_ai_change` | 1 | Reverses the most recent AI change, with targeted-undo semantics (later AI changes in overlapping parameter groups are also reversed). Returns a summary of what was reversed. Refuses with a clear explanation if the affected state has been modified externally since. See `MCP_SERVER_DESIGN.md` for the full undo architecture. |
+| `mcp.redo_last_undone_ai_change` | 1 | Replays the most recently undone AI change if the redo stack supports it. |
+| `mcp.get_ai_change_history` | 1 | Returns the last N AI-initiated change records from the ring buffer, including actions that have been reversed (whether by the AI, the operator via keyboard shortcut, or the operator via the overlay toast). Useful for the AI to reason about what it's done and to audit changes across a session. |
+
+The `undo_last_ai_change` and `redo_last_undone_ai_change` tools are the AI-facing path for reversal. Operators have independent paths (keyboard shortcuts `Cmd/Ctrl-Alt-Z` and `Cmd/Ctrl-Alt-Y`, the per-row × buttons in the toast overlay) that operate on the same underlying ring buffer. See `MCP_SERVER_DESIGN.md` § "Action history and undo architecture" and § "AI undo UI".
+
+**Phasing**: the three tools are registered from Phase 1 so clients can depend on their existence, but full implementation (with staleness detection, cross-actor notification, and the overlay UI) lands in Phase 4. Phase 1 stubs return a structured "not yet implemented" response that identifies the capability as pending.
 
 ## Tier assignment heuristics for auto-generated tools
 

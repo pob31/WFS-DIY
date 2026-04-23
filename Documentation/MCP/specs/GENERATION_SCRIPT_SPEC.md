@@ -71,6 +71,7 @@ A single JSON file: `generated_tools.json`. Structure:
       "internal_osc_path": "/wfs/input/positionX",
       "internal_variable": "inputPositionX",
       "csv_section": "Position",
+      "group_key": "input_position",
       "supports_relative": true,
       "relative_tool_name": "input.position.nudge_x"
     }
@@ -126,11 +127,19 @@ For each row in each CSV:
 
 8. **Warnings**: emit a warning if the Hover help text is missing, the range is inverted, the enum list doesn't match the min/max, or the variable naming doesn't match any known pattern. Warnings are informative — do not abort the build.
 
+9. **Derive group_key** for undo dependency chasing:
+   - Take the CSV Section value.
+   - Strip coordinate-system suffixes: ` (Cylindrical)` and ` (Spherical)` are removed, so `Position`, `Position (Cylindrical)`, `Position (Spherical)` all resolve to the same base. Same rule applies to `AutomOtion` and its variants.
+   - Normalize to snake_case and prefix with the CSV file's namespace: `Position` in `WFS-UI_input.csv` → `input_position`; `EQ` in `WFS-UI_output.csv` → `output_eq`.
+   - Skip rows where Section is empty or literally `"Section"` (header-row artifacts). Emit a warning if such rows have non-empty Variable values, since that indicates a malformed CSV.
+   - Parameters with unique or orphan sections become singletons — their group_key is derived from their own variable name, so undo chaining only triggers on exact-parameter matches.
+   - Group keys are scoped per channel at runtime. The generator just emits the group_key string; the server composes `(channel_id, group_key)` tuples when recording changes.
+
 ## The bulk/compound tools
 
 The generation script does NOT generate the hand-written compound tools (`input.configure_lfo`, etc.). Those are written in C++ directly. The generator's output is only the per-parameter tools.
 
-However, the generator SHOULD emit a metadata file listing which parameters belong to which section, so the C++ compound-tool implementations can be validated against "did we cover every LFO parameter?" as a unit test.
+The `generated_groups.json` emitted alongside the main tool file (see "Validation pass" below) lists parameters grouped by their derived group_key. C++ compound-tool implementations can be validated against this via unit tests — "does `input.configure_lfo` cover every parameter in group `input_lfo`?" — catching drift when new parameters are added to an existing group.
 
 ## Idempotency and determinism
 
@@ -149,9 +158,23 @@ After generation, the script runs a validation pass:
 - Every per-channel tool has `input_id` / `output_id` / `reverb_id` as its first required argument.
 - No two tools have the same name.
 - All tier values are 1, 2, or 3.
+- Every tool has a non-empty `group_key`.
 - JSON schemas round-trip (serialize, deserialize, re-serialize, compare).
 
 Failures abort the build with a clear error message.
+
+**Group summary output.** The generator additionally emits `generated_groups.json`, a small lookup of group_key → list of tools in that group. The undo system and compound-tool unit tests read this to reason about group membership without having to scan the full tool list. Example:
+
+```json
+{
+  "input_position": ["input.position.set_x", "input.position.set_y", "input.position.set_z",
+                     "input.position.set_r", "input.position.set_theta", ...],
+  "input_lfo": ["input.lfo.set_period", "input.lfo.set_phase", ...],
+  ...
+}
+```
+
+This doubles as the validation source for hand-written compound tools: a unit test asserts that `input.configure_lfo` touches every parameter listed under `input_lfo`.
 
 ## Override file formats
 

@@ -1,122 +1,79 @@
 Section	Label	Variable	UI	Type	Min	Max	Default	Formula for UI elements (x from 0.0 to 1.0)	Unit	enum	Notes	Array value	OSC path	Hover help text in the status bar	Keyboard shortcuts	
-Reverb	Selected Reverb	reverbSelected	Selector (1 to 16)	INT	1	16					Display channel name on the switches		/wfs/reverb/selected <ID>	Reverb Channel Number and Selection.	Type �R� to switch to the Reverb Tab. Prompt in the status bar for 5 seconds to type a number and then return to select the corresponding reverb channel.	
-Reverb	Reverb Name	reverbName	Editable Text box	STRING			output <ID>						/wfs/reverb/name <ID> <value>	Displayed Reverb Channel Name (editable).		
-Reverb	Attenuation	reverbAttenuation	H slider	FLOAT	-92.0	0.0	0.0	20*log10(pow(10,-92./20.)+((1-pow(10,-92./20.))*pow(x,2)))	dB			Y	/wfs/reverb/attenuation <ID> <value>	Reverb Channel Attenuation.		
-Reverb	Delay/Latency comp.	reverbDelayLatency	H bidirectional slider	FLOAT	-100.0	100.0	0.0	(x*200.0)-100.0	ms		Highlight �Latency Compensation� for negative values or �Delay� for positive values	Y	/wfs/reverb/delayLatency <ID> <value>	Reverb Channel Delay (positive values) or Latency Compensation (negative values).		
+Header	Map Visibility	reverbsMapVisible	text button	INT	0	1	1			OFF ; ON	Global toggle on the tab header. Shows/hides all reverbs on the Map tab.		/wfs/reverb/mapVisible <value>	Show or hide reverb markers on the Map tab.		
+Header	Edit on Map		text button	INT	0	1	0			Edit on Map ; Edit on Map ON	Tab-level toggle, not persisted. Allows dragging reverb positions on the Map.		/wfs/reverb/editOnMap <value>	Enable editing reverb positions from the Map tab.		
+Header	Solo Reverbs		text button (long-press)	INT	0	1	0			Solo Reverbs ; Solo Reverbs ON	Tab-level toggle. Long-press to toggle. Mutes all direct signal paths and keeps the reverb feeds/returns. Exclusive with Mute Pre and Mute Post.			Long-press to solo all reverbs: direct signal is muted, reverb is kept.		
+Header	Mute Pre		text button (long-press)	INT	0	1	0			Mute Pre ; Mute Pre ON	Tab-level toggle. Long-press to toggle. Silences the input-to-reverb feed sends. Exclusive with Solo Reverbs and Mute Post.			Long-press to silence the reverb feed sends.		
+Header	Mute Post		text button (long-press)	INT	0	1	0			Mute Post ; Mute Post ON	Tab-level toggle. Long-press to toggle. Skips the reverb return to the output mix. Exclusive with Solo Reverbs and Mute Pre.			Long-press to skip reverb returns in the output mix.		
+Reverb	Selected Reverb	reverbSelected	Selector (1 to 16)	INT	1	16					Max bounded by the Reverb Channels count in System Config (up to 16). Display channel name on the switches.		/wfs/reverb/selected <ID>		Reverb Channel Number and Selection.	Type R to switch to the Reverb Tab. Prompt in the status bar for 5 seconds to type a number and then return to select the corresponding reverb channel.
+Name	Reverb Name	reverbName	Editable Text box	STRING			reverb <ID>						/wfs/reverb/name <ID> <value>	Displayed Reverb Channel Name (editable).		
+Attenuation	Attenuation	reverbAttenuation	H slider	FLOAT	-92.0	0.0	0.0	20*log10(pow(10,-92./20.)+((1-pow(10,-92./20.))*pow(x,2)))	dB			Y	/wfs/reverb/attenuation <ID> <value>	Reverb Channel Attenuation.		
+Delay	Delay/Latency comp.	reverbDelayLatency	H bidirectional slider	FLOAT	-100.0	100.0	0.0	(x*200.0)-100.0	ms		Highlight 'Latency Compensation' for negative values or 'Delay' for positive values.	Y	/wfs/reverb/delayLatency <ID> <value>	Reverb Channel Delay (positive values) or Latency Compensation (negative values).		
+Position	Coordinate Mode	reverbCoordinateMode	drop down menu	INT	0	2	0			XYZ ; r theta Z ; r theta phi	Controls how Position X/Y/Z are displayed and edited: Cartesian, Cylindrical, or Spherical. Storage remains Cartesian internally.		/wfs/reverb/coordinateMode <ID> <value>	Select Cartesian, Cylindrical, or Spherical coordinates for this reverb.		
 Position	Position X	reverbPositionX	Number box	FLOAT	-50.0	50.0	0.0		m				/wfs/reverb/positionX <ID> <value>	Reverb Channel Position in Width.	Left and Right Arrows to nudge to the left (--) or right (++) in 0.1m increments	
 Position	Position Y	reverbPositionY	Number box	FLOAT	-50.0	50.0	0.0		m				/wfs/reverb/positionY <ID> <value>	Reverb Channel Position in Depth.	Up and Down Arrows to nudge to the upstage (++) or downstage (--) in 0.1m increments	
 Position	Position Z	reverbPositionZ	Number box	FLOAT	-50.0	50.0	0.0		m				/wfs/reverb/positionZ <ID> <value>	Reverb Channel Position in Height.	Page Up and Page Down to nudge to the up (++) or down (--) in 0.1m increments	
-Position	Return Offset X	reverbReturnOffsetX	Number box	FLOAT	-50.0	50.0	0.0		m				/wfs/reverb/returnOffsetX <ID> <value>	Reverb Return Channel Position Offset in Width.	Left and Right Arrows to nudge to the left (--) or right (++) in 0.1m increments if holding the [shift] key
-Position	Return Offset Y	reverbReturnOffsetY	Number box	FLOAT	-50.0	50.0	0.0		m				/wfs/reverb/returnOffsetY <ID> <value>	Reverb Return Channel Position Offset in Depth.	Up and Down Arrows to nudge to the upstage (++) or downstage (--) in 0.1m increments if holding the [shift] key
-Position	Return Offset Z	reverbReturnOffsetZ	Number box	FLOAT	-50.0	50.0	0.0		m				/wfs/reverb/returnOffsetZ <ID> <value>	Reverb Return Channel Position Offset in Height.	Page Up and Page Down to nudge to the up (++) or down (--) in 0.1m increments if holding the [shift] key
-Reverb Feed	Orientation	reverbOrientation	Rotation dial	INT	-179	180	0	(x*360)-180	�			Y	/wfs/reverb/orientation <ID> <value>	Reverb Channel Horizontal Orientation (0� means towards the audience in a frontal configuration). (changes may affect the rest of the array)		
-Reverb Feed	Angle On	reverbAngleOn	H range expansion slider	INT	1	180	86	(x*179)+1	�		angleOn+angleOff =< 180; adjust angleOff if angleOn is adjusted and sum is above 180	Y	/wfs/reverb/angleOn <ID> <value>	Reverb Channel Will Amplify Objects in this Angle in its Back. (changes may affect the rest of the array)		
-Reverb Feed	Angle Off	reverbAngleOff	H range expansion slider	INT	0	179	90	x*179	�		angleOn+angleOff =< 180; adjust angleOn if angleOff is adjusted and sum is above 180	Y	/wfs/reverb/angleOff <ID> <value>	Reverb Channel Will Not Amplify Objects in this Angle in Front of it. (changes may affect the rest of the array)		
-Reverb Feed	Pitch	reverbPitch	V bidirectional slider	INT	-90	90	0	(x*180)-90	�			Y	/wfs/reverb/pitch <ID> <value>	Reverb Channel Vertical Orientation used to Determine which Objects get amplified (changes may affect the rest of the array)		
-Reverb Feed	HF Damping	reverbHFdamping	H slider	FLOAT	-6.0	0.0	0.0	(x*6.0)-0.6	dB/m			Y	/wfs/reverb/HFdamping <ID> <value>	Loss of High Frequency Depending on Distance from Object to Reverb. (changes may affect the rest of the array)		
-Reverb Feed	Minimum Latency Enable	reverbMiniLatencyEnable	Text button	INT	0	1	1			DISABLE ; ENABLE		Y	/wfs/reverb/miniLatencyEnable <ID> <value>	Disables Minimal Latency Mode for Selected Reverb. (changes may affect the rest of the array)		
-Reverb Feed	Live Source Attenuation Enable	reverbLSenable	Text button	INT	0	1	1			DISABLE ; ENABLE		Y	/wfs/reverb/LSenable <ID> <value>	Disables Live Source Attenuation for Selected Reverb. (changes may affect the rest of the array)		
-Reverb Feed	Distance Attenuation Percentage	reverbDistanceAttenEnable	H slider	INT	0	200	100	x*200	%			Y	/wfs/reverb/DistanceAttenPercent <ID> <value>	Ratio of Distance Attenuation for Selected Reverb. (changes may affect the rest of the array)		
-Pre-Processing	EQ Enabled	reverbPreEQenable	Text button	INT	0	1	1			EQ OFF ; EQ ON		Y	/wfs/reverb/preEQenable <ID> <value>	Enable or Disables Equalisation of the Reverb Channel. (changes may affect the rest of the array)
-Pre-Processing	EQ Shape	reverbPreEQshape<band>	Drop down menu	INT	0	6	0			OFF ; Low Cut ; Low Shelf ; Peak/Notch ; High Shelf ; High Cut	This setting and the following are present for each 4 EQ band	Y	/wfs/reverb/preEQshape <ID> <band> <value>	Select the EQ Mode for Band <Band ID> of the Reverb Channel. (changes may affect the rest of the array)
-Pre-Processing	EQ Frequency	reverbPreEQfreq<band>	H slider	INT	20	20000		20*pow(10,4*x)	Hz		For each 4 EQ band / Greyed out but editable if band mode is set to "OFF"	Y	/wfs/reverb/preEQfreq <ID> <band> <value>	Select the EQ Frequency for Band <Band ID> of the Reverb Channel. (changes may affect the rest of the array)
-Pre-Processing	EQ Gain	reverbPreEQgain<band>	Basic dial	FLOAT	-24.0	24.0	0.0	(x*48)-24	dB		For each 4 EQ band / Greyed out but editable if band mode is set to "OFF"	Y	/wfs/reverb/preEQgain <ID> <band> <value>	Select the EQ Gain/Attenuation for Band <Band ID> of the Reverb Channel. (changes may affect the rest of the array)
-Pre-Processing	EQ Q	reverbPreEQq<band>	Basic dial	FLOAT	0.1	20.0	0.7	0.1+0.21(pow(100,x)-1)			For each 4 EQ band / Greyed out but editable if band mode is set to "OFF"	Y	/wfs/reverb/preEQq <ID> <band> <value>	Select the EQ Q for Band <Band ID> of the Reverb Channel. (changes may affect the rest of the array)
-Pre-Processing	EQ Slope	reverbPreEQslope<band>	Basic dial	FLOAT	0.1	20.0	0.7	0.1+0.21(pow(100,x)-1)			For each 4 EQ band / Greyed out but editable if band mode is set to "OFF"	Y	/wfs/reverb/preEQslope <ID> <band> <value>	Select the EQ Slope for Band <Band ID> of the Reverb Channel. (changes may affect the rest of the array)
-Pre-Processing	Compressor Bypass	reverbPreCompBypass	Text button	INT	0	1	1			Compressor OFF ; Compressor ON	Global parameter (Phase 2)		/wfs/config/reverb/preCompBypass <value>	Enable or disable the pre-compressor for the reverb feed signal.
-Pre-Processing	Compressor Threshold	reverbPreCompThreshold	H slider	FLOAT	-60.0	0.0	-12.0	(x*60)-60	dB		Phase 2		/wfs/config/reverb/preCompThreshold <value>	Pre-compressor threshold level (-60 to 0 dB).
-Pre-Processing	Compressor Ratio	reverbPreCompRatio	H slider	FLOAT	1.0	20.0	2.0	1+19*x	:1		Phase 2		/wfs/config/reverb/preCompRatio <value>	Pre-compressor ratio (1:1 to 20:1).
-Pre-Processing	Compressor Attack	reverbPreCompAttack	H slider (log)	FLOAT	0.1	100.0	10.0	min*pow(max/min,x)	ms		Phase 2		/wfs/config/reverb/preCompAttack <value>	Pre-compressor attack time (0.1 - 100 ms).
-Pre-Processing	Compressor Release	reverbPreCompRelease	H slider (log)	FLOAT	10.0	1000.0	100.0	min*pow(max/min,x)	ms		Phase 2		/wfs/config/reverb/preCompRelease <value>	Pre-compressor release time (10 - 1000 ms).
-Algorithm	Algorithm Type	reverbAlgoType	3 toggle buttons (SDN/FDN/IR)	INT	0	2	0		 	SDN; FDN; IR	Global parameter (not per-channel)		/wfs/config/reverb/algoType <value>	Select the reverb algorithm: SDN (Scattering Delay Network), FDN (Feedback Delay Network), or IR (Impulse Response).
-Algorithm	RT60	reverbRT60	H slider (log)	FLOAT	0.2	8.0	1.5	min*pow(max/min,x)	s		Visible for SDN and FDN		/wfs/config/reverb/rt60 <value>	Reverb decay time RT60 (0.2 - 8.0 seconds).
-Algorithm	RT60 Low Mult	reverbRT60LowMult	H slider (log)	FLOAT	0.1	9.0	1.3	min*pow(max/min,x)	x		Visible for SDN and FDN		/wfs/config/reverb/rt60LowMult <value>	Low frequency RT60 multiplier (0.1 - 9.0x).
-Algorithm	RT60 High Mult	reverbRT60HighMult	H slider (log)	FLOAT	0.1	9.0	0.5	min*pow(max/min,x)	x		Visible for SDN and FDN		/wfs/config/reverb/rt60HighMult <value>	High frequency RT60 multiplier (0.1 - 9.0x).
-Algorithm	Crossover Low	reverbCrossoverLow	H slider (log)	FLOAT	50	500	200	min*pow(max/min,x)	Hz		Visible for SDN and FDN		/wfs/config/reverb/crossoverLow <value>	Low crossover frequency for 3-band decay (50 - 500 Hz).
-Algorithm	Crossover High	reverbCrossoverHigh	H slider (log)	FLOAT	1000	10000	4000	min*pow(max/min,x)	Hz		Visible for SDN and FDN		/wfs/config/reverb/crossoverHigh <value>	High crossover frequency for 3-band decay (1 - 10 kHz).
-Algorithm	Diffusion	reverbDiffusion	H slider	FLOAT	0.0	1.0	0.5	x*100	%		Visible for SDN and FDN		/wfs/config/reverb/diffusion <value>	Diffusion amount controlling echo density (0 - 100%).
-Algorithm	SDN Scale	reverbSDNscale	H slider	FLOAT	0.5	4.0	1.0	min+(max-min)*x	x		Visible only for SDN		/wfs/config/reverb/sdnScale <value>	SDN inter-node delay scale factor (0.5 - 4.0x).
-Algorithm	FDN Size	reverbFDNsize	H slider	FLOAT	0.5	2.0	1.0	min+(max-min)*x	x		Visible only for FDN		/wfs/config/reverb/fdnSize <value>	FDN delay line size multiplier (0.5 - 2.0x).
-Algorithm	IR File	reverbIRfile	Load button + filename	STRING								Visible only for IR		/wfs/config/reverb/irFile <value>	Load an impulse response WAV file for convolution.
-Algorithm	IR Trim	reverbIRtrim	H slider	FLOAT	0	100	0	x*100	ms		Visible only for IR		/wfs/config/reverb/irTrim <value>	Trim the start of the impulse response (0 - 100 ms).
-Algorithm	IR Length	reverbIRlength	H slider	FLOAT	0.1	6.0	6.0	min+(max-min)*x	s		Visible only for IR		/wfs/config/reverb/irLength <value>	Maximum impulse response length (0.1 - 6.0 seconds).
-Algorithm	Per-node IR	reverbPerNodeIR	Text button	INT	0	1	0			Per-node IR OFF; Per-node IR ON	Visible only for IR		/wfs/config/reverb/perNodeIR <value>	Use a separate IR for each reverb node, or share one IR.
-Algorithm	Wet Level	reverbWetLevel	H slider	FLOAT	-60	12	0.0	-60+(x*72)	dB		Always visible		/wfs/config/reverb/wetLevel <value>	Wet/dry mix level for reverb output (-60 to +12 dB).
-Post-Processing	Post EQ Enabled	reverbPostEQenable	Text button	INT	0	1	1			EQ OFF ; EQ ON	Global parameter		/wfs/config/reverb/postEQenable <value>	Enable or disable post-processing EQ.
-Post-Processing	Post EQ Shape	reverbPostEQshape<band>	Drop down menu	INT	0	5	0			OFF ; Low Cut ; Low Shelf ; Peak/Notch ; High Shelf ; High Cut	Global, 4 bands		/wfs/config/reverb/postEQshape <band> <value>	Post-EQ Band <Band ID> filter shape.
-Post-Processing	Post EQ Frequency	reverbPostEQfreq<band>	H slider	INT	20	20000		20*pow(10,3*x)	Hz		Global, 4 bands		/wfs/config/reverb/postEQfreq <band> <value>	Post-EQ Band <Band ID> frequency (20 Hz - 20 kHz).
-Post-Processing	Post EQ Gain	reverbPostEQgain<band>	Basic dial	FLOAT	-24.0	24.0	0.0	(x*48)-24	dB		Global, 4 bands		/wfs/config/reverb/postEQgain <band> <value>	Post-EQ Band <Band ID> gain (-24 to +24 dB).
-Post-Processing	Post EQ Q	reverbPostEQq<band>	Basic dial	FLOAT	0.1	20.0	0.7	0.1+0.21(pow(100,x)-1)			Global, 4 bands		/wfs/config/reverb/postEQq <band> <value>	Post-EQ Band <Band ID> Q factor (0.1 - 20.0).
-Post-Processing	Post EQ Slope	reverbPostEQslope<band>	Basic dial	FLOAT	0.1	20.0	0.7	0.1+0.21(pow(100,x)-1)			Global, 4 bands		/wfs/config/reverb/postEQslope <band> <value>	Post-EQ Band <Band ID> slope (0.1 - 20.0).
-Post-Processing	Expander Bypass	reverbPostExpBypass	Text button	INT	0	1	1			Expander OFF ; Expander ON	Global parameter (Phase 2)		/wfs/config/reverb/postExpBypass <value>	Enable or disable the post-expander for the reverb return signal.
-Post-Processing	Expander Threshold	reverbPostExpThreshold	H slider	FLOAT	-80.0	-10.0	-40.0	-80+70*x	dB		Phase 2		/wfs/config/reverb/postExpThreshold <value>	Post-expander threshold level (-80 to -10 dB).
-Post-Processing	Expander Ratio	reverbPostExpRatio	H slider	FLOAT	1.0	8.0	2.0	1+7*x	:1		Phase 2. Ratio is 1:N (expansion)		/wfs/config/reverb/postExpRatio <value>	Post-expander ratio (1:1 to 1:8).
-Post-Processing	Expander Attack	reverbPostExpAttack	H slider (log)	FLOAT	0.1	50.0	1.0	min*pow(max/min,x)	ms		Phase 2		/wfs/config/reverb/postExpAttack <value>	Post-expander attack time (0.1 - 50 ms).
-Post-Processing	Expander Release	reverbPostExpRelease	H slider (log)	FLOAT	50.0	2000.0	200.0	min*pow(max/min,x)	ms		Phase 2		/wfs/config/reverb/postExpRelease <value>	Post-expander release time (50 - 2000 ms).
-Reverb Return	Distance Attenuation	reverbDistanceAttenuation	Dial	FLOAT	-6.0	0.0	-0.7	(x*6.0)-6.0	dB/m				/wfs/reverb/distanceAttenuation			
-Reverb Return	Common Attenuation	reverbCommonAtten	Dial	INT	0	100	100	x*100	%				/wfs/reverb/commonAtten			
-Reverb Return	Mutes	reverbMutes	Panel of square toggles	Array INT	0	1	<0>			unmute�; MUTE	As many toggles as outputs		/wfs/reverb/mutes			
-Reverb Return	Mute Macros	reverbMuteMacro	Selector (1 to 25)	INT	0	25	0			Mute Macro Select�; MUTE ALL�; UNMUTE ALL�; INVERT MUTES�; MUTE ODD�; MUTE EVEN�; MUTE ARRAY 1�; UNMUTE ARRAY 1�; MUTE ARRAY 2�; UNMUTE ARRAY 2�; MUTE ARRAY 3�; UNMUTE ARRAY 3�; MUTE ARRAY 4�; UNMUTE ARRAY 4�; MUTE ARRAY 5�; UNMUTE ARRAY 5�; MUTE ARRAY 6�; UNMUTE ARRAY 6�; MUTE ARRAY 7�; UNMUTE ARRAY 7�; MUTE ARRAY 8�; UNMUTE ARRAY 8�; MUTE ARRAY 9�; UNMUTE ARRAY 9�; MUTE ARRAY 10�; UNMUTE ARRAY 10	close panel after selection�; temporary switches					
-Store/Reload	Store Reverb Configuration		Text button							Store Reverb Configuration	Store Reverb Configuration to file (make a back up and show confirmation in status bar)			Store Reverb Configuration to file (overwrite with confirmation)		
-Store/Reload	Reload Reverb Configuration		Text button							Reload Reverb Configuration	Reload Reverb Configuration from file (confirmation in status bar)			Reload Reverb Configuration from file (with confirmation)		
-Store/Reload	Reload Reverb Config. Backup		Text button							Reload Reverb Config. Backup	Reload Reverb Configuration from backup file (confirmation in status bar)			Reload Reverb Configuration from backup file (with confirmation)		
-Store/Reload	Import Reverb Configuration		Text button							Import Reverb Configuration	Store Reverb Configuration to file (with file explorer window)			Store Reverb Configuration to file (with file explorer window)		
-Store/Reload	Export Reverb Configuration		Text button							Export Reverb Configuration	Reload Reverb Configuration from file (with file explorer window)			Reload Reverb Configuration from file (with file explorer window)		
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-																
-Mutes																Mute Selectively the Output of an Object to a Speaker.
-Mutes																Mute Macros for Fast Muting and Unmuting of Arrays.
+Position	Return Offset X	reverbReturnOffsetX	Number box	FLOAT	-50.0	50.0	0.0		m				/wfs/reverb/returnOffsetX <ID> <value>	Reverb Return Channel Position Offset in Width.	Left and Right Arrows to nudge to the left (--) or right (++) in 0.1m increments if holding the [shift] key	
+Position	Return Offset Y	reverbReturnOffsetY	Number box	FLOAT	-50.0	50.0	0.0		m				/wfs/reverb/returnOffsetY <ID> <value>	Reverb Return Channel Position Offset in Depth.	Up and Down Arrows to nudge to the upstage (++) or downstage (--) in 0.1m increments if holding the [shift] key	
+Position	Return Offset Z	reverbReturnOffsetZ	Number box	FLOAT	-50.0	50.0	0.0		m				/wfs/reverb/returnOffsetZ <ID> <value>	Reverb Return Channel Position Offset in Height.	Page Up and Page Down to nudge to the up (++) or down (--) in 0.1m increments if holding the [shift] key	
+Reverb Feed	Orientation	reverbOrientation	Rotation dial	INT	-179	180	0	(x*360)-180	degrees				/wfs/reverb/orientation <ID> <value>	Reverb Channel Horizontal Orientation (0 deg = towards the audience in a frontal configuration).		
+Reverb Feed	Angle On	reverbAngleOn	H range expansion slider	INT	1	180	86	(x*179)+1	degrees		angleOn + angleOff <= 180; adjust angleOff if angleOn is adjusted and sum is above 180.		/wfs/reverb/angleOn <ID> <value>	Reverb Channel Will Amplify Objects in this Angle in its Back.		
+Reverb Feed	Angle Off	reverbAngleOff	H range expansion slider	INT	0	179	90	x*179	degrees		angleOn + angleOff <= 180; adjust angleOn if angleOff is adjusted and sum is above 180.		/wfs/reverb/angleOff <ID> <value>	Reverb Channel Will Not Amplify Objects in this Angle in Front of it.		
+Reverb Feed	Pitch	reverbPitch	V bidirectional slider	INT	-90	90	0	(x*180)-90	degrees				/wfs/reverb/pitch <ID> <value>	Reverb Channel Vertical Orientation used to Determine which Objects get amplified.		
+Reverb Feed	HF Damping	reverbHFdamping	H slider	FLOAT	-6.0	0.0	0.0	(x*6.0)-0.6	dB/m				/wfs/reverb/HFdamping <ID> <value>	Loss of High Frequency Depending on Distance from Object to Reverb.		
+Reverb Feed	Minimum Latency Enable	reverbMiniLatencyEnable	Text button	INT	0	1	1			DISABLE ; ENABLE			/wfs/reverb/miniLatencyEnable <ID> <value>	Disables Minimal Latency Mode for Selected Reverb.		
+Reverb Feed	Live Source Attenuation Enable	reverbLSenable	Text button	INT	0	1	1			DISABLE ; ENABLE			/wfs/reverb/LSenable <ID> <value>	Disables Live Source Attenuation for Selected Reverb.		
+Reverb Feed	Distance Attenuation Percentage	reverbDistanceAttenEnable	H slider	INT	0	200	100	x*200	%				/wfs/reverb/DistanceAttenPercent <ID> <value>	Ratio of Distance Attenuation for Selected Reverb.		
+Pre-Processing EQ	EQ Enabled	reverbPreEQenable	Text button	INT	0	1	1			EQ OFF ; EQ ON	Per-channel parameter.	Y	/wfs/reverb/preEQenable <ID> <value>	Enable or Disables Equalisation of the Reverb Channel.		
+Pre-Processing EQ	EQ Flatten		text button (long-press)				Flatten EQ				Long-press to reset all 4 bands of the Pre-EQ on the selected channel to defaults.			Long-press to flatten the Pre-EQ on this channel.		
+Pre-Processing EQ	EQ Band Reset		text button (long-press)				Reset Band				For each of 4 EQ bands. Long-press to reset that single band to its default shape/freq/gain/Q.			Long-press to reset this EQ band.		
+Pre-Processing EQ	EQ Display		interactive display								Per-channel EQ graph. Click a marker to select a band, drag horizontally to set frequency, vertically to set gain, mouse-wheel to adjust Q.			Drag the EQ band markers; use the mouse wheel on a marker to adjust its Q.		
+Pre-Processing EQ	EQ Shape	reverbPreEQshape<band>	Drop down menu	INT	1	6				Low Cut (1) ; Low Shelf (2) ; Peak/Notch (3) ; Band Pass (6) ; High Shelf (4) ; High Cut (5)	For each of 4 EQ bands. Default shapes: Band 1=Band Pass, Band 2=Peak/Notch, Band 3=Peak/Notch, Band 4=High Shelf. Default frequencies: 200 / 800 / 2000 / 5000 Hz. OFF state is handled by the separate EQ Band Toggle, not by an enum value.	Y	/wfs/reverb/preEQshape <ID> <band> <value>	Select the EQ Mode for Band <Band ID> of the Reverb Channel.		
+Pre-Processing EQ	EQ Frequency	reverbPreEQfreq<band>	H slider	INT	20	20000	200 / 800 / 2000 / 5000	20*pow(10,3*x)	Hz		For each of 4 EQ bands. Defaults per band: 200 / 800 / 2000 / 5000 Hz. Greyed out but editable when the Band Toggle is OFF.	Y	/wfs/reverb/preEQfreq <ID> <band> <value>	Select the EQ Frequency for Band <Band ID> of the Reverb Channel.		
+Pre-Processing EQ	EQ Gain	reverbPreEQgain<band>	Basic dial	FLOAT	-24.0	24.0	0.0	(x*48)-24	dB		For each of 4 EQ bands. Hidden for Low Cut / High Cut / Band Pass shapes. Greyed out but editable when the Band Toggle is OFF.	Y	/wfs/reverb/preEQgain <ID> <band> <value>	Select the EQ Gain/Attenuation for Band <Band ID> of the Reverb Channel.		
+Pre-Processing EQ	EQ Q	reverbPreEQq<band>	Basic dial	FLOAT	0.1	20.0	0.7	0.1+0.21*(pow(100,x)-1)			For each of 4 EQ bands. Greyed out but editable when the Band Toggle is OFF.	Y	/wfs/reverb/preEQq <ID> <band> <value>	Select the EQ Q for Band <Band ID> of the Reverb Channel.		
+Pre-Processing EQ	EQ Slope	reverbPreEQslope<band>	Basic dial	FLOAT	0.1	20.0	0.7	0.1+0.21*(pow(100,x)-1)			For each of 4 EQ bands. Applies to shelf shapes. Greyed out but editable when the Band Toggle is OFF.	Y	/wfs/reverb/preEQslope <ID> <band> <value>	Select the EQ Slope for Band <Band ID> of the Reverb Channel.		
+Pre-Processing Compressor	Compressor Bypass	reverbPreCompBypass	Text button	INT	0	1	1			Compressor OFF ; Compressor ON	Global parameter.		/wfs/config/reverb/preCompBypass <value>	Enable or disable the pre-compressor for the reverb feed signal.		
+Pre-Processing Compressor	Compressor GR Meter		meter	FLOAT					dB		Read-only real-time gain-reduction display (blue). Not a control.			Real-time pre-compressor gain reduction.		
+Pre-Processing Compressor	Compressor Threshold	reverbPreCompThreshold	H slider	FLOAT	-60.0	0.0	-12.0	(x*60)-60	dB		Global parameter.		/wfs/config/reverb/preCompThreshold <value>	Pre-compressor threshold level (-60 to 0 dB).		
+Pre-Processing Compressor	Compressor Ratio	reverbPreCompRatio	H slider	FLOAT	1.0	20.0	2.0	1+19*x	:1		Global parameter.		/wfs/config/reverb/preCompRatio <value>	Pre-compressor ratio (1:1 to 20:1).		
+Pre-Processing Compressor	Compressor Attack	reverbPreCompAttack	H slider (log)	FLOAT	0.1	100.0	10.0	min*pow(max/min,x)	ms		Global parameter.		/wfs/config/reverb/preCompAttack <value>	Pre-compressor attack time (0.1 - 100 ms).		
+Pre-Processing Compressor	Compressor Release	reverbPreCompRelease	H slider (log)	FLOAT	10.0	1000.0	100.0	min*pow(max/min,x)	ms		Global parameter.		/wfs/config/reverb/preCompRelease <value>	Pre-compressor release time (10 - 1000 ms).		
+Algorithm	Algorithm Type	reverbAlgoType	3 toggle buttons (SDN/FDN/IR)	INT	0	2	0			SDN ; FDN ; IR	Global parameter.		/wfs/config/reverb/algoType <value>	Select the reverb algorithm: SDN (Scattering Delay Network), FDN (Feedback Delay Network), or IR (Impulse Response).		
+Algorithm	Algorithm Help		help card button								Info button. Opens a help card with explanations for each algorithm.			Show the reverb algorithm help card.		
+Algorithm	RT60	reverbRT60	H slider (log)	FLOAT	0.2	8.0	1.5	min*pow(max/min,x)	s		Visible for SDN and FDN.		/wfs/config/reverb/rt60 <value>	Reverb decay time RT60 (0.2 - 8.0 seconds).		
+Algorithm	RT60 Low Mult	reverbRT60LowMult	H slider (log)	FLOAT	0.1	9.0	1.3	min*pow(max/min,x)	x		Visible for SDN and FDN.		/wfs/config/reverb/rt60LowMult <value>	Low frequency RT60 multiplier (0.1 - 9.0x).		
+Algorithm	RT60 High Mult	reverbRT60HighMult	H slider (log)	FLOAT	0.1	9.0	0.4	min*pow(max/min,x)	x		Visible for SDN and FDN.		/wfs/config/reverb/rt60HighMult <value>	High frequency RT60 multiplier (0.1 - 9.0x).		
+Algorithm	Crossover Low	reverbCrossoverLow	H slider (log)	FLOAT	50	500	200	min*pow(max/min,x)	Hz		Visible for SDN and FDN.		/wfs/config/reverb/crossoverLow <value>	Low crossover frequency for 3-band decay (50 - 500 Hz).		
+Algorithm	Crossover High	reverbCrossoverHigh	H slider (log)	FLOAT	1000	10000	2500	min*pow(max/min,x)	Hz		Visible for SDN and FDN.		/wfs/config/reverb/crossoverHigh <value>	High crossover frequency for 3-band decay (1 - 10 kHz).		
+Algorithm	Diffusion	reverbDiffusion	H slider	FLOAT	0.0	1.0	0.5	x*100	%		Visible for SDN and FDN.		/wfs/config/reverb/diffusion <value>	Diffusion amount controlling echo density (0 - 100%).		
+Algorithm	SDN Scale	reverbSDNscale	H slider	FLOAT	0.5	4.0	1.0	min+(max-min)*x	x		Visible only for SDN.		/wfs/config/reverb/sdnScale <value>	SDN inter-node delay scale factor (0.5 - 4.0x).		
+Algorithm	FDN Size	reverbFDNsize	H slider	FLOAT	0.5	2.0	1.0	min+(max-min)*x	x		Visible only for FDN.		/wfs/config/reverb/fdnSize <value>	FDN delay line size multiplier (0.5 - 2.0x).		
+Algorithm	IR File	reverbIRfile	Load button + filename	STRING							Visible only for IR.		/wfs/config/reverb/irFile <value>	Load an impulse response WAV file for convolution.		
+Algorithm	IR Trim	reverbIRtrim	H slider	FLOAT	0.0	dynamic	0.0	x * (currentIRDurationSec*1000)	ms		Visible only for IR. Max is the loaded IR file's duration in ms (dynamic per file).		/wfs/config/reverb/irTrim <value>	Trim the start of the impulse response.		
+Algorithm	IR Length	reverbIRlength	H slider	FLOAT	0.1	dynamic	6.0	min + x*(currentIRDurationSec - min)	s		Visible only for IR. Max is the loaded IR file's duration in seconds (dynamic per file).		/wfs/config/reverb/irLength <value>	Maximum impulse response length.		
+Algorithm	Per-node IR	reverbPerNodeIR	Text button	INT	0	1	0			Per-node IR OFF ; Per-node IR ON	Visible only for IR.		/wfs/config/reverb/perNodeIR <value>	Use a separate IR for each reverb node, or share one IR.		
+Algorithm	Wet Level	reverbWetLevel	H slider	FLOAT	-60	12	0.0	-60+(x*72)	dB		Always visible.		/wfs/config/reverb/wetLevel <value>	Wet/dry mix level for reverb output (-60 to +12 dB).		
+Post-Processing EQ	Post EQ Enabled	reverbPostEQenable	Text button	INT	0	1	1			EQ OFF ; EQ ON	Global parameter.		/wfs/config/reverb/postEQenable <value>	Enable or disable post-processing EQ.		
+Post-Processing EQ	Post EQ Flatten		text button (long-press)				Flatten EQ				Long-press to reset all 4 bands of the Post-EQ to defaults.			Long-press to flatten the Post-EQ.		
+Post-Processing EQ	Post EQ Band Reset		text button (long-press)				Reset Band				For each of 4 EQ bands. Long-press to reset that single band to its default.			Long-press to reset this EQ band.		
+Post-Processing EQ	Post EQ Display		interactive display								Global EQ graph. Click a marker to select a band, drag horizontally to set frequency, vertically to set gain, mouse-wheel to adjust Q.			Drag the EQ band markers; use the mouse wheel on a marker to adjust its Q.		
+Post-Processing EQ	Post EQ Shape	reverbPostEQshape<band>	Drop down menu	INT	1	6				Low Cut (1) ; Low Shelf (2) ; Peak/Notch (3) ; Band Pass (6) ; High Shelf (4) ; High Cut (5)	For each of 4 EQ bands. Default shapes: Band 1=Band Pass, Band 2=Peak/Notch, Band 3=Peak/Notch, Band 4=High Shelf. Default frequencies: 200 / 800 / 2000 / 5000 Hz. Global parameter. OFF state is handled by the separate EQ Band Toggle, not by an enum value.		/wfs/config/reverb/postEQshape <band> <value>	Post-EQ Band <Band ID> filter shape.		
+Post-Processing EQ	Post EQ Frequency	reverbPostEQfreq<band>	H slider	INT	20	20000	200 / 800 / 2000 / 5000	20*pow(10,3*x)	Hz		Global, 4 bands. Defaults per band: 200 / 800 / 2000 / 5000 Hz.		/wfs/config/reverb/postEQfreq <band> <value>	Post-EQ Band <Band ID> frequency (20 Hz - 20 kHz).		
+Post-Processing EQ	Post EQ Gain	reverbPostEQgain<band>	Basic dial	FLOAT	-24.0	24.0	0.0	(x*48)-24	dB		Global, 4 bands. Hidden for Low Cut / High Cut / Band Pass shapes.		/wfs/config/reverb/postEQgain <band> <value>	Post-EQ Band <Band ID> gain (-24 to +24 dB).		
+Post-Processing EQ	Post EQ Q	reverbPostEQq<band>	Basic dial	FLOAT	0.1	20.0	0.7	0.1+0.21*(pow(100,x)-1)			Global, 4 bands.		/wfs/config/reverb/postEQq <band> <value>	Post-EQ Band <Band ID> Q factor (0.1 - 20.0).		
+Post-Processing EQ	Post EQ Slope	reverbPostEQslope<band>	Basic dial	FLOAT	0.1	20.0	0.7	0.1+0.21*(pow(100,x)-1)			Global, 4 bands. Applies to shelf shapes.		/wfs/config/reverb/postEQslope <band> <value>	Post-EQ Band <Band ID> slope (0.1 - 20.0).		
+Post-Processing Expander	Expander Bypass	reverbPostExpBypass	Text button	INT	0	1	1			Expander OFF ; Expander ON	Global parameter.		/wfs/config/reverb/postExpBypass <value>	Enable or disable the post-expander for the reverb return signal.		
+Post-Processing Expander	Expander GR Meter		meter	FLOAT					dB		Read-only real-time gain-reduction display (purple). Not a control.			Real-time post-expander gain reduction.		
+Post-Processing Expander	Expander Threshold	reverbPostExpThreshold	H slider	FLOAT	-80.0	-10.0	-40.0	-80+70*x	dB		Global parameter.		/wfs/config/reverb/postExpThreshold <value>	Post-expander threshold level (-80 to -10 dB).		
+Post-Processing Expander	Expander Ratio	reverbPostExpRatio	H slider	FLOAT	1.0	8.0	2.0	1+7*x	:1		Global parameter. Ratio is 1:N (downward expansion).		/wfs/config/reverb/postExpRatio <value>	Post-expander ratio (1:1 to 1:8).		
+Post-Processing Expander	Expander Attack	reverbPostExpAttack	H slider (log)	FLOAT	0.1	50.0	1.0	min*pow(max/min,x)	ms		Global parameter.		/wfs/config/reverb/postExpAttack <value>	Post-expander attack time (0.1 - 50 ms).		
+Post-Processing Expander	Expander Release	reverbPostExpRelease	H slider (log)	FLOAT	50.0	2000.0	200.0	min*pow(max/min,x)	ms		Global parameter.		/wfs/config/reverb/postExpRelease <value>	Post-expander release time (50 - 2000 ms).		
+Attenuation	Distance Attenuation	reverbDistanceAttenuation	Dial	FLOAT	-6.0	0.0	-0.7	(x*6.0)-6.0	dB/m				/wfs/reverb/distanceAttenuation <ID> <value>			
+Attenuation	Common Attenuation	reverbCommonAtten	Dial	INT	0	100	100	x*100	%				/wfs/reverb/commonAtten <ID> <value>			
+Mutes	Mutes	reverbMutes	Panel of square toggles	Array INT	0	1	<0>			unmute ; MUTE	As many toggles as outputs.		/wfs/reverb/mutes <ID> <output ID> <value>	Mute Selectively the Output of a Reverb to a Speaker.		
+Mutes	Mute Macros	reverbMuteMacro	Selector (1 to 25)	INT	0	25	0			Mute Macro Select ; MUTE ALL ; UNMUTE ALL ; INVERT MUTES ; MUTE ODD ; MUTE EVEN ; MUTE ARRAY 1 ; UNMUTE ARRAY 1 ; MUTE ARRAY 2 ; UNMUTE ARRAY 2 ; MUTE ARRAY 3 ; UNMUTE ARRAY 3 ; MUTE ARRAY 4 ; UNMUTE ARRAY 4 ; MUTE ARRAY 5 ; UNMUTE ARRAY 5 ; MUTE ARRAY 6 ; UNMUTE ARRAY 6 ; MUTE ARRAY 7 ; UNMUTE ARRAY 7 ; MUTE ARRAY 8 ; UNMUTE ARRAY 8 ; MUTE ARRAY 9 ; UNMUTE ARRAY 9 ; MUTE ARRAY 10 ; UNMUTE ARRAY 10	Close panel after selection. Temporary switches.		/wfs/reverb/muteMacro <ID> <value>	Mute Macros for Fast Muting and Unmuting of Arrays.		
+Store/Reload	Store Reverb Configuration		Text button (long-press)				Store Reverb Configuration				Store Reverb Configuration to file (makes a backup and shows confirmation in the status bar).			Store Reverb Configuration to file (overwrite with confirmation).		
+Store/Reload	Reload Reverb Configuration		Text button (long-press)				Reload Reverb Configuration				Reload Reverb Configuration from file (confirmation in status bar).			Reload Reverb Configuration from file (with confirmation).		
+Store/Reload	Reload Reverb Config Backup		Text button (long-press)				Reload Reverb Config. Backup				Reload Reverb Configuration from backup file (confirmation in status bar).			Reload Reverb Configuration from backup file (with confirmation).		
+Store/Reload	Import Reverb Configuration		Text button (long-press)				Import Reverb Configuration				Import Reverb Configuration from file (with file-explorer window).			Import Reverb Configuration from file (with file explorer window).		
+Store/Reload	Export Reverb Configuration		Text button (long-press)				Export Reverb Configuration				Export Reverb Configuration to file (with file-explorer window).			Export Reverb Configuration to file (with file explorer window).		
