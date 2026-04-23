@@ -6,7 +6,7 @@ namespace
     {
         using namespace wfs::plugin;
         return VariantConfig {
-            "WFS-DIY Track (ADM Cartesian)",
+            "WFS-DIY Track - ADM Cartesian",
             "trackAdmCart",
             "adm-cartesian",
             AddressingScheme::AdmOsc,

@@ -11,11 +11,11 @@ See [docs/PRD.md](docs/PRD.md) for the full product requirements document.
 ## Contents
 
 - **WFS-DIY Master** — one instance per DAW project; owns all network I/O to the WFS-DIY app.
-- **WFS-DIY Track (Cartesian)** — native WFS-DIY OSC, X/Y/Z in meters.
-- **WFS-DIY Track (Cylindrical)** — native, R/Theta/Z.
-- **WFS-DIY Track (Spherical)** — native, R/Theta/Phi.
-- **WFS-DIY Track (ADM Cartesian)** — ADM-OSC normalized.
-- **WFS-DIY Track (ADM Polar)** — ADM-OSC normalized polar.
+- **WFS-DIY Track - Cartesian** — native WFS-DIY OSC, X/Y/Z in meters.
+- **WFS-DIY Track - Cylindrical** — native, R/Theta/Z.
+- **WFS-DIY Track - Spherical** — native, R/Theta/Phi.
+- **WFS-DIY Track - ADM Cartesian** — ADM-OSC normalized.
+- **WFS-DIY Track - ADM Polar** — ADM-OSC normalized polar.
 
 Four of the five Track variants are stubs at Phase 0; they compile, install, and load, but changing their controls has no effect until Phase 2/3/4.
 

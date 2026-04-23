@@ -6,7 +6,7 @@ namespace
     {
         using namespace wfs::plugin;
         return VariantConfig {
-            "WFS-DIY Track (ADM Polar)",
+            "WFS-DIY Track - ADM Polar",
             "trackAdmPol",
             "adm-polar",
             AddressingScheme::AdmOsc,

@@ -6,7 +6,7 @@ namespace
     {
         using namespace wfs::plugin;
         return VariantConfig {
-            "WFS-DIY Track (Cylindrical)",
+            "WFS-DIY Track - Cylindrical",
             "trackCyl",
             "cylindrical",
             AddressingScheme::NativeWFS,

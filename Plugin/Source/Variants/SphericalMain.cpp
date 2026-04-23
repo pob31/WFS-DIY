@@ -6,7 +6,7 @@ namespace
     {
         using namespace wfs::plugin;
         return VariantConfig {
-            "WFS-DIY Track (Spherical)",
+            "WFS-DIY Track - Spherical",
             "trackSph",
             "spherical",
             AddressingScheme::NativeWFS,

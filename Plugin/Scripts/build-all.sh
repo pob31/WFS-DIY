@@ -30,8 +30,6 @@ mkdir -p "$BUILD_DIR"
 if command -v ninja >/dev/null 2>&1; then
     CMAKE_GENERATOR="Ninja"
 elif [ "$OS_NAME" = "Darwin" ]; then
-    # Makefile generator mis-escapes parentheses in JUCE product names
-    # (e.g. "WFS-DIY Track (Cartesian)"). Xcode handles them correctly.
     CMAKE_GENERATOR="Xcode"
 else
     CMAKE_GENERATOR="Unix Makefiles"
