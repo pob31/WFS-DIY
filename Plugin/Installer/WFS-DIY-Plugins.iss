@@ -37,6 +37,11 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=admin
 
+; GPL requires the license to be conveyed with the binaries. Display on the
+; standard Inno license page and ship it (plus README + third-party notices)
+; alongside the installed VST3s.
+LicenseFile=..\..\LICENSE
+
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "french";  MessagesFile: "compiler:Languages\French.isl"
@@ -56,6 +61,12 @@ Source: "{#BuildRoot}\WFSPluginTrackCyl{#VstSuffix}\WFS-DIY Track - Cylindrical.
 Source: "{#BuildRoot}\WFSPluginTrackSph{#VstSuffix}\WFS-DIY Track - Spherical.vst3\*";     DestDir: "{commoncf64}\VST3\WFS-DIY\WFS-DIY Track - Spherical.vst3";      Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#BuildRoot}\WFSPluginTrackAdmC{#VstSuffix}\WFS-DIY Track - ADM Cartesian.vst3\*"; DestDir: "{commoncf64}\VST3\WFS-DIY\WFS-DIY Track - ADM Cartesian.vst3";  Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#BuildRoot}\WFSPluginTrackAdmP{#VstSuffix}\WFS-DIY Track - ADM Polar.vst3\*";     DestDir: "{commoncf64}\VST3\WFS-DIY\WFS-DIY Track - ADM Polar.vst3";      Flags: ignoreversion recursesubdirs createallsubdirs
+
+; Legal / reference documents bundled next to the plugins, renamed to .txt so
+; Windows Notepad opens them on double-click without a "choose an app" prompt.
+Source: "..\..\LICENSE";                DestDir: "{commoncf64}\VST3\WFS-DIY"; DestName: "LICENSE.txt";              Flags: ignoreversion
+Source: "..\README.md";                 DestDir: "{commoncf64}\VST3\WFS-DIY"; DestName: "README.txt";               Flags: ignoreversion
+Source: "..\..\THIRD_PARTY_NOTICES.md"; DestDir: "{commoncf64}\VST3\WFS-DIY"; DestName: "THIRD_PARTY_NOTICES.txt";  Flags: ignoreversion
 
 [Icons]
 ; No Start Menu icons - plugins are scanned by host applications.
