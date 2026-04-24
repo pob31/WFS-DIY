@@ -27,6 +27,11 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 ChangesAssociations=yes
 
+; GPL requires the license to be conveyed with the binaries. Display on the
+; standard Inno license page and ship it (plus README + third-party notices)
+; alongside the installed app.
+LicenseFile=..\LICENSE
+
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "french"; MessagesFile: "compiler:Languages\French.isl"
@@ -48,6 +53,12 @@ Source: "..\Resources\lang\*.json"; DestDir: "{app}\lang"; Flags: ignoreversion 
 
 ; App icon (for folder branding)
 Source: "..\Builds\VisualStudio2022\icon.ico"; DestDir: "{app}"; DestName: "WFS-DIY.ico"; Flags: ignoreversion
+
+; Legal / reference documents bundled with the app, renamed to .txt so Windows
+; Notepad opens them on double-click without a "choose an app" prompt.
+Source: "..\LICENSE";                DestDir: "{app}"; DestName: "LICENSE.txt";              Flags: ignoreversion
+Source: "..\README.md";              DestDir: "{app}"; DestName: "README.txt";               Flags: ignoreversion
+Source: "..\THIRD_PARTY_NOTICES.md"; DestDir: "{app}"; DestName: "THIRD_PARTY_NOTICES.txt";  Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
