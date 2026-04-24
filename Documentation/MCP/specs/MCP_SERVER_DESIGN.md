@@ -91,7 +91,7 @@ WFS-DIY's user-side undo is organized as per-section stacks (inputs, outputs, re
 
 Read-only tool calls (get_session_state, get_inputs_summary, etc.) do NOT produce change records — there's nothing to undo.
 
-**Parameter groups.** The `affected_groups` field comes from the CSV Section column, normalized to strip coordinate-system suffixes (`Position`, `Position (Cylindrical)`, `Position (Spherical)` all resolve to the same group). Groups are scoped per channel at runtime, so "input 3's Position" and "input 4's Position" are distinct entries. Groups drive dependency chasing in undo (see "AI Undo UI" below). See `GENERATION_SCRIPT_SPEC.md` for how the generator emits group metadata per tool.
+**Parameter groups.** The `affected_groups` field comes from the CSV Section column, normalized to strip coordinate-system suffixes (`Position`, `Directivity`, `Live Source Attenuation` all resolve to the same group). Groups are scoped per channel at runtime, so "input 3's Position" and "input 4's Position" are distinct entries. Groups drive dependency chasing in undo (see "AI Undo UI" below). See `GENERATION_SCRIPT_SPEC.md` for how the generator emits group metadata per tool.
 
 **Origin tags on all parameter changes.** This is architectural and cannot be retrofitted cheaply. Every write to the parameter system — from the UI, OSC, tracking, snapshot recall, LFO, Move, automation, or MCP — carries an origin tag on the change notification. Value set: `UI`, `MCP`, `OSC`, `Tracking`, `Snapshot`, `LFO`, `Move`, `Automation`. The parameter system's existing change-notification infrastructure must be extended to propagate this tag to all listeners (including the Network Log, the AI's undo stack, and any future observers).
 
