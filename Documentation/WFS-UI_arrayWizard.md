@@ -200,3 +200,5 @@ apply_array_preset(
 ```
 
 The preset table (§2) provides the default acoustic values when `acoustic_overrides` is omitted. The geometry table (§3) specifies which method fields are required per method.
+
+Other configurations are possible and the suggested default values may be edited. They only represent classical setups.
