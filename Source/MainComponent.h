@@ -331,6 +331,20 @@ private:
     std::atomic<float> masterLevelGainTarget { 1.0f };
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Multiplicative> masterLevelGain;
 
+    // Per-output attenuation (smoothed, click-free). Targets live in an atomic[]
+    // because std::atomic is not movable and can't go in a std::vector. The
+    // SmoothedValue array is audio-thread-only.
+    std::unique_ptr<std::atomic<float>[]> outputAttenuationTargets;
+    int outputAttenuationTargetsCount = 0;
+    std::vector<juce::SmoothedValue<float, juce::ValueSmoothingTypes::Multiplicative>> outputAttenuationGains;
+
+    // Per-reverb return attenuation (smoothed). Applied to each reverb's wet output
+    // signal before mixing into WFS outputs, so the reverb engine runs at full level
+    // internally but contributes less to the mix.
+    std::unique_ptr<std::atomic<float>[]> reverbAttenuationTargets;
+    int reverbAttenuationTargetsCount = 0;
+    std::vector<juce::SmoothedValue<float, juce::ValueSmoothingTypes::Multiplicative>> reverbAttenuationGains;
+
     // Track device type and device name changes
     juce::String lastSavedDeviceType;
     juce::String lastSavedDeviceName;
@@ -349,6 +363,8 @@ private:
 
     void attachAudioCallbacksIfNeeded();
     void resizeRoutingMatrices();
+    void resizeOutputAttenuation(int numOut, double sampleRate);
+    void resizeReverbAttenuation(int numReverbs, double sampleRate);
     void stopProcessingForConfigurationChange();
     void loadAudioPatches();  // Load input/output patch matrices from ValueTree
     void applyInputPatch(const juce::AudioSourceChannelInfo& bufferToFill);  // Apply input patching

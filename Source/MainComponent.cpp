@@ -2356,6 +2356,44 @@ void MainComponent::colorSchemeChanged()
     repaint();
 }
 
+void MainComponent::resizeOutputAttenuation(int numOut, double sampleRate)
+{
+    numOut = juce::jmax(0, numOut);
+
+    auto newTargets = std::make_unique<std::atomic<float>[]>(static_cast<size_t>(numOut));
+    for (int i = 0; i < numOut; ++i)
+        newTargets[i].store(1.0f, std::memory_order_relaxed);
+
+    outputAttenuationTargets = std::move(newTargets);
+    outputAttenuationTargetsCount = numOut;
+
+    outputAttenuationGains.resize(static_cast<size_t>(numOut));
+    for (auto& sv : outputAttenuationGains)
+    {
+        sv.reset(sampleRate, 0.05);
+        sv.setCurrentAndTargetValue(1.0f);
+    }
+}
+
+void MainComponent::resizeReverbAttenuation(int numReverbs, double sampleRate)
+{
+    numReverbs = juce::jmax(0, numReverbs);
+
+    auto newTargets = std::make_unique<std::atomic<float>[]>(static_cast<size_t>(numReverbs));
+    for (int i = 0; i < numReverbs; ++i)
+        newTargets[i].store(1.0f, std::memory_order_relaxed);
+
+    reverbAttenuationTargets = std::move(newTargets);
+    reverbAttenuationTargetsCount = numReverbs;
+
+    reverbAttenuationGains.resize(static_cast<size_t>(numReverbs));
+    for (auto& sv : reverbAttenuationGains)
+    {
+        sv.reset(sampleRate, 0.05);
+        sv.setCurrentAndTargetValue(1.0f);
+    }
+}
+
 void MainComponent::resizeRoutingMatrices()
 {
     const int matrixSize = numInputChannels * numOutputChannels;
@@ -2768,6 +2806,13 @@ void MainComponent::handleChannelCountChange(int inputs, int outputs, int reverb
     stopProcessingForConfigurationChange();
     resizeRoutingMatrices();
 
+    {
+        auto* device = deviceManager.getCurrentAudioDevice();
+        double sr = device ? device->getCurrentSampleRate() : 48000.0;
+        resizeOutputAttenuation(numOutputChannels, sr);
+        resizeReverbAttenuation(reverbs, sr);
+    }
+
     // Grow/shrink patch data in ValueTree so new channels get 1:1 mapping
     // (PatchMatrixComponent may not exist if Audio Interface window was never opened)
     {
@@ -2938,18 +2983,30 @@ void MainComponent::handleConfigReloaded()
     // covers all inputs. Resize matrices only when the counts actually change.
     int newInputChannels = parameters.getNumInputChannels();
     int newOutputChannels = parameters.getNumOutputChannels();
+    int newReverbChannels = parameters.getNumReverbChannels();
     bool countsChanged = (newInputChannels != numInputChannels || newOutputChannels != numOutputChannels);
+    bool reverbCountChanged = (newReverbChannels != reverbAttenuationTargetsCount);
     numInputChannels = newInputChannels;
     numOutputChannels = newOutputChannels;
     if (countsChanged)
     {
         resizeRoutingMatrices();
 
+        auto* device = deviceManager.getCurrentAudioDevice();
+        double sr = device ? device->getCurrentSampleRate() : 48000.0;
+        resizeOutputAttenuation(numOutputChannels, sr);
+
         // Update level meter channel counts
         if (levelMeteringManager != nullptr)
             levelMeteringManager->setChannelCounts(newInputChannels, newOutputChannels);
         if (levelMeterWindow != nullptr)
             levelMeterWindow->rebuildMeters();
+    }
+    if (reverbCountChanged)
+    {
+        auto* device = deviceManager.getCurrentAudioDevice();
+        double sr = device ? device->getCurrentSampleRate() : 48000.0;
+        resizeReverbAttenuation(newReverbChannels, sr);
     }
 
     // Reload audio patches from ValueTree (input/output channel routing)
@@ -4129,6 +4186,12 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
     // Initialize master level smoother
     masterLevelGain.reset(sampleRate, 0.05);  // 50ms ramp
     masterLevelGain.setCurrentAndTargetValue(masterLevelGainTarget.load(std::memory_order_relaxed));
+
+    // Per-output attenuation smoothers
+    resizeOutputAttenuation(numOutputChannels, sampleRate);
+
+    // Per-reverb return attenuation smoothers
+    resizeReverbAttenuation(parameters.getNumReverbChannels(), sampleRate);
 }
 
 void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill)
@@ -4319,6 +4382,28 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
                     reverbEngine->pullNodeOutput (revIdx, returnData, numSamples);
                 }
 
+                // Apply per-reverb return attenuation (reverbAttenuation) in-place on the
+                // wet signal, so the reverb engine runs at full level but its contribution
+                // to the mix is attenuated.
+                if (revIdx < reverbAttenuationTargetsCount
+                    && revIdx < static_cast<int>(reverbAttenuationGains.size()))
+                {
+                    auto& sv = reverbAttenuationGains[static_cast<size_t>(revIdx)];
+                    sv.setTargetValue(reverbAttenuationTargets[revIdx].load(std::memory_order_relaxed));
+
+                    if (sv.isSmoothing())
+                    {
+                        for (int s = 0; s < numSamples; ++s)
+                            returnData[s] *= sv.getNextValue();
+                    }
+                    else
+                    {
+                        float gain = sv.getCurrentValue();
+                        if (gain < 1.0f)
+                            juce::FloatVectorOperations::multiply(returnData, gain, numSamples);
+                    }
+                }
+
                 if (! isPostMuted)
                 {
                     // Mix reverb return into WFS outputs using return level matrix
@@ -4332,6 +4417,31 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
                             juce::FloatVectorOperations::addWithMultiply(outputData, returnData, returnLevel, numSamples);
                         }
                     }
+                }
+            }
+        }
+
+        // Apply per-output attenuation (before master gain, after reverb-return mix)
+        {
+            const int numCh = juce::jmin((int) outputAttenuationGains.size(),
+                                         wfsOutputBuffer.getNumChannels(),
+                                         outputAttenuationTargetsCount);
+            for (int ch = 0; ch < numCh; ++ch)
+            {
+                auto& sv = outputAttenuationGains[static_cast<size_t>(ch)];
+                sv.setTargetValue(outputAttenuationTargets[ch].load(std::memory_order_relaxed));
+
+                if (sv.isSmoothing())
+                {
+                    float* data = wfsOutputBuffer.getWritePointer(ch) + startSample;
+                    for (int s = 0; s < numSamples; ++s)
+                        data[s] *= sv.getNextValue();
+                }
+                else
+                {
+                    float gain = sv.getCurrentValue();
+                    if (gain < 1.0f)
+                        wfsOutputBuffer.applyGain(ch, startSample, numSamples, gain);
                 }
             }
         }
@@ -4572,6 +4682,31 @@ void MainComponent::timerCallback()
         masterLevelGainTarget.store(
             juce::Decibels::decibelsToGain(masterLevelDb, -92.0f),
             std::memory_order_relaxed);
+    }
+
+    // Update per-output attenuation targets (message thread → audio thread via atomics)
+    {
+        const int n = juce::jmin(numOutputChannels, outputAttenuationTargetsCount);
+        for (int i = 0; i < n; ++i)
+        {
+            float dB = (float) parameters.getOutputParam(i, "outputAttenuation");
+            outputAttenuationTargets[i].store(
+                juce::Decibels::decibelsToGain(dB, -92.0f),
+                std::memory_order_relaxed);
+        }
+    }
+
+    // Update per-reverb return attenuation targets (message thread → audio thread via atomics)
+    {
+        const int numReverbs = parameters.getNumReverbChannels();
+        const int n = juce::jmin(numReverbs, reverbAttenuationTargetsCount);
+        for (int i = 0; i < n; ++i)
+        {
+            float dB = (float) parameters.getReverbParam(i, "reverbAttenuation");
+            reverbAttenuationTargets[i].store(
+                juce::Decibels::decibelsToGain(dB, -92.0f),
+                std::memory_order_relaxed);
+        }
     }
 
     // Debounced auto-save of audio patch to disk
