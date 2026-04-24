@@ -25,17 +25,17 @@ Wave Field Synthesis (WFS) audio application built with JUCE framework for real-
 
 ---
 
-## Current Implementation Status (As of 2026-02-09)
+## Current Implementation Status (As of 2026-04-24)
 
-### Overall Progress: ~80% Complete
+### Overall Progress: ~85% Complete
 
 The application has established a solid foundation with infrastructure and core UI:
 - Complete parameter management system
 - Professional GUI framework with tabbed interface
-- Bidirectional OSC communication
+- Bidirectional OSC communication (OSC, Remote, PSN, RTTrP, ADM-OSC with 4+4 mappings, OSC Query for discovery)
 - Project-based save/load system with snapshot scope editing
 - Interactive multitouch Map view
-- Complete Clusters management
+- Complete Clusters management with per-cluster LFO and 16-slot preset bank
 - Network Log window
 - Color scheme system (3 themes: Default, OLED Black, Light)
 - **DSP Calculation Layer** (delay/level/HF matrices from geometry)
@@ -44,14 +44,16 @@ The application has established a solid foundation with infrastructure and core 
 - **Floor Reflections** (simulated floor bounce with filtering and diffusion)
 - **Audio Interface & Patching Window** (input/output patch matrices with test signal generation)
 - **Snapshot Scope Window** (parameter-level, per-channel granularity for snapshots)
-
 - **Level Metering System** (floating window with input/output meters and thread performance)
 - **Binaural Solo Monitoring** (virtual speaker rendering for headphone monitoring)
+- **ADM-OSC bidirectional mapping system** (4 Cartesian + 4 Polar mappings, per-input assignment grid, in-app axis-swap / sign-flip / center / breakpoint / inner-outer-width editing)
+- **DAW Plugin Suite** (Master + 5 Track variants VST3/AU/Standalone, all variants functional for their basic parameter set; see `Documentation/WFS-UI_plugins.md`)
+- **Sampler subsystem** (6×6 cell grid per input, multiple user-defined Sets per input, Lightpad / Remote-pad pressure mappings)
 
 **Major features still to implement:**
-- Snapshot system UI in InputsTab (scope window complete)
-- ADM-OSC protocol
-- GPU Audio framework port
+- GPU Audio framework port (against the already-vendored `ThirdParty/GPUAudioSDK`)
+- MCP Server build-out over the `Documentation/WFS-UI_*.csv` + `.md` docs
+- Translation proofreading (9-language JSON bank needs native-speaker review)
 
 ---
 
@@ -64,19 +66,18 @@ The application has established a solid foundation with infrastructure and core 
 - **InputBufferAlgorithm / OutputBufferAlgorithm** - Audio processing algorithms
 
 ### GUI Structure
-- **SystemConfigTab** - Processing toggle, channel count configuration
-- **NetworkTab** - OSC target configuration, IP filtering, connection status
-- **InputsTab** - Input channel parameters with sub-tabs
-- **OutputsTab** - Output channel parameters with 3 condensed sub-tabs:
-  - "Channel Parameters" (3-column layout: Position/Orientation, Angular Settings, Array Assignment)
-  - "Output EQ" (6-band parametric EQ with interactive display)
-  - "Options" (LS attenuation, FR enable, parallax, HF attenuation)
-- **ClustersTab** - Input cluster management with position/rotation/scale/attenuation controls
-- **ReverbTab** - Reverb processing with 4 sub-tabs:
-  - "Channel Parameters" (3-column layout: Reverb+Position, Reverb Feed, Reverb Return)
-  - "Pre-Processing" (4-band parametric pre-EQ per-channel + global pre-compressor with dials)
-  - "Algorithm" (SDN/FDN/IR selector, decay params, wet level — global, with full DSP engine)
-  - "Post-Processing" (4-band parametric post-EQ global + global post-expander with dials)
+- **SystemConfigTab** - Show info, channel counts, WFS Processor (Algorithm + Processing long-press), Stage geometry & origin, Master Section (Master Level / System Latency / Haas Effect), UI (Color Scheme / Long Press / Language), Controllers (Dials+Buttons / Position / Sampler), Binaural Renderer, Files (project folder, Store/Reload complete/system configs), Diagnostics (version, Export Logs, Copy System Info, Report Issue).
+- **NetworkTab** - Network Interface / current IPv4 / Rx UDP+TCP ports / OSC Query (enable + HTTP port) / OSC Source Filter, Network Connections table (up to 6 targets with Protocol: DISABLED/OSC/Remote/ADM-OSC/QLab + per-target QLab Patch), ADM-OSC Mappings panel (4 Cartesian + 4 Polar mappings with per-axis Source/Flip/Center/Breakpoint/Widths and Polar Az-Offset / Az-Flip / El-Flip / Distance controls), Tracking section (Enabled / Protocol DISABLED/OSC/PSN/RTTrP/MQTT / Rx Port / OSC Path / PSN Interface / MQTT Host+Topic+JSON fields+Tag-IDs / Offsets / Scales / Flips), Find My Remote, Store/Reload/Reload-Backup/Import/Export network config.
+- **InputsTab** - Header: channel selector, name, Map Lock, Map Visibility, Set All Inputs long-press, Snapshot controls. Sub-tabs include Position/Attenuation/Directivity, Live Source Tamer + Floor Reflections (Hackoustics), Movements (LFO + AutomOtion), Gradient Maps, and the **Sampler sub-tab** (shown when per-input `inputSamplerActive` is ON and global `samplerEnabled` is on — 6×6 cell grid, per-cell Name/File/In-Out/Offset/Attenuation, SamplerSet management with pressure mappings for Lightpad / Remote pad).
+- **OutputsTab** - Header: channel selector, name, Map Visibility, Array Map Visibility, Level Meters button, Wizard of OutZ button. Two sub-tabs:
+  - "Channel Parameters" (Position/Orientation, Array Assignment, LS/FR enables, parallax, distance attenuation %, HF damping, min latency — Options content is integrated here, not a separate tab)
+  - "Output EQ" (6-band parametric EQ with interactive display, per-band enable toggles, Flatten-EQ and Reset-Band long-press buttons)
+- **ClustersTab** - 10 cluster radio buttons, Assigned Inputs drag-reorder list, Reference (First Input / Barycenter), Transforms (Position joystick / Z / Attenuation / Rotation / Scale with 50Hz auto-center spring-back; Plane selector XY/XZ/YZ), **Cluster LFO** (per-cluster 5-axis LFO — Shape/Rate/Amplitude/Phase each for X/Y/Z/Rot/Scale, global Period + Phase + Progress), **16 LFO presets** (4×4 tile grid, shared across clusters, with Export/Import/Stop-All/QLab export).
+- **ReverbTab** - Header: channel selector, name, Map Visibility, Edit-on-Map, Solo Reverbs (long-press), Mute Pre (long-press), Mute Post (long-press). Four sub-tabs:
+  - "Channel Parameters" (3-column layout: Reverb+Position with Coord Mode, Reverb Feed, Reverb Return)
+  - "Pre-Processing" (4-band parametric pre-EQ per-channel with Flatten + per-band Reset long-press + interactive EQ display + global pre-compressor with GR meter)
+  - "Algorithm" (SDN/FDN/IR selector, decay params, algorithm-specific params, wet level — global, with full DSP engine)
+  - "Post-Processing" (4-band parametric post-EQ global + global post-expander with GR meter)
 - **MapTab** - Spatial visualization
 
 ### Floating Windows
@@ -92,8 +93,8 @@ The application has established a solid foundation with infrastructure and core 
 | System | Status | Description |
 |--------|--------|-------------|
 | Parameters | Complete | ValueTree-based hierarchical state management |
-| GUI Tabs | 90% | All 7 tabs have UI, some features pending |
-| OSC Network | 95% | OSC, Remote, PSN, RTTrP protocols complete; ADM-OSC pending |
+| GUI Tabs | 95% | All 7 tabs have UI; Sampler sub-tab of InputsTab live; snapshot-recall polish pending |
+| OSC Network | Complete | OSC, Remote, PSN, RTTrP, ADM-OSC (4+4 mapping system), QLab, OSC Query; UDP + TCP both supported |
 | Save/Load | 85% | Project folder management, snapshot scope editing complete |
 | Audio Engine | 90% | Dual algorithm support with DSP calculation layer + Live Source Tamer + Floor Reflections + Reverb Engine |
 | Separate Windows | 95% | Log, Patch, Array Helper, Snapshot Scope windows complete |
@@ -101,6 +102,8 @@ The application has established a solid foundation with infrastructure and core 
 | Data Processing | 90% | WFS delay/level/HF + reverb matrices implemented |
 | DSP Algorithms | 95% | Delay/gain/HF/FR filters + Reverb DSP (FDN/SDN/IR) + Pre/Post processing complete |
 | Theming | Complete | 3 color schemes with live switching |
+| Sampler subsystem | 90% | 6×6 cell grid, SamplerSet management, Lightpad/Remote pressure mappings |
+| DAW Plugin Suite | Functional | Master + 5 Track variants (Cart / Cyl / Sph / ADM-Cart / ADM-Polar) all wired for basic parameters; macOS signed + notarized, Windows unsigned (no cert planned) |
 
 ---
 
@@ -1776,9 +1779,10 @@ A wizard-style dialog for quickly configuring speaker array positions with prese
 ### Key Features
 - **Live preview** - Auto-updates as parameters change, shows stage shape (Box/Cylinder/Dome)
 - **Target section** - Select array assignment and starting output
-- **Auto-advance** - After Apply, advances to next array and output position
-- **Orientation convention** - 0° = facing back of stage (+Y), 180° = facing audience (-Y)
+- **Auto-advance** - After Apply, advances to next array (+1) and start-output (+N speakers)
+- **Orientation convention** - 0° = facing audience (-Y), 90° = +X (stage right), 180° = upstage (+Y), -90° = -X (stage left). Matches the app-wide convention.
 - **Circle preset** - Defaults to center at origin (0,0)
+- **Full reference** - See `Documentation/WFS-UI_arrayWizard.md` for the complete preset catalog, per-method geometry formulas, and suggested MCP tool shape.
 
 ### Geometry Calculations (Source/Helpers/ArrayGeometryCalculator.cpp)
 - `calculateStraightFromCenter()` - Straight line from center point
@@ -2002,20 +2006,11 @@ For Debug build:
 
 ---
 
-## TODO Summary by Priority
+## TODO Summary
 
-### High Priority
-1. **Snapshot System UI**: InputsTab snapshot buttons need implementation (scope editing window complete)
-2. **Reverb Polish**: Performance profiling, tuning algorithm parameters, edge-case testing
-
-### Medium Priority
-3. **Remote handshake**: Initialize and transmit state of all inputs
-4. **Protocol Implementation**: ADM-OSC
-5. **Remote Protocol Enhancements**: Secondary touch functions
-
-### Lower Priority
-6. **GPU Audio Port**: After DSP algorithms are fully tuned
-7. **Testing**: Comprehensive protocol and feature testing
+1. **MCP Server implementation**: build the generator pipeline that consumes `Documentation/WFS-UI_*.csv` + `.md` files and emits an MCP server exposing the app's parameter/control surface to LLMs. In-progress specs under `Documentation/MCP/` (IMPLEMENTATION_ROADMAP, GENERATION_SCRIPT_SPEC, MCP_SERVER_DESIGN, MCP_TOOL_SURFACE).
+2. **Proofread translations**: the i18n system ships 9 languages (en / fr / de / es / it / pt / ja / zh / ko) under `Resources/lang/*.json`. Non-English files were generated and need native-speaker review for accuracy, naturalness of audio-engineering terminology, and any pluralization / formatting issues.
+3. **GPU Audio framework port**: port the DSP pipeline to the GPU Audio SDK (submodule already vendored at `ThirdParty/GPUAudioSDK`). Depends on the DSP algorithms being stable — the current CPU path is the reference implementation.
 
 ### Completed (Reverb DSP)
 - ~~Phase 1-2: GUI, parameters, OSC, localization~~
@@ -2024,9 +2019,44 @@ For Debug build:
 - ~~Parallelization: AudioParallelFor thread pool for all 3 algorithms~~
 - ~~Algorithm switching: fade-out → swap → fade-in crossfade~~
 
+### Completed (ADM-OSC)
+- ~~Legacy single-mapping offset/scale/flip (superseded)~~
+- ~~4 Cartesian + 4 Polar mapping system with per-axis swap/flip/center/breakpoint/widths~~
+- ~~Polar azimuth-offset / azimuth-flip / elevation-flip / distance mapping~~
+- ~~Per-input `inputAdmMapping` assignment grid~~
+- ~~Outbound send (`/adm/obj/<id>/xyz` and `/aed`) and inbound ADM-OSC receive~~
+- ~~Master plugin bridge with ADM Rx on configurable UDP port~~
+
 ---
 
-*Last updated: 2026-02-09*
-*Features added: Complete Reverb DSP (FDN/SDN/IR algorithms, Pre/Post processing, parallel per-node computation)*
+## Documentation Index (MCP source of truth)
+
+These files are the canonical reference for every user-facing parameter, control, and setup flow in the app. They feed the MCP-server generator under `Documentation/MCP/`:
+
+**Tab-by-tab control surface (CSV, 17 or 18 columns):**
+- `Documentation/WFS-UI_config.csv` — SystemConfigTab
+- `Documentation/WFS-UI_network.csv` — NetworkTab (176 rows, includes full ADM-OSC mapping exhaustive enumeration)
+- `Documentation/WFS-UI_input.csv` — InputsTab (189 rows, includes Sampler subsystem)
+- `Documentation/WFS-UI_output.csv` — OutputsTab
+- `Documentation/WFS-UI_reverb.csv` — ReverbTab
+- `Documentation/WFS-UI_clusters.csv` — ClustersTab
+- `Documentation/WFS-UI_audioPatch.csv` — AudioInterfaceWindow (AudioPatchTab + PatchMatrixComponent + TestSignalGenerator)
+
+**Windows and subsystems (Markdown):**
+- `Documentation/WFS-UI_arrayWizard.md` — Wizard of OutZ preset catalog + geometry formulas
+- `Documentation/WFS-UI_plugins.md` — DAW Plugin Suite (6 plugins) + end-to-end OSC / OSCQuery / ADM-OSC setup guide
+
+**Column conventions:**
+- Most CSVs use a 17-column layout (Section, Label, Variable, UI, Type, Min, Max, Default, Formula, Unit, enum, Notes, Array value, OSC path, OSC remote path, Hover, Keyboard shortcuts).
+- `WFS-UI_input.csv` has 18 columns (adds "OSC inc/dec" and "OSC path optional value").
+- `WFS-UI_config.csv` uses a compact 12-column layout (no Formula, OSC path, or Keyboard columns).
+- `WFS-UI_network.csv` also uses 12 columns to match the config file's compact style.
+
+When updating these files, preserve the column count and avoid introducing U+FFFD characters (old versions had encoding glitches in curly-quote cells that have been cleaned up).
+
+---
+
+*Last updated: 2026-04-24*
+*Session changes: audited and refreshed all `Documentation/WFS-UI_*.csv` files against the live code; added `WFS-UI_clusters.csv`, `WFS-UI_arrayWizard.md`, `WFS-UI_plugins.md`. ADM-OSC and DAW Plugin Suite status updated.*
 *JUCE Version: 8.0.12*
 *Build: Visual Studio 2022 / Xcode, x64 Debug/Release*

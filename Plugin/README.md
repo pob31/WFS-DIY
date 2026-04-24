@@ -6,7 +6,7 @@ See [docs/PRD.md](docs/PRD.md) for the full product requirements document.
 
 ## Status
 
-**Phase 0 — Foundation scaffold.** Subproject compiles; six plugin targets build; one variant (Cartesian Track) has the six non-position parameters wired up. Position parameters and full network round-trip implementation come in Phase 1. See the PRD for phase definitions.
+**Phases 0–4 functionally complete.** All five Track variants plus Master are wired end-to-end for their basic parameters and exchange positions with the WFS-DIY app. PRD gate items that remain are subjective UI polish, real-session multi-variant stacking validation, and release-label bookkeeping — see `docs/PRD.md` for the full phase roadmap.
 
 ## Contents
 
@@ -16,8 +16,6 @@ See [docs/PRD.md](docs/PRD.md) for the full product requirements document.
 - **WFS-DIY Track - Spherical** — native, R/Theta/Phi.
 - **WFS-DIY Track - ADM Cartesian** — ADM-OSC normalized.
 - **WFS-DIY Track - ADM Polar** — ADM-OSC normalized polar.
-
-Four of the five Track variants are stubs at Phase 0; they compile, install, and load, but changing their controls has no effect until Phase 2/3/4.
 
 ## Formats
 
@@ -90,6 +88,7 @@ Per-plugin sandboxing modes (Reaper "Run as separate process", Bitwig per-plugin
 
 GPL-3.0, matching the main WFS-DIY app. See [LICENSE](../LICENSE) and [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).
 
-## Windows SmartScreen
+## Code signing
 
-Phase 0 installers are unsigned. Windows SmartScreen will warn on first run. Click "More info → Run anyway". Code signing is funded through [GitHub Sponsors](https://github.com/sponsors/pob31) and will be enabled once sponsorship covers the certificate.
+- **macOS** — official `.pkg` releases are codesigned (Developer ID Application for the plugin bundles, Developer ID Installer for the installer) and notarized. Gatekeeper opens them without warnings.
+- **Windows** — installers are currently **unsigned**. Windows SmartScreen will warn on first run; click "More info → Run anyway". Windows certificate-based code signing isn't planned unless an external sponsor covers the certificate cost — see [GitHub Sponsors](https://github.com/sponsors/pob31).

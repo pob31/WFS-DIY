@@ -3,8 +3,9 @@
 DAW-native controller plugins (VST3 / AU / Standalone) that let a DAW drive a running WFS-DIY app over OSC — for curve-drawing, automation recording, and parameter control directly from the session timeline. Complement to QLab / Android Remote / hardware controllers.
 
 **Source** — `Plugin/Source/` (`Master/`, `Track/`, `Variants/`, `Shared/`, `Bridge/`).
-**Status** — Phase 0 scaffold. Cartesian Track has position + the 9 shared non-position parameters fully wired. The other four Track variants compile, install, and load, but don't yet round-trip their position parameters (Phase 1+). See `Plugin/docs/PRD.md` for the phase roadmap.
+**Status** — Phases 0–4 functionally complete. All five Track variants plus Master exchange basic parameters (including positions) end-to-end with the WFS-DIY app. Remaining plugin work is UI polish, multi-variant stacking validation, and release-label bookkeeping — see `Plugin/docs/PRD.md` for the phase roadmap.
 **Formats** — macOS: VST3 + AU + Standalone (Universal). Windows: VST3 + Standalone (x64). No AAX.
+**Code signing** — macOS `.pkg` is codesigned + notarized. Windows installers are unsigned pending external sponsorship of a certificate.
 
 ---
 
@@ -40,7 +41,7 @@ That's the only DAW-automatable parameter. All other Master state is persisted v
 | Host | TextEditor | plugin state | `127.0.0.1` | IP / hostname of the running WFS-DIY app |
 | OSC send port (Tx) | TextEditor (int) | plugin state | `8000` | UDP port on the app to send to. Must match **Network tab → UDP Port** in WFS-DIY. |
 | OSCQuery HTTP port | TextEditor (int) | plugin state | `5005` | HTTP port the app serves OSCQuery on. Must match **Network tab → OSC Query Port**. |
-| ADM-OSC Rx port | TextEditor (int) | plugin state | `9010` (suggested) | UDP port on the plugin that will receive ADM-OSC echoes from the app. Only needed when any ADM variant is in use. 0 disables the ADM receiver. |
+| ADM-OSC Rx port | TextEditor (int) | plugin state | `4001` | UDP port on the plugin that will receive ADM-OSC echoes from the app. Only needed when any ADM variant is in use. Set to 0 to disable the ADM receiver. |
 | Connect | TextButton | — | — | Opens both the UDP send socket and the OSCQuery WebSocket. If ADM Rx > 0, also opens the ADM UDP listener on that port. |
 | Status | Label | — | "Disconnected" | Live connection state: "Disconnected" / "Connected" / "Error: …". |
 | Registered Tracks | Label | — | "Registered Tracks: 0" | Count of Track plugins currently talking to this Master via the in-process bridge. |
@@ -157,7 +158,7 @@ This is the happy-path sequence to get a new DAW project driving a running WFS-D
    - **Host** → the app's IPv4 (use `127.0.0.1` if both app and DAW are on the same machine).
    - **OSC send port (Tx)** → match the app's *UDP Port* (default `8000`).
    - **OSCQuery HTTP port** → match the app's *OSC Query Port* (default `5005`).
-   - **ADM-OSC Rx port** → any free UDP port on the DAW machine (e.g. `9010`). Leave at `0` if you're not using any ADM variant. **If you set this, also configure the app's ADM-OSC target to send to this port.**
+   - **ADM-OSC Rx port** → defaults to `4001`. Leave at `0` if you're not using any ADM variant. **If you keep a non-zero value, configure the app's ADM-OSC target to send to this port.**
 3. Click **Connect**. Status should flip to `Connected`. *Registered Tracks* will still read `0` until you add Tracks.
 
 ### 4.3 DAW side — Tracks

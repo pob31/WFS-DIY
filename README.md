@@ -6,6 +6,12 @@ A Wave Field Synthesis WFS DIY project built with JUCE framework.
 
 This project is based on the Cycling74's Max8 Prototype found at https://wfs-diy.net
 
+## Companion projects and documentation
+
+- **[DAW Plugin Suite](Plugin/README.md)** — VST3 / AU / Standalone plugins (Master + 5 Track variants: Cartesian / Cylindrical / Spherical / ADM Cartesian / ADM Polar) that drive a running WFS-DIY session from any major DAW. Built from `Plugin/` as a standalone CMake subproject.
+- **Android Remote** — companion Android app (WFS Control 2) for touch-based control over OSC. Lives in its own repo: <https://github.com/pob31/WFS_control_2>.
+- **[Documentation/](Documentation/)** — reference material: `CLAUDE.md` (architecture / conventions), the `WFS-UI_*.csv` per-tab parameter inventories, `WFS-UI_arrayWizard.md` (array-wizard preset catalog and geometry formulas), `WFS-UI_plugins.md` (plugin setup guide for OSC / OSCQuery / ADM-OSC), and the `MCP/` specs for the in-progress MCP server.
+
 ## Features
 
 - Cross-platform audio device management
@@ -85,7 +91,7 @@ Quick start:
 
 ### macOS
 - No additional runtime dependencies — all required frameworks ship with macOS 10.13+
-- On first launch, macOS may ask you to confirm opening an unnotarized app (right-click > Open)
+- Official `.pkg` releases are codesigned with Developer ID and notarized, so Gatekeeper opens them without any warning
 - Grant microphone permission when prompted (required for audio input)
 
 ## Development
