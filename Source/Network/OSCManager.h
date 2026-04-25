@@ -787,6 +787,13 @@ private:
     // tablet) and to flush pending member echoes coalesced from valueTreePropertyChanged.
     void sendClusterMembersBundle(int clusterId);
 
+    // Send a list of OSC messages to a single Remote target, packed into juce::OSCBundles
+    // sized to stay under typical Ethernet MTU (single UDP datagram, no IP fragmentation).
+    // Bypasses the rate limiter and the per-4-msg pacing in sendBatchedMessages — intended
+    // for one-shot bursts (initial state dump, per-input refresh) where we want the whole
+    // payload to arrive as fast as possible without flooding the receiver as N tiny packets.
+    void sendMessagesAsBundles(int targetIndex, const std::vector<juce::OSCMessage>& messages);
+
     // Statistics
     std::atomic<int> messagesSent { 0 };
     std::atomic<int> messagesReceived { 0 };

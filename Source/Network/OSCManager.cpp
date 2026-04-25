@@ -3105,43 +3105,37 @@ void OSCManager::sendRemoteChannelDump(int channelId)
     paramValues[WFSParameterIDs::inputSidelinesActive] = getParam(WFSParameterIDs::inputSidelinesActive);
     paramValues[WFSParameterIDs::inputSidelinesFringe] = getParam(WFSParameterIDs::inputSidelinesFringe);
 
-    // Build and send messages (float params as ,if, int params as ,ii)
+    // Build float/int parameter messages (,if and ,ii)
     auto messages = OSCMessageBuilder::buildRemoteChannelDump(channelId, paramValues, intParamValues);
 
-    for (int i = 0; i < MAX_TARGETS; ++i)
-    {
-        const auto& config = targetConfigs[static_cast<size_t>(i)];
-        if (config.protocol == Protocol::Remote && config.txEnabled)
-        {
-            for (const auto& msg : messages)
-            {
-                sendMessage(i, msg);
-            }
-        }
-    }
-
-    // Send input name (string parameter - needs separate handling)
+    // Append the input name (string parameter - separate builder)
     juce::var nameVal = state.getInputParameter(channelIndex, WFSParameterIDs::inputName);
     if (nameVal.isString())
     {
         auto nameMsg = OSCMessageBuilder::buildRemoteOutputStringMessage(
             WFSParameterIDs::inputName, channelId, nameVal.toString());
-
         if (nameMsg.has_value())
-        {
-            for (int i = 0; i < MAX_TARGETS; ++i)
-            {
-                const auto& config = targetConfigs[static_cast<size_t>(i)];
-                if (config.protocol == Protocol::Remote && config.txEnabled)
-                {
-                    sendMessage(i, *nameMsg);
-                }
-            }
-        }
+            messages.push_back(*nameMsg);
     }
 
-    // Also send the computed "fully tracked" state (depends on global settings too)
-    sendInputFullyTrackedState(channelId);
+    // Append the computed "fully tracked" state so it lands in the same burst.
+    {
+        bool fullyTracked = isInputFullyTracked(channelIndex);
+        juce::OSCMessage trackedMsg("/remoteInput/isFullyTracked");
+        trackedMsg.addInt32(channelId);
+        trackedMsg.addInt32(fullyTracked ? 1 : 0);
+        messages.push_back(std::move(trackedMsg));
+    }
+
+    // Send the whole per-input dump as a small sequence of OSC bundles (one or two
+    // datagrams under MTU each). This bypasses the rate limiter, which previously
+    // serialized ~95 messages per input through a 50 Hz coalescing queue (~1.9 s).
+    for (int i = 0; i < MAX_TARGETS; ++i)
+    {
+        const auto& config = targetConfigs[static_cast<size_t>(i)];
+        if (config.protocol == Protocol::Remote && config.txEnabled)
+            sendMessagesAsBundles(i, messages);
+    }
 }
 
 bool OSCManager::isInputFullyTracked(int channelIndex) const
@@ -3696,10 +3690,19 @@ void OSCManager::onRemoteConnected(int targetIndex, bool /*isReconnection*/)
             return;
 
         // Collect all state messages on the message thread (safe to read ValueTree),
-        // then send them from a background thread with pacing to avoid overflowing
-        // the remote's UDP receive buffer.
+        // then send them on a background thread as a sequence of OSC bundles. Each
+        // bundle stays under typical Ethernet MTU so the receiver gets atomic chunks
+        // of state instead of ~2,350 individual datagrams trickled at 2,000/sec.
         auto messages = collectStateDumpMessages(targetIndex);
-        sendPacedStateDump(targetIndex, std::move(messages));
+        std::thread([this, targetIndex, msgs = std::move(messages)]()
+        {
+            sendMessagesAsBundles(targetIndex, msgs);
+            juce::MessageManager::callAsync([this, targetIndex]()
+            {
+                if (onRemoteConnectionReady)
+                    onRemoteConnectionReady(targetIndex);
+            });
+        }).detach();
     });
 }
 
@@ -3720,15 +3723,19 @@ void OSCManager::onRemoteDisconnected(int targetIndex)
 
 void OSCManager::resendStateToRemoteTargets()
 {
-    // Collect and send paced state dump to all connected Remote targets.
-    // Uses background thread with pacing to avoid overflowing receiver's UDP buffer.
+    // Collect and send the full state dump to all connected Remote targets, packed
+    // into OSC bundles (single UDP datagram each, under MTU). Background thread
+    // keeps the message thread responsive while bundles stream out.
     for (int i = 0; i < MAX_TARGETS; ++i)
     {
         if (targetConfigs[static_cast<size_t>(i)].protocol == Protocol::Remote &&
             remoteStates[static_cast<size_t>(i)].phase == RemoteConnectionState::Phase::Connected)
         {
             auto messages = collectStateDumpMessages(i);
-            sendPacedStateDump(i, std::move(messages));
+            std::thread([this, i, msgs = std::move(messages)]()
+            {
+                sendMessagesAsBundles(i, msgs);
+            }).detach();
         }
     }
 }
@@ -4343,6 +4350,111 @@ void OSCManager::sendClusterMembersBundle(int clusterId)
             }
         }
     }
+}
+
+namespace
+{
+    // Conservative serialized-size estimate for a juce::OSCMessage.
+    // Matches OSC 1.0 wire format: address (null-terminated, 4-byte aligned) +
+    // type-tag string (',' + tags + null, 4-byte aligned) + each argument.
+    static size_t estimateOSCMessageSize(const juce::OSCMessage& msg)
+    {
+        auto pad4 = [](size_t s) { return (s + 3u) & ~size_t(3u); };
+
+        // Address pattern: UTF-8 bytes + null terminator, padded to 4 bytes.
+        const auto address = msg.getAddressPattern().toString();
+        size_t total = pad4(static_cast<size_t>(address.getNumBytesAsUTF8()) + 1);
+
+        // Type tag string: ',' + one char per arg + null terminator, padded.
+        const size_t numArgs = static_cast<size_t>(msg.size());
+        total += pad4(1 + numArgs + 1);
+
+        for (const auto& arg : msg)
+        {
+            if (arg.isInt32() || arg.isFloat32())
+                total += 4;
+            else if (arg.isString())
+                total += pad4(static_cast<size_t>(arg.getString().getNumBytesAsUTF8()) + 1);
+            else if (arg.isBlob())
+                total += 4 + pad4(static_cast<size_t>(arg.getBlob().getSize()));
+            else if (arg.isColour())
+                total += 4;
+            else
+                total += 4; // safe default for unknown arg types
+        }
+        return total;
+    }
+}
+
+void OSCManager::sendMessagesAsBundles(int targetIndex, const std::vector<juce::OSCMessage>& messages)
+{
+    if (targetIndex < 0 || targetIndex >= MAX_TARGETS)
+        return;
+    if (messages.empty())
+        return;
+
+    const auto& config = targetConfigs[static_cast<size_t>(targetIndex)];
+    if (! config.txEnabled)
+        return;
+    if (config.protocol == Protocol::Remote &&
+        remoteStates[static_cast<size_t>(targetIndex)].phase != RemoteConnectionState::Phase::Connected)
+        return;
+    if (config.protocol == Protocol::Remote && incomingProtocol == Protocol::Remote)
+        return; // loop prevention
+
+    auto& connection = connections[static_cast<size_t>(targetIndex)];
+    if (! connection)
+        return;
+
+    // 1200 bytes leaves headroom under typical Ethernet MTU (1500 - IP/UDP headers)
+    // so each bundle fits in one UDP datagram without IP fragmentation.
+    constexpr size_t maxBundleBytes = 1200;
+    constexpr size_t bundleHeaderBytes = 16; // "#bundle\0" (8) + timetag (8)
+
+    juce::OSCBundle current;
+    size_t currentBytes = bundleHeaderBytes;
+    const bool loggingEnabled = logger.getEnabled();
+
+    auto flush = [&]()
+    {
+        if (current.size() == 0)
+            return;
+        if (connection->send(current))
+        {
+            messagesSent += current.size();
+            if (loggingEnabled)
+            {
+                for (const auto& element : current)
+                {
+                    if (element.isMessage())
+                        logger.logSentWithDetails(targetIndex, element.getMessage(),
+                                                  config.protocol, config.ipAddress,
+                                                  config.port, config.mode);
+                }
+            }
+        }
+        current = juce::OSCBundle{};
+        currentBytes = bundleHeaderBytes;
+    };
+
+    for (const auto& msg : messages)
+    {
+        const size_t msgBytes = estimateOSCMessageSize(msg);
+        const size_t addedBytes = 4 + msgBytes; // 4-byte size prefix + message
+
+        if (currentBytes + addedBytes > maxBundleBytes && current.size() > 0)
+            flush();
+
+        current.addElement(msg);
+        currentBytes += addedBytes;
+
+        // If a single message exceeds the soft cap on its own, flush it as a
+        // solo-element bundle. UDP/IP may fragment but at least we don't drop it.
+        if (currentBytes > maxBundleBytes)
+            flush();
+    }
+
+    flush();
 }
 
 void OSCManager::ClusterMemberFlushTimer::timerCallback()
