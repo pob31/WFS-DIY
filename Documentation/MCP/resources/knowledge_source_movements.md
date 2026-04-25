@@ -2,17 +2,17 @@
 
 WFS-DIY provides several mechanisms for moving sources, each with a different intent. Understanding which mechanism to use for which effect is key to writing good spatial scores.
 
-## The four movement layers
+## The five movement layers
 
-Every source position is the sum of contributions from four independent layers:
+Every source position is the sum of contributions from five independent layers:
 
-1. **Base position** — set manually, by tracking, or by a Lemur/remote marker.
+1. **Base position** — set manually, by tracking, by the Android Remote, or by a controller (SpaceMouse, joystick, gamepad).
 2. **Offset** — a constant shift applied to the base, with optional rotation and scaling.
-3. **AutomOtion** — a one-shot trajectory from the current position to a target, over a defined time that can also be trigger by sound level.
+3. **AutomOtion** — a one-shot trajectory from the current position to a target, over a defined time that can also be triggered by sound level.
 4. **Jitter** — a fast random micro-movement around the current position.
 5. **LFO** — a periodic oscillation (sine, square, etc.) on each axis.
 
-(Maps don't directly modulate position — they modulate level, height, and HF damping based on position. See the level maps document.)
+(Gradient maps don't directly modulate position — they modulate level, height, and HF damping based on position. See the gradient maps document.)
 
 ## Offset
 

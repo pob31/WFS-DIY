@@ -66,6 +66,6 @@ For a typical theater setup:
 
 These are starting points; the final values come from listening.
 
-## Per-array adjustments in the Lemur or control surface
+## Per-array adjustments from a remote control surface
 
-Parallax correction, along with latency, attenuation, and horizontal/vertical offsets, can be adjusted per speaker group from a remote control surface. This is useful during tuning because you can walk into the audience and make adjustments while listening.
+Parallax correction, along with latency, attenuation, and horizontal/vertical offsets, can be adjusted per speaker group from a remote control surface (Android Remote, OSC tablet, Stream Deck, MIDI controller, or directly from an MCP client). This is useful during tuning because you can walk into the audience and make adjustments while listening.

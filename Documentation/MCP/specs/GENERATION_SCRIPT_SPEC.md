@@ -14,15 +14,20 @@ Alternative: TypeScript/Node if the team prefers a single-language toolchain. Ei
 
 ## Inputs
 
-The CSVs located in the repo (paths TBD by the implementer — probably `docs/csv/` or similar):
+The tab-level CSVs are located at `Documentation/WFS-UI_*.csv` in the repo:
 
-- `WFS-UI_config.csv`       — system, stage, network, master settings
-- `WFS-UI_input.csv`        — input channel parameters
-- `WFS-UI_output.csv`       — output channel parameters  
-- `WFS-UI_reverb.csv`       — reverb channel parameters
-- `WFS-UI_network.csv`      — network targets
-- `WFS-UI_audioPatch.csv`   — audio patching
-- `WFS-network.csv`         — network/tracking/ADM-OSC parameters
+- `WFS-UI_config.csv`       — SystemConfig tab: show, channel counts, WFS Processor (algorithm + DSP toggle), stage, master, UI, controllers, binaural renderer, files, diagnostics
+- `WFS-UI_input.csv`        — InputsTab: per-input parameters including the Sampler subsystem (18 columns — adds `OSC inc/dec` and `OSC path optional value` columns the other CSVs don't have)
+- `WFS-UI_output.csv`       — OutputsTab: per-output parameters and 6-band EQ
+- `WFS-UI_reverb.csv`       — ReverbTab: per-channel reverb parameters, pre-EQ, post-EQ, algorithm parameters (SDN/FDN/IR), pre-compressor, post-expander
+- `WFS-UI_network.csv`      — NetworkTab: targets table, ADM-OSC mappings (4 Cartesian + 4 Polar, exhaustive), tracking (OSC/PSN/RTTrP/MQTT), Find My Remote (12 columns)
+- `WFS-UI_clusters.csv`     — ClustersTab: cluster transforms, per-cluster LFO with 5 axes (X/Y/Z/Rotation/Scale), shared 16-slot preset bank
+- `WFS-UI_audioPatch.csv`   — AudioInterfaceWindow: device settings, input/output patch matrix, test signal generator
+
+Two companion documents are intentionally **not consumed by the generator** — their content is hand-written into compound tools instead (see `MCP_TOOL_SURFACE.md` § Hand-written tool catalog):
+
+- `WFS-UI_arrayWizard.md` — Wizard of OutZ preset catalog and geometry-method formulas. The natural MCP tool here is `output.apply_array_preset(preset, geometry, target, acoustic_overrides)`, which composes ~12 underlying output parameters per speaker and is best written by hand against the preset table in that document.
+- `WFS-UI_plugins.md` — DAW plugin suite reference. The plugin paramIDs here duplicate paths already present in `WFS-UI_input.csv` (the plugin Track variants drive the same `/wfs/input/*` OSC surface); no separate MCP tools are needed.
 
 Plus two override files, also committed to the repo:
 
@@ -110,7 +115,7 @@ For each row in each CSV:
    - Type mapping per the table in `MCP_TOOL_SURFACE.md`.
    - Min/Max from the CSV columns.
    - Default from the CSV Default column if present.
-   - For per-channel parameters (the Variable starts with `input`, `output`, `reverb`), the first argument is always the channel id as an integer, and the range depends on the configured channel count (script emits the max as 64 — the hard upper limit — and the server validates against the runtime count).
+   - For per-channel parameters (the Variable starts with `input`, `output`, `reverb`, `cluster`, `sampler`), the first argument is always the channel id as an integer, and the range depends on which CSV the row came from. The script emits the per-CSV upper bound: 64 for `WFS-UI_input.csv` and `WFS-UI_output.csv`, 16 for `WFS-UI_reverb.csv`, 10 for `WFS-UI_clusters.csv`, 36 for sampler cell indices in `WFS-UI_input.csv` (the 6×6 grid). The server validates against the runtime channel count, which can be lower than the upper bound.
 
 5. **Determine tier** via heuristics:
    - If the parameter name contains `delete`, `clear`, `remove`, `reset`: Tier 3.
@@ -183,9 +188,18 @@ This doubles as the validation source for hand-written compound tools: a unit te
 {
   "inputAttenuation": 2,
   "masterLevel": 3,
-  "inputPositionX": 1
+  "inputPositionX": 1,
+  "outputEQshape<band>": 1,
+  "samplerCellOffsetX": 1,
+  "inputArrayAtten*": 2
 }
 ```
+
+**Key conventions for sub-indexed parameters.** Some Variable cells carry a literal `<band>` placeholder (the EQ shape/freq/gain/Q rows). For these, **use the same `<band>` placeholder verbatim in the override key**, and the override applies to every band of that parameter — the generator does not generate one tool per band, so there is no need to address bands individually.
+
+For Variable names that already include a numeric suffix at generation time (e.g. `inputArrayAtten1` … `inputArrayAtten10`, the 10 per-array attenuations), use a **trailing `*` wildcard** to override the whole family in one entry. Wildcards are matched by literal prefix only — they are not regular expressions.
+
+Per-instance overrides (e.g. setting only `inputArrayAtten5` to a different tier) are not supported. If that ever becomes necessary, add it as a new convention rather than overloading the wildcard syntax.
 
 `tool_generation_ignores.json`:
 ```json
@@ -207,7 +221,7 @@ Unit tests for the script:
 - Ignored parameters don't appear in output.
 - Ordering is deterministic.
 
-Integration test: run against the full CSVs, verify the output loads as valid JSON and contains at least N tools (where N is a sanity check — currently ~400+).
+Integration test: run against the full CSVs, verify the output loads as valid JSON and contains at least N tools (where N is a sanity check — current row counts across the seven CSVs total ~640, of which ~550 are expected to become tools after the ignore list is applied).
 
 ## A note on the reverb CSV's scope
 
@@ -219,7 +233,7 @@ Add to the build:
 
 ```
 python3 tools/generate_mcp_tools.py \
-  --csv-dir docs/csv \
+  --csv-dir Documentation \
   --overrides-tier tools/mcp/tool_tier_overrides.json \
   --overrides-ignore tools/mcp/tool_generation_ignores.json \
   --output Source/Network/MCP/generated_tools.json

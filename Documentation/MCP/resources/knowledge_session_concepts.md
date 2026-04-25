@@ -16,7 +16,7 @@ Inside the folder are several XML files (one per major section) and sub-director
 
 The session is divided into separate sections, each with its own file:
 
-- **System configuration** — channel counts, master level, system latency, Haas effect, multithread settings, stage dimensions, origin point, speed of sound / temperature, hardware controlers, sampler master toggle, audio interface and patch, binaural renderer parameters.
+- **System configuration** — channel counts, master level, system latency, Haas effect, multithread settings, stage dimensions, origin point, speed of sound / temperature, hardware controllers, sampler master toggle, audio interface and patch, binaural renderer parameters.
 - **Network** — interface selection, ports, target/server definitions, OSCQuery, tracking protocol setup, ADM-OSC mappings.
 - **Outputs** — every speaker's position, orientation, group assignment, EQ, parallax, attenuation settings.
 - **Reverbs** — feed and return channels with their positions and pre- and post-processing settings, algorithm settings.
@@ -68,7 +68,7 @@ Use cases:
 - **Layered scenes** — a base snapshot for overall scene state, plus delta snapshots that adjust specific elements without resetting everything.
 
 Scope is stored per-snapshot, so different snapshots can affect different parameter sets.
-The scope can be applied whhen saving the snapshot. This creates a small file. Alternatively the scope can be recorded as a filter and all parameters are saved. This is useful if at some point the complete set of parameters should be loaded without the scope filter. In either case if a QLab client exists in the network table a network cue to recall a snapshot can be created in the selected cuelist.
+The scope can be applied when saving the snapshot. This creates a small file. Alternatively the scope can be recorded as a filter and all parameters are saved. This is useful if at some point the complete set of parameters should be loaded without the scope filter. In either case if a QLab client exists in the network table a network cue to recall a snapshot can be created in the selected cuelist.
 If a QLab client exists in the network table, then a third option becomes available to record the snapshot as a series of cues in a playlist cue in the selected cuelist.
 In QLab there should be a network patch pointing back to the WFS processor and all operations should be allowed without password.
 

@@ -4,7 +4,7 @@ This document specifies what tools the MCP server exposes to AI clients, how the
 
 ## The three categories of tools
 
-**Auto-generated per-parameter tools.** Most of the surface. Generated from the CSVs by the build-step script described in `GENERATION_SCRIPT_SPEC.md`. Roughly 450 tools covering every parameter in the application. Each is a thin wrapper: "set the value of this specific parameter on this specific channel."
+**Auto-generated per-parameter tools.** Most of the surface. Generated from the CSVs by the build-step script described in `GENERATION_SCRIPT_SPEC.md`. Roughly 550 tools covering every parameter in the application after the ignore list filters out UI-state-only rows. Each is a thin wrapper: "set the value of this specific parameter on this specific channel."
 
 **Hand-written high-level tools.** A smaller set, probably 15–30 tools, that do not correspond to a single parameter. They compose multiple parameter changes, read aggregate state, or provide convenience operations that the AI is likely to want. See the "Hand-written tool catalog" section below.
 
@@ -12,7 +12,7 @@ This document specifies what tools the MCP server exposes to AI clients, how the
 
 ## Why not expose all 450 tools flat
 
-An LLM asked to pick a tool from a flat list of 450 struggles. Tool selection latency goes up, selection accuracy goes down. The strategy is:
+An LLM asked to pick a tool from a flat list of 550 struggles. Tool selection latency goes up, selection accuracy goes down. The strategy is:
 
 1. **Namespace tools hierarchically** so clients can browse a tree rather than a list. MCP clients display namespaced tool names nicely. Example names: `input.position.set_cartesian`, `input.lfo.configure`, `output.eq.set_band`.
 2. **Group related parameters into bulk tools** where it makes sense. Example: `input.lfo.configure(input_id, active, period, shape_x, shape_y, shape_z, amplitude_x, amplitude_y, amplitude_z, ...)` sets all LFO parameters for a source in one call. The per-parameter tools still exist underneath for fine-grained control; the bulk tool is a convenience layer.
@@ -80,7 +80,8 @@ These wrap common multi-parameter operations that are tedious to do one paramete
 | `input.configure_floor_reflections` | 1 | Sets all floor-reflection parameters (Hackoustics section). |
 | `input.configure_directivity` | 1 | Sets directivity, rotation, tilt, HF shelf in one call. |
 | `output.configure_eq` | 1 | Sets all bands of the output EQ. |
-| `input.start_move` | 1 | Starts a one-shot movement (the CSV's "Move" section): target, time, curve, acceleration profile. |
+| `output.apply_array_preset` | 2 | Applies one of the seven Wizard-of-OutZ array presets (Near Field Straight / Curved, Main Flown Straight, Sub Bass, Surround, Delay Line, Circle) to a contiguous range of outputs. Composes ~12 underlying parameters per speaker (position, orientation, EQ, parallax, etc.) using one of five geometry methods. Sourced from `Documentation/WFS-UI_arrayWizard.md`. Tier 2 because it overwrites multiple outputs at once. |
+| `input.start_move` | 1 | Starts a one-shot movement (the CSV's "AutomOtion" section): target, time, curve, acceleration profile. |
 | `input.stop_move` | 1 | Stops a running movement. |
 | `input.set_tracking` | 1 | Enables tracking for an input with a given tag ID and smoothing. |
 
@@ -156,8 +157,9 @@ The CSV and the old manual use "width / depth / height" for input positions. Thi
 - **y (depth)**: front-back, +y = upstage (away from audience), -y = downstage (toward audience).
 - **z (height)**: vertical, +z = up.
 
-The stage origin default is at the downstage center at floor level, but this is configurable in the Stage tab and the `session.get_state` response includes the current origin.
-When the origin is set to (0,0,0) it is in the middle of the stage (in width and depth) whether rectangular (box) or circular (cylinder/dome) at ground level.
+**Stage origin (default).** The default origin is at the **center of the stage at ground level** — half the width and half the depth from any edge, regardless of whether the stage shape is Box (rectangular), Cylinder (circular footprint), or Dome (partial sphere). Z = 0 is the floor. So a source at (0, 0, 0) sits at stage-center, on the floor, with no horizontal or vertical offset.
+
+The origin is configurable in System Config > Stage (Origin Width / Depth / Height fields, plus three preset buttons: Front, Center Ground, Center). The `session.get_state` response includes the current origin so the AI can reason about positions relative to it. When describing positions to the operator, the AI should always work in the current origin's frame and only mention the origin offset if it's been moved away from the default.
 
 Polar coordinates (cylindrical/spherical) use "azimuth" with 0° = toward audience, 90° = stage-left, per the CSV comments on `inputPositionTheta`.
 

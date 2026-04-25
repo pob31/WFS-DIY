@@ -24,7 +24,7 @@ URIs follow the pattern `wfs://knowledge/<topic>`. Examples:
 - `wfs://knowledge/live_source_damping`
 - `wfs://knowledge/floor_reflections`
 - `wfs://knowledge/reverb_in_wfs`
-- `wfs://knowledge/level_maps`
+- `wfs://knowledge/gradient_maps`
 - `wfs://knowledge/source_movements`
 - `wfs://knowledge/signal_flow`
 - `wfs://knowledge/session_concepts`
@@ -45,8 +45,8 @@ The following resources are provided as markdown files in the `resources/` direc
 | `wfs://knowledge/parallax_correction` | Parallax correction explained | Why sources-speakers-listeners are not aligned in real venues, how the per-output target listener works, how horizontal and vertical parallax compensate for delay differences, the coupling issues that can arise. Useful when the user reports spatial localization problems. |
 | `wfs://knowledge/live_source_damping` | Reducing amplification near loud sources | Explains live source damping: what it does, when to use it (loud acoustic sources on stage, feedback prevention, musician comfort), the four shape profiles (linear, square, log, sine), and the peak/slow compression layer. |
 | `wfs://knowledge/floor_reflections` | Simulated floor reflections ("Hackoustics") | Why floor reflections improve realism for played-back material, when to enable them per-output, the filtering and diffusion parameters, CPU cost considerations, interaction with parallax correction. |
-| `wfs://knowledge/reverb_in_wfs` | Reverb in a WFS context | Why WFS benefits from added reverb (masking speaker reflections, restoring depth), the difference between reverb feeds and returns, positioning reverb nodes, feedback prevention by design, external vs. plug-in hosted processing. |
-| `wfs://knowledge/level_maps` | Gradient maps and level maps | How image-based maps drive level, height, and HF damping as a function of source position. Application examples: off-stage muting, height matching for stairs and platforms, creative distance effects. |
+| `wfs://knowledge/reverb_in_wfs` | Reverb in a WFS context | Why WFS benefits from added reverb (masking speaker reflections, restoring depth), the difference between reverb feeds and returns, positioning reverb nodes, feedback prevention by design, the three integrated algorithms (SDN, FDN, IR) and when to use each. |
+| `wfs://knowledge/gradient_maps` | Gradient maps | How position-driven maps modulate level, effective height, and HF damping as a source moves on stage. Application examples: off-stage muting, height matching for stairs and platforms, creative distance effects, room-based processing. |
 | `wfs://knowledge/source_movements` | Movement automation — LFOs, trajectories, jitter | The available movement modes: offset with rotate/scale, one-shot Move with time and curve, jitter (random micro-movement), LFO (periodic movement with per-axis shape/rate/amplitude/phase). Gyrophone for directivity rotation. Global speed control. When to use constant-speed (line) vs. smooth (sine) acceleration. |
 | `wfs://knowledge/signal_flow` | Signal flow in a typical session | Console direct-outs post-fader feeding the WFS processor inputs, speaker outputs going back to the console or direct to amps, reverb sends and returns, the object-oriented mixing paradigm (per-source parameters, not per-speaker mixing). |
 | `wfs://knowledge/session_concepts` | Sessions, snapshots, and scope | How a session is organized (configuration + snapshots + samples + IRs), what's in each saved file, the snapshot scope system (parameter-level, per-channel granularity), backup/autosave, OSC-driven snapshot operations. |

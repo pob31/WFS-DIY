@@ -35,10 +35,10 @@ session.get_state to understand the current situation. Then:
 
 For new sessions, the typical order of operations is:
 - Configure input, output, and reverb channel counts in System Config.
-- Set stage dimensions in the Stage tab.
-- Place outputs (speakers) and set their orientations.
-- Set up reverb channels if used.
-- Place inputs (sources) at their starting positions.
+- Set stage dimensions in the Stage section of System Config.
+- Place outputs (speakers) and set their orientations (Outputs tab — the Wizard of OutZ helps with array layouts).
+- Set up reverb channels if used (Reverb tab).
+- Place inputs (sources) at their starting positions (Inputs tab).
 - Save the configuration.
 - Start the DSP only after everything is in place.
 
@@ -237,9 +237,11 @@ Common symptoms and likely causes:
 
 - Audible Doppler on moving sources:
   → Expected to some degree. For less: use "curvature only" mode on the input to
-    minimize delay changes.
-  → Switch movement acceleration from "sine" to "line" is LESS Doppler? No — actually
-    the opposite: sine mode has steeper peak speeds. Line mode has constant speed.
+    minimize absolute delay changes.
+  → The acceleration profile interacts with Doppler too: sine has smoother starts and
+    stops but a higher peak speed in the middle (more Doppler at the fastest point);
+    line is constant speed (less peak Doppler but abrupt starts and stops). Pick
+    whichever the material tolerates better.
 
 Ask diagnostic questions one at a time. Use get_session_state and per-input queries
 to gather information before recommending changes. Do not change parameters without

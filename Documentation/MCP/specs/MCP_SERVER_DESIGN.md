@@ -12,12 +12,14 @@ Out of scope: voice transcription, text-to-speech, AI model hosting. These are a
 
 ### Transport
 
-**Streamable HTTP** (MCP spec revision 2025-03-26 and later). This superseded the older HTTP+SSE dual-endpoint design. A single HTTP endpoint handles both request/response and server-initiated streaming.
+**Streamable HTTP** — the current MCP transport (which superseded the older HTTP+SSE dual-endpoint design). A single HTTP endpoint handles both request/response and server-initiated streaming.
 
 - Default port: 7400 (configurable in the Network tab of WFS-DIY).
 - Endpoint path: `/mcp`.
 - Bind address: loopback (`127.0.0.1`) by default. A checkbox in the Network tab may enable binding to the selected network interface for remote AI clients — off by default because it broadens the attack surface.
 - No authentication in v1. (See "Future authentication" below.)
+
+**On spec versioning.** The MCP specification continues to evolve at a steady pace. **Do not pin to a specific revision date in the implementation.** At coding time, fetch the current spec from <https://modelcontextprotocol.io/> and target the latest stable revision. The architectural decisions in this document (transport over HTTP, three content layers, tier enforcement, change records, threading discipline) are robust across spec revisions — only the on-the-wire details (capability strings, exact JSON-RPC method names, optional fields) shift between revisions. Build the dispatcher and registry layers cleanly enough that adopting a new spec revision is a localized change in the protocol-parsing code, not a server-wide rewrite.
 
 ### Process and threading model
 
@@ -51,7 +53,7 @@ The Network tab gets a small MCP section showing:
 
 The MCP server exposes three logical layers of content:
 
-**Tools** — functions the AI can call to read or modify state. Most are auto-generated from the parameter CSVs (see `GENERATION_SCRIPT_SPEC.md`). A small number are hand-written high-level tools that don't correspond to a single parameter (e.g. `get_session_state`, `setup_frontal_stage_defaults`).
+**Tools** — functions the AI can call to read or modify state. Most are auto-generated from the parameter CSVs (see `GENERATION_SCRIPT_SPEC.md`). A small number are hand-written high-level tools that don't correspond to a single parameter (e.g. `session.get_state`, `output.apply_array_preset`). The full hand-written catalog is in `MCP_TOOL_SURFACE.md`.
 
 **Resources** — readable markdown documents that describe WFS concepts, design guidelines, and procedural knowledge. Fetched on demand by the AI when relevant. See `MCP_RESOURCES.md`.
 
@@ -157,13 +159,28 @@ Log records include timestamp, direction, method name, abbreviated payload. Full
 
 ## Library choices
 
-The implementer should prefer small, header-only, permissively-licensed libraries where possible, consistent with the project's existing vendoring approach (e.g. hidapi in `third-party/`).
+Optimize for **easiest to maintain over time**, since the MCP spec is going to keep evolving. Prefer small, permissively-licensed libraries that can be bumped with one CMake change rather than vendored-and-frozen.
 
 **JSON**: JUCE already has `juce::var` and `juce::JSON` — sufficient for MCP's needs. If a richer API is wanted, `nlohmann/json` (header-only, MIT) integrates trivially and is already familiar to most C++ developers. Either is acceptable. No preference.
 
-**HTTP**: JUCE has `juce::StreamingSocket` and related primitives. A minimal HTTP/1.1 server implementation on top of these is feasible (the MCP protocol is simple: POST for requests, GET for SSE streaming). Alternatively, a small header-only library such as `cpp-httplib` (MIT) provides a full HTTP server in one header and handles the protocol details. Recommend `cpp-httplib` unless there's a compelling reason to roll it, since it's a solved problem.
+**HTTP**: pull in **cpp-httplib** (<https://github.com/yhirose/cpp-httplib>, MIT, header-only, single file, actively maintained). It supports HTTP/1.1, server-sent events (which Streamable HTTP relies on), and chunked transfer encoding out of the box, which removes any need to roll our own.
 
-**MCP protocol**: there is no mature official C++ MCP SDK at time of writing. Implement the protocol directly against the spec. The protocol is small: a few JSON-RPC methods, a well-defined message format, a capability negotiation step. No more than a few hundred lines of protocol code.
+Prefer pulling it via CMake `FetchContent` rather than vendoring under `ThirdParty/`:
+
+```cmake
+include(FetchContent)
+FetchContent_Declare(httplib
+  GIT_REPOSITORY https://github.com/yhirose/cpp-httplib.git
+  GIT_TAG        v0.15.0   # or whichever is current at implementation time
+)
+FetchContent_MakeAvailable(httplib)
+```
+
+This makes spec-driven library updates a one-line tag bump, which matters because both cpp-httplib and the MCP spec move forward independently. Vendoring the file under `ThirdParty/` (consistent with hidapi) is acceptable too if the implementer wants offline-buildable releases, but accept that you'll be re-vendoring when the spec or library shifts.
+
+If the implementer would rather avoid the dependency entirely, JUCE's `juce::StreamingSocket` plus a few hundred lines of HTTP/1.1 + SSE parsing is feasible. This keeps the build surface minimal at the cost of more code to maintain. Either path is fine — pick whichever the implementer is more comfortable updating when the MCP spec changes.
+
+**MCP protocol**: at the time these specs were written there was no mature official C++ MCP SDK; that may have changed. **At implementation time, check <https://modelcontextprotocol.io/> for current C++ SDK status.** If a maintained SDK exists, prefer it. If not, implement the protocol directly against the spec — the on-the-wire surface is small (a few JSON-RPC methods, a well-defined message format, a capability negotiation step) and amounts to a few hundred lines of protocol code.
 
 Do not pull in dependencies that would expand the build surface materially (boost, grpc, protobuf, etc.).
 
@@ -197,7 +214,7 @@ Source/Network/MCP/
 
 **Network Log**: MCP traffic logs as a new protocol. No new window, no new filter infrastructure — reuse what exists.
 
-**Snapshot system**: snapshot tools (`list_snapshots`, `load_snapshot`, `store_snapshot`, `update_snapshot`, `delete_snapshot`) are Tier 2 except for `list_snapshots` which is Tier 1 and `delete_snapshot` which is Tier 3. They wrap the existing snapshot file operations.
+**Snapshot system**: snapshot tools (`snapshot.list`, `snapshot.load`, `snapshot.store_new`, `snapshot.update`, `snapshot.delete`) are Tier 2 except for `snapshot.list` and `snapshot.store_new` which are Tier 1 and `snapshot.delete` which is Tier 3. They wrap the existing snapshot file operations. See `MCP_TOOL_SURFACE.md` for the canonical naming.
 
 **Project/show state**: reading show name, location, channel counts, and running-state is always Tier 1 (read-only). Changing channel counts is Tier 3 (requires DSP restart).
 

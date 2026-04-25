@@ -20,7 +20,7 @@ Pierre-Olivier chose option 3 from the design conversation: the MCP server lives
 
 See `specs/MCP_SERVER_DESIGN.md` for detail. Headline decisions:
 
-- **Transport**: Streamable HTTP (the 2025-03-26 MCP spec revision) on a configurable port, default 7400. UI exposes the port for copy-paste into client configs.
+- **Transport**: Streamable HTTP (the current MCP transport — superseded the older HTTP+SSE design) on a configurable port, default 7400. UI exposes the port for copy-paste into client configs. The MCP spec keeps evolving; target the latest stable revision at implementation time rather than pinning a specific dated revision (see `MCP_SERVER_DESIGN.md` § Transport).
 - **Threading**: MCP handler runs on its own thread(s); tool invocations post messages to the message thread; audio thread is never touched directly. Same discipline already used for OSCQuery and the Android remote.
 - **Three-layer content**: tools (per-parameter actions, mostly auto-generated from CSVs), resources (markdown knowledge documents, fetched on demand), prompts (named multi-step workflows).
 - **Tiered confirmation**: tools are tagged Tier 1 (reversible, execute immediately), Tier 2 (significant, confirm before execute), Tier 3 (destructive or mid-show, hard gate). Enforcement is in the server, not in prompts.
@@ -44,12 +44,12 @@ A server that does the smallest useful thing, end-to-end, so the transport, thre
 Scope:
 - Streamable HTTP transport, listening on configurable port.
 - MCP handshake: `initialize`, capability negotiation.
-- `tools/list` returning 3–5 hand-written tools only (no generation script yet):
-  - `get_session_state()` — returns a JSON summary of current inputs, outputs, reverbs, running/stopped state.
-  - `select_input(input_id)` — selects an input channel in the UI.
-  - `set_input_position(input_id, x, y, z)` — moves a source.
-  - `set_input_attenuation(input_id, db)` — sets input level.
-  - `list_snapshots()` — lists saved input snapshots.
+- `tools/list` returning 3–5 hand-written tools only (no generation script yet). Names follow the dot-namespace convention from `MCP_TOOL_SURFACE.md`:
+  - `session.get_state()` — returns a JSON summary of current inputs, outputs, reverbs, running/stopped state.
+  - `input.select(input_id)` — selects an input channel in the UI.
+  - `input.position.set_cartesian(input_id, x, y, z)` — moves a source.
+  - `input.set_attenuation(input_id, db)` — sets input level.
+  - `snapshot.list()` — lists saved input snapshots.
 - **Origin tagging on all parameter changes.** The parameter system's change-notification path is extended to carry an origin tag (`UI`, `MCP`, `OSC`, `Tracking`, `Snapshot`, `LFO`, `Move`, `Automation`) alongside every value change. This is architectural — listeners (Network Log, future undo stack, future observers) receive the tag and can filter or route on it. Retrofitting this later is significantly more painful than baking it in now.
 - **Change-record pipeline in the tool dispatcher.** Every MCP tool invocation goes through a pipeline: validate → capture before-state → execute on message thread → capture after-state → emit structured change record → return. Read-only tools skip the before/after capture. The record format is the one specified in `MCP_SERVER_DESIGN.md` § "Action history and undo architecture", including `affected_parameters` and (once the generator runs in Phase 2) `affected_groups`.
 - **Change-record ring buffer.** 100-entry ring buffer of AI-origin change records, in memory. Queryable from within the app (used by Phase 4's undo UI) but not yet exposed through tools.
@@ -160,7 +160,7 @@ resources/
   knowledge_live_source_damping.md
   knowledge_floor_reflections.md
   knowledge_reverb_in_wfs.md
-  knowledge_level_maps.md
+  knowledge_gradient_maps.md
   knowledge_source_movements.md
   knowledge_signal_flow.md
   knowledge_session_concepts.md

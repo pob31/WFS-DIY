@@ -111,8 +111,8 @@ When tracking is active for an input:
 When tracking is not active for an input:
 
 - The base position is whatever was manually set or recalled from a snapshot.
-- The Lemur/remote markers can drive the position.
-- All other movement layers (offset, jitter, LFO, Move) work normally.
+- The Android Remote, SpaceMouse, joystick, gamepad, or a DAW Track plugin can drive the position.
+- All other movement layers (offset, jitter, LFO, AutomOtion) work normally.
 
 ## Tracking with WFS hand-off
 
