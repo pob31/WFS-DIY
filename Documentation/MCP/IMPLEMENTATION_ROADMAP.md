@@ -37,6 +37,8 @@ Before any MCP code is written:
 1. **Generation script**: implement the CSV-to-schema generator described in `specs/GENERATION_SCRIPT_SPEC.md`. Output is a single JSON file consumed at MCP server startup. Tests: round-trip a few representative parameters, verify enum unpacking, verify conditional-availability notes are preserved.
 2. **Resource file preparation**: the knowledge-base resources in `resources/` are ready to drop into the repo (probably under `third-party/mcp-resources/` or similar). No processing needed — they're markdown files.
 
+**Status: complete.** The generator lives at `tools/generate_mcp_tools.py` with override files at `tools/mcp/tool_tier_overrides.json` and `tools/mcp/tool_generation_ignores.json`. Tests at `tools/mcp/test_generate_mcp_tools.py` (14 tests, including the 5 golden-output examples from the spec appendix). Outputs `Source/Network/MCP/generated_tools.json` (~345 tools, ~64 nudge variants, ~67 group keys) and `Source/Network/MCP/generated_groups.json`. Build-system hookup (Projucer pre-build command) deferred to the first Claude Code session of Phase 1.
+
 ### Phase 1 — Minimal viable MCP server
 
 A server that does the smallest useful thing, end-to-end, so the transport, threading, and client handshake are proven before the tool surface grows.

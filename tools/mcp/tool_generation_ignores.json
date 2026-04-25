@@ -1,0 +1,12 @@
+{
+  "ignored": [
+    { "variable": "gmShapeLocked",      "reason": "UI-state only" },
+    { "variable": "gmShapeOrder",       "reason": "UI-state only" },
+    { "variable": "gmShapeEnabled",     "reason": "UI-state only" },
+    { "variable": "findDevicePassword", "reason": "Security-sensitive, operator task" },
+    { "variable": "JoystickXY",         "reason": "UI affordance, not a parameter" },
+    { "variable": "JoystickZ",          "reason": "UI affordance, not a parameter" },
+    { "variable": "networkInterface",   "reason": "Hardware-specific selection, operator task" },
+    { "variable": "samplerBlockSerial", "reason": "Hardware ID, operator task" }
+  ]
+}

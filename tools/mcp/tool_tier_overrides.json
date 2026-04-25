@@ -1,0 +1,47 @@
+{
+  "inputAttenuation": 2,
+  "outputAttenuation": 2,
+  "reverbAttenuation": 2,
+  "inputArrayAtten*": 2,
+  "MasterLevel": 3,
+
+  "inputDelayLatency": 2,
+  "outputDelayLatency": 2,
+  "reverbDelayLatency": 2,
+
+  "outputEQshape<band>": 1,
+  "outputEQfreq<band>": 1,
+  "outputEQgain<band>": 1,
+  "outputEQq<band>": 1,
+  "outputEQslope<band>": 1,
+
+  "reverbPreEQshape<band>": 1,
+  "reverbPreEQfreq<band>": 1,
+  "reverbPreEQgain<band>": 1,
+  "reverbPreEQq<band>": 1,
+  "reverbPreEQslope<band>": 1,
+
+  "reverbPostEQshape<band>": 1,
+  "reverbPostEQfreq<band>": 1,
+  "reverbPostEQgain<band>": 1,
+  "reverbPostEQq<band>": 1,
+  "reverbPostEQslope<band>": 1,
+
+  "ProcessingEnabled": 3,
+  "InputChannels": 3,
+  "OutputChannels": 3,
+  "ReverbChannels": 3,
+  "ProcessingAlgorithm": 3,
+
+  "networkRxUDPport": 3,
+  "networkRxTCPport": 3,
+  "networkOscQueryPort": 3,
+  "networkOscQueryEnabled": 2,
+
+  "trackingEnabled": 2,
+  "trackingProtocol": 2,
+  "trackingPort": 3,
+
+  "binauralEnabled": 2,
+  "binauralOutputChannel": 2
+}

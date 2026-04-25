@@ -96,3 +96,7 @@ Processors/*/out/
 # Claude Code temporary files
 tmpclaude-*
 **/tmpclaude-*
+
+# Python cache and test artefacts (Phase 0 generator script)
+__pycache__/
+.pytest_cache/
