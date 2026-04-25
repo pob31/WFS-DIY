@@ -29,6 +29,8 @@ URIs follow the pattern `wfs://knowledge/<topic>`. Examples:
 - `wfs://knowledge/signal_flow`
 - `wfs://knowledge/session_concepts`
 - `wfs://knowledge/tracking`
+- `wfs://knowledge/help_cards`
+- `wfs://knowledge/glossary`
 
 Each URI maps to a markdown file bundled with the application.
 
@@ -51,6 +53,8 @@ The following resources are provided as markdown files in the `resources/` direc
 | `wfs://knowledge/signal_flow` | Signal flow in a typical session | Console direct-outs post-fader feeding the WFS processor inputs, speaker outputs going back to the console or direct to amps, reverb sends and returns, the object-oriented mixing paradigm (per-source parameters, not per-speaker mixing). |
 | `wfs://knowledge/session_concepts` | Sessions, snapshots, and scope | How a session is organized (configuration + snapshots + samples + IRs), what's in each saved file, the snapshot scope system (parameter-level, per-channel granularity), backup/autosave, OSC-driven snapshot operations. |
 | `wfs://knowledge/tracking` | Position tracking | Tracking technologies (UWB, computer vision, LiDAR, IR-LED), supported protocols (OSC, PSN, RTTrP, MQTT), the OSC message format, coordinate mapping (offset/scale/flip), smoothing trade-offs, per-input tag assignment, hand-off between tracked and static states. Useful when setting up tracking, calibrating, or troubleshooting positional issues. |
+| `wfs://knowledge/help_cards` | Quick-reference help cards | Per-section quick help (System Overview, Session Data, Network, Tracking, ADM-OSC, Array Design, Parallax, System Tuning, Reverb feeds/returns/algorithms, Inputs, Live Source Tamer, Floor Reflections, LFO, AutomOtion, Gradient Maps, Sampler, Clusters, Map). One paragraph per area of the application, mirroring what the in-app help cards show. Useful when the operator asks "what does this tab do" or for the AI to ground itself in WFS-DIY-specific terminology before answering. |
+| `wfs://knowledge/glossary` | WFS-DIY glossary | App-specific vocabulary the AI is likely to encounter in tool descriptions, parameter names, and operator queries. Covers spatial concepts, routing/channel terms, the five movement layers, audio-shaping vocabulary, reverb terminology, state-management terms, network protocols, helper tools/dialogs, and disambiguations the AI should remember (Input/Source/Channel as synonyms; Hackoustics = Floor Reflections; Live Source Tamer = Live Source Damping; AutomOtion vs Move; etc.). Fetch once at session start to ground vocabulary. |
 
 ## When to add or change resources
 

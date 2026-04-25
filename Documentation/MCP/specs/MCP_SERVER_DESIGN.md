@@ -157,6 +157,214 @@ All MCP protocol messages (request in, response out, notifications) are logged t
 
 Log records include timestamp, direction, method name, abbreviated payload. Full payloads available on double-click, consistent with existing Network Log behavior.
 
+## Origin-tagging migration plan
+
+Origin tagging is required from Phase 1 (see `IMPLEMENTATION_ROADMAP.md`) and cannot be retrofitted cheaply. Today the parameter system propagates value changes through `juce::ValueTree`'s built-in change-notification path, which carries no actor identity. The migration extends that path so every change carries a tag from the value set `UI`, `MCP`, `OSC`, `Tracking`, `Snapshot`, `LFO`, `Move`, `Automation`.
+
+**Strategy.** Thread the tag through the change-notification side, not through every setter signature. Specifically: introduce a thread-local `currentOriginTag` that callers set before issuing a write, and that the parameter system's listener-dispatch reads when it constructs the change record. Setting and clearing the tag is the only new burden on each call site; the existing parameter-setter signatures are unchanged. This keeps the migration mechanical.
+
+**Files that write to the parameter system today and need to set the origin tag before their writes:**
+
+| Path | Tag to set | Notes |
+|---|---|---|
+| `Source/Parameters/WFSValueTreeState.h/.cpp` | (no default) | Central API. Add the thread-local tag, the helper `OriginTagScope` RAII guard, and document that every other listed file is responsible for setting it before calling `setConfigParam` / `setProperty` / equivalents. |
+| `Source/Network/OSCManager.cpp`, `Source/Network/OSCMessageRouter.cpp` | `OSC` | Set the tag at the top of the inbound-message handler, clear at the end. The Remote handler (`/remoteInput/*` paths) sets `OSC` too — there is no separate Remote tag in the value set. |
+| `Source/Parameters/WFSFileManager.cpp` | `Snapshot` | Wrap the entire snapshot-recall loop in a single tag scope. Also covers the "Reload Configuration" / "Reload Backup" buttons in each tab. |
+| `Source/DSP/LFOProcessor.h` | `LFO` | LFO-driven offset writes already happen at 50 Hz from the timer callback; tag scope wraps each batch. |
+| `Source/DSP/AutomOtionProcessor.h` | `Move` | Same shape as LFO. The tag value `Move` rather than `Automation` is intentional — automation refers to DAW host automation arriving via the plugin layer, which sets `Automation`. |
+| `Source/DSP/InputSpeedLimiter.h` | (inherits from caller) | Speed-limiter writes ride on whatever tag the caller already set; no new scope needed. |
+| `Source/gui/InputsTab.h`, `Source/gui/OutputsTab.h`, `Source/gui/ReverbTab.h`, `Source/gui/ClustersTab.h`, `Source/gui/SystemConfigTab.h`, `Source/gui/NetworkTab.h`, `Source/gui/MapTab.h`, `Source/gui/SetAllInputsWindow.h`, `Source/gui/SnapshotScopeWindow.h`, `Source/gui/AudioInterfaceWindow.h` | `UI` | Set the tag at the start of each user-event callback (slider onValueChange, button onClick, text editor onTextChange, etc.). The `WfsLookAndFeel` / common widget base classes are good shared spots if the implementer wants to reduce per-tab boilerplate. |
+| `Source/MainComponent.cpp` (tracking-driven writes) | `Tracking` | The 50 Hz tracking-data integration loop. |
+| `Source/Network/MCP/MCPDispatcher.cpp` (Phase 1) | `MCP` | New file. Set the tag inside the tool-handler dispatch wrapper so every tool handler gets it for free. |
+
+**Listener side.** The Network Log already exists as a listener-target; extend the log-record format with an `origin` field and update the existing log-rendering UI to show the tag. The undo ring buffer (Phase 1) reads the tag to decide which records belong in the AI-undo stack. Future observers (e.g. Phase 7 OSCQuery cross-check) can filter on it.
+
+**Migration ordering.** Do `WFSValueTreeState` first (introduces the thread-local plumbing). Then `OSCManager` and `WFSFileManager` (the two heaviest external write sources). Then the GUI tabs (mechanical, can be done in any order). Then the DSP-driven writers. Lastly the MCP dispatcher in Phase 1. Each step independently testable: verify the tag arrives at the Network Log with the expected value before moving on.
+
+## Dispatcher implementation pattern
+
+Every MCP tool invocation flows through a dispatcher that handles validation, threading, change-record capture, and tier enforcement. This is the canonical pattern; deviations should be justified.
+
+```cpp
+// Pseudocode — illustrative shape, not literal.
+
+McpResult MCPDispatcher::invoke(const ToolName& name,
+                                const json& arguments,
+                                ClientId clientId)
+{
+    // 1. Look up tool schema (loaded from generated_tools.json at startup).
+    const auto* schema = registry.find(name);
+    if (! schema)
+        return McpResult::error("unknown_tool", name.toString());
+
+    // 2. Validate arguments against the schema.
+    if (auto err = validateAgainst(schema->parametersSchema, arguments))
+        return McpResult::error("invalid_arguments", err);
+
+    // 3. Tier enforcement. Tier 2 tools require a confirmation token in
+    //    `arguments["confirm"]`; Tier 3 tools require both confirmation
+    //    and an open safety gate.
+    if (schema->tier == Tier::Two && ! arguments.value("confirm", false))
+        return tier2AwaitConfirmation(name, arguments);
+    if (schema->tier == Tier::Three && ! safetyGate.isOpen())
+        return McpResult::refused("safety_gate_closed");
+
+    // 4. Capture before-state for change record (skip for read-only tools).
+    State before;
+    if (schema->modifiesState)
+        before = captureAffectedState(schema->affected_parameters, arguments);
+
+    // 5. Hop to the message thread and execute.
+    juce::MessageManager::callAsync([&]
+    {
+        OriginTagScope scope { OriginTag::MCP };  // <- crucial; see § migration plan above
+        executeToolBody(name, arguments);  // calls into WfsParameters / etc.
+    });
+
+    // 6. Wait for the message-thread call to complete (with a timeout).
+    //    JSON-RPC tool calls are synchronous from the AI client's view, so
+    //    we block this dispatcher worker thread until the message thread
+    //    has actually written the values.
+    if (! waitForCompletion(maxToolDuration))
+        return McpResult::error("tool_timeout", "");
+
+    // 7. Capture after-state and emit change record.
+    State after;
+    if (schema->modifiesState)
+    {
+        after = captureAffectedState(schema->affected_parameters, arguments);
+        ChangeRecord rec {
+            .timestamp = juce::Time::getCurrentTime(),
+            .toolName = name,
+            .arguments = arguments,
+            .operatorDescription = renderHumanDescription(name, arguments),
+            .affectedParameters = schema->affected_parameters,
+            .affectedGroups = schema->affected_groups,  // from generated JSON
+            .beforeState = before,
+            .afterState = after,
+            .origin = OriginTag::MCP
+        };
+        ringBuffer.push(rec);
+    }
+
+    // 8. Drain any pending cross-actor notifications for this client and
+    //    attach to the response.
+    auto notifications = drainPendingNotifications(clientId);
+
+    // 9. Return success ack with before/after diff for transparency.
+    return McpResult::ok(before, after, notifications);
+}
+```
+
+Tier 2's `tier2AwaitConfirmation` returns a structured response containing a confirmation token; the next call from the same client with `arguments["confirm"] == true` and the matching token executes for real. Tokens expire after 30 s.
+
+For the 12-column-layout CSVs (`WFS-UI_config.csv`, `WFS-UI_network.csv`) where the OSC-path column is absent, the dispatcher derives the OSC path from a per-CSV convention: `/wfs/config/<variable>` for config rows, `/wfs/network/<variable>` for network rows. Document any exceptions in the override file.
+
+## Build-system integration for the generator
+
+The main app uses Projucer-generated VS2022 / Xcode projects (not CMake); the plugin uses CMake. The generator script needs to fit both worlds without becoming a hard dependency for users who just want to build the binaries.
+
+**Recommended approach:**
+
+1. **Commit `generated_tools.json` to the repo.** Users who don't have Python installed can still build. The file is regenerated and re-committed when CSVs change.
+
+2. **Provide a pre-build hook for developers who do have Python.** In Projucer, the .jucer file's per-target "Pre-build commands" field runs the generator. On Windows: `python tools/generate_mcp_tools.py --csv-dir Documentation --output Source/Network/MCP/generated_tools.json`. The script's fast-path (hash inputs, skip if unchanged) keeps incremental builds fast.
+
+3. **CI regenerates and fails on diff.** A small CI job runs the generator and runs `git diff --exit-code` on `generated_tools.json`. If a contributor changed a CSV without regenerating, CI catches it.
+
+4. **For the plugin (CMake)**, currently no integration is required — the plugin doesn't consume the generated JSON. If that ever changes, hook the generator via `add_custom_command`.
+
+5. **JSON loading at runtime, not embedded.** Phase 1 loads `generated_tools.json` from disk relative to the application bundle. This allows hot-reload during development and keeps the binary smaller. The build copies the JSON into the app's resource folder as a regular asset.
+
+The implementer can deviate from this if there's a strong reason, but the principles to preserve are: (a) users without Python can still build; (b) developers can iterate on CSVs without manual regeneration steps; (c) CI catches drift.
+
+## AI-facing tool-call response schema
+
+The change-record format defined above (§ Action history and undo architecture) is internal — what the dispatcher emits to the ring buffer. The AI sees a different, smaller envelope. Concrete shapes:
+
+**Tier 1 success (state-modifying tool):**
+
+```json
+{
+  "result": "ok",
+  "operator_description": "Moved input 3 (Marie) to x=4.2, y=2.0, z=0.0",
+  "before": { "inputPositionX": 1.0, "inputPositionY": 2.0, "inputPositionZ": 0.0 },
+  "after":  { "inputPositionX": 4.2, "inputPositionY": 2.0, "inputPositionZ": 0.0 },
+  "duration_ms": 12
+}
+```
+
+**Tier 1 success (read-only tool):**
+
+```json
+{
+  "result": "ok",
+  "value": { ... tool-specific payload ... }
+}
+```
+
+**Tier 2 awaiting confirmation:**
+
+```json
+{
+  "awaiting_confirmation": true,
+  "summary": "Load snapshot 'act2_storm_climax'? This will replace the current state of 24 inputs.",
+  "confirmation_token": "tok_a8f31c...",
+  "expires_in_seconds": 30
+}
+```
+
+The AI's follow-up call passes the same arguments plus `"confirm": true` and `"confirmation_token": "tok_a8f31c..."`. Tokens are scoped per-tool-per-client; reusing a token for a different tool fails closed.
+
+**Tier 2 confirmed execution** uses the Tier 1 success shape. The change record stored internally still indicates Tier 2 was confirmed.
+
+**Tier 3 gate-closed refusal:**
+
+```json
+{
+  "refused": true,
+  "reason": "safety_gate_closed",
+  "operator_action_required": "Open the safety gate (UI button, MIDI note, or StreamDeck) before retrying.",
+  "tool": "snapshot.delete",
+  "tier": 3
+}
+```
+
+**Cross-actor notification** rides along the success envelope when the operator (or another actor) has touched parameters this AI client recently modified:
+
+```json
+{
+  "result": "ok",
+  "operator_description": "Set input 5 attenuation to -6 dB",
+  "before": {"inputAttenuation": 0.0},
+  "after":  {"inputAttenuation": -6.0},
+  "duration_ms": 8,
+  "notifications": [
+    "Operator reversed your earlier change at 20:14:32: input 3 position (you set x=4.0; current x=2.5)."
+  ]
+}
+```
+
+**Staleness refusal** when undoing an AI change whose target has been touched externally:
+
+```json
+{
+  "refused": true,
+  "reason": "stale_target",
+  "operator_action_required": "Decide whether to restore the previous value or keep the current one.",
+  "tool": "mcp.undo_last_ai_change",
+  "details": {
+    "parameter": "inputPositionX",
+    "channel_id": 3,
+    "ai_last_value": 4.0,
+    "current_value": 2.5,
+    "modified_by_origin": "UI"
+  }
+}
+```
+
+The AI's job on receiving any `refused: true` response is to surface the situation to the operator in plain language and let the operator decide. The server never silently retries.
+
 ## Library choices
 
 Optimize for **easiest to maintain over time**, since the MCP spec is going to keep evolving. Prefer small, permissively-licensed libraries that can be bumped with one CMake change rather than vendored-and-frozen.

@@ -29,6 +29,38 @@ Two companion documents are intentionally **not consumed by the generator** — 
 - `WFS-UI_arrayWizard.md` — Wizard of OutZ preset catalog and geometry-method formulas. The natural MCP tool here is `output.apply_array_preset(preset, geometry, target, acoustic_overrides)`, which composes ~12 underlying output parameters per speaker and is best written by hand against the preset table in that document.
 - `WFS-UI_plugins.md` — DAW plugin suite reference. The plugin paramIDs here duplicate paths already present in `WFS-UI_input.csv` (the plugin Track variants drive the same `/wfs/input/*` OSC surface); no separate MCP tools are needed.
 
+One additional file in `Documentation/` is **explicitly skipped** by the generator:
+
+- `OSC-Remote_InputParameterTab.csv` — the Android Remote's source of truth for `/remoteInput/*` paths. Those same paths are already documented in column 16 (`OSC remote path`) of `WFS-UI_input.csv`, and the AI client should not be sending them in any case — `/remoteInput/*` is meant for the Android Remote with its handshake-based bidirectional protocol, while AI clients use `/wfs/*` paths or, more commonly, internal parameter writes via the dispatcher. The generator must not pick up this file even if it lives next to the others; the build command's `--csv-dir` glob should select only files matching `WFS-UI_*.csv`.
+
+## CSV column-convention reference
+
+The seven WFS-UI CSVs use three different column layouts. The generator must accept all three.
+
+| File | Columns | Notable differences |
+|---|---|---|
+| `WFS-UI_config.csv` | 12 | Compact layout: no Formula column, no OSC-path column, no Keyboard-shortcuts column. Matches `WFS-UI_network.csv`. |
+| `WFS-UI_network.csv` | 12 | Same compact layout as `WFS-UI_config.csv`. |
+| `WFS-UI_audioPatch.csv` | 17 | Standard layout shared with output / reverb / clusters. |
+| `WFS-UI_output.csv` | 17 | Standard layout. |
+| `WFS-UI_reverb.csv` | 17 | Standard layout. |
+| `WFS-UI_clusters.csv` | 17 | Standard layout. |
+| `WFS-UI_input.csv` | 18 | Standard layout plus two extra columns: `OSC inc/dec` (column 14) and `OSC path optional value` (column 15). |
+
+The 12-column header order:
+
+`Section, Label, Variable, UI, Type, Min, Max, Default, Unit, enum, Notes, Hover help text in the status bar`
+
+The 17-column header order:
+
+`Section, Label, Variable, UI, Type, Min, Max, Default, Formula for UI elements (x from 0.0 to 1.0), Unit, enum, Notes, Array value, OSC path, OSC remote path, Hover help text in the status bar, Keyboard shortcuts`
+
+The 18-column header (input only) inserts after column 13:
+
+`..., Notes, OSC path, OSC "inc" or "dec" before value to increment of decrement, OSC path optional value, OSC remote path, ...`
+
+The generator should detect the column count from the header row and dispatch to the appropriate column-index map. Do not hardcode column indices.
+
 Plus two override files, also committed to the repo:
 
 - `tool_tier_overrides.json` — per-parameter tier overrides (when the heuristic default is wrong).
@@ -242,3 +274,251 @@ python3 tools/generate_mcp_tools.py \
 If the output file is already up-to-date, the script should exit quickly (fast-path: hash the inputs, compare to the hash in the existing output, skip if unchanged).
 
 The build step depends on this output; the C++ code includes it at compile time (via resource embedding) or loads it at runtime. Both are acceptable — runtime loading allows hot-reload during development.
+
+## Appendix — Golden output examples
+
+Five worked examples covering the patterns the generator must handle correctly. Use these as golden-file fixtures for unit tests.
+
+### A. Plain float per-channel parameter
+
+**CSV row** (from `WFS-UI_input.csv`, 18 columns; only relevant cells shown):
+
+```
+Section: Attenuation
+Label: Attenuation
+Variable: inputAttenuation
+UI: H Slider
+Type: FLOAT
+Min: -92.0
+Max: 0.0
+Default: 0.0
+Formula: 20*log10(...)
+Unit: dB
+OSC path: /wfs/input/attenuation
+OSC inc/dec: y
+Hover: Input Channel Attenuation.
+```
+
+**Expected JSON output**:
+
+```json
+{
+  "name": "input.set_attenuation",
+  "description": "Sets the attenuation (level) of an input source. Value in dB. Negative values reduce the level; 0 is unity. Use get_session_state() first if unsure which inputs exist.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "input_id":  {"type": "integer", "minimum": 1, "maximum": 64,
+                    "description": "Input channel number (1-based)."},
+      "value":     {"type": "number",  "minimum": -92.0, "maximum": 0.0,
+                    "description": "Attenuation in dB."},
+      "transition_seconds": {"type": "number", "minimum": 0.0, "maximum": 600.0,
+                             "default": 0.0,
+                             "description": "Time to transition to the new value. 0 means instant."}
+    },
+    "required": ["input_id", "value"]
+  },
+  "tier": 2,
+  "internal_osc_path": "/wfs/input/attenuation",
+  "internal_variable": "inputAttenuation",
+  "csv_section": "Attenuation",
+  "group_key": "input_attenuation",
+  "supports_relative": true,
+  "relative_tool_name": "input.nudge_attenuation"
+}
+```
+
+(`tier: 2` because of the override on `inputAttenuation` — wide dB range can produce sudden loud output.)
+
+### B. Per-channel + per-band parameter using the `<band>` placeholder
+
+**CSV row** (from `WFS-UI_output.csv`, 17 columns):
+
+```
+Section: EQ
+Label: EQ Frequency
+Variable: outputEQfreq<band>
+UI: H slider
+Type: INT
+Min: 20
+Max: 20000
+Default: 80 / 250 / 1000 / 4000 / 8000 / 12000
+Formula: 20*pow(10,3*x)
+Unit: Hz
+Notes: For each of 6 EQ bands. Defaults per band: 80 / 250 / 1000 / 4000 / 8000 / 12000 Hz...
+OSC path: /wfs/output/Eqfreq <ID> <band> <value>
+```
+
+**Expected JSON output** (the generator must NOT expand `<band>` into 6 distinct tools — it emits one tool whose schema accepts `band`):
+
+```json
+{
+  "name": "output.eq.set_frequency",
+  "description": "Sets the center frequency of one EQ band on an output channel. Logarithmic frequency mapping. Default frequencies per band: 80 / 250 / 1000 / 4000 / 8000 / 12000 Hz.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "output_id": {"type": "integer", "minimum": 1, "maximum": 64,
+                    "description": "Output channel number (1-based)."},
+      "band":      {"type": "integer", "minimum": 1, "maximum": 6,
+                    "description": "EQ band number (1-6)."},
+      "value":     {"type": "integer", "minimum": 20, "maximum": 20000,
+                    "description": "Frequency in Hz."}
+    },
+    "required": ["output_id", "band", "value"]
+  },
+  "tier": 1,
+  "internal_osc_path": "/wfs/output/Eqfreq",
+  "internal_variable": "outputEQfreq",
+  "csv_section": "EQ",
+  "group_key": "output_eq",
+  "supports_relative": false
+}
+```
+
+### C. Sub-indexed array-family parameter (numeric suffix in Variable)
+
+**CSV row** (from `WFS-UI_input.csv`, one of `inputArrayAtten1` … `inputArrayAtten10`):
+
+```
+Section: Array Attenuation
+Label: Array 1 Attenuation
+Variable: inputArrayAtten1
+UI: Dial
+Type: FLOAT
+Min: -60.0
+Max: 0.0
+Default: 0.0
+Unit: dB
+Notes: Dimmed if no outputs assigned to Array 1
+OSC path: /wfs/input/arrayAtten1 <ID> <value>
+```
+
+**Expected JSON output** (the generator emits ONE tool that takes an `array` argument, NOT 10 separate tools):
+
+```json
+{
+  "name": "input.set_array_attenuation",
+  "description": "Sets the per-array attenuation override on an input — additional level reduction applied only to the speakers belonging to a specific output array (1-10). Useful for muting an input's contribution to a specific zone (e.g., a side fill) without touching the rest of the routing.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "input_id":  {"type": "integer", "minimum": 1, "maximum": 64,
+                    "description": "Input channel number (1-based)."},
+      "array":     {"type": "integer", "minimum": 1, "maximum": 10,
+                    "description": "Output array number (1-10)."},
+      "value":     {"type": "number",  "minimum": -60.0, "maximum": 0.0,
+                    "description": "Attenuation in dB."}
+    },
+    "required": ["input_id", "array", "value"]
+  },
+  "tier": 2,
+  "internal_osc_path_template": "/wfs/input/arrayAtten{array}",
+  "internal_variable_template": "inputArrayAtten{array}",
+  "csv_section": "Array Attenuation",
+  "group_key": "input_array_attenuation",
+  "supports_relative": false
+}
+```
+
+The override `"inputArrayAtten*": 2` in `tool_tier_overrides.json` covers all 10 underlying paramIDs with one entry. The internal-OSC-path and internal-variable fields use a template form because the actual OSC path / paramID depends on the `array` argument.
+
+### D. Enum-typed parameter with non-sequential stored IDs
+
+**CSV row** (from `WFS-UI_output.csv`, the EQ Shape row):
+
+```
+Section: EQ
+Label: EQ Shape
+Variable: outputEQshape<band>
+UI: Drop down menu
+Type: INT
+Min: 1
+Max: 7
+enum: Low Cut (1) ; Low Shelf (2) ; Peak/Notch (3) ; Band Pass (4) ; High Shelf (5) ; High Cut (6) ; All Pass (7)
+OSC path: /wfs/output/EQshape <ID> <band> <value>
+```
+
+**Expected JSON output** (note the non-sequential mapping — All Pass has stored ID 7 even though it appears 7th in the visual order):
+
+```json
+{
+  "name": "output.eq.set_shape",
+  "description": "Sets the filter shape of one EQ band on an output channel. Stored IDs are not sequential: BandPass=4, HighShelf=5, HighCut=6, AllPass=7. The OFF state is handled by a separate band-toggle tool, not by an enum value.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "output_id": {"type": "integer", "minimum": 1, "maximum": 64,
+                    "description": "Output channel number (1-based)."},
+      "band":      {"type": "integer", "minimum": 1, "maximum": 6,
+                    "description": "EQ band number (1-6)."},
+      "shape":     {"type": "string",
+                    "enum": ["LowCut", "LowShelf", "Peak", "BandPass",
+                             "HighShelf", "HighCut", "AllPass"],
+                    "description": "Filter shape. The C++ side maps these strings to stored IDs 1, 2, 3, 4, 5, 6, 7 respectively."}
+    },
+    "required": ["output_id", "band", "shape"]
+  },
+  "tier": 1,
+  "internal_osc_path": "/wfs/output/EQshape",
+  "internal_variable": "outputEQshape",
+  "enum_string_to_int": {
+    "LowCut": 1, "LowShelf": 2, "Peak": 3,
+    "BandPass": 4, "HighShelf": 5, "HighCut": 6, "AllPass": 7
+  },
+  "csv_section": "EQ",
+  "group_key": "output_eq",
+  "supports_relative": false
+}
+```
+
+The generator emits string-enum schemas (so the AI sees and speaks semantic values like `"BandPass"`) plus an `enum_string_to_int` map the C++ dispatcher uses to translate to the stored integer.
+
+### E. 12-column-layout row (no Formula, no OSC-path column)
+
+**CSV row** (from `WFS-UI_network.csv`, 12 columns):
+
+```
+Section: Network
+Label: Target/Server Protocol
+Variable: networkTSProtocol
+UI: drop down menu
+Type: INT
+Min: 0
+Max: 7
+Default: 0
+enum: DISABLED ; OSC ; Remote ; ADM-OSC ; QLab
+Notes: For each target/server (up to 6 targets/servers). Stored values: 0=DISABLED, 1=OSC, 2=Remote, 3=ADM-OSC, 7=QLab (4-6 reserved).
+Hover: Select the Protocol: DISABLED, OSC, REMOTE, or ADM-OSC.
+```
+
+**Expected JSON output** (the generator constructs the OSC path from convention since the 12-column layout doesn't carry one explicitly — `/wfs/config/network/<variable>` for config CSV, `/wfs/network/<variable>` for network CSV):
+
+```json
+{
+  "name": "network.target.set_protocol",
+  "description": "Sets the protocol for a network target. Each WFS-DIY install supports up to 6 target/server slots. Stored values are non-sequential: DISABLED=0, OSC=1, Remote=2, ADM-OSC=3, QLab=7 (slots 4-6 are reserved for future protocols).",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "target_index": {"type": "integer", "minimum": 1, "maximum": 6,
+                       "description": "Network target slot (1-6)."},
+      "protocol":     {"type": "string",
+                       "enum": ["DISABLED", "OSC", "Remote", "ADM-OSC", "QLab"],
+                       "description": "Protocol to use for this target."}
+    },
+    "required": ["target_index", "protocol"]
+  },
+  "tier": 2,
+  "internal_osc_path": "/wfs/network/targetProtocol",
+  "internal_variable": "networkTSProtocol",
+  "enum_string_to_int": {
+    "DISABLED": 0, "OSC": 1, "Remote": 2, "ADM-OSC": 3, "QLab": 7
+  },
+  "csv_section": "Network",
+  "group_key": "network_target",
+  "supports_relative": false
+}
+```
+
+The 12-column layout's lack of an explicit OSC-path column means the generator derives the path from a per-CSV convention; document the chosen convention in `MCP_SERVER_DESIGN.md` § Dispatcher pattern so the C++ side stays consistent.

@@ -165,6 +165,8 @@ resources/
   knowledge_signal_flow.md
   knowledge_session_concepts.md
   knowledge_tracking.md
+  knowledge_help_cards.md       (mirror of Documentation/helpCards.md)
+  knowledge_glossary.md
 prompts/
   MCP_PROMPTS.md               workflow template specifications
 ```
