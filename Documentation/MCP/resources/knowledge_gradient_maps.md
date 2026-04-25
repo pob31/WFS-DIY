@@ -1,49 +1,44 @@
-# Level Maps and Gradient Maps
+# Gradient Maps
 
-Level maps allow parameters to be modulated automatically based on a source's position on stage. WFS-DIY supports three maps per input: **level** (audio attenuation), **height** (vertical position modulation), and **HF damping**. This document covers what they do and how to use them.
+Gradient maps allow parameters to be modulated automatically based on a source's position on stage. WFS-DIY supports three maps per input: **level** (audio attenuation), **height** (vertical position modulation), and **HF damping**. This document covers what they do and how to use them.
 
 ## The concept
 
-A level map is an image or gradient painted in a 2D coordinate frame matching the stage. As a source moves through the stage, its x and y coordinates are used to look up a value in the map, and that value is combined with the source's other parameters.
+A gradient map is an image or gradient painted in a 2D coordinate frame matching the stage. As a source moves through the stage, its x and y coordinates are used to look up a value in the map, and that value is combined with the source's other parameters.
 
-The image can be:
-
-- A monochrome gradient (light to dark = parameter value high to low).
-- A color image (RGB combined into a grayscale value).
-- An inverted image (for negative maps).
-- A shape composed from primitives (rectangles, ellipses, etc.) built in the gradient map editor.
+The shapes are drawn directly in the app for ease of use. The user can make rectangles, elipses and polygons, fill them with a grey level or a greyscale gradient (linear or radial). The shapes can be dragged, scaled and rotated. Their points can be edited individually. A point can be deleted by double clicking on it. New point can be added to existing segments by double clicking on the segment. Gradients can be stretched or contracted and their orientation can be adjusted.
 
 Each input has its own set of maps; they are per-source, not global.
 
-## The three maps
+## The three maps or layers
 
-### Level map
+### Level layer
 
 Modulates **audio level** based on position.
 
-- **White = no attenuation (0 dB).**
-- **Black = full attenuation (-∞ dB, effectively muted).**
+White and Black attenuation can be adjusted for the input's layer.
+Defaults:
+- **White = full attenuation (-∞ dB, effectively muted).**
+- **Black = no attenuation (0 dB).**
 - Gradients between white and black produce proportional attenuation.
 
 Applied as an additional attenuation on top of the normal distance-based level calculation.
 
-### Height map
+### Height layer
 
 Modulates **effective height** based on position.
 
 Two modes:
 
-- **"0m to Stage Height"**: black = floor, white = full stage height. Useful for matching set geometry — stairs, platforms, raised sections.
-- **"−Stage Height to +Stage Height"**: gray = no offset, white = upward, black = downward. Useful for creative effects where sources drift above or below the physical stage.
+White and black can each be set to their respective heights.
 
 The height value is combined with the source's manual height setting.
 
-### HF damping map
+### HF damping layer
 
 Modulates **high-frequency attenuation** based on position.
 
-- White = no attenuation.
-- Black = full attenuation (up to the configured maximum, default -6 dB).
+White and black can each be set to their respective HF attenuations.
 
 Combined with the source's inherent HF shelf and the output-level HF damping calculation.
 
@@ -105,4 +100,4 @@ Maps are evaluated in addition to all other position-affecting features:
 - **LFO and Jitter** add periodic or random movement; maps apply based on the instantaneous position including those modulations.
 - **Move commands** (one-shot trajectories) also update the position in real time; maps follow.
 
-This means level maps can be used alongside tracking: e.g., actor is tracked, level map mutes the mic when they step off-stage.
+This means gradient maps can be used alongside tracking: e.g., actor is tracked, level map mutes the mic when they step off-stage.

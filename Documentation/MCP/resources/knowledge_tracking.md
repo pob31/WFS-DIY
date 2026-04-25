@@ -10,7 +10,7 @@ Without tracking, the operator has these options:
 
 - **Static positions**, with the source's audio location fixed regardless of where the performer goes — visual/auditory mismatch when they move.
 - **Pre-programmed Moves** triggered at cues — works if movement is choreographed and reliable, fragile if it isn't.
-- **Manual control** via Lemur, Streamdeck, or similar — depends on operator focus and reaction time.
+- **Manual control** via Android application, SpaceMouse, or similar — depends on operator focus and reaction time.
 
 Tracking adds a fourth option: positions are continuously updated from sensor data, and the WFS algorithm renders them in real time.
 
@@ -26,7 +26,7 @@ Several physical tracking technologies feed position data into WFS-DIY:
 
 **IR-LED systems** — performers wear infrared LEDs picked up by IR-sensitive cameras. Good precision for stage applications. Examples: BlackTrax, custom rigs.
 
-**3D cameras** (depth sensors) — Kinect-style depth + RGB systems. Limited range and precision but easy to deploy.
+**3D cameras** (depth sensors) — Kinect-style depth + RGB systems. Limited range and precision but easy to deploy. Robosense AC1 is a promising device.
 
 The choice depends on venue acoustics (UWB is RF-quiet but susceptible to body blockage), lighting (vision systems need controlled light), occlusion (LiDAR sees through some occlusion that cameras don't), and budget.
 

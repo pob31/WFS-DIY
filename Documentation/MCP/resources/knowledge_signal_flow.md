@@ -8,16 +8,14 @@ WFS belongs to the family of object-oriented spatial audio: each sound is treate
 Live mics + DI    ┐
                   ├──→ Console ──→ direct outs post-fader ──→ WFS Inputs
 Recorded sources  ┘                                          ↓
-                                                         WFS algorithm
-                                                          ↓        ↓
-Show control (QLab,                              Outputs       Reverb sends
-Streamdeck, scripts) ──→ OSC commands ──→ WFS                       ↓
-                                              ↑                   external or
-                                              │                   internal reverb
-                                              │                       ↓
-                                              ←─── Reverb returns ────┘
+                                                         WFS algorithm ──→ Outputs ──→ console / amps ──→ speakers
+                                                          ↓     ↑
+                                                   Reverb feeds Reverb returns
+                                                          ↓     ↑
+                                                  Built-in reverb engine
+                                                  (SDN / FDN / IR + pre & post processing)
 
-WFS Outputs ──→ console (or direct) ──→ amplifiers ──→ speaker arrays
+Show control (QLab, Streamdeck, scripts, AI, plug-ins) ──→ OSC ──→ WFS
 ```
 
 ## Inputs
@@ -48,7 +46,7 @@ The processor doesn't mix in the conventional sense. For each input, for each ou
 
 These per-input-per-output values are summed at each output to produce the speaker feed. The whole computation happens continuously — every position change updates the parameters that drive each output's signal.
 
-Reverb feeds receive the same kind of computation as outputs, but instead of going to a speaker, they go to a reverb processor. Reverb returns come back as additional inputs and are processed by the same algorithm to be diffused through the array.
+Reverb feeds receive the same kind of computation as outputs, but instead of going to a speaker they go to the built-in reverb engine. Reverb returns come back through the same algorithm to be diffused through the array — they are positioned just like virtual sources, so the wet signal radiates from chosen points in the venue rather than emerging from arbitrary speakers. Conceptual coverage of *why* and the algorithm trade-offs lives in `knowledge_reverb_in_wfs.md`; this document only describes where the audio actually goes.
 
 ## Outputs
 
@@ -60,13 +58,54 @@ Speaker feeds leave the WFS processor as audio channels. From there:
 
 ## Reverb routing
 
-Two reverb modes:
+The reverb engine is built into the WFS processor. It runs entirely in-process, with no audio-interface I/O consumed and no external plug-in hosting involved. An external loop is still possible for users who prefer their own hardware or DSP — see the *External reverb* section below — but the integrated engine is the default and what everything else in this documentation refers to.
 
-**External processing**: feeds leave the WFS processor through audio outputs, get processed by an external reverb (console internal effects, outboard hardware, or a multi-effects host), and return through audio inputs back into the WFS processor as reverb returns. Each reverb channel uses one audio output and one audio input.
+### The integrated chain
 
-**Internal plug-in hosting**: reverb feeds are routed to mono VST or AU plug-ins loaded inside the WFS processor itself. No audio interface channels consumed. Adds CPU load.
+For each reverb channel the engine maintains an independent processing node. Audio reaches the engine via per-node lock-free ring buffers fed from the audio callback, and leaves via matching output ring buffers consumed back by the callback.
 
-Future development may include built-in convolution and algorithmic reverb engines, eliminating the need for external processors entirely.
+The chain, in order, is:
+
+1. **Reverb feeds in** — for every reverb node, the WFSCalculationEngine computes per-input feed delay, level, and high-frequency attenuation (the same calculation it does for outputs, just with the reverb's *feed position* in place of a speaker position). The N inputs are summed into the corresponding node's input bus. Per-input *Mute Reverb Sends* zeros that input's contribution to all reverb feeds.
+
+2. **Pre-EQ — per-channel, four bands.** Each reverb node has its own four-band parametric EQ (LowCut / LowShelf / Peak / HighShelf / HighCut, with the OFF state handled by a separate band toggle). Useful for sculpting what each reverb "hears" — for example rolling off bass on a hall reverb but keeping it on a floor reverb.
+
+3. **Pre-compressor — global, per-node envelope.** A single set of threshold / ratio / attack / release applies to every reverb node, but each node tracks its own RMS envelope so a loud event on one input doesn't pump the others. Feed-forward, hard-knee. The post-EQ RMS at this point is also captured per node as a sidechain key for the post-expander further down the chain.
+
+4. **Algorithm stage.** One of three globally selected algorithms runs on every node:
+    - **SDN** — N nodes coupled via N×(N−1) inter-node delay paths, geometry-driven, Householder scattering, three-band crossover decay per path, two-stage allpass diffusion.
+    - **FDN** — 16 co-prime delay lines per node with a Walsh-Hadamard mixing matrix, three-band decay per line, four-stage input diffusion, an allpass in the feedback path. Nodes are independent.
+    - **IR** — partitioned convolution per node (`juce::dsp::Convolution`). Either a shared IR or one IR per node (Per-node IR toggle), with file-level trim and length controls applied to the cached buffer.
+
+   The detailed properties of each algorithm are described in `knowledge_reverb_in_wfs.md`. Switching between algorithms triggers a fade-out → swap → fade-in crossfade of about 50 ms in each direction so swaps mid-show are click-free.
+
+5. **Post-EQ — global, four bands.** Same topology as the pre-EQ, applied uniformly to every node's wet output (a single set of coefficients shared across nodes, with independent filter state per node).
+
+6. **Post-expander — global, sidechain-keyed.** A downward expander whose key signal is the per-node sidechain captured in step 3. When the dry source goes quiet, the wet tail is pulled down so the reverb doesn't bloom alone in pauses. Per-node envelope state, block-rate gain.
+
+7. **Wet level.** A single dB scalar applied uniformly to every node before the engine returns audio to the audio callback.
+
+8. **Reverb returns out — back to outputs.** For every reverb node and every output speaker, the WFSCalculationEngine computes a return delay, level, and HF attenuation based on the reverb's *return position* and the speaker's location. The wet output is then mixed into each speaker's bus exactly like an additional virtual source. Per-reverb-per-output mute is supported via the `reverbMutes` array.
+
+### Tab-level controls that affect the chain
+
+Three header buttons on the Reverb tab tap directly into the engine:
+
+- **Solo Reverbs** — long-press to toggle. Mutes the dry path on outputs, leaving only the wet returns.
+- **Mute Pre** — long-press to toggle. Zeros the algorithm input, so existing tails decay naturally but no new excitation enters.
+- **Mute Post** — long-press to toggle. Zeros the wet output before the return-routing matrix, so the algorithm keeps running but produces silence at the speakers.
+
+These three are mutually exclusive (engaging one releases the others).
+
+### Parallelization and block latency
+
+The engine processes audio in fixed 256-sample internal blocks (~5 ms at 48 kHz) regardless of the host's block size. Within each block, per-node work is dispatched across a fork-join thread pool (`AudioParallelFor`) sized at `min(hardware_concurrency − 2, numNodes − 1)`, capped at seven workers, with the main thread participating.
+
+FDN and IR parallelize trivially — each node is independent. SDN cannot do that because every node writes into delay paths read by every other node, so it uses a snapshot scheme: each block freezes a `readBasePos` at the start, all nodes read from that snapshot, and write positions advance once after the parallel section completes. The cost is roughly one block of additional latency on the shortest inter-node paths — about 5 ms at 48 kHz — which is acceptable for reverb where end-to-end latency is dominated by delay-line lengths anyway.
+
+### External reverb (still supported)
+
+If a venue prefers to use a console's built-in effect, an outboard reverb, or a third-party plug-in host, the same routing pattern still works: send audio through a regular WFS output, process it externally, and bring the wet signal back in through a regular WFS input that's positioned where the return should appear. This consumes audio-interface channels and adds the round-trip latency of the external path, but lets users keep workflow they already know. The internal engine is then bypassed for that channel by setting its wet level to off or by routing its feeds elsewhere.
 
 ## Control flow
 
@@ -96,11 +135,11 @@ The processor's CPU cost scales with:
 
 - **Number of inputs** (each one is processed for every output).
 - **Number of outputs**.
-- **Number of reverb channels** (each functions like an additional input + output).
+- **Number of reverb channels** (each functions like an additional input + output for the routing matrix, plus its own algorithm node inside the reverb engine).
 - **Sample rate**.
 - **Floor reflections** — roughly doubles the per-input load for inputs that have them enabled.
 - **Live source damping** — small per-input cost.
-- **Internal reverb plug-ins** — variable based on plug-in.
+- **Reverb engine** — algorithm-dependent. **FDN** and **IR** scale linearly with the number of reverb nodes (independent per node, parallel-safe). **SDN** scales with N×(N−1) inter-node paths plus per-path decay filtering, so its cost rises faster than the others as reverb-channel count goes up. IR cost depends additionally on convolution length and on whether per-node distinct IRs are enabled.
 
 A high-frequency CPU with many cores and large cache provides the most headroom. Mid-range CPUs handle moderate channel counts (24 in × 24 out × 6 reverb at 48 kHz, for example) without difficulty.
 
@@ -111,7 +150,8 @@ The total system latency includes:
 - Console processing latency (varies by console; typically 1-3 ms).
 - Audio interface latency (varies; PCIe/Thunderbolt sub-ms, USB usually 5-10 ms).
 - WFS processor's signal vector size (determines per-block latency).
-- Reverb processing if external.
+- Internal reverb engine — runs in fixed 256-sample blocks (~5 ms at 48 kHz) and adds roughly one block of additional latency on the **SDN** path because of the snapshot-based parallel-read scheme. **FDN** and **IR** add no extra block latency beyond the engine's processing block size.
+- External reverb processing, when used in place of the internal engine — the round-trip out and back through the audio interface and the external processor.
 
 The **system latency** parameter in WFS-DIY's master section is added to all delay calculations so that the algorithm can compensate. The **Haas effect** parameter adds an additional global delay specifically to ensure amplified sound arrives after acoustic sound, taking advantage of the precedence effect.
 

@@ -8,18 +8,18 @@ Each show or installation lives in its own folder on disk. When starting a sessi
 
 - **Creates a new folder** for a new project.
 - **Navigates to an existing folder** to reload a previous project.
-
-Inside the folder are several XML files (one per major section) and sub-directories for audio samples and reverb impulse responses. The structure means a session can be moved, backed up, archived, or version-controlled as a single coherent unit.
+- **Double clicks on the file with the .wfs extension** which starts the application, assigns the work folder and reloads the initial state from the project folder.
+ 
+Inside the folder are several XML files (one per major section) and sub-directories for snapshots, backup files, audio samples and reverb impulse responses. The structure means a session can be moved, backed up, archived, or version-controlled as a single coherent unit.
 
 ## Section files
 
 The session is divided into separate sections, each with its own file:
 
-- **System configuration** — channel counts, master level, system latency, Haas effect, multithread settings.
-- **Stage** — dimensions, origin point, speed of sound / temperature, allowed flip axes.
-- **Network** — interface selection, ports, target/server definitions, OSCQuery, tracking protocol setup.
+- **System configuration** — channel counts, master level, system latency, Haas effect, multithread settings, stage dimensions, origin point, speed of sound / temperature, hardware controlers, sampler master toggle, audio interface and patch, binaural renderer parameters.
+- **Network** — interface selection, ports, target/server definitions, OSCQuery, tracking protocol setup, ADM-OSC mappings.
 - **Outputs** — every speaker's position, orientation, group assignment, EQ, parallax, attenuation settings.
-- **Reverbs** — feed and return channels with their positions and processing settings.
+- **Reverbs** — feed and return channels with their positions and pre- and post-processing settings, algorithm settings.
 - **Inputs** — every input channel's parameters (position, attenuation, directivity, LFO state, maps, tracking assignment, cluster, mute matrix).
 
 Each section can be:
@@ -35,11 +35,9 @@ Cross-project import lets you reuse, for example, the same speaker configuration
 
 Every change triggers an autosave one second after the last modification. The previous state is kept as a backup, accessible via "Reload Backup" buttons in each section.
 
-The autosave mechanism can be disabled globally if it's interfering (rare).
-
 ## Snapshots
 
-Snapshots store **input state** at a moment in time — positions, attenuations, LFO states, mute states, etc., for all 64 inputs. They are intended for cue-based recall during a performance: the show progresses through scenes, and each scene loads a different snapshot.
+Snapshots store **input state** at a moment in time — positions, attenuations, LFO states, mute states, etc., for all inputs. They are intended for cue-based recall during a performance: the show progresses through scenes, and each scene loads a different snapshot.
 
 Snapshots are stored as separate files in the project folder, with names beginning with `snapshot_` followed by a descriptive name or a timestamp.
 
@@ -47,6 +45,7 @@ Operations:
 
 - **Store new** — creates a new snapshot file with the current input state, timestamped by default.
 - **Recall (load)** — loads a snapshot into the current input state, applying scope filtering (see below).
+- **Recall without filter** — loads a snapshot into the current input state not taking into account the filter (if the snapshot was created with a filter).
 - **Update** — overwrites an existing snapshot with the current state.
 - **Delete** — removes a snapshot file.
 - **Edit scope** — opens the scope window for the selected snapshot (see below).
@@ -69,18 +68,15 @@ Use cases:
 - **Layered scenes** — a base snapshot for overall scene state, plus delta snapshots that adjust specific elements without resetting everything.
 
 Scope is stored per-snapshot, so different snapshots can affect different parameter sets.
-
-## Locking
-
-The **Lock** button disables saving and recalling from the interface, while still allowing the system to operate. This is typically engaged once a show is set and rehearsed, to prevent accidental overwrites or unintended snapshot loads during a run.
-
-OSC-driven operations may or may not respect the lock, depending on how the show is set up — generally, scripted recalls from show control should still work even when the UI is locked, but operator-initiated changes should not.
+The scope can be applied whhen saving the snapshot. This creates a small file. Alternatively the scope can be recorded as a filter and all parameters are saved. This is useful if at some point the complete set of parameters should be loaded without the scope filter. In either case if a QLab client exists in the network table a network cue to recall a snapshot can be created in the selected cuelist.
+If a QLab client exists in the network table, then a third option becomes available to record the snapshot as a series of cues in a playlist cue in the selected cuelist.
+In QLab there should be a network patch pointing back to the WFS processor and all operations should be allowed without password.
 
 ## Sample and impulse response files
 
 In addition to the parameter XML files, the project folder contains:
 
-- **Audio samples** — for the sampler feature, accessible via touch surfaces (Roli Lightpad, Android multi-touch).
+- **Audio samples** — for the sampler feature, accessible via touch surfaces (Roli Lightpad, Android multi-touch tablet app).
 - **Impulse responses** — for the convolution reverb engine.
 
 These are stored in sub-directories of the project folder so they travel with the project.

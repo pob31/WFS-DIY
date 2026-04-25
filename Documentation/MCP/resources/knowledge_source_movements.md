@@ -8,13 +8,11 @@ Every source position is the sum of contributions from four independent layers:
 
 1. **Base position** — set manually, by tracking, or by a Lemur/remote marker.
 2. **Offset** — a constant shift applied to the base, with optional rotation and scaling.
-3. **Move** — a one-shot trajectory from the current position to a target, over a defined time.
+3. **AutomOtion** — a one-shot trajectory from the current position to a target, over a defined time that can also be trigger by sound level.
 4. **Jitter** — a fast random micro-movement around the current position.
 5. **LFO** — a periodic oscillation (sine, square, etc.) on each axis.
 
 (Maps don't directly modulate position — they modulate level, height, and HF damping based on position. See the level maps document.)
-
-The displayed "current position" reflects all of these contributions combined.
 
 ## Offset
 
@@ -22,24 +20,21 @@ An offset is a fixed shift applied to a source's base position. Unlike a base po
 
 Use cases:
 
-- **Linked sources with maintained spacing.** Two singers controlled by the same Lemur marker — apply opposite-sign x offsets so they move together but stay 1.5 m apart.
+- **Adjust position of tracked/AutomOtion inputs** When an input position is controled by tracking or has a movement given by AutmOtion then interacting will adjust the offset since the position is constantly updated.
 - **Per-source fine adjustment** without changing the marker position that other sources may share.
 - **Symmetric pairs** — apply offsets that mirror each other across the stage center.
 
-The offset has additional **rotate** and **scale** transforms that affect groups of linked sources together. For example, scaling the offsets of a cluster lets the whole group expand or contract while staying centered on a common anchor. Rotation lets a cluster spin around its anchor.
+## AutomOtion (one-shot or sound level triggered trajectory)
 
-The "Apply to group" and "Apply and Reset" buttons let you commit transforms to the underlying offset values (locking in the current rotated/scaled state) so that further changes start from the new baseline.
-
-## Move (one-shot trajectory)
-
-A Move is a single trajectory from the current position to a target, over a defined time. Once started, the source moves smoothly to the target and stays there.
+AutomOtion controls a single trajectory from the current position to a target, over a defined time. Once started, the source moves smoothly to the target and stays there or returns to the initial position.
 
 Parameters:
 
 - **Time** — duration in seconds.
-- **Relative or absolute** — when relative, the target X/Y/Z are deltas from the current position; when absolute, they are coordinates relative to the stage origin.
+- **Relative or absolute** — when relative, the target coordinates are deltas from the current position; when absolute, they are coordinates relative to the stage origin. The coordinate system can be selected. Cylindrical and Spherical coordinates can induce spiraling movements.
+- **Stay or return** - at the end of the movement keeps the source in the final position or returns to the initial position
 - **Curve** — bend the trajectory upstage (positive) or downstage (negative). Zero means a straight line.
-- **Acceleration profile** — interpolated between **line** (constant speed; sudden start and stop with associated Doppler) and **sine** (smooth start and stop, but higher peak speed). Most material benefits from values between the two extremes.
+- **Acceleration profile** — interpolated between **line** (constant speed; sudden start and stop with associated brisk Doppler shift) and **sine** (smooth start and stop, but higher peak speed that gives smooths Doppler shifts along the trajectory). Most material benefits from values between the two extremes.
 
 Controls:
 
@@ -47,9 +42,7 @@ Controls:
 - **STOP** — halt it where it currently is.
 - **PAUSE** — pause at the current position; resume on next GO.
 
-Move is appropriate for scripted, deterministic motion — a source crossing the stage during a specific cue, an entrance from offstage, a spiral approach for a dramatic moment. Show control software (QLab, Bitfocus Companion driving a StreamDeck, etc.) typically triggers Moves at the appropriate cues.
-
-The **global movement speed** joystick scales all currently-running Moves uniformly. Useful for live tempo adjustments — speeding up or slowing down a sequence of cued movements without re-cueing them. Returns to 100% automatically when all moves complete.
+AutomOtion is appropriate for scripted, deterministic motion — a source crossing the stage during a specific cue, an entrance from offstage, a spiral approach for a dramatic moment. Show control software (QLab, Bitfocus Companion driving a StreamDeck, etc.) typically triggers Moves at the appropriate cues.
 
 **STOP ALL** and **PAUSE ALL** affect every running Move at once.
 
@@ -96,7 +89,7 @@ LFOs are ideal for:
 
 | If you want... | Use... |
 |---|---|
-| One-shot motion to a target | Move |
+| One-shot motion to a target | AutomOtion |
 | Continuous repeating motion | LFO |
 | Tiny natural-feeling instability | Jitter |
 | Constant offset from a marker position | Offset |

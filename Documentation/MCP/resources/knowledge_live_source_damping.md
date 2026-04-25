@@ -1,4 +1,4 @@
-# Live Source Damping — Reducing Amplification Near Loud Sources
+# Live Source Damping or Live Source Taming — Reducing Amplification Near Loud Sources
 
 Live source damping is a per-source feature that reduces the contribution of an input to the speakers physically close to it. This document explains when to use it and how its parameters work.
 
@@ -18,7 +18,7 @@ When live source damping is active on an input, and a speaker is within a config
 
 Four parameters control the damping:
 
-**Radius** — the distance out to which attenuation is applied. Beyond the radius, no attenuation. Default 1.5 m.
+**Radius** — the distance out to which attenuation is applied. Beyond the radius, no attenuation. Default 3.0 m.
 
 **Fixed attenuation** — the maximum attenuation applied when the source is exactly at the speaker's position. Typical values 3 to 12 dB. The speaker's directivity model may also attenuate the source when it's very close.
 

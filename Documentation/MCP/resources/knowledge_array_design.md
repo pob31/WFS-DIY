@@ -44,9 +44,9 @@ A working WFS setup for live performance usually has:
 
 These are starting points, not prescriptions.
 
-**Small venues** (up to ~200 seats, tiered or standing): 4-8 lower array speakers with coaxial or elliptical/conical horn dispersion. 250 W per speaker indoors. 90° coaxial speakers have a practical throw of about 10 m in good acoustics.
+**Small venues** (up to ~200 seats, tiered or standing): 6-12 lower array speakers with coaxial or elliptical/conical horn dispersion. 250 W per speaker indoors. 90° coaxial speakers have a practical throw of about 10 m in good acoustics.
 
-**Mid-sized venues** (200-1000 seats): 6-10 lower array speakers plus 4-8 flown speakers. Asymmetric horn speakers (120° below, 60° on-axis, little above) are particularly useful for the flown array because they project to the far rows without spraying high frequencies up into the venue's ceiling acoustics. 400 W per speaker indoors.
+**Mid-sized venues** (200-1000 seats): 8-16 lower array speakers plus 4-8 flown speakers. Asymmetric horn speakers (120° below, 60° on-axis, little above) are particularly useful for the flown array because they project to the far rows without spraying high frequencies up into the venue's ceiling acoustics. 400 W per speaker indoors.
 
 **Large venues and outdoor stages**: multiple line-arrays with narrow coverage on top and wider below. At this scale, line-array principles combined with WFS positioning yield the best result.
 

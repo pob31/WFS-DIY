@@ -10,7 +10,7 @@ A sound arriving from directly in front reaches both ears simultaneously and at 
 
 The relevant cue depends on frequency:
 
-- **Low frequencies** have wavelengths much larger than the head. Level differences between ears are negligible, but the small phase shift between the two signals is perceptible.
+- **Low frequencies** have wavelengths much larger than the head. Level differences between ears are negligible, but the small phase shift between the two signals is perceptible. Low precision localization.
 - **Mid frequencies** have wavelengths comparable to the size of the head. The brain uses mostly the envelope difference — the difference in overall level over time.
 - **High frequencies** have wavelengths shorter than the spacing between the ears, so the brain cannot count cycles, but the far ear hears a noticeably less bright sound because the head shadows high frequencies.
 

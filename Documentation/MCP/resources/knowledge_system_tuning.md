@@ -44,7 +44,7 @@ Don't worry about the far rows at this step. The lower array may not reach them 
 
 ### Step 2 — Flown array alone
 
-Mute the lower array; unmute the flown array. Move to the middle of the audience, roughly the transition zone between where the lower array stops being effective and the flown array takes over.
+Mute the lower array; unmute the flown array. Move to the middle of the audience, beyond the transition zone between where the lower array stops being effective and the flown array takes over.
 
 Adjust the **flown array's overall level** to approximately match the impression you got from the lower array in step 1. This doesn't need to be exact — the arrays will work together, not alternately.
 
@@ -70,7 +70,8 @@ Now that the coarse balance is right, refine:
 
 If sources sound diffuse or poorly localized *in line with a specific array*, try reducing the parallax compensation for that array (the over-compensated case produces near-zero delay spread, which couples the array into a single phantom source).
 
-**Global Haas effect** (in System Config). This is a global delay applied to all reinforced sound, deliberately positioning the amplified sound behind the acoustic sound from the stage. Typical values: 5-15 ms. Too short and the amplified sound competes with the acoustic source; too long and the ear perceives the amplification as a distinct echo.
+**Global Haas effect** (in System Config). This is a global delay applied to all reinforced sound, deliberately positioning the amplified sound behind the acoustic sound from the stage. Typical values: 5-15 ms. Too short and the amplified sound competes with the acoustic source; too long and the ear perceives the amplification as a distinct echo. 
+Remember digital consoles, the computer processing and the digital Class-D amplifiers with built-in processing introduce some delay also.
 
 **Revisit the array delays** after parallax adjustment — they interact.
 
@@ -78,7 +79,7 @@ Test the tuning by moving the source to different positions on stage, playing bo
 
 ## Common issues
 
-- **Can't get the source low enough**: lower array level is too low relative to flown, or flown delay is too short.
+- **Can't get the source low enough**: lower array level is too soft relative to flown, or flown delay is too short.
 - **Source is clearly localized in the center but not when moved to the sides**: lower array may have too-sparse spacing (violating the three-speakers rule for listeners close to the stage).
 - **Source sounds fine standing still but smears when moved**: Doppler on moving sources is inherent to WFS. If excessive, reduce maximum speed or enable curvature-only mode on moving sources.
 - **Strong HF coloration on-axis of speakers**: parallax may be over-compensated, creating coupling. Reduce horizontal parallax distance.
