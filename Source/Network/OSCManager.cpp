@@ -71,6 +71,7 @@ OSCManager::OSCManager(WFSValueTreeState& valueTreeState)
 OSCManager::~OSCManager()
 {
     stopTimer();
+    clusterMemberFlushTimer.stopTimer();
     stopListening();
     disconnectAll();
     state.removeListener(this);
@@ -1124,8 +1125,27 @@ void OSCManager::valueTreePropertyChanged(juce::ValueTree& tree, const juce::Ide
             float posX = varToFloat(posXVar);
             float posY = varToFloat(posYVar);
 
-            // Send combined XY immediately - no buffering needed since we read both values
-            sendInputPositionXYToRemote(channelId, posX, posY);
+            // If this input belongs to a cluster, coalesce per-member echoes into a
+            // single OSC bundle per cluster flushed at ~60 Hz. This keeps cluster
+            // members visually in lockstep on the tablet (no per-channel jitter from
+            // independent rate-limited streams). Non-cluster inputs send immediately.
+            juce::var clusterVar = state.getInputParameter(channelIndex, WFSParameterIDs::inputCluster);
+            int memberCluster = clusterVar.isInt() ? static_cast<int>(clusterVar) : 0;
+
+            if (memberCluster >= 1 && memberCluster <= 10)
+            {
+                {
+                    const juce::ScopedLock lock(clusterPendingMutex);
+                    clusterPendingMemberUpdates[static_cast<size_t>(memberCluster)][channelId] = { posX, posY };
+                }
+                if (! clusterMemberFlushTimer.isTimerRunning())
+                    clusterMemberFlushTimer.startTimerHz(60);
+            }
+            else
+            {
+                // Send combined XY immediately - no buffering needed since we read both values
+                sendInputPositionXYToRemote(channelId, posX, posY);
+            }
         }
     }
 
@@ -2560,15 +2580,10 @@ void OSCManager::applyPendingClusterMove()
 
     incomingGuard.release();
 
-    // Echo updated positions back to Remote — throttled to avoid flooding
-    static juce::int64 lastEchoTime = 0;
-    auto now = juce::Time::getMillisecondCounter();
-    if (now - lastEchoTime >= 50)  // 20Hz max echo rate
-    {
-        lastEchoTime = now;
-        for (const auto& [channelId, x, y] : updatedPositions)
-            sendInputPositionXYToRemote(channelId, x, y);
-    }
+    // Echo updated positions back to Remote as a single OSC bundle (atomic apply on
+    // the tablet, all members in one datagram). Bypasses rate limiter; not throttled.
+    if (! updatedPositions.empty())
+        sendClusterMembersBundle(clusterId);
 
     if (onRemotePositionReceived)
         onRemotePositionReceived();
@@ -2684,9 +2699,10 @@ void OSCManager::handleClusterScaleRotationMessage(const juce::OSCMessage& messa
 
         incomingGuard.release();
 
-        // Echo updated positions back to Remote targets so Android sees all members move
-        for (const auto& [channelId, x, y] : updatedPositions)
-            sendInputPositionXYToRemote(channelId, x, y);
+        // Echo updated positions back to Remote targets as a single OSC bundle so
+        // Android sees all members move atomically.
+        if (! updatedPositions.empty())
+            sendClusterMembersBundle(parsed.clusterId);
     });
 }
 
@@ -2835,6 +2851,10 @@ void OSCManager::applyPendingClusterGesture()
     }
 
     incomingGuard.release();
+
+    // Echo updated positions back to Remote targets as a single OSC bundle so
+    // other tablets (and the originating one for confirmation) see the gesture.
+    sendClusterMembersBundle(clusterId);
 
     if (onRemotePositionReceived)
         onRemotePositionReceived();
@@ -4267,6 +4287,90 @@ void OSCManager::sendInputPositionXYToRemote(int channelId, float x, float y)
                 }
             }
         }
+    }
+}
+
+void OSCManager::sendClusterMembersBundle(int clusterId)
+{
+    if (clusterId <= 0 || clusterId > 10)
+        return;
+
+    int numInputs = state.getIntParameter(WFSParameterIDs::inputChannels);
+
+    juce::OSCBundle bundle;
+    for (int i = 0; i < numInputs; ++i)
+    {
+        juce::var cv = state.getInputParameter(i, WFSParameterIDs::inputCluster);
+        int memberCluster = cv.isInt() ? static_cast<int>(cv) : 0;
+        if (memberCluster != clusterId)
+            continue;
+
+        float posX = varToFloat(state.getInputParameter(i, WFSParameterIDs::inputPositionX));
+        float posY = varToFloat(state.getInputParameter(i, WFSParameterIDs::inputPositionY));
+
+        juce::OSCMessage msg("/remoteInput/positionXY");
+        msg.addInt32(i + 1);
+        msg.addFloat32(posX);
+        msg.addFloat32(posY);
+        bundle.addElement(msg);
+    }
+
+    if (bundle.size() == 0)
+        return;
+
+    for (int i = 0; i < MAX_TARGETS; ++i)
+    {
+        const auto& config = targetConfigs[static_cast<size_t>(i)];
+        if (config.protocol == Protocol::Remote &&
+            config.txEnabled &&
+            remoteStates[static_cast<size_t>(i)].phase == RemoteConnectionState::Phase::Connected)
+        {
+            if (incomingProtocol == Protocol::Remote)
+                continue;
+
+            if (connections[static_cast<size_t>(i)])
+            {
+                if (connections[static_cast<size_t>(i)]->send(bundle))
+                {
+                    messagesSent += bundle.size();
+                    for (const auto& element : bundle)
+                    {
+                        if (element.isMessage())
+                            logger.logSentWithDetails(i, element.getMessage(), config.protocol,
+                                                      config.ipAddress, config.port, config.mode);
+                    }
+                }
+            }
+        }
+    }
+}
+
+void OSCManager::ClusterMemberFlushTimer::timerCallback()
+{
+    std::array<std::map<int, std::pair<float, float>>, 11> drained;
+    bool anyPending = false;
+    {
+        const juce::ScopedLock lock(owner.clusterPendingMutex);
+        for (int c = 1; c <= 10; ++c)
+        {
+            if (! owner.clusterPendingMemberUpdates[static_cast<size_t>(c)].empty())
+            {
+                drained[static_cast<size_t>(c)].swap(owner.clusterPendingMemberUpdates[static_cast<size_t>(c)]);
+                anyPending = true;
+            }
+        }
+    }
+
+    if (! anyPending)
+    {
+        stopTimer();
+        return;
+    }
+
+    for (int c = 1; c <= 10; ++c)
+    {
+        if (! drained[static_cast<size_t>(c)].empty())
+            owner.sendClusterMembersBundle(c);
     }
 }
 

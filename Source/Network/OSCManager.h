@@ -781,6 +781,12 @@ private:
     // Send combined XY position to all connected Remote targets
     void sendInputPositionXYToRemote(int channelId, float x, float y);
 
+    // Send all members of a cluster as a single OSC bundle of /remoteInput/positionXY
+    // messages to all connected Remote targets, bypassing the rate limiter.
+    // Used to deliver cluster-wide position updates atomically (lockstep on the
+    // tablet) and to flush pending member echoes coalesced from valueTreePropertyChanged.
+    void sendClusterMembersBundle(int clusterId);
+
     // Statistics
     std::atomic<int> messagesSent { 0 };
     std::atomic<int> messagesReceived { 0 };
@@ -793,6 +799,25 @@ private:
     std::atomic<float> clusterMoveTargetY { 0.0f };
     std::atomic<int>  clusterMoveType { 0 };  // ParsedClusterMoveMessage::Type as int
     void applyPendingClusterMove();
+
+    // Coalescing for cluster-member position echoes from valueTreePropertyChanged.
+    // When an input that belongs to a cluster has its position changed, instead of
+    // sending one /remoteInput/positionXY per member individually (which arrives jittered
+    // on the tablet through the per-channel rate limiter), updates are accumulated here
+    // and flushed by clusterMemberFlushTimer at ~60 Hz as a single OSC bundle per cluster.
+    // Indexed by clusterId 1..10 (slot 0 unused).
+    std::array<std::map<int, std::pair<float, float>>, 11> clusterPendingMemberUpdates;
+    juce::CriticalSection clusterPendingMutex;
+
+    class ClusterMemberFlushTimer : public juce::Timer
+    {
+    public:
+        explicit ClusterMemberFlushTimer (OSCManager& o) : owner (o) {}
+        void timerCallback() override;
+    private:
+        OSCManager& owner;
+    };
+    ClusterMemberFlushTimer clusterMemberFlushTimer { *this };
 
     // Cumulative scale+rotation gesture: snapshot + coalesced pending state
     std::map<int, std::vector<std::tuple<int, float, float>>> clusterGestureSnapshots;
