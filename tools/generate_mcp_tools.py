@@ -344,13 +344,28 @@ _ENUM_WITH_ID_RE = re.compile(r"^(.*?)\s*\((\d+)\)\s*$")
 def parse_enum(enum_str: str) -> tuple[list[str], dict[str, int] | None]:
     """Parse an `enum` cell. Returns (items, string_to_int_map_or_None).
 
-    If items have explicit "(N)" stored IDs, the map is returned. Otherwise the
+    Defensive heuristic: only treat the cell as an enum when it holds
+    multiple `;`-separated items, OR at least one entry uses the explicit
+    `Label (N)` form. A lone string in the cell is almost always a stray
+    comment/note that drifted from the Notes column (one such drift
+    produced `enum: ["VirtualparamconvertstoXYZinternally"]` for the
+    AutomOtion virtual-radius tool). Better to surface the value as a
+    real number/string than to ship a single-element bogus enum.
+
+    If items have explicit "(N)" stored IDs, the map is returned. Otherwise
     items are taken at face value and the C++ side maps positionally.
     """
     if not enum_str.strip():
         return [], None
     raw_items = [p.strip() for p in enum_str.split(";")]
     raw_items = [p for p in raw_items if p]
+    if not raw_items:
+        return [], None
+    has_explicit_ids = any(_ENUM_WITH_ID_RE.match(item) for item in raw_items)
+    if len(raw_items) < 2 and not has_explicit_ids:
+        # Single non-`(N)` entry — almost certainly a stray comment, not a
+        # one-value enum. Drop it.
+        return [], None
     items: list[str] = []
     mapping: dict[str, int] = {}
     has_ids = False
@@ -607,10 +622,16 @@ def is_per_channel(row: CSVRow) -> bool:
 def derive_schema(row: CSVRow, tool_name: str,
                    enum_items: list[str], enum_map: dict[str, int] | None,
                    family: tuple[str, int] | None,
-                   band: bool) -> tuple[dict, list[str]]:
-    """Build the JSON Schema for a tool's `parameters` field."""
+                   band: bool) -> tuple[dict, list[str], str]:
+    """Build the JSON Schema for a tool's `parameters` field.
+
+    Returns (schema, required_list, value_arg_name) — the third item names
+    which property carries the actual value (most often "value", but
+    "name"/"mode"/"shape"/"protocol" for self-documenting cases). The
+    C++ loader uses this to know which JSON key to read for the write."""
     properties: dict[str, dict] = {}
     required: list[str] = []
+    value_arg_name = "value"
 
     # Channel-id argument first (per-channel CSVs).
     if is_per_channel(row):
@@ -671,6 +692,7 @@ def derive_schema(row: CSVRow, tool_name: str,
         }
         properties[val_name] = val_arg
         required.append(val_name)
+        value_arg_name = val_name
     elif type_str.startswith("INT"):
         val_arg = {"type": "integer"}
         if row.min.strip():
@@ -708,8 +730,16 @@ def derive_schema(row: CSVRow, tool_name: str,
             "type": "string",
             "description": (row.label.strip() or "Value") + ".",
         }
-        properties["value"] = val_arg
-        required.append("value")
+        # Self-documenting argument name for rename-style tools. Variables
+        # like `outputName`, `samplerSetName`, `clusterLfoPresetName` are
+        # recognisable by their `Name` suffix, and matching that to a
+        # `name:` argument matches `input.set_name` (the hand-written
+        # reference) and the operator's natural phrasing
+        # ("rename input 3 to Marie").
+        val_name = "name" if row.variable.endswith("Name") else "value"
+        properties[val_name] = val_arg
+        required.append(val_name)
+        value_arg_name = val_name
     elif type_str.startswith("IP"):
         val_arg = {
             "type": "string",
@@ -738,7 +768,7 @@ def derive_schema(row: CSVRow, tool_name: str,
         "type": "object",
         "properties": properties,
         "required": required,
-    }, required
+    }, required, value_arg_name
 
 
 def derive_osc_path(row: CSVRow) -> tuple[str, str | None]:
@@ -817,7 +847,7 @@ def process_row(row: CSVRow,
 
     tool_name, nudge_name = derive_tool_name(row, csv_namespace)
 
-    schema, _required = derive_schema(
+    schema, _required, value_arg_name = derive_schema(
         row, tool_name, enum_items, enum_map, family, band,
     )
 
@@ -857,6 +887,12 @@ def process_row(row: CSVRow,
     if enum_map is not None:
         record["enum_string_to_int"] = enum_map
 
+    # Tell the C++ loader which JSON key carries the actual value. The
+    # default ("value") is dropped to keep the JSON compact; only emit
+    # for self-documenting renamings ("name", "mode", "shape", "protocol").
+    if value_arg_name != "value":
+        record["value_arg_name"] = value_arg_name
+
     if record["supports_relative"]:
         record["relative_tool_name"] = nudge_name
 
@@ -870,10 +906,17 @@ def process_row(row: CSVRow,
 
     nudge_record = None
     if record["supports_relative"] and nudge_name is not None:
+        nudge_desc = (
+            "Relative-adjustment variant of "
+            f"`{tool_name}`. Sends an `inc` or `dec` step."
+        )
+        if is_per_channel(row):
+            nudge_desc += (
+                " Use `session_get_state()` first if unsure which channels exist."
+            )
         nudge_record = {
             "name": nudge_name,
-            "description": "Relative-adjustment variant of "
-                           f"`{tool_name}`. Sends an `inc` or `dec` step.",
+            "description": nudge_desc,
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -968,8 +1011,17 @@ def hash_inputs(csv_dir: Path, override_files: list[Path]) -> str:
 
 
 def write_json(path: Path, data: dict) -> None:
-    """Write JSON deterministically (sorted, 2-space indent, LF line endings)."""
-    text = json.dumps(data, indent=2, sort_keys=True, ensure_ascii=False)
+    """Write JSON deterministically.
+
+    Insertion order is preserved (Python 3.7+ dicts are insertion-ordered)
+    so the schema's `properties` keep channel_id first, then sub-index,
+    then the value arg — the order operators read top-to-bottom. The tools
+    list itself is pre-sorted by name in main(); ignored / warnings /
+    groups are sorted at construction. Determinism is guaranteed by
+    construction, not by sort_keys=True (which would scramble the
+    semantically-meaningful ordering of `properties`).
+    """
+    text = json.dumps(data, indent=2, ensure_ascii=False)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text + "\n", encoding="utf-8", newline="\n")
 

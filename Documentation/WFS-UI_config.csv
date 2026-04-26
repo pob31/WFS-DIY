@@ -1,9 +1,9 @@
 Section	Label	Variable	UI	Type	Min	Max	Default	Unit	enum	Notes	Hover help text in the status bar
 Show	Name	showName	editable text box	STRING			My Show			Locked when DSP is running.	Name of the current show.
 Show	Location	showLocation	editable text box	STRING						Locked when DSP is running.	Location of the current show.
-I/O	Input Channels	inputChannels	number box	INT	0		8			Locked when DSP is running. Reducing the count prompts a confirmation before removing channel settings.	Number of Input Channels.
-I/O	Output Channels	outputChannels	number box	INT	0		16			Locked when DSP is running. Reducing the count prompts a confirmation before removing channel settings.	Number of Output Channels.
-I/O	Reverb Channels	reverbChannels	number box	INT	0		0			Locked when DSP is running. Reducing the count prompts a confirmation before removing channel settings.	Number of Reverb Channels.
+I/O	Input Channels	inputChannels	number box	INT	0	64	8			Locked when DSP is running. Reducing the count prompts a confirmation before removing channel settings.	Number of Input Channels.
+I/O	Output Channels	outputChannels	number box	INT	0	64	16			Locked when DSP is running. Reducing the count prompts a confirmation before removing channel settings.	Number of Output Channels.
+I/O	Reverb Channels	reverbChannels	number box	INT	0	16	0			Locked when DSP is running. Reducing the count prompts a confirmation before removing channel settings.	Number of Reverb Channels.
 I/O	Getting Started		text button				Getting Started			Visible only when DSP is not running. Opens the Getting Started wizard.	Open the Getting Started wizard.
 I/O	Audio Interface and Patching Window		text button				Audio Interface and Patching Window			Locked when DSP is running.	Opens the Audio Interface and Patching Window.
 WFS Processor	Processing Algorithm	ProcessingAlgorithm	drop down menu	INT	0	1	0		InputBuffer (read-time delays) ; OutputBuffer (write-time delays)	Locked when DSP is running.	Select the rendering algorithm from the menu.
@@ -43,7 +43,7 @@ Controllers	Remote Pad Setup		text button				Setup			Visible only when Sampler C
 Binaural Renderer	Binaural Enable	binauralEnabled	text button (long-press)	INT	0	1	0		Binaural: OFF ; Binaural: ON	Long-press to toggle. Disabled (50% alpha) when no Binaural Output channel is selected.	Enable or disable the binaural renderer processing.
 Binaural Renderer	Binaural Output	binauralOutputChannel	drop down menu	INT	-1	62	-1		Select... ; 1-2 ; 3-4 ; 5-6 ; ... ; 63-64	First output channel of the stereo pair. -1 = disabled. Enum rebuilt dynamically from output patch state.	Select output channel pair for binaural monitoring. Off disables binaural output.
 Binaural Renderer	Listener Distance	binauralListenerDistance	H slider + number box	FLOAT	0.0	10.0	5.0	m		Distance from stage origin along the listener's facing direction.	Distance of binaural listener from stage origin (meters).
-Binaural Renderer	Listener Angle	binauralListenerAngle	rotation dial + number box	INT	-180	180	0	degrees		0 degrees = facing stage origin. Integer degrees only.	Horizontal rotation of binaural listener view (degrees, 0 = facing stage).
+Binaural Renderer	Listener Angle	binauralListenerAngle	rotation dial + number box	FLOAT	-180	180	0	degrees		0 degrees = facing stage origin. Fractional degrees supported.	Horizontal rotation of binaural listener view (degrees, 0 = facing stage).
 Binaural Renderer	Binaural Level	binauralAttenuation	H slider + number box	FLOAT	-40.0	0.0	0.0	dB		Overall level offset for the binaural output.	Overall level offset for binaural output (dB).
 Binaural Renderer	Binaural Delay	binauralDelay	H slider + number box	FLOAT	0.0	100.0	0.0	ms		Additional delay applied to the binaural output.	Additional delay for binaural output (milliseconds).
 Binaural Renderer	Solo Mode	binauralSoloMode	text button	INT	0	1	0		Solo: Single ; Solo: Multi	Single = only one input soloed at a time (clicking S clears others). Multi = multiple simultaneous solos.	Single: one input at a time. Multi: multiple inputs simultaneously.

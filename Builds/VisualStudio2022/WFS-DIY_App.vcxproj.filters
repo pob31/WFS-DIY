@@ -4428,6 +4428,12 @@
     <ClInclude Include="..\..\Source\Network\MCP\tools\InputTools.h">
       <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\OutputTools.h">
+      <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\ReverbTools.h">
+      <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\Network\MCP\tools\SnapshotTools.h">
       <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
     </ClInclude>

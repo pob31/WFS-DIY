@@ -1,5 +1,7 @@
 {
-  "generated_at": "2026-04-26T13:40:01Z",
+  "schema_version": "1.0",
+  "generated_at": "2026-04-26T15:15:56Z",
+  "input_hash": "771f2d964a9b75e6248b1804324e1449c4ca55fac02933665ddfa5dda77055ca",
   "groups": {
     "cluster_assigned_inputs": [
       "cluster_assigned_inputs_set_input_order",
@@ -454,7 +456,5 @@
     "system_ui": [
       "system_ui_set_color_scheme"
     ]
-  },
-  "input_hash": "20dd39e13c9f4bed9cb4c836c42ca56acf613a0fd666335d7cddabc139f6505c",
-  "schema_version": "1.0"
+  }
 }

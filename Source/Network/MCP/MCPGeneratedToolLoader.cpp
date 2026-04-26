@@ -18,6 +18,7 @@ namespace
         juce::String csvSection;        // "Position" — used in affected_groups + operatorDescription
         juce::StringArray enumValues;   // empty if not an enum tool
         juce::String channelArgName;    // input_id / output_id / reverb_id / cluster_id, or empty for global
+        juce::String valueArgName { "value" };  // self-documenting renames: "name" / "mode" / "shape" / "protocol"
         bool isEqBand = false;
     };
 
@@ -142,10 +143,14 @@ namespace
                 return ToolResult::error ("invalid_args", "band out of range");
         }
 
-        // Resolve and coerce value
-        if (! argsObj->hasProperty ("value"))
-            return ToolResult::error ("invalid_args", "Missing required arg: value");
-        const juce::var value = coerceValue (argsObj->getProperty ("value"), binding);
+        // Resolve and coerce value. The arg name is "value" for most tools
+        // but renamed for self-documenting cases ("name" for renames, "mode"
+        // for coordinate-mode dropdowns, etc.) — driven by `value_arg_name`
+        // in generated_tools.json.
+        if (! argsObj->hasProperty (binding.valueArgName))
+            return ToolResult::error ("invalid_args",
+                                      "Missing required arg: " + binding.valueArgName);
+        const juce::var value = coerceValue (argsObj->getProperty (binding.valueArgName), binding);
 
         const juce::Identifier paramId (binding.internalVariable);
 
@@ -348,6 +353,9 @@ namespace
         outBinding.name             = toolObj.getProperty ("name").toString();
         const auto rawVariable      = toolObj.getProperty ("internal_variable").toString();
         outBinding.csvSection       = toolObj.getProperty ("csv_section").toString();
+        const auto valueArgName     = toolObj.getProperty ("value_arg_name").toString();
+        if (valueArgName.isNotEmpty())
+            outBinding.valueArgName = valueArgName;
 
         if (outBinding.name.isEmpty() || rawVariable.isEmpty())
         {
@@ -375,7 +383,9 @@ namespace
             {
                 outBinding.isEqBand = propsObj->hasProperty ("band");
 
-                const auto valueProp = propsObj->getProperty ("value");
+                // Look up the enum on the actual value-arg (which may have
+                // been renamed to "name"/"mode"/"shape"/"protocol").
+                const auto valueProp = propsObj->getProperty (outBinding.valueArgName);
                 if (auto* valuePropObj = asObject (valueProp))
                 {
                     const auto enumVar = valuePropObj->getProperty ("enum");

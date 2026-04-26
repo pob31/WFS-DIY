@@ -5,6 +5,8 @@
 #include "MCPGeneratedToolLoader.h"
 #include "tools/SessionTools.h"
 #include "tools/InputTools.h"
+#include "tools/OutputTools.h"
+#include "tools/ReverbTools.h"
 #include "tools/SnapshotTools.h"
 #include "tools/UndoTools.h"
 #include "tools/SetParameterTool.h"
@@ -50,6 +52,8 @@ MCPServer::MCPServer (WFSValueTreeState& state,
     registry->registerTool (Tools::Input::describeSetName (state));
     registry->registerTool (Tools::Input::describeSetCartesian (state));
     registry->registerTool (Tools::Input::describeSetAttenuation (state));
+    registry->registerTool (Tools::Output::describeSetCartesian (state));
+    registry->registerTool (Tools::Reverb::describeSetCartesian (state));
     registry->registerTool (Tools::Snapshot::describe (fileMgr));
 
     // Phase 2 Block 3 — generic escape-hatch tool. Lets the AI hit a

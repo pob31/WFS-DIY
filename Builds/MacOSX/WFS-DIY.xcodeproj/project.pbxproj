@@ -205,6 +205,7 @@
 		7E602E26466DEF84F54CDE94 /* MCPToolRegistry.cpp */ /* MCPToolRegistry.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPToolRegistry.cpp; path = ../../Source/Network/MCP/MCPToolRegistry.cpp; sourceTree = SOURCE_ROOT; };
 		7E68237EC4C420693FC98A70 /* InputSpeedLimiter.h */ /* InputSpeedLimiter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = InputSpeedLimiter.h; path = ../../Source/DSP/InputSpeedLimiter.h; sourceTree = SOURCE_ROOT; };
 		7F18FF6B90FC3250D411E692 /* NetworkLogWindow.cpp */ /* NetworkLogWindow.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = NetworkLogWindow.cpp; path = ../../Source/gui/NetworkLogWindow.cpp; sourceTree = SOURCE_ROOT; };
+		7FF54908129C9CF5E41E9F5D /* ReverbTools.h */ /* ReverbTools.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ReverbTools.h; path = ../../Source/Network/MCP/tools/ReverbTools.h; sourceTree = SOURCE_ROOT; };
 		804EEBC4D9F5B58A736D9D88 /* TrackingOSCReceiver.h */ /* TrackingOSCReceiver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TrackingOSCReceiver.h; path = ../../Source/Network/TrackingOSCReceiver.h; sourceTree = SOURCE_ROOT; };
 		83B9631F36EB03CD552105D6 /* OSCTCPReceiver.cpp */ /* OSCTCPReceiver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = OSCTCPReceiver.cpp; path = ../../Source/Network/OSCTCPReceiver.cpp; sourceTree = SOURCE_ROOT; };
 		83CB49A396A11EA46FF029C1 /* include_juce_audio_processors_headless_lv2_libs.cpp */ /* include_juce_audio_processors_headless_lv2_libs.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_audio_processors_headless_lv2_libs.cpp; path = ../../JuceLibraryCode/include_juce_audio_processors_headless_lv2_libs.cpp; sourceTree = SOURCE_ROOT; };
@@ -254,6 +255,7 @@
 		BB988ACB6CA5DBAAB5D3F273 /* DiscRecording.framework */ /* DiscRecording.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = DiscRecording.framework; path = System/Library/Frameworks/DiscRecording.framework; sourceTree = SDKROOT; };
 		BDF7F88668C6E2AFA837664B /* AudioPatchTab.cpp */ /* AudioPatchTab.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioPatchTab.cpp; path = ../../Source/gui/AudioPatchTab.cpp; sourceTree = SOURCE_ROOT; };
 		BE841F6F8529ACBA1DD567B6 /* OSCManager.h */ /* OSCManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OSCManager.h; path = ../../Source/Network/OSCManager.h; sourceTree = SOURCE_ROOT; };
+		BF2FC14F568AE9298EDB4688 /* OutputTools.h */ /* OutputTools.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OutputTools.h; path = ../../Source/Network/MCP/tools/OutputTools.h; sourceTree = SOURCE_ROOT; };
 		BF3B70E6EBD69DB5A62A50E7 /* MapTabPages.h */ /* MapTabPages.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MapTabPages.h; path = ../../Source/Controllers/DialsAndButtons/pages/MapTabPages.h; sourceTree = SOURCE_ROOT; };
 		C13194A76B6B84669C156769 /* StatusBar.h */ /* StatusBar.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StatusBar.h; path = ../../Source/gui/StatusBar.h; sourceTree = SOURCE_ROOT; };
 		C23555C43C15F2DD0CF3BA9C /* Metal.framework */ /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
@@ -413,6 +415,8 @@
 			children = (
 				73E884154FA8D72C00AC8B91,
 				CEC081A521DE9D3B8C616524,
+				BF2FC14F568AE9298EDB4688,
+				7FF54908129C9CF5E41E9F5D,
 				2EB98E621EA18E52DDD6C666,
 				C3A44553373C3A4BB428CBD7,
 				5708250B17E10EA1BEA04BBC,

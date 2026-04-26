@@ -193,6 +193,10 @@
                   file="Source/Network/MCP/tools/SessionTools.h"/>
             <FILE id="mcpToolsInput" name="InputTools.h" compile="0" resource="0"
                   file="Source/Network/MCP/tools/InputTools.h"/>
+            <FILE id="mcpToolsOutput" name="OutputTools.h" compile="0" resource="0"
+                  file="Source/Network/MCP/tools/OutputTools.h"/>
+            <FILE id="mcpToolsReverb" name="ReverbTools.h" compile="0" resource="0"
+                  file="Source/Network/MCP/tools/ReverbTools.h"/>
             <FILE id="mcpToolsSnap" name="SnapshotTools.h" compile="0" resource="0"
                   file="Source/Network/MCP/tools/SnapshotTools.h"/>
             <FILE id="mcpToolsUndo" name="UndoTools.h" compile="0" resource="0"
