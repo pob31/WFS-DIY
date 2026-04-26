@@ -584,6 +584,8 @@ void TrackingMQTTReceiver::routePositionToInput (int inputIndex, float x, float 
 
     // Write filtered position to ValueTree.
     // Live tracking is transient — suppress dirty flagging in the snapshot scope.
+    // Phase 5b: tag as Tracking-origin for the MCP staleness/notifications path.
+    OriginTagScope originScope { OriginTag::Tracking };
     ParameterDirtyTracker::ScopedInternalWrite guard (dirtyTracker);
     posSection.setProperty (WFSParameterIDs::inputOffsetX, fx, nullptr);
     posSection.setProperty (WFSParameterIDs::inputOffsetY, fy, nullptr);

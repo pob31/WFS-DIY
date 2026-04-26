@@ -6,6 +6,7 @@
 #include "../Parameters/WFSParameterDefaults.h"
 #include "../Parameters/ParameterDirtyTracker.h"
 #include "../Helpers/CoordinateConverter.h"
+#include "../Network/OSCProtocolTypes.h"
 
 /**
  * AutomOtion Processor for WFS Input Position Animation
@@ -979,9 +980,12 @@ private:
     //==========================================================================
 
     /** Write animated position directly to input ValueTree.
-     *  Suppresses snapshot-scope dirty marking — playback is not a user edit. */
+     *  Suppresses snapshot-scope dirty marking — playback is not a user edit.
+     *  Phase 5b: tags as Move-origin so MCP staleness/notifications can
+     *  distinguish AutomOtion playback from operator edits. */
     void writePositionToValueTree (int inputIndex, float x, float y, float z)
     {
+        WFSNetwork::OriginTagScope originScope { WFSNetwork::OriginTag::Move };
         ParameterDirtyTracker::ScopedInternalWrite guard (dirtyTracker);
         auto posSection = valueTreeState.getInputPositionSection (inputIndex);
         posSection.setProperty (WFSParameterIDs::inputPositionX, x, nullptr);
