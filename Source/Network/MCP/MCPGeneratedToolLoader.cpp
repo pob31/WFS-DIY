@@ -21,6 +21,16 @@ namespace
         bool isEqBand = false;
     };
 
+    /** Extension of ToolBinding for nudge variants. Carries the min/max
+        from the corresponding non-nudge tool so we can clamp the
+        read-modify-write step at the server boundary. */
+    struct NudgeBinding : ToolBinding
+    {
+        bool hasRange = false;
+        double minValue = 0.0;
+        double maxValue = 0.0;
+    };
+
     /** Build a lowercase-keyed lookup of every property name on the live
         ValueTree at startup. Some CSVs declare variables with different
         casing than `WFSParameterIDs.h` (e.g. `StageWidth` vs `stageWidth`);
@@ -206,6 +216,122 @@ namespace
         return ToolResult::ok (juce::var (result.release()));
     }
 
+    /** Read min/max from a tool entry's `parameters.properties.value` schema.
+        Returns false if the schema doesn't declare a numeric range (e.g.
+        string-typed values or enums). */
+    bool extractValueRange (const juce::var& parametersSchema, double& outMin, double& outMax)
+    {
+        auto* paramsObj = asObject (parametersSchema);
+        if (paramsObj == nullptr) return false;
+        auto props = paramsObj->getProperty ("properties");
+        auto* propsObj = asObject (props);
+        if (propsObj == nullptr) return false;
+        auto valueProp = propsObj->getProperty ("value");
+        auto* valueObj = asObject (valueProp);
+        if (valueObj == nullptr) return false;
+
+        auto minVar = valueObj->getProperty ("minimum");
+        auto maxVar = valueObj->getProperty ("maximum");
+        if (! minVar.isDouble() && ! minVar.isInt()) return false;
+        if (! maxVar.isDouble() && ! maxVar.isInt()) return false;
+
+        outMin = static_cast<double> (minVar);
+        outMax = static_cast<double> (maxVar);
+        return true;
+    }
+
+    /** Nudge dispatcher: read-modify-write with clamping. */
+    ToolResult dispatchGenericNudge (WFSValueTreeState& state,
+                                     const NudgeBinding& binding,
+                                     const juce::var& args,
+                                     ChangeRecord* record)
+    {
+        if (! args.isObject())
+            return ToolResult::error ("invalid_args", "Arguments must be a JSON object");
+
+        auto* argsObj = asObject (args);
+
+        // Resolve channel index
+        int channelIndex = -1;
+        int displayId = 0;
+        if (binding.channelArgName.isNotEmpty())
+        {
+            if (! argsObj->hasProperty (binding.channelArgName))
+                return ToolResult::error ("invalid_args",
+                                          "Missing required arg: " + binding.channelArgName);
+            displayId = static_cast<int> (argsObj->getProperty (binding.channelArgName));
+            channelIndex = displayId - 1;
+            if (channelIndex < 0)
+                return ToolResult::error ("invalid_args",
+                                          binding.channelArgName + " out of range: " + juce::String (displayId));
+        }
+
+        // Resolve direction
+        if (! argsObj->hasProperty ("direction"))
+            return ToolResult::error ("invalid_args", "Missing required arg: direction");
+        const auto direction = argsObj->getProperty ("direction").toString();
+        if (direction != "inc" && direction != "dec")
+            return ToolResult::error ("invalid_args", "direction must be 'inc' or 'dec'");
+
+        // Resolve amount (default 1.0)
+        const double amount = argsObj->hasProperty ("amount")
+                                ? static_cast<double> (argsObj->getProperty ("amount"))
+                                : 1.0;
+        const double signedDelta = (direction == "dec") ? -amount : amount;
+
+        const juce::Identifier paramId (binding.internalVariable);
+
+        // Read current — coerce to double for arithmetic.
+        const auto beforeVar = state.getParameter (paramId, channelIndex);
+        const double beforeValue = static_cast<double> (beforeVar);
+
+        // Apply delta, clamp if range known.
+        double newValue = beforeValue + signedDelta;
+        if (binding.hasRange)
+            newValue = juce::jlimit (binding.minValue, binding.maxValue, newValue);
+
+        // Preserve integer type if the original was int (avoid 0.0 → 0 widening surprises).
+        juce::var writeValue;
+        if (beforeVar.isInt())
+            writeValue = juce::var (juce::roundToInt (newValue));
+        else
+            writeValue = juce::var (newValue);
+
+        state.setParameter (paramId, writeValue, channelIndex);
+        const auto afterVar = state.getParameter (paramId, channelIndex);
+
+        if (record != nullptr)
+        {
+            record->affectedParameters.add (binding.internalVariable);
+            record->affectedGroups.push_back ({ displayId, binding.csvSection });
+
+            auto before = std::make_unique<juce::DynamicObject>();
+            before->setProperty (paramId, beforeVar);
+            record->beforeState = juce::var (before.release());
+
+            auto after = std::make_unique<juce::DynamicObject>();
+            after->setProperty (paramId, afterVar);
+            record->afterState = juce::var (after.release());
+
+            juce::String desc = "Nudged " + binding.internalVariable;
+            if (binding.channelArgName.isNotEmpty())
+                desc += " for " + channelArgToScopeLabel (binding.channelArgName) + " " + juce::String (displayId);
+            const juce::String signedAmount = (signedDelta >= 0 ? "+" : "") + juce::String (signedDelta, 3);
+            desc += " by " + signedAmount + " (now " + afterVar.toString() + ")";
+            record->operatorDescription = desc;
+        }
+
+        auto result = std::make_unique<juce::DynamicObject>();
+        result->setProperty ("variable", binding.internalVariable);
+        if (binding.channelArgName.isNotEmpty())
+            result->setProperty ("channel_id", displayId);
+        result->setProperty ("direction", direction);
+        result->setProperty ("amount", amount);
+        result->setProperty ("before", beforeVar);
+        result->setProperty ("after", afterVar);
+        return ToolResult::ok (juce::var (result.release()));
+    }
+
     /** Build the binding metadata for one tool entry. Returns false only on
         truly-malformed entries (missing name or internal_variable). When a
         case-only mismatch with the live ValueTree is detected, the canonical
@@ -297,6 +423,11 @@ LoadStats loadGeneratedTools (MCPToolRegistry& registry,
 
     const auto knownProps = buildKnownPropertyMap (state);
 
+    // Side map populated during the tools[] pass and consumed by the
+    // nudge_tools[] pass for clamp-range lookup. Keyed by canonical
+    // internal_variable so case-corrected nudges still find their range.
+    std::map<juce::String, std::pair<double, double>> rangeByVariable;
+
     for (const auto& toolVar : *toolsArr.getArray())
     {
         auto* toolObj = asObject (toolVar);
@@ -307,17 +438,22 @@ LoadStats loadGeneratedTools (MCPToolRegistry& registry,
         if (! buildBinding (*toolObj, knownProps, binding, skipReason))
         {
             stats.skipped++;
-            // Log only at DBG level to avoid flooding the Network Log on every startup
-            // — these are CSV-vs-WFSParameterIDs drift cases that need a generator-side fix.
             DBG ("MCPGeneratedToolLoader: skipping tool '"
                  << toolObj->getProperty ("name").toString() << "': " << skipReason);
             continue;
         }
 
+        // Stash the value range (if any) so the matching nudge variant can
+        // clamp during read-modify-write.
+        const auto parameters = toolObj->getProperty ("parameters");
+        double rmin = 0.0, rmax = 0.0;
+        if (extractValueRange (parameters, rmin, rmax))
+            rangeByVariable[binding.internalVariable] = { rmin, rmax };
+
         ToolDescriptor d;
         d.name           = binding.name;
         d.description    = toolObj->getProperty ("description").toString();
-        d.inputSchema    = toolObj->getProperty ("parameters");
+        d.inputSchema    = parameters;
         d.modifiesState  = true;
         d.handler = [&state, binding] (const juce::var& args, ChangeRecord* record) -> ToolResult
         {
@@ -328,8 +464,59 @@ LoadStats loadGeneratedTools (MCPToolRegistry& registry,
         stats.toolsLoaded++;
     }
 
+    // Phase 2 Block 2 — nudge variants. Same binding builder, plus the
+    // {min, max} side-map populated above for clamping the read-modify-write.
+    const auto nudgeArr = rootObj->getProperty ("nudge_tools");
+    if (nudgeArr.isArray())
+    {
+        for (const auto& toolVar : *nudgeArr.getArray())
+        {
+            auto* toolObj = asObject (toolVar);
+            if (toolObj == nullptr) { stats.skipped++; continue; }
+
+            ToolBinding base;
+            juce::String skipReason;
+            if (! buildBinding (*toolObj, knownProps, base, skipReason))
+            {
+                stats.skipped++;
+                DBG ("MCPGeneratedToolLoader: skipping nudge '"
+                     << toolObj->getProperty ("name").toString() << "': " << skipReason);
+                continue;
+            }
+
+            NudgeBinding binding;
+            static_cast<ToolBinding&> (binding) = base;
+
+            auto rangeIt = rangeByVariable.find (binding.internalVariable);
+            if (rangeIt != rangeByVariable.end())
+            {
+                binding.hasRange = true;
+                binding.minValue = rangeIt->second.first;
+                binding.maxValue = rangeIt->second.second;
+            }
+            // No-range nudges still register; clamp is just skipped. Most
+            // bool/enum nudges fall in this bucket and rarely make sense
+            // anyway, but the AI's call should fail closed at write time
+            // rather than at registration.
+
+            ToolDescriptor d;
+            d.name           = binding.name;
+            d.description    = toolObj->getProperty ("description").toString();
+            d.inputSchema    = toolObj->getProperty ("parameters");
+            d.modifiesState  = true;
+            d.handler = [&state, binding] (const juce::var& args, ChangeRecord* record) -> ToolResult
+            {
+                return dispatchGenericNudge (state, binding, args, record);
+            };
+
+            registry.registerTool (std::move (d));
+            stats.nudgeToolsLoaded++;
+        }
+    }
+
     mcpLogger.logInfo ("Loaded " + juce::String (stats.toolsLoaded)
-                       + " generated MCP tools (" + juce::String (stats.skipped)
+                       + " generated tools + " + juce::String (stats.nudgeToolsLoaded)
+                       + " nudge variants (" + juce::String (stats.skipped)
                        + " skipped — see DBG output for variable-name mismatches)");
 
     return stats;
