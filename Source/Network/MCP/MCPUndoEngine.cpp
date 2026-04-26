@@ -95,9 +95,11 @@ void MCPUndoEngine::valueTreePropertyChanged (juce::ValueTree& treeWhoseProperty
         return;
 
     // Find the most recent record (newest first) that mentions this param.
-    // If found, capture the AI's value for the human-readable summary.
+    // If found, capture the AI's value for the human-readable summary,
+    // and remember its timestamp so Block 4 can mark it self-corrected.
     juce::var aiValue;
     int channelId = 0;
+    juce::Time activeRecordTimestamp;
     bool foundActiveRecord = false;
     {
         const auto records = undoRing.getRecent (-1);
@@ -111,6 +113,7 @@ void MCPUndoEngine::valueTreePropertyChanged (juce::ValueTree& treeWhoseProperty
                     aiValue = afterObj->getProperty (juce::Identifier (paramName));
                 if (! it->affectedGroups.empty())
                     channelId = it->affectedGroups.front().channelId;
+                activeRecordTimestamp = it->timestamp;
                 foundActiveRecord = true;
                 break;
             }
@@ -123,6 +126,16 @@ void MCPUndoEngine::valueTreePropertyChanged (juce::ValueTree& treeWhoseProperty
     // notification — the AI's last write is still effectively in place.
     if (newValue == aiValue)
         return;
+
+    // Phase 5b Block 4: mark the matching record self-corrected so Phase 5c's
+    // toast can drop it from the active-undo row list. The record stays in
+    // the ring buffer (and in mcp.get_ai_change_history) — only its toast
+    // presence goes away.
+    undoRing.markMatchingAsSelfCorrected (
+        [&activeRecordTimestamp] (const ChangeRecord& r)
+    {
+        return r.timestamp == activeRecordTimestamp;
+    });
 
     // Translate origin enum → human label.
     juce::String originStr;

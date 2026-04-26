@@ -48,6 +48,16 @@ struct ChangeRecord
         individually. Lets MCPUndoEngine::redoLast re-apply a chain
         atomically by popping all consecutive records with the same id. */
     int redoBatchId = 0;
+
+    /** Phase 5b Block 4: set true when a non-MCP origin writes a value
+        DIFFERENT from this record's `afterState` to one of its
+        affected_parameters. Tells Phase 5c's toast overlay to drop the
+        row from the active-undo affordance — the operator has already
+        overridden the AI's effect, so offering to "undo" would just
+        reverse the operator's correction. The record stays in the
+        queryable history (mcp.get_ai_change_history still returns it);
+        only its toast presence goes away. */
+    bool isSelfCorrected = false;
 };
 
 /** Thread-safe ring buffer of AI change records. Capacity is fixed at
@@ -79,6 +89,13 @@ public:
 
     /** Snapshot of the last `n` records (most recent last). Pass -1 for all. */
     std::vector<ChangeRecord> getRecent (int n = -1) const;
+
+    /** Phase 5b Block 4: mutate matching records' isSelfCorrected flag
+        in-place under lock. Used by the engine's ValueTree listener when
+        a non-MCP origin writes a different value than the AI's last
+        write to a parameter the record touched. Returns the number of
+        records mutated. */
+    int markMatchingAsSelfCorrected (std::function<bool (const ChangeRecord&)> predicate);
 
     /** Current count of stored records. */
     int size() const noexcept;

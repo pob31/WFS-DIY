@@ -70,4 +70,19 @@ void MCPChangeRecordBuffer::clear()
     records.clear();
 }
 
+int MCPChangeRecordBuffer::markMatchingAsSelfCorrected (std::function<bool (const ChangeRecord&)> predicate)
+{
+    const juce::ScopedLock sl (lock);
+    int count = 0;
+    for (auto& rec : records)
+    {
+        if (predicate (rec))
+        {
+            rec.isSelfCorrected = true;
+            ++count;
+        }
+    }
+    return count;
+}
+
 } // namespace WFSNetwork

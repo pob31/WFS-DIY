@@ -37,6 +37,7 @@ namespace detail
         obj->setProperty ("before_state", record.beforeState);
         obj->setProperty ("after_state",  record.afterState);
         obj->setProperty ("origin",       juce::String ("MCP"));
+        obj->setProperty ("is_self_corrected", record.isSelfCorrected);
         return juce::var (obj.release());
     }
 
