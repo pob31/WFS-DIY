@@ -50,18 +50,35 @@ namespace detail
     }
 
     /** Translate an UndoResult from MCPUndoEngine into the ToolResult shape
-        the MCP dispatcher expects. */
+        the MCP dispatcher expects. Phase 5b: when the engine refuses with
+        `stale_target`, surface the staleness details in the success
+        envelope (with `is_stale: true`) instead of raising a generic tool
+        error. The AI gets to read the drift report and ask the operator. */
     inline ToolResult toolResultFromUndo (const UndoResult& outcome)
     {
-        if (! outcome.success)
-            return ToolResult::error (outcome.errorCode, outcome.errorMessage);
+        if (outcome.success)
+        {
+            auto obj = std::make_unique<juce::DynamicObject>();
+            obj->setProperty ("operator_description", outcome.operatorDescription);
+            obj->setProperty ("before_applied",       outcome.beforeApplied);
+            obj->setProperty ("after_applied",        outcome.afterApplied);
+            obj->setProperty ("records_affected",     outcome.recordsAffected);
+            return ToolResult::ok (juce::var (obj.release()));
+        }
 
-        auto obj = std::make_unique<juce::DynamicObject>();
-        obj->setProperty ("operator_description", outcome.operatorDescription);
-        obj->setProperty ("before_applied",       outcome.beforeApplied);
-        obj->setProperty ("after_applied",        outcome.afterApplied);
-        obj->setProperty ("records_affected",     outcome.recordsAffected);
-        return ToolResult::ok (juce::var (obj.release()));
+        // Stale-target: return as a structured ok result with is_stale flag,
+        // so the AI can surface the drift to the operator instead of treating
+        // it as a hard tool error.
+        if (outcome.errorCode == "stale_target")
+        {
+            auto obj = std::make_unique<juce::DynamicObject>();
+            obj->setProperty ("is_stale",         true);
+            obj->setProperty ("refusal_reason",   outcome.errorMessage);
+            obj->setProperty ("staleness",        outcome.details);
+            return ToolResult::ok (juce::var (obj.release()));
+        }
+
+        return ToolResult::error (outcome.errorCode, outcome.errorMessage);
     }
 }
 

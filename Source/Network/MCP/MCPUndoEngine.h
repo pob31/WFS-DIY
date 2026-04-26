@@ -1,7 +1,9 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include <map>
 #include "MCPChangeRecords.h"
+#include "../OSCProtocolTypes.h"
 
 class WFSValueTreeState;
 
@@ -15,17 +17,19 @@ struct UndoResult
     juce::String operatorDescription;  // human-readable summary, surfaced to the AI
     juce::var beforeApplied;           // values that were displaced by this undo
     juce::var afterApplied;            // values that were written back into the tree
-    juce::String errorCode;            // populated on failure: "no_history", "no_redo", "internal_error", "timeout"
+    juce::String errorCode;            // populated on failure: "no_history", "no_redo",
+                                       //                       "internal_error", "stale_target", ...
     juce::String errorMessage;
-    int recordsAffected = 0;           // 1 for the simple case; >1 once Block 2's dependency chasing lands
+    juce::var details;                 // structured payload for staleness reports etc.
+    int recordsAffected = 0;           // 1 for the simple case; >1 for batch undo
 
     static UndoResult ok (juce::String desc, juce::var before, juce::var after, int affected = 1)
     {
-        return { true, std::move (desc), std::move (before), std::move (after), {}, {}, affected };
+        return { true, std::move (desc), std::move (before), std::move (after), {}, {}, {}, affected };
     }
-    static UndoResult fail (juce::String code, juce::String msg)
+    static UndoResult fail (juce::String code, juce::String msg, juce::var data = {})
     {
-        return { false, {}, {}, {}, std::move (code), std::move (msg), 0 };
+        return { false, {}, {}, {}, std::move (code), std::move (msg), std::move (data), 0 };
     }
 };
 
@@ -48,11 +52,11 @@ struct UndoResult
     Phase 5b layers staleness detection and cross-actor notifications on
     top of this primitive; Phase 5c adds the toast overlay that calls
     `undoByIndex` (Block 2) for per-row clicks. */
-class MCPUndoEngine
+class MCPUndoEngine : private juce::ValueTree::Listener
 {
 public:
     MCPUndoEngine (WFSValueTreeState& state, MCPChangeRecordBuffer& undoRing);
-    ~MCPUndoEngine();
+    ~MCPUndoEngine() override;
 
     /** Undo the newest record on the undo ring. Reverses its writes, then
         moves the record onto the internal redo ring. */
@@ -103,10 +107,36 @@ private:
     juce::String writePayloadHere (const ChangeRecord& record,
                                    const juce::var& payload);
 
+    /** Phase 5b: staleness check. Returns an UndoResult::fail with
+        errorCode "stale_target" when any of the record's
+        `affected_parameters` was last written by a non-MCP origin AFTER
+        the record's timestamp AND with a value that differs from the
+        AI's `after_state`. Returns an empty Optional-equivalent (i.e.
+        UndoResult{} with success=false but errorCode=="") when nothing
+        is stale — caller should proceed with the undo. */
+    UndoResult checkStalenessOrEmpty (const ChangeRecord& record) const;
+
+    /** ValueTree::Listener override — fires for any property change on
+        the root state tree or any child. Updates the lastWriter map. */
+    void valueTreePropertyChanged (juce::ValueTree& treeWhosePropertyChanged,
+                                   const juce::Identifier& property) override;
+
+    /** Per-parameter "most recent writer" entry. Updated on every
+        property change observed via valueTreePropertyChanged. */
+    struct LastWriter
+    {
+        OriginTag origin = OriginTag::None;
+        juce::Time when;
+        juce::var value;
+    };
+
     WFSValueTreeState& state;
     MCPChangeRecordBuffer& undoRing;
     std::unique_ptr<MCPChangeRecordBuffer> redoRing;
     int nextBatchId = 1;  // 0 = solo; we hand out positive ids for batches
+
+    std::map<juce::String, LastWriter> lastWriterByParamId;
+    mutable juce::CriticalSection lastWriterLock;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MCPUndoEngine)
 };

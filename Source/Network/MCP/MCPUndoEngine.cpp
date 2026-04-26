@@ -61,9 +61,111 @@ MCPUndoEngine::MCPUndoEngine (WFSValueTreeState& s, MCPChangeRecordBuffer& undo)
       undoRing (undo),
       redoRing (std::make_unique<MCPChangeRecordBuffer> (undo.capacity()))
 {
+    // Phase 5b: subscribe to ValueTree property changes for staleness
+    // detection. The state's addListener registers us against the root
+    // tree, so we get callbacks for every nested property change too.
+    state.addListener (this);
 }
 
-MCPUndoEngine::~MCPUndoEngine() = default;
+MCPUndoEngine::~MCPUndoEngine()
+{
+    state.removeListener (this);
+}
+
+void MCPUndoEngine::valueTreePropertyChanged (juce::ValueTree& treeWhosePropertyChanged,
+                                               const juce::Identifier& property)
+{
+    // The property's current value is what just got written.
+    LastWriter writer;
+    writer.origin = getCurrentOriginTag();
+    writer.when   = juce::Time::getCurrentTime();
+    writer.value  = treeWhosePropertyChanged.getProperty (property);
+
+    const juce::ScopedLock sl (lastWriterLock);
+    lastWriterByParamId[property.toString()] = std::move (writer);
+}
+
+UndoResult MCPUndoEngine::checkStalenessOrEmpty (const ChangeRecord& record) const
+{
+    // No after-state means we can't compare current vs AI value.
+    auto* afterObj = record.afterState.isObject() ? record.afterState.getDynamicObject() : nullptr;
+    if (afterObj == nullptr)
+        return UndoResult::fail ({}, {});  // empty errorCode → "no staleness, proceed"
+
+    juce::Array<juce::var> drifts;
+
+    {
+        const juce::ScopedLock sl (lastWriterLock);
+
+        for (const auto& paramName : record.affectedParameters)
+        {
+            auto it = lastWriterByParamId.find (paramName);
+            if (it == lastWriterByParamId.end())
+                continue;  // never seen a write for this param
+
+            const LastWriter& lw = it->second;
+
+            // The last writer was MCP, or it predates the record — either way,
+            // not a drift caller cares about.
+            if (lw.origin == OriginTag::MCP)
+                continue;
+            if (lw.when <= record.timestamp)
+                continue;
+
+            // Compare current value against AI's after_state. If they match,
+            // the operator dragged but coincidentally landed on the AI's value
+            // — not stale per the design doc.
+            const juce::Identifier paramId (paramName);
+            const juce::var aiValue = afterObj->getProperty (paramId);
+            if (lw.value == aiValue)
+                continue;
+
+            // Drift confirmed.
+            auto driftObj = std::make_unique<juce::DynamicObject>();
+            driftObj->setProperty ("parameter",     paramName);
+            driftObj->setProperty ("ai_value",      aiValue);
+            driftObj->setProperty ("current_value", lw.value);
+
+            // Translate origin enum → human string. LogEntry has the full
+            // mapping; build a tiny inline switch here to avoid depending on
+            // a LogEntry instance.
+            juce::String originStr;
+            switch (lw.origin)
+            {
+                case OriginTag::UI:         originStr = "UI";         break;
+                case OriginTag::OSC:        originStr = "OSC";        break;
+                case OriginTag::Tracking:   originStr = "Tracking";   break;
+                case OriginTag::Snapshot:   originStr = "Snapshot";   break;
+                case OriginTag::LFO:        originStr = "LFO";        break;
+                case OriginTag::Move:       originStr = "Move";       break;
+                case OriginTag::Automation: originStr = "Automation"; break;
+                case OriginTag::None:       originStr = "Unknown";    break;
+                default:                    originStr = "Unknown";    break;
+            }
+            driftObj->setProperty ("since_origin", originStr);
+
+            // affected_groups[0].channelId surfaces the (1-based) channel for
+            // human-readable error messages.
+            if (! record.affectedGroups.empty())
+                driftObj->setProperty ("channel_id", record.affectedGroups.front().channelId);
+
+            drifts.add (juce::var (driftObj.release()));
+        }
+    }
+
+    if (drifts.isEmpty())
+        return UndoResult::fail ({}, {});  // empty errorCode → "no staleness, proceed"
+
+    auto details = std::make_unique<juce::DynamicObject>();
+    details->setProperty ("drifted_parameters", juce::var (drifts));
+
+    return UndoResult::fail (
+        "stale_target",
+        "Cannot undo: " + juce::String (drifts.size())
+            + " parameter(s) modified by non-MCP origin since this record. "
+              "Operator should decide whether to restore the AI's value or keep the current one.",
+        juce::var (details.release()));
+}
 
 //==============================================================================
 UndoResult MCPUndoEngine::undoLast()
@@ -71,6 +173,14 @@ UndoResult MCPUndoEngine::undoLast()
     ChangeRecord rec;
     if (! undoRing.popBack (rec))
         return UndoResult::fail ("no_history", "No AI-origin changes to undo.");
+
+    // Phase 5b: refuse if a non-MCP origin drifted an affected parameter.
+    UndoResult staleness = checkStalenessOrEmpty (rec);
+    if (staleness.errorCode == "stale_target")
+    {
+        undoRing.push (std::move (rec));
+        return staleness;
+    }
 
     UndoResult outcome = applyReverse (rec);
     if (! outcome.success)
@@ -130,6 +240,41 @@ UndoResult MCPUndoEngine::undoByIndex (int recordIndex)
     }
     // chain[0] is the newest of the preview (because we walked indices in reverse);
     // chain.back() is the target (oldest of the preview).
+
+    // Phase 5b: staleness check across the entire chain. If any record's
+    // affected parameters drifted by a non-MCP origin, refuse the whole
+    // batch and restore the chain to the undo ring.
+    juce::Array<juce::var> allDrifts;
+    for (const auto& rec : chain)
+    {
+        UndoResult st = checkStalenessOrEmpty (rec);
+        if (st.errorCode == "stale_target")
+        {
+            if (auto* obj = st.details.isObject() ? st.details.getDynamicObject() : nullptr)
+            {
+                const auto driftsVar = obj->getProperty ("drifted_parameters");
+                if (driftsVar.isArray())
+                    for (const auto& d : *driftsVar.getArray())
+                        allDrifts.add (d);
+            }
+        }
+    }
+    if (! allDrifts.isEmpty())
+    {
+        // Restore the chain (chronological order — oldest at front of `chain`
+        // pushes to back of ring, but in our naming chain.back() IS the oldest,
+        // so push back-to-front to land newest-on-top).
+        for (auto it = chain.rbegin(); it != chain.rend(); ++it)
+            undoRing.push (std::move (*it));
+
+        auto details = std::make_unique<juce::DynamicObject>();
+        details->setProperty ("drifted_parameters", juce::var (allDrifts));
+        return UndoResult::fail (
+            "stale_target",
+            "Cannot undo batch: " + juce::String (allDrifts.size())
+                + " parameter(s) modified by non-MCP origin since the targeted record(s).",
+            juce::var (details.release()));
+    }
 
     const int batchId = (chain.size() > 1) ? nextBatchId++ : 0;
 
