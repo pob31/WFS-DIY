@@ -1795,6 +1795,10 @@ MainComponent::MainComponent()
     // Pass OSCManager to NetworkTab for UI integration
     networkTab->setOSCManager(oscManager.get());
 
+    // Pass MCPServer too — the NetworkTab MCP section needs it to read the
+    // bound port + running status for the Copy URL button.
+    networkTab->setMCPServer(mcpServer.get());
+
     // Set up NetworkLogWindow callback
     networkTab->setNetworkLogWindowCallback([this]() {
         openNetworkLogWindow();

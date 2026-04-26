@@ -3267,6 +3267,7 @@
     <ClInclude Include="..\..\Source\Network\MCP\tools\SessionTools.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\tools\InputTools.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\tools\SnapshotTools.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\UndoTools.h"/>
     <ClInclude Include="..\..\Source\Controllers\PositionControl\ControllerEvent.h"/>
     <ClInclude Include="..\..\Source\Controllers\PositionControl\ControllerDevice.h"/>
     <ClInclude Include="..\..\Source\Controllers\PositionControl\SpaceMouseDevice.h"/>

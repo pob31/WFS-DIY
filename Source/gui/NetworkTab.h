@@ -6,6 +6,7 @@
 #include "../Accessibility/TTSManager.h"
 #include "StatusBar.h"
 #include "../Network/OSCManager.h"
+#include "../Network/MCP/MCPServer.h"
 #include "ColorScheme.h"
 #include "../Localization/LocalizationManager.h"
 #include "buttons/LongPressButton.h"
@@ -1692,6 +1693,40 @@ public:
             updateOSCQueryServer();
         };
 
+        // ==================== MCP SERVER ====================
+        // Phase 1 minimum-viable UI: status read-out + two buttons. Strings
+        // are hardcoded for now; localization keys land in the i18n pass
+        // that's already on the project's translation TODO.
+        addAndMakeVisible(mcpServerLabel);
+        mcpServerLabel.setText("MCP Server:", juce::dontSendNotification);
+
+        addAndMakeVisible(mcpServerStatusLabel);
+        mcpServerStatusLabel.setText("Stopped", juce::dontSendNotification);
+        mcpServerStatusLabel.setColour(juce::Label::textColourId,
+                                       ColorScheme::get().textSecondary);
+
+        addAndMakeVisible(mcpCopyUrlButton);
+        mcpCopyUrlButton.setButtonText("Copy URL");
+        mcpCopyUrlButton.setEnabled(false);  // enabled once setMCPServer is called
+        mcpCopyUrlButton.onClick = [this]() {
+            if (mcpServer != nullptr && mcpServer->isRunning())
+            {
+                const juce::String url = "http://127.0.0.1:"
+                                       + juce::String(mcpServer->getBoundPort())
+                                       + "/mcp";
+                juce::SystemClipboard::copyTextToClipboard(url);
+                if (statusBar != nullptr)
+                    statusBar->showTemporaryMessage("MCP URL copied to clipboard: " + url, 2500);
+            }
+        };
+
+        addAndMakeVisible(mcpOpenLogButton);
+        mcpOpenLogButton.setButtonText("Open MCP Log");
+        mcpOpenLogButton.onClick = [this]() {
+            if (onNetworkLogWindowRequested)
+                onNetworkLogWindowRequested();
+        };
+
         // ==================== NETWORK CONNECTIONS TABLE ====================
         setupNetworkConnectionsTable();
 
@@ -1866,6 +1901,37 @@ public:
         updateOSCManagerConfig();
     }
 
+    /** Pass the MCP server reference so the UI can read its bound port +
+        running status. Phase 1 doesn't expose start/stop from the UI — the
+        server starts at app launch — but the Copy URL button needs the
+        actual bound port (port-fallback could change it from the default). */
+    void setMCPServer(WFSNetwork::MCPServer* server)
+    {
+        mcpServer = server;
+        updateMCPStatus();
+    }
+
+    void updateMCPStatus()
+    {
+        const bool running = mcpServer != nullptr && mcpServer->isRunning();
+        if (running)
+        {
+            mcpServerStatusLabel.setText("Running on 127.0.0.1:"
+                                         + juce::String(mcpServer->getBoundPort())
+                                         + "/mcp",
+                                         juce::dontSendNotification);
+            mcpServerStatusLabel.setColour(juce::Label::textColourId,
+                                           ColorScheme::get().accentGreen);
+        }
+        else
+        {
+            mcpServerStatusLabel.setText("Stopped", juce::dontSendNotification);
+            mcpServerStatusLabel.setColour(juce::Label::textColourId,
+                                           ColorScheme::get().textSecondary);
+        }
+        mcpCopyUrlButton.setEnabled(running);
+    }
+
     void paint(juce::Graphics& g) override
     {
         g.fillAll(ColorScheme::get().background);
@@ -1955,6 +2021,19 @@ public:
         oscQueryLabel.setBounds(leftX + portGroupWidth * 2, leftY, portLabelW, rowHeight);
         oscQueryPortEditor.setBounds(leftX + portGroupWidth * 2 + portLabelW, leftY, scaled(50), rowHeight);
         oscQueryEnableButton.setBounds(leftX + portGroupWidth * 2 + portLabelW + scaled(55), leftY, portLabelW, rowHeight);
+        leftY += rowHeight + spacing;
+
+        // --- MCP Server row ---
+        const int mcpLabelW    = scaled(95);
+        const int mcpStatusW   = scaled(220);
+        const int mcpButtonW   = scaled(95);
+        const int mcpButtonGap = scaled(4);
+        mcpServerLabel.setBounds       (leftX, leftY, mcpLabelW, rowHeight);
+        mcpServerStatusLabel.setBounds (leftX + mcpLabelW, leftY, mcpStatusW, rowHeight);
+        mcpCopyUrlButton.setBounds     (leftX + mcpLabelW + mcpStatusW + scaled(8),
+                                        leftY, mcpButtonW, rowHeight);
+        mcpOpenLogButton.setBounds     (leftX + mcpLabelW + mcpStatusW + scaled(8) + mcpButtonW + mcpButtonGap,
+                                        leftY, scaled(115), rowHeight);
         leftY += rowHeight + sectionSpacing;
 
         // --- Network Connections Table ---
@@ -2319,6 +2398,13 @@ private:
     juce::Label oscQueryLabel;
     juce::TextEditor oscQueryPortEditor;
     juce::TextButton oscQueryEnableButton;
+
+    // MCP Server (Phase 1 — read-only status + copy/log buttons)
+    juce::Label mcpServerLabel;
+    juce::Label mcpServerStatusLabel;
+    juce::TextButton mcpCopyUrlButton;
+    juce::TextButton mcpOpenLogButton;
+    WFSNetwork::MCPServer* mcpServer = nullptr;
 
     // Footer buttons
     LongPressButton storeButton;

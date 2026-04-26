@@ -245,6 +245,7 @@
 		C13194A76B6B84669C156769 /* StatusBar.h */ /* StatusBar.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StatusBar.h; path = ../../Source/gui/StatusBar.h; sourceTree = SOURCE_ROOT; };
 		C23555C43C15F2DD0CF3BA9C /* Metal.framework */ /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		C2A444C276327D0BCFA3510A /* RecentFilesMenuTemplate.nib */ /* RecentFilesMenuTemplate.nib */ = {isa = PBXFileReference; lastKnownFileType = file.nib; name = RecentFilesMenuTemplate.nib; path = RecentFilesMenuTemplate.nib; sourceTree = SOURCE_ROOT; };
+		C3A44553373C3A4BB428CBD7 /* UndoTools.h */ /* UndoTools.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = UndoTools.h; path = ../../Source/Network/MCP/tools/UndoTools.h; sourceTree = SOURCE_ROOT; };
 		C435718E1939D711C1FBBB2A /* StreamDeckDevice.h */ /* StreamDeckDevice.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StreamDeckDevice.h; path = ../../Source/Controllers/DialsAndButtons/StreamDeckDevice.h; sourceTree = SOURCE_ROOT; };
 		C607B2F75EB66C51671444ED /* InputsTabPages.h */ /* InputsTabPages.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = InputsTabPages.h; path = ../../Source/Controllers/DialsAndButtons/pages/InputsTabPages.h; sourceTree = SOURCE_ROOT; };
 		C67F91CF1D3B324EB43469E0 /* OutputBufferProcessor.h */ /* OutputBufferProcessor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OutputBufferProcessor.h; path = ../../Source/DSP/OutputBufferProcessor.h; sourceTree = SOURCE_ROOT; };
@@ -397,6 +398,7 @@
 				73E884154FA8D72C00AC8B91,
 				CEC081A521DE9D3B8C616524,
 				2EB98E621EA18E52DDD6C666,
+				C3A44553373C3A4BB428CBD7,
 			);
 			name = tools;
 			sourceTree = "<group>";

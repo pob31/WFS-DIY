@@ -175,6 +175,8 @@
                   file="Source/Network/MCP/tools/InputTools.h"/>
             <FILE id="mcpToolsSnap" name="SnapshotTools.h" compile="0" resource="0"
                   file="Source/Network/MCP/tools/SnapshotTools.h"/>
+            <FILE id="mcpToolsUndo" name="UndoTools.h" compile="0" resource="0"
+                  file="Source/Network/MCP/tools/UndoTools.h"/>
           </GROUP>
         </GROUP>
       </GROUP>

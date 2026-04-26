@@ -4401,6 +4401,9 @@
     <ClInclude Include="..\..\Source\Network\MCP\tools\SnapshotTools.h">
       <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\UndoTools.h">
+      <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\Controllers\PositionControl\ControllerEvent.h">
       <Filter>WFS-DIY\Source\Controllers\PositionControl</Filter>
     </ClInclude>
