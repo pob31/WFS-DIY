@@ -2075,7 +2075,7 @@ public:
         oscQueryLabel.setBounds(leftX + portGroupWidth * 2, leftY, portLabelW, rowHeight);
         oscQueryPortEditor.setBounds(leftX + portGroupWidth * 2 + portLabelW, leftY, scaled(50), rowHeight);
         oscQueryEnableButton.setBounds(leftX + portGroupWidth * 2 + portLabelW + scaled(55), leftY, portLabelW, rowHeight);
-        leftY += rowHeight + spacing;
+        leftY += rowHeight + sectionSpacing;
 
         // --- Network Connections Table ---
         networkConnectionsSectionY = leftY;
