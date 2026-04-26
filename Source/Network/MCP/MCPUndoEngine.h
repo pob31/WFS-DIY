@@ -93,6 +93,15 @@ public:
         the AI to know whether redo is available. */
     int redoableCount() const;
 
+    /** Phase 5b Block 3: drain the pending cross-actor notifications.
+        Returns + clears the queue under lock. The dispatcher calls this
+        when assembling each tool-call response and, if non-empty, attaches
+        the array to the result envelope as `notifications`.
+        Each entry is a juce::var containing a DynamicObject with fields:
+        type, summary, parameter, channel_id, ai_value, current_value,
+        since_origin. */
+    juce::Array<juce::var> drainPendingNotifications();
+
 private:
     /** Apply a record's `before_state` to the tree (= reversal). */
     UndoResult applyReverse (const ChangeRecord& record);
@@ -137,6 +146,14 @@ private:
 
     std::map<juce::String, LastWriter> lastWriterByParamId;
     mutable juce::CriticalSection lastWriterLock;
+
+    /** Pending cross-actor notifications (Phase 5b Block 3). Built by
+        valueTreePropertyChanged when a non-MCP write lands on a parameter
+        touched by an active record; drained by the dispatcher on each
+        tool-call response. De-duped by parameter id — a slider drag burst
+        produces a single accumulated notification, not 50 per second. */
+    juce::Array<juce::var> pendingNotifications;
+    juce::CriticalSection notificationsLock;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MCPUndoEngine)
 };

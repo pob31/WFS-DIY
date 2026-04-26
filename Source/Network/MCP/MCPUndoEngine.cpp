@@ -75,14 +75,115 @@ MCPUndoEngine::~MCPUndoEngine()
 void MCPUndoEngine::valueTreePropertyChanged (juce::ValueTree& treeWhosePropertyChanged,
                                                const juce::Identifier& property)
 {
-    // The property's current value is what just got written.
-    LastWriter writer;
-    writer.origin = getCurrentOriginTag();
-    writer.when   = juce::Time::getCurrentTime();
-    writer.value  = treeWhosePropertyChanged.getProperty (property);
+    const auto origin = getCurrentOriginTag();
+    const auto now = juce::Time::getCurrentTime();
+    const auto newValue = treeWhosePropertyChanged.getProperty (property);
+    const auto paramName = property.toString();
 
-    const juce::ScopedLock sl (lastWriterLock);
-    lastWriterByParamId[property.toString()] = std::move (writer);
+    // Update the last-writer cache (for staleness detection on undo).
+    {
+        const juce::ScopedLock sl (lastWriterLock);
+        lastWriterByParamId[paramName] = LastWriter { origin, now, newValue };
+    }
+
+    // Phase 5b Block 3: cross-actor notifications. When a non-MCP write
+    // lands on a parameter that an active AI record touched, accumulate a
+    // notification so the next AI tool-call response carries it.
+    // Skip MCP-origin writes (we caused them), and writes that don't touch
+    // any parameter the AI has recorded.
+    if (origin == OriginTag::MCP)
+        return;
+
+    // Find the most recent record (newest first) that mentions this param.
+    // If found, capture the AI's value for the human-readable summary.
+    juce::var aiValue;
+    int channelId = 0;
+    bool foundActiveRecord = false;
+    {
+        const auto records = undoRing.getRecent (-1);
+        // Walk newest → oldest; the AI's most recent intent is what the
+        // operator override is reacting to.
+        for (auto it = records.rbegin(); it != records.rend(); ++it)
+        {
+            if (it->affectedParameters.contains (paramName))
+            {
+                if (auto* afterObj = it->afterState.isObject() ? it->afterState.getDynamicObject() : nullptr)
+                    aiValue = afterObj->getProperty (juce::Identifier (paramName));
+                if (! it->affectedGroups.empty())
+                    channelId = it->affectedGroups.front().channelId;
+                foundActiveRecord = true;
+                break;
+            }
+        }
+    }
+    if (! foundActiveRecord)
+        return;
+
+    // Coincidence: operator dragged but landed on the AI's value. No
+    // notification — the AI's last write is still effectively in place.
+    if (newValue == aiValue)
+        return;
+
+    // Translate origin enum → human label.
+    juce::String originStr;
+    switch (origin)
+    {
+        case OriginTag::UI:         originStr = "UI";         break;
+        case OriginTag::OSC:        originStr = "OSC";        break;
+        case OriginTag::Tracking:   originStr = "Tracking";   break;
+        case OriginTag::Snapshot:   originStr = "Snapshot";   break;
+        case OriginTag::LFO:        originStr = "LFO";        break;
+        case OriginTag::Move:       originStr = "Move";       break;
+        case OriginTag::Automation: originStr = "Automation"; break;
+        case OriginTag::None:       originStr = "Unknown";    break;
+        default:                    originStr = "Unknown";    break;
+    }
+
+    auto note = std::make_unique<juce::DynamicObject>();
+    note->setProperty ("type", "operator_override");
+    note->setProperty ("parameter", paramName);
+    if (channelId > 0)
+        note->setProperty ("channel_id", channelId);
+    note->setProperty ("ai_value", aiValue);
+    note->setProperty ("current_value", newValue);
+    note->setProperty ("since_origin", originStr);
+
+    juce::String summary;
+    summary << "Operator changed " << paramName;
+    if (channelId > 0)
+        summary << " for channel " << channelId;
+    summary << " (you set " << aiValue.toString()
+            << "; current " << newValue.toString() << ")"
+            << " via " << originStr
+            << " at " << now.toString (false, true);
+    note->setProperty ("summary", summary);
+
+    // De-dup: replace any existing pending notification for the same param.
+    // Slider drags fire many property-changed events per second, but the AI
+    // only needs the latest snapshot.
+    {
+        const juce::ScopedLock sl (notificationsLock);
+        for (int i = pendingNotifications.size() - 1; i >= 0; --i)
+        {
+            if (auto* existingObj = pendingNotifications.getReference (i).getDynamicObject())
+            {
+                if (existingObj->getProperty ("parameter").toString() == paramName)
+                {
+                    pendingNotifications.remove (i);
+                    break;
+                }
+            }
+        }
+        pendingNotifications.add (juce::var (note.release()));
+    }
+}
+
+juce::Array<juce::var> MCPUndoEngine::drainPendingNotifications()
+{
+    const juce::ScopedLock sl (notificationsLock);
+    juce::Array<juce::var> drained = std::move (pendingNotifications);
+    pendingNotifications.clearQuick();
+    return drained;
 }
 
 UndoResult MCPUndoEngine::checkStalenessOrEmpty (const ChangeRecord& record) const

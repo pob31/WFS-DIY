@@ -211,6 +211,13 @@ juce::String MCPDispatcher::handleToolsCall (const juce::var& id, const juce::va
         callResult->setProperty ("content", juce::var (content));
         callResult->setProperty ("isError", true);
 
+        // Phase 5b Block 3: drain pending cross-actor notifications onto
+        // the response envelope. Errors get them too — the AI may need to
+        // see the override even when its own tool failed.
+        const auto notifs = undoEngine.drainPendingNotifications();
+        if (! notifs.isEmpty())
+            callResult->setProperty ("notifications", juce::var (notifs));
+
         return makeJsonRpcResult (id, juce::var (callResult.release()));
     }
 
@@ -226,6 +233,11 @@ juce::String MCPDispatcher::handleToolsCall (const juce::var& id, const juce::va
     auto callResult = std::make_unique<juce::DynamicObject>();
     callResult->setProperty ("content", juce::var (content));
     callResult->setProperty ("isError", false);
+
+    // Phase 5b Block 3: cross-actor notifications side-channel.
+    const auto notifs = undoEngine.drainPendingNotifications();
+    if (! notifs.isEmpty())
+        callResult->setProperty ("notifications", juce::var (notifs));
 
     return makeJsonRpcResult (id, juce::var (callResult.release()));
 }
