@@ -181,6 +181,8 @@
                   file="Source/Network/MCP/tools/SnapshotTools.h"/>
             <FILE id="mcpToolsUndo" name="UndoTools.h" compile="0" resource="0"
                   file="Source/Network/MCP/tools/UndoTools.h"/>
+            <FILE id="mcpToolsSetParam" name="SetParameterTool.h" compile="0" resource="0"
+                  file="Source/Network/MCP/tools/SetParameterTool.h"/>
           </GROUP>
         </GROUP>
       </GROUP>

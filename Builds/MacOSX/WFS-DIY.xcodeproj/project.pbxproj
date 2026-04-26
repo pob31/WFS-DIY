@@ -156,6 +156,7 @@
 		527DE6F349B1DF165D7D2BF1 /* ClustersTabPages.h */ /* ClustersTabPages.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ClustersTabPages.h; path = ../../Source/Controllers/DialsAndButtons/pages/ClustersTabPages.h; sourceTree = SOURCE_ROOT; };
 		54B2A0562D44FAFD14948BD4 /* Accelerate.framework */ /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
 		561908FA927ABC8DC0BB0A10 /* juce_simpleweb */ /* juce_simpleweb */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_simpleweb; path = ../../ThirdParty/juce_simpleweb; sourceTree = SOURCE_ROOT; };
+		5708250B17E10EA1BEA04BBC /* SetParameterTool.h */ /* SetParameterTool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SetParameterTool.h; path = ../../Source/Network/MCP/tools/SetParameterTool.h; sourceTree = SOURCE_ROOT; };
 		571D549FDC58EA8A421E3329 /* juce_audio_processors_headless */ /* juce_audio_processors_headless */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_audio_processors_headless; path = ../../ThirdParty/JUCE/modules/juce_audio_processors_headless; sourceTree = SOURCE_ROOT; };
 		573C45192697FB567520101F /* StreamDeckManager.h */ /* StreamDeckManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StreamDeckManager.h; path = ../../Source/Controllers/DialsAndButtons/StreamDeckManager.h; sourceTree = SOURCE_ROOT; };
 		5810F8314E4B23B3F2FB167F /* OSCMessageBuilder.h */ /* OSCMessageBuilder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OSCMessageBuilder.h; path = ../../Source/Network/OSCMessageBuilder.h; sourceTree = SOURCE_ROOT; };
@@ -402,6 +403,7 @@
 				CEC081A521DE9D3B8C616524,
 				2EB98E621EA18E52DDD6C666,
 				C3A44553373C3A4BB428CBD7,
+				5708250B17E10EA1BEA04BBC,
 			);
 			name = tools;
 			sourceTree = "<group>";

@@ -7,6 +7,7 @@
 #include "tools/InputTools.h"
 #include "tools/SnapshotTools.h"
 #include "tools/UndoTools.h"
+#include "tools/SetParameterTool.h"
 
 namespace WFSNetwork
 {
@@ -38,6 +39,11 @@ MCPServer::MCPServer (WFSValueTreeState& state,
     registry->registerTool (Tools::Input::describeSetCartesian (state));
     registry->registerTool (Tools::Input::describeSetAttenuation (state));
     registry->registerTool (Tools::Snapshot::describe (fileMgr));
+
+    // Phase 2 Block 3 — generic escape-hatch tool. Lets the AI hit a
+    // parameter the auto-generated surface didn't cover. Trusted-caller
+    // semantics: no clamping, exact variable names required.
+    registry->registerTool (Tools::SetParameter::describe (state));
 
     // Undo / redo tools — stubs until Phase 5; mcp.get_ai_change_history is
     // a real read-only implementation over the ring buffer.
