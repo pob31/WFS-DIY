@@ -95,12 +95,8 @@ bool MCPTransport::handleHTTPRequest (std::shared_ptr<HttpServer::Response> resp
     if (method == "OPTIONS")
     {
         // CORS preflight — answer with empty body and the Allow* headers from
-        // defaultHeaders(). Reaching this branch depends on SimpleWeb routing
-        // OPTIONS through default_resource; the vendored copy has a local
-        // patch that does this, with an upstream PR pending at
-        // benkuper/juce_simpleweb. If a future dependency refresh predates
-        // the merge and the patch is dropped, OPTIONS will silently stop
-        // reaching us — re-apply the local patch in that case.
+        // defaultHeaders(). SimpleWeb routes OPTIONS through default_resource
+        // since benkuper/juce_simpleweb#5 merged.
         writeJson (response, SimpleWeb::StatusCode::success_no_content, juce::String());
         return true;
     }
