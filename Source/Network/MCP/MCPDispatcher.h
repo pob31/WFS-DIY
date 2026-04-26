@@ -5,6 +5,7 @@
 #include "MCPLogger.h"
 #include "MCPToolRegistry.h"
 #include "MCPChangeRecords.h"
+#include "MCPUndoEngine.h"
 #include "MCPResourceRegistry.h"
 #include "MCPPromptRegistry.h"
 
@@ -32,6 +33,7 @@ public:
     MCPDispatcher (WFSValueTreeState& state,
                    MCPToolRegistry& registry,
                    MCPChangeRecordBuffer& ringBuffer,
+                   MCPUndoEngine& undoEngine,
                    MCPResourceRegistry& resourceRegistry,
                    MCPPromptRegistry& promptRegistry,
                    MCPLogger& mcpLogger);
@@ -80,6 +82,7 @@ private:
     WFSValueTreeState& state;
     MCPToolRegistry& registry;
     MCPChangeRecordBuffer& ringBuffer;
+    MCPUndoEngine& undoEngine;
     MCPResourceRegistry& resources;
     MCPPromptRegistry& prompts;
     MCPLogger& mcpLogger;

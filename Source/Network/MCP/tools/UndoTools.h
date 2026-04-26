@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "../MCPToolRegistry.h"
 #include "../MCPChangeRecords.h"
+#include "../MCPUndoEngine.h"
 
 namespace WFSNetwork::Tools::Undo
 {
@@ -48,54 +49,66 @@ namespace detail
         return juce::var (schema.release());
     }
 
-    inline juce::var pendingPhase5Result()
+    /** Translate an UndoResult from MCPUndoEngine into the ToolResult shape
+        the MCP dispatcher expects. */
+    inline ToolResult toolResultFromUndo (const UndoResult& outcome)
     {
+        if (! outcome.success)
+            return ToolResult::error (outcome.errorCode, outcome.errorMessage);
+
         auto obj = std::make_unique<juce::DynamicObject>();
-        obj->setProperty ("status", "not_yet_implemented");
-        obj->setProperty ("phase",  "Pending Phase 5 (AI undo surfacing). The change-record "
-                                    "ring buffer is populated as of Phase 1, but reversal "
-                                    "logic, staleness detection, and the cross-actor "
-                                    "notification side-channel are not yet wired up.");
-        return juce::var (obj.release());
+        obj->setProperty ("operator_description", outcome.operatorDescription);
+        obj->setProperty ("before_applied",       outcome.beforeApplied);
+        obj->setProperty ("after_applied",        outcome.afterApplied);
+        obj->setProperty ("records_affected",     outcome.recordsAffected);
+        return ToolResult::ok (juce::var (obj.release()));
     }
 }
 
 //==============================================================================
-// mcp.undo_last_ai_change — stub until Phase 5
+// mcp.undo_last_ai_change — Phase 5a real implementation
 //==============================================================================
 
-inline ToolDescriptor describeUndo()
+inline ToolDescriptor describeUndo (MCPUndoEngine& engine)
 {
     ToolDescriptor d;
     d.name        = "mcp.undo_last_ai_change";
-    d.description = "Undo the most recent AI-initiated state change. (Phase 1 stub: "
-                    "registered now so clients can depend on it from day one; the real "
-                    "implementation lands in Phase 5 alongside the growing-toast overlay "
-                    "and Cmd/Ctrl-Alt-Z keyboard shortcut.)";
+    d.description = "Undo the most recent AI-initiated state change. Reverses the "
+                    "writes the corresponding tool call performed and moves the record "
+                    "onto the redo stack. Read-only tool calls (session.get_state, "
+                    "snapshot.list, etc.) do NOT generate undo records, so this only "
+                    "reverses state mutations. Returns no_history if nothing to undo.";
     d.inputSchema   = detail::emptyObjectSchema();
-    d.modifiesState = false;  // stub doesn't actually mutate; Phase 5 flips this
-    d.handler = [] (const juce::var&, ChangeRecord*) -> ToolResult
+    // Block 2 will extend the schema with an optional `record_index` for
+    // targeted undo. For Block 1, no args = "undo the last record".
+    d.modifiesState = false;  // The undo engine handles its own change-record bookkeeping
+                              // (it pushes the undone record onto the redo ring); the
+                              // dispatcher should NOT also push a generic record for
+                              // this call. Keep modifiesState=false to skip that.
+    d.handler = [&engine] (const juce::var&, ChangeRecord*) -> ToolResult
     {
-        return ToolResult::ok (detail::pendingPhase5Result());
+        return detail::toolResultFromUndo (engine.undoLast());
     };
     return d;
 }
 
 //==============================================================================
-// mcp.redo_last_undone_ai_change — stub until Phase 5
+// mcp.redo_last_undone_ai_change — Phase 5a real implementation
 //==============================================================================
 
-inline ToolDescriptor describeRedo()
+inline ToolDescriptor describeRedo (MCPUndoEngine& engine)
 {
     ToolDescriptor d;
     d.name        = "mcp.redo_last_undone_ai_change";
-    d.description = "Redo the most recently undone AI-initiated change. (Phase 1 stub; "
-                    "real implementation in Phase 5.)";
+    d.description = "Re-apply the most recently undone AI change. The redo stack is "
+                    "cleared whenever a new state-modifying tool call lands (standard "
+                    "undo/redo semantics), so redo is only available immediately after "
+                    "an undo. Returns no_redo if nothing to redo.";
     d.inputSchema   = detail::emptyObjectSchema();
-    d.modifiesState = false;
-    d.handler = [] (const juce::var&, ChangeRecord*) -> ToolResult
+    d.modifiesState = false;  // same rationale as describeUndo
+    d.handler = [&engine] (const juce::var&, ChangeRecord*) -> ToolResult
     {
-        return ToolResult::ok (detail::pendingPhase5Result());
+        return detail::toolResultFromUndo (engine.redoLast());
     };
     return d;
 }

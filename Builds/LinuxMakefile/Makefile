@@ -97,6 +97,7 @@ OBJECTS_APP := \
   $(JUCE_OBJDIR)/TrackingMQTTReceiver_2e949d4.o \
   $(JUCE_OBJDIR)/MCPLogger_2a5b9495.o \
   $(JUCE_OBJDIR)/MCPChangeRecords_e03307d7.o \
+  $(JUCE_OBJDIR)/MCPUndoEngine_c559304b.o \
   $(JUCE_OBJDIR)/MCPToolRegistry_f3164e7a.o \
   $(JUCE_OBJDIR)/MCPDispatcher_73f0ae2c.o \
   $(JUCE_OBJDIR)/MCPTransport_c748070e.o \
@@ -271,6 +272,11 @@ $(JUCE_OBJDIR)/MCPLogger_2a5b9495.o: ../../Source/Network/MCP/MCPLogger.cpp
 $(JUCE_OBJDIR)/MCPChangeRecords_e03307d7.o: ../../Source/Network/MCP/MCPChangeRecords.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling MCPChangeRecords.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/MCPUndoEngine_c559304b.o: ../../Source/Network/MCP/MCPUndoEngine.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling MCPUndoEngine.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/MCPToolRegistry_f3164e7a.o: ../../Source/Network/MCP/MCPToolRegistry.cpp

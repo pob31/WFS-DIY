@@ -152,6 +152,10 @@
                 file="Source/Network/MCP/MCPChangeRecords.h"/>
           <FILE id="mcpRecCpp" name="MCPChangeRecords.cpp" compile="1" resource="0"
                 file="Source/Network/MCP/MCPChangeRecords.cpp"/>
+          <FILE id="mcpUndoEngH" name="MCPUndoEngine.h" compile="0" resource="0"
+                file="Source/Network/MCP/MCPUndoEngine.h"/>
+          <FILE id="mcpUndoEngCpp" name="MCPUndoEngine.cpp" compile="1" resource="0"
+                file="Source/Network/MCP/MCPUndoEngine.cpp"/>
           <FILE id="mcpRegH" name="MCPToolRegistry.h" compile="0" resource="0"
                 file="Source/Network/MCP/MCPToolRegistry.h"/>
           <FILE id="mcpRegCpp" name="MCPToolRegistry.cpp" compile="1" resource="0"

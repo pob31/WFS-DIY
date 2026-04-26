@@ -18,6 +18,36 @@ void MCPChangeRecordBuffer::push (ChangeRecord record)
     records.push_back (std::move (record));
 }
 
+bool MCPChangeRecordBuffer::popBack (ChangeRecord& out)
+{
+    const juce::ScopedLock sl (lock);
+    if (records.empty())
+        return false;
+    out = std::move (records.back());
+    records.pop_back();
+    return true;
+}
+
+bool MCPChangeRecordBuffer::peekAt (int index, ChangeRecord& out) const
+{
+    const juce::ScopedLock sl (lock);
+    if (index < 0 || index >= static_cast<int> (records.size()))
+        return false;
+    out = records[static_cast<size_t> (index)];
+    return true;
+}
+
+bool MCPChangeRecordBuffer::removeAt (int index, ChangeRecord& out)
+{
+    const juce::ScopedLock sl (lock);
+    if (index < 0 || index >= static_cast<int> (records.size()))
+        return false;
+    auto it = records.begin() + index;
+    out = std::move (*it);
+    records.erase (it);
+    return true;
+}
+
 std::vector<ChangeRecord> MCPChangeRecordBuffer::getRecent (int n) const
 {
     const juce::ScopedLock sl (lock);

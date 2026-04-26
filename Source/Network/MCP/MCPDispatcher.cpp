@@ -23,10 +23,11 @@ namespace
 MCPDispatcher::MCPDispatcher (WFSValueTreeState& s,
                               MCPToolRegistry& r,
                               MCPChangeRecordBuffer& buf,
+                              MCPUndoEngine& undo,
                               MCPResourceRegistry& res,
                               MCPPromptRegistry& prm,
                               MCPLogger& l)
-    : state (s), registry (r), ringBuffer (buf),
+    : state (s), registry (r), ringBuffer (buf), undoEngine (undo),
       resources (res), prompts (prm), mcpLogger (l)
 {
 }
@@ -187,7 +188,13 @@ juce::String MCPDispatcher::handleToolsCall (const juce::var& id, const juce::va
     }
 
     if (recordPtr != nullptr && result.success)
+    {
         ringBuffer.push (record);
+        // Standard undo/redo: a fresh state-modifying tool call invalidates
+        // any pending redo history. Phase 5a wires this up; the undo engine
+        // owns the redo ring.
+        undoEngine.onNewStateModifyingRecord();
+    }
 
     if (! result.success)
     {

@@ -21,6 +21,7 @@
 		3201D56E12B692DF589404E8 /* include_juce_audio_utils.mm */ = {isa = PBXBuildFile; fileRef = 0295E8DB0FB28056B5EFD60F; };
 		36F17547828BD0BC27FB25DC /* WFSLogger.cpp */ = {isa = PBXBuildFile; fileRef = 2A3098A01F4897C79C3BDD80; };
 		3E0A0AB3E298FA5F0241DEB0 /* include_juce_audio_formats.mm */ = {isa = PBXBuildFile; fileRef = 88828B243F838905A44A3AE5; };
+		3EDA18ECB7D32E52399C58BF /* MCPUndoEngine.cpp */ = {isa = PBXBuildFile; fileRef = 121398B0860404537150E40A; };
 		40BAD216FC425C9199688DAB /* MCPDispatcher.cpp */ = {isa = PBXBuildFile; fileRef = 6F21025606613B42ABF1D66A; };
 		471089E457EAE929D9FBE39A /* DiscRecording.framework */ = {isa = PBXBuildFile; fileRef = BB988ACB6CA5DBAAB5D3F273; };
 		476F09624768D72D4EA72FB2 /* Cocoa.framework */ = {isa = PBXBuildFile; fileRef = 8482C13D6FF8436DFD51EE09; };
@@ -93,6 +94,7 @@
 /* Begin PBXFileReference section */
 		00959BF07328BFC4DAE09086 /* HelpCard.h */ /* HelpCard.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = HelpCard.h; path = ../../Source/gui/HelpCard.h; sourceTree = SOURCE_ROOT; };
 		015EA0280AE439D59E4A3D5E /* include_juce_core.mm */ /* include_juce_core.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_core.mm; path = ../../JuceLibraryCode/include_juce_core.mm; sourceTree = SOURCE_ROOT; };
+		01DEEF8130F51E978E2ACD0B /* MCPUndoEngine.h */ /* MCPUndoEngine.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MCPUndoEngine.h; path = ../../Source/Network/MCP/MCPUndoEngine.h; sourceTree = SOURCE_ROOT; };
 		0286C27EEF7FF41861AEADED /* WFSFileManager.h */ /* WFSFileManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = WFSFileManager.h; path = ../../Source/Parameters/WFSFileManager.h; sourceTree = SOURCE_ROOT; };
 		0295E8DB0FB28056B5EFD60F /* include_juce_audio_utils.mm */ /* include_juce_audio_utils.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_utils.mm; path = ../../JuceLibraryCode/include_juce_audio_utils.mm; sourceTree = SOURCE_ROOT; };
 		0336BAD5994A5DD29FEB2B02 /* UpdateChecker.h */ /* UpdateChecker.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = UpdateChecker.h; path = ../../Source/UpdateChecker.h; sourceTree = SOURCE_ROOT; };
@@ -103,6 +105,7 @@
 		10B5F6956A7261934156D7A8 /* IOKit.framework */ /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
 		115C92726FC6EAC82D859DF6 /* GradientMapEvaluator.h */ /* GradientMapEvaluator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = GradientMapEvaluator.h; path = ../../Source/GradientMap/GradientMapEvaluator.h; sourceTree = SOURCE_ROOT; };
 		11DA25FE53363679529C4A42 /* ArrayGeometryCalculator.h */ /* ArrayGeometryCalculator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ArrayGeometryCalculator.h; path = ../../Source/Helpers/ArrayGeometryCalculator.h; sourceTree = SOURCE_ROOT; };
+		121398B0860404537150E40A /* MCPUndoEngine.cpp */ /* MCPUndoEngine.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPUndoEngine.cpp; path = ../../Source/Network/MCP/MCPUndoEngine.cpp; sourceTree = SOURCE_ROOT; };
 		12146791FE10C68B72D72F39 /* InputBufferAlgorithmGPU.cpp */ /* InputBufferAlgorithmGPU.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = InputBufferAlgorithmGPU.cpp; path = ../../Source/DSP/InputBufferAlgorithmGPU.cpp; sourceTree = SOURCE_ROOT; };
 		141DFB14179D8C4EA0A6FF2D /* MapTabWindow.h */ /* MapTabWindow.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MapTabWindow.h; path = ../../Source/gui/MapTabWindow.h; sourceTree = SOURCE_ROOT; };
 		143DF3EE177D85E1D8E1F58A /* InputBufferAlgorithmGPU.h */ /* InputBufferAlgorithmGPU.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = InputBufferAlgorithmGPU.h; path = ../../Source/DSP/InputBufferAlgorithmGPU.h; sourceTree = SOURCE_ROOT; };
@@ -472,6 +475,8 @@
 				A93789C1D857587E49D12A34,
 				3BEDA7AE9F163D8CB7DBB3D0,
 				EF6BE4EEF00731F9E6446B7F,
+				01DEEF8130F51E978E2ACD0B,
+				121398B0860404537150E40A,
 				1A1140E03F50B30810138601,
 				7E602E26466DEF84F54CDE94,
 				61BF71BE364DC6BB92C6264F,
@@ -852,6 +857,7 @@
 				0147BD859A2D7D55D6755381,
 				E8BC3989FD19A883018F7871,
 				1857C192FEAF647C113090DF,
+				3EDA18ECB7D32E52399C58BF,
 				A635BD6A3E95AC90F1E59D1D,
 				40BAD216FC425C9199688DAB,
 				5E8F096DF4AFABE40A110930,

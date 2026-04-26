@@ -4,6 +4,7 @@
 #include "MCPLogger.h"
 #include "MCPToolRegistry.h"
 #include "MCPChangeRecords.h"
+#include "MCPUndoEngine.h"
 #include "MCPResourceRegistry.h"
 #include "MCPPromptRegistry.h"
 #include "MCPDispatcher.h"
@@ -71,12 +72,18 @@ public:
         templates surfaced via prompts/list and prompts/get. */
     MCPPromptRegistry& getPrompts() noexcept { return *promptRegistry; }
 
+    /** Backend undo/redo engine (Phase 5a). Drives mcp.undo_last_ai_change
+        and mcp.redo_last_undone_ai_change. Phase 5c will also call into
+        this directly for the keyboard-shortcut path. */
+    MCPUndoEngine& getUndoEngine() noexcept { return *undoEngine; }
+
 private:
     WFSValueTreeState& valueTreeState;
     WFSFileManager& fileManager;
     std::unique_ptr<MCPLogger> mcpLogger;
     std::unique_ptr<MCPToolRegistry> registry;
     std::unique_ptr<MCPChangeRecordBuffer> changeRecords;
+    std::unique_ptr<MCPUndoEngine> undoEngine;
     std::unique_ptr<MCPResourceRegistry> resourceRegistry;
     std::unique_ptr<MCPPromptRegistry> promptRegistry;
     std::unique_ptr<MCPDispatcher> dispatcher;

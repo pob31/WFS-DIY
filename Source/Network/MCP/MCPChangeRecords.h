@@ -57,6 +57,19 @@ public:
     /** Append a record, dropping the oldest entry if the buffer is full. */
     void push (ChangeRecord record);
 
+    /** Pop the most-recent record into `out`. Returns false if the buffer is
+        empty. Used by the undo engine to drain a record onto the redo stack. */
+    bool popBack (ChangeRecord& out);
+
+    /** Copy the record at the given index (0 = oldest, size-1 = newest) into
+        `out`. Returns false if the index is out of range. */
+    bool peekAt (int index, ChangeRecord& out) const;
+
+    /** Remove the record at the given index, copying it into `out`. Used by
+        targeted-undo dependency chasing (Phase 5a Block 2). Returns false if
+        the index is out of range. */
+    bool removeAt (int index, ChangeRecord& out);
+
     /** Snapshot of the last `n` records (most recent last). Pass -1 for all. */
     std::vector<ChangeRecord> getRecent (int n = -1) const;
 

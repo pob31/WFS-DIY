@@ -23,9 +23,11 @@ MCPServer::MCPServer (WFSValueTreeState& state,
     mcpLogger        = std::make_unique<MCPLogger> (networkLogger);
     registry         = std::make_unique<MCPToolRegistry>();
     changeRecords    = std::make_unique<MCPChangeRecordBuffer>();
+    undoEngine       = std::make_unique<MCPUndoEngine> (state, *changeRecords);
     resourceRegistry = std::make_unique<MCPResourceRegistry> (knowledgeResourcesDir);
     promptRegistry   = std::make_unique<MCPPromptRegistry>();
     dispatcher       = std::make_unique<MCPDispatcher> (state, *registry, *changeRecords,
+                                                        *undoEngine,
                                                         *resourceRegistry, *promptRegistry,
                                                         *mcpLogger);
     transport        = std::make_unique<MCPTransport> (*mcpLogger);
@@ -55,10 +57,10 @@ MCPServer::MCPServer (WFSValueTreeState& state,
     // semantics: no clamping, exact variable names required.
     registry->registerTool (Tools::SetParameter::describe (state));
 
-    // Undo / redo tools — stubs until Phase 5; mcp.get_ai_change_history is
-    // a real read-only implementation over the ring buffer.
-    registry->registerTool (Tools::Undo::describeUndo());
-    registry->registerTool (Tools::Undo::describeRedo());
+    // Undo / redo tools — Phase 5a wires the first two to the real engine.
+    // mcp.get_ai_change_history remains a read-only query over the ring buffer.
+    registry->registerTool (Tools::Undo::describeUndo (*undoEngine));
+    registry->registerTool (Tools::Undo::describeRedo (*undoEngine));
     registry->registerTool (Tools::Undo::describeGetHistory (*changeRecords));
 
     // Wire the transport's POST /mcp callback to the dispatcher.
