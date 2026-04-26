@@ -2313,6 +2313,19 @@ MainComponent::~MainComponent()
 {
     WFSLogger::getInstance().logInfo ("Session ending - saving settings");
 
+    // Sever NetworkTab's reference to mcpServer + its listener registration
+    // on MCPTierEnforcement BEFORE mcpServer is destroyed. Member-destruction
+    // order takes mcpServer down before tabbedComponent (which owns
+    // NetworkTab), so without this NetworkTab's destructor calls
+    // removeListener on freed memory and crashes on shutdown.
+    if (networkTab != nullptr)
+        networkTab->setMCPServer (nullptr);
+
+    // Tear down MCP-aware UI before mcpServer destructs. mcpHistoryWindow
+    // is declared earlier than mcpServer so it would otherwise outlive
+    // the engine + change-record buffer it references.
+    mcpHistoryWindow.reset();
+
     // Stop listening to color scheme changes
     ColorScheme::Manager::getInstance().removeListener(this);
 
