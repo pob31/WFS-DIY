@@ -495,6 +495,11 @@ int MCPUndoEngine::redoableCount() const
     return redoRing->size();
 }
 
+std::vector<ChangeRecord> MCPUndoEngine::getRedoStackSnapshot() const
+{
+    return redoRing->getRecent (-1);
+}
+
 //==============================================================================
 UndoResult MCPUndoEngine::applyReverse (const ChangeRecord& record)
 {

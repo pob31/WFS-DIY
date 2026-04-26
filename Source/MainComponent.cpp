@@ -1876,6 +1876,11 @@ MainComponent::MainComponent()
         openNetworkLogWindow();
     });
 
+    // Set up MCP AI History Window callback (Phase 5d)
+    networkTab->setMCPHistoryWindowCallback([this]() {
+        openMCPHistoryWindow();
+    });
+
     // Query callback: check if AutomOtion is actively moving an input
     inputsTab->isAutoMotionActive = [this] (int inputIndex) -> bool
     {
@@ -3765,6 +3770,22 @@ void MainComponent::openNetworkLogWindow()
         networkLogWindow->setVisible(true);
         networkLogWindow->toFront(true);
     }
+}
+
+void MainComponent::openMCPHistoryWindow()
+{
+    if (mcpServer == nullptr)
+        return;
+
+    if (mcpHistoryWindow == nullptr)
+    {
+        mcpHistoryWindow = std::make_unique<MCPHistoryWindow>(
+            mcpServer->getUndoEngine(),
+            mcpServer->getChangeRecords()
+        );
+    }
+    mcpHistoryWindow->setVisible(true);
+    mcpHistoryWindow->toFront(true);
 }
 
 void MainComponent::openLevelMeterWindow()

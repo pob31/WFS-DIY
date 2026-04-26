@@ -601,9 +601,27 @@ void NetworkLogWindowContent::updateFilterToggles()
             addToggle(LOC("networkLog.filterToggles.incoming"));
             addToggle(LOC("networkLog.filterToggles.outgoing"));
 
-            // Add toggles for protocols seen in log (protocol names from getProtocolString are not localized)
-            auto protocols = logger.getUniqueProtocols();
-            for (auto proto : protocols)
+            // Always present: every Protocol the app knows about. Without
+            // this we'd only show toggles for protocols we've already seen
+            // entries for — meaning a freshly-opened log with no traffic
+            // yet has no toggles at all, and a protocol like MCP that may
+            // log infrequently can take a long time to surface a toggle.
+            // Discovered-only protocols still merge in below for any
+            // future protocol the enum doesn't yet know about.
+            std::set<WFSNetwork::Protocol> baseline {
+                WFSNetwork::Protocol::OSC,
+                WFSNetwork::Protocol::OSCQuery,
+                WFSNetwork::Protocol::Remote,
+                WFSNetwork::Protocol::ADMOSC,
+                WFSNetwork::Protocol::PSN,
+                WFSNetwork::Protocol::RTTrP,
+                WFSNetwork::Protocol::QLab,
+                WFSNetwork::Protocol::MQTT,
+                WFSNetwork::Protocol::MCP,
+            };
+            auto seen = logger.getUniqueProtocols();
+            baseline.insert(seen.begin(), seen.end());
+            for (auto proto : baseline)
             {
                 WFSNetwork::LogEntry temp;
                 temp.protocol = proto;

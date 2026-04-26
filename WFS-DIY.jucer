@@ -53,6 +53,10 @@
               file="Source/gui/MCPUndoOverlay.h"/>
         <FILE id="guiMcpOvCpp" name="MCPUndoOverlay.cpp" compile="1" resource="0"
               file="Source/gui/MCPUndoOverlay.cpp"/>
+        <FILE id="guiMcpHistH" name="MCPHistoryWindow.h" compile="0" resource="0"
+              file="Source/gui/MCPHistoryWindow.h"/>
+        <FILE id="guiMcpHistCpp" name="MCPHistoryWindow.cpp" compile="1" resource="0"
+              file="Source/gui/MCPHistoryWindow.cpp"/>
         <FILE id="guiArrHelperH" name="OutputArrayHelperWindow.h" compile="0"
               resource="0" file="Source/gui/OutputArrayHelperWindow.h"/>
         <FILE id="guiArrHelperCpp" name="OutputArrayHelperWindow.cpp" compile="1"

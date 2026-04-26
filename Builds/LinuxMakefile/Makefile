@@ -76,6 +76,7 @@ OBJECTS_APP := \
   $(JUCE_OBJDIR)/WFSFileManager_910393b3.o \
   $(JUCE_OBJDIR)/NetworkLogWindow_80b93fa3.o \
   $(JUCE_OBJDIR)/MCPUndoOverlay_f8f9deaf.o \
+  $(JUCE_OBJDIR)/MCPHistoryWindow_1129207.o \
   $(JUCE_OBJDIR)/OutputArrayHelperWindow_6dcb4bc3.o \
   $(JUCE_OBJDIR)/AudioInterfaceWindow_f176b730.o \
   $(JUCE_OBJDIR)/PatchMatrixComponent_b17e3fb1.o \
@@ -168,6 +169,11 @@ $(JUCE_OBJDIR)/NetworkLogWindow_80b93fa3.o: ../../Source/gui/NetworkLogWindow.cp
 $(JUCE_OBJDIR)/MCPUndoOverlay_f8f9deaf.o: ../../Source/gui/MCPUndoOverlay.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling MCPUndoOverlay.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/MCPHistoryWindow_1129207.o: ../../Source/gui/MCPHistoryWindow.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling MCPHistoryWindow.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/OutputArrayHelperWindow_6dcb4bc3.o: ../../Source/gui/OutputArrayHelperWindow.cpp

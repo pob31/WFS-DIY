@@ -33,6 +33,7 @@
 #include "gui/MapTabPlaceholder.h"
 #include "gui/NetworkLogWindow.h"
 #include "gui/MCPUndoOverlay.h"
+#include "gui/MCPHistoryWindow.h"
 #include "gui/LevelMeterWindow.h"
 #include "gui/ColorScheme.h"
 #include "DSP/LevelMeteringManager.h"
@@ -140,6 +141,10 @@ public:
     // Network Log Window
     void openNetworkLogWindow();
 
+    // AI History Window (Phase 5d) — persistent navigator over the MCP
+    // change-record + redo rings; complements the transient toast overlay.
+    void openMCPHistoryWindow();
+
     // Level Meter Window
     void openLevelMeterWindow();
 
@@ -184,6 +189,7 @@ private:
 
     std::unique_ptr<AudioInterfaceWindow> audioInterfaceWindow;
     std::unique_ptr<NetworkLogWindow> networkLogWindow;
+    std::unique_ptr<MCPHistoryWindow> mcpHistoryWindow;
     std::unique_ptr<LevelMeterWindow> levelMeterWindow;
     std::unique_ptr<LevelMeteringManager> levelMeteringManager;
     std::unique_ptr<GettingStartedWizard> gettingStartedWizard;

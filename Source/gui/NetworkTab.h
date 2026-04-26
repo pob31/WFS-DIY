@@ -1645,6 +1645,7 @@ class NetworkTab : public juce::Component,
 {
 public:
     using NetworkLogWindowCallback = std::function<void()>;
+    using MCPHistoryWindowCallback = std::function<void()>;
     NetworkTab(WfsParameters& params, StatusBar* statusBarPtr = nullptr)
         : parameters(params), statusBar(statusBarPtr)
     {
@@ -1721,10 +1722,10 @@ public:
         };
 
         addAndMakeVisible(mcpOpenLogButton);
-        mcpOpenLogButton.setButtonText("Open MCP Log");
+        mcpOpenLogButton.setButtonText("Open AI History");
         mcpOpenLogButton.onClick = [this]() {
-            if (onNetworkLogWindowRequested)
-                onNetworkLogWindowRequested();
+            if (onMCPHistoryWindowRequested)
+                onMCPHistoryWindowRequested();
         };
 
         // ==================== NETWORK CONNECTIONS TABLE ====================
@@ -1858,6 +1859,11 @@ public:
     void setNetworkLogWindowCallback(NetworkLogWindowCallback callback)
     {
         onNetworkLogWindowRequested = std::move(callback);
+    }
+
+    void setMCPHistoryWindowCallback(MCPHistoryWindowCallback callback)
+    {
+        onMCPHistoryWindowRequested = std::move(callback);
     }
 
     /** Refresh UI from ValueTree - call after config reload */
@@ -2333,6 +2339,7 @@ private:
     StatusBar* statusBar = nullptr;
     WFSNetwork::OSCManager* oscManager = nullptr;
     NetworkLogWindowCallback onNetworkLogWindowRequested;
+    MCPHistoryWindowCallback onMCPHistoryWindowRequested;
 
     // ==================== NETWORK CONNECTIONS TABLE ====================
     static constexpr int maxTargets = 6;

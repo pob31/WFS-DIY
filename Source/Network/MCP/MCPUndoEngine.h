@@ -93,6 +93,13 @@ public:
         the AI to know whether redo is available. */
     int redoableCount() const;
 
+    /** Phase 5d: thread-safe copy of the redo ring for the AI History
+        window. Ordering matches `MCPChangeRecordBuffer::getRecent` —
+        oldest first, newest last. The newest entry is the next one
+        `redoLast()` would re-apply, so callers rendering a unified
+        timeline should place it adjacent to the cursor divider. */
+    std::vector<ChangeRecord> getRedoStackSnapshot() const;
+
     /** Phase 5b Block 3: drain the pending cross-actor notifications.
         Returns + clears the queue under lock. The dispatcher calls this
         when assembling each tool-call response and, if non-empty, attaches

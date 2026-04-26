@@ -940,6 +940,9 @@
     <ClCompile Include="..\..\Source\gui\MCPUndoOverlay.cpp">
       <Filter>WFS-DIY\Source\gui</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Source\gui\MCPHistoryWindow.cpp">
+      <Filter>WFS-DIY\Source\gui</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\Source\gui\OutputArrayHelperWindow.cpp">
       <Filter>WFS-DIY\Source\gui</Filter>
     </ClCompile>
@@ -4318,6 +4321,9 @@
       <Filter>WFS-DIY\Source\gui</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\gui\MCPUndoOverlay.h">
+      <Filter>WFS-DIY\Source\gui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\gui\MCPHistoryWindow.h">
       <Filter>WFS-DIY\Source\gui</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\gui\OutputArrayHelperWindow.h">
