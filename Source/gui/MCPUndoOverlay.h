@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include <set>
 #include "../Network/MCP/MCPUndoEngine.h"
 #include "../Network/MCP/MCPChangeRecords.h"
 #include "ColorScheme.h"
@@ -79,6 +80,10 @@ private:
     WFSNetwork::MCPChangeRecordBuffer& buffer;
 
     std::vector<DisplayedRow> rows;
+    // Timestamps (ms) of records the user has dismissed — aged out, container
+    // close, or per-row ×. syncWithBuffer skips these so a still-in-the-ring
+    // record doesn't get re-added on the next 200 ms tick.
+    std::set<juce::int64> dismissedTimestamps;
     int hoveredRow = -1;
     bool hoveredRowDeleteButton = false;
     bool hoveredCloseButton = false;

@@ -1,4 +1,5 @@
 #include "WFSValueTreeState.h"
+#include "../Network/OSCProtocolTypes.h"
 
 using namespace WFSParameterIDs;
 using namespace WFSParameterDefaults;
@@ -1525,6 +1526,13 @@ juce::UndoManager* WFSValueTreeState::getUndoManagerForDomain (UndoDomain domain
 
 juce::UndoManager* WFSValueTreeState::getActiveUndoManager()
 {
+    // MCP-origin writes bypass the JUCE UndoManager entirely — AI changes
+    // have a dedicated undo channel (MCPUndoEngine + Ctrl+Alt+Z + toast ×).
+    // Without this, all AI writes pile into one open JUCE transaction and a
+    // single Ctrl+Z reverts every AI change at once.
+    if (WFSNetwork::getCurrentOriginTag() == WFSNetwork::OriginTag::MCP)
+        return nullptr;
+
     return getUndoManagerForDomain (activeDomain);
 }
 

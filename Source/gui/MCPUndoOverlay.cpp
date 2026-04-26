@@ -56,12 +56,18 @@ void MCPUndoOverlay::timerCallback()
     syncWithBuffer();
 
     // Drop rows that aged out (Block 3 will add a fade animation; for
-    // Block 1 just remove instantly).
+    // Block 1 just remove instantly). Capture each aged-out timestamp so
+    // syncWithBuffer doesn't immediately re-add the still-in-ring record.
     const auto now = juce::Time::getCurrentTime();
     rows.erase (std::remove_if (rows.begin(), rows.end(),
                                 [&] (const DisplayedRow& r)
                                 {
-                                    return (now - r.displayCreatedAt).inMilliseconds() > kRowLifetimeMs;
+                                    if ((now - r.displayCreatedAt).inMilliseconds() > kRowLifetimeMs)
+                                    {
+                                        dismissedTimestamps.insert (r.record.timestamp.toMilliseconds());
+                                        return true;
+                                    }
+                                    return false;
                                 }),
                 rows.end());
 
@@ -98,7 +104,19 @@ void MCPUndoOverlay::syncWithBuffer()
                                 }),
                 rows.end());
 
-    // Add rows for new records (timestamps not in our displayed set).
+    // Prune dismissedTimestamps for records no longer in the ring (record
+    // was undone or evicted) — keeps the set bounded.
+    for (auto it = dismissedTimestamps.begin(); it != dismissedTimestamps.end(); )
+    {
+        if (std::find (currentTimestamps.begin(), currentTimestamps.end(), *it)
+            == currentTimestamps.end())
+            it = dismissedTimestamps.erase (it);
+        else
+            ++it;
+    }
+
+    // Add rows for new records (timestamps not in our displayed set, and
+    // not previously dismissed by the user).
     const auto now = juce::Time::getCurrentTime();
     for (const auto& r : recent)
     {
@@ -106,6 +124,9 @@ void MCPUndoOverlay::syncWithBuffer()
             continue;
 
         const auto ts = r.timestamp.toMilliseconds();
+        if (dismissedTimestamps.count (ts) > 0)
+            continue;
+
         const bool alreadyDisplayed =
             std::any_of (rows.begin(), rows.end(),
                          [ts] (const DisplayedRow& dr) { return dr.record.timestamp.toMilliseconds() == ts; });
@@ -185,7 +206,8 @@ void MCPUndoOverlay::paint (juce::Graphics& g)
         auto headerLineBounds = textBounds.removeFromTop (12);
         g.setColour (cs.textSecondary);
         g.setFont (juce::FontOptions (10.0f));
-        g.drawText ("Claude  •  " + formatElapsed (r.record.timestamp, now),
+        g.drawText (juce::String (juce::CharPointer_UTF8 ("Claude  \xe2\x80\xa2  "))
+                        + formatElapsed (r.record.timestamp, now),
                     headerLineBounds, juce::Justification::centredLeft);
 
         // Second line: operator description (clipped to fit)
@@ -225,9 +247,12 @@ void MCPUndoOverlay::resized()
 void MCPUndoOverlay::mouseDown (const juce::MouseEvent& event)
 {
     // Container close button hides the toast for this round; it'll
-    // re-show when a new AI record arrives.
+    // re-show when a new AI record arrives. Capture each visible row's
+    // timestamp so syncWithBuffer doesn't re-add them on the next tick.
     if (getCloseButtonBounds().contains (event.getPosition()))
     {
+        for (const auto& r : rows)
+            dismissedTimestamps.insert (r.record.timestamp.toMilliseconds());
         rows.clear();
         if (auto* parent = getParentComponent())
             positionInParent (parent->getLocalBounds());
