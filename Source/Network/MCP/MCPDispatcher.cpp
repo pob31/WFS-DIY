@@ -1,4 +1,5 @@
 #include "MCPDispatcher.h"
+#include "../../Parameters/WFSValueTreeState.h"
 
 namespace WFSNetwork
 {
@@ -9,18 +10,21 @@ namespace
     constexpr int kParseError     = -32700;
     constexpr int kInvalidRequest = -32600;
     constexpr int kMethodNotFound = -32601;
+    constexpr int kInvalidParams  = -32602;
     constexpr int kInternalError  = -32603;
 
-    juce::String varToJson (const juce::var& v)
+    juce::DynamicObject* asObject (const juce::var& v)
     {
-        return juce::JSON::toString (v, true);
+        return v.isObject() ? v.getDynamicObject() : nullptr;
     }
 }
 
+//==============================================================================
 MCPDispatcher::MCPDispatcher (WFSValueTreeState& s,
                               MCPToolRegistry& r,
+                              MCPChangeRecordBuffer& buf,
                               MCPLogger& l)
-    : state (s), registry (r), mcpLogger (l)
+    : state (s), registry (r), ringBuffer (buf), mcpLogger (l)
 {
 }
 
@@ -28,15 +32,15 @@ juce::String MCPDispatcher::handleRequest (const juce::String& body,
                                            const juce::String& clientIP,
                                            int clientPort)
 {
-    // Parse the body as JSON. Anything that isn't a JSON object → -32700.
+    // Parse the body as JSON. Anything that isn't an object → -32700.
     juce::var parsed = juce::JSON::fromString (body);
-    if (! parsed.isObject())
+    auto* obj = asObject (parsed);
+    if (obj == nullptr)
     {
         mcpLogger.logError ("Parse error: not a JSON object — " + body.substring (0, 80));
         return makeJsonRpcError ({}, kParseError, "Parse error: body is not a JSON object");
     }
 
-    auto* obj = parsed.getDynamicObject();
     juce::var id = obj->getProperty ("id");
     juce::String method = obj->getProperty ("method").toString();
     juce::var params = obj->getProperty ("params");
@@ -47,18 +51,210 @@ juce::String MCPDispatcher::handleRequest (const juce::String& body,
         return makeJsonRpcError (id, kInvalidRequest, "Missing 'method' field");
     }
 
-    mcpLogger.logRequest (method, varToJson (params), clientIP, clientPort);
+    mcpLogger.logRequest (method, toCompactJson (params), clientIP, clientPort);
 
-    // Block 3 placeholder: every method returns "not implemented".
-    // Block 4 replaces this body with real initialize / tools/list / tools/call dispatch.
-    juce::String response = makeJsonRpcError (
-        id,
-        kMethodNotFound,
-        "MCP server is in skeleton mode (Phase 1 Block 3) — method '" + method + "' not yet implemented",
-        juce::var (juce::String ("pending_block_4")));
+    juce::String response;
 
-    mcpLogger.logResponse (method, response, clientIP, clientPort);
+    if      (method == "initialize")               response = handleInitialize (id, params);
+    else if (method == "notifications/initialized") response = handleInitialized();
+    else if (method == "tools/list")               response = handleToolsList (id);
+    else if (method == "tools/call")               response = handleToolsCall (id, params);
+    else
+    {
+        response = makeJsonRpcError (id, kMethodNotFound,
+                                     "Method not found: " + method);
+    }
+
+    if (response.isNotEmpty())
+        mcpLogger.logResponse (method, response, clientIP, clientPort);
+
     return response;
+}
+
+//==============================================================================
+// initialize / initialized
+//==============================================================================
+
+juce::String MCPDispatcher::handleInitialize (const juce::var& id, const juce::var& /*params*/)
+{
+    // The client's protocolVersion in params is informational for Phase 1;
+    // we always advertise our supported revision and let MCP's negotiation
+    // logic on the client side accept or reject.
+    auto serverInfo = std::make_unique<juce::DynamicObject>();
+    serverInfo->setProperty ("name",    "WFS-DIY");
+    serverInfo->setProperty ("version", juce::String (ProjectInfo::versionString));
+
+    auto toolsCap = std::make_unique<juce::DynamicObject>();
+    toolsCap->setProperty ("listChanged", false);
+
+    auto capabilities = std::make_unique<juce::DynamicObject>();
+    capabilities->setProperty ("tools", juce::var (toolsCap.release()));
+
+    auto result = std::make_unique<juce::DynamicObject>();
+    result->setProperty ("protocolVersion", juce::String (kProtocolVersion));
+    result->setProperty ("capabilities",    juce::var (capabilities.release()));
+    result->setProperty ("serverInfo",      juce::var (serverInfo.release()));
+
+    initialized = true;
+    return makeJsonRpcResult (id, juce::var (result.release()));
+}
+
+juce::String MCPDispatcher::handleInitialized()
+{
+    // Notification — no response body, JSON-RPC says return nothing. The
+    // transport already sent 200 OK; an empty string here means we just
+    // close out. (Streamable HTTP allows an empty body on notifications.)
+    return juce::String();
+}
+
+//==============================================================================
+// tools/list
+//==============================================================================
+
+juce::String MCPDispatcher::handleToolsList (const juce::var& id)
+{
+    juce::Array<juce::var> tools;
+    for (const auto& descriptor : registry.all())
+    {
+        auto entry = std::make_unique<juce::DynamicObject>();
+        entry->setProperty ("name",        descriptor.name);
+        entry->setProperty ("description", descriptor.description);
+        entry->setProperty ("inputSchema", descriptor.inputSchema);
+        tools.add (juce::var (entry.release()));
+    }
+
+    auto result = std::make_unique<juce::DynamicObject>();
+    result->setProperty ("tools", juce::var (tools));
+
+    return makeJsonRpcResult (id, juce::var (result.release()));
+}
+
+//==============================================================================
+// tools/call
+//==============================================================================
+
+juce::String MCPDispatcher::handleToolsCall (const juce::var& id, const juce::var& params)
+{
+    auto* paramsObj = asObject (params);
+    if (paramsObj == nullptr)
+        return makeJsonRpcError (id, kInvalidParams, "tools/call requires params object");
+
+    juce::String name = paramsObj->getProperty ("name").toString();
+    if (name.isEmpty())
+        return makeJsonRpcError (id, kInvalidParams, "tools/call requires 'name'");
+
+    juce::var args = paramsObj->getProperty ("arguments");
+    if (! args.isObject())
+    {
+        // Default to empty object if caller omitted arguments.
+        args = juce::var (new juce::DynamicObject());
+    }
+
+    const ToolDescriptor* tool = registry.find (name);
+    if (tool == nullptr)
+        return makeJsonRpcError (id, kMethodNotFound, "Tool not found: " + name);
+
+    // Set up change record envelope for state-modifying tools. Read-only
+    // tools pass nullptr to the handler.
+    ChangeRecord record;
+    record.timestamp = juce::Time::getCurrentTime();
+    record.toolName  = name;
+    record.arguments = args;
+
+    ChangeRecord* recordPtr = tool->modifiesState ? &record : nullptr;
+
+    ToolResult result;
+    if (! runOnMessageThread (*tool, args, recordPtr, result))
+    {
+        return makeJsonRpcError (id, kInternalError,
+                                 "Tool execution timed out: " + name);
+    }
+
+    if (recordPtr != nullptr && result.success)
+        ringBuffer.push (record);
+
+    if (! result.success)
+    {
+        // Map handler-level error to a tools/call result with isError=true.
+        auto contentItem = std::make_unique<juce::DynamicObject>();
+        contentItem->setProperty ("type", "text");
+        contentItem->setProperty ("text",
+            "Tool error [" + result.errorCode + "]: " + result.errorMessage);
+
+        juce::Array<juce::var> content;
+        content.add (juce::var (contentItem.release()));
+
+        auto callResult = std::make_unique<juce::DynamicObject>();
+        callResult->setProperty ("content", juce::var (content));
+        callResult->setProperty ("isError", true);
+
+        return makeJsonRpcResult (id, juce::var (callResult.release()));
+    }
+
+    // Wrap the tool's value in MCP's content envelope. Compact JSON keeps
+    // the AI-facing surface easy to scan.
+    auto contentItem = std::make_unique<juce::DynamicObject>();
+    contentItem->setProperty ("type", "text");
+    contentItem->setProperty ("text", toCompactJson (result.value));
+
+    juce::Array<juce::var> content;
+    content.add (juce::var (contentItem.release()));
+
+    auto callResult = std::make_unique<juce::DynamicObject>();
+    callResult->setProperty ("content", juce::var (content));
+    callResult->setProperty ("isError", false);
+
+    return makeJsonRpcResult (id, juce::var (callResult.release()));
+}
+
+//==============================================================================
+// Message-thread hop
+//==============================================================================
+
+bool MCPDispatcher::runOnMessageThread (const ToolDescriptor& tool,
+                                        const juce::var& args,
+                                        ChangeRecord* record,
+                                        ToolResult& outResult)
+{
+    // SimpleWeb worker thread → JUCE message thread, then block on the
+    // result. WaitableEvent + reference captures are safe because this
+    // function does not return until either the lambda runs or wait()
+    // times out. The lambda captures by reference; it never outlives us.
+    juce::WaitableEvent done;
+
+    juce::MessageManager::callAsync ([&tool, &args, record, &outResult, &done]()
+    {
+        OriginTagScope originScope { OriginTag::MCP };
+        try
+        {
+            outResult = tool.handler (args, record);
+        }
+        catch (const std::exception& e)
+        {
+            outResult = ToolResult::error ("internal_error",
+                                           juce::String ("Handler threw: ") + e.what());
+        }
+        catch (...)
+        {
+            outResult = ToolResult::error ("internal_error", "Handler threw unknown exception");
+        }
+        done.signal();
+    });
+
+    return done.wait (toolTimeoutMs);
+}
+
+//==============================================================================
+// Envelope builders
+//==============================================================================
+
+juce::String MCPDispatcher::makeJsonRpcResult (const juce::var& id, const juce::var& result) const
+{
+    auto envelope = std::make_unique<juce::DynamicObject>();
+    envelope->setProperty ("jsonrpc", "2.0");
+    envelope->setProperty ("id", id);
+    envelope->setProperty ("result", result);
+    return juce::JSON::toString (juce::var (envelope.release()), true);
 }
 
 juce::String MCPDispatcher::makeJsonRpcError (const juce::var& id,
@@ -79,6 +275,11 @@ juce::String MCPDispatcher::makeJsonRpcError (const juce::var& id,
     envelope->setProperty ("error", juce::var (error.release()));
 
     return juce::JSON::toString (juce::var (envelope.release()), true);
+}
+
+juce::String MCPDispatcher::toCompactJson (const juce::var& v)
+{
+    return juce::JSON::toString (v, /*allOnOneLine*/ true);
 }
 
 } // namespace WFSNetwork

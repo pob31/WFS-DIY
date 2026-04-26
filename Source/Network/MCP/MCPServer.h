@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "MCPLogger.h"
 #include "MCPToolRegistry.h"
+#include "MCPChangeRecords.h"
 #include "MCPDispatcher.h"
 #include "MCPTransport.h"
 
@@ -49,10 +50,16 @@ public:
         hand-written tools, and Phase 2 the auto-generated ones. */
     MCPToolRegistry& getToolRegistry() noexcept { return *registry; }
 
+    /** Ring buffer of recent state-modifying tool calls. Phase 5 surfaces
+        these via the AI-undo overlay + keyboard shortcuts; Phase 1 just
+        populates it. Read-only tool calls do NOT produce records. */
+    MCPChangeRecordBuffer& getChangeRecords() noexcept { return *changeRecords; }
+
 private:
     WFSValueTreeState& valueTreeState;
     std::unique_ptr<MCPLogger> mcpLogger;
     std::unique_ptr<MCPToolRegistry> registry;
+    std::unique_ptr<MCPChangeRecordBuffer> changeRecords;
     std::unique_ptr<MCPDispatcher> dispatcher;
     std::unique_ptr<MCPTransport> transport;
 

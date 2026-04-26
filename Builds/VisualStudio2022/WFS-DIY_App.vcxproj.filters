@@ -1000,6 +1000,9 @@
     <ClCompile Include="..\..\Source\Network\MCP\MCPLogger.cpp">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPChangeRecords.cpp">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\Source\Network\MCP\MCPToolRegistry.cpp">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClCompile>
@@ -4369,6 +4372,9 @@
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Network\MCP\MCPLogger.h">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPChangeRecords.h">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Network\MCP\MCPToolRegistry.h">

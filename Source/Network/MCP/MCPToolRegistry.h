@@ -2,11 +2,10 @@
 
 #include <JuceHeader.h>
 #include <functional>
+#include "MCPChangeRecords.h"
 
 namespace WFSNetwork
 {
-
-class WFSValueTreeStateRef;  // forward — actual ref lives in MCPDispatcher
 
 /** Outcome of a tool invocation, before serialization to JSON-RPC envelope. */
 struct ToolResult
@@ -23,15 +22,21 @@ struct ToolResult
     }
 };
 
-/** Per-tool descriptor + handler. The handler receives validated arguments
-    as a juce::var (parsed from JSON) and returns a ToolResult. Block 5
-    populates real handlers; in Block 3 the registry is empty. */
+/** Per-tool descriptor + handler. Handlers always run on the JUCE message
+    thread (the dispatcher hops there inside an OriginTagScope of MCP).
+
+    State-modifying tools should set `modifiesState = true` and populate
+    the optional `record` parameter passed to the handler — at minimum
+    `operatorDescription`, `affectedParameters`, `affectedGroups`,
+    `beforeState`, `afterState`. Read-only tools can ignore `record`. */
 struct ToolDescriptor
 {
     juce::String name;
     juce::String description;
-    juce::var parametersSchema;  // JSON-Schema object, exposed via tools/list
-    std::function<ToolResult (const juce::var&)> handler;
+    juce::var inputSchema;       // JSON-Schema object, exposed via tools/list
+    bool modifiesState = false;  // drives change-record capture in dispatcher
+
+    std::function<ToolResult (const juce::var& args, ChangeRecord* record)> handler;
 };
 
 /** Registry of tools the MCP server exposes. Block 5 fills this with the

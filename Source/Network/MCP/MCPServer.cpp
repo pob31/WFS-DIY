@@ -8,10 +8,11 @@ namespace WFSNetwork
 MCPServer::MCPServer (WFSValueTreeState& state, OSCLogger& networkLogger)
     : valueTreeState (state)
 {
-    mcpLogger  = std::make_unique<MCPLogger> (networkLogger);
-    registry   = std::make_unique<MCPToolRegistry>();
-    dispatcher = std::make_unique<MCPDispatcher> (state, *registry, *mcpLogger);
-    transport  = std::make_unique<MCPTransport> (*mcpLogger);
+    mcpLogger     = std::make_unique<MCPLogger> (networkLogger);
+    registry      = std::make_unique<MCPToolRegistry>();
+    changeRecords = std::make_unique<MCPChangeRecordBuffer>();
+    dispatcher    = std::make_unique<MCPDispatcher> (state, *registry, *changeRecords, *mcpLogger);
+    transport     = std::make_unique<MCPTransport> (*mcpLogger);
 
     // Wire the transport's POST /mcp callback to the dispatcher.
     transport->setRequestHandler ([disp = dispatcher.get()] (const juce::String& body,
