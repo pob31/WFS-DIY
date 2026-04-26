@@ -129,7 +129,7 @@ inline ToolDescriptor describeSetCartesian (WFSValueTreeState& state)
     d.description = "Move a reverb channel to absolute Cartesian coordinates "
                     "(meters) in one call. Coordinate convention: +X = stage "
                     "right, +Y = upstage (away from audience), +Z = up. "
-                    "Out-of-range values are clamped to the ±50 m stage "
+                    "Out-of-range values are clamped to the +/-50 m stage "
                     "envelope. Use `session_get_state()` first if unsure "
                     "which reverb channels exist.";
     d.inputSchema   = buildSetCartesianSchema();

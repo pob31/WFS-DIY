@@ -96,7 +96,7 @@ namespace
         {
             "wfs://knowledge/source_movements",
             "knowledge_source_movements.md",
-            "Movement automation — LFOs, trajectories, jitter",
+            "Movement automation - LFOs, trajectories, jitter",
             "The available movement modes: offset with rotate/scale, one-shot Move with time and curve, "
             "jitter (random micro-movement), LFO (periodic movement with per-axis shape/rate/amplitude/phase). "
             "Gyrophone for directivity rotation. Global speed control. When to use constant-speed (line) vs. "

@@ -190,7 +190,7 @@ inline ToolDescriptor describeGetHistory (MCPChangeRecordBuffer& buffer)
 {
     ToolDescriptor d;
     d.name        = "mcp_get_ai_change_history";
-    d.description = "Read the AI change-record ring buffer — every state-modifying tool "
+    d.description = "Read the AI change-record ring buffer - every state-modifying tool "
                     "call this MCP server has executed in the last 100 entries. Useful "
                     "for explaining 'what did I just do?' in voice flows. Read-only.";
     d.inputSchema   = buildHistorySchema();

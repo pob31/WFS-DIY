@@ -220,7 +220,7 @@ inline ToolDescriptor describeSetCartesian (WFSValueTreeState& state)
                     "(meters). Coordinate convention: +X = stage right, "
                     "+Y = upstage (away from audience), +Z = up. Origin is "
                     "the user-configured stage origin. Out-of-range values "
-                    "are clamped to the ±50 m stage envelope.";
+                    "are clamped to the +/-50 m stage envelope.";
     d.inputSchema   = buildSetCartesianSchema();
     d.modifiesState = true;
     d.handler = [&state] (const juce::var& args, ChangeRecord* record) -> ToolResult

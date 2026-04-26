@@ -527,7 +527,7 @@ LoadStats loadGeneratedTools (MCPToolRegistry& registry,
     mcpLogger.logInfo ("Loaded " + juce::String (stats.toolsLoaded)
                        + " generated tools + " + juce::String (stats.nudgeToolsLoaded)
                        + " nudge variants (" + juce::String (stats.skipped)
-                       + " skipped — see DBG output for variable-name mismatches)");
+                       + " skipped - see DBG output for variable-name mismatches)");
 
     return stats;
 }

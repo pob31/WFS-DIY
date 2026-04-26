@@ -41,7 +41,7 @@ juce::String MCPDispatcher::handleRequest (const juce::String& body,
     auto* obj = asObject (parsed);
     if (obj == nullptr)
     {
-        mcpLogger.logError ("Parse error: not a JSON object — " + body.substring (0, 80));
+        mcpLogger.logError ("Parse error: not a JSON object - " + body.substring (0, 80));
         return makeJsonRpcError ({}, kParseError, "Parse error: body is not a JSON object");
     }
 
