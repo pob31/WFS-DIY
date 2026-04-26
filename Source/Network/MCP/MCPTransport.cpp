@@ -94,12 +94,13 @@ bool MCPTransport::handleHTTPRequest (std::shared_ptr<HttpServer::Response> resp
 
     if (method == "OPTIONS")
     {
-        // Note: SimpleWeb's default_resource only routes GET/POST/PUT/DELETE/PATCH
-        // (see SimpleWebSocketServer.cpp), so OPTIONS preflight currently never
-        // reaches us — the connection is dropped at the SimpleWeb parser. This
-        // branch is here for the day we patch SimpleWeb (or move to a different
-        // transport). Native MCP clients on loopback don't trigger preflight, so
-        // this gap is benign for Phase 1.
+        // CORS preflight — answer with empty body and the Allow* headers from
+        // defaultHeaders(). Reaching this branch depends on SimpleWeb routing
+        // OPTIONS through default_resource; the vendored copy has a local
+        // patch that does this, with an upstream PR pending at
+        // benkuper/juce_simpleweb. If a future dependency refresh predates
+        // the merge and the patch is dropped, OPTIONS will silently stop
+        // reaching us — re-apply the local patch in that case.
         writeJson (response, SimpleWeb::StatusCode::success_no_content, juce::String());
         return true;
     }

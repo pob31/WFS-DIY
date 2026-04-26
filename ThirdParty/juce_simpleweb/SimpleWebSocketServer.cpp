@@ -221,6 +221,9 @@ void SimpleWebSocketServer::initServer()
 		http->default_resource["PUT"] = httpCallbackFunc;
 		http->default_resource["DELETE"] = httpCallbackFunc;
 		http->default_resource["PATCH"] = httpCallbackFunc;
+		// LOCAL PATCH (tracking upstream PR — drop once benkuper/juce_simpleweb merges):
+		// route OPTIONS through default_resource so RequestHandlers can answer CORS preflight.
+		http->default_resource["OPTIONS"] = httpCallbackFunc;
 		http->on_upgrade = std::bind(&SimpleWebSocketServer::onHTTPUpgrade, this, std::placeholders::_1, std::placeholders::_2);
 
 		// WebSocket init
@@ -572,6 +575,9 @@ void SecureWebSocketServer::initServer()
 		http->io_service = ioService;
 
 		http->default_resource["GET"] = std::bind(&SecureWebSocketServer::httpDefaultCallback, this, std::placeholders::_1, std::placeholders::_2);
+		// LOCAL PATCH (tracking upstream PR — drop once benkuper/juce_simpleweb merges):
+		// route OPTIONS through default_resource so RequestHandlers can answer CORS preflight.
+		http->default_resource["OPTIONS"] = std::bind(&SecureWebSocketServer::httpDefaultCallback, this, std::placeholders::_1, std::placeholders::_2);
 		http->on_upgrade = std::bind(&SecureWebSocketServer::onHTTPUpgrade, this, std::placeholders::_1, std::placeholders::_2);
 
 		// WebSocket init
