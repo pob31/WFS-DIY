@@ -179,6 +179,7 @@
     <ClCompile Include="..\..\Source\Parameters\WFSValueTreeState.cpp"/>
     <ClCompile Include="..\..\Source\Parameters\WFSFileManager.cpp"/>
     <ClCompile Include="..\..\Source\gui\NetworkLogWindow.cpp"/>
+    <ClCompile Include="..\..\Source\gui\MCPUndoOverlay.cpp"/>
     <ClCompile Include="..\..\Source\gui\OutputArrayHelperWindow.cpp"/>
     <ClCompile Include="..\..\Source\gui\AudioInterfaceWindow.cpp"/>
     <ClCompile Include="..\..\Source\gui\PatchMatrixComponent.cpp"/>
@@ -3246,6 +3247,7 @@
     <ClInclude Include="..\..\Source\gui\MapTabPlaceholder.h"/>
     <ClInclude Include="..\..\Source\gui\NetworkTab.h"/>
     <ClInclude Include="..\..\Source\gui\NetworkLogWindow.h"/>
+    <ClInclude Include="..\..\Source\gui\MCPUndoOverlay.h"/>
     <ClInclude Include="..\..\Source\gui\OutputArrayHelperWindow.h"/>
     <ClInclude Include="..\..\Source\gui\AudioInterfaceWindow.h"/>
     <ClInclude Include="..\..\Source\gui\PatchMatrixComponent.h"/>

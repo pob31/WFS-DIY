@@ -32,6 +32,7 @@
 #include "gui/MapTabWindow.h"
 #include "gui/MapTabPlaceholder.h"
 #include "gui/NetworkLogWindow.h"
+#include "gui/MCPUndoOverlay.h"
 #include "gui/LevelMeterWindow.h"
 #include "gui/ColorScheme.h"
 #include "DSP/LevelMeteringManager.h"
@@ -231,6 +232,11 @@ private:
     // Started after the audio engine + parameter system are ready; the
     // NetworkTab UI surfaces start/stop/port in Phase 1 Block 6.
     std::unique_ptr<WFSNetwork::MCPServer> mcpServer;
+
+    // Phase 5c: growing-toast overlay rendering AI-undo records. Owned
+    // here so it can sit on top of the tab interface; positioned via
+    // resized().
+    std::unique_ptr<MCPUndoOverlay> mcpUndoOverlay;
 
     // Stream Deck+ physical controller
     std::unique_ptr<StreamDeckManager> streamDeckManager;

@@ -807,6 +807,15 @@ MainComponent::MainComponent()
                                                         knowledgeResourcesDir);
     mcpServer->start (WFSNetwork::MCPServer::kDefaultPort, /*loopbackOnly*/ true);
 
+    // Phase 5c: AI-undo toast overlay. Positioned in top-right of this
+    // component; sized in resized(). The overlay polls the change-record
+    // ring buffer at 5 Hz and renders rows with × buttons for targeted
+    // undo via MCPUndoEngine::undoByIndex.
+    mcpUndoOverlay = std::make_unique<MCPUndoOverlay>(mcpServer->getUndoEngine(),
+                                                       mcpServer->getChangeRecords());
+    addAndMakeVisible(*mcpUndoOverlay);
+    mcpUndoOverlay->toFront(false);
+
     // Initialize Stream Deck+ physical controller
     streamDeckManager = std::make_unique<StreamDeckManager>();
 
@@ -4700,6 +4709,12 @@ void MainComponent::resized()
     // Update wizard overlay if active
     if (gettingStartedWizard && gettingStartedWizard->isActive())
         gettingStartedWizard->updateLayout();
+
+    // Phase 5c: position the MCP undo toast in the top-right of this
+    // component. The overlay sizes itself based on row count and hides
+    // when empty.
+    if (mcpUndoOverlay != nullptr)
+        mcpUndoOverlay->positionInParent (getLocalBounds());
 }
 
 //==============================================================================
@@ -5994,6 +6009,38 @@ void MainComponent::nudgeReverbPosition(int axis, float delta)
 
 bool MainComponent::keyPressed(const juce::KeyPress& key)
 {
+    // Phase 5c: AI-undo / AI-redo keyboard shortcuts. Cmd/Ctrl-Alt-Z and
+    // Cmd/Ctrl-Alt-Y drive the same engine the toast overlay uses. Works
+    // regardless of whether the toast is visible or has been dismissed —
+    // the engine operates on the change-record ring buffer directly.
+    {
+        const auto mods = key.getModifiers();
+        if (mods.isCommandDown() && mods.isAltDown() && mcpServer != nullptr)
+        {
+            const auto reportOutcome = [this] (const WFSNetwork::UndoResult& result, const juce::String& verb)
+            {
+                if (statusBar == nullptr) return;
+                if (result.success)
+                    statusBar->showTemporaryMessage("AI " + verb + ": " + result.operatorDescription, 2500);
+                else
+                    statusBar->showTemporaryMessage("AI " + verb + ": " + result.errorMessage, 2500);
+            };
+
+            if (key.isKeyCode('Z'))
+            {
+                WFSNetwork::OriginTagScope originScope { WFSNetwork::OriginTag::MCP };
+                reportOutcome(mcpServer->getUndoEngine().undoLast(), "undo");
+                return true;
+            }
+            if (key.isKeyCode('Y'))
+            {
+                WFSNetwork::OriginTagScope originScope { WFSNetwork::OriginTag::MCP };
+                reportOutcome(mcpServer->getUndoEngine().redoLast(), "redo");
+                return true;
+            }
+        }
+    }
+
     // Check for channel selection timeout
     if (channelSelectionMode != ChannelSelectionMode::None)
     {

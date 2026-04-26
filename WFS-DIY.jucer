@@ -49,6 +49,10 @@
               file="Source/gui/NetworkLogWindow.h"/>
         <FILE id="guiNetLogCpp" name="NetworkLogWindow.cpp" compile="1" resource="0"
               file="Source/gui/NetworkLogWindow.cpp"/>
+        <FILE id="guiMcpOvH" name="MCPUndoOverlay.h" compile="0" resource="0"
+              file="Source/gui/MCPUndoOverlay.h"/>
+        <FILE id="guiMcpOvCpp" name="MCPUndoOverlay.cpp" compile="1" resource="0"
+              file="Source/gui/MCPUndoOverlay.cpp"/>
         <FILE id="guiArrHelperH" name="OutputArrayHelperWindow.h" compile="0"
               resource="0" file="Source/gui/OutputArrayHelperWindow.h"/>
         <FILE id="guiArrHelperCpp" name="OutputArrayHelperWindow.cpp" compile="1"

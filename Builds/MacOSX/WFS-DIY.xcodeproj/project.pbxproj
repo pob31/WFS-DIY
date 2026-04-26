@@ -59,6 +59,7 @@
 		B04CC6B6E6121F0A9BB69337 /* TrackingOSCReceiver.cpp */ = {isa = PBXBuildFile; fileRef = 476960E0E45FDB16B4FAAB0B; };
 		B1102ED88546CAF3585737B7 /* WFSCalculationEngine.cpp */ = {isa = PBXBuildFile; fileRef = B2E5BB6DF397E59F6073DDFA; };
 		B189CAC736E2215D673E4945 /* include_juce_graphics_Sheenbidi.c */ = {isa = PBXBuildFile; fileRef = 2976DFB15F05C50CF08305D4; };
+		B3127E0DDA69F970E5529D20 /* MCPUndoOverlay.cpp */ = {isa = PBXBuildFile; fileRef = F92F41AD7A59BCB8CE6CFEA3; };
 		B392D46CBBFBD04B39FCA45A /* include_roli_blocks_basics.cpp */ = {isa = PBXBuildFile; fileRef = 77B64F99F47F0FA1391D99D4; };
 		B5998BA8416CF7672D91E3A8 /* LocalizationManager.cpp */ = {isa = PBXBuildFile; fileRef = 05D2B5A53FEB53CA24CFD91E; };
 		C06C6742DDD2187C42ACA573 /* OSCMessageBuilder.cpp */ = {isa = PBXBuildFile; fileRef = A3C78AAE2596180321C3F0F2; };
@@ -176,6 +177,7 @@
 		63B19585FA472659C2B6305D /* TestSignalGenerator.cpp */ /* TestSignalGenerator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = TestSignalGenerator.cpp; path = ../../Source/DSP/TestSignalGenerator.cpp; sourceTree = SOURCE_ROOT; };
 		6527D777383138607556F806 /* LocalizationManager.h */ /* LocalizationManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = LocalizationManager.h; path = ../../Source/Localization/LocalizationManager.h; sourceTree = SOURCE_ROOT; };
 		66551D52C0A4830C24A57285 /* juce_osc */ /* juce_osc */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_osc; path = ../../ThirdParty/JUCE/modules/juce_osc; sourceTree = SOURCE_ROOT; };
+		69B2087E3025EB27857CB870 /* MCPUndoOverlay.h */ /* MCPUndoOverlay.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MCPUndoOverlay.h; path = ../../Source/gui/MCPUndoOverlay.h; sourceTree = SOURCE_ROOT; };
 		69C917578578859B1CE878B8 /* GradientMapEditor.h */ /* GradientMapEditor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = GradientMapEditor.h; path = ../../Source/GradientMap/GradientMapEditor.h; sourceTree = SOURCE_ROOT; };
 		6B1B3E4A5800147B81C04E4D /* MCPResourceRegistry.h */ /* MCPResourceRegistry.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MCPResourceRegistry.h; path = ../../Source/Network/MCP/MCPResourceRegistry.h; sourceTree = SOURCE_ROOT; };
 		6BABB0D22DF0B0DEF97EC39A /* Foundation.framework */ /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
@@ -294,6 +296,7 @@
 		F501EC4AF4B2C1E8EFCCF28A /* GradientMapData.h */ /* GradientMapData.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = GradientMapData.h; path = ../../Source/GradientMap/GradientMapData.h; sourceTree = SOURCE_ROOT; };
 		F5775FB8BB6E2B98B2D6B8DF /* include_juce_audio_devices.mm */ /* include_juce_audio_devices.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_devices.mm; path = ../../JuceLibraryCode/include_juce_audio_devices.mm; sourceTree = SOURCE_ROOT; };
 		F64B4CF71AC3C68B406743A1 /* PatchMatrixComponent.h */ /* PatchMatrixComponent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = PatchMatrixComponent.h; path = ../../Source/gui/PatchMatrixComponent.h; sourceTree = SOURCE_ROOT; };
+		F92F41AD7A59BCB8CE6CFEA3 /* MCPUndoOverlay.cpp */ /* MCPUndoOverlay.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPUndoOverlay.cpp; path = ../../Source/gui/MCPUndoOverlay.cpp; sourceTree = SOURCE_ROOT; };
 		F9DE7E32A4C4D2AAEBBFC546 /* ReverbTabPages.h */ /* ReverbTabPages.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ReverbTabPages.h; path = ../../Source/Controllers/DialsAndButtons/pages/ReverbTabPages.h; sourceTree = SOURCE_ROOT; };
 		FD7DB43D6E3D1AF4724A2303 /* MapTabPlaceholder.h */ /* MapTabPlaceholder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MapTabPlaceholder.h; path = ../../Source/gui/MapTabPlaceholder.h; sourceTree = SOURCE_ROOT; };
 		FF19CF83E92F49AE429BA580 /* Security.framework */ /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
@@ -563,6 +566,8 @@
 				C76B234E02F32DF1865B2F27,
 				48D14721841738FD158C9ED7,
 				7F18FF6B90FC3250D411E692,
+				69B2087E3025EB27857CB870,
+				F92F41AD7A59BCB8CE6CFEA3,
 				93358D08FACEF28C4AEA139F,
 				DB5876E9C4AB938D271F414A,
 				8E86F24313EE0226A744A907,
@@ -834,6 +839,7 @@
 				8206CB7296A86BB520A4B965,
 				DDEBC46A91123F8716D9D977,
 				F43ABAF1DAF97DA45A1AC7C0,
+				B3127E0DDA69F970E5529D20,
 				2D18719EE35291280C362AFE,
 				EB33DD2DA1BA1C4A844E5CC5,
 				6D466036C8564D03292643E5,
