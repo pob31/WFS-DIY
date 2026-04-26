@@ -352,11 +352,13 @@
                        libraryPath="ThirdParty\GPUAudioSDK\build\lib\RelWithDebInfo;ThirdParty\GPUAudioSDK\build\GainLib\gainlib\RelWithDebInfo;ThirdParty\GPUAudioSDK\build\simple_processor_launcher\ProcLaunchLib\RelWithDebInfo"
                        externalLibraries="gain_processor_nvidia.lib;ProcLaunchLib.lib;gainlib.lib;nvidia_resources_gain_processor_gain_processor_device_nvidia.lib;setupapi.lib"
                        extraCompilerFlags="/bigobj" defines="SIMPLEWEB_SECURE_SUPPORTED=0"
+                       prebuildCommand="cd /d &quot;$(SolutionDir)..\..&quot; &amp;&amp; (where python &gt;nul 2&gt;&amp;1 &amp;&amp; python tools\generate_mcp_tools.py) &amp; exit /b 0"
                        postbuildCommand="xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot;"/>
         <CONFIGURATION isDebug="0" name="Release" targetName="WFS-DIY" headerPath="..\..\ThirdParty\ASIOSDK\common;..\..\ThirdParty\GPUAudioSDK\gpuaudio\include;..\..\ThirdParty\GPUAudioSDK\gain_processor\gain_processor\include;..\..\ThirdParty\GPUAudioSDK\build\_deps\json-src\single_include;..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi"
                        libraryPath="ThirdParty\GPUAudioSDK\build\lib\RelWithDebInfo;ThirdParty\GPUAudioSDK\build\GainLib\gainlib\RelWithDebInfo;ThirdParty\GPUAudioSDK\build\simple_processor_launcher\ProcLaunchLib\RelWithDebInfo"
                        externalLibraries="gain_processor_nvidia.lib;ProcLaunchLib.lib;gainlib.lib;nvidia_resources_gain_processor_gain_processor_device_nvidia.lib;setupapi.lib"
                        extraCompilerFlags="/bigobj" defines="SIMPLEWEB_SECURE_SUPPORTED=0"
+                       prebuildCommand="cd /d &quot;$(SolutionDir)..\..&quot; &amp;&amp; (where python &gt;nul 2&gt;&amp;1 &amp;&amp; python tools\generate_mcp_tools.py) &amp; exit /b 0"
                        postbuildCommand="xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot;"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
