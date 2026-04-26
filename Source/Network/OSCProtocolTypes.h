@@ -25,9 +25,9 @@ enum class Protocol
 };
 
 /** Origin tag for parameter changes — identifies which actor caused a write.
-    Set via OriginTagScope (RAII guard in WFSValueTreeState) before issuing
-    a write; the parameter system's change-notification dispatch reads it
-    and propagates it to listeners (Network Log, AI undo stack, etc.). */
+    Set via OriginTagScope (RAII guard, below) before issuing a write; the
+    parameter system's change-notification dispatch reads it and propagates
+    it to listeners (Network Log, AI undo stack, etc.). */
 enum class OriginTag
 {
     None = 0,        // Default — no origin attributed (e.g. internal initialization)
@@ -39,6 +39,30 @@ enum class OriginTag
     LFO,             // LFO modulation writes
     Move,            // AutomOtion programmed movement
     Automation       // DAW host automation via plugin layer
+};
+
+/** Thread-local current origin tag. Read by listeners (e.g. OSCLogger) when
+    constructing log entries / change records; written via OriginTagScope.
+    `inline` lets it live in a header without an ODR violation across TUs. */
+inline thread_local OriginTag g_currentOriginTag = OriginTag::None;
+
+/** Read the current thread's origin tag. */
+inline OriginTag getCurrentOriginTag() noexcept { return g_currentOriginTag; }
+
+/** RAII guard that sets the thread-local origin tag for its lifetime, then
+    restores the previous value on destruction. Nesting is supported — inner
+    scopes shadow outer scopes and the outer value resumes when the inner
+    scope ends. Use at every external write entry point (OSC inbound handler,
+    snapshot recall, MCP dispatcher, etc.). */
+struct OriginTagScope
+{
+    OriginTag previous;
+    explicit OriginTagScope (OriginTag tag) noexcept
+        : previous (g_currentOriginTag) { g_currentOriginTag = tag; }
+    ~OriginTagScope() noexcept { g_currentOriginTag = previous; }
+
+    OriginTagScope (const OriginTagScope&) = delete;
+    OriginTagScope& operator= (const OriginTagScope&) = delete;
 };
 
 /** Connection mode (transport layer) */

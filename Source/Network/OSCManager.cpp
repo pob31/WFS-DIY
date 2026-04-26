@@ -1320,6 +1320,12 @@ void OSCManager::handleIncomingMessage(const juce::OSCMessage& message,
                                        int port,
                                        ConnectionMode transport)
 {
+    // Tag every action that fires synchronously below — log entries, OSCQuery
+    // suppress flags, and any direct ValueTree writes — as originating from an
+    // external OSC client. The Remote (/remoteInput/*) and ADM (/adm/*) handlers
+    // share this tag per the design (no separate Remote tag in the value set).
+    OriginTagScope originScope { OriginTag::OSC };
+
     // Check IP filtering before processing
     if (ipFilteringEnabled && !isAllowedIP(senderIP))
     {

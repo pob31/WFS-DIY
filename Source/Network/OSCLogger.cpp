@@ -311,6 +311,13 @@ std::set<Protocol> OSCLogger::getUniqueProtocols() const
 
 void OSCLogger::addEntry(LogEntry entry)
 {
+    // Stamp the current thread's origin tag if the caller didn't set one
+    // explicitly. Lets the OSC inbound handler / snapshot loader / MCP
+    // dispatcher set OriginTagScope once at the top and have every entry
+    // emitted underneath inherit the tag automatically.
+    if (entry.origin == OriginTag::None)
+        entry.origin = getCurrentOriginTag();
+
     {
         const juce::ScopedLock sl(entriesLock);
 

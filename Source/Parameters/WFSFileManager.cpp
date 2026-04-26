@@ -2,6 +2,7 @@
 #include "WFSParameterIDs.h"
 #include "../AppSettings.h"
 #include "../Localization/LocalizationManager.h"
+#include "../Network/OSCProtocolTypes.h"
 #include "../WFSLogger.h"
 
 #if JUCE_WINDOWS
@@ -9,6 +10,8 @@
 #endif
 
 using namespace WFSParameterIDs;
+using WFSNetwork::OriginTag;
+using WFSNetwork::OriginTagScope;
 
 //==============================================================================
 // Transient toggle stripping
@@ -513,6 +516,8 @@ bool WFSFileManager::exportSystemConfig (const juce::File& file)
 
 bool WFSFileManager::importSystemConfig (const juce::File& file)
 {
+    OriginTagScope originScope { OriginTag::Snapshot };
+
     auto loadedState = readFromXmlFile (file);
     if (!loadedState.isValid())
         return false;
@@ -605,6 +610,8 @@ bool WFSFileManager::exportNetworkConfig (const juce::File& file)
 
 bool WFSFileManager::importNetworkConfig (const juce::File& file)
 {
+    OriginTagScope originScope { OriginTag::Snapshot };
+
     auto loadedState = readFromXmlFile (file);
     if (!loadedState.isValid())
         return false;
@@ -699,6 +706,8 @@ bool WFSFileManager::exportInputConfig (const juce::File& file)
 
 bool WFSFileManager::importInputConfig (const juce::File& file)
 {
+    OriginTagScope originScope { OriginTag::Snapshot };
+
     auto loadedState = readFromXmlFile (file);
     if (!loadedState.isValid())
         return false;
@@ -776,6 +785,8 @@ bool WFSFileManager::exportOutputConfig (const juce::File& file)
 
 bool WFSFileManager::importOutputConfig (const juce::File& file)
 {
+    OriginTagScope originScope { OriginTag::Snapshot };
+
     auto loadedState = readFromXmlFile (file);
     if (!loadedState.isValid())
         return false;
@@ -851,6 +862,8 @@ bool WFSFileManager::exportReverbConfig (const juce::File& file)
 
 bool WFSFileManager::importReverbConfig (const juce::File& file)
 {
+    OriginTagScope originScope { OriginTag::Snapshot };
+
     auto loadedState = readFromXmlFile (file);
     if (!loadedState.isValid())
         return false;
@@ -883,6 +896,8 @@ bool WFSFileManager::exportClusterLFOPresets (const juce::File& file)
 
 bool WFSFileManager::importClusterLFOPresets (const juce::File& file)
 {
+    OriginTagScope originScope { OriginTag::Snapshot };
+
     auto loadedState = readFromXmlFile (file);
     if (! loadedState.isValid())
         return false;
@@ -1261,6 +1276,8 @@ bool WFSFileManager::saveInputSnapshotWithExtendedScope (const juce::String& sna
 
 bool WFSFileManager::loadInputSnapshotWithExtendedScope (const juce::String& snapshotName, const ExtendedSnapshotScope& scope)
 {
+    OriginTagScope originScope { OriginTag::Snapshot };
+
     auto file = getInputSnapshotsFolder().getChildFile (snapshotName + snapshotExtension);
     auto snapshot = readFromXmlFile (file);
 
