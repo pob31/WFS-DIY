@@ -459,6 +459,12 @@ bool OSCManager::isOSCQueryRunning() const
     return oscQueryServer && oscQueryServer->isRunning();
 }
 
+int OSCManager::getOSCQueryHttpPort() const
+{
+    return (oscQueryServer && oscQueryServer->isRunning())
+             ? oscQueryServer->getHttpPort() : 0;
+}
+
 //==============================================================================
 // Tracking OSC
 //==============================================================================
@@ -2018,6 +2024,14 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
 
 void OSCManager::handleRemoteInputMessage(const juce::OSCMessage& message)
 {
+    // Phase 7: the Android Remote tablet (the WFS Control app) speaks
+    // a /remoteInput/* dialect that lands here via the generic OSC
+    // dispatcher. The outer scope at processIncomingOSCMessage() set
+    // OriginTag::OSC; shadow it with OriginTag::Remote so change records
+    // and cross-actor notifications can distinguish "the operator's
+    // tablet" from arbitrary external OSC clients.
+    WFSNetwork::OriginTagScope originScope { WFSNetwork::OriginTag::Remote };
+
     auto parsed = OSCMessageRouter::parseRemoteInputMessage(message);
 
     if (!parsed.valid)

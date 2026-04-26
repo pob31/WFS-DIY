@@ -14,6 +14,7 @@
 #include "ControllerEvent.h"
 #include "ControllerDevice.h"
 #include "ControllerMapping.h"
+#include "../../Network/OSCProtocolTypes.h"
 
 class ControllerManager : private juce::Timer
 {
@@ -281,6 +282,13 @@ private:
     {
         if (! enabled)
             return;
+
+        // Phase 7: every callback dispatched from this 50 Hz tick is a
+        // hardware-driven write (SpaceMouse and any future ControllerDevice
+        // subclass). Wrap once at the chokepoint so the entire dispatch
+        // tree is credited to OriginTag::Hardware in change records and
+        // cross-actor notifications.
+        WFSNetwork::OriginTagScope originScope { WFSNetwork::OriginTag::Hardware };
 
         constexpr float dt = 0.02f;  // 50 Hz → 20ms per tick
 

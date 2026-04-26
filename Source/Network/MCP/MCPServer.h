@@ -8,6 +8,7 @@
 #include "MCPResourceRegistry.h"
 #include "MCPPromptRegistry.h"
 #include "MCPTierEnforcement.h"
+#include "MCPOSCQueryAuditor.h"
 #include "MCPDispatcher.h"
 #include "MCPTransport.h"
 
@@ -83,6 +84,14 @@ public:
         this to show + control gate / dry-run. */
     MCPTierEnforcement& getTierEnforcement() noexcept { return *tierEnforcement; }
 
+    /** Phase 7 — kick the OSCQuery startup cross-check. Caller passes the
+        URL (typically `http://127.0.0.1:<httpPort>/`) where OSCQuery is
+        bound; the auditor walks `generated_tools.json` and logs any tool
+        whose declared OSC path is missing from the live tree. Safe to
+        call multiple times — re-runs replace the previous audit. Pass an
+        empty URL to disable / cancel. */
+    void runOSCQueryAudit (const juce::String& url);
+
 private:
     WFSValueTreeState& valueTreeState;
     WFSFileManager& fileManager;
@@ -95,6 +104,8 @@ private:
     std::unique_ptr<MCPTierEnforcement> tierEnforcement;
     std::unique_ptr<MCPDispatcher> dispatcher;
     std::unique_ptr<MCPTransport> transport;
+    std::unique_ptr<MCPOSCQueryAuditor> oscQueryAuditor;
+    juce::File generatedToolsJsonPath;  // Phase 7: remembered for the auditor
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MCPServer)
 };

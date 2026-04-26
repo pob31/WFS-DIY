@@ -20,7 +20,8 @@ MCPServer::MCPServer (WFSValueTreeState& state,
                       const juce::File& generatedToolsJson,
                       const juce::File& knowledgeResourcesDir)
     : valueTreeState (state),
-      fileManager (fileMgr)
+      fileManager (fileMgr),
+      generatedToolsJsonPath (generatedToolsJson)
 {
     mcpLogger        = std::make_unique<MCPLogger> (networkLogger);
     registry         = std::make_unique<MCPToolRegistry>();
@@ -95,6 +96,27 @@ void MCPServer::stop()
 {
     if (transport != nullptr)
         transport->stop();
+}
+
+void MCPServer::runOSCQueryAudit (const juce::String& url)
+{
+    if (url.isEmpty())
+    {
+        // Caller (e.g. NetworkTab) signalled OSCQuery is no longer running;
+        // stop any in-flight audit.
+        oscQueryAuditor.reset();
+        return;
+    }
+
+    // Recreate the auditor each time so a re-run after an OSCQuery restart
+    // picks up the new URL cleanly. The previous instance's destructor
+    // joins its thread (3 s timeout) so this is safe even if a prior
+    // audit is still in flight — uncommon, since one audit is ~1.5 s end
+    // to end.
+    oscQueryAuditor = std::make_unique<MCPOSCQueryAuditor>(*mcpLogger,
+                                                            generatedToolsJsonPath,
+                                                            url);
+    oscQueryAuditor->runAudit();
 }
 
 } // namespace WFSNetwork

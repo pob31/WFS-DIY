@@ -33,12 +33,14 @@ enum class OriginTag
     None = 0,        // Default — no origin attributed (e.g. internal initialization)
     UI,              // User-driven via JUCE GUI controls
     MCP,             // AI client via MCP server
-    OSC,             // External OSC client (includes Remote-protocol handlers)
+    OSC,             // Arbitrary external OSC client (NOT the Android Remote — see Remote)
     Tracking,        // Position tracking integration loop
     Snapshot,        // Snapshot recall / Reload Configuration
     LFO,             // LFO modulation writes
     Move,            // AutomOtion programmed movement
-    Automation       // DAW host automation via plugin layer
+    Automation,      // DAW host automation via plugin layer
+    Hardware,        // Hardware controllers — Stream Deck+, Quick Keys, SpaceMouse, Lightpad
+    Remote           // Android Remote tablet (the WFS Control app, /remoteInput/* dialect)
 };
 
 /** Thread-local current origin tag. Read by listeners (e.g. OSCLogger) when
@@ -302,6 +304,8 @@ struct LogEntry
             case OriginTag::LFO:        return "LFO";
             case OriginTag::Move:       return "Move";
             case OriginTag::Automation: return "Automation";
+            case OriginTag::Hardware:   return "Hardware";
+            case OriginTag::Remote:     return "Remote";
             default:                    return "";
         }
     }

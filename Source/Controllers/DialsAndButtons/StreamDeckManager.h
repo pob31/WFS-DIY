@@ -11,6 +11,7 @@
 
 #include <JuceHeader.h>
 #include "../../AppSettings.h"
+#include "../../Network/OSCProtocolTypes.h"
 #include "StreamDeckDevice.h"
 #include "StreamDeckPage.h"
 #include "StreamDeckRenderer.h"
@@ -24,12 +25,30 @@ public:
 
     StreamDeckManager()
     {
-        // Wire device callbacks
-        device.onButtonPressed = [this] (int btn) { handleButtonPressed (btn); };
-        device.onButtonReleased = [this] (int btn) { handleButtonReleased (btn); };
-        device.onDialRotated = [this] (int dial, int dir) { handleDialRotated (dial, dir); };
-        device.onDialPressed = [this] (int dial) { handleDialPressed (dial); };
-        device.onDialReleased = [this] (int dial) { handleDialReleased (dial); };
+        // Wire device callbacks. Each input event runs inside an
+        // OriginTagScope { Hardware } so any ValueTree writes the page
+        // bindings perform are credited to the hardware controller in
+        // change records and cross-actor notifications.
+        device.onButtonPressed  = [this] (int btn) {
+            WFSNetwork::OriginTagScope s { WFSNetwork::OriginTag::Hardware };
+            handleButtonPressed (btn);
+        };
+        device.onButtonReleased = [this] (int btn) {
+            WFSNetwork::OriginTagScope s { WFSNetwork::OriginTag::Hardware };
+            handleButtonReleased (btn);
+        };
+        device.onDialRotated    = [this] (int dial, int dir) {
+            WFSNetwork::OriginTagScope s { WFSNetwork::OriginTag::Hardware };
+            handleDialRotated (dial, dir);
+        };
+        device.onDialPressed    = [this] (int dial) {
+            WFSNetwork::OriginTagScope s { WFSNetwork::OriginTag::Hardware };
+            handleDialPressed (dial);
+        };
+        device.onDialReleased   = [this] (int dial) {
+            WFSNetwork::OriginTagScope s { WFSNetwork::OriginTag::Hardware };
+            handleDialReleased (dial);
+        };
         device.onConnectionChanged = [this] (bool connected) { handleConnectionChanged (connected); };
 
         // Don't start monitoring here — wait for setEnabled(true) after

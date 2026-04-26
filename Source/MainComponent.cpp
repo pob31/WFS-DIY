@@ -807,6 +807,16 @@ MainComponent::MainComponent()
                                                         knowledgeResourcesDir);
     mcpServer->start (WFSNetwork::MCPServer::kDefaultPort, /*loopbackOnly*/ true);
 
+    // Phase 7: kick the OSCQuery cross-check if OSCQuery is already up
+    // (e.g. saved-on-startup setting). When the user toggles OSCQuery
+    // later, NetworkTab calls runOSCQueryAudit again with the new URL.
+    if (oscManager->isOSCQueryRunning())
+    {
+        const auto port = oscManager->getOSCQueryHttpPort();
+        if (port > 0)
+            mcpServer->runOSCQueryAudit ("http://127.0.0.1:" + juce::String (port) + "/");
+    }
+
     // Phase 5c: AI-undo toast overlay. Positioned in top-right of this
     // component; sized in resized(). The overlay polls the change-record
     // ring buffer at 5 Hz and renders rows with × buttons for targeted

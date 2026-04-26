@@ -210,6 +210,11 @@ public:
      */
     bool isOSCQueryRunning() const;
 
+    /**
+     * @return The HTTP port the OSC Query server is bound on, or 0 if not running.
+     */
+    int getOSCQueryHttpPort() const;
+
     //==========================================================================
     // Tracking OSC
     //==========================================================================

@@ -5522,6 +5522,15 @@ private:
             {
                 oscManager->startOSCQuery(oscPort, httpPort);
             }
+
+            // Phase 7: re-run the MCP OSCQuery cross-check now that the
+            // server is up. The auditor handles its own threading + logging.
+            if (mcpServer != nullptr && oscManager->isOSCQueryRunning())
+            {
+                const auto port = oscManager->getOSCQueryHttpPort();
+                if (port > 0)
+                    mcpServer->runOSCQueryAudit ("http://127.0.0.1:" + juce::String (port) + "/");
+            }
         }
         else
         {
@@ -5529,6 +5538,9 @@ private:
             {
                 oscManager->stopOSCQuery();
             }
+            // Phase 7: cancel any pending audit; the URL is no longer valid.
+            if (mcpServer != nullptr)
+                mcpServer->runOSCQueryAudit ({});
         }
     }
 

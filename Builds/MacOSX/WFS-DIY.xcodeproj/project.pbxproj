@@ -66,6 +66,7 @@
 		B5998BA8416CF7672D91E3A8 /* LocalizationManager.cpp */ = {isa = PBXBuildFile; fileRef = 05D2B5A53FEB53CA24CFD91E; };
 		C06C6742DDD2187C42ACA573 /* OSCMessageBuilder.cpp */ = {isa = PBXBuildFile; fileRef = A3C78AAE2596180321C3F0F2; };
 		C5AA8699307DEBD9EE73CB9C /* ArrayGeometryCalculator.cpp */ = {isa = PBXBuildFile; fileRef = 400EA6B8131021F017321A16; };
+		C7B6B7481E56B60A2159667D /* MCPOSCQueryAuditor.cpp */ = {isa = PBXBuildFile; fileRef = 4E47CBDA2F72471CB13EF459; };
 		CCFBE09811F0776115B91605 /* CoreAudioKit.framework */ = {isa = PBXBuildFile; fileRef = AC103C23CF134FD2779DDD03; };
 		D0C2D1742B813683EC65D553 /* MetalKit.framework */ = {isa = PBXBuildFile; fileRef = 8C11E7326375A886C71FF31C; settings = { ATTRIBUTES = (Weak, ); }; };
 		D1FB0F3B758B9AFC67248620 /* MainComponent.cpp */ = {isa = PBXBuildFile; fileRef = A6107472373FC76F35C046C0; };
@@ -163,6 +164,7 @@
 		4B6061E2662DD31DD344DA07 /* MCPServer.cpp */ /* MCPServer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPServer.cpp; path = ../../Source/Network/MCP/MCPServer.cpp; sourceTree = SOURCE_ROOT; };
 		4B817C847A7AC2CDC244E66C /* GpuInputBufferAlgorithm.h */ /* GpuInputBufferAlgorithm.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = GpuInputBufferAlgorithm.h; path = ../../Source/DSP/GpuInputBufferAlgorithm.h; sourceTree = SOURCE_ROOT; };
 		4C334641BCD17BEF2B52C9EF /* MCPGeneratedToolLoader.cpp */ /* MCPGeneratedToolLoader.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPGeneratedToolLoader.cpp; path = ../../Source/Network/MCP/MCPGeneratedToolLoader.cpp; sourceTree = SOURCE_ROOT; };
+		4E47CBDA2F72471CB13EF459 /* MCPOSCQueryAuditor.cpp */ /* MCPOSCQueryAuditor.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPOSCQueryAuditor.cpp; path = ../../Source/Network/MCP/MCPOSCQueryAuditor.cpp; sourceTree = SOURCE_ROOT; };
 		52706EBD8973DFD0F1366FCF /* OSCReceiverWithSenderIP.cpp */ /* OSCReceiverWithSenderIP.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = OSCReceiverWithSenderIP.cpp; path = ../../Source/Network/OSCReceiverWithSenderIP.cpp; sourceTree = SOURCE_ROOT; };
 		527DE6F349B1DF165D7D2BF1 /* ClustersTabPages.h */ /* ClustersTabPages.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ClustersTabPages.h; path = ../../Source/Controllers/DialsAndButtons/pages/ClustersTabPages.h; sourceTree = SOURCE_ROOT; };
 		54B2A0562D44FAFD14948BD4 /* Accelerate.framework */ /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
@@ -219,6 +221,7 @@
 		878AA473BBA4523BB5BAB723 /* OSCRateLimiter.cpp */ /* OSCRateLimiter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = OSCRateLimiter.cpp; path = ../../Source/Network/OSCRateLimiter.cpp; sourceTree = SOURCE_ROOT; };
 		88828B243F838905A44A3AE5 /* include_juce_audio_formats.mm */ /* include_juce_audio_formats.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_formats.mm; path = ../../JuceLibraryCode/include_juce_audio_formats.mm; sourceTree = SOURCE_ROOT; };
 		88FCF7AA0FC9085D1059579A /* AudioInterfaceWindow.h */ /* AudioInterfaceWindow.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = AudioInterfaceWindow.h; path = ../../Source/gui/AudioInterfaceWindow.h; sourceTree = SOURCE_ROOT; };
+		89B654EDBBF10BBCF67395CF /* MCPOSCQueryAuditor.h */ /* MCPOSCQueryAuditor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MCPOSCQueryAuditor.h; path = ../../Source/Network/MCP/MCPOSCQueryAuditor.h; sourceTree = SOURCE_ROOT; };
 		89F19441719BBC804132D553 /* TrackingPSNReceiver.cpp */ /* TrackingPSNReceiver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = TrackingPSNReceiver.cpp; path = ../../Source/Network/TrackingPSNReceiver.cpp; sourceTree = SOURCE_ROOT; };
 		8BDFF50F5C228E133FE51580 /* OSCManager.cpp */ /* OSCManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = OSCManager.cpp; path = ../../Source/Network/OSCManager.cpp; sourceTree = SOURCE_ROOT; };
 		8C11E7326375A886C71FF31C /* MetalKit.framework */ /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
@@ -492,6 +495,8 @@
 				121398B0860404537150E40A,
 				AFB92C46877EFCE92DA59E43,
 				862CC5DB39C2F08818A69F65,
+				89B654EDBBF10BBCF67395CF,
+				4E47CBDA2F72471CB13EF459,
 				1A1140E03F50B30810138601,
 				7E602E26466DEF84F54CDE94,
 				61BF71BE364DC6BB92C6264F,
@@ -880,6 +885,7 @@
 				1857C192FEAF647C113090DF,
 				3EDA18ECB7D32E52399C58BF,
 				9BC4D1D56A87AD9A8AFBFB3E,
+				C7B6B7481E56B60A2159667D,
 				A635BD6A3E95AC90F1E59D1D,
 				40BAD216FC425C9199688DAB,
 				5E8F096DF4AFABE40A110930,

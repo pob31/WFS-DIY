@@ -168,6 +168,10 @@
                 file="Source/Network/MCP/MCPTierEnforcement.h"/>
           <FILE id="mcpTierEnfCpp" name="MCPTierEnforcement.cpp" compile="1" resource="0"
                 file="Source/Network/MCP/MCPTierEnforcement.cpp"/>
+          <FILE id="mcpOscQAudH" name="MCPOSCQueryAuditor.h" compile="0" resource="0"
+                file="Source/Network/MCP/MCPOSCQueryAuditor.h"/>
+          <FILE id="mcpOscQAudCpp" name="MCPOSCQueryAuditor.cpp" compile="1" resource="0"
+                file="Source/Network/MCP/MCPOSCQueryAuditor.cpp"/>
           <FILE id="mcpRegH" name="MCPToolRegistry.h" compile="0" resource="0"
                 file="Source/Network/MCP/MCPToolRegistry.h"/>
           <FILE id="mcpRegCpp" name="MCPToolRegistry.cpp" compile="1" resource="0"
