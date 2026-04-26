@@ -96,7 +96,7 @@ inline juce::var buildUndoSchema()
         "Optional. Index into the undo ring buffer (0 = oldest, size-1 = newest). "
         "Omit to undo the most recent record. When set, performs targeted undo: "
         "the target record AND any later records whose affected_groups intersect "
-        "are reversed together as a batch. Use mcp.get_ai_change_history to read "
+        "are reversed together as a batch. Use mcp_get_ai_change_history to read "
         "the buffer first if you need to find a specific record.");
 
     auto props = std::make_unique<juce::DynamicObject>();
@@ -112,7 +112,7 @@ inline juce::var buildUndoSchema()
 inline ToolDescriptor describeUndo (MCPUndoEngine& engine)
 {
     ToolDescriptor d;
-    d.name        = "mcp.undo_last_ai_change";
+    d.name        = "mcp_undo_last_ai_change";
     d.description = "Undo a previous AI-initiated state change. With no arguments, "
                     "reverses only the most recent state-modifying tool call. With "
                     "`record_index`, performs targeted undo: reverses the record at "
@@ -150,7 +150,7 @@ inline ToolDescriptor describeUndo (MCPUndoEngine& engine)
 inline ToolDescriptor describeRedo (MCPUndoEngine& engine)
 {
     ToolDescriptor d;
-    d.name        = "mcp.redo_last_undone_ai_change";
+    d.name        = "mcp_redo_last_undone_ai_change";
     d.description = "Re-apply the most recently undone AI change. The redo stack is "
                     "cleared whenever a new state-modifying tool call lands (standard "
                     "undo/redo semantics), so redo is only available immediately after "
@@ -189,7 +189,7 @@ inline juce::var buildHistorySchema()
 inline ToolDescriptor describeGetHistory (MCPChangeRecordBuffer& buffer)
 {
     ToolDescriptor d;
-    d.name        = "mcp.get_ai_change_history";
+    d.name        = "mcp_get_ai_change_history";
     d.description = "Read the AI change-record ring buffer — every state-modifying tool "
                     "call this MCP server has executed in the last 100 entries. Useful "
                     "for explaining 'what did I just do?' in voice flows. Read-only.";

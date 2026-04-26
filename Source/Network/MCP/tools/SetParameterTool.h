@@ -16,7 +16,7 @@ inline juce::var buildSchema()
     variable->setProperty ("description",
         "Parameter identifier name as defined in WFSParameterIDs.h "
         "(e.g. 'inputPositionX', 'stageWidth', 'eqFrequency'). "
-        "Case-sensitive — use the exact name. Run mcp.get_ai_change_history "
+        "Case-sensitive — use the exact name. Run mcp_get_ai_change_history "
         "to see canonical names from prior writes if unsure.");
 
     auto value = std::make_unique<juce::DynamicObject>();
@@ -160,7 +160,7 @@ inline ToolResult set (WFSValueTreeState& state, const juce::var& args, ChangeRe
 inline ToolDescriptor describe (WFSValueTreeState& state)
 {
     ToolDescriptor d;
-    d.name        = "wfs.set_parameter";
+    d.name        = "wfs_set_parameter";
     d.description = "Generic escape-hatch parameter writer. Use only when the "
                     "specific auto-generated tool (e.g. input.position.set_x) "
                     "doesn't fit the flow. Caller is responsible for the exact "

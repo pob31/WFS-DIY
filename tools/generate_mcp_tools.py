@@ -501,8 +501,10 @@ def is_non_parameter_row(row: CSVRow) -> bool:
 
 
 def derive_tool_name(row: CSVRow, csv_namespace: str) -> tuple[str, str | None]:
-    """Compute the dot-namespaced tool name and (optionally) the matching
-    nudge tool name."""
+    """Compute the underscore-namespaced tool name and (optionally) the
+    matching nudge tool name. Names use only [A-Za-z0-9_-] so they pass
+    the OpenAI-style tool-name regex (^[a-zA-Z0-9_-]{1,64}$) that some
+    MCP clients (e.g. ChatGPT's Frontend MCP integration) enforce."""
     variable = row.variable
     family = detect_numeric_family(variable)
     band = detect_band_placeholder(variable)
@@ -539,15 +541,15 @@ def derive_tool_name(row: CSVRow, csv_namespace: str) -> tuple[str, str | None]:
 
     base = expanded if expanded else "value"
     parts.append(f"{SET_VERB}_{base}")
-    tool_name = ".".join(parts)
+    tool_name = "_".join(parts)
 
     # Nudge variant if the row supports relative writes.
     nudge_name = None
     if row.osc_inc_dec.strip().lower() == "y":
         if section_snake and not _is_redundant_section(section_snake, base):
-            nudge_name = f"{csv_namespace}.{section_snake}.{NUDGE_VERB}_{base}"
+            nudge_name = f"{csv_namespace}_{section_snake}_{NUDGE_VERB}_{base}"
         else:
-            nudge_name = f"{csv_namespace}.{NUDGE_VERB}_{base}"
+            nudge_name = f"{csv_namespace}_{NUDGE_VERB}_{base}"
 
     return tool_name, nudge_name
 
@@ -584,7 +586,7 @@ def derive_description(row: CSVRow, csv_namespace: str,
         )
     if per_channel:
         parts.append(
-            "Use `session.get_state()` first if unsure which channels exist."
+            "Use `session_get_state()` first if unsure which channels exist."
         )
     return ". ".join(p.rstrip(".") for p in parts) + "."
 

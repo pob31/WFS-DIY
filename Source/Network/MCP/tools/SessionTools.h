@@ -86,7 +86,7 @@ inline juce::var buildInputSchema()
 inline ToolDescriptor describe (WFSValueTreeState& state)
 {
     ToolDescriptor d;
-    d.name        = "session.get_state";
+    d.name        = "session_get_state";
     d.description = "Read-only summary of the current WFS-DIY session: "
                     "channel counts, plus per-channel id/name/position for "
                     "every input, output, and reverb. Use this to orient "

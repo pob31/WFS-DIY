@@ -106,7 +106,7 @@ inline ToolResult setName (WFSValueTreeState& state, const juce::var& args, Chan
 inline ToolDescriptor describeSetName (WFSValueTreeState& state)
 {
     ToolDescriptor d;
-    d.name        = "input.set_name";
+    d.name        = "input_set_name";
     d.description = "Rename an input channel. Useful in voice flows like "
                     "'Rename input 3 to Marie'.";
     d.inputSchema   = buildSetNameSchema();
@@ -215,7 +215,7 @@ inline ToolResult setCartesian (WFSValueTreeState& state, const juce::var& args,
 inline ToolDescriptor describeSetCartesian (WFSValueTreeState& state)
 {
     ToolDescriptor d;
-    d.name        = "input.position.set_cartesian";
+    d.name        = "input_position_set_cartesian";
     d.description = "Move an input source to absolute Cartesian coordinates "
                     "(meters). Coordinate convention: +X = stage right, "
                     "+Y = upstage (away from audience), +Z = up. Origin is "
@@ -310,7 +310,7 @@ inline ToolResult setAttenuation (WFSValueTreeState& state, const juce::var& arg
 inline ToolDescriptor describeSetAttenuation (WFSValueTreeState& state)
 {
     ToolDescriptor d;
-    d.name        = "input.set_attenuation";
+    d.name        = "input_set_attenuation";
     d.description = "Set an input channel's attenuation in dB. Range "
                     "[-92, 0] where 0 = unity gain.";
     d.inputSchema   = buildSetAttenuationSchema();
