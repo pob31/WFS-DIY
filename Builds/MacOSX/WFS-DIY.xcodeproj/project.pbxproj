@@ -20,10 +20,13 @@
 		3201D56E12B692DF589404E8 /* include_juce_audio_utils.mm */ = {isa = PBXBuildFile; fileRef = 0295E8DB0FB28056B5EFD60F; };
 		36F17547828BD0BC27FB25DC /* WFSLogger.cpp */ = {isa = PBXBuildFile; fileRef = 2A3098A01F4897C79C3BDD80; };
 		3E0A0AB3E298FA5F0241DEB0 /* include_juce_audio_formats.mm */ = {isa = PBXBuildFile; fileRef = 88828B243F838905A44A3AE5; };
+		40BAD216FC425C9199688DAB /* MCPDispatcher.cpp */ = {isa = PBXBuildFile; fileRef = 6F21025606613B42ABF1D66A; };
 		471089E457EAE929D9FBE39A /* DiscRecording.framework */ = {isa = PBXBuildFile; fileRef = BB988ACB6CA5DBAAB5D3F273; };
 		476F09624768D72D4EA72FB2 /* Cocoa.framework */ = {isa = PBXBuildFile; fileRef = 8482C13D6FF8436DFD51EE09; };
 		59262D55C253156B90FCCD98 /* Accelerate.framework */ = {isa = PBXBuildFile; fileRef = 54B2A0562D44FAFD14948BD4; };
+		597D4525120E3BF0EECAC647 /* MCPServer.cpp */ = {isa = PBXBuildFile; fileRef = 4B6061E2662DD31DD344DA07; };
 		5D4E9619AEF393D1B45801B4 /* include_juce_audio_processors_headless_ara.cpp */ = {isa = PBXBuildFile; fileRef = A578604C7C69A5F0AB6D4219; };
+		5E8F096DF4AFABE40A110930 /* MCPTransport.cpp */ = {isa = PBXBuildFile; fileRef = 364F0B69B5019A2A933E30AF; };
 		608D7B6A13C0D268D19EC284 /* QuartzCore.framework */ = {isa = PBXBuildFile; fileRef = F0BBBCFFEEBC5E54F494D60B; };
 		63EEAC7AAA4C92CD3E961598 /* AudioToolbox.framework */ = {isa = PBXBuildFile; fileRef = 2005A065341F1626D8F31859; };
 		65CEC8646F411DBDCBDE08B6 /* include_juce_audio_processors_headless_lv2_libs.cpp */ = {isa = PBXBuildFile; fileRef = 83CB49A396A11EA46FF029C1; };
@@ -44,6 +47,7 @@
 		99BBB112459F918510B37CA3 /* OSCConnection.cpp */ = {isa = PBXBuildFile; fileRef = 1D4034F17218DC090D63347F; };
 		A3B475BAAE5DA55369EA63CB /* OSCReceiverWithSenderIP.cpp */ = {isa = PBXBuildFile; fileRef = 52706EBD8973DFD0F1366FCF; };
 		A4CC09F2DA7E16C75D0C1C27 /* include_juce_events.mm */ = {isa = PBXBuildFile; fileRef = 1BD908F5EE15BCFED1F87F23; };
+		A635BD6A3E95AC90F1E59D1D /* MCPToolRegistry.cpp */ = {isa = PBXBuildFile; fileRef = 7E602E26466DEF84F54CDE94; };
 		A66BB50D77A88BEC2F63217B /* OSCLogger.cpp */ = {isa = PBXBuildFile; fileRef = 6EDCA6152CCF68F79BC3E7F4; };
 		A7EBFC6FBD34D6A3021AF51A /* Foundation.framework */ = {isa = PBXBuildFile; fileRef = 6BABB0D22DF0B0DEF97EC39A; };
 		A8A7939ED5A7BFFDB060F2C9 /* OSCRateLimiter.cpp */ = {isa = PBXBuildFile; fileRef = 878AA473BBA4523BB5BAB723; };
@@ -70,6 +74,7 @@
 		E58219E2FD5FD08754C23FE1 /* BinaryData.cpp */ = {isa = PBXBuildFile; fileRef = D3083626798CF4CB94435547; };
 		E5CF3F122DD4F047481C62D2 /* CoreAudio.framework */ = {isa = PBXBuildFile; fileRef = 496A4AFADE7E2E14B6D013E2; };
 		E5D3A75C2F59B454A7821B7F /* include_juce_core_CompilationTime.cpp */ = {isa = PBXBuildFile; fileRef = 1852742AC74CE662EF91C229; };
+		E8BC3989FD19A883018F7871 /* MCPLogger.cpp */ = {isa = PBXBuildFile; fileRef = A93789C1D857587E49D12A34; };
 		EB33DD2DA1BA1C4A844E5CC5 /* WindowUtils.mm */ = {isa = PBXBuildFile; fileRef = 8E86F24313EE0226A744A907; };
 		ED8922B2E38DC02657CAD811 /* RTTrPDecoder.cpp */ = {isa = PBXBuildFile; fileRef = 7CC2840AD0983A4EADE1F6C9; };
 		F3E9874CAF23860578708A33 /* include_juce_audio_basics.mm */ = {isa = PBXBuildFile; fileRef = EF8F5550038C576E96ECCBC3; };
@@ -103,6 +108,7 @@
 		1852742AC74CE662EF91C229 /* include_juce_core_CompilationTime.cpp */ /* include_juce_core_CompilationTime.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_core_CompilationTime.cpp; path = ../../JuceLibraryCode/include_juce_core_CompilationTime.cpp; sourceTree = SOURCE_ROOT; };
 		19CA408180710506CED8135A /* StreamDeckRenderer.h */ /* StreamDeckRenderer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StreamDeckRenderer.h; path = ../../Source/Controllers/DialsAndButtons/StreamDeckRenderer.h; sourceTree = SOURCE_ROOT; };
 		1A10EA3687120F02EC073242 /* include_juce_graphics_Harfbuzz.cpp */ /* include_juce_graphics_Harfbuzz.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_graphics_Harfbuzz.cpp; path = ../../JuceLibraryCode/include_juce_graphics_Harfbuzz.cpp; sourceTree = SOURCE_ROOT; };
+		1A1140E03F50B30810138601 /* MCPToolRegistry.h */ /* MCPToolRegistry.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MCPToolRegistry.h; path = ../../Source/Network/MCP/MCPToolRegistry.h; sourceTree = SOURCE_ROOT; };
 		1ABC3B390474FF4A8F755E15 /* WFSLogger.h */ /* WFSLogger.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = WFSLogger.h; path = ../../Source/WFSLogger.h; sourceTree = SOURCE_ROOT; };
 		1BD908F5EE15BCFED1F87F23 /* include_juce_events.mm */ /* include_juce_events.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_events.mm; path = ../../JuceLibraryCode/include_juce_events.mm; sourceTree = SOURCE_ROOT; };
 		1D4034F17218DC090D63347F /* OSCConnection.cpp */ /* OSCConnection.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = OSCConnection.cpp; path = ../../Source/Network/OSCConnection.cpp; sourceTree = SOURCE_ROOT; };
@@ -116,10 +122,13 @@
 		2A3098A01F4897C79C3BDD80 /* WFSLogger.cpp */ /* WFSLogger.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = WFSLogger.cpp; path = ../../Source/WFSLogger.cpp; sourceTree = SOURCE_ROOT; };
 		2CB2F36332CB658A8BCDB47B /* InputBufferAlgorithm.h */ /* InputBufferAlgorithm.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = InputBufferAlgorithm.h; path = ../../Source/DSP/InputBufferAlgorithm.h; sourceTree = SOURCE_ROOT; };
 		300E93A1943132FBD96DBD77 /* include_juce_gui_basics.mm */ /* include_juce_gui_basics.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_gui_basics.mm; path = ../../JuceLibraryCode/include_juce_gui_basics.mm; sourceTree = SOURCE_ROOT; };
+		30AAB0767A758FCB2A0C53AC /* MCPTransport.h */ /* MCPTransport.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MCPTransport.h; path = ../../Source/Network/MCP/MCPTransport.h; sourceTree = SOURCE_ROOT; };
 		3193B4D9D805D393D760AE17 /* juce_gui_basics */ /* juce_gui_basics */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_gui_basics; path = ../../ThirdParty/JUCE/modules/juce_gui_basics; sourceTree = SOURCE_ROOT; };
 		344E94DE75CE8AD15E5DF4F7 /* SystemConfigTab.h */ /* SystemConfigTab.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SystemConfigTab.h; path = ../../Source/gui/SystemConfigTab.h; sourceTree = SOURCE_ROOT; };
+		3490B82F1263703CAD0AD65B /* MCPServer.h */ /* MCPServer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MCPServer.h; path = ../../Source/Network/MCP/MCPServer.h; sourceTree = SOURCE_ROOT; };
 		34CC6B6061AD8E05EDA699F3 /* InputBufferProcessor.h */ /* InputBufferProcessor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = InputBufferProcessor.h; path = ../../Source/DSP/InputBufferProcessor.h; sourceTree = SOURCE_ROOT; };
 		35A75BE8F742B3CF106ACE1B /* WFSValueTreeState.h */ /* WFSValueTreeState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = WFSValueTreeState.h; path = ../../Source/Parameters/WFSValueTreeState.h; sourceTree = SOURCE_ROOT; };
+		364F0B69B5019A2A933E30AF /* MCPTransport.cpp */ /* MCPTransport.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPTransport.cpp; path = ../../Source/Network/MCP/MCPTransport.cpp; sourceTree = SOURCE_ROOT; };
 		366967657B27DF70D955B956 /* PatchWindowPages.h */ /* PatchWindowPages.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = PatchWindowPages.h; path = ../../Source/Controllers/DialsAndButtons/pages/PatchWindowPages.h; sourceTree = SOURCE_ROOT; };
 		3686FA549875B11C3A90C790 /* ControllerManager.h */ /* ControllerManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ControllerManager.h; path = ../../Source/Controllers/PositionControl/ControllerManager.h; sourceTree = SOURCE_ROOT; };
 		37A64E364B5651AEABDA9662 /* UpdateBanner.h */ /* UpdateBanner.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = UpdateBanner.h; path = ../../Source/gui/UpdateBanner.h; sourceTree = SOURCE_ROOT; };
@@ -136,6 +145,7 @@
 		48D14721841738FD158C9ED7 /* NetworkLogWindow.h */ /* NetworkLogWindow.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = NetworkLogWindow.h; path = ../../Source/gui/NetworkLogWindow.h; sourceTree = SOURCE_ROOT; };
 		496A4AFADE7E2E14B6D013E2 /* CoreAudio.framework */ /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
 		49B4DD71B5401B3D22E619EE /* SystemConfigTabPages.h */ /* SystemConfigTabPages.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SystemConfigTabPages.h; path = ../../Source/Controllers/DialsAndButtons/pages/SystemConfigTabPages.h; sourceTree = SOURCE_ROOT; };
+		4B6061E2662DD31DD344DA07 /* MCPServer.cpp */ /* MCPServer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPServer.cpp; path = ../../Source/Network/MCP/MCPServer.cpp; sourceTree = SOURCE_ROOT; };
 		4B817C847A7AC2CDC244E66C /* GpuInputBufferAlgorithm.h */ /* GpuInputBufferAlgorithm.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = GpuInputBufferAlgorithm.h; path = ../../Source/DSP/GpuInputBufferAlgorithm.h; sourceTree = SOURCE_ROOT; };
 		52706EBD8973DFD0F1366FCF /* OSCReceiverWithSenderIP.cpp */ /* OSCReceiverWithSenderIP.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = OSCReceiverWithSenderIP.cpp; path = ../../Source/Network/OSCReceiverWithSenderIP.cpp; sourceTree = SOURCE_ROOT; };
 		527DE6F349B1DF165D7D2BF1 /* ClustersTabPages.h */ /* ClustersTabPages.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ClustersTabPages.h; path = ../../Source/Controllers/DialsAndButtons/pages/ClustersTabPages.h; sourceTree = SOURCE_ROOT; };
@@ -149,6 +159,7 @@
 		5D1984E28D7BAC5B5AF934B5 /* juce_audio_processors */ /* juce_audio_processors */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_audio_processors; path = ../../ThirdParty/JUCE/modules/juce_audio_processors; sourceTree = SOURCE_ROOT; };
 		5DCF6592130A5D09FC39EB71 /* AudioInterfaceWindow.cpp */ /* AudioInterfaceWindow.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AudioInterfaceWindow.cpp; path = ../../Source/gui/AudioInterfaceWindow.cpp; sourceTree = SOURCE_ROOT; };
 		601124A6913C54CD5AC91469 /* OSCMessageRouter.h */ /* OSCMessageRouter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OSCMessageRouter.h; path = ../../Source/Network/OSCMessageRouter.h; sourceTree = SOURCE_ROOT; };
+		61BF71BE364DC6BB92C6264F /* MCPDispatcher.h */ /* MCPDispatcher.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MCPDispatcher.h; path = ../../Source/Network/MCP/MCPDispatcher.h; sourceTree = SOURCE_ROOT; };
 		63B19585FA472659C2B6305D /* TestSignalGenerator.cpp */ /* TestSignalGenerator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = TestSignalGenerator.cpp; path = ../../Source/DSP/TestSignalGenerator.cpp; sourceTree = SOURCE_ROOT; };
 		6527D777383138607556F806 /* LocalizationManager.h */ /* LocalizationManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = LocalizationManager.h; path = ../../Source/Localization/LocalizationManager.h; sourceTree = SOURCE_ROOT; };
 		66551D52C0A4830C24A57285 /* juce_osc */ /* juce_osc */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_osc; path = ../../ThirdParty/JUCE/modules/juce_osc; sourceTree = SOURCE_ROOT; };
@@ -158,6 +169,7 @@
 		6E10D0FC4C9B6E6575A85044 /* include_juce_dsp.mm */ /* include_juce_dsp.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_dsp.mm; path = ../../JuceLibraryCode/include_juce_dsp.mm; sourceTree = SOURCE_ROOT; };
 		6E14A43E101144F27863CFA1 /* XencelabsDevice.h */ /* XencelabsDevice.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = XencelabsDevice.h; path = ../../Source/Controllers/DialsAndButtons/XencelabsDevice.h; sourceTree = SOURCE_ROOT; };
 		6EDCA6152CCF68F79BC3E7F4 /* OSCLogger.cpp */ /* OSCLogger.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = OSCLogger.cpp; path = ../../Source/Network/OSCLogger.cpp; sourceTree = SOURCE_ROOT; };
+		6F21025606613B42ABF1D66A /* MCPDispatcher.cpp */ /* MCPDispatcher.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPDispatcher.cpp; path = ../../Source/Network/MCP/MCPDispatcher.cpp; sourceTree = SOURCE_ROOT; };
 		730F1505560F6C73AE07E7F8 /* TTSManager.h */ /* TTSManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TTSManager.h; path = ../../Source/Accessibility/TTSManager.h; sourceTree = SOURCE_ROOT; };
 		731872EE6D0947D8D5946510 /* juce_audio_devices */ /* juce_audio_devices */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_audio_devices; path = ../../ThirdParty/JUCE/modules/juce_audio_devices; sourceTree = SOURCE_ROOT; };
 		7487EFE20AF4642E34D9A9BB /* OSCMessageRouter.cpp */ /* OSCMessageRouter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = OSCMessageRouter.cpp; path = ../../Source/Network/OSCMessageRouter.cpp; sourceTree = SOURCE_ROOT; };
@@ -173,6 +185,7 @@
 		7C12942DF45AB151CC4D8F49 /* juce_audio_utils */ /* juce_audio_utils */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_audio_utils; path = ../../ThirdParty/JUCE/modules/juce_audio_utils; sourceTree = SOURCE_ROOT; };
 		7CC2840AD0983A4EADE1F6C9 /* RTTrPDecoder.cpp */ /* RTTrPDecoder.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = RTTrPDecoder.cpp; path = ../../Source/Network/RTTrPDecoder.cpp; sourceTree = SOURCE_ROOT; };
 		7E32DBC79453A291C75AE2B7 /* OSCLogger.h */ /* OSCLogger.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OSCLogger.h; path = ../../Source/Network/OSCLogger.h; sourceTree = SOURCE_ROOT; };
+		7E602E26466DEF84F54CDE94 /* MCPToolRegistry.cpp */ /* MCPToolRegistry.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPToolRegistry.cpp; path = ../../Source/Network/MCP/MCPToolRegistry.cpp; sourceTree = SOURCE_ROOT; };
 		7E68237EC4C420693FC98A70 /* InputSpeedLimiter.h */ /* InputSpeedLimiter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = InputSpeedLimiter.h; path = ../../Source/DSP/InputSpeedLimiter.h; sourceTree = SOURCE_ROOT; };
 		7F18FF6B90FC3250D411E692 /* NetworkLogWindow.cpp */ /* NetworkLogWindow.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = NetworkLogWindow.cpp; path = ../../Source/gui/NetworkLogWindow.cpp; sourceTree = SOURCE_ROOT; };
 		804EEBC4D9F5B58A736D9D88 /* TrackingOSCReceiver.h */ /* TrackingOSCReceiver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TrackingOSCReceiver.h; path = ../../Source/Network/TrackingOSCReceiver.h; sourceTree = SOURCE_ROOT; };
@@ -208,11 +221,13 @@
 		A6107472373FC76F35C046C0 /* MainComponent.cpp */ /* MainComponent.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MainComponent.cpp; path = ../../Source/MainComponent.cpp; sourceTree = SOURCE_ROOT; };
 		A70FA3BA6E2E60FAE3C0A5E4 /* include_juce_simpleweb2.cpp */ /* include_juce_simpleweb2.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_simpleweb2.cpp; path = ../../JuceLibraryCode/include_juce_simpleweb2.cpp; sourceTree = SOURCE_ROOT; };
 		A859E542011BA2B197343E8B /* OSCTCPReceiver.h */ /* OSCTCPReceiver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OSCTCPReceiver.h; path = ../../Source/Network/OSCTCPReceiver.h; sourceTree = SOURCE_ROOT; };
+		A93789C1D857587E49D12A34 /* MCPLogger.cpp */ /* MCPLogger.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPLogger.cpp; path = ../../Source/Network/MCP/MCPLogger.cpp; sourceTree = SOURCE_ROOT; };
 		A96E05E0B144008AE500DBAE /* WFSParameterDefaults.h */ /* WFSParameterDefaults.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = WFSParameterDefaults.h; path = ../../Source/Parameters/WFSParameterDefaults.h; sourceTree = SOURCE_ROOT; };
 		A9937509256CBFA14535037B /* CoreMIDI.framework */ /* CoreMIDI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMIDI.framework; path = System/Library/Frameworks/CoreMIDI.framework; sourceTree = SDKROOT; };
 		AA3D6463B920C9F5617110A3 /* ReverbTab.h */ /* ReverbTab.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ReverbTab.h; path = ../../Source/gui/ReverbTab.h; sourceTree = SOURCE_ROOT; };
 		AB4402106B853821DF7A6ADB /* QuickKeysPage.h */ /* QuickKeysPage.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = QuickKeysPage.h; path = ../../Source/Controllers/DialsAndButtons/QuickKeysPage.h; sourceTree = SOURCE_ROOT; };
 		AC103C23CF134FD2779DDD03 /* CoreAudioKit.framework */ /* CoreAudioKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudioKit.framework; path = System/Library/Frameworks/CoreAudioKit.framework; sourceTree = SDKROOT; };
+		AD40E648FCB22B8740DDF334 /* MCPLogger.h */ /* MCPLogger.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MCPLogger.h; path = ../../Source/Network/MCP/MCPLogger.h; sourceTree = SOURCE_ROOT; };
 		AE1207ECC59B747C80031900 /* MainComponent.h */ /* MainComponent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MainComponent.h; path = ../../Source/MainComponent.h; sourceTree = SOURCE_ROOT; };
 		B2E5BB6DF397E59F6073DDFA /* WFSCalculationEngine.cpp */ /* WFSCalculationEngine.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = WFSCalculationEngine.cpp; path = ../../Source/DSP/WFSCalculationEngine.cpp; sourceTree = SOURCE_ROOT; };
 		B47B20DA63B9FB03BA3BB715 /* hidapi.h */ /* hidapi.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = hidapi.h; path = ../../ThirdParty/hidapi/hidapi/hidapi.h; sourceTree = SOURCE_ROOT; };
@@ -352,6 +367,7 @@
 				CDBED1B9FA3F02E13A4435CE,
 				9F2BD03DF373651E39BEDFE5,
 				27C38CBA50A052A050BD5462,
+				5310E8DFC7DB1AF43F837B61,
 			);
 			name = Network;
 			sourceTree = "<group>";
@@ -418,6 +434,23 @@
 				08C9CE75099E36954892174F,
 			);
 			name = Controllers;
+			sourceTree = "<group>";
+		};
+		5310E8DFC7DB1AF43F837B61 /* MCP */ = {
+			isa = PBXGroup;
+			children = (
+				AD40E648FCB22B8740DDF334,
+				A93789C1D857587E49D12A34,
+				1A1140E03F50B30810138601,
+				7E602E26466DEF84F54CDE94,
+				61BF71BE364DC6BB92C6264F,
+				6F21025606613B42ABF1D66A,
+				30AAB0767A758FCB2A0C53AC,
+				364F0B69B5019A2A933E30AF,
+				3490B82F1263703CAD0AD65B,
+				4B6061E2662DD31DD344DA07,
+			);
+			name = MCP;
 			sourceTree = "<group>";
 		};
 		59D1E1365CD36E365C3C28C5 /* Resources */ = {
@@ -779,6 +812,11 @@
 				ED8922B2E38DC02657CAD811,
 				FDC229349202F898CBA4ACF9,
 				0147BD859A2D7D55D6755381,
+				E8BC3989FD19A883018F7871,
+				A635BD6A3E95AC90F1E59D1D,
+				40BAD216FC425C9199688DAB,
+				5E8F096DF4AFABE40A110930,
+				597D4525120E3BF0EECAC647,
 				D7BE7762C078D5CE3CFD2161,
 				8730DF5A397C198A3FB13D60,
 				D1FB0F3B758B9AFC67248620,

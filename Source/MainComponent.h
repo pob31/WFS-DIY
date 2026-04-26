@@ -38,6 +38,7 @@
 #include "gui/WfsLookAndFeel.h"
 #include "gui/GettingStartedWizard.h"
 #include "Network/OSCManager.h"
+#include "Network/MCP/MCPServer.h"
 #include "Controllers/DialsAndButtons/StreamDeckManager.h"
 #include "Controllers/DialsAndButtons/QuickKeysManager.h"
 #include "Controllers/DialsAndButtons/pages/PatchWindowPages.h"
@@ -225,6 +226,11 @@ private:
 
     // Network OSC management
     std::unique_ptr<WFSNetwork::OSCManager> oscManager;
+
+    // MCP server (AI control surface — Phase 1 Block 3 skeleton).
+    // Started after the audio engine + parameter system are ready; the
+    // NetworkTab UI surfaces start/stop/port in Phase 1 Block 6.
+    std::unique_ptr<WFSNetwork::MCPServer> mcpServer;
 
     // Stream Deck+ physical controller
     std::unique_ptr<StreamDeckManager> streamDeckManager;

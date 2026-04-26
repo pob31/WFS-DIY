@@ -736,6 +736,13 @@ MainComponent::MainComponent()
     oscManager = std::make_unique<WFSNetwork::OSCManager>(parameters.getValueTreeState());
     oscManager->setDirtyTracker(&parameters.getDirtyTracker());
 
+    // Initialize MCP server (AI control surface). Block 3 skeleton: just enough
+    // listener to verify HTTP transport end-to-end. NetworkTab UI / start-stop
+    // toggle land in Block 6.
+    mcpServer = std::make_unique<WFSNetwork::MCPServer>(parameters.getValueTreeState(),
+                                                        oscManager->getLogger());
+    mcpServer->start (WFSNetwork::MCPServer::kDefaultPort, /*loopbackOnly*/ true);
+
     // Initialize Stream Deck+ physical controller
     streamDeckManager = std::make_unique<StreamDeckManager>();
 

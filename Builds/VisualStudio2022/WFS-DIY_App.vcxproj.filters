@@ -20,6 +20,9 @@
     <Filter Include="WFS-DIY\Source\Localization">
       <UniqueIdentifier>{22FC1E9C-400F-2066-80C3-1D14B0E53721}</UniqueIdentifier>
     </Filter>
+    <Filter Include="WFS-DIY\Source\Network\MCP">
+      <UniqueIdentifier>{59874F77-320F-76BD-B61C-9A7637CA0175}</UniqueIdentifier>
+    </Filter>
     <Filter Include="WFS-DIY\Source\Network">
       <UniqueIdentifier>{F0025758-791F-87C4-6ABD-F1E1A184504B}</UniqueIdentifier>
     </Filter>
@@ -993,6 +996,21 @@
     </ClCompile>
     <ClCompile Include="..\..\Source\Network\TrackingMQTTReceiver.cpp">
       <Filter>WFS-DIY\Source\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPLogger.cpp">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPToolRegistry.cpp">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPDispatcher.cpp">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPTransport.cpp">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPServer.cpp">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClCompile>
     <ClCompile Include="..\..\ThirdParty\hidapi\HidApiPlatform.c">
       <Filter>WFS-DIY\Source\hidapi</Filter>
@@ -4349,6 +4367,21 @@
     </ClInclude>
     <ClInclude Include="..\..\Source\Network\TrackingMQTTReceiver.h">
       <Filter>WFS-DIY\Source\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPLogger.h">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPToolRegistry.h">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPDispatcher.h">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPTransport.h">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPServer.h">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Controllers\PositionControl\ControllerEvent.h">
       <Filter>WFS-DIY\Source\Controllers\PositionControl</Filter>

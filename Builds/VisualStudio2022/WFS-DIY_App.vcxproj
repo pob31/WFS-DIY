@@ -191,6 +191,11 @@
     <ClCompile Include="..\..\Source\Network\RTTrPDecoder.cpp"/>
     <ClCompile Include="..\..\Source\Network\TrackingRTTrPReceiver.cpp"/>
     <ClCompile Include="..\..\Source\Network\TrackingMQTTReceiver.cpp"/>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPLogger.cpp"/>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPToolRegistry.cpp"/>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPDispatcher.cpp"/>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPTransport.cpp"/>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPServer.cpp"/>
     <ClCompile Include="..\..\ThirdParty\hidapi\HidApiPlatform.c"/>
     <ClCompile Include="..\..\Source\Main.cpp"/>
     <ClCompile Include="..\..\Source\MainComponent.cpp"/>
@@ -3252,6 +3257,11 @@
     <ClInclude Include="..\..\Source\Network\RTTrPDecoder.h"/>
     <ClInclude Include="..\..\Source\Network\TrackingRTTrPReceiver.h"/>
     <ClInclude Include="..\..\Source\Network\TrackingMQTTReceiver.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPLogger.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPToolRegistry.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPDispatcher.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPTransport.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPServer.h"/>
     <ClInclude Include="..\..\Source\Controllers\PositionControl\ControllerEvent.h"/>
     <ClInclude Include="..\..\Source\Controllers\PositionControl\ControllerDevice.h"/>
     <ClInclude Include="..\..\Source\Controllers\PositionControl\SpaceMouseDevice.h"/>

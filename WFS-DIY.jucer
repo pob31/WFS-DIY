@@ -143,6 +143,28 @@
               file="Source/Network/TrackingMQTTReceiver.h"/>
         <FILE id="netMqttCpp" name="TrackingMQTTReceiver.cpp" compile="1" resource="0"
               file="Source/Network/TrackingMQTTReceiver.cpp"/>
+        <GROUP id="{MCPGROUP}" name="MCP">
+          <FILE id="mcpLogH" name="MCPLogger.h" compile="0" resource="0"
+                file="Source/Network/MCP/MCPLogger.h"/>
+          <FILE id="mcpLogCpp" name="MCPLogger.cpp" compile="1" resource="0"
+                file="Source/Network/MCP/MCPLogger.cpp"/>
+          <FILE id="mcpRegH" name="MCPToolRegistry.h" compile="0" resource="0"
+                file="Source/Network/MCP/MCPToolRegistry.h"/>
+          <FILE id="mcpRegCpp" name="MCPToolRegistry.cpp" compile="1" resource="0"
+                file="Source/Network/MCP/MCPToolRegistry.cpp"/>
+          <FILE id="mcpDispH" name="MCPDispatcher.h" compile="0" resource="0"
+                file="Source/Network/MCP/MCPDispatcher.h"/>
+          <FILE id="mcpDispCpp" name="MCPDispatcher.cpp" compile="1" resource="0"
+                file="Source/Network/MCP/MCPDispatcher.cpp"/>
+          <FILE id="mcpTransH" name="MCPTransport.h" compile="0" resource="0"
+                file="Source/Network/MCP/MCPTransport.h"/>
+          <FILE id="mcpTransCpp" name="MCPTransport.cpp" compile="1" resource="0"
+                file="Source/Network/MCP/MCPTransport.cpp"/>
+          <FILE id="mcpSrvH" name="MCPServer.h" compile="0" resource="0"
+                file="Source/Network/MCP/MCPServer.h"/>
+          <FILE id="mcpSrvCpp" name="MCPServer.cpp" compile="1" resource="0"
+                file="Source/Network/MCP/MCPServer.cpp"/>
+        </GROUP>
       </GROUP>
       <GROUP id="{CONTROLLERSGROUP}" name="Controllers">
         <GROUP id="{POSCTRLGROUP}" name="PositionControl">
