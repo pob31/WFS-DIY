@@ -20,6 +20,9 @@
     <Filter Include="WFS-DIY\Source\Localization">
       <UniqueIdentifier>{22FC1E9C-400F-2066-80C3-1D14B0E53721}</UniqueIdentifier>
     </Filter>
+    <Filter Include="WFS-DIY\Source\Network\MCP\tools">
+      <UniqueIdentifier>{DB810070-EFF6-5861-5CE1-F6076CBBAF40}</UniqueIdentifier>
+    </Filter>
     <Filter Include="WFS-DIY\Source\Network\MCP">
       <UniqueIdentifier>{59874F77-320F-76BD-B61C-9A7637CA0175}</UniqueIdentifier>
     </Filter>
@@ -4388,6 +4391,15 @@
     </ClInclude>
     <ClInclude Include="..\..\Source\Network\MCP\MCPServer.h">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\SessionTools.h">
+      <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\InputTools.h">
+      <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\SnapshotTools.h">
+      <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Controllers\PositionControl\ControllerEvent.h">
       <Filter>WFS-DIY\Source\Controllers\PositionControl</Filter>

@@ -8,6 +8,7 @@
 #include "MCPTransport.h"
 
 class WFSValueTreeState;
+class WFSFileManager;
 
 namespace WFSNetwork
 {
@@ -32,7 +33,9 @@ class MCPServer
 public:
     static constexpr int kDefaultPort = 7400;
 
-    MCPServer (WFSValueTreeState& state, OSCLogger& networkLogger);
+    MCPServer (WFSValueTreeState& state,
+               WFSFileManager& fileManager,
+               OSCLogger& networkLogger);
     ~MCPServer();
 
     /** Start listening on the given port. Returns true if the listener
@@ -57,6 +60,7 @@ public:
 
 private:
     WFSValueTreeState& valueTreeState;
+    WFSFileManager& fileManager;
     std::unique_ptr<MCPLogger> mcpLogger;
     std::unique_ptr<MCPToolRegistry> registry;
     std::unique_ptr<MCPChangeRecordBuffer> changeRecords;

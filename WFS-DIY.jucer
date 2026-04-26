@@ -168,6 +168,14 @@
                 file="Source/Network/MCP/MCPServer.h"/>
           <FILE id="mcpSrvCpp" name="MCPServer.cpp" compile="1" resource="0"
                 file="Source/Network/MCP/MCPServer.cpp"/>
+          <GROUP id="{MCPTOOLSGROUP}" name="tools">
+            <FILE id="mcpToolsSession" name="SessionTools.h" compile="0" resource="0"
+                  file="Source/Network/MCP/tools/SessionTools.h"/>
+            <FILE id="mcpToolsInput" name="InputTools.h" compile="0" resource="0"
+                  file="Source/Network/MCP/tools/InputTools.h"/>
+            <FILE id="mcpToolsSnap" name="SnapshotTools.h" compile="0" resource="0"
+                  file="Source/Network/MCP/tools/SnapshotTools.h"/>
+          </GROUP>
         </GROUP>
       </GROUP>
       <GROUP id="{CONTROLLERSGROUP}" name="Controllers">

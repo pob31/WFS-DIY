@@ -736,10 +736,11 @@ MainComponent::MainComponent()
     oscManager = std::make_unique<WFSNetwork::OSCManager>(parameters.getValueTreeState());
     oscManager->setDirtyTracker(&parameters.getDirtyTracker());
 
-    // Initialize MCP server (AI control surface). Block 3 skeleton: just enough
-    // listener to verify HTTP transport end-to-end. NetworkTab UI / start-stop
+    // Initialize MCP server (AI control surface). Phase 1 Block 5: registers
+    // the five hand-written tools on construction. NetworkTab UI / start-stop
     // toggle land in Block 6.
     mcpServer = std::make_unique<WFSNetwork::MCPServer>(parameters.getValueTreeState(),
+                                                        parameters.getFileManager(),
                                                         oscManager->getLogger());
     mcpServer->start (WFSNetwork::MCPServer::kDefaultPort, /*loopbackOnly*/ true);
 
