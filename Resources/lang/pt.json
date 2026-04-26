@@ -544,7 +544,8 @@
       "transport": "Trans",
       "protocol": "Protocolo",
       "address": "Endereço",
-      "arguments": "Argumentos"
+      "arguments": "Argumentos",
+      "origin": "Origem"
     },
     "status": {
       "rejected": "REJEITADO"

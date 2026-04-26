@@ -544,7 +544,8 @@
       "transport": "传输",
       "protocol": "协议",
       "address": "地址",
-      "arguments": "参数"
+      "arguments": "参数",
+      "origin": "来源"
     },
     "status": {
       "rejected": "已拒绝"

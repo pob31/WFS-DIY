@@ -544,7 +544,8 @@
       "transport": "Trasp",
       "protocol": "Protocollo",
       "address": "Indirizzo",
-      "arguments": "Argomenti"
+      "arguments": "Argomenti",
+      "origin": "Origine"
     },
     "status": {
       "rejected": "RIFIUTATO"

@@ -544,7 +544,8 @@
       "transport": "Trans.",
       "protocol": "Protokoll",
       "address": "Adresse",
-      "arguments": "Argumente"
+      "arguments": "Argumente",
+      "origin": "Quelle"
     },
     "status": {
       "rejected": "ABGELEHNT"

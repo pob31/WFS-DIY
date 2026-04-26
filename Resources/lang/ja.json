@@ -508,7 +508,8 @@
       "transport": "転送",
       "protocol": "プロトコル",
       "address": "アドレス",
-      "arguments": "引数"
+      "arguments": "引数",
+      "origin": "発信元"
     },
     "status": {
       "rejected": "拒否"

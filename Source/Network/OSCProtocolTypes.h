@@ -20,7 +20,25 @@ enum class Protocol
     PSN = 5,        // PosiStageNet tracking protocol
     RTTrP = 6,      // RTTrP tracking protocol
     QLab = 7,       // QLab cue writing protocol
-    MQTT = 8        // MQTT tracking protocol
+    MQTT = 8,       // MQTT tracking protocol
+    MCP = 9         // Model Context Protocol (AI client control surface)
+};
+
+/** Origin tag for parameter changes — identifies which actor caused a write.
+    Set via OriginTagScope (RAII guard in WFSValueTreeState) before issuing
+    a write; the parameter system's change-notification dispatch reads it
+    and propagates it to listeners (Network Log, AI undo stack, etc.). */
+enum class OriginTag
+{
+    None = 0,        // Default — no origin attributed (e.g. internal initialization)
+    UI,              // User-driven via JUCE GUI controls
+    MCP,             // AI client via MCP server
+    OSC,             // External OSC client (includes Remote-protocol handlers)
+    Tracking,        // Position tracking integration loop
+    Snapshot,        // Snapshot recall / Reload Configuration
+    LFO,             // LFO modulation writes
+    Move,            // AutomOtion programmed movement
+    Automation       // DAW host automation via plugin layer
 };
 
 /** Connection mode (transport layer) */
@@ -209,6 +227,7 @@ struct LogEntry
     juce::String arguments;      // Formatted arguments
     Protocol protocol = Protocol::OSC;
     ConnectionMode transport = ConnectionMode::UDP;  // UDP or TCP
+    OriginTag origin = OriginTag::None;  // Actor that caused the write (if known)
     bool isRejected = false;     // True if message was filtered/rejected
     juce::String rejectReason;   // Why message was rejected (if applicable)
 
@@ -233,6 +252,7 @@ struct LogEntry
             case Protocol::RTTrP:    return "RTTrP";
             case Protocol::QLab:     return "QLab";
             case Protocol::MQTT:     return "MQTT";
+            case Protocol::MCP:      return "MCP";
             default:                 return "Unknown";
         }
     }
@@ -241,6 +261,25 @@ struct LogEntry
     juce::String getTransportString() const
     {
         return transport == ConnectionMode::TCP ? "TCP" : "UDP";
+    }
+
+    /** Get origin tag as display string. Returns empty string for None
+        so untagged entries render as a blank cell. */
+    juce::String getOriginString() const
+    {
+        switch (origin)
+        {
+            case OriginTag::None:       return "";
+            case OriginTag::UI:         return "UI";
+            case OriginTag::MCP:        return "MCP";
+            case OriginTag::OSC:        return "OSC";
+            case OriginTag::Tracking:   return "Tracking";
+            case OriginTag::Snapshot:   return "Snapshot";
+            case OriginTag::LFO:        return "LFO";
+            case OriginTag::Move:       return "Move";
+            case OriginTag::Automation: return "Automation";
+            default:                    return "";
+        }
     }
 };
 

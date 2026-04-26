@@ -508,7 +508,8 @@
       "transport": "전송",
       "protocol": "프로토콜",
       "address": "주소",
-      "arguments": "인수"
+      "arguments": "인수",
+      "origin": "출처"
     },
     "status": {
       "rejected": "거부됨"
