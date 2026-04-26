@@ -172,6 +172,10 @@
                 file="Source/Network/MCP/MCPGeneratedToolLoader.h"/>
           <FILE id="mcpGenLoadCpp" name="MCPGeneratedToolLoader.cpp" compile="1" resource="0"
                 file="Source/Network/MCP/MCPGeneratedToolLoader.cpp"/>
+          <FILE id="mcpResRegH" name="MCPResourceRegistry.h" compile="0" resource="0"
+                file="Source/Network/MCP/MCPResourceRegistry.h"/>
+          <FILE id="mcpResRegCpp" name="MCPResourceRegistry.cpp" compile="1" resource="0"
+                file="Source/Network/MCP/MCPResourceRegistry.cpp"/>
           <GROUP id="{MCPTOOLSGROUP}" name="tools">
             <FILE id="mcpToolsSession" name="SessionTools.h" compile="0" resource="0"
                   file="Source/Network/MCP/tools/SessionTools.h"/>

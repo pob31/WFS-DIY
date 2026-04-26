@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-26T11:03:36Z",
+  "generated_at": "2026-04-26T11:23:22Z",
   "ignored_parameters": [
     {
       "csv_file": "WFS-UI_audioPatch.csv",
@@ -167,7 +167,7 @@
       "variable": "reverbSelected"
     }
   ],
-  "input_hash": "10f03c39f5360061caa1059db85115a28c6f4f86b3dae7a99307e5f3f5e20213",
+  "input_hash": "20dd39e13c9f4bed9cb4c836c42ca56acf613a0fd666335d7cddabc139f6505c",
   "nudge_tools": [
     {
       "csv_section": "Attenuation",

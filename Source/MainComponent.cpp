@@ -770,10 +770,41 @@ MainComponent::MainComponent()
         }
     }
 
+    // Phase 3 — knowledge-resource directory. Same fallback chain as
+    // generated_tools.json but pointing at MCP/resources/.
+    juce::File knowledgeResourcesDir;
+    {
+        auto exeDir = juce::File::getSpecialLocation(juce::File::currentExecutableFile).getParentDirectory();
+        knowledgeResourcesDir = exeDir.getChildFile("MCP/resources");
+        if (! knowledgeResourcesDir.isDirectory())
+        {
+            // Windows VS2022 dev: project root is 5 levels up from exe
+            auto projectRoot = exeDir.getParentDirectory()  // x64/Debug
+                                     .getParentDirectory()  // x64
+                                     .getParentDirectory()  // VisualStudio2022
+                                     .getParentDirectory()  // Builds
+                                     .getParentDirectory(); // Project root
+            knowledgeResourcesDir = projectRoot.getChildFile("Documentation/MCP/resources");
+        }
+        if (! knowledgeResourcesDir.isDirectory())
+        {
+            // macOS dev: project root is 7 levels up from exe in Contents/MacOS
+            auto projectRoot = exeDir.getParentDirectory()  // Contents
+                                     .getParentDirectory()  // .app
+                                     .getParentDirectory()  // Debug
+                                     .getParentDirectory()  // build
+                                     .getParentDirectory()  // MacOSX
+                                     .getParentDirectory()  // Builds
+                                     .getParentDirectory(); // Project root
+            knowledgeResourcesDir = projectRoot.getChildFile("Documentation/MCP/resources");
+        }
+    }
+
     mcpServer = std::make_unique<WFSNetwork::MCPServer>(parameters.getValueTreeState(),
                                                         parameters.getFileManager(),
                                                         oscManager->getLogger(),
-                                                        generatedToolsJson);
+                                                        generatedToolsJson,
+                                                        knowledgeResourcesDir);
     mcpServer->start (WFSNetwork::MCPServer::kDefaultPort, /*loopbackOnly*/ true);
 
     // Initialize Stream Deck+ physical controller

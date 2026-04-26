@@ -79,6 +79,7 @@
 		E8BC3989FD19A883018F7871 /* MCPLogger.cpp */ = {isa = PBXBuildFile; fileRef = A93789C1D857587E49D12A34; };
 		EB33DD2DA1BA1C4A844E5CC5 /* WindowUtils.mm */ = {isa = PBXBuildFile; fileRef = 8E86F24313EE0226A744A907; };
 		ED8922B2E38DC02657CAD811 /* RTTrPDecoder.cpp */ = {isa = PBXBuildFile; fileRef = 7CC2840AD0983A4EADE1F6C9; };
+		EE735A95CBAA3D9711DD5363 /* MCPResourceRegistry.cpp */ = {isa = PBXBuildFile; fileRef = 3D6EAE96E42BB58B8349D561; };
 		F3E9874CAF23860578708A33 /* include_juce_audio_basics.mm */ = {isa = PBXBuildFile; fileRef = EF8F5550038C576E96ECCBC3; };
 		F43ABAF1DAF97DA45A1AC7C0 /* NetworkLogWindow.cpp */ = {isa = PBXBuildFile; fileRef = 7F18FF6B90FC3250D411E692; };
 		F4AA488127D811825687FFDC /* include_juce_gui_basics.mm */ = {isa = PBXBuildFile; fileRef = 300E93A1943132FBD96DBD77; };
@@ -139,6 +140,7 @@
 		397E48E69531DACFDCC4C03E /* juce_events */ /* juce_events */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_events; path = ../../ThirdParty/JUCE/modules/juce_events; sourceTree = SOURCE_ROOT; };
 		3B762799D2662B552253B03C /* juce_core */ /* juce_core */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_core; path = ../../ThirdParty/JUCE/modules/juce_core; sourceTree = SOURCE_ROOT; };
 		3BEDA7AE9F163D8CB7DBB3D0 /* MCPChangeRecords.h */ /* MCPChangeRecords.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MCPChangeRecords.h; path = ../../Source/Network/MCP/MCPChangeRecords.h; sourceTree = SOURCE_ROOT; };
+		3D6EAE96E42BB58B8349D561 /* MCPResourceRegistry.cpp */ /* MCPResourceRegistry.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPResourceRegistry.cpp; path = ../../Source/Network/MCP/MCPResourceRegistry.cpp; sourceTree = SOURCE_ROOT; };
 		3EFC5B41D0460E19582925AE /* juce_audio_basics */ /* juce_audio_basics */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_audio_basics; path = ../../ThirdParty/JUCE/modules/juce_audio_basics; sourceTree = SOURCE_ROOT; };
 		3FF29F71D97D69B1B619CBDC /* OSCConnection.h */ /* OSCConnection.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OSCConnection.h; path = ../../Source/Network/OSCConnection.h; sourceTree = SOURCE_ROOT; };
 		400EA6B8131021F017321A16 /* ArrayGeometryCalculator.cpp */ /* ArrayGeometryCalculator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = ArrayGeometryCalculator.cpp; path = ../../Source/Helpers/ArrayGeometryCalculator.cpp; sourceTree = SOURCE_ROOT; };
@@ -170,6 +172,7 @@
 		6527D777383138607556F806 /* LocalizationManager.h */ /* LocalizationManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = LocalizationManager.h; path = ../../Source/Localization/LocalizationManager.h; sourceTree = SOURCE_ROOT; };
 		66551D52C0A4830C24A57285 /* juce_osc */ /* juce_osc */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_osc; path = ../../ThirdParty/JUCE/modules/juce_osc; sourceTree = SOURCE_ROOT; };
 		69C917578578859B1CE878B8 /* GradientMapEditor.h */ /* GradientMapEditor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = GradientMapEditor.h; path = ../../Source/GradientMap/GradientMapEditor.h; sourceTree = SOURCE_ROOT; };
+		6B1B3E4A5800147B81C04E4D /* MCPResourceRegistry.h */ /* MCPResourceRegistry.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MCPResourceRegistry.h; path = ../../Source/Network/MCP/MCPResourceRegistry.h; sourceTree = SOURCE_ROOT; };
 		6BABB0D22DF0B0DEF97EC39A /* Foundation.framework */ /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		6C77960FDA0FEB61B0F2A30A /* include_juce_opengl.mm */ /* include_juce_opengl.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_opengl.mm; path = ../../JuceLibraryCode/include_juce_opengl.mm; sourceTree = SOURCE_ROOT; };
 		6E10D0FC4C9B6E6575A85044 /* include_juce_dsp.mm */ /* include_juce_dsp.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_dsp.mm; path = ../../JuceLibraryCode/include_juce_dsp.mm; sourceTree = SOURCE_ROOT; };
@@ -476,6 +479,8 @@
 				4B6061E2662DD31DD344DA07,
 				C4A579CA77213F74CE3E6FD2,
 				4C334641BCD17BEF2B52C9EF,
+				6B1B3E4A5800147B81C04E4D,
+				3D6EAE96E42BB58B8349D561,
 				39582B30061C39A6ED7B2849,
 			);
 			name = MCP;
@@ -847,6 +852,7 @@
 				5E8F096DF4AFABE40A110930,
 				597D4525120E3BF0EECAC647,
 				AAC418A6E5F85C5C87EC1EB7,
+				EE735A95CBAA3D9711DD5363,
 				D7BE7762C078D5CE3CFD2161,
 				8730DF5A397C198A3FB13D60,
 				D1FB0F3B758B9AFC67248620,

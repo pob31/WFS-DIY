@@ -23,8 +23,9 @@ namespace
 MCPDispatcher::MCPDispatcher (WFSValueTreeState& s,
                               MCPToolRegistry& r,
                               MCPChangeRecordBuffer& buf,
+                              MCPResourceRegistry& res,
                               MCPLogger& l)
-    : state (s), registry (r), ringBuffer (buf), mcpLogger (l)
+    : state (s), registry (r), ringBuffer (buf), resources (res), mcpLogger (l)
 {
 }
 
@@ -55,10 +56,12 @@ juce::String MCPDispatcher::handleRequest (const juce::String& body,
 
     juce::String response;
 
-    if      (method == "initialize")               response = handleInitialize (id, params);
+    if      (method == "initialize")                response = handleInitialize (id, params);
     else if (method == "notifications/initialized") response = handleInitialized();
-    else if (method == "tools/list")               response = handleToolsList (id);
-    else if (method == "tools/call")               response = handleToolsCall (id, params);
+    else if (method == "tools/list")                response = handleToolsList (id);
+    else if (method == "tools/call")                response = handleToolsCall (id, params);
+    else if (method == "resources/list")            response = handleResourcesList (id);
+    else if (method == "resources/read")            response = handleResourcesRead (id, params);
     else
     {
         response = makeJsonRpcError (id, kMethodNotFound,
@@ -87,8 +90,13 @@ juce::String MCPDispatcher::handleInitialize (const juce::var& id, const juce::v
     auto toolsCap = std::make_unique<juce::DynamicObject>();
     toolsCap->setProperty ("listChanged", false);
 
+    auto resourcesCap = std::make_unique<juce::DynamicObject>();
+    resourcesCap->setProperty ("subscribe",   false);  // No live subscription in v1
+    resourcesCap->setProperty ("listChanged", false);  // Static catalog bundled with app
+
     auto capabilities = std::make_unique<juce::DynamicObject>();
-    capabilities->setProperty ("tools", juce::var (toolsCap.release()));
+    capabilities->setProperty ("tools",     juce::var (toolsCap.release()));
+    capabilities->setProperty ("resources", juce::var (resourcesCap.release()));
 
     auto result = std::make_unique<juce::DynamicObject>();
     result->setProperty ("protocolVersion", juce::String (kProtocolVersion));
@@ -205,6 +213,66 @@ juce::String MCPDispatcher::handleToolsCall (const juce::var& id, const juce::va
     callResult->setProperty ("isError", false);
 
     return makeJsonRpcResult (id, juce::var (callResult.release()));
+}
+
+//==============================================================================
+// resources/list
+//==============================================================================
+
+juce::String MCPDispatcher::handleResourcesList (const juce::var& id)
+{
+    juce::Array<juce::var> arr;
+    for (const auto& entry : resources.all())
+    {
+        auto item = std::make_unique<juce::DynamicObject>();
+        item->setProperty ("uri",         entry.uri);
+        item->setProperty ("name",        entry.name);
+        item->setProperty ("description", entry.description);
+        item->setProperty ("mimeType",    entry.mimeType);
+        arr.add (juce::var (item.release()));
+    }
+
+    auto result = std::make_unique<juce::DynamicObject>();
+    result->setProperty ("resources", juce::var (arr));
+    return makeJsonRpcResult (id, juce::var (result.release()));
+}
+
+//==============================================================================
+// resources/read
+//==============================================================================
+
+juce::String MCPDispatcher::handleResourcesRead (const juce::var& id, const juce::var& params)
+{
+    auto* paramsObj = asObject (params);
+    if (paramsObj == nullptr)
+        return makeJsonRpcError (id, kInvalidParams, "resources/read requires params object");
+
+    const juce::String uri = paramsObj->getProperty ("uri").toString();
+    if (uri.isEmpty())
+        return makeJsonRpcError (id, kInvalidParams, "resources/read requires 'uri'");
+
+    const ResourceEntry* entry = resources.findByURI (uri);
+    if (entry == nullptr)
+        return makeJsonRpcError (id, kInvalidParams, "Unknown resource URI: " + uri);
+
+    if (! entry->file.existsAsFile())
+        return makeJsonRpcError (id, kInternalError,
+                                 "Resource file missing on disk: " + entry->file.getFullPathName(),
+                                 juce::var (entry->uri));
+
+    const juce::String body = entry->file.loadFileAsString();
+
+    auto contentItem = std::make_unique<juce::DynamicObject>();
+    contentItem->setProperty ("uri",      entry->uri);
+    contentItem->setProperty ("mimeType", entry->mimeType);
+    contentItem->setProperty ("text",     body);
+
+    juce::Array<juce::var> contents;
+    contents.add (juce::var (contentItem.release()));
+
+    auto result = std::make_unique<juce::DynamicObject>();
+    result->setProperty ("contents", juce::var (contents));
+    return makeJsonRpcResult (id, juce::var (result.release()));
 }
 
 //==============================================================================

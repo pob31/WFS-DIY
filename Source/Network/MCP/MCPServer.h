@@ -4,6 +4,7 @@
 #include "MCPLogger.h"
 #include "MCPToolRegistry.h"
 #include "MCPChangeRecords.h"
+#include "MCPResourceRegistry.h"
 #include "MCPDispatcher.h"
 #include "MCPTransport.h"
 
@@ -36,7 +37,8 @@ public:
     MCPServer (WFSValueTreeState& state,
                WFSFileManager& fileManager,
                OSCLogger& networkLogger,
-               const juce::File& generatedToolsJson);
+               const juce::File& generatedToolsJson,
+               const juce::File& knowledgeResourcesDir);
     ~MCPServer();
 
     /** Start listening on the given port. Returns true if the listener
@@ -59,12 +61,18 @@ public:
         populates it. Read-only tool calls do NOT produce records. */
     MCPChangeRecordBuffer& getChangeRecords() noexcept { return *changeRecords; }
 
+    /** Knowledge-resource catalog (Phase 3). Populated at startup;
+        consulted by the dispatcher's resources/list and resources/read
+        handlers. */
+    MCPResourceRegistry& getResources() noexcept { return *resourceRegistry; }
+
 private:
     WFSValueTreeState& valueTreeState;
     WFSFileManager& fileManager;
     std::unique_ptr<MCPLogger> mcpLogger;
     std::unique_ptr<MCPToolRegistry> registry;
     std::unique_ptr<MCPChangeRecordBuffer> changeRecords;
+    std::unique_ptr<MCPResourceRegistry> resourceRegistry;
     std::unique_ptr<MCPDispatcher> dispatcher;
     std::unique_ptr<MCPTransport> transport;
 

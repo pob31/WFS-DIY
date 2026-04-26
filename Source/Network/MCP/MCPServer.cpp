@@ -15,15 +15,21 @@ namespace WFSNetwork
 MCPServer::MCPServer (WFSValueTreeState& state,
                       WFSFileManager& fileMgr,
                       OSCLogger& networkLogger,
-                      const juce::File& generatedToolsJson)
+                      const juce::File& generatedToolsJson,
+                      const juce::File& knowledgeResourcesDir)
     : valueTreeState (state),
       fileManager (fileMgr)
 {
-    mcpLogger     = std::make_unique<MCPLogger> (networkLogger);
-    registry      = std::make_unique<MCPToolRegistry>();
-    changeRecords = std::make_unique<MCPChangeRecordBuffer>();
-    dispatcher    = std::make_unique<MCPDispatcher> (state, *registry, *changeRecords, *mcpLogger);
-    transport     = std::make_unique<MCPTransport> (*mcpLogger);
+    mcpLogger        = std::make_unique<MCPLogger> (networkLogger);
+    registry         = std::make_unique<MCPToolRegistry>();
+    changeRecords    = std::make_unique<MCPChangeRecordBuffer>();
+    resourceRegistry = std::make_unique<MCPResourceRegistry> (knowledgeResourcesDir);
+    dispatcher       = std::make_unique<MCPDispatcher> (state, *registry, *changeRecords,
+                                                        *resourceRegistry, *mcpLogger);
+    transport        = std::make_unique<MCPTransport> (*mcpLogger);
+
+    mcpLogger->logInfo ("Loaded " + juce::String (resourceRegistry->size())
+                        + " knowledge resources from " + knowledgeResourcesDir.getFullPathName());
 
     // Phase 2 — register the auto-generated tool surface FIRST. The
     // hand-written tools registered below silently overwrite by name,

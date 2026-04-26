@@ -5,6 +5,7 @@
 #include "MCPLogger.h"
 #include "MCPToolRegistry.h"
 #include "MCPChangeRecords.h"
+#include "MCPResourceRegistry.h"
 
 class WFSValueTreeState;
 
@@ -30,6 +31,7 @@ public:
     MCPDispatcher (WFSValueTreeState& state,
                    MCPToolRegistry& registry,
                    MCPChangeRecordBuffer& ringBuffer,
+                   MCPResourceRegistry& resourceRegistry,
                    MCPLogger& mcpLogger);
 
     /** Receive a raw HTTP body, return a JSON-RPC envelope as a string.
@@ -51,6 +53,8 @@ private:
     juce::String handleInitialized   ();    // notification — returns "" (no body)
     juce::String handleToolsList     (const juce::var& id);
     juce::String handleToolsCall     (const juce::var& id, const juce::var& params);
+    juce::String handleResourcesList (const juce::var& id);
+    juce::String handleResourcesRead (const juce::var& id, const juce::var& params);
 
     // ---- Helpers --------------------------------------------------------
     juce::String makeJsonRpcResult (const juce::var& id, const juce::var& result) const;
@@ -72,6 +76,7 @@ private:
     WFSValueTreeState& state;
     MCPToolRegistry& registry;
     MCPChangeRecordBuffer& ringBuffer;
+    MCPResourceRegistry& resources;
     MCPLogger& mcpLogger;
 
     std::atomic<bool> initialized { false };  // flips true after `initialize` succeeds
