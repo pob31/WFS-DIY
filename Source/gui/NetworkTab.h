@@ -1701,15 +1701,13 @@ public:
         addAndMakeVisible(mcpServerLabel);
         mcpServerLabel.setText(LOC("ai.server.label"), juce::dontSendNotification);
 
-        addAndMakeVisible(mcpServerStatusLabel);
-        mcpServerStatusLabel.setText(LOC("ai.server.stopped"), juce::dontSendNotification);
-        mcpServerStatusLabel.setColour(juce::Label::textColourId,
-                                       ColorScheme::get().textSecondary);
-
-        addAndMakeVisible(mcpCopyUrlButton);
-        mcpCopyUrlButton.setButtonText(LOC("ai.server.copyUrl"));
-        mcpCopyUrlButton.setEnabled(false);  // enabled once setMCPServer is called
-        mcpCopyUrlButton.onClick = [this]() {
+        // The URL "button" doubles as the live status read-out. Clicking
+        // copies the URL to the clipboard. When the server isn't running
+        // the button is disabled and shows a placeholder.
+        addAndMakeVisible(mcpUrlButton);
+        mcpUrlButton.setButtonText(LOC("ai.server.urlButtonStopped"));
+        mcpUrlButton.setEnabled(false);  // enabled once setMCPServer is called
+        mcpUrlButton.onClick = [this]() {
             if (mcpServer != nullptr && mcpServer->isRunning())
             {
                 const juce::String url = "http://127.0.0.1:"
@@ -1733,7 +1731,7 @@ public:
         // ---- Phase 6: tier enforcement controls ----
         addAndMakeVisible(safetyGateButton);
         safetyGateButton.setClickingTogglesState(true);
-        safetyGateButton.setButtonText(LOC("ai.tier.gateClosed"));
+        safetyGateButton.setButtonText(LOC("ai.tier.gateBlocked"));
         safetyGateButton.onClick = [this]() {
             if (mcpServer == nullptr) return;
             auto& tier = mcpServer->getTierEnforcement();
@@ -1746,7 +1744,7 @@ public:
 
         addAndMakeVisible(dryRunButton);
         dryRunButton.setClickingTogglesState(true);
-        dryRunButton.setButtonText(LOC("ai.tier.dryRunOff"));
+        dryRunButton.setButtonText(LOC("ai.tier.previewOff"));
         dryRunButton.onClick = [this]() {
             if (mcpServer == nullptr) return;
             mcpServer->getTierEnforcement().setDryRunMode(dryRunButton.getToggleState());
@@ -1757,6 +1755,13 @@ public:
         safetyGateCountdownLabel.setJustificationType(juce::Justification::centredLeft);
         safetyGateCountdownLabel.setColour(juce::Label::textColourId,
                                            ColorScheme::get().textSecondary);
+
+        // Status-bar tooltips on every MCP-row button. Wired through the
+        // existing mouseListener path (mouseEnter/mouseMove → showHelpText).
+        mcpUrlButton.addMouseListener(this, false);
+        mcpOpenLogButton.addMouseListener(this, false);
+        safetyGateButton.addMouseListener(this, false);
+        dryRunButton.addMouseListener(this, false);
 
         // ==================== NETWORK CONNECTIONS TABLE ====================
         setupNetworkConnectionsTable();
@@ -1994,8 +1999,8 @@ public:
         if (safetyGateButton.getToggleState() != gateOpen)
             safetyGateButton.setToggleState(gateOpen, juce::dontSendNotification);
         safetyGateButton.setButtonText(gateOpen
-            ? LOC("ai.tier.gateOpen")
-            : LOC("ai.tier.gateClosed"));
+            ? LOC("ai.tier.gateAllowed")
+            : LOC("ai.tier.gateBlocked"));
         safetyGateButton.setColour(juce::TextButton::buttonOnColourId,
                                    ColorScheme::get().accentRed);
 
@@ -2003,8 +2008,8 @@ public:
         if (dryRunButton.getToggleState() != dryOn)
             dryRunButton.setToggleState(dryOn, juce::dontSendNotification);
         dryRunButton.setButtonText(dryOn
-            ? LOC("ai.tier.dryRunOn")
-            : LOC("ai.tier.dryRunOff"));
+            ? LOC("ai.tier.previewOn")
+            : LOC("ai.tier.previewOff"));
         dryRunButton.setColour(juce::TextButton::buttonOnColourId,
                                ColorScheme::get().accentBlue);
 
@@ -2026,25 +2031,24 @@ public:
         const bool running = mcpServer != nullptr && mcpServer->isRunning();
         if (running)
         {
-            mcpServerStatusLabel.setText(
-                LocalizationManager::getInstance().get("ai.server.running",
+            mcpUrlButton.setButtonText(
+                LocalizationManager::getInstance().get("ai.server.urlButtonRunning",
                     {{"host", "127.0.0.1"},
-                     {"port", juce::String(mcpServer->getBoundPort())}}),
-                juce::dontSendNotification);
-            mcpServerStatusLabel.setColour(juce::Label::textColourId,
-                                           ColorScheme::get().accentGreen);
+                     {"port", juce::String(mcpServer->getBoundPort())}}));
+            mcpUrlButton.setColour(juce::TextButton::textColourOffId,
+                                   ColorScheme::get().accentGreen);
         }
         else
         {
-            mcpServerStatusLabel.setText(LOC("ai.server.stopped"), juce::dontSendNotification);
-            mcpServerStatusLabel.setColour(juce::Label::textColourId,
-                                           ColorScheme::get().textSecondary);
+            mcpUrlButton.setButtonText(LOC("ai.server.urlButtonStopped"));
+            mcpUrlButton.setColour(juce::TextButton::textColourOffId,
+                                   ColorScheme::get().textSecondary);
         }
-        mcpCopyUrlButton.setEnabled(running);
+        mcpUrlButton.setEnabled(running);
 
         // Refresh the help card's code block with the current URL — the
         // bound port may have changed (port-fallback) and the help text
-        // should reflect what Copy URL actually puts on the clipboard.
+        // should reflect what the URL button actually puts on the clipboard.
         mcpHelpCard.setCodeBlock(buildMCPConfigJson(), LOC("help.mcp.copyButton"));
     }
 
@@ -2248,42 +2252,39 @@ public:
         leftY += rowHeight + spacing;
 
         // --- MCP Server row ---
-        // Sits below the network-connections buttons so the bottom-anchored
-        // network help card (which covers the connections table) doesn't
-        // also cover the MCP status. The MCP help card is dedicated to this
-        // row, with a (?) button anchored to its right edge.
+        // Single row beneath the network-connections buttons:
+        //   [MCP Server:] [URL button] [Open AI History] [gate toggle]
+        //   [preview toggle] [countdown] [(?)]
+        // The bottom-anchored network help card covers the connections
+        // table, so this row stays visible while the operator reads it.
         leftY += scaled(35);  // Visual breathing room — matches the gap above the buttons
         {
-            const int mcpLabelW    = scaled(95);
-            const int mcpStatusW   = scaled(220);
-            const int mcpButtonW   = scaled(95);
-            const int mcpButtonGap = scaled(4);
             const int helpBtnSize  = scaled(20);
-            mcpServerLabel.setBounds       (leftX, leftY, mcpLabelW, rowHeight);
-            mcpServerStatusLabel.setBounds (leftX + mcpLabelW, leftY, mcpStatusW, rowHeight);
-            mcpCopyUrlButton.setBounds     (leftX + mcpLabelW + mcpStatusW + scaled(8),
-                                            leftY, mcpButtonW, rowHeight);
-            mcpOpenLogButton.setBounds     (leftX + mcpLabelW + mcpStatusW + scaled(8) + mcpButtonW + mcpButtonGap,
-                                            leftY, scaled(115), rowHeight);
-            mcpHelpButton.setBounds        (leftX + leftColumnWidth - helpBtnSize,
-                                            leftY + (rowHeight - helpBtnSize) / 2,
-                                            helpBtnSize, helpBtnSize);
-        }
-        leftY += rowHeight + spacing;
+            const int btnGap       = scaled(4);
+            const int labelW       = scaled(85);   // "MCP Server:"
+            const int historyBtnW  = scaled(120);  // "Open AI History"
+            const int gateBtnW     = scaled(190);  // "AI critical actions: ALLOWED"
+            const int previewBtnW  = scaled(220);  // "AI preview: confirm every call"
+            const int countdownW   = scaled(110);  // "auto-blocks in 60s"
 
-        // --- Phase 6 tier-enforcement row ---
-        // [Safety Gate toggle] [Dry-Run toggle] [countdown indicator]
-        {
-            const int gateBtnW   = scaled(180);
-            const int dryBtnW    = scaled(150);
-            const int btnGap     = scaled(8);
-            safetyGateButton.setBounds(leftX, leftY, gateBtnW, rowHeight);
-            dryRunButton.setBounds(leftX + gateBtnW + btnGap, leftY, dryBtnW, rowHeight);
-            safetyGateCountdownLabel.setBounds(
-                leftX + gateBtnW + btnGap + dryBtnW + btnGap,
-                leftY,
-                leftColumnWidth - gateBtnW - dryBtnW - btnGap * 2,
-                rowHeight);
+            // URL button takes whatever space is left between the fixed-
+            // width siblings. Auto-shrinks at narrow column widths;
+            // the URL text (~32 chars) clips gracefully if needed.
+            const int totalFixed = labelW + historyBtnW + gateBtnW + previewBtnW
+                                    + countdownW + helpBtnSize + btnGap * 6;
+            const int urlBtnW = juce::jmax(scaled(140), leftColumnWidth - totalFixed);
+
+            int x = leftX;
+            mcpServerLabel.setBounds (x, leftY, labelW, rowHeight);                        x += labelW + btnGap;
+            mcpUrlButton.setBounds   (x, leftY, urlBtnW, rowHeight);                       x += urlBtnW + btnGap;
+            mcpOpenLogButton.setBounds(x, leftY, historyBtnW, rowHeight);                  x += historyBtnW + btnGap;
+            safetyGateButton.setBounds(x, leftY, gateBtnW, rowHeight);                     x += gateBtnW + btnGap;
+            dryRunButton.setBounds   (x, leftY, previewBtnW, rowHeight);                   x += previewBtnW + btnGap;
+            safetyGateCountdownLabel.setBounds(x, leftY, countdownW, rowHeight);
+
+            mcpHelpButton.setBounds  (leftX + leftColumnWidth - helpBtnSize,
+                                      leftY + (rowHeight - helpBtnSize) / 2,
+                                      helpBtnSize, helpBtnSize);
         }
         leftY += rowHeight + spacing;
 
@@ -2570,10 +2571,11 @@ private:
     juce::TextEditor oscQueryPortEditor;
     juce::TextButton oscQueryEnableButton;
 
-    // MCP Server (Phase 1 — read-only status + copy/log buttons)
+    // MCP Server: a "MCP Server:" label + a clickable URL button (acts as
+    // both live status read-out and copy-on-click), the AI History opener,
+    // and the Phase 6 tier controls — all on one row.
     juce::Label mcpServerLabel;
-    juce::Label mcpServerStatusLabel;
-    juce::TextButton mcpCopyUrlButton;
+    juce::TextButton mcpUrlButton;
     juce::TextButton mcpOpenLogButton;
     // Phase 6 — tier enforcement controls
     juce::TextButton safetyGateButton;
@@ -4442,6 +4444,16 @@ private:
             helpText = LOC("network.help.findMyRemote");
         else if (source == &oscSourceFilterButton)
             helpText = LOC("network.help.oscSourceFilter");
+
+        // ==================== AI / MCP ROW ====================
+        else if (source == &mcpUrlButton)
+            helpText = LOC("ai.tooltips.urlButton");
+        else if (source == &mcpOpenLogButton)
+            helpText = LOC("ai.tooltips.openHistory");
+        else if (source == &safetyGateButton)
+            helpText = LOC("ai.tooltips.gate");
+        else if (source == &dryRunButton)
+            helpText = LOC("ai.tooltips.preview");
 
         // ==================== ADM-OSC SECTION ====================
         else if (source == &admMappingSelectorLabel || isOrIsChildOf(source, &admMappingSelector))

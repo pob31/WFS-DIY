@@ -2391,8 +2391,8 @@
     "server": {
       "label": "MCP Server:",
       "stopped": "Stopped",
-      "running": "Running on {host}:{port}/mcp",
-      "copyUrl": "Copy URL",
+      "urlButtonRunning": "http://{host}:{port}/mcp",
+      "urlButtonStopped": "(server not running)",
       "copyUrlConfirm": "MCP URL copied to clipboard: {url}",
       "openHistory": "Open AI History"
     },
@@ -2403,11 +2403,17 @@
       "verbRedo": "redo"
     },
     "tier": {
-      "gateClosed": "Safety Gate: closed",
-      "gateOpen":   "Safety Gate: OPEN",
-      "gateCountdown": "auto-closes in {seconds}s",
-      "dryRunOff":  "Dry-Run: off",
-      "dryRunOn":   "Dry-Run: ON"
+      "gateBlocked": "AI critical actions: blocked",
+      "gateAllowed": "AI critical actions: ALLOWED",
+      "gateCountdown": "auto-blocks in {seconds}s",
+      "previewOff":   "AI preview: off",
+      "previewOn":    "AI preview: confirm every call"
+    },
+    "tooltips": {
+      "urlButton": "Click to copy the MCP server URL. Useful for Claude Code (claude mcp add wfs-diy <URL> -t http) or any MCP client that takes a URL. Claude Desktop instead uses the JSON config snippet — open the (?) help card.",
+      "openHistory": "Open the AI History window: scrollable timeline of every recent AI change with per-row undo / redo and a step-by-step cursor.",
+      "gate": "Allow or block destructive AI actions — deleting snapshots, resetting DSP, changing channel counts. Auto-blocks again 60 s after the operator allows it.",
+      "preview": "When ON, every AI call requires a confirmation prompt and the response describes what would have happened without changing any parameter. Useful for rehearsals and demos."
     }
   },
 
