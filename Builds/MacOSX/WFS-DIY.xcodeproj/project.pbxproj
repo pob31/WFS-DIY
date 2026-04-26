@@ -46,6 +46,7 @@
 		94B254A659EFEC3CC830EB46 /* WebKit.framework */ = {isa = PBXBuildFile; fileRef = 77380EEA09673557990C6B7D; };
 		9540B1CD09211574E035FEA4 /* RecentFilesMenuTemplate.nib */ = {isa = PBXBuildFile; fileRef = C2A444C276327D0BCFA3510A; };
 		99BBB112459F918510B37CA3 /* OSCConnection.cpp */ = {isa = PBXBuildFile; fileRef = 1D4034F17218DC090D63347F; };
+		A2337DCB65175FBFA039F9FE /* MCPPromptRegistry.cpp */ = {isa = PBXBuildFile; fileRef = CB719CCC35A4649AA69E0F11; };
 		A3B475BAAE5DA55369EA63CB /* OSCReceiverWithSenderIP.cpp */ = {isa = PBXBuildFile; fileRef = 52706EBD8973DFD0F1366FCF; };
 		A4CC09F2DA7E16C75D0C1C27 /* include_juce_events.mm */ = {isa = PBXBuildFile; fileRef = 1BD908F5EE15BCFED1F87F23; };
 		A635BD6A3E95AC90F1E59D1D /* MCPToolRegistry.cpp */ = {isa = PBXBuildFile; fileRef = 7E602E26466DEF84F54CDE94; };
@@ -109,6 +110,7 @@
 		175E5DD50F0E71570D6F1B65 /* OSCReceiverWithSenderIP.h */ /* OSCReceiverWithSenderIP.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OSCReceiverWithSenderIP.h; path = ../../Source/Network/OSCReceiverWithSenderIP.h; sourceTree = SOURCE_ROOT; };
 		17E6F7C65A2FCF32BBDBF077 /* StreamDeckPage.h */ /* StreamDeckPage.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StreamDeckPage.h; path = ../../Source/Controllers/DialsAndButtons/StreamDeckPage.h; sourceTree = SOURCE_ROOT; };
 		1852742AC74CE662EF91C229 /* include_juce_core_CompilationTime.cpp */ /* include_juce_core_CompilationTime.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_core_CompilationTime.cpp; path = ../../JuceLibraryCode/include_juce_core_CompilationTime.cpp; sourceTree = SOURCE_ROOT; };
+		1941965CC7F1A0A53F882B78 /* MCPPromptRegistry.h */ /* MCPPromptRegistry.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MCPPromptRegistry.h; path = ../../Source/Network/MCP/MCPPromptRegistry.h; sourceTree = SOURCE_ROOT; };
 		19CA408180710506CED8135A /* StreamDeckRenderer.h */ /* StreamDeckRenderer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StreamDeckRenderer.h; path = ../../Source/Controllers/DialsAndButtons/StreamDeckRenderer.h; sourceTree = SOURCE_ROOT; };
 		1A10EA3687120F02EC073242 /* include_juce_graphics_Harfbuzz.cpp */ /* include_juce_graphics_Harfbuzz.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_graphics_Harfbuzz.cpp; path = ../../JuceLibraryCode/include_juce_graphics_Harfbuzz.cpp; sourceTree = SOURCE_ROOT; };
 		1A1140E03F50B30810138601 /* MCPToolRegistry.h */ /* MCPToolRegistry.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MCPToolRegistry.h; path = ../../Source/Network/MCP/MCPToolRegistry.h; sourceTree = SOURCE_ROOT; };
@@ -261,6 +263,7 @@
 		C7C47F0656977414C3A87685 /* JuceHeader.h */ /* JuceHeader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = JuceHeader.h; path = ../../JuceLibraryCode/JuceHeader.h; sourceTree = SOURCE_ROOT; };
 		C94811DE622E6FFD11FA1C8B /* juce_gui_extra */ /* juce_gui_extra */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_gui_extra; path = ../../ThirdParty/JUCE/modules/juce_gui_extra; sourceTree = SOURCE_ROOT; };
 		CA0621138DD4DFC3AF7A711E /* OSCProtocolTypes.h */ /* OSCProtocolTypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OSCProtocolTypes.h; path = ../../Source/Network/OSCProtocolTypes.h; sourceTree = SOURCE_ROOT; };
+		CB719CCC35A4649AA69E0F11 /* MCPPromptRegistry.cpp */ /* MCPPromptRegistry.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPPromptRegistry.cpp; path = ../../Source/Network/MCP/MCPPromptRegistry.cpp; sourceTree = SOURCE_ROOT; };
 		CDBED1B9FA3F02E13A4435CE /* TrackingRTTrPReceiver.cpp */ /* TrackingRTTrPReceiver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = TrackingRTTrPReceiver.cpp; path = ../../Source/Network/TrackingRTTrPReceiver.cpp; sourceTree = SOURCE_ROOT; };
 		CEC081A521DE9D3B8C616524 /* InputTools.h */ /* InputTools.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = InputTools.h; path = ../../Source/Network/MCP/tools/InputTools.h; sourceTree = SOURCE_ROOT; };
 		D12760E1345479CF12DE7137 /* RTTrPDecoder.h */ /* RTTrPDecoder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = RTTrPDecoder.h; path = ../../Source/Network/RTTrPDecoder.h; sourceTree = SOURCE_ROOT; };
@@ -481,6 +484,8 @@
 				4C334641BCD17BEF2B52C9EF,
 				6B1B3E4A5800147B81C04E4D,
 				3D6EAE96E42BB58B8349D561,
+				1941965CC7F1A0A53F882B78,
+				CB719CCC35A4649AA69E0F11,
 				39582B30061C39A6ED7B2849,
 			);
 			name = MCP;
@@ -853,6 +858,7 @@
 				597D4525120E3BF0EECAC647,
 				AAC418A6E5F85C5C87EC1EB7,
 				EE735A95CBAA3D9711DD5363,
+				A2337DCB65175FBFA039F9FE,
 				D7BE7762C078D5CE3CFD2161,
 				8730DF5A397C198A3FB13D60,
 				D1FB0F3B758B9AFC67248620,

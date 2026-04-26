@@ -176,6 +176,10 @@
                 file="Source/Network/MCP/MCPResourceRegistry.h"/>
           <FILE id="mcpResRegCpp" name="MCPResourceRegistry.cpp" compile="1" resource="0"
                 file="Source/Network/MCP/MCPResourceRegistry.cpp"/>
+          <FILE id="mcpPromptRegH" name="MCPPromptRegistry.h" compile="0" resource="0"
+                file="Source/Network/MCP/MCPPromptRegistry.h"/>
+          <FILE id="mcpPromptRegCpp" name="MCPPromptRegistry.cpp" compile="1" resource="0"
+                file="Source/Network/MCP/MCPPromptRegistry.cpp"/>
           <GROUP id="{MCPTOOLSGROUP}" name="tools">
             <FILE id="mcpToolsSession" name="SessionTools.h" compile="0" resource="0"
                   file="Source/Network/MCP/tools/SessionTools.h"/>

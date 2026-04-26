@@ -5,6 +5,7 @@
 #include "MCPToolRegistry.h"
 #include "MCPChangeRecords.h"
 #include "MCPResourceRegistry.h"
+#include "MCPPromptRegistry.h"
 #include "MCPDispatcher.h"
 #include "MCPTransport.h"
 
@@ -66,6 +67,10 @@ public:
         handlers. */
     MCPResourceRegistry& getResources() noexcept { return *resourceRegistry; }
 
+    /** Workflow-prompt catalog (Phase 4). Hand-curated set of multi-step
+        templates surfaced via prompts/list and prompts/get. */
+    MCPPromptRegistry& getPrompts() noexcept { return *promptRegistry; }
+
 private:
     WFSValueTreeState& valueTreeState;
     WFSFileManager& fileManager;
@@ -73,6 +78,7 @@ private:
     std::unique_ptr<MCPToolRegistry> registry;
     std::unique_ptr<MCPChangeRecordBuffer> changeRecords;
     std::unique_ptr<MCPResourceRegistry> resourceRegistry;
+    std::unique_ptr<MCPPromptRegistry> promptRegistry;
     std::unique_ptr<MCPDispatcher> dispatcher;
     std::unique_ptr<MCPTransport> transport;
 

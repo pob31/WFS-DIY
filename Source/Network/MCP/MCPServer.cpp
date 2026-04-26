@@ -24,12 +24,16 @@ MCPServer::MCPServer (WFSValueTreeState& state,
     registry         = std::make_unique<MCPToolRegistry>();
     changeRecords    = std::make_unique<MCPChangeRecordBuffer>();
     resourceRegistry = std::make_unique<MCPResourceRegistry> (knowledgeResourcesDir);
+    promptRegistry   = std::make_unique<MCPPromptRegistry>();
     dispatcher       = std::make_unique<MCPDispatcher> (state, *registry, *changeRecords,
-                                                        *resourceRegistry, *mcpLogger);
+                                                        *resourceRegistry, *promptRegistry,
+                                                        *mcpLogger);
     transport        = std::make_unique<MCPTransport> (*mcpLogger);
 
     mcpLogger->logInfo ("Loaded " + juce::String (resourceRegistry->size())
                         + " knowledge resources from " + knowledgeResourcesDir.getFullPathName());
+    mcpLogger->logInfo ("Loaded " + juce::String (promptRegistry->size())
+                        + " workflow prompts (inline catalog)");
 
     // Phase 2 — register the auto-generated tool surface FIRST. The
     // hand-written tools registered below silently overwrite by name,

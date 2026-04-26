@@ -6,6 +6,7 @@
 #include "MCPToolRegistry.h"
 #include "MCPChangeRecords.h"
 #include "MCPResourceRegistry.h"
+#include "MCPPromptRegistry.h"
 
 class WFSValueTreeState;
 
@@ -32,6 +33,7 @@ public:
                    MCPToolRegistry& registry,
                    MCPChangeRecordBuffer& ringBuffer,
                    MCPResourceRegistry& resourceRegistry,
+                   MCPPromptRegistry& promptRegistry,
                    MCPLogger& mcpLogger);
 
     /** Receive a raw HTTP body, return a JSON-RPC envelope as a string.
@@ -55,6 +57,8 @@ private:
     juce::String handleToolsCall     (const juce::var& id, const juce::var& params);
     juce::String handleResourcesList (const juce::var& id);
     juce::String handleResourcesRead (const juce::var& id, const juce::var& params);
+    juce::String handlePromptsList   (const juce::var& id);
+    juce::String handlePromptsGet    (const juce::var& id, const juce::var& params);
 
     // ---- Helpers --------------------------------------------------------
     juce::String makeJsonRpcResult (const juce::var& id, const juce::var& result) const;
@@ -77,6 +81,7 @@ private:
     MCPToolRegistry& registry;
     MCPChangeRecordBuffer& ringBuffer;
     MCPResourceRegistry& resources;
+    MCPPromptRegistry& prompts;
     MCPLogger& mcpLogger;
 
     std::atomic<bool> initialized { false };  // flips true after `initialize` succeeds

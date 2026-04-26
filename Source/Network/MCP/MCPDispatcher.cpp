@@ -24,8 +24,10 @@ MCPDispatcher::MCPDispatcher (WFSValueTreeState& s,
                               MCPToolRegistry& r,
                               MCPChangeRecordBuffer& buf,
                               MCPResourceRegistry& res,
+                              MCPPromptRegistry& prm,
                               MCPLogger& l)
-    : state (s), registry (r), ringBuffer (buf), resources (res), mcpLogger (l)
+    : state (s), registry (r), ringBuffer (buf),
+      resources (res), prompts (prm), mcpLogger (l)
 {
 }
 
@@ -62,6 +64,8 @@ juce::String MCPDispatcher::handleRequest (const juce::String& body,
     else if (method == "tools/call")                response = handleToolsCall (id, params);
     else if (method == "resources/list")            response = handleResourcesList (id);
     else if (method == "resources/read")            response = handleResourcesRead (id, params);
+    else if (method == "prompts/list")              response = handlePromptsList (id);
+    else if (method == "prompts/get")               response = handlePromptsGet (id, params);
     else
     {
         response = makeJsonRpcError (id, kMethodNotFound,
@@ -94,9 +98,13 @@ juce::String MCPDispatcher::handleInitialize (const juce::var& id, const juce::v
     resourcesCap->setProperty ("subscribe",   false);  // No live subscription in v1
     resourcesCap->setProperty ("listChanged", false);  // Static catalog bundled with app
 
+    auto promptsCap = std::make_unique<juce::DynamicObject>();
+    promptsCap->setProperty ("listChanged", false);  // Static catalog bundled with app
+
     auto capabilities = std::make_unique<juce::DynamicObject>();
     capabilities->setProperty ("tools",     juce::var (toolsCap.release()));
     capabilities->setProperty ("resources", juce::var (resourcesCap.release()));
+    capabilities->setProperty ("prompts",   juce::var (promptsCap.release()));
 
     auto result = std::make_unique<juce::DynamicObject>();
     result->setProperty ("protocolVersion", juce::String (kProtocolVersion));
@@ -272,6 +280,104 @@ juce::String MCPDispatcher::handleResourcesRead (const juce::var& id, const juce
 
     auto result = std::make_unique<juce::DynamicObject>();
     result->setProperty ("contents", juce::var (contents));
+    return makeJsonRpcResult (id, juce::var (result.release()));
+}
+
+//==============================================================================
+// prompts/list
+//==============================================================================
+
+juce::String MCPDispatcher::handlePromptsList (const juce::var& id)
+{
+    juce::Array<juce::var> arr;
+    for (const auto& entry : prompts.all())
+    {
+        juce::Array<juce::var> argsArr;
+        for (const auto& a : entry.arguments)
+        {
+            auto argObj = std::make_unique<juce::DynamicObject>();
+            argObj->setProperty ("name",        a.name);
+            argObj->setProperty ("description", a.description);
+            argObj->setProperty ("required",    a.required);
+            argsArr.add (juce::var (argObj.release()));
+        }
+
+        auto item = std::make_unique<juce::DynamicObject>();
+        item->setProperty ("name",        entry.name);
+        item->setProperty ("description", entry.description);
+        item->setProperty ("arguments",   juce::var (argsArr));
+        arr.add (juce::var (item.release()));
+    }
+
+    auto result = std::make_unique<juce::DynamicObject>();
+    result->setProperty ("prompts", juce::var (arr));
+    return makeJsonRpcResult (id, juce::var (result.release()));
+}
+
+//==============================================================================
+// prompts/get
+//==============================================================================
+
+juce::String MCPDispatcher::handlePromptsGet (const juce::var& id, const juce::var& params)
+{
+    auto* paramsObj = asObject (params);
+    if (paramsObj == nullptr)
+        return makeJsonRpcError (id, kInvalidParams, "prompts/get requires params object");
+
+    const juce::String name = paramsObj->getProperty ("name").toString();
+    if (name.isEmpty())
+        return makeJsonRpcError (id, kInvalidParams, "prompts/get requires 'name'");
+
+    const PromptEntry* entry = prompts.findByName (name);
+    if (entry == nullptr)
+        return makeJsonRpcError (id, kInvalidParams, "Unknown prompt: " + name);
+
+    // Validate required arguments. The MCP spec leaves enforcement to the
+    // server; we surface specific arg names so the AI client can ask the
+    // operator for the missing piece rather than retry blindly.
+    const juce::var argsVar = paramsObj->getProperty ("arguments");
+    auto* argsObj = asObject (argsVar);
+
+    juce::StringArray providedArgPairs;  // for the preamble
+    for (const auto& a : entry->arguments)
+    {
+        const bool present = (argsObj != nullptr) && argsObj->hasProperty (a.name);
+        if (a.required && ! present)
+        {
+            return makeJsonRpcError (id, kInvalidParams,
+                                     "prompts/get for '" + name + "' missing required arg: " + a.name,
+                                     juce::var (a.name));
+        }
+        if (present)
+        {
+            const juce::String value = argsObj->getProperty (a.name).toString();
+            providedArgPairs.add (a.name + "=\"" + value + "\"");
+        }
+    }
+
+    // Build a small preamble showing what arguments the client passed in,
+    // followed by the static template body. None of the v1 templates use
+    // {{placeholder}} interpolation; the AI handles the args contextually
+    // based on the descriptions in the template.
+    juce::String text;
+    if (! providedArgPairs.isEmpty())
+        text << "[Invoked with: " << providedArgPairs.joinIntoString (", ") << "]\n\n";
+    text << entry->templateBody;
+
+    auto contentItem = std::make_unique<juce::DynamicObject>();
+    contentItem->setProperty ("type", "text");
+    contentItem->setProperty ("text", text);
+
+    auto message = std::make_unique<juce::DynamicObject>();
+    message->setProperty ("role",    "user");
+    message->setProperty ("content", juce::var (contentItem.release()));
+
+    juce::Array<juce::var> messages;
+    messages.add (juce::var (message.release()));
+
+    auto result = std::make_unique<juce::DynamicObject>();
+    result->setProperty ("description", entry->description);
+    result->setProperty ("messages", juce::var (messages));
     return makeJsonRpcResult (id, juce::var (result.release()));
 }
 
