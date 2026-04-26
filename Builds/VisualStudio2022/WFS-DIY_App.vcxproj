@@ -111,7 +111,7 @@
 </Command>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot;
+      <Command>xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot; &amp; xcopy /E /I /Y &quot;$(SolutionDir)..\..\Documentation\MCP\resources&quot; &quot;$(OutDir)MCP\resources&quot;
 </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -171,7 +171,7 @@
 </Command>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot;
+      <Command>xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot; &amp; xcopy /E /I /Y &quot;$(SolutionDir)..\..\Documentation\MCP\resources&quot; &quot;$(OutDir)MCP\resources&quot;
 </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
