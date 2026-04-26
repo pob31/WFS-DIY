@@ -2513,7 +2513,7 @@ private:
     HelpCardButton trackingHelpButton;
     HelpCard trackingHelpCard;
     HelpCardButton mcpHelpButton;
-    HelpCard mcpHelpCard;
+    MCPHelpCard mcpHelpCard;
 
     // Tracking Section
     juce::TextButton trackingEnabledButton;
