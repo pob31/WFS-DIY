@@ -69,24 +69,57 @@ namespace detail
 // mcp.undo_last_ai_change — Phase 5a real implementation
 //==============================================================================
 
+inline juce::var buildUndoSchema()
+{
+    auto idx = std::make_unique<juce::DynamicObject>();
+    idx->setProperty ("type", "integer");
+    idx->setProperty ("minimum", 0);
+    idx->setProperty ("description",
+        "Optional. Index into the undo ring buffer (0 = oldest, size-1 = newest). "
+        "Omit to undo the most recent record. When set, performs targeted undo: "
+        "the target record AND any later records whose affected_groups intersect "
+        "are reversed together as a batch. Use mcp.get_ai_change_history to read "
+        "the buffer first if you need to find a specific record.");
+
+    auto props = std::make_unique<juce::DynamicObject>();
+    props->setProperty ("record_index", juce::var (idx.release()));
+
+    auto schema = std::make_unique<juce::DynamicObject>();
+    schema->setProperty ("type", "object");
+    schema->setProperty ("properties", juce::var (props.release()));
+    schema->setProperty ("additionalProperties", false);
+    return juce::var (schema.release());
+}
+
 inline ToolDescriptor describeUndo (MCPUndoEngine& engine)
 {
     ToolDescriptor d;
     d.name        = "mcp.undo_last_ai_change";
-    d.description = "Undo the most recent AI-initiated state change. Reverses the "
-                    "writes the corresponding tool call performed and moves the record "
-                    "onto the redo stack. Read-only tool calls (session.get_state, "
-                    "snapshot.list, etc.) do NOT generate undo records, so this only "
-                    "reverses state mutations. Returns no_history if nothing to undo.";
-    d.inputSchema   = detail::emptyObjectSchema();
-    // Block 2 will extend the schema with an optional `record_index` for
-    // targeted undo. For Block 1, no args = "undo the last record".
+    d.description = "Undo a previous AI-initiated state change. With no arguments, "
+                    "reverses only the most recent state-modifying tool call. With "
+                    "`record_index`, performs targeted undo: reverses the record at "
+                    "that index AND any later records whose affected_groups intersect, "
+                    "as a single batch. Read-only tool calls do NOT generate undo "
+                    "records. Returns no_history if nothing to undo, or invalid_index "
+                    "for an out-of-range record_index.";
+    d.inputSchema   = buildUndoSchema();
     d.modifiesState = false;  // The undo engine handles its own change-record bookkeeping
                               // (it pushes the undone record onto the redo ring); the
                               // dispatcher should NOT also push a generic record for
                               // this call. Keep modifiesState=false to skip that.
-    d.handler = [&engine] (const juce::var&, ChangeRecord*) -> ToolResult
+    d.handler = [&engine] (const juce::var& args, ChangeRecord*) -> ToolResult
     {
+        // Optional record_index argument routes between undoLast (no arg) and
+        // undoByIndex (targeted with dependency chasing).
+        if (args.isObject())
+        {
+            auto* obj = args.getDynamicObject();
+            if (obj != nullptr && obj->hasProperty ("record_index"))
+            {
+                const int idx = static_cast<int> (obj->getProperty ("record_index"));
+                return detail::toolResultFromUndo (engine.undoByIndex (idx));
+            }
+        }
         return detail::toolResultFromUndo (engine.undoLast());
     };
     return d;

@@ -39,6 +39,20 @@ namespace
             return -1;
         return static_cast<int> (obj->getProperty ("band")) - 1;
     }
+
+    /** True if any (channel_id, group_name) pair appears in both records.
+        Phase 5a's dependency rule: a later record "depends on" an earlier
+        one when they share a parameter group on the same channel — so
+        undoing the earlier one rolls back the entire trajectory for that
+        group. */
+    bool groupsIntersect (const ChangeRecord& a, const ChangeRecord& b)
+    {
+        for (const auto& ga : a.affectedGroups)
+            for (const auto& gb : b.affectedGroups)
+                if (ga.channelId == gb.channelId && ga.groupName == gb.groupName)
+                    return true;
+        return false;
+    }
 }
 
 //==============================================================================
@@ -73,21 +87,143 @@ UndoResult MCPUndoEngine::undoLast()
     return outcome;
 }
 
+juce::Array<int> MCPUndoEngine::previewUndo (int recordIndex) const
+{
+    juce::Array<int> indices;
+
+    const int total = undoRing.size();
+    if (recordIndex < 0 || recordIndex >= total)
+        return indices;
+
+    ChangeRecord target;
+    if (! undoRing.peekAt (recordIndex, target))
+        return indices;
+
+    indices.add (recordIndex);
+    for (int i = recordIndex + 1; i < total; ++i)
+    {
+        ChangeRecord later;
+        if (undoRing.peekAt (i, later) && groupsIntersect (target, later))
+            indices.add (i);
+    }
+
+    return indices;
+}
+
+UndoResult MCPUndoEngine::undoByIndex (int recordIndex)
+{
+    const auto preview = previewUndo (recordIndex);
+    if (preview.isEmpty())
+        return UndoResult::fail ("invalid_index",
+                                 "Record index " + juce::String (recordIndex) + " out of range.");
+
+    // Pop the chain. Walk preview indices in REVERSE so removeAt's index
+    // remains valid as we shrink the buffer from the right.
+    std::vector<ChangeRecord> chain;
+    chain.reserve (static_cast<size_t> (preview.size()));
+    for (int i = preview.size() - 1; i >= 0; --i)
+    {
+        ChangeRecord rec;
+        if (! undoRing.removeAt (preview[i], rec))
+            return UndoResult::fail ("internal_error", "Buffer changed during undo");
+        chain.push_back (std::move (rec));
+    }
+    // chain[0] is the newest of the preview (because we walked indices in reverse);
+    // chain.back() is the target (oldest of the preview).
+
+    const int batchId = (chain.size() > 1) ? nextBatchId++ : 0;
+
+    // Reverse in reverse-chronological order (newest first). Stamp the batch
+    // id so redoLast can later re-apply atomically.
+    juce::String combinedDesc;
+    for (auto& rec : chain)
+    {
+        rec.redoBatchId = batchId;
+        const auto err = writePayloadHere (rec, rec.beforeState);
+        if (err.isNotEmpty())
+        {
+            // Partial failure: push everything reversed-so-far back, including
+            // this record, so the buffer is in a consistent state. The state
+            // tree itself may be partially undone — that's an honest report.
+            for (auto& back : chain)
+                undoRing.push (std::move (back));
+            return UndoResult::fail ("internal_error", err);
+        }
+        if (combinedDesc.isNotEmpty())
+            combinedDesc << " | ";
+        combinedDesc << "Undid: " << rec.operatorDescription;
+    }
+
+    // Push to the redo ring in chronological order (oldest first), so the
+    // newest of the batch ends up at the back where redoLast will see it
+    // first.
+    for (auto it = chain.rbegin(); it != chain.rend(); ++it)
+        redoRing->push (std::move (*it));
+
+    return UndoResult::ok (combinedDesc, juce::var(), juce::var(), preview.size());
+}
+
 UndoResult MCPUndoEngine::redoLast()
 {
     ChangeRecord rec;
     if (! redoRing->popBack (rec))
         return UndoResult::fail ("no_redo", "No undone AI changes available to redo.");
 
-    UndoResult outcome = applyForward (rec);
-    if (! outcome.success)
+    // Solo record (no batch) — same path as before.
+    if (rec.redoBatchId == 0)
     {
-        redoRing->push (rec);
+        UndoResult outcome = applyForward (rec);
+        if (! outcome.success)
+        {
+            redoRing->push (rec);
+            return outcome;
+        }
+        undoRing.push (std::move (rec));
         return outcome;
     }
 
-    undoRing.push (std::move (rec));
-    return outcome;
+    // Batch: pop all consecutive members of the same batch from the back
+    // of the redo ring.
+    const int batchId = rec.redoBatchId;
+    std::vector<ChangeRecord> batch;
+    batch.push_back (std::move (rec));
+
+    while (true)
+    {
+        ChangeRecord peek;
+        if (! redoRing->peekAt (redoRing->size() - 1, peek))
+            break;
+        if (peek.redoBatchId != batchId)
+            break;
+        if (! redoRing->popBack (peek))
+            break;
+        batch.push_back (std::move (peek));
+    }
+
+    // batch[0] is newest (we popped from the back first); apply in
+    // chronological order (oldest first) by walking in reverse.
+    juce::String combinedDesc;
+    for (auto it = batch.rbegin(); it != batch.rend(); ++it)
+    {
+        const auto err = writePayloadHere (*it, it->afterState);
+        if (err.isNotEmpty())
+        {
+            // Restore everything we touched and bail out.
+            for (auto& back : batch)
+                redoRing->push (std::move (back));
+            return UndoResult::fail ("internal_error", err);
+        }
+        if (combinedDesc.isNotEmpty())
+            combinedDesc << " | ";
+        combinedDesc << "Redid: " << it->operatorDescription;
+    }
+
+    // Push back to the undo ring in chronological order — oldest-first iteration
+    // means the newest ends up at the back.
+    for (auto it = batch.rbegin(); it != batch.rend(); ++it)
+        undoRing.push (std::move (*it));
+
+    return UndoResult::ok (combinedDesc, juce::var(), juce::var(), static_cast<int> (batch.size()));
 }
 
 void MCPUndoEngine::onNewStateModifyingRecord()

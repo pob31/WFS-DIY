@@ -41,6 +41,13 @@ struct ChangeRecord
     juce::var beforeState;                     // JSON object: paramName → value
     juce::var afterState;                      // JSON object: paramName → value
     OriginTag origin = OriginTag::MCP;         // always MCP for these records
+
+    /** Set by MCPUndoEngine::undoByIndex when a record is part of a multi-
+        record reversal chain (target + dependents). All chain members
+        share the same id. 0 means "solo" — undone individually, redone
+        individually. Lets MCPUndoEngine::redoLast re-apply a chain
+        atomically by popping all consecutive records with the same id. */
+    int redoBatchId = 0;
 };
 
 /** Thread-safe ring buffer of AI change records. Capacity is fixed at
