@@ -28,9 +28,11 @@ MCPServer::MCPServer (WFSValueTreeState& state,
     undoEngine       = std::make_unique<MCPUndoEngine> (state, *changeRecords);
     resourceRegistry = std::make_unique<MCPResourceRegistry> (knowledgeResourcesDir);
     promptRegistry   = std::make_unique<MCPPromptRegistry>();
+    tierEnforcement  = std::make_unique<MCPTierEnforcement>();
     dispatcher       = std::make_unique<MCPDispatcher> (state, *registry, *changeRecords,
                                                         *undoEngine,
                                                         *resourceRegistry, *promptRegistry,
+                                                        *tierEnforcement,
                                                         *mcpLogger);
     transport        = std::make_unique<MCPTransport> (*mcpLogger);
 

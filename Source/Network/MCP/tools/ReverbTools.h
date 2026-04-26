@@ -134,6 +134,7 @@ inline ToolDescriptor describeSetCartesian (WFSValueTreeState& state)
                     "which reverb channels exist.";
     d.inputSchema   = buildSetCartesianSchema();
     d.modifiesState = true;
+    d.tier        = 1;
     d.handler = [&state] (const juce::var& args, ChangeRecord* record) -> ToolResult
     {
         return setCartesian (state, args, record);

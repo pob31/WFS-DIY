@@ -7,6 +7,7 @@
 #include "MCPUndoEngine.h"
 #include "MCPResourceRegistry.h"
 #include "MCPPromptRegistry.h"
+#include "MCPTierEnforcement.h"
 #include "MCPDispatcher.h"
 #include "MCPTransport.h"
 
@@ -77,6 +78,11 @@ public:
         this directly for the keyboard-shortcut path. */
     MCPUndoEngine& getUndoEngine() noexcept { return *undoEngine; }
 
+    /** Phase 6 — tier enforcement. Owns confirmation tokens, the safety
+        gate state, and the dry-run flag. The Network tab UI binds to
+        this to show + control gate / dry-run. */
+    MCPTierEnforcement& getTierEnforcement() noexcept { return *tierEnforcement; }
+
 private:
     WFSValueTreeState& valueTreeState;
     WFSFileManager& fileManager;
@@ -86,6 +92,7 @@ private:
     std::unique_ptr<MCPUndoEngine> undoEngine;
     std::unique_ptr<MCPResourceRegistry> resourceRegistry;
     std::unique_ptr<MCPPromptRegistry> promptRegistry;
+    std::unique_ptr<MCPTierEnforcement> tierEnforcement;
     std::unique_ptr<MCPDispatcher> dispatcher;
     std::unique_ptr<MCPTransport> transport;
 

@@ -26,9 +26,10 @@ MCPDispatcher::MCPDispatcher (WFSValueTreeState& s,
                               MCPUndoEngine& undo,
                               MCPResourceRegistry& res,
                               MCPPromptRegistry& prm,
+                              MCPTierEnforcement& tier,
                               MCPLogger& l)
     : state (s), registry (r), ringBuffer (buf), undoEngine (undo),
-      resources (res), prompts (prm), mcpLogger (l)
+      resources (res), prompts (prm), tierEnforcement (tier), mcpLogger (l)
 {
 }
 
@@ -137,11 +138,26 @@ juce::String MCPDispatcher::handleToolsList (const juce::var& id)
         entry->setProperty ("name",        descriptor.name);
         entry->setProperty ("description", descriptor.description);
         entry->setProperty ("inputSchema", descriptor.inputSchema);
+
+        // Phase 6: surface the tier on the tool entry so AI clients can
+        // anticipate confirmation requirements without making a speculative
+        // call. MCP spec allows custom fields under `_meta`.
+        auto meta = std::make_unique<juce::DynamicObject>();
+        meta->setProperty ("tier", descriptor.tier);
+        entry->setProperty ("_meta", juce::var (meta.release()));
+
         tools.add (juce::var (entry.release()));
     }
 
     auto result = std::make_unique<juce::DynamicObject>();
     result->setProperty ("tools", juce::var (tools));
+
+    // Also expose live operator-state on the result so clients see whether
+    // the safety gate is open and whether dry-run mode is on.
+    auto serverState = std::make_unique<juce::DynamicObject>();
+    serverState->setProperty ("safety_gate_open", tierEnforcement.isSafetyGateOpen());
+    serverState->setProperty ("dry_run_mode",     tierEnforcement.isDryRunMode());
+    result->setProperty ("_meta", juce::var (serverState.release()));
 
     return makeJsonRpcResult (id, juce::var (result.release()));
 }
@@ -171,6 +187,54 @@ juce::String MCPDispatcher::handleToolsCall (const juce::var& id, const juce::va
     if (tool == nullptr)
         return makeJsonRpcError (id, kMethodNotFound, "Tool not found: " + name);
 
+    // Phase 6: tier enforcement. Tier 1 → execute. Tier 2 → require
+    // confirmation token (issue one on first call, accept it on second).
+    // Tier 3 → also require the operator-controlled safety gate to be
+    // open. Dry-run mode (operator UI flag) escalates Tier 1 → Tier 2.
+    const auto tierOutcome = tierEnforcement.evaluate (name, tool->tier, args);
+
+    auto buildTierResponse = [this, &id, &tierOutcome, &name] (bool isError)
+    {
+        auto contentItem = std::make_unique<juce::DynamicObject>();
+        contentItem->setProperty ("type", "text");
+        contentItem->setProperty ("text", tierOutcome.message);
+
+        juce::Array<juce::var> content;
+        content.add (juce::var (contentItem.release()));
+
+        auto callResult = std::make_unique<juce::DynamicObject>();
+        callResult->setProperty ("content", juce::var (content));
+        callResult->setProperty ("isError", isError);
+
+        // Structured payload alongside the human message so AI clients
+        // that look at machine-readable fields can react cleanly.
+        auto enforcement = std::make_unique<juce::DynamicObject>();
+        enforcement->setProperty ("tool",            name);
+        enforcement->setProperty ("declared_tier",   tierOutcome.effectiveTier);
+        if (tierOutcome.confirmationToken.isNotEmpty())
+        {
+            enforcement->setProperty ("awaiting_confirmation", true);
+            enforcement->setProperty ("confirmation_token",    tierOutcome.confirmationToken);
+            enforcement->setProperty ("expires_in_seconds",    tierOutcome.secondsUntilExpiry);
+        }
+        else
+        {
+            enforcement->setProperty ("safety_gate_closed", true);
+        }
+        callResult->setProperty ("tier_enforcement", juce::var (enforcement.release()));
+
+        const auto notifs = undoEngine.drainPendingNotifications();
+        if (! notifs.isEmpty())
+            callResult->setProperty ("notifications", juce::var (notifs));
+
+        return makeJsonRpcResult (id, juce::var (callResult.release()));
+    };
+
+    if (tierOutcome.decision == MCPTierEnforcement::Decision::AwaitConfirmation)
+        return buildTierResponse (false);
+    if (tierOutcome.decision == MCPTierEnforcement::Decision::SafetyGateClosed)
+        return buildTierResponse (true);
+
     // Set up change record envelope for state-modifying tools. Read-only
     // tools pass nullptr to the handler.
     ChangeRecord record;
@@ -179,6 +243,38 @@ juce::String MCPDispatcher::handleToolsCall (const juce::var& id, const juce::va
     record.arguments = args;
 
     ChangeRecord* recordPtr = tool->modifiesState ? &record : nullptr;
+
+    // Dry-run mode: tier enforcement already extracted the operator's
+    // intent (the confirmation token validated). Do NOT execute the side
+    // effects; instead respond as if we did, plus a banner so the AI
+    // knows nothing actually moved.
+    if (tierOutcome.decision == MCPTierEnforcement::Decision::DryRunAcknowledge)
+    {
+        auto contentItem = std::make_unique<juce::DynamicObject>();
+        contentItem->setProperty ("type", "text");
+        contentItem->setProperty ("text",
+            "[dry-run] Confirmation accepted. The call would have executed "
+            "but dry-run mode is active — no parameters were changed.");
+
+        juce::Array<juce::var> content;
+        content.add (juce::var (contentItem.release()));
+
+        auto callResult = std::make_unique<juce::DynamicObject>();
+        callResult->setProperty ("content", juce::var (content));
+        callResult->setProperty ("isError", false);
+
+        auto enforcement = std::make_unique<juce::DynamicObject>();
+        enforcement->setProperty ("tool",     name);
+        enforcement->setProperty ("dry_run",  true);
+        enforcement->setProperty ("declared_tier", tierOutcome.effectiveTier);
+        callResult->setProperty ("tier_enforcement", juce::var (enforcement.release()));
+
+        const auto notifs = undoEngine.drainPendingNotifications();
+        if (! notifs.isEmpty())
+            callResult->setProperty ("notifications", juce::var (notifs));
+
+        return makeJsonRpcResult (id, juce::var (callResult.release()));
+    }
 
     ToolResult result;
     if (! runOnMessageThread (*tool, args, recordPtr, result))

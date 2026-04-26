@@ -204,6 +204,7 @@
     <ClCompile Include="..\..\Source\Network\MCP\MCPLogger.cpp"/>
     <ClCompile Include="..\..\Source\Network\MCP\MCPChangeRecords.cpp"/>
     <ClCompile Include="..\..\Source\Network\MCP\MCPUndoEngine.cpp"/>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPTierEnforcement.cpp"/>
     <ClCompile Include="..\..\Source\Network\MCP\MCPToolRegistry.cpp"/>
     <ClCompile Include="..\..\Source\Network\MCP\MCPDispatcher.cpp"/>
     <ClCompile Include="..\..\Source\Network\MCP\MCPTransport.cpp"/>
@@ -3277,6 +3278,7 @@
     <ClInclude Include="..\..\Source\Network\MCP\MCPLogger.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\MCPChangeRecords.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\MCPUndoEngine.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPTierEnforcement.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\MCPToolRegistry.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\MCPDispatcher.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\MCPTransport.h"/>

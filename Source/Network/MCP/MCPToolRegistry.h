@@ -36,6 +36,16 @@ struct ToolDescriptor
     juce::var inputSchema;       // JSON-Schema object, exposed via tools/list
     bool modifiesState = false;  // drives change-record capture in dispatcher
 
+    /** Phase 6 tier:
+          1 = low-risk, executes immediately;
+          2 = medium-risk, requires a confirmation token (two-step call);
+          3 = destructive, requires confirmation AND an open safety gate.
+        Auto-generated tools inherit their tier from generated_tools.json
+        ("tier" field); hand-written tools should set this explicitly.
+        Defaults to 1 to avoid silently gating tools whose author forgot
+        to classify them. */
+    int tier = 1;
+
     std::function<ToolResult (const juce::var& args, ChangeRecord* record)> handler;
 };
 

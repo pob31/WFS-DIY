@@ -93,6 +93,7 @@ inline ToolDescriptor describe (WFSValueTreeState& state)
                     "before issuing modifying tool calls.";
     d.inputSchema   = buildInputSchema();
     d.modifiesState = false;
+    d.tier        = 1;  // read-only
     d.handler = [&state] (const juce::var&, ChangeRecord*) -> ToolResult
     {
         return getState (state);

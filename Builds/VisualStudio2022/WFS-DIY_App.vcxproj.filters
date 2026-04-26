@@ -1015,6 +1015,9 @@
     <ClCompile Include="..\..\Source\Network\MCP\MCPUndoEngine.cpp">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPTierEnforcement.cpp">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\Source\Network\MCP\MCPToolRegistry.cpp">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClCompile>
@@ -4405,6 +4408,9 @@
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Network\MCP\MCPUndoEngine.h">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPTierEnforcement.h">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Network\MCP\MCPToolRegistry.h">

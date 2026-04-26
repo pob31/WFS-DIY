@@ -1730,6 +1730,34 @@ public:
                 onMCPHistoryWindowRequested();
         };
 
+        // ---- Phase 6: tier enforcement controls ----
+        addAndMakeVisible(safetyGateButton);
+        safetyGateButton.setClickingTogglesState(true);
+        safetyGateButton.setButtonText(LOC("ai.tier.gateClosed"));
+        safetyGateButton.onClick = [this]() {
+            if (mcpServer == nullptr) return;
+            auto& tier = mcpServer->getTierEnforcement();
+            if (safetyGateButton.getToggleState())
+                tier.openSafetyGate();
+            else
+                tier.closeSafetyGate();
+            updateTierEnforcementUI();
+        };
+
+        addAndMakeVisible(dryRunButton);
+        dryRunButton.setClickingTogglesState(true);
+        dryRunButton.setButtonText(LOC("ai.tier.dryRunOff"));
+        dryRunButton.onClick = [this]() {
+            if (mcpServer == nullptr) return;
+            mcpServer->getTierEnforcement().setDryRunMode(dryRunButton.getToggleState());
+            updateTierEnforcementUI();
+        };
+
+        addAndMakeVisible(safetyGateCountdownLabel);
+        safetyGateCountdownLabel.setJustificationType(juce::Justification::centredLeft);
+        safetyGateCountdownLabel.setColour(juce::Label::textColourId,
+                                           ColorScheme::get().textSecondary);
+
         // ==================== NETWORK CONNECTIONS TABLE ====================
         setupNetworkConnectionsTable();
 
@@ -1828,6 +1856,8 @@ public:
 
     ~NetworkTab() override
     {
+        if (mcpServer != nullptr)
+            mcpServer->getTierEnforcement().removeListener(&tierListener);
         ColorScheme::Manager::getInstance().removeListener(this);
         configTree.removeListener(this);
     }
@@ -1930,8 +1960,65 @@ public:
         actual bound port (port-fallback could change it from the default). */
     void setMCPServer(WFSNetwork::MCPServer* server)
     {
+        if (mcpServer != nullptr)
+            mcpServer->getTierEnforcement().removeListener(&tierListener);
+
         mcpServer = server;
+
+        if (mcpServer != nullptr)
+            mcpServer->getTierEnforcement().addListener(&tierListener);
+
         updateMCPStatus();
+        updateTierEnforcementUI();
+    }
+
+    /** Phase 6: refresh the gate / dry-run buttons + countdown label from
+        the live tier-enforcement state. Called on init, on toggle clicks,
+        and from the engine's listener so countdown stays smooth. */
+    void updateTierEnforcementUI()
+    {
+        if (mcpServer == nullptr)
+        {
+            safetyGateButton.setEnabled(false);
+            dryRunButton.setEnabled(false);
+            safetyGateCountdownLabel.setText({}, juce::dontSendNotification);
+            return;
+        }
+
+        auto& tier = mcpServer->getTierEnforcement();
+        const bool gateOpen   = tier.isSafetyGateOpen();
+        const bool dryOn      = tier.isDryRunMode();
+        const int  remaining  = tier.secondsUntilGateCloses();
+
+        safetyGateButton.setEnabled(true);
+        if (safetyGateButton.getToggleState() != gateOpen)
+            safetyGateButton.setToggleState(gateOpen, juce::dontSendNotification);
+        safetyGateButton.setButtonText(gateOpen
+            ? LOC("ai.tier.gateOpen")
+            : LOC("ai.tier.gateClosed"));
+        safetyGateButton.setColour(juce::TextButton::buttonOnColourId,
+                                   ColorScheme::get().accentRed);
+
+        dryRunButton.setEnabled(true);
+        if (dryRunButton.getToggleState() != dryOn)
+            dryRunButton.setToggleState(dryOn, juce::dontSendNotification);
+        dryRunButton.setButtonText(dryOn
+            ? LOC("ai.tier.dryRunOn")
+            : LOC("ai.tier.dryRunOff"));
+        dryRunButton.setColour(juce::TextButton::buttonOnColourId,
+                               ColorScheme::get().accentBlue);
+
+        if (gateOpen && remaining > 0)
+        {
+            safetyGateCountdownLabel.setText(
+                LocalizationManager::getInstance().get("ai.tier.gateCountdown",
+                    {{"seconds", juce::String(remaining)}}),
+                juce::dontSendNotification);
+        }
+        else
+        {
+            safetyGateCountdownLabel.setText({}, juce::dontSendNotification);
+        }
     }
 
     void updateMCPStatus()
@@ -2181,6 +2268,22 @@ public:
             mcpHelpButton.setBounds        (leftX + leftColumnWidth - helpBtnSize,
                                             leftY + (rowHeight - helpBtnSize) / 2,
                                             helpBtnSize, helpBtnSize);
+        }
+        leftY += rowHeight + spacing;
+
+        // --- Phase 6 tier-enforcement row ---
+        // [Safety Gate toggle] [Dry-Run toggle] [countdown indicator]
+        {
+            const int gateBtnW   = scaled(180);
+            const int dryBtnW    = scaled(150);
+            const int btnGap     = scaled(8);
+            safetyGateButton.setBounds(leftX, leftY, gateBtnW, rowHeight);
+            dryRunButton.setBounds(leftX + gateBtnW + btnGap, leftY, dryBtnW, rowHeight);
+            safetyGateCountdownLabel.setBounds(
+                leftX + gateBtnW + btnGap + dryBtnW + btnGap,
+                leftY,
+                leftColumnWidth - gateBtnW - dryBtnW - btnGap * 2,
+                rowHeight);
         }
         leftY += rowHeight + spacing;
 
@@ -2472,6 +2575,23 @@ private:
     juce::Label mcpServerStatusLabel;
     juce::TextButton mcpCopyUrlButton;
     juce::TextButton mcpOpenLogButton;
+    // Phase 6 — tier enforcement controls
+    juce::TextButton safetyGateButton;
+    juce::TextButton dryRunButton;
+    juce::Label      safetyGateCountdownLabel;
+
+    /** Adapter so NetworkTab itself doesn't need to inherit from
+        MCPTierEnforcement::Listener (that would force the include into
+        the public header chain). The inner struct calls back into the
+        owning tab through the captured pointer. */
+    struct TierListener : WFSNetwork::MCPTierEnforcement::Listener
+    {
+        explicit TierListener(NetworkTab& parent) : owner(parent) {}
+        void tierEnforcementStateChanged() override { owner.updateTierEnforcementUI(); }
+        NetworkTab& owner;
+    };
+    TierListener tierListener { *this };
+
     WFSNetwork::MCPServer* mcpServer = nullptr;
 
     // Footer buttons

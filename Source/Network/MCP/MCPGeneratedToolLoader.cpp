@@ -465,6 +465,9 @@ LoadStats loadGeneratedTools (MCPToolRegistry& registry,
         d.description    = toolObj->getProperty ("description").toString();
         d.inputSchema    = parameters;
         d.modifiesState  = true;
+        // Phase 6: read tier from generated_tools.json (1 default).
+        if (toolObj->hasProperty ("tier"))
+            d.tier = juce::jlimit (1, 3, static_cast<int> (toolObj->getProperty ("tier")));
         d.handler = [&state, binding] (const juce::var& args, ChangeRecord* record) -> ToolResult
         {
             return dispatchGenericSet (state, binding, args, record);
@@ -514,6 +517,8 @@ LoadStats loadGeneratedTools (MCPToolRegistry& registry,
             d.description    = toolObj->getProperty ("description").toString();
             d.inputSchema    = toolObj->getProperty ("parameters");
             d.modifiesState  = true;
+            if (toolObj->hasProperty ("tier"))
+                d.tier = juce::jlimit (1, 3, static_cast<int> (toolObj->getProperty ("tier")));
             d.handler = [&state, binding] (const juce::var& args, ChangeRecord* record) -> ToolResult
             {
                 return dispatchGenericNudge (state, binding, args, record);

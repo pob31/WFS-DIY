@@ -111,6 +111,7 @@ inline ToolDescriptor describeSetName (WFSValueTreeState& state)
                     "'Rename input 3 to Marie'.";
     d.inputSchema   = buildSetNameSchema();
     d.modifiesState = true;
+    d.tier        = 1;  // cosmetic, easily reversible
     d.handler = [&state] (const juce::var& args, ChangeRecord* record) -> ToolResult
     {
         return setName (state, args, record);
@@ -223,6 +224,7 @@ inline ToolDescriptor describeSetCartesian (WFSValueTreeState& state)
                     "are clamped to the +/-50 m stage envelope.";
     d.inputSchema   = buildSetCartesianSchema();
     d.modifiesState = true;
+    d.tier        = 1;  // moves are core spatialisation; AI undo handles reversal
     d.handler = [&state] (const juce::var& args, ChangeRecord* record) -> ToolResult
     {
         return setCartesian (state, args, record);
@@ -315,6 +317,7 @@ inline ToolDescriptor describeSetAttenuation (WFSValueTreeState& state)
                     "[-92, 0] where 0 = unity gain.";
     d.inputSchema   = buildSetAttenuationSchema();
     d.modifiesState = true;
+    d.tier        = 2;  // wide dB range can produce sudden loud output — confirm
     d.handler = [&state] (const juce::var& args, ChangeRecord* record) -> ToolResult
     {
         return setAttenuation (state, args, record);

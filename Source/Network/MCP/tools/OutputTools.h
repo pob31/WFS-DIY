@@ -134,6 +134,7 @@ inline ToolDescriptor describeSetCartesian (WFSValueTreeState& state)
                     "which output channels exist.";
     d.inputSchema   = buildSetCartesianSchema();
     d.modifiesState = true;
+    d.tier        = 2;  // mid-show array changes are non-trivial — confirm
     d.handler = [&state] (const juce::var& args, ChangeRecord* record) -> ToolResult
     {
         return setCartesian (state, args, record);

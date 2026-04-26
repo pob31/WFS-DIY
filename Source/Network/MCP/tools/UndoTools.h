@@ -125,6 +125,7 @@ inline ToolDescriptor describeUndo (MCPUndoEngine& engine)
                               // (it pushes the undone record onto the redo ring); the
                               // dispatcher should NOT also push a generic record for
                               // this call. Keep modifiesState=false to skip that.
+    d.tier        = 1;  // undo / redo are how operators escape Tier 2 confirmations
     d.handler = [&engine] (const juce::var& args, ChangeRecord*) -> ToolResult
     {
         // Optional record_index argument routes between undoLast (no arg) and
@@ -157,6 +158,7 @@ inline ToolDescriptor describeRedo (MCPUndoEngine& engine)
                     "an undo. Returns no_redo if nothing to redo.";
     d.inputSchema   = detail::emptyObjectSchema();
     d.modifiesState = false;  // same rationale as describeUndo
+    d.tier        = 1;
     d.handler = [&engine] (const juce::var&, ChangeRecord*) -> ToolResult
     {
         return detail::toolResultFromUndo (engine.redoLast());
@@ -195,6 +197,7 @@ inline ToolDescriptor describeGetHistory (MCPChangeRecordBuffer& buffer)
                     "for explaining 'what did I just do?' in voice flows. Read-only.";
     d.inputSchema   = buildHistorySchema();
     d.modifiesState = false;
+    d.tier        = 1;  // read-only
     d.handler = [&buffer] (const juce::var& args, ChangeRecord*) -> ToolResult
     {
         int limit = -1;

@@ -8,6 +8,7 @@
 #include "MCPUndoEngine.h"
 #include "MCPResourceRegistry.h"
 #include "MCPPromptRegistry.h"
+#include "MCPTierEnforcement.h"
 
 class WFSValueTreeState;
 
@@ -36,6 +37,7 @@ public:
                    MCPUndoEngine& undoEngine,
                    MCPResourceRegistry& resourceRegistry,
                    MCPPromptRegistry& promptRegistry,
+                   MCPTierEnforcement& tierEnforcement,
                    MCPLogger& mcpLogger);
 
     /** Receive a raw HTTP body, return a JSON-RPC envelope as a string.
@@ -85,6 +87,7 @@ private:
     MCPUndoEngine& undoEngine;
     MCPResourceRegistry& resources;
     MCPPromptRegistry& prompts;
+    MCPTierEnforcement& tierEnforcement;
     MCPLogger& mcpLogger;
 
     std::atomic<bool> initialized { false };  // flips true after `initialize` succeeds

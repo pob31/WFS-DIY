@@ -48,6 +48,7 @@
 		94B254A659EFEC3CC830EB46 /* WebKit.framework */ = {isa = PBXBuildFile; fileRef = 77380EEA09673557990C6B7D; };
 		9540B1CD09211574E035FEA4 /* RecentFilesMenuTemplate.nib */ = {isa = PBXBuildFile; fileRef = C2A444C276327D0BCFA3510A; };
 		99BBB112459F918510B37CA3 /* OSCConnection.cpp */ = {isa = PBXBuildFile; fileRef = 1D4034F17218DC090D63347F; };
+		9BC4D1D56A87AD9A8AFBFB3E /* MCPTierEnforcement.cpp */ = {isa = PBXBuildFile; fileRef = 862CC5DB39C2F08818A69F65; };
 		A2337DCB65175FBFA039F9FE /* MCPPromptRegistry.cpp */ = {isa = PBXBuildFile; fileRef = CB719CCC35A4649AA69E0F11; };
 		A3B475BAAE5DA55369EA63CB /* OSCReceiverWithSenderIP.cpp */ = {isa = PBXBuildFile; fileRef = 52706EBD8973DFD0F1366FCF; };
 		A4CC09F2DA7E16C75D0C1C27 /* include_juce_events.mm */ = {isa = PBXBuildFile; fileRef = 1BD908F5EE15BCFED1F87F23; };
@@ -213,6 +214,7 @@
 		83CB49A396A11EA46FF029C1 /* include_juce_audio_processors_headless_lv2_libs.cpp */ /* include_juce_audio_processors_headless_lv2_libs.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_audio_processors_headless_lv2_libs.cpp; path = ../../JuceLibraryCode/include_juce_audio_processors_headless_lv2_libs.cpp; sourceTree = SOURCE_ROOT; };
 		8482C13D6FF8436DFD51EE09 /* Cocoa.framework */ /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		860EE861EDA4574D404FAFDE /* OutputsTabPages.h */ /* OutputsTabPages.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OutputsTabPages.h; path = ../../Source/Controllers/DialsAndButtons/pages/OutputsTabPages.h; sourceTree = SOURCE_ROOT; };
+		862CC5DB39C2F08818A69F65 /* MCPTierEnforcement.cpp */ /* MCPTierEnforcement.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPTierEnforcement.cpp; path = ../../Source/Network/MCP/MCPTierEnforcement.cpp; sourceTree = SOURCE_ROOT; };
 		86ACB563EE1E39D812C368F8 /* include_juce_audio_processors_headless.mm */ /* include_juce_audio_processors_headless.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_processors_headless.mm; path = ../../JuceLibraryCode/include_juce_audio_processors_headless.mm; sourceTree = SOURCE_ROOT; };
 		878AA473BBA4523BB5BAB723 /* OSCRateLimiter.cpp */ /* OSCRateLimiter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = OSCRateLimiter.cpp; path = ../../Source/Network/OSCRateLimiter.cpp; sourceTree = SOURCE_ROOT; };
 		88828B243F838905A44A3AE5 /* include_juce_audio_formats.mm */ /* include_juce_audio_formats.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_formats.mm; path = ../../JuceLibraryCode/include_juce_audio_formats.mm; sourceTree = SOURCE_ROOT; };
@@ -249,6 +251,7 @@
 		AC103C23CF134FD2779DDD03 /* CoreAudioKit.framework */ /* CoreAudioKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudioKit.framework; path = System/Library/Frameworks/CoreAudioKit.framework; sourceTree = SDKROOT; };
 		AD40E648FCB22B8740DDF334 /* MCPLogger.h */ /* MCPLogger.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MCPLogger.h; path = ../../Source/Network/MCP/MCPLogger.h; sourceTree = SOURCE_ROOT; };
 		AE1207ECC59B747C80031900 /* MainComponent.h */ /* MainComponent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MainComponent.h; path = ../../Source/MainComponent.h; sourceTree = SOURCE_ROOT; };
+		AFB92C46877EFCE92DA59E43 /* MCPTierEnforcement.h */ /* MCPTierEnforcement.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MCPTierEnforcement.h; path = ../../Source/Network/MCP/MCPTierEnforcement.h; sourceTree = SOURCE_ROOT; };
 		B2E5BB6DF397E59F6073DDFA /* WFSCalculationEngine.cpp */ /* WFSCalculationEngine.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = WFSCalculationEngine.cpp; path = ../../Source/DSP/WFSCalculationEngine.cpp; sourceTree = SOURCE_ROOT; };
 		B47B20DA63B9FB03BA3BB715 /* hidapi.h */ /* hidapi.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = hidapi.h; path = ../../ThirdParty/hidapi/hidapi/hidapi.h; sourceTree = SOURCE_ROOT; };
 		B660F4211F4C145BD3C3D28B /* OSCRateLimiter.h */ /* OSCRateLimiter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OSCRateLimiter.h; path = ../../Source/Network/OSCRateLimiter.h; sourceTree = SOURCE_ROOT; };
@@ -487,6 +490,8 @@
 				EF6BE4EEF00731F9E6446B7F,
 				01DEEF8130F51E978E2ACD0B,
 				121398B0860404537150E40A,
+				AFB92C46877EFCE92DA59E43,
+				862CC5DB39C2F08818A69F65,
 				1A1140E03F50B30810138601,
 				7E602E26466DEF84F54CDE94,
 				61BF71BE364DC6BB92C6264F,
@@ -874,6 +879,7 @@
 				E8BC3989FD19A883018F7871,
 				1857C192FEAF647C113090DF,
 				3EDA18ECB7D32E52399C58BF,
+				9BC4D1D56A87AD9A8AFBFB3E,
 				A635BD6A3E95AC90F1E59D1D,
 				40BAD216FC425C9199688DAB,
 				5E8F096DF4AFABE40A110930,

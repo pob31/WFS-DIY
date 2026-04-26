@@ -40,6 +40,7 @@ inline ToolDescriptor describe (WFSFileManager& fileManager)
                     "validate the name an operator/AI is asking about.";
     d.inputSchema   = buildListSchema();
     d.modifiesState = false;
+    d.tier        = 1;  // read-only
     d.handler = [&fileManager] (const juce::var&, ChangeRecord*) -> ToolResult
     {
         return list (fileManager);

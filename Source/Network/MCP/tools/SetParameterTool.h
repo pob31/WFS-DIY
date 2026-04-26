@@ -170,6 +170,7 @@ inline ToolDescriptor describe (WFSValueTreeState& state)
                     "Globals (stage/master/network/binaural) take no channel_id.";
     d.inputSchema   = buildSchema();
     d.modifiesState = true;
+    d.tier        = 2;  // bypasses range clamping — confirm before applying
     d.handler = [&state] (const juce::var& args, ChangeRecord* record) -> ToolResult
     {
         return set (state, args, record);
