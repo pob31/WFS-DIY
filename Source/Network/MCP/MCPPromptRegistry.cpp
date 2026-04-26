@@ -260,7 +260,7 @@ MCPPromptRegistry::MCPPromptRegistry()
         e.description = "Prepare the AI for a hands-busy voice-driven rehearsal: short "
                         "confirmations, spatial-language translation, tier-aware action gating.";
         e.arguments.push_back ({ "mode",
-                                 "Optional. One of: full_control (default — normal tier handling), "
+                                 "Optional. One of: full_control (default - normal tier handling), "
                                  "dry_run (all Tier 1 escalated to Tier 2; useful for learning), "
                                  "monitoring_only (describe actions without executing; useful for demos).",
                                  false });
