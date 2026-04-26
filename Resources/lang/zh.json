@@ -340,7 +340,7 @@
       "admLinkAll": "一次选择全部 6 个侧面进行统一编辑。",
       "admInnerWidth": "从中心到断点的物理范围（m）。",
       "admMapping": "选择要配置的 ADM-OSC 映射。Cart = 笛卡尔 (xyz)，Polar = 球坐标 (aed)。",
-      "admOuterWidth": "从断点到 \u00b11 的物理范围（m）。",
+      "admOuterWidth": "从断点到 ±1 的物理范围（m）。",
       "admMappingPanel": "Drag dots to edit mapping. Click axis title to swap, click Flip to invert. Hold Shift to edit both sides symmetrically.",
       "admSideSelect": "选择要编辑的侧面。更改同时应用于所有选中的侧面。",
       "admSignFlip": "反转传入轴值的符号。",
@@ -1722,7 +1722,6 @@
     "qlabSetCueCreated": "QLab提示已创建: 输入 {channel} 集 \"{name}\"",
     "guide": "Select a cell on the grid to edit its properties.\nDouble-click to load a sample.\nUse Ctrl+Click to assign cells to the active set."
   },
-
   "streamDeck": {
     "systemConfig": {
       "buttons": {
@@ -1781,10 +1780,8 @@
         "attenuationAndDelay": "Attenuation\n& Delay",
         "positionAndDirectivity": "Position &\nDirectivity",
         "positionAdvanced": "Position\nAdvanced",
-        "liveSourceBasics": "Live Source
-Basics",
-        "liveSourceCompression": "Live Source
-Compress.",
+        "liveSourceBasics": "Live Source\nBasics",
+        "liveSourceCompression": "Live Source\nCompress.",
         "hackoustics": "Hackoustics",
         "hackousticsContinued": "Hackoustics\n(continued)",
         "lfo": "LFO",
@@ -1806,14 +1803,10 @@ Compress.",
         "sideline": "Sideline",
         "tracking": "Tracking",
         "maxSpeed": "Max Speed",
-        "liveSourceTamer": "Live Source
-Tamer",
-        "floorReflections": "Floor
-Reflections",
-        "lowCutFilter": "Low Cut
-Filter",
-        "highShelfFilter": "High Shelf
-Filter",
+        "liveSourceTamer": "Live Source\nTamer",
+        "floorReflections": "Floor\nReflections",
+        "lowCutFilter": "Low Cut\nFilter",
+        "highShelfFilter": "High Shelf\nFilter",
         "sendToReverb": "Send to\nReverb",
         "lfoAndJitter": "LFO &\nJitter",
         "lfoX": "LFO X",
@@ -1822,9 +1815,9 @@ Filter",
         "absRel": "Abs / Rel",
         "stayReturn": "Stay /\nReturn",
         "manualTriggered": "Manual /\nTriggered",
-        "play": "\u25b6",
-        "pauseResume": "\u275a\u275a",
-        "stop": "\u25a0",
+        "play": "▶",
+        "pauseResume": "❚❚",
+        "stop": "■",
         "stopAll": "Stop All"
       },
       "dials": {
@@ -1844,33 +1837,24 @@ Filter",
         "heightFactor": "Height Factor",
         "shape": "Shape",
         "radius": "Radius",
-        "fixedAttenuation": "Fixed
-Attenuation",
-        "peakThreshold": "Peak
-Threshold",
+        "fixedAttenuation": "Fixed\nAttenuation",
+        "peakThreshold": "Peak\nThreshold",
         "peakRatio": "Peak Ratio",
-        "slowThreshold": "Slow
-Threshold",
+        "slowThreshold": "Slow\nThreshold",
         "slowRatio": "Slow Ratio",
-        "frAttenuation": "FR
-Attenuation",
+        "frAttenuation": "FR\nAttenuation",
         "frDiffusion": "FR Diffusion",
-        "lowCutFrequency": "Low Cut
-Frequency",
-        "highShelfFrequency": "High Shelf
-Frequency",
-        "highShelfGain": "High Shelf
-Gain",
+        "lowCutFrequency": "Low Cut\nFrequency",
+        "highShelfFrequency": "High Shelf\nFrequency",
+        "highShelfGain": "High Shelf\nGain",
         "highShelfSlope": "High Shelf\nSlope",
         "lfoPeriod": "Period",
         "lfoPhase": "Phase",
         "gyrophone": "Gyrophone",
         "jitter": "Jitter",
         "lfoToggle": "LFO",
-        "lfoOn": "LFO
-ON",
-        "lfoOff": "LFO
-OFF",
+        "lfoOn": "LFO\nON",
+        "lfoOff": "LFO\nOFF",
         "lfoShape": "Shape",
         "lfoAmplitude": "Amplitude",
         "lfoRate": "Rate",
@@ -1990,7 +1974,6 @@ OFF",
       }
     }
   },
-
   "help": {
     "binaural": {
       "title": "双耳渲染器",
@@ -2030,25 +2013,15 @@ OFF",
     },
     "reverb": {
       "title": "混响",
-      "body": "混响有助于模糊扬声器的实际反射。
-根据通道数和舞台形状放置混响节点。
-其他参数与输出和输入类似。"
+      "body": "混响有助于模糊扬声器的实际反射。\n根据通道数和舞台形状放置混响节点。\n其他参数与输出和输入类似。"
     },
     "reverbFeed": {
       "title": "混响馈送",
-      "body": "输入通道到混响节点的预处理发送。
-- 方向和On/Off角度定义每个节点接收的输入。
-- HF衰减模拟高频随距离的损失。
-- 距离衰减百分比定义应用的衰减。
-- 最小延迟切换是否使用最小计算延迟。
-- 现场声源衰减切换附近输入的电平降低。"
+      "body": "输入通道到混响节点的预处理发送。\n- 方向和On/Off角度定义每个节点接收的输入。\n- HF衰减模拟高频随距离的损失。\n- 距离衰减百分比定义应用的衰减。\n- 最小延迟切换是否使用最小计算延迟。\n- 现场声源衰减切换附近输入的电平降低。"
     },
     "reverbReturn": {
       "title": "混响返回",
-      "body": "到扬声器的后处理发送。
-- 距离衰减定义每米的电平下降。
-- 共同衰减保持最低衰减的百分比。
-- 静音防止混响通道馈送到输出。"
+      "body": "到扬声器的后处理发送。\n- 距离衰减定义每米的电平下降。\n- 共同衰减保持最低衰减的百分比。\n- 静音防止混响通道馈送到输出。"
     },
     "reverbAlgo": {
       "title": "混响算法",
@@ -2122,9 +2095,14 @@ OFF",
     "outputs": {
       "title": "WFS阵列设计",
       "body": "WFS系统的设计涉及正确选择设备及其定位。这是帮助您进行阵列设计和调谐的指南。\n阵列是一条（直线或弯曲的）扬声器线。这是WFS中最重要的概念之一。\n经验法则是每个听众应该听到阵列的三个扬声器，以获得足够的心理声学线索来感知每个声音的方向。扬声器与听众的距离、间距和覆盖角度之间存在最佳点。120°覆盖角的扬声器可以按阵列与第一排之间的相同距离间隔。数量还取决于声压级。作为飞行阵列，轴下宽角(120°)、轴上窄角(60°)的梯形/非对称号角将提供良好的覆盖和20-30m的到达距离，同时避免墙壁反射。同轴扬声器通常对大型场所没有足够的到达距离，需要延迟线。\n定位可以通过'Wizard of OutZ'及其可编辑预设完成。"
+    },
+    "mcp": {
+      "title": "AI / MCP Server",
+      "body": "The MCP server lets an AI assistant (Claude Desktop, Claude Code, ChatGPT with custom connectors) read and write the parameters of this WFS-DIY session over a local network connection.\n\nWhat the AI can do:\n• Read live state: channel counts, names, positions, attenuations, EQs, snapshots, clusters, the full parameter surface.\n• Move sources, rename channels, set cluster assignments, adjust the array layout, place outputs and reverbs.\n• Run guided workflows (system tuning walkthroughs, troubleshooting localization, snapshot management) via prepared prompt templates.\n\nOperator awareness:\n• Every AI action is recorded with origin tags. The AI History window (button on this row) shows the full timeline of AI changes; per-row × reverses an action with its dependents, the cursor walks through history sequentially.\n• If you manually adjust a parameter the AI just moved, the AI is notified and will not blindly retry. You always have the last word.\n• The Cmd/Ctrl+Alt+Z and Cmd/Ctrl+Alt+Y shortcuts undo and redo the last AI change without affecting your manual edits (which use plain Ctrl+Z as usual).\n\nTo add this server to Claude Desktop:\n  1. Open Settings → Developer → Edit Config.\n  2. Paste the JSON snippet below into claude_desktop_config.json (merge into the existing mcpServers block if you already have one).\n  3. Restart Claude Desktop. The server appears as 'wfs-diy' in the tools menu.\n\nTo add to Claude Code, run:\n  claude mcp add wfs-diy <url> -t http\n\nThe URL changes if you switch network interface or if the server falls back to a different port. The Copy URL button on this row always reflects the live URL.",
+      "copyButton": "Copy Config",
+      "copyConfirm": "MCP config JSON copied to clipboard"
     }
   },
-
   "wizard": {
     "buttons": {
       "gettingStarted": "入门指南",
@@ -2187,7 +2165,6 @@ OFF",
       }
     }
   },
-
   "updateBanner": {
     "available": "WFS-DIY v{version} 现已可用！",
     "download": "下载"

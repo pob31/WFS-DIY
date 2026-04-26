@@ -340,7 +340,7 @@
       "admLinkAll": "Selecionar todos os 6 lados de uma vez para edição uniforme.",
       "admInnerWidth": "Extensão física (m) do centro ao ponto de ruptura.",
       "admMapping": "Selecionar um mapeamento ADM-OSC para configurar. Cart = Cartesiano (xyz), Polar = esférico (aed).",
-      "admOuterWidth": "Extensão física (m) do ponto de ruptura a \u00b11.",
+      "admOuterWidth": "Extensão física (m) do ponto de ruptura a ±1.",
       "admMappingPanel": "Drag dots to edit mapping. Click axis title to swap, click Flip to invert. Hold Shift to edit both sides symmetrically.",
       "admSideSelect": "Selecionar lados para editar. As alterações se aplicam a todos os lados selecionados simultaneamente.",
       "admSignFlip": "Inverter o sinal do valor do eixo de entrada.",
@@ -1722,7 +1722,6 @@
     "qlabSetCueCreated": "Cue QLab criado: Entrada {channel} set \"{name}\"",
     "guide": "Select a cell on the grid to edit its properties.\nDouble-click to load a sample.\nUse Ctrl+Click to assign cells to the active set."
   },
-
   "streamDeck": {
     "systemConfig": {
       "buttons": {
@@ -1781,10 +1780,8 @@
         "attenuationAndDelay": "Attenuation\n& Delay",
         "positionAndDirectivity": "Position &\nDirectivity",
         "positionAdvanced": "Position\nAdvanced",
-        "liveSourceBasics": "Live Source
-Basics",
-        "liveSourceCompression": "Live Source
-Compress.",
+        "liveSourceBasics": "Live Source\nBasics",
+        "liveSourceCompression": "Live Source\nCompress.",
         "hackoustics": "Hackoustics",
         "hackousticsContinued": "Hackoustics\n(continued)",
         "lfo": "LFO",
@@ -1806,14 +1803,10 @@ Compress.",
         "sideline": "Sideline",
         "tracking": "Tracking",
         "maxSpeed": "Max Speed",
-        "liveSourceTamer": "Live Source
-Tamer",
-        "floorReflections": "Floor
-Reflections",
-        "lowCutFilter": "Low Cut
-Filter",
-        "highShelfFilter": "High Shelf
-Filter",
+        "liveSourceTamer": "Live Source\nTamer",
+        "floorReflections": "Floor\nReflections",
+        "lowCutFilter": "Low Cut\nFilter",
+        "highShelfFilter": "High Shelf\nFilter",
         "sendToReverb": "Send to\nReverb",
         "lfoAndJitter": "LFO &\nJitter",
         "lfoX": "LFO X",
@@ -1822,9 +1815,9 @@ Filter",
         "absRel": "Abs / Rel",
         "stayReturn": "Stay /\nReturn",
         "manualTriggered": "Manual /\nTriggered",
-        "play": "\u25b6",
-        "pauseResume": "\u275a\u275a",
-        "stop": "\u25a0",
+        "play": "▶",
+        "pauseResume": "❚❚",
+        "stop": "■",
         "stopAll": "Stop All"
       },
       "dials": {
@@ -1844,33 +1837,24 @@ Filter",
         "heightFactor": "Height Factor",
         "shape": "Shape",
         "radius": "Radius",
-        "fixedAttenuation": "Fixed
-Attenuation",
-        "peakThreshold": "Peak
-Threshold",
+        "fixedAttenuation": "Fixed\nAttenuation",
+        "peakThreshold": "Peak\nThreshold",
         "peakRatio": "Peak Ratio",
-        "slowThreshold": "Slow
-Threshold",
+        "slowThreshold": "Slow\nThreshold",
         "slowRatio": "Slow Ratio",
-        "frAttenuation": "FR
-Attenuation",
+        "frAttenuation": "FR\nAttenuation",
         "frDiffusion": "FR Diffusion",
-        "lowCutFrequency": "Low Cut
-Frequency",
-        "highShelfFrequency": "High Shelf
-Frequency",
-        "highShelfGain": "High Shelf
-Gain",
+        "lowCutFrequency": "Low Cut\nFrequency",
+        "highShelfFrequency": "High Shelf\nFrequency",
+        "highShelfGain": "High Shelf\nGain",
         "highShelfSlope": "High Shelf\nSlope",
         "lfoPeriod": "Period",
         "lfoPhase": "Phase",
         "gyrophone": "Gyrophone",
         "jitter": "Jitter",
         "lfoToggle": "LFO",
-        "lfoOn": "LFO
-ON",
-        "lfoOff": "LFO
-OFF",
+        "lfoOn": "LFO\nON",
+        "lfoOff": "LFO\nOFF",
         "lfoShape": "Shape",
         "lfoAmplitude": "Amplitude",
         "lfoRate": "Rate",
@@ -1990,7 +1974,6 @@ OFF",
       }
     }
   },
-
   "help": {
     "overview": {
       "title": "Visão geral do sistema",
@@ -2055,25 +2038,15 @@ OFF",
     },
     "reverb": {
       "title": "Reverberação",
-      "body": "A reverberação ajuda a difundir as reflexões dos alto-falantes.
-Posicione os nós de acordo com a geometria do palco.
-Outros parâmetros são semelhantes aos de Saídas e Entradas."
+      "body": "A reverberação ajuda a difundir as reflexões dos alto-falantes.\nPosicione os nós de acordo com a geometria do palco.\nOutros parâmetros são semelhantes aos de Saídas e Entradas."
     },
     "reverbFeed": {
       "title": "Alimentação de Reverberação",
-      "body": "Envio de pré-processamento dos canais de entrada para os nós.
-- Orientação e ângulos On/Off definem quais entradas cada nó recebe.
-- Amortecimento HF simula a perda de alta frequência.
-- Percentagem de atenuação de distância define a atenuação aplicada.
-- Latência mínima determina se o menor atraso é usado.
-- Atenuação de fonte ao vivo reduz o nível de entradas próximas."
+      "body": "Envio de pré-processamento dos canais de entrada para os nós.\n- Orientação e ângulos On/Off definem quais entradas cada nó recebe.\n- Amortecimento HF simula a perda de alta frequência.\n- Percentagem de atenuação de distância define a atenuação aplicada.\n- Latência mínima determina se o menor atraso é usado.\n- Atenuação de fonte ao vivo reduz o nível de entradas próximas."
     },
     "reverbReturn": {
       "title": "Retorno de Reverberação",
-      "body": "Pós-processamento enviado aos alto-falantes.
-- Atenuação de Distância define a queda de nível por metro.
-- Atenuação Comum mantém uma percentagem da menor atenuação.
-- Mutes impedem um canal de reverberação de alimentar uma saída."
+      "body": "Pós-processamento enviado aos alto-falantes.\n- Atenuação de Distância define a queda de nível por metro.\n- Atenuação Comum mantém uma percentagem da menor atenuação.\n- Mutes impedem um canal de reverberação de alimentar uma saída."
     },
     "reverbAlgo": {
       "title": "Algoritmos de Reverberação",
@@ -2122,9 +2095,14 @@ Outros parâmetros são semelhantes aos de Saídas e Entradas."
     "admOsc": {
       "title": "Mapeamentos ADM-OSC",
       "body": "ADM-OSC é um protocolo que visa melhorar a interoperabilidade do som espacial. Envia posições cartesianas (X, Y, Z) ou valores polares (AED para Azimute, Elevação, Distância) do console ou das curvas de automação de uma DAW.\nOs dados são enviados normalizados:\n- entre -1.0 e 1.0 para X, Y e Z;\n- entre 0.0 e 1.0 para distância,\n- entre -180° e 180° para Azimute\n- entre -90° e 90° para elevação.\nO ponto de origem pode ser movido e o mapeamento pode ser ajustado em diferentes segmentos para as partes interna e externa do palco.\nAo arrastar as alças nos gráficos, segurar a tecla Shift aplica ajustes simétricos no lado oposto."
+    },
+    "mcp": {
+      "title": "AI / MCP Server",
+      "body": "The MCP server lets an AI assistant (Claude Desktop, Claude Code, ChatGPT with custom connectors) read and write the parameters of this WFS-DIY session over a local network connection.\n\nWhat the AI can do:\n• Read live state: channel counts, names, positions, attenuations, EQs, snapshots, clusters, the full parameter surface.\n• Move sources, rename channels, set cluster assignments, adjust the array layout, place outputs and reverbs.\n• Run guided workflows (system tuning walkthroughs, troubleshooting localization, snapshot management) via prepared prompt templates.\n\nOperator awareness:\n• Every AI action is recorded with origin tags. The AI History window (button on this row) shows the full timeline of AI changes; per-row × reverses an action with its dependents, the cursor walks through history sequentially.\n• If you manually adjust a parameter the AI just moved, the AI is notified and will not blindly retry. You always have the last word.\n• The Cmd/Ctrl+Alt+Z and Cmd/Ctrl+Alt+Y shortcuts undo and redo the last AI change without affecting your manual edits (which use plain Ctrl+Z as usual).\n\nTo add this server to Claude Desktop:\n  1. Open Settings → Developer → Edit Config.\n  2. Paste the JSON snippet below into claude_desktop_config.json (merge into the existing mcpServers block if you already have one).\n  3. Restart Claude Desktop. The server appears as 'wfs-diy' in the tools menu.\n\nTo add to Claude Code, run:\n  claude mcp add wfs-diy <url> -t http\n\nThe URL changes if you switch network interface or if the server falls back to a different port. The Copy URL button on this row always reflects the live URL.",
+      "copyButton": "Copy Config",
+      "copyConfirm": "MCP config JSON copied to clipboard"
     }
   },
-
   "wizard": {
     "buttons": {
       "gettingStarted": "Começar",
@@ -2187,7 +2165,6 @@ Outros parâmetros são semelhantes aos de Saídas e Entradas."
       }
     }
   },
-
   "updateBanner": {
     "available": "WFS-DIY v{version} está disponível!",
     "download": "Baixar"

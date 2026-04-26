@@ -1752,6 +1752,21 @@ public:
         trackingHelpCard.setContent(LOC("help.tracking.title"), LOC("help.tracking.body"));
         trackingHelpButton.setCard(&trackingHelpCard);
 
+        // MCP Server Help Card — describes the AI integration and the JSON
+        // snippet to add to a desktop AI client's config file. The card's
+        // code block is refreshed with the live URL whenever the server
+        // status updates (see refreshMCPHelpCardCode below + setMCPServer).
+        addAndMakeVisible(mcpHelpButton);
+        addChildComponent(mcpHelpCard);
+        mcpHelpCard.setContent(LOC("help.mcp.title"), LOC("help.mcp.body"));
+        mcpHelpCard.setCodeBlock(buildMCPConfigJson(), LOC("help.mcp.copyButton"));
+        mcpHelpCard.onCopyClicked = [this]() {
+            juce::SystemClipboard::copyTextToClipboard(buildMCPConfigJson());
+            if (statusBar != nullptr)
+                statusBar->showTemporaryMessage(LOC("help.mcp.copyConfirm"), 2500);
+        };
+        mcpHelpButton.setCard(&mcpHelpCard);
+
         // ==================== TRACKING SECTION ====================
         setupTrackingSection();
 
@@ -1936,6 +1951,36 @@ public:
                                            ColorScheme::get().textSecondary);
         }
         mcpCopyUrlButton.setEnabled(running);
+
+        // Refresh the help card's code block with the current URL — the
+        // bound port may have changed (port-fallback) and the help text
+        // should reflect what Copy URL actually puts on the clipboard.
+        mcpHelpCard.setCodeBlock(buildMCPConfigJson(), LOC("help.mcp.copyButton"));
+    }
+
+    /** Build the MCP config JSON snippet that operators paste into their
+        AI client's config file. URL is sourced live from the running
+        server; falls back to a placeholder when the server isn't up yet. */
+    juce::String buildMCPConfigJson() const
+    {
+        juce::String url;
+        if (mcpServer != nullptr && mcpServer->isRunning())
+        {
+            url = "http://127.0.0.1:"
+                + juce::String(mcpServer->getBoundPort()) + "/mcp";
+        }
+        else
+        {
+            url = "http://127.0.0.1:7400/mcp";
+        }
+
+        return juce::String("{\n")
+             + "  \"mcpServers\": {\n"
+             + "    \"wfs-diy\": {\n"
+             + "      \"url\": \"" + url + "\"\n"
+             + "    }\n"
+             + "  }\n"
+             + "}";
     }
 
     void paint(juce::Graphics& g) override
@@ -2029,19 +2074,6 @@ public:
         oscQueryEnableButton.setBounds(leftX + portGroupWidth * 2 + portLabelW + scaled(55), leftY, portLabelW, rowHeight);
         leftY += rowHeight + spacing;
 
-        // --- MCP Server row ---
-        const int mcpLabelW    = scaled(95);
-        const int mcpStatusW   = scaled(220);
-        const int mcpButtonW   = scaled(95);
-        const int mcpButtonGap = scaled(4);
-        mcpServerLabel.setBounds       (leftX, leftY, mcpLabelW, rowHeight);
-        mcpServerStatusLabel.setBounds (leftX + mcpLabelW, leftY, mcpStatusW, rowHeight);
-        mcpCopyUrlButton.setBounds     (leftX + mcpLabelW + mcpStatusW + scaled(8),
-                                        leftY, mcpButtonW, rowHeight);
-        mcpOpenLogButton.setBounds     (leftX + mcpLabelW + mcpStatusW + scaled(8) + mcpButtonW + mcpButtonGap,
-                                        leftY, scaled(115), rowHeight);
-        leftY += rowHeight + sectionSpacing;
-
         // --- Network Connections Table ---
         networkConnectionsSectionY = leftY;
 
@@ -2125,6 +2157,30 @@ public:
         findMyRemoteButton.setBounds(leftX + tableButtonWidth * 2 + tableButtonGap * 2, leftY, tableButtonWidth, rowHeight);
         leftY += rowHeight + spacing;
 
+        // --- MCP Server row ---
+        // Sits below the network-connections buttons so the bottom-anchored
+        // network help card (which covers the connections table) doesn't
+        // also cover the MCP status. The MCP help card is dedicated to this
+        // row, with a (?) button anchored to its right edge.
+        leftY += scaled(35);  // Visual breathing room — matches the gap above the buttons
+        {
+            const int mcpLabelW    = scaled(95);
+            const int mcpStatusW   = scaled(220);
+            const int mcpButtonW   = scaled(95);
+            const int mcpButtonGap = scaled(4);
+            const int helpBtnSize  = scaled(20);
+            mcpServerLabel.setBounds       (leftX, leftY, mcpLabelW, rowHeight);
+            mcpServerStatusLabel.setBounds (leftX + mcpLabelW, leftY, mcpStatusW, rowHeight);
+            mcpCopyUrlButton.setBounds     (leftX + mcpLabelW + mcpStatusW + scaled(8),
+                                            leftY, mcpButtonW, rowHeight);
+            mcpOpenLogButton.setBounds     (leftX + mcpLabelW + mcpStatusW + scaled(8) + mcpButtonW + mcpButtonGap,
+                                            leftY, scaled(115), rowHeight);
+            mcpHelpButton.setBounds        (leftX + leftColumnWidth - helpBtnSize,
+                                            leftY + (rowHeight - helpBtnSize) / 2,
+                                            helpBtnSize, helpBtnSize);
+        }
+        leftY += rowHeight + spacing;
+
         // Help cards — bottom of left column, below connection buttons
         {
             int cardW = leftColumnWidth;
@@ -2132,9 +2188,11 @@ public:
             int netCardH = networkHelpCard.getIdealHeight(cardW);
             int admCardH = admOscHelpCard.getIdealHeight(cardW);
             int trkCardH = trackingHelpCard.getIdealHeight(cardW);
+            int mcpCardH = mcpHelpCard.getIdealHeight(cardW);
             networkHelpCard.setBounds(leftX, bottomY - netCardH, cardW, netCardH);
             admOscHelpCard.setBounds(leftX, bottomY - admCardH, cardW, admCardH);
             trackingHelpCard.setBounds(leftX, bottomY - trkCardH, cardW, trkCardH);
+            mcpHelpCard.setBounds   (leftX, bottomY - mcpCardH, cardW, mcpCardH);
         }
 
         // ==================== RIGHT COLUMN: TRACKING & ADM-OSC ====================
@@ -2330,7 +2388,7 @@ public:
 
     std::vector<HelpCardButton*> getVisibleHelpButtons() override
     {
-        return { &networkHelpButton, &trackingHelpButton, &admOscHelpButton };
+        return { &networkHelpButton, &trackingHelpButton, &admOscHelpButton, &mcpHelpButton };
     }
 
 private:
@@ -2451,6 +2509,8 @@ private:
     HelpCard networkHelpCard;
     HelpCardButton trackingHelpButton;
     HelpCard trackingHelpCard;
+    HelpCardButton mcpHelpButton;
+    HelpCard mcpHelpCard;
 
     // Tracking Section
     juce::TextButton trackingEnabledButton;
@@ -2910,6 +2970,7 @@ private:
         networkHelpButton.addMouseListener(this, false);
         trackingHelpButton.addMouseListener(this, false);
         admOscHelpButton.addMouseListener(this, false);
+        mcpHelpButton.addMouseListener(this, false);
 
         // ==================== NETWORK SECTION ====================
         networkInterfaceLabel.addMouseListener(this, false);
@@ -4338,6 +4399,7 @@ private:
         if (source == &networkHelpButton) helpText = LOC("help.network.title");
         else if (source == &trackingHelpButton) helpText = LOC("help.tracking.title");
         else if (source == &admOscHelpButton) helpText = LOC("help.admOsc.title");
+        else if (source == &mcpHelpButton) helpText = LOC("help.mcp.title");
 
         // Update status bar and TTS
         if (helpText.isNotEmpty())

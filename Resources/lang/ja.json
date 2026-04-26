@@ -1684,7 +1684,6 @@
     "qlabSetCueCreated": "QLabキュー作成: 入力 {channel} セット \"{name}\"",
     "guide": "Select a cell on the grid to edit its properties.\nDouble-click to load a sample.\nUse Ctrl+Click to assign cells to the active set."
   },
-
   "streamDeck": {
     "systemConfig": {
       "buttons": {
@@ -1743,10 +1742,8 @@
         "attenuationAndDelay": "Attenuation\n& Delay",
         "positionAndDirectivity": "Position &\nDirectivity",
         "positionAdvanced": "Position\nAdvanced",
-        "liveSourceBasics": "Live Source
-Basics",
-        "liveSourceCompression": "Live Source
-Compress.",
+        "liveSourceBasics": "Live Source\nBasics",
+        "liveSourceCompression": "Live Source\nCompress.",
         "hackoustics": "Hackoustics",
         "hackousticsContinued": "Hackoustics\n(continued)",
         "lfo": "LFO",
@@ -1768,14 +1765,10 @@ Compress.",
         "sideline": "Sideline",
         "tracking": "Tracking",
         "maxSpeed": "Max Speed",
-        "liveSourceTamer": "Live Source
-Tamer",
-        "floorReflections": "Floor
-Reflections",
-        "lowCutFilter": "Low Cut
-Filter",
-        "highShelfFilter": "High Shelf
-Filter",
+        "liveSourceTamer": "Live Source\nTamer",
+        "floorReflections": "Floor\nReflections",
+        "lowCutFilter": "Low Cut\nFilter",
+        "highShelfFilter": "High Shelf\nFilter",
         "sendToReverb": "Send to\nReverb",
         "lfoAndJitter": "LFO &\nJitter",
         "lfoX": "LFO X",
@@ -1784,9 +1777,9 @@ Filter",
         "absRel": "Abs / Rel",
         "stayReturn": "Stay /\nReturn",
         "manualTriggered": "Manual /\nTriggered",
-        "play": "\u25b6",
-        "pauseResume": "\u275a\u275a",
-        "stop": "\u25a0",
+        "play": "▶",
+        "pauseResume": "❚❚",
+        "stop": "■",
         "stopAll": "Stop All"
       },
       "dials": {
@@ -1806,33 +1799,24 @@ Filter",
         "heightFactor": "Height Factor",
         "shape": "Shape",
         "radius": "Radius",
-        "fixedAttenuation": "Fixed
-Attenuation",
-        "peakThreshold": "Peak
-Threshold",
+        "fixedAttenuation": "Fixed\nAttenuation",
+        "peakThreshold": "Peak\nThreshold",
         "peakRatio": "Peak Ratio",
-        "slowThreshold": "Slow
-Threshold",
+        "slowThreshold": "Slow\nThreshold",
         "slowRatio": "Slow Ratio",
-        "frAttenuation": "FR
-Attenuation",
+        "frAttenuation": "FR\nAttenuation",
         "frDiffusion": "FR Diffusion",
-        "lowCutFrequency": "Low Cut
-Frequency",
-        "highShelfFrequency": "High Shelf
-Frequency",
-        "highShelfGain": "High Shelf
-Gain",
+        "lowCutFrequency": "Low Cut\nFrequency",
+        "highShelfFrequency": "High Shelf\nFrequency",
+        "highShelfGain": "High Shelf\nGain",
         "highShelfSlope": "High Shelf\nSlope",
         "lfoPeriod": "Period",
         "lfoPhase": "Phase",
         "gyrophone": "Gyrophone",
         "jitter": "Jitter",
         "lfoToggle": "LFO",
-        "lfoOn": "LFO
-ON",
-        "lfoOff": "LFO
-OFF",
+        "lfoOn": "LFO\nON",
+        "lfoOff": "LFO\nOFF",
         "lfoShape": "Shape",
         "lfoAmplitude": "Amplitude",
         "lfoRate": "Rate",
@@ -1952,7 +1936,6 @@ OFF",
       }
     }
   },
-
   "help": {
     "overview": {
       "title": "システム概要",
@@ -2017,25 +2000,15 @@ OFF",
     },
     "reverb": {
       "title": "リバーブ",
-      "body": "リバーブはスピーカーの実際の反射を曖昧にするのに役立ちます。
-チャンネル数とステージの形状に応じてリバーブノードを配置します。
-その他のパラメータは出力と入力に似ています。"
+      "body": "リバーブはスピーカーの実際の反射を曖昧にするのに役立ちます。\nチャンネル数とステージの形状に応じてリバーブノードを配置します。\nその他のパラメータは出力と入力に似ています。"
     },
     "reverbFeed": {
       "title": "リバーブフィード",
-      "body": "入力チャンネルからリバーブノードへの前処理送信。
-- 方向とOn/Off角度が各ノードが受信する入力を定義します。
-- HF減衰は距離による高周波損失をシミュレートします。
-- 距離減衰率は適用される減衰を定義します。
-- 最小レイテンシは最小計算遅延の使用を切り替えます。
-- ライブソース減衰は近くの入力のレベル低減を切り替えます。"
+      "body": "入力チャンネルからリバーブノードへの前処理送信。\n- 方向とOn/Off角度が各ノードが受信する入力を定義します。\n- HF減衰は距離による高周波損失をシミュレートします。\n- 距離減衰率は適用される減衰を定義します。\n- 最小レイテンシは最小計算遅延の使用を切り替えます。\n- ライブソース減衰は近くの入力のレベル低減を切り替えます。"
     },
     "reverbReturn": {
       "title": "リバーブリターン",
-      "body": "スピーカーへの後処理送信。
-- 距離減衰はメートルあたりのレベル低下を定義します。
-- 共通減衰は最低減衰のパーセンテージを維持します。
-- ミュートはリバーブチャンネルが出力に送られるのを防ぎます。"
+      "body": "スピーカーへの後処理送信。\n- 距離減衰はメートルあたりのレベル低下を定義します。\n- 共通減衰は最低減衰のパーセンテージを維持します。\n- ミュートはリバーブチャンネルが出力に送られるのを防ぎます。"
     },
     "reverbAlgo": {
       "title": "リバーブアルゴリズム",
@@ -2084,9 +2057,14 @@ OFF",
     "admOsc": {
       "title": "ADM-OSCマッピング",
       "body": "ADM-OSCは空間音響の相互運用性を向上させるプロトコルです。コンソールやDAWのオートメーションカーブからデカルト座標（X, Y, Z）または極座標値（AED：方位角、仰角、距離）を送信します。\nデータは正規化されて送信されます：\n- X、Y、Zは-1.0から1.0の間\n- 距離は0.0から1.0の間\n- 方位角は-180°から180°の間\n- 仰角は-90°から90°の間\n原点を移動でき、マッピングはステージの内側と外側で異なるセグメントに調整できます。\nグラフのハンドルをドラッグする際、Shiftキーを押すと反対側に対称的な調整が適用されます。"
+    },
+    "mcp": {
+      "title": "AI / MCP Server",
+      "body": "The MCP server lets an AI assistant (Claude Desktop, Claude Code, ChatGPT with custom connectors) read and write the parameters of this WFS-DIY session over a local network connection.\n\nWhat the AI can do:\n• Read live state: channel counts, names, positions, attenuations, EQs, snapshots, clusters, the full parameter surface.\n• Move sources, rename channels, set cluster assignments, adjust the array layout, place outputs and reverbs.\n• Run guided workflows (system tuning walkthroughs, troubleshooting localization, snapshot management) via prepared prompt templates.\n\nOperator awareness:\n• Every AI action is recorded with origin tags. The AI History window (button on this row) shows the full timeline of AI changes; per-row × reverses an action with its dependents, the cursor walks through history sequentially.\n• If you manually adjust a parameter the AI just moved, the AI is notified and will not blindly retry. You always have the last word.\n• The Cmd/Ctrl+Alt+Z and Cmd/Ctrl+Alt+Y shortcuts undo and redo the last AI change without affecting your manual edits (which use plain Ctrl+Z as usual).\n\nTo add this server to Claude Desktop:\n  1. Open Settings → Developer → Edit Config.\n  2. Paste the JSON snippet below into claude_desktop_config.json (merge into the existing mcpServers block if you already have one).\n  3. Restart Claude Desktop. The server appears as 'wfs-diy' in the tools menu.\n\nTo add to Claude Code, run:\n  claude mcp add wfs-diy <url> -t http\n\nThe URL changes if you switch network interface or if the server falls back to a different port. The Copy URL button on this row always reflects the live URL.",
+      "copyButton": "Copy Config",
+      "copyConfirm": "MCP config JSON copied to clipboard"
     }
   },
-
   "wizard": {
     "buttons": {
       "gettingStarted": "はじめに",
@@ -2149,7 +2127,6 @@ OFF",
       }
     }
   },
-
   "updateBanner": {
     "available": "WFS-DIY v{version} が利用可能です！",
     "download": "ダウンロード"
