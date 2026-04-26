@@ -35,7 +35,8 @@ public:
 
     MCPServer (WFSValueTreeState& state,
                WFSFileManager& fileManager,
-               OSCLogger& networkLogger);
+               OSCLogger& networkLogger,
+               const juce::File& generatedToolsJson);
     ~MCPServer();
 
     /** Start listening on the given port. Returns true if the listener

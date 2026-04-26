@@ -2,6 +2,7 @@
 #include "../OSCLogger.h"
 #include "../../Parameters/WFSValueTreeState.h"
 #include "../../Parameters/WFSFileManager.h"
+#include "MCPGeneratedToolLoader.h"
 #include "tools/SessionTools.h"
 #include "tools/InputTools.h"
 #include "tools/SnapshotTools.h"
@@ -12,7 +13,8 @@ namespace WFSNetwork
 
 MCPServer::MCPServer (WFSValueTreeState& state,
                       WFSFileManager& fileMgr,
-                      OSCLogger& networkLogger)
+                      OSCLogger& networkLogger,
+                      const juce::File& generatedToolsJson)
     : valueTreeState (state),
       fileManager (fileMgr)
 {
@@ -22,8 +24,15 @@ MCPServer::MCPServer (WFSValueTreeState& state,
     dispatcher    = std::make_unique<MCPDispatcher> (state, *registry, *changeRecords, *mcpLogger);
     transport     = std::make_unique<MCPTransport> (*mcpLogger);
 
-    // Register the five hand-written Phase 1 tools. Phase 2 will register
-    // the auto-generated tools on top of these.
+    // Phase 2 — register the auto-generated tool surface FIRST. The
+    // hand-written tools registered below silently overwrite by name,
+    // so when a Phase-1 hand-written tool collides with a generated one
+    // (input.set_attenuation today), the hand-written version wins
+    // (preserves its richer operator description).
+    Tools::Generated::loadGeneratedTools (*registry, state, generatedToolsJson, *mcpLogger);
+
+    // Phase 1 hand-written tools — registered after the generated set so
+    // that any name collision keeps the hand-written variant.
     registry->registerTool (Tools::Session::describe (state));
     registry->registerTool (Tools::Input::describeSetName (state));
     registry->registerTool (Tools::Input::describeSetCartesian (state));

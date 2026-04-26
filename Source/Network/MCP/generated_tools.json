@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-25T21:38:40Z",
+  "generated_at": "2026-04-26T11:03:36Z",
   "ignored_parameters": [
     {
       "csv_file": "WFS-UI_audioPatch.csv",
@@ -42,6 +42,31 @@
       "variable": "rows"
     },
     {
+      "csv_file": "WFS-UI_config.csv",
+      "reason": "No C++ ValueTree backing yet (controller selection is UI-side)",
+      "variable": "DialsAndButtonsDevice"
+    },
+    {
+      "csv_file": "WFS-UI_config.csv",
+      "reason": "No C++ ValueTree backing yet (controller selection is UI-side)",
+      "variable": "PositionControlDevice"
+    },
+    {
+      "csv_file": "WFS-UI_config.csv",
+      "reason": "No C++ ValueTree backing yet (processor selection is UI-side)",
+      "variable": "ProcessingAlgorithm"
+    },
+    {
+      "csv_file": "WFS-UI_config.csv",
+      "reason": "No C++ ValueTree backing yet (processor enable is UI-side)",
+      "variable": "ProcessingEnabled"
+    },
+    {
+      "csv_file": "WFS-UI_config.csv",
+      "reason": "Operator task: project folder is set via dialog, not parameter write",
+      "variable": "ProjectFolder"
+    },
+    {
       "csv_file": "WFS-UI_input.csv",
       "reason": "non-parameter UI row (UI='')",
       "variable": "JoystickXY"
@@ -68,6 +93,51 @@
     },
     {
       "csv_file": "WFS-UI_input.csv",
+      "reason": "Spherical display mode; offset stored as XYZ",
+      "variable": "inputOffsetPhi"
+    },
+    {
+      "csv_file": "WFS-UI_input.csv",
+      "reason": "Cylindrical/spherical display mode; offset stored as XYZ",
+      "variable": "inputOffsetR"
+    },
+    {
+      "csv_file": "WFS-UI_input.csv",
+      "reason": "Spherical display mode; offset stored as XYZ",
+      "variable": "inputOffsetRsph"
+    },
+    {
+      "csv_file": "WFS-UI_input.csv",
+      "reason": "Cylindrical/spherical display mode; offset stored as XYZ",
+      "variable": "inputOffsetTheta"
+    },
+    {
+      "csv_file": "WFS-UI_input.csv",
+      "reason": "Spherical display mode; position stored as XYZ",
+      "variable": "inputPositionPhi"
+    },
+    {
+      "csv_file": "WFS-UI_input.csv",
+      "reason": "Cylindrical/spherical display mode; position stored as XYZ — use input.position.set_x/y/z",
+      "variable": "inputPositionR"
+    },
+    {
+      "csv_file": "WFS-UI_input.csv",
+      "reason": "Spherical display mode; position stored as XYZ",
+      "variable": "inputPositionRsph"
+    },
+    {
+      "csv_file": "WFS-UI_input.csv",
+      "reason": "Cylindrical/spherical display mode; position stored as XYZ",
+      "variable": "inputPositionTheta"
+    },
+    {
+      "csv_file": "WFS-UI_input.csv",
+      "reason": "UI-only selection state, no ValueTree backing",
+      "variable": "inputSelected"
+    },
+    {
+      "csv_file": "WFS-UI_input.csv",
       "reason": "non-parameter UI row (UI='(internal)')",
       "variable": "samplerSetCells"
     },
@@ -84,10 +154,20 @@
     {
       "csv_file": "WFS-UI_output.csv",
       "reason": "non-parameter UI row (UI='Band toggle')",
-      "variable": "outputEQshape<band>"
+      "variable": "eqShape<band>"
+    },
+    {
+      "csv_file": "WFS-UI_output.csv",
+      "reason": "UI-only selection state, no ValueTree backing",
+      "variable": "outputSelected"
+    },
+    {
+      "csv_file": "WFS-UI_reverb.csv",
+      "reason": "UI-only selection state, no ValueTree backing",
+      "variable": "reverbSelected"
     }
   ],
-  "input_hash": "16799a97c930ae3395af08d15a2e05ceb24f597d1d277501f427ceea44009840",
+  "input_hash": "10f03c39f5360061caa1059db85115a28c6f4f86b3dae7a99307e5f3f5e20213",
   "nudge_tools": [
     {
       "csv_section": "Attenuation",
@@ -1692,44 +1772,6 @@
       "internal_osc_path": "/wfs/input/maxSpeed",
       "internal_variable": "inputMaxSpeed",
       "name": "input.nudge_max_speed",
-      "parameters": {
-        "properties": {
-          "amount": {
-            "default": 1.0,
-            "description": "Step size.",
-            "type": "number"
-          },
-          "direction": {
-            "description": "Direction of the relative step.",
-            "enum": [
-              "inc",
-              "dec"
-            ],
-            "type": "string"
-          },
-          "input_id": {
-            "description": "Input channel number (1-based).",
-            "maximum": 64,
-            "minimum": 1,
-            "type": "integer"
-          }
-        },
-        "required": [
-          "input_id",
-          "direction"
-        ],
-        "type": "object"
-      },
-      "supports_relative": true,
-      "tier": 1
-    },
-    {
-      "csv_section": "Input",
-      "description": "Relative-adjustment variant of `input.set_selected`. Sends an `inc` or `dec` step.",
-      "group_key": "input",
-      "internal_osc_path": "/wfs/input/selected",
-      "internal_variable": "inputSelected",
-      "name": "input.nudge_selected",
       "parameters": {
         "properties": {
           "amount": {
@@ -6562,134 +6604,6 @@
     },
     {
       "csv_section": "Position",
-      "description": "Offset Elevation. Value in °. Enum: Virtual param - converts to Offset X/Y/Z internally. Use `session.get_state()` first if unsure which channels exist.",
-      "group_key": "input_position",
-      "internal_osc_path": "",
-      "internal_variable": "inputOffsetPhi",
-      "name": "input.position.set_offset_phi",
-      "parameters": {
-        "properties": {
-          "input_id": {
-            "description": "Input channel number (1-based).",
-            "maximum": 64,
-            "minimum": 1,
-            "type": "integer"
-          },
-          "value": {
-            "description": "Offset Elevation (enum).",
-            "enum": [
-              "VirtualparamconvertstoOffsetXYZinternally"
-            ],
-            "type": "string"
-          }
-        },
-        "required": [
-          "input_id",
-          "value"
-        ],
-        "type": "object"
-      },
-      "supports_relative": false,
-      "tier": 1
-    },
-    {
-      "csv_section": "Position",
-      "description": "Offset Radius. Value in m. Enum: Virtual param - converts to Offset X/Y internally. Use `session.get_state()` first if unsure which channels exist.",
-      "group_key": "input_position",
-      "internal_osc_path": "",
-      "internal_variable": "inputOffsetR",
-      "name": "input.position.set_offset_r",
-      "parameters": {
-        "properties": {
-          "input_id": {
-            "description": "Input channel number (1-based).",
-            "maximum": 64,
-            "minimum": 1,
-            "type": "integer"
-          },
-          "value": {
-            "description": "Offset Radius (enum).",
-            "enum": [
-              "VirtualparamconvertstoOffsetXYinternally"
-            ],
-            "type": "string"
-          }
-        },
-        "required": [
-          "input_id",
-          "value"
-        ],
-        "type": "object"
-      },
-      "supports_relative": false,
-      "tier": 1
-    },
-    {
-      "csv_section": "Position",
-      "description": "Offset Radius 3D. Value in m. Enum: Virtual param - converts to Offset X/Y/Z internally. Use `session.get_state()` first if unsure which channels exist.",
-      "group_key": "input_position",
-      "internal_osc_path": "",
-      "internal_variable": "inputOffsetRsph",
-      "name": "input.position.set_offset_r_spherical",
-      "parameters": {
-        "properties": {
-          "input_id": {
-            "description": "Input channel number (1-based).",
-            "maximum": 64,
-            "minimum": 1,
-            "type": "integer"
-          },
-          "value": {
-            "description": "Offset Radius 3D (enum).",
-            "enum": [
-              "VirtualparamconvertstoOffsetXYZinternally"
-            ],
-            "type": "string"
-          }
-        },
-        "required": [
-          "input_id",
-          "value"
-        ],
-        "type": "object"
-      },
-      "supports_relative": false,
-      "tier": 1
-    },
-    {
-      "csv_section": "Position",
-      "description": "Offset Azimuth. Value in °. Enum: Virtual param - converts to Offset X/Y internally. Use `session.get_state()` first if unsure which channels exist.",
-      "group_key": "input_position",
-      "internal_osc_path": "",
-      "internal_variable": "inputOffsetTheta",
-      "name": "input.position.set_offset_theta",
-      "parameters": {
-        "properties": {
-          "input_id": {
-            "description": "Input channel number (1-based).",
-            "maximum": 64,
-            "minimum": 1,
-            "type": "integer"
-          },
-          "value": {
-            "description": "Offset Azimuth (enum).",
-            "enum": [
-              "VirtualparamconvertstoOffsetXYinternally"
-            ],
-            "type": "string"
-          }
-        },
-        "required": [
-          "input_id",
-          "value"
-        ],
-        "type": "object"
-      },
-      "supports_relative": false,
-      "tier": 1
-    },
-    {
-      "csv_section": "Position",
       "description": "Object Position Offset in Width. Adjusted when Tracking is Enabled. Value in m. Optional `transition_seconds` argument for smooth interpolation. Use `session.get_state()` first if unsure which channels exist.",
       "group_key": "input_position",
       "internal_osc_path": "/wfs/input/offsetX",
@@ -6803,134 +6717,6 @@
       },
       "relative_tool_name": "input.position.nudge_offset_z",
       "supports_relative": true,
-      "tier": 1
-    },
-    {
-      "csv_section": "Position",
-      "description": "Position Elevation. Value in °. Enum: Virtual param - converts to X/Y/Z internally. 0°=horizontal, 90°=up. Use `session.get_state()` first if unsure which channels exist.",
-      "group_key": "input_position",
-      "internal_osc_path": "",
-      "internal_variable": "inputPositionPhi",
-      "name": "input.position.set_phi",
-      "parameters": {
-        "properties": {
-          "input_id": {
-            "description": "Input channel number (1-based).",
-            "maximum": 64,
-            "minimum": 1,
-            "type": "integer"
-          },
-          "value": {
-            "description": "Position Elevation (enum).",
-            "enum": [
-              "VirtualparamconvertstoXYZinternally0horizontal90up"
-            ],
-            "type": "string"
-          }
-        },
-        "required": [
-          "input_id",
-          "value"
-        ],
-        "type": "object"
-      },
-      "supports_relative": false,
-      "tier": 1
-    },
-    {
-      "csv_section": "Position",
-      "description": "Position Radius. Value in m. Enum: Virtual param - converts to X/Y internally. Use `session.get_state()` first if unsure which channels exist.",
-      "group_key": "input_position",
-      "internal_osc_path": "",
-      "internal_variable": "inputPositionR",
-      "name": "input.position.set_r",
-      "parameters": {
-        "properties": {
-          "input_id": {
-            "description": "Input channel number (1-based).",
-            "maximum": 64,
-            "minimum": 1,
-            "type": "integer"
-          },
-          "value": {
-            "description": "Position Radius (enum).",
-            "enum": [
-              "VirtualparamconvertstoXYinternally"
-            ],
-            "type": "string"
-          }
-        },
-        "required": [
-          "input_id",
-          "value"
-        ],
-        "type": "object"
-      },
-      "supports_relative": false,
-      "tier": 1
-    },
-    {
-      "csv_section": "Position",
-      "description": "Position Radius 3D. Value in m. Enum: Virtual param - converts to X/Y/Z internally. Use `session.get_state()` first if unsure which channels exist.",
-      "group_key": "input_position",
-      "internal_osc_path": "",
-      "internal_variable": "inputPositionRsph",
-      "name": "input.position.set_r_spherical",
-      "parameters": {
-        "properties": {
-          "input_id": {
-            "description": "Input channel number (1-based).",
-            "maximum": 64,
-            "minimum": 1,
-            "type": "integer"
-          },
-          "value": {
-            "description": "Position Radius 3D (enum).",
-            "enum": [
-              "VirtualparamconvertstoXYZinternally"
-            ],
-            "type": "string"
-          }
-        },
-        "required": [
-          "input_id",
-          "value"
-        ],
-        "type": "object"
-      },
-      "supports_relative": false,
-      "tier": 1
-    },
-    {
-      "csv_section": "Position",
-      "description": "Position Azimuth. Value in °. Enum: Virtual param - converts to X/Y internally. 0°=audience, 90°=stage right. Use `session.get_state()` first if unsure which channels exist.",
-      "group_key": "input_position",
-      "internal_osc_path": "",
-      "internal_variable": "inputPositionTheta",
-      "name": "input.position.set_theta",
-      "parameters": {
-        "properties": {
-          "input_id": {
-            "description": "Input channel number (1-based).",
-            "maximum": 64,
-            "minimum": 1,
-            "type": "integer"
-          },
-          "value": {
-            "description": "Position Azimuth (enum).",
-            "enum": [
-              "VirtualparamconvertstoXYinternally0audience90stageright"
-            ],
-            "type": "string"
-          }
-        },
-        "required": [
-          "input_id",
-          "value"
-        ],
-        "type": "object"
-      },
-      "supports_relative": false,
       "tier": 1
     },
     {
@@ -8339,38 +8125,6 @@
         "type": "object"
       },
       "supports_relative": false,
-      "tier": 1
-    },
-    {
-      "csv_section": "Input",
-      "description": "Input Channel Number and Selection. Use `session.get_state()` first if unsure which channels exist.",
-      "group_key": "input",
-      "internal_osc_path": "/wfs/input/selected",
-      "internal_variable": "inputSelected",
-      "name": "input.set_selected",
-      "parameters": {
-        "properties": {
-          "input_id": {
-            "description": "Input channel number (1-based).",
-            "maximum": 64,
-            "minimum": 1,
-            "type": "integer"
-          },
-          "value": {
-            "description": "Selected Input.",
-            "maximum": 64,
-            "minimum": 1,
-            "type": "integer"
-          }
-        },
-        "required": [
-          "input_id",
-          "value"
-        ],
-        "type": "object"
-      },
-      "relative_tool_name": "input.nudge_selected",
-      "supports_relative": true,
       "tier": 1
     },
     {
@@ -9809,8 +9563,8 @@
       "description": "Ratio of Distance Attenuation for Selected Output. (changes may affect the rest of the array). Value in %. Use `session.get_state()` first if unsure which channels exist.",
       "group_key": "output_attenuation",
       "internal_osc_path": "/wfs/output/DistanceAttenPercent",
-      "internal_variable": "outputDistanceAttenEnable",
-      "name": "output.attenuation.set_distance_attenuation_enable",
+      "internal_variable": "outputDistanceAttenPercent",
+      "name": "output.attenuation.set_distance_attenuation_percent",
       "parameters": {
         "properties": {
           "output_id": {
@@ -9904,7 +9658,7 @@
       "description": "Select the EQ Frequency for Band <Band ID> of the Output Channel. (changes may affect the rest of the array). Value in Hz. Use `session.get_state()` first if unsure which channels exist.",
       "group_key": "output_eq",
       "internal_osc_path": "/wfs/output/Eqfreq",
-      "internal_variable": "outputEQfreq",
+      "internal_variable": "eqFrequency",
       "name": "output.eq.set_frequency",
       "parameters": {
         "properties": {
@@ -9942,7 +9696,7 @@
       "description": "Select the EQ Gain/Attenuation for Band <Band ID> of the Output Channel. (changes may affect the rest of the array). Value in dB. Use `session.get_state()` first if unsure which channels exist.",
       "group_key": "output_eq",
       "internal_osc_path": "/wfs/output/EQgain",
-      "internal_variable": "outputEQgain",
+      "internal_variable": "eqGain",
       "name": "output.eq.set_gain",
       "parameters": {
         "properties": {
@@ -9980,7 +9734,7 @@
       "description": "Select the EQ Q for Band <Band ID> of the Output Channel. (changes may affect the rest of the array). Use `session.get_state()` first if unsure which channels exist.",
       "group_key": "output_eq",
       "internal_osc_path": "/wfs/output/EQq",
-      "internal_variable": "outputEQq",
+      "internal_variable": "eqQ",
       "name": "output.eq.set_q",
       "parameters": {
         "properties": {
@@ -10027,7 +9781,7 @@
       },
       "group_key": "output_eq",
       "internal_osc_path": "/wfs/output/EQshape",
-      "internal_variable": "outputEQshape",
+      "internal_variable": "eqShape",
       "name": "output.eq.set_shape",
       "parameters": {
         "properties": {
@@ -10072,7 +9826,7 @@
       "description": "Select the EQ Slope for Band <Band ID> of the Output Channel. (changes may affect the rest of the array). Use `session.get_state()` first if unsure which channels exist.",
       "group_key": "output_eq",
       "internal_osc_path": "/wfs/output/EQslope",
-      "internal_variable": "outputEQslope",
+      "internal_variable": "eqSlope",
       "name": "output.eq.set_slope",
       "parameters": {
         "properties": {
@@ -10704,37 +10458,6 @@
             "description": "Orientation degrees.",
             "maximum": 180,
             "minimum": -180,
-            "type": "integer"
-          }
-        },
-        "required": [
-          "output_id",
-          "value"
-        ],
-        "type": "object"
-      },
-      "supports_relative": false,
-      "tier": 1
-    },
-    {
-      "csv_section": "Output",
-      "description": "Output Channel Number and Selection. Use `session.get_state()` first if unsure which channels exist.",
-      "group_key": "output",
-      "internal_osc_path": "/wfs/output/selected",
-      "internal_variable": "outputSelected",
-      "name": "output.set_selected",
-      "parameters": {
-        "properties": {
-          "output_id": {
-            "description": "Output channel number (1-based).",
-            "maximum": 64,
-            "minimum": 1,
-            "type": "integer"
-          },
-          "value": {
-            "description": "Selected Output.",
-            "maximum": 64,
-            "minimum": 1,
             "type": "integer"
           }
         },
@@ -12688,37 +12411,6 @@
       "tier": 1
     },
     {
-      "csv_section": "Reverb",
-      "description": "Selected Reverb. Use `session.get_state()` first if unsure which channels exist.",
-      "group_key": "reverb",
-      "internal_osc_path": "/wfs/reverb/selected",
-      "internal_variable": "reverbSelected",
-      "name": "reverb.set_selected",
-      "parameters": {
-        "properties": {
-          "reverb_id": {
-            "description": "Reverb channel number (1-based).",
-            "maximum": 16,
-            "minimum": 1,
-            "type": "integer"
-          },
-          "value": {
-            "description": "Selected Reverb.",
-            "maximum": 16,
-            "minimum": 1,
-            "type": "integer"
-          }
-        },
-        "required": [
-          "reverb_id",
-          "value"
-        ],
-        "type": "object"
-      },
-      "supports_relative": false,
-      "tier": 1
-    },
-    {
       "csv_section": "Binaural Renderer",
       "description": "Overall level offset for binaural output (dB). Value in dB.",
       "group_key": "system_binaural_renderer",
@@ -12898,61 +12590,6 @@
     },
     {
       "csv_section": "Controllers",
-      "description": "Select the hardware controller for dials and buttons: Stream Deck+ or XenceLabs Quick Keys. Enum: Off ; Stream Deck+ ; XenceLabs Quick Keys.",
-      "group_key": "system_controllers",
-      "internal_osc_path": "/wfs/config/DialsAndButtonsDevice",
-      "internal_variable": "DialsAndButtonsDevice",
-      "name": "system.controllers.set_dials_and_buttons_device",
-      "parameters": {
-        "properties": {
-          "value": {
-            "description": "Dials and Buttons (enum).",
-            "enum": [
-              "Off",
-              "StreamDeck",
-              "XenceLabsQuickKeys"
-            ],
-            "type": "string"
-          }
-        },
-        "required": [
-          "value"
-        ],
-        "type": "object"
-      },
-      "supports_relative": false,
-      "tier": 1
-    },
-    {
-      "csv_section": "Controllers",
-      "description": "Select the hardware controller for position control: Space Mouse, Joystick, or Game Pad. Enum: Off ; Space Mouse ; Joystick ; Game Pad.",
-      "group_key": "system_controllers",
-      "internal_osc_path": "/wfs/config/PositionControlDevice",
-      "internal_variable": "PositionControlDevice",
-      "name": "system.controllers.set_position_control_device",
-      "parameters": {
-        "properties": {
-          "value": {
-            "description": "Position Control (enum).",
-            "enum": [
-              "Off",
-              "SpaceMouse",
-              "Joystick",
-              "GamePad"
-            ],
-            "type": "string"
-          }
-        },
-        "required": [
-          "value"
-        ],
-        "type": "object"
-      },
-      "supports_relative": false,
-      "tier": 1
-    },
-    {
-      "csv_section": "Controllers",
       "description": "Enable or disable the Sampler feature for input channels. Enum: Off ; Lightpad ; Remote.",
       "group_key": "system_controllers",
       "internal_osc_path": "/wfs/config/SamplerControllerMode",
@@ -12979,33 +12616,11 @@
       "tier": 1
     },
     {
-      "csv_section": "Files",
-      "description": "Select the Location of the Current Project Folder where to store files.",
-      "group_key": "system_files",
-      "internal_osc_path": "/wfs/config/ProjectFolder",
-      "internal_variable": "ProjectFolder",
-      "name": "system.files.set_project_folder",
-      "parameters": {
-        "properties": {
-          "value": {
-            "description": "Value.",
-            "type": "string"
-          }
-        },
-        "required": [
-          "value"
-        ],
-        "type": "object"
-      },
-      "supports_relative": false,
-      "tier": 1
-    },
-    {
       "csv_section": "I/O",
       "description": "Number of Input Channels.",
       "group_key": "system_i_o",
-      "internal_osc_path": "/wfs/config/InputChannels",
-      "internal_variable": "InputChannels",
+      "internal_osc_path": "/wfs/config/inputChannels",
+      "internal_variable": "inputChannels",
       "name": "system.i_o.set_input_channels",
       "parameters": {
         "properties": {
@@ -13027,8 +12642,8 @@
       "csv_section": "I/O",
       "description": "Number of Output Channels.",
       "group_key": "system_i_o",
-      "internal_osc_path": "/wfs/config/OutputChannels",
-      "internal_variable": "OutputChannels",
+      "internal_osc_path": "/wfs/config/outputChannels",
+      "internal_variable": "outputChannels",
       "name": "system.i_o.set_output_channels",
       "parameters": {
         "properties": {
@@ -13050,8 +12665,8 @@
       "csv_section": "I/O",
       "description": "Number of Reverb Channels.",
       "group_key": "system_i_o",
-      "internal_osc_path": "/wfs/config/ReverbChannels",
-      "internal_variable": "ReverbChannels",
+      "internal_osc_path": "/wfs/config/reverbChannels",
+      "internal_variable": "reverbChannels",
       "name": "system.i_o.set_reverb_channels",
       "parameters": {
         "properties": {
@@ -13073,8 +12688,8 @@
       "csv_section": "Master Section",
       "description": "Haas Effect to apply to the system. Will take into account the Latency Compensations (System, Input and Output). Value in ms.",
       "group_key": "system_master_section",
-      "internal_osc_path": "/wfs/config/HaasEffect",
-      "internal_variable": "HaasEffect",
+      "internal_osc_path": "/wfs/config/haasEffect",
+      "internal_variable": "haasEffect",
       "name": "system.master_section.set_haas_effect",
       "parameters": {
         "properties": {
@@ -13097,8 +12712,8 @@
       "csv_section": "Master Section",
       "description": "Master Level (affects all outputs). Value in dB.",
       "group_key": "system_master_section",
-      "internal_osc_path": "/wfs/config/MasterLevel",
-      "internal_variable": "MasterLevel",
+      "internal_osc_path": "/wfs/config/masterLevel",
+      "internal_variable": "masterLevel",
       "name": "system.master_section.set_master_level",
       "parameters": {
         "properties": {
@@ -13115,14 +12730,14 @@
         "type": "object"
       },
       "supports_relative": false,
-      "tier": 3
+      "tier": 2
     },
     {
       "csv_section": "Master Section",
       "description": "Total latency of the system (Mixing board & Computer). Specific Input and Output Latency/Delay can be set in the respective Input and Output settings. Value in ms.",
       "group_key": "system_master_section",
-      "internal_osc_path": "/wfs/config/SystemLatency",
-      "internal_variable": "SystemLatency",
+      "internal_osc_path": "/wfs/config/systemLatency",
+      "internal_variable": "systemLatency",
       "name": "system.master_section.set_system_latency",
       "parameters": {
         "properties": {
@@ -13145,8 +12760,8 @@
       "csv_section": "Show",
       "description": "Location of the current show.",
       "group_key": "system_show",
-      "internal_osc_path": "/wfs/config/ShowLocation",
-      "internal_variable": "ShowLocation",
+      "internal_osc_path": "/wfs/config/showLocation",
+      "internal_variable": "showLocation",
       "name": "system.show.set_location",
       "parameters": {
         "properties": {
@@ -13167,8 +12782,8 @@
       "csv_section": "Show",
       "description": "Name of the current show.",
       "group_key": "system_show",
-      "internal_osc_path": "/wfs/config/ShowName",
-      "internal_variable": "ShowName",
+      "internal_osc_path": "/wfs/config/showName",
+      "internal_variable": "showName",
       "name": "system.show.set_name",
       "parameters": {
         "properties": {
@@ -13189,8 +12804,8 @@
       "csv_section": "Stage",
       "description": "Depth of the stage in meters (Box shape only). Value in m.",
       "group_key": "system_stage",
-      "internal_osc_path": "/wfs/config/StageDepth",
-      "internal_variable": "StageDepth",
+      "internal_osc_path": "/wfs/config/stageDepth",
+      "internal_variable": "stageDepth",
       "name": "system.stage.set_depth",
       "parameters": {
         "properties": {
@@ -13213,8 +12828,8 @@
       "csv_section": "Stage",
       "description": "Diameter of the stage in meters (Cylinder and Dome shapes). Value in m.",
       "group_key": "system_stage",
-      "internal_osc_path": "/wfs/config/StageDiameter",
-      "internal_variable": "StageDiameter",
+      "internal_osc_path": "/wfs/config/stageDiameter",
+      "internal_variable": "stageDiameter",
       "name": "system.stage.set_diameter",
       "parameters": {
         "properties": {
@@ -13237,8 +12852,8 @@
       "csv_section": "Stage",
       "description": "Dome elevation angle: 180 = hemisphere, 360 = full sphere. Value in degrees.",
       "group_key": "system_stage",
-      "internal_osc_path": "/wfs/config/DomeElevation",
-      "internal_variable": "DomeElevation",
+      "internal_osc_path": "/wfs/config/domeElevation",
+      "internal_variable": "domeElevation",
       "name": "system.stage.set_dome_elevation",
       "parameters": {
         "properties": {
@@ -13261,8 +12876,8 @@
       "csv_section": "Stage",
       "description": "Height of the stage in meters (Box and Cylinder shapes). Value in m.",
       "group_key": "system_stage",
-      "internal_osc_path": "/wfs/config/StageHeight",
-      "internal_variable": "StageHeight",
+      "internal_osc_path": "/wfs/config/stageHeight",
+      "internal_variable": "stageHeight",
       "name": "system.stage.set_height",
       "parameters": {
         "properties": {
@@ -13285,8 +12900,8 @@
       "csv_section": "Stage",
       "description": "Origin Y offset from stage center (0 = centered, negative = front/downstage). Value in m.",
       "group_key": "system_stage",
-      "internal_osc_path": "/wfs/config/StageOriginDepth",
-      "internal_variable": "StageOriginDepth",
+      "internal_osc_path": "/wfs/config/originDepth",
+      "internal_variable": "originDepth",
       "name": "system.stage.set_origin_depth",
       "parameters": {
         "properties": {
@@ -13309,8 +12924,8 @@
       "csv_section": "Stage",
       "description": "Origin Z offset from floor (0 = floor level, positive = above floor). Value in m.",
       "group_key": "system_stage",
-      "internal_osc_path": "/wfs/config/StageOriginHeight",
-      "internal_variable": "StageOriginHeight",
+      "internal_osc_path": "/wfs/config/originHeight",
+      "internal_variable": "originHeight",
       "name": "system.stage.set_origin_height",
       "parameters": {
         "properties": {
@@ -13333,8 +12948,8 @@
       "csv_section": "Stage",
       "description": "Origin X offset from stage center (0 = centered, negative = left). Value in m.",
       "group_key": "system_stage",
-      "internal_osc_path": "/wfs/config/StageOriginWidth",
-      "internal_variable": "StageOriginWidth",
+      "internal_osc_path": "/wfs/config/originWidth",
+      "internal_variable": "originWidth",
       "name": "system.stage.set_origin_width",
       "parameters": {
         "properties": {
@@ -13357,8 +12972,8 @@
       "csv_section": "Stage",
       "description": "Select the shape of the stage (Box, Cylinder, or Dome). Enum: Box ; Cylinder ; Dome.",
       "group_key": "system_stage",
-      "internal_osc_path": "/wfs/config/StageShape",
-      "internal_variable": "StageShape",
+      "internal_osc_path": "/wfs/config/stageShape",
+      "internal_variable": "stageShape",
       "name": "system.stage.set_shape",
       "parameters": {
         "properties": {
@@ -13384,8 +12999,8 @@
       "csv_section": "Stage",
       "description": "Speed of Sound (related to the temperature). Value in m/s.",
       "group_key": "system_stage",
-      "internal_osc_path": "/wfs/config/SpeedOfSound",
-      "internal_variable": "SpeedOfSound",
+      "internal_osc_path": "/wfs/config/speedOfSound",
+      "internal_variable": "speedOfSound",
       "name": "system.stage.set_speed_of_sound",
       "parameters": {
         "properties": {
@@ -13408,13 +13023,13 @@
       "csv_section": "Stage",
       "description": "Temperature (gives the Speed of Sound). Value in C.",
       "group_key": "system_stage",
-      "internal_osc_path": "/wfs/config/Temperature",
-      "internal_variable": "Temperature",
+      "internal_osc_path": "/wfs/config/temperature",
+      "internal_variable": "temperature",
       "name": "system.stage.set_temperature",
       "parameters": {
         "properties": {
           "value": {
-            "description": "Temperature C.",
+            "description": "temperature C.",
             "maximum": 60.0,
             "minimum": -20.0,
             "type": "number"
@@ -13432,8 +13047,8 @@
       "csv_section": "Stage",
       "description": "Width of the stage in meters (Box shape only). Value in m.",
       "group_key": "system_stage",
-      "internal_osc_path": "/wfs/config/StageWidth",
-      "internal_variable": "StageWidth",
+      "internal_osc_path": "/wfs/config/stageWidth",
+      "internal_variable": "stageWidth",
       "name": "system.stage.set_width",
       "parameters": {
         "properties": {
@@ -13456,8 +13071,8 @@
       "csv_section": "UI",
       "description": "Select the color scheme: Default (dark gray), Black (pure black for OLED displays), or Light (daytime use). Enum: Default (Dark Gray) ; Black ; Light.",
       "group_key": "system_ui",
-      "internal_osc_path": "/wfs/config/ColorScheme",
-      "internal_variable": "ColorScheme",
+      "internal_osc_path": "/wfs/config/colorScheme",
+      "internal_variable": "colorScheme",
       "name": "system.ui.set_color_scheme",
       "parameters": {
         "properties": {
@@ -13478,58 +13093,6 @@
       },
       "supports_relative": false,
       "tier": 1
-    },
-    {
-      "csv_section": "WFS Processor",
-      "description": "Select the rendering algorithm from the menu. Enum: InputBuffer (read-time delays) ; OutputBuffer (write-time delays).",
-      "group_key": "system_wfs_processor",
-      "internal_osc_path": "/wfs/config/ProcessingAlgorithm",
-      "internal_variable": "ProcessingAlgorithm",
-      "name": "system.wfs_processor.set_processing_algorithm",
-      "parameters": {
-        "properties": {
-          "value": {
-            "description": "Processing Algorithm (enum).",
-            "enum": [
-              "InputBufferreadtimedelays",
-              "OutputBufferwritetimedelays"
-            ],
-            "type": "string"
-          }
-        },
-        "required": [
-          "value"
-        ],
-        "type": "object"
-      },
-      "supports_relative": false,
-      "tier": 3
-    },
-    {
-      "csv_section": "WFS Processor",
-      "description": "Lock all I/O parameters and start the DSP. Long press to stop the DSP. Enum: Processing: OFF ; Processing: ON.",
-      "group_key": "system_wfs_processor",
-      "internal_osc_path": "/wfs/config/ProcessingEnabled",
-      "internal_variable": "ProcessingEnabled",
-      "name": "system.wfs_processor.set_processing_enabled",
-      "parameters": {
-        "properties": {
-          "value": {
-            "description": "Processing (enum).",
-            "enum": [
-              "ProcessingOFF",
-              "ProcessingON"
-            ],
-            "type": "string"
-          }
-        },
-        "required": [
-          "value"
-        ],
-        "type": "object"
-      },
-      "supports_relative": false,
-      "tier": 3
     }
   ],
   "warnings": [
@@ -13601,26 +13164,6 @@
     {
       "csv_file": "WFS-UI_input.csv",
       "message": "no hover help text; description may be weak",
-      "variable": "inputOffsetPhi"
-    },
-    {
-      "csv_file": "WFS-UI_input.csv",
-      "message": "no hover help text; description may be weak",
-      "variable": "inputOffsetR"
-    },
-    {
-      "csv_file": "WFS-UI_input.csv",
-      "message": "no hover help text; description may be weak",
-      "variable": "inputOffsetRsph"
-    },
-    {
-      "csv_file": "WFS-UI_input.csv",
-      "message": "no hover help text; description may be weak",
-      "variable": "inputOffsetTheta"
-    },
-    {
-      "csv_file": "WFS-UI_input.csv",
-      "message": "no hover help text; description may be weak",
       "variable": "inputOtomoPhi"
     },
     {
@@ -13641,26 +13184,6 @@
     {
       "csv_file": "WFS-UI_input.csv",
       "message": "no hover help text; description may be weak",
-      "variable": "inputPositionPhi"
-    },
-    {
-      "csv_file": "WFS-UI_input.csv",
-      "message": "no hover help text; description may be weak",
-      "variable": "inputPositionR"
-    },
-    {
-      "csv_file": "WFS-UI_input.csv",
-      "message": "no hover help text; description may be weak",
-      "variable": "inputPositionRsph"
-    },
-    {
-      "csv_file": "WFS-UI_input.csv",
-      "message": "no hover help text; description may be weak",
-      "variable": "inputPositionTheta"
-    },
-    {
-      "csv_file": "WFS-UI_input.csv",
-      "message": "no hover help text; description may be weak",
       "variable": "inputSidelinesFringe"
     },
     {
@@ -13672,11 +13195,6 @@
       "csv_file": "WFS-UI_reverb.csv",
       "message": "no hover help text; description may be weak",
       "variable": "reverbDistanceAttenuation"
-    },
-    {
-      "csv_file": "WFS-UI_reverb.csv",
-      "message": "no hover help text; description may be weak",
-      "variable": "reverbSelected"
     }
   ]
 }

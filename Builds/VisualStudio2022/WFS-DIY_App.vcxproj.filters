@@ -1018,6 +1018,9 @@
     <ClCompile Include="..\..\Source\Network\MCP\MCPServer.cpp">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPGeneratedToolLoader.cpp">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\ThirdParty\hidapi\HidApiPlatform.c">
       <Filter>WFS-DIY\Source\hidapi</Filter>
     </ClCompile>
@@ -4390,6 +4393,9 @@
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Network\MCP\MCPServer.h">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPGeneratedToolLoader.h">
       <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Network\MCP\tools\SessionTools.h">

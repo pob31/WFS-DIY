@@ -53,6 +53,7 @@
 		A7EBFC6FBD34D6A3021AF51A /* Foundation.framework */ = {isa = PBXBuildFile; fileRef = 6BABB0D22DF0B0DEF97EC39A; };
 		A8A7939ED5A7BFFDB060F2C9 /* OSCRateLimiter.cpp */ = {isa = PBXBuildFile; fileRef = 878AA473BBA4523BB5BAB723; };
 		AA0EE9B55A2E6FF945DED3B3 /* include_juce_gui_extra.mm */ = {isa = PBXBuildFile; fileRef = D142B9C18D9A93EA669B6723; };
+		AAC418A6E5F85C5C87EC1EB7 /* MCPGeneratedToolLoader.cpp */ = {isa = PBXBuildFile; fileRef = 4C334641BCD17BEF2B52C9EF; };
 		B04CC6B6E6121F0A9BB69337 /* TrackingOSCReceiver.cpp */ = {isa = PBXBuildFile; fileRef = 476960E0E45FDB16B4FAAB0B; };
 		B1102ED88546CAF3585737B7 /* WFSCalculationEngine.cpp */ = {isa = PBXBuildFile; fileRef = B2E5BB6DF397E59F6073DDFA; };
 		B189CAC736E2215D673E4945 /* include_juce_graphics_Sheenbidi.c */ = {isa = PBXBuildFile; fileRef = 2976DFB15F05C50CF08305D4; };
@@ -150,6 +151,7 @@
 		49B4DD71B5401B3D22E619EE /* SystemConfigTabPages.h */ /* SystemConfigTabPages.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SystemConfigTabPages.h; path = ../../Source/Controllers/DialsAndButtons/pages/SystemConfigTabPages.h; sourceTree = SOURCE_ROOT; };
 		4B6061E2662DD31DD344DA07 /* MCPServer.cpp */ /* MCPServer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPServer.cpp; path = ../../Source/Network/MCP/MCPServer.cpp; sourceTree = SOURCE_ROOT; };
 		4B817C847A7AC2CDC244E66C /* GpuInputBufferAlgorithm.h */ /* GpuInputBufferAlgorithm.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = GpuInputBufferAlgorithm.h; path = ../../Source/DSP/GpuInputBufferAlgorithm.h; sourceTree = SOURCE_ROOT; };
+		4C334641BCD17BEF2B52C9EF /* MCPGeneratedToolLoader.cpp */ /* MCPGeneratedToolLoader.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPGeneratedToolLoader.cpp; path = ../../Source/Network/MCP/MCPGeneratedToolLoader.cpp; sourceTree = SOURCE_ROOT; };
 		52706EBD8973DFD0F1366FCF /* OSCReceiverWithSenderIP.cpp */ /* OSCReceiverWithSenderIP.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = OSCReceiverWithSenderIP.cpp; path = ../../Source/Network/OSCReceiverWithSenderIP.cpp; sourceTree = SOURCE_ROOT; };
 		527DE6F349B1DF165D7D2BF1 /* ClustersTabPages.h */ /* ClustersTabPages.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ClustersTabPages.h; path = ../../Source/Controllers/DialsAndButtons/pages/ClustersTabPages.h; sourceTree = SOURCE_ROOT; };
 		54B2A0562D44FAFD14948BD4 /* Accelerate.framework */ /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
@@ -247,6 +249,7 @@
 		C2A444C276327D0BCFA3510A /* RecentFilesMenuTemplate.nib */ /* RecentFilesMenuTemplate.nib */ = {isa = PBXFileReference; lastKnownFileType = file.nib; name = RecentFilesMenuTemplate.nib; path = RecentFilesMenuTemplate.nib; sourceTree = SOURCE_ROOT; };
 		C3A44553373C3A4BB428CBD7 /* UndoTools.h */ /* UndoTools.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = UndoTools.h; path = ../../Source/Network/MCP/tools/UndoTools.h; sourceTree = SOURCE_ROOT; };
 		C435718E1939D711C1FBBB2A /* StreamDeckDevice.h */ /* StreamDeckDevice.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StreamDeckDevice.h; path = ../../Source/Controllers/DialsAndButtons/StreamDeckDevice.h; sourceTree = SOURCE_ROOT; };
+		C4A579CA77213F74CE3E6FD2 /* MCPGeneratedToolLoader.h */ /* MCPGeneratedToolLoader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MCPGeneratedToolLoader.h; path = ../../Source/Network/MCP/MCPGeneratedToolLoader.h; sourceTree = SOURCE_ROOT; };
 		C607B2F75EB66C51671444ED /* InputsTabPages.h */ /* InputsTabPages.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = InputsTabPages.h; path = ../../Source/Controllers/DialsAndButtons/pages/InputsTabPages.h; sourceTree = SOURCE_ROOT; };
 		C67F91CF1D3B324EB43469E0 /* OutputBufferProcessor.h */ /* OutputBufferProcessor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OutputBufferProcessor.h; path = ../../Source/DSP/OutputBufferProcessor.h; sourceTree = SOURCE_ROOT; };
 		C76B234E02F32DF1865B2F27 /* NetworkTab.h */ /* NetworkTab.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = NetworkTab.h; path = ../../Source/gui/NetworkTab.h; sourceTree = SOURCE_ROOT; };
@@ -469,6 +472,8 @@
 				364F0B69B5019A2A933E30AF,
 				3490B82F1263703CAD0AD65B,
 				4B6061E2662DD31DD344DA07,
+				C4A579CA77213F74CE3E6FD2,
+				4C334641BCD17BEF2B52C9EF,
 				39582B30061C39A6ED7B2849,
 			);
 			name = MCP;
@@ -839,6 +844,7 @@
 				40BAD216FC425C9199688DAB,
 				5E8F096DF4AFABE40A110930,
 				597D4525120E3BF0EECAC647,
+				AAC418A6E5F85C5C87EC1EB7,
 				D7BE7762C078D5CE3CFD2161,
 				8730DF5A397C198A3FB13D60,
 				D1FB0F3B758B9AFC67248620,

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-25T21:38:40Z",
+  "generated_at": "2026-04-26T11:03:36Z",
   "groups": {
     "cluster_assigned_inputs": [
       "cluster.assigned_inputs.set_input_order",
@@ -35,9 +35,6 @@
     ],
     "cluster_reference": [
       "cluster.reference.set_mode"
-    ],
-    "input": [
-      "input.set_selected"
     ],
     "input_array_attenuation": [
       "input.set_array_attenuation"
@@ -173,17 +170,9 @@
       "input.position.set_constraint_distance_max",
       "input.position.set_constraint_distance_min",
       "input.position.set_coordinate_mode",
-      "input.position.set_offset_phi",
-      "input.position.set_offset_r",
-      "input.position.set_offset_r_spherical",
-      "input.position.set_offset_theta",
       "input.position.set_offset_x",
       "input.position.set_offset_y",
       "input.position.set_offset_z",
-      "input.position.set_phi",
-      "input.position.set_r",
-      "input.position.set_r_spherical",
-      "input.position.set_theta",
       "input.position.set_x",
       "input.position.set_y",
       "input.position.set_z"
@@ -287,15 +276,12 @@
       "network.tracking.set_scale_y",
       "network.tracking.set_scale_z"
     ],
-    "output": [
-      "output.set_selected"
-    ],
     "output_array": [
       "output.array.set_apply_to_array",
       "output.set_array"
     ],
     "output_attenuation": [
-      "output.attenuation.set_distance_attenuation_enable",
+      "output.attenuation.set_distance_attenuation_percent",
       "output.set_attenuation"
     ],
     "output_delay": [
@@ -343,9 +329,6 @@
       "output.position.set_x",
       "output.position.set_y",
       "output.position.set_z"
-    ],
-    "reverb": [
-      "reverb.set_selected"
     ],
     "reverb_algorithm": [
       "reverb.algorithm.set_algo_type",
@@ -439,12 +422,7 @@
       "system.binaural_renderer.set_binaural_solo_mode"
     ],
     "system_controllers": [
-      "system.controllers.set_dials_and_buttons_device",
-      "system.controllers.set_position_control_device",
       "system.controllers.set_sampler_controller_mode"
-    ],
-    "system_files": [
-      "system.files.set_project_folder"
     ],
     "system_i_o": [
       "system.i_o.set_input_channels",
@@ -475,12 +453,8 @@
     ],
     "system_ui": [
       "system.ui.set_color_scheme"
-    ],
-    "system_wfs_processor": [
-      "system.wfs_processor.set_processing_algorithm",
-      "system.wfs_processor.set_processing_enabled"
     ]
   },
-  "input_hash": "16799a97c930ae3395af08d15a2e05ceb24f597d1d277501f427ceea44009840",
+  "input_hash": "10f03c39f5360061caa1059db85115a28c6f4f86b3dae7a99307e5f3f5e20213",
   "schema_version": "1.0"
 }

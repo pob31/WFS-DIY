@@ -101,6 +101,7 @@ OBJECTS_APP := \
   $(JUCE_OBJDIR)/MCPDispatcher_73f0ae2c.o \
   $(JUCE_OBJDIR)/MCPTransport_c748070e.o \
   $(JUCE_OBJDIR)/MCPServer_9ddbbcc8.o \
+  $(JUCE_OBJDIR)/MCPGeneratedToolLoader_a9aa861f.o \
   $(JUCE_OBJDIR)/HidApiPlatform_aec62187.o \
   $(JUCE_OBJDIR)/Main_90ebc5c2.o \
   $(JUCE_OBJDIR)/MainComponent_a6ffb4a5.o \
@@ -288,6 +289,11 @@ $(JUCE_OBJDIR)/MCPTransport_c748070e.o: ../../Source/Network/MCP/MCPTransport.cp
 $(JUCE_OBJDIR)/MCPServer_9ddbbcc8.o: ../../Source/Network/MCP/MCPServer.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling MCPServer.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/MCPGeneratedToolLoader_a9aa861f.o: ../../Source/Network/MCP/MCPGeneratedToolLoader.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling MCPGeneratedToolLoader.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/HidApiPlatform_aec62187.o: ../../ThirdParty/hidapi/HidApiPlatform.c

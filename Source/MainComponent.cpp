@@ -736,12 +736,44 @@ MainComponent::MainComponent()
     oscManager = std::make_unique<WFSNetwork::OSCManager>(parameters.getValueTreeState());
     oscManager->setDirtyTracker(&parameters.getDirtyTracker());
 
-    // Initialize MCP server (AI control surface). Phase 1 Block 5: registers
-    // the five hand-written tools on construction. NetworkTab UI / start-stop
-    // toggle land in Block 6.
+    // Initialize MCP server (AI control surface). Phase 2 Block 1: also
+    // loads the auto-generated tool surface from generated_tools.json.
+    // Resolve the JSON file path by checking, in order:
+    //   1. <exeDir>/MCP/generated_tools.json    (production, after postbuild)
+    //   2. <projectRoot>/Source/Network/MCP/...  (Windows VS2022 dev)
+    //   3. <projectRoot>/Source/Network/MCP/...  (macOS dev)
+    juce::File generatedToolsJson;
+    {
+        auto exeDir = juce::File::getSpecialLocation(juce::File::currentExecutableFile).getParentDirectory();
+        generatedToolsJson = exeDir.getChildFile("MCP/generated_tools.json");
+        if (! generatedToolsJson.existsAsFile())
+        {
+            // Windows VS2022 dev: exe at Builds/VisualStudio2022/x64/Debug/App/
+            auto projectRoot = exeDir.getParentDirectory()  // x64/Debug
+                                     .getParentDirectory()  // x64
+                                     .getParentDirectory()  // VisualStudio2022
+                                     .getParentDirectory()  // Builds
+                                     .getParentDirectory(); // Project root
+            generatedToolsJson = projectRoot.getChildFile("Source/Network/MCP/generated_tools.json");
+        }
+        if (! generatedToolsJson.existsAsFile())
+        {
+            // macOS dev: exe at Builds/MacOSX/build/Debug/WFS-DIY.app/Contents/MacOS/
+            auto projectRoot = exeDir.getParentDirectory()  // Contents
+                                     .getParentDirectory()  // .app
+                                     .getParentDirectory()  // Debug
+                                     .getParentDirectory()  // build
+                                     .getParentDirectory()  // MacOSX
+                                     .getParentDirectory()  // Builds
+                                     .getParentDirectory(); // Project root
+            generatedToolsJson = projectRoot.getChildFile("Source/Network/MCP/generated_tools.json");
+        }
+    }
+
     mcpServer = std::make_unique<WFSNetwork::MCPServer>(parameters.getValueTreeState(),
                                                         parameters.getFileManager(),
-                                                        oscManager->getLogger());
+                                                        oscManager->getLogger(),
+                                                        generatedToolsJson);
     mcpServer->start (WFSNetwork::MCPServer::kDefaultPort, /*loopbackOnly*/ true);
 
     // Initialize Stream Deck+ physical controller

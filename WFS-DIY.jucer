@@ -168,6 +168,10 @@
                 file="Source/Network/MCP/MCPServer.h"/>
           <FILE id="mcpSrvCpp" name="MCPServer.cpp" compile="1" resource="0"
                 file="Source/Network/MCP/MCPServer.cpp"/>
+          <FILE id="mcpGenLoadH" name="MCPGeneratedToolLoader.h" compile="0" resource="0"
+                file="Source/Network/MCP/MCPGeneratedToolLoader.h"/>
+          <FILE id="mcpGenLoadCpp" name="MCPGeneratedToolLoader.cpp" compile="1" resource="0"
+                file="Source/Network/MCP/MCPGeneratedToolLoader.cpp"/>
           <GROUP id="{MCPTOOLSGROUP}" name="tools">
             <FILE id="mcpToolsSession" name="SessionTools.h" compile="0" resource="0"
                   file="Source/Network/MCP/tools/SessionTools.h"/>

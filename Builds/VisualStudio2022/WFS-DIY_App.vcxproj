@@ -197,6 +197,7 @@
     <ClCompile Include="..\..\Source\Network\MCP\MCPDispatcher.cpp"/>
     <ClCompile Include="..\..\Source\Network\MCP\MCPTransport.cpp"/>
     <ClCompile Include="..\..\Source\Network\MCP\MCPServer.cpp"/>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPGeneratedToolLoader.cpp"/>
     <ClCompile Include="..\..\ThirdParty\hidapi\HidApiPlatform.c"/>
     <ClCompile Include="..\..\Source\Main.cpp"/>
     <ClCompile Include="..\..\Source\MainComponent.cpp"/>
@@ -3264,6 +3265,7 @@
     <ClInclude Include="..\..\Source\Network\MCP\MCPDispatcher.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\MCPTransport.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\MCPServer.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPGeneratedToolLoader.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\tools\SessionTools.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\tools\InputTools.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\tools\SnapshotTools.h"/>
