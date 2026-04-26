@@ -1,5 +1,7 @@
 #include "MCPHistoryWindow.h"
 #include "../Network/OSCProtocolTypes.h"
+#include "../Localization/LocalizationManager.h"
+#include "WfsLookAndFeel.h"
 
 namespace
 {
@@ -8,10 +10,15 @@ namespace
         return t.formatted ("%H:%M:%S");
     }
 
-    constexpr int kHeaderHeight = 36;
-    constexpr int kFooterHeight = 44;
-    constexpr int kCursorThickness = 6;
-    constexpr int kActionButtonSize = 22;
+    // Layout constants are baseline values; everything is multiplied by
+    // WfsLookAndFeel::uiScale at use-site so the window scales with the
+    // rest of the app's UI.
+    inline int scaled (int px) { return juce::roundToInt (static_cast<float> (px) * WfsLookAndFeel::uiScale); }
+
+    inline int headerHeight()    { return scaled (36); }
+    inline int footerHeight()    { return scaled (44); }
+    inline int cursorThickness() { return scaled (6); }
+    inline int actionButtonSize(){ return scaled (22); }
 }
 
 //==============================================================================
@@ -33,11 +40,11 @@ public:
         addAndMakeVisible (viewport);
 
         addAndMakeVisible (stepBackButton);
-        stepBackButton.setButtonText (juce::CharPointer_UTF8 ("\xe2\x8f\xae Step Back"));
+        stepBackButton.setButtonText (LOC ("ai.history.stepBack"));
         stepBackButton.onClick = [this] { stepBack(); };
 
         addAndMakeVisible (stepForwardButton);
-        stepForwardButton.setButtonText (juce::CharPointer_UTF8 ("Step Forward \xe2\x8f\xad"));
+        stepForwardButton.setButtonText (LOC ("ai.history.stepForward"));
         stepForwardButton.onClick = [this] { stepForward(); };
 
         addAndMakeVisible (positionLabel);
@@ -61,22 +68,25 @@ public:
         auto& cs = ColorScheme::get();
         g.fillAll (cs.background);
 
+        const int headerH = headerHeight();
+        const int footerH = footerHeight();
+
         // Header strip
-        auto headerBounds = getLocalBounds().removeFromTop (kHeaderHeight);
+        auto headerBounds = getLocalBounds().removeFromTop (headerH);
         g.setColour (cs.chromeBackground);
         g.fillRect (headerBounds);
         g.setColour (cs.textPrimary);
-        g.setFont (juce::FontOptions (15.0f).withStyle ("Bold"));
-        g.drawText ("AI Change History",
-                    headerBounds.reduced (12, 0),
+        g.setFont (juce::FontOptions (juce::jmax (12.0f, 15.0f * WfsLookAndFeel::uiScale)).withStyle ("Bold"));
+        g.drawText (LOC ("ai.history.windowTitle"),
+                    headerBounds.reduced (scaled (12), 0),
                     juce::Justification::centredLeft);
         g.setColour (cs.chromeDivider);
-        g.drawHorizontalLine (kHeaderHeight - 1,
+        g.drawHorizontalLine (headerH - 1,
                               static_cast<float> (headerBounds.getX()),
                               static_cast<float> (headerBounds.getRight()));
 
         // Footer strip
-        auto footerBounds = getLocalBounds().removeFromBottom (kFooterHeight);
+        auto footerBounds = getLocalBounds().removeFromBottom (footerH);
         g.setColour (cs.chromeSurface);
         g.fillRect (footerBounds);
         g.setColour (cs.chromeDivider);
@@ -88,22 +98,22 @@ public:
     void resized() override
     {
         auto bounds = getLocalBounds();
-        bounds.removeFromTop (kHeaderHeight);
-        auto footer = bounds.removeFromBottom (kFooterHeight).reduced (12, 6);
+        bounds.removeFromTop (headerHeight());
+        auto footer = bounds.removeFromBottom (footerHeight()).reduced (scaled (12), scaled (6));
 
         // Resize the inner table to viewport width so wide rows wrap correctly.
         const int contentWidth = bounds.getWidth() - viewport.getScrollBarThickness();
         const int contentHeight = juce::jmax (bounds.getHeight(),
-                                              kHeaderHeight + table.getNumRows() * MCPHistoryTableComponent::kRowHeight + kCursorThickness);
+                                              headerHeight() + table.getNumRows() * MCPHistoryTableComponent::rowHeight() + cursorThickness());
         table.setSize (contentWidth, contentHeight);
         viewport.setBounds (bounds);
 
         // Footer layout: [Step Back][gap][position label][count][gap][Step Forward]
-        auto stepBackBounds    = footer.removeFromLeft (110);
-        auto stepForwardBounds = footer.removeFromRight (110);
-        auto countBounds       = footer.removeFromRight (60);
-        stepBackButton.setBounds (stepBackBounds.reduced (0, 4));
-        stepForwardButton.setBounds (stepForwardBounds.reduced (0, 4));
+        auto stepBackBounds    = footer.removeFromLeft  (scaled (110));
+        auto stepForwardBounds = footer.removeFromRight (scaled (110));
+        auto countBounds       = footer.removeFromRight (scaled (60));
+        stepBackButton.setBounds (stepBackBounds.reduced (0, scaled (4)));
+        stepForwardButton.setBounds (stepForwardBounds.reduced (0, scaled (4)));
         countLabel.setBounds (countBounds);
         positionLabel.setBounds (footer);
     }
@@ -133,7 +143,7 @@ private:
 
         // Resize the table to its current row count if it changed.
         const int total = table.getNumRows();
-        const int needed = total * MCPHistoryTableComponent::kRowHeight + kCursorThickness;
+        const int needed = total * MCPHistoryTableComponent::rowHeight() + cursorThickness();
         if (table.getHeight() < needed)
         {
             const int contentWidth = juce::jmax (1, getWidth() - viewport.getScrollBarThickness());
@@ -145,10 +155,13 @@ private:
     {
         const int undoable = table.getUndoableCount();
         const int total    = table.getNumRows();
-        positionLabel.setText (juce::String (undoable) + " applied / "
-                                + juce::String (total - undoable) + " undone",
+        const auto applied = LOC ("ai.history.applied");
+        const auto undone  = LOC ("ai.history.undone");
+        const auto ofWord  = LOC ("ai.history.of");
+        positionLabel.setText (juce::String (undoable) + " " + applied
+                                + " / " + juce::String (total - undoable) + " " + undone,
                                 juce::dontSendNotification);
-        countLabel.setText (juce::String (total) + " of "
+        countLabel.setText (juce::String (total) + " " + ofWord + " "
                               + juce::String (WFSNetwork::MCPChangeRecordBuffer::kDefaultCapacity),
                               juce::dontSendNotification);
 
@@ -186,6 +199,11 @@ private:
 //==============================================================================
 // MCPHistoryTableComponent
 //==============================================================================
+int MCPHistoryTableComponent::rowHeight()
+{
+    return juce::roundToInt (28.0f * WfsLookAndFeel::uiScale);
+}
+
 MCPHistoryTableComponent::MCPHistoryTableComponent (WFSNetwork::MCPUndoEngine& e,
                                                       WFSNetwork::MCPChangeRecordBuffer& ring)
     : engine (e), undoRing (ring)
@@ -253,15 +271,18 @@ int MCPHistoryTableComponent::rowIndexAtY (int y) const
     // need to add the divider thickness.
     if (y < 0) return -1;
 
-    int yCursor = undoableCount * kRowHeight;
-    if (y < yCursor)
-        return y / kRowHeight;
+    const int rh = rowHeight();
+    const int ct = cursorThickness();
 
-    if (y < yCursor + kCursorThickness)
+    int yCursor = undoableCount * rh;
+    if (y < yCursor)
+        return y / rh;
+
+    if (y < yCursor + ct)
         return -1;  // hit the divider, ignore
 
-    const int adjustedY = y - kCursorThickness;
-    const int idx = adjustedY / kRowHeight;
+    const int adjustedY = y - ct;
+    const int idx = adjustedY / rh;
     if (idx < 0 || idx >= static_cast<int> (rows.size()))
         return -1;
     return idx;
@@ -272,13 +293,17 @@ juce::Rectangle<int> MCPHistoryTableComponent::actionButtonBoundsForRow (int row
     if (rowIdx < 0 || rowIdx >= static_cast<int> (rows.size()))
         return {};
 
+    const int rh = rowHeight();
+    const int ct = cursorThickness();
+    const int btnSize = actionButtonSize();
+
     const int rowTop = (rowIdx < undoableCount)
-                          ? (rowIdx * kRowHeight)
-                          : (undoableCount * kRowHeight + kCursorThickness
-                              + (rowIdx - undoableCount) * kRowHeight);
-    const int x = getWidth() - kActionButtonSize - 8;
-    const int y = rowTop + (kRowHeight - kActionButtonSize) / 2;
-    return juce::Rectangle<int> (x, y, kActionButtonSize, kActionButtonSize);
+                          ? (rowIdx * rh)
+                          : (undoableCount * rh + ct
+                              + (rowIdx - undoableCount) * rh);
+    const int x = getWidth() - btnSize - scaled (8);
+    const int y = rowTop + (rh - btnSize) / 2;
+    return juce::Rectangle<int> (x, y, btnSize, btnSize);
 }
 
 void MCPHistoryTableComponent::paint (juce::Graphics& g)
@@ -286,15 +311,20 @@ void MCPHistoryTableComponent::paint (juce::Graphics& g)
     auto& cs = ColorScheme::get();
     g.fillAll (cs.background);
 
+    const float scale = WfsLookAndFeel::uiScale;
+
     if (rows.empty())
     {
         g.setColour (cs.textSecondary);
-        g.setFont (juce::FontOptions (13.0f));
-        g.drawText ("No AI changes yet.", getLocalBounds(), juce::Justification::centred);
+        g.setFont (juce::FontOptions (juce::jmax (10.0f, 13.0f * scale)));
+        g.drawText (LOC ("ai.history.noChanges"), getLocalBounds(), juce::Justification::centred);
         return;
     }
 
-    const int width = getWidth();
+    const int rh        = rowHeight();
+    const int ct        = cursorThickness();
+    const int btnSize   = actionButtonSize();
+    const int width     = getWidth();
     int y = 0;
 
     for (int i = 0; i < static_cast<int> (rows.size()); ++i)
@@ -304,18 +334,18 @@ void MCPHistoryTableComponent::paint (juce::Graphics& g)
         if (i == undoableCount)
         {
             g.setColour (cs.accentBlue.withAlpha (0.35f));
-            g.fillRect (0, y, width, kCursorThickness);
+            g.fillRect (0, y, width, ct);
             g.setColour (cs.accentBlue);
-            g.setFont (juce::FontOptions (10.0f).withStyle ("Bold"));
-            g.drawText (juce::CharPointer_UTF8 ("\xe2\x97\x82  cursor (\xe2\x86\x91 applied  /  \xe2\x86\x93 undone, redoable)"),
-                        12, y - 1, width - 24, kCursorThickness + 2,
+            g.setFont (juce::FontOptions (juce::jmax (9.0f, 10.0f * scale)).withStyle ("Bold"));
+            g.drawText (LOC ("ai.history.cursorLabel"),
+                        scaled (12), y - 1, width - scaled (24), ct + 2,
                         juce::Justification::centredLeft);
-            y += kCursorThickness;
+            y += ct;
         }
 
         const auto& row = rows[static_cast<size_t> (i)];
         const bool isHovered = (hoveredRow == i);
-        juce::Rectangle<int> rowBounds (0, y, width, kRowHeight);
+        juce::Rectangle<int> rowBounds (0, y, width, rh);
 
         // Row background
         if (isHovered)
@@ -327,39 +357,41 @@ void MCPHistoryTableComponent::paint (juce::Graphics& g)
         const float baseAlpha = (row.isApplied ? 1.0f : 0.7f);
         const float alpha = row.record.isSelfCorrected ? 0.4f : baseAlpha;
 
-        auto cell = rowBounds.reduced (8, 4);
+        auto cell = rowBounds.reduced (scaled (8), scaled (4));
 
         // Timestamp
-        auto tsBounds = cell.removeFromLeft (62);
+        auto tsBounds = cell.removeFromLeft (scaled (62));
         g.setColour (cs.textSecondary.withAlpha (alpha));
-        g.setFont (juce::FontOptions (11.0f));
+        g.setFont (juce::FontOptions (juce::jmax (9.0f, 11.0f * scale)));
         g.drawText (formatTimestamp (row.record.timestamp), tsBounds,
                     juce::Justification::centredLeft);
 
         // Tool name (mono, dim)
-        auto toolBounds = cell.removeFromLeft (160);
+        auto toolBounds = cell.removeFromLeft (scaled (160));
         g.setColour (cs.textSecondary.withAlpha (alpha));
-        g.setFont (juce::FontOptions (juce::Font::getDefaultMonospacedFontName(), 11.0f, juce::Font::plain));
-        g.drawText (row.record.toolName.isNotEmpty() ? row.record.toolName : juce::String ("(unknown)"),
+        g.setFont (juce::FontOptions (juce::Font::getDefaultMonospacedFontName(),
+                                      juce::jmax (9.0f, 11.0f * scale), juce::Font::plain));
+        g.drawText (row.record.toolName,
                     toolBounds,
                     juce::Justification::centredLeft, true);
 
         // Action button column reserved on the right
-        cell.removeFromRight (kActionButtonSize + 8);
+        cell.removeFromRight (btnSize + scaled (8));
 
         // Batch tag if applicable
         if (row.record.redoBatchId != 0)
         {
-            auto batchBounds = cell.removeFromRight (60);
+            auto batchBounds = cell.removeFromRight (scaled (60));
             g.setColour (cs.accentGreen.withAlpha (alpha * 0.7f));
-            g.setFont (juce::FontOptions (10.0f).withStyle ("Bold"));
-            g.drawText ("batch " + juce::String (row.record.redoBatchId), batchBounds,
-                        juce::Justification::centredRight);
+            g.setFont (juce::FontOptions (juce::jmax (9.0f, 10.0f * scale)).withStyle ("Bold"));
+            const auto batchText = LocalizationManager::getInstance().get (
+                "ai.history.batch", {{"id", juce::String (row.record.redoBatchId)}});
+            g.drawText (batchText, batchBounds, juce::Justification::centredRight);
         }
 
         // Status badge
-        auto statusBounds = cell.removeFromRight (24);
-        g.setFont (juce::FontOptions (13.0f));
+        auto statusBounds = cell.removeFromRight (scaled (24));
+        g.setFont (juce::FontOptions (juce::jmax (10.0f, 13.0f * scale)));
         if (row.record.isSelfCorrected)
         {
             g.setColour (cs.accentRed.withAlpha (alpha));
@@ -381,7 +413,7 @@ void MCPHistoryTableComponent::paint (juce::Graphics& g)
 
         // Description (the rest of the row)
         g.setColour (cs.textPrimary.withAlpha (alpha));
-        g.setFont (juce::FontOptions (12.0f));
+        g.setFont (juce::FontOptions (juce::jmax (10.0f, 12.0f * scale)));
         g.drawText (row.record.operatorDescription, cell,
                     juce::Justification::centredLeft, true);
 
@@ -392,7 +424,7 @@ void MCPHistoryTableComponent::paint (juce::Graphics& g)
         if (showAction)
         {
             const bool actionHover = (isHovered && hoveredAction);
-            g.setFont (juce::FontOptions (16.0f));
+            g.setFont (juce::FontOptions (juce::jmax (12.0f, 16.0f * scale)));
             if (row.isApplied)
             {
                 g.setColour (actionHover ? cs.accentRed : cs.textSecondary);
@@ -407,18 +439,18 @@ void MCPHistoryTableComponent::paint (juce::Graphics& g)
             }
         }
 
-        y += kRowHeight;
+        y += rh;
     }
 
     // Bottom cursor (if there are no undone rows, draw an "all caught up" hint)
     if (undoableCount == static_cast<int> (rows.size()) && ! rows.empty())
     {
         g.setColour (cs.accentBlue.withAlpha (0.25f));
-        g.fillRect (0, y, width, kCursorThickness);
+        g.fillRect (0, y, width, ct);
         g.setColour (cs.textSecondary);
-        g.setFont (juce::FontOptions (10.0f).withStyle ("Italic"));
-        g.drawText ("(no undone records — at the head)",
-                    12, y + kCursorThickness + 2, width - 24, 14,
+        g.setFont (juce::FontOptions (juce::jmax (9.0f, 10.0f * scale)).withStyle ("Italic"));
+        g.drawText (LOC ("ai.history.atHead"),
+                    scaled (12), y + ct + 2, width - scaled (24), scaled (14),
                     juce::Justification::centredLeft);
     }
 }
@@ -483,7 +515,7 @@ void MCPHistoryTableComponent::mouseDown (const juce::MouseEvent& event)
 //==============================================================================
 MCPHistoryWindow::MCPHistoryWindow (WFSNetwork::MCPUndoEngine& engine,
                                     WFSNetwork::MCPChangeRecordBuffer& undoRing)
-    : juce::DocumentWindow ("AI Change History",
+    : juce::DocumentWindow (LOC ("ai.history.windowTitle"),
                             ColorScheme::get().background,
                             juce::DocumentWindow::allButtons)
 {
@@ -493,8 +525,10 @@ MCPHistoryWindow::MCPHistoryWindow (WFSNetwork::MCPUndoEngine& engine,
     auto* content = new MCPHistoryWindowContent (engine, undoRing);
     setContentOwned (content, false);
 
-    setSize (760, 480);
-    centreWithSize (760, 480);
+    const int w = juce::roundToInt (760.0f * WfsLookAndFeel::uiScale);
+    const int h = juce::roundToInt (480.0f * WfsLookAndFeel::uiScale);
+    setSize (w, h);
+    centreWithSize (w, h);
 
     ColorScheme::Manager::getInstance().addListener (this);
 }

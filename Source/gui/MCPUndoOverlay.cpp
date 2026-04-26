@@ -1,4 +1,6 @@
 #include "MCPUndoOverlay.h"
+#include "../Localization/LocalizationManager.h"
+#include "WfsLookAndFeel.h"
 
 namespace
 {
@@ -10,7 +12,15 @@ namespace
         const int minutes = seconds / 60;
         return juce::String (minutes) + "m " + juce::String (seconds - minutes * 60) + "s";
     }
+
+    inline int scaled (int px) { return juce::roundToInt (static_cast<float> (px) * WfsLookAndFeel::uiScale); }
 }
+
+int MCPUndoOverlay::rowHeight()            { return scaled (38); }
+int MCPUndoOverlay::headerHeight()         { return scaled (24); }
+int MCPUndoOverlay::toastWidth()           { return scaled (380); }
+int MCPUndoOverlay::paddingFromCorner()    { return scaled (12); }
+int MCPUndoOverlay::rowDeleteButtonSize()  { return scaled (22); }
 
 MCPUndoOverlay::MCPUndoOverlay (WFSNetwork::MCPUndoEngine& e,
                                 WFSNetwork::MCPChangeRecordBuffer& b)
@@ -32,10 +42,15 @@ MCPUndoOverlay::~MCPUndoOverlay()
 void MCPUndoOverlay::positionInParent (juce::Rectangle<int> parentBounds)
 {
     // Width fixed; height grows with row count, capped at kMaxVisibleRows.
+    const int hH = headerHeight();
+    const int rH = rowHeight();
+    const int tW = toastWidth();
+    const int pad = paddingFromCorner();
+
     const int visibleCount = juce::jmin (kMaxVisibleRows, static_cast<int> (rows.size()));
-    const int extraRow = (static_cast<int> (rows.size()) > kMaxVisibleRows) ? kHeaderHeight : 0;  // "and N more"
+    const int extraRow = (static_cast<int> (rows.size()) > kMaxVisibleRows) ? hH : 0;  // "and N more"
     const int height = (visibleCount > 0)
-                          ? (kHeaderHeight + visibleCount * kRowHeight + extraRow + 8)
+                          ? (hH + visibleCount * rH + extraRow + scaled (8))
                           : 0;
 
     if (height == 0)
@@ -44,9 +59,9 @@ void MCPUndoOverlay::positionInParent (juce::Rectangle<int> parentBounds)
         return;
     }
 
-    setBounds (parentBounds.getRight() - kToastWidth - kPaddingFromCorner,
-               parentBounds.getY() + kPaddingFromCorner,
-               kToastWidth,
+    setBounds (parentBounds.getRight() - tW - pad,
+               parentBounds.getY() + pad,
+               tW,
                height);
     setVisible (true);
 }
@@ -151,34 +166,42 @@ void MCPUndoOverlay::paint (juce::Graphics& g)
 {
     auto bounds = getLocalBounds();
     auto& cs = ColorScheme::get();
+    const float scale = WfsLookAndFeel::uiScale;
+
+    const int hH = headerHeight();
+    const int rH = rowHeight();
+    const int delBtnSize = rowDeleteButtonSize();
 
     // Container — slightly translucent so underlying UI peeks through.
     g.setColour (cs.surfaceCard.withAlpha (0.96f));
-    g.fillRoundedRectangle (bounds.toFloat(), 6.0f);
+    g.fillRoundedRectangle (bounds.toFloat(), scaled (6));
     g.setColour (cs.chromeDivider);
-    g.drawRoundedRectangle (bounds.toFloat().reduced (0.5f), 6.0f, 1.0f);
+    g.drawRoundedRectangle (bounds.toFloat().reduced (0.5f), scaled (6), 1.0f);
 
     // Header
-    auto headerBounds = bounds.removeFromTop (kHeaderHeight);
+    auto headerBounds = bounds.removeFromTop (hH);
     g.setColour (cs.textPrimary);
-    g.setFont (juce::FontOptions (12.0f).withStyle ("Bold"));
-    g.drawText ("AI changes", headerBounds.reduced (8, 0), juce::Justification::centredLeft);
+    g.setFont (juce::FontOptions (juce::jmax (10.0f, 12.0f * scale)).withStyle ("Bold"));
+    g.drawText (LOC ("ai.toast.header"), headerBounds.reduced (scaled (8), 0),
+                juce::Justification::centredLeft);
 
     // Close button (×) in top-right of the header
     const auto closeBtn = getCloseButtonBounds();
     g.setColour (hoveredCloseButton ? cs.accentRed : cs.textSecondary);
-    g.setFont (juce::FontOptions (16.0f));
+    g.setFont (juce::FontOptions (juce::jmax (12.0f, 16.0f * scale)));
     g.drawText (juce::CharPointer_UTF8 ("\xc3\x97"), closeBtn, juce::Justification::centred);
 
     // Header divider
     g.setColour (cs.chromeDivider);
-    g.drawHorizontalLine (kHeaderHeight - 1,
+    g.drawHorizontalLine (hH - 1,
                           static_cast<float> (bounds.getX()),
                           static_cast<float> (bounds.getRight()));
 
     // Rows
     const auto now = juce::Time::getCurrentTime();
     const int visibleCount = juce::jmin (kMaxVisibleRows, static_cast<int> (rows.size()));
+
+    const auto clientPrefix = LOC ("ai.toast.clientPrefix");
 
     for (int i = 0; i < visibleCount; ++i)
     {
@@ -199,20 +222,20 @@ void MCPUndoOverlay::paint (juce::Graphics& g)
         }
 
         // Description (left-aligned, takes most of the row)
-        auto textBounds = rowBounds.reduced (8, 4);
-        textBounds.removeFromRight (kRowDeleteButtonSize + 4);
+        auto textBounds = rowBounds.reduced (scaled (8), scaled (4));
+        textBounds.removeFromRight (delBtnSize + scaled (4));
 
-        // First line: "Claude" + elapsed time (small, secondary)
-        auto headerLineBounds = textBounds.removeFromTop (12);
+        // First line: client name + elapsed time (small, secondary)
+        auto headerLineBounds = textBounds.removeFromTop (scaled (12));
         g.setColour (cs.textSecondary);
-        g.setFont (juce::FontOptions (10.0f));
-        g.drawText (juce::String (juce::CharPointer_UTF8 ("Claude  \xe2\x80\xa2  "))
+        g.setFont (juce::FontOptions (juce::jmax (9.0f, 10.0f * scale)));
+        g.drawText (clientPrefix + juce::String (juce::CharPointer_UTF8 ("  \xe2\x80\xa2  "))
                         + formatElapsed (r.record.timestamp, now),
                     headerLineBounds, juce::Justification::centredLeft);
 
         // Second line: operator description (clipped to fit)
         g.setColour (cs.textPrimary);
-        g.setFont (juce::FontOptions (12.0f));
+        g.setFont (juce::FontOptions (juce::jmax (10.0f, 12.0f * scale)));
         g.drawText (r.record.operatorDescription, textBounds,
                     juce::Justification::centredLeft, true);
 
@@ -220,7 +243,7 @@ void MCPUndoOverlay::paint (juce::Graphics& g)
         const auto deleteBtn = getRowDeleteButtonBounds (i);
         const bool isHoveringDelete = (hoveredRow == i) && hoveredRowDeleteButton;
         g.setColour (isHoveringDelete ? cs.accentRed : cs.textSecondary);
-        g.setFont (juce::FontOptions (14.0f));
+        g.setFont (juce::FontOptions (juce::jmax (11.0f, 14.0f * scale)));
         g.drawText (juce::CharPointer_UTF8 ("\xc3\x97"), deleteBtn, juce::Justification::centred);
     }
 
@@ -229,13 +252,14 @@ void MCPUndoOverlay::paint (juce::Graphics& g)
     {
         const int extra = static_cast<int> (rows.size()) - kMaxVisibleRows;
         auto footer = juce::Rectangle<int> (bounds.getX(),
-                                            kHeaderHeight + visibleCount * kRowHeight,
-                                            bounds.getWidth(), kHeaderHeight)
-                         .reduced (8, 2);
+                                            hH + visibleCount * rH,
+                                            bounds.getWidth(), hH)
+                         .reduced (scaled (8), scaled (2));
         g.setColour (cs.textSecondary);
-        g.setFont (juce::FontOptions (10.0f).withStyle ("Italic"));
-        g.drawText ("…and " + juce::String (extra) + " older",
-                    footer, juce::Justification::centredLeft);
+        g.setFont (juce::FontOptions (juce::jmax (9.0f, 10.0f * scale)).withStyle ("Italic"));
+        const auto moreText = LocalizationManager::getInstance().get (
+            "ai.toast.moreOlder", {{"count", juce::String (extra)}});
+        g.drawText (moreText, footer, juce::Justification::centredLeft);
     }
 }
 
@@ -317,8 +341,10 @@ void MCPUndoOverlay::mouseExit (const juce::MouseEvent&)
 
 int MCPUndoOverlay::rowIndexAtY (int y) const
 {
-    if (y < kHeaderHeight) return -1;
-    const int idx = (y - kHeaderHeight) / kRowHeight;
+    const int hH = headerHeight();
+    const int rH = rowHeight();
+    if (y < hH) return -1;
+    const int idx = (y - hH) / rH;
     if (idx < 0 || idx >= static_cast<int> (rows.size())) return -1;
     if (idx >= kMaxVisibleRows) return -1;
     return idx;
@@ -374,21 +400,23 @@ int MCPUndoOverlay::bufferIndexForRow (int rowIdx) const
 
 juce::Rectangle<int> MCPUndoOverlay::getCloseButtonBounds() const
 {
-    return juce::Rectangle<int> (getWidth() - kHeaderHeight, 0, kHeaderHeight, kHeaderHeight);
+    const int hH = headerHeight();
+    return juce::Rectangle<int> (getWidth() - hH, 0, hH, hH);
 }
 
 juce::Rectangle<int> MCPUndoOverlay::getRowBounds (int rowIdx) const
 {
     return juce::Rectangle<int> (0,
-                                  kHeaderHeight + rowIdx * kRowHeight,
+                                  headerHeight() + rowIdx * rowHeight(),
                                   getWidth(),
-                                  kRowHeight);
+                                  rowHeight());
 }
 
 juce::Rectangle<int> MCPUndoOverlay::getRowDeleteButtonBounds (int rowIdx) const
 {
     auto row = getRowBounds (rowIdx);
-    const int x = row.getRight() - kRowDeleteButtonSize - 4;
-    const int y = row.getY() + (row.getHeight() - kRowDeleteButtonSize) / 2;
-    return juce::Rectangle<int> (x, y, kRowDeleteButtonSize, kRowDeleteButtonSize);
+    const int btnSize = rowDeleteButtonSize();
+    const int x = row.getRight() - btnSize - scaled (4);
+    const int y = row.getY() + (row.getHeight() - btnSize) / 2;
+    return juce::Rectangle<int> (x, y, btnSize, btnSize);
 }

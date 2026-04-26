@@ -89,12 +89,13 @@ private:
     bool hoveredCloseButton = false;
     juce::Array<int> hoverPreviewRows;  // rows that would also be reversed if × clicked
 
-    // Layout constants
-    static constexpr int kRowHeight = 38;
-    static constexpr int kHeaderHeight = 24;
-    static constexpr int kToastWidth = 380;
-    static constexpr int kPaddingFromCorner = 12;
-    static constexpr int kRowDeleteButtonSize = 22;
+    // Layout constants — multiplied by WfsLookAndFeel::uiScale at use-site
+    // so the toast resizes together with the rest of the app's UI.
+    static int rowHeight();
+    static int headerHeight();
+    static int toastWidth();
+    static int paddingFromCorner();
+    static int rowDeleteButtonSize();
     static constexpr int kMaxVisibleRows = 10;
     static constexpr int kRowLifetimeMs = 15000;
 

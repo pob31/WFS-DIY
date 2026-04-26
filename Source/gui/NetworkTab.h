@@ -1699,15 +1699,15 @@ public:
         // are hardcoded for now; localization keys land in the i18n pass
         // that's already on the project's translation TODO.
         addAndMakeVisible(mcpServerLabel);
-        mcpServerLabel.setText("MCP Server:", juce::dontSendNotification);
+        mcpServerLabel.setText(LOC("ai.server.label"), juce::dontSendNotification);
 
         addAndMakeVisible(mcpServerStatusLabel);
-        mcpServerStatusLabel.setText("Stopped", juce::dontSendNotification);
+        mcpServerStatusLabel.setText(LOC("ai.server.stopped"), juce::dontSendNotification);
         mcpServerStatusLabel.setColour(juce::Label::textColourId,
                                        ColorScheme::get().textSecondary);
 
         addAndMakeVisible(mcpCopyUrlButton);
-        mcpCopyUrlButton.setButtonText("Copy URL");
+        mcpCopyUrlButton.setButtonText(LOC("ai.server.copyUrl"));
         mcpCopyUrlButton.setEnabled(false);  // enabled once setMCPServer is called
         mcpCopyUrlButton.onClick = [this]() {
             if (mcpServer != nullptr && mcpServer->isRunning())
@@ -1717,12 +1717,14 @@ public:
                                        + "/mcp";
                 juce::SystemClipboard::copyTextToClipboard(url);
                 if (statusBar != nullptr)
-                    statusBar->showTemporaryMessage("MCP URL copied to clipboard: " + url, 2500);
+                    statusBar->showTemporaryMessage(
+                        LocalizationManager::getInstance().get("ai.server.copyUrlConfirm",
+                            {{"url", url}}), 2500);
             }
         };
 
         addAndMakeVisible(mcpOpenLogButton);
-        mcpOpenLogButton.setButtonText("Open AI History");
+        mcpOpenLogButton.setButtonText(LOC("ai.server.openHistory"));
         mcpOpenLogButton.onClick = [this]() {
             if (onMCPHistoryWindowRequested)
                 onMCPHistoryWindowRequested();
@@ -1937,16 +1939,17 @@ public:
         const bool running = mcpServer != nullptr && mcpServer->isRunning();
         if (running)
         {
-            mcpServerStatusLabel.setText("Running on 127.0.0.1:"
-                                         + juce::String(mcpServer->getBoundPort())
-                                         + "/mcp",
-                                         juce::dontSendNotification);
+            mcpServerStatusLabel.setText(
+                LocalizationManager::getInstance().get("ai.server.running",
+                    {{"host", "127.0.0.1"},
+                     {"port", juce::String(mcpServer->getBoundPort())}}),
+                juce::dontSendNotification);
             mcpServerStatusLabel.setColour(juce::Label::textColourId,
                                            ColorScheme::get().accentGreen);
         }
         else
         {
-            mcpServerStatusLabel.setText("Stopped", juce::dontSendNotification);
+            mcpServerStatusLabel.setText(LOC("ai.server.stopped"), juce::dontSendNotification);
             mcpServerStatusLabel.setColour(juce::Label::textColourId,
                                            ColorScheme::get().textSecondary);
         }

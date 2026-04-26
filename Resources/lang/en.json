@@ -2370,6 +2370,40 @@
     }
   },
 
+  "ai": {
+    "history": {
+      "windowTitle": "AI Change History",
+      "stepBack": "⏮ Step Back",
+      "stepForward": "Step Forward ⏭",
+      "applied": "applied",
+      "undone": "undone",
+      "of": "of",
+      "noChanges": "No AI changes yet.",
+      "batch": "batch {id}",
+      "cursorLabel": "◂  cursor (↑ applied  /  ↓ undone, redoable)",
+      "atHead": "(no undone records — at the head)"
+    },
+    "toast": {
+      "header": "AI changes",
+      "clientPrefix": "Claude",
+      "moreOlder": "…and {count} older"
+    },
+    "server": {
+      "label": "MCP Server:",
+      "stopped": "Stopped",
+      "running": "Running on {host}:{port}/mcp",
+      "copyUrl": "Copy URL",
+      "copyUrlConfirm": "MCP URL copied to clipboard: {url}",
+      "openHistory": "Open AI History"
+    },
+    "undo": {
+      "successPrefix": "AI {verb}: {description}",
+      "errorPrefix": "AI {verb}: {message}",
+      "verbUndo": "undo",
+      "verbRedo": "redo"
+    }
+  },
+
   "wizard": {
     "buttons": {
       "gettingStarted": "Getting Started",

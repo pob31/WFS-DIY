@@ -6041,22 +6041,27 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
             const auto reportOutcome = [this] (const WFSNetwork::UndoResult& result, const juce::String& verb)
             {
                 if (statusBar == nullptr) return;
-                if (result.success)
-                    statusBar->showTemporaryMessage("AI " + verb + ": " + result.operatorDescription, 2500);
-                else
-                    statusBar->showTemporaryMessage("AI " + verb + ": " + result.errorMessage, 2500);
+                const auto key = result.success ? juce::String("ai.undo.successPrefix")
+                                                : juce::String("ai.undo.errorPrefix");
+                const auto detail = result.success ? result.operatorDescription : result.errorMessage;
+                statusBar->showTemporaryMessage(
+                    LocalizationManager::getInstance().get(key,
+                        {{"verb", verb},
+                         {"description", detail},
+                         {"message", detail}}),
+                    2500);
             };
 
             if (key.isKeyCode('Z'))
             {
                 WFSNetwork::OriginTagScope originScope { WFSNetwork::OriginTag::MCP };
-                reportOutcome(mcpServer->getUndoEngine().undoLast(), "undo");
+                reportOutcome(mcpServer->getUndoEngine().undoLast(), LOC("ai.undo.verbUndo"));
                 return true;
             }
             if (key.isKeyCode('Y'))
             {
                 WFSNetwork::OriginTagScope originScope { WFSNetwork::OriginTag::MCP };
-                reportOutcome(mcpServer->getUndoEngine().redoLast(), "redo");
+                reportOutcome(mcpServer->getUndoEngine().redoLast(), LOC("ai.undo.verbRedo"));
                 return true;
             }
         }

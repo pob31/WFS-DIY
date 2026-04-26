@@ -70,7 +70,9 @@ public:
         waiting for the next 500 ms tick). */
     void refreshNow();
 
-    static constexpr int kRowHeight = 28;
+    /** Row height scales with the global UI scale so the table grows with
+        the rest of the app's text and controls. */
+    static int rowHeight();
 
 private:
     void timerCallback() override;
