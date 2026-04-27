@@ -2098,7 +2098,7 @@
     },
     "mcp": {
       "title": "AI / MCP Server",
-      "body": "The MCP server lets an AI assistant (Claude Desktop, Claude Code, ChatGPT with custom connectors) read and write the parameters of this WFS-DIY session over a local network connection.\n\nWhat the AI can do:\n• Read live state: channel counts, names, positions, attenuations, EQs, snapshots, clusters, the full parameter surface.\n• Move sources, rename channels, set cluster assignments, adjust the array layout, place outputs and reverbs.\n• Run guided workflows (system tuning walkthroughs, troubleshooting localization, snapshot management) via prepared prompt templates.\n\nOperator awareness:\n• Every AI action is recorded with origin tags. The AI History window (button on this row) shows the full timeline of AI changes; per-row × reverses an action with its dependents, the cursor walks through history sequentially.\n• If you manually adjust a parameter the AI just moved, the AI is notified and will not blindly retry. You always have the last word.\n• The Cmd/Ctrl+Alt+Z and Cmd/Ctrl+Alt+Y shortcuts undo and redo the last AI change without affecting your manual edits (which use plain Ctrl+Z as usual).\n\nTo add this server to Claude Desktop:\n  1. Open Settings → Developer → Edit Config.\n  2. Paste the JSON snippet below into claude_desktop_config.json (merge into the existing mcpServers block if you already have one).\n  3. Restart Claude Desktop. The server appears as 'wfs-diy' in the tools menu.\n\nTo add to Claude Code, run:\n  claude mcp add wfs-diy <url> -t http\n\nThe URL changes if you switch network interface or if the server falls back to a different port. The Copy URL button on this row always reflects the live URL.",
+      "body": "The MCP server lets an AI assistant (Claude Desktop, Claude Code, ChatGPT with custom connectors) read and write the parameters of this WFS-DIY session over a local network connection.\n\nWhat the AI can do:\n• Read live state: channel counts, names, positions, attenuations, EQs, snapshots, clusters, the full parameter surface.\n• Move sources, rename channels, set cluster assignments, adjust the array layout, place outputs and reverbs.\n• Run guided workflows (system tuning walkthroughs, troubleshooting localization, snapshot management) via prepared prompt templates.\n\nOperator controls on this row:\n• AI: ON / OFF — master switch. When OFF every AI tool call is refused; when ON the AI works under the rules below.\n• AI critical actions: blocked / ALLOWED — the destructive actions (deleting snapshots, resetting DSP, changing channel counts) are blocked by default. Click to allow them for 60 seconds; the red fill drains as the window expires, then they auto-block again.\n• Open AI History — scrollable timeline of every recent AI change with per-row undo / redo and a step-by-step cursor.\n• The MCP URL button copies the server URL to the clipboard for AI clients that take a URL directly.\n\nOperator awareness:\n• Every AI action is recorded with origin tags. The AI History window shows the full timeline; per-row × reverses an action with its dependents.\n• If you manually adjust a parameter the AI just moved, the AI is notified and will not blindly retry. You always have the last word.\n• The Cmd/Ctrl+Alt+Z and Cmd/Ctrl+Alt+Y shortcuts undo and redo the last AI change without affecting your manual edits (which use plain Ctrl+Z as usual).\n\nTo add this server to Claude Desktop:\n  1. Open Settings → Developer → Edit Config.\n  2. Paste the JSON snippet below into claude_desktop_config.json (merge into the existing mcpServers block if you already have one).\n  3. Restart Claude Desktop. The server appears as 'wfs-diy' in the tools menu.\n\nTo add to Claude Code, run:\n  claude mcp add wfs-diy <url> -t http\n\nThe URL changes if you switch network interface or if the server falls back to a different port. The URL button on this row always reflects the live URL.",
       "copyButton": "Copy Config",
       "copyConfirm": "MCP config JSON copied to clipboard"
     }
@@ -2204,15 +2204,14 @@
     "tier": {
       "gateBlocked": "AI critical actions: blocked",
       "gateAllowed": "AI critical actions: ALLOWED",
-      "gateCountdown": "auto-blocks in {seconds}s",
-      "previewOff": "AI preview: off",
-      "previewOn": "AI preview: confirm every call"
+      "aiOn": "AI: ON",
+      "aiOff": "AI: OFF"
     },
     "tooltips": {
       "urlButton": "Click to copy the MCP server URL. Useful for Claude Code (claude mcp add wfs-diy <URL> -t http) or any MCP client that takes a URL. Claude Desktop instead uses the JSON config snippet — open the (?) help card.",
       "openHistory": "Open the AI History window: scrollable timeline of every recent AI change with per-row undo / redo and a step-by-step cursor.",
-      "gate": "Allow or block destructive AI actions — deleting snapshots, resetting DSP, changing channel counts. Auto-blocks again 60 s after the operator allows it.",
-      "preview": "When ON, every AI call requires a confirmation prompt and the response describes what would have happened without changing any parameter. Useful for rehearsals and demos."
+      "gate": "Allow or block destructive AI actions — deleting snapshots, resetting DSP, changing channel counts. The red fill drains over 60 s, then critical actions auto-block again.",
+      "aiToggle": "Master switch for the whole MCP integration. When OFF every AI tool call is refused; when ON, normal tier handling applies (the critical-actions toggle still controls destructive calls separately)."
     }
   }
 }

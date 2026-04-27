@@ -10,6 +10,7 @@
 #include "ColorScheme.h"
 #include "../Localization/LocalizationManager.h"
 #include "buttons/LongPressButton.h"
+#include "buttons/CountdownTextButton.h"
 #include "ColumnFocusTraverser.h"
 #include "../AppSettings.h"
 #include "../Network/ADMOSCMapping.h"
@@ -1742,26 +1743,22 @@ public:
             updateTierEnforcementUI();
         };
 
-        addAndMakeVisible(dryRunButton);
-        dryRunButton.setClickingTogglesState(true);
-        dryRunButton.setButtonText(LOC("ai.tier.previewOff"));
-        dryRunButton.onClick = [this]() {
+        addAndMakeVisible(aiEnabledButton);
+        aiEnabledButton.setClickingTogglesState(true);
+        aiEnabledButton.setToggleState(true, juce::dontSendNotification);
+        aiEnabledButton.setButtonText(LOC("ai.tier.aiOn"));
+        aiEnabledButton.onClick = [this]() {
             if (mcpServer == nullptr) return;
-            mcpServer->getTierEnforcement().setDryRunMode(dryRunButton.getToggleState());
+            mcpServer->getTierEnforcement().setAIEnabled(aiEnabledButton.getToggleState());
             updateTierEnforcementUI();
         };
-
-        addAndMakeVisible(safetyGateCountdownLabel);
-        safetyGateCountdownLabel.setJustificationType(juce::Justification::centredLeft);
-        safetyGateCountdownLabel.setColour(juce::Label::textColourId,
-                                           ColorScheme::get().textSecondary);
 
         // Status-bar tooltips on every MCP-row button. Wired through the
         // existing mouseListener path (mouseEnter/mouseMove → showHelpText).
         mcpUrlButton.addMouseListener(this, false);
         mcpOpenLogButton.addMouseListener(this, false);
         safetyGateButton.addMouseListener(this, false);
-        dryRunButton.addMouseListener(this, false);
+        aiEnabledButton.addMouseListener(this, false);
 
         // ==================== NETWORK CONNECTIONS TABLE ====================
         setupNetworkConnectionsTable();
@@ -1985,14 +1982,14 @@ public:
         if (mcpServer == nullptr)
         {
             safetyGateButton.setEnabled(false);
-            dryRunButton.setEnabled(false);
-            safetyGateCountdownLabel.setText({}, juce::dontSendNotification);
+            aiEnabledButton.setEnabled(false);
+            safetyGateButton.clearCountdown();
             return;
         }
 
         auto& tier = mcpServer->getTierEnforcement();
         const bool gateOpen   = tier.isSafetyGateOpen();
-        const bool dryOn      = tier.isDryRunMode();
+        const bool aiOn       = tier.isAIEnabled();
         const int  remaining  = tier.secondsUntilGateCloses();
 
         safetyGateButton.setEnabled(true);
@@ -2004,26 +2001,29 @@ public:
         safetyGateButton.setColour(juce::TextButton::buttonOnColourId,
                                    ColorScheme::get().accentRed);
 
-        dryRunButton.setEnabled(true);
-        if (dryRunButton.getToggleState() != dryOn)
-            dryRunButton.setToggleState(dryOn, juce::dontSendNotification);
-        dryRunButton.setButtonText(dryOn
-            ? LOC("ai.tier.previewOn")
-            : LOC("ai.tier.previewOff"));
-        dryRunButton.setColour(juce::TextButton::buttonOnColourId,
-                               ColorScheme::get().accentBlue);
-
+        // Depleting fill: when ALLOWED with N seconds remaining, the
+        // right (60 - N)/60 of the button paints in the off-state colour
+        // so the red appears to drain away. When BLOCKED or with no
+        // active window, the overlay is cleared.
         if (gateOpen && remaining > 0)
         {
-            safetyGateCountdownLabel.setText(
-                LocalizationManager::getInstance().get("ai.tier.gateCountdown",
-                    {{"seconds", juce::String(remaining)}}),
-                juce::dontSendNotification);
+            safetyGateButton.setCountdown(remaining,
+                                          WFSNetwork::MCPTierEnforcement::kSafetyGateLifetimeSec,
+                                          ColorScheme::get().buttonNormal);
         }
         else
         {
-            safetyGateCountdownLabel.setText({}, juce::dontSendNotification);
+            safetyGateButton.clearCountdown();
         }
+
+        aiEnabledButton.setEnabled(true);
+        if (aiEnabledButton.getToggleState() != aiOn)
+            aiEnabledButton.setToggleState(aiOn, juce::dontSendNotification);
+        aiEnabledButton.setButtonText(aiOn
+            ? LOC("ai.tier.aiOn")
+            : LOC("ai.tier.aiOff"));
+        aiEnabledButton.setColour(juce::TextButton::buttonOnColourId,
+                                  ColorScheme::get().accentGreen);
     }
 
     void updateMCPStatus()
@@ -2254,7 +2254,7 @@ public:
         // --- MCP Server row ---
         // Single row beneath the network-connections buttons:
         //   [MCP Server:] [URL button] [Open AI History] [gate toggle]
-        //   [preview toggle] [countdown] [(?)]
+        //   [AI on/off] [(?)]
         // The bottom-anchored network help card covers the connections
         // table, so this row stays visible while the operator reads it.
         leftY += scaled(35);  // Visual breathing room — matches the gap above the buttons
@@ -2263,15 +2263,14 @@ public:
             const int btnGap       = scaled(4);
             const int labelW       = scaled(85);   // "MCP Server:"
             const int historyBtnW  = scaled(120);  // "Open AI History"
-            const int gateBtnW     = scaled(190);  // "AI critical actions: ALLOWED"
-            const int previewBtnW  = scaled(220);  // "AI preview: confirm every call"
-            const int countdownW   = scaled(110);  // "auto-blocks in 60s"
+            const int gateBtnW     = scaled(200);  // "AI critical actions: ALLOWED"
+            const int aiBtnW       = scaled(75);   // "AI: ON" / "AI: OFF"
 
             // URL button takes whatever space is left between the fixed-
             // width siblings. Auto-shrinks at narrow column widths;
             // the URL text (~32 chars) clips gracefully if needed.
-            const int totalFixed = labelW + historyBtnW + gateBtnW + previewBtnW
-                                    + countdownW + helpBtnSize + btnGap * 6;
+            const int totalFixed = labelW + historyBtnW + gateBtnW + aiBtnW
+                                    + helpBtnSize + btnGap * 5;
             const int urlBtnW = juce::jmax(scaled(140), leftColumnWidth - totalFixed);
 
             int x = leftX;
@@ -2279,8 +2278,7 @@ public:
             mcpUrlButton.setBounds   (x, leftY, urlBtnW, rowHeight);                       x += urlBtnW + btnGap;
             mcpOpenLogButton.setBounds(x, leftY, historyBtnW, rowHeight);                  x += historyBtnW + btnGap;
             safetyGateButton.setBounds(x, leftY, gateBtnW, rowHeight);                     x += gateBtnW + btnGap;
-            dryRunButton.setBounds   (x, leftY, previewBtnW, rowHeight);                   x += previewBtnW + btnGap;
-            safetyGateCountdownLabel.setBounds(x, leftY, countdownW, rowHeight);
+            aiEnabledButton.setBounds(x, leftY, aiBtnW, rowHeight);
 
             mcpHelpButton.setBounds  (leftX + leftColumnWidth - helpBtnSize,
                                       leftY + (rowHeight - helpBtnSize) / 2,
@@ -2578,9 +2576,8 @@ private:
     juce::TextButton mcpUrlButton;
     juce::TextButton mcpOpenLogButton;
     // Phase 6 — tier enforcement controls
-    juce::TextButton safetyGateButton;
-    juce::TextButton dryRunButton;
-    juce::Label      safetyGateCountdownLabel;
+    CountdownTextButton safetyGateButton;  // depleting fill shows the 60 s window
+    juce::TextButton    aiEnabledButton;   // master AI on/off toggle
 
     /** Adapter so NetworkTab itself doesn't need to inherit from
         MCPTierEnforcement::Listener (that would force the include into
@@ -4452,8 +4449,8 @@ private:
             helpText = LOC("ai.tooltips.openHistory");
         else if (source == &safetyGateButton)
             helpText = LOC("ai.tooltips.gate");
-        else if (source == &dryRunButton)
-            helpText = LOC("ai.tooltips.preview");
+        else if (source == &aiEnabledButton)
+            helpText = LOC("ai.tooltips.aiToggle");
 
         // ==================== ADM-OSC SECTION ====================
         else if (source == &admMappingSelectorLabel || isOrIsChildOf(source, &admMappingSelector))

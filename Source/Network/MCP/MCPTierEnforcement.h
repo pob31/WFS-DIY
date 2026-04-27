@@ -15,10 +15,12 @@ namespace WFSNetwork
     gate that the operator opens via the UI for ~60 s; AI clients cannot
     open the gate themselves.
 
-    Dry-run mode is a global flag the operator toggles in the UI. When
-    enabled, every Tier 1 call is escalated to Tier 2 — useful for
-    rehearsal sessions where the operator wants to see exactly what the
-    AI would do without it actually happening.
+    Master AI toggle: the operator can disable the AI entirely from the
+    UI. When disabled, every tool call returns AIDisabled and nothing
+    executes — simplest mental model for the operator ("AI does what it
+    asks" vs "AI does nothing"). The safety gate still exists for the
+    finer-grained "destructive vs not" distinction within the enabled
+    state.
 
     Threading: this class is owned by MCPServer. All mutating operations
     take their own internal lock; the dispatcher calls into it from the
@@ -38,8 +40,8 @@ public:
     {
         Execute,            // Tool runs normally
         AwaitConfirmation,  // Returned token must come back with confirm:true
-        SafetyGateClosed,   // Tier 3 refused — operator must open the gate
-        DryRunAcknowledge   // Dry-run mode: respond as if executed but skip the side effects
+        SafetyGateClosed,   // Tier 3 refused — operator must allow critical actions
+        AIDisabled          // Operator has the master AI toggle off — all tools refused
     };
 
     struct Outcome
@@ -67,8 +69,10 @@ public:
     bool isSafetyGateOpen() const noexcept;
     int  secondsUntilGateCloses() const noexcept;  // 0 when closed
 
-    void setDryRunMode (bool on);
-    bool isDryRunMode() const noexcept;
+    /** Master AI toggle. When false, evaluate() returns AIDisabled for
+        every tool call regardless of tier. Defaults to true (AI on). */
+    void setAIEnabled (bool on);
+    bool isAIEnabled() const noexcept;
 
     /** Listener for UI to repaint when state changes. */
     struct Listener
@@ -99,7 +103,7 @@ private:
     juce::CriticalSection lock;
     std::map<juce::String, PendingConfirmation> pending;  // token -> entry
 
-    std::atomic<bool> dryRun { false };
+    std::atomic<bool> aiEnabled { true };
     juce::Time gateOpenedUntil; // zero-initialised → gate starts closed
     bool gateOpen = false;
 

@@ -145,11 +145,15 @@ MCPTierEnforcement::Outcome MCPTierEnforcement::evaluate (const juce::String& to
     Outcome out;
     out.effectiveTier = juce::jlimit (1, 3, declaredTier);
 
-    // Dry-run mode escalates Tier 1 -> Tier 2 (so the operator sees a
-    // confirmation prompt for everything before it actually runs). Tier 2
-    // and Tier 3 keep their gating behaviour.
-    if (dryRun.load() && out.effectiveTier == 1)
-        out.effectiveTier = 2;
+    // Master toggle: if the operator has turned AI off, every tool call
+    // is refused regardless of tier.
+    if (! aiEnabled.load())
+    {
+        out.decision = Decision::AIDisabled;
+        out.message  = "AI is disabled by the operator (Network tab). Ask "
+                       "the operator to re-enable it before retrying.";
+        return out;
+    }
 
     if (out.effectiveTier == 1)
     {
@@ -157,27 +161,24 @@ MCPTierEnforcement::Outcome MCPTierEnforcement::evaluate (const juce::String& to
         return out;
     }
 
-    // Tier 3: enforce the safety gate first. Operator must have opened it
-    // (UI button, MIDI / StreamDeck binding once those land); AI cannot
-    // open it itself.
+    // Tier 3: enforce the safety gate first. Operator must have allowed
+    // critical actions (UI button, MIDI / StreamDeck binding once those
+    // land); AI cannot allow them itself.
     if (out.effectiveTier == 3 && ! isSafetyGateOpen())
     {
         out.decision = Decision::SafetyGateClosed;
-        out.message  = "Safety gate is closed. Ask the operator to open the "
-                       "safety gate (Network tab) before retrying. The gate "
-                       "auto-closes "
+        out.message  = "Critical AI actions are blocked. Ask the operator "
+                       "to allow critical actions (Network tab) before "
+                       "retrying. They auto-block again "
                        + juce::String (kSafetyGateLifetimeSec)
-                       + " seconds after the operator opens it.";
+                       + " seconds after the operator allows them.";
         return out;
     }
 
     // Tier 2 (and Tier 3 with open gate): two-step confirm.
     if (consumeMatchingToken (toolName, args))
     {
-        // Token validated — caller may proceed. If we're in dry-run mode
-        // the dispatcher should NOT execute the side effects but should
-        // respond as if it had.
-        out.decision = dryRun.load() ? Decision::DryRunAcknowledge : Decision::Execute;
+        out.decision = Decision::Execute;
         return out;
     }
 
@@ -190,16 +191,7 @@ MCPTierEnforcement::Outcome MCPTierEnforcement::evaluate (const juce::String& to
         out.message = "Tier 3 action awaiting confirmation. Re-call with "
                       "`confirm: \"" + out.confirmationToken
                       + "\"` within " + juce::String (kConfirmationLifetimeSec)
-                      + " seconds. The safety gate is open.";
-    }
-    else if (dryRun.load())
-    {
-        out.message = "Dry-run mode is active — every Tier 1 call is "
-                      "escalated to Tier 2. Re-call with `confirm: \""
-                      + out.confirmationToken + "\"` within "
-                      + juce::String (kConfirmationLifetimeSec) + " seconds. "
-                      "On confirmation the response will say what would have "
-                      "happened without applying the change.";
+                      + " seconds. Critical AI actions are currently allowed.";
     }
     else
     {
@@ -246,15 +238,15 @@ int MCPTierEnforcement::secondsUntilGateCloses() const noexcept
     return juce::jmax (0, static_cast<int> (remaining + 0.5));
 }
 
-void MCPTierEnforcement::setDryRunMode (bool on)
+void MCPTierEnforcement::setAIEnabled (bool on)
 {
-    if (dryRun.exchange (on) != on)
+    if (aiEnabled.exchange (on) != on)
         notifyListeners();
 }
 
-bool MCPTierEnforcement::isDryRunMode() const noexcept
+bool MCPTierEnforcement::isAIEnabled() const noexcept
 {
-    return dryRun.load();
+    return aiEnabled.load();
 }
 
 void MCPTierEnforcement::addListener    (Listener* l) { listeners.add    (l); }

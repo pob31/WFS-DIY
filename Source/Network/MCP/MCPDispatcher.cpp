@@ -153,10 +153,10 @@ juce::String MCPDispatcher::handleToolsList (const juce::var& id)
     result->setProperty ("tools", juce::var (tools));
 
     // Also expose live operator-state on the result so clients see whether
-    // the safety gate is open and whether dry-run mode is on.
+    // the AI is enabled and whether the critical-actions gate is open.
     auto serverState = std::make_unique<juce::DynamicObject>();
-    serverState->setProperty ("safety_gate_open", tierEnforcement.isSafetyGateOpen());
-    serverState->setProperty ("dry_run_mode",     tierEnforcement.isDryRunMode());
+    serverState->setProperty ("ai_enabled",           tierEnforcement.isAIEnabled());
+    serverState->setProperty ("critical_actions_allowed", tierEnforcement.isSafetyGateOpen());
     result->setProperty ("_meta", juce::var (serverState.release()));
 
     return makeJsonRpcResult (id, juce::var (result.release()));
@@ -189,8 +189,9 @@ juce::String MCPDispatcher::handleToolsCall (const juce::var& id, const juce::va
 
     // Phase 6: tier enforcement. Tier 1 → execute. Tier 2 → require
     // confirmation token (issue one on first call, accept it on second).
-    // Tier 3 → also require the operator-controlled safety gate to be
-    // open. Dry-run mode (operator UI flag) escalates Tier 1 → Tier 2.
+    // Tier 3 → also require the operator-controlled gate that allows
+    // critical AI actions. Master AI toggle: if disabled, all calls
+    // refuse with AIDisabled.
     const auto tierOutcome = tierEnforcement.evaluate (name, tool->tier, args);
 
     auto buildTierResponse = [this, &id, &tierOutcome, &name] (bool isError)
@@ -211,7 +212,11 @@ juce::String MCPDispatcher::handleToolsCall (const juce::var& id, const juce::va
         auto enforcement = std::make_unique<juce::DynamicObject>();
         enforcement->setProperty ("tool",            name);
         enforcement->setProperty ("declared_tier",   tierOutcome.effectiveTier);
-        if (tierOutcome.confirmationToken.isNotEmpty())
+        if (tierOutcome.decision == MCPTierEnforcement::Decision::AIDisabled)
+        {
+            enforcement->setProperty ("ai_disabled", true);
+        }
+        else if (tierOutcome.confirmationToken.isNotEmpty())
         {
             enforcement->setProperty ("awaiting_confirmation", true);
             enforcement->setProperty ("confirmation_token",    tierOutcome.confirmationToken);
@@ -232,7 +237,8 @@ juce::String MCPDispatcher::handleToolsCall (const juce::var& id, const juce::va
 
     if (tierOutcome.decision == MCPTierEnforcement::Decision::AwaitConfirmation)
         return buildTierResponse (false);
-    if (tierOutcome.decision == MCPTierEnforcement::Decision::SafetyGateClosed)
+    if (tierOutcome.decision == MCPTierEnforcement::Decision::SafetyGateClosed
+        || tierOutcome.decision == MCPTierEnforcement::Decision::AIDisabled)
         return buildTierResponse (true);
 
     // Set up change record envelope for state-modifying tools. Read-only
@@ -243,38 +249,6 @@ juce::String MCPDispatcher::handleToolsCall (const juce::var& id, const juce::va
     record.arguments = args;
 
     ChangeRecord* recordPtr = tool->modifiesState ? &record : nullptr;
-
-    // Dry-run mode: tier enforcement already extracted the operator's
-    // intent (the confirmation token validated). Do NOT execute the side
-    // effects; instead respond as if we did, plus a banner so the AI
-    // knows nothing actually moved.
-    if (tierOutcome.decision == MCPTierEnforcement::Decision::DryRunAcknowledge)
-    {
-        auto contentItem = std::make_unique<juce::DynamicObject>();
-        contentItem->setProperty ("type", "text");
-        contentItem->setProperty ("text",
-            "[dry-run] Confirmation accepted. The call would have executed "
-            "but dry-run mode is active — no parameters were changed.");
-
-        juce::Array<juce::var> content;
-        content.add (juce::var (contentItem.release()));
-
-        auto callResult = std::make_unique<juce::DynamicObject>();
-        callResult->setProperty ("content", juce::var (content));
-        callResult->setProperty ("isError", false);
-
-        auto enforcement = std::make_unique<juce::DynamicObject>();
-        enforcement->setProperty ("tool",     name);
-        enforcement->setProperty ("dry_run",  true);
-        enforcement->setProperty ("declared_tier", tierOutcome.effectiveTier);
-        callResult->setProperty ("tier_enforcement", juce::var (enforcement.release()));
-
-        const auto notifs = undoEngine.drainPendingNotifications();
-        if (! notifs.isEmpty())
-            callResult->setProperty ("notifications", juce::var (notifs));
-
-        return makeJsonRpcResult (id, juce::var (callResult.release()));
-    }
 
     ToolResult result;
     if (! runOnMessageThread (*tool, args, recordPtr, result))
