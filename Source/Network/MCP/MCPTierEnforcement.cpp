@@ -45,6 +45,7 @@ MCPTierEnforcement::~MCPTierEnforcement()
 void MCPTierEnforcement::timerCallback()
 {
     bool changed = false;
+    bool gateStillOpen = false;
     {
         const juce::ScopedLock sl (lock);
         const auto now = juce::Time::getCurrentTime();
@@ -67,9 +68,16 @@ void MCPTierEnforcement::timerCallback()
             gateOpen = false;
             changed = true;
         }
+
+        gateStillOpen = gateOpen;
     }
 
-    if (changed)
+    // Notify whenever a state transition happened OR the gate is still
+    // open — the latter keeps the UI's depleting-fill countdown ticking
+    // smoothly. 4 Hz repaint of a single button is cheap; the listener
+    // list is empty by default and currently has at most one entry
+    // (NetworkTab), so the cost is negligible.
+    if (changed || gateStillOpen)
         notifyListeners();
 }
 
