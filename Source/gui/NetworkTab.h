@@ -1745,8 +1745,10 @@ public:
 
         addAndMakeVisible(aiEnabledButton);
         aiEnabledButton.setClickingTogglesState(true);
-        aiEnabledButton.setToggleState(true, juce::dontSendNotification);
-        aiEnabledButton.setButtonText(LOC("ai.tier.aiOn"));
+        // Defaults to OFF — operators opt in. updateTierEnforcementUI()
+        // syncs the visible state from the engine after setMCPServer().
+        aiEnabledButton.setToggleState(false, juce::dontSendNotification);
+        aiEnabledButton.setButtonText(LOC("ai.tier.aiOff"));
         aiEnabledButton.onClick = [this]() {
             if (mcpServer == nullptr) return;
             mcpServer->getTierEnforcement().setAIEnabled(aiEnabledButton.getToggleState());
@@ -2255,23 +2257,33 @@ public:
         // Single row beneath the network-connections buttons:
         //   [MCP Server:] [URL button] [Open AI History] [gate toggle]
         //   [AI on/off] [(?)]
-        // The bottom-anchored network help card covers the connections
-        // table, so this row stays visible while the operator reads it.
+        // Each of the four buttons has a "natural" minimum width that
+        // fits its label; any extra column width is split evenly across
+        // the four so widths grow together rather than dumping all the
+        // slack into the URL button.
         leftY += scaled(35);  // Visual breathing room — matches the gap above the buttons
         {
             const int helpBtnSize  = scaled(20);
             const int btnGap       = scaled(4);
-            const int labelW       = scaled(85);   // "MCP Server:"
-            const int historyBtnW  = scaled(120);  // "Open AI History"
-            const int gateBtnW     = scaled(200);  // "AI critical actions: ALLOWED"
-            const int aiBtnW       = scaled(75);   // "AI: ON" / "AI: OFF"
+            const int labelW       = scaled(85);   // "MCP Server:" — fixed, not in the slack pool
 
-            // URL button takes whatever space is left between the fixed-
-            // width siblings. Auto-shrinks at narrow column widths;
-            // the URL text (~32 chars) clips gracefully if needed.
-            const int totalFixed = labelW + historyBtnW + gateBtnW + aiBtnW
-                                    + helpBtnSize + btnGap * 5;
-            const int urlBtnW = juce::jmax(scaled(140), leftColumnWidth - totalFixed);
+            // Natural minimums for the four flexible buttons.
+            const int urlMinW      = scaled(165);  // "http://127.0.0.1:7400/mcp"
+            const int historyMinW  = scaled(120);  // "Open AI History"
+            const int gateMinW     = scaled(200);  // "AI critical actions: ALLOWED"
+            const int aiMinW       = scaled(75);   // "AI: ON" / "AI: OFF"
+
+            const int totalMinima = labelW + helpBtnSize + btnGap * 5
+                                     + urlMinW + historyMinW + gateMinW + aiMinW;
+            const int slack       = juce::jmax(0, leftColumnWidth - totalMinima);
+            const int extraEach   = slack / 4;  // even split across the four buttons
+
+            const int urlBtnW     = urlMinW     + extraEach;
+            const int historyBtnW = historyMinW + extraEach;
+            const int gateBtnW    = gateMinW    + extraEach;
+            // Last button absorbs the rounding remainder so the row
+            // ends exactly at the (?) help button's left edge.
+            const int aiBtnW      = aiMinW      + (slack - extraEach * 3);
 
             int x = leftX;
             mcpServerLabel.setBounds (x, leftY, labelW, rowHeight);                        x += labelW + btnGap;

@@ -103,7 +103,10 @@ private:
     juce::CriticalSection lock;
     std::map<juce::String, PendingConfirmation> pending;  // token -> entry
 
-    std::atomic<bool> aiEnabled { true };
+    // Defaults to false — operators must explicitly opt the AI in via the
+    // Network-tab toggle. Conservative default; the operator decides when
+    // an AI session is active.
+    std::atomic<bool> aiEnabled { false };
     juce::Time gateOpenedUntil; // zero-initialised → gate starts closed
     bool gateOpen = false;
 
