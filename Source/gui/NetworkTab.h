@@ -2003,11 +2003,15 @@ public:
         safetyGateButton.setColour(juce::TextButton::buttonOnColourId,
                                    ColorScheme::get().accentRed);
 
-        // Depleting fill: when ALLOWED with N seconds remaining, the
-        // right (60 - N)/60 of the button paints in the off-state colour
-        // so the red appears to drain away. When BLOCKED or with no
-        // active window, the overlay is cleared.
-        if (gateOpen && remaining > 0)
+        // Depleting fill: while the gate is open the right (60 - N)/60
+        // of the button paints in the off-state colour so the red
+        // appears to drain away. We keep the overlay active even at
+        // remaining == 0 — clearing it earlier would briefly expose the
+        // full toggled-on red between "fully drained" and the gate's
+        // auto-close on the next tick (a one-frame red flash). When the
+        // gate actually closes we drop the overlay so the off-state
+        // looks clean.
+        if (gateOpen)
         {
             safetyGateButton.setCountdown(remaining,
                                           WFSNetwork::MCPTierEnforcement::kSafetyGateLifetimeSec,
