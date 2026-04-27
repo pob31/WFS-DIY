@@ -53,15 +53,28 @@ public:
                                           static_cast<float> (countdownRemaining)
                                             / static_cast<float> (countdownTotal));
 
-        // Drain happens FROM THE RIGHT: the consumed portion (1 - ratio)
-        // is overpainted with the drain colour, leaving only the leftmost
-        // `ratio` of the toggled-on background colour visible.
-        auto bounds = getLocalBounds().toFloat().reduced (1.0f);
-        const float drainWidth = bounds.getWidth() * (1.0f - ratio);
+        // WfsLookAndFeel insets the button background by `kCornerInset`
+        // on the left AND right and fills a rounded rectangle inside
+        // those bounds. We need to match that inset exactly, otherwise
+        // our flat overlay paints into the gutter outside the visual
+        // button — which looks like a "progress bar that overshoots
+        // the button". Clipping to a rounded path also keeps the right-
+        // side corners consistent with the rest of the button.
+        auto visibleBounds = getLocalBounds().toFloat();
+        visibleBounds.removeFromLeft  (kCornerInset);
+        visibleBounds.removeFromRight (kCornerInset);
+
+        const float drainWidth = visibleBounds.getWidth() * (1.0f - ratio);
         if (drainWidth <= 0.5f)
             return;
 
-        const auto drainArea = bounds.removeFromRight (drainWidth);
+        juce::Path roundedClip;
+        roundedClip.addRoundedRectangle (visibleBounds, kCornerInset);
+
+        juce::Graphics::ScopedSaveState saved (g);
+        g.reduceClipRegion (roundedClip);
+
+        const auto drainArea = visibleBounds.removeFromRight (drainWidth);
         g.setColour (drainColourCache);
         g.fillRect (drainArea);
 
@@ -77,6 +90,11 @@ private:
     int countdownRemaining = 0;
     int countdownTotal     = 0;
     juce::Colour drainColourCache;
+
+    // Matches WfsLookAndFeel::drawButtonBackground's left/right gutter
+    // and corner radius (both 6 px). Keep these in sync if the L&F
+    // changes its button shape.
+    static constexpr float kCornerInset = 6.0f;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (CountdownTextButton)
 };
