@@ -4,6 +4,7 @@
 #include "../Parameters/WFSValueTreeState.h"
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/ParameterDirtyTracker.h"
+#include "NetworkStringUtils.h"
 #include <array>
 
 class TrackingPositionFilter;
@@ -93,7 +94,7 @@ namespace MQTTProtocol
         if (offset + len > dataSize)
             return {};
 
-        juce::String result (reinterpret_cast<const char*> (data + offset), static_cast<size_t> (len));
+        juce::String result = WFSNetwork::safeStringFromBytes (reinterpret_cast<const char*> (data + offset), len);
         offset += len;
         return result;
     }

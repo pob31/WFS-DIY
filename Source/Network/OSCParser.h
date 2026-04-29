@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "NetworkStringUtils.h"
 
 namespace WFSNetwork
 {
@@ -28,7 +29,7 @@ namespace OSCParser
         while ((end - data) < dataSize && *end != '\0')
             ++end;
 
-        juce::String result(start, static_cast<size_t>(end - start));
+        juce::String result = safeStringFromBytes(start, static_cast<int>(end - start));
         pos = alignTo4(static_cast<int>(end - data + 1));  // Skip null and align
         return result;
     }

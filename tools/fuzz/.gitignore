@@ -1,0 +1,3 @@
+findings/
+__pycache__/
+*.pyc

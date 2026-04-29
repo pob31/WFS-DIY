@@ -1,6 +1,7 @@
 #include "OSCManager.h"
 #include "QLabCueBuilder.h"
 #include "../Helpers/CoordinateConverter.h"
+#include "../Helpers/NumericGuards.h"
 #include "../Parameters/WFSConstraints.h"
 #include "../WFSLogger.h"
 #include <thread>
@@ -1341,6 +1342,19 @@ void OSCManager::handleIncomingMessage(const juce::OSCMessage& message,
         return;
     }
 
+    // Reject messages carrying NaN/Inf floats before they reach the handlers.
+    // A non-finite value would propagate into the ValueTree and later trip
+    // jlimit asserts (e.g. NaN stageWidth -> NaN constraint bounds).
+    {
+        juce::String rejectReason;
+        if (! OSCMessageRouter::hasOnlyFiniteFloats(message, rejectReason))
+        {
+            logger.logRejected(message.getAddressPattern().toString(),
+                              senderIP, port, transport, rejectReason);
+            return;
+        }
+    }
+
     ++messagesReceived;
 
     juce::String address = message.getAddressPattern().toString();
@@ -1459,11 +1473,21 @@ void OSCManager::handleIncomingBundle(const juce::OSCBundle& bundle,
     {
         if (element.isMessage())
         {
-            // For messages within a bundle, IP already validated
-            ++messagesReceived;
-
             const auto& message = element.getMessage();
             juce::String address = message.getAddressPattern().toString();
+
+            // Reject NaN/Inf floats before dispatch (matches handleIncomingMessage).
+            {
+                juce::String rejectReason;
+                if (! OSCMessageRouter::hasOnlyFiniteFloats(message, rejectReason))
+                {
+                    logger.logRejected(address, senderIP, port, transport, rejectReason);
+                    continue;
+                }
+            }
+
+            // For messages within a bundle, IP already validated
+            ++messagesReceived;
 
             Protocol protocol = Protocol::OSC;
             if (address.startsWith("/remoteInput/"))
@@ -3512,7 +3536,7 @@ float OSCManager::applyConstraintX(int channelIndex, float value) const
         if ((coordMode == 1 || coordMode == 2) && constraintDist != 0)
             return value;
 
-        return juce::jlimit(getStageMinX(), getStageMaxX(), value);
+        return WFSHelpers::safeClamp(getStageMinX(), getStageMaxX(), value);
     }
 
     return value;
@@ -3535,7 +3559,7 @@ float OSCManager::applyConstraintY(int channelIndex, float value) const
         if ((coordMode == 1 || coordMode == 2) && constraintDist != 0)
             return value;
 
-        return juce::jlimit(getStageMinY(), getStageMaxY(), value);
+        return WFSHelpers::safeClamp(getStageMinY(), getStageMaxY(), value);
     }
 
     return value;
@@ -3558,7 +3582,7 @@ float OSCManager::applyConstraintZ(int channelIndex, float value) const
         if (coordMode == 2 && constraintDist != 0)
             return value;
 
-        return juce::jlimit(0.0f, getStageMaxZ(), value);
+        return WFSHelpers::safeClamp(0.0f, getStageMaxZ(), value);
     }
 
     return value;
@@ -3597,7 +3621,7 @@ void OSCManager::applyConstraintDistance(int channelIndex, float& x, float& y, f
     if (currentDist < 0.0001f)
         currentDist = 0.0001f;
 
-    float targetDist = juce::jlimit(minDist, maxDist, currentDist);
+    float targetDist = WFSHelpers::safeClamp(minDist, maxDist, currentDist);
 
     if (!juce::approximatelyEqual(currentDist, targetDist))
     {

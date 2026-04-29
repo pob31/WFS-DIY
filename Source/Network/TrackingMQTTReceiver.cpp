@@ -1,6 +1,7 @@
 #include "TrackingMQTTReceiver.h"
 #include "../DSP/TrackingPositionFilter.h"
 #include "OSCLogger.h"
+#include "NetworkStringUtils.h"
 
 namespace WFSNetwork
 {
@@ -366,8 +367,8 @@ void TrackingMQTTReceiver::handlePublish (const uint8_t* data, int dataSize)
     if (varOffset >= remainingLength)
         return;
 
-    juce::String payload (reinterpret_cast<const char*> (varData + varOffset),
-                          static_cast<size_t> (remainingLength - varOffset));
+    juce::String payload = safeStringFromBytes (reinterpret_cast<const char*> (varData + varOffset),
+                                                 remainingLength - varOffset);
 
     processJsonPayload (topic, payload);
 }

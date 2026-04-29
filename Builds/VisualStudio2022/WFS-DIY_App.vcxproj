@@ -3257,6 +3257,7 @@
     <ClInclude Include="..\..\Source\gui\PatchMatrixComponent.h"/>
     <ClInclude Include="..\..\Source\gui\AudioPatchTab.h"/>
     <ClInclude Include="..\..\Source\Helpers\ArrayGeometryCalculator.h"/>
+    <ClInclude Include="..\..\Source\Helpers\NumericGuards.h"/>
     <ClInclude Include="..\..\Source\Accessibility\TTSManager.h"/>
     <ClInclude Include="..\..\Source\Localization\LocalizationManager.h"/>
     <ClInclude Include="..\..\Source\Network\OSCProtocolTypes.h"/>
@@ -3270,6 +3271,7 @@
     <ClInclude Include="..\..\Source\Network\OSCReceiverWithSenderIP.h"/>
     <ClInclude Include="..\..\Source\Network\OSCTCPReceiver.h"/>
     <ClInclude Include="..\..\Source\Network\OSCParser.h"/>
+    <ClInclude Include="..\..\Source\Network\NetworkStringUtils.h"/>
     <ClInclude Include="..\..\Source\Network\OSCQueryServer.h"/>
     <ClInclude Include="..\..\Source\Network\TrackingOSCReceiver.h"/>
     <ClInclude Include="..\..\Source\Network\TrackingPSNReceiver.h"/>

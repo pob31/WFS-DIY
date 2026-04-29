@@ -232,6 +232,7 @@
 		914270FD5178BDC567FC612C /* ControllerEvent.h */ /* ControllerEvent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ControllerEvent.h; path = ../../Source/Controllers/PositionControl/ControllerEvent.h; sourceTree = SOURCE_ROOT; };
 		93358D08FACEF28C4AEA139F /* OutputArrayHelperWindow.h */ /* OutputArrayHelperWindow.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OutputArrayHelperWindow.h; path = ../../Source/gui/OutputArrayHelperWindow.h; sourceTree = SOURCE_ROOT; };
 		93517C1B57BC41C6A7CF7B88 /* Info-App.plist */ /* Info-App.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "Info-App.plist"; path = "Info-App.plist"; sourceTree = SOURCE_ROOT; };
+		952ABD4AA66F8698F3D6A04B /* NetworkStringUtils.h */ /* NetworkStringUtils.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = NetworkStringUtils.h; path = ../../Source/Network/NetworkStringUtils.h; sourceTree = SOURCE_ROOT; };
 		985483A84729EE26DE85D575 /* TrackingRTTrPReceiver.h */ /* TrackingRTTrPReceiver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TrackingRTTrPReceiver.h; path = ../../Source/Network/TrackingRTTrPReceiver.h; sourceTree = SOURCE_ROOT; };
 		9DAB4C03DEE4586FA4E52782 /* LightpadManager.h */ /* LightpadManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = LightpadManager.h; path = ../../Source/Controllers/Sampler/LightpadManager.h; sourceTree = SOURCE_ROOT; };
 		9F2BD03DF373651E39BEDFE5 /* TrackingMQTTReceiver.h */ /* TrackingMQTTReceiver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TrackingMQTTReceiver.h; path = ../../Source/Network/TrackingMQTTReceiver.h; sourceTree = SOURCE_ROOT; };
@@ -297,6 +298,7 @@
 		E4A0CD4099891D58FE76630E /* QuickKeysManager.h */ /* QuickKeysManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = QuickKeysManager.h; path = ../../Source/Controllers/DialsAndButtons/QuickKeysManager.h; sourceTree = SOURCE_ROOT; };
 		E6905818F38D144E669AABE1 /* TrackingPSNReceiver.h */ /* TrackingPSNReceiver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TrackingPSNReceiver.h; path = ../../Source/Network/TrackingPSNReceiver.h; sourceTree = SOURCE_ROOT; };
 		E6DC64388ADB0F021B9F42EE /* ControllerMapping.h */ /* ControllerMapping.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ControllerMapping.h; path = ../../Source/Controllers/PositionControl/ControllerMapping.h; sourceTree = SOURCE_ROOT; };
+		EBD439A1EC10DB013ED0E482 /* NumericGuards.h */ /* NumericGuards.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = NumericGuards.h; path = ../../Source/Helpers/NumericGuards.h; sourceTree = SOURCE_ROOT; };
 		EE3AAA7F4BDC53F0808AD4D0 /* include_juce_audio_processors.mm */ /* include_juce_audio_processors.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_processors.mm; path = ../../JuceLibraryCode/include_juce_audio_processors.mm; sourceTree = SOURCE_ROOT; };
 		EF6BE4EEF00731F9E6446B7F /* MCPChangeRecords.cpp */ /* MCPChangeRecords.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MCPChangeRecords.cpp; path = ../../Source/Network/MCP/MCPChangeRecords.cpp; sourceTree = SOURCE_ROOT; };
 		EF8F5550038C576E96ECCBC3 /* include_juce_audio_basics.mm */ /* include_juce_audio_basics.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_basics.mm; path = ../../JuceLibraryCode/include_juce_audio_basics.mm; sourceTree = SOURCE_ROOT; };
@@ -389,6 +391,7 @@
 				A859E542011BA2B197343E8B,
 				83B9631F36EB03CD552105D6,
 				DE9E3D8B6DEF25E07D893DBA,
+				952ABD4AA66F8698F3D6A04B,
 				DAF0A8D52DEC4B51BA171B78,
 				DE14BD20BA58B9D03EEBABCE,
 				804EEBC4D9F5B58A736D9D88,
@@ -551,6 +554,7 @@
 			children = (
 				11DA25FE53363679529C4A42,
 				400EA6B8131021F017321A16,
+				EBD439A1EC10DB013ED0E482,
 			);
 			name = Helpers;
 			sourceTree = "<group>";

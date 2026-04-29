@@ -1,5 +1,6 @@
 #include "OSCMessageRouter.h"
 
+#include <cmath>
 #include <set>
 
 namespace WFSNetwork
@@ -517,6 +518,26 @@ juce::String OSCMessageRouter::extractString(const juce::OSCArgument& arg)
     if (arg.isString())
         return arg.getString();
     return {};
+}
+
+bool OSCMessageRouter::hasOnlyFiniteFloats(const juce::OSCMessage& message,
+                                           juce::String& outReason)
+{
+    for (int i = 0; i < message.size(); ++i)
+    {
+        if (message[i].isFloat32())
+        {
+            const float v = message[i].getFloat32();
+            if (! std::isfinite(v))
+            {
+                const char* kind = std::isnan(v) ? "NaN" : "Inf";
+                outReason = "non-finite float at arg " + juce::String(i)
+                          + " (" + kind + ")";
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 //==============================================================================

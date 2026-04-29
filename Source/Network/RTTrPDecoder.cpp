@@ -1,4 +1,5 @@
 #include "RTTrPDecoder.h"
+#include "NetworkStringUtils.h"
 
 namespace RTTrP
 {
@@ -85,7 +86,7 @@ bool Decoder::parseTrackable(const uint8_t* data, size_t size, size_t& offset)
     // Name string
     if (offset + nameLen > size)
         return false;
-    trackable.name = juce::String(reinterpret_cast<const char*>(data + offset), nameLen);
+    trackable.name = WFSNetwork::safeStringFromBytes(reinterpret_cast<const char*>(data + offset), nameLen);
     offset += nameLen;
 
     // Extract trackable ID from name

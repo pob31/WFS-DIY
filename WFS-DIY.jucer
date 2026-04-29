@@ -81,6 +81,8 @@
               file="Source/Helpers/ArrayGeometryCalculator.h"/>
         <FILE id="arrGeomCpp" name="ArrayGeometryCalculator.cpp" compile="1"
               resource="0" file="Source/Helpers/ArrayGeometryCalculator.cpp"/>
+        <FILE id="numGuardsH" name="NumericGuards.h" compile="0" resource="0"
+              file="Source/Helpers/NumericGuards.h"/>
       </GROUP>
       <GROUP id="{ACCESSGROUP}" name="Accessibility">
         <FILE id="accTTSMgr" name="TTSManager.h" compile="0" resource="0" file="Source/Accessibility/TTSManager.h"/>
@@ -127,6 +129,8 @@
         <FILE id="netTcpRxCpp" name="OSCTCPReceiver.cpp" compile="1" resource="0"
               file="Source/Network/OSCTCPReceiver.cpp"/>
         <FILE id="netParseH" name="OSCParser.h" compile="0" resource="0" file="Source/Network/OSCParser.h"/>
+        <FILE id="netStrUtilH" name="NetworkStringUtils.h" compile="0" resource="0"
+              file="Source/Network/NetworkStringUtils.h"/>
         <FILE id="netQueryH" name="OSCQueryServer.h" compile="0" resource="0"
               file="Source/Network/OSCQueryServer.h"/>
         <FILE id="netQueryCpp" name="OSCQueryServer.cpp" compile="1" resource="0"

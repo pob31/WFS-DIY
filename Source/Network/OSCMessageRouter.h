@@ -246,6 +246,20 @@ public:
      */
     static juce::String extractParamName(const juce::String& address);
 
+    /**
+     * Validate that every numeric argument in the message is finite.
+     * Returns true if all floats are finite (or there are no float args).
+     * Returns false on the first NaN/Inf encountered, writing a short
+     * description into outReason (e.g. "non-finite float at arg 1 (NaN)").
+     *
+     * Used as a gate at the OSC entry path: messages carrying NaN/Inf
+     * floats are rejected before they can corrupt the ValueTree (e.g.
+     * NaN stage geometry → asserts in jlimit at every later constraint
+     * application).
+     */
+    static bool hasOnlyFiniteFloats(const juce::OSCMessage& message,
+                                    juce::String& outReason);
+
     /** Remote address map: paramName -> parameterID, for bulk state dump */
     static const std::map<juce::String, juce::Identifier>& getRemoteAddressMap();
 

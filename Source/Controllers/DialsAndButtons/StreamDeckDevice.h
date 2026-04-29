@@ -20,6 +20,7 @@
 #include "hidapi/hidapi.h"
 
 #include <JuceHeader.h>
+#include "../../Network/NetworkStringUtils.h"
 
 #if JUCE_WINDOWS
  #include <windows.h>
@@ -234,8 +235,11 @@ public:
         int res = hid_get_feature_report (deviceHandle, report, FEATURE_REPORT_SIZE);
         if (res < 0) return {};
 
-        // Serial starts at byte 2, null-terminated ASCII
-        return juce::String (reinterpret_cast<const char*> (report + 2));
+        // Serial starts at byte 2, null-terminated ASCII (bounded scan to
+        // avoid reading past the report buffer if the device omits the null)
+        return WFSNetwork::safeStringFromBoundedCString (
+            reinterpret_cast<const char*> (report + 2),
+            FEATURE_REPORT_SIZE - 2);
     }
 
     /** Get firmware version string (empty string if not connected). */
@@ -252,7 +256,9 @@ public:
         int res = hid_get_feature_report (deviceHandle, report, FEATURE_REPORT_SIZE);
         if (res < 0) return {};
 
-        return juce::String (reinterpret_cast<const char*> (report + 2));
+        return WFSNetwork::safeStringFromBoundedCString (
+            reinterpret_cast<const char*> (report + 2),
+            FEATURE_REPORT_SIZE - 2);
     }
 
 private:

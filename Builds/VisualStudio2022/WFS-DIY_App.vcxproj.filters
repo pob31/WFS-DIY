@@ -4347,6 +4347,9 @@
     <ClInclude Include="..\..\Source\Helpers\ArrayGeometryCalculator.h">
       <Filter>WFS-DIY\Source\Helpers</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\Helpers\NumericGuards.h">
+      <Filter>WFS-DIY\Source\Helpers</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\Accessibility\TTSManager.h">
       <Filter>WFS-DIY\Source\Accessibility</Filter>
     </ClInclude>
@@ -4384,6 +4387,9 @@
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Network\OSCParser.h">
+      <Filter>WFS-DIY\Source\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\NetworkStringUtils.h">
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Network\OSCQueryServer.h">
