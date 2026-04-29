@@ -192,6 +192,8 @@
     <ClCompile Include="..\..\Source\Network\OSCLogger.cpp"/>
     <ClCompile Include="..\..\Source\Network\OSCMessageBuilder.cpp"/>
     <ClCompile Include="..\..\Source\Network\OSCMessageRouter.cpp"/>
+    <ClCompile Include="..\..\Source\Network\OSCParameterBounds.cpp"/>
+    <ClCompile Include="..\..\Source\Network\OSCIngestQueue.cpp"/>
     <ClCompile Include="..\..\Source\Network\OSCManager.cpp"/>
     <ClCompile Include="..\..\Source\Network\OSCReceiverWithSenderIP.cpp"/>
     <ClCompile Include="..\..\Source\Network\OSCTCPReceiver.cpp"/>
@@ -3266,6 +3268,8 @@
     <ClInclude Include="..\..\Source\Network\OSCLogger.h"/>
     <ClInclude Include="..\..\Source\Network\OSCMessageBuilder.h"/>
     <ClInclude Include="..\..\Source\Network\OSCMessageRouter.h"/>
+    <ClInclude Include="..\..\Source\Network\OSCParameterBounds.h"/>
+    <ClInclude Include="..\..\Source\Network\OSCIngestQueue.h"/>
     <ClInclude Include="..\..\Source\Network\OSCManager.h"/>
     <ClInclude Include="..\..\Source\Network\ADMOSCMapping.h"/>
     <ClInclude Include="..\..\Source\Network\OSCReceiverWithSenderIP.h"/>

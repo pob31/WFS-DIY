@@ -67,6 +67,20 @@ public:
      */
     void removeListener(Listener* listener);
 
+    /**
+     * Optional raw-data callback. When set, the receiver thread hands
+     * the raw datagram bytes (plus sender IP / port) to the callback
+     * INSTEAD of posting a callAsync that parses on the message thread.
+     * This is used by `OSCIngestQueue` to coalesce per-(address,
+     * channel) updates and to bound the MM-thread queue depth under
+     * flood. If the callback is unset (nullptr), the receiver falls
+     * back to its legacy parseOSCData → Listener path.
+     */
+    using RawDataCallback = std::function<void (juce::MemoryBlock data,
+                                                 juce::String senderIP,
+                                                 int senderPort)>;
+    void setRawDataCallback (RawDataCallback callback);
+
 private:
     void run() override;
     void parseOSCData(const juce::MemoryBlock& data, const juce::String& senderIP);
@@ -75,6 +89,7 @@ private:
 
     std::unique_ptr<juce::DatagramSocket> socket;
     juce::ListenerList<Listener> listeners;
+    RawDataCallback rawDataCallback;
     std::atomic<bool> connected { false };
     std::atomic<bool> shouldStop { false };
     int portNumber = 0;

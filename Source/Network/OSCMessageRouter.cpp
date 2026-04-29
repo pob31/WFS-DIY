@@ -1,4 +1,5 @@
 #include "OSCMessageRouter.h"
+#include "OSCParameterBounds.h"
 
 #include <cmath>
 #include <set>
@@ -540,6 +541,39 @@ bool OSCMessageRouter::hasOnlyFiniteFloats(const juce::OSCMessage& message,
     return true;
 }
 
+namespace
+{
+    // Range-gate a parsed value against the documented bounds for paramId.
+    // String values pass through unchanged; numeric values that fall
+    // outside [min, max] cause this helper to write a rejection reason
+    // and return false. Parameters with no entry in the bounds table
+    // pass through as well.
+    static bool valueWithinBounds (const juce::Identifier& paramId,
+                                   const juce::var& value,
+                                   juce::String& outReason)
+    {
+        if (value.isString())
+            return true;
+        auto b = WFSNetwork::getBounds (paramId);
+        if (! b.has_value())
+            return true;
+        const double d = static_cast<double> (value);
+        if (d < b->min || d > b->max)
+        {
+            outReason = WFSNetwork::formatOutOfRangeReason (paramId, d);
+            return false;
+        }
+        return true;
+    }
+
+    // Clamp the optional ramp-time arg to a sane window [0, 600] s. We
+    // clamp rather than reject so a bad ramp doesn't drop the value.
+    static float clampRampSeconds (float v)
+    {
+        return juce::jlimit (0.0f, 600.0f, v);
+    }
+}
+
 //==============================================================================
 // Message Parsing
 //==============================================================================
@@ -578,7 +612,10 @@ OSCMessageRouter::ParsedInputMessage OSCMessageRouter::parseInputMessage(const j
 
                 // Optional ramp time: /wfs/input/{channelID}/{param} <value> <rampTimeSec>
                 if (message.size() >= 2 && isInputParamRampCapable(result.paramId))
-                    result.rampTimeSec = juce::jmax (0.0f, extractFloat(message[1]));
+                    result.rampTimeSec = clampRampSeconds (extractFloat (message[1]));
+
+                if (! valueWithinBounds (result.paramId, result.value, result.invalidReason))
+                    return result;
 
                 result.valid = true;
                 return result;
@@ -600,7 +637,10 @@ OSCMessageRouter::ParsedInputMessage OSCMessageRouter::parseInputMessage(const j
         // Optional ramp time argument — only accepted for parameters listed as
         // ramp-capable in Documentation/WFS-UI_input.csv.
         if (message.size() >= 3 && isInputParamRampCapable(result.paramId))
-            result.rampTimeSec = juce::jmax (0.0f, extractFloat(message[2]));
+            result.rampTimeSec = clampRampSeconds (extractFloat (message[2]));
+
+        if (! valueWithinBounds (result.paramId, result.value, result.invalidReason))
+            return result;
 
         result.valid = true;
     }
@@ -693,6 +733,8 @@ OSCMessageRouter::ParsedOutputMessage OSCMessageRouter::parseOutputMessage(const
                         result.value = extractString(message[1]);
                     else
                         result.value = extractFloat(message[1]);
+                    if (! valueWithinBounds (result.paramId, result.value, result.invalidReason))
+                        return result;
                     result.valid = true;
                 }
                 else if (!isEQ && message.size() >= 1)
@@ -701,6 +743,8 @@ OSCMessageRouter::ParsedOutputMessage OSCMessageRouter::parseOutputMessage(const
                         result.value = extractString(message[0]);
                     else
                         result.value = extractFloat(message[0]);
+                    if (! valueWithinBounds (result.paramId, result.value, result.invalidReason))
+                        return result;
                     result.valid = true;
                 }
                 return result;
@@ -741,6 +785,9 @@ OSCMessageRouter::ParsedOutputMessage OSCMessageRouter::parseOutputMessage(const
             else
                 result.value = extractFloat(message[1]);
         }
+
+        if (! valueWithinBounds (result.paramId, result.value, result.invalidReason))
+            return result;
 
         result.valid = true;
     }
@@ -783,6 +830,8 @@ OSCMessageRouter::ParsedReverbMessage OSCMessageRouter::parseReverbMessage(const
                         result.value = extractString(message[1]);
                     else
                         result.value = extractFloat(message[1]);
+                    if (! valueWithinBounds (result.paramId, result.value, result.invalidReason))
+                        return result;
                     result.valid = true;
                 }
                 else if (!isEQ && message.size() >= 1)
@@ -791,6 +840,8 @@ OSCMessageRouter::ParsedReverbMessage OSCMessageRouter::parseReverbMessage(const
                         result.value = extractString(message[0]);
                     else
                         result.value = extractFloat(message[0]);
+                    if (! valueWithinBounds (result.paramId, result.value, result.invalidReason))
+                        return result;
                     result.valid = true;
                 }
                 return result;
@@ -832,6 +883,9 @@ OSCMessageRouter::ParsedReverbMessage OSCMessageRouter::parseReverbMessage(const
                 result.value = extractFloat(message[1]);
         }
 
+        if (! valueWithinBounds (result.paramId, result.value, result.invalidReason))
+            return result;
+
         result.valid = true;
     }
 
@@ -864,6 +918,9 @@ OSCMessageRouter::ParsedConfigMessage OSCMessageRouter::parseConfigMessage(const
     else if (message[0].isString())
         result.value = extractString(message[0]);
     else
+        return result;
+
+    if (! valueWithinBounds (result.paramId, result.value, result.invalidReason))
         return result;
 
     result.valid = true;
@@ -904,6 +961,21 @@ OSCMessageRouter::ParsedRemoteInput OSCMessageRouter::parseRemoteInputMessage(co
         result.channelId = extractInt(message[0]);
         result.posX = extractFloat(message[1]);
         result.posY = extractFloat(message[2]);
+
+        if (auto pb = WFSNetwork::getBounds (WFSParameterIDs::inputPositionX); pb.has_value())
+        {
+            const double x = static_cast<double> (result.posX);
+            const double y = static_cast<double> (result.posY);
+            if (x < pb->min || x > pb->max || y < pb->min || y > pb->max)
+            {
+                result.invalidReason =
+                    "out of range: positionXY (" + juce::String (x, 3) + ", "
+                    + juce::String (y, 3) + ") not in ["
+                    + juce::String (pb->min, 3) + ", " + juce::String (pb->max, 3) + "]";
+                return result;
+            }
+        }
+
         result.valid = true;
         return result;
     }
@@ -963,6 +1035,10 @@ OSCMessageRouter::ParsedRemoteInput OSCMessageRouter::parseRemoteInputMessage(co
         result.value = extractInt(message[1]);
     else
         result.value = extractFloat(message[1]);
+
+    if (! valueWithinBounds (result.paramId, result.value, result.invalidReason))
+        return result;
+
     result.valid = true;
     return result;
 }

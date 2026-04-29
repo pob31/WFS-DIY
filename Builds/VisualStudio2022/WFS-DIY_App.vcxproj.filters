@@ -979,6 +979,12 @@
     <ClCompile Include="..\..\Source\Network\OSCMessageRouter.cpp">
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Source\Network\OSCParameterBounds.cpp">
+      <Filter>WFS-DIY\Source\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Network\OSCIngestQueue.cpp">
+      <Filter>WFS-DIY\Source\Network</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\Source\Network\OSCManager.cpp">
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClCompile>
@@ -4372,6 +4378,12 @@
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Network\OSCMessageRouter.h">
+      <Filter>WFS-DIY\Source\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\OSCParameterBounds.h">
+      <Filter>WFS-DIY\Source\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\OSCIngestQueue.h">
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Network\OSCManager.h">

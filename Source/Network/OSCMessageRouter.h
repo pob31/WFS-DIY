@@ -28,6 +28,7 @@ public:
         juce::var value;
         float rampTimeSec = 0.0f;  // Optional 3rd OSC arg: transition time in seconds (0 = apply immediately)
         bool valid = false;
+        juce::String invalidReason; // Set when valid==false because the value failed range gate.
     };
 
     struct ParsedOutputMessage
@@ -38,6 +39,7 @@ public:
         juce::var value;
         bool valid = false;
         bool isEQparam = false;  // True for EQ parameters that need band index
+        juce::String invalidReason;
     };
 
     struct ParsedReverbMessage
@@ -48,6 +50,7 @@ public:
         juce::var value;
         bool valid = false;
         bool isEQparam = false;  // True for EQ parameters that need band index
+        juce::String invalidReason;
     };
 
     struct ParsedRemoteInput
@@ -70,6 +73,7 @@ public:
         float posX = 0.0f;                                     // For PositionXY: X coordinate
         float posY = 0.0f;                                     // For PositionXY: Y coordinate
         bool valid = false;
+        juce::String invalidReason;
     };
 
     struct ParsedArrayAdjustMessage
@@ -85,6 +89,7 @@ public:
         juce::Identifier paramId;  // Config parameter identifier
         juce::var value;           // Parameter value (float or int)
         bool valid = false;
+        juce::String invalidReason;
     };
 
     struct ParsedClusterMoveMessage

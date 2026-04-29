@@ -88,6 +88,8 @@ OBJECTS_APP := \
   $(JUCE_OBJDIR)/OSCLogger_524110f.o \
   $(JUCE_OBJDIR)/OSCMessageBuilder_d95fd113.o \
   $(JUCE_OBJDIR)/OSCMessageRouter_d5ec64db.o \
+  $(JUCE_OBJDIR)/OSCParameterBounds_6ab619e9.o \
+  $(JUCE_OBJDIR)/OSCIngestQueue_17124ab8.o \
   $(JUCE_OBJDIR)/OSCManager_ce19fc58.o \
   $(JUCE_OBJDIR)/OSCReceiverWithSenderIP_915fb210.o \
   $(JUCE_OBJDIR)/OSCTCPReceiver_c566011b.o \
@@ -231,6 +233,16 @@ $(JUCE_OBJDIR)/OSCMessageBuilder_d95fd113.o: ../../Source/Network/OSCMessageBuil
 $(JUCE_OBJDIR)/OSCMessageRouter_d5ec64db.o: ../../Source/Network/OSCMessageRouter.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling OSCMessageRouter.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/OSCParameterBounds_6ab619e9.o: ../../Source/Network/OSCParameterBounds.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling OSCParameterBounds.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/OSCIngestQueue_17124ab8.o: ../../Source/Network/OSCIngestQueue.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling OSCIngestQueue.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/OSCManager_ce19fc58.o: ../../Source/Network/OSCManager.cpp

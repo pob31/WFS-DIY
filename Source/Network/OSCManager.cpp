@@ -1,4 +1,6 @@
 #include "OSCManager.h"
+#include "OSCIngestQueue.h"
+#include "OSCParser.h"
 #include "QLabCueBuilder.h"
 #include "../Helpers/CoordinateConverter.h"
 #include "../Helpers/NumericGuards.h"
@@ -64,6 +66,25 @@ OSCManager::OSCManager(WFSValueTreeState& valueTreeState)
     {
         connections[i] = std::make_unique<OSCConnection>(static_cast<int>(i));
     }
+
+    // Inbound ingest queue: receiver threads push raw datagram bytes
+    // here, the queue coalesces hot per-(address, channel) updates and
+    // bounds the FIFO for everything else, then drains on the MM thread.
+    ingestQueue = std::make_unique<OSCIngestQueue>();
+    ingestQueue->setDispatch([this] (const juce::MemoryBlock& data,
+                                     const juce::String& senderIP,
+                                     int port,
+                                     ConnectionMode transport)
+    {
+        dispatchIngestedItem(data, senderIP, port, transport);
+    });
+    ingestQueue->setDropReport([this] (uint64_t totalDropped,
+                                       ConnectionMode transport)
+    {
+        logger.logRejected("[ingest queue]", "(internal)", 0, transport,
+            "queue full, dropped " + juce::String(totalDropped)
+            + " messages total");
+    });
 
     // Start status polling timer
     startTimer(500);  // Check connection status every 500ms
@@ -176,6 +197,18 @@ bool OSCManager::startListening()
         udpReceiver.reset();
         return false;
     }
+    // Route raw bytes through the ingest queue so we coalesce per-
+    // (address, channel) under flood and bound the MM-thread queue.
+    {
+        auto* queuePtr = ingestQueue.get();
+        const int udpPort = globalConfig.udpReceivePort;
+        udpReceiver->setRawDataCallback([queuePtr, udpPort]
+            (juce::MemoryBlock data, juce::String senderIP, int /*senderPort*/)
+        {
+            queuePtr->push(std::move(data), std::move(senderIP),
+                           udpPort, ConnectionMode::UDP);
+        });
+    }
     udpReceiver->addListener(&udpListener);
 
     // Create and configure TCP receiver
@@ -187,6 +220,14 @@ bool OSCManager::startListening()
     }
     else
     {
+        auto* queuePtr = ingestQueue.get();
+        const int tcpPort = globalConfig.tcpReceivePort;
+        tcpReceiver->setRawDataCallback([queuePtr, tcpPort]
+            (juce::MemoryBlock data, juce::String senderIP, int /*senderPort*/)
+        {
+            queuePtr->push(std::move(data), std::move(senderIP),
+                           tcpPort, ConnectionMode::TCP);
+        });
         tcpReceiver->addListener(&tcpListener);
     }
 
@@ -208,6 +249,7 @@ void OSCManager::stopListening()
 
     if (udpReceiver)
     {
+        udpReceiver->setRawDataCallback (nullptr);
         udpReceiver->removeListener(&udpListener);
         udpReceiver->disconnect();
         udpReceiver.reset();
@@ -215,6 +257,7 @@ void OSCManager::stopListening()
 
     if (tcpReceiver)
     {
+        tcpReceiver->setRawDataCallback (nullptr);
         tcpReceiver->removeListener(&tcpListener);
         tcpReceiver->disconnect();
         tcpReceiver.reset();
@@ -1322,6 +1365,39 @@ void OSCManager::timerCallback()
 // Internal Methods
 //==============================================================================
 
+void OSCManager::dispatchIngestedItem(const juce::MemoryBlock& data,
+                                      const juce::String& senderIP,
+                                      int port,
+                                      ConnectionMode transport)
+{
+    // Mirrors the legacy parseOSCData -> notifyMessage flow but routes
+    // straight into handleIncomingMessage/Bundle so we keep IP filter,
+    // NaN gate, range gate, OriginTagScope, and the existing
+    // pendingParamUpdates coalesce behaviour intact.
+    try
+    {
+        const char* dataPtr = static_cast<const char*>(data.getData());
+        const int dataSize = static_cast<int>(data.getSize());
+        int pos = 0;
+
+        if (dataSize >= 8 && std::memcmp(dataPtr, "#bundle", 7) == 0)
+        {
+            auto bundle = OSCParser::parseBundle(dataPtr, dataSize, pos);
+            handleIncomingBundle(bundle, senderIP, port, transport);
+        }
+        else
+        {
+            auto message = OSCParser::parseMessage(dataPtr, dataSize, pos);
+            handleIncomingMessage(message, senderIP, port, transport);
+        }
+    }
+    catch (const juce::OSCFormatError&)
+    {
+        DBG("OSCManager::dispatchIngestedItem: parse error from " << senderIP);
+        ++parseErrors;
+    }
+}
+
 void OSCManager::handleIncomingMessage(const juce::OSCMessage& message,
                                        const juce::String& senderIP,
                                        int port,
@@ -1375,7 +1451,7 @@ void OSCManager::handleIncomingMessage(const juce::OSCMessage& message,
     {
         if (oscQueryServer)
             oscQueryServer->beginIncomingOSC(senderIP);
-        handleStandardOSCMessage(message);
+        handleStandardOSCMessage(message, senderIP, port, transport);
         // Clear the suppress flag after the async ValueTree update completes
         if (oscQueryServer)
         {
@@ -1385,7 +1461,7 @@ void OSCManager::handleIncomingMessage(const juce::OSCMessage& message,
     }
     else if (OSCMessageRouter::isRemoteInputAddress(address))
     {
-        handleRemoteInputMessage(message);
+        handleRemoteInputMessage(message, senderIP, port, transport);
     }
     else if (OSCMessageRouter::isArrayAdjustAddress(address))
     {
@@ -1498,11 +1574,11 @@ void OSCManager::handleIncomingBundle(const juce::OSCBundle& bundle,
             if (OSCMessageRouter::isInputAddress(address) || OSCMessageRouter::isOutputAddress(address)
                 || OSCMessageRouter::isReverbAddress(address) || OSCMessageRouter::isConfigAddress(address))
             {
-                handleStandardOSCMessage(message);
+                handleStandardOSCMessage(message, senderIP, port, transport);
             }
             else if (OSCMessageRouter::isRemoteInputAddress(address))
             {
-                handleRemoteInputMessage(message);
+                handleRemoteInputMessage(message, senderIP, port, transport);
             }
             else if (OSCMessageRouter::isArrayAdjustAddress(address))
             {
@@ -1560,7 +1636,10 @@ void OSCManager::drainPendingParamUpdates()
     if (oscQueryServer) oscQueryServer->endIncomingOSC();
 }
 
-void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
+void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message,
+                                          const juce::String& senderIP,
+                                          int port,
+                                          ConnectionMode transport)
 {
     juce::String address = message.getAddressPattern().toString();
 
@@ -1896,6 +1975,8 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
         }
         else
         {
+            if (parsed.invalidReason.isNotEmpty())
+                logger.logRejected (address, senderIP, port, transport, parsed.invalidReason);
             ++parseErrors;
         }
     }
@@ -1918,6 +1999,8 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
         }
         else
         {
+            if (parsed.invalidReason.isNotEmpty())
+                logger.logRejected (address, senderIP, port, transport, parsed.invalidReason);
             ++parseErrors;
         }
     }
@@ -1965,6 +2048,8 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
         }
         else
         {
+            if (parsed.invalidReason.isNotEmpty())
+                logger.logRejected (address, senderIP, port, transport, parsed.invalidReason);
             ++parseErrors;
         }
     }
@@ -2041,12 +2126,17 @@ void OSCManager::handleStandardOSCMessage(const juce::OSCMessage& message)
         }
         else
         {
+            if (parsed.invalidReason.isNotEmpty())
+                logger.logRejected (address, senderIP, port, transport, parsed.invalidReason);
             ++parseErrors;
         }
     }
 }
 
-void OSCManager::handleRemoteInputMessage(const juce::OSCMessage& message)
+void OSCManager::handleRemoteInputMessage(const juce::OSCMessage& message,
+                                          const juce::String& senderIP,
+                                          int port,
+                                          ConnectionMode transport)
 {
     // Phase 7: the Android Remote tablet (the WFS Control app) speaks
     // a /remoteInput/* dialect that lands here via the generic OSC
@@ -2060,6 +2150,9 @@ void OSCManager::handleRemoteInputMessage(const juce::OSCMessage& message)
 
     if (!parsed.valid)
     {
+        if (parsed.invalidReason.isNotEmpty())
+            logger.logRejected (message.getAddressPattern().toString(),
+                                senderIP, port, transport, parsed.invalidReason);
         ++parseErrors;
         return;
     }
@@ -5040,6 +5133,17 @@ void OSCManager::updateADMOSCListeners()
 
         if (el.receiver->connect (port))
         {
+            // Same routing as the main UDP receiver — push into the
+            // shared ingest queue so ADM-OSC traffic also benefits
+            // from coalesce + bounded FIFO.
+            auto* queuePtr = ingestQueue.get();
+            const int admPort = port;
+            el.receiver->setRawDataCallback ([queuePtr, admPort]
+                (juce::MemoryBlock data, juce::String senderIP, int /*senderPort*/)
+            {
+                queuePtr->push (std::move (data), std::move (senderIP),
+                                admPort, ConnectionMode::UDP);
+            });
             el.receiver->addListener (el.listener.get());
             logger.logText ("ADM-OSC: listening on extra port " + juce::String (port));
             admExtraListeners.push_back (std::move (el));

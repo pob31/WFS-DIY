@@ -115,6 +115,14 @@
               file="Source/Network/OSCMessageRouter.h"/>
         <FILE id="netRouteCpp" name="OSCMessageRouter.cpp" compile="1" resource="0"
               file="Source/Network/OSCMessageRouter.cpp"/>
+        <FILE id="netParamBoundsH" name="OSCParameterBounds.h" compile="0" resource="0"
+              file="Source/Network/OSCParameterBounds.h"/>
+        <FILE id="netParamBoundsCpp" name="OSCParameterBounds.cpp" compile="1" resource="0"
+              file="Source/Network/OSCParameterBounds.cpp"/>
+        <FILE id="netIngestQueueH" name="OSCIngestQueue.h" compile="0" resource="0"
+              file="Source/Network/OSCIngestQueue.h"/>
+        <FILE id="netIngestQueueCpp" name="OSCIngestQueue.cpp" compile="1" resource="0"
+              file="Source/Network/OSCIngestQueue.cpp"/>
         <FILE id="netMgrH" name="OSCManager.h" compile="0" resource="0" file="Source/Network/OSCManager.h"/>
         <FILE id="netMgrCpp" name="OSCManager.cpp" compile="1" resource="0"
               file="Source/Network/OSCManager.cpp"/>

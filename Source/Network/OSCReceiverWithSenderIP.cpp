@@ -106,13 +106,29 @@ void OSCReceiverWithSenderIP::run()
             // Create a copy of the data for async processing
             juce::MemoryBlock data(buffer.getData(), static_cast<size_t>(bytesRead));
 
-            // Post to message thread for parsing and notification
-            juce::MessageManager::callAsync([this, data, senderIP]()
+            if (rawDataCallback)
             {
-                parseOSCData(data, senderIP);
-            });
+                // Hand raw bytes to the ingest queue (coalesce + bounded
+                // FIFO + single drain callAsync). Skips the per-packet
+                // parse-on-MM-thread step entirely.
+                rawDataCallback(std::move(data), senderIP, senderPort);
+            }
+            else
+            {
+                // Legacy path: post to message thread for parsing and
+                // listener notification, one callAsync per datagram.
+                juce::MessageManager::callAsync([this, data, senderIP]()
+                {
+                    parseOSCData(data, senderIP);
+                });
+            }
         }
     }
+}
+
+void OSCReceiverWithSenderIP::setRawDataCallback(RawDataCallback callback)
+{
+    rawDataCallback = std::move(callback);
 }
 
 void OSCReceiverWithSenderIP::parseOSCData(const juce::MemoryBlock& data,

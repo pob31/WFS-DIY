@@ -539,8 +539,23 @@ private:
                               const juce::String& senderIP,
                               int port,
                               ConnectionMode transport);
-    void handleStandardOSCMessage(const juce::OSCMessage& message);
-    void handleRemoteInputMessage(const juce::OSCMessage& message);
+
+    /** Drain shim: parses one item out of OSCIngestQueue (raw bytes
+     *  off the wire) and dispatches via the same path the legacy
+     *  parseOSCData → notifyMessage → handleIncomingMessage flow used.
+     *  Called on the MM thread only. */
+    void dispatchIngestedItem(const juce::MemoryBlock& data,
+                              const juce::String& senderIP,
+                              int port,
+                              ConnectionMode transport);
+    void handleStandardOSCMessage(const juce::OSCMessage& message,
+                                  const juce::String& senderIP = juce::String(),
+                                  int port = 0,
+                                  ConnectionMode transport = ConnectionMode::UDP);
+    void handleRemoteInputMessage(const juce::OSCMessage& message,
+                                  const juce::String& senderIP = juce::String(),
+                                  int port = 0,
+                                  ConnectionMode transport = ConnectionMode::UDP);
     void handleRemotePositionDelta(const OSCMessageRouter::ParsedRemoteInput& parsed);
     void handleRemoteParameterSet(const OSCMessageRouter::ParsedRemoteInput& parsed);
     void handleRemoteParameterDelta(const OSCMessageRouter::ParsedRemoteInput& parsed);
@@ -651,6 +666,10 @@ private:
     UDPListener udpListener { *this };
     TCPListener tcpListener { *this };
     bool listening = false;
+
+    // Inbound coalesce + bounded FIFO. UDP and TCP receivers push raw
+    // bytes here; the queue posts a single drain callAsync per tick.
+    std::unique_ptr<class OSCIngestQueue> ingestQueue;
 
     // Connections (one per target)
     std::array<std::unique_ptr<OSCConnection>, MAX_TARGETS> connections;

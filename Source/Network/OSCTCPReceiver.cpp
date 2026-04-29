@@ -94,6 +94,11 @@ void OSCTCPReceiver::removeListener(Listener* listener)
     listeners.remove(listener);
 }
 
+void OSCTCPReceiver::setRawDataCallback(RawDataCallback callback)
+{
+    rawDataCallback = std::move(callback);
+}
+
 void OSCTCPReceiver::run()
 {
     while (!threadShouldExit() && !shouldStop.load())
@@ -249,12 +254,20 @@ void OSCTCPReceiver::ClientHandler::run()
         // Create a copy of the data for async processing
         juce::MemoryBlock data(buffer.getData(), packetSize);
 
-        // Post to message thread for parsing
-        juce::String ip = clientIP;
-        juce::MessageManager::callAsync([this, data, ip]()
+        if (owner.rawDataCallback)
         {
-            parseOSCData(data);
-        });
+            // Hand raw bytes to the ingest queue (coalesce + bounded FIFO).
+            owner.rawDataCallback(std::move(data), clientIP, owner.portNumber);
+        }
+        else
+        {
+            // Legacy path: post to MM thread for parsing.
+            juce::String ip = clientIP;
+            juce::MessageManager::callAsync([this, data, ip]()
+            {
+                parseOSCData(data);
+            });
+        }
     }
 
     active = false;
