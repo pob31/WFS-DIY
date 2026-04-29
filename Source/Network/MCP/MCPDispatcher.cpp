@@ -480,31 +480,55 @@ bool MCPDispatcher::runOnMessageThread (const ToolDescriptor& tool,
                                         ToolResult& outResult)
 {
     // SimpleWeb worker thread → JUCE message thread, then block on the
-    // result. WaitableEvent + reference captures are safe because this
-    // function does not return until either the lambda runs or wait()
-    // times out. The lambda captures by reference; it never outlives us.
-    juce::WaitableEvent done;
+    // result. The lambda captures a shared_ptr to its own payload so
+    // that on timeout (this function returns before the message thread
+    // drains the queue) the lambda still has valid memory to write
+    // into. The worker thread also holds a ref while it waits; both
+    // refs drop and the payload destructs once the lambda runs.
+    struct Payload
+    {
+        juce::var args;
+        ChangeRecord record;
+        bool wantsRecord = false;
+        std::function<ToolResult (const juce::var&, ChangeRecord*)> handler;
+        ToolResult result;
+        juce::WaitableEvent done;
+    };
 
-    juce::MessageManager::callAsync ([&tool, &args, record, &outResult, &done]()
+    auto payload = std::make_shared<Payload>();
+    payload->args        = args;
+    payload->wantsRecord = (record != nullptr);
+    if (payload->wantsRecord)
+        payload->record = *record;
+    payload->handler     = tool.handler;
+
+    juce::MessageManager::callAsync ([payload]()
     {
         OriginTagScope originScope { OriginTag::MCP };
+        ChangeRecord* recordPtr = payload->wantsRecord ? &payload->record : nullptr;
         try
         {
-            outResult = tool.handler (args, record);
+            payload->result = payload->handler (payload->args, recordPtr);
         }
         catch (const std::exception& e)
         {
-            outResult = ToolResult::error ("internal_error",
-                                           juce::String ("Handler threw: ") + e.what());
+            payload->result = ToolResult::error ("internal_error",
+                                                  juce::String ("Handler threw: ") + e.what());
         }
         catch (...)
         {
-            outResult = ToolResult::error ("internal_error", "Handler threw unknown exception");
+            payload->result = ToolResult::error ("internal_error", "Handler threw unknown exception");
         }
-        done.signal();
+        payload->done.signal();
     });
 
-    return done.wait (toolTimeoutMs);
+    if (! payload->done.wait (toolTimeoutMs))
+        return false;
+
+    outResult = std::move (payload->result);
+    if (record != nullptr)
+        *record = std::move (payload->record);
+    return true;
 }
 
 //==============================================================================

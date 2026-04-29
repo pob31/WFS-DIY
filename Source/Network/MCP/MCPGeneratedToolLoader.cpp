@@ -10,7 +10,10 @@ namespace WFSNetwork::Tools::Generated
 namespace
 {
     /** Per-tool data the generic dispatch handler needs to do its job.
-        Captured by value into the handler lambda for each registered tool. */
+        Captured by value into the handler lambda for each registered tool.
+        Range fields mirror the schema's `minimum`/`maximum`; populated for
+        numeric-typed value args, used to fail-closed on out-of-range writes
+        (matches OSC ingress behaviour in OSCParameterBounds). */
     struct ToolBinding
     {
         juce::String name;              // "input.position.set_x"
@@ -20,17 +23,15 @@ namespace
         juce::String channelArgName;    // input_id / output_id / reverb_id / cluster_id, or empty for global
         juce::String valueArgName { "value" };  // self-documenting renames: "name" / "mode" / "shape" / "protocol"
         bool isEqBand = false;
-    };
-
-    /** Extension of ToolBinding for nudge variants. Carries the min/max
-        from the corresponding non-nudge tool so we can clamp the
-        read-modify-write step at the server boundary. */
-    struct NudgeBinding : ToolBinding
-    {
         bool hasRange = false;
         double minValue = 0.0;
         double maxValue = 0.0;
     };
+
+    /** Extension of ToolBinding for nudge variants. The range fields on
+        ToolBinding feed the clamp; this subtype exists for naming clarity
+        and future divergence (e.g. nudges may grow per-press defaults). */
+    struct NudgeBinding : ToolBinding {};
 
     /** Build a lowercase-keyed lookup of every property name on the live
         ValueTree at startup. Some CSVs declare variables with different
@@ -150,7 +151,41 @@ namespace
         if (! argsObj->hasProperty (binding.valueArgName))
             return ToolResult::error ("invalid_args",
                                       "Missing required arg: " + binding.valueArgName);
-        const juce::var value = coerceValue (argsObj->getProperty (binding.valueArgName), binding);
+        juce::var value = coerceValue (argsObj->getProperty (binding.valueArgName), binding);
+
+        // Range gate: the schema declares `minimum`/`maximum` for numeric
+        // value args; fail closed on out-of-range so a confirmed AI write
+        // can't push outputAttenuation = +1e9 etc. Mirrors the OSC ingress
+        // policy in OSCParameterBounds (rejected, not silently clamped).
+        // Skipped for enum tools (the string→index path already validated
+        // membership in coerceValue).
+        // Loose-typed clients (e.g. an MCP harness emitting JSON numbers
+        // as strings) get coerced to a numeric var here; the coerced
+        // numeric is then both range-checked AND written to the
+        // ValueTree, preventing string-in-float-slot corruption.
+        if (binding.hasRange && binding.enumValues.isEmpty())
+        {
+            if (value.isString())
+            {
+                const auto s = value.toString().trim();
+                // Reject empty / non-numeric strings up front
+                if (s.isEmpty() || ! s.containsOnly ("0123456789.+-eE"))
+                    return ToolResult::error ("invalid_args",
+                                              "value not numeric for " + binding.internalVariable
+                                              + ": " + s.quoted());
+                value = juce::var (s.getDoubleValue());
+            }
+            if (value.isDouble() || value.isInt() || value.isInt64())
+            {
+                const double d = static_cast<double> (value);
+                if (d < binding.minValue || d > binding.maxValue)
+                    return ToolResult::error ("out_of_range",
+                                              "value " + juce::String (d, 6)
+                                              + " not in [" + juce::String (binding.minValue, 6)
+                                              + ", " + juce::String (binding.maxValue, 6) + "] for "
+                                              + binding.internalVariable);
+            }
+        }
 
         const juce::Identifier paramId (binding.internalVariable);
 
@@ -454,11 +489,17 @@ LoadStats loadGeneratedTools (MCPToolRegistry& registry,
         }
 
         // Stash the value range (if any) so the matching nudge variant can
-        // clamp during read-modify-write.
+        // clamp during read-modify-write, and also bind it to this set
+        // tool so dispatchGenericSet can fail-closed on out-of-range.
         const auto parameters = toolObj->getProperty ("parameters");
         double rmin = 0.0, rmax = 0.0;
         if (extractValueRange (parameters, rmin, rmax))
+        {
             rangeByVariable[binding.internalVariable] = { rmin, rmax };
+            binding.hasRange = true;
+            binding.minValue = rmin;
+            binding.maxValue = rmax;
+        }
 
         ToolDescriptor d;
         d.name           = binding.name;

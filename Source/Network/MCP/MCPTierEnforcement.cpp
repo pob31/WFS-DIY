@@ -1,29 +1,103 @@
 #include "MCPTierEnforcement.h"
+#include <algorithm>
+#include <vector>
 
 namespace WFSNetwork
 {
 
 namespace
 {
+    /** Recursive type-canonical serializer for tier-2 confirmation tokens.
+
+        Goals:
+          - `1` and `1.0` produce the same canonical string (numeric type
+            collapsed to a normalized double form).
+          - Object keys are sorted lexicographically so an AI may reorder
+            keys between the issue-token and confirm-token calls without
+            failing the token match.
+          - Arrays preserve order (ordered semantically by the AI).
+          - Top-level `confirm` field is stripped so the canonical form
+            of the first call (no token) matches the second call (with
+            token) on every other arg. */
+    juce::String canonicalize (const juce::var& v);
+
+    juce::String canonicalizeNumber (double d)
+    {
+        if (std::isnan (d))      return "\"NaN\"";
+        if (std::isinf (d))      return d > 0 ? "\"+Inf\"" : "\"-Inf\"";
+        // Fixed-precision form, then strip trailing zeros and a dangling
+        // decimal point so that 1, 1.0, 1.00 all collapse to "1".
+        juce::String s (d, 9);
+        if (s.contains ("."))
+        {
+            while (s.endsWith ("0")) s = s.dropLastCharacters (1);
+            if (s.endsWith (".")) s = s.dropLastCharacters (1);
+        }
+        return s;
+    }
+
+    juce::String canonicalizeObject (const juce::DynamicObject& obj, bool stripConfirm)
+    {
+        std::vector<juce::String> keys;
+        keys.reserve ((size_t) obj.getProperties().size());
+        for (int i = 0; i < obj.getProperties().size(); ++i)
+        {
+            const auto name = obj.getProperties().getName (i).toString();
+            if (stripConfirm && name == "confirm")
+                continue;
+            keys.push_back (name);
+        }
+        std::sort (keys.begin(), keys.end(),
+                   [] (const juce::String& a, const juce::String& b) { return a < b; });
+
+        juce::String out = "{";
+        bool first = true;
+        for (const auto& k : keys)
+        {
+            if (! first) out += ",";
+            first = false;
+            out += juce::JSON::toString (juce::var (k), true);  // quoted, escaped
+            out += ":";
+            out += canonicalize (obj.getProperty (juce::Identifier (k)));
+        }
+        out += "}";
+        return out;
+    }
+
+    juce::String canonicalize (const juce::var& v)
+    {
+        if (v.isVoid() || v.isUndefined())  return "null";
+        if (v.isBool())                     return static_cast<bool> (v) ? "true" : "false";
+        if (v.isInt() || v.isInt64() || v.isDouble())
+            return canonicalizeNumber (static_cast<double> (v));
+        if (v.isString())
+            return juce::JSON::toString (v, true);  // quoted + escaped
+        if (v.isArray())
+        {
+            juce::String out = "[";
+            const auto* arr = v.getArray();
+            for (int i = 0; i < arr->size(); ++i)
+            {
+                if (i > 0) out += ",";
+                out += canonicalize ((*arr)[i]);
+            }
+            out += "]";
+            return out;
+        }
+        if (auto* obj = v.getDynamicObject())
+            return canonicalizeObject (*obj, /* stripConfirm */ false);
+        // Fallback for anything else (binary blobs etc.) — let JUCE handle it.
+        return juce::JSON::toString (v, true);
+    }
+
     juce::String canonicalArgsJson (const juce::var& args)
     {
-        // Strip the `confirm` field before canonicalising so the token
-        // matches the original (un-confirmed) call exactly.
-        if (! args.isObject())
-            return juce::JSON::toString (args, true);
-        auto* obj = args.getDynamicObject();
-        if (obj == nullptr)
-            return juce::JSON::toString (args, true);
-
-        auto cloned = std::make_unique<juce::DynamicObject>();
-        for (int i = 0; i < obj->getProperties().size(); ++i)
-        {
-            const auto name = obj->getProperties().getName (i);
-            if (name.toString() == "confirm")
-                continue;
-            cloned->setProperty (name, obj->getProperties().getValueAt (i));
-        }
-        return juce::JSON::toString (juce::var (cloned.release()), true);
+        // Top-level: strip `confirm` so the un-confirmed call (issuing
+        // the token) and the confirmed call (presenting the token) hash
+        // to the same canonical form on every other arg.
+        if (auto* obj = args.getDynamicObject())
+            return canonicalizeObject (*obj, /* stripConfirm */ true);
+        return canonicalize (args);
     }
 
     juce::String generateToken()

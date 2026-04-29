@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "../MCPToolRegistry.h"
 #include "../MCPChangeRecords.h"
+#include "../../OSCParameterBounds.h"
 #include "../../../Parameters/WFSValueTreeState.h"
 #include "../../../Parameters/WFSParameterIDs.h"
 
@@ -80,7 +81,27 @@ inline ToolResult set (WFSValueTreeState& state, const juce::var& args, ChangeRe
 
     if (! obj->hasProperty ("value"))
         return ToolResult::error ("invalid_args", "Missing required arg: value");
-    const juce::var value = obj->getProperty ("value");
+    juce::var value = obj->getProperty ("value");
+
+    // Loose-typed clients sometimes wire JSON numbers as strings ("999"
+    // rather than 999). For params with a known numeric bounds entry,
+    // coerce a numeric-looking string to a double here so the range
+    // check below applies AND the ValueTree receives a numeric var
+    // (writing "999" into a float slot corrupts the type). Params with
+    // no numeric bounds entry pass through unchanged so string-typed
+    // params (inputName, inputMutes, etc.) still work.
+    {
+        const juce::Identifier coerceParamId (variable);
+        const auto bounds = WFSNetwork::getBounds (coerceParamId);
+        if (bounds.has_value() && value.isString())
+        {
+            const auto s = value.toString().trim();
+            if (s.isEmpty() || ! s.containsOnly ("0123456789.+-eE"))
+                return ToolResult::error ("invalid_args",
+                                          "value not numeric for " + variable + ": " + s.quoted());
+            value = juce::var (s.getDoubleValue());
+        }
+    }
 
     int channelIndex = -1;
     int displayId = 0;
@@ -104,6 +125,20 @@ inline ToolResult set (WFSValueTreeState& state, const juce::var& args, ChangeRe
     }
 
     const juce::Identifier paramId (variable);
+
+    // Range gate: reuse the OSC ingress bounds table so the escape-hatch
+    // can't bypass the safety policy applied to the OSC path. Params with
+    // no entry in the bounds table return true from isInRange (permissive)
+    // — keeping the escape-hatch useful for params that haven't yet been
+    // added to OSCParameterBounds. String-typed values short-circuit the
+    // numeric check.
+    if (value.isDouble() || value.isInt() || value.isInt64())
+    {
+        const double d = static_cast<double> (value);
+        if (! WFSNetwork::isInRange (paramId, d))
+            return ToolResult::error ("out_of_range",
+                                      WFSNetwork::formatOutOfRangeReason (paramId, d));
+    }
 
     juce::var beforeValue;
     if (isEqBand)
@@ -174,10 +209,12 @@ inline ToolDescriptor describe (WFSValueTreeState& state)
     d.description = "Generic escape-hatch parameter writer. Use only when the "
                     "specific auto-generated tool (e.g. input.position.set_x) "
                     "doesn't fit the flow. Caller is responsible for the exact "
-                    "variable name (case-sensitive) and value type. No range "
-                    "clamping. Per-channel parameters need channel_id (1-based); "
-                    "EQ parameters need both output channel_id and band (1-6). "
-                    "Globals (stage/master/network/binaural) take no channel_id.";
+                    "variable name (case-sensitive) and value type. Numeric values "
+                    "are range-checked against the same bounds table used by OSC "
+                    "ingress (out-of-range writes are rejected). Per-channel "
+                    "parameters need channel_id (1-based); EQ parameters need both "
+                    "output channel_id and band (1-6). Globals "
+                    "(stage/master/network/binaural) take no channel_id.";
     d.inputSchema   = buildSchema();
     d.modifiesState = true;
     d.tier        = 2;  // bypasses range clamping — confirm before applying

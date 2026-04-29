@@ -40,6 +40,22 @@ namespace
         return static_cast<int> (obj->getProperty ("band")) - 1;
     }
 
+    /** Numeric-aware equality for juce::var. The default `var::operator==`
+        is type-strict: `var(1) != var(1.0)`, so an MCP write of `1` and a
+        non-MCP write of `1.0` for the same param look like a "drift" and
+        spuriously fire self-corrected notifications. Treat any pair where
+        both sides are numeric (int/int64/double/bool) as a double-equality
+        comparison; everything else falls back to var equality (which
+        already handles strings, arrays, objects correctly). */
+    bool varEqualsLoose (const juce::var& a, const juce::var& b)
+    {
+        const bool aNum = a.isInt() || a.isInt64() || a.isDouble() || a.isBool();
+        const bool bNum = b.isInt() || b.isInt64() || b.isDouble() || b.isBool();
+        if (aNum && bNum)
+            return static_cast<double> (a) == static_cast<double> (b);
+        return a == b;
+    }
+
     /** True if any (channel_id, group_name) pair appears in both records.
         Phase 5a's dependency rule: a later record "depends on" an earlier
         one when they share a parameter group on the same channel — so
@@ -124,7 +140,8 @@ void MCPUndoEngine::valueTreePropertyChanged (juce::ValueTree& treeWhoseProperty
 
     // Coincidence: operator dragged but landed on the AI's value. No
     // notification — the AI's last write is still effectively in place.
-    if (newValue == aiValue)
+    // Loose-numeric equality so var(1) and var(1.0) match.
+    if (varEqualsLoose (newValue, aiValue))
         return;
 
     // Phase 5b Block 4: mark the matching record self-corrected so Phase 5c's
@@ -228,10 +245,11 @@ UndoResult MCPUndoEngine::checkStalenessOrEmpty (const ChangeRecord& record) con
 
             // Compare current value against AI's after_state. If they match,
             // the operator dragged but coincidentally landed on the AI's value
-            // — not stale per the design doc.
+            // — not stale per the design doc. Loose-numeric equality so
+            // var(1) and var(1.0) are treated as equal.
             const juce::Identifier paramId (paramName);
             const juce::var aiValue = afterObj->getProperty (paramId);
-            if (lw.value == aiValue)
+            if (varEqualsLoose (lw.value, aiValue))
                 continue;
 
             // Drift confirmed.
@@ -395,22 +413,43 @@ UndoResult MCPUndoEngine::undoByIndex (int recordIndex)
     // Reverse in reverse-chronological order (newest first). Stamp the batch
     // id so redoLast can later re-apply atomically.
     juce::String combinedDesc;
-    for (auto& rec : chain)
+    juce::String firstError;
+    size_t failedAt = chain.size();   // == chain.size() means "no failure"
+    for (size_t i = 0; i < chain.size(); ++i)
     {
-        rec.redoBatchId = batchId;
-        const auto err = writePayloadHere (rec, rec.beforeState);
+        chain[i].redoBatchId = batchId;
+        const auto err = writePayloadHere (chain[i], chain[i].beforeState);
         if (err.isNotEmpty())
         {
-            // Partial failure: push everything reversed-so-far back, including
-            // this record, so the buffer is in a consistent state. The state
-            // tree itself may be partially undone — that's an honest report.
-            for (auto& back : chain)
-                undoRing.push (std::move (back));
-            return UndoResult::fail ("internal_error", err);
+            firstError = err;
+            failedAt   = i;
+            break;
         }
         if (combinedDesc.isNotEmpty())
             combinedDesc << " | ";
-        combinedDesc << "Undid: " << rec.operatorDescription;
+        combinedDesc << "Undid: " << chain[i].operatorDescription;
+    }
+
+    if (failedAt != chain.size())
+    {
+        // Partial failure: roll the tree forward by re-applying the
+        // afterState of every record we already reversed (and the one
+        // that just failed, best-effort) so the tree is back to its
+        // pre-undoByIndex state. Walk in chronological order — oldest of
+        // the affected slice first (chain[failedAt]) up to newest
+        // (chain[0]) — so overlapping params settle on the most recent
+        // value. Errors during recovery are swallowed: this is the
+        // best we can do, and the buffer is restored regardless so the
+        // operator can retry from the AI side.
+        for (size_t i = failedAt + 1; i-- > 0; )
+            (void) writePayloadHere (chain[i], chain[i].afterState);
+
+        // Restore the chain to the undo ring in chronological order so
+        // the newest record sits on top.
+        for (auto it = chain.rbegin(); it != chain.rend(); ++it)
+            undoRing.push (std::move (*it));
+
+        return UndoResult::fail ("internal_error", firstError);
     }
 
     // Push to the redo ring in chronological order (oldest first), so the
