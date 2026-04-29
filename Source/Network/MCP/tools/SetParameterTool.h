@@ -39,11 +39,21 @@ inline juce::var buildSchema()
     band->setProperty ("description",
         "EQ band number (1-6) for output-EQ parameters. Omit for non-EQ.");
 
+    // Phase 8: tier-2 tools require a two-step confirmation handshake.
+    auto confirm = std::make_unique<juce::DynamicObject>();
+    confirm->setProperty ("type", "string");
+    confirm->setProperty ("description",
+        "Confirmation token returned by the previous call to this tool. "
+        "Tier 2 tools require a two-step handshake: the first call returns a "
+        "confirmation_token in tier_enforcement; re-call with confirm set to "
+        "that token (within 30 seconds) to actually execute. Omit on the first call.");
+
     auto props = std::make_unique<juce::DynamicObject>();
     props->setProperty ("variable",   juce::var (variable.release()));
     props->setProperty ("value",      juce::var (value.release()));
     props->setProperty ("channel_id", juce::var (channelId.release()));
     props->setProperty ("band",       juce::var (band.release()));
+    props->setProperty ("confirm",    juce::var (confirm.release()));
 
     auto required = juce::Array<juce::var>();
     required.add ("variable");

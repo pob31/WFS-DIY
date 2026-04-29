@@ -83,8 +83,9 @@ public:
     void addListener    (Listener* l);
     void removeListener (Listener* l);
 
-    static constexpr int kConfirmationLifetimeSec = 30;
-    static constexpr int kSafetyGateLifetimeSec   = 60;
+    static constexpr int kConfirmationLifetimeSec    = 30;
+    static constexpr int kSafetyGateLifetimeSec      = 600;    // 10 minutes
+    static constexpr int kCountdownNotifyIntervalMs  = 10000;  // UI tick cadence while gate is open
 
 private:
     void timerCallback() override;
@@ -109,6 +110,11 @@ private:
     std::atomic<bool> aiEnabled { false };
     juce::Time gateOpenedUntil; // zero-initialised → gate starts closed
     bool gateOpen = false;
+    // Phase 8: throttle for the countdown UI tick. The 4 Hz internal
+    // timer still runs (token expiry needs 250 ms precision) but
+    // listener notifications fire at most once every kCountdownNotifyIntervalMs
+    // while the gate is open. State transitions still notify immediately.
+    juce::int64 lastCountdownNotifyMs = 0;
 
     juce::ListenerList<Listener> listeners;
 

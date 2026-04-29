@@ -72,12 +72,23 @@ void MCPTierEnforcement::timerCallback()
         gateStillOpen = gateOpen;
     }
 
-    // Notify whenever a state transition happened OR the gate is still
-    // open — the latter keeps the UI's depleting-fill countdown ticking
-    // smoothly. 4 Hz repaint of a single button is cheap; the listener
-    // list is empty by default and currently has at most one entry
-    // (NetworkTab), so the cost is negligible.
-    if (changed || gateStillOpen)
+    // State transitions notify immediately. Gate-still-open ticks are
+    // throttled to kCountdownNotifyIntervalMs (10 s) — at the 10-minute
+    // gate window, 4 Hz UI repaints would advance the depleting fill by
+    // less than a tenth of a pixel per tick, and the throttle gives a
+    // visible step instead.
+    bool shouldTickCountdown = false;
+    if (gateStillOpen)
+    {
+        const auto nowMs = static_cast<juce::int64> (juce::Time::getMillisecondCounter());
+        if (nowMs - lastCountdownNotifyMs >= kCountdownNotifyIntervalMs)
+        {
+            shouldTickCountdown = true;
+            lastCountdownNotifyMs = nowMs;
+        }
+    }
+
+    if (changed || shouldTickCountdown)
         notifyListeners();
 }
 
@@ -177,9 +188,8 @@ MCPTierEnforcement::Outcome MCPTierEnforcement::evaluate (const juce::String& to
         out.decision = Decision::SafetyGateClosed;
         out.message  = "Critical AI actions are blocked. Ask the operator "
                        "to allow critical actions (Network tab) before "
-                       "retrying. They auto-block again "
-                       + juce::String (kSafetyGateLifetimeSec)
-                       + " seconds after the operator allows them.";
+                       "retrying. They auto-block again 10 minutes after "
+                       "the operator allows them.";
         return out;
     }
 
@@ -218,6 +228,9 @@ void MCPTierEnforcement::openSafetyGate()
         gateOpen          = true;
         gateOpenedUntil   = juce::Time::getCurrentTime()
                               + juce::RelativeTime::seconds (kSafetyGateLifetimeSec);
+        // Reset the throttle so the FIRST countdown tick happens
+        // ~10 s after open (not on the next 250 ms internal tick).
+        lastCountdownNotifyMs = static_cast<juce::int64> (juce::Time::getMillisecondCounter());
     }
     notifyListeners();
 }

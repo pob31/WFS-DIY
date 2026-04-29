@@ -442,6 +442,21 @@ def test_schema_quality_smoke(tmp_path):
                 if not isinstance(ev, str) or not ev.strip():
                     failures.append(f"{name}.{prop_name}: empty/non-string enum value {ev!r}")
 
+        # Phase 8: tier-2 / tier-3 tools must declare an optional
+        # `confirm` string property so AI clients can satisfy the
+        # two-step handshake. `confirm` must NOT be in `required`
+        # (otherwise the first call can't be made).
+        tier = t.get("tier", 1)
+        if tier >= 2:
+            confirm_prop = props.get("confirm")
+            if confirm_prop is None:
+                failures.append(f"{name}: tier-{tier} tool missing optional `confirm` property")
+            elif confirm_prop.get("type") != "string":
+                failures.append(f"{name}: `confirm` must be type=string, got {confirm_prop!r}")
+            elif "confirm" in required:
+                failures.append(f"{name}: `confirm` must NOT be in `required` "
+                                "(it's only sent on the second call)")
+
     if failures:
         joined = "\n  ".join(failures[:50])
         more = f"\n  …and {len(failures) - 50} more" if len(failures) > 50 else ""

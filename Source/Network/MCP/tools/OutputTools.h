@@ -40,11 +40,23 @@ inline juce::var buildSetCartesianSchema()
     outputId->setProperty ("maximum", 64);
     outputId->setProperty ("description", "Output channel number (1-based).");
 
+    // Phase 8: tier-2 tools require a two-step confirmation handshake.
+    // additionalProperties: false forces us to declare `confirm` explicitly
+    // so AI clients can satisfy the second call.
+    auto confirm = std::make_unique<juce::DynamicObject>();
+    confirm->setProperty ("type", "string");
+    confirm->setProperty ("description",
+        "Confirmation token returned by the previous call to this tool. "
+        "Tier 2 tools require a two-step handshake: the first call returns a "
+        "confirmation_token in tier_enforcement; re-call with confirm set to "
+        "that token (within 30 seconds) to actually execute. Omit on the first call.");
+
     auto props = std::make_unique<juce::DynamicObject>();
     props->setProperty ("output_id", juce::var (outputId.release()));
     props->setProperty ("x", detail::positionRangeSchema());
     props->setProperty ("y", detail::positionRangeSchema());
     props->setProperty ("z", detail::positionRangeSchema());
+    props->setProperty ("confirm", juce::var (confirm.release()));
 
     auto required = juce::Array<juce::var>();
     required.add ("output_id");

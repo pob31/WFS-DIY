@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-04-29T16:40:08Z",
+  "generated_at": "2026-04-29T21:58:45Z",
   "input_hash": "baa980687c750701551bcde8bbfd57eb23dee37e3327db08df80e4655e433a6d",
   "source_csvs": [
     "WFS-UI_config.csv",
@@ -89,6 +89,10 @@
           "name": {
             "type": "string",
             "description": "Preset Tiles."
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
           }
         },
         "required": [
@@ -979,6 +983,10 @@
             "minimum": 0,
             "maximum": 100,
             "description": "Common Attenuation %."
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
           }
         },
         "required": [
@@ -1343,6 +1351,10 @@
             "minimum": -92.0,
             "maximum": 0.0,
             "description": "Trigger Reset dB."
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
           }
         },
         "required": [
@@ -1738,6 +1750,10 @@
             "maximum": 600.0,
             "default": 0.0,
             "description": "Time to transition to the new value. 0 means instant."
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
           }
         },
         "required": [
@@ -2059,6 +2075,10 @@
             "maximum": 600.0,
             "default": 0.0,
             "description": "Time to transition to the new value. 0 means instant."
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
           }
         },
         "required": [
@@ -4396,6 +4416,10 @@
             "maximum": 600.0,
             "default": 0.0,
             "description": "Time to transition to the new value. 0 means instant."
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
           }
         },
         "required": [
@@ -4704,6 +4728,10 @@
             "maximum": 600.0,
             "default": 0.0,
             "description": "Time to transition to the new value. 0 means instant."
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
           }
         },
         "required": [
@@ -5261,6 +5289,10 @@
             "minimum": -60.0,
             "maximum": 0.0,
             "description": "Array 1 Attenuation dB."
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
           }
         },
         "required": [
@@ -5293,6 +5325,10 @@
             "minimum": -92.0,
             "maximum": 0.0,
             "description": "Attenuation dB."
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
           }
         },
         "required": [
@@ -6155,6 +6191,10 @@
               "Enabled"
             ],
             "description": "OSC Query Enable (enum)."
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
           }
         },
         "required": [
@@ -6179,6 +6219,10 @@
             "minimum": 1,
             "maximum": 65535,
             "description": "OSC Query Port Port."
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
           }
         },
         "required": [
@@ -6229,6 +6273,10 @@
             "minimum": 1,
             "maximum": 65535,
             "description": "TCP Port Port."
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
           }
         },
         "required": [
@@ -6253,6 +6301,10 @@
             "minimum": 1,
             "maximum": 65535,
             "description": "UDP Port Port."
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
           }
         },
         "required": [
@@ -6481,6 +6533,10 @@
               "ON"
             ],
             "description": "Tracking Enabled (enum)."
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
           }
         },
         "required": [
@@ -6831,6 +6887,10 @@
             "minimum": 1,
             "maximum": 65535,
             "description": "Tracking Rx Port Port."
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
           }
         },
         "required": [
@@ -6860,6 +6920,10 @@
               "MQTT"
             ],
             "description": "Tracking Protocol (enum)."
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
           }
         },
         "required": [
@@ -7019,6 +7083,10 @@
             "minimum": 0,
             "maximum": 200,
             "description": "Distance Attenuation Percentage %."
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
           }
         },
         "required": [
@@ -7050,6 +7118,10 @@
             "minimum": -100.0,
             "maximum": 100.0,
             "description": "Delay/Latency comp. ms."
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
           }
         },
         "required": [
@@ -7811,6 +7883,10 @@
             "minimum": -92.0,
             "maximum": 0.0,
             "description": "Attenuation dB."
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
           }
         },
         "required": [
@@ -8309,6 +8385,10 @@
             "minimum": -60.0,
             "maximum": 12.0,
             "description": "Wet Level dB."
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
           }
         },
         "required": [
@@ -8340,6 +8420,10 @@
             "minimum": 0,
             "maximum": 100,
             "description": "Common Attenuation %."
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
           }
         },
         "required": [
@@ -8402,6 +8486,10 @@
             "minimum": -100.0,
             "maximum": 100.0,
             "description": "Delay/Latency comp. ms."
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
           }
         },
         "required": [
@@ -8495,6 +8583,10 @@
             "minimum": 0,
             "maximum": 200,
             "description": "Distance Attenuation Percentage %."
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
           }
         },
         "required": [
@@ -9786,6 +9878,10 @@
             "minimum": -92.0,
             "maximum": 0.0,
             "description": "Attenuation dB."
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
           }
         },
         "required": [
@@ -9874,6 +9970,10 @@
             "minimum": -40.0,
             "maximum": 0.0,
             "description": "Binaural Level dB."
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
           }
         },
         "required": [
@@ -9924,6 +10024,10 @@
               "BinauralON"
             ],
             "description": "Binaural Enable (enum)."
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
           }
         },
         "required": [
@@ -10002,6 +10106,10 @@
               "6364"
             ],
             "description": "Binaural Output (enum)."
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
           }
         },
         "required": [
@@ -10028,6 +10136,10 @@
               "SoloMulti"
             ],
             "description": "Solo Mode (enum)."
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
           }
         },
         "required": [
@@ -10081,6 +10193,10 @@
             "minimum": 0,
             "maximum": 64,
             "description": "Input Channels."
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
           }
         },
         "required": [
@@ -10105,6 +10221,10 @@
             "minimum": 0,
             "maximum": 64,
             "description": "Output Channels."
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
           }
         },
         "required": [
@@ -10129,6 +10249,10 @@
             "minimum": 0,
             "maximum": 16,
             "description": "Reverb Channels."
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
           }
         },
         "required": [
@@ -10177,6 +10301,10 @@
             "minimum": -92.0,
             "maximum": 0.0,
             "description": "Master Level dB."
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
           }
         },
         "required": [
@@ -10567,6 +10695,10 @@
             "minimum": 1,
             "maximum": 64,
             "description": "Input channel number (1-based)."
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
           },
           "direction": {
             "type": "string",
@@ -10986,6 +11118,10 @@
             "maximum": 64,
             "description": "Input channel number (1-based)."
           },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+          },
           "direction": {
             "type": "string",
             "enum": [
@@ -11137,6 +11273,10 @@
             "minimum": 1,
             "maximum": 64,
             "description": "Input channel number (1-based)."
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
           },
           "direction": {
             "type": "string",
@@ -12012,6 +12152,10 @@
             "maximum": 64,
             "description": "Input channel number (1-based)."
           },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+          },
           "direction": {
             "type": "string",
             "enum": [
@@ -12430,6 +12574,10 @@
             "maximum": 64,
             "description": "Input channel number (1-based)."
           },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
+          },
           "direction": {
             "type": "string",
             "enum": [
@@ -12657,6 +12805,10 @@
             "minimum": 1,
             "maximum": 64,
             "description": "Input channel number (1-based)."
+          },
+          "confirm": {
+            "type": "string",
+            "description": "Confirmation token returned by the previous call to this tool. Tier 2 and Tier 3 tools require a two-step handshake: the first call returns a confirmation_token in tier_enforcement; re-call with confirm set to that token (within 30 seconds) to actually execute. Omit on the first call."
           },
           "direction": {
             "type": "string",

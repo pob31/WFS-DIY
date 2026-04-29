@@ -771,6 +771,33 @@ def derive_schema(row: CSVRow, tool_name: str,
     }, required, value_arg_name
 
 
+# ----------------------------------------------------------------- tier confirm
+
+CONFIRM_PROPERTY_DESCRIPTION = (
+    "Confirmation token returned by the previous call to this tool. "
+    "Tier 2 and Tier 3 tools require a two-step handshake: the first call "
+    "returns a confirmation_token in tier_enforcement; re-call with confirm "
+    "set to that token (within 30 seconds) to actually execute. Omit on the "
+    "first call."
+)
+
+
+def inject_confirm_if_needed(schema: dict, tier: int) -> None:
+    """Tier 2 and Tier 3 tools require a confirmation handshake. The
+    dispatcher consumes a `confirm` arg on the second call; without
+    declaring it in the schema, AI clients that respect the schema (or
+    enforce additionalProperties: false) refuse to send the field. Add
+    `confirm` as an optional string property; do not add it to required.
+    Tier 1 tools execute immediately and don't need the slot."""
+    if tier < 2:
+        return
+    properties = schema.setdefault("properties", {})
+    properties["confirm"] = {
+        "type": "string",
+        "description": CONFIRM_PROPERTY_DESCRIPTION,
+    }
+
+
 def derive_osc_path(row: CSVRow) -> tuple[str, str | None]:
     """Return (path_or_template, template_form_or_none).
 
@@ -860,6 +887,12 @@ def process_row(row: CSVRow,
     if tier is None:
         tier = heuristic_tier(row.variable, row.label, row.type,
                                 row.min, row.max)
+
+    # Phase 8: tier-2/3 schemas declare an optional `confirm` field so
+    # AI clients can satisfy the two-step handshake. Tier-1 schemas are
+    # untouched. Schema is mutated in place — derive_schema returns
+    # before tier is known, so this is the right insertion point.
+    inject_confirm_if_needed(schema, tier)
 
     # OSC path
     osc_path, osc_template = derive_osc_path(row)

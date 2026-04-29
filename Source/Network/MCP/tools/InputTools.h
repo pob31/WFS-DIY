@@ -249,9 +249,22 @@ inline juce::var buildSetAttenuationSchema()
     db->setProperty ("maximum",   0.0);
     db->setProperty ("description", "Attenuation in dB. 0 = unity, -92 = effectively muted.");
 
+    // Phase 8: tier-2 tools require a two-step confirmation handshake.
+    // The first call returns a confirmation_token in tier_enforcement; the
+    // AI re-calls with confirm set to that token to actually execute.
+    // additionalProperties: false forces us to declare it explicitly.
+    auto confirm = std::make_unique<juce::DynamicObject>();
+    confirm->setProperty ("type", "string");
+    confirm->setProperty ("description",
+        "Confirmation token returned by the previous call to this tool. "
+        "Tier 2 tools require a two-step handshake: the first call returns a "
+        "confirmation_token in tier_enforcement; re-call with confirm set to "
+        "that token (within 30 seconds) to actually execute. Omit on the first call.");
+
     auto props = std::make_unique<juce::DynamicObject>();
     props->setProperty ("input_id", juce::var (inputId.release()));
     props->setProperty ("db",       juce::var (db.release()));
+    props->setProperty ("confirm",  juce::var (confirm.release()));
 
     auto required = juce::Array<juce::var>();
     required.add ("input_id");
