@@ -141,8 +141,10 @@ namespace
             BIND_BOOL (inputConstraintY);
             BIND_BOOL (inputConstraintZ);
             BIND_BOOL (inputConstraintDistance);
-            BIND_F_AS (inputConstraintDistanceMin, inputPosition);
-            BIND_F_AS (inputConstraintDistanceMax, inputPosition);
+            // Distance values are non-negative; can't bind to inputPosition
+            // any longer (now -50..50). Inline explicit {0, 50} instead.
+            m[WFSParameterIDs::inputConstraintDistanceMin] = { 0.0, 50.0, false };
+            m[WFSParameterIDs::inputConstraintDistanceMax] = { 0.0, 50.0, false };
             BIND_BOOL (inputFlipX);
             BIND_BOOL (inputFlipY);
             BIND_BOOL (inputFlipZ);
@@ -279,8 +281,8 @@ namespace
             BIND_BOOL (outputLSattenEnable);
             BIND_BOOL (outputFRenable);
             BIND_I (outputDistanceAttenPercent);
-            BIND_F_AS (outputHparallax, outputParallax);
-            BIND_F_AS (outputVparallax, outputParallax);
+            BIND_F (outputHparallax);
+            BIND_F (outputVparallax);
 
             //------------------------------------------------------------------
             // Output / EQ (per-band)

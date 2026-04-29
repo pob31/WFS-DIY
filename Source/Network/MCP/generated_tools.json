@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-04-26T15:15:56Z",
-  "input_hash": "771f2d964a9b75e6248b1804324e1449c4ca55fac02933665ddfa5dda77055ca",
+  "generated_at": "2026-04-29T16:40:08Z",
+  "input_hash": "baa980687c750701551bcde8bbfd57eb23dee37e3327db08df80e4655e433a6d",
   "source_csvs": [
     "WFS-UI_config.csv",
     "WFS-UI_input.csv",
@@ -1247,8 +1247,8 @@
           },
           "value": {
             "type": "number",
-            "minimum": -720.0,
-            "maximum": 720.0,
+            "minimum": -3600.0,
+            "maximum": 3600.0,
             "description": "Destination Elevation °."
           }
         },
@@ -1436,8 +1436,8 @@
           },
           "value": {
             "type": "number",
-            "minimum": -720.0,
-            "maximum": 720.0,
+            "minimum": -3600.0,
+            "maximum": 3600.0,
             "description": "Destination Azimuth °."
           }
         },
@@ -2473,8 +2473,8 @@
           },
           "value": {
             "type": "number",
-            "minimum": 0.1,
-            "maximum": 10.0,
+            "minimum": -1.0,
+            "maximum": 1.0,
             "description": "Layer Curve."
           }
         },
@@ -2523,7 +2523,7 @@
     },
     {
       "name": "input_gradient_map_set_gm_shape_blur",
-      "description": "Shape Blur. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Shape Blur. Enum: m. Use `session_get_state()` first if unsure which channels exist.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -2536,7 +2536,7 @@
           "value": {
             "type": "number",
             "minimum": 0.0,
-            "maximum": 1.0,
+            "maximum": 5.0,
             "description": "Shape Blur."
           }
         },
@@ -2784,7 +2784,7 @@
           "value": {
             "type": "integer",
             "minimum": 0,
-            "maximum": 5,
+            "maximum": 2,
             "description": "Shape Type."
           }
         },
@@ -8119,6 +8119,7 @@
           "value": {
             "type": "number",
             "minimum": 0.1,
+            "maximum": 30.0,
             "description": "IR Length s."
           }
         },
@@ -8149,6 +8150,7 @@
           "value": {
             "type": "number",
             "minimum": 0.0,
+            "maximum": 30000.0,
             "description": "IR Trim ms."
           }
         },

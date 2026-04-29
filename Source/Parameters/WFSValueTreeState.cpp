@@ -607,8 +607,10 @@ float WFSValueTreeState::clampOutputParamToRange (const juce::Identifier& paramI
         return juce::jlimit (outputHFdampingMin, outputHFdampingMax, value);
     if (paramId == outputDistanceAttenPercent)
         return juce::jlimit (static_cast<float> (outputDistanceAttenPercentMin), static_cast<float> (outputDistanceAttenPercentMax), value);
-    if (paramId == outputHparallax || paramId == outputVparallax)
-        return juce::jlimit (outputParallaxMin, outputParallaxMax, value);
+    if (paramId == outputHparallax)
+        return juce::jlimit (outputHparallaxMin, outputHparallaxMax, value);
+    if (paramId == outputVparallax)
+        return juce::jlimit (outputVparallaxMin, outputVparallaxMax, value);
 
     // EQ parameters
     if (paramId == eqFrequency)
@@ -2635,8 +2637,8 @@ juce::ValueTree WFSValueTreeState::createOutputOptionsSection()
     options.setProperty (outputLSattenEnable, outputLSattenEnableDefault, nullptr);
     options.setProperty (outputFRenable, outputFRenableDefault, nullptr);
     options.setProperty (outputDistanceAttenPercent, outputDistanceAttenPercentDefault, nullptr);
-    options.setProperty (outputHparallax, outputParallaxDefault, nullptr);
-    options.setProperty (outputVparallax, outputParallaxDefault, nullptr);
+    options.setProperty (outputHparallax, outputHparallaxDefault, nullptr);
+    options.setProperty (outputVparallax, outputVparallaxDefault, nullptr);
     return options;
 }
 
