@@ -113,28 +113,27 @@ void MCPUndoEngine::valueTreePropertyChanged (juce::ValueTree& treeWhoseProperty
     // Find the most recent record (newest first) that mentions this param.
     // If found, capture the AI's value for the human-readable summary,
     // and remember its timestamp so Block 4 can mark it self-corrected.
+    // Iterate under the ring buffer's lock (no full-buffer copy) — this
+    // path can fire 60Hz × N params during slider drags.
     juce::var aiValue;
     int channelId = 0;
     juce::Time activeRecordTimestamp;
     bool foundActiveRecord = false;
-    {
-        const auto records = undoRing.getRecent (-1);
-        // Walk newest → oldest; the AI's most recent intent is what the
-        // operator override is reacting to.
-        for (auto it = records.rbegin(); it != records.rend(); ++it)
+    undoRing.forEachReverseChronological (
+        [&] (const ChangeRecord& rec) -> bool
         {
-            if (it->affectedParameters.contains (paramName))
+            if (rec.affectedParameters.contains (paramName))
             {
-                if (auto* afterObj = it->afterState.isObject() ? it->afterState.getDynamicObject() : nullptr)
+                if (auto* afterObj = rec.afterState.isObject() ? rec.afterState.getDynamicObject() : nullptr)
                     aiValue = afterObj->getProperty (juce::Identifier (paramName));
-                if (! it->affectedGroups.empty())
-                    channelId = it->affectedGroups.front().channelId;
-                activeRecordTimestamp = it->timestamp;
+                if (! rec.affectedGroups.empty())
+                    channelId = rec.affectedGroups.front().channelId;
+                activeRecordTimestamp = rec.timestamp;
                 foundActiveRecord = true;
-                break;
+                return false;  // stop iteration
             }
-        }
-    }
+            return true;
+        });
     if (! foundActiveRecord)
         return;
 

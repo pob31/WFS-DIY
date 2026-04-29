@@ -319,15 +319,26 @@ def strip_variable_prefix(variable: str, csv_file: str) -> str:
 # constant trailing digit-run, then a sister entry confirming this is a family.
 _NUMERIC_FAMILY_RE = re.compile(r"^(.*?)(\d+)$")
 
+# Populated once at the top of `main()` after a pre-scan of every CSV.
+# Holds the set of stems that actually appear in two-or-more sister rows
+# (e.g. `inputArrayAtten` for inputArrayAtten1..10). Without this gate,
+# a lone variable whose name happens to end in digits — like `reverbRT60`
+# — is treated as "instance #60 of a 60-element family" and silently
+# skipped because num != 1. With the gate, only stems with real siblings
+# trigger the family-dedup path.
+_REAL_FAMILY_STEMS: set[str] | None = None
+
 
 def detect_numeric_family(variable: str) -> tuple[str, int] | None:
-    """If `variable` ends in a digit, return (stem, number); else None.
-    The caller decides whether the family is real (sister rows present) or
-    incidental."""
+    """If `variable` ends in a digit AND its stem has sister rows, return
+    (stem, number); else None. Lone numeric-suffix variables (e.g.
+    `reverbRT60`, `mp3Bitrate`) return None and become regular tools."""
     m = _NUMERIC_FAMILY_RE.match(variable)
     if not m:
         return None
     stem, num = m.group(1), int(m.group(2))
+    if _REAL_FAMILY_STEMS is not None and stem not in _REAL_FAMILY_STEMS:
+        return None
     return stem, num
 
 
@@ -1098,6 +1109,25 @@ def main(argv: list[str] | None = None) -> int:
 
     tier_overrides = load_overrides_tier(tier_path)
     ignore_map = load_overrides_ignore(ignore_path)
+
+    # Pre-pass: identify which numeric-suffix stems are real families
+    # (≥ 2 sister variables sharing the same stem). Without this, lone
+    # parameters whose names end in digits — such as `reverbRT60` — are
+    # mistakenly treated as the 60th member of a 60-element family and
+    # silently skipped by process_row's family dedup.
+    global _REAL_FAMILY_STEMS
+    _stems_seen: dict[str, set[int]] = defaultdict(set)
+    for fname in CSV_FILES_ORDER:
+        p = csv_dir / fname
+        if not p.exists():
+            continue
+        for row in read_csv(p):
+            if not row.variable.strip():
+                continue
+            m = _NUMERIC_FAMILY_RE.match(row.variable)
+            if m:
+                _stems_seen[m.group(1)].add(int(m.group(2)))
+    _REAL_FAMILY_STEMS = {s for s, nums in _stems_seen.items() if len(nums) >= 2}
 
     tools: list[dict] = []
     nudge_tools: list[dict] = []

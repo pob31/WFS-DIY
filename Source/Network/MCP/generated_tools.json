@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-04-29T21:58:45Z",
+  "generated_at": "2026-04-29T23:09:07Z",
   "input_hash": "baa980687c750701551bcde8bbfd57eb23dee37e3327db08df80e4655e433a6d",
   "source_csvs": [
     "WFS-UI_config.csv",
@@ -8274,6 +8274,37 @@
       "supports_relative": false,
       "internal_osc_path": "/wfs/config/reverb/perNodeIR",
       "internal_variable": "reverbPerNodeIR"
+    },
+    {
+      "name": "reverb_algorithm_set_rt60",
+      "description": "Reverb decay time RT60 (0.2 - 8.0 seconds). Value in s. Use `session_get_state()` first if unsure which channels exist.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "reverb_id": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 16,
+            "description": "Reverb channel number (1-based)."
+          },
+          "value": {
+            "type": "number",
+            "minimum": 0.2,
+            "maximum": 8.0,
+            "description": "RT60 s."
+          }
+        },
+        "required": [
+          "reverb_id",
+          "value"
+        ]
+      },
+      "tier": 1,
+      "csv_section": "Algorithm",
+      "group_key": "reverb_algorithm",
+      "supports_relative": false,
+      "internal_osc_path": "/wfs/config/reverb/rt60",
+      "internal_variable": "reverbRT60"
     },
     {
       "name": "reverb_algorithm_set_rt60_high_mult",

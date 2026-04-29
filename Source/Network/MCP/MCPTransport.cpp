@@ -7,13 +7,17 @@ namespace
 {
     constexpr const char* kEndpointPath = "/mcp";
 
-    SimpleWeb::CaseInsensitiveMultimap defaultHeaders()
+    SimpleWeb::CaseInsensitiveMultimap defaultHeaders (bool loopbackOnly)
     {
         SimpleWeb::CaseInsensitiveMultimap h;
         h.emplace ("Content-Type", "application/json");
-        // Permissive CORS for loopback dev; tightening lands when network-bound
-        // deployments are actually used (deferred per § Future authentication).
-        h.emplace ("Access-Control-Allow-Origin", "*");
+        // Loopback-bound: a wildcard `*` is acceptable because the socket
+        // itself is bound to 127.0.0.1, so only same-machine origins can
+        // reach this endpoint at all. LAN-bound: restrict to "null" to
+        // refuse browser CORS preflight from arbitrary LAN pages — the
+        // real auth story is still TODO (no token model yet), so the
+        // tightest CORS posture is the only safety we have.
+        h.emplace ("Access-Control-Allow-Origin", loopbackOnly ? "*" : "null");
         h.emplace ("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
         h.emplace ("Access-Control-Allow-Headers", "Content-Type, Authorization");
         return h;
@@ -34,22 +38,59 @@ bool MCPTransport::start (int port, bool loopbackOnly)
 
     server = std::make_unique<SimpleWebSocketServer>();
     server->addHTTPRequestHandler (this);
+    server->addWebSocketListener (this);  // catches serverInitError / serverInitSuccess
 
     const juce::String localAddress = loopbackOnly ? juce::String ("127.0.0.1") : juce::String();
 
-    // SimpleWebSocketServerBase::start spawns the listener thread synchronously.
-    // Bind failures land in the io_context error path; we surface that via the
-    // Listener interface in a later block. For Phase 1 Block 3 we trust the
-    // requested port is free and verify with a curl smoke-test.
+    initError.clear();
+    initialized.store (false);
+
+    // SimpleWebSocketServerBase::start spawns the listener thread; bind
+    // happens asynchronously inside that thread and signals back via the
+    // Listener callbacks (serverInitSuccess / serverInitError). We poll
+    // briefly so callers get a deterministic running/not-running state.
     server->start (port, /*wsSuffix*/ "", localAddress, /*allowAddressReuse*/ false);
 
+    constexpr int kInitTimeoutMs = 1000;
+    const auto deadline = juce::Time::getMillisecondCounter() + kInitTimeoutMs;
+    while (! initialized.load()
+           && initError.isEmpty()
+           && juce::Time::getMillisecondCounter() < deadline)
+    {
+        juce::Thread::sleep (10);
+    }
+
+    if (! initialized.load())
+    {
+        const auto reason = initError.isNotEmpty() ? initError : juce::String ("timed out waiting for bind");
+        mcpLogger.logError ("MCP server failed to start on port " + juce::String (port)
+                            + ": " + reason);
+        server->removeHTTPRequestHandler (this);
+        server->removeWebSocketListener (this);
+        server->stop();
+        server.reset();
+        return false;
+    }
+
     boundPort = port;
+    loopbackOnlyMode = loopbackOnly;
     running = true;
 
     mcpLogger.logInfo ("MCP server listening on "
                        + (loopbackOnly ? juce::String ("127.0.0.1:") : juce::String ("0.0.0.0:"))
                        + juce::String (port) + kEndpointPath);
     return true;
+}
+
+void MCPTransport::serverInitSuccess()
+{
+    initialized.store (true);
+}
+
+void MCPTransport::serverInitError (const juce::String& message)
+{
+    initError = message.isNotEmpty() ? message : juce::String ("unknown bind error");
+    initialized.store (false);
 }
 
 void MCPTransport::stop()
@@ -62,11 +103,14 @@ void MCPTransport::stop()
     if (server != nullptr)
     {
         server->removeHTTPRequestHandler (this);
+        server->removeWebSocketListener (this);
         server->stop();
         server.reset();
     }
 
     boundPort = 0;
+    initialized.store (false);
+    initError.clear();
     mcpLogger.logInfo ("MCP server stopped");
 }
 
@@ -162,7 +206,7 @@ void MCPTransport::writeJson (std::shared_ptr<HttpServer::Response> response,
                               const juce::String& body,
                               const SimpleWeb::CaseInsensitiveMultimap& extraHeaders) const
 {
-    auto headers = defaultHeaders();
+    auto headers = defaultHeaders (loopbackOnlyMode);
     for (const auto& kv : extraHeaders)
         headers.emplace (kv.first, kv.second);
 

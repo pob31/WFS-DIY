@@ -26,6 +26,8 @@ namespace
         bool hasRange = false;
         double minValue = 0.0;
         double maxValue = 0.0;
+        bool isIntegerType = false;     // schema declared type: "integer" → write int, not double
+        bool isNumericType = false;     // schema declared type: "number" / "integer"
     };
 
     /** Extension of ToolBinding for nudge variants. The range fields on
@@ -185,6 +187,20 @@ namespace
                                               + ", " + juce::String (binding.maxValue, 6) + "] for "
                                               + binding.internalVariable);
             }
+        }
+
+        // Type-coerce the var to match the parameter's declared schema type
+        // before writing. Stops int-typed vars landing in float ValueTree
+        // slots (and vice-versa) when an MCP client sends a numeric of the
+        // wrong-but-equivalent type. Skipped for enums (already integer-
+        // mapped above) and string-typed params.
+        if (binding.isNumericType && binding.enumValues.isEmpty()
+            && (value.isDouble() || value.isInt() || value.isInt64()))
+        {
+            if (binding.isIntegerType)
+                value = juce::var (juce::roundToInt (static_cast<double> (value)));
+            else
+                value = juce::var (static_cast<double> (value));
         }
 
         const juce::Identifier paramId (binding.internalVariable);
@@ -427,6 +443,22 @@ namespace
                     if (enumVar.isArray())
                         for (const auto& e : *enumVar.getArray())
                             outBinding.enumValues.add (e.toString());
+
+                    // Pick up the JSON-Schema type so dispatchGenericSet can
+                    // write int vs double correctly. Without this, the AI
+                    // sending an int for a float param stores int-typed in
+                    // the float slot (the same class of corruption that the
+                    // string-coercion fix already handles).
+                    const auto typeStr = valuePropObj->getProperty ("type").toString();
+                    if (typeStr == "integer")
+                    {
+                        outBinding.isIntegerType = true;
+                        outBinding.isNumericType = true;
+                    }
+                    else if (typeStr == "number")
+                    {
+                        outBinding.isNumericType = true;
+                    }
                 }
             }
         }

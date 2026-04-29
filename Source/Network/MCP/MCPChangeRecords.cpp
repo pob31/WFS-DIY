@@ -58,6 +58,14 @@ std::vector<ChangeRecord> MCPChangeRecordBuffer::getRecent (int n) const
     return std::vector<ChangeRecord> (records.end() - n, records.end());
 }
 
+void MCPChangeRecordBuffer::forEachReverseChronological (std::function<bool (const ChangeRecord&)> visitor) const
+{
+    const juce::ScopedLock sl (lock);
+    for (auto it = records.rbegin(); it != records.rend(); ++it)
+        if (! visitor (*it))
+            return;
+}
+
 int MCPChangeRecordBuffer::size() const noexcept
 {
     const juce::ScopedLock sl (lock);

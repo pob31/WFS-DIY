@@ -90,6 +90,14 @@ public:
     /** Snapshot of the last `n` records (most recent last). Pass -1 for all. */
     std::vector<ChangeRecord> getRecent (int n = -1) const;
 
+    /** Visit records newest → oldest under the buffer's internal lock,
+        stopping when the visitor returns false. Used by the undo listener
+        to find the most-recent record touching a given parameter without
+        copying the entire buffer (was a hot path under slider drags).
+        The visitor must NOT mutate the buffer or call any other method
+        on it (the lock is non-recursive). */
+    void forEachReverseChronological (std::function<bool (const ChangeRecord&)> visitor) const;
+
     /** Phase 5b Block 4: mutate matching records' isSelfCorrected flag
         in-place under lock. Used by the engine's ValueTree listener when
         a non-MCP origin writes a different value than the AI's last

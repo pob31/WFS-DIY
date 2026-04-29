@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-04-29T21:58:45Z",
+  "generated_at": "2026-04-29T23:09:07Z",
   "input_hash": "baa980687c750701551bcde8bbfd57eb23dee37e3327db08df80e4655e433a6d",
   "groups": {
     "cluster_assigned_inputs": [
@@ -342,6 +342,7 @@
       "reverb_algorithm_set_i_rlength",
       "reverb_algorithm_set_i_rtrim",
       "reverb_algorithm_set_per_node_ir",
+      "reverb_algorithm_set_rt60",
       "reverb_algorithm_set_rt60_high_mult",
       "reverb_algorithm_set_rt60_low_mult",
       "reverb_algorithm_set_sd_nscale",

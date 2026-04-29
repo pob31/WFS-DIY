@@ -138,6 +138,18 @@ inline ToolResult set (WFSValueTreeState& state, const juce::var& args, ChangeRe
         if (! WFSNetwork::isInRange (paramId, d))
             return ToolResult::error ("out_of_range",
                                       WFSNetwork::formatOutOfRangeReason (paramId, d));
+
+        // Type-coerce the var to match the param's declared int-vs-float
+        // shape, so an MCP-sent int doesn't land as an int-typed var in a
+        // float ValueTree slot (or vice-versa). Mirrors the schema-type
+        // coercion in the auto-generated tool path.
+        if (const auto bounds = WFSNetwork::getBounds (paramId))
+        {
+            if (bounds->isInt)
+                value = juce::var (juce::roundToInt (d));
+            else
+                value = juce::var (d);
+        }
     }
 
     juce::var beforeValue;
