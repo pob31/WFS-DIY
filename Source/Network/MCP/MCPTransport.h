@@ -75,8 +75,19 @@ private:
 
     std::unique_ptr<SimpleWebSocketServer> server;
     std::atomic<bool> running { false };
-    std::atomic<bool> initialized { false };
+
+    // SimpleWeb's init callbacks fire on its IO thread; the start() poll
+    // runs on the calling thread. The bool flags are atomic; the error
+    // string is guarded by initErrorLock because juce::String uses
+    // ref-counted CoW and is NOT thread-safe under concurrent
+    // read/write — a race here corrupts the refcount and silently
+    // wrecks the heap, only surfacing as a __debugbreak in
+    // operator delete at app teardown.
+    std::atomic<bool> initSucceeded { false };
+    std::atomic<bool> initFailed    { false };
     juce::String initError;
+    juce::CriticalSection initErrorLock;
+
     int boundPort = 0;
     bool loopbackOnlyMode = true;  // mirrors the start() argument; drives CORS
 

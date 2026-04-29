@@ -42,8 +42,12 @@ bool MCPTransport::start (int port, bool loopbackOnly)
 
     const juce::String localAddress = loopbackOnly ? juce::String ("127.0.0.1") : juce::String();
 
-    initError.clear();
-    initialized.store (false);
+    initSucceeded.store (false);
+    initFailed.store    (false);
+    {
+        const juce::ScopedLock sl (initErrorLock);
+        initError.clear();
+    }
 
     // SimpleWebSocketServerBase::start spawns the listener thread; bind
     // happens asynchronously inside that thread and signals back via the
@@ -53,16 +57,20 @@ bool MCPTransport::start (int port, bool loopbackOnly)
 
     constexpr int kInitTimeoutMs = 1000;
     const auto deadline = juce::Time::getMillisecondCounter() + kInitTimeoutMs;
-    while (! initialized.load()
-           && initError.isEmpty()
+    while (! initSucceeded.load()
+           && ! initFailed.load()
            && juce::Time::getMillisecondCounter() < deadline)
     {
         juce::Thread::sleep (10);
     }
 
-    if (! initialized.load())
+    if (! initSucceeded.load())
     {
-        const auto reason = initError.isNotEmpty() ? initError : juce::String ("timed out waiting for bind");
+        juce::String reason;
+        {
+            const juce::ScopedLock sl (initErrorLock);
+            reason = initError.isNotEmpty() ? initError : juce::String ("timed out waiting for bind");
+        }
         mcpLogger.logError ("MCP server failed to start on port " + juce::String (port)
                             + ": " + reason);
         server->removeHTTPRequestHandler (this);
@@ -84,13 +92,22 @@ bool MCPTransport::start (int port, bool loopbackOnly)
 
 void MCPTransport::serverInitSuccess()
 {
-    initialized.store (true);
+    // Called from the SimpleWeb IO thread. Just flip the atomic — the
+    // main start() loop is polling it.
+    initSucceeded.store (true);
 }
 
 void MCPTransport::serverInitError (const juce::String& message)
 {
-    initError = message.isNotEmpty() ? message : juce::String ("unknown bind error");
-    initialized.store (false);
+    // Called from the SimpleWeb IO thread. Stash the message under a
+    // lock (juce::String is ref-counted and NOT thread-safe under
+    // concurrent read/write), then flip the atomic so start() sees the
+    // failure and tears the server down.
+    {
+        const juce::ScopedLock sl (initErrorLock);
+        initError = message.isNotEmpty() ? message : juce::String ("unknown bind error");
+    }
+    initFailed.store (true);
 }
 
 void MCPTransport::stop()
@@ -109,8 +126,12 @@ void MCPTransport::stop()
     }
 
     boundPort = 0;
-    initialized.store (false);
-    initError.clear();
+    initSucceeded.store (false);
+    initFailed.store    (false);
+    {
+        const juce::ScopedLock sl (initErrorLock);
+        initError.clear();
+    }
     mcpLogger.logInfo ("MCP server stopped");
 }
 
