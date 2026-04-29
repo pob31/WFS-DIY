@@ -21,8 +21,7 @@ namespace WFSNetwork
     runs synchronously there and is expected to be quick. State mutation
     must be marshalled to the message thread by the callback itself
     (MCPDispatcher does this in Block 4). */
-class MCPTransport : public SimpleWebSocketServerBase::RequestHandler,
-                     public SimpleWebSocketServerBase::Listener
+class MCPTransport : public SimpleWebSocketServerBase::RequestHandler
 {
 public:
     using HandlerCallback = std::function<juce::String (const juce::String& body,
@@ -32,11 +31,11 @@ public:
     explicit MCPTransport (MCPLogger& mcpLogger);
     ~MCPTransport() override;
 
-    /** Start listening on the given port. Blocks for up to 1s waiting for
-        the asynchronous bind to succeed (or fail) and returns true only
-        on success. On failure the server is torn down and isRunning()
-        will report false. The port may be 0 (let OS assign), but the
-        MCP UX assumes a known port for client config. */
+    /** Start listening on the given port. Returns true if the listener
+        thread was launched. Actual bind success is not waited for here;
+        callers can poll isRunning() after a brief delay if they need
+        certainty. The port may be 0 (let OS assign), but the MCP UX
+        assumes a known port for client config. */
     bool start (int port, bool loopbackOnly);
 
     /** Stop accepting new connections and tear down the io_context. */
@@ -53,10 +52,6 @@ public:
 private:
     bool handleHTTPRequest (std::shared_ptr<HttpServer::Response> response,
                             std::shared_ptr<HttpServer::Request> request) override;
-
-    // SimpleWebSocketServerBase::Listener — flips initialised on bind result.
-    void serverInitSuccess() override;
-    void serverInitError (const juce::String& message) override;
 
     void writeJson (std::shared_ptr<HttpServer::Response> response,
                     SimpleWeb::StatusCode statusCode,
@@ -75,19 +70,6 @@ private:
 
     std::unique_ptr<SimpleWebSocketServer> server;
     std::atomic<bool> running { false };
-
-    // SimpleWeb's init callbacks fire on its IO thread; the start() poll
-    // runs on the calling thread. The bool flags are atomic; the error
-    // string is guarded by initErrorLock because juce::String uses
-    // ref-counted CoW and is NOT thread-safe under concurrent
-    // read/write — a race here corrupts the refcount and silently
-    // wrecks the heap, only surfacing as a __debugbreak in
-    // operator delete at app teardown.
-    std::atomic<bool> initSucceeded { false };
-    std::atomic<bool> initFailed    { false };
-    juce::String initError;
-    juce::CriticalSection initErrorLock;
-
     int boundPort = 0;
     bool loopbackOnlyMode = true;  // mirrors the start() argument; drives CORS
 

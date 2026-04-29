@@ -38,47 +38,16 @@ bool MCPTransport::start (int port, bool loopbackOnly)
 
     server = std::make_unique<SimpleWebSocketServer>();
     server->addHTTPRequestHandler (this);
-    server->addWebSocketListener (this);  // catches serverInitError / serverInitSuccess
 
     const juce::String localAddress = loopbackOnly ? juce::String ("127.0.0.1") : juce::String();
 
-    initSucceeded.store (false);
-    initFailed.store    (false);
-    {
-        const juce::ScopedLock sl (initErrorLock);
-        initError.clear();
-    }
-
-    // SimpleWebSocketServerBase::start spawns the listener thread; bind
-    // happens asynchronously inside that thread and signals back via the
-    // Listener callbacks (serverInitSuccess / serverInitError). We poll
-    // briefly so callers get a deterministic running/not-running state.
+    // SimpleWebSocketServerBase::start spawns the listener thread synchronously.
+    // Bind failures land in the io_context error path; surfacing them via
+    // the Listener interface introduced cross-thread juce::String access
+    // that crashed at app teardown — until a bind-verification path that
+    // doesn't require listener-inheritance is designed, callers should
+    // poll isRunning() after a brief delay if they need certainty.
     server->start (port, /*wsSuffix*/ "", localAddress, /*allowAddressReuse*/ false);
-
-    constexpr int kInitTimeoutMs = 1000;
-    const auto deadline = juce::Time::getMillisecondCounter() + kInitTimeoutMs;
-    while (! initSucceeded.load()
-           && ! initFailed.load()
-           && juce::Time::getMillisecondCounter() < deadline)
-    {
-        juce::Thread::sleep (10);
-    }
-
-    if (! initSucceeded.load())
-    {
-        juce::String reason;
-        {
-            const juce::ScopedLock sl (initErrorLock);
-            reason = initError.isNotEmpty() ? initError : juce::String ("timed out waiting for bind");
-        }
-        mcpLogger.logError ("MCP server failed to start on port " + juce::String (port)
-                            + ": " + reason);
-        server->removeHTTPRequestHandler (this);
-        server->removeWebSocketListener (this);
-        server->stop();
-        server.reset();
-        return false;
-    }
 
     boundPort = port;
     loopbackOnlyMode = loopbackOnly;
@@ -88,26 +57,6 @@ bool MCPTransport::start (int port, bool loopbackOnly)
                        + (loopbackOnly ? juce::String ("127.0.0.1:") : juce::String ("0.0.0.0:"))
                        + juce::String (port) + kEndpointPath);
     return true;
-}
-
-void MCPTransport::serverInitSuccess()
-{
-    // Called from the SimpleWeb IO thread. Just flip the atomic — the
-    // main start() loop is polling it.
-    initSucceeded.store (true);
-}
-
-void MCPTransport::serverInitError (const juce::String& message)
-{
-    // Called from the SimpleWeb IO thread. Stash the message under a
-    // lock (juce::String is ref-counted and NOT thread-safe under
-    // concurrent read/write), then flip the atomic so start() sees the
-    // failure and tears the server down.
-    {
-        const juce::ScopedLock sl (initErrorLock);
-        initError = message.isNotEmpty() ? message : juce::String ("unknown bind error");
-    }
-    initFailed.store (true);
 }
 
 void MCPTransport::stop()
@@ -120,18 +69,11 @@ void MCPTransport::stop()
     if (server != nullptr)
     {
         server->removeHTTPRequestHandler (this);
-        server->removeWebSocketListener (this);
         server->stop();
         server.reset();
     }
 
     boundPort = 0;
-    initSucceeded.store (false);
-    initFailed.store    (false);
-    {
-        const juce::ScopedLock sl (initErrorLock);
-        initError.clear();
-    }
     mcpLogger.logInfo ("MCP server stopped");
 }
 
