@@ -321,7 +321,7 @@ inline ToolDescriptor describe (WFSValueTreeState& state)
 {
     ToolDescriptor d;
     d.name        = "wfs_set_parameter";
-    d.description = "Generic escape-hatch parameter writer. Use only when the "
+    d.description = juce::String ("Generic escape-hatch parameter writer. Use only when the "
                     "specific auto-generated tool (e.g. input.position.set_x) "
                     "doesn't fit the flow. Caller is responsible for the exact "
                     "variable name (case-sensitive) and value type. Numeric values "
@@ -329,7 +329,11 @@ inline ToolDescriptor describe (WFSValueTreeState& state)
                     "ingress (out-of-range writes are rejected). Per-channel "
                     "parameters need channel_id (1-based); EQ parameters need both "
                     "output channel_id and band (1-6). Globals "
-                    "(stage/master/network/binaural) take no channel_id.";
+                    "(stage/master/network/binaural) take no channel_id. "
+                    "Refuses tier-3 underlying writes (channel counts, port "
+                    "reconfigure, etc.) - use the dedicated tier-3 tool with "
+                    "the operator's safety gate instead.")
+                  + kTier2DescriptionSuffix;
     d.inputSchema   = buildSchema();
     d.modifiesState = true;
     d.tier        = 2;  // bypasses range clamping — confirm before applying

@@ -7,6 +7,24 @@
 namespace WFSNetwork
 {
 
+/** Tier-marker suffixes appended to a tool's description so the model
+    can decide upfront whether a call needs operator confirmation. The
+    `_meta.tier` field is also surfaced on each tool entry, but most MCP
+    clients don't pass `_meta` to the model — only `name`, `description`,
+    and `inputSchema`. Without baking the tier into the description, the
+    model has to either probe the tool or call mcp_describe_parameters
+    for every write it considers. ASCII-only on purpose (juce::String's
+    `const char*` ctor asserts on non-ASCII bytes in debug). The same
+    text is duplicated in tools/generate_mcp_tools.py — keep the two
+    surfaces textually identical. */
+inline constexpr const char* kTier2DescriptionSuffix =
+    " [TIER 2: needs a confirm-token round trip OR an open Tier-2 "
+    "auto-confirm / safety-gate window.]";
+
+inline constexpr const char* kTier3DescriptionSuffix =
+    " [TIER 3: destructive - refused unless the operator's safety gate "
+    "is open; with the gate open, executes immediately.]";
+
 /** Outcome of a tool invocation, before serialization to JSON-RPC envelope. */
 struct ToolResult
 {

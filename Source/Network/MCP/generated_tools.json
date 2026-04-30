@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-04-30T15:49:27Z",
+  "generated_at": "2026-04-30T18:41:15Z",
   "input_hash": "367b61c6ce695d1a652fcefa404cc8101ffd9403d10129292e9e5c0b28ac70e0",
   "source_csvs": [
     "WFS-UI_config.csv",
@@ -1070,7 +1070,7 @@
     },
     {
       "name": "input_attenuation_set_common_attenuation",
-      "description": "Percentage of the Common Part of the Attenuation for selected Object Relative to All Outputs. Value in %. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Percentage of the Common Part of the Attenuation for selected Object Relative to All Outputs. Value in %. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -1918,7 +1918,7 @@
     },
     {
       "name": "input_delay_set_latency",
-      "description": "Input Channel Delay (positive values) or Latency Compensation (negative values). Value in ms. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Input Channel Delay (positive values) or Latency Compensation (negative values). Value in ms. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -2279,7 +2279,7 @@
     },
     {
       "name": "input_floor_reflections_set_attenuation",
-      "description": "Attenuation of the Simulated Floor Reflections for the Object. Value in dB. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Attenuation of the Simulated Floor Reflections for the Object. Value in dB. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -4879,7 +4879,7 @@
     },
     {
       "name": "input_sampler_set_cell_attenuation",
-      "description": "Per-cell level trim. Value in dB. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Per-cell level trim. Value in dB. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -5234,7 +5234,7 @@
     },
     {
       "name": "input_sampler_set_set_level",
-      "description": "Set-level attenuation. Value in dB. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Set-level attenuation. Value in dB. Optional `transition_seconds` argument for smooth interpolation. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -5879,7 +5879,7 @@
     },
     {
       "name": "input_set_array_attenuation",
-      "description": "Per-Array Attenuation for Array 1. Dimmed if Array has No Outputs Assigned. Value in dB. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Per-Array Attenuation for Array 1. Dimmed if Array has No Outputs Assigned. Value in dB. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -5925,7 +5925,7 @@
     },
     {
       "name": "input_set_attenuation",
-      "description": "Input Channel Attenuation. Value in dB. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Input Channel Attenuation. Value in dB. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -6911,7 +6911,7 @@
     },
     {
       "name": "network_set_osc_query_enabled",
-      "description": "Enable/disable OSC Query server for automatic parameter discovery via HTTP/WebSocket. Enum: Disabled ; Enabled.",
+      "description": "Enable/disable OSC Query server for automatic parameter discovery via HTTP/WebSocket. Enum: Disabled ; Enabled. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -6945,7 +6945,7 @@
     },
     {
       "name": "network_set_osc_query_port",
-      "description": "HTTP port for OSC Query discovery. Other apps can browse parameters at http://localhost:<port>/. Value in Port.",
+      "description": "HTTP port for OSC Query discovery. Other apps can browse parameters at http://localhost:<port>/. Value in Port. [TIER 3: destructive - refused unless the operator's safety gate is open; with the gate open, executes immediately.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -7007,7 +7007,7 @@
     },
     {
       "name": "network_set_rx_tc_pport",
-      "description": "TCP Receive Port of the Processor. Value in Port.",
+      "description": "TCP Receive Port of the Processor. Value in Port. [TIER 3: destructive - refused unless the operator's safety gate is open; with the gate open, executes immediately.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -7039,7 +7039,7 @@
     },
     {
       "name": "network_set_rx_ud_pport",
-      "description": "UDP Receive Port of the Processor. Value in Port.",
+      "description": "UDP Receive Port of the Processor. Value in Port. [TIER 3: destructive - refused unless the operator's safety gate is open; with the gate open, executes immediately.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -7305,7 +7305,7 @@
     },
     {
       "name": "network_tracking_set_enabled",
-      "description": "Enable or Disable Incoming Tracking data processing. Enum: OFF ; ON.",
+      "description": "Enable or Disable Incoming Tracking data processing. Enum: OFF ; ON. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -7718,7 +7718,7 @@
     },
     {
       "name": "network_tracking_set_port",
-      "description": "Specify the Port to receive Tracking data. Value in Port.",
+      "description": "Specify the Port to receive Tracking data. Value in Port. [TIER 3: destructive - refused unless the operator's safety gate is open; with the gate open, executes immediately.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -7750,7 +7750,7 @@
     },
     {
       "name": "network_tracking_set_protocol",
-      "description": "Select the type of Tracking Protocol. Enum: DISABLED ; OSC ; PosiStageNet (PSN) ; RTTrP ; MQTT.",
+      "description": "Select the type of Tracking Protocol. Enum: DISABLED ; OSC ; PosiStageNet (PSN) ; RTTrP ; MQTT. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -7935,7 +7935,7 @@
     },
     {
       "name": "output_attenuation_set_distance_attenuation_percent",
-      "description": "Ratio of Distance Attenuation for Selected Output. (changes may affect the rest of the array). Value in %. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Ratio of Distance Attenuation for Selected Output. (changes may affect the rest of the array). Value in %. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -7974,7 +7974,7 @@
     },
     {
       "name": "output_delay_set_latency",
-      "description": "Output Channel Delay (positive values) or Latency Compensation (negative values). (changes may affect the rest of the array). Value in ms. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Output Channel Delay (positive values) or Latency Compensation (negative values). (changes may affect the rest of the array). Value in ms. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -8825,7 +8825,7 @@
     },
     {
       "name": "output_set_attenuation",
-      "description": "Output Channel Attenuation. (changes may affect the rest of the array). Value in dB. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Output Channel Attenuation. (changes may affect the rest of the array). Value in dB. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -9424,7 +9424,7 @@
     },
     {
       "name": "reverb_algorithm_set_wet_level",
-      "description": "Wet/dry mix level for reverb output (-60 to +12 dB). Value in dB. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Wet/dry mix level for reverb output (-60 to +12 dB). Value in dB. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -9463,7 +9463,7 @@
     },
     {
       "name": "reverb_attenuation_set_common_attenuation",
-      "description": "Common Attenuation. Value in %. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Common Attenuation. Value in %. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -9537,7 +9537,7 @@
     },
     {
       "name": "reverb_delay_set_latency",
-      "description": "Reverb Channel Delay (positive values) or Latency Compensation (negative values). Value in ms. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Reverb Channel Delay (positive values) or Latency Compensation (negative values). Value in ms. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -9646,7 +9646,7 @@
     },
     {
       "name": "reverb_feed_set_distance_attenuation_enable",
-      "description": "Ratio of Distance Attenuation for Selected Reverb. Value in %. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Ratio of Distance Attenuation for Selected Reverb. Value in %. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -11085,7 +11085,7 @@
     },
     {
       "name": "reverb_set_attenuation",
-      "description": "Reverb Channel Attenuation. Value in dB. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Reverb Channel Attenuation. Value in dB. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -11193,7 +11193,7 @@
     },
     {
       "name": "system_binaural_renderer_set_binaural_attenuation",
-      "description": "Overall level offset for binaural output (dB). Value in dB.",
+      "description": "Overall level offset for binaural output (dB). Value in dB. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -11253,7 +11253,7 @@
     },
     {
       "name": "system_binaural_renderer_set_binaural_enabled",
-      "description": "Enable or disable the binaural renderer processing. Enum: Binaural: OFF ; Binaural: ON.",
+      "description": "Enable or disable the binaural renderer processing. Enum: Binaural: OFF ; Binaural: ON. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -11343,7 +11343,7 @@
     },
     {
       "name": "system_binaural_renderer_set_binaural_output_channel",
-      "description": "Select output channel pair for binaural monitoring. Off disables binaural output. Enum: Select... ; 1-2 ; 3-4 ; 5-6 ; ... ; 63-64.",
+      "description": "Select output channel pair for binaural monitoring. Off disables binaural output. Enum: Select... ; 1-2 ; 3-4 ; 5-6 ; ... ; 63-64. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -11380,7 +11380,7 @@
     },
     {
       "name": "system_binaural_renderer_set_binaural_solo_mode",
-      "description": "Single: one input at a time. Multi: multiple inputs simultaneously. Enum: Solo: Single ; Solo: Multi.",
+      "description": "Single: one input at a time. Multi: multiple inputs simultaneously. Enum: Solo: Single ; Solo: Multi. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -11447,7 +11447,7 @@
     },
     {
       "name": "system_i_o_set_input_channels",
-      "description": "Number of Input Channels.",
+      "description": "Number of Input Channels. [TIER 3: destructive - refused unless the operator's safety gate is open; with the gate open, executes immediately.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -11480,7 +11480,7 @@
     },
     {
       "name": "system_i_o_set_output_channels",
-      "description": "Number of Output Channels.",
+      "description": "Number of Output Channels. [TIER 3: destructive - refused unless the operator's safety gate is open; with the gate open, executes immediately.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -11513,7 +11513,7 @@
     },
     {
       "name": "system_i_o_set_reverb_channels",
-      "description": "Number of Reverb Channels.",
+      "description": "Number of Reverb Channels. [TIER 3: destructive - refused unless the operator's safety gate is open; with the gate open, executes immediately.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -11574,7 +11574,7 @@
     },
     {
       "name": "system_master_section_set_master_level",
-      "description": "Master Level (affects all outputs). Value in dB.",
+      "description": "Master Level (affects all outputs). Value in dB. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -12031,7 +12031,7 @@
   "nudge_tools": [
     {
       "name": "input_attenuation_nudge_common_attenuation",
-      "description": "Relative-adjustment variant of `input_attenuation_set_common_attenuation`. Sends an `inc` or `dec` step. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Relative-adjustment variant of `input_attenuation_set_common_attenuation`. Sends an `inc` or `dec` step. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -12486,7 +12486,7 @@
     },
     {
       "name": "input_delay_nudge_latency",
-      "description": "Relative-adjustment variant of `input_delay_set_latency`. Sends an `inc` or `dec` step. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Relative-adjustment variant of `input_delay_set_latency`. Sends an `inc` or `dec` step. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -12654,7 +12654,7 @@
     },
     {
       "name": "input_floor_reflections_nudge_attenuation",
-      "description": "Relative-adjustment variant of `input_floor_reflections_set_attenuation`. Sends an `inc` or `dec` step. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Relative-adjustment variant of `input_floor_reflections_set_attenuation`. Sends an `inc` or `dec` step. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -13601,7 +13601,7 @@
     },
     {
       "name": "input_nudge_attenuation",
-      "description": "Relative-adjustment variant of `input_set_attenuation`. Sends an `inc` or `dec` step. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Relative-adjustment variant of `input_set_attenuation`. Sends an `inc` or `dec` step. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -14056,7 +14056,7 @@
     },
     {
       "name": "input_sampler_nudge_cell_attenuation",
-      "description": "Relative-adjustment variant of `input_sampler_set_cell_attenuation`. Sends an `inc` or `dec` step. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Relative-adjustment variant of `input_sampler_set_cell_attenuation`. Sends an `inc` or `dec` step. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {
@@ -14312,7 +14312,7 @@
     },
     {
       "name": "input_sampler_nudge_set_level",
-      "description": "Relative-adjustment variant of `input_sampler_set_set_level`. Sends an `inc` or `dec` step. Use `session_get_state()` first if unsure which channels exist.",
+      "description": "Relative-adjustment variant of `input_sampler_set_set_level`. Sends an `inc` or `dec` step. Use `session_get_state()` first if unsure which channels exist. [TIER 2: needs a confirm-token round trip OR an open Tier-2 auto-confirm / safety-gate window.]",
       "parameters": {
         "type": "object",
         "properties": {

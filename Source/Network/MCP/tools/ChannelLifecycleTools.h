@@ -139,8 +139,8 @@ inline ToolDescriptor describeCreate (WFSValueTreeState& state,
                     "channel's 1-based id (always == new total). Refused with "
                     "at_capacity when count is already at the hard maximum ("
                     + juce::String (cfg.hardMax) + "). Triggers a DSP restart, "
-                    "so plan accordingly. Tier 2 - confirmation per call (or "
-                    "covered by the tier-2 auto-confirm window).";
+                    "so plan accordingly."
+                  + juce::String (kTier2DescriptionSuffix);
     d.inputSchema   = emptyObjectSchema();
     d.modifiesState = true;
     d.tier        = 2;
@@ -161,7 +161,8 @@ inline ToolDescriptor describeDelete (WFSValueTreeState& state,
                     "decrementing " + cfg.countParamId.toString() + " by 1. "
                     "The deleted channel's parameters are dropped. Refused "
                     "with `empty` when the count is already 0. Triggers a DSP "
-                    "restart. Tier 2.";
+                    "restart."
+                  + juce::String (kTier2DescriptionSuffix);
     d.inputSchema   = emptyObjectSchema();
     d.modifiesState = true;
     d.tier        = 2;

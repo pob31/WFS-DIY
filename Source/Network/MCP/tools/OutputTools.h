@@ -138,12 +138,13 @@ inline ToolDescriptor describeSetCartesian (WFSValueTreeState& state)
 {
     ToolDescriptor d;
     d.name        = "output_position_set_cartesian";
-    d.description = "Move an output speaker to absolute Cartesian coordinates "
+    d.description = juce::String ("Move an output speaker to absolute Cartesian coordinates "
                     "(meters) in one call. Coordinate convention: +X = stage "
                     "right, +Y = upstage (away from audience), +Z = up. "
                     "Out-of-range values are clamped to the +/-50 m stage "
                     "envelope. Use `session_get_state()` first if unsure "
-                    "which output channels exist.";
+                    "which output channels exist.")
+                  + kTier2DescriptionSuffix;
     d.inputSchema   = buildSetCartesianSchema();
     d.modifiesState = true;
     d.tier        = 2;  // mid-show array changes are non-trivial — confirm

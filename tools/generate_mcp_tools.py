@@ -763,6 +763,34 @@ def derive_description(row: CSVRow, csv_namespace: str,
     return ". ".join(p.rstrip(".") for p in parts) + "."
 
 
+# Tier-marker suffixes appended to tool descriptions so the model sees
+# the tier on first read. Keep textually identical to the constants in
+# Source/Network/MCP/MCPToolRegistry.h — both surfaces (auto-gen and
+# hand-written) carry the same string so a regex search finds both.
+TIER_2_DESCRIPTION_SUFFIX = (
+    " [TIER 2: needs a confirm-token round trip OR an open Tier-2 "
+    "auto-confirm / safety-gate window.]"
+)
+TIER_3_DESCRIPTION_SUFFIX = (
+    " [TIER 3: destructive - refused unless the operator's safety gate "
+    "is open; with the gate open, executes immediately.]"
+)
+
+
+def append_tier_suffix(description: str, tier: int) -> str:
+    """Append the tier marker for tier-2 / tier-3 tools. Tier-1 tools
+    return unchanged — the absence of a suffix means tier-1 by
+    convention. Idempotent: running twice doesn't double the suffix."""
+    suffix = ""
+    if tier == 2:
+        suffix = TIER_2_DESCRIPTION_SUFFIX
+    elif tier == 3:
+        suffix = TIER_3_DESCRIPTION_SUFFIX
+    if suffix and not description.endswith(suffix):
+        return description + suffix
+    return description
+
+
 # Per-CSV channel-id range. Used to set the maximum channel-id integer.
 CHANNEL_ID_RANGE = {
     "WFS-UI_input.csv":   ("input_id", 1, 64),
@@ -1134,6 +1162,11 @@ def process_row(row: CSVRow,
     group_key = derive_group_key(row.section, row.variable, csv_namespace)
     domains   = derive_domains(row, csv_namespace)
 
+    # Bake the tier marker into the description text so the model sees
+    # it on first read. _meta.tier is also surfaced on each tools/list
+    # entry, but most MCP clients don't pass _meta to the model.
+    description = append_tier_suffix(description, tier)
+
     record: dict[str, Any] = {
         "name": tool_name,
         "description": description,
@@ -1184,6 +1217,7 @@ def process_row(row: CSVRow,
             nudge_desc += (
                 " Use `session_get_state()` first if unsure which channels exist."
             )
+        nudge_desc = append_tier_suffix(nudge_desc, tier)
         nudge_record = {
             "name": nudge_name,
             "description": nudge_desc,

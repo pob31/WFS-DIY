@@ -466,7 +466,8 @@ inline ToolDescriptor describe (WFSValueTreeState& state)
                     "issue those individually. Each entry has the same shape as "
                     "wfs_set_parameter ({variable, value, channel_id?, band?}). "
                     "Use this for setting many channels or many parameters in "
-                    "one operator action - e.g. positioning a 12-speaker array.";
+                    "one operator action - e.g. positioning a 12-speaker array."
+                  + juce::String (kTier2DescriptionSuffix);
     d.inputSchema   = buildSchema();
     d.modifiesState = true;
     d.tier        = 2;
