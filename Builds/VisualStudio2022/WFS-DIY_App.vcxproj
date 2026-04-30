@@ -3304,6 +3304,7 @@
     <ClInclude Include="..\..\Source\Network\MCP\tools\UndoTools.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\tools\SetParameterTool.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\tools\SetParameterBatchTool.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\GetParameterTool.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\tools\DescribeParametersTool.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\tools\StateInspectionTools.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\tools\StateDeltaTool.h"/>

@@ -114,6 +114,20 @@ inline ToolResult set (WFSValueTreeState& state, const juce::var& args, ChangeRe
         return ToolResult::error ("invalid_args", "Missing required arg: value");
     juce::var value = obj->getProperty ("value");
 
+    // Enum string -> int coercion. The registry surfaces enum_values for
+    // the auto-gen path; mirror that here so wfs_set_parameter("stageShape",
+    // "Dome") works the same way system_stage_set_shape(value="Dome") does.
+    // Run BEFORE the numeric coercion so an enum label doesn't get rejected
+    // as "not numeric".
+    if (value.isString())
+    {
+        if (auto resolved = MCPParameterRegistry::getInstance()
+                              .resolveEnumLabel (variable, value.toString()))
+        {
+            value = juce::var (*resolved);
+        }
+    }
+
     // Loose-typed clients sometimes wire JSON numbers as strings ("999"
     // rather than 999). For params with a known numeric bounds entry,
     // coerce a numeric-looking string to a double here so the range

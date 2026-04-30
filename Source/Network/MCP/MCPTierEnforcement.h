@@ -102,7 +102,7 @@ public:
     void removeListener (Listener* l);
 
     static constexpr int kConfirmationLifetimeSec       = 30;
-    static constexpr int kSafetyGateLifetimeSec         = 600;    // 10 minutes
+    static constexpr int kSafetyGateLifetimeSec         = 300;    // 5 minutes — matches Tier-2 auto-confirm window
     static constexpr int kTier2AutoConfirmLifetimeSec   = 300;    // 5 minutes
     static constexpr int kCountdownNotifyIntervalMs     = 10000;  // UI tick cadence while gate is open
 

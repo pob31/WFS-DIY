@@ -233,6 +233,8 @@
                   file="Source/Network/MCP/tools/SetParameterTool.h"/>
             <FILE id="mcpToolsBatch" name="SetParameterBatchTool.h" compile="0" resource="0"
                   file="Source/Network/MCP/tools/SetParameterBatchTool.h"/>
+            <FILE id="mcpToolsGetParam" name="GetParameterTool.h" compile="0" resource="0"
+                  file="Source/Network/MCP/tools/GetParameterTool.h"/>
             <FILE id="mcpToolsDescribe" name="DescribeParametersTool.h" compile="0" resource="0"
                   file="Source/Network/MCP/tools/DescribeParametersTool.h"/>
             <FILE id="mcpToolsState" name="StateInspectionTools.h" compile="0" resource="0"

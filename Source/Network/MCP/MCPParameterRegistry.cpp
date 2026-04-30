@@ -130,6 +130,29 @@ namespace
                 out.defaultValue = valArg->getProperty ("default");
         }
 
+        // Manifest carries an explicit `enum_string_to_int` map for enums
+        // declared with stored IDs (e.g. "Sine (1) ; Square (2)"). For
+        // plain enums the mapping is positional. Build the parallel
+        // enumIntValues array either way so the caller can rely on it.
+        if (out.enumValues.size() > 0)
+        {
+            const auto explicitMap = toolObj.getProperty ("enum_string_to_int");
+            if (auto* mapObj = asObject (explicitMap))
+            {
+                for (const auto& label : out.enumValues)
+                {
+                    const auto v = mapObj->getProperty (juce::Identifier (label));
+                    out.enumIntValues.add (v.isInt() || v.isInt64() || v.isDouble()
+                                            ? static_cast<int> (v) : -1);
+                }
+            }
+            else
+            {
+                for (int i = 0; i < out.enumValues.size(); ++i)
+                    out.enumIntValues.add (i);
+            }
+        }
+
         const auto domainsVar = toolObj.getProperty ("domains");
         if (domainsVar.isArray())
             for (const auto& d : *domainsVar.getArray())
@@ -346,6 +369,33 @@ MCPParameterRegistry::findByVariable (const juce::String& canonicalVariable) con
         if (r.variable == canonicalVariable)
             return &r;
     return nullptr;
+}
+
+std::optional<int>
+MCPParameterRegistry::resolveEnumLabel (const juce::String& canonicalVariable,
+                                         const juce::String& label) const
+{
+    const auto* rec = findByVariable (canonicalVariable);
+    if (rec == nullptr)
+        return std::nullopt;
+    if (rec->enumValues.size() == 0
+        || rec->enumIntValues.size() != rec->enumValues.size())
+        return std::nullopt;
+
+    // Exact match first.
+    for (int i = 0; i < rec->enumValues.size(); ++i)
+        if (rec->enumValues[i] == label)
+            return rec->enumIntValues[i];
+
+    // Whitespace-stripped retry — the auto-gen slug drops spaces ("Cluster1"
+    // for the CSV's "Cluster 1"), and AI clients often send the spaced form
+    // back. Mirror MCPGeneratedToolLoader::coerceValue's leniency.
+    const auto labelTight = label.removeCharacters (" \t");
+    for (int i = 0; i < rec->enumValues.size(); ++i)
+        if (rec->enumValues[i].removeCharacters (" \t") == labelTight)
+            return rec->enumIntValues[i];
+
+    return std::nullopt;
 }
 
 } // namespace WFSNetwork

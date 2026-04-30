@@ -12,6 +12,7 @@
 #include "tools/UndoTools.h"
 #include "tools/SetParameterTool.h"
 #include "tools/SetParameterBatchTool.h"
+#include "tools/GetParameterTool.h"
 #include "tools/DescribeParametersTool.h"
 #include "tools/StateInspectionTools.h"
 #include "tools/StateDeltaTool.h"
@@ -80,6 +81,11 @@ MCPServer::MCPServer (WFSValueTreeState& state,
     // wfs_set_parameter's per-entry shape; pre-validates everything,
     // then applies and records as a single ChangeRecord with subWrites.
     registry->registerTool (Tools::SetParameterBatch::describe (state));
+
+    // Read-side counterparts to the write API. wfs_get_parameter +
+    // wfs_get_parameters mirror wfs_set_parameter / batch shapes.
+    registry->registerTool (Tools::GetParameter::describeSingle (state));
+    registry->registerTool (Tools::GetParameter::describeBatch (state));
 
     // Read-only registry tool — surfaces every known parameter so the AI
     // can plan writes from the schema instead of guessing. Must come after

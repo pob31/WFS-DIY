@@ -89,6 +89,17 @@ inline juce::var recordToVar (const ParameterRegistryRecord& r)
             enumArr.add (e);
         obj->setProperty ("enum", enumArr);
     }
+    if (r.enumIntValues.size() > 0)
+    {
+        // Parallel to `enum` — enum_int_values[i] is the integer the writer
+        // stores for enum[i]. Both the auto-gen tool and wfs_set_parameter
+        // accept either the label string OR the integer; this field tells
+        // the AI exactly which integer each label maps to.
+        juce::Array<juce::var> intArr;
+        for (int i = 0; i < r.enumIntValues.size(); ++i)
+            intArr.add (r.enumIntValues[i]);
+        obj->setProperty ("enum_int_values", intArr);
+    }
     if (! r.defaultValue.isVoid())
         obj->setProperty ("default", r.defaultValue);
     if (r.synonyms.size() > 0)
@@ -154,9 +165,11 @@ inline ToolDescriptor describeTool()
                     "value, OSC path, tier, and `domains` tags so the AI can "
                     "tell wfs_synthesis vs visualisation_only writes apart. "
                     "Filter with `prefix` (matches variable start), `scope`, "
-                    "`group_key`, or `domain`. Use this BEFORE guessing "
-                    "parameter names - it's the source of truth for the "
-                    "wfs_set_parameter escape hatch.";
+                    "`group_key`, or `domain`. For reading current values "
+                    "use wfs_get_parameter / wfs_get_parameters; for "
+                    "everything on one channel call session_get_channel_full. "
+                    "Use this BEFORE guessing parameter names - it's the "
+                    "source of truth for the wfs_set_parameter escape hatch.";
     d.inputSchema   = buildSchema();
     d.modifiesState = false;
     d.tier        = 1;

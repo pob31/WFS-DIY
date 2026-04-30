@@ -90,7 +90,11 @@ inline ToolDescriptor describe (WFSValueTreeState& state)
     d.description = "Read-only summary of the current WFS-DIY session: "
                     "channel counts, plus per-channel id/name/position for "
                     "every input, output, and reverb. Use this to orient "
-                    "before issuing modifying tool calls.";
+                    "before issuing modifying tool calls. For everything on "
+                    "ONE channel (orientation, pitch, EQ bands, mutes, etc.) "
+                    "call session_get_channel_full instead. For globals "
+                    "(stage / origin / master / binaural / network) call "
+                    "session_get_global_state.";
     d.inputSchema   = buildInputSchema();
     d.modifiesState = false;
     d.tier        = 1;  // read-only

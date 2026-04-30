@@ -288,6 +288,7 @@
 		C4A579CA77213F74CE3E6FD2 /* MCPGeneratedToolLoader.h */ /* MCPGeneratedToolLoader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MCPGeneratedToolLoader.h; path = ../../Source/Network/MCP/MCPGeneratedToolLoader.h; sourceTree = SOURCE_ROOT; };
 		C607B2F75EB66C51671444ED /* InputsTabPages.h */ /* InputsTabPages.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = InputsTabPages.h; path = ../../Source/Controllers/DialsAndButtons/pages/InputsTabPages.h; sourceTree = SOURCE_ROOT; };
 		C67F91CF1D3B324EB43469E0 /* OutputBufferProcessor.h */ /* OutputBufferProcessor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OutputBufferProcessor.h; path = ../../Source/DSP/OutputBufferProcessor.h; sourceTree = SOURCE_ROOT; };
+		C6B0605F76D14A66C76C43C5 /* GetParameterTool.h */ /* GetParameterTool.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = GetParameterTool.h; path = ../../Source/Network/MCP/tools/GetParameterTool.h; sourceTree = SOURCE_ROOT; };
 		C76B234E02F32DF1865B2F27 /* NetworkTab.h */ /* NetworkTab.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = NetworkTab.h; path = ../../Source/gui/NetworkTab.h; sourceTree = SOURCE_ROOT; };
 		C7954DCF4E6A85985F98667B /* juce_graphics */ /* juce_graphics */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_graphics; path = ../../ThirdParty/JUCE/modules/juce_graphics; sourceTree = SOURCE_ROOT; };
 		C7C47F0656977414C3A87685 /* JuceHeader.h */ /* JuceHeader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = JuceHeader.h; path = ../../JuceLibraryCode/JuceHeader.h; sourceTree = SOURCE_ROOT; };
@@ -451,6 +452,7 @@
 				C3A44553373C3A4BB428CBD7,
 				5708250B17E10EA1BEA04BBC,
 				403EC6D94D22E834FDEB7099,
+				C6B0605F76D14A66C76C43C5,
 				229DF65578A1BC3F82152487,
 				733D0E78F18ED00D054A394F,
 				E3BBC26EC616B8996F69FB3E,

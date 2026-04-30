@@ -267,7 +267,16 @@ inline ToolResult batch (WFSValueTreeState& state, const juce::var& args, Change
                 return fail ("invalid_args", i, "band out of range");
         }
 
-        // String→number coercion when the param has numeric bounds.
+        // Enum string -> int coercion (mirrors SetParameterTool). Run
+        // BEFORE the numeric coercion so labels like "Dome" don't get
+        // rejected as "not numeric".
+        if (w.value.isString())
+        {
+            if (auto resolved = reg.resolveEnumLabel (w.variable, w.value.toString()))
+                w.value = juce::var (*resolved);
+        }
+
+        // String -> number coercion when the param has numeric bounds.
         const juce::Identifier paramId (w.variable);
         const auto bounds = WFSNetwork::getBounds (paramId);
         if (bounds.has_value() && w.value.isString())

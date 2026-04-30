@@ -113,6 +113,44 @@ juce::String MCPDispatcher::handleInitialize (const juce::var& id, const juce::v
     result->setProperty ("capabilities",    juce::var (capabilities.release()));
     result->setProperty ("serverInfo",      juce::var (serverInfo.release()));
 
+    // Welcome / quick-start. MCP clients surface this string to the model
+    // as system context on connect, so an AI lands oriented instead of
+    // having to discover the surface from scratch. ASCII only.
+    result->setProperty ("instructions",
+        "Welcome to WFS-DIY, a Wave Field Synthesis spatial audio app. "
+        "First reads to orient yourself: "
+        "(1) `mcp_describe_parameters` is the source of truth for every "
+        "writable parameter - filter by `prefix`, `scope` "
+        "(global/input/output/reverb/cluster/eq_band), `group_key`, or "
+        "`domain` (wfs_synthesis / reverb / binaural / adm_osc / "
+        "floor_reflections / live_source / tracking / routing / network / "
+        "visualisation_only / metadata). Always check this before "
+        "guessing a parameter name. "
+        "(2) `session_get_state` for a per-channel id+name+position "
+        "summary; `session_get_global_state` for stage / origin / master "
+        "/ binaural / network globals (use the `sections` filter to keep "
+        "the response small); `session_get_channel_full` for everything "
+        "on one channel. "
+        "(3) `session_get_state_delta` between turns to notice when "
+        "operator UI / OSC / automation changed state under you. "
+        "Writing: prefer `wfs_set_parameter_batch` for multi-write flows "
+        "(up to 100 atomic writes, single undo entry, single "
+        "confirmation handshake). Single writes go through the auto-"
+        "generated `<area>_set_<param>` tools; the `wfs_set_parameter` "
+        "escape hatch covers anything they miss. Channel lifecycle: "
+        "`input_create`/`input_delete`, same for output and reverb. "
+        "Reading: `wfs_get_parameter` and `wfs_get_parameters` for "
+        "ad-hoc reads matching the write API's shape. "
+        "Undo: `mcp_undo_last_ai_change` reverses the latest AI write "
+        "(or batch); `mcp_get_ai_change_history(compact=true)` is the "
+        "cheap scan; `mcp_redo_last_undone_ai_change` for redo. "
+        "Tiers: tier-1 runs immediately; tier-2 needs a confirm token "
+        "OR an open operator window (Network tab); tier-3 also needs "
+        "an open safety gate (5-minute auto-close, operator-only). "
+        "If you want a guided workflow (session startup, system "
+        "tuning, snapshot management, voice rehearsal, etc.), call "
+        "`prompts/list` and fetch the matching template.");
+
     initialized = true;
     return makeJsonRpcResult (id, juce::var (result.release()));
 }

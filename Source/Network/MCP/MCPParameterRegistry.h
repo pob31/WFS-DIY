@@ -33,6 +33,7 @@ struct ParameterRegistryRecord
     std::optional<double> minValue;
     std::optional<double> maxValue;
     juce::StringArray enumValues;    // empty if not an enum
+    juce::Array<int>  enumIntValues; // parallel to enumValues; storage-side integer for each label
     juce::var        defaultValue;   // void-var if no CSV default
     juce::String     description;    // straight from the tool's description
     juce::String     unit;           // best-effort extracted from description, or empty
@@ -97,6 +98,15 @@ public:
         might be a synonym). Used by the batch tool for per-write tier /
         scope / csv_section lookups during validation. */
     const ParameterRegistryRecord* findByVariable (const juce::String& canonicalVariable) const;
+
+    /** Translate an enum label (e.g. "Dome" for stageShape) to its
+        underlying integer storage value. Returns nullopt when the
+        variable has no enum metadata or the label doesn't match.
+        Pass the canonicalized variable name; matches case-sensitively
+        first, then with whitespace stripped (the CSV form occasionally
+        differs from the slug — "Cluster1" vs "Cluster 1"). */
+    std::optional<int> resolveEnumLabel (const juce::String& canonicalVariable,
+                                          const juce::String& label) const;
 
     /** Total record count (includes records produced from nudge tools too,
         deduplicated by `variable`). */
