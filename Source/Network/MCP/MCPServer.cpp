@@ -14,6 +14,7 @@
 #include "tools/SetParameterBatchTool.h"
 #include "tools/DescribeParametersTool.h"
 #include "tools/StateInspectionTools.h"
+#include "tools/StateDeltaTool.h"
 #include "tools/ChannelLifecycleTools.h"
 
 namespace WFSNetwork
@@ -89,6 +90,10 @@ MCPServer::MCPServer (WFSValueTreeState& state,
     // complementing session_get_state's per-channel summary.
     registry->registerTool (Tools::StateInspection::describeGlobalState (state));
     registry->registerTool (Tools::StateInspection::describeChannelFull (state));
+
+    // Server-wide delta-since-last-call snapshot. Lets the AI notice
+    // when state drifted under it (operator UI, OSC, automation, etc.).
+    registry->registerTool (Tools::StateDelta::describe (state));
 
     // Channel lifecycle — tier-2 wrappers that bump the global channel
     // counts by 1 (auto-gen `system_i_o_set_*_channels` is tier 3 because

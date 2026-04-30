@@ -237,6 +237,8 @@
                   file="Source/Network/MCP/tools/DescribeParametersTool.h"/>
             <FILE id="mcpToolsState" name="StateInspectionTools.h" compile="0" resource="0"
                   file="Source/Network/MCP/tools/StateInspectionTools.h"/>
+            <FILE id="mcpToolsDelta" name="StateDeltaTool.h" compile="0" resource="0"
+                  file="Source/Network/MCP/tools/StateDeltaTool.h"/>
             <FILE id="mcpToolsChanLife" name="ChannelLifecycleTools.h" compile="0" resource="0"
                   file="Source/Network/MCP/tools/ChannelLifecycleTools.h"/>
           </GROUP>

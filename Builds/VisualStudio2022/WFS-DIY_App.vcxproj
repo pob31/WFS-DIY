@@ -3306,6 +3306,7 @@
     <ClInclude Include="..\..\Source\Network\MCP\tools\SetParameterBatchTool.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\tools\DescribeParametersTool.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\tools\StateInspectionTools.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\StateDeltaTool.h"/>
     <ClInclude Include="..\..\Source\Network\MCP\tools\ChannelLifecycleTools.h"/>
     <ClInclude Include="..\..\Source\Controllers\PositionControl\ControllerEvent.h"/>
     <ClInclude Include="..\..\Source\Controllers\PositionControl\ControllerDevice.h"/>
