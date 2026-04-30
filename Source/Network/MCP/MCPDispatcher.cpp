@@ -171,8 +171,26 @@ juce::String MCPDispatcher::handleInitialized()
 
 juce::String MCPDispatcher::handleToolsList (const juce::var& id)
 {
+    // Order the response by (tier DESC, name ASC). Several MCP clients
+    // truncate tools/list to a fixed cap (commonly ~100-256) before
+    // surfacing the tools to the model. With 393 tools registered, an
+    // alphabetical-only response pushes tier-3 (e.g.
+    // system_i_o_set_input_channels at position 311) out of the visible
+    // window, making tier-3 destructive operations effectively
+    // unreachable. Putting tier-3 first (7 tools), tier-2 next (29),
+    // tier-1 last keeps the rare-but-critical operations visible even
+    // under aggressive truncation. Within each tier, alphabetical for
+    // stable ordering across calls.
+    auto descriptors = registry.all();  // copy so we can sort without mutating the registry
+    std::sort (descriptors.begin(), descriptors.end(),
+               [] (const ToolDescriptor& a, const ToolDescriptor& b)
+               {
+                   if (a.tier != b.tier) return a.tier > b.tier;
+                   return a.name.compare (b.name) < 0;
+               });
+
     juce::Array<juce::var> tools;
-    for (const auto& descriptor : registry.all())
+    for (const auto& descriptor : descriptors)
     {
         auto entry = std::make_unique<juce::DynamicObject>();
         entry->setProperty ("name",        descriptor.name);
