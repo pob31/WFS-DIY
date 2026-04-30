@@ -261,17 +261,42 @@ public:
 
     int getIdealHeight(int width) const override
     {
-        const int base = HelpCard::getIdealHeight(width);
         if (! codeEditor.isVisible())
-            return base;
+            return HelpCard::getIdealHeight(width);
 
+        // Tighter packing than the base class: the base adds a `+lineH`
+        // buffer inside bodyHeight and a `+padding/2` tail for breathing,
+        // which become wasted vertical space when a code block follows.
+        // We compute body height from glyphs directly (no buffer line) and
+        // place the code block right below with a small explicit gap.
         float scale = WfsLookAndFeel::uiScale;
+        const int padding = 28;
+        int titleH = (int)(34 * scale * fontScale);
+        int textWidth = width - padding;
+
+        auto bodyFont = juce::Font(juce::FontOptions().withHeight(juce::jmax(15.0f, 19.0f * scale * fontScale)));
+        float lineH = bodyFont.getHeight() * 1.4f;
+
+        juce::GlyphArrangement glyphs;
+        glyphs.addJustifiedText(bodyFont, bodyLabel.getText(), 0.0f, 0.0f,
+                                (float)textWidth, juce::Justification::left);
+        int numLines = glyphs.getNumGlyphs() > 0
+            ? (int)((glyphs.getBoundingBox(glyphs.getNumGlyphs() - 1, 1, true).getBottom()) / lineH) + 1
+            : 1;
+        int bodyTextH = juce::jmax((int)(30 * scale), (int)(numLines * lineH));
+
         auto codeFont = juce::Font(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(),
                                                      juce::jmax(12.0f, 13.0f * scale), juce::Font::plain));
-        float codeLineH = codeFont.getHeight() * 1.25f;
+        // 1.1 multiplier matches JUCE TextEditor's line spacing closely
+        // (it renders at ~font height per line, not 1.25× as we used to
+        // allocate). The +6 buffer covers JUCE's internal top indent /
+        // bottom border without leaving a visible empty line.
+        float codeLineH = codeFont.getHeight() * 1.1f;
         int codeLines = juce::jmin(14, juce::jmax(3, juce::StringArray::fromLines(codeEditor.getText()).size()));
-        int copyButtonH = (int)(28 * scale);
-        return base + (int)(codeLines * codeLineH) + 12 + copyButtonH + 12;
+        int codeAreaH = (int)(codeLines * codeLineH) + 6;
+
+        const int bodyToCodeGap = (int)(10 * scale);
+        return padding + titleH + 8 + bodyTextH + bodyToCodeGap + codeAreaH;
     }
 
     void resized() override
@@ -285,16 +310,20 @@ public:
 
             auto codeFont = juce::Font(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(),
                                                          juce::jmax(12.0f, 13.0f * scale), juce::Font::plain));
-            float codeLineH = codeFont.getHeight() * 1.25f;
+            float codeLineH = codeFont.getHeight() * 1.1f;
             int codeLines = juce::jmin(14, juce::jmax(3, juce::StringArray::fromLines(codeEditor.getText()).size()));
-            int codeAreaH = (int)(codeLines * codeLineH) + 12 + copyButtonH + 12;
+            int codeAreaH = (int)(codeLines * codeLineH) + 6;
             codeAreaH = juce::jmin(codeAreaH, area.getHeight() - 30);
 
             auto codeArea = area.removeFromBottom(codeAreaH);
-            auto buttonRow = codeArea.removeFromBottom(copyButtonH);
-            copyButton.setBounds(buttonRow.removeFromRight(copyButtonW));
-            codeArea.removeFromBottom(8);
             codeEditor.setBounds(codeArea);
+
+            const int topInset   = (int)(6 * scale);
+            const int rightInset = (int)(8 * scale);
+            copyButton.setBounds(codeArea.getRight() - rightInset - copyButtonW,
+                                 codeArea.getY() + topInset,
+                                 copyButtonW,
+                                 copyButtonH);
         }
         layoutHeader(area);
     }
