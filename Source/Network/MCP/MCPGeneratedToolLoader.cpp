@@ -205,11 +205,36 @@ namespace
 
         const juce::Identifier paramId (binding.internalVariable);
 
+        // Resolve the EQ-band ValueTree for the three EQ families. Output
+        // EQ uses array-propagation semantics; reverb pre-EQ is per-
+        // channel (simple band lookup); reverb post-EQ is global (no
+        // channel index). The dispatcher detects these from the param-
+        // name prefix because the schema's `band` arg alone doesn't tell
+        // us which family.
+        enum class EqFamily { Output, ReverbPre, ReverbPost };
+        auto eqFamily = [&]() -> EqFamily
+        {
+            if (binding.internalVariable.startsWith ("reverbPostEQ")) return EqFamily::ReverbPost;
+            if (binding.internalVariable.startsWith ("reverbPreEQ"))  return EqFamily::ReverbPre;
+            return EqFamily::Output;
+        }();
+
+        auto getBandTree = [&]() -> juce::ValueTree
+        {
+            switch (eqFamily)
+            {
+                case EqFamily::ReverbPost: return state.getReverbPostEQBand (bandIndex);
+                case EqFamily::ReverbPre:  return state.getReverbEQBand (channelIndex, bandIndex);
+                case EqFamily::Output:
+                default:                   return state.getOutputEQBand (channelIndex, bandIndex);
+            }
+        };
+
         // Capture before-state
         juce::var beforeValue;
         if (binding.isEqBand)
         {
-            auto band = state.getOutputEQBand (channelIndex, bandIndex);
+            auto band = getBandTree();
             if (band.isValid())
                 beforeValue = band.getProperty (paramId);
         }
@@ -220,15 +245,28 @@ namespace
 
         // Write
         if (binding.isEqBand)
-            state.setOutputEQBandParameterWithArrayPropagation (channelIndex, bandIndex, paramId, value);
+        {
+            if (eqFamily == EqFamily::Output)
+            {
+                state.setOutputEQBandParameterWithArrayPropagation (channelIndex, bandIndex, paramId, value);
+            }
+            else
+            {
+                auto band = getBandTree();
+                if (band.isValid())
+                    band.setProperty (paramId, value, state.getActiveUndoManager());
+            }
+        }
         else
+        {
             state.setParameter (paramId, value, channelIndex);
+        }
 
         // Capture after-state
         juce::var afterValue;
         if (binding.isEqBand)
         {
-            auto band = state.getOutputEQBand (channelIndex, bandIndex);
+            auto band = getBandTree();
             if (band.isValid())
                 afterValue = band.getProperty (paramId);
         }

@@ -152,10 +152,33 @@ inline ToolResult set (WFSValueTreeState& state, const juce::var& args, ChangeRe
         }
     }
 
+    // Resolve EQ-band family from the variable name. The schema has no
+    // hint, so we infer from the param prefix the same way the auto-
+    // generated dispatcher does. Output EQ uses array-propagation;
+    // reverb pre-EQ is per-channel; reverb post-EQ is global.
+    enum class EqFamily { Output, ReverbPre, ReverbPost };
+    auto eqFamily = [&]() -> EqFamily
+    {
+        if (variable.startsWith ("reverbPostEQ")) return EqFamily::ReverbPost;
+        if (variable.startsWith ("reverbPreEQ"))  return EqFamily::ReverbPre;
+        return EqFamily::Output;
+    }();
+
+    auto getBandTree = [&]() -> juce::ValueTree
+    {
+        switch (eqFamily)
+        {
+            case EqFamily::ReverbPost: return state.getReverbPostEQBand (bandIndex);
+            case EqFamily::ReverbPre:  return state.getReverbEQBand (channelIndex, bandIndex);
+            case EqFamily::Output:
+            default:                   return state.getOutputEQBand (channelIndex, bandIndex);
+        }
+    };
+
     juce::var beforeValue;
     if (isEqBand)
     {
-        auto bandTree = state.getOutputEQBand (channelIndex, bandIndex);
+        auto bandTree = getBandTree();
         if (bandTree.isValid())
             beforeValue = bandTree.getProperty (paramId);
     }
@@ -165,14 +188,27 @@ inline ToolResult set (WFSValueTreeState& state, const juce::var& args, ChangeRe
     }
 
     if (isEqBand)
-        state.setOutputEQBandParameterWithArrayPropagation (channelIndex, bandIndex, paramId, value);
+    {
+        if (eqFamily == EqFamily::Output)
+        {
+            state.setOutputEQBandParameterWithArrayPropagation (channelIndex, bandIndex, paramId, value);
+        }
+        else
+        {
+            auto bandTree = getBandTree();
+            if (bandTree.isValid())
+                bandTree.setProperty (paramId, value, state.getActiveUndoManager());
+        }
+    }
     else
+    {
         state.setParameter (paramId, value, channelIndex);
+    }
 
     juce::var afterValue;
     if (isEqBand)
     {
-        auto bandTree = state.getOutputEQBand (channelIndex, bandIndex);
+        auto bandTree = getBandTree();
         if (bandTree.isValid())
             afterValue = bandTree.getProperty (paramId);
     }
