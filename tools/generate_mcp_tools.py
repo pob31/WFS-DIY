@@ -140,6 +140,137 @@ TIER_KEYWORDS_2 = ["master", "solo", "muteAll", "testTone", "store", "load",
                    "import", "export", "snapshot"]
 
 
+# Domain heuristics. Each tool gets a list of domain tags so AI agents
+# can decide whether a write is meaningful for a given goal:
+#
+#   wfs_synthesis      changes what comes out of the WFS speakers
+#   reverb             changes the reverb engine's output
+#   binaural           changes the binaural-monitoring render only
+#   adm_osc            changes how incoming ADM-OSC data is mapped
+#   floor_reflections  affects the FR (Hackoustics) signal
+#   live_source        affects the live-source feedback tamer
+#   tracking           affects external tracking ingest
+#   routing            patching, mutes, sends, channel assignment
+#   network            transport / target / port settings
+#   visualisation_only on-screen markers, locks — no audio effect
+#   metadata           names, themes, language, file paths
+#
+# Resolution order (first match wins per row):
+#   1. Variable-name override (DOMAIN_VARIABLE_OVERRIDES)
+#   2. Section keyword in CSV's Section column (DOMAIN_BY_SECTION_KEYWORD)
+#   3. Per-CSV default (DOMAIN_DEFAULT_BY_CSV)
+#
+# Sections embedded inside per-channel tabs (e.g. "Map" rows in input.csv
+# that toggle visibility) are caught by Step 1; the rest gets the
+# audio-affecting default for the channel kind.
+
+DOMAIN_VARIABLE_OVERRIDES = {
+    # Map-display toggles — visualisation only, no audio impact.
+    "inputMapLocked":         ["visualisation_only"],
+    "inputMapVisible":        ["visualisation_only"],
+    "outputMapVisible":       ["visualisation_only"],
+    "outputArrayMapVisible":  ["visualisation_only"],
+    "reverbsMapVisible":      ["visualisation_only"],
+
+    # Names — metadata.
+    "showName":               ["metadata"],
+    "inputName":              ["metadata"],
+    "outputName":             ["metadata"],
+    "reverbName":             ["metadata"],
+    "samplerSetName":         ["metadata"],
+    "clusterName":            ["metadata"],
+    "clusterLfoPresetName":   ["metadata"],
+
+    # Channel counts — wfs_synthesis (changes the speaker array shape)
+    # and routing (changes patch matrix availability).
+    "inputChannels":          ["wfs_synthesis", "routing"],
+    "outputChannels":         ["wfs_synthesis", "routing"],
+    "reverbChannels":         ["reverb", "routing"],
+
+    # Cluster reference / plane selectors — wfs_synthesis (transforms
+    # apply through these).
+    "clusterReferenceMode":   ["wfs_synthesis"],
+    "clusterPlane":           ["wfs_synthesis"],
+}
+
+# (csv_namespace, section_substring_lowercase) -> domains.
+# Section is matched substring-style against row.section.lower().
+DOMAIN_BY_SECTION_KEYWORD = [
+    # config.csv
+    ("system", "stage",            ["wfs_synthesis"]),
+    ("system", "master",           ["wfs_synthesis"]),
+    ("system", "binaural",         ["binaural"]),
+    ("system", "controllers",      ["routing"]),
+    ("system", "ui",               ["metadata"]),
+    ("system", "files",            ["metadata"]),
+    ("system", "diagnostics",      ["metadata"]),
+    ("system", "show",             ["metadata"]),
+    ("system", "i/o",              ["wfs_synthesis", "routing"]),
+    ("system", "wfs processor",    ["wfs_synthesis"]),
+
+    # network.csv
+    ("network", "adm-osc",         ["adm_osc"]),
+    ("network", "tracking",        ["tracking"]),
+    ("network", "find my remote",  ["network"]),
+    ("network", "network",         ["network"]),
+    ("network", "osc",             ["network"]),
+    ("network", "connections",     ["network"]),
+
+    # input.csv embedded sub-sections
+    ("input", "map",               ["visualisation_only"]),
+    ("input", "live source",       ["live_source"]),
+    ("input", "hackoustics",       ["floor_reflections"]),
+    ("input", "tracking",          ["tracking"]),
+    ("input", "mutes",             ["routing"]),
+    ("input", "sampler",           ["wfs_synthesis", "routing"]),
+
+    # output.csv embedded sub-sections
+    ("output", "map",              ["visualisation_only"]),
+    ("output", "options",          ["wfs_synthesis"]),
+
+    # reverb.csv: every section is reverb-related
+    ("reverb", "",                 ["reverb"]),
+
+    # cluster.csv: transforms move sources, so wfs_synthesis
+    ("cluster", "",                ["wfs_synthesis"]),
+
+    # audio.csv: patching / test signals
+    ("audio", "",                  ["routing"]),
+]
+
+# Per-CSV fallback when no section keyword matches.
+DOMAIN_DEFAULT_BY_CSV = {
+    "WFS-UI_input.csv":      ["wfs_synthesis"],
+    "WFS-UI_output.csv":     ["wfs_synthesis"],
+    "WFS-UI_reverb.csv":     ["reverb"],
+    "WFS-UI_clusters.csv":   ["wfs_synthesis"],
+    "WFS-UI_network.csv":    ["network"],
+    "WFS-UI_config.csv":     ["metadata"],
+    "WFS-UI_audioPatch.csv": ["routing"],
+}
+
+
+def derive_domains(row: CSVRow, csv_namespace: str) -> list[str]:
+    """Resolve the domain tags for a single CSV row.
+
+    Resolution order (first match wins):
+      1. Variable-name override.
+      2. Section-keyword match scoped to the CSV namespace.
+      3. Per-CSV fallback.
+    """
+    if row.variable in DOMAIN_VARIABLE_OVERRIDES:
+        return list(DOMAIN_VARIABLE_OVERRIDES[row.variable])
+
+    section_lower = row.section.lower().strip()
+    for ns, keyword, domains in DOMAIN_BY_SECTION_KEYWORD:
+        if ns != csv_namespace:
+            continue
+        if keyword == "" or keyword in section_lower:
+            return list(domains)
+
+    return list(DOMAIN_DEFAULT_BY_CSV.get(row.csv_file, []))
+
+
 @dataclass
 class CSVRow:
     csv_file: str
@@ -986,6 +1117,7 @@ def process_row(row: CSVRow,
     osc_path, osc_template = derive_osc_path(row)
 
     group_key = derive_group_key(row.section, row.variable, csv_namespace)
+    domains   = derive_domains(row, csv_namespace)
 
     record: dict[str, Any] = {
         "name": tool_name,
@@ -996,6 +1128,8 @@ def process_row(row: CSVRow,
         "group_key": group_key,
         "supports_relative": row.osc_inc_dec.strip().lower() == "y",
     }
+    if domains:
+        record["domains"] = domains
     if osc_template is not None:
         record["internal_osc_path_template"] = osc_template
         record["internal_variable_template"] = re.sub(
@@ -1063,6 +1197,8 @@ def process_row(row: CSVRow,
             "group_key": group_key,
             "supports_relative": True,
         }
+        if domains:
+            nudge_record["domains"] = domains
 
     return record, nudge_record, None
 

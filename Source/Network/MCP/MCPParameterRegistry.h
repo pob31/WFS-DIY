@@ -41,6 +41,7 @@ struct ParameterRegistryRecord
     juce::String     groupKey;
     juce::String     csvSection;
     juce::StringArray synonyms;      // alias names that resolve to this canonical variable
+    juce::StringArray domains;       // tags like "wfs_synthesis", "binaural", "visualisation_only"
 };
 
 class MCPParameterRegistry
@@ -81,10 +82,15 @@ public:
                                        int maxDistance = 3) const;
 
     /** Filtered view used by `mcp_describe_parameters`. All filters are
-        AND-combined; an empty/blank value matches everything. */
+        AND-combined; an empty/blank value matches everything. The
+        `domain` filter matches if the record carries that tag in its
+        `domains` array (use one of: wfs_synthesis / reverb / binaural /
+        adm_osc / floor_reflections / live_source / tracking / routing /
+        network / visualisation_only / metadata). */
     std::vector<ParameterRegistryRecord> filter (const juce::String& prefix,
                                                   const juce::String& scope,
-                                                  const juce::String& groupKey) const;
+                                                  const juce::String& groupKey,
+                                                  const juce::String& domain = {}) const;
 
     /** O(N) lookup by canonical variable name. Returns nullptr if unknown.
         Pass the canonicalized name (run `canonicalize` first if the input

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-04-30T11:29:28Z",
+  "generated_at": "2026-04-30T12:10:38Z",
   "input_hash": "367b61c6ce695d1a652fcefa404cc8101ffd9403d10129292e9e5c0b28ac70e0",
   "source_csvs": [
     "WFS-UI_config.csv",
@@ -38,6 +38,9 @@
       "csv_section": "Assigned Inputs",
       "group_key": "cluster_assigned_inputs",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/cluster/inputOrder",
       "internal_variable": "clusterInputOrder"
     },
@@ -72,6 +75,9 @@
       "csv_section": "Assigned Inputs",
       "group_key": "cluster_assigned_inputs",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/cluster/inputsVisible",
       "internal_variable": "clusterInputsVisible"
     },
@@ -105,6 +111,9 @@
       "csv_section": "LFO Presets",
       "group_key": "cluster_lfo_presets",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/cluster/lfoPreset",
       "internal_variable": "clusterLFOPresetName",
       "value_arg_name": "name"
@@ -140,6 +149,9 @@
       "csv_section": "Cluster LFO",
       "group_key": "cluster_lfo",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/cluster/LFOactive",
       "internal_variable": "clusterLFOactive"
     },
@@ -172,6 +184,9 @@
       "csv_section": "Cluster LFO",
       "group_key": "cluster_lfo",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/cluster/LFOamplitudeRot",
       "internal_variable": "clusterLFOamplitudeRot"
     },
@@ -204,6 +219,9 @@
       "csv_section": "Cluster LFO",
       "group_key": "cluster_lfo",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/cluster/LFOamplitudeScale",
       "internal_variable": "clusterLFOamplitudeScale"
     },
@@ -236,6 +254,9 @@
       "csv_section": "Cluster LFO",
       "group_key": "cluster_lfo",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/cluster/LFOamplitudeX",
       "internal_variable": "clusterLFOamplitudeX"
     },
@@ -268,6 +289,9 @@
       "csv_section": "Cluster LFO",
       "group_key": "cluster_lfo",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/cluster/LFOamplitudeY",
       "internal_variable": "clusterLFOamplitudeY"
     },
@@ -300,6 +324,9 @@
       "csv_section": "Cluster LFO",
       "group_key": "cluster_lfo",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/cluster/LFOamplitudeZ",
       "internal_variable": "clusterLFOamplitudeZ"
     },
@@ -332,6 +359,9 @@
       "csv_section": "Cluster LFO",
       "group_key": "cluster_lfo",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/cluster/LFOperiod",
       "internal_variable": "clusterLFOperiod"
     },
@@ -364,6 +394,9 @@
       "csv_section": "Cluster LFO",
       "group_key": "cluster_lfo",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/cluster/LFOphase",
       "internal_variable": "clusterLFOphase"
     },
@@ -396,6 +429,9 @@
       "csv_section": "Cluster LFO",
       "group_key": "cluster_lfo",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/cluster/LFOphaseRot",
       "internal_variable": "clusterLFOphaseRot"
     },
@@ -428,6 +464,9 @@
       "csv_section": "Cluster LFO",
       "group_key": "cluster_lfo",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/cluster/LFOphaseScale",
       "internal_variable": "clusterLFOphaseScale"
     },
@@ -460,6 +499,9 @@
       "csv_section": "Cluster LFO",
       "group_key": "cluster_lfo",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/cluster/LFOphaseX",
       "internal_variable": "clusterLFOphaseX"
     },
@@ -492,6 +534,9 @@
       "csv_section": "Cluster LFO",
       "group_key": "cluster_lfo",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/cluster/LFOphaseY",
       "internal_variable": "clusterLFOphaseY"
     },
@@ -524,6 +569,9 @@
       "csv_section": "Cluster LFO",
       "group_key": "cluster_lfo",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/cluster/LFOphaseZ",
       "internal_variable": "clusterLFOphaseZ"
     },
@@ -556,6 +604,9 @@
       "csv_section": "Cluster LFO",
       "group_key": "cluster_lfo",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/cluster/LFOrateRot",
       "internal_variable": "clusterLFOrateRot"
     },
@@ -588,6 +639,9 @@
       "csv_section": "Cluster LFO",
       "group_key": "cluster_lfo",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/cluster/LFOrateScale",
       "internal_variable": "clusterLFOrateScale"
     },
@@ -620,6 +674,9 @@
       "csv_section": "Cluster LFO",
       "group_key": "cluster_lfo",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/cluster/LFOrateX",
       "internal_variable": "clusterLFOrateX"
     },
@@ -652,6 +709,9 @@
       "csv_section": "Cluster LFO",
       "group_key": "cluster_lfo",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/cluster/LFOrateY",
       "internal_variable": "clusterLFOrateY"
     },
@@ -684,6 +744,9 @@
       "csv_section": "Cluster LFO",
       "group_key": "cluster_lfo",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/cluster/LFOrateZ",
       "internal_variable": "clusterLFOrateZ"
     },
@@ -725,6 +788,9 @@
       "csv_section": "Cluster LFO",
       "group_key": "cluster_lfo",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/cluster/LFOshapeRot",
       "internal_variable": "clusterLFOshapeRot",
       "enum_string_to_int": {
@@ -778,6 +844,9 @@
       "csv_section": "Cluster LFO",
       "group_key": "cluster_lfo",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/cluster/LFOshapeScale",
       "internal_variable": "clusterLFOshapeScale",
       "enum_string_to_int": {
@@ -831,6 +900,9 @@
       "csv_section": "Cluster LFO",
       "group_key": "cluster_lfo",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/cluster/LFOshapeX",
       "internal_variable": "clusterLFOshapeX",
       "enum_string_to_int": {
@@ -884,6 +956,9 @@
       "csv_section": "Cluster LFO",
       "group_key": "cluster_lfo",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/cluster/LFOshapeY",
       "internal_variable": "clusterLFOshapeY",
       "enum_string_to_int": {
@@ -937,6 +1012,9 @@
       "csv_section": "Cluster LFO",
       "group_key": "cluster_lfo",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/cluster/LFOshapeZ",
       "internal_variable": "clusterLFOshapeZ",
       "enum_string_to_int": {
@@ -983,6 +1061,9 @@
       "csv_section": "Reference",
       "group_key": "cluster_reference",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/cluster/referenceMode",
       "internal_variable": "clusterReferenceMode",
       "enum_string_to_int": {
@@ -1024,6 +1105,9 @@
       "csv_section": "Attenuation",
       "group_key": "input_attenuation",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/commonAtten",
       "internal_variable": "inputCommonAtten",
       "relative_tool_name": "input_attenuation_nudge_common_attenuation"
@@ -1064,6 +1148,9 @@
       "csv_section": "Attenuation",
       "group_key": "input_attenuation",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/distanceAttenuation",
       "internal_variable": "inputDistanceAttenuation",
       "relative_tool_name": "input_attenuation_nudge_distance_attenuation"
@@ -1104,6 +1191,9 @@
       "csv_section": "Attenuation",
       "group_key": "input_attenuation",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/distanceRatio",
       "internal_variable": "inputDistanceRatio",
       "relative_tool_name": "input_attenuation_nudge_distance_ratio"
@@ -1139,6 +1229,9 @@
       "csv_section": "Attenuation",
       "group_key": "input_attenuation",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/attenuationLaw",
       "internal_variable": "inputAttenuationLaw"
     },
@@ -1173,6 +1266,9 @@
       "csv_section": "AutomOtion",
       "group_key": "input_automotion",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/otomoAbsoluteRelative",
       "internal_variable": "inputOtomoAbsoluteRelative"
     },
@@ -1205,6 +1301,9 @@
       "csv_section": "AutomOtion",
       "group_key": "input_automotion",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/otomoCurve",
       "internal_variable": "inputOtomoCurve",
       "relative_tool_name": "input_automotion_nudge_otomo_curve"
@@ -1238,6 +1337,9 @@
       "csv_section": "AutomOtion",
       "group_key": "input_automotion",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/otomoDuration",
       "internal_variable": "inputOtomoDuration",
       "relative_tool_name": "input_automotion_nudge_otomo_duration"
@@ -1271,6 +1373,9 @@
       "csv_section": "AutomOtion",
       "group_key": "input_automotion",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/otomoPause",
       "internal_variable": "inputOtomoPauseResume"
     },
@@ -1303,6 +1408,9 @@
       "csv_section": "AutomOtion",
       "group_key": "input_automotion",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/otomoPhi",
       "internal_variable": "inputOtomoPhi"
     },
@@ -1335,6 +1443,9 @@
       "csv_section": "AutomOtion",
       "group_key": "input_automotion",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/otomoR",
       "internal_variable": "inputOtomoR"
     },
@@ -1367,6 +1478,9 @@
       "csv_section": "AutomOtion",
       "group_key": "input_automotion",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/otomoRsph",
       "internal_variable": "inputOtomoRsph"
     },
@@ -1403,6 +1517,9 @@
       "csv_section": "AutomOtion",
       "group_key": "input_automotion",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/otomoTriggerReset",
       "internal_variable": "inputOtomoReset"
     },
@@ -1435,6 +1552,9 @@
       "csv_section": "AutomOtion",
       "group_key": "input_automotion",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/otomoSpeed",
       "internal_variable": "inputOtomoSpeedProfile",
       "relative_tool_name": "input_automotion_nudge_otomo_speed_profile"
@@ -1470,6 +1590,9 @@
       "csv_section": "AutomOtion",
       "group_key": "input_automotion",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/otomoStayReturn",
       "internal_variable": "inputOtomoStayReturn"
     },
@@ -1502,6 +1625,9 @@
       "csv_section": "AutomOtion",
       "group_key": "input_automotion",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/otomoTheta",
       "internal_variable": "inputOtomoTheta"
     },
@@ -1534,6 +1660,9 @@
       "csv_section": "AutomOtion",
       "group_key": "input_automotion",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/otomoTriggerThreshold",
       "internal_variable": "inputOtomoThreshold",
       "relative_tool_name": "input_automotion_nudge_otomo_threshold"
@@ -1569,6 +1698,9 @@
       "csv_section": "AutomOtion",
       "group_key": "input_automotion",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/otomoTrigger",
       "internal_variable": "inputOtomoTrigger",
       "relative_tool_name": "input_automotion_nudge_otomo_trigger"
@@ -1602,6 +1734,9 @@
       "csv_section": "AutomOtion",
       "group_key": "input_automotion",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/otomoX",
       "internal_variable": "inputOtomoX",
       "relative_tool_name": "input_automotion_nudge_otomo_x"
@@ -1635,6 +1770,9 @@
       "csv_section": "AutomOtion",
       "group_key": "input_automotion",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/otomoY",
       "internal_variable": "inputOtomoY",
       "relative_tool_name": "input_automotion_nudge_otomo_y"
@@ -1668,6 +1806,9 @@
       "csv_section": "AutomOtion",
       "group_key": "input_automotion",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/otomoZ",
       "internal_variable": "inputOtomoZ",
       "relative_tool_name": "input_automotion_nudge_otomo_z"
@@ -1703,6 +1844,9 @@
       "csv_section": "Constraint",
       "group_key": "input_constraint",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/constraintX",
       "internal_variable": "inputConstraintX"
     },
@@ -1737,6 +1881,9 @@
       "csv_section": "Constraint",
       "group_key": "input_constraint",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/constraintY",
       "internal_variable": "inputConstraintY"
     },
@@ -1771,6 +1918,9 @@
       "csv_section": "Constraint",
       "group_key": "input_constraint",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/constraintZ",
       "internal_variable": "inputConstraintZ"
     },
@@ -1814,6 +1964,9 @@
       "csv_section": "Delay",
       "group_key": "input_delay",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/delayLatency",
       "internal_variable": "inputDelayLatency",
       "relative_tool_name": "input_delay_nudge_latency"
@@ -1849,6 +2002,9 @@
       "csv_section": "Delay",
       "group_key": "input_delay",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/minimalLatency",
       "internal_variable": "inputMinimalLatency"
     },
@@ -1888,6 +2044,9 @@
       "csv_section": "Directivity",
       "group_key": "input_directivity",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/HFshelf",
       "internal_variable": "inputHFshelf",
       "relative_tool_name": "input_directivity_nudge_hf_shelf"
@@ -1928,6 +2087,9 @@
       "csv_section": "Directivity",
       "group_key": "input_directivity",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/rotation",
       "internal_variable": "inputRotation",
       "relative_tool_name": "input_directivity_nudge_rotation"
@@ -1968,6 +2130,9 @@
       "csv_section": "Directivity",
       "group_key": "input_directivity",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/tilt",
       "internal_variable": "inputTilt",
       "relative_tool_name": "input_directivity_nudge_tilt"
@@ -2003,6 +2168,9 @@
       "csv_section": "Flip",
       "group_key": "input_flip",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/flipX",
       "internal_variable": "inputFlipX"
     },
@@ -2037,6 +2205,9 @@
       "csv_section": "Flip",
       "group_key": "input_flip",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/flipY",
       "internal_variable": "inputFlipY"
     },
@@ -2071,6 +2242,9 @@
       "csv_section": "Flip",
       "group_key": "input_flip",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/flipZ",
       "internal_variable": "inputFlipZ"
     },
@@ -2105,6 +2279,9 @@
       "csv_section": "Floor Reflections",
       "group_key": "input_floor_reflections",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/FRactive",
       "internal_variable": "inputFRactive"
     },
@@ -2148,6 +2325,9 @@
       "csv_section": "Floor Reflections",
       "group_key": "input_floor_reflections",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/FRattenuation",
       "internal_variable": "inputFRattenuation",
       "relative_tool_name": "input_floor_reflections_nudge_attenuation"
@@ -2188,6 +2368,9 @@
       "csv_section": "Floor Reflections",
       "group_key": "input_floor_reflections",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/FRdiffusion",
       "internal_variable": "inputFRdiffusion",
       "relative_tool_name": "input_floor_reflections_nudge_diffusion"
@@ -2223,6 +2406,9 @@
       "csv_section": "Floor Reflections",
       "group_key": "input_floor_reflections",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/FRhighShelfActive",
       "internal_variable": "inputFRhighShelfActive"
     },
@@ -2262,6 +2448,9 @@
       "csv_section": "Floor Reflections",
       "group_key": "input_floor_reflections",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/FRhighShelfFreq",
       "internal_variable": "inputFRhighShelfFreq",
       "relative_tool_name": "input_floor_reflections_nudge_high_shelf_frequency"
@@ -2302,6 +2491,9 @@
       "csv_section": "Floor Reflections",
       "group_key": "input_floor_reflections",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/FRhighShelfGain",
       "internal_variable": "inputFRhighShelfGain",
       "relative_tool_name": "input_floor_reflections_nudge_high_shelf_gain"
@@ -2342,6 +2534,9 @@
       "csv_section": "Floor Reflections",
       "group_key": "input_floor_reflections",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/FRhighShelfSlope",
       "internal_variable": "inputFRhighShelfSlope",
       "relative_tool_name": "input_floor_reflections_nudge_high_shelf_slope"
@@ -2377,6 +2572,9 @@
       "csv_section": "Floor Reflections",
       "group_key": "input_floor_reflections",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/FRlowCutActive",
       "internal_variable": "inputFRlowCutActive"
     },
@@ -2416,6 +2614,9 @@
       "csv_section": "Floor Reflections",
       "group_key": "input_floor_reflections",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/FRlowCutFreq",
       "internal_variable": "inputFRlowCutFreq",
       "relative_tool_name": "input_floor_reflections_nudge_low_cut_frequency"
@@ -2449,6 +2650,9 @@
       "csv_section": "Gradient Map",
       "group_key": "input_gradient_map",
       "supports_relative": false,
+      "domains": [
+        "visualisation_only"
+      ],
       "internal_osc_path": "/wfs/input/gmLayer0Enabled",
       "internal_variable": "gmLayer0Enabled"
     },
@@ -2481,6 +2685,9 @@
       "csv_section": "Gradient Map",
       "group_key": "input_gradient_map",
       "supports_relative": false,
+      "domains": [
+        "visualisation_only"
+      ],
       "internal_osc_path": "/wfs/input/gmLayer1Enabled",
       "internal_variable": "gmLayer1Enabled"
     },
@@ -2513,6 +2720,9 @@
       "csv_section": "Gradient Map",
       "group_key": "input_gradient_map",
       "supports_relative": false,
+      "domains": [
+        "visualisation_only"
+      ],
       "internal_osc_path": "/wfs/input/gmLayer2Enabled",
       "internal_variable": "gmLayer2Enabled"
     },
@@ -2545,6 +2755,9 @@
       "csv_section": "Gradient Map",
       "group_key": "input_gradient_map",
       "supports_relative": false,
+      "domains": [
+        "visualisation_only"
+      ],
       "internal_osc_path": "",
       "internal_variable": "gmLayerBlack"
     },
@@ -2577,6 +2790,9 @@
       "csv_section": "Gradient Map",
       "group_key": "input_gradient_map",
       "supports_relative": false,
+      "domains": [
+        "visualisation_only"
+      ],
       "internal_osc_path": "",
       "internal_variable": "gmLayerCurve"
     },
@@ -2609,6 +2825,9 @@
       "csv_section": "Gradient Map",
       "group_key": "input_gradient_map",
       "supports_relative": false,
+      "domains": [
+        "visualisation_only"
+      ],
       "internal_osc_path": "",
       "internal_variable": "gmLayerWhite"
     },
@@ -2641,6 +2860,9 @@
       "csv_section": "Gradient Map",
       "group_key": "input_gradient_map",
       "supports_relative": false,
+      "domains": [
+        "visualisation_only"
+      ],
       "internal_osc_path": "",
       "internal_variable": "gmShapeBlur"
     },
@@ -2673,6 +2895,9 @@
       "csv_section": "Gradient Map",
       "group_key": "input_gradient_map",
       "supports_relative": false,
+      "domains": [
+        "visualisation_only"
+      ],
       "internal_osc_path": "",
       "internal_variable": "gmShapeFillType"
     },
@@ -2705,6 +2930,9 @@
       "csv_section": "Gradient Map",
       "group_key": "input_gradient_map",
       "supports_relative": false,
+      "domains": [
+        "visualisation_only"
+      ],
       "internal_osc_path": "",
       "internal_variable": "gmShapeFillValue"
     },
@@ -2737,6 +2965,9 @@
       "csv_section": "Gradient Map",
       "group_key": "input_gradient_map",
       "supports_relative": false,
+      "domains": [
+        "visualisation_only"
+      ],
       "internal_osc_path": "",
       "internal_variable": "gmShapePosX"
     },
@@ -2769,6 +3000,9 @@
       "csv_section": "Gradient Map",
       "group_key": "input_gradient_map",
       "supports_relative": false,
+      "domains": [
+        "visualisation_only"
+      ],
       "internal_osc_path": "",
       "internal_variable": "gmShapePosY"
     },
@@ -2801,6 +3035,9 @@
       "csv_section": "Gradient Map",
       "group_key": "input_gradient_map",
       "supports_relative": false,
+      "domains": [
+        "visualisation_only"
+      ],
       "internal_osc_path": "",
       "internal_variable": "gmShapeRotation"
     },
@@ -2833,6 +3070,9 @@
       "csv_section": "Gradient Map",
       "group_key": "input_gradient_map",
       "supports_relative": false,
+      "domains": [
+        "visualisation_only"
+      ],
       "internal_osc_path": "",
       "internal_variable": "gmShapeScaleX"
     },
@@ -2865,6 +3105,9 @@
       "csv_section": "Gradient Map",
       "group_key": "input_gradient_map",
       "supports_relative": false,
+      "domains": [
+        "visualisation_only"
+      ],
       "internal_osc_path": "",
       "internal_variable": "gmShapeScaleY"
     },
@@ -2897,6 +3140,9 @@
       "csv_section": "Gradient Map",
       "group_key": "input_gradient_map",
       "supports_relative": false,
+      "domains": [
+        "visualisation_only"
+      ],
       "internal_osc_path": "",
       "internal_variable": "gmShapeType"
     },
@@ -2931,6 +3177,9 @@
       "csv_section": "Header",
       "group_key": "input_header",
       "supports_relative": false,
+      "domains": [
+        "visualisation_only"
+      ],
       "internal_osc_path": "/wfs/input/mapLocked",
       "internal_variable": "inputMapLocked"
     },
@@ -2965,6 +3214,9 @@
       "csv_section": "Header",
       "group_key": "input_header",
       "supports_relative": false,
+      "domains": [
+        "visualisation_only"
+      ],
       "internal_osc_path": "/wfs/input/mapVisible",
       "internal_variable": "inputMapVisible"
     },
@@ -2999,6 +3251,9 @@
       "csv_section": "L.F.O",
       "group_key": "input_lfo",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/LFOactive",
       "internal_variable": "inputLFOactive"
     },
@@ -3038,6 +3293,9 @@
       "csv_section": "L.F.O",
       "group_key": "input_lfo",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/LFOamplitudeX",
       "internal_variable": "inputLFOamplitudeX",
       "relative_tool_name": "input_lfo_nudge_amplitude_x"
@@ -3078,6 +3336,9 @@
       "csv_section": "L.F.O",
       "group_key": "input_lfo",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/LFOamplitudeY",
       "internal_variable": "inputLFOamplitudeY",
       "relative_tool_name": "input_lfo_nudge_amplitude_y"
@@ -3118,6 +3379,9 @@
       "csv_section": "L.F.O",
       "group_key": "input_lfo",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/LFOamplitudeZ",
       "internal_variable": "inputLFOamplitudeZ",
       "relative_tool_name": "input_lfo_nudge_amplitude_z"
@@ -3154,6 +3418,9 @@
       "csv_section": "L.F.O",
       "group_key": "input_lfo",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/LFOgyrophone",
       "internal_variable": "inputLFOgyrophone"
     },
@@ -3193,6 +3460,9 @@
       "csv_section": "L.F.O",
       "group_key": "input_lfo",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/LFOperiod",
       "internal_variable": "inputLFOperiod",
       "relative_tool_name": "input_lfo_nudge_period"
@@ -3233,6 +3503,9 @@
       "csv_section": "L.F.O",
       "group_key": "input_lfo",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/LFOphase",
       "internal_variable": "inputLFOphase",
       "relative_tool_name": "input_lfo_nudge_phase"
@@ -3273,6 +3546,9 @@
       "csv_section": "L.F.O",
       "group_key": "input_lfo",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/LFOphaseX",
       "internal_variable": "inputLFOphaseX",
       "relative_tool_name": "input_lfo_nudge_phase_x"
@@ -3313,6 +3589,9 @@
       "csv_section": "L.F.O",
       "group_key": "input_lfo",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/LFOphaseY",
       "internal_variable": "inputLFOphaseY",
       "relative_tool_name": "input_lfo_nudge_phase_y"
@@ -3353,6 +3632,9 @@
       "csv_section": "L.F.O",
       "group_key": "input_lfo",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/LFOphaseZ",
       "internal_variable": "inputLFOphaseZ",
       "relative_tool_name": "input_lfo_nudge_phase_z"
@@ -3393,6 +3675,9 @@
       "csv_section": "L.F.O",
       "group_key": "input_lfo",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/LFOrateX",
       "internal_variable": "inputLFOrateX",
       "relative_tool_name": "input_lfo_nudge_rate_x"
@@ -3433,6 +3718,9 @@
       "csv_section": "L.F.O",
       "group_key": "input_lfo",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/LFOrateY",
       "internal_variable": "inputLFOrateY",
       "relative_tool_name": "input_lfo_nudge_rate_y"
@@ -3473,6 +3761,9 @@
       "csv_section": "L.F.O",
       "group_key": "input_lfo",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/LFOrateZ",
       "internal_variable": "inputLFOrateZ",
       "relative_tool_name": "input_lfo_nudge_rate_z"
@@ -3515,6 +3806,9 @@
       "csv_section": "L.F.O",
       "group_key": "input_lfo",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/LFOshapeX",
       "internal_variable": "inputLFOshapeX",
       "value_arg_name": "shape"
@@ -3557,6 +3851,9 @@
       "csv_section": "L.F.O",
       "group_key": "input_lfo",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/LFOshapeY",
       "internal_variable": "inputLFOshapeY",
       "value_arg_name": "shape"
@@ -3599,6 +3896,9 @@
       "csv_section": "L.F.O",
       "group_key": "input_lfo",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/LFOshapeZ",
       "internal_variable": "inputLFOshapeZ",
       "value_arg_name": "shape"
@@ -3634,6 +3934,9 @@
       "csv_section": "Live Source Tamer",
       "group_key": "input_live_source_tamer",
       "supports_relative": false,
+      "domains": [
+        "live_source"
+      ],
       "internal_osc_path": "/wfs/input/LSactive",
       "internal_variable": "inputLSactive"
     },
@@ -3673,6 +3976,9 @@
       "csv_section": "Live Source Tamer",
       "group_key": "input_live_source_tamer",
       "supports_relative": true,
+      "domains": [
+        "live_source"
+      ],
       "internal_osc_path": "/wfs/input/LSattenuation",
       "internal_variable": "inputLSattenuation",
       "relative_tool_name": "input_live_source_tamer_nudge_live_source_attenuation"
@@ -3713,6 +4019,9 @@
       "csv_section": "Live Source Tamer",
       "group_key": "input_live_source_tamer",
       "supports_relative": true,
+      "domains": [
+        "live_source"
+      ],
       "internal_osc_path": "/wfs/input/LSpeakRatio",
       "internal_variable": "inputLSpeakRatio",
       "relative_tool_name": "input_live_source_tamer_nudge_live_source_peak_ratio"
@@ -3753,6 +4062,9 @@
       "csv_section": "Live Source Tamer",
       "group_key": "input_live_source_tamer",
       "supports_relative": true,
+      "domains": [
+        "live_source"
+      ],
       "internal_osc_path": "/wfs/input/LSpeakThreshold",
       "internal_variable": "inputLSpeakThreshold",
       "relative_tool_name": "input_live_source_tamer_nudge_live_source_peak_threshold"
@@ -3793,6 +4105,9 @@
       "csv_section": "Live Source Tamer",
       "group_key": "input_live_source_tamer",
       "supports_relative": true,
+      "domains": [
+        "live_source"
+      ],
       "internal_osc_path": "/wfs/input/LSradius",
       "internal_variable": "inputLSradius",
       "relative_tool_name": "input_live_source_tamer_nudge_live_source_radius"
@@ -3830,6 +4145,9 @@
       "csv_section": "Live Source Tamer",
       "group_key": "input_live_source_tamer",
       "supports_relative": false,
+      "domains": [
+        "live_source"
+      ],
       "internal_osc_path": "/wfs/input/LSshape",
       "internal_variable": "inputLSshape",
       "value_arg_name": "shape"
@@ -3870,6 +4188,9 @@
       "csv_section": "Live Source Tamer",
       "group_key": "input_live_source_tamer",
       "supports_relative": true,
+      "domains": [
+        "live_source"
+      ],
       "internal_osc_path": "/wfs/input/LSslowRatio",
       "internal_variable": "inputLSslowRatio",
       "relative_tool_name": "input_live_source_tamer_nudge_live_source_slow_ratio"
@@ -3910,6 +4231,9 @@
       "csv_section": "Live Source Tamer",
       "group_key": "input_live_source_tamer",
       "supports_relative": true,
+      "domains": [
+        "live_source"
+      ],
       "internal_osc_path": "/wfs/input/LSslowThreshold",
       "internal_variable": "inputLSslowThreshold",
       "relative_tool_name": "input_live_source_tamer_nudge_live_source_slow_threshold"
@@ -3945,6 +4269,9 @@
       "csv_section": "Max Speed",
       "group_key": "input_max_speed",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/maxSpeedActive",
       "internal_variable": "inputMaxSpeedActive"
     },
@@ -3979,6 +4306,9 @@
       "csv_section": "Max Speed",
       "group_key": "input_max_speed",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/pathModeActive",
       "internal_variable": "inputPathModeActive",
       "value_arg_name": "mode"
@@ -4038,6 +4368,9 @@
       "csv_section": "Mutes",
       "group_key": "input_mutes",
       "supports_relative": false,
+      "domains": [
+        "routing"
+      ],
       "internal_osc_path": "",
       "internal_variable": "inputMuteMacro"
     },
@@ -4072,6 +4405,9 @@
       "csv_section": "Position",
       "group_key": "input_position",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/constraintDistance",
       "internal_variable": "inputConstraintDistance"
     },
@@ -4104,6 +4440,9 @@
       "csv_section": "Position",
       "group_key": "input_position",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "",
       "internal_variable": "inputConstraintDistanceMax"
     },
@@ -4136,6 +4475,9 @@
       "csv_section": "Position",
       "group_key": "input_position",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "",
       "internal_variable": "inputConstraintDistanceMin"
     },
@@ -4171,6 +4513,9 @@
       "csv_section": "Position",
       "group_key": "input_position",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/coordinateMode",
       "internal_variable": "inputCoordinateMode",
       "value_arg_name": "mode"
@@ -4211,6 +4556,9 @@
       "csv_section": "Position",
       "group_key": "input_position",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/offsetX",
       "internal_variable": "inputOffsetX",
       "relative_tool_name": "input_position_nudge_offset_x"
@@ -4251,6 +4599,9 @@
       "csv_section": "Position",
       "group_key": "input_position",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/offsetY",
       "internal_variable": "inputOffsetY",
       "relative_tool_name": "input_position_nudge_offset_y"
@@ -4291,6 +4642,9 @@
       "csv_section": "Position",
       "group_key": "input_position",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/offsetZ",
       "internal_variable": "inputOffsetZ",
       "relative_tool_name": "input_position_nudge_offset_z"
@@ -4330,6 +4684,9 @@
       "csv_section": "Position",
       "group_key": "input_position",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/positionX",
       "internal_variable": "inputPositionX",
       "relative_tool_name": "input_position_nudge_x"
@@ -4369,6 +4726,9 @@
       "csv_section": "Position",
       "group_key": "input_position",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/positionY",
       "internal_variable": "inputPositionY",
       "relative_tool_name": "input_position_nudge_y"
@@ -4408,6 +4768,9 @@
       "csv_section": "Position",
       "group_key": "input_position",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/positionZ",
       "internal_variable": "inputPositionZ",
       "relative_tool_name": "input_position_nudge_z"
@@ -4443,6 +4806,9 @@
       "csv_section": "Reverb",
       "group_key": "input_reverb",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/muteReverbSends",
       "internal_variable": "inputMuteReverbSends"
     },
@@ -4477,6 +4843,10 @@
       "csv_section": "Sampler",
       "group_key": "input_sampler",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ],
       "internal_osc_path": "/wfs/input/samplerActive",
       "internal_variable": "inputSamplerActive"
     },
@@ -4508,6 +4878,10 @@
       "csv_section": "Sampler",
       "group_key": "input_sampler",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ],
       "internal_osc_path": "/wfs/input/samplerActiveSet",
       "internal_variable": "inputSamplerActiveSet"
     },
@@ -4551,6 +4925,10 @@
       "csv_section": "Sampler",
       "group_key": "input_sampler",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ],
       "internal_osc_path": "/wfs/input/samplerCellAttenuation",
       "internal_variable": "samplerCellAttenuation",
       "relative_tool_name": "input_sampler_nudge_cell_attenuation"
@@ -4581,6 +4959,10 @@
       "csv_section": "Sampler",
       "group_key": "input_sampler",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ],
       "internal_osc_path": "/wfs/input/samplerCellFile",
       "internal_variable": "samplerCellFile"
     },
@@ -4620,6 +5002,10 @@
       "csv_section": "Sampler",
       "group_key": "input_sampler",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ],
       "internal_osc_path": "/wfs/input/samplerCellInTime",
       "internal_variable": "samplerCellInTime",
       "relative_tool_name": "input_sampler_nudge_cell_in_time"
@@ -4650,6 +5036,10 @@
       "csv_section": "Sampler",
       "group_key": "input_sampler",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ],
       "internal_osc_path": "/wfs/input/samplerCellName",
       "internal_variable": "samplerCellName",
       "value_arg_name": "name"
@@ -4683,6 +5073,10 @@
       "csv_section": "Sampler",
       "group_key": "input_sampler",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ],
       "internal_osc_path": "/wfs/input/samplerCellOffsetX",
       "internal_variable": "samplerCellOffsetX",
       "relative_tool_name": "input_sampler_nudge_cell_offset_x"
@@ -4716,6 +5110,10 @@
       "csv_section": "Sampler",
       "group_key": "input_sampler",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ],
       "internal_osc_path": "/wfs/input/samplerCellOffsetY",
       "internal_variable": "samplerCellOffsetY",
       "relative_tool_name": "input_sampler_nudge_cell_offset_y"
@@ -4749,6 +5147,10 @@
       "csv_section": "Sampler",
       "group_key": "input_sampler",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ],
       "internal_osc_path": "/wfs/input/samplerCellOffsetZ",
       "internal_variable": "samplerCellOffsetZ",
       "relative_tool_name": "input_sampler_nudge_cell_offset_z"
@@ -4789,6 +5191,10 @@
       "csv_section": "Sampler",
       "group_key": "input_sampler",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ],
       "internal_osc_path": "/wfs/input/samplerCellOutTime",
       "internal_variable": "samplerCellOutTime",
       "relative_tool_name": "input_sampler_nudge_cell_out_time"
@@ -4827,6 +5233,10 @@
       "csv_section": "Sampler",
       "group_key": "input_sampler",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ],
       "internal_osc_path": "/wfs/input/samplerMidiZoneQuadrant",
       "internal_variable": "samplerMidiZoneQuadrant"
     },
@@ -4870,6 +5280,10 @@
       "csv_section": "Sampler",
       "group_key": "input_sampler",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ],
       "internal_osc_path": "/wfs/input/samplerSetLevel",
       "internal_variable": "samplerSetLevel",
       "relative_tool_name": "input_sampler_nudge_set_level"
@@ -4900,6 +5314,9 @@
       "csv_section": "Sampler",
       "group_key": "input_sampler",
       "supports_relative": false,
+      "domains": [
+        "metadata"
+      ],
       "internal_osc_path": "/wfs/input/samplerSetName",
       "internal_variable": "samplerSetName",
       "value_arg_name": "name"
@@ -4935,6 +5352,10 @@
       "csv_section": "Sampler",
       "group_key": "input_sampler",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ],
       "internal_osc_path": "/wfs/input/samplerSetPlayMode",
       "internal_variable": "samplerSetPlayMode",
       "value_arg_name": "mode"
@@ -4968,6 +5389,10 @@
       "csv_section": "Sampler",
       "group_key": "input_sampler",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ],
       "internal_osc_path": "/wfs/input/samplerSetPosX",
       "internal_variable": "samplerSetPosX",
       "relative_tool_name": "input_sampler_nudge_set_pos_x"
@@ -5001,6 +5426,10 @@
       "csv_section": "Sampler",
       "group_key": "input_sampler",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ],
       "internal_osc_path": "/wfs/input/samplerSetPosY",
       "internal_variable": "samplerSetPosY",
       "relative_tool_name": "input_sampler_nudge_set_pos_y"
@@ -5034,6 +5463,10 @@
       "csv_section": "Sampler",
       "group_key": "input_sampler",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ],
       "internal_osc_path": "/wfs/input/samplerSetPosZ",
       "internal_variable": "samplerSetPosZ",
       "relative_tool_name": "input_sampler_nudge_set_pos_z"
@@ -5067,6 +5500,10 @@
       "csv_section": "Sampler",
       "group_key": "input_sampler",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ],
       "internal_osc_path": "/wfs/input/samplerSetPressHFCurve",
       "internal_variable": "samplerSetPressHFCurve",
       "relative_tool_name": "input_sampler_nudge_set_press_hf_curve"
@@ -5102,6 +5539,10 @@
       "csv_section": "Sampler",
       "group_key": "input_sampler",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ],
       "internal_osc_path": "/wfs/input/samplerSetPressHFDir",
       "internal_variable": "samplerSetPressHFDir"
     },
@@ -5136,6 +5577,10 @@
       "csv_section": "Sampler",
       "group_key": "input_sampler",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ],
       "internal_osc_path": "/wfs/input/samplerSetPressHFEnabled",
       "internal_variable": "samplerSetPressHFEnabled"
     },
@@ -5168,6 +5613,10 @@
       "csv_section": "Sampler",
       "group_key": "input_sampler",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ],
       "internal_osc_path": "/wfs/input/samplerSetPressLevelCurve",
       "internal_variable": "samplerSetPressLevelCurve",
       "relative_tool_name": "input_sampler_nudge_set_press_level_curve"
@@ -5203,6 +5652,10 @@
       "csv_section": "Sampler",
       "group_key": "input_sampler",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ],
       "internal_osc_path": "/wfs/input/samplerSetPressLevelDir",
       "internal_variable": "samplerSetPressLevelDir"
     },
@@ -5237,6 +5690,10 @@
       "csv_section": "Sampler",
       "group_key": "input_sampler",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ],
       "internal_osc_path": "/wfs/input/samplerSetPressLevelEnabled",
       "internal_variable": "samplerSetPressLevelEnabled"
     },
@@ -5271,6 +5728,10 @@
       "csv_section": "Sampler",
       "group_key": "input_sampler",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ],
       "internal_osc_path": "/wfs/input/samplerSetPressXYEnabled",
       "internal_variable": "samplerSetPressXYEnabled"
     },
@@ -5303,6 +5764,10 @@
       "csv_section": "Sampler",
       "group_key": "input_sampler",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ],
       "internal_osc_path": "/wfs/input/samplerSetPressXYScale",
       "internal_variable": "samplerSetPressXYScale",
       "relative_tool_name": "input_sampler_nudge_set_press_xy_scale"
@@ -5336,6 +5801,10 @@
       "csv_section": "Sampler",
       "group_key": "input_sampler",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ],
       "internal_osc_path": "/wfs/input/samplerSetPressZCurve",
       "internal_variable": "samplerSetPressZCurve",
       "relative_tool_name": "input_sampler_nudge_set_press_z_curve"
@@ -5371,6 +5840,10 @@
       "csv_section": "Sampler",
       "group_key": "input_sampler",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ],
       "internal_osc_path": "/wfs/input/samplerSetPressZDir",
       "internal_variable": "samplerSetPressZDir"
     },
@@ -5405,6 +5878,10 @@
       "csv_section": "Sampler",
       "group_key": "input_sampler",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ],
       "internal_osc_path": "/wfs/input/samplerSetPressZEnabled",
       "internal_variable": "samplerSetPressZEnabled"
     },
@@ -5448,6 +5925,9 @@
       "csv_section": "Array Attenuation",
       "group_key": "input_array_attenuation",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path_template": "/wfs/input/arrayAtten{array}",
       "internal_variable_template": "inputArrayAtten{array}"
     },
@@ -5484,6 +5964,9 @@
       "csv_section": "Attenuation",
       "group_key": "input_attenuation",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/attenuation",
       "internal_variable": "inputAttenuation",
       "relative_tool_name": "input_nudge_attenuation"
@@ -5528,6 +6011,9 @@
       "csv_section": "Cluster",
       "group_key": "input_cluster",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/cluster",
       "internal_variable": "inputCluster"
     },
@@ -5567,6 +6053,9 @@
       "csv_section": "Directivity",
       "group_key": "input_directivity",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/directivity",
       "internal_variable": "inputDirectivity",
       "relative_tool_name": "input_nudge_directivity"
@@ -5607,6 +6096,9 @@
       "csv_section": "Height Factor",
       "group_key": "input_height_factor",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/heightFactor",
       "internal_variable": "inputHeightFactor",
       "relative_tool_name": "input_nudge_height_factor"
@@ -5647,6 +6139,9 @@
       "csv_section": "Jitter",
       "group_key": "input_jitter",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/jitter",
       "internal_variable": "inputJitter",
       "relative_tool_name": "input_nudge_jitter"
@@ -5687,6 +6182,9 @@
       "csv_section": "Max Speed",
       "group_key": "input_max_speed",
       "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/maxSpeed",
       "internal_variable": "inputMaxSpeed",
       "relative_tool_name": "input_nudge_max_speed"
@@ -5721,6 +6219,9 @@
       "csv_section": "Mutes",
       "group_key": "input_mutes",
       "supports_relative": false,
+      "domains": [
+        "routing"
+      ],
       "internal_osc_path": "/wfs/input/mutes",
       "internal_variable": "inputMutes"
     },
@@ -5750,6 +6251,9 @@
       "csv_section": "Name",
       "group_key": "input_name",
       "supports_relative": false,
+      "domains": [
+        "metadata"
+      ],
       "internal_osc_path": "/wfs/input/name",
       "internal_variable": "inputName",
       "value_arg_name": "name"
@@ -5785,6 +6289,9 @@
       "csv_section": "Sidelines",
       "group_key": "input_sidelines",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/input/sidelinesEnable",
       "internal_variable": "inputSidelinesActive"
     },
@@ -5817,6 +6324,9 @@
       "csv_section": "Sidelines",
       "group_key": "input_sidelines",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "",
       "internal_variable": "inputSidelinesFringe"
     },
@@ -5849,6 +6359,9 @@
       "csv_section": "Tracking",
       "group_key": "input_tracking",
       "supports_relative": false,
+      "domains": [
+        "tracking"
+      ],
       "internal_osc_path": "/wfs/input/trackingActive",
       "internal_variable": "inputTrackingActive"
     },
@@ -5880,6 +6393,9 @@
       "csv_section": "Tracking",
       "group_key": "input_tracking",
       "supports_relative": false,
+      "domains": [
+        "tracking"
+      ],
       "internal_osc_path": "/wfs/input/trackingID",
       "internal_variable": "inputTrackingID"
     },
@@ -5912,6 +6428,9 @@
       "csv_section": "Tracking",
       "group_key": "input_tracking",
       "supports_relative": false,
+      "domains": [
+        "tracking"
+      ],
       "internal_osc_path": "/wfs/input/trackingSmooth",
       "internal_variable": "inputTrackingSmooth"
     },
@@ -5939,6 +6458,9 @@
       "csv_section": "ADM-OSC",
       "group_key": "network_adm_osc",
       "supports_relative": false,
+      "domains": [
+        "adm_osc"
+      ],
       "internal_osc_path": "/wfs/network/admCartAxisSwap",
       "internal_variable": "admCartAxisSwap"
     },
@@ -5966,6 +6488,9 @@
       "csv_section": "ADM-OSC",
       "group_key": "network_adm_osc",
       "supports_relative": false,
+      "domains": [
+        "adm_osc"
+      ],
       "internal_osc_path": "/wfs/network/admPolarAzimuthFlip",
       "internal_variable": "admPolarAzimuthFlip"
     },
@@ -5991,6 +6516,9 @@
       "csv_section": "ADM-OSC",
       "group_key": "network_adm_osc",
       "supports_relative": false,
+      "domains": [
+        "adm_osc"
+      ],
       "internal_osc_path": "/wfs/network/admPolarAzimuthOffset",
       "internal_variable": "admPolarAzimuthOffset"
     },
@@ -6016,6 +6544,9 @@
       "csv_section": "ADM-OSC",
       "group_key": "network_adm_osc",
       "supports_relative": false,
+      "domains": [
+        "adm_osc"
+      ],
       "internal_osc_path": "/wfs/network/admCartBreakpoint",
       "internal_variable": "admCartBreakpoint"
     },
@@ -6041,6 +6572,9 @@
       "csv_section": "ADM-OSC",
       "group_key": "network_adm_osc",
       "supports_relative": false,
+      "domains": [
+        "adm_osc"
+      ],
       "internal_osc_path": "/wfs/network/admCartCenterOffset",
       "internal_variable": "admCartCenterOffset"
     },
@@ -6066,6 +6600,9 @@
       "csv_section": "ADM-OSC",
       "group_key": "network_adm_osc",
       "supports_relative": false,
+      "domains": [
+        "adm_osc"
+      ],
       "internal_osc_path": "/wfs/network/admPolarDistBreakpoint",
       "internal_variable": "admPolarDistBreakpoint"
     },
@@ -6091,6 +6628,9 @@
       "csv_section": "ADM-OSC",
       "group_key": "network_adm_osc",
       "supports_relative": false,
+      "domains": [
+        "adm_osc"
+      ],
       "internal_osc_path": "/wfs/network/admPolarDistCenter",
       "internal_variable": "admPolarDistCenter"
     },
@@ -6116,6 +6656,9 @@
       "csv_section": "ADM-OSC",
       "group_key": "network_adm_osc",
       "supports_relative": false,
+      "domains": [
+        "adm_osc"
+      ],
       "internal_osc_path": "/wfs/network/admPolarDistInner",
       "internal_variable": "admPolarDistInner"
     },
@@ -6141,6 +6684,9 @@
       "csv_section": "ADM-OSC",
       "group_key": "network_adm_osc",
       "supports_relative": false,
+      "domains": [
+        "adm_osc"
+      ],
       "internal_osc_path": "/wfs/network/admPolarDistMin",
       "internal_variable": "admPolarDistMin"
     },
@@ -6166,6 +6712,9 @@
       "csv_section": "ADM-OSC",
       "group_key": "network_adm_osc",
       "supports_relative": false,
+      "domains": [
+        "adm_osc"
+      ],
       "internal_osc_path": "/wfs/network/admPolarDistOuter",
       "internal_variable": "admPolarDistOuter"
     },
@@ -6193,6 +6742,9 @@
       "csv_section": "ADM-OSC",
       "group_key": "network_adm_osc",
       "supports_relative": false,
+      "domains": [
+        "adm_osc"
+      ],
       "internal_osc_path": "/wfs/network/admPolarElevationFlip",
       "internal_variable": "admPolarElevationFlip"
     },
@@ -6218,6 +6770,9 @@
       "csv_section": "ADM-OSC",
       "group_key": "network_adm_osc",
       "supports_relative": false,
+      "domains": [
+        "adm_osc"
+      ],
       "internal_osc_path": "/wfs/network/admCartNegInnerWidth",
       "internal_variable": "admCartNegInnerWidth"
     },
@@ -6243,6 +6798,9 @@
       "csv_section": "ADM-OSC",
       "group_key": "network_adm_osc",
       "supports_relative": false,
+      "domains": [
+        "adm_osc"
+      ],
       "internal_osc_path": "/wfs/network/admCartNegOuterWidth",
       "internal_variable": "admCartNegOuterWidth"
     },
@@ -6268,6 +6826,9 @@
       "csv_section": "ADM-OSC",
       "group_key": "network_adm_osc",
       "supports_relative": false,
+      "domains": [
+        "adm_osc"
+      ],
       "internal_osc_path": "/wfs/network/admCartPosInnerWidth",
       "internal_variable": "admCartPosInnerWidth"
     },
@@ -6293,6 +6854,9 @@
       "csv_section": "ADM-OSC",
       "group_key": "network_adm_osc",
       "supports_relative": false,
+      "domains": [
+        "adm_osc"
+      ],
       "internal_osc_path": "/wfs/network/admCartPosOuterWidth",
       "internal_variable": "admCartPosOuterWidth"
     },
@@ -6320,6 +6884,9 @@
       "csv_section": "ADM-OSC",
       "group_key": "network_adm_osc",
       "supports_relative": false,
+      "domains": [
+        "adm_osc"
+      ],
       "internal_osc_path": "/wfs/network/admCartSignFlip",
       "internal_variable": "admCartSignFlip"
     },
@@ -6344,6 +6911,9 @@
       "csv_section": "Network",
       "group_key": "network",
       "supports_relative": false,
+      "domains": [
+        "network"
+      ],
       "internal_osc_path": "/wfs/network/networkCurrentIP",
       "internal_variable": "networkCurrentIP"
     },
@@ -6375,6 +6945,9 @@
       "csv_section": "Network",
       "group_key": "network",
       "supports_relative": false,
+      "domains": [
+        "network"
+      ],
       "internal_osc_path": "/wfs/network/networkOscQueryEnabled",
       "internal_variable": "networkOscQueryEnabled"
     },
@@ -6404,6 +6977,9 @@
       "csv_section": "Network",
       "group_key": "network",
       "supports_relative": false,
+      "domains": [
+        "network"
+      ],
       "internal_osc_path": "/wfs/network/networkOscQueryPort",
       "internal_variable": "networkOscQueryPort"
     },
@@ -6431,6 +7007,9 @@
       "csv_section": "Network",
       "group_key": "network",
       "supports_relative": false,
+      "domains": [
+        "network"
+      ],
       "internal_osc_path": "/wfs/network/networkOscSourceFilter",
       "internal_variable": "networkOscSourceFilter"
     },
@@ -6460,6 +7039,9 @@
       "csv_section": "Network",
       "group_key": "network",
       "supports_relative": false,
+      "domains": [
+        "network"
+      ],
       "internal_osc_path": "/wfs/network/networkRxTCPport",
       "internal_variable": "networkRxTCPport"
     },
@@ -6489,6 +7071,9 @@
       "csv_section": "Network",
       "group_key": "network",
       "supports_relative": false,
+      "domains": [
+        "network"
+      ],
       "internal_osc_path": "/wfs/network/networkRxUDPport",
       "internal_variable": "networkRxUDPport"
     },
@@ -6516,6 +7101,9 @@
       "csv_section": "Network",
       "group_key": "network",
       "supports_relative": false,
+      "domains": [
+        "network"
+      ],
       "internal_osc_path": "/wfs/network/networkTSdataMode",
       "internal_variable": "networkTSdataMode",
       "value_arg_name": "mode"
@@ -6541,6 +7129,9 @@
       "csv_section": "Network",
       "group_key": "network",
       "supports_relative": false,
+      "domains": [
+        "network"
+      ],
       "internal_osc_path": "/wfs/network/networkTSip",
       "internal_variable": "networkTSip"
     },
@@ -6564,6 +7155,9 @@
       "csv_section": "Network",
       "group_key": "network",
       "supports_relative": false,
+      "domains": [
+        "network"
+      ],
       "internal_osc_path": "/wfs/network/networkTSname",
       "internal_variable": "networkTSname"
     },
@@ -6589,6 +7183,9 @@
       "csv_section": "Network",
       "group_key": "network",
       "supports_relative": false,
+      "domains": [
+        "network"
+      ],
       "internal_osc_path": "/wfs/network/networkTSport",
       "internal_variable": "networkTSport"
     },
@@ -6614,6 +7211,9 @@
       "csv_section": "Network",
       "group_key": "network",
       "supports_relative": false,
+      "domains": [
+        "network"
+      ],
       "internal_osc_path": "/wfs/network/networkTSqlabPatch",
       "internal_variable": "networkTSqlabPatch"
     },
@@ -6641,6 +7241,9 @@
       "csv_section": "Network",
       "group_key": "network",
       "supports_relative": false,
+      "domains": [
+        "network"
+      ],
       "internal_osc_path": "/wfs/network/networkTSrxEnable",
       "internal_variable": "networkTSrxEnable"
     },
@@ -6668,6 +7271,9 @@
       "csv_section": "Network",
       "group_key": "network",
       "supports_relative": false,
+      "domains": [
+        "network"
+      ],
       "internal_osc_path": "/wfs/network/networkTStxEnable",
       "internal_variable": "networkTStxEnable"
     },
@@ -6698,6 +7304,9 @@
       "csv_section": "Network",
       "group_key": "network",
       "supports_relative": false,
+      "domains": [
+        "network"
+      ],
       "internal_osc_path": "/wfs/network/networkTSProtocol",
       "internal_variable": "networkTSProtocol",
       "value_arg_name": "protocol"
@@ -6730,6 +7339,9 @@
       "csv_section": "Tracking",
       "group_key": "network_tracking",
       "supports_relative": false,
+      "domains": [
+        "tracking"
+      ],
       "internal_osc_path": "/wfs/network/trackingEnabled",
       "internal_variable": "trackingEnabled"
     },
@@ -6757,6 +7369,9 @@
       "csv_section": "Tracking",
       "group_key": "network_tracking",
       "supports_relative": false,
+      "domains": [
+        "tracking"
+      ],
       "internal_osc_path": "/wfs/network/trackingFlipX",
       "internal_variable": "trackingFlipX"
     },
@@ -6784,6 +7399,9 @@
       "csv_section": "Tracking",
       "group_key": "network_tracking",
       "supports_relative": false,
+      "domains": [
+        "tracking"
+      ],
       "internal_osc_path": "/wfs/network/trackingFlipY",
       "internal_variable": "trackingFlipY"
     },
@@ -6811,6 +7429,9 @@
       "csv_section": "Tracking",
       "group_key": "network_tracking",
       "supports_relative": false,
+      "domains": [
+        "tracking"
+      ],
       "internal_osc_path": "/wfs/network/trackingFlipZ",
       "internal_variable": "trackingFlipZ"
     },
@@ -6833,6 +7454,9 @@
       "csv_section": "Tracking",
       "group_key": "network_tracking",
       "supports_relative": false,
+      "domains": [
+        "tracking"
+      ],
       "internal_osc_path": "/wfs/network/trackingMqttHost",
       "internal_variable": "trackingMqttHost"
     },
@@ -6856,6 +7480,9 @@
       "csv_section": "Tracking",
       "group_key": "network_tracking",
       "supports_relative": false,
+      "domains": [
+        "tracking"
+      ],
       "internal_osc_path": "/wfs/network/trackingMqttJsonQ",
       "internal_variable": "trackingMqttJsonQ"
     },
@@ -6879,6 +7506,9 @@
       "csv_section": "Tracking",
       "group_key": "network_tracking",
       "supports_relative": false,
+      "domains": [
+        "tracking"
+      ],
       "internal_osc_path": "/wfs/network/trackingMqttJsonX",
       "internal_variable": "trackingMqttJsonX"
     },
@@ -6902,6 +7532,9 @@
       "csv_section": "Tracking",
       "group_key": "network_tracking",
       "supports_relative": false,
+      "domains": [
+        "tracking"
+      ],
       "internal_osc_path": "/wfs/network/trackingMqttJsonY",
       "internal_variable": "trackingMqttJsonY"
     },
@@ -6925,6 +7558,9 @@
       "csv_section": "Tracking",
       "group_key": "network_tracking",
       "supports_relative": false,
+      "domains": [
+        "tracking"
+      ],
       "internal_osc_path": "/wfs/network/trackingMqttJsonZ",
       "internal_variable": "trackingMqttJsonZ"
     },
@@ -6948,6 +7584,9 @@
       "csv_section": "Tracking",
       "group_key": "network_tracking",
       "supports_relative": false,
+      "domains": [
+        "tracking"
+      ],
       "internal_osc_path": "/wfs/network/trackingMqttTagIds",
       "internal_variable": "trackingMqttTagIds"
     },
@@ -6970,6 +7609,9 @@
       "csv_section": "Tracking",
       "group_key": "network_tracking",
       "supports_relative": false,
+      "domains": [
+        "tracking"
+      ],
       "internal_osc_path": "/wfs/network/trackingMqttTopic",
       "internal_variable": "trackingMqttTopic"
     },
@@ -6995,6 +7637,9 @@
       "csv_section": "Tracking",
       "group_key": "network_tracking",
       "supports_relative": false,
+      "domains": [
+        "tracking"
+      ],
       "internal_osc_path": "/wfs/network/trackingOffsetX",
       "internal_variable": "trackingOffsetX"
     },
@@ -7020,6 +7665,9 @@
       "csv_section": "Tracking",
       "group_key": "network_tracking",
       "supports_relative": false,
+      "domains": [
+        "tracking"
+      ],
       "internal_osc_path": "/wfs/network/trackingOffsetY",
       "internal_variable": "trackingOffsetY"
     },
@@ -7045,6 +7693,9 @@
       "csv_section": "Tracking",
       "group_key": "network_tracking",
       "supports_relative": false,
+      "domains": [
+        "tracking"
+      ],
       "internal_osc_path": "/wfs/network/trackingOffsetZ",
       "internal_variable": "trackingOffsetZ"
     },
@@ -7067,6 +7718,9 @@
       "csv_section": "Tracking",
       "group_key": "network_tracking",
       "supports_relative": false,
+      "domains": [
+        "tracking"
+      ],
       "internal_osc_path": "/wfs/network/trackingOscPath",
       "internal_variable": "trackingOscPath"
     },
@@ -7096,6 +7750,9 @@
       "csv_section": "Tracking",
       "group_key": "network_tracking",
       "supports_relative": false,
+      "domains": [
+        "tracking"
+      ],
       "internal_osc_path": "/wfs/network/trackingPort",
       "internal_variable": "trackingPort"
     },
@@ -7130,6 +7787,9 @@
       "csv_section": "Tracking",
       "group_key": "network_tracking",
       "supports_relative": false,
+      "domains": [
+        "tracking"
+      ],
       "internal_osc_path": "/wfs/network/trackingProtocol",
       "internal_variable": "trackingProtocol",
       "value_arg_name": "protocol"
@@ -7153,6 +7813,9 @@
       "csv_section": "Tracking",
       "group_key": "network_tracking",
       "supports_relative": false,
+      "domains": [
+        "tracking"
+      ],
       "internal_osc_path": "/wfs/network/trackingPsnInterface",
       "internal_variable": "trackingPsnInterface"
     },
@@ -7178,6 +7841,9 @@
       "csv_section": "Tracking",
       "group_key": "network_tracking",
       "supports_relative": false,
+      "domains": [
+        "tracking"
+      ],
       "internal_osc_path": "/wfs/network/trackingScaleX",
       "internal_variable": "trackingScaleX"
     },
@@ -7203,6 +7869,9 @@
       "csv_section": "Tracking",
       "group_key": "network_tracking",
       "supports_relative": false,
+      "domains": [
+        "tracking"
+      ],
       "internal_osc_path": "/wfs/network/trackingScaleY",
       "internal_variable": "trackingScaleY"
     },
@@ -7228,6 +7897,9 @@
       "csv_section": "Tracking",
       "group_key": "network_tracking",
       "supports_relative": false,
+      "domains": [
+        "tracking"
+      ],
       "internal_osc_path": "/wfs/network/trackingScaleZ",
       "internal_variable": "trackingScaleZ"
     },
@@ -7263,6 +7935,9 @@
       "csv_section": "Array",
       "group_key": "output_array",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/output/applyToArray",
       "internal_variable": "outputApplyToArray"
     },
@@ -7299,6 +7974,9 @@
       "csv_section": "Attenuation",
       "group_key": "output_attenuation",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/output/DistanceAttenPercent",
       "internal_variable": "outputDistanceAttenPercent"
     },
@@ -7335,6 +8013,9 @@
       "csv_section": "Delay",
       "group_key": "output_delay",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/output/delayLatency",
       "internal_variable": "outputDelayLatency"
     },
@@ -7369,6 +8050,9 @@
       "csv_section": "EQ",
       "group_key": "output_eq",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/output/EQenable",
       "internal_variable": "outputEQenabled"
     },
@@ -7407,6 +8091,9 @@
       "csv_section": "EQ",
       "group_key": "output_eq",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/output/Eqfreq",
       "internal_variable": "eqFrequency"
     },
@@ -7446,6 +8133,9 @@
       "csv_section": "EQ",
       "group_key": "output_eq",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/output/EQgain",
       "internal_variable": "eqGain"
     },
@@ -7485,6 +8175,9 @@
       "csv_section": "EQ",
       "group_key": "output_eq",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/output/EQq",
       "internal_variable": "eqQ"
     },
@@ -7530,6 +8223,9 @@
       "csv_section": "EQ",
       "group_key": "output_eq",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/output/EQshape",
       "internal_variable": "eqShape",
       "enum_string_to_int": {
@@ -7579,6 +8275,9 @@
       "csv_section": "EQ",
       "group_key": "output_eq",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/output/EQslope",
       "internal_variable": "eqSlope"
     },
@@ -7613,6 +8312,9 @@
       "csv_section": "Floor Reflections",
       "group_key": "output_floor_reflections",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/output/FRenable",
       "internal_variable": "outputFRenable"
     },
@@ -7647,6 +8349,9 @@
       "csv_section": "Header",
       "group_key": "output_header",
       "supports_relative": false,
+      "domains": [
+        "visualisation_only"
+      ],
       "internal_osc_path": "/wfs/output/arrayMapVisible",
       "internal_variable": "outputArrayMapVisible"
     },
@@ -7681,6 +8386,9 @@
       "csv_section": "Header",
       "group_key": "output_header",
       "supports_relative": false,
+      "domains": [
+        "visualisation_only"
+      ],
       "internal_osc_path": "/wfs/output/mapVisible",
       "internal_variable": "outputMapVisible"
     },
@@ -7715,6 +8423,9 @@
       "csv_section": "Live Source Atten",
       "group_key": "output_live_source_attenuation",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/output/LSenable",
       "internal_variable": "outputLSattenEnable"
     },
@@ -7749,6 +8460,9 @@
       "csv_section": "Minimal Latency",
       "group_key": "output_minimal_latency",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/output/miniLatencyEnable",
       "internal_variable": "outputMiniLatencyEnable"
     },
@@ -7781,6 +8495,9 @@
       "csv_section": "Orientation",
       "group_key": "output_orientation",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/output/angleOff",
       "internal_variable": "outputAngleOff"
     },
@@ -7813,6 +8530,9 @@
       "csv_section": "Orientation",
       "group_key": "output_orientation",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/output/angleOn",
       "internal_variable": "outputAngleOn"
     },
@@ -7845,6 +8565,9 @@
       "csv_section": "Orientation",
       "group_key": "output_orientation",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/output/pitch",
       "internal_variable": "outputPitch"
     },
@@ -7877,6 +8600,9 @@
       "csv_section": "Parallax Correction",
       "group_key": "output_parallax_correction",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/output/Hparallax",
       "internal_variable": "outputHparallax"
     },
@@ -7909,6 +8635,9 @@
       "csv_section": "Parallax Correction",
       "group_key": "output_parallax_correction",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/output/Vparallax",
       "internal_variable": "outputVparallax"
     },
@@ -7944,6 +8673,9 @@
       "csv_section": "Position",
       "group_key": "output_position",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/output/coordinateMode",
       "internal_variable": "outputCoordinateMode",
       "value_arg_name": "mode"
@@ -7977,6 +8709,9 @@
       "csv_section": "Position",
       "group_key": "output_position",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/output/positionX",
       "internal_variable": "outputPositionX"
     },
@@ -8009,6 +8744,9 @@
       "csv_section": "Position",
       "group_key": "output_position",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/output/positionY",
       "internal_variable": "outputPositionY"
     },
@@ -8041,6 +8779,9 @@
       "csv_section": "Position",
       "group_key": "output_position",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/output/positionZ",
       "internal_variable": "outputPositionZ"
     },
@@ -8084,6 +8825,9 @@
       "csv_section": "Array",
       "group_key": "output_array",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/output/array",
       "internal_variable": "outputArray"
     },
@@ -8120,6 +8864,9 @@
       "csv_section": "Attenuation",
       "group_key": "output_attenuation",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/output/attenuation",
       "internal_variable": "outputAttenuation"
     },
@@ -8152,6 +8899,9 @@
       "csv_section": "HF damping",
       "group_key": "output_hf_damping",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/output/HFdamping",
       "internal_variable": "outputHFdamping"
     },
@@ -8181,6 +8931,9 @@
       "csv_section": "Name",
       "group_key": "output_name",
       "supports_relative": false,
+      "domains": [
+        "metadata"
+      ],
       "internal_osc_path": "/wfs/output/name",
       "internal_variable": "outputName",
       "value_arg_name": "name"
@@ -8214,6 +8967,9 @@
       "csv_section": "Orientation",
       "group_key": "output_orientation",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/output/orientation",
       "internal_variable": "outputOrientation"
     },
@@ -8249,6 +9005,9 @@
       "csv_section": "Algorithm",
       "group_key": "reverb_algorithm",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/config/reverb/algoType",
       "internal_variable": "reverbAlgoType"
     },
@@ -8281,6 +9040,9 @@
       "csv_section": "Algorithm",
       "group_key": "reverb_algorithm",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/config/reverb/crossoverHigh",
       "internal_variable": "reverbCrossoverHigh"
     },
@@ -8313,6 +9075,9 @@
       "csv_section": "Algorithm",
       "group_key": "reverb_algorithm",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/config/reverb/crossoverLow",
       "internal_variable": "reverbCrossoverLow"
     },
@@ -8345,6 +9110,9 @@
       "csv_section": "Algorithm",
       "group_key": "reverb_algorithm",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/config/reverb/diffusion",
       "internal_variable": "reverbDiffusion"
     },
@@ -8377,6 +9145,9 @@
       "csv_section": "Algorithm",
       "group_key": "reverb_algorithm",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/config/reverb/fdnSize",
       "internal_variable": "reverbFDNsize"
     },
@@ -8406,6 +9177,9 @@
       "csv_section": "Algorithm",
       "group_key": "reverb_algorithm",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/config/reverb/irFile",
       "internal_variable": "reverbIRfile"
     },
@@ -8438,6 +9212,9 @@
       "csv_section": "Algorithm",
       "group_key": "reverb_algorithm",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/config/reverb/irLength",
       "internal_variable": "reverbIRlength"
     },
@@ -8470,6 +9247,9 @@
       "csv_section": "Algorithm",
       "group_key": "reverb_algorithm",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/config/reverb/irTrim",
       "internal_variable": "reverbIRtrim"
     },
@@ -8504,6 +9284,9 @@
       "csv_section": "Algorithm",
       "group_key": "reverb_algorithm",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/config/reverb/perNodeIR",
       "internal_variable": "reverbPerNodeIR"
     },
@@ -8536,6 +9319,9 @@
       "csv_section": "Algorithm",
       "group_key": "reverb_algorithm",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/config/reverb/rt60",
       "internal_variable": "reverbRT60"
     },
@@ -8568,6 +9354,9 @@
       "csv_section": "Algorithm",
       "group_key": "reverb_algorithm",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/config/reverb/rt60HighMult",
       "internal_variable": "reverbRT60HighMult"
     },
@@ -8600,6 +9389,9 @@
       "csv_section": "Algorithm",
       "group_key": "reverb_algorithm",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/config/reverb/rt60LowMult",
       "internal_variable": "reverbRT60LowMult"
     },
@@ -8632,6 +9424,9 @@
       "csv_section": "Algorithm",
       "group_key": "reverb_algorithm",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/config/reverb/sdnScale",
       "internal_variable": "reverbSDNscale"
     },
@@ -8668,6 +9463,9 @@
       "csv_section": "Algorithm",
       "group_key": "reverb_algorithm",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/config/reverb/wetLevel",
       "internal_variable": "reverbWetLevel"
     },
@@ -8704,6 +9502,9 @@
       "csv_section": "Attenuation",
       "group_key": "reverb_attenuation",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/reverb/commonAtten",
       "internal_variable": "reverbCommonAtten"
     },
@@ -8736,6 +9537,9 @@
       "csv_section": "Attenuation",
       "group_key": "reverb_attenuation",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/reverb/distanceAttenuation",
       "internal_variable": "reverbDistanceAttenuation"
     },
@@ -8772,6 +9576,9 @@
       "csv_section": "Delay",
       "group_key": "reverb_delay",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/reverb/delayLatency",
       "internal_variable": "reverbDelayLatency"
     },
@@ -8804,6 +9611,9 @@
       "csv_section": "Reverb Feed",
       "group_key": "reverb_feed",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/reverb/angleOff",
       "internal_variable": "reverbAngleOff"
     },
@@ -8836,6 +9646,9 @@
       "csv_section": "Reverb Feed",
       "group_key": "reverb_feed",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/reverb/angleOn",
       "internal_variable": "reverbAngleOn"
     },
@@ -8872,6 +9685,9 @@
       "csv_section": "Reverb Feed",
       "group_key": "reverb_feed",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/reverb/DistanceAttenPercent",
       "internal_variable": "reverbDistanceAttenEnable"
     },
@@ -8904,6 +9720,9 @@
       "csv_section": "Reverb Feed",
       "group_key": "reverb_feed",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/reverb/HFdamping",
       "internal_variable": "reverbHFdamping"
     },
@@ -8938,6 +9757,9 @@
       "csv_section": "Reverb Feed",
       "group_key": "reverb_feed",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/reverb/LSenable",
       "internal_variable": "reverbLSenable"
     },
@@ -8972,6 +9794,9 @@
       "csv_section": "Reverb Feed",
       "group_key": "reverb_feed",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/reverb/miniLatencyEnable",
       "internal_variable": "reverbMiniLatencyEnable"
     },
@@ -9004,6 +9829,9 @@
       "csv_section": "Reverb Feed",
       "group_key": "reverb_feed",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/reverb/orientation",
       "internal_variable": "reverbOrientation"
     },
@@ -9036,6 +9864,9 @@
       "csv_section": "Reverb Feed",
       "group_key": "reverb_feed",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/reverb/pitch",
       "internal_variable": "reverbPitch"
     },
@@ -9070,6 +9901,9 @@
       "csv_section": "Header",
       "group_key": "reverb_header",
       "supports_relative": false,
+      "domains": [
+        "visualisation_only"
+      ],
       "internal_osc_path": "/wfs/reverb/mapVisible",
       "internal_variable": "reverbsMapVisible"
     },
@@ -9128,6 +9962,9 @@
       "csv_section": "Mutes",
       "group_key": "reverb_mutes",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/reverb/muteMacro",
       "internal_variable": "reverbMuteMacro"
     },
@@ -9163,6 +10000,9 @@
       "csv_section": "Position",
       "group_key": "reverb_position",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/reverb/coordinateMode",
       "internal_variable": "reverbCoordinateMode",
       "value_arg_name": "mode"
@@ -9196,6 +10036,9 @@
       "csv_section": "Position",
       "group_key": "reverb_position",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/reverb/returnOffsetX",
       "internal_variable": "reverbReturnOffsetX"
     },
@@ -9228,6 +10071,9 @@
       "csv_section": "Position",
       "group_key": "reverb_position",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/reverb/returnOffsetY",
       "internal_variable": "reverbReturnOffsetY"
     },
@@ -9260,6 +10106,9 @@
       "csv_section": "Position",
       "group_key": "reverb_position",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/reverb/returnOffsetZ",
       "internal_variable": "reverbReturnOffsetZ"
     },
@@ -9292,6 +10141,9 @@
       "csv_section": "Position",
       "group_key": "reverb_position",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/reverb/positionX",
       "internal_variable": "reverbPositionX"
     },
@@ -9324,6 +10176,9 @@
       "csv_section": "Position",
       "group_key": "reverb_position",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/reverb/positionY",
       "internal_variable": "reverbPositionY"
     },
@@ -9356,6 +10211,9 @@
       "csv_section": "Position",
       "group_key": "reverb_position",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/reverb/positionZ",
       "internal_variable": "reverbPositionZ"
     },
@@ -9390,6 +10248,9 @@
       "csv_section": "Post-Processing EQ",
       "group_key": "reverb_post_processing_eq",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/config/reverb/postEQenable",
       "internal_variable": "reverbPostEQenable"
     },
@@ -9428,6 +10289,9 @@
       "csv_section": "Post-Processing EQ",
       "group_key": "reverb_post_processing_eq",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/config/reverb/postEQfreq",
       "internal_variable": "reverbPostEQfreq"
     },
@@ -9467,6 +10331,9 @@
       "csv_section": "Post-Processing EQ",
       "group_key": "reverb_post_processing_eq",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/config/reverb/postEQgain",
       "internal_variable": "reverbPostEQgain"
     },
@@ -9506,6 +10373,9 @@
       "csv_section": "Post-Processing EQ",
       "group_key": "reverb_post_processing_eq",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/config/reverb/postEQq",
       "internal_variable": "reverbPostEQq"
     },
@@ -9550,6 +10420,9 @@
       "csv_section": "Post-Processing EQ",
       "group_key": "reverb_post_processing_eq",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/config/reverb/postEQshape",
       "internal_variable": "reverbPostEQshape",
       "enum_string_to_int": {
@@ -9598,6 +10471,9 @@
       "csv_section": "Post-Processing EQ",
       "group_key": "reverb_post_processing_eq",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/config/reverb/postEQslope",
       "internal_variable": "reverbPostEQslope"
     },
@@ -9630,6 +10506,9 @@
       "csv_section": "Post-Processing Expander",
       "group_key": "reverb_post_processing_expander",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/config/reverb/postExpAttack",
       "internal_variable": "reverbPostExpAttack"
     },
@@ -9664,6 +10543,9 @@
       "csv_section": "Post-Processing Expander",
       "group_key": "reverb_post_processing_expander",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/config/reverb/postExpBypass",
       "internal_variable": "reverbPostExpBypass"
     },
@@ -9696,6 +10578,9 @@
       "csv_section": "Post-Processing Expander",
       "group_key": "reverb_post_processing_expander",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/config/reverb/postExpRatio",
       "internal_variable": "reverbPostExpRatio"
     },
@@ -9728,6 +10613,9 @@
       "csv_section": "Post-Processing Expander",
       "group_key": "reverb_post_processing_expander",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/config/reverb/postExpRelease",
       "internal_variable": "reverbPostExpRelease"
     },
@@ -9760,6 +10648,9 @@
       "csv_section": "Post-Processing Expander",
       "group_key": "reverb_post_processing_expander",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/config/reverb/postExpThreshold",
       "internal_variable": "reverbPostExpThreshold"
     },
@@ -9792,6 +10683,9 @@
       "csv_section": "Pre-Processing Compressor",
       "group_key": "reverb_pre_processing_compressor",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/config/reverb/preCompAttack",
       "internal_variable": "reverbPreCompAttack"
     },
@@ -9826,6 +10720,9 @@
       "csv_section": "Pre-Processing Compressor",
       "group_key": "reverb_pre_processing_compressor",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/config/reverb/preCompBypass",
       "internal_variable": "reverbPreCompBypass"
     },
@@ -9858,6 +10755,9 @@
       "csv_section": "Pre-Processing Compressor",
       "group_key": "reverb_pre_processing_compressor",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/config/reverb/preCompRatio",
       "internal_variable": "reverbPreCompRatio"
     },
@@ -9890,6 +10790,9 @@
       "csv_section": "Pre-Processing Compressor",
       "group_key": "reverb_pre_processing_compressor",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/config/reverb/preCompRelease",
       "internal_variable": "reverbPreCompRelease"
     },
@@ -9922,6 +10825,9 @@
       "csv_section": "Pre-Processing Compressor",
       "group_key": "reverb_pre_processing_compressor",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/config/reverb/preCompThreshold",
       "internal_variable": "reverbPreCompThreshold"
     },
@@ -9956,6 +10862,9 @@
       "csv_section": "Pre-Processing EQ",
       "group_key": "reverb_pre_processing_eq",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/reverb/preEQenable",
       "internal_variable": "reverbPreEQenable"
     },
@@ -9994,6 +10903,9 @@
       "csv_section": "Pre-Processing EQ",
       "group_key": "reverb_pre_processing_eq",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/reverb/preEQfreq",
       "internal_variable": "reverbPreEQfreq"
     },
@@ -10033,6 +10945,9 @@
       "csv_section": "Pre-Processing EQ",
       "group_key": "reverb_pre_processing_eq",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/reverb/preEQgain",
       "internal_variable": "reverbPreEQgain"
     },
@@ -10072,6 +10987,9 @@
       "csv_section": "Pre-Processing EQ",
       "group_key": "reverb_pre_processing_eq",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/reverb/preEQq",
       "internal_variable": "reverbPreEQq"
     },
@@ -10116,6 +11034,9 @@
       "csv_section": "Pre-Processing EQ",
       "group_key": "reverb_pre_processing_eq",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/reverb/preEQshape",
       "internal_variable": "reverbPreEQshape",
       "enum_string_to_int": {
@@ -10164,6 +11085,9 @@
       "csv_section": "Pre-Processing EQ",
       "group_key": "reverb_pre_processing_eq",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/reverb/preEQslope",
       "internal_variable": "reverbPreEQslope"
     },
@@ -10200,6 +11124,9 @@
       "csv_section": "Attenuation",
       "group_key": "reverb_attenuation",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/reverb/attenuation",
       "internal_variable": "reverbAttenuation"
     },
@@ -10233,6 +11160,9 @@
       "csv_section": "Mutes",
       "group_key": "reverb_mutes",
       "supports_relative": false,
+      "domains": [
+        "reverb"
+      ],
       "internal_osc_path": "/wfs/reverb/mutes",
       "internal_variable": "reverbMutes"
     },
@@ -10262,6 +11192,9 @@
       "csv_section": "Name",
       "group_key": "reverb_name",
       "supports_relative": false,
+      "domains": [
+        "metadata"
+      ],
       "internal_osc_path": "/wfs/reverb/name",
       "internal_variable": "reverbName",
       "value_arg_name": "name"
@@ -10292,6 +11225,9 @@
       "csv_section": "Binaural Renderer",
       "group_key": "system_binaural_renderer",
       "supports_relative": false,
+      "domains": [
+        "binaural"
+      ],
       "internal_osc_path": "/wfs/config/binauralAttenuation",
       "internal_variable": "binauralAttenuation"
     },
@@ -10317,6 +11253,9 @@
       "csv_section": "Binaural Renderer",
       "group_key": "system_binaural_renderer",
       "supports_relative": false,
+      "domains": [
+        "binaural"
+      ],
       "internal_osc_path": "/wfs/config/binauralDelay",
       "internal_variable": "binauralDelay"
     },
@@ -10348,6 +11287,9 @@
       "csv_section": "Binaural Renderer",
       "group_key": "system_binaural_renderer",
       "supports_relative": false,
+      "domains": [
+        "binaural"
+      ],
       "internal_osc_path": "/wfs/config/binauralEnabled",
       "internal_variable": "binauralEnabled"
     },
@@ -10373,6 +11315,9 @@
       "csv_section": "Binaural Renderer",
       "group_key": "system_binaural_renderer",
       "supports_relative": false,
+      "domains": [
+        "binaural"
+      ],
       "internal_osc_path": "/wfs/config/binauralListenerAngle",
       "internal_variable": "binauralListenerAngle"
     },
@@ -10398,6 +11343,9 @@
       "csv_section": "Binaural Renderer",
       "group_key": "system_binaural_renderer",
       "supports_relative": false,
+      "domains": [
+        "binaural"
+      ],
       "internal_osc_path": "/wfs/config/binauralListenerDistance",
       "internal_variable": "binauralListenerDistance"
     },
@@ -10432,6 +11380,9 @@
       "csv_section": "Binaural Renderer",
       "group_key": "system_binaural_renderer",
       "supports_relative": false,
+      "domains": [
+        "binaural"
+      ],
       "internal_osc_path": "/wfs/config/binauralOutputChannel",
       "internal_variable": "binauralOutputChannel"
     },
@@ -10463,6 +11414,9 @@
       "csv_section": "Binaural Renderer",
       "group_key": "system_binaural_renderer",
       "supports_relative": false,
+      "domains": [
+        "binaural"
+      ],
       "internal_osc_path": "/wfs/config/binauralSoloMode",
       "internal_variable": "binauralSoloMode",
       "value_arg_name": "mode"
@@ -10492,6 +11446,9 @@
       "csv_section": "Controllers",
       "group_key": "system_controllers",
       "supports_relative": false,
+      "domains": [
+        "routing"
+      ],
       "internal_osc_path": "/wfs/config/SamplerControllerMode",
       "internal_variable": "SamplerControllerMode",
       "value_arg_name": "mode"
@@ -10522,6 +11479,10 @@
       "csv_section": "I/O",
       "group_key": "system_i_o",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ],
       "internal_osc_path": "/wfs/config/inputChannels",
       "internal_variable": "inputChannels"
     },
@@ -10551,6 +11512,10 @@
       "csv_section": "I/O",
       "group_key": "system_i_o",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ],
       "internal_osc_path": "/wfs/config/outputChannels",
       "internal_variable": "outputChannels"
     },
@@ -10580,6 +11545,10 @@
       "csv_section": "I/O",
       "group_key": "system_i_o",
       "supports_relative": false,
+      "domains": [
+        "reverb",
+        "routing"
+      ],
       "internal_osc_path": "/wfs/config/reverbChannels",
       "internal_variable": "reverbChannels"
     },
@@ -10605,6 +11574,9 @@
       "csv_section": "Master Section",
       "group_key": "system_master_section",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/config/haasEffect",
       "internal_variable": "haasEffect"
     },
@@ -10634,6 +11606,9 @@
       "csv_section": "Master Section",
       "group_key": "system_master_section",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/config/masterLevel",
       "internal_variable": "masterLevel"
     },
@@ -10659,6 +11634,9 @@
       "csv_section": "Master Section",
       "group_key": "system_master_section",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/config/systemLatency",
       "internal_variable": "systemLatency"
     },
@@ -10681,6 +11659,9 @@
       "csv_section": "Show",
       "group_key": "system_show",
       "supports_relative": false,
+      "domains": [
+        "metadata"
+      ],
       "internal_osc_path": "/wfs/config/showLocation",
       "internal_variable": "showLocation"
     },
@@ -10704,6 +11685,9 @@
       "csv_section": "Show",
       "group_key": "system_show",
       "supports_relative": false,
+      "domains": [
+        "metadata"
+      ],
       "internal_osc_path": "/wfs/config/showName",
       "internal_variable": "showName",
       "value_arg_name": "name"
@@ -10730,6 +11714,9 @@
       "csv_section": "Stage",
       "group_key": "system_stage",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/config/stageDepth",
       "internal_variable": "stageDepth"
     },
@@ -10755,6 +11742,9 @@
       "csv_section": "Stage",
       "group_key": "system_stage",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/config/stageDiameter",
       "internal_variable": "stageDiameter"
     },
@@ -10780,6 +11770,9 @@
       "csv_section": "Stage",
       "group_key": "system_stage",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/config/domeElevation",
       "internal_variable": "domeElevation"
     },
@@ -10805,6 +11798,9 @@
       "csv_section": "Stage",
       "group_key": "system_stage",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/config/stageHeight",
       "internal_variable": "stageHeight"
     },
@@ -10830,6 +11826,9 @@
       "csv_section": "Stage",
       "group_key": "system_stage",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/config/originDepth",
       "internal_variable": "originDepth"
     },
@@ -10855,6 +11854,9 @@
       "csv_section": "Stage",
       "group_key": "system_stage",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/config/originHeight",
       "internal_variable": "originHeight"
     },
@@ -10880,6 +11882,9 @@
       "csv_section": "Stage",
       "group_key": "system_stage",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/config/originWidth",
       "internal_variable": "originWidth"
     },
@@ -10908,6 +11913,9 @@
       "csv_section": "Stage",
       "group_key": "system_stage",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/config/stageShape",
       "internal_variable": "stageShape",
       "value_arg_name": "shape"
@@ -10934,6 +11942,9 @@
       "csv_section": "Stage",
       "group_key": "system_stage",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/config/speedOfSound",
       "internal_variable": "speedOfSound"
     },
@@ -10959,6 +11970,9 @@
       "csv_section": "Stage",
       "group_key": "system_stage",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/config/temperature",
       "internal_variable": "temperature"
     },
@@ -10984,6 +11998,9 @@
       "csv_section": "Stage",
       "group_key": "system_stage",
       "supports_relative": false,
+      "domains": [
+        "wfs_synthesis"
+      ],
       "internal_osc_path": "/wfs/config/stageWidth",
       "internal_variable": "stageWidth"
     },
@@ -11012,6 +12029,9 @@
       "csv_section": "UI",
       "group_key": "system_ui",
       "supports_relative": false,
+      "domains": [
+        "metadata"
+      ],
       "internal_osc_path": "/wfs/config/colorScheme",
       "internal_variable": "colorScheme"
     }
@@ -11057,7 +12077,10 @@
       "internal_variable": "inputCommonAtten",
       "csv_section": "Attenuation",
       "group_key": "input_attenuation",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_attenuation_nudge_distance_attenuation",
@@ -11095,7 +12118,10 @@
       "internal_variable": "inputDistanceAttenuation",
       "csv_section": "Attenuation",
       "group_key": "input_attenuation",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_attenuation_nudge_distance_ratio",
@@ -11133,7 +12159,10 @@
       "internal_variable": "inputDistanceRatio",
       "csv_section": "Attenuation",
       "group_key": "input_attenuation",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_automotion_nudge_otomo_curve",
@@ -11171,7 +12200,10 @@
       "internal_variable": "inputOtomoCurve",
       "csv_section": "AutomOtion",
       "group_key": "input_automotion",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_automotion_nudge_otomo_duration",
@@ -11209,7 +12241,10 @@
       "internal_variable": "inputOtomoDuration",
       "csv_section": "AutomOtion",
       "group_key": "input_automotion",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_automotion_nudge_otomo_speed_profile",
@@ -11247,7 +12282,10 @@
       "internal_variable": "inputOtomoSpeedProfile",
       "csv_section": "AutomOtion",
       "group_key": "input_automotion",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_automotion_nudge_otomo_threshold",
@@ -11285,7 +12323,10 @@
       "internal_variable": "inputOtomoThreshold",
       "csv_section": "AutomOtion",
       "group_key": "input_automotion",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_automotion_nudge_otomo_trigger",
@@ -11323,7 +12364,10 @@
       "internal_variable": "inputOtomoTrigger",
       "csv_section": "AutomOtion",
       "group_key": "input_automotion",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_automotion_nudge_otomo_x",
@@ -11361,7 +12405,10 @@
       "internal_variable": "inputOtomoX",
       "csv_section": "AutomOtion",
       "group_key": "input_automotion",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_automotion_nudge_otomo_y",
@@ -11399,7 +12446,10 @@
       "internal_variable": "inputOtomoY",
       "csv_section": "AutomOtion",
       "group_key": "input_automotion",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_automotion_nudge_otomo_z",
@@ -11437,7 +12487,10 @@
       "internal_variable": "inputOtomoZ",
       "csv_section": "AutomOtion",
       "group_key": "input_automotion",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_delay_nudge_latency",
@@ -11479,7 +12532,10 @@
       "internal_variable": "inputDelayLatency",
       "csv_section": "Delay",
       "group_key": "input_delay",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_directivity_nudge_hf_shelf",
@@ -11517,7 +12573,10 @@
       "internal_variable": "inputHFshelf",
       "csv_section": "Directivity",
       "group_key": "input_directivity",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_directivity_nudge_rotation",
@@ -11555,7 +12614,10 @@
       "internal_variable": "inputRotation",
       "csv_section": "Directivity",
       "group_key": "input_directivity",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_directivity_nudge_tilt",
@@ -11593,7 +12655,10 @@
       "internal_variable": "inputTilt",
       "csv_section": "Directivity",
       "group_key": "input_directivity",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_floor_reflections_nudge_attenuation",
@@ -11635,7 +12700,10 @@
       "internal_variable": "inputFRattenuation",
       "csv_section": "Floor Reflections",
       "group_key": "input_floor_reflections",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_floor_reflections_nudge_diffusion",
@@ -11673,7 +12741,10 @@
       "internal_variable": "inputFRdiffusion",
       "csv_section": "Floor Reflections",
       "group_key": "input_floor_reflections",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_floor_reflections_nudge_high_shelf_frequency",
@@ -11711,7 +12782,10 @@
       "internal_variable": "inputFRhighShelfFreq",
       "csv_section": "Floor Reflections",
       "group_key": "input_floor_reflections",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_floor_reflections_nudge_high_shelf_gain",
@@ -11749,7 +12823,10 @@
       "internal_variable": "inputFRhighShelfGain",
       "csv_section": "Floor Reflections",
       "group_key": "input_floor_reflections",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_floor_reflections_nudge_high_shelf_slope",
@@ -11787,7 +12864,10 @@
       "internal_variable": "inputFRhighShelfSlope",
       "csv_section": "Floor Reflections",
       "group_key": "input_floor_reflections",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_floor_reflections_nudge_low_cut_frequency",
@@ -11825,7 +12905,10 @@
       "internal_variable": "inputFRlowCutFreq",
       "csv_section": "Floor Reflections",
       "group_key": "input_floor_reflections",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_lfo_nudge_amplitude_x",
@@ -11863,7 +12946,10 @@
       "internal_variable": "inputLFOamplitudeX",
       "csv_section": "L.F.O",
       "group_key": "input_lfo",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_lfo_nudge_amplitude_y",
@@ -11901,7 +12987,10 @@
       "internal_variable": "inputLFOamplitudeY",
       "csv_section": "L.F.O",
       "group_key": "input_lfo",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_lfo_nudge_amplitude_z",
@@ -11939,7 +13028,10 @@
       "internal_variable": "inputLFOamplitudeZ",
       "csv_section": "L.F.O",
       "group_key": "input_lfo",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_lfo_nudge_period",
@@ -11977,7 +13069,10 @@
       "internal_variable": "inputLFOperiod",
       "csv_section": "L.F.O",
       "group_key": "input_lfo",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_lfo_nudge_phase",
@@ -12015,7 +13110,10 @@
       "internal_variable": "inputLFOphase",
       "csv_section": "L.F.O",
       "group_key": "input_lfo",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_lfo_nudge_phase_x",
@@ -12053,7 +13151,10 @@
       "internal_variable": "inputLFOphaseX",
       "csv_section": "L.F.O",
       "group_key": "input_lfo",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_lfo_nudge_phase_y",
@@ -12091,7 +13192,10 @@
       "internal_variable": "inputLFOphaseY",
       "csv_section": "L.F.O",
       "group_key": "input_lfo",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_lfo_nudge_phase_z",
@@ -12129,7 +13233,10 @@
       "internal_variable": "inputLFOphaseZ",
       "csv_section": "L.F.O",
       "group_key": "input_lfo",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_lfo_nudge_rate_x",
@@ -12167,7 +13274,10 @@
       "internal_variable": "inputLFOrateX",
       "csv_section": "L.F.O",
       "group_key": "input_lfo",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_lfo_nudge_rate_y",
@@ -12205,7 +13315,10 @@
       "internal_variable": "inputLFOrateY",
       "csv_section": "L.F.O",
       "group_key": "input_lfo",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_lfo_nudge_rate_z",
@@ -12243,7 +13356,10 @@
       "internal_variable": "inputLFOrateZ",
       "csv_section": "L.F.O",
       "group_key": "input_lfo",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_live_source_tamer_nudge_live_source_attenuation",
@@ -12281,7 +13397,10 @@
       "internal_variable": "inputLSattenuation",
       "csv_section": "Live Source Tamer",
       "group_key": "input_live_source_tamer",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "live_source"
+      ]
     },
     {
       "name": "input_live_source_tamer_nudge_live_source_peak_ratio",
@@ -12319,7 +13438,10 @@
       "internal_variable": "inputLSpeakRatio",
       "csv_section": "Live Source Tamer",
       "group_key": "input_live_source_tamer",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "live_source"
+      ]
     },
     {
       "name": "input_live_source_tamer_nudge_live_source_peak_threshold",
@@ -12357,7 +13479,10 @@
       "internal_variable": "inputLSpeakThreshold",
       "csv_section": "Live Source Tamer",
       "group_key": "input_live_source_tamer",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "live_source"
+      ]
     },
     {
       "name": "input_live_source_tamer_nudge_live_source_radius",
@@ -12395,7 +13520,10 @@
       "internal_variable": "inputLSradius",
       "csv_section": "Live Source Tamer",
       "group_key": "input_live_source_tamer",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "live_source"
+      ]
     },
     {
       "name": "input_live_source_tamer_nudge_live_source_slow_ratio",
@@ -12433,7 +13561,10 @@
       "internal_variable": "inputLSslowRatio",
       "csv_section": "Live Source Tamer",
       "group_key": "input_live_source_tamer",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "live_source"
+      ]
     },
     {
       "name": "input_live_source_tamer_nudge_live_source_slow_threshold",
@@ -12471,7 +13602,10 @@
       "internal_variable": "inputLSslowThreshold",
       "csv_section": "Live Source Tamer",
       "group_key": "input_live_source_tamer",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "live_source"
+      ]
     },
     {
       "name": "input_nudge_attenuation",
@@ -12513,7 +13647,10 @@
       "internal_variable": "inputAttenuation",
       "csv_section": "Attenuation",
       "group_key": "input_attenuation",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_nudge_directivity",
@@ -12551,7 +13688,10 @@
       "internal_variable": "inputDirectivity",
       "csv_section": "Directivity",
       "group_key": "input_directivity",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_nudge_height_factor",
@@ -12589,7 +13729,10 @@
       "internal_variable": "inputHeightFactor",
       "csv_section": "Height Factor",
       "group_key": "input_height_factor",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_nudge_jitter",
@@ -12627,7 +13770,10 @@
       "internal_variable": "inputJitter",
       "csv_section": "Jitter",
       "group_key": "input_jitter",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_nudge_max_speed",
@@ -12665,7 +13811,10 @@
       "internal_variable": "inputMaxSpeed",
       "csv_section": "Max Speed",
       "group_key": "input_max_speed",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_position_nudge_offset_x",
@@ -12703,7 +13852,10 @@
       "internal_variable": "inputOffsetX",
       "csv_section": "Position",
       "group_key": "input_position",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_position_nudge_offset_y",
@@ -12741,7 +13893,10 @@
       "internal_variable": "inputOffsetY",
       "csv_section": "Position",
       "group_key": "input_position",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_position_nudge_offset_z",
@@ -12779,7 +13934,10 @@
       "internal_variable": "inputOffsetZ",
       "csv_section": "Position",
       "group_key": "input_position",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_position_nudge_x",
@@ -12817,7 +13975,10 @@
       "internal_variable": "inputPositionX",
       "csv_section": "Position",
       "group_key": "input_position",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_position_nudge_y",
@@ -12855,7 +14016,10 @@
       "internal_variable": "inputPositionY",
       "csv_section": "Position",
       "group_key": "input_position",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_position_nudge_z",
@@ -12893,7 +14057,10 @@
       "internal_variable": "inputPositionZ",
       "csv_section": "Position",
       "group_key": "input_position",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis"
+      ]
     },
     {
       "name": "input_sampler_nudge_cell_attenuation",
@@ -12935,7 +14102,11 @@
       "internal_variable": "samplerCellAttenuation",
       "csv_section": "Sampler",
       "group_key": "input_sampler",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ]
     },
     {
       "name": "input_sampler_nudge_cell_in_time",
@@ -12973,7 +14144,11 @@
       "internal_variable": "samplerCellInTime",
       "csv_section": "Sampler",
       "group_key": "input_sampler",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ]
     },
     {
       "name": "input_sampler_nudge_cell_offset_x",
@@ -13011,7 +14186,11 @@
       "internal_variable": "samplerCellOffsetX",
       "csv_section": "Sampler",
       "group_key": "input_sampler",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ]
     },
     {
       "name": "input_sampler_nudge_cell_offset_y",
@@ -13049,7 +14228,11 @@
       "internal_variable": "samplerCellOffsetY",
       "csv_section": "Sampler",
       "group_key": "input_sampler",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ]
     },
     {
       "name": "input_sampler_nudge_cell_offset_z",
@@ -13087,7 +14270,11 @@
       "internal_variable": "samplerCellOffsetZ",
       "csv_section": "Sampler",
       "group_key": "input_sampler",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ]
     },
     {
       "name": "input_sampler_nudge_cell_out_time",
@@ -13125,7 +14312,11 @@
       "internal_variable": "samplerCellOutTime",
       "csv_section": "Sampler",
       "group_key": "input_sampler",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ]
     },
     {
       "name": "input_sampler_nudge_set_level",
@@ -13167,7 +14358,11 @@
       "internal_variable": "samplerSetLevel",
       "csv_section": "Sampler",
       "group_key": "input_sampler",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ]
     },
     {
       "name": "input_sampler_nudge_set_pos_x",
@@ -13205,7 +14400,11 @@
       "internal_variable": "samplerSetPosX",
       "csv_section": "Sampler",
       "group_key": "input_sampler",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ]
     },
     {
       "name": "input_sampler_nudge_set_pos_y",
@@ -13243,7 +14442,11 @@
       "internal_variable": "samplerSetPosY",
       "csv_section": "Sampler",
       "group_key": "input_sampler",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ]
     },
     {
       "name": "input_sampler_nudge_set_pos_z",
@@ -13281,7 +14484,11 @@
       "internal_variable": "samplerSetPosZ",
       "csv_section": "Sampler",
       "group_key": "input_sampler",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ]
     },
     {
       "name": "input_sampler_nudge_set_press_hf_curve",
@@ -13319,7 +14526,11 @@
       "internal_variable": "samplerSetPressHFCurve",
       "csv_section": "Sampler",
       "group_key": "input_sampler",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ]
     },
     {
       "name": "input_sampler_nudge_set_press_level_curve",
@@ -13357,7 +14568,11 @@
       "internal_variable": "samplerSetPressLevelCurve",
       "csv_section": "Sampler",
       "group_key": "input_sampler",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ]
     },
     {
       "name": "input_sampler_nudge_set_press_xy_scale",
@@ -13395,7 +14610,11 @@
       "internal_variable": "samplerSetPressXYScale",
       "csv_section": "Sampler",
       "group_key": "input_sampler",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ]
     },
     {
       "name": "input_sampler_nudge_set_press_z_curve",
@@ -13433,7 +14652,11 @@
       "internal_variable": "samplerSetPressZCurve",
       "csv_section": "Sampler",
       "group_key": "input_sampler",
-      "supports_relative": true
+      "supports_relative": true,
+      "domains": [
+        "wfs_synthesis",
+        "routing"
+      ]
     }
   ],
   "ignored_parameters": [

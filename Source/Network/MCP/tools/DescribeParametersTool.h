@@ -36,10 +36,33 @@ inline juce::var buildSchema()
         "Optional group_key filter (e.g. \"input_position\"). Group keys "
         "match the auto-generated tool family that writes the parameter.");
 
+    auto domain = std::make_unique<juce::DynamicObject>();
+    domain->setProperty ("type", "string");
+    juce::Array<juce::var> domainEnum;
+    domainEnum.add ("wfs_synthesis");
+    domainEnum.add ("reverb");
+    domainEnum.add ("binaural");
+    domainEnum.add ("adm_osc");
+    domainEnum.add ("floor_reflections");
+    domainEnum.add ("live_source");
+    domainEnum.add ("tracking");
+    domainEnum.add ("routing");
+    domainEnum.add ("network");
+    domainEnum.add ("visualisation_only");
+    domainEnum.add ("metadata");
+    domain->setProperty ("enum", domainEnum);
+    domain->setProperty ("description",
+        "Optional domain tag filter. Use this to narrow the registry to "
+        "params that are meaningful for a specific intent — e.g. domain="
+        "\"wfs_synthesis\" returns only params that change what the WFS "
+        "speakers emit; domain=\"visualisation_only\" returns map / lock "
+        "toggles that don't affect audio.");
+
     auto props = std::make_unique<juce::DynamicObject>();
     props->setProperty ("prefix",    juce::var (prefix.release()));
     props->setProperty ("scope",     juce::var (scope.release()));
     props->setProperty ("group_key", juce::var (groupKey.release()));
+    props->setProperty ("domain",    juce::var (domain.release()));
 
     auto schema = std::make_unique<juce::DynamicObject>();
     schema->setProperty ("type", "object");
@@ -75,6 +98,13 @@ inline juce::var recordToVar (const ParameterRegistryRecord& r)
             syn.add (s);
         obj->setProperty ("synonyms", juce::var (syn));
     }
+    if (r.domains.size() > 0)
+    {
+        juce::Array<juce::var> dom;
+        for (const auto& d : r.domains)
+            dom.add (d);
+        obj->setProperty ("domains", juce::var (dom));
+    }
     obj->setProperty ("description", r.description);
     if (r.unit.isNotEmpty())
         obj->setProperty ("unit", r.unit);
@@ -88,16 +118,17 @@ inline juce::var recordToVar (const ParameterRegistryRecord& r)
 
 inline ToolResult describe (const juce::var& args)
 {
-    juce::String prefix, scope, groupKey;
+    juce::String prefix, scope, groupKey, domain;
     if (auto* obj = args.getDynamicObject())
     {
         prefix   = obj->getProperty ("prefix").toString().trim();
         scope    = obj->getProperty ("scope").toString().trim();
         groupKey = obj->getProperty ("group_key").toString().trim();
+        domain   = obj->getProperty ("domain").toString().trim();
     }
 
     const auto& reg = MCPParameterRegistry::getInstance();
-    const auto matches = reg.filter (prefix, scope, groupKey);
+    const auto matches = reg.filter (prefix, scope, groupKey, domain);
 
     juce::Array<juce::var> arr;
     for (const auto& r : matches)
@@ -120,10 +151,12 @@ inline ToolDescriptor describeTool()
                     "expects), the auto-generated `tool_name` that writes it, "
                     "scope (global/input/output/reverb/cluster/eq_band), JSON "
                     "type, min/max, enum values when applicable, default "
-                    "value, OSC path, and tier. Filter with `prefix` (matches "
-                    "variable start), `scope`, or `group_key`. Use this BEFORE "
-                    "guessing parameter names — it's the source of truth for "
-                    "the wfs_set_parameter escape hatch.";
+                    "value, OSC path, tier, and `domains` tags so the AI can "
+                    "tell wfs_synthesis vs visualisation_only writes apart. "
+                    "Filter with `prefix` (matches variable start), `scope`, "
+                    "`group_key`, or `domain`. Use this BEFORE guessing "
+                    "parameter names — it's the source of truth for the "
+                    "wfs_set_parameter escape hatch.";
     d.inputSchema   = buildSchema();
     d.modifiesState = false;
     d.tier        = 1;

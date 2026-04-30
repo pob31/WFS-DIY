@@ -130,6 +130,11 @@ namespace
                 out.defaultValue = valArg->getProperty ("default");
         }
 
+        const auto domainsVar = toolObj.getProperty ("domains");
+        if (domainsVar.isArray())
+            for (const auto& d : *domainsVar.getArray())
+                out.domains.add (d.toString());
+
         out.unit = extractUnit (out.description);
         return true;
     }
@@ -313,7 +318,8 @@ juce::StringArray MCPParameterRegistry::suggestSimilar (const juce::String& vari
 std::vector<ParameterRegistryRecord>
 MCPParameterRegistry::filter (const juce::String& prefix,
                                const juce::String& scope,
-                               const juce::String& groupKey) const
+                               const juce::String& groupKey,
+                               const juce::String& domain) const
 {
     std::vector<ParameterRegistryRecord> out;
     out.reserve (records.size());
@@ -322,6 +328,7 @@ MCPParameterRegistry::filter (const juce::String& prefix,
         if (prefix.isNotEmpty()   && ! r.variable.startsWith (prefix)) continue;
         if (scope.isNotEmpty()    && r.scope    != scope)               continue;
         if (groupKey.isNotEmpty() && r.groupKey != groupKey)            continue;
+        if (domain.isNotEmpty()   && ! r.domains.contains (domain))     continue;
         out.push_back (r);
     }
     return out;
