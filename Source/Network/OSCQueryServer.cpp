@@ -737,8 +737,10 @@ OSCQueryServer::ParamRange OSCQueryServer::getParamRange(const juce::Identifier&
     if (paramId == outputLSattenEnable)      return { 0, 1, true };
     if (paramId == outputFRenable)           return { 0, 1, true };
     if (paramId == outputDistanceAttenPercent) return { (float)outputDistanceAttenPercentMin, (float)outputDistanceAttenPercentMax, true };
-    if (paramId == outputHparallax || paramId == outputVparallax)
-        return { outputParallaxMin, outputParallaxMax, true };
+    if (paramId == outputHparallax)
+        return { outputHparallaxMin, outputHparallaxMax, true };
+    if (paramId == outputVparallax)
+        return { outputVparallaxMin, outputVparallaxMax, true };
     if (paramId == outputEQenabled)          return { 0, 1, true };
     if (paramId == eqShape)                  return { (float)eqShapeMin, (float)eqShapeMax, true };
     if (paramId == eqFrequency)              return { eqFrequencyMin, eqFrequencyMax, true };

@@ -62,6 +62,17 @@ public:
      */
     void removeListener(Listener* listener);
 
+    /**
+     * Optional raw-data callback. When set, ClientHandler::run hands
+     * the raw OSC packet bytes to the callback INSTEAD of posting a
+     * callAsync that parses on the message thread. Mirrors the UDP
+     * receiver's path so the OSCIngestQueue can absorb both.
+     */
+    using RawDataCallback = std::function<void (juce::MemoryBlock data,
+                                                 juce::String senderIP,
+                                                 int senderPort)>;
+    void setRawDataCallback (RawDataCallback callback);
+
 private:
     void run() override;
 
@@ -101,6 +112,7 @@ private:
     juce::CriticalSection clientsLock;
 
     juce::ListenerList<Listener> listeners;
+    RawDataCallback rawDataCallback;
     std::atomic<bool> connected { false };
     std::atomic<bool> shouldStop { false };
     int portNumber = 0;

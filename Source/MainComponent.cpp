@@ -736,6 +736,96 @@ MainComponent::MainComponent()
     oscManager = std::make_unique<WFSNetwork::OSCManager>(parameters.getValueTreeState());
     oscManager->setDirtyTracker(&parameters.getDirtyTracker());
 
+    // Initialize MCP server (AI control surface). Phase 2 Block 1: also
+    // loads the auto-generated tool surface from generated_tools.json.
+    // Resolve the JSON file path by checking, in order:
+    //   1. <exeDir>/MCP/generated_tools.json    (production, after postbuild)
+    //   2. <projectRoot>/Source/Network/MCP/...  (Windows VS2022 dev)
+    //   3. <projectRoot>/Source/Network/MCP/...  (macOS dev)
+    juce::File generatedToolsJson;
+    {
+        auto exeDir = juce::File::getSpecialLocation(juce::File::currentExecutableFile).getParentDirectory();
+        generatedToolsJson = exeDir.getChildFile("MCP/generated_tools.json");
+        if (! generatedToolsJson.existsAsFile())
+        {
+            // Windows VS2022 dev: exe at Builds/VisualStudio2022/x64/Debug/App/
+            auto projectRoot = exeDir.getParentDirectory()  // x64/Debug
+                                     .getParentDirectory()  // x64
+                                     .getParentDirectory()  // VisualStudio2022
+                                     .getParentDirectory()  // Builds
+                                     .getParentDirectory(); // Project root
+            generatedToolsJson = projectRoot.getChildFile("Source/Network/MCP/generated_tools.json");
+        }
+        if (! generatedToolsJson.existsAsFile())
+        {
+            // macOS dev: exe at Builds/MacOSX/build/Debug/WFS-DIY.app/Contents/MacOS/
+            auto projectRoot = exeDir.getParentDirectory()  // Contents
+                                     .getParentDirectory()  // .app
+                                     .getParentDirectory()  // Debug
+                                     .getParentDirectory()  // build
+                                     .getParentDirectory()  // MacOSX
+                                     .getParentDirectory()  // Builds
+                                     .getParentDirectory(); // Project root
+            generatedToolsJson = projectRoot.getChildFile("Source/Network/MCP/generated_tools.json");
+        }
+    }
+
+    // Phase 3 — knowledge-resource directory. Same fallback chain as
+    // generated_tools.json but pointing at MCP/resources/.
+    juce::File knowledgeResourcesDir;
+    {
+        auto exeDir = juce::File::getSpecialLocation(juce::File::currentExecutableFile).getParentDirectory();
+        knowledgeResourcesDir = exeDir.getChildFile("MCP/resources");
+        if (! knowledgeResourcesDir.isDirectory())
+        {
+            // Windows VS2022 dev: project root is 5 levels up from exe
+            auto projectRoot = exeDir.getParentDirectory()  // x64/Debug
+                                     .getParentDirectory()  // x64
+                                     .getParentDirectory()  // VisualStudio2022
+                                     .getParentDirectory()  // Builds
+                                     .getParentDirectory(); // Project root
+            knowledgeResourcesDir = projectRoot.getChildFile("Documentation/MCP/resources");
+        }
+        if (! knowledgeResourcesDir.isDirectory())
+        {
+            // macOS dev: project root is 7 levels up from exe in Contents/MacOS
+            auto projectRoot = exeDir.getParentDirectory()  // Contents
+                                     .getParentDirectory()  // .app
+                                     .getParentDirectory()  // Debug
+                                     .getParentDirectory()  // build
+                                     .getParentDirectory()  // MacOSX
+                                     .getParentDirectory()  // Builds
+                                     .getParentDirectory(); // Project root
+            knowledgeResourcesDir = projectRoot.getChildFile("Documentation/MCP/resources");
+        }
+    }
+
+    mcpServer = std::make_unique<WFSNetwork::MCPServer>(parameters.getValueTreeState(),
+                                                        parameters.getFileManager(),
+                                                        oscManager->getLogger(),
+                                                        generatedToolsJson,
+                                                        knowledgeResourcesDir);
+    mcpServer->start (WFSNetwork::MCPServer::kDefaultPort, /*loopbackOnly*/ true);
+
+    // Phase 7: kick the OSCQuery cross-check if OSCQuery is already up
+    // (e.g. saved-on-startup setting). When the user toggles OSCQuery
+    // later, NetworkTab calls runOSCQueryAudit again with the new URL.
+    if (oscManager->isOSCQueryRunning())
+    {
+        const auto port = oscManager->getOSCQueryHttpPort();
+        if (port > 0)
+            mcpServer->runOSCQueryAudit ("http://127.0.0.1:" + juce::String (port) + "/");
+    }
+
+    // Phase 5c: AI-undo toast overlay. Positioned in top-right of this
+    // component; sized in resized(). The overlay polls the change-record
+    // ring buffer at 5 Hz and renders rows with × buttons for targeted
+    // undo via MCPUndoEngine::undoByIndex.
+    mcpUndoOverlay = std::make_unique<MCPUndoOverlay>(mcpServer->getUndoEngine(),
+                                                       mcpServer->getChangeRecords());
+    addAndMakeVisible(*mcpUndoOverlay);
+    mcpUndoOverlay->toFront(false);
+
     // Initialize Stream Deck+ physical controller
     streamDeckManager = std::make_unique<StreamDeckManager>();
 
@@ -1787,9 +1877,18 @@ MainComponent::MainComponent()
     // Pass OSCManager to NetworkTab for UI integration
     networkTab->setOSCManager(oscManager.get());
 
+    // Pass MCPServer too — the NetworkTab MCP section needs it to read the
+    // bound port + running status for the Copy URL button.
+    networkTab->setMCPServer(mcpServer.get());
+
     // Set up NetworkLogWindow callback
     networkTab->setNetworkLogWindowCallback([this]() {
         openNetworkLogWindow();
+    });
+
+    // Set up MCP AI History Window callback (Phase 5d)
+    networkTab->setMCPHistoryWindowCallback([this]() {
+        openMCPHistoryWindow();
     });
 
     // Query callback: check if AutomOtion is actively moving an input
@@ -2213,6 +2312,19 @@ MainComponent::MainComponent()
 MainComponent::~MainComponent()
 {
     WFSLogger::getInstance().logInfo ("Session ending - saving settings");
+
+    // Sever NetworkTab's reference to mcpServer + its listener registration
+    // on MCPTierEnforcement BEFORE mcpServer is destroyed. Member-destruction
+    // order takes mcpServer down before tabbedComponent (which owns
+    // NetworkTab), so without this NetworkTab's destructor calls
+    // removeListener on freed memory and crashes on shutdown.
+    if (networkTab != nullptr)
+        networkTab->setMCPServer (nullptr);
+
+    // Tear down MCP-aware UI before mcpServer destructs. mcpHistoryWindow
+    // is declared earlier than mcpServer so it would otherwise outlive
+    // the engine + change-record buffer it references.
+    mcpHistoryWindow.reset();
 
     // Stop listening to color scheme changes
     ColorScheme::Manager::getInstance().removeListener(this);
@@ -3683,6 +3795,22 @@ void MainComponent::openNetworkLogWindow()
     }
 }
 
+void MainComponent::openMCPHistoryWindow()
+{
+    if (mcpServer == nullptr)
+        return;
+
+    if (mcpHistoryWindow == nullptr)
+    {
+        mcpHistoryWindow = std::make_unique<MCPHistoryWindow>(
+            mcpServer->getUndoEngine(),
+            mcpServer->getChangeRecords()
+        );
+    }
+    mcpHistoryWindow->setVisible(true);
+    mcpHistoryWindow->toFront(true);
+}
+
 void MainComponent::openLevelMeterWindow()
 {
     if (levelMeterWindow == nullptr)
@@ -4625,6 +4753,12 @@ void MainComponent::resized()
     // Update wizard overlay if active
     if (gettingStartedWizard && gettingStartedWizard->isActive())
         gettingStartedWizard->updateLayout();
+
+    // Phase 5c: position the MCP undo toast in the top-right of this
+    // component. The overlay sizes itself based on row count and hides
+    // when empty.
+    if (mcpUndoOverlay != nullptr)
+        mcpUndoOverlay->positionInParent (getLocalBounds());
 }
 
 //==============================================================================
@@ -5919,6 +6053,43 @@ void MainComponent::nudgeReverbPosition(int axis, float delta)
 
 bool MainComponent::keyPressed(const juce::KeyPress& key)
 {
+    // Phase 5c: AI-undo / AI-redo keyboard shortcuts. Cmd/Ctrl-Alt-Z and
+    // Cmd/Ctrl-Alt-Y drive the same engine the toast overlay uses. Works
+    // regardless of whether the toast is visible or has been dismissed —
+    // the engine operates on the change-record ring buffer directly.
+    {
+        const auto mods = key.getModifiers();
+        if (mods.isCommandDown() && mods.isAltDown() && mcpServer != nullptr)
+        {
+            const auto reportOutcome = [this] (const WFSNetwork::UndoResult& result, const juce::String& verb)
+            {
+                if (statusBar == nullptr) return;
+                const auto key = result.success ? juce::String("ai.undo.successPrefix")
+                                                : juce::String("ai.undo.errorPrefix");
+                const auto detail = result.success ? result.operatorDescription : result.errorMessage;
+                statusBar->showTemporaryMessage(
+                    LocalizationManager::getInstance().get(key,
+                        {{"verb", verb},
+                         {"description", detail},
+                         {"message", detail}}),
+                    2500);
+            };
+
+            if (key.isKeyCode('Z'))
+            {
+                WFSNetwork::OriginTagScope originScope { WFSNetwork::OriginTag::MCP };
+                reportOutcome(mcpServer->getUndoEngine().undoLast(), LOC("ai.undo.verbUndo"));
+                return true;
+            }
+            if (key.isKeyCode('Y'))
+            {
+                WFSNetwork::OriginTagScope originScope { WFSNetwork::OriginTag::MCP };
+                reportOutcome(mcpServer->getUndoEngine().redoLast(), LOC("ai.undo.verbRedo"));
+                return true;
+            }
+        }
+    }
+
     // Check for channel selection timeout
     if (channelSelectionMode != ChannelSelectionMode::None)
     {

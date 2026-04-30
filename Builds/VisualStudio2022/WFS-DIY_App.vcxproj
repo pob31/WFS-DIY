@@ -70,7 +70,7 @@
       <Optimization>Disabled</Optimization>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <AdditionalIncludeDirectories>..\..\JuceLibraryCode;..\..\ThirdParty\JUCE\modules;..\..\ThirdParty;..\..\ThirdParty\ASIOSDK\common;..\..\ThirdParty\GPUAudioSDK\gpuaudio\include;..\..\ThirdParty\GPUAudioSDK\gain_processor\gain_processor\include;..\..\ThirdParty\GPUAudioSDK\build\_deps\json-src\single_include;..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;DEBUG;_DEBUG;JUCE_PROJUCER_VERSION=0x8000c;JUCE_MODULE_AVAILABLE_juce_audio_basics=1;JUCE_MODULE_AVAILABLE_juce_audio_devices=1;JUCE_MODULE_AVAILABLE_juce_audio_formats=1;JUCE_MODULE_AVAILABLE_juce_audio_processors=1;JUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1;JUCE_MODULE_AVAILABLE_juce_audio_utils=1;JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_MODULE_AVAILABLE_juce_data_structures=1;JUCE_MODULE_AVAILABLE_juce_dsp=1;JUCE_MODULE_AVAILABLE_juce_events=1;JUCE_MODULE_AVAILABLE_juce_graphics=1;JUCE_MODULE_AVAILABLE_juce_gui_basics=1;JUCE_MODULE_AVAILABLE_juce_gui_extra=1;JUCE_MODULE_AVAILABLE_juce_opengl=1;JUCE_MODULE_AVAILABLE_juce_osc=1;JUCE_MODULE_AVAILABLE_juce_simpleweb=1;JUCE_MODULE_AVAILABLE_roli_blocks_basics=1;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;JUCE_ASIO=1;JUCE_ALSA=0;JUCE_JACK=0;JUCE_USE_ANDROID_OBOE=0;JUCE_PLUGINHOST_LV2=0;JUCE_PLUGINHOST_ARA=0;JUCE_STRICT_REFCOUNTEDPOINTER=1;JUCE_STANDALONE_APPLICATION=1;SIMPLEWEB_SECURE_SUPPORTED=0;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=1.0.0beta9;JUCE_APP_VERSION_HEX=0x10000;JucePlugin_Build_VST=0;JucePlugin_Build_VST3=0;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;DEBUG;_DEBUG;JUCE_PROJUCER_VERSION=0x8000c;JUCE_MODULE_AVAILABLE_juce_audio_basics=1;JUCE_MODULE_AVAILABLE_juce_audio_devices=1;JUCE_MODULE_AVAILABLE_juce_audio_formats=1;JUCE_MODULE_AVAILABLE_juce_audio_processors=1;JUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1;JUCE_MODULE_AVAILABLE_juce_audio_utils=1;JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_MODULE_AVAILABLE_juce_data_structures=1;JUCE_MODULE_AVAILABLE_juce_dsp=1;JUCE_MODULE_AVAILABLE_juce_events=1;JUCE_MODULE_AVAILABLE_juce_graphics=1;JUCE_MODULE_AVAILABLE_juce_gui_basics=1;JUCE_MODULE_AVAILABLE_juce_gui_extra=1;JUCE_MODULE_AVAILABLE_juce_opengl=1;JUCE_MODULE_AVAILABLE_juce_osc=1;JUCE_MODULE_AVAILABLE_juce_simpleweb=1;JUCE_MODULE_AVAILABLE_roli_blocks_basics=1;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;JUCE_ASIO=1;JUCE_ALSA=0;JUCE_JACK=0;JUCE_USE_ANDROID_OBOE=0;JUCE_PLUGINHOST_LV2=0;JUCE_PLUGINHOST_ARA=0;JUCE_STRICT_REFCOUNTEDPOINTER=1;JUCE_STANDALONE_APPLICATION=1;SIMPLEWEB_SECURE_SUPPORTED=0;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=1.0.0beta12;JUCE_APP_VERSION_HEX=0x10000;JucePlugin_Build_VST=0;JucePlugin_Build_VST3=0;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -85,7 +85,7 @@
     </ClCompile>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\JuceLibraryCode;..\..\ThirdParty\JUCE\modules;..\..\ThirdParty;..\..\ThirdParty\ASIOSDK\common;..\..\ThirdParty\GPUAudioSDK\gpuaudio\include;..\..\ThirdParty\GPUAudioSDK\gain_processor\gain_processor\include;..\..\ThirdParty\GPUAudioSDK\build\_deps\json-src\single_include;..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;DEBUG;_DEBUG;JUCE_PROJUCER_VERSION=0x8000c;JUCE_MODULE_AVAILABLE_juce_audio_basics=1;JUCE_MODULE_AVAILABLE_juce_audio_devices=1;JUCE_MODULE_AVAILABLE_juce_audio_formats=1;JUCE_MODULE_AVAILABLE_juce_audio_processors=1;JUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1;JUCE_MODULE_AVAILABLE_juce_audio_utils=1;JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_MODULE_AVAILABLE_juce_data_structures=1;JUCE_MODULE_AVAILABLE_juce_dsp=1;JUCE_MODULE_AVAILABLE_juce_events=1;JUCE_MODULE_AVAILABLE_juce_graphics=1;JUCE_MODULE_AVAILABLE_juce_gui_basics=1;JUCE_MODULE_AVAILABLE_juce_gui_extra=1;JUCE_MODULE_AVAILABLE_juce_opengl=1;JUCE_MODULE_AVAILABLE_juce_osc=1;JUCE_MODULE_AVAILABLE_juce_simpleweb=1;JUCE_MODULE_AVAILABLE_roli_blocks_basics=1;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;JUCE_ASIO=1;JUCE_ALSA=0;JUCE_JACK=0;JUCE_USE_ANDROID_OBOE=0;JUCE_PLUGINHOST_LV2=0;JUCE_PLUGINHOST_ARA=0;JUCE_STRICT_REFCOUNTEDPOINTER=1;JUCE_STANDALONE_APPLICATION=1;SIMPLEWEB_SECURE_SUPPORTED=0;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=1.0.0beta9;JUCE_APP_VERSION_HEX=0x10000;JucePlugin_Build_VST=0;JucePlugin_Build_VST3=0;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;DEBUG;_DEBUG;JUCE_PROJUCER_VERSION=0x8000c;JUCE_MODULE_AVAILABLE_juce_audio_basics=1;JUCE_MODULE_AVAILABLE_juce_audio_devices=1;JUCE_MODULE_AVAILABLE_juce_audio_formats=1;JUCE_MODULE_AVAILABLE_juce_audio_processors=1;JUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1;JUCE_MODULE_AVAILABLE_juce_audio_utils=1;JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_MODULE_AVAILABLE_juce_data_structures=1;JUCE_MODULE_AVAILABLE_juce_dsp=1;JUCE_MODULE_AVAILABLE_juce_events=1;JUCE_MODULE_AVAILABLE_juce_graphics=1;JUCE_MODULE_AVAILABLE_juce_gui_basics=1;JUCE_MODULE_AVAILABLE_juce_gui_extra=1;JUCE_MODULE_AVAILABLE_juce_opengl=1;JUCE_MODULE_AVAILABLE_juce_osc=1;JUCE_MODULE_AVAILABLE_juce_simpleweb=1;JUCE_MODULE_AVAILABLE_roli_blocks_basics=1;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;JUCE_ASIO=1;JUCE_ALSA=0;JUCE_JACK=0;JUCE_USE_ANDROID_OBOE=0;JUCE_PLUGINHOST_LV2=0;JUCE_PLUGINHOST_ARA=0;JUCE_STRICT_REFCOUNTEDPOINTER=1;JUCE_STANDALONE_APPLICATION=1;SIMPLEWEB_SECURE_SUPPORTED=0;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=1.0.0beta12;JUCE_APP_VERSION_HEX=0x10000;JucePlugin_Build_VST=0;JucePlugin_Build_VST3=0;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
     <Link>
       <OutputFile>$(OutDir)\WFS-DIY.exe</OutputFile>
@@ -106,8 +106,12 @@
       <AdditionalDependencies>libssl.lib;libcrypto.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>ThirdParty\GPUAudioSDK\build\lib\RelWithDebInfo;ThirdParty\GPUAudioSDK\build\GainLib\gainlib\RelWithDebInfo;ThirdParty\GPUAudioSDK\build\simple_processor_launcher\ProcLaunchLib\RelWithDebInfo;..\..\ThirdParty\juce_simpleweb\libs\VisualStudio2022\$(Platform)\MDd;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
+    <PreBuildEvent>
+      <Command>cd /d &quot;$(SolutionDir)..\..&quot; &amp;&amp; (where python &gt;nul 2&gt;&amp;1 &amp;&amp; python tools\generate_mcp_tools.py) &amp; exit /b 0
+</Command>
+    </PreBuildEvent>
     <PostBuildEvent>
-      <Command>xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot;
+      <Command>xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot; &amp; xcopy /E /I /Y &quot;$(SolutionDir)..\..\Documentation\MCP\resources&quot; &quot;$(OutDir)MCP\resources&quot;
 </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -123,7 +127,7 @@
       <Optimization>Full</Optimization>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <AdditionalIncludeDirectories>..\..\JuceLibraryCode;..\..\ThirdParty\JUCE\modules;..\..\ThirdParty;..\..\ThirdParty\ASIOSDK\common;..\..\ThirdParty\GPUAudioSDK\gpuaudio\include;..\..\ThirdParty\GPUAudioSDK\gain_processor\gain_processor\include;..\..\ThirdParty\GPUAudioSDK\build\_deps\json-src\single_include;..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;NDEBUG;JUCE_PROJUCER_VERSION=0x8000c;JUCE_MODULE_AVAILABLE_juce_audio_basics=1;JUCE_MODULE_AVAILABLE_juce_audio_devices=1;JUCE_MODULE_AVAILABLE_juce_audio_formats=1;JUCE_MODULE_AVAILABLE_juce_audio_processors=1;JUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1;JUCE_MODULE_AVAILABLE_juce_audio_utils=1;JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_MODULE_AVAILABLE_juce_data_structures=1;JUCE_MODULE_AVAILABLE_juce_dsp=1;JUCE_MODULE_AVAILABLE_juce_events=1;JUCE_MODULE_AVAILABLE_juce_graphics=1;JUCE_MODULE_AVAILABLE_juce_gui_basics=1;JUCE_MODULE_AVAILABLE_juce_gui_extra=1;JUCE_MODULE_AVAILABLE_juce_opengl=1;JUCE_MODULE_AVAILABLE_juce_osc=1;JUCE_MODULE_AVAILABLE_juce_simpleweb=1;JUCE_MODULE_AVAILABLE_roli_blocks_basics=1;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;JUCE_ASIO=1;JUCE_ALSA=0;JUCE_JACK=0;JUCE_USE_ANDROID_OBOE=0;JUCE_PLUGINHOST_LV2=0;JUCE_PLUGINHOST_ARA=0;JUCE_STRICT_REFCOUNTEDPOINTER=1;JUCE_STANDALONE_APPLICATION=1;SIMPLEWEB_SECURE_SUPPORTED=0;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=1.0.0beta9;JUCE_APP_VERSION_HEX=0x10000;JucePlugin_Build_VST=0;JucePlugin_Build_VST3=0;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;NDEBUG;JUCE_PROJUCER_VERSION=0x8000c;JUCE_MODULE_AVAILABLE_juce_audio_basics=1;JUCE_MODULE_AVAILABLE_juce_audio_devices=1;JUCE_MODULE_AVAILABLE_juce_audio_formats=1;JUCE_MODULE_AVAILABLE_juce_audio_processors=1;JUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1;JUCE_MODULE_AVAILABLE_juce_audio_utils=1;JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_MODULE_AVAILABLE_juce_data_structures=1;JUCE_MODULE_AVAILABLE_juce_dsp=1;JUCE_MODULE_AVAILABLE_juce_events=1;JUCE_MODULE_AVAILABLE_juce_graphics=1;JUCE_MODULE_AVAILABLE_juce_gui_basics=1;JUCE_MODULE_AVAILABLE_juce_gui_extra=1;JUCE_MODULE_AVAILABLE_juce_opengl=1;JUCE_MODULE_AVAILABLE_juce_osc=1;JUCE_MODULE_AVAILABLE_juce_simpleweb=1;JUCE_MODULE_AVAILABLE_roli_blocks_basics=1;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;JUCE_ASIO=1;JUCE_ALSA=0;JUCE_JACK=0;JUCE_USE_ANDROID_OBOE=0;JUCE_PLUGINHOST_LV2=0;JUCE_PLUGINHOST_ARA=0;JUCE_STRICT_REFCOUNTEDPOINTER=1;JUCE_STANDALONE_APPLICATION=1;SIMPLEWEB_SECURE_SUPPORTED=0;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=1.0.0beta12;JUCE_APP_VERSION_HEX=0x10000;JucePlugin_Build_VST=0;JucePlugin_Build_VST3=0;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -138,7 +142,7 @@
     </ClCompile>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\JuceLibraryCode;..\..\ThirdParty\JUCE\modules;..\..\ThirdParty;..\..\ThirdParty\ASIOSDK\common;..\..\ThirdParty\GPUAudioSDK\gpuaudio\include;..\..\ThirdParty\GPUAudioSDK\gain_processor\gain_processor\include;..\..\ThirdParty\GPUAudioSDK\build\_deps\json-src\single_include;..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;NDEBUG;JUCE_PROJUCER_VERSION=0x8000c;JUCE_MODULE_AVAILABLE_juce_audio_basics=1;JUCE_MODULE_AVAILABLE_juce_audio_devices=1;JUCE_MODULE_AVAILABLE_juce_audio_formats=1;JUCE_MODULE_AVAILABLE_juce_audio_processors=1;JUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1;JUCE_MODULE_AVAILABLE_juce_audio_utils=1;JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_MODULE_AVAILABLE_juce_data_structures=1;JUCE_MODULE_AVAILABLE_juce_dsp=1;JUCE_MODULE_AVAILABLE_juce_events=1;JUCE_MODULE_AVAILABLE_juce_graphics=1;JUCE_MODULE_AVAILABLE_juce_gui_basics=1;JUCE_MODULE_AVAILABLE_juce_gui_extra=1;JUCE_MODULE_AVAILABLE_juce_opengl=1;JUCE_MODULE_AVAILABLE_juce_osc=1;JUCE_MODULE_AVAILABLE_juce_simpleweb=1;JUCE_MODULE_AVAILABLE_roli_blocks_basics=1;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;JUCE_ASIO=1;JUCE_ALSA=0;JUCE_JACK=0;JUCE_USE_ANDROID_OBOE=0;JUCE_PLUGINHOST_LV2=0;JUCE_PLUGINHOST_ARA=0;JUCE_STRICT_REFCOUNTEDPOINTER=1;JUCE_STANDALONE_APPLICATION=1;SIMPLEWEB_SECURE_SUPPORTED=0;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=1.0.0beta9;JUCE_APP_VERSION_HEX=0x10000;JucePlugin_Build_VST=0;JucePlugin_Build_VST3=0;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;NDEBUG;JUCE_PROJUCER_VERSION=0x8000c;JUCE_MODULE_AVAILABLE_juce_audio_basics=1;JUCE_MODULE_AVAILABLE_juce_audio_devices=1;JUCE_MODULE_AVAILABLE_juce_audio_formats=1;JUCE_MODULE_AVAILABLE_juce_audio_processors=1;JUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1;JUCE_MODULE_AVAILABLE_juce_audio_utils=1;JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_MODULE_AVAILABLE_juce_data_structures=1;JUCE_MODULE_AVAILABLE_juce_dsp=1;JUCE_MODULE_AVAILABLE_juce_events=1;JUCE_MODULE_AVAILABLE_juce_graphics=1;JUCE_MODULE_AVAILABLE_juce_gui_basics=1;JUCE_MODULE_AVAILABLE_juce_gui_extra=1;JUCE_MODULE_AVAILABLE_juce_opengl=1;JUCE_MODULE_AVAILABLE_juce_osc=1;JUCE_MODULE_AVAILABLE_juce_simpleweb=1;JUCE_MODULE_AVAILABLE_roli_blocks_basics=1;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;JUCE_ASIO=1;JUCE_ALSA=0;JUCE_JACK=0;JUCE_USE_ANDROID_OBOE=0;JUCE_PLUGINHOST_LV2=0;JUCE_PLUGINHOST_ARA=0;JUCE_STRICT_REFCOUNTEDPOINTER=1;JUCE_STANDALONE_APPLICATION=1;SIMPLEWEB_SECURE_SUPPORTED=0;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=1.0.0beta12;JUCE_APP_VERSION_HEX=0x10000;JucePlugin_Build_VST=0;JucePlugin_Build_VST3=0;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
     <Link>
       <OutputFile>$(OutDir)\WFS-DIY.exe</OutputFile>
@@ -162,8 +166,12 @@
       <AdditionalDependencies>libssl.lib;libcrypto.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>ThirdParty\GPUAudioSDK\build\lib\RelWithDebInfo;ThirdParty\GPUAudioSDK\build\GainLib\gainlib\RelWithDebInfo;ThirdParty\GPUAudioSDK\build\simple_processor_launcher\ProcLaunchLib\RelWithDebInfo;..\..\ThirdParty\juce_simpleweb\libs\VisualStudio2022\$(Platform)\MD;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
+    <PreBuildEvent>
+      <Command>cd /d &quot;$(SolutionDir)..\..&quot; &amp;&amp; (where python &gt;nul 2&gt;&amp;1 &amp;&amp; python tools\generate_mcp_tools.py) &amp; exit /b 0
+</Command>
+    </PreBuildEvent>
     <PostBuildEvent>
-      <Command>xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot;
+      <Command>xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot; &amp; xcopy /E /I /Y &quot;$(SolutionDir)..\..\Documentation\MCP\resources&quot; &quot;$(OutDir)MCP\resources&quot;
 </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -171,6 +179,8 @@
     <ClCompile Include="..\..\Source\Parameters\WFSValueTreeState.cpp"/>
     <ClCompile Include="..\..\Source\Parameters\WFSFileManager.cpp"/>
     <ClCompile Include="..\..\Source\gui\NetworkLogWindow.cpp"/>
+    <ClCompile Include="..\..\Source\gui\MCPUndoOverlay.cpp"/>
+    <ClCompile Include="..\..\Source\gui\MCPHistoryWindow.cpp"/>
     <ClCompile Include="..\..\Source\gui\OutputArrayHelperWindow.cpp"/>
     <ClCompile Include="..\..\Source\gui\AudioInterfaceWindow.cpp"/>
     <ClCompile Include="..\..\Source\gui\PatchMatrixComponent.cpp"/>
@@ -182,6 +192,8 @@
     <ClCompile Include="..\..\Source\Network\OSCLogger.cpp"/>
     <ClCompile Include="..\..\Source\Network\OSCMessageBuilder.cpp"/>
     <ClCompile Include="..\..\Source\Network\OSCMessageRouter.cpp"/>
+    <ClCompile Include="..\..\Source\Network\OSCParameterBounds.cpp"/>
+    <ClCompile Include="..\..\Source\Network\OSCIngestQueue.cpp"/>
     <ClCompile Include="..\..\Source\Network\OSCManager.cpp"/>
     <ClCompile Include="..\..\Source\Network\OSCReceiverWithSenderIP.cpp"/>
     <ClCompile Include="..\..\Source\Network\OSCTCPReceiver.cpp"/>
@@ -191,6 +203,18 @@
     <ClCompile Include="..\..\Source\Network\RTTrPDecoder.cpp"/>
     <ClCompile Include="..\..\Source\Network\TrackingRTTrPReceiver.cpp"/>
     <ClCompile Include="..\..\Source\Network\TrackingMQTTReceiver.cpp"/>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPLogger.cpp"/>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPChangeRecords.cpp"/>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPUndoEngine.cpp"/>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPTierEnforcement.cpp"/>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPOSCQueryAuditor.cpp"/>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPToolRegistry.cpp"/>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPDispatcher.cpp"/>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPTransport.cpp"/>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPServer.cpp"/>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPGeneratedToolLoader.cpp"/>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPResourceRegistry.cpp"/>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPPromptRegistry.cpp"/>
     <ClCompile Include="..\..\ThirdParty\hidapi\HidApiPlatform.c"/>
     <ClCompile Include="..\..\Source\Main.cpp"/>
     <ClCompile Include="..\..\Source\MainComponent.cpp"/>
@@ -3228,11 +3252,14 @@
     <ClInclude Include="..\..\Source\gui\MapTabPlaceholder.h"/>
     <ClInclude Include="..\..\Source\gui\NetworkTab.h"/>
     <ClInclude Include="..\..\Source\gui\NetworkLogWindow.h"/>
+    <ClInclude Include="..\..\Source\gui\MCPUndoOverlay.h"/>
+    <ClInclude Include="..\..\Source\gui\MCPHistoryWindow.h"/>
     <ClInclude Include="..\..\Source\gui\OutputArrayHelperWindow.h"/>
     <ClInclude Include="..\..\Source\gui\AudioInterfaceWindow.h"/>
     <ClInclude Include="..\..\Source\gui\PatchMatrixComponent.h"/>
     <ClInclude Include="..\..\Source\gui\AudioPatchTab.h"/>
     <ClInclude Include="..\..\Source\Helpers\ArrayGeometryCalculator.h"/>
+    <ClInclude Include="..\..\Source\Helpers\NumericGuards.h"/>
     <ClInclude Include="..\..\Source\Accessibility\TTSManager.h"/>
     <ClInclude Include="..\..\Source\Localization\LocalizationManager.h"/>
     <ClInclude Include="..\..\Source\Network\OSCProtocolTypes.h"/>
@@ -3241,17 +3268,39 @@
     <ClInclude Include="..\..\Source\Network\OSCLogger.h"/>
     <ClInclude Include="..\..\Source\Network\OSCMessageBuilder.h"/>
     <ClInclude Include="..\..\Source\Network\OSCMessageRouter.h"/>
+    <ClInclude Include="..\..\Source\Network\OSCParameterBounds.h"/>
+    <ClInclude Include="..\..\Source\Network\OSCIngestQueue.h"/>
     <ClInclude Include="..\..\Source\Network\OSCManager.h"/>
     <ClInclude Include="..\..\Source\Network\ADMOSCMapping.h"/>
     <ClInclude Include="..\..\Source\Network\OSCReceiverWithSenderIP.h"/>
     <ClInclude Include="..\..\Source\Network\OSCTCPReceiver.h"/>
     <ClInclude Include="..\..\Source\Network\OSCParser.h"/>
+    <ClInclude Include="..\..\Source\Network\NetworkStringUtils.h"/>
     <ClInclude Include="..\..\Source\Network\OSCQueryServer.h"/>
     <ClInclude Include="..\..\Source\Network\TrackingOSCReceiver.h"/>
     <ClInclude Include="..\..\Source\Network\TrackingPSNReceiver.h"/>
     <ClInclude Include="..\..\Source\Network\RTTrPDecoder.h"/>
     <ClInclude Include="..\..\Source\Network\TrackingRTTrPReceiver.h"/>
     <ClInclude Include="..\..\Source\Network\TrackingMQTTReceiver.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPLogger.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPChangeRecords.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPUndoEngine.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPTierEnforcement.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPOSCQueryAuditor.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPToolRegistry.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPDispatcher.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPTransport.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPServer.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPGeneratedToolLoader.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPResourceRegistry.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPPromptRegistry.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\SessionTools.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\InputTools.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\OutputTools.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\ReverbTools.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\SnapshotTools.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\UndoTools.h"/>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\SetParameterTool.h"/>
     <ClInclude Include="..\..\Source\Controllers\PositionControl\ControllerEvent.h"/>
     <ClInclude Include="..\..\Source\Controllers\PositionControl\ControllerDevice.h"/>
     <ClInclude Include="..\..\Source\Controllers\PositionControl\SpaceMouseDevice.h"/>

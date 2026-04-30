@@ -206,6 +206,9 @@ void TrackingPSNReceiver::routePositionToInputs(int trackingId, float x, float y
         // Update offset coordinates (tracking updates offset, not base position)
         // Using setProperty triggers ValueTree listeners which updates map and broadcasts to targets.
         // Live tracking is transient — suppress dirty flagging in the snapshot scope.
+        // Phase 5b: tag as Tracking-origin so MCP staleness/notifications can
+        // distinguish a live position update from a manual edit or AI write.
+        WFSNetwork::OriginTagScope originScope { WFSNetwork::OriginTag::Tracking };
         ParameterDirtyTracker::ScopedInternalWrite guard (dirtyTracker);
         posSection.setProperty(WFSParameterIDs::inputOffsetX, fx, nullptr);
         posSection.setProperty(WFSParameterIDs::inputOffsetY, fy, nullptr);

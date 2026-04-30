@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "NetworkStringUtils.h"
 
 namespace WFSNetwork
 {
@@ -28,7 +29,7 @@ namespace OSCParser
         while ((end - data) < dataSize && *end != '\0')
             ++end;
 
-        juce::String result(start, static_cast<size_t>(end - start));
+        juce::String result = safeStringFromBytes(start, static_cast<int>(end - start));
         pos = alignTo4(static_cast<int>(end - data + 1));  // Skip null and align
         return result;
     }
@@ -110,11 +111,17 @@ namespace OSCParser
                 case 'b':  // blob
                 {
                     int blobSize = readInt32(data, dataSize, pos);
-                    if (pos + blobSize <= dataSize)
+                    // Reject negative or out-of-range blob sizes. A signed
+                    // int32 read from the wire can be negative; without this
+                    // check the size_t cast wraps to a huge value and trips
+                    // juce::MemoryBlock's non-negative-size assert.
+                    if (blobSize < 0
+                        || static_cast<size_t>(blobSize) > static_cast<size_t>(dataSize - pos))
                     {
-                        message.addBlob(juce::MemoryBlock(data + pos, static_cast<size_t>(blobSize)));
-                        pos = alignTo4(pos + blobSize);
+                        throw juce::OSCFormatError("Invalid OSC blob size");
                     }
+                    message.addBlob(juce::MemoryBlock(data + pos, static_cast<size_t>(blobSize)));
+                    pos = alignTo4(pos + blobSize);
                     break;
                 }
                 case 'T':  // True
@@ -123,10 +130,12 @@ namespace OSCParser
                 case 'F':  // False
                     message.addArgument(juce::OSCArgument(false));
                     break;
-                // Other types (h, t, d, c, r, m, N, I) can be added as needed
                 default:
-                    // Unknown type - skip
-                    break;
+                    // Unknown tags would desync the parser: payload size is
+                    // tag-dependent (e.g. 'd' / 'h' carry 8 bytes), and the
+                    // OSC spec does not permit silently skipping them.
+                    // Bail out instead — caller catches OSCFormatError.
+                    throw juce::OSCFormatError("Unknown OSC type tag");
             }
         }
 

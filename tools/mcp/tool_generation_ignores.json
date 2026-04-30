@@ -1,12 +1,31 @@
 {
   "ignored": [
-    { "variable": "gmShapeLocked",      "reason": "UI-state only" },
-    { "variable": "gmShapeOrder",       "reason": "UI-state only" },
-    { "variable": "gmShapeEnabled",     "reason": "UI-state only" },
-    { "variable": "findDevicePassword", "reason": "Security-sensitive, operator task" },
-    { "variable": "JoystickXY",         "reason": "UI affordance, not a parameter" },
-    { "variable": "JoystickZ",          "reason": "UI affordance, not a parameter" },
-    { "variable": "networkInterface",   "reason": "Hardware-specific selection, operator task" },
-    { "variable": "samplerBlockSerial", "reason": "Hardware ID, operator task" }
+    { "variable": "gmShapeLocked",         "reason": "UI-state only" },
+    { "variable": "gmShapeOrder",          "reason": "UI-state only" },
+    { "variable": "gmShapeEnabled",        "reason": "UI-state only" },
+    { "variable": "findDevicePassword",    "reason": "Security-sensitive, operator task" },
+    { "variable": "JoystickXY",            "reason": "UI affordance, not a parameter" },
+    { "variable": "JoystickZ",             "reason": "UI affordance, not a parameter" },
+    { "variable": "networkInterface",      "reason": "Hardware-specific selection, operator task" },
+    { "variable": "samplerBlockSerial",    "reason": "Hardware ID, operator task" },
+
+    { "variable": "inputSelected",         "reason": "UI-only selection state, no ValueTree backing" },
+    { "variable": "outputSelected",        "reason": "UI-only selection state, no ValueTree backing" },
+    { "variable": "reverbSelected",        "reason": "UI-only selection state, no ValueTree backing" },
+
+    { "variable": "inputPositionR",        "reason": "Cylindrical/spherical display mode; position stored as XYZ — use input.position.set_x/y/z" },
+    { "variable": "inputPositionTheta",    "reason": "Cylindrical/spherical display mode; position stored as XYZ" },
+    { "variable": "inputPositionPhi",      "reason": "Spherical display mode; position stored as XYZ" },
+    { "variable": "inputPositionRsph",     "reason": "Spherical display mode; position stored as XYZ" },
+    { "variable": "inputOffsetR",          "reason": "Cylindrical/spherical display mode; offset stored as XYZ" },
+    { "variable": "inputOffsetTheta",      "reason": "Cylindrical/spherical display mode; offset stored as XYZ" },
+    { "variable": "inputOffsetPhi",        "reason": "Spherical display mode; offset stored as XYZ" },
+    { "variable": "inputOffsetRsph",       "reason": "Spherical display mode; offset stored as XYZ" },
+
+    { "variable": "DialsAndButtonsDevice", "reason": "No C++ ValueTree backing yet (controller selection is UI-side)" },
+    { "variable": "PositionControlDevice", "reason": "No C++ ValueTree backing yet (controller selection is UI-side)" },
+    { "variable": "ProjectFolder",         "reason": "Operator task: project folder is set via dialog, not parameter write" },
+    { "variable": "ProcessingAlgorithm",   "reason": "No C++ ValueTree backing yet (processor selection is UI-side)" },
+    { "variable": "ProcessingEnabled",     "reason": "No C++ ValueTree backing yet (processor enable is UI-side)" }
   ]
 }

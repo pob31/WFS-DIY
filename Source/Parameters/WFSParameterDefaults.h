@@ -211,9 +211,9 @@ namespace WFSParameterDefaults
     //==========================================================================
 
     constexpr int trackingEnabledDefault    = 0;  // 0=OFF, 1=ON
-    constexpr int trackingProtocolDefault   = 0;  // 0=DISABLED, 1=OSC, 2=PSN, 3=RTTrP
+    constexpr int trackingProtocolDefault   = 0;  // 0=DISABLED, 1=OSC, 2=PSN, 3=RTTrP, 4=MQTT
     constexpr int trackingProtocolMin       = 0;
-    constexpr int trackingProtocolMax       = 3;
+    constexpr int trackingProtocolMax       = 4;
     constexpr int trackingPortDefault       = 7000;
 
     constexpr float trackingOffsetDefault   = 0.0f;
@@ -282,12 +282,12 @@ namespace WFSParameterDefaults
 
     constexpr int inputMinimalLatencyDefault    = 0;  // 0=Acoustic Precedence, 1=Minimal Latency
 
-    // Input > Position
-    constexpr float inputPositionMin            = 0.0f;
+    // Input > Position (X/Y/Z bidirectional in stage coordinates)
+    constexpr float inputPositionMin            = -50.0f;
     constexpr float inputPositionMax            = 50.0f;
 
     constexpr float inputOffsetDefault          = 0.0f;
-    constexpr float inputOffsetMin              = 0.0f;
+    constexpr float inputOffsetMin              = -50.0f;
     constexpr float inputOffsetMax              = 50.0f;
 
     constexpr int inputConstraintDefault        = 1;  // 0=Free, 1=Constrained
@@ -301,7 +301,7 @@ namespace WFSParameterDefaults
 
     constexpr int inputTrackingActiveDefault    = 0;  // 0=OFF, 1=ON
     constexpr int inputTrackingIDMin            = 1;
-    constexpr int inputTrackingIDMax            = 64;
+    constexpr int inputTrackingIDMax            = 32;
     constexpr int inputTrackingSmoothDefault    = 100;
     constexpr int inputTrackingSmoothMin        = 0;
     constexpr int inputTrackingSmoothMax        = 100;
@@ -578,7 +578,7 @@ namespace WFSParameterDefaults
 
     constexpr float outputAttenuationDefault    = 0.0f;
     constexpr float outputAttenuationMin        = -92.0f;
-    constexpr float outputAttenuationMax        = 12.0f;
+    constexpr float outputAttenuationMax        = 0.0f;
 
     constexpr float outputDelayLatencyDefault   = 0.0f;
     constexpr float outputDelayLatencyMin       = -100.0f;
@@ -586,20 +586,20 @@ namespace WFSParameterDefaults
 
     // Output > Position
     constexpr float outputPositionDefault       = 0.0f;
-    constexpr float outputPositionMin           = -100.0f;
-    constexpr float outputPositionMax           = 100.0f;
+    constexpr float outputPositionMin           = -50.0f;
+    constexpr float outputPositionMax           = 50.0f;
 
     constexpr int outputOrientationDefault      = 0;  // Degrees
     constexpr int outputOrientationMin          = -180;
     constexpr int outputOrientationMax          = 180;
 
     constexpr int outputAngleOnDefault          = 86;  // Degrees
-    constexpr int outputAngleOnMin              = 0;
-    constexpr int outputAngleOnMax              = 90;
+    constexpr int outputAngleOnMin              = 1;
+    constexpr int outputAngleOnMax              = 180;
 
     constexpr int outputAngleOffDefault         = 90;  // Degrees
     constexpr int outputAngleOffMin             = 0;
-    constexpr int outputAngleOffMax             = 180;
+    constexpr int outputAngleOffMax             = 179;
 
     constexpr int outputPitchDefault            = 0;  // Degrees
     constexpr int outputPitchMin                = -90;
@@ -623,9 +623,14 @@ namespace WFSParameterDefaults
     constexpr int outputDistanceAttenPercentMin = 0;
     constexpr int outputDistanceAttenPercentMax = 200;
 
-    constexpr float outputParallaxDefault       = 0.0f;
-    constexpr float outputParallaxMin           = -10.0f;
-    constexpr float outputParallaxMax           = 10.0f;
+    // Parallax: separate ranges for horizontal vs vertical (CSV-canonical).
+    constexpr float outputHparallaxDefault      = 0.0f;
+    constexpr float outputHparallaxMin          = 0.0f;
+    constexpr float outputHparallaxMax          = 50.0f;
+
+    constexpr float outputVparallaxDefault      = 0.0f;
+    constexpr float outputVparallaxMin          = -50.0f;
+    constexpr float outputVparallaxMax          = 50.0f;
 
     // Output > EQ
     constexpr int outputEQenabledDefault        = 0;  // 0=OFF, 1=ON

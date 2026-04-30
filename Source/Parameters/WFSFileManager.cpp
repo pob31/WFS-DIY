@@ -2,13 +2,19 @@
 #include "WFSParameterIDs.h"
 #include "../AppSettings.h"
 #include "../Localization/LocalizationManager.h"
+#include "../Network/OSCParameterBounds.h"
+#include "../Network/OSCProtocolTypes.h"
 #include "../WFSLogger.h"
+
+#include <cmath>
 
 #if JUCE_WINDOWS
 #include <Windows.h>
 #endif
 
 using namespace WFSParameterIDs;
+using WFSNetwork::OriginTag;
+using WFSNetwork::OriginTagScope;
 
 //==============================================================================
 // Transient toggle stripping
@@ -513,6 +519,8 @@ bool WFSFileManager::exportSystemConfig (const juce::File& file)
 
 bool WFSFileManager::importSystemConfig (const juce::File& file)
 {
+    OriginTagScope originScope { OriginTag::Snapshot };
+
     auto loadedState = readFromXmlFile (file);
     if (!loadedState.isValid())
         return false;
@@ -605,6 +613,8 @@ bool WFSFileManager::exportNetworkConfig (const juce::File& file)
 
 bool WFSFileManager::importNetworkConfig (const juce::File& file)
 {
+    OriginTagScope originScope { OriginTag::Snapshot };
+
     auto loadedState = readFromXmlFile (file);
     if (!loadedState.isValid())
         return false;
@@ -699,6 +709,8 @@ bool WFSFileManager::exportInputConfig (const juce::File& file)
 
 bool WFSFileManager::importInputConfig (const juce::File& file)
 {
+    OriginTagScope originScope { OriginTag::Snapshot };
+
     auto loadedState = readFromXmlFile (file);
     if (!loadedState.isValid())
         return false;
@@ -776,6 +788,8 @@ bool WFSFileManager::exportOutputConfig (const juce::File& file)
 
 bool WFSFileManager::importOutputConfig (const juce::File& file)
 {
+    OriginTagScope originScope { OriginTag::Snapshot };
+
     auto loadedState = readFromXmlFile (file);
     if (!loadedState.isValid())
         return false;
@@ -851,6 +865,8 @@ bool WFSFileManager::exportReverbConfig (const juce::File& file)
 
 bool WFSFileManager::importReverbConfig (const juce::File& file)
 {
+    OriginTagScope originScope { OriginTag::Snapshot };
+
     auto loadedState = readFromXmlFile (file);
     if (!loadedState.isValid())
         return false;
@@ -883,6 +899,8 @@ bool WFSFileManager::exportClusterLFOPresets (const juce::File& file)
 
 bool WFSFileManager::importClusterLFOPresets (const juce::File& file)
 {
+    OriginTagScope originScope { OriginTag::Snapshot };
+
     auto loadedState = readFromXmlFile (file);
     if (! loadedState.isValid())
         return false;
@@ -1261,6 +1279,8 @@ bool WFSFileManager::saveInputSnapshotWithExtendedScope (const juce::String& sna
 
 bool WFSFileManager::loadInputSnapshotWithExtendedScope (const juce::String& snapshotName, const ExtendedSnapshotScope& scope)
 {
+    OriginTagScope originScope { OriginTag::Snapshot };
+
     auto file = getInputSnapshotsFolder().getChildFile (snapshotName + snapshotExtension);
     auto snapshot = readFromXmlFile (file);
 
@@ -2039,11 +2059,45 @@ juce::String WFSFileManager::createXmlHeader (const juce::String& fileType)
 void WFSFileManager::mergeProperties (juce::ValueTree& target, const juce::ValueTree& source,
                                        juce::UndoManager* undoManager)
 {
-    // Only copy properties that exist in source - missing properties keep their current value
+    // Only copy properties that exist in source - missing properties keep their current value.
+    //
+    // File-load value gate (mirrors the OSC entry path): for any property
+    // with a documented numeric range in WFSParameterDefaults.h, reject
+    // non-finite values and out-of-range values before they reach the
+    // ValueTree. Rejected properties keep their current target value (the
+    // app's startup default). Properties without a bounds entry — names,
+    // XML metadata, mute-list strings — pass through unchanged.
     for (int i = 0; i < source.getNumProperties(); ++i)
     {
-        auto propName = source.getPropertyName (i);
-        target.setProperty (propName, source.getProperty (propName), undoManager);
+        const auto propName = source.getPropertyName (i);
+        const auto v        = source.getProperty (propName);
+
+        if (auto bounds = WFSNetwork::getBounds (propName); bounds.has_value())
+        {
+            // Coerce to double regardless of the underlying var type:
+            // ValueTree::fromXml stores XML attributes as Strings, so
+            // "NaN"/"Infinity" need to round-trip through string parsing
+            // to surface as non-finite here.
+            const double d = static_cast<double> (v);
+
+            if (! std::isfinite (d))
+            {
+                const char* kind = std::isnan (d) ? "NaN" : "Inf";
+                WFSLogger::getInstance().logWarning (
+                    "File load: rejected " + propName.toString()
+                    + " (non-finite, " + kind + ")");
+                continue;
+            }
+            if (d < bounds->min || d > bounds->max)
+            {
+                WFSLogger::getInstance().logWarning (
+                    "File load: rejected " + propName.toString() + " ("
+                    + WFSNetwork::formatOutOfRangeReason (propName, d) + ")");
+                continue;
+            }
+        }
+
+        target.setProperty (propName, v, undoManager);
     }
 }
 

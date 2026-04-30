@@ -340,7 +340,7 @@
       "admLinkAll": "Selezionare tutti i 6 lati contemporaneamente per una modifica uniforme.",
       "admInnerWidth": "Estensione fisica (m) dal centro al punto di rottura.",
       "admMapping": "Selezionare una mappatura ADM-OSC da configurare. Cart = Cartesiano (xyz), Polar = sferico (aed).",
-      "admOuterWidth": "Estensione fisica (m) dal punto di rottura a \u00b11.",
+      "admOuterWidth": "Estensione fisica (m) dal punto di rottura a ±1.",
       "admMappingPanel": "Drag dots to edit mapping. Click axis title to swap, click Flip to invert. Hold Shift to edit both sides symmetrically.",
       "admSideSelect": "Selezionare i lati da modificare. Le modifiche si applicano a tutti i lati selezionati contemporaneamente.",
       "admSignFlip": "Invertire il segno del valore dell'asse in ingresso.",
@@ -544,7 +544,8 @@
       "transport": "Trasp",
       "protocol": "Protocollo",
       "address": "Indirizzo",
-      "arguments": "Argomenti"
+      "arguments": "Argomenti",
+      "origin": "Origine"
     },
     "status": {
       "rejected": "RIFIUTATO"
@@ -1721,7 +1722,6 @@
     "qlabSetCueCreated": "Cue QLab creato: Ingresso {channel} set \"{name}\"",
     "guide": "Select a cell on the grid to edit its properties.\nDouble-click to load a sample.\nUse Ctrl+Click to assign cells to the active set."
   },
-
   "streamDeck": {
     "systemConfig": {
       "buttons": {
@@ -1780,10 +1780,8 @@
         "attenuationAndDelay": "Attenuation\n& Delay",
         "positionAndDirectivity": "Position &\nDirectivity",
         "positionAdvanced": "Position\nAdvanced",
-        "liveSourceBasics": "Live Source
-Basics",
-        "liveSourceCompression": "Live Source
-Compress.",
+        "liveSourceBasics": "Live Source\nBasics",
+        "liveSourceCompression": "Live Source\nCompress.",
         "hackoustics": "Hackoustics",
         "hackousticsContinued": "Hackoustics\n(continued)",
         "lfo": "LFO",
@@ -1805,14 +1803,10 @@ Compress.",
         "sideline": "Sideline",
         "tracking": "Tracking",
         "maxSpeed": "Max Speed",
-        "liveSourceTamer": "Live Source
-Tamer",
-        "floorReflections": "Floor
-Reflections",
-        "lowCutFilter": "Low Cut
-Filter",
-        "highShelfFilter": "High Shelf
-Filter",
+        "liveSourceTamer": "Live Source\nTamer",
+        "floorReflections": "Floor\nReflections",
+        "lowCutFilter": "Low Cut\nFilter",
+        "highShelfFilter": "High Shelf\nFilter",
         "sendToReverb": "Send to\nReverb",
         "lfoAndJitter": "LFO &\nJitter",
         "lfoX": "LFO X",
@@ -1821,9 +1815,9 @@ Filter",
         "absRel": "Abs / Rel",
         "stayReturn": "Stay /\nReturn",
         "manualTriggered": "Manual /\nTriggered",
-        "play": "\u25b6",
-        "pauseResume": "\u275a\u275a",
-        "stop": "\u25a0",
+        "play": "▶",
+        "pauseResume": "❚❚",
+        "stop": "■",
         "stopAll": "Stop All"
       },
       "dials": {
@@ -1843,33 +1837,24 @@ Filter",
         "heightFactor": "Height Factor",
         "shape": "Shape",
         "radius": "Radius",
-        "fixedAttenuation": "Fixed
-Attenuation",
-        "peakThreshold": "Peak
-Threshold",
+        "fixedAttenuation": "Fixed\nAttenuation",
+        "peakThreshold": "Peak\nThreshold",
         "peakRatio": "Peak Ratio",
-        "slowThreshold": "Slow
-Threshold",
+        "slowThreshold": "Slow\nThreshold",
         "slowRatio": "Slow Ratio",
-        "frAttenuation": "FR
-Attenuation",
+        "frAttenuation": "FR\nAttenuation",
         "frDiffusion": "FR Diffusion",
-        "lowCutFrequency": "Low Cut
-Frequency",
-        "highShelfFrequency": "High Shelf
-Frequency",
-        "highShelfGain": "High Shelf
-Gain",
+        "lowCutFrequency": "Low Cut\nFrequency",
+        "highShelfFrequency": "High Shelf\nFrequency",
+        "highShelfGain": "High Shelf\nGain",
         "highShelfSlope": "High Shelf\nSlope",
         "lfoPeriod": "Period",
         "lfoPhase": "Phase",
         "gyrophone": "Gyrophone",
         "jitter": "Jitter",
         "lfoToggle": "LFO",
-        "lfoOn": "LFO
-ON",
-        "lfoOff": "LFO
-OFF",
+        "lfoOn": "LFO\nON",
+        "lfoOff": "LFO\nOFF",
         "lfoShape": "Shape",
         "lfoAmplitude": "Amplitude",
         "lfoRate": "Rate",
@@ -1989,7 +1974,6 @@ OFF",
       }
     }
   },
-
   "help": {
     "binaural": {
       "title": "Renderer Binaurale",
@@ -2029,25 +2013,15 @@ OFF",
     },
     "reverb": {
       "title": "Riverbero",
-      "body": "Il riverbero aiuta a sfumare le riflessioni degli altoparlanti.
-Posizionare i nodi secondo la geometria del palco.
-Altri parametri sono simili a quelli di Uscite e Ingressi."
+      "body": "Il riverbero aiuta a sfumare le riflessioni degli altoparlanti.\nPosizionare i nodi secondo la geometria del palco.\nAltri parametri sono simili a quelli di Uscite e Ingressi."
     },
     "reverbFeed": {
       "title": "Alimentazione Riverbero",
-      "body": "Invio pre-elaborazione dei canali di ingresso ai nodi.
-- Orientamento e angoli On/Off definiscono quali ingressi riceve ogni nodo.
-- Smorzamento HF simula la perdita di alta frequenza.
-- Percentuale di attenuazione distanza definisce l'attenuazione applicata.
-- Latenza minima determina se viene utilizzato il ritardo minimo.
-- Attenuazione sorgente live riduce il livello degli ingressi vicini."
+      "body": "Invio pre-elaborazione dei canali di ingresso ai nodi.\n- Orientamento e angoli On/Off definiscono quali ingressi riceve ogni nodo.\n- Smorzamento HF simula la perdita di alta frequenza.\n- Percentuale di attenuazione distanza definisce l'attenuazione applicata.\n- Latenza minima determina se viene utilizzato il ritardo minimo.\n- Attenuazione sorgente live riduce il livello degli ingressi vicini."
     },
     "reverbReturn": {
       "title": "Ritorno Riverbero",
-      "body": "Post-elaborazione inviata agli altoparlanti.
-- Attenuazione Distanza definisce il calo di livello per metro.
-- Attenuazione Comune mantiene una percentuale dell'attenuazione più bassa.
-- Mute impediscono a un canale di riverbero di alimentare un'uscita."
+      "body": "Post-elaborazione inviata agli altoparlanti.\n- Attenuazione Distanza definisce il calo di livello per metro.\n- Attenuazione Comune mantiene una percentuale dell'attenuazione più bassa.\n- Mute impediscono a un canale di riverbero di alimentare un'uscita."
     },
     "reverbAlgo": {
       "title": "Algoritmi di Riverbero",
@@ -2121,9 +2095,14 @@ Altri parametri sono simili a quelli di Uscite e Ingressi."
     "outputs": {
       "title": "Design degli array WFS",
       "body": "Il design del sistema WFS riguarda la giusta scelta dell'attrezzatura e il suo posizionamento. Ecco una guida per aiutarvi con il design e l'accordatura dei vostri array.\nUn array è una linea (dritta o curva) di altoparlanti. Questo è uno dei concetti più importanti in WFS adattato alla sonorizzazione e al design sonoro creativo.\nCome regola generale, ogni ascoltatore dovrebbe sentire tre altoparlanti di un array per avere sufficienti indizi psicoacustici per percepire la direzione di ogni suono. Ci sarà un punto ottimale tra la distanza tra gli altoparlanti e gli ascoltatori, la loro spaziatura e l'angolo di copertura. Altoparlanti con angolo di copertura di 120° possono essere spaziati della stessa distanza tra l'array e la prima fila. Il numero dipende anche dal livello di pressione sonora. Come array sospeso, trombe trapezoidali/asimmetriche con ampio angolo di copertura (120°) sotto asse e stretto (60°) in asse daranno buona copertura e portata di 20-30m evitando riflessioni sulle pareti. Gli altoparlanti coassiali generalmente non hanno abbastanza portata per grandi ambienti e richiedono linee di ritardo.\nIl posizionamento può essere fatto tramite il 'Wizard of OutZ' e i suoi preset modificabili."
+    },
+    "mcp": {
+      "title": "AI / MCP Server",
+      "body": "The MCP server lets an AI assistant (Claude Desktop, Claude Code, ChatGPT with custom connectors) read and write the parameters of this WFS-DIY session over a local network connection.\n\nWhat the AI can do:\n• Read live state: channel counts, names, positions, attenuations, EQs, snapshots, clusters, the full parameter surface.\n• Move sources, rename channels, set cluster assignments, adjust the array layout, place outputs and reverbs.\n• Run guided workflows (system tuning walkthroughs, troubleshooting localization, snapshot management) via prepared prompt templates.\n\nOperator controls on this row:\n• AI: ON / OFF — master switch. When OFF every AI tool call is refused; when ON the AI works under the rules below.\n• AI critical actions: blocked / ALLOWED — the destructive actions (deleting snapshots, resetting DSP, changing channel counts) are blocked by default. Click to allow them for 10 minutes; the red fill drains as the window expires, then they auto-block again.\n• Open AI History — scrollable timeline of every recent AI change with per-row undo / redo and a step-by-step cursor.\n• The MCP URL button copies the server URL to the clipboard for AI clients that take a URL directly.\n\nOperator awareness:\n• Every AI action is recorded with origin tags. The AI History window shows the full timeline; per-row × reverses an action with its dependents.\n• If you manually adjust a parameter the AI just moved, the AI is notified and will not blindly retry. You always have the last word.\n• The Cmd/Ctrl+Alt+Z and Cmd/Ctrl+Alt+Y shortcuts undo and redo the last AI change without affecting your manual edits (which use plain Ctrl+Z as usual).\n\nTo add this server to Claude Desktop:\n  1. Open Settings → Developer → Edit Config.\n  2. Paste the JSON snippet below into claude_desktop_config.json (merge into the existing mcpServers block if you already have one).\n  3. Restart Claude Desktop. The server appears as 'wfs-diy' in the tools menu.\n\nTo add to Claude Code, run:\n  claude mcp add wfs-diy <url> -t http\n\nThe URL changes if you switch network interface or if the server falls back to a different port. The URL button on this row always reflects the live URL.",
+      "copyButton": "Copy Config",
+      "copyConfirm": "MCP config JSON copied to clipboard"
     }
   },
-
   "wizard": {
     "buttons": {
       "gettingStarted": "Iniziamo",
@@ -2186,9 +2165,53 @@ Altri parametri sono simili a quelli di Uscite e Ingressi."
       }
     }
   },
-
   "updateBanner": {
     "available": "WFS-DIY v{version} è disponibile!",
     "download": "Scarica"
+  },
+  "ai": {
+    "history": {
+      "windowTitle": "AI Change History",
+      "stepBack": "⏮ Step Back",
+      "stepForward": "Step Forward ⏭",
+      "applied": "applied",
+      "undone": "undone",
+      "of": "of",
+      "noChanges": "No AI changes yet.",
+      "batch": "batch {id}",
+      "cursorLabel": "◂  cursor (↑ applied  /  ↓ undone, redoable)",
+      "atHead": "(no undone records — at the head)"
+    },
+    "toast": {
+      "header": "AI changes",
+      "clientPrefix": "Claude",
+      "moreOlder": "…and {count} older"
+    },
+    "server": {
+      "label": "MCP Server:",
+      "stopped": "Stopped",
+      "urlButtonRunning": "http://{host}:{port}/mcp",
+      "urlButtonStopped": "(server not running)",
+      "copyUrlConfirm": "MCP URL copied to clipboard: {url}",
+      "openHistory": "Open AI History"
+    },
+    "undo": {
+      "successPrefix": "AI {verb}: {description}",
+      "errorPrefix": "AI {verb}: {message}",
+      "verbUndo": "undo",
+      "verbRedo": "redo"
+    },
+    "tier": {
+      "gateBlocked": "AI critical actions: blocked",
+      "gateAllowed": "AI critical actions: ALLOWED",
+      "aiOn": "AI: ON",
+      "aiOff": "AI: OFF"
+    },
+    "tooltips": {
+      "urlButton": "Click to copy the MCP server URL. Useful for Claude Code (claude mcp add wfs-diy <URL> -t http) or any MCP client that takes a URL. Claude Desktop instead uses the JSON config snippet — open the (?) help card.",
+      "openHistory": "Open the AI History window: scrollable timeline of every recent AI change with per-row undo / redo and a step-by-step cursor.",
+      "gate": "Allow or block destructive AI actions — deleting snapshots, resetting DSP, changing channel counts. The red fill drains over 10 minutes, then critical actions auto-block again.",
+      "aiToggle": "Master switch for the whole MCP integration. When OFF every AI tool call is refused; when ON, normal tier handling applies (the critical-actions toggle still controls destructive calls separately)."
+    }
   }
 }

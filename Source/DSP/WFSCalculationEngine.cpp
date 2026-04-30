@@ -1,4 +1,5 @@
 #include "WFSCalculationEngine.h"
+#include "../Helpers/NumericGuards.h"
 #include <array>
 #include <limits>
 
@@ -474,19 +475,22 @@ void WFSCalculationEngine::applyCompositeConstraints (Position& pos, const juce:
     bool constraintY = static_cast<int> (posSection.getProperty (inputConstraintY, 1)) != 0;
     bool constraintZ = static_cast<int> (posSection.getProperty (inputConstraintZ, 1)) != 0;
 
-    // Apply X constraint (stage bounds if enabled, always absolute limit)
+    // Apply X constraint (stage bounds if enabled, always absolute limit).
+    // safeClamp tolerates non-finite stage geometry (e.g. NaN stageWidth
+    // loaded from a corrupted config file) — passes value through rather
+    // than tripping jlimit's bounds assert.
     if (constraintX)
-        pos.x = juce::jlimit (minX, maxX, pos.x);
+        pos.x = WFSHelpers::safeClamp (minX, maxX, pos.x);
     pos.x = juce::jlimit (-absoluteLimit, absoluteLimit, pos.x);
 
     // Apply Y constraint (stage bounds if enabled, always absolute limit)
     if (constraintY)
-        pos.y = juce::jlimit (minY, maxY, pos.y);
+        pos.y = WFSHelpers::safeClamp (minY, maxY, pos.y);
     pos.y = juce::jlimit (-absoluteLimit, absoluteLimit, pos.y);
 
     // Apply Z constraint (stage bounds if enabled, always absolute limit)
     if (constraintZ)
-        pos.z = juce::jlimit (minZ, maxZ, pos.z);
+        pos.z = WFSHelpers::safeClamp (minZ, maxZ, pos.z);
     pos.z = juce::jlimit (-absoluteLimit, absoluteLimit, pos.z);
 
     // Apply radius constraint (always enforce 50m max)

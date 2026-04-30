@@ -28,6 +28,7 @@ public:
         juce::var value;
         float rampTimeSec = 0.0f;  // Optional 3rd OSC arg: transition time in seconds (0 = apply immediately)
         bool valid = false;
+        juce::String invalidReason; // Set when valid==false because the value failed range gate.
     };
 
     struct ParsedOutputMessage
@@ -38,6 +39,7 @@ public:
         juce::var value;
         bool valid = false;
         bool isEQparam = false;  // True for EQ parameters that need band index
+        juce::String invalidReason;
     };
 
     struct ParsedReverbMessage
@@ -48,6 +50,7 @@ public:
         juce::var value;
         bool valid = false;
         bool isEQparam = false;  // True for EQ parameters that need band index
+        juce::String invalidReason;
     };
 
     struct ParsedRemoteInput
@@ -70,6 +73,7 @@ public:
         float posX = 0.0f;                                     // For PositionXY: X coordinate
         float posY = 0.0f;                                     // For PositionXY: Y coordinate
         bool valid = false;
+        juce::String invalidReason;
     };
 
     struct ParsedArrayAdjustMessage
@@ -85,6 +89,7 @@ public:
         juce::Identifier paramId;  // Config parameter identifier
         juce::var value;           // Parameter value (float or int)
         bool valid = false;
+        juce::String invalidReason;
     };
 
     struct ParsedClusterMoveMessage
@@ -245,6 +250,20 @@ public:
      * e.g., "/wfs/input/attenuation" -> "attenuation"
      */
     static juce::String extractParamName(const juce::String& address);
+
+    /**
+     * Validate that every numeric argument in the message is finite.
+     * Returns true if all floats are finite (or there are no float args).
+     * Returns false on the first NaN/Inf encountered, writing a short
+     * description into outReason (e.g. "non-finite float at arg 1 (NaN)").
+     *
+     * Used as a gate at the OSC entry path: messages carrying NaN/Inf
+     * floats are rejected before they can corrupt the ValueTree (e.g.
+     * NaN stage geometry → asserts in jlimit at every later constraint
+     * application).
+     */
+    static bool hasOnlyFiniteFloats(const juce::OSCMessage& message,
+                                    juce::String& outReason);
 
     /** Remote address map: paramName -> parameterID, for bulk state dump */
     static const std::map<juce::String, juce::Identifier>& getRemoteAddressMap();

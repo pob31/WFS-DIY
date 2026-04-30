@@ -13,6 +13,7 @@
  */
 
 #include <JuceHeader.h>
+#include "../../Network/OSCProtocolTypes.h"
 #include "XencelabsDevice.h"
 #include "QuickKeysPage.h"
 
@@ -27,9 +28,21 @@ public:
     {
         // Wire device callbacks — but do NOT start monitoring.
         // The device is only started when setEnabled(true) is called.
-        device.onButtonPressed = [this] (int btn) { handleButtonPressed (btn); };
-        device.onButtonReleased = [this] (int btn) { handleButtonReleased (btn); };
-        device.onWheelRotated = [this] (int dir) { handleWheelRotated (dir); };
+        // Each input event runs inside an OriginTagScope { Hardware } so
+        // page-binding writes are credited to the controller in change
+        // records and cross-actor notifications.
+        device.onButtonPressed  = [this] (int btn) {
+            WFSNetwork::OriginTagScope s { WFSNetwork::OriginTag::Hardware };
+            handleButtonPressed (btn);
+        };
+        device.onButtonReleased = [this] (int btn) {
+            WFSNetwork::OriginTagScope s { WFSNetwork::OriginTag::Hardware };
+            handleButtonReleased (btn);
+        };
+        device.onWheelRotated   = [this] (int dir) {
+            WFSNetwork::OriginTagScope s { WFSNetwork::OriginTag::Hardware };
+            handleWheelRotated (dir);
+        };
         device.onConnectionChanged = [this] (bool connected) { handleConnectionChanged (connected); };
     }
 

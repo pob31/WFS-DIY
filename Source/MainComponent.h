@@ -32,12 +32,15 @@
 #include "gui/MapTabWindow.h"
 #include "gui/MapTabPlaceholder.h"
 #include "gui/NetworkLogWindow.h"
+#include "gui/MCPUndoOverlay.h"
+#include "gui/MCPHistoryWindow.h"
 #include "gui/LevelMeterWindow.h"
 #include "gui/ColorScheme.h"
 #include "DSP/LevelMeteringManager.h"
 #include "gui/WfsLookAndFeel.h"
 #include "gui/GettingStartedWizard.h"
 #include "Network/OSCManager.h"
+#include "Network/MCP/MCPServer.h"
 #include "Controllers/DialsAndButtons/StreamDeckManager.h"
 #include "Controllers/DialsAndButtons/QuickKeysManager.h"
 #include "Controllers/DialsAndButtons/pages/PatchWindowPages.h"
@@ -138,6 +141,10 @@ public:
     // Network Log Window
     void openNetworkLogWindow();
 
+    // AI History Window (Phase 5d) — persistent navigator over the MCP
+    // change-record + redo rings; complements the transient toast overlay.
+    void openMCPHistoryWindow();
+
     // Level Meter Window
     void openLevelMeterWindow();
 
@@ -182,6 +189,7 @@ private:
 
     std::unique_ptr<AudioInterfaceWindow> audioInterfaceWindow;
     std::unique_ptr<NetworkLogWindow> networkLogWindow;
+    std::unique_ptr<MCPHistoryWindow> mcpHistoryWindow;
     std::unique_ptr<LevelMeterWindow> levelMeterWindow;
     std::unique_ptr<LevelMeteringManager> levelMeteringManager;
     std::unique_ptr<GettingStartedWizard> gettingStartedWizard;
@@ -225,6 +233,16 @@ private:
 
     // Network OSC management
     std::unique_ptr<WFSNetwork::OSCManager> oscManager;
+
+    // MCP server (AI control surface — Phase 1 Block 3 skeleton).
+    // Started after the audio engine + parameter system are ready; the
+    // NetworkTab UI surfaces start/stop/port in Phase 1 Block 6.
+    std::unique_ptr<WFSNetwork::MCPServer> mcpServer;
+
+    // Phase 5c: growing-toast overlay rendering AI-undo records. Owned
+    // here so it can sit on top of the tab interface; positioned via
+    // resized().
+    std::unique_ptr<MCPUndoOverlay> mcpUndoOverlay;
 
     // Stream Deck+ physical controller
     std::unique_ptr<StreamDeckManager> streamDeckManager;

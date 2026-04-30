@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="k6c2zA" name="WFS-DIY" projectType="guiapp" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" version="1.0.0beta9"
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" version="1.0.0beta12"
               bundleIdentifier="com.wfsdiy.app" companyEmail="contact@pixetbel.org"
               companyName="Pix et Bel" companyWebsite="wfs-diy.net">
   <MAINGROUP id="U6kz3k" name="WFS-DIY">
@@ -49,6 +49,14 @@
               file="Source/gui/NetworkLogWindow.h"/>
         <FILE id="guiNetLogCpp" name="NetworkLogWindow.cpp" compile="1" resource="0"
               file="Source/gui/NetworkLogWindow.cpp"/>
+        <FILE id="guiMcpOvH" name="MCPUndoOverlay.h" compile="0" resource="0"
+              file="Source/gui/MCPUndoOverlay.h"/>
+        <FILE id="guiMcpOvCpp" name="MCPUndoOverlay.cpp" compile="1" resource="0"
+              file="Source/gui/MCPUndoOverlay.cpp"/>
+        <FILE id="guiMcpHistH" name="MCPHistoryWindow.h" compile="0" resource="0"
+              file="Source/gui/MCPHistoryWindow.h"/>
+        <FILE id="guiMcpHistCpp" name="MCPHistoryWindow.cpp" compile="1" resource="0"
+              file="Source/gui/MCPHistoryWindow.cpp"/>
         <FILE id="guiArrHelperH" name="OutputArrayHelperWindow.h" compile="0"
               resource="0" file="Source/gui/OutputArrayHelperWindow.h"/>
         <FILE id="guiArrHelperCpp" name="OutputArrayHelperWindow.cpp" compile="1"
@@ -73,6 +81,8 @@
               file="Source/Helpers/ArrayGeometryCalculator.h"/>
         <FILE id="arrGeomCpp" name="ArrayGeometryCalculator.cpp" compile="1"
               resource="0" file="Source/Helpers/ArrayGeometryCalculator.cpp"/>
+        <FILE id="numGuardsH" name="NumericGuards.h" compile="0" resource="0"
+              file="Source/Helpers/NumericGuards.h"/>
       </GROUP>
       <GROUP id="{ACCESSGROUP}" name="Accessibility">
         <FILE id="accTTSMgr" name="TTSManager.h" compile="0" resource="0" file="Source/Accessibility/TTSManager.h"/>
@@ -105,6 +115,14 @@
               file="Source/Network/OSCMessageRouter.h"/>
         <FILE id="netRouteCpp" name="OSCMessageRouter.cpp" compile="1" resource="0"
               file="Source/Network/OSCMessageRouter.cpp"/>
+        <FILE id="netParamBoundsH" name="OSCParameterBounds.h" compile="0" resource="0"
+              file="Source/Network/OSCParameterBounds.h"/>
+        <FILE id="netParamBoundsCpp" name="OSCParameterBounds.cpp" compile="1" resource="0"
+              file="Source/Network/OSCParameterBounds.cpp"/>
+        <FILE id="netIngestQueueH" name="OSCIngestQueue.h" compile="0" resource="0"
+              file="Source/Network/OSCIngestQueue.h"/>
+        <FILE id="netIngestQueueCpp" name="OSCIngestQueue.cpp" compile="1" resource="0"
+              file="Source/Network/OSCIngestQueue.cpp"/>
         <FILE id="netMgrH" name="OSCManager.h" compile="0" resource="0" file="Source/Network/OSCManager.h"/>
         <FILE id="netMgrCpp" name="OSCManager.cpp" compile="1" resource="0"
               file="Source/Network/OSCManager.cpp"/>
@@ -119,6 +137,8 @@
         <FILE id="netTcpRxCpp" name="OSCTCPReceiver.cpp" compile="1" resource="0"
               file="Source/Network/OSCTCPReceiver.cpp"/>
         <FILE id="netParseH" name="OSCParser.h" compile="0" resource="0" file="Source/Network/OSCParser.h"/>
+        <FILE id="netStrUtilH" name="NetworkStringUtils.h" compile="0" resource="0"
+              file="Source/Network/NetworkStringUtils.h"/>
         <FILE id="netQueryH" name="OSCQueryServer.h" compile="0" resource="0"
               file="Source/Network/OSCQueryServer.h"/>
         <FILE id="netQueryCpp" name="OSCQueryServer.cpp" compile="1" resource="0"
@@ -143,6 +163,72 @@
               file="Source/Network/TrackingMQTTReceiver.h"/>
         <FILE id="netMqttCpp" name="TrackingMQTTReceiver.cpp" compile="1" resource="0"
               file="Source/Network/TrackingMQTTReceiver.cpp"/>
+        <GROUP id="{MCPGROUP}" name="MCP">
+          <FILE id="mcpLogH" name="MCPLogger.h" compile="0" resource="0"
+                file="Source/Network/MCP/MCPLogger.h"/>
+          <FILE id="mcpLogCpp" name="MCPLogger.cpp" compile="1" resource="0"
+                file="Source/Network/MCP/MCPLogger.cpp"/>
+          <FILE id="mcpRecH" name="MCPChangeRecords.h" compile="0" resource="0"
+                file="Source/Network/MCP/MCPChangeRecords.h"/>
+          <FILE id="mcpRecCpp" name="MCPChangeRecords.cpp" compile="1" resource="0"
+                file="Source/Network/MCP/MCPChangeRecords.cpp"/>
+          <FILE id="mcpUndoEngH" name="MCPUndoEngine.h" compile="0" resource="0"
+                file="Source/Network/MCP/MCPUndoEngine.h"/>
+          <FILE id="mcpUndoEngCpp" name="MCPUndoEngine.cpp" compile="1" resource="0"
+                file="Source/Network/MCP/MCPUndoEngine.cpp"/>
+          <FILE id="mcpTierEnfH" name="MCPTierEnforcement.h" compile="0" resource="0"
+                file="Source/Network/MCP/MCPTierEnforcement.h"/>
+          <FILE id="mcpTierEnfCpp" name="MCPTierEnforcement.cpp" compile="1" resource="0"
+                file="Source/Network/MCP/MCPTierEnforcement.cpp"/>
+          <FILE id="mcpOscQAudH" name="MCPOSCQueryAuditor.h" compile="0" resource="0"
+                file="Source/Network/MCP/MCPOSCQueryAuditor.h"/>
+          <FILE id="mcpOscQAudCpp" name="MCPOSCQueryAuditor.cpp" compile="1" resource="0"
+                file="Source/Network/MCP/MCPOSCQueryAuditor.cpp"/>
+          <FILE id="mcpRegH" name="MCPToolRegistry.h" compile="0" resource="0"
+                file="Source/Network/MCP/MCPToolRegistry.h"/>
+          <FILE id="mcpRegCpp" name="MCPToolRegistry.cpp" compile="1" resource="0"
+                file="Source/Network/MCP/MCPToolRegistry.cpp"/>
+          <FILE id="mcpDispH" name="MCPDispatcher.h" compile="0" resource="0"
+                file="Source/Network/MCP/MCPDispatcher.h"/>
+          <FILE id="mcpDispCpp" name="MCPDispatcher.cpp" compile="1" resource="0"
+                file="Source/Network/MCP/MCPDispatcher.cpp"/>
+          <FILE id="mcpTransH" name="MCPTransport.h" compile="0" resource="0"
+                file="Source/Network/MCP/MCPTransport.h"/>
+          <FILE id="mcpTransCpp" name="MCPTransport.cpp" compile="1" resource="0"
+                file="Source/Network/MCP/MCPTransport.cpp"/>
+          <FILE id="mcpSrvH" name="MCPServer.h" compile="0" resource="0"
+                file="Source/Network/MCP/MCPServer.h"/>
+          <FILE id="mcpSrvCpp" name="MCPServer.cpp" compile="1" resource="0"
+                file="Source/Network/MCP/MCPServer.cpp"/>
+          <FILE id="mcpGenLoadH" name="MCPGeneratedToolLoader.h" compile="0" resource="0"
+                file="Source/Network/MCP/MCPGeneratedToolLoader.h"/>
+          <FILE id="mcpGenLoadCpp" name="MCPGeneratedToolLoader.cpp" compile="1" resource="0"
+                file="Source/Network/MCP/MCPGeneratedToolLoader.cpp"/>
+          <FILE id="mcpResRegH" name="MCPResourceRegistry.h" compile="0" resource="0"
+                file="Source/Network/MCP/MCPResourceRegistry.h"/>
+          <FILE id="mcpResRegCpp" name="MCPResourceRegistry.cpp" compile="1" resource="0"
+                file="Source/Network/MCP/MCPResourceRegistry.cpp"/>
+          <FILE id="mcpPromptRegH" name="MCPPromptRegistry.h" compile="0" resource="0"
+                file="Source/Network/MCP/MCPPromptRegistry.h"/>
+          <FILE id="mcpPromptRegCpp" name="MCPPromptRegistry.cpp" compile="1" resource="0"
+                file="Source/Network/MCP/MCPPromptRegistry.cpp"/>
+          <GROUP id="{MCPTOOLSGROUP}" name="tools">
+            <FILE id="mcpToolsSession" name="SessionTools.h" compile="0" resource="0"
+                  file="Source/Network/MCP/tools/SessionTools.h"/>
+            <FILE id="mcpToolsInput" name="InputTools.h" compile="0" resource="0"
+                  file="Source/Network/MCP/tools/InputTools.h"/>
+            <FILE id="mcpToolsOutput" name="OutputTools.h" compile="0" resource="0"
+                  file="Source/Network/MCP/tools/OutputTools.h"/>
+            <FILE id="mcpToolsReverb" name="ReverbTools.h" compile="0" resource="0"
+                  file="Source/Network/MCP/tools/ReverbTools.h"/>
+            <FILE id="mcpToolsSnap" name="SnapshotTools.h" compile="0" resource="0"
+                  file="Source/Network/MCP/tools/SnapshotTools.h"/>
+            <FILE id="mcpToolsUndo" name="UndoTools.h" compile="0" resource="0"
+                  file="Source/Network/MCP/tools/UndoTools.h"/>
+            <FILE id="mcpToolsSetParam" name="SetParameterTool.h" compile="0" resource="0"
+                  file="Source/Network/MCP/tools/SetParameterTool.h"/>
+          </GROUP>
+        </GROUP>
       </GROUP>
       <GROUP id="{CONTROLLERSGROUP}" name="Controllers">
         <GROUP id="{POSCTRLGROUP}" name="PositionControl">
@@ -310,12 +396,14 @@
                        libraryPath="ThirdParty\GPUAudioSDK\build\lib\RelWithDebInfo;ThirdParty\GPUAudioSDK\build\GainLib\gainlib\RelWithDebInfo;ThirdParty\GPUAudioSDK\build\simple_processor_launcher\ProcLaunchLib\RelWithDebInfo"
                        externalLibraries="gain_processor_nvidia.lib;ProcLaunchLib.lib;gainlib.lib;nvidia_resources_gain_processor_gain_processor_device_nvidia.lib;setupapi.lib"
                        extraCompilerFlags="/bigobj" defines="SIMPLEWEB_SECURE_SUPPORTED=0"
-                       postbuildCommand="xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot;"/>
+                       prebuildCommand="cd /d &quot;$(SolutionDir)..\..&quot; &amp;&amp; (where python &gt;nul 2&gt;&amp;1 &amp;&amp; python tools\generate_mcp_tools.py) &amp; exit /b 0"
+                       postbuildCommand="xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot; &amp; xcopy /E /I /Y &quot;$(SolutionDir)..\..\Documentation\MCP\resources&quot; &quot;$(OutDir)MCP\resources&quot;"/>
         <CONFIGURATION isDebug="0" name="Release" targetName="WFS-DIY" headerPath="..\..\ThirdParty\ASIOSDK\common;..\..\ThirdParty\GPUAudioSDK\gpuaudio\include;..\..\ThirdParty\GPUAudioSDK\gain_processor\gain_processor\include;..\..\ThirdParty\GPUAudioSDK\build\_deps\json-src\single_include;..\..\ThirdParty\PSN-CPP;..\..\ThirdParty\hidapi;..\..\ThirdParty\hidapi\hidapi"
                        libraryPath="ThirdParty\GPUAudioSDK\build\lib\RelWithDebInfo;ThirdParty\GPUAudioSDK\build\GainLib\gainlib\RelWithDebInfo;ThirdParty\GPUAudioSDK\build\simple_processor_launcher\ProcLaunchLib\RelWithDebInfo"
                        externalLibraries="gain_processor_nvidia.lib;ProcLaunchLib.lib;gainlib.lib;nvidia_resources_gain_processor_gain_processor_device_nvidia.lib;setupapi.lib"
                        extraCompilerFlags="/bigobj" defines="SIMPLEWEB_SECURE_SUPPORTED=0"
-                       postbuildCommand="xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot;"/>
+                       prebuildCommand="cd /d &quot;$(SolutionDir)..\..&quot; &amp;&amp; (where python &gt;nul 2&gt;&amp;1 &amp;&amp; python tools\generate_mcp_tools.py) &amp; exit /b 0"
+                       postbuildCommand="xcopy /E /I /Y &quot;$(SolutionDir)..\..\Resources\lang&quot; &quot;$(OutDir)lang&quot; &amp; xcopy /E /I /Y &quot;$(SolutionDir)..\..\Documentation\MCP\resources&quot; &quot;$(OutDir)MCP\resources&quot;"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_audio_basics" path="ThirdParty/JUCE/modules"/>

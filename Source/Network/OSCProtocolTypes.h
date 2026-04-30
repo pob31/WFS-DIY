@@ -20,7 +20,51 @@ enum class Protocol
     PSN = 5,        // PosiStageNet tracking protocol
     RTTrP = 6,      // RTTrP tracking protocol
     QLab = 7,       // QLab cue writing protocol
-    MQTT = 8        // MQTT tracking protocol
+    MQTT = 8,       // MQTT tracking protocol
+    MCP = 9         // Model Context Protocol (AI client control surface)
+};
+
+/** Origin tag for parameter changes — identifies which actor caused a write.
+    Set via OriginTagScope (RAII guard, below) before issuing a write; the
+    parameter system's change-notification dispatch reads it and propagates
+    it to listeners (Network Log, AI undo stack, etc.). */
+enum class OriginTag
+{
+    None = 0,        // Default — no origin attributed (e.g. internal initialization)
+    UI,              // User-driven via JUCE GUI controls
+    MCP,             // AI client via MCP server
+    OSC,             // Arbitrary external OSC client (NOT the Android Remote — see Remote)
+    Tracking,        // Position tracking integration loop
+    Snapshot,        // Snapshot recall / Reload Configuration
+    LFO,             // LFO modulation writes
+    Move,            // AutomOtion programmed movement
+    Automation,      // DAW host automation via plugin layer
+    Hardware,        // Hardware controllers — Stream Deck+, Quick Keys, SpaceMouse, Lightpad
+    Remote           // Android Remote tablet (the WFS Control app, /remoteInput/* dialect)
+};
+
+/** Thread-local current origin tag. Read by listeners (e.g. OSCLogger) when
+    constructing log entries / change records; written via OriginTagScope.
+    `inline` lets it live in a header without an ODR violation across TUs. */
+inline thread_local OriginTag g_currentOriginTag = OriginTag::None;
+
+/** Read the current thread's origin tag. */
+inline OriginTag getCurrentOriginTag() noexcept { return g_currentOriginTag; }
+
+/** RAII guard that sets the thread-local origin tag for its lifetime, then
+    restores the previous value on destruction. Nesting is supported — inner
+    scopes shadow outer scopes and the outer value resumes when the inner
+    scope ends. Use at every external write entry point (OSC inbound handler,
+    snapshot recall, MCP dispatcher, etc.). */
+struct OriginTagScope
+{
+    OriginTag previous;
+    explicit OriginTagScope (OriginTag tag) noexcept
+        : previous (g_currentOriginTag) { g_currentOriginTag = tag; }
+    ~OriginTagScope() noexcept { g_currentOriginTag = previous; }
+
+    OriginTagScope (const OriginTagScope&) = delete;
+    OriginTagScope& operator= (const OriginTagScope&) = delete;
 };
 
 /** Connection mode (transport layer) */
@@ -209,6 +253,7 @@ struct LogEntry
     juce::String arguments;      // Formatted arguments
     Protocol protocol = Protocol::OSC;
     ConnectionMode transport = ConnectionMode::UDP;  // UDP or TCP
+    OriginTag origin = OriginTag::None;  // Actor that caused the write (if known)
     bool isRejected = false;     // True if message was filtered/rejected
     juce::String rejectReason;   // Why message was rejected (if applicable)
 
@@ -233,6 +278,7 @@ struct LogEntry
             case Protocol::RTTrP:    return "RTTrP";
             case Protocol::QLab:     return "QLab";
             case Protocol::MQTT:     return "MQTT";
+            case Protocol::MCP:      return "MCP";
             default:                 return "Unknown";
         }
     }
@@ -241,6 +287,27 @@ struct LogEntry
     juce::String getTransportString() const
     {
         return transport == ConnectionMode::TCP ? "TCP" : "UDP";
+    }
+
+    /** Get origin tag as display string. Returns empty string for None
+        so untagged entries render as a blank cell. */
+    juce::String getOriginString() const
+    {
+        switch (origin)
+        {
+            case OriginTag::None:       return "";
+            case OriginTag::UI:         return "UI";
+            case OriginTag::MCP:        return "MCP";
+            case OriginTag::OSC:        return "OSC";
+            case OriginTag::Tracking:   return "Tracking";
+            case OriginTag::Snapshot:   return "Snapshot";
+            case OriginTag::LFO:        return "LFO";
+            case OriginTag::Move:       return "Move";
+            case OriginTag::Automation: return "Automation";
+            case OriginTag::Hardware:   return "Hardware";
+            case OriginTag::Remote:     return "Remote";
+            default:                    return "";
+        }
     }
 };
 

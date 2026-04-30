@@ -7,6 +7,7 @@
 #include "../Parameters/WFSParameterIDs.h"
 #include "../Parameters/WFSParameterDefaults.h"
 #include "../Parameters/WFSConstraints.h"
+#include "../Network/OSCProtocolTypes.h"
 #include "ColorUtilities.h"
 #include "ColorScheme.h"
 #include "WfsLookAndFeel.h"
@@ -4110,12 +4111,16 @@ private:
                                   const juce::Identifier& property) override
     {
         juce::ignoreUnused(treeWhosePropertyHasChanged, property);
-        // Don't auto-repaint on property changes - causes high CPU with 64+ channels
-        // Map repaints are triggered explicitly by:
-        // - mouseDrag/touchDrag (during interaction)
-        // - MainComponent timer (when LFO active, at 50Hz)
-        // - Pan/zoom gestures
-        // - Channel add/remove (valueTreeChildAdded/Removed)
+        // Don't auto-repaint for high-frequency origins (UI drags, LFO/Move
+        // 50Hz updates, tracking) — they would spike CPU on 64-channel
+        // setups, and they all have their own existing repaint paths.
+        // Phase 5 origins MCP and Snapshot are episodic and don't have
+        // an alternative path — Map writes from MCP previously waited for
+        // the next mouse interaction to surface. Repaint selectively here.
+        const auto origin = WFSNetwork::getCurrentOriginTag();
+        if (origin == WFSNetwork::OriginTag::MCP
+         || origin == WFSNetwork::OriginTag::Snapshot)
+            repaint();
     }
 
     void valueTreeChildAdded(juce::ValueTree& parentTree, juce::ValueTree& child) override

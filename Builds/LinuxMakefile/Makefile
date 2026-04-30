@@ -39,7 +39,7 @@ ifeq ($(CONFIG),Debug)
     TARGET_ARCH := 
   endif
 
-  JUCE_CPPFLAGS := $(DEPFLAGS) "-DLINUX=1" "-DDEBUG=1" "-D_DEBUG=1" "-DJUCE_PROJUCER_VERSION=0x8000c" "-DJUCE_MODULE_AVAILABLE_juce_audio_basics=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_devices=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_formats=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_processors=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_utils=1" "-DJUCE_MODULE_AVAILABLE_juce_core=1" "-DJUCE_MODULE_AVAILABLE_juce_data_structures=1" "-DJUCE_MODULE_AVAILABLE_juce_dsp=1" "-DJUCE_MODULE_AVAILABLE_juce_events=1" "-DJUCE_MODULE_AVAILABLE_juce_graphics=1" "-DJUCE_MODULE_AVAILABLE_juce_gui_basics=1" "-DJUCE_MODULE_AVAILABLE_juce_gui_extra=1" "-DJUCE_MODULE_AVAILABLE_juce_opengl=1" "-DJUCE_MODULE_AVAILABLE_juce_osc=1" "-DJUCE_MODULE_AVAILABLE_juce_simpleweb=1" "-DJUCE_MODULE_AVAILABLE_roli_blocks_basics=1" "-DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1" "-DJUCE_ASIO=1" "-DJUCE_ALSA=0" "-DJUCE_JACK=0" "-DJUCE_USE_ANDROID_OBOE=0" "-DJUCE_PLUGINHOST_LV2=0" "-DJUCE_PLUGINHOST_ARA=0" "-DJUCE_STRICT_REFCOUNTEDPOINTER=1" "-DJUCE_STANDALONE_APPLICATION=1" "-DJUCER_LINUX_MAKE_6D53C8B4=1" "-DJUCE_APP_VERSION=1.0.0beta8" "-DJUCE_APP_VERSION_HEX=0x10000" $(shell $(PKG_CONFIG) --cflags $(shell ($(PKG_CONFIG) --exists webkit2gtk-4.1 && echo webkit2gtk-4.1) || echo webkit2gtk-4.0) alsa freetype2 fontconfig gl libcurl gtk+-x11-3.0) -pthread -I../../JuceLibraryCode -I../../ThirdParty/JUCE/modules -I../../ThirdParty $(CPPFLAGS)
+  JUCE_CPPFLAGS := $(DEPFLAGS) "-DLINUX=1" "-DDEBUG=1" "-D_DEBUG=1" "-DJUCE_PROJUCER_VERSION=0x8000c" "-DJUCE_MODULE_AVAILABLE_juce_audio_basics=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_devices=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_formats=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_processors=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_utils=1" "-DJUCE_MODULE_AVAILABLE_juce_core=1" "-DJUCE_MODULE_AVAILABLE_juce_data_structures=1" "-DJUCE_MODULE_AVAILABLE_juce_dsp=1" "-DJUCE_MODULE_AVAILABLE_juce_events=1" "-DJUCE_MODULE_AVAILABLE_juce_graphics=1" "-DJUCE_MODULE_AVAILABLE_juce_gui_basics=1" "-DJUCE_MODULE_AVAILABLE_juce_gui_extra=1" "-DJUCE_MODULE_AVAILABLE_juce_opengl=1" "-DJUCE_MODULE_AVAILABLE_juce_osc=1" "-DJUCE_MODULE_AVAILABLE_juce_simpleweb=1" "-DJUCE_MODULE_AVAILABLE_roli_blocks_basics=1" "-DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1" "-DJUCE_ASIO=1" "-DJUCE_ALSA=0" "-DJUCE_JACK=0" "-DJUCE_USE_ANDROID_OBOE=0" "-DJUCE_PLUGINHOST_LV2=0" "-DJUCE_PLUGINHOST_ARA=0" "-DJUCE_STRICT_REFCOUNTEDPOINTER=1" "-DJUCE_STANDALONE_APPLICATION=1" "-DJUCER_LINUX_MAKE_6D53C8B4=1" "-DJUCE_APP_VERSION=1.0.0beta12" "-DJUCE_APP_VERSION_HEX=0x10000" $(shell $(PKG_CONFIG) --cflags $(shell ($(PKG_CONFIG) --exists webkit2gtk-4.1 && echo webkit2gtk-4.1) || echo webkit2gtk-4.0) alsa freetype2 fontconfig gl libcurl gtk+-x11-3.0) -pthread -I../../JuceLibraryCode -I../../ThirdParty/JUCE/modules -I../../ThirdParty $(CPPFLAGS)
   JUCE_CPPFLAGS_APP :=  "-DJucePlugin_Build_VST=0" "-DJucePlugin_Build_VST3=0" "-DJucePlugin_Build_AU=0" "-DJucePlugin_Build_AUv3=0" "-DJucePlugin_Build_AAX=0" "-DJucePlugin_Build_Standalone=0" "-DJucePlugin_Build_Unity=0" "-DJucePlugin_Build_LV2=0"
   JUCE_TARGET_APP := WFS-DIY
 
@@ -60,7 +60,7 @@ ifeq ($(CONFIG),Release)
     TARGET_ARCH := 
   endif
 
-  JUCE_CPPFLAGS := $(DEPFLAGS) "-DLINUX=1" "-DNDEBUG=1" "-DJUCE_PROJUCER_VERSION=0x8000c" "-DJUCE_MODULE_AVAILABLE_juce_audio_basics=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_devices=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_formats=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_processors=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_utils=1" "-DJUCE_MODULE_AVAILABLE_juce_core=1" "-DJUCE_MODULE_AVAILABLE_juce_data_structures=1" "-DJUCE_MODULE_AVAILABLE_juce_dsp=1" "-DJUCE_MODULE_AVAILABLE_juce_events=1" "-DJUCE_MODULE_AVAILABLE_juce_graphics=1" "-DJUCE_MODULE_AVAILABLE_juce_gui_basics=1" "-DJUCE_MODULE_AVAILABLE_juce_gui_extra=1" "-DJUCE_MODULE_AVAILABLE_juce_opengl=1" "-DJUCE_MODULE_AVAILABLE_juce_osc=1" "-DJUCE_MODULE_AVAILABLE_juce_simpleweb=1" "-DJUCE_MODULE_AVAILABLE_roli_blocks_basics=1" "-DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1" "-DJUCE_ASIO=1" "-DJUCE_ALSA=0" "-DJUCE_JACK=0" "-DJUCE_USE_ANDROID_OBOE=0" "-DJUCE_PLUGINHOST_LV2=0" "-DJUCE_PLUGINHOST_ARA=0" "-DJUCE_STRICT_REFCOUNTEDPOINTER=1" "-DJUCE_STANDALONE_APPLICATION=1" "-DJUCER_LINUX_MAKE_6D53C8B4=1" "-DJUCE_APP_VERSION=1.0.0beta8" "-DJUCE_APP_VERSION_HEX=0x10000" $(shell $(PKG_CONFIG) --cflags $(shell ($(PKG_CONFIG) --exists webkit2gtk-4.1 && echo webkit2gtk-4.1) || echo webkit2gtk-4.0) alsa freetype2 fontconfig gl libcurl gtk+-x11-3.0) -pthread -I../../JuceLibraryCode -I../../ThirdParty/JUCE/modules -I../../ThirdParty $(CPPFLAGS)
+  JUCE_CPPFLAGS := $(DEPFLAGS) "-DLINUX=1" "-DNDEBUG=1" "-DJUCE_PROJUCER_VERSION=0x8000c" "-DJUCE_MODULE_AVAILABLE_juce_audio_basics=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_devices=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_formats=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_processors=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1" "-DJUCE_MODULE_AVAILABLE_juce_audio_utils=1" "-DJUCE_MODULE_AVAILABLE_juce_core=1" "-DJUCE_MODULE_AVAILABLE_juce_data_structures=1" "-DJUCE_MODULE_AVAILABLE_juce_dsp=1" "-DJUCE_MODULE_AVAILABLE_juce_events=1" "-DJUCE_MODULE_AVAILABLE_juce_graphics=1" "-DJUCE_MODULE_AVAILABLE_juce_gui_basics=1" "-DJUCE_MODULE_AVAILABLE_juce_gui_extra=1" "-DJUCE_MODULE_AVAILABLE_juce_opengl=1" "-DJUCE_MODULE_AVAILABLE_juce_osc=1" "-DJUCE_MODULE_AVAILABLE_juce_simpleweb=1" "-DJUCE_MODULE_AVAILABLE_roli_blocks_basics=1" "-DJUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1" "-DJUCE_ASIO=1" "-DJUCE_ALSA=0" "-DJUCE_JACK=0" "-DJUCE_USE_ANDROID_OBOE=0" "-DJUCE_PLUGINHOST_LV2=0" "-DJUCE_PLUGINHOST_ARA=0" "-DJUCE_STRICT_REFCOUNTEDPOINTER=1" "-DJUCE_STANDALONE_APPLICATION=1" "-DJUCER_LINUX_MAKE_6D53C8B4=1" "-DJUCE_APP_VERSION=1.0.0beta12" "-DJUCE_APP_VERSION_HEX=0x10000" $(shell $(PKG_CONFIG) --cflags $(shell ($(PKG_CONFIG) --exists webkit2gtk-4.1 && echo webkit2gtk-4.1) || echo webkit2gtk-4.0) alsa freetype2 fontconfig gl libcurl gtk+-x11-3.0) -pthread -I../../JuceLibraryCode -I../../ThirdParty/JUCE/modules -I../../ThirdParty $(CPPFLAGS)
   JUCE_CPPFLAGS_APP :=  "-DJucePlugin_Build_VST=0" "-DJucePlugin_Build_VST3=0" "-DJucePlugin_Build_AU=0" "-DJucePlugin_Build_AUv3=0" "-DJucePlugin_Build_AAX=0" "-DJucePlugin_Build_Standalone=0" "-DJucePlugin_Build_Unity=0" "-DJucePlugin_Build_LV2=0"
   JUCE_TARGET_APP := WFS-DIY
 
@@ -75,6 +75,8 @@ OBJECTS_APP := \
   $(JUCE_OBJDIR)/WFSValueTreeState_73cc0cca.o \
   $(JUCE_OBJDIR)/WFSFileManager_910393b3.o \
   $(JUCE_OBJDIR)/NetworkLogWindow_80b93fa3.o \
+  $(JUCE_OBJDIR)/MCPUndoOverlay_f8f9deaf.o \
+  $(JUCE_OBJDIR)/MCPHistoryWindow_1129207.o \
   $(JUCE_OBJDIR)/OutputArrayHelperWindow_6dcb4bc3.o \
   $(JUCE_OBJDIR)/AudioInterfaceWindow_f176b730.o \
   $(JUCE_OBJDIR)/PatchMatrixComponent_b17e3fb1.o \
@@ -86,6 +88,8 @@ OBJECTS_APP := \
   $(JUCE_OBJDIR)/OSCLogger_524110f.o \
   $(JUCE_OBJDIR)/OSCMessageBuilder_d95fd113.o \
   $(JUCE_OBJDIR)/OSCMessageRouter_d5ec64db.o \
+  $(JUCE_OBJDIR)/OSCParameterBounds_6ab619e9.o \
+  $(JUCE_OBJDIR)/OSCIngestQueue_17124ab8.o \
   $(JUCE_OBJDIR)/OSCManager_ce19fc58.o \
   $(JUCE_OBJDIR)/OSCReceiverWithSenderIP_915fb210.o \
   $(JUCE_OBJDIR)/OSCTCPReceiver_c566011b.o \
@@ -95,6 +99,18 @@ OBJECTS_APP := \
   $(JUCE_OBJDIR)/RTTrPDecoder_3f4ea27e.o \
   $(JUCE_OBJDIR)/TrackingRTTrPReceiver_b5859348.o \
   $(JUCE_OBJDIR)/TrackingMQTTReceiver_2e949d4.o \
+  $(JUCE_OBJDIR)/MCPLogger_2a5b9495.o \
+  $(JUCE_OBJDIR)/MCPChangeRecords_e03307d7.o \
+  $(JUCE_OBJDIR)/MCPUndoEngine_c559304b.o \
+  $(JUCE_OBJDIR)/MCPTierEnforcement_b50d2263.o \
+  $(JUCE_OBJDIR)/MCPOSCQueryAuditor_f9f00b9a.o \
+  $(JUCE_OBJDIR)/MCPToolRegistry_f3164e7a.o \
+  $(JUCE_OBJDIR)/MCPDispatcher_73f0ae2c.o \
+  $(JUCE_OBJDIR)/MCPTransport_c748070e.o \
+  $(JUCE_OBJDIR)/MCPServer_9ddbbcc8.o \
+  $(JUCE_OBJDIR)/MCPGeneratedToolLoader_a9aa861f.o \
+  $(JUCE_OBJDIR)/MCPResourceRegistry_2820fff0.o \
+  $(JUCE_OBJDIR)/MCPPromptRegistry_3ef51846.o \
   $(JUCE_OBJDIR)/HidApiPlatform_aec62187.o \
   $(JUCE_OBJDIR)/Main_90ebc5c2.o \
   $(JUCE_OBJDIR)/MainComponent_a6ffb4a5.o \
@@ -154,6 +170,16 @@ $(JUCE_OBJDIR)/NetworkLogWindow_80b93fa3.o: ../../Source/gui/NetworkLogWindow.cp
 	@echo "Compiling NetworkLogWindow.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
+$(JUCE_OBJDIR)/MCPUndoOverlay_f8f9deaf.o: ../../Source/gui/MCPUndoOverlay.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling MCPUndoOverlay.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/MCPHistoryWindow_1129207.o: ../../Source/gui/MCPHistoryWindow.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling MCPHistoryWindow.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
 $(JUCE_OBJDIR)/OutputArrayHelperWindow_6dcb4bc3.o: ../../Source/gui/OutputArrayHelperWindow.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling OutputArrayHelperWindow.cpp"
@@ -209,6 +235,16 @@ $(JUCE_OBJDIR)/OSCMessageRouter_d5ec64db.o: ../../Source/Network/OSCMessageRoute
 	@echo "Compiling OSCMessageRouter.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
+$(JUCE_OBJDIR)/OSCParameterBounds_6ab619e9.o: ../../Source/Network/OSCParameterBounds.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling OSCParameterBounds.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/OSCIngestQueue_17124ab8.o: ../../Source/Network/OSCIngestQueue.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling OSCIngestQueue.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
 $(JUCE_OBJDIR)/OSCManager_ce19fc58.o: ../../Source/Network/OSCManager.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling OSCManager.cpp"
@@ -252,6 +288,66 @@ $(JUCE_OBJDIR)/TrackingRTTrPReceiver_b5859348.o: ../../Source/Network/TrackingRT
 $(JUCE_OBJDIR)/TrackingMQTTReceiver_2e949d4.o: ../../Source/Network/TrackingMQTTReceiver.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling TrackingMQTTReceiver.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/MCPLogger_2a5b9495.o: ../../Source/Network/MCP/MCPLogger.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling MCPLogger.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/MCPChangeRecords_e03307d7.o: ../../Source/Network/MCP/MCPChangeRecords.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling MCPChangeRecords.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/MCPUndoEngine_c559304b.o: ../../Source/Network/MCP/MCPUndoEngine.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling MCPUndoEngine.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/MCPTierEnforcement_b50d2263.o: ../../Source/Network/MCP/MCPTierEnforcement.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling MCPTierEnforcement.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/MCPOSCQueryAuditor_f9f00b9a.o: ../../Source/Network/MCP/MCPOSCQueryAuditor.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling MCPOSCQueryAuditor.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/MCPToolRegistry_f3164e7a.o: ../../Source/Network/MCP/MCPToolRegistry.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling MCPToolRegistry.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/MCPDispatcher_73f0ae2c.o: ../../Source/Network/MCP/MCPDispatcher.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling MCPDispatcher.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/MCPTransport_c748070e.o: ../../Source/Network/MCP/MCPTransport.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling MCPTransport.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/MCPServer_9ddbbcc8.o: ../../Source/Network/MCP/MCPServer.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling MCPServer.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/MCPGeneratedToolLoader_a9aa861f.o: ../../Source/Network/MCP/MCPGeneratedToolLoader.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling MCPGeneratedToolLoader.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/MCPResourceRegistry_2820fff0.o: ../../Source/Network/MCP/MCPResourceRegistry.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling MCPResourceRegistry.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/MCPPromptRegistry_3ef51846.o: ../../Source/Network/MCP/MCPPromptRegistry.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling MCPPromptRegistry.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_APP) $(JUCE_CFLAGS_APP) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/HidApiPlatform_aec62187.o: ../../ThirdParty/hidapi/HidApiPlatform.c

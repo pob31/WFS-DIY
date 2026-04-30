@@ -626,7 +626,8 @@
       "transport": "Trans",
       "protocol": "Protocol",
       "address": "Address",
-      "arguments": "Arguments"
+      "arguments": "Arguments",
+      "origin": "Origin"
     },
     "status": {
       "rejected": "REJECTED"
@@ -2360,6 +2361,58 @@
     "admOsc": {
       "title": "ADM-OSC Mappings",
       "body": "ADM-OSC is a protocol aiming to improve interoperability for spatial sound. It sends Cartesian positions (X, Y, Z) or polar values (AED for Azimuth, Elevation, Distance) from the console or from a DAW's automation curves.\nData is sent normalised:\n- between -1.0 and 1.0 for X, Y and Z;\n- between 0.0 to 1.0 for distance,\n- between -180\u00b0 to 180\u00b0 for Azimuth\n- between -90\u00b0 to 90\u00b0 for elevation.\nThe origin point can be moved and the mapping can also be adjusted in different segments for the inner and outer parts of the stage.\nWhen dragging the handles on the graphs, holding the shift key will apply symmetrical adjustments on the opposite side."
+    },
+    "mcp": {
+      "title": "AI / MCP Server",
+      "body": "The MCP server lets an AI assistant (Claude Desktop, Claude Code, ChatGPT with custom connectors) read and write the parameters of this WFS-DIY session over a local network connection.\n\nWhat the AI can do:\n\u2022 Read live state: channel counts, names, positions, attenuations, EQs, snapshots, clusters, the full parameter surface.\n\u2022 Move sources, rename channels, set cluster assignments, adjust the array layout, place outputs and reverbs.\n\u2022 Run guided workflows (system tuning walkthroughs, troubleshooting localization, snapshot management) via prepared prompt templates.\n\nOperator controls on this row:\n\u2022 AI: ON / OFF \u2014 master switch. When OFF every AI tool call is refused; when ON the AI works under the rules below.\n\u2022 AI critical actions: blocked / ALLOWED \u2014 the destructive actions (deleting snapshots, resetting DSP, changing channel counts) are blocked by default. Click to allow them for 10 minutes; the red fill drains as the window expires, then they auto-block again.\n\u2022 Open AI History \u2014 scrollable timeline of every recent AI change with per-row undo / redo and a step-by-step cursor.\n\u2022 The MCP URL button copies the server URL to the clipboard for AI clients that take a URL directly.\n\nOperator awareness:\n\u2022 Every AI action is recorded with origin tags. The AI History window shows the full timeline; per-row \u00d7 reverses an action with its dependents.\n\u2022 If you manually adjust a parameter the AI just moved, the AI is notified and will not blindly retry. You always have the last word.\n\u2022 The Cmd/Ctrl+Alt+Z and Cmd/Ctrl+Alt+Y shortcuts undo and redo the last AI change without affecting your manual edits (which use plain Ctrl+Z as usual).\n\nTo add this server to Claude Desktop:\n  1. Open Settings \u2192 Developer \u2192 Edit Config.\n  2. Paste the JSON snippet below into claude_desktop_config.json (merge into the existing mcpServers block if you already have one).\n  3. Restart Claude Desktop. The server appears as 'wfs-diy' in the tools menu.\n\nTo add to Claude Code, run:\n  claude mcp add wfs-diy <url> -t http\n\nThe URL changes if you switch network interface or if the server falls back to a different port. The URL button on this row always reflects the live URL.",
+      "copyButton": "Copy Config",
+      "copyConfirm": "MCP config JSON copied to clipboard"
+    }
+  },
+
+  "ai": {
+    "history": {
+      "windowTitle": "AI Change History",
+      "stepBack": "⏮ Step Back",
+      "stepForward": "Step Forward ⏭",
+      "applied": "applied",
+      "undone": "undone",
+      "of": "of",
+      "noChanges": "No AI changes yet.",
+      "batch": "batch {id}",
+      "cursorLabel": "◂  cursor (↑ applied  /  ↓ undone, redoable)",
+      "atHead": "(no undone records — at the head)"
+    },
+    "toast": {
+      "header": "AI changes",
+      "clientPrefix": "Claude",
+      "moreOlder": "…and {count} older"
+    },
+    "server": {
+      "label": "MCP Server:",
+      "stopped": "Stopped",
+      "urlButtonRunning": "http://{host}:{port}/mcp",
+      "urlButtonStopped": "(server not running)",
+      "copyUrlConfirm": "MCP URL copied to clipboard: {url}",
+      "openHistory": "Open AI History"
+    },
+    "undo": {
+      "successPrefix": "AI {verb}: {description}",
+      "errorPrefix": "AI {verb}: {message}",
+      "verbUndo": "undo",
+      "verbRedo": "redo"
+    },
+    "tier": {
+      "gateBlocked": "AI critical actions: blocked",
+      "gateAllowed": "AI critical actions: ALLOWED",
+      "aiOn":  "AI: ON",
+      "aiOff": "AI: OFF"
+    },
+    "tooltips": {
+      "urlButton": "Click to copy the MCP server URL. Useful for Claude Code (claude mcp add wfs-diy <URL> -t http) or any MCP client that takes a URL. Claude Desktop instead uses the JSON config snippet — open the (?) help card.",
+      "openHistory": "Open the AI History window: scrollable timeline of every recent AI change with per-row undo / redo and a step-by-step cursor.",
+      "gate": "Allow or block destructive AI actions — deleting snapshots, resetting DSP, changing channel counts. The red fill drains over 10 minutes, then critical actions auto-block again.",
+      "aiToggle": "Master switch for the whole MCP integration. When OFF every AI tool call is refused; when ON, normal tier handling applies (the critical-actions toggle still controls destructive calls separately)."
     }
   },
 

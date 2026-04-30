@@ -1,4 +1,5 @@
 #include "WFSValueTreeState.h"
+#include "../Network/OSCProtocolTypes.h"
 
 using namespace WFSParameterIDs;
 using namespace WFSParameterDefaults;
@@ -606,8 +607,10 @@ float WFSValueTreeState::clampOutputParamToRange (const juce::Identifier& paramI
         return juce::jlimit (outputHFdampingMin, outputHFdampingMax, value);
     if (paramId == outputDistanceAttenPercent)
         return juce::jlimit (static_cast<float> (outputDistanceAttenPercentMin), static_cast<float> (outputDistanceAttenPercentMax), value);
-    if (paramId == outputHparallax || paramId == outputVparallax)
-        return juce::jlimit (outputParallaxMin, outputParallaxMax, value);
+    if (paramId == outputHparallax)
+        return juce::jlimit (outputHparallaxMin, outputHparallaxMax, value);
+    if (paramId == outputVparallax)
+        return juce::jlimit (outputVparallaxMin, outputVparallaxMax, value);
 
     // EQ parameters
     if (paramId == eqFrequency)
@@ -1525,6 +1528,13 @@ juce::UndoManager* WFSValueTreeState::getUndoManagerForDomain (UndoDomain domain
 
 juce::UndoManager* WFSValueTreeState::getActiveUndoManager()
 {
+    // MCP-origin writes bypass the JUCE UndoManager entirely — AI changes
+    // have a dedicated undo channel (MCPUndoEngine + Ctrl+Alt+Z + toast ×).
+    // Without this, all AI writes pile into one open JUCE transaction and a
+    // single Ctrl+Z reverts every AI change at once.
+    if (WFSNetwork::getCurrentOriginTag() == WFSNetwork::OriginTag::MCP)
+        return nullptr;
+
     return getUndoManagerForDomain (activeDomain);
 }
 
@@ -2627,8 +2637,8 @@ juce::ValueTree WFSValueTreeState::createOutputOptionsSection()
     options.setProperty (outputLSattenEnable, outputLSattenEnableDefault, nullptr);
     options.setProperty (outputFRenable, outputFRenableDefault, nullptr);
     options.setProperty (outputDistanceAttenPercent, outputDistanceAttenPercentDefault, nullptr);
-    options.setProperty (outputHparallax, outputParallaxDefault, nullptr);
-    options.setProperty (outputVparallax, outputParallaxDefault, nullptr);
+    options.setProperty (outputHparallax, outputHparallaxDefault, nullptr);
+    options.setProperty (outputVparallax, outputVparallaxDefault, nullptr);
     return options;
 }
 
@@ -2931,32 +2941,66 @@ juce::ValueTree WFSValueTreeState::getTreeForParameter (const juce::Identifier& 
 
         case ParameterScope::Reverb:
         {
+            auto reverbs = mutableState.getChildWithName (Reverbs);
+            if (! reverbs.isValid())
+                return {};
+
+            // Algo-level (global) subtrees first. ReverbAlgorithm /
+            // ReverbPreComp / ReverbPostExp / ReverbPostEQ are siblings
+            // of per-channel Reverb children inside Reverbs and carry
+            // unique properties — a hasProperty hit here is unambiguous
+            // regardless of the channelIndex argument. PostEQ band props
+            // (reverbPostEQshape/freq/gain/q/slope) live on PostEQBand
+            // children and are routed through the EQ-band path in the
+            // MCP dispatcher; they need a band index this signature
+            // doesn't carry.
+            auto algo = reverbs.getChildWithName (ReverbAlgorithm);
+            if (algo.hasProperty (paramId))
+                return algo;
+            auto preComp = reverbs.getChildWithName (ReverbPreComp);
+            if (preComp.hasProperty (paramId))
+                return preComp;
+            auto postExp = reverbs.getChildWithName (ReverbPostExp);
+            if (postExp.hasProperty (paramId))
+                return postExp;
+            auto postEQ = reverbs.getChildWithName (ReverbPostEQ);
+            if (postEQ.hasProperty (paramId))
+                return postEQ;
+
+            // Per-channel: walk Reverb-typed children only, skipping
+            // algo subtree siblings, and pick the nth one (zero-based).
+            // Reverbs.getChild(channelIndex) is unsafe here because the
+            // algo subtrees share the same parent and may be ordered
+            // before or after the per-channel children depending on
+            // when they were appended.
             if (channelIndex < 0)
                 return {};
-
-            auto reverbs = mutableState.getChildWithName (Reverbs);
-            if (!reverbs.isValid() || channelIndex >= reverbs.getNumChildren())
-                return {};
-
-            auto reverb = reverbs.getChild (channelIndex);
-
-            // Search subsections
-            for (int i = 0; i < reverb.getNumChildren(); ++i)
+            int nth = 0;
+            for (int i = 0; i < reverbs.getNumChildren(); ++i)
             {
-                auto child = reverb.getChild (i);
-                if (child.hasProperty (paramId))
-                    return child;
-
-                // Check EQ bands
-                if (child.getType() == EQ)
+                auto child = reverbs.getChild (i);
+                if (child.getType() != Reverb)
+                    continue;
+                if (nth == channelIndex)
                 {
                     for (int j = 0; j < child.getNumChildren(); ++j)
                     {
-                        auto band = child.getChild (j);
-                        if (band.hasProperty (paramId))
-                            return band;
+                        auto sub = child.getChild (j);
+                        if (sub.hasProperty (paramId))
+                            return sub;
+                        if (sub.getType() == EQ)
+                        {
+                            for (int k = 0; k < sub.getNumChildren(); ++k)
+                            {
+                                auto band = sub.getChild (k);
+                                if (band.hasProperty (paramId))
+                                    return band;
+                            }
+                        }
                     }
+                    return {};
                 }
+                ++nth;
             }
             return {};
         }

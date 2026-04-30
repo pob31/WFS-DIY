@@ -1,22 +1,22 @@
 Section	Label	Variable	UI	Type	Min	Max	Default	Unit	enum	Notes	Hover help text in the status bar
-Show	Name	ShowName	editable text box	STRING			My Show			Locked when DSP is running.	Name of the current show.
-Show	Location	ShowLocation	editable text box	STRING						Locked when DSP is running.	Location of the current show.
-I/O	Input Channels	InputChannels	number box	INT	0		8			Locked when DSP is running. Reducing the count prompts a confirmation before removing channel settings.	Number of Input Channels.
-I/O	Output Channels	OutputChannels	number box	INT	0		16			Locked when DSP is running. Reducing the count prompts a confirmation before removing channel settings.	Number of Output Channels.
-I/O	Reverb Channels	ReverbChannels	number box	INT	0		0			Locked when DSP is running. Reducing the count prompts a confirmation before removing channel settings.	Number of Reverb Channels.
+Show	Name	showName	editable text box	STRING			My Show			Locked when DSP is running.	Name of the current show.
+Show	Location	showLocation	editable text box	STRING						Locked when DSP is running.	Location of the current show.
+I/O	Input Channels	inputChannels	number box	INT	0	64	8			Locked when DSP is running. Reducing the count prompts a confirmation before removing channel settings.	Number of Input Channels.
+I/O	Output Channels	outputChannels	number box	INT	0	64	16			Locked when DSP is running. Reducing the count prompts a confirmation before removing channel settings.	Number of Output Channels.
+I/O	Reverb Channels	reverbChannels	number box	INT	0	16	0			Locked when DSP is running. Reducing the count prompts a confirmation before removing channel settings.	Number of Reverb Channels.
 I/O	Getting Started		text button				Getting Started			Visible only when DSP is not running. Opens the Getting Started wizard.	Open the Getting Started wizard.
 I/O	Audio Interface and Patching Window		text button				Audio Interface and Patching Window			Locked when DSP is running.	Opens the Audio Interface and Patching Window.
 WFS Processor	Processing Algorithm	ProcessingAlgorithm	drop down menu	INT	0	1	0		InputBuffer (read-time delays) ; OutputBuffer (write-time delays)	Locked when DSP is running.	Select the rendering algorithm from the menu.
 WFS Processor	Processing	ProcessingEnabled	text button	INT	0	1	0		Processing: OFF ; Processing: ON	Long-press to start. Long-press again (~2s) to stop. Locks all I/O parameters while running.	Lock all I/O parameters and start the DSP. Long press to stop the DSP.
-Stage	Stage Shape	StageShape	drop down menu	INT	0	2	0		Box ; Cylinder ; Dome	Defines stage geometry.	Select the shape of the stage (Box, Cylinder, or Dome).
-Stage	Stage Width	StageWidth	number box	FLOAT	0.0	100.0	20.0	m		Visible when Shape = Box.	Width of the stage in meters (Box shape only).
-Stage	Stage Depth	StageDepth	number box	FLOAT	0.0	100.0	10.0	m		Visible when Shape = Box.	Depth of the stage in meters (Box shape only).
-Stage	Stage Height	StageHeight	number box	FLOAT	0.0	100.0	8.0	m		Visible when Shape = Box or Cylinder.	Height of the stage in meters (Box and Cylinder shapes).
-Stage	Stage Diameter	StageDiameter	number box	FLOAT	0.1	100.0	20.0	m		Visible when Shape = Cylinder or Dome.	Diameter of the stage in meters (Cylinder and Dome shapes).
-Stage	Dome Elevation	DomeElevation	number box	FLOAT	1.0	360.0	180.0	degrees		Visible when Shape = Dome. 180 deg = hemisphere, 360 deg = full sphere.	Dome elevation angle: 180 = hemisphere, 360 = full sphere.
-Stage	Origin Width	StageOriginWidth	number box	FLOAT	-100.0	200.0	0.0	m		Center-referenced coordinate system.	Origin X offset from stage center (0 = centered, negative = left).
-Stage	Origin Depth	StageOriginDepth	number box	FLOAT	-100.0	200.0	-5.0	m		Center-referenced coordinate system.	Origin Y offset from stage center (0 = centered, negative = front/downstage).
-Stage	Origin Height	StageOriginHeight	number box	FLOAT	-100.0	200.0	0.0	m		Center-referenced coordinate system.	Origin Z offset from floor (0 = floor level, positive = above floor).
+Stage	Stage Shape	stageShape	drop down menu	INT	0	2	0		Box ; Cylinder ; Dome	Defines stage geometry.	Select the shape of the stage (Box, Cylinder, or Dome).
+Stage	Stage Width	stageWidth	number box	FLOAT	0.0	100.0	20.0	m		Visible when Shape = Box.	Width of the stage in meters (Box shape only).
+Stage	Stage Depth	stageDepth	number box	FLOAT	0.0	100.0	10.0	m		Visible when Shape = Box.	Depth of the stage in meters (Box shape only).
+Stage	Stage Height	stageHeight	number box	FLOAT	0.0	100.0	8.0	m		Visible when Shape = Box or Cylinder.	Height of the stage in meters (Box and Cylinder shapes).
+Stage	Stage Diameter	stageDiameter	number box	FLOAT	0.1	100.0	20.0	m		Visible when Shape = Cylinder or Dome.	Diameter of the stage in meters (Cylinder and Dome shapes).
+Stage	Dome Elevation	domeElevation	number box	FLOAT	1.0	360.0	180.0	degrees		Visible when Shape = Dome. 180 deg = hemisphere, 360 deg = full sphere.	Dome elevation angle: 180 = hemisphere, 360 = full sphere.
+Stage	Origin Width	originWidth	number box	FLOAT	-100.0	200.0	0.0	m		Center-referenced coordinate system.	Origin X offset from stage center (0 = centered, negative = left).
+Stage	Origin Depth	originDepth	number box	FLOAT	-100.0	200.0	-5.0	m		Center-referenced coordinate system.	Origin Y offset from stage center (0 = centered, negative = front/downstage).
+Stage	Origin Height	originHeight	number box	FLOAT	-100.0	200.0	0.0	m		Center-referenced coordinate system.	Origin Z offset from floor (0 = floor level, positive = above floor).
 Stage	Origin Preset: Front		icon button							Sets origin to front-center of stage at floor level. Typical for frontal setups.	Set origin to front center of stage. Typical for frontal stages.
 Stage	Origin Preset: Center Ground		icon button							Sets origin to stage center at floor level (all offsets = 0). Typical for Surround or Cylindrical setups.	Set origin to center of stage at ground level. Typical for Surround or Cylindrical setups.
 Stage	Origin Preset: Center		icon button							Sets origin to volumetric center of stage. Typical for Spherical Dome setups.	Set origin to center of stage volume. Typical for Spherical Dome setups.
@@ -27,12 +27,12 @@ Stage	Origin Shift Inputs		text button (long-press)							Conditional: shown aft
 Stage	Origin Shift Outputs		text button (long-press)							Conditional: shown after origin change. Long-press shifts all output positions by the origin delta.	Long press to shift all output positions by the origin change.
 Stage	Origin Shift Reverbs		text button (long-press)							Conditional: shown after origin change. Long-press shifts all reverb positions by the origin delta.	Long press to shift all reverb positions by the origin change.
 Stage	Origin Dismiss (Inputs / Outputs / Reverbs)		text button (long-press)							Conditional: paired with each Origin Shift button. Long-press dismisses the prompt and keeps current positions.	Long press to dismiss and keep current positions.
-Stage	Speed of Sound	SpeedOfSound	number box	FLOAT	319.2	367.7	343.0	m/s		speedOfSound = 331.3 + 0.606 * temperature. Updates automatically when Temperature changes.	Speed of Sound (related to the temperature).
-Stage	Temperature	Temperature	number box	FLOAT	-20.0	60.0	20.0	C		temperature = (speedOfSound - 331.3) / 0.606. Updates automatically when Speed of Sound changes.	Temperature (gives the Speed of Sound).
-Master Section	Master Level	MasterLevel	number box	FLOAT	-92.0	0.0	0.0	dB		Affects all outputs.	Master Level (affects all outputs).
-Master Section	System Latency	SystemLatency	number box	FLOAT	0.0	10.0	0.0	ms		Total latency of mixing board and computer. Per-input/output latency is set in the Inputs/Outputs tabs.	Total latency of the system (Mixing board & Computer). Specific Input and Output Latency/Delay can be set in the respective Input and Output settings.
-Master Section	Haas Effect	HaasEffect	number box	FLOAT	0.0	10.0	0.0	ms		Takes System Latency and per-input/output latency compensation into account.	Haas Effect to apply to the system. Will take into account the Latency Compensations (System, Input and Output).
-UI	Color Scheme	ColorScheme	drop down menu	INT	0	2	0		Default (Dark Gray) ; Black ; Light	Black theme targets OLED displays. Light theme targets daytime use.	Select the color scheme: Default (dark gray), Black (pure black for OLED displays), or Light (daytime use).
+Stage	Speed of Sound	speedOfSound	number box	FLOAT	319.2	367.7	343.0	m/s		speedOfSound = 331.3 + 0.606 * temperature. Updates automatically when Temperature changes.	Speed of Sound (related to the temperature).
+Stage	temperature	temperature	number box	FLOAT	-20.0	60.0	20.0	C		temperature = (speedOfSound - 331.3) / 0.606. Updates automatically when Speed of Sound changes.	Temperature (gives the Speed of Sound).
+Master Section	Master Level	masterLevel	number box	FLOAT	-92.0	0.0	0.0	dB		Affects all outputs.	Master Level (affects all outputs).
+Master Section	System Latency	systemLatency	number box	FLOAT	0.0	10.0	0.0	ms		Total latency of mixing board and computer. Per-input/output latency is set in the Inputs/Outputs tabs.	Total latency of the system (Mixing board & Computer). Specific Input and Output Latency/Delay can be set in the respective Input and Output settings.
+Master Section	Haas Effect	haasEffect	number box	FLOAT	0.0	10.0	0.0	ms		Takes System Latency and per-input/output latency compensation into account.	Haas Effect to apply to the system. Will take into account the Latency Compensations (System, Input and Output).
+UI	Color Scheme	colorScheme	drop down menu	INT	0	2	0		Default (Dark Gray) ; Black ; Light	Black theme targets OLED displays. Light theme targets daytime use.	Select the color scheme: Default (dark gray), Black (pure black for OLED displays), or Light (daytime use).
 UI	Long Press		toggle button	INT	0	1	0		Normal ; Quick	Application-level setting. Stored in AppSettings, not in the project config. Toggles the long-press duration globally.	Long press duration. Instead of confirmation windows this software uses long presses.
 UI	Language		drop down menu	STRING			English		English ; Francais ; Deutsch ; Espanol ; Italiano ; Portugues ; Japanese ; Chinese ; Korean	Application-level setting. Enum populated dynamically from Resources/lang/*.json. Full effect requires an application restart.	Select the user interface language. Changes take full effect after restarting the application.
 Controllers	Dials and Buttons	DialsAndButtonsDevice	drop down menu	INT	0	2	0		Off ; Stream Deck+ ; XenceLabs Quick Keys	Either/or selection. Only one dials-and-buttons device can be active at a time.	Select the hardware controller for dials and buttons: Stream Deck+ or XenceLabs Quick Keys.
@@ -43,7 +43,7 @@ Controllers	Remote Pad Setup		text button				Setup			Visible only when Sampler C
 Binaural Renderer	Binaural Enable	binauralEnabled	text button (long-press)	INT	0	1	0		Binaural: OFF ; Binaural: ON	Long-press to toggle. Disabled (50% alpha) when no Binaural Output channel is selected.	Enable or disable the binaural renderer processing.
 Binaural Renderer	Binaural Output	binauralOutputChannel	drop down menu	INT	-1	62	-1		Select... ; 1-2 ; 3-4 ; 5-6 ; ... ; 63-64	First output channel of the stereo pair. -1 = disabled. Enum rebuilt dynamically from output patch state.	Select output channel pair for binaural monitoring. Off disables binaural output.
 Binaural Renderer	Listener Distance	binauralListenerDistance	H slider + number box	FLOAT	0.0	10.0	5.0	m		Distance from stage origin along the listener's facing direction.	Distance of binaural listener from stage origin (meters).
-Binaural Renderer	Listener Angle	binauralListenerAngle	rotation dial + number box	INT	-180	180	0	degrees		0 degrees = facing stage origin. Integer degrees only.	Horizontal rotation of binaural listener view (degrees, 0 = facing stage).
+Binaural Renderer	Listener Angle	binauralListenerAngle	rotation dial + number box	FLOAT	-180	180	0	degrees		0 degrees = facing stage origin. Fractional degrees supported.	Horizontal rotation of binaural listener view (degrees, 0 = facing stage).
 Binaural Renderer	Binaural Level	binauralAttenuation	H slider + number box	FLOAT	-40.0	0.0	0.0	dB		Overall level offset for the binaural output.	Overall level offset for binaural output (dB).
 Binaural Renderer	Binaural Delay	binauralDelay	H slider + number box	FLOAT	0.0	100.0	0.0	ms		Additional delay applied to the binaural output.	Additional delay for binaural output (milliseconds).
 Binaural Renderer	Solo Mode	binauralSoloMode	text button	INT	0	1	0		Solo: Single ; Solo: Multi	Single = only one input soloed at a time (clicking S clears others). Multi = multiple simultaneous solos.	Single: one input at a time. Multi: multiple inputs simultaneously.

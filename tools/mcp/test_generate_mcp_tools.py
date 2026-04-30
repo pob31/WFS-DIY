@@ -80,14 +80,14 @@ def test_goldenA_input_attenuation():
         row,
         tier_overrides={"inputAttenuation": 2},
     )
-    assert tool["name"] == "input.set_attenuation"
+    assert tool["name"] == "input_set_attenuation"
     assert tool["tier"] == 2
     assert tool["internal_osc_path"] == "/wfs/input/attenuation"
     assert tool["internal_variable"] == "inputAttenuation"
     assert tool["csv_section"] == "Attenuation"
     assert tool["group_key"] == "input_attenuation"
     assert tool["supports_relative"] is True
-    assert tool["relative_tool_name"] == "input.nudge_attenuation"
+    assert tool["relative_tool_name"] == "input_nudge_attenuation"
     props = tool["parameters"]["properties"]
     assert props["input_id"]["minimum"] == 1
     assert props["input_id"]["maximum"] == 64
@@ -117,7 +117,7 @@ def test_goldenB_output_eq_freq():
         osc_path="/wfs/output/Eqfreq <ID> <band> <value>",
     )
     tool = run_process(row)
-    assert tool["name"] == "output.eq.set_frequency"
+    assert tool["name"] == "output_eq_set_frequency"
     assert tool["tier"] == 1
     assert tool["internal_osc_path"] == "/wfs/output/Eqfreq"
     # The <band> placeholder is stripped from internal_variable so the C++
@@ -158,7 +158,7 @@ def test_goldenC_input_array_attenuation():
         row,
         tier_overrides={"inputArrayAtten*": 2},
     )
-    assert tool["name"] == "input.set_array_attenuation"
+    assert tool["name"] == "input_set_array_attenuation"
     assert tool["tier"] == 2
     # The path becomes a template form because the family parameterizes the
     # trailing digit.
@@ -216,7 +216,7 @@ def test_goldenD_output_eq_shape_enum():
         osc_path="/wfs/output/EQshape <ID> <band> <value>",
     )
     tool = run_process(row)
-    assert tool["name"] == "output.eq.set_shape"
+    assert tool["name"] == "output_eq_set_shape"
     assert tool["tier"] == 1
     enum_map = tool["enum_string_to_int"]
     # Non-sequential mapping per the spec.
@@ -253,9 +253,9 @@ def test_goldenE_network_protocol_12col_layout():
     # Variable is `networkTSProtocol` -> stripped to `TSProtocol` -> snake-cased.
     # Section "Network" -> namespace "network" (CSV namespace).
     # The exact tool-name shape depends on stripping rules; the contract is:
-    # - starts with "network." (CSV namespace),
+    # - starts with "network_" (CSV namespace),
     # - includes "protocol" somewhere in the action segment.
-    assert tool["name"].startswith("network.")
+    assert tool["name"].startswith("network_")
     assert "protocol" in tool["name"]
     # 12-column layout means OSC path is derived from convention.
     assert tool["internal_osc_path"].startswith("/wfs/network/")
@@ -359,6 +359,108 @@ def test_integration_runs_against_live_csvs(tmp_path):
         assert t["tier"] in (1, 2, 3), t["name"]
         assert t["group_key"], t["name"]
         assert t["description"], t["name"]
+
+
+def test_schema_quality_smoke(tmp_path):
+    """End-to-end schema-quality assertions over the full generated surface.
+
+    Catches regressions across the live CSVs:
+      - tool names obey OpenAI's tool-name regex (no dots/colons/spaces);
+      - enum lists are real enums, not single-item description leaks
+        (the bug that produced enum=["VirtualparamconvertstoXYZinternally"]
+        on the AutomOtion virtual-radius tool);
+      - per-channel tools list the channel-id arg first in `required`;
+      - per-channel tool descriptions carry the `session_get_state` hint
+        so the AI knows to fetch state before guessing channel ranges;
+      - when a tool advertises a `value_arg_name`, that name actually
+        appears in `properties` and `required`.
+    """
+    import re
+    out_path = tmp_path / "generated_tools.json"
+    groups_path = tmp_path / "generated_groups.json"
+    rc = g.main([
+        "--csv-dir", str(REPO_ROOT / "Documentation"),
+        "--overrides-tier", str(REPO_ROOT / "tools/mcp/tool_tier_overrides.json"),
+        "--overrides-ignore", str(REPO_ROOT / "tools/mcp/tool_generation_ignores.json"),
+        "--output", str(out_path),
+        "--groups-output", str(groups_path),
+        "--force",
+    ])
+    assert rc == 0
+    data = json.loads(out_path.read_text(encoding="utf-8"))
+
+    name_re = re.compile(r"^[a-zA-Z0-9_-]{1,64}$")
+    channel_id_args = {"input_id", "output_id", "reverb_id", "cluster_id", "cell_id"}
+
+    failures: list[str] = []
+    all_tools = list(data["tools"]) + list(data.get("nudge_tools", []))
+    for t in all_tools:
+        name = t.get("name", "")
+        if not name_re.match(name):
+            failures.append(f"{name!r}: tool name fails regex {name_re.pattern}")
+
+        params = t.get("parameters", {})
+        props = params.get("properties", {})
+        required = params.get("required", [])
+
+        # If the tool sets value_arg_name, the renamed key must exist in
+        # properties + required.
+        vname = t.get("value_arg_name")
+        if vname is not None:
+            if vname not in props:
+                failures.append(f"{name}: declares value_arg_name={vname!r} but properties has {sorted(props)!r}")
+            if vname not in required:
+                failures.append(f"{name}: declares value_arg_name={vname!r} but it's not in required")
+
+        # Per-channel tools (any property name is a known channel-id arg)
+        # must list that arg first in `required`.
+        chan_args_present = [k for k in required if k in channel_id_args]
+        if chan_args_present:
+            if required[0] not in channel_id_args:
+                failures.append(f"{name}: channel-id arg should be first in `required`, got {required!r}")
+            # And the description should hint at session_get_state.
+            desc = t.get("description", "")
+            if "session_get_state" not in desc:
+                failures.append(f"{name}: per-channel tool missing session_get_state hint")
+
+        # Enum sanity — every enum field should have multiple distinct
+        # entries OR be irrelevant. A lone string in an enum almost always
+        # means a description leaked from the Notes column.
+        for prop_name, prop in props.items():
+            enum_vals = prop.get("enum")
+            if enum_vals is None:
+                continue
+            if not isinstance(enum_vals, list) or not enum_vals:
+                failures.append(f"{name}.{prop_name}: enum is empty/non-list")
+                continue
+            if len(enum_vals) == 1:
+                failures.append(
+                    f"{name}.{prop_name}: single-entry enum {enum_vals!r} — "
+                    "likely a description leak from the Notes column"
+                )
+            for ev in enum_vals:
+                if not isinstance(ev, str) or not ev.strip():
+                    failures.append(f"{name}.{prop_name}: empty/non-string enum value {ev!r}")
+
+        # Phase 8: tier-2 / tier-3 tools must declare an optional
+        # `confirm` string property so AI clients can satisfy the
+        # two-step handshake. `confirm` must NOT be in `required`
+        # (otherwise the first call can't be made).
+        tier = t.get("tier", 1)
+        if tier >= 2:
+            confirm_prop = props.get("confirm")
+            if confirm_prop is None:
+                failures.append(f"{name}: tier-{tier} tool missing optional `confirm` property")
+            elif confirm_prop.get("type") != "string":
+                failures.append(f"{name}: `confirm` must be type=string, got {confirm_prop!r}")
+            elif "confirm" in required:
+                failures.append(f"{name}: `confirm` must NOT be in `required` "
+                                "(it's only sent on the second call)")
+
+    if failures:
+        joined = "\n  ".join(failures[:50])
+        more = f"\n  …and {len(failures) - 50} more" if len(failures) > 50 else ""
+        raise AssertionError(f"schema-quality issues:\n  {joined}{more}")
 
 
 def test_idempotency_fast_path(tmp_path):

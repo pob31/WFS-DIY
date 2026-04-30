@@ -4,6 +4,7 @@
 #include <limits>
 #include "../ColorScheme.h"
 #include "../../Accessibility/TTSManager.h"
+#include "../../Network/OSCProtocolTypes.h"
 
 // Shared interactive base class for custom JUCE sliders that mimics
 // the bespoke Compose sliders from the Android app. It handles hit
@@ -158,6 +159,14 @@ protected:
     virtual void paintSlider(juce::Graphics& g, juce::Rectangle<float> bounds) = 0;
     virtual void valueChanged()
     {
+        // Phase 5b: tag downstream parameter writes as UI-origin so the MCP
+        // server's staleness detector and Network Log Origin column know
+        // who's driving. This single chokepoint covers every custom slider
+        // in the app (WfsStandardSlider, WfsBidirectionalSlider,
+        // WfsAutoCenterSlider, WfsRangeSlider, etc.) — they all dispatch
+        // through this base method.
+        WFSNetwork::OriginTagScope originScope { WFSNetwork::OriginTag::UI };
+
         if (onValueChanged)
             onValueChanged(value);
 

@@ -94,6 +94,68 @@ Quick start:
 - Official `.pkg` releases are codesigned with Developer ID and notarized, so Gatekeeper opens them without any warning
 - Grant microphone permission when prompted (required for audio input)
 
+## AI Control (MCP Server)
+
+WFS-DIY embeds a [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server so an AI assistant — Claude Desktop, Claude Code, ChatGPT with custom connectors, Cursor, or any MCP-capable client — can read and write the live session: move sources, rename channels, edit arrays, recall snapshots, run guided workflows over the full parameter surface.
+
+The server is enabled by default. It starts automatically with the application and listens on **`http://127.0.0.1:7400/mcp`** (Streamable HTTP transport) bound to loopback only. If port 7400 is busy it falls back to the next three port numbers — the live URL is always shown by the **MCP URL** button in the Network tab.
+
+### Operator controls (Network tab, "AI / MCP Server" row)
+
+- **AI: ON / OFF** — master switch. When OFF every AI tool call is refused.
+- **AI critical actions: blocked / ALLOWED** — destructive actions (delete snapshots, reset DSP, change channel counts) are blocked by default. Click to allow them for 10 minutes; the red fill drains as the window expires, then they auto-block again.
+- **MCP URL button** — copies the live endpoint URL to the clipboard.
+- **Open AI History** — scrollable timeline of every recent AI change, with per-row undo / redo. `Cmd/Ctrl + Alt + Z` and `Cmd/Ctrl + Alt + Y` undo / redo AI changes without affecting your manual edits (plain `Ctrl+Z` still works as usual on user actions).
+- **Help "?" → Copy Config** — copies a ready-to-paste JSON snippet that always matches the live URL.
+
+### Adding the server to your AI assistant
+
+#### Claude Desktop (macOS / Windows)
+
+1. Start WFS-DIY and confirm the **MCP URL** button shows a `http://...` URL (not "stopped").
+2. In the Network tab, open the **AI / MCP Server** help card and click **Copy Config**. You'll get a snippet like:
+   ```json
+   {
+     "mcpServers": {
+       "wfs-diy": {
+         "url": "http://127.0.0.1:7400/mcp"
+       }
+     }
+   }
+   ```
+3. In Claude Desktop: **Settings → Developer → Edit Config**. This opens `claude_desktop_config.json`.
+4. Paste the snippet. If you already have an `mcpServers` block, merge the `"wfs-diy"` entry into it rather than duplicating the parent key.
+5. Save and restart Claude Desktop. The server appears as **wfs-diy** in the tools menu.
+
+#### Claude Code (CLI)
+
+With WFS-DIY running, copy the URL shown by the Network tab's **MCP URL** button, then run:
+```bash
+claude mcp add wfs-diy http://127.0.0.1:7400/mcp -t http
+```
+Replace the URL with whatever the button shows if the server has fallen back to a different port. Verify with `claude mcp list` and ask Claude to "list inputs" to confirm the connection.
+
+#### Other MCP-capable clients (ChatGPT custom connectors, Cursor, Continue, etc.)
+
+Any client that supports the **Streamable HTTP** MCP transport can connect to the same endpoint. Configure a new server with:
+
+- **Transport:** Streamable HTTP (a single endpoint, not the legacy HTTP+SSE pair)
+- **URL:** the value of the MCP URL button (default `http://127.0.0.1:7400/mcp`)
+- **Authentication:** none
+
+Refer to your client's MCP configuration documentation for the exact UI path.
+
+### Connecting from a different machine
+
+The server binds to loopback (`127.0.0.1`) by default — only an AI client running on the same computer as WFS-DIY can reach it. To allow a remote AI client, switch the bind scope to the selected network interface in the Network tab, then use that machine's LAN IP in the URL (e.g. `http://192.168.1.20:7400/mcp`). Treat this as a local-trust setup: there is no authentication in v1, so do not expose port 7400 to the public internet.
+
+### Troubleshooting
+
+- **MCP URL button shows "stopped".** The server failed to bind. Open the Network Log window to see the reason — usually another process is holding port 7400. The server tries the next three ports automatically, so re-copy the URL once it comes up.
+- **AI assistant reports "tool call refused".** Check the **AI: ON / OFF** toggle and the **AI critical actions** gate. Tier-3 (destructive) tools require both to be permissive.
+- **Endpoint URL changed.** Switching network interface or hitting a port fallback updates the URL. The MCP URL button always reflects the live value — re-copy it and update your client config.
+- **AI looks out of sync after you moved a fader by hand.** Expected. Manual edits take precedence; the AI is notified and re-reads state before its next action.
+
 ## Development
 
 This project uses Git for version control and is designed for cross-platform development. Make sure to:

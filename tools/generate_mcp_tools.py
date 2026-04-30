@@ -319,15 +319,26 @@ def strip_variable_prefix(variable: str, csv_file: str) -> str:
 # constant trailing digit-run, then a sister entry confirming this is a family.
 _NUMERIC_FAMILY_RE = re.compile(r"^(.*?)(\d+)$")
 
+# Populated once at the top of `main()` after a pre-scan of every CSV.
+# Holds the set of stems that actually appear in two-or-more sister rows
+# (e.g. `inputArrayAtten` for inputArrayAtten1..10). Without this gate,
+# a lone variable whose name happens to end in digits — like `reverbRT60`
+# — is treated as "instance #60 of a 60-element family" and silently
+# skipped because num != 1. With the gate, only stems with real siblings
+# trigger the family-dedup path.
+_REAL_FAMILY_STEMS: set[str] | None = None
+
 
 def detect_numeric_family(variable: str) -> tuple[str, int] | None:
-    """If `variable` ends in a digit, return (stem, number); else None.
-    The caller decides whether the family is real (sister rows present) or
-    incidental."""
+    """If `variable` ends in a digit AND its stem has sister rows, return
+    (stem, number); else None. Lone numeric-suffix variables (e.g.
+    `reverbRT60`, `mp3Bitrate`) return None and become regular tools."""
     m = _NUMERIC_FAMILY_RE.match(variable)
     if not m:
         return None
     stem, num = m.group(1), int(m.group(2))
+    if _REAL_FAMILY_STEMS is not None and stem not in _REAL_FAMILY_STEMS:
+        return None
     return stem, num
 
 
@@ -344,13 +355,28 @@ _ENUM_WITH_ID_RE = re.compile(r"^(.*?)\s*\((\d+)\)\s*$")
 def parse_enum(enum_str: str) -> tuple[list[str], dict[str, int] | None]:
     """Parse an `enum` cell. Returns (items, string_to_int_map_or_None).
 
-    If items have explicit "(N)" stored IDs, the map is returned. Otherwise the
+    Defensive heuristic: only treat the cell as an enum when it holds
+    multiple `;`-separated items, OR at least one entry uses the explicit
+    `Label (N)` form. A lone string in the cell is almost always a stray
+    comment/note that drifted from the Notes column (one such drift
+    produced `enum: ["VirtualparamconvertstoXYZinternally"]` for the
+    AutomOtion virtual-radius tool). Better to surface the value as a
+    real number/string than to ship a single-element bogus enum.
+
+    If items have explicit "(N)" stored IDs, the map is returned. Otherwise
     items are taken at face value and the C++ side maps positionally.
     """
     if not enum_str.strip():
         return [], None
     raw_items = [p.strip() for p in enum_str.split(";")]
     raw_items = [p for p in raw_items if p]
+    if not raw_items:
+        return [], None
+    has_explicit_ids = any(_ENUM_WITH_ID_RE.match(item) for item in raw_items)
+    if len(raw_items) < 2 and not has_explicit_ids:
+        # Single non-`(N)` entry — almost certainly a stray comment, not a
+        # one-value enum. Drop it.
+        return [], None
     items: list[str] = []
     mapping: dict[str, int] = {}
     has_ids = False
@@ -501,8 +527,10 @@ def is_non_parameter_row(row: CSVRow) -> bool:
 
 
 def derive_tool_name(row: CSVRow, csv_namespace: str) -> tuple[str, str | None]:
-    """Compute the dot-namespaced tool name and (optionally) the matching
-    nudge tool name."""
+    """Compute the underscore-namespaced tool name and (optionally) the
+    matching nudge tool name. Names use only [A-Za-z0-9_-] so they pass
+    the OpenAI-style tool-name regex (^[a-zA-Z0-9_-]{1,64}$) that some
+    MCP clients (e.g. ChatGPT's Frontend MCP integration) enforce."""
     variable = row.variable
     family = detect_numeric_family(variable)
     band = detect_band_placeholder(variable)
@@ -539,15 +567,15 @@ def derive_tool_name(row: CSVRow, csv_namespace: str) -> tuple[str, str | None]:
 
     base = expanded if expanded else "value"
     parts.append(f"{SET_VERB}_{base}")
-    tool_name = ".".join(parts)
+    tool_name = "_".join(parts)
 
     # Nudge variant if the row supports relative writes.
     nudge_name = None
     if row.osc_inc_dec.strip().lower() == "y":
         if section_snake and not _is_redundant_section(section_snake, base):
-            nudge_name = f"{csv_namespace}.{section_snake}.{NUDGE_VERB}_{base}"
+            nudge_name = f"{csv_namespace}_{section_snake}_{NUDGE_VERB}_{base}"
         else:
-            nudge_name = f"{csv_namespace}.{NUDGE_VERB}_{base}"
+            nudge_name = f"{csv_namespace}_{NUDGE_VERB}_{base}"
 
     return tool_name, nudge_name
 
@@ -584,7 +612,7 @@ def derive_description(row: CSVRow, csv_namespace: str,
         )
     if per_channel:
         parts.append(
-            "Use `session.get_state()` first if unsure which channels exist."
+            "Use `session_get_state()` first if unsure which channels exist."
         )
     return ". ".join(p.rstrip(".") for p in parts) + "."
 
@@ -605,10 +633,16 @@ def is_per_channel(row: CSVRow) -> bool:
 def derive_schema(row: CSVRow, tool_name: str,
                    enum_items: list[str], enum_map: dict[str, int] | None,
                    family: tuple[str, int] | None,
-                   band: bool) -> tuple[dict, list[str]]:
-    """Build the JSON Schema for a tool's `parameters` field."""
+                   band: bool) -> tuple[dict, list[str], str]:
+    """Build the JSON Schema for a tool's `parameters` field.
+
+    Returns (schema, required_list, value_arg_name) — the third item names
+    which property carries the actual value (most often "value", but
+    "name"/"mode"/"shape"/"protocol" for self-documenting cases). The
+    C++ loader uses this to know which JSON key to read for the write."""
     properties: dict[str, dict] = {}
     required: list[str] = []
+    value_arg_name = "value"
 
     # Channel-id argument first (per-channel CSVs).
     if is_per_channel(row):
@@ -669,6 +703,7 @@ def derive_schema(row: CSVRow, tool_name: str,
         }
         properties[val_name] = val_arg
         required.append(val_name)
+        value_arg_name = val_name
     elif type_str.startswith("INT"):
         val_arg = {"type": "integer"}
         if row.min.strip():
@@ -706,8 +741,16 @@ def derive_schema(row: CSVRow, tool_name: str,
             "type": "string",
             "description": (row.label.strip() or "Value") + ".",
         }
-        properties["value"] = val_arg
-        required.append("value")
+        # Self-documenting argument name for rename-style tools. Variables
+        # like `outputName`, `samplerSetName`, `clusterLfoPresetName` are
+        # recognisable by their `Name` suffix, and matching that to a
+        # `name:` argument matches `input.set_name` (the hand-written
+        # reference) and the operator's natural phrasing
+        # ("rename input 3 to Marie").
+        val_name = "name" if row.variable.endswith("Name") else "value"
+        properties[val_name] = val_arg
+        required.append(val_name)
+        value_arg_name = val_name
     elif type_str.startswith("IP"):
         val_arg = {
             "type": "string",
@@ -736,7 +779,34 @@ def derive_schema(row: CSVRow, tool_name: str,
         "type": "object",
         "properties": properties,
         "required": required,
-    }, required
+    }, required, value_arg_name
+
+
+# ----------------------------------------------------------------- tier confirm
+
+CONFIRM_PROPERTY_DESCRIPTION = (
+    "Confirmation token returned by the previous call to this tool. "
+    "Tier 2 and Tier 3 tools require a two-step handshake: the first call "
+    "returns a confirmation_token in tier_enforcement; re-call with confirm "
+    "set to that token (within 30 seconds) to actually execute. Omit on the "
+    "first call."
+)
+
+
+def inject_confirm_if_needed(schema: dict, tier: int) -> None:
+    """Tier 2 and Tier 3 tools require a confirmation handshake. The
+    dispatcher consumes a `confirm` arg on the second call; without
+    declaring it in the schema, AI clients that respect the schema (or
+    enforce additionalProperties: false) refuse to send the field. Add
+    `confirm` as an optional string property; do not add it to required.
+    Tier 1 tools execute immediately and don't need the slot."""
+    if tier < 2:
+        return
+    properties = schema.setdefault("properties", {})
+    properties["confirm"] = {
+        "type": "string",
+        "description": CONFIRM_PROPERTY_DESCRIPTION,
+    }
 
 
 def derive_osc_path(row: CSVRow) -> tuple[str, str | None]:
@@ -815,7 +885,7 @@ def process_row(row: CSVRow,
 
     tool_name, nudge_name = derive_tool_name(row, csv_namespace)
 
-    schema, _required = derive_schema(
+    schema, _required, value_arg_name = derive_schema(
         row, tool_name, enum_items, enum_map, family, band,
     )
 
@@ -828,6 +898,12 @@ def process_row(row: CSVRow,
     if tier is None:
         tier = heuristic_tier(row.variable, row.label, row.type,
                                 row.min, row.max)
+
+    # Phase 8: tier-2/3 schemas declare an optional `confirm` field so
+    # AI clients can satisfy the two-step handshake. Tier-1 schemas are
+    # untouched. Schema is mutated in place — derive_schema returns
+    # before tier is known, so this is the right insertion point.
+    inject_confirm_if_needed(schema, tier)
 
     # OSC path
     osc_path, osc_template = derive_osc_path(row)
@@ -855,6 +931,12 @@ def process_row(row: CSVRow,
     if enum_map is not None:
         record["enum_string_to_int"] = enum_map
 
+    # Tell the C++ loader which JSON key carries the actual value. The
+    # default ("value") is dropped to keep the JSON compact; only emit
+    # for self-documenting renamings ("name", "mode", "shape", "protocol").
+    if value_arg_name != "value":
+        record["value_arg_name"] = value_arg_name
+
     if record["supports_relative"]:
         record["relative_tool_name"] = nudge_name
 
@@ -868,10 +950,17 @@ def process_row(row: CSVRow,
 
     nudge_record = None
     if record["supports_relative"] and nudge_name is not None:
+        nudge_desc = (
+            "Relative-adjustment variant of "
+            f"`{tool_name}`. Sends an `inc` or `dec` step."
+        )
+        if is_per_channel(row):
+            nudge_desc += (
+                " Use `session_get_state()` first if unsure which channels exist."
+            )
         nudge_record = {
             "name": nudge_name,
-            "description": "Relative-adjustment variant of "
-                           f"`{tool_name}`. Sends an `inc` or `dec` step.",
+            "description": nudge_desc,
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -966,8 +1055,17 @@ def hash_inputs(csv_dir: Path, override_files: list[Path]) -> str:
 
 
 def write_json(path: Path, data: dict) -> None:
-    """Write JSON deterministically (sorted, 2-space indent, LF line endings)."""
-    text = json.dumps(data, indent=2, sort_keys=True, ensure_ascii=False)
+    """Write JSON deterministically.
+
+    Insertion order is preserved (Python 3.7+ dicts are insertion-ordered)
+    so the schema's `properties` keep channel_id first, then sub-index,
+    then the value arg — the order operators read top-to-bottom. The tools
+    list itself is pre-sorted by name in main(); ignored / warnings /
+    groups are sorted at construction. Determinism is guaranteed by
+    construction, not by sort_keys=True (which would scramble the
+    semantically-meaningful ordering of `properties`).
+    """
+    text = json.dumps(data, indent=2, ensure_ascii=False)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text + "\n", encoding="utf-8", newline="\n")
 
@@ -1011,6 +1109,25 @@ def main(argv: list[str] | None = None) -> int:
 
     tier_overrides = load_overrides_tier(tier_path)
     ignore_map = load_overrides_ignore(ignore_path)
+
+    # Pre-pass: identify which numeric-suffix stems are real families
+    # (≥ 2 sister variables sharing the same stem). Without this, lone
+    # parameters whose names end in digits — such as `reverbRT60` — are
+    # mistakenly treated as the 60th member of a 60-element family and
+    # silently skipped by process_row's family dedup.
+    global _REAL_FAMILY_STEMS
+    _stems_seen: dict[str, set[int]] = defaultdict(set)
+    for fname in CSV_FILES_ORDER:
+        p = csv_dir / fname
+        if not p.exists():
+            continue
+        for row in read_csv(p):
+            if not row.variable.strip():
+                continue
+            m = _NUMERIC_FAMILY_RE.match(row.variable)
+            if m:
+                _stems_seen[m.group(1)].add(int(m.group(2)))
+    _REAL_FAMILY_STEMS = {s for s, nums in _stems_seen.items() if len(nums) >= 2}
 
     tools: list[dict] = []
     nudge_tools: list[dict] = []

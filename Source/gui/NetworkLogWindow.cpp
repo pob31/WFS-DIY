@@ -27,6 +27,7 @@ juce::Colour NetworkLogWindowContent::getProtocolColor(WFSNetwork::Protocol prot
         case WFSNetwork::Protocol::PSN:      return juce::Colour(0xFFAA4477);
         case WFSNetwork::Protocol::RTTrP:    return juce::Colour(0xFF77AA44);
         case WFSNetwork::Protocol::MQTT:     return juce::Colour(0xFF44AAAA);
+        case WFSNetwork::Protocol::MCP:      return juce::Colour(0xFFCC44AA);
         default:                             return juce::Colour(0xFF888888);
     }
 }
@@ -61,6 +62,7 @@ void NetworkLogTableComponent::setupColumns()
     columns.push_back({ LOC("networkLog.columns.port"), sc(50), false });
     columns.push_back({ LOC("networkLog.columns.transport"), sc(45), false });
     columns.push_back({ LOC("networkLog.columns.protocol"), sc(65), false });
+    columns.push_back({ LOC("networkLog.columns.origin"), sc(60), false });
     columns.push_back({ LOC("networkLog.columns.address"), sc(180), false });
     columns.push_back({ LOC("networkLog.columns.arguments"), sc(200), true });  // Flexible column
 }
@@ -249,9 +251,11 @@ juce::String NetworkLogTableComponent::getColumnValue(const WFSNetwork::LogEntry
             return entry.getTransportString();
         case 5:  // Protocol
             return entry.isRejected ? LOC("networkLog.status.rejected") : entry.getProtocolString();
-        case 6:  // Address
+        case 6:  // Origin
+            return entry.getOriginString();
+        case 7:  // Address
             return entry.address;
-        case 7:  // Arguments
+        case 8:  // Arguments
             return entry.isRejected ? entry.rejectReason : entry.arguments;
         default:
             return "";
@@ -541,6 +545,7 @@ void NetworkLogWindowContent::applyFilters()
                 else if (name == "RTTrP") filter.enabledProtocols.insert(WFSNetwork::Protocol::RTTrP);
                 else if (name == "QLab") filter.enabledProtocols.insert(WFSNetwork::Protocol::QLab);
                 else if (name == "MQTT") filter.enabledProtocols.insert(WFSNetwork::Protocol::MQTT);
+                else if (name == "MCP")  filter.enabledProtocols.insert(WFSNetwork::Protocol::MCP);
             }
         }
     }
@@ -596,9 +601,27 @@ void NetworkLogWindowContent::updateFilterToggles()
             addToggle(LOC("networkLog.filterToggles.incoming"));
             addToggle(LOC("networkLog.filterToggles.outgoing"));
 
-            // Add toggles for protocols seen in log (protocol names from getProtocolString are not localized)
-            auto protocols = logger.getUniqueProtocols();
-            for (auto proto : protocols)
+            // Always present: every Protocol the app knows about. Without
+            // this we'd only show toggles for protocols we've already seen
+            // entries for — meaning a freshly-opened log with no traffic
+            // yet has no toggles at all, and a protocol like MCP that may
+            // log infrequently can take a long time to surface a toggle.
+            // Discovered-only protocols still merge in below for any
+            // future protocol the enum doesn't yet know about.
+            std::set<WFSNetwork::Protocol> baseline {
+                WFSNetwork::Protocol::OSC,
+                WFSNetwork::Protocol::OSCQuery,
+                WFSNetwork::Protocol::Remote,
+                WFSNetwork::Protocol::ADMOSC,
+                WFSNetwork::Protocol::PSN,
+                WFSNetwork::Protocol::RTTrP,
+                WFSNetwork::Protocol::QLab,
+                WFSNetwork::Protocol::MQTT,
+                WFSNetwork::Protocol::MCP,
+            };
+            auto seen = logger.getUniqueProtocols();
+            baseline.insert(seen.begin(), seen.end());
+            for (auto proto : baseline)
             {
                 WFSNetwork::LogEntry temp;
                 temp.protocol = proto;
@@ -688,7 +711,7 @@ void NetworkLogWindowContent::exportToCSV(bool filteredOnly)
     }
 
     // Header
-    output.writeText("Timestamp,Direction,IP,Port,Transport,Protocol,Address,Arguments,Rejected,RejectReason\n",
+    output.writeText("Timestamp,Direction,IP,Port,Transport,Protocol,Origin,Address,Arguments,Rejected,RejectReason\n",
                      false, false, nullptr);
 
     // Data
@@ -703,6 +726,7 @@ void NetworkLogWindowContent::exportToCSV(bool filteredOnly)
         line += juce::String(entry.port) + ",";
         line += "\"" + entry.getTransportString() + "\",";
         line += "\"" + entry.getProtocolString() + "\",";
+        line += "\"" + entry.getOriginString() + "\",";
         line += "\"" + entry.address.replace("\"", "\"\"") + "\",";
         line += "\"" + entry.arguments.replace("\"", "\"\"") + "\",";
         line += entry.isRejected ? "true" : "false";

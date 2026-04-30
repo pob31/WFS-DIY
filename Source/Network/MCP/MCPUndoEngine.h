@@ -1,0 +1,168 @@
+#pragma once
+
+#include <JuceHeader.h>
+#include <map>
+#include "MCPChangeRecords.h"
+#include "../OSCProtocolTypes.h"
+
+class WFSValueTreeState;
+
+namespace WFSNetwork
+{
+
+/** Outcome of an undo or redo invocation. */
+struct UndoResult
+{
+    bool success = false;
+    juce::String operatorDescription;  // human-readable summary, surfaced to the AI
+    juce::var beforeApplied;           // values that were displaced by this undo
+    juce::var afterApplied;            // values that were written back into the tree
+    juce::String errorCode;            // populated on failure: "no_history", "no_redo",
+                                       //                       "internal_error", "stale_target", ...
+    juce::String errorMessage;
+    juce::var details;                 // structured payload for staleness reports etc.
+    int recordsAffected = 0;           // 1 for the simple case; >1 for batch undo
+
+    static UndoResult ok (juce::String desc, juce::var before, juce::var after, int affected = 1)
+    {
+        return { true, std::move (desc), std::move (before), std::move (after), {}, {}, {}, affected };
+    }
+    static UndoResult fail (juce::String code, juce::String msg, juce::var data = {})
+    {
+        return { false, {}, {}, {}, std::move (code), std::move (msg), std::move (data), 0 };
+    }
+};
+
+/** Backend engine for AI-undo / AI-redo execution against the MCP change-
+    record ring buffer. Phase 1 populated the buffer; Phase 5a (this class)
+    makes the previously-stub `mcp.undo_last_ai_change` and
+    `mcp.redo_last_undone_ai_change` tools actually move state.
+
+    Threading: callers MUST already be on the JUCE message thread inside
+    an OriginTagScope of MCP. The dispatcher's runOnMessageThread wrapper
+    sets both up before invoking the undo-tool handler, so the standard
+    MCP path is fine. The future Phase 5c keyboard-shortcut path is also
+    fine since keyboard events arrive on the message thread; that path
+    just needs to wrap its call site in OriginTagScope { MCP }.
+
+    Doing a second message-thread hop here would deadlock — the message
+    thread can't process the inner callAsync while waiting on its
+    completion event.
+
+    Phase 5b layers staleness detection and cross-actor notifications on
+    top of this primitive; Phase 5c adds the toast overlay that calls
+    `undoByIndex` (Block 2) for per-row clicks. */
+class MCPUndoEngine : private juce::ValueTree::Listener
+{
+public:
+    MCPUndoEngine (WFSValueTreeState& state, MCPChangeRecordBuffer& undoRing);
+    ~MCPUndoEngine() override;
+
+    /** Undo the newest record on the undo ring. Reverses its writes, then
+        moves the record onto the internal redo ring. */
+    UndoResult undoLast();
+
+    /** Targeted undo: reverse the record at `recordIndex` (0 = oldest,
+        size-1 = newest), AND any later records in the buffer whose
+        `affected_groups` intersect the target's. The chain is reversed in
+        reverse-chronological order (newest first) and pushed onto the
+        redo ring as a single batch — `redoLast()` re-applies the whole
+        chain atomically. Use `previewUndo` to find out which records
+        would be affected without actually doing the reversal. */
+    UndoResult undoByIndex (int recordIndex);
+
+    /** Read-only: returns the indices (into the current undo ring snapshot)
+        of records that would be reversed by `undoByIndex(recordIndex)` —
+        the target plus any later dependents whose groups intersect.
+        Phase 5c's toast overlay calls this on hover over a × button to
+        highlight the rows that would go away. */
+    juce::Array<int> previewUndo (int recordIndex) const;
+
+    /** Re-apply the newest record on the redo ring. Writes its `after_state`
+        and moves the record back onto the undo ring. If the popped record
+        is part of a batch (redoBatchId != 0), all consecutive batch
+        members are popped and re-applied in chronological order. */
+    UndoResult redoLast();
+
+    /** Called by the dispatcher whenever a new state-modifying tool call
+        lands. Standard undo/redo semantics: a fresh action invalidates any
+        pending redo history. */
+    void onNewStateModifyingRecord();
+
+    /** Read-only count of records currently on the redo ring. Useful for
+        the AI to know whether redo is available. */
+    int redoableCount() const;
+
+    /** Phase 5d: thread-safe copy of the redo ring for the AI History
+        window. Ordering matches `MCPChangeRecordBuffer::getRecent` —
+        oldest first, newest last. The newest entry is the next one
+        `redoLast()` would re-apply, so callers rendering a unified
+        timeline should place it adjacent to the cursor divider. */
+    std::vector<ChangeRecord> getRedoStackSnapshot() const;
+
+    /** Phase 5b Block 3: drain the pending cross-actor notifications.
+        Returns + clears the queue under lock. The dispatcher calls this
+        when assembling each tool-call response and, if non-empty, attaches
+        the array to the result envelope as `notifications`.
+        Each entry is a juce::var containing a DynamicObject with fields:
+        type, summary, parameter, channel_id, ai_value, current_value,
+        since_origin. */
+    juce::Array<juce::var> drainPendingNotifications();
+
+private:
+    /** Apply a record's `before_state` to the tree (= reversal). */
+    UndoResult applyReverse (const ChangeRecord& record);
+
+    /** Apply a record's `after_state` to the tree (= re-apply / redo). */
+    UndoResult applyForward (const ChangeRecord& record);
+
+    /** Shared write logic; `payload` is either the before_state or
+        after_state object, depending on direction. Caller is on the
+        message thread. Returns an error string on failure (empty on
+        success). */
+    juce::String writePayloadHere (const ChangeRecord& record,
+                                   const juce::var& payload);
+
+    /** Phase 5b: staleness check. Returns an UndoResult::fail with
+        errorCode "stale_target" when any of the record's
+        `affected_parameters` was last written by a non-MCP origin AFTER
+        the record's timestamp AND with a value that differs from the
+        AI's `after_state`. Returns an empty Optional-equivalent (i.e.
+        UndoResult{} with success=false but errorCode=="") when nothing
+        is stale — caller should proceed with the undo. */
+    UndoResult checkStalenessOrEmpty (const ChangeRecord& record) const;
+
+    /** ValueTree::Listener override — fires for any property change on
+        the root state tree or any child. Updates the lastWriter map. */
+    void valueTreePropertyChanged (juce::ValueTree& treeWhosePropertyChanged,
+                                   const juce::Identifier& property) override;
+
+    /** Per-parameter "most recent writer" entry. Updated on every
+        property change observed via valueTreePropertyChanged. */
+    struct LastWriter
+    {
+        OriginTag origin = OriginTag::None;
+        juce::Time when;
+        juce::var value;
+    };
+
+    WFSValueTreeState& state;
+    MCPChangeRecordBuffer& undoRing;
+    std::unique_ptr<MCPChangeRecordBuffer> redoRing;
+    int nextBatchId = 1;  // 0 = solo; we hand out positive ids for batches
+
+    std::map<juce::String, LastWriter> lastWriterByParamId;
+    mutable juce::CriticalSection lastWriterLock;
+
+    /** Pending cross-actor notifications (Phase 5b Block 3). Built by
+        valueTreePropertyChanged when a non-MCP write lands on a parameter
+        touched by an active record; drained by the dispatcher on each
+        tool-call response. De-duped by parameter id — a slider drag burst
+        produces a single accumulated notification, not 50 per second. */
+    juce::Array<juce::var> pendingNotifications;
+    juce::CriticalSection notificationsLock;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MCPUndoEngine)
+};
+
+} // namespace WFSNetwork

@@ -20,6 +20,12 @@
     <Filter Include="WFS-DIY\Source\Localization">
       <UniqueIdentifier>{22FC1E9C-400F-2066-80C3-1D14B0E53721}</UniqueIdentifier>
     </Filter>
+    <Filter Include="WFS-DIY\Source\Network\MCP\tools">
+      <UniqueIdentifier>{DB810070-EFF6-5861-5CE1-F6076CBBAF40}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="WFS-DIY\Source\Network\MCP">
+      <UniqueIdentifier>{59874F77-320F-76BD-B61C-9A7637CA0175}</UniqueIdentifier>
+    </Filter>
     <Filter Include="WFS-DIY\Source\Network">
       <UniqueIdentifier>{F0025758-791F-87C4-6ABD-F1E1A184504B}</UniqueIdentifier>
     </Filter>
@@ -931,6 +937,12 @@
     <ClCompile Include="..\..\Source\gui\NetworkLogWindow.cpp">
       <Filter>WFS-DIY\Source\gui</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Source\gui\MCPUndoOverlay.cpp">
+      <Filter>WFS-DIY\Source\gui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\gui\MCPHistoryWindow.cpp">
+      <Filter>WFS-DIY\Source\gui</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\Source\gui\OutputArrayHelperWindow.cpp">
       <Filter>WFS-DIY\Source\gui</Filter>
     </ClCompile>
@@ -967,6 +979,12 @@
     <ClCompile Include="..\..\Source\Network\OSCMessageRouter.cpp">
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Source\Network\OSCParameterBounds.cpp">
+      <Filter>WFS-DIY\Source\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Network\OSCIngestQueue.cpp">
+      <Filter>WFS-DIY\Source\Network</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\Source\Network\OSCManager.cpp">
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClCompile>
@@ -993,6 +1011,42 @@
     </ClCompile>
     <ClCompile Include="..\..\Source\Network\TrackingMQTTReceiver.cpp">
       <Filter>WFS-DIY\Source\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPLogger.cpp">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPChangeRecords.cpp">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPUndoEngine.cpp">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPTierEnforcement.cpp">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPOSCQueryAuditor.cpp">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPToolRegistry.cpp">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPDispatcher.cpp">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPTransport.cpp">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPServer.cpp">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPGeneratedToolLoader.cpp">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPResourceRegistry.cpp">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Network\MCP\MCPPromptRegistry.cpp">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
     </ClCompile>
     <ClCompile Include="..\..\ThirdParty\hidapi\HidApiPlatform.c">
       <Filter>WFS-DIY\Source\hidapi</Filter>
@@ -4278,6 +4332,12 @@
     <ClInclude Include="..\..\Source\gui\NetworkLogWindow.h">
       <Filter>WFS-DIY\Source\gui</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\gui\MCPUndoOverlay.h">
+      <Filter>WFS-DIY\Source\gui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\gui\MCPHistoryWindow.h">
+      <Filter>WFS-DIY\Source\gui</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\gui\OutputArrayHelperWindow.h">
       <Filter>WFS-DIY\Source\gui</Filter>
     </ClInclude>
@@ -4291,6 +4351,9 @@
       <Filter>WFS-DIY\Source\gui</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Helpers\ArrayGeometryCalculator.h">
+      <Filter>WFS-DIY\Source\Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Helpers\NumericGuards.h">
       <Filter>WFS-DIY\Source\Helpers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Accessibility\TTSManager.h">
@@ -4317,6 +4380,12 @@
     <ClInclude Include="..\..\Source\Network\OSCMessageRouter.h">
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\Network\OSCParameterBounds.h">
+      <Filter>WFS-DIY\Source\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\OSCIngestQueue.h">
+      <Filter>WFS-DIY\Source\Network</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\Network\OSCManager.h">
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClInclude>
@@ -4330,6 +4399,9 @@
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Network\OSCParser.h">
+      <Filter>WFS-DIY\Source\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\NetworkStringUtils.h">
       <Filter>WFS-DIY\Source\Network</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Network\OSCQueryServer.h">
@@ -4349,6 +4421,63 @@
     </ClInclude>
     <ClInclude Include="..\..\Source\Network\TrackingMQTTReceiver.h">
       <Filter>WFS-DIY\Source\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPLogger.h">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPChangeRecords.h">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPUndoEngine.h">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPTierEnforcement.h">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPOSCQueryAuditor.h">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPToolRegistry.h">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPDispatcher.h">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPTransport.h">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPServer.h">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPGeneratedToolLoader.h">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPResourceRegistry.h">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\MCPPromptRegistry.h">
+      <Filter>WFS-DIY\Source\Network\MCP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\SessionTools.h">
+      <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\InputTools.h">
+      <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\OutputTools.h">
+      <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\ReverbTools.h">
+      <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\SnapshotTools.h">
+      <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\UndoTools.h">
+      <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Network\MCP\tools\SetParameterTool.h">
+      <Filter>WFS-DIY\Source\Network\MCP\tools</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Controllers\PositionControl\ControllerEvent.h">
       <Filter>WFS-DIY\Source\Controllers\PositionControl</Filter>

@@ -17,6 +17,7 @@
 #include "LightpadTypes.h"
 #include "../../Parameters/WFSParameterIDs.h"
 #include "../../Parameters/WFSParameterDefaults.h"
+#include "../../Network/OSCProtocolTypes.h"
 
 class WfsParameters;  // forward declare
 
@@ -362,6 +363,11 @@ private:
     void handleZoneTouch (int zoneId, float dx, float dy, float pressure,
                           bool isStart, bool isEnd)
     {
+        // Phase 7: tag onTouchStart / onTouchEnd as hardware-origin so any
+        // ValueTree side effects (e.g. sample triggering) are correctly
+        // credited.
+        WFSNetwork::OriginTagScope originScope { WFSNetwork::OriginTag::Hardware };
+
         // Resolve zone → input channel for start/end callbacks
         auto it = zoneToInput.find (zoneId);
         int inputIdx = (it != zoneToInput.end()) ? it->second : -1;
@@ -389,6 +395,11 @@ private:
     //==============================================================================
     void timerCallback() override
     {
+        // Phase 7: every per-tick callback below performs a hardware-driven
+        // ValueTree write. Wrap once at the chokepoint so change records and
+        // cross-actor notifications credit the Lightpad.
+        WFSNetwork::OriginTagScope originScope { WFSNetwork::OriginTag::Hardware };
+
         for (auto& [zoneId, state] : zoneTouchState)
         {
             if (! state.active) continue;

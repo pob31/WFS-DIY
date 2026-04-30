@@ -51,8 +51,10 @@ public:
         repaint();
     }
 
-    /** Calculate the ideal height for a given width, based on text content. */
-    int getIdealHeight(int width) const
+    /** Calculate the ideal height for a given width, based on text content.
+        Marked virtual so subclasses (e.g. MCPHelpCard) can extend the
+        calculation for additional content like code blocks. */
+    virtual int getIdealHeight(int width) const
     {
         float scale = WfsLookAndFeel::uiScale;
         int padding = 28; // 14px each side
@@ -134,7 +136,15 @@ public:
 
     void resized() override
     {
-        auto area = getLocalBounds().reduced(14);
+        layoutHeader (getLocalBounds().reduced(14));
+    }
+
+protected:
+    /** Lays out title + illustration into `area` and writes the remainder
+        to `bodyLabel`. Subclasses can override `resized()` to reserve a
+        bottom strip first, then call this with the reduced area. */
+    void layoutHeader (juce::Rectangle<int> area)
+    {
         float scale = WfsLookAndFeel::uiScale;
 
         int titleH = (int)(34 * scale);
@@ -149,9 +159,10 @@ public:
             area.removeFromTop(imgH + 10);
         }
 
-        // Body takes remaining space
         bodyLabel.setBounds(area);
     }
+
+public:
 
     void mouseUp(const juce::MouseEvent& e) override
     {
@@ -174,7 +185,7 @@ public:
 
     std::function<void()> onDismissed;
 
-private:
+protected:
     float fontScale = 1.0f;
     juce::Label titleLabel;
     juce::Label bodyLabel;
@@ -187,7 +198,7 @@ private:
         repaint();
     }
 
-    void updateColors()
+    virtual void updateColors()
     {
         auto& palette = ColorScheme::get();
         float scale = WfsLookAndFeel::uiScale;
@@ -199,7 +210,120 @@ private:
         bodyLabel.setFont(juce::FontOptions().withHeight(juce::jmax(15.0f, 19.0f * scale * fontScale)));
     }
 
+private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(HelpCard)
+};
+
+//==============================================================================
+/**
+ * MCP-specific help card: regular HelpCard plus a read-only monospaced
+ * code block and a Copy button anchored to the bottom. Used for the
+ * "Open AI History" / MCP server help card on the Network tab where we
+ * want to show the JSON snippet operators paste into their AI client's
+ * config file. Other help cards stay as plain HelpCard.
+ */
+class MCPHelpCard : public HelpCard
+{
+public:
+    MCPHelpCard()
+    {
+        codeEditor.setMultiLine(true, true);
+        codeEditor.setReadOnly(true);
+        codeEditor.setScrollbarsShown(true);
+        codeEditor.setCaretVisible(false);
+        addChildComponent(codeEditor);  // hidden until setCodeBlock is called
+
+        copyButton.onClick = [this] { if (onCopyClicked) onCopyClicked(); };
+        addChildComponent(copyButton);
+
+        updateColors();
+    }
+
+    /** Read-only code block + Copy button shown below the body. Pass an
+        empty string to hide. The Copy button calls `onCopyClicked` — the
+        host wires that callback to whatever clipboard write makes sense
+        (the JSON snippet may differ from the displayed code if runtime
+        substitution is needed). */
+    void setCodeBlock(const juce::String& codeText,
+                      const juce::String& copyButtonLabel = "Copy")
+    {
+        const bool hasCode = codeText.isNotEmpty();
+        codeEditor.setText(codeText, juce::dontSendNotification);
+        codeEditor.setVisible(hasCode);
+        copyButton.setVisible(hasCode);
+        copyButton.setButtonText(copyButtonLabel);
+        updateColors();
+        resized();
+    }
+
+    /** Fired when the Copy button is clicked. Wired by the host. */
+    std::function<void()> onCopyClicked;
+
+    int getIdealHeight(int width) const override
+    {
+        const int base = HelpCard::getIdealHeight(width);
+        if (! codeEditor.isVisible())
+            return base;
+
+        float scale = WfsLookAndFeel::uiScale;
+        auto codeFont = juce::Font(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(),
+                                                     juce::jmax(12.0f, 13.0f * scale), juce::Font::plain));
+        float codeLineH = codeFont.getHeight() * 1.25f;
+        int codeLines = juce::jmin(14, juce::jmax(3, juce::StringArray::fromLines(codeEditor.getText()).size()));
+        int copyButtonH = (int)(28 * scale);
+        return base + (int)(codeLines * codeLineH) + 12 + copyButtonH + 12;
+    }
+
+    void resized() override
+    {
+        auto area = getLocalBounds().reduced(14);
+        if (codeEditor.isVisible())
+        {
+            float scale = WfsLookAndFeel::uiScale;
+            int copyButtonH = (int)(28 * scale);
+            int copyButtonW = (int)(110 * scale);
+
+            auto codeFont = juce::Font(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(),
+                                                         juce::jmax(12.0f, 13.0f * scale), juce::Font::plain));
+            float codeLineH = codeFont.getHeight() * 1.25f;
+            int codeLines = juce::jmin(14, juce::jmax(3, juce::StringArray::fromLines(codeEditor.getText()).size()));
+            int codeAreaH = (int)(codeLines * codeLineH) + 12 + copyButtonH + 12;
+            codeAreaH = juce::jmin(codeAreaH, area.getHeight() - 30);
+
+            auto codeArea = area.removeFromBottom(codeAreaH);
+            auto buttonRow = codeArea.removeFromBottom(copyButtonH);
+            copyButton.setBounds(buttonRow.removeFromRight(copyButtonW));
+            codeArea.removeFromBottom(8);
+            codeEditor.setBounds(codeArea);
+        }
+        layoutHeader(area);
+    }
+
+protected:
+    void updateColors() override
+    {
+        HelpCard::updateColors();
+
+        auto& palette = ColorScheme::get();
+        float scale = WfsLookAndFeel::uiScale;
+
+        codeEditor.setColour(juce::TextEditor::backgroundColourId, palette.background.darker(0.3f));
+        codeEditor.setColour(juce::TextEditor::textColourId,       palette.textPrimary);
+        codeEditor.setColour(juce::TextEditor::outlineColourId,    palette.buttonBorder);
+        codeEditor.setColour(juce::TextEditor::focusedOutlineColourId, palette.buttonBorder);
+        codeEditor.applyFontToAllText(juce::Font(juce::FontOptions(
+            juce::Font::getDefaultMonospacedFontName(),
+            juce::jmax(12.0f, 13.0f * scale), juce::Font::plain)));
+
+        copyButton.setColour(juce::TextButton::buttonColourId, palette.buttonNormal);
+        copyButton.setColour(juce::TextButton::textColourOffId, palette.textPrimary);
+    }
+
+private:
+    juce::TextEditor codeEditor;
+    juce::TextButton copyButton { "Copy" };
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MCPHelpCard)
 };
 
 //==============================================================================
