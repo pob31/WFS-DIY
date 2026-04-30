@@ -1622,7 +1622,13 @@ bool WFSValueTreeState::canRedo() const
 
 void WFSValueTreeState::beginUndoTransaction (const juce::String& transactionName)
 {
-    getActiveUndoManager()->beginNewTransaction (transactionName);
+    // MCP-origin writes bypass the JUCE UndoManager (see getActiveUndoManager
+    // — they get their own undo path through MCPUndoEngine). beginNewTransaction
+    // doesn't handle nullptr, while setProperty(..., nullptr) does. So when a
+    // structural write like setNumInputChannels happens under an MCP origin,
+    // we silently skip the transaction-naming step instead of crashing.
+    if (auto* mgr = getActiveUndoManager())
+        mgr->beginNewTransaction (transactionName);
 }
 
 void WFSValueTreeState::clearUndoHistory()
